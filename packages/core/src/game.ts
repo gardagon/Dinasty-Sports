@@ -12,6 +12,7 @@ import {
   type GameModule,
   type InitContext,
   type LogEntry,
+  type LogTable,
   type ReadContext,
   type StatId,
   type TimeView,
@@ -491,8 +492,8 @@ export class Game {
       setFlag: (key: string, value: unknown) => {
         s.flags[key] = value;
       },
-      log: (text: string, kind?: LogEntry['kind']) =>
-        this.pushLog({ minute: s.minute, module: moduleId, text, kind }),
+      log: (text: string, kind?: LogEntry['kind'], table?: LogTable) =>
+        this.pushLog({ minute: s.minute, module: moduleId, text, kind, ...(table ? { table } : {}) }),
       emit: <T>(event: GameEvent<T>) => {
         if (!event.type.startsWith(`${moduleId}.`) && !SHARED_EVENT_TYPES.has(event.type)) {
           throw new Error(

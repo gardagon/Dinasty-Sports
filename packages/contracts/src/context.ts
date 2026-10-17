@@ -2,12 +2,22 @@ import type { Rng } from './rng';
 import type { StatDef, StatId } from './stats';
 import type { TimeView } from './time';
 
+/** Tabla opcional que acompaña a una entrada del registro (p. ej. la clasificación de una carrera). */
+export interface LogTable {
+  header: string[];
+  rows: string[][];
+  /** Fila a resaltar (p. ej. la del personaje). */
+  highlight?: number;
+}
+
 /** Entrada del registro de la partida (lo que le pasa al personaje). */
 export interface LogEntry {
   minute: number;
   module: string;
   text: string;
   kind?: 'info' | 'logro' | 'aviso' | 'resultado';
+  /** Detalle en forma de tabla; la interfaz lo muestra desplegable. */
+  table?: LogTable;
 }
 
 export interface GameEvent<T = unknown> {
@@ -50,7 +60,7 @@ export interface ActionContext extends ReadContext {
   setState<S>(next: S): void;
   updateState<S>(fn: (current: S) => S): void;
   setFlag(key: string, value: unknown): void;
-  log(text: string, kind?: LogEntry['kind']): void;
+  log(text: string, kind?: LogEntry['kind'], table?: LogTable): void;
   emit<T>(event: GameEvent<T>): void;
 }
 

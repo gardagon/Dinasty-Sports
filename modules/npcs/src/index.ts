@@ -40,6 +40,8 @@ export interface Npc {
   levels: Record<string, number>;
   /** Nivel máximo al que puede llegar cada disciplina. */
   potential: Record<string, number>;
+  /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
+  ritmo?: Record<string, number>;
   description?: string;
   /** Último día de interacción con el personaje. */
   lastDay: number;
@@ -55,6 +57,8 @@ const NOMBRES: Record<Gender, string[]> = {
 };
 const APELLIDOS = ['García', 'Martín', 'López', 'Sánchez', 'Romero', 'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano'];
 
+/** Rivales de atletismo: suficientes para clasificatorias, lesiones y rotaciones futuras. */
+const NUM_RIVALES = 16;
 const UMBRAL_APOYO = 40;
 const DIAS_SIN_CONTACTO = 7;
 
@@ -108,14 +112,21 @@ function generarReparto(ctx: InitContext): Npc[] {
       supports: [TAGS.social, TAGS.ocio],
       description: 'Conoce a todo el mundo en el colegio.',
     })),
-    ...[0, 1, 2].map((i) =>
-      npc(`rival_${i + 1}`, 'rival', () => ({
-        tags: ['atleta'],
-        affinity: rng.int(15, 30),
-        levels: { atletismo: rng.range(30, 48) },
-        potential: { atletismo: rng.range(72, 92) },
-        description: 'Corre en tu categoría.',
-      })),
+    ...Array.from({ length: NUM_RIVALES }, (_, i) =>
+      npc(`rival_${i + 1}`, 'rival', () => {
+        // "Herencia": unos nacen con más potencial y otros salen ya con ventaja, pero no tiene por qué
+        // ganar el que más entrena. Todos progresan por su cuenta, sin mirar lo que haga el jugador.
+        const potencial = clamp(79 + rng.normal() * 9, 55, 99);
+        const nivel = clamp(29 + rng.normal() * 6 + (potencial - 79) * 0.35, 12, 54);
+        return {
+          tags: ['atleta'],
+          affinity: rng.int(15, 30),
+          levels: { atletismo: nivel },
+          potential: { atletismo: potencial },
+          ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
+          description: 'Corre en tu categoría.',
+        };
+      }),
     ),
   ];
 }
@@ -266,7 +277,8 @@ export const npcs = defineModule<NpcsState>({
           for (const [k, v] of Object.entries(levels)) {
             const pot = n.potential[k] ?? 80;
             // Los rivales progresan con rendimientos decrecientes hacia su potencial.
-            levels[k] = Math.min(pot, v + ctx.rng.range(0, 0.35) * (1 - v / pot) * 2);
+            const ritmo = n.ritmo?.[k] ?? 1;
+            levels[k] = Math.min(pot, v + ctx.rng.range(0, 0.35) * (1 - v / pot) * 2 * ritmo);
           }
           return { ...n, affinity, levels };
         }),

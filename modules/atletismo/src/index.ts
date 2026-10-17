@@ -31,6 +31,8 @@ export interface AtletismoState {
   sesionesHoy: { day: number; n: number };
   /** Último día que vio atletismo en la tele (una vez al día; ausente en partidas antiguas). */
   ultimaTele?: number;
+  /** Última semana en que cada rival corrió contra el jugador (para rotar la serie). */
+  ultimaCarreraRival?: Record<string, number>;
 }
 
 const DISCIPLINA = '400 m';
@@ -85,7 +87,42 @@ export function marca400(perf: number, rng: Rng): number {
   return Math.round(t * 100) / 100;
 }
 
+/** Corredores por serie (el jugador incluido). Sin NPCs se completa con corredores genéricos. */
 const PARTICIPANTES = 8;
+/** Al principio los mejores rivales corren siempre; pasadas estas semanas, la serie rota. */
+const CABEZAS_DE_SERIE = 3;
+const SEMANAS_CON_CABEZAS = 8;
+
+interface Corredor {
+  npcId?: string;
+  name: string;
+  level: number;
+}
+
+/**
+ * Elige los rivales de la serie entre los conocidos.
+ * - Las primeras semanas corren siempre los mejores (cabezas de serie), para que haya referentes claros.
+ * - El resto de plazas rota: más probable quien lleva más semanas sin correr. Se puede repetir.
+ */
+export function elegirRivales(
+  conocidos: Corredor[],
+  plazas: number,
+  week: number,
+  ultima: Record<string, number>,
+  rng: Rng,
+): Corredor[] {
+  if (conocidos.length <= plazas) return [...conocidos];
+  const pool = [...conocidos].sort((a, b) => b.level - a.level);
+  const elegidos = week < SEMANAS_CON_CABEZAS ? pool.splice(0, Math.min(CABEZAS_DE_SERIE, plazas)) : [];
+  while (elegidos.length < plazas) {
+    const pesos = pool.map((c) => 1 + Math.min(4, week - (c.npcId ? (ultima[c.npcId] ?? -5) : -5)));
+    let tirada = rng.range(0, pesos.reduce((a, b) => a + b, 0));
+    let i = 0;
+    while (i < pool.length - 1 && tirada >= pesos[i]) tirada -= pesos[i++];
+    elegidos.push(...pool.splice(i, 1));
+  }
+  return elegidos;
+}
 
 /** Rivales genéricos: rellenan la carrera hasta completar la serie (o todos, si no hay NPCs). */
 function rivalesGenericos(n: number, week: number, rng: Rng) {
@@ -222,12 +259,14 @@ export const atletismo = defineModule<AtletismoState>({
         const miMarca = marca400(rendimiento(ctx) * forma, ctx.rng);
 
         const npcs = ctx.service<NpcDirectory>(SERVICES.npcs);
-        const conocidos: { npcId?: string; name: string; level: number }[] = npcs
+        const conocidos: Corredor[] = npcs
           ? npcs.list({ tag: 'atleta' }).map((n) => ({ npcId: n.id, name: n.name, level: n.levels.atletismo ?? 30 }))
           : [];
-        const rivales: { npcId?: string; name: string; level: number }[] = [
-          ...conocidos,
-          ...rivalesGenericos(Math.max(0, PARTICIPANTES - 1 - conocidos.length), t.week, ctx.rng),
+        const previa = ctx.state<AtletismoState>().ultimaCarreraRival ?? {};
+        const elegidos = elegirRivales(conocidos, PARTICIPANTES - 1, t.week, previa, ctx.rng);
+        const rivales: Corredor[] = [
+          ...elegidos,
+          ...rivalesGenericos(Math.max(0, PARTICIPANTES - 1 - elegidos.length), t.week, ctx.rng),
         ];
 
         const participants: CompetitionResultData['participants'] = [
@@ -244,9 +283,29 @@ export const atletismo = defineModule<AtletismoState>({
           mejorMarca: record ? miMarca : s.mejorMarca,
           carreras: [...s.carreras, { week: t.week, position, total, mark: miMarca }].slice(-52),
           ultimaSemanaCarrera: t.week,
+          ultimaCarreraRival: {
+            ...previa,
+            ...Object.fromEntries(elegidos.filter((r) => r.npcId).map((r) => [r.npcId!, t.week])),
+          },
         });
 
-        ctx.log(`${DISCIPLINA}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${record ? ' (¡mejor marca personal!)' : ''}`, 'resultado');
+        const ganador = participants[0].mark;
+        const tabla = {
+          header: ['Pos.', 'Corredor', 'Tiempo', 'Dif.'],
+          rows: participants.map((p, i) => [
+            `${i + 1}º`,
+            p.name,
+            `${p.mark.toFixed(2)} s`,
+            i === 0 ? '—' : `+${(p.mark - ganador).toFixed(2)}`,
+          ]),
+          highlight: position - 1,
+        };
+        const dif = position === 1 ? '' : `, a ${(miMarca - ganador).toFixed(2)} s del 1º`;
+        ctx.log(
+          `${DISCIPLINA}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${dif}${record ? ' (¡mejor marca personal!)' : ''}`,
+          'resultado',
+          tabla,
+        );
         if (position === 1) ctx.addStat(GEN.motivacion, 6);
         else if (position <= 3) ctx.addStat(GEN.motivacion, 3);
         else if (position === total) ctx.addStat(GEN.motivacion, -3);
