@@ -116,8 +116,8 @@ function generarReparto(ctx: InitContext): Npc[] {
       npc(`rival_${i + 1}`, 'rival', () => {
         // "Herencia": unos nacen con más potencial y otros salen ya con ventaja, pero no tiene por qué
         // ganar el que más entrena. Todos progresan por su cuenta, sin mirar lo que haga el jugador.
-        const potencial = clamp(75 + rng.normal() * 9, 52, 98);
-        const nivel = clamp(28 + rng.normal() * 6 + (potencial - 75) * 0.35, 12, 52);
+        const potencial = clamp(79 + rng.normal() * 9, 55, 99);
+        const nivel = clamp(29 + rng.normal() * 6 + (potencial - 79) * 0.35, 12, 54);
         return {
           tags: ['atleta'],
           affinity: rng.int(15, 30),
