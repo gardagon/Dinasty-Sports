@@ -20,10 +20,11 @@ const fisica: DecayDef = { graceDays: 5, ratePerDay: 0.01, floorRatio: 0.85 };
 const mental: DecayDef = { graceDays: 10, ratePerDay: 0.005, floorRatio: 0.9 };
 const social: DecayDef = { graceDays: 14, ratePerDay: 0.004, floorRatio: 0.9 };
 
-const generica = (id: string, name: string, group: string, decay: DecayDef): StatDef => ({
+const generica = (id: string, name: string, group: string, decay: DecayDef, description: string): StatDef => ({
   id,
   name,
   group,
+  description,
   category: 'generica',
   initial: { min: 30, max: 50 },
   growth: { rate: 0.3, curve: 2 },
@@ -37,15 +38,27 @@ export const personaje = defineModule({
   name: 'Personaje',
   description: 'Características genéricas y estado del personaje.',
   stats: [
-    generica(GEN.fuerza, 'Fuerza', 'Físico', fisica),
-    generica(GEN.resistencia, 'Resistencia', 'Físico', fisica),
-    generica(GEN.velocidad, 'Velocidad', 'Físico', fisica),
-    generica(GEN.coordinacion, 'Coordinación', 'Físico', fisica),
-    generica(GEN.concentracion, 'Concentración', 'Mental', mental),
-    generica(GEN.memoria, 'Memoria', 'Mental', mental),
-    generica(GEN.disciplina, 'Disciplina', 'Mental', mental),
-    generica(GEN.carisma, 'Carisma', 'Social', social),
-    generica(GEN.trabajoEquipo, 'Trabajo en equipo', 'Social', social),
+    // Físicos
+    generica(GEN.velocidad, 'Velocidad', 'Físico', fisica, 'Desplazamiento puro: lo rápido que mueves el cuerpo de un punto a otro.'),
+    generica(GEN.fuerza, 'Fuerza', 'Físico', fisica, 'Potencia muscular: empujar, cargar, resistir un choque.'),
+    generica(GEN.resistencia, 'Resistencia', 'Físico', fisica, 'Cuánto aguanta el cuerpo el esfuerzo antes de ceder.'),
+    generica(GEN.constitucion, 'Constitución', 'Físico', fisica, 'Robustez del cuerpo: lesiones, recuperación y esfuerzo acumulado. Se forja con hábitos sostenidos.'),
+    generica(GEN.agilidad, 'Agilidad', 'Físico', fisica, 'Cambiar de dirección con rapidez y control.'),
+    generica(GEN.coordinacion, 'Coordinación', 'Físico', fisica, 'Precisión del movimiento: que el cuerpo haga lo que el cerebro ordena.'),
+    // Mentales
+    generica(GEN.inteligencia, 'Inteligencia', 'Mental', mental, 'Rapidez y calidad del razonamiento; entender y decidir bajo presión.'),
+    generica(GEN.concentracion, 'Concentración', 'Mental', mental, 'Mantener el foco durante periodos largos.'),
+    generica(GEN.determinacion, 'Determinación', 'Mental', mental, 'Empuje ante el esfuerzo y la dificultad; persistir cuando el progreso es lento.'),
+    generica(GEN.resiliencia, 'Resiliencia', 'Mental', mental, 'Recuperarse tras un fracaso, una lesión o una mala racha.'),
+    generica(GEN.atencion, 'Atención', 'Mental', mental, 'Captar lo relevante del entorno cuando hay mucho estímulo.'),
+    generica(GEN.creatividad, 'Creatividad', 'Mental', mental, 'Encontrar soluciones que nadie espera.'),
+    // Sociales
+    generica(GEN.carisma, 'Carisma', 'Social', social, 'Magnetismo natural: caer bien sin esforzarse.'),
+    generica(GEN.comunicacion, 'Comunicación', 'Social', social, 'Claridad al transmitir ideas, instrucciones y acuerdos.'),
+    generica(GEN.autoridad, 'Autoridad', 'Social', social, 'Capacidad de mando: el respeto que infundes al grupo.'),
+    generica(GEN.empatia, 'Empatía', 'Social', social, 'Leer lo que sienten los demás.'),
+    generica(GEN.picardia, 'Picardía', 'Social', social, 'Astucia para jugar al límite y salirte con la tuya.'),
+    generica(GEN.cooperacion, 'Cooperación', 'Social', social, 'Trabajar con otros hacia un objetivo común. (Provisional.)'),
     { id: GEN.energia, name: 'Energía', group: 'Estado', category: 'estado', initial: 90, resource: true },
     { id: GEN.salud, name: 'Salud', group: 'Estado', category: 'estado', initial: 90 },
     { id: GEN.estres, name: 'Estrés', group: 'Estado', category: 'estado', initial: 20 },
@@ -103,7 +116,7 @@ export const personaje = defineModule({
       delta: { [GEN.energia]: -5, [GEN.estres]: -2 },
       train: [
         { stat: GEN.concentracion, amount: 0.8 },
-        { stat: GEN.memoria, amount: 0.6 },
+        { stat: GEN.inteligencia, amount: 0.6 },
       ],
     },
     {
@@ -164,12 +177,12 @@ export const personaje = defineModule({
       },
     },
     {
-      id: 'gen.disciplina',
+      id: 'gen.determinacion',
       tags: [TAGS.entrenamiento, TAGS.estudio],
       apply: (ctx) => {
-        const c = 1.1 - 0.2 * ctx.norm(GEN.disciplina);
+        const c = 1.1 - 0.2 * ctx.norm(GEN.determinacion);
         if (Math.abs(c - 1) < 0.04) return null;
-        return { cost: c, reason: c < 1 ? 'Disciplina: cansa menos' : 'Poca disciplina: cansa más' };
+        return { cost: c, reason: c < 1 ? 'Determinación: cansa menos' : 'Poca determinación: cansa más' };
       },
     },
   ],
