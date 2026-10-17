@@ -34,4 +34,25 @@ describe('módulo atletismo', () => {
     const tercera = g.preview('atletismo.tecnica')!;
     expect(tercera.modifiers.some((m) => m.id === 'atletismo.sobrecarga')).toBe(true);
   });
+
+  it('el conocimiento del deporte arranca en 0, sube viendo atletismo y da bonus de eficiencia', () => {
+    const g = nueva();
+    expect(g.stat('atletismo.conocimiento')).toBe(0);
+    advanceTo(g, 'gen.descansar', 5, 15);
+    const inicial = g.preview('atletismo.series')!;
+    expect(inicial.modifiers.some((m) => m.id === 'atletismo.conocimiento')).toBe(true);
+    expect(inicial.efficiency).toBeLessThan(1);
+
+    expect(g.perform('atletismo.ver_tele').ok).toBe(true);
+    expect(g.stat('atletismo.conocimiento')).toBeGreaterThan(0);
+    expect(g.preview('atletismo.ver_tele')!.available).toBe(false);
+  });
+
+  it('el conocimiento no es una habilidad: no cambia las habilidades del deporte', () => {
+    const g = nueva();
+    advanceTo(g, 'gen.descansar', 5, 15);
+    const antes = g.stat('atletismo.tecnica');
+    g.perform('atletismo.ver_tele');
+    expect(g.stat('atletismo.tecnica')).toBe(antes);
+  });
 });

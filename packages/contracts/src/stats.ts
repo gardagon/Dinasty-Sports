@@ -10,8 +10,10 @@ export type StatId = string;
  * - `generica`: base física/mental/social que apoya a todas las habilidades (gen.*).
  * - `estado`: recursos que suben y bajan constantemente (energía, estrés...). No usan progresión.
  * - `habilidad`: específicas de un módulo (un deporte, una asignatura...).
+ * - `conocimiento`: comprensión de un deporte (táctica, rivales, ritmos). Progresa como una habilidad,
+ *   pero no es una habilidad: actúa como bonus o malus sobre las acciones del deporte y se olvida muy despacio.
  */
-export type StatCategory = 'generica' | 'estado' | 'habilidad';
+export type StatCategory = 'generica' | 'estado' | 'habilidad' | 'conocimiento';
 
 /** Influencia de otra característica (normalmente genérica) sobre esta. */
 export interface StatInfluence {

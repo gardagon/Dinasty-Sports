@@ -29,9 +29,14 @@ export interface AtletismoState {
   ultimaSemanaCarrera: number;
   /** Sesiones de entrenamiento hechas hoy (para la sobrecarga). */
   sesionesHoy: { day: number; n: number };
+  /** Último día que vio atletismo en la tele (una vez al día; ausente en partidas antiguas). */
+  ultimaTele?: number;
 }
 
 const DISCIPLINA = '400 m';
+const CONOCIMIENTO = 'atletismo.conocimiento';
+/** Efecto del conocimiento sobre la eficiencia de entrenar y competir: de ×0,90 (0) a ×1,15 (100). */
+const EFECTO_CONOCIMIENTO = { min: 0.9, rango: 0.25 };
 const SESIONES_SIN_SOBRECARGA = 2;
 
 /** Genérica que apoya a una habilidad y su peso sobre el ritmo de subida (el techo pesa la mitad). */
@@ -98,6 +103,25 @@ export const atletismo = defineModule<AtletismoState>({
   stats: [
     habilidad('tecnica', 'Técnica de carrera', [{ stat: GEN.coordinacion, weight: 0.4 }, { stat: GEN.agilidad, weight: 0.2 }], 'Zancada eficiente y postura.'),
     habilidad('ritmo', 'Gestión del ritmo', [{ stat: GEN.resistencia, weight: 0.4 }, { stat: GEN.inteligencia, weight: 0.2 }], 'Repartir el esfuerzo en la vuelta.'),
+    {
+      id: CONOCIMIENTO,
+      name: 'Conocimiento de atletismo',
+      description: 'Entender el deporte: ritmos, tácticas, quién sale mejor. Sube viendo y compitiendo, y casi no se olvida.',
+      group: 'Conocimiento',
+      category: 'conocimiento',
+      initial: 0,
+      talentSpread: 0,
+      growth: {
+        rate: 0.15,
+        curve: 1.2,
+        // Quien presta atención y razona bien aprende más de lo mismo.
+        speedFrom: [
+          { stat: GEN.atencion, weight: 0.6 },
+          { stat: GEN.inteligencia, weight: 0.4 },
+        ],
+      },
+      decay: { graceDays: 30, ratePerDay: 0.003, floorRatio: 0.95 },
+    },
     habilidad('salida', 'Salida y aceleración', [{ stat: GEN.velocidad, weight: 0.4 }, { stat: GEN.fuerza, weight: 0.2 }], 'Arrancar rápido desde los tacos.'),
   ],
 
@@ -106,6 +130,7 @@ export const atletismo = defineModule<AtletismoState>({
     carreras: [],
     ultimaSemanaCarrera: -1,
     sesionesHoy: { day: -1, n: 0 },
+    ultimaTele: -1,
   }),
 
   actions: [
@@ -134,6 +159,8 @@ export const atletismo = defineModule<AtletismoState>({
       train: [
         { stat: GEN.resistencia, amount: 1.2 },
         { stat: 'atletismo.ritmo', amount: 3 },
+        // Repartir el esfuerzo tiene parte táctica.
+        { stat: CONOCIMIENTO, amount: 0.5 },
       ],
     },
     {
@@ -148,6 +175,25 @@ export const atletismo = defineModule<AtletismoState>({
         { stat: 'atletismo.tecnica', amount: 3.5 },
         { stat: GEN.coordinacion, amount: 0.6 },
       ],
+    },
+    {
+      id: 'atletismo.ver_tele',
+      name: 'Ver atletismo en la tele',
+      description: 'Retransmisiones y carreras de otros: aprendes cómo se corre y quién sale mejor.',
+      tags: [TAGS.mental],
+      group: 'Tiempo libre',
+      duration: 90,
+      available: (ctx) => {
+        const t = ctx.time;
+        if ((ctx.state<AtletismoState>().ultimaTele ?? -1) === t.day) return 'Ya has visto atletismo hoy';
+        return inHours(t, t.isWeekend ? 10 : 18, 23) ? true : 'Retransmisiones: entre semana de 18 a 23, fines de semana de 10 a 23';
+      },
+      delta: { [GEN.energia]: -2, [GEN.estres]: -4 },
+      train: [
+        { stat: CONOCIMIENTO, amount: 1.5 },
+        { stat: GEN.atencion, amount: 0.2 },
+      ],
+      run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimaTele: ctx.time.day })),
     },
     {
       id: 'atletismo.carrera',
@@ -166,6 +212,8 @@ export const atletismo = defineModule<AtletismoState>({
       train: [
         { stat: 'atletismo.ritmo', amount: 1 },
         { stat: 'atletismo.salida', amount: 0.5 },
+        // La experiencia de carrera es la mejor escuela del deporte.
+        { stat: CONOCIMIENTO, amount: 2 },
       ],
       run: (ctx) => {
         const t = ctx.time;
@@ -215,6 +263,16 @@ export const atletismo = defineModule<AtletismoState>({
   ],
 
   modifiers: [
+    {
+      id: 'atletismo.conocimiento',
+      tags: ['atletismo'],
+      apply: (ctx, action) => {
+        if (!action.tags.includes(TAGS.entrenamiento) && !action.tags.includes(TAGS.competicion)) return null;
+        const f = EFECTO_CONOCIMIENTO.min + EFECTO_CONOCIMIENTO.rango * ctx.norm(CONOCIMIENTO);
+        if (Math.abs(f - 1) < 0.02) return null;
+        return { efficiency: f, reason: f < 1 ? 'Conoces poco el deporte' : 'Conocimiento del deporte' };
+      },
+    },
     {
       id: 'atletismo.sobrecarga',
       tags: ['atletismo'],

@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/10/2026 — Conocimiento del deporte (atletismo)
+
+Adapta E2.3 del backlog: en el diseño original el conocimiento era un **techo** de las habilidades; aquí es un **bonus/malus** aparte que no toca la skill.
+- **Nueva categoría de stat `conocimiento`** (contracts). Progresa como una habilidad, pero no cuenta como habilidad en las áreas de la simulación.
+- **`atletismo.conocimiento`:** arranca en 0 (no conoce el deporte). Sube más rápido con atención (0,6) e inteligencia (0,4). Decay muy suave: 30 días de gracia, 0,3 % diario, suelo al 95 % del máximo alcanzado.
+- **Efecto:** modificador `atletismo.conocimiento` sobre entrenar y competir, de ×0,90 (conocimiento 0) a ×1,15 (100). Afecta a lo que ganas entrenando y al "día" en la carrera, no a las habilidades directamente.
+- **Fuentes de subida:** competir (2), ver atletismo en la tele (1,5; una vez al día, entre semana de 18 a 23 y fines de semana de 10 a 23; también entrena atención), rodaje largo (0,5, parte táctica).
+- **Ritmo de subida ajustado con la simulación:** con 0,6 un jugador que veía la tele a diario llegaba a 96 en un año; con 0,15 llega a ~63 (el que solo entrena y compite, a ~14; quien deja el deporte se queda en ~14).
+- **Bots:** equilibrado y atleta ven la tele una vez al día. Los demás no (el vago no la elige: no lleva etiqueta de ocio a propósito).
+- **Efecto en la simulación:** los 11 chequeos en verde. Equilibrado: atletismo 67,5 → 67,2 y estudios 76,7 → 75,4 (ver la tele le quita tiempo de estudio). Resto sin cambios apreciables.
+- **Pendiente:** hablar con el entrenador no sube el conocimiento (el módulo de NPCs no puede referenciar stats de un deporte; hace falta un canal por etiquetas); usar el conocimiento para lecturas de "quién sale mejor" y opciones tácticas (necesita el sistema de decisiones); el segundo deporte definirá su propio conocimiento.
+
+---
+
 ## 17/10/2026 — E1.4 (conexión de stats nuevas) y PWA
 
 ### Stats nuevas conectadas
