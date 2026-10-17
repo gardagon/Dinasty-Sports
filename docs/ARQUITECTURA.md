@@ -45,6 +45,7 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
 |---|---|---|
 | `generica` | fuerza, velocidad, concentración, carisma | Se entrenan (lento). Son el **techo** y la **velocidad** de las habilidades. |
 | `habilidad` | matemáticas, técnica de carrera | Se entrenan. Cada módulo define las suyas. |
+| `conocimiento` | conocimiento de atletismo | Progresa como una habilidad pero no lo es: actúa como bonus/malus sobre las acciones del deporte (modificador) y se olvida muy despacio. Un deporte nuevo debería definir el suyo. |
 | `estado` | energía, salud, estrés, motivación | Cambian directamente. Modulan la eficiencia de todo. |
 
 **Subida** (`packages/core/src/progression.ts`):

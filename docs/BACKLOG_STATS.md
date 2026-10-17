@@ -52,7 +52,7 @@ El original usa tres capas: stats globales → conocimiento deportivo → habili
 |---|---|---|
 | E2.1 | Subtipos de habilidad: entrenable / derivada (calculada de otras) / oculta (solo el motor) | Hoy solo hay `habilidad` plana. ¿Hace falta ya con un solo deporte? 🟡 |
 | E2.2 | "Valor efectivo": la habilidad se multiplica por sus secundarias globales (×1,2 cada una) al competir | Hoy las globales solo afectan a ritmo y techo de crecimiento. Decidir si se sustituye o se suma 🟡 |
-| E2.3 | **Conocimiento deportivo** por deporte como segundo techo: `techo = min(límite genético, conocimiento × 1,2)`. Sube por competir (principal), entrenar con táctica (secundario) y estudio pasivo × inteligencia | Para atletismo habría que definirlo (¿táctica de carrera?). Diseñar la plantilla de deporte antes de tocar atletismo 🟡 |
+| E2.3 ✅ (atletismo) | **Conocimiento deportivo** como bonus/malus (no como techo): stat `conocimiento` por deporte, arranca en 0, sube viendo y compitiendo, decay muy suave | Adaptado del original (allí era techo `min(límite, conocimiento × 1,2)`). Falta el canal de entrenador y las lecturas tácticas (ver `DECISIONES.md`) |
 | E2.4 | Tabla global → habilidad técnica (qué stat alimenta qué habilidad) | Sección 12 del original: **pendiente allí**. La diseñamos aquí para atletismo y estudios |
 | E2.5 | Transferencias de entrenamiento (global→técnica 10–20 %, técnica→relacionada 15–25 %, técnica→global 3–5 %) declaradas en datos | Respetar la regla 4: se haría con `ctx.train`, nunca tocando habilidades de otro módulo |
 | E2.6 | Decay con multiplicador por inactividad semanal (con techo) y velocidad según edad | Requiere decidir si el personaje tiene **edad** (E3.1). Hoy: caída diaria tras N días de gracia |

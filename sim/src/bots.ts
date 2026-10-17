@@ -92,6 +92,7 @@ export const BOTS: Bot[] = [
           ['deporte', 1, entrenoDeporte],
           ['estudio', 1, estudio],
           ['relacion', 1, relacion],
+          ['tele', 1, id('atletismo.ver_tele')],
           ['ocio', 1, (o) => game.stat(GEN.estres) > 35 && tag(TAGS.ocio)(o)],
           ['gym', 1, id('gen.gimnasio')],
         ]) ??
@@ -126,6 +127,7 @@ export const BOTS: Bot[] = [
         seguirPlan(opts, mem, [
           ['deporte', 2, entrenoDeporte],
           ['entrenador', 1, (o) => relacion(o) && /entrenador/.test(o.name)],
+          ['tele', 1, id('atletismo.ver_tele')],
           ['gym', 1, id('gen.gimnasio')],
           ['ocio', 1, (o) => game.stat(GEN.estres) > 40 && tag(TAGS.ocio)(o)],
         ]) ??
