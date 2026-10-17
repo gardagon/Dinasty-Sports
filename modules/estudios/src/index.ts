@@ -57,13 +57,13 @@ const asignaturaStat = (a: Asignatura): StatDef => ({
     curve: 1.5,
     speedFrom: [
       { stat: GEN.concentracion, weight: 0.6 },
-      { stat: GEN.memoria, weight: 0.4 },
+      { stat: GEN.inteligencia, weight: 0.4 },
     ],
     cap: {
       base: 0.55,
       from: [
         { stat: GEN.concentracion, weight: 0.25 },
-        { stat: GEN.memoria, weight: 0.2 },
+        { stat: GEN.inteligencia, weight: 0.2 },
       ],
     },
   },
@@ -85,7 +85,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
   train: [
     { stat: statId(a.key), amount: 3 },
-    { stat: GEN.memoria, amount: 0.4 },
+    { stat: GEN.inteligencia, amount: 0.4 },
     { stat: GEN.concentracion, amount: 0.4 },
   ],
 });
@@ -133,8 +133,8 @@ export const estudios = defineModule<EstudiosState>({
       train: [
         ...ASIGNATURAS.map((a) => ({ stat: statId(a.key), amount: 0.5 })),
         { stat: GEN.concentracion, amount: 0.3 },
-        { stat: GEN.disciplina, amount: 0.3 },
-        { stat: GEN.trabajoEquipo, amount: 0.1 },
+        { stat: GEN.determinacion, amount: 0.3 },
+        { stat: GEN.cooperacion, amount: 0.1 },
       ],
       run: (ctx) => ctx.updateState<EstudiosState>((s) => ({ ...s, ultimaAsistencia: ctx.time.day })),
     },
@@ -149,7 +149,7 @@ export const estudios = defineModule<EstudiosState>({
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
       train: [
         ...ASIGNATURAS.map((a) => ({ stat: statId(a.key), amount: 1.2 })),
-        { stat: GEN.disciplina, amount: 0.3 },
+        { stat: GEN.determinacion, amount: 0.3 },
       ],
     },
   ],

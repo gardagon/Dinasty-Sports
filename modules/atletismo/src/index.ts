@@ -52,13 +52,13 @@ const habilidad = (
     curve: 1.5,
     speedFrom: [
       { stat: apoyo, weight: 0.6 },
-      { stat: GEN.disciplina, weight: 0.2 },
+      { stat: GEN.determinacion, weight: 0.2 },
     ],
     cap: {
       base: 0.55,
       from: [
         { stat: apoyo, weight: 0.3 },
-        { stat: GEN.disciplina, weight: 0.15 },
+        { stat: GEN.determinacion, weight: 0.15 },
       ],
     },
   },

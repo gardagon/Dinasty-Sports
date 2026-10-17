@@ -15,15 +15,28 @@ export const TAGS = {
 
 /** Stats genéricas y de estado que aporta el módulo `gen`. Otros módulos las referencian por id. */
 export const GEN = {
+  // Físicos
+  velocidad: 'gen.velocidad',
   fuerza: 'gen.fuerza',
   resistencia: 'gen.resistencia',
-  velocidad: 'gen.velocidad',
+  constitucion: 'gen.constitucion',
+  agilidad: 'gen.agilidad',
   coordinacion: 'gen.coordinacion',
+  // Mentales
+  inteligencia: 'gen.inteligencia',
   concentracion: 'gen.concentracion',
-  memoria: 'gen.memoria',
-  disciplina: 'gen.disciplina',
+  determinacion: 'gen.determinacion',
+  resiliencia: 'gen.resiliencia',
+  atencion: 'gen.atencion',
+  creatividad: 'gen.creatividad',
+  // Sociales (`cooperacion` es provisional hasta cerrar el diseño de los deportes de equipo)
   carisma: 'gen.carisma',
-  trabajoEquipo: 'gen.trabajo_equipo',
+  comunicacion: 'gen.comunicacion',
+  autoridad: 'gen.autoridad',
+  empatia: 'gen.empatia',
+  picardia: 'gen.picardia',
+  cooperacion: 'gen.cooperacion',
+  // Estado
   energia: 'gen.energia',
   salud: 'gen.salud',
   estres: 'gen.estres',

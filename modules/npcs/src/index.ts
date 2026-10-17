@@ -153,7 +153,7 @@ function interaccion(
     train: cfg.tags.includes(TAGS.social)
       ? [
           { stat: GEN.carisma, amount: 0.8 },
-          { stat: GEN.trabajoEquipo, amount: 0.3 },
+          { stat: GEN.cooperacion, amount: 0.3 },
         ]
       : [],
     run: (ctx) => {
