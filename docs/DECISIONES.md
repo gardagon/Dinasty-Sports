@@ -116,7 +116,8 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 - **Consecuencias de la salud muy baja:** ahora el bot que sobreentrena llega a salud 0 sin más castigo que rendir menos. Idea: lesión o baja médica que bloquee entrenar unos días.
 - **Segundo deporte:** validará que la plantilla de deporte funciona sin tocar el motor.
-- **Más vida para los NPCs:** eventos, conversaciones, rivalidades.
+- **Más vida para los NPCs:** eventos, conversaciones, rivalidades (los 16 rivales de atletismo ya existen y progresan; falta que sean personajes con historia).
+- **Plan de características, personalidad y perks:** ver `BACKLOG_STATS.md` (siguiente paso a decidir: E3 edad e identidad o el sistema de eventos y decisiones).
 - **Beca deportiva:** usar el servicio `estudios` (nota media) desde un deporte.
 - **App nativa en el móvil:** la PWA ya se instala desde el navegador; Capacitor solo si hace falta tienda de aplicaciones.
 - **Acciones de GitHub:** actualizar versiones cuando GitHub retire Node 20 en los runners (ahora sale un aviso, no un error).

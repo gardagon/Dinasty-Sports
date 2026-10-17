@@ -24,13 +24,14 @@ npm run dev        # abre la URL que aparece en la terminal
 | `packages/game` | Ensamblador: la lista de módulos del juego |
 | `modules/personaje` | Características genéricas y estado (energía, salud, estrés, motivación) |
 | `modules/estudios` | Clases, estudio, controles de los viernes |
-| `modules/atletismo` | Primer deporte: 400 m, entrenamientos por la tarde, carrera los sábados |
-| `modules/npcs` | Entrenador, tutor, compañeros y rivales que progresan |
+| `modules/atletismo` | Primer deporte: 400 m, entrenamientos por la tarde, carrera los sábados en series de 8, conocimiento del deporte |
+| `modules/npcs` | Entrenador, tutor, compañeros y 16 rivales de atletismo que progresan por su cuenta |
 | `sim` | Bots con estrategias distintas, chequeos de balance, informe HTML |
 | `apps/web` | Interfaz web (mobile-first) |
 
 La arquitectura y cómo añadir módulos están en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 Las decisiones tomadas y lo pendiente, en [`docs/DECISIONES.md`](docs/DECISIONES.md).
+El plan para ampliar características, personalidad y perks, en [`docs/BACKLOG_STATS.md`](docs/BACKLOG_STATS.md).
 
 ## Comandos
 
@@ -45,10 +46,14 @@ npm run nuevo-modulo -- natacion "Natación"
 
 ## Publicar la web
 
-1. En GitHub: **Settings → Pages → Source: GitHub Actions**.
-2. Pestaña **Actions → "Publicar web (GitHub Pages)" → Run workflow**.
+1. Una sola vez, en GitHub: **Settings → Pages → Source: GitHub Actions**.
+2. Después se publica sola en cada cambio que llega a `main`. También se puede lanzar a mano desde
+   **Actions → "Publicar web (GitHub Pages)" → Run workflow**.
 
-## Llevarlo a móvil
+## Instalarla en el móvil
 
-La web compila a estáticos con rutas relativas, lista para empaquetarse con
-[Capacitor](https://capacitorjs.com/) como app de Android o iOS cuando toque.
+La web es una PWA (manifiesto, iconos y service worker): funciona sin conexión y se instala desde el navegador.
+En Android (Chrome), **Instalar aplicación**; en iPhone (Safari), **Compartir → Añadir a pantalla de inicio**.
+Si cambias `apps/web/public/sw.js`, sube `VERSION` para que los móviles limpien la caché antigua.
+La web compila a estáticos con rutas relativas, así que también puede empaquetarse con
+[Capacitor](https://capacitorjs.com/) como app de tienda si hiciera falta.

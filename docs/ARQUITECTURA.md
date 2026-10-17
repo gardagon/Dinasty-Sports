@@ -39,11 +39,19 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
    - Servicios: un módulo publica una interfaz definida en contracts (`npcs`, `estudios`) y otro la
      consulta con `ctx.service()`. Quien consume debe funcionar también si el servicio no existe.
 
+## Resultados con tabla y plantilla de competición
+
+- `ctx.log(texto, tipo, tabla)` admite una **tabla opcional** (`LogTable`, en contracts: cabecera, filas y fila resaltada).
+  La web la muestra en el resultado de la acción y, desplegable, en el Diario. Un deporte nuevo publica así su clasificación sin tocar la interfaz.
+- Un deporte consulta a los rivales por el servicio `npcs` (etiqueta `atleta` en atletismo). Los rivales son NPC persistentes
+  con herencia propia (potencial, nivel inicial y ritmo) que progresan solos. La serie es de 8: los mejores rivales corren siempre
+  las primeras semanas y después las plazas rotan (ver `elegirRivales` en `modules/atletismo`).
+
 ## Características del personaje
 
 | Categoría | Ejemplos | Cómo cambian |
 |---|---|---|
-| `generica` | fuerza, velocidad, concentración, carisma | Se entrenan (lento). Son el **techo** y la **velocidad** de las habilidades. |
+| `generica` | fuerza, velocidad, inteligencia, carisma | Se entrenan (lento). Son el **techo** y la **velocidad** de las habilidades. Hay 19: 6 físicas, 6 mentales y 6 sociales (`cooperacion` es provisional). |
 | `habilidad` | matemáticas, técnica de carrera | Se entrenan. Cada módulo define las suyas. |
 | `conocimiento` | conocimiento de atletismo | Progresa como una habilidad pero no lo es: actúa como bonus/malus sobre las acciones del deporte (modificador) y se olvida muy despacio. Un deporte nuevo debería definir el suyo. |
 | `estado` | energía, salud, estrés, motivación | Cambian directamente. Modulan la eficiencia de todo. |
@@ -103,6 +111,7 @@ cualquier deporte nuevo sin tocar su código. Después se ejecutan chequeos de s
 - Nadie llega a 90 antes de la semana 12.
 - Dejar un deporte hace caer las habilidades entre un 3 % y un 40 %.
 - No hay una estrategia que gane en todo.
+- Las carreras son una competición real: el atleta no las gana todas, sube al podio algunas veces y supera al equilibrado.
 - Las estrategias razonables mantienen la salud.
 
 Informe: `sim/reports/ultimo/informe.html` (gráficas semana a semana por área y estrategia).
