@@ -156,7 +156,21 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
     add(!dominante, 'aviso', 'No hay estrategia dominante', dominante ? `"${ganadores[0]}" gana en todas las áreas.` : `Mejores por área: ${habAreas.map((a, i) => `${a.label}: ${ganadores[i]}`).join(', ')}.`);
   }
 
-  // 10. Jugar con sentido no destroza la salud
+  // 10. Las carreras son una competición de verdad: ni decididas de antemano ni imposibles
+  if (atl && eq && atl.extras.carreras) {
+    const carreras = atl.extras.carreras;
+    const vict = (atl.extras.victorias ?? 0) / carreras;
+    const podAtl = (atl.extras.podios ?? 0) / carreras;
+    const podEq = (eq.extras.podios ?? 0) / Math.max(1, eq.extras.carreras ?? carreras);
+    add(
+      vict < 0.6 && podAtl > 0.05 && podEq < podAtl,
+      'aviso',
+      'Las carreras son una competición real',
+      `Atleta: ${f(vict * 100, 0)} % de victorias y ${f(podAtl * 100, 0)} % de podios; equilibrado: ${f(podEq * 100, 0)} % de podios (esperado: atleta gana < 60 %, sube al podio algunas veces y supera al equilibrado).`,
+    );
+  }
+
+  // 11. Jugar con sentido no destroza la salud
   const sanos = sum.filter((s) => !['sobreentrena', 'aleatorio'].includes(s.bot));
   const enfermos = sanos.filter((s) => (s.final['gen.salud'] ?? 100) < 50).map((s) => `${s.bot} (${f(s.final['gen.salud'])})`);
   add(enfermos.length === 0, 'aviso', 'Las estrategias razonables mantienen la salud', enfermos.length ? `Salud < 50: ${enfermos.join(', ')}` : 'Correcto.');

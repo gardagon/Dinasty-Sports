@@ -1,5 +1,5 @@
 import './style.css';
-import { GEN, MINUTES_PER_DAY, SERVICES, timeView, type NpcDirectory, type StudiesService } from '@ds/contracts';
+import { GEN, MINUTES_PER_DAY, SERVICES, timeView, type LogTable, type NpcDirectory, type StudiesService } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
 
@@ -130,6 +130,14 @@ function viewDay(g: Game): string {
   </header>`;
 }
 
+function viewTable(t: LogTable): string {
+  const head = t.header.map((h) => `<th>${esc(h)}</th>`).join('');
+  const rows = t.rows
+    .map((r, i) => `<tr${i === t.highlight ? ' class="me"' : ''}>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`)
+    .join('');
+  return `<details class="table" open><summary>Clasificación</summary><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></details>`;
+}
+
 function viewResult(): string {
   if (!lastResult) return '';
   const { name, result } = lastResult;
@@ -141,7 +149,9 @@ function viewResult(): string {
     .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
     .map(([id, d]) => signedChange(id, d))
     .join('');
-  const log = result.log.map((l) => `<p class="${l.kind === 'aviso' ? 'loss' : ''}">${esc(l.text)}</p>`).join('');
+  const log = result.log
+    .map((l) => `<p class="${l.kind === 'aviso' ? 'loss' : ''}">${esc(l.text)}</p>${l.table ? viewTable(l.table) : ''}`)
+    .join('');
   return `<section class="sheet result${fresh}" aria-live="polite">
     <p><b>${esc(name)}</b> <span class="note">${fmtDur(result.duration)}${result.efficiency !== 1 ? `, rendimiento ${pct(result.efficiency)}` : ''}</span></p>
     ${changes ? `<div class="changes">${changes}</div>` : ''}
@@ -260,7 +270,7 @@ function viewLog(g: Game): string {
     .reverse()
     .map((l) => {
       const t = timeView(l.minute);
-      return `<li><time>${DIAS[t.weekday].slice(0, 3)} ${hhmm(t.minuteOfDay)}</time><span class="${l.kind ?? ''}">${esc(l.text)}</span></li>`;
+      return `<li><time>${DIAS[t.weekday].slice(0, 3)} ${hhmm(t.minuteOfDay)}</time><span class="${l.kind ?? ''}">${esc(l.text)}${l.table ? viewTable({ ...l.table }).replace(' open>', '>') : ''}</span></li>`;
     })
     .join('');
   return `<section class="sheet"><h2>Diario</h2>${items ? `<ul class="log">${items}</ul>` : '<p class="note">Aún no ha pasado nada destacable.</p>'}</section>`;

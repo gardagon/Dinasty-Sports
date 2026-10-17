@@ -85,6 +85,7 @@ export function marca400(perf: number, rng: Rng): number {
   return Math.round(t * 100) / 100;
 }
 
+/** Tamaño mínimo de la serie: sin NPCs se completa con corredores genéricos; con NPCs corren todos los conocidos. */
 const PARTICIPANTES = 8;
 
 /** Rivales genéricos: rellenan la carrera hasta completar la serie (o todos, si no hay NPCs). */
@@ -246,7 +247,23 @@ export const atletismo = defineModule<AtletismoState>({
           ultimaSemanaCarrera: t.week,
         });
 
-        ctx.log(`${DISCIPLINA}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${record ? ' (¡mejor marca personal!)' : ''}`, 'resultado');
+        const ganador = participants[0].mark;
+        const tabla = {
+          header: ['Pos.', 'Corredor', 'Tiempo', 'Dif.'],
+          rows: participants.map((p, i) => [
+            `${i + 1}º`,
+            p.name,
+            `${p.mark.toFixed(2)} s`,
+            i === 0 ? '—' : `+${(p.mark - ganador).toFixed(2)}`,
+          ]),
+          highlight: position - 1,
+        };
+        const dif = position === 1 ? '' : `, a ${(miMarca - ganador).toFixed(2)} s del 1º`;
+        ctx.log(
+          `${DISCIPLINA}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${dif}${record ? ' (¡mejor marca personal!)' : ''}`,
+          'resultado',
+          tabla,
+        );
         if (position === 1) ctx.addStat(GEN.motivacion, 6);
         else if (position <= 3) ctx.addStat(GEN.motivacion, 3);
         else if (position === total) ctx.addStat(GEN.motivacion, -3);

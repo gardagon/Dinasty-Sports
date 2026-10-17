@@ -33,7 +33,13 @@ describe('integración de módulos', () => {
     const antes = g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.affinity;
     const r = g.perform('atletismo.carrera');
     expect(r.ok).toBe(true);
-    expect(r.log.some((l) => /de 8/.test(l.text))).toBe(true); // tú + 3 rivales NPC + 4 genéricos
+    const entrada = r.log.find((l) => /de 17/.test(l.text)); // tú + 16 rivales NPC
+    expect(entrada).toBeDefined();
+    // La carrera deja una clasificación con nombres, posiciones y tiempos.
+    expect(entrada!.table?.rows).toHaveLength(17);
+    expect(entrada!.table?.header).toEqual(['Pos.', 'Corredor', 'Tiempo', 'Dif.']);
+    const mia = entrada!.table!.rows[entrada!.table!.highlight!];
+    expect(mia[1]).toBe('Tú');
     expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.affinity).toBeGreaterThan(antes);
   });
 

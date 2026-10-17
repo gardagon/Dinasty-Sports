@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/10/2026 — Rivales persistentes y clasificación de la carrera
+
+Motivo: competir contra 3 NPC y 4 corredores inventados en cada carrera era plano; no había forma de saber si mejorabas respecto a alguien concreto.
+- **16 rivales NPC persistentes** (`rival_1` a `rival_16`, módulo `npcs`), con nombre y género. En la carrera corren todos contra el jugador (17 en total). Con 16 queda margen para lesiones, clasificatorias y rotaciones futuras. Sin el módulo de NPCs, atletismo sigue completando la serie con corredores genéricos hasta 8.
+- **Rivales paralelos, no adaptativos:** cada uno progresa por su cuenta (nivel inicial, potencial y ritmo de progreso propios), sin mirar lo que haga el jugador. No tiene por qué ser el mejor quien más entrena.
+- **"Herencia":** el potencial sale de una normal (media 75, desviación 9, entre 52 y 98); el nivel inicial depende de él (media 28, +0,35 por cada punto de potencial sobre 75); el ritmo de progreso (×1 de media, entre 0,55 y 1,5) es su constancia. Unos nacen con ventaja y otros con más techo.
+- **Resultado visible:** `ctx.log` admite una tabla opcional (`LogTable`, en contracts). Atletismo publica la clasificación completa (posición, nombre, tiempo y diferencia con el 1º) y la web la muestra en el resultado y, desplegable, en el Diario. Cualquier deporte nuevo puede usarla.
+- **Nuevo chequeo en la simulación:** "Las carreras son una competición real" (el atleta gana < 60 % de las carreras, sube al podio algunas veces y supera al equilibrado).
+- **Simulación (5 semillas, un año):** atleta, 11 % de victorias y 52 % de podios; equilibrado, 3 % de podios; los 12 chequeos en verde. Con la primera calibración (media 72 y nivel inicial 26) el atleta ganaba el 23 % y llegaba al 68 % de podios: se subió el nivel de los rivales. La variación entre semillas es grande a propósito (cada partida tiene su grupo de rivales).
+- **Partidas antiguas:** conservan sus 3 rivales; los 16 aparecen al empezar una partida nueva.
+- **Pendiente:** el azar de los rivales comparte el generador de la partida, así que lo que haga el jugador altera sus tiradas aunque su ritmo sea independiente; rivalidades y eventos con rivales concretos; lesiones y clasificatorias; la pestaña Relaciones muestra el nivel exacto de cada rival (a futuro, filtrado por inteligencia, E3.4).
+
+---
+
 ## 17/10/2026 — Conocimiento del deporte (atletismo)
 
 Adapta E2.3 del backlog: en el diseño original el conocimiento era un **techo** de las habilidades; aquí es un **bonus/malus** aparte que no toca la skill.
