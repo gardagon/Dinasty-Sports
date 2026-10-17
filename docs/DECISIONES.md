@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/10/2026 — Ampliar características (decisiones previas)
+
+Se estudian los documentos de diseño de la versión Godot para enriquecer al personaje. No es una migración: es un catálogo adaptable. Backlog en `BACKLOG_STATS.md`.
+- **Ids en español**, sin adoptar la regla de ids en inglés del original.
+- **`trabajo_equipo` se elimina** (choca con una habilidad del fútbol) y se sustituye de forma provisional por `cooperacion`.
+- **`memoria` → `inteligencia`** y **`disciplina` → `determinacion`**; se añaden constitución, agilidad, resiliencia, atención, creatividad, comunicación, autoridad, empatía y picardía.
+- **El rendimiento académico se queda en `estudios`**, no es stat global.
+- Aún sin implementar: el backlog se revisará épica a épica antes de tocar código.
+
+---
+
 ## 17/10/2026 — Base del proyecto
 
 ### Diseño de juego
