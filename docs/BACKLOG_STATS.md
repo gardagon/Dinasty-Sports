@@ -39,10 +39,10 @@ Lista objetivo (17 + 1 provisional; el documento dice "20" pero suma 6+6+5+1 = 1
 | E1.1 ✅ | Añadir los ids nuevos a `GEN` (contracts) y declararlos en `modules/personaje` con descripción en español | Concordar textos; `constitucion` no se entrena directamente (ver E3) |
 | E1.2 ✅ | Renombrar `memoria→inteligencia`, `disciplina→determinacion`, `trabajo_equipo→cooperacion` en atletismo, estudios, personaje, npcs y tests | Revisar la acción `gen.disciplina` de personaje: Resuelto: era un modificador, pasa a `gen.determinacion` con el mismo efecto |
 | E1.3 | Decidir si los renombrados migran partidas guardadas o se rompe compatibilidad | Aún no hay partidas publicadas → recomendado romper |
-| E1.4 | Reenganchar `speedFrom` y `cap.from` de atletismo y estudios a los stats nuevos | Depende de la tabla global→técnico (E2.4), que en el original está **pendiente** |
+| E1.4 ✅ | Reenganchar `speedFrom` y `cap.from` de atletismo y estudios a los stats nuevos | Hecho con una tabla propia para atletismo y estudios (ver `DECISIONES.md`). La tabla completa (E2.4) sigue abierta. Con edades se podrán añadir modificadores |
 | E1.5 | Ajustar el decay por categoría: mentales sin decay práctico, sociales por falta de interacción, físicos los más sensibles | Ahora todos decaen por días sin practicar. Ver E2.6 |
 | E1.6 | Mostrar los grupos nuevos en la web y en los tests de "carga solo con `gen`" | `apps/web/src/main.ts` |
-| E1.7 | `npm run sim` antes y después; documentar en `DECISIONES.md` | Sin estas conexiones los nuevos stats serían decorativos: no cerrar E1 sin E1.4 |
+| E1.7 ✅ | `npm run sim` antes y después; documentar en `DECISIONES.md` | Sin estas conexiones los nuevos stats serían decorativos: no cerrar E1 sin E1.4 |
 
 ## E2 · Estructura de habilidades — 🟡 · Fidelidad: media
 

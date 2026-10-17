@@ -34,12 +34,10 @@ export interface AtletismoState {
 const DISCIPLINA = '400 m';
 const SESIONES_SIN_SOBRECARGA = 2;
 
-const habilidad = (
-  key: string,
-  name: string,
-  apoyo: string,
-  description: string,
-): StatDef => ({
+/** Genérica que apoya a una habilidad y su peso sobre el ritmo de subida (el techo pesa la mitad). */
+type Apoyo = { stat: string; weight: number };
+
+const habilidad = (key: string, name: string, apoyos: Apoyo[], description: string): StatDef => ({
   id: `atletismo.${key}`,
   name,
   description,
@@ -50,16 +48,10 @@ const habilidad = (
   growth: {
     rate: 0.5,
     curve: 1.5,
-    speedFrom: [
-      { stat: apoyo, weight: 0.6 },
-      { stat: GEN.determinacion, weight: 0.2 },
-    ],
+    speedFrom: [...apoyos, { stat: GEN.determinacion, weight: 0.2 }],
     cap: {
       base: 0.55,
-      from: [
-        { stat: apoyo, weight: 0.3 },
-        { stat: GEN.determinacion, weight: 0.15 },
-      ],
+      from: [...apoyos.map((a) => ({ stat: a.stat, weight: a.weight / 2 })), { stat: GEN.determinacion, weight: 0.15 }],
     },
   },
   decay: { graceDays: 4, ratePerDay: 0.012, floorRatio: 0.7 },
@@ -104,9 +96,9 @@ export const atletismo = defineModule<AtletismoState>({
   description: '400 metros lisos. Entrena por la tarde y compite los sábados.',
   dependsOn: ['gen'],
   stats: [
-    habilidad('tecnica', 'Técnica de carrera', GEN.coordinacion, 'Zancada eficiente y postura.'),
-    habilidad('ritmo', 'Gestión del ritmo', GEN.resistencia, 'Repartir el esfuerzo en la vuelta.'),
-    habilidad('salida', 'Salida y aceleración', GEN.velocidad, 'Arrancar rápido desde los tacos.'),
+    habilidad('tecnica', 'Técnica de carrera', [{ stat: GEN.coordinacion, weight: 0.4 }, { stat: GEN.agilidad, weight: 0.2 }], 'Zancada eficiente y postura.'),
+    habilidad('ritmo', 'Gestión del ritmo', [{ stat: GEN.resistencia, weight: 0.4 }, { stat: GEN.inteligencia, weight: 0.2 }], 'Repartir el esfuerzo en la vuelta.'),
+    habilidad('salida', 'Salida y aceleración', [{ stat: GEN.velocidad, weight: 0.4 }, { stat: GEN.fuerza, weight: 0.2 }], 'Arrancar rápido desde los tacos.'),
   ],
 
   initState: () => ({
@@ -211,6 +203,8 @@ export const atletismo = defineModule<AtletismoState>({
         else if (position <= 3) ctx.addStat(GEN.motivacion, 3);
         else if (position === total) ctx.addStat(GEN.motivacion, -3);
         if (record) ctx.addStat(GEN.motivacion, 2);
+        // Los golpes curten: perder entrena la resiliencia mucho más que ganar.
+        ctx.train(GEN.resiliencia, position > total / 2 ? 0.8 : 0.2);
 
         ctx.emit<CompetitionResultData>({
           type: SHARED_EVENTS.COMPETITION_RESULT,

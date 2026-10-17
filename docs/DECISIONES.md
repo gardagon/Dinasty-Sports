@@ -5,6 +5,28 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/10/2026 — E1.4 (conexión de stats nuevas) y PWA
+
+### Stats nuevas conectadas
+Se mantiene la suma de pesos de antes (ritmo de subida y techo); solo cambia el reparto. Cuando se implementen las edades se podrán añadir modificadores.
+- **Atletismo** (cada una conserva `determinacion` 0,2 de ritmo y 0,15 de techo; el techo pesa la mitad que el ritmo):
+  técnica ← coordinación 0,4 + agilidad 0,2 · ritmo ← resistencia 0,4 + inteligencia 0,2 · salida ← velocidad 0,4 + fuerza 0,2.
+- **Estudios** (ritmo suma 1; techo suma 0,45 con el mismo reparto):
+  matemáticas ← inteligencia 0,5 + concentración 0,5 · lengua ← inteligencia 0,35 + comunicación 0,35 + concentración 0,3 · ciencias ← inteligencia 0,4 + atención 0,3 + creatividad 0,3.
+- **Qué entrena a los nuevos:** ir a clase → atención · estudiar lengua → comunicación · estudiar ciencias → creatividad · hablar con el entrenador y tutoría → comunicación (+ carisma) · quedar con un compañero → carisma, empatía y cooperación · perder una carrera → resiliencia (+0,8; ganar, +0,2).
+- **Sin fuente de subida todavía:** `constitucion` (E3), `autoridad` y `picardia` (necesitan eventos/decisiones).
+
+### Simulación antes/después de E1.4
+Los 11 chequeos siguen en verde. Estudios baja algo: equilibrado 80,2 → 76,7 y empollón 89,4 → 84,6 (nota media 8,5 → 8,2 y 9,4 → 9,0). Causa: las asignaturas dependen ahora de stats que arrancan igual de bajos pero se entrenan menos que la concentración. Atletismo apenas varía (±1). No se ajusta ahora; revisar si al implementar edades se mueve más.
+
+### PWA
+- La web ya es instalable: manifiesto (`apps/web/public/manifest.webmanifest`), iconos (192, 512, maskable y Apple), service worker (`sw.js`, red primero para la página y copia guardada para el resto, funciona sin conexión) y registro solo en producción.
+- Verificado en Chromium contra la compilación de producción: service worker activo, manifiesto e iconos con 200.
+- Al cambiar `sw.js` hay que subir `VERSION` para limpiar la caché antigua.
+- Pendiente: app nativa con Capacitor (no necesaria para instalar desde el navegador).
+
+---
+
 ## 17/10/2026 — Ampliar características (decisiones previas)
 
 Se estudian los documentos de diseño de la versión Godot para enriquecer al personaje. No es una migración: es un catálogo adaptable. Backlog en `BACKLOG_STATS.md`.
@@ -67,5 +89,5 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Más vida para los NPCs:** eventos, conversaciones, rivalidades.
 - **Beca deportiva:** usar el servicio `estudios` (nota media) desde un deporte.
 - **Publicar la web:** activar GitHub Pages (Settings → Pages → Source: GitHub Actions).
-- **App instalable en el móvil:** añadir manifiesto web (pantalla de inicio) y, más adelante, Capacitor.
+- **App nativa en el móvil:** la PWA ya se instala desde el navegador; Capacitor solo si hace falta tienda de aplicaciones.
 - **Acciones de GitHub:** actualizar versiones cuando GitHub retire Node 20 en los runners (ahora sale un aviso, no un error).

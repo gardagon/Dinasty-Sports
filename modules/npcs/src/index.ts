@@ -136,7 +136,16 @@ const clamp = (v: number, a = 0, b = 100) => Math.min(b, Math.max(a, v));
 
 function interaccion(
   n: Npc,
-  cfg: { suffix: string; name: string; duration: number; tags: string[]; ganancia: number; horario: (ctx: ReadContext) => true | string },
+  cfg: {
+    suffix: string;
+    name: string;
+    duration: number;
+    tags: string[];
+    ganancia: number;
+    /** Genéricas que entrena la interacción. */
+    train: { stat: string; amount: number }[];
+    horario: (ctx: ReadContext) => true | string;
+  },
 ): ActionDef {
   return {
     id: `npcs.${cfg.suffix}.${n.id}`,
@@ -150,12 +159,7 @@ function interaccion(
       return cfg.horario(ctx);
     },
     delta: cfg.tags.includes(TAGS.ocio) ? { [GEN.energia]: -6, [GEN.estres]: -6 } : { [GEN.energia]: -3 },
-    train: cfg.tags.includes(TAGS.social)
-      ? [
-          { stat: GEN.carisma, amount: 0.8 },
-          { stat: GEN.cooperacion, amount: 0.3 },
-        ]
-      : [],
+    train: cfg.train,
     run: (ctx) => {
       ctx.updateState<NpcsState>((s) => ({
         npcs: s.npcs.map((x) =>
@@ -189,6 +193,11 @@ export const npcs = defineModule<NpcsState>({
             duration: 120,
             tags: [TAGS.social, TAGS.ocio],
             ganancia: 5,
+            train: [
+              { stat: GEN.carisma, amount: 0.8 },
+              { stat: GEN.empatia, amount: 0.4 },
+              { stat: GEN.cooperacion, amount: 0.3 },
+            ],
             horario: fueraDeClase(10, 22),
           }),
         );
@@ -200,6 +209,10 @@ export const npcs = defineModule<NpcsState>({
             duration: 30,
             tags: [TAGS.social],
             ganancia: 4,
+            train: [
+              { stat: GEN.comunicacion, amount: 0.6 },
+              { stat: GEN.carisma, amount: 0.3 },
+            ],
             horario: (c) => (c.time.isWeekend ? fueraDeClase(9, 14)(c) : fueraDeClase(15, 21)(c)),
           }),
         );
@@ -211,6 +224,10 @@ export const npcs = defineModule<NpcsState>({
             duration: 30,
             tags: [TAGS.social, TAGS.estudio],
             ganancia: 4,
+            train: [
+              { stat: GEN.comunicacion, amount: 0.6 },
+              { stat: GEN.carisma, amount: 0.3 },
+            ],
             horario: (c) => (!c.time.isWeekend && inHours(c.time, 14, 17) ? true : 'Tutorías de lunes a viernes, 14 a 17'),
           }),
         );

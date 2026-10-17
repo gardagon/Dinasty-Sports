@@ -24,12 +24,30 @@ import {
 interface Asignatura {
   key: string;
   name: string;
+  /** Genéricas que aceleran la asignatura (suman 1) y que además entrena estudiarla. */
+  apoyos: { stat: string; weight: number }[];
+  /** Genérica extra que entrena estudiar esta asignatura (si la hay). */
+  entrena?: { stat: string; amount: number };
 }
 
 export const ASIGNATURAS: readonly Asignatura[] = [
-  { key: 'matematicas', name: 'Matemáticas' },
-  { key: 'lengua', name: 'Lengua' },
-  { key: 'ciencias', name: 'Ciencias' },
+  {
+    key: 'matematicas',
+    name: 'Matemáticas',
+    apoyos: [{ stat: GEN.inteligencia, weight: 0.5 }, { stat: GEN.concentracion, weight: 0.5 }],
+  },
+  {
+    key: 'lengua',
+    name: 'Lengua',
+    apoyos: [{ stat: GEN.inteligencia, weight: 0.35 }, { stat: GEN.comunicacion, weight: 0.35 }, { stat: GEN.concentracion, weight: 0.3 }],
+    entrena: { stat: GEN.comunicacion, amount: 0.3 },
+  },
+  {
+    key: 'ciencias',
+    name: 'Ciencias',
+    apoyos: [{ stat: GEN.inteligencia, weight: 0.4 }, { stat: GEN.atencion, weight: 0.3 }, { stat: GEN.creatividad, weight: 0.3 }],
+    entrena: { stat: GEN.creatividad, amount: 0.3 },
+  },
 ];
 
 export interface EstudiosState {
@@ -55,17 +73,9 @@ const asignaturaStat = (a: Asignatura): StatDef => ({
   growth: {
     rate: 0.5,
     curve: 1.5,
-    speedFrom: [
-      { stat: GEN.concentracion, weight: 0.6 },
-      { stat: GEN.inteligencia, weight: 0.4 },
-    ],
-    cap: {
-      base: 0.55,
-      from: [
-        { stat: GEN.concentracion, weight: 0.25 },
-        { stat: GEN.inteligencia, weight: 0.2 },
-      ],
-    },
+    speedFrom: a.apoyos,
+    // El techo pesa 0,45 en total, repartido igual que el ritmo.
+    cap: { base: 0.55, from: a.apoyos.map((x) => ({ stat: x.stat, weight: Math.round(x.weight * 0.45 * 1000) / 1000 })) },
   },
   decay: { graceDays: 10, ratePerDay: 0.006, floorRatio: 0.75 },
 });
@@ -87,6 +97,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
     { stat: statId(a.key), amount: 3 },
     { stat: GEN.inteligencia, amount: 0.4 },
     { stat: GEN.concentracion, amount: 0.4 },
+    ...(a.entrena ? [a.entrena] : []),
   ],
 });
 
@@ -133,6 +144,7 @@ export const estudios = defineModule<EstudiosState>({
       train: [
         ...ASIGNATURAS.map((a) => ({ stat: statId(a.key), amount: 0.5 })),
         { stat: GEN.concentracion, amount: 0.3 },
+        { stat: GEN.atencion, amount: 0.3 },
         { stat: GEN.determinacion, amount: 0.3 },
         { stat: GEN.cooperacion, amount: 0.1 },
       ],

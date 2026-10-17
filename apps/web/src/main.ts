@@ -349,3 +349,11 @@ app.addEventListener('submit', (e) => {
 
 load();
 render();
+
+// ------------------------------------------------------------------ PWA (instalable y sin conexión)
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('No se pudo registrar el service worker', e));
+  });
+}
