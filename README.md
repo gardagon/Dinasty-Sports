@@ -30,6 +30,7 @@ npm run dev        # abre la URL que aparece en la terminal
 | `apps/web` | Interfaz web (mobile-first) |
 
 La arquitectura y cómo añadir módulos están en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+Las decisiones tomadas y lo pendiente, en [`docs/DECISIONES.md`](docs/DECISIONES.md).
 
 ## Comandos
 

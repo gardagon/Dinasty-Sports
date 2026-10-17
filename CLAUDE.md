@@ -1,7 +1,8 @@
 # Dinasty Sports — guía para trabajar en este repositorio
 
 RPG de decisiones (deporte + vida escolar) en TypeScript, monorepo con npm workspaces.
-Lee `docs/ARQUITECTURA.md` antes de cambios grandes.
+Lee `docs/ARQUITECTURA.md` antes de cambios grandes y `docs/DECISIONES.md` para el contexto y lo pendiente.
+Cuando tomes una decisión de diseño o de balance, añade una entrada en `docs/DECISIONES.md`.
 
 ## Reglas que no se rompen
 
