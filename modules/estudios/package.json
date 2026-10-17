@@ -1,0 +1,17 @@
+{
+  "name": "@ds/mod-estudios",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Módulo de estudios: asignaturas, clases, estudio y controles semanales.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*"
+  },
+  "devDependencies": {
+    "@ds/core": "*",
+    "@ds/mod-personaje": "*"
+  }
+}

@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    name: Tipos, tests y simulación de balance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tipos
+        run: npm run typecheck
+      - name: Tests (incluye el guardián de arquitectura)
+        run: npm test
+      - name: Simulación de balance (180 días × 3 semillas)
+        run: npm run sim -- --dias 180 --semillas 3 --estricto
+      - name: Guardar informe de simulación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-simulacion
+          path: sim/reports/ultimo/
+      - name: Compilar la web
+        run: npm run build

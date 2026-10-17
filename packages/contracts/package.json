@@ -1,0 +1,10 @@
+{
+  "name": "@ds/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Interfaces que cumplen todos los módulos. No contiene lógica.",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

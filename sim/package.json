@@ -1,0 +1,15 @@
+{
+  "name": "@ds/sim",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Equipo de testeo y sentido del juego: bots que juegan miles de días, chequeos de balance y rendimiento, informes.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*",
+    "@ds/core": "*",
+    "@ds/game": "*"
+  }
+}

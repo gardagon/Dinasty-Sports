@@ -1,0 +1,34 @@
+{
+  "name": "dinasty-sports",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "RPG de deportes y vida escolar basado en decisiones. Arquitectura modular.",
+  "workspaces": [
+    "packages/*",
+    "modules/*",
+    "apps/*",
+    "sim"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @ds/web",
+    "build": "npm run build -w @ds/web",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "sim": "tsx sim/src/cli.ts",
+    "sim:rapida": "tsx sim/src/cli.ts --dias 84 --semillas 2",
+    "check": "npm run typecheck && npm run test && npm run sim:rapida",
+    "nuevo-modulo": "tsx tools/nuevo-modulo.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

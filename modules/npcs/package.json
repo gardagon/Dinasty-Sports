@@ -1,0 +1,17 @@
+{
+  "name": "@ds/mod-npcs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "NPCs: relaciones, apoyo por etiquetas, rivales que progresan y reaccionan a las competiciones.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*"
+  },
+  "devDependencies": {
+    "@ds/core": "*",
+    "@ds/mod-personaje": "*"
+  }
+}

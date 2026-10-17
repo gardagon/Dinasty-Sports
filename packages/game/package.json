@@ -1,0 +1,18 @@
+{
+  "name": "@ds/game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ensamblador: el ÚNICO sitio donde se listan los módulos que forman el juego.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*",
+    "@ds/core": "*",
+    "@ds/mod-personaje": "*",
+    "@ds/mod-estudios": "*",
+    "@ds/mod-atletismo": "*",
+    "@ds/mod-npcs": "*"
+  }
+}

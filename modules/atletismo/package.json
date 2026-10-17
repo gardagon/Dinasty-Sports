@@ -1,0 +1,17 @@
+{
+  "name": "@ds/mod-atletismo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Primer módulo de deporte: atletismo (400 m). Entrenamientos y carrera semanal.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*"
+  },
+  "devDependencies": {
+    "@ds/core": "*",
+    "@ds/mod-personaje": "*"
+  }
+}

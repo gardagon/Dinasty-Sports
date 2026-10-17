@@ -1,0 +1,53 @@
+# Dinasty Sports
+
+RPG de decisiones: tu personaje vive un curso escolar mientras desarrolla un deporte.
+Cada acción cuesta tiempo de juego, y todo lo que haces sube o baja sus características.
+
+Este es el MVP. Incluye el motor modular, tres módulos de contenido (estudios, atletismo y NPCs)
+sobre el módulo base del personaje, un equipo de simulación que vigila el balance y una interfaz web pensada para móvil.
+
+## Empezar
+
+Necesitas Node 20 o superior.
+
+```bash
+npm install
+npm run dev        # abre la URL que aparece en la terminal
+```
+
+## Qué hay dentro
+
+| Carpeta | Qué es |
+|---|---|
+| `packages/contracts` | Interfaces que cumplen todos los módulos |
+| `packages/core` | Motor: registro de módulos, pipeline de acciones, tiempo, subida y caída, eventos |
+| `packages/game` | Ensamblador: la lista de módulos del juego |
+| `modules/personaje` | Características genéricas y estado (energía, salud, estrés, motivación) |
+| `modules/estudios` | Clases, estudio, controles de los viernes |
+| `modules/atletismo` | Primer deporte: 400 m, entrenamientos por la tarde, carrera los sábados |
+| `modules/npcs` | Entrenador, tutor, compañeros y rivales que progresan |
+| `sim` | Bots con estrategias distintas, chequeos de balance, informe HTML |
+| `apps/web` | Interfaz web (mobile-first) |
+
+La arquitectura y cómo añadir módulos están en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+
+## Comandos
+
+```bash
+npm test             # tests unitarios, de integración y de arquitectura
+npm run typecheck
+npm run sim          # simula un año con 7 estrategias × 5 semillas → sim/reports/ultimo/informe.html
+npm run check        # todo lo anterior en versión rápida
+npm run build        # compila la web en apps/web/dist
+npm run nuevo-modulo -- natacion "Natación"
+```
+
+## Publicar la web
+
+1. En GitHub: **Settings → Pages → Source: GitHub Actions**.
+2. Pestaña **Actions → "Publicar web (GitHub Pages)" → Run workflow**.
+
+## Llevarlo a móvil
+
+La web compila a estáticos con rutas relativas, lista para empaquetarse con
+[Capacitor](https://capacitorjs.com/) como app de Android o iOS cuando toque.
