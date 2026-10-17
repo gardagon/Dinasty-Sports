@@ -1,11 +1,11 @@
 name: Publicar web (GitHub Pages)
 
-# Para activarlo: Settings → Pages → Source: "GitHub Actions".
-# Después lánzalo a mano desde la pestaña Actions, o descomenta `push` para publicar en cada cambio.
+# Requiere Settings → Pages → Source: "GitHub Actions".
+# Se publica solo en cada cambio que llega a `main`; también se puede lanzar a mano desde la pestaña Actions.
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main]
+  push:
+    branches: [main]
 
 permissions:
   contents: read

@@ -24,6 +24,7 @@ Los 11 chequeos siguen en verde. Estudios baja algo: equilibrado 80,2 → 76,7 y
 - Verificado en Chromium contra la compilación de producción: service worker activo, manifiesto e iconos con 200.
 - Al cambiar `sw.js` hay que subir `VERSION` para limpiar la caché antigua.
 - Pendiente: app nativa con Capacitor (no necesaria para instalar desde el navegador).
+- **Publicación automática:** `pages.yml` se lanza en cada push a `main` (además de a mano). Antes había que lanzarlo a mano tras cada fusión.
 
 ---
 
@@ -88,6 +89,5 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Segundo deporte:** validará que la plantilla de deporte funciona sin tocar el motor.
 - **Más vida para los NPCs:** eventos, conversaciones, rivalidades.
 - **Beca deportiva:** usar el servicio `estudios` (nota media) desde un deporte.
-- **Publicar la web:** activar GitHub Pages (Settings → Pages → Source: GitHub Actions).
 - **App nativa en el móvil:** la PWA ya se instala desde el navegador; Capacitor solo si hace falta tienda de aplicaciones.
 - **Acciones de GitHub:** actualizar versiones cuando GitHub retire Node 20 en los runners (ahora sale un aviso, no un error).
