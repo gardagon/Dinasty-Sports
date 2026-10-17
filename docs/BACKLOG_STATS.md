@@ -14,7 +14,12 @@ Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ dif
 - `memoria` → `inteligencia`; `disciplina` → `determinacion`. El resto de cambios del documento de stats se aceptan.
 - `rendimiento_academico` **no es stat global**: lo gestiona el módulo `estudios` (regla 4 y 5 del `CLAUDE.md`).
 
-## Estado de partida (hoy)
+## Hecho fuera del plan original
+
+- **Conocimiento del deporte** (adapta E2.3), **PWA**, **16 rivales persistentes con herencia**, **series de 8 con rotación** y **clasificación con tablas** tras cada carrera. Detalle y cifras en `DECISIONES.md`.
+- Para E7 (deportes de equipo) y E8 (dinastía): la plantilla de competición ya tiene rivales con herencia propia, tabla de resultados y rotación de series.
+
+## Estado de partida (antes de empezar)
 
 9 genéricas (fuerza, resistencia, velocidad, coordinación / concentración, memoria, disciplina / carisma, trabajo en equipo)
 y 4 de estado (energía, salud, estrés, motivación). Usos de las que cambian: `disciplina` (atletismo ×2, estudios ×2,
