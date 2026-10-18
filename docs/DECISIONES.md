@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 18/10/2026 — Conocimiento: todo entrenamiento suma; la tele no sustituye
+
+Ajuste de lo anterior tras revisar que solo el rodaje largo subía el conocimiento.
+- **Todo entrenamiento de atletismo suma conocimiento** (se hace con entrenador, sobre todo siendo niños): series 0,8, rodaje largo 1, técnica 1,2. Competir sigue en 2. El gimnasio (entrenamiento general, no de atletismo) no suma.
+- **Ver atletismo en la tele baja de 1,5 a 0,6:** ayuda a entender el deporte pero no sustituye a entrenar ni a competir. Un jugador que solo ve la tele llega a ~27 en un año; el equilibrado, a ~64; el atleta, a ~77.
+- **Atención e inteligencia pesan más** en el ritmo de subida (0,6 → 0,9 y 0,4 → 0,6). La relación con el entrenador ya mejora la eficiencia de todo lo etiquetado `atletismo` (modificador `npcs.apoyo`), así que también acelera el conocimiento.
+- **Simulación:** los 12 chequeos en verde; sin cambios apreciables en atletismo ni estudios.
+- **Pendiente (nivel inicial de los demás niños):** hoy los rivales arrancan con un nivel medio de 29 (hasta 54) en la escala de rendimiento; a los 10 años no debería haber nadie con nivel muy alto si sus padres no han practicado el deporte. A revisar con la herencia familiar y la edad: nivel inicial según la práctica deportiva de los padres, y potencial según la genética.
+
+---
+
 ## 17/10/2026 — Rivales persistentes y clasificación de la carrera
 
 Motivo: competir contra 3 NPC y 4 corredores inventados en cada carrera era plano; no había forma de saber si mejorabas respecto a alguien concreto.

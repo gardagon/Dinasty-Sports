@@ -110,7 +110,7 @@ Posiciones (16), roles (42), experiencia por posición/rol con afinidad, fórmul
 
 ## E8 · Dinastía — ⏸ · Fidelidad: baja
 
-Padres con los stats globales, límites genéticos derivados de los padres (media × factor ± 15 %), herencia de perks con dos pools. Requiere diseñar el ciclo de generaciones, que este juego aún no tiene. E2.7 y E5.1 se escriben pensando en que luego encajen aquí.
+Padres con los stats globales, límites genéticos derivados de los padres (media × factor ± 15 %), herencia de perks con dos pools. También el **nivel inicial de los demás niños según la práctica deportiva de sus padres** (hoy los rivales arrancan con un nivel medio de 29, hasta 54: a los 10 años no debería haber niveles altos sin antecedentes en el deporte). Requiere diseñar el ciclo de generaciones, que este juego aún no tiene. E2.7 y E5.1 se escriben pensando en que luego encajen aquí.
 
 ## Transversal
 
