@@ -143,7 +143,7 @@ export const atletismo = defineModule<AtletismoState>({
     {
       id: CONOCIMIENTO,
       name: 'Conocimiento de atletismo',
-      description: 'Entender el deporte: ritmos, tácticas, quién sale mejor. Sube viendo y compitiendo, y casi no se olvida.',
+      description: 'Entender el deporte: ritmos, tácticas, quién sale mejor. Sube entrenando, compitiendo y, en menor medida, viendo atletismo; casi no se olvida.',
       group: 'Conocimiento',
       category: 'conocimiento',
       initial: 0,
@@ -153,8 +153,8 @@ export const atletismo = defineModule<AtletismoState>({
         curve: 1.2,
         // Quien presta atención y razona bien aprende más de lo mismo.
         speedFrom: [
-          { stat: GEN.atencion, weight: 0.6 },
-          { stat: GEN.inteligencia, weight: 0.4 },
+          { stat: GEN.atencion, weight: 0.9 },
+          { stat: GEN.inteligencia, weight: 0.6 },
         ],
       },
       decay: { graceDays: 30, ratePerDay: 0.003, floorRatio: 0.95 },
@@ -183,6 +183,8 @@ export const atletismo = defineModule<AtletismoState>({
         { stat: GEN.velocidad, amount: 1 },
         { stat: 'atletismo.salida', amount: 3 },
         { stat: 'atletismo.tecnica', amount: 1 },
+        // Todo entrenamiento es con entrenador: siempre se aprende algo del deporte.
+        { stat: CONOCIMIENTO, amount: 0.8 },
       ],
     },
     {
@@ -197,7 +199,7 @@ export const atletismo = defineModule<AtletismoState>({
         { stat: GEN.resistencia, amount: 1.2 },
         { stat: 'atletismo.ritmo', amount: 3 },
         // Repartir el esfuerzo tiene parte táctica.
-        { stat: CONOCIMIENTO, amount: 0.5 },
+        { stat: CONOCIMIENTO, amount: 1 },
       ],
     },
     {
@@ -211,6 +213,7 @@ export const atletismo = defineModule<AtletismoState>({
       train: [
         { stat: 'atletismo.tecnica', amount: 3.5 },
         { stat: GEN.coordinacion, amount: 0.6 },
+        { stat: CONOCIMIENTO, amount: 1.2 },
       ],
     },
     {
@@ -227,7 +230,8 @@ export const atletismo = defineModule<AtletismoState>({
       },
       delta: { [GEN.energia]: -2, [GEN.estres]: -4 },
       train: [
-        { stat: CONOCIMIENTO, amount: 1.5 },
+        // Ayuda a entender el deporte, pero no sustituye a entrenar ni a competir.
+        { stat: CONOCIMIENTO, amount: 0.6 },
         { stat: GEN.atencion, amount: 0.2 },
       ],
       run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimaTele: ctx.time.day })),
