@@ -60,7 +60,7 @@ El original usa tres capas: stats globales → conocimiento deportivo → habili
 | E2.3 ✅ (atletismo) | **Conocimiento deportivo** como bonus/malus (no como techo): stat `conocimiento` por deporte, arranca en 0, sube viendo y compitiendo, decay muy suave | Adaptado del original (allí era techo `min(límite, conocimiento × 1,2)`). Falta el canal de entrenador y las lecturas tácticas (ver `DECISIONES.md`) |
 | E2.4 | Tabla global → habilidad técnica (qué stat alimenta qué habilidad) | Sección 12 del original: **pendiente allí**. La diseñamos aquí para atletismo y estudios |
 | E2.5 | Transferencias de entrenamiento (global→técnica 10–20 %, técnica→relacionada 15–25 %, técnica→global 3–5 %) declaradas en datos | Respetar la regla 4: se haría con `ctx.train`, nunca tocando habilidades de otro módulo |
-| E2.6 | Decay con multiplicador por inactividad semanal (con techo) y velocidad según edad | Requiere decidir si el personaje tiene **edad** (E3.1). Hoy: caída diaria tras N días de gracia |
+| E2.6 | Decay con multiplicador por inactividad semanal (con techo) y velocidad según edad | La edad ya existe (E3.1), así que se puede hacer. Hoy: caída diaria tras N días de gracia, igual a cualquier edad |
 | E2.7 | Límite genético por stat (oculto) y multiplicador de ganancia por cercanía: ×1 (<80 %), ×0,5, ×0,2, ×0,05 (>95 %) | Equivale a un `cap` por personaje en vez de por stat. Sin padres, se generaría al crear la partida |
 | E2.8 | Modificador de energía en la competición (70–100 % ×1, … 0–9 % ×0,3) | Contrastar con la eficiencia por energía que ya existe antes de duplicar |
 
@@ -68,9 +68,9 @@ El original usa tres capas: stats globales → conocimiento deportivo → habili
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E3.1 ✅ | Edad, altura (hacia objetivo genético), peso, dominancia lateral | El juego empieza con edad escolar; ¿se avanza la edad en el año simulado? 🟡 |
-| E3.2 ✅ | Tipo corporal (delgado, normal, atlético, musculado, con sobrepeso) derivado de hábitos acumulados, con modificadores de velocidad, fuerza y constitución | Necesita registrar hábitos de entrenamiento, descanso y **alimentación** (esta última no existe) |
-| E3.3 ✅ | Constitución: sube solo por hábitos sostenidos, no por entrenamiento directo | Condiciona lesiones y recuperación; enlaza con la idea de lesión pendiente en `DECISIONES.md` |
+| E3.1 ✅ | Edad, altura (hacia objetivo genético), peso, dominancia lateral | Hecho: empieza con 8 años (`EDAD_INICIAL`) y cumple años cada 365 días. Altura con curva por edad y madurez individual; el objetivo genético saldrá de los padres (E8) |
+| E3.2 ✅ | Tipo corporal (delgado, normal, atlético, musculado, con sobrepeso) derivado de hábitos acumulados, con modificadores de velocidad, fuerza y constitución | Hecho sin alimentación: hábitos de fuerza, cardio y actividad. Los efectos son modificadores de eficiencia por etiqueta, no por stat. Alimentación como decisión, pendiente |
+| E3.3 ✅ | Constitución: sube solo por hábitos sostenidos, no por entrenamiento directo | Hecho: +1 por semana con hábitos sanos (crece muy poco, a revisar). Lesiones y recuperación, pendientes: enlazan con la idea de lesión en `DECISIONES.md` |
 | E3.4 | UI filtrada por inteligencia (5 niveles, de sensaciones vagas a "top 10 %") y pistas precisas del entrenador con buena relación | Cambia la web y se apoya en `npcs` (servicio ya existente) |
 
 ## E4 · Ejes de personalidad — ⏸ · Fidelidad: alta en concepto, baja en mecánica
