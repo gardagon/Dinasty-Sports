@@ -174,7 +174,7 @@ export const atletismo = defineModule<AtletismoState>({
     {
       id: 'atletismo.series',
       name: 'Series de velocidad',
-      tags: [TAGS.fisico, TAGS.entrenamiento, 'atletismo'],
+      tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'atletismo'],
       group: 'Entrenar atletismo',
       duration: 90,
       available: horarioEntreno,
@@ -190,7 +190,7 @@ export const atletismo = defineModule<AtletismoState>({
     {
       id: 'atletismo.rodaje',
       name: 'Rodaje largo',
-      tags: [TAGS.fisico, TAGS.entrenamiento, 'atletismo'],
+      tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'atletismo'],
       group: 'Entrenar atletismo',
       duration: 75,
       available: horarioEntreno,
@@ -240,7 +240,7 @@ export const atletismo = defineModule<AtletismoState>({
       id: 'atletismo.carrera',
       name: `Competir: ${DISCIPLINA}`,
       description: 'Carrera semanal, los sábados de 9 a 13.',
-      tags: [TAGS.fisico, TAGS.competicion, 'atletismo'],
+      tags: [TAGS.fisico, TAGS.cardio, TAGS.competicion, 'atletismo'],
       group: 'Competición',
       duration: 180,
       available: (ctx) => {

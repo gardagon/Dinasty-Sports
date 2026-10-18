@@ -68,9 +68,9 @@ El original usa tres capas: stats globales → conocimiento deportivo → habili
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E3.1 | Edad, altura (hacia objetivo genético), peso, dominancia lateral | El juego empieza con edad escolar; ¿se avanza la edad en el año simulado? 🟡 |
-| E3.2 | Tipo corporal (delgado, normal, atlético, musculado, con sobrepeso) derivado de hábitos acumulados, con modificadores de velocidad, fuerza y constitución | Necesita registrar hábitos de entrenamiento, descanso y **alimentación** (esta última no existe) |
-| E3.3 | Constitución: sube solo por hábitos sostenidos, no por entrenamiento directo | Condiciona lesiones y recuperación; enlaza con la idea de lesión pendiente en `DECISIONES.md` |
+| E3.1 ✅ | Edad, altura (hacia objetivo genético), peso, dominancia lateral | El juego empieza con edad escolar; ¿se avanza la edad en el año simulado? 🟡 |
+| E3.2 ✅ | Tipo corporal (delgado, normal, atlético, musculado, con sobrepeso) derivado de hábitos acumulados, con modificadores de velocidad, fuerza y constitución | Necesita registrar hábitos de entrenamiento, descanso y **alimentación** (esta última no existe) |
+| E3.3 ✅ | Constitución: sube solo por hábitos sostenidos, no por entrenamiento directo | Condiciona lesiones y recuperación; enlaza con la idea de lesión pendiente en `DECISIONES.md` |
 | E3.4 | UI filtrada por inteligencia (5 niveles, de sensaciones vagas a "top 10 %") y pistas precisas del entrenador con buena relación | Cambia la web y se apoya en `npcs` (servicio ya existente) |
 
 ## E4 · Ejes de personalidad — ⏸ · Fidelidad: alta en concepto, baja en mecánica

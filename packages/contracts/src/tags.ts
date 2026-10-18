@@ -4,6 +4,10 @@
  */
 export const TAGS = {
   fisico: 'fisico',
+  /** Trabajo de fuerza (gimnasio): forma el músculo. */
+  fuerza: 'fuerza',
+  /** Trabajo aeróbico (rodajes, carreras): gasta grasa. */
+  cardio: 'cardio',
   mental: 'mental',
   social: 'social',
   estudio: 'estudio',

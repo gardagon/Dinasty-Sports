@@ -1,5 +1,15 @@
 import './style.css';
-import { GEN, MINUTES_PER_DAY, SERVICES, timeView, type LogTable, type NpcDirectory, type StudiesService } from '@ds/contracts';
+import {
+  GEN,
+  MINUTES_PER_DAY,
+  SERVICES,
+  timeView,
+  type BodyType,
+  type IdentityService,
+  type LogTable,
+  type NpcDirectory,
+  type StudiesService,
+} from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
 
@@ -194,6 +204,29 @@ function viewActions(g: Game): string {
   </section>`;
 }
 
+const COMPLEXION: Record<BodyType, string> = {
+  delgado: 'Delgada',
+  normal: 'Normal',
+  atletico: 'Atlética',
+  musculado: 'Musculosa',
+  con_sobrepeso: 'Con sobrepeso',
+};
+
+function viewIdentity(g: Game): string {
+  const id = g.service<IdentityService>(SERVICES.identidad)?.view();
+  if (!id) return '';
+  const fmt = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return `<section class="sheet"><h2>${esc(g.playerName)}</h2>
+    <dl class="identity">
+      <div><dt>Edad</dt><dd>${id.age} años</dd></div>
+      <div><dt>Altura</dt><dd>${fmt(id.heightCm)} cm</dd></div>
+      <div><dt>Peso</dt><dd>${fmt(id.weightKg)} kg</dd></div>
+      <div><dt>Dominancia</dt><dd>${id.leftHanded ? 'Zurdo' : 'Diestro'}</dd></div>
+      <div><dt>Complexión</dt><dd>${COMPLEXION[id.bodyType]}</dd></div>
+    </dl>
+  </section>`;
+}
+
 function viewCharacter(g: Game): string {
   const groups = new Map<string, string[]>();
   for (const s of g.registry.statList) {
@@ -289,7 +322,7 @@ function viewGame(g: Game): string {
     main = viewResult() + viewActions(g);
     side = viewResults(g);
   } else if (tab === 'personaje') {
-    main = viewCharacter(g);
+    main = viewIdentity(g) + viewCharacter(g);
     side = viewResults(g);
   } else if (tab === 'relaciones') main = viewPeople(g);
   else main = viewLog(g);

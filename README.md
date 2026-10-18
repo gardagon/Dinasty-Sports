@@ -22,7 +22,7 @@ npm run dev        # abre la URL que aparece en la terminal
 | `packages/contracts` | Interfaces que cumplen todos los módulos |
 | `packages/core` | Motor: registro de módulos, pipeline de acciones, tiempo, subida y caída, eventos |
 | `packages/game` | Ensamblador: la lista de módulos del juego |
-| `modules/personaje` | Características genéricas y estado (energía, salud, estrés, motivación) |
+| `modules/personaje` | Características genéricas, estado (energía, salud, estrés, motivación) e identidad (edad, altura, peso, complexión) |
 | `modules/estudios` | Clases, estudio, controles de los viernes |
 | `modules/atletismo` | Primer deporte: 400 m, entrenamientos por la tarde, carrera los sábados en series de 8, conocimiento del deporte |
 | `modules/npcs` | Entrenador, tutor, compañeros y 16 rivales de atletismo que progresan por su cuenta |

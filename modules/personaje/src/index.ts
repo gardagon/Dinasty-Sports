@@ -1,14 +1,28 @@
 import {
   CORE_EVENTS,
   GEN,
+  SERVICES,
   TAGS,
   defineModule,
   inHours,
   isSchoolHours,
   minutesUntilHour,
+  type ActionDoneData,
+  type DayEventData,
   type DecayDef,
+  type IdentityService,
   type StatDef,
 } from '@ds/contracts';
+import {
+  NOMBRE_COMPLEXION,
+  actualizarCuerpo,
+  edadDecimal,
+  initIdentidad,
+  viewIdentidad,
+  type IdentidadState,
+} from './identidad';
+
+export type { IdentidadState } from './identidad';
 
 /**
  * MÓDULO BASE (id `gen`): lo que comparte cualquier personaje.
@@ -33,10 +47,11 @@ const generica = (id: string, name: string, group: string, decay: DecayDef, desc
 
 const WAKE_HOUR = 7;
 
-export const personaje = defineModule({
+export const personaje = defineModule<IdentidadState>({
   id: 'gen',
   name: 'Personaje',
-  description: 'Características genéricas y estado del personaje.',
+  description: 'Características genéricas, estado e identidad del personaje.',
+  initState: (ctx) => initIdentidad(ctx.rng),
   stats: [
     // Físicos
     generica(GEN.velocidad, 'Velocidad', 'Físico', fisica, 'Desplazamiento puro: lo rápido que mueves el cuerpo de un punto a otro.'),
@@ -96,7 +111,7 @@ export const personaje = defineModule({
       id: 'gen.gimnasio',
       name: 'Gimnasio',
       description: 'Fuerza y resistencia generales.',
-      tags: [TAGS.fisico, TAGS.entrenamiento],
+      tags: [TAGS.fisico, TAGS.fuerza, TAGS.entrenamiento],
       group: 'Entrenamiento general',
       duration: 90,
       available: (ctx) => (inHours(ctx.time, 7, 22) && !isSchoolHours(ctx.time) ? true : 'Abierto de 7 a 22 (fuera de clase)'),
@@ -177,6 +192,36 @@ export const personaje = defineModule({
       },
     },
     {
+      id: 'gen.complexion',
+      tags: [TAGS.fisico],
+      apply: (ctx, action) => {
+        const tipo = ctx.state<IdentidadState>().cuerpo;
+        const fuerza = action.tags.includes(TAGS.fuerza);
+        const cardio = action.tags.includes(TAGS.cardio);
+        switch (tipo) {
+          case 'musculado':
+            // Mucha fuerza, pero más pesado para correr.
+            return fuerza
+              ? { efficiency: 1.1, reason: 'Complexión musculosa: rindes más en fuerza' }
+              : cardio
+                ? { efficiency: 0.95, reason: 'Complexión musculosa: pesas más para correr' }
+                : null;
+          case 'delgado':
+            return cardio
+              ? { efficiency: 1.05, reason: 'Complexión delgada: ligero para correr' }
+              : fuerza
+                ? { efficiency: 0.9, reason: 'Complexión delgada: te falta fuerza' }
+                : null;
+          case 'atletico':
+            return { efficiency: 1.03, reason: 'Complexión atlética' };
+          case 'con_sobrepeso':
+            return { efficiency: 0.9, cost: 1.15, reason: 'Sobrepeso: te cuesta más moverte' };
+          default:
+            return null;
+        }
+      },
+    },
+    {
       id: 'gen.determinacion',
       tags: [TAGS.entrenamiento, TAGS.estudio],
       apply: (ctx) => {
@@ -188,7 +233,42 @@ export const personaje = defineModule({
   ],
 
   on: {
-    [CORE_EVENTS.DAY_END]: (ctx) => {
+    [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
+      const d = ev.data as ActionDoneData;
+      const fisico = d.tags.includes(TAGS.fisico);
+      const fuerza = d.tags.includes(TAGS.fuerza);
+      const cardio = d.tags.includes(TAGS.cardio);
+      const descanso = d.tags.includes(TAGS.descanso);
+      if (!fisico && !fuerza && !cardio && !descanso) return;
+      ctx.updateState<IdentidadState>((s) => ({
+        ...s,
+        semana: {
+          fuerza: s.semana.fuerza + (fuerza ? d.duration : 0),
+          cardio: s.semana.cardio + (cardio ? d.duration : 0),
+          activo: s.semana.activo + (fisico ? d.duration : 0),
+          descanso: s.semana.descanso + (descanso ? d.duration : 0),
+        },
+      }));
+    },
+
+    [CORE_EVENTS.WEEK_END]: (ctx) => {
+      const antes = ctx.state<IdentidadState>();
+      const sana = antes.semana.activo >= 120 && antes.semana.descanso >= 50 * 60 && ctx.stat(GEN.estres) < 60;
+      const despues = actualizarCuerpo(antes);
+      ctx.setState<IdentidadState>(despues);
+      // La constitución se forja con hábitos sostenidos, no entrenándola directamente.
+      if (sana && despues.cuerpo !== 'con_sobrepeso') ctx.train(GEN.constitucion, 1);
+      if (despues.cuerpo !== antes.cuerpo) {
+        ctx.log(`Tu cuerpo ha cambiado: ahora tienes una complexión ${NOMBRE_COMPLEXION[despues.cuerpo]}.`, 'info');
+      }
+    },
+
+    [CORE_EVENTS.DAY_END]: (ctx, ev) => {
+      const { day } = ev.data as DayEventData;
+      const s = ctx.state<IdentidadState>();
+      const edad = Math.floor(edadDecimal(s, day + 1));
+      if (edad > Math.floor(edadDecimal(s, day))) ctx.log(`¡Cumples ${edad} años!`, 'logro');
+
       const energia = ctx.stat(GEN.energia);
       const estres = ctx.stat(GEN.estres);
       if (energia < 15) {
@@ -206,6 +286,14 @@ export const personaje = defineModule({
       const m = ctx.stat(GEN.motivacion);
       ctx.addStat(GEN.motivacion, (55 - m) * 0.05);
       ctx.addStat(GEN.estres, -1);
+    },
+  },
+
+  services: {
+    [SERVICES.identidad]: (ctx): IdentityService => {
+      const s = ctx.state<IdentidadState>();
+      const day = ctx.time.day;
+      return { view: () => viewIdentidad(s, day) };
     },
   },
 });

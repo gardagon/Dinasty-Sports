@@ -5,6 +5,22 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 18/10/2026 — E3: identidad del personaje (edad, altura, peso, dominancia y complexión)
+
+Decisiones de alcance: empezar con **8 años** (constante `EDAD_INICIAL` en `modules/personaje/src/identidad.ts`, por si se sube a 10); entrega = identidad + tipo corporal; la UI filtrada por inteligencia (E3.4) queda para después; **sin alimentación**, el cuerpo se deriva de hábitos.
+- **Edad:** años decimales = edad inicial + fracción de año aleatoria + días/365. Cumpleaños con aviso en el diario. Cada año simulado sube la edad en 1.
+- **Altura:** objetivo adulto de la semilla (media 171, desviación 8; con padres saldrá de la herencia) y curva de crecimiento por edad (73 % a los 8, 100 % a los 18) desplazada por una "madurez" individual de ±1,5 años (hay quien da el estirón antes o después).
+- **Peso:** IMC sano por edad más desviaciones por músculo y grasa.
+- **Dominancia:** diestro o zurdo (11 %), solo identidad.
+- **Complexión:** delgada, normal, atlética, musculosa o con sobrepeso, a partir de dos variables lentas (músculo y grasa, 0..100) que se acercan cada semana (8 %) a lo que dicen los hábitos. Músculo ← minutos de fuerza (gimnasio, etiqueta nueva `fuerza`); grasa ← minutos físicos (más 60 min semanales de juego libre) con la etiqueta `cardio` para rodajes, series y carreras. Sobrepeso ≥ 65 de grasa tras ~6 meses de sedentarismo.
+- **Efectos de la complexión** (modificador `gen.complexion` sobre acciones físicas, simplificación de los modificadores por stat del diseño original): musculosa +10 % en fuerza y −5 % en cardio; delgada +5 % en cardio y −10 % en fuerza; atlética +3 %; sobrepeso −10 % de rendimiento y +15 % de coste.
+- **Constitución:** sube +1 por semana con hábitos sanos (≥ 120 min de actividad, ≥ 50 h de descanso y estrés < 60), no entrenándola directamente. Crecimiento lento (unos +4 al año); a revisar.
+- **Servicio nuevo `identidad`** (contracts): edad, altura, peso, dominancia y complexión. La web lo muestra al principio de la pestaña Personaje.
+- **Simulación:** los 12 chequeos en verde (equilibrado 60,5; atleta supera al equilibrado; carreras con podio del 68 % para el atleta). Complexión al cabo de un año: equilibrado, atleta y sobreentrena, musculosa (los bots van al gimnasio casi a diario); aleatorio, atlética; vago, empollón y quien abandona el deporte, con sobrepeso.
+- **Pendiente:** los bots entrenan fuerza a diario (más de 10 h semanales): poco realista para niños, pero útil como extremo. Edad y complexión aún no afectan a la caída ni al crecimiento de stats (eso vendría con los modificadores por edad). Alimentación como decisión. E3.4 (UI filtrada por inteligencia).
+
+---
+
 ## 18/10/2026 — Conocimiento: todo entrenamiento suma; la tele no sustituye
 
 Ajuste de lo anterior tras revisar que solo el rodaje largo subía el conocimiento.

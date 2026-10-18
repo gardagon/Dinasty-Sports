@@ -6,6 +6,7 @@
 export const SERVICES = {
   npcs: 'npcs',
   estudios: 'estudios',
+  identidad: 'identidad',
 } as const;
 
 // ---------- NPCs ----------
@@ -43,4 +44,22 @@ export interface StudiesService {
   average(): number | null;
   /** Faltas de asistencia acumuladas. */
   absences(): number;
+}
+
+// ---------- Identidad ----------
+
+export type BodyType = 'delgado' | 'normal' | 'atletico' | 'musculado' | 'con_sobrepeso';
+
+/** Lo que el personaje "es" por fuera: siempre visible, sin filtro de inteligencia. */
+export interface IdentityView {
+  /** Años cumplidos. */
+  age: number;
+  heightCm: number;
+  weightKg: number;
+  leftHanded: boolean;
+  bodyType: BodyType;
+}
+
+export interface IdentityService {
+  view(): IdentityView;
 }
