@@ -47,6 +47,13 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
   con herencia propia (potencial, nivel inicial y ritmo) que progresan solos. La serie es de 8: los mejores rivales corren siempre
   las primeras semanas y después las plazas rotan (ver `elegirRivales` en `modules/atletismo`).
 
+## Identidad del personaje
+
+El módulo `gen` publica el servicio `identidad` (contracts): edad, altura, peso, dominancia y complexión (`BodyType`).
+La complexión se deriva de hábitos acumulados por etiquetas: `fuerza` forma músculo y `fisico`/`cardio` gasta grasa. Un deporte
+nuevo solo tiene que etiquetar sus entrenamientos con `fuerza` o `cardio` para que cuenten. La lógica pura está en
+`modules/personaje/src/identidad.ts` (edad inicial y parámetros del cuerpo ajustables ahí).
+
 ## Características del personaje
 
 | Categoría | Ejemplos | Cómo cambian |

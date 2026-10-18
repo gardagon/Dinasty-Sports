@@ -231,3 +231,9 @@ h3:first-child { margin-top: 0; }
 .table td:nth-child(3), .table td:nth-child(4) { white-space: nowrap; }
 .table td:nth-child(3), .table td:nth-child(4), .table th:nth-child(3), .table th:nth-child(4) { text-align: right; }
 .table tr.me td { font-weight: 700; background: var(--lane-soft); }
+
+/* Identidad del personaje */
+.identity { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5em, 1fr)); gap: 10px 16px; margin: 4px 0 0; }
+.identity div { border-top: 2px solid var(--ink); padding-top: 4px; }
+.identity dt { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+.identity dd { margin: 0; font-family: var(--display); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
