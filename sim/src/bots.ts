@@ -42,6 +42,17 @@ function leastUsed(opts: ActionOption[], p: Pred, mem: BotMemory): ActionOption 
 const entrenoDeporte = all(tag(TAGS.entrenamiento), not(id('gen.gimnasio')));
 /** Sesión con entrenador y grupo del club (si el bot pertenece a uno). */
 const sesionDeClub = tag(TAGS.club);
+/** Aceptar la propuesta del entrenador de competir en la categoría superior (solo está disponible si destaca mucho). */
+const subirDeCategoria = id('atletismo.subir_categoria');
+const volverACategoria = id('atletismo.volver_categoria');
+
+/** En la categoría superior, ¿los últimos resultados son de media tabla para abajo? Entonces no compensa seguir allí. */
+function flojoEnLaSuperior(game: Game): boolean {
+  const st = game.moduleState<{ carreras: { position: number; total: number; superior?: boolean }[] } | undefined>('atletismo');
+  const ultimas = (st?.carreras ?? []).slice(-3);
+  return ultimas.length === 3 && ultimas.every((c) => c.superior && c.position > c.total / 2);
+}
+
 /** Entrar en el club del colegio, el primer paso de quien se toma en serio un deporte. */
 const apuntarseAlClub = id('atletismo.apuntarse_colegio');
 const estudio = all(tag(TAGS.estudio), not(id('estudios.clase')), not(tag(TAGS.social)));
@@ -94,6 +105,8 @@ export const BOTS: Bot[] = [
         basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
+          ['subir', 1, subirDeCategoria],
+          ['volver', 1, (o) => volverACategoria(o) && flojoEnLaSuperior(game)],
           ['club', 1, sesionDeClub],
           ['deporte', 1, entrenoDeporte],
           ['estudio', 1, estudio],
@@ -132,6 +145,8 @@ export const BOTS: Bot[] = [
         basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
+          ['subir', 1, subirDeCategoria],
+          ['volver', 1, (o) => volverACategoria(o) && flojoEnLaSuperior(game)],
           ['club', 1, sesionDeClub],
           ['deporte', 2, entrenoDeporte],
           ['entrenador', 1, (o) => relacion(o) && /entrenador/.test(o.name)],
@@ -152,6 +167,8 @@ export const BOTS: Bot[] = [
         basicas(game, opts, { horaDormir: 24, clase: true, competir: true, energiaMin: 12 }) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
+          ['subir', 1, subirDeCategoria],
+          ['volver', 1, (o) => volverACategoria(o) && flojoEnLaSuperior(game)],
           ['club', 1, sesionDeClub],
           ['deporte', 6, entrenoDeporte],
           ['gym', 2, id('gen.gimnasio')],

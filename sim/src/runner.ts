@@ -76,12 +76,13 @@ function extras(game: Game): Record<string, number | null> {
   }
   const jovenes = game.service<NpcDirectory>(SERVICES.npcs)?.list({ tag: 'atleta', maxAge: 11 });
   if (jovenes?.length) out.rivalNivelMaxJoven = Math.max(...jovenes.map((n) => n.levels.atletismo ?? 0));
-  const atl = game.moduleState<{ mejorMarca: number | null; carreras: { position: number }[] } | undefined>('atletismo');
+  const atl = game.moduleState<{ mejorMarca: number | null; carreras: { position: number; superior?: boolean }[] } | undefined>('atletismo');
   if (atl) {
     out.mejorMarca = atl.mejorMarca;
     out.carreras = atl.carreras.length;
     out.podios = atl.carreras.filter((c) => c.position <= 3).length;
     out.victorias = atl.carreras.filter((c) => c.position === 1).length;
+    out.carrerasSuperior = atl.carreras.filter((c) => c.superior).length;
   }
   return out;
 }
