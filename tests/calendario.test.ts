@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CALENDARIO_ESPANA, MINUTES_PER_DAY, START_MINUTE, timeView } from '@ds/contracts';
+import { CALENDARIO_ESPANA, MINUTES_PER_DAY, START_MINUTE, anioNatural, edadDeCompeticion, primerDiaDelAnio, timeView } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 
@@ -77,5 +77,37 @@ describe('calendario escolar (España)', () => {
     // Los controles de los viernes solo existen en semanas lectivas: ninguno durante Navidad.
     const controles = g.log.filter((l) => /Controles del viernes/.test(l.text)).length;
     expect(controles).toBe(15);
+  });
+
+  describe('año de nacimiento y edad de competición', () => {
+    it('el año natural cambia a primeros de enero, unos 113 días después de empezar el curso', () => {
+      expect(anioNatural(0)).toBe(0);
+      expect(anioNatural(primerDiaDelAnio(1) - 1)).toBe(0); // 31 de diciembre
+      expect(anioNatural(primerDiaDelAnio(1))).toBe(1); // 1 de enero
+      expect(primerDiaDelAnio(1)).toBe(113);
+      expect(anioNatural(-1000)).toBe(-3);
+    });
+
+    it('dos nacidos el mismo año tienen la misma edad de competición aunque cumplan años en días distintos', () => {
+      const inicioCurso = 0;
+      const enero = primerDiaDelAnio(-8) + 3; // nace el 4 de enero del año -8
+      const diciembre = primerDiaDelAnio(-7) - 2; // nace el 30 de diciembre del año -8
+      expect(edadDeCompeticion(enero, inicioCurso)).toBe(8);
+      expect(edadDeCompeticion(diciembre, inicioCurso)).toBe(8);
+    });
+
+    it('un día de diferencia en Nochevieja separa dos categorías', () => {
+      const nocheVieja = primerDiaDelAnio(-8) - 1; // 31 de diciembre del año -9
+      const anoNuevo = primerDiaDelAnio(-8); // 1 de enero del año -8
+      expect(edadDeCompeticion(nocheVieja, 0)).toBe(9);
+      expect(edadDeCompeticion(anoNuevo, 0)).toBe(8);
+    });
+
+    it('la edad de competición no cambia durante el curso y sube un año al empezar el siguiente', () => {
+      const nacimiento = primerDiaDelAnio(-8) + 200;
+      expect(edadDeCompeticion(nacimiento, 0)).toBe(8);
+      expect(edadDeCompeticion(nacimiento, 364)).toBe(9);
+      expect(edadDeCompeticion(nacimiento, 728)).toBe(10);
+    });
   });
 });

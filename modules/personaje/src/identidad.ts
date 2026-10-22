@@ -1,4 +1,4 @@
-import type { BodyType, IdentityView, Rng } from '@ds/contracts';
+import { edadDeCompeticion, type BodyType, type IdentityView, type Rng } from '@ds/contracts';
 
 /**
  * Identidad del personaje: edad, altura, peso, dominancia lateral y complexión.
@@ -52,6 +52,9 @@ export function initIdentidad(rng: Rng): IdentidadState {
   };
 }
 
+/** Día de nacimiento respecto al inicio de la partida (negativo): de él salen la edad, los cumpleaños y el año de nacimiento. */
+export const diaDeNacimiento = (s: IdentidadState): number => Math.round(-(s.edadInicial + s.fraccionInicial) * 365);
+
 /** Edad con decimales en un día de la partida. */
 export const edadDecimal = (s: IdentidadState, day: number): number => s.edadInicial + s.fraccionInicial + day / 365;
 
@@ -86,7 +89,7 @@ export function pesoEn(s: IdentidadState, day: number): number {
 export function viewIdentidad(s: IdentidadState, day: number, primerDiaDelCurso: number): IdentityView {
   return {
     age: Math.floor(edadDecimal(s, day)),
-    seasonAge: Math.floor(edadDecimal(s, primerDiaDelCurso)),
+    seasonAge: edadDeCompeticion(diaDeNacimiento(s), primerDiaDelCurso),
     heightCm: Math.round(alturaEn(s, day) * 10) / 10,
     weightKg: Math.round(pesoEn(s, day) * 10) / 10,
     leftHanded: s.zurdo,

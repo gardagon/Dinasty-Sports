@@ -482,4 +482,43 @@ describe('integración de módulos', () => {
       expect(g.preview('atletismo.final')!.available).toBe(false); // no se ha clasificado en este curso
     });
   });
+
+  describe('categoría por año de nacimiento', () => {
+    /** Partida con el día de nacimiento del personaje fijado: `fraccion` es la parte del año ya pasada desde su último cumpleaños. */
+    const conFraccion = (fraccion: number) => {
+      const g = nuevaPartida({ seed: 61 });
+      const guardado = g.serialize();
+      (guardado.modules.gen as { fraccionInicial: number }).fraccionInicial = fraccion;
+      return cargarPartida(guardado);
+    };
+    const vista = (g: Game) => g.service<IdentityService>(SERVICES.identidad)!.view();
+
+    it('dos niños de la misma edad pueden tener categoría distinta según su año de nacimiento', () => {
+      const reciente = conFraccion(0.1); // cumplió hace poco: nació en el año natural más reciente
+      const antiguo = conFraccion(0.9); // cumplió hace casi un año: nació en el año natural anterior
+      expect(vista(reciente).age).toBe(8);
+      expect(vista(antiguo).age).toBe(8);
+      expect(vista(antiguo).seasonAge).toBe(vista(reciente).seasonAge + 1);
+    });
+
+    it('la edad de competición no cambia durante el curso aunque el personaje cumpla años', () => {
+      const g = conFraccion(0.5);
+      const inicial = vista(g).seasonAge;
+      advanceToWeek(g, 'gen.descansar', 30, 2, 12); // ya ha cumplido años
+      expect(vista(g).age).toBe(9);
+      expect(vista(g).seasonAge).toBe(inicial);
+    });
+
+    it('el rival y el jugador de la misma cohorte comparten categoría', () => {
+      const g = nuevaPartida({ seed: 61 });
+      const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
+      const edades = dir.list({ tag: 'atleta' }).map((n) => n.age!);
+      expect(Math.min(...edades)).toBe(8);
+      expect(Math.max(...edades)).toBe(19);
+      // La edad de competición de los rivales es constante durante todo el curso.
+      const antes = new Map(dir.list({ tag: 'atleta' }).map((n) => [n.id, n.age]));
+      advanceToWeek(g, 'gen.descansar', 40, 2, 12);
+      for (const n of g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'atleta' })) expect(n.age).toBe(antes.get(n.id));
+    });
+  });
 });

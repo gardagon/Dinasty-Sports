@@ -5,6 +5,49 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/10/2026 — Antes de E10: potencial individual, bots, verano según notas, campeonato y categoría por año de nacimiento
+
+### Tope genético individual por habilidad (E2.7)
+- **Cada habilidad tiene un tope genético oculto**, sorteado al crear la partida: media 79 y desviación 9 (la misma distribución que el potencial de los rivales), entre 45 y 100. Cuando haya padres saldrá de la herencia.
+- **Por familia:** el 60 % de la genética se comparte dentro de una familia (quien tiene buena genética física la tiene en casi todo lo físico) y el resto es propio de cada habilidad. Familia `fisico`: las 6 capacidades físicas y las 3 habilidades de atletismo. Familia `intelecto`: las 19 asignaturas.
+- **El tope hace dos cosas:** ninguna habilidad pasa de él y, **a igual entrenamiento, sube más rápido quien tiene un tope más alto**: velocidad × (tope / 79)², entre ×0,5 y ×1,6 (tope 92 → ×1,36; tope 70 → ×0,79).
+- **El jugador no lo ve:** el techo que enseña la interfaz sigue siendo el de la edad y las capacidades. Para pruebas existe `Game.hiddenPotential`.
+- **Resultado:** a 10 años ya no todos acaban en el mismo techo (~92): el jugador de 18 años queda en ~82, parecido al potencial medio de los rivales (79).
+- **Simulación:** la comparación "el especialista supera al equilibrado" se hace al cabo del primer curso, porque a más años todos llegan a su tope.
+- **Efecto secundario:** el balance de estudios baja un poco (equilibrado 68,1 → 61,6; nota media 7,3 → 6,8) porque las asignaturas también tienen tope y velocidad individuales.
+
+### Bots que suben de categoría
+- Los bots que entrenan en serio aceptan la propuesta del entrenador cuando está disponible y vuelven a su categoría si sus últimos tres resultados allí son de media tabla para abajo. A 3 años, el bot atleta compite en la categoría superior en 4 de cada 8 semillas.
+
+### Verano según las notas (E9.10)
+- **Nota media del curso < 5:** **academia obligatoria** en verano (de lunes a viernes de 10 a 13, una sesión al día). Sesiones exigidas: 25 más 6 por cada punto de nota que falte para el 5 (máximo 45). Cada sesión refuerza las tres asignaturas más flojas. Faltar un día de academia cuenta como falta y sube el estrés. Al terminarla se acaba el castigo (+6 de motivación). **No se repite curso:** si el verano acaba sin terminarla, se empieza el curso con las asignaturas flojas, −8 de motivación y +10 de estrés.
+- **Nota ≥ 7,5:** puede pedir a sus padres un **campamento de atletismo** (jornada de 5 horas, una al día, de 9 a 14, ×1,2 de eficiencia, la mejor fuente de mejora y de conocimiento).
+- **Entre medias:** **practicar con los amigos** (2 horas al día, menos mejora que entrenar pero baja el estrés y sube carisma y cooperación).
+- **Servicio de estudios ampliado** con `summerPath`. Pedir permiso a los padres queda como acción directa hasta que existan la familia (E13.1) y las decisiones (E18).
+
+### Clasificatoria autonómica y final del campeonato (E9.11)
+- **Clasificatoria autonómica** (sábado de la semana 25 del curso): 16 corredores (el jugador y 15 de su categoría). Los 8 primeros se clasifican. Ese sábado no hay carrera semanal.
+- **Final del campeonato de España** (sábado de la semana 39): 8 corredores, los 7 mejores de la clasificatoria y el jugador si se clasificó; hay medallas (oro, plata y bronce). Quien no se clasifica sigue con su carrera semanal. El campeonato empieza de cero cada curso.
+- Dan más motivación y conocimiento que una carrera normal. Se guardan en un historial aparte y no cuentan para la subida de categoría.
+
+### Categoría por año de nacimiento
+- **Jugador y rivales tienen fecha de nacimiento** (para calcular la edad exacta y los cumpleaños), pero **lo que cuenta para las categorías y competiciones es el año de nacimiento**, como en la vida real: la edad de competición es el año del curso (el de su inicio, en septiembre) menos el año de nacimiento. Dos niños nacidos el mismo año compiten en la misma categoría aunque uno cumpla años antes, y un día de diferencia en Nochevieja separa dos categorías.
+- **Año natural en la partida:** como no hay fechas absolutas, se supone que el curso empieza hacia el 10 de septiembre; el año natural cambia a los 113 días (1 de enero). Las funciones `anioNatural`, `primerDiaDelAnio` y `edadDeCompeticion` están en contracts.
+- **La edad de competición no cambia durante el curso** y sube un año al empezar el siguiente. Los servicios `identidad` (`seasonAge`) y `npcs` (`age`) publican esa edad. Los rivales nuevos nacen en un día cualquiera del año que les corresponde, y la población queda exactamente en 8 por edad tras cada relevo.
+- Antes se usaba la edad al empezar el curso, y las categorías se vaciaban de rivales con los cumpleaños.
+
+### Respuestas y pendientes
+- Pendiente: entrenador del club como personaje (E19.7), becas (hasta que haya sistema monetario) y optimizaciones de rendimiento (~960 ms por año simulado).
+
+### Problemas conocidos
+- **Las asignaturas comparten la misma distribución de tope que el deporte** (media 79); quizá convenga otra distinta, que dependa de la inteligencia.
+- **Practicar con los amigos sube el atletismo del bot vago** de 0 a ~21 en un año (+10): conviene vigilar que no sustituya a entrenar.
+- **A 10 años el bot atleta sube menos al podio que el equilibrado** (35 % frente a 48 %) porque pasa a categorías superiores, donde los rivales son más fuertes. Es el efecto buscado, pero habrá que ver si compensa.
+- **El campeonato es único** (autonómico y nacional en dos citas): sin fases intermedias ni niveles distintos por categoría.
+- **Cifras finales:** 113 tests; simulaciones de 1, 3 y 10 años con los 13 chequeos en verde.
+
+---
+
 ## 22/10/2026 — Cierre de E9: categorías, rivales por edad, asignaturas por etapa y clubes
 
 ### Fase 1 — Categorías, rivales y desarrollo con la edad

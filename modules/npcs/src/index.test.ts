@@ -85,15 +85,11 @@ describe('módulo NPCs', () => {
       const idsAntes = new Set(rivales(g).map((n) => n.id));
       advanceUntil(g, 'gen.descansar', (t) => t.schoolYear >= 1, 20000);
       const despues = rivales(g);
-      // Los cumpleaños están repartidos por el año: justo tras el relevo cada edad tiene ~8, y no hay nadie de 20 o más.
+      // La edad de competición es por año de nacimiento: tras el relevo cada edad tiene exactamente 8 rivales.
       for (let edad = 8; edad <= 19; edad++) {
-        const n = dir(g).list({ tag: 'atleta', minAge: edad, maxAge: edad }).length;
-        expect(n).toBeGreaterThanOrEqual(6);
-        expect(n).toBeLessThanOrEqual(10);
+        expect(dir(g).list({ tag: 'atleta', minAge: edad, maxAge: edad })).toHaveLength(8);
       }
-      // El curso tiene 364 días y los años de edad 365: puede quedar algún rival de más en una edad, nunca de menos.
-      expect(despues.length).toBeGreaterThanOrEqual(96);
-      expect(despues.length).toBeLessThanOrEqual(100);
+      expect(despues).toHaveLength(96);
       expect(dir(g).list({ tag: 'atleta', minAge: 21 })).toHaveLength(0);
       // Se han ido los de 19 años y han entrado niños de 8 que antes no estaban.
       expect(despues.filter((n) => !idsAntes.has(n.id)).length).toBeGreaterThanOrEqual(8);

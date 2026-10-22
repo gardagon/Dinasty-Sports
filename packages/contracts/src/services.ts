@@ -30,7 +30,7 @@ export interface NpcView {
   affinity: number;
   /** Niveles del NPC por disciplina (p. ej. { atletismo: 42 }). */
   levels: Readonly<Record<string, number>>;
-  /** Edad de temporada (los años que tenía el primer día del curso), si el NPC la tiene (los rivales sí). Define su categoría. */
+  /** Edad de competición (año del curso menos año de nacimiento), si el NPC la tiene (los rivales sí). Define su categoría. */
   age?: number;
   /** Club al que pertenece, si tiene. */
   club?: string;
@@ -70,7 +70,7 @@ export type BodyType = 'delgado' | 'normal' | 'atletico' | 'musculado' | 'con_so
 export interface IdentityView {
   /** Años cumplidos. */
   age: number;
-  /** Edad de temporada: los años que tenía el primer día del curso. Define la categoría deportiva durante todo el curso. */
+  /** Edad de competición: año del curso menos año de nacimiento (no la fecha exacta). Define la categoría deportiva durante todo el curso. */
   seasonAge: number;
   heightCm: number;
   weightKg: number;
