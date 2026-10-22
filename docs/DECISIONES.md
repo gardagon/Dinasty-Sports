@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/10/2026 — Asignaturas, categorías, rivales, verano y clubes (decisiones de diseño)
+
+- **Asignaturas:** más de tres y cambiantes con la etapa (currículo de España). Todos parten de un 5 de nota; la inteligencia **para su edad** y el trabajo en clase y en casa marcan la evolución.
+- **Categorías por edad: las de la federación española,** como dato por país. En edades tempranas pueden salir y entrar niños.
+- **Rivales:** nadie llega a un potencial de 90 en tres años; quien destaca sube de categoría (sobre todo en fútbol), y enfrentarse a mayores desarrolla más.
+- **Verano según las notas:** academia obligatoria si son malas (permite pasar de curso), campamento del deporte si son buenas (si lo piden a los padres), amigos si son aceptables (no mejoran igual). Prima el rendimiento escolar.
+- **Clubes:** clubes en varios deportes, con categorías en cada uno. Primero el club del colegio (entrenamientos de menor nivel); también clubes fuera del colegio, más profesionales.
+- **Clasificatorias:** si hay clasificatorio previo se monta; si no, un evento especial.
+- Todo está en `BACKLOG_STATS.md`: E6.4, E6.5, E9.4, E9.8 a E9.11 y la épica nueva E19 (clubes); el orden de trabajo se ha revisado.
+
+---
+
 ## 22/10/2026 — E9: calendario escolar y temporada implementados
 
 - **Calendario como dato por país** (`packages/contracts/src/calendar.ts`): España por defecto, en semanas desde el inicio del curso (52 por curso, sin fechas absolutas). Trimestres 1.º (semanas 0 a 14), 2.º (17 a 28) y 3.º (30 a 40); Navidad (15 y 16), Semana Santa (29, estimación constante) y verano (41 a 51). Añadir un país es añadir otro dato; elegir país en la partida queda pendiente.

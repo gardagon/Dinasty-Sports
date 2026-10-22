@@ -30,6 +30,15 @@ Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ dif
 - **Semana Santa:** en España es el primer domingo tras la primera luna llena posterior al equinoccio de primavera (entre el 22 de marzo y el 25 de abril). El juego no tiene lunas y el año de la partida es el año 0, así que se usa una **estimación constante**, igual todos los años y marcada como tal.
 - **Deporte de la fase 1:** atletismo primero; el deporte de equipo (fútbol, E7) después como segundo deporte.
 
+### Respuestas del 22/10/2026 (2): asignaturas, categorías, rivales, verano y clubes
+
+- **Asignaturas:** más de tres, que cambian con la etapa (ciencias naturales pasa a biología, ciencias sociales a historia, unas salen y otras entran). El currículo es el de España. Un niño no empieza con nota baja salvo que su inteligencia sea baja **para su edad**: todos parten de un 5 y el trabajo en clase y en casa, con bonus o malus de inteligencia y de otras skills, marca la evolución (o parten con ligera ventaja si son inteligentes).
+- **Categorías por edad: las de la federación española** (ligadas a España, como el calendario). En edades tempranas puede desaparecer algún niño y entrar otro nuevo.
+- **Rivales:** un niño no puede alcanzar en tres años un potencial de 90. Si uno destaca, lo lógico es que **suba de categoría** (sobre todo en fútbol: a los 9 años contra niños de 12). **Cuanto mayor es el rival contra el que se enfrentan, más se desarrollan.**
+- **Clasificatorias:** si hay un clasificatorio previo se monta; si no, un evento especial.
+- **Verano según las notas:** notas malas, academia obligatoria (permite pasar de curso); notas buenas, pueden pedir a los padres un campamento del deporte que practican (mejoran más); notas aceptables, juegan o practican con amigos (no mejoran igual). Se prima así el rendimiento escolar.
+- **Clubes:** habrá clubes en varios deportes y un club puede tener categorías en distintos deportes. Primero se une al **club del colegio** (entrenamientos de menor nivel); hay también clubes fuera del colegio, más profesionales.
+
 ## Decisiones ya tomadas (17/10/2026)
 
 - Ids en **español** (`gen.fuerza`). La regla de ids en inglés del documento original no se adopta.
@@ -126,6 +135,8 @@ Ocho ejes de −50 a +50: disciplinado↔rebelde, honesto↔manipulador, ambicio
 | E6.1 | Revisar si la nota media de `estudios` cubre "rendimiento académico" (0–100) | Se publica ya como servicio `estudios` |
 | E6.2 | Evaluación trimestral con consecuencias (semanas 12, 24, 36 en el original) | El calendario de este juego es de 365 días; hay que decidir el calendario escolar propio 🟡 |
 | E6.3 | La inteligencia y la energía en clase influyen en el rendimiento | Entra con E1.4 |
+| E6.4 | **Asignaturas por etapa (currículo de España):** primaria, ESO y bachillerato con materias que cambian (ciencias naturales → biología, ciencias sociales → historia; unas salen, otras entran). Más de tres | Requiere definir el currículo; el cambio de etapa coincide con el cambio de curso (E9.4) 🟡 |
+| E6.5 | **Nivel inicial de las asignaturas:** todos parten de un 5 de nota; la inteligencia **para su edad** modula la ganancia y una pequeña ventaja o desventaja inicial | Hoy arrancan en 15 a 30 sobre 100 (nota ≈ 3). Decidido el 22/10 |
 
 ## E7 · Competición de equipo — ⏸ · Fidelidad: baja
 
@@ -144,10 +155,14 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 | E9.1 ✅ | Calendario por país, definido como dato. **España (estimación, a confirmar):** curso de 52 semanas sin fechas absolutas, contadas desde el lunes de la 2.ª semana de septiembre | Hecho el 22/10 (ver tabla de abajo). Las semanas exactas son una aproximación |
 | E9.2 ✅ (parcial) | Vacaciones con contenido propio: sin clase pero con entrenamiento, campamentos, tiempo libre | Hecho: sin clase, horario de fin de semana. Faltan campamentos y contenido propio de vacaciones |
 | E9.3 ✅ (parcial) | Temporada deportiva: pretemporada, competición, clasificatorias y finales; carreras que no son todas las semanas | Hecho: pretemporada de 4 semanas y carreras solo en periodo lectivo. Faltan clasificatorias y finales (aprovecharían los 16 rivales y la rotación de series) |
-| E9.4 | Cursos y categorías por edad: el niño sube de curso y de categoría al cumplir años | Enlaza con la edad (E3.1) |
+| E9.4 | Cursos y categorías por edad: el niño sube de curso y de categoría al cumplir años. **Categorías de la federación española** (sub-10, sub-12, sub-14, sub-16, sub-18, sub-20, sub-23), como dato por país igual que el calendario; en edades tempranas, algún niño sale y entra otro nuevo | Enlaza con la edad (E3.1) |
 | E9.5 ✅ (parcial) | Evaluaciones trimestrales con consecuencias (aprobar, repetir curso, becas) | Hecho: evaluación en las semanas 14, 28 y 40, con consecuencias en motivación y estrés. Faltan repetir curso y becas (necesitan decisiones) |
 | E9.6 ✅ | Simulación de 10 años: nuevos chequeos y rendimiento | Hecho: `npm run sim:largo` simula 3 años (336 ms por año). Falta revisar los rivales para partidas de diez años |
 | E9.7 ✅ (datos) | Calendario como dato por país, con España por defecto | Hecho el dato (España). Falta poder elegir el país al crear la partida |
+| E9.8 | **Desarrollo realista de los rivales:** curva por edad (nadie alcanza un potencial de 90 en tres años), renovación por cohortes (salen los mayores, entran nuevos con herencia de su edad) y **subida de categoría** de quien destaca (a los 9 años contra niños de 12 si hace falta, sobre todo en fútbol) | Decidido el 22/10. Hoy los rivales llegan a su potencial en ~3 años |
+| E9.9 | **Competir contra mayores desarrolla más:** la ganancia de entrenar y competir crece con el nivel del rival frente al propio | Decidido el 22/10 |
+| E9.10 | **Verano según las notas:** media baja, academia obligatoria (permite pasar de curso); media alta, campamento deportivo si lo piden a los padres (mejora más); media aceptable, tiempo con amigos (no mejora igual) | Decidido el 22/10. Los umbrales hay que fijarlos; pedir permiso a los padres encaja con familia (E13.1) y decisiones (E18) 🟡 |
+| E9.11 | Clasificatorias y finales: si hay un clasificatorio previo, se monta; si no, un evento especial | Decidido el 22/10. Depende de la estructura de competiciones por categoría |
 
 **Calendario de España (estimación constante; semana 0 = lunes de la 2.ª semana de septiembre)**
 
@@ -238,6 +253,19 @@ Generador de azar propio para los rivales; migración de partidas guardadas; ren
 | E18.5 | Hitos que abren caminos: ojeadores, selecciones, clasificatorias, becas, la oportunidad profesional (E10.2) | Puertas del ciclo de vida |
 | E18.6 | Colegio, familia y rivalidades como fuente de eventos | Dependen de E13 |
 
+## E19 · Clubes — 🟡 · Sin equivalente en el original
+
+Decidido el 22/10/2026: habrá clubes en distintos deportes y un club puede tener categorías en varios deportes. Hoy el entrenamiento está disponible para todos en las pistas, sin club.
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E19.1 | **Club del colegio:** el primero al que se une el personaje (modo historia: colegio nuevo). Entrenamientos de menor nivel | Sesiones con entrenador del colegio y horario fijo |
+| E19.2 | **Clubes fuera del colegio:** más profesionales (mejor entrenamiento y competición), con acceso por pruebas | Posibles cuotas y desplazamientos (E16) 🟡 |
+| E19.3 | Club con varios deportes y categorías en cada uno | Estructura de datos: club → deportes → categorías |
+| E19.4 | La calidad del club modifica la eficiencia de entrenar, el conocimiento y la competición | Modificador por club, sin que los deportes se conozcan |
+| E19.5 | Los rivales y compañeros pertenecen a clubes | Enlaza con los 16 rivales actuales y con E13 |
+| E19.6 | Cambiar de club: pruebas, ojeadores y subida de nivel | Camino hacia la oportunidad profesional (E10.2); necesita eventos (E18) |
+
 ## Transversal
 
 | ID | Tarea |
@@ -261,4 +289,4 @@ Generador de azar propio para los rivales; migración de partidas guardadas; ren
 1. Antes de empezar una épica, releer su sección del original y anotar qué se mantiene, qué se adapta y qué se descarta.
 2. Si algo se adapta o se descarta, apuntarlo en `DECISIONES.md` con el motivo y cambiar la fidelidad aquí.
 3. Revisar el orden tras cerrar E1: probablemente E4 y E5 se desbloqueen juntas cuando exista un sistema de eventos.
-4. Orden propuesto (22/10/2026), con la fase 1 como foco: E9 calendario y curso → E10 ciclo de vida y oportunidad profesional (decidir pronto) → E11 ritmo de juego → E12 salud y lesiones → E2 y edad (E1.5, E2.6, E2.7) → E13 familia y NPCs → E15 interfaz y creación de personaje → E14 segundo deporte → E18 eventos y decisiones (con E4/E5) → fases 2 y 3 (E10.4/E10.5, E7, E8).
+4. Orden propuesto (22/10/2026, revisado), con la fase 1 como foco: **cierre de E9** (E9.4 categorías por edad de la federación española, E9.8 desarrollo realista y renovación de rivales con subida de categoría, E9.9) → E6.4/E6.5 asignaturas por etapa → E19 clubes (primero el del colegio) → E9.10 verano según notas y E9.11 clasificatorias → E10 ciclo de vida y oportunidad profesional → E11 ritmo de juego → E12 salud y lesiones → E2 y edad → E13 familia y NPCs → E15 interfaz → E14 segundo deporte → E18 eventos y decisiones (con E4/E5) → fases 2 y 3.
