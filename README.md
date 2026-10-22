@@ -2,6 +2,7 @@
 
 RPG de decisiones: tu personaje vive un curso escolar mientras desarrolla un deporte.
 Cada acción cuesta tiempo de juego, y todo lo que haces sube o baja sus características.
+El calendario sigue el curso escolar: trimestres, Navidad, Semana Santa y verano.
 
 Este es el MVP. Incluye el motor modular, tres módulos de contenido (estudios, atletismo y NPCs)
 sobre el módulo base del personaje, un equipo de simulación que vigila el balance y una interfaz web pensada para móvil.
@@ -39,6 +40,7 @@ El plan para ampliar características, personalidad y perks, en [`docs/BACKLOG_S
 npm test             # tests unitarios, de integración y de arquitectura
 npm run typecheck
 npm run sim          # simula un año con 7 estrategias × 5 semillas → sim/reports/ultimo/informe.html
+npm run sim:largo    # simula tres años (curso completo con vacaciones y temporadas)
 npm run check        # todo lo anterior en versión rápida
 npm run build        # compila la web en apps/web/dist
 npm run nuevo-modulo -- natacion "Natación"

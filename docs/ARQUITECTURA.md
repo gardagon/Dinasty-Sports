@@ -47,6 +47,13 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
   con herencia propia (potencial, nivel inicial y ritmo) que progresan solos. La serie es de 8: los mejores rivales corren siempre
   las primeras semanas y después las plazas rotan (ver `elegirRivales` en `modules/atletismo`).
 
+## Calendario escolar
+
+El calendario es un **dato por país** (`CalendarioPais`, en contracts), expresado en semanas desde el inicio del curso (52 por curso, sin
+fechas absolutas). El motor y los módulos solo consultan el `TimeView`: curso, semana del curso, periodo (`clase`, `navidad`, `semana_santa`,
+`verano`), trimestre, `isSchoolDay` e `isEvaluationWeek`. Para un país nuevo basta con otro `CalendarioPais`. Un módulo nuevo debe usar
+`isSchoolDay` / `isSchoolHours` (no `isWeekend`) para saber si hay clase, así respeta las vacaciones sin tocar el calendario.
+
 ## Identidad del personaje
 
 El módulo `gen` publica el servicio `identidad` (contracts): edad, altura, peso, dominancia y complexión (`BodyType`).

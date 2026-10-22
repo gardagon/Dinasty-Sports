@@ -6,7 +6,11 @@ import {
   defineModule,
   inHours,
   isSchoolHours,
+  MINUTES_PER_DAY,
+  NOMBRE_PERIODO,
   minutesUntilHour,
+  timeView,
+  type ActionContext,
   type ActionDef,
   type DayEventData,
   type ReadContext,
@@ -54,6 +58,10 @@ export interface EstudiosState {
   /** Últimas notas por asignatura (más reciente al final). */
   notas: Record<string, number[]>;
   faltas: number;
+  /** Media semanal de los controles del trimestre en curso (se vacía en cada evaluación). */
+  controlesTrimestre?: number[];
+  /** Notas medias de cada evaluación de trimestre. */
+  boletines?: { curso: number; trimestre: number; media: number }[];
   /** Último día con asistencia a clase. */
   ultimaAsistencia: number;
 }
@@ -113,6 +121,33 @@ const media = (s: EstudiosState): number | null => {
   return ultimas.length ? ultimas.reduce((a, b) => a + b, 0) / ultimas.length : null;
 };
 
+/** Evaluación de fin de trimestre: nota media de los controles, con consecuencias en ánimo y estrés. */
+function evaluarTrimestre(ctx: ActionContext, curso: number, trimestre: number): void {
+  const st = ctx.state<EstudiosState>();
+  const controles = st.controlesTrimestre ?? [];
+  const media = controles.length ? controles.reduce((a, b) => a + b, 0) / controles.length : 0;
+  const boletines = [...(st.boletines ?? []), { curso, trimestre, media }].slice(-12);
+  ctx.updateState<EstudiosState>((s) => ({ ...s, controlesTrimestre: [], boletines }));
+  const aprobado = media >= 5;
+  ctx.log(
+    `Evaluación del ${trimestre}.º trimestre: nota media ${media.toFixed(1)}. ${aprobado ? 'Apruebas.' : 'Suspendes.'}`,
+    aprobado ? 'logro' : 'aviso',
+  );
+  if (media >= 7) ctx.addStat(GEN.motivacion, 6);
+  else if (!aprobado) {
+    ctx.addStat(GEN.motivacion, -6);
+    ctx.addStat(GEN.estres, 8);
+  }
+  if (trimestre === 3) {
+    const delCurso = boletines.filter((b) => b.curso === curso);
+    const mediaCurso = delCurso.reduce((a, b) => a + b.media, 0) / delCurso.length;
+    ctx.log(
+      mediaCurso >= 5 ? `Curso ${curso + 1} terminado: nota final ${mediaCurso.toFixed(1)}.` : `Curso ${curso + 1} suspendido: nota final ${mediaCurso.toFixed(1)}.`,
+      mediaCurso >= 5 ? 'logro' : 'aviso',
+    );
+  }
+}
+
 export const estudios = defineModule<EstudiosState>({
   id: 'estudios',
   name: 'Estudios',
@@ -136,7 +171,7 @@ export const estudios = defineModule<EstudiosState>({
       duration: (ctx) => minutesUntilHour(ctx.time.minute, 14),
       available: (ctx) => {
         const t = ctx.time;
-        if (t.isWeekend) return 'Hoy no hay clase';
+        if (!t.isSchoolDay) return t.isWeekend ? 'Hoy no hay clase' : `${NOMBRE_PERIODO[t.period]}: no hay clase`;
         if (ctx.state<EstudiosState>().ultimaAsistencia === t.day) return 'Ya has ido a clase hoy';
         return inHours(t, MIN_HORA_CLASE, MAX_HORA_CLASE) ? true : 'Las clases empiezan a las 8:00';
       },
@@ -169,9 +204,11 @@ export const estudios = defineModule<EstudiosState>({
   on: {
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as DayEventData;
-      const weekday = day % 7;
+      // El evento llega al cerrar el día: se mira el calendario de ESE día, no el del siguiente.
+      const hoy = timeView(day * MINUTES_PER_DAY);
+      const weekday = hoy.weekday;
       const s = ctx.state<EstudiosState>();
-      if (weekday >= 5) return;
+      if (!hoy.isSchoolDay) return;
 
       if (s.ultimaAsistencia !== day) {
         ctx.updateState<EstudiosState>((st) => ({ ...st, faltas: st.faltas + 1 }));
@@ -190,12 +227,14 @@ export const estudios = defineModule<EstudiosState>({
         ctx.updateState<EstudiosState>((st) => ({ ...st, notas }));
         const semana = Object.values(notas).map((n) => n[n.length - 1]);
         const m = semana.reduce((x, y) => x + y, 0) / semana.length;
+        ctx.updateState<EstudiosState>((st) => ({ ...st, controlesTrimestre: [...(st.controlesTrimestre ?? []), m] }));
         ctx.log(`Controles del viernes: ${partes.join(' · ')}`, 'resultado');
         if (m >= 7) ctx.addStat(GEN.motivacion, 3);
         else if (m < 5) {
           ctx.addStat(GEN.motivacion, -3);
           ctx.addStat(GEN.estres, 5);
         }
+        if (hoy.isEvaluationWeek) evaluarTrimestre(ctx, hoy.schoolYear, hoy.term);
       }
     },
   },

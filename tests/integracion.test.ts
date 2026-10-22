@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GEN, SERVICES, type NpcDirectory } from '@ds/contracts';
-import { advanceTo, checkInvariants, seededRng } from '@ds/core';
+import { advanceTo, advanceToWeek, checkInvariants, seededRng } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { NpcsState } from '@ds/mod-npcs';
 
@@ -29,7 +29,7 @@ describe('integración de módulos', () => {
 
   it('las carreras usan a los rivales NPC y el entrenador reacciona', () => {
     const g = nuevaPartida({ seed: 11 });
-    advanceTo(g, 'gen.descansar', 5, 10);
+    advanceToWeek(g, 'gen.descansar', 5, 5, 10);
     const antes = g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.affinity;
     const r = g.perform('atletismo.carrera');
     expect(r.ok).toBe(true);
@@ -67,19 +67,24 @@ describe('integración de módulos', () => {
     const vistos = new Set<string>();
     let seriesIguales = 0;
     let anterior = '';
-    for (let semana = 0; semana < 30; semana++) {
-      advanceTo(g, 'gen.descansar', 5, 10);
+    let carreras = 0;
+    // Las carreras solo son en temporada: se recorren las semanas y se corre en las que hay carrera.
+    for (let semana = 0; semana < 200 && carreras < 30; semana++) {
+      advanceToWeek(g, 'gen.descansar', semana, 5, 10);
+      if (!g.preview('atletismo.carrera')!.available) continue;
       const top = mejores();
       const r = g.perform('atletismo.carrera');
       expect(r.ok).toBe(true);
       const nombres = r.log.find((l) => l.table)!.table!.rows.map((f) => f[1]);
       expect(nombres).toHaveLength(8);
-      if (semana < 8) for (const m of top) expect(nombres).toContain(m);
+      if (carreras < 8) for (const m of top) expect(nombres).toContain(m);
       const rivales = nombres.filter((n) => n !== 'Tú').sort();
       for (const n of rivales) vistos.add(n);
       if (rivales.join() === anterior) seriesIguales++;
       anterior = rivales.join();
+      carreras++;
     }
+    expect(carreras).toBe(30);
     expect(vistos.size).toBeGreaterThan(12); // la rotación recorre casi todo el pelotón
     expect(seriesIguales).toBeLessThan(3);
   });

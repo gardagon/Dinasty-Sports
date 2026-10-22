@@ -1,4 +1,5 @@
 export * from './stats';
+export * from './calendar';
 export * from './time';
 export * from './rng';
 export * from './context';

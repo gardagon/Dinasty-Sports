@@ -18,3 +18,8 @@ export function advanceUntil(game: Game, waitActionId: string, until: (t: TimeVi
 export function advanceTo(game: Game, waitActionId: string, weekday: number, hour: number): void {
   advanceUntil(game, waitActionId, (t) => t.weekday === weekday && t.hour === hour);
 }
+
+/** Atajo: avanzar hasta una semana absoluta concreta, un día de la semana (0 = lunes) y una hora. */
+export function advanceToWeek(game: Game, waitActionId: string, week: number, weekday: number, hour: number): void {
+  advanceUntil(game, waitActionId, (t) => t.week === week && t.weekday === weekday && t.hour === hour, 20000);
+}

@@ -141,13 +141,13 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E9.1 | Calendario por país, definido como dato. **España (estimación, a confirmar):** curso de 52 semanas sin fechas absolutas, contadas desde el lunes de la 2.ª semana de septiembre | Ver tabla de abajo. Decidido el 22/10; las semanas exactas son una aproximación |
-| E9.2 | Vacaciones con contenido propio: sin clase pero con entrenamiento, campamentos, tiempo libre | Cambia la disponibilidad de acciones (`isSchoolHours` deja de ser fijo) |
-| E9.3 | Temporada deportiva: pretemporada, competición, clasificatorias y finales; carreras que no son todas las semanas | Las clasificatorias aprovechan los 16 rivales y la rotación de series |
+| E9.1 ✅ | Calendario por país, definido como dato. **España (estimación, a confirmar):** curso de 52 semanas sin fechas absolutas, contadas desde el lunes de la 2.ª semana de septiembre | Hecho el 22/10 (ver tabla de abajo). Las semanas exactas son una aproximación |
+| E9.2 ✅ (parcial) | Vacaciones con contenido propio: sin clase pero con entrenamiento, campamentos, tiempo libre | Hecho: sin clase, horario de fin de semana. Faltan campamentos y contenido propio de vacaciones |
+| E9.3 ✅ (parcial) | Temporada deportiva: pretemporada, competición, clasificatorias y finales; carreras que no son todas las semanas | Hecho: pretemporada de 4 semanas y carreras solo en periodo lectivo. Faltan clasificatorias y finales (aprovecharían los 16 rivales y la rotación de series) |
 | E9.4 | Cursos y categorías por edad: el niño sube de curso y de categoría al cumplir años | Enlaza con la edad (E3.1) |
-| E9.5 | Evaluaciones trimestrales con consecuencias (aprobar, repetir curso, becas) | Es E6.2 con calendario propio |
-| E9.6 | Simulación de 10 años: nuevos chequeos y rendimiento | Hoy la simulación cubre 1 año |
-| E9.7 | Calendario como dato por país, con España por defecto | Permite elegir el país más adelante sin tocar el motor |
+| E9.5 ✅ (parcial) | Evaluaciones trimestrales con consecuencias (aprobar, repetir curso, becas) | Hecho: evaluación en las semanas 14, 28 y 40, con consecuencias en motivación y estrés. Faltan repetir curso y becas (necesitan decisiones) |
+| E9.6 ✅ | Simulación de 10 años: nuevos chequeos y rendimiento | Hecho: `npm run sim:largo` simula 3 años (336 ms por año). Falta revisar los rivales para partidas de diez años |
+| E9.7 ✅ (datos) | Calendario como dato por país, con España por defecto | Hecho el dato (España). Falta poder elegir el país al crear la partida |
 
 **Calendario de España (estimación constante; semana 0 = lunes de la 2.ª semana de septiembre)**
 

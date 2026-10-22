@@ -224,7 +224,7 @@ export const npcs = defineModule<NpcsState>({
               { stat: GEN.comunicacion, amount: 0.6 },
               { stat: GEN.carisma, amount: 0.3 },
             ],
-            horario: (c) => (c.time.isWeekend ? fueraDeClase(9, 14)(c) : fueraDeClase(15, 21)(c)),
+            horario: (c) => (!c.time.isSchoolDay ? fueraDeClase(9, 14)(c) : fueraDeClase(15, 21)(c)),
           }),
         );
       } else if (n.role === 'profesor') {
@@ -239,7 +239,7 @@ export const npcs = defineModule<NpcsState>({
               { stat: GEN.comunicacion, amount: 0.6 },
               { stat: GEN.carisma, amount: 0.3 },
             ],
-            horario: (c) => (!c.time.isWeekend && inHours(c.time, 14, 17) ? true : 'Tutorías de lunes a viernes, 14 a 17'),
+            horario: (c) => (c.time.isSchoolDay && inHours(c.time, 14, 17) ? true : 'Tutorías los días de clase, de 14 a 17'),
           }),
         );
       }
