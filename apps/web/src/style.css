@@ -237,3 +237,8 @@ h3:first-child { margin-top: 0; }
 .identity div { border-top: 2px solid var(--ink); padding-top: 4px; }
 .identity dt { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
 .identity dd { margin: 0; font-family: var(--display); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Las tablas del diario ocupan todo el ancho (bajo el texto) y se desplazan si no caben */
+.log-table { grid-column: 1 / -1; overflow-x: auto; }
+.table { overflow-x: auto; }
+.table td:nth-child(3) { font-size: 12.5px; }

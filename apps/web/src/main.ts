@@ -315,7 +315,7 @@ function viewLog(g: Game): string {
     .reverse()
     .map((l) => {
       const t = timeView(l.minute);
-      return `<li><time>${DIAS[t.weekday].slice(0, 3)} ${hhmm(t.minuteOfDay)}</time><span class="${l.kind ?? ''}">${esc(l.text)}${l.table ? viewTable({ ...l.table }).replace(' open>', '>') : ''}</span></li>`;
+      return `<li><time>${DIAS[t.weekday].slice(0, 3)} ${hhmm(t.minuteOfDay)}</time><span class="${l.kind ?? ''}">${esc(l.text)}</span>${l.table ? `<div class="log-table">${viewTable({ ...l.table }).replace(' open>', '>')}</div>` : ''}</li>`;
     })
     .join('');
   return `<section class="sheet"><h2>Diario</h2>${items ? `<ul class="log">${items}</ul>` : '<p class="note">Aún no ha pasado nada destacable.</p>'}</section>`;
