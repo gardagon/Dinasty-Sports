@@ -41,7 +41,7 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
 
 ## Resultados con tabla y plantilla de competición
 
-- `ctx.log(texto, tipo, tabla)` admite una **tabla opcional** (`LogTable`, en contracts: cabecera, filas y fila resaltada).
+- `ctx.log(texto, tipo, tabla)` admite una **tabla opcional** (`LogTable`, en contracts: cabecera, filas, fila resaltada y alineación de las columnas).
   La web la muestra en el resultado de la acción y, desplegable, en el Diario. Un deporte nuevo publica así su clasificación sin tocar la interfaz.
 - Un deporte consulta a los rivales por el servicio `npcs` (etiqueta `atleta` en atletismo). Los rivales son NPC persistentes
   con herencia propia (potencial, nivel inicial y ritmo) que progresan solos. La serie es de 8: los mejores rivales corren siempre
@@ -53,6 +53,25 @@ El calendario es un **dato por país** (`CalendarioPais`, en contracts), expresa
 fechas absolutas). El motor y los módulos solo consultan el `TimeView`: curso, semana del curso, periodo (`clase`, `navidad`, `semana_santa`,
 `verano`), trimestre, `isSchoolDay` e `isEvaluationWeek`. Para un país nuevo basta con otro `CalendarioPais`. Un módulo nuevo debe usar
 `isSchoolDay` / `isSchoolHours` (no `isWeekend`) para saber si hay clase, así respeta las vacaciones sin tocar el calendario.
+
+## Categorías y desarrollo con la edad
+
+Las categorías por edad son un dato por país y deporte (`CategoriaDef`, `categoriaDeEdad`, en contracts; las de atletismo español están en el
+módulo de atletismo). `madurezPorEdad` (contracts) es la fracción de capacidad adulta alcanzable a cada edad: la usan el personaje, como techo de
+lo físico (estado oculto `gen.madurez`), y los NPCs, como nivel máximo de cada rival. Los rivales tienen fecha de nacimiento, se renuevan cada
+curso y son desconocidos hasta que compiten contra el personaje (`known`).
+
+## Currículo escolar
+
+El currículo es un dato por país (`curriculo.ts` en el módulo de estudios): las asignaturas de cada curso, de 3.º de primaria a 2.º de bachillerato.
+Todas existen como habilidades; solo puntúan y se estudian las del curso actual. Al cambiar de curso, las asignaturas nuevas heredan el nivel de las
+que sustituyen. El servicio `estudios` publica las asignaturas activas y el nombre del curso.
+
+## Clubes
+
+El módulo `clubes` guarda las membresías y la calidad de cada club (catálogo como dato por país). Los deportes ponen el contenido de las sesiones
+(etiqueta `club`) y las pruebas de acceso, y piden entrar o salir con los eventos compartidos `club.unirse` y `club.salir`. El servicio `clubes`
+expone los clubes de un deporte y la membresía del personaje. Un deporte nuevo solo tiene que definir sus sesiones y sus pruebas.
 
 ## Identidad del personaje
 

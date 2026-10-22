@@ -15,6 +15,8 @@ export const TAGS = {
   competicion: 'competicion',
   ocio: 'ocio',
   descanso: 'descanso',
+  /** Sesión de entrenamiento con un club (con entrenador y grupo). */
+  club: 'club',
 } as const;
 
 /** Stats genéricas y de estado que aporta el módulo `gen`. Otros módulos las referencian por id. */
@@ -41,6 +43,8 @@ export const GEN = {
   picardia: 'gen.picardia',
   cooperacion: 'gen.cooperacion',
   // Estado
+  /** Desarrollo físico por la edad (0..100, oculto): limita el techo de lo físico. */
+  madurez: 'gen.madurez',
   energia: 'gen.energia',
   salud: 'gen.salud',
   estres: 'gen.estres',

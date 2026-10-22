@@ -1,4 +1,4 @@
-import type { StatDef } from '@ds/contracts';
+import { SERVICES, type NpcDirectory, type StatDef, type StudiesService } from '@ds/contracts';
 import { checkInvariants, seededRng, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 import type { Bot, BotMemory } from './bots';
@@ -58,18 +58,24 @@ function snapshot(game: Game, areas: Area[]): Snapshot {
   const stats: Record<string, number> = {};
   for (const s of game.registry.statList) stats[s.def.id] = game.stat(s.def.id);
   const a: Record<string, number> = {};
-  for (const area of areas) a[area.key] = area.stats.reduce((x, id) => x + stats[id], 0) / area.stats.length;
+  // Las asignaturas que no se cursan este curso no puntúan en el área de estudios.
+  const activas = game.service<StudiesService>(SERVICES.estudios)?.activeSubjects();
+  for (const area of areas) {
+    const ids = area.key === 'estudios' && activas ? area.stats.filter((id) => activas.includes(id)) : area.stats;
+    a[area.key] = ids.reduce((x, id) => x + stats[id], 0) / ids.length;
+  }
   return { week: game.time.week, areas: a, stats };
 }
 
 function extras(game: Game): Record<string, number | null> {
   const out: Record<string, number | null> = {};
-  const est = game.moduleState<{ notas: Record<string, number[]>; faltas: number } | undefined>('estudios');
+  const est = game.service<StudiesService>(SERVICES.estudios);
   if (est) {
-    const ultimas = Object.values(est.notas).flatMap((n) => n.slice(-4));
-    out.notaMedia = ultimas.length ? ultimas.reduce((a, b) => a + b, 0) / ultimas.length : null;
-    out.faltas = est.faltas;
+    out.notaMedia = est.average();
+    out.faltas = est.absences();
   }
+  const jovenes = game.service<NpcDirectory>(SERVICES.npcs)?.list({ tag: 'atleta', maxAge: 11 });
+  if (jovenes?.length) out.rivalNivelMaxJoven = Math.max(...jovenes.map((n) => n.levels.atletismo ?? 0));
   const atl = game.moduleState<{ mejorMarca: number | null; carreras: { position: number }[] } | undefined>('atletismo');
   if (atl) {
     out.mejorMarca = atl.mejorMarca;

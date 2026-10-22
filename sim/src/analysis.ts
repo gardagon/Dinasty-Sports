@@ -157,7 +157,8 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
   }
 
   // 10. Las carreras son una competición de verdad: ni decididas de antemano ni imposibles
-  if (atl && eq && atl.extras.carreras) {
+  // (solo con simulaciones de casi un curso: en pocas semanas hay pocas carreras y el jugador aún está empezando)
+  if (atl && eq && atl.extras.carreras && days >= 300) {
     const carreras = atl.extras.carreras;
     const vict = (atl.extras.victorias ?? 0) / carreras;
     const podAtl = (atl.extras.podios ?? 0) / carreras;
@@ -170,7 +171,13 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
     );
   }
 
-  // 11. Jugar con sentido no destroza la salud
+  // 11. Los niños no tienen nivel de adulto: a los 11 años o menos nadie se acerca a su potencial
+  const topeJoven = Math.max(...sum.map((s) => s.extras.rivalNivelMaxJoven ?? 0));
+  if (topeJoven > 0) {
+    add(topeJoven <= 75, 'aviso', 'Los niños no tienen nivel de adulto', `El mejor rival de 11 años o menos acaba con nivel ${f(topeJoven)} (esperado ≤ 75: con potencial 99 a los 11 años saldría ~70).`);
+  }
+
+  // 12. Jugar con sentido no destroza la salud
   const sanos = sum.filter((s) => !['sobreentrena', 'aleatorio'].includes(s.bot));
   const enfermos = sanos.filter((s) => (s.final['gen.salud'] ?? 100) < 50).map((s) => `${s.bot} (${f(s.final['gen.salud'])})`);
   add(enfermos.length === 0, 'aviso', 'Las estrategias razonables mantienen la salud', enfermos.length ? `Salud < 50: ${enfermos.join(', ')}` : 'Correcto.');

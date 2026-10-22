@@ -8,6 +8,8 @@ export interface LogTable {
   rows: string[][];
   /** Fila a resaltar (p. ej. la del personaje). */
   highlight?: number;
+  /** Alineación de cada columna (por defecto, a la izquierda). */
+  align?: ('left' | 'right')[];
 }
 
 /** Entrada del registro de la partida (lo que le pasa al personaje). */

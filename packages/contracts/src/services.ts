@@ -7,6 +7,7 @@ export const SERVICES = {
   npcs: 'npcs',
   estudios: 'estudios',
   identidad: 'identidad',
+  clubes: 'clubes',
 } as const;
 
 // ---------- NPCs ----------
@@ -29,11 +30,17 @@ export interface NpcView {
   affinity: number;
   /** Niveles del NPC por disciplina (p. ej. { atletismo: 42 }). */
   levels: Readonly<Record<string, number>>;
+  /** Edad en años cumplidos, si el NPC la tiene (los rivales sí). */
+  age?: number;
+  /** Club al que pertenece, si tiene. */
+  club?: string;
+  /** ¿El personaje ya lo conoce? Los rivales se conocen al competir contra ellos. Ausente = sí. */
+  known?: boolean;
   description?: string;
 }
 
 export interface NpcDirectory {
-  list(filter?: { role?: NpcRole; tag?: string }): NpcView[];
+  list(filter?: { role?: NpcRole; tag?: string; minAge?: number; maxAge?: number }): NpcView[];
   get(id: string): NpcView | undefined;
 }
 
@@ -44,6 +51,10 @@ export interface StudiesService {
   average(): number | null;
   /** Faltas de asistencia acumuladas. */
   absences(): number;
+  /** Ids de las habilidades de las asignaturas que se cursan este curso (el resto no se entrena ni puntúa). */
+  activeSubjects(): string[];
+  /** Nombre del curso actual (p. ej. "1.º de ESO"). */
+  courseName(): string;
 }
 
 // ---------- Identidad ----------
@@ -62,4 +73,27 @@ export interface IdentityView {
 
 export interface IdentityService {
   view(): IdentityView;
+}
+
+// ---------- Clubes ----------
+
+export interface ClubView {
+  id: string;
+  nombre: string;
+  /** El club del colegio: entrenamientos de menor nivel que un club de fuera. */
+  esColegio: boolean;
+  /** 1 = colegio, 2 = club de la ciudad, 3 = alto rendimiento. Mejora la eficiencia de sus sesiones. */
+  calidad: 1 | 2 | 3;
+  deportes: readonly string[];
+  /** Sesiones del club: días de la semana (0 = lunes) y franja horaria. */
+  sesiones: { weekdays: readonly number[]; desde: number; hasta: number };
+  /** Acceso por deporte: nivel mínimo (en la escala del deporte) y edad mínima. Sin entrada = abierto. */
+  acceso?: Readonly<Record<string, { nivel: number; edadMin: number }>>;
+}
+
+export interface ClubDirectory {
+  /** Clubes que ofrecen un deporte. */
+  list(sport: string): ClubView[];
+  /** Club al que pertenece el personaje en ese deporte, si pertenece a alguno. */
+  membership(sport: string): ClubView | undefined;
 }
