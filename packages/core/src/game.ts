@@ -13,11 +13,12 @@ import {
   type InitContext,
   type LogEntry,
   type LogTable,
+  GENETICS_DEFAULT,
   type ReadContext,
   type StatId,
   type TimeView,
 } from '@ds/contracts';
-import { computeCap, computeDecay, computeGain, computeSpeed } from './progression';
+import { computeCap, computeDecay, computeGain, computeSpeed, potentialSpeed } from './progression';
 import { buildRegistry, compileAction, modifiersFor, type CompiledAction, type Registry } from './registry';
 import { createRng, seededRng, type RngHolder } from './rng';
 import { LOG_LIMIT, SAVE_VERSION, type GameState } from './state';
@@ -142,6 +143,18 @@ export class Game {
       const spread = def.category === 'estado' ? 0 : (def.talentSpread ?? 0.15);
       state.talent[def.id] = 1 + (init.next() * 2 - 1) * spread;
       state.lastTrained[def.id] = state.minute;
+      if (def.genetics) {
+        // Tope genético: parte compartida con su familia y parte propia de la característica.
+        state.families ??= {};
+        state.potential ??= {};
+        const fam = def.genetics.family;
+        state.families[fam] ??= init.normal();
+        const g = GENETICS_DEFAULT;
+        const z = g.shared * state.families[fam] + Math.sqrt(1 - g.shared ** 2) * init.normal();
+        const mean = def.genetics.mean ?? g.mean;
+        const sd = def.genetics.sd ?? g.sd;
+        state.potential[def.id] = Math.min(g.max, Math.max(g.min, mean + sd * z));
+      }
     }
     const ictx: InitContext = { rng: init, seed: state.seed, playerName: state.playerName };
     for (const m of registry.modules) {
@@ -175,6 +188,11 @@ export class Game {
 
   peak(id: StatId): number {
     return this.s.peaks[id] ?? this.stat(id);
+  }
+
+  /** Tope genético oculto de una característica (solo para pruebas y simulación; la interfaz no lo enseña). */
+  hiddenPotential(id: StatId): number | undefined {
+    return this.s.potential?.[id];
   }
 
   cap(id: StatId): number {
@@ -360,13 +378,15 @@ export class Game {
     if (info.def.category === 'estado') throw new Error(`"${id}" es de estado: usa addStat, no train`);
     const ctx = this.readCtx('core');
     const norm = (s: string) => ctx.norm(s);
+    const pot = this.s.potential?.[id];
     const gain = computeGain(info.def, {
       value: this.s.stats[id],
       min: info.min,
       max: info.max,
-      cap: computeCap(info.def, info.min, info.max, norm),
+      // El tope genético limita lo que se puede llegar a ser; las influencias visibles (edad, capacidades) lo limitan antes.
+      cap: pot === undefined ? computeCap(info.def, info.min, info.max, norm) : Math.min(pot, computeCap(info.def, info.min, info.max, norm)),
       talent: this.s.talent[id] ?? 1,
-      speed: computeSpeed(info.def, norm),
+      speed: computeSpeed(info.def, norm) * (pot === undefined ? 1 : potentialSpeed(pot)),
       efficiency,
       amount,
     });

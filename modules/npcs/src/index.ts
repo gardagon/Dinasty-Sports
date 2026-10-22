@@ -3,6 +3,9 @@ import {
   GEN,
   MINUTES_PER_DAY,
   SERVICES,
+  anioNatural,
+  edadDeCompeticion,
+  primerDiaDelAnio,
   madurezPorEdad,
   timeView,
   SHARED_EVENTS,
@@ -109,9 +112,12 @@ function nombreUnico(rng: Rng, g: Gender, usados: Set<string>): string {
  */
 const desarrolloRival = (edad: number): number => 0.3 + 0.7 * madurezPorEdad(edad);
 
-/** Edad en años cumplidos de un NPC con fecha de nacimiento. */
-export const edadNpc = (n: Npc, day: number): number | undefined =>
-  n.nacimiento === undefined ? undefined : Math.floor((day - n.nacimiento) / 365);
+/**
+ * Edad de competición de un NPC con fecha de nacimiento: año del curso menos año de nacimiento. Es la que decide su
+ * categoría (no la edad exacta) y no cambia durante el curso. `primerDiaDelCurso` es el día en que empezó el curso.
+ */
+export const edadNpc = (n: Npc, primerDiaDelCurso: number): number | undefined =>
+  n.nacimiento === undefined ? undefined : edadDeCompeticion(n.nacimiento, primerDiaDelCurso);
 
 /**
  * Un rival de una edad dada. "Herencia": unos tienen más potencial y otros salen con ventaja o con otro ritmo de
@@ -121,7 +127,10 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
   const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
   const potencial = clamp(79 + rng.normal() * 9, 55, 99);
   const desfase = clamp(rng.normal() * 0.7, -1.2, 1.2);
-  const techo = potencial * desarrolloRival(edad + desfase);
+  // Nace en un día cualquiera del año que le corresponde a su edad de competición en el curso que empieza en `day`.
+  const nacimiento = primerDiaDelAnio(anioNatural(day) - edad) + rng.int(0, 364);
+  // Su nivel depende de su edad real (puede ser menor que la de competición si nació tarde dentro de su año).
+  const techo = potencial * desarrolloRival((day - nacimiento) / 365 + desfase);
   return {
     id: `rival_${num}`,
     name: nombreUnico(rng, gender, usados),
@@ -133,7 +142,7 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
     levels: { atletismo: techo * rng.range(0.8, 1) },
     potential: { atletismo: potencial },
     ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
-    nacimiento: Math.round(day - (edad + rng.range(0, 1)) * 365),
+    nacimiento,
     desfase,
     known: false,
     club: rng.pick(CLUBES_RIVALES),
@@ -407,6 +416,8 @@ export const npcs = defineModule<NpcsState>({
     [SERVICES.npcs]: (ctx): NpcDirectory => {
       const lista = ctx.state<NpcsState>().npcs;
       const day = ctx.time.day;
+      // Edad de temporada: la de cada rival el primer día del curso, que es la que decide su categoría.
+      const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
       return {
         list: (f) =>
           lista
@@ -414,15 +425,15 @@ export const npcs = defineModule<NpcsState>({
               if (f?.role && n.role !== f.role) return false;
               if (f?.tag && !n.tags.includes(f.tag)) return false;
               if (f?.minAge !== undefined || f?.maxAge !== undefined) {
-                const edad = edadNpc(n, day);
+                const edad = edadNpc(n, inicioCurso);
                 if (edad === undefined || edad < (f.minAge ?? 0) || edad > (f.maxAge ?? 200)) return false;
               }
               return true;
             })
-            .map((n) => vista(n, day)),
+            .map((n) => vista(n, inicioCurso)),
         get: (id) => {
           const n = lista.find((x) => x.id === id);
-          return n ? vista(n, day) : undefined;
+          return n ? vista(n, inicioCurso) : undefined;
         },
       };
     },

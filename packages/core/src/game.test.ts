@@ -191,3 +191,113 @@ describe('determinismo y guardado', () => {
     expect(b.stat('d.tecnica')).toBe(0);
   });
 });
+
+describe('tope genético individual', () => {
+  /** Dos habilidades de la misma familia y una de otra, todas con tope genético. */
+  const genetico = defineModule({
+    id: 'g',
+    name: 'Genética',
+    stats: [
+      { id: 'g.energia', name: 'Energía', category: 'estado', initial: 100, resource: true },
+      { id: 'g.a', name: 'A', category: 'habilidad', initial: 5, talentSpread: 0, genetics: { family: 'fisico' } },
+      { id: 'g.b', name: 'B', category: 'habilidad', initial: 5, talentSpread: 0, genetics: { family: 'fisico' } },
+      { id: 'g.c', name: 'C', category: 'habilidad', initial: 5, talentSpread: 0, genetics: { family: 'mental' } },
+      { id: 'g.sin', name: 'Sin tope', category: 'habilidad', initial: 5, talentSpread: 0 },
+    ],
+    actions: [
+      {
+        id: 'g.entrenar',
+        name: 'Entrenar',
+        tags: ['fisico'],
+        duration: 60,
+        delta: { 'g.energia': -1 },
+        train: [{ stat: 'g.a', amount: 3 }],
+      },
+      { id: 'g.descansar', name: 'Descansar', tags: ['descanso'], duration: 60, delta: { 'g.energia': 100 } },
+    ],
+  });
+  const nueva = (seed: number) => Game.create([genetico], { seed });
+
+  it('cada stat con genética tiene un tope entre 45 y 100; las demás, ninguno', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const g = nueva(seed);
+      for (const id of ['g.a', 'g.b', 'g.c']) {
+        expect(g.hiddenPotential(id)).toBeGreaterThanOrEqual(45);
+        expect(g.hiddenPotential(id)).toBeLessThanOrEqual(100);
+      }
+      expect(g.hiddenPotential('g.sin')).toBeUndefined();
+    }
+  });
+
+  it('es determinista con la semilla y distinto entre partidas', () => {
+    expect(nueva(7).hiddenPotential('g.a')).toBe(nueva(7).hiddenPotential('g.a'));
+    const topes = new Set(Array.from({ length: 10 }, (_, i) => Math.round(nueva(i + 1).hiddenPotential('g.a')!)));
+    expect(topes.size).toBeGreaterThan(5);
+  });
+
+  it('las stats de una misma familia correlacionan y las de otra familia no tanto', () => {
+    const xs = Array.from({ length: 300 }, (_, i) => nueva(i + 1));
+    const corr = (a: string, b: string) => {
+      const va = xs.map((g) => g.hiddenPotential(a)!);
+      const vb = xs.map((g) => g.hiddenPotential(b)!);
+      const ma = va.reduce((x, y) => x + y, 0) / va.length;
+      const mb = vb.reduce((x, y) => x + y, 0) / vb.length;
+      let c = 0, sa = 0, sb = 0;
+      for (let i = 0; i < va.length; i++) {
+        c += (va[i] - ma) * (vb[i] - mb);
+        sa += (va[i] - ma) ** 2;
+        sb += (vb[i] - mb) ** 2;
+      }
+      return c / Math.sqrt(sa * sb);
+    };
+    expect(corr('g.a', 'g.b')).toBeGreaterThan(0.35);
+    expect(Math.abs(corr('g.a', 'g.c'))).toBeLessThan(0.3);
+  });
+
+  it('la media y la dispersión de los topes son las esperadas (≈79 ± 9)', () => {
+    const v = Array.from({ length: 400 }, (_, i) => nueva(i + 1).hiddenPotential('g.a')!);
+    const m = v.reduce((a, b) => a + b, 0) / v.length;
+    const sd = Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length);
+    expect(m).toBeGreaterThan(76);
+    expect(m).toBeLessThan(82);
+    expect(sd).toBeGreaterThan(7);
+    expect(sd).toBeLessThan(11);
+  });
+
+  /** Partida con el tope de `g.a` fijado a mano. */
+  const conTope = (tope: number) => {
+    const guardado = nueva(3).serialize();
+    guardado.potential!['g.a'] = tope;
+    return Game.load([genetico], guardado);
+  };
+
+  it('nadie pasa de su tope, por mucho que entrene', () => {
+    const g = conTope(60);
+    for (let i = 0; i < 400; i++) {
+      g.perform('g.entrenar');
+      g.perform('g.descansar');
+    }
+    expect(g.stat('g.a')).toBeLessThanOrEqual(60 + 1e-6);
+    expect(g.stat('g.a')).toBeGreaterThan(50);
+  });
+
+  it('con el mismo entrenamiento, quien tiene un tope más alto sube más rápido', () => {
+    const alto = conTope(92);
+    const bajo = conTope(70);
+    for (let i = 0; i < 20; i++) {
+      alto.perform('g.entrenar');
+      alto.perform('g.descansar');
+      bajo.perform('g.entrenar');
+      bajo.perform('g.descansar');
+    }
+    const ganAlto = alto.stat('g.a') - 5;
+    const ganBajo = bajo.stat('g.a') - 5;
+    expect(ganAlto).toBeGreaterThan(ganBajo * 1.3);
+  });
+
+  it('el techo visible no revela el tope genético', () => {
+    const a = conTope(50);
+    const b = conTope(95);
+    expect(a.cap('g.a')).toBe(b.cap('g.a'));
+  });
+});

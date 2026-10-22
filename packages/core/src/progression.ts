@@ -46,6 +46,15 @@ export function computeCap(def: StatDef, min: number, max: number, norm: (id: st
   return min + (max - min) * f;
 }
 
+/**
+ * Quien tiene un tope genético más alto progresa más rápido con el mismo entrenamiento:
+ * (tope / 79)², entre ×0,5 y ×1,6 (tope 92 → ×1,36; tope 70 → ×0,79).
+ */
+export const POTENCIAL_DE_REFERENCIA = 79;
+export function potentialSpeed(potential: number): number {
+  return Math.min(1.6, Math.max(0.5, (potential / POTENCIAL_DE_REFERENCIA) ** 2));
+}
+
 /** Velocidad = 1 + Σ peso × (genéricaNormalizada − 0.5). Mínimo 0.2. */
 export function computeSpeed(def: StatDef, norm: (id: string) => number): number {
   let s = 1;

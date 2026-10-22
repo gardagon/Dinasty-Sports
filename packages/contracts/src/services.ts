@@ -30,7 +30,7 @@ export interface NpcView {
   affinity: number;
   /** Niveles del NPC por disciplina (p. ej. { atletismo: 42 }). */
   levels: Readonly<Record<string, number>>;
-  /** Edad en años cumplidos, si el NPC la tiene (los rivales sí). */
+  /** Edad de competición (año del curso menos año de nacimiento), si el NPC la tiene (los rivales sí). Define su categoría. */
   age?: number;
   /** Club al que pertenece, si tiene. */
   club?: string;
@@ -46,6 +46,9 @@ export interface NpcDirectory {
 
 // ---------- Estudios ----------
 
+/** Cómo pasa el verano el personaje según sus notas: academia obligatoria, campamento deportivo o tiempo con amigos. */
+export type SummerPath = 'academia' | 'campamento' | 'amigos';
+
 export interface StudiesService {
   /** Media de las últimas notas (0..10), o null si aún no hay exámenes. */
   average(): number | null;
@@ -55,6 +58,8 @@ export interface StudiesService {
   activeSubjects(): string[];
   /** Nombre del curso actual (p. ej. "1.º de ESO"). */
   courseName(): string;
+  /** Cómo le toca pasar el verano según las notas del curso, o null si todavía no se sabe (o no es verano). */
+  summerPath(): SummerPath | null;
 }
 
 // ---------- Identidad ----------
@@ -65,6 +70,8 @@ export type BodyType = 'delgado' | 'normal' | 'atletico' | 'musculado' | 'con_so
 export interface IdentityView {
   /** Años cumplidos. */
   age: number;
+  /** Edad de competición: año del curso menos año de nacimiento (no la fecha exacta). Define la categoría deportiva durante todo el curso. */
+  seasonAge: number;
   heightCm: number;
   weightKg: number;
   leftHanded: boolean;

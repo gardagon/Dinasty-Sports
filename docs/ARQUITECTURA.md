@@ -51,7 +51,7 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
 
 El calendario es un **dato por país** (`CalendarioPais`, en contracts), expresado en semanas desde el inicio del curso (52 por curso, sin
 fechas absolutas). El motor y los módulos solo consultan el `TimeView`: curso, semana del curso, periodo (`clase`, `navidad`, `semana_santa`,
-`verano`), trimestre, `isSchoolDay` e `isEvaluationWeek`. Para un país nuevo basta con otro `CalendarioPais`. Un módulo nuevo debe usar
+`verano`), trimestre, `isSchoolDay` e `isEvaluationWeek`. En atletismo, la clasificatoria autonómica cae en la semana 25 del curso y la final en la 39. Para un país nuevo basta con otro `CalendarioPais`. Un módulo nuevo debe usar
 `isSchoolDay` / `isSchoolHours` (no `isWeekend`) para saber si hay clase, así respeta las vacaciones sin tocar el calendario.
 
 ## Categorías y desarrollo con la edad
@@ -71,7 +71,19 @@ que sustituyen. El servicio `estudios` publica las asignaturas activas y el nomb
 
 El módulo `clubes` guarda las membresías y la calidad de cada club (catálogo como dato por país). Los deportes ponen el contenido de las sesiones
 (etiqueta `club`) y las pruebas de acceso, y piden entrar o salir con los eventos compartidos `club.unirse` y `club.salir`. El servicio `clubes`
-expone los clubes de un deporte y la membresía del personaje. Un deporte nuevo solo tiene que definir sus sesiones y sus pruebas.
+expone los clubes de un deporte y la membresía del personaje. El servicio `estudios` publica además el camino de verano según las notas (`summerPath`: academia obligatoria, campamento o amigos). Un deporte nuevo solo tiene que definir sus sesiones y sus pruebas.
+
+## Tope genético individual
+
+Una stat con `genetics` (familia, media y desviación) recibe al crear la partida un tope genético oculto (`GameState.potential`), sorteado con una parte
+compartida por familia (`GameState.families`). El tope limita lo que se puede llegar a ser y **acelera el progreso** de quien lo tiene más alto
+(`potentialSpeed`, en el núcleo). El techo visible (`Game.cap`) no lo incluye: la interfaz no enseña el tope. Para pruebas, `Game.hiddenPotential`.
+
+## Año de nacimiento y categorías
+
+Jugador y rivales tienen fecha de nacimiento (edad exacta y cumpleaños), pero las categorías usan el año de nacimiento: la **edad de competición**
+es el año del curso menos el año de nacimiento (`edadDeCompeticion`, `anioNatural`, en contracts). Es constante durante el curso y la publican los
+servicios `identidad` (`seasonAge`) y `npcs` (`age`). La partida supone que el curso empieza hacia el 10 de septiembre.
 
 ## Identidad del personaje
 

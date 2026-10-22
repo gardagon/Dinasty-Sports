@@ -37,6 +37,17 @@ export interface GrowthDef {
   cap?: { base: number; from?: StatInfluence[] };
 }
 
+/** Distribución del tope genético de una característica (escala 0..100, la misma que su valor). */
+export interface GeneticsDef {
+  /** Familia: las stats que la comparten correlacionan (quien tiene buena genética física la tiene en casi todo lo físico). */
+  family: string;
+  /** Media y desviación del tope. Por defecto, las de `GENETICS_DEFAULT`. */
+  mean?: number;
+  sd?: number;
+}
+
+export const GENETICS_DEFAULT = { mean: 79, sd: 9, /** Parte compartida con la familia (0..1). */ shared: 0.6, min: 45, max: 100 } as const;
+
 /** Cómo cae una característica cuando no se practica. */
 export interface DecayDef {
   /** Días sin practicar antes de empezar a caer. */
@@ -59,6 +70,12 @@ export interface StatDef {
   /** Dispersión del talento oculto (multiplicador 1 ± spread). Por defecto 0.15; 0 = sin talento. */
   talentSpread?: number;
   growth?: GrowthDef;
+  /**
+   * Tope genético individual (oculto). Se sortea al crear la partida y hace dos cosas: ninguna capacidad pasa de
+   * él y, a igual entrenamiento, quien tiene un tope más alto sube más rápido. Sin padres, se sortea; con padres,
+   * saldrá de la herencia. Las stats de una misma `family` (p. ej. todo lo físico) comparten parte de la genética.
+   */
+  genetics?: GeneticsDef;
   decay?: DecayDef;
   /**
    * Recurso que se consume (p. ej. energía). Un delta negativo sobre un recurso es un COSTE:

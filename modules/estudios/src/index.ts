@@ -16,6 +16,7 @@ import {
   type ReadContext,
   type StatDef,
   type StudiesService,
+  type SummerPath,
   type WeekEventData,
 } from '@ds/contracts';
 import {
@@ -51,6 +52,10 @@ export interface EstudiosState {
   modalidad?: Modalidad;
   /** Último curso del que ya se han aplicado los cambios de asignaturas. */
   cursoAplicado?: number;
+  /** El verano según las notas del curso. En la academia, sesiones exigidas y hechas. */
+  verano?: { curso: number; tipo: SummerPath; exigidas: number; hechas: number; superada: boolean };
+  /** Último día que fue a la academia (una sesión al día). */
+  ultimaAcademia?: number;
   /** Último día con asistencia a clase. */
   ultimaAsistencia: number;
 }
@@ -61,6 +66,11 @@ const MIN_HORA_CLASE = 7;
 const MAX_HORA_CLASE = 9;
 /** Todos parten de un 5 (nivel ~40 ⇒ nota ≈ 5): la inteligencia y el trabajo marcan la evolución. */
 const NIVEL_INICIAL = { min: 38, max: 42 };
+/** Nota media del curso por debajo de la cual toca academia obligatoria en verano, y por encima de la cual se puede pedir campamento. */
+const NOTA_ACADEMIA = 5;
+const NOTA_CAMPAMENTO = 7.5;
+/** Sesiones de academia exigidas: 25, más 6 por cada punto de nota que falte para el 5 (máximo 45). */
+const SESIONES_BASE_ACADEMIA = 25;
 
 const asignaturaStat = (a: Asignatura): StatDef => ({
   id: statId(a.key),
@@ -69,6 +79,7 @@ const asignaturaStat = (a: Asignatura): StatDef => ({
   category: 'habilidad',
   initial: NIVEL_INICIAL,
   talentSpread: 0.2,
+  genetics: { family: 'intelecto' },
   growth: {
     rate: 0.5,
     curve: 1.5,
@@ -144,7 +155,13 @@ function cambiarCurso(ctx: ActionContext, curso: number): void {
     const heredada = asignatura(k).hereda;
     if (heredada) ctx.addStat(statId(k), ctx.stat(statId(heredada)) - ctx.stat(statId(k)));
   }
-  ctx.updateState<EstudiosState>((s) => ({ ...s, modalidad, cursoAplicado: curso }));
+  // Si se acaba el verano sin haber terminado la academia, no se repite curso pero se empieza flojo y con mala moral.
+  if (academiaPendiente(st)) {
+    ctx.log('No has terminado la academia: empiezas el curso con las asignaturas flojas.', 'aviso');
+    ctx.addStat(GEN.motivacion, -8);
+    ctx.addStat(GEN.estres, 10);
+  }
+  ctx.updateState<EstudiosState>((s) => ({ ...s, modalidad, cursoAplicado: curso, verano: undefined }));
   const nombres = (keys: string[]) => keys.map((k) => asignatura(k).name).join(', ');
   ctx.log(
     `Empiezas ${cursoDef(curso).nombre}.${nuevas.length ? ` Asignaturas nuevas: ${nombres(nuevas)}.` : ''}${salen.length ? ` Dejas: ${nombres(salen)}.` : ''}`,
@@ -176,8 +193,33 @@ function evaluarTrimestre(ctx: ActionContext, curso: number, trimestre: number):
       mediaCurso >= 5 ? `Curso ${curso + 1} terminado: nota final ${mediaCurso.toFixed(1)}.` : `Curso ${curso + 1} suspendido: nota final ${mediaCurso.toFixed(1)}.`,
       mediaCurso >= 5 ? 'logro' : 'aviso',
     );
+    elegirVerano(ctx, curso, mediaCurso);
   }
 }
+
+/**
+ * El verano depende de las notas: no se repite curso, el castigo de las notas malas es la academia obligatoria
+ * para sacar los aprobados; con buenas notas se puede pedir un campamento del deporte; con notas aceptables, amigos.
+ */
+function elegirVerano(ctx: ActionContext, curso: number, media: number): void {
+  let tipo: SummerPath;
+  let exigidas = 0;
+  if (media < NOTA_ACADEMIA) {
+    tipo = 'academia';
+    exigidas = Math.min(45, Math.round(SESIONES_BASE_ACADEMIA + (NOTA_ACADEMIA - media) * 6));
+    ctx.log(`Notas flojas: este verano toca academia obligatoria (${exigidas} sesiones) para sacar los aprobados.`, 'aviso');
+  } else if (media >= NOTA_CAMPAMENTO) {
+    tipo = 'campamento';
+    ctx.log('Buenas notas: este verano puedes pedir a tus padres ir a un campamento de tu deporte.', 'logro');
+  } else {
+    tipo = 'amigos';
+    ctx.log('Notas aceptables: este verano podrás jugar y practicar con tus amigos.');
+  }
+  ctx.updateState<EstudiosState>((s) => ({ ...s, verano: { curso, tipo, exigidas, hechas: 0, superada: false } }));
+}
+
+/** ¿Está el personaje en verano con academia pendiente? */
+const academiaPendiente = (s: EstudiosState): boolean => s.verano?.tipo === 'academia' && !s.verano.superada;
 
 export const estudios = defineModule<EstudiosState>({
   id: 'estudios',
@@ -233,6 +275,40 @@ export const estudios = defineModule<EstudiosState>({
         for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 1.2);
       },
     },
+    {
+      id: 'estudios.academia',
+      name: 'Ir a la academia',
+      description: 'Academia de verano obligatoria para sacar los aprobados: refuerza las asignaturas más flojas. Faltar tiene consecuencias.',
+      tags: [TAGS.estudio, TAGS.mental],
+      group: 'Verano',
+      duration: 180,
+      available: (ctx) => {
+        const s = ctx.state<EstudiosState>();
+        const t = ctx.time;
+        if (!s.verano || s.verano.tipo !== 'academia') return 'No tienes academia este verano';
+        if (s.verano.superada) return 'Ya has sacado los aprobados';
+        if (t.period !== 'verano' || t.isWeekend) return 'La academia es en verano, de lunes a viernes';
+        if (s.ultimaAcademia === t.day) return 'Ya has ido a la academia hoy';
+        return inHours(t, 10, 13) ? true : 'La academia es de 10 a 13';
+      },
+      delta: { [GEN.energia]: -15, [GEN.estres]: 5 },
+      run: (ctx) => {
+        const s = ctx.state<EstudiosState>();
+        // Se refuerzan las tres asignaturas más flojas del curso.
+        const flojas = activasKeys(ctx.time.schoolYear, s.modalidad)
+          .map((k) => [k, ctx.stat(statId(k))] as const)
+          .sort((a, b) => a[1] - b[1])
+          .slice(0, 3);
+        for (const [k] of flojas) ctx.train(statId(k), 2.5);
+        const verano = { ...s.verano!, hechas: s.verano!.hechas + 1 };
+        verano.superada = verano.hechas >= verano.exigidas;
+        ctx.updateState<EstudiosState>((st) => ({ ...st, verano, ultimaAcademia: ctx.time.day }));
+        if (verano.superada) {
+          ctx.log('Has sacado los aprobados en la academia. ¡Se acabó, a disfrutar del verano!', 'logro');
+          ctx.addStat(GEN.motivacion, 6);
+        }
+      },
+    },
   ],
 
   on: {
@@ -249,6 +325,12 @@ export const estudios = defineModule<EstudiosState>({
       const hoy = timeView(day * MINUTES_PER_DAY);
       const weekday = hoy.weekday;
       const s = ctx.state<EstudiosState>();
+      // Academia obligatoria: faltar un día de academia cuenta como falta y sube el estrés.
+      if (academiaPendiente(s) && hoy.period === 'verano' && !hoy.isWeekend && s.ultimaAcademia !== day) {
+        ctx.updateState<EstudiosState>((st) => ({ ...st, faltas: st.faltas + 1 }));
+        ctx.addStat(GEN.estres, 3);
+        ctx.log('Has faltado a la academia.', 'aviso');
+      }
       if (!hoy.isSchoolDay) return;
 
       if (s.ultimaAsistencia !== day) {
@@ -289,6 +371,7 @@ export const estudios = defineModule<EstudiosState>({
         absences: () => s.faltas,
         activeSubjects: () => activas.map(statId),
         courseName: () => cursoDef(ctx.time.schoolYear).nombre,
+        summerPath: () => (ctx.time.period === 'verano' ? (s.verano?.tipo ?? null) : null),
       };
     },
   },

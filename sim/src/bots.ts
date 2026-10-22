@@ -42,6 +42,20 @@ function leastUsed(opts: ActionOption[], p: Pred, mem: BotMemory): ActionOption 
 const entrenoDeporte = all(tag(TAGS.entrenamiento), not(id('gen.gimnasio')));
 /** Sesión con entrenador y grupo del club (si el bot pertenece a uno). */
 const sesionDeClub = tag(TAGS.club);
+/** Aceptar la propuesta del entrenador de competir en la categoría superior (solo está disponible si destaca mucho). */
+const subirDeCategoria = id('atletismo.subir_categoria');
+/** Verano con buenas notas: campamento del deporte; con notas aceptables: practicar con los amigos. */
+const campamento = id('atletismo.campamento');
+const conAmigos = id('atletismo.amigos');
+const volverACategoria = id('atletismo.volver_categoria');
+
+/** En la categoría superior, ¿los últimos resultados son de media tabla para abajo? Entonces no compensa seguir allí. */
+function flojoEnLaSuperior(game: Game): boolean {
+  const st = game.moduleState<{ carreras: { position: number; total: number; superior?: boolean }[] } | undefined>('atletismo');
+  const ultimas = (st?.carreras ?? []).slice(-3);
+  return ultimas.length === 3 && ultimas.every((c) => c.superior && c.position > c.total / 2);
+}
+
 /** Entrar en el club del colegio, el primer paso de quien se toma en serio un deporte. */
 const apuntarseAlClub = id('atletismo.apuntarse_colegio');
 const estudio = all(tag(TAGS.estudio), not(id('estudios.clase')), not(tag(TAGS.social)));
@@ -58,6 +72,8 @@ function basicas(
   const noche = h >= cfg.horaDormir || h < 6;
   if (noche && has('gen.dormir')) return 'gen.dormir';
   if (cfg.clase && has('estudios.clase')) return 'estudios.clase';
+  // La academia de verano es obligatoria para quien suspende: los que van a clase también van a ella.
+  if (cfg.clase && has('estudios.academia')) return 'estudios.academia';
   if (cfg.competir) {
     const comp = opts.find(tag(TAGS.competicion));
     if (comp && game.stat(GEN.energia) >= 40) return comp.id;
@@ -94,11 +110,15 @@ export const BOTS: Bot[] = [
         basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
+          ['subir', 1, subirDeCategoria],
+          ['volver', 1, (o) => volverACategoria(o) && flojoEnLaSuperior(game)],
+          ['campamento', 1, campamento],
           ['club', 1, sesionDeClub],
           ['deporte', 1, entrenoDeporte],
           ['estudio', 1, estudio],
           ['relacion', 1, relacion],
           ['tele', 1, id('atletismo.ver_tele')],
+          ['amigos', 1, conAmigos],
           ['ocio', 1, (o) => game.stat(GEN.estres) > 35 && tag(TAGS.ocio)(o)],
           ['gym', 1, id('gen.gimnasio')],
         ]) ??
@@ -132,11 +152,15 @@ export const BOTS: Bot[] = [
         basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
+          ['subir', 1, subirDeCategoria],
+          ['volver', 1, (o) => volverACategoria(o) && flojoEnLaSuperior(game)],
+          ['campamento', 1, campamento],
           ['club', 1, sesionDeClub],
           ['deporte', 2, entrenoDeporte],
           ['entrenador', 1, (o) => relacion(o) && /entrenador/.test(o.name)],
           ['tele', 1, id('atletismo.ver_tele')],
           ['gym', 1, id('gen.gimnasio')],
+          ['amigos', 1, conAmigos],
           ['ocio', 1, (o) => game.stat(GEN.estres) > 40 && tag(TAGS.ocio)(o)],
         ]) ??
         descansarOEsperar(opts)
@@ -152,6 +176,9 @@ export const BOTS: Bot[] = [
         basicas(game, opts, { horaDormir: 24, clase: true, competir: true, energiaMin: 12 }) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
+          ['subir', 1, subirDeCategoria],
+          ['volver', 1, (o) => volverACategoria(o) && flojoEnLaSuperior(game)],
+          ['campamento', 1, campamento],
           ['club', 1, sesionDeClub],
           ['deporte', 6, entrenoDeporte],
           ['gym', 2, id('gen.gimnasio')],
@@ -173,6 +200,7 @@ export const BOTS: Bot[] = [
       return (
         basicas(game, opts, { horaDormir: 23, clase: false, competir: false, energiaMin: 30 }) ??
         seguirPlan(opts, mem, [
+          ['amigos', 1, conAmigos],
           ['quedar', 1, (o) => relacion(o) && o.tags.includes(TAGS.ocio)],
           ['ocio', 3, tag(TAGS.ocio)],
         ]) ??

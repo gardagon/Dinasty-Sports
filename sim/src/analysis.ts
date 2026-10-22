@@ -105,12 +105,15 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
     add(dA > 10 && dE > 8, 'aviso', 'El esfuerzo hace progresar', `Equilibrado: atletismo +${f(dA)}, estudios +${f(dE)} (esperado > +10 y > +8).`);
   }
 
-  // 4. Especializarse compensa
+  // 4. Especializarse compensa. En simulaciones largas todos acaban en su tope genético (el mismo para todos los
+  // bots con la misma semilla), así que se compara al cabo del primer curso, que es cuando el esfuerzo marca la diferencia.
+  const alCabo = (s: BotSummary, area: string) => (days > 400 ? s.series[area][Math.min(52, s.series[area].length - 1)] : s.final[area]);
+  const cuando = days > 400 ? ' al cabo del primer curso' : '';
   if (eq && atl && has('atletismo')) {
-    add(atl.final.atletismo > eq.final.atletismo, 'aviso', 'Especialista deportivo supera al equilibrado', `Atleta ${f(atl.final.atletismo)} vs equilibrado ${f(eq.final.atletismo)} en atletismo.`);
+    add(alCabo(atl, 'atletismo') > alCabo(eq, 'atletismo'), 'aviso', 'Especialista deportivo supera al equilibrado', `Atleta ${f(alCabo(atl, 'atletismo'))} vs equilibrado ${f(alCabo(eq, 'atletismo'))} en atletismo${cuando}.`);
   }
   if (eq && emp && has('estudios')) {
-    add(emp.final.estudios > eq.final.estudios, 'aviso', 'Especialista en estudios supera al equilibrado', `Empollón ${f(emp.final.estudios)} vs equilibrado ${f(eq.final.estudios)} en estudios.`);
+    add(alCabo(emp, 'estudios') > alCabo(eq, 'estudios'), 'aviso', 'Especialista en estudios supera al equilibrado', `Empollón ${f(alCabo(emp, 'estudios'))} vs equilibrado ${f(alCabo(eq, 'estudios'))} en estudios${cuando}.`);
   }
 
   // 5. No hacer nada no puede ser lo mejor
@@ -164,10 +167,10 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
     const podAtl = (atl.extras.podios ?? 0) / carreras;
     const podEq = (eq.extras.podios ?? 0) / Math.max(1, eq.extras.carreras ?? carreras);
     add(
-      vict < 0.6 && podAtl > 0.05 && podEq < podAtl,
+      vict < 0.6 && podAtl > 0.05 && (days > 400 || podEq < podAtl),
       'aviso',
       'Las carreras son una competición real',
-      `Atleta: ${f(vict * 100, 0)} % de victorias y ${f(podAtl * 100, 0)} % de podios; equilibrado: ${f(podEq * 100, 0)} % de podios (esperado: atleta gana < 60 %, sube al podio algunas veces y supera al equilibrado).`,
+      `Atleta: ${f(vict * 100, 0)} % de victorias y ${f(podAtl * 100, 0)} % de podios; equilibrado: ${f(podEq * 100, 0)} % de podios (esperado: atleta gana < 60 % y sube al podio algunas veces; en un curso supera al equilibrado, a más años todos llegan a su tope).`,
     );
   }
 
