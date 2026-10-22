@@ -272,4 +272,31 @@ describe('integración de módulos', () => {
       expect(club(g)).toBeUndefined();
     });
   });
+
+  it('una partida guardada antes de las categorías, el currículo y los clubes se carga y sigue funcionando', () => {
+    const s = nuevaPartida({ seed: 5, playerName: 'Vieja' }).serialize();
+    delete (s.modules as Record<string, unknown>).clubes;
+    for (const k of ['gen.madurez', 'estudios.biologia', 'estudios.naturales', 'estudios.ingles', 'estudios.latin']) {
+      delete s.stats[k];
+      delete s.peaks[k];
+      delete s.baseline[k];
+      delete s.talent[k];
+      delete s.lastTrained[k];
+    }
+    // Rivales del formato antiguo: sin edad ni club.
+    const npcs = s.modules.npcs as NpcsState;
+    npcs.npcs = npcs.npcs
+      .filter((n) => n.role !== 'rival')
+      .concat(
+        Array.from({ length: 16 }, (_, i) => ({
+          id: `rival_${i + 1}`, name: `Rival ${i}`, role: 'rival' as const, gender: 'm' as const, tags: ['atleta'], supports: [],
+          affinity: 20, levels: { atletismo: 40 }, potential: { atletismo: 80 }, lastDay: -1,
+        })),
+      );
+    const g = cargarPartida(s);
+    advanceToWeek(g, 'gen.descansar', 6, 5, 10);
+    expect(g.perform('atletismo.carrera').ok).toBe(true); // sin rivales con edad, la serie se completa con corredores genéricos
+    advanceToWeek(g, 'gen.descansar', 14, 4, 20);
+    expect(checkInvariants(g)).toEqual([]);
+  });
 });
