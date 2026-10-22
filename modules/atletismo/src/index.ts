@@ -9,7 +9,12 @@ import {
   defineModule,
   inHours,
   type ActionDoneData,
+  type ActionDef,
   type CategoriaDef,
+  type ClubDirectory,
+  type ClubJoinData,
+  type ClubLeaveData,
+  type ClubView,
   type CompetitionResultData,
   type IdentityService,
   type NpcDirectory,
@@ -41,6 +46,10 @@ export interface AtletismoState {
   categoriaSuperior?: boolean;
   /** Categoría que le tocaba por edad la última vez (para saber cuándo cambia). */
   categoriaPropia?: string;
+  /** Último día que fue a una sesión de su club (una al día). */
+  ultimaSesionClub?: number;
+  /** Última semana en que hizo la prueba de acceso de cada club (para no repetirla enseguida). */
+  pruebas?: Record<string, number>;
 }
 
 /**
@@ -137,6 +146,56 @@ const habilidad = (key: string, name: string, apoyos: Apoyo[], description: stri
 
 /** Semanas de pretemporada al empezar cada curso: se entrena pero todavía no hay carreras. */
 const SEMANAS_PRETEMPORADA = 4;
+/** Semanas que hay que esperar para repetir la prueba de acceso de un club. */
+const SEMANAS_ENTRE_PRUEBAS = 8;
+/** Entrenar solo, sin entrenador ni grupo, rinde menos que una sesión de club. */
+const EFICIENCIA_POR_TU_CUENTA = 0.85;
+const ENTRENOS_LIBRES = ['atletismo.series', 'atletismo.rodaje', 'atletismo.tecnica'];
+
+const DEPORTE = 'atletismo';
+const clubDelJugador = (ctx: ReadContext): ClubView | undefined => ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(DEPORTE);
+const edadDelJugador = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
+
+/** Pruebas de acceso a los clubes de fuera del colegio, que el personaje todavía no tiene. */
+function accionesDeClubes(ctx: ReadContext): ActionDef[] {
+  const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
+  if (!clubes) return [];
+  const actual = clubes.membership(DEPORTE);
+  return clubes
+    .list(DEPORTE)
+    .filter((c) => !c.esColegio && c.id !== actual?.id && c.acceso?.[DEPORTE])
+    .map((c): ActionDef => {
+      const acceso = c.acceso![DEPORTE];
+      return {
+        id: `atletismo.prueba.${c.id}`,
+        name: `Prueba de acceso: ${c.nombre}`,
+        description: `El ${c.nombre} hace pruebas a quien quiere entrar. Exige edad (${acceso.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
+        tags: [TAGS.fisico, 'atletismo'],
+        group: 'Club',
+        duration: 150,
+        available: (c2) => {
+          const t = c2.time;
+          if (edadDelJugador(c2) < acceso.edadMin) return `Hay que tener ${acceso.edadMin} años para probar en el ${c.nombre}`;
+          const ultima = c2.state<AtletismoState>().pruebas?.[c.id];
+          if (ultima !== undefined && t.week - ultima < SEMANAS_ENTRE_PRUEBAS) return 'Hiciste la prueba hace poco: espera unas semanas';
+          return inHours(t, t.isSchoolDay ? 16 : 10, t.isSchoolDay ? 19 : 13) ? true : 'Las pruebas son los días de clase de 16 a 19 y sin clase de 10 a 13';
+        },
+        delta: { [GEN.energia]: -25, [GEN.estres]: 6 },
+        run: (c2) => {
+          const t = c2.time;
+          const forma = 0.85 + 0.15 * Math.min(1.2, c2.efficiency);
+          const rinde = rendimiento(c2) * forma + c2.rng.normal() * 3;
+          c2.updateState<AtletismoState>((s) => ({ ...s, pruebas: { ...(s.pruebas ?? {}), [c.id]: t.week } }));
+          if (rinde >= acceso.nivel) {
+            c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: c.id } });
+          } else {
+            c2.log(`Prueba en el ${c.nombre}: todavía no tienes el nivel que piden. Sigue entrenando y vuelve a intentarlo.`, 'aviso');
+            c2.addStat(GEN.motivacion, -3);
+          }
+        },
+      };
+    });
+}
 
 const horarioEntreno = (ctx: ReadContext): true | string => {
   const t = ctx.time;
@@ -171,6 +230,7 @@ const CARRERAS_CON_CABEZAS = 8;
 interface Corredor {
   npcId?: string;
   name: string;
+  club?: string;
   level: number;
 }
 
@@ -246,7 +306,60 @@ export const atletismo = defineModule<AtletismoState>({
     ultimaTele: -1,
   }),
 
+  dynamicActions: accionesDeClubes,
+
   actions: [
+    {
+      id: 'atletismo.apuntarse_colegio',
+      name: 'Apuntarte al club de atletismo del colegio',
+      description: 'El club del colegio entrena con su entrenador en sesiones fijas. Es el primer paso para competir con un equipo.',
+      tags: ['atletismo'],
+      group: 'Club',
+      duration: 30,
+      available: (ctx) => {
+        if (clubDelJugador(ctx)) return 'Ya perteneces a un club de atletismo';
+        const t = ctx.time;
+        return t.isSchoolDay && inHours(t, 14, 19) ? true : 'Puedes apuntarte los días de clase, de 14 a 19';
+      },
+      run: (ctx) => ctx.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: 'colegio' } }),
+    },
+    {
+      id: 'atletismo.club_sesion',
+      name: 'Entrenamiento con el club',
+      description: 'Sesión completa con el entrenador y el grupo del club: técnica, ritmo, salida y táctica. Rinde más que entrenar por tu cuenta, y más aún en los clubes de fuera del colegio.',
+      tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, TAGS.club, 'atletismo'],
+      group: 'Club',
+      duration: 120,
+      available: (ctx) => {
+        const club = clubDelJugador(ctx);
+        if (!club) return 'No perteneces a ningún club de atletismo';
+        const t = ctx.time;
+        if (!club.sesiones.weekdays.includes(t.weekday)) return `Las sesiones de ${club.nombre} son otros días`;
+        if (ctx.state<AtletismoState>().ultimaSesionClub === t.day) return 'Ya has entrenado con el club hoy';
+        return inHours(t, club.sesiones.desde, club.sesiones.hasta - 1) ? true : `La sesión es de ${club.sesiones.desde} a ${club.sesiones.hasta}`;
+      },
+      delta: { [GEN.energia]: -24 },
+      train: [
+        { stat: 'atletismo.tecnica', amount: 2 },
+        { stat: 'atletismo.ritmo', amount: 2 },
+        { stat: 'atletismo.salida', amount: 2 },
+        { stat: GEN.velocidad, amount: 0.6 },
+        { stat: GEN.resistencia, amount: 0.6 },
+        { stat: GEN.coordinacion, amount: 0.4 },
+        // Con entrenador y grupo se aprende el deporte como en ningún otro entrenamiento.
+        { stat: CONOCIMIENTO, amount: 1.6 },
+      ],
+      run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimaSesionClub: ctx.time.day })),
+    },
+    {
+      id: 'atletismo.dejar_club',
+      name: 'Dejar el club de atletismo',
+      tags: ['atletismo'],
+      group: 'Club',
+      duration: 15,
+      available: (ctx) => (clubDelJugador(ctx) ? true : 'No perteneces a ningún club de atletismo'),
+      run: (ctx) => ctx.emit<ClubLeaveData>({ type: SHARED_EVENTS.CLUB_LEAVE, data: { sport: DEPORTE } }),
+    },
     {
       id: 'atletismo.series',
       name: 'Series de velocidad',
@@ -374,7 +487,7 @@ export const atletismo = defineModule<AtletismoState>({
         const conocidos: Corredor[] = npcs
           ? npcs
               .list({ tag: 'atleta', minAge: competida.edadMin, maxAge: competida.edadMax })
-              .map((n) => ({ npcId: n.id, name: n.name, level: n.levels.atletismo ?? 30 }))
+              .map((n) => ({ npcId: n.id, name: n.name, club: n.club, level: n.levels.atletismo ?? 30 }))
           : [];
         const previa = ctx.state<AtletismoState>().ultimaCarreraRival ?? {};
         const enCategoria = ctx.state<AtletismoState>().carreras.filter((c) => c.categoria === competida.id).length;
@@ -384,6 +497,9 @@ export const atletismo = defineModule<AtletismoState>({
           ...rivalesGenericos(Math.max(0, PARTICIPANTES - 1 - elegidos.length), t.week, ctx.rng),
         ];
 
+        const miClub = clubDelJugador(ctx)?.nombre;
+        const clubes = new Map<string, string>(rivales.filter((r) => r.club).map((r) => [r.name, r.club!]));
+        if (miClub) clubes.set('Tú', miClub);
         const participants: CompetitionResultData['participants'] = [
           { name: 'Tú', mark: miMarca, isPlayer: true },
           ...rivales.map((r) => ({ npcId: r.npcId, name: r.name, mark: marca400(r.level, ctx.rng) })),
@@ -408,14 +524,16 @@ export const atletismo = defineModule<AtletismoState>({
 
         const ganador = participants[0].mark;
         const tabla = {
-          header: ['Pos.', 'Corredor', 'Tiempo', 'Dif.'],
+          header: ['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.'],
           rows: participants.map((p, i) => [
             `${i + 1}º`,
             p.name,
+            clubes.get(p.name) ?? '—',
             `${p.mark.toFixed(2)} s`,
             i === 0 ? '—' : `+${(p.mark - ganador).toFixed(2)}`,
           ]),
           highlight: position - 1,
+          align: ['left', 'left', 'left', 'right', 'right'] as ('left' | 'right')[],
         };
         const dif = position === 1 ? '' : `, a ${(miMarca - ganador).toFixed(2)} s del 1º`;
         ctx.log(
@@ -448,6 +566,12 @@ export const atletismo = defineModule<AtletismoState>({
   ],
 
   modifiers: [
+    {
+      id: 'atletismo.por_tu_cuenta',
+      tags: ['atletismo'],
+      apply: (_ctx, action) =>
+        ENTRENOS_LIBRES.includes(action.id) ? { efficiency: EFICIENCIA_POR_TU_CUENTA, reason: 'Entrenas por tu cuenta, sin entrenador' } : null,
+    },
     {
       id: 'atletismo.conocimiento',
       tags: ['atletismo'],

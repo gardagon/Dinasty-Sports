@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, SERVICES, categoriaDeEdad, type IdentityService, type NpcDirectory } from '@ds/contracts';
+import { GEN, SERVICES, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
-import { advanceTo, advanceToWeek, checkInvariants, seededRng } from '@ds/core';
+import { advanceTo, advanceToWeek, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { NpcsState } from '@ds/mod-npcs';
@@ -39,7 +39,7 @@ describe('integración de módulos', () => {
     expect(entrada).toBeDefined();
     // La carrera deja una clasificación con nombres, posiciones y tiempos.
     expect(entrada!.table?.rows).toHaveLength(8);
-    expect(entrada!.table?.header).toEqual(['Pos.', 'Corredor', 'Tiempo', 'Dif.']);
+    expect(entrada!.table?.header).toEqual(['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.']);
     const mia = entrada!.table!.rows[entrada!.table!.highlight!];
     expect(mia[1]).toBe('Tú');
     expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.affinity).toBeGreaterThan(antes);
@@ -165,6 +165,111 @@ describe('integración de módulos', () => {
       const g2 = cargarPartida(guardado);
       expect(g2.preview('atletismo.subir_categoria')!.available).toBe(false);
       expect(g2.preview('atletismo.subir_categoria')!.reason).toMatch(/competitivo/);
+    });
+  });
+
+  describe('clubes', () => {
+    const club = (g: Game) => g.service<ClubDirectory>(SERVICES.clubes)!.membership('atletismo');
+
+    it('empieza sin club y puede apuntarse al del colegio los días de clase por la tarde', () => {
+      const g = nuevaPartida({ seed: 31 });
+      expect(club(g)).toBeUndefined();
+      advanceToWeek(g, 'gen.descansar', 1, 2, 9);
+      expect(g.preview('atletismo.apuntarse_colegio')!.available).toBe(false); // de 14 a 19
+      advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+      expect(g.perform('atletismo.apuntarse_colegio').ok).toBe(true);
+      expect(club(g)?.id).toBe('colegio');
+      expect(g.preview('atletismo.apuntarse_colegio')!.available).toBe(false);
+      expect(g.log.some((l) => /Te apuntas al club deportivo del colegio/.test(l.text))).toBe(true);
+    });
+
+    it('sin club solo hay entrenamiento por tu cuenta, que rinde menos que una sesión del club', () => {
+      const g = nuevaPartida({ seed: 31 });
+      advanceToWeek(g, 'gen.descansar', 1, 0, 15);
+      expect(g.preview('atletismo.club_sesion')!.available).toBe(false);
+      const solo = g.preview('atletismo.tecnica')!;
+      expect(solo.modifiers.some((m) => m.id === 'atletismo.por_tu_cuenta')).toBe(true);
+      g.perform('atletismo.apuntarse_colegio');
+      advanceToWeek(g, 'gen.descansar', 2, 0, 15); // lunes: sesión del colegio de 15 a 17
+      const sesion = g.preview('atletismo.club_sesion')!;
+      expect(sesion.available).toBe(true);
+      expect(sesion.modifiers.some((m) => m.id === 'atletismo.por_tu_cuenta')).toBe(false);
+      const antes = g.stat('atletismo.conocimiento');
+      expect(g.perform('atletismo.club_sesion').ok).toBe(true);
+      expect(g.stat('atletismo.conocimiento')).toBeGreaterThan(antes);
+      expect(g.preview('atletismo.club_sesion')!.available).toBe(false); // una al día
+    });
+
+    it('las sesiones del club solo son los días y horas del club', () => {
+      const g = nuevaPartida({ seed: 31 });
+      advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+      g.perform('atletismo.apuntarse_colegio');
+      advanceToWeek(g, 'gen.descansar', 2, 1, 15); // martes: el colegio entrena lunes y miércoles
+      expect(g.preview('atletismo.club_sesion')!.available).toBe(false);
+      advanceToWeek(g, 'gen.descansar', 2, 2, 12);
+      expect(g.preview('atletismo.club_sesion')!.available).toBe(false); // antes de la hora
+    });
+
+    it('un club de fuera pide edad y nivel, y se puede repetir la prueba pasadas unas semanas', () => {
+      const g = nuevaPartida({ seed: 31 });
+      advanceToWeek(g, 'gen.descansar', 1, 2, 17);
+      const prueba = g.preview('atletismo.prueba.club_ciudad')!;
+      expect(prueba.available).toBe(false);
+      expect(prueba.reason).toMatch(/10 años/);
+    });
+
+    /** Partida con 12 años y el nivel pedido en las habilidades. */
+    const con12 = (nivel: number) => {
+      const g = nuevaPartida({ seed: 31 });
+      const guardado = g.serialize();
+      (guardado.modules.gen as { edadInicial: number }).edadInicial = 12;
+      for (const id of Object.keys(guardado.stats)) {
+        if (/^(gen\.(velocidad|resistencia)|atletismo\.(tecnica|ritmo|salida))$/.test(id)) guardado.stats[id] = nivel;
+      }
+      return cargarPartida(guardado);
+    };
+
+    it('con nivel suficiente la prueba te abre las puertas de un club de mayor calidad', () => {
+      const g = con12(95);
+      advanceToWeek(g, 'gen.descansar', 1, 2, 17);
+      expect(g.perform('atletismo.prueba.club_ciudad').ok).toBe(true);
+      expect(club(g)?.id).toBe('club_ciudad');
+      expect(g.log.some((l) => /Ya eres del Club Atletismo Ciudad/.test(l.text))).toBe(true);
+      advanceToWeek(g, 'gen.descansar', 2, 1, 18); // martes de club de la ciudad
+      const sesion = g.preview('atletismo.club_sesion')!;
+      expect(sesion.available).toBe(true);
+      expect(sesion.modifiers.some((m) => m.id === 'clubes.calidad')).toBe(true);
+    });
+
+    it('sin nivel suficiente no te cogen y no puedes repetirla enseguida', () => {
+      const g = con12(20);
+      advanceToWeek(g, 'gen.descansar', 1, 2, 17);
+      g.perform('atletismo.prueba.club_ciudad');
+      expect(club(g)).toBeUndefined();
+      expect(g.log.some((l) => /todavía no tienes el nivel/.test(l.text))).toBe(true);
+      expect(g.preview('atletismo.prueba.club_ciudad')!.available).toBe(false);
+      expect(g.preview('atletismo.prueba.club_ciudad')!.reason).toMatch(/espera/);
+    });
+
+    it('la clasificación muestra el club de cada corredor y el tuyo', () => {
+      const g = nuevaPartida({ seed: 31 });
+      advanceToWeek(g, 'gen.descansar', 4, 2, 14);
+      g.perform('atletismo.apuntarse_colegio');
+      advanceToWeek(g, 'gen.descansar', 4, 5, 10);
+      const r = g.perform('atletismo.carrera');
+      const tabla = r.log.find((l) => l.table)!.table!;
+      const mia = tabla.rows[tabla.highlight!];
+      expect(mia[2]).toBe('Club deportivo del colegio');
+      const otros = tabla.rows.filter((_, i) => i !== tabla.highlight);
+      expect(otros.every((f) => f[2] !== '—')).toBe(true);
+    });
+
+    it('se puede dejar el club', () => {
+      const g = nuevaPartida({ seed: 31 });
+      advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+      g.perform('atletismo.apuntarse_colegio');
+      expect(g.perform('atletismo.dejar_club').ok).toBe(true);
+      expect(club(g)).toBeUndefined();
     });
   });
 });

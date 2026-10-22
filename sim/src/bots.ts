@@ -40,6 +40,10 @@ function leastUsed(opts: ActionOption[], p: Pred, mem: BotMemory): ActionOption 
 }
 
 const entrenoDeporte = all(tag(TAGS.entrenamiento), not(id('gen.gimnasio')));
+/** Sesión con entrenador y grupo del club (si el bot pertenece a uno). */
+const sesionDeClub = tag(TAGS.club);
+/** Entrar en el club del colegio, el primer paso de quien se toma en serio un deporte. */
+const apuntarseAlClub = id('atletismo.apuntarse_colegio');
 const estudio = all(tag(TAGS.estudio), not(id('estudios.clase')), not(tag(TAGS.social)));
 const relacion = (o: ActionOption) => o.group === 'Relaciones';
 
@@ -89,6 +93,8 @@ export const BOTS: Bot[] = [
       return (
         basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
         seguirPlan(opts, mem, [
+          ['unirse', 1, apuntarseAlClub],
+          ['club', 1, sesionDeClub],
           ['deporte', 1, entrenoDeporte],
           ['estudio', 1, estudio],
           ['relacion', 1, relacion],
@@ -125,6 +131,8 @@ export const BOTS: Bot[] = [
       return (
         basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
         seguirPlan(opts, mem, [
+          ['unirse', 1, apuntarseAlClub],
+          ['club', 1, sesionDeClub],
           ['deporte', 2, entrenoDeporte],
           ['entrenador', 1, (o) => relacion(o) && /entrenador/.test(o.name)],
           ['tele', 1, id('atletismo.ver_tele')],
@@ -143,6 +151,8 @@ export const BOTS: Bot[] = [
       return (
         basicas(game, opts, { horaDormir: 24, clase: true, competir: true, energiaMin: 12 }) ??
         seguirPlan(opts, mem, [
+          ['unirse', 1, apuntarseAlClub],
+          ['club', 1, sesionDeClub],
           ['deporte', 6, entrenoDeporte],
           ['gym', 2, id('gen.gimnasio')],
         ]) ??

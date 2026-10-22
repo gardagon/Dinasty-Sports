@@ -269,7 +269,7 @@ export const estudios = defineModule<EstudiosState>({
         ctx.updateState<EstudiosState>((st) => ({ ...st, notas }));
         const m = activas.reduce((x, k) => x + notas[k][notas[k].length - 1], 0) / activas.length;
         ctx.updateState<EstudiosState>((st) => ({ ...st, controlesTrimestre: [...(st.controlesTrimestre ?? []), m] }));
-        ctx.log(`Controles del viernes: nota media ${m.toFixed(1)}.`, 'resultado', { header: ['Asignatura', 'Nota'], rows: filas });
+        ctx.log(`Controles del viernes: nota media ${m.toFixed(1)}.`, 'resultado', { header: ['Asignatura', 'Nota'], rows: filas, align: ['left', 'right'] });
         if (m >= 7) ctx.addStat(GEN.motivacion, 3);
         else if (m < 5) {
           ctx.addStat(GEN.motivacion, -3);

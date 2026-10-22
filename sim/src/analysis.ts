@@ -157,7 +157,8 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
   }
 
   // 10. Las carreras son una competición de verdad: ni decididas de antemano ni imposibles
-  if (atl && eq && atl.extras.carreras) {
+  // (solo con simulaciones de casi un curso: en pocas semanas hay pocas carreras y el jugador aún está empezando)
+  if (atl && eq && atl.extras.carreras && days >= 300) {
     const carreras = atl.extras.carreras;
     const vict = (atl.extras.victorias ?? 0) / carreras;
     const podAtl = (atl.extras.podios ?? 0) / carreras;

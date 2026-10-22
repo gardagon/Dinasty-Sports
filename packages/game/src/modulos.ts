@@ -3,6 +3,7 @@ import { personaje } from '@ds/mod-personaje';
 import { estudios } from '@ds/mod-estudios';
 import { atletismo } from '@ds/mod-atletismo';
 import { npcs } from '@ds/mod-npcs';
+import { clubes } from '@ds/mod-clubes';
 // <nuevo-modulo:import>
 
 /**
@@ -15,5 +16,6 @@ export const MODULOS: readonly GameModule<any>[] = [
   estudios,
   atletismo,
   npcs,
+  clubes,
   // <nuevo-modulo:lista>
 ];

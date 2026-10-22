@@ -7,6 +7,7 @@ export const SERVICES = {
   npcs: 'npcs',
   estudios: 'estudios',
   identidad: 'identidad',
+  clubes: 'clubes',
 } as const;
 
 // ---------- NPCs ----------
@@ -72,4 +73,27 @@ export interface IdentityView {
 
 export interface IdentityService {
   view(): IdentityView;
+}
+
+// ---------- Clubes ----------
+
+export interface ClubView {
+  id: string;
+  nombre: string;
+  /** El club del colegio: entrenamientos de menor nivel que un club de fuera. */
+  esColegio: boolean;
+  /** 1 = colegio, 2 = club de la ciudad, 3 = alto rendimiento. Mejora la eficiencia de sus sesiones. */
+  calidad: 1 | 2 | 3;
+  deportes: readonly string[];
+  /** Sesiones del club: días de la semana (0 = lunes) y franja horaria. */
+  sesiones: { weekdays: readonly number[]; desde: number; hasta: number };
+  /** Acceso por deporte: nivel mínimo (en la escala del deporte) y edad mínima. Sin entrada = abierto. */
+  acceso?: Readonly<Record<string, { nivel: number; edadMin: number }>>;
+}
+
+export interface ClubDirectory {
+  /** Clubes que ofrecen un deporte. */
+  list(sport: string): ClubView[];
+  /** Club al que pertenece el personaje en ese deporte, si pertenece a alguno. */
+  membership(sport: string): ClubView | undefined;
 }

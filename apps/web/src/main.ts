@@ -6,6 +6,7 @@ import {
   SERVICES,
   timeView,
   type BodyType,
+  type ClubDirectory,
   type IdentityService,
   type LogTable,
   type NpcDirectory,
@@ -142,9 +143,10 @@ function viewDay(g: Game): string {
 }
 
 function viewTable(t: LogTable): string {
-  const head = t.header.map((h) => `<th>${esc(h)}</th>`).join('');
+  const cls = (i: number) => (t.align?.[i] === 'right' ? ' class="num"' : '');
+  const head = t.header.map((h, i) => `<th${cls(i)}>${esc(h)}</th>`).join('');
   const rows = t.rows
-    .map((r, i) => `<tr${i === t.highlight ? ' class="me"' : ''}>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`)
+    .map((r, i) => `<tr${i === t.highlight ? ' class="me"' : ''}>${r.map((c, j) => `<td${cls(j)}>${esc(c)}</td>`).join('')}</tr>`)
     .join('');
   return `<details class="table" open><summary>${t.header[0] === 'Pos.' ? 'Clasificación' : 'Detalle'}</summary><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></details>`;
 }
@@ -218,6 +220,8 @@ function viewIdentity(g: Game): string {
   if (!id) return '';
   const fmt = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const curso = g.service<StudiesService>(SERVICES.estudios)?.courseName();
+  const clubes = g.service<ClubDirectory>(SERVICES.clubes);
+  const club = clubes ? (clubes.membership('atletismo')?.nombre ?? 'Sin club') : undefined;
   return `<section class="sheet"><h2>${esc(g.playerName)}</h2>
     <dl class="identity">
       <div><dt>Edad</dt><dd>${id.age} años</dd></div>
@@ -226,6 +230,7 @@ function viewIdentity(g: Game): string {
       <div><dt>Dominancia</dt><dd>${id.leftHanded ? 'Zurdo' : 'Diestro'}</dd></div>
       <div><dt>Complexión</dt><dd>${COMPLEXION[id.bodyType]}</dd></div>
       ${curso ? `<div><dt>Curso</dt><dd>${esc(curso)}</dd></div>` : ''}
+      ${club ? `<div><dt>Club de atletismo</dt><dd>${esc(club)}</dd></div>` : ''}
     </dl>
   </section>`;
 }

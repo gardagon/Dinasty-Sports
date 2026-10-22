@@ -52,6 +52,8 @@ export interface Npc {
   desfase?: number;
   /** ¿El personaje ya lo conoce? Los rivales se conocen al competir contra ellos. Ausente = sí. */
   known?: boolean;
+  /** Club al que pertenece (los rivales). */
+  club?: string;
   description?: string;
   /** Último día de interacción con el personaje. */
   lastDay: number;
@@ -74,6 +76,11 @@ const APELLIDOS = [
  * Población de rivales de atletismo: 8 por edad entre los 8 y los 19 años (16 por categoría de dos edades),
  * suficientes para clasificatorias, lesiones y rotaciones. Cada curso los mayores se van y entran niños nuevos.
  */
+/** Clubes de los rivales (ficticios: los del personaje están en el módulo de clubes). */
+const CLUBES_RIVALES = [
+  'Atletismo San Isidro', 'Colegio Santa María', 'Club Atletismo Ciudad', 'Club de Alto Rendimiento', 'Atletismo Ribera',
+  'Colegio La Salle', 'Atletismo Costa', 'Colegio Nuestra Señora', 'Atletismo Sierra', 'Club Pista Norte',
+];
 const EDAD_RIVAL_MIN = 8;
 const EDAD_RIVAL_MAX = 19;
 const RIVALES_POR_EDAD = 8;
@@ -129,6 +136,7 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
     nacimiento: Math.round(day - (edad + rng.range(0, 1)) * 365),
     desfase,
     known: false,
+    club: rng.pick(CLUBES_RIVALES),
     description: 'Compite en atletismo.',
     lastDay: -1,
   };
@@ -220,6 +228,7 @@ const vista = (n: Npc, day: number): NpcView => ({
   levels: n.levels,
   age: edadNpc(n, day),
   known: n.known,
+  club: n.club,
   description: n.description,
 });
 

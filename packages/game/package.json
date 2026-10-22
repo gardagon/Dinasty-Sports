@@ -13,6 +13,7 @@
     "@ds/mod-personaje": "*",
     "@ds/mod-estudios": "*",
     "@ds/mod-atletismo": "*",
-    "@ds/mod-npcs": "*"
+    "@ds/mod-npcs": "*",
+    "@ds/mod-clubes": "*"
   }
 }

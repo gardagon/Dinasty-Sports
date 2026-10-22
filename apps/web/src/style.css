@@ -228,8 +228,8 @@ h3:first-child { margin-top: 0; }
 .table table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 14px; font-variant-numeric: tabular-nums; }
 .table th { text-align: left; font-weight: 500; color: var(--ink-soft); font-size: 12px; padding: 3px 6px; }
 .table td { padding: 4px 6px; border-top: 1px solid var(--rule); }
-.table td:nth-child(3), .table td:nth-child(4) { white-space: nowrap; }
-.table td:nth-child(3), .table td:nth-child(4), .table th:nth-child(3), .table th:nth-child(4) { text-align: right; }
+.table td.num { white-space: nowrap; }
+.table td.num, .table th.num { text-align: right; }
 .table tr.me td { font-weight: 700; background: var(--lane-soft); }
 
 /* Identidad del personaje */

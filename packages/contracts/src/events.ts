@@ -21,7 +21,21 @@ export const CORE_EVENTS = {
 export const SHARED_EVENTS = {
   /** data: CompetitionResultData */
   COMPETITION_RESULT: 'competicion.resultado',
+  /** data: ClubJoinData — un deporte pide que el personaje entre en un club. */
+  CLUB_JOIN: 'club.unirse',
+  /** data: ClubLeaveData */
+  CLUB_LEAVE: 'club.salir',
 } as const;
+
+export interface ClubJoinData {
+  /** Deporte (p. ej. 'atletismo'). */
+  sport: string;
+  clubId: string;
+}
+
+export interface ClubLeaveData {
+  sport: string;
+}
 
 export interface CompetitionResultData {
   /** Módulo que la organiza (p. ej. 'atletismo'). */
