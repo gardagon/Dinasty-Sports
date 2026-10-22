@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Game, advanceTo } from '@ds/core';
+import { Game, advanceTo, advanceToWeek } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { atletismo, type AtletismoState } from './index';
 
@@ -8,7 +8,7 @@ const nueva = () => Game.create([personaje, atletismo], { seed: 5 });
 describe('módulo atletismo', () => {
   it('compite contra rivales genéricos si no hay NPCs', () => {
     const g = nueva();
-    advanceTo(g, 'gen.descansar', 5, 10);
+    advanceToWeek(g, 'gen.descansar', 5, 5, 10);
     const r = g.perform('atletismo.carrera');
     expect(r.ok).toBe(true);
     const s = g.moduleState<AtletismoState>('atletismo');
@@ -54,5 +54,18 @@ describe('módulo atletismo', () => {
     const antes = g.stat('atletismo.tecnica');
     g.perform('atletismo.ver_tele');
     expect(g.stat('atletismo.tecnica')).toBe(antes);
+  });
+
+  it('no hay carreras en pretemporada ni en vacaciones, pero sí se entrena', () => {
+    const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 2, 5, 10); // pretemporada
+    expect(g.preview('atletismo.carrera')!.available).toBe(false);
+    expect(g.preview('atletismo.series')!.available).toBe(true);
+    advanceToWeek(g, 'gen.descansar', 5, 5, 10); // temporada
+    expect(g.preview('atletismo.carrera')!.available).toBe(true);
+    advanceToWeek(g, 'gen.descansar', 15, 5, 10); // Navidad
+    expect(g.preview('atletismo.carrera')!.available).toBe(false);
+    advanceToWeek(g, 'gen.descansar', 45, 2, 10); // verano, entre semana: las pistas abren por la mañana
+    expect(g.preview('atletismo.series')!.available).toBe(true);
   });
 });

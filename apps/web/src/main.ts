@@ -2,6 +2,7 @@ import './style.css';
 import {
   GEN,
   MINUTES_PER_DAY,
+  NOMBRE_PERIODO,
   SERVICES,
   timeView,
   type BodyType,
@@ -131,7 +132,7 @@ function viewDay(g: Game): string {
 
   return `<header class="day">
     <div class="day-top">
-      <h1 class="clock">${hhmm(t.minuteOfDay)}<small>${DIAS[t.weekday]}, semana ${t.week + 1}</small></h1>
+      <h1 class="clock">${hhmm(t.minuteOfDay)}<small>${DIAS[t.weekday]} · curso ${t.schoolYear + 1}, semana ${t.schoolWeek + 1}<br>${t.period === 'clase' ? `${t.term}.º trimestre` : NOMBRE_PERIODO[t.period]}</small></h1>
       <div class="who"><strong>${esc(g.playerName)}</strong><button data-act="reiniciar">Nueva partida</button></div>
     </div>
     <div class="lane" role="img" aria-label="Lo que has hecho hoy">${blocks}<span class="lane-now" style="left:calc(${now}% - 1px)"></span></div>

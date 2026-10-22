@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/10/2026 — E9: calendario escolar y temporada implementados
+
+- **Calendario como dato por país** (`packages/contracts/src/calendar.ts`): España por defecto, en semanas desde el inicio del curso (52 por curso, sin fechas absolutas). Trimestres 1.º (semanas 0 a 14), 2.º (17 a 28) y 3.º (30 a 40); Navidad (15 y 16), Semana Santa (29, estimación constante) y verano (41 a 51). Añadir un país es añadir otro dato; elegir país en la partida queda pendiente.
+- **`TimeView` ampliado:** curso (`schoolYear`), semana del curso (`schoolWeek`), periodo (`period`), trimestre (`term`), día lectivo (`isSchoolDay`) y semana de evaluación (`isEvaluationWeek`). `isSchoolHours` ahora solo vale en días lectivos.
+- **Vacaciones:** no hay clase ni tutorías; sin clase, las pistas, el entrenador y las retransmisiones usan el horario de fin de semana. El motivo se muestra (por ejemplo "Vacaciones de Navidad: no hay clase").
+- **Estudios:** controles de los viernes y faltas solo en días lectivos. **Evaluación de fin de trimestre** (semanas 14, 28 y 40): nota media de los controles del trimestre, con consecuencias en motivación (+6 si ≥ 7, −6 si suspendes) y estrés (+8 si suspendes). Al acabar el 3.er trimestre, nota final del curso. Repetir curso y becas quedan pendientes.
+- **Atletismo, temporada:** 4 semanas de pretemporada al empezar cada curso (se entrena, sin carreras); carrera los sábados solo en periodo lectivo (unas 34 al año, no 52); sin carreras en vacaciones. Los 3 mejores rivales corren siempre las primeras 8 **carreras** (antes eran las primeras 8 semanas, que con la pretemporada se quedaban en 4).
+- **Interfaz:** la cabecera muestra curso, semana del curso y trimestre o vacaciones.
+- **Simulación (un año):** los 12 chequeos en verde. Estudios baja en los bots que no estudian fuera de clase (atleta 49,6 → 40,4; vago 45,6 → 37,1) porque hay ~14 semanas sin clase y las asignaturas decaen en verano; el equilibrado casi no cambia (75,4 → 75,1). Carreras: atleta 23 % de victorias y 65 % de podios; equilibrado 16 %.
+- **Simulación de tres años** (`npm run sim:largo`, E9.6): chequeos en verde, 336 ms por año simulado. A tres años los rivales alcanzan su potencial y el atleta gana pocas carreras (4 % de victorias, 39 % de podios): conviene revisar la progresión de los rivales para partidas de diez años.
+- **Pendiente:** clasificatorias y finales; campamentos y contenido propio de vacaciones; cursos y categorías por edad (E9.4); repetir curso y becas; elegir país.
+
+---
+
 ## 22/10/2026 — Visión: tres juegos en uno y orden de trabajo
 
 - **Tres fases:** formación (de niño hasta hacerse profesional), carrera profesional adulta y retiro con reconversión (entrenador, representante...). Cada fase tiene módulos distintos.

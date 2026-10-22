@@ -64,9 +64,13 @@ const habilidad = (key: string, name: string, apoyos: Apoyo[], description: stri
   decay: { graceDays: 4, ratePerDay: 0.012, floorRatio: 0.7 },
 });
 
+/** Semanas de pretemporada al empezar cada curso: se entrena pero todavía no hay carreras. */
+const SEMANAS_PRETEMPORADA = 4;
+
 const horarioEntreno = (ctx: ReadContext): true | string => {
   const t = ctx.time;
-  if (t.isWeekend) return inHours(t, 8, 20) ? true : 'Las pistas abren de 8 a 20 el fin de semana';
+  // Sin clase (fines de semana y vacaciones) las pistas abren todo el día.
+  if (!t.isSchoolDay) return inHours(t, 8, 20) ? true : 'Las pistas abren de 8 a 20 sin clase (fines de semana y vacaciones)';
   return inHours(t, 15, 21) ? true : 'Entrenamientos entre semana de 15 a 21';
 };
 
@@ -89,9 +93,9 @@ export function marca400(perf: number, rng: Rng): number {
 
 /** Corredores por serie (el jugador incluido). Sin NPCs se completa con corredores genéricos. */
 const PARTICIPANTES = 8;
-/** Al principio los mejores rivales corren siempre; pasadas estas semanas, la serie rota. */
+/** Las primeras carreras corren siempre los mejores rivales; después la serie rota. */
 const CABEZAS_DE_SERIE = 3;
-const SEMANAS_CON_CABEZAS = 8;
+const CARRERAS_CON_CABEZAS = 8;
 
 interface Corredor {
   npcId?: string;
@@ -101,19 +105,20 @@ interface Corredor {
 
 /**
  * Elige los rivales de la serie entre los conocidos.
- * - Las primeras semanas corren siempre los mejores (cabezas de serie), para que haya referentes claros.
+ * - Las primeras carreras corren siempre los mejores (cabezas de serie), para que haya referentes claros.
  * - El resto de plazas rota: más probable quien lleva más semanas sin correr. Se puede repetir.
  */
 export function elegirRivales(
   conocidos: Corredor[],
   plazas: number,
   week: number,
+  carrerasHechas: number,
   ultima: Record<string, number>,
   rng: Rng,
 ): Corredor[] {
   if (conocidos.length <= plazas) return [...conocidos];
   const pool = [...conocidos].sort((a, b) => b.level - a.level);
-  const elegidos = week < SEMANAS_CON_CABEZAS ? pool.splice(0, Math.min(CABEZAS_DE_SERIE, plazas)) : [];
+  const elegidos = carrerasHechas < CARRERAS_CON_CABEZAS ? pool.splice(0, Math.min(CABEZAS_DE_SERIE, plazas)) : [];
   while (elegidos.length < plazas) {
     const pesos = pool.map((c) => 1 + Math.min(4, week - (c.npcId ? (ultima[c.npcId] ?? -5) : -5)));
     let tirada = rng.range(0, pesos.reduce((a, b) => a + b, 0));
@@ -226,7 +231,7 @@ export const atletismo = defineModule<AtletismoState>({
       available: (ctx) => {
         const t = ctx.time;
         if ((ctx.state<AtletismoState>().ultimaTele ?? -1) === t.day) return 'Ya has visto atletismo hoy';
-        return inHours(t, t.isWeekend ? 10 : 18, 23) ? true : 'Retransmisiones: entre semana de 18 a 23, fines de semana de 10 a 23';
+        return inHours(t, t.isSchoolDay ? 18 : 10, 23) ? true : 'Retransmisiones: días de clase de 18 a 23, sin clase de 10 a 23';
       },
       delta: { [GEN.energia]: -2, [GEN.estres]: -4 },
       train: [
@@ -239,13 +244,15 @@ export const atletismo = defineModule<AtletismoState>({
     {
       id: 'atletismo.carrera',
       name: `Competir: ${DISCIPLINA}`,
-      description: 'Carrera semanal, los sábados de 9 a 13.',
+      description: 'Carrera semanal en temporada (los sábados de 9 a 13). No hay carreras en pretemporada ni en vacaciones.',
       tags: [TAGS.fisico, TAGS.cardio, TAGS.competicion, 'atletismo'],
       group: 'Competición',
       duration: 180,
       available: (ctx) => {
         const t = ctx.time;
         if (ctx.state<AtletismoState>().ultimaSemanaCarrera === t.week) return 'Ya has competido esta semana';
+        if (t.period !== 'clase') return 'No hay carreras en vacaciones';
+        if (t.schoolWeek < SEMANAS_PRETEMPORADA) return 'Pretemporada: todavía no hay carreras';
         return t.weekday === 5 && inHours(t, 9, 13) ? true : 'Las carreras son los sábados de 9 a 13';
       },
       delta: { [GEN.energia]: -30, [GEN.estres]: 5 },
@@ -267,7 +274,7 @@ export const atletismo = defineModule<AtletismoState>({
           ? npcs.list({ tag: 'atleta' }).map((n) => ({ npcId: n.id, name: n.name, level: n.levels.atletismo ?? 30 }))
           : [];
         const previa = ctx.state<AtletismoState>().ultimaCarreraRival ?? {};
-        const elegidos = elegirRivales(conocidos, PARTICIPANTES - 1, t.week, previa, ctx.rng);
+        const elegidos = elegirRivales(conocidos, PARTICIPANTES - 1, t.week, ctx.state<AtletismoState>().carreras.length, previa, ctx.rng);
         const rivales: Corredor[] = [
           ...elegidos,
           ...rivalesGenericos(Math.max(0, PARTICIPANTES - 1 - elegidos.length), t.week, ctx.rng),
