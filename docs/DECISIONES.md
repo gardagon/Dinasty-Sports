@@ -15,6 +15,8 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Calendario:** el curso empieza en septiembre, fechas reales (Semana Santa móvil calculada).
 - **Modo historia:** el personaje llega nuevo a la ciudad y a un colegio nuevo sin conocer a nadie; las relaciones sociales se construyen desde cero (hoy todos los NPCs empiezan conocidos).
 - **Oportunidad profesional:** entre los 16 y los 18 años según nivel y deporte. **Atletismo primero**, luego el deporte de equipo.
+- **Inicio del curso:** segunda semana de septiembre (el día numérico da igual); el día 0 es ese lunes. Calendario como dato por país, con España por defecto.
+- **Semana Santa:** estimación constante (semana 30 del curso, principios de abril), igual todos los años, porque el juego no tiene lunas y su año es el año 0. Calendario completo de España, con trimestres, Navidad, Semana Santa y verano, en `BACKLOG_STATS.md` (E9.1).
 - **Backlog ampliado** (`BACKLOG_STATS.md`, E9 a E18): calendario, ciclo de vida, ritmo de juego y planificación, salud, mundo social, segundo deporte, interfaz, recursos, técnica y eventos. Los puntos con 🟡 son preguntas abiertas.
 
 ---

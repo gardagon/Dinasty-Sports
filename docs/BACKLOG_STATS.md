@@ -25,6 +25,9 @@ Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ dif
 - **Calendario:** el curso empieza en septiembre, con fechas reales (Semana Santa móvil calculada).
 - **Modo historia:** el personaje llega nuevo a la ciudad y empieza en un colegio nuevo, sin conocer a nadie. Obliga a desarrollar las relaciones sociales desde cero (ver E13).
 - **Oportunidad profesional:** entre los 16 y los 18 años, según nivel y deporte.
+- **Inicio del curso:** la segunda semana de septiembre (el día numérico concreto da igual). El día 0 de la partida es el lunes de esa semana.
+- **Calendario por país:** hoy solo España, pero el calendario debe ser un dato por país (inicio, vacaciones, semana de primavera, fin de curso) para poder elegirlo en el futuro.
+- **Semana Santa:** en España es el primer domingo tras la primera luna llena posterior al equinoccio de primavera (entre el 22 de marzo y el 25 de abril). El juego no tiene lunas y el año de la partida es el año 0, así que se usa una **estimación constante**, igual todos los años y marcada como tal.
 - **Deporte de la fase 1:** atletismo primero; el deporte de equipo (fútbol, E7) después como segundo deporte.
 
 ## Decisiones ya tomadas (17/10/2026)
@@ -138,12 +141,29 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E9.1 | Calendario con fechas reales: el curso empieza en septiembre; trimestres; parón de Navidad (~2 semanas); semana de primavera (Semana Santa, fecha móvil calculada) que cierra el 2.º trimestre; verano (~10 semanas) | Decidido el 22/10. Falta fijar fechas exactas y el equivalente de la Semana Santa para otros países |
+| E9.1 | Calendario por país, definido como dato. **España (estimación, a confirmar):** curso de 52 semanas sin fechas absolutas, contadas desde el lunes de la 2.ª semana de septiembre | Ver tabla de abajo. Decidido el 22/10; las semanas exactas son una aproximación |
 | E9.2 | Vacaciones con contenido propio: sin clase pero con entrenamiento, campamentos, tiempo libre | Cambia la disponibilidad de acciones (`isSchoolHours` deja de ser fijo) |
 | E9.3 | Temporada deportiva: pretemporada, competición, clasificatorias y finales; carreras que no son todas las semanas | Las clasificatorias aprovechan los 16 rivales y la rotación de series |
 | E9.4 | Cursos y categorías por edad: el niño sube de curso y de categoría al cumplir años | Enlaza con la edad (E3.1) |
 | E9.5 | Evaluaciones trimestrales con consecuencias (aprobar, repetir curso, becas) | Es E6.2 con calendario propio |
 | E9.6 | Simulación de 10 años: nuevos chequeos y rendimiento | Hoy la simulación cubre 1 año |
+| E9.7 | Calendario como dato por país, con España por defecto | Permite elegir el país más adelante sin tocar el motor |
+
+**Calendario de España (estimación constante; semana 0 = lunes de la 2.ª semana de septiembre)**
+
+| Periodo | Semanas del curso | Aproximado |
+|---|---|---|
+| 1.er trimestre | 0 a 14 | septiembre a mediados de diciembre |
+| Navidad (sin clase) | 15 y 16 | del 22 de diciembre al 4 de enero |
+| 2.º trimestre | 17 a 29 | enero a principios de abril |
+| Semana Santa (sin clase) | 30 | principios de abril (dentro del margen del 22 de marzo al 25 de abril) |
+| 3.er trimestre | 31 a 40 | abril a mediados de junio |
+| Verano (sin clase) | 41 a 51 | finales de junio a principios de septiembre |
+
+- **Sin fechas absolutas:** como el año de la partida es el año 0, el calendario se expresa en semanas desde el inicio del curso. Cada curso tiene 52 semanas; el día suelto que sobra del año (365 días) no importa para el calendario.
+- **Evaluaciones:** al final de cada trimestre (semanas 14, 29 y 40). Son las semanas 12, 24 y 36 del original, adaptadas a un curso de unas 38 semanas lectivas.
+- **El día numérico concreto es independiente:** la interfaz puede enseñar solo la semana, el trimestre y el periodo (clase, vacaciones).
+- **Otros países:** el calendario es un dato por país (E9.7), así que añadir Francia o Reino Unido no toca el motor.
 
 ## E10 · Ciclo de vida y paso a profesional — 🟡 · Fidelidad: media (el original habla de fases de vida y requisitos de debut)
 
