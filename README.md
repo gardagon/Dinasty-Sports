@@ -24,9 +24,10 @@ npm run dev        # abre la URL que aparece en la terminal
 | `packages/core` | Motor: registro de módulos, pipeline de acciones, tiempo, subida y caída, eventos |
 | `packages/game` | Ensamblador: la lista de módulos del juego |
 | `modules/personaje` | Características genéricas, estado (energía, salud, estrés, motivación) e identidad (edad, altura, peso, complexión) |
-| `modules/estudios` | Clases, estudio, controles de los viernes |
-| `modules/atletismo` | Primer deporte: 400 m, entrenamientos por la tarde, carrera los sábados en series de 8, conocimiento del deporte |
-| `modules/npcs` | Entrenador, tutor, compañeros y 16 rivales de atletismo que progresan por su cuenta |
+| `modules/estudios` | Currículo de España por cursos (de 3.º de primaria a 2.º de bachillerato), clases, estudio, controles y evaluaciones |
+| `modules/atletismo` | Primer deporte: 400 m, categorías de la federación española, entrenamiento libre y con club, carrera los sábados en series de 8, conocimiento del deporte |
+| `modules/npcs` | Entrenador, tutor, compañeros y 96 rivales de atletismo por edad que progresan por su cuenta y se renuevan cada curso |
+| `modules/clubes` | Clubes deportivos: el del colegio y los de fuera, con pruebas de acceso |
 | `sim` | Bots con estrategias distintas, chequeos de balance, informe HTML |
 | `apps/web` | Interfaz web (mobile-first) |
 
@@ -40,7 +41,7 @@ El plan para ampliar características, personalidad y perks, en [`docs/BACKLOG_S
 npm test             # tests unitarios, de integración y de arquitectura
 npm run typecheck
 npm run sim          # simula un año con 7 estrategias × 5 semillas → sim/reports/ultimo/informe.html
-npm run sim:largo    # simula tres años (curso completo con vacaciones y temporadas)
+npm run sim:largo    # simula tres años (cursos completos con vacaciones y temporadas); con --dias 3650, de los 8 a los 18
 npm run check        # todo lo anterior en versión rápida
 npm run build        # compila la web en apps/web/dist
 npm run nuevo-modulo -- natacion "Natación"

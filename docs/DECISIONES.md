@@ -5,6 +5,53 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/10/2026 — Cierre de E9: categorías, rivales por edad, asignaturas por etapa y clubes
+
+### Fase 1 — Categorías, rivales y desarrollo con la edad
+- **Categorías de la federación española de atletismo** (sub-10, sub-12, sub-14, sub-16, sub-18, sub-20, sub-23, absoluta), como dato en el módulo de atletismo; el personaje compite en la que le toca por edad. Las categorías son un dato por país y deporte (`categories.ts` en contracts).
+- **Rivales por edad:** población de 96 NPC (8 por edad, de 8 a 19 años) con fecha de nacimiento. Cada curso se van los de 20 años, algún niño de 13 o menos deja el deporte (10 % por curso) y entran niños nuevos de 8. Los rivales son desconocidos hasta que compiten contra ti y solo entonces aparecen en Relaciones.
+- **Desarrollo con la edad, igual para todos:** `madurezPorEdad` (contracts) da la fracción de capacidad adulta alcanzable: 0,38 a los 8 años, 0,52 a los 10, 0,66 a los 12, 0,8 a los 14, 0,93 a los 16 y 1 a los 18. Es el techo de lo físico del jugador (estado oculto `gen.madurez`, con el adelanto o retraso propio) y de sus habilidades de atletismo. El nivel máximo de un rival a cada edad es su potencial × (0,3 + 0,7 × madurez): más plano porque ya llevan años entrenando.
+- **Subida de categoría:** el entrenador propone competir en la categoría superior solo si destacas mucho en la tuya (podio en 3 de las últimas 5 carreras, con al menos 4 hechas) y serías competitivo arriba (tu nivel alcanza la mediana de la categoría superior). El jugador acepta con una acción y puede volver a su categoría. Si cambia la categoría por edad, la subida se reinicia.
+- **Competir contra mayores desarrolla más:** tras cada carrera, lo que se aprende crece con lo fuertes que son los rivales frente al nivel propio.
+- **Los 3 mejores rivales de la categoría corren siempre las primeras 8 carreras en ella;** después la serie de 8 rota.
+- **Nuevo chequeo en la simulación:** "Los niños no tienen nivel de adulto" (ningún rival de 11 años o menos pasa de 75).
+- **Cifras (un año):** atleta 5 % de victorias y 32 % de podios; equilibrado 21 % de podios. El mejor rival de 11 años o menos acaba en 66,6.
+
+### Fase 2 — Asignaturas por etapa
+- **Currículo de España** (`curriculo.ts`, como dato): diez cursos, de 3.º de primaria (8 años) a 2.º de bachillerato, con 19 asignaturas. Primaria: lengua, matemáticas, ciencias naturales, ciencias sociales, inglés, educación física y educación artística. ESO: biología y geología, geografía e historia, tecnología, música (1.º y 2.º) y física y química (desde 2.º). Bachillerato: comunes más una modalidad (ciencias o humanidades).
+- **Cambios de etapa:** ciencias naturales pasa a biología y geología, ciencias sociales a geografía e historia, artística a música, y en bachillerato física y química a física y química, historia a historia de España, etc. La asignatura nueva **hereda el nivel** de la que sustituye; las que no tienen antecesora (tecnología, filosofía, economía) parten de un 5. Al empezar curso se avisa de lo que entra y lo que sale.
+- **Modalidad de bachillerato:** se elige sola al empezar según las notas (ciencias si las de ciencias superan a las de letras). Decidido que así está bien de momento.
+- **Nota inicial:** todas parten de un 5 (nivel 38 a 42). La inteligencia y el trabajo marcan la evolución mediante el ritmo de subida y el techo. No hay ventaja inicial para los inteligentes.
+- **Solo puntúan y se estudian las asignaturas del curso;** las demás quedan guardadas.
+- **Cada curso exige un poco más:** con el mismo nivel, la nota baja 0,15 por curso (valor a revisar con el balance).
+- **Servicio de estudios ampliado** con las asignaturas activas y el nombre del curso; la interfaz muestra el curso y solo las asignaturas del curso. Los controles de los viernes se muestran en tabla.
+- **Cifras (un año):** estudios del equilibrado 68,1 (+28,0); empollón 77,0; nota media del equilibrado 7,3 y del vago 6,0.
+
+### Fase 3 — Clubes
+- **Módulo nuevo `clubes`:** catálogo de España como dato. Club deportivo del colegio (calidad 1), Club Atletismo Ciudad (calidad 2, desde 10 años y nivel 45) y Club de Alto Rendimiento (calidad 3, desde 14 años y nivel 65). Un club puede ofrecer varios deportes; hoy solo atletismo.
+- **Reparto de responsabilidades:** el módulo guarda membresías y calidad. Los deportes ponen el contenido de las sesiones y las pruebas, y piden entrar o salir con los eventos compartidos `club.unirse` y `club.salir`. Servicio `clubes`.
+- **Club del colegio:** se empieza sin club y el personaje se apunta los días de clase de 14 a 19 (modo historia). Sesiones los lunes y miércoles de 15 a 17.
+- **Sesiones con el club:** 2 horas, una al día, con técnica, ritmo, salida, velocidad, resistencia, coordinación y conocimiento (1,6, la mejor fuente). La eficiencia sube con la calidad: ×1 en el colegio, ×1,12 en el de la ciudad, ×1,25 en el de alto rendimiento.
+- **Entrenar por tu cuenta sigue existiendo** pero rinde ×0,85.
+- **Pruebas de acceso a los clubes de fuera:** edad mínima y nivel, con algo de azar; si no pasas, no se repite hasta pasadas 8 semanas. Un solo club por deporte. Se puede dejar el club.
+- **Clasificación con el club** de cada corredor. Los rivales tienen club (nombres ficticios).
+
+### Respuestas del 22/10 a los problemas y mejoras
+- **Potencial individual por habilidad (E2.7), prioritario antes de E10:** ligado al tope hereditario, y la **velocidad de progreso también depende de él**: quien puede llegar a 92 sube más rápido que quien tiene el tope en 70, entrenando igual.
+- **Verano según notas y clasificatorias:** se implementan ya. **No se repite curso:** el castigo es la academia obligatoria en verano para sacar los aprobados.
+- **Becas:** pendientes hasta que haya sistema monetario.
+- **Entrenador de club:** como personaje (NPC), igual que los demás que se añadan.
+- **Los bots deben poder subir de categoría** si cumplen las condiciones acordadas.
+- **Rendimiento del motor** (de ~330 a ~850 ms por año simulado): revisar optimizaciones a futuro.
+- **Fase alfa:** las partidas se crean desde cero; no se mantiene compatibilidad con guardados antiguos.
+
+### Problemas conocidos
+- **Saturación a 10 años:** el techo por edad iguala a todo el que entrena (jugador de 18 años ≈ 92 en atletismo), así que el especialista no se distingue del equilibrado y supera a los rivales de 18 a 19 años (potencial medio 79). Se resuelve con el potencial individual (E2.7).
+- **Subida de categoría:** no hay penalización por ser más pequeño que los mayores.
+- **Edades de los rivales:** el curso dura 364 días y los años de edad 365; puede haber algún rival de más en una edad.
+
+---
+
 ## 22/10/2026 — Asignaturas, categorías, rivales, verano y clubes (decisiones de diseño)
 
 - **Asignaturas:** más de tres y cambiantes con la etapa (currículo de España). Todos parten de un 5 de nota; la inteligencia **para su edad** y el trabajo en clase y en casa marcan la evolución.
