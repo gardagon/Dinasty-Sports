@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/10/2026 — Visión: tres juegos en uno y orden de trabajo
+
+- **Tres fases:** formación (de niño hasta hacerse profesional), carrera profesional adulta y retiro con reconversión (entrenador, representante...). Cada fase tiene módulos distintos.
+- **Foco actual:** que el niño llegue a ser profesional. Después se añaden los módulos de las otras fases y se evolucionan los existentes en clave RPG.
+- **El juego debe poder jugarse sin eventos ni decisiones** (aunque sea aburrido). Los eventos aportan interés y sirven de puertas a caminos nuevos, pero no son la base.
+- **Calendario cercano a la vida real, con matices:** parón de Navidad y de verano, y una semana de primavera (Semana Santa en España) que cierra el segundo trimestre.
+- **Backlog ampliado** (`BACKLOG_STATS.md`, E9 a E18): calendario, ciclo de vida, ritmo de juego y planificación, salud, mundo social, segundo deporte, interfaz, recursos, técnica y eventos. Los puntos con 🟡 son preguntas abiertas.
+
+---
+
 ## 18/10/2026 — E3: identidad del personaje (edad, altura, peso, dominancia y complexión)
 
 Decisiones de alcance: empezar con **8 años** (constante `EDAD_INICIAL` en `modules/personaje/src/identidad.ts`, por si se sube a 10); entrega = identidad + tipo corporal; la UI filtrada por inteligencia (E3.4) queda para después; **sin alimentación**, el cuerpo se deriva de hábitos.

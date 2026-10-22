@@ -7,6 +7,18 @@ conviene respetar el original (**Fidelidad**) y debe revisarse antes de empezar 
 
 Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ diferido (depende de algo que no existe) · ❌ descartado
 
+## Visión del juego: tres juegos en uno (decidido el 22/10/2026)
+
+| Fase | Qué es | Módulos |
+|---|---|---|
+| 1. Formación | De niño (8 años) hasta tener la oportunidad de ser profesional y decidir serlo. **Es el foco actual.** | Lo que ya hay: personaje, estudios, atletismo, NPCs |
+| 2. Profesional | La carrera como adulto: club, contratos, competición de élite. | Módulos nuevos |
+| 3. Retiro | Reconversión a un trabajo ligado al deporte (el suyo u otro): entrenador, representante... | Módulos nuevos, cada uno distinto |
+
+- **Orden de trabajo:** primero que el niño llegue a ser profesional; después se añaden los módulos de las fases 2 y 3 y se evolucionan los existentes en clave RPG.
+- **Los eventos y decisiones no son lo primero.** El juego debe poder jugarse sin ellos (aunque sea aburrido): los eventos aportan interés y sirven de puertas a caminos nuevos, no son la base.
+- **Calendario cercano a la vida real, con matices:** parón en Navidad y en verano, y una semana de primavera que cierra el segundo trimestre (la Semana Santa en España; hay que ver qué equivalente tiene en otros países).
+
 ## Decisiones ya tomadas (17/10/2026)
 
 - Ids en **español** (`gen.fuerza`). La regla de ids en inglés del documento original no se adopta.
@@ -112,6 +124,90 @@ Posiciones (16), roles (42), experiencia por posición/rol con afinidad, fórmul
 
 Padres con los stats globales, límites genéticos derivados de los padres (media × factor ± 15 %), herencia de perks con dos pools. También el **nivel inicial de los demás niños según la práctica deportiva de sus padres** (hoy los rivales arrancan con un nivel medio de 29, hasta 54: a los 10 años no debería haber niveles altos sin antecedentes en el deporte). Requiere diseñar el ciclo de generaciones, que este juego aún no tiene. E2.7 y E5.1 se escriben pensando en que luego encajen aquí.
 
+## E9 · Calendario, curso y temporadas — 🟡 · Fidelidad: baja (el original usa semanas 12/24/36)
+
+Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada sábado, sin parar.
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E9.1 | Calendario con fechas: el curso empieza en septiembre; trimestres; parón de Navidad; semana de primavera (Semana Santa) que cierra el 2.º trimestre; verano | Valores por confirmar (inicio, duración de cada parón, Semana Santa móvil o fija) 🟡 |
+| E9.2 | Vacaciones con contenido propio: sin clase pero con entrenamiento, campamentos, tiempo libre | Cambia la disponibilidad de acciones (`isSchoolHours` deja de ser fijo) |
+| E9.3 | Temporada deportiva: pretemporada, competición, clasificatorias y finales; carreras que no son todas las semanas | Las clasificatorias aprovechan los 16 rivales y la rotación de series |
+| E9.4 | Cursos y categorías por edad: el niño sube de curso y de categoría al cumplir años | Enlaza con la edad (E3.1) |
+| E9.5 | Evaluaciones trimestrales con consecuencias (aprobar, repetir curso, becas) | Es E6.2 con calendario propio |
+| E9.6 | Simulación de 10 años: nuevos chequeos y rendimiento | Hoy la simulación cubre 1 año |
+
+## E10 · Ciclo de vida y paso a profesional — 🟡 · Fidelidad: media (el original habla de fases de vida y requisitos de debut)
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E10.1 | Fases de vida como estado del personaje: formación, profesional, retiro | La fase 1 termina al hacerse profesional |
+| E10.2 | La **oportunidad profesional**: edad, nivel mínimo y requisitos (el original usa constitución, coordinación, determinación, concentración y resiliencia) | Una puerta que se abre y el jugador decide si cruza. Necesita decidir edad y deporte 🟡 |
+| E10.3 | Cierre de la fase 1 y arranque de la fase 2 | Resumen de lo vivido y estado que pasa a la nueva fase |
+| E10.4 | Fase 2 (profesional): club, contratos, patrocinios, competición de élite | Módulos nuevos; diseñar después de cerrar la fase 1 |
+| E10.5 | Fase 3 (retiro): entrenador, representante u otro trabajo deportivo | Un módulo distinto por oficio; después de la fase 2 |
+| E10.6 | Fin de partida | Qué cuenta como terminar cada fase y cómo se resume la carrera |
+
+## E11 · Ritmo de juego y planificación — 🟡 · Sin equivalente en el original
+
+De los 8 a los 18 años son unos 3.650 días. Jugar cada acción por horas no es viable durante diez años.
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E11.1 | Planificación por semanas o rutinas: el jugador define su semana tipo y el juego la ejecuta | Decidir cuánto detalle se juega y cuánto se automatiza 🟡 |
+| E11.2 | Avance rápido con interrupciones: parar ante lesiones, carreras, hitos o eventos | Los eventos (E18) son la causa natural de las interrupciones |
+| E11.3 | Resumen semanal y de periodo: qué ha pasado, cuánto has mejorado y cómo vas frente a los rivales | Es parte de la interfaz (E15) |
+
+## E12 · Salud, lesiones y alimentación — 🟡
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E12.1 | Lesiones y recuperación, ligadas a la constitución y a la sobrecarga | Hoy salud 0 solo resta rendimiento. Pendiente ya en `DECISIONES.md` |
+| E12.2 | Alimentación como decisión (o mínima derivada de hábitos) | Hoy el peso depende solo de la actividad |
+| E12.3 | Sueño crónico y enfermedades | Dormir poco hoy solo resta motivación |
+| E12.4 | Una lesión grave como bifurcación: estudiar o ver deporte durante la baja puede dar más conocimiento | Idea del original; mejor con eventos |
+
+## E13 · Mundo social base — 🟡
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E13.1 | Familia: padres como NPCs (apoyo, tiempo en casa, expectativas) | El rol `familia` existe sin NPCs. Enlaza con la herencia (E8) |
+| E13.2 | Rivales con identidad e historia (rivalidades, evolución de relación) | Hoy tienen nivel y nada más |
+| E13.3 | Entrenadores y compañeros de club al subir de categoría | Cambian con las categorías y los cursos (E9.4) |
+| E13.4 | Relaciones con decay y mantenimiento más ricos | Hoy solo suben con el contacto y bajan sin él |
+
+## E14 · Segundo deporte — 🟡
+
+Valida que la plantilla de deporte funciona sin tocar el motor. Individual (más sencillo) o de equipo (arrastra E7). Decidir también cuál es el deporte profesional principal.
+
+## E15 · Interfaz y partida — 🟢/🟡
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E15.1 | Creación de personaje (hoy solo el nombre) y elección de deporte al empezar | Aquí entrarían los modos de inicio de la personalidad (E4.2) |
+| E15.2 | Filtro de información por inteligencia | Es E3.4 |
+| E15.3 | Resumen semanal y gráficas de progreso | Enlaza con E11.3 |
+| E15.4 | Varias partidas guardadas | Hoy hay una sola |
+
+## E16 · Recursos y dinero — 🟡 (opcional)
+
+Solo si se quiere: cuotas, material, viajes y, en la fase profesional, sueldo y patrocinios. Hoy los únicos recursos son tiempo y energía.
+
+## E17 · Técnica — 🟢
+
+Generador de azar propio para los rivales; migración de partidas guardadas; rendimiento con diez años simulados; Capacitor si se quiere app de tienda.
+
+## E18 · Eventos y decisiones — 🟢 el motor, ⏸ el contenido
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E18.1 | Motor: eventos con condiciones, probabilidad, una sola vez o con espera entre apariciones, programados, por umbral y ligados a NPCs | Textos como datos, con concordancia de género |
+| E18.2 | Decisiones: opciones con requisitos, costes y consecuencias | Pueden abrir o cerrar acciones: son las **puertas** |
+| E18.3 | Personalidad (E4), perks latentes (E5), autoridad y picardía | Contenido que depende del motor |
+| E18.4 | Lecturas tácticas y opciones tácticas en la carrera, a partir del conocimiento | Hoy el conocimiento solo da bonus |
+| E18.5 | Hitos que abren caminos: ojeadores, selecciones, clasificatorias, becas, la oportunidad profesional (E10.2) | Puertas del ciclo de vida |
+| E18.6 | Colegio, familia y rivalidades como fuente de eventos | Dependen de E13 |
+
 ## Transversal
 
 | ID | Tarea |
@@ -135,4 +231,4 @@ Padres con los stats globales, límites genéticos derivados de los padres (medi
 1. Antes de empezar una épica, releer su sección del original y anotar qué se mantiene, qué se adapta y qué se descarta.
 2. Si algo se adapta o se descarta, apuntarlo en `DECISIONES.md` con el motivo y cambiar la fidelidad aquí.
 3. Revisar el orden tras cerrar E1: probablemente E4 y E5 se desbloqueen juntas cuando exista un sistema de eventos.
-4. Orden propuesto: E1 → E2 (2.3–2.5 y 2.7) → E6 → E3 → sistema de eventos → E4/E5 → E7/E8.
+4. Orden propuesto (22/10/2026), con la fase 1 como foco: E9 calendario y curso → E10 ciclo de vida y oportunidad profesional (decidir pronto) → E11 ritmo de juego → E12 salud y lesiones → E2 y edad (E1.5, E2.6, E2.7) → E13 familia y NPCs → E15 interfaz y creación de personaje → E14 segundo deporte → E18 eventos y decisiones (con E4/E5) → fases 2 y 3 (E10.4/E10.5, E7, E8).
