@@ -9,6 +9,7 @@ import {
   defineModule,
   inHours,
   type ActionDoneData,
+  type ActionContext,
   type ActionDef,
   type CategoriaDef,
   type ClubDirectory,
@@ -53,6 +54,10 @@ export interface AtletismoState {
   pruebas?: Record<string, number>;
   /** Último día que fue al campamento o practicó con los amigos en verano (uno al día). */
   ultimoVerano?: number;
+  /** Campeonato del curso: si se clasificó en la autonómica y quiénes corren la final. */
+  campeonato?: { curso: number; clasificado: boolean; finalistas: string[] };
+  /** Resultados de clasificatorias y finales. */
+  campeonatos?: { curso: number; categoria: string; tipo: 'clasificatoria' | 'final'; position: number; total: number }[];
 }
 
 /**
@@ -81,7 +86,8 @@ interface CategoriaJugador {
 
 /** Categoría del jugador según su edad y si ha subido de categoría. */
 function categoriaDelJugador(ctx: ReadContext): CategoriaJugador {
-  const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
+  // La categoría depende de la edad de temporada (la que se tenía al empezar el curso), como en la federación.
+  const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
   const propia = categoriaDeEdad(CATEGORIAS, edad);
   const s = ctx.state<AtletismoState>();
   const sup = categoriaSuperior(CATEGORIAS, propia);
@@ -150,6 +156,12 @@ const habilidad = (key: string, name: string, apoyos: Apoyo[], description: stri
 
 /** Semanas de pretemporada al empezar cada curso: se entrena pero todavía no hay carreras. */
 const SEMANAS_PRETEMPORADA = 4;
+/** Semanas del curso (0 = la primera) de la clasificatoria autonómica y de la final del campeonato de España. */
+const SEMANA_CLASIFICATORIA = 24;
+const SEMANA_FINAL = 38;
+/** Corredores de la clasificatoria (el jugador y 15 rivales) y puestos que dan acceso a la final. */
+const CORREDORES_CLASIFICATORIA = 16;
+const PUESTOS_PARA_LA_FINAL = 8;
 /** Semanas que hay que esperar para repetir la prueba de acceso de un club. */
 const SEMANAS_ENTRE_PRUEBAS = 8;
 /** Entrenar solo, sin entrenador ni grupo, rinde menos que una sesión de club. */
@@ -273,6 +285,141 @@ function rivalesGenericos(n: number, week: number, rng: Rng) {
     name: `Corredor ${i + 1}`,
     level: Math.min(85, 25 + week * 0.5 + rng.range(0, 20)),
   }));
+}
+
+
+type TipoCarrera = 'regular' | 'clasificatoria' | 'final';
+
+const NOMBRE_TIPO: Record<TipoCarrera, string> = {
+  regular: '',
+  clasificatoria: ' · clasificatoria autonómica',
+  final: ' · final del campeonato de España',
+};
+
+/** Corre una carrera (semanal, clasificatoria o final) y aplica todas sus consecuencias. */
+function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
+  const t = ctx.time;
+  // El día cuenta: cansancio, salud, motivación... ya vienen en la eficiencia.
+  const forma = 0.85 + 0.15 * Math.min(1.2, ctx.efficiency);
+  const miMarca = marca400(rendimiento(ctx) * forma, ctx.rng);
+
+  // Compite en su categoría por edad (o en la superior si ha subido): solo corren rivales de esas edades.
+  const { propia, competida, superior } = categoriaDelJugador(ctx);
+  const npcs = ctx.service<NpcDirectory>(SERVICES.npcs);
+  const conocidos: Corredor[] = npcs
+    ? npcs
+        .list({ tag: 'atleta', minAge: competida.edadMin, maxAge: competida.edadMax })
+        .map((n) => ({ npcId: n.id, name: n.name, club: n.club, level: n.levels.atletismo ?? 30 }))
+    : [];
+  const estado = ctx.state<AtletismoState>();
+  const previa = estado.ultimaCarreraRival ?? {};
+  const enCategoria = estado.carreras.filter((c) => c.categoria === competida.id).length;
+
+  let elegidos: Corredor[];
+  let plazas = PARTICIPANTES - 1;
+  if (tipo === 'regular') {
+    elegidos = elegirRivales(conocidos, plazas, t.week, enCategoria, previa, ctx.rng);
+  } else if (tipo === 'clasificatoria') {
+    // Toda la categoría de la zona: el jugador y 15 rivales (los que haya; el resto, corredores genéricos).
+    plazas = CORREDORES_CLASIFICATORIA - 1;
+    const resto = [...conocidos];
+    elegidos = [];
+    while (elegidos.length < plazas && resto.length) elegidos.push(...resto.splice(Math.floor(ctx.rng.next() * resto.length), 1));
+  } else {
+    // La final la corren los clasificados (los 7 mejores de la clasificatoria); si faltan, los mejores de la categoría.
+    plazas = PARTICIPANTES - 1;
+    const ids = estado.campeonato?.finalistas ?? [];
+    const finalistas = conocidos.filter((c) => c.npcId && ids.includes(c.npcId));
+    const otros = conocidos.filter((c) => !finalistas.includes(c)).sort((a, b) => b.level - a.level);
+    elegidos = [...finalistas, ...otros].slice(0, plazas);
+  }
+  const rivales: Corredor[] = [...elegidos, ...rivalesGenericos(Math.max(0, plazas - elegidos.length), t.week, ctx.rng)];
+
+  const miClub = clubDelJugador(ctx)?.nombre;
+  const clubes = new Map<string, string>(rivales.filter((r) => r.club).map((r) => [r.name, r.club!]));
+  if (miClub) clubes.set('Tú', miClub);
+  const marcas = rivales.map((r) => ({ npcId: r.npcId, name: r.name, mark: marca400(r.level, ctx.rng) }));
+  const participants: CompetitionResultData['participants'] = [{ name: 'Tú', mark: miMarca, isPlayer: true }, ...marcas].sort(
+    (a, b) => a.mark - b.mark,
+  );
+  const position = participants.findIndex((p) => p.isPlayer) + 1;
+  const total = participants.length;
+  const record = estado.mejorMarca === null || miMarca < estado.mejorMarca;
+  const base = {
+    ...estado,
+    mejorMarca: record ? miMarca : estado.mejorMarca,
+    ultimaSemanaCarrera: t.week,
+    categoriaPropia: propia.id,
+    categoriaSuperior: superior,
+  };
+
+  let cierre = '';
+  if (tipo === 'regular') {
+    ctx.setState<AtletismoState>({
+      ...base,
+      carreras: [...estado.carreras, { week: t.week, position, total, mark: miMarca, categoria: competida.id, superior }].slice(-52),
+      ultimaCarreraRival: {
+        ...previa,
+        ...Object.fromEntries(elegidos.filter((r) => r.npcId).map((r) => [r.npcId!, t.week])),
+      },
+    });
+  } else {
+    const resultados = [...(estado.campeonatos ?? []), { curso: t.schoolYear, categoria: competida.id, tipo, position, total }].slice(-20);
+    if (tipo === 'clasificatoria') {
+      const clasificado = position <= PUESTOS_PARA_LA_FINAL;
+      // A la final pasan los 7 rivales mejor clasificados (más el jugador, si se ha clasificado).
+      const finalistas = participants.filter((p) => !p.isPlayer && p.npcId).slice(0, PARTICIPANTES - 1).map((p) => p.npcId!);
+      ctx.setState<AtletismoState>({ ...base, campeonatos: resultados, campeonato: { curso: t.schoolYear, clasificado, finalistas } });
+      cierre = clasificado
+        ? ` ¡Te clasificas para la final del campeonato de España, el sábado de la semana ${SEMANA_FINAL + 1}!`
+        : ' No te clasificas para la final: a por la del año que viene.';
+    } else {
+      ctx.setState<AtletismoState>({ ...base, campeonatos: resultados });
+      const medalla = ['oro', 'plata', 'bronce'][position - 1];
+      cierre = medalla ? ` ¡Medalla de ${medalla}!` : '';
+    }
+  }
+
+  const ganador = participants[0].mark;
+  const tabla = {
+    header: ['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.'],
+    rows: participants.map((p, i) => [
+      `${i + 1}º`,
+      p.name,
+      clubes.get(p.name) ?? '—',
+      `${p.mark.toFixed(2)} s`,
+      i === 0 ? '—' : `+${(p.mark - ganador).toFixed(2)}`,
+    ]),
+    highlight: position - 1,
+    align: ['left', 'left', 'left', 'right', 'right'] as ('left' | 'right')[],
+  };
+  const dif = position === 1 ? '' : `, a ${(miMarca - ganador).toFixed(2)} s del 1º`;
+  ctx.log(
+    `${DISCIPLINA} ${competida.nombre}${NOMBRE_TIPO[tipo]}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${dif}${record ? ' (¡mejor marca personal!)' : ''}.${cierre}`,
+    tipo === 'regular' ? 'resultado' : 'logro',
+    tabla,
+  );
+  const bono = tipo === 'regular' ? 1 : 1.6;
+  if (position === 1) ctx.addStat(GEN.motivacion, 6 * bono);
+  else if (position <= 3) ctx.addStat(GEN.motivacion, 3 * bono);
+  else if (position === total) ctx.addStat(GEN.motivacion, -3);
+  if (record) ctx.addStat(GEN.motivacion, 2);
+  // Cuanto más fuertes son los rivales frente a uno, más se aprende (competir contra mayores desarrolla más).
+  const nivelRivales = rivales.reduce((a, r) => a + r.level, 0) / Math.max(1, rivales.length);
+  const desafio = Math.min(1.2, Math.max(0, (nivelRivales - rendimiento(ctx)) / 25));
+  if (desafio > 0.05) {
+    ctx.train('atletismo.ritmo', desafio);
+    ctx.train('atletismo.salida', 0.5 * desafio);
+    ctx.train(CONOCIMIENTO, 1.5 * desafio);
+    if (desafio >= 0.5) ctx.log('Competir contra rivales más fuertes te ha hecho aprender más.');
+  }
+  // Los golpes curten: perder entrena la resiliencia mucho más que ganar.
+  ctx.train(GEN.resiliencia, position > total / 2 ? 0.8 : 0.2);
+
+  ctx.emit<CompetitionResultData>({
+    type: SHARED_EVENTS.COMPETITION_RESULT,
+    data: { module: 'atletismo', discipline: `${DISCIPLINA}${NOMBRE_TIPO[tipo]}`, position, total, mark: miMarca, unit: 's', participants },
+  });
 }
 
 export const atletismo = defineModule<AtletismoState>({
@@ -510,6 +657,50 @@ export const atletismo = defineModule<AtletismoState>({
       },
     },
     {
+      id: 'atletismo.clasificatoria',
+      name: 'Competir: clasificatoria autonómica',
+      description: `Una vez por curso (sábado de la semana ${SEMANA_CLASIFICATORIA + 1}), con 16 corredores. Los 8 primeros se clasifican para la final del campeonato de España.`,
+      tags: [TAGS.fisico, TAGS.cardio, TAGS.competicion, 'atletismo'],
+      group: 'Competición',
+      duration: 180,
+      available: (ctx) => {
+        const t = ctx.time;
+        if (t.period !== 'clase' || t.schoolWeek !== SEMANA_CLASIFICATORIA) return `La clasificatoria autonómica es en la semana ${SEMANA_CLASIFICATORIA + 1} del curso`;
+        if (ctx.state<AtletismoState>().ultimaSemanaCarrera === t.week) return 'Ya has competido esta semana';
+        return t.weekday === 5 && inHours(t, 9, 13) ? true : 'Es el sábado, de 9 a 13';
+      },
+      delta: { [GEN.energia]: -35, [GEN.estres]: 7 },
+      train: [
+        { stat: 'atletismo.ritmo', amount: 1.5 },
+        { stat: 'atletismo.salida', amount: 0.8 },
+        { stat: CONOCIMIENTO, amount: 3 },
+      ],
+      run: (ctx) => disputar(ctx, 'clasificatoria'),
+    },
+    {
+      id: 'atletismo.final',
+      name: 'Competir: final del campeonato de España',
+      description: `Para quien se clasificó en la autonómica (sábado de la semana ${SEMANA_FINAL + 1}): ocho corredores, los mejores de la categoría. Hay medallas.`,
+      tags: [TAGS.fisico, TAGS.cardio, TAGS.competicion, 'atletismo'],
+      group: 'Competición',
+      duration: 180,
+      available: (ctx) => {
+        const t = ctx.time;
+        if (t.period !== 'clase' || t.schoolWeek !== SEMANA_FINAL) return `La final es en la semana ${SEMANA_FINAL + 1} del curso`;
+        const c = ctx.state<AtletismoState>().campeonato;
+        if (!c?.clasificado || c.curso !== t.schoolYear) return 'No te has clasificado para la final';
+        if (ctx.state<AtletismoState>().ultimaSemanaCarrera === t.week) return 'Ya has competido esta semana';
+        return t.weekday === 5 && inHours(t, 9, 13) ? true : 'Es el sábado, de 9 a 13';
+      },
+      delta: { [GEN.energia]: -35, [GEN.estres]: 8 },
+      train: [
+        { stat: 'atletismo.ritmo', amount: 1.5 },
+        { stat: 'atletismo.salida', amount: 0.8 },
+        { stat: CONOCIMIENTO, amount: 3.5 },
+      ],
+      run: (ctx) => disputar(ctx, 'final'),
+    },
+    {
       id: 'atletismo.carrera',
       name: `Competir: ${DISCIPLINA}`,
       description: 'Carrera semanal en temporada (los sábados de 9 a 13). No hay carreras en pretemporada ni en vacaciones.',
@@ -521,6 +712,8 @@ export const atletismo = defineModule<AtletismoState>({
         if (ctx.state<AtletismoState>().ultimaSemanaCarrera === t.week) return 'Ya has competido esta semana';
         if (t.period !== 'clase') return 'No hay carreras en vacaciones';
         if (t.schoolWeek < SEMANAS_PRETEMPORADA) return 'Pretemporada: todavía no hay carreras';
+        if (t.schoolWeek === SEMANA_CLASIFICATORIA) return 'Esta semana es la clasificatoria autonómica';
+        if (t.schoolWeek === SEMANA_FINAL && ctx.state<AtletismoState>().campeonato?.clasificado) return 'Esta semana es la final del campeonato';
         return t.weekday === 5 && inHours(t, 9, 13) ? true : 'Las carreras son los sábados de 9 a 13';
       },
       delta: { [GEN.energia]: -30, [GEN.estres]: 5 },
@@ -531,93 +724,7 @@ export const atletismo = defineModule<AtletismoState>({
         // La experiencia de carrera es la mejor escuela del deporte.
         { stat: CONOCIMIENTO, amount: 2 },
       ],
-      run: (ctx) => {
-        const t = ctx.time;
-        // El día cuenta: cansancio, salud, motivación... ya vienen en la eficiencia.
-        const forma = 0.85 + 0.15 * Math.min(1.2, ctx.efficiency);
-        const miMarca = marca400(rendimiento(ctx) * forma, ctx.rng);
-
-        // Compite en su categoría por edad (o en la superior si ha subido): solo corren rivales de esas edades.
-        const { propia, competida, superior } = categoriaDelJugador(ctx);
-        const npcs = ctx.service<NpcDirectory>(SERVICES.npcs);
-        const conocidos: Corredor[] = npcs
-          ? npcs
-              .list({ tag: 'atleta', minAge: competida.edadMin, maxAge: competida.edadMax })
-              .map((n) => ({ npcId: n.id, name: n.name, club: n.club, level: n.levels.atletismo ?? 30 }))
-          : [];
-        const previa = ctx.state<AtletismoState>().ultimaCarreraRival ?? {};
-        const enCategoria = ctx.state<AtletismoState>().carreras.filter((c) => c.categoria === competida.id).length;
-        const elegidos = elegirRivales(conocidos, PARTICIPANTES - 1, t.week, enCategoria, previa, ctx.rng);
-        const rivales: Corredor[] = [
-          ...elegidos,
-          ...rivalesGenericos(Math.max(0, PARTICIPANTES - 1 - elegidos.length), t.week, ctx.rng),
-        ];
-
-        const miClub = clubDelJugador(ctx)?.nombre;
-        const clubes = new Map<string, string>(rivales.filter((r) => r.club).map((r) => [r.name, r.club!]));
-        if (miClub) clubes.set('Tú', miClub);
-        const participants: CompetitionResultData['participants'] = [
-          { name: 'Tú', mark: miMarca, isPlayer: true },
-          ...rivales.map((r) => ({ npcId: r.npcId, name: r.name, mark: marca400(r.level, ctx.rng) })),
-        ].sort((a, b) => a.mark - b.mark);
-        const position = participants.findIndex((p) => p.isPlayer) + 1;
-        const total = participants.length;
-
-        const s = ctx.state<AtletismoState>();
-        const record = s.mejorMarca === null || miMarca < s.mejorMarca;
-        ctx.setState<AtletismoState>({
-          ...s,
-          mejorMarca: record ? miMarca : s.mejorMarca,
-          carreras: [...s.carreras, { week: t.week, position, total, mark: miMarca, categoria: competida.id, superior }].slice(-52),
-          ultimaSemanaCarrera: t.week,
-          categoriaPropia: propia.id,
-          categoriaSuperior: superior,
-          ultimaCarreraRival: {
-            ...previa,
-            ...Object.fromEntries(elegidos.filter((r) => r.npcId).map((r) => [r.npcId!, t.week])),
-          },
-        });
-
-        const ganador = participants[0].mark;
-        const tabla = {
-          header: ['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.'],
-          rows: participants.map((p, i) => [
-            `${i + 1}º`,
-            p.name,
-            clubes.get(p.name) ?? '—',
-            `${p.mark.toFixed(2)} s`,
-            i === 0 ? '—' : `+${(p.mark - ganador).toFixed(2)}`,
-          ]),
-          highlight: position - 1,
-          align: ['left', 'left', 'left', 'right', 'right'] as ('left' | 'right')[],
-        };
-        const dif = position === 1 ? '' : `, a ${(miMarca - ganador).toFixed(2)} s del 1º`;
-        ctx.log(
-          `${DISCIPLINA} ${competida.nombre}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${dif}${record ? ' (¡mejor marca personal!)' : ''}`,
-          'resultado',
-          tabla,
-        );
-        if (position === 1) ctx.addStat(GEN.motivacion, 6);
-        else if (position <= 3) ctx.addStat(GEN.motivacion, 3);
-        else if (position === total) ctx.addStat(GEN.motivacion, -3);
-        if (record) ctx.addStat(GEN.motivacion, 2);
-        // Cuanto más fuertes son los rivales frente a uno, más se aprende (competir contra mayores desarrolla más).
-        const nivelRivales = rivales.reduce((a, r) => a + r.level, 0) / Math.max(1, rivales.length);
-        const desafio = Math.min(1.2, Math.max(0, (nivelRivales - rendimiento(ctx)) / 25));
-        if (desafio > 0.05) {
-          ctx.train('atletismo.ritmo', desafio);
-          ctx.train('atletismo.salida', 0.5 * desafio);
-          ctx.train(CONOCIMIENTO, 1.5 * desafio);
-          if (desafio >= 0.5) ctx.log('Competir contra rivales más fuertes te ha hecho aprender más.');
-        }
-        // Los golpes curten: perder entrena la resiliencia mucho más que ganar.
-        ctx.train(GEN.resiliencia, position > total / 2 ? 0.8 : 0.2);
-
-        ctx.emit<CompetitionResultData>({
-          type: SHARED_EVENTS.COMPETITION_RESULT,
-          data: { module: 'atletismo', discipline: DISCIPLINA, position, total, mark: miMarca, unit: 's', participants },
-        });
-      },
+      run: (ctx) => disputar(ctx, 'regular'),
     },
   ],
 

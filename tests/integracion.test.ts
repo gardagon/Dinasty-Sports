@@ -127,7 +127,10 @@ describe('integración de módulos', () => {
       const g = nuevaPartida({ seed: 21 });
       const guardado = g.serialize();
       for (const id of Object.keys(guardado.stats)) {
-        if (/^(gen\.(velocidad|resistencia)|atletismo\.(tecnica|ritmo|salida))$/.test(id)) guardado.stats[id] = 90;
+        if (/^(gen\.(velocidad|resistencia)|atletismo\.(tecnica|ritmo|salida))$/.test(id)) {
+          guardado.stats[id] = 90;
+          guardado.peaks[id] = 90;
+        }
       }
       const at = guardado.modules.atletismo as AtletismoState;
       at.carreras = Array.from({ length: 5 }, (_, i) => ({ week: 4 + i, position: 1, total: 8, mark: 50, categoria: 'sub10', superior: false }));
@@ -225,7 +228,10 @@ describe('integración de módulos', () => {
       const guardado = g.serialize();
       (guardado.modules.gen as { edadInicial: number }).edadInicial = 12;
       for (const id of Object.keys(guardado.stats)) {
-        if (/^(gen\.(velocidad|resistencia)|atletismo\.(tecnica|ritmo|salida))$/.test(id)) guardado.stats[id] = nivel;
+        if (/^(gen\.(velocidad|resistencia)|atletismo\.(tecnica|ritmo|salida))$/.test(id)) {
+          guardado.stats[id] = nivel;
+          guardado.peaks[id] = nivel;
+        }
       }
       return cargarPartida(guardado);
     };
@@ -401,6 +407,79 @@ describe('integración de módulos', () => {
     it('fuera del verano no hay camino de verano', () => {
       const g = nuevaPartida({ seed: 41 });
       expect(verano(g)).toBeNull();
+    });
+  });
+
+  describe('clasificatoria autonómica y final del campeonato', () => {
+    /** Partida con el nivel indicado en las habilidades de atletismo (95 = fuera de serie, 20 = principiante). */
+    const conNivel = (nivel: number) => {
+      const g = nuevaPartida({ seed: 51 });
+      const guardado = g.serialize();
+      for (const id of Object.keys(guardado.stats)) {
+        if (/^(gen\.(velocidad|resistencia)|atletismo\.(tecnica|ritmo|salida))$/.test(id)) {
+          guardado.stats[id] = nivel;
+          guardado.peaks[id] = nivel;
+        }
+      }
+      return cargarPartida(guardado);
+    };
+    const filas = (g: Game, id: string) => g.perform(id).log.find((l) => l.table)!;
+
+    it('en la semana de la clasificatoria no hay carrera semanal y sí clasificatoria, con 16 corredores', () => {
+      const g = conNivel(60);
+      advanceToWeek(g, 'gen.descansar', 24, 5, 10);
+      expect(g.preview('atletismo.carrera')!.available).toBe(false);
+      expect(g.preview('atletismo.carrera')!.reason).toMatch(/clasificatoria/);
+      expect(g.preview('atletismo.clasificatoria')!.available).toBe(true);
+      expect(g.preview('atletismo.final')!.available).toBe(false);
+      const entrada = filas(g, 'atletismo.clasificatoria');
+      expect(entrada.table!.rows).toHaveLength(16);
+      expect(entrada.text).toMatch(/clasificatoria autonómica/);
+    });
+
+    it('la clasificatoria y la final solo se pueden correr en su semana', () => {
+      const g = conNivel(60);
+      advanceToWeek(g, 'gen.descansar', 10, 5, 10);
+      expect(g.preview('atletismo.clasificatoria')!.available).toBe(false);
+      expect(g.preview('atletismo.final')!.available).toBe(false);
+      expect(g.preview('atletismo.carrera')!.available).toBe(true);
+    });
+
+    it('quien destaca se clasifica y corre la final de 8 con una medalla en juego', () => {
+      const g = conNivel(97);
+      advanceToWeek(g, 'gen.descansar', 24, 5, 10);
+      const clasif = filas(g, 'atletismo.clasificatoria');
+      expect(clasif.text).toMatch(/Te clasificas para la final/);
+      advanceToWeek(g, 'gen.descansar', 38, 5, 10);
+      expect(g.preview('atletismo.carrera')!.available).toBe(false); // esa semana es la final
+      expect(g.preview('atletismo.final')!.available).toBe(true);
+      const final = filas(g, 'atletismo.final');
+      expect(final.table!.rows).toHaveLength(8);
+      expect(final.text).toMatch(/final del campeonato de España/);
+      expect(final.text).toMatch(/Medalla de (oro|plata|bronce)/);
+      // Los finalistas son los mejores de la clasificatoria.
+      const clasificados = new Set(clasif.table!.rows.slice(0, 8).map((f) => f[1]));
+      const corredores = final.table!.rows.map((f) => f[1]).filter((n) => n !== 'Tú');
+      expect(corredores.filter((n) => clasificados.has(n)).length).toBeGreaterThanOrEqual(6);
+    });
+
+    it('quien no se clasifica no corre la final, pero sí su carrera semanal', () => {
+      const g = conNivel(8);
+      advanceToWeek(g, 'gen.descansar', 24, 5, 10);
+      const clasif = filas(g, 'atletismo.clasificatoria');
+      expect(clasif.text).toMatch(/No te clasificas/);
+      advanceToWeek(g, 'gen.descansar', 38, 5, 10);
+      expect(g.preview('atletismo.final')!.available).toBe(false);
+      expect(g.preview('atletismo.final')!.reason).toMatch(/No te has clasificado/);
+      expect(g.preview('atletismo.carrera')!.available).toBe(true);
+    });
+
+    it('el campeonato del curso siguiente empieza de cero', () => {
+      const g = conNivel(97);
+      advanceToWeek(g, 'gen.descansar', 24, 5, 10);
+      g.perform('atletismo.clasificatoria');
+      advanceToWeek(g, 'gen.descansar', 52 + 38, 5, 10);
+      expect(g.preview('atletismo.final')!.available).toBe(false); // no se ha clasificado en este curso
     });
   });
 });

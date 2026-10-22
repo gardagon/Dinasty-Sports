@@ -407,6 +407,8 @@ export const npcs = defineModule<NpcsState>({
     [SERVICES.npcs]: (ctx): NpcDirectory => {
       const lista = ctx.state<NpcsState>().npcs;
       const day = ctx.time.day;
+      // Edad de temporada: la de cada rival el primer día del curso, que es la que decide su categoría.
+      const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
       return {
         list: (f) =>
           lista
@@ -414,15 +416,15 @@ export const npcs = defineModule<NpcsState>({
               if (f?.role && n.role !== f.role) return false;
               if (f?.tag && !n.tags.includes(f.tag)) return false;
               if (f?.minAge !== undefined || f?.maxAge !== undefined) {
-                const edad = edadNpc(n, day);
+                const edad = edadNpc(n, inicioCurso);
                 if (edad === undefined || edad < (f.minAge ?? 0) || edad > (f.maxAge ?? 200)) return false;
               }
               return true;
             })
-            .map((n) => vista(n, day)),
+            .map((n) => vista(n, inicioCurso)),
         get: (id) => {
           const n = lista.find((x) => x.id === id);
-          return n ? vista(n, day) : undefined;
+          return n ? vista(n, inicioCurso) : undefined;
         },
       };
     },

@@ -83,9 +83,10 @@ export function pesoEn(s: IdentidadState, day: number): number {
   return imc * m * m;
 }
 
-export function viewIdentidad(s: IdentidadState, day: number): IdentityView {
+export function viewIdentidad(s: IdentidadState, day: number, primerDiaDelCurso: number): IdentityView {
   return {
     age: Math.floor(edadDecimal(s, day)),
+    seasonAge: Math.floor(edadDecimal(s, primerDiaDelCurso)),
     heightCm: Math.round(alturaEn(s, day) * 10) / 10,
     weightKg: Math.round(pesoEn(s, day) * 10) / 10,
     leftHanded: s.zurdo,

@@ -303,7 +303,9 @@ export const personaje = defineModule<IdentidadState>({
     [SERVICES.identidad]: (ctx): IdentityService => {
       const s = ctx.state<IdentidadState>();
       const day = ctx.time.day;
-      return { view: () => viewIdentidad(s, day) };
+      // Primer día del curso en curso: de ahí sale la edad de temporada (la categoría no cambia a mitad de curso).
+      const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
+      return { view: () => viewIdentidad(s, day, inicioCurso) };
     },
   },
 });

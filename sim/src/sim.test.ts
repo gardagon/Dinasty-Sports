@@ -12,7 +12,7 @@ describe('simulación rápida', () => {
   });
 
   it('un bot que destaca acepta subir de categoría y compite contra mayores', () => {
-    const bot = BOTS.find((b) => b.id === 'equilibrado')!;
+    const bot = BOTS.find((b) => b.id === 'atleta')!;
     const carrerasArriba = [1, 2].map((semilla) => runBot(bot, semilla, 1095).extras.carrerasSuperior ?? 0);
     expect(Math.max(...carrerasArriba)).toBeGreaterThan(0);
   }, 60_000);
