@@ -155,13 +155,14 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 |---|---|---|
 | 1.er trimestre | 0 a 14 | septiembre a mediados de diciembre |
 | Navidad (sin clase) | 15 y 16 | del 22 de diciembre al 4 de enero |
-| 2.º trimestre | 17 a 29 | enero a principios de abril |
-| Semana Santa (sin clase) | 30 | principios de abril (dentro del margen del 22 de marzo al 25 de abril) |
-| 3.er trimestre | 31 a 40 | abril a mediados de junio |
+| 2.º trimestre | 17 a 28 | enero a finales de marzo |
+| Semana Santa (sin clase) | 29 | finales de marzo o principios de abril (dentro del margen del 22 de marzo al 25 de abril) |
+| 3.er trimestre | 30 a 40 | abril a mediados de junio |
 | Verano (sin clase) | 41 a 51 | finales de junio a principios de septiembre |
 
 - **Sin fechas absolutas:** como el año de la partida es el año 0, el calendario se expresa en semanas desde el inicio del curso. Cada curso tiene 52 semanas; el día suelto que sobra del año (365 días) no importa para el calendario.
-- **Evaluaciones:** al final de cada trimestre (semanas 14, 29 y 40). Son las semanas 12, 24 y 36 del original, adaptadas a un curso de unas 38 semanas lectivas.
+- **Reparto de semanas lectivas:** 15 en el 1.er trimestre (0 a 14), 12 en el 2.º (17 a 28) y 11 en el 3.º (30 a 40): 38 en total. Así el 3.º no se queda con solo 9 o 10.
+- **Evaluaciones:** al final de cada trimestre (semanas 14, 28 y 40). Son las semanas 12, 24 y 36 del original, adaptadas a un curso de unas 38 semanas lectivas.
 - **El día numérico concreto es independiente:** la interfaz puede enseñar solo la semana, el trimestre y el periodo (clase, vacaciones).
 - **Otros países:** el calendario es un dato por país (E9.7), así que añadir Francia o Reino Unido no toca el motor.
 
