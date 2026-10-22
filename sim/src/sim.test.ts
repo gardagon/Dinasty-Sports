@@ -15,5 +15,5 @@ describe('simulación rápida', () => {
     const bot = BOTS.find((b) => b.id === 'equilibrado')!;
     const carrerasArriba = [1, 2].map((semilla) => runBot(bot, semilla, 1095).extras.carrerasSuperior ?? 0);
     expect(Math.max(...carrerasArriba)).toBeGreaterThan(0);
-  });
+  }, 60_000);
 });

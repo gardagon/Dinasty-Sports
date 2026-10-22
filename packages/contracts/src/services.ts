@@ -46,6 +46,9 @@ export interface NpcDirectory {
 
 // ---------- Estudios ----------
 
+/** Cómo pasa el verano el personaje según sus notas: academia obligatoria, campamento deportivo o tiempo con amigos. */
+export type SummerPath = 'academia' | 'campamento' | 'amigos';
+
 export interface StudiesService {
   /** Media de las últimas notas (0..10), o null si aún no hay exámenes. */
   average(): number | null;
@@ -55,6 +58,8 @@ export interface StudiesService {
   activeSubjects(): string[];
   /** Nombre del curso actual (p. ej. "1.º de ESO"). */
   courseName(): string;
+  /** Cómo le toca pasar el verano según las notas del curso, o null si todavía no se sabe (o no es verano). */
+  summerPath(): SummerPath | null;
 }
 
 // ---------- Identidad ----------

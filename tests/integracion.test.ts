@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, SERVICES, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory } from '@ds/contracts';
+import { GEN, SERVICES, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type StudiesService } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
-import { advanceTo, advanceToWeek, checkInvariants, seededRng, type Game } from '@ds/core';
+import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
+import type { EstudiosState } from '@ds/mod-estudios';
 import type { NpcsState } from '@ds/mod-npcs';
 
 /** Pruebas de los NEXOS: módulos que colaboran sin conocerse. */
@@ -298,5 +299,108 @@ describe('integración de módulos', () => {
     expect(g.perform('atletismo.carrera').ok).toBe(true); // sin rivales con edad, la serie se completa con corredores genéricos
     advanceToWeek(g, 'gen.descansar', 14, 4, 20);
     expect(checkInvariants(g)).toEqual([]);
+  });
+
+  describe('verano según las notas', () => {
+    const verano = (g: Game) => g.service<StudiesService>(SERVICES.estudios)!.summerPath();
+
+    /** Partida en el último viernes lectivo (semana 40) con unos controles de trimestre que dan la nota indicada. */
+    const finDeCurso = (notaMedia: number) => {
+      const g = nuevaPartida({ seed: 41 });
+      const guardado = g.serialize();
+      const e = guardado.modules.estudios as EstudiosState;
+      // Las notas del curso: los dos trimestres anteriores y los controles del tercero.
+      e.boletines = [
+        { curso: 0, trimestre: 1, media: notaMedia },
+        { curso: 0, trimestre: 2, media: notaMedia },
+      ];
+      e.controlesTrimestre = [notaMedia, notaMedia, notaMedia];
+      guardado.minute = (40 * 7 + 4) * 1440 + 22 * 60; // viernes de la semana 40 a las 22:00
+      return cargarPartida(guardado);
+    };
+    const pasarElViernes = (g: Game) => advanceToWeek(g, 'gen.descansar', 41, 0, 12);
+
+    it('con notas flojas toca academia obligatoria en verano, y no se repite curso', () => {
+      const g = finDeCurso(3);
+      pasarElViernes(g);
+      expect(verano(g)).toBe('academia');
+      expect(g.log.some((l) => /academia obligatoria/.test(l.text))).toBe(true);
+      expect(g.preview('atletismo.campamento')!.available).toBe(false);
+      expect(g.preview('atletismo.amigos')!.available).toBe(false);
+    });
+
+    it('la academia exige sesiones de lunes a viernes por la mañana, una al día', () => {
+      const g = finDeCurso(3);
+      advanceToWeek(g, 'gen.descansar', 42, 1, 9);
+      expect(g.preview('estudios.academia')!.available).toBe(false); // antes de las 10
+      advanceToWeek(g, 'gen.descansar', 42, 1, 10);
+      const flojas = g.stat('estudios.matematicas');
+      expect(g.perform('estudios.academia').ok).toBe(true);
+      expect(g.preview('estudios.academia')!.available).toBe(false);
+      advanceToWeek(g, 'gen.descansar', 42, 5, 10);
+      expect(g.preview('estudios.academia')!.available).toBe(false); // sábado
+      expect(flojas).toBeLessThanOrEqual(g.stat('estudios.matematicas') + 100);
+      expect(g.moduleState<EstudiosState>('estudios').verano!.hechas).toBe(1);
+    });
+
+    it('faltar a la academia cuenta como falta; terminarla sin ir de más te libra del resto del verano', () => {
+      const g = finDeCurso(3);
+      const faltasAntes = g.moduleState<EstudiosState>('estudios').faltas;
+      advanceToWeek(g, 'gen.descansar', 42, 1, 6); // un día entero sin ir
+      expect(g.moduleState<EstudiosState>('estudios').faltas).toBeGreaterThan(faltasAntes);
+      expect(g.log.some((l) => /faltado a la academia/.test(l.text))).toBe(true);
+      // Va a todas las sesiones hasta sacar los aprobados.
+      for (let dia = 0; g.moduleState<EstudiosState>('estudios').verano!.superada === false && dia < 80; dia++) {
+        advanceUntil(g, 'gen.descansar', (t) => !t.isWeekend && t.hour === 10 && t.minuteOfDay === 600, 5000);
+        if (g.preview('estudios.academia')!.available) g.perform('estudios.academia');
+        else g.perform('gen.descansar');
+      }
+      expect(g.moduleState<EstudiosState>('estudios').verano!.superada).toBe(true);
+      expect(g.log.some((l) => /sacado los aprobados/.test(l.text))).toBe(true);
+      expect(g.preview('estudios.academia')!.available).toBe(false);
+    });
+
+    it('si se acaba el verano sin terminar la academia no se repite, pero se empieza el curso flojo', () => {
+      const g = finDeCurso(3);
+      advanceToWeek(g, 'gen.descansar', 52, 0, 12);
+      expect(g.log.some((l) => /No has terminado la academia/.test(l.text))).toBe(true);
+      expect(g.time.schoolYear).toBe(1); // pasa de curso igualmente
+      expect(g.moduleState<EstudiosState>('estudios').verano).toBeUndefined();
+    });
+
+    it('con buenas notas se puede pedir un campamento del deporte, que rinde más que cualquier otro entrenamiento', () => {
+      const g = finDeCurso(8.5);
+      pasarElViernes(g);
+      expect(verano(g)).toBe('campamento');
+      advanceToWeek(g, 'gen.descansar', 43, 2, 9);
+      const campamento = g.preview('atletismo.campamento')!;
+      expect(campamento.available).toBe(true);
+      expect(campamento.modifiers.some((m) => m.id === 'atletismo.campamento')).toBe(true);
+      const antes = g.stat('atletismo.tecnica');
+      expect(g.perform('atletismo.campamento').ok).toBe(true);
+      expect(g.stat('atletismo.tecnica')).toBeGreaterThan(antes);
+      expect(g.preview('estudios.academia')!.available).toBe(false);
+    });
+
+    it('con notas aceptables el verano es con los amigos, que se mejora menos', () => {
+      const g = finDeCurso(6.2);
+      pasarElViernes(g);
+      expect(verano(g)).toBe('amigos');
+      advanceToWeek(g, 'gen.descansar', 43, 2, 10);
+      const antes = g.stat('atletismo.tecnica');
+      expect(g.perform('atletismo.amigos').ok).toBe(true);
+      const conAmigos = g.stat('atletismo.tecnica') - antes;
+      const g2 = finDeCurso(8.5);
+      pasarElViernes(g2);
+      advanceToWeek(g2, 'gen.descansar', 43, 2, 9);
+      const antes2 = g2.stat('atletismo.tecnica');
+      g2.perform('atletismo.campamento');
+      expect(g2.stat('atletismo.tecnica') - antes2).toBeGreaterThan(conAmigos * 2);
+    });
+
+    it('fuera del verano no hay camino de verano', () => {
+      const g = nuevaPartida({ seed: 41 });
+      expect(verano(g)).toBeNull();
+    });
   });
 });

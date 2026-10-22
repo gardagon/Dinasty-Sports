@@ -19,6 +19,7 @@ import {
   type IdentityService,
   type NpcDirectory,
   type ReadContext,
+  type StudiesService,
   type Rng,
   type StatDef,
 } from '@ds/contracts';
@@ -50,6 +51,8 @@ export interface AtletismoState {
   ultimaSesionClub?: number;
   /** Última semana en que hizo la prueba de acceso de cada club (para no repetirla enseguida). */
   pruebas?: Record<string, number>;
+  /** Último día que fue al campamento o practicó con los amigos en verano (uno al día). */
+  ultimoVerano?: number;
 }
 
 /**
@@ -154,6 +157,9 @@ const EFICIENCIA_POR_TU_CUENTA = 0.85;
 const ENTRENOS_LIBRES = ['atletismo.series', 'atletismo.rodaje', 'atletismo.tecnica'];
 
 const DEPORTE = 'atletismo';
+/** El campamento de verano rinde más que cualquier otro entrenamiento: entrenadores, grupo y todo el día. */
+const EFICIENCIA_CAMPAMENTO = 1.2;
+const caminoDeVerano = (ctx: ReadContext) => ctx.service<StudiesService>(SERVICES.estudios)?.summerPath() ?? null;
 const clubDelJugador = (ctx: ReadContext): ClubView | undefined => ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(DEPORTE);
 const edadDelJugador = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
 
@@ -362,6 +368,55 @@ export const atletismo = defineModule<AtletismoState>({
       run: (ctx) => ctx.emit<ClubLeaveData>({ type: SHARED_EVENTS.CLUB_LEAVE, data: { sport: DEPORTE } }),
     },
     {
+      id: 'atletismo.campamento',
+      name: 'Campamento de atletismo',
+      description: 'Con buenas notas, tus padres te dejan ir a un campamento del deporte que practicas: una jornada completa de entrenamiento con entrenadores. Mejoras más que de ninguna otra forma.',
+      tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'atletismo', 'campamento'],
+      group: 'Verano',
+      duration: 300,
+      available: (ctx) => {
+        if (caminoDeVerano(ctx) !== 'campamento') return 'Solo puedes pedir campamento en verano si has sacado buenas notas';
+        const t = ctx.time;
+        if (t.weekday === 6) return 'El campamento no abre los domingos';
+        if (ctx.state<AtletismoState>().ultimoVerano === t.day) return 'Ya has ido al campamento hoy';
+        return inHours(t, 9, 10) ? true : 'El campamento empieza a las 9';
+      },
+      delta: { [GEN.energia]: -35 },
+      train: [
+        { stat: 'atletismo.tecnica', amount: 4 },
+        { stat: 'atletismo.ritmo', amount: 4 },
+        { stat: 'atletismo.salida', amount: 4 },
+        { stat: GEN.velocidad, amount: 1 },
+        { stat: GEN.resistencia, amount: 1 },
+        { stat: GEN.coordinacion, amount: 0.8 },
+        { stat: CONOCIMIENTO, amount: 3 },
+      ],
+      run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimoVerano: ctx.time.day })),
+    },
+    {
+      id: 'atletismo.amigos',
+      name: 'Practicar con los amigos',
+      description: 'Con notas aceptables, el verano se pasa jugando y corriendo con los amigos: sienta bien, pero no se mejora igual que entrenando.',
+      tags: [TAGS.fisico, TAGS.social, 'atletismo'],
+      group: 'Verano',
+      duration: 120,
+      available: (ctx) => {
+        if (caminoDeVerano(ctx) !== 'amigos') return 'Solo en verano, con notas aceptables';
+        const t = ctx.time;
+        if (ctx.state<AtletismoState>().ultimoVerano === t.day) return 'Ya has quedado con los amigos hoy';
+        return inHours(t, 10, 19) ? true : 'De 10 a 19';
+      },
+      delta: { [GEN.energia]: -12, [GEN.estres]: -6 },
+      train: [
+        { stat: 'atletismo.tecnica', amount: 0.4 },
+        { stat: 'atletismo.ritmo', amount: 0.4 },
+        { stat: 'atletismo.salida', amount: 0.4 },
+        { stat: GEN.carisma, amount: 0.4 },
+        { stat: GEN.cooperacion, amount: 0.3 },
+      ],
+      run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimoVerano: ctx.time.day })),
+    },
+    {
       id: 'atletismo.series',
       name: 'Series de velocidad',
       tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'atletismo'],
@@ -567,6 +622,11 @@ export const atletismo = defineModule<AtletismoState>({
   ],
 
   modifiers: [
+    {
+      id: 'atletismo.campamento',
+      tags: ['campamento'],
+      apply: () => ({ efficiency: EFICIENCIA_CAMPAMENTO, reason: 'Campamento con entrenadores' }),
+    },
     {
       id: 'atletismo.por_tu_cuenta',
       tags: ['atletismo'],
