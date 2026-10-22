@@ -127,6 +127,7 @@ const habilidad = (key: string, name: string, apoyos: Apoyo[], description: stri
   category: 'habilidad',
   initial: { min: 5, max: 15 },
   talentSpread: 0.2,
+  genetics: { family: 'fisico' },
   growth: {
     rate: 0.5,
     curve: 1.5,

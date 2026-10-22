@@ -20,6 +20,10 @@ export interface GameState {
   baseline: Record<StatId, number>;
   /** Multiplicador oculto de talento por stat. */
   talent: Record<StatId, number>;
+  /** Tope genético individual de cada stat que lo tiene (ver `StatDef.genetics`). Ausente = sin tope genético. */
+  potential?: Record<StatId, number>;
+  /** Factor genético compartido por familia (normal estándar), del que salen los topes. */
+  families?: Record<string, number>;
   /** Último minuto en que se entrenó cada stat. */
   lastTrained: Record<StatId, number>;
   /** Estado propio de cada módulo. */

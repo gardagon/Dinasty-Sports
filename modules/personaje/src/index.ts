@@ -46,6 +46,8 @@ const generica = (id: string, name: string, group: string, decay: DecayDef, desc
   category: 'generica',
   initial: { min: 30, max: 50 },
   growth: { rate: 0.3, curve: 2, ...(limitadaPorEdad ? { cap: techoPorEdad } : {}) },
+  // Lo físico depende de la genética (y del desarrollo por la edad).
+  ...(limitadaPorEdad ? { genetics: { family: 'fisico' } } : {}),
   decay,
 });
 

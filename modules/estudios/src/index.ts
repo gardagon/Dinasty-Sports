@@ -69,6 +69,7 @@ const asignaturaStat = (a: Asignatura): StatDef => ({
   category: 'habilidad',
   initial: NIVEL_INICIAL,
   talentSpread: 0.2,
+  genetics: { family: 'intelecto' },
   growth: {
     rate: 0.5,
     curve: 1.5,
