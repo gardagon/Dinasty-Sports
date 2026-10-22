@@ -146,7 +146,7 @@ function viewTable(t: LogTable): string {
   const rows = t.rows
     .map((r, i) => `<tr${i === t.highlight ? ' class="me"' : ''}>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`)
     .join('');
-  return `<details class="table" open><summary>Clasificación</summary><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></details>`;
+  return `<details class="table" open><summary>${t.header[0] === 'Pos.' ? 'Clasificación' : 'Detalle'}</summary><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></details>`;
 }
 
 function viewResult(): string {
@@ -217,6 +217,7 @@ function viewIdentity(g: Game): string {
   const id = g.service<IdentityService>(SERVICES.identidad)?.view();
   if (!id) return '';
   const fmt = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const curso = g.service<StudiesService>(SERVICES.estudios)?.courseName();
   return `<section class="sheet"><h2>${esc(g.playerName)}</h2>
     <dl class="identity">
       <div><dt>Edad</dt><dd>${id.age} años</dd></div>
@@ -224,14 +225,18 @@ function viewIdentity(g: Game): string {
       <div><dt>Peso</dt><dd>${fmt(id.weightKg)} kg</dd></div>
       <div><dt>Dominancia</dt><dd>${id.leftHanded ? 'Zurdo' : 'Diestro'}</dd></div>
       <div><dt>Complexión</dt><dd>${COMPLEXION[id.bodyType]}</dd></div>
+      ${curso ? `<div><dt>Curso</dt><dd>${esc(curso)}</dd></div>` : ''}
     </dl>
   </section>`;
 }
 
 function viewCharacter(g: Game): string {
   const groups = new Map<string, string[]>();
+  // Solo se muestran las asignaturas del curso actual.
+  const activas = g.service<StudiesService>(SERVICES.estudios)?.activeSubjects();
   for (const s of g.registry.statList) {
     if (s.def.category === 'estado' || s.def.hidden) continue;
+    if (activas && s.module === 'estudios' && !activas.includes(s.def.id)) continue;
     const key = s.def.group ?? g.registry.moduleNames.get(s.module) ?? s.module;
     groups.set(key, [...(groups.get(key) ?? []), s.def.id]);
   }

@@ -50,6 +50,10 @@ export interface StudiesService {
   average(): number | null;
   /** Faltas de asistencia acumuladas. */
   absences(): number;
+  /** Ids de las habilidades de las asignaturas que se cursan este curso (el resto no se entrena ni puntúa). */
+  activeSubjects(): string[];
+  /** Nombre del curso actual (p. ej. "1.º de ESO"). */
+  courseName(): string;
 }
 
 // ---------- Identidad ----------

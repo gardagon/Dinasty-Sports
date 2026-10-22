@@ -16,43 +16,28 @@ import {
   type ReadContext,
   type StatDef,
   type StudiesService,
+  type WeekEventData,
 } from '@ds/contracts';
+import {
+  ASIGNATURAS,
+  CURSO_DE_MODALIDAD,
+  asignatura,
+  asignaturasDelCurso,
+  cursoDef,
+  elegirModalidad,
+  type Asignatura,
+  type Modalidad,
+} from './curriculo';
 
 /**
  * MÓDULO ESTUDIOS (id `estudios`).
- * Asignaturas como habilidades. Clase por la mañana, estudio por la tarde,
- * control de cada asignatura los viernes. Las notas quedan disponibles para
- * otros módulos a través del servicio `estudios` (p. ej. una futura beca deportiva).
+ * Asignaturas como habilidades, según el currículo del curso (ver `curriculo.ts`): cambian con la etapa y heredan
+ * lo aprendido. Clase por la mañana, estudio por la tarde, control de las asignaturas del curso los viernes y
+ * evaluación al final de cada trimestre. Las notas quedan disponibles para otros módulos a través del servicio
+ * `estudios` (p. ej. una futura beca deportiva).
  */
 
-interface Asignatura {
-  key: string;
-  name: string;
-  /** Genéricas que aceleran la asignatura (suman 1) y que además entrena estudiarla. */
-  apoyos: { stat: string; weight: number }[];
-  /** Genérica extra que entrena estudiar esta asignatura (si la hay). */
-  entrena?: { stat: string; amount: number };
-}
-
-export const ASIGNATURAS: readonly Asignatura[] = [
-  {
-    key: 'matematicas',
-    name: 'Matemáticas',
-    apoyos: [{ stat: GEN.inteligencia, weight: 0.5 }, { stat: GEN.concentracion, weight: 0.5 }],
-  },
-  {
-    key: 'lengua',
-    name: 'Lengua',
-    apoyos: [{ stat: GEN.inteligencia, weight: 0.35 }, { stat: GEN.comunicacion, weight: 0.35 }, { stat: GEN.concentracion, weight: 0.3 }],
-    entrena: { stat: GEN.comunicacion, amount: 0.3 },
-  },
-  {
-    key: 'ciencias',
-    name: 'Ciencias',
-    apoyos: [{ stat: GEN.inteligencia, weight: 0.4 }, { stat: GEN.atencion, weight: 0.3 }, { stat: GEN.creatividad, weight: 0.3 }],
-    entrena: { stat: GEN.creatividad, amount: 0.3 },
-  },
-];
+export { ASIGNATURAS } from './curriculo';
 
 export interface EstudiosState {
   /** Últimas notas por asignatura (más reciente al final). */
@@ -62,6 +47,10 @@ export interface EstudiosState {
   controlesTrimestre?: number[];
   /** Notas medias de cada evaluación de trimestre. */
   boletines?: { curso: number; trimestre: number; media: number }[];
+  /** Modalidad de bachillerato (se elige al empezarlo según las notas). */
+  modalidad?: Modalidad;
+  /** Último curso del que ya se han aplicado los cambios de asignaturas. */
+  cursoAplicado?: number;
   /** Último día con asistencia a clase. */
   ultimaAsistencia: number;
 }
@@ -70,13 +59,15 @@ const statId = (key: string) => `estudios.${key}`;
 const NOTAS_GUARDADAS = 12;
 const MIN_HORA_CLASE = 7;
 const MAX_HORA_CLASE = 9;
+/** Todos parten de un 5 (nivel ~40 ⇒ nota ≈ 5): la inteligencia y el trabajo marcan la evolución. */
+const NIVEL_INICIAL = { min: 38, max: 42 };
 
 const asignaturaStat = (a: Asignatura): StatDef => ({
   id: statId(a.key),
   name: a.name,
   group: 'Asignaturas',
   category: 'habilidad',
-  initial: { min: 15, max: 30 },
+  initial: NIVEL_INICIAL,
   talentSpread: 0.2,
   growth: {
     rate: 0.5,
@@ -88,10 +79,17 @@ const asignaturaStat = (a: Asignatura): StatDef => ({
   decay: { graceDays: 10, ratePerDay: 0.006, floorRatio: 0.75 },
 });
 
+/** Asignaturas que se cursan ahora (ids de stat). */
+const activasKeys = (curso: number, modalidad?: Modalidad): string[] => asignaturasDelCurso(curso, modalidad);
+
 const tiempoDeEstudio = (ctx: ReadContext): true | string => {
   if (isSchoolHours(ctx.time)) return 'Estás en horario de clase';
   return inHours(ctx.time, 7, 23) ? true : 'Demasiado tarde para estudiar';
 };
+
+/** ¿Se cursa esta asignatura en el curso en que está el personaje? */
+const seCursa = (ctx: ReadContext, key: string): boolean =>
+  activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad).includes(key);
 
 const estudiar = (a: Asignatura): ActionDef => ({
   id: `estudios.estudiar_${a.key}`,
@@ -99,7 +97,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   tags: [TAGS.estudio, TAGS.mental],
   group: 'Estudiar',
   duration: 90,
-  available: tiempoDeEstudio,
+  available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
   train: [
     { stat: statId(a.key), amount: 3 },
@@ -109,17 +107,50 @@ const estudiar = (a: Asignatura): ActionDef => ({
   ],
 });
 
-/** Nota de un control: 30 → ~4.2, 50 → ~6, 70 → ~7.8, 90 → ~9.6 (± azar y estrés). */
-export function notaControl(nivel: number, estres: number, ruido: number): number {
+/**
+ * Nota de un control: 30 → ~4.2, 50 → ~6, 70 → ~7.8, 90 → ~9.6 (± azar y estrés). Cada curso exige un poco más:
+ * con el mismo nivel, la nota baja 0,15 por curso (hay que seguir estudiando para mantenerla).
+ */
+export function notaControl(nivel: number, estres: number, ruido: number, curso = 0): number {
   const penalizacionEstres = Math.max(0, estres - 60) / 20;
-  const n = 1.5 + nivel * 0.09 + ruido * 0.6 - penalizacionEstres;
+  const n = 1.5 + nivel * 0.09 + ruido * 0.6 - penalizacionEstres - 0.15 * curso;
   return Math.round(Math.min(10, Math.max(0, n)) * 10) / 10;
 }
 
-const media = (s: EstudiosState): number | null => {
-  const ultimas = Object.values(s.notas).flatMap((n) => n.slice(-3));
+/** Media de las últimas notas de las asignaturas que se cursan ahora. */
+const media = (s: EstudiosState, activas: readonly string[]): number | null => {
+  const ultimas = activas.flatMap((k) => (s.notas[k] ?? []).slice(-3));
   return ultimas.length ? ultimas.reduce((a, b) => a + b, 0) / ultimas.length : null;
 };
+
+/**
+ * Cambio de curso: se elige modalidad al llegar a bachillerato, las asignaturas nuevas heredan el nivel de las que
+ * las sustituyen (ciencias naturales → biología, ciencias sociales → historia...) y se avisa de lo que entra y sale.
+ */
+function cambiarCurso(ctx: ActionContext, curso: number): void {
+  const st = ctx.state<EstudiosState>();
+  const anterior = st.cursoAplicado ?? 0;
+  if (curso === anterior) return;
+  let modalidad = st.modalidad;
+  if (modalidad === undefined && curso >= CURSO_DE_MODALIDAD) {
+    modalidad = elegirModalidad((k) => ctx.stat(statId(k)));
+    ctx.log(`Para el bachillerato eliges ${modalidad === 'ciencias' ? 'ciencias' : 'humanidades'}, que es donde mejor te va.`, 'info');
+  }
+  const antes = activasKeys(anterior, modalidad);
+  const ahora = activasKeys(curso, modalidad);
+  const nuevas = ahora.filter((k) => !antes.includes(k));
+  const salen = antes.filter((k) => !ahora.includes(k));
+  for (const k of nuevas) {
+    const heredada = asignatura(k).hereda;
+    if (heredada) ctx.addStat(statId(k), ctx.stat(statId(heredada)) - ctx.stat(statId(k)));
+  }
+  ctx.updateState<EstudiosState>((s) => ({ ...s, modalidad, cursoAplicado: curso }));
+  const nombres = (keys: string[]) => keys.map((k) => asignatura(k).name).join(', ');
+  ctx.log(
+    `Empiezas ${cursoDef(curso).nombre}.${nuevas.length ? ` Asignaturas nuevas: ${nombres(nuevas)}.` : ''}${salen.length ? ` Dejas: ${nombres(salen)}.` : ''}`,
+    'info',
+  );
+}
 
 /** Evaluación de fin de trimestre: nota media de los controles, con consecuencias en ánimo y estrés. */
 function evaluarTrimestre(ctx: ActionContext, curso: number, trimestre: number): void {
@@ -177,13 +208,16 @@ export const estudios = defineModule<EstudiosState>({
       },
       delta: { [GEN.energia]: -15, [GEN.estres]: 3 },
       train: [
-        ...ASIGNATURAS.map((a) => ({ stat: statId(a.key), amount: 0.5 })),
         { stat: GEN.concentracion, amount: 0.3 },
         { stat: GEN.atencion, amount: 0.3 },
         { stat: GEN.determinacion, amount: 0.3 },
         { stat: GEN.cooperacion, amount: 0.1 },
       ],
-      run: (ctx) => ctx.updateState<EstudiosState>((s) => ({ ...s, ultimaAsistencia: ctx.time.day })),
+      run: (ctx) => {
+        ctx.updateState<EstudiosState>((s) => ({ ...s, ultimaAsistencia: ctx.time.day }));
+        // En clase se avanza un poco en cada asignatura del curso.
+        for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 0.5);
+      },
     },
     ...ASIGNATURAS.map(estudiar),
     {
@@ -194,14 +228,21 @@ export const estudios = defineModule<EstudiosState>({
       duration: 120,
       available: tiempoDeEstudio,
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
-      train: [
-        ...ASIGNATURAS.map((a) => ({ stat: statId(a.key), amount: 1.2 })),
-        { stat: GEN.determinacion, amount: 0.3 },
-      ],
+      train: [{ stat: GEN.determinacion, amount: 0.3 }],
+      run: (ctx) => {
+        for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 1.2);
+      },
     },
   ],
 
   on: {
+    [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
+      const { week } = ev.data as WeekEventData;
+      // Si la semana que viene empieza un curso nuevo, cambian las asignaturas.
+      const proximo = timeView((week + 1) * 7 * MINUTES_PER_DAY);
+      if (proximo.schoolWeek === 0) cambiarCurso(ctx, proximo.schoolYear);
+    },
+
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as DayEventData;
       // El evento llega al cerrar el día: se mira el calendario de ESE día, no el del siguiente.
@@ -217,18 +258,18 @@ export const estudios = defineModule<EstudiosState>({
       }
 
       if (weekday === 4) {
-        const notas: Record<string, number[]> = {};
-        const partes: string[] = [];
-        for (const a of ASIGNATURAS) {
-          const nota = notaControl(ctx.stat(statId(a.key)), ctx.stat(GEN.estres), ctx.rng.normal());
-          notas[a.key] = [...(s.notas[a.key] ?? []), nota].slice(-NOTAS_GUARDADAS);
-          partes.push(`${a.name} ${nota.toFixed(1)}`);
+        const activas = activasKeys(hoy.schoolYear, s.modalidad);
+        const notas: Record<string, number[]> = { ...s.notas };
+        const filas: string[][] = [];
+        for (const k of activas) {
+          const nota = notaControl(ctx.stat(statId(k)), ctx.stat(GEN.estres), ctx.rng.normal(), hoy.schoolYear);
+          notas[k] = [...(s.notas[k] ?? []), nota].slice(-NOTAS_GUARDADAS);
+          filas.push([asignatura(k).name, nota.toFixed(1)]);
         }
         ctx.updateState<EstudiosState>((st) => ({ ...st, notas }));
-        const semana = Object.values(notas).map((n) => n[n.length - 1]);
-        const m = semana.reduce((x, y) => x + y, 0) / semana.length;
+        const m = activas.reduce((x, k) => x + notas[k][notas[k].length - 1], 0) / activas.length;
         ctx.updateState<EstudiosState>((st) => ({ ...st, controlesTrimestre: [...(st.controlesTrimestre ?? []), m] }));
-        ctx.log(`Controles del viernes: ${partes.join(' · ')}`, 'resultado');
+        ctx.log(`Controles del viernes: nota media ${m.toFixed(1)}.`, 'resultado', { header: ['Asignatura', 'Nota'], rows: filas });
         if (m >= 7) ctx.addStat(GEN.motivacion, 3);
         else if (m < 5) {
           ctx.addStat(GEN.motivacion, -3);
@@ -242,7 +283,13 @@ export const estudios = defineModule<EstudiosState>({
   services: {
     [SERVICES.estudios]: (ctx): StudiesService => {
       const s = ctx.state<EstudiosState>();
-      return { average: () => media(s), absences: () => s.faltas };
+      const activas = activasKeys(ctx.time.schoolYear, s.modalidad);
+      return {
+        average: () => media(s, activas),
+        absences: () => s.faltas,
+        activeSubjects: () => activas.map(statId),
+        courseName: () => cursoDef(ctx.time.schoolYear).nombre,
+      };
     },
   },
 });
