@@ -1,7 +1,10 @@
 import {
   CORE_EVENTS,
   GEN,
+  MINUTES_PER_DAY,
   SERVICES,
+  madurezPorEdad,
+  timeView,
   SHARED_EVENTS,
   TAGS,
   defineModule,
@@ -9,6 +12,7 @@ import {
   isSchoolHours,
   type ActionDef,
   type CompetitionResultData,
+  type Rng,
   type Gender,
   type InitContext,
   type NpcDirectory,
@@ -42,6 +46,12 @@ export interface Npc {
   potential: Record<string, number>;
   /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
   ritmo?: Record<string, number>;
+  /** Día de nacimiento respecto al inicio de la partida (negativo si nació antes). Solo los que tienen edad. */
+  nacimiento?: number;
+  /** Años de adelanto (+) o retraso (−) en su desarrollo físico. */
+  desfase?: number;
+  /** ¿El personaje ya lo conoce? Los rivales se conocen al competir contra ellos. Ausente = sí. */
+  known?: boolean;
   description?: string;
   /** Último día de interacción con el personaje. */
   lastDay: number;
@@ -52,26 +62,109 @@ export interface NpcsState {
 }
 
 const NOMBRES: Record<Gender, string[]> = {
-  f: ['Lucía', 'Martina', 'Sofía', 'Valeria', 'Paula', 'Carla', 'Noa', 'Irene'],
-  m: ['Hugo', 'Mateo', 'Leo', 'Daniel', 'Álvaro', 'Pablo', 'Marcos', 'Adrián'],
+  f: ['Lucía', 'Martina', 'Sofía', 'Valeria', 'Paula', 'Carla', 'Noa', 'Irene', 'Alba', 'Julia', 'Claudia', 'Elena', 'Ana', 'Marta', 'Laura', 'Nuria', 'Candela', 'Aitana', 'Lola', 'Abril'],
+  m: ['Hugo', 'Mateo', 'Leo', 'Daniel', 'Álvaro', 'Pablo', 'Marcos', 'Adrián', 'Diego', 'Iván', 'Sergio', 'Carlos', 'Javier', 'Nacho', 'Rubén', 'Bruno', 'Gonzalo', 'Víctor', 'Óscar', 'Enzo'],
 };
-const APELLIDOS = ['García', 'Martín', 'López', 'Sánchez', 'Romero', 'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano'];
+const APELLIDOS = [
+  'García', 'Martín', 'López', 'Sánchez', 'Romero', 'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano',
+  'Molina', 'Ortega', 'Delgado', 'Castro', 'Iglesias', 'Medina', 'Cortés', 'Rubio', 'Marín', 'Suárez', 'Peña', 'Herrera',
+];
 
-/** Rivales de atletismo: suficientes para clasificatorias, lesiones y rotaciones futuras. */
-const NUM_RIVALES = 16;
+/**
+ * Población de rivales de atletismo: 8 por edad entre los 8 y los 19 años (16 por categoría de dos edades),
+ * suficientes para clasificatorias, lesiones y rotaciones. Cada curso los mayores se van y entran niños nuevos.
+ */
+const EDAD_RIVAL_MIN = 8;
+const EDAD_RIVAL_MAX = 19;
+const RIVALES_POR_EDAD = 8;
+/** De esta edad en adelante dejan de aparecer (pasan a categorías que el juego no modela aún). */
+const EDAD_RETIRO = EDAD_RIVAL_MAX + 1;
+/** Hasta esta edad algún niño puede dejar el deporte cada curso (y entra otro nuevo). */
+const EDAD_MAX_BAJA = 13;
+const PROBABILIDAD_BAJA = 0.1;
 const UMBRAL_APOYO = 40;
 const DIAS_SIN_CONTACTO = 7;
+
+const clamp = (v: number, a = 0, b = 100) => Math.min(b, Math.max(a, v));
+
+function nombreUnico(rng: Rng, g: Gender, usados: Set<string>): string {
+  let n = '';
+  do n = `${rng.pick(NOMBRES[g])} ${rng.pick(APELLIDOS)}`;
+  while (usados.has(n));
+  usados.add(n);
+  return n;
+}
+
+/**
+ * Parte de su potencial que un rival ha desarrollado a una edad. Es más plana que el desarrollo físico del
+ * jugador (`madurezPorEdad`): los rivales ya llevan años entrenando, así que a los 8 años ya rinden más que
+ * alguien que acaba de llegar, pero a ninguna edad igualan su potencial adulto.
+ */
+const desarrolloRival = (edad: number): number => 0.3 + 0.7 * madurezPorEdad(edad);
+
+/** Edad en años cumplidos de un NPC con fecha de nacimiento. */
+export const edadNpc = (n: Npc, day: number): number | undefined =>
+  n.nacimiento === undefined ? undefined : Math.floor((day - n.nacimiento) / 365);
+
+/**
+ * Un rival de una edad dada. "Herencia": unos tienen más potencial y otros salen con ventaja o con otro ritmo de
+ * desarrollo, pero a ninguna edad se alcanza el potencial: el techo es potencial × madurez de esa edad.
+ */
+function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Set<string>): Npc {
+  const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
+  const potencial = clamp(79 + rng.normal() * 9, 55, 99);
+  const desfase = clamp(rng.normal() * 0.7, -1.2, 1.2);
+  const techo = potencial * desarrolloRival(edad + desfase);
+  return {
+    id: `rival_${num}`,
+    name: nombreUnico(rng, gender, usados),
+    role: 'rival',
+    gender,
+    tags: ['atleta'],
+    supports: [],
+    affinity: rng.int(15, 30),
+    levels: { atletismo: techo * rng.range(0.8, 1) },
+    potential: { atletismo: potencial },
+    ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
+    nacimiento: Math.round(day - (edad + rng.range(0, 1)) * 365),
+    desfase,
+    known: false,
+    description: 'Compite en atletismo.',
+    lastDay: -1,
+  };
+}
+
+function rivalesIniciales(rng: Rng, usados: Set<string>): Npc[] {
+  const lista: Npc[] = [];
+  let num = 1;
+  for (let edad = EDAD_RIVAL_MIN; edad <= EDAD_RIVAL_MAX; edad++) {
+    for (let i = 0; i < RIVALES_POR_EDAD; i++) lista.push(nuevoRival(rng, num++, edad, 0, usados));
+  }
+  return lista;
+}
+
+/** Nuevo curso: los mayores se van, algún niño deja el deporte y entran niños nuevos hasta completar cada edad. */
+function renovarRivales(npcs: Npc[], day: number, rng: Rng): Npc[] {
+  const usados = new Set(npcs.map((n) => n.name));
+  let num = npcs.reduce((m, n) => Math.max(m, Number(/^rival_(\d+)$/.exec(n.id)?.[1] ?? 0)), 0) + 1;
+  const quedan = npcs.filter((n) => {
+    if (n.role !== 'rival') return true;
+    const edad = edadNpc(n, day) ?? 0;
+    if (edad >= EDAD_RETIRO) return false;
+    return !(edad <= EDAD_MAX_BAJA && rng.chance(PROBABILIDAD_BAJA));
+  });
+  const nuevos: Npc[] = [];
+  for (let edad = EDAD_RIVAL_MIN; edad <= EDAD_RIVAL_MAX; edad++) {
+    const hay = quedan.filter((n) => n.role === 'rival' && edadNpc(n, day) === edad).length;
+    for (let i = hay; i < RIVALES_POR_EDAD; i++) nuevos.push(nuevoRival(rng, num++, edad, day, usados));
+  }
+  return [...quedan, ...nuevos];
+}
 
 function generarReparto(ctx: InitContext): Npc[] {
   const { rng } = ctx;
   const usados = new Set<string>();
-  const nombre = (g: Gender) => {
-    let n = '';
-    do n = `${rng.pick(NOMBRES[g])} ${rng.pick(APELLIDOS)}`;
-    while (usados.has(n));
-    usados.add(n);
-    return n;
-  };
+  const nombre = (g: Gender) => nombreUnico(rng, g, usados);
   /** `extra` puede ser una función del género para concordar la descripción. */
   const npc = (id: string, role: NpcRole, extra: (g: Gender) => Partial<Npc>): Npc => {
     const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
@@ -112,26 +205,11 @@ function generarReparto(ctx: InitContext): Npc[] {
       supports: [TAGS.social, TAGS.ocio],
       description: 'Conoce a todo el mundo en el colegio.',
     })),
-    ...Array.from({ length: NUM_RIVALES }, (_, i) =>
-      npc(`rival_${i + 1}`, 'rival', () => {
-        // "Herencia": unos nacen con más potencial y otros salen ya con ventaja, pero no tiene por qué
-        // ganar el que más entrena. Todos progresan por su cuenta, sin mirar lo que haga el jugador.
-        const potencial = clamp(79 + rng.normal() * 9, 55, 99);
-        const nivel = clamp(29 + rng.normal() * 6 + (potencial - 79) * 0.35, 12, 54);
-        return {
-          tags: ['atleta'],
-          affinity: rng.int(15, 30),
-          levels: { atletismo: nivel },
-          potential: { atletismo: potencial },
-          ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
-          description: 'Corre en tu categoría.',
-        };
-      }),
-    ),
+    ...rivalesIniciales(rng, usados),
   ];
 }
 
-const vista = (n: Npc): NpcView => ({
+const vista = (n: Npc, day: number): NpcView => ({
   id: n.id,
   name: n.name,
   role: n.role,
@@ -140,10 +218,10 @@ const vista = (n: Npc): NpcView => ({
   supports: n.supports,
   affinity: n.affinity,
   levels: n.levels,
+  age: edadNpc(n, day),
+  known: n.known,
   description: n.description,
 });
-
-const clamp = (v: number, a = 0, b = 100) => Math.min(b, Math.max(a, v));
 
 function interaccion(
   n: Npc,
@@ -274,15 +352,26 @@ export const npcs = defineModule<NpcsState>({
           let { affinity } = n;
           if (day - n.lastDay > DIAS_SIN_CONTACTO && affinity > 10) affinity = Math.max(10, affinity - 0.4);
           const levels = { ...n.levels };
+          const edad = n.nacimiento === undefined ? undefined : (day - n.nacimiento) / 365;
           for (const [k, v] of Object.entries(levels)) {
             const pot = n.potential[k] ?? 80;
-            // Los rivales progresan con rendimientos decrecientes hacia su potencial.
+            // El techo de cada edad es el potencial por el desarrollo físico de esa edad: sin edad, el potencial entero.
+            const techo = edad === undefined ? pot : pot * desarrolloRival(edad + (n.desfase ?? 0));
             const ritmo = n.ritmo?.[k] ?? 1;
-            levels[k] = Math.min(pot, v + ctx.rng.range(0, 0.35) * (1 - v / pot) * 2 * ritmo);
+            // Progresan con rendimientos decrecientes hacia el techo de su edad.
+            if (v < techo) levels[k] = Math.min(techo, v + ctx.rng.range(0, 0.35) * (1 - v / techo) * 2 * ritmo);
           }
           return { ...n, affinity, levels };
         }),
       }));
+    },
+
+    [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
+      const { week } = ev.data as { week: number };
+      // Si la semana que viene empieza un curso nuevo, se renueva el pelotón de rivales.
+      const proximo = timeView((week + 1) * 7 * MINUTES_PER_DAY);
+      if (proximo.schoolWeek !== 0) return;
+      ctx.updateState<NpcsState>((s) => ({ npcs: renovarRivales(s.npcs, proximo.day, ctx.rng) }));
     },
 
     [SHARED_EVENTS.COMPETITION_RESULT]: (ctx, ev) => {
@@ -296,7 +385,8 @@ export const npcs = defineModule<NpcsState>({
           // Los rivales que te ganan se crecen; los que pierden, te respetan un poco más.
           const p = r.participants.find((x) => x.npcId === n.id);
           if (p && n.role === 'rival') {
-            return { ...n, affinity: clamp(n.affinity + (p.mark > r.mark ? 1 : -0.5)) };
+            // Competir contra alguien es conocerlo.
+            return { ...n, known: true, affinity: clamp(n.affinity + (p.mark > r.mark ? 1 : -0.5)) };
           }
           return n;
         }),
@@ -307,11 +397,23 @@ export const npcs = defineModule<NpcsState>({
   services: {
     [SERVICES.npcs]: (ctx): NpcDirectory => {
       const lista = ctx.state<NpcsState>().npcs;
+      const day = ctx.time.day;
       return {
-        list: (f) => lista.filter((n) => (!f?.role || n.role === f.role) && (!f?.tag || n.tags.includes(f.tag))).map(vista),
+        list: (f) =>
+          lista
+            .filter((n) => {
+              if (f?.role && n.role !== f.role) return false;
+              if (f?.tag && !n.tags.includes(f.tag)) return false;
+              if (f?.minAge !== undefined || f?.maxAge !== undefined) {
+                const edad = edadNpc(n, day);
+                if (edad === undefined || edad < (f.minAge ?? 0) || edad > (f.maxAge ?? 200)) return false;
+              }
+              return true;
+            })
+            .map((n) => vista(n, day)),
         get: (id) => {
           const n = lista.find((x) => x.id === id);
-          return n ? vista(n) : undefined;
+          return n ? vista(n, day) : undefined;
         },
       };
     },

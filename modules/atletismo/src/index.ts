@@ -4,10 +4,14 @@ import {
   SERVICES,
   SHARED_EVENTS,
   TAGS,
+  categoriaDeEdad,
+  categoriaSuperior,
   defineModule,
   inHours,
   type ActionDoneData,
+  type CategoriaDef,
   type CompetitionResultData,
+  type IdentityService,
   type NpcDirectory,
   type ReadContext,
   type Rng,
@@ -25,7 +29,7 @@ import {
 
 export interface AtletismoState {
   mejorMarca: number | null;
-  carreras: { week: number; position: number; total: number; mark: number }[];
+  carreras: { week: number; position: number; total: number; mark: number; categoria?: string; superior?: boolean }[];
   ultimaSemanaCarrera: number;
   /** Sesiones de entrenamiento hechas hoy (para la sobrecarga). */
   sesionesHoy: { day: number; n: number };
@@ -33,6 +37,68 @@ export interface AtletismoState {
   ultimaTele?: number;
   /** Última semana en que cada rival corrió contra el jugador (para rotar la serie). */
   ultimaCarreraRival?: Record<string, number>;
+  /** ¿Compite en la categoría superior a la que le toca por edad? */
+  categoriaSuperior?: boolean;
+  /** Categoría que le tocaba por edad la última vez (para saber cuándo cambia). */
+  categoriaPropia?: string;
+}
+
+/**
+ * Categorías de la federación española de atletismo (por edad). Es un DATO por país: otro país o deporte
+ * tendrá las suyas. Los de 23 años o más compiten en absoluta.
+ */
+export const CATEGORIAS_ESPANA: readonly CategoriaDef[] = [
+  { id: 'sub10', nombre: 'Sub-10', edadMin: 0, edadMax: 9 },
+  { id: 'sub12', nombre: 'Sub-12', edadMin: 10, edadMax: 11 },
+  { id: 'sub14', nombre: 'Sub-14', edadMin: 12, edadMax: 13 },
+  { id: 'sub16', nombre: 'Sub-16', edadMin: 14, edadMax: 15 },
+  { id: 'sub18', nombre: 'Sub-18', edadMin: 16, edadMax: 17 },
+  { id: 'sub20', nombre: 'Sub-20', edadMin: 18, edadMax: 19 },
+  { id: 'sub23', nombre: 'Sub-23', edadMin: 20, edadMax: 22 },
+  { id: 'absoluta', nombre: 'Absoluta', edadMin: 23, edadMax: 200 },
+];
+const CATEGORIAS = CATEGORIAS_ESPANA;
+
+interface CategoriaJugador {
+  /** La que le toca por edad. */
+  propia: CategoriaDef;
+  /** En la que compite (la superior si ha subido). */
+  competida: CategoriaDef;
+  superior: boolean;
+}
+
+/** Categoría del jugador según su edad y si ha subido de categoría. */
+function categoriaDelJugador(ctx: ReadContext): CategoriaJugador {
+  const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
+  const propia = categoriaDeEdad(CATEGORIAS, edad);
+  const s = ctx.state<AtletismoState>();
+  const sup = categoriaSuperior(CATEGORIAS, propia);
+  const superior = !!s.categoriaSuperior && s.categoriaPropia === propia.id && !!sup;
+  return { propia, competida: superior ? sup! : propia, superior };
+}
+
+const mediana = (xs: number[]): number => {
+  const o = [...xs].sort((a, b) => a - b);
+  return o.length ? (o.length % 2 ? o[(o.length - 1) / 2] : (o[o.length / 2 - 1] + o[o.length / 2]) / 2) : 0;
+};
+
+/**
+ * ¿Puede pedir competir en la categoría superior? Solo si destaca mucho en la suya (sube al podio casi siempre)
+ * y sería competitivo arriba (al menos en la mitad de la categoría superior): subir para quedar en la cola no tiene sentido.
+ */
+function puedeSubir(ctx: ReadContext): true | string {
+  const { propia, superior } = categoriaDelJugador(ctx);
+  if (superior) return 'Ya compites en la categoría superior';
+  const sup = categoriaSuperior(CATEGORIAS, propia);
+  if (!sup) return 'No hay categoría superior';
+  const recientes = ctx.state<AtletismoState>().carreras.filter((c) => c.categoria === propia.id && !c.superior).slice(-5);
+  if (recientes.length < 4) return 'Aún no has competido lo suficiente en tu categoría';
+  if (recientes.filter((c) => c.position <= 2).length < 3) return 'Todavía no destacas lo bastante en tu categoría';
+  const arriba = ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ tag: 'atleta', minAge: sup.edadMin, maxAge: sup.edadMax });
+  if (arriba?.length && rendimiento(ctx) < mediana(arriba.map((n) => n.levels.atletismo ?? 0))) {
+    return `En ${sup.nombre} todavía no serías competitivo`;
+  }
+  return true;
 }
 
 const DISCIPLINA = '400 m';
@@ -57,8 +123,13 @@ const habilidad = (key: string, name: string, apoyos: Apoyo[], description: stri
     curve: 1.5,
     speedFrom: [...apoyos, { stat: GEN.determinacion, weight: 0.2 }],
     cap: {
-      base: 0.55,
-      from: [...apoyos.map((a) => ({ stat: a.stat, weight: a.weight / 2 })), { stat: GEN.determinacion, weight: 0.15 }],
+      // El techo de una habilidad deportiva crece con el desarrollo por la edad: nadie llega a su máximo antes de madurar.
+      base: 0.15,
+      from: [
+        ...apoyos.map((a) => ({ stat: a.stat, weight: a.weight / 2 })),
+        { stat: GEN.determinacion, weight: 0.15 },
+        { stat: GEN.madurez, weight: 0.45 },
+      ],
     },
   },
   decay: { graceDays: 4, ratePerDay: 0.012, floorRatio: 0.7 },
@@ -242,6 +313,34 @@ export const atletismo = defineModule<AtletismoState>({
       run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimaTele: ctx.time.day })),
     },
     {
+      id: 'atletismo.subir_categoria',
+      name: 'Aceptar competir en la categoría superior',
+      description: 'Tu entrenador propone que compitas con los mayores si destacas mucho en tu categoría y puedes ser competitivo. Contra rivales más fuertes se aprende más.',
+      tags: ['atletismo'],
+      group: 'Competición',
+      duration: 15,
+      available: puedeSubir,
+      run: (ctx) => {
+        const { propia } = categoriaDelJugador(ctx);
+        const sup = categoriaSuperior(CATEGORIAS, propia)!;
+        ctx.updateState<AtletismoState>((s) => ({ ...s, categoriaSuperior: true, categoriaPropia: propia.id }));
+        ctx.log(`Tu entrenador te propone competir en ${sup.nombre}, aunque te toca ${propia.nombre}. Aceptas.`, 'logro');
+      },
+    },
+    {
+      id: 'atletismo.volver_categoria',
+      name: 'Volver a competir en tu categoría',
+      tags: ['atletismo'],
+      group: 'Competición',
+      duration: 15,
+      available: (ctx) => (categoriaDelJugador(ctx).superior ? true : 'Ya compites en tu categoría'),
+      run: (ctx) => {
+        const { propia } = categoriaDelJugador(ctx);
+        ctx.updateState<AtletismoState>((s) => ({ ...s, categoriaSuperior: false }));
+        ctx.log(`Vuelves a competir en ${propia.nombre}.`);
+      },
+    },
+    {
       id: 'atletismo.carrera',
       name: `Competir: ${DISCIPLINA}`,
       description: 'Carrera semanal en temporada (los sábados de 9 a 13). No hay carreras en pretemporada ni en vacaciones.',
@@ -269,12 +368,17 @@ export const atletismo = defineModule<AtletismoState>({
         const forma = 0.85 + 0.15 * Math.min(1.2, ctx.efficiency);
         const miMarca = marca400(rendimiento(ctx) * forma, ctx.rng);
 
+        // Compite en su categoría por edad (o en la superior si ha subido): solo corren rivales de esas edades.
+        const { propia, competida, superior } = categoriaDelJugador(ctx);
         const npcs = ctx.service<NpcDirectory>(SERVICES.npcs);
         const conocidos: Corredor[] = npcs
-          ? npcs.list({ tag: 'atleta' }).map((n) => ({ npcId: n.id, name: n.name, level: n.levels.atletismo ?? 30 }))
+          ? npcs
+              .list({ tag: 'atleta', minAge: competida.edadMin, maxAge: competida.edadMax })
+              .map((n) => ({ npcId: n.id, name: n.name, level: n.levels.atletismo ?? 30 }))
           : [];
         const previa = ctx.state<AtletismoState>().ultimaCarreraRival ?? {};
-        const elegidos = elegirRivales(conocidos, PARTICIPANTES - 1, t.week, ctx.state<AtletismoState>().carreras.length, previa, ctx.rng);
+        const enCategoria = ctx.state<AtletismoState>().carreras.filter((c) => c.categoria === competida.id).length;
+        const elegidos = elegirRivales(conocidos, PARTICIPANTES - 1, t.week, enCategoria, previa, ctx.rng);
         const rivales: Corredor[] = [
           ...elegidos,
           ...rivalesGenericos(Math.max(0, PARTICIPANTES - 1 - elegidos.length), t.week, ctx.rng),
@@ -292,8 +396,10 @@ export const atletismo = defineModule<AtletismoState>({
         ctx.setState<AtletismoState>({
           ...s,
           mejorMarca: record ? miMarca : s.mejorMarca,
-          carreras: [...s.carreras, { week: t.week, position, total, mark: miMarca }].slice(-52),
+          carreras: [...s.carreras, { week: t.week, position, total, mark: miMarca, categoria: competida.id, superior }].slice(-52),
           ultimaSemanaCarrera: t.week,
+          categoriaPropia: propia.id,
+          categoriaSuperior: superior,
           ultimaCarreraRival: {
             ...previa,
             ...Object.fromEntries(elegidos.filter((r) => r.npcId).map((r) => [r.npcId!, t.week])),
@@ -313,7 +419,7 @@ export const atletismo = defineModule<AtletismoState>({
         };
         const dif = position === 1 ? '' : `, a ${(miMarca - ganador).toFixed(2)} s del 1º`;
         ctx.log(
-          `${DISCIPLINA}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${dif}${record ? ' (¡mejor marca personal!)' : ''}`,
+          `${DISCIPLINA} ${competida.nombre}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${dif}${record ? ' (¡mejor marca personal!)' : ''}`,
           'resultado',
           tabla,
         );
@@ -321,6 +427,15 @@ export const atletismo = defineModule<AtletismoState>({
         else if (position <= 3) ctx.addStat(GEN.motivacion, 3);
         else if (position === total) ctx.addStat(GEN.motivacion, -3);
         if (record) ctx.addStat(GEN.motivacion, 2);
+        // Cuanto más fuertes son los rivales frente a uno, más se aprende (competir contra mayores desarrolla más).
+        const nivelRivales = rivales.reduce((a, r) => a + r.level, 0) / Math.max(1, rivales.length);
+        const desafio = Math.min(1.2, Math.max(0, (nivelRivales - rendimiento(ctx)) / 25));
+        if (desafio > 0.05) {
+          ctx.train('atletismo.ritmo', desafio);
+          ctx.train('atletismo.salida', 0.5 * desafio);
+          ctx.train(CONOCIMIENTO, 1.5 * desafio);
+          if (desafio >= 0.5) ctx.log('Competir contra rivales más fuertes te ha hecho aprender más.');
+        }
         // Los golpes curten: perder entrena la resiliencia mucho más que ganar.
         ctx.train(GEN.resiliencia, position > total / 2 ? 0.8 : 0.2);
 

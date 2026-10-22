@@ -29,11 +29,17 @@ export interface NpcView {
   affinity: number;
   /** Niveles del NPC por disciplina (p. ej. { atletismo: 42 }). */
   levels: Readonly<Record<string, number>>;
+  /** Edad en años cumplidos, si el NPC la tiene (los rivales sí). */
+  age?: number;
+  /** Club al que pertenece, si tiene. */
+  club?: string;
+  /** ¿El personaje ya lo conoce? Los rivales se conocen al competir contra ellos. Ausente = sí. */
+  known?: boolean;
   description?: string;
 }
 
 export interface NpcDirectory {
-  list(filter?: { role?: NpcRole; tag?: string }): NpcView[];
+  list(filter?: { role?: NpcRole; tag?: string; minAge?: number; maxAge?: number }): NpcView[];
   get(id: string): NpcView | undefined;
 }
 

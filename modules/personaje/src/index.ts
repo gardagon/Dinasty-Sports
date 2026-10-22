@@ -2,6 +2,7 @@ import {
   CORE_EVENTS,
   GEN,
   SERVICES,
+  madurezPorEdad,
   TAGS,
   defineModule,
   inHours,
@@ -34,14 +35,17 @@ const fisica: DecayDef = { graceDays: 5, ratePerDay: 0.01, floorRatio: 0.85 };
 const mental: DecayDef = { graceDays: 10, ratePerDay: 0.005, floorRatio: 0.9 };
 const social: DecayDef = { graceDays: 14, ratePerDay: 0.004, floorRatio: 0.9 };
 
-const generica = (id: string, name: string, group: string, decay: DecayDef, description: string): StatDef => ({
+/** Techo de lo físico: crece con el desarrollo por la edad (a los 8 años ~57, a los 18 el máximo). */
+const techoPorEdad = { base: 0.3, from: [{ stat: GEN.madurez, weight: 0.7 }] };
+
+const generica = (id: string, name: string, group: string, decay: DecayDef, description: string, limitadaPorEdad = false): StatDef => ({
   id,
   name,
   group,
   description,
   category: 'generica',
   initial: { min: 30, max: 50 },
-  growth: { rate: 0.3, curve: 2 },
+  growth: { rate: 0.3, curve: 2, ...(limitadaPorEdad ? { cap: techoPorEdad } : {}) },
   decay,
 });
 
@@ -54,12 +58,12 @@ export const personaje = defineModule<IdentidadState>({
   initState: (ctx) => initIdentidad(ctx.rng),
   stats: [
     // Físicos
-    generica(GEN.velocidad, 'Velocidad', 'Físico', fisica, 'Desplazamiento puro: lo rápido que mueves el cuerpo de un punto a otro.'),
-    generica(GEN.fuerza, 'Fuerza', 'Físico', fisica, 'Potencia muscular: empujar, cargar, resistir un choque.'),
-    generica(GEN.resistencia, 'Resistencia', 'Físico', fisica, 'Cuánto aguanta el cuerpo el esfuerzo antes de ceder.'),
-    generica(GEN.constitucion, 'Constitución', 'Físico', fisica, 'Robustez del cuerpo: lesiones, recuperación y esfuerzo acumulado. Se forja con hábitos sostenidos.'),
-    generica(GEN.agilidad, 'Agilidad', 'Físico', fisica, 'Cambiar de dirección con rapidez y control.'),
-    generica(GEN.coordinacion, 'Coordinación', 'Físico', fisica, 'Precisión del movimiento: que el cuerpo haga lo que el cerebro ordena.'),
+    generica(GEN.velocidad, 'Velocidad', 'Físico', fisica, 'Desplazamiento puro: lo rápido que mueves el cuerpo de un punto a otro.', true),
+    generica(GEN.fuerza, 'Fuerza', 'Físico', fisica, 'Potencia muscular: empujar, cargar, resistir un choque.', true),
+    generica(GEN.resistencia, 'Resistencia', 'Físico', fisica, 'Cuánto aguanta el cuerpo el esfuerzo antes de ceder.', true),
+    generica(GEN.constitucion, 'Constitución', 'Físico', fisica, 'Robustez del cuerpo: lesiones, recuperación y esfuerzo acumulado. Se forja con hábitos sostenidos.', true),
+    generica(GEN.agilidad, 'Agilidad', 'Físico', fisica, 'Cambiar de dirección con rapidez y control.', true),
+    generica(GEN.coordinacion, 'Coordinación', 'Físico', fisica, 'Precisión del movimiento: que el cuerpo haga lo que el cerebro ordena.', true),
     // Mentales
     generica(GEN.inteligencia, 'Inteligencia', 'Mental', mental, 'Rapidez y calidad del razonamiento; entender y decidir bajo presión.'),
     generica(GEN.concentracion, 'Concentración', 'Mental', mental, 'Mantener el foco durante periodos largos.'),
@@ -74,6 +78,7 @@ export const personaje = defineModule<IdentidadState>({
     generica(GEN.empatia, 'Empatía', 'Social', social, 'Leer lo que sienten los demás.'),
     generica(GEN.picardia, 'Picardía', 'Social', social, 'Astucia para jugar al límite y salirte con la tuya.'),
     generica(GEN.cooperacion, 'Cooperación', 'Social', social, 'Trabajar con otros hacia un objetivo común. (Provisional.)'),
+    { id: GEN.madurez, name: 'Madurez física', group: 'Estado', category: 'estado', initial: 41, hidden: true },
     { id: GEN.energia, name: 'Energía', group: 'Estado', category: 'estado', initial: 90, resource: true },
     { id: GEN.salud, name: 'Salud', group: 'Estado', category: 'estado', initial: 90 },
     { id: GEN.estres, name: 'Estrés', group: 'Estado', category: 'estado', initial: 20 },
@@ -268,6 +273,9 @@ export const personaje = defineModule<IdentidadState>({
       const s = ctx.state<IdentidadState>();
       const edad = Math.floor(edadDecimal(s, day + 1));
       if (edad > Math.floor(edadDecimal(s, day))) ctx.log(`¡Cumples ${edad} años!`, 'logro');
+      // El desarrollo físico sigue a la edad (con el adelanto o retraso propio): es el techo de lo físico.
+      const objetivo = 100 * madurezPorEdad(edadDecimal(s, day + 1) + s.madurez);
+      ctx.addStat(GEN.madurez, objetivo - ctx.stat(GEN.madurez));
 
       const energia = ctx.stat(GEN.energia);
       const estres = ctx.stat(GEN.estres);

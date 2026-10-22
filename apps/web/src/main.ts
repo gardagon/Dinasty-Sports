@@ -286,6 +286,7 @@ function viewPeople(g: Game): string {
   };
   const items = dir
     .list()
+    .filter((n) => n.known !== false)
     .map((n) => {
       const lvl = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
       const ayuda = n.supports.length ? `Con buena relación (40+) te ayuda en: ${n.supports.join(', ')}.` : '';

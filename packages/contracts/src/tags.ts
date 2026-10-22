@@ -41,6 +41,8 @@ export const GEN = {
   picardia: 'gen.picardia',
   cooperacion: 'gen.cooperacion',
   // Estado
+  /** Desarrollo físico por la edad (0..100, oculto): limita el techo de lo físico. */
+  madurez: 'gen.madurez',
   energia: 'gen.energia',
   salud: 'gen.salud',
   estres: 'gen.estres',

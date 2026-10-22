@@ -1,4 +1,4 @@
-import type { StatDef } from '@ds/contracts';
+import { SERVICES, type NpcDirectory, type StatDef } from '@ds/contracts';
 import { checkInvariants, seededRng, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 import type { Bot, BotMemory } from './bots';
@@ -70,6 +70,8 @@ function extras(game: Game): Record<string, number | null> {
     out.notaMedia = ultimas.length ? ultimas.reduce((a, b) => a + b, 0) / ultimas.length : null;
     out.faltas = est.faltas;
   }
+  const jovenes = game.service<NpcDirectory>(SERVICES.npcs)?.list({ tag: 'atleta', maxAge: 11 });
+  if (jovenes?.length) out.rivalNivelMaxJoven = Math.max(...jovenes.map((n) => n.levels.atletismo ?? 0));
   const atl = game.moduleState<{ mejorMarca: number | null; carreras: { position: number }[] } | undefined>('atletismo');
   if (atl) {
     out.mejorMarca = atl.mejorMarca;
