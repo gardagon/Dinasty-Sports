@@ -11,6 +11,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Foco actual:** que el niño llegue a ser profesional. Después se añaden los módulos de las otras fases y se evolucionan los existentes en clave RPG.
 - **El juego debe poder jugarse sin eventos ni decisiones** (aunque sea aburrido). Los eventos aportan interés y sirven de puertas a caminos nuevos, pero no son la base.
 - **Calendario cercano a la vida real, con matices:** parón de Navidad y de verano, y una semana de primavera (Semana Santa en España) que cierra el segundo trimestre.
+- **Ritmo de juego día a día:** es más fácil reducir a planificación que ampliar a días. Partidas largas, con muchos eventos y decisiones.
+- **Calendario:** el curso empieza en septiembre, fechas reales (Semana Santa móvil calculada).
+- **Modo historia:** el personaje llega nuevo a la ciudad y a un colegio nuevo sin conocer a nadie; las relaciones sociales se construyen desde cero (hoy todos los NPCs empiezan conocidos).
+- **Oportunidad profesional:** entre los 16 y los 18 años según nivel y deporte. **Atletismo primero**, luego el deporte de equipo.
 - **Backlog ampliado** (`BACKLOG_STATS.md`, E9 a E18): calendario, ciclo de vida, ritmo de juego y planificación, salud, mundo social, segundo deporte, interfaz, recursos, técnica y eventos. Los puntos con 🟡 son preguntas abiertas.
 
 ---

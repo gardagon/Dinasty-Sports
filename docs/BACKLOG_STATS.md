@@ -19,6 +19,14 @@ Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ dif
 - **Los eventos y decisiones no son lo primero.** El juego debe poder jugarse sin ellos (aunque sea aburrido): los eventos aportan interés y sirven de puertas a caminos nuevos, no son la base.
 - **Calendario cercano a la vida real, con matices:** parón en Navidad y en verano, y una semana de primavera que cierra el segundo trimestre (la Semana Santa en España; hay que ver qué equivalente tiene en otros países).
 
+### Respuestas del 22/10/2026
+
+- **Ritmo de juego: día a día.** Es más fácil reducir a planificación después que ampliar a días. Las partidas serán **largas**, lo que implica muchos eventos y decisiones.
+- **Calendario:** el curso empieza en septiembre, con fechas reales (Semana Santa móvil calculada).
+- **Modo historia:** el personaje llega nuevo a la ciudad y empieza en un colegio nuevo, sin conocer a nadie. Obliga a desarrollar las relaciones sociales desde cero (ver E13).
+- **Oportunidad profesional:** entre los 16 y los 18 años, según nivel y deporte.
+- **Deporte de la fase 1:** atletismo primero; el deporte de equipo (fútbol, E7) después como segundo deporte.
+
 ## Decisiones ya tomadas (17/10/2026)
 
 - Ids en **español** (`gen.fuerza`). La regla de ids en inglés del documento original no se adopta.
@@ -130,7 +138,7 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E9.1 | Calendario con fechas: el curso empieza en septiembre; trimestres; parón de Navidad; semana de primavera (Semana Santa) que cierra el 2.º trimestre; verano | Valores por confirmar (inicio, duración de cada parón, Semana Santa móvil o fija) 🟡 |
+| E9.1 | Calendario con fechas reales: el curso empieza en septiembre; trimestres; parón de Navidad (~2 semanas); semana de primavera (Semana Santa, fecha móvil calculada) que cierra el 2.º trimestre; verano (~10 semanas) | Decidido el 22/10. Falta fijar fechas exactas y el equivalente de la Semana Santa para otros países |
 | E9.2 | Vacaciones con contenido propio: sin clase pero con entrenamiento, campamentos, tiempo libre | Cambia la disponibilidad de acciones (`isSchoolHours` deja de ser fijo) |
 | E9.3 | Temporada deportiva: pretemporada, competición, clasificatorias y finales; carreras que no son todas las semanas | Las clasificatorias aprovechan los 16 rivales y la rotación de series |
 | E9.4 | Cursos y categorías por edad: el niño sube de curso y de categoría al cumplir años | Enlaza con la edad (E3.1) |
@@ -142,7 +150,7 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 | ID | Tarea | Notas |
 |---|---|---|
 | E10.1 | Fases de vida como estado del personaje: formación, profesional, retiro | La fase 1 termina al hacerse profesional |
-| E10.2 | La **oportunidad profesional**: edad, nivel mínimo y requisitos (el original usa constitución, coordinación, determinación, concentración y resiliencia) | Una puerta que se abre y el jugador decide si cruza. Necesita decidir edad y deporte 🟡 |
+| E10.2 | La **oportunidad profesional**: ventana de 16 a 18 años según nivel y deporte, con requisitos (el original usa constitución, coordinación, determinación, concentración y resiliencia) | Una puerta que se abre y el jugador decide si cruza. Edad y deporte decididos el 22/10; faltan los requisitos concretos de atletismo |
 | E10.3 | Cierre de la fase 1 y arranque de la fase 2 | Resumen de lo vivido y estado que pasa a la nueva fase |
 | E10.4 | Fase 2 (profesional): club, contratos, patrocinios, competición de élite | Módulos nuevos; diseñar después de cerrar la fase 1 |
 | E10.5 | Fase 3 (retiro): entrenador, representante u otro trabajo deportivo | Un módulo distinto por oficio; después de la fase 2 |
@@ -150,11 +158,11 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 
 ## E11 · Ritmo de juego y planificación — 🟡 · Sin equivalente en el original
 
-De los 8 a los 18 años son unos 3.650 días. Jugar cada acción por horas no es viable durante diez años.
+De los 8 a los 18 años son unos 3.650 días. **Decidido el 22/10: se juega día a día** (reducir a planificación después es más fácil que ampliar); las partidas serán largas y con muchos eventos y decisiones. Lo siguiente es ayuda opcional para no repetir lo mismo diez años.
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E11.1 | Planificación por semanas o rutinas: el jugador define su semana tipo y el juego la ejecuta | Decidir cuánto detalle se juega y cuánto se automatiza 🟡 |
+| E11.1 | Ayudas opcionales para ir más rápido: repetir la rutina del día anterior, avanzar hasta la siguiente cosa importante, y más adelante planificación por semanas | Por defecto, día a día. Las ayudas no sustituyen el modo manual |
 | E11.2 | Avance rápido con interrupciones: parar ante lesiones, carreras, hitos o eventos | Los eventos (E18) son la causa natural de las interrupciones |
 | E11.3 | Resumen semanal y de periodo: qué ha pasado, cuánto has mejorado y cómo vas frente a los rivales | Es parte de la interfaz (E15) |
 
@@ -171,6 +179,7 @@ De los 8 a los 18 años son unos 3.650 días. Jugar cada acción por horas no es
 
 | ID | Tarea | Notas |
 |---|---|---|
+| E13.0 | **Modo historia: llegar a una ciudad y un colegio nuevos sin conocer a nadie.** Los NPCs empiezan desconocidos: hay que conocerlos, presentarse y construir las relaciones desde cero | Cambia lo actual (hoy todos los NPCs son conocidos y empiezan con afinidad de 15 a 35). Pide acciones y eventos de conocer gente y un estado "desconocido" |
 | E13.1 | Familia: padres como NPCs (apoyo, tiempo en casa, expectativas) | El rol `familia` existe sin NPCs. Enlaza con la herencia (E8) |
 | E13.2 | Rivales con identidad e historia (rivalidades, evolución de relación) | Hoy tienen nivel y nada más |
 | E13.3 | Entrenadores y compañeros de club al subir de categoría | Cambian con las categorías y los cursos (E9.4) |
@@ -178,7 +187,7 @@ De los 8 a los 18 años son unos 3.650 días. Jugar cada acción por horas no es
 
 ## E14 · Segundo deporte — 🟡
 
-Valida que la plantilla de deporte funciona sin tocar el motor. Individual (más sencillo) o de equipo (arrastra E7). Decidir también cuál es el deporte profesional principal.
+Valida que la plantilla de deporte funciona sin tocar el motor. **Decidido el 22/10:** atletismo cierra la fase 1 y el deporte de equipo (fútbol, E7) llega después como segundo deporte.
 
 ## E15 · Interfaz y partida — 🟢/🟡
 
