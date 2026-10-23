@@ -195,12 +195,14 @@ describe('determinismo y guardado', () => {
 describe('tope genético individual', () => {
   /** 18 capacidades con herencia directa (como las genéricas del juego), una derivada de dos y una sin tope. */
   const IDS = Array.from({ length: 18 }, (_, i) => `g.c${i}`);
+  /** Seis capacidades de cada categoría, como las genéricas del juego. */
+  const GRUPOS = ['fisico', 'mental', 'social'];
   const genetico = defineModule({
     id: 'g',
     name: 'Genética',
     stats: [
       { id: 'g.energia', name: 'Energía', category: 'estado', initial: 100, resource: true },
-      ...IDS.map((id) => ({ id, name: id, category: 'generica' as const, initial: { min: 30, max: 50 }, talentSpread: 0, genetics: {} })),
+      ...IDS.map((id, i) => ({ id, name: id, category: 'generica' as const, initial: { min: 30, max: 50 }, talentSpread: 0, genetics: { grupo: GRUPOS[Math.floor(i / 6)] } })),
       { id: 'g.a', name: 'A', category: 'habilidad', initial: 5, talentSpread: 0, genetics: { derivedFrom: [{ stat: 'g.c2', weight: 1 }] } },
       {
         id: 'g.deriv',
@@ -270,6 +272,89 @@ describe('tope genético individual', () => {
         return Math.max(...t) - Math.min(...t);
       });
       expect(media(rangos)).toBeGreaterThan(25);
+    });
+
+    describe('sesgo de los padres', () => {
+      const perfiles = partidas.flatMap((g) =>
+        (['padre', 'madre'] as const).map((lado) => ({
+          sesgo: g.parentBias(lado)!,
+          media: GRUPOS.map((_, k) => media(IDS.slice(k * 6, k * 6 + 6).map((id) => g.parentPotential(lado, id)!))),
+          topes: IDS.map((id) => g.parentPotential(lado, id)!),
+        })),
+      );
+      const de = (prefijo: string) => perfiles.filter((p) => p.sesgo.startsWith(prefijo));
+
+      it('cada padre tiene un sesgo: equilibrado, dominante en una categoría o parcial en dos', () => {
+        const validos = /^(Equilibrado|Dominante (físico|mental|social)|Parcial (físico-mental|físico-social|mental-social))$/;
+        for (const p of perfiles) expect(p.sesgo).toMatch(validos);
+        const frac = (pref: string) => de(pref).length / perfiles.length;
+        expect(frac('Equilibrado')).toBeGreaterThan(0.3);
+        expect(frac('Equilibrado')).toBeLessThan(0.5);
+        expect(frac('Dominante')).toBeGreaterThan(0.2);
+        expect(frac('Dominante')).toBeLessThan(0.4);
+        expect(frac('Parcial')).toBeGreaterThan(0.2);
+        expect(frac('Parcial')).toBeLessThan(0.4);
+      });
+
+      it('dominante: la categoría favorecida sube y las otras bajan (sin ser exagerado)', () => {
+        for (const [k, nombre] of [[0, 'físico'], [1, 'mental'], [2, 'social']] as const) {
+          const ps = de(`Dominante ${nombre}`);
+          expect(ps.length).toBeGreaterThan(20);
+          const favorecida = media(ps.map((p) => p.media[k]));
+          const otras = media(ps.flatMap((p) => p.media.filter((_, j) => j !== k)));
+          expect(favorecida - otras).toBeGreaterThan(8);
+          expect(favorecida - otras).toBeLessThan(25);
+        }
+      });
+
+      it('parcial: las dos categorías favorecidas son mejores que la que queda fuera', () => {
+        for (const [dentro, fuera, nombre] of [[[0, 1], 2, 'físico-mental'], [[0, 2], 1, 'físico-social'], [[1, 2], 0, 'mental-social']] as const) {
+          const ps = de(`Parcial ${nombre}`);
+          expect(ps.length).toBeGreaterThan(20);
+          const a = media(ps.flatMap((p) => dentro.map((k) => p.media[k])));
+          const b = media(ps.map((p) => p.media[fuera]));
+          expect(a - b).toBeGreaterThan(4);
+        }
+      });
+
+      it('equilibrado: las tres categorías quedan parecidas', () => {
+        const ps = de('Equilibrado');
+        for (let k = 0; k < 3; k++) expect(Math.abs(media(ps.map((p) => p.media[k])) - 62)).toBeLessThan(2.5);
+      });
+
+      it('hay fugas: a veces una fuerte cae fuera del sesgo y una débil dentro, pero poco', () => {
+        // Una capacidad fuerte (70+) en una categoría no favorecida de un padre dominante.
+        let conFuga = 0;
+        let total = 0;
+        for (const g of partidas) {
+          for (const lado of ['padre', 'madre'] as const) {
+            const sesgo = g.parentBias(lado)!;
+            const m = /^Dominante (físico|mental|social)$/.exec(sesgo);
+            if (!m) continue;
+            const k = ['físico', 'mental', 'social'].indexOf(m[1]);
+            total++;
+            const fuera = IDS.filter((_, i) => Math.floor(i / 6) !== k);
+            if (fuera.some((id) => g.parentPotential(lado, id)! >= 70)) conFuga++;
+          }
+        }
+        expect(conFuga / total).toBeGreaterThan(0.05);
+        expect(conFuga / total).toBeLessThan(0.45);
+      });
+
+      it('los padres de sesgo distinto dan hijos distintos: un padre físico y una madre mental dan hijos equilibrados', () => {
+        let n = 0;
+        let desnivel = 0;
+        let tope = 0;
+        for (const g of partidas) {
+          if (g.parentBias('padre') !== 'Dominante físico' || g.parentBias('madre') !== 'Dominante mental') continue;
+          n++;
+          const m = GRUPOS.map((_, k) => media(IDS.slice(k * 6, k * 6 + 6).map((id) => g.hiddenPotential(id)!)));
+          desnivel += Math.max(m[0], m[1]) - Math.min(m[0], m[1]);
+          tope += 1;
+        }
+        // Con 300 partidas puede no salir esta pareja: la prueba solo comprueba cuando existe.
+        if (n >= 3) expect(desnivel / tope).toBeLessThan(12);
+      });
     });
 
     it('de las 18 capacidades, 9 se heredan del padre y 9 de la madre', () => {

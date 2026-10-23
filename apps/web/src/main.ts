@@ -273,6 +273,7 @@ function viewGenetics(g: Game): string {
     .join('');
   if (!filas) return '';
   return `<section class="sheet"><h2>Genética (solo pruebas)</h2>
+    <p class="note"><b>Padre:</b> ${esc(g.parentBias('padre') ?? '—')} · <b>Madre:</b> ${esc(g.parentBias('madre') ?? '—')}</p>
     <div class="table"><table><thead><tr><th>Capacidad</th><th>Padre</th><th>Madre</th><th>Tope tuyo</th></tr></thead><tbody>${filas}</tbody></table></div>
     <p class="note">Topes genéticos ocultos. Cada capacidad la hereda UN solo padre (la flecha marca cuál; la mitad de cada uno, al azar) con una variación de ±20 %, sin punto intermedio. Las asignaturas y las habilidades de atletismo no se heredan: salen de las capacidades que las apoyan más una aptitud propia (derivado). Se ocultará al pasar a beta.</p>
   </section>`;

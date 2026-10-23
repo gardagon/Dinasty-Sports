@@ -54,23 +54,108 @@ export function barajar<T>(items: readonly T[], rng: Rng): T[] {
   return a;
 }
 
-/** Perfil de un progenitor: un tope por capacidad, repartido en bandas según la dificultad. */
-export function perfilDePadre(ids: readonly string[], rng: Rng, dificultad: Dificultad = 'normal'): Record<string, number> {
+/**
+ * Sesgo de un progenitor: hacia qué categorías (grupos de capacidades) se concentran sus puntos fuertes.
+ * - Dominante: una categoría reúne las capacidades altas y las débiles caen en las otras dos.
+ * - Parcial: dos categorías reúnen las altas y la que queda fuera tiene las más bajas en general.
+ * - Equilibrado: sin sesgo, las bandas caen al azar.
+ */
+export type TipoSesgo = 'equilibrado' | 'dominante' | 'parcial';
+
+export interface Sesgo {
+  tipo: TipoSesgo;
+  /** Categorías favorecidas (vacío si es equilibrado). */
+  grupos: readonly string[];
+  /** Probabilidad de elegir este sesgo (se renormaliza con los grupos que existan). */
+  peso: number;
+}
+
+/** Tabla de sesgos. Es un dato: otro juego tendría otras categorías. */
+export const SESGOS: readonly Sesgo[] = [
+  { tipo: 'equilibrado', grupos: [], peso: 0.4 },
+  { tipo: 'dominante', grupos: ['fisico'], peso: 0.1 },
+  { tipo: 'dominante', grupos: ['mental'], peso: 0.1 },
+  { tipo: 'dominante', grupos: ['social'], peso: 0.1 },
+  { tipo: 'parcial', grupos: ['fisico', 'mental'], peso: 0.1 },
+  { tipo: 'parcial', grupos: ['fisico', 'social'], peso: 0.1 },
+  { tipo: 'parcial', grupos: ['mental', 'social'], peso: 0.1 },
+];
+
+const NOMBRE_GRUPO: Record<string, string> = { fisico: 'físico', mental: 'mental', social: 'social' };
+
+export const nombreSesgo = (s: Pick<Sesgo, 'tipo' | 'grupos'>): string =>
+  s.tipo === 'equilibrado' ? 'Equilibrado' : `${s.tipo === 'dominante' ? 'Dominante' : 'Parcial'} ${s.grupos.map((g) => NOMBRE_GRUPO[g] ?? g).join('-')}`;
+
+/** Probabilidad de que una capacidad alta caiga fuera del sesgo (o una débil dentro de él). */
+export const FUGA_DE_SESGO = 0.15;
+/** Las normales se inclinan hacia arriba en las categorías favorecidas y hacia abajo en las demás (sesgo suave). */
+const NORMAL_FAVORECIDA = [55, 69.9] as const;
+const NORMAL_NO_FAVORECIDA = [50, 64.9] as const;
+/** Una capacidad débil que cae dentro del sesgo no es de las peores. */
+const DEBIL_ALTA = [42.5, 49.9] as const;
+
+function elegirSesgo(grupos: ReadonlySet<string>, rng: Rng): Sesgo {
+  const posibles = SESGOS.filter((s) => s.grupos.every((g) => grupos.has(g)));
+  const total = posibles.reduce((a, s) => a + s.peso, 0);
+  let u = rng.next() * total;
+  for (const s of posibles) {
+    u -= s.peso;
+    if (u < 0) return s;
+  }
+  return posibles[0];
+}
+
+/**
+ * Perfil de un progenitor: un tope por capacidad, repartido en bandas según la dificultad y concentrado según su sesgo.
+ * `grupoDe` dice a qué categoría pertenece cada capacidad; sin él (o con una sola categoría) no hay sesgo.
+ */
+export function perfilDePadre(
+  ids: readonly string[],
+  rng: Rng,
+  dificultad: Dificultad = 'normal',
+  grupoDe: Readonly<Record<string, string>> = {},
+): { topes: Record<string, number>; sesgo: Sesgo } {
   const c = RECUENTOS[dificultad];
   const escala = ids.length / CAPACIDADES_DE_REFERENCIA;
   const cuantas = (r: readonly [number, number]) => Math.floor(rng.int(r[0], r[1]) * escala + rng.next());
   const orden = barajar(ids, rng);
-  let destacado = Math.min(cuantas(c.destacado), orden.length);
-  let fuerte = Math.min(cuantas(c.fuerte), orden.length - destacado);
+  const destacado = Math.min(cuantas(c.destacado), orden.length);
+  const fuerte = Math.min(cuantas(c.fuerte), orden.length - destacado);
   const debil = Math.min(cuantas(c.debil), orden.length - destacado - fuerte);
-  destacado = Math.max(0, destacado);
-  fuerte = Math.max(0, fuerte);
-  const perfil: Record<string, number> = {};
-  orden.forEach((id, i) => {
-    const banda = i < destacado ? BANDAS.destacado : i < destacado + fuerte ? BANDAS.fuerte : i < destacado + fuerte + debil ? BANDAS.debil : BANDAS.normal;
-    perfil[id] = entre(rng, banda);
-  });
-  return perfil;
+  const grupos = new Set(ids.map((id) => grupoDe[id]).filter((g): g is string => !!g));
+  const sesgo: Sesgo = grupos.size >= 2 ? elegirSesgo(grupos, rng) : SESGOS[0];
+  const topes: Record<string, number> = {};
+
+  if (sesgo.tipo === 'equilibrado') {
+    orden.forEach((id, i) => {
+      const banda = i < destacado ? BANDAS.destacado : i < destacado + fuerte ? BANDAS.fuerte : i < destacado + fuerte + debil ? BANDAS.debil : BANDAS.normal;
+      topes[id] = entre(rng, banda);
+    });
+    return { topes, sesgo };
+  }
+
+  // Con sesgo: las capacidades altas se centran en las categorías favorecidas y las débiles en las demás.
+  const fav = new Set(sesgo.grupos);
+  const dentro = orden.filter((id) => fav.has(grupoDe[id]));
+  const fuera = orden.filter((id) => !fav.has(grupoDe[id]));
+  const tomar = (preferida: string[], otra: string[]): string | undefined => preferida.shift() ?? otra.shift();
+  for (let i = 0; i < destacado; i++) {
+    const id = tomar(dentro, fuera);
+    if (id) topes[id] = entre(rng, BANDAS.destacado);
+  }
+  for (let i = 0; i < fuerte; i++) {
+    // Alguna fuerte (nunca una destacada) puede caer en una categoría no favorecida.
+    const id = rng.chance(FUGA_DE_SESGO) ? tomar(fuera, dentro) : tomar(dentro, fuera);
+    if (id) topes[id] = entre(rng, BANDAS.fuerte);
+  }
+  for (let i = 0; i < debil; i++) {
+    // Alguna débil puede caer en una categoría favorecida, pero entonces no es de las peores.
+    const dentroDelSesgo = rng.chance(FUGA_DE_SESGO) && dentro.length > 0;
+    const id = dentroDelSesgo ? dentro.shift()! : tomar(fuera, dentro);
+    if (id) topes[id] = entre(rng, dentroDelSesgo ? DEBIL_ALTA : BANDAS.debil);
+  }
+  for (const id of [...dentro, ...fuera]) topes[id] = entre(rng, fav.has(grupoDe[id]) ? NORMAL_FAVORECIDA : NORMAL_NO_FAVORECIDA);
+  return { topes, sesgo };
 }
 
 /** Un solo tope de un progenitor sorteado según cuántas capacidades suelen caer en cada banda (para quien no necesita el perfil entero). */

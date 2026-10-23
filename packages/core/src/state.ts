@@ -36,6 +36,8 @@ export interface GameState {
 
 /** Genética de un progenitor: tope de cada capacidad con herencia directa y puntuación típica de sus rasgos que no son stats. */
 export interface ParentGenes {
+  /** Cómo reparte sus puntos fuertes entre categorías (p. ej. "Dominante físico"). */
+  sesgo?: string;
   familias: Record<string, number>;
   topes: Record<StatId, number>;
 }

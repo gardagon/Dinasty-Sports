@@ -44,6 +44,8 @@ export interface GrowthDef {
  *   asignatura de la inteligencia y la concentración) más una aptitud propia de la característica.
  */
 export interface GeneticsDef {
+  /** Categoría de la capacidad (p. ej. `fisico`, `mental`, `social`): los padres concentran sus puntos fuertes por categorías. */
+  grupo?: string;
   derivedFrom?: StatInfluence[];
   /** Solo con `derivedFrom`: aptitud propia, como variación ± sobre el tope derivado (0,1 = ±10 %). Por defecto 0,1. */
   aptitude?: number;

@@ -16,6 +16,7 @@ import {
   HERENCIA,
   heredarTope,
   nivelInicialHeredado,
+  nombreSesgo,
   perfilDePadre,
   repartirHerencia,
   type ReadContext,
@@ -157,8 +158,13 @@ export class Game {
     state.potential ??= {};
     if (directas.length) {
       const ids = directas.map((s) => s.def.id);
-      Object.assign(lin.padre.topes, perfilDePadre(ids, rng));
-      Object.assign(lin.madre.topes, perfilDePadre(ids, rng));
+      const grupoDe: Record<string, string> = {};
+      for (const s of directas) if (s.def.genetics!.grupo) grupoDe[s.def.id] = s.def.genetics!.grupo;
+      for (const lado of ['padre', 'madre'] as const) {
+        const { topes, sesgo } = perfilDePadre(ids, rng, 'normal', grupoDe);
+        Object.assign(lin[lado].topes, topes);
+        lin[lado].sesgo = nombreSesgo(sesgo);
+      }
       const reparto = repartirHerencia(ids, rng);
       const factor = (lin.factor ??= rng.range(HERENCIA.nivelInicial.factorMin, HERENCIA.nivelInicial.factorMax));
       for (const { def, min, max } of directas) {
@@ -267,6 +273,11 @@ export class Game {
   /** Tope genético oculto de un progenitor (solo para pruebas y simulación). */
   parentPotential(lado: 'padre' | 'madre', id: StatId): number | undefined {
     return this.s.lineage?.[lado].topes[id];
+  }
+
+  /** Sesgo de un progenitor (p. ej. "Dominante físico"), solo para pruebas y la interfaz de pruebas. */
+  parentBias(lado: 'padre' | 'madre'): string | undefined {
+    return this.s.lineage?.[lado].sesgo;
   }
 
   /** De qué progenitor hereda una característica de herencia directa (solo para pruebas y la interfaz de pruebas). */

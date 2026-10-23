@@ -324,6 +324,17 @@ Tras revisar el documento de arquitectura y el código de Godot (`family_generat
 - **Pendiente de decidir:** el usuario se inclina por un **techo duro** del conocimiento, pero su propia explicación (no te hace más lento, fallas la colocación, el experto clava el ángulo) describe un malus/bonus. Un techo duro tal cual (`min(tope, conocimiento × 1,2)`) bloquearía a quien empieza con conocimiento 0, así que no se ha implementado; si se quiere, la alternativa es un techo suave (tope ×0,75 sin conocimiento hasta ×1,0 con él).
 - **Lo que se mantiene de antes:** altura heredada como media de los dos padres, práctica deportiva de los padres según su tope físico medio y ventaja de partida de los rivales por criarse entre zapatillas. La dificultad al crear la partida queda para cuando todo esté estable (los recuentos de `facil` y `dificil` ya están como dato).
 
+### 23/10/2026 — Sesgo de los padres por categoría
+
+Los padres de Godot repartían las bandas al azar entre las 18 capacidades, así que casi todos eran parecidos en cada categoría (física, mental, social). Se añade un sesgo suave por padre para que haya padres "más físicos", "más mentales" o "más sociales" y, de ahí, hijos de perfil distinto. Al mezclar a un padre físico con una madre mental salen hijos equilibrados (cada capacidad viene de uno u otro) y, con menos probabilidad, hijos especializados.
+
+- **Tabla de sesgos** (dato en `herencia.ts`, `SESGOS`): equilibrado 40 % (como antes), dominante en física, mental o social 10 % cada una, parcial física-mental, física-social o mental-social 10 % cada una.
+- **Dominante:** una categoría reúne las capacidades destacadas y fuertes y las débiles caen en las otras dos. **Parcial:** las dos categorías favorecidas reúnen las altas y la que queda fuera tiene las más bajas en general.
+- **Fugas** (15 %): una capacidad fuerte (nunca una destacada) puede caer fuera del sesgo y una débil puede caer dentro, pero entonces no es de las peores (42,5 a 49,9).
+- **Sesgo suave:** las capacidades normales se inclinan hacia arriba en las categorías favorecidas (55 a 69,9) y hacia abajo en las demás (50 a 64,9). Mejor y peor categoría de un padre difieren 9 puntos de media (antes 8), con casos de 16 o más; no es pronunciado, como se pidió. Los recuentos por banda no cambian: la calidad global de un padre sigue siendo casi la misma (la dificultad al crear la partida la variará más adelante).
+- Cada capacidad define su categoría (`genetics.grupo`: `fisico`, `mental`, `social`). El motor no sabe de qué va; solo agrupa. La interfaz de pruebas muestra el sesgo de cada padre.
+- Las medias son de **topes**, no de habilidades: de los padres no guardamos ningún nivel alcanzado (lo de "tenía tope 90 y se quedó en 70 por lesiones" llegará con las lesiones y los eventos).
+
 ## Pendiente e ideas
 
 - **Consecuencias de la salud muy baja:** ahora el bot que sobreentrena llega a salud 0 sin más castigo que rendir menos. Idea: lesión o baja médica que bloquee entrenar unos días.

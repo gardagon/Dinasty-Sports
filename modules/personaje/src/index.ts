@@ -47,7 +47,7 @@ const generica = (id: string, name: string, group: string, decay: DecayDef, desc
   initial: { min: 30, max: 50 },
   growth: { rate: 0.3, curve: 2, ...(limitadaPorEdad ? { cap: techoPorEdad } : {}) },
   // Todas las genéricas tienen un tope genético heredado de los padres; lo físico, además, depende del desarrollo por la edad.
-  genetics: {},
+  genetics: { grupo: group.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() },
   decay,
 });
 
