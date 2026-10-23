@@ -46,7 +46,7 @@ export interface GeneticsDef {
   sd?: number;
 }
 
-export const GENETICS_DEFAULT = { mean: 79, sd: 9, /** Parte compartida con la familia (0..1). */ shared: 0.6, min: 45, max: 100 } as const;
+export const GENETICS_DEFAULT = { mean: 79, sd: 9, /** Parte compartida con la familia en cada progenitor (0..1). Al mezclar a los dos padres se diluye: en el hijo queda ~0,4. */ shared: 0.85, min: 45, max: 100 } as const;
 
 /** Cómo cae una característica cuando no se practica. */
 export interface DecayDef {

@@ -11,3 +11,4 @@ export * from './events';
 export * from './services';
 export * from './module';
 export * from './tags';
+export * from './herencia';

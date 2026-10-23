@@ -1,0 +1,98 @@
+import { PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext, type ParentView, type Practica, type ReadContext } from '@ds/contracts';
+
+/**
+ * MÓDULO FAMILIA (id `familia`).
+ * El padre y la madre del personaje. Su genética (los topes de los que sale el personaje) la guarda el motor y no se
+ * enseña; aquí viven la persona: nombre, edad, altura, el deporte que hicieron y cómo viven al personaje (apoyo,
+ * expectativas y tiempo en casa). Esos tres últimos no hacen nada todavía: los moverán los eventos y las decisiones.
+ */
+
+export interface Progenitor {
+  id: 'padre' | 'madre';
+  nombre: string;
+  gender: Gender;
+  /** Día de nacimiento respecto al inicio de la partida (negativo). */
+  nacimiento: number;
+  alturaCm: number;
+  deporte?: string;
+  practica: Practica;
+  apoyo: number;
+  expectativas: number;
+  tiempoEnCasa: number;
+}
+
+export interface FamiliaState {
+  apellidos: string;
+  padres: Progenitor[];
+}
+
+const NOMBRES: Record<Gender, string[]> = {
+  f: ['Carmen', 'María', 'Laura', 'Cristina', 'Patricia', 'Isabel', 'Raquel', 'Silvia', 'Beatriz', 'Marta', 'Eva', 'Pilar'],
+  m: ['Antonio', 'José', 'Manuel', 'Javier', 'David', 'Miguel', 'Rafael', 'Alberto', 'Jesús', 'Fernando', 'Raúl', 'Andrés'],
+};
+const APELLIDOS = ['García', 'Martín', 'López', 'Sánchez', 'Romero', 'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano'];
+const DEPORTES = ['atletismo', 'fútbol', 'baloncesto', 'natación', 'ciclismo', 'balonmano', 'tenis'];
+
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+const redondea = (v: number) => Math.round(v * 10) / 10;
+
+function nuevoProgenitor(id: 'padre' | 'madre', ctx: InitContext, z: number): Progenitor {
+  const { rng } = ctx;
+  const gender: Gender = id === 'padre' ? 'm' : 'f';
+  // Su tope físico decide hasta dónde llegó en el deporte (el mismo con el que se sortean los del personaje).
+  const practica = practicaSegunTope(79 + 9 * z, rng);
+  return {
+    id,
+    nombre: rng.pick(NOMBRES[gender]),
+    gender,
+    nacimiento: -Math.round((rng.range(30, 46) + 8) * 365),
+    alturaCm: redondea(id === 'padre' ? clamp(178 + 7 * ctx.herencia('estatura').padre, 160, 200) : clamp(165 + 6.5 * ctx.herencia('estatura').madre, 148, 185)),
+    ...(practica === 'ninguna' ? {} : { deporte: rng.pick(DEPORTES) }),
+    practica,
+    apoyo: Math.round(rng.range(45, 85)),
+    expectativas: Math.round(rng.range(30, 80)),
+    tiempoEnCasa: Math.round(rng.range(25, 80)),
+  };
+}
+
+const vista = (p: Progenitor, day: number): ParentView => ({
+  id: p.id,
+  nombre: p.nombre,
+  gender: p.gender,
+  edad: Math.floor((day - p.nacimiento) / 365),
+  alturaCm: p.alturaCm,
+  deporte: p.deporte,
+  practica: p.practica,
+  apoyo: p.apoyo,
+  expectativas: p.expectativas,
+  tiempoEnCasa: p.tiempoEnCasa,
+});
+
+/** Texto breve de lo que hizo en el deporte (para la interfaz). */
+export const textoPractica = (p: Pick<ParentView, 'practica' | 'deporte'>): string =>
+  p.deporte ? `${PRACTICA_TEXTO[p.practica]} (${p.deporte})` : PRACTICA_TEXTO[p.practica];
+
+export const familia = defineModule<FamiliaState>({
+  id: 'familia',
+  name: 'Familia',
+  description: 'El padre y la madre del personaje.',
+  dependsOn: ['gen'],
+  initState: (ctx) => {
+    const { padre, madre } = ctx.herencia('fisico');
+    return {
+      apellidos: `${ctx.rng.pick(APELLIDOS)} ${ctx.rng.pick(APELLIDOS)}`,
+      padres: [nuevoProgenitor('padre', ctx, padre), nuevoProgenitor('madre', ctx, madre)],
+    };
+  },
+  services: {
+    [SERVICES.familia]: (ctx: ReadContext): FamilyService => {
+      const s = ctx.state<FamiliaState>();
+      return {
+        apellidos: s.apellidos,
+        parents: () => s.padres.map((p) => vista(p, ctx.time.day)),
+      };
+    },
+  },
+});
+
+export default familia;

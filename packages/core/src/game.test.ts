@@ -300,4 +300,49 @@ describe('tope genético individual', () => {
     const b = conTope(95);
     expect(a.cap('g.a')).toBe(b.cap('g.a'));
   });
+
+  describe('herencia', () => {
+    const xs = Array.from({ length: 300 }, (_, i) => nueva(i + 1));
+
+    it('el tope del personaje sale de los topes de sus padres, no de la media general', () => {
+      // Con 60/40 más una variación del 7 %, queda cerca de la mezcla de los dos topes.
+      let lejos = 0;
+      for (const g of xs) {
+        const p = g.parentPotential('padre', 'g.a')!;
+        const m = g.parentPotential('madre', 'g.a')!;
+        const hijo = g.hiddenPotential('g.a')!;
+        const base = Math.min(p, m) * 0.4 + Math.max(p, m) * 0.6;
+        if (Math.abs(hijo - Math.min(Math.max(p, m), Math.max(Math.min(p, m), base))) > 0.25 * 79) lejos++;
+        expect(hijo).toBeGreaterThanOrEqual(Math.min(p, m) * 0.7);
+        expect(hijo).toBeLessThanOrEqual(Math.max(p, m) * 1.3);
+      }
+      expect(lejos).toBe(0);
+    });
+
+    it('cada capacidad pesa más en uno de los padres (60/40, al azar cuál)', () => {
+      const pesos = xs.map((g) => {
+        const p = g.parentPotential('padre', 'g.a')!;
+        const m = g.parentPotential('madre', 'g.a')!;
+        return p === m ? 0.5 : (g.hiddenPotential('g.a')! - m) / (p - m);
+      });
+      const haciaElPadre = pesos.filter((w) => w > 0.5).length / pesos.length;
+      expect(haciaElPadre).toBeGreaterThan(0.35);
+      expect(haciaElPadre).toBeLessThan(0.65);
+    });
+
+    it('los topes de los hijos siguen repartidos como antes: media ~79 y desviación ~9', () => {
+      const v = xs.map((g) => g.hiddenPotential('g.a')!);
+      const media = v.reduce((a, b) => a + b, 0) / v.length;
+      const sd = Math.sqrt(v.reduce((a, b) => a + (b - media) ** 2, 0) / v.length);
+      expect(media).toBeGreaterThan(76);
+      expect(media).toBeLessThan(82);
+      expect(sd).toBeGreaterThan(7);
+      expect(sd).toBeLessThan(10.5);
+    });
+
+    it('la misma semilla da los mismos padres y otra semilla, otros distintos', () => {
+      expect(nueva(5).parentPotential('padre', 'g.a')).toBe(nueva(5).parentPotential('padre', 'g.a'));
+      expect(nueva(5).parentPotential('padre', 'g.a')).not.toBe(nueva(6).parentPotential('padre', 'g.a'));
+    });
+  });
 });

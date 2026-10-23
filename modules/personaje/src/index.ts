@@ -57,7 +57,7 @@ export const personaje = defineModule<IdentidadState>({
   id: 'gen',
   name: 'Personaje',
   description: 'Características genéricas, estado e identidad del personaje.',
-  initState: (ctx) => initIdentidad(ctx.rng),
+  initState: (ctx) => initIdentidad(ctx.rng, ctx.herencia('estatura').hijo),
   stats: [
     // Físicos
     generica(GEN.velocidad, 'Velocidad', 'Físico', fisica, 'Desplazamiento puro: lo rápido que mueves el cuerpo de un punto a otro.', true),

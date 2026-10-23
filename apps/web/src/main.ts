@@ -7,7 +7,9 @@ import {
   timeView,
   type BodyType,
   type ClubDirectory,
+  type FamilyService,
   type IdentityService,
+  PRACTICA_TEXTO,
   type LogTable,
   type NpcDirectory,
   type StudiesService,
@@ -215,6 +217,19 @@ const COMPLEXION: Record<BodyType, string> = {
   con_sobrepeso: 'Con sobrepeso',
 };
 
+function viewFamily(g: Game): string {
+  const f = g.service<FamilyService>(SERVICES.familia);
+  if (!f) return '';
+  const filas = f
+    .parents()
+    .map((p) => {
+      const deporte = p.deporte ? `${PRACTICA_TEXTO[p.practica]} (${p.deporte})` : PRACTICA_TEXTO[p.practica];
+      return `<p class="note"><b>${p.gender === 'f' ? 'Madre' : 'Padre'}:</b> ${esc(p.nombre)}, ${p.edad} años, ${Math.round(p.alturaCm)} cm. ${esc(deporte)}. Apoyo ${p.apoyo}, expectativas ${p.expectativas}, tiempo en casa ${p.tiempoEnCasa}.</p>`;
+    })
+    .join('');
+  return `<h3>Familia ${esc(f.apellidos)}</h3>${filas}`;
+}
+
 function viewIdentity(g: Game): string {
   const id = g.service<IdentityService>(SERVICES.identidad)?.view();
   if (!id) return '';
@@ -232,6 +247,27 @@ function viewIdentity(g: Game): string {
       ${curso ? `<div><dt>Curso</dt><dd>${esc(curso)}</dd></div>` : ''}
       ${club ? `<div><dt>Club de atletismo</dt><dd>${esc(club)}</dd></div>` : ''}
     </dl>
+    ${viewFamily(g)}
+  </section>`;
+}
+
+/** Mientras dure la fase de pruebas se enseña la genética oculta. Ponlo en `false` al pasar a beta. */
+const MOSTRAR_GENETICA = true;
+
+function viewGenetics(g: Game): string {
+  if (!MOSTRAR_GENETICA) return '';
+  const filas = g.registry.statList
+    .filter((s) => g.hiddenPotential(s.def.id) !== undefined)
+    .map((s) => {
+      const id = s.def.id;
+      const n = (v: number | undefined) => (v === undefined ? '—' : Math.round(v));
+      return `<tr><td>${esc(s.def.name)}</td><td>${n(g.parentPotential('padre', id))}</td><td>${n(g.parentPotential('madre', id))}</td><td><b>${n(g.hiddenPotential(id))}</b></td></tr>`;
+    })
+    .join('');
+  if (!filas) return '';
+  return `<section class="sheet"><h2>Genética (solo pruebas)</h2>
+    <div class="table"><table><thead><tr><th>Capacidad</th><th>Padre</th><th>Madre</th><th>Tope tuyo</th></tr></thead><tbody>${filas}</tbody></table></div>
+    <p class="note">Topes genéticos ocultos. Cada capacidad hereda 60 % de un padre y 40 % de la madre (al azar cuál), con una pequeña variación. Se ocultará al pasar a beta.</p>
   </section>`;
 }
 
@@ -265,7 +301,7 @@ function viewCharacter(g: Game): string {
     .join('');
   return `<section class="sheet"><h2>Características</h2>${rows}
     <p class="note">La marca vertical es tu techo actual: sube cuando mejoran las características genéricas que lo apoyan.</p>
-  </section>`;
+  </section>${viewGenetics(g)}`;
 }
 
 function viewResults(g: Game): string {

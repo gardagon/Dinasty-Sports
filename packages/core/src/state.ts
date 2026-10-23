@@ -22,8 +22,8 @@ export interface GameState {
   talent: Record<StatId, number>;
   /** Tope genético individual de cada stat que lo tiene (ver `StatDef.genetics`). Ausente = sin tope genético. */
   potential?: Record<StatId, number>;
-  /** Factor genético compartido por familia (normal estándar), del que salen los topes. */
-  families?: Record<string, number>;
+  /** Genética de los padres, de la que salen los topes del personaje (ver `mezclarTope`). */
+  lineage?: Lineage;
   /** Último minuto en que se entrenó cada stat. */
   lastTrained: Record<StatId, number>;
   /** Estado propio de cada módulo. */
@@ -32,6 +32,19 @@ export interface GameState {
   log: LogEntry[];
   /** Contador de acciones realizadas (estadística y depuración). */
   actionCount: number;
+}
+
+/** Genética de un progenitor: factor por familia (normal estándar) y tope de cada stat con genética. */
+export interface ParentGenes {
+  familias: Record<string, number>;
+  topes: Record<StatId, number>;
+}
+
+export interface Lineage {
+  padre: ParentGenes;
+  madre: ParentGenes;
+  /** Puntuación típica de los rasgos heredados que no son stats (p. ej. la altura), del hijo. */
+  hijo: Record<string, number>;
 }
 
 export const LOG_LIMIT = 150;

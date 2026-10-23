@@ -1,4 +1,4 @@
-import { edadDeCompeticion, type BodyType, type IdentityView, type Rng } from '@ds/contracts';
+import { SD_Z_HIJO, edadDeCompeticion, type BodyType, type IdentityView, type Rng } from '@ds/contracts';
 
 /**
  * Identidad del personaje: edad, altura, peso, dominancia lateral y complexión.
@@ -38,11 +38,12 @@ export interface IdentidadState {
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
-export function initIdentidad(rng: Rng): IdentidadState {
+/** `zAltura`: genética de la estatura del personaje (puntuación típica del hijo de `ctx.herencia('estatura')`). */
+export function initIdentidad(rng: Rng, zAltura: number): IdentidadState {
   return {
     edadInicial: EDAD_INICIAL,
     fraccionInicial: rng.range(0, 1),
-    alturaAdulta: Math.round(clamp(171 + rng.normal() * 8, 150, 195) * 10) / 10,
+    alturaAdulta: Math.round(clamp(171 + (zAltura / SD_Z_HIJO) * 8, 150, 195) * 10) / 10,
     madurez: clamp(rng.normal() * 0.8, -1.5, 1.5),
     zurdo: rng.chance(0.11),
     musculo: rng.range(18, 30),

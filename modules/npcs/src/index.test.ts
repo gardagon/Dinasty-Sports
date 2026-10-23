@@ -96,4 +96,29 @@ describe('módulo NPCs', () => {
       expect(despues.filter((n) => idsAntes.has(n.id)).length).toBeLessThan(96);
     });
   });
+
+  it('los rivales tienen padres: su potencial sale del de ellos y lo que practicaron da ventaja de partida', () => {
+    const rivales = nueva().moduleState<NpcsState>('npcs').npcs.filter((n) => n.role === 'rival');
+    for (const r of rivales) {
+      const { padre, madre } = r.padres!;
+      const lo = Math.min(padre.potencial, madre.potencial);
+      const hi = Math.max(padre.potencial, madre.potencial);
+      expect(r.potential.atletismo).toBeGreaterThanOrEqual(Math.min(99, lo * 0.7));
+      expect(r.potential.atletismo).toBeLessThanOrEqual(Math.min(99, hi * 1.3));
+      expect(padre.nombre.split(' ').slice(1).join(' ')).toBe(r.name.split(' ').slice(1).join(' '));
+    }
+    const sin = rivales.filter((r) => r.padres!.padre.practica === 'ninguna' && r.padres!.madre.practica === 'ninguna');
+    const con = rivales.filter((r) => r.padres!.padre.practica !== 'ninguna' && r.padres!.madre.practica !== 'ninguna');
+    expect(sin.length).toBeGreaterThan(0);
+    // Con la misma edad, quien tiene padres deportistas parte mejor en media.
+    const ratio = (rs: typeof rivales) => rs.reduce((a, r) => a + r.levels.atletismo / r.potential.atletismo, 0) / Math.max(1, rs.length);
+    if (con.length > 3) expect(ratio(con)).toBeGreaterThan(ratio(sin));
+  });
+
+  it('los rivales que entran al renovar el curso también traen padres', () => {
+    const g = nueva();
+    for (let i = 0; i < 400; i++) g.perform('gen.dormir');
+    const rivales = g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.role === 'rival');
+    expect(rivales.every((r) => r.padres)).toBe(true);
+  });
 });

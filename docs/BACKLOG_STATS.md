@@ -99,14 +99,14 @@ El original usa tres capas: stats globales → conocimiento deportivo → habili
 | E2.4 | Tabla global → habilidad técnica (qué stat alimenta qué habilidad) | Sección 12 del original: **pendiente allí**. La diseñamos aquí para atletismo y estudios |
 | E2.5 | Transferencias de entrenamiento (global→técnica 10–20 %, técnica→relacionada 15–25 %, técnica→global 3–5 %) declaradas en datos | Respetar la regla 4: se haría con `ctx.train`, nunca tocando habilidades de otro módulo |
 | E2.6 | Decay con multiplicador por inactividad semanal (con techo) y velocidad según edad | La edad ya existe (E3.1), así que se puede hacer. Hoy: caída diaria tras N días de gracia, igual a cualquier edad |
-| E2.7 ✅ | **Potencial individual por habilidad, ligado al tope hereditario:** cada habilidad (y capacidad física) tiene un tope genético oculto y la velocidad de progreso también depende de él (tope 92 sube más rápido que tope 70, entrenando igual). Ganancia ×1 (<80 % del tope), ×0,5, ×0,2, ×0,05 (>95 %) | Hecho el 22/10: el tope se sortea (media 79, desviación 9, por familia). Falta que salga de los padres (E8) y los tramos de ganancia por cercanía al tope |
+| E2.7 ✅ | **Potencial individual por habilidad, ligado al tope hereditario:** cada habilidad (y capacidad física) tiene un tope genético oculto y la velocidad de progreso también depende de él (tope 92 sube más rápido que tope 70, entrenando igual). Ganancia ×1 (<80 % del tope), ×0,5, ×0,2, ×0,05 (>95 %) | Hecho el 22/10: el tope se sortea (media 79, desviación 9, por familia). Ya sale de los padres (E8.1). Falta los tramos de ganancia por cercanía al tope |
 | E2.8 | Modificador de energía en la competición (70–100 % ×1, … 0–9 % ×0,3) | Contrastar con la eficiencia por energía que ya existe antes de duplicar |
 
 ## E3 · Identidad y cuerpo — 🟡 · Fidelidad: media
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E3.1 ✅ | Edad, altura (hacia objetivo genético), peso, dominancia lateral | Hecho: empieza con 8 años (`EDAD_INICIAL`) y cumple años cada 365 días. Altura con curva por edad y madurez individual; el objetivo genético saldrá de los padres (E8) |
+| E3.1 ✅ | Edad, altura (hacia objetivo genético), peso, dominancia lateral | Hecho: empieza con 8 años (`EDAD_INICIAL`) y cumple años cada 365 días. Altura con curva por edad y madurez individual; el objetivo genético ya sale de los padres (E8.2) |
 | E3.2 ✅ | Tipo corporal (delgado, normal, atlético, musculado, con sobrepeso) derivado de hábitos acumulados, con modificadores de velocidad, fuerza y constitución | Hecho sin alimentación: hábitos de fuerza, cardio y actividad. Los efectos son modificadores de eficiencia por etiqueta, no por stat. Alimentación como decisión, pendiente |
 | E3.3 ✅ | Constitución: sube solo por hábitos sostenidos, no por entrenamiento directo | Hecho: +1 por semana con hábitos sanos (crece muy poco, a revisar). Lesiones y recuperación, pendientes: enlazan con la idea de lesión en `DECISIONES.md` |
 | E3.4 | UI filtrada por inteligencia (5 niveles, de sensaciones vagas a "top 10 %") y pistas precisas del entrenador con buena relación | Cambia la web y se apoya en `npcs` (servicio ya existente) |
@@ -148,7 +148,19 @@ Ocho ejes de −50 a +50: disciplinado↔rebelde, honesto↔manipulador, ambicio
 
 Posiciones (16), roles (42), experiencia por posición/rol con afinidad, fórmula de partido, normalización por categoría, `week_targets`. Todo depende de un **segundo deporte de equipo**. No se planifica hasta decidir cuál (idea ya recogida en `DECISIONES.md`). Lo reutilizable sin deporte de equipo: modificador de energía (E2.8).
 
-## E8 · Dinastía — ⏸ · Fidelidad: baja
+## E8 · Dinastía — 🟡 (herencia hecha; ciclo de generaciones ⏸) · Fidelidad: baja
+
+**Hecho el 23/10/2026 (herencia de la fase infantil):**
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E8.1 ✅ | **Topes genéticos desde los padres:** cada padre tiene sus topes (media 79, desviación 9, por familia); cada capacidad del hijo mezcla 60 % de un progenitor y 40 % del otro (al azar cuál) más una variación propia del 7 %. Se mezclan los **topes**, no el nivel de los padres | `mezclarTope` en contracts; `Game.parentPotential` para pruebas. La parte compartida por familia en cada padre sube a 0,85 para que el hijo conserve ~0,4 |
+| E8.2 ✅ | Altura heredada: padre y madre tienen altura (178 ± 7 y 165 ± 6,5 cm) y la del hijo sale de la mezcla de sus genes de estatura | `ctx.herencia('estatura')` en el contexto de creación |
+| E8.3 ✅ | **Rivales con padres completos:** cada rival tiene padre y madre (nombre, tope de atletismo, deporte practicado); su tope sale de los suyos y lo que practicaron le da ventaja de partida (×0,95 a ×1,10 en su nivel inicial) | Los padres pueden no haber practicado deporte: es lo más frecuente |
+| E8.4 ✅ | Interfaz de pruebas: tabla de topes de padre, madre y propio, y datos de los padres. **Se oculta al pasar a beta** (`MOSTRAR_GENETICA` en `apps/web/src/main.ts`) | Decidido el 23/10 |
+
+**Pendiente en E8:** herencia de perks con dos pools (necesita E5), ciclo de generaciones (hijos del personaje) y que el nivel inicial del propio personaje dependa del deporte de sus padres.
+
 
 Padres con los stats globales, límites genéticos derivados de los padres (media × factor ± 15 %), herencia de perks con dos pools. También el **nivel inicial de los demás niños según la práctica deportiva de sus padres** (hoy los rivales arrancan con un nivel medio de 29, hasta 54: a los 10 años no debería haber niveles altos sin antecedentes en el deporte). Requiere diseñar el ciclo de generaciones, que este juego aún no tiene. E2.7 y E5.1 se escriben pensando en que luego encajen aquí.
 
@@ -228,7 +240,7 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 
 | Orden | Épica | Qué incluye |
 |---|---|---|
-| 1 | Familia y genética (E13.1, E8 en parte) | Padres como personajes; topes genéticos, altura y nivel inicial heredados; práctica deportiva de los padres; herencia de los rivales |
+| 1 ✅ | Familia y genética (E13.1, E8 en parte) | Padres como personajes; topes genéticos, altura y nivel inicial heredados; práctica deportiva de los padres; herencia de los rivales |
 | 2 | Modo historia y entorno (E13.0, E19.7) | Llegar a una ciudad y un colegio nuevos sin conocer a nadie; entrenadores de club como personajes |
 | 3 | Salud, lesiones y alimentación (E12) y edad en el decay (E1.5, E2.6) | Lesiones ligadas a la constitución, recuperación, alimentación como hábito |
 | 4 | Estructura de habilidades que falta (E2) | Tabla global → habilidad, transferencias, derivadas y ocultas, valor efectivo en competición |
@@ -259,7 +271,7 @@ De los 8 a los 18 años son unos 3.650 días. **Decidido el 22/10: se juega día
 | ID | Tarea | Notas |
 |---|---|---|
 | E13.0 | **Modo historia: llegar a una ciudad y un colegio nuevos sin conocer a nadie.** Los NPCs empiezan desconocidos: hay que conocerlos, presentarse y construir las relaciones desde cero | Cambia lo actual (hoy todos los NPCs son conocidos y empiezan con afinidad de 15 a 35). Pide acciones y eventos de conocer gente y un estado "desconocido" |
-| E13.1 | Familia: padres como NPCs (apoyo, tiempo en casa, expectativas) | El rol `familia` existe sin NPCs. Enlaza con la herencia (E8) |
+| E13.1 ✅ (parcial) | Familia: padres con apoyo, expectativas y tiempo en casa | Hecho el 23/10 en el módulo `familia` (nombre, edad, altura, deporte practicado y los tres valores). Faltan los eventos y decisiones que los mueven, y que apoyen según la relación como el resto de NPCs |
 | E13.2 | Rivales con identidad e historia (rivalidades, evolución de relación) | Hoy tienen nivel y nada más |
 | E13.3 | Entrenadores y compañeros de club al subir de categoría | Cambian con las categorías y los cursos (E9.4) |
 | E13.4 | Relaciones con decay y mantenimiento más ricos | Hoy solo suben con el contacto y bajan sin él |
