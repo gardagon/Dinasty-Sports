@@ -197,6 +197,14 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 - **Edad:** desde los 16 años, sin límite superior. Si no llega la oferta, el personaje sigue en la cantera y puede recibirla más tarde.
 - **Aceptar no cierra la formación de golpe:** implica **más cosas que hacer, eventos y obligaciones**. El personaje puede **dejar el colegio**, pero si en su etapa profesional o al retirarse quiere prepararse para **entrenador, agente u otro oficio** necesita estudiar, y sin haber terminado el colegio le costará más.
 
+### Ajustes del 23/10/2026
+
+- **E10 queda aparcada hasta cimentar la fase infantil y montar el motor completo de eventos y decisiones.** No se hace un motor mínimo antes: haría falta una refactorización fuerte cuando se construya el definitivo. Todavía faltan cosas que sí se necesitan antes (genética y herencia, familia, salud y lesiones...).
+- **La oferta del ojeador puede no ocurrir,** y **el personaje puede ir a probar por su cuenta** (pruebas propias en los clubes y circuitos profesionales).
+- **La subida de nivel profesional no es lineal:** quien destaca a los 16 años puede ir directamente a élite. Por eso se modelan los tres niveles.
+- **Los tres niveles (circuito nacional, internacional y élite) sirven para atletismo.**
+- **Titulación en cuatro niveles:** 1 primaria, 2 ESO, 3 bachillerato y 4 universidad. Lo que haya terminado el personaje marca lo que le cuesta cada oficio de después (entrenador, agente...).
+
 ### Tareas
 
 | ID | Tarea | Notas |
@@ -205,17 +213,27 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 | E10.2 | **Población profesional y tres niveles** (p. ej. circuito nacional, internacional y élite) como dato, cada uno con un campo más fuerte: atletas adultos con herencia propia que envejecen y se retiran, como los rivales de la cantera pero en la cima | Calibrar campos (referencia: de cada 100 partidas, unas 55 llegan al primer nivel, 20 al segundo y 3 a la élite) 🟡 |
 | E10.3 | **Oferta del ojeador y decisión:** condiciones (16 años o más, nivel competitivo en el nivel profesional), la oferta como evento con opciones (aceptar, pedir tiempo, rechazar) y sus consecuencias | Depende del motor de eventos y decisiones (E18.1 y E18.2) |
 | E10.4 | **Transición a profesional:** más obligaciones (entrenamiento y calendario del club profesional), eventos, y la decisión de **dejar el colegio o seguir** | Dejar el colegio libera tiempo pero deja los estudios incompletos |
-| E10.5 | **Titulación y futuro:** el personaje conserva si terminó o no el colegio; sin terminarlo, los oficios de después (entrenador, agente...) cuestan más | Marca de estudios que se consultará en la fase 3 |
-| E10.6 | **Subir de nivel profesional:** igual que la subida de categoría, por resultados y nivel | Los tres niveles se juegan ya |
+| E10.5 | **Titulación y futuro:** el personaje conserva el nivel de estudios que ha terminado (1 primaria, 2 ESO, 3 bachillerato, 4 universidad); cuanto menor, más cuestan los oficios de después (entrenador, agente...) | Marca de estudios que se consultará en la fase 3 |
+| E10.6 | **Subir de nivel profesional:** por resultados y nivel, **no lineal** (a los 16 se puede entrar directamente en élite) | Los tres niveles se juegan; incluye ir a probar por cuenta propia |
 | E10.7 | Fase 3 (retiro): entrenador, representante u otro trabajo deportivo | Un módulo distinto por oficio; después de la fase 2 |
 | E10.8 | Fin de partida | Qué cuenta como terminar y cómo se resume la carrera |
 
-### Orden de implementación propuesto
+### Orden de trabajo acordado el 23/10/2026
 
-1. **Población profesional y niveles** (E10.2), sin eventos: es la base y se puede probar con los bots.
-2. **Motor mínimo de eventos y decisiones** (E18.1 y E18.2) con la interfaz para decidir.
-3. **Oferta del ojeador, aceptación y transición** (E10.3 a E10.5).
-4. **Subir de nivel profesional y calendario profesional** (E10.6).
+1. **Cimentar toda la fase infantil** (ver lista abajo).
+2. **Motor completo de eventos y decisiones** (E18), diseñado una sola vez.
+3. **Nivel profesional** (E10): población profesional, tres niveles, oferta del ojeador o prueba por cuenta propia, transición y subida de nivel.
+
+**Qué falta de la fase infantil antes del motor de eventos** (propuesta, por orden):
+
+| Orden | Épica | Qué incluye |
+|---|---|---|
+| 1 | Familia y genética (E13.1, E8 en parte) | Padres como personajes; topes genéticos, altura y nivel inicial heredados; práctica deportiva de los padres; herencia de los rivales |
+| 2 | Modo historia y entorno (E13.0, E19.7) | Llegar a una ciudad y un colegio nuevos sin conocer a nadie; entrenadores de club como personajes |
+| 3 | Salud, lesiones y alimentación (E12) y edad en el decay (E1.5, E2.6) | Lesiones ligadas a la constitución, recuperación, alimentación como hábito |
+| 4 | Estructura de habilidades que falta (E2) | Tabla global → habilidad, transferencias, derivadas y ocultas, valor efectivo en competición |
+| 5 | Interfaz y partida (E15, E3.4) | Creación de personaje, elegir deporte, información filtrada por inteligencia, varias partidas |
+| 6 | Ritmo de juego (E11) | Ayudas opcionales para repetir la rutina o avanzar |
 
 ## E11 · Ritmo de juego y planificación — 🟡 · Sin equivalente en el original
 

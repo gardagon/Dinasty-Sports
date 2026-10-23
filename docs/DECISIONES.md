@@ -12,7 +12,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Tres niveles profesionales jugables ya** (no solo como dato), con subida de uno a otro por resultados y nivel.
 - **Desde los 16 años, sin límite superior:** si no llega la oferta, sigue en la cantera y puede recibirla más tarde.
 - **Aceptar trae más obligaciones, eventos y cosas que hacer.** El personaje puede dejar el colegio, pero si después quiere ser entrenador, agente u otro oficio necesita estudiar, y sin haber terminado el colegio le costará más.
-- **Orden de implementación:** población profesional y niveles; motor mínimo de eventos y decisiones; oferta, aceptación y transición; subida de nivel profesional. Detalle en `BACKLOG_STATS.md` (E10).
+- **Orden de implementación (ajustado el mismo día):** primero se cimienta toda la fase infantil, después se monta el motor completo de eventos y decisiones y solo entonces el nivel profesional. No se hace un motor mínimo antes porque obligaría a una refactorización fuerte. Faltan antes cosas como la genética y la familia.
+- **La oferta del ojeador puede no ocurrir y el personaje puede ir a probar por su cuenta.** La subida de nivel profesional no es lineal: a los 16 años se puede ir directamente a élite. Los tres niveles (circuito nacional, internacional y élite) son para atletismo.
+- **Titulación en cuatro niveles:** 1 primaria, 2 ESO, 3 bachillerato y 4 universidad. Lo terminado marca lo que cuestan los oficios de después.
+- Detalle en `BACKLOG_STATS.md` (E10).
 
 ---
 
