@@ -5,6 +5,11 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/10/2026 — Marca del tope genético en las barras (solo durante las pruebas)
+
+- Las barras de Características dibujaban una marca vertical que el jugador tomaba por el tope genético. No lo era: es el **techo actual** (edad y capacidades que apoyan), y por eso solo salía en lo físico, las asignaturas y el deporte; las mentales y sociales no tienen techo por edad y no dibujaban nada.
+- Se añade una **segunda marca de color con el tope genético** en todas las barras que tienen tope, y el texto de ayuda explica cuál es cuál. **Es una ayuda de pruebas:** va detrás de `MOSTRAR_GENETICA` (`apps/web/src/main.ts`) y desaparece al pasar a beta, junto con la tabla de genética, el sesgo y la calidad de los padres y las cifras de relaciones (`MOSTRAR_RELACIONES`). Antes de la beta hay que poner ambas constantes a `false`.
+
 ## 23/10/2026 — Calidad de los padres: los del jugador en el percentil 50–60 y el resto del mundo, variado
 
 Todos los padres se generaban igual, así que todos los niños partían de una calidad global casi idéntica. Ahora cada padre tiene una **calidad** de 0 a 1:

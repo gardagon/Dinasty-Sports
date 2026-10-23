@@ -297,9 +297,11 @@ function viewCharacter(g: Game): string {
           const v = g.stat(id);
           const span = info.max - info.min;
           const cap = ((g.cap(id) - info.min) / span) * 100;
-          return `<div class="stat" title="Techo actual: ${Math.round(g.cap(id))}">
+          const tope = MOSTRAR_GENETICA ? g.hiddenPotential(id) : undefined;
+          const topePct = tope === undefined ? undefined : ((tope - info.min) / span) * 100;
+          return `<div class="stat" title="Techo actual: ${Math.round(g.cap(id))}${tope === undefined ? '' : ` · Tope genético: ${Math.round(tope)} (solo pruebas)`}">
             <span>${esc(info.def.name)}</span>
-            <div class="bar"><i style="width:${((v - info.min) / span) * 100}%"></i>${cap < 99.5 ? `<span class="cap" style="left:${cap}%"></span>` : ''}</div>
+            <div class="bar"><i style="width:${((v - info.min) / span) * 100}%"></i>${cap < 99.5 ? `<span class="cap" style="left:${cap}%"></span>` : ''}${topePct === undefined ? '' : `<span class="cap tope" style="left:${topePct}%"></span>`}</div>
             <span class="stat-val">${Math.round(v)}</span>
           </div>`;
         })
@@ -308,7 +310,7 @@ function viewCharacter(g: Game): string {
     })
     .join('');
   return `<section class="sheet"><h2>Características</h2>${rows}
-    <p class="note">La marca vertical es tu techo actual: sube cuando mejoran las características genéricas que lo apoyan.</p>
+    <p class="note">La marca gris es tu techo actual: sube con la edad y cuando mejoran las características que lo apoyan.${MOSTRAR_GENETICA ? ' La marca de color es tu tope genético (solo pruebas: se ocultará al pasar a beta).' : ''}</p>
   </section>${viewGenetics(g)}`;
 }
 
