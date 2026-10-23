@@ -10,6 +10,7 @@ export const SERVICES = {
   identidad: 'identidad',
   clubes: 'clubes',
   familia: 'familia',
+  relaciones: 'relaciones',
 } as const;
 
 // ---------- NPCs ----------
@@ -28,8 +29,6 @@ export interface NpcView {
   tags: readonly string[];
   /** Etiquetas de acción en las que este NPC ayuda al personaje si la relación es buena. */
   supports: readonly string[];
-  /** 0..100 */
-  affinity: number;
   /** Niveles del NPC por disciplina (p. ej. { atletismo: 42 }). */
   levels: Readonly<Record<string, number>>;
   /** Edad de competición (año del curso menos año de nacimiento), si el NPC la tiene (los rivales sí). Define su categoría. */

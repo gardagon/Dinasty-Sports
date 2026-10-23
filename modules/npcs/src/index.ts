@@ -1,6 +1,5 @@
 import {
   CORE_EVENTS,
-  GEN,
   MINUTES_PER_DAY,
   SERVICES,
   anioNatural,
@@ -15,9 +14,6 @@ import {
   SHARED_EVENTS,
   TAGS,
   defineModule,
-  inHours,
-  isSchoolHours,
-  type ActionDef,
   type CompetitionResultData,
   type Rng,
   type Gender,
@@ -25,7 +21,6 @@ import {
   type NpcDirectory,
   type NpcRole,
   type NpcView,
-  type ReadContext,
 } from '@ds/contracts';
 
 /**
@@ -55,7 +50,6 @@ export interface Npc {
   gender: Gender;
   tags: string[];
   supports: string[];
-  affinity: number;
   levels: Record<string, number>;
   /** Padres de los rivales (su herencia). */
   padres?: { padre: PadreRival; madre: PadreRival };
@@ -72,8 +66,6 @@ export interface Npc {
   /** Club al que pertenece (los rivales). */
   club?: string;
   description?: string;
-  /** Último día de interacción con el personaje. */
-  lastDay: number;
 }
 
 export interface NpcsState {
@@ -106,8 +98,6 @@ const EDAD_RETIRO = EDAD_RIVAL_MAX + 1;
 /** Hasta esta edad algún niño puede dejar el deporte cada curso (y entra otro nuevo). */
 const EDAD_MAX_BAJA = 13;
 const PROBABILIDAD_BAJA = 0.1;
-const UMBRAL_APOYO = 40;
-const DIAS_SIN_CONTACTO = 7;
 
 const clamp = (v: number, a = 0, b = 100) => Math.min(b, Math.max(a, v));
 
@@ -161,7 +151,6 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
     gender,
     tags: ['atleta'],
     supports: [],
-    affinity: rng.int(15, 30),
     levels: { atletismo: Math.min(techo, techo * rng.range(0.8, 1) * ventaja) },
     padres,
     potential: { atletismo: potencial },
@@ -171,7 +160,6 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
     known: false,
     club: rng.pick(CLUBES_RIVALES),
     description: 'Compite en atletismo.',
-    lastDay: -1,
   };
 }
 
@@ -216,10 +204,8 @@ function generarReparto(ctx: InitContext): Npc[] {
     gender,
     tags: [],
     supports: [],
-    affinity: rng.int(20, 35),
     levels: {},
     potential: {},
-    lastDay: -1,
     ...extra(gender),
     };
   };
@@ -257,7 +243,6 @@ const vista = (n: Npc, day: number): NpcView => ({
   gender: n.gender,
   tags: n.tags,
   supports: n.supports,
-  affinity: n.affinity,
   levels: n.levels,
   age: edadNpc(n, day),
   known: n.known,
@@ -265,134 +250,19 @@ const vista = (n: Npc, day: number): NpcView => ({
   description: n.description,
 });
 
-function interaccion(
-  n: Npc,
-  cfg: {
-    suffix: string;
-    name: string;
-    duration: number;
-    tags: string[];
-    ganancia: number;
-    /** Genéricas que entrena la interacción. */
-    train: { stat: string; amount: number }[];
-    horario: (ctx: ReadContext) => true | string;
-  },
-): ActionDef {
-  return {
-    id: `npcs.${cfg.suffix}.${n.id}`,
-    name: cfg.name,
-    tags: cfg.tags,
-    group: 'Relaciones',
-    duration: cfg.duration,
-    available: (ctx) => {
-      const actual = ctx.state<NpcsState>().npcs.find((x) => x.id === n.id);
-      if (actual && actual.lastDay === ctx.time.day) return `Ya has estado con ${n.name.split(' ')[0]} hoy`;
-      return cfg.horario(ctx);
-    },
-    delta: cfg.tags.includes(TAGS.ocio) ? { [GEN.energia]: -6, [GEN.estres]: -6 } : { [GEN.energia]: -3 },
-    train: cfg.train,
-    run: (ctx) => {
-      ctx.updateState<NpcsState>((s) => ({
-        npcs: s.npcs.map((x) =>
-          x.id === n.id ? { ...x, affinity: clamp(x.affinity + cfg.ganancia * ctx.efficiency), lastDay: ctx.time.day } : x,
-        ),
-      }));
-    },
-  };
-}
-
-const fueraDeClase = (desde: number, hasta: number) => (ctx: ReadContext) =>
-  !isSchoolHours(ctx.time) && inHours(ctx.time, desde, hasta) ? true : `Disponible de ${desde} a ${hasta}, fuera de clase`;
-
 export const npcs = defineModule<NpcsState>({
   id: 'npcs',
-  name: 'Relaciones',
-  description: 'Personas que rodean al personaje.',
+  name: 'Personas',
+  description: 'La población: compañeros, tutores, entrenadores y rivales.',
   dependsOn: ['gen'],
 
   initState: (ctx) => ({ npcs: generarReparto(ctx) }),
-
-  dynamicActions: (ctx) => {
-    const lista: ActionDef[] = [];
-    for (const n of ctx.state<NpcsState>().npcs) {
-      const nombre = n.name.split(' ')[0];
-      if (n.role === 'companero' || n.role === 'amigo') {
-        lista.push(
-          interaccion(n, {
-            suffix: 'quedar',
-            name: `Quedar con ${nombre}`,
-            duration: 120,
-            tags: [TAGS.social, TAGS.ocio],
-            ganancia: 5,
-            train: [
-              { stat: GEN.carisma, amount: 0.8 },
-              { stat: GEN.empatia, amount: 0.4 },
-              { stat: GEN.cooperacion, amount: 0.3 },
-            ],
-            horario: fueraDeClase(10, 22),
-          }),
-        );
-      } else if (n.role === 'entrenador') {
-        lista.push(
-          interaccion(n, {
-            suffix: 'hablar',
-            name: `Hablar con ${nombre} (${n.gender === 'f' ? 'entrenadora' : 'entrenador'})`,
-            duration: 30,
-            tags: [TAGS.social],
-            ganancia: 4,
-            train: [
-              { stat: GEN.comunicacion, amount: 0.6 },
-              { stat: GEN.carisma, amount: 0.3 },
-            ],
-            horario: (c) => (!c.time.isSchoolDay ? fueraDeClase(9, 14)(c) : fueraDeClase(15, 21)(c)),
-          }),
-        );
-      } else if (n.role === 'profesor') {
-        lista.push(
-          interaccion(n, {
-            suffix: 'tutoria',
-            name: `Tutoría con ${nombre}`,
-            duration: 30,
-            tags: [TAGS.social, TAGS.estudio],
-            ganancia: 4,
-            train: [
-              { stat: GEN.comunicacion, amount: 0.6 },
-              { stat: GEN.carisma, amount: 0.3 },
-            ],
-            horario: (c) => (c.time.isSchoolDay && inHours(c.time, 14, 17) ? true : 'Tutorías los días de clase, de 14 a 17'),
-          }),
-        );
-      }
-    }
-    return lista;
-  },
-
-  modifiers: [
-    {
-      id: 'npcs.apoyo',
-      tags: ['*'],
-      apply: (ctx, action) => {
-        let bonus = 0;
-        const quienes: string[] = [];
-        for (const n of ctx.state<NpcsState>().npcs) {
-          if (n.affinity < UMBRAL_APOYO) continue;
-          if (!n.supports.some((t) => action.tags.includes(t))) continue;
-          bonus += Math.min(0.15, (n.affinity - UMBRAL_APOYO) / 400);
-          quienes.push(n.name.split(' ')[0]);
-        }
-        if (bonus < 0.01) return null;
-        return { efficiency: 1 + Math.min(0.3, bonus), reason: `Apoyo de ${quienes.join(', ')}` };
-      },
-    },
-  ],
 
   on: {
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as { day: number };
       ctx.updateState<NpcsState>((s) => ({
         npcs: s.npcs.map((n) => {
-          let { affinity } = n;
-          if (day - n.lastDay > DIAS_SIN_CONTACTO && affinity > 10) affinity = Math.max(10, affinity - 0.4);
           const levels = { ...n.levels };
           const edad = n.nacimiento === undefined ? undefined : (day - n.nacimiento) / 365;
           for (const [k, v] of Object.entries(levels)) {
@@ -403,7 +273,7 @@ export const npcs = defineModule<NpcsState>({
             // Progresan con rendimientos decrecientes hacia el techo de su edad.
             if (v < techo) levels[k] = Math.min(techo, v + ctx.rng.range(0, 0.35) * (1 - v / techo) * 2 * ritmo);
           }
-          return { ...n, affinity, levels };
+          return { ...n, levels };
         }),
       }));
     },
@@ -419,19 +289,8 @@ export const npcs = defineModule<NpcsState>({
     [SHARED_EVENTS.COMPETITION_RESULT]: (ctx, ev) => {
       const r = ev.data as CompetitionResultData;
       ctx.updateState<NpcsState>((s) => ({
-        npcs: s.npcs.map((n) => {
-          // El entrenador de ese deporte valora el esfuerzo y más aún el podio.
-          if (n.role === 'entrenador' && n.supports.includes(r.module)) {
-            return { ...n, affinity: clamp(n.affinity + (r.position <= 3 ? 3 : 1)) };
-          }
-          // Los rivales que te ganan se crecen; los que pierden, te respetan un poco más.
-          const p = r.participants.find((x) => x.npcId === n.id);
-          if (p && n.role === 'rival') {
-            // Competir contra alguien es conocerlo.
-            return { ...n, known: true, affinity: clamp(n.affinity + (p.mark > r.mark ? 1 : -0.5)) };
-          }
-          return n;
-        }),
+        // Competir contra alguien es conocerlo.
+        npcs: s.npcs.map((n) => (n.role === 'rival' && r.participants.some((x) => x.npcId === n.id) ? { ...n, known: true } : n)),
       }));
     },
   },

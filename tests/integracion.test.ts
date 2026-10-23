@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, SERVICES, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type StudiesService } from '@ds/contracts';
+import { GEN, SERVICES, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { EstudiosState } from '@ds/mod-estudios';
 import type { NpcsState } from '@ds/mod-npcs';
+import type { RelacionesState } from '@ds/mod-relaciones';
 
 /** Pruebas de los NEXOS: módulos que colaboran sin conocerse. */
 
@@ -22,18 +23,19 @@ describe('integración de módulos', () => {
     const sin = g.preview('atletismo.tecnica')!.efficiency;
     // Forzamos una buena relación a través de un guardado (como haría una partida avanzada).
     const s = g.serialize();
-    const ns = s.modules.npcs as NpcsState;
-    ns.npcs = ns.npcs.map((n) => (n.id === 'entrenador' ? { ...n, affinity: 90 } : n));
+    (s.modules.relaciones as RelacionesState).vinculos.entrenador = {
+      npcId: 'entrenador', afinidad: 90, confianza: 70, estado: 'mejor_amigo', desde: 0, ultimoContacto: 16, contactos: [16],
+    };
     const g2 = cargarPartida(s);
     const con = g2.preview('atletismo.tecnica')!;
     expect(con.efficiency).toBeGreaterThan(sin);
-    expect(con.modifiers.some((m) => m.id === 'npcs.apoyo')).toBe(true);
+    expect(con.modifiers.some((m) => m.id === 'relaciones.apoyo')).toBe(true);
   });
 
   it('las carreras usan a los rivales NPC y el entrenador reacciona', () => {
     const g = nuevaPartida({ seed: 11 });
     advanceToWeek(g, 'gen.descansar', 5, 5, 10);
-    const antes = g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.affinity;
+    const antes = g.service<RelationsService>(SERVICES.relaciones)!.get('entrenador')!.afinidad;
     const r = g.perform('atletismo.carrera');
     expect(r.ok).toBe(true);
     const entrada = r.log.find((l) => /de 8/.test(l.text)); // tú + 7 rivales de los 16 NPC
@@ -43,7 +45,7 @@ describe('integración de módulos', () => {
     expect(entrada!.table?.header).toEqual(['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.']);
     const mia = entrada!.table!.rows[entrada!.table!.highlight!];
     expect(mia[1]).toBe('Tú');
-    expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.affinity).toBeGreaterThan(antes);
+    expect(g.service<RelationsService>(SERVICES.relaciones)!.get('entrenador')!.afinidad).toBeGreaterThan(antes);
   });
 
   it('una semana jugando al azar no rompe ninguna invariante', () => {
@@ -297,7 +299,7 @@ describe('integración de módulos', () => {
       .concat(
         Array.from({ length: 16 }, (_, i) => ({
           id: `rival_${i + 1}`, name: `Rival ${i}`, role: 'rival' as const, gender: 'm' as const, tags: ['atleta'], supports: [],
-          affinity: 20, levels: { atletismo: 40 }, potential: { atletismo: 80 }, lastDay: -1,
+          levels: { atletismo: 40 }, potential: { atletismo: 80 },
         })),
       );
     const g = cargarPartida(s);

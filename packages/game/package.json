@@ -15,6 +15,7 @@
     "@ds/mod-atletismo": "*",
     "@ds/mod-npcs": "*",
     "@ds/mod-clubes": "*",
-    "@ds/mod-familia": "*"
+    "@ds/mod-familia": "*",
+    "@ds/mod-relaciones": "*"
   }
 }

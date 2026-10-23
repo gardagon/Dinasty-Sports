@@ -274,7 +274,7 @@ De los 8 a los 18 años son unos 3.650 días. **Decidido el 22/10: se juega día
 | E13.1 ✅ (parcial) | Familia: padres con apoyo, expectativas y tiempo en casa | Hecho el 23/10 en el módulo `familia` (nombre, edad, altura, deporte practicado y los tres valores). Faltan los eventos y decisiones que los mueven, y que apoyen según la relación como el resto de NPCs |
 | E13.2 | Rivales con identidad e historia (rivalidades, evolución de relación) | Hoy tienen nivel y nada más |
 | E13.3 | Entrenadores y compañeros de club al subir de categoría | Cambian con las categorías y los cursos (E9.4) |
-| E13.4 | Relaciones con decay y mantenimiento más ricos | Hoy solo suben con el contacto y bajan sin él |
+| E13.4 | Relaciones con decay y mantenimiento más ricos | Hoy solo suben con el contacto y bajan sin él. **Pasa a E20.4** |
 
 ## E14 · Segundo deporte — 🟡
 
@@ -321,6 +321,49 @@ Decidido el 22/10/2026: habrá clubes en distintos deportes y un club puede tene
 | E19.5 ✅ | Los rivales y compañeros pertenecen a clubes | Enlaza con los 16 rivales actuales y con E13 |
 | E19.6 | Cambiar de club: pruebas, ojeadores y subida de nivel | Camino hacia la oportunidad profesional (E10.2); necesita eventos (E18) |
 | E19.7 | **Entrenador del club como personaje (NPC)**, igual que el resto de personajes que se añadan: nombre, relación, apoyo | Hoy los entrenadores de los clubes de fuera no existen como personajes; el único entrenador es el del colegio |
+
+## E20 · Relaciones — 🟡 · Sin equivalente en el original
+
+Registrada el 23/10/2026. **Hoy el módulo `npcs` solo tiene una interacción por persona** ("quedar" con compañeros y amigos, "hablar" con el entrenador): suma afinidad y la afinidad se pierde despacio sin contacto. Para tener amistades profundas, pareja e hijos (E8, ciclo de generaciones) hace falta un sistema de relaciones de verdad. Es el cimiento de lo social en las tres fases del juego, y gran parte de su contenido (conocerse, declararse, discutir, casarse, tener hijos) serán eventos y decisiones (E18).
+
+**Qué hay hoy y qué falta**
+
+| Hoy | Falta |
+|---|---|
+| Una cifra de afinidad (0 a 100) por NPC | Distintos tipos de vínculo con su propio estado: conocido, amistad, mejor amistad, rivalidad, pareja, familia |
+| Una acción por NPC (`quedar` / `hablar`) | Varias acciones con coste, riesgo y efecto distintos (charlar, ayudar, regalar, discutir, hacer las paces, salir juntos) |
+| Se pierde afinidad si pasan 7 días sin contacto | Mantenimiento y decaimiento por tipo de vínculo; recuerdos y hechos compartidos |
+| El NPC apoya acciones si la afinidad es ≥ 40 | Que el vínculo cambie lo que el NPC hace (apoya, aconseja, exige, se enfada) |
+| Los NPCs no tienen vida propia | Personalidad, intereses, edad y agenda de cada NPC |
+
+| ID | Tarea | Notas |
+|---|---|---|
+| E20.1 ✅ | **Modelo de relación:** cada vínculo con tipo, afinidad, confianza, historia (hechos compartidos) y último contacto, no solo una cifra | Hoy `affinity` y `lastDay` en `Npc`. Debe ser estado del módulo y JSON serializable |
+| E20.2 ✅ (parcial) | **Estados y transiciones:** desconocido → conocido → amigo → mejor amigo, y rivalidad; con condiciones para pasar de uno a otro | Enlaza con el modo historia (E13.0): empezar sin conocer a nadie |
+| E20.3 | **Acciones de relación variadas:** charlar, ayudar con algo, regalar, quedar según intereses, discutir (elegible), hacer las paces | Cada una con duración, coste, efecto en la afinidad y entrenamiento de las genéricas sociales (carisma, empatía, comunicación) |
+| E20.4 ✅ | **Mantenimiento y decaimiento por vínculo:** una amistad fuerte aguanta más sin contacto que una reciente; los motivos de ruptura | Sustituye al decay único de E13.4 |
+| E20.5 | **Personalidad e intereses del NPC:** qué le gusta, qué le molesta, cómo reacciona. Condiciona qué acciones funcionan con él | Se apoya en la personalidad del propio personaje (E4) |
+| E20.6 | **Pareja (novio/novia):** conocer, tonteo, cita, declararse, ser pareja, ruptura. Con edades y límites adecuados a la fase de la vida | **Decisión pendiente:** desde qué edad y cómo se trata en la fase infantil (¿solo a partir de la adolescencia?) |
+| E20.7 | **Hijos y familia propia:** ciclo de generaciones; los hijos heredan genética de sus padres (ya implementado, E8.1) y perks (E5) | Es lo que desbloquea E8 (dinastía). Pertenece a las fases 2 y 3 |
+| E20.8 | **Relación con los padres y la familia:** que apoyo, expectativas y tiempo en casa (módulo `familia`) se muevan con lo que haga el personaje | Enlaza con E13.1 |
+| E20.9 | **Efectos de las relaciones en el juego:** apoyo en acciones (ya existe), consejos del entrenador, motivación, estrés, oportunidades (un contacto que abre una puerta) | Respetar las reglas: etiquetas, modificadores y eventos entre módulos |
+| E20.10 | **Interfaz:** lista de personas con tipo de vínculo, cómo va y qué se puede hacer con cada una | Parte de E15 |
+| E20.11 ✅ | **Arquitectura:** módulo `relaciones` aparte de `npcs` | Decidido el 23/10 |
+| E20.12 | **Vida propia de los NPCs:** relaciones entre ellos, cambios de club y de ciudad, parejas | Decidido el 23/10. Costoso en rendimiento con 96 rivales: simularlo por semana o por curso, no por día |
+
+**Decisiones del 23/10/2026**
+
+1. **Módulo aparte:** `relaciones` (vínculos) separado de `npcs` (población y rivales). Se comunican por servicios y eventos.
+2. **Escala con positivos y negativos que arranca en 0.** Todo el que aparece ya se conoce: 0 es **conocido** y por sí solo nada baja de ahí a desconocido. Positivos: amigo, mejor amigo (y pareja, familia más adelante). Negativos: nivel −1 antipatía, −2 enemigo, −3 antagonista. Los vínculos positivos se enfrían hacia conocido; los negativos solo se suavizan hasta la primera antipatía (−1) y no vuelven a conocido sin reconciliarse (hacer las paces).
+3. **La rivalidad no es un indicador:** nace de **eventos**, y es la parte negativa de la escala (antipatía, enemigo, antagonista).
+4. **Pareja a los 14 años** (dato que se puede cambiar). Cada NPC tiene sus **preferencias propias ocultas**, sin ligarlas al género del personaje; un NPC puede rechazar al jugador.
+5. **Estado visible, umbrales ocultos:** el jugador ve el estado del vínculo; las cifras se muestran solo en desarrollo (`MOSTRAR_RELACIONES` en `apps/web/src/main.ts`) y se ocultan en beta.
+6. **Discutir es una acción elegible** (da decisiones aun sin motor de eventos).
+7. **Los NPCs viven su propia vida:** cambian de club, se mudan, forman amistades y parejas entre ellos, no solo existen en relación con el personaje. Se simula por semana y solo el círculo cercano.
+
+**Fase 1 hecha el 23/10/2026** (E20.1, E20.2 parcial, E20.4, E20.11): módulo `relaciones` con vínculo (afinidad −100..100, confianza 0..100, estado, contactos), histéresis, enfriamiento por estado y suavizado de lo negativo; la afinidad, las acciones `quedar`/`hablar` (ahora `relaciones.*`) y el apoyo (`relaciones.apoyo`) pasan de `npcs` a `relaciones`; las carreras mueven al entrenador y a los rivales. Todos arrancan en 0 (antes 15 a 35). Falta: acciones variadas, intereses y rasgos (fase 2), interfaz completa (fase 3), vida propia (fase 4).
+
+**Orden:** la base (E20.1 a E20.4) se puede construir con acciones y sin eventos; las partes de pareja, hijos y rupturas (E20.6, E20.7) necesitan el motor de eventos (E18). Se trabaja después de cimentar lo que quede de la fase infantil y antes del motor definitivo de eventos, para que el motor se diseñe sabiendo qué necesitan las relaciones.
 
 ## Transversal
 

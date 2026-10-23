@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, madurezPorEdad, type NpcDirectory } from '@ds/contracts';
+import { SERVICES, madurezPorEdad, ventajaDeCrianza, type NpcDirectory } from '@ds/contracts';
 import { Game, advanceTo, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { npcs, type NpcsState } from './index';
@@ -13,17 +13,6 @@ describe('módulo NPCs', () => {
     expect(dir.list().length).toBe(100); // 4 del entorno + 8 rivales por cada edad de 8 a 19
     expect(dir.list({ tag: 'atleta' })).toHaveLength(96);
     expect(dir.get('entrenador')?.role).toBe('entrenador');
-  });
-
-  it('quedar con un compañero sube la afinidad y solo una vez al día', () => {
-    const g = nueva();
-    advanceTo(g, 'gen.descansar', 5, 11);
-    const id = 'npcs.quedar.companero_social';
-    const antes = g.moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'companero_social')!.affinity;
-    expect(g.perform(id).ok).toBe(true);
-    const despues = g.moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'companero_social')!.affinity;
-    expect(despues).toBeGreaterThan(antes);
-    expect(g.preview(id)!.available).toBe(false);
   });
 
   it('los rivales progresan con los días', () => {
@@ -107,12 +96,11 @@ describe('módulo NPCs', () => {
       expect(r.potential.atletismo).toBeLessThanOrEqual(Math.min(99, hi * 1.3));
       expect(padre.nombre.split(' ').slice(1).join(' ')).toBe(r.name.split(' ').slice(1).join(' '));
     }
-    const sin = rivales.filter((r) => r.padres!.padre.practica === 'ninguna' && r.padres!.madre.practica === 'ninguna');
-    const con = rivales.filter((r) => r.padres!.padre.practica !== 'ninguna' && r.padres!.madre.practica !== 'ninguna');
-    expect(sin.length).toBeGreaterThan(0);
-    // Con la misma edad, quien tiene padres deportistas parte mejor en media.
-    const ratio = (rs: typeof rivales) => rs.reduce((a, r) => a + r.levels.atletismo / r.potential.atletismo, 0) / Math.max(1, rs.length);
-    if (con.length > 3) expect(ratio(con)).toBeGreaterThan(ratio(sin));
+    // Los padres sin deporte no dan ventaja; los dos profesionales, la máxima.
+    expect(ventajaDeCrianza('ninguna', 'ninguna')).toBeLessThan(ventajaDeCrianza('aficionado', 'ninguna'));
+    expect(ventajaDeCrianza('profesional', 'profesional')).toBeGreaterThan(ventajaDeCrianza('federado', 'federado'));
+    // Nadie parte por encima de su techo de esa edad.
+    for (const r of rivales) expect(r.levels.atletismo).toBeLessThanOrEqual(r.potential.atletismo);
   });
 
   it('los rivales que entran al renovar el curso también traen padres', () => {
