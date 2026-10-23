@@ -4,7 +4,7 @@ RPG de decisiones: tu personaje vive un curso escolar mientras desarrolla un dep
 Cada acción cuesta tiempo de juego, y todo lo que haces sube o baja sus características.
 El calendario sigue el curso escolar: trimestres, Navidad, Semana Santa y verano.
 
-Este es el MVP. Incluye el motor modular, tres módulos de contenido (estudios, atletismo y NPCs)
+Este es el MVP. Incluye el motor modular y los módulos de contenido (estudios, atletismo, clubes, personas, relaciones y familia)
 sobre el módulo base del personaje, un equipo de simulación que vigila el balance y una interfaz web pensada para móvil.
 
 ## Empezar

@@ -31,7 +31,7 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
 2. **Pipeline único de acciones** (`Game.perform`). Toda acción pasa por los mismos pasos:
    requisitos → modificadores → coste → entrenamiento → lógica propia → avance del tiempo → eventos.
 3. **Modificadores por etiquetas.** Un módulo influye en otro sin conocerlo. Ejemplo: el módulo de
-   NPCs dice "si tu afinidad con alguien es ≥ 40, las acciones con las etiquetas que apoya rinden más".
+   Relaciones dice "si tu afinidad con alguien es ≥ 40, las acciones con las etiquetas que apoya rinden más".
    Funciona con cualquier deporte futuro que use esas etiquetas.
 4. **Eventos y servicios.**
    - Eventos propios (`atletismo.*`) y **compartidos** (`competicion.resultado`). Cualquier deporte
@@ -79,9 +79,11 @@ expone los clubes de un deporte y la membresía del personaje.
 
 ## Tope genético individual
 
-Una stat con `genetics` (familia, media y desviación) recibe al crear la partida un tope genético oculto (`GameState.potential`), sorteado con una parte
-compartida por familia (`GameState.families`). El tope limita lo que se puede llegar a ser y **acelera el progreso** de quien lo tiene más alto
-(`potentialSpeed`, en el núcleo). El techo visible (`Game.cap`) no lo incluye: la interfaz no enseña el tope. Para pruebas, `Game.hiddenPotential`.
+Una stat con `genetics` recibe al crear la partida un tope genético oculto (`GameState.potential`). Las capacidades (`genetics` vacío o solo con `grupo`) lo heredan de los
+padres (ver **Herencia** arriba); las habilidades y asignaturas lo derivan de otras (`genetics.derivedFrom`, más una aptitud propia). El tope típico es 62 (entre 10 y 95).
+El tope limita lo que se puede llegar a ser y **acelera el progreso** de quien lo tiene más alto (`potentialSpeed`, en el núcleo: (tope / 62)² × 0,8, entre ×0,4 y ×1,3).
+El techo visible (`Game.cap`) no lo incluye: la interfaz no enseña el tope (salvo la interfaz de pruebas). Para pruebas, `Game.hiddenPotential`, `Game.parentPotential`,
+`Game.geneticOrigin`, `Game.parentBias` y `Game.parentQuality`.
 
 ## Año de nacimiento y categorías
 
