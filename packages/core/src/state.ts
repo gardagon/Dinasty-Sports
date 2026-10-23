@@ -38,6 +38,8 @@ export interface GameState {
 export interface ParentGenes {
   /** Cómo reparte sus puntos fuertes entre categorías (p. ej. "Dominante físico"). */
   sesgo?: string;
+  /** Calidad global (0 a 1). */
+  calidad?: number;
   familias: Record<string, number>;
   topes: Record<StatId, number>;
 }

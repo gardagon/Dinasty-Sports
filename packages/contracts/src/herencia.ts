@@ -39,6 +39,44 @@ export const RECUENTOS: Record<Dificultad, { debil: readonly [number, number]; f
   dificil: { debil: [1, 2], fuerte: [1, 2], destacado: [0, 0] },
 };
 
+/**
+ * Calidad global de un progenitor, de 0 (el peor del mundo) a 1 (el mejor). Los recuentos de bandas de `RECUENTOS` son
+ * puntos fijos de esa escala: difícil en 0, normal en 0,5 y fácil en 1; entre medias se interpolan. Además la calidad
+ * desplaza las capacidades normales (más altas cuanto mejor es el padre), así que unos padres son globalmente mejores que otros.
+ */
+export type Calidad = number;
+
+/** Calidad de los padres DEL JUGADOR según la dificultad: en normal, percentil 50–60. El resto del mundo recorre toda la escala. */
+export const CALIDAD_DE_PADRES_DEL_JUGADOR: Record<Dificultad, readonly [number, number]> = {
+  facil: [0.8, 0.9],
+  normal: [0.5, 0.6],
+  dificil: [0.1, 0.2],
+};
+
+/** Puntos que separan las capacidades normales del peor padre (calidad 0) y del mejor (calidad 1). */
+const DESPLAZAMIENTO_NORMAL = 20;
+
+type Recuentos = (typeof RECUENTOS)[Dificultad];
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+function recuentosSegunCalidad(calidad: Calidad): Recuentos {
+  const [desde, hasta, t] = calidad < 0.5 ? [RECUENTOS.dificil, RECUENTOS.normal, calidad * 2] : [RECUENTOS.normal, RECUENTOS.facil, (calidad - 0.5) * 2];
+  const par = (k: 'debil' | 'fuerte' | 'destacado'): readonly [number, number] => [lerp(desde[k][0], hasta[k][0], t), lerp(desde[k][1], hasta[k][1], t)];
+  return { debil: par('debil'), fuerte: par('fuerte'), destacado: par('destacado') };
+}
+
+/** Rango de las capacidades normales: se estrecha por abajo (calidad alta) o por arriba (calidad baja) y se inclina con el sesgo. */
+function rangoNormal(calidad: Calidad, favorecida?: boolean): readonly [number, number] {
+  const d = (calidad - 0.5) * DESPLAZAMIENTO_NORMAL;
+  let lo: number = BANDAS.normal[0];
+  let hi: number = BANDAS.normal[1];
+  if (d > 0) lo += d;
+  else hi += d;
+  if (favorecida === true) lo += 5;
+  if (favorecida === false) hi -= 5;
+  lo = Math.min(lo, hi - 3);
+  return [lo, hi];
+}
+
 /** Número de capacidades para el que están pensados los recuentos. Con menos, se reducen en proporción. */
 const CAPACIDADES_DE_REFERENCIA = 18;
 
@@ -88,9 +126,6 @@ export const nombreSesgo = (s: Pick<Sesgo, 'tipo' | 'grupos'>): string =>
 
 /** Probabilidad de que una capacidad alta caiga fuera del sesgo (o una débil dentro de él). */
 export const FUGA_DE_SESGO = 0.15;
-/** Las normales se inclinan hacia arriba en las categorías favorecidas y hacia abajo en las demás (sesgo suave). */
-const NORMAL_FAVORECIDA = [55, 69.9] as const;
-const NORMAL_NO_FAVORECIDA = [50, 64.9] as const;
 /** Una capacidad débil que cae dentro del sesgo no es de las peores. */
 const DEBIL_ALTA = [42.5, 49.9] as const;
 
@@ -112,12 +147,12 @@ function elegirSesgo(grupos: ReadonlySet<string>, rng: Rng): Sesgo {
 export function perfilDePadre(
   ids: readonly string[],
   rng: Rng,
-  dificultad: Dificultad = 'normal',
+  calidad: Calidad = 0.5,
   grupoDe: Readonly<Record<string, string>> = {},
 ): { topes: Record<string, number>; sesgo: Sesgo } {
-  const c = RECUENTOS[dificultad];
+  const c = recuentosSegunCalidad(calidad);
   const escala = ids.length / CAPACIDADES_DE_REFERENCIA;
-  const cuantas = (r: readonly [number, number]) => Math.floor(rng.int(r[0], r[1]) * escala + rng.next());
+  const cuantas = (r: readonly [number, number]) => Math.floor(rng.range(r[0], r[1] + 1e-9) * escala + rng.next());
   const orden = barajar(ids, rng);
   const destacado = Math.min(cuantas(c.destacado), orden.length);
   const fuerte = Math.min(cuantas(c.fuerte), orden.length - destacado);
@@ -128,7 +163,7 @@ export function perfilDePadre(
 
   if (sesgo.tipo === 'equilibrado') {
     orden.forEach((id, i) => {
-      const banda = i < destacado ? BANDAS.destacado : i < destacado + fuerte ? BANDAS.fuerte : i < destacado + fuerte + debil ? BANDAS.debil : BANDAS.normal;
+      const banda = i < destacado ? BANDAS.destacado : i < destacado + fuerte ? BANDAS.fuerte : i < destacado + fuerte + debil ? BANDAS.debil : rangoNormal(calidad);
       topes[id] = entre(rng, banda);
     });
     return { topes, sesgo };
@@ -154,7 +189,7 @@ export function perfilDePadre(
     const id = dentroDelSesgo ? dentro.shift()! : tomar(fuera, dentro);
     if (id) topes[id] = entre(rng, dentroDelSesgo ? DEBIL_ALTA : BANDAS.debil);
   }
-  for (const id of [...dentro, ...fuera]) topes[id] = entre(rng, fav.has(grupoDe[id]) ? NORMAL_FAVORECIDA : NORMAL_NO_FAVORECIDA);
+  for (const id of [...dentro, ...fuera]) topes[id] = entre(rng, rangoNormal(calidad, fav.has(grupoDe[id])));
   return { topes, sesgo };
 }
 

@@ -141,7 +141,8 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
   const name = nombreUnico(rng, gender, usados);
   const apellido = name.split(' ').slice(1).join(' ');
   const progenitor = (g: Gender): PadreRival => {
-    const { topes } = perfilDePadre(FISICAS, rng);
+    // Los padres del resto del mundo recorren toda la escala de calidad: unos muy buenos, otros flojos.
+    const { topes } = perfilDePadre(FISICAS, rng, rng.next());
     return { nombre: `${rng.pick(NOMBRES[g])} ${apellido}`, topes, practica: practicaSegunTope(mediaDe(Object.values(topes)), rng) };
   };
   const padres = { padre: progenitor('m'), madre: progenitor('f') };

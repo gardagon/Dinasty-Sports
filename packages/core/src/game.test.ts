@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defineModule, MINUTES_PER_DAY, type GameModule } from '@ds/contracts';
+import { defineModule, MINUTES_PER_DAY, perfilDePadre, type GameModule } from '@ds/contracts';
 import { Game } from './game';
 import { RegistryError } from './registry';
 import { checkInvariants } from './invariants';
@@ -255,10 +255,11 @@ describe('tope genético individual', () => {
             expect(v).toBeGreaterThanOrEqual(35);
             expect(v).toBeLessThanOrEqual(95);
           }
+          // Los padres del jugador están algo por encima de la mediana de calidad (0,5–0,6): hasta 3 fuertes y 2 destacadas.
           expect(t.filter((v) => v < 50).length).toBeLessThanOrEqual(1);
           expect(t.filter((v) => v >= 70 && v < 85).length).toBeGreaterThanOrEqual(1);
-          expect(t.filter((v) => v >= 70 && v < 85).length).toBeLessThanOrEqual(2);
-          expect(t.filter((v) => v >= 85).length).toBeLessThanOrEqual(1);
+          expect(t.filter((v) => v >= 70 && v < 85).length).toBeLessThanOrEqual(3);
+          expect(t.filter((v) => v >= 85).length).toBeLessThanOrEqual(2);
         }
       }
     });
@@ -272,6 +273,57 @@ describe('tope genético individual', () => {
         return Math.max(...t) - Math.min(...t);
       });
       expect(media(rangos)).toBeGreaterThan(25);
+    });
+
+    describe('calidad de los padres', () => {
+      const mediaDe = (t: Record<string, number>) => media(Object.values(t));
+      const mundo = (n: number) => {
+        const rng = seededRng(12345);
+        const grupoDe = Object.fromEntries(IDS.map((id, i) => [id, GRUPOS[Math.floor(i / 6)]]));
+        return Array.from({ length: n }, () => mediaDe(perfilDePadre(IDS, rng, rng.next(), grupoDe).topes)).sort((a, b) => a - b);
+      };
+      const poblacion = mundo(3000);
+
+      it('los padres del jugador tienen calidad 0,5–0,6 (percentil 50–60 en normal)', () => {
+        for (const g of partidas.slice(0, 50)) {
+          for (const lado of ['padre', 'madre'] as const) {
+            expect(g.parentQuality(lado)).toBeGreaterThanOrEqual(0.5);
+            expect(g.parentQuality(lado)).toBeLessThanOrEqual(0.6);
+          }
+        }
+      });
+
+      it('en el mundo hay mucha más variedad de padres: unos globalmente mejores y otros más flojos', () => {
+        const m = media(poblacion);
+        const sd = Math.sqrt(media(poblacion.map((x) => (x - m) ** 2)));
+        expect(sd).toBeGreaterThan(3.5);
+        expect(poblacion[Math.floor(0.05 * poblacion.length)]).toBeLessThan(58);
+        expect(poblacion[Math.floor(0.95 * poblacion.length)]).toBeGreaterThan(66);
+      });
+
+      it('los padres del jugador caen hacia la mitad de ese mundo (en torno al percentil 55)', () => {
+        const rangos = partidas.flatMap((g) =>
+          (['padre', 'madre'] as const).map((lado) => {
+            const t = mediaDe(Object.fromEntries(IDS.map((id) => [id, g.parentPotential(lado, id)!])));
+            return poblacion.filter((x) => x <= t).length / poblacion.length;
+          }),
+        );
+        expect(media(rangos)).toBeGreaterThan(0.48);
+        expect(media(rangos)).toBeLessThan(0.66);
+      });
+
+      it('a más calidad, más puntos fuertes y menos débiles', () => {
+        const rng = seededRng(7);
+        const cuenta = (calidad: number) => {
+          const filas = Array.from({ length: 400 }, () => Object.values(perfilDePadre(IDS, rng, calidad).topes));
+          return { fuertes: media(filas.map((t) => t.filter((v) => v >= 70).length)), debiles: media(filas.map((t) => t.filter((v) => v < 50).length)), media: media(filas.map(media)) };
+        };
+        const flojo = cuenta(0);
+        const bueno = cuenta(1);
+        expect(bueno.fuertes).toBeGreaterThan(flojo.fuertes + 2);
+        expect(flojo.debiles).toBeGreaterThan(bueno.debiles + 0.8);
+        expect(bueno.media).toBeGreaterThan(flojo.media + 8);
+      });
     });
 
     describe('sesgo de los padres', () => {

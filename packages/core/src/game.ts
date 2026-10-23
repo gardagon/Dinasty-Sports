@@ -13,6 +13,7 @@ import {
   type InitContext,
   type LogEntry,
   type LogTable,
+  CALIDAD_DE_PADRES_DEL_JUGADOR,
   HERENCIA,
   heredarTope,
   nivelInicialHeredado,
@@ -161,9 +162,12 @@ export class Game {
       const grupoDe: Record<string, string> = {};
       for (const s of directas) if (s.def.genetics!.grupo) grupoDe[s.def.id] = s.def.genetics!.grupo;
       for (const lado of ['padre', 'madre'] as const) {
-        const { topes, sesgo } = perfilDePadre(ids, rng, 'normal', grupoDe);
+        // Los padres del jugador (dificultad normal) quedan en el percentil 50–60 de calidad; el resto del mundo recorre toda la escala.
+        const calidad = rng.range(...CALIDAD_DE_PADRES_DEL_JUGADOR.normal);
+        const { topes, sesgo } = perfilDePadre(ids, rng, calidad, grupoDe);
         Object.assign(lin[lado].topes, topes);
         lin[lado].sesgo = nombreSesgo(sesgo);
+        lin[lado].calidad = calidad;
       }
       const reparto = repartirHerencia(ids, rng);
       const factor = (lin.factor ??= rng.range(HERENCIA.nivelInicial.factorMin, HERENCIA.nivelInicial.factorMax));
@@ -273,6 +277,11 @@ export class Game {
   /** Tope genético oculto de un progenitor (solo para pruebas y simulación). */
   parentPotential(lado: 'padre' | 'madre', id: StatId): number | undefined {
     return this.s.lineage?.[lado].topes[id];
+  }
+
+  /** Calidad global de un progenitor (0 a 1; los del jugador en normal, 0,5–0,6). Solo para pruebas y la interfaz de pruebas. */
+  parentQuality(lado: 'padre' | 'madre'): number | undefined {
+    return this.s.lineage?.[lado].calidad;
   }
 
   /** Sesgo de un progenitor (p. ej. "Dominante físico"), solo para pruebas y la interfaz de pruebas. */

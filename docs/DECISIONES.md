@@ -335,6 +335,16 @@ Los padres de Godot repartían las bandas al azar entre las 18 capacidades, así
 - Cada capacidad define su categoría (`genetics.grupo`: `fisico`, `mental`, `social`). El motor no sabe de qué va; solo agrupa. La interfaz de pruebas muestra el sesgo de cada padre.
 - Las medias son de **topes**, no de habilidades: de los padres no guardamos ningún nivel alcanzado (lo de "tenía tope 90 y se quedó en 70 por lesiones" llegará con las lesiones y los eventos).
 
+### 23/10/2026 — Calidad de los padres: los del jugador en el percentil 50–60 y el resto del mundo, variado
+
+Todos los padres se generaban igual, así que todos los niños partían de una calidad global casi idéntica. Ahora cada padre tiene una **calidad** de 0 a 1:
+
+- **Los padres del jugador** salen con calidad 0,5–0,6 en dificultad normal (percentil 50–60: ligeramente por encima de la mediana). En fácil serán 0,8–0,9 y en difícil 0,1–0,2 (`CALIDAD_DE_PADRES_DEL_JUGADOR`; la dificultad queda para cuando todo esté estable).
+- **El resto del mundo** (los padres de los 96 rivales y los que se añadan) recorre toda la escala 0–1: hay padres globalmente muy buenos y otros flojos. Así los rivales, y los hijos en general, tienen más variedad.
+- **Qué cambia con la calidad:** los recuentos de capacidades débiles, fuertes y destacadas se interpolan entre las tablas de Godot (difícil en 0, normal en 0,5, fácil en 1) y las capacidades normales se desplazan: con calidad alta se estrechan por abajo (sube su media), con calidad baja por arriba. La media global de un padre va de unos 56 (calidad 0) a unos 69 (calidad 1), y todas las normales siguen dentro de su banda 50–69,9.
+- **Resultado:** en el mundo, la media global de un padre tiene desviación 4,2 (percentil 5 en 56, percentil 95 en 69). Los padres del jugador quedan en 62,5 de media. Los rivales tienen tope de atletismo con desviación 8 (de 44 a 79).
+- **Aclaración:** esto es una desviación de Godot (allí las bandas eran fijas y la dificultad solo cambiaba los recuentos); se hace así para tener padres de calidad muy distinta. Se puede suavizar con `DESPLAZAMIENTO_NORMAL`.
+
 ## Pendiente e ideas
 
 - **Consecuencias de la salud muy baja:** ahora el bot que sobreentrena llega a salud 0 sin más castigo que rendir menos. Idea: lesión o baja médica que bloquee entrenar unos días.
