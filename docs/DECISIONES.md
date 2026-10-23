@@ -301,6 +301,14 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - Las partes que necesitan eventos (declararse, rupturas, hijos) esperan al motor de eventos (E18). La base se puede hacer con acciones.
 - **Respuestas del mismo día:** módulo `relaciones` aparte de `npcs`; los tipos de vínculo propuestos y la pareja a partir de los 14 años; el vínculo se ve como un estado (los umbrales numéricos solo durante el desarrollo, se ocultan en beta); los NPCs viven su propia vida (relaciones entre ellos, cambios de club y de ciudad).
 
+### 23/10/2026 — E20 fase 1: módulo `relaciones`
+
+- **Escala de −100 a 100 con el 0 como "conocido".** Estados: antagonista (−3), enemigo (−2), antipatía (−1), conocido (0), amigo (1), mejor amigo (2). Entrar en un estado exige cruzar su umbral; salir exige cruzarlo con 8 puntos de margen (histéresis). Amigo pide además confianza ≥ 30 y 3 contactos en 14 días; mejor amigo, afinidad ≥ 75 y confianza ≥ 60.
+- **Enfriamiento:** lo positivo cae hacia 0 tras unos días sin verse (conocido 7 días a 0,4 por día, amigo 21 a 0,3, mejor amigo 45 a 0,2); lo negativo solo sube hasta −20 (primera antipatía, tras 30 días) y no vuelve a conocido sin reconciliarse. La confianza cae a 0,1 por día pasados 30 días.
+- **Arranque en 0:** el reparto ya no empieza con afinidad de 15 a 35. El apoyo (afinidad ≥ 40) tarda unos pocos contactos más en activarse; la simulación sigue en verde.
+- **Migración desde `npcs`:** afinidad, acciones de relación y apoyo salen de `npcs` (ahora solo población y rivales) y viven en `relaciones`. `NpcView.affinity` desaparece; se consulta el servicio `relaciones`. El vínculo solo se guarda cuando hay contacto o un cambio; el resto es "conocido" implícito, así que las partidas nuevas empiezan con el estado vacío.
+- **Interfaz:** muestra el estado de cada persona (concordado en género); las cifras salen solo si `MOSTRAR_RELACIONES` está activo.
+
 ## Pendiente e ideas
 
 - **Consecuencias de la salud muy baja:** ahora el bot que sobreentrena llega a salud 0 sin más castigo que rendir menos. Idea: lesión o baja médica que bloquee entrenar unos días.

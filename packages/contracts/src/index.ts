@@ -12,3 +12,4 @@ export * from './services';
 export * from './module';
 export * from './tags';
 export * from './herencia';
+export * from './relaciones';

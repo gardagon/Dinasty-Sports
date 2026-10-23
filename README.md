@@ -27,6 +27,7 @@ npm run dev        # abre la URL que aparece en la terminal
 | `modules/estudios` | Currículo de España por cursos (de 3.º de primaria a 2.º de bachillerato), clases, estudio, controles y evaluaciones |
 | `modules/atletismo` | Primer deporte: 400 m, categorías de la federación española, entrenamiento libre y con club, carrera los sábados en series de 8, conocimiento del deporte |
 | `modules/npcs` | Entrenador, tutor, compañeros y 96 rivales de atletismo por edad que progresan por su cuenta y se renuevan cada curso |
+| `modules/relaciones` | Vínculos con las personas: afinidad, confianza y estado (conocido, amigo, antipatía...) |
 | `modules/familia` | Padre y madre del personaje: edad, altura, deporte, apoyo y expectativas |
 | `modules/clubes` | Clubes deportivos: el del colegio y los de fuera, con pruebas de acceso |
 | `sim` | Bots con estrategias distintas, chequeos de balance, informe HTML |

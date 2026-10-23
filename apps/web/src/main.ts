@@ -12,6 +12,8 @@ import {
   PRACTICA_TEXTO,
   type LogTable,
   type NpcDirectory,
+  type RelationsService,
+  nombreEstado,
   type StudiesService,
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
@@ -319,6 +321,9 @@ function viewResults(g: Game): string {
   return parts.length ? `<section class="sheet"><h2>Resultados</h2>${parts.join('')}</section>` : '';
 }
 
+/** Mientras dure la fase de pruebas se enseñan las cifras de cada relación. Ponlo en `false` al pasar a beta. */
+const MOSTRAR_RELACIONES = true;
+
 function viewPeople(g: Game): string {
   const dir = g.service<NpcDirectory>(SERVICES.npcs);
   if (!dir) return '<section class="sheet"><p class="note">No hay módulo de relaciones cargado.</p></section>';
@@ -330,16 +335,19 @@ function viewPeople(g: Game): string {
     rival: ['Rival', 'Rival'],
     familia: ['Familia', 'Familia'],
   };
+  const rel = g.service<RelationsService>(SERVICES.relaciones);
   const items = dir
     .list()
     .filter((n) => n.known !== false)
     .map((n) => {
+      const v = rel?.get(n.id);
       const lvl = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
-      const ayuda = n.supports.length ? `Con buena relación (40+) te ayuda en: ${n.supports.join(', ')}.` : '';
+      const ayuda = n.supports.length ? `Si os lleváis bien te ayuda en: ${n.supports.join(', ')}.` : '';
       return `<div class="npc">
         <div class="npc-head"><b>${esc(n.name)}</b><span>${ROL[n.role]?.[n.gender === 'f' ? 0 : 1] ?? n.role}</span></div>
-        <div class="bar" title="Afinidad ${Math.round(n.affinity)}"><i style="width:${n.affinity}%"></i></div>
-        <div class="note">Afinidad ${Math.round(n.affinity)}${lvl ? ` · nivel ${esc(lvl)}` : ''}. ${esc(n.description ?? '')} ${esc(ayuda)}</div>
+        ${v ? `<div class="note"><b>${nombreEstado(v.estado, n.gender)}</b>${MOSTRAR_RELACIONES ? ` · afinidad ${Math.round(v.afinidad)}, confianza ${Math.round(v.confianza)} (solo pruebas)` : ''}${lvl ? ` · nivel ${esc(lvl)}` : ''}</div>` : ''}
+        ${MOSTRAR_RELACIONES && v ? `<div class="bar" title="Afinidad ${Math.round(v.afinidad)}"><i style="width:${(v.afinidad + 100) / 2}%"></i></div>` : ''}
+        <div class="note">${esc(n.description ?? '')} ${esc(ayuda)}</div>
       </div>`;
     })
     .join('');
