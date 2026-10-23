@@ -47,12 +47,15 @@ export function computeCap(def: StatDef, min: number, max: number, norm: (id: st
 }
 
 /**
- * Quien tiene un tope genético más alto progresa más rápido con el mismo entrenamiento:
- * (tope / 79)², entre ×0,5 y ×1,6 (tope 92 → ×1,36; tope 70 → ×0,79).
+ * Quien tiene un tope genético más alto progresa más rápido con el mismo entrenamiento: (tope / 62)², con el tope típico
+ * (62) en ×0,8. El 0,8 es la escala: el ritmo de subida se diseñó con topes de ~79 y ahora el tope típico es 62, así que
+ * un niño normal tarda en llegar a su tope lo mismo que antes (el tope es más bajo y el ritmo también).
+ * Va de ×0,4 a ×1,3 (tope 95 → ×1,3; tope 70 → ×1,0; tope 45 → ×0,42).
  */
-export const POTENCIAL_DE_REFERENCIA = 79;
+export const POTENCIAL_DE_REFERENCIA = 62;
+export const ESCALA_DE_RITMO = 0.8;
 export function potentialSpeed(potential: number): number {
-  return Math.min(1.6, Math.max(0.5, (potential / POTENCIAL_DE_REFERENCIA) ** 2));
+  return Math.min(1.3, Math.max(0.4, ESCALA_DE_RITMO * (potential / POTENCIAL_DE_REFERENCIA) ** 2));
 }
 
 /** Velocidad = 1 + Σ peso × (genéricaNormalizada − 0.5). Mínimo 0.2. */

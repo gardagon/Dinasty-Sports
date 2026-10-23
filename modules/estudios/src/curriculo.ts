@@ -22,28 +22,28 @@ const apoyo = (stat: string, weight: number) => ({ stat, weight });
 
 export const ASIGNATURAS: readonly Asignatura[] = [
   // Troncales de todas las etapas
-  { key: 'lengua', name: 'Lengua', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.35), apoyo(GEN.concentracion, 0.3)], entrena: { stat: GEN.comunicacion, amount: 0.3 } },
-  { key: 'matematicas', name: 'Matemáticas', apoyos: [apoyo(GEN.inteligencia, 0.5), apoyo(GEN.concentracion, 0.5)] },
-  { key: 'ingles', name: 'Inglés', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.35), apoyo(GEN.concentracion, 0.3)], entrena: { stat: GEN.comunicacion, amount: 0.2 } },
-  { key: 'educacion_fisica', name: 'Educación física', apoyos: [apoyo(GEN.coordinacion, 0.4), apoyo(GEN.velocidad, 0.3), apoyo(GEN.resistencia, 0.3)] },
+  { key: 'lengua', name: 'Lengua', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.3 } },
+  { key: 'matematicas', name: 'Matemáticas', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)] },
+  { key: 'ingles', name: 'Inglés', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.2 } },
+  { key: 'educacion_fisica', name: 'Educación física', apoyos: [apoyo(GEN.coordinacion, 0.3), apoyo(GEN.agilidad, 0.25), apoyo(GEN.resistencia, 0.25), apoyo(GEN.determinacion, 0.2)] },
   // Primaria
   { key: 'naturales', name: 'Ciencias naturales', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], entrena: { stat: GEN.creatividad, amount: 0.3 } },
-  { key: 'sociales', name: 'Ciencias sociales', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.atencion, 0.3)] },
+  { key: 'sociales', name: 'Ciencias sociales', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.atencion, 0.25), apoyo(GEN.empatia, 0.15)] },
   { key: 'artistica', name: 'Educación artística', apoyos: [apoyo(GEN.creatividad, 0.5), apoyo(GEN.coordinacion, 0.25), apoyo(GEN.atencion, 0.25)], entrena: { stat: GEN.creatividad, amount: 0.3 } },
   // ESO
   { key: 'biologia', name: 'Biología y geología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], hereda: 'naturales' },
-  { key: 'historia', name: 'Geografía e historia', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.3)], hereda: 'sociales' },
+  { key: 'historia', name: 'Geografía e historia', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.concentracion, 0.25), apoyo(GEN.empatia, 0.15)], hereda: 'sociales' },
   { key: 'tecnologia', name: 'Tecnología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.creatividad, 0.3), apoyo(GEN.coordinacion, 0.3)] },
   { key: 'musica', name: 'Música', apoyos: [apoyo(GEN.creatividad, 0.4), apoyo(GEN.coordinacion, 0.3), apoyo(GEN.atencion, 0.3)], hereda: 'artistica' },
-  { key: 'fisica_quimica', name: 'Física y química', apoyos: [apoyo(GEN.inteligencia, 0.5), apoyo(GEN.concentracion, 0.5)], hereda: 'naturales' },
+  { key: 'fisica_quimica', name: 'Física y química', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'naturales' },
   // Bachillerato
-  { key: 'filosofia', name: 'Filosofía', apoyos: [apoyo(GEN.inteligencia, 0.5), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.creatividad, 0.2)] },
-  { key: 'historia_espana', name: 'Historia de España', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.3)], hereda: 'historia' },
-  { key: 'fisica', name: 'Física', apoyos: [apoyo(GEN.inteligencia, 0.5), apoyo(GEN.concentracion, 0.5)], hereda: 'fisica_quimica' },
-  { key: 'quimica', name: 'Química', apoyos: [apoyo(GEN.inteligencia, 0.5), apoyo(GEN.concentracion, 0.5)], hereda: 'fisica_quimica' },
-  { key: 'latin', name: 'Latín', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.concentracion, 0.3), apoyo(GEN.comunicacion, 0.3)], hereda: 'lengua' },
+  { key: 'filosofia', name: 'Filosofía', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.creatividad, 0.2), apoyo(GEN.empatia, 0.15)] },
+  { key: 'historia_espana', name: 'Historia de España', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.concentracion, 0.25), apoyo(GEN.empatia, 0.15)], hereda: 'historia' },
+  { key: 'fisica', name: 'Física', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'fisica_quimica' },
+  { key: 'quimica', name: 'Química', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'fisica_quimica' },
+  { key: 'latin', name: 'Latín', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.concentracion, 0.25), apoyo(GEN.comunicacion, 0.2), apoyo(GEN.determinacion, 0.2)], hereda: 'lengua' },
   { key: 'historia_arte', name: 'Historia del arte', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.creatividad, 0.3), apoyo(GEN.atencion, 0.3)], hereda: 'historia' },
-  { key: 'economia', name: 'Economía', apoyos: [apoyo(GEN.inteligencia, 0.5), apoyo(GEN.concentracion, 0.3), apoyo(GEN.comunicacion, 0.2)] },
+  { key: 'economia', name: 'Economía', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.concentracion, 0.25), apoyo(GEN.comunicacion, 0.15), apoyo(GEN.picardia, 0.2)] },
 ];
 
 export const asignatura = (key: string): Asignatura => ASIGNATURAS.find((a) => a.key === key)!;

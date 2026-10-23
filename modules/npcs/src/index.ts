@@ -1,4 +1,5 @@
 import {
+  GEN,
   CORE_EVENTS,
   MINUTES_PER_DAY,
   SERVICES,
@@ -6,7 +7,9 @@ import {
   edadDeCompeticion,
   primerDiaDelAnio,
   madurezPorEdad,
-  mezclarTope,
+  heredarTope,
+  perfilDePadre,
+  repartirHerencia,
   practicaSegunTope,
   ventajaDeCrianza,
   type Practica,
@@ -38,10 +41,16 @@ import {
 /** Padre o madre de un rival: de su tope sale el del niño y de lo que practicó, la ventaja con la que arranca. */
 export interface PadreRival {
   nombre: string;
-  /** Tope de atletismo del progenitor (0..100). */
-  potencial: number;
+  /** Topes de sus capacidades físicas (los mismos ids que las del personaje). */
+  topes: Record<string, number>;
   practica: Practica;
 }
+
+/** Capacidades físicas de las que hereda un rival: su tope de atletismo es la media de lo que toma de cada padre. */
+const FISICAS = [GEN.velocidad, GEN.fuerza, GEN.resistencia, GEN.constitucion, GEN.agilidad, GEN.coordinacion];
+const mediaDe = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
+/** Aptitud propia para el atletismo (±15 %), igual que la de las habilidades del personaje. */
+const APTITUD_ATLETISMO = 0.15;
 
 export interface Npc {
   id: string;
@@ -114,7 +123,7 @@ function nombreUnico(rng: Rng, g: Gender, usados: Set<string>): string {
  * jugador (`madurezPorEdad`): los rivales ya llevan años entrenando, así que a los 8 años ya rinden más que
  * alguien que acaba de llegar, pero a ninguna edad igualan su potencial adulto.
  */
-const desarrolloRival = (edad: number): number => 0.3 + 0.7 * madurezPorEdad(edad);
+export const desarrolloRival = (edad: number): number => 0.45 + 0.55 * madurezPorEdad(edad);
 
 /**
  * Edad de competición de un NPC con fecha de nacimiento: año del curso menos año de nacimiento. Es la que decide su
@@ -132,12 +141,16 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
   const name = nombreUnico(rng, gender, usados);
   const apellido = name.split(' ').slice(1).join(' ');
   const progenitor = (g: Gender): PadreRival => {
-    const potencial = clamp(79 + rng.normal() * 9, 45, 100);
-    return { nombre: `${rng.pick(NOMBRES[g])} ${apellido}`, potencial, practica: practicaSegunTope(potencial, rng) };
+    // Los padres del resto del mundo recorren toda la escala de calidad: unos muy buenos, otros flojos.
+    const { topes } = perfilDePadre(FISICAS, rng, rng.next());
+    return { nombre: `${rng.pick(NOMBRES[g])} ${apellido}`, topes, practica: practicaSegunTope(mediaDe(Object.values(topes)), rng) };
   };
   const padres = { padre: progenitor('m'), madre: progenitor('f') };
-  // Su tope sale del de sus padres, y lo que ellos practicaron le da ventaja de partida.
-  const potencial = mezclarTope(padres.padre.potencial, padres.madre.potencial, rng, 55, 99);
+  // Hereda como el personaje: la mitad de las capacidades físicas de cada padre (±20 %); su tope de atletismo es la media
+  // más una aptitud propia. Lo que sus padres practicaron le da ventaja de partida.
+  const reparto = repartirHerencia(FISICAS, rng);
+  const heredadas = FISICAS.map((id) => heredarTope(padres[reparto[id]].topes[id], rng));
+  const potencial = clamp(mediaDe(heredadas) * (1 + APTITUD_ATLETISMO * (rng.next() * 2 - 1)), 20, 95);
   const ventaja = ventajaDeCrianza(padres.padre.practica, padres.madre.practica);
   const desfase = clamp(rng.normal() * 0.7, -1.2, 1.2);
   // Nace en un día cualquiera del año que le corresponde a su edad de competición en el curso que empieza en `day`.

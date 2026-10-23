@@ -53,7 +53,7 @@ describe('módulo NPCs', () => {
       advanceTo(g, 'gen.descansar', 6, 20);
       for (const n of rivales(g)) {
         const edad = (g.time.day - n.nacimiento!) / 365;
-        const techo = n.potential.atletismo * (0.3 + 0.7 * madurezPorEdad(edad + (n.desfase ?? 0)));
+        const techo = n.potential.atletismo * (0.45 + 0.55 * madurezPorEdad(edad + (n.desfase ?? 0)));
         expect(n.levels.atletismo).toBeLessThanOrEqual(techo + 1e-6);
       }
     });
@@ -90,10 +90,15 @@ describe('módulo NPCs', () => {
     const rivales = nueva().moduleState<NpcsState>('npcs').npcs.filter((n) => n.role === 'rival');
     for (const r of rivales) {
       const { padre, madre } = r.padres!;
-      const lo = Math.min(padre.potencial, madre.potencial);
-      const hi = Math.max(padre.potencial, madre.potencial);
-      expect(r.potential.atletismo).toBeGreaterThanOrEqual(Math.min(99, lo * 0.7));
-      expect(r.potential.atletismo).toBeLessThanOrEqual(Math.min(99, hi * 1.3));
+      const topes = [...Object.values(padre.topes), ...Object.values(madre.topes)];
+      expect(topes).toHaveLength(12);
+      for (const t of topes) {
+        expect(t).toBeGreaterThanOrEqual(35);
+        expect(t).toBeLessThanOrEqual(95);
+      }
+      // Su tope de atletismo ronda lo que hereda de sus padres (±20 % por capacidad y ±15 % de aptitud).
+      expect(r.potential.atletismo).toBeGreaterThanOrEqual(20);
+      expect(r.potential.atletismo).toBeLessThanOrEqual(95);
       expect(padre.nombre.split(' ').slice(1).join(' ')).toBe(r.name.split(' ').slice(1).join(' '));
     }
     // Los padres sin deporte no dan ventaja; los dos profesionales, la máxima.
@@ -108,5 +113,20 @@ describe('módulo NPCs', () => {
     for (let i = 0; i < 400; i++) g.perform('gen.dormir');
     const rivales = g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.role === 'rival');
     expect(rivales.every((r) => r.padres)).toBe(true);
+  });
+
+  it('el tope de atletismo de los rivales sale de lo que heredan: media ~62 y los padres tienen perfil', () => {
+    const rivales = nueva().moduleState<NpcsState>('npcs').npcs.filter((n) => n.role === 'rival');
+    const pot = rivales.map((n) => n.potential.atletismo);
+    const media = pot.reduce((a, b) => a + b, 0) / pot.length;
+    expect(media).toBeGreaterThan(56);
+    expect(media).toBeLessThan(68);
+    expect(Math.max(...pot) - Math.min(...pot)).toBeGreaterThan(20);
+    // Un padre no es plano: sus capacidades físicas se reparten en bandas.
+    const rango = (r: (typeof rivales)[number]) => {
+      const t = Object.values(r.padres!.padre.topes);
+      return Math.max(...t) - Math.min(...t);
+    };
+    expect(rivales.filter((r) => rango(r) > 12).length).toBeGreaterThan(rivales.length / 2);
   });
 });

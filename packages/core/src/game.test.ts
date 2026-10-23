@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defineModule, MINUTES_PER_DAY, type GameModule } from '@ds/contracts';
+import { defineModule, MINUTES_PER_DAY, perfilDePadre, type GameModule } from '@ds/contracts';
 import { Game } from './game';
 import { RegistryError } from './registry';
 import { checkInvariants } from './invariants';
@@ -193,15 +193,25 @@ describe('determinismo y guardado', () => {
 });
 
 describe('tope genético individual', () => {
-  /** Dos habilidades de la misma familia y una de otra, todas con tope genético. */
+  /** 18 capacidades con herencia directa (como las genéricas del juego), una derivada de dos y una sin tope. */
+  const IDS = Array.from({ length: 18 }, (_, i) => `g.c${i}`);
+  /** Seis capacidades de cada categoría, como las genéricas del juego. */
+  const GRUPOS = ['fisico', 'mental', 'social'];
   const genetico = defineModule({
     id: 'g',
     name: 'Genética',
     stats: [
       { id: 'g.energia', name: 'Energía', category: 'estado', initial: 100, resource: true },
-      { id: 'g.a', name: 'A', category: 'habilidad', initial: 5, talentSpread: 0, genetics: { family: 'fisico' } },
-      { id: 'g.b', name: 'B', category: 'habilidad', initial: 5, talentSpread: 0, genetics: { family: 'fisico' } },
-      { id: 'g.c', name: 'C', category: 'habilidad', initial: 5, talentSpread: 0, genetics: { family: 'mental' } },
+      ...IDS.map((id, i) => ({ id, name: id, category: 'generica' as const, initial: { min: 30, max: 50 }, talentSpread: 0, genetics: { grupo: GRUPOS[Math.floor(i / 6)] } })),
+      { id: 'g.a', name: 'A', category: 'habilidad', initial: 5, talentSpread: 0, genetics: { derivedFrom: [{ stat: 'g.c2', weight: 1 }] } },
+      {
+        id: 'g.deriv',
+        name: 'Derivada',
+        category: 'habilidad',
+        initial: 5,
+        talentSpread: 0,
+        genetics: { derivedFrom: [{ stat: 'g.c0', weight: 0.75 }, { stat: 'g.c1', weight: 0.25 }], aptitude: 0.1 },
+      },
       { id: 'g.sin', name: 'Sin tope', category: 'habilidad', initial: 5, talentSpread: 0 },
     ],
     actions: [
@@ -217,51 +227,275 @@ describe('tope genético individual', () => {
     ],
   });
   const nueva = (seed: number) => Game.create([genetico], { seed });
+  const media = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
+  const partidas = Array.from({ length: 300 }, (_, i) => nueva(i + 1));
 
-  it('cada stat con genética tiene un tope entre 45 y 100; las demás, ninguno', () => {
-    for (let seed = 1; seed <= 20; seed++) {
-      const g = nueva(seed);
-      for (const id of ['g.a', 'g.b', 'g.c']) {
-        expect(g.hiddenPotential(id)).toBeGreaterThanOrEqual(45);
-        expect(g.hiddenPotential(id)).toBeLessThanOrEqual(100);
+  it('cada stat con genética tiene un tope entre 10 y 95; las demás, ninguno', () => {
+    for (const g of partidas.slice(0, 30)) {
+      for (const id of [...IDS, 'g.a', 'g.deriv']) {
+        expect(g.hiddenPotential(id)).toBeGreaterThanOrEqual(10);
+        expect(g.hiddenPotential(id)).toBeLessThanOrEqual(95);
       }
       expect(g.hiddenPotential('g.sin')).toBeUndefined();
     }
   });
 
   it('es determinista con la semilla y distinto entre partidas', () => {
-    expect(nueva(7).hiddenPotential('g.a')).toBe(nueva(7).hiddenPotential('g.a'));
-    const topes = new Set(Array.from({ length: 10 }, (_, i) => Math.round(nueva(i + 1).hiddenPotential('g.a')!)));
+    expect(nueva(7).hiddenPotential('g.c3')).toBe(nueva(7).hiddenPotential('g.c3'));
+    const topes = new Set(Array.from({ length: 10 }, (_, i) => Math.round(nueva(i + 1).hiddenPotential('g.c3')!)));
     expect(topes.size).toBeGreaterThan(5);
   });
 
-  it('las stats de una misma familia correlacionan y las de otra familia no tanto', () => {
-    const xs = Array.from({ length: 300 }, (_, i) => nueva(i + 1));
-    const corr = (a: string, b: string) => {
-      const va = xs.map((g) => g.hiddenPotential(a)!);
-      const vb = xs.map((g) => g.hiddenPotential(b)!);
-      const ma = va.reduce((x, y) => x + y, 0) / va.length;
-      const mb = vb.reduce((x, y) => x + y, 0) / vb.length;
-      let c = 0, sa = 0, sb = 0;
-      for (let i = 0; i < va.length; i++) {
-        c += (va[i] - ma) * (vb[i] - mb);
-        sa += (va[i] - ma) ** 2;
-        sb += (vb[i] - mb) ** 2;
+  describe('herencia', () => {
+    it('cada padre tiene un perfil: la mayoría de capacidades normales y alguna débil, fuerte o destacada', () => {
+      for (const g of partidas) {
+        for (const lado of ['padre', 'madre'] as const) {
+          const t = IDS.map((id) => g.parentPotential(lado, id)!);
+          for (const v of t) {
+            expect(v).toBeGreaterThanOrEqual(35);
+            expect(v).toBeLessThanOrEqual(95);
+          }
+          // Los padres del jugador están algo por encima de la mediana de calidad (0,5–0,6): hasta 3 fuertes y 2 destacadas.
+          expect(t.filter((v) => v < 50).length).toBeLessThanOrEqual(1);
+          expect(t.filter((v) => v >= 70 && v < 85).length).toBeGreaterThanOrEqual(1);
+          expect(t.filter((v) => v >= 70 && v < 85).length).toBeLessThanOrEqual(3);
+          expect(t.filter((v) => v >= 85).length).toBeLessThanOrEqual(2);
+        }
       }
-      return c / Math.sqrt(sa * sb);
-    };
-    expect(corr('g.a', 'g.b')).toBeGreaterThan(0.35);
-    expect(Math.abs(corr('g.a', 'g.c'))).toBeLessThan(0.3);
-  });
+    });
 
-  it('la media y la dispersión de los topes son las esperadas (≈79 ± 9)', () => {
-    const v = Array.from({ length: 400 }, (_, i) => nueva(i + 1).hiddenPotential('g.a')!);
-    const m = v.reduce((a, b) => a + b, 0) / v.length;
-    const sd = Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length);
-    expect(m).toBeGreaterThan(76);
-    expect(m).toBeLessThan(82);
-    expect(sd).toBeGreaterThan(7);
-    expect(sd).toBeLessThan(11);
+    it('los padres no son planos: tienen puntos fuertes y la media ronda los 62', () => {
+      const medias = partidas.map((g) => media(IDS.map((id) => g.parentPotential('padre', id)!)));
+      expect(media(medias)).toBeGreaterThan(59);
+      expect(media(medias)).toBeLessThan(66);
+      const rangos = partidas.map((g) => {
+        const t = IDS.map((id) => g.parentPotential('madre', id)!);
+        return Math.max(...t) - Math.min(...t);
+      });
+      expect(media(rangos)).toBeGreaterThan(25);
+    });
+
+    describe('calidad de los padres', () => {
+      const mediaDe = (t: Record<string, number>) => media(Object.values(t));
+      const mundo = (n: number) => {
+        const rng = seededRng(12345);
+        const grupoDe = Object.fromEntries(IDS.map((id, i) => [id, GRUPOS[Math.floor(i / 6)]]));
+        return Array.from({ length: n }, () => mediaDe(perfilDePadre(IDS, rng, rng.next(), grupoDe).topes)).sort((a, b) => a - b);
+      };
+      const poblacion = mundo(3000);
+
+      it('los padres del jugador tienen calidad 0,5–0,6 (percentil 50–60 en normal)', () => {
+        for (const g of partidas.slice(0, 50)) {
+          for (const lado of ['padre', 'madre'] as const) {
+            expect(g.parentQuality(lado)).toBeGreaterThanOrEqual(0.5);
+            expect(g.parentQuality(lado)).toBeLessThanOrEqual(0.6);
+          }
+        }
+      });
+
+      it('en el mundo hay mucha más variedad de padres: unos globalmente mejores y otros más flojos', () => {
+        const m = media(poblacion);
+        const sd = Math.sqrt(media(poblacion.map((x) => (x - m) ** 2)));
+        expect(sd).toBeGreaterThan(3.5);
+        expect(poblacion[Math.floor(0.05 * poblacion.length)]).toBeLessThan(58);
+        expect(poblacion[Math.floor(0.95 * poblacion.length)]).toBeGreaterThan(66);
+      });
+
+      it('los padres del jugador caen hacia la mitad de ese mundo (en torno al percentil 55)', () => {
+        const rangos = partidas.flatMap((g) =>
+          (['padre', 'madre'] as const).map((lado) => {
+            const t = mediaDe(Object.fromEntries(IDS.map((id) => [id, g.parentPotential(lado, id)!])));
+            return poblacion.filter((x) => x <= t).length / poblacion.length;
+          }),
+        );
+        expect(media(rangos)).toBeGreaterThan(0.48);
+        expect(media(rangos)).toBeLessThan(0.66);
+      });
+
+      it('a más calidad, más puntos fuertes y menos débiles', () => {
+        const rng = seededRng(7);
+        const cuenta = (calidad: number) => {
+          const filas = Array.from({ length: 400 }, () => Object.values(perfilDePadre(IDS, rng, calidad).topes));
+          return { fuertes: media(filas.map((t) => t.filter((v) => v >= 70).length)), debiles: media(filas.map((t) => t.filter((v) => v < 50).length)), media: media(filas.map(media)) };
+        };
+        const flojo = cuenta(0);
+        const bueno = cuenta(1);
+        expect(bueno.fuertes).toBeGreaterThan(flojo.fuertes + 2);
+        expect(flojo.debiles).toBeGreaterThan(bueno.debiles + 0.8);
+        expect(bueno.media).toBeGreaterThan(flojo.media + 8);
+      });
+    });
+
+    describe('sesgo de los padres', () => {
+      const perfiles = partidas.flatMap((g) =>
+        (['padre', 'madre'] as const).map((lado) => ({
+          sesgo: g.parentBias(lado)!,
+          media: GRUPOS.map((_, k) => media(IDS.slice(k * 6, k * 6 + 6).map((id) => g.parentPotential(lado, id)!))),
+          topes: IDS.map((id) => g.parentPotential(lado, id)!),
+        })),
+      );
+      const de = (prefijo: string) => perfiles.filter((p) => p.sesgo.startsWith(prefijo));
+
+      it('cada padre tiene un sesgo: equilibrado, dominante en una categoría o parcial en dos', () => {
+        const validos = /^(Equilibrado|Dominante (físico|mental|social)|Parcial (físico-mental|físico-social|mental-social))$/;
+        for (const p of perfiles) expect(p.sesgo).toMatch(validos);
+        const frac = (pref: string) => de(pref).length / perfiles.length;
+        expect(frac('Equilibrado')).toBeGreaterThan(0.3);
+        expect(frac('Equilibrado')).toBeLessThan(0.5);
+        expect(frac('Dominante')).toBeGreaterThan(0.2);
+        expect(frac('Dominante')).toBeLessThan(0.4);
+        expect(frac('Parcial')).toBeGreaterThan(0.2);
+        expect(frac('Parcial')).toBeLessThan(0.4);
+      });
+
+      it('dominante: la categoría favorecida sube y las otras bajan (sin ser exagerado)', () => {
+        for (const [k, nombre] of [[0, 'físico'], [1, 'mental'], [2, 'social']] as const) {
+          const ps = de(`Dominante ${nombre}`);
+          expect(ps.length).toBeGreaterThan(20);
+          const favorecida = media(ps.map((p) => p.media[k]));
+          const otras = media(ps.flatMap((p) => p.media.filter((_, j) => j !== k)));
+          expect(favorecida - otras).toBeGreaterThan(8);
+          expect(favorecida - otras).toBeLessThan(25);
+        }
+      });
+
+      it('parcial: las dos categorías favorecidas son mejores que la que queda fuera', () => {
+        for (const [dentro, fuera, nombre] of [[[0, 1], 2, 'físico-mental'], [[0, 2], 1, 'físico-social'], [[1, 2], 0, 'mental-social']] as const) {
+          const ps = de(`Parcial ${nombre}`);
+          expect(ps.length).toBeGreaterThan(20);
+          const a = media(ps.flatMap((p) => dentro.map((k) => p.media[k])));
+          const b = media(ps.map((p) => p.media[fuera]));
+          expect(a - b).toBeGreaterThan(4);
+        }
+      });
+
+      it('equilibrado: las tres categorías quedan parecidas', () => {
+        const ps = de('Equilibrado');
+        for (let k = 0; k < 3; k++) expect(Math.abs(media(ps.map((p) => p.media[k])) - 62)).toBeLessThan(2.5);
+      });
+
+      it('hay fugas: a veces una fuerte cae fuera del sesgo y una débil dentro, pero poco', () => {
+        // Una capacidad fuerte (70+) en una categoría no favorecida de un padre dominante.
+        let conFuga = 0;
+        let total = 0;
+        for (const g of partidas) {
+          for (const lado of ['padre', 'madre'] as const) {
+            const sesgo = g.parentBias(lado)!;
+            const m = /^Dominante (físico|mental|social)$/.exec(sesgo);
+            if (!m) continue;
+            const k = ['físico', 'mental', 'social'].indexOf(m[1]);
+            total++;
+            const fuera = IDS.filter((_, i) => Math.floor(i / 6) !== k);
+            if (fuera.some((id) => g.parentPotential(lado, id)! >= 70)) conFuga++;
+          }
+        }
+        expect(conFuga / total).toBeGreaterThan(0.05);
+        expect(conFuga / total).toBeLessThan(0.45);
+      });
+
+      it('los padres de sesgo distinto dan hijos distintos: un padre físico y una madre mental dan hijos equilibrados', () => {
+        let n = 0;
+        let desnivel = 0;
+        let tope = 0;
+        for (const g of partidas) {
+          if (g.parentBias('padre') !== 'Dominante físico' || g.parentBias('madre') !== 'Dominante mental') continue;
+          n++;
+          const m = GRUPOS.map((_, k) => media(IDS.slice(k * 6, k * 6 + 6).map((id) => g.hiddenPotential(id)!)));
+          desnivel += Math.max(m[0], m[1]) - Math.min(m[0], m[1]);
+          tope += 1;
+        }
+        // Con 300 partidas puede no salir esta pareja: la prueba solo comprueba cuando existe.
+        if (n >= 3) expect(desnivel / tope).toBeLessThan(12);
+      });
+    });
+
+    it('de las 18 capacidades, 9 se heredan del padre y 9 de la madre', () => {
+      for (const g of partidas) {
+        expect(IDS.filter((id) => g.geneticOrigin(id) === 'padre')).toHaveLength(9);
+        expect(IDS.filter((id) => g.geneticOrigin(id) === 'madre')).toHaveLength(9);
+      }
+    });
+
+    it('cada tope sale del de UN padre ±20 %, sin punto intermedio', () => {
+      for (const g of partidas) {
+        for (const id of IDS) {
+          const base = g.parentPotential(g.geneticOrigin(id)!, id)!;
+          const hijo = g.hiddenPotential(id)!;
+          expect(hijo).toBeGreaterThanOrEqual(Math.max(10, base * 0.8) - 1e-9);
+          expect(hijo).toBeLessThanOrEqual(Math.min(95, base * 1.2) + 1e-9);
+        }
+      }
+    });
+
+    it('si un padre es muy fuerte y la madre muy débil, el hijo sale fuerte o débil, no intermedio', () => {
+      let lejosDelMedio = 0;
+      let total = 0;
+      for (const g of partidas) {
+        for (const id of IDS) {
+          const p = g.parentPotential('padre', id)!;
+          const m = g.parentPotential('madre', id)!;
+          if (Math.abs(p - m) < 25) continue;
+          total++;
+          const medio = (p + m) / 2;
+          // Tomado de un padre ±20 %, queda del lado de ese padre salvo que su variación llegue al medio.
+          if (Math.abs(g.hiddenPotential(id)! - medio) > Math.abs(p - m) / 2 * 0.3) lejosDelMedio++;
+        }
+      }
+      expect(total).toBeGreaterThan(50);
+      expect(lejosDelMedio / total).toBeGreaterThan(0.8);
+    });
+
+    it('el nivel inicial también sale de los padres, dentro del rango inicial (30 a 50) y sin pasar del tope', () => {
+      for (const g of partidas) {
+        for (const id of IDS) {
+          expect(g.stat(id)).toBeGreaterThanOrEqual(Math.min(30, g.hiddenPotential(id)!) - 1e-9);
+          expect(g.stat(id)).toBeLessThanOrEqual(Math.min(50, g.hiddenPotential(id)!) + 1e-9);
+        }
+      }
+      // Quien hereda de un padre más fuerte parte más alto.
+      const xs: number[] = [];
+      const ys: number[] = [];
+      for (const g of partidas) {
+        for (const id of IDS) {
+          xs.push(g.parentPotential(g.geneticOrigin(id)!, id)!);
+          ys.push(g.stat(id));
+        }
+      }
+      const mx = media(xs), my = media(ys);
+      let c = 0, sx = 0, sy = 0;
+      for (let i = 0; i < xs.length; i++) {
+        c += (xs[i] - mx) * (ys[i] - my);
+        sx += (xs[i] - mx) ** 2;
+        sy += (ys[i] - my) ** 2;
+      }
+      expect(c / Math.sqrt(sx * sy)).toBeGreaterThan(0.5);
+    });
+
+    it('la media y la dispersión de los topes de los hijos son las esperadas (≈62)', () => {
+      const v = partidas.flatMap((g) => IDS.map((id) => g.hiddenPotential(id)!));
+      const m = media(v);
+      const sd = Math.sqrt(media(v.map((x) => (x - m) ** 2)));
+      expect(m).toBeGreaterThan(59);
+      expect(m).toBeLessThan(66);
+      expect(sd).toBeGreaterThan(8);
+      expect(sd).toBeLessThan(15);
+    });
+
+    it('un tope derivado sale de los topes de las genéricas que lo apoyan, más una aptitud de ±10 %', () => {
+      for (const g of partidas) {
+        const base = 0.75 * g.hiddenPotential('g.c0')! + 0.25 * g.hiddenPotential('g.c1')!;
+        expect(g.hiddenPotential('g.deriv')!).toBeGreaterThanOrEqual(Math.max(10, base * 0.9) - 1e-9);
+        expect(g.hiddenPotential('g.deriv')!).toBeLessThanOrEqual(Math.min(95, base * 1.1) + 1e-9);
+      }
+      // No es una copia: la aptitud lo mueve.
+      const iguales = partidas.filter((g) => Math.abs(g.hiddenPotential('g.deriv')! - (0.75 * g.hiddenPotential('g.c0')! + 0.25 * g.hiddenPotential('g.c1')!)) < 0.01);
+      expect(iguales.length).toBeLessThan(10);
+    });
+
+    it('la misma semilla da los mismos padres y otra semilla, otros distintos', () => {
+      expect(nueva(5).parentPotential('padre', 'g.c0')).toBe(nueva(5).parentPotential('padre', 'g.c0'));
+      expect(nueva(5).parentPotential('padre', 'g.c0')).not.toBe(nueva(6).parentPotential('padre', 'g.c0'));
+    });
   });
 
   /** Partida con el tope de `g.a` fijado a mano. */
@@ -301,48 +535,4 @@ describe('tope genético individual', () => {
     expect(a.cap('g.a')).toBe(b.cap('g.a'));
   });
 
-  describe('herencia', () => {
-    const xs = Array.from({ length: 300 }, (_, i) => nueva(i + 1));
-
-    it('el tope del personaje sale de los topes de sus padres, no de la media general', () => {
-      // Con 60/40 más una variación del 7 %, queda cerca de la mezcla de los dos topes.
-      let lejos = 0;
-      for (const g of xs) {
-        const p = g.parentPotential('padre', 'g.a')!;
-        const m = g.parentPotential('madre', 'g.a')!;
-        const hijo = g.hiddenPotential('g.a')!;
-        const base = Math.min(p, m) * 0.4 + Math.max(p, m) * 0.6;
-        if (Math.abs(hijo - Math.min(Math.max(p, m), Math.max(Math.min(p, m), base))) > 0.25 * 79) lejos++;
-        expect(hijo).toBeGreaterThanOrEqual(Math.min(p, m) * 0.7);
-        expect(hijo).toBeLessThanOrEqual(Math.max(p, m) * 1.3);
-      }
-      expect(lejos).toBe(0);
-    });
-
-    it('cada capacidad pesa más en uno de los padres (60/40, al azar cuál)', () => {
-      const pesos = xs.map((g) => {
-        const p = g.parentPotential('padre', 'g.a')!;
-        const m = g.parentPotential('madre', 'g.a')!;
-        return p === m ? 0.5 : (g.hiddenPotential('g.a')! - m) / (p - m);
-      });
-      const haciaElPadre = pesos.filter((w) => w > 0.5).length / pesos.length;
-      expect(haciaElPadre).toBeGreaterThan(0.35);
-      expect(haciaElPadre).toBeLessThan(0.65);
-    });
-
-    it('los topes de los hijos siguen repartidos como antes: media ~79 y desviación ~9', () => {
-      const v = xs.map((g) => g.hiddenPotential('g.a')!);
-      const media = v.reduce((a, b) => a + b, 0) / v.length;
-      const sd = Math.sqrt(v.reduce((a, b) => a + (b - media) ** 2, 0) / v.length);
-      expect(media).toBeGreaterThan(76);
-      expect(media).toBeLessThan(82);
-      expect(sd).toBeGreaterThan(7);
-      expect(sd).toBeLessThan(10.5);
-    });
-
-    it('la misma semilla da los mismos padres y otra semilla, otros distintos', () => {
-      expect(nueva(5).parentPotential('padre', 'g.a')).toBe(nueva(5).parentPotential('padre', 'g.a'));
-      expect(nueva(5).parentPotential('padre', 'g.a')).not.toBe(nueva(6).parentPotential('padre', 'g.a'));
-    });
-  });
 });

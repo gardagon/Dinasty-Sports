@@ -1,4 +1,4 @@
-import { PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext, type ParentView, type Practica, type ReadContext } from '@ds/contracts';
+import { GEN, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext, type ParentView, type Practica, type ReadContext } from '@ds/contracts';
 
 /**
  * MÓDULO FAMILIA (id `familia`).
@@ -36,11 +36,15 @@ const DEPORTES = ['atletismo', 'fútbol', 'baloncesto', 'natación', 'ciclismo',
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const redondea = (v: number) => Math.round(v * 10) / 10;
 
-function nuevoProgenitor(id: 'padre' | 'madre', ctx: InitContext, z: number): Progenitor {
+const FISICAS = [GEN.velocidad, GEN.fuerza, GEN.resistencia, GEN.constitucion, GEN.agilidad, GEN.coordinacion];
+
+function nuevoProgenitor(id: 'padre' | 'madre', ctx: InitContext): Progenitor {
   const { rng } = ctx;
   const gender: Gender = id === 'padre' ? 'm' : 'f';
-  // Su tope físico decide hasta dónde llegó en el deporte (el mismo con el que se sortean los del personaje).
-  const practica = practicaSegunTope(79 + 9 * z, rng);
+  // Su tope físico medio (el mismo perfil del que hereda el personaje) decide hasta dónde llegó en el deporte.
+  const topes = ctx.topesDePadres[id];
+  const fisico = FISICAS.map((f) => topes[f]).filter((t): t is number => t !== undefined);
+  const practica = practicaSegunTope(fisico.length ? fisico.reduce((a, b) => a + b, 0) / fisico.length : 62, rng);
   return {
     id,
     nombre: rng.pick(NOMBRES[gender]),
@@ -78,10 +82,9 @@ export const familia = defineModule<FamiliaState>({
   description: 'El padre y la madre del personaje.',
   dependsOn: ['gen'],
   initState: (ctx) => {
-    const { padre, madre } = ctx.herencia('fisico');
     return {
       apellidos: `${ctx.rng.pick(APELLIDOS)} ${ctx.rng.pick(APELLIDOS)}`,
-      padres: [nuevoProgenitor('padre', ctx, padre), nuevoProgenitor('madre', ctx, madre)],
+      padres: [nuevoProgenitor('padre', ctx), nuevoProgenitor('madre', ctx)],
     };
   },
   services: {
