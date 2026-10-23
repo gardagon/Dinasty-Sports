@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/10/2026 — Diseño de E10: el paso a profesional
+
+- **Pasar a profesional es como subir de categoría:** hay categorías profesionales donde juegan los mejores y se accede a la primera cuando las habilidades permiten ser competitivo en ella.
+- **La oferta llega por un ojeador** que ve competir al personaje: el nivel abre la posibilidad, el ojeador la hace realidad. Requiere el sistema de eventos y decisiones.
+- **Tres niveles profesionales jugables ya** (no solo como dato), con subida de uno a otro por resultados y nivel.
+- **Desde los 16 años, sin límite superior:** si no llega la oferta, sigue en la cantera y puede recibirla más tarde.
+- **Aceptar trae más obligaciones, eventos y cosas que hacer.** El personaje puede dejar el colegio, pero si después quiere ser entrenador, agente u otro oficio necesita estudiar, y sin haber terminado el colegio le costará más.
+- **Orden de implementación (ajustado el mismo día):** primero se cimienta toda la fase infantil, después se monta el motor completo de eventos y decisiones y solo entonces el nivel profesional. No se hace un motor mínimo antes porque obligaría a una refactorización fuerte. Faltan antes cosas como la genética y la familia.
+- **La oferta del ojeador puede no ocurrir y el personaje puede ir a probar por su cuenta.** La subida de nivel profesional no es lineal: a los 16 años se puede ir directamente a élite. Los tres niveles (circuito nacional, internacional y élite) son para atletismo.
+- **Titulación en cuatro niveles:** 1 primaria, 2 ESO, 3 bachillerato y 4 universidad. Lo terminado marca lo que cuestan los oficios de después.
+- Detalle en `BACKLOG_STATS.md` (E10).
+
+---
+
 ## 22/10/2026 — Antes de E10: potencial individual, bots, verano según notas, campeonato y categoría por año de nacimiento
 
 ### Tope genético individual por habilidad (E2.7)
