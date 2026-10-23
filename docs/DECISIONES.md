@@ -295,6 +295,12 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **El jugador ve la genética mientras dure la fase de pruebas** (tabla de topes y datos de los padres); se oculta al pasar a beta cambiando `MOSTRAR_GENETICA`.
 - Aparcado: modo historia (cuando la base funcione bien), y salud, alimentación y lesiones (dependerán de eventos).
 
+### 23/10/2026 — Nueva épica E20: Relaciones
+
+- Hoy cada NPC tiene una sola interacción (quedar o hablar) y una cifra de afinidad. Para tener amistades profundas, pareja e hijos hace falta un sistema de relaciones de verdad, así que se registra la épica **E20** en `BACKLOG_STATS.md`: modelo de relación con tipos y estados, acciones variadas, mantenimiento por vínculo, personalidad de los NPCs, pareja, hijos y familia propia.
+- Las partes que necesitan eventos (declararse, rupturas, hijos) esperan al motor de eventos (E18). La base se puede hacer con acciones.
+- Quedan cuatro preguntas abiertas para el usuario antes de empezar (módulo aparte o ampliado, tipos de vínculo por fase, cifra continua o estados, vida propia de los NPCs).
+
 ## Pendiente e ideas
 
 - **Consecuencias de la salud muy baja:** ahora el bot que sobreentrena llega a salud 0 sin más castigo que rendir menos. Idea: lesión o baja médica que bloquee entrenar unos días.
