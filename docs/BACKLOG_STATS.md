@@ -348,14 +348,15 @@ Registrada el 23/10/2026. **Hoy el módulo `npcs` solo tiene una interacción po
 | E20.8 | **Relación con los padres y la familia:** que apoyo, expectativas y tiempo en casa (módulo `familia`) se muevan con lo que haga el personaje | Enlaza con E13.1 |
 | E20.9 | **Efectos de las relaciones en el juego:** apoyo en acciones (ya existe), consejos del entrenador, motivación, estrés, oportunidades (un contacto que abre una puerta) | Respetar las reglas: etiquetas, modificadores y eventos entre módulos |
 | E20.10 | **Interfaz:** lista de personas con tipo de vínculo, cómo va y qué se puede hacer con cada una | Parte de E15 |
-| E20.11 | **Arquitectura:** decidir si el módulo `npcs` se divide en `npcs` (población y rivales) y `relaciones` (vínculos), o se amplía | Hay que decidirlo antes de empezar; ver preguntas |
+| E20.11 | **Arquitectura:** módulo `relaciones` aparte de `npcs` | Decidido el 23/10 |
+| E20.12 | **Vida propia de los NPCs:** relaciones entre ellos, cambios de club y de ciudad, parejas | Decidido el 23/10. Costoso en rendimiento con 96 rivales: simularlo por semana o por curso, no por día |
 
-**Preguntas abiertas antes de empezar**
+**Decisiones del 23/10/2026**
 
-1. ¿Un módulo `relaciones` aparte del de `npcs` (la población y los rivales) o el mismo módulo ampliado? Recomendación: aparte, porque los vínculos se comunican con muchos módulos y `npcs` ya es el más grande.
-2. ¿Qué tipos de vínculo hay en la fase infantil y cuáles se abren más tarde (pareja, hijos)?
-3. ¿El vínculo es una cifra continua con umbrales (como ahora) o un estado discreto que cambia solo con eventos?
-4. ¿Los NPCs viven su propia vida (cambian de club, se mudan, forman pareja entre ellos) o solo existen en relación con el personaje?
+1. **Módulo aparte:** `relaciones` (vínculos) separado de `npcs` (población y rivales). Se comunican por servicios y eventos.
+2. **Tipos de vínculo:** los propuestos (desconocido, conocido, amigo, mejor amigo, rivalidad, pareja, familia). **La pareja se abre a los 14 años** (valor inicial, se podrá cambiar; es un dato).
+3. **Estado visible, umbrales ocultos:** el jugador ve el estado del vínculo; la afinidad y sus umbrales se muestran solo durante el desarrollo (como la genética, ver `MOSTRAR_GENETICA`) y se ocultan en beta. Internamente sigue habiendo una cifra con umbrales que decide los cambios de estado.
+4. **Los NPCs viven su propia vida:** cambian de club, se mudan, forman amistades y parejas entre ellos, no solo existen en relación con el personaje. Esto exige que los NPCs tengan edad, agenda y relaciones entre sí (no solo con el jugador).
 
 **Orden:** la base (E20.1 a E20.4) se puede construir con acciones y sin eventos; las partes de pareja, hijos y rupturas (E20.6, E20.7) necesitan el motor de eventos (E18). Se trabaja después de cimentar lo que quede de la fase infantil y antes del motor definitivo de eventos, para que el motor se diseñe sabiendo qué necesitan las relaciones.
 

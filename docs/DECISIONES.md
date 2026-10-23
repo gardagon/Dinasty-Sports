@@ -299,7 +299,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 - Hoy cada NPC tiene una sola interacción (quedar o hablar) y una cifra de afinidad. Para tener amistades profundas, pareja e hijos hace falta un sistema de relaciones de verdad, así que se registra la épica **E20** en `BACKLOG_STATS.md`: modelo de relación con tipos y estados, acciones variadas, mantenimiento por vínculo, personalidad de los NPCs, pareja, hijos y familia propia.
 - Las partes que necesitan eventos (declararse, rupturas, hijos) esperan al motor de eventos (E18). La base se puede hacer con acciones.
-- Quedan cuatro preguntas abiertas para el usuario antes de empezar (módulo aparte o ampliado, tipos de vínculo por fase, cifra continua o estados, vida propia de los NPCs).
+- **Respuestas del mismo día:** módulo `relaciones` aparte de `npcs`; los tipos de vínculo propuestos y la pareja a partir de los 14 años; el vínculo se ve como un estado (los umbrales numéricos solo durante el desarrollo, se ocultan en beta); los NPCs viven su propia vida (relaciones entre ellos, cambios de club y de ciudad).
 
 ## Pendiente e ideas
 
