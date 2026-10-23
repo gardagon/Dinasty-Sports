@@ -141,4 +141,37 @@ describe('módulo estudios', () => {
       expect(notaControl(60, 20, 0, 8)).toBeLessThan(notaControl(60, 20, 0, 0));
     });
   });
+
+  describe('tope de las asignaturas', () => {
+    it('los apoyos de cada asignatura suman 1', () => {
+      for (const a of ASIGNATURAS) {
+        expect(a.apoyos.reduce((x, y) => x + y.weight, 0)).toBeCloseTo(1, 6);
+      }
+    });
+
+    it('el tope no se hereda de los padres: sale de las genéricas que apoyan la asignatura (±10 %)', () => {
+      for (let seed = 1; seed <= 20; seed++) {
+        const g = Game.create([personaje, estudios], { seed });
+        for (const a of ASIGNATURAS) {
+          const base = a.apoyos.reduce((x, y) => x + y.weight * g.hiddenPotential(y.stat)!, 0);
+          const tope = g.hiddenPotential(`estudios.${a.key}`)!;
+          expect(tope).toBeGreaterThanOrEqual(Math.max(10, base * 0.9) - 1e-9);
+          expect(tope).toBeLessThanOrEqual(Math.min(95, base * 1.1) + 1e-9);
+        }
+      }
+    });
+
+    it('quien tiene tope alto en inteligencia y concentración lo tiene en matemáticas; el de educación física sigue a lo físico', () => {
+      const xs = Array.from({ length: 200 }, (_, i) => Game.create([personaje, estudios], { seed: i + 1 }));
+      const corr = (f: (g: Game) => number, h: (g: Game) => number) => {
+        const a = xs.map(f), b = xs.map(h);
+        const ma = a.reduce((x, y) => x + y, 0) / a.length, mb = b.reduce((x, y) => x + y, 0) / b.length;
+        let c = 0, sa = 0, sb = 0;
+        for (let i = 0; i < a.length; i++) { c += (a[i] - ma) * (b[i] - mb); sa += (a[i] - ma) ** 2; sb += (b[i] - mb) ** 2; }
+        return c / Math.sqrt(sa * sb);
+      };
+      expect(corr((g) => g.hiddenPotential('estudios.matematicas')!, (g) => g.hiddenPotential('gen.inteligencia')!)).toBeGreaterThan(0.5);
+      expect(corr((g) => g.hiddenPotential('estudios.educacion_fisica')!, (g) => g.hiddenPotential('gen.coordinacion')!)).toBeGreaterThan(0.35);
+    });
+  });
 });

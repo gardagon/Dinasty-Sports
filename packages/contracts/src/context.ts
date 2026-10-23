@@ -73,7 +73,9 @@ export interface InitContext {
   readonly playerName: string;
   /**
    * Genética de un rasgo que no es una stat (p. ej. la altura), como puntuación típica (media 0, desviación 1) de cada
-   * progenitor y del hijo. El del hijo mezcla los de sus padres (ver `mezclarZ`). Estable: la misma familia da lo mismo.
+   * progenitor y del hijo. El del hijo es la media de los de sus padres más una variación (ver `mezclarZ`). Estable: la misma familia da lo mismo.
    */
   herencia(familia: string): { padre: number; madre: number; hijo: number };
+  /** Topes genéticos de cada progenitor por capacidad con herencia directa (los que ya se han fijado al crear la partida). */
+  readonly topesDePadres: { readonly padre: Readonly<Record<string, number>>; readonly madre: Readonly<Record<string, number>> };
 }

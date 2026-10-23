@@ -79,7 +79,8 @@ const asignaturaStat = (a: Asignatura): StatDef => ({
   category: 'habilidad',
   initial: NIVEL_INICIAL,
   talentSpread: 0.2,
-  genetics: { family: 'intelecto' },
+  // El tope de una asignatura no se hereda: sale de las genéricas que la apoyan más una aptitud propia (±10 %).
+  genetics: { derivedFrom: a.apoyos, aptitude: 0.1 },
   growth: {
     rate: 0.5,
     curve: 1.5,

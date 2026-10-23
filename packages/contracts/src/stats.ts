@@ -37,16 +37,17 @@ export interface GrowthDef {
   cap?: { base: number; from?: StatInfluence[] };
 }
 
-/** Distribución del tope genético de una característica (escala 0..100, la misma que su valor). */
+/**
+ * Tope genético de una característica. Hay dos formas:
+ * - Directa (sin `derivedFrom`): se hereda de los padres, que tienen un perfil de topes (ver `herencia.ts`).
+ * - Derivada: no se hereda, sale de la media ponderada de los topes de otras características (p. ej. una
+ *   asignatura de la inteligencia y la concentración) más una aptitud propia de la característica.
+ */
 export interface GeneticsDef {
-  /** Familia: las stats que la comparten correlacionan (quien tiene buena genética física la tiene en casi todo lo físico). */
-  family: string;
-  /** Media y desviación del tope. Por defecto, las de `GENETICS_DEFAULT`. */
-  mean?: number;
-  sd?: number;
+  derivedFrom?: StatInfluence[];
+  /** Solo con `derivedFrom`: aptitud propia, como variación ± sobre el tope derivado (0,1 = ±10 %). Por defecto 0,1. */
+  aptitude?: number;
 }
-
-export const GENETICS_DEFAULT = { mean: 79, sd: 9, /** Parte compartida con la familia en cada progenitor (0..1). Al mezclar a los dos padres se diluye: en el hijo queda ~0,4. */ shared: 0.85, min: 45, max: 100 } as const;
 
 /** Cómo cae una característica cuando no se practica. */
 export interface DecayDef {
@@ -71,9 +72,9 @@ export interface StatDef {
   talentSpread?: number;
   growth?: GrowthDef;
   /**
-   * Tope genético individual (oculto). Se sortea al crear la partida y hace dos cosas: ninguna capacidad pasa de
-   * él y, a igual entrenamiento, quien tiene un tope más alto sube más rápido. Sin padres, se sortea; con padres,
-   * saldrá de la herencia. Las stats de una misma `family` (p. ej. todo lo físico) comparten parte de la genética.
+   * Tope genético individual (oculto). Se fija al crear la partida y hace dos cosas: ninguna capacidad pasa de
+   * él y, a igual entrenamiento, quien tiene un tope más alto sube más rápido. Sale de la herencia de los padres
+   * (capacidades) o de otros topes (habilidades y asignaturas, con `derivedFrom`).
    */
   genetics?: GeneticsDef;
   decay?: DecayDef;

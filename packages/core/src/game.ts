@@ -13,10 +13,13 @@ import {
   type InitContext,
   type LogEntry,
   type LogTable,
-  GENETICS_DEFAULT,
+  HERENCIA,
+  heredarTope,
+  nivelInicialHeredado,
+  perfilDePadre,
+  repartirHerencia,
   type ReadContext,
   type Rng,
-  mezclarTope,
   mezclarZ,
   type StatId,
   type TimeView,
@@ -137,7 +140,56 @@ export class Game {
       padre: { familias: {}, topes: {} },
       madre: { familias: {}, topes: {} },
       hijo: {},
+      origen: {},
     });
+  }
+
+  /**
+   * Genética de las características nuevas. Las de herencia directa: cada padre recibe un perfil de topes por bandas, el
+   * hijo toma la mitad de las capacidades de cada uno (±20 %) y su nivel inicial sale también de los padres. Las derivadas
+   * (habilidades, asignaturas) salen de los topes de otras características más una aptitud propia.
+   */
+  private static genetica(registry: Registry, state: GameState, nuevas: Set<string>): void {
+    const rng = seededRng((state.seed ^ 0x9e3779b1) + nuevas.size);
+    const conGenetica = registry.statList.filter((s) => nuevas.has(s.def.id) && s.def.genetics);
+    const directas = conGenetica.filter((s) => !s.def.genetics!.derivedFrom);
+    const lin = Game.lineage(state);
+    state.potential ??= {};
+    if (directas.length) {
+      const ids = directas.map((s) => s.def.id);
+      Object.assign(lin.padre.topes, perfilDePadre(ids, rng));
+      Object.assign(lin.madre.topes, perfilDePadre(ids, rng));
+      const reparto = repartirHerencia(ids, rng);
+      const factor = (lin.factor ??= rng.range(HERENCIA.nivelInicial.factorMin, HERENCIA.nivelInicial.factorMax));
+      for (const { def, min, max } of directas) {
+        const lado = reparto[def.id];
+        lin.origen[def.id] = lado;
+        const tope = heredarTope(lin[lado].topes[def.id], rng);
+        state.potential[def.id] = tope;
+        // El nivel inicial también sale del progenitor del que hereda, dentro del rango inicial de la característica.
+        if (typeof def.initial !== 'number') {
+          const n = nivelInicialHeredado(lin[lado].topes[def.id], factor, rng);
+          const v = Math.min(tope, max, Math.max(min, def.initial.min + (def.initial.max - def.initial.min) * n));
+          state.stats[def.id] = state.peaks[def.id] = state.baseline[def.id] = v;
+        }
+      }
+    }
+    for (const { def } of conGenetica) {
+      const g = def.genetics!;
+      if (!g.derivedFrom) continue;
+      let suma = 0;
+      let peso = 0;
+      for (const inf of g.derivedFrom) {
+        const t = state.potential[inf.stat];
+        if (t === undefined) continue;
+        suma += inf.weight * t;
+        peso += inf.weight;
+      }
+      if (peso === 0) continue;
+      const aptitud = g.aptitude ?? 0.1;
+      const v = (suma / peso) * (1 + aptitud * (rng.next() * 2 - 1));
+      state.potential[def.id] = Math.min(HERENCIA.max, Math.max(HERENCIA.min, v));
+    }
   }
 
   private static zDeFamilia(p: ParentGenes, familia: string, rng: Rng): number {
@@ -147,6 +199,7 @@ export class Game {
   /** Inicializa lo que falte: permite añadir módulos a partidas ya empezadas. */
   private static fillMissing(registry: Registry, state: GameState): void {
     const init = seededRng((state.seed ^ 0x5bd1e995) + Object.keys(state.stats).length);
+    const nuevas = new Set(registry.statList.filter((s) => !(s.def.id in state.stats)).map((s) => s.def.id));
     for (const { def, min, max } of registry.statList) {
       if (def.id in state.stats) continue;
       const v =
@@ -158,24 +211,13 @@ export class Game {
       const spread = def.category === 'estado' ? 0 : (def.talentSpread ?? 0.15);
       state.talent[def.id] = 1 + (init.next() * 2 - 1) * spread;
       state.lastTrained[def.id] = state.minute;
-      if (def.genetics) {
-        // Tope genético: el de cada padre (parte compartida con su familia y parte propia) y el del hijo, que los mezcla.
-        const g = GENETICS_DEFAULT;
-        const mean = def.genetics.mean ?? g.mean;
-        const sd = def.genetics.sd ?? g.sd;
-        const lin = Game.lineage(state);
-        for (const lado of ['padre', 'madre'] as const) {
-          const z = g.shared * Game.zDeFamilia(lin[lado], def.genetics.family, init) + Math.sqrt(1 - g.shared ** 2) * init.normal();
-          lin[lado].topes[def.id] = Math.min(g.max, Math.max(g.min, mean + sd * z));
-        }
-        state.potential ??= {};
-        state.potential[def.id] = mezclarTope(lin.padre.topes[def.id], lin.madre.topes[def.id], init, g.min, g.max);
-      }
     }
+    Game.genetica(registry, state, nuevas);
     const ictx: InitContext = {
       rng: init,
       seed: state.seed,
       playerName: state.playerName,
+      topesDePadres: { padre: Game.lineage(state).padre.topes, madre: Game.lineage(state).madre.topes },
       herencia: (familia) => {
         const lin = Game.lineage(state);
         const padre = Game.zDeFamilia(lin.padre, familia, init);
@@ -225,6 +267,11 @@ export class Game {
   /** Tope genético oculto de un progenitor (solo para pruebas y simulación). */
   parentPotential(lado: 'padre' | 'madre', id: StatId): number | undefined {
     return this.s.lineage?.[lado].topes[id];
+  }
+
+  /** De qué progenitor hereda una característica de herencia directa (solo para pruebas y la interfaz de pruebas). */
+  geneticOrigin(id: StatId): 'padre' | 'madre' | undefined {
+    return this.s.lineage?.origen[id];
   }
 
   cap(id: StatId): number {

@@ -258,18 +258,23 @@ const MOSTRAR_GENETICA = true;
 
 function viewGenetics(g: Game): string {
   if (!MOSTRAR_GENETICA) return '';
+  const n = (v: number | undefined) => (v === undefined ? '—' : String(Math.round(v)));
   const filas = g.registry.statList
     .filter((s) => g.hiddenPotential(s.def.id) !== undefined)
     .map((s) => {
       const id = s.def.id;
-      const n = (v: number | undefined) => (v === undefined ? '—' : Math.round(v));
-      return `<tr><td>${esc(s.def.name)}</td><td>${n(g.parentPotential('padre', id))}</td><td>${n(g.parentPotential('madre', id))}</td><td><b>${n(g.hiddenPotential(id))}</b></td></tr>`;
+      const origen = g.geneticOrigin(id);
+      const celda = (lado: 'padre' | 'madre') => {
+        const v = n(g.parentPotential(lado, id));
+        return origen === lado ? `<b>${v}</b> ←` : v;
+      };
+      return `<tr><td>${esc(s.def.name)}</td><td>${celda('padre')}</td><td>${celda('madre')}</td><td><b>${n(g.hiddenPotential(id))}</b>${origen ? '' : ' <small>(derivado)</small>'}</td></tr>`;
     })
     .join('');
   if (!filas) return '';
   return `<section class="sheet"><h2>Genética (solo pruebas)</h2>
     <div class="table"><table><thead><tr><th>Capacidad</th><th>Padre</th><th>Madre</th><th>Tope tuyo</th></tr></thead><tbody>${filas}</tbody></table></div>
-    <p class="note">Topes genéticos ocultos. Cada capacidad hereda 60 % de un padre y 40 % de la madre (al azar cuál), con una pequeña variación. Se ocultará al pasar a beta.</p>
+    <p class="note">Topes genéticos ocultos. Cada capacidad la hereda UN solo padre (la flecha marca cuál; la mitad de cada uno, al azar) con una variación de ±20 %, sin punto intermedio. Las asignaturas y las habilidades de atletismo no se heredan: salen de las capacidades que las apoyan más una aptitud propia (derivado). Se ocultará al pasar a beta.</p>
   </section>`;
 }
 

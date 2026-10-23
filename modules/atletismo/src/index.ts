@@ -128,7 +128,7 @@ const SESIONES_SIN_SOBRECARGA = 2;
 /** Genérica que apoya a una habilidad y su peso sobre el ritmo de subida (el techo pesa la mitad). */
 type Apoyo = { stat: string; weight: number };
 
-const habilidad = (key: string, name: string, apoyos: Apoyo[], description: string): StatDef => ({
+const habilidad = (key: string, name: string, apoyos: Apoyo[], description: string, tope: Apoyo[]): StatDef => ({
   id: `atletismo.${key}`,
   name,
   description,
@@ -136,9 +136,10 @@ const habilidad = (key: string, name: string, apoyos: Apoyo[], description: stri
   category: 'habilidad',
   initial: { min: 5, max: 15 },
   talentSpread: 0.2,
-  genetics: { family: 'fisico' },
+  // El tope no se hereda: sale de las genéricas físicas (y mentales) que la apoyan más una aptitud propia (±15 %).
+  genetics: { derivedFrom: tope, aptitude: 0.15 },
   growth: {
-    rate: 0.5,
+    rate: 0.36,
     curve: 1.5,
     speedFrom: [...apoyos, { stat: GEN.determinacion, weight: 0.2 }],
     cap: {
@@ -223,14 +224,29 @@ const horarioEntreno = (ctx: ReadContext): true | string => {
   return inHours(t, 15, 21) ? true : 'Entrenamientos entre semana de 15 a 21';
 };
 
+/**
+ * Efecto del conocimiento del deporte sobre las habilidades que dependen de entender la carrera: de ×0,85 (no conoces
+ * el deporte: fallas la colocación, el ritmo, el momento de la salida) a ×1,15 (lo conoces a fondo: sacas más de lo que
+ * tu cuerpo da). Lo puramente físico (velocidad, resistencia) no cambia: saber de atletismo no te hace más lento.
+ * La sensibilidad dice cuánto depende cada habilidad del conocimiento.
+ */
+const CONOCIMIENTO_EN_COMPETICION = { min: 0.85, rango: 0.3 };
+const SENSIBILIDAD = { tecnica: 0.5, ritmo: 1, salida: 1 };
+
+/** Valor efectivo de una habilidad táctica en competición: su nivel por el efecto del conocimiento. */
+const efectivo = (ctx: ReadContext, key: keyof typeof SENSIBILIDAD): number => {
+  const f = CONOCIMIENTO_EN_COMPETICION.min + CONOCIMIENTO_EN_COMPETICION.rango * ctx.norm(CONOCIMIENTO);
+  return ctx.stat(`atletismo.${key}`) * (1 + SENSIBILIDAD[key] * (f - 1));
+};
+
 /** Rendimiento 0..100 a partir de las stats (el corazón del deporte; ajustable sin tocar nada más). */
 export function rendimiento(ctx: ReadContext): number {
   return (
     0.25 * ctx.stat(GEN.velocidad) +
     0.2 * ctx.stat(GEN.resistencia) +
-    0.25 * ctx.stat('atletismo.tecnica') +
-    0.15 * ctx.stat('atletismo.ritmo') +
-    0.15 * ctx.stat('atletismo.salida')
+    0.25 * efectivo(ctx, 'tecnica') +
+    0.15 * efectivo(ctx, 'ritmo') +
+    0.15 * efectivo(ctx, 'salida')
   );
 }
 
@@ -428,8 +444,8 @@ export const atletismo = defineModule<AtletismoState>({
   description: '400 metros lisos. Entrena por la tarde y compite los sábados.',
   dependsOn: ['gen'],
   stats: [
-    habilidad('tecnica', 'Técnica de carrera', [{ stat: GEN.coordinacion, weight: 0.4 }, { stat: GEN.agilidad, weight: 0.2 }], 'Zancada eficiente y postura.'),
-    habilidad('ritmo', 'Gestión del ritmo', [{ stat: GEN.resistencia, weight: 0.4 }, { stat: GEN.inteligencia, weight: 0.2 }], 'Repartir el esfuerzo en la vuelta.'),
+    habilidad('tecnica', 'Técnica de carrera', [{ stat: GEN.coordinacion, weight: 0.4 }, { stat: GEN.agilidad, weight: 0.2 }], 'Zancada eficiente y postura.', [{ stat: GEN.coordinacion, weight: 0.5 }, { stat: GEN.agilidad, weight: 0.3 }, { stat: GEN.determinacion, weight: 0.2 }]),
+    habilidad('ritmo', 'Gestión del ritmo', [{ stat: GEN.resistencia, weight: 0.4 }, { stat: GEN.inteligencia, weight: 0.2 }], 'Repartir el esfuerzo en la vuelta.', [{ stat: GEN.resistencia, weight: 0.5 }, { stat: GEN.inteligencia, weight: 0.25 }, { stat: GEN.determinacion, weight: 0.25 }]),
     {
       id: CONOCIMIENTO,
       name: 'Conocimiento de atletismo',
@@ -439,8 +455,10 @@ export const atletismo = defineModule<AtletismoState>({
       initial: 0,
       talentSpread: 0,
       growth: {
-        rate: 0.15,
-        curve: 1.2,
+        // Sube rápido al principio (la primera carrera da ~1 punto) y cada vez más despacio: a 70 puntos, ver atletismo
+        // en la tele da apenas centésimas. Todo el mundo puede llegar a 100, pero el último tramo cuesta años.
+        rate: 0.3,
+        curve: 2.5,
         // Quien presta atención y razona bien aprende más de lo mismo.
         speedFrom: [
           { stat: GEN.atencion, weight: 0.9 },
@@ -449,7 +467,7 @@ export const atletismo = defineModule<AtletismoState>({
       },
       decay: { graceDays: 30, ratePerDay: 0.003, floorRatio: 0.95 },
     },
-    habilidad('salida', 'Salida y aceleración', [{ stat: GEN.velocidad, weight: 0.4 }, { stat: GEN.fuerza, weight: 0.2 }], 'Arrancar rápido desde los tacos.'),
+    habilidad('salida', 'Salida y aceleración', [{ stat: GEN.velocidad, weight: 0.4 }, { stat: GEN.fuerza, weight: 0.2 }], 'Arrancar rápido desde los tacos.', [{ stat: GEN.velocidad, weight: 0.5 }, { stat: GEN.fuerza, weight: 0.3 }, { stat: GEN.coordinacion, weight: 0.2 }]),
   ],
 
   initState: () => ({
