@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/10/2026 — Diseño de E10: el paso a profesional
+
+- **Pasar a profesional es como subir de categoría:** hay categorías profesionales donde juegan los mejores y se accede a la primera cuando las habilidades permiten ser competitivo en ella.
+- **La oferta llega por un ojeador** que ve competir al personaje: el nivel abre la posibilidad, el ojeador la hace realidad. Requiere el sistema de eventos y decisiones.
+- **Tres niveles profesionales jugables ya** (no solo como dato), con subida de uno a otro por resultados y nivel.
+- **Desde los 16 años, sin límite superior:** si no llega la oferta, sigue en la cantera y puede recibirla más tarde.
+- **Aceptar trae más obligaciones, eventos y cosas que hacer.** El personaje puede dejar el colegio, pero si después quiere ser entrenador, agente u otro oficio necesita estudiar, y sin haber terminado el colegio le costará más.
+- **Orden de implementación:** población profesional y niveles; motor mínimo de eventos y decisiones; oferta, aceptación y transición; subida de nivel profesional. Detalle en `BACKLOG_STATS.md` (E10).
+
+---
+
 ## 22/10/2026 — Antes de E10: potencial individual, bots, verano según notas, campeonato y categoría por año de nacimiento
 
 ### Tope genético individual por habilidad (E2.7)

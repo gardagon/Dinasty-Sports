@@ -189,14 +189,33 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 
 ## E10 · Ciclo de vida y paso a profesional — 🟡 · Fidelidad: media (el original habla de fases de vida y requisitos de debut)
 
+### Diseño acordado el 23/10/2026
+
+- **Capacidad:** pasar a profesional funciona como subir de categoría. Hay **categorías profesionales** en las que juegan los mejores, y se puede acceder a la primera cuando las habilidades del personaje permiten ser competitivo en ella. Igual que se sube a un personaje porque destaca.
+- **La oferta llega por un ojeador** (nivel y ojeadores): el nivel abre la posibilidad y un ojeador lo ve competir y le hace la oferta. Esto necesita el sistema de eventos y decisiones (E18).
+- **Tres niveles profesionales jugables ya,** no solo como dato: se puede subir de nivel profesional dentro de esta entrega.
+- **Edad:** desde los 16 años, sin límite superior. Si no llega la oferta, el personaje sigue en la cantera y puede recibirla más tarde.
+- **Aceptar no cierra la formación de golpe:** implica **más cosas que hacer, eventos y obligaciones**. El personaje puede **dejar el colegio**, pero si en su etapa profesional o al retirarse quiere prepararse para **entrenador, agente u otro oficio** necesita estudiar, y sin haber terminado el colegio le costará más.
+
+### Tareas
+
 | ID | Tarea | Notas |
 |---|---|---|
-| E10.1 | Fases de vida como estado del personaje: formación, profesional, retiro | La fase 1 termina al hacerse profesional |
-| E10.2 | La **oportunidad profesional**: ventana de 16 a 18 años según nivel y deporte, con requisitos (el original usa constitución, coordinación, determinación, concentración y resiliencia) | Una puerta que se abre y el jugador decide si cruza. Edad y deporte decididos el 22/10; faltan los requisitos concretos de atletismo |
-| E10.3 | Cierre de la fase 1 y arranque de la fase 2 | Resumen de lo vivido y estado que pasa a la nueva fase |
-| E10.4 | Fase 2 (profesional): club, contratos, patrocinios, competición de élite | Módulos nuevos; diseñar después de cerrar la fase 1 |
-| E10.5 | Fase 3 (retiro): entrenador, representante u otro trabajo deportivo | Un módulo distinto por oficio; después de la fase 2 |
-| E10.6 | Fin de partida | Qué cuenta como terminar cada fase y cómo se resume la carrera |
+| E10.1 | Fases de vida como estado del personaje: formación, profesional, retiro | La formación no termina al instante al aceptar: hay una transición (ver E10.3) |
+| E10.2 | **Población profesional y tres niveles** (p. ej. circuito nacional, internacional y élite) como dato, cada uno con un campo más fuerte: atletas adultos con herencia propia que envejecen y se retiran, como los rivales de la cantera pero en la cima | Calibrar campos (referencia: de cada 100 partidas, unas 55 llegan al primer nivel, 20 al segundo y 3 a la élite) 🟡 |
+| E10.3 | **Oferta del ojeador y decisión:** condiciones (16 años o más, nivel competitivo en el nivel profesional), la oferta como evento con opciones (aceptar, pedir tiempo, rechazar) y sus consecuencias | Depende del motor de eventos y decisiones (E18.1 y E18.2) |
+| E10.4 | **Transición a profesional:** más obligaciones (entrenamiento y calendario del club profesional), eventos, y la decisión de **dejar el colegio o seguir** | Dejar el colegio libera tiempo pero deja los estudios incompletos |
+| E10.5 | **Titulación y futuro:** el personaje conserva si terminó o no el colegio; sin terminarlo, los oficios de después (entrenador, agente...) cuestan más | Marca de estudios que se consultará en la fase 3 |
+| E10.6 | **Subir de nivel profesional:** igual que la subida de categoría, por resultados y nivel | Los tres niveles se juegan ya |
+| E10.7 | Fase 3 (retiro): entrenador, representante u otro trabajo deportivo | Un módulo distinto por oficio; después de la fase 2 |
+| E10.8 | Fin de partida | Qué cuenta como terminar y cómo se resume la carrera |
+
+### Orden de implementación propuesto
+
+1. **Población profesional y niveles** (E10.2), sin eventos: es la base y se puede probar con los bots.
+2. **Motor mínimo de eventos y decisiones** (E18.1 y E18.2) con la interfaz para decidir.
+3. **Oferta del ojeador, aceptación y transición** (E10.3 a E10.5).
+4. **Subir de nivel profesional y calendario profesional** (E10.6).
 
 ## E11 · Ritmo de juego y planificación — 🟡 · Sin equivalente en el original
 
