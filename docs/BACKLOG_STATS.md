@@ -99,7 +99,7 @@ El original usa tres capas: stats globales → conocimiento deportivo → habili
 | E2.4 | Tabla global → habilidad técnica (qué stat alimenta qué habilidad) | Sección 12 del original: **pendiente allí**. La diseñamos aquí para atletismo y estudios |
 | E2.5 | Transferencias de entrenamiento (global→técnica 10–20 %, técnica→relacionada 15–25 %, técnica→global 3–5 %) declaradas en datos | Respetar la regla 4: se haría con `ctx.train`, nunca tocando habilidades de otro módulo |
 | E2.6 | Decay con multiplicador por inactividad semanal (con techo) y velocidad según edad | La edad ya existe (E3.1), así que se puede hacer. Hoy: caída diaria tras N días de gracia, igual a cualquier edad |
-| E2.7 ✅ (rehecho el 23/10) | **Potencial individual por habilidad, ligado al tope hereditario:** cada habilidad (y capacidad física) tiene un tope genético oculto y la velocidad de progreso también depende de él (tope 92 sube más rápido que tope 70, entrenando igual). Ganancia ×1 (<80 % del tope), ×0,5, ×0,2, ×0,05 (>95 %) | Hecho el 22/10 y rehecho el 23/10: el tope sale de los padres (E8.1) para las genéricas y se deriva de ellas para las habilidades y asignaturas (E8.5). Tope típico 62; el ritmo de subida se escala con él (`ESCALA_DE_RITMO` 0,8). Falta los tramos de ganancia por cercanía al tope |
+| E2.7 ✅ (rehecho el 23/10) | **Potencial individual por habilidad, ligado al tope hereditario:** cada habilidad (y capacidad física) tiene un tope genético oculto y la velocidad de progreso también depende de él (tope 92 sube más rápido que tope 70, entrenando igual). Ganancia ×1 (<80 % del tope), ×0,5, ×0,2, ×0,05 (>95 %) | Hecho el 22/10 y rehecho el 23/10: el tope sale de los padres (E8.1) para las genéricas y se deriva de ellas para las habilidades y asignaturas (E8.5). Tope típico 62; el ritmo de subida se escala con él (`ESCALA_DE_RITMO` 0,8). Falta los tramos de ganancia por cercanía al tope (hoy se ralentiza por la curva de rendimientos decrecientes hacia el tope) |
 | E2.8 | Modificador de energía en la competición (70–100 % ×1, … 0–9 % ×0,3) | Contrastar con la eficiencia por energía que ya existe antes de duplicar |
 
 ## E3 · Identidad y cuerpo — 🟡 · Fidelidad: media
@@ -166,7 +166,7 @@ Posiciones (16), roles (42), experiencia por posición/rol con afinidad, fórmul
 **Pendiente en E8:** herencia de perks con dos pools (necesita E5), ciclo de generaciones (hijos del personaje), dificultad al crear la partida (E15.1; los recuentos de bandas de `easy` y `hard` ya están como dato en `RECUENTOS`), hermanos con su propia tirada, y el techo duro del conocimiento (ver E2.3).
 
 
-Padres con los stats globales, límites genéticos derivados de los padres (media × factor ± 15 %), herencia de perks con dos pools. También el **nivel inicial de los demás niños según la práctica deportiva de sus padres** (hoy los rivales arrancan con un nivel medio de 29, hasta 54: a los 10 años no debería haber niveles altos sin antecedentes en el deporte). Requiere diseñar el ciclo de generaciones, que este juego aún no tiene. E2.7 y E5.1 se escriben pensando en que luego encajen aquí.
+Padres con topes genéticos y herencia (hecha, ver abajo), herencia de perks con dos pools y ciclo de generaciones (pendientes). Los rivales ya heredan de sus padres y su práctica deportiva les da ventaja de partida. E2.7 y E5.1 se escriben pensando en que luego encajen aquí.
 
 ## E9 · Calendario, curso y temporadas — 🟡 · Fidelidad: baja (el original usa semanas 12/24/36)
 
@@ -244,7 +244,7 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 
 | Orden | Épica | Qué incluye |
 |---|---|---|
-| 1 ✅ | Familia y genética (E13.1, E8 en parte) | Padres como personajes; topes genéticos, altura y nivel inicial heredados; práctica deportiva de los padres; herencia de los rivales |
+| 1 ✅ | Familia y genética (E13.1, E8 en parte) | Hecho el 23/10: padres con perfil, sesgo y calidad; topes, altura y nivel inicial heredados; práctica deportiva de los padres; herencia de los rivales |
 | 2 | Modo historia y entorno (E13.0, E19.7) | Llegar a una ciudad y un colegio nuevos sin conocer a nadie; entrenadores de club como personajes |
 | 3 | Salud, lesiones y alimentación (E12) y edad en el decay (E1.5, E2.6) | Lesiones ligadas a la constitución, recuperación, alimentación como hábito |
 | 4 | Estructura de habilidades que falta (E2) | Tabla global → habilidad, transferencias, derivadas y ocultas, valor efectivo en competición |
