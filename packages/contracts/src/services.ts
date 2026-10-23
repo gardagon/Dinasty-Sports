@@ -1,3 +1,4 @@
+import type { Practica } from './herencia';
 /**
  * Servicios: la forma de que un módulo CONSULTE a otro sin importarlo.
  * El contrato (interfaz + clave) vive aquí; la implementación, en el módulo que lo publica.
@@ -8,6 +9,7 @@ export const SERVICES = {
   estudios: 'estudios',
   identidad: 'identidad',
   clubes: 'clubes',
+  familia: 'familia',
 } as const;
 
 // ---------- NPCs ----------
@@ -80,6 +82,33 @@ export interface IdentityView {
 
 export interface IdentityService {
   view(): IdentityView;
+}
+
+// ---------- Familia ----------
+
+export interface ParentView {
+  id: 'padre' | 'madre';
+  nombre: string;
+  gender: Gender;
+  /** Edad en años enteros hoy. */
+  edad: number;
+  alturaCm: number;
+  /** Deporte al que se dedicó, si hizo alguno. */
+  deporte?: string;
+  practica: Practica;
+  /** 0..100. Cuánto respalda al personaje en lo que hace. */
+  apoyo: number;
+  /** 0..100. Cuánto espera de él (en el deporte y en los estudios). */
+  expectativas: number;
+  /** 0..100. Tiempo que pasa en casa con él. */
+  tiempoEnCasa: number;
+}
+
+export interface FamilyService {
+  /** Apellidos de la familia. */
+  apellidos: string;
+  /** Padre y madre (la genética oculta no se expone). */
+  parents(): ParentView[];
 }
 
 // ---------- Clubes ----------

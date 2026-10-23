@@ -285,6 +285,16 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 ---
 
+### 23/10/2026 — Familia y genética (E8 y E13.1, primera parte)
+
+- **Herencia por capacidad:** el tope genético del personaje sale de los **topes** de sus padres (no de su nivel): 60 % de un progenitor y 40 % del otro, al azar cuál por capacidad, más una variación del 7 % propia. La distribución general se mantiene (media ~79, desviación ~8,5).
+- **Parte compartida por familia** en cada progenitor sube de 0,6 a 0,85: al mezclar dos padres la correlación entre capacidades de una misma familia se diluye, y así el hijo conserva ~0,4.
+- **Módulo `familia`** (padre y madre): nombre, edad, altura, deporte practicado, apoyo, expectativas y tiempo en casa. Estos tres valores no hacen nada aún; los moverán los eventos y decisiones. Su genética la guarda el motor (`state.lineage`), no el módulo.
+- **Práctica deportiva de los padres** según su tope físico (profesional, federado, aficionado o ninguna); lo más frecuente es que no hayan practicado deporte.
+- **Rivales con padres completos:** cada uno tiene padre y madre (nombre, tope de atletismo, práctica). Su tope sale de los suyos y su nivel inicial se multiplica por entre 0,95 y 1,10 según lo que practicaron. La simulación sigue en verde (13 chequeos).
+- **El jugador ve la genética mientras dure la fase de pruebas** (tabla de topes y datos de los padres); se oculta al pasar a beta cambiando `MOSTRAR_GENETICA`.
+- Aparcado: modo historia (cuando la base funcione bien), y salud, alimentación y lesiones (dependerán de eventos).
+
 ## Pendiente e ideas
 
 - **Consecuencias de la salud muy baja:** ahora el bot que sobreentrena llega a salud 0 sin más castigo que rendir menos. Idea: lesión o baja médica que bloquee entrenar unos días.

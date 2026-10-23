@@ -15,13 +15,16 @@ import {
   type LogTable,
   GENETICS_DEFAULT,
   type ReadContext,
+  type Rng,
+  mezclarTope,
+  mezclarZ,
   type StatId,
   type TimeView,
 } from '@ds/contracts';
 import { computeCap, computeDecay, computeGain, computeSpeed, potentialSpeed } from './progression';
 import { buildRegistry, compileAction, modifiersFor, type CompiledAction, type Registry } from './registry';
 import { createRng, seededRng, type RngHolder } from './rng';
-import { LOG_LIMIT, SAVE_VERSION, type GameState } from './state';
+import { LOG_LIMIT, SAVE_VERSION, type GameState, type Lineage, type ParentGenes } from './state';
 
 /** Lo que la interfaz (o un bot) ve de cada acción antes de elegirla. */
 export interface ActionOption {
@@ -129,6 +132,18 @@ export class Game {
     return new Game(registry, state);
   }
 
+  private static lineage(state: GameState): Lineage {
+    return (state.lineage ??= {
+      padre: { familias: {}, topes: {} },
+      madre: { familias: {}, topes: {} },
+      hijo: {},
+    });
+  }
+
+  private static zDeFamilia(p: ParentGenes, familia: string, rng: Rng): number {
+    return (p.familias[familia] ??= rng.normal());
+  }
+
   /** Inicializa lo que falte: permite añadir módulos a partidas ya empezadas. */
   private static fillMissing(registry: Registry, state: GameState): void {
     const init = seededRng((state.seed ^ 0x5bd1e995) + Object.keys(state.stats).length);
@@ -144,19 +159,31 @@ export class Game {
       state.talent[def.id] = 1 + (init.next() * 2 - 1) * spread;
       state.lastTrained[def.id] = state.minute;
       if (def.genetics) {
-        // Tope genético: parte compartida con su familia y parte propia de la característica.
-        state.families ??= {};
-        state.potential ??= {};
-        const fam = def.genetics.family;
-        state.families[fam] ??= init.normal();
+        // Tope genético: el de cada padre (parte compartida con su familia y parte propia) y el del hijo, que los mezcla.
         const g = GENETICS_DEFAULT;
-        const z = g.shared * state.families[fam] + Math.sqrt(1 - g.shared ** 2) * init.normal();
         const mean = def.genetics.mean ?? g.mean;
         const sd = def.genetics.sd ?? g.sd;
-        state.potential[def.id] = Math.min(g.max, Math.max(g.min, mean + sd * z));
+        const lin = Game.lineage(state);
+        for (const lado of ['padre', 'madre'] as const) {
+          const z = g.shared * Game.zDeFamilia(lin[lado], def.genetics.family, init) + Math.sqrt(1 - g.shared ** 2) * init.normal();
+          lin[lado].topes[def.id] = Math.min(g.max, Math.max(g.min, mean + sd * z));
+        }
+        state.potential ??= {};
+        state.potential[def.id] = mezclarTope(lin.padre.topes[def.id], lin.madre.topes[def.id], init, g.min, g.max);
       }
     }
-    const ictx: InitContext = { rng: init, seed: state.seed, playerName: state.playerName };
+    const ictx: InitContext = {
+      rng: init,
+      seed: state.seed,
+      playerName: state.playerName,
+      herencia: (familia) => {
+        const lin = Game.lineage(state);
+        const padre = Game.zDeFamilia(lin.padre, familia, init);
+        const madre = Game.zDeFamilia(lin.madre, familia, init);
+        lin.hijo[familia] ??= mezclarZ(padre, madre, init);
+        return { padre, madre, hijo: lin.hijo[familia] };
+      },
+    };
     for (const m of registry.modules) {
       if (m.initState && !(m.id in state.modules)) state.modules[m.id] = m.initState(ictx);
     }
@@ -193,6 +220,11 @@ export class Game {
   /** Tope genético oculto de una característica (solo para pruebas y simulación; la interfaz no lo enseña). */
   hiddenPotential(id: StatId): number | undefined {
     return this.s.potential?.[id];
+  }
+
+  /** Tope genético oculto de un progenitor (solo para pruebas y simulación). */
+  parentPotential(lado: 'padre' | 'madre', id: StatId): number | undefined {
+    return this.s.lineage?.[lado].topes[id];
   }
 
   cap(id: StatId): number {

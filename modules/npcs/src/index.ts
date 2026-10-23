@@ -7,6 +7,10 @@ import {
   edadDeCompeticion,
   primerDiaDelAnio,
   madurezPorEdad,
+  mezclarTope,
+  practicaSegunTope,
+  ventajaDeCrianza,
+  type Practica,
   timeView,
   SHARED_EVENTS,
   TAGS,
@@ -36,6 +40,14 @@ import {
  * - Publican el servicio `npcs` para que otros módulos los consulten.
  */
 
+/** Padre o madre de un rival: de su tope sale el del niño y de lo que practicó, la ventaja con la que arranca. */
+export interface PadreRival {
+  nombre: string;
+  /** Tope de atletismo del progenitor (0..100). */
+  potencial: number;
+  practica: Practica;
+}
+
 export interface Npc {
   id: string;
   name: string;
@@ -45,6 +57,8 @@ export interface Npc {
   supports: string[];
   affinity: number;
   levels: Record<string, number>;
+  /** Padres de los rivales (su herencia). */
+  padres?: { padre: PadreRival; madre: PadreRival };
   /** Nivel máximo al que puede llegar cada disciplina. */
   potential: Record<string, number>;
   /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
@@ -125,7 +139,16 @@ export const edadNpc = (n: Npc, primerDiaDelCurso: number): number | undefined =
  */
 function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Set<string>): Npc {
   const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
-  const potencial = clamp(79 + rng.normal() * 9, 55, 99);
+  const name = nombreUnico(rng, gender, usados);
+  const apellido = name.split(' ').slice(1).join(' ');
+  const progenitor = (g: Gender): PadreRival => {
+    const potencial = clamp(79 + rng.normal() * 9, 45, 100);
+    return { nombre: `${rng.pick(NOMBRES[g])} ${apellido}`, potencial, practica: practicaSegunTope(potencial, rng) };
+  };
+  const padres = { padre: progenitor('m'), madre: progenitor('f') };
+  // Su tope sale del de sus padres, y lo que ellos practicaron le da ventaja de partida.
+  const potencial = mezclarTope(padres.padre.potencial, padres.madre.potencial, rng, 55, 99);
+  const ventaja = ventajaDeCrianza(padres.padre.practica, padres.madre.practica);
   const desfase = clamp(rng.normal() * 0.7, -1.2, 1.2);
   // Nace en un día cualquiera del año que le corresponde a su edad de competición en el curso que empieza en `day`.
   const nacimiento = primerDiaDelAnio(anioNatural(day) - edad) + rng.int(0, 364);
@@ -133,13 +156,14 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
   const techo = potencial * desarrolloRival((day - nacimiento) / 365 + desfase);
   return {
     id: `rival_${num}`,
-    name: nombreUnico(rng, gender, usados),
+    name,
     role: 'rival',
     gender,
     tags: ['atleta'],
     supports: [],
     affinity: rng.int(15, 30),
-    levels: { atletismo: techo * rng.range(0.8, 1) },
+    levels: { atletismo: Math.min(techo, techo * rng.range(0.8, 1) * ventaja) },
+    padres,
     potential: { atletismo: potencial },
     ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
     nacimiento,

@@ -71,7 +71,9 @@ que sustituyen. El servicio `estudios` publica las asignaturas activas y el nomb
 
 El módulo `clubes` guarda las membresías y la calidad de cada club (catálogo como dato por país). Los deportes ponen el contenido de las sesiones
 (etiqueta `club`) y las pruebas de acceso, y piden entrar o salir con los eventos compartidos `club.unirse` y `club.salir`. El servicio `clubes`
-expone los clubes de un deporte y la membresía del personaje. El servicio `estudios` publica además el camino de verano según las notas (`summerPath`: academia obligatoria, campamento o amigos). Un deporte nuevo solo tiene que definir sus sesiones y sus pruebas.
+expone los clubes de un deporte y la membresía del personaje.
+
+**Herencia.** El motor guarda la genética de los dos padres (`state.lineage`: factor por familia y tope de cada stat con `genetics`) y el tope del personaje mezcla los suyos (`mezclarTope`, en contracts: 60/40 más variación). Para rasgos que no son stats (la altura) un módulo pide `ctx.herencia('estatura')` al crear su estado. El módulo `familia` guarda a los padres como personas (nombre, edad, altura, deporte, apoyo, expectativas) y publica el servicio `familia`; los rivales de `npcs` llevan sus propios padres. La genética oculta no está en ningún servicio: solo la leen las pruebas y la interfaz de pruebas. El servicio `estudios` publica además el camino de verano según las notas (`summerPath`: academia obligatoria, campamento o amigos). Un deporte nuevo solo tiene que definir sus sesiones y sus pruebas.
 
 ## Tope genético individual
 

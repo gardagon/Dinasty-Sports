@@ -71,4 +71,9 @@ export interface InitContext {
   readonly rng: Rng;
   readonly seed: number;
   readonly playerName: string;
+  /**
+   * Genética de un rasgo que no es una stat (p. ej. la altura), como puntuación típica (media 0, desviación 1) de cada
+   * progenitor y del hijo. El del hijo mezcla los de sus padres (ver `mezclarZ`). Estable: la misma familia da lo mismo.
+   */
+  herencia(familia: string): { padre: number; madre: number; hijo: number };
 }
