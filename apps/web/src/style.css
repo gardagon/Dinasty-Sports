@@ -189,6 +189,8 @@ h3:first-child { margin-top: 0; }
 .stat .bar { height: 8px; margin: 0; overflow: visible; }
 .stat .bar > i { background: var(--lane); }
 .cap { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: 0.55; }
+/* Solo en la fase de pruebas: tope genético oculto (se quita con MOSTRAR_GENETICA = false). */
+.cap.tope { background: var(--gain); opacity: 1; top: -5px; bottom: -5px; }
 
 /* ---------- Relaciones y diario ---------- */
 .npc { padding: 10px 0; border-bottom: 1px solid var(--rule); }
