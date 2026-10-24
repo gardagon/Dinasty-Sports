@@ -100,6 +100,12 @@ un 0,4 % de la diferencia cada día. Mientras la fracción crece (juventud) nada
 
 Rasgos genéticos heredables con bonus o malus (`contracts/perks.ts`): catálogo de 28 perks como dato, con sus opuestos, rareza, si son latentes y sus efectos. El motor sortea los perks de los dos padres con el resto de su genética (`state.lineage.perks`) y los expone en el contexto de creación (`ctx.perksDePadres`); el módulo base (`gen`) hereda los del personaje (`heredarPerks`: pool único de los padres, cada perk se tira por separado, sin opuestos, máximo 3 activos y el resto al pool), aplica los efectos sobre los topes con `ctx.bonusDeTope` (el motor recalcula las habilidades y asignaturas derivadas) y sobre la altura, y publica el servicio `perks`. Los efectos sobre la eficiencia de las acciones los aplica el modificador `gen.perks`, por etiquetas. Un perk cuenta desde el nacimiento aunque sea latente; revelarlo con un mensaje será un evento.
 
+## Rasgos de las personas
+
+Cada persona tiene carácter (8 ejes de −50 a +50), intereses, apariencia física (pelo, ojos, piel, cara y distintivos con ids estables para dibujar por capas), origen familiar (uno o dos de 9) y gustos. El catálogo, el sorteo, la herencia y la compatibilidad son funciones puras en `contracts/rasgos.ts`.
+Los de los padres del jugador se sortean al crear la partida con el resto de su genética (`state.lineage.rasgos`, `ctx.rasgosDePadres`); el módulo base (`gen`) hereda el perfil del personaje (cada rasgo físico, de uno de los padres; el carácter atenuado; algunos intereses) y publica el servicio `perfil`;
+sus intereses suben con lo que hace (evento `action.done`, por etiquetas). `npcs` da rasgos a todo el reparto y a los rivales (con sesgo por papel) y `familia` a los padres. El módulo `relaciones` multiplica entre ×0,7 y ×1,4 lo que sube la afinidad según la compatibilidad (modificador `relaciones.compatibilidad`).
+
 ## Año de nacimiento y categorías
 
 Jugador y rivales tienen fecha de nacimiento (edad exacta y cumpleaños), pero las categorías usan el año de nacimiento: la **edad de competición**

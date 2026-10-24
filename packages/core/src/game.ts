@@ -19,6 +19,7 @@ import {
   nivelInicialHeredado,
   nombreSesgo,
   perksDePadre,
+  rasgosAlAzar,
   perfilDePadre,
   repartirHerencia,
   type ReadContext,
@@ -197,6 +198,7 @@ export class Game {
     Game.recalcularDerivados(registry, state, HERENCIA.max, nuevas);
     // Perks de los padres: se sortean al final para no alterar el resto de tiradas.
     lin.perks ??= { padre: perksDePadre(rng), madre: perksDePadre(rng) };
+    lin.rasgos ??= { padre: rasgosAlAzar(rng), madre: rasgosAlAzar(rng) };
   }
 
   /** Tope de las stats derivadas: media ponderada de los topes de las que apoyan, por la aptitud propia. */
@@ -245,6 +247,7 @@ export class Game {
       seed: state.seed,
       playerName: state.playerName,
       topesDePadres: { padre: Game.lineage(state).padre.topes, madre: Game.lineage(state).madre.topes },
+      rasgosDePadres: Game.lineage(state).rasgos!,
       perksDePadres: Game.lineage(state).perks ?? { padre: { activos: [], pool: [] }, madre: { activos: [], pool: [] } },
       bonusDeTope: (id, delta) => {
         if (state.potential?.[id] === undefined) return;

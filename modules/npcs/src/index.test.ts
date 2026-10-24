@@ -129,4 +129,28 @@ describe('módulo NPCs', () => {
     };
     expect(rivales.filter((r) => rango(r) > 12).length).toBeGreaterThan(rivales.length / 2);
   });
+
+  it('todas las personas tienen rasgos: origen, apariencia, carácter, intereses y gustos', () => {
+    const lista = nueva().moduleState<NpcsState>('npcs').npcs;
+    for (const n of lista) {
+      expect(n.rasgos).toBeDefined();
+      expect(Object.keys(n.rasgos!.caracter)).toHaveLength(8);
+      expect(Object.keys(n.rasgos!.intereses).length).toBeGreaterThanOrEqual(2);
+    }
+    expect(lista.filter((n) => n.role === 'rival').every((n) => n.rasgos)).toBe(true);
+  });
+
+  it('el carácter y los intereses dependen del papel: el entrenador es más disciplinado y le gusta el deporte', () => {
+    const entrenadores = Array.from({ length: 150 }, (_, i) => Game.create([personaje, npcs], { seed: i + 1 }).moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'entrenador')!);
+    const media = entrenadores.reduce((a, n) => a + n.rasgos!.caracter.disciplina, 0) / entrenadores.length;
+    expect(media).toBeGreaterThan(7);
+    expect(entrenadores.filter((n) => 'deporte' in n.rasgos!.intereses || 'atletismo' in n.rasgos!.intereses).length / entrenadores.length).toBeGreaterThan(0.8);
+  });
+
+  it('los rasgos se publican en el servicio pero no cambian con los días', () => {
+    const g = nueva();
+    const antes = JSON.stringify(g.service<NpcDirectory>(SERVICES.npcs)!.get('tutor')!.rasgos);
+    advanceTo(g, 'gen.descansar', 6, 20);
+    expect(JSON.stringify(g.service<NpcDirectory>(SERVICES.npcs)!.get('tutor')!.rasgos)).toBe(antes);
+  });
 });

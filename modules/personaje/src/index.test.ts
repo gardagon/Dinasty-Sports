@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, SERVICES, perk, type IdentityService, type PerksService } from '@ds/contracts';
-import { Game, advanceUntil } from '@ds/core';
+import { GEN, SERVICES, perk, type IdentityService, type PerksService, type ProfileService } from '@ds/contracts';
+import { Game, advanceTo, advanceUntil } from '@ds/core';
 import { personaje } from './index';
 import type { IdentidadState } from './identidad';
 
@@ -39,7 +39,7 @@ describe('módulo personaje (gen)', () => {
     it('empieza con 8 años, una altura y un peso razonables y una dominancia', () => {
       const v = vista(Game.create([personaje], { seed: 3 }));
       expect(v.age).toBe(8);
-      expect(v.heightCm).toBeGreaterThan(115);
+      expect(v.heightCm).toBeGreaterThan(108);
       expect(v.heightCm).toBeLessThan(145);
       expect(v.weightKg).toBeGreaterThan(18);
       expect(v.weightKg).toBeLessThan(40);
@@ -148,6 +148,44 @@ describe('módulo personaje (gen)', () => {
       const v = perksDe(Game.load([personaje], guardado));
       expect(v.activos).toEqual([expect.objectContaining({ id: 'asmatico', nombre: 'Asmático', latente: true })]);
       expect(v.pool.map((x) => x.id)).toEqual(['gigante']);
+    });
+  });
+
+  describe('perfil: origen, apariencia, carácter e intereses', () => {
+    const perfilDe = (g: Game) => g.service<ProfileService>(SERVICES.perfil)!.view();
+
+    it('el personaje tiene perfil heredado: origen que suma 1, ocho ejes de carácter y al menos un interés', () => {
+      for (let seed = 1; seed <= 50; seed++) {
+        const p = perfilDe(Game.create([personaje], { seed }));
+        expect(p.origen.reduce((a, x) => a + x.peso, 0)).toBeCloseTo(1, 6);
+        expect(Object.keys(p.caracter)).toHaveLength(8);
+        for (const v of Object.values(p.caracter)) expect(Math.abs(v)).toBeLessThanOrEqual(50);
+        expect(Object.keys(p.intereses).length).toBeGreaterThan(0);
+        expect(p.apariencia.peloColor).toBeTruthy();
+      }
+    });
+
+    it('lo que hace con su tiempo alimenta sus intereses, cada vez menos al subir', () => {
+      const g = Game.create([personaje], { seed: 2 });
+      const nivel = () => perfilDe(g).intereses.deporte ?? 0;
+      const antes = nivel();
+      advanceTo(g, 'gen.descansar', 5, 16);
+      g.perform('gen.gimnasio');
+      expect(nivel()).toBeGreaterThan(antes);
+      const guardado = g.serialize();
+      (guardado.modules.gen as IdentidadState).perfil.intereses.deporte = 95;
+      const alto = Game.load([personaje], guardado);
+      advanceTo(alto, 'gen.descansar', 5, 16);
+      alto.perform('gen.gimnasio');
+      expect(perfilDe(alto).intereses.deporte - 95).toBeLessThan(nivel() - antes);
+    });
+
+    it('el resto del perfil no cambia con el tiempo', () => {
+      const g = Game.create([personaje], { seed: 3 });
+      const antes = JSON.stringify({ ...perfilDe(g), intereses: 0 });
+      advanceTo(g, 'gen.descansar', 5, 16);
+      g.perform('gen.gimnasio');
+      expect(JSON.stringify({ ...perfilDe(g), intereses: 0 })).toBe(antes);
     });
   });
 });

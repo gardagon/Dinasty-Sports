@@ -1,4 +1,4 @@
-import type { LogEntry, PerksDe, StatId } from '@ds/contracts';
+import type { LogEntry, PerksDe, RasgosDe, StatId } from '@ds/contracts';
 
 export const SAVE_VERSION = 1;
 
@@ -57,6 +57,8 @@ export interface Lineage {
   factor?: number;
   /** Perks de cada progenitor (activos y pool). */
   perks?: { padre: PerksDe; madre: PerksDe };
+  /** Rasgos de cada progenitor: origen, apariencia, carácter, intereses y gustos. */
+  rasgos?: { padre: RasgosDe; madre: RasgosDe };
 }
 
 export const LOG_LIMIT = 150;

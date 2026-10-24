@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, type FamilyService } from '@ds/contracts';
+import { SERVICES, type FamilyService, type ProfileService } from '@ds/contracts';
 import { Game } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { familia } from './index';
@@ -50,5 +50,18 @@ describe('módulo familia', () => {
     }
     const sin = todos.filter((p) => p.perks.activos.length === 0).length / todos.length;
     expect(sin).toBeGreaterThan(0.4);
+  });
+
+  it('los padres tienen rasgos y el hijo se parece a ellos: cada rasgo de cara viene de uno de los dos', () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const g = nueva(seed);
+      const [padre, madre] = padres(g).parents();
+      expect(padre.rasgos.apariencia.peloColor).toBeTruthy();
+      expect(Object.keys(padre.rasgos.caracter)).toHaveLength(8);
+      const hijo = g.service<ProfileService>(SERVICES.perfil)!.view();
+      expect([padre.rasgos.apariencia.cara, madre.rasgos.apariencia.cara]).toContain(hijo.apariencia.cara);
+      const ids = [...padre.rasgos.origen, ...madre.rasgos.origen].map((o) => o.id);
+      for (const o of hijo.origen) expect(ids).toContain(o.id);
+    }
   });
 });
