@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — Asignaturas: techo según las capacidades, para que el empollón llegue al 9 o 10 (E6.6, ajuste 2)
+
+- **Problema medido:** con el balance anterior el empollón se atascaba en ~80 de preparación (nota 8) **sea cual sea su mente**: entre mentes bajas y altas solo había 1,7 puntos. Causas: (1) la curva de rendimientos decrecientes frena casi del todo cerca de 90; (2) las capacidades de los niños son parecidas (40–60), así que la velocidad por capacidades casi no distinguía.
+- **Cambio:** las asignaturas recuperan un **techo suave que depende de las capacidades de apoyo**: `techo = 100 × (0,4 + media ponderada de las capacidades de apoyo)` (con ellas a 40 el techo es 80, a 50 es 90 y a 60 llega a 100). La curva baja de 1,3 a 1,0 y el peso de las capacidades en la velocidad se duplica. No es un tope genético: sube cuando mejoran las capacidades y se ve como la marca gris de la barra.
+- **Resultado medido en el empollón a 3 años (matemáticas):** mente baja 75, media 82, alta 91. A 1 año: 7,5 de nota media.
+- **Para que el equilibrado no suba con el techo:** estudiar 2,5 → 5 (con la curva más suave) y caída diaria 0,2 → 0,3. Equilibrado: 6,3 a 1 año y ~6,6 a 3 años.
+- **Pendiente de decidir (efecto secundario):** con la caída a 0,3 el atleta que solo va a clase baja a 3,3 y el vago a 1,9 (preparación 4,6). Es más duro de lo buscado. Opciones: caída más suave si se asiste a clase, o caída 0,25.
+
+---
+
 ## 24/10/2026 — Asignaturas: dos parciales y global, y menos fácil (E6.6, ajuste)
 
 - **Petición del usuario:** el equilibrado sin bonus ni malus debe quedar en torno al **6** (el notable solo si las skills ayudan); quien quiera el campamento tiene que esforzarse, y el atleta tiene que estudiar salvo que sus skills mentales lo salven. Y un examen por trimestre es poco: **dos parciales antes y el global al final**, con la media de los parciales al 40 % y el global al 60 %.

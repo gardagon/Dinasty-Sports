@@ -74,9 +74,14 @@ const MAX_HORA_CLASE = 9;
 /** Todos parten de un Regular (~50), de 40 a 78 según las capacidades que apoyan la asignatura. */
 const PREPARACION_INICIAL = { min: 40, max: 78 };
 /** Puntos de preparación que se pierden al día por olvido, antes del ajuste por capacidades (0,6× con muy buenas, 1,5× con muy malas). */
-const CAIDA_DIARIA = 0.2;
+const CAIDA_DIARIA = 0.3;
 /** Puntos que pierde la preparación al empezar un curso: los contenidos son más difíciles. */
 const SALTO_DE_CURSO = 3;
+/** Techo de una asignatura = 100 × (TECHO_BASE + media ponderada de las capacidades de apoyo): con ellas a 40 es 80, a 50 es 90 y a 60 llega a 100. */
+const TECHO_BASE = 0.4;
+const CURVA = 1.0;
+/** Las capacidades de los niños son parecidas (40–60): se multiplica su peso en la velocidad para que se note. */
+const VELOCIDAD_POR_CAPACIDADES = 2;
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
 /** Nota media del curso por debajo de la cual toca academia obligatoria en verano, y por encima de la cual se puede pedir campamento. */
 const NOTA_ACADEMIA = 5;
@@ -92,8 +97,13 @@ const asignaturaStat = (a: Asignatura): StatDef => ({
   initial: PREPARACION_INICIAL,
   initialFrom: a.apoyos,
   talentSpread: 0.2,
-  // Sin tope genético: la dificultad la ponen las capacidades que apoyan la asignatura (ritmo de subida y olvido).
-  growth: { rate: 1, curve: 1.3, speedFrom: a.apoyos },
+  // Sin tope genético: la dificultad la ponen las capacidades que apoyan la asignatura (techo, ritmo de subida y olvido).
+  growth: {
+    rate: 1,
+    curve: CURVA,
+    speedFrom: a.apoyos.map((x) => ({ stat: x.stat, weight: x.weight * VELOCIDAD_POR_CAPACIDADES })),
+    cap: { base: TECHO_BASE, from: a.apoyos },
+  },
 });
 
 /** Texto del nivel: la preparación es la nota que se espera sacar (× 10). */
@@ -139,7 +149,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
   train: [
-    { stat: statId(a.key), amount: 2.5 },
+    { stat: statId(a.key), amount: 5 },
     { stat: GEN.inteligencia, amount: 0.4 },
     { stat: GEN.concentracion, amount: 0.4 },
     ...(a.entrena ? [a.entrena] : []),
