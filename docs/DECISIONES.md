@@ -16,6 +16,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Rivales:** `desarrolloRival` = 0,75 × la curva física por edad del jugador (antes una curva propia más alta). Con 0,9 el atleta dejaba de destacar.
 - **Resultado (bot perfecto, `sim:vida`, físico con tope 57):** 8 años 11 → 10 años 20 → 12 años 24 → 16 años 33 → 20 años 37 → 24 años 39. Es decir, ~4 puntos al año de niño y 1–3 después, sin saltos. Un año de partida: capacidades +7 a +9 (antes +23).
 - **Cifras (365 días, 13 chequeos en verde):** nota media equilibrado 7,2 (6,4 sin el ajuste de techo; el primer año sigue algo alta), empollón 8,1, atleta 4,5, vago 2,4; atletismo +16 en el equilibrado y en el atleta; podios 18 y 19; victorias del atleta 24 %.
+- **Umbral de la simulación rápida:** "El esfuerzo hace progresar" pasa de atletismo > +10 a > +7 (con el techo por edad la subida de los primeros meses es más lenta a propósito: +8,2 en la rápida, +16 en un año completo).
 - **Pendiente:** el bot perfecto solo llega a ~70 % del tope a los 24 años. Para un personaje con tope 90 que llegue a 85 a los 24 hace falta más ritmo de adulto o menos caída; se revisa al hacer la fase profesional (E10). El tope de los rivales y el nivel típico por edad dependen de esto.
 
 ---
