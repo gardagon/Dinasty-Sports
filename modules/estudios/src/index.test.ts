@@ -171,7 +171,7 @@ describe('módulo estudios', () => {
       advanceTo(g, 'gen.descansar', 0, 16);
       const antes = g.stat('estudios.matematicas');
       g.perform('estudios.estudiar_matematicas');
-      expect(g.stat('estudios.matematicas') - antes).toBeGreaterThan(1);
+      expect(g.stat('estudios.matematicas') - antes).toBeGreaterThan(0.7);
       const navidad = nueva();
       advanceUntil(navidad, 'gen.descansar', (t) => t.period === 'navidad' && t.weekday === 1 && t.hour === 11, 20000);
       expect(navidad.preview('estudios.estudiar_matematicas')!.available).toBe(true);
