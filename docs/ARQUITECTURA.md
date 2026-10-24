@@ -177,3 +177,5 @@ cualquier deporte nuevo sin tocar su código. Después se ejecutan chequeos de s
 - Las estrategias razonables mantienen la salud.
 
 Informe: `sim/reports/ultimo/informe.html` (gráficas semana a semana por área y estrategia).
+
+**Vida entera (`npm run sim:vida`, `sim/src/vida.ts`).** Lleva a un bot "perfecto" (entrena deporte, estudios, gimnasio, lectura, relaciones y ocio cuidando el sueño y el estrés) muchos años (70 por defecto) y enseña, por edad, el nivel frente al tope de cada categoría y cuántas capacidades están al 95 % de su tope. Sirve para ver a qué edad llega al máximo, que nadie llegue al tope en todo y cómo envejece. Tarda ~1,4 s por año simulado. No forma parte de `npm run sim` ni de los chequeos: se lanza a mano.

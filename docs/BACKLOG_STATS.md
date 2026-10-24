@@ -54,8 +54,9 @@ Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ dif
 
 ## Hecho fuera del plan original
 
-- **Conocimiento del deporte** (adapta E2.3), **PWA**, **16 rivales persistentes con herencia**, **series de 8 con rotación** y **clasificación con tablas** tras cada carrera. Detalle y cifras en `DECISIONES.md`.
-- Para E7 (deportes de equipo) y E8 (dinastía): la plantilla de competición ya tiene rivales con herencia propia, tabla de resultados y rotación de series.
+- **Conocimiento del deporte** (adapta E2.3), **PWA**, **96 rivales persistentes por edad con padres y herencia**, **series de 8 con rotación**, **clasificación con tablas** tras cada carrera, **clubes**, **currículo de España**, **calendario por país**, **módulo `relaciones`** (E20) y **módulo `familia`**. Detalle y cifras en `DECISIONES.md`.
+- **Herramientas de medición:** `npm run sim` (balance a un año), `sim:largo` (tres años) y `sim:vida` (vida entera de un bot que lo entrena todo, hasta los 70 años por defecto).
+- Para E7 (deportes de equipo) y E8 (dinastía): la plantilla de competición ya tiene rivales con padres y herencia propia, tabla de resultados y rotación de series, y el motor ya hereda topes de los padres y envejece por categorías.
 
 ## Estado de partida (antes de empezar)
 
@@ -94,7 +95,7 @@ El original usa tres capas: stats globales → conocimiento deportivo → habili
 | ID | Tarea | Notas |
 |---|---|---|
 | E2.1 | Subtipos de habilidad: entrenable / derivada (calculada de otras) / oculta (solo el motor) | Hoy solo hay `habilidad` plana. ¿Hace falta ya con un solo deporte? 🟡 |
-| E2.2 | "Valor efectivo": la habilidad se multiplica por sus secundarias globales (×1,2 cada una) al competir | Hoy las globales solo afectan a ritmo y techo de crecimiento. Decidir si se sustituye o se suma 🟡 |
+| E2.2 ✅ (parcial) | "Valor efectivo": la habilidad se multiplica por sus secundarias globales (×1,2 cada una) al competir | Hecho el 23/10 solo para el **conocimiento del deporte**: ritmo y salida valen ×0,85 a ×1,15 y técnica la mitad según el conocimiento; lo físico no cambia. Las globales siguen afectando solo a ritmo y techo de crecimiento. Decidir si se añade el resto 🟡 |
 | E2.3 ✅ (atletismo) | **Conocimiento deportivo** como bonus/malus (no como techo): stat `conocimiento` por deporte, arranca en 0, sube viendo y compitiendo, decay muy suave | Adaptado del original (allí era techo `min(límite, conocimiento × 1,2)`). **Ajustado el 23/10:** actúa como malus/bonus sobre lo táctico en competición (ritmo y salida ×0,85 a ×1,15; técnica la mitad) y no sobre lo físico; sube rápido al principio y cada vez más despacio (curva 2,5, llega a 100 solo a muy largo plazo). **El techo duro queda pendiente de decisión** (se ve en `DECISIONES.md`). Falta el canal de entrenador y las lecturas tácticas |
 | E2.4 | Tabla global → habilidad técnica (qué stat alimenta qué habilidad) | Sección 12 del original: **pendiente allí**. La diseñamos aquí para atletismo y estudios |
 | E2.5 | Transferencias de entrenamiento (global→técnica 10–20 %, técnica→relacionada 15–25 %, técnica→global 3–5 %) declaradas en datos | Respetar la regla 4: se haría con `ctx.train`, nunca tocando habilidades de otro módulo |
@@ -231,8 +232,8 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 | E10.2 | **Población profesional y tres niveles** (p. ej. circuito nacional, internacional y élite) como dato, cada uno con un campo más fuerte: atletas adultos con herencia propia que envejecen y se retiran, como los rivales de la cantera pero en la cima | Calibrar campos (referencia: de cada 100 partidas, unas 55 llegan al primer nivel, 20 al segundo y 3 a la élite) 🟡 |
 | E10.3 | **Oferta del ojeador y decisión:** condiciones (16 años o más, nivel competitivo en el nivel profesional), la oferta como evento con opciones (aceptar, pedir tiempo, rechazar) y sus consecuencias | Depende del motor de eventos y decisiones (E18.1 y E18.2) |
 | E10.4 | **Transición a profesional:** más obligaciones (entrenamiento y calendario del club profesional), eventos, y la decisión de **dejar el colegio o seguir** | Dejar el colegio libera tiempo pero deja los estudios incompletos |
-| E10.5 | **Titulación y futuro:** el personaje conserva el nivel de estudios que ha terminado (1 primaria, 2 ESO, 3 bachillerato, 4 universidad); cuanto menor, más cuestan los oficios de después (entrenador, agente...) | Marca de estudios que se consultará en la fase 3 |
-| E10.6 | **Subir de nivel profesional:** por resultados y nivel, **no lineal** (a los 16 se puede entrar directamente en élite) | Los tres niveles se juegan; incluye ir a probar por cuenta propia |
+| E10.5 | **Titulación y futuro** (decidido el 24/10: las asignaturas deben perderse al terminar el colegio; si aparece la universidad, traerá otras asignaturas o un cálculo genérico sin asignaturas según la carrera elegida; hasta los 18 años no es prioritario): el personaje conserva el nivel de estudios que ha terminado (1 primaria, 2 ESO, 3 bachillerato, 4 universidad); cuanto menor, más cuestan los oficios de después (entrenador, agente...) | Marca de estudios que se consultará en la fase 3 |
+| E10.6 | **Subir de nivel profesional** (los rivales de la cantera también tendrán su oportunidad de ser profesionales: será como un cambio de categoría, decidido el 24/10): por resultados y nivel, **no lineal** (a los 16 se puede entrar directamente en élite) | Los tres niveles se juegan; incluye ir a probar por cuenta propia |
 | E10.7 | Fase 3 (retiro): entrenador, representante u otro trabajo deportivo | Un módulo distinto por oficio; después de la fase 2 |
 | E10.8 | Fin de partida | Qué cuenta como terminar y cómo se resume la carrera |
 
@@ -248,7 +249,7 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 |---|---|---|
 | 1 ✅ | Familia y genética (E13.1, E8 en parte) | Hecho el 23/10: padres con perfil, sesgo y calidad; topes, altura y nivel inicial heredados; práctica deportiva de los padres; herencia de los rivales |
 | 2 | Modo historia y entorno (E13.0, E19.7) | Llegar a una ciudad y un colegio nuevos sin conocer a nadie; entrenadores de club como personajes |
-| 3 | Salud, lesiones y alimentación (E12) y edad en el decay (E1.5, E2.6) | Lesiones ligadas a la constitución, recuperación, alimentación como hábito |
+| 3 | Salud, lesiones y alimentación (E12) y edad en el decay (E1.5, E2.6 ✅) | Edad en el decay y curvas de envejecimiento hechas el 24/10. Falta: lesiones ligadas a la constitución, recuperación, alimentación como hábito (dependen de eventos) |
 | 4 | Estructura de habilidades que falta (E2) | Tabla global → habilidad, transferencias, derivadas y ocultas, valor efectivo en competición |
 | 5 | Interfaz y partida (E15, E3.4) | Creación de personaje, elegir deporte, información filtrada por inteligencia, varias partidas |
 | 6 | Ritmo de juego (E11) | Ayudas opcionales para repetir la rutina o avanzar |

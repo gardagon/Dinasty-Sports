@@ -31,7 +31,12 @@ Con la medición de abajo (entrada siguiente) se implementa lo propuesto, con lo
 - **El jugador sigue sin llegar al tope en todo:** como mucho 6 de 27 capacidades al 95 % de su tope.
 - **Balance:** los 13 chequeos siguen en verde a 1, 3 y 10 años. A 10 años el atleta sube al podio en el 20 % de las carreras y el equilibrado en el 31 % (antes del cambio, 67 a 77 %): los rivales ya no se quedan por debajo de quien entrena a diario. El resto de la simulación casi no cambia (en el primer año, atletismo +35, estudios +12).
 - **Rendimiento:** unos 1,4 s por año simulado (límite 3 s), 98 s para los 70 años.
-- **Pendiente:** los hallazgos de adulto (sin estudios tras bachillerato, rivales solo hasta los 19, sin clubes tras el colegio) no cambian; los trabajos y otras actividades que frenarán el desplome llegarán más adelante.
+- **Respuestas del usuario a los hallazgos de adulto:**
+  - **Rivales:** también tendrán su oportunidad de ser profesionales; será como un cambio de categoría (E10.2 y E10.6). Entonces usarán la curva física por edad.
+  - **Asignaturas:** deben perderse al terminar el colegio. Si aparece la universidad, traerá otras asignaturas o un cálculo genérico sin asignaturas según la carrera elegida. Hasta los 18 años no es prioritario (E10.5).
+  - **Clubes tras el colegio y trabajos:** llegarán con la fase profesional; los trabajos y otras actividades que frenen el desplome, más adelante.
+  - **Rendimiento:** ~1,4 s por año simulado, correcto para pruebas; habrá que revisarlo en una partida real.
+  - **Ajustes:** es probable que haya que retocar las curvas y los números; para eso harán falta muchas pruebas y tests.
 
 ## 24/10/2026 — Edad del pico y límite global: primero se mide (herramienta `sim:vida`)
 
@@ -410,6 +415,10 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 ---
 
 ## Pendiente e ideas
+
+- **Medir el rendimiento en una partida real** (en las simulaciones, ~1,4 s por año simulado, dentro del límite de 3 s).
+- **Ajustar las curvas por edad y los topes** con muchas pruebas y tests (`sim:vida`, `sim:largo`).
+- **Rivales adultos y profesionales** (E10): usarán la curva física por edad; hoy solo juegan hasta los 19.
 
 - **Equilibrio del jugador que entrena a diario:** sube al podio en el 67 a 77 % de las carreras a 3 y 10 años. Se revisará cuando estén las lesiones (E12), el bonus de verano por buenas notas y el resto de piezas; no se toca antes.
 - **Notas más bajas tras la nueva escala:** la media del equilibrado pasa de 7,2 a ~6,2 (el tope de las asignaturas ronda 62). Valorar si se quiere subir el tope típico de las asignaturas.
