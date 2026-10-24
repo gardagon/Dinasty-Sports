@@ -96,7 +96,7 @@ function fotografia(g: Game, edad: number): Fila {
   };
 }
 
-function simular(bot: Bot, seed: number, anios: number) {
+export function simular(bot: Bot, seed: number, anios: number, alCumplir?: (game: Game, edad: number) => void) {
   const game = nuevaPartida({ seed, playerName: bot.name });
   const rng = seededRng(seed * 31 + 7);
   const mem = { day: -1, hoy: {} as Record<string, number>, total: {} as Record<string, number> };
@@ -129,23 +129,27 @@ function simular(bot: Bot, seed: number, anios: number) {
     if (edadAhora !== edad) {
       edad = edadAhora;
       filas.push(fotografia(game, edad));
+      alCumplir?.(game, edad);
     }
   }
   return { filas, problemas, ms: performance.now() - t0, game };
 }
 
-const anios = Number(arg('anios') ?? 70);
-const seed = Number(arg('semilla') ?? 1);
-const bot = arg('bot') === 'perfecto' || !arg('bot') ? PERFECTO : undefined;
-if (!bot) throw new Error('Solo el bot "perfecto" está disponible en sim:vida (usa npm run sim para los demás).');
+if (process.argv[1]?.endsWith('vida.ts')) {
+  const anios = Number(arg('anios') ?? 70);
+  const seed = Number(arg('semilla') ?? 1);
+  const bot = arg('bot') === 'perfecto' || !arg('bot') ? PERFECTO : undefined;
+  if (!bot) throw new Error('Solo el bot "perfecto" está disponible en sim:vida (usa npm run sim para los demás).');
 
-console.log(`\nVida de "${bot.name}": ${anios} años, semilla ${seed}...\n`);
-const { filas, problemas, ms } = simular(bot, seed, anios);
-const mostrar = filas.filter((x) => [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 35, 40, 50, 60, 70, 78].includes(x.edad) || x === filas[filas.length - 1]);
-const cols = (c: { nivel: number; tope: number }) => `${f(c.nivel)}/${f(c.tope)}`;
-console.log('| Edad | Física (nivel/tope) | Mental | Social | Habilidades | Conocimiento | Capacidades al 95 % del tope | Nota media | Salud |');
-console.log('|---|---|---|---|---|---|---|---|---|');
-for (const x of mostrar) {
-  console.log(`| ${x.edad} | ${cols(x.cat.fisico)} | ${cols(x.cat.mental)} | ${cols(x.cat.social)} | ${cols(x.habilidades)} | ${f(x.conocimiento)} | ${x.alTope}/${x.total} | ${f(x.notaMedia ?? NaN, 1)} | ${f(x.salud)} |`);
+  console.log(`\nVida de "${bot.name}": ${anios} años, semilla ${seed}...\n`);
+  const { filas, problemas, ms } = simular(bot, seed, anios);
+  const mostrar = filas.filter((x) => [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 35, 40, 50, 60, 70, 78].includes(x.edad) || x === filas[filas.length - 1]);
+  const cols = (c: { nivel: number; tope: number }) => `${f(c.nivel)}/${f(c.tope)}`;
+  console.log('| Edad | Física (nivel/tope) | Mental | Social | Habilidades | Conocimiento | Capacidades al 95 % del tope | Nota media | Salud |');
+  console.log('|---|---|---|---|---|---|---|---|---|');
+  for (const x of mostrar) {
+    console.log(`| ${x.edad} | ${cols(x.cat.fisico)} | ${cols(x.cat.mental)} | ${cols(x.cat.social)} | ${cols(x.habilidades)} | ${f(x.conocimiento)} | ${x.alTope}/${x.total} | ${f(x.notaMedia ?? NaN, 1)} | ${f(x.salud)} |`);
+  }
+  console.log(`\n${filas.length - 1} años simulados en ${(ms / 1000).toFixed(1)} s. Problemas: ${problemas.length ? '\n  - ' + problemas.join('\n  - ') : 'ninguno'}\n`);
+
 }
-console.log(`\n${filas.length - 1} años simulados en ${(ms / 1000).toFixed(1)} s. Problemas: ${problemas.length ? '\n  - ' + problemas.join('\n  - ') : 'ninguno'}\n`);

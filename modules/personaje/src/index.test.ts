@@ -76,4 +76,22 @@ describe('módulo personaje (gen)', () => {
       expect(vista(g2).age).toBe(8);
     });
   });
+
+  it('el vigor por edad sube con los años y se aproxima a la curva de cada categoría', () => {
+    const g = Game.create([personaje], { seed: 1 });
+    const antes = g.stat(GEN.vigorFisico);
+    expect(antes).toBeGreaterThan(80);
+    expect(antes).toBeLessThan(90);
+    while (g.time.day < 365 * 3) g.perform('gen.descansar');
+    expect(g.stat(GEN.vigorFisico)).toBeGreaterThan(antes);
+    expect(g.stat(GEN.vigorMental)).toBeGreaterThan(87);
+  });
+
+  it('las genéricas llevan el vigor de su categoría', () => {
+    const g = Game.create([personaje], { seed: 1 });
+    const de = (id: string) => g.registry.stats.get(id)!.def.growth?.potentialFactor;
+    expect(de(GEN.velocidad)).toBe(GEN.vigorFisico);
+    expect(de(GEN.inteligencia)).toBe(GEN.vigorMental);
+    expect(de(GEN.carisma)).toBe(GEN.vigorSocial);
+  });
 });

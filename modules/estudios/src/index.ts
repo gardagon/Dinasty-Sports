@@ -85,6 +85,7 @@ const asignaturaStat = (a: Asignatura): StatDef => ({
     rate: 0.5,
     curve: 1.5,
     speedFrom: a.apoyos,
+    potentialFactor: GEN.vigorMental,
     // El techo pesa 0,45 en total, repartido igual que el ritmo.
     cap: { base: 0.55, from: a.apoyos.map((x) => ({ stat: x.stat, weight: Math.round(x.weight * 0.45 * 1000) / 1000 })) },
   },

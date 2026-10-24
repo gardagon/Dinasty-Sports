@@ -83,7 +83,18 @@ Una stat con `genetics` recibe al crear la partida un tope genético oculto (`Ga
 padres (ver **Herencia** arriba); las habilidades y asignaturas lo derivan de otras (`genetics.derivedFrom`, más una aptitud propia). El tope típico es 62 (entre 10 y 95).
 El tope limita lo que se puede llegar a ser y **acelera el progreso** de quien lo tiene más alto (`potentialSpeed`, en el núcleo: (tope / 62)² × 0,8, entre ×0,4 y ×1,3).
 El techo visible (`Game.cap`) no lo incluye: la interfaz no enseña el tope (salvo la interfaz de pruebas). Para pruebas, `Game.hiddenPotential`, `Game.parentPotential`,
-`Game.geneticOrigin`, `Game.parentBias` y `Game.parentQuality`.
+`Game.geneticOrigin`, `Game.parentBias`, `Game.parentQuality` y `Game.agePotential`.
+
+### Envejecimiento: lo alcanzable por edad
+
+El tope genético no se puede tener a cualquier edad. Cada categoría tiene una **curva por edad** (`CURVAS_POR_EDAD` y `factorPorEdad`, en contracts) con la fracción del tope
+que se puede tener: crece hasta el pico, se mantiene en la meseta y baja. La física llega al máximo hacia los 22 y se mantiene hasta los 27 (baja con más fuerza desde los 30); la
+técnica, hacia los 24 y meseta hasta los 32; la mental sigue subiendo más allá de los 28 y llega a su máximo hacia los 30 con una bajada mínima y muy tardía; la social, hacia los 30.
+
+Cómo funciona en el motor, sin que el núcleo sepa de edades: el módulo base mantiene cuatro stats de estado ocultas (`gen.vigor_fisico`, `gen.vigor_tecnico`, `gen.vigor_mental`, `gen.vigor_social`,
+0 a 100) que sigue cada día con la edad (la física y la técnica, con el adelanto o retraso propio hasta los 24). Una stat que declara `growth.potentialFactor` apuntando a una de ellas tiene un
+**tope efectivo = tope genético × esa fracción**: limita lo que se puede subir y, **si la fracción baja desde su máximo** (envejecimiento), lo que queda por encima del tope efectivo cae hacia él
+un 0,4 % de la diferencia cada día. Mientras la fracción crece (juventud) nada se pierde. El ritmo de subida sigue dependiendo del tope genético, no del efectivo.
 
 ## Año de nacimiento y categorías
 

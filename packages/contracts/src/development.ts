@@ -27,3 +27,40 @@ export function madurezPorEdad(edad: number): number {
   }
   return 1;
 }
+
+
+/**
+ * Curvas de desarrollo y envejecimiento por categoría. Dan, a cada edad, qué fracción del tope genético se puede tener:
+ * crece hasta el pico, se mantiene en la meseta y después baja. Es un dato (otro deporte u otro país podría tener otras).
+ *
+ * - físico: llega al máximo hacia los 22 y se mantiene hasta los 27 (los velocistas y los futbolistas rinden al máximo entre los
+ *   23 y los 26), después baja con más fuerza a partir de los 30.
+ * - técnico (habilidades deportivas): máximo hacia los 24 y meseta hasta los 32; cae más despacio que lo físico porque la
+ *   experiencia compensa.
+ * - mental: sigue subiendo más allá de los 28 hasta los 30 y se mantiene hasta los 55; el envejecimiento llega mucho más tarde y es mínimo.
+ * - social: máximo hacia los 30 y casi sin bajada.
+ */
+export type CategoriaEdad = 'fisico' | 'tecnico' | 'mental' | 'social';
+
+type Curva = readonly (readonly [number, number])[];
+
+export const CURVAS_POR_EDAD: Record<CategoriaEdad, Curva> = {
+  fisico: [[8, 0.86], [12, 0.9], [16, 0.94], [20, 0.98], [22, 1], [27, 1], [30, 0.97], [35, 0.9], [40, 0.82], [50, 0.68], [60, 0.55], [70, 0.45], [90, 0.3]],
+  tecnico: [[8, 0.86], [12, 0.9], [16, 0.94], [20, 0.97], [24, 1], [32, 1], [40, 0.93], [50, 0.82], [60, 0.7], [70, 0.58], [90, 0.4]],
+  mental: [[8, 0.9], [12, 0.93], [16, 0.95], [22, 0.98], [30, 1], [55, 1], [60, 0.98], [70, 0.92], [80, 0.82], [90, 0.7]],
+  social: [[8, 0.9], [12, 0.93], [16, 0.95], [22, 0.98], [30, 1], [60, 1], [70, 0.96], [80, 0.9], [90, 0.8]],
+};
+
+/** Fracción del tope genético alcanzable a una edad, para una categoría (0..1). Antes de la primera edad vale lo de esa edad. */
+export function factorPorEdad(categoria: CategoriaEdad, edad: number): number {
+  const c = CURVAS_POR_EDAD[categoria];
+  if (edad <= c[0][0]) return c[0][1];
+  for (let i = 1; i < c.length; i++) {
+    if (edad <= c[i][0]) {
+      const [x0, y0] = c[i - 1];
+      const [x1, y1] = c[i];
+      return y0 + ((y1 - y0) * (edad - x0)) / (x1 - x0);
+    }
+  }
+  return c[c.length - 1][1];
+}

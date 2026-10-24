@@ -142,6 +142,7 @@ const habilidad = (key: string, name: string, apoyos: Apoyo[], description: stri
     rate: 0.36,
     curve: 1.5,
     speedFrom: [...apoyos, { stat: GEN.determinacion, weight: 0.2 }],
+    potentialFactor: GEN.vigorTecnico,
     cap: {
       // El techo de una habilidad deportiva crece con el desarrollo por la edad: nadie llega a su máximo antes de madurar.
       base: 0.15,
