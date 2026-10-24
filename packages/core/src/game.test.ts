@@ -660,3 +660,12 @@ describe('bonus de tope (perks)', () => {
     expect(cargada.hiddenPotential('p.tecnica')).toBe(g.hiddenPotential('p.tecnica'));
   });
 });
+
+describe('guardados de otra versión', () => {
+  it('una partida guardada con otra versión del formato no se carga: se rechaza con un error claro', () => {
+    const m = defineModule({ id: 'v', name: 'V', stats: [{ id: 'v.energia', name: 'Energía', category: 'estado', initial: 100 }] });
+    const guardado = Game.create([m], { seed: 1 }).serialize();
+    guardado.version = 1;
+    expect(() => Game.load([m], guardado)).toThrow(/Versión de guardado 1 no soportada/);
+  });
+});

@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — La app se quedaba en blanco con una partida guardada antigua
+
+- **Qué pasó:** al añadir los perks y el perfil al estado del módulo base, una partida guardada antes de ese cambio cargaba, pero al dibujarla fallaba (`Cannot read properties of undefined (reading 'activos')`) y la página quedaba vacía sin ningún aviso. Reproducido con un guardado sin esos campos.
+- **Arreglo:** (1) `SAVE_VERSION` sube a 2 y se documenta la regla de la fase alfa: **se sube cada vez que cambia la forma del estado de algún módulo**, y las partidas con otra versión se rechazan con un error claro (`Game.load`); (2) la interfaz descarta la partida guardada que no se pueda cargar **o dibujar**, la borra y enseña la pantalla inicial con un aviso («Tu partida guardada era de una versión anterior y ya no se puede cargar…») en vez de quedarse en blanco. Probado en un navegador con un guardado de la versión 1 y con uno de la versión 2 con datos rotos.
+- **Para el jugador:** al abrir la app tras este cambio verá el aviso y tendrá que empezar una partida nueva (no hay compatibilidad entre versiones en la fase alfa, como se decidió).
+- **Pendiente:** cuando salga la beta habrá que decidir si se migran los guardados (E17).
+
 ## 24/10/2026 — Rasgos de las personas: carácter, intereses, apariencia, origen y gustos (E20.5 y E3.5)
 
 - **Carácter con los 8 ejes de los documentos de Godot** (−50 a +50): disciplinado↔rebelde, honesto↔manipulador, ambicioso↔satisfecho, relajado↔sacrificado, solitario↔sociable, calmado↔agresivo, temerario↔prudente, optimista↔pesimista. Los NPCs salen con una normal de desviación 18 (los extremos son raros) y un sesgo por papel: el entrenador, más disciplinado y ambicioso; el tutor, disciplinado y honesto; el compañero social, sociable y optimista; los rivales, ambiciosos y sacrificados. Nunca se enseñan al jugador como número.

@@ -306,7 +306,7 @@ Solo si se quiere: cuotas, material, viajes y, en la fase profesional, sueldo y 
 
 ## E17 · Técnica — 🟢
 
-Generador de azar propio para los rivales; migración de partidas guardadas; rendimiento con diez años simulados; Capacitor si se quiere app de tienda.
+Generador de azar propio para los rivales; migración de partidas guardadas; rendimiento con diez años simulados; Capacitor si se quiere app de tienda. **Migración de guardados al salir de la alfa** (hoy `SAVE_VERSION` se sube y se descartan; ver `DECISIONES.md` del 24/10).
 
 ## E18 · Eventos y decisiones — 🟢 el motor, ⏸ el contenido
 
