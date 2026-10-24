@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — `sim:vida` mide las capacidades que se entrenan: el bot perfecto sí llega (sin tocar el motor)
+
+- **Duda (usuario):** cómo ajustar para que el bot perfecto pueda llegar a ~85 a los 24 con tope 90 sin desmontar la base.
+- **Diagnóstico:** se imprimió, por edad, cada capacidad del bot perfecto frente a su tope. Las que entrena (velocidad, resistencia, inteligencia, comunicación, carisma...) llegan al **90–97 % del tope a los 22–24 años** (p. ej. velocidad 61/64, 73/76, 32/35). Las que nunca entrena (constitución, agilidad, autoridad, picardía...) se quedan en el mínimo natural (~45 %). La tabla de `sim:vida` promediaba las 18 capacidades, por eso parecía que solo se llegaba al ~70 %. **No hay que tocar ritmos, curvas ni caídas.**
+- **Medición nueva:** `sim:vida` añade la columna **«6 mejores capacidades (% del tope)»**, la media de nivel/tope de las 6 capacidades más cercanas a su tope. Con 3 semillas sale: 8 años 22–25 %, 10: 40 %, 12: 51 %, 14: 62 %, 16: 72 %, **18: 79–80 %**, 20: 84 %, 22: 88 %, **24: 90–91 %**. Es decir, nadie llega al máximo a los 18, el pico llega hacia los 24 y las capacidades al 95 % del tope son 3 de 21 (nadie lo tiene todo). Cuadra con el ejemplo del usuario (tope 90 → ~85 a los 24, unos 7 puntos por año de media y algo más de niño).
+- **Observación:** el bot perfecto saca solo ~5 de nota media; sus dos sesiones de estudio diarias reparten poco entre 7–8 asignaturas. Es un problema del bot (`CLAUDE.md`: se arregla el bot, no el juego), no se toca ahora.
+
+---
+
 ## 24/10/2026 — Crecimiento infantil más gradual: techo por edad y desarrollo natural (E2.8, ajuste)
 
 - **Problema (usuario):** el bot equilibrado pasaba de 12 a 35 en un año y casi se paraba después. Un personaje con tope 90 y su mejor momento a los 24 tiene que subir menos de 7 puntos al año si fuera plano; de niño algo más, pero no 23. Además, un niño con 5 no será nunca un adulto con 5, aunque sí con 25 o 30.
