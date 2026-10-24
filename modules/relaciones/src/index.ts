@@ -12,7 +12,10 @@ import {
   type CompetitionResultData,
   type NpcDirectory,
   type NpcView,
+  type ProfileService,
   type ReadContext,
+  compatibilidad,
+  factorDeCompatibilidad,
   type RelationView,
   type RelationsService,
 } from '@ds/contracts';
@@ -161,6 +164,19 @@ export const relaciones = defineModule<RelacionesState>({
   },
 
   modifiers: [
+    {
+      // Compatibilidad: con quien comparte intereses y se parece en carácter, lo que sube la afinidad rinde más (×0,7 a ×1,4).
+      id: 'relaciones.compatibilidad',
+      tags: ['*'],
+      apply: (ctx, action) => {
+        if (!action.id.startsWith('relaciones.')) return null;
+        const n = dirDe(ctx)?.get(action.id.split('.').pop()!);
+        const yo = ctx.service<ProfileService>(SERVICES.perfil)?.view();
+        if (!n?.rasgos || !yo) return null;
+        const f = factorDeCompatibilidad(compatibilidad(n.rasgos, yo));
+        return Math.abs(f - 1) < 0.02 ? null : { efficiency: f, reason: `Compatibilidad con ${n.name.split(' ')[0]}` };
+      },
+    },
     {
       id: 'relaciones.apoyo',
       tags: ['*'],

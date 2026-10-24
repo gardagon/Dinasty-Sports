@@ -1,5 +1,6 @@
 import type { Rng } from './rng';
 import type { PerksDe } from './perks';
+import type { RasgosDe } from './rasgos';
 import type { StatDef, StatId } from './stats';
 import type { TimeView } from './time';
 
@@ -78,6 +79,8 @@ export interface InitContext {
    */
   herencia(familia: string): { padre: number; madre: number; hijo: number };
   /** Topes genéticos de cada progenitor por capacidad con herencia directa (los que ya se han fijado al crear la partida). */
+  /** Origen, apariencia, carácter, intereses y gustos de cada progenitor, fijados al crear la partida. */
+  readonly rasgosDePadres: { readonly padre: RasgosDe; readonly madre: RasgosDe };
   /** Perks de cada progenitor (activos y pool), fijados al crear la partida. */
   readonly perksDePadres: { readonly padre: PerksDe; readonly madre: PerksDe };
   /**

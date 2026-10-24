@@ -111,7 +111,7 @@ El original usa tres capas: stats globales → conocimiento deportivo → habili
 | E3.2 ✅ | Tipo corporal (delgado, normal, atlético, musculado, con sobrepeso) derivado de hábitos acumulados, con modificadores de velocidad, fuerza y constitución | Hecho sin alimentación: hábitos de fuerza, cardio y actividad. Los efectos son modificadores de eficiencia por etiqueta, no por stat. Alimentación como decisión, pendiente |
 | E3.3 ✅ | Constitución: sube solo por hábitos sostenidos, no por entrenamiento directo | Hecho: +1 por semana con hábitos sanos (crece muy poco, a revisar). Lesiones y recuperación, pendientes: enlazan con la idea de lesión en `DECISIONES.md` |
 | E3.4 | UI filtrada por inteligencia (5 niveles, de sensaciones vagas a "top 10 %") y pistas precisas del entrenador con buena relación | Cambia la web y se apoya en `npcs` (servicio ya existente) |
-| E3.5 | **Rasgos físicos de apariencia** (color y tipo de pelo, color de ojos, tono de piel, forma de cara, rasgos distintivos...), heredables de los padres. Sirven para (1) **encajar gustos** (lo que le atrae a cada persona, para la pareja de E20.6), (2) **dibujar al personaje** y a las demás personas, y (3) reconocer a los hijos como hijos de sus padres | Pedido el 24/10. Se diseña junto a los rasgos e intereses de las personas (E20.5). La complexión y la altura (E3.1) ya existen |
+| E3.5 ✅ | **Rasgos físicos de apariencia** (color y tipo de pelo, color de ojos, tono de piel, forma de cara, rasgos distintivos...), heredables de los padres. Sirven para (1) **encajar gustos** (lo que le atrae a cada persona, para la pareja de E20.6), (2) **dibujar al personaje** y a las demás personas, y (3) reconocer a los hijos como hijos de sus padres | Pedido el 24/10 y **hecho el mismo día** junto a los rasgos de las personas (E20.5): pelo (color y tipo), ojos, piel, cara y distintivos, heredados de los padres, con un origen familiar de 9 orígenes. El dibujo por capas queda para la interfaz (E15). La complexión y la altura (E3.1) ya existen |
 
 ## E4 · Ejes de personalidad — ⏸ · Fidelidad: alta en concepto, baja en mecánica
 
@@ -119,7 +119,7 @@ Ocho ejes de −50 a +50: disciplinado↔rebelde, honesto↔manipulador, ambicio
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E4.1 | Estado de los ocho ejes en `personaje` y servicio para consultarlos | JSON serializable (regla 5) |
+| E4.1 ✅ | Estado de los ocho ejes en `personaje` y servicio para consultarlos | Hecho el 24/10 dentro del perfil del personaje (servicio `perfil`), heredado de los padres. Los modos personalizado y aleatorio (E4.2) llegan con la creación de personaje |
 | E4.2 | Tres modos de inicio: personalizado (reparto de puntos), equilibrado, aleatorio | Aleatorio exige que ningún extremo sea trampa |
 | E4.3 | Las decisiones mueven los ejes y **abren o cierran opciones** (`available`) | Necesita un sistema de decisiones/eventos que hoy no existe → bloquea el resto |
 | E4.4 | Efectos cruzados con stats (p. ej. pesimismo reduce el efecto de determinación) | Mediante modificadores por etiqueta, sin importar entre módulos |
@@ -353,7 +353,7 @@ Registrada el 23/10/2026. **Hoy el módulo `npcs` solo tiene una interacción po
 | E20.2 ✅ (parcial) | **Estados y transiciones:** desconocido → conocido → amigo → mejor amigo, y rivalidad; con condiciones para pasar de uno a otro | Enlaza con el modo historia (E13.0): empezar sin conocer a nadie |
 | E20.3 | **Acciones de relación variadas:** charlar, ayudar con algo, regalar, quedar según intereses, discutir (elegible), hacer las paces | Cada una con duración, coste, efecto en la afinidad y entrenamiento de las genéricas sociales (carisma, empatía, comunicación) |
 | E20.4 ✅ | **Mantenimiento y decaimiento por vínculo:** una amistad fuerte aguanta más sin contacto que una reciente; los motivos de ruptura | Sustituye al decay único de E13.4 |
-| E20.5 | **Personalidad e intereses del NPC:** qué le gusta, qué le molesta, cómo reacciona. Condiciona qué acciones funcionan con él. **Ampliado el 24/10:** también rasgos físicos de apariencia (E3.5) para sus gustos y para dibujarlo | Se apoya en la personalidad del propio personaje (E4) y en los 8 ejes de los documentos de Godot |
+| E20.5 ✅ | **Personalidad e intereses del NPC:** qué le gusta, qué le molesta, cómo reacciona. Condiciona qué acciones funcionan con él. **Ampliado el 24/10:** también rasgos físicos de apariencia (E3.5) para sus gustos y para dibujarlo | **Hecho el 24/10:** 8 ejes de carácter, 12 intereses, apariencia, origen y gustos en cada persona; compatibilidad (×0,7 a ×1,4) aplicada ya a las acciones de relaciones. Se apoya en los 8 ejes de los documentos de Godot |
 | E20.6 | **Pareja (novio/novia):** conocer, tonteo, cita, declararse, ser pareja, ruptura. Con edades y límites adecuados a la fase de la vida | **Decisión pendiente:** desde qué edad y cómo se trata en la fase infantil (¿solo a partir de la adolescencia?) |
 | E20.7 | **Hijos y familia propia:** ciclo de generaciones; los hijos heredan genética de sus padres (ya implementado, E8.1) y perks (E5) | Es lo que desbloquea E8 (dinastía). Pertenece a las fases 2 y 3 |
 | E20.8 | **Relación con los padres y la familia:** que apoyo, expectativas y tiempo en casa (módulo `familia`) se muevan con lo que haga el personaje | Enlaza con E13.1 |
@@ -372,7 +372,9 @@ Registrada el 23/10/2026. **Hoy el módulo `npcs` solo tiene una interacción po
 6. **Discutir es una acción elegible** (da decisiones aun sin motor de eventos).
 7. **Los NPCs viven su propia vida:** cambian de club, se mudan, forman amistades y parejas entre ellos, no solo existen en relación con el personaje. Se simula por semana y solo el círculo cercano.
 
-**Fase 1 hecha el 23/10/2026** (E20.1, E20.2 parcial, E20.4, E20.11): módulo `relaciones` con vínculo (afinidad −100..100, confianza 0..100, estado, contactos), histéresis, enfriamiento por estado y suavizado de lo negativo; la afinidad, las acciones `quedar`/`hablar` (ahora `relaciones.*`) y el apoyo (`relaciones.apoyo`) pasan de `npcs` a `relaciones`; las carreras mueven al entrenador y a los rivales. Todos arrancan en 0 (antes 15 a 35). Falta: acciones variadas, intereses y rasgos (fase 2), interfaz completa (fase 3), vida propia (fase 4).
+**Fase 1 hecha el 23/10/2026** (E20.1, E20.2 parcial, E20.4, E20.11): módulo `relaciones` con vínculo (afinidad −100..100, confianza 0..100, estado, contactos), histéresis, enfriamiento por estado y suavizado de lo negativo; la afinidad, las acciones `quedar`/`hablar` (ahora `relaciones.*`) y el apoyo (`relaciones.apoyo`) pasan de `npcs` a `relaciones`; las carreras mueven al entrenador y a los rivales. Todos arrancan en 0 (antes 15 a 35). Falta: acciones variadas (fase 2), interfaz completa (fase 3), vida propia (fase 4).
+
+**Fase 2 (parcial) hecha el 24/10/2026:** rasgos e intereses de cada persona (E20.5): 8 ejes de carácter, 12 intereses, apariencia, origen familiar y gustos, y la compatibilidad (×0,7 a ×1,4) aplicada ya a las acciones de relaciones. **Falta de la fase 2:** acciones variadas (charlar, ayudar, discutir, hacer las paces; E20.3), que el carácter de la persona decida cómo reacciona, y ajustar la compatibilidad a más acciones si se queda corta.
 
 **Orden:** la base (E20.1 a E20.4) se puede construir con acciones y sin eventos; las partes de pareja, hijos y rupturas (E20.6, E20.7) necesitan el motor de eventos (E18). Se trabaja después de cimentar lo que quede de la fase infantil y antes del motor definitivo de eventos, para que el motor se diseñe sabiendo qué necesitan las relaciones.
 

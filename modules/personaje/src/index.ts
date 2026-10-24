@@ -14,6 +14,10 @@ import {
   type DecayDef,
   type IdentityService,
   type PerksService,
+  type ProfileService,
+  SUBIDA_DE_INTERES_POR_HORA,
+  interesesDe,
+  perfilHeredado,
   type PerkView,
   efectosDe,
   eficienciaDePerks,
@@ -74,7 +78,9 @@ export const personaje = defineModule<IdentidadState>({
     const perks = heredarPerks(ctx.perksDePadres.padre, ctx.perksDePadres.madre, ctx.rng);
     const efecto = efectosDe(perks.activos);
     for (const [stat, delta] of Object.entries(efecto.tope)) ctx.bonusDeTope(stat, delta);
-    return initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, efecto.alturaCm);
+    // Origen, apariencia, carácter e intereses salen de los padres (la opción de elegirlos a mano llegará con la creación de personaje).
+    const perfil = perfilHeredado(ctx.rasgosDePadres.padre, ctx.rasgosDePadres.madre, ctx.rng);
+    return initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, perfil, efecto.alturaCm);
   },
   stats: [
     // Físicos
@@ -274,6 +280,18 @@ export const personaje = defineModule<IdentidadState>({
   on: {
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
       const d = ev.data as ActionDoneData;
+      // Lo que hace con su tiempo alimenta sus intereses (con rendimientos decrecientes hacia 100).
+      const alimentados = interesesDe(d.tags);
+      if (alimentados.length) {
+        ctx.updateState<IdentidadState>((s) => {
+          const intereses = { ...s.perfil.intereses };
+          for (const id of alimentados) {
+            const v = intereses[id] ?? 0;
+            intereses[id] = v + (d.duration / 60) * SUBIDA_DE_INTERES_POR_HORA * (1 - v / 100);
+          }
+          return { ...s, perfil: { ...s.perfil, intereses } };
+        });
+      }
       const fisico = d.tags.includes(TAGS.fisico);
       const fuerza = d.tags.includes(TAGS.fuerza);
       const cardio = d.tags.includes(TAGS.cardio);
@@ -343,6 +361,7 @@ export const personaje = defineModule<IdentidadState>({
   },
 
   services: {
+    [SERVICES.perfil]: (ctx): ProfileService => ({ view: () => ctx.state<IdentidadState>().perfil }),
     [SERVICES.perks]: (ctx): PerksService => {
       const { perks } = ctx.state<IdentidadState>();
       const ver = (id: string): PerkView => {

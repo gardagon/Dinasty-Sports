@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, type RelationsService } from '@ds/contracts';
+import { SERVICES, type NpcDirectory, type RelationsService } from '@ds/contracts';
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { npcs } from '@ds/mod-npcs';
+import type { IdentidadState } from '@ds/mod-personaje';
 import { relaciones, type RelacionesState } from './index';
 
 const nueva = () => Game.create([personaje, npcs, relaciones], { seed: 9 });
@@ -43,5 +44,46 @@ describe('módulo relaciones', () => {
 
   it('sin contacto no hay vínculos guardados: el estado conocido es implícito', () => {
     expect(nueva().moduleState<RelacionesState>('relaciones').vinculos).toEqual({});
+  });
+
+  describe('compatibilidad', () => {
+    const conPerfil = (intereses: Record<string, number>) => {
+      const guardado = nueva().serialize();
+      (guardado.modules.gen as IdentidadState).perfil.intereses = intereses;
+      return Game.load([personaje, npcs, relaciones], guardado);
+    };
+    const factor = (g: Game, accion: string) => {
+      advanceTo(g, 'gen.descansar', 5, 11);
+      return g.preview(accion)!.modifiers.find((m) => m.id === 'relaciones.compatibilidad')?.result.efficiency ?? 1;
+    };
+
+    it('con quien comparte intereses lo que sube la afinidad rinde más que con quien no', () => {
+      const ninguno = conPerfil({ cocina: 10 });
+      const n = ninguno.service<NpcDirectory>(SERVICES.npcs)!.get('companero_social')!;
+      const suyos = Object.fromEntries(Object.keys(n.rasgos!.intereses).map((id) => [id, 90]));
+      const igual = conPerfil(suyos);
+      const accion = 'relaciones.quedar.companero_social';
+      expect(factor(igual, accion)).toBeGreaterThan(factor(ninguno, accion));
+      expect(factor(igual, accion)).toBeLessThanOrEqual(1.4);
+      expect(factor(ninguno, accion)).toBeGreaterThanOrEqual(0.7);
+    });
+
+    it('la mayor afinidad se nota al quedar: más compatibles suben más', () => {
+      const n = nueva().service<NpcDirectory>(SERVICES.npcs)!.get('companero_social')!;
+      const suyos = Object.fromEntries(Object.keys(n.rasgos!.intereses).map((id) => [id, 90]));
+      const sube = (intereses: Record<string, number>) => {
+        const g = conPerfil(intereses);
+        advanceTo(g, 'gen.descansar', 5, 11);
+        g.perform('relaciones.quedar.companero_social');
+        return g.service<RelationsService>(SERVICES.relaciones)!.get('companero_social')!.afinidad;
+      };
+      expect(sube(suyos)).toBeGreaterThan(sube({ cocina: 10 }));
+    });
+
+    it('la compatibilidad solo afecta a las acciones de relaciones', () => {
+      const g = conPerfil({ cocina: 10 });
+      advanceTo(g, 'gen.descansar', 5, 16);
+      expect(g.preview('gen.gimnasio')!.modifiers.some((m) => m.id === 'relaciones.compatibilidad')).toBe(false);
+    });
   });
 });

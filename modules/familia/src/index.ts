@@ -1,4 +1,4 @@
-import { GEN, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext, type ParentView, type Practica, type ReadContext } from '@ds/contracts';
+import { GEN, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext, type ParentView, type Practica, type RasgosDe, type ReadContext } from '@ds/contracts';
 
 /**
  * MÓDULO FAMILIA (id `familia`).
@@ -17,6 +17,8 @@ export interface Progenitor {
   deporte?: string;
   practica: Practica;
   perks: { activos: string[]; pool: string[] };
+  /** Origen, apariencia, carácter, intereses y gustos. */
+  rasgos: RasgosDe;
   apoyo: number;
   expectativas: number;
   tiempoEnCasa: number;
@@ -55,6 +57,7 @@ function nuevoProgenitor(id: 'padre' | 'madre', ctx: InitContext): Progenitor {
     ...(practica === 'ninguna' ? {} : { deporte: rng.pick(DEPORTES) }),
     practica,
     perks: { activos: [...ctx.perksDePadres[id].activos], pool: [...ctx.perksDePadres[id].pool] },
+    rasgos: ctx.rasgosDePadres[id],
     apoyo: Math.round(rng.range(45, 85)),
     expectativas: Math.round(rng.range(30, 80)),
     tiempoEnCasa: Math.round(rng.range(25, 80)),
@@ -70,6 +73,7 @@ const vista = (p: Progenitor, day: number): ParentView => ({
   deporte: p.deporte,
   practica: p.practica,
   perks: p.perks,
+  rasgos: p.rasgos,
   apoyo: p.apoyo,
   expectativas: p.expectativas,
   tiempoEnCasa: p.tiempoEnCasa,

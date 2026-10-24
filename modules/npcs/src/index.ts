@@ -13,6 +13,8 @@ import {
   practicaSegunTope,
   ventajaDeCrianza,
   type Practica,
+  type RasgosDe,
+  rasgosAlAzar,
   timeView,
   SHARED_EVENTS,
   TAGS,
@@ -60,6 +62,8 @@ export interface Npc {
   tags: string[];
   supports: string[];
   levels: Record<string, number>;
+  /** Origen, apariencia, carácter, intereses y gustos. */
+  rasgos?: RasgosDe;
   /** Padres de los rivales (su herencia). */
   padres?: { padre: PadreRival; madre: PadreRival };
   /** Nivel máximo al que puede llegar cada disciplina. */
@@ -167,6 +171,7 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
     supports: [],
     levels: { atletismo: Math.min(techo, techo * rng.range(0.8, 1) * ventaja) },
     padres,
+    rasgos: rasgosAlAzar(rng, { sesgoCaracter: { ambicion: 8, agresividad: 5, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] }),
     potential: { atletismo: potencial },
     ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
     nacimiento,
@@ -227,21 +232,25 @@ function generarReparto(ctx: InitContext): Npc[] {
 
   return [
     npc('entrenador', 'entrenador', () => ({
+      rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, ambicion: 10, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] }),
       tags: ['atletismo', 'mentor'],
       supports: ['atletismo'],
       description: 'Entrena al grupo de atletismo del colegio.',
     })),
     npc('tutor', 'profesor', (g) => ({
+      rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, honestidad: 10 }, interesesPreferidos: ['estudio', 'lectura'] }),
       tags: ['estudio', 'mentor'],
       supports: [TAGS.estudio],
       description: `${o(g, 'Tu tutora', 'Tu tutor')}. Exigente pero ${o(g, 'justa', 'justo')}.`,
     })),
     npc('companero_estudio', 'companero', (g) => ({
+      rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, sociabilidad: -5 }, interesesPreferidos: ['estudio', 'tecnologia'] }),
       tags: ['estudio'],
       supports: [TAGS.estudio],
       description: `${o(g, 'Compañera de clase aplicada', 'Compañero de clase aplicado')}. Estudiar con ${o(g, 'ella', 'él')} cunde más.`,
     })),
     npc('companero_social', 'companero', () => ({
+      rasgos: rasgosAlAzar(rng, { sesgoCaracter: { sociabilidad: 20, optimismo: 8 }, interesesPreferidos: ['videojuegos', 'cine', 'musica'] }),
       tags: ['social'],
       supports: [TAGS.social, TAGS.ocio],
       description: 'Conoce a todo el mundo en el colegio.',
@@ -261,6 +270,7 @@ const vista = (n: Npc, day: number): NpcView => ({
   age: edadNpc(n, day),
   known: n.known,
   club: n.club,
+  rasgos: n.rasgos,
   description: n.description,
 });
 

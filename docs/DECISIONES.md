@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — Rasgos de las personas: carácter, intereses, apariencia, origen y gustos (E20.5 y E3.5)
+
+- **Carácter con los 8 ejes de los documentos de Godot** (−50 a +50): disciplinado↔rebelde, honesto↔manipulador, ambicioso↔satisfecho, relajado↔sacrificado, solitario↔sociable, calmado↔agresivo, temerario↔prudente, optimista↔pesimista. Los NPCs salen con una normal de desviación 18 (los extremos son raros) y un sesgo por papel: el entrenador, más disciplinado y ambicioso; el tutor, disciplinado y honesto; el compañero social, sociable y optimista; los rivales, ambiciosos y sacrificados. Nunca se enseñan al jugador como número.
+- **Intereses:** 12 (deporte, atletismo, fútbol, estudio y ciencia, lectura, música, arte, videojuegos, naturaleza, tecnología, cine y series, cocina). Un NPC tiene de 2 a 4, con intensidad de 1 a 3 y preferidos por papel. **El personaje no los elige: los hereda y se deducen de lo que hace con su tiempo** (cada hora de una acción que los alimenta sube su interés, con rendimientos decrecientes hacia 100).
+- **Creación del personaje:** de momento todo es **heredado** de los padres. Más adelante la creación de personaje dará a elegir entre personalizada y heredada (para el carácter y los intereses; E15.1 y E4.2).
+- **Herencia del personaje:** carácter, por eje, 60 % del valor de un progenitor elegido más una variación propia; intereses, algunos de los de sus padres a un nivel bajo (de 28 a 44); apariencia, ver abajo; gustos, al azar.
+- **Apariencia (rasgos físicos con ids estables para dibujar por capas):** color de pelo (6) y tipo (4), color de ojos (6), tono de piel (6), forma de cara (5) y distintivos (pecas, hoyuelos, lunares). Cada rasgo viene de **uno de los dos padres** (50/50); lo que tiene gradación (piel, ojos, tipo de pelo) a veces sale intermedio y rara vez un vecino; el pelo rojo es recesivo (solo sale casi seguro si lo tienen los dos); cada distintivo pasa con un 50 % (75 % si lo tienen los dos). Los hijos se parecen a sus padres.
+- **Origen familiar (detalle étnico para dar profundidad a personajes y NPCs):** 9 orígenes como dato (España norte, centro y sur, Latinoamérica, Magreb, África subsahariana, Europa del este, Europa del norte y Asia oriental), con una frecuencia en el mundo (España, el 75 %). Cada adulto del mundo tiene uno o dos orígenes (10 % de mezclas) y sus rasgos físicos siguen la tendencia de su origen. **El del hijo es la mezcla a partes iguales de los de sus padres** y su apariencia hereda de los padres, no del origen. Las distribuciones son aproximadas. Más adelante podrá condicionar nombres, costumbres y eventos.
+- **Gustos:** cada persona tiene preferencias ocultas de rasgos físicos (pelo, ojos, piel y cara; a veces el suyo propio) y de carácter. Se guardan ya y `atraccion()` ya calcula de 0 a 1 lo que atrae otra persona; se usarán en la pareja (E20.6).
+- **Compatibilidad (ya aplicada):** 60 % intereses en común (qué parte de lo que le gusta al NPC le interesa al personaje) y 40 % parecido de carácter (ponderado por eje). El modificador `relaciones.compatibilidad` multiplica entre **×0,7 y ×1,4** lo que sube la afinidad y la eficiencia de las acciones de relaciones con esa persona (una compatibilidad de 0,25 da ×0,7; 0,5, ×1,05; 0,75 o más, ×1,4). Lo típico al empezar es ×0,9 (media de 0,91 con rango de 0,71 a 1,40) porque el personaje todavía comparte pocos intereses; mejora al hacer cosas que a esa persona le gustan. Se ajustará a más acciones si se queda corto.
+- **Dónde vive:** catálogo y reglas en `contracts/rasgos.ts`; los de los padres se sortean con el resto de su genética (`state.lineage.rasgos`, `ctx.rasgosDePadres`); los del personaje, en el estado del módulo base (`gen`) con el servicio `perfil`; los de los NPCs, en `npcs`; los de los padres del jugador, en `familia`.
+- **Interfaz de pruebas** (`MOSTRAR_GENETICA` y `MOSTRAR_RELACIONES`): origen, apariencia, carácter, intereses y gustos del personaje y de sus padres, y en cada persona su carácter, intereses y la compatibilidad contigo.
+- **Pendiente:** dibujar al personaje por capas (E15), los rasgos de apariencia de los hijos del personaje y de los rivales con padres, que el carácter condicione decisiones (E4.3) y los modos personalizado y aleatorio de la creación de personaje (E4.2).
+
 ## 24/10/2026 — Perks: rasgos genéticos heredables (E5, primera parte)
 
 Fuente: `design_stats_personality_system.md` (secciones 5 y 11) y `cambios_tecnicos_arquitecto_equipo1.md` de Godot. El catálogo se adapta con las decisiones del usuario.
@@ -429,6 +443,11 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 ---
 
 ## Pendiente e ideas
+
+- **Revelación de los perks latentes** con mensajes: espera al motor de eventos (E18). Hoy se enseñan todos en pruebas.
+- **Dibujar al personaje por capas** a partir de la apariencia y la creación de personaje con los modos personalizado y heredado (E15.1, E4.2).
+- **Rasgos de los hijos del personaje y de los padres de los rivales** (ciclo de generaciones, E8).
+- **Antes de la beta:** poner `MOSTRAR_GENETICA` y `MOSTRAR_RELACIONES` a `false` en `apps/web/src/main.ts` (genética, perks, sesgo y calidad de los padres, apariencia, carácter, intereses y cifras de relaciones).
 
 - **Medir el rendimiento en una partida real** (en las simulaciones, ~1,4 s por año simulado, dentro del límite de 3 s).
 - **Ajustar las curvas por edad y los topes** con muchas pruebas y tests (`sim:vida`, `sim:largo`).

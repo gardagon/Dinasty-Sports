@@ -1,4 +1,5 @@
 import type { Practica } from './herencia';
+import type { PerfilDelPersonaje, RasgosDe } from './rasgos';
 /**
  * Servicios: la forma de que un módulo CONSULTE a otro sin importarlo.
  * El contrato (interfaz + clave) vive aquí; la implementación, en el módulo que lo publica.
@@ -12,6 +13,7 @@ export const SERVICES = {
   familia: 'familia',
   relaciones: 'relaciones',
   perks: 'perks',
+  perfil: 'perfil',
 } as const;
 
 // ---------- NPCs ----------
@@ -28,6 +30,8 @@ export interface NpcView {
   gender: Gender;
   /** Etiquetas libres: 'atleta', 'estudio', 'mentor'... */
   tags: readonly string[];
+  /** Origen, apariencia, carácter, intereses y gustos (los rivales y el reparto los tienen; no se enseñan al jugador). */
+  rasgos?: RasgosDe;
   /** Etiquetas de acción en las que este NPC ayuda al personaje si la relación es buena. */
   supports: readonly string[];
   /** Niveles del NPC por disciplina (p. ej. { atletismo: 42 }). */
@@ -93,6 +97,11 @@ export interface PerkView {
   latente: boolean;
 }
 
+/** Origen, apariencia, carácter, intereses y gustos del personaje (hoy solo para pruebas y para la compatibilidad con los demás). */
+export interface ProfileService {
+  view(): PerfilDelPersonaje;
+}
+
 export interface PerksService {
   /** Perks que le afectan (como mucho 3) y los que lleva en su pool para sus hijos. */
   view(): { activos: PerkView[]; pool: PerkView[] };
@@ -111,6 +120,8 @@ export interface ParentView {
   deporte?: string;
   practica: Practica;
   /** 0..100. Cuánto respalda al personaje en lo que hace. */
+  /** Origen, apariencia, carácter, intereses y gustos. */
+  rasgos: RasgosDe;
   /** Perks de este progenitor (activos y los que lleva en su pool). */
   perks: { activos: string[]; pool: string[] };
   apoyo: number;

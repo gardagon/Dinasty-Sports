@@ -13,6 +13,16 @@ import {
   type LogTable,
   type NpcDirectory,
   type PerksService,
+  type ProfileService,
+  type Gustos,
+  EJES,
+  INTERESES,
+  NOMBRE_RASGO,
+  compatibilidad,
+  describirApariencia,
+  describirCaracter,
+  describirOrigen,
+  factorDeCompatibilidad,
   perk,
   type RelationsService,
   nombreEstado,
@@ -235,11 +245,45 @@ function viewFamily(g: Game): string {
     .parents()
     .map((p) => {
       const deporte = p.deporte ? `${PRACTICA_TEXTO[p.practica]} (${p.deporte})` : PRACTICA_TEXTO[p.practica];
-      const perksPadre = MOSTRAR_GENETICA ? ` Perks: ${textoPerks(p.perks)}.` : '';
+      const perksPadre = MOSTRAR_GENETICA ? ` Perks: ${textoPerks(p.perks)}. Origen: ${describirOrigen(p.rasgos.origen)}. Apariencia: ${describirApariencia(p.rasgos.apariencia)}. Carácter: ${describirCaracter(p.rasgos.caracter)}. Intereses: ${textoIntereses(p.rasgos.intereses, 'npc')}.` : '';
       return `<p class="note"><b>${p.gender === 'f' ? 'Madre' : 'Padre'}:</b> ${esc(p.nombre)}, ${p.edad} años, ${Math.round(p.alturaCm)} cm. ${esc(deporte)}. Apoyo ${p.apoyo}, expectativas ${p.expectativas}, tiempo en casa ${p.tiempoEnCasa}.${esc(perksPadre)}</p>`;
     })
     .join('');
   return `<h3>Familia ${esc(f.apellidos)}</h3>${filas}`;
+}
+
+/** Intereses en texto, de más a menos (solo para las pruebas). */
+function textoIntereses(i: Record<string, number>, escala: 'npc' | 'jugador'): string {
+  const nombre = (id: string) => INTERESES.find((x) => x.id === id)?.nombre ?? id;
+  const lista = Object.entries(i)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, v]) => `${nombre(id)} ${escala === 'npc' ? '·'.repeat(Math.round(v)) : Math.round(v)}`);
+  return lista.length ? lista.join(', ') : 'ninguno';
+}
+
+/** Carácter con los ejes marcados y sus valores (solo para las pruebas: al jugador no se le enseñan). */
+function textoCaracter(c: Record<string, number>): string {
+  return `${describirCaracter(c)} (${EJES.map((e) => `${e.positivo} ${c[e.id] > 0 ? '+' : ''}${c[e.id]}`).join(', ')})`;
+}
+
+function textoGustos(g: Gustos): string {
+  const n = (xs: string[]) => xs.map((x) => NOMBRE_RASGO[x]).join(' o ');
+  const car = Object.entries(g.caracter).map(([id, v]) => `${v > 0 ? EJES.find((e) => e.id === id)!.positivo : EJES.find((e) => e.id === id)!.negativo}`);
+  return `pelo ${n(g.fisicos.peloColor)}, ojos ${n(g.fisicos.ojos)}, piel ${n(g.fisicos.piel)}, cara ${n(g.fisicos.cara)}${car.length ? `; de carácter, ${car.join(', ')}` : ''}`;
+}
+
+function viewPerfil(g: Game): string {
+  if (!MOSTRAR_GENETICA) return '';
+  const p = g.service<ProfileService>(SERVICES.perfil)?.view();
+  if (!p) return '';
+  return `<h3>Origen, apariencia y carácter (solo pruebas)</h3>
+    <p class="note"><b>Origen familiar:</b> ${esc(describirOrigen(p.origen))}.</p>
+    <p class="note"><b>Apariencia:</b> ${esc(describirApariencia(p.apariencia))}.</p>
+    <p class="note"><b>Carácter:</b> ${esc(textoCaracter(p.caracter))}.</p>
+    <p class="note"><b>Intereses:</b> ${esc(textoIntereses(p.intereses, 'jugador'))}.</p>
+    <p class="note"><b>Gustos:</b> ${esc(textoGustos(p.gustos))}.</p>
+    <p class="note">Salen de los padres; los intereses suben con lo que haces. Se ocultarán al pasar a beta.</p>`;
 }
 
 function viewPerks(g: Game): string {
@@ -270,6 +314,7 @@ function viewIdentity(g: Game): string {
     </dl>
     ${viewFamily(g)}
     ${viewPerks(g)}
+    ${viewPerfil(g)}
   </section>`;
 }
 
@@ -369,6 +414,8 @@ function viewPeople(g: Game): string {
     .filter((n) => n.known !== false)
     .map((n) => {
       const v = rel?.get(n.id);
+      const yo = g.service<ProfileService>(SERVICES.perfil)?.view();
+      const compat = n.rasgos && yo ? compatibilidad(n.rasgos, yo) : undefined;
       const lvl = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
       const ayuda = n.supports.length ? `Si os lleváis bien te ayuda en: ${n.supports.join(', ')}.` : '';
       return `<div class="npc">
@@ -376,6 +423,7 @@ function viewPeople(g: Game): string {
         ${v ? `<div class="note"><b>${nombreEstado(v.estado, n.gender)}</b>${MOSTRAR_RELACIONES ? ` · afinidad ${Math.round(v.afinidad)}, confianza ${Math.round(v.confianza)} (solo pruebas)` : ''}${lvl ? ` · nivel ${esc(lvl)}` : ''}</div>` : ''}
         ${MOSTRAR_RELACIONES && v ? `<div class="bar" title="Afinidad ${Math.round(v.afinidad)}"><i style="width:${(v.afinidad + 100) / 2}%"></i></div>` : ''}
         <div class="note">${esc(n.description ?? '')} ${esc(ayuda)}</div>
+        ${MOSTRAR_RELACIONES && n.rasgos ? `<div class="note">(solo pruebas) Carácter: ${esc(describirCaracter(n.rasgos.caracter))}. Intereses: ${esc(textoIntereses(n.rasgos.intereses, 'npc'))}.${compat === undefined ? '' : ` Compatibilidad contigo: ${Math.round(compat * 100)} % (×${factorDeCompatibilidad(compat).toFixed(2)}).`}</div>` : ''}
       </div>`;
     })
     .join('');
