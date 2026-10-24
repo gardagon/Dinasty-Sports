@@ -299,6 +299,7 @@ Valida que la plantilla de deporte funciona sin tocar el motor. **Decidido el 22
 | E15.2 | Filtro de información por inteligencia | Es E3.4 |
 | E15.3 | Resumen semanal y gráficas de progreso | Enlaza con E11.3 |
 | E15.4 | Varias partidas guardadas | Hoy hay una sola |
+| E15.5 | **Cómo enseñar lo que sube una acción** (hoy, en la alfa, el dato exacto de cada cambio hasta milésimas): valorar no enseñar cantidades pero sí marcar qué habilidades suben con la acción elegida, y/o marcar en verde la habilidad cuando cruza un valor entero hacia arriba y en rojo cuando baja | Pedido el 24/10 para más adelante |
 
 ## E16 · Recursos y dinero — 🟡 (opcional)
 

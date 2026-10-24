@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — Resultado de una acción: dato individual de cada cambio (solo alfa)
+
+- **Qué pasaba:** tras una acción la pantalla solo enseñaba los cambios de 0,05 puntos o más. Desde la nueva escala de topes las subidas por acción son más pequeñas (una clase da entre 0,01 y 0,06 por asignatura), así que casi ninguna asignatura aparecía y parecía que no subían.
+- **Decisión del usuario:** en la fase alfa se quiere el **dato individual de cada cambio**, sin agrupar ni ocultar. Ahora se enseña cada cambio de 0,0005 puntos o más, con tres decimales cuando es pequeño (+0,017), dos entre 0,1 y 1 y uno por encima.
+- **Idea para más adelante** (a valorar, no está hecha): no enseñar cantidades pero sí **marcar qué habilidades suben con la acción elegida**, y/o **marcar en verde la habilidad cuando cruza un valor entero hacia arriba y en rojo cuando baja**. Está en el backlog como E15.5.
+- **Sigue abierta** la duda del ritmo temprano de las asignaturas (empiezan al 75–80 % de su techo y suben poco por acción): subir el tope de las asignaturas, bajar el nivel inicial o suavizar la curva al principio. Se decide junto con la revisión de las notas.
+
 ## 24/10/2026 — La app se quedaba en blanco con una partida guardada antigua
 
 - **Qué pasó:** al añadir los perks y el perfil al estado del módulo base, una partida guardada antes de ese cambio cargaba, pero al dibujarla fallaba (`Cannot read properties of undefined (reading 'activos')`) y la página quedaba vacía sin ningún aviso. Reproducido con un guardado sin esos campos.

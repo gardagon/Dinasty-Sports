@@ -119,7 +119,9 @@ const pct = (v: number) => `${Math.round(v * 100)} %`;
 
 function signedChange(id: string, d: number): string {
   const bueno = MALO_SI_SUBE.has(id) ? d < 0 : d > 0;
-  const txt = `${d > 0 ? '+' : '−'}${Math.abs(d) < 1 ? Math.abs(d).toFixed(2) : Math.abs(d).toFixed(1)}`;
+  // En la alfa se enseña el dato exacto de cada cambio, por pequeño que sea (más decimales cuanto menor).
+  const m = Math.abs(d);
+  const txt = `${d > 0 ? '+' : '−'}${m < 0.1 ? m.toFixed(3) : m < 1 ? m.toFixed(2) : m.toFixed(1)}`;
   return `<span class="${bueno ? 'gain' : 'loss'}">${esc(statName(id))} ${txt}</span>`;
 }
 
@@ -189,7 +191,8 @@ function viewResult(): string {
   lastResult.fresh = false; // la animación solo marca lo que acaba de cambiar
   if (!result.ok) return `<section class="sheet result${fresh}"><p><b>${esc(name)}</b>: ${esc(result.reason ?? '')}</p></section>`;
   const changes = Object.entries(result.changes)
-    .filter(([, d]) => Math.abs(d) >= 0.05)
+    // Fase alfa: se enseña cada cambio individual (hasta milésimas). Más adelante se valorará marcar solo qué sube.
+    .filter(([, d]) => Math.abs(d) >= 0.0005)
     .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
     .map(([id, d]) => signedChange(id, d))
     .join('');
