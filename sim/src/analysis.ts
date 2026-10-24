@@ -102,7 +102,7 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
   if (eq && has('atletismo') && has('estudios')) {
     const dA = eq.final.atletismo - eq.start.atletismo;
     const dE = eq.final.estudios - eq.start.estudios;
-    add(dA > 10 && dE > 8, 'aviso', 'El esfuerzo hace progresar', `Equilibrado: atletismo +${f(dA)}, estudios +${f(dE)} (esperado > +10 y > +8).`);
+    add(dA > 10 && dE > 6, 'aviso', 'El esfuerzo hace progresar', `Equilibrado: atletismo +${f(dA)}, estudios +${f(dE)} (esperado > +10 y > +6).`);
   }
 
   // 4. Especializarse compensa. En simulaciones largas todos acaban en su tope genético (el mismo para todos los

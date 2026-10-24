@@ -12,6 +12,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Nota final** de cada asignatura = 0,4 × media de los dos parciales + 0,6 × global; lo que no se hace (por faltar a clase o por no estar en la partida) cuenta 0. La tabla del trimestre enseña parcial 1, parcial 2, global y final. `examenes` guarda ahora `asignatura:parcial1|parcial2|global`.
 - **Ajuste de balance** (para que sea más difícil): estudiar una asignatura 5 → 2,5; clase 1,2 → 0,9; repaso 2,5 → 0,6 por asignatura (el bot lo elegía a menudo y era la fuente dominante); caída diaria 0,15 → 0,2. La academia sigue en 6.
 - **Cifras (365 días, 5 semillas, 13 chequeos en verde):** nota media del equilibrado **8,3 → 6,5**; empollón 9,0 → 7,8; atleta (solo va a clase) 5,6 → 4,6; abandona el deporte 8,5 → 7,2; vago 3,7 → 2,7. Con estos números el campamento (media ≥ 7,5) solo lo alcanza quien estudia a fondo (el empollón queda justo en 7,8).
+- **Umbral de la simulación rápida:** el chequeo "El esfuerzo hace progresar" pedía estudios > +8 y daba +7,9 (en la simulación completa sube +11,5): la subida es más lenta a propósito, así que el umbral baja a +6.
 - **A vigilar:** el vago llega a Mal (22) en un año; si se considera demasiado duro se baja la caída solo cuando no se asiste a clase.
 
 ---
