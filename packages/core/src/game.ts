@@ -41,6 +41,8 @@ import { LOG_LIMIT, SAVE_VERSION, type GameState, type Lineage, type ParentGenes
 
 /** Fracción diaria de la distancia al tope efectivo que se pierde por envejecimiento. */
 const AJUSTE_POR_EDAD_DIARIO = 0.004;
+/** Fracción de lo que falta para el mínimo natural que se gana cada día. */
+const DESARROLLO_NATURAL_DIARIO = 0.05;
 
 /** Lo que la interfaz (o un bot) ve de cada acción antes de elegirla. */
 export interface ActionOption {
@@ -629,7 +631,14 @@ export class Game {
         const techo = this.effectivePotential(id);
         if (techo !== undefined && next > techo) next -= (next - techo) * AJUSTE_POR_EDAD_DIARIO;
       }
+      // Desarrollo natural: crecer da un mínimo que sube con la edad aunque no se entrene.
+      const natural = def.growth?.naturalFraction;
+      if (natural) {
+        const pot = this.effectivePotential(id);
+        if (pot !== undefined && next < pot * natural) next += (pot * natural - next) * DESARROLLO_NATURAL_DIARIO;
+      }
       this.s.stats[id] = next;
+      if (next > (this.s.peaks[id] ?? -Infinity)) this.s.peaks[id] = next;
     }
   }
 

@@ -6,7 +6,7 @@ import {
   anioNatural,
   edadDeCompeticion,
   primerDiaDelAnio,
-  madurezPorEdad,
+  factorPorEdad,
   heredarTope,
   perfilDePadre,
   repartirHerencia,
@@ -123,12 +123,11 @@ function nombreUnico(rng: Rng, g: Gender, usados: Set<string>): string {
 }
 
 /**
- * Parte de su potencial que un rival ha desarrollado a una edad. Es más plana que el desarrollo físico del
- * jugador (`madurezPorEdad`): los rivales ya llevan años entrenando, así que a los 8 años ya rinden más que
- * alguien que acaba de llegar, pero a ninguna edad igualan su potencial adulto. Los rivales solo juegan hasta los 19 años:
- * cuando haya rivales adultos, usarán la curva física por edad (`CURVAS_POR_EDAD`) como el jugador.
+ * Parte de su potencial que un rival ha desarrollado a una edad: la misma curva física por edad que el jugador
+ * (`CURVAS_POR_EDAD`) por 0,75, porque un rival típico no entrena a diario como el mejor jugador posible. Los rivales solo
+ * juegan hasta los 19 años.
  */
-export const desarrolloRival = (edad: number): number => 0.35 + 0.65 * madurezPorEdad(edad);
+export const desarrolloRival = (edad: number): number => 0.75 * factorPorEdad('fisico', edad);
 
 /**
  * Edad de competición de un NPC con fecha de nacimiento: año del curso menos año de nacimiento. Es la que decide su

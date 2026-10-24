@@ -45,10 +45,10 @@ export type CategoriaEdad = 'fisico' | 'tecnico' | 'mental' | 'social';
 type Curva = readonly (readonly [number, number])[];
 
 export const CURVAS_POR_EDAD: Record<CategoriaEdad, Curva> = {
-  fisico: [[8, 0.86], [12, 0.9], [16, 0.94], [20, 0.98], [22, 1], [27, 1], [30, 0.97], [35, 0.9], [40, 0.82], [50, 0.68], [60, 0.55], [70, 0.45], [90, 0.3]],
-  tecnico: [[8, 0.86], [12, 0.9], [16, 0.94], [20, 0.97], [24, 1], [32, 1], [40, 0.93], [50, 0.82], [60, 0.7], [70, 0.58], [90, 0.4]],
-  mental: [[8, 0.9], [12, 0.93], [16, 0.95], [22, 0.98], [30, 1], [55, 1], [60, 0.98], [70, 0.92], [80, 0.82], [90, 0.7]],
-  social: [[8, 0.9], [12, 0.93], [16, 0.95], [22, 0.98], [30, 1], [60, 1], [70, 0.96], [80, 0.9], [90, 0.8]],
+  fisico: [[8, 0.3], [10, 0.42], [12, 0.55], [14, 0.68], [16, 0.82], [18, 0.91], [20, 0.96], [22, 1], [27, 1], [30, 0.97], [35, 0.9], [40, 0.82], [50, 0.68], [60, 0.55], [70, 0.45], [90, 0.3]],
+  tecnico: [[8, 0.3], [10, 0.42], [12, 0.55], [14, 0.68], [16, 0.82], [18, 0.91], [20, 0.94], [24, 1], [32, 1], [40, 0.93], [50, 0.82], [60, 0.7], [70, 0.58], [90, 0.4]],
+  mental: [[8, 0.3], [10, 0.42], [12, 0.55], [14, 0.68], [16, 0.82], [18, 0.91], [22, 0.96], [30, 1], [55, 1], [60, 0.98], [70, 0.92], [80, 0.82], [90, 0.7]],
+  social: [[8, 0.3], [10, 0.42], [12, 0.55], [14, 0.68], [16, 0.82], [18, 0.91], [22, 0.96], [30, 1], [60, 1], [70, 0.96], [80, 0.9], [90, 0.8]],
 };
 
 /**
@@ -59,20 +59,21 @@ export const CURVAS_POR_EDAD: Record<CategoriaEdad, Curva> = {
 export const NIVEL_TIPICO_DE_REFERENCIA = 40;
 const NIVEL_TIPICO_POR_EDAD: readonly (readonly [number, number])[] = [
   [8, 12.5],
-  [10, 30],
-  [12, 44],
-  [14, 52],
-  [16, 57],
-  [18, 60],
-  [30, 62],
-  [90, 62],
+  [10, 17],
+  [12, 22],
+  [14, 27],
+  [16, 32],
+  [18, 36],
+  [24, 40],
+  [30, 42],
+  [90, 42],
 ];
 /**
  * Plasticidad de la infancia: multiplicador de la velocidad con la que suben las capacidades genéricas. Un niño aprende y se
- * desarrolla mucho más rápido que un adulto: ×2,5 a los 8 años, bajando hasta ×1 a los 16.
+ * desarrolla más rápido que un adulto: ×3 a los 8 años, bajando hasta ×1 a los 16.
  */
 export function plasticidadPorEdad(edad: number): number {
-  return 1 + 1.5 * Math.min(1, Math.max(0, (16 - edad) / 8));
+  return 1 + 2 * Math.min(1, Math.max(0, (16 - edad) / 8));
 }
 
 /** Nivel típico al empezar la partida (8 años): el rango inicial de las capacidades se centra aquí. */

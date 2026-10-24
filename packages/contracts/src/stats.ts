@@ -41,6 +41,11 @@ export interface GrowthDef {
    * encima del tope efectivo va cayendo hacia él.
    */
   potentialFactor?: StatId;
+  /**
+   * Desarrollo natural: fracción del tope efectivo (tope × lo alcanzable por edad) que se alcanza solo por crecer, sin
+   * entrenar. Un niño con 5 no será un adulto con 5: sin hacer nada llega a ~`naturalFraction` de su tope.
+   */
+  naturalFraction?: number;
 }
 
 /**

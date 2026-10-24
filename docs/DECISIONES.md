@@ -5,6 +5,21 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — Crecimiento infantil más gradual: techo por edad y desarrollo natural (E2.8, ajuste)
+
+- **Problema (usuario):** el bot equilibrado pasaba de 12 a 35 en un año y casi se paraba después. Un personaje con tope 90 y su mejor momento a los 24 tiene que subir menos de 7 puntos al año si fuera plano; de niño algo más, pero no 23. Además, un niño con 5 no será nunca un adulto con 5, aunque sí con 25 o 30.
+- **Causa:** el techo por edad de las capacidades ya valía el 86–90 % del tope a los 8 años, así que el niño podía subir casi a tope de golpe y después la curva de rendimientos decrecientes lo frenaba.
+- **Techo por edad más bajo y progresivo** (`CURVAS_POR_EDAD`, fracción del tope alcanzable): a los 8 años 0,30; 10: 0,42; 12: 0,55; 14: 0,68; 16: 0,82; 18: 0,91; y después como antes hasta el máximo (22–30 según categoría).
+- **Desarrollo natural** (`GrowthDef.naturalFraction`, 0,45 en todas las genéricas): sin entrenar, una capacidad sube sola hasta el 45 % de su tope efectivo (tope × lo alcanzable por edad), un 5 % de lo que falta cada día. Un adulto que no entrena nunca baja del ~45 % de su tope (≈ 28 con tope 62; ≈ 40 con tope 90), no hacia 5. Este mínimo sube con la edad y baja con el envejecimiento.
+- **Plasticidad hasta los 16** (`plasticidadPorEdad`): ×3 a los 8 años, bajando a ×1 a los 16, solo en genéricas. Ritmo de las genéricas 0,3 → 0,5.
+- **Nivel típico por edad recalibrado** a lo realmente alcanzable: 12,5 a los 8; 17 a los 10; 22 a los 12; 32 a los 16; 36 a los 18; 40 a los 24; 42 desde los 30.
+- **Rivales:** `desarrolloRival` = 0,75 × la curva física por edad del jugador (antes una curva propia más alta). Con 0,9 el atleta dejaba de destacar.
+- **Resultado (bot perfecto, `sim:vida`, físico con tope 57):** 8 años 11 → 10 años 20 → 12 años 24 → 16 años 33 → 20 años 37 → 24 años 39. Es decir, ~4 puntos al año de niño y 1–3 después, sin saltos. Un año de partida: capacidades +7 a +9 (antes +23).
+- **Cifras (365 días, 13 chequeos en verde):** nota media equilibrado 7,2 (6,4 sin el ajuste de techo; el primer año sigue algo alta), empollón 8,1, atleta 4,5, vago 2,4; atletismo +16 en el equilibrado y en el atleta; podios 18 y 19; victorias del atleta 24 %.
+- **Pendiente:** el bot perfecto solo llega a ~70 % del tope a los 24 años. Para un personaje con tope 90 que llegue a 85 a los 24 hace falta más ritmo de adulto o menos caída; se revisa al hacer la fase profesional (E10). El tope de los rivales y el nivel típico por edad dependen de esto.
+
+---
+
 ## 24/10/2026 — Los niños empiezan con capacidades bajas (5–20) y se miden "para su edad" (E2.8)
 
 - **Motivo (usuario):** un padre con 60 y un niño de 8 años con 40 es poco realista. Debe empezar mucho más bajo (1–20) pero con potencial para crecer rápido.
