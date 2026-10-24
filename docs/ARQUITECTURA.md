@@ -65,7 +65,7 @@ curso y son desconocidos hasta que compiten contra el personaje (`known`).
 
 El currículo es un dato por país (`curriculo.ts` en el módulo de estudios): las asignaturas de cada curso, de 3.º de primaria a 2.º de bachillerato.
 Todas existen como habilidades; solo puntúan y se estudian las del curso actual. Al cambiar de curso, las asignaturas nuevas heredan el nivel de las
-que sustituyen. El servicio `estudios` publica las asignaturas activas y el nombre del curso.
+que sustituyen. Cada asignatura es una **preparación 0–100 (= nota esperada × 10)** que se ve como texto (Mal, Regular, Bien, Muy bien, Excelente), sin tope genético: la dificultad la ponen las capacidades de apoyo (arranque con `StatDef.initialFrom`, ritmo de subida y olvido diario). Se sube yendo a clase (solo las asignaturas del día según `horarioSemanal`) y estudiando; no hay controles semanales sino una semana de exámenes por trimestre, avisada con una semana de antelación. El servicio `estudios` publica las asignaturas activas, el nombre del curso, el nivel en texto, el horario y los próximos exámenes.
 
 ## Clubes
 

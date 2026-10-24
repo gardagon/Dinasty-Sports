@@ -5,6 +5,7 @@ import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, typ
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { EstudiosState } from '@ds/mod-estudios';
+import { asignaturasDelCurso } from '../modules/estudios/src/curriculo';
 import type { NpcsState } from '@ds/mod-npcs';
 import type { RelacionesState } from '@ds/mod-relaciones';
 
@@ -322,7 +323,7 @@ describe('integración de módulos', () => {
         { curso: 0, trimestre: 1, media: notaMedia },
         { curso: 0, trimestre: 2, media: notaMedia },
       ];
-      e.controlesTrimestre = [notaMedia, notaMedia, notaMedia];
+      e.examenes = Object.fromEntries(asignaturasDelCurso(0).map((k) => [k, notaMedia]));
       guardado.minute = (40 * 7 + 4) * 1440 + 22 * 60; // viernes de la semana 40 a las 22:00
       return cargarPartida(guardado);
     };

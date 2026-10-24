@@ -362,7 +362,11 @@ function viewGenetics(g: Game): string {
   </section>`;
 }
 
+/** Mientras dure la fase de pruebas se enseña también la cifra de preparación de cada asignatura. Ponlo en `false` al pasar a beta. */
+const MOSTRAR_CIFRAS_ASIGNATURAS = true;
+
 function viewCharacter(g: Game): string {
+  const estudios = g.service<StudiesService>(SERVICES.estudios);
   const groups = new Map<string, string[]>();
   // Solo se muestran las asignaturas del curso actual.
   const activas = g.service<StudiesService>(SERVICES.estudios)?.activeSubjects();
@@ -372,6 +376,10 @@ function viewCharacter(g: Game): string {
     const key = s.def.group ?? g.registry.moduleNames.get(s.module) ?? s.module;
     groups.set(key, [...(groups.get(key) ?? []), s.def.id]);
   }
+  const nivelEnTexto = (id: string, v: number): string => {
+    const texto = estudios?.levelText(id);
+    return texto ? `${texto}${MOSTRAR_CIFRAS_ASIGNATURAS ? ` <small>(${Math.round(v)})</small>` : ''}` : String(Math.round(v));
+  };
   const rows = [...groups]
     .map(([group, ids]) => {
       const items = ids
@@ -385,7 +393,7 @@ function viewCharacter(g: Game): string {
           return `<div class="stat" title="Techo actual: ${Math.round(g.cap(id))}${tope === undefined ? '' : ` · Tope genético: ${Math.round(tope)} (solo pruebas)`}">
             <span>${esc(info.def.name)}</span>
             <div class="bar"><i style="width:${((v - info.min) / span) * 100}%"></i>${cap < 99.5 ? `<span class="cap" style="left:${cap}%"></span>` : ''}${topePct === undefined ? '' : `<span class="cap tope" style="left:${topePct}%"></span>`}</div>
-            <span class="stat-val">${Math.round(v)}</span>
+            <span class="stat-val">${nivelEnTexto(id, v)}</span>
           </div>`;
         })
         .join('');
@@ -402,7 +410,14 @@ function viewResults(g: Game): string {
   const est = g.service<StudiesService>(SERVICES.estudios);
   if (est) {
     const m = est.average();
-    parts.push(`<p>Nota media reciente: <b>${m === null ? 'sin exámenes aún' : m.toFixed(1)}</b><br><span class="note">Faltas: ${est.absences()}. Controles cada viernes.</span></p>`);
+    const dias = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
+    const exs = est.upcomingExams(14);
+    const proximos = exs.length
+      ? `<ul class="note">${exs.map((e) => `<li><b>${esc(e.name)}</b>: ${e.inDays === 0 ? 'hoy' : e.inDays === 1 ? 'mañana' : `el ${dias[e.day % 7]} (en ${e.inDays} días)`}</li>`).join('')}</ul>`
+      : '<span class="note">No hay exámenes a la vista.</span>';
+    const hoy = g.time.isSchoolDay ? est.timetable(g.time.weekday).map((id) => esc(g.registry.stats.get(id)?.def.name ?? id)).join(', ') : '';
+    parts.push(`<p>Nota media reciente: <b>${m === null ? 'sin exámenes aún' : m.toFixed(1)}</b><br><span class="note">Faltas: ${est.absences()}. Exámenes solo en la semana de evaluación de cada trimestre.</span></p>
+      <h3>Exámenes próximos</h3>${proximos}${hoy ? `<p class="note">Hoy hay clase de: ${hoy}.</p>` : ''}`);
   }
   const atl = g.moduleState<{ mejorMarca: number | null; carreras: { position: number; total: number }[] } | undefined>('atletismo');
   if (atl) {

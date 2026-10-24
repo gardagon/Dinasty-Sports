@@ -84,6 +84,9 @@ const EPS = 1e-9;
  * Toda acción pasa por `perform`: requisitos → modificadores → coste → entrenamiento
  * → lógica propia → avance del tiempo → eventos. Un solo sitio que depurar y medir.
  */
+/** Nivel medio de las stats de apoyo que da el mínimo y el máximo de `initialFrom` (los niños empiezan en torno a 40). */
+const INICIAL_DESDE = { bajo: 34, alto: 52 };
+
 export class Game {
   private readonly rngHolder: RngHolder;
   private readonly rng;
@@ -241,6 +244,20 @@ export class Game {
       state.lastTrained[def.id] = state.minute;
     }
     Game.genetica(registry, state, nuevas);
+    for (const { def, min, max } of registry.statList) {
+      if (!nuevas.has(def.id) || !def.initialFrom || typeof def.initial === 'number') continue;
+      let suma = 0;
+      let peso = 0;
+      for (const inf of def.initialFrom) {
+        if (state.stats[inf.stat] === undefined) continue;
+        suma += inf.weight * state.stats[inf.stat];
+        peso += inf.weight;
+      }
+      if (peso === 0) continue;
+      const t = Math.min(1, Math.max(0, (suma / peso - INICIAL_DESDE.bajo) / (INICIAL_DESDE.alto - INICIAL_DESDE.bajo)));
+      const value = Math.min(max, Math.max(min, def.initial.min + (def.initial.max - def.initial.min) * t));
+      state.stats[def.id] = state.peaks[def.id] = state.baseline[def.id] = value;
+    }
     let bonos = false;
     const ictx: InitContext = {
       rng: init,

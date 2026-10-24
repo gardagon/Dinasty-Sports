@@ -5,6 +5,21 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — Asignaturas rediseñadas: estudiar para preparar exámenes (E6.6)
+
+- **Idea del usuario:** que el jugador estudie de cara a exámenes, con un nivel por asignatura que ve en texto, y que sepa qué días no faltar y hasta cuándo estudiar.
+- **Preparación en lugar de nivel con tope.** Cada asignatura es una **preparación de 0 a 100 = la nota que se espera sacar × 10**. Se ve como texto: **Mal** (< 4), **Regular** (4–5,9), **Bien** (6–7,4), **Muy bien** (7,5–9,2), **Excelente** (9,3–10). En pruebas se muestra también la cifra (`MOSTRAR_CIFRAS_ASIGNATURAS` en `main.ts`; se ocultará en beta). **Las asignaturas ya no tienen tope genético ni techo** (se retira E8.5 para asignaturas): la dificultad la ponen las capacidades de apoyo (`apoyos`), que fijan dónde se arranca, lo rápido que se sube y lo rápido que se olvida. Un alumno capaz puede llegar a sobresaliente desde el principio.
+- **Arranque (decidido: "Ok").** Todos parten en torno a Regular (~52) y se ajusta por las capacidades de base entre 40 y 78. Mecanismo genérico nuevo en el motor: `StatDef.initialFrom` (el inicial sale de la media ponderada del nivel inicial de otras stats; de 34 a 52 ⇒ de `min` a `max`, porque los niños empiezan en torno a 40).
+- **Subir:** ir a clase da 1,2 a **las asignaturas que se dan ese día** (decidido: "Sí"); estudiar una asignatura da 5 (90 min), el repaso 2,5 a cada una y la academia 6 a las tres más flojas. Rendimientos decrecientes (curva 1,3) y velocidad por capacidades.
+- **Horario semanal:** cada asignatura tiene `horas` a la semana (dato en `curriculo.ts`) y se reparte en esos días de lunes a viernes (`horarioSemanal`). No todas las asignaturas se dan todos los días. El servicio `estudios.timetable(díaSemana)` lo publica.
+- **Caída fija y suave (decidido):** 0,15 puntos al día (el motor ya no usa `decay` para ellas, la aplica el módulo cada día) × un factor de 0,6 a 1,5 según las capacidades (peores capacidades, se olvida más). Cae también en fines de semana y vacaciones, **pero en Navidad y Semana Santa se puede repasar** (estudiar y repasar están disponibles fuera del horario escolar). Al empezar un curso todas pierden 3 puntos (los contenidos son más difíciles; sustituye a la penalización por curso de la nota).
+- **Exámenes:** se acaban los controles de los viernes. **Un examen por asignatura y trimestre**, en la semana de evaluación (semanas 14, 28 y 40), con día fijo por asignatura (`diaDeExamen`): **pueden coincidir varios el mismo día** (decidido). Se **avisan con una semana de antelación** (el domingo anterior a la semana previa) con una tabla día/asignatura, y el servicio `upcomingExams(días)` los publica. Nota = preparación / 10 + azar (σ 0,5 más cuanto peor concentrado) − penalización de estrés alto. **Faltar a clase ese día es un 0** ("No presentado"). La media de los exámenes alimenta la evaluación del trimestre, el boletín y el verano igual que antes (aprobado 5; academia < 5, campamento ≥ 7,5).
+- **Estado:** `controlesTrimestre` pasa a `examenes` (nota por asignatura del trimestre en curso); `SAVE_VERSION` sube a 3.
+- **Cifras (365 días, 5 semillas):** los 13 chequeos siguen en verde. Estudios del equilibrado 81,8 (+29,7) y nota media 8,3; empollón 89,5 y 9,0; atleta (solo clase, no estudia) 5,5; vago (no va a clase) 3,7; aleatorio 3,6.
+- **A vigilar:** con estas cifras el equilibrado saca 8,3 de media; si resulta demasiado fácil se sube la caída o se baja la ganancia de estudiar. Los exámenes de recuperación y el repaso en vacaciones con aviso de "pendiente de repasar" quedan para cuando exista el motor de eventos.
+
+---
+
 ## 24/10/2026 — Resultado de una acción: dato individual de cada cambio (solo alfa)
 
 - **Qué pasaba:** tras una acción la pantalla solo enseñaba los cambios de 0,05 puntos o más. Desde la nueva escala de topes las subidas por acción son más pequeñas (una clase da entre 0,01 y 0,06 por asignatura), así que casi ninguna asignatura aparecía y parecía que no subían.
