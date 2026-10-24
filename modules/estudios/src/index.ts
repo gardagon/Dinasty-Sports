@@ -149,7 +149,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
   train: [
-    { stat: statId(a.key), amount: 5 },
+    { stat: statId(a.key), amount: 3 },
     { stat: GEN.inteligencia, amount: 0.4 },
     { stat: GEN.concentracion, amount: 0.4 },
     ...(a.entrena ? [a.entrena] : []),
@@ -434,7 +434,7 @@ export const estudios = defineModule<EstudiosState>({
       }
       if (!hoy.isSchoolDay) {
         // Fuera del horario escolar (fines de semana y vacaciones) también se olvida.
-        for (const k of activasKeys(hoy.schoolYear, s.modalidad)) ctx.addStat(statId(k), -caidaDeHoy(asignatura(k), ctx.stat));
+        for (const k of activasKeys(hoy.schoolYear, s.modalidad)) ctx.addStat(statId(k), -caidaDeHoy(asignatura(k), (st) => ctx.norm(st) * 100));
         return;
       }
 
@@ -453,7 +453,7 @@ export const estudios = defineModule<EstudiosState>({
         if (weekday === 4 && tipo === 'global') evaluarTrimestre(ctx, hoy.schoolYear, hoy.term);
       }
       // Olvido diario: cada asignatura pierde un poco, más si las capacidades que la apoyan son flojas.
-      for (const k of activas) ctx.addStat(statId(k), -caidaDeHoy(asignatura(k), ctx.stat));
+      for (const k of activas) ctx.addStat(statId(k), -caidaDeHoy(asignatura(k), (st) => ctx.norm(st) * 100));
     },
   },
 

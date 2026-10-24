@@ -1,6 +1,9 @@
 import {
   CORE_EVENTS,
   MINUTES_PER_DAY,
+  NIVEL_TIPICO_DE_REFERENCIA,
+  NIVEL_TIPICO_INICIAL,
+  SERVICES,
   SHARED_EVENTS,
   START_MINUTE,
   timeView,
@@ -25,6 +28,9 @@ import {
   type ReadContext,
   type Rng,
   mezclarZ,
+  nivelTipicoPorEdad,
+  plasticidadPorEdad,
+  type IdentityService,
   type StatId,
   type TimeView,
 } from '@ds/contracts';
@@ -254,7 +260,9 @@ export class Game {
         peso += inf.weight;
       }
       if (peso === 0) continue;
-      const t = Math.min(1, Math.max(0, (suma / peso - INICIAL_DESDE.bajo) / (INICIAL_DESDE.alto - INICIAL_DESDE.bajo)));
+      // El nivel se mide "para su edad": con el nivel típico de un niño de 8 años equivale al de referencia (40).
+      const relativo = ((suma / peso) * NIVEL_TIPICO_DE_REFERENCIA) / NIVEL_TIPICO_INICIAL;
+      const t = Math.min(1, Math.max(0, (relativo - INICIAL_DESDE.bajo) / (INICIAL_DESDE.alto - INICIAL_DESDE.bajo)));
       const value = Math.min(max, Math.max(min, def.initial.min + (def.initial.max - def.initial.min) * t));
       state.stats[def.id] = state.peaks[def.id] = state.baseline[def.id] = value;
     }
@@ -284,6 +292,29 @@ export class Game {
     }
     // Si algún módulo ha subido o bajado topes (perks), lo que se deriva de ellos se recalcula (con tope máximo 100).
     if (bonos) Game.recalcularDerivados(registry, state, 100);
+  }
+
+  private tipicoCache = { dia: -1, valor: NIVEL_TIPICO_DE_REFERENCIA, plasticidad: 1 };
+
+  /** Nivel típico de una capacidad a la edad del personaje (se recalcula una vez al día). */
+  private nivelTipico(): number {
+    const dia = Math.floor(this.s.minute / 1440);
+    if (this.tipicoCache.dia !== dia) {
+      const svc = this.registry.services.get(SERVICES.identidad);
+      const edad = svc ? (svc.fn(this.readCtx(svc.module)) as IdentityService).view().age : undefined;
+      this.tipicoCache = {
+        dia,
+        valor: edad === undefined ? NIVEL_TIPICO_DE_REFERENCIA : nivelTipicoPorEdad(edad),
+        plasticidad: edad === undefined ? 1 : plasticidadPorEdad(edad),
+      };
+    }
+    return this.tipicoCache.valor;
+  }
+
+  /** Multiplicador de la velocidad de subida de las capacidades genéricas por la edad (más rápido de niño). */
+  private plasticidad(): number {
+    this.nivelTipico();
+    return this.tipicoCache.plasticidad;
   }
 
   // ------------------------------------------------------------------ lectura
@@ -549,7 +580,8 @@ export class Game {
       cap: pot === undefined ? computeCap(info.def, info.min, info.max, norm) : Math.min(pot, computeCap(info.def, info.min, info.max, norm)),
       talent: this.s.talent[id] ?? 1,
       // El ritmo depende del tope genético (quien tiene más, sube más rápido); el techo, de lo alcanzable a esta edad.
-      speed: computeSpeed(info.def, norm) * (genetico === undefined ? 1 : potentialSpeed(genetico)),
+      speed:
+        computeSpeed(info.def, norm) * (genetico === undefined ? 1 : potentialSpeed(genetico)) * (info.def.category === 'generica' ? this.plasticidad() : 1),
       efficiency,
       amount,
     });
@@ -628,7 +660,10 @@ export class Game {
     const norm = (id: StatId) => {
       const info = reg.stats.get(id);
       if (!info) throw new Error(`Stat desconocida: ${id}`);
-      return (s.stats[id] - info.min) / (info.max - info.min);
+      const n = (s.stats[id] - info.min) / (info.max - info.min);
+      // Las capacidades genéricas se miden "para su edad": el nivel típico a esa edad vale lo mismo que el de referencia.
+      if (info.def.category !== 'generica') return n;
+      return Math.min(1, (n * NIVEL_TIPICO_DE_REFERENCIA) / game.nivelTipico());
     };
     return {
       get time() {

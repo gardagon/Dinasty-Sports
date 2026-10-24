@@ -128,7 +128,7 @@ function nombreUnico(rng: Rng, g: Gender, usados: Set<string>): string {
  * alguien que acaba de llegar, pero a ninguna edad igualan su potencial adulto. Los rivales solo juegan hasta los 19 años:
  * cuando haya rivales adultos, usarán la curva física por edad (`CURVAS_POR_EDAD`) como el jugador.
  */
-export const desarrolloRival = (edad: number): number => 0.45 + 0.55 * madurezPorEdad(edad);
+export const desarrolloRival = (edad: number): number => 0.35 + 0.65 * madurezPorEdad(edad);
 
 /**
  * Edad de competición de un NPC con fecha de nacimiento: año del curso menos año de nacimiento. Es la que decide su

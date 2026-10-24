@@ -5,6 +5,19 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — Los niños empiezan con capacidades bajas (5–20) y se miden "para su edad" (E2.8)
+
+- **Motivo (usuario):** un padre con 60 y un niño de 8 años con 40 es poco realista. Debe empezar mucho más bajo (1–20) pero con potencial para crecer rápido.
+- **Paso 1 — capacidades «para su edad».** Nueva referencia `nivelTipicoPorEdad(edad)` en `contracts/development.ts` (nivel típico de una genérica: 12,5 a los 8, 30 a los 10, 44 a los 12, 52 a los 14, 57 a los 16, 60 a los 18, 62 desde los 30). `ReadContext.norm` de una **capacidad genérica** ya no es nivel/100 sino nivel relativo al típico de la edad (con el típico equivale a lo que antes era 40/100). Así techos, velocidades y olvido de asignaturas y habilidades no se hunden porque el niño tenga 12. Se verificó antes de tocar nada más que, con el típico constante en 40, **todos los números de la simulación eran idénticos** y los 235 tests pasaban.
+- **Paso 2 — arranque bajo y plasticidad.** Rango inicial de las capacidades **30–50 → 5–20**. Las capacidades genéricas suben más rápido de niño: `plasticidadPorEdad` (×2,5 a los 8 años, bajando a ×1 a los 16; solo genéricas). El arranque de las asignaturas (`initialFrom`) se calcula también relativo al nivel típico de 8 años.
+- **Rivales:** `desarrolloRival` pasa de 0,45 + 0,55·madurez a 0,35 + 0,65·madurez; si no, el jugador (con capacidades de 12) no podía competir con rivales de 8 años calibrados contra niveles de 40. Podios: equilibrado 10, atleta 14 (antes 8 y 9).
+- **Asignaturas:** estudiar baja 5 → 3. El peso extra de las capacidades en la velocidad de las asignaturas se mantiene en 2 (con el rango inicial 5–20 la dispersión relativa entre niños es mucho mayor).
+- **Cifras (365 días, 5 semillas, 13 chequeos en verde):** capacidades +23 en un año (12 → 35); equilibrado: atletismo 52, nota media 7,7 (a 3 años ~6,5 en matemáticas); empollón 8,5; atleta 4,7; vago 2,4.
+- **Hallazgo importante (`sim:vida`):** antes, la caída tenía como suelo el valor inicial (40), y eso escondía que el bot perfecto casi no progresa de adulto (físico 38 → 45 en 22 años). Con el arranque bajo, el suelo ya no ayuda y la meseta del bot perfecto queda en ~36/57 físico a los 24 años (antes 45). Hay que revisar el crecimiento y la caída de adultos cuando se haga la fase profesional (E10); no se toca ahora.
+- **Pendiente:** no hay desarrollo natural sin entrenar (un niño que no hace deporte se queda en 12,5 mientras sus compañeros suben); la nota media del equilibrado en el primer año sigue alta (7,7 frente al 6 buscado, a 3 años ya ronda el 6,5).
+
+---
+
 ## 24/10/2026 — Asignaturas: techo según las capacidades, para que el empollón llegue al 9 o 10 (E6.6, ajuste 2)
 
 - **Problema medido:** con el balance anterior el empollón se atascaba en ~80 de preparación (nota 8) **sea cual sea su mente**: entre mentes bajas y altas solo había 1,7 puntos. Causas: (1) la curva de rendimientos decrecientes frena casi del todo cerca de 90; (2) las capacidades de los niños son parecidas (40–60), así que la velocidad por capacidades casi no distinguía.

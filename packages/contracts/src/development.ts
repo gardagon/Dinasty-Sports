@@ -51,6 +51,46 @@ export const CURVAS_POR_EDAD: Record<CategoriaEdad, Curva> = {
   social: [[8, 0.9], [12, 0.93], [16, 0.95], [22, 0.98], [30, 1], [60, 1], [70, 0.96], [80, 0.9], [90, 0.8]],
 };
 
+/**
+ * Nivel TÍPICO de una capacidad genérica a cada edad (0–100). Es la referencia de "para su edad": un niño de 8 con 12 en
+ * inteligencia es normal para su edad, como un adulto con 55. Las fórmulas que miran el nivel de las capacidades (techo y
+ * velocidad de las asignaturas y habilidades) lo comparan con este valor y no con el absoluto.
+ */
+export const NIVEL_TIPICO_DE_REFERENCIA = 40;
+const NIVEL_TIPICO_POR_EDAD: readonly (readonly [number, number])[] = [
+  [8, 12.5],
+  [10, 30],
+  [12, 44],
+  [14, 52],
+  [16, 57],
+  [18, 60],
+  [30, 62],
+  [90, 62],
+];
+/**
+ * Plasticidad de la infancia: multiplicador de la velocidad con la que suben las capacidades genéricas. Un niño aprende y se
+ * desarrolla mucho más rápido que un adulto: ×2,5 a los 8 años, bajando hasta ×1 a los 16.
+ */
+export function plasticidadPorEdad(edad: number): number {
+  return 1 + 1.5 * Math.min(1, Math.max(0, (16 - edad) / 8));
+}
+
+/** Nivel típico al empezar la partida (8 años): el rango inicial de las capacidades se centra aquí. */
+export const NIVEL_TIPICO_INICIAL = 12.5;
+
+export function nivelTipicoPorEdad(edad: number): number {
+  const c = NIVEL_TIPICO_POR_EDAD;
+  if (edad <= c[0][0]) return c[0][1];
+  for (let i = 1; i < c.length; i++) {
+    if (edad <= c[i][0]) {
+      const [x0, y0] = c[i - 1];
+      const [x1, y1] = c[i];
+      return y0 + ((y1 - y0) * (edad - x0)) / (x1 - x0);
+    }
+  }
+  return c[c.length - 1][1];
+}
+
 /** Fracción del tope genético alcanzable a una edad, para una categoría (0..1). Antes de la primera edad vale lo de esa edad. */
 export function factorPorEdad(categoria: CategoriaEdad, edad: number): number {
   const c = CURVAS_POR_EDAD[categoria];
