@@ -5,6 +5,33 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — Edad del pico y límite global: primero se mide (herramienta `sim:vida`)
+
+**Pregunta del usuario:** ¿estamos teniendo en cuenta que un jugador no debe llegar al tope en todas sus habilidades y que el pico físico no es a los 18 sino hacia los 23–25 (con lo mental subiendo más allá de los 28 y envejeciendo mucho más tarde)?
+
+**Respuesta:** hoy no, ninguna de las dos cosas está modelada. El desarrollo físico (`madurezPorEdad`) llega al 100 % a los 18 años y se queda ahí; no hay bajada por edad (E2.6 pendiente); y no hay límite global de capacidades. Antes de añadirlos, se mide con una herramienta nueva.
+
+- **Datos externos** (búsqueda del 24/10): el pico en el 400 m ronda los 21–25 años; en atletismo en general, los 23–28 según la prueba (medallistas olímpicos hacia los 27); en fútbol, 25–26 en velocidad, resistencia y explosividad (un solo estudio, con caída pasados los 32). No se encontró una edad de pico para lo técnico ni lo mental.
+- **Decisión del usuario:** lo mental puede seguir subiendo después de los 28 y, como mucho, lleva un malus mínimo por edad que lo compensa; el envejecimiento mental llega mucho más tarde. Más adelante los trabajos y otras actividades harán que algunas habilidades sigan subiendo y evitarán el desplome; eso queda para más adelante.
+- **Herramienta nueva `npm run sim:vida`** (`sim/src/vida.ts`): lleva a un bot "perfecto" (entrena deporte, estudios, gimnasio, lectura, relaciones y ocio cuidando el sueño y el estrés) los años que se pida y enseña, por edad, el nivel frente al tope de cada categoría y cuántas capacidades están al 95 % de su tope. Tarda ~1 s por año simulado.
+
+**Medición con el modelo actual** (semilla 1, 70 años, sin problemas ni bloqueos):
+
+| Edad | Física (nivel/tope) | Mental | Social | Habilidades | Conocimiento | Capacidades al 95 % del tope | Nota media |
+|---|---|---|---|---|---|---|---|
+| 8 | 39/60 | 39/66 | 40/67 | 32/63 | 0 | 0/28 | — |
+| 18 | 44/60 | 48/66 | 52/67 | 52/60 | 91 | 5/27 | 4,8 |
+| 28 | 44/60 | 50/66 | 54/67 | 53/60 | 95 | 7/27 | 3,4 |
+| 40 | 44/60 | 50/66 | 55/67 | 55/60 | 96 | 8/27 | 1,7 |
+| 70 | 45/60 | 51/66 | 57/67 | 55/60 | 98 | 10/27 | 0,0 |
+
+- **Límite global:** no hace falta de momento. Aun entrenando todo a diario durante 20 años, el bot perfecto solo tiene al 95 % del tope 7 de 27 capacidades (lo físico queda en el 73 % de su tope, lo mental en el 76 % y lo social en el 81 %). Las curvas duras ya impiden que nadie llegue al máximo en todo. Se vuelve a medir cuando haya curvas por edad.
+- **Edad del pico:** confirmado que no existe. Los niveles se estancan a los 16–18 y se quedan igual hasta los 70; no hay mejora hacia los 24 ni bajada después.
+- **Hallazgos al llegar a adulto:** (1) las asignaturas se pierden: la nota media cae de 4,8 a 0,0 hacia los 50 años porque tras 2.º de bachillerato no hay estudios (no hay universidad ni trabajo); (2) el bot compite siempre en la categoría absoluta y queda último de 8 ante los rivales, que solo llegan a los 19 años y no avanzan con el jugador; (3) no hay acciones de club disponibles tras el colegio. Es lo esperado (la fase profesional y adulta no existe todavía), pero hay que tenerlo presente al hacer las curvas.
+- **Rendimiento y estabilidad:** 70 años simulados en ~63 s sin invariantes rotos.
+
+**Siguiente paso (pendiente de confirmar):** curvas de desarrollo por categoría como dato (física hasta ~24 y meseta 22–27 con bajada suave desde los 28; mental sigue subiendo más allá de los 28 con un malus mínimo por edad y envejecimiento mucho más tardío; social hasta los 30; conocimiento casi sin bajada), aplicadas también al desarrollo de los rivales.
+
 ## 23/10/2026 — Marca del tope genético en las barras (solo durante las pruebas)
 
 - Las barras de Características dibujaban una marca vertical que el jugador tomaba por el tope genético. No lo era: es el **techo actual** (edad y capacidades que apoyan), y por eso solo salía en lo físico, las asignaturas y el deporte; las mentales y sociales no tienen techo por edad y no dibujaban nada.
