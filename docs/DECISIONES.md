@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — Perks: rasgos genéticos heredables (E5, primera parte)
+
+Fuente: `design_stats_personality_system.md` (secciones 5 y 11) y `cambios_tecnicos_arquitecto_equipo1.md` de Godot. El catálogo se adapta con las decisiones del usuario.
+
+- **28 perks, no 29:** el documento dice «29 en 14 pares + 1 único», pero su tabla tiene 13 pares de opuestos más Ambidiestro y Mano de palo (28). Ambidiestro y Mano de palo se tratan como opuestos entre sí. Si falta un par, se añade más adelante.
+- **Qué son:** genética pura (físicos, morfológicos, sensoriales), no personalidad (eso son los ejes de actitud, E4). No se ganan ni se pierden. El máximo de activos es **3**, pero lo normal es tener 0 o 1: tres es excepcional; con las probabilidades de abajo, 8 de cada 10 personajes tienen 0 o 1 y menos del 5 % tienen 3.
+- **Pool de perks:** lo que un personaje lleva y no activa pasa a su pool, que sus hijos pueden heredar (un perk puede saltarse una generación).
+- **Herencia unificada (idea de Crusader Kings III):** se juntan los perks de los dos padres (activos y pool) en una sola lista, sin importar de cuál vienen, y cada perk se tira por separado. Las probabilidades (se ajustarán con pruebas): un padre lo tiene activo, 40 %; lo lleva solo en el pool, 20 %; si lo tienen los dos, se combinan (activos ambos: 64 %); aparición espontánea sin padres, 1 % por perk (los excepcionales, menos: Ambidiestro ×0,3, Mano de palo ×0,5). Los padres de la generación 0 tienen 2 % por perk activo y 1,5 % en el pool. Un perk y su opuesto no conviven (el sobrante va al pool); si salen más de tres, los demás van al pool. **Se baja el 60–80 % del original** porque con él casi todo pasaría al hijo y habría poca variedad.
+- **Todos los perks entran,** valgan o no para el deporte favorito: el deporte favorito no implica que los perks te beneficien. Los efectos que dependen de etiquetas que ningún deporte tiene todavía (`agarre`, `alta_densidad`, `recuperacion`) esperan a los deportes que las usen.
+- **Efectos:** bonus o malus de ±8 puntos sobre el tope genético de la capacidad (`techo = min(100, tope + bonus)`), con efectos secundarios según el documento (Constitución de toro −3 de velocidad, Fibroso +6 de velocidad y agilidad y −4 de resistencia, Enano +4 de agilidad), multiplicadores de eficiencia por etiqueta (memoria motora ×1,1 o ×0,9 en entrenamiento, sangre fría ×1,08 o nervioso ×0,92 en competición) y centímetros de altura adulta (Gigante +10, Enano −10). Las habilidades y asignaturas derivadas recalculan su tope con el de las capacidades. Quedan sin efecto hasta que haya eventos o lesiones: Suertudo y Gafe, Recuperación rápida y lenta; y sin uso en atletismo: Manos, Visión, Ambidiestro y Mano de palo.
+- **Latentes y revelación:** unos perks son latentes y otros se ven desde el principio (los morfológicos obvios), pero **sus efectos cuentan desde el nacimiento aunque no se hayan revelado**. Revelarlos con un mensaje es un evento, así que espera al motor de eventos (E18). En la fase de pruebas se enseñan todos (`MOSTRAR_GENETICA`), también los de los padres y el pool, sin mensajes.
+- **Dónde vive:** el catálogo y las reglas de herencia en `contracts/perks.ts`; los perks de los padres se sortean con el resto de la genética de los padres (`state.lineage.perks`); los del personaje viven en el estado del módulo base (`gen`), que los hereda y aplica sus efectos; el servicio `perks` los publica y el servicio `familia` enseña los de los padres. Los rivales no llevan perks por ahora.
+- **Balance:** los 13 chequeos siguen en verde a un año.
+
 ## 24/10/2026 — Curvas de desarrollo y envejecimiento por categoría (implementadas)
 
 Con la medición de abajo (entrada siguiente) se implementa lo propuesto, con los matices del usuario: lo mental sigue subiendo más allá de los 28 y su envejecimiento es mínimo y tardío.

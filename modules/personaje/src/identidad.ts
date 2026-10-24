@@ -1,4 +1,4 @@
-import { SD_Z_HIJO, edadDeCompeticion, type BodyType, type IdentityView, type Rng } from '@ds/contracts';
+import { SD_Z_HIJO, edadDeCompeticion, type BodyType, type IdentityView, type PerksDe, type Rng } from '@ds/contracts';
 
 /**
  * Identidad del personaje: edad, altura, peso, dominancia lateral y complexión.
@@ -34,22 +34,25 @@ export interface IdentidadState {
   cuerpo: BodyType;
   /** Hábitos acumulados en la semana en curso. */
   semana: HabitosSemana;
+  /** Perks: los activos (como mucho 3, los que afectan) y el pool que pasa a los hijos. */
+  perks: PerksDe;
 }
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /** `zAltura`: genética de la estatura del personaje (puntuación típica del hijo de `ctx.herencia('estatura')`). */
-export function initIdentidad(rng: Rng, zAltura: number): IdentidadState {
+export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, alturaExtraCm = 0): IdentidadState {
   return {
     edadInicial: EDAD_INICIAL,
     fraccionInicial: rng.range(0, 1),
-    alturaAdulta: Math.round(clamp(171 + (zAltura / SD_Z_HIJO) * 8, 150, 195) * 10) / 10,
+    alturaAdulta: Math.round(clamp(171 + (zAltura / SD_Z_HIJO) * 8, 150, 195) * 10 + alturaExtraCm * 10) / 10,
     madurez: clamp(rng.normal() * 0.8, -1.5, 1.5),
     zurdo: rng.chance(0.11),
     musculo: rng.range(18, 30),
     grasa: rng.range(34, 44),
     cuerpo: 'normal',
     semana: { ...SIN_HABITOS },
+    perks,
   };
 }
 

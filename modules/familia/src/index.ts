@@ -16,6 +16,7 @@ export interface Progenitor {
   alturaCm: number;
   deporte?: string;
   practica: Practica;
+  perks: { activos: string[]; pool: string[] };
   apoyo: number;
   expectativas: number;
   tiempoEnCasa: number;
@@ -53,6 +54,7 @@ function nuevoProgenitor(id: 'padre' | 'madre', ctx: InitContext): Progenitor {
     alturaCm: redondea(id === 'padre' ? clamp(178 + 7 * ctx.herencia('estatura').padre, 160, 200) : clamp(165 + 6.5 * ctx.herencia('estatura').madre, 148, 185)),
     ...(practica === 'ninguna' ? {} : { deporte: rng.pick(DEPORTES) }),
     practica,
+    perks: { activos: [...ctx.perksDePadres[id].activos], pool: [...ctx.perksDePadres[id].pool] },
     apoyo: Math.round(rng.range(45, 85)),
     expectativas: Math.round(rng.range(30, 80)),
     tiempoEnCasa: Math.round(rng.range(25, 80)),
@@ -67,6 +69,7 @@ const vista = (p: Progenitor, day: number): ParentView => ({
   alturaCm: p.alturaCm,
   deporte: p.deporte,
   practica: p.practica,
+  perks: p.perks,
   apoyo: p.apoyo,
   expectativas: p.expectativas,
   tiempoEnCasa: p.tiempoEnCasa,

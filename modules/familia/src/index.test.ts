@@ -41,4 +41,14 @@ describe('módulo familia', () => {
     for (let i = 0; i < 400; i++) g.perform('gen.dormir');
     expect(padres(g).parents()[0].edad).toBeGreaterThanOrEqual(antes);
   });
+
+  it('los padres llevan perks: pocos, sin opuestos y con el pool aparte', () => {
+    const todos = Array.from({ length: 300 }, (_, i) => padres(nueva(i + 1)).parents()).flat();
+    for (const p of todos) {
+      expect(p.perks.activos.length).toBeLessThanOrEqual(3);
+      for (const id of p.perks.activos) expect(p.perks.pool).not.toContain(id);
+    }
+    const sin = todos.filter((p) => p.perks.activos.length === 0).length / todos.length;
+    expect(sin).toBeGreaterThan(0.4);
+  });
 });

@@ -124,16 +124,19 @@ Ocho ejes de −50 a +50: disciplinado↔rebelde, honesto↔manipulador, ambicio
 | E4.4 | Efectos cruzados con stats (p. ej. pesimismo reduce el efecto de determinación) | Mediante modificadores por etiqueta, sin importar entre módulos |
 | E4.5 | Test de "ningún extremo es trampa" en la simulación (bots por perfil) | Encaja con `sim/` |
 
-## E5 · Perks — ⏸ · Fidelidad: media
+## E5 · Perks — 🟡 (herencia y efectos hechos; revelación por eventos ⏸) · Fidelidad: media
 
-29 perks (14 pares + ambidiestro), latentes hasta que un evento los activa. Máximo 2–3 activos.
+28 perks (13 pares de opuestos, Ambidiestro y Mano de palo; el original dice 29 en 14 pares + 1 pero su tabla tiene 28). Máximo 3 activos; lo normal es tener 0 o 1.
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E5.1 | Estado `perks_active` / `perks_latent` (y `perks_inherited_pool` solo si hay dinastía, E8) | Sin hijos, el pool no se usa |
-| E5.2 | Elegir un subconjunto para empezar (p. ej. los que afectan a stats que ya existen) | Muchos perks dependen de deportes de equipo o de porteros |
-| E5.3 | Eventos de revelación | Depende del sistema de eventos (ver E4.3) |
-| E5.4 | Bonus de perk sobre el límite genético: `techo = min(100, límite + bonus)` | Depende de E2.7 |
+| E5.1 ✅ | Estado de perks: activos y pool (el pool lo heredan los hijos aunque no se haya expresado) | Hecho el 24/10 en el módulo base (`gen`); servicio `perks` |
+| E5.2 ✅ | Catálogo completo de los 28 como dato, también los que no valen para el deporte favorito; los efectos de contextos que ningún deporte tiene esperan | Hecho el 24/10 en `contracts/perks.ts` |
+| E5.3 | Eventos de revelación de los latentes | Depende del sistema de eventos (E18). Hoy se enseñan todos en la fase de pruebas y su efecto cuenta aunque no se hayan revelado |
+| E5.4 ✅ | Bonus de perk sobre el tope: `techo = min(100, tope + bonus)` | Hecho el 24/10 (`ctx.bonusDeTope`); las habilidades y asignaturas derivadas se recalculan |
+| E5.5 ✅ | **Herencia unificada:** pool único de los dos padres, cada perk se tira por separado (40 % activo, 20 % en el pool, 1 % espontáneo), sin opuestos y con tope de 3 | Decidido el 24/10. Ajustar con pruebas |
+| E5.6 | Efectos pendientes: Suertudo y Gafe (ramas por evento), Recuperación rápida y lenta (lesiones, E12), agarre y alta densidad (deportes de equipo), Ambidiestro y Mano de palo | Esperan eventos, lesiones o deportes de equipo |
+| E5.7 | Perks en los rivales y en los hijos del personaje (ciclo de generaciones) | Hoy los rivales no llevan perks |
 
 ## E6 · Académico — 🟡 · Fidelidad: baja
 

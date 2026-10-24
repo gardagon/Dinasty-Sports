@@ -12,6 +12,8 @@ import {
   PRACTICA_TEXTO,
   type LogTable,
   type NpcDirectory,
+  type PerksService,
+  perk,
   type RelationsService,
   nombreEstado,
   type StudiesService,
@@ -219,6 +221,13 @@ const COMPLEXION: Record<BodyType, string> = {
   con_sobrepeso: 'Con sobrepeso',
 };
 
+/** Perks en texto: los activos y, entre paréntesis, los que lleva en su pool (solo para las pruebas). */
+function textoPerks(p: { activos: readonly string[]; pool: readonly string[] }): string {
+  const nombre = (id: string) => perk(id)?.nombre ?? id;
+  const activos = p.activos.length ? p.activos.map(nombre).join(', ') : 'ninguno';
+  return p.pool.length ? `${activos} (en el pool: ${p.pool.map(nombre).join(', ')})` : activos;
+}
+
 function viewFamily(g: Game): string {
   const f = g.service<FamilyService>(SERVICES.familia);
   if (!f) return '';
@@ -226,10 +235,20 @@ function viewFamily(g: Game): string {
     .parents()
     .map((p) => {
       const deporte = p.deporte ? `${PRACTICA_TEXTO[p.practica]} (${p.deporte})` : PRACTICA_TEXTO[p.practica];
-      return `<p class="note"><b>${p.gender === 'f' ? 'Madre' : 'Padre'}:</b> ${esc(p.nombre)}, ${p.edad} años, ${Math.round(p.alturaCm)} cm. ${esc(deporte)}. Apoyo ${p.apoyo}, expectativas ${p.expectativas}, tiempo en casa ${p.tiempoEnCasa}.</p>`;
+      const perksPadre = MOSTRAR_GENETICA ? ` Perks: ${textoPerks(p.perks)}.` : '';
+      return `<p class="note"><b>${p.gender === 'f' ? 'Madre' : 'Padre'}:</b> ${esc(p.nombre)}, ${p.edad} años, ${Math.round(p.alturaCm)} cm. ${esc(deporte)}. Apoyo ${p.apoyo}, expectativas ${p.expectativas}, tiempo en casa ${p.tiempoEnCasa}.${esc(perksPadre)}</p>`;
     })
     .join('');
   return `<h3>Familia ${esc(f.apellidos)}</h3>${filas}`;
+}
+
+function viewPerks(g: Game): string {
+  if (!MOSTRAR_GENETICA) return '';
+  const v = g.service<PerksService>(SERVICES.perks)?.view();
+  if (!v) return '';
+  const lista = (xs: { nombre: string; descripcion: string; latente: boolean }[]) =>
+    xs.length ? `<ul class="note">${xs.map((x) => `<li><b>${esc(x.nombre)}</b>${x.latente ? ' <small>(latente)</small>' : ''}: ${esc(x.descripcion)}</li>`).join('')}</ul>` : '<p class="note">Ninguno.</p>';
+  return `<h3>Perks (solo pruebas)</h3>${lista(v.activos)}${v.pool.length ? `<p class="note">En tu pool (para tus hijos): ${v.pool.map((x) => esc(x.nombre)).join(', ')}.</p>` : ''}<p class="note">Todos se enseñan y su efecto cuenta aunque sean latentes. Se ocultarán al pasar a beta.</p>`;
 }
 
 function viewIdentity(g: Game): string {
@@ -250,6 +269,7 @@ function viewIdentity(g: Game): string {
       ${club ? `<div><dt>Club de atletismo</dt><dd>${esc(club)}</dd></div>` : ''}
     </dl>
     ${viewFamily(g)}
+    ${viewPerks(g)}
   </section>`;
 }
 

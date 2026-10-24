@@ -11,6 +11,7 @@ export const SERVICES = {
   clubes: 'clubes',
   familia: 'familia',
   relaciones: 'relaciones',
+  perks: 'perks',
 } as const;
 
 // ---------- NPCs ----------
@@ -83,6 +84,20 @@ export interface IdentityService {
   view(): IdentityView;
 }
 
+/** Un perk tal como lo ve la interfaz. */
+export interface PerkView {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  /** Se expresa solo cuando un evento lo revela (en la fase de pruebas se enseñan todos). */
+  latente: boolean;
+}
+
+export interface PerksService {
+  /** Perks que le afectan (como mucho 3) y los que lleva en su pool para sus hijos. */
+  view(): { activos: PerkView[]; pool: PerkView[] };
+}
+
 // ---------- Familia ----------
 
 export interface ParentView {
@@ -96,6 +111,8 @@ export interface ParentView {
   deporte?: string;
   practica: Practica;
   /** 0..100. Cuánto respalda al personaje en lo que hace. */
+  /** Perks de este progenitor (activos y los que lleva en su pool). */
+  perks: { activos: string[]; pool: string[] };
   apoyo: number;
   /** 0..100. Cuánto espera de él (en el deporte y en los estudios). */
   expectativas: number;
