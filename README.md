@@ -24,7 +24,7 @@ npm run dev        # abre la URL que aparece en la terminal
 | `packages/core` | Motor: registro de módulos, pipeline de acciones, tiempo, subida y caída, eventos |
 | `packages/game` | Ensamblador: la lista de módulos del juego |
 | `modules/personaje` | Características genéricas, estado (energía, salud, estrés, motivación) e identidad (edad, altura, peso, complexión), genética heredada de los padres, perks, apariencia, origen, carácter e intereses |
-| `modules/estudios` | Currículo de España por cursos (de 3.º de primaria a 2.º de bachillerato), clases con horario semanal, estudio y exámenes por trimestre |
+| `modules/estudios` | Currículo de España por cursos (de 3.º de primaria a 2.º de bachillerato), preparación de cada asignatura con nivel en texto, clases con horario semanal, estudio, dos parciales y un global por trimestre |
 | `modules/atletismo` | Primer deporte: 400 m, categorías de la federación española, entrenamiento libre y con club, carrera los sábados en series de 8, conocimiento del deporte |
 | `modules/npcs` | Entrenador, tutor, compañeros y 96 rivales de atletismo por edad que progresan por su cuenta y se renuevan cada curso |
 | `modules/relaciones` | Vínculos con las personas: afinidad, confianza y estado (conocido, amigo, antipatía...) |
@@ -44,7 +44,7 @@ npm test             # tests unitarios, de integración y de arquitectura
 npm run typecheck
 npm run sim          # simula un año con 7 estrategias × 5 semillas → sim/reports/ultimo/informe.html
 npm run sim:largo    # simula tres años (cursos completos con vacaciones y temporadas); con --dias 3650, de los 8 a los 18
-npm run sim:vida     # lleva a un bot que lo entrena todo muchos años (70 por defecto) y enseña su nivel frente a su tope por edad
+npm run sim:vida     # lleva a un bot que lo entrena todo muchos años (70 por defecto) y enseña su nivel frente a su tope por edad y cuánto del tope han alcanzado sus 6 mejores capacidades
 npm run check        # todo lo anterior en versión rápida
 npm run build        # compila la web en apps/web/dist
 npm run nuevo-modulo -- natacion "Natación"

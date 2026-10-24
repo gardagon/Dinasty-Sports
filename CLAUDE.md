@@ -28,7 +28,7 @@ npm test                 # tests (incluye arquitectura e integración)
 npm run typecheck
 npm run sim              # simulación de balance completa (365 días × 5 semillas)
 npm run sim:rapida
-npm run sim:vida         # vida entera de un bot que lo entrena todo (70 años por defecto): nivel frente a tope por edad
+npm run sim:vida         # vida entera de un bot que lo entrena todo (70 años por defecto): nivel frente a tope por edad (y % del tope de sus 6 mejores capacidades)
 npm run check            # tipos + tests + simulación rápida
 npm run nuevo-modulo -- <id> "<Nombre>"
 ```
