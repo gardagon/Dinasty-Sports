@@ -76,6 +76,20 @@ function save(): void {
   }
 }
 
+/** Aviso en la pantalla inicial cuando se descarta una partida guardada que ya no sirve (alfa: sin compatibilidad entre versiones). */
+let avisoPartidaAntigua = false;
+
+function descartarPartida(): void {
+  game = null;
+  agenda = [];
+  avisoPartidaAntigua = true;
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch {
+    /* nada */
+  }
+}
+
 function load(): void {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -85,7 +99,7 @@ function load(): void {
     agenda = data.agenda ?? [];
   } catch (e) {
     console.warn('No se pudo cargar la partida guardada', e);
-    game = null;
+    descartarPartida();
   }
 }
 
@@ -115,6 +129,7 @@ function viewStart(): string {
   return `<main class="app"><section class="start">
     <h1>Dinasty Sports</h1>
     <p>Un curso escolar, un deporte y cada hora cuenta. Decide en qué inviertes tu tiempo.</p>
+    ${avisoPartidaAntigua ? '<p class="note">Tu partida guardada era de una versión anterior y ya no se puede cargar (estamos en fase alfa y el juego cambia mucho). Empieza una nueva.</p>' : ''}
     <form data-form="nueva">
       <label for="nombre">Nombre de tu personaje</label>
       <input id="nombre" name="nombre" maxlength="24" autocomplete="off" value="Alex" required />
@@ -523,7 +538,14 @@ app.addEventListener('submit', (e) => {
 });
 
 load();
-render();
+try {
+  render();
+} catch (e) {
+  // Una partida guardada con otra forma de datos puede cargar y romper al dibujar: se descarta y se empieza de cero.
+  console.error('No se pudo dibujar la partida guardada', e);
+  descartarPartida();
+  render();
+}
 
 // ------------------------------------------------------------------ PWA (instalable y sin conexión)
 

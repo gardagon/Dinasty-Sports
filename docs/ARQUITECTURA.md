@@ -100,6 +100,10 @@ un 0,4 % de la diferencia cada día. Mientras la fracción crece (juventud) nada
 
 Rasgos genéticos heredables con bonus o malus (`contracts/perks.ts`): catálogo de 28 perks como dato, con sus opuestos, rareza, si son latentes y sus efectos. El motor sortea los perks de los dos padres con el resto de su genética (`state.lineage.perks`) y los expone en el contexto de creación (`ctx.perksDePadres`); el módulo base (`gen`) hereda los del personaje (`heredarPerks`: pool único de los padres, cada perk se tira por separado, sin opuestos, máximo 3 activos y el resto al pool), aplica los efectos sobre los topes con `ctx.bonusDeTope` (el motor recalcula las habilidades y asignaturas derivadas) y sobre la altura, y publica el servicio `perks`. Los efectos sobre la eficiencia de las acciones los aplica el modificador `gen.perks`, por etiquetas. Un perk cuenta desde el nacimiento aunque sea latente; revelarlo con un mensaje será un evento.
 
+## Guardado
+
+`GameState` es JSON plano. Su formato lleva una versión (`SAVE_VERSION`). En la fase alfa **no se mantiene compatibilidad**: se sube la versión cada vez que cambia la forma del estado de algún módulo; `Game.load` rechaza las partidas de otra versión y la interfaz descarta cualquier guardado que no se pueda cargar o dibujar y vuelve a la pantalla inicial con un aviso.
+
 ## Rasgos de las personas
 
 Cada persona tiene carácter (8 ejes de −50 a +50), intereses, apariencia física (pelo, ojos, piel, cara y distintivos con ids estables para dibujar por capas), origen familiar (uno o dos de 9) y gustos. El catálogo, el sorteo, la herencia y la compatibilidad son funciones puras en `contracts/rasgos.ts`.
