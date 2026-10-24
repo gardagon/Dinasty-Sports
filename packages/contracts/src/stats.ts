@@ -35,6 +35,12 @@ export interface GrowthDef {
    * Si no se define, el techo es `max`.
    */
   cap?: { base: number; from?: StatInfluence[] };
+  /**
+   * Característica de estado (0..100) con la fracción del tope genético alcanzable ahora (por edad). El tope efectivo es
+   * `tope × esa fracción`: limita las subidas y, si la fracción baja desde su máximo (envejecimiento), lo que está por
+   * encima del tope efectivo va cayendo hacia él.
+   */
+  potentialFactor?: StatId;
 }
 
 /**

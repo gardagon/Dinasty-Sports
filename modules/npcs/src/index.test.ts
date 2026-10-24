@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SERVICES, madurezPorEdad, ventajaDeCrianza, type NpcDirectory } from '@ds/contracts';
 import { Game, advanceTo, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
-import { npcs, type NpcsState } from './index';
+import { desarrolloRival, npcs, type NpcsState } from './index';
 
 const nueva = () => Game.create([personaje, npcs], { seed: 9 });
 
@@ -53,7 +53,7 @@ describe('módulo NPCs', () => {
       advanceTo(g, 'gen.descansar', 6, 20);
       for (const n of rivales(g)) {
         const edad = (g.time.day - n.nacimiento!) / 365;
-        const techo = n.potential.atletismo * (0.45 + 0.55 * madurezPorEdad(edad + (n.desfase ?? 0)));
+        const techo = n.potential.atletismo * desarrolloRival(edad + (n.desfase ?? 0));
         expect(n.levels.atletismo).toBeLessThanOrEqual(techo + 1e-6);
       }
     });

@@ -31,6 +31,9 @@ import { buildRegistry, compileAction, modifiersFor, type CompiledAction, type R
 import { createRng, seededRng, type RngHolder } from './rng';
 import { LOG_LIMIT, SAVE_VERSION, type GameState, type Lineage, type ParentGenes } from './state';
 
+/** Fracción diaria de la distancia al tope efectivo que se pierde por envejecimiento. */
+const AJUSTE_POR_EDAD_DIARIO = 0.004;
+
 /** Lo que la interfaz (o un bot) ve de cada acción antes de elegirla. */
 export interface ActionOption {
   id: string;
@@ -269,6 +272,11 @@ export class Game {
     return this.s.peaks[id] ?? this.stat(id);
   }
 
+  /** Tope genético por lo alcanzable a la edad actual (solo para pruebas y la interfaz de pruebas). */
+  agePotential(id: StatId): number | undefined {
+    return this.effectivePotential(id);
+  }
+
   /** Tope genético oculto de una característica (solo para pruebas y simulación; la interfaz no lo enseña). */
   hiddenPotential(id: StatId): number | undefined {
     return this.s.potential?.[id];
@@ -461,6 +469,18 @@ export class Game {
     return this.registry.moduleNames.get(id) ?? id;
   }
 
+  /** Tope genético por la fracción alcanzable a la edad actual (si la característica la tiene). */
+  private effectivePotential(id: StatId): number | undefined {
+    const pot = this.s.potential?.[id];
+    if (pot === undefined) return undefined;
+    const factor = this.registry.stats.get(id)?.def.growth?.potentialFactor;
+    if (!factor) return pot;
+    const f = this.registry.stats.get(factor);
+    const v = this.s.stats[factor];
+    if (!f || v === undefined) return pot;
+    return pot * Math.min(1, Math.max(0, (v - f.min) / (f.max - f.min)));
+  }
+
   private rawAdd(id: StatId, delta: number): number {
     const info = this.registry.stats.get(id);
     if (!info) throw new Error(`Stat desconocida: ${id}`);
@@ -477,7 +497,8 @@ export class Game {
     if (info.def.category === 'estado') throw new Error(`"${id}" es de estado: usa addStat, no train`);
     const ctx = this.readCtx('core');
     const norm = (s: string) => ctx.norm(s);
-    const pot = this.s.potential?.[id];
+    const pot = this.effectivePotential(id);
+    const genetico = this.s.potential?.[id];
     const gain = computeGain(info.def, {
       value: this.s.stats[id],
       min: info.min,
@@ -485,7 +506,8 @@ export class Game {
       // El tope genético limita lo que se puede llegar a ser; las influencias visibles (edad, capacidades) lo limitan antes.
       cap: pot === undefined ? computeCap(info.def, info.min, info.max, norm) : Math.min(pot, computeCap(info.def, info.min, info.max, norm)),
       talent: this.s.talent[id] ?? 1,
-      speed: computeSpeed(info.def, norm) * (pot === undefined ? 1 : potentialSpeed(pot)),
+      // El ritmo depende del tope genético (quien tiene más, sube más rápido); el techo, de lo alcanzable a esta edad.
+      speed: computeSpeed(info.def, norm) * (genetico === undefined ? 1 : potentialSpeed(genetico)),
       efficiency,
       amount,
     });
@@ -525,7 +547,14 @@ export class Game {
     for (const { def } of this.registry.decayStats) {
       const id = def.id;
       const days = (this.s.minute - (this.s.lastTrained[id] ?? this.s.minute)) / MINUTES_PER_DAY;
-      const next = computeDecay(def, this.s.stats[id], days, this.s.peaks[id], this.s.baseline[id]);
+      let next = computeDecay(def, this.s.stats[id], days, this.s.peaks[id], this.s.baseline[id]);
+      // Envejecimiento: si la fracción de tope alcanzable ha bajado desde su máximo, lo que queda por encima del tope
+      // efectivo cae hacia él (despacio: un 0,4 % de la diferencia cada día).
+      const factor = def.growth?.potentialFactor;
+      if (factor && this.s.stats[factor] < (this.s.peaks[factor] ?? 0) - 0.25) {
+        const techo = this.effectivePotential(id);
+        if (techo !== undefined && next > techo) next -= (next - techo) * AJUSTE_POR_EDAD_DIARIO;
+      }
       this.s.stats[id] = next;
     }
   }

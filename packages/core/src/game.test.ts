@@ -536,3 +536,92 @@ describe('tope genético individual', () => {
   });
 
 });
+
+describe('envejecimiento: tope alcanzable por edad', () => {
+  const envejece = defineModule({
+    id: 'e',
+    name: 'Envejecimiento',
+    stats: [
+      { id: 'e.energia', name: 'Energía', category: 'estado', initial: 100, resource: true },
+      { id: 'e.vigor', name: 'Vigor', category: 'estado', initial: 60, hidden: true },
+      {
+        id: 'e.vel',
+        name: 'Velocidad',
+        category: 'generica',
+        initial: 30,
+        talentSpread: 0,
+        genetics: {},
+        growth: { rate: 1, curve: 1.5, potentialFactor: 'e.vigor' },
+        decay: { graceDays: 1000, ratePerDay: 0, floorRatio: 1 },
+      },
+    ],
+    actions: [
+      { id: 'e.entrenar', name: 'Entrenar', tags: ['fisico'], duration: 60, delta: { 'e.energia': -1 }, train: [{ stat: 'e.vel', amount: 5 }] },
+      { id: 'e.descansar', name: 'Descansar', tags: ['descanso'], duration: 60, delta: { 'e.energia': 100 } },
+    ],
+  });
+  /** Partida con tope 80 y el vigor y el nivel fijados a mano. */
+  const con = (vigor: number, nivel: number) => {
+    const s = Game.create([envejece], { seed: 1 }).serialize();
+    s.potential!['e.vel'] = 80;
+    s.stats['e.vigor'] = vigor;
+    s.peaks['e.vigor'] = Math.max(vigor, s.peaks['e.vigor']);
+    s.stats['e.vel'] = nivel;
+    s.peaks['e.vel'] = nivel;
+    return Game.load([envejece], s);
+  };
+  const dias = (g: Game, n: number) => {
+    const fin = g.time.day + n;
+    while (g.time.day < fin) g.perform('e.descansar');
+  };
+
+  it('el tope efectivo es el tope genético por la fracción alcanzable', () => {
+    expect(con(60, 30).agePotential('e.vel')).toBeCloseTo(48, 6);
+    expect(con(100, 30).agePotential('e.vel')).toBeCloseTo(80, 6);
+    expect(con(60, 30).hiddenPotential('e.vel')).toBe(80);
+  });
+
+  it('con poco vigor no se pasa del tope efectivo, y al subir el vigor se puede seguir', () => {
+    const g = con(60, 30);
+    for (let i = 0; i < 300; i++) {
+      g.perform('e.entrenar');
+      g.perform('e.descansar');
+    }
+    expect(g.stat('e.vel')).toBeLessThanOrEqual(48 + 1e-6);
+    expect(g.stat('e.vel')).toBeGreaterThan(40);
+  });
+
+  it('mientras el vigor crece, lo que queda por encima del tope efectivo no se pierde', () => {
+    // Nivel 60 con tope efectivo 48 y vigor en su máximo histórico: es una persona joven, no envejece.
+    const g = con(60, 60);
+    dias(g, 200);
+    expect(g.stat('e.vel')).toBeCloseTo(60, 6);
+  });
+
+  it('cuando el vigor baja desde su máximo, el nivel cae despacio hacia el tope efectivo', () => {
+    const s = Game.create([envejece], { seed: 1 }).serialize();
+    s.potential!['e.vel'] = 80;
+    s.peaks['e.vigor'] = 100; // llegó al máximo y ya ha bajado
+    s.stats['e.vigor'] = 70; // tope efectivo 56
+    s.stats['e.vel'] = 70;
+    s.peaks['e.vel'] = 70;
+    const g = Game.load([envejece], s);
+    dias(g, 30);
+    const tras30 = g.stat('e.vel');
+    expect(tras30).toBeLessThan(70);
+    expect(tras30).toBeGreaterThan(56);
+    dias(g, 1500);
+    expect(g.stat('e.vel')).toBeLessThan(57);
+    expect(g.stat('e.vel')).toBeGreaterThanOrEqual(56 - 1e-6);
+  });
+
+  it('el ritmo de subida depende del tope genético, no de lo alcanzable a esa edad', () => {
+    const joven = con(60, 30);
+    const adulto = con(100, 30);
+    joven.perform('e.entrenar');
+    adulto.perform('e.entrenar');
+    // Con el techo efectivo más bajo la ganancia es menor por la curva, pero no por un ritmo menor.
+    expect(joven.stat('e.vel')).toBeGreaterThan(30);
+    expect(adulto.stat('e.vel')).toBeGreaterThan(joven.stat('e.vel'));
+  });
+});

@@ -45,6 +45,11 @@ export const GEN = {
   // Estado
   /** Desarrollo físico por la edad (0..100, oculto): limita el techo de lo físico. */
   madurez: 'gen.madurez',
+  /** Fracción del tope genético alcanzable por edad (0..100, oculto), una por categoría. Ver `CURVAS_POR_EDAD`. */
+  vigorFisico: 'gen.vigor_fisico',
+  vigorTecnico: 'gen.vigor_tecnico',
+  vigorMental: 'gen.vigor_mental',
+  vigorSocial: 'gen.vigor_social',
   energia: 'gen.energia',
   salud: 'gen.salud',
   estres: 'gen.estres',

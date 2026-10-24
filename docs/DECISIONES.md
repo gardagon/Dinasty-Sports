@@ -5,6 +5,66 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — Curvas de desarrollo y envejecimiento por categoría (implementadas)
+
+Con la medición de abajo (entrada siguiente) se implementa lo propuesto, con los matices del usuario: lo mental sigue subiendo más allá de los 28 y su envejecimiento es mínimo y tardío.
+
+- **Curvas por edad como dato** (`CURVAS_POR_EDAD`, `factorPorEdad`, en contracts): la fracción del tope genético que se puede tener a cada edad. Física: 0,86 a los 8, máximo entre los 22 y los 27, 0,97 a los 30, 0,82 a los 40, 0,68 a los 50, 0,45 a los 70. Técnica: máximo a los 24 y meseta hasta los 32, cae más despacio que la física. Mental: sigue subiendo hasta los 30, meseta hasta los 55 y apenas baja después (0,92 a los 70). Social: máximo a los 30 y casi sin bajada.
+- **Mecanismo** (`growth.potentialFactor`): el módulo base mantiene cuatro stats ocultas de vigor (física, técnica, mental y social) que siguen la edad cada día; la física y la técnica se adelantan o retrasan con la madurez propia hasta los 24. El tope efectivo es tope genético × vigor. Si el vigor baja desde su máximo, lo que queda por encima cae hacia el tope efectivo un 0,4 % de la diferencia al día; mientras el vigor crece, no se pierde nada. El ritmo de subida sigue dependiendo del tope genético. El núcleo no sabe de edades ni de categorías.
+- **Se queda como estaba** (por decisión de que los rivales solo juegan hasta los 19): el desarrollo de los rivales sigue la fórmula `0,45 + 0,55 × madurez`. Cuando haya rivales adultos tendrán que usar la curva física.
+- **Los jóvenes no pierden nada:** las curvas empiezan en 0,86–0,90 a los 8 años (no 0,66) porque el nivel inicial de las genéricas (30 a 50) ya está cerca del 65 % de su tope; con curvas más bajas los niños no podían progresar y los chequeos de balance caían.
+
+**Resultado con el bot perfecto (semilla 1, 70 años, sin problemas):**
+
+| Edad | Física (nivel/tope) | Mental | Social | Habilidades | Capacidades al 95 % del tope |
+|---|---|---|---|---|---|
+| 8 | 38/56 | 39/67 | 40/64 | 31/61 | 0/28 |
+| 18 | 44/56 | 45/67 | 49/64 | 49/59 | 3/27 |
+| 24 | 45/56 | 47/67 | 52/64 | 52/59 | 4/27 |
+| 30 | 45/56 | 47/67 | 53/64 | 53/59 | 6/27 |
+| 40 | 42/56 | 48/67 | 54/64 | 53/59 | 4/27 |
+| 50 | 38/56 | 48/67 | 55/64 | 52/59 | 6/27 |
+| 60 | 31/56 | 48/67 | 56/64 | 50/59 | 4/27 |
+| 70 | 26/56 | 47/67 | 56/64 | 47/59 | 1/27 |
+
+- **Lo físico llega al máximo hacia los 24–30 y después baja** (de 45 a los 30 a 26 a los 70), la técnica baja más despacio y lo mental y lo social se mantienen casi intactos. Con un atleta concreto (velocidad, tope 64): 47 a los 9 años, 58 a los 16, 62 a los 24, 63 a los 28 y después 61, 57, 53 y 47 a los 32, 36, 40 y 47.
+- **El jugador sigue sin llegar al tope en todo:** como mucho 6 de 27 capacidades al 95 % de su tope.
+- **Balance:** los 13 chequeos siguen en verde a 1, 3 y 10 años. A 10 años el atleta sube al podio en el 20 % de las carreras y el equilibrado en el 31 % (antes del cambio, 67 a 77 %): los rivales ya no se quedan por debajo de quien entrena a diario. El resto de la simulación casi no cambia (en el primer año, atletismo +35, estudios +12).
+- **Rendimiento:** unos 1,4 s por año simulado (límite 3 s), 98 s para los 70 años.
+- **Respuestas del usuario a los hallazgos de adulto:**
+  - **Rivales:** también tendrán su oportunidad de ser profesionales; será como un cambio de categoría (E10.2 y E10.6). Entonces usarán la curva física por edad.
+  - **Asignaturas:** deben perderse al terminar el colegio. Si aparece la universidad, traerá otras asignaturas o un cálculo genérico sin asignaturas según la carrera elegida. Hasta los 18 años no es prioritario (E10.5).
+  - **Clubes tras el colegio y trabajos:** llegarán con la fase profesional; los trabajos y otras actividades que frenen el desplome, más adelante.
+  - **Rendimiento:** ~1,4 s por año simulado, correcto para pruebas; habrá que revisarlo en una partida real.
+  - **Ajustes:** es probable que haya que retocar las curvas y los números; para eso harán falta muchas pruebas y tests.
+
+## 24/10/2026 — Edad del pico y límite global: primero se mide (herramienta `sim:vida`)
+
+**Pregunta del usuario:** ¿estamos teniendo en cuenta que un jugador no debe llegar al tope en todas sus habilidades y que el pico físico no es a los 18 sino hacia los 23–25 (con lo mental subiendo más allá de los 28 y envejeciendo mucho más tarde)?
+
+**Respuesta:** hoy no, ninguna de las dos cosas está modelada. El desarrollo físico (`madurezPorEdad`) llega al 100 % a los 18 años y se queda ahí; no hay bajada por edad (E2.6 pendiente); y no hay límite global de capacidades. Antes de añadirlos, se mide con una herramienta nueva.
+
+- **Datos externos** (búsqueda del 24/10): el pico en el 400 m ronda los 21–25 años; en atletismo en general, los 23–28 según la prueba (medallistas olímpicos hacia los 27); en fútbol, 25–26 en velocidad, resistencia y explosividad (un solo estudio, con caída pasados los 32). No se encontró una edad de pico para lo técnico ni lo mental.
+- **Decisión del usuario:** lo mental puede seguir subiendo después de los 28 y, como mucho, lleva un malus mínimo por edad que lo compensa; el envejecimiento mental llega mucho más tarde. Más adelante los trabajos y otras actividades harán que algunas habilidades sigan subiendo y evitarán el desplome; eso queda para más adelante.
+- **Herramienta nueva `npm run sim:vida`** (`sim/src/vida.ts`): lleva a un bot "perfecto" (entrena deporte, estudios, gimnasio, lectura, relaciones y ocio cuidando el sueño y el estrés) los años que se pida y enseña, por edad, el nivel frente al tope de cada categoría y cuántas capacidades están al 95 % de su tope. Tarda ~1 s por año simulado.
+
+**Medición con el modelo actual** (semilla 1, 70 años, sin problemas ni bloqueos):
+
+| Edad | Física (nivel/tope) | Mental | Social | Habilidades | Conocimiento | Capacidades al 95 % del tope | Nota media |
+|---|---|---|---|---|---|---|---|
+| 8 | 39/60 | 39/66 | 40/67 | 32/63 | 0 | 0/28 | — |
+| 18 | 44/60 | 48/66 | 52/67 | 52/60 | 91 | 5/27 | 4,8 |
+| 28 | 44/60 | 50/66 | 54/67 | 53/60 | 95 | 7/27 | 3,4 |
+| 40 | 44/60 | 50/66 | 55/67 | 55/60 | 96 | 8/27 | 1,7 |
+| 70 | 45/60 | 51/66 | 57/67 | 55/60 | 98 | 10/27 | 0,0 |
+
+- **Límite global:** no hace falta de momento. Aun entrenando todo a diario durante 20 años, el bot perfecto solo tiene al 95 % del tope 7 de 27 capacidades (lo físico queda en el 73 % de su tope, lo mental en el 76 % y lo social en el 81 %). Las curvas duras ya impiden que nadie llegue al máximo en todo. Se vuelve a medir cuando haya curvas por edad.
+- **Edad del pico:** confirmado que no existe. Los niveles se estancan a los 16–18 y se quedan igual hasta los 70; no hay mejora hacia los 24 ni bajada después.
+- **Hallazgos al llegar a adulto:** (1) las asignaturas se pierden: la nota media cae de 4,8 a 0,0 hacia los 50 años porque tras 2.º de bachillerato no hay estudios (no hay universidad ni trabajo); (2) el bot compite siempre en la categoría absoluta y queda último de 8 ante los rivales, que solo llegan a los 19 años y no avanzan con el jugador; (3) no hay acciones de club disponibles tras el colegio. Es lo esperado (la fase profesional y adulta no existe todavía), pero hay que tenerlo presente al hacer las curvas.
+- **Rendimiento y estabilidad:** 70 años simulados en ~63 s sin invariantes rotos.
+
+**Siguiente paso (hecho el mismo día, ver la entrada anterior):** curvas de desarrollo por categoría como dato (física hasta ~24 y meseta 22–27 con bajada suave desde los 28; mental sigue subiendo más allá de los 28 con un malus mínimo por edad y envejecimiento mucho más tardío; social hasta los 30; conocimiento casi sin bajada), aplicadas también al desarrollo de los rivales.
+
 ## 23/10/2026 — Marca del tope genético en las barras (solo durante las pruebas)
 
 - Las barras de Características dibujaban una marca vertical que el jugador tomaba por el tope genético. No lo era: es el **techo actual** (edad y capacidades que apoyan), y por eso solo salía en lo físico, las asignaturas y el deporte; las mentales y sociales no tienen techo por edad y no dibujaban nada.
@@ -355,6 +415,10 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 ---
 
 ## Pendiente e ideas
+
+- **Medir el rendimiento en una partida real** (en las simulaciones, ~1,4 s por año simulado, dentro del límite de 3 s).
+- **Ajustar las curvas por edad y los topes** con muchas pruebas y tests (`sim:vida`, `sim:largo`).
+- **Rivales adultos y profesionales** (E10): usarán la curva física por edad; hoy solo juegan hasta los 19.
 
 - **Equilibrio del jugador que entrena a diario:** sube al podio en el 67 a 77 % de las carreras a 3 y 10 años. Se revisará cuando estén las lesiones (E12), el bonus de verano por buenas notas y el resto de piezas; no se toca antes.
 - **Notas más bajas tras la nueva escala:** la media del equilibrado pasa de 7,2 a ~6,2 (el tope de las asignaturas ronda 62). Valorar si se quiere subir el tope típico de las asignaturas.

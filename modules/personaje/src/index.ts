@@ -2,6 +2,7 @@ import {
   CORE_EVENTS,
   GEN,
   SERVICES,
+  factorPorEdad,
   madurezPorEdad,
   TAGS,
   defineModule,
@@ -15,6 +16,7 @@ import {
   type StatDef,
 } from '@ds/contracts';
 import {
+  EDAD_INICIAL,
   NOMBRE_COMPLEXION,
   actualizarCuerpo,
   edadDecimal,
@@ -38,6 +40,9 @@ const social: DecayDef = { graceDays: 14, ratePerDay: 0.004, floorRatio: 0.9 };
 /** Techo de lo físico: crece con el desarrollo por la edad (a los 8 años ~57, a los 18 el máximo). */
 const techoPorEdad = { base: 0.3, from: [{ stat: GEN.madurez, weight: 0.7 }] };
 
+/** Qué fracción del tope alcanzable por edad aplica a cada grupo de genéricas. */
+const VIGOR: Record<string, string> = { 'Físico': GEN.vigorFisico, Mental: GEN.vigorMental, Social: GEN.vigorSocial };
+
 const generica = (id: string, name: string, group: string, decay: DecayDef, description: string, limitadaPorEdad = false): StatDef => ({
   id,
   name,
@@ -45,7 +50,7 @@ const generica = (id: string, name: string, group: string, decay: DecayDef, desc
   description,
   category: 'generica',
   initial: { min: 30, max: 50 },
-  growth: { rate: 0.3, curve: 2, ...(limitadaPorEdad ? { cap: techoPorEdad } : {}) },
+  growth: { rate: 0.3, curve: 2, potentialFactor: VIGOR[group], ...(limitadaPorEdad ? { cap: techoPorEdad } : {}) },
   // Todas las genéricas tienen un tope genético heredado de los padres; lo físico, además, depende del desarrollo por la edad.
   genetics: { grupo: group.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() },
   decay,
@@ -81,6 +86,12 @@ export const personaje = defineModule<IdentidadState>({
     generica(GEN.picardia, 'Picardía', 'Social', social, 'Astucia para jugar al límite y salirte con la tuya.'),
     generica(GEN.cooperacion, 'Cooperación', 'Social', social, 'Trabajar con otros hacia un objetivo común. (Provisional.)'),
     { id: GEN.madurez, name: 'Madurez física', group: 'Estado', category: 'estado', initial: 41, hidden: true },
+    // Fracción del tope genético alcanzable por la edad en cada categoría (ver `CURVAS_POR_EDAD`): el techo sube hasta el
+    // pico y baja con el envejecimiento. Se actualizan cada día con la edad.
+    { id: GEN.vigorFisico, name: 'Vigor físico', group: 'Estado', category: 'estado', initial: 100 * factorPorEdad('fisico', EDAD_INICIAL), hidden: true },
+    { id: GEN.vigorTecnico, name: 'Vigor técnico', group: 'Estado', category: 'estado', initial: 100 * factorPorEdad('tecnico', EDAD_INICIAL), hidden: true },
+    { id: GEN.vigorMental, name: 'Vigor mental', group: 'Estado', category: 'estado', initial: 100 * factorPorEdad('mental', EDAD_INICIAL), hidden: true },
+    { id: GEN.vigorSocial, name: 'Vigor social', group: 'Estado', category: 'estado', initial: 100 * factorPorEdad('social', EDAD_INICIAL), hidden: true },
     { id: GEN.energia, name: 'Energía', group: 'Estado', category: 'estado', initial: 90, resource: true },
     { id: GEN.salud, name: 'Salud', group: 'Estado', category: 'estado', initial: 90 },
     { id: GEN.estres, name: 'Estrés', group: 'Estado', category: 'estado', initial: 20 },
@@ -278,6 +289,17 @@ export const personaje = defineModule<IdentidadState>({
       // El desarrollo físico sigue a la edad (con el adelanto o retraso propio): es el techo de lo físico.
       const objetivo = 100 * madurezPorEdad(edadDecimal(s, day + 1) + s.madurez);
       ctx.addStat(GEN.madurez, objetivo - ctx.stat(GEN.madurez));
+      // Lo alcanzable por edad en cada categoría. Lo físico y lo técnico se adelantan o se retrasan con la madurez propia
+      // mientras se crece; pasada la juventud, la edad es la que es.
+      const edadReal = edadDecimal(s, day + 1);
+      const edadCuerpo = edadReal < 24 ? edadReal + s.madurez : edadReal;
+      const vigor: [string, number][] = [
+        [GEN.vigorFisico, factorPorEdad('fisico', edadCuerpo)],
+        [GEN.vigorTecnico, factorPorEdad('tecnico', edadCuerpo)],
+        [GEN.vigorMental, factorPorEdad('mental', edadReal)],
+        [GEN.vigorSocial, factorPorEdad('social', edadReal)],
+      ];
+      for (const [id, f] of vigor) ctx.addStat(id, 100 * f - ctx.stat(id));
 
       const energia = ctx.stat(GEN.energia);
       const estres = ctx.stat(GEN.estres);
