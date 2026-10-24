@@ -28,6 +28,7 @@ import {
   asignaturasDelCurso,
   cursoDef,
   diaDeExamen,
+  type TipoDeExamen,
   elegirModalidad,
   horarioSemanal,
   type Asignatura,
@@ -50,7 +51,7 @@ export interface EstudiosState {
   /** Últimas notas por asignatura (más reciente al final). */
   notas: Record<string, number[]>;
   faltas: number;
-  /** Notas de los exámenes del trimestre en curso por asignatura (se vacía en cada evaluación). */
+  /** Notas de los exámenes del trimestre en curso, con clave `asignatura:parcial1|parcial2|global` (se vacía en cada evaluación). */
   examenes?: Record<string, number>;
   /** Notas medias de cada evaluación de trimestre. */
   boletines?: { curso: number; trimestre: number; media: number }[];
@@ -73,7 +74,7 @@ const MAX_HORA_CLASE = 9;
 /** Todos parten de un Regular (~50), de 40 a 78 según las capacidades que apoyan la asignatura. */
 const PREPARACION_INICIAL = { min: 40, max: 78 };
 /** Puntos de preparación que se pierden al día por olvido, antes del ajuste por capacidades (0,6× con muy buenas, 1,5× con muy malas). */
-const CAIDA_DIARIA = 0.15;
+const CAIDA_DIARIA = 0.2;
 /** Puntos que pierde la preparación al empezar un curso: los contenidos son más difíciles. */
 const SALTO_DE_CURSO = 3;
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
@@ -138,7 +139,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
   train: [
-    { stat: statId(a.key), amount: 5 },
+    { stat: statId(a.key), amount: 2.5 },
     { stat: GEN.inteligencia, amount: 0.4 },
     { stat: GEN.concentracion, amount: 0.4 },
     ...(a.entrena ? [a.entrena] : []),
@@ -198,13 +199,33 @@ function cambiarCurso(ctx: ActionContext, curso: number): void {
   );
 }
 
-/** Evaluación de fin de trimestre: nota media de los exámenes, con consecuencias en ánimo y estrés. */
+/** Peso de los parciales (su media) y del global en la nota final de cada asignatura. */
+const PESO_PARCIALES = 0.4;
+const PESO_GLOBAL = 0.6;
+
+/** Nota final de una asignatura en el trimestre: 40 % la media de los dos parciales y 60 % el global (lo no hecho cuenta 0). */
+export const notaFinal = (parcial1: number | undefined, parcial2: number | undefined, global: number | undefined): number =>
+  Math.round((PESO_PARCIALES * (((parcial1 ?? 0) + (parcial2 ?? 0)) / 2) + PESO_GLOBAL * (global ?? 0)) * 10) / 10;
+
+/** Evaluación de fin de trimestre: nota final de cada asignatura (parciales + global) y media, con consecuencias en ánimo y estrés. */
 function evaluarTrimestre(ctx: ActionContext, curso: number, trimestre: number): void {
   const st = ctx.state<EstudiosState>();
-  const notas = Object.values(st.examenes ?? {});
-  const media = notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : 0;
+  const ex = st.examenes ?? {};
+  const activas = activasKeys(curso, st.modalidad);
+  const finales = activas.map((k) => notaFinal(ex[`${k}:parcial1`], ex[`${k}:parcial2`], ex[`${k}:global`]));
+  const media = finales.length ? finales.reduce((a, b) => a + b, 0) / finales.length : 0;
   const boletines = [...(st.boletines ?? []), { curso, trimestre, media }].slice(-12);
-  ctx.updateState<EstudiosState>((s) => ({ ...s, examenes: {}, boletines }));
+  ctx.updateState<EstudiosState>((x) => {
+    const notas = { ...x.notas };
+    activas.forEach((k, n) => (notas[k] = [...(x.notas[k] ?? []), finales[n]].slice(-NOTAS_GUARDADAS)));
+    return { ...x, notas, examenes: {}, boletines };
+  });
+  const fmt = (n: number | undefined) => (n === undefined ? '—' : n.toFixed(1));
+  ctx.log(`Notas del ${trimestre}.º trimestre.`, 'resultado', {
+    header: ['Asignatura', 'Parcial 1', 'Parcial 2', 'Global', 'Final'],
+    rows: activas.map((k, n) => [asignatura(k).name, fmt(ex[`${k}:parcial1`]), fmt(ex[`${k}:parcial2`]), fmt(ex[`${k}:global`]), finales[n].toFixed(1)]),
+    align: ['left', 'right', 'right', 'right', 'right'],
+  });
   const aprobado = media >= 5;
   ctx.log(
     `Evaluación del ${trimestre}.º trimestre: nota media ${media.toFixed(1)}. ${aprobado ? 'Apruebas.' : 'Suspendes.'}`,
@@ -247,22 +268,24 @@ function elegirVerano(ctx: ActionContext, curso: number, media: number): void {
   ctx.updateState<EstudiosState>((s) => ({ ...s, verano: { curso, tipo, exigidas, hechas: 0, superada: false } }));
 }
 
+/** Qué examen toca en una semana: el parcial 1 o 2 de su trimestre, el global de la evaluación o ninguno. */
+const tipoDeSemana = (t: { isEvaluationWeek: boolean; parcial: 0 | 1 | 2 }): TipoDeExamen | null =>
+  t.isEvaluationWeek ? 'global' : t.parcial === 1 ? 'parcial1' : t.parcial === 2 ? 'parcial2' : null;
+
+const NOMBRE_DE_EXAMEN: Record<TipoDeExamen, string> = { parcial1: 'Parcial 1', parcial2: 'Parcial 2', global: 'Global' };
+
 /** Exámenes de hoy: la nota sale de la preparación de ahora; quien falta a clase se queda con un 0. */
-function examinar(ctx: ActionContext, keys: string[], presente: boolean): void {
+function examinar(ctx: ActionContext, keys: string[], tipo: TipoDeExamen, presente: boolean): void {
   const filas: string[][] = [];
   const nuevas: Record<string, number> = {};
   for (const k of keys) {
     const nota = presente ? notaExamen(ctx.stat(statId(k)), ctx.stat(GEN.estres), ctx.stat(GEN.concentracion), ctx.rng.normal()) : 0;
-    nuevas[k] = nota;
+    nuevas[`${k}:${tipo}`] = nota;
     filas.push([asignatura(k).name, presente ? nota.toFixed(1) : 'No presentado']);
   }
-  ctx.updateState<EstudiosState>((st) => {
-    const notas = { ...st.notas };
-    for (const k of keys) notas[k] = [...(st.notas[k] ?? []), nuevas[k]].slice(-NOTAS_GUARDADAS);
-    return { ...st, notas, examenes: { ...st.examenes, ...nuevas } };
-  });
-  const m = keys.reduce((x, k) => x + nuevas[k], 0) / keys.length;
-  ctx.log(`${keys.length > 1 ? 'Exámenes de hoy' : 'Examen de hoy'}: nota media ${m.toFixed(1)}.`, 'resultado', { header: ['Asignatura', 'Nota'], rows: filas, align: ['left', 'right'] });
+  ctx.updateState<EstudiosState>((st) => ({ ...st, examenes: { ...st.examenes, ...nuevas } }));
+  const m = Object.values(nuevas).reduce((x, n) => x + n, 0) / keys.length;
+  ctx.log(`${NOMBRE_DE_EXAMEN[tipo]}: nota media ${m.toFixed(1)}.`, 'resultado', { header: ['Asignatura', 'Nota'], rows: filas, align: ['left', 'right'] });
   if (m >= 7) ctx.addStat(GEN.motivacion, 3);
   else if (m < 5) {
     ctx.addStat(GEN.motivacion, -3);
@@ -270,11 +293,13 @@ function examinar(ctx: ActionContext, keys: string[], presente: boolean): void {
   }
 }
 
-/** Calendario de exámenes de la evaluación que empieza en `semana` (absoluta): asignatura y día. */
-function calendarioDeExamenes(semana: number, modalidad: Modalidad | undefined): { key: string; weekday: number }[] {
+/** Calendario de exámenes de la semana absoluta `semana`: asignatura y día. */
+function calendarioDeExamenes(semana: number, modalidad: Modalidad | undefined): { key: string; weekday: number; tipo: TipoDeExamen }[] {
   const t = timeView(semana * 7 * MINUTES_PER_DAY);
+  const tipo = tipoDeSemana(t);
+  if (!tipo) return [];
   return activasKeys(t.schoolYear, modalidad)
-    .map((key) => ({ key, weekday: diaDeExamen(t.schoolYear, t.term, key) }))
+    .map((key) => ({ key, tipo, weekday: diaDeExamen(t.schoolYear, t.term, key, tipo) }))
     .sort((a, b) => a.weekday - b.weekday);
 }
 
@@ -318,7 +343,7 @@ export const estudios = defineModule<EstudiosState>({
       run: (ctx) => {
         ctx.updateState<EstudiosState>((s) => ({ ...s, ultimaAsistencia: ctx.time.day }));
         // En clase se avanza en las asignaturas que se dan hoy.
-        for (const k of asignaturasDeHoy(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad, ctx.time.weekday)) ctx.train(statId(k), 1.2);
+        for (const k of asignaturasDeHoy(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad, ctx.time.weekday)) ctx.train(statId(k), 0.9);
       },
     },
     ...ASIGNATURAS.map(estudiar),
@@ -332,7 +357,7 @@ export const estudios = defineModule<EstudiosState>({
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
       train: [{ stat: GEN.determinacion, amount: 0.3 }],
       run: (ctx) => {
-        for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 2.5);
+        for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 0.6);
       },
     },
     {
@@ -378,9 +403,10 @@ export const estudios = defineModule<EstudiosState>({
       const proximo = timeView((week + 1) * 7 * MINUTES_PER_DAY);
       if (proximo.schoolWeek === 0) cambiarCurso(ctx, proximo.schoolYear);
       // Los exámenes se avisan con una semana de antelación: cuando la semana que empieza es la anterior a la de evaluación.
-      if (timeView((week + 2) * 7 * MINUTES_PER_DAY).isEvaluationWeek) {
-        const filas = calendarioDeExamenes(week + 2, ctx.state<EstudiosState>().modalidad).map((e) => [DIAS[e.weekday], asignatura(e.key).name]);
-        ctx.log('La semana que viene empiezan los exámenes del trimestre.', 'aviso', { header: ['Día', 'Examen'], rows: filas, align: ['left', 'left'] });
+      const examenes = calendarioDeExamenes(week + 2, ctx.state<EstudiosState>().modalidad);
+      if (examenes.length) {
+        const filas = examenes.map((e) => [DIAS[e.weekday], asignatura(e.key).name]);
+        ctx.log(`La semana que viene: ${NOMBRE_DE_EXAMEN[examenes[0].tipo].toLowerCase()} del trimestre.`, 'aviso', { header: ['Día', 'Examen'], rows: filas, align: ['left', 'left'] });
       }
     },
 
@@ -409,11 +435,12 @@ export const estudios = defineModule<EstudiosState>({
       }
 
       const activas = activasKeys(hoy.schoolYear, s.modalidad);
-      if (hoy.isEvaluationWeek) {
+      const tipo = tipoDeSemana(hoy);
+      if (tipo) {
         const hechos = s.examenes ?? {};
-        const hoyToca = activas.filter((k) => diaDeExamen(hoy.schoolYear, hoy.term, k) === weekday && hechos[k] === undefined);
-        if (hoyToca.length) examinar(ctx, hoyToca, s.ultimaAsistencia === day);
-        if (weekday === 4) evaluarTrimestre(ctx, hoy.schoolYear, hoy.term);
+        const hoyToca = activas.filter((k) => diaDeExamen(hoy.schoolYear, hoy.term, k, tipo) === weekday && hechos[`${k}:${tipo}`] === undefined);
+        if (hoyToca.length) examinar(ctx, hoyToca, tipo, s.ultimaAsistencia === day);
+        if (weekday === 4 && tipo === 'global') evaluarTrimestre(ctx, hoy.schoolYear, hoy.term);
       }
       // Olvido diario: cada asignatura pierde un poco, más si las capacidades que la apoyan son flojas.
       for (const k of activas) ctx.addStat(statId(k), -caidaDeHoy(asignatura(k), ctx.stat));
@@ -437,10 +464,10 @@ export const estudios = defineModule<EstudiosState>({
           for (let d = 0; d < Math.min(days, 14); d++) {
             const t = timeView((ctx.time.day + d) * MINUTES_PER_DAY);
             // Solo se conocen los de la semana en curso y la siguiente a la que se avisó.
-            if (!t.isSchoolDay || !t.isEvaluationWeek || t.week - ctx.time.week > 1) continue;
+            if (!t.isSchoolDay || t.week - ctx.time.week > 1) continue;
             for (const e of calendarioDeExamenes(t.week, s.modalidad)) {
-              if (e.weekday !== t.weekday || (d === 0 && s.examenes?.[e.key] !== undefined)) continue;
-              salida.push({ subject: statId(e.key), name: asignatura(e.key).name, day: t.day, inDays: d });
+              if (e.weekday !== t.weekday || (d === 0 && s.examenes?.[`${e.key}:${e.tipo}`] !== undefined)) continue;
+              salida.push({ subject: statId(e.key), name: asignatura(e.key).name, tipo: e.tipo, day: t.day, inDays: d });
             }
           }
           return salida;

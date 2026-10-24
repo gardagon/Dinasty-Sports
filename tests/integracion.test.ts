@@ -323,7 +323,7 @@ describe('integración de módulos', () => {
         { curso: 0, trimestre: 1, media: notaMedia },
         { curso: 0, trimestre: 2, media: notaMedia },
       ];
-      e.examenes = Object.fromEntries(asignaturasDelCurso(0).map((k) => [k, notaMedia]));
+      e.examenes = Object.fromEntries(asignaturasDelCurso(0).flatMap((k) => ['parcial1', 'parcial2', 'global'].map((t) => [`${k}:${t}`, notaMedia])));
       guardado.minute = (40 * 7 + 4) * 1440 + 22 * 60; // viernes de la semana 40 a las 22:00
       return cargarPartida(guardado);
     };

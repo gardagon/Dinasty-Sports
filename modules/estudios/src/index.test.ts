@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SERVICES, type StudiesService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
-import { estudios, nivelDeAsignatura, notaExamen, type EstudiosState } from './index';
+import { estudios, nivelDeAsignatura, notaExamen, notaFinal, type EstudiosState } from './index';
 import { ASIGNATURAS, CURSOS_ESPANA, asignaturasDelCurso, diaDeExamen, elegirModalidad, horarioSemanal } from './curriculo';
 
 const nueva = () => Game.create([personaje, estudios], { seed: 3 });
@@ -188,7 +188,7 @@ describe('módulo estudios', () => {
     it('los exámenes se avisan con una semana de antelación, con el día de cada uno', () => {
       const g = enExamenes(12);
       advanceToWeek(g, 'gen.descansar', 13, 0, 9);
-      const aviso = g.log.find((l) => /exámenes del trimestre/.test(l.text))!;
+      const aviso = g.log.find((l) => /global del trimestre/.test(l.text))!;
       expect(aviso.table!.rows.map((r) => r[1]).sort()).toEqual(claves(0).map((k) => ASIGNATURAS.find((a) => a.key === k)!.name).sort());
       const exs = g.service<StudiesService>(SERVICES.estudios)!.upcomingExams(14);
       expect(exs.map((e) => e.subject).sort()).toEqual(claves(0).map((k) => `estudios.${k}`).sort());
@@ -226,17 +226,31 @@ describe('módulo estudios', () => {
       expect(new Set(dias).size).toBeLessThan(dias.length);
     });
 
-    it('quien llega preparado saca nota alta en el examen', () => {
-      const g = enExamenes(14);
+    it('los parciales caen en las semanas 6 y 11 y también se avisan; el global pesa 60 % y los parciales 40 %', () => {
+      const g = enExamenes(4);
+      advanceToWeek(g, 'gen.descansar', 5, 0, 9);
+      expect(g.log.some((l) => /parcial 1 del trimestre/.test(l.text))).toBe(true);
+      const exs = g.service<StudiesService>(SERVICES.estudios)!.upcomingExams(14);
+      expect(exs.length).toBe(claves(0).length);
+      expect(new Set(exs.map((e) => e.tipo))).toEqual(new Set(['parcial1']));
+      expect(notaFinal(10, 10, 0)).toBe(4);
+      expect(notaFinal(0, 0, 10)).toBe(6);
+      expect(notaFinal(8, 6, 5)).toBe(5.8);
+    });
+
+    it('quien llega preparado saca nota alta en parciales y global', () => {
+      const g = enExamenes(6);
       const guardado = g.serialize();
       for (const k of claves(0)) guardado.stats[`estudios.${k}`] = 90;
       const listo = Game.load([personaje, estudios], guardado);
-      for (let d = 0; d < 5; d++) {
-        advanceToWeek(listo, 'gen.descansar', 14, d, 8);
-        listo.perform('estudios.clase');
+      for (const semana of [6, 11, 14]) {
+        for (let d = 0; d < 5; d++) {
+          advanceToWeek(listo, 'gen.descansar', semana, d, 8);
+          listo.perform('estudios.clase');
+        }
       }
       advanceToWeek(listo, 'gen.descansar', 14, 5, 10);
-      expect(listo.moduleState<EstudiosState>('estudios').boletines![0].media).toBeGreaterThan(7.5);
+      expect(listo.moduleState<EstudiosState>('estudios').boletines![0].media).toBeGreaterThan(6);
     });
 
     /** Partida guardada en el domingo anterior al primer lunes de un curso, con un nivel dado en una asignatura. */

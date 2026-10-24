@@ -60,6 +60,8 @@ export interface ExamInfo {
   /** Id de la habilidad de la asignatura. */
   subject: string;
   name: string;
+  /** Primer o segundo parcial, o el global de la evaluación. */
+  tipo: 'parcial1' | 'parcial2' | 'global';
   /** Día absoluto del examen. */
   day: number;
   /** Días que faltan (0 = hoy). */

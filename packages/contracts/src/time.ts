@@ -35,6 +35,8 @@ export interface TimeView {
   isSchoolDay: boolean;
   /** ¿Esta semana cierra un trimestre (evaluación el último día lectivo)? */
   isEvaluationWeek: boolean;
+  /** 1 o 2 si esta semana es la del primer o segundo parcial del trimestre; 0 si no. */
+  parcial: 0 | 1 | 2;
 }
 
 export function timeView(minute: number, calendar: CalendarioPais = CALENDARIO_ESPANA): TimeView {
@@ -59,6 +61,7 @@ export function timeView(minute: number, calendar: CalendarioPais = CALENDARIO_E
     term: tramo.trimestre,
     isSchoolDay: !isWeekend && tramo.periodo === 'clase',
     isEvaluationWeek: calendar.evaluaciones.includes(schoolWeek),
+    parcial: calendar.parciales.includes(schoolWeek) ? ((calendar.parciales.indexOf(schoolWeek) % 2) + 1 as 1 | 2) : 0,
   };
 }
 

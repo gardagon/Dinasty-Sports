@@ -119,8 +119,10 @@ export function horarioSemanal(asignaturas: readonly string[]): Record<string, n
 }
 
 /** Día de la semana (0..4) del examen de una asignatura en la evaluación de un trimestre. Es fijo, y varias pueden coincidir. */
-export function diaDeExamen(curso: number, trimestre: number, key: string): number {
-  let h = curso * 7 + trimestre * 13;
+export type TipoDeExamen = 'parcial1' | 'parcial2' | 'global';
+
+export function diaDeExamen(curso: number, trimestre: number, key: string, tipo: TipoDeExamen = 'global'): number {
+  let h = curso * 7 + trimestre * 13 + (tipo === 'parcial1' ? 3 : tipo === 'parcial2' ? 5 : 0);
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 9973;
   return h % 5;
 }

@@ -25,6 +25,8 @@ export interface CalendarioPais {
   tramos: readonly TramoCalendario[];
   /** Semanas del curso en cuyo último día lectivo hay evaluación de trimestre. */
   evaluaciones: readonly number[];
+  /** Semanas con exámenes parciales: dos por trimestre, por orden (primero y segundo parcial), antes de la evaluación. */
+  parciales: readonly number[];
 }
 
 /**
@@ -46,6 +48,8 @@ export const CALENDARIO_ESPANA: CalendarioPais = {
     { desde: 41, hasta: 51, periodo: 'verano', trimestre: 0 },
   ],
   evaluaciones: [14, 28, 40],
+  // Cada trimestre: dos parciales espaciados, a ≥ 3 semanas de la evaluación y del inicio del trimestre o de las vacaciones.
+  parciales: [6, 11, 21, 25, 33, 37],
 };
 
 export const CALENDARIOS: Readonly<Record<string, CalendarioPais>> = { espana: CALENDARIO_ESPANA };

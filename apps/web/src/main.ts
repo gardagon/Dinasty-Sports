@@ -413,10 +413,10 @@ function viewResults(g: Game): string {
     const dias = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
     const exs = est.upcomingExams(14);
     const proximos = exs.length
-      ? `<ul class="note">${exs.map((e) => `<li><b>${esc(e.name)}</b>: ${e.inDays === 0 ? 'hoy' : e.inDays === 1 ? 'mañana' : `el ${dias[e.day % 7]} (en ${e.inDays} días)`}</li>`).join('')}</ul>`
+      ? `<ul class="note">${exs.map((e) => `<li><b>${esc(e.name)}</b> (${{ parcial1: 'parcial 1', parcial2: 'parcial 2', global: 'global' }[e.tipo]}): ${e.inDays === 0 ? 'hoy' : e.inDays === 1 ? 'mañana' : `el ${dias[e.day % 7]} (en ${e.inDays} días)`}</li>`).join('')}</ul>`
       : '<span class="note">No hay exámenes a la vista.</span>';
     const hoy = g.time.isSchoolDay ? est.timetable(g.time.weekday).map((id) => esc(g.registry.stats.get(id)?.def.name ?? id)).join(', ') : '';
-    parts.push(`<p>Nota media reciente: <b>${m === null ? 'sin exámenes aún' : m.toFixed(1)}</b><br><span class="note">Faltas: ${est.absences()}. Exámenes solo en la semana de evaluación de cada trimestre.</span></p>
+    parts.push(`<p>Nota media reciente: <b>${m === null ? 'sin exámenes aún' : m.toFixed(1)}</b><br><span class="note">Faltas: ${est.absences()}. Cada trimestre: dos parciales y el global (40 % la media de los parciales, 60 % el global).</span></p>
       <h3>Exámenes próximos</h3>${proximos}${hoy ? `<p class="note">Hoy hay clase de: ${hoy}.</p>` : ''}`);
   }
   const atl = g.moduleState<{ mejorMarca: number | null; carreras: { position: number; total: number }[] } | undefined>('atletismo');

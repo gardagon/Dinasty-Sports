@@ -74,9 +74,9 @@ describe('calendario escolar (España)', () => {
     const g = nuevaPartida({ seed: 1 });
     advanceToWeek(g, 'gen.descansar', 15, 0, 9);
     expect(g.log.some((l) => /Evaluación del 1\.º trimestre: nota media/.test(l.text))).toBe(true);
-    // No hay controles semanales: solo los exámenes de la semana de evaluación (los dos primeros días de la 14 y ninguno en Navidad).
+    // No hay controles semanales: solo los exámenes de la semana de evaluación (parciales en las semanas 6 y 11, global en la 14).
     expect(g.log.some((l) => /Controles del viernes/.test(l.text))).toBe(false);
-    expect(g.log.some((l) => /Exámenes? de hoy/.test(l.text))).toBe(true);
+    expect(g.log.some((l) => /Parcial 1: nota media/.test(l.text))).toBe(true);
   });
 
   describe('año de nacimiento y edad de competición', () => {
