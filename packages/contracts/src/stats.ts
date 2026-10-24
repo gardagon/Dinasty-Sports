@@ -41,6 +41,11 @@ export interface GrowthDef {
    * encima del tope efectivo va cayendo hacia él.
    */
   potentialFactor?: StatId;
+  /**
+   * Desarrollo natural: fracción del tope efectivo (tope × lo alcanzable por edad) que se alcanza solo por crecer, sin
+   * entrenar. Un niño con 5 no será un adulto con 5: sin hacer nada llega a ~`naturalFraction` de su tope.
+   */
+  naturalFraction?: number;
 }
 
 /**
@@ -76,6 +81,11 @@ export interface StatDef {
   max?: number;
   /** Valor inicial fijo o rango aleatorio (con la semilla de la partida). */
   initial: number | { min: number; max: number };
+  /**
+   * Con `initial` como rango: el valor inicial no es al azar sino que depende del nivel inicial de otras stats (media ponderada,
+   * de 34 a 52 ⇒ de `min` a `max`; los niños empiezan en torno a 40). Así, una asignatura empieza más alta en quien tiene mejores capacidades de base.
+   */
+  initialFrom?: StatInfluence[];
   /** Dispersión del talento oculto (multiplicador 1 ± spread). Por defecto 0.15; 0 = sin talento. */
   talentSpread?: number;
   growth?: GrowthDef;

@@ -81,11 +81,12 @@ describe('módulo personaje (gen)', () => {
   it('el vigor por edad sube con los años y se aproxima a la curva de cada categoría', () => {
     const g = Game.create([personaje], { seed: 1 });
     const antes = g.stat(GEN.vigorFisico);
-    expect(antes).toBeGreaterThan(80);
-    expect(antes).toBeLessThan(90);
+    // A los 8 años solo se puede tener una parte pequeña del tope; con los años va creciendo.
+    expect(antes).toBeGreaterThan(25);
+    expect(antes).toBeLessThan(35);
     while (g.time.day < 365 * 3) g.perform('gen.descansar');
-    expect(g.stat(GEN.vigorFisico)).toBeGreaterThan(antes);
-    expect(g.stat(GEN.vigorMental)).toBeGreaterThan(87);
+    expect(g.stat(GEN.vigorFisico)).toBeGreaterThan(antes + 20);
+    expect(g.stat(GEN.vigorMental)).toBeGreaterThan(50);
   });
 
   it('las genéricas llevan el vigor de su categoría', () => {

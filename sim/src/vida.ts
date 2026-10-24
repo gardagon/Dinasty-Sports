@@ -58,6 +58,8 @@ interface Fila {
   conocimiento: number;
   alTope: number;
   total: number;
+  /** Media del nivel/tope (%) de las 6 capacidades que más se acercan a su tope: las que el bot entrena de verdad. */
+  mejores: number;
   notaMedia: number | null;
   salud: number;
 }
@@ -67,6 +69,7 @@ function fotografia(g: Game, edad: number): Fila {
   const hab = { n: [] as number[], t: [] as number[] };
   let alTope = 0;
   let total = 0;
+  const ratios: number[] = [];
   for (const s of g.registry.statList) {
     const tope = g.hiddenPotential(s.def.id);
     if (tope === undefined || s.def.category === 'estado') continue;
@@ -74,6 +77,7 @@ function fotografia(g: Game, edad: number): Fila {
     const grupo = s.def.genetics?.grupo;
     const v = g.stat(s.def.id);
     if (grupo) {
+      ratios.push((100 * v) / tope);
       (cat[grupo] ??= { n: [], t: [] }).n.push(v);
       cat[grupo].t.push(tope);
     } else if (s.def.category === 'habilidad') {
@@ -91,6 +95,7 @@ function fotografia(g: Game, edad: number): Fila {
     conocimiento: g.stat('atletismo.conocimiento'),
     alTope,
     total,
+    mejores: media(ratios.sort((a, b) => b - a).slice(0, 6)),
     notaMedia: est?.average() ?? null,
     salud: g.stat(GEN.salud),
   };
@@ -145,10 +150,10 @@ if (process.argv[1]?.endsWith('vida.ts')) {
   const { filas, problemas, ms } = simular(bot, seed, anios);
   const mostrar = filas.filter((x) => [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 35, 40, 50, 60, 70, 78].includes(x.edad) || x === filas[filas.length - 1]);
   const cols = (c: { nivel: number; tope: number }) => `${f(c.nivel)}/${f(c.tope)}`;
-  console.log('| Edad | Física (nivel/tope) | Mental | Social | Habilidades | Conocimiento | Capacidades al 95 % del tope | Nota media | Salud |');
-  console.log('|---|---|---|---|---|---|---|---|---|');
+  console.log('| Edad | Física (nivel/tope) | Mental | Social | Habilidades | Conocimiento | Capacidades al 95 % del tope | 6 mejores capacidades (% del tope) | Nota media | Salud |');
+  console.log('|---|---|---|---|---|---|---|---|---|---|');
   for (const x of mostrar) {
-    console.log(`| ${x.edad} | ${cols(x.cat.fisico)} | ${cols(x.cat.mental)} | ${cols(x.cat.social)} | ${cols(x.habilidades)} | ${f(x.conocimiento)} | ${x.alTope}/${x.total} | ${f(x.notaMedia ?? NaN, 1)} | ${f(x.salud)} |`);
+    console.log(`| ${x.edad} | ${cols(x.cat.fisico)} | ${cols(x.cat.mental)} | ${cols(x.cat.social)} | ${cols(x.habilidades)} | ${f(x.conocimiento)} | ${x.alTope}/${x.total} | ${f(x.mejores)} % | ${f(x.notaMedia ?? NaN, 1)} | ${f(x.salud)} |`);
   }
   console.log(`\n${filas.length - 1} años simulados en ${(ms / 1000).toFixed(1)} s. Problemas: ${problemas.length ? '\n  - ' + problemas.join('\n  - ') : 'ninguno'}\n`);
 

@@ -55,7 +55,29 @@ export interface NpcDirectory {
 /** Cómo pasa el verano el personaje según sus notas: academia obligatoria, campamento deportivo o tiempo con amigos. */
 export type SummerPath = 'academia' | 'campamento' | 'amigos';
 
+/** Un examen próximo o ya fijado en el calendario. */
+export interface ExamInfo {
+  /** Id de la habilidad de la asignatura. */
+  subject: string;
+  name: string;
+  /** Primer o segundo parcial, o el global de la evaluación. */
+  tipo: 'parcial1' | 'parcial2' | 'global';
+  /** Día absoluto del examen. */
+  day: number;
+  /** Días que faltan (0 = hoy). */
+  inDays: number;
+}
+
+/** Nivel con el que se ve una preparación (0..100 = nota esperada × 10): Mal, Regular, Bien, Muy bien o Excelente. */
+export type NivelDeAsignatura = 'Mal' | 'Regular' | 'Bien' | 'Muy bien' | 'Excelente';
+
 export interface StudiesService {
+  /** Nivel de una asignatura con texto (Mal < 4, Regular 4–5,9, Bien 6–7,4, Muy bien 7,5–9,2, Excelente 9,3–10), o null si no existe. */
+  levelText(subject: string): NivelDeAsignatura | null;
+  /** Exámenes que caen en los próximos `days` días (incluido hoy), por orden. Se conocen una semana antes. */
+  upcomingExams(days: number): ExamInfo[];
+  /** Asignaturas (ids) que se dan en un día de la semana (0 = lunes ... 4 = viernes) del curso actual. */
+  timetable(weekday: number): string[];
   /** Media de las últimas notas (0..10), o null si aún no hay exámenes. */
   average(): number | null;
   /** Faltas de asistencia acumuladas. */

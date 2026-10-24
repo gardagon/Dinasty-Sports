@@ -5,6 +5,81 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/10/2026 — `sim:vida` mide las capacidades que se entrenan: el bot perfecto sí llega (sin tocar el motor)
+
+- **Duda (usuario):** cómo ajustar para que el bot perfecto pueda llegar a ~85 a los 24 con tope 90 sin desmontar la base.
+- **Diagnóstico:** se imprimió, por edad, cada capacidad del bot perfecto frente a su tope. Las que entrena (velocidad, resistencia, inteligencia, comunicación, carisma...) llegan al **90–97 % del tope a los 22–24 años** (p. ej. velocidad 61/64, 73/76, 32/35). Las que nunca entrena (constitución, agilidad, autoridad, picardía...) se quedan en el mínimo natural (~45 %). La tabla de `sim:vida` promediaba las 18 capacidades, por eso parecía que solo se llegaba al ~70 %. **No hay que tocar ritmos, curvas ni caídas.**
+- **Medición nueva:** `sim:vida` añade la columna **«6 mejores capacidades (% del tope)»**, la media de nivel/tope de las 6 capacidades más cercanas a su tope. Con 3 semillas sale: 8 años 22–25 %, 10: 40 %, 12: 51 %, 14: 62 %, 16: 72 %, **18: 79–80 %**, 20: 84 %, 22: 88 %, **24: 90–91 %**. Es decir, nadie llega al máximo a los 18, el pico llega hacia los 24 y las capacidades al 95 % del tope son 3 de 21 (nadie lo tiene todo). Cuadra con el ejemplo del usuario (tope 90 → ~85 a los 24, unos 7 puntos por año de media y algo más de niño).
+- **Observación:** el bot perfecto saca solo ~5 de nota media; sus dos sesiones de estudio diarias reparten poco entre 7–8 asignaturas. Es un problema del bot (`CLAUDE.md`: se arregla el bot, no el juego), no se toca ahora.
+
+---
+
+## 24/10/2026 — Crecimiento infantil más gradual: techo por edad y desarrollo natural (E2.8, ajuste)
+
+- **Problema (usuario):** el bot equilibrado pasaba de 12 a 35 en un año y casi se paraba después. Un personaje con tope 90 y su mejor momento a los 24 tiene que subir menos de 7 puntos al año si fuera plano; de niño algo más, pero no 23. Además, un niño con 5 no será nunca un adulto con 5, aunque sí con 25 o 30.
+- **Causa:** el techo por edad de las capacidades ya valía el 86–90 % del tope a los 8 años, así que el niño podía subir casi a tope de golpe y después la curva de rendimientos decrecientes lo frenaba.
+- **Techo por edad más bajo y progresivo** (`CURVAS_POR_EDAD`, fracción del tope alcanzable): a los 8 años 0,30; 10: 0,42; 12: 0,55; 14: 0,68; 16: 0,82; 18: 0,91; y después como antes hasta el máximo (22–30 según categoría).
+- **Desarrollo natural** (`GrowthDef.naturalFraction`, 0,45 en todas las genéricas): sin entrenar, una capacidad sube sola hasta el 45 % de su tope efectivo (tope × lo alcanzable por edad), un 5 % de lo que falta cada día. Un adulto que no entrena nunca baja del ~45 % de su tope (≈ 28 con tope 62; ≈ 40 con tope 90), no hacia 5. Este mínimo sube con la edad y baja con el envejecimiento.
+- **Plasticidad hasta los 16** (`plasticidadPorEdad`): ×3 a los 8 años, bajando a ×1 a los 16, solo en genéricas. Ritmo de las genéricas 0,3 → 0,5.
+- **Nivel típico por edad recalibrado** a lo realmente alcanzable: 12,5 a los 8; 17 a los 10; 22 a los 12; 32 a los 16; 36 a los 18; 40 a los 24; 42 desde los 30.
+- **Rivales:** `desarrolloRival` = 0,75 × la curva física por edad del jugador (antes una curva propia más alta). Con 0,9 el atleta dejaba de destacar.
+- **Resultado (bot perfecto, `sim:vida`, físico con tope 57):** 8 años 11 → 10 años 20 → 12 años 24 → 16 años 33 → 20 años 37 → 24 años 39. Es decir, ~4 puntos al año de niño y 1–3 después, sin saltos. Un año de partida: capacidades +7 a +9 (antes +23).
+- **Cifras (365 días, 13 chequeos en verde):** nota media equilibrado 7,2 (6,4 sin el ajuste de techo; el primer año sigue algo alta), empollón 8,1, atleta 4,5, vago 2,4; atletismo +16 en el equilibrado y en el atleta; podios 18 y 19; victorias del atleta 24 %.
+- **Umbral de la simulación rápida:** "El esfuerzo hace progresar" pasa de atletismo > +10 a > +7 (con el techo por edad la subida de los primeros meses es más lenta a propósito: +8,2 en la rápida, +16 en un año completo).
+- **Aclarado después (ver la entrada siguiente):** el «70 % del tope a los 24 años» era un artefacto de la medición, no un fallo del motor.
+
+---
+
+## 24/10/2026 — Los niños empiezan con capacidades bajas (5–20) y se miden "para su edad" (E2.8)
+
+- **Motivo (usuario):** un padre con 60 y un niño de 8 años con 40 es poco realista. Debe empezar mucho más bajo (1–20) pero con potencial para crecer rápido.
+- **Paso 1 — capacidades «para su edad».** Nueva referencia `nivelTipicoPorEdad(edad)` en `contracts/development.ts` (nivel típico de una genérica: 12,5 a los 8, 30 a los 10, 44 a los 12, 52 a los 14, 57 a los 16, 60 a los 18, 62 desde los 30). `ReadContext.norm` de una **capacidad genérica** ya no es nivel/100 sino nivel relativo al típico de la edad (con el típico equivale a lo que antes era 40/100). Así techos, velocidades y olvido de asignaturas y habilidades no se hunden porque el niño tenga 12. Se verificó antes de tocar nada más que, con el típico constante en 40, **todos los números de la simulación eran idénticos** y los 235 tests pasaban.
+- **Paso 2 — arranque bajo y plasticidad.** Rango inicial de las capacidades **30–50 → 5–20**. Las capacidades genéricas suben más rápido de niño: `plasticidadPorEdad` (primero ×2,5, la versión final ×3 está en la entrada «Crecimiento infantil más gradual»; bajando a ×1 a los 16; solo genéricas). El arranque de las asignaturas (`initialFrom`) se calcula también relativo al nivel típico de 8 años.
+- **Rivales:** el jugador, con capacidades de 12, no podía competir con rivales de 8 años calibrados contra niveles de 40, así que se rebajaron (primero a 0,35 + 0,65·madurez; la versión final, 0,75 × la curva física, está en la entrada «Crecimiento infantil más gradual»).
+- **Asignaturas:** estudiar baja 5 → 3. El peso extra de las capacidades en la velocidad de las asignaturas se mantiene en 2 (con el rango inicial 5–20 la dispersión relativa entre niños es mucho mayor).
+- **Cifras (365 días, 5 semillas, 13 chequeos en verde):** capacidades +23 en un año (12 → 35); equilibrado: atletismo 52, nota media 7,7 (a 3 años ~6,5 en matemáticas); empollón 8,5; atleta 4,7; vago 2,4.
+- **Hallazgo importante (`sim:vida`):** antes, la caída tenía como suelo el valor inicial (40), y eso escondía que el bot perfecto casi no progresa de adulto (físico 38 → 45 en 22 años). Con el arranque bajo, el suelo ya no ayuda y la meseta del bot perfecto queda en ~36/57 físico a los 24 años (antes 45). Hay que revisar el crecimiento y la caída de adultos cuando se haga la fase profesional (E10); no se toca ahora.
+- **Pendiente:** no hay desarrollo natural sin entrenar (un niño que no hace deporte se queda en 12,5 mientras sus compañeros suben); la nota media del equilibrado en el primer año sigue alta (7,7 frente al 6 buscado, a 3 años ya ronda el 6,5).
+
+---
+
+## 24/10/2026 — Asignaturas: techo según las capacidades, para que el empollón llegue al 9 o 10 (E6.6, ajuste 2)
+
+- **Problema medido:** con el balance anterior el empollón se atascaba en ~80 de preparación (nota 8) **sea cual sea su mente**: entre mentes bajas y altas solo había 1,7 puntos. Causas: (1) la curva de rendimientos decrecientes frena casi del todo cerca de 90; (2) las capacidades de los niños son parecidas (40–60), así que la velocidad por capacidades casi no distinguía.
+- **Cambio:** las asignaturas recuperan un **techo suave que depende de las capacidades de apoyo**: `techo = 100 × (0,4 + media ponderada de las capacidades de apoyo)` (con ellas a 40 el techo es 80, a 50 es 90 y a 60 llega a 100). La curva baja de 1,3 a 1,0 y el peso de las capacidades en la velocidad se duplica. No es un tope genético: sube cuando mejoran las capacidades y se ve como la marca gris de la barra.
+- **Resultado medido en el empollón a 3 años (matemáticas):** mente baja 75, media 82, alta 91. A 1 año: 7,5 de nota media.
+- **Para que el equilibrado no suba con el techo:** estudiar 2,5 → 5 (con la curva más suave) y caída diaria 0,2 → 0,3. Equilibrado: 6,3 a 1 año y ~6,6 a 3 años.
+- **Pendiente de decidir (efecto secundario):** con la caída a 0,3 el atleta que solo va a clase baja a 3,3 y el vago a 1,9 (preparación 4,6). Es más duro de lo buscado. Opciones: caída más suave si se asiste a clase, o caída 0,25.
+
+---
+
+## 24/10/2026 — Asignaturas: dos parciales y global, y menos fácil (E6.6, ajuste)
+
+- **Petición del usuario:** el equilibrado sin bonus ni malus debe quedar en torno al **6** (el notable solo si las skills ayudan); quien quiera el campamento tiene que esforzarse, y el atleta tiene que estudiar salvo que sus skills mentales lo salven. Y un examen por trimestre es poco: **dos parciales antes y el global al final**, con la media de los parciales al 40 % y el global al 60 %.
+- **Huecos del calendario (decididos por mí, el usuario los revisa):** parciales en las semanas **6 y 11** (1.er trimestre, global en la 14), **21 y 25** (2.º, global en la 28) y **33 y 37** (3.º, global en la 40). Cada parcial está a ≥ 3 semanas del global y de las vacaciones o inicio de trimestre. Se avisan igual que el global (una semana antes) y cada asignatura cae un día fijo de la semana, pudiendo coincidir varias. Dato nuevo `CalendarioPais.parciales` y campo `TimeView.parcial` (0, 1 o 2).
+- **Nota final** de cada asignatura = 0,4 × media de los dos parciales + 0,6 × global; lo que no se hace (por faltar a clase o por no estar en la partida) cuenta 0. La tabla del trimestre enseña parcial 1, parcial 2, global y final. `examenes` guarda ahora `asignatura:parcial1|parcial2|global`.
+- **Ajuste de balance** (para que sea más difícil): estudiar una asignatura 5 → 2,5; clase 1,2 → 0,9; repaso 2,5 → 0,6 por asignatura (el bot lo elegía a menudo y era la fuente dominante); caída diaria 0,15 → 0,2. La academia sigue en 6.
+- **Cifras (365 días, 5 semillas, 13 chequeos en verde):** nota media del equilibrado **8,3 → 6,5**; empollón 9,0 → 7,8; atleta (solo va a clase) 5,6 → 4,6; abandona el deporte 8,5 → 7,2; vago 3,7 → 2,7. Con estos números el campamento (media ≥ 7,5) solo lo alcanza quien estudia a fondo (el empollón queda justo en 7,8).
+- **Umbral de la simulación rápida:** el chequeo "El esfuerzo hace progresar" pedía estudios > +8 y daba +7,9 (en la simulación completa sube +11,5): la subida es más lenta a propósito, así que el umbral baja a +6.
+- **A vigilar:** el vago llega a Mal (22) en un año; si se considera demasiado duro se baja la caída solo cuando no se asiste a clase.
+
+---
+
+## 24/10/2026 — Asignaturas rediseñadas: estudiar para preparar exámenes (E6.6)
+
+- **Idea del usuario:** que el jugador estudie de cara a exámenes, con un nivel por asignatura que ve en texto, y que sepa qué días no faltar y hasta cuándo estudiar.
+- **Preparación en lugar de nivel con tope.** Cada asignatura es una **preparación de 0 a 100 = la nota que se espera sacar × 10**. Se ve como texto: **Mal** (< 4), **Regular** (4–5,9), **Bien** (6–7,4), **Muy bien** (7,5–9,2), **Excelente** (9,3–10). En pruebas se muestra también la cifra (`MOSTRAR_CIFRAS_ASIGNATURAS` en `main.ts`; se ocultará en beta). **Las asignaturas ya no tienen tope genético ni techo** (se retira E8.5 para asignaturas): la dificultad la ponen las capacidades de apoyo (`apoyos`), que fijan dónde se arranca, lo rápido que se sube y lo rápido que se olvida. Un alumno capaz puede llegar a sobresaliente desde el principio.
+- **Arranque (decidido: "Ok").** Todos parten en torno a Regular (~52) y se ajusta por las capacidades de base entre 40 y 78. Mecanismo genérico nuevo en el motor: `StatDef.initialFrom` (el inicial sale de la media ponderada del nivel inicial de otras stats; de 34 a 52 ⇒ de `min` a `max`, porque los niños empiezan en torno a 40).
+- **Subir:** ir a clase da 1,2 a **las asignaturas que se dan ese día** (decidido: "Sí"); estudiar una asignatura da 5 (90 min), el repaso 2,5 a cada una y la academia 6 a las tres más flojas. Rendimientos decrecientes (curva 1,3) y velocidad por capacidades.
+- **Horario semanal:** cada asignatura tiene `horas` a la semana (dato en `curriculo.ts`) y se reparte en esos días de lunes a viernes (`horarioSemanal`). No todas las asignaturas se dan todos los días. El servicio `estudios.timetable(díaSemana)` lo publica.
+- **Caída fija y suave (decidido):** 0,15 puntos al día (el motor ya no usa `decay` para ellas, la aplica el módulo cada día) × un factor de 0,6 a 1,5 según las capacidades (peores capacidades, se olvida más). Cae también en fines de semana y vacaciones, **pero en Navidad y Semana Santa se puede repasar** (estudiar y repasar están disponibles fuera del horario escolar). Al empezar un curso todas pierden 3 puntos (los contenidos son más difíciles; sustituye a la penalización por curso de la nota).
+- **Exámenes:** se acaban los controles de los viernes. **Un examen global por asignatura y trimestre**, en la semana de evaluación (semanas 14, 28 y 40; ver la entrada posterior, que añade dos parciales), con día fijo por asignatura (`diaDeExamen`): **pueden coincidir varios el mismo día** (decidido). Se **avisan con una semana de antelación** (el domingo anterior a la semana previa) con una tabla día/asignatura, y el servicio `upcomingExams(días)` los publica. Nota = preparación / 10 + azar (σ 0,5 más cuanto peor concentrado) − penalización de estrés alto. **Faltar a clase ese día es un 0** ("No presentado"). La media de los exámenes alimenta la evaluación del trimestre, el boletín y el verano igual que antes (aprobado 5; academia < 5, campamento ≥ 7,5).
+- **Estado:** `controlesTrimestre` pasa a `examenes` (nota por asignatura del trimestre en curso); `SAVE_VERSION` sube a 3 (y a 4 al cambiar la clave de `examenes` a `asignatura:tipo` con los parciales).
+- **Cifras (365 días, 5 semillas):** los 13 chequeos siguen en verde. Estudios del equilibrado 81,8 (+29,7) y nota media 8,3; empollón 89,5 y 9,0; atleta (solo clase, no estudia) 5,5; vago (no va a clase) 3,7; aleatorio 3,6.
+- **A vigilar:** con estas cifras el equilibrado saca 8,3 de media; si resulta demasiado fácil se sube la caída o se baja la ganancia de estudiar. Los exámenes de recuperación y el repaso en vacaciones con aviso de "pendiente de repasar" quedan para cuando exista el motor de eventos.
+
+---
+
 ## 24/10/2026 — Resultado de una acción: dato individual de cada cambio (solo alfa)
 
 - **Qué pasaba:** tras una acción la pantalla solo enseñaba los cambios de 0,05 puntos o más. Desde la nueva escala de topes las subidas por acción son más pequeñas (una clase da entre 0,01 y 0,06 por asignatura), así que casi ninguna asignatura aparecía y parecía que no subían.
