@@ -13,6 +13,12 @@ import {
   type DayEventData,
   type DecayDef,
   type IdentityService,
+  type PerksService,
+  type PerkView,
+  efectosDe,
+  eficienciaDePerks,
+  heredarPerks,
+  perk,
   type StatDef,
 } from '@ds/contracts';
 import {
@@ -62,7 +68,14 @@ export const personaje = defineModule<IdentidadState>({
   id: 'gen',
   name: 'Personaje',
   description: 'Características genéricas, estado e identidad del personaje.',
-  initState: (ctx) => initIdentidad(ctx.rng, ctx.herencia('estatura').hijo),
+  initState: (ctx) => {
+    // Los perks salen de los de los dos padres. Su efecto sobre los topes y la altura es fijo desde el nacimiento,
+    // aunque sean latentes y todavía no se hayan revelado.
+    const perks = heredarPerks(ctx.perksDePadres.padre, ctx.perksDePadres.madre, ctx.rng);
+    const efecto = efectosDe(perks.activos);
+    for (const [stat, delta] of Object.entries(efecto.tope)) ctx.bonusDeTope(stat, delta);
+    return initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, efecto.alturaCm);
+  },
   stats: [
     // Físicos
     generica(GEN.velocidad, 'Velocidad', 'Físico', fisica, 'Desplazamiento puro: lo rápido que mueves el cuerpo de un punto a otro.', true),
@@ -174,6 +187,14 @@ export const personaje = defineModule<IdentidadState>({
   ],
 
   modifiers: [
+    {
+      id: 'gen.perks',
+      tags: ['*'],
+      apply: (ctx, action) => {
+        const { factor, quienes } = eficienciaDePerks(ctx.state<IdentidadState>().perks.activos, action.tags);
+        return factor === 1 ? null : { efficiency: factor, reason: `Perk: ${quienes.join(', ')}` };
+      },
+    },
     {
       id: 'gen.cansancio',
       tags: ['*'],
@@ -322,6 +343,14 @@ export const personaje = defineModule<IdentidadState>({
   },
 
   services: {
+    [SERVICES.perks]: (ctx): PerksService => {
+      const { perks } = ctx.state<IdentidadState>();
+      const ver = (id: string): PerkView => {
+        const d = perk(id)!;
+        return { id, nombre: d.nombre, descripcion: d.descripcion, latente: d.latente };
+      };
+      return { view: () => ({ activos: perks.activos.map(ver), pool: perks.pool.map(ver) }) };
+    },
     [SERVICES.identidad]: (ctx): IdentityService => {
       const s = ctx.state<IdentidadState>();
       const day = ctx.time.day;

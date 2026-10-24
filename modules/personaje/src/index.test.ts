@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, SERVICES, type IdentityService } from '@ds/contracts';
+import { GEN, SERVICES, perk, type IdentityService, type PerksService } from '@ds/contracts';
 import { Game, advanceUntil } from '@ds/core';
 import { personaje } from './index';
+import type { IdentidadState } from './identidad';
 
 describe('módulo personaje (gen)', () => {
   it('funciona solo, sin ningún otro módulo', () => {
@@ -93,5 +94,60 @@ describe('módulo personaje (gen)', () => {
     expect(de(GEN.velocidad)).toBe(GEN.vigorFisico);
     expect(de(GEN.inteligencia)).toBe(GEN.vigorMental);
     expect(de(GEN.carisma)).toBe(GEN.vigorSocial);
+  });
+
+  describe('perks', () => {
+    const partidas = Array.from({ length: 1500 }, (_, i) => Game.create([personaje], { seed: i + 1 }));
+    const perksDe = (g: Game) => g.service<PerksService>(SERVICES.perks)!.view();
+
+    it('lo normal es tener 0 o 1 perk; nadie tiene más de 3 ni un perk con su opuesto', () => {
+      const n = partidas.map((g) => perksDe(g).activos.length);
+      for (const g of partidas) {
+        const v = perksDe(g);
+        expect(v.activos.length).toBeLessThanOrEqual(3);
+        for (const a of v.activos) expect(v.activos.map((x) => x.id)).not.toContain(perk(a.id)!.opuesto);
+      }
+      expect(n.filter((x) => x <= 1).length / n.length).toBeGreaterThan(0.8);
+      expect(n.filter((x) => x === 3).length / n.length).toBeLessThan(0.05);
+    });
+
+    it('un perk que sube o baja un tope lo cambia desde el nacimiento, aunque sea latente', () => {
+      // Quien tiene Pulmones grandes (latente) tiene más tope de resistencia que quien tiene Asmático.
+      const con = (id: string) => partidas.filter((g) => perksDe(g).activos.some((x) => x.id === id));
+      const media = (gs: Game[]) => gs.reduce((a, g) => a + g.hiddenPotential(GEN.resistencia)!, 0) / gs.length;
+      const pulmones = con('pulmones_grandes');
+      const asmaticos = con('asmatico');
+      expect(pulmones.length).toBeGreaterThan(5);
+      expect(asmaticos.length).toBeGreaterThan(5);
+      expect(media(pulmones)).toBeGreaterThan(media(asmaticos) + 8);
+      expect(perk('pulmones_grandes')!.latente).toBe(true);
+    });
+
+    it('Gigante y Enano cambian la altura adulta', () => {
+      const alturas = (id: string) => partidas.filter((g) => perksDe(g).activos.some((x) => x.id === id)).map((g) => g.moduleState<IdentidadState>('gen').alturaAdulta);
+      const media = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+      const gigantes = alturas('gigante');
+      const enanos = alturas('enano');
+      expect(gigantes.length).toBeGreaterThan(5);
+      expect(enanos.length).toBeGreaterThan(5);
+      expect(media(gigantes) - media(enanos)).toBeGreaterThan(12);
+    });
+
+    it('el efecto en la eficiencia se aplica aunque el perk sea latente y solo a las acciones con esa etiqueta', () => {
+      const guardado = Game.create([personaje], { seed: 1 }).serialize();
+      (guardado.modules.gen as IdentidadState).perks = { activos: ['sangre_fria', 'memoria_motora_corta'], pool: [] };
+      const g = Game.load([personaje], guardado);
+      const entreno = g.preview('gen.gimnasio')!;
+      expect(entreno.modifiers.some((m) => m.id === 'gen.perks')).toBe(true);
+      expect(g.preview('gen.leer')!.modifiers.some((m) => m.id === 'gen.perks')).toBe(false);
+    });
+
+    it('el servicio enseña los activos y el pool con nombre y si son latentes', () => {
+      const guardado = Game.create([personaje], { seed: 1 }).serialize();
+      (guardado.modules.gen as IdentidadState).perks = { activos: ['asmatico'], pool: ['gigante'] };
+      const v = perksDe(Game.load([personaje], guardado));
+      expect(v.activos).toEqual([expect.objectContaining({ id: 'asmatico', nombre: 'Asmático', latente: true })]);
+      expect(v.pool.map((x) => x.id)).toEqual(['gigante']);
+    });
   });
 });

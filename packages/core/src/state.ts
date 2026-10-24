@@ -1,4 +1,4 @@
-import type { LogEntry, StatId } from '@ds/contracts';
+import type { LogEntry, PerksDe, StatId } from '@ds/contracts';
 
 export const SAVE_VERSION = 1;
 
@@ -24,6 +24,8 @@ export interface GameState {
   potential?: Record<StatId, number>;
   /** Genética de los padres, de la que salen los topes del personaje (ver `herencia.ts`). */
   lineage?: Lineage;
+  /** Aptitud propia (multiplicador cerca de 1) de cada stat con tope derivado: se guarda para recalcular el tope si cambian las de las que depende. */
+  aptitud?: Record<StatId, number>;
   /** Último minuto en que se entrenó cada stat. */
   lastTrained: Record<StatId, number>;
   /** Estado propio de cada módulo. */
@@ -53,6 +55,8 @@ export interface Lineage {
   origen: Record<StatId, 'padre' | 'madre'>;
   /** Factor de herencia del nivel inicial de este hijo (0,7 a 0,9). */
   factor?: number;
+  /** Perks de cada progenitor (activos y pool). */
+  perks?: { padre: PerksDe; madre: PerksDe };
 }
 
 export const LOG_LIMIT = 150;

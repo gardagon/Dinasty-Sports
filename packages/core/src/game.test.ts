@@ -625,3 +625,38 @@ describe('envejecimiento: tope alcanzable por edad', () => {
     expect(adulto.stat('e.vel')).toBeGreaterThan(joven.stat('e.vel'));
   });
 });
+
+describe('bonus de tope (perks)', () => {
+  /** Módulo que, al crear la partida, sube 10 puntos el tope de una capacidad. */
+  const conBonus = (delta: number) =>
+    defineModule({
+      id: 'p',
+      name: 'Perks',
+      stats: [
+        { id: 'p.energia', name: 'Energía', category: 'estado', initial: 100, resource: true },
+        { id: 'p.fuerza', name: 'Fuerza', category: 'generica', initial: { min: 30, max: 50 }, talentSpread: 0, genetics: { grupo: 'fisico' } },
+        { id: 'p.otra', name: 'Otra', category: 'generica', initial: { min: 30, max: 50 }, talentSpread: 0, genetics: { grupo: 'mental' } },
+        { id: 'p.tecnica', name: 'Técnica', category: 'habilidad', initial: 5, talentSpread: 0, genetics: { derivedFrom: [{ stat: 'p.fuerza', weight: 1 }], aptitude: 0 } },
+      ],
+      initState: (ctx) => {
+        if (delta !== 0) ctx.bonusDeTope('p.fuerza', delta);
+        return {};
+      },
+    });
+  it('el bonus cambia el tope de la capacidad y de lo que se deriva de ella, con un máximo de 100', () => {
+    const base = Game.create([conBonus(0)], { seed: 4 });
+    const con = Game.create([conBonus(10)], { seed: 4 });
+    expect(con.hiddenPotential('p.fuerza')).toBeCloseTo(Math.min(100, base.hiddenPotential('p.fuerza')! + 10), 6);
+    expect(con.hiddenPotential('p.tecnica')).toBeGreaterThan(base.hiddenPotential('p.tecnica')!);
+    expect(con.hiddenPotential('p.otra')).toBe(base.hiddenPotential('p.otra'));
+    expect(Game.create([conBonus(500)], { seed: 4 }).hiddenPotential('p.fuerza')).toBe(100);
+    expect(Game.create([conBonus(-500)], { seed: 4 }).hiddenPotential('p.fuerza')).toBe(10);
+  });
+
+  it('una partida cargada conserva el tope con el bonus', () => {
+    const g = Game.create([conBonus(8)], { seed: 2 });
+    const cargada = Game.load([conBonus(8)], g.serialize());
+    expect(cargada.hiddenPotential('p.fuerza')).toBe(g.hiddenPotential('p.fuerza'));
+    expect(cargada.hiddenPotential('p.tecnica')).toBe(g.hiddenPotential('p.tecnica'));
+  });
+});

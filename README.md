@@ -23,7 +23,7 @@ npm run dev        # abre la URL que aparece en la terminal
 | `packages/contracts` | Interfaces que cumplen todos los módulos |
 | `packages/core` | Motor: registro de módulos, pipeline de acciones, tiempo, subida y caída, eventos |
 | `packages/game` | Ensamblador: la lista de módulos del juego |
-| `modules/personaje` | Características genéricas, estado (energía, salud, estrés, motivación) e identidad (edad, altura, peso, complexión) |
+| `modules/personaje` | Características genéricas, estado (energía, salud, estrés, motivación) e identidad (edad, altura, peso, complexión), genética heredada de los padres y perks |
 | `modules/estudios` | Currículo de España por cursos (de 3.º de primaria a 2.º de bachillerato), clases, estudio, controles y evaluaciones |
 | `modules/atletismo` | Primer deporte: 400 m, categorías de la federación española, entrenamiento libre y con club, carrera los sábados en series de 8, conocimiento del deporte |
 | `modules/npcs` | Entrenador, tutor, compañeros y 96 rivales de atletismo por edad que progresan por su cuenta y se renuevan cada curso |

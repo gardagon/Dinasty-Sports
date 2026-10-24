@@ -111,6 +111,7 @@ El original usa tres capas: stats globales → conocimiento deportivo → habili
 | E3.2 ✅ | Tipo corporal (delgado, normal, atlético, musculado, con sobrepeso) derivado de hábitos acumulados, con modificadores de velocidad, fuerza y constitución | Hecho sin alimentación: hábitos de fuerza, cardio y actividad. Los efectos son modificadores de eficiencia por etiqueta, no por stat. Alimentación como decisión, pendiente |
 | E3.3 ✅ | Constitución: sube solo por hábitos sostenidos, no por entrenamiento directo | Hecho: +1 por semana con hábitos sanos (crece muy poco, a revisar). Lesiones y recuperación, pendientes: enlazan con la idea de lesión en `DECISIONES.md` |
 | E3.4 | UI filtrada por inteligencia (5 niveles, de sensaciones vagas a "top 10 %") y pistas precisas del entrenador con buena relación | Cambia la web y se apoya en `npcs` (servicio ya existente) |
+| E3.5 | **Rasgos físicos de apariencia** (color y tipo de pelo, color de ojos, tono de piel, forma de cara, rasgos distintivos...), heredables de los padres. Sirven para (1) **encajar gustos** (lo que le atrae a cada persona, para la pareja de E20.6), (2) **dibujar al personaje** y a las demás personas, y (3) reconocer a los hijos como hijos de sus padres | Pedido el 24/10. Se diseña junto a los rasgos e intereses de las personas (E20.5). La complexión y la altura (E3.1) ya existen |
 
 ## E4 · Ejes de personalidad — ⏸ · Fidelidad: alta en concepto, baja en mecánica
 
@@ -124,16 +125,19 @@ Ocho ejes de −50 a +50: disciplinado↔rebelde, honesto↔manipulador, ambicio
 | E4.4 | Efectos cruzados con stats (p. ej. pesimismo reduce el efecto de determinación) | Mediante modificadores por etiqueta, sin importar entre módulos |
 | E4.5 | Test de "ningún extremo es trampa" en la simulación (bots por perfil) | Encaja con `sim/` |
 
-## E5 · Perks — ⏸ · Fidelidad: media
+## E5 · Perks — 🟡 (herencia y efectos hechos; revelación por eventos ⏸) · Fidelidad: media
 
-29 perks (14 pares + ambidiestro), latentes hasta que un evento los activa. Máximo 2–3 activos.
+28 perks (13 pares de opuestos, Ambidiestro y Mano de palo; el original dice 29 en 14 pares + 1 pero su tabla tiene 28). Máximo 3 activos; lo normal es tener 0 o 1.
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E5.1 | Estado `perks_active` / `perks_latent` (y `perks_inherited_pool` solo si hay dinastía, E8) | Sin hijos, el pool no se usa |
-| E5.2 | Elegir un subconjunto para empezar (p. ej. los que afectan a stats que ya existen) | Muchos perks dependen de deportes de equipo o de porteros |
-| E5.3 | Eventos de revelación | Depende del sistema de eventos (ver E4.3) |
-| E5.4 | Bonus de perk sobre el límite genético: `techo = min(100, límite + bonus)` | Depende de E2.7 |
+| E5.1 ✅ | Estado de perks: activos y pool (el pool lo heredan los hijos aunque no se haya expresado) | Hecho el 24/10 en el módulo base (`gen`); servicio `perks` |
+| E5.2 ✅ | Catálogo completo de los 28 como dato, también los que no valen para el deporte favorito; los efectos de contextos que ningún deporte tiene esperan | Hecho el 24/10 en `contracts/perks.ts` |
+| E5.3 | Eventos de revelación de los latentes | Depende del sistema de eventos (E18). Hoy se enseñan todos en la fase de pruebas y su efecto cuenta aunque no se hayan revelado |
+| E5.4 ✅ | Bonus de perk sobre el tope: `techo = min(100, tope + bonus)` | Hecho el 24/10 (`ctx.bonusDeTope`); las habilidades y asignaturas derivadas se recalculan |
+| E5.5 ✅ | **Herencia unificada:** pool único de los dos padres, cada perk se tira por separado (40 % activo, 20 % en el pool, 1 % espontáneo), sin opuestos y con tope de 3 | Decidido el 24/10. Ajustar con pruebas |
+| E5.6 | Efectos pendientes: Suertudo y Gafe (ramas por evento), Recuperación rápida y lenta (lesiones, E12), agarre y alta densidad (deportes de equipo), Ambidiestro y Mano de palo | Esperan eventos, lesiones o deportes de equipo |
+| E5.7 | Perks en los rivales y en los hijos del personaje (ciclo de generaciones) | Hoy los rivales no llevan perks |
 
 ## E6 · Académico — 🟡 · Fidelidad: baja
 
@@ -349,7 +353,7 @@ Registrada el 23/10/2026. **Hoy el módulo `npcs` solo tiene una interacción po
 | E20.2 ✅ (parcial) | **Estados y transiciones:** desconocido → conocido → amigo → mejor amigo, y rivalidad; con condiciones para pasar de uno a otro | Enlaza con el modo historia (E13.0): empezar sin conocer a nadie |
 | E20.3 | **Acciones de relación variadas:** charlar, ayudar con algo, regalar, quedar según intereses, discutir (elegible), hacer las paces | Cada una con duración, coste, efecto en la afinidad y entrenamiento de las genéricas sociales (carisma, empatía, comunicación) |
 | E20.4 ✅ | **Mantenimiento y decaimiento por vínculo:** una amistad fuerte aguanta más sin contacto que una reciente; los motivos de ruptura | Sustituye al decay único de E13.4 |
-| E20.5 | **Personalidad e intereses del NPC:** qué le gusta, qué le molesta, cómo reacciona. Condiciona qué acciones funcionan con él | Se apoya en la personalidad del propio personaje (E4) |
+| E20.5 | **Personalidad e intereses del NPC:** qué le gusta, qué le molesta, cómo reacciona. Condiciona qué acciones funcionan con él. **Ampliado el 24/10:** también rasgos físicos de apariencia (E3.5) para sus gustos y para dibujarlo | Se apoya en la personalidad del propio personaje (E4) y en los 8 ejes de los documentos de Godot |
 | E20.6 | **Pareja (novio/novia):** conocer, tonteo, cita, declararse, ser pareja, ruptura. Con edades y límites adecuados a la fase de la vida | **Decisión pendiente:** desde qué edad y cómo se trata en la fase infantil (¿solo a partir de la adolescencia?) |
 | E20.7 | **Hijos y familia propia:** ciclo de generaciones; los hijos heredan genética de sus padres (ya implementado, E8.1) y perks (E5) | Es lo que desbloquea E8 (dinastía). Pertenece a las fases 2 y 3 |
 | E20.8 | **Relación con los padres y la familia:** que apoyo, expectativas y tiempo en casa (módulo `familia`) se muevan con lo que haga el personaje | Enlaza con E13.1 |

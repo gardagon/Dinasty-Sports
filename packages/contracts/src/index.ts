@@ -13,3 +13,4 @@ export * from './module';
 export * from './tags';
 export * from './herencia';
 export * from './relaciones';
+export * from './perks';

@@ -1,4 +1,5 @@
 import type { Rng } from './rng';
+import type { PerksDe } from './perks';
 import type { StatDef, StatId } from './stats';
 import type { TimeView } from './time';
 
@@ -77,5 +78,12 @@ export interface InitContext {
    */
   herencia(familia: string): { padre: number; madre: number; hijo: number };
   /** Topes genéticos de cada progenitor por capacidad con herencia directa (los que ya se han fijado al crear la partida). */
+  /** Perks de cada progenitor (activos y pool), fijados al crear la partida. */
+  readonly perksDePadres: { readonly padre: PerksDe; readonly madre: PerksDe };
+  /**
+   * Suma puntos al tope genético de una capacidad (p. ej. un perk de pulmones grandes). Las habilidades y asignaturas derivadas
+   * de ella se recalculan. Solo vale al crear la partida.
+   */
+  bonusDeTope(statId: StatId, delta: number): void;
   readonly topesDePadres: { readonly padre: Readonly<Record<string, number>>; readonly madre: Readonly<Record<string, number>> };
 }

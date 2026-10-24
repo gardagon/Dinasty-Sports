@@ -18,6 +18,7 @@ import {
   heredarTope,
   nivelInicialHeredado,
   nombreSesgo,
+  perksDePadre,
   perfilDePadre,
   repartirHerencia,
   type ReadContext,
@@ -187,21 +188,33 @@ export class Game {
         }
       }
     }
+    state.aptitud ??= {};
     for (const { def } of conGenetica) {
       const g = def.genetics!;
       if (!g.derivedFrom) continue;
+      state.aptitud[def.id] = 1 + (g.aptitude ?? 0.1) * (rng.next() * 2 - 1);
+    }
+    Game.recalcularDerivados(registry, state, HERENCIA.max, nuevas);
+    // Perks de los padres: se sortean al final para no alterar el resto de tiradas.
+    lin.perks ??= { padre: perksDePadre(rng), madre: perksDePadre(rng) };
+  }
+
+  /** Tope de las stats derivadas: media ponderada de los topes de las que apoyan, por la aptitud propia. */
+  private static recalcularDerivados(registry: Registry, state: GameState, maximo: number, solo?: Set<string>): void {
+    for (const { def } of registry.statList) {
+      if (solo && !solo.has(def.id)) continue;
+      const g = def.genetics;
+      if (!g?.derivedFrom || state.aptitud?.[def.id] === undefined) continue;
       let suma = 0;
       let peso = 0;
       for (const inf of g.derivedFrom) {
-        const t = state.potential[inf.stat];
+        const t = state.potential?.[inf.stat];
         if (t === undefined) continue;
         suma += inf.weight * t;
         peso += inf.weight;
       }
       if (peso === 0) continue;
-      const aptitud = g.aptitude ?? 0.1;
-      const v = (suma / peso) * (1 + aptitud * (rng.next() * 2 - 1));
-      state.potential[def.id] = Math.min(HERENCIA.max, Math.max(HERENCIA.min, v));
+      state.potential![def.id] = Math.min(maximo, Math.max(HERENCIA.min, (suma / peso) * state.aptitud[def.id]));
     }
   }
 
@@ -226,11 +239,18 @@ export class Game {
       state.lastTrained[def.id] = state.minute;
     }
     Game.genetica(registry, state, nuevas);
+    let bonos = false;
     const ictx: InitContext = {
       rng: init,
       seed: state.seed,
       playerName: state.playerName,
       topesDePadres: { padre: Game.lineage(state).padre.topes, madre: Game.lineage(state).madre.topes },
+      perksDePadres: Game.lineage(state).perks ?? { padre: { activos: [], pool: [] }, madre: { activos: [], pool: [] } },
+      bonusDeTope: (id, delta) => {
+        if (state.potential?.[id] === undefined) return;
+        state.potential[id] = Math.min(100, Math.max(HERENCIA.min, state.potential[id] + delta));
+        bonos = true;
+      },
       herencia: (familia) => {
         const lin = Game.lineage(state);
         const padre = Game.zDeFamilia(lin.padre, familia, init);
@@ -242,6 +262,8 @@ export class Game {
     for (const m of registry.modules) {
       if (m.initState && !(m.id in state.modules)) state.modules[m.id] = m.initState(ictx);
     }
+    // Si algún módulo ha subido o bajado topes (perks), lo que se deriva de ellos se recalcula (con tope máximo 100).
+    if (bonos) Game.recalcularDerivados(registry, state, 100);
   }
 
   // ------------------------------------------------------------------ lectura

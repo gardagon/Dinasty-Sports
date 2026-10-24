@@ -96,6 +96,10 @@ Cómo funciona en el motor, sin que el núcleo sepa de edades: el módulo base m
 **tope efectivo = tope genético × esa fracción**: limita lo que se puede subir y, **si la fracción baja desde su máximo** (envejecimiento), lo que queda por encima del tope efectivo cae hacia él
 un 0,4 % de la diferencia cada día. Mientras la fracción crece (juventud) nada se pierde. El ritmo de subida sigue dependiendo del tope genético, no del efectivo.
 
+## Perks
+
+Rasgos genéticos heredables con bonus o malus (`contracts/perks.ts`): catálogo de 28 perks como dato, con sus opuestos, rareza, si son latentes y sus efectos. El motor sortea los perks de los dos padres con el resto de su genética (`state.lineage.perks`) y los expone en el contexto de creación (`ctx.perksDePadres`); el módulo base (`gen`) hereda los del personaje (`heredarPerks`: pool único de los padres, cada perk se tira por separado, sin opuestos, máximo 3 activos y el resto al pool), aplica los efectos sobre los topes con `ctx.bonusDeTope` (el motor recalcula las habilidades y asignaturas derivadas) y sobre la altura, y publica el servicio `perks`. Los efectos sobre la eficiencia de las acciones los aplica el modificador `gen.perks`, por etiquetas. Un perk cuenta desde el nacimiento aunque sea latente; revelarlo con un mensaje será un evento.
+
 ## Año de nacimiento y categorías
 
 Jugador y rivales tienen fecha de nacimiento (edad exacta y cumpleaños), pero las categorías usan el año de nacimiento: la **edad de competición**
