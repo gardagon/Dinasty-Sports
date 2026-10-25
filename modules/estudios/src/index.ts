@@ -74,12 +74,12 @@ const MAX_HORA_CLASE = 9;
 /** Todos parten de un Regular (~50), de 40 a 78 según las capacidades que apoyan la asignatura. */
 const PREPARACION_INICIAL = { min: 40, max: 78 };
 /** Puntos de preparación que se pierden al día por olvido, antes del ajuste por capacidades (0,6× con muy buenas, 1,5× con muy malas). */
-const CAIDA_DIARIA = 0.3;
+const CAIDA_DIARIA = 0.29;
 /** Puntos que pierde la preparación al empezar un curso: los contenidos son más difíciles. */
 const SALTO_DE_CURSO = 3;
 /** Techo de una asignatura = 100 × (TECHO_BASE + media ponderada de las capacidades de apoyo): con ellas a 40 es 80, a 50 es 90 y a 60 llega a 100. */
-const TECHO_BASE = 0.4;
-const CURVA = 1.0;
+const TECHO_BASE = 0.5;
+const CURVA = 0.6;
 /** Las capacidades de los niños son parecidas (40–60): se multiplica su peso en la velocidad para que se note. */
 const VELOCIDAD_POR_CAPACIDADES = 2;
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
@@ -149,7 +149,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
   train: [
-    { stat: statId(a.key), amount: 3 },
+    { stat: statId(a.key), amount: 0.48 },
     { stat: GEN.inteligencia, amount: 0.4 },
     { stat: GEN.concentracion, amount: 0.4 },
     ...(a.entrena ? [a.entrena] : []),
@@ -353,7 +353,7 @@ export const estudios = defineModule<EstudiosState>({
       run: (ctx) => {
         ctx.updateState<EstudiosState>((s) => ({ ...s, ultimaAsistencia: ctx.time.day }));
         // En clase se avanza en las asignaturas que se dan hoy.
-        for (const k of asignaturasDeHoy(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad, ctx.time.weekday)) ctx.train(statId(k), 0.9);
+        for (const k of asignaturasDeHoy(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad, ctx.time.weekday)) ctx.train(statId(k), 0.54);
       },
     },
     ...ASIGNATURAS.map(estudiar),
@@ -367,7 +367,7 @@ export const estudios = defineModule<EstudiosState>({
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
       train: [{ stat: GEN.determinacion, amount: 0.3 }],
       run: (ctx) => {
-        for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 0.6);
+        for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 0.36);
       },
     },
     {
@@ -394,7 +394,7 @@ export const estudios = defineModule<EstudiosState>({
           .map((k) => [k, ctx.stat(statId(k))] as const)
           .sort((a, b) => a[1] - b[1])
           .slice(0, 3);
-        for (const [k] of flojas) ctx.train(statId(k), 6);
+        for (const [k] of flojas) ctx.train(statId(k), 3.6);
         const verano = { ...s.verano!, hechas: s.verano!.hechas + 1 };
         verano.superada = verano.hechas >= verano.exigidas;
         ctx.updateState<EstudiosState>((st) => ({ ...st, verano, ultimaAcademia: ctx.time.day }));

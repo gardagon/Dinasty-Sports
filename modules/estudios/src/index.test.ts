@@ -149,7 +149,7 @@ describe('módulo estudios', () => {
       advanceToWeek(g, 'gen.descansar', 3, 0, 8);
       const tras3 = g.stat('estudios.matematicas');
       expect(tras3).toBeLessThan(antes);
-      expect(tras3).toBeGreaterThan(antes - 6); // suave
+      expect(tras3).toBeGreaterThan(antes - 9); // suave: unos 2 puntos por semana
     });
 
     it('con peores capacidades se olvida más rápido', () => {
@@ -166,12 +166,12 @@ describe('módulo estudios', () => {
       expect(70 - a.stat('estudios.matematicas')).toBeGreaterThan(70 - b.stat('estudios.matematicas'));
     });
 
-    it('estudiar sube más que ir a clase, y se puede repasar en vacaciones', () => {
+    it('estudiar una asignatura la sube, y se puede repasar en vacaciones', () => {
       const g = nueva();
       advanceTo(g, 'gen.descansar', 0, 16);
       const antes = g.stat('estudios.matematicas');
       g.perform('estudios.estudiar_matematicas');
-      expect(g.stat('estudios.matematicas') - antes).toBeGreaterThan(0.7);
+      expect(g.stat('estudios.matematicas') - antes).toBeGreaterThan(0.15);
       const navidad = nueva();
       advanceUntil(navidad, 'gen.descansar', (t) => t.period === 'navidad' && t.weekday === 1 && t.hour === 11, 20000);
       expect(navidad.preview('estudios.estudiar_matematicas')!.available).toBe(true);

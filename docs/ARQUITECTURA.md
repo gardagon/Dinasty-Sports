@@ -99,7 +99,7 @@ un 0,4 % de la diferencia cada día. Mientras la fracción crece (juventud) nada
 
 ### Crecimiento de la infancia: arranque bajo, desarrollo natural y «para su edad»
 
-- **Arranque bajo.** Las capacidades genéricas empiezan entre 5 y 20 (un niño de 8 años no tiene el nivel de sus padres) y crecen despacio hacia el techo por edad de arriba.
+- **Arranque bajo.** Las capacidades genéricas empiezan entre 5 y 20, repartidas según el tope del progenitor del que se heredan (mediana ~12; con tope ≥ 85 se arranca de media en 16 y con tope ≤ 45 en 9), y crecen despacio hacia el techo por edad de arriba.
 - **Desarrollo natural** (`GrowthDef.naturalFraction`, 0,45 en las genéricas). Sin entrenar, una capacidad sube sola hasta el 45 % de su tope efectivo (un 5 % de lo que falta cada día): un niño con 5 nunca será un adulto con 5, pero sin entrenar tampoco llegará a su tope.
 - **Plasticidad** (`plasticidadPorEdad`): hasta los 16 las genéricas suben más rápido (×3 a los 8 años, ×1 a los 16).
 - **Capacidades «para su edad».** `ReadContext.norm` de una capacidad genérica no es nivel/100 sino el nivel relativo al **nivel típico de esa edad** (`nivelTipicoPorEdad`: 12,5 a los 8, 17 a los 10, 22 a los 12, 32 a los 16, 40 a los 24, 42 desde los 30; igual al de referencia, 40, vale lo de antes). Así techos, velocidades y olvido de asignaturas y habilidades no se hunden porque un niño tenga 12. El núcleo obtiene la edad del servicio `identidad` (una vez al día).
