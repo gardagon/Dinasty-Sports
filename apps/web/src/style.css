@@ -244,3 +244,8 @@ h3:first-child { margin-top: 0; }
 .log-table { grid-column: 1 / -1; overflow-x: auto; }
 .table { overflow-x: auto; }
 .table td:nth-child(3) { font-size: 12.5px; }
+
+/* Pantalla del lugar */
+.lugar h4 { margin: 0.9rem 0 0.3rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; }
+.viaje-rapido { margin-top: 0.8rem; }
+.viaje-rapido summary { cursor: pointer; font-weight: 600; }

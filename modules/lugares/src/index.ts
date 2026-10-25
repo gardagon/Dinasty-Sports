@@ -10,6 +10,7 @@ import {
   type LugarDef,
   type LugaresService,
   type MapaCiudad,
+  type Ruta,
   type ReadContext,
 } from '@ds/contracts';
 
@@ -29,6 +30,14 @@ export interface LugaresState {
 
 const MAPA: MapaCiudad = CIUDAD_INICIAL;
 
+/** El mapa no cambia en partida: cada ruta se calcula una vez (las acciones se evalúan muchas veces al día). */
+const RUTAS = new Map<string, Ruta | null>();
+const ruta = (desde: string, hasta: string): Ruta | null => {
+  const clave = `${desde}>${hasta}`;
+  if (!RUTAS.has(clave)) RUTAS.set(clave, rutaMasCorta(MAPA, desde, hasta));
+  return RUTAS.get(clave)!;
+};
+
 const lugar = (id: string): LugarDef | undefined => MAPA.lugares.find((l) => l.id === id);
 
 const dondeEsta = (ctx: ReadContext): LugarDef => lugar(ctx.state<LugaresState>().actual) ?? lugar(MAPA.inicio)!;
@@ -41,17 +50,16 @@ const ACCIONES: readonly ActionDef[] = MAPA.lugares.map((destino) => ({
   tags: ['desplazamiento'],
   group: destino.grupo,
   duration: (ctx) => {
-    const ruta = rutaMasCorta(MAPA, dondeEsta(ctx).id, destino.id);
-    return ruta?.minutos ?? 1;
+    return ruta(dondeEsta(ctx).id, destino.id)?.minutos ?? 1;
   },
   available: (ctx) => {
     const aqui = dondeEsta(ctx);
     if (aqui.id === destino.id) return `Ya estás en ${destino.name.toLowerCase()}`;
-    return rutaMasCorta(MAPA, aqui.id, destino.id) ? true : 'No hay camino';
+    return ruta(aqui.id, destino.id) ? true : 'No hay camino';
   },
   run: (ctx) => {
     const desde = dondeEsta(ctx).id;
-    const minutos = rutaMasCorta(MAPA, desde, destino.id)?.minutos ?? 0;
+    const minutos = ruta(desde, destino.id)?.minutos ?? 0;
     ctx.setState<LugaresState>({ actual: destino.id });
     ctx.emit<LlegadaData>({ type: LUGARES_EVENTS.LLEGADA, data: { desde, hasta: destino.id, minutos } });
   },
@@ -71,7 +79,7 @@ export const lugares = defineModule<LugaresState>({
       lugar,
       lugares: () => MAPA.lugares,
       vecinos: () => vecinosDe(MAPA, dondeEsta(ctx).id).map((v) => ({ lugar: lugar(v.lugar)!, minutos: v.minutos })),
-      ruta: (hasta) => rutaMasCorta(MAPA, dondeEsta(ctx).id, hasta),
+      ruta: (hasta) => ruta(dondeEsta(ctx).id, hasta),
       casa: () => lugar(MAPA.casa)!,
     }),
   },

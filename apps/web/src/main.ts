@@ -7,6 +7,7 @@ import {
   timeView,
   type BodyType,
   type ClubDirectory,
+  type LugaresService,
   type FamilyService,
   type IdentityService,
   PRACTICA_TEXTO,
@@ -224,8 +225,35 @@ function actionButton(o: ActionOption): string {
   </button>`;
 }
 
+/** Pantalla del lugar: dónde estás y a dónde puedes ir (los vecinos primero y, desplegable, todo el mapa con lo que cuesta). */
+function viewLugar(g: Game): string {
+  const svc = g.service<LugaresService>(SERVICES.lugares);
+  if (!svc) return '';
+  const aqui = svc.actual();
+  const opcion = (id: string) => g.preview(`lugares.ir_${id}`);
+  const boton = (id: string, extra = '') => {
+    const o = opcion(id);
+    return o ? actionButton({ ...o, name: `${o.name.replace(/^Ir a /, '')}${extra}`.replace(/^./, (c) => c.toUpperCase()) }) : '';
+  };
+  const cerca = svc.vecinos().map((v) => boton(v.lugar.id)).join('');
+  const grupos = new Map<string, string[]>();
+  for (const l of svc.lugares()) {
+    if (l.id === aqui.id) continue;
+    grupos.set(l.grupo, [...(grupos.get(l.grupo) ?? []), boton(l.id)]);
+  }
+  const todo = [...grupos].map(([grupo, botones]) => `<h4>${esc(grupo)}</h4><div class="actions">${botones.join('')}</div>`).join('');
+  return `<section class="sheet lugar">
+    <h2>${esc(aqui.name)}</h2>
+    <p>${esc(aqui.descripcion)}</p>
+    <h3>Viajar</h3>
+    <div class="actions">${cerca}</div>
+    <details class="viaje-rapido"><summary>Viaje rápido</summary>${todo}</details>
+  </section>`;
+}
+
 function viewActions(g: Game): string {
-  const opts = g.listActions();
+  // Los desplazamientos se hacen desde la pantalla del lugar, no desde la lista de acciones.
+  const opts = g.listActions().filter((o) => o.module !== 'lugares');
   const groups = new Map<string, ActionOption[]>();
   for (const o of opts) {
     if (!o.available && !showUnavailable) continue;
@@ -484,7 +512,7 @@ function viewGame(g: Game): string {
   let main = '';
   let side = '';
   if (tab === 'hacer') {
-    main = viewResult() + viewActions(g);
+    main = viewLugar(g) + viewResult() + viewActions(g);
     side = viewResults(g);
   } else if (tab === 'personaje') {
     main = viewIdentity(g) + viewCharacter(g);
