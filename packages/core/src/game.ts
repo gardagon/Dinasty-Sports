@@ -94,6 +94,8 @@ const EPS = 1e-9;
  */
 /** Nivel medio de las stats de apoyo que da el mínimo y el máximo de `initialFrom` (los niños empiezan en torno a 40). */
 const INICIAL_DESDE = { bajo: 34, alto: 52 };
+/** Tope medio de las stats de apoyo que da el mínimo y el máximo de `initialFrom` cuando tienen tope genético (el típico es 62). */
+const APTITUD_DESDE = { bajo: 40, alto: 85 };
 
 export class Game {
   private readonly rngHolder: RngHolder;
@@ -254,17 +256,26 @@ export class Game {
     Game.genetica(registry, state, nuevas);
     for (const { def, min, max } of registry.statList) {
       if (!nuevas.has(def.id) || !def.initialFrom || typeof def.initial === 'number') continue;
+      // Se parte del tope genético de las stats de apoyo (la aptitud permanente) y, si no lo tienen, de su nivel inicial.
+      const conTope = def.initialFrom.every((inf) => state.potential?.[inf.stat] !== undefined);
       let suma = 0;
       let peso = 0;
       for (const inf of def.initialFrom) {
-        if (state.stats[inf.stat] === undefined) continue;
-        suma += inf.weight * state.stats[inf.stat];
+        const v = conTope ? state.potential![inf.stat] : state.stats[inf.stat];
+        if (v === undefined) continue;
+        suma += inf.weight * v;
         peso += inf.weight;
       }
       if (peso === 0) continue;
-      // El nivel se mide "para su edad": con el nivel típico de un niño de 8 años equivale al de referencia (40).
-      const relativo = ((suma / peso) * NIVEL_TIPICO_DE_REFERENCIA) / NIVEL_TIPICO_INICIAL;
-      const t = Math.min(1, Math.max(0, (relativo - INICIAL_DESDE.bajo) / (INICIAL_DESDE.alto - INICIAL_DESDE.bajo)));
+      let t: number;
+      if (conTope) {
+        t = (suma / peso - APTITUD_DESDE.bajo) / (APTITUD_DESDE.alto - APTITUD_DESDE.bajo);
+      } else {
+        // El nivel se mide "para su edad": con el nivel típico de un niño de 8 años equivale al de referencia (40).
+        const relativo = ((suma / peso) * NIVEL_TIPICO_DE_REFERENCIA) / NIVEL_TIPICO_INICIAL;
+        t = (relativo - INICIAL_DESDE.bajo) / (INICIAL_DESDE.alto - INICIAL_DESDE.bajo);
+      }
+      t = Math.min(1, Math.max(0, t));
       const value = Math.min(max, Math.max(min, def.initial.min + (def.initial.max - def.initial.min) * t));
       state.stats[def.id] = state.peaks[def.id] = state.baseline[def.id] = value;
     }

@@ -4,7 +4,7 @@ import type { LogEntry, PerksDe, RasgosDe, StatId } from '@ds/contracts';
  * Versión del formato de guardado. En la fase alfa no se mantiene compatibilidad: se sube cada vez que cambia la forma del estado de
  * algún módulo, y las partidas guardadas con otra versión se descartan con un aviso en vez de romper la interfaz.
  */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /**
  * Estado ÚNICO de la partida. Plano y serializable a JSON:

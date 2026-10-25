@@ -86,8 +86,8 @@ describe('módulo estudios', () => {
       const xs = Array.from({ length: 150 }, (_, i) => Game.create([personaje, estudios], { seed: i + 1 }));
       const medias = xs.map((g) => ASIGNATURAS.reduce((a, b) => a + g.stat(`estudios.${b.key}`), 0) / ASIGNATURAS.length);
       for (const g of xs) for (const a of ASIGNATURAS) {
-        expect(g.stat(`estudios.${a.key}`)).toBeGreaterThanOrEqual(40);
-        expect(g.stat(`estudios.${a.key}`)).toBeLessThanOrEqual(78);
+        expect(g.stat(`estudios.${a.key}`)).toBeGreaterThanOrEqual(30);
+        expect(g.stat(`estudios.${a.key}`)).toBeLessThanOrEqual(92);
       }
       const media = medias.reduce((a, b) => a + b, 0) / medias.length;
       expect(media).toBeGreaterThan(45);
@@ -149,7 +149,24 @@ describe('módulo estudios', () => {
       advanceToWeek(g, 'gen.descansar', 3, 0, 8);
       const tras3 = g.stat('estudios.matematicas');
       expect(tras3).toBeLessThan(antes);
-      expect(tras3).toBeGreaterThan(antes - 9); // suave: unos 2 puntos por semana
+      expect(tras3).toBeGreaterThanOrEqual(antes - 22); // nunca por debajo de lo aprendido de base
+    });
+
+    it('un alumno brillante lo es siempre: sin estudiar, el olvido no baja de lo aprendido de base', () => {
+      const g = nueva();
+      const inicial = g.stat('estudios.matematicas');
+      advanceToWeek(g, 'gen.descansar', 12, 0, 8);
+      const base = g.moduleState<EstudiosState>('estudios').base!.matematicas;
+      expect(base).toBeCloseTo(Math.max(0, inicial - 22), 0);
+      expect(g.stat('estudios.matematicas')).toBeGreaterThanOrEqual(base - 1e-6);
+    });
+
+    it('la preparación inicial sale de la aptitud: con el tope mental alto se arranca más arriba', () => {
+      const xs = Array.from({ length: 200 }, (_, i) => Game.create([personaje, estudios], { seed: i + 1 }));
+      const apt = (g: Game) => (g.hiddenPotential('gen.inteligencia')! + g.hiddenPotential('gen.concentracion')!) / 2;
+      const orden = [...xs].sort((a, b) => apt(a) - apt(b));
+      const m = (gs: Game[]) => gs.reduce((a, g) => a + g.stat('estudios.matematicas'), 0) / gs.length;
+      expect(m(orden.slice(-40))).toBeGreaterThan(m(orden.slice(0, 40)) + 15);
     });
 
     it('con peores capacidades se olvida más rápido', () => {
@@ -276,8 +293,8 @@ describe('módulo estudios', () => {
     it('las asignaturas nuevas sin antecesora parten de su nivel inicial', () => {
       const g = alFinalDelCurso(4, { naturales: 85 });
       advanceUntil(g, 'gen.descansar', (t) => t.schoolYear >= 4, 3000);
-      // Sin antecesora, parte de su nivel inicial (40–78, según las capacidades), menos el salto de curso.
-      expect(g.stat('estudios.tecnologia')).toBeLessThanOrEqual(78);
+      // Sin antecesora, parte de su nivel inicial (30–92, según su aptitud), menos el salto de curso.
+      expect(g.stat('estudios.tecnologia')).toBeLessThanOrEqual(92);
       expect(g.stat('estudios.tecnologia')).toBeLessThan(g.stat('estudios.biologia') + 100);
     });
 
