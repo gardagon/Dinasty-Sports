@@ -86,8 +86,8 @@ describe('módulo estudios', () => {
       const xs = Array.from({ length: 150 }, (_, i) => Game.create([personaje, estudios], { seed: i + 1 }));
       const medias = xs.map((g) => ASIGNATURAS.reduce((a, b) => a + g.stat(`estudios.${b.key}`), 0) / ASIGNATURAS.length);
       for (const g of xs) for (const a of ASIGNATURAS) {
-        expect(g.stat(`estudios.${a.key}`)).toBeGreaterThanOrEqual(40);
-        expect(g.stat(`estudios.${a.key}`)).toBeLessThanOrEqual(78);
+        expect(g.stat(`estudios.${a.key}`)).toBeGreaterThanOrEqual(30);
+        expect(g.stat(`estudios.${a.key}`)).toBeLessThanOrEqual(92);
       }
       const media = medias.reduce((a, b) => a + b, 0) / medias.length;
       expect(media).toBeGreaterThan(45);
@@ -149,21 +149,40 @@ describe('módulo estudios', () => {
       advanceToWeek(g, 'gen.descansar', 3, 0, 8);
       const tras3 = g.stat('estudios.matematicas');
       expect(tras3).toBeLessThan(antes);
-      expect(tras3).toBeGreaterThan(antes - 9); // suave: unos 2 puntos por semana
+      expect(tras3).toBeGreaterThanOrEqual(antes - 22); // nunca por debajo de lo aprendido de base
     });
 
-    it('con peores capacidades se olvida más rápido', () => {
+    it('un alumno brillante lo es siempre: sin estudiar, el olvido no baja de lo aprendido de base', () => {
       const g = nueva();
-      const guardado = g.serialize();
-      const peor = structuredClone(guardado);
-      for (const id of ['gen.inteligencia', 'gen.concentracion', 'gen.determinacion']) peor.stats[id] = 15;
-      const mejor = structuredClone(guardado);
-      for (const id of ['gen.inteligencia', 'gen.concentracion', 'gen.determinacion']) mejor.stats[id] = 90;
-      peor.stats['estudios.matematicas'] = mejor.stats['estudios.matematicas'] = 70;
-      const a = Game.load([personaje, estudios], peor), b = Game.load([personaje, estudios], mejor);
-      advanceToWeek(a, 'gen.descansar', 1, 0, 8);
-      advanceToWeek(b, 'gen.descansar', 1, 0, 8);
-      expect(70 - a.stat('estudios.matematicas')).toBeGreaterThan(70 - b.stat('estudios.matematicas'));
+      const inicial = g.stat('estudios.matematicas');
+      advanceToWeek(g, 'gen.descansar', 12, 0, 8);
+      const base = g.moduleState<EstudiosState>('estudios').base!.matematicas;
+      expect(base).toBeCloseTo(Math.max(0, inicial - 22), 0);
+      expect(g.stat('estudios.matematicas')).toBeGreaterThanOrEqual(base - 1e-6);
+    });
+
+    it('la preparación inicial sale de la aptitud: con el tope mental alto se arranca más arriba', () => {
+      const xs = Array.from({ length: 200 }, (_, i) => Game.create([personaje, estudios], { seed: i + 1 }));
+      const apt = (g: Game) => (g.hiddenPotential('gen.inteligencia')! + g.hiddenPotential('gen.concentracion')!) / 2;
+      const orden = [...xs].sort((a, b) => apt(a) - apt(b));
+      const m = (gs: Game[]) => gs.reduce((a, g) => a + g.stat('estudios.matematicas'), 0) / gs.length;
+      expect(m(orden.slice(-40))).toBeGreaterThan(m(orden.slice(0, 40)) + 15);
+    });
+
+    it('con menos aptitud se olvida más rápido', () => {
+      const guardado = nueva().serialize();
+      const con = (aptitud: number) => {
+        const g = structuredClone(guardado);
+        g.stats['estudios.matematicas'] = 95;
+        const e = g.modules.estudios as EstudiosState;
+        e.base = Object.fromEntries(ASIGNATURAS.map((a) => [a.key, 0]));
+        e.base.matematicas = aptitud - 22;
+        return Game.load([personaje, estudios], g);
+      };
+      const floja = con(30), brillante = con(90);
+      advanceToWeek(floja, 'gen.descansar', 1, 0, 8);
+      advanceToWeek(brillante, 'gen.descansar', 1, 0, 8);
+      expect(95 - floja.stat('estudios.matematicas')).toBeGreaterThan(95 - brillante.stat('estudios.matematicas'));
     });
 
     it('estudiar una asignatura la sube, y se puede repasar en vacaciones', () => {
@@ -221,6 +240,24 @@ describe('módulo estudios', () => {
       expect(g.service<StudiesService>(SERVICES.estudios)!.average()).not.toBeNull();
     });
 
+    it('Educación física no se suspende: mínimo 5 presentándose, y el nivel que se ve no baja de Regular', () => {
+      const g = enExamenes(14);
+      const guardado = g.serialize();
+      for (const k of ['educacion_fisica', 'matematicas']) guardado.stats[`estudios.${k}`] = 0;
+      for (const id of ['gen.velocidad', 'gen.fuerza', 'gen.resistencia', 'gen.agilidad', 'gen.coordinacion', 'gen.determinacion']) guardado.stats[id] = 0;
+      const mal = Game.load([personaje, estudios], guardado);
+      expect(mal.service<StudiesService>(SERVICES.estudios)!.levelText('estudios.educacion_fisica')).toBe('Regular');
+      expect(mal.service<StudiesService>(SERVICES.estudios)!.levelText('estudios.matematicas')).toBe('Mal');
+      for (let d = 0; d < 5; d++) {
+        advanceToWeek(mal, 'gen.descansar', 14, d, 8);
+        mal.perform('estudios.clase');
+      }
+      advanceToWeek(mal, 'gen.descansar', 14, 5, 10);
+      const s = mal.moduleState<EstudiosState>('estudios');
+      expect(s.notas.educacion_fisica[0]).toBeGreaterThanOrEqual(3); // 0,6 del global ≥ 5 (parciales sin hacer: 0)
+      expect(s.notas.matematicas[0]).toBeLessThan(s.notas.educacion_fisica[0]);
+    });
+
     it('varios exámenes pueden caer el mismo día', () => {
       const dias = claves(0).map((k) => diaDeExamen(0, 1, k));
       expect(new Set(dias).size).toBeLessThan(dias.length);
@@ -276,8 +313,8 @@ describe('módulo estudios', () => {
     it('las asignaturas nuevas sin antecesora parten de su nivel inicial', () => {
       const g = alFinalDelCurso(4, { naturales: 85 });
       advanceUntil(g, 'gen.descansar', (t) => t.schoolYear >= 4, 3000);
-      // Sin antecesora, parte de su nivel inicial (40–78, según las capacidades), menos el salto de curso.
-      expect(g.stat('estudios.tecnologia')).toBeLessThanOrEqual(78);
+      // Sin antecesora, parte de su nivel inicial (30–92, según su aptitud), menos el salto de curso.
+      expect(g.stat('estudios.tecnologia')).toBeLessThanOrEqual(92);
       expect(g.stat('estudios.tecnologia')).toBeLessThan(g.stat('estudios.biologia') + 100);
     });
 

@@ -5,6 +5,43 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — La aptitud manda en las notas y Educación física / Artística dependen de las skills (E6.7, ajuste)
+
+- **Crítica 1 (usuario):** no tiene sentido que un empollón de aptitud media tenga más media que uno de aptitud alta.
+- **Causa:** el equilibrio de cada alumno dependía de las capacidades *actuales*, que se igualan entrenando, y no de la aptitud permanente; y los grupos se medían con asignaturas prácticas que añadían ruido.
+- **Cambio:** la aptitud de cada asignatura (`base` + 22, su preparación de partida, que sale del tope de las capacidades de apoyo) fija ahora tanto **cuánto rinde el estudio** (×0,85 con aptitud baja, ×1 con la típica, 60, y hasta ×1,5 con la más alta) como **cuánto se olvida** (×1,4 con aptitud baja, ×0,6 con la más alta). Se aplica a clase, estudiar, repaso y academia. Cae el peso de las capacidades actuales en el olvido.
+- **Resultado (2 años, nota media del último año, 6 semillas por grupo):**
+
+| | Aptitud muy baja (p2) | Mediana | Muy alta (p98) |
+|---|---|---|---|
+| Empollón | 4,0 | 6,8 (asignaturas académicas ~8,4) | 8,6 (mates 9,2, lengua 9,4, mejor 9,7) |
+| Equilibrado | 3,5 | 5,7 | 8,2 |
+| Atleta | 3,1 | 4,7 | 6,7 |
+
+  Con aptitud media, el empollón (6,8) supera al equilibrado (5,7) y al atleta (4,7); el orden por aptitud es monótono (con 24 semillas: empollón 6,9 · 7,9 · 8,1 en baja · media · alta). Con aptitud alta se llega al 9–10 en las asignaturas ligadas a lo mental. Un alumno con muy buena aptitud saca sobresaliente casi sin esfuerzo (equilibrado 8,2): es el «lo es siempre».
+- **Crítica 2 (usuario):** Educación física va con el deporte y lo creativo con las skills; estudiar ayuda, pero importan las skills.
+- **Cambio** (`Asignatura.practica`): en las asignaturas prácticas la preparación con la que se llega al examen y el nivel que se enseña mezclan el estudio con una **habilidad** calculada con las capacidades que apoyan la asignatura frente a lo típico de la edad (55 con lo típico, 11 puntos más o menos por cada 10 % de diferencia, mínimo 30 porque participar siempre da algo). Peso de la habilidad: **Educación física 70 %**, **Artística 50 %**, **Música 50 %**, **Tecnología 30 %**.
+- **Resultado:** Educación física: atleta y equilibrado 6,5–7,5 (entrenan lo físico), empollón ~5 (no hace deporte). Artística depende de la creatividad y la coordinación de cada uno (5–8).
+- **Educación física no se suspende (decidido por el usuario):** nota mínima 5 en cada examen al que se presenta (`Asignatura.notaMinima`); el nivel que se enseña no baja de Regular. Quien falta a clase el día del examen sigue con un 0. El empollón con aptitud media pasa de 6,8 a ~7,0 de media (en las académicas, 8,4); el resto de estrategias no cambia (equilibrado 6,1, atleta 5,1, vago 2,9 en el primer año).
+- **Chequeo de simulación:** «El esfuerzo hace progresar» compara la nota media del equilibrado con la del vago (> +1,5; hoy +3,2) y se salta la parte de estudios en simulaciones cortas sin exámenes.
+
+---
+
+## 25/10/2026 — Las notas no se «acumulan»: la aptitud marca de dónde se parte y el olvido tiene suelo (E6.6, ajuste 4)
+
+- **Crítica (usuario):** no tiene sentido que las notas se acumulen con los años; un empollón de sobresaliente lo es siempre.
+- **Qué se midió:** todos los alumnos arrancaban en ~5,0–5,2 de nota (preparación ~52) sin importar su aptitud, y subían durante 3 trimestres (empollón 5,7 → 7,6) por pura acumulación; la aptitud casi no se notaba.
+- **Cambios:**
+  1. **El arranque sale de la aptitud permanente:** la preparación inicial de cada asignatura se calcula a partir del **tope genético** de las capacidades que la apoyan (de 40 a 85 ⇒ de 30 a 92; tope típico 62 ⇒ ~60). Antes salía del nivel inicial de las capacidades, que a los 8 años es bajo y casi igual para todos. `initialFrom` usa el tope si todas las stats de apoyo lo tienen.
+  2. **Lo aprendido de base** (`EstudiosState.base`): el olvido diario no baja de la preparación inicial menos 22 puntos. Un alumno brillante conserva un buen nivel aunque no estudie; quien parte bajo no tiene red. Se hereda con la asignatura al cambiar de curso (naturales → biología...).
+  3. **Respuesta rápida en lugar de acumulación lenta:** ganancia y olvido ×2,5 en la misma proporción (clase 1,35; estudiar 1,2; repaso 0,9; academia 9; caída diaria 0,9 con factor 0,6–1,5 por capacidades). Como el olvido no baja de la base, el olvido más rápido ya no es duro; el estudio aplicado se nota en semanas, no en años.
+- **Resultado (empollón, 16 semillas, 2 años; trimestres):** tope mental bajo 6,0 · 7,0 · 7,4 · 7,2 · 7,4 · 7,7; medio 6,8 · 7,5 · 8,0 · 7,7 · 7,9 · 8,1; alto 7,0 · 7,8 · 7,8 · 7,9 · 7,9 · 7,9. Equilibrado: bajo 5,2 → 6,0; medio 5,8 → 6,6; alto 6,0 → 7,0. Se llega a la meseta en 2–3 trimestres y ya no sube (antes se tardaba un año). Primer año completo: equilibrado 6,0; empollón 7,3; atleta 4,5; vago 2,7 (a 3,1 con el margen anterior de 15: se subió a 22 para que el atleta que no estudia no quede cómodo).
+- **Sigue pendiente:** con aptitud alta el empollón no pasa de ~8 de media (el techo lo marcan las capacidades de ese momento, no el tope); y las asignaturas de Educación física y Artística siguen muy por debajo de las demás en quien no entrena coordinación o creatividad (ver la revisión de notas).
+- **Guardado:** `EstudiosState` gana `base`; `SAVE_VERSION` sube a 5.
+- **Chequeo de simulación:** «El esfuerzo hace progresar» mide los estudios del equilibrado frente al vago (> +3 puntos) y no frente al arranque, porque la preparación parte de la aptitud y el olvido de las vacaciones la baja.
+
+---
+
 ## 25/10/2026 — Valores iniciales más repartidos, nota del primer año y arreglo del bot perfecto
 
 - **Observación (usuario):** en las primeras semillas todas las capacidades salían entre 10 y 14 (11–17, 11–18 en las otras): sospechoso, porque se había hablado de un rango bajo (5–20 en la implementación, a partir del «1–20» del usuario) y alguien con tope 92 en velocidad puede arrancar en 17, pero que ninguna baje de 10 no es creíble.

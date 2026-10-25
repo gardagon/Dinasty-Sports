@@ -6,6 +6,7 @@ import {
   defineModule,
   inHours,
   isSchoolHours,
+  nivelTipicoPorEdad,
   MINUTES_PER_DAY,
   NOMBRE_PERIODO,
   minutesUntilHour,
@@ -13,6 +14,7 @@ import {
   type ActionContext,
   type ActionDef,
   type DayEventData,
+  type IdentityService,
   type ExamInfo,
   type NivelDeAsignatura,
   type ReadContext,
@@ -57,6 +59,8 @@ export interface EstudiosState {
   boletines?: { curso: number; trimestre: number; media: number }[];
   /** Modalidad de bachillerato (se elige al empezarlo según las notas). */
   modalidad?: Modalidad;
+  /** Lo aprendido de base en cada asignatura: el olvido diario no baja de aquí. Sale de la aptitud del alumno (su preparación inicial menos un margen). */
+  base?: Record<string, number>;
   /** Último curso del que ya se han aplicado los cambios de asignaturas. */
   cursoAplicado?: number;
   /** El verano según las notas del curso. En la academia, sesiones exigidas y hechas. */
@@ -72,11 +76,13 @@ const NOTAS_GUARDADAS = 12;
 const MIN_HORA_CLASE = 7;
 const MAX_HORA_CLASE = 9;
 /** Todos parten de un Regular (~50), de 40 a 78 según las capacidades que apoyan la asignatura. */
-const PREPARACION_INICIAL = { min: 40, max: 78 };
+const PREPARACION_INICIAL = { min: 30, max: 92 };
 /** Puntos de preparación que se pierden al día por olvido, antes del ajuste por capacidades (0,6× con muy buenas, 1,5× con muy malas). */
-const CAIDA_DIARIA = 0.29;
+const CAIDA_DIARIA = 0.8;
 /** Puntos que pierde la preparación al empezar un curso: los contenidos son más difíciles. */
 const SALTO_DE_CURSO = 3;
+/** Cuánto por debajo de la preparación inicial queda lo aprendido de base: un alumno brillante lo es siempre aunque no estudie. */
+const MARGEN_DE_BASE = 22;
 /** Techo de una asignatura = 100 × (TECHO_BASE + media ponderada de las capacidades de apoyo): con ellas a 40 es 80, a 50 es 90 y a 60 llega a 100. */
 const TECHO_BASE = 0.5;
 const CURVA = 0.6;
@@ -106,6 +112,43 @@ const asignaturaStat = (a: Asignatura): StatDef => ({
   },
 });
 
+/** Aptitud del alumno en una asignatura (0–100): su preparación de partida, que es permanente. */
+const aptitudDe = (ctx: ReadContext, k: string): number => {
+  const base = ctx.state<EstudiosState>().base?.[k];
+  return base === undefined ? ctx.stat(statId(k)) : base + MARGEN_DE_BASE;
+};
+
+/** Cuánto rinde el estudio según la aptitud: de ×0,85 con aptitud baja a ×1,5 con la más alta (la típica, 60, es ×1). */
+const factorDeAptitud = (ctx: ReadContext, k: string): number => Math.min(1.5, Math.max(0.85, aptitudDe(ctx, k) / 60));
+
+/** Olvido diario de una asignatura: no baja de lo aprendido de base. */
+function olvidar(ctx: ActionContext, k: string): void {
+  const base = ctx.state<EstudiosState>().base?.[k] ?? 0;
+  const perdida = Math.min(Math.max(0, ctx.stat(statId(k)) - base), caidaDeHoy(aptitudDe(ctx, k)));
+  if (perdida > 0) ctx.addStat(statId(k), -perdida);
+}
+
+/**
+ * Habilidad en una asignatura práctica (0–100): las capacidades que la apoyan frente a lo típico de la edad.
+ * Con el nivel típico de su edad vale 55 (un Regular alto); entrenando mucho esas capacidades sube hasta 100.
+ */
+function habilidadDe(ctx: ReadContext, a: Asignatura): number {
+  const media = a.apoyos.reduce((x, y) => x + y.weight * ctx.stat(y.stat), 0) / a.apoyos.reduce((x, y) => x + y.weight, 0);
+  const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
+  // Con lo típico de su edad vale 55; cada 10 % por encima o por debajo suma o resta 11 puntos (mínimo 30: participar siempre da algo).
+  return Math.min(100, Math.max(30, 55 + 110 * (media / nivelTipicoPorEdad(edad) - 1)));
+}
+
+/** Preparación que se enseña: la efectiva, sin bajar de la nota mínima de la asignatura (Educación física: 5). */
+const nivelVisible = (ctx: ReadContext, k: string): number => Math.max((asignatura(k).notaMinima ?? 0) * 10, preparacionEfectiva(ctx, k));
+
+/** Preparación con la que se llega a un examen: en las asignaturas prácticas pesan las habilidades además del estudio. */
+function preparacionEfectiva(ctx: ReadContext, k: string): number {
+  const a = asignatura(k);
+  const estudio = ctx.stat(statId(k));
+  return a.practica ? (1 - a.practica) * estudio + a.practica * habilidadDe(ctx, a) : estudio;
+}
+
 /** Texto del nivel: la preparación es la nota que se espera sacar (× 10). */
 export function nivelDeAsignatura(preparacion: number): NivelDeAsignatura {
   if (preparacion < 40) return 'Mal';
@@ -115,11 +158,8 @@ export function nivelDeAsignatura(preparacion: number): NivelDeAsignatura {
   return 'Excelente';
 }
 
-/** Cuánto se olvida al día de una asignatura: más con peores capacidades de apoyo. */
-const caidaDeHoy = (a: Asignatura, nivel: (stat: string) => number): number => {
-  const m = a.apoyos.reduce((x, y) => x + y.weight * nivel(y.stat), 0) / 100;
-  return CAIDA_DIARIA * Math.min(1.5, Math.max(0.6, 1.3 - 1.2 * m));
-};
+/** Cuánto se olvida al día de una asignatura: menos cuanto mayor es la aptitud del alumno (×0,6 con la más alta, ×1,4 con la más baja; la típica, 60, es ×1). */
+const caidaDeHoy = (aptitud: number): number => CAIDA_DIARIA * Math.min(1.4, Math.max(0.6, 1.6 - aptitud / 100));
 
 /** Asignaturas que se dan un día de la semana (0 = lunes ... 4 = viernes) del curso. */
 const asignaturasDeHoy = (curso: number, modalidad: Modalidad | undefined, weekday: number): string[] => {
@@ -149,11 +189,11 @@ const estudiar = (a: Asignatura): ActionDef => ({
   available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
   train: [
-    { stat: statId(a.key), amount: 0.48 },
     { stat: GEN.inteligencia, amount: 0.4 },
     { stat: GEN.concentracion, amount: 0.4 },
     ...(a.entrena ? [a.entrena] : []),
   ],
+  run: (ctx) => ctx.train(statId(a.key), 1.2 * factorDeAptitud(ctx, a.key)),
 });
 
 /**
@@ -191,7 +231,11 @@ function cambiarCurso(ctx: ActionContext, curso: number): void {
   const salen = antes.filter((k) => !ahora.includes(k));
   for (const k of nuevas) {
     const heredada = asignatura(k).hereda;
-    if (heredada) ctx.addStat(statId(k), ctx.stat(statId(heredada)) - ctx.stat(statId(k)));
+    if (heredada) {
+      ctx.addStat(statId(k), ctx.stat(statId(heredada)) - ctx.stat(statId(k)));
+      // Lo aprendido de base se hereda con el nivel.
+      ctx.updateState<EstudiosState>((x) => ({ ...x, base: { ...x.base, [k]: x.base?.[heredada] ?? x.base?.[k] ?? 0 } }));
+    }
   }
   // Si se acaba el verano sin haber terminado la academia, no se repite curso pero se empieza flojo y con mala moral.
   if (academiaPendiente(st)) {
@@ -289,7 +333,9 @@ function examinar(ctx: ActionContext, keys: string[], tipo: TipoDeExamen, presen
   const filas: string[][] = [];
   const nuevas: Record<string, number> = {};
   for (const k of keys) {
-    const nota = presente ? notaExamen(ctx.stat(statId(k)), ctx.stat(GEN.estres), ctx.stat(GEN.concentracion), ctx.rng.normal()) : 0;
+    const bruta = presente ? notaExamen(preparacionEfectiva(ctx, k), ctx.stat(GEN.estres), ctx.stat(GEN.concentracion), ctx.rng.normal()) : 0;
+    // En las asignaturas con nota mínima (Educación física) no se suspende, pero quien no se presenta sigue con un 0.
+    const nota = presente ? Math.max(asignatura(k).notaMinima ?? 0, bruta) : 0;
     nuevas[`${k}:${tipo}`] = nota;
     filas.push([asignatura(k).name, presente ? nota.toFixed(1) : 'No presentado']);
   }
@@ -353,7 +399,7 @@ export const estudios = defineModule<EstudiosState>({
       run: (ctx) => {
         ctx.updateState<EstudiosState>((s) => ({ ...s, ultimaAsistencia: ctx.time.day }));
         // En clase se avanza en las asignaturas que se dan hoy.
-        for (const k of asignaturasDeHoy(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad, ctx.time.weekday)) ctx.train(statId(k), 0.54);
+        for (const k of asignaturasDeHoy(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad, ctx.time.weekday)) ctx.train(statId(k), 1.35 * factorDeAptitud(ctx, k));
       },
     },
     ...ASIGNATURAS.map(estudiar),
@@ -367,7 +413,7 @@ export const estudios = defineModule<EstudiosState>({
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
       train: [{ stat: GEN.determinacion, amount: 0.3 }],
       run: (ctx) => {
-        for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 0.36);
+        for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 0.9 * factorDeAptitud(ctx, k));
       },
     },
     {
@@ -394,7 +440,7 @@ export const estudios = defineModule<EstudiosState>({
           .map((k) => [k, ctx.stat(statId(k))] as const)
           .sort((a, b) => a[1] - b[1])
           .slice(0, 3);
-        for (const [k] of flojas) ctx.train(statId(k), 3.6);
+        for (const [k] of flojas) ctx.train(statId(k), 9 * factorDeAptitud(ctx, k));
         const verano = { ...s.verano!, hechas: s.verano!.hechas + 1 };
         verano.superada = verano.hechas >= verano.exigidas;
         ctx.updateState<EstudiosState>((st) => ({ ...st, verano, ultimaAcademia: ctx.time.day }));
@@ -422,6 +468,10 @@ export const estudios = defineModule<EstudiosState>({
 
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as DayEventData;
+      // La primera vez se fija lo aprendido de base de cada asignatura a partir de la aptitud de arranque.
+      if (!ctx.state<EstudiosState>().base) {
+        ctx.updateState<EstudiosState>((x) => ({ ...x, base: Object.fromEntries(ASIGNATURAS.map((a) => [a.key, Math.max(0, ctx.stat(statId(a.key)) - MARGEN_DE_BASE)])) }));
+      }
       // El evento llega al cerrar el día: se mira el calendario de ESE día, no el del siguiente.
       const hoy = timeView(day * MINUTES_PER_DAY);
       const weekday = hoy.weekday;
@@ -434,7 +484,7 @@ export const estudios = defineModule<EstudiosState>({
       }
       if (!hoy.isSchoolDay) {
         // Fuera del horario escolar (fines de semana y vacaciones) también se olvida.
-        for (const k of activasKeys(hoy.schoolYear, s.modalidad)) ctx.addStat(statId(k), -caidaDeHoy(asignatura(k), (st) => ctx.norm(st) * 100));
+        for (const k of activasKeys(hoy.schoolYear, s.modalidad)) olvidar(ctx, k);
         return;
       }
 
@@ -453,7 +503,7 @@ export const estudios = defineModule<EstudiosState>({
         if (weekday === 4 && tipo === 'global') evaluarTrimestre(ctx, hoy.schoolYear, hoy.term);
       }
       // Olvido diario: cada asignatura pierde un poco, más si las capacidades que la apoyan son flojas.
-      for (const k of activas) ctx.addStat(statId(k), -caidaDeHoy(asignatura(k), (st) => ctx.norm(st) * 100));
+      for (const k of activas) olvidar(ctx, k);
     },
   },
 
@@ -467,7 +517,7 @@ export const estudios = defineModule<EstudiosState>({
         activeSubjects: () => activas.map(statId),
         courseName: () => cursoDef(ctx.time.schoolYear).nombre,
         summerPath: () => (ctx.time.period === 'verano' ? (s.verano?.tipo ?? null) : null),
-        levelText: (subject) => (ASIGNATURAS.some((a) => statId(a.key) === subject) ? nivelDeAsignatura(ctx.stat(subject)) : null),
+        levelText: (subject) => (ASIGNATURAS.some((a) => statId(a.key) === subject) ? nivelDeAsignatura(nivelVisible(ctx, subject.replace('estudios.', ''))) : null),
         timetable: (weekday) => asignaturasDeHoy(ctx.time.schoolYear, s.modalidad, weekday).map(statId),
         upcomingExams: (days): ExamInfo[] => {
           const salida: ExamInfo[] = [];

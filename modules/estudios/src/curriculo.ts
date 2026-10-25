@@ -12,6 +12,10 @@ export interface Asignatura {
   name: string;
   /** Horas de clase a la semana: reparten los días en que se da (de lunes a viernes, no todos los días tienen todas). */
   horas: number;
+  /** Parte de la nota que depende de las habilidades y no del estudio (0 a 1): Educación física va con el deporte y Artística con lo creativo; estudiar ayuda, pero importan las skills. */
+  practica?: number;
+  /** Nota mínima que se saca presentándose al examen: en Educación física no se suspende (5). */
+  notaMinima?: number;
   /** Genéricas que aceleran la asignatura y marcan su dificultad (suman 1): con peores capacidades, se empieza más bajo, se sube más lento y se olvida más rápido. */
   apoyos: { stat: string; weight: number }[];
   /** Genérica extra que entrena estudiar esta asignatura (si la hay). */
@@ -27,16 +31,16 @@ export const ASIGNATURAS: readonly Asignatura[] = [
   { key: 'lengua', horas: 4, name: 'Lengua', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.3 } },
   { key: 'matematicas', horas: 4, name: 'Matemáticas', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)] },
   { key: 'ingles', horas: 3, name: 'Inglés', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.2 } },
-  { key: 'educacion_fisica', horas: 2, name: 'Educación física', apoyos: [apoyo(GEN.coordinacion, 0.3), apoyo(GEN.agilidad, 0.25), apoyo(GEN.resistencia, 0.25), apoyo(GEN.determinacion, 0.2)] },
+  { key: 'educacion_fisica', practica: 0.7, notaMinima: 5, horas: 2, name: 'Educación física', apoyos: [apoyo(GEN.coordinacion, 0.3), apoyo(GEN.agilidad, 0.25), apoyo(GEN.resistencia, 0.25), apoyo(GEN.determinacion, 0.2)] },
   // Primaria
   { key: 'naturales', horas: 2, name: 'Ciencias naturales', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], entrena: { stat: GEN.creatividad, amount: 0.3 } },
   { key: 'sociales', horas: 2, name: 'Ciencias sociales', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.atencion, 0.25), apoyo(GEN.empatia, 0.15)] },
-  { key: 'artistica', horas: 1, name: 'Educación artística', apoyos: [apoyo(GEN.creatividad, 0.5), apoyo(GEN.coordinacion, 0.25), apoyo(GEN.atencion, 0.25)], entrena: { stat: GEN.creatividad, amount: 0.3 } },
+  { key: 'artistica', practica: 0.5, horas: 1, name: 'Educación artística', apoyos: [apoyo(GEN.creatividad, 0.5), apoyo(GEN.coordinacion, 0.25), apoyo(GEN.atencion, 0.25)], entrena: { stat: GEN.creatividad, amount: 0.3 } },
   // ESO
   { key: 'biologia', horas: 3, name: 'Biología y geología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], hereda: 'naturales' },
   { key: 'historia', horas: 3, name: 'Geografía e historia', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.concentracion, 0.25), apoyo(GEN.empatia, 0.15)], hereda: 'sociales' },
-  { key: 'tecnologia', horas: 2, name: 'Tecnología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.creatividad, 0.3), apoyo(GEN.coordinacion, 0.3)] },
-  { key: 'musica', horas: 2, name: 'Música', apoyos: [apoyo(GEN.creatividad, 0.4), apoyo(GEN.coordinacion, 0.3), apoyo(GEN.atencion, 0.3)], hereda: 'artistica' },
+  { key: 'tecnologia', practica: 0.3, horas: 2, name: 'Tecnología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.creatividad, 0.3), apoyo(GEN.coordinacion, 0.3)] },
+  { key: 'musica', practica: 0.5, horas: 2, name: 'Música', apoyos: [apoyo(GEN.creatividad, 0.4), apoyo(GEN.coordinacion, 0.3), apoyo(GEN.atencion, 0.3)], hereda: 'artistica' },
   { key: 'fisica_quimica', horas: 3, name: 'Física y química', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'naturales' },
   // Bachillerato
   { key: 'filosofia', horas: 2, name: 'Filosofía', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.creatividad, 0.2), apoyo(GEN.empatia, 0.15)] },
