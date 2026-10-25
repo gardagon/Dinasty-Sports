@@ -472,10 +472,19 @@ export class Game {
     return { ok: false, actionId, reason, duration: 0, efficiency: 0, changes: {}, log: [] };
   }
 
+  /** Las acciones dinámicas que un módulo devuelve con el mismo objeto cada vez (cacheadas) se compilan una sola vez. */
+  private readonly compiladas = new WeakMap<ActionDef, CompiledAction>();
+
+  private compilar(def: ActionDef, module: string): CompiledAction {
+    let c = this.compiladas.get(def);
+    if (!c) this.compiladas.set(def, (c = compileAction(def, module)));
+    return c;
+  }
+
   private allActions(): CompiledAction[] {
     const list = [...this.registry.actionList];
     for (const d of this.registry.dynamicActions) {
-      for (const def of d.fn(this.readCtx(d.module))) list.push(compileAction(def, d.module));
+      for (const def of d.fn(this.readCtx(d.module))) list.push(this.compilar(def, d.module));
     }
     return list;
   }
@@ -485,7 +494,7 @@ export class Game {
     if (stat) return stat;
     for (const d of this.registry.dynamicActions) {
       const def = d.fn(this.readCtx(d.module)).find((a: ActionDef) => a.id === id);
-      if (def) return compileAction(def, d.module);
+      if (def) return this.compilar(def, d.module);
     }
     return undefined;
   }

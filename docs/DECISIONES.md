@@ -5,6 +5,30 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Acciones de relación variadas (E20.3)
+
+- **Catálogo por persona** (cada una en su grupo «Relaciones · Nombre»; sigue habiendo un solo contacto al día con cada persona):
+
+| Acción | Con quién | Duración | Afinidad / confianza | Requisito y notas |
+|---|---|---|---|---|
+| Quedar | compañeros y amigos | 2 h | +5 / +3 | la de siempre; la que más acerca |
+| Charlar un rato | compañeros y amigos; rivales ya conocidos (+2 / +1) | 30 min | +2,5 / +1,5 | casi gratis; para mantener el contacto |
+| Ayudar con algo | compañeros y amigos | 1 h | +4 / +4,5 | afinidad ≥ 5 (hay que haber charlado o quedado antes); entrena empatía y cooperación |
+| Hacer planes | compañeros y amigos | 1 h 30 | +6 / +3 | solo si comparten un interés (el del personaje ≥ 15); rinde ×0,8 a ×1,4 según cuánto le gusta a la otra persona |
+| Tener un detalle | compañeros y amigos | 15 min | +3 / +1 | una vez a la semana por persona; ×1,15 a ×1,45 si es de su interés favorito |
+| Hablar | entrenador y tutor | 30 min | +4 / +2,5 | como antes |
+| Discutir / Plantar cara / Encararte | todos | 30 min | −6 a −14 (−9 a −21 con entrenador o tutor) / −5 | desahoga el estrés (−8) y entrena autoridad y picardía; el carácter agresivo de la otra persona hace que duela más |
+| Hacer las paces / Pedir disculpas | todos, solo si el vínculo es negativo | 30 min | éxito: pasa a conocido (−2 y +5 / +5); fallo: −3 / −2 y 5 días de espera | probabilidad 8 %–85 %: sociabilidad, optimismo y honestidad de la otra persona, compatibilidad, y −15 % por cada nivel de enemistad por encima de la antipatía |
+
+- **Personalidad:** el carácter decide cuánto duele discutir (`perdidaPorDiscusion`) y si aceptan las paces (`probabilidadDePaces`); la compatibilidad (×0,7 a ×1,4) ya multiplicaba todas las acciones positivas. Las reglas son funciones puras en `modules/relaciones/src/acciones.ts`, con tests.
+- **Los bots nunca discuten ni hacen las paces** (`relacion` en `bots.ts` solo cuenta las constructivas); el bot aleatorio sí puede.
+- **Estado:** `RelacionesState.espera` guarda hasta qué día no se repite un detalle o unas paces; `SAVE_VERSION` sube a 6.
+- **Rendimiento:** con tantas acciones por persona el año simulado pasó de ~1,4 s a ~3,1 s (límite 3 s). Arreglos: las definiciones de acciones se guardan por persona y el motor las compila una sola vez (`WeakMap`), y de los rivales conocidos solo se ofrecen los 5 con mayor afinidad (a favor o en contra). Queda en ~2,1 s.
+- **Efecto en el balance:** el social del vago sube (+7) porque el bot elige entre más acciones; el resto de estrategias no cambia de forma apreciable.
+- **Pendiente de E20.3:** regalos con coste (cuando haya dinero, E16), que el carácter de la persona condicione también las acciones positivas (más allá de la compatibilidad), recuerdos o hechos compartidos y el efecto de estas acciones sobre las oportunidades (E20.9). Discutir con un rival o con un entrenador aún no tiene consecuencias más allá de la cifra (por ejemplo, el apoyo que dan).
+
+---
+
 ## 25/10/2026 — La aptitud manda en las notas y Educación física / Artística dependen de las skills (E6.7, ajuste)
 
 - **Crítica 1 (usuario):** no tiene sentido que un empollón de aptitud media tenga más media que uno de aptitud alta.
