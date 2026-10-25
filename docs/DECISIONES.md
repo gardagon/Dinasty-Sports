@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — La presencia solo se recalcula cuando algo puede cambiar
+
+- **Pregunta del usuario:** si la presencia se calcula cada 10 minutos, ¿aparecen y desaparecen personas cada 10 minutos? **No:** cada persona está siempre en el mismo sitio dentro de un tramo (su destino sale de un hash de persona, día y tramo, no del minuto), así que en clase son los mismos 25 durante todas las clases. Lo de «10 minutos» era solo la caché.
+- **Cambio:** la caché ya no es por 10 minutos sino por **intervalo entre dos cambios de tramo de cualquier agenda** (unas 10 veces al día). Se calcula la primera vez que se mira un lugar y se reutiliza hasta el siguiente cambio. Se elimina la restricción de que los tramos sean múltiplos de 10 minutos.
+- **Comprobado:** un test avanza 6 minutos cada vez durante dos días (uno lectivo y un sábado) y en cada paso compara la presencia reutilizada con calcularla persona a persona.
+- **Público y variaciones:** si el público de una carrera ha de variar, será con tramos propios más largos (de una hora o más), nunca por minutos.
+- **IndexedDB:** vale la pena pero no hace falta todavía; coste y riesgos en la sección «IndexedDB» del anexo. Se hará al pasar de ~2 000 personas o al empezar los deportes de equipo.
+
+---
+
 ## 25/10/2026 — Población del colegio y del barrio, y cuánta gente aguanta el juego
 
 - **Aprobado por el usuario** el plan de población y los horarios. Añadido: **algún rival puede estar en el parque** fuera de sus entrenos, el colegio y las carreras (15 % entre semana por la tarde, 25 % en los días libres; nivel 2, así que cualquier sesión de club manda sobre él).
@@ -12,7 +22,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Cada curso:** quien cumple 18 deja el colegio y entra un niño de 8 años con los mismos tipos (el equipo del colegio sigue en 16).
 - **Relaciones:** las acciones de relación solo se crean para quien se conoce (`list({ known: true })`), así que cientos de desconocidos no añaden ninguna acción.
 - **Capacidad (medida):** ver la sección 5 del anexo. El procesador no limita (milisegundos con decenas de miles); **lo que limita es el guardado**: ~950 bytes por persona y unos 5 MB en el navegador, unas 5 000 personas. Salidas ya pensadas para los deportes de equipo: compactar rasgos (~15 000), guardar solo diferencias respecto a la semilla (sin límite práctico) o IndexedDB.
-- **Optimizaciones hechas al medir:** la agenda de una persona se monta una vez por lista de tipos; la presencia de toda la población se calcula una vez por tramo de 10 minutos; las consultas al servicio de personas se resuelven una vez por filtro; el guardado de la interfaz se agrupa cada medio segundo (y se guarda al cerrar la pestaña). Antes, con 10 000 personas, la presencia tardaba 60 ms y la lista de acciones 20 ms; ahora 14 ms la primera vez y 5 ms.
+- **Optimizaciones hechas al medir:** la agenda de una persona se monta una vez por lista de tipos; la presencia de toda la población se calcula una vez por intervalo entre dos cambios de tramo (unas 10 veces al día); las consultas al servicio de personas se resuelven una vez por filtro; el guardado de la interfaz se agrupa cada medio segundo (y se guarda al cerrar la pestaña). Antes, con 10 000 personas, la presencia tardaba 60 ms y la lista de acciones 20 ms; ahora 14 ms la primera vez y 5 ms.
 - **Tests:** población (25 por aula, equipo de 16, 12 profesores, 80 vecinos, nombres únicos), patio con todos los cursos, parque con vecinos y rivales, y renovación al empezar el curso.
 
 ---

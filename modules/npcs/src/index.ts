@@ -413,6 +413,28 @@ function agendaDePersona(n: Npc, datos: DatosDeAgenda, dia: number): TramoDeAgen
   return a;
 }
 
+/** Minutos del día en que algún tramo de alguna agenda empieza o acaba (en orden). Cambia solo cuando cambia la lista de personas. */
+const LIMITES = new WeakMap<Npc[], number[]>();
+
+function limitesDeTramos(lista: Npc[], agendaDe: (n: Npc) => TramoDeAgenda[]): number[] {
+  let l = LIMITES.get(lista);
+  if (!l) {
+    const set = new Set<number>();
+    const vistas = new Set<TramoDeAgenda[]>();
+    for (const n of lista) {
+      const a = agendaDe(n);
+      if (vistas.has(a)) continue;
+      vistas.add(a);
+      for (const x of a) {
+        set.add(x.desde);
+        set.add(x.hasta);
+      }
+    }
+    LIMITES.set(lista, (l = [...set].sort((a, b) => a - b)));
+  }
+  return l;
+}
+
 interface EnLugar {
   n: Npc;
   nivel: number;
@@ -421,8 +443,8 @@ interface EnLugar {
 }
 
 /**
- * Quién está en cada lugar en un tramo de diez minutos: se calcula una vez para toda la población y se reutiliza mientras no
- * cambie el tramo ni la lista de personas. Cada lugar guarda sus personas ya ordenadas (a quien conoces primero, después el nivel, lo
+ * Quién está en cada lugar entre dos cambios de tramo: se calcula una vez para toda la población y se reutiliza mientras no
+ * cambie el intervalo ni la lista de personas. Cada lugar guarda sus personas ya ordenadas (a quien conoces primero, después el nivel, lo
  * que son y, por último, un orden estable al azar).
  */
 const INDICES = new WeakMap<Npc[], { clave: string; lugares: Map<string, EnLugar[]>; ordenados: Set<string> }>();
@@ -509,8 +531,12 @@ export const npcs = defineModule<NpcsState>({
       const datos: DatosDeAgenda = { sesionDeClub: (club) => sesionDeClub(clubes, club) };
       const inicioCurso = (t.week - t.schoolWeek) * 7;
       const agendaDe = (n: Npc): TramoDeAgenda[] => agendaDePersona(n, datos, t.day);
-      /** Dónde está cada persona en este tramo de diez minutos (todos los tramos de las agendas empiezan y acaban en minutos múltiplos de 10). */
-      const indice = indiceDePresencia(lista, `${t.day}:${Math.floor(t.minuteOfDay / 10)}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
+      /**
+       * Dónde está cada persona entre dos cambios de tramo de cualquier agenda: mientras no cambie ninguno, la presencia no cambia
+       * (nadie aparece ni desaparece), así que se calcula una vez por intervalo (unas 10 veces al día) y no cada pocos minutos.
+       */
+      const intervalo = limitesDeTramos(lista, agendaDe).filter((m) => m <= t.minuteOfDay).length;
+      const indice = indiceDePresencia(lista, `${t.day}:${intervalo}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
       return {
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso)),
         donde: (id) => {

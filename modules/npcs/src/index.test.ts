@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { SERVICES, madurezPorEdad, ventajaDeCrianza, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
+import { lugares } from '@ds/mod-lugares';
 import { desarrolloRival, npcs, type NpcsState } from './index';
 
-const nueva = () => Game.create([personaje, npcs], { seed: 9 });
+const nueva = () => Game.create([personaje, npcs, lugares], { seed: 9 });
 
 describe('módulo NPCs', () => {
   it('genera un reparto y lo publica como servicio', () => {
@@ -200,6 +201,32 @@ describe('módulo NPCs', () => {
       expect(p.donde('tutor')).toBe('colegio');
       expect(p.donde('nadie')).toBeUndefined();
       expect(p.agenda('tutor').some((x) => x.tipo === 'profesor')).toBe(true);
+    });
+
+    it('la presencia reutilizada entre cambios de tramo da lo mismo que calcularla persona a persona, a cualquier minuto', () => {
+      const g = nueva();
+      advanceTo(g, 'gen.descansar', 0, 0);
+      const lugares = ['colegio', 'estadio', 'parque', 'gimnasio', 'supermercado', 'restaurante'];
+      let cambios = 0;
+      let anterior = '';
+      // Se avanza de 6 en 6 minutos (ir al parque y volver) durante dos días y se compara con la agenda de cada persona.
+      for (let i = 0; i < (2 * 1440) / 6; i++) {
+        const p = g.service<PresenciaService>(SERVICES.presencia)!;
+        const porLugar = new Map<string, string[]>();
+        for (const n of g.service<NpcDirectory>(SERVICES.npcs)!.list()) {
+          const donde = p.donde(n.id);
+          if (donde) porLugar.set(donde, [...(porLugar.get(donde) ?? []), n.id]);
+        }
+        for (const l of lugares) {
+          expect(p.en(l).map((n) => n.id).sort(), `${l} a las ${g.time.hour}:${g.time.minuteOfDay % 60}`).toEqual((porLugar.get(l) ?? []).sort());
+        }
+        const foto = lugares.map((l) => p.en(l).length).join(',');
+        if (foto !== anterior) cambios++;
+        anterior = foto;
+        g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+      }
+      // Cambia solo cuando cambia algún tramo: unas pocas veces al día, no cada pocos minutos.
+      expect(cambios).toBeLessThan(40);
     });
 
     it('la presencia no cambia dentro de un mismo tramo horario', () => {

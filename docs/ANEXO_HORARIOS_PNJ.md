@@ -128,20 +128,28 @@ Reglas de generación:
 
 Medido con la población clonada hasta cada tamaño (sin hacer nada más, en este equipo de pruebas):
 
-| Personas | Guardado | Guardar (serializar + JSON) | Lista de acciones | 1.ª consulta de presencia en cada tramo de 10 min | 1 día entero |
+| Personas | Guardado | Guardar (serializar + JSON) | Lista de acciones | 1.ª consulta de presencia tras un cambio de tramo | 1 día entero |
 |---|---|---|---|---|---|
 | 400 | 0,4 MB | 10 ms | 1,3 ms | 1,7 ms | 1,6 ms |
 | 2 000 | 1,9 MB | 53 ms | 1,7 ms | 4,1 ms | 2,7 ms |
 | 10 000 | 9,4 MB | 285 ms | 4,6 ms | 13,9 ms | 7,4 ms |
 | 50 000 | 47 MB | 1 975 ms | 26 ms | — | 27 ms |
 
-- **El procesador no es el límite.** Con las consultas resueltas una vez (presencia por tramo de 10 minutos, consultas de personas por filtro) hasta decenas de miles de personas siguen dando milisegundos. Ejecutar una acción cuesta lo mismo con 400 que con 50 000.
+- **El procesador no es el límite.** Con las consultas resueltas una vez (presencia entre cambios de tramo, consultas de personas por filtro) hasta decenas de miles de personas siguen dando milisegundos. Ejecutar una acción cuesta lo mismo con 400 que con 50 000.
 - **El límite es el guardado.** Cada persona pesa ~950 bytes (535 son sus rasgos: aspecto, carácter, intereses y gustos). El navegador deja unos 5 MB en `localStorage`: **unas 5 000 personas** con el formato actual. La interfaz agrupa los guardados (cada medio segundo, no en cada acción), pero con miles de personas cada guardado se nota.
 - **Qué hacer cuando lleguen los deportes de equipo (de menor a mayor esfuerzo):**
   1. **Compactar los rasgos** (ids numéricos en vez de textos): de 535 a unos 60 bytes, unas 15 000 personas en 5 MB.
   2. **Guardar solo lo que cambia:** la población sale de la semilla (es determinista) y la partida guarda solo las diferencias (la conoces, está en tu club, su nivel). Sin límite práctico.
-  3. **IndexedDB** en lugar de `localStorage` (cientos de MB), si hiciera falta guardar mucho.
-- **Presencia:** se calcula para toda la población una vez por tramo de 10 minutos y se reutiliza. Por eso todos los tramos de los horarios empiezan y acaban en minutos múltiplos de 10 (hay un test que lo comprueba).
+  3. **IndexedDB** en lugar de `localStorage`: sube el límite de ~5 MB a cientos de MB. Coste y alcance en la sección «IndexedDB».
+- **Presencia:** nadie aparece ni desaparece mientras no cambie un tramo: dentro de un tramo cada persona está siempre en el mismo sitio (su destino sale de un hash de persona, día y tramo, no del minuto). Por eso la presencia de toda la población se calcula **una vez por intervalo entre dos cambios de tramo de cualquier agenda** (unas 10 veces al día: 7:50, 10:00, 14:00, 15:00...) y se reutiliza. Un test avanza de 6 en 6 minutos durante dos días y comprueba que lo reutilizado coincide, a cualquier minuto, con calcular persona a persona. En clase son los mismos 25 durante las cuatro clases y el recreo.
+
+### IndexedDB: qué cuesta y qué da
+
+- **Qué da:** el límite deja de ser 5 MB (los navegadores dan una fracción grande del disco libre: cientos de MB o más). Con el formato actual, unas 5 000 personas pasan a decenas de miles.
+- **Qué no da:** no reduce lo que pesa la partida ni el tiempo de copiarla en memoria. Guardar 10 000 personas sigue copiando ~9 MB; solo se evita convertirlos a texto y la escritura es asíncrona, así que no bloquea el juego. Con la agrupación de guardados, es asumible.
+- **Coste de adoptarlo (pequeño, de media jornada):** el guardado y la carga pasan a ser asíncronos (la interfaz espera a cargar antes de dibujar), hay que migrar o descartar el guardado de `localStorage` (en alfa se descarta) y probarlo en un navegador real. La lógica del juego no cambia, porque `Game.serialize()` y `Game.load()` siguen igual. Hay que pedir almacenamiento persistente (`navigator.storage.persist()`) para que el navegador no lo borre.
+- **Riesgo conocido:** Safari en iPhone borra los datos de una web sin uso en 7 días, salvo que esté instalada en la pantalla de inicio (esta es una PWA instalable, así que se recomienda instalarla). Pasa igual con `localStorage`.
+- **Recomendación:** vale la pena, pero no hace falta ahora (391 personas ocupan 0,4 MB). Hacerlo cuando se pase de ~2 000 personas o al empezar los deportes de equipo, junto con compactar los rasgos. Guardar solo las diferencias respecto a la semilla es la solución definitiva si la población llegara a ser enorme (más de ~50 000), y también necesita IndexedDB o compactar para ser cómodo.
 
 ## 6. Pendiente
 
