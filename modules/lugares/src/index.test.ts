@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CIUDAD_INICIAL, defineModule, enLugar, rutaMasCorta, vecinosDe, type LugaresService } from '@ds/contracts';
+import { CIUDAD_INICIAL, defineModule, enLugar, tiempoEntre, vecinosDe, type LugaresService } from '@ds/contracts';
 import { Game } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { lugares } from './index';
@@ -26,11 +26,11 @@ describe('módulo lugares', () => {
     expect(g.perform('lugares.ir_casa').ok).toBe(false);
   });
 
-  it('el viaje rápido cuesta la ruta más corta (nunca más que el camino directo)', () => {
+  it('el viaje rápido cuesta lo que dice la tabla de tiempos', () => {
     const g = partida();
     g.perform('lugares.ir_parque');
     const svc = g.service<LugaresService>('lugares')!;
-    expect(svc.ruta('colegio')?.minutos).toBe(8);
+    expect(svc.minutosA('colegio')).toBe(8);
     expect(svc.vecinos().map((v) => v.lugar.id).sort()).toEqual(['casa', 'colegio']);
   });
 
@@ -48,12 +48,26 @@ describe('módulo lugares', () => {
 });
 
 describe('mapa de la ciudad', () => {
-  it('todos los lugares son alcanzables desde el inicio', () => {
-    for (const l of CIUDAD_INICIAL.lugares) expect(rutaMasCorta(CIUDAD_INICIAL, CIUDAD_INICIAL.inicio, l.id)).not.toBeNull();
+  const ids = CIUDAD_INICIAL.lugares.map((l) => l.id);
+
+  it('la tabla de tiempos está completa: todos con todos, y cero con uno mismo', () => {
+    for (const a of ids) {
+      for (const b of ids) {
+        const t = tiempoEntre(CIUDAD_INICIAL, a, b);
+        expect(t, `${a} → ${b}`).toBeDefined();
+        if (a === b) expect(t).toBe(0);
+        else expect(t).toBeGreaterThan(0);
+      }
+    }
   });
 
-  it('los caminos son en ambos sentidos y la ruta pasa por el sitio más rápido', () => {
+  it('la tabla es simétrica y no tiene lugares que no existan', () => {
+    expect(Object.keys(CIUDAD_INICIAL.tiempos).sort()).toEqual([...ids].sort());
+    for (const a of ids) for (const b of ids) expect(tiempoEntre(CIUDAD_INICIAL, a, b)).toBe(tiempoEntre(CIUDAD_INICIAL, b, a));
+  });
+
+  it('los caminos directos usan lugares del mapa y salen en ambos sentidos', () => {
+    for (const [a, b] of CIUDAD_INICIAL.directos) expect(ids).toContain(a), expect(ids).toContain(b);
     expect(vecinosDe(CIUDAD_INICIAL, 'colegio').map((v) => v.lugar).sort()).toEqual(['casa', 'parque']);
-    expect(rutaMasCorta(CIUDAD_INICIAL, 'colegio', 'casa')?.minutos).toBe(10);
   });
 });

@@ -17,14 +17,6 @@ export interface LugarDef {
   grupo: string;
 }
 
-/** Camino en ambos sentidos entre dos lugares. */
-export interface CaminoDef {
-  a: LugarId;
-  b: LugarId;
-  /** Minutos de juego andando. */
-  minutos: number;
-}
-
 export interface MapaCiudad {
   nombre: string;
   /** Donde empieza el personaje (su casa). */
@@ -32,7 +24,13 @@ export interface MapaCiudad {
   /** La casa del personaje: sitio donde dormir. */
   casa: LugarId;
   lugares: readonly LugarDef[];
-  caminos: readonly CaminoDef[];
+  /**
+   * Minutos de juego entre cada par de lugares: `tiempos[desde][hasta]`. Es una tabla completa (todos con todos), así no hay
+   * que calcular rutas: al añadir un lugar se añade su fila y su columna. Un test comprueba que está completa y es simétrica.
+   */
+  tiempos: Readonly<Record<LugarId, Readonly<Record<LugarId, number>>>>;
+  /** Pares de lugares con camino directo: son los que salen en la lista de «Viajar» de la pantalla del lugar. */
+  directos: readonly (readonly [LugarId, LugarId])[];
 }
 
 /** Ciudad de partida. Es un dato: crecerá con el estadio, el gimnasio, la tienda, el aeropuerto... */
@@ -45,53 +43,30 @@ export const CIUDAD_INICIAL: MapaCiudad = {
     { id: 'colegio', name: 'Colegio', descripcion: 'El colegio: aulas, patio y pistas.', grupo: 'Estudios' },
     { id: 'parque', name: 'Parque', descripcion: 'Un parque con árboles, bancos y espacio para correr.', grupo: 'Ocio' },
   ],
-  caminos: [
-    { a: 'casa', b: 'colegio', minutos: 10 },
-    { a: 'casa', b: 'parque', minutos: 6 },
-    { a: 'parque', b: 'colegio', minutos: 8 },
+  tiempos: {
+    casa: { casa: 0, colegio: 10, parque: 6 },
+    colegio: { casa: 10, colegio: 0, parque: 8 },
+    parque: { casa: 6, colegio: 8, parque: 0 },
+  },
+  directos: [
+    ['casa', 'colegio'],
+    ['casa', 'parque'],
+    ['parque', 'colegio'],
   ],
 };
 
-export interface Ruta {
-  /** Lugares por los que se pasa, incluidos el de salida y el de llegada. */
-  pasos: LugarId[];
-  minutos: number;
-}
+/** Minutos de un lugar a otro, o `undefined` si el mapa no lo define. */
+export const tiempoEntre = (mapa: MapaCiudad, desde: LugarId, hasta: LugarId): number | undefined => mapa.tiempos[desde]?.[hasta];
 
-/** Lugares a un solo camino de `desde`, con lo que cuesta llegar. */
+/** Lugares con camino directo desde `desde`, con lo que cuesta llegar. */
 export function vecinosDe(mapa: MapaCiudad, desde: LugarId): { lugar: LugarId; minutos: number }[] {
   const out: { lugar: LugarId; minutos: number }[] = [];
-  for (const c of mapa.caminos) {
-    if (c.a === desde) out.push({ lugar: c.b, minutos: c.minutos });
-    else if (c.b === desde) out.push({ lugar: c.a, minutos: c.minutos });
+  for (const [a, b] of mapa.directos) {
+    const otro = a === desde ? b : b === desde ? a : undefined;
+    const minutos = otro === undefined ? undefined : tiempoEntre(mapa, desde, otro);
+    if (otro !== undefined && minutos !== undefined) out.push({ lugar: otro, minutos });
   }
   return out;
-}
-
-/** Ruta más corta entre dos lugares (Dijkstra; el mapa es pequeño). `null` si no hay camino. */
-export function rutaMasCorta(mapa: MapaCiudad, desde: LugarId, hasta: LugarId): Ruta | null {
-  const coste = new Map<LugarId, number>([[desde, 0]]);
-  const previo = new Map<LugarId, LugarId>();
-  const pendientes = new Set<LugarId>([desde]);
-  while (pendientes.size > 0) {
-    let actual: LugarId | undefined;
-    for (const p of pendientes) if (actual === undefined || coste.get(p)! < coste.get(actual)!) actual = p;
-    if (actual === undefined) break;
-    pendientes.delete(actual);
-    if (actual === hasta) break;
-    for (const v of vecinosDe(mapa, actual)) {
-      const nuevo = coste.get(actual)! + v.minutos;
-      if (nuevo < (coste.get(v.lugar) ?? Infinity)) {
-        coste.set(v.lugar, nuevo);
-        previo.set(v.lugar, actual);
-        pendientes.add(v.lugar);
-      }
-    }
-  }
-  if (!coste.has(hasta)) return null;
-  const pasos: LugarId[] = [hasta];
-  while (pasos[0] !== desde) pasos.unshift(previo.get(pasos[0])!);
-  return { pasos, minutos: coste.get(hasta)! };
 }
 
 export interface LugaresService {
@@ -100,10 +75,10 @@ export interface LugaresService {
   /** Un lugar del mapa, o `undefined` si no existe. */
   lugar(id: LugarId): LugarDef | undefined;
   lugares(): readonly LugarDef[];
-  /** Sitios a un camino del actual (la lista de "Viajar" de la pantalla del lugar). */
+  /** Sitios con camino directo desde el actual (la lista de "Viajar" de la pantalla del lugar). */
   vecinos(): { lugar: LugarDef; minutos: number }[];
-  /** Ruta más corta desde donde está el personaje (el viaje rápido cuesta lo que ella). */
-  ruta(hasta: LugarId): Ruta | null;
+  /** Minutos desde donde está el personaje hasta otro lugar (lo que cuesta el viaje rápido), o `undefined` si no hay dato. */
+  minutosA(hasta: LugarId): number | undefined;
   /** La casa del personaje. */
   casa(): LugarDef;
 }
