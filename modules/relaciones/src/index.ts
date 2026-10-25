@@ -11,6 +11,11 @@ import {
   type ActionContext,
   type ActionDef,
   type CompetitionResultData,
+  type LugaresService,
+  type PresenciaService,
+  type PresentacionData,
+  GENTE_CERCANA,
+  descripcionDeDesconocido,
   type NpcDirectory,
   type NpcView,
   type ProfileService,
@@ -368,6 +373,58 @@ function accionesDe(n: NpcView): ActionDef[] {
   return lista;
 }
 
+/**
+ * Preguntar el nombre a alguien que no conoces y tienes cerca: cuesta 2 minutos y pasa de desconocido a conocido (lo hace el módulo
+ * `npcs`, que escucha el evento compartido). Una acción por persona; se guardan por persona para que el motor las compile una vez.
+ */
+const memoPresentaciones = new Map<string, ActionDef>();
+function presentarse(n: NpcView): ActionDef {
+  const clave = `${n.id}|${n.gender}|${n.age !== undefined && n.age < 12}`;
+  let a = memoPresentaciones.get(clave);
+  if (!a) {
+    const quien = n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, n.age).toLowerCase() : n.gender === 'f' ? 'una chica' : 'un chico';
+    a = {
+      id: `relaciones.presentarse.${n.id}`,
+      name: `Preguntar el nombre a ${quien}`,
+      description: 'Te presentas y preguntas cómo se llama.',
+      tags: [TAGS.social],
+      group: 'Gente aquí',
+      duration: 2,
+      available: (ctx) => (cercanos(ctx).some((x) => x.id === n.id) ? true : 'Ya no está aquí'),
+      run: (ctx) => ctx.emit<PresentacionData>({ type: SHARED_EVENTS.PRESENTACION, data: { npcId: n.id } }),
+    };
+    memoPresentaciones.set(clave, a);
+  }
+  return a;
+}
+
+/**
+ * Las personas que tienes cerca ahora (las que ves en el lugar donde estás). Se piden en cada acción de presentarse (hasta 40 a la vez),
+ * así que se recuerdan mientras no cambie la presencia (su versión) ni el lugar: lo único que las cambia es un cambio de tramo o moverte.
+ */
+const CERCANOS = new WeakMap<ReadContext, { clave: string; lista: NpcView[]; acciones?: ActionDef[] }>();
+function cercanosConClave(ctx: ReadContext): { clave: string; lista: NpcView[]; acciones?: ActionDef[] } | undefined {
+  const lugar = ctx.service<LugaresService>(SERVICES.lugares)?.actual().id;
+  const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
+  if (!lugar || !presencia) return undefined;
+  // La presencia solo cambia con su versión (un cambio de tramo, de día o de personas): no hace falta recalcularla en cada acción.
+  const clave = `${presencia.version}|${lugar}`;
+  const guardado = CERCANOS.get(ctx);
+  if (guardado?.clave === clave) return guardado;
+  const nuevo = { clave, lista: presencia.en(lugar, GENTE_CERCANA) };
+  CERCANOS.set(ctx, nuevo);
+  return nuevo;
+}
+
+const cercanos = (ctx: ReadContext): NpcView[] => cercanosConClave(ctx)?.lista ?? [];
+
+/** Las acciones de preguntar el nombre a quien tienes cerca y no conoces (se recuerdan junto a la lista de cercanos). */
+function presentaciones(ctx: ReadContext): ActionDef[] {
+  const c = cercanosConClave(ctx);
+  if (!c) return [];
+  return (c.acciones ??= c.lista.filter((n) => n.known === false).map(presentarse));
+}
+
 export const relaciones = defineModule<RelacionesState>({
   id: 'relaciones',
   name: 'Relaciones',
@@ -390,6 +447,8 @@ export const relaciones = defineModule<RelacionesState>({
     // De los rivales conocidos solo se ofrecen los que más han marcado la relación (los demás son un nombre en una clasificación).
     rivales.sort((a, b) => Math.abs(s.vinculos[b.id]?.afinidad ?? 0) - Math.abs(s.vinculos[a.id]?.afinidad ?? 0));
     for (const n of rivales.slice(0, RIVALES_CON_ACCIONES)) lista.push(...accionesDe(n));
+    // A quien no conoces y tienes cerca le puedes preguntar el nombre.
+    lista.push(...presentaciones(ctx));
     return lista;
   },
 

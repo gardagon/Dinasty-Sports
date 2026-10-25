@@ -1,4 +1,4 @@
-import { faltaViajar } from '@ds/contracts';
+import { faltaViajar, type ActionDef } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game } from '@ds/core';
 
 /**
@@ -7,7 +7,9 @@ import type { ActionOption, ActionResult, Game } from '@ds/core';
  * desplazamientos no se les ofrecen (los hace el simulador).
  */
 export function opcionesDelBot(game: Game): ActionOption[] {
-  return game.listActions().filter((o) => o.module !== 'lugares' && (o.available || faltaViajar(o)));
+  // Los desplazamientos y las presentaciones (hasta 40 acciones por lugar) no se les ofrecen: ni siquiera se evalúan.
+  const omitir = (d: ActionDef) => d.id.startsWith('lugares.') || d.id.startsWith('relaciones.presentarse.');
+  return game.listActions({ omitir }).filter((o) => o.available || faltaViajar(o));
 }
 
 export interface Paso {

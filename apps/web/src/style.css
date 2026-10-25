@@ -268,3 +268,5 @@ h3:first-child { margin-top: 0; }
 .barra-gente .bar { height: 6px; }
 .paginas-gente { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 12px; }
 .ficha-gente h2 small { font-size: 14px; color: var(--ink-soft); font-weight: 400; }
+.copias { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+#aviso-guardado:empty { display: none; }

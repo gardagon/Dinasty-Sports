@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, SERVICES, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
+import { GEN, GENTE_CERCANA, SERVICES, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
@@ -523,6 +523,46 @@ describe('integración de módulos', () => {
       const antes = new Map(dir.list({ tag: 'atleta' }).map((n) => [n.id, n.age]));
       advanceToWeek(g, 'gen.descansar', 40, 2, 12);
       for (const n of g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'atleta' })) expect(n.age).toBe(antes.get(n.id));
+    });
+  });
+
+  describe('preguntar el nombre', () => {
+    const presentaciones = (g: Game) => g.listActions().filter((o) => o.id.startsWith('relaciones.presentarse.'));
+
+    it('a quien no conoces y tienes cerca le puedes preguntar el nombre (2 minutos), y entonces lo conoces', () => {
+      const g = nuevaPartida({ seed: 21 });
+      advanceTo(g, 'gen.descansar', 0, 10);
+      g.perform('lugares.ir_colegio');
+      const posibles = presentaciones(g);
+      expect(posibles.length).toBeGreaterThan(10);
+      expect(posibles.length).toBeLessThanOrEqual(40); // solo los que tienes cerca
+      const o = posibles.find((x) => x.available)!;
+      const id = o.id.replace('relaciones.presentarse.', '');
+      // Los servicios son una foto del momento: se piden de nuevo después de cada acción.
+      const dir = () => g.service<NpcDirectory>(SERVICES.npcs)!;
+      expect(dir().get(id)!.known).toBe(false);
+      const antes = g.time.minute;
+      const r = g.perform(o.id);
+      expect(r.ok).toBe(true);
+      expect(g.time.minute - antes).toBe(2);
+      expect(dir().get(id)!.known).toBe(true);
+      expect(g.log.some((l) => l.text.startsWith(`Se llama ${dir().get(id)!.name}`))).toBe(true);
+      // Ya no se le puede preguntar otra vez, y ahora tiene acciones de relación.
+      expect(g.preview(o.id)).toBeUndefined();
+      expect(g.listActions().some((a) => a.id.startsWith('relaciones.') && a.id.endsWith(`.${id}`) && !a.id.startsWith('relaciones.presentarse.'))).toBe(true);
+    });
+
+    it('no se puede preguntar el nombre a quien no está donde tú: lejos no hay a quién', () => {
+      const g = nuevaPartida({ seed: 21 });
+      advanceTo(g, 'gen.descansar', 2, 3); // madrugada: no hay nadie en ningún sitio
+      expect(presentaciones(g)).toEqual([]);
+    });
+
+    it('los bots no se paran a preguntar nombres y la gente cerca no pasa de 40', () => {
+      const g = nuevaPartida({ seed: 22 });
+      advanceTo(g, 'gen.descansar', 0, 10);
+      g.perform('lugares.ir_colegio');
+      expect(presentaciones(g).length).toBeLessThanOrEqual(GENTE_CERCANA);
     });
   });
 });

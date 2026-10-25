@@ -418,8 +418,10 @@ export class Game {
   // ------------------------------------------------------------------ acciones
 
   /** Todas las acciones (estáticas + dinámicas) con su disponibilidad y previsión. */
-  listActions(): ActionOption[] {
-    return this.allActions().map((a) => this.evaluate(a));
+  listActions(opciones?: { omitir?: (def: ActionDef) => boolean }): ActionOption[] {
+    const todas = this.allActions();
+    // `omitir` descarta acciones antes de evaluarlas (evaluar cada una cuesta): los bots no piden las que no van a usar.
+    return (opciones?.omitir ? todas.filter((a) => !opciones.omitir!(a.def)) : todas).map((a) => this.evaluate(a));
   }
 
   /** Solo las disponibles (lo que usan los bots). */

@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Preguntar el nombre, guardado en IndexedDB y rendimiento relativo
+
+- **Preguntar el nombre:** a quien no conoces y tienes **cerca** (hasta `GENTE_CERCANA` = 40 en un lugar, como en el juego de referencia) le puedes preguntar el nombre: acción `relaciones.presentarse.<id>`, 2 minutos, etiqueta social. Emite el evento compartido `persona.presentarse` y `npcs` lo marca como conocido y escribe en el diario «Se llama X. <descripción>». A partir de ahí tiene sus acciones de relación. Se ofrece desde la ficha de la pestaña «Gente» (no en la lista de acciones) y solo si está cerca.
+- **Pendiente de esto:** conocer a mucha gente añade muchas acciones de relación (hasta 6 por persona) y todas valen en cualquier lugar. Lo natural es **ligar las acciones de relación a la presencia** (hablar con alguien solo si está donde estás, o por teléfono más adelante); queda como siguiente paso.
+- **Bots:** no preguntan nombres (la acción se omite antes de evaluarla: `listActions({ omitir })`), así que el balance no cambia (13/13 ✅ con las mismas cifras).
+- **Guardado:** IndexedDB como almacén y JSON como copia de seguridad; fases y disparadores en `docs/ALMACENAMIENTO.md`. Fase 1 hecha: capa `Almacen`, carga y guardado asíncronos, migración desde `localStorage`, persistencia pedida, errores visibles, exportar e importar. Probado en Chromium real y con tests (`fake-indexeddb`), incluida una partida de más de 5 MB.
+- **Rendimiento en la simulación:** la presencia se calcula una vez por intervalo entre cambios de tramo (unas 10 veces al día) y los bots toman ~15 decisiones al día, así que consultarla en cada decisión (para las presentaciones) cuesta ~20 % más en la simulación. Se abarata compartiendo la agenda entre personas con los mismos tipos, calculando el orden solo del lugar que se pide y recordando lo cercano por «versión» de la presencia (`PresenciaService.version`). En juego no se nota.
+- **El chequeo de rendimiento pasa a ser relativo a la máquina:** los ms por acción dependen de lo rápida que vaya el equipo (el mismo código dio de 0,5 a 0,9 ms según el momento). Ahora se compara con una carga fija de calibración (`calibrar()`, antes y después de simular): límite = 0,1 × calibración (≈ 1,4 ms en una máquina de 14 ms de calibración; es 1,6 veces lo que medía el motor cuando se fijó el límite de 0,8 ms).
+
+---
+
 ## 25/10/2026 — Panel «Gente»
 
 - **Pestaña nueva «Gente»** (junto a «Relaciones», que se queda con los datos de pruebas). Filtros: Aquí (por defecto, la gente del lugar donde estás), Conocidos, Compañeros, Profesorado, Rivales y Vecinos. Tarjetas de 12 por página con barras de **Amistad** (la afinidad positiva) y **Confianza**.

@@ -20,6 +20,7 @@ import {
   TAGS,
   defineModule,
   type CompetitionResultData,
+  type PresentacionData,
   type Rng,
   type Gender,
   type InitContext,
@@ -404,12 +405,19 @@ const POR_ID = new WeakMap<Npc[], Map<string, Npc>>();
 const SIN_TIPOS: TipoAsignado[] = [];
 /** La agenda depende solo de los tipos de la persona: se monta una vez por lista de tipos (los acontecimientos con fecha de fin no se guardan). */
 const AGENDAS = new WeakMap<TipoAsignado[], TramoDeAgenda[]>();
+/** Las personas con los mismos tipos comparten la misma agenda (el mismo objeto): así lo que se calcula para una vale para todas. */
+const AGENDAS_COMPARTIDAS = new Map<string, TramoDeAgenda[]>();
 
 function agendaDePersona(n: Npc, datos: DatosDeAgenda, dia: number): TramoDeAgenda[] {
   const tipos = n.tipos ?? SIN_TIPOS;
   if (tipos.some((x) => x.hasta !== undefined)) return construirAgenda(tipos, datos, dia);
   let a = AGENDAS.get(tipos);
-  if (!a) AGENDAS.set(tipos, (a = construirAgenda(tipos, datos, dia)));
+  if (!a) {
+    const clave = JSON.stringify(tipos);
+    let compartida = AGENDAS_COMPARTIDAS.get(clave);
+    if (!compartida) AGENDAS_COMPARTIDAS.set(clave, (compartida = construirAgenda(tipos, datos, dia)));
+    AGENDAS.set(tipos, (a = compartida));
+  }
   return a;
 }
 
@@ -439,15 +447,19 @@ interface EnLugar {
   n: Npc;
   nivel: number;
   tipo: string;
-  azar: number;
+  /** Orden estable al azar dentro de su nivel; se calcula al ordenar el lugar, no para toda la población. */
+  azar?: number;
 }
+
+/** Número de índices de presencia construidos: `PresenciaService.version`. */
+let versionDeIndices = 0;
 
 /**
  * Quién está en cada lugar entre dos cambios de tramo: se calcula una vez para toda la población y se reutiliza mientras no
  * cambie el intervalo ni la lista de personas. Cada lugar guarda sus personas ya ordenadas (a quien conoces primero, después el nivel, lo
  * que son y, por último, un orden estable al azar).
  */
-const INDICES = new WeakMap<Npc[], { clave: string; lugares: Map<string, EnLugar[]>; ordenados: Set<string> }>();
+const INDICES = new WeakMap<Npc[], { clave: string; version: number; lugares: Map<string, EnLugar[]>; ordenados: Set<string> }>();
 
 function indiceDePresencia(lista: Npc[], clave: string, ubicar: (n: Npc) => { sitio: string | null; nivel: number; tipo: string }, dia: number) {
   let idx = INDICES.get(lista);
@@ -458,19 +470,21 @@ function indiceDePresencia(lista: Npc[], clave: string, ubicar: (n: Npc) => { si
       if (u.sitio === null) continue;
       let l = lugares.get(u.sitio);
       if (!l) lugares.set(u.sitio, (l = []));
-      l.push({ n, nivel: u.nivel, tipo: u.tipo, azar: azarDe(n.id, dia, 'orden') });
+      l.push({ n, nivel: u.nivel, tipo: u.tipo });
     }
-    INDICES.set(lista, (idx = { clave, lugares, ordenados: new Set() }));
+    INDICES.set(lista, (idx = { clave, version: ++versionDeIndices, lugares, ordenados: new Set() }));
   }
   const actual = idx;
   return {
+    version: actual.version,
     en(lugar: string): EnLugar[] {
       const l = actual.lugares.get(lugar) ?? [];
       if (!actual.ordenados.has(lugar)) {
         actual.ordenados.add(lugar);
+        for (const e of l) e.azar = azarDe(e.n.id, dia, 'orden');
         l.sort(
           (a, b) =>
-            Number(b.n.known !== false) - Number(a.n.known !== false) || b.nivel - a.nivel || (RELEVANCIA[b.tipo] ?? 0) - (RELEVANCIA[a.tipo] ?? 0) || a.azar - b.azar,
+            Number(b.n.known !== false) - Number(a.n.known !== false) || b.nivel - a.nivel || (RELEVANCIA[b.tipo] ?? 0) - (RELEVANCIA[a.tipo] ?? 0) || a.azar! - b.azar!,
         );
       }
       return l;
@@ -514,6 +528,14 @@ export const npcs = defineModule<NpcsState>({
       ctx.updateState<NpcsState>((s) => ({ npcs: renovarAlumnos(renovarRivales(s.npcs, proximo.day, ctx.rng), proximo.day, ctx.rng) }));
     },
 
+    [SHARED_EVENTS.PRESENTACION]: (ctx, ev) => {
+      const { npcId } = ev.data as PresentacionData;
+      const n = ctx.state<NpcsState>().npcs.find((x) => x.id === npcId);
+      if (!n || n.known !== false) return;
+      ctx.updateState<NpcsState>((s) => ({ npcs: s.npcs.map((x) => (x.id === npcId ? { ...x, known: true } : x)) }));
+      ctx.log(`Se llama ${n.name}. ${n.description ?? ''}`.trim(), 'info');
+    },
+
     [SHARED_EVENTS.COMPETITION_RESULT]: (ctx, ev) => {
       const r = ev.data as CompetitionResultData;
       ctx.updateState<NpcsState>((s) => ({
@@ -538,6 +560,7 @@ export const npcs = defineModule<NpcsState>({
       const intervalo = limitesDeTramos(lista, agendaDe).filter((m) => m <= t.minuteOfDay).length;
       const indice = indiceDePresencia(lista, `${t.day}:${intervalo}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
       return {
+        version: indice.version,
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso)),
         donde: (id) => {
           const n = lista.find((x) => x.id === id);

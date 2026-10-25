@@ -9,6 +9,7 @@ import {
   type ClubDirectory,
   type LugaresService,
   type PresenciaService,
+  GENTE_CERCANA,
   descripcionDeDesconocido,
   type FamilyService,
   type IdentityService,
@@ -34,6 +35,7 @@ import {
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
 import { clicEnGente, reiniciarGente, viewPanelGente } from './gente';
+import { aJSON, crearAlmacen, deJSON, pedirAlmacenamientoPersistente, type AgendaItem, type Almacen, type SaveFile } from './almacen';
 
 /**
  * Interfaz web mínima. Solo habla con el motor (@ds/game / @ds/core): no conoce
@@ -42,19 +44,10 @@ import { clicEnGente, reiniciarGente, viewPanelGente } from './gente';
 
 // ------------------------------------------------------------------ estado de la UI
 
-interface AgendaItem {
-  start: number;
-  duration: number;
-  name: string;
-  rest: boolean;
-}
-interface SaveFile {
-  state: GameState;
-  agenda: AgendaItem[];
-}
 type Tab = 'hacer' | 'personaje' | 'gente' | 'relaciones' | 'diario';
 
-const SAVE_KEY = 'dinasty-sports:partida';
+/** Dónde se guardaban las partidas antes de IndexedDB (se migran al abrir el juego). */
+const CLAVE_ANTIGUA = 'dinasty-sports:partida';
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const ESTADO = [GEN.energia, GEN.salud, GEN.estres, GEN.motivacion];
 /** Stats en las que subir es malo (se pintan al revés). */
@@ -70,29 +63,55 @@ const app = document.getElementById('app')!;
 
 // ------------------------------------------------------------------ guardado
 
-/** Guardar cuesta lo que pesa la partida (con cientos de personas, decenas de milisegundos): se agrupa lo que pasa en medio segundo. */
+/** Dónde se guarda (IndexedDB, o en memoria si el navegador no lo permite). Plan: `docs/ALMACENAMIENTO.md`. */
+let almacen: Almacen | null = null;
+/** Último motivo por el que no se pudo guardar (se enseña en la cabecera). */
+let errorDeGuardado: string | null = null;
 let guardadoPendiente: ReturnType<typeof setTimeout> | undefined;
+let hayCambios = false;
+let guardando = false;
+let pidioPersistencia = false;
 
+/** Guardar cuesta lo que pesa la partida: se agrupa lo que pasa en medio segundo y nunca se guarda a la vez dos veces. */
 function save(): void {
+  hayCambios = true;
   if (guardadoPendiente !== undefined) return;
-  guardadoPendiente = setTimeout(guardarYa, 500);
+  guardadoPendiente = setTimeout(() => void guardarYa(), 500);
 }
 
-function guardarYa(): void {
+async function guardarYa(): Promise<void> {
   if (guardadoPendiente !== undefined) clearTimeout(guardadoPendiente);
   guardadoPendiente = undefined;
-  if (!game) return;
+  if (guardando || !almacen) return; // si ya está guardando, lo hará de nuevo al acabar si hay cambios
+  guardando = true;
   try {
-    const data: SaveFile = { state: game.serialize(), agenda: agenda.slice(-60) };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-  } catch {
-    /* sin almacenamiento disponible: la partida sigue en memoria */
+    while (hayCambios && game) {
+      hayCambios = false;
+      await almacen.guardar({ state: game.serialize(), agenda: agenda.slice(-60) });
+      errorDeGuardado = null;
+    }
+    if (!pidioPersistencia && almacen.tipo === 'indexeddb') {
+      pidioPersistencia = true;
+      void pedirAlmacenamientoPersistente();
+    }
+  } catch (e) {
+    console.warn('No se pudo guardar la partida', e);
+    errorDeGuardado = e instanceof Error ? e.message : 'error desconocido';
+  } finally {
+    guardando = false;
+    const aviso = document.getElementById('aviso-guardado');
+    if (aviso) aviso.textContent = textoDeAvisoDeGuardado();
   }
 }
 
+function textoDeAvisoDeGuardado(): string {
+  if (errorDeGuardado) return `No se pudo guardar la partida (${errorDeGuardado}). Exporta una copia para no perderla.`;
+  return almacen?.tipo === 'memoria' ? 'Este navegador no permite guardar: la partida se perderá al cerrar la pestaña. Puedes exportar una copia.' : '';
+}
+
 // Al cerrar o cambiar de pestaña se guarda lo que quede pendiente.
-window.addEventListener('pagehide', () => guardadoPendiente !== undefined && guardarYa());
-document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && guardadoPendiente !== undefined && guardarYa());
+window.addEventListener('pagehide', () => hayCambios && void guardarYa());
+document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && hayCambios && void guardarYa());
 
 /** Aviso en la pantalla inicial cuando se descarta una partida guardada que ya no sirve (alfa: sin compatibilidad entre versiones). */
 let avisoPartidaAntigua = false;
@@ -101,24 +120,72 @@ function descartarPartida(): void {
   game = null;
   agenda = [];
   avisoPartidaAntigua = true;
+  void almacen?.borrar().catch(() => undefined);
+}
+
+/** Una partida de la versión anterior del guardado (localStorage): se recoge una vez y se borra de allí. */
+function recogerPartidaAntigua(): SaveFile | null {
   try {
-    localStorage.removeItem(SAVE_KEY);
+    const raw = localStorage.getItem(CLAVE_ANTIGUA);
+    if (!raw) return null;
+    localStorage.removeItem(CLAVE_ANTIGUA);
+    return JSON.parse(raw) as SaveFile;
   } catch {
-    /* nada */
+    return null;
   }
 }
 
-function load(): void {
+async function load(): Promise<void> {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return;
-    const data = JSON.parse(raw) as SaveFile;
+    let data = await almacen!.cargar();
+    if (!data) {
+      data = recogerPartidaAntigua();
+      if (data) save(); // pasa a IndexedDB
+    }
+    if (!data) return;
     game = cargarPartida(data.state);
     agenda = data.agenda ?? [];
   } catch (e) {
     console.warn('No se pudo cargar la partida guardada', e);
     descartarPartida();
   }
+}
+
+// ------------------------------------------------------------------ copias de seguridad
+
+function exportarPartida(): void {
+  if (!game) return;
+  const texto = aJSON({ state: game.serialize(), agenda: agenda.slice(-60) });
+  const enlace = document.createElement('a');
+  enlace.href = URL.createObjectURL(new Blob([texto], { type: 'application/json' }));
+  enlace.download = `dinasty-sports-${game.playerName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`;
+  enlace.click();
+  setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+}
+
+function importarPartida(): void {
+  if (game && !confirm('Importar una copia sustituye la partida actual. ¿Seguir?')) return;
+  const entrada = document.createElement('input');
+  entrada.type = 'file';
+  entrada.accept = 'application/json,.json';
+  entrada.onchange = async () => {
+    const archivo = entrada.files?.[0];
+    if (!archivo) return;
+    try {
+      const data = deJSON(await archivo.text());
+      game = cargarPartida(data.state);
+      agenda = data.agenda;
+      lastResult = null;
+      tab = 'hacer';
+      reiniciarGente();
+      avisoPartidaAntigua = false;
+      save();
+      render();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo importar la copia.');
+    }
+  };
+  entrada.click();
 }
 
 // ------------------------------------------------------------------ utilidades
@@ -155,6 +222,8 @@ function viewStart(): string {
       <input id="nombre" name="nombre" maxlength="24" autocomplete="off" value="Alex" required />
       <button class="primary" type="submit">Empezar el curso</button>
     </form>
+    <p class="note"><button data-act="importar">Importar una copia de seguridad</button></p>
+    <p class="note loss" id="aviso-guardado">${esc(textoDeAvisoDeGuardado())}</p>
   </section></main>`;
 }
 
@@ -185,11 +254,12 @@ function viewDay(g: Game): string {
   return `<header class="day">
     <div class="day-top">
       <h1 class="clock">${hhmm(t.minuteOfDay)}<small>${DIAS[t.weekday]} · curso ${t.schoolYear + 1}, semana ${t.schoolWeek + 1}<br>${t.period === 'clase' ? `${t.term}.º trimestre` : NOMBRE_PERIODO[t.period]}</small></h1>
-      <div class="who"><strong>${esc(g.playerName)}</strong><button data-act="reiniciar">Nueva partida</button></div>
+      <div class="who"><strong>${esc(g.playerName)}</strong><span class="copias"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="reiniciar">Nueva partida</button></span></div>
     </div>
     <div class="lane" role="img" aria-label="Lo que has hecho hoy">${blocks}<span class="lane-now" style="left:calc(${now}% - 1px)"></span></div>
     <div class="lane-hours"><span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>24 h</span></div>
     <div class="meters">${meters}</div>
+    <p class="note loss" id="aviso-guardado">${esc(textoDeAvisoDeGuardado())}</p>
     <p class="money">Dinero: <b>${g.stat(GEN.dinero).toLocaleString('es-ES', { maximumFractionDigits: 2 })} €</b></p>
   </header>`;
 }
@@ -248,7 +318,7 @@ function viewGente(g: Game, lugar: string): string {
   const presencia = g.service<PresenciaService>(SERVICES.presencia);
   if (!presencia) return '';
   const rel = g.service<RelationsService>(SERVICES.relaciones);
-  const MAX = 40;
+  const MAX = GENTE_CERCANA;
   const todos = presencia.en(lugar);
   if (!todos.length) return '<h3>Gente aquí</h3><p class="note">No hay nadie.</p>';
   const ROL: Record<string, string> = { entrenador: 'Entrenador', profesor: 'Profesor', companero: 'Compañero', amigo: 'Amigo', rival: 'Rival', familia: 'Familia' };
@@ -264,7 +334,7 @@ function viewGente(g: Game, lugar: string): string {
       return `<div class="persona"><b>${esc(n.name)}</b><span>${esc([ROL[n.role], estado].filter(Boolean).join(' · '))}</span></div>`;
     })
     .join('');
-  return `<h3>Gente aquí (${todos.length})</h3><div class="gente">${tarjetas}</div>${todos.length > MAX ? `<p class="note">Y ${todos.length - MAX} más.</p>` : ''}`;
+  return `<h3>Gente cerca (${Math.min(MAX, todos.length)})</h3><div class="gente">${tarjetas}</div>${todos.length > MAX ? '<p class="note">Hay más gente por aquí, pero no tienes cerca a nadie más.</p>' : ''}`;
 }
 
 /** Pantalla del lugar: dónde estás y a dónde puedes ir (los vecinos primero y, desplegable, todo el mapa con lo que cuesta). */
@@ -296,7 +366,8 @@ function viewLugar(g: Game): string {
 
 function viewActions(g: Game): string {
   // Los desplazamientos se hacen desde la pantalla del lugar, no desde la lista de acciones.
-  const opts = g.listActions().filter((o) => o.module !== 'lugares');
+  // Los desplazamientos se hacen desde la pantalla del lugar y preguntar nombres, desde el panel «Gente».
+  const opts = g.listActions().filter((o) => o.module !== 'lugares' && !o.id.startsWith('relaciones.presentarse.'));
   const groups = new Map<string, ActionOption[]>();
   for (const o of opts) {
     if (!o.available && !showUnavailable) continue;
@@ -560,7 +631,7 @@ function viewGame(g: Game): string {
   } else if (tab === 'personaje') {
     main = viewIdentity(g) + viewCharacter(g);
     side = viewResults(g);
-  } else if (tab === 'gente') main = viewPanelGente(g);
+  } else if (tab === 'gente') main = viewResult() + viewPanelGente(g);
   else if (tab === 'relaciones') main = viewPeople(g);
   else main = viewLog(g);
 
@@ -581,6 +652,10 @@ function render(): void {
 
 app.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-do],[data-tab],[data-act],[data-gente]');
+  if (el?.dataset.act === 'importar') {
+    importarPartida();
+    return;
+  }
   if (!el || !game) return;
   if (el.dataset.gente) {
     if (clicEnGente(el)) render();
@@ -596,9 +671,14 @@ app.addEventListener('click', (e) => {
     render();
     return;
   }
+  if (el.dataset.act === 'exportar') {
+    exportarPartida();
+    return;
+  }
   if (el.dataset.act === 'reiniciar') {
     if (confirm('¿Empezar una partida nueva? Se perderá la actual.')) {
-      try { localStorage.removeItem(SAVE_KEY); } catch { /* nada */ }
+      hayCambios = false;
+      void almacen?.borrar().catch(() => undefined);
       game = null;
       agenda = [];
       lastResult = null;
@@ -632,15 +712,20 @@ app.addEventListener('submit', (e) => {
   render();
 });
 
-load();
-try {
-  render();
-} catch (e) {
-  // Una partida guardada con otra forma de datos puede cargar y romper al dibujar: se descarta y se empieza de cero.
-  console.error('No se pudo dibujar la partida guardada', e);
-  descartarPartida();
-  render();
+async function iniciar(): Promise<void> {
+  app.innerHTML = '<main class="app"><p class="note">Cargando…</p></main>';
+  almacen = await crearAlmacen();
+  await load();
+  try {
+    render();
+  } catch (e) {
+    // Una partida guardada con otra forma de datos puede cargar y romper al dibujar: se descarta y se empieza de cero.
+    console.error('No se pudo dibujar la partida guardada', e);
+    descartarPartida();
+    render();
+  }
 }
+void iniciar();
 
 // ------------------------------------------------------------------ PWA (instalable y sin conexión)
 

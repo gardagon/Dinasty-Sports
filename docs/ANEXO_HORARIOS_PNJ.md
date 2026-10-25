@@ -140,7 +140,7 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 - **Qué hacer cuando lleguen los deportes de equipo (de menor a mayor esfuerzo):**
   1. **Compactar los rasgos** (ids numéricos en vez de textos): de 535 a unos 60 bytes, unas 15 000 personas en 5 MB.
   2. **Guardar solo lo que cambia:** la población sale de la semilla (es determinista) y la partida guarda solo las diferencias (la conoces, está en tu club, su nivel). Sin límite práctico.
-  3. **IndexedDB** en lugar de `localStorage`: sube el límite de ~5 MB a cientos de MB. Coste y alcance en la sección «IndexedDB».
+  3. **IndexedDB** en lugar de `localStorage` (**hecho**, ver `docs/ALMACENAMIENTO.md`): sube el límite de ~5 MB a cientos de MB.
 - **Presencia:** nadie aparece ni desaparece mientras no cambie un tramo: dentro de un tramo cada persona está siempre en el mismo sitio (su destino sale de un hash de persona, día y tramo, no del minuto). Por eso la presencia de toda la población se calcula **una vez por intervalo entre dos cambios de tramo de cualquier agenda** (unas 10 veces al día: 7:50, 10:00, 14:00, 15:00...) y se reutiliza. Un test avanza de 6 en 6 minutos durante dos días y comprueba que lo reutilizado coincide, a cualquier minuto, con calcular persona a persona. En clase son los mismos 25 durante las cuatro clases y el recreo.
 
 ### IndexedDB: qué cuesta y qué da
@@ -153,8 +153,8 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 
 ## 6. Pendiente
 
-- **Preguntar el nombre** como acción (cuesta tiempo) que pasa de desconocido a conocido.
-- **Panel «Gente»** con filtros y barras de relación, como el de referencia.
+- **Ligar las acciones de relación a la presencia** (hablar con alguien solo si está donde estás).
+
 - **Pestaña del deporte:** habilidades, clasificación de todas las carreras del año y demás.
 - **Horarios de apertura** de los comercios y de los lugares (cerrado según la hora).
 - **Eventos y decisiones:** pendientes de todo lo demás.

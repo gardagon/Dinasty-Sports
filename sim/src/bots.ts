@@ -62,7 +62,7 @@ export const apuntarseAlClub = id('atletismo.apuntarse_colegio');
 export const clase: Pred = (o) => /^estudios\.clase_\d$/.test(o.id);
 export const estudio = all(tag(TAGS.estudio), not(clase), not(tag(TAGS.social)));
 /** Acciones de relación constructivas (quedar, charlar, ayudar...): los bots nunca discuten. */
-export const relacion = (o: ActionOption) => o.id.startsWith('relaciones.') && !/^relaciones\.(discutir|paces)\./.test(o.id);
+export const relacion = (o: ActionOption) => o.id.startsWith('relaciones.') && !/^relaciones\.(discutir|paces|presentarse)\./.test(o.id);
 
 /** Reglas de supervivencia comunes: dormir de noche, ir a clase, competir, no reventar. */
 export function basicas(

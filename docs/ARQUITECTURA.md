@@ -121,7 +121,7 @@ Rasgos genéticos heredables con bonus o malus (`contracts/perks.ts`): catálogo
 
 ## Guardado
 
-`GameState` es JSON plano. Su formato lleva una versión (`SAVE_VERSION`). En la fase alfa **no se mantiene compatibilidad**: se sube la versión cada vez que cambia la forma del estado de algún módulo; `Game.load` rechaza las partidas de otra versión y la interfaz descarta cualquier guardado que no se pueda cargar o dibujar y vuelve a la pantalla inicial con un aviso.
+`GameState` es JSON plano y la interfaz lo guarda en IndexedDB (copias de seguridad en JSON; plan y fases en [`ALMACENAMIENTO.md`](ALMACENAMIENTO.md)). Su formato lleva una versión (`SAVE_VERSION`). En la fase alfa **no se mantiene compatibilidad**: se sube la versión cada vez que cambia la forma del estado de algún módulo; `Game.load` rechaza las partidas de otra versión y la interfaz descarta cualquier guardado que no se pueda cargar o dibujar y vuelve a la pantalla inicial con un aviso.
 
 ## Rasgos de las personas
 

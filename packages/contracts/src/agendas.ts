@@ -16,6 +16,9 @@ import type { TimeView, Weekday } from './time';
  * y no hace falta guardarlo. Los horarios están en `docs/ANEXO_HORARIOS_PNJ.md`.
  */
 
+/** Cuánta gente ves a la vez en un lugar (como en el juego de referencia): con cientos en el colegio, solo estas son las que tienes cerca y con las que puedes hablar. */
+export const GENTE_CERCANA = 40;
+
 /** Dónde se puede estar: un lugar del mapa o `null` (fuera del mapa: casa propia, trabajo, otro colegio...). */
 export type Sitio = LugarId | null;
 
@@ -161,7 +164,11 @@ export function construirAgenda(tipos: readonly TipoAsignado[], datos: DatosDeAg
 /** Número entre 0 y 1 que sale de las partes dadas y siempre es el mismo para ellas (FNV-1a). Es el azar de las agendas. */
 export function azarDe(...partes: (string | number)[]): number {
   let hash = 0x811c9dc5;
-  for (const c of partes.join('|')) hash = Math.imul(hash ^ c.charCodeAt(0), 0x01000193);
+  for (const p of partes) {
+    const t = typeof p === 'number' ? String(p) : p;
+    for (let i = 0; i < t.length; i++) hash = Math.imul(hash ^ t.charCodeAt(i), 0x01000193);
+    hash = Math.imul(hash ^ 124, 0x01000193); // separador entre partes
+  }
   hash ^= hash >>> 15;
   hash = Math.imul(hash, 0x2c1b3c6d);
   hash ^= hash >>> 12;
@@ -177,16 +184,36 @@ export interface Ubicacion {
   tipo: TipoDeAgenda | 'base';
 }
 
+/**
+ * Qué tramos valen en un momento (por día y hora, sin contar el azar de cada persona). Solo depende de la agenda y del momento, así que
+ * se recuerda por agenda: las personas con los mismos tipos comparten agenda y, al ubicar a toda la población, esto se calcula una vez por
+ * agenda y no una vez por persona.
+ */
+const VIGENTES = new WeakMap<readonly TramoDeAgenda[], { clave: number; indices: number[] }>();
+
+function tramosVigentes(agenda: readonly TramoDeAgenda[], t: TimeView): number[] {
+  const clave = t.minute;
+  const guardado = VIGENTES.get(agenda);
+  if (guardado?.clave === clave) return guardado.indices;
+  const indices: number[] = [];
+  for (let i = 0; i < agenda.length; i++) {
+    const x = agenda[i];
+    if (t.minuteOfDay >= x.desde && t.minuteOfDay < x.hasta && vale(x.dias, t)) indices.push(i);
+  }
+  VIGENTES.set(agenda, { clave, indices });
+  return indices;
+}
+
 /** Dónde está una persona a una hora: el tramo de mayor nivel que vale ahora (a igualdad, el último) y, dentro de él, su destino del día. */
 export function ubicacionEn(agenda: readonly TramoDeAgenda[], t: TimeView, persona: string): Ubicacion {
   let mejor = -1;
-  for (let i = 0; i < agenda.length; i++) {
+  for (const i of tramosVigentes(agenda, t)) {
     const x = agenda[i];
-    if (t.minuteOfDay < x.desde || t.minuteOfDay >= x.hasta || !vale(x.dias, t)) continue;
     if (x.asistencia !== undefined && azarDe(persona, t.day, i, 'va') >= x.asistencia) continue;
     if (mejor < 0 || x.nivel >= agenda[mejor].nivel) mejor = i;
   }
   const x = agenda[mejor];
+  if (x.destinos.length === 1) return { sitio: x.destinos[0][0], nivel: x.nivel, tipo: x.tipo };
   const total = x.destinos.reduce((s, [, peso]) => s + peso, 0);
   let tirada = azarDe(persona, t.day, mejor, 'donde') * total;
   for (const [sitio, peso] of x.destinos) {
@@ -197,6 +224,11 @@ export function ubicacionEn(agenda: readonly TramoDeAgenda[], t: TimeView, perso
 }
 
 export interface PresenciaService {
+  /**
+   * Cambia cuando cambia quién hay dónde (un cambio de tramo, de día o de personas) y no antes: sirve para recordar lo que se calcula
+   * a partir de la presencia sin recalcularlo en cada acción.
+   */
+  readonly version: number;
   /**
    * Personas que hay ahora en un lugar. Primero las de mayor nivel (profesores, el club, los amigos) y después las demás en
    * un orden que no cambia mientras dure el tramo; como mucho `max` (por defecto, todas).

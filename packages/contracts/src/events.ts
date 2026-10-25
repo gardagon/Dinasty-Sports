@@ -25,7 +25,13 @@ export const SHARED_EVENTS = {
   CLUB_JOIN: 'club.unirse',
   /** data: ClubLeaveData */
   CLUB_LEAVE: 'club.salir',
+  /** data: PresentacionData — el personaje pregunta el nombre a alguien y se presentan: pasa de desconocido a conocido. */
+  PRESENTACION: 'persona.presentarse',
 } as const;
+
+export interface PresentacionData {
+  npcId: string;
+}
 
 export interface ClubJoinData {
   /** Deporte (p. ej. 'atletismo'). */

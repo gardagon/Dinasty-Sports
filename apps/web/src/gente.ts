@@ -1,4 +1,5 @@
 import {
+  GENTE_CERCANA,
   SERVICES,
   describirApariencia,
   descripcionDeDesconocido,
@@ -56,7 +57,7 @@ function personasDe(g: Game, f: Filtro): NpcView[] {
   if (!dir) return [];
   if (f === 'aqui') {
     const lugar = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
-    return lugar ? (g.service<PresenciaService>(SERVICES.presencia)?.en(lugar) ?? []) : [];
+    return lugar ? (g.service<PresenciaService>(SERVICES.presencia)?.en(lugar, GENTE_CERCANA) ?? []) : [];
   }
   const lista =
     f === 'conocidos' ? dir.list({ known: true })
@@ -87,7 +88,12 @@ function ficha(g: Game, n: NpcView): string {
   if (pestana === 'aspecto') {
     cuerpo = `<p>${esc(aspecto(n))}.</p>${n.rasgos ? `<p class="note">${esc(describirApariencia(n.rasgos.apariencia))}.</p>` : ''}`;
   } else if (!conocida(n)) {
-    cuerpo = `<p>${esc(aspecto(n))}.</p><p class="note">Todavía no sabes cómo se llama. ${n.description ? esc(n.description) : ''}</p>${barra('Amistad', 0, 'amistad')}${barra('Confianza', 0, 'confianza')}`;
+    // Preguntar el nombre solo se puede a quien tienes cerca (el motor lo dice en la disponibilidad de la acción).
+    const pregunta = g.preview(`relaciones.presentarse.${n.id}`);
+    const boton = pregunta?.available
+      ? `<button class="action" data-do="${esc(pregunta.id)}"><span class="action-name">Preguntar su nombre</span><span class="action-time">${pregunta.duration} min</span></button>`
+      : `<p class="note">${pregunta ? esc(pregunta.reason ?? '') : 'No la tienes cerca: para preguntarle el nombre tienes que coincidir con ella.'}</p>`;
+    cuerpo = `<p>${esc(aspecto(n))}.</p><p class="note">Todavía no sabes cómo se llama. ${n.description ? esc(n.description) : ''}</p>${barra('Amistad', 0, 'amistad')}${barra('Confianza', 0, 'confianza')}${boton}`;
   } else {
     const nivel = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
     cuerpo = `<p>${esc(n.description ?? '')}</p>${rel ? `<p class="note"><b>${esc(nombreEstado(rel.estado, n.gender))}</b></p>` : ''}${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}${nivel ? `<p class="note">Nivel: ${esc(nivel)}</p>` : ''}${n.club ? `<p class="note">Club: ${esc(n.club)}</p>` : ''}`;
