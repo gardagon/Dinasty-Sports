@@ -5,12 +5,24 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Valores iniciales más repartidos, nota del primer año y arreglo del bot perfecto
+
+- **Observación (usuario):** en las primeras semillas todas las capacidades salían entre 10 y 14 (11–17, 11–18 en las otras): sospechoso, porque se había hablado de un rango bajo (5–20 en la implementación, a partir del «1–20» del usuario) y alguien con tope 92 en velocidad puede arrancar en 17, pero que ninguna baje de 10 no es creíble.
+- **Causa:** el nivel inicial heredado era `tope del progenitor × factor (0,7–0,9) × (1 ± 20 %) / 100`. Con topes típicos (45–70) eso da 0,3–0,6 y, escalado a 5–20, un efectivo de 8,4–19,5 con p5 = 10,4 y p95 = 15,1.
+- **Arreglo** (`nivelInicialHeredado`): la variación sube a ±30 % y el valor se lleva de la escala 22–80 (la que cubren los topes de los padres) a 0–1 antes de escalar al rango inicial. Con 300 semillas: mínimo 5,0; p5 7,8; p25 9,9; **mediana 11,9**; p75 14,0; p95 17,6; máximo 20,0. Quien tiene tope ≥ 85 arranca de media en 16,3 y quien tiene tope ≤ 45 en 9,2. Los promedios de la simulación no cambian.
+- **Bot perfecto — la causa real:** `sim:vida` no apuntaba las acciones usadas (`mem.total`), de modo que el criterio «lo menos usado» siempre elegía la primera opción: estudiaba **una sola asignatura** y entrenaba siempre las mismas capacidades. Por eso salía con ~5 de nota y con muchas capacidades sin entrenar. Con el arreglo: notas de 6,8 a 7,9 en primaria, 5–6 en la ESO (más asignaturas con el mismo tiempo) y 7–8 al final; sus 6 mejores capacidades siguen en 23 % a los 8, 52 % a los 12, 81 % a los 18 y 92 % a los 24. Además el bot descansa más (energía mínima 40, o 70 si la salud baja de 60) porque, haciendo todo, se agotaba.
+- **Nota del primer año del equilibrado — recalibración de estudios.** Para que el equilibrado ronde el 6 y el empollón el 8 hubo que escalar a la vez la ganancia y el olvido: curva de rendimientos decrecientes 1,0 → 0,6 (se mantiene el ritmo cerca del techo), estudiar una asignatura 3 → 0,48, clase 0,9 → 0,54, repaso 0,6 → 0,36, academia 6 → 3,6 y caída diaria 0,3 → 0,29; techo base 0,5. Con la misma proporción ganancia/olvido el nivel de equilibrio no cambia, pero la caída queda suave (~2 puntos a la semana sin estudiar). Resultado a tres años (4 semillas): equilibrado 6,0–6,4; empollón 7,8–8,1; atleta 3,7–4,3. En el primer año completo: equilibrado 5,8; empollón 6,9 (sube con los años); atleta 4,1; vago 2,1.
+- **Lección:** al comparar bots hay que usar la misma memoria (`mem.total`) que `runBot`; un script de diagnóstico sin ella da resultados falsos.
+- **Umbral:** «El esfuerzo hace progresar» (simulación rápida, 28 días) pide ahora estudios > +1 (antes > +6): en un mes la preparación apenas se mueve por el olvido diario; el año completo sí sube.
+
+---
+
 ## 24/10/2026 — `sim:vida` mide las capacidades que se entrenan: el bot perfecto sí llega (sin tocar el motor)
 
 - **Duda (usuario):** cómo ajustar para que el bot perfecto pueda llegar a ~85 a los 24 con tope 90 sin desmontar la base.
 - **Diagnóstico:** se imprimió, por edad, cada capacidad del bot perfecto frente a su tope. Las que entrena (velocidad, resistencia, inteligencia, comunicación, carisma...) llegan al **90–97 % del tope a los 22–24 años** (p. ej. velocidad 61/64, 73/76, 32/35). Las que nunca entrena (constitución, agilidad, autoridad, picardía...) se quedan en el mínimo natural (~45 %). La tabla de `sim:vida` promediaba las 18 capacidades, por eso parecía que solo se llegaba al ~70 %. **No hay que tocar ritmos, curvas ni caídas.**
 - **Medición nueva:** `sim:vida` añade la columna **«6 mejores capacidades (% del tope)»**, la media de nivel/tope de las 6 capacidades más cercanas a su tope. Con 3 semillas sale: 8 años 22–25 %, 10: 40 %, 12: 51 %, 14: 62 %, 16: 72 %, **18: 79–80 %**, 20: 84 %, 22: 88 %, **24: 90–91 %**. Es decir, nadie llega al máximo a los 18, el pico llega hacia los 24 y las capacidades al 95 % del tope son 3 de 21 (nadie lo tiene todo). Cuadra con el ejemplo del usuario (tope 90 → ~85 a los 24, unos 7 puntos por año de media y algo más de niño).
-- **Observación:** el bot perfecto saca solo ~5 de nota media; sus dos sesiones de estudio diarias reparten poco entre 7–8 asignaturas. Es un problema del bot (`CLAUDE.md`: se arregla el bot, no el juego), no se toca ahora.
+- **Observación:** el bot perfecto saca solo ~5 de nota media; sus dos sesiones de estudio diarias reparten poco entre 7–8 asignaturas. Era un problema del bot (`CLAUDE.md`: se arregla el bot, no el juego): se arregló el 25/10 (ver la entrada de esa fecha: `sim:vida` no apuntaba las acciones usadas).
 
 ---
 

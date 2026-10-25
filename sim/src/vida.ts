@@ -21,7 +21,7 @@ export const PERFECTO: Bot = {
   description: 'Entrena todo lo que puede (deporte, estudios, gimnasio, lectura, relaciones) cuidando el sueño y el estrés.',
   choose(game, opts, _rng, mem) {
     return (
-      basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
+      basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: game.stat(GEN.salud) < 60 ? 70 : 40 }) ??
       seguirPlan(opts, mem, [
         ['unirse', 1, apuntarseAlClub],
         ['subir', 1, subirDeCategoria],
@@ -120,7 +120,10 @@ export function simular(bot: Bot, seed: number, anios: number, alCumplir?: (game
       problemas.push(`Día ${game.time.day}: ninguna acción disponible`);
       break;
     }
-    const r = game.perform(bot.choose(game, opts, rng, mem));
+    const eleccion = bot.choose(game, opts, rng, mem);
+    const r = game.perform(eleccion);
+    // Los bots reparten su tiempo eligiendo lo menos usado (`leastUsed`): sin esta cuenta siempre repiten la primera opción.
+    mem.total[eleccion] = (mem.total[eleccion] ?? 0) + 1;
     if (!r.ok) {
       problemas.push(`Día ${game.time.day}: acción fallida (${r.reason})`);
       if (problemas.length > 10) break;

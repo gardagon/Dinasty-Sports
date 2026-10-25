@@ -19,7 +19,7 @@ export const HERENCIA = {
   /** Variación de la estatura heredada, en puntuación típica (la estatura sí se promedia: media de los dos padres). */
   variacionZ: 0.4,
   /** Nivel inicial: factor de herencia (aleatorio por hijo) y variación sobre el tope del progenitor. */
-  nivelInicial: { factorMin: 0.7, factorMax: 0.9, variacion: 0.2 },
+  nivelInicial: { factorMin: 0.7, factorMax: 0.9, variacion: 0.3, bajo: 22, alto: 80 },
 } as const;
 
 export type Dificultad = 'facil' | 'normal' | 'dificil';
@@ -223,11 +223,14 @@ export function heredarTope(topeDelProgenitor: number, rng: Rng): number {
 
 /**
  * Nivel inicial heredado, entre 0 y 1: el tope del progenitor elegido por un factor de herencia (propio de cada hijo,
- * entre 0,7 y 0,9) y una variación, sobre 100. El módulo lo escala al rango inicial de la característica.
+ * entre 0,7 y 0,9) y una variación de ±30 %, llevado de la escala 22–80 (la que cubren los topes de los padres) a 0–1 para
+ * aprovechar todo el rango inicial: un padre con tope bajo da un hijo cerca del mínimo y uno con tope alto, cerca del máximo.
+ * El módulo lo escala al rango inicial de la característica.
  */
 export function nivelInicialHeredado(topeDelProgenitor: number, factor: number, rng: Rng): number {
   const raw = topeDelProgenitor * factor * (1 + rng.range(-HERENCIA.nivelInicial.variacion, HERENCIA.nivelInicial.variacion));
-  return Math.min(1, Math.max(0, raw / 100));
+  const { bajo, alto } = HERENCIA.nivelInicial;
+  return Math.min(1, Math.max(0, (raw - bajo) / (alto - bajo)));
 }
 
 /** Estatura heredada: la media de los dos padres (en puntuación típica) más una variación. */
