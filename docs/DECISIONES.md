@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Presencia de personas por lugar y hora
+
+- **Decidido con el usuario:** cada persona almacena dónde va a estar; la tabla se rellena a partir de **tipos** y, si dos coinciden, manda el dominante (dos niveles de prioridad, ampliado a cuatro: base, rol, pertenencia y evento). El ejemplo que lo motivó: un compañero de clase que por un evento se apunta a tu club sigue yendo a clase, pero en la tarde de entrenamiento está donde entrena el club.
+- **Qué se guarda:** solo la lista de tipos por persona (`Npc.tipos`). Los tramos se calculan y se recuerdan en memoria; así un cambio de tipo no deja una tabla desfasada y el guardado sigue pequeño con cientos de personas.
+- **Azar al llegar a un lugar, no por reloj:** a qué sitio va de varios posibles y si falta ese día sale de un hash de (persona, día, tramo). Es estable dentro del tramo. Los rivales solo van al 40 % de las carreras de los sábados y al 85 % de las sesiones de su club.
+- **Rendimiento:** la presencia se calcula solo cuando se mira un lugar (la pantalla o el servicio), nunca para toda la población a cada paso del reloj. Con ~100 personas la consulta cuesta una fracción de milisegundo.
+- **«Fuera» del mapa:** solo la familia está en `casa`. El resto tiene su casa fuera del mapa (`null`), igual que el trabajo de los padres (de momento no hace falta crearlo; en la fase profesional habrá que valorar muchos lugares, o más bien desbloquearlos). Los rivales de otros colegios y clubes no están en nuestro colegio: solo coinciden en el estadio.
+- **Pantalla:** «Gente aquí» en la pantalla del lugar (hasta 40, primero los de mayor nivel). Los desconocidos se muestran como `???` con una frase sobre su aspecto (`descripcionDeDesconocido`).
+- **Horarios cerrados** y **plan de población** (~410 PNJs: 25 alumnos por aula, equipo de atletismo del colegio, 12 clubes y colegios de fuera, vecinos): en `docs/ANEXO_HORARIOS_PNJ.md`. La población está pendiente de aprobar; los horarios, cerrados.
+- **Se sube `SAVE_VERSION` a 9** (las personas guardan sus tipos).
+- **Pendiente:** generar la población nueva, preguntar el nombre como acción, panel «Gente» con filtros y barras como el de referencia, pestaña del deporte (clasificaciones de todas las carreras del año) y horarios de apertura de los comercios.
+
+---
+
 ## 25/10/2026 — Añadir una stat ya no cambia al personaje de una semilla
 
 - **El problema:** el azar de cada stat salía de un único hilo secuencial y la semilla de la genética dependía del número de stats. Añadir cualquier stat (el dinero) recolocaba a todas las demás: la misma semilla daba otro personaje, y las cifras de la simulación no se podían comparar entre versiones.

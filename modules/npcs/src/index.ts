@@ -26,6 +26,15 @@ import {
   type NpcDirectory,
   type NpcRole,
   type NpcView,
+  type ClubDirectory,
+  type DatosDeAgenda,
+  type PresenciaService,
+  type SesionDeClub,
+  type TipoAsignado,
+  azarDe,
+  construirAgenda,
+  ubicacionEn,
+  type TramoDeAgenda,
 } from '@ds/contracts';
 
 /**
@@ -78,6 +87,8 @@ export interface Npc {
   known?: boolean;
   /** Club al que pertenece (los rivales). */
   club?: string;
+  /** Tipos de agenda: de ellos sale dónde está a cada hora (ver `contracts/agendas.ts`). */
+  tipos?: TipoAsignado[];
   description?: string;
 }
 
@@ -161,7 +172,7 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
   const nacimiento = primerDiaDelAnio(anioNatural(day) - edad) + rng.int(0, 364);
   // Su nivel depende de su edad real (puede ser menor que la de competición si nació tarde dentro de su año).
   const techo = potencial * desarrolloRival((day - nacimiento) / 365 + desfase);
-  return {
+  const rival: Npc = {
     id: `rival_${num}`,
     name,
     role: 'rival',
@@ -179,6 +190,9 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
     club: rng.pick(CLUBES_RIVALES),
     description: 'Compite en atletismo.',
   };
+  // Vive y estudia fuera del mapa: solo coincide con el personaje en las sesiones de su club y en las carreras.
+  rival.tipos = [{ tipo: 'rival', club: rival.club }];
+  return rival;
 }
 
 function rivalesIniciales(rng: Rng, usados: Set<string>): Npc[] {
@@ -235,24 +249,28 @@ function generarReparto(ctx: InitContext): Npc[] {
       tags: ['atletismo', 'mentor'],
       supports: ['atletismo'],
       description: 'Entrena al grupo de atletismo del colegio.',
+      tipos: [{ tipo: 'entrenador', club: 'colegio' }],
     })),
     npc('tutor', 'profesor', (g) => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, honestidad: 10 }, interesesPreferidos: ['estudio', 'lectura'] }),
       tags: ['estudio', 'mentor'],
       supports: [TAGS.estudio],
       description: `${o(g, 'Tu tutora', 'Tu tutor')}. Exigente pero ${o(g, 'justa', 'justo')}.`,
+      tipos: [{ tipo: 'profesor' }],
     })),
     npc('companero_estudio', 'companero', (g) => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, sociabilidad: -5 }, interesesPreferidos: ['estudio', 'tecnologia'] }),
       tags: ['estudio'],
       supports: [TAGS.estudio],
       description: `${o(g, 'Compañera de clase aplicada', 'Compañero de clase aplicado')}. Estudiar con ${o(g, 'ella', 'él')} cunde más.`,
+      tipos: [{ tipo: 'alumno' }],
     })),
     npc('companero_social', 'companero', () => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { sociabilidad: 20, optimismo: 8 }, interesesPreferidos: ['videojuegos', 'cine', 'musica'] }),
       tags: ['social'],
       supports: [TAGS.social, TAGS.ocio],
       description: 'Conoce a todo el mundo en el colegio.',
+      tipos: [{ tipo: 'alumno' }],
     })),
     ...rivalesIniciales(rng, usados),
   ];
@@ -272,6 +290,24 @@ const vista = (n: Npc, day: number): NpcView => ({
   rasgos: n.rasgos,
   description: n.description,
 });
+
+/** Sesiones de los clubes de fuera: se reparten en cuatro patrones según el nombre del club (todas las sedes, de momento, en el estadio). */
+const PATRONES_DE_SESION: readonly Omit<SesionDeClub, 'sede'>[] = [
+  { weekdays: [0, 2], desde: 17, hasta: 19 },
+  { weekdays: [1, 3], desde: 18, hasta: 20 },
+  { weekdays: [0, 1, 3], desde: 17, hasta: 20 },
+  { weekdays: [2, 4], desde: 17, hasta: 19 },
+];
+
+/** Sesiones de un club: las del catálogo de clubes (por id o por nombre) y, si no está, las de un club de fuera. */
+function sesionDeClub(clubes: ClubDirectory | undefined, club: string): SesionDeClub {
+  const c = clubes?.list('atletismo').find((x) => x.id === club || x.nombre === club);
+  if (c) return { weekdays: c.sesiones.weekdays, desde: c.sesiones.desde, hasta: c.sesiones.hasta, sede: c.esColegio ? 'colegio' : 'estadio' };
+  return { ...PATRONES_DE_SESION[Math.floor(azarDe('sesion', club) * PATRONES_DE_SESION.length)], sede: 'estadio' };
+}
+
+/** Las agendas dependen solo de los tipos de la persona (pocas combinaciones distintas): se montan una vez. */
+const AGENDAS = new Map<string, TramoDeAgenda[]>();
 
 export const npcs = defineModule<NpcsState>({
   id: 'npcs',
@@ -319,6 +355,37 @@ export const npcs = defineModule<NpcsState>({
   },
 
   services: {
+    [SERVICES.presencia]: (ctx): PresenciaService => {
+      const lista = ctx.state<NpcsState>().npcs;
+      const t = ctx.time;
+      const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
+      const datos: DatosDeAgenda = { sesionDeClub: (club) => sesionDeClub(clubes, club) };
+      const inicioCurso = (t.week - t.schoolWeek) * 7;
+      const agendaDe = (n: Npc): TramoDeAgenda[] => {
+        const tipos = n.tipos ?? [];
+        const clave = `${clubes ? 1 : 0}|${tipos.some((x) => x.hasta !== undefined) ? t.day : ''}|${JSON.stringify(tipos)}`;
+        let a = AGENDAS.get(clave);
+        if (!a) AGENDAS.set(clave, (a = construirAgenda(tipos, datos, t.day)));
+        return a;
+      };
+      return {
+        en: (lugar, max = Infinity) =>
+          lista
+            .map((n) => ({ n, u: ubicacionEn(agendaDe(n), t, n.id) }))
+            .filter(({ u }) => u.sitio === lugar)
+            .sort((a, b) => b.u.nivel - a.u.nivel || azarDe(a.n.id, t.day, 'orden') - azarDe(b.n.id, t.day, 'orden'))
+            .slice(0, max)
+            .map(({ n }) => vista(n, inicioCurso)),
+        donde: (id) => {
+          const n = lista.find((x) => x.id === id);
+          return n ? ubicacionEn(agendaDe(n), t, n.id).sitio : undefined;
+        },
+        agenda: (id) => {
+          const n = lista.find((x) => x.id === id);
+          return n ? agendaDe(n) : [];
+        },
+      };
+    },
     [SERVICES.npcs]: (ctx): NpcDirectory => {
       const lista = ctx.state<NpcsState>().npcs;
       const day = ctx.time.day;

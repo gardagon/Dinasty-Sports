@@ -355,3 +355,14 @@ export function compatibilidad(npc: { caracter: Caracter; intereses: InteresesNp
 /** Multiplicador sobre lo que sube la afinidad: de ×0,7 (nada en común) a ×1,4 (muy compatibles). */
 /** Una compatibilidad de 0,25 da ×0,7, 0,5 da ×1,05 y 0,75 o más da ×1,4 (lo típico, ~0,4, queda cerca de ×0,9). */
 export const factorDeCompatibilidad = (compat: number): number => 0.7 + 0.7 * clamp((compat - 0.25) / 0.5, 0, 1);
+
+/**
+ * Lo que se ve de alguien a quien no conoces (sin nombre): una frase corta con su aspecto, concordada con su género y edad.
+ * «Una chica de pelo castaño ondulado, ojos verdes y piel clara.»
+ */
+export function descripcionDeDesconocido(a: Apariencia, gender: 'f' | 'm', edad?: number): string {
+  const persona = edad !== undefined && edad < 12 ? (gender === 'f' ? 'Una niña' : 'Un niño') : gender === 'f' ? 'Una chica' : 'Un chico';
+  const rasgos = [`de pelo ${NOMBRE_RASGO[a.peloColor]} ${NOMBRE_RASGO[a.peloTipo]}`, `ojos ${NOMBRE_RASGO[a.ojos]}`, `piel ${NOMBRE_RASGO[a.piel]}`];
+  const distintivos = a.distintivos.length ? `, con ${a.distintivos.map((d) => NOMBRE_RASGO[d]).join(' y ')}` : '';
+  return `${persona} ${rasgos.slice(0, -1).join(', ')} y ${rasgos[rasgos.length - 1]}${distintivos}`;
+}

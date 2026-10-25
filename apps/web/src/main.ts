@@ -8,6 +8,8 @@ import {
   type BodyType,
   type ClubDirectory,
   type LugaresService,
+  type PresenciaService,
+  descripcionDeDesconocido,
   type FamilyService,
   type IdentityService,
   PRACTICA_TEXTO,
@@ -226,6 +228,30 @@ function actionButton(o: ActionOption): string {
   </button>`;
 }
 
+/** Quién hay aquí ahora: los que conoces con su nombre y el resto, por su aspecto (hasta que hables con ellos). */
+function viewGente(g: Game, lugar: string): string {
+  const presencia = g.service<PresenciaService>(SERVICES.presencia);
+  if (!presencia) return '';
+  const rel = g.service<RelationsService>(SERVICES.relaciones);
+  const MAX = 40;
+  const todos = presencia.en(lugar);
+  if (!todos.length) return '<h3>Gente aquí</h3><p class="note">No hay nadie.</p>';
+  const ROL: Record<string, string> = { entrenador: 'Entrenador', profesor: 'Profesor', companero: 'Compañero', amigo: 'Amigo', rival: 'Rival', familia: 'Familia' };
+  const tarjetas = todos
+    .slice(0, MAX)
+    .map((n) => {
+      if (n.known === false) {
+        const frase = n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, n.age) : n.gender === 'f' ? 'Una chica' : 'Un chico';
+        return `<div class="persona desconocida"><b>???</b><span>${esc(frase)}</span></div>`;
+      }
+      const v = rel?.get(n.id);
+      const estado = v ? nombreEstado(v.estado, n.gender) : '';
+      return `<div class="persona"><b>${esc(n.name)}</b><span>${esc([ROL[n.role], estado].filter(Boolean).join(' · '))}</span></div>`;
+    })
+    .join('');
+  return `<h3>Gente aquí (${todos.length})</h3><div class="gente">${tarjetas}</div>${todos.length > MAX ? `<p class="note">Y ${todos.length - MAX} más.</p>` : ''}`;
+}
+
 /** Pantalla del lugar: dónde estás y a dónde puedes ir (los vecinos primero y, desplegable, todo el mapa con lo que cuesta). */
 function viewLugar(g: Game): string {
   const svc = g.service<LugaresService>(SERVICES.lugares);
@@ -249,6 +275,7 @@ function viewLugar(g: Game): string {
     <h3>Viajar</h3>
     <div class="actions">${cerca}</div>
     <details class="viaje-rapido"><summary>Viaje rápido</summary>${todo}</details>
+    ${viewGente(g, aqui.id)}
   </section>`;
 }
 

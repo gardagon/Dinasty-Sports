@@ -65,6 +65,10 @@ curso y son desconocidos hasta que compiten contra el personaje (`known`).
 
 El mapa de la ciudad es un **dato** (`MapaCiudad`, `CIUDAD_INICIAL`, en contracts): lugares, una tabla de minutos entre cada par (`tiempos`) y los caminos directos (`directos`, la lista de «Viajar»). El módulo `lugares` guarda dónde está el personaje y publica el servicio `lugares`; ir a un sitio es una acción (`lugares.ir_<lugar>`) que cuesta lo que dice la tabla y emite `lugares.llegada`. Un módulo liga sus acciones a un sitio con `ligarALugares` (contracts): la acción gana `lugar` (que el motor expone en `ActionOption.lugar`) y una comprobación en `available` que va la última, de modo que si solo falta estar allí, `faltaViajar(opcion)` lo detecta y basta con viajar. Sin el módulo `lugares` cargado nada se restringe. Los textos de lugar viven en el dato del mapa, no en el motor.
 
+## Presencia de personas
+
+Cada persona (`npcs`) guarda una lista de **tipos** (alumno, profesor, entrenador, club, rival, amigo, vecino) y de ellos sale su agenda: tramos de la semana con un lugar (`contracts/agendas.ts`). Si dos tramos coinciden manda el de mayor nivel (el tipo dominante). El módulo `npcs` publica el servicio `presencia` (`en(lugar, max)`, `donde(persona)`, `agenda(persona)`); el azar sale de un hash de persona y día, no se guarda. La pantalla del lugar enseña «Gente aquí» (hasta 40; los desconocidos, por su descripción física). **Los horarios y la población planificada están en [`ANEXO_HORARIOS_PNJ.md`](ANEXO_HORARIOS_PNJ.md).**
+
 ## Currículo escolar
 
 El currículo es un dato por país (`curriculo.ts` en el módulo de estudios): las asignaturas de cada curso, de 3.º de primaria a 2.º de bachillerato.

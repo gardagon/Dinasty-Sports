@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, madurezPorEdad, ventajaDeCrianza, type NpcDirectory } from '@ds/contracts';
+import { SERVICES, madurezPorEdad, ventajaDeCrianza, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { Game, advanceTo, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { desarrolloRival, npcs, type NpcsState } from './index';
@@ -152,5 +152,62 @@ describe('módulo NPCs', () => {
     const antes = JSON.stringify(g.service<NpcDirectory>(SERVICES.npcs)!.get('tutor')!.rasgos);
     advanceTo(g, 'gen.descansar', 6, 20);
     expect(JSON.stringify(g.service<NpcDirectory>(SERVICES.npcs)!.get('tutor')!.rasgos)).toBe(antes);
+  });
+
+  describe('presencia en los lugares', () => {
+    const nombres = (g: Game, lugar: string, max?: number) => g.service<PresenciaService>(SERVICES.presencia)!.en(lugar, max).map((n) => n.id);
+
+    it('en horario de clase están en el colegio el tutor y los compañeros, y no los rivales de otros clubes', () => {
+      const g = nueva();
+      advanceTo(g, 'gen.descansar', 0, 10); // lunes, 10:00
+      const aqui = nombres(g, 'colegio');
+      expect(aqui).toContain('tutor');
+      expect(aqui).toContain('companero_estudio');
+      expect(aqui).toContain('companero_social');
+      expect(aqui.some((id) => id.startsWith('rival_'))).toBe(false);
+    });
+
+    it('el sábado por la mañana los rivales y el entrenador están en el estadio', () => {
+      const g = nueva();
+      advanceTo(g, 'gen.descansar', 5, 10);
+      const aqui = nombres(g, 'estadio');
+      expect(aqui).toContain('entrenador');
+      // Va a las carreras algo menos de la mitad de los 96 rivales.
+      const rivales = aqui.filter((id) => id.startsWith('rival_')).length;
+      expect(rivales).toBeGreaterThan(25);
+      expect(rivales).toBeLessThan(55);
+      expect(nombres(g, 'colegio')).toEqual([]);
+    });
+
+    it('de noche no hay nadie en ningún lugar del mapa', () => {
+      const g = nueva();
+      advanceTo(g, 'gen.descansar', 2, 3);
+      for (const l of ['colegio', 'estadio', 'parque', 'gimnasio', 'supermercado', 'restaurante', 'casa']) expect(nombres(g, l)).toEqual([]);
+    });
+
+    it('se puede limitar cuántos hay, y primero salen los de mayor nivel (el tutor antes que un compañero)', () => {
+      const g = nueva();
+      advanceTo(g, 'gen.descansar', 0, 10);
+      const dos = nombres(g, 'colegio', 2);
+      expect(dos).toHaveLength(2);
+      expect(dos).toContain('tutor');
+    });
+
+    it('cada persona sabe dónde está y tiene su agenda', () => {
+      const g = nueva();
+      advanceTo(g, 'gen.descansar', 0, 10);
+      const p = g.service<PresenciaService>(SERVICES.presencia)!;
+      expect(p.donde('tutor')).toBe('colegio');
+      expect(p.donde('nadie')).toBeUndefined();
+      expect(p.agenda('tutor').some((x) => x.tipo === 'profesor')).toBe(true);
+    });
+
+    it('la presencia no cambia dentro de un mismo tramo horario', () => {
+      const g = nueva();
+      advanceTo(g, 'gen.descansar', 1, 15);
+      const a = nombres(g, 'parque');
+      g.perform('gen.descansar'); // 16:00, misma tarde libre
+      expect(nombres(g, 'parque')).toEqual(a);
+    });
   });
 });

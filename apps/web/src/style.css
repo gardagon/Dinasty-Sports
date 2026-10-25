@@ -251,3 +251,7 @@ h3:first-child { margin-top: 0; }
 .viaje-rapido summary { cursor: pointer; font-weight: 600; }
 .money { margin: 8px 0 0; font-size: 14px; color: var(--ink-soft); }
 .money b { color: var(--ink); }
+.gente { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.persona { border: 1px solid var(--line, #c9d3e0); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.persona span { color: var(--ink-soft); font-size: 13px; }
+.persona.desconocida b { opacity: 0.55; }
