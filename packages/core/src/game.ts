@@ -36,7 +36,7 @@ import {
 } from '@ds/contracts';
 import { computeCap, computeDecay, computeGain, computeSpeed, potentialSpeed } from './progression';
 import { buildRegistry, compileAction, modifiersFor, type CompiledAction, type Registry } from './registry';
-import { createRng, seededRng, type RngHolder } from './rng';
+import { createRng, seededRng, seededRngDe, type RngHolder } from './rng';
 import { LOG_LIMIT, SAVE_VERSION, type GameState, type Lineage, type ParentGenes } from './state';
 
 /** Fracción diaria de la distancia al tope efectivo que se pierde por envejecimiento. */
@@ -171,8 +171,9 @@ export class Game {
    * hijo toma la mitad de las capacidades de cada uno (±20 %) y su nivel inicial sale también de los padres. Las derivadas
    * (habilidades, asignaturas) salen de los topes de otras características más una aptitud propia.
    */
-  private static genetica(registry: Registry, state: GameState, nuevas: Set<string>): void {
-    const rng = seededRng((state.seed ^ 0x9e3779b1) + nuevas.size);
+  private static genetica(registry: Registry, state: GameState, nuevas: Set<string>, previas: number): void {
+    // Depende de cuántas stats había antes (0 al crear la partida), no de cuántas hay ahora: añadir stats sin genética no cambia nada.
+    const rng = seededRng((state.seed ^ 0x9e3779b1) + previas);
     const conGenetica = registry.statList.filter((s) => nuevas.has(s.def.id) && s.def.genetics);
     const directas = conGenetica.filter((s) => !s.def.genetics!.derivedFrom);
     const lin = Game.lineage(state);
@@ -241,21 +242,24 @@ export class Game {
 
   /** Inicializa lo que falte: permite añadir módulos a partidas ya empezadas. */
   private static fillMissing(registry: Registry, state: GameState): void {
-    const init = seededRng((state.seed ^ 0x5bd1e995) + Object.keys(state.stats).length);
+    const previas = Object.keys(state.stats).length;
+    const init = seededRng((state.seed ^ 0x5bd1e995) + previas);
     const nuevas = new Set(registry.statList.filter((s) => !(s.def.id in state.stats)).map((s) => s.def.id));
     for (const { def, min, max } of registry.statList) {
       if (def.id in state.stats) continue;
+      // Cada stat sortea con su propio hilo (semilla + id): añadir otra no cambia las que ya había.
+      const propio = seededRngDe(state.seed, def.id);
       const v =
-        typeof def.initial === 'number' ? def.initial : init.range(def.initial.min, def.initial.max);
+        typeof def.initial === 'number' ? def.initial : propio.range(def.initial.min, def.initial.max);
       const value = Math.min(max, Math.max(min, v));
       state.stats[def.id] = value;
       state.peaks[def.id] = value;
       state.baseline[def.id] = value;
       const spread = def.category === 'estado' ? 0 : (def.talentSpread ?? 0.15);
-      state.talent[def.id] = 1 + (init.next() * 2 - 1) * spread;
+      state.talent[def.id] = 1 + (propio.next() * 2 - 1) * spread;
       state.lastTrained[def.id] = state.minute;
     }
-    Game.genetica(registry, state, nuevas);
+    Game.genetica(registry, state, nuevas, previas);
     for (const { def, min, max } of registry.statList) {
       if (!nuevas.has(def.id) || !def.initialFrom || typeof def.initial === 'number') continue;
       // Se parte del tope genético de las stats de apoyo (la aptitud permanente) y, si no lo tienen, de su nivel inicial.

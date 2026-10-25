@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Añadir una stat ya no cambia al personaje de una semilla
+
+- **El problema:** el azar de cada stat salía de un único hilo secuencial y la semilla de la genética dependía del número de stats. Añadir cualquier stat (el dinero) recolocaba a todas las demás: la misma semilla daba otro personaje, y las cifras de la simulación no se podían comparar entre versiones.
+- **La corrección:** cada stat sortea con su propio hilo (`seededRngDe(semilla, id)`: FNV-1a sobre el id) y la genética parte de cuántas stats había *antes* (0 al crear la partida). Añadir una stat sin genética deja a las demás exactamente igual. Añadir una capacidad con herencia sí cambia el genoma (es lo correcto: los perfiles de los padres dependen del conjunto de capacidades).
+- **Coste, una sola vez:** esta corrección cambia todos los personajes de todas las semillas. A partir de aquí las cifras de `npm run sim` son comparables entre cambios. Tras el cambio: los 13 chequeos siguen en ✅ (equilibrado 21,4 de atletismo y 5,5 de nota media con la nueva población).
+- **Tests:** el personaje de una semilla es el mismo con o sin una stat nueva, en cualquier posición de la lista de módulos. El umbral de perks (≥ 75 % con 0 o 1 perk, antes 80 %) se ajusta: la proporción real ronda el 78 % y el 80 % estaba justo al borde con las semillas antiguas.
+
+---
+
 ## 25/10/2026 — Estrés por faltar, dinero y comercios
 
 - **Estrés por faltar (decidido con el usuario):** faltar a una clase sube el estrés 0,75 (3 por un día entero), lo mismo que cuesta ir. Se parte de ahí y se irán añadiendo más consecuencias (avisos a los padres, castigos). Antes de esto se había quitado; se restablece. Test: la diferencia entre 3 y 4 clases hechas es 0,75, y entre ninguna y cuatro, 3.

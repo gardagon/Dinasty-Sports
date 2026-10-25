@@ -669,3 +669,34 @@ describe('guardados de otra versión', () => {
     expect(() => Game.load([m], guardado)).toThrow(/Versión de guardado 1 no soportada/);
   });
 });
+
+describe('añadir una stat no cambia a las que ya había', () => {
+  const personaje = defineModule({
+    id: 'p',
+    name: 'Personaje',
+    stats: [
+      { id: 'p.fuerza', name: 'Fuerza', category: 'generica', initial: { min: 5, max: 20 }, genetics: { grupo: 'fisico' } },
+      { id: 'p.velocidad', name: 'Velocidad', category: 'generica', initial: { min: 5, max: 20 }, genetics: { grupo: 'fisico' } },
+      { id: 'p.tecnica', name: 'Técnica', category: 'habilidad', initial: { min: 5, max: 15 } },
+    ],
+  });
+  const dinero = (donde: 'antes' | 'despues') =>
+    defineModule({ id: 'x', name: 'Extra', stats: [{ id: 'x.dinero', name: 'Dinero', category: 'estado', initial: 0, min: 0, max: 1000 }] }) as GameModule<any> & { donde?: string; _: typeof donde };
+
+  it('el personaje de una semilla es el mismo con o sin una stat nueva, esté donde esté en la lista', () => {
+    const sin = Game.create([personaje], { seed: 7 });
+    for (const modulos of [[personaje, dinero('despues')], [dinero('antes'), personaje]] as GameModule<any>[][]) {
+      const con = Game.create(modulos, { seed: 7 });
+      for (const id of ['p.fuerza', 'p.velocidad', 'p.tecnica']) {
+        expect(con.stat(id)).toBe(sin.stat(id));
+        expect(con.hiddenPotential(id)).toBe(sin.hiddenPotential(id));
+      }
+    }
+  });
+
+  it('semillas distintas dan personajes distintos', () => {
+    const a = Game.create([personaje], { seed: 1 });
+    const b = Game.create([personaje], { seed: 2 });
+    expect(a.stat('p.fuerza')).not.toBe(b.stat('p.fuerza'));
+  });
+});
