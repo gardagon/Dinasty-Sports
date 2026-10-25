@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Panel «Gente»
+
+- **Pestaña nueva «Gente»** (junto a «Relaciones», que se queda con los datos de pruebas). Filtros: Aquí (por defecto, la gente del lugar donde estás), Conocidos, Compañeros, Profesorado, Rivales y Vecinos. Tarjetas de 12 por página con barras de **Amistad** (la afinidad positiva) y **Confianza**.
+- **Desconocidos:** `???`, lo que es para ti (compañero, rival, vecino...) y la frase de su aspecto. Sus barras salen vacías. Conocidos: nombre, vínculo y barras. Al pulsar una tarjeta, ficha con pestañas **Resumen** y **Aspecto**.
+- **Código:** `apps/web/src/gente.ts` (independiente de `main.ts`; solo usa servicios).
+- **Pendiente** (elegido el siguiente paso por el usuario entre tres): preguntar el nombre como acción (pasa de `???` a nombre), que añadirá el botón «Hablar» a la ficha; y la pestaña del deporte. Las otras dimensiones del juego de referencia (deseo, romance) no se copian: se decidirán según lo que necesite este juego.
+
+---
+
 ## 25/10/2026 — La presencia solo se recalcula cuando algo puede cambiar
 
 - **Pregunta del usuario:** si la presencia se calcula cada 10 minutos, ¿aparecen y desaparecen personas cada 10 minutos? **No:** cada persona está siempre en el mismo sitio dentro de un tramo (su destino sale de un hash de persona, día y tramo, no del minuto), así que en clase son los mismos 25 durante todas las clases. Lo de «10 minutos» era solo la caché.

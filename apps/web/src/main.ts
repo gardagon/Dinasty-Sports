@@ -33,6 +33,7 @@ import {
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
+import { clicEnGente, reiniciarGente, viewPanelGente } from './gente';
 
 /**
  * Interfaz web mínima. Solo habla con el motor (@ds/game / @ds/core): no conoce
@@ -51,7 +52,7 @@ interface SaveFile {
   state: GameState;
   agenda: AgendaItem[];
 }
-type Tab = 'hacer' | 'personaje' | 'relaciones' | 'diario';
+type Tab = 'hacer' | 'personaje' | 'gente' | 'relaciones' | 'diario';
 
 const SAVE_KEY = 'dinasty-sports:partida';
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -547,6 +548,7 @@ function viewGame(g: Game): string {
   const tabs: [Tab, string][] = [
     ['hacer', 'Qué hacer'],
     ['personaje', 'Personaje'],
+    ['gente', 'Gente'],
     ['relaciones', 'Relaciones'],
     ['diario', 'Diario'],
   ];
@@ -558,7 +560,8 @@ function viewGame(g: Game): string {
   } else if (tab === 'personaje') {
     main = viewIdentity(g) + viewCharacter(g);
     side = viewResults(g);
-  } else if (tab === 'relaciones') main = viewPeople(g);
+  } else if (tab === 'gente') main = viewPanelGente(g);
+  else if (tab === 'relaciones') main = viewPeople(g);
   else main = viewLog(g);
 
   return `<main class="app">
@@ -577,8 +580,12 @@ function render(): void {
 // ------------------------------------------------------------------ interacción
 
 app.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-do],[data-tab],[data-act]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-do],[data-tab],[data-act],[data-gente]');
   if (!el || !game) return;
+  if (el.dataset.gente) {
+    if (clicEnGente(el)) render();
+    return;
+  }
   if (el.dataset.tab) {
     tab = el.dataset.tab as Tab;
     render();
@@ -620,6 +627,7 @@ app.addEventListener('submit', (e) => {
   agenda = [];
   lastResult = null;
   tab = 'hacer';
+  reiniciarGente();
   save();
   render();
 });
