@@ -240,6 +240,24 @@ describe('módulo estudios', () => {
       expect(g.service<StudiesService>(SERVICES.estudios)!.average()).not.toBeNull();
     });
 
+    it('Educación física no se suspende: mínimo 5 presentándose, y el nivel que se ve no baja de Regular', () => {
+      const g = enExamenes(14);
+      const guardado = g.serialize();
+      for (const k of ['educacion_fisica', 'matematicas']) guardado.stats[`estudios.${k}`] = 0;
+      for (const id of ['gen.velocidad', 'gen.fuerza', 'gen.resistencia', 'gen.agilidad', 'gen.coordinacion', 'gen.determinacion']) guardado.stats[id] = 0;
+      const mal = Game.load([personaje, estudios], guardado);
+      expect(mal.service<StudiesService>(SERVICES.estudios)!.levelText('estudios.educacion_fisica')).toBe('Regular');
+      expect(mal.service<StudiesService>(SERVICES.estudios)!.levelText('estudios.matematicas')).toBe('Mal');
+      for (let d = 0; d < 5; d++) {
+        advanceToWeek(mal, 'gen.descansar', 14, d, 8);
+        mal.perform('estudios.clase');
+      }
+      advanceToWeek(mal, 'gen.descansar', 14, 5, 10);
+      const s = mal.moduleState<EstudiosState>('estudios');
+      expect(s.notas.educacion_fisica[0]).toBeGreaterThanOrEqual(3); // 0,6 del global ≥ 5 (parciales sin hacer: 0)
+      expect(s.notas.matematicas[0]).toBeLessThan(s.notas.educacion_fisica[0]);
+    });
+
     it('varios exámenes pueden caer el mismo día', () => {
       const dias = claves(0).map((k) => diaDeExamen(0, 1, k));
       expect(new Set(dias).size).toBeLessThan(dias.length);

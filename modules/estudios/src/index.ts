@@ -139,6 +139,9 @@ function habilidadDe(ctx: ReadContext, a: Asignatura): number {
   return Math.min(100, Math.max(30, 55 + 110 * (media / nivelTipicoPorEdad(edad) - 1)));
 }
 
+/** Preparación que se enseña: la efectiva, sin bajar de la nota mínima de la asignatura (Educación física: 5). */
+const nivelVisible = (ctx: ReadContext, k: string): number => Math.max((asignatura(k).notaMinima ?? 0) * 10, preparacionEfectiva(ctx, k));
+
 /** Preparación con la que se llega a un examen: en las asignaturas prácticas pesan las habilidades además del estudio. */
 function preparacionEfectiva(ctx: ReadContext, k: string): number {
   const a = asignatura(k);
@@ -330,7 +333,9 @@ function examinar(ctx: ActionContext, keys: string[], tipo: TipoDeExamen, presen
   const filas: string[][] = [];
   const nuevas: Record<string, number> = {};
   for (const k of keys) {
-    const nota = presente ? notaExamen(preparacionEfectiva(ctx, k), ctx.stat(GEN.estres), ctx.stat(GEN.concentracion), ctx.rng.normal()) : 0;
+    const bruta = presente ? notaExamen(preparacionEfectiva(ctx, k), ctx.stat(GEN.estres), ctx.stat(GEN.concentracion), ctx.rng.normal()) : 0;
+    // En las asignaturas con nota mínima (Educación física) no se suspende, pero quien no se presenta sigue con un 0.
+    const nota = presente ? Math.max(asignatura(k).notaMinima ?? 0, bruta) : 0;
     nuevas[`${k}:${tipo}`] = nota;
     filas.push([asignatura(k).name, presente ? nota.toFixed(1) : 'No presentado']);
   }
@@ -512,7 +517,7 @@ export const estudios = defineModule<EstudiosState>({
         activeSubjects: () => activas.map(statId),
         courseName: () => cursoDef(ctx.time.schoolYear).nombre,
         summerPath: () => (ctx.time.period === 'verano' ? (s.verano?.tipo ?? null) : null),
-        levelText: (subject) => (ASIGNATURAS.some((a) => statId(a.key) === subject) ? nivelDeAsignatura(preparacionEfectiva(ctx, subject.replace('estudios.', ''))) : null),
+        levelText: (subject) => (ASIGNATURAS.some((a) => statId(a.key) === subject) ? nivelDeAsignatura(nivelVisible(ctx, subject.replace('estudios.', ''))) : null),
         timetable: (weekday) => asignaturasDeHoy(ctx.time.schoolYear, s.modalidad, weekday).map(statId),
         upcomingExams: (days): ExamInfo[] => {
           const salida: ExamInfo[] = [];
