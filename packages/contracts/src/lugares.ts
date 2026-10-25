@@ -1,3 +1,4 @@
+import type { ActionDef } from './actions';
 import type { ReadContext } from './context';
 
 /**
@@ -95,6 +96,9 @@ export interface LlegadaData {
   minutos: number;
 }
 
+/** Principio del motivo que devuelve `enLugar` cuando el personaje no está donde hace falta (los bots y la interfaz lo reconocen). */
+export const MOTIVO_LUGAR = 'Tienes que estar en';
+
 /**
  * Para el `available` de una acción ligada a un sitio. Devuelve `true` o el motivo. Si el servicio `lugares` no está
  * cargado, no restringe nada: la acción vale en cualquier parte (un módulo debe funcionar solo con `gen`).
@@ -104,6 +108,37 @@ export function enLugar(ctx: ReadContext, ...ids: LugarId[]): true | string {
   if (!svc) return true;
   const actual = svc.actual();
   if (ids.includes(actual.id)) return true;
-  const destino = svc.lugar(ids[0]);
-  return `Tienes que estar en ${destino ? destino.name.toLowerCase() : ids[0]} (estás en ${actual.name.toLowerCase()})`;
+  const nombres = ids.map((id) => svc.lugar(id)?.name.toLowerCase() ?? id);
+  return `${MOTIVO_LUGAR} ${nombres.join(' o en ')} (estás en ${actual.name.toLowerCase()})`;
+}
+
+/**
+ * Liga una acción a uno o varios sitios (el primero es el destino por defecto). Primero se comprueba lo demás (horario, requisitos
+ * propios) y por último el lugar: así, si el único motivo de que no esté disponible es dónde estás, solo hace falta viajar.
+ * El sitio puede depender del estado (p. ej. el club en el que entrena).
+ */
+export function conLugar<T extends ActionDef>(lugar: T['lugar'], def: T): T {
+  const donde = (ctx: ReadContext): readonly string[] => (typeof lugar === 'function' ? lugar(ctx) : (lugar ?? []));
+  return {
+    ...def,
+    lugar,
+    available: (ctx: ReadContext) => {
+      const otro = def.available?.(ctx) ?? true;
+      return otro !== true ? otro : enLugar(ctx, ...donde(ctx));
+    },
+  };
+}
+
+/** ¿Lo único que impide hacer esta opción es no estar en el sitio? Entonces basta con viajar antes. */
+export const faltaViajar = (o: { available: boolean; reason?: string; lugar?: readonly string[] }): boolean =>
+  !o.available && !!o.lugar?.length && !!o.reason?.startsWith(MOTIVO_LUGAR);
+
+/**
+ * Liga varias acciones de un módulo a sus sitios de una vez: `{ 'gen.dormir': ['casa'] }`. Las que no salen en la tabla quedan
+ * como estaban (valen en cualquier parte). Falla si la tabla nombra una acción que no existe, para que un cambio de id no la deje sin ligar.
+ */
+export function ligarALugares(acciones: readonly ActionDef[], donde: Readonly<Record<string, NonNullable<ActionDef['lugar']>>>): ActionDef[] {
+  const ids = new Set(acciones.map((a) => a.id));
+  for (const id of Object.keys(donde)) if (!ids.has(id)) throw new Error(`ligarALugares: no existe la acción ${id}`);
+  return acciones.map((a) => (donde[a.id] ? conLugar(donde[a.id], a) : a));
 }

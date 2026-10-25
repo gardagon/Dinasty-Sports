@@ -61,6 +61,10 @@ módulo de atletismo). `madurezPorEdad` (contracts) es la fracción de capacidad
 lo físico (estado oculto `gen.madurez`), y los NPCs, como nivel máximo de cada rival. Los rivales tienen fecha de nacimiento, se renuevan cada
 curso y son desconocidos hasta que compiten contra el personaje (`known`).
 
+## Lugares
+
+El mapa de la ciudad es un **dato** (`MapaCiudad`, `CIUDAD_INICIAL`, en contracts): lugares, una tabla de minutos entre cada par (`tiempos`) y los caminos directos (`directos`, la lista de «Viajar»). El módulo `lugares` guarda dónde está el personaje y publica el servicio `lugares`; ir a un sitio es una acción (`lugares.ir_<lugar>`) que cuesta lo que dice la tabla y emite `lugares.llegada`. Un módulo liga sus acciones a un sitio con `ligarALugares` (contracts): la acción gana `lugar` (que el motor expone en `ActionOption.lugar`) y una comprobación en `available` que va la última, de modo que si solo falta estar allí, `faltaViajar(opcion)` lo detecta y basta con viajar. Sin el módulo `lugares` cargado nada se restringe. Los textos de lugar viven en el dato del mapa, no en el motor.
+
 ## Currículo escolar
 
 El currículo es un dato por país (`curriculo.ts` en el módulo de estudios): las asignaturas de cada curso, de 3.º de primaria a 2.º de bachillerato.

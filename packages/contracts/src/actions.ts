@@ -32,6 +32,11 @@ export interface ActionDef {
   run?: (ctx: ActionContext) => void;
   /** Grupo visual en la interfaz. Por defecto, el nombre del módulo. */
   group?: string;
+  /**
+   * Dónde se hace (ids de `lugares`; el primero es el sitio al que va quien quiere hacerla). Es solo información: quien la declara
+   * debe además exigirlo en `available` (ver `conLugar`, en contracts). Sin esto, la acción vale en cualquier parte.
+   */
+  lugar?: readonly string[] | ((ctx: ReadContext) => readonly string[]);
 }
 
 /** Lo que el motor sabe de una acción cuando evalúa modificadores. */

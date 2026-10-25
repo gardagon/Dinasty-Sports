@@ -10,10 +10,27 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar, trayectos con duración, menú de viaje rápido agrupado, presencia de personas, lugares que cierran).
 
 - **Un solo mapa de ciudad que crece poco a poco.** De inicio: casa (el edificio donde se vive), colegio y parque, con sus caminos (casa–colegio 10 min, casa–parque 6, parque–colegio 8). Después: estadio, gimnasio, tienda, aeropuerto. El mapa es un dato en contracts (`CIUDAD_INICIAL`, `MapaCiudad`), como el calendario por país.
-- **Módulo `lugares`:** guarda dónde está el personaje (`LugaresState.actual`). Ir a un sitio es una acción (`lugares.ir_<lugar>`) cuyo coste es la ruta más corta: ir al vecino y el viaje rápido son lo mismo. Emite `lugares.llegada`. El servicio `lugares` ofrece lugar actual, vecinos, ruta y casa.
-- **Cómo ligan los módulos sus acciones a un sitio:** con `enLugar(ctx, ...ids)` en el `available` (contracts). Si `lugares` no está cargado no restringe nada. Hoy **ninguna acción existente lo usa**, así que el juego se comporta igual y la simulación no cambia.
+- **Módulo `lugares`:** guarda dónde está el personaje (`LugaresState.actual`). Ir a un sitio es una acción (`lugares.ir_<lugar>`): ir a un vecino y el viaje rápido son lo mismo. Emite `lugares.llegada`. El servicio `lugares` ofrece lugar actual, vecinos, minutos a otro lugar y casa.
+- **Tiempos en una tabla, sin calcular rutas:** `MapaCiudad.tiempos[desde][hasta]` en minutos, completa (todos con todos) y simétrica; `directos` marca los pares que salen en «Viajar». Al añadir un lugar se añade su fila y su columna (un test lo comprueba). Sustituye al cálculo de la ruta más corta.
+- **Cómo ligan los módulos sus acciones a un sitio:** `ligarALugares(acciones, { id: [lugares] })` (contracts) añade a cada acción `lugar` y la comprobación en `available`, que va **la última**: si solo falta estar allí, el motivo empieza por `MOTIVO_LUGAR` y se reconoce con `faltaViajar`. Si `lugares` no está cargado no restringe nada. `ActionOption.lugar` lo expone el motor (el primero es el destino por defecto).
 - **Decidido con el usuario:** solo movimiento hasta que haya eventos (los encuentros en el camino vienen después); una pantalla por lugar; la casa da la cama y hay un sitio donde comprar comida (dormir y comer en casa en la infancia; dormir fuera y viajar a competiciones, más adelante).
-- **Todavía sin hacer:** gastar energía al caminar, horarios de apertura (lugares cerrados, forzar cerradura), presencia de NPCs por lugar y hora (servicio nuevo), pantalla por lugar en la web, ligar las acciones existentes a sus sitios (dormir en casa, estudiar y clase en el colegio, entrenar en la pista) y dividir «Ir a clase» por asignatura.
+- **Fase 2 hecha: acciones ligadas a su sitio.**
+
+| Acción | Dónde |
+|---|---|
+| Dormir, videojuegos y series, ver atletismo en la tele | casa |
+| Leer | casa o parque |
+| Dar un paseo, practicar con amigos, campamento | parque |
+| Ir a clase, academia, apuntarse al club del colegio | colegio |
+| Estudiar (cada asignatura) y repaso | casa o colegio |
+| Series y sesión de técnica | colegio (pistas) o parque |
+| Rodaje largo | parque o colegio |
+| Sesión del club | colegio si es el club del colegio; parque si es de fuera (provisional hasta que haya estadio) |
+
+  - **Sin sitio todavía** (se hacen donde se esté): gimnasio (no hay gimnasio en el mapa), descansar un rato, competiciones, pruebas de acceso a clubes, dejar el club, subir y bajar de categoría y las acciones de relaciones (falta la presencia de NPCs por lugar).
+  - **Bots y tests:** los bots no piensan en el mapa. El simulador les ofrece lo disponible y lo que solo está bloqueado por el lugar, y los lleva antes al sitio (`sim/src/pasos.ts`); los desplazamientos no se les ofrecen. Los tests de integración usan `hacer` (`tests/ayudas.ts`), que viaja si hace falta. Una acción que deja de estar disponible tras el viaje (pasó la hora) no cuenta como fallo del bot.
+  - **Balance:** `npm run sim` antes y después: casi idéntico (equilibrado 25,4 → 25,3 de atletismo, empollón 52,7 → 52,8 de estudios, atleta 25,9 en los dos; todos los chequeos ✅). Los desplazamientos (6 a 10 min) caben en el tiempo libre.
+- **Todavía sin hacer:** dividir «Ir a clase» por asignatura (tocará el horario y las faltas de `estudios`), un sitio donde comprar comida, horarios de apertura (lugares cerrados, forzar cerradura), presencia de NPCs por lugar y hora (servicio nuevo), gimnasio y estadio en el mapa, y los eventos del camino (después del movimiento).
 - **Rendimiento:** la primera versión recalculaba la ruta en cada evaluación y subió el coste de la simulación de ~2,7 s a ~3,2 s por año (límite 3 s). Las rutas se calculan ahora una sola vez (el mapa no cambia en partida): ~2,75 s. Ojo al añadir lugares: cada acción de ir se evalúa en cada `listActions`.
 - **Comprobado:** tests (incluida la arquitectura) y `sim:rapida` sin cambios en el balance.
 

@@ -5,6 +5,7 @@ import {
   TAGS,
   defineModule,
   inHours,
+  ligarALugares,
   isSchoolHours,
   nivelTipicoPorEdad,
   MINUTES_PER_DAY,
@@ -375,7 +376,7 @@ export const estudios = defineModule<EstudiosState>({
     ultimaAsistencia: -1,
   }),
 
-  actions: [
+  actions: ligarALugares([
     {
       id: 'estudios.clase',
       name: 'Ir a clase',
@@ -450,7 +451,12 @@ export const estudios = defineModule<EstudiosState>({
         }
       },
     },
-  ],
+  ], {
+    'estudios.clase': ['colegio'],
+    'estudios.repaso': ['casa', 'colegio'],
+    'estudios.academia': ['colegio'],
+    ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'colegio']])),
+  }),
 
   on: {
     [CORE_EVENTS.WEEK_END]: (ctx, ev) => {

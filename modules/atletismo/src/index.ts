@@ -8,6 +8,7 @@ import {
   categoriaSuperior,
   defineModule,
   inHours,
+  ligarALugares,
   type ActionDoneData,
   type ActionContext,
   type ActionDef,
@@ -481,7 +482,7 @@ export const atletismo = defineModule<AtletismoState>({
 
   dynamicActions: accionesDeClubes,
 
-  actions: [
+  actions: ligarALugares([
     {
       id: 'atletismo.apuntarse_colegio',
       name: 'Apuntarte al club de atletismo del colegio',
@@ -745,7 +746,18 @@ export const atletismo = defineModule<AtletismoState>({
       ],
       run: (ctx) => disputar(ctx, 'regular'),
     },
-  ],
+  ], {
+    // Sin estadio ni clubes de fuera en el mapa, lo que no es del colegio se hace en el parque (a cambiar cuando existan).
+    // Competiciones, pruebas de acceso, dejar el club y subir o bajar de categoría no tienen sitio todavía.
+    'atletismo.apuntarse_colegio': ['colegio'],
+    'atletismo.club_sesion': (ctx) => (clubDelJugador(ctx)?.esColegio ? ['colegio'] : ['parque']),
+    'atletismo.campamento': ['parque'],
+    'atletismo.amigos': ['parque'],
+    'atletismo.series': ['colegio', 'parque'],
+    'atletismo.rodaje': ['parque', 'colegio'],
+    'atletismo.tecnica': ['colegio', 'parque'],
+    'atletismo.ver_tele': ['casa'],
+  }),
 
   modifiers: [
     {

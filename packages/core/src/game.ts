@@ -63,6 +63,8 @@ export interface ActionOption {
   /** Cambios directos ya escalados por los modificadores de coste. */
   delta: Record<StatId, number>;
   train: readonly { stat: StatId; amount: number }[];
+  /** Lugares donde se puede hacer (el primero es el destino por defecto), si la acción está ligada a un sitio. */
+  lugar?: readonly string[];
 }
 
 export interface ActionResult {
@@ -557,6 +559,7 @@ export class Game {
       modifiers: applied,
       delta,
       train: def.train ?? [],
+      lugar: typeof def.lugar === 'function' ? def.lugar(ctx) : def.lugar,
     };
   }
 

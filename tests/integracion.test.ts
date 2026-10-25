@@ -5,6 +5,7 @@ import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, typ
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { EstudiosState } from '@ds/mod-estudios';
+import { hacer, posible } from './ayudas';
 import { asignaturasDelCurso } from '../modules/estudios/src/curriculo';
 import type { NpcsState } from '@ds/mod-npcs';
 import type { RelacionesState } from '@ds/mod-relaciones';
@@ -37,7 +38,7 @@ describe('integración de módulos', () => {
     const g = nuevaPartida({ seed: 11 });
     advanceToWeek(g, 'gen.descansar', 5, 5, 10);
     const antes = g.service<RelationsService>(SERVICES.relaciones)!.get('entrenador')!.afinidad;
-    const r = g.perform('atletismo.carrera');
+    const r = hacer(g, 'atletismo.carrera');
     expect(r.ok).toBe(true);
     const entrada = r.log.find((l) => /de 8/.test(l.text)); // tú + 7 rivales de los 16 NPC
     expect(entrada).toBeDefined();
@@ -82,7 +83,7 @@ describe('integración de módulos', () => {
       advanceToWeek(g, 'gen.descansar', semana, 5, 10);
       if (!g.preview('atletismo.carrera')!.available) continue;
       const top = mejores();
-      const r = g.perform('atletismo.carrera');
+      const r = hacer(g, 'atletismo.carrera');
       expect(r.ok).toBe(true);
       const nombres = r.log.find((l) => l.table)!.table!.rows.map((f) => f[1]);
       expect(nombres).toHaveLength(8);
@@ -113,7 +114,7 @@ describe('integración de módulos', () => {
     it('en la carrera solo corren rivales de la categoría del jugador', () => {
       const g = nuevaPartida({ seed: 21 });
       advanceToWeek(g, 'gen.descansar', 5, 5, 10);
-      const r = g.perform('atletismo.carrera');
+      const r = hacer(g, 'atletismo.carrera');
       expect(r.ok).toBe(true);
       const entrada = r.log.find((l) => l.table)!;
       expect(entrada.text).toMatch(/Sub-10/);
@@ -144,10 +145,10 @@ describe('integración de módulos', () => {
       const g = destacado();
       advanceToWeek(g, 'gen.descansar', 5, 5, 10);
       expect(g.preview('atletismo.subir_categoria')!.available).toBe(true);
-      expect(g.perform('atletismo.subir_categoria').ok).toBe(true);
+      expect(hacer(g, 'atletismo.subir_categoria').ok).toBe(true);
       expect(g.preview('atletismo.subir_categoria')!.available).toBe(false);
       expect(g.preview('atletismo.volver_categoria')!.available).toBe(true);
-      const r = g.perform('atletismo.carrera');
+      const r = hacer(g, 'atletismo.carrera');
       const entrada = r.log.find((l) => l.table)!;
       expect(entrada.text).toMatch(/Sub-12/);
       const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
@@ -184,7 +185,7 @@ describe('integración de módulos', () => {
       advanceToWeek(g, 'gen.descansar', 1, 2, 9);
       expect(g.preview('atletismo.apuntarse_colegio')!.available).toBe(false); // de 14 a 19
       advanceToWeek(g, 'gen.descansar', 1, 2, 14);
-      expect(g.perform('atletismo.apuntarse_colegio').ok).toBe(true);
+      expect(hacer(g, 'atletismo.apuntarse_colegio').ok).toBe(true);
       expect(club(g)?.id).toBe('colegio');
       expect(g.preview('atletismo.apuntarse_colegio')!.available).toBe(false);
       expect(g.log.some((l) => /Te apuntas al club deportivo del colegio/.test(l.text))).toBe(true);
@@ -196,13 +197,13 @@ describe('integración de módulos', () => {
       expect(g.preview('atletismo.club_sesion')!.available).toBe(false);
       const solo = g.preview('atletismo.tecnica')!;
       expect(solo.modifiers.some((m) => m.id === 'atletismo.por_tu_cuenta')).toBe(true);
-      g.perform('atletismo.apuntarse_colegio');
+      hacer(g, 'atletismo.apuntarse_colegio');
       advanceToWeek(g, 'gen.descansar', 2, 0, 15); // lunes: sesión del colegio de 15 a 17
       const sesion = g.preview('atletismo.club_sesion')!;
-      expect(sesion.available).toBe(true);
+      expect(posible(g, 'atletismo.club_sesion')).toBe(true);
       expect(sesion.modifiers.some((m) => m.id === 'atletismo.por_tu_cuenta')).toBe(false);
       const antes = g.stat('atletismo.conocimiento');
-      expect(g.perform('atletismo.club_sesion').ok).toBe(true);
+      expect(hacer(g, 'atletismo.club_sesion').ok).toBe(true);
       expect(g.stat('atletismo.conocimiento')).toBeGreaterThan(antes);
       expect(g.preview('atletismo.club_sesion')!.available).toBe(false); // una al día
     });
@@ -210,7 +211,7 @@ describe('integración de módulos', () => {
     it('las sesiones del club solo son los días y horas del club', () => {
       const g = nuevaPartida({ seed: 31 });
       advanceToWeek(g, 'gen.descansar', 1, 2, 14);
-      g.perform('atletismo.apuntarse_colegio');
+      hacer(g, 'atletismo.apuntarse_colegio');
       advanceToWeek(g, 'gen.descansar', 2, 1, 15); // martes: el colegio entrena lunes y miércoles
       expect(g.preview('atletismo.club_sesion')!.available).toBe(false);
       advanceToWeek(g, 'gen.descansar', 2, 2, 12);
@@ -242,19 +243,19 @@ describe('integración de módulos', () => {
     it('con nivel suficiente la prueba te abre las puertas de un club de mayor calidad', () => {
       const g = con12(95);
       advanceToWeek(g, 'gen.descansar', 1, 2, 17);
-      expect(g.perform('atletismo.prueba.club_ciudad').ok).toBe(true);
+      expect(hacer(g, 'atletismo.prueba.club_ciudad').ok).toBe(true);
       expect(club(g)?.id).toBe('club_ciudad');
       expect(g.log.some((l) => /Ya eres del Club Atletismo Ciudad/.test(l.text))).toBe(true);
       advanceToWeek(g, 'gen.descansar', 2, 1, 18); // martes de club de la ciudad
       const sesion = g.preview('atletismo.club_sesion')!;
-      expect(sesion.available).toBe(true);
+      expect(posible(g, 'atletismo.club_sesion')).toBe(true);
       expect(sesion.modifiers.some((m) => m.id === 'clubes.calidad')).toBe(true);
     });
 
     it('sin nivel suficiente no te cogen y no puedes repetirla enseguida', () => {
       const g = con12(20);
       advanceToWeek(g, 'gen.descansar', 1, 2, 17);
-      g.perform('atletismo.prueba.club_ciudad');
+      hacer(g, 'atletismo.prueba.club_ciudad');
       expect(club(g)).toBeUndefined();
       expect(g.log.some((l) => /todavía no tienes el nivel/.test(l.text))).toBe(true);
       expect(g.preview('atletismo.prueba.club_ciudad')!.available).toBe(false);
@@ -264,9 +265,9 @@ describe('integración de módulos', () => {
     it('la clasificación muestra el club de cada corredor y el tuyo', () => {
       const g = nuevaPartida({ seed: 31 });
       advanceToWeek(g, 'gen.descansar', 4, 2, 14);
-      g.perform('atletismo.apuntarse_colegio');
+      hacer(g, 'atletismo.apuntarse_colegio');
       advanceToWeek(g, 'gen.descansar', 4, 5, 10);
-      const r = g.perform('atletismo.carrera');
+      const r = hacer(g, 'atletismo.carrera');
       const tabla = r.log.find((l) => l.table)!.table!;
       const mia = tabla.rows[tabla.highlight!];
       expect(mia[2]).toBe('Club deportivo del colegio');
@@ -277,8 +278,8 @@ describe('integración de módulos', () => {
     it('se puede dejar el club', () => {
       const g = nuevaPartida({ seed: 31 });
       advanceToWeek(g, 'gen.descansar', 1, 2, 14);
-      g.perform('atletismo.apuntarse_colegio');
-      expect(g.perform('atletismo.dejar_club').ok).toBe(true);
+      hacer(g, 'atletismo.apuntarse_colegio');
+      expect(hacer(g, 'atletismo.dejar_club').ok).toBe(true);
       expect(club(g)).toBeUndefined();
     });
   });
@@ -305,7 +306,7 @@ describe('integración de módulos', () => {
       );
     const g = cargarPartida(s);
     advanceToWeek(g, 'gen.descansar', 6, 5, 10);
-    expect(g.perform('atletismo.carrera').ok).toBe(true); // sin rivales con edad, la serie se completa con corredores genéricos
+    expect(hacer(g, 'atletismo.carrera').ok).toBe(true); // sin rivales con edad, la serie se completa con corredores genéricos
     advanceToWeek(g, 'gen.descansar', 14, 4, 20);
     expect(checkInvariants(g)).toEqual([]);
   });
@@ -344,7 +345,7 @@ describe('integración de módulos', () => {
       expect(g.preview('estudios.academia')!.available).toBe(false); // antes de las 10
       advanceToWeek(g, 'gen.descansar', 42, 1, 10);
       const flojas = g.stat('estudios.matematicas');
-      expect(g.perform('estudios.academia').ok).toBe(true);
+      expect(hacer(g, 'estudios.academia').ok).toBe(true);
       expect(g.preview('estudios.academia')!.available).toBe(false);
       advanceToWeek(g, 'gen.descansar', 42, 5, 10);
       expect(g.preview('estudios.academia')!.available).toBe(false); // sábado
@@ -360,8 +361,8 @@ describe('integración de módulos', () => {
       expect(g.log.some((l) => /faltado a la academia/.test(l.text))).toBe(true);
       // Va a todas las sesiones hasta sacar los aprobados.
       for (let dia = 0; g.moduleState<EstudiosState>('estudios').verano!.superada === false && dia < 80; dia++) {
-        advanceUntil(g, 'gen.descansar', (t) => !t.isWeekend && t.hour === 10 && t.minuteOfDay === 600, 5000);
-        if (g.preview('estudios.academia')!.available) g.perform('estudios.academia');
+        advanceUntil(g, 'gen.descansar', (t) => !t.isWeekend && t.hour === 10, 5000);
+        if (posible(g, 'estudios.academia')) hacer(g, 'estudios.academia');
         else g.perform('gen.descansar');
       }
       expect(g.moduleState<EstudiosState>('estudios').verano!.superada).toBe(true);
@@ -383,10 +384,10 @@ describe('integración de módulos', () => {
       expect(verano(g)).toBe('campamento');
       advanceToWeek(g, 'gen.descansar', 43, 2, 9);
       const campamento = g.preview('atletismo.campamento')!;
-      expect(campamento.available).toBe(true);
+      expect(posible(g, 'atletismo.campamento')).toBe(true);
       expect(campamento.modifiers.some((m) => m.id === 'atletismo.campamento')).toBe(true);
       const antes = g.stat('atletismo.tecnica');
-      expect(g.perform('atletismo.campamento').ok).toBe(true);
+      expect(hacer(g, 'atletismo.campamento').ok).toBe(true);
       expect(g.stat('atletismo.tecnica')).toBeGreaterThan(antes);
       expect(g.preview('estudios.academia')!.available).toBe(false);
     });
@@ -397,13 +398,13 @@ describe('integración de módulos', () => {
       expect(verano(g)).toBe('amigos');
       advanceToWeek(g, 'gen.descansar', 43, 2, 10);
       const antes = g.stat('atletismo.tecnica');
-      expect(g.perform('atletismo.amigos').ok).toBe(true);
+      expect(hacer(g, 'atletismo.amigos').ok).toBe(true);
       const conAmigos = g.stat('atletismo.tecnica') - antes;
       const g2 = finDeCurso(8.5);
       pasarElViernes(g2);
       advanceToWeek(g2, 'gen.descansar', 43, 2, 9);
       const antes2 = g2.stat('atletismo.tecnica');
-      g2.perform('atletismo.campamento');
+      hacer(g2, 'atletismo.campamento');
       expect(g2.stat('atletismo.tecnica') - antes2).toBeGreaterThan(conAmigos * 2);
     });
 
@@ -426,7 +427,7 @@ describe('integración de módulos', () => {
       }
       return cargarPartida(guardado);
     };
-    const filas = (g: Game, id: string) => g.perform(id).log.find((l) => l.table)!;
+    const filas = (g: Game, id: string) => hacer(g, id).log.find((l) => l.table)!;
 
     it('en la semana de la clasificatoria no hay carrera semanal y sí clasificatoria, con 16 corredores', () => {
       const g = conNivel(60);
@@ -480,7 +481,7 @@ describe('integración de módulos', () => {
     it('el campeonato del curso siguiente empieza de cero', () => {
       const g = conNivel(97);
       advanceToWeek(g, 'gen.descansar', 24, 5, 10);
-      g.perform('atletismo.clasificatoria');
+      hacer(g, 'atletismo.clasificatoria');
       advanceToWeek(g, 'gen.descansar', 52 + 38, 5, 10);
       expect(g.preview('atletismo.final')!.available).toBe(false); // no se ha clasificado en este curso
     });

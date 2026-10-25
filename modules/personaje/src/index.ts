@@ -7,6 +7,7 @@ import {
   TAGS,
   defineModule,
   inHours,
+  ligarALugares,
   isSchoolHours,
   minutesUntilHour,
   type ActionDoneData,
@@ -117,7 +118,7 @@ export const personaje = defineModule<IdentidadState>({
     { id: GEN.motivacion, name: 'Motivación', group: 'Estado', category: 'estado', initial: 60 },
   ],
 
-  actions: [
+  actions: ligarALugares([
     {
       id: 'gen.dormir',
       name: 'Dormir',
@@ -190,7 +191,13 @@ export const personaje = defineModule<IdentidadState>({
       delta: { [GEN.energia]: -4, [GEN.estres]: -5 },
       train: [{ stat: GEN.carisma, amount: 0.5 }],
     },
-  ],
+  ], {
+    // El gimnasio no tiene sitio todavía: se hace donde se esté hasta que haya uno en el mapa.
+    'gen.dormir': ['casa'],
+    'gen.leer': ['casa', 'parque'],
+    'gen.ocio': ['casa'],
+    'gen.pasear': ['parque'],
+  }),
 
   modifiers: [
     {
