@@ -31,7 +31,7 @@ describe('módulo lugares', () => {
     g.perform('lugares.ir_parque');
     const svc = g.service<LugaresService>('lugares')!;
     expect(svc.minutosA('colegio')).toBe(8);
-    expect(svc.vecinos().map((v) => v.lugar.id).sort()).toEqual(['casa', 'colegio']);
+    expect(svc.vecinos().map((v) => v.lugar.id).sort()).toEqual(['casa', 'colegio', 'gimnasio']);
   });
 
   it('enLugar deja pasar a una acción solo en el sitio indicado', () => {
@@ -68,6 +68,6 @@ describe('mapa de la ciudad', () => {
 
   it('los caminos directos usan lugares del mapa y salen en ambos sentidos', () => {
     for (const [a, b] of CIUDAD_INICIAL.directos) expect(ids).toContain(a), expect(ids).toContain(b);
-    expect(vecinosDe(CIUDAD_INICIAL, 'colegio').map((v) => v.lugar).sort()).toEqual(['casa', 'parque']);
+    expect(vecinosDe(CIUDAD_INICIAL, 'colegio').map((v) => v.lugar).sort()).toEqual(['casa', 'estadio', 'parque']);
   });
 });

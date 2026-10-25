@@ -81,7 +81,7 @@ describe('integración de módulos', () => {
     // Las carreras solo son en temporada: se recorren las semanas y se corre en las que hay carrera.
     for (let semana = 0; semana < 200 && carreras < 30; semana++) {
       advanceToWeek(g, 'gen.descansar', semana, 5, 10);
-      if (!g.preview('atletismo.carrera')!.available) continue;
+      if (!posible(g, 'atletismo.carrera')) continue;
       const top = mejores();
       const r = hacer(g, 'atletismo.carrera');
       expect(r.ok).toBe(true);
@@ -144,10 +144,10 @@ describe('integración de módulos', () => {
     it('quien destaca mucho puede subir de categoría y compite contra mayores', () => {
       const g = destacado();
       advanceToWeek(g, 'gen.descansar', 5, 5, 10);
-      expect(g.preview('atletismo.subir_categoria')!.available).toBe(true);
+      expect(posible(g, 'atletismo.subir_categoria')).toBe(true);
       expect(hacer(g, 'atletismo.subir_categoria').ok).toBe(true);
-      expect(g.preview('atletismo.subir_categoria')!.available).toBe(false);
-      expect(g.preview('atletismo.volver_categoria')!.available).toBe(true);
+      expect(posible(g, 'atletismo.subir_categoria')).toBe(false);
+      expect(posible(g, 'atletismo.volver_categoria')).toBe(true);
       const r = hacer(g, 'atletismo.carrera');
       const entrada = r.log.find((l) => l.table)!;
       expect(entrada.text).toMatch(/Sub-12/);
@@ -164,14 +164,14 @@ describe('integración de módulos', () => {
     it('no se puede subir sin destacar ni sin ser competitivo arriba', () => {
       const g = nuevaPartida({ seed: 21 });
       advanceToWeek(g, 'gen.descansar', 5, 5, 10);
-      expect(g.preview('atletismo.subir_categoria')!.available).toBe(false);
+      expect(posible(g, 'atletismo.subir_categoria')).toBe(false);
       expect(g.preview('atletismo.subir_categoria')!.reason).toMatch(/competido lo suficiente/);
       // Gana su categoría pero sin nivel para competir arriba: tampoco.
       const guardado = g.serialize();
       const at = guardado.modules.atletismo as AtletismoState;
       at.carreras = Array.from({ length: 5 }, (_, i) => ({ week: 4 + i, position: 1, total: 8, mark: 50, categoria: 'sub10', superior: false }));
       const g2 = cargarPartida(guardado);
-      expect(g2.preview('atletismo.subir_categoria')!.available).toBe(false);
+      expect(posible(g2, 'atletismo.subir_categoria')).toBe(false);
       expect(g2.preview('atletismo.subir_categoria')!.reason).toMatch(/competitivo/);
     });
   });
@@ -432,10 +432,10 @@ describe('integración de módulos', () => {
     it('en la semana de la clasificatoria no hay carrera semanal y sí clasificatoria, con 16 corredores', () => {
       const g = conNivel(60);
       advanceToWeek(g, 'gen.descansar', 24, 5, 10);
-      expect(g.preview('atletismo.carrera')!.available).toBe(false);
+      expect(posible(g, 'atletismo.carrera')).toBe(false);
       expect(g.preview('atletismo.carrera')!.reason).toMatch(/clasificatoria/);
-      expect(g.preview('atletismo.clasificatoria')!.available).toBe(true);
-      expect(g.preview('atletismo.final')!.available).toBe(false);
+      expect(posible(g, 'atletismo.clasificatoria')).toBe(true);
+      expect(posible(g, 'atletismo.final')).toBe(false);
       const entrada = filas(g, 'atletismo.clasificatoria');
       expect(entrada.table!.rows).toHaveLength(16);
       expect(entrada.text).toMatch(/clasificatoria autonómica/);
@@ -444,9 +444,9 @@ describe('integración de módulos', () => {
     it('la clasificatoria y la final solo se pueden correr en su semana', () => {
       const g = conNivel(60);
       advanceToWeek(g, 'gen.descansar', 10, 5, 10);
-      expect(g.preview('atletismo.clasificatoria')!.available).toBe(false);
-      expect(g.preview('atletismo.final')!.available).toBe(false);
-      expect(g.preview('atletismo.carrera')!.available).toBe(true);
+      expect(posible(g, 'atletismo.clasificatoria')).toBe(false);
+      expect(posible(g, 'atletismo.final')).toBe(false);
+      expect(posible(g, 'atletismo.carrera')).toBe(true);
     });
 
     it('quien destaca se clasifica y corre la final de 8 con una medalla en juego', () => {
@@ -455,8 +455,8 @@ describe('integración de módulos', () => {
       const clasif = filas(g, 'atletismo.clasificatoria');
       expect(clasif.text).toMatch(/Te clasificas para la final/);
       advanceToWeek(g, 'gen.descansar', 38, 5, 10);
-      expect(g.preview('atletismo.carrera')!.available).toBe(false); // esa semana es la final
-      expect(g.preview('atletismo.final')!.available).toBe(true);
+      expect(posible(g, 'atletismo.carrera')).toBe(false); // esa semana es la final
+      expect(posible(g, 'atletismo.final')).toBe(true);
       const final = filas(g, 'atletismo.final');
       expect(final.table!.rows).toHaveLength(8);
       expect(final.text).toMatch(/final del campeonato de España/);
@@ -473,9 +473,9 @@ describe('integración de módulos', () => {
       const clasif = filas(g, 'atletismo.clasificatoria');
       expect(clasif.text).toMatch(/No te clasificas/);
       advanceToWeek(g, 'gen.descansar', 38, 5, 10);
-      expect(g.preview('atletismo.final')!.available).toBe(false);
+      expect(posible(g, 'atletismo.final')).toBe(false);
       expect(g.preview('atletismo.final')!.reason).toMatch(/No te has clasificado/);
-      expect(g.preview('atletismo.carrera')!.available).toBe(true);
+      expect(posible(g, 'atletismo.carrera')).toBe(true);
     });
 
     it('el campeonato del curso siguiente empieza de cero', () => {
@@ -483,7 +483,7 @@ describe('integración de módulos', () => {
       advanceToWeek(g, 'gen.descansar', 24, 5, 10);
       hacer(g, 'atletismo.clasificatoria');
       advanceToWeek(g, 'gen.descansar', 52 + 38, 5, 10);
-      expect(g.preview('atletismo.final')!.available).toBe(false); // no se ha clasificado en este curso
+      expect(posible(g, 'atletismo.final')).toBe(false); // no se ha clasificado en este curso
     });
   });
 

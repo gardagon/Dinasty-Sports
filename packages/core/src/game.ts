@@ -689,6 +689,7 @@ export class Game {
     const game = this;
     const s = this.s;
     const reg = this.registry;
+    let vista = timeView(s.minute);
     const norm = (id: StatId) => {
       const info = reg.stats.get(id);
       if (!info) throw new Error(`Stat desconocida: ${id}`);
@@ -699,7 +700,9 @@ export class Game {
     };
     return {
       get time() {
-        return timeView(s.minute);
+        // Las condiciones consultan la hora muchas veces por decisión: la vista se calcula una vez por minuto de juego.
+        if (vista.minute !== s.minute) vista = timeView(s.minute);
+        return vista;
       },
       moduleId,
       stat: (id) => game.stat(id),

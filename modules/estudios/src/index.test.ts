@@ -3,9 +3,21 @@ import { SERVICES, type StudiesService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { estudios, nivelDeAsignatura, notaExamen, notaFinal, type EstudiosState } from './index';
-import { ASIGNATURAS, CURSOS_ESPANA, asignaturasDelCurso, diaDeExamen, elegirModalidad, horarioSemanal } from './curriculo';
+import { ASIGNATURAS, CURSOS_ESPANA, asignaturasDelCurso, clasesPorSemana, diaDeExamen, elegirModalidad, horarioDeClases, horarioSemanal, pesoDeClase } from './curriculo';
+
+/** Días de la semana en que se da una asignatura del primer curso. */
+const diasDe = (k: string): number[] => horarioSemanal(asignaturasDelCurso(0))[k];
 
 const nueva = () => Game.create([personaje, estudios], { seed: 3 });
+
+/** Va a todas las clases que se puedan desde donde esté el reloj (hasta 4). */
+function irAClases(g: Game): void {
+  for (let i = 0; i < 4; i++) {
+    const o = g.listActions().find((a) => /^estudios\.clase_\d$/.test(a.id) && a.available);
+    if (!o) break;
+    g.perform(o.id);
+  }
+}
 
 describe('módulo estudios', () => {
   it('funciona solo con el módulo base', () => {
@@ -13,25 +25,59 @@ describe('módulo estudios', () => {
     expect(g.stat('estudios.matematicas')).toBeGreaterThan(0);
   });
 
-  it('la clase solo está disponible entre semana a primera hora', () => {
+  it('la jornada son 4 clases con un recreo, de 8:00 a 14:00, solo entre semana', () => {
     const g = nueva();
     advanceTo(g, 'gen.descansar', 0, 8);
-    expect(g.preview('estudios.clase')!.available).toBe(true);
-    g.perform('estudios.clase');
+    expect(g.preview('estudios.clase_1')!.available).toBe(true);
+    expect(g.preview('estudios.clase_2')!.available).toBe(false); // todavía falta más de una hora
+    g.perform('estudios.clase_1');
+    expect(g.time.hour).toBe(9);
+    expect(g.time.minuteOfDay).toBe(9 * 60 + 20);
+    expect(g.preview('estudios.clase_1')!.available).toBe(false);
+    g.perform('estudios.clase_2');
+    expect(g.time.minuteOfDay).toBe(10 * 60 + 40);
+    g.perform('estudios.recreo');
+    expect(g.time.minuteOfDay).toBe(11 * 60 + 20);
+    g.perform('estudios.clase_3');
+    g.perform('estudios.clase_4');
     expect(g.time.hour).toBe(14);
-    expect(g.preview('estudios.clase')!.available).toBe(false);
+    expect(g.moduleState<EstudiosState>('estudios').asistencia.clases).toEqual([0, 1, 2, 3]);
     advanceTo(g, 'gen.descansar', 5, 8);
-    expect(g.preview('estudios.clase')!.reason).toMatch(/no hay clase/);
+    expect(g.preview('estudios.sin_clase')!.reason).toMatch(/no hay clase/);
+    expect(g.preview('estudios.clase_1')).toBeUndefined();
   });
 
-  it('cuenta las faltas y no hay controles semanales', () => {
+  it('se puede llegar hasta 15 minutos tarde, y después esa clase ya no vale', () => {
+    const g = nueva();
+    advanceUntil(g, 'gen.descansar', (t) => t.weekday === 0 && t.minuteOfDay >= 8 * 60 + 5);
+    expect(g.time.minuteOfDay).toBeGreaterThan(8 * 60);
+    advanceUntil(g, 'gen.descansar', (t) => t.weekday === 0 && t.minuteOfDay >= 8 * 60 + 20);
+    expect(g.preview('estudios.clase_1')!.reason).toMatch(/ya ha empezado/);
+  });
+
+  it('faltar a una clase no tiene castigo pero cuenta: no sube esa asignatura y suma una falta', () => {
+    const g = nueva();
+    advanceTo(g, 'gen.descansar', 0, 8);
+    const estres = g.stat('gen.estres');
+    const hoy = g.service<StudiesService>(SERVICES.estudios)!.timetable(0);
+    const antes = g.stat(hoy[3]);
+    for (const c of ['estudios.clase_1', 'estudios.clase_2', 'estudios.clase_3']) g.perform(c);
+    advanceTo(g, 'gen.descansar', 1, 1); // se salta la cuarta clase
+    const s = g.moduleState<EstudiosState>('estudios');
+    expect(s.faltas).toBe(1);
+    expect(g.log.some((l) => /faltado a 1 clase/.test(l.text))).toBe(true);
+    expect(g.stat(hoy[3])).toBeLessThanOrEqual(antes);
+    expect(g.stat('gen.estres')).toBeLessThanOrEqual(estres + 3); // sin castigo de estrés por faltar
+  });
+
+  it('cuenta las faltas (una por clase) y no hay controles semanales', () => {
     const g = nueva();
     advanceTo(g, 'gen.descansar', 5, 10); // pasa una semana sin ir a clase
     const s = g.moduleState<EstudiosState>('estudios');
-    expect(s.faltas).toBe(5);
+    expect(s.faltas).toBe(20);
     expect(s.notas.matematicas.length).toBe(0);
     const svc = g.service<StudiesService>(SERVICES.estudios)!;
-    expect(svc.absences()).toBe(5);
+    expect(svc.absences()).toBe(20);
     expect(svc.average()).toBeNull();
   });
 
@@ -113,21 +159,32 @@ describe('módulo estudios', () => {
       expect(svc.activeSubjects()).not.toContain('estudios.biologia');
     });
 
-    it('no todas las asignaturas se dan todos los días y el horario cubre las horas semanales', () => {
-      const activas = claves(4);
-      const h = horarioSemanal(activas);
-      for (const k of activas) {
-        expect(h[k]).toHaveLength(ASIGNATURAS.find((a) => a.key === k)!.horas);
-        expect(new Set(h[k]).size).toBe(h[k].length);
+    it('el horario ocupa los 20 huecos: 4 clases al día, sin repetir asignatura el mismo día, y las horas del currículo se ajustan', () => {
+      for (let curso = 0; curso < CURSOS_ESPANA.length; curso++) {
+        for (const modalidad of ['ciencias', 'humanidades'] as const) {
+          const activas = asignaturasDelCurso(curso, modalidad);
+          const horario = horarioDeClases(activas);
+          expect(horario).toHaveLength(5);
+          for (const dia of horario) {
+            expect(dia).toHaveLength(4);
+            expect(new Set(dia).size).toBe(4);
+          }
+          const clases = clasesPorSemana(activas);
+          expect(Object.values(clases).reduce((a, b) => a + b, 0)).toBe(20);
+          for (const k of activas) {
+            expect(clases[k]).toBeGreaterThanOrEqual(1);
+            expect(horarioSemanal(activas)[k]).toHaveLength(clases[k]);
+          }
+        }
       }
-      for (let d = 0; d < 5; d++) {
-        const hoy = activas.filter((k) => h[k].includes(d));
-        expect(hoy.length).toBeGreaterThan(2);
-        expect(hoy.length).toBeLessThan(activas.length);
-      }
+      // En ESO sobran horas y se comprimen; en primaria faltan y las asignaturas grandes ganan alguna.
+      const eso = asignaturasDelCurso(5);
+      expect(eso.reduce((a, k) => a + ASIGNATURAS.find((x) => x.key === k)!.horas, 0)).toBeGreaterThan(20);
+      expect(pesoDeClase(eso, 'matematicas')).toBeGreaterThan(1);
+      expect(pesoDeClase(asignaturasDelCurso(0), 'lengua')).toBeLessThan(1);
       const g = nueva();
       const svc = g.service<StudiesService>(SERVICES.estudios)!;
-      expect(svc.timetable(0).length).toBeLessThan(claves(0).length);
+      expect(svc.timetable(0)).toHaveLength(4);
     });
 
     it('ir a clase solo sube las asignaturas que se dan ese día', () => {
@@ -138,7 +195,7 @@ describe('módulo estudios', () => {
       expect(fuera.length).toBeGreaterThan(0);
       advanceTo(g, 'gen.descansar', 0, 8);
       const antes = Object.fromEntries(claves(0).map((k) => [k, g.stat(`estudios.${k}`)]));
-      g.perform('estudios.clase');
+      irAClases(g);
       for (const id of hoy) expect(g.stat(id)).toBeGreaterThan(antes[id.replace('estudios.', '')]);
       for (const id of fuera) expect(g.stat(id)).toBeLessThanOrEqual(antes[id.replace('estudios.', '')]);
     });
@@ -225,7 +282,7 @@ describe('módulo estudios', () => {
       const g = enExamenes(14);
       for (let d = 0; d < 5; d++) {
         advanceToWeek(g, 'gen.descansar', 14, d, 8);
-        if (d !== 3) g.perform('estudios.clase'); // el jueves falta
+        if (d !== 3) irAClases(g); // el jueves falta
       }
       advanceToWeek(g, 'gen.descansar', 14, 5, 10);
       const s = g.moduleState<EstudiosState>('estudios');
@@ -233,7 +290,7 @@ describe('módulo estudios', () => {
       for (const k of claves(0)) expect(s.notas[k]).toHaveLength(1);
       for (const k of claves(0)) {
         const nota = s.notas[k][0];
-        if (diaDeExamen(0, 1, k) === 3) expect(nota).toBe(0);
+        if (diaDeExamen(0, 1, k, 'global', diasDe(k)) === 3) expect(nota).toBe(0);
         else expect(nota).toBeGreaterThan(0);
       }
       expect(s.examenes).toEqual({});
@@ -250,7 +307,7 @@ describe('módulo estudios', () => {
       expect(mal.service<StudiesService>(SERVICES.estudios)!.levelText('estudios.matematicas')).toBe('Mal');
       for (let d = 0; d < 5; d++) {
         advanceToWeek(mal, 'gen.descansar', 14, d, 8);
-        mal.perform('estudios.clase');
+        irAClases(mal);
       }
       advanceToWeek(mal, 'gen.descansar', 14, 5, 10);
       const s = mal.moduleState<EstudiosState>('estudios');
@@ -259,7 +316,7 @@ describe('módulo estudios', () => {
     });
 
     it('varios exámenes pueden caer el mismo día', () => {
-      const dias = claves(0).map((k) => diaDeExamen(0, 1, k));
+      const dias = claves(0).map((k) => diaDeExamen(0, 1, k, 'global', diasDe(k)));
       expect(new Set(dias).size).toBeLessThan(dias.length);
     });
 
@@ -283,7 +340,7 @@ describe('módulo estudios', () => {
       for (const semana of [6, 11, 14]) {
         for (let d = 0; d < 5; d++) {
           advanceToWeek(listo, 'gen.descansar', semana, d, 8);
-          listo.perform('estudios.clase');
+          irAClases(listo);
         }
       }
       advanceToWeek(listo, 'gen.descansar', 14, 5, 10);

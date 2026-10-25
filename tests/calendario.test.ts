@@ -65,7 +65,7 @@ describe('calendario escolar (España)', () => {
   it('en vacaciones no hay clase y se anuncia el motivo', () => {
     const g = nuevaPartida({ seed: 1 });
     advanceToWeek(g, 'gen.descansar', 15, 1, 8);
-    const clase = g.preview('estudios.clase')!;
+    const clase = g.preview('estudios.sin_clase')!;
     expect(clase.available).toBe(false);
     expect(clase.reason).toMatch(/Navidad/);
   });

@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Día escolar por horas y lugares que faltaban
+
+- **Lugares nuevos para las acciones que no tenían sitio:** gimnasio (`gen.gimnasio`) y estadio (competiciones, pruebas de acceso a clubes de fuera, sesión de un club de fuera, campamento). El club del colegio sigue entrenando en el colegio. Dejar el club y subir o bajar de categoría se hacen en la sede del club (colegio o estadio). Las series, la técnica y el rodaje valen en el colegio (pistas), el parque o el estadio. **«Descansar un rato» queda sin sitio a propósito:** es la espera y no debe quedarse nunca sin lugar. Tiempos nuevos en la tabla (casa–gimnasio 13, casa–estadio 20, colegio–estadio 10, parque–gimnasio 7, gimnasio–estadio 9...).
+- **Clases por horas.** La jornada de 8:00 a 14:00 son **4 clases de 80 minutos con un recreo de 40** entre la segunda y la tercera. Cada hora es una acción (`estudios.clase_1`..`clase_4`, con el nombre de la asignatura que toca hoy) y el recreo otra (`estudios.recreo`: estrés −2, un poco de carisma y cooperación). Se puede ir a una clase desde una hora antes (esperando en el colegio) hasta 15 minutos tarde. Los días sin clase se ve «Ir a clase» no disponible con el motivo (`estudios.sin_clase`).
+- **Horario.** Caben 20 clases a la semana (4 × 5). Las horas del currículo se ajustan a esos 20 huecos en proporción, con al menos una clase por asignatura (ESO pedía 23–26 y se comprime; primaria pedía 18 y lengua y matemáticas ganan alguna). Cada clase vale lo que valían las horas originales (`pesoDeClase`), así que **lo que sube una asignatura a la semana no cambia**. Una asignatura no se repite el mismo día (test sobre todos los cursos y modalidades). Los exámenes caen ahora en uno de los días en que la asignatura tiene clase.
+- **Faltar no tiene castigo, pero se cuenta.** Si no vas a una clase, no sube lo que te tocaba y `faltas` suma una (antes sumaba un día entero, ahora son clases: una semana sin ir son 20). Se quita el estrés de +3 por faltar. Un examen solo se hace si fuiste a la clase de esa asignatura ese día; si no, es un 0. **Pendiente:** castigos y avisos a los padres, que usarán `faltas` y el detalle por clase (`EstudiosState.asistencia`).
+- **Presencia de NPCs (diseño acordado, sin hacer).** Habrá cientos de NPCs, así que no se decide por personaje a cada paso. Cada NPC tendrá un **rol** que indica dónde debe estar según la hora (alumno en clase de lunes a viernes, en el recreo en el patio, en casa de noche...), y el azar se aplica **al llegar a un lugar** (o al elegir una cantidad de presentes), no al avanzar el reloj. Se calcula solo del lugar donde estás, nunca de toda la población.
+- **Balance:** `npm run sim` casi idéntico al anterior (equilibrado 25,3 de atletismo y notas 6,0; empollón 53,1 en estudios; atleta 25,8). Se sube `SAVE_VERSION` a 7 (cambia el estado de estudios).
+- **Rendimiento:** el motor es más rápido por acción (se cachea la vista de la hora por minuto: 0,73 → ~0,6 ms), pero ahora hay ~50 % más acciones al año (cuatro clases en lugar de una, y los viajes), así que «ms por año» ya no medía el motor. **El chequeo de rendimiento pasa a ser por acción** (límite 0,8 ms) y sigue enseñando los ms por año.
+
+---
+
 ## 25/10/2026 — Lugares y desplazamientos (fase 1)
 
 Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar, trayectos con duración, menú de viaje rápido agrupado, presencia de personas, lugares que cierran).
@@ -27,7 +39,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 | Rodaje largo | parque o colegio |
 | Sesión del club | colegio si es el club del colegio; parque si es de fuera (provisional hasta que haya estadio) |
 
-  - **Sin sitio todavía** (se hacen donde se esté): gimnasio (no hay gimnasio en el mapa), descansar un rato, competiciones, pruebas de acceso a clubes, dejar el club, subir y bajar de categoría y las acciones de relaciones (falta la presencia de NPCs por lugar).
+  - **Sin sitio todavía** (se hacen donde se esté): descansar un rato (a propósito) y las acciones de relaciones (falta la presencia de NPCs por lugar). El gimnasio, las competiciones, las pruebas de acceso y dejar el club o cambiar de categoría ya tienen sitio (ver la entrada siguiente).
   - **Bots y tests:** los bots no piensan en el mapa. El simulador les ofrece lo disponible y lo que solo está bloqueado por el lugar, y los lleva antes al sitio (`sim/src/pasos.ts`); los desplazamientos no se les ofrecen. Los tests de integración usan `hacer` (`tests/ayudas.ts`), que viaja si hace falta. Una acción que deja de estar disponible tras el viaje (pasó la hora) no cuenta como fallo del bot.
   - **Balance:** `npm run sim` antes y después: casi idéntico (equilibrado 25,4 → 25,3 de atletismo, empollón 52,7 → 52,8 de estudios, atleta 25,9 en los dos; todos los chequeos ✅). Los desplazamientos (6 a 10 min) caben en el tiempo libre.
 - **Todavía sin hacer:** dividir «Ir a clase» por asignatura (tocará el horario y las faltas de `estudios`), un sitio donde comprar comida, horarios de apertura (lugares cerrados, forzar cerradura), presencia de NPCs por lugar y hora (servicio nuevo), gimnasio y estadio en el mapa, y los eventos del camino (después del movimiento).

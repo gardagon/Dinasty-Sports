@@ -89,7 +89,9 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
   const totalMs = sum.reduce((a, s) => a + s.ms, 0);
   const runs = sum.reduce((a, s) => a + s.runs, 0);
   const msPorAnio = (totalMs / runs) * (365 / days);
-  add(msPorAnio < 3000, 'fallo', 'Rendimiento', `${Math.round(totalActions / (totalMs / 1000)).toLocaleString('es-ES')} acciones/s · ${Math.round(msPorAnio)} ms por año simulado (límite 3000 ms).`);
+  // El límite es por acción: cuantas más decisiones tiene un año (clases por horas, viajes), más tarda un año sin que el motor sea más lento.
+  const msPorAccion = totalMs / totalActions;
+  add(msPorAccion < 0.8, 'fallo', 'Rendimiento', `${Math.round(totalActions / (totalMs / 1000)).toLocaleString('es-ES')} acciones/s · ${msPorAccion.toFixed(2)} ms por acción (límite 0,8 ms) · ${Math.round(msPorAnio)} ms por año simulado.`);
 
   const eq = get('equilibrado');
   const atl = get('atleta');

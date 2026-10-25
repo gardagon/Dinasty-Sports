@@ -43,16 +43,23 @@ export const CIUDAD_INICIAL: MapaCiudad = {
     { id: 'casa', name: 'Casa', descripcion: 'Tu edificio. Aquí vives con tu familia.', grupo: 'Vivienda' },
     { id: 'colegio', name: 'Colegio', descripcion: 'El colegio: aulas, patio y pistas.', grupo: 'Estudios' },
     { id: 'parque', name: 'Parque', descripcion: 'Un parque con árboles, bancos y espacio para correr.', grupo: 'Ocio' },
+    { id: 'gimnasio', name: 'Gimnasio', descripcion: 'El gimnasio municipal: sala de pesas, máquinas y una zona de cardio.', grupo: 'Deporte' },
+    { id: 'estadio', name: 'Estadio', descripcion: 'El estadio de atletismo: pista, graderías y vestuarios. Aquí compiten los clubes y se celebran las carreras.', grupo: 'Deporte' },
   ],
   tiempos: {
-    casa: { casa: 0, colegio: 10, parque: 6 },
-    colegio: { casa: 10, colegio: 0, parque: 8 },
-    parque: { casa: 6, colegio: 8, parque: 0 },
+    casa: { casa: 0, colegio: 10, parque: 6, gimnasio: 13, estadio: 20 },
+    colegio: { casa: 10, colegio: 0, parque: 8, gimnasio: 15, estadio: 10 },
+    parque: { casa: 6, colegio: 8, parque: 0, gimnasio: 7, estadio: 16 },
+    gimnasio: { casa: 13, colegio: 15, parque: 7, gimnasio: 0, estadio: 9 },
+    estadio: { casa: 20, colegio: 10, parque: 16, gimnasio: 9, estadio: 0 },
   },
   directos: [
     ['casa', 'colegio'],
     ['casa', 'parque'],
     ['parque', 'colegio'],
+    ['parque', 'gimnasio'],
+    ['colegio', 'estadio'],
+    ['gimnasio', 'estadio'],
   ],
 };
 

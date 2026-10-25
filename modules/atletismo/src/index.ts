@@ -8,6 +8,7 @@ import {
   categoriaSuperior,
   defineModule,
   inHours,
+  conLugar,
   ligarALugares,
   type ActionDoneData,
   type ActionContext,
@@ -176,6 +177,8 @@ const DEPORTE = 'atletismo';
 const EFICIENCIA_CAMPAMENTO = 1.2;
 const caminoDeVerano = (ctx: ReadContext) => ctx.service<StudiesService>(SERVICES.estudios)?.summerPath() ?? null;
 const clubDelJugador = (ctx: ReadContext): ClubView | undefined => ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(DEPORTE);
+/** Dónde entrena el club del personaje: el colegio si es el del colegio y, si no, el estadio (sin club, el colegio). */
+const sedeDelClub = (ctx: ReadContext): readonly string[] => (clubDelJugador(ctx)?.esColegio === false ? ['estadio'] : ['colegio']);
 const edadDelJugador = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
 
 /** Pruebas de acceso a los clubes de fuera del colegio, que el personaje todavía no tiene. */
@@ -188,7 +191,7 @@ function accionesDeClubes(ctx: ReadContext): ActionDef[] {
     .filter((c) => !c.esColegio && c.id !== actual?.id && c.acceso?.[DEPORTE])
     .map((c): ActionDef => {
       const acceso = c.acceso![DEPORTE];
-      return {
+      return conLugar(['estadio'], {
         id: `atletismo.prueba.${c.id}`,
         name: `Prueba de acceso: ${c.nombre}`,
         description: `El ${c.nombre} hace pruebas a quien quiere entrar. Exige edad (${acceso.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
@@ -215,7 +218,7 @@ function accionesDeClubes(ctx: ReadContext): ActionDef[] {
             c2.addStat(GEN.motivacion, -3);
           }
         },
-      };
+      });
     });
 }
 
@@ -747,15 +750,20 @@ export const atletismo = defineModule<AtletismoState>({
       run: (ctx) => disputar(ctx, 'regular'),
     },
   ], {
-    // Sin estadio ni clubes de fuera en el mapa, lo que no es del colegio se hace en el parque (a cambiar cuando existan).
-    // Competiciones, pruebas de acceso, dejar el club y subir o bajar de categoría no tienen sitio todavía.
+    // El club del colegio entrena en el colegio; los de fuera, en el estadio. Las pistas del colegio, el parque y el estadio valen para entrenar solo.
     'atletismo.apuntarse_colegio': ['colegio'],
-    'atletismo.club_sesion': (ctx) => (clubDelJugador(ctx)?.esColegio ? ['colegio'] : ['parque']),
-    'atletismo.campamento': ['parque'],
+    'atletismo.club_sesion': sedeDelClub,
+    'atletismo.dejar_club': sedeDelClub,
+    'atletismo.subir_categoria': sedeDelClub,
+    'atletismo.volver_categoria': sedeDelClub,
+    'atletismo.campamento': ['estadio'],
     'atletismo.amigos': ['parque'],
-    'atletismo.series': ['colegio', 'parque'],
-    'atletismo.rodaje': ['parque', 'colegio'],
-    'atletismo.tecnica': ['colegio', 'parque'],
+    'atletismo.series': ['colegio', 'estadio', 'parque'],
+    'atletismo.rodaje': ['parque', 'colegio', 'estadio'],
+    'atletismo.tecnica': ['colegio', 'estadio', 'parque'],
+    'atletismo.clasificatoria': ['estadio'],
+    'atletismo.final': ['estadio'],
+    'atletismo.carrera': ['estadio'],
     'atletismo.ver_tele': ['casa'],
   }),
 

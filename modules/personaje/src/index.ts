@@ -192,8 +192,9 @@ export const personaje = defineModule<IdentidadState>({
       train: [{ stat: GEN.carisma, amount: 0.5 }],
     },
   ], {
-    // El gimnasio no tiene sitio todavía: se hace donde se esté hasta que haya uno en el mapa.
+    // «Descansar un rato» vale en cualquier parte a propósito: es la espera y no se queda nunca sin sitio.
     'gen.dormir': ['casa'],
+    'gen.gimnasio': ['gimnasio'],
     'gen.leer': ['casa', 'parque'],
     'gen.ocio': ['casa'],
     'gen.pasear': ['parque'],

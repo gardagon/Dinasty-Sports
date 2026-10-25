@@ -58,7 +58,9 @@ export function flojoEnLaSuperior(game: Game): boolean {
 
 /** Entrar en el club del colegio, el primer paso de quien se toma en serio un deporte. */
 export const apuntarseAlClub = id('atletismo.apuntarse_colegio');
-export const estudio = all(tag(TAGS.estudio), not(id('estudios.clase')), not(tag(TAGS.social)));
+/** Las clases del colegio (una acción por hora del horario). */
+export const clase: Pred = (o) => /^estudios\.clase_\d$/.test(o.id);
+export const estudio = all(tag(TAGS.estudio), not(clase), not(tag(TAGS.social)));
 /** Acciones de relación constructivas (quedar, charlar, ayudar...): los bots nunca discuten. */
 export const relacion = (o: ActionOption) => o.id.startsWith('relaciones.') && !/^relaciones\.(discutir|paces)\./.test(o.id);
 
@@ -72,7 +74,8 @@ export function basicas(
   const has = (x: string) => opts.some((o) => o.id === x);
   const noche = h >= cfg.horaDormir || h < 6;
   if (noche && has('gen.dormir')) return 'gen.dormir';
-  if (cfg.clase && has('estudios.clase')) return 'estudios.clase';
+  const aClase = opts.find(clase);
+  if (cfg.clase && aClase) return aClase.id;
   // La academia de verano es obligatoria para quien suspende: los que van a clase también van a ella.
   if (cfg.clase && has('estudios.academia')) return 'estudios.academia';
   if (cfg.competir) {
@@ -193,10 +196,11 @@ export const BOTS: Bot[] = [
     name: 'Vago',
     description: 'Ocio y amigos. Va a clase a veces y duerme mucho.',
     choose(game, opts, rng, mem) {
-      const fueAClase = mem.hoy['clase-decidida'] === 1;
-      if (!fueAClase && opts.some(id('estudios.clase'))) {
-        mem.hoy['clase-decidida'] = 1;
-        if (rng.chance(0.6)) return 'estudios.clase';
+      // Decide una vez al día si va a clase; si va, va a todas las horas.
+      if (mem.hoy['clase-decidida'] === undefined && opts.some(clase)) mem.hoy['clase-decidida'] = rng.chance(0.6) ? 2 : 1;
+      if (mem.hoy['clase-decidida'] === 2) {
+        const aClase = opts.find(clase);
+        if (aClase) return aClase.id;
       }
       return (
         basicas(game, opts, { horaDormir: 23, clase: false, competir: false, energiaMin: 30 }) ??
