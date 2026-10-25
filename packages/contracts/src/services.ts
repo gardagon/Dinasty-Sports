@@ -14,6 +14,7 @@ export const SERVICES = {
   relaciones: 'relaciones',
   perks: 'perks',
   perfil: 'perfil',
+  lugares: 'lugares',
 } as const;
 
 // ---------- NPCs ----------

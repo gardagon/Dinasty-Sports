@@ -5,6 +5,19 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Lugares y desplazamientos (fase 1)
+
+Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar, trayectos con duración, menú de viaje rápido agrupado, presencia de personas, lugares que cierran).
+
+- **Un solo mapa de ciudad que crece poco a poco.** De inicio: casa (el edificio donde se vive), colegio y parque, con sus caminos (casa–colegio 10 min, casa–parque 6, parque–colegio 8). Después: estadio, gimnasio, tienda, aeropuerto. El mapa es un dato en contracts (`CIUDAD_INICIAL`, `MapaCiudad`), como el calendario por país.
+- **Módulo `lugares`:** guarda dónde está el personaje (`LugaresState.actual`). Ir a un sitio es una acción (`lugares.ir_<lugar>`) cuyo coste es la ruta más corta: ir al vecino y el viaje rápido son lo mismo. Emite `lugares.llegada`. El servicio `lugares` ofrece lugar actual, vecinos, ruta y casa.
+- **Cómo ligan los módulos sus acciones a un sitio:** con `enLugar(ctx, ...ids)` en el `available` (contracts). Si `lugares` no está cargado no restringe nada. Hoy **ninguna acción existente lo usa**, así que el juego se comporta igual y la simulación no cambia.
+- **Decidido con el usuario:** solo movimiento hasta que haya eventos (los encuentros en el camino vienen después); una pantalla por lugar; la casa da la cama y hay un sitio donde comprar comida (dormir y comer en casa en la infancia; dormir fuera y viajar a competiciones, más adelante).
+- **Todavía sin hacer:** gastar energía al caminar, horarios de apertura (lugares cerrados, forzar cerradura), presencia de NPCs por lugar y hora (servicio nuevo), pantalla por lugar en la web, ligar las acciones existentes a sus sitios (dormir en casa, estudiar y clase en el colegio, entrenar en la pista) y dividir «Ir a clase» por asignatura.
+- **Comprobado:** tests (incluida la arquitectura) y `sim:rapida` sin cambios.
+
+---
+
 ## 25/10/2026 — Acciones de relación variadas (E20.3)
 
 - **Catálogo por persona** (cada una en su grupo «Relaciones · Nombre»; sigue habiendo un solo contacto al día con cada persona):
