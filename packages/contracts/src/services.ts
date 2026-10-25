@@ -158,6 +158,8 @@ export interface FamilyService {
   apellidos: string;
   /** Padre y madre (la genética oculta no se expone). */
   parents(): ParentView[];
+  /** Hermanos del personaje (0 a 3): personas con su propia vida, que viven en el directorio de personas con el rol `familia`. */
+  siblings(): NpcView[];
 }
 
 // ---------- Clubes ----------

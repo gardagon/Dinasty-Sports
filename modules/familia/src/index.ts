@@ -1,4 +1,5 @@
-import { GEN, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext, type ParentView, type Practica, type RasgosDe, type ReadContext } from '@ds/contracts';
+import { GEN, apellidosDeFamilia, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext,
+  type NpcDirectory, type ParentView, type Practica, type RasgosDe, type ReadContext } from '@ds/contracts';
 
 /**
  * MÓDULO FAMILIA (id `familia`).
@@ -33,7 +34,6 @@ const NOMBRES: Record<Gender, string[]> = {
   f: ['Carmen', 'María', 'Laura', 'Cristina', 'Patricia', 'Isabel', 'Raquel', 'Silvia', 'Beatriz', 'Marta', 'Eva', 'Pilar'],
   m: ['Antonio', 'José', 'Manuel', 'Javier', 'David', 'Miguel', 'Rafael', 'Alberto', 'Jesús', 'Fernando', 'Raúl', 'Andrés'],
 };
-const APELLIDOS = ['García', 'Martín', 'López', 'Sánchez', 'Romero', 'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano'];
 const DEPORTES = ['atletismo', 'fútbol', 'baloncesto', 'natación', 'ciclismo', 'balonmano', 'tenis'];
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -90,7 +90,8 @@ export const familia = defineModule<FamiliaState>({
   dependsOn: ['gen'],
   initState: (ctx) => {
     return {
-      apellidos: `${ctx.rng.pick(APELLIDOS)} ${ctx.rng.pick(APELLIDOS)}`,
+      // Los dos apellidos salen de la semilla para que los hermanos (módulo `npcs`) lleven los mismos sin depender de este módulo.
+      apellidos: apellidosDeFamilia(ctx.seed),
       padres: [nuevoProgenitor('padre', ctx), nuevoProgenitor('madre', ctx)],
     };
   },
@@ -100,6 +101,7 @@ export const familia = defineModule<FamiliaState>({
       return {
         apellidos: s.apellidos,
         parents: () => s.padres.map((p) => vista(p, ctx.time.day)),
+        siblings: () => ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ tag: 'hermano' }) ?? [],
       };
     },
   },

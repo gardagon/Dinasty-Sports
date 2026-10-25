@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, madurezPorEdad, ventajaDeCrianza, type NpcDirectory } from '@ds/contracts';
+import { SERVICES, madurezPorEdad, ventajaDeCrianza, type FamilyService, type NpcDirectory } from '@ds/contracts';
 import { Game, advanceTo, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
+import { familia } from '@ds/mod-familia';
 import { desarrolloRival, npcs, type NpcsState } from './index';
 
 const nueva = () => Game.create([personaje, npcs], { seed: 9 });
@@ -10,8 +11,9 @@ describe('módulo NPCs', () => {
   it('genera un reparto y lo publica como servicio', () => {
     const g = nueva();
     const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
-    expect(dir.list().length).toBe(100); // 4 del entorno + 8 rivales por cada edad de 8 a 19
-    expect(dir.list({ tag: 'atleta' })).toHaveLength(96);
+    const hermanos = dir.list({ tag: 'hermano' }).length;
+    expect(dir.list().length).toBe(100 + hermanos); // 4 del entorno + 8 rivales por cada edad de 8 a 19 + los hermanos
+    expect(dir.list({ role: 'rival' })).toHaveLength(96);
     expect(dir.get('entrenador')?.role).toBe('entrenador');
   });
 
@@ -41,9 +43,9 @@ describe('módulo NPCs', () => {
     it('hay 8 rivales por cada edad de 8 a 19, desconocidos al principio y con nombres únicos', () => {
       const g = nueva();
       for (let edad = 8; edad <= 19; edad++) {
-        expect(dir(g).list({ tag: 'atleta', minAge: edad, maxAge: edad })).toHaveLength(8);
+        expect(dir(g).list({ role: 'rival', minAge: edad, maxAge: edad })).toHaveLength(8);
       }
-      expect(dir(g).list({ tag: 'atleta', minAge: 20 })).toHaveLength(0);
+      expect(dir(g).list({ role: 'rival', minAge: 20 })).toHaveLength(0);
       expect(rivales(g).every((n) => n.known === false)).toBe(true);
       expect(new Set(rivales(g).map((n) => n.name)).size).toBe(rivales(g).length);
     });
@@ -61,7 +63,7 @@ describe('módulo NPCs', () => {
     it('los más jóvenes están lejos de su potencial y los mayores cerca', () => {
       const g = nueva();
       const media = (edad: number) => {
-        const xs = dir(g).list({ tag: 'atleta', minAge: edad, maxAge: edad });
+        const xs = dir(g).list({ role: 'rival', minAge: edad, maxAge: edad });
         return xs.reduce((a, n) => a + n.levels.atletismo, 0) / xs.length;
       };
       expect(media(8)).toBeLessThan(media(12));
@@ -76,10 +78,10 @@ describe('módulo NPCs', () => {
       const despues = rivales(g);
       // La edad de competición es por año de nacimiento: tras el relevo cada edad tiene exactamente 8 rivales.
       for (let edad = 8; edad <= 19; edad++) {
-        expect(dir(g).list({ tag: 'atleta', minAge: edad, maxAge: edad })).toHaveLength(8);
+        expect(dir(g).list({ role: 'rival', minAge: edad, maxAge: edad })).toHaveLength(8);
       }
       expect(despues).toHaveLength(96);
-      expect(dir(g).list({ tag: 'atleta', minAge: 21 })).toHaveLength(0);
+      expect(dir(g).list({ role: 'rival', minAge: 21 })).toHaveLength(0);
       // Se han ido los de 19 años y han entrado niños de 8 que antes no estaban.
       expect(despues.filter((n) => !idsAntes.has(n.id)).length).toBeGreaterThanOrEqual(8);
       expect(despues.filter((n) => idsAntes.has(n.id)).length).toBeLessThan(96);
@@ -152,5 +154,79 @@ describe('módulo NPCs', () => {
     const antes = JSON.stringify(g.service<NpcDirectory>(SERVICES.npcs)!.get('tutor')!.rasgos);
     advanceTo(g, 'gen.descansar', 6, 20);
     expect(JSON.stringify(g.service<NpcDirectory>(SERVICES.npcs)!.get('tutor')!.rasgos)).toBe(antes);
+  });
+});
+
+describe('hermanos', () => {
+  const partidas = Array.from({ length: 200 }, (_, i) => Game.create([personaje, familia, npcs], { seed: i + 1 }));
+  const hermanosDe = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' });
+
+  it('hay de 0 a 3 hermanos, con los apellidos de la familia y el rol familia', () => {
+    const cuenta = [0, 0, 0, 0];
+    for (const g of partidas) {
+      const hs = hermanosDe(g);
+      expect(hs.length).toBeLessThanOrEqual(3);
+      cuenta[hs.length]++;
+      const apellidos = g.service<FamilyService>(SERVICES.familia)!.apellidos;
+      for (const h of hs) {
+        expect(h.role).toBe('familia');
+        expect(h.name.endsWith(apellidos)).toBe(true);
+        expect(h.known).not.toBe(false);
+      }
+    }
+    expect(cuenta[1]).toBeGreaterThan(cuenta[0]);
+    expect(cuenta[1]).toBeGreaterThan(cuenta[3]);
+    expect(cuenta.every((c) => c > 0)).toBe(true);
+  });
+
+  it('son mayores o menores que el personaje (de 2 a 14 años al empezar), sin repetir edad', () => {
+    for (const g of partidas) {
+      const edades = hermanosDe(g).map((h) => g.service<NpcDirectory>(SERVICES.npcs)!.get(h.id)!.age!);
+      for (const e of edades) {
+        expect(e).toBeGreaterThanOrEqual(2);
+        expect(e).toBeLessThanOrEqual(14);
+      }
+      expect(edades.filter((e) => e === 8).length).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('heredan carácter e intereses de sus padres y tienen su propio potencial en atletismo', () => {
+    const potenciales = partidas.flatMap((g) => g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.tags.includes('hermano')).map((n) => n.potential.atletismo));
+    expect(potenciales.length).toBeGreaterThan(100);
+    for (const p of potenciales) {
+      expect(p).toBeGreaterThanOrEqual(20);
+      expect(p).toBeLessThanOrEqual(95);
+    }
+    const sd = Math.sqrt(potenciales.reduce((a, p) => a + (p - potenciales.reduce((x, y) => x + y, 0) / potenciales.length) ** 2, 0) / potenciales.length);
+    expect(sd).toBeGreaterThan(5); // cada hermano es distinto
+  });
+
+  it('los que tienen 8 años o más compiten (etiqueta atleta, con nivel) y los pequeños empiezan al cumplirlos', () => {
+    const g = partidas.find((x) => hermanosDe(x).some((h) => (x.service<NpcDirectory>(SERVICES.npcs)!.get(h.id)!.age ?? 0) < 8 && (x.service<NpcDirectory>(SERVICES.npcs)!.get(h.id)!.age ?? 0) >= 6))!;
+    const dir = () => g.service<NpcDirectory>(SERVICES.npcs)!;
+    const pequeno = hermanosDe(g).find((h) => (dir().get(h.id)!.age ?? 0) < 8 && (dir().get(h.id)!.age ?? 0) >= 6)!;
+    expect(dir().get(pequeno.id)!.tags).not.toContain('atleta');
+    expect(dir().get(pequeno.id)!.levels.atletismo).toBeUndefined();
+    const mayor = hermanosDe(g).find((h) => (dir().get(h.id)!.age ?? 0) >= 8);
+    if (mayor) {
+      expect(dir().get(mayor.id)!.tags).toContain('atleta');
+      expect(dir().get(mayor.id)!.levels.atletismo).toBeGreaterThan(0);
+    }
+    advanceUntil(g, 'gen.descansar', (t) => t.day >= 365 * 3, 40000);
+    expect(dir().get(pequeno.id)!.tags).toContain('atleta');
+    expect(dir().get(pequeno.id)!.levels.atletismo).toBeGreaterThan(0);
+  });
+
+  it('un hermano de 8 a 19 años aparece en su categoría junto a los rivales', () => {
+    const g = partidas.find((x) => hermanosDe(x).some((h) => x.service<NpcDirectory>(SERVICES.npcs)!.get(h.id)!.age === 8))!;
+    const h = hermanosDe(g).find((x) => g.service<NpcDirectory>(SERVICES.npcs)!.get(x.id)!.age === 8)!;
+    expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'atleta', minAge: 8, maxAge: 8 }).map((n) => n.id)).toContain(h.id);
+  });
+
+  it('los hermanos no se retiran con los cursos: siguen cuando los rivales se renuevan', () => {
+    const g = partidas.find((x) => hermanosDe(x).length >= 2)!;
+    const antes = hermanosDe(g).map((h) => h.id);
+    advanceUntil(g, 'gen.descansar', (t) => t.schoolYear >= 3, 30000);
+    expect(hermanosDe(g).map((h) => h.id)).toEqual(antes);
   });
 });

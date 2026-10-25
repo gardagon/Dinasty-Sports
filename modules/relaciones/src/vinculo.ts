@@ -18,6 +18,8 @@ export interface Vinculo {
   ultimoContacto: number;
   /** Días de los últimos contactos (los 8 más recientes). */
   contactos: number[];
+  /** Vínculo familiar (un hermano): no se enfría por debajo del suelo familiar. */
+  familia?: boolean;
 }
 
 /** Umbrales para entrar en cada estado. Salir exige cruzarlos con un margen, para que el estado no parpadee. */
@@ -29,6 +31,9 @@ export const UMBRALES = {
   amigo: { afinidad: 40, confianza: 30, contactos: 3, ventanaDias: 14 },
   mejorAmigo: { afinidad: 75, confianza: 60 },
 } as const;
+
+/** Afinidad por debajo de la cual no baja sola un vínculo familiar: se puede enemistar, pero no se olvida. */
+export const SUELO_FAMILIAR = 5;
 
 /** Hacia dónde se suaviza una antipatía con el tiempo: nunca llega a "conocido" por sí sola. */
 export const SUELO_NEGATIVO = -20;
@@ -48,7 +53,7 @@ const CONFIANZA_POR_DIA = 0.1;
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
-export const nuevoVinculo = (npcId: string, dia: number): Vinculo => ({
+export const nuevoVinculo = (npcId: string, dia: number, familia = false): Vinculo => ({
   npcId,
   afinidad: 0,
   confianza: 0,
@@ -56,6 +61,7 @@ export const nuevoVinculo = (npcId: string, dia: number): Vinculo => ({
   desde: dia,
   ultimoContacto: -1,
   contactos: [],
+  ...(familia ? { familia: true } : {}),
 });
 
 /** Estado que corresponde a las cifras del vínculo, con margen de histéresis respecto al estado actual. */
@@ -108,8 +114,9 @@ export function pasarDia(v: Vinculo, dia: number): Vinculo {
   const sinVer = dia - v.ultimoContacto;
   const { graciaDias, porDia } = ENFRIAMIENTO[v.estado];
   let { afinidad, confianza } = v;
+  const suelo = v.familia ? SUELO_FAMILIAR : 0;
   if (sinVer > graciaDias) {
-    if (afinidad > 0) afinidad = Math.max(0, afinidad - porDia);
+    if (afinidad > suelo) afinidad = Math.max(suelo, afinidad - porDia);
     else if (afinidad < SUELO_NEGATIVO) afinidad = Math.min(SUELO_NEGATIVO, afinidad + porDia);
   }
   if (sinVer > CONFIANZA_GRACIA && confianza > 0) confianza = Math.max(0, confianza - CONFIANZA_POR_DIA);
