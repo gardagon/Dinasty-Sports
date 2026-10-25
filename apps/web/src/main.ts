@@ -267,7 +267,15 @@ function viewFamily(g: Game): string {
       return `<p class="note"><b>${p.gender === 'f' ? 'Madre' : 'Padre'}:</b> ${esc(p.nombre)}, ${p.edad} años, ${Math.round(p.alturaCm)} cm. ${esc(deporte)}. Apoyo ${p.apoyo}, expectativas ${p.expectativas}, tiempo en casa ${p.tiempoEnCasa}.${esc(perksPadre)}</p>`;
     })
     .join('');
-  return `<h3>Familia ${esc(f.apellidos)}</h3>${filas}`;
+  const hermanos = f
+    .siblings()
+    .map((h) => {
+      const rasgos = MOSTRAR_GENETICA && h.rasgos ? ` Carácter: ${describirCaracter(h.rasgos.caracter)}. Intereses: ${textoIntereses(h.rasgos.intereses, 'npc')}.` : '';
+      const nivel = h.levels.atletismo !== undefined ? ` Atletismo ${Math.round(h.levels.atletismo)}.` : '';
+      return `<p class="note"><b>${h.gender === 'f' ? 'Hermana' : 'Hermano'}:</b> ${esc(h.name)}, ${h.age ?? '?'} años.${nivel}${esc(rasgos)}</p>`;
+    })
+    .join('');
+  return `<h3>Familia ${esc(f.apellidos)}</h3>${filas}${hermanos || '<p class="note">Eres hijo único.</p>'}`;
 }
 
 /** Intereses en texto, de más a menos (solo para las pruebas). */
@@ -452,7 +460,7 @@ function viewPeople(g: Game): string {
       const lvl = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
       const ayuda = n.supports.length ? `Si os lleváis bien te ayuda en: ${n.supports.join(', ')}.` : '';
       return `<div class="npc">
-        <div class="npc-head"><b>${esc(n.name)}</b><span>${ROL[n.role]?.[n.gender === 'f' ? 0 : 1] ?? n.role}</span></div>
+        <div class="npc-head"><b>${esc(n.name)}</b><span>${n.tags.includes('hermano') ? (n.gender === 'f' ? 'Hermana' : 'Hermano') : (ROL[n.role]?.[n.gender === 'f' ? 0 : 1] ?? n.role)}</span></div>
         ${v ? `<div class="note"><b>${nombreEstado(v.estado, n.gender)}</b>${MOSTRAR_RELACIONES ? ` · afinidad ${Math.round(v.afinidad)}, confianza ${Math.round(v.confianza)} (solo pruebas)` : ''}${lvl ? ` · nivel ${esc(lvl)}` : ''}</div>` : ''}
         ${MOSTRAR_RELACIONES && v ? `<div class="bar" title="Afinidad ${Math.round(v.afinidad)}"><i style="width:${(v.afinidad + 100) / 2}%"></i></div>` : ''}
         <div class="note">${esc(n.description ?? '')} ${esc(ayuda)}</div>

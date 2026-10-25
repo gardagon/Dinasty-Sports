@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, type FamilyService, type ProfileService } from '@ds/contracts';
+import { SERVICES, type FamilyService, type NpcDirectory, type ProfileService } from '@ds/contracts';
 import { Game } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
+import { npcs } from '@ds/mod-npcs';
 import { familia } from './index';
 
 const nueva = (seed: number) => Game.create([personaje, familia], { seed });
@@ -63,5 +64,28 @@ describe('módulo familia', () => {
       const ids = [...padre.rasgos.origen, ...madre.rasgos.origen].map((o) => o.id);
       for (const o of hijo.origen) expect(ids).toContain(o.id);
     }
+  });
+});
+
+describe('hermanos en la ficha de familia', () => {
+  const conHermanos = (seed: number) => Game.create([personaje, familia, npcs], { seed });
+
+  it('el servicio da los hermanos que viven en el directorio de personas, con los apellidos de la familia', () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const g = conHermanos(seed);
+      const f = g.service<FamilyService>(SERVICES.familia)!;
+      const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
+      expect(f.siblings().map((h) => h.id)).toEqual(dir.list({ tag: 'hermano' }).map((h) => h.id));
+      for (const h of f.siblings()) expect(h.name.endsWith(f.apellidos)).toBe(true);
+    }
+  });
+
+  it('sin el módulo de personas no hay hermanos (y no falla)', () => {
+    expect(padres(nueva(1)).siblings()).toEqual([]);
+  });
+
+  it('los apellidos dependen de la semilla: la misma partida da siempre los mismos', () => {
+    expect(padres(nueva(7)).apellidos).toBe(padres(nueva(7)).apellidos);
+    expect(new Set(Array.from({ length: 20 }, (_, i) => padres(nueva(i + 1)).apellidos)).size).toBeGreaterThan(8);
   });
 });

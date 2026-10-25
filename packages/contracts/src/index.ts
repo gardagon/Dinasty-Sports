@@ -15,3 +15,4 @@ export * from './herencia';
 export * from './relaciones';
 export * from './perks';
 export * from './rasgos';
+export * from './hermanos';

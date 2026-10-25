@@ -3,7 +3,8 @@ import {
   CARA, DISTINTIVOS, EJES, INTERESES, OJOS, ORIGENES, PELO_COLOR, PELO_TIPO, PIEL,
   aparienciaAlAzar, aparienciaHeredada, atraccion, caracterAlAzar, caracterHeredado, compatibilidad, describirApariencia, describirCaracter,
   describirOrigen, factorDeCompatibilidad, gustosAlAzar, interesesAlAzar, interesesDe, interesesHeredados, origenAlAzar, origenHeredado,
-  perfilHeredado, rasgosAlAzar, type Apariencia,
+  perfilHeredado, rasgosAlAzar,
+  rasgosHeredadosNpc, type Apariencia,
 } from './rasgos';
 import type { Rng } from './rng';
 
@@ -210,5 +211,39 @@ describe('gustos, compatibilidad y perfil', () => {
     expect(p.origen.reduce((a, x) => a + x.peso, 0)).toBeCloseTo(1, 6);
     expect([padre.apariencia.cara, madre.apariencia.cara]).toContain(p.apariencia.cara);
     expect(Object.keys(p.intereses).length).toBeGreaterThan(0);
+  });
+});
+
+describe('rasgos de un hermano', () => {
+  it('hereda de los dos padres: carácter atenuado, intereses de alguno de ellos y al menos dos', () => {
+    const rng = rngDe(21);
+    for (let i = 0; i < 100; i++) {
+      const padre = rasgosAlAzar(rng);
+      const madre = rasgosAlAzar(rng);
+      const h = rasgosHeredadosNpc(padre, madre, rng);
+      expect(Object.keys(h.caracter)).toHaveLength(8);
+      expect(Object.keys(h.intereses).length).toBeGreaterThanOrEqual(2);
+      for (const v of Object.values(h.intereses)) {
+        expect(v).toBeGreaterThanOrEqual(1);
+        expect(v).toBeLessThanOrEqual(3);
+      }
+    }
+  });
+
+  it('dos hermanos de los mismos padres se parecen más en carácter que dos desconocidos', () => {
+    const rng = rngDe(33);
+    let hermanos = 0;
+    let desconocidos = 0;
+    const N = 300;
+    const distancia = (a: Record<string, number>, b: Record<string, number>) => Object.keys(a).reduce((s, k) => s + Math.abs(a[k] - b[k]), 0);
+    for (let i = 0; i < N; i++) {
+      const padre = rasgosAlAzar(rng);
+      const madre = rasgosAlAzar(rng);
+      const a = rasgosHeredadosNpc(padre, madre, rng);
+      const b = rasgosHeredadosNpc(padre, madre, rng);
+      hermanos += distancia(a.caracter, b.caracter);
+      desconocidos += distancia(a.caracter, rasgosAlAzar(rng).caracter);
+    }
+    expect(hermanos / N).toBeLessThan(desconocidos / N);
   });
 });

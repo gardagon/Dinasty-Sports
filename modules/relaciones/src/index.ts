@@ -11,6 +11,7 @@ import {
   type ActionContext,
   type ActionDef,
   type CompetitionResultData,
+  type IdentityService,
   type NpcDirectory,
   type NpcView,
   type ProfileService,
@@ -22,6 +23,8 @@ import {
 } from '@ds/contracts';
 import { AFINIDAD_PARA_AYUDAR, ESPERA, interesFavorito, mejorInteresEnComun, perdidaPorDiscusion, probabilidadDePaces } from './acciones';
 import { conCambio, conContacto, nuevoVinculo, pasarDia, type Vinculo } from './vinculo';
+
+const limitar = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /**
  * MÓDULO RELACIONES (id `relaciones`).
@@ -55,7 +58,19 @@ const dirDe = (ctx: ReadContext) => ctx.service<NpcDirectory>(SERVICES.npcs);
 /** ¿Conoce el personaje a esta persona? Los rivales, solo tras competir contra ellos. */
 const conocida = (n: NpcView) => n.known !== false;
 
-const vinculoDe = (s: RelacionesState, n: NpcView, dia: number): Vinculo => s.vinculos[n.id] ?? nuevoVinculo(n.id, dia);
+/**
+ * Cómo empieza el vínculo con alguien. Todos parten de 0 (conocido), salvo los hermanos: llevan toda la vida juntos y empiezan
+ * con una afinidad de 5 a 25 según lo compatibles que sean (intereses y carácter) y lo lejos que estén en edad.
+ */
+function vinculoInicial(ctx: ReadContext, n: NpcView, dia: number): Vinculo {
+  if (n.role !== 'familia') return nuevoVinculo(n.id, dia);
+  const yo = ctx.service<IdentityService>(SERVICES.identidad)?.view();
+  const diferencia = n.age !== undefined && yo ? Math.abs(n.age - yo.seasonAge) : 0;
+  const afinidad = limitar(5 + 40 * (compatDe(ctx, n) - 0.2) - 1.5 * Math.max(0, diferencia - 3), 5, 25);
+  return { ...nuevoVinculo(n.id, dia, true), afinidad, confianza: 15 };
+}
+
+const vinculoDe = (ctx: ReadContext, s: RelacionesState, n: NpcView, dia: number): Vinculo => s.vinculos[n.id] ?? vinculoInicial(ctx, n, dia);
 
 const vista = (v: Vinculo): RelationView => ({
   npcId: v.npcId,
@@ -79,7 +94,7 @@ function horarioDe(n: NpcView): (ctx: ReadContext) => true | string {
   return fueraDeClase(10, 21);
 }
 
-const grupoDe = (n: NpcView) => `Relaciones · ${nombreCorto(n)}`;
+const grupoDe = (n: NpcView) => `Relaciones · ${nombreCorto(n)}${n.role === 'familia' ? ` (${n.gender === 'f' ? 'hermana' : 'hermano'})` : ''}`;
 const perfilDe = (ctx: ReadContext) => ctx.service<ProfileService>(SERVICES.perfil)?.view();
 const compatDe = (ctx: ReadContext, n: NpcView): number => {
   const yo = perfilDe(ctx);
@@ -93,7 +108,7 @@ function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, ex
     if (s.vinculos[n.id]?.ultimoContacto === ctx.time.day) return `Ya has estado con ${nombreCorto(n)} hoy`;
     const h = horario(ctx);
     if (h !== true) return h;
-    return extra ? extra(ctx, vinculoDe(s, n, ctx.time.day)) : true;
+    return extra ? extra(ctx, vinculoDe(ctx, s, n, ctx.time.day)) : true;
   };
 }
 
@@ -138,7 +153,7 @@ function interaccion(
       const f = (cfg.factor?.(ctx) ?? 1) * ctx.efficiency;
       ctx.updateState<RelacionesState>((s) => ({
         ...s,
-        vinculos: { ...s.vinculos, [n.id]: conContacto(s.vinculos[n.id] ?? nuevoVinculo(n.id, dia), dia, cfg.ganancia * f, cfg.confianza * f) },
+        vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(ctx, s, n, dia), dia, cfg.ganancia * f, cfg.confianza * f) },
       }));
       cfg.alTerminar?.(ctx);
     },
@@ -151,7 +166,7 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
   return [
     interaccion(n, {
       suffix: 'quedar',
-      name: `Quedar con ${yo}`,
+      name: n.role === 'familia' ? `Pasar la tarde con ${yo}` : `Quedar con ${yo}`,
       description: 'Pasar la tarde juntos: lo que más acerca, pero lleva tiempo.',
       duration: 120,
       tags: [TAGS.social, TAGS.ocio],
@@ -265,7 +280,7 @@ function discutir(n: NpcView): ActionDef {
       const perdida = perdidaPorDiscusion(n.rasgos, n.role);
       ctx.updateState<RelacionesState>((s) => ({
         ...s,
-        vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(s, n, dia), dia, -perdida, -5) },
+        vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(ctx, s, n, dia), dia, -perdida, -5) },
       }));
       ctx.log(`Discutes con ${yo}. Te desahogas, pero la relación se resiente.`, 'aviso');
     },
@@ -294,18 +309,18 @@ function hacerLasPaces(n: NpcView): ActionDef {
     ],
     run: (ctx) => {
       const dia = ctx.time.day;
-      const v = vinculoDe(ctx.state<RelacionesState>(), n, dia);
+      const v = vinculoDe(ctx, ctx.state<RelacionesState>(), n, dia);
       const p = probabilidadDePaces(n.rasgos, NIVEL_ESTADO[v.estado], compatDe(ctx, n));
       if (ctx.rng.chance(p)) {
         ctx.updateState<RelacionesState>((s) => ({
           ...s,
-          vinculos: { ...s.vinculos, [n.id]: conContacto({ ...vinculoDe(s, n, dia), afinidad: -2, estado: 'conocido' }, dia, 5, 5) },
+          vinculos: { ...s.vinculos, [n.id]: conContacto({ ...vinculoDe(ctx, s, n, dia), afinidad: -2, estado: 'conocido' }, dia, 5, 5) },
         }));
         ctx.log(`Hacéis las paces con ${yo}. Volvéis a ser conocidos y se puede empezar de nuevo.`, 'logro');
       } else {
         ctx.updateState<RelacionesState>((s) => ({
           ...s,
-          vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(s, n, dia), dia, -3, -2) },
+          vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(ctx, s, n, dia), dia, -3, -2) },
         }));
         ponerEspera(ctx, `paces.${n.id}`, ESPERA.paces);
         ctx.log(`${yo} no está listo para hablar de esto. Habrá que esperar unos días.`, 'aviso');
@@ -355,13 +370,25 @@ function saludarRival(n: NpcView): ActionDef {
  * así el motor las compila una vez y no cada vez que se piden las acciones disponibles.
  */
 const memoAcciones = new Map<string, ActionDef[]>();
-function accionesDe(n: NpcView): ActionDef[] {
+const memoPaces = new Map<string, ActionDef>();
+function pacesDe(n: NpcView): ActionDef {
   const clave = `${n.id}|${n.role}|${n.name}|${n.gender}`;
+  let a = memoPaces.get(clave);
+  if (!a) memoPaces.set(clave, (a = hacerLasPaces(n)));
+  return a;
+}
+function accionesDe(n: NpcView): ActionDef[] {
+  const clave = `${n.id}|${n.role}|${n.name}|${n.gender}|${n.role === 'familia' && (n.age ?? 8) < 6 ? 'pequeño' : ''}`;
   let lista = memoAcciones.get(clave);
   if (!lista) {
-    if (n.role === 'companero' || n.role === 'amigo') lista = [...accionesDeAmistad(n), discutir(n), hacerLasPaces(n)];
-    else if (esAutoridad(n)) lista = [hablarConAutoridad(n), discutir(n), hacerLasPaces(n)];
-    else if (n.role === 'rival') lista = [saludarRival(n), discutir(n), hacerLasPaces(n)];
+    if (n.role === 'companero' || n.role === 'amigo') lista = [...accionesDeAmistad(n), discutir(n)];
+    // Un hermano pequeño (menos de 6 años) solo da para jugar con él y tener un detalle; con los demás hay todo el catálogo.
+    else if (n.role === 'familia') {
+      const todas = accionesDeAmistad(n);
+      lista = (n.age ?? 8) < 6 ? [todas[0], todas[4]] : [...todas, discutir(n)];
+    }
+    else if (esAutoridad(n)) lista = [hablarConAutoridad(n), discutir(n)];
+    else if (n.role === 'rival') lista = [saludarRival(n), discutir(n)];
     else lista = [];
     memoAcciones.set(clave, lista);
   }
@@ -382,14 +409,22 @@ export const relaciones = defineModule<RelacionesState>({
     const lista: ActionDef[] = [];
     const s = ctx.state<RelacionesState>();
     const rivales: NpcView[] = [];
+    // Hacer las paces solo se ofrece cuando hay algo que arreglar (un vínculo negativo) o se acaba de intentar y falló.
+    const conPaces = (n: NpcView) => {
+      const v = s.vinculos[n.id];
+      return v !== undefined && (NIVEL_ESTADO[v.estado] < 0 || (s.espera?.[`paces.${n.id}`] ?? -1) > ctx.time.day);
+    };
     for (const n of dir.list()) {
       if (!conocida(n)) continue;
       if (n.role === 'rival') rivales.push(n);
-      else lista.push(...accionesDe(n));
+      else {
+        lista.push(...accionesDe(n));
+        if (conPaces(n)) lista.push(pacesDe(n));
+      }
     }
     // De los rivales conocidos solo se ofrecen los que más han marcado la relación (los demás son un nombre en una clasificación).
     rivales.sort((a, b) => Math.abs(s.vinculos[b.id]?.afinidad ?? 0) - Math.abs(s.vinculos[a.id]?.afinidad ?? 0));
-    for (const n of rivales.slice(0, RIVALES_CON_ACCIONES)) lista.push(...accionesDe(n));
+    for (const n of rivales.slice(0, RIVALES_CON_ACCIONES)) lista.push(...accionesDe(n), ...(conPaces(n) ? [pacesDe(n)] : []));
     return lista;
   },
 
@@ -411,12 +446,14 @@ export const relaciones = defineModule<RelacionesState>({
       id: 'relaciones.apoyo',
       tags: ['*'],
       apply: (ctx, action) => {
+        // Lo normal es que nadie llegue al umbral: se evita consultar el directorio de personas en cada acción.
+        const amigos = Object.values(ctx.state<RelacionesState>().vinculos).filter((v) => v.afinidad >= UMBRAL_APOYO);
+        if (!amigos.length) return null;
         const dir = dirDe(ctx);
         if (!dir) return null;
         let bonus = 0;
         const quienes: string[] = [];
-        for (const v of Object.values(ctx.state<RelacionesState>().vinculos)) {
-          if (v.afinidad < UMBRAL_APOYO) continue;
+        for (const v of amigos) {
           const n = dir.get(v.npcId);
           if (!n || !n.supports.some((t) => action.tags.includes(t))) continue;
           bonus += Math.min(0.15, (v.afinidad - UMBRAL_APOYO) / 400);
@@ -447,7 +484,7 @@ export const relaciones = defineModule<RelacionesState>({
         const vinculos = { ...s.vinculos };
         // El entrenador de ese deporte valora el esfuerzo y más aún el podio.
         for (const n of dir.list({ role: 'entrenador' })) {
-          if (n.supports.includes(r.module)) vinculos[n.id] = conCambio(vinculoDe(s, n, dia), dia, r.position <= 3 ? 3 : 1);
+          if (n.supports.includes(r.module)) vinculos[n.id] = conCambio(vinculoDe(ctx, s, n, dia), dia, r.position <= 3 ? 3 : 1);
         }
         // Los rivales que te ganan se crecen; los que pierden, te respetan un poco más. Competir con alguien es conocerlo.
         for (const p of r.participants) {
@@ -470,11 +507,11 @@ export const relaciones = defineModule<RelacionesState>({
           const guardado = s.vinculos[npcId];
           if (guardado) return vista(guardado);
           const n = dir?.get(npcId);
-          return n && conocida(n) ? vista(nuevoVinculo(n.id, dia)) : undefined;
+          return n && conocida(n) ? vista(vinculoInicial(ctx, n, dia)) : undefined;
         },
         list: () => {
           const lista = new Map<string, RelationView>();
-          for (const n of dir?.list() ?? []) if (conocida(n)) lista.set(n.id, vista(vinculoDe(s, n, dia)));
+          for (const n of dir?.list() ?? []) if (conocida(n)) lista.set(n.id, vista(vinculoDe(ctx, s, n, dia)));
           for (const v of Object.values(s.vinculos)) lista.set(v.npcId, vista(v));
           return [...lista.values()];
         },
