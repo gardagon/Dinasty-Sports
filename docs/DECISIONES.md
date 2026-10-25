@@ -5,6 +5,28 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — La aptitud manda en las notas y Educación física / Artística dependen de las skills (E6.7, ajuste)
+
+- **Crítica 1 (usuario):** no tiene sentido que un empollón de aptitud media tenga más media que uno de aptitud alta.
+- **Causa:** el equilibrio de cada alumno dependía de las capacidades *actuales*, que se igualan entrenando, y no de la aptitud permanente; y los grupos se medían con asignaturas prácticas que añadían ruido.
+- **Cambio:** la aptitud de cada asignatura (`base` + 22, su preparación de partida, que sale del tope de las capacidades de apoyo) fija ahora tanto **cuánto rinde el estudio** (×0,85 con aptitud baja, ×1 con la típica, 60, y hasta ×1,5 con la más alta) como **cuánto se olvida** (×1,4 con aptitud baja, ×0,6 con la más alta). Se aplica a clase, estudiar, repaso y academia. Cae el peso de las capacidades actuales en el olvido.
+- **Resultado (2 años, nota media del último año, 6 semillas por grupo):**
+
+| | Aptitud muy baja (p2) | Mediana | Muy alta (p98) |
+|---|---|---|---|
+| Empollón | 4,0 | 6,8 (asignaturas académicas ~8,4) | 8,6 (mates 9,2, lengua 9,4, mejor 9,7) |
+| Equilibrado | 3,5 | 5,7 | 8,2 |
+| Atleta | 3,1 | 4,7 | 6,7 |
+
+  Con aptitud media, el empollón (6,8) supera al equilibrado (5,7) y al atleta (4,7); el orden por aptitud es monótono (con 24 semillas: empollón 6,9 · 7,9 · 8,1 en baja · media · alta). Con aptitud alta se llega al 9–10 en las asignaturas ligadas a lo mental. Un alumno con muy buena aptitud saca sobresaliente casi sin esfuerzo (equilibrado 8,2): es el «lo es siempre».
+- **Crítica 2 (usuario):** Educación física va con el deporte y lo creativo con las skills; estudiar ayuda, pero importan las skills.
+- **Cambio** (`Asignatura.practica`): en las asignaturas prácticas la preparación con la que se llega al examen y el nivel que se enseña mezclan el estudio con una **habilidad** calculada con las capacidades que apoyan la asignatura frente a lo típico de la edad (55 con lo típico, 11 puntos más o menos por cada 10 % de diferencia, mínimo 30 porque participar siempre da algo). Peso de la habilidad: **Educación física 70 %**, **Artística 50 %**, **Música 50 %**, **Tecnología 30 %**.
+- **Resultado:** Educación física: atleta y equilibrado 6,5–7,5 (entrenan lo físico), empollón ~5 (no hace deporte). Artística depende de la creatividad y la coordinación de cada uno (5–8).
+- **Pendiente:** el empollón con aptitud media tiene un 6,8 de media porque Educación física (≈ 5) y Artística le bajan la media; en las académicas está en 8,4. Es coherente con «Educación física va con el deporte», pero se puede revisar si se quiere que un alumno aplicado no suspenda nunca Educación física.
+- **Chequeo de simulación:** «El esfuerzo hace progresar» compara la nota media del equilibrado con la del vago (> +1,5; hoy +3,2) y se salta la parte de estudios en simulaciones cortas sin exámenes.
+
+---
+
 ## 25/10/2026 — Las notas no se «acumulan»: la aptitud marca de dónde se parte y el olvido tiene suelo (E6.6, ajuste 4)
 
 - **Crítica (usuario):** no tiene sentido que las notas se acumulen con los años; un empollón de sobresaliente lo es siempre.

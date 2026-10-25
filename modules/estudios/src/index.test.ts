@@ -169,18 +169,20 @@ describe('módulo estudios', () => {
       expect(m(orden.slice(-40))).toBeGreaterThan(m(orden.slice(0, 40)) + 15);
     });
 
-    it('con peores capacidades se olvida más rápido', () => {
-      const g = nueva();
-      const guardado = g.serialize();
-      const peor = structuredClone(guardado);
-      for (const id of ['gen.inteligencia', 'gen.concentracion', 'gen.determinacion']) peor.stats[id] = 15;
-      const mejor = structuredClone(guardado);
-      for (const id of ['gen.inteligencia', 'gen.concentracion', 'gen.determinacion']) mejor.stats[id] = 90;
-      peor.stats['estudios.matematicas'] = mejor.stats['estudios.matematicas'] = 70;
-      const a = Game.load([personaje, estudios], peor), b = Game.load([personaje, estudios], mejor);
-      advanceToWeek(a, 'gen.descansar', 1, 0, 8);
-      advanceToWeek(b, 'gen.descansar', 1, 0, 8);
-      expect(70 - a.stat('estudios.matematicas')).toBeGreaterThan(70 - b.stat('estudios.matematicas'));
+    it('con menos aptitud se olvida más rápido', () => {
+      const guardado = nueva().serialize();
+      const con = (aptitud: number) => {
+        const g = structuredClone(guardado);
+        g.stats['estudios.matematicas'] = 95;
+        const e = g.modules.estudios as EstudiosState;
+        e.base = Object.fromEntries(ASIGNATURAS.map((a) => [a.key, 0]));
+        e.base.matematicas = aptitud - 22;
+        return Game.load([personaje, estudios], g);
+      };
+      const floja = con(30), brillante = con(90);
+      advanceToWeek(floja, 'gen.descansar', 1, 0, 8);
+      advanceToWeek(brillante, 'gen.descansar', 1, 0, 8);
+      expect(95 - floja.stat('estudios.matematicas')).toBeGreaterThan(95 - brillante.stat('estudios.matematicas'));
     });
 
     it('estudiar una asignatura la sube, y se puede repasar en vacaciones', () => {

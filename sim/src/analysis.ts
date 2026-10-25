@@ -101,9 +101,13 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
   // 3. Progreso real
   if (eq && has('atletismo') && has('estudios')) {
     const dA = eq.final.atletismo - eq.start.atletismo;
-    // Los estudios se miden frente al vago y no frente al arranque: la preparación parte de la aptitud y el olvido la baja en vacaciones.
-    const dE = eq.final.estudios - (vago?.final.estudios ?? eq.start.estudios);
-    add(dA > 7 && dE > 3, 'aviso', 'El esfuerzo hace progresar', `Equilibrado: atletismo +${f(dA)}, estudios ${f(dE)} puntos por encima del vago (esperado > +7 y > +3).`);
+    // Los estudios se miden por la nota media frente a la del vago: la preparación parte de la aptitud y el olvido de las vacaciones la baja.
+    // En simulaciones muy cortas aún no hay exámenes y no se comprueba.
+    const notaEq = eq.extras.notaMedia;
+    const notaVago = vago?.extras.notaMedia;
+    const hayNotas = notaEq != null && notaVago != null;
+    const dE = hayNotas ? notaEq - notaVago : null;
+    add(dA > 7 && (dE === null || dE > 1.5), 'aviso', 'El esfuerzo hace progresar', `Equilibrado: atletismo +${f(dA)}${dE === null ? '' : `, nota media ${f(dE)} puntos por encima del vago`} (esperado > +7${dE === null ? '' : ' y > +1,5'}).`);
   }
 
   // 4. Especializarse compensa. En simulaciones largas todos acaban en su tope genético (el mismo para todos los
