@@ -133,6 +133,9 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       return club ? sesiones('club', nivel(NIVEL_AGENDA.pertenencia), club) : [];
     case 'rival':
       return [
+        // Fuera de sus sesiones, el colegio y las carreras, algunos pasan por el parque: allí se les puede encontrar.
+        tramo('rival', NIVEL_AGENDA.rol, 'lectivo', h(15), h(19), [[FUERA, 85], ['parque', 15]]),
+        tramo('rival', NIVEL_AGENDA.rol, 'libre', h(10), h(20), [[FUERA, 75], ['parque', 25]]),
         ...(club ? sesiones('rival', nivel(NIVEL_AGENDA.pertenencia), club, ASISTENCIA_RIVAL.sesion) : []),
         carreras('rival', nivel(NIVEL_AGENDA.pertenencia), ASISTENCIA_RIVAL.carreras),
       ];

@@ -69,7 +69,17 @@ const app = document.getElementById('app')!;
 
 // ------------------------------------------------------------------ guardado
 
+/** Guardar cuesta lo que pesa la partida (con cientos de personas, decenas de milisegundos): se agrupa lo que pasa en medio segundo. */
+let guardadoPendiente: ReturnType<typeof setTimeout> | undefined;
+
 function save(): void {
+  if (guardadoPendiente !== undefined) return;
+  guardadoPendiente = setTimeout(guardarYa, 500);
+}
+
+function guardarYa(): void {
+  if (guardadoPendiente !== undefined) clearTimeout(guardadoPendiente);
+  guardadoPendiente = undefined;
   if (!game) return;
   try {
     const data: SaveFile = { state: game.serialize(), agenda: agenda.slice(-60) };
@@ -78,6 +88,10 @@ function save(): void {
     /* sin almacenamiento disponible: la partida sigue en memoria */
   }
 }
+
+// Al cerrar o cambiar de pestaña se guarda lo que quede pendiente.
+window.addEventListener('pagehide', () => guardadoPendiente !== undefined && guardarYa());
+document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && guardadoPendiente !== undefined && guardarYa());
 
 /** Aviso en la pantalla inicial cuando se descarta una partida guardada que ya no sirve (alfa: sin compatibilidad entre versiones). */
 let avisoPartidaAntigua = false;
@@ -499,8 +513,7 @@ function viewPeople(g: Game): string {
   };
   const rel = g.service<RelationsService>(SERVICES.relaciones);
   const items = dir
-    .list()
-    .filter((n) => n.known !== false)
+    .list({ known: true })
     .map((n) => {
       const v = rel?.get(n.id);
       const yo = g.service<ProfileService>(SERVICES.perfil)?.view();

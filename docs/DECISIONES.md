@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Población del colegio y del barrio, y cuánta gente aguanta el juego
+
+- **Aprobado por el usuario** el plan de población y los horarios. Añadido: **algún rival puede estar en el parque** fuera de sus entrenos, el colegio y las carreras (15 % entre semana por la tarde, 25 % en los días libres; nivel 2, así que cualquier sesión de club manda sobre él).
+- **Generados 391 personas** (ver el anexo): 24 compañeros de tu clase, 25 de la otra clase del curso, 153 alumnos de otros cursos, 12 profesores, equipo de atletismo del colegio de 16 (tipo `club` + etiqueta `equipo`; no llevan la etiqueta `atleta`, así que no entran en las carreras todavía), 96 rivales en 12 clubes y colegios y 80 vecinos. Todos desconocidos (`known: false`) salvo los 4 del reparto inicial. Nuevo rol `vecino`.
+- **Cada curso:** quien cumple 18 deja el colegio y entra un niño de 8 años con los mismos tipos (el equipo del colegio sigue en 16).
+- **Relaciones:** las acciones de relación solo se crean para quien se conoce (`list({ known: true })`), así que cientos de desconocidos no añaden ninguna acción.
+- **Capacidad (medida):** ver la sección 5 del anexo. El procesador no limita (milisegundos con decenas de miles); **lo que limita es el guardado**: ~950 bytes por persona y unos 5 MB en el navegador, unas 5 000 personas. Salidas ya pensadas para los deportes de equipo: compactar rasgos (~15 000), guardar solo diferencias respecto a la semilla (sin límite práctico) o IndexedDB.
+- **Optimizaciones hechas al medir:** la agenda de una persona se monta una vez por lista de tipos; la presencia de toda la población se calcula una vez por tramo de 10 minutos; las consultas al servicio de personas se resuelven una vez por filtro; el guardado de la interfaz se agrupa cada medio segundo (y se guarda al cerrar la pestaña). Antes, con 10 000 personas, la presencia tardaba 60 ms y la lista de acciones 20 ms; ahora 14 ms la primera vez y 5 ms.
+- **Tests:** población (25 por aula, equipo de 16, 12 profesores, 80 vecinos, nombres únicos), patio con todos los cursos, parque con vecinos y rivales, y renovación al empezar el curso.
+
+---
+
 ## 25/10/2026 — Presencia de personas por lugar y hora
 
 - **Decidido con el usuario:** cada persona almacena dónde va a estar; la tabla se rellena a partir de **tipos** y, si dos coinciden, manda el dominante (dos niveles de prioridad, ampliado a cuatro: base, rol, pertenencia y evento). El ejemplo que lo motivó: un compañero de clase que por un evento se apunta a tu club sigue yendo a clase, pero en la tarde de entrenamiento está donde entrena el club.

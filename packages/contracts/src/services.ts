@@ -20,7 +20,7 @@ export const SERVICES = {
 
 // ---------- NPCs ----------
 
-export type NpcRole = 'amigo' | 'companero' | 'rival' | 'entrenador' | 'profesor' | 'familia';
+export type NpcRole = 'amigo' | 'companero' | 'rival' | 'entrenador' | 'profesor' | 'familia' | 'vecino';
 
 export type Gender = 'f' | 'm';
 
@@ -48,7 +48,8 @@ export interface NpcView {
 }
 
 export interface NpcDirectory {
-  list(filter?: { role?: NpcRole; tag?: string; minAge?: number; maxAge?: number }): NpcView[];
+  /** `known`: solo las que el personaje conoce (true) o solo las que no (false). */
+  list(filter?: { role?: NpcRole; tag?: string; minAge?: number; maxAge?: number; known?: boolean }): NpcView[];
   get(id: string): NpcView | undefined;
 }
 

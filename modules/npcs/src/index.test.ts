@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SERVICES, madurezPorEdad, ventajaDeCrianza, type NpcDirectory, type PresenciaService } from '@ds/contracts';
-import { Game, advanceTo, advanceUntil } from '@ds/core';
+import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { desarrolloRival, npcs, type NpcsState } from './index';
 
@@ -10,7 +10,7 @@ describe('módulo NPCs', () => {
   it('genera un reparto y lo publica como servicio', () => {
     const g = nueva();
     const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
-    expect(dir.list().length).toBe(100); // 4 del entorno + 8 rivales por cada edad de 8 a 19
+    expect(dir.list().length).toBe(391); // 4 del entorno + 96 rivales (8 por edad de 8 a 19) + la población del colegio y del barrio
     expect(dir.list({ tag: 'atleta' })).toHaveLength(96);
     expect(dir.get('entrenador')?.role).toBe('entrenador');
   });
@@ -208,6 +208,63 @@ describe('módulo NPCs', () => {
       const a = nombres(g, 'parque');
       g.perform('gen.descansar'); // 16:00, misma tarde libre
       expect(nombres(g, 'parque')).toEqual(a);
+    });
+  });
+
+  describe('población del colegio y del barrio', () => {
+    const lista = (g: Game) => g.moduleState<NpcsState>('npcs').npcs;
+    const de = (g: Game, f: (n: NpcsState['npcs'][number]) => boolean) => lista(g).filter(f);
+
+    it('hay 25 alumnos por aula, un equipo de 16 y profesores, vecinos y rivales en sus clubes', () => {
+      const g = nueva();
+      const alumnos = de(g, (n) => n.tipos?.some((t) => t.tipo === 'alumno') ?? false);
+      // Tu clase (24 compañeros) y la otra de tu curso (25): los de 8 años, sin ti.
+      expect(alumnos.filter((n) => n.id.startsWith('clase_') || n.id.startsWith('companero_')).length).toBe(24);
+      expect(alumnos.filter((n) => n.id.startsWith('curso_')).length).toBe(25);
+      expect(alumnos.filter((n) => n.id.startsWith('alumno_')).length).toBe(153);
+      expect(de(g, (n) => n.tags.includes('equipo')).length).toBe(16);
+      expect(de(g, (n) => n.role === 'profesor').length).toBe(12);
+      expect(de(g, (n) => n.role === 'vecino').length).toBe(80);
+      const clubes = new Set(de(g, (n) => n.role === 'rival').map((n) => n.club));
+      expect(clubes.size).toBeGreaterThanOrEqual(10);
+      expect([...clubes].every((c) => ['Club Atletismo Ciudad', 'Club de Alto Rendimiento'].includes(c!) || /^(colegio|club)\d+$/.test(c!))).toBe(true);
+    });
+
+    it('todos tienen aspecto y nombre únicos, y son desconocidos salvo los del reparto inicial', () => {
+      const g = nueva();
+      const todos = lista(g);
+      expect(new Set(todos.map((n) => n.name)).size).toBe(todos.length);
+      expect(new Set(todos.map((n) => n.id)).size).toBe(todos.length);
+      expect(todos.every((n) => n.rasgos)).toBe(true);
+      expect(todos.filter((n) => n.known !== false).map((n) => n.id).sort()).toEqual(['companero_estudio', 'companero_social', 'entrenador', 'tutor']);
+      expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true })).toHaveLength(4);
+    });
+
+    it('el patio tiene gente de todos los cursos y el parque, de todas las edades', () => {
+      const g = nueva();
+      const edades = (ids: string[]) => ids.map((id) => g.service<NpcDirectory>(SERVICES.npcs)!.get(id)!.age!).filter((e) => e !== undefined);
+      advanceTo(g, 'gen.descansar', 0, 10);
+      const enElColegio = g.service<PresenciaService>(SERVICES.presencia)!.en('colegio').map((n) => n.id);
+      expect(enElColegio.length).toBeGreaterThan(200);
+      const e = edades(enElColegio.filter((id) => id.startsWith('alumno_') || id.startsWith('curso_') || id.startsWith('clase_')));
+      expect(Math.min(...e)).toBe(8);
+      expect(Math.max(...e)).toBeGreaterThanOrEqual(16);
+      advanceTo(g, 'gen.descansar', 5, 12); // sábado a mediodía
+      const enElParque = g.service<PresenciaService>(SERVICES.presencia)!.en('parque').map((n) => n.id);
+      expect(enElParque.length).toBeGreaterThan(15);
+      expect(enElParque.some((id) => id.startsWith('vecino_'))).toBe(true);
+      expect(enElParque.some((id) => id.startsWith('rival_'))).toBe(true); // los rivales también pasan por el parque
+    });
+
+    it('al empezar un curso quien acaba el colegio se va y entra otro niño de 8 años con los mismos tipos: el equipo sigue en 16', () => {
+      const g = nueva();
+      const antes = lista(g).length;
+      advanceToWeek(g, 'gen.descansar', 52, 0, 8); // comienza el segundo curso
+      const despues = lista(g);
+      expect(despues.filter((n) => n.tags.includes('equipo')).length).toBe(16);
+      expect(despues.filter((n) => n.role === 'companero' && n.id.startsWith('alumno_')).length).toBeGreaterThanOrEqual(153);
+      // Los rivales también se renuevan, pero la población del colegio no crece ni se vacía.
+      expect(Math.abs(despues.length - antes)).toBeLessThan(12);
     });
   });
 });

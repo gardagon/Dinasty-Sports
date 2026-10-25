@@ -86,4 +86,15 @@ describe('agendas de las personas', () => {
     expect(azarDe('a', 1)).toBe(azarDe('a', 1));
     expect(azarDe('a', 1)).not.toBe(azarDe('a', 2));
   });
+
+  it('todos los tramos empiezan y acaban en minutos múltiplos de 10 (la presencia se calcula por tramos de diez minutos)', () => {
+    const tipos: TipoAsignado[] = [
+      { tipo: 'alumno' }, { tipo: 'profesor' }, { tipo: 'entrenador', club: 'colegio' }, { tipo: 'club', club: 'ciudad' },
+      { tipo: 'rival', club: 'ciudad' }, { tipo: 'amigo' }, { tipo: 'vecino' },
+    ];
+    for (const tr of construirAgenda(tipos, datos)) {
+      expect(tr.desde % 10, `${tr.tipo} desde ${tr.desde}`).toBe(0);
+      expect(tr.hasta % 10, `${tr.tipo} hasta ${tr.hasta}`).toBe(0);
+    }
+  });
 });

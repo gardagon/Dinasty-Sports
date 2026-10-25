@@ -382,7 +382,7 @@ export const relaciones = defineModule<RelacionesState>({
     const lista: ActionDef[] = [];
     const s = ctx.state<RelacionesState>();
     const rivales: NpcView[] = [];
-    for (const n of dir.list()) {
+    for (const n of dir.list({ known: true })) {
       if (!conocida(n)) continue;
       if (n.role === 'rival') rivales.push(n);
       else lista.push(...accionesDe(n));
@@ -474,7 +474,7 @@ export const relaciones = defineModule<RelacionesState>({
         },
         list: () => {
           const lista = new Map<string, RelationView>();
-          for (const n of dir?.list() ?? []) if (conocida(n)) lista.set(n.id, vista(vinculoDe(s, n, dia)));
+          for (const n of dir?.list({ known: true }) ?? []) if (conocida(n)) lista.set(n.id, vista(vinculoDe(s, n, dia)));
           for (const v of Object.values(s.vinculos)) lista.set(v.npcId, vista(v));
           return [...lista.values()];
         },
