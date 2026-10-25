@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/10/2026 — Estrés por faltar, dinero y comercios
+
+- **Estrés por faltar (decidido con el usuario):** faltar a una clase sube el estrés 0,75 (3 por un día entero), lo mismo que cuesta ir. Se parte de ahí y se irán añadiendo más consecuencias (avisos a los padres, castigos). Antes de esto se había quitado; se restablece. Test: la diferencia entre 3 y 4 clases hechas es 0,75, y entre ninguna y cuatro, 3.
+- **Dinero:** nueva stat `gen.dinero` (estado, en euros, 0 al empezar, máximo 1 000 000, recurso: gastar bloquea la acción si no alcanza). Se ve en la cabecera («Dinero: 0 €»). No hay ninguna forma de ganarlo ni de gastarlo todavía. Por ahora el personaje solo puede comer en casa, y de momento no hay acción de comer (no hay hambre).
+- **Comercios sin acciones:** `supermercado` (cerca de casa: 8 min) y `restaurante` (5 min del supermercado, 12 del parque) están en el mapa y se puede ir, pero no se puede hacer nada allí.
+- **Sobre la simulación:** añadir una stat cambia el reparto del azar al crear el personaje (la fuerza inicial de la semilla 1 pasa de 7,6 a 14,9), así que las cifras de la tabla final cambian sin que cambie el balance: los chequeos siguen todos en ✅.
+- **Rendimiento en juego:** dibujar la lista completa de acciones cuesta ~0,6 ms y una acción ~0,01 ms. En una partida normal no hay impacto: los ms por acción solo importan en los tests y la simulación, donde se hacen miles seguidas.
+- **Se sube `SAVE_VERSION` a 8.**
+
+---
+
 ## 25/10/2026 — Día escolar por horas y lugares que faltaban
 
 - **Lugares nuevos para las acciones que no tenían sitio:** gimnasio (`gen.gimnasio`) y estadio (competiciones, pruebas de acceso a clubes de fuera, sesión de un club de fuera, campamento). El club del colegio sigue entrenando en el colegio. Dejar el club y subir o bajar de categoría se hacen en la sede del club (colegio o estadio). Las series, la técnica y el rodaje valen en el colegio (pistas), el parque o el estadio. **«Descansar un rato» queda sin sitio a propósito:** es la espera y no debe quedarse nunca sin lugar. Tiempos nuevos en la tabla (casa–gimnasio 13, casa–estadio 20, colegio–estadio 10, parque–gimnasio 7, gimnasio–estadio 9...).

@@ -31,7 +31,7 @@ describe('módulo lugares', () => {
     g.perform('lugares.ir_parque');
     const svc = g.service<LugaresService>('lugares')!;
     expect(svc.minutosA('colegio')).toBe(8);
-    expect(svc.vecinos().map((v) => v.lugar.id).sort()).toEqual(['casa', 'colegio', 'gimnasio']);
+    expect(svc.vecinos().map((v) => v.lugar.id).sort()).toEqual(['casa', 'colegio', 'gimnasio', 'restaurante']);
   });
 
   it('enLugar deja pasar a una acción solo en el sitio indicado', () => {

@@ -382,6 +382,8 @@ const academiaPendiente = (s: EstudiosState): boolean => s.verano?.tipo === 'aca
 const JORNADA = { clases: [[480, 560], [560, 640], [680, 760], [760, 840]], recreo: [640, 680] } as const;
 const ANTES_DE_CLASE = 60;
 const TARDE_A_CLASE = 15;
+/** Estrés que cuesta un día de clase entero (y lo mismo, faltar a todo el día). */
+const ESTRES_POR_DIA_DE_CLASE = 3;
 const ORDINAL = ['1.ª', '2.ª', '3.ª', '4.ª'];
 const hora = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
 
@@ -405,7 +407,7 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
         if (m < inicio - ANTES_DE_CLASE) return `Esta clase empieza a las ${hora(inicio)}`;
         return m > inicio + TARDE_A_CLASE ? 'Esta clase ya ha empezado' : true;
       },
-      delta: { [GEN.energia]: -15 / CLASES_POR_DIA, [GEN.estres]: 3 / CLASES_POR_DIA },
+      delta: { [GEN.energia]: -15 / CLASES_POR_DIA, [GEN.estres]: ESTRES_POR_DIA_DE_CLASE / CLASES_POR_DIA },
       train: [
         { stat: GEN.concentracion, amount: 0.3 / CLASES_POR_DIA },
         { stat: GEN.atencion, amount: 0.3 / CLASES_POR_DIA },
@@ -572,6 +574,8 @@ export const estudios = defineModule<EstudiosState>({
       const faltadas = CLASES_POR_DIA - fue.length;
       if (faltadas > 0) {
         ctx.updateState<EstudiosState>((st) => ({ ...st, faltas: st.faltas + faltadas }));
+        // Faltar sube el estrés lo mismo que ir a clase (3 al día repartido en las clases). Habrá más consecuencias.
+        ctx.addStat(GEN.estres, (ESTRES_POR_DIA_DE_CLASE / CLASES_POR_DIA) * faltadas);
         ctx.log(faltadas === CLASES_POR_DIA ? 'Has faltado a clase todo el día.' : `Has faltado a ${faltadas} ${faltadas === 1 ? 'clase' : 'clases'}.`, 'aviso');
       }
 

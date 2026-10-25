@@ -173,6 +173,7 @@ function viewDay(g: Game): string {
     <div class="lane" role="img" aria-label="Lo que has hecho hoy">${blocks}<span class="lane-now" style="left:calc(${now}% - 1px)"></span></div>
     <div class="lane-hours"><span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>24 h</span></div>
     <div class="meters">${meters}</div>
+    <p class="money">Dinero: <b>${g.stat(GEN.dinero).toLocaleString('es-ES', { maximumFractionDigits: 2 })} €</b></p>
   </header>`;
 }
 

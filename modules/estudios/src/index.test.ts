@@ -55,19 +55,31 @@ describe('módulo estudios', () => {
     expect(g.preview('estudios.clase_1')!.reason).toMatch(/ya ha empezado/);
   });
 
-  it('faltar a una clase no tiene castigo pero cuenta: no sube esa asignatura y suma una falta', () => {
+  it('faltar a una clase no sube esa asignatura, suma una falta y sube el estrés', () => {
     const g = nueva();
     advanceTo(g, 'gen.descansar', 0, 8);
-    const estres = g.stat('gen.estres');
     const hoy = g.service<StudiesService>(SERVICES.estudios)!.timetable(0);
     const antes = g.stat(hoy[3]);
     for (const c of ['estudios.clase_1', 'estudios.clase_2', 'estudios.clase_3']) g.perform(c);
     advanceTo(g, 'gen.descansar', 1, 1); // se salta la cuarta clase
-    const s = g.moduleState<EstudiosState>('estudios');
-    expect(s.faltas).toBe(1);
+    expect(g.moduleState<EstudiosState>('estudios').faltas).toBe(1);
     expect(g.log.some((l) => /faltado a 1 clase/.test(l.text))).toBe(true);
     expect(g.stat(hoy[3])).toBeLessThanOrEqual(antes);
-    expect(g.stat('gen.estres')).toBeLessThanOrEqual(estres + 3); // sin castigo de estrés por faltar
+  });
+
+  it('el estrés por faltar es el mismo que cuesta ir: 3 al día repartidos en las clases (0,75 por clase)', () => {
+    // Dos partidas idénticas a las 23:30 del lunes, con 3 o 4 clases hechas: al cruzar la medianoche solo cambia la falta.
+    const dia = (clases: number[]) => {
+      const guardado = nueva().serialize();
+      guardado.minute = 23 * 60 + 30;
+      guardado.stats['gen.estres'] = 50;
+      (guardado.modules.estudios as EstudiosState).asistencia = { day: 0, clases };
+      const g = Game.load([personaje, estudios], guardado);
+      g.perform('gen.descansar');
+      return g.stat('gen.estres');
+    };
+    expect(dia([0, 1, 2]) - dia([0, 1, 2, 3])).toBeCloseTo(0.75, 5);
+    expect(dia([]) - dia([0, 1, 2, 3])).toBeCloseTo(3, 5);
   });
 
   it('cuenta las faltas (una por clase) y no hay controles semanales', () => {

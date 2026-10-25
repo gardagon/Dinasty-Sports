@@ -113,6 +113,8 @@ export const personaje = defineModule<IdentidadState>({
     { id: GEN.vigorMental, name: 'Vigor mental', group: 'Estado', category: 'estado', initial: 100 * factorPorEdad('mental', EDAD_INICIAL), hidden: true },
     { id: GEN.vigorSocial, name: 'Vigor social', group: 'Estado', category: 'estado', initial: 100 * factorPorEdad('social', EDAD_INICIAL), hidden: true },
     { id: GEN.energia, name: 'Energía', group: 'Estado', category: 'estado', initial: 90, resource: true },
+    // El personaje parte sin dinero. En euros; sin tope práctico. Gastar es un coste (bloquea la acción si no alcanza).
+    { id: GEN.dinero, name: 'Dinero', group: 'Estado', category: 'estado', initial: 0, min: 0, max: 1_000_000, resource: true },
     { id: GEN.salud, name: 'Salud', group: 'Estado', category: 'estado', initial: 90 },
     { id: GEN.estres, name: 'Estrés', group: 'Estado', category: 'estado', initial: 20 },
     { id: GEN.motivacion, name: 'Motivación', group: 'Estado', category: 'estado', initial: 60 },

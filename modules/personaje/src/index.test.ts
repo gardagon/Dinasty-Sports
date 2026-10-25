@@ -11,6 +11,11 @@ describe('módulo personaje (gen)', () => {
     expect(g.availableActions().length).toBeGreaterThan(0);
   });
 
+  it('el personaje parte sin dinero y no puede gastar lo que no tiene', () => {
+    const g = Game.create([personaje], { seed: 1 });
+    expect(g.stat(GEN.dinero)).toBe(0);
+  });
+
   it('dormir recupera energía según las horas', () => {
     const g = Game.create([personaje], { seed: 1 });
     for (let i = 0; i < 3; i++) g.perform('gen.gimnasio');

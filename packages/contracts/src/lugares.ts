@@ -45,13 +45,17 @@ export const CIUDAD_INICIAL: MapaCiudad = {
     { id: 'parque', name: 'Parque', descripcion: 'Un parque con árboles, bancos y espacio para correr.', grupo: 'Ocio' },
     { id: 'gimnasio', name: 'Gimnasio', descripcion: 'El gimnasio municipal: sala de pesas, máquinas y una zona de cardio.', grupo: 'Deporte' },
     { id: 'estadio', name: 'Estadio', descripcion: 'El estadio de atletismo: pista, graderías y vestuarios. Aquí compiten los clubes y se celebran las carreras.', grupo: 'Deporte' },
+    { id: 'supermercado', name: 'Supermercado', descripcion: 'El supermercado del barrio. Aquí se compra la comida (sin dinero todavía no se puede comprar nada).', grupo: 'Comercio' },
+    { id: 'restaurante', name: 'Restaurante', descripcion: 'Un restaurante cerca del supermercado. Por ahora no tienes dinero para comer fuera.', grupo: 'Comercio' },
   ],
   tiempos: {
-    casa: { casa: 0, colegio: 10, parque: 6, gimnasio: 13, estadio: 20 },
-    colegio: { casa: 10, colegio: 0, parque: 8, gimnasio: 15, estadio: 10 },
-    parque: { casa: 6, colegio: 8, parque: 0, gimnasio: 7, estadio: 16 },
-    gimnasio: { casa: 13, colegio: 15, parque: 7, gimnasio: 0, estadio: 9 },
-    estadio: { casa: 20, colegio: 10, parque: 16, gimnasio: 9, estadio: 0 },
+    casa: { casa: 0, colegio: 10, parque: 6, gimnasio: 13, estadio: 20, supermercado: 8, restaurante: 13 },
+    colegio: { casa: 10, colegio: 0, parque: 8, gimnasio: 15, estadio: 10, supermercado: 18, restaurante: 20 },
+    parque: { casa: 6, colegio: 8, parque: 0, gimnasio: 7, estadio: 16, supermercado: 14, restaurante: 12 },
+    gimnasio: { casa: 13, colegio: 15, parque: 7, gimnasio: 0, estadio: 9, supermercado: 21, restaurante: 19 },
+    estadio: { casa: 20, colegio: 10, parque: 16, gimnasio: 9, estadio: 0, supermercado: 28, restaurante: 28 },
+    supermercado: { casa: 8, colegio: 18, parque: 14, gimnasio: 21, estadio: 28, supermercado: 0, restaurante: 5 },
+    restaurante: { casa: 13, colegio: 20, parque: 12, gimnasio: 19, estadio: 28, supermercado: 5, restaurante: 0 },
   },
   directos: [
     ['casa', 'colegio'],
@@ -60,6 +64,9 @@ export const CIUDAD_INICIAL: MapaCiudad = {
     ['parque', 'gimnasio'],
     ['colegio', 'estadio'],
     ['gimnasio', 'estadio'],
+    ['casa', 'supermercado'],
+    ['supermercado', 'restaurante'],
+    ['parque', 'restaurante'],
   ],
 };
 

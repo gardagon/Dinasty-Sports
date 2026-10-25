@@ -51,6 +51,7 @@ export const GEN = {
   vigorMental: 'gen.vigor_mental',
   vigorSocial: 'gen.vigor_social',
   energia: 'gen.energia',
+  dinero: 'gen.dinero',
   salud: 'gen.salud',
   estres: 'gen.estres',
   motivacion: 'gen.motivacion',
