@@ -339,7 +339,7 @@ Decidido el 22/10/2026: habrá clubes en distintos deportes y un club puede tene
 
 ## E20 · Relaciones — 🟡 · Sin equivalente en el original
 
-Registrada el 23/10/2026. **Hoy el módulo `npcs` solo tiene una interacción por persona** ("quedar" con compañeros y amigos, "hablar" con el entrenador): suma afinidad y la afinidad se pierde despacio sin contacto. Para tener amistades profundas, pareja e hijos (E8, ciclo de generaciones) hace falta un sistema de relaciones de verdad. Es el cimiento de lo social en las tres fases del juego, y gran parte de su contenido (conocerse, declararse, discutir, casarse, tener hijos) serán eventos y decisiones (E18).
+Registrada el 23/10/2026. **Hasta el 25/10 el módulo solo tenía una interacción por persona** ("quedar" con compañeros y amigos, "hablar" con el entrenador; ahora hay un catálogo de siete, ver E20.3): suma afinidad y la afinidad se pierde despacio sin contacto. Para tener amistades profundas, pareja e hijos (E8, ciclo de generaciones) hace falta un sistema de relaciones de verdad. Es el cimiento de lo social en las tres fases del juego, y gran parte de su contenido (conocerse, declararse, discutir, casarse, tener hijos) serán eventos y decisiones (E18).
 
 **Qué hay hoy y qué falta**
 
@@ -378,7 +378,7 @@ Registrada el 23/10/2026. **Hoy el módulo `npcs` solo tiene una interacción po
 
 **Fase 1 hecha el 23/10/2026** (E20.1, E20.2 parcial, E20.4, E20.11): módulo `relaciones` con vínculo (afinidad −100..100, confianza 0..100, estado, contactos), histéresis, enfriamiento por estado y suavizado de lo negativo; la afinidad, las acciones `quedar`/`hablar` (ahora `relaciones.*`) y el apoyo (`relaciones.apoyo`) pasan de `npcs` a `relaciones`; las carreras mueven al entrenador y a los rivales. Todos arrancan en 0 (antes 15 a 35). Falta: acciones variadas (fase 2), interfaz completa (fase 3), vida propia (fase 4).
 
-**Fase 2 (parcial) hecha el 24/10/2026:** rasgos e intereses de cada persona (E20.5): 8 ejes de carácter, 12 intereses, apariencia, origen familiar y gustos, y la compatibilidad (×0,7 a ×1,4) aplicada ya a las acciones de relaciones. **Falta de la fase 2:** acciones variadas (charlar, ayudar, discutir, hacer las paces; E20.3), que el carácter de la persona decida cómo reacciona, y ajustar la compatibilidad a más acciones si se queda corta.
+**Fase 2 (parcial) hecha el 24/10/2026:** rasgos e intereses de cada persona (E20.5): 8 ejes de carácter, 12 intereses, apariencia, origen familiar y gustos, y la compatibilidad (×0,7 a ×1,4) aplicada ya a las acciones de relaciones. **Acciones variadas hechas el 25/10/2026** (E20.3): quedar, charlar, ayudar, hacer planes, tener un detalle, discutir y hacer las paces; el carácter decide cuánto duele discutir y si aceptan las paces. **Falta de la fase 2:** que el carácter condicione también las acciones positivas, recuerdos compartidos y regalos con coste.
 
 **Orden:** la base (E20.1 a E20.4) se puede construir con acciones y sin eventos; las partes de pareja, hijos y rupturas (E20.6, E20.7) necesitan el motor de eventos (E18). Se trabaja después de cimentar lo que quede de la fase infantil y antes del motor definitivo de eventos, para que el motor se diseñe sabiendo qué necesitan las relaciones.
 
