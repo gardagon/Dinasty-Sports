@@ -27,6 +27,8 @@ export const SHARED_EVENTS = {
   CLUB_LEAVE: 'club.salir',
   /** data: ClubAbandonoData — el personaje se cambia de club sin haber dejado antes el que tenía. */
   CLUB_ABANDONO: 'club.abandono',
+  /** data: ClassAttendedData — el personaje ha ido a una clase (el profesor de esa asignatura se presenta si no lo conoce). */
+  CLASS_ATTENDED: 'clase.asistida',
   /** data: PresentacionData — el personaje pregunta el nombre a alguien y se presentan: pasa de desconocido a conocido. */
   PRESENTACION: 'persona.presentarse',
 } as const;
@@ -39,6 +41,11 @@ export interface ClubJoinData {
   /** Deporte (p. ej. 'atletismo'). */
   sport: string;
   clubId: string;
+}
+
+export interface ClassAttendedData {
+  /** Id de la asignatura (la stat), p. ej. `estudios.lengua`. */
+  asignatura: string;
 }
 
 export interface ClubAbandonoData {

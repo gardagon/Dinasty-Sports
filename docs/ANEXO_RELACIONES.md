@@ -7,7 +7,7 @@ Referencia de cómo se habla con la gente y cuánto cambia cada cosa, para revis
 1. **Desconocido → conocido:** a quien no conoces y tienes cerca (hasta 40 en un lugar) le preguntas el nombre (2 minutos). **Al empezar solo conoces a tu familia** (padres y hermanos). El entrenador, el tutor y los dos compañeros del reparto son desconocidos como los demás: al tutor y a los compañeros les preguntas el nombre cuando los tienes cerca; al entrenador lo conoces al apuntarte a su club (se presenta). Los rivales se conocen al competir contra ellos. Hasta que no conoces a alguien no aparece en «Relaciones» ni en las pestañas de «Gente» que no son «Aquí», ni hay acciones con él o ella (al tutor se le piden tutorías una vez que lo conoces).
 2. **Conocido → vínculo:** con cada persona conocida hay una **afinidad** (−100 a 100) y una **confianza** (0 a 100). De sus valores sale el **estado**: antagonista, enemigo, antipatía, conocido, amigo o mejor amigo.
 2 bis. **La familia:** el padre y la madre son personas como los hermanos (siempre conocidas, en «Relaciones» y en «Gente»). Su vínculo empieza más hondo: afinidad de 15 a 35 según la compatibilidad (15 + 40 × (compat − 0,2)) y confianza 30; los hermanos, de 5 a 25 y confianza 15. Con ellos hay las acciones de amistad (pasar la tarde, charlar, ayudar, hacer planes, detalle, discutir y paces); con los padres no hay «Estudiar con» ni planes. Están en casa por la tarde-noche (ver `ANEXO_HORARIOS_PNJ.md`).
-3. **Hablar exige que esté contigo** (entre las 40 personas que tienes cerca; presencia de `npcs`, ver `ANEXO_HORARIOS_PNJ.md`). **En clase, en una carrera o en una sesión del club están ocupados**: no se les puede hablar; sí al llegar, en el recreo y al acabar. Si no está, la acción dice «no está aquí» y **no hay forma de contactarla ni de saber dónde anda**: hasta que haya teléfono, solo se habla con quien coincide contigo. (Así el juego no tiene que calcular dónde están todos tus conocidos.) Un contacto al día como máximo con cada persona.
+3. **Hablar exige que esté contigo** (entre las 40 personas que tienes cerca; presencia de `npcs`, ver `ANEXO_HORARIOS_PNJ.md`). **En clase, en una carrera o en una sesión del club están ocupados**: no se les puede hablar; sí al llegar, en el recreo y al acabar. Si no está, la acción dice «no está aquí» y **no hay forma de contactarla ni de saber dónde anda**: hasta que haya teléfono, solo se habla con quien coincide contigo. (Así el juego no tiene que calcular dónde están todos tus conocidos.) **Una actividad «grande» al día** como máximo con cada persona (quedar, ayudar, hacer planes, detalle, discutir, paces, estudiar); las charlas de 5 minutos van aparte (hasta 6 al día). **Dónde se hace todo esto:** desde la **ficha de la persona** en «Gente» (apartado «Qué hacer con…»), no desde «Qué hacer».
 4. **Lo que sube una acción** = ganancia base × **eficiencia**. La eficiencia es el producto de varios factores (sección 3), así que se ve el motivo de cada uno al elegir la acción.
 5. Sin verse, lo positivo se **enfría** (sección 4).
 
@@ -19,12 +19,13 @@ Ganancia y confianza son lo que suman con eficiencia ×1. **Presencia:** todas e
 |---|---|---|---|---|---|---|---|---|---|
 | Preguntar el nombre | desconocidos cerca | 2 | — | — | — | — | — | siempre | que esté cerca (≤ 40) |
 | Quedar | compañeros, amigos | 120 | +5 | +3 | −6 | −6 | carisma 0,8; empatía 0,4; cooperación 0,3 | fuera de clase, 10–22 | — |
-| Charlar un rato | compañeros, amigos | 30 | +2,5 | +1,5 | −1 | — | comunicación 0,4; empatía 0,2 | fuera de clase o recreo, 8–22 | — |
+| Charlar un rato | compañeros, amigos | **5** (hasta 6 al día: 30 en total) | +2,5 la media hora (≈ +0,42 cada charla de 5 min) | +1,5 la media hora | −1 la media hora | — | comunicación 0,4; empatía 0,2 (la media hora, repartido en las 6 charlas) | desde 7:30 (al llegar al colegio), fuera de clase, en el recreo y en los 5 minutos entre clases (con compañeros de clase), hasta las 22 | máximo 6 charlas al día con cada persona; no gasta el «una actividad grande al día» |
 | Ayudar | compañeros, amigos | 60 | +4 | +4,5 | −6 | — | empatía 0,6; cooperación 0,5; determinación 0,2 | fuera de clase, 10–21 | afinidad ≥ 5 |
 | Hacer planes | compañeros, amigos | 90 | +6 | +3 | −6 | −6 | carisma 0,5; comunicación 0,3 | fuera de clase, 10–22 | compartir un interés (nivel ≥ 15 del personaje); ganancia × (0,8 + 0,2 × su intensidad) |
-| Proponer un plan (hoy o mañana) | compañeros, amigos y hermanos de 6 años o más que tienes delante | 2 | +1 si acepta | — | — | — | — | fuera de clase o recreo, 8–22 (hoy: hasta 16:00) | respuesta según la sección «Planes»; una propuesta por persona y día |
+| Proponer un plan (hoy o mañana) | compañeros, amigos y hermanos de 6 años o más que tienes delante | 5 | +1 si acepta | — | — | — | — | fuera de clase o recreo, 8–22 (hoy: hasta 16:00) | respuesta según la sección «Planes»; una propuesta por persona y día |
+| Charlar con alguien antes de clase (al azar) | una persona al azar de las que hay en el colegio | lo que quede hasta la clase (1 a 10 min) | 2,5 × minutos/30 | 1,5 × minutos/30 | −1 | — | comunicación 0,4 y empatía 0,2 × minutos/30 | solo en los 10 minutos antes de cada clase, en el colegio | si no la conocías se presenta; no cuenta como charla del día ni como actividad grande |
 | Estudiar con (plan acordado) | los mismos | 90 | +2,5 | +2 | −8 | — | concentración 0,6; inteligencia 0,3; cooperación 0,2 | de la hora acordada a 30 min después, **en tu casa** | solo con un plan acordado para ahora (no hace falta que esté entre la gente que tienes cerca); compañía de estudio |
-| Tener un detalle | compañeros, amigos | 15 | +3 | +1 | −1 | — | empatía 0,3; creatividad 0,3 | fuera de clase o recreo, 8–22 | una vez cada 7 días; ganancia × (1 + 0,15 × intensidad de su interés favorito) |
+| Tener un detalle | compañeros, amigos | 5 | +3 | +1 | −1 | — | empatía 0,3; creatividad 0,3 | fuera de clase o recreo, 8–22 | una vez cada 7 días; ganancia × (1 + 0,15 × intensidad de su interés favorito) |
 | Hablar (entrenador, tutor) | entrenador, profesor | 30 | +4 | +2,5 | −3 | — | comunicación 0,6; carisma 0,3 | entrenador: 9–14 sin clase y 15–21 con clase; tutor: 14–17 de un día lectivo o recreo | — |
 | Charlar (rival) | rivales conocidos (los 5 más marcados) | 30 | +2 | +1 | −1 | — | comunicación 0,3; carisma 0,2 | fuera de clase, 10–21 | — |
 | Discutir / Plantar cara / Encararse | todos | 30 | −(10 + 4 × agresividad/50), ×1,5 con entrenador o tutor | −5 | −4 | −8 | autoridad 0,6; picardía 0,2 | el de cada persona | siempre; es una decisión del jugador |
@@ -117,6 +118,26 @@ donde `habilidad` es el nivel (empatía y comunicación, 0 a 1) y `nivel` es 1 c
 ## 5. Un ejemplo
 
 Charlar con un compañero cualquiera a los 8 años: afinidad base 2,5. Compatibilidad típica 0,4 (×0,9), habilidad típica (×1,0) y disposición de una persona normal sin preferencias de carácter (×1,0): sube 2,5 × 0,9 × 1,0 × 1,0 ≈ **2,3**. Con un amigo sociable (×1,2) que comparte tus intereses (×1,3) y un personaje que habla bien (×1,2): 2,5 × 1,2 × 1,3 × 1,2 ≈ **4,7**. Con un solitario (×0,8) con quien casi no compartes nada (×0,75) y un personaje callado (×0,85): ≈ **1,0**.
+
+### Cómo se llama a quien no conoces (según su edad)
+
+Quien no conoces se ve por su aspecto con un nombre que depende de su edad (`nombreSegunEdad`, `EDADES_DE_TRATO`, en `contracts/rasgos.ts`). Sin fecha de nacimiento se usa la edad aparente (`edadAparente`): profesorado y entrenadores 40 años, padres 42, compañeros 8.
+
+| Edad | Chico / chica | Género masculino | Género femenino |
+|---|---|---|---|
+| menos de 12 | niño / niña | Un niño | Una niña |
+| 12 a 25 | chico / chica | Un chico | Una chica |
+| 26 a 54 | hombre / mujer | Un hombre | Una mujer |
+| 55 a 69 | señor / señora | Un señor | Una señora |
+| 70 o más | anciano / anciana | Un anciano | Una anciana |
+
+### Apellidos de la familia
+
+Los padres llevan **dos apellidos cada uno** (los cuatro distintos) y los hijos, **el primero del padre y el primero de la madre** (`apellidosDePadres`, `apellidosDeFamilia`, en `contracts/hermanos.ts`).
+
+### Profesores
+
+Cada profesor da una asignatura (tabla `PROFESOR_DE_ASIGNATURA` en `modules/npcs/src/index.ts`). **Se presenta la primera vez que vas a su clase** (evento `clase.asistida`), así que conoces a tus profesores yendo a clase.
 
 ## 6. Dónde cambiar cada número
 

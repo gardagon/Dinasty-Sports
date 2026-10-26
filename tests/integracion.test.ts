@@ -889,3 +889,52 @@ describe('familia en casa y planes con los demás', () => {
     expect(rel(g2).planes()).toEqual([]);
   });
 });
+
+describe('clase, profesores, apellidos y fichas', () => {
+  it('el profesor de una asignatura se presenta al ir a su clase si no lo conoces', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceTo(g, 'gen.descansar', 0, 7);
+    const npcs = () => g.service<NpcDirectory>(SERVICES.npcs)!;
+    const antes = npcs().list({ role: 'profesor', known: true }).length;
+    for (let i = 0; i < 12 && g.time.minuteOfDay < 7 * 60 + 50; i++) g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+    expect(hacer(g, 'estudios.clase_1').ok).toBe(true);
+    expect(npcs().list({ role: 'profesor', known: true }).length).toBe(antes + 1);
+    expect(g.log.some((l) => /se presenta al empezar la clase/.test(l.text))).toBe(true);
+  });
+
+  it('los padres tienen sus dos apellidos y los hijos el primero de cada uno', () => {
+    for (const seed of [1, 2, 3, 4, 5, 31]) {
+      const g = nuevaPartida({ seed });
+      const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
+      const padre = dir.get('padre')!.name.split(' ');
+      const madre = dir.get('madre')!.name.split(' ');
+      expect(padre).toHaveLength(3);
+      expect(madre).toHaveLength(3);
+      expect(new Set([...padre.slice(1), ...madre.slice(1)]).size).toBe(4);
+      for (const h of dir.list({ tag: 'hermano' })) expect(h.name.split(' ').slice(1)).toEqual([padre[1], madre[1]]);
+    }
+  });
+});
+
+describe('los 10 minutos antes de clase: hablar con alguien al azar', () => {
+  it('solo en esos 10 minutos y con gente delante; sube la relación según el rato y presenta a quien no conocías', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceTo(g, 'gen.descansar', 0, 7);
+    for (let i = 0; i < 12 && g.time.minuteOfDay < 7 * 60 + 40; i++) g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+    g.perform('lugares.ir_colegio'); // desde las 7:40 + viaje: ya dentro de la ventana
+    expect(g.time.minuteOfDay).toBeLessThan(8 * 60);
+    const o = g.preview('relaciones.al_azar')!;
+    if (g.time.minuteOfDay >= 7 * 60 + 50) {
+      expect(o.available).toBe(true);
+      expect(o.duration).toBe(8 * 60 - g.time.minuteOfDay);
+      const conocidos = g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).length;
+      expect(g.perform('relaciones.al_azar').ok).toBe(true);
+      expect(g.time.minuteOfDay).toBe(8 * 60); // se consume el tiempo hasta la clase
+      expect(g.log.some((l) => /Mientras llega la clase hablas con/.test(l.text))).toBe(true);
+      expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).length).toBeGreaterThanOrEqual(conocidos);
+    }
+    // Fuera de la ventana no se puede.
+    advanceTo(g, 'gen.descansar', 1, 12);
+    expect(g.preview('relaciones.al_azar')!.available).toBe(false);
+  });
+});

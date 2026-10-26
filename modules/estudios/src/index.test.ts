@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, type StudiesService } from '@ds/contracts';
-import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
+import { SERVICES, defineModule, type StudiesService } from '@ds/contracts';
+import { Game, advanceTo, advanceToWeek, advanceUntil, type ActionResult } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { estudios, nivelDeAsignatura, notaExamen, notaFinal, type EstudiosState } from './index';
 import { ASIGNATURAS, CURSOS_ESPANA, asignaturasDelCurso, clasesPorSemana, diaDeExamen, elegirModalidad, horarioDeClases, horarioSemanal, pesoDeClase } from './curriculo';
@@ -8,14 +8,34 @@ import { ASIGNATURAS, CURSOS_ESPANA, asignaturasDelCurso, clasesPorSemana, diaDe
 /** Días de la semana en que se da una asignatura del primer curso. */
 const diasDe = (k: string): number[] => horarioSemanal(asignaturasDelCurso(0))[k];
 
-const nueva = () => Game.create([personaje, estudios], { seed: 3 });
+/** Un módulo de pruebas con una pausa de 5 minutos: entre clase y clase solo se puede entrar 10 minutos antes, así que hay que esperar poco. */
+const pausas = defineModule({
+  id: 'pausas',
+  name: 'Pausas',
+  description: 'Solo para los tests: esperar 5 minutos.',
+  actions: [{ id: 'pausas.cinco', name: 'Esperar 5 minutos', tags: [], duration: 5 }],
+});
 
-/** Va a todas las clases que se puedan desde donde esté el reloj (hasta 4). */
+const nueva = () => Game.create([personaje, estudios, pausas], { seed: 3 });
+
+/** Espera (de 5 en 5 minutos) hasta ese minuto del día. */
+function esperarHasta(g: Game, minutoDelDia: number): void {
+  for (let i = 0; i < 300 && g.time.minuteOfDay < minutoDelDia; i++) g.perform('pausas.cinco');
+}
+
+const INICIO_DE_CLASE = [480, 560, 680, 760];
+/** Va a la clase n (1 a 4): espera hasta 10 minutos antes de que empiece y entra. */
+function irAClase(g: Game, n: number): ActionResult {
+  esperarHasta(g, INICIO_DE_CLASE[n - 1] - 10);
+  return g.perform(`estudios.clase_${n}`);
+}
+
+/** Va a todas las clases del día, a tiempo, desde donde esté el reloj (hasta 4). */
 function irAClases(g: Game): void {
-  for (let i = 0; i < 4; i++) {
-    const o = g.listActions().find((a) => /^estudios\.clase_\d$/.test(a.id) && a.available);
-    if (!o) break;
-    g.perform(o.id);
+  for (let n = 1; n <= 4; n++) {
+    if (g.preview(`estudios.clase_${n}`)?.reason === 'Ya has ido a esta clase') continue;
+    if (g.time.minuteOfDay > INICIO_DE_CLASE[n - 1] - 10 && !g.preview(`estudios.clase_${n}`)?.available) continue;
+    irAClase(g, n);
   }
 }
 
@@ -27,40 +47,94 @@ describe('módulo estudios', () => {
 
   it('la jornada son 4 clases con un recreo, de 8:00 a 14:00, solo entre semana', () => {
     const g = nueva();
-    advanceTo(g, 'gen.descansar', 0, 8);
+    advanceTo(g, 'gen.descansar', 0, 7);
+    esperarHasta(g, 7 * 60 + 40);
+    expect(g.preview('estudios.clase_1')!.available).toBe(false); // todavía falta más de 10 minutos
+    expect(g.preview('estudios.clase_1')!.reason).toMatch(/10 minutos antes/);
+    esperarHasta(g, 7 * 60 + 50);
     expect(g.preview('estudios.clase_1')!.available).toBe(true);
-    expect(g.preview('estudios.clase_2')!.available).toBe(false); // todavía falta más de una hora
-    g.perform('estudios.clase_1');
-    expect(g.time.hour).toBe(9);
-    expect(g.time.minuteOfDay).toBe(9 * 60 + 20);
+    expect(g.preview('estudios.clase_2')!.available).toBe(false);
+    g.perform('estudios.clase_1'); // entra a las 7:50 y espera: 10 min + 75 de clase
+    expect(g.time.minuteOfDay).toBe(9 * 60 + 15); // la clase acaba 5 minutos antes de la hora de la siguiente (9:20)
     expect(g.preview('estudios.clase_1')!.available).toBe(false);
-    g.perform('estudios.clase_2');
-    expect(g.time.minuteOfDay).toBe(10 * 60 + 40);
+    irAClase(g, 2);
+    expect(g.time.minuteOfDay).toBe(10 * 60 + 35);
+    esperarHasta(g, 10 * 60 + 40);
     g.perform('estudios.recreo');
     expect(g.time.minuteOfDay).toBe(11 * 60 + 20);
-    g.perform('estudios.clase_3');
-    g.perform('estudios.clase_4');
-    expect(g.time.hour).toBe(14);
+    irAClase(g, 3);
+    irAClase(g, 4);
+    expect(g.time.minuteOfDay).toBe(13 * 60 + 55);
     expect(g.moduleState<EstudiosState>('estudios').asistencia.clases).toEqual([0, 1, 2, 3]);
     advanceTo(g, 'gen.descansar', 5, 8);
     expect(g.preview('estudios.sin_clase')!.reason).toMatch(/no hay clase/);
     expect(g.preview('estudios.clase_1')).toBeUndefined();
   });
 
-  it('se puede llegar hasta 15 minutos tarde, y después esa clase ya no vale', () => {
+  it('se puede llegar tarde y solo cuenta la parte asistida; se entra hasta el último minuto y al acabar ya no', () => {
     const g = nueva();
-    advanceUntil(g, 'gen.descansar', (t) => t.weekday === 0 && t.minuteOfDay >= 8 * 60 + 5);
-    expect(g.time.minuteOfDay).toBeGreaterThan(8 * 60);
-    advanceUntil(g, 'gen.descansar', (t) => t.weekday === 0 && t.minuteOfDay >= 8 * 60 + 20);
-    expect(g.preview('estudios.clase_1')!.reason).toMatch(/ya ha empezado/);
+    advanceTo(g, 'gen.descansar', 0, 7);
+    esperarHasta(g, 8 * 60 + 25); // 25 de 75 minutos perdidos: se asiste a 50/75
+    const o = g.preview('estudios.clase_1')!;
+    expect(o.available).toBe(true);
+    expect(o.efficiency).toBeCloseTo(50 / 75, 5);
+    expect(o.modifiers.some((m) => m.id === 'estudios.llegada_tarde')).toBe(true);
+    // A tiempo sube más que tarde.
+    const aTiempo = nueva();
+    advanceTo(aTiempo, 'gen.descansar', 0, 7);
+    esperarHasta(aTiempo, 7 * 60 + 55);
+    const hoy = g.service<StudiesService>(SERVICES.estudios)!.timetable(0)[0];
+    const antesTarde = g.stat(hoy);
+    const antesATiempo = aTiempo.stat(hoy);
+    g.perform('estudios.clase_1');
+    aTiempo.perform('estudios.clase_1');
+    expect(g.stat(hoy) - antesTarde).toBeGreaterThan(0);
+    expect(g.stat(hoy) - antesTarde).toBeLessThan(aTiempo.stat(hoy) - antesATiempo);
+    // Asistir tarde no es faltar.
+    expect(g.moduleState<EstudiosState>('estudios').asistencia.clases).toEqual([0]);
+    const tarde = nueva();
+    advanceTo(tarde, 'gen.descansar', 0, 7);
+    esperarHasta(tarde, 9 * 60 + 10);
+    const ultimo = tarde.preview('estudios.clase_1')!;
+    expect(ultimo.available).toBe(true); // quedan 5 minutos: se asiste a 5/75
+    expect(ultimo.efficiency).toBeCloseTo(5 / 75, 5);
+    esperarHasta(tarde, 9 * 60 + 15);
+    expect(tarde.preview('estudios.clase_1')!.available).toBe(false);
+    expect(tarde.preview('estudios.clase_1')!.reason).toMatch(/ya ha acabado/);
+  });
+
+  it('en los 10 minutos antes de la clase se puede repasar su asignatura', () => {
+    const g = nueva();
+    advanceTo(g, 'gen.descansar', 0, 7);
+    esperarHasta(g, 7 * 60 + 40);
+    expect(g.preview('estudios.repaso_previo')).toBeUndefined();
+    esperarHasta(g, 7 * 60 + 50);
+    const o = g.preview('estudios.repaso_previo')!;
+    expect(o.available).toBe(true);
+    expect(o.duration).toBe(10);
+    const hoy = g.service<StudiesService>(SERVICES.estudios)!.timetable(0)[0];
+    const antes = g.stat(hoy);
+    expect(g.perform('estudios.repaso_previo').ok).toBe(true);
+    expect(g.stat(hoy)).toBeGreaterThan(antes);
+    expect(g.time.minuteOfDay).toBe(8 * 60);
+    // Vale la parte de los 10 minutos que se gasta: a 5 minutos de la clase, el 50 %.
+    const tarde = nueva();
+    advanceTo(tarde, 'gen.descansar', 0, 7);
+    esperarHasta(tarde, 7 * 60 + 55);
+    const parcial = tarde.preview('estudios.repaso_previo')!;
+    expect(parcial.duration).toBe(5);
+    expect(parcial.efficiency).toBeCloseTo(0.5, 5);
+    const antesT = tarde.stat(hoy);
+    tarde.perform('estudios.repaso_previo');
+    expect(tarde.stat(hoy) - antesT).toBeLessThan(g.stat(hoy) - antes);
   });
 
   it('faltar a una clase no sube esa asignatura, suma una falta y sube el estrés', () => {
     const g = nueva();
-    advanceTo(g, 'gen.descansar', 0, 8);
+    advanceTo(g, 'gen.descansar', 0, 7);
     const hoy = g.service<StudiesService>(SERVICES.estudios)!.timetable(0);
     const antes = g.stat(hoy[3]);
-    for (const c of ['estudios.clase_1', 'estudios.clase_2', 'estudios.clase_3']) g.perform(c);
+    for (const n of [1, 2, 3]) irAClase(g, n);
     advanceTo(g, 'gen.descansar', 1, 1); // se salta la cuarta clase
     expect(g.moduleState<EstudiosState>('estudios').faltas).toBe(1);
     expect(g.log.some((l) => /faltado a 1 clase/.test(l.text))).toBe(true);
@@ -74,7 +148,7 @@ describe('módulo estudios', () => {
       guardado.minute = 23 * 60 + 30;
       guardado.stats['gen.estres'] = 50;
       (guardado.modules.estudios as EstudiosState).asistencia = { day: 0, clases };
-      const g = Game.load([personaje, estudios], guardado);
+      const g = Game.load([personaje, estudios, pausas], guardado);
       g.perform('gen.descansar');
       return g.stat('gen.estres');
     };
@@ -141,7 +215,7 @@ describe('módulo estudios', () => {
     });
 
     it('todos empiezan entre Mal y Muy bien según sus capacidades: quien tiene mejores bases parte más arriba', () => {
-      const xs = Array.from({ length: 150 }, (_, i) => Game.create([personaje, estudios], { seed: i + 1 }));
+      const xs = Array.from({ length: 150 }, (_, i) => Game.create([personaje, estudios, pausas], { seed: i + 1 }));
       const medias = xs.map((g) => ASIGNATURAS.reduce((a, b) => a + g.stat(`estudios.${b.key}`), 0) / ASIGNATURAS.length);
       for (const g of xs) for (const a of ASIGNATURAS) {
         expect(g.stat(`estudios.${a.key}`)).toBeGreaterThanOrEqual(30);
@@ -231,7 +305,7 @@ describe('módulo estudios', () => {
     });
 
     it('la preparación inicial sale de la aptitud: con el tope mental alto se arranca más arriba', () => {
-      const xs = Array.from({ length: 200 }, (_, i) => Game.create([personaje, estudios], { seed: i + 1 }));
+      const xs = Array.from({ length: 200 }, (_, i) => Game.create([personaje, estudios, pausas], { seed: i + 1 }));
       const apt = (g: Game) => (g.hiddenPotential('gen.inteligencia')! + g.hiddenPotential('gen.concentracion')!) / 2;
       const orden = [...xs].sort((a, b) => apt(a) - apt(b));
       const m = (gs: Game[]) => gs.reduce((a, g) => a + g.stat('estudios.matematicas'), 0) / gs.length;
@@ -246,7 +320,7 @@ describe('módulo estudios', () => {
         const e = g.modules.estudios as EstudiosState;
         e.base = Object.fromEntries(ASIGNATURAS.map((a) => [a.key, 0]));
         e.base.matematicas = aptitud - 22;
-        return Game.load([personaje, estudios], g);
+        return Game.load([personaje, estudios, pausas], g);
       };
       const floja = con(30), brillante = con(90);
       advanceToWeek(floja, 'gen.descansar', 1, 0, 8);
@@ -270,7 +344,7 @@ describe('módulo estudios', () => {
       const g = nueva();
       const guardado = g.serialize();
       guardado.minute = semana * 7 * 1440 + 7 * 60;
-      return Game.load([personaje, estudios], guardado);
+      return Game.load([personaje, estudios, pausas], guardado);
     };
 
     it('los exámenes se avisan con una semana de antelación, con el día de cada uno', () => {
@@ -314,7 +388,7 @@ describe('módulo estudios', () => {
       const guardado = g.serialize();
       for (const k of ['educacion_fisica', 'matematicas']) guardado.stats[`estudios.${k}`] = 0;
       for (const id of ['gen.velocidad', 'gen.fuerza', 'gen.resistencia', 'gen.agilidad', 'gen.coordinacion', 'gen.determinacion']) guardado.stats[id] = 0;
-      const mal = Game.load([personaje, estudios], guardado);
+      const mal = Game.load([personaje, estudios, pausas], guardado);
       expect(mal.service<StudiesService>(SERVICES.estudios)!.levelText('estudios.educacion_fisica')).toBe('Regular');
       expect(mal.service<StudiesService>(SERVICES.estudios)!.levelText('estudios.matematicas')).toBe('Mal');
       for (let d = 0; d < 5; d++) {
@@ -348,7 +422,7 @@ describe('módulo estudios', () => {
       const g = enExamenes(6);
       const guardado = g.serialize();
       for (const k of claves(0)) guardado.stats[`estudios.${k}`] = 90;
-      const listo = Game.load([personaje, estudios], guardado);
+      const listo = Game.load([personaje, estudios, pausas], guardado);
       for (const semana of [6, 11, 14]) {
         for (let d = 0; d < 5; d++) {
           advanceToWeek(listo, 'gen.descansar', semana, d, 8);
@@ -366,7 +440,7 @@ describe('módulo estudios', () => {
       for (const [k, v] of Object.entries(niveles)) guardado.stats[`estudios.${k}`] = v;
       (guardado.modules.estudios as EstudiosState).cursoAplicado = curso - 1;
       guardado.minute = (curso * 52 * 7 - 1) * 1440 + 20 * 60;
-      return Game.load([personaje, estudios], guardado);
+      return Game.load([personaje, estudios, pausas], guardado);
     };
 
     it('al pasar a la ESO, biología hereda el nivel de ciencias naturales y se avisa del cambio', () => {

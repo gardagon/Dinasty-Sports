@@ -87,7 +87,7 @@ describe('módulo relaciones', () => {
       expect(g.preview(id('paces'))).toBeUndefined();
     });
 
-    it('charlar sube poco y cuesta casi nada; quedar sube más', () => {
+    it('charlar son 5 minutos y sube poco; se pueden juntar 6 al día (media hora) y quedar sube más', () => {
       const a = conAfinidad(0);
       const b = conAfinidad(0);
       a.perform(id('charlar'));
@@ -96,7 +96,16 @@ describe('módulo relaciones', () => {
       expect(sube(a)).toBeGreaterThan(0);
       expect(sube(b)).toBeGreaterThan(sube(a));
       expect(a.time.hour).toBe(11);
-      expect(a.time.minute % 60).toBe(30);
+      expect(a.time.minute % 60).toBe(5);
+      // Seis charlas seguidas son media hora y valen lo que valía la antigua de 30 minutos (2,5 con efectos neutros); la séptima no.
+      const c = conAfinidad(0);
+      for (let i = 0; i < 6; i++) expect(c.perform(id('charlar')).ok).toBe(true);
+      expect(c.time.minuteOfDay).toBe(11 * 60 + 30);
+      expect(c.preview(id('charlar'))!.available).toBe(false);
+      expect(c.preview(id('charlar'))!.reason).toMatch(/todo lo que da de sí/);
+      expect(sube(c)).toBeCloseTo(6 * sube(a), 5);
+      // Charlar no gasta el «una al día» de las actividades grandes: después se puede quedar.
+      expect(c.preview(id('quedar'))!.available).toBe(true);
     });
 
     it('ayudar exige conocerse un poco y da más confianza que simpatía', () => {

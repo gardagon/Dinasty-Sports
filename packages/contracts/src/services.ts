@@ -185,3 +185,15 @@ export interface ClubDirectory {
   /** Club al que pertenece el personaje en ese deporte, si pertenece a alguno. */
   membership(sport: string): ClubView | undefined;
 }
+
+/**
+ * La edad con la que se ve a una persona aunque no se sepa su fecha de nacimiento (el reparto inicial no la tiene): el profesorado y los
+ * entrenadores, adultos; los compañeros de clase, niños de la edad del curso.
+ */
+export function edadAparente(n: Pick<NpcView, 'age' | 'role' | 'tags'>): number | undefined {
+  if (n.age !== undefined) return n.age;
+  if (n.role === 'profesor' || n.role === 'entrenador') return 40;
+  if (n.tags.includes('progenitor')) return 42;
+  if (n.role === 'companero' || n.role === 'amigo') return 8;
+  return undefined;
+}

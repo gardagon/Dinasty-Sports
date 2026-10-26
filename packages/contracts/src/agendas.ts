@@ -1,6 +1,6 @@
 import type { LugarId } from './lugares';
 import type { NpcView } from './services';
-import { JORNADA_ESCOLAR, type TimeView, type Weekday } from './time';
+import { HUECO_ENTRE_CLASES, JORNADA_ESCOLAR, type TimeView, type Weekday } from './time';
 
 /**
  * Agendas de las personas: dónde está cada una según el día y la hora.
@@ -45,6 +45,8 @@ export interface TipoAsignado {
   hasta?: number;
   /** Cambia el nivel que le corresponde por defecto (para que un acontecimiento mande sobre el resto). */
   nivel?: number;
+  /** `alumno`: es de tu clase (tus compañeros): los 5 minutos al acabar cada clase se quedan en el aula y se les puede hablar; los demás alumnos siguen ocupados. */
+  tuClase?: boolean;
   /** `hermano`: está en edad de colegio (va a clase como un alumno). */
   escolar?: boolean;
   /** `hermano`: practica atletismo (corre los sábados en el estadio). */
@@ -115,11 +117,15 @@ export const MARGEN_DE_SESION = 15;
 export const LLEGADA_AL_COLEGIO = 30;
 const [RECREO_DESDE, RECREO_HASTA] = JORNADA_ESCOLAR.recreo;
 const PRIMERA_CLASE = JORNADA_ESCOLAR.clases[0][0];
-const FIN_DE_CLASES = JORNADA_ESCOLAR.clases[JORNADA_ESCOLAR.clases.length - 1][1];
+/** Fin de la jornada (las 14:00): la última clase acaba 5 minutos antes. */
+const FIN_DE_CLASES = JORNADA_ESCOLAR.clases[JORNADA_ESCOLAR.clases.length - 1][1] + HUECO_ENTRE_CLASES;
 /** Las horas de clase (la persona está ocupada) dentro de la jornada: lo que no es el recreo. */
 const EN_CLASE = [[PRIMERA_CLASE, RECREO_DESDE], [RECREO_HASTA, FIN_DE_CLASES]] as const;
+/** Las clases una a una (los compañeros de clase están libres en los 5 minutos de entre clase y clase). */
+const CLASES = JORNADA_ESCOLAR.clases as readonly (readonly [number, number])[];
 /** El tramo de ir al colegio: llegan antes de empezar, en clase no se les puede hablar y vuelven a estar en el recreo. */
-const colegio = (tipo: TipoDeAgenda, nivel: number): TramoDeAgenda => tramo(tipo, nivel, 'lectivo', PRIMERA_CLASE - LLEGADA_AL_COLEGIO, FIN_DE_CLASES, [['colegio', 1]], undefined, EN_CLASE);
+const colegio = (tipo: TipoDeAgenda, nivel: number, tuClase = false): TramoDeAgenda =>
+  tramo(tipo, nivel, 'lectivo', PRIMERA_CLASE - LLEGADA_AL_COLEGIO, FIN_DE_CLASES, [['colegio', 1]], undefined, tuClase ? CLASES : EN_CLASE);
 
 /** Los tramos de las sesiones de un club. */
 const sesiones = (tipo: TipoDeAgenda, nivel: number, s: SesionDeClub, asistencia?: number): TramoDeAgenda[] => [
@@ -143,7 +149,7 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       const n = nivel(NIVEL_AGENDA.rol);
       return [
         // Llega media hora antes de las clases (7:30) y se va a las dos; en clase no se le puede hablar, solo al llegar y en el recreo.
-        colegio('alumno', n),
+        colegio('alumno', n, t.tuClase),
         tramo('alumno', n, 'lectivo', h(15), h(19), [[FUERA, 60], ['parque', 25], ['supermercado', 10], ['gimnasio', 5]]),
         tramo('alumno', n, 'libre', h(10), h(14), [[FUERA, 50], ['parque', 40], ['supermercado', 10]]),
         tramo('alumno', n, 'libre', h(15), h(20), [[FUERA, 50], ['parque', 40], ['supermercado', 5], ['gimnasio', 5]]),
