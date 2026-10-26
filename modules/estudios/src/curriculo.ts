@@ -94,9 +94,17 @@ export const CURSO_DE_MODALIDAD = 8;
 /** El curso se cuenta desde el inicio; pasado el último se repite el último. */
 export const cursoDef = (curso: number): CursoDef => CURSOS_ESPANA[Math.min(Math.max(0, curso), CURSOS_ESPANA.length - 1)];
 
+/** Las listas no cambian: se calculan una vez por curso y modalidad (se consultan en cada acción). No se deben modificar. */
+const POR_CURSO = new Map<string, string[]>();
+
 export function asignaturasDelCurso(curso: number, modalidad: Modalidad = 'ciencias'): string[] {
-  const c = cursoDef(curso);
-  return [...c.asignaturas, ...(c.modalidad?.[modalidad] ?? [])];
+  const clave = `${Math.min(Math.max(0, curso), CURSOS_ESPANA.length - 1)}:${modalidad}`;
+  let lista = POR_CURSO.get(clave);
+  if (!lista) {
+    const c = cursoDef(curso);
+    POR_CURSO.set(clave, (lista = Object.freeze([...c.asignaturas, ...(c.modalidad?.[modalidad] ?? [])]) as string[]));
+  }
+  return lista;
 }
 
 /** Modalidad que le va mejor según sus notas: ciencias si las asignaturas de ciencias superan a las de letras. */
@@ -108,25 +116,96 @@ export function elegirModalidad(nivel: (key: string) => number): Modalidad {
 }
 
 
+/** Clases al día y días lectivos a la semana: 20 huecos en los que caben todas las asignaturas del curso. */
+export const CLASES_POR_DIA = 4;
+export const DIAS_LECTIVOS = 5;
+const HUECOS = CLASES_POR_DIA * DIAS_LECTIVOS;
+
 /**
- * Días de la semana (0 = lunes ... 4 = viernes) en que se da cada asignatura del curso. Cada una ocupa tantos días como horas
- * tiene (máx. 5), repartidos con la misma separación y desplazados según su posición para que no coincidan todas.
+ * Clases a la semana de cada asignatura ajustadas a los 20 huecos del horario: se reparten en proporción a sus horas
+ * (`Asignatura.horas`), con al menos una cada una y como mucho una por día (5). Si el currículo pide más horas de las que caben
+ * (ESO: 23 a 26), todas se comprimen; si pide menos (primaria: 18), las asignaturas con más horas ganan alguna.
  */
-export function horarioSemanal(asignaturas: readonly string[]): Record<string, number[]> {
-  const horario: Record<string, number[]> = {};
-  asignaturas.forEach((k, i) => {
-    const h = Math.min(5, Math.max(1, asignatura(k).horas));
-    const desplazamiento = (i * 2) % 5;
-    horario[k] = Array.from({ length: h }, (_, j) => (desplazamiento + Math.floor((j * 5) / h)) % 5).sort((a, b) => a - b);
-  });
-  return horario;
+export function clasesPorSemana(asignaturas: readonly string[]): Record<string, number> {
+  return memo(CLASES, asignaturas, () => calcularClases(asignaturas));
 }
 
-/** Día de la semana (0..4) del examen de una asignatura en la evaluación de un trimestre. Es fijo, y varias pueden coincidir. */
+/** El horario depende solo de las asignaturas y se consulta muchas veces al día: se calcula una vez por combinación. */
+const CLASES = new Map<string, Record<string, number>>();
+const HORARIOS = new Map<string, string[][]>();
+function memo<T>(cache: Map<string, T>, asignaturas: readonly string[], calcular: () => T): T {
+  const clave = asignaturas.join(',');
+  let v = cache.get(clave);
+  if (!v) cache.set(clave, (v = calcular()));
+  return v;
+}
+
+function calcularClases(asignaturas: readonly string[]): Record<string, number> {
+  const horas = asignaturas.map((k) => asignatura(k).horas);
+  const total = horas.reduce((a, b) => a + b, 0);
+  const exacto = horas.map((h) => (h * HUECOS) / total);
+  const clases = exacto.map((x) => Math.min(DIAS_LECTIVOS, Math.max(1, Math.floor(x))));
+  // Reparte lo que falta (o quita lo que sobra) por orden de resto, sin salirse de 1..5.
+  const resto = (i: number) => exacto[i] - clases[i];
+  let suma = clases.reduce((a, b) => a + b, 0);
+  const indices = asignaturas.map((_, i) => i);
+  while (suma < HUECOS) {
+    const i = indices.filter((j) => clases[j] < DIAS_LECTIVOS).sort((x, y) => resto(y) - resto(x))[0];
+    clases[i]++;
+    suma++;
+  }
+  while (suma > HUECOS) {
+    const i = indices.filter((j) => clases[j] > 1).sort((x, y) => resto(x) - resto(y))[0];
+    clases[i]--;
+    suma--;
+  }
+  return Object.fromEntries(asignaturas.map((k, i) => [k, clases[i]]));
+}
+
+/**
+ * Horario del curso: `horario[día][clase]` = asignatura (día 0 = lunes ... 4 = viernes; clase 0 = primera hora).
+ * Ocupa los 20 huecos y una asignatura no se repite el mismo día. Es determinista: depende solo de las asignaturas.
+ */
+export function horarioDeClases(asignaturas: readonly string[]): readonly (readonly string[])[] {
+  return memo(HORARIOS, asignaturas, () => calcularHorario(asignaturas));
+}
+
+function calcularHorario(asignaturas: readonly string[]): string[][] {
+  const clases = clasesPorSemana(asignaturas);
+  const carga = new Array<number>(DIAS_LECTIVOS).fill(0);
+  const dias: string[][] = Array.from({ length: DIAS_LECTIVOS }, () => []);
+  // Cada asignatura (las de más clases primero) elige los días con menos carga: así todos los días acaban con 4 y ninguna se repite.
+  const orden = asignaturas.map((k, i) => ({ k, i })).sort((x, y) => clases[y.k] - clases[x.k] || x.i - y.i);
+  for (const { k, i } of orden) {
+    const elegidos = [...carga.keys()]
+      .sort((x, y) => carga[x] - carga[y] || ((x + i * 2) % DIAS_LECTIVOS) - ((y + i * 2) % DIAS_LECTIVOS))
+      .slice(0, clases[k]);
+    for (const d of elegidos) {
+      dias[d].push(k);
+      carga[d]++;
+    }
+  }
+  // Dentro del día el orden varía con el día para que no sea siempre el mismo.
+  const n = asignaturas.length;
+  return dias.map((dia, d) => dia.sort((x, y) => ((asignaturas.indexOf(x) - d * 3 + n * 10) % n) - ((asignaturas.indexOf(y) - d * 3 + n * 10) % n)));
+}
+
+/** Días de la semana (0 = lunes ... 4 = viernes) en que se da cada asignatura del curso. */
+export function horarioSemanal(asignaturas: readonly string[]): Record<string, number[]> {
+  const horario = horarioDeClases(asignaturas);
+  return Object.fromEntries(asignaturas.map((k) => [k, horario.flatMap((dia, d) => (dia.includes(k) ? [d] : []))]));
+}
+
+/** Cuánto vale cada clase de una asignatura frente a lo que tenía con sus horas del currículo (si se comprime, cada clase vale más). */
+export function pesoDeClase(asignaturas: readonly string[], key: string): number {
+  return asignatura(key).horas / clasesPorSemana(asignaturas)[key];
+}
+
+/** Día de la semana (0..4) del examen de una asignatura en la evaluación de un trimestre. Es fijo, y varias pueden coincidir. Si se pasan los días en que tiene clase, cae en uno de ellos (así se examina quien va a esa clase). */
 export type TipoDeExamen = 'parcial1' | 'parcial2' | 'global';
 
-export function diaDeExamen(curso: number, trimestre: number, key: string, tipo: TipoDeExamen = 'global'): number {
+export function diaDeExamen(curso: number, trimestre: number, key: string, tipo: TipoDeExamen = 'global', dias?: readonly number[]): number {
   let h = curso * 7 + trimestre * 13 + (tipo === 'parcial1' ? 3 : tipo === 'parcial2' ? 5 : 0);
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 9973;
-  return h % 5;
+  return dias?.length ? dias[h % dias.length] : h % 5;
 }

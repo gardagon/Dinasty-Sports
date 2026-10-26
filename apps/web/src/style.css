@@ -244,3 +244,36 @@ h3:first-child { margin-top: 0; }
 .log-table { grid-column: 1 / -1; overflow-x: auto; }
 .table { overflow-x: auto; }
 .table td:nth-child(3) { font-size: 12.5px; }
+
+/* Pantalla del lugar */
+.lugar h4 { margin: 0.9rem 0 0.3rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; }
+.viaje-rapido { margin-top: 0.8rem; }
+.viaje-rapido summary { cursor: pointer; font-weight: 600; }
+.money { margin: 8px 0 0; font-size: 14px; color: var(--ink-soft); }
+.money b { color: var(--ink); }
+.gente { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.persona { border: 1px solid var(--line, #c9d3e0); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.persona span { color: var(--ink-soft); font-size: 13px; }
+.persona.desconocida b { opacity: 0.55; }
+
+/* Panel «Gente» */
+.filtros-gente { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.gente-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.tarjeta-gente { text-align: left; border: 1px solid var(--line, #c9d3e0); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 3px; font-size: 14px; background: transparent; color: inherit; cursor: pointer; }
+.tarjeta-gente:hover { border-color: var(--ink-soft); }
+.tarjeta-gente .rol { font-size: 12px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+.tarjeta-gente span { font-size: 13px; color: var(--ink-soft); }
+.tarjeta-gente.desconocida b { opacity: 0.55; }
+.barra-gente { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 6px; font-size: 12px; }
+.barra-gente .bar { height: 6px; }
+.paginas-gente { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 12px; }
+.ficha-gente h2 small { font-size: 14px; color: var(--ink-soft); font-weight: 400; }
+.copias { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+#aviso-guardado:empty { display: none; }
+
+/* Pestaña del deporte */
+.deporte h2 small { font-size: 14px; color: var(--ink-soft); font-weight: 400; }
+.deporte h4 { margin: 14px 0 4px; font-size: 14px; color: var(--ink-soft); }
+.prueba { border-bottom: 1px solid var(--line, #c9d3e0); padding: 6px 0; }
+.prueba summary { cursor: pointer; font-size: 14px; }
+.prueba .table { margin-top: 6px; }

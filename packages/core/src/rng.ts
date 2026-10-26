@@ -33,3 +33,13 @@ export function createRng(holder: RngHolder): Rng {
 export function seededRng(seed: number): Rng {
   return createRng({ state: seed | 0 });
 }
+
+/**
+ * Rng propio de un elemento (p. ej. una stat) a partir de la semilla de la partida y su id. Así lo que se sortea para él
+ * no depende de qué otros elementos existan: añadir una stat nueva no cambia a las que ya estaban (FNV-1a sobre el id).
+ */
+export function seededRngDe(seed: number, id: string): Rng {
+  let h = 0x811c9dc5 ^ seed;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 0x01000193);
+  return seededRng(h);
+}

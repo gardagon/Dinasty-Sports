@@ -13,6 +13,7 @@
   "devDependencies": {
     "@ds/core": "*",
     "@ds/mod-personaje": "*",
-    "@ds/mod-familia": "*"
+    "@ds/mod-familia": "*",
+    "@ds/mod-lugares": "*"
   }
 }

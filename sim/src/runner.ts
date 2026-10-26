@@ -2,6 +2,7 @@ import { SERVICES, type NpcDirectory, type StatDef, type StudiesService } from '
 import { checkInvariants, seededRng, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 import type { Bot, BotMemory } from './bots';
+import { hacer, opcionesDelBot } from './pasos';
 
 /**
  * Ejecuta un bot durante N días y recoge todo lo necesario para analizar
@@ -103,13 +104,16 @@ export function runBot(bot: Bot, seed: number, days: number): RunResult {
       mem.day = game.time.day;
       mem.hoy = {};
     }
-    const opts = game.availableActions();
+    const opts = opcionesDelBot(game);
     if (!opts.length) {
       problems.push(`Día ${game.time.day} ${game.time.hour}h: ninguna acción disponible (bloqueo)`);
       break;
     }
     const choice = bot.choose(game, opts, rng, mem);
-    const r = game.perform(choice);
+    const paso = hacer(game, opts, choice);
+    const r = paso.result;
+    if (paso.viaje) minutesByTag.desplazamiento = (minutesByTag.desplazamiento ?? 0) + paso.viaje;
+    if (paso.traslado) continue;
     if (!r.ok) {
       problems.push(`Día ${game.time.day}: el bot eligió "${choice}" y falló: ${r.reason}`);
       if (problems.length > 20) break;

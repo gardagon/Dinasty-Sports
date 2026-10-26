@@ -5,6 +5,178 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 26/10/2026 — Correcciones: gustos, pestaña «Deporte» y puntos
+
+- **Gustos (corrige la entrada anterior):** el **aspecto físico cuenta**, pero **no se anuncia** hasta que las dos personas tienen al menos 14 años: «una cosa es no anunciarse y otra es no tenerse en cuenta». Antes de los 14 la primera impresión (±0,08) usa la atracción completa (mitad aspecto, mitad carácter) en silencio: se nota en la cifra de eficiencia, no en el motivo, que sale solo del carácter. A partir de los 14 (las dos) el motivo ya refleja la impresión completa. **Nunca cuenta con adultos** (más de 19 años) ni con quien no tiene edad (profesorado, entrenador): sin aspecto entre un adulto y un menor. Tablas en `ANEXO_RELACIONES.md` (sección 7); código en `usoDelAspecto` y `disposicion`.
+- **La pestaña se llama siempre «Deporte»** (no el nombre del deporte): cambiará a genérica y no tiene sentido nombrarla ahora. Con varios deportes, un selector.
+- **Solo habilidades del deporte:** se quita «Lo que más las apoya»; las genéricas son genéricas y se ven en la pestaña del personaje. `DeporteView.habilidades` es ahora una lista de stats propias.
+- **Puntos de la clasificación:** se dejan como están, **provisionales**. Pendiente estudiar cómo funcionan las puntuaciones y clasificaciones en la vida real para ajustarlos.
+
+---
+
+## 26/10/2026 — Pestaña del deporte
+
+- **Contrato genérico:** cada deporte publica `deporte.<id>` (`DeporteView`); la interfaz recorre esos servicios y dibuja la pestaña (con el nombre del deporte si hay uno solo). Un deporte de equipo usará el mismo contrato.
+- **Atletismo guarda cada prueba con su clasificación completa** (`AtletismoState.resultados`): corredor, club y marca de todos los participantes, del curso en curso y el anterior; de los cursos más viejos solo el resumen. Máximo 200 pruebas. Se sube `SAVE_VERSION` a 10 (cambia el estado de atletismo).
+- **Qué enseña:** resumen (categoría, club, entrenador, mejor marca, carreras y mejor puesto del curso, campeonato), próxima prueba, habilidades del deporte (solo las propias), **todas las carreras del curso** con su clasificación desplegable, **clasificación por puntos y por mejores marcas** (por categoría) y los cursos anteriores.
+- **Puntos de la temporada** (decisión mía, a revisar): 10-8-6-5-4-3-2-1 por puesto en las semanales; clasificatoria y final puntúan el doble. Solo cuentan las carreras en que el rival ha coincidido con el personaje: no es la clasificación de todo el circuito (pendiente cuando haya calendario completo).
+- **Cifras y dónde cambiarlas:** `docs/ANEXO_DEPORTE.md`.
+
+---
+
+## 26/10/2026 — Sin teléfono no hay contacto; gustos solo de carácter; planes y saludos a futuro
+
+- **Sin teléfono (decidido por el usuario):** si la persona no está contigo no puedes contactarla ni saber dónde está. Se quita lo de que la acción mostrara «Tienes que estar en…» y los bots viajaran hasta la persona (revelaba dónde estaba). Ahora la acción dice «<nombre> no está aquí»; se comprueba contra la gente que tienes cerca (≤ 40, los conocidos primero). Ventaja: no hace falta calcular dónde está cada conocido, solo quién hay en tu lugar (ya calculado una vez por tramo). Los bots solo hablan con quien coincide con ellos: **social −1 punto en casi todos** (equilibrado 5,6 → 4,3; atleta 2,1 → 1,5; empollón 3,7 → 2,7); 13/13 ✅.
+- **Gustos solo de carácter, no atracción física:** *(corregido el mismo día: ver «Correcciones» más abajo; el aspecto sí cuenta, solo que no se anuncia antes de los 14).*
+- **Planes a futuro (decidido, sin hacer):** proponer por el chat, guardar el plan, obligar a ir a la hora acordada con la opción de empezar la quedada, subir la relación al cumplirlo, bajarla si no te presentas y que la otra persona pueda rechazar. Detalle en la sección 7 de `ANEXO_RELACIONES.md`.
+- **Saludos y llamadas (apuntado):** hoy solo habla el personaje; más adelante los demás podrán saludarte (eventos), llamarte o escribirte al móvil.
+
+---
+
+## 26/10/2026 — Hablar con la gente: presencia, comunicación y gustos
+
+- **Qué quise decir con «balance de las acciones»:** las cifras de cada acción de relación (cuánto suben la afinidad y la confianza, cuánto duran, qué cuestan) y, sobre todo, cuánto pueden socializar los bots al exigir que la persona esté donde tú. Decidido con el usuario: se hace, y **todas las cifras quedan en `docs/ANEXO_RELACIONES.md`** para revisarlas y equilibrarlas.
+- **Presencia:** hablar con alguien exige que esté contigo. Sin los servicios `presencia` y `lugares` no se restringe nada (cada módulo sigue funcionando solo con `gen`). *(Corregido después: ver «Sin teléfono» más abajo.)*
+- **El recreo sirve para charlar:** charlar y tener un detalle pueden hacerse en el recreo (10:40–11:20, en el colegio); lo largo (quedar, ayudar, planes) sigue siendo fuera de clase. La jornada escolar (`JORNADA_ESCOLAR`, `enRecreo`) pasa a contracts porque la usan estudios y relaciones. El tutor se puede ver también en el recreo.
+- **Habilidades de comunicación:** nuevo modificador `relaciones.habilidad`: cada acción cuenta unas habilidades del personaje (comunicación, carisma, empatía, cooperación, creatividad), de ×0,8 a ×1,3 según su nivel «para su edad» (0,4 = típico = ×1). También ayudan a **hacer las paces** (suben su probabilidad hasta +0,22). Hablar mejora esas mismas habilidades (ya lo hacían las acciones).
+- **Gustos y carácter de las personas:** nuevo modificador `relaciones.disposicion`, de ×0,75 a ×1,3: la sociabilidad (±0,2) y el optimismo (±0,05) de la otra persona y la **primera impresión** (±0,08). *(Corregido después: la primera impresión usa solo los gustos de carácter; ver más abajo.)*
+- **Sin azar:** las dos cosas son eficiencia visible (motivos en la acción), no tiradas ocultas, para que sea fácil de equilibrar.
+- **Simulación:** 13/13 ✅. Los bots que hablaban con el entrenador (el atleta) socializan menos (social +4,2 → +2,1) porque tienen que coincidir con él; el equilibrado y el resto casi no cambian.
+- **Pendiente:** el teléfono (hablar con alguien que no está) y que los compañeros se acerquen al personaje por su cuenta.
+
+---
+
+## 26/10/2026 — Fuera `localStorage` y guardado como texto
+
+- **Se elimina `localStorage`** del código (la migración desde el guardado antiguo y sus referencias): en alfa no hay partidas que conservar. Queda solo IndexedDB.
+- **Se guarda el texto JSON de la partida** en lugar del objeto. Medido en Chromium con 10 000 personas (9 MB): antes ~300 ms bloqueando el navegador por guardado (copiar el estado 226 ms + escribir el objeto 80 ms); ahora ~60 ms (convertir a texto 52 ms + escribir 10 ms). Leer: 56 ms frente a 85 ms. El texto es también la copia de seguridad que se exporta.
+- **Otras mejoras de revisar el guardado:** al cargar no se vuelve a copiar el estado recién leído (`Game.load(..., { copiar: false })`, ahorra ~225 ms con 10 000 personas); dos tablas (`resumen` pequeña para listar partidas y `datos` con el texto) para que listar no lea las partidas; las dos se escriben en una transacción.
+- No se pierde ninguna cualidad: mismas funciones (varias partidas, persistencia, errores visibles, exportar e importar) y los mismos tests, más uno de que la copia no cambia aunque la partida siga y otro de que cargar sin copiar da el mismo juego.
+
+---
+
+## 25/10/2026 — Preguntar el nombre, guardado en IndexedDB y rendimiento relativo
+
+- **Preguntar el nombre:** a quien no conoces y tienes **cerca** (hasta `GENTE_CERCANA` = 40 en un lugar, como en el juego de referencia) le puedes preguntar el nombre: acción `relaciones.presentarse.<id>`, 2 minutos, etiqueta social. Emite el evento compartido `persona.presentarse` y `npcs` lo marca como conocido y escribe en el diario «Se llama X. <descripción>». A partir de ahí tiene sus acciones de relación. Se ofrece desde la ficha de la pestaña «Gente» (no en la lista de acciones) y solo si está cerca.
+- **Pendiente de esto:** conocer a mucha gente añade muchas acciones de relación (hasta 6 por persona) y todas valen en cualquier lugar. Lo natural es **ligar las acciones de relación a la presencia** (hablar con alguien solo si está donde estás, o por teléfono más adelante); queda como siguiente paso.
+- **Bots:** no preguntan nombres (la acción se omite antes de evaluarla: `listActions({ omitir })`), así que el balance no cambia (13/13 ✅ con las mismas cifras).
+- **Guardado:** IndexedDB como almacén y JSON como copia de seguridad; fases y disparadores en `docs/ALMACENAMIENTO.md`. Fase 1 hecha: capa `Almacen`, carga y guardado asíncronos, migración desde `localStorage`, persistencia pedida, errores visibles, exportar e importar. Probado en Chromium real y con tests (`fake-indexeddb`), incluida una partida de más de 5 MB.
+- **Rendimiento en la simulación:** la presencia se calcula una vez por intervalo entre cambios de tramo (unas 10 veces al día) y los bots toman ~15 decisiones al día, así que consultarla en cada decisión (para las presentaciones) cuesta ~20 % más en la simulación. Se abarata compartiendo la agenda entre personas con los mismos tipos, calculando el orden solo del lugar que se pide y recordando lo cercano por «versión» de la presencia (`PresenciaService.version`). En juego no se nota.
+- **El chequeo de rendimiento pasa a ser relativo a la máquina:** los ms por acción dependen de lo rápida que vaya el equipo (el mismo código dio de 0,5 a 0,9 ms según el momento). Ahora se compara con una carga fija de calibración (`calibrar()`, antes y después de simular): límite = 0,1 × calibración (≈ 1,4 ms en una máquina de 14 ms de calibración; es 1,6 veces lo que medía el motor cuando se fijó el límite de 0,8 ms).
+
+---
+
+## 25/10/2026 — Panel «Gente»
+
+- **Pestaña nueva «Gente»** (junto a «Relaciones», que se queda con los datos de pruebas). Filtros: Aquí (por defecto, la gente del lugar donde estás), Conocidos, Compañeros, Profesorado, Rivales y Vecinos. Tarjetas de 12 por página con barras de **Amistad** (la afinidad positiva) y **Confianza**.
+- **Desconocidos:** `???`, lo que es para ti (compañero, rival, vecino...) y la frase de su aspecto. Sus barras salen vacías. Conocidos: nombre, vínculo y barras. Al pulsar una tarjeta, ficha con pestañas **Resumen** y **Aspecto**.
+- **Código:** `apps/web/src/gente.ts` (independiente de `main.ts`; solo usa servicios).
+- **Pendiente** (elegido el siguiente paso por el usuario entre tres): preguntar el nombre como acción (pasa de `???` a nombre), que añadirá el botón «Hablar» a la ficha; y la pestaña del deporte. Las otras dimensiones del juego de referencia (deseo, romance) no se copian: se decidirán según lo que necesite este juego.
+
+---
+
+## 25/10/2026 — La presencia solo se recalcula cuando algo puede cambiar
+
+- **Pregunta del usuario:** si la presencia se calcula cada 10 minutos, ¿aparecen y desaparecen personas cada 10 minutos? **No:** cada persona está siempre en el mismo sitio dentro de un tramo (su destino sale de un hash de persona, día y tramo, no del minuto), así que en clase son los mismos 25 durante todas las clases. Lo de «10 minutos» era solo la caché.
+- **Cambio:** la caché ya no es por 10 minutos sino por **intervalo entre dos cambios de tramo de cualquier agenda** (unas 10 veces al día). Se calcula la primera vez que se mira un lugar y se reutiliza hasta el siguiente cambio. Se elimina la restricción de que los tramos sean múltiplos de 10 minutos.
+- **Comprobado:** un test avanza 6 minutos cada vez durante dos días (uno lectivo y un sábado) y en cada paso compara la presencia reutilizada con calcularla persona a persona.
+- **Público y variaciones:** si el público de una carrera ha de variar, será con tramos propios más largos (de una hora o más), nunca por minutos.
+- **IndexedDB:** vale la pena pero no hace falta todavía; coste y riesgos en la sección «IndexedDB» del anexo. Se hará al pasar de ~2 000 personas o al empezar los deportes de equipo.
+
+---
+
+## 25/10/2026 — Población del colegio y del barrio, y cuánta gente aguanta el juego
+
+- **Aprobado por el usuario** el plan de población y los horarios. Añadido: **algún rival puede estar en el parque** fuera de sus entrenos, el colegio y las carreras (15 % entre semana por la tarde, 25 % en los días libres; nivel 2, así que cualquier sesión de club manda sobre él).
+- **Generados 391 personas** (ver el anexo): 24 compañeros de tu clase, 25 de la otra clase del curso, 153 alumnos de otros cursos, 12 profesores, equipo de atletismo del colegio de 16 (tipo `club` + etiqueta `equipo`; no llevan la etiqueta `atleta`, así que no entran en las carreras todavía), 96 rivales en 12 clubes y colegios y 80 vecinos. Todos desconocidos (`known: false`) salvo los 4 del reparto inicial. Nuevo rol `vecino`.
+- **Cada curso:** quien cumple 18 deja el colegio y entra un niño de 8 años con los mismos tipos (el equipo del colegio sigue en 16).
+- **Relaciones:** las acciones de relación solo se crean para quien se conoce (`list({ known: true })`), así que cientos de desconocidos no añaden ninguna acción.
+- **Capacidad (medida):** ver la sección 5 del anexo. El procesador no limita (milisegundos con decenas de miles); **lo que limita es el guardado**: ~950 bytes por persona y unos 5 MB en el navegador, unas 5 000 personas. Salidas ya pensadas para los deportes de equipo: compactar rasgos (~15 000), guardar solo diferencias respecto a la semilla (sin límite práctico) o IndexedDB.
+- **Optimizaciones hechas al medir:** la agenda de una persona se monta una vez por lista de tipos; la presencia de toda la población se calcula una vez por intervalo entre dos cambios de tramo (unas 10 veces al día); las consultas al servicio de personas se resuelven una vez por filtro; el guardado de la interfaz se agrupa cada medio segundo (y se guarda al cerrar la pestaña). Antes, con 10 000 personas, la presencia tardaba 60 ms y la lista de acciones 20 ms; ahora 14 ms la primera vez y 5 ms.
+- **Tests:** población (25 por aula, equipo de 16, 12 profesores, 80 vecinos, nombres únicos), patio con todos los cursos, parque con vecinos y rivales, y renovación al empezar el curso.
+
+---
+
+## 25/10/2026 — Presencia de personas por lugar y hora
+
+- **Decidido con el usuario:** cada persona almacena dónde va a estar; la tabla se rellena a partir de **tipos** y, si dos coinciden, manda el dominante (dos niveles de prioridad, ampliado a cuatro: base, rol, pertenencia y evento). El ejemplo que lo motivó: un compañero de clase que por un evento se apunta a tu club sigue yendo a clase, pero en la tarde de entrenamiento está donde entrena el club.
+- **Qué se guarda:** solo la lista de tipos por persona (`Npc.tipos`). Los tramos se calculan y se recuerdan en memoria; así un cambio de tipo no deja una tabla desfasada y el guardado sigue pequeño con cientos de personas.
+- **Azar al llegar a un lugar, no por reloj:** a qué sitio va de varios posibles y si falta ese día sale de un hash de (persona, día, tramo). Es estable dentro del tramo. Los rivales solo van al 40 % de las carreras de los sábados y al 85 % de las sesiones de su club.
+- **Rendimiento:** la presencia se calcula solo cuando se mira un lugar (la pantalla o el servicio), nunca para toda la población a cada paso del reloj. Con ~100 personas la consulta cuesta una fracción de milisegundo.
+- **«Fuera» del mapa:** solo la familia está en `casa`. El resto tiene su casa fuera del mapa (`null`), igual que el trabajo de los padres (de momento no hace falta crearlo; en la fase profesional habrá que valorar muchos lugares, o más bien desbloquearlos). Los rivales de otros colegios y clubes no están en nuestro colegio: solo coinciden en el estadio.
+- **Pantalla:** «Gente aquí» en la pantalla del lugar (hasta 40, primero los de mayor nivel). Los desconocidos se muestran como `???` con una frase sobre su aspecto (`descripcionDeDesconocido`).
+- **Horarios cerrados** y **plan de población** (~410 PNJs: 25 alumnos por aula, equipo de atletismo del colegio, 12 clubes y colegios de fuera, vecinos): en `docs/ANEXO_HORARIOS_PNJ.md`. La población está pendiente de aprobar; los horarios, cerrados.
+- **Se sube `SAVE_VERSION` a 9** (las personas guardan sus tipos).
+- **Pendiente:** generar la población nueva, preguntar el nombre como acción, panel «Gente» con filtros y barras como el de referencia, pestaña del deporte (clasificaciones de todas las carreras del año) y horarios de apertura de los comercios.
+
+---
+
+## 25/10/2026 — Añadir una stat ya no cambia al personaje de una semilla
+
+- **El problema:** el azar de cada stat salía de un único hilo secuencial y la semilla de la genética dependía del número de stats. Añadir cualquier stat (el dinero) recolocaba a todas las demás: la misma semilla daba otro personaje, y las cifras de la simulación no se podían comparar entre versiones.
+- **La corrección:** cada stat sortea con su propio hilo (`seededRngDe(semilla, id)`: FNV-1a sobre el id) y la genética parte de cuántas stats había *antes* (0 al crear la partida). Añadir una stat sin genética deja a las demás exactamente igual. Añadir una capacidad con herencia sí cambia el genoma (es lo correcto: los perfiles de los padres dependen del conjunto de capacidades).
+- **Coste, una sola vez:** esta corrección cambia todos los personajes de todas las semillas. A partir de aquí las cifras de `npm run sim` son comparables entre cambios. Tras el cambio: los 13 chequeos siguen en ✅ (equilibrado 21,4 de atletismo y 5,5 de nota media con la nueva población).
+- **Tests:** el personaje de una semilla es el mismo con o sin una stat nueva, en cualquier posición de la lista de módulos. El umbral de perks (≥ 75 % con 0 o 1 perk, antes 80 %) se ajusta: la proporción real ronda el 78 % y el 80 % estaba justo al borde con las semillas antiguas.
+
+---
+
+## 25/10/2026 — Estrés por faltar, dinero y comercios
+
+- **Estrés por faltar (decidido con el usuario):** faltar a una clase sube el estrés 0,75 (3 por un día entero), lo mismo que cuesta ir. Se parte de ahí y se irán añadiendo más consecuencias (avisos a los padres, castigos). Antes de esto se había quitado; se restablece. Test: la diferencia entre 3 y 4 clases hechas es 0,75, y entre ninguna y cuatro, 3.
+- **Dinero:** nueva stat `gen.dinero` (estado, en euros, 0 al empezar, máximo 1 000 000, recurso: gastar bloquea la acción si no alcanza). Se ve en la cabecera («Dinero: 0 €»). No hay ninguna forma de ganarlo ni de gastarlo todavía. Por ahora el personaje solo puede comer en casa, y de momento no hay acción de comer (no hay hambre).
+- **Comercios sin acciones:** `supermercado` (cerca de casa: 8 min) y `restaurante` (5 min del supermercado, 12 del parque) están en el mapa y se puede ir, pero no se puede hacer nada allí.
+- **Sobre la simulación:** añadir una stat cambia el reparto del azar al crear el personaje (la fuerza inicial de la semilla 1 pasa de 7,6 a 14,9), así que las cifras de la tabla final cambian sin que cambie el balance: los chequeos siguen todos en ✅.
+- **Rendimiento en juego:** dibujar la lista completa de acciones cuesta ~0,6 ms y una acción ~0,01 ms. En una partida normal no hay impacto: los ms por acción solo importan en los tests y la simulación, donde se hacen miles seguidas.
+- **Se sube `SAVE_VERSION` a 8.**
+
+---
+
+## 25/10/2026 — Día escolar por horas y lugares que faltaban
+
+- **Lugares nuevos para las acciones que no tenían sitio:** gimnasio (`gen.gimnasio`) y estadio (competiciones, pruebas de acceso a clubes de fuera, sesión de un club de fuera, campamento). El club del colegio sigue entrenando en el colegio. Dejar el club y subir o bajar de categoría se hacen en la sede del club (colegio o estadio). Las series, la técnica y el rodaje valen en el colegio (pistas), el parque o el estadio. **«Descansar un rato» queda sin sitio a propósito:** es la espera y no debe quedarse nunca sin lugar. Tiempos nuevos en la tabla (casa–gimnasio 13, casa–estadio 20, colegio–estadio 10, parque–gimnasio 7, gimnasio–estadio 9...).
+- **Clases por horas.** La jornada de 8:00 a 14:00 son **4 clases de 80 minutos con un recreo de 40** entre la segunda y la tercera. Cada hora es una acción (`estudios.clase_1`..`clase_4`, con el nombre de la asignatura que toca hoy) y el recreo otra (`estudios.recreo`: estrés −2, un poco de carisma y cooperación). Se puede ir a una clase desde una hora antes (esperando en el colegio) hasta 15 minutos tarde. Los días sin clase se ve «Ir a clase» no disponible con el motivo (`estudios.sin_clase`).
+- **Horario.** Caben 20 clases a la semana (4 × 5). Las horas del currículo se ajustan a esos 20 huecos en proporción, con al menos una clase por asignatura (ESO pedía 23–26 y se comprime; primaria pedía 18 y lengua y matemáticas ganan alguna). Cada clase vale lo que valían las horas originales (`pesoDeClase`), así que **lo que sube una asignatura a la semana no cambia**. Una asignatura no se repite el mismo día (test sobre todos los cursos y modalidades). Los exámenes caen ahora en uno de los días en que la asignatura tiene clase.
+- **Faltar no tiene castigo, pero se cuenta.** Si no vas a una clase, no sube lo que te tocaba y `faltas` suma una (antes sumaba un día entero, ahora son clases: una semana sin ir son 20). Se quita el estrés de +3 por faltar. Un examen solo se hace si fuiste a la clase de esa asignatura ese día; si no, es un 0. **Pendiente:** castigos y avisos a los padres, que usarán `faltas` y el detalle por clase (`EstudiosState.asistencia`).
+- **Presencia de NPCs (diseño acordado, sin hacer).** Habrá cientos de NPCs, así que no se decide por personaje a cada paso. Cada NPC tendrá un **rol** que indica dónde debe estar según la hora (alumno en clase de lunes a viernes, en el recreo en el patio, en casa de noche...), y el azar se aplica **al llegar a un lugar** (o al elegir una cantidad de presentes), no al avanzar el reloj. Se calcula solo del lugar donde estás, nunca de toda la población.
+- **Balance:** `npm run sim` casi idéntico al anterior (equilibrado 25,3 de atletismo y notas 6,0; empollón 53,1 en estudios; atleta 25,8). Se sube `SAVE_VERSION` a 7 (cambia el estado de estudios).
+- **Rendimiento:** el motor es más rápido por acción (se cachea la vista de la hora por minuto: 0,73 → ~0,6 ms), pero ahora hay ~50 % más acciones al año (cuatro clases en lugar de una, y los viajes), así que «ms por año» ya no medía el motor. **El chequeo de rendimiento pasa a ser por acción** (límite 0,8 ms) y sigue enseñando los ms por año.
+
+---
+
+## 25/10/2026 — Lugares y desplazamientos (fase 1)
+
+Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar, trayectos con duración, menú de viaje rápido agrupado, presencia de personas, lugares que cierran).
+
+- **Un solo mapa de ciudad que crece poco a poco.** De inicio: casa (el edificio donde se vive), colegio y parque, con sus caminos (casa–colegio 10 min, casa–parque 6, parque–colegio 8). Después: estadio, gimnasio, tienda, aeropuerto. El mapa es un dato en contracts (`CIUDAD_INICIAL`, `MapaCiudad`), como el calendario por país.
+- **Módulo `lugares`:** guarda dónde está el personaje (`LugaresState.actual`). Ir a un sitio es una acción (`lugares.ir_<lugar>`): ir a un vecino y el viaje rápido son lo mismo. Emite `lugares.llegada`. El servicio `lugares` ofrece lugar actual, vecinos, minutos a otro lugar y casa.
+- **Tiempos en una tabla, sin calcular rutas:** `MapaCiudad.tiempos[desde][hasta]` en minutos, completa (todos con todos) y simétrica; `directos` marca los pares que salen en «Viajar». Al añadir un lugar se añade su fila y su columna (un test lo comprueba). Sustituye al cálculo de la ruta más corta.
+- **Cómo ligan los módulos sus acciones a un sitio:** `ligarALugares(acciones, { id: [lugares] })` (contracts) añade a cada acción `lugar` y la comprobación en `available`, que va **la última**: si solo falta estar allí, el motivo empieza por `MOTIVO_LUGAR` y se reconoce con `faltaViajar`. Si `lugares` no está cargado no restringe nada. `ActionOption.lugar` lo expone el motor (el primero es el destino por defecto).
+- **Decidido con el usuario:** solo movimiento hasta que haya eventos (los encuentros en el camino vienen después); una pantalla por lugar; la casa da la cama y hay un sitio donde comprar comida (dormir y comer en casa en la infancia; dormir fuera y viajar a competiciones, más adelante).
+- **Fase 2 hecha: acciones ligadas a su sitio.**
+
+| Acción | Dónde |
+|---|---|
+| Dormir, videojuegos y series, ver atletismo en la tele | casa |
+| Leer | casa o parque |
+| Dar un paseo, practicar con amigos, campamento | parque |
+| Ir a clase, academia, apuntarse al club del colegio | colegio |
+| Estudiar (cada asignatura) y repaso | casa o colegio |
+| Series y sesión de técnica | colegio (pistas) o parque |
+| Rodaje largo | parque o colegio |
+| Sesión del club | colegio si es el club del colegio; parque si es de fuera (provisional hasta que haya estadio) |
+
+  - **Sin sitio todavía** (se hacen donde se esté): descansar un rato (a propósito) y las acciones de relaciones (falta la presencia de NPCs por lugar). El gimnasio, las competiciones, las pruebas de acceso y dejar el club o cambiar de categoría ya tienen sitio (ver la entrada siguiente).
+  - **Bots y tests:** los bots no piensan en el mapa. El simulador les ofrece lo disponible y lo que solo está bloqueado por el lugar, y los lleva antes al sitio (`sim/src/pasos.ts`); los desplazamientos no se les ofrecen. Los tests de integración usan `hacer` (`tests/ayudas.ts`), que viaja si hace falta. Una acción que deja de estar disponible tras el viaje (pasó la hora) no cuenta como fallo del bot.
+  - **Balance:** `npm run sim` antes y después: casi idéntico (equilibrado 25,4 → 25,3 de atletismo, empollón 52,7 → 52,8 de estudios, atleta 25,9 en los dos; todos los chequeos ✅). Los desplazamientos (6 a 10 min) caben en el tiempo libre.
+- **Todavía sin hacer:** dividir «Ir a clase» por asignatura (tocará el horario y las faltas de `estudios`), un sitio donde comprar comida, horarios de apertura (lugares cerrados, forzar cerradura), presencia de NPCs por lugar y hora (servicio nuevo), gimnasio y estadio en el mapa, y los eventos del camino (después del movimiento).
+- **Rendimiento:** la primera versión recalculaba la ruta en cada evaluación y subió el coste de la simulación de ~2,7 s a ~3,2 s por año (límite 3 s). Las rutas se calculan ahora una sola vez (el mapa no cambia en partida): ~2,75 s. Ojo al añadir lugares: cada acción de ir se evalúa en cada `listActions`.
+- **Comprobado:** tests (incluida la arquitectura) y `sim:rapida` sin cambios en el balance.
+
+## 26/10/2026 — Agenda de los hermanos
+
+- **Decidido con el usuario:** los hermanos son PNJ con el tipo `hermano`: pasan el tiempo en casa y en el colegio mientras tienen edad escolar (de 3 a 17), y en el deporte que practiquen. Tipo `hermano` con las marcas `escolar` y `deporte`, recalculadas cada curso (`actualizarHermanos`). Casa a nivel 1,5, colegio a nivel 2 y carreras a nivel 3. Detalle en `ANEXO_HORARIOS_PNJ.md`.
+- **Pendiente:** otros deportes y sesiones de club propias de los hermanos; comer y dormir como acciones del personaje con ellos en casa.
+
 ## 25/10/2026 — Hermanos del personaje (E8.10) y dificultad aplazada
 
 - **Dificultad (decidido por el usuario):** la dificultad solo controla cómo empiezan los padres y, en consecuencia, el personaje. No hace falta pantalla de inicio mientras no esté montado el juego completo, al menos en la infancia; se planificará con todas las opciones de creación (E15.1). Los rangos de calidad (fácil, normal, difícil) siguen como dato en `herencia.ts`.

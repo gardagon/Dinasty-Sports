@@ -1,0 +1,17 @@
+{
+  "name": "@ds/mod-lugares",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Módulo Lugares.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*"
+  },
+  "devDependencies": {
+    "@ds/core": "*",
+    "@ds/mod-personaje": "*"
+  }
+}

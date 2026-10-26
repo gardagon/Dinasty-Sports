@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, SERVICES, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
+import { GEN, GENTE_CERCANA, SERVICES, claveDeDeporte, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { EstudiosState } from '@ds/mod-estudios';
+import { hacer, posible } from './ayudas';
 import { asignaturasDelCurso } from '../modules/estudios/src/curriculo';
 import type { NpcsState } from '@ds/mod-npcs';
 import type { RelacionesState } from '@ds/mod-relaciones';
@@ -37,7 +38,7 @@ describe('integración de módulos', () => {
     const g = nuevaPartida({ seed: 11 });
     advanceToWeek(g, 'gen.descansar', 5, 5, 10);
     const antes = g.service<RelationsService>(SERVICES.relaciones)!.get('entrenador')!.afinidad;
-    const r = g.perform('atletismo.carrera');
+    const r = hacer(g, 'atletismo.carrera');
     expect(r.ok).toBe(true);
     const entrada = r.log.find((l) => /de 8/.test(l.text)); // tú + 7 rivales de los 16 NPC
     expect(entrada).toBeDefined();
@@ -80,9 +81,9 @@ describe('integración de módulos', () => {
     // Las carreras solo son en temporada: se recorren las semanas y se corre en las que hay carrera.
     for (let semana = 0; semana < 200 && carreras < 30; semana++) {
       advanceToWeek(g, 'gen.descansar', semana, 5, 10);
-      if (!g.preview('atletismo.carrera')!.available) continue;
+      if (!posible(g, 'atletismo.carrera')) continue;
       const top = mejores();
-      const r = g.perform('atletismo.carrera');
+      const r = hacer(g, 'atletismo.carrera');
       expect(r.ok).toBe(true);
       const nombres = r.log.find((l) => l.table)!.table!.rows.map((f) => f[1]);
       expect(nombres).toHaveLength(8);
@@ -113,7 +114,7 @@ describe('integración de módulos', () => {
     it('en la carrera solo corren rivales de la categoría del jugador', () => {
       const g = nuevaPartida({ seed: 21 });
       advanceToWeek(g, 'gen.descansar', 5, 5, 10);
-      const r = g.perform('atletismo.carrera');
+      const r = hacer(g, 'atletismo.carrera');
       expect(r.ok).toBe(true);
       const entrada = r.log.find((l) => l.table)!;
       expect(entrada.text).toMatch(/Sub-10/);
@@ -143,11 +144,11 @@ describe('integración de módulos', () => {
     it('quien destaca mucho puede subir de categoría y compite contra mayores', () => {
       const g = destacado();
       advanceToWeek(g, 'gen.descansar', 5, 5, 10);
-      expect(g.preview('atletismo.subir_categoria')!.available).toBe(true);
-      expect(g.perform('atletismo.subir_categoria').ok).toBe(true);
-      expect(g.preview('atletismo.subir_categoria')!.available).toBe(false);
-      expect(g.preview('atletismo.volver_categoria')!.available).toBe(true);
-      const r = g.perform('atletismo.carrera');
+      expect(posible(g, 'atletismo.subir_categoria')).toBe(true);
+      expect(hacer(g, 'atletismo.subir_categoria').ok).toBe(true);
+      expect(posible(g, 'atletismo.subir_categoria')).toBe(false);
+      expect(posible(g, 'atletismo.volver_categoria')).toBe(true);
+      const r = hacer(g, 'atletismo.carrera');
       const entrada = r.log.find((l) => l.table)!;
       expect(entrada.text).toMatch(/Sub-12/);
       const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
@@ -163,14 +164,14 @@ describe('integración de módulos', () => {
     it('no se puede subir sin destacar ni sin ser competitivo arriba', () => {
       const g = nuevaPartida({ seed: 21 });
       advanceToWeek(g, 'gen.descansar', 5, 5, 10);
-      expect(g.preview('atletismo.subir_categoria')!.available).toBe(false);
+      expect(posible(g, 'atletismo.subir_categoria')).toBe(false);
       expect(g.preview('atletismo.subir_categoria')!.reason).toMatch(/competido lo suficiente/);
       // Gana su categoría pero sin nivel para competir arriba: tampoco.
       const guardado = g.serialize();
       const at = guardado.modules.atletismo as AtletismoState;
       at.carreras = Array.from({ length: 5 }, (_, i) => ({ week: 4 + i, position: 1, total: 8, mark: 50, categoria: 'sub10', superior: false }));
       const g2 = cargarPartida(guardado);
-      expect(g2.preview('atletismo.subir_categoria')!.available).toBe(false);
+      expect(posible(g2, 'atletismo.subir_categoria')).toBe(false);
       expect(g2.preview('atletismo.subir_categoria')!.reason).toMatch(/competitivo/);
     });
   });
@@ -184,7 +185,7 @@ describe('integración de módulos', () => {
       advanceToWeek(g, 'gen.descansar', 1, 2, 9);
       expect(g.preview('atletismo.apuntarse_colegio')!.available).toBe(false); // de 14 a 19
       advanceToWeek(g, 'gen.descansar', 1, 2, 14);
-      expect(g.perform('atletismo.apuntarse_colegio').ok).toBe(true);
+      expect(hacer(g, 'atletismo.apuntarse_colegio').ok).toBe(true);
       expect(club(g)?.id).toBe('colegio');
       expect(g.preview('atletismo.apuntarse_colegio')!.available).toBe(false);
       expect(g.log.some((l) => /Te apuntas al club deportivo del colegio/.test(l.text))).toBe(true);
@@ -196,13 +197,13 @@ describe('integración de módulos', () => {
       expect(g.preview('atletismo.club_sesion')!.available).toBe(false);
       const solo = g.preview('atletismo.tecnica')!;
       expect(solo.modifiers.some((m) => m.id === 'atletismo.por_tu_cuenta')).toBe(true);
-      g.perform('atletismo.apuntarse_colegio');
+      hacer(g, 'atletismo.apuntarse_colegio');
       advanceToWeek(g, 'gen.descansar', 2, 0, 15); // lunes: sesión del colegio de 15 a 17
       const sesion = g.preview('atletismo.club_sesion')!;
-      expect(sesion.available).toBe(true);
+      expect(posible(g, 'atletismo.club_sesion')).toBe(true);
       expect(sesion.modifiers.some((m) => m.id === 'atletismo.por_tu_cuenta')).toBe(false);
       const antes = g.stat('atletismo.conocimiento');
-      expect(g.perform('atletismo.club_sesion').ok).toBe(true);
+      expect(hacer(g, 'atletismo.club_sesion').ok).toBe(true);
       expect(g.stat('atletismo.conocimiento')).toBeGreaterThan(antes);
       expect(g.preview('atletismo.club_sesion')!.available).toBe(false); // una al día
     });
@@ -210,7 +211,7 @@ describe('integración de módulos', () => {
     it('las sesiones del club solo son los días y horas del club', () => {
       const g = nuevaPartida({ seed: 31 });
       advanceToWeek(g, 'gen.descansar', 1, 2, 14);
-      g.perform('atletismo.apuntarse_colegio');
+      hacer(g, 'atletismo.apuntarse_colegio');
       advanceToWeek(g, 'gen.descansar', 2, 1, 15); // martes: el colegio entrena lunes y miércoles
       expect(g.preview('atletismo.club_sesion')!.available).toBe(false);
       advanceToWeek(g, 'gen.descansar', 2, 2, 12);
@@ -242,19 +243,19 @@ describe('integración de módulos', () => {
     it('con nivel suficiente la prueba te abre las puertas de un club de mayor calidad', () => {
       const g = con12(95);
       advanceToWeek(g, 'gen.descansar', 1, 2, 17);
-      expect(g.perform('atletismo.prueba.club_ciudad').ok).toBe(true);
+      expect(hacer(g, 'atletismo.prueba.club_ciudad').ok).toBe(true);
       expect(club(g)?.id).toBe('club_ciudad');
       expect(g.log.some((l) => /Ya eres del Club Atletismo Ciudad/.test(l.text))).toBe(true);
       advanceToWeek(g, 'gen.descansar', 2, 1, 18); // martes de club de la ciudad
       const sesion = g.preview('atletismo.club_sesion')!;
-      expect(sesion.available).toBe(true);
+      expect(posible(g, 'atletismo.club_sesion')).toBe(true);
       expect(sesion.modifiers.some((m) => m.id === 'clubes.calidad')).toBe(true);
     });
 
     it('sin nivel suficiente no te cogen y no puedes repetirla enseguida', () => {
       const g = con12(20);
       advanceToWeek(g, 'gen.descansar', 1, 2, 17);
-      g.perform('atletismo.prueba.club_ciudad');
+      hacer(g, 'atletismo.prueba.club_ciudad');
       expect(club(g)).toBeUndefined();
       expect(g.log.some((l) => /todavía no tienes el nivel/.test(l.text))).toBe(true);
       expect(g.preview('atletismo.prueba.club_ciudad')!.available).toBe(false);
@@ -264,9 +265,9 @@ describe('integración de módulos', () => {
     it('la clasificación muestra el club de cada corredor y el tuyo', () => {
       const g = nuevaPartida({ seed: 31 });
       advanceToWeek(g, 'gen.descansar', 4, 2, 14);
-      g.perform('atletismo.apuntarse_colegio');
+      hacer(g, 'atletismo.apuntarse_colegio');
       advanceToWeek(g, 'gen.descansar', 4, 5, 10);
-      const r = g.perform('atletismo.carrera');
+      const r = hacer(g, 'atletismo.carrera');
       const tabla = r.log.find((l) => l.table)!.table!;
       const mia = tabla.rows[tabla.highlight!];
       expect(mia[2]).toBe('Club deportivo del colegio');
@@ -277,8 +278,8 @@ describe('integración de módulos', () => {
     it('se puede dejar el club', () => {
       const g = nuevaPartida({ seed: 31 });
       advanceToWeek(g, 'gen.descansar', 1, 2, 14);
-      g.perform('atletismo.apuntarse_colegio');
-      expect(g.perform('atletismo.dejar_club').ok).toBe(true);
+      hacer(g, 'atletismo.apuntarse_colegio');
+      expect(hacer(g, 'atletismo.dejar_club').ok).toBe(true);
       expect(club(g)).toBeUndefined();
     });
   });
@@ -305,7 +306,7 @@ describe('integración de módulos', () => {
       );
     const g = cargarPartida(s);
     advanceToWeek(g, 'gen.descansar', 6, 5, 10);
-    expect(g.perform('atletismo.carrera').ok).toBe(true); // sin rivales con edad, la serie se completa con corredores genéricos
+    expect(hacer(g, 'atletismo.carrera').ok).toBe(true); // sin rivales con edad, la serie se completa con corredores genéricos
     advanceToWeek(g, 'gen.descansar', 14, 4, 20);
     expect(checkInvariants(g)).toEqual([]);
   });
@@ -344,7 +345,7 @@ describe('integración de módulos', () => {
       expect(g.preview('estudios.academia')!.available).toBe(false); // antes de las 10
       advanceToWeek(g, 'gen.descansar', 42, 1, 10);
       const flojas = g.stat('estudios.matematicas');
-      expect(g.perform('estudios.academia').ok).toBe(true);
+      expect(hacer(g, 'estudios.academia').ok).toBe(true);
       expect(g.preview('estudios.academia')!.available).toBe(false);
       advanceToWeek(g, 'gen.descansar', 42, 5, 10);
       expect(g.preview('estudios.academia')!.available).toBe(false); // sábado
@@ -360,8 +361,8 @@ describe('integración de módulos', () => {
       expect(g.log.some((l) => /faltado a la academia/.test(l.text))).toBe(true);
       // Va a todas las sesiones hasta sacar los aprobados.
       for (let dia = 0; g.moduleState<EstudiosState>('estudios').verano!.superada === false && dia < 80; dia++) {
-        advanceUntil(g, 'gen.descansar', (t) => !t.isWeekend && t.hour === 10 && t.minuteOfDay === 600, 5000);
-        if (g.preview('estudios.academia')!.available) g.perform('estudios.academia');
+        advanceUntil(g, 'gen.descansar', (t) => !t.isWeekend && t.hour === 10, 5000);
+        if (posible(g, 'estudios.academia')) hacer(g, 'estudios.academia');
         else g.perform('gen.descansar');
       }
       expect(g.moduleState<EstudiosState>('estudios').verano!.superada).toBe(true);
@@ -383,10 +384,10 @@ describe('integración de módulos', () => {
       expect(verano(g)).toBe('campamento');
       advanceToWeek(g, 'gen.descansar', 43, 2, 9);
       const campamento = g.preview('atletismo.campamento')!;
-      expect(campamento.available).toBe(true);
+      expect(posible(g, 'atletismo.campamento')).toBe(true);
       expect(campamento.modifiers.some((m) => m.id === 'atletismo.campamento')).toBe(true);
       const antes = g.stat('atletismo.tecnica');
-      expect(g.perform('atletismo.campamento').ok).toBe(true);
+      expect(hacer(g, 'atletismo.campamento').ok).toBe(true);
       expect(g.stat('atletismo.tecnica')).toBeGreaterThan(antes);
       expect(g.preview('estudios.academia')!.available).toBe(false);
     });
@@ -397,13 +398,13 @@ describe('integración de módulos', () => {
       expect(verano(g)).toBe('amigos');
       advanceToWeek(g, 'gen.descansar', 43, 2, 10);
       const antes = g.stat('atletismo.tecnica');
-      expect(g.perform('atletismo.amigos').ok).toBe(true);
+      expect(hacer(g, 'atletismo.amigos').ok).toBe(true);
       const conAmigos = g.stat('atletismo.tecnica') - antes;
       const g2 = finDeCurso(8.5);
       pasarElViernes(g2);
       advanceToWeek(g2, 'gen.descansar', 43, 2, 9);
       const antes2 = g2.stat('atletismo.tecnica');
-      g2.perform('atletismo.campamento');
+      hacer(g2, 'atletismo.campamento');
       expect(g2.stat('atletismo.tecnica') - antes2).toBeGreaterThan(conAmigos * 2);
     });
 
@@ -426,15 +427,15 @@ describe('integración de módulos', () => {
       }
       return cargarPartida(guardado);
     };
-    const filas = (g: Game, id: string) => g.perform(id).log.find((l) => l.table)!;
+    const filas = (g: Game, id: string) => hacer(g, id).log.find((l) => l.table)!;
 
     it('en la semana de la clasificatoria no hay carrera semanal y sí clasificatoria, con 16 corredores', () => {
       const g = conNivel(60);
       advanceToWeek(g, 'gen.descansar', 24, 5, 10);
-      expect(g.preview('atletismo.carrera')!.available).toBe(false);
+      expect(posible(g, 'atletismo.carrera')).toBe(false);
       expect(g.preview('atletismo.carrera')!.reason).toMatch(/clasificatoria/);
-      expect(g.preview('atletismo.clasificatoria')!.available).toBe(true);
-      expect(g.preview('atletismo.final')!.available).toBe(false);
+      expect(posible(g, 'atletismo.clasificatoria')).toBe(true);
+      expect(posible(g, 'atletismo.final')).toBe(false);
       const entrada = filas(g, 'atletismo.clasificatoria');
       expect(entrada.table!.rows).toHaveLength(16);
       expect(entrada.text).toMatch(/clasificatoria autonómica/);
@@ -443,9 +444,9 @@ describe('integración de módulos', () => {
     it('la clasificatoria y la final solo se pueden correr en su semana', () => {
       const g = conNivel(60);
       advanceToWeek(g, 'gen.descansar', 10, 5, 10);
-      expect(g.preview('atletismo.clasificatoria')!.available).toBe(false);
-      expect(g.preview('atletismo.final')!.available).toBe(false);
-      expect(g.preview('atletismo.carrera')!.available).toBe(true);
+      expect(posible(g, 'atletismo.clasificatoria')).toBe(false);
+      expect(posible(g, 'atletismo.final')).toBe(false);
+      expect(posible(g, 'atletismo.carrera')).toBe(true);
     });
 
     it('quien destaca se clasifica y corre la final de 8 con una medalla en juego', () => {
@@ -454,8 +455,8 @@ describe('integración de módulos', () => {
       const clasif = filas(g, 'atletismo.clasificatoria');
       expect(clasif.text).toMatch(/Te clasificas para la final/);
       advanceToWeek(g, 'gen.descansar', 38, 5, 10);
-      expect(g.preview('atletismo.carrera')!.available).toBe(false); // esa semana es la final
-      expect(g.preview('atletismo.final')!.available).toBe(true);
+      expect(posible(g, 'atletismo.carrera')).toBe(false); // esa semana es la final
+      expect(posible(g, 'atletismo.final')).toBe(true);
       const final = filas(g, 'atletismo.final');
       expect(final.table!.rows).toHaveLength(8);
       expect(final.text).toMatch(/final del campeonato de España/);
@@ -472,17 +473,17 @@ describe('integración de módulos', () => {
       const clasif = filas(g, 'atletismo.clasificatoria');
       expect(clasif.text).toMatch(/No te clasificas/);
       advanceToWeek(g, 'gen.descansar', 38, 5, 10);
-      expect(g.preview('atletismo.final')!.available).toBe(false);
+      expect(posible(g, 'atletismo.final')).toBe(false);
       expect(g.preview('atletismo.final')!.reason).toMatch(/No te has clasificado/);
-      expect(g.preview('atletismo.carrera')!.available).toBe(true);
+      expect(posible(g, 'atletismo.carrera')).toBe(true);
     });
 
     it('el campeonato del curso siguiente empieza de cero', () => {
       const g = conNivel(97);
       advanceToWeek(g, 'gen.descansar', 24, 5, 10);
-      g.perform('atletismo.clasificatoria');
+      hacer(g, 'atletismo.clasificatoria');
       advanceToWeek(g, 'gen.descansar', 52 + 38, 5, 10);
-      expect(g.preview('atletismo.final')!.available).toBe(false); // no se ha clasificado en este curso
+      expect(posible(g, 'atletismo.final')).toBe(false); // no se ha clasificado en este curso
     });
   });
 
@@ -522,6 +523,206 @@ describe('integración de módulos', () => {
       const antes = new Map(dir.list({ tag: 'atleta' }).map((n) => [n.id, n.age]));
       advanceToWeek(g, 'gen.descansar', 40, 2, 12);
       for (const n of g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'atleta' })) expect(n.age).toBe(antes.get(n.id));
+    });
+  });
+
+  describe('preguntar el nombre', () => {
+    const presentaciones = (g: Game) => g.listActions().filter((o) => o.id.startsWith('relaciones.presentarse.'));
+
+    it('a quien no conoces y tienes cerca le puedes preguntar el nombre (2 minutos), y entonces lo conoces', () => {
+      const g = nuevaPartida({ seed: 21 });
+      advanceTo(g, 'gen.descansar', 0, 10);
+      g.perform('lugares.ir_colegio');
+      const posibles = presentaciones(g);
+      expect(posibles.length).toBeGreaterThan(10);
+      expect(posibles.length).toBeLessThanOrEqual(40); // solo los que tienes cerca
+      const o = posibles.find((x) => x.available)!;
+      const id = o.id.replace('relaciones.presentarse.', '');
+      // Los servicios son una foto del momento: se piden de nuevo después de cada acción.
+      const dir = () => g.service<NpcDirectory>(SERVICES.npcs)!;
+      expect(dir().get(id)!.known).toBe(false);
+      const antes = g.time.minute;
+      const r = g.perform(o.id);
+      expect(r.ok).toBe(true);
+      expect(g.time.minute - antes).toBe(2);
+      expect(dir().get(id)!.known).toBe(true);
+      expect(g.log.some((l) => l.text.startsWith(`Se llama ${dir().get(id)!.name}`))).toBe(true);
+      // Ya no se le puede preguntar otra vez, y ahora tiene acciones de relación.
+      expect(g.preview(o.id)).toBeUndefined();
+      expect(g.listActions().some((a) => a.id.startsWith('relaciones.') && a.id.endsWith(`.${id}`) && !a.id.startsWith('relaciones.presentarse.'))).toBe(true);
+    });
+
+    it('no se puede preguntar el nombre a quien no está donde tú: lejos no hay a quién', () => {
+      const g = nuevaPartida({ seed: 21 });
+      advanceTo(g, 'gen.descansar', 2, 3); // madrugada: no hay nadie en ningún sitio
+      expect(presentaciones(g)).toEqual([]);
+    });
+
+    it('los bots no se paran a preguntar nombres y la gente cerca no pasa de 40', () => {
+      const g = nuevaPartida({ seed: 22 });
+      advanceTo(g, 'gen.descansar', 0, 10);
+      g.perform('lugares.ir_colegio');
+      expect(presentaciones(g).length).toBeLessThanOrEqual(GENTE_CERCANA);
+    });
+  });
+
+  describe('hablar con la gente: presencia, habilidad y disposición', () => {
+    const colegioEnElRecreo = (semilla = 31) => {
+      const g = nuevaPartida({ seed: semilla });
+      g.perform('lugares.ir_colegio');
+      advanceTo(g, 'gen.descansar', 0, 10);
+      advanceUntil(g, 'gen.descansar', (t) => t.minuteOfDay >= 10 * 60 + 40 || t.hour >= 11, 20);
+      return g;
+    };
+
+    it('en el recreo se puede charlar con un compañero que está en el colegio, y en clase no', () => {
+      const g = nuevaPartida({ seed: 31 });
+      g.perform('lugares.ir_colegio');
+      advanceTo(g, 'gen.descansar', 0, 9); // 9:xx: en clase
+      expect(g.preview('relaciones.charlar.companero_social')!.reason).toMatch(/fuera de clase \(o en el recreo\)/);
+      advanceUntil(g, 'gen.descansar', (t) => t.minuteOfDay >= 10 * 60 + 40, 20);
+      expect(g.time.minuteOfDay).toBeLessThan(11 * 60 + 20); // hay recreo
+      const o = g.preview('relaciones.charlar.companero_social')!;
+      expect(o.available).toBe(true);
+      expect(g.perform(o.id).ok).toBe(true);
+      expect(g.service<RelationsService>(SERVICES.relaciones)!.get('companero_social')!.afinidad).toBeGreaterThan(0);
+    });
+
+    it('si la persona no está donde tú estás no se puede hablar con ella, y no te dice dónde está', () => {
+      const g = nuevaPartida({ seed: 31 });
+      const presencia = () => g.service<PresenciaService>(SERVICES.presencia)!;
+      // Sábado a mediodía, en casa: el compañero no está en casa (casa solo es de la familia).
+      advanceTo(g, 'gen.descansar', 5, 11);
+      expect(presencia().donde('companero_social')).not.toBe('casa');
+      const o = g.preview('relaciones.charlar.companero_social')!;
+      expect(o.available).toBe(false);
+      expect(o.reason).toMatch(/no está aquí/);
+      expect(o.lugar).toBeUndefined(); // no se ofrece ir a buscarla: no sabes dónde está
+      expect(posible(g, o.id)).toBe(false);
+      // Para hablar con ella hay que coincidir: en una semana cualquiera se encuentra donde él esté, sin que el juego lo diga.
+      let habladas = 0;
+      for (let semana = 1; semana < 25 && habladas === 0; semana++) {
+        advanceToWeek(g, 'gen.descansar', semana, 5, 11);
+        const donde = presencia().donde('companero_social');
+        if (!donde) continue;
+        g.perform(`lugares.ir_${donde}`); // el jugador va a mirar a un sitio y se lo encuentra
+        if (g.preview('relaciones.charlar.companero_social')!.available) habladas++;
+      }
+      expect(habladas).toBe(1);
+    });
+
+    it('las conversaciones llevan dos motivos nuevos: tu habilidad y cómo es la otra persona', () => {
+      const g = colegioEnElRecreo();
+      const ids = g.preview('relaciones.charlar.companero_social')!.modifiers.map((m) => m.id);
+      expect(ids).toContain('relaciones.compatibilidad');
+      // Con un carácter o unas habilidades corrientes alguno de los dos puede no aparecer; con extremos, sí.
+      const guardado = g.serialize();
+      guardado.stats[GEN.comunicacion] = 100;
+      guardado.stats[GEN.carisma] = 100;
+      const bueno = cargarPartida(guardado);
+      expect(bueno.preview('relaciones.charlar.companero_social')!.modifiers.map((m) => m.id)).toContain('relaciones.habilidad');
+      const mala = structuredClone(guardado);
+      mala.stats[GEN.comunicacion] = 1;
+      mala.stats[GEN.carisma] = 1;
+      expect(cargarPartida(mala).preview('relaciones.charlar.companero_social')!.modifiers.find((m) => m.id === 'relaciones.habilidad')!.result.reason).toMatch(/Te falta soltura/);
+    });
+
+    it('con más comunicación y carisma la misma charla sube más la afinidad', () => {
+      const g = colegioEnElRecreo();
+      const base = g.serialize();
+      const con = (valor: number) => {
+        const s = structuredClone(base);
+        s.stats[GEN.comunicacion] = valor;
+        s.stats[GEN.carisma] = valor;
+        const x = cargarPartida(s);
+        x.perform('relaciones.charlar.companero_social');
+        return x.service<RelationsService>(SERVICES.relaciones)!.get('companero_social')!.afinidad;
+      };
+      expect(con(90)).toBeGreaterThan(con(10) * 1.3);
+    });
+
+    it('la disposición de la otra persona cambia lo que rinde: una persona sociable rinde más que una solitaria', () => {
+      const g = colegioEnElRecreo();
+      const base = g.serialize();
+      const con = (sociabilidad: number) => {
+        const s = structuredClone(base);
+        const n = (s.modules.npcs as { npcs: { id: string; rasgos: { caracter: Record<string, number> } }[] }).npcs.find((x) => x.id === 'companero_social')!;
+        n.rasgos.caracter.sociabilidad = sociabilidad;
+        return cargarPartida(s).preview('relaciones.charlar.companero_social')!.efficiency;
+      };
+      expect(con(50)).toBeGreaterThan(con(-50) * 1.3);
+    });
+  });
+
+  describe('pestaña del deporte', () => {
+    const vista = (g: Game) => g.service<DeporteService>(claveDeDeporte('atletismo'))!.view();
+    /** Corre las carreras semanales de unas semanas del curso (los sábados a las 9; el viaje al estadio entra dentro de la ventana de 9 a 13). */
+    const correr = (g: Game, desde: number, hasta: number) => {
+      for (let semana = desde; semana <= hasta; semana++) {
+        advanceToWeek(g, 'gen.descansar', semana, 5, 9);
+        for (const id of ['atletismo.clasificatoria', 'atletismo.final', 'atletismo.carrera']) {
+          if (posible(g, id)) {
+            hacer(g, id);
+            break;
+          }
+        }
+      }
+    };
+
+    it('antes de competir no hay pruebas ni clasificaciones y dice cuándo es la primera carrera', () => {
+      const v = vista(nuevaPartida({ seed: 41 }));
+      expect(v).toMatchObject({ id: 'atletismo', nombre: 'Atletismo', disciplina: '400 m' });
+      expect(v.temporada.pruebas).toEqual([]);
+      expect(v.clasificaciones).toEqual([]);
+      expect(v.temporada.proxima).toMatch(/Pretemporada: la primera carrera es la semana 5/);
+      expect(v.resumen.find((r) => r.etiqueta === 'Mejor marca')!.valor).toBe('—');
+      expect(v.habilidades).toEqual(['atletismo.tecnica', 'atletismo.ritmo', 'atletismo.salida', 'atletismo.conocimiento']); // solo las del deporte
+    });
+
+    it('tras una temporada enseña todas las carreras con su clasificación completa y las clasificaciones del año', () => {
+      const g = nuevaPartida({ seed: 41 });
+      correr(g, 5, 30);
+      const v = vista(g);
+      expect(v.temporada.pruebas.length).toBeGreaterThanOrEqual(15);
+      for (const p of v.temporada.pruebas) {
+        expect(p.tabla?.rows.length).toBeGreaterThanOrEqual(8);
+        expect(p.tabla!.rows[p.tabla!.highlight!][1]).toBe('Tú');
+        expect(p.tabla!.rows[p.posicion - 1][1]).toBe('Tú');
+      }
+      expect(v.temporada.pruebas.some((p) => /clasificatoria autonómica/.test(p.titulo))).toBe(true);
+      // Una clasificación por puntos y otra de mejores marcas, con el personaje (en su sitio real) y como mucho 11 filas.
+      expect(v.clasificaciones.map((c) => c.titulo)).toEqual([expect.stringMatching(/^Clasificación por puntos/), expect.stringMatching(/^Mejores marcas/)]);
+      for (const c of v.clasificaciones) {
+        expect(c.tabla.rows.length).toBeLessThanOrEqual(11);
+        expect(c.tabla.rows.some((r) => r[1] === 'Tú')).toBe(true);
+      }
+      const puntos = v.clasificaciones[0].tabla.rows.map((r) => Number(r[3]));
+      expect([...puntos.slice(0, 10)]).toEqual([...puntos.slice(0, 10)].sort((a, b) => b - a));
+      expect(v.resumen.find((r) => r.etiqueta === 'Mejor marca')!.valor).toMatch(/s$/);
+      expect(v.resumen.find((r) => r.etiqueta === 'Carreras este curso')!.valor).toBe(String(v.temporada.pruebas.length));
+    });
+
+    it('al empezar otro curso la temporada vuelve a cero y la anterior queda como resumen', () => {
+      const g = nuevaPartida({ seed: 41 });
+      correr(g, 5, 14);
+      const hechas = vista(g).temporada.pruebas.length;
+      expect(hechas).toBeGreaterThan(5);
+      advanceToWeek(g, 'gen.descansar', 53, 0, 9);
+      const v = vista(g);
+      expect(v.temporada.etiqueta).toBe('Curso 2');
+      expect(v.temporada.pruebas).toEqual([]);
+      expect(v.temporadasAnteriores).toHaveLength(1);
+      expect(v.temporadasAnteriores[0]).toMatchObject({ etiqueta: 'Curso 1', pruebas: hechas });
+    });
+
+    it('la partida guardada crece poco con las pruebas y se carga igual', () => {
+      const g = nuevaPartida({ seed: 41 });
+      const antes = JSON.stringify(g.serialize()).length;
+      correr(g, 5, 30);
+      const despues = g.serializarJSON().length;
+      expect(despues - antes).toBeLessThan(80_000); // ~25 carreras con su clasificación y lo que cambia por jugar medio curso
+      const otra = cargarPartida(JSON.parse(g.serializarJSON()).state, undefined, { copiar: false });
+      expect(vista(otra).temporada.pruebas.length).toBe(vista(g).temporada.pruebas.length);
     });
   });
 });

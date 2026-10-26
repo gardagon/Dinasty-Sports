@@ -36,7 +36,7 @@ import {
 } from '@ds/contracts';
 import { computeCap, computeDecay, computeGain, computeSpeed, potentialSpeed } from './progression';
 import { buildRegistry, compileAction, modifiersFor, type CompiledAction, type Registry } from './registry';
-import { createRng, seededRng, type RngHolder } from './rng';
+import { createRng, seededRng, seededRngDe, type RngHolder } from './rng';
 import { LOG_LIMIT, SAVE_VERSION, type GameState, type Lineage, type ParentGenes } from './state';
 
 /** Fracción diaria de la distancia al tope efectivo que se pierde por envejecimiento. */
@@ -63,6 +63,8 @@ export interface ActionOption {
   /** Cambios directos ya escalados por los modificadores de coste. */
   delta: Record<StatId, number>;
   train: readonly { stat: StatId; amount: number }[];
+  /** Lugares donde se puede hacer (el primero es el destino por defecto), si la acción está ligada a un sitio. */
+  lugar?: readonly string[];
 }
 
 export interface ActionResult {
@@ -145,12 +147,13 @@ export class Game {
   }
 
   /** Carga una partida guardada. Las stats y módulos nuevos se inicializan solos. */
-  static load(modules: readonly GameModule<any>[], saved: GameState): Game {
+  static load(modules: readonly GameModule<any>[], saved: GameState, opciones: { copiar?: boolean } = {}): Game {
     if (saved.version !== SAVE_VERSION) {
       throw new Error(`Versión de guardado ${saved.version} no soportada (actual: ${SAVE_VERSION})`);
     }
     const registry = buildRegistry(modules);
-    const state = structuredClone(saved);
+    // Se copia para no tocar el objeto de quien llama; con `copiar: false` se usa tal cual (p. ej. recién leído de un texto JSON).
+    const state = opciones.copiar === false ? saved : structuredClone(saved);
     Game.fillMissing(registry, state);
     return new Game(registry, state);
   }
@@ -169,8 +172,9 @@ export class Game {
    * hijo toma la mitad de las capacidades de cada uno (±20 %) y su nivel inicial sale también de los padres. Las derivadas
    * (habilidades, asignaturas) salen de los topes de otras características más una aptitud propia.
    */
-  private static genetica(registry: Registry, state: GameState, nuevas: Set<string>): void {
-    const rng = seededRng((state.seed ^ 0x9e3779b1) + nuevas.size);
+  private static genetica(registry: Registry, state: GameState, nuevas: Set<string>, previas: number): void {
+    // Depende de cuántas stats había antes (0 al crear la partida), no de cuántas hay ahora: añadir stats sin genética no cambia nada.
+    const rng = seededRng((state.seed ^ 0x9e3779b1) + previas);
     const conGenetica = registry.statList.filter((s) => nuevas.has(s.def.id) && s.def.genetics);
     const directas = conGenetica.filter((s) => !s.def.genetics!.derivedFrom);
     const lin = Game.lineage(state);
@@ -239,21 +243,24 @@ export class Game {
 
   /** Inicializa lo que falte: permite añadir módulos a partidas ya empezadas. */
   private static fillMissing(registry: Registry, state: GameState): void {
-    const init = seededRng((state.seed ^ 0x5bd1e995) + Object.keys(state.stats).length);
+    const previas = Object.keys(state.stats).length;
+    const init = seededRng((state.seed ^ 0x5bd1e995) + previas);
     const nuevas = new Set(registry.statList.filter((s) => !(s.def.id in state.stats)).map((s) => s.def.id));
     for (const { def, min, max } of registry.statList) {
       if (def.id in state.stats) continue;
+      // Cada stat sortea con su propio hilo (semilla + id): añadir otra no cambia las que ya había.
+      const propio = seededRngDe(state.seed, def.id);
       const v =
-        typeof def.initial === 'number' ? def.initial : init.range(def.initial.min, def.initial.max);
+        typeof def.initial === 'number' ? def.initial : propio.range(def.initial.min, def.initial.max);
       const value = Math.min(max, Math.max(min, v));
       state.stats[def.id] = value;
       state.peaks[def.id] = value;
       state.baseline[def.id] = value;
       const spread = def.category === 'estado' ? 0 : (def.talentSpread ?? 0.15);
-      state.talent[def.id] = 1 + (init.next() * 2 - 1) * spread;
+      state.talent[def.id] = 1 + (propio.next() * 2 - 1) * spread;
       state.lastTrained[def.id] = state.minute;
     }
-    Game.genetica(registry, state, nuevas);
+    Game.genetica(registry, state, nuevas, previas);
     for (const { def, min, max } of registry.statList) {
       if (!nuevas.has(def.id) || !def.initialFrom || typeof def.initial === 'number') continue;
       // Se parte del tope genético de las stats de apoyo (la aptitud permanente) y, si no lo tienen, de su nivel inicial.
@@ -404,16 +411,26 @@ export class Game {
     return this.readCtx('core').service<T>(key);
   }
 
-  /** Copia serializable del estado (para guardar). */
+  /** Copia serializable del estado (para tests y para quien necesite un objeto). */
   serialize(): GameState {
     return structuredClone(this.s);
+  }
+
+  /**
+   * El estado en texto JSON, con los campos extra que se le pidan al lado (`{ ...extras, state }`). Es la forma barata de guardar: convertir a
+   * texto cuesta una quinta parte que copiar el objeto, y el texto ya es una copia (no cambia aunque la partida siga).
+   */
+  serializarJSON(extras: Record<string, unknown> = {}): string {
+    return JSON.stringify({ ...extras, state: this.s });
   }
 
   // ------------------------------------------------------------------ acciones
 
   /** Todas las acciones (estáticas + dinámicas) con su disponibilidad y previsión. */
-  listActions(): ActionOption[] {
-    return this.allActions().map((a) => this.evaluate(a));
+  listActions(opciones?: { omitir?: (def: ActionDef) => boolean }): ActionOption[] {
+    const todas = this.allActions();
+    // `omitir` descarta acciones antes de evaluarlas (evaluar cada una cuesta): los bots no piden las que no van a usar.
+    return (opciones?.omitir ? todas.filter((a) => !opciones.omitir!(a.def)) : todas).map((a) => this.evaluate(a));
   }
 
   /** Solo las disponibles (lo que usan los bots). */
@@ -557,6 +574,7 @@ export class Game {
       modifiers: applied,
       delta,
       train: def.train ?? [],
+      lugar: typeof def.lugar === 'function' ? def.lugar(ctx) : def.lugar,
     };
   }
 
@@ -686,6 +704,7 @@ export class Game {
     const game = this;
     const s = this.s;
     const reg = this.registry;
+    let vista = timeView(s.minute);
     const norm = (id: StatId) => {
       const info = reg.stats.get(id);
       if (!info) throw new Error(`Stat desconocida: ${id}`);
@@ -696,7 +715,9 @@ export class Game {
     };
     return {
       get time() {
-        return timeView(s.minute);
+        // Las condiciones consultan la hora muchas veces por decisión: la vista se calcula una vez por minuto de juego.
+        if (vista.minute !== s.minute) vista = timeView(s.minute);
+        return vista;
       },
       moduleId,
       stat: (id) => game.stat(id),

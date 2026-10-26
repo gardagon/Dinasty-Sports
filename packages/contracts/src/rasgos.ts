@@ -287,12 +287,27 @@ export function gustosAlAzar(rng: Rng, propia: Apariencia): Gustos {
   };
 }
 
-/** Atracción de 0 a 1 de quien tiene estos gustos hacia otra persona (se usará para la pareja). */
+/**
+ * Cuánto encaja un carácter con lo que le gusta a una persona en los demás, de 0 a 1 (0,5 si no tiene preferencias de carácter). Solo
+ * mira el carácter, no el aspecto: es lo que cuenta en una amistad y en la primera impresión de un niño.
+ */
+export function agradoPorCaracter(g: Gustos, c: Caracter): number {
+  const ejes = Object.entries(g.caracter ?? {});
+  return ejes.length ? ejes.reduce((s, [id, v]) => s + (1 - Math.abs((c[id] ?? 0) - v) / 100), 0) / ejes.length : 0.5;
+}
+
+/**
+ * Los gustos de aspecto físico SIEMPRE cuentan (pesan en la primera impresión y, más adelante, en la pareja), pero el juego no los anuncia
+ * (no dice «le gusta tu aspecto») hasta que las dos personas tienen al menos `EDAD_ATRACCION_FISICA` años. Y solo cuentan entre personas
+ * de edades parecidas: nunca entre un adulto y un menor (por encima de `EDAD_MAXIMA_ENTRE_IGUALES` no cuentan con un personaje menor).
+ */
+export const EDAD_ATRACCION_FISICA = 14;
+export const EDAD_MAXIMA_ENTRE_IGUALES = 19;
+
+/** Atracción de 0 a 1 de quien tiene estos gustos hacia otra persona: mitad aspecto, mitad carácter. */
 export function atraccion(g: Gustos, a: Apariencia, c: Caracter): number {
   const fis = ((g.fisicos.peloColor.includes(a.peloColor) ? 1 : 0) + (g.fisicos.ojos.includes(a.ojos) ? 1 : 0) + (g.fisicos.piel.includes(a.piel) ? 1 : 0) + (g.fisicos.cara.includes(a.cara) ? 1 : 0)) / 4;
-  const ejes = Object.entries(g.caracter);
-  const car = ejes.length ? ejes.reduce((s, [id, v]) => s + (1 - Math.abs((c[id] ?? 0) - v) / 100), 0) / ejes.length : 0.5;
-  return 0.5 * fis + 0.5 * car;
+  return 0.5 * fis + 0.5 * agradoPorCaracter(g, c);
 }
 
 // ---------------------------------------------------------------------------------------------------- una persona
@@ -378,3 +393,14 @@ export function compatibilidad(npc: { caracter: Caracter; intereses: InteresesNp
 /** Multiplicador sobre lo que sube la afinidad: de ×0,7 (nada en común) a ×1,4 (muy compatibles). */
 /** Una compatibilidad de 0,25 da ×0,7, 0,5 da ×1,05 y 0,75 o más da ×1,4 (lo típico, ~0,4, queda cerca de ×0,9). */
 export const factorDeCompatibilidad = (compat: number): number => 0.7 + 0.7 * clamp((compat - 0.25) / 0.5, 0, 1);
+
+/**
+ * Lo que se ve de alguien a quien no conoces (sin nombre): una frase corta con su aspecto, concordada con su género y edad.
+ * «Una chica de pelo castaño ondulado, ojos verdes y piel clara.»
+ */
+export function descripcionDeDesconocido(a: Apariencia, gender: 'f' | 'm', edad?: number): string {
+  const persona = edad !== undefined && edad < 12 ? (gender === 'f' ? 'Una niña' : 'Un niño') : gender === 'f' ? 'Una chica' : 'Un chico';
+  const rasgos = [`de pelo ${NOMBRE_RASGO[a.peloColor]} ${NOMBRE_RASGO[a.peloTipo]}`, `ojos ${NOMBRE_RASGO[a.ojos]}`, `piel ${NOMBRE_RASGO[a.piel]}`];
+  const distintivos = a.distintivos.length ? `, con ${a.distintivos.map((d) => NOMBRE_RASGO[d]).join(' y ')}` : '';
+  return `${persona} ${rasgos.slice(0, -1).join(', ')} y ${rasgos[rasgos.length - 1]}${distintivos}`;
+}

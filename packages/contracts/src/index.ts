@@ -15,4 +15,7 @@ export * from './herencia';
 export * from './relaciones';
 export * from './perks';
 export * from './rasgos';
+export * from './lugares';
+export * from './agendas';
+export * from './deporte';
 export * from './hermanos';

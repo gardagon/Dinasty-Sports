@@ -7,6 +7,7 @@ import {
   TAGS,
   defineModule,
   inHours,
+  ligarALugares,
   isSchoolHours,
   minutesUntilHour,
   type ActionDoneData,
@@ -112,12 +113,14 @@ export const personaje = defineModule<IdentidadState>({
     { id: GEN.vigorMental, name: 'Vigor mental', group: 'Estado', category: 'estado', initial: 100 * factorPorEdad('mental', EDAD_INICIAL), hidden: true },
     { id: GEN.vigorSocial, name: 'Vigor social', group: 'Estado', category: 'estado', initial: 100 * factorPorEdad('social', EDAD_INICIAL), hidden: true },
     { id: GEN.energia, name: 'Energía', group: 'Estado', category: 'estado', initial: 90, resource: true },
+    // El personaje parte sin dinero. En euros; sin tope práctico. Gastar es un coste (bloquea la acción si no alcanza).
+    { id: GEN.dinero, name: 'Dinero', group: 'Estado', category: 'estado', initial: 0, min: 0, max: 1_000_000, resource: true },
     { id: GEN.salud, name: 'Salud', group: 'Estado', category: 'estado', initial: 90 },
     { id: GEN.estres, name: 'Estrés', group: 'Estado', category: 'estado', initial: 20 },
     { id: GEN.motivacion, name: 'Motivación', group: 'Estado', category: 'estado', initial: 60 },
   ],
 
-  actions: [
+  actions: ligarALugares([
     {
       id: 'gen.dormir',
       name: 'Dormir',
@@ -190,7 +193,14 @@ export const personaje = defineModule<IdentidadState>({
       delta: { [GEN.energia]: -4, [GEN.estres]: -5 },
       train: [{ stat: GEN.carisma, amount: 0.5 }],
     },
-  ],
+  ], {
+    // «Descansar un rato» vale en cualquier parte a propósito: es la espera y no se queda nunca sin sitio.
+    'gen.dormir': ['casa'],
+    'gen.gimnasio': ['gimnasio'],
+    'gen.leer': ['casa', 'parque'],
+    'gen.ocio': ['casa'],
+    'gen.pasear': ['parque'],
+  }),
 
   modifiers: [
     {

@@ -1,5 +1,5 @@
 import { nuevaPartida } from '@ds/game';
-import { runChecks, summarize, type BotSummary, type Check } from './analysis';
+import { calibrar, runChecks, summarize, type BotSummary, type Check } from './analysis';
 import { BOTS, type Bot } from './bots';
 import { areasFor, runBot, type Area, type RunResult } from './runner';
 
@@ -26,6 +26,7 @@ export interface SimulationOutput {
 export function simulate(opts: SimulationOptions): SimulationOutput {
   const bots: Bot[] = opts.bots?.length ? BOTS.filter((b) => opts.bots!.includes(b.id)) : BOTS;
   const areas = areasFor(nuevaPartida({ seed: 1 }));
+  const calibracionAntes = calibrar();
   const results: RunResult[] = [];
   for (const bot of bots) {
     for (let s = 1; s <= opts.seeds; s++) {
@@ -35,5 +36,7 @@ export function simulate(opts: SimulationOptions): SimulationOutput {
     }
   }
   const summary = summarize(results, areas);
-  return { results, summary, checks: runChecks(summary, areas, opts.days), areas };
+  // La máquina puede ir más o menos rápida durante la simulación: se calibra antes y después y se usa la media.
+  const calibracion = (calibracionAntes + calibrar()) / 2;
+  return { results, summary, checks: runChecks(summary, areas, opts.days, calibracion), areas };
 }

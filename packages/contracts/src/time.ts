@@ -75,6 +75,20 @@ export function isSchoolHours(t: TimeView): boolean {
   return t.isSchoolDay && inHours(t, 8, 14);
 }
 
+/**
+ * La jornada escolar de un día lectivo, en minutos del día: 4 clases de 80 minutos y un recreo de 40 entre la segunda y la tercera
+ * (de 8:00 a 14:00, como `isSchoolHours`). La usan estudios (las clases) y relaciones (el recreo es cuando se charla en el colegio).
+ */
+export const JORNADA_ESCOLAR = {
+  clases: [[480, 560], [560, 640], [680, 760], [760, 840]],
+  recreo: [640, 680],
+} as const;
+
+/** ¿Es el recreo de un día lectivo? */
+export function enRecreo(t: TimeView): boolean {
+  return t.isSchoolDay && t.minuteOfDay >= JORNADA_ESCOLAR.recreo[0] && t.minuteOfDay < JORNADA_ESCOLAR.recreo[1];
+}
+
 /** Minutos que faltan hasta la próxima vez que el reloj marque `hour`:00. */
 export function minutesUntilHour(minute: number, hour: number): number {
   const mod = minute % MINUTES_PER_DAY;

@@ -61,11 +61,23 @@ módulo de atletismo). `madurezPorEdad` (contracts) es la fracción de capacidad
 lo físico (estado oculto `gen.madurez`), y los NPCs, como nivel máximo de cada rival. Los rivales tienen fecha de nacimiento, se renuevan cada
 curso y son desconocidos hasta que compiten contra el personaje (`known`).
 
+## Lugares
+
+El mapa de la ciudad es un **dato** (`MapaCiudad`, `CIUDAD_INICIAL`, en contracts): lugares, una tabla de minutos entre cada par (`tiempos`) y los caminos directos (`directos`, la lista de «Viajar»). El módulo `lugares` guarda dónde está el personaje y publica el servicio `lugares`; ir a un sitio es una acción (`lugares.ir_<lugar>`) que cuesta lo que dice la tabla y emite `lugares.llegada`. Un módulo liga sus acciones a un sitio con `ligarALugares` (contracts): la acción gana `lugar` (que el motor expone en `ActionOption.lugar`) y una comprobación en `available` que va la última, de modo que si solo falta estar allí, `faltaViajar(opcion)` lo detecta y basta con viajar. Sin el módulo `lugares` cargado nada se restringe. Los textos de lugar viven en el dato del mapa, no en el motor.
+
+## Presencia de personas
+
+Cada persona (`npcs`) guarda una lista de **tipos** (alumno, profesor, entrenador, club, rival, amigo, vecino) y de ellos sale su agenda: tramos de la semana con un lugar (`contracts/agendas.ts`). Si dos tramos coinciden manda el de mayor nivel (el tipo dominante). El módulo `npcs` publica el servicio `presencia` (`en(lugar, max)`, `donde(persona)`, `agenda(persona)`); el azar sale de un hash de persona y día, no se guarda. La pantalla del lugar enseña «Gente aquí» (hasta 40; los desconocidos, por su descripción física). Las acciones de relación exigen que la persona esté donde tú estás; su eficiencia depende de la compatibilidad, de tus habilidades de comunicación y de la disposición de la otra persona (sociabilidad y gustos). **Los horarios y la población planificada están en [`ANEXO_HORARIOS_PNJ.md`](ANEXO_HORARIOS_PNJ.md) y todas las cifras de las relaciones, en [`ANEXO_RELACIONES.md`](ANEXO_RELACIONES.md).**
+
+## Pestaña del deporte
+
+Cada módulo de deporte publica el servicio `deporte.<id>` (`contracts/deporte.ts`: resumen, habilidades propias, pruebas de la temporada con su clasificación, clasificaciones del año y cursos anteriores) y la interfaz dibuja la pestaña «Deporte» sin conocer ninguno. Atletismo guarda la clasificación completa de cada carrera del curso en curso y el anterior. Cifras y reglas en [`ANEXO_DEPORTE.md`](ANEXO_DEPORTE.md).
+
 ## Currículo escolar
 
 El currículo es un dato por país (`curriculo.ts` en el módulo de estudios): las asignaturas de cada curso, de 3.º de primaria a 2.º de bachillerato.
 Todas existen como habilidades; solo puntúan y se estudian las del curso actual. Al cambiar de curso, las asignaturas nuevas heredan el nivel de las
-que sustituyen. Cada asignatura es una **preparación 0–100 (= nota esperada × 10)** que se ve como texto (Mal, Regular, Bien, Muy bien, Excelente), sin tope genético: la dificultad la ponen las capacidades de apoyo (arranque con `StatDef.initialFrom`, ritmo de subida y olvido diario). El arranque sale de la aptitud (el tope genético de las capacidades de apoyo); la aptitud fija cuánto rinde el estudio y cuánto se olvida, y el olvido diario no baja de lo aprendido de base (`EstudiosState.base`: preparación inicial − 22). En las asignaturas prácticas (`Asignatura.practica`: Educación física 70 %, Artística y Música 50 %, Tecnología 30 %) la nota mezcla el estudio con una habilidad calculada con las capacidades de apoyo. Educación física tiene nota mínima 5 (`Asignatura.notaMinima`) para quien se presenta. Se sube yendo a clase (solo las asignaturas del día según `horarioSemanal`) y estudiando; no hay controles semanales sino, en cada trimestre, dos parciales y un global (final = 40 % media de parciales + 60 % global; semanas en `CalendarioPais.parciales` y `evaluaciones`), avisados con una semana de antelación. El servicio `estudios` publica las asignaturas activas, el nombre del curso, el nivel en texto, el horario y los próximos exámenes.
+que sustituyen. Cada asignatura es una **preparación 0–100 (= nota esperada × 10)** que se ve como texto (Mal, Regular, Bien, Muy bien, Excelente), sin tope genético: la dificultad la ponen las capacidades de apoyo (arranque con `StatDef.initialFrom`, ritmo de subida y olvido diario). El arranque sale de la aptitud (el tope genético de las capacidades de apoyo); la aptitud fija cuánto rinde el estudio y cuánto se olvida, y el olvido diario no baja de lo aprendido de base (`EstudiosState.base`: preparación inicial − 22). En las asignaturas prácticas (`Asignatura.practica`: Educación física 70 %, Artística y Música 50 %, Tecnología 30 %) la nota mezcla el estudio con una habilidad calculada con las capacidades de apoyo. Educación física tiene nota mínima 5 (`Asignatura.notaMinima`) para quien se presenta. Se sube yendo a clase y estudiando. La jornada son 4 clases de 80 minutos y un recreo de 8:00 a 14:00; `horarioDeClases` reparte las asignaturas del curso en los 20 huecos de la semana (una asignatura no se repite el mismo día) y cada clase es una acción que sube solo esa asignatura (faltar no se castiga, pero cuenta en `faltas`); no hay controles semanales sino, en cada trimestre, dos parciales y un global (final = 40 % media de parciales + 60 % global; semanas en `CalendarioPais.parciales` y `evaluaciones`), avisados con una semana de antelación. El servicio `estudios` publica las asignaturas activas, el nombre del curso, el nivel en texto, el horario y los próximos exámenes.
 
 ## Clubes
 
@@ -113,7 +125,7 @@ Rasgos genéticos heredables con bonus o malus (`contracts/perks.ts`): catálogo
 
 ## Guardado
 
-`GameState` es JSON plano. Su formato lleva una versión (`SAVE_VERSION`). En la fase alfa **no se mantiene compatibilidad**: se sube la versión cada vez que cambia la forma del estado de algún módulo; `Game.load` rechaza las partidas de otra versión y la interfaz descarta cualquier guardado que no se pueda cargar o dibujar y vuelve a la pantalla inicial con un aviso.
+`GameState` es JSON plano y la interfaz lo guarda en IndexedDB (copias de seguridad en JSON; plan y fases en [`ALMACENAMIENTO.md`](ALMACENAMIENTO.md)). Su formato lleva una versión (`SAVE_VERSION`). En la fase alfa **no se mantiene compatibilidad**: se sube la versión cada vez que cambia la forma del estado de algún módulo; `Game.load` rechaza las partidas de otra versión y la interfaz descarta cualquier guardado que no se pueda cargar o dibujar y vuelve a la pantalla inicial con un aviso.
 
 ## Rasgos de las personas
 

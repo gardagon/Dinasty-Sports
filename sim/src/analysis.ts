@@ -72,7 +72,33 @@ export function globalScore(s: BotSummary, areas: Area[]): number {
  * "fallo" = algo está roto. "aviso" = el balance probablemente no tiene sentido.
  * Los umbrales están aquí a la vista para ajustarlos según evolucione el diseño.
  */
-export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check[] {
+/**
+ * Mide lo rápida que va esta máquina ahora (ms de una carga fija parecida a lo que hace el motor: mapas, objetos y cadenas).
+ * El rendimiento del motor se compara contra esto, porque los mismos milisegundos por acción no significan lo mismo en un portátil que
+ * en un servidor cargado.
+ */
+export function calibrar(): number {
+  let mejor = Infinity;
+  for (let r = 0; r < 5; r++) {
+    const t = performance.now();
+    const m = new Map<string, number>();
+    let acc = 0;
+    for (let i = 0; i < 150_000; i++) {
+      const k = `k${i % 500}`;
+      m.set(k, (m.get(k) ?? 0) + i);
+      const o = { a: i, b: acc, c: k };
+      acc += (o.a ^ o.b) + o.c.length;
+    }
+    mejor = Math.min(mejor, performance.now() - t);
+    if (acc === -1) console.log(acc); // evita que se optimice la carga
+  }
+  return mejor;
+}
+
+/** Límite del coste por acción, en veces la calibración: más de esto es que el motor se ha vuelto más lento (no la máquina). */
+export const LIMITE_RELATIVO = 0.12;
+
+export function runChecks(sum: BotSummary[], areas: Area[], days: number, calibracion?: number): Check[] {
   const checks: Check[] = [];
   const get = (id: string) => sum.find((s) => s.bot === id);
   const has = (key: string) => areas.some((a) => a.key === key);
@@ -89,7 +115,16 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number): Check
   const totalMs = sum.reduce((a, s) => a + s.ms, 0);
   const runs = sum.reduce((a, s) => a + s.runs, 0);
   const msPorAnio = (totalMs / runs) * (365 / days);
-  add(msPorAnio < 3000, 'fallo', 'Rendimiento', `${Math.round(totalActions / (totalMs / 1000)).toLocaleString('es-ES')} acciones/s · ${Math.round(msPorAnio)} ms por año simulado (límite 3000 ms).`);
+  // El límite es por acción: cuantas más decisiones tiene un año (clases por horas, viajes), más tarda un año sin que el motor sea más lento.
+  // Y es relativo a la máquina: se compara con una carga fija (`calibrar`), no con milisegundos absolutos.
+  const msPorAccion = totalMs / totalActions;
+  const limite = calibracion === undefined ? 0.8 : LIMITE_RELATIVO * calibracion;
+  add(
+    msPorAccion < limite,
+    'fallo',
+    'Rendimiento',
+    `${Math.round(totalActions / (totalMs / 1000)).toLocaleString('es-ES')} acciones/s · ${msPorAccion.toFixed(2)} ms por acción (límite ${limite.toFixed(2).replace('.', ',')} ms${calibracion === undefined ? '' : `: ${LIMITE_RELATIVO} × ${calibracion.toFixed(1)} ms de calibración de esta máquina`}) · ${Math.round(msPorAnio)} ms por año simulado.`,
+  );
 
   const eq = get('equilibrado');
   const atl = get('atleta');

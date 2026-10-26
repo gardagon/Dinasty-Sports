@@ -1,6 +1,7 @@
 import { GEN, TAGS } from '@ds/contracts';
 import { seededRng, checkInvariants, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
+import { hacer, opcionesDelBot } from './pasos';
 import {
   apuntarseAlClub, basicas, campamento, conAmigos, descansarOEsperar, entrenoDeporte, estudio, flojoEnLaSuperior, id as esId,
   relacion, seguirPlan, sesionDeClub, subirDeCategoria, tag, volverACategoria, type Bot,
@@ -115,16 +116,17 @@ export function simular(bot: Bot, seed: number, anios: number, alCumplir?: (game
       mem.day = game.time.day;
       mem.hoy = {};
     }
-    const opts = game.availableActions();
+    const opts = opcionesDelBot(game);
     if (!opts.length) {
       problemas.push(`Día ${game.time.day}: ninguna acción disponible`);
       break;
     }
     const eleccion = bot.choose(game, opts, rng, mem);
-    const r = game.perform(eleccion);
+    const paso = hacer(game, opts, eleccion);
+    const r = paso.result;
     // Los bots reparten su tiempo eligiendo lo menos usado (`leastUsed`): sin esta cuenta siempre repiten la primera opción.
     mem.total[eleccion] = (mem.total[eleccion] ?? 0) + 1;
-    if (!r.ok) {
+    if (!r.ok && !paso.traslado) {
       problemas.push(`Día ${game.time.day}: acción fallida (${r.reason})`);
       if (problemas.length > 10) break;
     }

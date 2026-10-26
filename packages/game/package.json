@@ -16,6 +16,7 @@
     "@ds/mod-npcs": "*",
     "@ds/mod-clubes": "*",
     "@ds/mod-familia": "*",
-    "@ds/mod-relaciones": "*"
+    "@ds/mod-relaciones": "*",
+    "@ds/mod-lugares": "*"
   }
 }
