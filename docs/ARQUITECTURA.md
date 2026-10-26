@@ -67,7 +67,7 @@ El mapa de la ciudad es un **dato** (`MapaCiudad`, `CIUDAD_INICIAL`, en contract
 
 ## Presencia de personas
 
-Cada persona (`npcs`) guarda una lista de **tipos** (alumno, profesor, entrenador, club, rival, amigo, vecino) y de ellos sale su agenda: tramos de la semana con un lugar (`contracts/agendas.ts`). Si dos tramos coinciden manda el de mayor nivel (el tipo dominante). El módulo `npcs` publica el servicio `presencia` (`en(lugar, max)`, `donde(persona)`, `agenda(persona)`); el azar sale de un hash de persona y día, no se guarda. La pantalla del lugar enseña «Gente aquí» (hasta 40; los desconocidos, por su descripción física). **Los horarios y la población planificada están en [`ANEXO_HORARIOS_PNJ.md`](ANEXO_HORARIOS_PNJ.md).**
+Cada persona (`npcs`) guarda una lista de **tipos** (alumno, profesor, entrenador, club, rival, amigo, vecino) y de ellos sale su agenda: tramos de la semana con un lugar (`contracts/agendas.ts`). Si dos tramos coinciden manda el de mayor nivel (el tipo dominante). El módulo `npcs` publica el servicio `presencia` (`en(lugar, max)`, `donde(persona)`, `agenda(persona)`); el azar sale de un hash de persona y día, no se guarda. La pantalla del lugar enseña «Gente aquí» (hasta 40; los desconocidos, por su descripción física). Las acciones de relación exigen que la persona esté donde tú estás; su eficiencia depende de la compatibilidad, de tus habilidades de comunicación y de la disposición de la otra persona (sociabilidad y gustos). **Los horarios y la población planificada están en [`ANEXO_HORARIOS_PNJ.md`](ANEXO_HORARIOS_PNJ.md) y todas las cifras de las relaciones, en [`ANEXO_RELACIONES.md`](ANEXO_RELACIONES.md).**
 
 ## Currículo escolar
 

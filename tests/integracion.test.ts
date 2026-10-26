@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, GENTE_CERCANA, SERVICES, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
+import { GEN, GENTE_CERCANA, SERVICES, type PresenciaService, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
@@ -563,6 +563,100 @@ describe('integración de módulos', () => {
       advanceTo(g, 'gen.descansar', 0, 10);
       g.perform('lugares.ir_colegio');
       expect(presentaciones(g).length).toBeLessThanOrEqual(GENTE_CERCANA);
+    });
+  });
+
+  describe('hablar con la gente: presencia, habilidad y disposición', () => {
+    const colegioEnElRecreo = (semilla = 31) => {
+      const g = nuevaPartida({ seed: semilla });
+      g.perform('lugares.ir_colegio');
+      advanceTo(g, 'gen.descansar', 0, 10);
+      advanceUntil(g, 'gen.descansar', (t) => t.minuteOfDay >= 10 * 60 + 40 || t.hour >= 11, 20);
+      return g;
+    };
+
+    it('en el recreo se puede charlar con un compañero que está en el colegio, y en clase no', () => {
+      const g = nuevaPartida({ seed: 31 });
+      g.perform('lugares.ir_colegio');
+      advanceTo(g, 'gen.descansar', 0, 9); // 9:xx: en clase
+      expect(g.preview('relaciones.charlar.companero_social')!.reason).toMatch(/fuera de clase \(o en el recreo\)/);
+      advanceUntil(g, 'gen.descansar', (t) => t.minuteOfDay >= 10 * 60 + 40, 20);
+      expect(g.time.minuteOfDay).toBeLessThan(11 * 60 + 20); // hay recreo
+      const o = g.preview('relaciones.charlar.companero_social')!;
+      expect(o.available).toBe(true);
+      expect(o.lugar).toEqual(['colegio']);
+      expect(g.perform(o.id).ok).toBe(true);
+      expect(g.service<RelationsService>(SERVICES.relaciones)!.get('companero_social')!.afinidad).toBeGreaterThan(0);
+    });
+
+    it('si la persona está en otro lugar del mapa solo hace falta ir allí; si está fuera del mapa, no se puede', () => {
+      const g = nuevaPartida({ seed: 31 });
+      advanceTo(g, 'gen.descansar', 5, 11); // sábado por la mañana, en casa
+      const presencia = () => g.service<PresenciaService>(SERVICES.presencia)!;
+      const o = g.preview('relaciones.charlar.companero_social')!;
+      const donde = presencia().donde('companero_social');
+      if (donde) {
+        expect(o.reason).toMatch(/^Tienes que estar en /);
+        expect(o.lugar).toEqual([donde]);
+        expect(posible(g, o.id)).toBe(true);
+      } else {
+        expect(o.reason).toMatch(/no está por aquí ahora/);
+        expect(posible(g, o.id)).toBe(false);
+      }
+      // Siempre hay algún sábado en que está en el mapa: se recorren unos cuantos hasta encontrarlo.
+      let visto = false;
+      for (let semana = 1; semana < 30 && !visto; semana++) {
+        advanceToWeek(g, 'gen.descansar', semana, 5, 11);
+        const d = presencia().donde('companero_social');
+        if (d) {
+          visto = true;
+          g.perform(`lugares.ir_${d}`);
+          expect(g.preview('relaciones.charlar.companero_social')!.available).toBe(true);
+        }
+      }
+      expect(visto).toBe(true);
+    });
+
+    it('las conversaciones llevan dos motivos nuevos: tu habilidad y cómo es la otra persona', () => {
+      const g = colegioEnElRecreo();
+      const ids = g.preview('relaciones.charlar.companero_social')!.modifiers.map((m) => m.id);
+      expect(ids).toContain('relaciones.compatibilidad');
+      // Con un carácter o unas habilidades corrientes alguno de los dos puede no aparecer; con extremos, sí.
+      const guardado = g.serialize();
+      guardado.stats[GEN.comunicacion] = 100;
+      guardado.stats[GEN.carisma] = 100;
+      const bueno = cargarPartida(guardado);
+      expect(bueno.preview('relaciones.charlar.companero_social')!.modifiers.map((m) => m.id)).toContain('relaciones.habilidad');
+      const mala = structuredClone(guardado);
+      mala.stats[GEN.comunicacion] = 1;
+      mala.stats[GEN.carisma] = 1;
+      expect(cargarPartida(mala).preview('relaciones.charlar.companero_social')!.modifiers.find((m) => m.id === 'relaciones.habilidad')!.result.reason).toMatch(/Te falta soltura/);
+    });
+
+    it('con más comunicación y carisma la misma charla sube más la afinidad', () => {
+      const g = colegioEnElRecreo();
+      const base = g.serialize();
+      const con = (valor: number) => {
+        const s = structuredClone(base);
+        s.stats[GEN.comunicacion] = valor;
+        s.stats[GEN.carisma] = valor;
+        const x = cargarPartida(s);
+        x.perform('relaciones.charlar.companero_social');
+        return x.service<RelationsService>(SERVICES.relaciones)!.get('companero_social')!.afinidad;
+      };
+      expect(con(90)).toBeGreaterThan(con(10) * 1.3);
+    });
+
+    it('la disposición de la otra persona cambia lo que rinde: una persona sociable rinde más que una solitaria', () => {
+      const g = colegioEnElRecreo();
+      const base = g.serialize();
+      const con = (sociabilidad: number) => {
+        const s = structuredClone(base);
+        const n = (s.modules.npcs as { npcs: { id: string; rasgos: { caracter: Record<string, number> } }[] }).npcs.find((x) => x.id === 'companero_social')!;
+        n.rasgos.caracter.sociabilidad = sociabilidad;
+        return cargarPartida(s).preview('relaciones.charlar.companero_social')!.efficiency;
+      };
+      expect(con(50)).toBeGreaterThan(con(-50) * 1.3);
     });
   });
 });

@@ -6,6 +6,7 @@ import {
   defineModule,
   conLugar,
   inHours,
+  JORNADA_ESCOLAR,
   ligarALugares,
   isSchoolHours,
   nivelTipicoPorEdad,
@@ -379,7 +380,7 @@ const academiaPendiente = (s: EstudiosState): boolean => s.verano?.tipo === 'aca
  * Se puede ir a una clase desde una hora antes de que empiece (esperando en el colegio) hasta 15 minutos tarde; la acción dura
  * hasta que acaba la clase. Faltar a una no tiene castigo (solo no sube lo que tocaba), pero se cuenta en `faltas`.
  */
-const JORNADA = { clases: [[480, 560], [560, 640], [680, 760], [760, 840]], recreo: [640, 680] } as const;
+const JORNADA = JORNADA_ESCOLAR;
 const ANTES_DE_CLASE = 60;
 const TARDE_A_CLASE = 15;
 /** Estrés que cuesta un día de clase entero (y lo mismo, faltar a todo el día). */

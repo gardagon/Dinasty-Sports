@@ -7,6 +7,10 @@ import {
   defineModule,
   inHours,
   isSchoolHours,
+  enRecreo,
+  enLugar,
+  type Sitio,
+  type PerfilDelPersonaje,
   NIVEL_ESTADO,
   type ActionContext,
   type ActionDef,
@@ -25,7 +29,18 @@ import {
   type RelationView,
   type RelationsService,
 } from '@ds/contracts';
-import { AFINIDAD_PARA_AYUDAR, ESPERA, interesFavorito, mejorInteresEnComun, perdidaPorDiscusion, probabilidadDePaces } from './acciones';
+import {
+  AFINIDAD_PARA_AYUDAR,
+  ESPERA,
+  HABILIDADES_DE_ACCION,
+  HABILIDADES_DE_PACES,
+  disposicion,
+  factorDeHabilidad,
+  interesFavorito,
+  mejorInteresEnComun,
+  perdidaPorDiscusion,
+  probabilidadDePaces,
+} from './acciones';
 import { conCambio, conContacto, nuevoVinculo, pasarDia, type Vinculo } from './vinculo';
 
 /**
@@ -71,8 +86,11 @@ const vista = (v: Vinculo): RelationView => ({
   ultimoContacto: v.ultimoContacto,
 });
 
-const fueraDeClase = (desde: number, hasta: number) => (ctx: ReadContext) =>
-  !isSchoolHours(ctx.time) && inHours(ctx.time, desde, hasta) ? true : `Disponible de ${desde} a ${hasta}, fuera de clase`;
+/** Fuera de clase y entre `desde` y `hasta`; con `recreo`, también en el recreo (lo corto se puede hacer entre clase y clase). */
+const fueraDeClase = (desde: number, hasta: number, recreo = false) => (ctx: ReadContext) =>
+  (!isSchoolHours(ctx.time) || (recreo && enRecreo(ctx.time))) && inHours(ctx.time, desde, hasta)
+    ? true
+    : `Disponible de ${desde} a ${hasta}, fuera de clase${recreo ? ' (o en el recreo)' : ''}`;
 
 const nombreCorto = (n: NpcView) => n.name.split(' ')[0];
 const esAutoridad = (n: NpcView) => n.role === 'entrenador' || n.role === 'profesor';
@@ -80,9 +98,12 @@ const esAutoridad = (n: NpcView) => n.role === 'entrenador' || n.role === 'profe
 /** Horario de hablar con cada tipo de persona. */
 function horarioDe(n: NpcView): (ctx: ReadContext) => true | string {
   if (n.role === 'entrenador') return (c) => (!c.time.isSchoolDay ? fueraDeClase(9, 14)(c) : fueraDeClase(15, 21)(c));
-  if (n.role === 'profesor') return (c) => (c.time.isSchoolDay && inHours(c.time, 14, 17) ? true : 'Tutorías los días de clase, de 14 a 17');
+  if (n.role === 'profesor') return (c) => ((c.time.isSchoolDay && inHours(c.time, 14, 17)) || enRecreo(c.time) ? true : 'Tutorías los días de clase, de 14 a 17 (o en el recreo)');
   return fueraDeClase(10, 21);
 }
+
+/** Nivel (0..1, «para su edad») de las habilidades del personaje que cuentan en una acción, ponderadas. */
+const nivelDeHabilidad = (ctx: ReadContext, pesos: readonly { stat: string; peso: number }[]): number => pesos.reduce((t, h) => t + h.peso * ctx.norm(h.stat), 0);
 
 const grupoDe = (n: NpcView) => `Relaciones · ${nombreCorto(n)}`;
 const perfilDe = (ctx: ReadContext) => ctx.service<ProfileService>(SERVICES.perfil)?.view();
@@ -91,14 +112,53 @@ const compatDe = (ctx: ReadContext, n: NpcView): number => {
   return n.rasgos && yo ? compatibilidad(n.rasgos, yo) : 0.4;
 };
 
-/** Requisitos comunes: un solo contacto al día con cada persona. */
+/**
+ * Dónde está cada persona ahora, según la presencia de `npcs`. Se pregunta en cada acción de cada persona conocida, así que se recuerda
+ * por minuto de juego (la presencia solo cambia con el tiempo). Sin los servicios `presencia` y `lugares` no se restringe nada.
+ */
+const UBICACIONES = new WeakMap<ReadContext, { minuto: number; presencia?: PresenciaService; lugar?: string; donde: Map<string, Sitio | undefined> }>();
+
+function ubicaciones(ctx: ReadContext) {
+  let u = UBICACIONES.get(ctx);
+  if (!u || u.minuto !== ctx.time.minute) {
+    u = { minuto: ctx.time.minute, presencia: ctx.service<PresenciaService>(SERVICES.presencia), lugar: ctx.service<LugaresService>(SERVICES.lugares)?.actual().id, donde: new Map() };
+    UBICACIONES.set(ctx, u);
+  }
+  return u;
+}
+
+/** Dónde está esa persona: un lugar, `null` (fuera del mapa) o `undefined` (no se sabe: no se restringe). */
+function dondeEsta(ctx: ReadContext, id: string): Sitio | undefined {
+  const u = ubicaciones(ctx);
+  if (!u.presencia || !u.lugar) return undefined;
+  if (!u.donde.has(id)) u.donde.set(id, u.presencia.donde(id));
+  return u.donde.get(id);
+}
+
+/** Hablar con alguien exige que esté donde tú estás. Si está en otro lugar del mapa, basta con ir allí (`lugar`); si está fuera del mapa, no se puede. */
+const presenteAqui = (n: NpcView) => (ctx: ReadContext): true | string => {
+  const sitio = dondeEsta(ctx, n.id);
+  if (sitio === undefined) return true;
+  if (sitio === null) return `${nombreCorto(n)} no está por aquí ahora`;
+  return enLugar(ctx, sitio);
+};
+
+/** Dónde hay que estar para hablar con esa persona (donde esté ahora, si está en el mapa). */
+const lugarDe = (n: NpcView) => (ctx: ReadContext): readonly string[] => {
+  const sitio = dondeEsta(ctx, n.id);
+  return sitio ? [sitio] : [];
+};
+
+/** Requisitos comunes: un solo contacto al día con cada persona y que esté donde tú estás. */
 function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, extra?: (ctx: ReadContext, v: Vinculo) => true | string) {
   return (ctx: ReadContext): true | string => {
     const s = ctx.state<RelacionesState>();
     if (s.vinculos[n.id]?.ultimoContacto === ctx.time.day) return `Ya has estado con ${nombreCorto(n)} hoy`;
     const h = horario(ctx);
     if (h !== true) return h;
-    return extra ? extra(ctx, vinculoDe(s, n, ctx.time.day)) : true;
+    const otro = extra ? extra(ctx, vinculoDe(s, n, ctx.time.day)) : true;
+    // Lo último que se comprueba es dónde está: si es lo único que falta, basta con viajar.
+    return otro !== true ? otro : presenteAqui(n)(ctx);
   };
 }
 
@@ -182,7 +242,7 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
         { stat: GEN.empatia, amount: 0.2 },
       ],
       delta: { [GEN.energia]: -1 },
-      horario: fueraDeClase(8, 22),
+      horario: fueraDeClase(8, 22, true),
     }),
     interaccion(n, {
       suffix: 'ayudar',
@@ -215,7 +275,7 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
         { stat: GEN.creatividad, amount: 0.3 },
       ],
       delta: { [GEN.energia]: -1 },
-      horario: fueraDeClase(8, 22),
+      horario: fueraDeClase(8, 22, true),
       extra: (ctx) => {
         const falta = espera(ctx.state<RelacionesState>(), `detalle.${n.id}`, ctx.time.day);
         return falta > 0 ? `Ya has tenido un detalle hace poco (en ${falta} día${falta === 1 ? '' : 's'} otra vez)` : true;
@@ -300,7 +360,7 @@ function hacerLasPaces(n: NpcView): ActionDef {
     run: (ctx) => {
       const dia = ctx.time.day;
       const v = vinculoDe(ctx.state<RelacionesState>(), n, dia);
-      const p = probabilidadDePaces(n.rasgos, NIVEL_ESTADO[v.estado], compatDe(ctx, n));
+      const p = probabilidadDePaces(n.rasgos, NIVEL_ESTADO[v.estado], compatDe(ctx, n), nivelDeHabilidad(ctx, HABILIDADES_DE_PACES));
       if (ctx.rng.chance(p)) {
         ctx.updateState<RelacionesState>((s) => ({
           ...s,
@@ -368,6 +428,8 @@ function accionesDe(n: NpcView): ActionDef[] {
     else if (esAutoridad(n)) lista = [hablarConAutoridad(n), discutir(n), hacerLasPaces(n)];
     else if (n.role === 'rival') lista = [saludarRival(n), discutir(n), hacerLasPaces(n)];
     else lista = [];
+    // Todas se hacen donde esté la persona: el motor lo sabe (`lugar`) para que quien quiera hablar con ella pueda ir hasta allí.
+    lista = lista.map((d) => ({ ...d, lugar: lugarDe(n) }));
     memoAcciones.set(clave, lista);
   }
   return lista;
@@ -425,6 +487,31 @@ function presentaciones(ctx: ReadContext): ActionDef[] {
   return (c.acciones ??= c.lista.filter((n) => n.known === false).map(presentarse));
 }
 
+/** El servicio de personas y el perfil del personaje, recordados por minuto de juego: los piden los modificadores de cada acción de cada persona. */
+const SOCIAL = new WeakMap<ReadContext, { minuto: number; dir?: NpcDirectory; perfil?: PerfilDelPersonaje }>();
+function social(ctx: ReadContext) {
+  let c = SOCIAL.get(ctx);
+  if (!c || c.minuto !== ctx.time.minute) {
+    c = { minuto: ctx.time.minute, dir: dirDe(ctx), perfil: ctx.service<ProfileService>(SERVICES.perfil)?.view() };
+    SOCIAL.set(ctx, c);
+  }
+  return c;
+}
+
+/** De un id `relaciones.<acción>.<persona>` saca la acción y la persona (los de presentarse, discutir y paces no cuentan para hablar). */
+function accionYPersona(id: string): { accion: string; npc: string } | undefined {
+  const [modulo, accion, ...resto] = id.split('.');
+  return modulo === 'relaciones' && resto.length ? { accion, npc: resto.join('.') } : undefined;
+}
+
+const NOMBRE_HABILIDAD: Record<string, string> = {
+  [GEN.comunicacion]: 'comunicación',
+  [GEN.carisma]: 'carisma',
+  [GEN.empatia]: 'empatía',
+  [GEN.cooperacion]: 'cooperación',
+  [GEN.creatividad]: 'creatividad',
+};
+
 export const relaciones = defineModule<RelacionesState>({
   id: 'relaciones',
   name: 'Relaciones',
@@ -459,11 +546,39 @@ export const relaciones = defineModule<RelacionesState>({
       tags: ['*'],
       apply: (ctx, action) => {
         if (!action.id.startsWith('relaciones.')) return null;
-        const n = dirDe(ctx)?.get(action.id.split('.').pop()!);
-        const yo = ctx.service<ProfileService>(SERVICES.perfil)?.view();
+        const { dir, perfil: yo } = social(ctx);
+        const n = dir?.get(action.id.split('.').pop()!);
         if (!n?.rasgos || !yo) return null;
         const f = factorDeCompatibilidad(compatibilidad(n.rasgos, yo));
         return Math.abs(f - 1) < 0.02 ? null : { efficiency: f, reason: `Compatibilidad con ${n.name.split(' ')[0]}` };
+      },
+    },
+    {
+      // Habilidad: comunicación, carisma, empatía... según la conversación (×0,8 a ×1,3).
+      id: 'relaciones.habilidad',
+      tags: [TAGS.social],
+      apply: (ctx, action) => {
+        const p = accionYPersona(action.id);
+        const pesos = p && HABILIDADES_DE_ACCION[p.accion];
+        if (!pesos) return null;
+        const f = factorDeHabilidad(nivelDeHabilidad(ctx, pesos));
+        if (Math.abs(f - 1) < 0.02) return null;
+        const de = pesos.map((h) => NOMBRE_HABILIDAD[h.stat]).join(' y ');
+        return { efficiency: f, reason: f > 1 ? `Se te da bien hablar (${de})` : `Te falta soltura (${de})` };
+      },
+    },
+    {
+      // Disposición: lo sociable y optimista que es la otra persona y la primera impresión que le causas (sus gustos) (×0,75 a ×1,3).
+      id: 'relaciones.disposicion',
+      tags: [TAGS.social],
+      apply: (ctx, action) => {
+        const p = accionYPersona(action.id);
+        if (!p || !HABILIDADES_DE_ACCION[p.accion]) return null;
+        const { dir, perfil } = social(ctx);
+        const n = dir?.get(p.npc);
+        if (!n) return null;
+        const { factor, motivo } = disposicion(n.rasgos, perfil);
+        return Math.abs(factor - 1) < 0.02 ? null : { efficiency: factor, reason: `${motivo ?? 'Su forma de ser'} (${n.name.split(' ')[0]})` };
       },
     },
     {

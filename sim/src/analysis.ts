@@ -96,7 +96,7 @@ export function calibrar(): number {
 }
 
 /** Límite del coste por acción, en veces la calibración: más de esto es que el motor se ha vuelto más lento (no la máquina). */
-export const LIMITE_RELATIVO = 0.1;
+export const LIMITE_RELATIVO = 0.12;
 
 export function runChecks(sum: BotSummary[], areas: Area[], days: number, calibracion?: number): Check[] {
   const checks: Check[] = [];

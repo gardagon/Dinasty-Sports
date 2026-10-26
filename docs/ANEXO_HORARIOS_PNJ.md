@@ -144,7 +144,6 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 
 ## 6. Pendiente
 
-- **Ligar las acciones de relación a la presencia** (hablar con alguien solo si está donde estás).
 - **Pestaña del deporte:** habilidades, clasificación de todas las carreras del año y demás.
 - **Horarios de apertura** de los comercios y de los lugares (cerrado según la hora).
 - **Eventos y decisiones:** pendientes de todo lo demás.

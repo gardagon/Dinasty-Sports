@@ -402,6 +402,13 @@ const RELEVANCIA: Record<string, number> = { profesor: 6, entrenador: 6, amigo: 
 const CONSULTAS = new WeakMap<Npc[], Map<string, NpcView[]>>();
 const POR_ID = new WeakMap<Npc[], Map<string, Npc>>();
 
+/** Una persona por su id sin recorrer la lista (se pregunta por muchas en cada acción). */
+function personaPorId(lista: Npc[], id: string): Npc | undefined {
+  let porId = POR_ID.get(lista);
+  if (!porId) POR_ID.set(lista, (porId = new Map(lista.map((x) => [x.id, x]))));
+  return porId.get(id);
+}
+
 const SIN_TIPOS: TipoAsignado[] = [];
 /** La agenda depende solo de los tipos de la persona: se monta una vez por lista de tipos (los acontecimientos con fecha de fin no se guardan). */
 const AGENDAS = new WeakMap<TipoAsignado[], TramoDeAgenda[]>();
@@ -563,11 +570,11 @@ export const npcs = defineModule<NpcsState>({
         version: indice.version,
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso)),
         donde: (id) => {
-          const n = lista.find((x) => x.id === id);
+          const n = personaPorId(lista, id);
           return n ? ubicacionEn(agendaDe(n), t, n.id).sitio : undefined;
         },
         agenda: (id) => {
-          const n = lista.find((x) => x.id === id);
+          const n = personaPorId(lista, id);
           return n ? agendaDe(n) : [];
         },
       };
@@ -602,9 +609,7 @@ export const npcs = defineModule<NpcsState>({
           return [...vistas];
         },
         get: (id) => {
-          let porId = POR_ID.get(lista);
-          if (!porId) POR_ID.set(lista, (porId = new Map(lista.map((x) => [x.id, x]))));
-          const n = porId.get(id);
+          const n = personaPorId(lista, id);
           return n ? vista(n, inicioCurso) : undefined;
         },
       };
