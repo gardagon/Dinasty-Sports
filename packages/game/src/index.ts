@@ -9,6 +9,7 @@ export function nuevaPartida(opts: CreateOptions = {}, modulos: readonly GameMod
   return Game.create(modulos, opts);
 }
 
-export function cargarPartida(saved: GameState, modulos: readonly GameModule<any>[] = MODULOS): Game {
-  return Game.load(modulos, saved);
+/** Carga una partida guardada. `copiar: false` evita copiar el estado cuando acaba de salir de un texto JSON (nadie más lo usa). */
+export function cargarPartida(saved: GameState, modulos: readonly GameModule<any>[] = MODULOS, opciones?: { copiar?: boolean }): Game {
+  return Game.load(modulos, saved, opciones);
 }

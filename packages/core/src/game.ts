@@ -147,12 +147,13 @@ export class Game {
   }
 
   /** Carga una partida guardada. Las stats y módulos nuevos se inicializan solos. */
-  static load(modules: readonly GameModule<any>[], saved: GameState): Game {
+  static load(modules: readonly GameModule<any>[], saved: GameState, opciones: { copiar?: boolean } = {}): Game {
     if (saved.version !== SAVE_VERSION) {
       throw new Error(`Versión de guardado ${saved.version} no soportada (actual: ${SAVE_VERSION})`);
     }
     const registry = buildRegistry(modules);
-    const state = structuredClone(saved);
+    // Se copia para no tocar el objeto de quien llama; con `copiar: false` se usa tal cual (p. ej. recién leído de un texto JSON).
+    const state = opciones.copiar === false ? saved : structuredClone(saved);
     Game.fillMissing(registry, state);
     return new Game(registry, state);
   }
@@ -410,9 +411,17 @@ export class Game {
     return this.readCtx('core').service<T>(key);
   }
 
-  /** Copia serializable del estado (para guardar). */
+  /** Copia serializable del estado (para tests y para quien necesite un objeto). */
   serialize(): GameState {
     return structuredClone(this.s);
+  }
+
+  /**
+   * El estado en texto JSON, con los campos extra que se le pidan al lado (`{ ...extras, state }`). Es la forma barata de guardar: convertir a
+   * texto cuesta una quinta parte que copiar el objeto, y el texto ya es una copia (no cambia aunque la partida siga).
+   */
+  serializarJSON(extras: Record<string, unknown> = {}): string {
+    return JSON.stringify({ ...extras, state: this.s });
   }
 
   // ------------------------------------------------------------------ acciones

@@ -35,7 +35,7 @@ import {
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
 import { clicEnGente, reiniciarGente, viewPanelGente } from './gente';
-import { aJSON, crearAlmacen, deJSON, pedirAlmacenamientoPersistente, type AgendaItem, type Almacen, type SaveFile } from './almacen';
+import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
 /**
  * Interfaz web mínima. Solo habla con el motor (@ds/game / @ds/core): no conoce
@@ -46,8 +46,6 @@ import { aJSON, crearAlmacen, deJSON, pedirAlmacenamientoPersistente, type Agend
 
 type Tab = 'hacer' | 'personaje' | 'gente' | 'relaciones' | 'diario';
 
-/** Dónde se guardaban las partidas antes de IndexedDB (se migran al abrir el juego). */
-const CLAVE_ANTIGUA = 'dinasty-sports:partida';
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const ESTADO = [GEN.energia, GEN.salud, GEN.estres, GEN.motivacion];
 /** Stats en las que subir es malo (se pintan al revés). */
@@ -87,7 +85,7 @@ async function guardarYa(): Promise<void> {
   try {
     while (hayCambios && game) {
       hayCambios = false;
-      await almacen.guardar({ state: game.serialize(), agenda: agenda.slice(-60) });
+      await almacen.guardar(serializarPartida(game, agenda.slice(-60)));
       errorDeGuardado = null;
     }
     if (!pidioPersistencia && almacen.tipo === 'indexeddb') {
@@ -123,28 +121,14 @@ function descartarPartida(): void {
   void almacen?.borrar().catch(() => undefined);
 }
 
-/** Una partida de la versión anterior del guardado (localStorage): se recoge una vez y se borra de allí. */
-function recogerPartidaAntigua(): SaveFile | null {
-  try {
-    const raw = localStorage.getItem(CLAVE_ANTIGUA);
-    if (!raw) return null;
-    localStorage.removeItem(CLAVE_ANTIGUA);
-    return JSON.parse(raw) as SaveFile;
-  } catch {
-    return null;
-  }
-}
-
 async function load(): Promise<void> {
   try {
-    let data = await almacen!.cargar();
-    if (!data) {
-      data = recogerPartidaAntigua();
-      if (data) save(); // pasa a IndexedDB
-    }
-    if (!data) return;
-    game = cargarPartida(data.state);
-    agenda = data.agenda ?? [];
+    const texto = await almacen!.cargar();
+    if (!texto) return;
+    const data = deJSON(texto);
+    // El estado acaba de salir del texto y no lo usa nadie más: no hace falta copiarlo.
+    game = cargarPartida(data.state, undefined, { copiar: false });
+    agenda = data.agenda;
   } catch (e) {
     console.warn('No se pudo cargar la partida guardada', e);
     descartarPartida();
@@ -155,7 +139,7 @@ async function load(): Promise<void> {
 
 function exportarPartida(): void {
   if (!game) return;
-  const texto = aJSON({ state: game.serialize(), agenda: agenda.slice(-60) });
+  const texto = serializarPartida(game, agenda.slice(-60)).texto;
   const enlace = document.createElement('a');
   enlace.href = URL.createObjectURL(new Blob([texto], { type: 'application/json' }));
   enlace.download = `dinasty-sports-${game.playerName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`;
@@ -173,7 +157,7 @@ function importarPartida(): void {
     if (!archivo) return;
     try {
       const data = deJSON(await archivo.text());
-      game = cargarPartida(data.state);
+      game = cargarPartida(data.state, undefined, { copiar: false });
       agenda = data.agenda;
       lastResult = null;
       tab = 'hacer';

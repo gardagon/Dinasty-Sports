@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 26/10/2026 — Fuera `localStorage` y guardado como texto
+
+- **Se elimina `localStorage`** del código (la migración desde el guardado antiguo y sus referencias): en alfa no hay partidas que conservar. Queda solo IndexedDB.
+- **Se guarda el texto JSON de la partida** en lugar del objeto. Medido en Chromium con 10 000 personas (9 MB): antes ~300 ms bloqueando el navegador por guardado (copiar el estado 226 ms + escribir el objeto 80 ms); ahora ~60 ms (convertir a texto 52 ms + escribir 10 ms). Leer: 56 ms frente a 85 ms. El texto es también la copia de seguridad que se exporta.
+- **Otras mejoras de revisar el guardado:** al cargar no se vuelve a copiar el estado recién leído (`Game.load(..., { copiar: false })`, ahorra ~225 ms con 10 000 personas); dos tablas (`resumen` pequeña para listar partidas y `datos` con el texto) para que listar no lea las partidas; las dos se escriben en una transacción.
+- No se pierde ninguna cualidad: mismas funciones (varias partidas, persistencia, errores visibles, exportar e importar) y los mismos tests, más uno de que la copia no cambia aunque la partida siga y otro de que cargar sin copiar da el mismo juego.
+
+---
+
 ## 25/10/2026 — Preguntar el nombre, guardado en IndexedDB y rendimiento relativo
 
 - **Preguntar el nombre:** a quien no conoces y tienes **cerca** (hasta `GENTE_CERCANA` = 40 en un lugar, como en el juego de referencia) le puedes preguntar el nombre: acción `relaciones.presentarse.<id>`, 2 minutos, etiqueta social. Emite el evento compartido `persona.presentarse` y `npcs` lo marca como conocido y escribe en el diario «Se llama X. <descripción>». A partir de ahí tiene sus acciones de relación. Se ofrece desde la ficha de la pestaña «Gente» (no en la lista de acciones) y solo si está cerca.

@@ -1,9 +1,10 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { cargarPartida, nuevaPartida } from '@ds/game';
-import { AlmacenEnMemoria, AlmacenIndexedDB, aJSON, crearAlmacen, deJSON, type Almacen, type SaveFile } from './almacen';
+import { AlmacenEnMemoria, AlmacenIndexedDB, crearAlmacen, deJSON, serializarPartida, type Almacen } from './almacen';
 
-const partida = (nombre = 'Alex', semilla = 1): SaveFile => ({ state: nuevaPartida({ seed: semilla, playerName: nombre }).serialize(), agenda: [{ start: 420, duration: 60, name: 'Descansar', rest: true }] });
+const agenda = [{ start: 420, duration: 60, name: 'Descansar', rest: true }];
+const partida = (nombre = 'Alex', semilla = 1) => serializarPartida(nuevaPartida({ seed: semilla, playerName: nombre }), agenda);
 
 const contrato = (nombre: string, crear: () => Almacen) =>
   describe(nombre, () => {
@@ -12,9 +13,11 @@ const contrato = (nombre: string, crear: () => Almacen) =>
       expect(await a.cargar()).toBeNull();
       const p = partida();
       await a.guardar(p);
-      const leida = (await a.cargar())!;
-      expect(leida).toEqual(p);
-      const g = cargarPartida(leida.state);
+      const texto = (await a.cargar())!;
+      expect(texto).toBe(p.texto);
+      const leida = deJSON(texto);
+      expect(leida.agenda).toEqual(agenda);
+      const g = cargarPartida(leida.state, undefined, { copiar: false });
       expect(g.perform('gen.descansar').ok).toBe(true);
     });
 
@@ -22,23 +25,23 @@ const contrato = (nombre: string, crear: () => Almacen) =>
       const a = crear();
       await a.guardar(partida('Uno'));
       await a.guardar(partida('Dos'));
-      expect((await a.cargar())!.state.playerName).toBe('Dos');
+      expect(deJSON((await a.cargar())!).state.playerName).toBe('Dos');
       expect(await a.listar()).toHaveLength(1);
       await a.borrar();
       expect(await a.cargar()).toBeNull();
       expect(await a.listar()).toEqual([]);
     });
 
-    it('guarda varias partidas por id y las lista, la más reciente primero', async () => {
+    it('guarda varias partidas por id y las lista sin leerlas, la más reciente primero', async () => {
       const a = crear();
       await a.guardar(partida('Ana', 1), 'a');
       await new Promise((r) => setTimeout(r, 5));
       await a.guardar(partida('Beto', 2), 'b');
       expect((await a.listar()).map((x) => x.nombre)).toEqual(['Beto', 'Ana']);
-      expect((await a.cargar('a'))!.state.playerName).toBe('Ana');
+      expect(deJSON((await a.cargar('a'))!).state.playerName).toBe('Ana');
       await a.borrar('a');
       expect(await a.cargar('a')).toBeNull();
-      expect((await a.cargar('b'))!.state.playerName).toBe('Beto');
+      expect(deJSON((await a.cargar('b'))!).state.playerName).toBe('Beto');
     });
   });
 
@@ -49,19 +52,21 @@ describe('IndexedDB', () => {
   it('lo guardado sobrevive a cerrar y abrir de nuevo (otra conexión a la misma base)', async () => {
     const fabrica = new IDBFactory();
     await new AlmacenIndexedDB('juego', fabrica).guardar(partida('Persistente'));
-    expect((await new AlmacenIndexedDB('juego', fabrica).cargar())!.state.playerName).toBe('Persistente');
+    expect(deJSON((await new AlmacenIndexedDB('juego', fabrica).cargar())!).state.playerName).toBe('Persistente');
   });
 
-  it('aguanta una partida de más de 5 MB (el límite de localStorage) con miles de personas', async () => {
-    const p = partida();
-    const npcs = (p.state.modules.npcs as { npcs: { id: string; name: string }[] }).npcs;
+  it('aguanta una partida de más de 5 MB con miles de personas', async () => {
+    const g = nuevaPartida({ seed: 1 });
+    const s = g.serialize();
+    const npcs = (s.modules.npcs as { npcs: { id: string; name: string }[] }).npcs;
     const base = [...npcs];
     for (let i = 0; i < 6000; i++) npcs.push({ ...structuredClone(base[i % base.length]), id: `x${i}`, name: `${base[i % base.length].name} ${i}` });
-    expect(JSON.stringify(p.state).length).toBeGreaterThan(5 * 1024 * 1024);
+    const grande = cargarPartida(s, undefined, { copiar: false });
+    const p = serializarPartida(grande, []);
+    expect(p.texto.length).toBeGreaterThan(5 * 1024 * 1024);
     const a = new AlmacenIndexedDB('grande', new IDBFactory());
     await a.guardar(p);
-    const leida = (await a.cargar())!;
-    expect((leida.state.modules.npcs as { npcs: unknown[] }).npcs).toHaveLength(npcs.length);
+    expect((deJSON((await a.cargar())!).state.modules.npcs as { npcs: unknown[] }).npcs).toHaveLength(npcs.length);
   });
 
   it('sin IndexedDB en el navegador se usa el almacén en memoria', async () => {
@@ -69,11 +74,17 @@ describe('IndexedDB', () => {
   });
 });
 
-describe('copia de seguridad en JSON', () => {
-  it('exportar e importar devuelve la misma partida', () => {
-    const p = partida('Copia');
-    // JSON no distingue -0 de 0 (el juego tiene algún -0 en los rasgos): se compara con lo que da pasar la partida por JSON.
-    expect(deJSON(aJSON(p))).toEqual(JSON.parse(JSON.stringify(p)));
+describe('la partida en texto (también es la copia de seguridad)', () => {
+  it('lleva el formato, la versión, el nombre y el estado, y es una copia: no cambia aunque la partida siga', () => {
+    const g = nuevaPartida({ seed: 3, playerName: 'Copia' });
+    const p = serializarPartida(g, agenda);
+    const antes = p.texto;
+    g.perform('gen.descansar');
+    expect(p.texto).toBe(antes);
+    const o = JSON.parse(p.texto);
+    expect(o).toMatchObject({ formato: 'dinasty-sports', nombre: 'Copia' });
+    expect(o.version).toBe(p.version);
+    expect(deJSON(p.texto).state.minute).toBeLessThan(g.time.minute);
   });
 
   it('rechaza lo que no es una copia de seguridad, con un motivo', () => {
@@ -82,9 +93,16 @@ describe('copia de seguridad en JSON', () => {
     expect(() => deJSON('{"formato":"otro","state":{}}')).toThrow(/no es una copia/);
   });
 
-  it('una copia de otra versión del juego se carga y el juego la rechaza con su propio aviso', () => {
-    const p = partida();
-    const vieja = deJSON(aJSON({ ...p, state: { ...p.state, version: 1 } }));
-    expect(() => cargarPartida(vieja.state)).toThrow(/Versión de guardado/);
+  it('una copia de otra versión del juego se lee y el juego la rechaza con su propio aviso', () => {
+    const o = JSON.parse(partida().texto);
+    o.state.version = 1;
+    expect(() => cargarPartida(deJSON(JSON.stringify(o)).state)).toThrow(/Versión de guardado/);
+  });
+
+  it('cargar sin copiar da el mismo juego que cargar copiando', () => {
+    const s = deJSON(partida().texto).state;
+    const a = cargarPartida(structuredClone(s), undefined, { copiar: false });
+    const b = cargarPartida(s);
+    for (const id of ['gen.fuerza', 'estudios.matematicas', 'atletismo.tecnica']) expect(a.stat(id)).toBe(b.stat(id));
   });
 });

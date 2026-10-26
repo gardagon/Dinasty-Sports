@@ -136,25 +136,15 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 | 50 000 | 47 MB | 1 975 ms | 26 ms | — | 27 ms |
 
 - **El procesador no es el límite.** Con las consultas resueltas una vez (presencia entre cambios de tramo, consultas de personas por filtro) hasta decenas de miles de personas siguen dando milisegundos. Ejecutar una acción cuesta lo mismo con 400 que con 50 000.
-- **El límite es el guardado.** Cada persona pesa ~950 bytes (535 son sus rasgos: aspecto, carácter, intereses y gustos). El navegador deja unos 5 MB en `localStorage`: **unas 5 000 personas** con el formato actual. La interfaz agrupa los guardados (cada medio segundo, no en cada acción), pero con miles de personas cada guardado se nota.
-- **Qué hacer cuando lleguen los deportes de equipo (de menor a mayor esfuerzo):**
-  1. **Compactar los rasgos** (ids numéricos en vez de textos): de 535 a unos 60 bytes, unas 15 000 personas en 5 MB.
+- **El límite es el guardado.** Cada persona pesa ~950 bytes (535 son sus rasgos: aspecto, carácter, intereses y gustos). Se guarda en IndexedDB (cientos de MB), así que el espacio no limita; lo que se nota es lo que tarda cada guardado: unos 60 ms con 10 000 personas (ver `docs/ALMACENAMIENTO.md`). La interfaz agrupa los guardados (cada medio segundo, no en cada acción).
+- **Qué hacer cuando lleguen los deportes de equipo, si hiciera falta (de menor a mayor esfuerzo; fases en `docs/ALMACENAMIENTO.md`):**
+  1. **Compactar los rasgos** (ids numéricos en vez de textos): de 535 a unos 60 bytes por persona.
   2. **Guardar solo lo que cambia:** la población sale de la semilla (es determinista) y la partida guarda solo las diferencias (la conoces, está en tu club, su nivel). Sin límite práctico.
-  3. **IndexedDB** en lugar de `localStorage` (**hecho**, ver `docs/ALMACENAMIENTO.md`): sube el límite de ~5 MB a cientos de MB.
 - **Presencia:** nadie aparece ni desaparece mientras no cambie un tramo: dentro de un tramo cada persona está siempre en el mismo sitio (su destino sale de un hash de persona, día y tramo, no del minuto). Por eso la presencia de toda la población se calcula **una vez por intervalo entre dos cambios de tramo de cualquier agenda** (unas 10 veces al día: 7:50, 10:00, 14:00, 15:00...) y se reutiliza. Un test avanza de 6 en 6 minutos durante dos días y comprueba que lo reutilizado coincide, a cualquier minuto, con calcular persona a persona. En clase son los mismos 25 durante las cuatro clases y el recreo.
-
-### IndexedDB: qué cuesta y qué da
-
-- **Qué da:** el límite deja de ser 5 MB (los navegadores dan una fracción grande del disco libre: cientos de MB o más). Con el formato actual, unas 5 000 personas pasan a decenas de miles.
-- **Qué no da:** no reduce lo que pesa la partida ni el tiempo de copiarla en memoria. Guardar 10 000 personas sigue copiando ~9 MB; solo se evita convertirlos a texto y la escritura es asíncrona, así que no bloquea el juego. Con la agrupación de guardados, es asumible.
-- **Coste de adoptarlo (pequeño, de media jornada):** el guardado y la carga pasan a ser asíncronos (la interfaz espera a cargar antes de dibujar), hay que migrar o descartar el guardado de `localStorage` (en alfa se descarta) y probarlo en un navegador real. La lógica del juego no cambia, porque `Game.serialize()` y `Game.load()` siguen igual. Hay que pedir almacenamiento persistente (`navigator.storage.persist()`) para que el navegador no lo borre.
-- **Riesgo conocido:** Safari en iPhone borra los datos de una web sin uso en 7 días, salvo que esté instalada en la pantalla de inicio (esta es una PWA instalable, así que se recomienda instalarla). Pasa igual con `localStorage`.
-- **Recomendación:** vale la pena, pero no hace falta ahora (391 personas ocupan 0,4 MB). Hacerlo cuando se pase de ~2 000 personas o al empezar los deportes de equipo, junto con compactar los rasgos. Guardar solo las diferencias respecto a la semilla es la solución definitiva si la población llegara a ser enorme (más de ~50 000), y también necesita IndexedDB o compactar para ser cómodo.
 
 ## 6. Pendiente
 
 - **Ligar las acciones de relación a la presencia** (hablar con alguien solo si está donde estás).
-
 - **Pestaña del deporte:** habilidades, clasificación de todas las carreras del año y demás.
 - **Horarios de apertura** de los comercios y de los lugares (cerrado según la hora).
 - **Eventos y decisiones:** pendientes de todo lo demás.

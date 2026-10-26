@@ -1,10 +1,11 @@
-import type { GameState } from '@ds/core';
+import { SAVE_VERSION, type Game, type GameState } from '@ds/core';
 
 /**
- * Dónde se guardan las partidas. La interfaz solo habla con `Almacen`; la implementación real es IndexedDB (cientos de MB en vez de los
- * ~5 MB de localStorage y sin convertir la partida a texto), y hay otra en memoria para los tests y para cuando el navegador no deja
- * usar IndexedDB (algunos modos privados). Las copias de seguridad se exportan e importan como JSON (`aJSON`, `deJSON`).
- * Plan y fases: `docs/ALMACENAMIENTO.md`.
+ * Dónde se guardan las partidas. La interfaz solo habla con `Almacen`; la implementación real es IndexedDB y hay otra en memoria para los
+ * tests y para cuando el navegador no deja usar IndexedDB (algunos modos privados). Plan y fases: `docs/ALMACENAMIENTO.md`.
+ *
+ * Lo que se guarda es el TEXTO JSON de la partida (el mismo formato que la copia de seguridad que se exporta): convertir a texto cuesta
+ * una quinta parte que copiar el objeto y escribirlo bloquea el navegador unas diez veces menos (medido con 10 000 personas).
  */
 
 export interface AgendaItem {
@@ -20,6 +21,13 @@ export interface SaveFile {
   agenda: AgendaItem[];
 }
 
+/** Una partida ya convertida a texto, con lo que hace falta para listarla sin leerla. */
+export interface PartidaEnTexto {
+  texto: string;
+  nombre: string;
+  version: number;
+}
+
 export interface ResumenDePartida {
   id: string;
   nombre: string;
@@ -27,36 +35,48 @@ export interface ResumenDePartida {
 }
 
 export const PARTIDA_ACTUAL = 'actual';
+const FORMATO = 'dinasty-sports';
 
 export interface Almacen {
   readonly tipo: 'indexeddb' | 'memoria';
-  cargar(id?: string): Promise<SaveFile | null>;
-  guardar(data: SaveFile, id?: string): Promise<void>;
+  /** El texto JSON de la partida, o `null` si no existe. */
+  cargar(id?: string): Promise<string | null>;
+  guardar(partida: PartidaEnTexto, id?: string): Promise<void>;
   borrar(id?: string): Promise<void>;
-  /** Partidas guardadas, la más reciente primero (para tener varias más adelante). */
+  /** Partidas guardadas, la más reciente primero (para tener varias más adelante). No lee los datos. */
   listar(): Promise<ResumenDePartida[]>;
 }
 
-/** Lo que hay en la base de datos por partida. */
-interface Registro {
-  id: string;
-  nombre: string;
-  guardadoEn: number;
-  version: number;
-  data: SaveFile;
+/** Convierte la partida a texto en el momento de llamar: lo que pase después no cambia lo que se guarda. */
+export function serializarPartida(game: Game, agenda: readonly AgendaItem[]): PartidaEnTexto {
+  const version = SAVE_VERSION;
+  const texto = game.serializarJSON({ formato: FORMATO, version, nombre: game.playerName, guardadoEn: new Date().toISOString(), agenda });
+  return { texto, nombre: game.playerName, version };
+}
+
+/** Lee el texto de una partida o de una copia de seguridad. Lanza un error con el motivo si no lo es. La versión del juego la valida `Game.load`. */
+export function deJSON(texto: string): SaveFile {
+  let o: unknown;
+  try {
+    o = JSON.parse(texto);
+  } catch {
+    throw new Error('El archivo no es una copia de seguridad (no es JSON).');
+  }
+  const x = o as { formato?: string; state?: GameState; agenda?: AgendaItem[] };
+  if (!x || x.formato !== FORMATO || !x.state || typeof x.state !== 'object') throw new Error('El archivo no es una copia de seguridad de Dinasty Sports.');
+  return { state: x.state, agenda: Array.isArray(x.agenda) ? x.agenda : [] };
 }
 
 export class AlmacenEnMemoria implements Almacen {
   readonly tipo = 'memoria';
-  private readonly partidas = new Map<string, Registro>();
+  private readonly partidas = new Map<string, ResumenDePartida & { texto: string }>();
 
-  async cargar(id = PARTIDA_ACTUAL): Promise<SaveFile | null> {
-    const r = this.partidas.get(id);
-    return r ? structuredClone(r.data) : null;
+  async cargar(id = PARTIDA_ACTUAL): Promise<string | null> {
+    return this.partidas.get(id)?.texto ?? null;
   }
 
-  async guardar(data: SaveFile, id = PARTIDA_ACTUAL): Promise<void> {
-    this.partidas.set(id, { id, nombre: data.state.playerName, guardadoEn: Date.now(), version: data.state.version, data: structuredClone(data) });
+  async guardar(p: PartidaEnTexto, id = PARTIDA_ACTUAL): Promise<void> {
+    this.partidas.set(id, { id, nombre: p.nombre, guardadoEn: Date.now(), texto: p.texto });
   }
 
   async borrar(id = PARTIDA_ACTUAL): Promise<void> {
@@ -68,7 +88,9 @@ export class AlmacenEnMemoria implements Almacen {
   }
 }
 
-const TABLA = 'partidas';
+/** Dos tablas: el resumen de cada partida (pequeño, para listar) y su texto (grande, solo se lee al cargar). */
+const RESUMEN = 'resumen';
+const DATOS = 'datos';
 
 export class AlmacenIndexedDB implements Almacen {
   readonly tipo = 'indexeddb';
@@ -83,9 +105,9 @@ export class AlmacenIndexedDB implements Almacen {
     this.conexion ??= new Promise((resolve, reject) => {
       const peticion = this.fabrica.open(this.nombre, 1);
       peticion.onupgradeneeded = () => {
-        // Versión 1 de la base: una tabla de partidas por id, con un índice por fecha para listarlas.
-        const tabla = peticion.result.createObjectStore(TABLA, { keyPath: 'id' });
-        tabla.createIndex('guardadoEn', 'guardadoEn');
+        const bd = peticion.result;
+        bd.createObjectStore(RESUMEN, { keyPath: 'id' }).createIndex('guardadoEn', 'guardadoEn');
+        bd.createObjectStore(DATOS);
       };
       peticion.onsuccess = () => resolve(peticion.result);
       peticion.onerror = () => reject(peticion.error);
@@ -94,35 +116,41 @@ export class AlmacenIndexedDB implements Almacen {
     return this.conexion;
   }
 
-  /** Ejecuta una operación en una transacción y espera a que quede confirmada. */
-  private async transaccion<T>(modo: IDBTransactionMode, operacion: (tabla: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+  /** Ejecuta las operaciones en una transacción y espera a que quede confirmada. Devuelve el resultado de la última. */
+  private async transaccion<T>(modo: IDBTransactionMode, tablas: string[], operaciones: (t: Record<string, IDBObjectStore>) => IDBRequest<T>): Promise<T> {
     const db = await this.abrir();
     return new Promise<T>((resolve, reject) => {
-      const tx = db.transaction(TABLA, modo);
-      const peticion = operacion(tx.objectStore(TABLA));
+      const tx = db.transaction(tablas, modo);
+      const t = Object.fromEntries(tablas.map((n) => [n, tx.objectStore(n)]));
+      const peticion = operaciones(t);
       tx.oncomplete = () => resolve(peticion.result);
       tx.onerror = () => reject(tx.error ?? peticion.error);
       tx.onabort = () => reject(tx.error ?? new Error('Transacción cancelada'));
     });
   }
 
-  async cargar(id = PARTIDA_ACTUAL): Promise<SaveFile | null> {
-    const r = await this.transaccion<Registro | undefined>('readonly', (t) => t.get(id));
-    return r?.data ?? null;
+  async cargar(id = PARTIDA_ACTUAL): Promise<string | null> {
+    return (await this.transaccion<string | undefined>('readonly', [DATOS], (t) => t[DATOS].get(id))) ?? null;
   }
 
-  async guardar(data: SaveFile, id = PARTIDA_ACTUAL): Promise<void> {
-    // IndexedDB guarda el objeto tal cual (clon estructurado): no hay que convertirlo a texto.
-    const registro: Registro = { id, nombre: data.state.playerName, guardadoEn: Date.now(), version: data.state.version, data };
-    await this.transaccion('readwrite', (t) => t.put(registro));
+  async guardar(p: PartidaEnTexto, id = PARTIDA_ACTUAL): Promise<void> {
+    const resumen: ResumenDePartida & { version: number } = { id, nombre: p.nombre, guardadoEn: Date.now(), version: p.version };
+    // Las dos tablas en la misma transacción: o se guarda todo o nada.
+    await this.transaccion('readwrite', [RESUMEN, DATOS], (t) => {
+      t[RESUMEN].put(resumen);
+      return t[DATOS].put(p.texto, id);
+    });
   }
 
   async borrar(id = PARTIDA_ACTUAL): Promise<void> {
-    await this.transaccion('readwrite', (t) => t.delete(id));
+    await this.transaccion('readwrite', [RESUMEN, DATOS], (t) => {
+      t[RESUMEN].delete(id);
+      return t[DATOS].delete(id);
+    });
   }
 
   async listar(): Promise<ResumenDePartida[]> {
-    const todos = await this.transaccion<Registro[]>('readonly', (t) => t.getAll());
+    const todos = await this.transaccion<ResumenDePartida[]>('readonly', [RESUMEN], (t) => t[RESUMEN].getAll());
     return todos.map(({ id, nombre, guardadoEn }) => ({ id, nombre, guardadoEn })).sort((a, b) => b.guardadoEn - a.guardadoEn);
   }
 }
@@ -146,25 +174,4 @@ export async function pedirAlmacenamientoPersistente(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-// ------------------------------------------------------------------ copias de seguridad en JSON
-
-const FORMATO = 'dinasty-sports';
-
-export function aJSON(data: SaveFile): string {
-  return JSON.stringify({ formato: FORMATO, version: data.state.version, guardadoEn: new Date().toISOString(), state: data.state, agenda: data.agenda });
-}
-
-/** Lee una copia de seguridad. Lanza un error con el motivo si no lo es. La versión del juego la valida `Game.load`. */
-export function deJSON(texto: string): SaveFile {
-  let o: unknown;
-  try {
-    o = JSON.parse(texto);
-  } catch {
-    throw new Error('El archivo no es una copia de seguridad (no es JSON).');
-  }
-  const x = o as { formato?: string; state?: GameState; agenda?: AgendaItem[] };
-  if (!x || x.formato !== FORMATO || !x.state || typeof x.state !== 'object') throw new Error('El archivo no es una copia de seguridad de Dinasty Sports.');
-  return { state: x.state, agenda: Array.isArray(x.agenda) ? x.agenda : [] };
 }
