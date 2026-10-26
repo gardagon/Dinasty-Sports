@@ -43,6 +43,8 @@ export interface DeporteView {
   nombre: string;
   /** La prueba o disciplina (p. ej. «400 m»). */
   disciplina: string;
+  /** Si hay texto, la pestaña está desactivada (y es lo que hay que hacer para activarla); sin él, el deporte se practica. */
+  inactivo?: string;
   resumen: DatoDeResumen[];
   /** Stats propias del deporte que se enseñan con su barra. Las genéricas (velocidad, resistencia...) se ven en la pestaña del personaje. */
   habilidades: StatId[];

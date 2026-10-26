@@ -390,6 +390,27 @@ export function compatibilidad(npc: { caracter: Caracter; intereses: InteresesNp
   return 0.6 * comun + 0.4 * parecido;
 }
 
+/** En qué es bueno alguien, para lo que se hace juntos: estudiar, salir o entrenar. */
+export type AreaDeAyuda = 'estudio' | 'social' | 'deporte';
+
+/**
+ * Aptitud (0 a 1; ~0,5 lo típico) de una persona en un área, a partir de su carácter, sus intereses y su nivel deportivo.
+ * Es lo que decide cuánto ayuda a quien hace algo con ella (ver `docs/ANEXO_RELACIONES.md`, «Ayuda de los demás»).
+ */
+export function aptitudDe(area: AreaDeAyuda, rasgos: RasgosDe | undefined, niveles: Readonly<Record<string, number>> = {}): number {
+  if (!rasgos) return 0.5;
+  const eje = (id: string) => ((rasgos.caracter[id] ?? 0) - EJE_MIN) / (EJE_MAX - EJE_MIN);
+  const interes = (...ids: string[]) => Math.max(0, ...ids.map((i) => (rasgos.intereses[i] ?? 0) / 3));
+  switch (area) {
+    case 'estudio':
+      return 0.5 * eje('disciplina') + 0.15 * eje('ambicion') + 0.35 * interes('estudio', 'lectura', 'tecnologia');
+    case 'social':
+      return 0.55 * eje('sociabilidad') + 0.25 * eje('optimismo') + 0.2 * interes('cine', 'musica', 'videojuegos');
+    case 'deporte':
+      return 0.6 * ((niveles.atletismo ?? 20) / 100) + 0.4 * interes('deporte', 'atletismo', 'futbol');
+  }
+}
+
 /** Multiplicador sobre lo que sube la afinidad: de ×0,7 (nada en común) a ×1,4 (muy compatibles). */
 /** Una compatibilidad de 0,25 da ×0,7, 0,5 da ×1,05 y 0,75 o más da ×1,4 (lo típico, ~0,4, queda cerca de ×0,9). */
 export const factorDeCompatibilidad = (compat: number): number => 0.7 + 0.7 * clamp((compat - 0.25) / 0.5, 0, 1);

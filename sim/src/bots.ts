@@ -64,6 +64,9 @@ export const estudio = all(tag(TAGS.estudio), not(clase), not(tag(TAGS.social)))
 /** Acciones de relación constructivas (quedar, charlar, ayudar...): los bots nunca discuten. */
 export const relacion = (o: ActionOption) => o.id.startsWith('relaciones.') && !/^relaciones\.(discutir|paces|presentarse)\./.test(o.id);
 
+/** Preguntar el nombre a las cuatro personas del reparto (tutor, entrenador y dos compañeros), que al empezar son desconocidas: las demás, ni se evalúan. */
+export const conocer = (o: ActionOption) => /^relaciones\.presentarse\.(entrenador|tutor|companero_estudio|companero_social)$/.test(o.id);
+
 /** Reglas de supervivencia comunes: dormir de noche, ir a clase, competir, no reventar. */
 export function basicas(
   game: Game,
@@ -120,6 +123,7 @@ export const BOTS: Bot[] = [
           ['club', 1, sesionDeClub],
           ['deporte', 1, entrenoDeporte],
           ['estudio', 1, estudio],
+          ['conocer', 1, conocer],
           ['relacion', 1, relacion],
           ['tele', 1, id('atletismo.ver_tele')],
           ['amigos', 1, conAmigos],

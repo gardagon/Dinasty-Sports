@@ -71,7 +71,7 @@ function vista(g: Game, d: DeporteView): string {
 }
 
 export function viewDeporte(g: Game): string {
-  const todos = deportesDe(g);
+  const todos = deportesDe(g).filter((d) => !d.inactivo);
   if (!todos.length) return '<section class="sheet"><p class="note">No practicas ningún deporte.</p></section>';
   const actual = todos.find((d) => d.id === elegido) ?? todos[0];
   const selector =
@@ -81,9 +81,14 @@ export function viewDeporte(g: Game): string {
   return selector + vista(g, actual);
 }
 
-/** La pestaña se llama siempre «Deporte» (con varios deportes, un selector elige cuál); solo existe si se practica alguno. */
-export function etiquetaDeDeporte(g: Game): string | null {
-  return deportesDe(g).length ? 'Deporte' : null;
+/**
+ * La pestaña se llama siempre «Deporte» (con varios deportes, un selector elige cuál). Existe si hay algún deporte en la partida, pero
+ * está desactivada hasta que se practique alguno (hasta apuntarse a un club); `inactivo` dice qué hay que hacer.
+ */
+export function pestanaDeDeporte(g: Game): { etiqueta: string; inactivo?: string } | null {
+  const todos = deportesDe(g);
+  if (!todos.length) return null;
+  return todos.some((d) => !d.inactivo) ? { etiqueta: 'Deporte' } : { etiqueta: 'Deporte', inactivo: todos[0].inactivo };
 }
 
 export function clicEnDeporte(el: HTMLElement): boolean {

@@ -5,7 +5,9 @@ import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, typ
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { EstudiosState } from '@ds/mod-estudios';
-import { hacer, posible } from './ayudas';
+import { conocer, hacer, posible } from './ayudas';
+
+const baseNueva = nuevaPartida;
 import { asignaturasDelCurso } from '../modules/estudios/src/curriculo';
 import type { NpcsState } from '@ds/mod-npcs';
 import type { RelacionesState } from '@ds/mod-relaciones';
@@ -19,23 +21,24 @@ describe('integración de módulos', () => {
     expect(checkInvariants(g)).toEqual([]);
   });
 
-  it('el entrenador (NPCs) potencia el atletismo vía etiquetas', () => {
-    const g = nuevaPartida({ seed: 11 });
+  it('quien se te da bien en algo te ayuda cuando lo hacéis juntos, según lo bien que os conozcáis', () => {
+    const g = conocer(nuevaPartida({ seed: 11 }));
     advanceTo(g, 'gen.descansar', 0, 16);
-    const sin = g.preview('atletismo.tecnica')!.efficiency;
-    // Forzamos una buena relación a través de un guardado (como haría una partida avanzada).
+    const modulo = (gm: Game, id: string) => gm.preview(id)!.modifiers.find((m) => m.id === 'relaciones.compania');
+    expect(modulo(g, 'relaciones.estudiar.companero_estudio')).toBeUndefined(); // sin conocerse apenas, no ayuda
     const s = g.serialize();
-    (s.modules.relaciones as RelacionesState).vinculos.entrenador = {
-      npcId: 'entrenador', afinidad: 90, confianza: 70, estado: 'mejor_amigo', desde: 0, ultimoContacto: 16, contactos: [16],
+    (s.modules.relaciones as RelacionesState).vinculos.companero_estudio = {
+      npcId: 'companero_estudio', afinidad: 60, confianza: 40, estado: 'amigo', desde: 0, ultimoContacto: -1, contactos: [],
     };
     const g2 = cargarPartida(s);
-    const con = g2.preview('atletismo.tecnica')!;
-    expect(con.efficiency).toBeGreaterThan(sin);
-    expect(con.modifiers.some((m) => m.id === 'relaciones.apoyo')).toBe(true);
+    expect(modulo(g2, 'relaciones.estudiar.companero_estudio')?.result.efficiency).toBeGreaterThan(1);
+    // Lo que no se le da bien no ayuda: salir con el aplicado rinde menos que estudiar con él.
+    const quedar = modulo(g2, 'relaciones.quedar.companero_estudio')?.result.efficiency ?? 1;
+    expect(quedar).toBeLessThan((modulo(g2, 'relaciones.estudiar.companero_estudio')?.result.efficiency ?? 0));
   });
 
   it('las carreras usan a los rivales NPC y el entrenador reacciona', () => {
-    const g = nuevaPartida({ seed: 11 });
+    const g = conocer(nuevaPartida({ seed: 11 }), 'entrenador');
     advanceToWeek(g, 'gen.descansar', 5, 5, 10);
     const antes = g.service<RelationsService>(SERVICES.relaciones)!.get('entrenador')!.afinidad;
     const r = hacer(g, 'atletismo.carrera');
@@ -531,7 +534,7 @@ describe('integración de módulos', () => {
 
     it('a quien no conoces y tienes cerca le puedes preguntar el nombre (2 minutos), y entonces lo conoces', () => {
       const g = nuevaPartida({ seed: 21 });
-      advanceTo(g, 'gen.descansar', 0, 10);
+      advanceTo(g, 'gen.descansar', 0, 11); // el recreo
       g.perform('lugares.ir_colegio');
       const posibles = presentaciones(g);
       expect(posibles.length).toBeGreaterThan(10);
@@ -550,6 +553,8 @@ describe('integración de módulos', () => {
       // Ya no se le puede preguntar otra vez, y ahora tiene acciones de relación.
       expect(g.preview(o.id)).toBeUndefined();
       expect(g.listActions().some((a) => a.id.startsWith('relaciones.') && a.id.endsWith(`.${id}`) && !a.id.startsWith('relaciones.presentarse.'))).toBe(true);
+      // Y puede hablar con ella o él enseguida (en el recreo se charla).
+      expect(g.listActions().some((a) => a.available && a.id.startsWith('relaciones.') && a.id.endsWith(`.${id}`) && !a.id.startsWith('relaciones.presentarse.'))).toBe(true);
     });
 
     it('no se puede preguntar el nombre a quien no está donde tú: lejos no hay a quién', () => {
@@ -567,6 +572,8 @@ describe('integración de módulos', () => {
   });
 
   describe('hablar con la gente: presencia, habilidad y disposición', () => {
+    // Aquí las cuatro personas del reparto ya se conocen (los tests de arriba parten de lo que se haya hablado).
+    const nuevaPartida = (o: Parameters<typeof baseNueva>[0]) => conocer(baseNueva(o));
     const colegioEnElRecreo = (semilla = 31) => {
       const g = nuevaPartida({ seed: semilla });
       g.perform('lugares.ir_colegio');
@@ -724,5 +731,161 @@ describe('integración de módulos', () => {
       const otra = cargarPartida(JSON.parse(g.serializarJSON()).state, undefined, { copiar: false });
       expect(vista(otra).temporada.pruebas.length).toBe(vista(g).temporada.pruebas.length);
     });
+  });
+});
+
+describe('clubes: la pestaña del deporte, el entrenador y cambiar de club', () => {
+  const vista = (g: Game) => g.service<DeporteService>(claveDeDeporte('atletismo'))!.view();
+  const club = (g: Game) => g.service<ClubDirectory>(SERVICES.clubes)!.membership('atletismo');
+
+  it('sin club la pestaña del deporte está desactivada; al apuntarte se activa, conoces al entrenador y sale en el resumen', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(vista(g).inactivo).toMatch(/club/);
+    expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.known).toBe(false);
+    advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+    hacer(g, 'atletismo.apuntarse_colegio');
+    const v = vista(g);
+    expect(v.inactivo).toBeUndefined();
+    expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.known).toBe(true);
+    expect(v.resumen.find((r) => r.etiqueta === 'Entrenador')!.valor).not.toBe('—');
+    hacer(g, 'atletismo.dejar_club');
+    expect(vista(g).inactivo).toMatch(/club/);
+  });
+
+  it('pasar la prueba de otro club estando en uno ofrece plaza; aceptarla sin haber salido antes enfada al entrenador y al equipo y estresa', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+    hacer(g, 'atletismo.apuntarse_colegio');
+    // Plaza ofrecida (se fuerza el guardado: la prueba depende de la forma del personaje).
+    const s = g.serialize();
+    (s.modules.atletismo as AtletismoState).ofertas = { club_ciudad: g.time.week };
+    const g2 = cargarPartida(s);
+    const afinidadAntes = rel2(g2, 'entrenador');
+    const estresAntes = g2.stat(GEN.estres);
+    expect(hacer(g2, 'atletismo.aceptar_plaza.club_ciudad').ok).toBe(true);
+    expect(club(g2)?.id).toBe('club_ciudad');
+    expect(rel2(g2, 'entrenador')).toBeLessThan(afinidadAntes);
+    expect(g2.stat(GEN.estres)).toBeGreaterThan(estresAntes);
+    expect(g2.log.some((l) => /sin avisar/.test(l.text))).toBe(true);
+  });
+
+  it('dejar el club antes de aceptar la plaza no cuesta nada', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+    hacer(g, 'atletismo.apuntarse_colegio');
+    const s = g.serialize();
+    (s.modules.atletismo as AtletismoState).ofertas = { club_ciudad: g.time.week };
+    const g2 = cargarPartida(s);
+    const afinidadAntes = rel2(g2, 'entrenador');
+    hacer(g2, 'atletismo.dejar_club');
+    expect(hacer(g2, 'atletismo.aceptar_plaza.club_ciudad').ok).toBe(true);
+    expect(rel2(g2, 'entrenador')).toBe(afinidadAntes);
+    expect(g2.log.some((l) => /sin avisar/.test(l.text))).toBe(false);
+  });
+
+  it('no se puede aceptar una plaza que no se ha ganado', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(g.preview('atletismo.aceptar_plaza.club_ciudad')!.available).toBe(false);
+  });
+});
+
+const rel2 = (g: Game, id: string): number => g.service<RelationsService>(SERVICES.relaciones)!.get(id)?.afinidad ?? 0;
+
+describe('familia en casa y planes con los demás', () => {
+  const rel = (g: Game) => g.service<RelationsService>(SERVICES.relaciones)!;
+  const aq = (g: Game, id: string) => rel(g).get(id)?.afinidad ?? 0;
+  /** Una partida con el compañero aplicado conocido y con la afinidad y confianza indicadas. */
+  const conAmigo = (afinidad: number, semilla = 31) => {
+    const g = conocer(nuevaPartida({ seed: semilla }), 'companero_estudio');
+    const s = g.serialize();
+    (s.modules.relaciones as RelacionesState).vinculos.companero_estudio = {
+      npcId: 'companero_estudio', afinidad, confianza: afinidad, estado: 'amigo', desde: 0, ultimoContacto: -1, contactos: [],
+    };
+    return cargarPartida(s);
+  };
+  /** Va al colegio en el recreo de un día de clase y propone el plan; devuelve si lo han aceptado. */
+  const proponerEnElRecreo = (g: Game, cuando: 'hoy' | 'manana') => {
+    advanceTo(g, 'gen.descansar', g.time.weekday, 11);
+    g.perform('lugares.ir_colegio');
+    const antes = rel(g).planes().length;
+    expect(hacer(g, `relaciones.plan_${cuando}.companero_estudio`).ok).toBe(true);
+    return rel(g).planes().length > antes;
+  };
+
+  it('el padre y la madre son personas con las que relacionarse: están en casa por la tarde-noche, sin plan de estudio', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceTo(g, 'gen.descansar', 0, 19);
+    g.perform('lugares.ir_casa');
+    const aqui = g.service<PresenciaService>(SERVICES.presencia)!.en('casa').map((n) => n.id);
+    expect(aqui).toContain('padre');
+    expect(aqui).toContain('madre');
+    expect(rel(g).get('padre')!.afinidad).toBeGreaterThan(10);
+    expect(g.preview('relaciones.quedar.madre')!.available).toBe(true);
+    expect(g.preview('relaciones.estudiar.madre')).toBeUndefined();
+    expect(g.preview('relaciones.plan_hoy.padre')).toBeUndefined();
+    // De día lectivo a media mañana no están (trabajan).
+    advanceTo(g, 'gen.descansar', 1, 11);
+    expect(g.service<PresenciaService>(SERVICES.presencia)!.en('casa').map((n) => n.id)).not.toContain('padre');
+  });
+
+  it('sin quedar antes no se puede estudiar con alguien; con una amistad alta acepta, y a la hora acordada en tu casa se estudia', () => {
+    const g = conAmigo(100);
+    expect(g.preview('relaciones.estudiar.companero_estudio')!.available).toBe(false);
+    let aceptado = false;
+    for (let i = 0; i < 20 && !aceptado; i++) {
+      aceptado = proponerEnElRecreo(g, 'manana');
+      if (!aceptado) advanceTo(g, 'gen.descansar', (g.time.weekday + 1) % 7, 7);
+    }
+    expect(aceptado).toBe(true);
+    const plan = rel(g).planes()[0];
+    expect(plan).toMatchObject({ npcId: 'companero_estudio', actividad: 'estudiar', lugar: 'casa', minuto: 17 * 60 });
+    expect(g.log.some((l) => /acepta: estudiar mañana a las 17:00/.test(l.text))).toBe(true);
+    // El día del plan, a las 17:00 en casa, se puede estudiar (y no a otra hora).
+    advanceUntil(g, 'gen.descansar', (t) => t.day === plan.dia && t.hour === 12, 80);
+    expect(posible(g, 'relaciones.estudiar.companero_estudio')).toBe(false);
+    advanceUntil(g, 'gen.descansar', (t) => t.day === plan.dia && t.hour === 17, 20);
+    expect(hacer(g, 'relaciones.estudiar.companero_estudio').ok).toBe(true);
+    expect(rel(g).planes()).toEqual([]);
+    expect(g.preview('relaciones.estudiar.companero_estudio')!.available).toBe(false);
+  });
+
+  it('quien se te da bien estudiando ayuda al estudiar juntos (compañía)', () => {
+    const g = conAmigo(80);
+    const s = g.serialize();
+    (s.modules.relaciones as RelacionesState).planes = [{ npcId: 'companero_estudio', actividad: 'estudiar', dia: 0, minuto: 17 * 60, lugar: 'casa' }];
+    const g2 = cargarPartida(s);
+    advanceTo(g2, 'gen.descansar', 0, 17);
+    g2.perform('lugares.ir_casa');
+    expect(g2.preview('relaciones.estudiar.companero_estudio')!.modifiers.some((m) => m.id === 'relaciones.compania')).toBe(true);
+  });
+
+  it('entre un plan y otro hace falta un día de margen salvo con mucha amistad', () => {
+    const base = conAmigo(30);
+    const s = base.serialize();
+    (s.modules.relaciones as RelacionesState).planes = [{ npcId: 'companero_estudio', actividad: 'estudiar', dia: 3, minuto: 17 * 60, lugar: 'casa', resuelto: true }];
+    const g = cargarPartida(s);
+    // El día 2 y el 4 caen pegados al plan del día 3: con afinidad 30 siempre dice que no por el margen (o por otra razón), nunca acepta.
+    let aceptadosPegados = 0;
+    for (const dia of [2, 4]) {
+      const sg = g.serialize();
+      sg.minute = (dia - 1) * 1440 + 11 * 60;
+      const gd = cargarPartida(sg);
+      gd.perform('lugares.ir_colegio');
+      hacer(gd, 'relaciones.plan_manana.companero_estudio');
+      aceptadosPegados += rel(gd).planes().filter((p) => p.dia === dia).length;
+    }
+    expect(aceptadosPegados).toBe(0);
+  });
+
+  it('plantar un plan cuesta afinidad y confianza', () => {
+    const g = conAmigo(50);
+    const s = g.serialize();
+    (s.modules.relaciones as RelacionesState).planes = [{ npcId: 'companero_estudio', actividad: 'estudiar', dia: 0, minuto: 17 * 60, lugar: 'casa' }];
+    const g2 = cargarPartida(s);
+    const antes = aq(g2, 'companero_estudio');
+    advanceTo(g2, 'gen.descansar', 1, 8); // pasa el día sin ir
+    expect(aq(g2, 'companero_estudio')).toBeLessThan(antes);
+    expect(g2.log.some((l) => /Dejaste plantado/.test(l.text))).toBe(true);
+    expect(rel(g2).planes()).toEqual([]);
   });
 });

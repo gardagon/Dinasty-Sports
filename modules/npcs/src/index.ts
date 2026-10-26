@@ -9,6 +9,7 @@ import {
   factorPorEdad,
   INTERESES,
   apellidosDeFamilia,
+  nombreDeProgenitor,
   diferenciasDeEdad,
   numeroDeHermanos,
   rasgosHeredadosNpc,
@@ -33,6 +34,7 @@ import {
   type NpcRole,
   type NpcView,
   type ClubDirectory,
+  type ClubJoinData,
   type DatosDeAgenda,
   type PresenciaService,
   type SesionDeClub,
@@ -47,9 +49,7 @@ import {
  * MÓDULO NPCs (id `npcs`).
  *
  * Los NPCs dan profundidad al personaje y son la red que une módulos:
- * - `supports`: etiquetas de acción en las que ayudan si la relación es buena
- *   (un entrenador apoya `atletismo`; un compañero aplicado, `estudio`). Funciona
- *   con cualquier módulo futuro que use esas etiquetas, sin tocar este código.
+ * - Ayudan según lo que saben hacer (carácter, intereses y nivel), no por una etiqueta fija: ver `aptitudDe`.
  * - `levels`: nivel por disciplina; los rivales progresan solos cada día.
  * - Escuchan `competicion.resultado` (evento compartido) de cualquier deporte.
  * - Publican el servicio `npcs` para que otros módulos los consulten.
@@ -75,7 +75,6 @@ export interface Npc {
   role: NpcRole;
   gender: Gender;
   tags: string[];
-  supports: string[];
   levels: Record<string, number>;
   /** Origen, apariencia, carácter, intereses y gustos. */
   rasgos?: RasgosDe;
@@ -186,7 +185,6 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
     role: 'rival',
     gender,
     tags: ['atleta'],
-    supports: [],
     levels: { atletismo: Math.min(techo, techo * rng.range(0.8, 1) * ventaja) },
     padres,
     rasgos: rasgosAlAzar(rng, { sesgoCaracter: { ambicion: 8, agresividad: 5, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] }),
@@ -255,7 +253,6 @@ function persona(rng: Rng, id: string, role: NpcRole, edad: number, dia: number,
     role,
     gender,
     tags,
-    supports: [],
     levels: {},
     potential: {},
     rasgos: rasgosAlAzar(rng),
@@ -318,6 +315,31 @@ const nivelInicialDeHermano = (potencial: number, edadReal: number, desfase: num
   return Math.min(techo, techo * rng.range(0.8, 1));
 };
 
+/**
+ * El padre y la madre como personas con las que relacionarse (rol `familia`, etiqueta `progenitor`): el mismo nombre y los mismos rasgos
+ * que en el módulo `familia`, que los saca de la semilla. Viven en casa y salen a trabajar. No llevan edad aquí (la ficha está en `familia`).
+ */
+function progenitores(ctx: InitContext, usados: Set<string>): Npc[] {
+  const apellidos = apellidosDeFamilia(ctx.seed);
+  return (['padre', 'madre'] as const).map((id) => {
+    const gender: Gender = id === 'padre' ? 'm' : 'f';
+    const name = `${nombreDeProgenitor(ctx.seed, id)} ${apellidos}`;
+    usados.add(name);
+    return {
+      id,
+      name,
+      role: 'familia' as NpcRole,
+      gender,
+      tags: ['progenitor'],
+      levels: {},
+      potential: {},
+      rasgos: ctx.rasgosDePadres[id],
+      tipos: [{ tipo: 'progenitor' as const }],
+      description: id === 'padre' ? 'Tu padre. Vive en casa.' : 'Tu madre. Vive en casa.',
+    };
+  });
+}
+
 /** Edad de los hermanos a la que empiezan el colegio (a los 18 lo terminan, como el resto del alumnado). */
 const EDAD_COLEGIO_HERMANOS = 3;
 const tiposDeHermano = (edad: number, deporte: boolean): TipoAsignado[] => [
@@ -360,8 +382,6 @@ function hermanos(ctx: InitContext, usados: Set<string>): Npc[] {
     const edad = EDAD_DE_INICIO + dif;
     const nacimiento = primerDiaDelAnio(anioNatural(0) - edad) + rng.int(0, 364);
     const rasgos = rasgosHeredadosNpc(rasgosPadre, rasgosMadre, rng);
-    const favorito = Object.entries(rasgos.intereses).sort((a, b) => b[1] - a[1])[0]?.[0];
-    const etiquetasDeInteres = INTERESES.find((x) => x.id === favorito)?.tags ?? [];
     const o = (f: string, m: string) => (gender === 'f' ? f : m);
     const relacion = dif === 0 ? o('Tu melliza', 'Tu mellizo') : dif < 0 ? o('Tu hermana mayor', 'Tu hermano mayor') : o('Tu hermana pequeña', 'Tu hermano pequeño');
     const edadReal = (0 - nacimiento) / 365;
@@ -372,8 +392,6 @@ function hermanos(ctx: InitContext, usados: Set<string>): Npc[] {
       role: 'familia' as NpcRole,
       gender,
       tags: compite ? ['hermano', 'atleta'] : ['hermano'],
-      // Ayuda en lo social y en lo que le gusta, si os lleváis bien.
-      supports: [TAGS.social, ...etiquetasDeInteres.filter((t) => t !== TAGS.ocio)],
       levels: (compite ? { atletismo: nivelInicialDeHermano(potencial, edadReal, desfase, rng) } : {}) as Record<string, number>,
       potential: { atletismo: potencial },
       ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
@@ -399,9 +417,10 @@ function generarReparto(ctx: InitContext): Npc[] {
     role,
     gender,
     tags: [],
-    supports: [],
     levels: {},
     potential: {},
+    // Quien te rodea al empezar es desconocido: se conoce hablando con él o con ella (el entrenador, al apuntarte a su club).
+    known: false,
     ...extra(gender),
     };
   };
@@ -411,32 +430,29 @@ function generarReparto(ctx: InitContext): Npc[] {
     npc('entrenador', 'entrenador', () => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, ambicion: 10, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] }),
       tags: ['atletismo', 'mentor'],
-      supports: ['atletismo'],
       description: 'Entrena al grupo de atletismo del colegio.',
       tipos: [{ tipo: 'entrenador', club: 'colegio' }],
     })),
     npc('tutor', 'profesor', (g) => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, honestidad: 10 }, interesesPreferidos: ['estudio', 'lectura'] }),
       tags: ['estudio', 'mentor'],
-      supports: [TAGS.estudio],
       description: `${o(g, 'Tu tutora', 'Tu tutor')}. Exigente pero ${o(g, 'justa', 'justo')}.`,
       tipos: [{ tipo: 'profesor' }],
     })),
     npc('companero_estudio', 'companero', (g) => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, sociabilidad: -5 }, interesesPreferidos: ['estudio', 'tecnologia'] }),
       tags: ['estudio'],
-      supports: [TAGS.estudio],
-      description: `${o(g, 'Compañera de clase aplicada', 'Compañero de clase aplicado')}. Estudiar con ${o(g, 'ella', 'él')} cunde más.`,
+      description: `${o(g, 'Compañera de clase aplicada', 'Compañero de clase aplicado')}.`,
       tipos: [{ tipo: 'alumno' }],
     })),
     npc('companero_social', 'companero', () => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { sociabilidad: 20, optimismo: 8 }, interesesPreferidos: ['videojuegos', 'cine', 'musica'] }),
       tags: ['social'],
-      supports: [TAGS.social, TAGS.ocio],
       description: 'Conoce a todo el mundo en el colegio.',
       tipos: [{ tipo: 'alumno' }],
     })),
     ...rivalesIniciales(rng, usados),
+    ...progenitores(ctx, usados),
     ...hermanos(ctx, usados),
   ];
 }
@@ -453,7 +469,6 @@ const vista = (n: Npc, day: number): NpcView => ({
   role: n.role,
   gender: n.gender,
   tags: n.tags,
-  supports: n.supports,
   levels: n.levels,
   age: edadNpc(n, day),
   known: n.known,
@@ -491,6 +506,7 @@ function personaPorId(lista: Npc[], id: string): Npc | undefined {
   return porId.get(id);
 }
 
+const SERVICIOS_DE_PRESENCIA = new WeakMap<Npc[], { minuto: number; servicio: PresenciaService }>();
 const SIN_TIPOS: TipoAsignado[] = [];
 /** La agenda depende solo de los tipos de la persona: se monta una vez por lista de tipos (los acontecimientos con fecha de fin no se guardan). */
 const AGENDAS = new WeakMap<TipoAsignado[], TramoDeAgenda[]>();
@@ -525,6 +541,10 @@ function limitesDeTramos(lista: Npc[], agendaDe: (n: Npc) => TramoDeAgenda[]): n
       for (const x of a) {
         set.add(x.desde);
         set.add(x.hasta);
+        for (const [a, b] of x.ocupado ?? []) {
+          set.add(a);
+          set.add(b);
+        }
       }
     }
     LIMITES.set(lista, (l = [...set].sort((a, b) => a - b)));
@@ -622,6 +642,15 @@ export const npcs = defineModule<NpcsState>({
       ctx.updateState<NpcsState>((s) => ({ npcs: actualizarHermanos(renovarAlumnos(renovarRivales(s.npcs, proximo.day, ctx.rng), proximo.day, ctx.rng), proximo.day) }));
     },
 
+    // Al entrar en un club conoces a su entrenador: se presenta el primer día.
+    [SHARED_EVENTS.CLUB_JOIN]: (ctx, ev) => {
+      const { clubId } = ev.data as ClubJoinData;
+      const entrenador = ctx.state<NpcsState>().npcs.find((n) => n.known === false && n.tipos?.some((t) => t.tipo === 'entrenador' && t.club === clubId));
+      if (!entrenador) return;
+      ctx.updateState<NpcsState>((st) => ({ npcs: st.npcs.map((x) => (x.id === entrenador.id ? { ...x, known: true } : x)) }));
+      ctx.log(`${entrenador.gender === 'f' ? 'Tu entrenadora' : 'Tu entrenador'} se presenta: ${entrenador.name}.`, 'info');
+    },
+
     [SHARED_EVENTS.PRESENTACION]: (ctx, ev) => {
       const { npcId } = ev.data as PresentacionData;
       const n = ctx.state<NpcsState>().npcs.find((x) => x.id === npcId);
@@ -643,6 +672,9 @@ export const npcs = defineModule<NpcsState>({
     [SERVICES.presencia]: (ctx): PresenciaService => {
       const lista = ctx.state<NpcsState>().npcs;
       const t = ctx.time;
+      // Se pide muchas veces seguidas (en cada acción de relación): dentro del mismo minuto es el mismo servicio.
+      const hecho = SERVICIOS_DE_PRESENCIA.get(lista);
+      if (hecho?.minuto === t.minute) return hecho.servicio;
       const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
       const datos: DatosDeAgenda = { sesionDeClub: (club) => sesionDeClub(clubes, club) };
       const inicioCurso = (t.week - t.schoolWeek) * 7;
@@ -653,7 +685,7 @@ export const npcs = defineModule<NpcsState>({
        */
       const intervalo = limitesDeTramos(lista, agendaDe).filter((m) => m <= t.minuteOfDay).length;
       const indice = indiceDePresencia(lista, `${t.day}:${intervalo}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
-      return {
+      const servicio: PresenciaService = {
         version: indice.version,
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso)),
         donde: (id) => {
@@ -665,6 +697,8 @@ export const npcs = defineModule<NpcsState>({
           return n ? agendaDe(n) : [];
         },
       };
+      SERVICIOS_DE_PRESENCIA.set(lista, { minuto: t.minute, servicio });
+      return servicio;
     },
     [SERVICES.npcs]: (ctx): NpcDirectory => {
       const lista = ctx.state<NpcsState>().npcs;

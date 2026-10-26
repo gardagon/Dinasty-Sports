@@ -6,6 +6,12 @@ import { familia } from '@ds/mod-familia';
 import { lugares } from '@ds/mod-lugares';
 import { desarrolloRival, npcs, type NpcsState } from './index';
 
+/** Avanza hasta una hora y minuto concretos (de 6 en 6 minutos con los viajes al parque y a casa). */
+function irA(g: Game, weekday: number, hora: number, minuto = 0): void {
+  advanceTo(g, 'gen.descansar', weekday, hora);
+  for (let i = 0; g.time.minuteOfDay < hora * 60 + minuto && i < 30; i++) g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+}
+
 const nueva = () => Game.create([personaje, npcs, lugares], { seed: 9 });
 
 describe('módulo NPCs', () => {
@@ -13,7 +19,7 @@ describe('módulo NPCs', () => {
     const g = nueva();
     const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
     const hermanos = dir.list({ tag: 'hermano' }).length;
-    expect(dir.list().length).toBe(391 + hermanos); // 4 del entorno + 96 rivales (8 por edad de 8 a 19) + la población del colegio y del barrio + los hermanos
+    expect(dir.list().length).toBe(391 + 2 + hermanos); // 4 del entorno + 96 rivales (8 por edad de 8 a 19) + la población del colegio y del barrio + los padres + los hermanos
     expect(dir.list({ role: 'rival' })).toHaveLength(96);
     expect(dir.get('entrenador')?.role).toBe('entrenador');
   });
@@ -160,9 +166,11 @@ describe('módulo NPCs', () => {
   describe('presencia en los lugares', () => {
     const nombres = (g: Game, lugar: string, max?: number) => g.service<PresenciaService>(SERVICES.presencia)!.en(lugar, max).map((n) => n.id);
 
-    it('en horario de clase están en el colegio el tutor y los compañeros, y no los rivales de otros clubes', () => {
+    it('en clase están ocupados (no se les puede hablar); en el recreo, el tutor y los compañeros están en el colegio, y no los rivales de otros clubes', () => {
       const g = nueva();
-      advanceTo(g, 'gen.descansar', 0, 10); // lunes, 10:00
+      advanceTo(g, 'gen.descansar', 0, 10); // lunes, 10:00: en clase
+      expect(nombres(g, 'colegio')).toEqual([]);
+      advanceTo(g, 'gen.descansar', 0, 11); // el recreo es de 10:40 a 11:20
       const aqui = nombres(g, 'colegio');
       expect(aqui).toContain('tutor');
       expect(aqui).toContain('companero_estudio');
@@ -172,7 +180,7 @@ describe('módulo NPCs', () => {
 
     it('el sábado por la mañana los rivales y el entrenador están en el estadio', () => {
       const g = nueva();
-      advanceTo(g, 'gen.descansar', 5, 10);
+      irA(g, 5, 8, 50); // llegando a las carreras de 9 a 13 (durante ellas están ocupados)
       const aqui = nombres(g, 'estadio');
       expect(aqui).toContain('entrenador');
       // Va a las carreras algo menos de la mitad de los 96 rivales.
@@ -188,9 +196,11 @@ describe('módulo NPCs', () => {
       for (const l of ['colegio', 'estadio', 'parque', 'gimnasio', 'supermercado', 'restaurante', 'casa']) expect(nombres(g, l)).toEqual([]);
     });
 
-    it('se puede limitar cuántos hay, y primero salen los de mayor nivel (el tutor antes que un compañero)', () => {
+    it('se puede limitar cuántos hay, y primero salen los conocidos y los de mayor nivel (el tutor, si lo conoces, antes que un compañero)', () => {
       const g = nueva();
-      advanceTo(g, 'gen.descansar', 0, 10);
+      const st = g.moduleState<NpcsState>('npcs') as NpcsState;
+      st.npcs = st.npcs.map((n) => (n.id === 'tutor' ? { ...n, known: true } : n));
+      advanceTo(g, 'gen.descansar', 0, 11);
       const dos = nombres(g, 'colegio', 2);
       expect(dos).toHaveLength(2);
       expect(dos).toContain('tutor');
@@ -198,7 +208,7 @@ describe('módulo NPCs', () => {
 
     it('cada persona sabe dónde está y tiene su agenda', () => {
       const g = nueva();
-      advanceTo(g, 'gen.descansar', 0, 10);
+      advanceTo(g, 'gen.descansar', 0, 11);
       const p = g.service<PresenciaService>(SERVICES.presencia)!;
       expect(p.donde('tutor')).toBe('colegio');
       expect(p.donde('nadie')).toBeUndefined();
@@ -265,14 +275,14 @@ describe('módulo NPCs', () => {
       expect(new Set(todos.map((n) => n.name)).size).toBe(todos.length);
       expect(new Set(todos.map((n) => n.id)).size).toBe(todos.length);
       expect(todos.every((n) => n.rasgos)).toBe(true);
-      expect(todos.filter((n) => n.known !== false).map((n) => n.id).sort()).toEqual(['companero_estudio', 'companero_social', 'entrenador', 'tutor']);
-      expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true })).toHaveLength(4);
+      expect(todos.filter((n) => n.known !== false).map((n) => n.id).sort()).toEqual(['madre', 'padre']); // el reparto inicial no: se conoce hablando (o, el entrenador, apuntándose a su club); solo la familia
+      expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).filter((n) => n.role !== 'familia')).toHaveLength(0);
     });
 
     it('el patio tiene gente de todos los cursos y el parque, de todas las edades', () => {
       const g = nueva();
       const edades = (ids: string[]) => ids.map((id) => g.service<NpcDirectory>(SERVICES.npcs)!.get(id)!.age!).filter((e) => e !== undefined);
-      advanceTo(g, 'gen.descansar', 0, 10);
+      advanceTo(g, 'gen.descansar', 0, 11); // en el recreo
       const enElColegio = g.service<PresenciaService>(SERVICES.presencia)!.en('colegio').map((n) => n.id);
       expect(enElColegio.length).toBeGreaterThan(200);
       const e = edades(enElColegio.filter((id) => id.startsWith('alumno_') || id.startsWith('curso_') || id.startsWith('clase_')));
@@ -334,13 +344,17 @@ describe('hermanos', () => {
   it('pasan el tiempo en casa y, si tienen edad, en el colegio y en su deporte', () => {
     const g = partidas.find((x) => hermanosDe(x).some((h) => h.age! >= 3 && h.age! < 18 && h.tags.includes('atleta')))!;
     const h = hermanosDe(g).find((x) => x.age! >= 3 && x.age! < 18 && x.tags.includes('atleta'))!;
-    const donde = (dia: number, hora: number) => {
-      advanceTo(g, 'gen.descansar', dia, hora);
+    const donde = (dia: number, hora: number, minuto = 0) => {
+      irA(g, dia, hora, minuto);
       return g.service<PresenciaService>(SERVICES.presencia)!.donde(h.id);
     };
-    expect(donde(0, 10)).toBe('colegio'); // lunes, en clase
+    expect(donde(0, 9)).toBeNull(); // lunes, en clase: ocupado
+    expect(donde(0, 11)).toBe('colegio'); // en el recreo
     expect(donde(0, 22)).toBe('casa'); // de noche, en casa
-    expect(donde(5, 10)).toMatch(/casa|estadio/); // sábado: casa o las carreras
+    expect(donde(5, 8, 50)).toMatch(/casa|estadio/); // sábado: casa o llegando a las carreras
+    // Si va a las carreras (el 40 %), a media mañana está corriendo (ocupado); si no, en casa.
+    expect([null, 'casa']).toContain(donde(5, 10));
+    expect(g.service<PresenciaService>(SERVICES.presencia)!.agenda(h.id).some((x) => x.tipo === 'hermano' && x.ocupado?.length && x.destinos[0][0] === 'estadio')).toBe(true);
     const mayor = partidas.flatMap((x) => x.moduleState<NpcsState>('npcs').npcs).find((n) => n.tags.includes('hermano') && n.tipos?.every((t) => !t.escolar));
     if (mayor) expect(mayor.tipos).toEqual([{ tipo: 'hermano', ...(mayor.levels.atletismo !== undefined ? { deporte: true } : {}) }]);
   });

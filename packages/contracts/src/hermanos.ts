@@ -18,6 +18,20 @@ export function apellidosDeFamilia(seed: number): string {
   return `${APELLIDOS[a]} ${APELLIDOS[b]}`;
 }
 
+const NOMBRES_DE_PROGENITOR = {
+  f: ['Carmen', 'María', 'Laura', 'Cristina', 'Patricia', 'Isabel', 'Raquel', 'Silvia', 'Beatriz', 'Marta', 'Eva', 'Pilar'],
+  m: ['Antonio', 'José', 'Manuel', 'Javier', 'David', 'Miguel', 'Rafael', 'Alberto', 'Jesús', 'Fernando', 'Raúl', 'Andrés'],
+} as const;
+
+/** El nombre de pila del padre o la madre, fijo para una semilla: lo usan `familia` (su ficha) y `npcs` (la persona con la que te relacionas). */
+export function nombreDeProgenitor(seed: number, id: 'padre' | 'madre'): string {
+  let h = (seed ^ (id === 'padre' ? 0x51ed270b : 0x2545f491)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x7feb352d) >>> 0;
+  h = Math.imul(h ^ (h >>> 15), 0x846ca68b) >>> 0;
+  const lista = NOMBRES_DE_PROGENITOR[id === 'padre' ? 'm' : 'f'];
+  return lista[h % lista.length];
+}
+
 /** Probabilidad de tener 0, 1, 2 o 3 hermanos. */
 export const PESOS_DE_HERMANOS: readonly number[] = [0.2, 0.45, 0.25, 0.1];
 

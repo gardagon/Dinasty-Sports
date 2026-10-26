@@ -6,9 +6,12 @@ import type { ActionOption, ActionResult, Game } from '@ds/core';
  * al sitio (como haría una persona). Se les ofrece lo disponible y lo que solo está bloqueado por el lugar; los
  * desplazamientos no se les ofrecen (los hace el simulador).
  */
+/** Las presentaciones que sí se ofrecen: las del reparto inicial (los bots tienen que conocer a su tutor y a sus compañeros). */
+const PRESENTACIONES_DEL_REPARTO = /^relaciones\.presentarse\.(entrenador|tutor|companero_estudio|companero_social)$/;
+
 export function opcionesDelBot(game: Game): ActionOption[] {
   // Los desplazamientos y las presentaciones (hasta 40 acciones por lugar) no se les ofrecen: ni siquiera se evalúan.
-  const omitir = (d: ActionDef) => d.id.startsWith('lugares.') || d.id.startsWith('relaciones.presentarse.');
+  const omitir = (d: ActionDef) => d.id.startsWith('lugares.') || (d.id.startsWith('relaciones.presentarse.') && !PRESENTACIONES_DEL_REPARTO.test(d.id));
   return game.listActions({ omitir }).filter((o) => o.available || faltaViajar(o));
 }
 

@@ -141,6 +141,7 @@ button { font: inherit; color: inherit; }
 }
 /* El fosforito siempre lleva tinta oscura encima, en claro y en oscuro. */
 .tab[aria-selected='true'] { color: #17233d; background: var(--highlight); }
+.tab:disabled { cursor: not-allowed; opacity: 0.4; }
 @media (max-width: 520px) {
   .tabs { gap: 0; }
   .tab { flex: 1; font-size: 17px; padding: 6px 4px 4px; }

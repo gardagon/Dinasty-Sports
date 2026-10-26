@@ -34,8 +34,6 @@ export interface NpcView {
   tags: readonly string[];
   /** Origen, apariencia, carácter, intereses y gustos (los rivales y el reparto los tienen; no se enseñan al jugador). */
   rasgos?: RasgosDe;
-  /** Etiquetas de acción en las que este NPC ayuda al personaje si la relación es buena. */
-  supports: readonly string[];
   /** Niveles del NPC por disciplina (p. ej. { atletismo: 42 }). */
   levels: Readonly<Record<string, number>>;
   /** Edad de competición (año del curso menos año de nacimiento), si el NPC la tiene (los rivales sí). Define su categoría. */

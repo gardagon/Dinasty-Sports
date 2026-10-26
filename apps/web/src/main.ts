@@ -8,9 +8,6 @@ import {
   type BodyType,
   type ClubDirectory,
   type LugaresService,
-  type PresenciaService,
-  GENTE_CERCANA,
-  descripcionDeDesconocido,
   type FamilyService,
   type IdentityService,
   PRACTICA_TEXTO,
@@ -34,8 +31,8 @@ import {
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
-import { clicEnDeporte, etiquetaDeDeporte, viewDeporte } from './deporte';
-import { clicEnGente, reiniciarGente, viewPanelGente } from './gente';
+import { clicEnDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
+import { clicEnGente, genteAqui, reiniciarGente, viewPanelGente } from './gente';
 import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
 /**
@@ -298,32 +295,14 @@ function actionButton(o: ActionOption): string {
   </button>`;
 }
 
-/** Quién hay aquí ahora: los que conoces con su nombre y el resto, por su aspecto (hasta que hables con ellos). */
-function viewGente(g: Game, lugar: string): string {
-  const presencia = g.service<PresenciaService>(SERVICES.presencia);
-  if (!presencia) return '';
-  const rel = g.service<RelationsService>(SERVICES.relaciones);
-  const MAX = GENTE_CERCANA;
-  const todos = presencia.en(lugar);
-  if (!todos.length) return '<h3>Gente aquí</h3><p class="note">No hay nadie.</p>';
-  const ROL: Record<string, string> = { entrenador: 'Entrenador', profesor: 'Profesor', companero: 'Compañero', amigo: 'Amigo', rival: 'Rival', familia: 'Familia' };
-  const tarjetas = todos
-    .slice(0, MAX)
-    .map((n) => {
-      if (n.known === false) {
-        const frase = n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, n.age) : n.gender === 'f' ? 'Una chica' : 'Un chico';
-        return `<div class="persona desconocida"><b>???</b><span>${esc(frase)}</span></div>`;
-      }
-      const v = rel?.get(n.id);
-      const estado = v ? nombreEstado(v.estado, n.gender) : '';
-      return `<div class="persona"><b>${esc(n.name)}</b><span>${esc([ROL[n.role], estado].filter(Boolean).join(' · '))}</span></div>`;
-    })
-    .join('');
-  return `<h3>Gente cerca (${Math.min(MAX, todos.length)})</h3><div class="gente">${tarjetas}</div>${todos.length > MAX ? '<p class="note">Hay más gente por aquí, pero no tienes cerca a nadie más.</p>' : ''}`;
+/** Dónde estás: el nombre y la descripción del lugar. Lo que se puede hacer aquí está debajo y los viajes, aparte (en la columna lateral). */
+function viewLugar(g: Game): string {
+  const aqui = g.service<LugaresService>(SERVICES.lugares)?.actual();
+  return aqui ? `<section class="sheet lugar"><h2>${esc(aqui.name)}</h2><p>${esc(aqui.descripcion)}</p></section>` : '';
 }
 
-/** Pantalla del lugar: dónde estás y a dónde puedes ir (los vecinos primero y, desplegable, todo el mapa con lo que cuesta). */
-function viewLugar(g: Game): string {
+/** A dónde puedes ir: los vecinos primero y, desplegable, todo el mapa con lo que cuesta. Va separado de lo que se hace en el lugar. */
+function viewViaje(g: Game): string {
   const svc = g.service<LugaresService>(SERVICES.lugares);
   if (!svc) return '';
   const aqui = svc.actual();
@@ -340,13 +319,23 @@ function viewLugar(g: Game): string {
   }
   const todo = [...grupos].map(([grupo, botones]) => `<h4>${esc(grupo)}</h4><div class="actions">${botones.join('')}</div>`).join('');
   return `<section class="sheet lugar">
-    <h2>${esc(aqui.name)}</h2>
-    <p>${esc(aqui.descripcion)}</p>
     <h3>Viajar</h3>
     <div class="actions">${cerca}</div>
     <details class="viaje-rapido"><summary>Viaje rápido</summary>${todo}</details>
-    ${viewGente(g, aqui.id)}
   </section>`;
+}
+
+/** Los planes acordados que están por llegar (con quién, qué, cuándo y dónde). */
+function viewPlanes(g: Game): string {
+  const rel = g.service<RelationsService>(SERVICES.relaciones);
+  const dir = g.service<NpcDirectory>(SERVICES.npcs);
+  const planes = rel?.planes() ?? [];
+  if (!planes.length) return '';
+  const cuando = (d: number) => (d === g.time.day ? 'hoy' : d === g.time.day + 1 ? 'mañana' : `dentro de ${d - g.time.day} días`);
+  const filas = planes
+    .map((p) => `<li><b>${esc(dir?.get(p.npcId)?.name ?? p.npcId)}</b>: ${esc(p.actividad)} ${cuando(p.dia)} a las ${hhmm(p.minuto)} (${esc(p.lugar)})</li>`)
+    .join('');
+  return `<section class="sheet"><h3>Planes</h3><ul class="planes">${filas}</ul><p class="note">Llega a tiempo: si no apareces, pierdes afinidad y confianza.</p></section>`;
 }
 
 function viewActions(g: Game): string {
@@ -584,12 +573,11 @@ function viewPeople(g: Game): string {
       const yo = g.service<ProfileService>(SERVICES.perfil)?.view();
       const compat = n.rasgos && yo ? compatibilidad(n.rasgos, yo) : undefined;
       const lvl = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
-      const ayuda = n.supports.length ? `Si os lleváis bien te ayuda en: ${n.supports.join(', ')}.` : '';
       return `<div class="npc">
-        <div class="npc-head"><b>${esc(n.name)}</b><span>${n.tags.includes('hermano') ? (n.gender === 'f' ? 'Hermana' : 'Hermano') : (ROL[n.role]?.[n.gender === 'f' ? 0 : 1] ?? n.role)}</span></div>
+        <div class="npc-head"><b>${esc(n.name)}</b><span>${n.tags.includes('progenitor') ? (n.gender === 'f' ? 'Madre' : 'Padre') : n.tags.includes('hermano') ? (n.gender === 'f' ? 'Hermana' : 'Hermano') : (ROL[n.role]?.[n.gender === 'f' ? 0 : 1] ?? n.role)}</span></div>
         ${v ? `<div class="note"><b>${nombreEstado(v.estado, n.gender)}</b>${MOSTRAR_RELACIONES ? ` · afinidad ${Math.round(v.afinidad)}, confianza ${Math.round(v.confianza)} (solo pruebas)` : ''}${lvl ? ` · nivel ${esc(lvl)}` : ''}</div>` : ''}
         ${MOSTRAR_RELACIONES && v ? `<div class="bar" title="Afinidad ${Math.round(v.afinidad)}"><i style="width:${(v.afinidad + 100) / 2}%"></i></div>` : ''}
-        <div class="note">${esc(n.description ?? '')} ${esc(ayuda)}</div>
+        <div class="note">${esc(n.description ?? '')}</div>
         ${MOSTRAR_RELACIONES && n.rasgos ? `<div class="note">(solo pruebas) Carácter: ${esc(describirCaracter(n.rasgos.caracter))}. Intereses: ${esc(textoIntereses(n.rasgos.intereses, 'npc'))}.${compat === undefined ? '' : ` Compatibilidad contigo: ${Math.round(compat * 100)} % (×${factorDeCompatibilidad(compat).toFixed(2)}).`}</div>` : ''}
       </div>`;
     })
@@ -609,11 +597,14 @@ function viewLog(g: Game): string {
 }
 
 function viewGame(g: Game): string {
-  const tabs: [Tab, string][] = [
+  const deporte = pestanaDeDeporte(g);
+  // Sin club la pestaña del deporte está desactivada: si estabas en ella (dejaste el club), se vuelve a «Qué hacer».
+  if (tab === 'deporte' && (!deporte || deporte.inactivo)) tab = 'hacer';
+  const tabs: [Tab, string, string?][] = [
     ['hacer', 'Qué hacer'],
     ['personaje', 'Personaje'],
-    ...(etiquetaDeDeporte(g) ? ([['deporte', etiquetaDeDeporte(g)!]] as [Tab, string][]) : []),
-    ['gente', 'Gente'],
+    ...(deporte ? ([['deporte', deporte.etiqueta, deporte.inactivo]] as [Tab, string, string?][]) : []),
+    ['gente', `Gente (${genteAqui(g)})`],
     ['relaciones', 'Relaciones'],
     ['diario', 'Diario'],
   ];
@@ -621,7 +612,7 @@ function viewGame(g: Game): string {
   let side = '';
   if (tab === 'hacer') {
     main = viewLugar(g) + viewResult() + viewActions(g);
-    side = viewResults(g);
+    side = viewViaje(g) + viewPlanes(g) + viewResults(g);
   } else if (tab === 'personaje') {
     main = viewIdentity(g) + viewCharacter(g);
     side = viewResults(g);
@@ -633,7 +624,7 @@ function viewGame(g: Game): string {
   return `<main class="app">
     ${viewDay(g)}
     <nav class="tabs" role="tablist">${tabs
-      .map(([id, label]) => `<button class="tab" role="tab" aria-selected="${tab === id}" data-tab="${id}">${label}</button>`)
+      .map(([id, label, inactivo]) => `<button class="tab" role="tab" aria-selected="${tab === id}" data-tab="${id}"${inactivo ? ` disabled title="${esc(inactivo)}"` : ''}>${label}</button>`)
       .join('')}</nav>
     <div class="layout"><div class="main">${main}</div><aside class="side">${side}</aside></div>
   </main>`;

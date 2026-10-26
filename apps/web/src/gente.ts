@@ -47,11 +47,17 @@ let seleccionada: string | null = null;
 let pestana: Pestana = 'resumen';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-const rol = (n: NpcView) => ROL[n.role][n.gender === 'f' ? 0 : 1];
+const rol = (n: NpcView) =>
+  n.tags.includes('progenitor') ? (n.gender === 'f' ? 'Madre' : 'Padre') : n.tags.includes('hermano') ? (n.gender === 'f' ? 'Hermana' : 'Hermano') : ROL[n.role][n.gender === 'f' ? 0 : 1];
 const conocida = (n: NpcView) => n.known !== false;
 const aspecto = (n: NpcView) => (n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, n.age) : n.gender === 'f' ? 'Una chica' : 'Un chico');
 
-/** Las personas del filtro elegido, primero las que conoces y después por orden de llegada. */
+/** Cuánta gente tienes cerca ahora (la de «Aquí»): es el número que lleva la pestaña. */
+export function genteAqui(g: Game): number {
+  return personasDe(g, 'aqui').length;
+}
+
+/** Las personas del filtro elegido: en «Aquí» las que tienes cerca (conocidas o no) y en los demás solo las que conoces. */
 function personasDe(g: Game, f: Filtro): NpcView[] {
   const dir = g.service<NpcDirectory>(SERVICES.npcs);
   if (!dir) return [];
@@ -59,13 +65,13 @@ function personasDe(g: Game, f: Filtro): NpcView[] {
     const lugar = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
     return lugar ? (g.service<PresenciaService>(SERVICES.presencia)?.en(lugar, GENTE_CERCANA) ?? []) : [];
   }
-  const lista =
-    f === 'conocidos' ? dir.list({ known: true })
-    : f === 'companeros' ? dir.list({ role: 'companero' })
-    : f === 'rivales' ? dir.list({ role: 'rival' })
-    : f === 'vecinos' ? dir.list({ role: 'vecino' })
-    : [...dir.list({ role: 'profesor' }), ...dir.list({ role: 'entrenador' })];
-  return lista.sort((a, b) => Number(conocida(b)) - Number(conocida(a)));
+  // Fuera de «Aquí» solo se guardan las personas que ya conoces: a quien no conoces solo lo ves cuando lo tienes cerca.
+  const conocidas = { known: true };
+  return f === 'conocidos' ? dir.list(conocidas)
+    : f === 'companeros' ? dir.list({ role: 'companero', ...conocidas })
+    : f === 'rivales' ? dir.list({ role: 'rival', ...conocidas })
+    : f === 'vecinos' ? dir.list({ role: 'vecino', ...conocidas })
+    : [...dir.list({ role: 'profesor', ...conocidas }), ...dir.list({ role: 'entrenador', ...conocidas })];
 }
 
 const barra = (nombre: string, pct: number, clase: string) =>

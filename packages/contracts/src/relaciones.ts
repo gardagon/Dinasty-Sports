@@ -45,7 +45,18 @@ export interface RelationView {
   ultimoContacto: number;
 }
 
+/** Un plan acordado con alguien: qué, qué día (absoluto), a qué hora (minuto del día) y dónde. */
+export interface PlanView {
+  npcId: string;
+  actividad: string;
+  dia: number;
+  minuto: number;
+  lugar: string;
+}
+
 export interface RelationsService {
+  /** Planes acordados que todavía no han llegado (hoy o más adelante). */
+  planes(): PlanView[];
   /** Vínculo con una persona, o `undefined` si el personaje aún no la conoce. */
   get(npcId: string): RelationView | undefined;
   /** Todos los vínculos con personas que el personaje conoce. */

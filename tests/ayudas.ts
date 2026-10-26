@@ -13,3 +13,13 @@ export function posible(game: Game, id: string): boolean {
   const o = game.preview(id);
   return !!o && (o.available || faltaViajar(o));
 }
+
+const DEL_REPARTO = ['entrenador', 'tutor', 'companero_estudio', 'companero_social'];
+
+/** Da por conocidas a estas personas (por defecto, las cuatro del reparto inicial): los tests no siempre empiezan preguntando nombres. */
+export function conocer(game: Game, ...ids: string[]): Game {
+  const s = game.moduleState<{ npcs: { id: string; known?: boolean }[] }>('npcs') as { npcs: { id: string; known?: boolean }[] };
+  const quienes = ids.length ? ids : DEL_REPARTO;
+  s.npcs = s.npcs.map((n) => (quienes.includes(n.id) ? { ...n, known: true } : n));
+  return game;
+}
