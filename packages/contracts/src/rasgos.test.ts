@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CARA, DISTINTIVOS, EJES, INTERESES, OJOS, ORIGENES, PELO_COLOR, PELO_TIPO, PIEL,
-  aparienciaAlAzar, aparienciaHeredada, atraccion, caracterAlAzar, caracterHeredado, compatibilidad, describirApariencia, describirCaracter,
+  aparienciaAlAzar, aparienciaHeredada, atraccion, nombreSegunEdad, caracterAlAzar, caracterHeredado, compatibilidad, describirApariencia, describirCaracter,
   describirOrigen, factorDeCompatibilidad, gustosAlAzar, interesesAlAzar, interesesDe, interesesHeredados, origenAlAzar, origenHeredado,
   perfilHeredado, rasgosAlAzar,
   rasgosHeredadosNpc, type Apariencia,
@@ -245,5 +245,23 @@ describe('rasgos de un hermano', () => {
       desconocidos += distancia(a.caracter, rasgosAlAzar(rng).caracter);
     }
     expect(hermanos / N).toBeLessThan(desconocidos / N);
+  });
+});
+
+describe('cómo se llama a alguien según su edad', () => {
+  it('niño, chico, hombre, señor y anciano (y sus femeninos) según los años', () => {
+    const f = (e?: number) => nombreSegunEdad('f', e);
+    const m = (e?: number) => nombreSegunEdad('m', e);
+    expect([m(5), m(11)]).toEqual(['Un niño', 'Un niño']);
+    expect([f(5), f(11)]).toEqual(['Una niña', 'Una niña']);
+    expect([m(12), m(25)]).toEqual(['Un chico', 'Un chico']);
+    expect([f(12), f(25)]).toEqual(['Una chica', 'Una chica']);
+    expect([m(26), m(54)]).toEqual(['Un hombre', 'Un hombre']);
+    expect([f(26), f(54)]).toEqual(['Una mujer', 'Una mujer']);
+    expect([m(55), m(69)]).toEqual(['Un señor', 'Un señor']);
+    expect([f(55), f(69)]).toEqual(['Una señora', 'Una señora']);
+    expect([m(70), m(95)]).toEqual(['Un anciano', 'Un anciano']);
+    expect([f(70), f(95)]).toEqual(['Una anciana', 'Una anciana']);
+    expect([m(undefined), f(undefined)]).toEqual(['Un chico', 'Una chica']);
   });
 });

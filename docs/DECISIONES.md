@@ -172,6 +172,18 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Rendimiento:** la primera versión recalculaba la ruta en cada evaluación y subió el coste de la simulación de ~2,7 s a ~3,2 s por año (límite 3 s). Las rutas se calculan ahora una sola vez (el mapa no cambia en partida): ~2,75 s. Ojo al añadir lugares: cada acción de ir se evalúa en cada `listActions`.
 - **Comprobado:** tests (incluida la arquitectura) y `sim:rapida` sin cambios en el balance.
 
+## 26/10/2026 — Fichas con las acciones, charlas de 5 minutos, clases con margen y apellidos
+
+- **Interactuar con las personas desde su ficha (decidido con el usuario):** las acciones de relación (charlar, quedar, proponer planes...) ya no salen en «Qué hacer»: están en la ficha de cada persona, en «Gente», junto a lo que no se puede ahora y por qué. Se pierde menos lo que haces (el resultado se ve arriba en «Gente» y en «Qué hacer»).
+- **Charlas de 5 minutos (decidido):** una charla son 5 minutos y se pueden juntar hasta 6 al día con la misma persona (30 minutos en total); cada una vale una sexta parte de la antigua de 30 minutos. Lo mismo con «Hablar con el entrenador/tutor» y las charlas con rivales. Proponer un plan y tener un detalle, 5 minutos. Las charlas no gastan el «una actividad grande al día» (quedar, ayudar...), que pasa a llevarse aparte.
+- **Clases (decidido):** duran 75 minutos y acaban 5 minutos antes de la hora de la siguiente; esos 5 minutos se pasan en el aula con los **compañeros de clase** (solo ellos están libres; el resto de alumnos sigue ocupado). **No se puede entrar hasta 10 minutos antes** (esos 10 minutos: repasar la asignatura con `estudios.repaso_previo` o hablar con quien haya) y **se puede llegar tarde**: solo sube la parte proporcional al tiempo asistido (modificador `estudios.llegada_tarde`) y asistir tarde no es faltar; con menos de 5 minutos por delante ya no se entra. Alumnos y profesores llegan al colegio desde las 7:30.
+- **El profesor se presenta** la primera vez que vas a su clase (evento `clase.asistida`; tabla de qué profesor da qué asignatura).
+- **Nuevo `gen.esperar`** (5 minutos): esperar hasta poder entrar a clase. Los bots esperan si falta menos de una hora para la próxima clase y el atleta no pasa de 2 sesiones al día (más es sobrecarga).
+- **Nombres según la edad** de quien no conoces: niño/a, chico/a, hombre/mujer, señor/señora, anciano/a (tabla en `ANEXO_RELACIONES.md`). La pestaña «Aspecto» ya no repite la frase.
+- **Apellidos:** los padres tienen dos apellidos cada uno y los hijos el primero de cada uno. Cambia `apellidosDeFamilia` y añade `apellidosDePadres`.
+- **Balance:** `npm run sim` con los mismos números que antes del cambio (equilibrado 41,1 en estudios y 17,9 en atletismo, empollón 56,6, atleta 19,0; todos los chequeos ✅). Rendimiento ~0,65 ms por acción (límite ~0,95).
+- **Pendiente:** elegir a quién hablar «al azar» en los 10 minutos antes de clase (hoy se usa «Gente»); mostrar quién hay en el aula cuando se dé la clase.
+
 ## 26/10/2026 — Pantalla del lugar, padres, ocupados y planes con los demás
 
 - **Pantalla «Qué hacer» (decidido con el usuario):** la gente que hay aquí **ya no sale en la principal**: la pestaña se llama «Gente (N)», con N las personas que tienes cerca, y dentro de «Aquí» están todas. El lugar (nombre y descripción), lo que se puede hacer y los viajes se **separan**: arriba el lugar; después el resultado de la última acción y las acciones (así no se pierde lo que haces); los viajes, los planes pendientes y los resultados, en la columna lateral.

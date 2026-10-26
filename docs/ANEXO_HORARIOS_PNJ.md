@@ -18,6 +18,7 @@ Estado: **horarios cerrados y población aprobada** (25/10/2026). La población 
 
 - Ejemplo: un compañero de clase (nivel 2) se apunta a tu club (nivel 3). Sigue yendo a clase, pero en la tarde de entrenamiento está donde entrena el club. Si el club se acaba, se le quita el tipo y vuelve su rutina.
 - **Ocupado = fuera:** en clase, en una carrera o en una sesión del club una persona **no se puede hablar contigo**: sigue en su agenda, pero cuenta como fuera del mapa (`TramoDeAgenda.ocupado`: intervalos del tramo en que está ocupada). Antes y después (llegar, el recreo, quedarse un rato al acabar) sí está en el sitio. No puede estar compitiendo y hablando contigo a la vez; lo mismo vale para cualquier acontecimiento parecido que se añada.
+- **La jornada:** 4 clases que empiezan a las 8:00, 9:20, 11:20 y 12:40 y duran 75 minutos (acaban a las 9:15, 10:35, 12:35 y 13:55), con un recreo de 10:40 a 11:20. Los 5 minutos al acabar cada clase se pasan en el aula, solo con los compañeros de tu clase. Ver `JORNADA_ESCOLAR` y `HUECO_ENTRE_CLASES` (`contracts/time.ts`).
 - **«Fuera»** (`null`) es cualquier sitio que no está en el mapa. Por eso solo los de la familia están en `casa`: los demás tienen su casa fuera del mapa.
 - **Azar estable:** a qué sitio va de varios posibles, o si falta ese día, sale de un hash de (persona, día, tramo). No se guarda y no cambia mientras dure el tramo. Es el «azar al llegar a un lugar».
 - **Presencia:** el servicio `presencia` (`en(lugar, max)`, `donde(persona)`, `agenda(persona)`) dice quién hay en un lugar ahora. Los de mayor nivel salen primero y el resto en un orden estable; con `max` se limita (la pantalla enseña 40, como el juego de referencia).
@@ -33,7 +34,7 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 | Días | Horas | Dónde |
 |---|---|---|
 | lectivo | 7:30–8:00 | colegio, llegando (se les puede hablar) |
-| lectivo | 8:00–10:40 y 11:20–14:00 | **en clase: ocupados** (no están disponibles) |
+| lectivo | 8:00–10:40 y 11:20–14:00 | **en clase: ocupados** (no están disponibles), salvo **tus compañeros de clase** (`tuClase`: los 24 de tu clase y los del reparto inicial), que están libres los 5 minutos al acabar cada clase (9:15–9:20, 10:35–10:40, 12:35–12:40, 13:55–14:00). Los demás alumnos siguen ocupados |
 | lectivo | 10:40–11:20 | colegio: el recreo (se les puede hablar) |
 | lectivo | 15:00–19:00 | fuera 60 %, parque 25 %, supermercado 10 %, gimnasio 5 % |
 | libre | 10:00–14:00 | fuera 50 %, parque 40 %, supermercado 10 % |

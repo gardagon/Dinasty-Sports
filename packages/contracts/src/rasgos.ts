@@ -415,12 +415,28 @@ export function aptitudDe(area: AreaDeAyuda, rasgos: RasgosDe | undefined, nivel
 /** Una compatibilidad de 0,25 da ×0,7, 0,5 da ×1,05 y 0,75 o más da ×1,4 (lo típico, ~0,4, queda cerca de ×0,9). */
 export const factorDeCompatibilidad = (compat: number): number => 0.7 + 0.7 * clamp((compat - 0.25) / 0.5, 0, 1);
 
+/** Cómo se llama a una persona según su edad (años): hasta qué edad es niño, chico, hombre, señor y anciano. */
+export const EDADES_DE_TRATO = { chico: 12, hombre: 26, senor: 55, anciano: 70 } as const;
+
+/**
+ * «Una niña», «Un chico», «Una mujer», «Un señor», «Una anciana»... según la edad (sin edad, chico o chica). Se ven así quienes no conoces.
+ */
+export function nombreSegunEdad(gender: 'f' | 'm', edad?: number): string {
+  const f = gender === 'f';
+  if (edad === undefined) return f ? 'Una chica' : 'Un chico';
+  if (edad < EDADES_DE_TRATO.chico) return f ? 'Una niña' : 'Un niño';
+  if (edad < EDADES_DE_TRATO.hombre) return f ? 'Una chica' : 'Un chico';
+  if (edad < EDADES_DE_TRATO.senor) return f ? 'Una mujer' : 'Un hombre';
+  if (edad < EDADES_DE_TRATO.anciano) return f ? 'Una señora' : 'Un señor';
+  return f ? 'Una anciana' : 'Un anciano';
+}
+
 /**
  * Lo que se ve de alguien a quien no conoces (sin nombre): una frase corta con su aspecto, concordada con su género y edad.
  * «Una chica de pelo castaño ondulado, ojos verdes y piel clara.»
  */
 export function descripcionDeDesconocido(a: Apariencia, gender: 'f' | 'm', edad?: number): string {
-  const persona = edad !== undefined && edad < 12 ? (gender === 'f' ? 'Una niña' : 'Un niño') : gender === 'f' ? 'Una chica' : 'Un chico';
+  const persona = nombreSegunEdad(gender, edad);
   const rasgos = [`de pelo ${NOMBRE_RASGO[a.peloColor]} ${NOMBRE_RASGO[a.peloTipo]}`, `ojos ${NOMBRE_RASGO[a.ojos]}`, `piel ${NOMBRE_RASGO[a.piel]}`];
   const distintivos = a.distintivos.length ? `, con ${a.distintivos.map((d) => NOMBRE_RASGO[d]).join(' y ')}` : '';
   return `${persona} ${rasgos.slice(0, -1).join(', ')} y ${rasgos[rasgos.length - 1]}${distintivos}`;

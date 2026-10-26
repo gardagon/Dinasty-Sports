@@ -148,6 +148,14 @@ export const personaje = defineModule<IdentidadState>({
       delta: { [GEN.energia]: 8, [GEN.estres]: -2 },
     },
     {
+      id: 'gen.esperar',
+      name: 'Esperar 5 minutos',
+      description: 'Dejar pasar un rato corto (p. ej. hasta que se pueda entrar a clase).',
+      tags: [TAGS.descanso],
+      group: 'Descanso',
+      duration: 5,
+    },
+    {
       id: 'gen.gimnasio',
       name: 'Gimnasio',
       description: 'Fuerza y resistencia generales.',

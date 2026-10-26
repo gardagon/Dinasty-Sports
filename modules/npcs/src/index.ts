@@ -9,6 +9,7 @@ import {
   factorPorEdad,
   INTERESES,
   apellidosDeFamilia,
+  apellidosDePadres,
   nombreDeProgenitor,
   diferenciasDeEdad,
   numeroDeHermanos,
@@ -34,6 +35,7 @@ import {
   type NpcRole,
   type NpcView,
   type ClubDirectory,
+  type ClassAttendedData,
   type ClubJoinData,
   type DatosDeAgenda,
   type PresenciaService,
@@ -240,6 +242,15 @@ const EDAD_ALUMNO_MIN = 8;
 /** A esta edad (de competición) se termina el colegio: 2.º de bachillerato es a los 17. */
 const EDAD_FIN_COLEGIO = 18;
 const VECINOS = 80;
+/** Qué profesor da cada asignatura (número de `profesor_N`, por orden de `ASIGNATURAS_DE_PROFESORES`): al ir a su clase se presenta. */
+const PROFESOR_DE_ASIGNATURA: Readonly<Record<string, number>> = {
+  'estudios.lengua': 1, 'estudios.matematicas': 2, 'estudios.ingles': 3, 'estudios.educacion_fisica': 4,
+  'estudios.naturales': 5, 'estudios.biologia': 5, 'estudios.sociales': 6, 'estudios.economia': 6,
+  'estudios.artistica': 7, 'estudios.musica': 7, 'estudios.tecnologia': 8,
+  'estudios.fisica_quimica': 9, 'estudios.fisica': 9, 'estudios.quimica': 9,
+  'estudios.filosofia': 10, 'estudios.latin': 10,
+  'estudios.historia': 11, 'estudios.historia_espana': 11, 'estudios.historia_arte': 11,
+};
 const ASIGNATURAS_DE_PROFESORES = ['Lengua', 'Matemáticas', 'Inglés', 'Educación física', 'Ciencias', 'Ciencias sociales', 'Artística y música', 'Tecnología', 'Física y química', 'Filosofía', 'Historia'];
 /** Posiciones (dentro de su grupo) de los alumnos que forman el equipo de atletismo del colegio: 4 + 4 + 8 = 16. */
 const EQUIPO = { tuClase: [2, 7, 12, 18], otraClase: [1, 8, 15, 22], otrosCursos: [3, 22, 41, 60, 79, 98, 117, 136] };
@@ -265,8 +276,8 @@ function persona(rng: Rng, id: string, role: NpcRole, edad: number, dia: number,
 
 function poblarElColegio(rng: Rng, usados: Set<string>, existentes: number): Npc[] {
   const o = (g: Gender, f: string, m: string) => (g === 'f' ? f : m);
-  const alumno = (id: string, edad: number, desc: (g: Gender) => string): Npc => persona(rng, id, 'companero', edad, 0, usados, [{ tipo: 'alumno' }], desc);
-  const tuClase = Array.from({ length: COMPANEROS_DE_CLASE - existentes }, (_, i) => alumno(`clase_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Compañera de tu clase.', 'Compañero de tu clase.')));
+  const alumno = (id: string, edad: number, desc: (g: Gender) => string, tuClase = false): Npc => persona(rng, id, 'companero', edad, 0, usados, [{ tipo: 'alumno', ...(tuClase ? { tuClase: true } : {}) }], desc);
+  const tuClase = Array.from({ length: COMPANEROS_DE_CLASE - existentes }, (_, i) => alumno(`clase_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Compañera de tu clase.', 'Compañero de tu clase.'), true));
   const otraClase = Array.from({ length: ALUMNOS_POR_AULA }, (_, i) => alumno(`curso_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Alumna de la otra clase de tu curso.', 'Alumno de la otra clase de tu curso.')));
   const otrosCursos: Npc[] = [];
   for (let edad = EDAD_ALUMNO_MIN + 1; edad < EDAD_FIN_COLEGIO; edad++) {
@@ -320,10 +331,11 @@ const nivelInicialDeHermano = (potencial: number, edadReal: number, desfase: num
  * que en el módulo `familia`, que los saca de la semilla. Viven en casa y salen a trabajar. No llevan edad aquí (la ficha está en `familia`).
  */
 function progenitores(ctx: InitContext, usados: Set<string>): Npc[] {
-  const apellidos = apellidosDeFamilia(ctx.seed);
+  const apellidos = apellidosDePadres(ctx.seed);
   return (['padre', 'madre'] as const).map((id) => {
     const gender: Gender = id === 'padre' ? 'm' : 'f';
-    const name = `${nombreDeProgenitor(ctx.seed, id)} ${apellidos}`;
+    // Cada uno con sus dos apellidos (los hijos llevan el primero de cada uno).
+    const name = `${nombreDeProgenitor(ctx.seed, id)} ${apellidos[id].join(' ')}`;
     usados.add(name);
     return {
       id,
@@ -443,13 +455,13 @@ function generarReparto(ctx: InitContext): Npc[] {
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, sociabilidad: -5 }, interesesPreferidos: ['estudio', 'tecnologia'] }),
       tags: ['estudio'],
       description: `${o(g, 'Compañera de clase aplicada', 'Compañero de clase aplicado')}.`,
-      tipos: [{ tipo: 'alumno' }],
+      tipos: [{ tipo: 'alumno', tuClase: true }],
     })),
     npc('companero_social', 'companero', () => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { sociabilidad: 20, optimismo: 8 }, interesesPreferidos: ['videojuegos', 'cine', 'musica'] }),
       tags: ['social'],
       description: 'Conoce a todo el mundo en el colegio.',
-      tipos: [{ tipo: 'alumno' }],
+      tipos: [{ tipo: 'alumno', tuClase: true }],
     })),
     ...rivalesIniciales(rng, usados),
     ...progenitores(ctx, usados),
@@ -649,6 +661,16 @@ export const npcs = defineModule<NpcsState>({
       if (!entrenador) return;
       ctx.updateState<NpcsState>((st) => ({ npcs: st.npcs.map((x) => (x.id === entrenador.id ? { ...x, known: true } : x)) }));
       ctx.log(`${entrenador.gender === 'f' ? 'Tu entrenadora' : 'Tu entrenador'} se presenta: ${entrenador.name}.`, 'info');
+    },
+
+    // Al ir a una clase, su profesor se presenta si todavía no lo conoces.
+    [SHARED_EVENTS.CLASS_ATTENDED]: (ctx, ev) => {
+      const { asignatura } = ev.data as ClassAttendedData;
+      const numero = PROFESOR_DE_ASIGNATURA[asignatura];
+      const profesor = numero === undefined ? undefined : ctx.state<NpcsState>().npcs.find((n) => n.id === `profesor_${numero}`);
+      if (!profesor || profesor.known !== false) return;
+      ctx.updateState<NpcsState>((st) => ({ npcs: st.npcs.map((x) => (x.id === profesor.id ? { ...x, known: true } : x)) }));
+      ctx.log(`${profesor.gender === 'f' ? 'La profesora' : 'El profesor'} se presenta al empezar la clase: ${profesor.name}.`, 'info');
     },
 
     [SHARED_EVENTS.PRESENTACION]: (ctx, ev) => {

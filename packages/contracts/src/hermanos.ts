@@ -7,15 +7,29 @@ import type { Rng } from './rng';
 
 const APELLIDOS = ['García', 'Martín', 'López', 'Sánchez', 'Romero', 'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano'];
 
-/** Los dos apellidos de la familia, siempre los mismos para una semilla (así los pueden usar varios módulos sin depender uno del otro). */
-export function apellidosDeFamilia(seed: number): string {
-  // Mezcla barata de la semilla: dos índices distintos y estables.
+/**
+ * Los apellidos de los padres, siempre los mismos para una semilla (así los pueden usar varios módulos sin depender uno del otro): cada uno
+ * tiene dos, distintos entre sí y de los del otro. Los hijos llevan el primero del padre y el primero de la madre.
+ */
+export function apellidosDePadres(seed: number): { padre: [string, string]; madre: [string, string] } {
+  // Mezcla barata de la semilla: cuatro índices distintos y estables.
   let h = (seed ^ 0x9e3779b1) >>> 0;
-  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b) >>> 0;
-  const a = h % APELLIDOS.length;
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
-  const b = h % APELLIDOS.length;
-  return `${APELLIDOS[a]} ${APELLIDOS[b]}`;
+  const elegidos: number[] = [];
+  while (elegidos.length < 4) {
+    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+    h = (h ^ (h >>> 16)) >>> 0;
+    const i = h % APELLIDOS.length;
+    if (!elegidos.includes(i)) elegidos.push(i);
+  }
+  const [a, b, c, d] = elegidos.map((i) => APELLIDOS[i]);
+  return { padre: [a, b], madre: [c, d] };
+}
+
+/** Los dos apellidos de los hijos: el primero del padre y el primero de la madre. */
+export function apellidosDeFamilia(seed: number): string {
+  const { padre, madre } = apellidosDePadres(seed);
+  return `${padre[0]} ${madre[0]}`;
 }
 
 const NOMBRES_DE_PROGENITOR = {

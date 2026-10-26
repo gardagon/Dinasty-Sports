@@ -1,8 +1,10 @@
 import {
   GENTE_CERCANA,
   SERVICES,
-  describirApariencia,
   descripcionDeDesconocido,
+  edadAparente,
+  nombreSegunEdad,
+  NOMBRE_RASGO,
   nombreEstado,
   type LugaresService,
   type NpcDirectory,
@@ -50,7 +52,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const rol = (n: NpcView) =>
   n.tags.includes('progenitor') ? (n.gender === 'f' ? 'Madre' : 'Padre') : n.tags.includes('hermano') ? (n.gender === 'f' ? 'Hermana' : 'Hermano') : ROL[n.role][n.gender === 'f' ? 0 : 1];
 const conocida = (n: NpcView) => n.known !== false;
-const aspecto = (n: NpcView) => (n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, n.age) : n.gender === 'f' ? 'Una chica' : 'Un chico');
+const aspecto = (n: NpcView) => (n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, edadAparente(n)) : nombreSegunEdad(n.gender, edadAparente(n)));
 
 /** Cuánta gente tienes cerca ahora (la de «Aquí»): es el número que lleva la pestaña. */
 export function genteAqui(g: Game): number {
@@ -86,13 +88,26 @@ function tarjeta(g: Game, n: NpcView): string {
   return `<button class="tarjeta-gente" data-gente="ver" data-id="${esc(n.id)}"><b>${esc(n.name)}</b><span class="rol">${esc(estado)}</span><span>${esc(rol(n) === estado ? '' : rol(n))}</span>${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}</button>`;
 }
 
+/** Todo lo que puedes hacer con esta persona (hablar, quedar, proponer planes...): lo disponible ahora y, aparte, lo que no con el motivo. */
+function accionesCon(g: Game, n: NpcView): string {
+  const todas = g.listActions({ omitir: (d) => !(d.id.startsWith('relaciones.') && d.id.endsWith(`.${n.id}`)) }).filter((o) => o.id.startsWith('relaciones.') && o.id.endsWith(`.${n.id}`));
+  const boton = (o: (typeof todas)[number]) =>
+    `<button class="action" data-do="${esc(o.id)}"${o.available ? '' : ' disabled'}><span class="action-name">${esc(o.name)}</span><span class="action-time">${o.duration} min</span>${o.available ? '' : `<span class="action-why">${esc(o.reason ?? '')}</span>`}</button>`;
+  const ahora = todas.filter((o) => o.available);
+  const luego = todas.filter((o) => !o.available);
+  return `<h3>Qué hacer con ${esc(n.name.split(' ')[0])}</h3>
+    <div class="actions">${ahora.map(boton).join('') || '<p class="note">Ahora mismo no puedes hacer nada con esta persona.</p>'}</div>
+    ${luego.length ? `<details class="viaje-rapido"><summary>Lo que no se puede ahora (${luego.length})</summary><div class="actions">${luego.map(boton).join('')}</div></details>` : ''}`;
+}
+
 function ficha(g: Game, n: NpcView): string {
   const rel = g.service<RelationsService>(SERVICES.relaciones)?.get(n.id);
   const nombre = conocida(n) ? esc(n.name) : '???';
   const pestanas: [Pestana, string][] = [['resumen', 'Resumen'], ['aspecto', 'Aspecto']];
   let cuerpo: string;
   if (pestana === 'aspecto') {
-    cuerpo = `<p>${esc(aspecto(n))}.</p>${n.rasgos ? `<p class="note">${esc(describirApariencia(n.rasgos.apariencia))}.</p>` : ''}`;
+    // La frase ya dice el pelo, los ojos, la piel y los distintivos: aquí solo se añade lo que no dice (la forma de la cara).
+    cuerpo = `<p>${esc(aspecto(n))}.</p>${n.rasgos ? `<p class="note">Cara ${esc(NOMBRE_RASGO[n.rasgos.apariencia.cara])}.</p>` : ''}`;
   } else if (!conocida(n)) {
     // Preguntar el nombre solo se puede a quien tienes cerca (el motor lo dice en la disponibilidad de la acción).
     const pregunta = g.preview(`relaciones.presentarse.${n.id}`);
@@ -104,11 +119,13 @@ function ficha(g: Game, n: NpcView): string {
     const nivel = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
     cuerpo = `<p>${esc(n.description ?? '')}</p>${rel ? `<p class="note"><b>${esc(nombreEstado(rel.estado, n.gender))}</b></p>` : ''}${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}${nivel ? `<p class="note">Nivel: ${esc(nivel)}</p>` : ''}${n.club ? `<p class="note">Club: ${esc(n.club)}</p>` : ''}`;
   }
+  const acciones = pestana === 'resumen' && conocida(n) ? accionesCon(g, n) : '';
   return `<section class="sheet ficha-gente">
     <button data-gente="volver">← Volver</button>
     <h2>${nombre} <small>${esc(rol(n))}</small></h2>
     <nav class="tabs">${pestanas.map(([id, label]) => `<button class="tab" aria-selected="${pestana === id}" data-gente="pestana" data-id="${id}">${label}</button>`).join('')}</nav>
     ${cuerpo}
+    ${acciones}
   </section>`;
 }
 

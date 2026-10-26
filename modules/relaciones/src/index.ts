@@ -9,6 +9,7 @@ import {
   inHours,
   isSchoolHours,
   enRecreo,
+  enHuecoEntreClases,
   type PerfilDelPersonaje,
   type IdentityService,
   NIVEL_ESTADO,
@@ -30,6 +31,8 @@ import {
   azarDe,
   GENTE_CERCANA,
   descripcionDeDesconocido,
+  edadAparente,
+  nombreSegunEdad,
   type NpcDirectory,
   type NpcView,
   type ProfileService,
@@ -84,6 +87,10 @@ export interface RelacionesState {
   espera?: Record<string, number>;
   /** Planes acordados (y los de los últimos días, para dejar margen entre uno y otro). */
   planes?: PlanAcordado[];
+  /** Charlas de 5 minutos de hoy con cada persona (como mucho `CHARLAS_AL_DIA`). */
+  charlas?: Record<string, { dia: number; n: number }>;
+  /** Día de la última actividad «grande» (quedar, ayudar, discutir...) con cada persona: una al día. */
+  grandes?: Record<string, number>;
 }
 
 /** Un plan acordado: hecho o plantado cuando ya no está pendiente (se guarda unos días por el margen entre planes). */
@@ -91,6 +98,12 @@ export interface PlanAcordado extends PlanView {
   actividad: ActividadDePlan;
   resuelto?: boolean;
 }
+
+/** Las charlas son de 5 minutos y se pueden acumular hasta 6 al día con la misma persona (30 minutos en total). */
+const MINUTOS_DE_CHARLA = 5;
+const CHARLAS_AL_DIA = 6;
+/** Una charla vale una parte de lo que valía la de 30 minutos. */
+const PARTE_DE_CHARLA = MINUTOS_DE_CHARLA / (MINUTOS_DE_CHARLA * CHARLAS_AL_DIA);
 
 /** Afinidad con la que alguien ayuda del todo: por debajo ayuda en proporción (se os da mejor cuanto más os conocéis). */
 const AFINIDAD_AYUDA_COMPLETA = 40;
@@ -148,7 +161,7 @@ const DESDE_LA_LLEGADA = JORNADA_ESCOLAR.clases[0][0] - LLEGADA_AL_COLEGIO;
 
 /** Fuera de clase y entre `desde` y `hasta`; con `recreo`, también en el recreo (lo corto se puede hacer entre clase y clase). */
 const fueraDeClase = (desde: number, hasta: number, recreo = false) => (ctx: ReadContext) =>
-  (!isSchoolHours(ctx.time) || (recreo && enRecreo(ctx.time))) && (inHours(ctx.time, desde, hasta) || (recreo && ctx.time.isSchoolDay && entreMinutos(ctx, DESDE_LA_LLEGADA, desde * 60)))
+  (!isSchoolHours(ctx.time) || (recreo && (enRecreo(ctx.time) || enHuecoEntreClases(ctx.time)))) && (inHours(ctx.time, desde, hasta) || (recreo && ctx.time.isSchoolDay && entreMinutos(ctx, DESDE_LA_LLEGADA, desde * 60)))
     ? true
     : `Disponible de ${desde} a ${hasta}, fuera de clase${recreo ? ' (o en el recreo)' : ''}`;
 
@@ -187,16 +200,21 @@ const presenteAqui = (n: NpcView) => (ctx: ReadContext): true | string => {
 };
 
 /** Requisitos comunes: un solo contacto al día con cada persona y que esté contigo. */
-function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, extra?: (ctx: ReadContext, v: Vinculo) => true | string, sinPresencia = false) {
+function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, extra?: (ctx: ReadContext, v: Vinculo) => true | string, sinPresencia = false, charla = false) {
   return (ctx: ReadContext): true | string => {
     const s = ctx.state<RelacionesState>();
-    if (s.vinculos[n.id]?.ultimoContacto === ctx.time.day) return `Ya has estado con ${nombreCorto(n)} hoy`;
+    if (charla) {
+      const c = s.charlas?.[n.id];
+      if (c?.dia === ctx.time.day && c.n >= CHARLAS_AL_DIA) return `Ya has charlado con ${nombreCorto(n)} todo lo que da de sí hoy`;
+    } else if (s.grandes?.[n.id] === ctx.time.day) return `Ya has estado con ${nombreCorto(n)} hoy`;
     const h = horario(ctx);
     if (h !== true) return h;
     const otro = extra ? extra(ctx, vinculoDe(ctx, s, n, ctx.time.day)) : true;
     return otro !== true || sinPresencia ? otro : presenteAqui(n)(ctx);
   };
 }
+
+const escalar = (d: Record<string, number>, f: number): Record<string, number> => (f === 1 ? d : Object.fromEntries(Object.entries(d).map(([k, v]) => [k, v * f])));
 
 const espera = (s: RelacionesState, clave: string, dia: number): number => Math.max(0, (s.espera?.[clave] ?? -1) - dia);
 const ponerEspera = (ctx: ActionContext, clave: string, dias: number) =>
@@ -226,6 +244,8 @@ function interaccion(
     sinPresencia?: boolean;
     /** Sitio donde se hace (un plan se hace en el sitio acordado). */
     lugar?: readonly string[];
+    /** Una charla: dura 5 minutos y vale una sexta parte de lo indicado (que es lo que daría media hora); hasta 6 al día. */
+    charla?: boolean;
   },
 ): ActionDef {
   const def: ActionDef = {
@@ -234,16 +254,17 @@ function interaccion(
     description: cfg.description,
     tags: cfg.tags,
     group: grupoDe(n),
-    duration: cfg.duration,
-    available: disponible(n, cfg.horario, cfg.extra, cfg.sinPresencia),
-    delta: cfg.delta ?? (cfg.tags.includes(TAGS.ocio) ? { [GEN.energia]: -6, [GEN.estres]: -6 } : { [GEN.energia]: -3 }),
-    train: cfg.train,
+    duration: cfg.charla ? MINUTOS_DE_CHARLA : cfg.duration,
+    available: disponible(n, cfg.horario, cfg.extra, cfg.sinPresencia, cfg.charla),
+    delta: escalar(cfg.delta ?? (cfg.tags.includes(TAGS.ocio) ? { [GEN.energia]: -6, [GEN.estres]: -6 } : { [GEN.energia]: -3 }), cfg.charla ? PARTE_DE_CHARLA : 1),
+    train: cfg.charla ? cfg.train.map((t) => ({ ...t, amount: t.amount * PARTE_DE_CHARLA })) : cfg.train,
     run: (ctx) => {
       const dia = ctx.time.day;
-      const f = (cfg.factor?.(ctx) ?? 1) * ctx.efficiency;
+      const f = (cfg.factor?.(ctx) ?? 1) * ctx.efficiency * (cfg.charla ? PARTE_DE_CHARLA : 1);
       ctx.updateState<RelacionesState>((s) => ({
         ...s,
         vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(ctx, s, n, dia), dia, cfg.ganancia * f, cfg.confianza * f) },
+        ...(cfg.charla ? { charlas: { ...s.charlas, [n.id]: { dia, n: (s.charlas?.[n.id]?.dia === dia ? s.charlas[n.id].n : 0) + 1 } } } : { grandes: { ...s.grandes, [n.id]: dia } }),
       }));
       cfg.alTerminar?.(ctx);
     },
@@ -297,7 +318,7 @@ function proponerPlan(n: NpcView, actividad: ActividadDePlan, cuando: 'hoy' | 'm
     description: `${cfg.lugarTexto[0].toUpperCase()}${cfg.lugarTexto.slice(1)}, ${cfg.duracion} min. Acepta según lo que tenga que hacer, lo bien que os llevéis y cuándo fue la última vez: entre un plan y otro hace falta un día de margen, salvo que seáis muy amigos.`,
     tags: [TAGS.social],
     group: grupoDe(n),
-    duration: 2,
+    duration: MINUTOS_DE_CHARLA,
     available: (ctx) => {
       const s = ctx.state<RelacionesState>();
       const dia = ctx.time.day + dias;
@@ -357,7 +378,8 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
     interaccion(n, {
       suffix: 'charlar',
       name: `Charlar un rato con ${yo}`,
-      description: 'Un rato corto para mantener el contacto. Sube poco, pero cuesta casi nada.',
+      description: 'Cinco minutos de charla para mantener el contacto; se pueden juntar hasta seis al día (media hora). Sube poco, pero cuesta casi nada.',
+      charla: true,
       duration: 30,
       tags: [TAGS.social],
       ganancia: 2.5,
@@ -390,8 +412,8 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
     interaccion(n, {
       suffix: 'detalle',
       name: `Tener un detalle con ${yo}`,
-      description: 'Un gesto pensado para lo que le gusta. Una vez a la semana como mucho.',
-      duration: 15,
+      description: 'Un gesto pensado para lo que le gusta (5 minutos). Una vez a la semana como mucho.',
+      duration: 5,
       tags: [TAGS.social],
       ganancia: 3,
       confianza: 1,
@@ -476,6 +498,7 @@ function discutir(n: NpcView): ActionDef {
       ctx.updateState<RelacionesState>((s) => ({
         ...s,
         vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(ctx, s, n, dia), dia, -perdida, -5) },
+        grandes: { ...s.grandes, [n.id]: dia },
       }));
       ctx.log(`Discutes con ${yo}. Te desahogas, pero la relación se resiente.`, 'aviso');
     },
@@ -510,12 +533,14 @@ function hacerLasPaces(n: NpcView): ActionDef {
         ctx.updateState<RelacionesState>((s) => ({
           ...s,
           vinculos: { ...s.vinculos, [n.id]: conContacto({ ...vinculoDe(ctx, s, n, dia), afinidad: -2, estado: 'conocido' }, dia, 5, 5) },
+          grandes: { ...s.grandes, [n.id]: dia },
         }));
         ctx.log(`Hacéis las paces con ${yo}. Volvéis a ser conocidos y se puede empezar de nuevo.`, 'logro');
       } else {
         ctx.updateState<RelacionesState>((s) => ({
           ...s,
           vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(ctx, s, n, dia), dia, -3, -2) },
+          grandes: { ...s.grandes, [n.id]: dia },
         }));
         ponerEspera(ctx, `paces.${n.id}`, ESPERA.paces);
         ctx.log(`${yo} no está listo para hablar de esto. Habrá que esperar unos días.`, 'aviso');
@@ -527,6 +552,7 @@ function hacerLasPaces(n: NpcView): ActionDef {
 /** Hablar con quien manda (entrenador, tutor): lo de siempre. */
 function hablarConAutoridad(n: NpcView): ActionDef {
   return interaccion(n, {
+    charla: true,
     suffix: 'hablar',
     name: `Hablar con ${nombreCorto(n)} (${n.role === 'entrenador' ? (n.gender === 'f' ? 'entrenadora' : 'entrenador') : n.gender === 'f' ? 'tutora' : 'tutor'})`,
     duration: 30,
@@ -544,6 +570,7 @@ function hablarConAutoridad(n: NpcView): ActionDef {
 /** Saludar y charlar con un rival conocido: la rivalidad también puede ser respeto. */
 function saludarRival(n: NpcView): ActionDef {
   return interaccion(n, {
+    charla: true,
     suffix: 'charlar',
     name: `Charlar con ${nombreCorto(n)} (rival)`,
     description: 'Hablar con quien compite contigo: la rivalidad también puede acabar en respeto.',
@@ -607,10 +634,10 @@ function accionesDe(n: NpcView): ActionDef[] {
  */
 const memoPresentaciones = new Map<string, ActionDef>();
 function presentarse(n: NpcView): ActionDef {
-  const clave = `${n.id}|${n.gender}|${n.age !== undefined && n.age < 12}`;
+  const clave = `${n.id}|${n.gender}|${nombreSegunEdad(n.gender, edadAparente(n))}`;
   let a = memoPresentaciones.get(clave);
   if (!a) {
-    const quien = n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, n.age).toLowerCase() : n.gender === 'f' ? 'una chica' : 'un chico';
+    const quien = n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, edadAparente(n)).toLowerCase() : n.gender === 'f' ? 'una chica' : 'un chico';
     a = {
       id: `relaciones.presentarse.${n.id}`,
       name: `Preguntar el nombre a ${quien}`,

@@ -76,13 +76,22 @@ export function isSchoolHours(t: TimeView): boolean {
 }
 
 /**
- * La jornada escolar de un día lectivo, en minutos del día: 4 clases de 80 minutos y un recreo de 40 entre la segunda y la tercera
- * (de 8:00 a 14:00, como `isSchoolHours`). La usan estudios (las clases) y relaciones (el recreo es cuando se charla en el colegio).
+ * La jornada escolar de un día lectivo, en minutos del día: 4 clases que empiezan cada 80 minutos y un recreo de 40 entre la segunda y
+ * la tercera (de 8:00 a 14:00, como `isSchoolHours`). Cada clase termina 5 minutos antes de la hora de la siguiente (`HUECO_ENTRE_CLASES`):
+ * esos 5 minutos se pasan en el aula, con los compañeros de clase. La usan estudios (las clases) y relaciones (con quién se charla).
  */
 export const JORNADA_ESCOLAR = {
-  clases: [[480, 560], [560, 640], [680, 760], [760, 840]],
+  clases: [[480, 555], [560, 635], [680, 755], [760, 835]],
   recreo: [640, 680],
 } as const;
+
+/** Minutos libres al acabar cada clase (hasta la hora en punto de la siguiente): se pasan con los compañeros de clase. */
+export const HUECO_ENTRE_CLASES = 5;
+
+/** ¿Es uno de los 5 minutos que hay al acabar una clase (con los compañeros de clase)? */
+export function enHuecoEntreClases(t: TimeView): boolean {
+  return t.isSchoolDay && JORNADA_ESCOLAR.clases.some(([, fin]) => t.minuteOfDay >= fin && t.minuteOfDay < fin + HUECO_ENTRE_CLASES);
+}
 
 /** ¿Es el recreo de un día lectivo? */
 export function enRecreo(t: TimeView): boolean {

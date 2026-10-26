@@ -238,7 +238,7 @@ describe('módulo NPCs', () => {
         g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
       }
       // Cambia solo cuando cambia algún tramo: unas pocas veces al día, no cada pocos minutos.
-      expect(cambios).toBeLessThan(40);
+      expect(cambios).toBeLessThan(60);
     });
 
     it('la presencia no cambia dentro de un mismo tramo horario', () => {

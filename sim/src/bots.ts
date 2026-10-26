@@ -1,4 +1,4 @@
-import { GEN, TAGS, type Rng } from '@ds/contracts';
+import { GEN, JORNADA_ESCOLAR, TAGS, type Rng } from '@ds/contracts';
 import type { ActionOption, Game } from '@ds/core';
 
 /**
@@ -86,6 +86,11 @@ export function basicas(
     if (comp && game.stat(GEN.energia) >= 40) return comp.id;
   }
   if (game.stat(GEN.energia) < cfg.energiaMin) return has('gen.dormir') ? 'gen.dormir' : 'gen.descansar';
+  // Solo se entra a clase 10 minutos antes: si falta menos de una hora para la próxima, se espera en vez de empezar algo largo.
+  if (cfg.clase && game.time.isSchoolDay && has('gen.esperar')) {
+    const falta = JORNADA_ESCOLAR.clases.map(([inicio]) => inicio - game.time.minuteOfDay).find((m) => m > 0);
+    if (falta !== undefined && falta <= 60) return 'gen.esperar';
+  }
   return undefined;
 }
 
@@ -164,7 +169,8 @@ export const BOTS: Bot[] = [
           ['volver', 1, (o) => volverACategoria(o) && flojoEnLaSuperior(game)],
           ['campamento', 1, campamento],
           ['club', 1, sesionDeClub],
-          ['deporte', 2, entrenoDeporte],
+          // Con la sesión del club, otra más como mucho: más es sobrecarga y lesiona (el bot entrena con cabeza).
+          ['deporte', 2, (o) => entrenoDeporte(o) && (mem.hoy.club ?? 0) + (mem.hoy.deporte ?? 0) < 2],
           ['entrenador', 1, (o) => relacion(o) && /entrenador/.test(o.name)],
           ['tele', 1, id('atletismo.ver_tele')],
           ['gym', 1, id('gen.gimnasio')],

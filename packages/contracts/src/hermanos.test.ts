@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Rng } from './rng';
-import { DIFERENCIA_MAXIMA_DE_EDAD, apellidosDeFamilia, diferenciasDeEdad, numeroDeHermanos } from './hermanos';
+import { DIFERENCIA_MAXIMA_DE_EDAD, apellidosDeFamilia, apellidosDePadres, diferenciasDeEdad, numeroDeHermanos } from './hermanos';
 
 function createRng(semilla: number): Rng {
   let s = semilla | 0 || 1;
@@ -47,6 +47,17 @@ describe('hermanos (reglas puras)', () => {
       expect(new Set(ds).size).toBe(3);
       expect(ds.filter((d) => d === 0).length).toBeLessThanOrEqual(1);
       for (const d of ds) expect(Math.abs(d)).toBeLessThanOrEqual(DIFERENCIA_MAXIMA_DE_EDAD);
+    }
+  });
+});
+
+describe('apellidos de la familia', () => {
+  it('cada progenitor tiene dos apellidos, los cuatro son distintos y los hijos llevan el primero de cada uno', () => {
+    for (let semilla = 1; semilla <= 200; semilla++) {
+      const { padre, madre } = apellidosDePadres(semilla);
+      expect(new Set([...padre, ...madre]).size).toBe(4);
+      expect(apellidosDeFamilia(semilla)).toBe(`${padre[0]} ${madre[0]}`);
+      expect(apellidosDePadres(semilla)).toEqual({ padre, madre }); // estable
     }
   });
 });
