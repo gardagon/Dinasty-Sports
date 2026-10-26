@@ -32,7 +32,7 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 
 | Días | Horas | Dónde |
 |---|---|---|
-| lectivo | 7:50–8:00 | colegio, llegando (se les puede hablar) |
+| lectivo | 7:30–8:00 | colegio, llegando (se les puede hablar) |
 | lectivo | 8:00–10:40 y 11:20–14:00 | **en clase: ocupados** (no están disponibles) |
 | lectivo | 10:40–11:20 | colegio: el recreo (se les puede hablar) |
 | lectivo | 15:00–19:00 | fuera 60 %, parque 25 %, supermercado 10 %, gimnasio 5 % |
@@ -105,7 +105,7 @@ Viven en casa (los únicos, con los padres, que tienen `casa` en su agenda). Una
 | Días | Horas | Dónde | Nivel |
 |---|---|---|---|
 | todos | todo el día | casa | 1,5 (entre la base y el rol: manda sobre «fuera» y cede ante lo demás) |
-| lectivo, si tiene de 3 a 17 años (`escolar`) | 7:50–14:00 | colegio como un alumno: llegando y en el recreo en el colegio; **en clase, ocupado** (fuera) | 2 |
+| lectivo, si tiene de 3 a 17 años (`escolar`) | 7:30–14:00 | colegio como un alumno: llegando y en el recreo en el colegio; **en clase, ocupado** (fuera) | 2 |
 | sábado, si practica atletismo (`deporte`) | 8:45–13:15 | estadio; va el 40 %, como los rivales; ocupado de 9:00 a 13:00 | 3 |
 
 Al cumplir los 18 dejan el colegio (la marca `escolar` se quita al empezar el curso); al cumplir los 3 años entran. La marca `deporte` sigue a que tengan nivel de atletismo (desde los 8). Otros deportes y sesiones de club propias, pendientes.
@@ -163,7 +163,7 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 - **Qué hacer cuando lleguen los deportes de equipo, si hiciera falta (de menor a mayor esfuerzo; fases en `docs/ALMACENAMIENTO.md`):**
   1. **Compactar los rasgos** (ids numéricos en vez de textos): de 535 a unos 60 bytes por persona.
   2. **Guardar solo lo que cambia:** la población sale de la semilla (es determinista) y la partida guarda solo las diferencias (la conoces, está en tu club, su nivel). Sin límite práctico.
-- **Presencia:** nadie aparece ni desaparece mientras no cambie un tramo: dentro de un tramo cada persona está siempre en el mismo sitio (su destino sale de un hash de persona, día y tramo, no del minuto). Por eso la presencia de toda la población se calcula **una vez por intervalo entre dos cambios de tramo de cualquier agenda** (unas 10 veces al día: 7:50, 10:00, 14:00, 15:00...) y se reutiliza. Un test avanza de 6 en 6 minutos durante dos días y comprueba que lo reutilizado coincide, a cualquier minuto, con calcular persona a persona. En clase son los mismos 25 durante las cuatro clases y el recreo.
+- **Presencia:** nadie aparece ni desaparece mientras no cambie un tramo: dentro de un tramo cada persona está siempre en el mismo sitio (su destino sale de un hash de persona, día y tramo, no del minuto). Por eso la presencia de toda la población se calcula **una vez por intervalo entre dos cambios de tramo de cualquier agenda** (unas 10 veces al día: 7:30, 10:00, 14:00, 15:00...) y se reutiliza. Un test avanza de 6 en 6 minutos durante dos días y comprueba que lo reutilizado coincide, a cualquier minuto, con calcular persona a persona. En clase son los mismos 25 durante las cuatro clases y el recreo.
 
 ## 6. Pendiente
 

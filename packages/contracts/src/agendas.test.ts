@@ -17,10 +17,10 @@ describe('agendas de las personas', () => {
     for (const h of [0, 8, 12, 17, 23]) expect(donde([], 0, h)).toBeNull();
   });
 
-  it('un alumno llega al colegio a las 7:50, en clase está ocupado (fuera) y en el recreo vuelve a estar; no los fines de semana', () => {
+  it('un alumno llega al colegio a las 7:30, en clase está ocupado (fuera) y en el recreo vuelve a estar; no los fines de semana', () => {
     const alumno: TipoAsignado[] = [{ tipo: 'alumno' }];
-    expect(donde(alumno, 0, 7, 40)).toBeNull();
-    expect(donde(alumno, 0, 7, 50)).toBe('colegio'); // llegando, antes de la primera clase
+    expect(donde(alumno, 0, 7, 20)).toBeNull();
+    expect(donde(alumno, 0, 7, 30)).toBe('colegio'); // llegando, media hora antes de la primera clase
     expect(donde(alumno, 0, 8)).toBeNull(); // en clase
     expect(donde(alumno, 0, 10, 39)).toBeNull();
     expect(donde(alumno, 0, 10, 40)).toBe('colegio'); // el recreo es de 10:40 a 11:20

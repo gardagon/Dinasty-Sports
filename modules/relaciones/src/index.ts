@@ -23,6 +23,8 @@ import {
   type PlanView,
   type PresentacionData,
   NIVEL_AGENDA,
+  LLEGADA_AL_COLEGIO,
+  JORNADA_ESCOLAR,
   timeView,
   ubicacionEn,
   azarDe,
@@ -141,12 +143,12 @@ const vista = (v: Vinculo): RelationView => ({
 
 const entreMinutos = (ctx: ReadContext, desde: number, hasta: number): boolean => ctx.time.minuteOfDay >= desde && ctx.time.minuteOfDay < hasta;
 
-/** Antes de las clases ya están en el colegio: desde las 7:50 se puede hablar con quien llega (las clases empiezan a las 8:00). */
-const LLEGADA_AL_COLEGIO = 7 * 60 + 50;
+/** Antes de las clases ya están en el colegio: desde las 7:30 se puede hablar con quien llega (las clases empiezan a las 8:00). */
+const DESDE_LA_LLEGADA = JORNADA_ESCOLAR.clases[0][0] - LLEGADA_AL_COLEGIO;
 
 /** Fuera de clase y entre `desde` y `hasta`; con `recreo`, también en el recreo (lo corto se puede hacer entre clase y clase). */
 const fueraDeClase = (desde: number, hasta: number, recreo = false) => (ctx: ReadContext) =>
-  (!isSchoolHours(ctx.time) || (recreo && enRecreo(ctx.time))) && (inHours(ctx.time, desde, hasta) || (recreo && ctx.time.isSchoolDay && entreMinutos(ctx, LLEGADA_AL_COLEGIO, desde * 60)))
+  (!isSchoolHours(ctx.time) || (recreo && enRecreo(ctx.time))) && (inHours(ctx.time, desde, hasta) || (recreo && ctx.time.isSchoolDay && entreMinutos(ctx, DESDE_LA_LLEGADA, desde * 60)))
     ? true
     : `Disponible de ${desde} a ${hasta}, fuera de clase${recreo ? ' (o en el recreo)' : ''}`;
 

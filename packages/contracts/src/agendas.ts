@@ -111,8 +111,8 @@ const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: numb
 
 /** Minutos antes de empezar y después de acabar una sesión o una carrera en los que se está en el sitio sin estar ocupado. */
 export const MARGEN_DE_SESION = 15;
-/** Minutos antes de la primera clase que alumnos y profesores ya están en el colegio. */
-export const LLEGADA_AL_COLEGIO = 10;
+/** Minutos antes de la primera clase que alumnos y profesores ya están en el colegio (desde las 7:30). */
+export const LLEGADA_AL_COLEGIO = 30;
 const [RECREO_DESDE, RECREO_HASTA] = JORNADA_ESCOLAR.recreo;
 const PRIMERA_CLASE = JORNADA_ESCOLAR.clases[0][0];
 const FIN_DE_CLASES = JORNADA_ESCOLAR.clases[JORNADA_ESCOLAR.clases.length - 1][1];
@@ -142,7 +142,7 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
     case 'alumno': {
       const n = nivel(NIVEL_AGENDA.rol);
       return [
-        // Llega diez minutos antes de las clases y se va a las dos; en clase no se le puede hablar, solo al llegar y en el recreo.
+        // Llega media hora antes de las clases (7:30) y se va a las dos; en clase no se le puede hablar, solo al llegar y en el recreo.
         colegio('alumno', n),
         tramo('alumno', n, 'lectivo', h(15), h(19), [[FUERA, 60], ['parque', 25], ['supermercado', 10], ['gimnasio', 5]]),
         tramo('alumno', n, 'libre', h(10), h(14), [[FUERA, 50], ['parque', 40], ['supermercado', 10]]),
