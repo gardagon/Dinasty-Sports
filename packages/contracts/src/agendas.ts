@@ -1,6 +1,6 @@
 import type { LugarId } from './lugares';
 import type { NpcView } from './services';
-import type { TimeView, Weekday } from './time';
+import { JORNADA_ESCOLAR, type TimeView, type Weekday } from './time';
 
 /**
  * Agendas de las personas: dónde está cada una según el día y la hora.
@@ -34,7 +34,7 @@ export const NIVEL_AGENDA = {
   evento: 4,
 } as const;
 
-export type TipoDeAgenda = 'alumno' | 'profesor' | 'entrenador' | 'club' | 'rival' | 'amigo' | 'vecino' | 'hermano';
+export type TipoDeAgenda = 'alumno' | 'profesor' | 'entrenador' | 'club' | 'rival' | 'amigo' | 'vecino' | 'hermano' | 'progenitor';
 
 /** Un tipo asignado a una persona. */
 export interface TipoAsignado {
@@ -66,6 +66,12 @@ export interface TramoDeAgenda {
   /** Probabilidad de acudir ese día (por persona). Si no va, vale el tramo siguiente en nivel. Por defecto 1. */
   asistencia?: number;
   nivel: number;
+  /**
+   * Intervalos [desde, hasta) del tramo en los que la persona está **ocupada** (en clase, en una carrera o una sesión del club):
+   * sigue en su agenda, pero no se puede hablar con ella, así que cuenta como fuera del mapa. El resto del tramo (llegar, el recreo,
+   * quedarse un rato al acabar) está en el sitio y se le puede hablar.
+   */
+  ocupado?: readonly (readonly [number, number])[];
   /** De qué tipo viene (para enseñarlo y depurarlo); `base` es estar fuera. */
   tipo: TipoDeAgenda | 'base';
 }
@@ -92,7 +98,7 @@ const SABADO: readonly Weekday[] = [5];
 /** Lo que hace cualquiera que no esté en ningún otro tramo: estar fuera. */
 const BASE: TramoDeAgenda = { dias: 'todos', desde: 0, hasta: 1440, destinos: [[FUERA, 1]], nivel: NIVEL_AGENDA.base, tipo: 'base' };
 
-const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: number, hasta: number, destinos: Destinos, asistencia?: number): TramoDeAgenda => ({
+const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: number, hasta: number, destinos: Destinos, asistencia?: number, ocupado?: TramoDeAgenda['ocupado']): TramoDeAgenda => ({
   tipo,
   nivel,
   dias,
@@ -100,15 +106,28 @@ const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: numb
   hasta,
   destinos,
   ...(asistencia === undefined ? {} : { asistencia }),
+  ...(ocupado ? { ocupado } : {}),
 });
+
+/** Minutos antes de empezar y después de acabar una sesión o una carrera en los que se está en el sitio sin estar ocupado. */
+export const MARGEN_DE_SESION = 15;
+/** Minutos antes de la primera clase que alumnos y profesores ya están en el colegio. */
+export const LLEGADA_AL_COLEGIO = 10;
+const [RECREO_DESDE, RECREO_HASTA] = JORNADA_ESCOLAR.recreo;
+const PRIMERA_CLASE = JORNADA_ESCOLAR.clases[0][0];
+const FIN_DE_CLASES = JORNADA_ESCOLAR.clases[JORNADA_ESCOLAR.clases.length - 1][1];
+/** Las horas de clase (la persona está ocupada) dentro de la jornada: lo que no es el recreo. */
+const EN_CLASE = [[PRIMERA_CLASE, RECREO_DESDE], [RECREO_HASTA, FIN_DE_CLASES]] as const;
+/** El tramo de ir al colegio: llegan antes de empezar, en clase no se les puede hablar y vuelven a estar en el recreo. */
+const colegio = (tipo: TipoDeAgenda, nivel: number): TramoDeAgenda => tramo(tipo, nivel, 'lectivo', PRIMERA_CLASE - LLEGADA_AL_COLEGIO, FIN_DE_CLASES, [['colegio', 1]], undefined, EN_CLASE);
 
 /** Los tramos de las sesiones de un club. */
 const sesiones = (tipo: TipoDeAgenda, nivel: number, s: SesionDeClub, asistencia?: number): TramoDeAgenda[] => [
-  tramo(tipo, nivel, s.weekdays as readonly Weekday[], h(s.desde), h(s.hasta), [[s.sede, 1]], asistencia),
+  tramo(tipo, nivel, s.weekdays as readonly Weekday[], h(s.desde) - MARGEN_DE_SESION, h(s.hasta) + MARGEN_DE_SESION, [[s.sede, 1]], asistencia, [[h(s.desde), h(s.hasta)]]),
 ];
 
 /** Las carreras: los sábados por la mañana, en el estadio. */
-const carreras = (tipo: TipoDeAgenda, nivel: number, asistencia?: number): TramoDeAgenda => tramo(tipo, nivel, SABADO, h(9), h(13), [['estadio', 1]], asistencia);
+const carreras = (tipo: TipoDeAgenda, nivel: number, asistencia?: number): TramoDeAgenda => tramo(tipo, nivel, SABADO, h(9) - MARGEN_DE_SESION, h(13) + MARGEN_DE_SESION, [['estadio', 1]], asistencia, [[h(9), h(13)]]);
 
 /** Cuántos rivales corren un sábado cualquiera (los demás compiten en otras pruebas o en otros campeonatos) y cuántos van a una sesión de su club. */
 export const ASISTENCIA_RIVAL = { carreras: 0.4, sesion: 0.85 };
@@ -123,8 +142,8 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
     case 'alumno': {
       const n = nivel(NIVEL_AGENDA.rol);
       return [
-        // Llega diez minutos antes de que empiecen las clases y se va a las dos (las clases son de 8:00 a 14:00).
-        tramo('alumno', n, 'lectivo', h(7, 50), h(14), [['colegio', 1]]),
+        // Llega diez minutos antes de las clases y se va a las dos; en clase no se le puede hablar, solo al llegar y en el recreo.
+        colegio('alumno', n),
         tramo('alumno', n, 'lectivo', h(15), h(19), [[FUERA, 60], ['parque', 25], ['supermercado', 10], ['gimnasio', 5]]),
         tramo('alumno', n, 'libre', h(10), h(14), [[FUERA, 50], ['parque', 40], ['supermercado', 10]]),
         tramo('alumno', n, 'libre', h(15), h(20), [[FUERA, 50], ['parque', 40], ['supermercado', 5], ['gimnasio', 5]]),
@@ -132,8 +151,8 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       ];
     }
     case 'profesor':
-      // Clases de 8 a 14 y tutorías de 14 a 17.
-      return [tramo('profesor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(7, 30), h(17), [['colegio', 1]])];
+      // Llega a las 7:30, da clase (ocupado) de 8 a 14 salvo el recreo y atiende tutorías de 14 a 17.
+      return [tramo('profesor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(7, 30), h(17), [['colegio', 1]], undefined, EN_CLASE)];
     case 'entrenador':
       return [...(club ? sesiones('entrenador', nivel(NIVEL_AGENDA.pertenencia), club) : []), carreras('entrenador', nivel(NIVEL_AGENDA.pertenencia))];
     case 'club':
@@ -158,8 +177,15 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       return [
         // Vive en casa: está allí salvo en el colegio (si tiene edad) y en su deporte, que mandan sobre la casa.
         tramo('hermano', nivel(NIVEL_AGENDA.base + 0.5), 'todos', 0, 1440, [['casa', 1]]),
-        ...(t.escolar ? [tramo('hermano', NIVEL_AGENDA.rol, 'lectivo', h(7, 50), h(14), [['colegio', 1]])] : []),
+        ...(t.escolar ? [colegio('hermano', NIVEL_AGENDA.rol)] : []),
         ...(t.deporte ? [carreras('hermano', NIVEL_AGENDA.pertenencia, ASISTENCIA_RIVAL.carreras)] : []),
+      ];
+    case 'progenitor':
+      // Trabajan fuera: en casa antes de irse, por la tarde-noche y casi todo el fin de semana.
+      return [
+        tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(6, 30), h(8), [['casa', 1]]),
+        tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(18, 30), h(23), [['casa', 1]]),
+        tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'libre', h(9), h(23), [['casa', 85], [FUERA, 15]]),
       ];
     case 'vecino':
       return [tramo('vecino', nivel(NIVEL_AGENDA.rol), 'todos', h(9), h(21), [[FUERA, 50], ['parque', 30], ['supermercado', 15], ['restaurante', 5]])];
@@ -190,6 +216,8 @@ const vale = (dias: DiasDeTramo, t: TimeView): boolean => (dias === 'todos' ? tr
 
 export interface Ubicacion {
   sitio: Sitio;
+  /** Está en su agenda pero ocupado (en clase, corriendo...): cuenta como fuera del mapa y no se le puede hablar. */
+  ocupado?: boolean;
   /** Nivel del tramo que manda ahora. */
   nivel: number;
   tipo: TipoDeAgenda | 'base';
@@ -224,6 +252,7 @@ export function ubicacionEn(agenda: readonly TramoDeAgenda[], t: TimeView, perso
     if (mejor < 0 || x.nivel >= agenda[mejor].nivel) mejor = i;
   }
   const x = agenda[mejor];
+  if (x.ocupado?.some(([a, b]) => t.minuteOfDay >= a && t.minuteOfDay < b)) return { sitio: FUERA, ocupado: true, nivel: x.nivel, tipo: x.tipo };
   if (x.destinos.length === 1) return { sitio: x.destinos[0][0], nivel: x.nivel, tipo: x.tipo };
   const total = x.destinos.reduce((s, [, peso]) => s + peso, 0);
   let tirada = azarDe(persona, t.day, mejor, 'donde') * total;

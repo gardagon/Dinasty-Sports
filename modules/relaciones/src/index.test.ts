@@ -21,7 +21,7 @@ const rel = (g: Game) => g.service<RelationsService>(SERVICES.relaciones)!;
 describe('módulo relaciones', () => {
   it('al empezar solo conoces a la familia: el entrenador, el tutor y los compañeros tienes que conocerlos', () => {
     const g = nueva(false);
-    expect(rel(g).list()).toEqual([]);
+    expect(rel(g).list().map((v) => v.npcId).sort()).toEqual(['madre', 'padre', ...rel(g).list().map((v) => v.npcId).filter((id) => id.startsWith('hermano_'))].sort()); // solo la familia
     expect(rel(g).get('entrenador')).toBeUndefined();
     expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('tutor')!.known).toBe(false);
   });

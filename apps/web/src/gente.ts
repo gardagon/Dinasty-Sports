@@ -47,9 +47,15 @@ let seleccionada: string | null = null;
 let pestana: Pestana = 'resumen';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-const rol = (n: NpcView) => ROL[n.role][n.gender === 'f' ? 0 : 1];
+const rol = (n: NpcView) =>
+  n.tags.includes('progenitor') ? (n.gender === 'f' ? 'Madre' : 'Padre') : n.tags.includes('hermano') ? (n.gender === 'f' ? 'Hermana' : 'Hermano') : ROL[n.role][n.gender === 'f' ? 0 : 1];
 const conocida = (n: NpcView) => n.known !== false;
 const aspecto = (n: NpcView) => (n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, n.age) : n.gender === 'f' ? 'Una chica' : 'Un chico');
+
+/** Cuánta gente tienes cerca ahora (la de «Aquí»): es el número que lleva la pestaña. */
+export function genteAqui(g: Game): number {
+  return personasDe(g, 'aqui').length;
+}
 
 /** Las personas del filtro elegido: en «Aquí» las que tienes cerca (conocidas o no) y en los demás solo las que conoces. */
 function personasDe(g: Game, f: Filtro): NpcView[] {

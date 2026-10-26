@@ -141,3 +141,62 @@ export function disposicion(
   else if (Math.abs(anunciada) >= 0.03) motivo = anunciada > 0 ? 'Congeniáis de primeras' : 'No congeniáis de primeras';
   return { factor, motivo };
 }
+
+// ------------------------------------------------------------------------------------------------------------------ planes
+
+/** Las actividades que se acuerdan con antelación (hora y día), por el sufijo del id de la acción. */
+export const PLANES = {
+  estudiar: { nombre: 'estudiar', hora: 17 * 60, duracion: 90, lugar: 'casa', lugarTexto: 'en tu casa' },
+} as const;
+export type ActividadDePlan = keyof typeof PLANES;
+
+/**
+ * Cómo responde alguien cuando le propones un plan para un día y una hora. Las cifras están en `docs/ANEXO_RELACIONES.md`:
+ * la probabilidad de aceptar sube con la afinidad y la confianza; no acepta si a esa hora tiene clase, entreno o carrera, ni (por azar)
+ * si ese día tiene otros planes; y hay que dejar un día de margen entre planes salvo que la amistad sea muy alta.
+ */
+export const PLAN = {
+  base: 0.15,
+  porAfinidad: 0.6,
+  afinidadTope: 60,
+  porConfianza: 0.25,
+  min: 0.05,
+  max: 0.98,
+  /** Probabilidad de que un día cualquiera tenga ya otros planes. */
+  ocupadoPorAzar: 0.25,
+  /** Con esta afinidad (o más) acepta planes en días seguidos. */
+  afinidadSinMargen: 70,
+  /** Minutos de cortesía para llegar al plan; pasado ese rato, se le ha dejado plantado. */
+  cortesia: 30,
+  /** Minutos de antelación mínima para proponer un plan para hoy. */
+  antelacion: 60,
+  /** Lo que se pierde al plantar a alguien. */
+  planton: { afinidad: 4, confianza: 3 },
+} as const;
+
+export function probabilidadDeAceptar(afinidad: number, confianza: number): number {
+  const p = PLAN.base + PLAN.porAfinidad * clamp(afinidad / PLAN.afinidadTope, 0, 1) + PLAN.porConfianza * clamp(confianza / 100, 0, 1);
+  return clamp(p, PLAN.min, PLAN.max);
+}
+
+export interface EntradaDePlan {
+  afinidad: number;
+  confianza: number;
+  /** Por qué no puede a esa hora (clase, entreno, carrera...), si no puede. */
+  ocupadoPorAgenda?: string;
+  /** Tiene un plan contigo el día anterior o el siguiente. */
+  planPegado: boolean;
+  /** Dos tiradas estables de 0 a 1: ¿tiene otros planes ese día? y ¿le apetece? */
+  azarOcupado: number;
+  azarGusto: number;
+}
+
+export type RespuestaAPlan = { acepta: true } | { acepta: false; motivo: string };
+
+export function responderAPlan(x: EntradaDePlan): RespuestaAPlan {
+  if (x.ocupadoPorAgenda) return { acepta: false, motivo: x.ocupadoPorAgenda };
+  if (x.azarOcupado < PLAN.ocupadoPorAzar) return { acepta: false, motivo: 'ya tiene otros planes' };
+  if (x.planPegado && x.afinidad < PLAN.afinidadSinMargen) return { acepta: false, motivo: 'prefiere dejar un día de margen entre plan y plan' };
+  if (x.azarGusto >= probabilidadDeAceptar(x.afinidad, x.confianza)) return { acepta: false, motivo: 'no le apetece mucho; quizá otro día' };
+  return { acepta: true };
+}

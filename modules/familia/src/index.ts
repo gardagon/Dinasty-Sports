@@ -1,4 +1,4 @@
-import { GEN, apellidosDeFamilia, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext,
+import { GEN, apellidosDeFamilia, nombreDeProgenitor, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext,
   type NpcDirectory, type ParentView, type Practica, type RasgosDe, type ReadContext } from '@ds/contracts';
 
 /**
@@ -30,10 +30,6 @@ export interface FamiliaState {
   padres: Progenitor[];
 }
 
-const NOMBRES: Record<Gender, string[]> = {
-  f: ['Carmen', 'María', 'Laura', 'Cristina', 'Patricia', 'Isabel', 'Raquel', 'Silvia', 'Beatriz', 'Marta', 'Eva', 'Pilar'],
-  m: ['Antonio', 'José', 'Manuel', 'Javier', 'David', 'Miguel', 'Rafael', 'Alberto', 'Jesús', 'Fernando', 'Raúl', 'Andrés'],
-};
 const DEPORTES = ['atletismo', 'fútbol', 'baloncesto', 'natación', 'ciclismo', 'balonmano', 'tenis'];
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -50,7 +46,7 @@ function nuevoProgenitor(id: 'padre' | 'madre', ctx: InitContext): Progenitor {
   const practica = practicaSegunTope(fisico.length ? fisico.reduce((a, b) => a + b, 0) / fisico.length : 62, rng);
   return {
     id,
-    nombre: rng.pick(NOMBRES[gender]),
+    nombre: nombreDeProgenitor(ctx.seed, id),
     gender,
     nacimiento: -Math.round((rng.range(30, 46) + 8) * 365),
     alturaCm: redondea(id === 'padre' ? clamp(178 + 7 * ctx.herencia('estatura').padre, 160, 200) : clamp(165 + 6.5 * ctx.herencia('estatura').madre, 148, 185)),

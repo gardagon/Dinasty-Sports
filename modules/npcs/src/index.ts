@@ -9,6 +9,7 @@ import {
   factorPorEdad,
   INTERESES,
   apellidosDeFamilia,
+  nombreDeProgenitor,
   diferenciasDeEdad,
   numeroDeHermanos,
   rasgosHeredadosNpc,
@@ -314,6 +315,31 @@ const nivelInicialDeHermano = (potencial: number, edadReal: number, desfase: num
   return Math.min(techo, techo * rng.range(0.8, 1));
 };
 
+/**
+ * El padre y la madre como personas con las que relacionarse (rol `familia`, etiqueta `progenitor`): el mismo nombre y los mismos rasgos
+ * que en el módulo `familia`, que los saca de la semilla. Viven en casa y salen a trabajar. No llevan edad aquí (la ficha está en `familia`).
+ */
+function progenitores(ctx: InitContext, usados: Set<string>): Npc[] {
+  const apellidos = apellidosDeFamilia(ctx.seed);
+  return (['padre', 'madre'] as const).map((id) => {
+    const gender: Gender = id === 'padre' ? 'm' : 'f';
+    const name = `${nombreDeProgenitor(ctx.seed, id)} ${apellidos}`;
+    usados.add(name);
+    return {
+      id,
+      name,
+      role: 'familia' as NpcRole,
+      gender,
+      tags: ['progenitor'],
+      levels: {},
+      potential: {},
+      rasgos: ctx.rasgosDePadres[id],
+      tipos: [{ tipo: 'progenitor' as const }],
+      description: id === 'padre' ? 'Tu padre. Vive en casa.' : 'Tu madre. Vive en casa.',
+    };
+  });
+}
+
 /** Edad de los hermanos a la que empiezan el colegio (a los 18 lo terminan, como el resto del alumnado). */
 const EDAD_COLEGIO_HERMANOS = 3;
 const tiposDeHermano = (edad: number, deporte: boolean): TipoAsignado[] => [
@@ -426,6 +452,7 @@ function generarReparto(ctx: InitContext): Npc[] {
       tipos: [{ tipo: 'alumno' }],
     })),
     ...rivalesIniciales(rng, usados),
+    ...progenitores(ctx, usados),
     ...hermanos(ctx, usados),
   ];
 }
@@ -479,6 +506,7 @@ function personaPorId(lista: Npc[], id: string): Npc | undefined {
   return porId.get(id);
 }
 
+const SERVICIOS_DE_PRESENCIA = new WeakMap<Npc[], { minuto: number; servicio: PresenciaService }>();
 const SIN_TIPOS: TipoAsignado[] = [];
 /** La agenda depende solo de los tipos de la persona: se monta una vez por lista de tipos (los acontecimientos con fecha de fin no se guardan). */
 const AGENDAS = new WeakMap<TipoAsignado[], TramoDeAgenda[]>();
@@ -513,6 +541,10 @@ function limitesDeTramos(lista: Npc[], agendaDe: (n: Npc) => TramoDeAgenda[]): n
       for (const x of a) {
         set.add(x.desde);
         set.add(x.hasta);
+        for (const [a, b] of x.ocupado ?? []) {
+          set.add(a);
+          set.add(b);
+        }
       }
     }
     LIMITES.set(lista, (l = [...set].sort((a, b) => a - b)));
@@ -640,6 +672,9 @@ export const npcs = defineModule<NpcsState>({
     [SERVICES.presencia]: (ctx): PresenciaService => {
       const lista = ctx.state<NpcsState>().npcs;
       const t = ctx.time;
+      // Se pide muchas veces seguidas (en cada acción de relación): dentro del mismo minuto es el mismo servicio.
+      const hecho = SERVICIOS_DE_PRESENCIA.get(lista);
+      if (hecho?.minuto === t.minute) return hecho.servicio;
       const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
       const datos: DatosDeAgenda = { sesionDeClub: (club) => sesionDeClub(clubes, club) };
       const inicioCurso = (t.week - t.schoolWeek) * 7;
@@ -650,7 +685,7 @@ export const npcs = defineModule<NpcsState>({
        */
       const intervalo = limitesDeTramos(lista, agendaDe).filter((m) => m <= t.minuteOfDay).length;
       const indice = indiceDePresencia(lista, `${t.day}:${intervalo}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
-      return {
+      const servicio: PresenciaService = {
         version: indice.version,
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso)),
         donde: (id) => {
@@ -662,6 +697,8 @@ export const npcs = defineModule<NpcsState>({
           return n ? agendaDe(n) : [];
         },
       };
+      SERVICIOS_DE_PRESENCIA.set(lista, { minuto: t.minute, servicio });
+      return servicio;
     },
     [SERVICES.npcs]: (ctx): NpcDirectory => {
       const lista = ctx.state<NpcsState>().npcs;

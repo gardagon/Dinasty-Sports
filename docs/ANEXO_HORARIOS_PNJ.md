@@ -17,6 +17,7 @@ Estado: **horarios cerrados y población aprobada** (25/10/2026). La población 
 | 4 evento | un acontecimiento temporal | se apunta a tu club, un cumpleaños (con `hasta`: día en que deja de valer) |
 
 - Ejemplo: un compañero de clase (nivel 2) se apunta a tu club (nivel 3). Sigue yendo a clase, pero en la tarde de entrenamiento está donde entrena el club. Si el club se acaba, se le quita el tipo y vuelve su rutina.
+- **Ocupado = fuera:** en clase, en una carrera o en una sesión del club una persona **no se puede hablar contigo**: sigue en su agenda, pero cuenta como fuera del mapa (`TramoDeAgenda.ocupado`: intervalos del tramo en que está ocupada). Antes y después (llegar, el recreo, quedarse un rato al acabar) sí está en el sitio. No puede estar compitiendo y hablando contigo a la vez; lo mismo vale para cualquier acontecimiento parecido que se añada.
 - **«Fuera»** (`null`) es cualquier sitio que no está en el mapa. Por eso solo los de la familia están en `casa`: los demás tienen su casa fuera del mapa.
 - **Azar estable:** a qué sitio va de varios posibles, o si falta ese día, sale de un hash de (persona, día, tramo). No se guarda y no cambia mientras dure el tramo. Es el «azar al llegar a un lugar».
 - **Presencia:** el servicio `presencia` (`en(lugar, max)`, `donde(persona)`, `agenda(persona)`) dice quién hay en un lugar ahora. Los de mayor nivel salen primero y el resto en un orden estable; con `max` se limita (la pantalla enseña 40, como el juego de referencia).
@@ -31,7 +32,9 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 
 | Días | Horas | Dónde |
 |---|---|---|
-| lectivo | 7:50–14:00 | colegio (clases de 8:00 a 14:00; el recreo es de 10:40 a 11:20, también en el colegio) |
+| lectivo | 7:50–8:00 | colegio, llegando (se les puede hablar) |
+| lectivo | 8:00–10:40 y 11:20–14:00 | **en clase: ocupados** (no están disponibles) |
+| lectivo | 10:40–11:20 | colegio: el recreo (se les puede hablar) |
 | lectivo | 15:00–19:00 | fuera 60 %, parque 25 %, supermercado 10 %, gimnasio 5 % |
 | libre | 10:00–14:00 | fuera 50 %, parque 40 %, supermercado 10 % |
 | libre | 15:00–20:00 | fuera 50 %, parque 40 %, supermercado 5 %, gimnasio 5 % |
@@ -42,20 +45,22 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 
 | Días | Horas | Dónde |
 |---|---|---|
-| lectivo | 7:30–17:00 | colegio (clases hasta las 14:00 y tutorías de 14:00 a 17:00) |
+| lectivo | 7:30–8:00 | colegio, llegando |
+| lectivo | 8:00–10:40 y 11:20–14:00 | dando clase: ocupado |
+| lectivo | 10:40–11:20 y 14:00–17:00 | colegio: el recreo y las tutorías |
 | resto | | fuera |
 
 ### Entrenador, nivel 3
 
 | Días | Horas | Dónde |
 |---|---|---|
-| las de las sesiones de su club | club del colegio: lunes y miércoles, 15:00–17:00 | colegio (pistas) |
-| sábado | 9:00–13:00 | estadio (carreras) |
+| las de las sesiones de su club | club del colegio: lunes y miércoles, 14:45–17:15 | colegio (pistas); **ocupado de 15:00 a 17:00**, se le habla al llegar y al acabar |
+| sábado | 8:45–13:15 | estadio (carreras); **ocupado de 9:00 a 13:00** |
 | resto | | fuera |
 
 ### Miembro de un club, nivel 3
 
-Las sesiones del club (catálogo de `modules/clubes`):
+Las sesiones del club (catálogo de `modules/clubes`). Todas tienen un margen de 15 minutos antes (llegar) y después (quedarse un rato) y están ocupados durante la sesión:
 
 | Club | Días | Horas | Dónde |
 |---|---|---|---|
@@ -72,7 +77,7 @@ Fuera de sus sesiones, el colegio (no van al nuestro) y las carreras, algunos pa
 | lectivo (nivel 2) | 15:00–19:00 | fuera 85 %, parque 15 % |
 | libre (nivel 2) | 10:00–20:00 | fuera 75 %, parque 25 % |
 | las sesiones de su club (nivel 3) | según el club (los clubes de fuera del catálogo tienen una de cuatro franjas: L y X 17–19, M y J 18–20, L M y J 17–20, X y V 17–19) | estadio; va el 85 % |
-| sábado | 9:00–13:00 | estadio, solo el 40 % (los demás corren otras pruebas o en otros campeonatos) |
+| sábado | 8:45–13:15 | estadio, solo el 40 % (los demás corren otras pruebas o en otros campeonatos); ocupados de 9:00 a 13:00 |
 | resto | | fuera (vive y estudia fuera del mapa) |
 
 Las sedes de todos los clubes de fuera son el estadio, de momento.
@@ -100,14 +105,20 @@ Viven en casa (los únicos, con los padres, que tienen `casa` en su agenda). Una
 | Días | Horas | Dónde | Nivel |
 |---|---|---|---|
 | todos | todo el día | casa | 1,5 (entre la base y el rol: manda sobre «fuera» y cede ante lo demás) |
-| lectivo, si tiene de 3 a 17 años (`escolar`) | 7:50–14:00 | colegio | 2 |
-| sábado, si practica atletismo (`deporte`) | 9:00–13:00 | estadio; va el 40 %, como los rivales | 3 |
+| lectivo, si tiene de 3 a 17 años (`escolar`) | 7:50–14:00 | colegio como un alumno: llegando y en el recreo en el colegio; **en clase, ocupado** (fuera) | 2 |
+| sábado, si practica atletismo (`deporte`) | 8:45–13:15 | estadio; va el 40 %, como los rivales; ocupado de 9:00 a 13:00 | 3 |
 
 Al cumplir los 18 dejan el colegio (la marca `escolar` se quita al empezar el curso); al cumplir los 3 años entran. La marca `deporte` sigue a que tengan nivel de atletismo (desde los 8). Otros deportes y sesiones de club propias, pendientes.
 
-### Padre y madre
+### Padre y madre (`progenitor`), nivel 2
 
-De momento no están en el sistema de presencia (viven con el personaje, y su puesto de trabajo no es un lugar del mapa). Cuando se llegue a la fase profesional habrá que valorar cuántos lugares se añaden o se desbloquean.
+Son personas del juego (ids `padre` y `madre`, rol `familia`, siempre conocidas) con las que te relacionas como con un hermano. Su puesto de trabajo no es un lugar del mapa: cuando trabajan están «fuera». Cuando se llegue a la fase profesional habrá que valorar cuántos lugares se añaden o se desbloquean.
+
+| Días | Horas | Dónde |
+|---|---|---|
+| lectivo | 6:30–8:00 y 18:30–23:00 | casa |
+| libre | 9:00–23:00 | casa 85 %, fuera 15 % |
+| resto | | fuera (trabajo) |
 
 ## 3. Comercios (horarios de apertura, sin implementar)
 
@@ -126,8 +137,8 @@ Son **391 personas persistentes** (el plan hablaba de ~410; ver «Total real» m
 | **Equipo de atletismo del colegio** | ~16 + entrenador | Salen de las clases anteriores: unos 3–4 de tu clase, otros de tu curso y de los demás. Al tener el tipo `club` van a las sesiones del club del colegio. |
 | **Rivales** | 96 (8 por edad, de 8 a 19) | Se reparten en **12 clubes y colegios de fuera**: los dos del catálogo del personaje (Club Atletismo Ciudad y Club de Alto Rendimiento) y diez con nombres provisionales (`colegio1`…`colegio4`, `club1`…`club6`), unos 8 por club. Sedes en el estadio. Los que son de otro colegio no están en el nuestro. |
 | **Vecinos** | ~80 | De todas las edades. Parque, supermercado, restaurante y gimnasio. |
-| **Familia** | 2 padres + 0 a 3 hermanos | Los hermanos están en casa, en el colegio y en su deporte (ver «Hermano»). |
-| **Total real generado** | **391** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
+| **Familia** | 2 padres + 0 a 3 hermanos | Son personas con las que te relacionas: los padres en casa (ver «Padre y madre») y los hermanos en casa, en el colegio y en su deporte (ver «Hermano»). |
+| **Total real generado** | **391 + 2 padres + los hermanos** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
 
 Reglas de generación:
 
