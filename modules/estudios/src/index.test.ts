@@ -71,7 +71,7 @@ describe('módulo estudios', () => {
     expect(g.preview('estudios.clase_1')).toBeUndefined();
   });
 
-  it('se puede llegar tarde y solo cuenta la parte asistida; a menos de 5 minutos del final ya no se entra', () => {
+  it('se puede llegar tarde y solo cuenta la parte asistida; se entra hasta el último minuto y al acabar ya no', () => {
     const g = nueva();
     advanceTo(g, 'gen.descansar', 0, 7);
     esperarHasta(g, 8 * 60 + 25); // 25 de 75 minutos perdidos: se asiste a 50/75
@@ -94,9 +94,13 @@ describe('módulo estudios', () => {
     expect(g.moduleState<EstudiosState>('estudios').asistencia.clases).toEqual([0]);
     const tarde = nueva();
     advanceTo(tarde, 'gen.descansar', 0, 7);
-    esperarHasta(tarde, 9 * 60 + 11);
+    esperarHasta(tarde, 9 * 60 + 10);
+    const ultimo = tarde.preview('estudios.clase_1')!;
+    expect(ultimo.available).toBe(true); // quedan 5 minutos: se asiste a 5/75
+    expect(ultimo.efficiency).toBeCloseTo(5 / 75, 5);
+    esperarHasta(tarde, 9 * 60 + 15);
     expect(tarde.preview('estudios.clase_1')!.available).toBe(false);
-    expect(tarde.preview('estudios.clase_1')!.reason).toMatch(/casi ha acabado/);
+    expect(tarde.preview('estudios.clase_1')!.reason).toMatch(/ya ha acabado/);
   });
 
   it('en los 10 minutos antes de la clase se puede repasar su asignatura', () => {
@@ -113,6 +117,16 @@ describe('módulo estudios', () => {
     expect(g.perform('estudios.repaso_previo').ok).toBe(true);
     expect(g.stat(hoy)).toBeGreaterThan(antes);
     expect(g.time.minuteOfDay).toBe(8 * 60);
+    // Vale la parte de los 10 minutos que se gasta: a 5 minutos de la clase, el 50 %.
+    const tarde = nueva();
+    advanceTo(tarde, 'gen.descansar', 0, 7);
+    esperarHasta(tarde, 7 * 60 + 55);
+    const parcial = tarde.preview('estudios.repaso_previo')!;
+    expect(parcial.duration).toBe(5);
+    expect(parcial.efficiency).toBeCloseTo(0.5, 5);
+    const antesT = tarde.stat(hoy);
+    tarde.perform('estudios.repaso_previo');
+    expect(tarde.stat(hoy) - antesT).toBeLessThan(g.stat(hoy) - antes);
   });
 
   it('faltar a una clase no sube esa asignatura, suma una falta y sube el estrés', () => {

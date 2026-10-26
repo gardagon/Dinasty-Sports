@@ -88,6 +88,16 @@ export const JORNADA_ESCOLAR = {
 /** Minutos libres al acabar cada clase (hasta la hora en punto de la siguiente): se pasan con los compañeros de clase. */
 export const HUECO_ENTRE_CLASES = 5;
 
+/** Minutos antes de que empiece una clase en los que se abre la oportunidad de entrar (repasar, hablar con alguien o entrar ya). */
+export const MINUTOS_ANTES_DE_CLASE = 10;
+
+/** La clase que va a empezar en menos de `MINUTOS_ANTES_DE_CLASE` minutos (índice, inicio y fin), si es el caso. */
+export function claseQueVaAEmpezar(t: TimeView): { indice: number; inicio: number; fin: number } | undefined {
+  if (!t.isSchoolDay) return undefined;
+  const indice = JORNADA_ESCOLAR.clases.findIndex(([inicio]) => t.minuteOfDay >= inicio - MINUTOS_ANTES_DE_CLASE && t.minuteOfDay < inicio);
+  return indice < 0 ? undefined : { indice, inicio: JORNADA_ESCOLAR.clases[indice][0], fin: JORNADA_ESCOLAR.clases[indice][1] };
+}
+
 /** ¿Es uno de los 5 minutos que hay al acabar una clase (con los compañeros de clase)? */
 export function enHuecoEntreClases(t: TimeView): boolean {
   return t.isSchoolDay && JORNADA_ESCOLAR.clases.some(([, fin]) => t.minuteOfDay >= fin && t.minuteOfDay < fin + HUECO_ENTRE_CLASES);

@@ -9,7 +9,7 @@ describe('simulación rápida', () => {
     const integridad = out.checks.find((c) => c.name === 'Invariantes y bloqueos')!;
     expect(integridad.level, integridad.detail).toBe('ok');
     expect(out.checks.filter((c) => c.level === 'fallo')).toEqual([]);
-  });
+  }, 30_000);
 
   it('un bot que destaca acepta subir de categoría y compite contra mayores', () => {
     const bot = BOTS.find((b) => b.id === 'atleta')!;

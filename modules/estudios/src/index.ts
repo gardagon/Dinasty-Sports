@@ -7,6 +7,8 @@ import {
   conLugar,
   inHours,
   JORNADA_ESCOLAR,
+  MINUTOS_ANTES_DE_CLASE,
+  claseQueVaAEmpezar,
   SHARED_EVENTS,
   type ClassAttendedData,
   ligarALugares,
@@ -381,13 +383,11 @@ const academiaPendiente = (s: EstudiosState): boolean => s.verano?.tipo === 'aca
  * La jornada: 4 clases que empiezan cada 80 minutos (duran 75: acaban 5 minutos antes de la hora de la siguiente, que se pasan con
  * los compañeros) y un recreo de 40 entre la segunda y la tercera, de 8:00 a 14:00 (minutos del día). No se puede entrar a clase hasta
  * 10 minutos antes de que empiece (esos 10 minutos se gastan repasando o hablando con quien haya) y se puede llegar tarde: solo
- * sube lo que corresponde al tiempo asistido (con menos de 5 minutos por delante ya no se puede entrar). La acción dura hasta que acaba
+ * sube lo que corresponde al tiempo asistido (se puede entrar hasta el último minuto). La acción dura hasta que acaba
  * la clase. Faltar del todo no tiene castigo (solo no sube lo que tocaba), pero se cuenta en `faltas`.
  */
 const JORNADA = JORNADA_ESCOLAR;
-const ANTES_DE_CLASE = 10;
-/** Minutos que han de quedar de clase para poder entrar tarde. */
-const MINIMO_QUE_QUEDE = 5;
+const ANTES_DE_CLASE = MINUTOS_ANTES_DE_CLASE;
 /** Qué parte de la clase se asiste si se entra a esa hora (1 si no se llega tarde). */
 const parteAsistida = (inicio: number, fin: number, minuto: number): number => Math.max(0, Math.min(1, (fin - Math.max(minuto, inicio)) / (fin - inicio)));
 /** Estrés que cuesta un día de clase entero (y lo mismo, faltar a todo el día). */
@@ -413,7 +413,7 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
         const m = ctx.time.minuteOfDay;
         if (clasesDeHoy(ctx).includes(hora_)) return 'Ya has ido a esta clase';
         if (m < inicio - ANTES_DE_CLASE) return `Esta clase empieza a las ${hora(inicio)} (se puede entrar desde 10 minutos antes)`;
-        return fin - m < MINIMO_QUE_QUEDE ? 'Esta clase ya casi ha acabado' : true;
+        return m >= fin ? 'Esta clase ya ha acabado' : true;
       },
       delta: { [GEN.energia]: -15 / CLASES_POR_DIA, [GEN.estres]: ESTRES_POR_DIA_DE_CLASE / CLASES_POR_DIA },
       train: [
@@ -458,6 +458,7 @@ const repasoPrevio = (hora_: number, key: string): ActionDef => {
       delta: { [GEN.energia]: -1 },
       run: (ctx: ActionContext) => {
         const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
+        // Vale la parte de los 10 minutos que se gasta (modificador `estudios.repaso_parcial`, que ya va en la eficiencia).
         ctx.train(statId(key), 0.25 * factorDeAptitud(ctx, key) * pesoDeClase(activas, key));
       },
     });
@@ -527,6 +528,11 @@ export const estudios = defineModule<EstudiosState>({
       id: 'estudios.llegada_tarde',
       tags: [TAGS.estudio],
       apply: (ctx, action) => {
+        if (action.id === 'estudios.repaso_previo') {
+          const c = claseQueVaAEmpezar(ctx.time);
+          const parte = c ? (c.inicio - ctx.time.minuteOfDay) / ANTES_DE_CLASE : 1;
+          return parte >= 0.995 ? null : { efficiency: parte, reason: `Repasas ${c!.inicio - ctx.time.minuteOfDay} de los ${ANTES_DE_CLASE} minutos` };
+        }
         const h = /^estudios\.clase_(\d)$/.exec(action.id);
         if (!h) return null;
         const [inicio, fin] = JORNADA.clases[Number(h[1]) - 1] ?? [];

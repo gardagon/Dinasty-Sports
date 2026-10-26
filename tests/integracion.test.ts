@@ -915,3 +915,26 @@ describe('clase, profesores, apellidos y fichas', () => {
     }
   });
 });
+
+describe('los 10 minutos antes de clase: hablar con alguien al azar', () => {
+  it('solo en esos 10 minutos y con gente delante; sube la relación según el rato y presenta a quien no conocías', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceTo(g, 'gen.descansar', 0, 7);
+    for (let i = 0; i < 12 && g.time.minuteOfDay < 7 * 60 + 40; i++) g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+    g.perform('lugares.ir_colegio'); // desde las 7:40 + viaje: ya dentro de la ventana
+    expect(g.time.minuteOfDay).toBeLessThan(8 * 60);
+    const o = g.preview('relaciones.al_azar')!;
+    if (g.time.minuteOfDay >= 7 * 60 + 50) {
+      expect(o.available).toBe(true);
+      expect(o.duration).toBe(8 * 60 - g.time.minuteOfDay);
+      const conocidos = g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).length;
+      expect(g.perform('relaciones.al_azar').ok).toBe(true);
+      expect(g.time.minuteOfDay).toBe(8 * 60); // se consume el tiempo hasta la clase
+      expect(g.log.some((l) => /Mientras llega la clase hablas con/.test(l.text))).toBe(true);
+      expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).length).toBeGreaterThanOrEqual(conocidos);
+    }
+    // Fuera de la ventana no se puede.
+    advanceTo(g, 'gen.descansar', 1, 12);
+    expect(g.preview('relaciones.al_azar')!.available).toBe(false);
+  });
+});

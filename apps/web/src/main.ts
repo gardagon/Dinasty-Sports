@@ -342,7 +342,7 @@ function viewActions(g: Game): string {
   // Los desplazamientos se hacen desde la pantalla del lugar, no desde la lista de acciones.
   // Los desplazamientos se hacen desde la pantalla del lugar y preguntar nombres, desde el panel «Gente».
   // Con las personas se interactúa desde su ficha, en «Gente».
-  const opts = g.listActions({ omitir: (d) => d.id.startsWith('relaciones.') }).filter((o) => o.module !== 'lugares');
+  const opts = g.listActions({ omitir: (d) => d.id.startsWith('relaciones.') && d.id !== 'relaciones.al_azar' }).filter((o) => o.module !== 'lugares');
   const groups = new Map<string, ActionOption[]>();
   for (const o of opts) {
     if (!o.available && !showUnavailable) continue;

@@ -24,6 +24,8 @@ import {
   type PlanView,
   type PresentacionData,
   NIVEL_AGENDA,
+  MINUTOS_ANTES_DE_CLASE,
+  claseQueVaAEmpezar,
   LLEGADA_AL_COLEGIO,
   JORNADA_ESCOLAR,
   timeView,
@@ -723,6 +725,44 @@ export const relaciones = defineModule<RelacionesState>({
   dependsOn: ['gen'],
 
   initState: () => ({ vinculos: {} }),
+
+  actions: [
+    // Los 10 minutos antes de clase se pueden gastar hablando con alguien de los que hay por allí (al azar: ves con quién te toca).
+    // Si ya has entrado a clase no hay tiempo; es un extra de relación.
+    conLugar(['colegio'], {
+      id: 'relaciones.al_azar',
+      name: 'Charlar con alguien de los que hay antes de clase',
+      description: 'Hasta que empiece la clase hablas con alguien al azar de los que hay por allí. Cuanto más rato, más sube la relación; si no lo conocías, se presenta.',
+      tags: [TAGS.social],
+      group: 'Colegio',
+      duration: (ctx) => {
+        const c = claseQueVaAEmpezar(ctx.time);
+        return c ? Math.max(1, c.inicio - ctx.time.minuteOfDay) : 1;
+      },
+      available: (ctx) => {
+        if (!claseQueVaAEmpezar(ctx.time)) return `Solo en los ${MINUTOS_ANTES_DE_CLASE} minutos antes de una clase`;
+        return cercanosConClave(ctx)?.lista.length ? true : 'No hay nadie con quien hablar';
+      },
+      delta: { [GEN.energia]: -1 },
+      run: (ctx) => {
+        const lista = cercanosConClave(ctx)?.lista ?? [];
+        const n = lista.length ? ctx.rng.pick(lista) : undefined;
+        const c = claseQueVaAEmpezar(ctx.time);
+        if (!n || !c) return;
+        // Cuánto rato se habla: de lo que queda hasta la clase, la parte de media hora que vale una charla.
+        const parte = (c.inicio - ctx.time.minuteOfDay) / 30;
+        const dia = ctx.time.day;
+        if (n.known === false) ctx.emit<PresentacionData>({ type: SHARED_EVENTS.PRESENTACION, data: { npcId: n.id } });
+        ctx.updateState<RelacionesState>((s) => ({
+          ...s,
+          vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(ctx, s, n, dia), dia, 2.5 * parte, 1.5 * parte) },
+        }));
+        ctx.train(GEN.comunicacion, 0.4 * parte);
+        ctx.train(GEN.empatia, 0.2 * parte);
+        ctx.log(`Mientras llega la clase hablas con ${n.known === false ? `${nombreSegunEdad(n.gender, edadAparente(n)).toLowerCase()} que no conocías` : n.name}.`, 'info');
+      },
+    }),
+  ],
 
   dynamicActions: (ctx) => {
     const dir = dirDe(ctx);
