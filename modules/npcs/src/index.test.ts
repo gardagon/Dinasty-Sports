@@ -331,6 +331,20 @@ describe('hermanos', () => {
     }
   });
 
+  it('pasan el tiempo en casa y, si tienen edad, en el colegio y en su deporte', () => {
+    const g = partidas.find((x) => hermanosDe(x).some((h) => h.age! >= 3 && h.age! < 18 && h.tags.includes('atleta')))!;
+    const h = hermanosDe(g).find((x) => x.age! >= 3 && x.age! < 18 && x.tags.includes('atleta'))!;
+    const donde = (dia: number, hora: number) => {
+      advanceTo(g, 'gen.descansar', dia, hora);
+      return g.service<PresenciaService>(SERVICES.presencia)!.donde(h.id);
+    };
+    expect(donde(0, 10)).toBe('colegio'); // lunes, en clase
+    expect(donde(0, 22)).toBe('casa'); // de noche, en casa
+    expect(donde(5, 10)).toMatch(/casa|estadio/); // sábado: casa o las carreras
+    const mayor = partidas.flatMap((x) => x.moduleState<NpcsState>('npcs').npcs).find((n) => n.tags.includes('hermano') && n.tipos?.every((t) => !t.escolar));
+    if (mayor) expect(mayor.tipos).toEqual([{ tipo: 'hermano', ...(mayor.levels.atletismo !== undefined ? { deporte: true } : {}) }]);
+  });
+
   it('heredan carácter e intereses de sus padres y tienen su propio potencial en atletismo', () => {
     const potenciales = partidas.flatMap((g) => g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.tags.includes('hermano')).map((n) => n.potential.atletismo));
     expect(potenciales.length).toBeGreaterThan(100);

@@ -34,7 +34,7 @@ export const NIVEL_AGENDA = {
   evento: 4,
 } as const;
 
-export type TipoDeAgenda = 'alumno' | 'profesor' | 'entrenador' | 'club' | 'rival' | 'amigo' | 'vecino';
+export type TipoDeAgenda = 'alumno' | 'profesor' | 'entrenador' | 'club' | 'rival' | 'amigo' | 'vecino' | 'hermano';
 
 /** Un tipo asignado a una persona. */
 export interface TipoAsignado {
@@ -45,6 +45,10 @@ export interface TipoAsignado {
   hasta?: number;
   /** Cambia el nivel que le corresponde por defecto (para que un acontecimiento mande sobre el resto). */
   nivel?: number;
+  /** `hermano`: está en edad de colegio (va a clase como un alumno). */
+  escolar?: boolean;
+  /** `hermano`: practica atletismo (corre los sábados en el estadio). */
+  deporte?: boolean;
 }
 
 /** A qué días se aplica un tramo. `lectivo` y `libre` dependen del calendario (colegio abierto o no). */
@@ -150,6 +154,13 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
         tramo('amigo', n, 'libre', h(15), h(20), [[FUERA, 40], ['parque', 60]]),
       ];
     }
+    case 'hermano':
+      return [
+        // Vive en casa: está allí salvo en el colegio (si tiene edad) y en su deporte, que mandan sobre la casa.
+        tramo('hermano', nivel(NIVEL_AGENDA.base + 0.5), 'todos', 0, 1440, [['casa', 1]]),
+        ...(t.escolar ? [tramo('hermano', NIVEL_AGENDA.rol, 'lectivo', h(7, 50), h(14), [['colegio', 1]])] : []),
+        ...(t.deporte ? [carreras('hermano', NIVEL_AGENDA.pertenencia, ASISTENCIA_RIVAL.carreras)] : []),
+      ];
     case 'vecino':
       return [tramo('vecino', nivel(NIVEL_AGENDA.rol), 'todos', h(9), h(21), [[FUERA, 50], ['parque', 30], ['supermercado', 15], ['restaurante', 5]])];
   }

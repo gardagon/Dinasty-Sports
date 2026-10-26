@@ -93,6 +93,18 @@ Se suma a las del alumno y pesa más en el parque:
 | todos | 9:00–21:00 | fuera 50 %, parque 30 %, supermercado 15 %, restaurante 5 % |
 | resto | | fuera |
 
+### Hermano, niveles 1,5 a 3
+
+Viven en casa (los únicos, con los padres, que tienen `casa` en su agenda). Una sola persona lleva un único tipo `hermano` con dos marcas que se recalculan cada curso según su edad.
+
+| Días | Horas | Dónde | Nivel |
+|---|---|---|---|
+| todos | todo el día | casa | 1,5 (entre la base y el rol: manda sobre «fuera» y cede ante lo demás) |
+| lectivo, si tiene de 3 a 17 años (`escolar`) | 7:50–14:00 | colegio | 2 |
+| sábado, si practica atletismo (`deporte`) | 9:00–13:00 | estadio; va el 40 %, como los rivales | 3 |
+
+Al cumplir los 18 dejan el colegio (la marca `escolar` se quita al empezar el curso); al cumplir los 3 años entran. La marca `deporte` sigue a que tengan nivel de atletismo (desde los 8). Otros deportes y sesiones de club propias, pendientes.
+
 ### Padre y madre
 
 De momento no están en el sistema de presencia (viven con el personaje, y su puesto de trabajo no es un lugar del mapa). Cuando se llegue a la fase profesional habrá que valorar cuántos lugares se añaden o se desbloquean.
@@ -114,7 +126,7 @@ Son **391 personas persistentes** (el plan hablaba de ~410; ver «Total real» m
 | **Equipo de atletismo del colegio** | ~16 + entrenador | Salen de las clases anteriores: unos 3–4 de tu clase, otros de tu curso y de los demás. Al tener el tipo `club` van a las sesiones del club del colegio. |
 | **Rivales** | 96 (8 por edad, de 8 a 19) | Se reparten en **12 clubes y colegios de fuera**: los dos del catálogo del personaje (Club Atletismo Ciudad y Club de Alto Rendimiento) y diez con nombres provisionales (`colegio1`…`colegio4`, `club1`…`club6`), unos 8 por club. Sedes en el estadio. Los que son de otro colegio no están en el nuestro. |
 | **Vecinos** | ~80 | De todas las edades. Parque, supermercado, restaurante y gimnasio. |
-| **Familia** | 2 padres + (hermanos más adelante) | Ya existen. |
+| **Familia** | 2 padres + 0 a 3 hermanos | Los hermanos están en casa, en el colegio y en su deporte (ver «Hermano»). |
 | **Total real generado** | **391** | 4 del reparto inicial, 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
 
 Reglas de generación:

@@ -318,6 +318,21 @@ const nivelInicialDeHermano = (potencial: number, edadReal: number, desfase: num
   return Math.min(techo, techo * rng.range(0.8, 1));
 };
 
+/** Edad de los hermanos a la que empiezan el colegio (a los 18 lo terminan, como el resto del alumnado). */
+const EDAD_COLEGIO_HERMANOS = 3;
+const tiposDeHermano = (edad: number, deporte: boolean): TipoAsignado[] => [
+  { tipo: 'hermano', ...(edad >= EDAD_COLEGIO_HERMANOS && edad < EDAD_FIN_COLEGIO ? { escolar: true } : {}), ...(deporte ? { deporte: true } : {}) },
+];
+
+/** Cada curso, los hermanos que cumplen la edad del colegio entran y los que acaban salen; los que empiezan a competir corren los sábados. */
+function actualizarHermanos(npcs: Npc[], dia: number): Npc[] {
+  return npcs.map((n) => {
+    if (!n.tags.includes('hermano')) return n;
+    const tipos = tiposDeHermano(edadNpc(n, dia) ?? EDAD_DE_INICIO, n.levels.atletismo !== undefined);
+    return JSON.stringify(tipos) === JSON.stringify(n.tipos) ? n : { ...n, tipos };
+  });
+}
+
 /**
  * Los hermanos del personaje (0 a 3): hijos de los mismos padres, con el mismo proceso de herencia (la mitad de las capacidades
  * físicas de cada padre ±20 %, carácter e intereses heredados). Viven su vida como los rivales: practican atletismo, progresan
@@ -365,6 +380,7 @@ function hermanos(ctx: InitContext, usados: Set<string>): Npc[] {
       nacimiento,
       desfase,
       rasgos,
+      tipos: tiposDeHermano(edad, compite),
       description: `${relacion}. Vive en casa.`,
     };
   });
@@ -603,7 +619,7 @@ export const npcs = defineModule<NpcsState>({
       // Si la semana que viene empieza un curso nuevo, se renueva el pelotón de rivales.
       const proximo = timeView((week + 1) * 7 * MINUTES_PER_DAY);
       if (proximo.schoolWeek !== 0) return;
-      ctx.updateState<NpcsState>((s) => ({ npcs: renovarAlumnos(renovarRivales(s.npcs, proximo.day, ctx.rng), proximo.day, ctx.rng) }));
+      ctx.updateState<NpcsState>((s) => ({ npcs: actualizarHermanos(renovarAlumnos(renovarRivales(s.npcs, proximo.day, ctx.rng), proximo.day, ctx.rng), proximo.day) }));
     },
 
     [SHARED_EVENTS.PRESENTACION]: (ctx, ev) => {

@@ -172,6 +172,11 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Rendimiento:** la primera versión recalculaba la ruta en cada evaluación y subió el coste de la simulación de ~2,7 s a ~3,2 s por año (límite 3 s). Las rutas se calculan ahora una sola vez (el mapa no cambia en partida): ~2,75 s. Ojo al añadir lugares: cada acción de ir se evalúa en cada `listActions`.
 - **Comprobado:** tests (incluida la arquitectura) y `sim:rapida` sin cambios en el balance.
 
+## 26/10/2026 — Agenda de los hermanos
+
+- **Decidido con el usuario:** los hermanos son PNJ con el tipo `hermano`: pasan el tiempo en casa y en el colegio mientras tienen edad escolar (de 3 a 17), y en el deporte que practiquen. Tipo `hermano` con las marcas `escolar` y `deporte`, recalculadas cada curso (`actualizarHermanos`). Casa a nivel 1,5, colegio a nivel 2 y carreras a nivel 3. Detalle en `ANEXO_HORARIOS_PNJ.md`.
+- **Pendiente:** otros deportes y sesiones de club propias de los hermanos; comer y dormir como acciones del personaje con ellos en casa.
+
 ## 25/10/2026 — Hermanos del personaje (E8.10) y dificultad aplazada
 
 - **Dificultad (decidido por el usuario):** la dificultad solo controla cómo empiezan los padres y, en consecuencia, el personaje. No hace falta pantalla de inicio mientras no esté montado el juego completo, al menos en la infancia; se planificará con todas las opciones de creación (E15.1). Los rangos de calidad (fácil, normal, difícil) siguen como dato en `herencia.ts`.
