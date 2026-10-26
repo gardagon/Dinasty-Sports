@@ -270,3 +270,10 @@ h3:first-child { margin-top: 0; }
 .ficha-gente h2 small { font-size: 14px; color: var(--ink-soft); font-weight: 400; }
 .copias { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 #aviso-guardado:empty { display: none; }
+
+/* Pestaña del deporte */
+.deporte h2 small { font-size: 14px; color: var(--ink-soft); font-weight: 400; }
+.deporte h4 { margin: 14px 0 4px; font-size: 14px; color: var(--ink-soft); }
+.prueba { border-bottom: 1px solid var(--line, #c9d3e0); padding: 6px 0; }
+.prueba summary { cursor: pointer; font-size: 14px; }
+.prueba .table { margin-top: 6px; }

@@ -19,6 +19,9 @@ import {
   type ClubLeaveData,
   type ClubView,
   type CompetitionResultData,
+  type DeporteView,
+  type LogTable,
+  claveDeDeporte,
   type IdentityService,
   type NpcDirectory,
   type ReadContext,
@@ -26,6 +29,7 @@ import {
   type Rng,
   type StatDef,
 } from '@ds/contracts';
+import { clasificacionPorPuntos, mejoresMarcas, recortarPruebas, type FilaDeClasificacion, type FilaGuardada, type PruebaGuardada } from './temporada';
 
 /**
  * MÓDULO ATLETISMO (id `atletismo`) — el deporte más sencillo de modelar:
@@ -58,6 +62,8 @@ export interface AtletismoState {
   ultimoVerano?: number;
   /** Campeonato del curso: si se clasificó en la autonómica y quiénes corren la final. */
   campeonato?: { curso: number; clasificado: boolean; finalistas: string[] };
+  /** Todas las pruebas que ha disputado, con la clasificación completa de las de este curso y el anterior (para la pestaña del deporte). */
+  resultados?: PruebaGuardada[];
   /** Resultados de clasificatorias y finales. */
   campeonatos?: { curso: number; categoria: string; tipo: 'clasificatoria' | 'final'; position: number; total: number }[];
 }
@@ -366,8 +372,17 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
   const position = participants.findIndex((p) => p.isPlayer) + 1;
   const total = participants.length;
   const record = estado.mejorMarca === null || miMarca < estado.mejorMarca;
+  const filas: FilaGuardada[] = participants.map((p) => ({
+    nombre: p.name,
+    club: clubes.get(p.name) ?? '',
+    marca: p.mark,
+    ...(p.npcId ? { npcId: p.npcId } : {}),
+    ...(p.isPlayer ? { yo: true } : {}),
+  }));
+  const prueba: PruebaGuardada = { curso: t.schoolYear, semana: t.week, tipo, categoria: competida.id, superior, posicion: position, total, marca: miMarca, record, filas };
   const base = {
     ...estado,
+    resultados: recortarPruebas([...(estado.resultados ?? []), prueba], t.schoolYear),
     mejorMarca: record ? miMarca : estado.mejorMarca,
     ultimaSemanaCarrera: t.week,
     categoriaPropia: propia.id,
@@ -443,6 +458,118 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
   });
 }
 
+
+// ---------------------------------------------------------------------------------------------------- pestaña del deporte
+
+const nombreDeCategoria = (id: string): string => CATEGORIAS.find((c) => c.id === id)?.nombre ?? id;
+const orden = (n: number) => `${n}º`;
+
+const tablaDeLaPrueba = (p: PruebaGuardada): LogTable | undefined => {
+  if (!p.filas?.length) return undefined;
+  const filas = [...p.filas].sort((a, b) => a.marca - b.marca);
+  const ganador = filas[0].marca;
+  return {
+    header: ['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.'],
+    rows: filas.map((f, i) => [orden(i + 1), f.nombre, f.club || '—', `${f.marca.toFixed(2)} s`, i === 0 ? '—' : `+${(f.marca - ganador).toFixed(2)}`]),
+    highlight: filas.findIndex((f) => f.yo),
+    align: ['left', 'left', 'left', 'right', 'right'],
+  };
+};
+
+/** Las 10 primeras filas de una clasificación y, si el personaje no está entre ellas, su fila al final con su puesto real. */
+function recorte(filas: FilaDeClasificacion[], fila: (f: FilaDeClasificacion, puesto: number) => string[]): { rows: string[][]; highlight: number } {
+  const top = filas.slice(0, 10);
+  const yo = filas.findIndex((f) => f.yo);
+  const rows = top.map((f, i) => fila(f, i + 1));
+  if (yo >= 10) rows.push(fila(filas[yo], yo + 1));
+  return { rows, highlight: yo < 0 ? -1 : Math.min(yo, rows.length - 1) };
+}
+
+function proximaPrueba(ctx: ReadContext, s: AtletismoState): string {
+  const t = ctx.time;
+  if (t.period !== 'clase') return 'No hay carreras en vacaciones: la temporada empieza en septiembre.';
+  if (t.schoolWeek < SEMANAS_PRETEMPORADA) return `Pretemporada: la primera carrera es la semana ${SEMANAS_PRETEMPORADA + 1} del curso.`;
+  const hechas = (s.campeonatos ?? []).filter((c) => c.curso === t.schoolYear);
+  if (t.schoolWeek === SEMANA_CLASIFICATORIA && !hechas.some((c) => c.tipo === 'clasificatoria')) return 'Esta semana, el sábado de 9 a 13: clasificatoria autonómica.';
+  if (t.schoolWeek === SEMANA_FINAL && s.campeonato?.clasificado && s.campeonato.curso === t.schoolYear && !hechas.some((c) => c.tipo === 'final')) {
+    return 'Esta semana, el sábado de 9 a 13: final del campeonato de España.';
+  }
+  const resto =
+    t.schoolWeek < SEMANA_CLASIFICATORIA
+      ? ` La clasificatoria autonómica es la semana ${SEMANA_CLASIFICATORIA + 1}.`
+      : t.schoolWeek < SEMANA_FINAL && s.campeonato?.clasificado && s.campeonato.curso === t.schoolYear
+        ? ` La final del campeonato es la semana ${SEMANA_FINAL + 1}.`
+        : '';
+  if (s.ultimaSemanaCarrera === t.week) return `Ya has corrido esta semana: la próxima carrera es el sábado que viene, de 9 a 13.${resto}`;
+  return `Carrera semanal: el sábado, de 9 a 13.${resto}`;
+}
+
+/** Todo lo que enseña la pestaña de atletismo. */
+function vistaDeAtletismo(ctx: ReadContext): DeporteView {
+  const t = ctx.time;
+  const s = ctx.state<AtletismoState>();
+  const { competida, superior } = categoriaDelJugador(ctx);
+  const club = clubDelJugador(ctx);
+  const entrenador = ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ role: 'entrenador', known: true })[0];
+  const todas = s.resultados ?? [];
+  const deEsteCurso = todas.filter((p) => p.curso === t.schoolYear);
+  const mejor = deEsteCurso.reduce<PruebaGuardada | undefined>((m, p) => (!m || p.posicion < m.posicion ? p : m), undefined);
+  const campeonato = s.campeonato?.curso === t.schoolYear ? (s.campeonato.clasificado ? 'Clasificado para la final' : 'No clasificado') : 'Sin disputar';
+
+  const clasificaciones = [...new Set(deEsteCurso.map((p) => p.categoria))].flatMap((cat) => {
+    const pruebas = deEsteCurso.filter((p) => p.categoria === cat);
+    const puntos = recorte(clasificacionPorPuntos(pruebas), (f, i) => [orden(i), f.yo ? 'Tú' : f.nombre, f.club || '—', String(f.puntos), String(f.pruebas), `${f.mejorMarca.toFixed(2)} s`]);
+    const marcas = recorte(mejoresMarcas(pruebas), (f, i) => [orden(i), f.yo ? 'Tú' : f.nombre, f.club || '—', `${f.mejorMarca.toFixed(2)} s`]);
+    return [
+      { titulo: `Clasificación por puntos · ${nombreDeCategoria(cat)}`, tabla: { header: ['Pos.', 'Corredor', 'Club', 'Puntos', 'Carreras', 'Mejor marca'], align: ['left', 'left', 'left', 'right', 'right', 'right'] as ('left' | 'right')[], ...puntos } },
+      { titulo: `Mejores marcas · ${nombreDeCategoria(cat)}`, tabla: { header: ['Pos.', 'Corredor', 'Club', 'Mejor marca'], align: ['left', 'left', 'left', 'right'] as ('left' | 'right')[], ...marcas } },
+    ];
+  });
+
+  const anteriores = [...new Set(todas.filter((p) => p.curso < t.schoolYear).map((p) => p.curso))].sort((a, b) => b - a).map((curso) => {
+    const ps = todas.filter((p) => p.curso === curso);
+    const m = ps.reduce((x, p) => (p.posicion < x.posicion ? p : x));
+    return { etiqueta: `Curso ${curso + 1}`, pruebas: ps.length, mejorPuesto: `${orden(m.posicion)} de ${m.total}`, mejorMarca: `${Math.min(...ps.map((p) => p.marca)).toFixed(2)} s` };
+  });
+
+  return {
+    id: DEPORTE,
+    nombre: 'Atletismo',
+    disciplina: DISCIPLINA,
+    resumen: [
+      { etiqueta: 'Categoría', valor: `${competida.nombre}${superior ? ' (compites en la superior)' : ''}` },
+      { etiqueta: 'Club', valor: club?.nombre ?? 'Sin club' },
+      { etiqueta: 'Entrenador', valor: entrenador?.name ?? '—' },
+      { etiqueta: 'Mejor marca', valor: s.mejorMarca === null ? '—' : `${s.mejorMarca.toFixed(2)} s` },
+      { etiqueta: 'Carreras este curso', valor: String(deEsteCurso.length) },
+      { etiqueta: 'Mejor puesto del curso', valor: mejor ? `${orden(mejor.posicion)} de ${mejor.total}` : '—' },
+      { etiqueta: 'Campeonato', valor: campeonato },
+    ],
+    habilidades: {
+      propias: ['atletismo.tecnica', 'atletismo.ritmo', 'atletismo.salida', CONOCIMIENTO],
+      apoyo: [GEN.velocidad, GEN.resistencia, GEN.fuerza, GEN.coordinacion, GEN.agilidad, GEN.determinacion],
+    },
+    temporada: {
+      etiqueta: `Curso ${t.schoolYear + 1}`,
+      proxima: proximaPrueba(ctx, s),
+      pruebas: deEsteCurso
+        .slice()
+        .sort((a, b) => a.semana - b.semana)
+        .map((p) => ({
+          semana: p.semana - (t.week - t.schoolWeek) + 1,
+          titulo: `${DISCIPLINA} ${nombreDeCategoria(p.categoria)}${NOMBRE_TIPO[p.tipo]}`,
+          posicion: p.posicion,
+          total: p.total,
+          marca: `${p.marca.toFixed(2)} s`,
+          record: p.record,
+          tabla: tablaDeLaPrueba(p),
+        })),
+    },
+    clasificaciones,
+    temporadasAnteriores: anteriores,
+  };
+}
+
 export const atletismo = defineModule<AtletismoState>({
   id: 'atletismo',
   name: 'Atletismo',
@@ -482,6 +609,10 @@ export const atletismo = defineModule<AtletismoState>({
     sesionesHoy: { day: -1, n: 0 },
     ultimaTele: -1,
   }),
+
+  services: {
+    [claveDeDeporte(DEPORTE)]: (ctx) => ({ view: () => vistaDeAtletismo(ctx) }),
+  },
 
   dynamicActions: accionesDeClubes,
 

@@ -34,6 +34,7 @@ import {
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
+import { clicEnDeporte, etiquetaDeDeporte, viewDeporte } from './deporte';
 import { clicEnGente, reiniciarGente, viewPanelGente } from './gente';
 import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
@@ -44,7 +45,7 @@ import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida
 
 // ------------------------------------------------------------------ estado de la UI
 
-type Tab = 'hacer' | 'personaje' | 'gente' | 'relaciones' | 'diario';
+type Tab = 'hacer' | 'personaje' | 'deporte' | 'gente' | 'relaciones' | 'diario';
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const ESTADO = [GEN.energia, GEN.salud, GEN.estres, GEN.motivacion];
@@ -603,6 +604,7 @@ function viewGame(g: Game): string {
   const tabs: [Tab, string][] = [
     ['hacer', 'Qué hacer'],
     ['personaje', 'Personaje'],
+    ...(etiquetaDeDeporte(g) ? ([['deporte', etiquetaDeDeporte(g)!]] as [Tab, string][]) : []),
     ['gente', 'Gente'],
     ['relaciones', 'Relaciones'],
     ['diario', 'Diario'],
@@ -615,7 +617,8 @@ function viewGame(g: Game): string {
   } else if (tab === 'personaje') {
     main = viewIdentity(g) + viewCharacter(g);
     side = viewResults(g);
-  } else if (tab === 'gente') main = viewResult() + viewPanelGente(g);
+  } else if (tab === 'deporte') main = viewDeporte(g);
+  else if (tab === 'gente') main = viewResult() + viewPanelGente(g);
   else if (tab === 'relaciones') main = viewPeople(g);
   else main = viewLog(g);
 
@@ -635,12 +638,16 @@ function render(): void {
 // ------------------------------------------------------------------ interacción
 
 app.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-do],[data-tab],[data-act],[data-gente]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-do],[data-tab],[data-act],[data-gente],[data-deporte]');
   if (el?.dataset.act === 'importar') {
     importarPartida();
     return;
   }
   if (!el || !game) return;
+  if (el.dataset.deporte) {
+    if (clicEnDeporte(el)) render();
+    return;
+  }
   if (el.dataset.gente) {
     if (clicEnGente(el)) render();
     return;

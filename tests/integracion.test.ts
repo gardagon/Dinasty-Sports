@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, GENTE_CERCANA, SERVICES, type PresenciaService, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
+import { GEN, GENTE_CERCANA, SERVICES, claveDeDeporte, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
@@ -651,6 +651,78 @@ describe('integración de módulos', () => {
         return cargarPartida(s).preview('relaciones.charlar.companero_social')!.efficiency;
       };
       expect(con(50)).toBeGreaterThan(con(-50) * 1.3);
+    });
+  });
+
+  describe('pestaña del deporte', () => {
+    const vista = (g: Game) => g.service<DeporteService>(claveDeDeporte('atletismo'))!.view();
+    /** Corre las carreras semanales de unas semanas del curso (los sábados a las 9; el viaje al estadio entra dentro de la ventana de 9 a 13). */
+    const correr = (g: Game, desde: number, hasta: number) => {
+      for (let semana = desde; semana <= hasta; semana++) {
+        advanceToWeek(g, 'gen.descansar', semana, 5, 9);
+        for (const id of ['atletismo.clasificatoria', 'atletismo.final', 'atletismo.carrera']) {
+          if (posible(g, id)) {
+            hacer(g, id);
+            break;
+          }
+        }
+      }
+    };
+
+    it('antes de competir no hay pruebas ni clasificaciones y dice cuándo es la primera carrera', () => {
+      const v = vista(nuevaPartida({ seed: 41 }));
+      expect(v).toMatchObject({ id: 'atletismo', nombre: 'Atletismo', disciplina: '400 m' });
+      expect(v.temporada.pruebas).toEqual([]);
+      expect(v.clasificaciones).toEqual([]);
+      expect(v.temporada.proxima).toMatch(/Pretemporada: la primera carrera es la semana 5/);
+      expect(v.resumen.find((r) => r.etiqueta === 'Mejor marca')!.valor).toBe('—');
+      expect(v.habilidades.propias).toContain('atletismo.tecnica');
+    });
+
+    it('tras una temporada enseña todas las carreras con su clasificación completa y las clasificaciones del año', () => {
+      const g = nuevaPartida({ seed: 41 });
+      correr(g, 5, 30);
+      const v = vista(g);
+      expect(v.temporada.pruebas.length).toBeGreaterThanOrEqual(15);
+      for (const p of v.temporada.pruebas) {
+        expect(p.tabla?.rows.length).toBeGreaterThanOrEqual(8);
+        expect(p.tabla!.rows[p.tabla!.highlight!][1]).toBe('Tú');
+        expect(p.tabla!.rows[p.posicion - 1][1]).toBe('Tú');
+      }
+      expect(v.temporada.pruebas.some((p) => /clasificatoria autonómica/.test(p.titulo))).toBe(true);
+      // Una clasificación por puntos y otra de mejores marcas, con el personaje (en su sitio real) y como mucho 11 filas.
+      expect(v.clasificaciones.map((c) => c.titulo)).toEqual([expect.stringMatching(/^Clasificación por puntos/), expect.stringMatching(/^Mejores marcas/)]);
+      for (const c of v.clasificaciones) {
+        expect(c.tabla.rows.length).toBeLessThanOrEqual(11);
+        expect(c.tabla.rows.some((r) => r[1] === 'Tú')).toBe(true);
+      }
+      const puntos = v.clasificaciones[0].tabla.rows.map((r) => Number(r[3]));
+      expect([...puntos.slice(0, 10)]).toEqual([...puntos.slice(0, 10)].sort((a, b) => b - a));
+      expect(v.resumen.find((r) => r.etiqueta === 'Mejor marca')!.valor).toMatch(/s$/);
+      expect(v.resumen.find((r) => r.etiqueta === 'Carreras este curso')!.valor).toBe(String(v.temporada.pruebas.length));
+    });
+
+    it('al empezar otro curso la temporada vuelve a cero y la anterior queda como resumen', () => {
+      const g = nuevaPartida({ seed: 41 });
+      correr(g, 5, 14);
+      const hechas = vista(g).temporada.pruebas.length;
+      expect(hechas).toBeGreaterThan(5);
+      advanceToWeek(g, 'gen.descansar', 53, 0, 9);
+      const v = vista(g);
+      expect(v.temporada.etiqueta).toBe('Curso 2');
+      expect(v.temporada.pruebas).toEqual([]);
+      expect(v.temporadasAnteriores).toHaveLength(1);
+      expect(v.temporadasAnteriores[0]).toMatchObject({ etiqueta: 'Curso 1', pruebas: hechas });
+    });
+
+    it('la partida guardada crece poco con las pruebas y se carga igual', () => {
+      const g = nuevaPartida({ seed: 41 });
+      const antes = JSON.stringify(g.serialize()).length;
+      correr(g, 5, 30);
+      const despues = g.serializarJSON().length;
+      expect(despues - antes).toBeLessThan(80_000); // ~25 carreras con su clasificación y lo que cambia por jugar medio curso
+      const otra = cargarPartida(JSON.parse(g.serializarJSON()).state, undefined, { copiar: false });
+      expect(vista(otra).temporada.pruebas.length).toBe(vista(g).temporada.pruebas.length);
     });
   });
 });

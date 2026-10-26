@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 26/10/2026 — Pestaña del deporte
+
+- **Contrato genérico:** cada deporte publica `deporte.<id>` (`DeporteView`); la interfaz recorre esos servicios y dibuja la pestaña (con el nombre del deporte si hay uno solo). Un deporte de equipo usará el mismo contrato.
+- **Atletismo guarda cada prueba con su clasificación completa** (`AtletismoState.resultados`): corredor, club y marca de todos los participantes, del curso en curso y el anterior; de los cursos más viejos solo el resumen. Máximo 200 pruebas. Se sube `SAVE_VERSION` a 10 (cambia el estado de atletismo).
+- **Qué enseña:** resumen (categoría, club, entrenador, mejor marca, carreras y mejor puesto del curso, campeonato), próxima prueba, habilidades del deporte y las genéricas que más las apoyan, **todas las carreras del curso** con su clasificación desplegable, **clasificación por puntos y por mejores marcas** (por categoría) y los cursos anteriores.
+- **Puntos de la temporada** (decisión mía, a revisar): 10-8-6-5-4-3-2-1 por puesto en las semanales; clasificatoria y final puntúan el doble. Solo cuentan las carreras en que el rival ha coincidido con el personaje: no es la clasificación de todo el circuito (pendiente cuando haya calendario completo).
+- **Cifras y dónde cambiarlas:** `docs/ANEXO_DEPORTE.md`.
+
+---
+
 ## 26/10/2026 — Sin teléfono no hay contacto; gustos solo de carácter; planes y saludos a futuro
 
 - **Sin teléfono (decidido por el usuario):** si la persona no está contigo no puedes contactarla ni saber dónde está. Se quita lo de que la acción mostrara «Tienes que estar en…» y los bots viajaran hasta la persona (revelaba dónde estaba). Ahora la acción dice «<nombre> no está aquí»; se comprueba contra la gente que tienes cerca (≤ 40, los conocidos primero). Ventaja: no hace falta calcular dónde está cada conocido, solo quién hay en tu lugar (ya calculado una vez por tramo). Los bots solo hablan con quien coincide con ellos: **social −1 punto en casi todos** (equilibrado 5,6 → 4,3; atleta 2,1 → 1,5; empollón 3,7 → 2,7); 13/13 ✅.

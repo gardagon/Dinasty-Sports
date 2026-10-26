@@ -17,3 +17,4 @@ export * from './perks';
 export * from './rasgos';
 export * from './lugares';
 export * from './agendas';
+export * from './deporte';
