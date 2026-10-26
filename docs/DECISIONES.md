@@ -172,6 +172,19 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Rendimiento:** la primera versión recalculaba la ruta en cada evaluación y subió el coste de la simulación de ~2,7 s a ~3,2 s por año (límite 3 s). Las rutas se calculan ahora una sola vez (el mapa no cambia en partida): ~2,75 s. Ojo al añadir lugares: cada acción de ir se evalúa en cada `listActions`.
 - **Comprobado:** tests (incluida la arquitectura) y `sim:rapida` sin cambios en el balance.
 
+## 25/10/2026 — Hermanos del personaje (E8.10) y dificultad aplazada
+
+- **Dificultad (decidido por el usuario):** la dificultad solo controla cómo empiezan los padres y, en consecuencia, el personaje. No hace falta pantalla de inicio mientras no esté montado el juego completo, al menos en la infancia; se planificará con todas las opciones de creación (E15.1). Los rangos de calidad (fácil, normal, difícil) siguen como dato en `herencia.ts`.
+- **Hermanos (decidido con el usuario):**
+  1. **Cuántos y de qué edad:** de 0 a 3 (20 %, 45 %, 25 % y 10 %), con una diferencia de edad de −6 a +6 años sin repetir (mayores y menores) y un 4 % de que uno sea mellizo. Con 8 años al empezar, sus edades van de 2 a 14.
+  2. **Genética y carácter:** hijos de los mismos padres con el mismo proceso de herencia que el personaje: cada capacidad física de UN padre (la mitad de cada uno, ±20 %) y su potencial en atletismo como los rivales (media de las capacidades físicas heredadas, aptitud ±15 %). Rasgos heredados con `rasgosHeredadosNpc` (origen, apariencia, carácter atenuado, intereses de alguno de los padres con un 60 %, gustos). Los dos apellidos salen de la semilla (`apellidosDeFamilia`), así que los comparten módulos que no dependen entre sí. Dos hermanos se parecen más en carácter que dos desconocidos.
+  3. **Vida independiente, como los bots:** viven en `npcs` como personas con rol `familia` y las etiquetas `hermano` y `atleta` (esta, desde los 8 años: los pequeños empiezan al cumplirlos). Practican atletismo, progresan solos con la curva de desarrollo de los rivales (`desarrolloRival`) y compiten en su categoría junto a los rivales. No se retiran con los cursos: siguen cuando el pelotón se renueva. Aún no tienen perks (E5.7) ni ventaja de crianza.
+  4. **Con quién te relacionas:** aparecen en la ficha de familia (nombre, edad, nivel; en pruebas, carácter e intereses), en la lista de personas como «Hermano/Hermana» y con las acciones de relación: el catálogo completo si tienen 6 años o más; los más pequeños solo para pasar la tarde (jugar) y tener un detalle. «Pasar la tarde con» sustituye a «Quedar con».
+  5. **Vínculo:** empiezan en un valor positivo de 5 a 25 según la compatibilidad (intereses y carácter) y la diferencia de edad (−1,5 por año a partir de 3), con confianza 15. Es un vínculo familiar (`Vinculo.familia`): se enfría con el tiempo pero **no baja de 5 por sí solo** (no se olvida a la familia), aunque sí se puede enemistar con discusiones. Apoyan acciones (`supports`: lo social y las etiquetas de su interés favorito) cuando llegan a afinidad 40.
+- **Efectos secundarios:** hacer las paces solo se ofrece cuando hay algo que arreglar (vínculo negativo o intento reciente fallido), lo que limpia la interfaz y reduce el coste; el modificador de apoyo no consulta el directorio si nadie llega a afinidad 40. Año simulado: ~2,4 s (límite 3 s). Los podios del atleta suben a ~23 porque los hermanos suman corredores más flojos.
+- **Estado:** `FamilyService.siblings()` (nuevo); `Vinculo.familia`; `SAVE_VERSION` sube a 7.
+- **Pendiente:** perks y ventaja de crianza de los hermanos; que se vayan de casa al cumplir 18; que su vida afecte a la del personaje (celos, comparaciones, apoyo de los padres, E20.8); que compitan en otros deportes; entrenar juntos.
+
 ---
 
 ## 25/10/2026 — Acciones de relación variadas (E20.3)

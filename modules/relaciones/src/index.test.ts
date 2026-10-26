@@ -3,6 +3,7 @@ import { SERVICES, type NpcDirectory, type RelationsService } from '@ds/contract
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { npcs } from '@ds/mod-npcs';
+import { familia } from '@ds/mod-familia';
 import type { IdentidadState } from '@ds/mod-personaje';
 import { relaciones, type RelacionesState } from './index';
 
@@ -61,13 +62,14 @@ describe('módulo relaciones', () => {
     it('cada persona tiene su propio grupo y su catálogo de acciones', () => {
       const g = nueva();
       advanceTo(g, 'gen.descansar', 5, 11);
-      const catalogo = ['quedar', 'charlar', 'ayudar', 'planes', 'detalle', 'discutir', 'paces'].map((x) => g.preview(id(x))!);
+      const catalogo = ['quedar', 'charlar', 'ayudar', 'planes', 'detalle', 'discutir'].map((x) => g.preview(id(x))!);
       expect(catalogo.every((p) => p !== undefined)).toBe(true);
       expect(new Set(g.availableActions().filter((a) => a.id.endsWith('.companero_social')).map((a) => a.group)).size).toBe(1);
       expect(g.availableActions().find((a) => a.id === id('charlar'))!.group).toBe('Relaciones · ' + g.service<NpcDirectory>(SERVICES.npcs)!.get('companero_social')!.name.split(' ')[0]);
       expect(g.preview(id('hablar', 'entrenador'))).toBeDefined();
       expect(g.preview(id('discutir', 'entrenador'))).toBeDefined();
-      expect(g.preview(id('paces', 'entrenador'))).toBeDefined();
+      // Las paces solo existen cuando hay algo que arreglar.
+      expect(g.preview(id('paces'))).toBeUndefined();
     });
 
     it('charlar sube poco y cuesta casi nada; quedar sube más', () => {
@@ -131,8 +133,9 @@ describe('módulo relaciones', () => {
 
     it('hacer las paces solo si hay algo que arreglar', () => {
       const g = conAfinidad(5);
-      expect(g.preview(id('paces'))!.available).toBe(false);
-      expect(g.preview(id('paces'))!.reason).toMatch(/nada que arreglar/);
+      expect(g.preview(id('paces'))).toBeUndefined(); // ni se ofrece
+      const peleados = conAfinidad(-30, 'antipatia');
+      expect(peleados.preview(id('paces'))!.available).toBe(true);
     });
 
     it('las paces sacan de la antipatía o, si fallan, obligan a esperar unos días', () => {
@@ -164,6 +167,74 @@ describe('módulo relaciones', () => {
       const g = nueva();
       advanceTo(g, 'gen.descansar', 5, 11);
       expect(g.preview(id('charlar', 'rival_1'))).toBeUndefined();
+    });
+  });
+
+  describe('hermanos', () => {
+    const conHermano = (condicion: (edad: number) => boolean) => {
+      for (let seed = 1; seed <= 200; seed++) {
+        const g = Game.create([personaje, familia, npcs, relaciones], { seed });
+        const h = g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' }).find((x) => condicion(x.age ?? 0));
+        if (h) return { g, h };
+      }
+      throw new Error('ninguna semilla con ese hermano');
+    };
+
+    it('empiezan con un vínculo positivo (5 a 25) y confianza, y nunca como un desconocido', () => {
+      for (let seed = 1; seed <= 60; seed++) {
+        const g = Game.create([personaje, familia, npcs, relaciones], { seed });
+        for (const h of g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' })) {
+          const v = rel(g).get(h.id)!;
+          expect(v.afinidad).toBeGreaterThanOrEqual(5);
+          expect(v.afinidad).toBeLessThanOrEqual(25);
+          expect(v.confianza).toBeGreaterThan(0);
+          expect(v.estado).toBe('conocido');
+        }
+      }
+    });
+
+    it('con más compatibilidad y menos diferencia de edad, mejor arranca la relación', () => {
+      const valores: { afinidad: number; diferencia: number }[] = [];
+      for (let seed = 1; seed <= 120; seed++) {
+        const g = Game.create([personaje, familia, npcs, relaciones], { seed });
+        for (const h of g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' })) valores.push({ afinidad: rel(g).get(h.id)!.afinidad, diferencia: Math.abs((h.age ?? 8) - 8) });
+      }
+      const m = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+      const cercanos = valores.filter((v) => v.diferencia <= 3).map((v) => v.afinidad);
+      const lejanos = valores.filter((v) => v.diferencia >= 5).map((v) => v.afinidad);
+      expect(m(cercanos)).toBeGreaterThan(m(lejanos));
+      expect(new Set(valores.map((v) => Math.round(v.afinidad))).size).toBeGreaterThan(5);
+    });
+
+    it('con el tiempo la afinidad se enfría pero no baja de 5 (la familia no se olvida)', () => {
+      const { g, h } = conHermano((e) => e >= 6);
+      const guardado = g.serialize();
+      (guardado.modules.relaciones as RelacionesState).vinculos[h.id] = { npcId: h.id, afinidad: 60, confianza: 40, estado: 'amigo', desde: 0, ultimoContacto: 0, contactos: [0], familia: true };
+      const cargado = Game.load([personaje, familia, npcs, relaciones], guardado);
+      for (let i = 0; i < 200; i++) advanceTo(cargado, 'gen.descansar', (cargado.time.weekday + 1) % 7, 8);
+      expect(rel(cargado).get(h.id)!.afinidad).toBeGreaterThanOrEqual(5);
+      expect(rel(cargado).get(h.id)!.afinidad).toBeLessThan(60);
+    });
+
+    it('un hermano de 6 años o más ofrece todo el catálogo; uno más pequeño, solo jugar y un detalle', () => {
+      const { g, h } = conHermano((e) => e >= 6);
+      advanceTo(g, 'gen.descansar', 5, 11);
+      for (const accion of ['quedar', 'charlar', 'ayudar', 'planes', 'detalle', 'discutir']) expect(g.preview(`relaciones.${accion}.${h.id}`)).toBeDefined();
+      const { g: g2, h: pequeno } = conHermano((e) => e > 0 && e < 6);
+      advanceTo(g2, 'gen.descansar', 5, 11);
+      expect(g2.preview(`relaciones.quedar.${pequeno.id}`)).toBeDefined();
+      expect(g2.preview(`relaciones.detalle.${pequeno.id}`)).toBeDefined();
+      expect(g2.preview(`relaciones.discutir.${pequeno.id}`)).toBeUndefined();
+    });
+
+    it('pasar la tarde con un hermano sube la afinidad, y la discusión y las paces funcionan como con cualquiera', () => {
+      const { g, h } = conHermano((e) => e >= 6);
+      advanceTo(g, 'gen.descansar', 5, 11);
+      const antes = rel(g).get(h.id)!.afinidad;
+      expect(g.perform(`relaciones.quedar.${h.id}`).ok).toBe(true);
+      expect(rel(g).get(h.id)!.afinidad).toBeGreaterThan(antes);
+      expect(g.preview(`relaciones.paces.${h.id}`)).toBeUndefined();
+      expect(g.availableActions().find((a) => a.id === `relaciones.charlar.${h.id}`)?.group ?? 'Relaciones · (hermano').toMatch(/hermano|hermana/);
     });
   });
 

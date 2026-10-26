@@ -7,6 +7,11 @@ import {
   edadDeCompeticion,
   primerDiaDelAnio,
   factorPorEdad,
+  INTERESES,
+  apellidosDeFamilia,
+  diferenciasDeEdad,
+  numeroDeHermanos,
+  rasgosHeredadosNpc,
   heredarTope,
   perfilDePadre,
   repartirHerencia,
@@ -305,6 +310,66 @@ function renovarAlumnos(npcs: Npc[], dia: number, rng: Rng): Npc[] {
   return [...npcs.filter((n) => !sale(n)), ...nuevos];
 }
 
+/** Edad a la que empieza el personaje y desde la que se compite (el primer curso del juego). */
+const EDAD_DE_INICIO = 8;
+/** Nivel de atletismo de un hermano que acaba de cumplir los 8 años (o de empezar la partida con ellos). */
+const nivelInicialDeHermano = (potencial: number, edadReal: number, desfase: number, rng: Rng): number => {
+  const techo = potencial * desarrolloRival(edadReal + desfase);
+  return Math.min(techo, techo * rng.range(0.8, 1));
+};
+
+/**
+ * Los hermanos del personaje (0 a 3): hijos de los mismos padres, con el mismo proceso de herencia (la mitad de las capacidades
+ * físicas de cada padre ±20 %, carácter e intereses heredados). Viven su vida como los rivales: practican atletismo, progresan
+ * solos y compiten en su categoría; los que aún no tienen 8 años empiezan a competir al cumplirlos.
+ */
+function hermanos(ctx: InitContext, usados: Set<string>): Npc[] {
+  const { rng } = ctx;
+  const apellidos = apellidosDeFamilia(ctx.seed);
+  const diferencias = diferenciasDeEdad(numeroDeHermanos(rng), rng);
+  const { padre, madre } = ctx.topesDePadres;
+  const rasgosPadre = ctx.rasgosDePadres.padre;
+  const rasgosMadre = ctx.rasgosDePadres.madre;
+  return diferencias.map((dif, i) => {
+    const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
+    let nombre = '';
+    do nombre = `${rng.pick(NOMBRES[gender])} ${apellidos}`;
+    while (usados.has(nombre));
+    usados.add(nombre);
+    // Hereda como el personaje: cada capacidad física de UN padre (la mitad de cada uno), con su tope ±20 %.
+    const reparto = repartirHerencia(FISICAS, rng);
+    const topes = { padre, madre };
+    const heredadas = FISICAS.map((id) => heredarTope(topes[reparto[id]][id] ?? 62, rng));
+    const potencial = clamp(mediaDe(heredadas) * (1 + APTITUD_ATLETISMO * (rng.next() * 2 - 1)), 20, 95);
+    const desfase = clamp(rng.normal() * 0.7, -1.2, 1.2);
+    const edad = EDAD_DE_INICIO + dif;
+    const nacimiento = primerDiaDelAnio(anioNatural(0) - edad) + rng.int(0, 364);
+    const rasgos = rasgosHeredadosNpc(rasgosPadre, rasgosMadre, rng);
+    const favorito = Object.entries(rasgos.intereses).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const etiquetasDeInteres = INTERESES.find((x) => x.id === favorito)?.tags ?? [];
+    const o = (f: string, m: string) => (gender === 'f' ? f : m);
+    const relacion = dif === 0 ? o('Tu melliza', 'Tu mellizo') : dif < 0 ? o('Tu hermana mayor', 'Tu hermano mayor') : o('Tu hermana pequeña', 'Tu hermano pequeño');
+    const edadReal = (0 - nacimiento) / 365;
+    const compite = edad >= EDAD_DE_INICIO;
+    return {
+      id: `hermano_${i + 1}`,
+      name: nombre,
+      role: 'familia' as NpcRole,
+      gender,
+      tags: compite ? ['hermano', 'atleta'] : ['hermano'],
+      // Ayuda en lo social y en lo que le gusta, si os lleváis bien.
+      supports: [TAGS.social, ...etiquetasDeInteres.filter((t) => t !== TAGS.ocio)],
+      levels: (compite ? { atletismo: nivelInicialDeHermano(potencial, edadReal, desfase, rng) } : {}) as Record<string, number>,
+      potential: { atletismo: potencial },
+      ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
+      nacimiento,
+      desfase,
+      rasgos,
+      description: `${relacion}. Vive en casa.`,
+    };
+  });
+}
+
 function generarReparto(ctx: InitContext): Npc[] {
   const { rng } = ctx;
   const usados = new Set<string>();
@@ -356,6 +421,7 @@ function generarReparto(ctx: InitContext): Npc[] {
       tipos: [{ tipo: 'alumno' }],
     })),
     ...rivalesIniciales(rng, usados),
+    ...hermanos(ctx, usados),
   ];
 }
 
@@ -514,6 +580,11 @@ export const npcs = defineModule<NpcsState>({
         npcs: s.npcs.map((n) => {
           const levels = { ...n.levels };
           const edad = n.nacimiento === undefined ? undefined : (day - n.nacimiento) / 365;
+          // Un hermano pequeño empieza a practicar atletismo al cumplir 8 años.
+          if (edad !== undefined && edad >= EDAD_DE_INICIO && n.tags.includes('hermano') && levels.atletismo === undefined) {
+            levels.atletismo = nivelInicialDeHermano(n.potential.atletismo ?? 60, edad, n.desfase ?? 0, ctx.rng);
+            return { ...n, levels, tags: [...n.tags, 'atleta'] };
+          }
           for (const [k, v] of Object.entries(levels)) {
             const pot = n.potential[k] ?? 80;
             // El techo de cada edad es el potencial por el desarrollo físico de esa edad: sin edad, el potencial entero.

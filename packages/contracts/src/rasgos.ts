@@ -353,6 +353,29 @@ export function perfilHeredado(padre: RasgosDe, madre: RasgosDe, rng: Rng): Perf
   };
 }
 
+/**
+ * Rasgos de un hermano del personaje (una persona del mundo, con intereses de intensidad 1 a 3): como el personaje, hereda de sus
+ * dos padres, pero con sus propias tiradas. Cada interés de los padres pasa con un 60 % (y puede salir una intensidad menos);
+ * si no llega a dos, se completan al azar.
+ */
+export function rasgosHeredadosNpc(padre: RasgosDe, madre: RasgosDe, rng: Rng): RasgosDe {
+  const apariencia = aparienciaHeredada(padre.apariencia, madre.apariencia, rng);
+  const intereses: InteresesNpc = {};
+  for (const id of new Set([...Object.keys(padre.intereses), ...Object.keys(madre.intereses)])) {
+    if (!rng.chance(0.6)) continue;
+    const intensidad = Math.max(padre.intereses[id] ?? 0, madre.intereses[id] ?? 0) - (rng.chance(0.3) ? 1 : 0);
+    intereses[id] = clamp(intensidad, 1, 3);
+  }
+  while (Object.keys(intereses).length < 2) intereses[rng.pick(INTERESES).id] ??= rng.int(1, 3);
+  return {
+    origen: origenHeredado(padre.origen, madre.origen),
+    apariencia,
+    caracter: caracterHeredado(padre.caracter, madre.caracter, rng),
+    intereses,
+    gustos: gustosAlAzar(rng, apariencia),
+  };
+}
+
 // ---------------------------------------------------------------------------------------------------- compatibilidad
 
 /**
