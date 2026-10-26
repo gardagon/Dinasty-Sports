@@ -25,6 +25,8 @@ export const SHARED_EVENTS = {
   CLUB_JOIN: 'club.unirse',
   /** data: ClubLeaveData */
   CLUB_LEAVE: 'club.salir',
+  /** data: ClubAbandonoData — el personaje se cambia de club sin haber dejado antes el que tenía. */
+  CLUB_ABANDONO: 'club.abandono',
   /** data: PresentacionData — el personaje pregunta el nombre a alguien y se presentan: pasa de desconocido a conocido. */
   PRESENTACION: 'persona.presentarse',
 } as const;
@@ -36,6 +38,12 @@ export interface PresentacionData {
 export interface ClubJoinData {
   /** Deporte (p. ej. 'atletismo'). */
   sport: string;
+  clubId: string;
+}
+
+export interface ClubAbandonoData {
+  sport: string;
+  /** Club que se deja plantado. */
   clubId: string;
 }
 

@@ -127,7 +127,7 @@ Son **391 personas persistentes** (el plan hablaba de ~410; ver «Total real» m
 | **Rivales** | 96 (8 por edad, de 8 a 19) | Se reparten en **12 clubes y colegios de fuera**: los dos del catálogo del personaje (Club Atletismo Ciudad y Club de Alto Rendimiento) y diez con nombres provisionales (`colegio1`…`colegio4`, `club1`…`club6`), unos 8 por club. Sedes en el estadio. Los que son de otro colegio no están en el nuestro. |
 | **Vecinos** | ~80 | De todas las edades. Parque, supermercado, restaurante y gimnasio. |
 | **Familia** | 2 padres + 0 a 3 hermanos | Los hermanos están en casa, en el colegio y en su deporte (ver «Hermano»). |
-| **Total real generado** | **391** | 4 del reparto inicial, 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
+| **Total real generado** | **391** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
 
 Reglas de generación:
 

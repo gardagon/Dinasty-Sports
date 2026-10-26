@@ -8,7 +8,21 @@ Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasifi
 - **Un deporte nuevo** solo tiene que publicar ese servicio. Para tener clasificaciones completas, guardar en su estado la clasificación de cada prueba (como hace atletismo en `resultados`).
 - Se guarda la **clasificación completa** (todos los corredores con su marca y club) de cada prueba del **curso en curso y el anterior**; de los cursos más viejos solo queda el resumen (puesto, total y marca). Máximo 200 pruebas guardadas. Medido: ~25 carreras con su clasificación suman menos de 80 KB de partida.
 
-## 2. Lo que enseña la pestaña de atletismo
+- **La pestaña está desactivada hasta que practicas el deporte** (hasta apuntarte a un club): se ve «Deporte» en gris, con el motivo al pasar el ratón. En cuanto te apuntas se completa con todo lo de abajo; si dejas el club, vuelve a desactivarse. El módulo marca `DeporteView.inactivo` (texto de qué hacer).
+
+## 2. Clubes: cómo entrar, cambiar y salir
+
+| Qué | Reglas |
+|---|---|
+| Apuntarte al club del colegio | En el colegio, los días de clase de 14 a 19. Al entrar **conoces al entrenador** (se presenta). |
+| Prueba de un club de fuera | En el estadio (días de clase 16–19, sin clase 10–13; 150 min). Se puede hacer **estando en otro club**. Exige edad y nivel (Club Atletismo Ciudad: 10 años y nivel 45; Alto Rendimiento: 14 y 65); si no pasas, repetir tras 8 semanas. |
+| Si pasas sin tener club | Entras directamente. |
+| Si pasas teniendo ya otro club | Te **ofrecen plaza** (vale 8 semanas, `SEMANAS_DE_OFERTA`) y decides con «Aceptar la plaza en…» (en el estadio, 15 min). |
+| Dejar el club | «Dejar el club de atletismo»: sin coste. Quien deja antes el suyo y después acepta, no paga nada. |
+| Aceptar la plaza **sin haber dejado antes el otro** | Lo dejas plantado: **estrés +10** (`ESTRES_POR_PLANTON`), con su **entrenador** afinidad −15 y confianza −10 y con **cada miembro de su equipo que conoces** afinidad −6 y confianza −3 (`PLANTON`). |
+| Entrenador | El del club del colegio es una persona del reparto; los clubes de fuera todavía no tienen entrenador propio (el resumen muestra «—»). |
+
+## 3. Lo que enseña la pestaña de atletismo
 
 | Sección | Contenido |
 |---|---|
@@ -19,7 +33,7 @@ Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasifi
 | Clasificaciones | Por **puntos** y por **mejores marcas**, una de cada por categoría en la que hayas competido este curso. Se enseñan los 10 primeros y, si no estás entre ellos, tu fila al final con tu puesto real. |
 | Cursos anteriores | Una fila por curso: carreras, mejor puesto y mejor marca. |
 
-## 3. Puntos de la clasificación de la temporada (provisional)
+## 4. Puntos de la clasificación de la temporada (provisional)
 
 **Se dejan así de momento.** Hay que estudiar cómo funcionan las puntuaciones y clasificaciones en la vida real antes de ajustarlas.
 
@@ -35,18 +49,20 @@ Cada corredor suma los puntos de cada prueba en la que ha corrido contra el pers
 - Los puntos de un corredor cuentan **solo en las carreras en que ha coincidido con el personaje** (es la clasificación de lo que ves, no de todo el circuito).
 - Una clasificación por categoría: si subes a la superior a mitad de curso, aparecen las dos.
 
-## 4. Dónde cambiar cada cosa
+## 5. Dónde cambiar cada cosa
 
 | Qué | Dónde |
 |---|---|
 | Puntos por puesto, factor de campeonato, cursos con clasificación guardada | `modules/atletismo/src/temporada.ts` (`PUNTOS_POR_PUESTO`, `FACTOR_DE_CAMPEONATO`, `CURSOS_CON_CLASIFICACION`) |
 | Qué sale en el resumen y la próxima prueba | `modules/atletismo/src/index.ts` (`vistaDeAtletismo`, `proximaPrueba`) |
 | Semana de la clasificatoria y de la final, pretemporada | `modules/atletismo/src/index.ts` (`SEMANA_CLASIFICATORIA`, `SEMANA_FINAL`, `SEMANAS_PRETEMPORADA`) |
-| Cómo se dibuja | `apps/web/src/deporte.ts` |
+| Cómo se dibuja (y cuándo está desactivada) | `apps/web/src/deporte.ts`, `DeporteView.inactivo` |
+| Plazas ofrecidas, aceptar y estrés por plantón | `modules/atletismo/src/index.ts` (`SEMANAS_DE_OFERTA`), `modules/clubes/src/index.ts` (`ESTRES_POR_PLANTON`) |
 
-## 5. Pendiente
+## 6. Pendiente
 
 - **Estudiar cómo funcionan las clasificaciones y los puntos en el atletismo real** (ligas, circuitos, rankings por marcas) y ajustar la tabla de la sección 3.
 - Clasificación **de todo el circuito** (no solo de las carreras que compartes con el personaje) cuando haya calendario completo de competiciones.
+- Entrenadores propios de cada club de fuera (hoy solo hay el del colegio) y compañeros de equipo conocidos al entrar.
 - Gráfica de la evolución de las marcas a lo largo de los cursos.
 - Deportes de equipo: partidos, tablas de liga y plantillas (usarán el mismo contrato con sus propias secciones).

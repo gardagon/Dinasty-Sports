@@ -2,16 +2,31 @@ import { describe, expect, it } from 'vitest';
 import { SERVICES, type NpcDirectory, type RelationsService } from '@ds/contracts';
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
-import { npcs } from '@ds/mod-npcs';
+import { npcs, type NpcsState } from '@ds/mod-npcs';
 import { familia } from '@ds/mod-familia';
 import type { IdentidadState } from '@ds/mod-personaje';
 import { relaciones, type RelacionesState } from './index';
 
-const nueva = () => Game.create([personaje, npcs, relaciones], { seed: 9 });
+/** Las cuatro personas del reparto empiezan sin conocer; casi todos los tests parten de que ya se conocen. */
+const nueva = (conocidas = true, semilla = 9) => {
+  const g = Game.create([personaje, npcs, relaciones], { seed: semilla });
+  if (conocidas) {
+    const s = g.moduleState<NpcsState>('npcs') as NpcsState;
+    s.npcs = s.npcs.map((n) => (n.known === false && !n.id.startsWith('rival_') ? { ...n, known: true } : n));
+  }
+  return g;
+};
 const rel = (g: Game) => g.service<RelationsService>(SERVICES.relaciones)!;
 
 describe('módulo relaciones', () => {
-  it('el reparto empieza como conocido y los rivales, sin conocer', () => {
+  it('al empezar solo conoces a la familia: el entrenador, el tutor y los compañeros tienes que conocerlos', () => {
+    const g = nueva(false);
+    expect(rel(g).list()).toEqual([]);
+    expect(rel(g).get('entrenador')).toBeUndefined();
+    expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('tutor')!.known).toBe(false);
+  });
+
+  it('el reparto, una vez conocido, empieza como conocido y los rivales, sin conocer', () => {
     const g = nueva();
     expect(rel(g).get('entrenador')).toMatchObject({ estado: 'conocido', afinidad: 0, nivel: 0 });
     expect(rel(g).get('rival_1')).toBeUndefined();
@@ -142,7 +157,7 @@ describe('módulo relaciones', () => {
       let aciertos = 0;
       let fallos = 0;
       for (let semilla = 1; semilla <= 40 && (!aciertos || !fallos); semilla++) {
-        const base = Game.create([personaje, npcs, relaciones], { seed: semilla }).serialize();
+        const base = nueva(true, semilla).serialize();
         (base.modules.relaciones as RelacionesState).vinculos.companero_social = { npcId: 'companero_social', afinidad: -30, confianza: 20, estado: 'antipatia', desde: 0, ultimoContacto: -1, contactos: [] };
         base.minute = 5 * 1440 + 11 * 60;
         const g = Game.load([personaje, npcs, relaciones], base);

@@ -4,7 +4,7 @@ Referencia de cómo se habla con la gente y cuánto cambia cada cosa, para revis
 
 ## 1. Cómo funciona
 
-1. **Desconocido → conocido:** a quien no conoces y tienes cerca (hasta 40 en un lugar) le preguntas el nombre (2 minutos). Los del reparto inicial (entrenador, tutor y dos compañeros) ya se conocen y los rivales se conocen al competir contra ellos.
+1. **Desconocido → conocido:** a quien no conoces y tienes cerca (hasta 40 en un lugar) le preguntas el nombre (2 minutos). **Al empezar solo conoces a tu familia** (padres y hermanos). El entrenador, el tutor y los dos compañeros del reparto son desconocidos como los demás: al tutor y a los compañeros les preguntas el nombre cuando los tienes cerca; al entrenador lo conoces al apuntarte a su club (se presenta). Los rivales se conocen al competir contra ellos. Hasta que no conoces a alguien no aparece en «Relaciones» ni en las pestañas de «Gente» que no son «Aquí», ni hay acciones con él o ella (al tutor se le piden tutorías una vez que lo conoces).
 2. **Conocido → vínculo:** con cada persona conocida hay una **afinidad** (−100 a 100) y una **confianza** (0 a 100). De sus valores sale el **estado**: antagonista, enemigo, antipatía, conocido, amigo o mejor amigo.
 3. **Hablar exige que esté contigo** (entre las 40 personas que tienes cerca; presencia de `npcs`, ver `ANEXO_HORARIOS_PNJ.md`). Si no está, la acción dice «no está aquí» y **no hay forma de contactarla ni de saber dónde anda**: hasta que haya teléfono, solo se habla con quien coincide contigo. (Así el juego no tiene que calcular dónde están todos tus conocidos.) Un contacto al día como máximo con cada persona.
 4. **Lo que sube una acción** = ganancia base × **eficiencia**. La eficiencia es el producto de varios factores (sección 3), así que se ve el motivo de cada uno al elegir la acción.
@@ -21,6 +21,7 @@ Ganancia y confianza son lo que suman con eficiencia ×1. **Presencia:** todas e
 | Charlar un rato | compañeros, amigos | 30 | +2,5 | +1,5 | −1 | — | comunicación 0,4; empatía 0,2 | fuera de clase o recreo, 8–22 | — |
 | Ayudar | compañeros, amigos | 60 | +4 | +4,5 | −6 | — | empatía 0,6; cooperación 0,5; determinación 0,2 | fuera de clase, 10–21 | afinidad ≥ 5 |
 | Hacer planes | compañeros, amigos | 90 | +6 | +3 | −6 | −6 | carisma 0,5; comunicación 0,3 | fuera de clase, 10–22 | compartir un interés (nivel ≥ 15 del personaje); ganancia × (0,8 + 0,2 × su intensidad) |
+| Estudiar con | compañeros, amigos, hermanos de 6 años o más | 90 | +2,5 | +2 | −8 | — | concentración 0,6; inteligencia 0,3; cooperación 0,2 | fuera de clase, 15–21 | compañía de estudio (ver «Ayuda de los demás») |
 | Tener un detalle | compañeros, amigos | 15 | +3 | +1 | −1 | — | empatía 0,3; creatividad 0,3 | fuera de clase o recreo, 8–22 | una vez cada 7 días; ganancia × (1 + 0,15 × intensidad de su interés favorito) |
 | Hablar (entrenador, tutor) | entrenador, profesor | 30 | +4 | +2,5 | −3 | — | comunicación 0,6; carisma 0,3 | entrenador: 9–14 sin clase y 15–21 con clase; tutor: 14–17 de un día lectivo o recreo | — |
 | Charlar (rival) | rivales conocidos (los 5 más marcados) | 30 | +2 | +1 | −1 | — | comunicación 0,3; carisma 0,2 | fuera de clase, 10–21 | — |
@@ -29,14 +30,14 @@ Ganancia y confianza son lo que suman con eficiencia ×1. **Presencia:** todas e
 
 ## 3. Qué multiplica lo que sube (eficiencia)
 
-Todos se multiplican entre sí y con el apoyo; con valores corrientes el producto queda cerca de ×1.
+Todos se multiplican entre sí y con la compañía; con valores corrientes el producto queda cerca de ×1.
 
 | Factor | Rango | De qué depende |
 |---|---|---|
 | **Compatibilidad** (`relaciones.compatibilidad`) | ×0,7 – ×1,4 | 60 % intereses en común y 40 % parecido de carácter (ejes con pesos: sociabilidad 0,2; disciplina, honestidad, agresividad, optimismo 0,15; ambición 0,1; sacrificio y prudencia 0,05). Compatibilidad 0,25 → ×0,7; 0,5 → ×1,05; ≥ 0,75 → ×1,4. |
 | **Habilidad** del personaje (`relaciones.habilidad`) | ×0,8 – ×1,3 | Nivel «para su edad» (0,4 = típico): ×(1 + 0,6 × (nivel − 0,4)). Cada 0,1 por encima suma 0,06. Pesos por acción en la tabla siguiente. |
 | **Disposición** de la otra persona (`relaciones.disposicion`) | ×0,75 – ×1,3 | 1 + 0,2 × sociabilidad/50 + 0,05 × optimismo/50 + 0,16 × (agrado − 0,5). El agrado (0 a 1) es lo que encajan el personaje y los **gustos** de esa persona. Con aspecto (ver sección 7), es la atracción completa (50 % rasgos físicos: pelo, ojos, piel y cara; 50 % ejes de carácter que le gustan); sin aspecto, solo el carácter (sin preferencias, 0,5). Frase que se enseña: «Le encanta hablar», «Es de pocas palabras», «Congeniáis de primeras», «No congeniáis de primeras». |
-| **Apoyo** (`relaciones.apoyo`) | ×1 – ×1,3 | Quien te cae bien (afinidad ≥ 40) y apoya la etiqueta de una acción (entrenador: atletismo; tutor y compañero aplicado: estudio...) suma min(0,15, (afinidad − 40)/400) cada uno, hasta +0,3. Afecta a **todas** las acciones con esa etiqueta, no solo a las de relaciones. |
+| **Compañía** (`relaciones.compania`) | ×1 – ×1,3 | Solo en lo que hacéis juntos: «Estudiar con…» (área estudio) y «Quedar» / «Hacer planes» (área social). Depende de lo que **sabe hacer la otra persona** en esa área (sección «Ayuda de los demás») y de cuánto os conocéis. No hay perfiles fijos de apoyo: ya no existe «te ayuda en…». |
 
 Habilidades que cuentan en cada acción (pesos que suman 1; el nombre de la habilidad es el de `gen.*`):
 
@@ -50,6 +51,18 @@ Habilidades que cuentan en cada acción (pesos que suman 1; el nombre de la habi
 | Hacer las paces | empatía 0,5; comunicación 0,5 (cuenta en la **probabilidad**, no en la ganancia) |
 
 Las acciones también **entrenan** esas mismas habilidades (columna «Entrena» de la sección 2): hablar mejora el hablar.
+
+### Ayuda de los demás (compañía)
+
+Cada persona tiene una **aptitud** de 0 a 1 en tres áreas (`aptitudDe`, en `contracts/rasgos.ts`; ~0,5 es lo típico), que sale de su carácter, sus intereses y su nivel deportivo. Con los ejes del carácter normalizados a 0–1 (−50 → 0, +50 → 1) y la intensidad del interés entre 0 y 1 (1 a 3 sobre 3), tomando el mayor de los intereses listados:
+
+| Área | Fórmula |
+|---|---|
+| Estudio | 0,5 × disciplina + 0,15 × ambición + 0,35 × interés (estudio, lectura, tecnología) |
+| Social | 0,55 × sociabilidad + 0,25 × optimismo + 0,2 × interés (cine, música, videojuegos) |
+| Deporte | 0,6 × nivel de atletismo/100 (20 si no tiene) + 0,4 × interés (deporte, atletismo, fútbol) |
+
+La ayuda es el **+30 % máximo (`AYUDA_MAXIMA`)** × (aptitud − 0,4)/0,4 limitado a 0–1 × afinidad/40 limitado a 0–1. Es decir: hasta aptitud 0,4 (típica o menos) no ayuda (de momento tampoco estorba), con 0,8 ayuda del todo, y cuanto menos os conocéis menos pesa. Cada actividad usa un área: Estudiar con → estudio; Quedar y Hacer planes → social; entrenar juntos (deporte) pendiente. Un amigo muy estudioso ayuda al estudiar juntos y poco al salir; uno muy sociable, al revés.
 
 ## 4. El vínculo
 
@@ -93,6 +106,9 @@ Charlar con un compañero cualquiera a los 8 años: afinidad base 2,5. Compatibi
 |---|---|
 | Ganancia, confianza, duración, coste y entrenamiento de cada acción | `modules/relaciones/src/index.ts` (`accionesDeAmistad`, `hablarConAutoridad`, `saludarRival`, `discutir`, `hacerLasPaces`) |
 | Pesos de habilidad por acción, pendiente y topes de la habilidad, pesos de la disposición | `modules/relaciones/src/acciones.ts` (`HABILIDADES_DE_ACCION`, `HABILIDAD`, `DISPOSICION`) |
+| Aptitudes por área | `packages/contracts/src/rasgos.ts` (`aptitudDe`) |
+| Ayuda máxima de la compañía, qué área usa cada actividad | `modules/relaciones/src/index.ts` (`AYUDA_MAXIMA`, `AFINIDAD_AYUDA_COMPLETA`, `AREA_DE_ACCION`) |
+| Castigo por dejar plantado un club (entrenador y equipo) | `modules/relaciones/src/index.ts` (`PLANTON`) |
 | Pérdida al discutir, probabilidad de paces, esperas | `modules/relaciones/src/acciones.ts` (`perdidaPorDiscusion`, `probabilidadDePaces`, `ESPERA`) |
 | Estados, umbrales y enfriamiento | `modules/relaciones/src/vinculo.ts` (`UMBRALES`, `ENFRIAMIENTO`) |
 | Compatibilidad y atracción por gustos | `packages/contracts/src/rasgos.ts` (`compatibilidad`, `factorDeCompatibilidad`, `atraccion`, `EJES`) |

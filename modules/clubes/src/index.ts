@@ -1,4 +1,4 @@
-import { SERVICES, SHARED_EVENTS, TAGS, defineModule, type ClubDirectory, type ClubJoinData, type ClubLeaveData, type ClubView } from '@ds/contracts';
+import { GEN, SERVICES, SHARED_EVENTS, TAGS, defineModule, type ClubAbandonoData, type ClubDirectory, type ClubJoinData, type ClubLeaveData, type ClubView } from '@ds/contracts';
 
 /**
  * MÓDULO CLUBES (id `clubes`).
@@ -48,6 +48,9 @@ export const CLUBES_ESPANA: readonly ClubView[] = [
 /** Eficiencia de las sesiones de club según su calidad. */
 const EFICIENCIA_POR_CALIDAD: Record<1 | 2 | 3, number> = { 1: 1, 2: 1.12, 3: 1.25 };
 
+/** Estrés de cambiarse de club sin haber dejado el anterior (ver `docs/ANEXO_DEPORTE.md`). */
+export const ESTRES_POR_PLANTON = 10;
+
 const club = (id: string) => CLUBES_ESPANA.find((c) => c.id === id);
 
 export const clubes = defineModule<ClubesState>({
@@ -81,7 +84,12 @@ export const clubes = defineModule<ClubesState>({
       if (!nuevo || !nuevo.deportes.includes(sport)) return;
       const previo = ctx.state<ClubesState>().membresias[sport];
       ctx.updateState<ClubesState>((s) => ({ membresias: { ...s.membresias, [sport]: { clubId, desde: ctx.time.day } } }));
-      if (previo && previo.clubId !== clubId) ctx.log(`Dejas ${club(previo.clubId)?.nombre ?? 'tu club'}.`);
+      if (previo && previo.clubId !== clubId) {
+        // Cambiar de club sin haber salido antes del que tenías es dejarlo plantado: estresa y lo notan su entrenador y su equipo.
+        ctx.log(`Dejas ${club(previo.clubId)?.nombre ?? 'tu club'} sin avisar antes. No le ha sentado bien a nadie.`, 'aviso');
+        ctx.addStat(GEN.estres, ESTRES_POR_PLANTON);
+        ctx.emit<ClubAbandonoData>({ type: SHARED_EVENTS.CLUB_ABANDONO, data: { sport, clubId: previo.clubId } });
+      }
       ctx.log(nuevo.esColegio ? `Te apuntas al ${nuevo.nombre.toLowerCase()}.` : `¡Ya eres del ${nuevo.nombre}!`, 'logro');
     },
     [SHARED_EVENTS.CLUB_LEAVE]: (ctx, ev) => {

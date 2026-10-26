@@ -188,8 +188,10 @@ describe('módulo NPCs', () => {
       for (const l of ['colegio', 'estadio', 'parque', 'gimnasio', 'supermercado', 'restaurante', 'casa']) expect(nombres(g, l)).toEqual([]);
     });
 
-    it('se puede limitar cuántos hay, y primero salen los de mayor nivel (el tutor antes que un compañero)', () => {
+    it('se puede limitar cuántos hay, y primero salen los conocidos y los de mayor nivel (el tutor, si lo conoces, antes que un compañero)', () => {
       const g = nueva();
+      const st = g.moduleState<NpcsState>('npcs') as NpcsState;
+      st.npcs = st.npcs.map((n) => (n.id === 'tutor' ? { ...n, known: true } : n));
       advanceTo(g, 'gen.descansar', 0, 10);
       const dos = nombres(g, 'colegio', 2);
       expect(dos).toHaveLength(2);
@@ -265,8 +267,8 @@ describe('módulo NPCs', () => {
       expect(new Set(todos.map((n) => n.name)).size).toBe(todos.length);
       expect(new Set(todos.map((n) => n.id)).size).toBe(todos.length);
       expect(todos.every((n) => n.rasgos)).toBe(true);
-      expect(todos.filter((n) => n.known !== false).map((n) => n.id).sort()).toEqual(['companero_estudio', 'companero_social', 'entrenador', 'tutor']);
-      expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true })).toHaveLength(4);
+      expect(todos.filter((n) => n.known !== false).map((n) => n.id).sort()).toEqual([]); // el reparto inicial también: se conoce hablando (o, el entrenador, apuntándose a su club)
+      expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true })).toHaveLength(0);
     });
 
     it('el patio tiene gente de todos los cursos y el parque, de todas las edades', () => {

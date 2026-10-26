@@ -34,7 +34,7 @@ import {
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
-import { clicEnDeporte, etiquetaDeDeporte, viewDeporte } from './deporte';
+import { clicEnDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { clicEnGente, reiniciarGente, viewPanelGente } from './gente';
 import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
@@ -584,12 +584,11 @@ function viewPeople(g: Game): string {
       const yo = g.service<ProfileService>(SERVICES.perfil)?.view();
       const compat = n.rasgos && yo ? compatibilidad(n.rasgos, yo) : undefined;
       const lvl = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
-      const ayuda = n.supports.length ? `Si os lleváis bien te ayuda en: ${n.supports.join(', ')}.` : '';
       return `<div class="npc">
         <div class="npc-head"><b>${esc(n.name)}</b><span>${n.tags.includes('hermano') ? (n.gender === 'f' ? 'Hermana' : 'Hermano') : (ROL[n.role]?.[n.gender === 'f' ? 0 : 1] ?? n.role)}</span></div>
         ${v ? `<div class="note"><b>${nombreEstado(v.estado, n.gender)}</b>${MOSTRAR_RELACIONES ? ` · afinidad ${Math.round(v.afinidad)}, confianza ${Math.round(v.confianza)} (solo pruebas)` : ''}${lvl ? ` · nivel ${esc(lvl)}` : ''}</div>` : ''}
         ${MOSTRAR_RELACIONES && v ? `<div class="bar" title="Afinidad ${Math.round(v.afinidad)}"><i style="width:${(v.afinidad + 100) / 2}%"></i></div>` : ''}
-        <div class="note">${esc(n.description ?? '')} ${esc(ayuda)}</div>
+        <div class="note">${esc(n.description ?? '')}</div>
         ${MOSTRAR_RELACIONES && n.rasgos ? `<div class="note">(solo pruebas) Carácter: ${esc(describirCaracter(n.rasgos.caracter))}. Intereses: ${esc(textoIntereses(n.rasgos.intereses, 'npc'))}.${compat === undefined ? '' : ` Compatibilidad contigo: ${Math.round(compat * 100)} % (×${factorDeCompatibilidad(compat).toFixed(2)}).`}</div>` : ''}
       </div>`;
     })
@@ -609,10 +608,13 @@ function viewLog(g: Game): string {
 }
 
 function viewGame(g: Game): string {
-  const tabs: [Tab, string][] = [
+  const deporte = pestanaDeDeporte(g);
+  // Sin club la pestaña del deporte está desactivada: si estabas en ella (dejaste el club), se vuelve a «Qué hacer».
+  if (tab === 'deporte' && (!deporte || deporte.inactivo)) tab = 'hacer';
+  const tabs: [Tab, string, string?][] = [
     ['hacer', 'Qué hacer'],
     ['personaje', 'Personaje'],
-    ...(etiquetaDeDeporte(g) ? ([['deporte', etiquetaDeDeporte(g)!]] as [Tab, string][]) : []),
+    ...(deporte ? ([['deporte', deporte.etiqueta, deporte.inactivo]] as [Tab, string, string?][]) : []),
     ['gente', 'Gente'],
     ['relaciones', 'Relaciones'],
     ['diario', 'Diario'],
@@ -633,7 +635,7 @@ function viewGame(g: Game): string {
   return `<main class="app">
     ${viewDay(g)}
     <nav class="tabs" role="tablist">${tabs
-      .map(([id, label]) => `<button class="tab" role="tab" aria-selected="${tab === id}" data-tab="${id}">${label}</button>`)
+      .map(([id, label, inactivo]) => `<button class="tab" role="tab" aria-selected="${tab === id}" data-tab="${id}"${inactivo ? ` disabled title="${esc(inactivo)}"` : ''}>${label}</button>`)
       .join('')}</nav>
     <div class="layout"><div class="main">${main}</div><aside class="side">${side}</aside></div>
   </main>`;

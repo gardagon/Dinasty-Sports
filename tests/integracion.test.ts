@@ -5,7 +5,9 @@ import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, typ
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { EstudiosState } from '@ds/mod-estudios';
-import { hacer, posible } from './ayudas';
+import { conocer, hacer, posible } from './ayudas';
+
+const baseNueva = nuevaPartida;
 import { asignaturasDelCurso } from '../modules/estudios/src/curriculo';
 import type { NpcsState } from '@ds/mod-npcs';
 import type { RelacionesState } from '@ds/mod-relaciones';
@@ -19,23 +21,24 @@ describe('integración de módulos', () => {
     expect(checkInvariants(g)).toEqual([]);
   });
 
-  it('el entrenador (NPCs) potencia el atletismo vía etiquetas', () => {
-    const g = nuevaPartida({ seed: 11 });
+  it('quien se te da bien en algo te ayuda cuando lo hacéis juntos, según lo bien que os conozcáis', () => {
+    const g = conocer(nuevaPartida({ seed: 11 }));
     advanceTo(g, 'gen.descansar', 0, 16);
-    const sin = g.preview('atletismo.tecnica')!.efficiency;
-    // Forzamos una buena relación a través de un guardado (como haría una partida avanzada).
+    const modulo = (gm: Game, id: string) => gm.preview(id)!.modifiers.find((m) => m.id === 'relaciones.compania');
+    expect(modulo(g, 'relaciones.estudiar.companero_estudio')).toBeUndefined(); // sin conocerse apenas, no ayuda
     const s = g.serialize();
-    (s.modules.relaciones as RelacionesState).vinculos.entrenador = {
-      npcId: 'entrenador', afinidad: 90, confianza: 70, estado: 'mejor_amigo', desde: 0, ultimoContacto: 16, contactos: [16],
+    (s.modules.relaciones as RelacionesState).vinculos.companero_estudio = {
+      npcId: 'companero_estudio', afinidad: 60, confianza: 40, estado: 'amigo', desde: 0, ultimoContacto: -1, contactos: [],
     };
     const g2 = cargarPartida(s);
-    const con = g2.preview('atletismo.tecnica')!;
-    expect(con.efficiency).toBeGreaterThan(sin);
-    expect(con.modifiers.some((m) => m.id === 'relaciones.apoyo')).toBe(true);
+    expect(modulo(g2, 'relaciones.estudiar.companero_estudio')?.result.efficiency).toBeGreaterThan(1);
+    // Lo que no se le da bien no ayuda: salir con el aplicado rinde menos que estudiar con él.
+    const quedar = modulo(g2, 'relaciones.quedar.companero_estudio')?.result.efficiency ?? 1;
+    expect(quedar).toBeLessThan((modulo(g2, 'relaciones.estudiar.companero_estudio')?.result.efficiency ?? 0));
   });
 
   it('las carreras usan a los rivales NPC y el entrenador reacciona', () => {
-    const g = nuevaPartida({ seed: 11 });
+    const g = conocer(nuevaPartida({ seed: 11 }), 'entrenador');
     advanceToWeek(g, 'gen.descansar', 5, 5, 10);
     const antes = g.service<RelationsService>(SERVICES.relaciones)!.get('entrenador')!.afinidad;
     const r = hacer(g, 'atletismo.carrera');
@@ -567,6 +570,8 @@ describe('integración de módulos', () => {
   });
 
   describe('hablar con la gente: presencia, habilidad y disposición', () => {
+    // Aquí las cuatro personas del reparto ya se conocen (los tests de arriba parten de lo que se haya hablado).
+    const nuevaPartida = (o: Parameters<typeof baseNueva>[0]) => conocer(baseNueva(o));
     const colegioEnElRecreo = (semilla = 31) => {
       const g = nuevaPartida({ seed: semilla });
       g.perform('lugares.ir_colegio');
@@ -726,3 +731,60 @@ describe('integración de módulos', () => {
     });
   });
 });
+
+describe('clubes: la pestaña del deporte, el entrenador y cambiar de club', () => {
+  const vista = (g: Game) => g.service<DeporteService>(claveDeDeporte('atletismo'))!.view();
+  const club = (g: Game) => g.service<ClubDirectory>(SERVICES.clubes)!.membership('atletismo');
+
+  it('sin club la pestaña del deporte está desactivada; al apuntarte se activa, conoces al entrenador y sale en el resumen', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(vista(g).inactivo).toMatch(/club/);
+    expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.known).toBe(false);
+    advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+    hacer(g, 'atletismo.apuntarse_colegio');
+    const v = vista(g);
+    expect(v.inactivo).toBeUndefined();
+    expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.known).toBe(true);
+    expect(v.resumen.find((r) => r.etiqueta === 'Entrenador')!.valor).not.toBe('—');
+    hacer(g, 'atletismo.dejar_club');
+    expect(vista(g).inactivo).toMatch(/club/);
+  });
+
+  it('pasar la prueba de otro club estando en uno ofrece plaza; aceptarla sin haber salido antes enfada al entrenador y al equipo y estresa', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+    hacer(g, 'atletismo.apuntarse_colegio');
+    // Plaza ofrecida (se fuerza el guardado: la prueba depende de la forma del personaje).
+    const s = g.serialize();
+    (s.modules.atletismo as AtletismoState).ofertas = { club_ciudad: g.time.week };
+    const g2 = cargarPartida(s);
+    const afinidadAntes = rel2(g2, 'entrenador');
+    const estresAntes = g2.stat(GEN.estres);
+    expect(hacer(g2, 'atletismo.aceptar_plaza.club_ciudad').ok).toBe(true);
+    expect(club(g2)?.id).toBe('club_ciudad');
+    expect(rel2(g2, 'entrenador')).toBeLessThan(afinidadAntes);
+    expect(g2.stat(GEN.estres)).toBeGreaterThan(estresAntes);
+    expect(g2.log.some((l) => /sin avisar/.test(l.text))).toBe(true);
+  });
+
+  it('dejar el club antes de aceptar la plaza no cuesta nada', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+    hacer(g, 'atletismo.apuntarse_colegio');
+    const s = g.serialize();
+    (s.modules.atletismo as AtletismoState).ofertas = { club_ciudad: g.time.week };
+    const g2 = cargarPartida(s);
+    const afinidadAntes = rel2(g2, 'entrenador');
+    hacer(g2, 'atletismo.dejar_club');
+    expect(hacer(g2, 'atletismo.aceptar_plaza.club_ciudad').ok).toBe(true);
+    expect(rel2(g2, 'entrenador')).toBe(afinidadAntes);
+    expect(g2.log.some((l) => /sin avisar/.test(l.text))).toBe(false);
+  });
+
+  it('no se puede aceptar una plaza que no se ha ganado', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(g.preview('atletismo.aceptar_plaza.club_ciudad')!.available).toBe(false);
+  });
+});
+
+const rel2 = (g: Game, id: string): number => g.service<RelationsService>(SERVICES.relaciones)!.get(id)?.afinidad ?? 0;

@@ -1,9 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import type { RasgosDe } from '@ds/contracts';
+import { aptitudDe, type RasgosDe } from '@ds/contracts';
 import { DISPOSICION, HABILIDAD, usoDelAspecto, HABILIDADES_DE_ACCION, disposicion, factorDeHabilidad, interesFavorito, mejorInteresEnComun, perdidaPorDiscusion, probabilidadDePaces } from './acciones';
 
 const rasgos = (caracter: Record<string, number> = {}, intereses: Record<string, number> = {}): RasgosDe =>
   ({ origen: {} as RasgosDe['origen'], apariencia: {} as RasgosDe['apariencia'], caracter, intereses, gustos: {} as RasgosDe['gustos'] });
+
+describe('aptitud en lo que se hace juntos', () => {
+  const estudioso = rasgos({ disciplina: 40, ambicion: 20, sociabilidad: -30, optimismo: 0 }, { estudio: 3, lectura: 2 });
+  const sociable = rasgos({ disciplina: -20, sociabilidad: 40, optimismo: 30 }, { cine: 3, musica: 2 });
+
+  it('el estudioso es bueno estudiando y no tanto saliendo; el sociable, al revés', () => {
+    expect(aptitudDe('estudio', estudioso)).toBeGreaterThan(0.8);
+    expect(aptitudDe('social', estudioso)).toBeLessThan(0.4);
+    expect(aptitudDe('social', sociable)).toBeGreaterThan(0.8);
+    expect(aptitudDe('estudio', sociable)).toBeLessThan(0.4);
+  });
+
+  it('en deporte pesa su nivel de atletismo y lo que le gusta', () => {
+    const corredor = rasgos({}, { atletismo: 3 });
+    expect(aptitudDe('deporte', corredor, { atletismo: 80 })).toBeGreaterThan(aptitudDe('deporte', corredor, { atletismo: 20 }));
+    expect(aptitudDe('deporte', undefined)).toBe(0.5);
+  });
+});
 
 describe('acciones de relación (reglas puras)', () => {
   it('discutir duele más con un carácter agresivo y más con quien manda', () => {

@@ -58,6 +58,8 @@ export interface AtletismoState {
   ultimaSesionClub?: number;
   /** Última semana en que hizo la prueba de acceso de cada club (para no repetirla enseguida). */
   pruebas?: Record<string, number>;
+  /** Plazas ofrecidas por clubes de fuera tras pasar su prueba: semana en que se ofreció (valen unas semanas). */
+  ofertas?: Record<string, number>;
   /** Último día que fue al campamento o practicó con los amigos en verano (uno al día). */
   ultimoVerano?: number;
   /** Campeonato del curso: si se clasificó en la autonómica y quiénes corren la final. */
@@ -174,6 +176,8 @@ const CORREDORES_CLASIFICATORIA = 16;
 const PUESTOS_PARA_LA_FINAL = 8;
 /** Semanas que hay que esperar para repetir la prueba de acceso de un club. */
 const SEMANAS_ENTRE_PRUEBAS = 8;
+/** Semanas que vale una plaza ganada en la prueba de un club antes de decidirse. */
+const SEMANAS_DE_OFERTA = 8;
 /** Entrenar solo, sin entrenador ni grupo, rinde menos que una sesión de club. */
 const EFICIENCIA_POR_TU_CUENTA = 0.85;
 const ENTRENOS_LIBRES = ['atletismo.series', 'atletismo.rodaje', 'atletismo.tecnica'];
@@ -187,17 +191,37 @@ const clubDelJugador = (ctx: ReadContext): ClubView | undefined => ctx.service<C
 const sedeDelClub = (ctx: ReadContext): readonly string[] => (clubDelJugador(ctx)?.esColegio === false ? ['estadio'] : ['colegio']);
 const edadDelJugador = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
 
-/** Pruebas de acceso a los clubes de fuera del colegio, que el personaje todavía no tiene. */
+/** Pruebas de acceso a los clubes de fuera del colegio (se pueden hacer estando en otro club) y aceptar la plaza ganada. */
 function accionesDeClubes(ctx: ReadContext): ActionDef[] {
   const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
   if (!clubes) return [];
   const actual = clubes.membership(DEPORTE);
+  const ofertas = ctx.state<AtletismoState>().ofertas ?? {};
   return clubes
     .list(DEPORTE)
     .filter((c) => !c.esColegio && c.id !== actual?.id && c.acceso?.[DEPORTE])
-    .map((c): ActionDef => {
+    .flatMap((c): ActionDef[] => {
       const acceso = c.acceso![DEPORTE];
-      return conLugar(['estadio'], {
+      const aceptar = conLugar(['estadio'], {
+        id: `atletismo.aceptar_plaza.${c.id}`,
+        name: `Aceptar la plaza en ${c.nombre}`,
+        description: `Pasaste la prueba y te ofrecen entrar. Si todavía eres de otro club y no lo has dejado antes, lo dejas plantado: empeora tu relación con su entrenador y su equipo y te estresa. La plaza vale ${SEMANAS_DE_OFERTA} semanas.`,
+        tags: ['atletismo'],
+        group: 'Club',
+        duration: 15,
+        available: (c2) => {
+          const semana = c2.state<AtletismoState>().ofertas?.[c.id];
+          return semana !== undefined && c2.time.week - semana < SEMANAS_DE_OFERTA ? true : 'No tienes una plaza en este club (haz su prueba de acceso)';
+        },
+        run: (c2) => {
+          c2.updateState<AtletismoState>((st) => {
+            const { [c.id]: _usada, ...resto } = st.ofertas ?? {};
+            return { ...st, ofertas: resto };
+          });
+          c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: c.id } });
+        },
+      });
+      const prueba = conLugar(['estadio'], {
         id: `atletismo.prueba.${c.id}`,
         name: `Prueba de acceso: ${c.nombre}`,
         description: `El ${c.nombre} hace pruebas a quien quiere entrar. Exige edad (${acceso.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
@@ -217,14 +241,19 @@ function accionesDeClubes(ctx: ReadContext): ActionDef[] {
           const forma = 0.85 + 0.15 * Math.min(1.2, c2.efficiency);
           const rinde = rendimiento(c2) * forma + c2.rng.normal() * 3;
           c2.updateState<AtletismoState>((s) => ({ ...s, pruebas: { ...(s.pruebas ?? {}), [c.id]: t.week } }));
-          if (rinde >= acceso.nivel) {
+          if (rinde >= acceso.nivel && !c2.service<ClubDirectory>(SERVICES.clubes)?.membership(DEPORTE)) {
             c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: c.id } });
+          } else if (rinde >= acceso.nivel) {
+            // Con otro club, la plaza se ofrece y decides: salir antes de él no cuesta nada; aceptarla sin salir sí.
+            c2.updateState<AtletismoState>((st) => ({ ...st, ofertas: { ...(st.ofertas ?? {}), [c.id]: t.week } }));
+            c2.log(`Has pasado la prueba del ${c.nombre}: te ofrecen plaza. Antes de aceptarla conviene dejar tu club actual.`, 'logro');
           } else {
             c2.log(`Prueba en el ${c.nombre}: todavía no tienes el nivel que piden. Sigue entrenando y vuelve a intentarlo.`, 'aviso');
             c2.addStat(GEN.motivacion, -3);
           }
         },
       });
+      return [prueba, aceptar];
     });
 }
 
@@ -510,7 +539,8 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
   const s = ctx.state<AtletismoState>();
   const { competida, superior } = categoriaDelJugador(ctx);
   const club = clubDelJugador(ctx);
-  const entrenador = ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ role: 'entrenador', known: true })[0];
+  // El entrenador del club del colegio es la persona del reparto; los clubes de fuera aún no tienen entrenador propio.
+  const entrenador = club?.esColegio ? ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ role: 'entrenador', known: true })[0] : undefined;
   const todas = s.resultados ?? [];
   const deEsteCurso = todas.filter((p) => p.curso === t.schoolYear);
   const mejor = deEsteCurso.reduce<PruebaGuardada | undefined>((m, p) => (!m || p.posicion < m.posicion ? p : m), undefined);
@@ -536,6 +566,7 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
     id: DEPORTE,
     nombre: 'Atletismo',
     disciplina: DISCIPLINA,
+    inactivo: club ? undefined : 'Apúntate a un club de atletismo (en el colegio o en el estadio) para ver aquí tu deporte',
     resumen: [
       { etiqueta: 'Categoría', valor: `${competida.nombre}${superior ? ' (compites en la superior)' : ''}` },
       { etiqueta: 'Club', valor: club?.nombre ?? 'Sin club' },

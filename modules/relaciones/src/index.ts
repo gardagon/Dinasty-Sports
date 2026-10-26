@@ -13,6 +13,9 @@ import {
   NIVEL_ESTADO,
   type ActionContext,
   type ActionDef,
+  type AreaDeAyuda,
+  type ClubAbandonoData,
+  type ClubDirectory,
   type CompetitionResultData,
   type LugaresService,
   type PresenciaService,
@@ -23,6 +26,7 @@ import {
   type NpcView,
   type ProfileService,
   type ReadContext,
+  aptitudDe,
   compatibilidad,
   factorDeCompatibilidad,
   type RelationView,
@@ -68,9 +72,24 @@ export interface RelacionesState {
   espera?: Record<string, number>;
 }
 
-const UMBRAL_APOYO = 40;
+/** Afinidad con la que alguien ayuda del todo: por debajo ayuda en proporción (se os da mejor cuanto más os conocéis). */
+const AFINIDAD_AYUDA_COMPLETA = 40;
+/** Lo máximo que sube la eficiencia de lo que hacéis juntos cuando la otra persona es muy buena en eso. */
+const AYUDA_MAXIMA = 0.3;
+/** Qué área cuenta en cada actividad conjunta (el sufijo del id de la acción). */
+const AREA_DE_ACCION: Readonly<Record<string, AreaDeAyuda>> = { estudiar: 'estudio', quedar: 'social', planes: 'social' };
+const MOTIVO_DE_AREA: Readonly<Record<AreaDeAyuda, string>> = { estudio: 'se te da bien estudiar y te ayuda', social: 'es muy sociable y te contagia', deporte: 'es buen deportista y te ayuda' };
+
+/** Ayuda (0 a `AYUDA_MAXIMA`) de una persona en un área: su aptitud por encima de lo típico (0,4 → nada, 0,8 → todo) y cuánto os conocéis. */
+function ayudaDe(n: NpcView, area: AreaDeAyuda, afinidad: number): number {
+  const apt = limitar((aptitudDe(area, n.rasgos, n.levels) - 0.4) / 0.4, 0, 1);
+  return AYUDA_MAXIMA * apt * limitar(afinidad / AFINIDAD_AYUDA_COMPLETA, 0, 1);
+}
 /** Cuántos rivales conocidos ofrecen acciones a la vez (los de mayor afinidad, a favor o en contra). */
 const RIVALES_CON_ACCIONES = 5;
+
+/** Lo que empeora la relación con el entrenador y con cada miembro del equipo de un club al que dejas plantado (ver `docs/ANEXO_DEPORTE.md`). */
+const PLANTON = { entrenador: { afinidad: 15, confianza: 10 }, equipo: { afinidad: 6, confianza: 3 } };
 
 const dirDe = (ctx: ReadContext) => ctx.service<NpcDirectory>(SERVICES.npcs);
 
@@ -269,6 +288,23 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
       // Acierta más si es de su interés favorito (de ×1,15 a ×1,45).
       factor: () => 1 + 0.15 * (interesFavorito(n.rasgos)?.intensidad ?? 0),
       alTerminar: (ctx) => ponerEspera(ctx, `detalle.${n.id}`, ESPERA.detalle),
+    }),
+    // Va la última: el hermano pequeño solo usa la primera acción y el detalle (ver `accionesDe`).
+    interaccion(n, {
+      suffix: 'estudiar',
+      name: `Estudiar con ${yo}`,
+      description: 'Estudiar juntos, por la tarde. Rinde más si la otra persona se te da bien estudiar y os conocéis.',
+      duration: 90,
+      tags: [TAGS.estudio, TAGS.mental, TAGS.social],
+      ganancia: 2.5,
+      confianza: 2,
+      train: [
+        { stat: GEN.concentracion, amount: 0.6 },
+        { stat: GEN.inteligencia, amount: 0.3 },
+        { stat: GEN.cooperacion, amount: 0.2 },
+      ],
+      delta: { [GEN.energia]: -8 },
+      horario: fueraDeClase(15, 21),
     }),
   ];
 }
@@ -593,24 +629,18 @@ export const relaciones = defineModule<RelacionesState>({
       },
     },
     {
-      id: 'relaciones.apoyo',
+      // Compañía: lo que sabe hacer la otra persona decide cuánto ayuda cuando hacéis algo juntos (hasta +30 %): estudiar con alguien aplicado,
+      // salir con alguien sociable. Si no es bueno en eso no ayuda (de momento tampoco estorba). Hace falta confianza: cuenta lo bien que os conocéis.
+      id: 'relaciones.compania',
       tags: ['*'],
       apply: (ctx, action) => {
-        // Lo normal es que nadie llegue al umbral: se evita consultar el directorio de personas en cada acción.
-        const amigos = Object.values(ctx.state<RelacionesState>().vinculos).filter((v) => v.afinidad >= UMBRAL_APOYO);
-        if (!amigos.length) return null;
-        const dir = dirDe(ctx);
-        if (!dir) return null;
-        let bonus = 0;
-        const quienes: string[] = [];
-        for (const v of amigos) {
-          const n = dir.get(v.npcId);
-          if (!n || !n.supports.some((t) => action.tags.includes(t))) continue;
-          bonus += Math.min(0.15, (v.afinidad - UMBRAL_APOYO) / 400);
-          quienes.push(n.name.split(' ')[0]);
-        }
-        if (bonus < 0.01) return null;
-        return { efficiency: 1 + Math.min(0.3, bonus), reason: `Apoyo de ${quienes.join(', ')}` };
+        const p = accionYPersona(action.id);
+        const area = p && AREA_DE_ACCION[p.accion];
+        if (!p || !area) return null;
+        const n = dirDe(ctx)?.get(p.npc);
+        if (!n) return null;
+        const ayuda = ayudaDe(n, area, vinculoDe(ctx, ctx.state<RelacionesState>(), n, ctx.time.day).afinidad);
+        return ayuda < 0.02 ? null : { efficiency: 1 + ayuda, reason: `${nombreCorto(n)} ${MOTIVO_DE_AREA[area]}` };
       },
     },
   ],
@@ -625,6 +655,25 @@ export const relaciones = defineModule<RelacionesState>({
       });
     },
 
+    // Cambiarse de club sin haber dejado el anterior: su entrenador y su equipo lo notan.
+    [SHARED_EVENTS.CLUB_ABANDONO]: (ctx, ev) => {
+      const { sport, clubId } = ev.data as ClubAbandonoData;
+      const dir = dirDe(ctx);
+      if (!dir) return;
+      const nombre = ctx.service<ClubDirectory>(SERVICES.clubes)?.list(sport).find((c) => c.id === clubId)?.nombre;
+      const dia = ctx.time.day;
+      const afectados = dir.list({ known: true }).filter((n) => (clubId === 'colegio' ? n.role === 'entrenador' || n.tags.includes('equipo') : n.club === nombre));
+      if (!afectados.length) return;
+      ctx.updateState<RelacionesState>((s) => {
+        const vinculos = { ...s.vinculos };
+        for (const n of afectados) {
+          const castigo = n.role === 'entrenador' ? PLANTON.entrenador : PLANTON.equipo;
+          vinculos[n.id] = conCambio(vinculoDe(ctx, s, n, dia), dia, -castigo.afinidad, -castigo.confianza);
+        }
+        return { ...s, vinculos };
+      });
+    },
+
     [SHARED_EVENTS.COMPETITION_RESULT]: (ctx, ev) => {
       const r = ev.data as CompetitionResultData;
       const dir = dirDe(ctx);
@@ -634,7 +683,7 @@ export const relaciones = defineModule<RelacionesState>({
         const vinculos = { ...s.vinculos };
         // El entrenador de ese deporte valora el esfuerzo y más aún el podio.
         for (const n of dir.list({ role: 'entrenador' })) {
-          if (n.supports.includes(r.module)) vinculos[n.id] = conCambio(vinculoDe(ctx, s, n, dia), dia, r.position <= 3 ? 3 : 1);
+          if (n.tags.includes(r.module)) vinculos[n.id] = conCambio(vinculoDe(ctx, s, n, dia), dia, r.position <= 3 ? 3 : 1);
         }
         // Los rivales que te ganan se crecen; los que pierden, te respetan un poco más. Competir con alguien es conocerlo.
         for (const p of r.participants) {
