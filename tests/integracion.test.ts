@@ -584,37 +584,31 @@ describe('integración de módulos', () => {
       expect(g.time.minuteOfDay).toBeLessThan(11 * 60 + 20); // hay recreo
       const o = g.preview('relaciones.charlar.companero_social')!;
       expect(o.available).toBe(true);
-      expect(o.lugar).toEqual(['colegio']);
       expect(g.perform(o.id).ok).toBe(true);
       expect(g.service<RelationsService>(SERVICES.relaciones)!.get('companero_social')!.afinidad).toBeGreaterThan(0);
     });
 
-    it('si la persona está en otro lugar del mapa solo hace falta ir allí; si está fuera del mapa, no se puede', () => {
+    it('si la persona no está donde tú estás no se puede hablar con ella, y no te dice dónde está', () => {
       const g = nuevaPartida({ seed: 31 });
-      advanceTo(g, 'gen.descansar', 5, 11); // sábado por la mañana, en casa
       const presencia = () => g.service<PresenciaService>(SERVICES.presencia)!;
+      // Sábado a mediodía, en casa: el compañero no está en casa (casa solo es de la familia).
+      advanceTo(g, 'gen.descansar', 5, 11);
+      expect(presencia().donde('companero_social')).not.toBe('casa');
       const o = g.preview('relaciones.charlar.companero_social')!;
-      const donde = presencia().donde('companero_social');
-      if (donde) {
-        expect(o.reason).toMatch(/^Tienes que estar en /);
-        expect(o.lugar).toEqual([donde]);
-        expect(posible(g, o.id)).toBe(true);
-      } else {
-        expect(o.reason).toMatch(/no está por aquí ahora/);
-        expect(posible(g, o.id)).toBe(false);
-      }
-      // Siempre hay algún sábado en que está en el mapa: se recorren unos cuantos hasta encontrarlo.
-      let visto = false;
-      for (let semana = 1; semana < 30 && !visto; semana++) {
+      expect(o.available).toBe(false);
+      expect(o.reason).toMatch(/no está aquí/);
+      expect(o.lugar).toBeUndefined(); // no se ofrece ir a buscarla: no sabes dónde está
+      expect(posible(g, o.id)).toBe(false);
+      // Para hablar con ella hay que coincidir: en una semana cualquiera se encuentra donde él esté, sin que el juego lo diga.
+      let habladas = 0;
+      for (let semana = 1; semana < 25 && habladas === 0; semana++) {
         advanceToWeek(g, 'gen.descansar', semana, 5, 11);
-        const d = presencia().donde('companero_social');
-        if (d) {
-          visto = true;
-          g.perform(`lugares.ir_${d}`);
-          expect(g.preview('relaciones.charlar.companero_social')!.available).toBe(true);
-        }
+        const donde = presencia().donde('companero_social');
+        if (!donde) continue;
+        g.perform(`lugares.ir_${donde}`); // el jugador va a mirar a un sitio y se lo encuentra
+        if (g.preview('relaciones.charlar.companero_social')!.available) habladas++;
       }
-      expect(visto).toBe(true);
+      expect(habladas).toBe(1);
     });
 
     it('las conversaciones llevan dos motivos nuevos: tu habilidad y cómo es la otra persona', () => {

@@ -5,13 +5,22 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 26/10/2026 — Sin teléfono no hay contacto; gustos solo de carácter; planes y saludos a futuro
+
+- **Sin teléfono (decidido por el usuario):** si la persona no está contigo no puedes contactarla ni saber dónde está. Se quita lo de que la acción mostrara «Tienes que estar en…» y los bots viajaran hasta la persona (revelaba dónde estaba). Ahora la acción dice «<nombre> no está aquí»; se comprueba contra la gente que tienes cerca (≤ 40, los conocidos primero). Ventaja: no hace falta calcular dónde está cada conocido, solo quién hay en tu lugar (ya calculado una vez por tramo). Los bots solo hablan con quien coincide con ellos: **social −1 punto en casi todos** (equilibrado 5,6 → 4,3; atleta 2,1 → 1,5; empollón 3,7 → 2,7); 13/13 ✅.
+- **Gustos solo de carácter, no atracción física (decidido):** la primera impresión (±0,08) usa `agradoPorCaracter` (los gustos de carácter de la otra persona frente al carácter del personaje; 0,5 si no tiene preferencias). El aspecto físico no cuenta; `atraccion` queda para la pareja y `EDAD_ATRACCION_FISICA` = 14 documenta la regla: a partir de los 14, solo entre edades parecidas y nunca un adulto con un menor. Frases: «Congeniáis de primeras» / «No congeniáis de primeras».
+- **Planes a futuro (decidido, sin hacer):** proponer por el chat, guardar el plan, obligar a ir a la hora acordada con la opción de empezar la quedada, subir la relación al cumplirlo, bajarla si no te presentas y que la otra persona pueda rechazar. Detalle en la sección 7 de `ANEXO_RELACIONES.md`.
+- **Saludos y llamadas (apuntado):** hoy solo habla el personaje; más adelante los demás podrán saludarte (eventos), llamarte o escribirte al móvil.
+
+---
+
 ## 26/10/2026 — Hablar con la gente: presencia, comunicación y gustos
 
 - **Qué quise decir con «balance de las acciones»:** las cifras de cada acción de relación (cuánto suben la afinidad y la confianza, cuánto duran, qué cuestan) y, sobre todo, cuánto pueden socializar los bots al exigir que la persona esté donde tú. Decidido con el usuario: se hace, y **todas las cifras quedan en `docs/ANEXO_RELACIONES.md`** para revisarlas y equilibrarlas.
-- **Presencia:** hablar con alguien exige que esté donde tú estás. Si está en otro lugar del mapa, la acción dice «Tienes que estar en…» y los bots viajan hasta allí (`lugar` de la acción, función de dónde está la persona ahora); si está fuera del mapa, «no está por aquí ahora». Sin los servicios `presencia` y `lugares` no se restringe nada (cada módulo sigue funcionando solo con `gen`).
+- **Presencia:** hablar con alguien exige que esté contigo. Sin los servicios `presencia` y `lugares` no se restringe nada (cada módulo sigue funcionando solo con `gen`). *(Corregido después: ver «Sin teléfono» más abajo.)*
 - **El recreo sirve para charlar:** charlar y tener un detalle pueden hacerse en el recreo (10:40–11:20, en el colegio); lo largo (quedar, ayudar, planes) sigue siendo fuera de clase. La jornada escolar (`JORNADA_ESCOLAR`, `enRecreo`) pasa a contracts porque la usan estudios y relaciones. El tutor se puede ver también en el recreo.
 - **Habilidades de comunicación:** nuevo modificador `relaciones.habilidad`: cada acción cuenta unas habilidades del personaje (comunicación, carisma, empatía, cooperación, creatividad), de ×0,8 a ×1,3 según su nivel «para su edad» (0,4 = típico = ×1). También ayudan a **hacer las paces** (suben su probabilidad hasta +0,22). Hablar mejora esas mismas habilidades (ya lo hacían las acciones).
-- **Gustos y carácter de las personas:** nuevo modificador `relaciones.disposicion`, de ×0,75 a ×1,3: la sociabilidad (±0,2) y el optimismo (±0,05) de la otra persona y la **primera impresión** (±0,08): lo que encajan el aspecto y el carácter del personaje con los gustos de esa persona (`atraccion`). La frase que se enseña es neutra («Os caéis bien de primeras», «No conectáis a primera vista»), porque los gustos están pensados para la pareja pero aquí solo dan una primera impresión.
+- **Gustos y carácter de las personas:** nuevo modificador `relaciones.disposicion`, de ×0,75 a ×1,3: la sociabilidad (±0,2) y el optimismo (±0,05) de la otra persona y la **primera impresión** (±0,08). *(Corregido después: la primera impresión usa solo los gustos de carácter; ver más abajo.)*
 - **Sin azar:** las dos cosas son eficiencia visible (motivos en la acción), no tiradas ocultas, para que sea fácil de equilibrar.
 - **Simulación:** 13/13 ✅. Los bots que hablaban con el entrenador (el atleta) socializan menos (social +4,2 → +2,1) porque tienen que coincidir con él; el equilibrado y el resto casi no cambian.
 - **Pendiente:** el teléfono (hablar con alguien que no está) y que los compañeros se acerquen al personaje por su cuenta.

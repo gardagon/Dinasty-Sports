@@ -1,4 +1,4 @@
-import { GEN, INTERESES, atraccion, type InteresesJugador, type NpcRole, type PerfilDelPersonaje, type RasgosDe } from '@ds/contracts';
+import { GEN, INTERESES, agradoPorCaracter, type InteresesJugador, type NpcRole, type PerfilDelPersonaje, type RasgosDe } from '@ds/contracts';
 
 /**
  * Reglas puras de las acciones de relación (sin motor): cuánto duele una discusión, qué probabilidad hay de hacer las
@@ -102,19 +102,18 @@ export const DISPOSICION = { sociabilidad: 0.2, optimismo: 0.05, primeraImpresio
 /**
  * Disposición de la otra persona a hablar con el personaje: ×1 con una persona normal. Suma `sociabilidad × eje/50` (±0,2: un solitario
  * habla poco, un sociable mucho), `optimismo × eje/50` (±0,05) y `primeraImpresion × (agrado − 0,5)` (±0,08), donde el agrado es lo que
- * encaja el aspecto y el carácter del personaje con los gustos de esa persona (`atraccion`, de 0 a 1). Devuelve también una frase con lo
- * que más pesa, para enseñarla como motivo.
+ * encaja el CARÁCTER del personaje con lo que a esa persona le gusta en los demás (sus gustos de carácter; sin preferencias, 0,5). Los
+ * gustos de aspecto físico no cuentan (ver `EDAD_ATRACCION_FISICA`). Devuelve también una frase con lo que más pesa, para enseñarla.
  */
 export function disposicion(rasgos: RasgosDe | undefined, perfil: PerfilDelPersonaje | undefined): { factor: number; motivo?: string } {
   if (!rasgos) return { factor: 1 };
   const social = (DISPOSICION.sociabilidad * eje(rasgos, 'sociabilidad')) / 50;
   const animo = (DISPOSICION.optimismo * eje(rasgos, 'optimismo')) / 50;
-  const gustos = rasgos.gustos;
-  const agrado = perfil && gustos?.fisicos ? atraccion(gustos, perfil.apariencia, perfil.caracter) : 0.5;
+  const agrado = perfil && rasgos.gustos?.caracter ? agradoPorCaracter(rasgos.gustos, perfil.caracter) : 0.5;
   const impresion = DISPOSICION.primeraImpresion * (agrado - 0.5);
   const factor = clamp(1 + social + animo + impresion, DISPOSICION.min, DISPOSICION.max);
   let motivo: string | undefined;
   if (Math.abs(social) >= Math.abs(impresion) && Math.abs(social) >= 0.06) motivo = social > 0 ? 'Le encanta hablar' : 'Es de pocas palabras';
-  else if (Math.abs(impresion) >= 0.04) motivo = impresion > 0 ? 'Os caéis bien de primeras' : 'No conectáis a primera vista';
+  else if (Math.abs(impresion) >= 0.03) motivo = impresion > 0 ? 'Congeniáis de primeras' : 'No congeniáis de primeras';
   return { factor, motivo };
 }

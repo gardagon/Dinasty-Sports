@@ -67,14 +67,13 @@ describe('acciones de relación (reglas puras)', () => {
       expect(probabilidadDePaces(r, -1, 0.4)).toBe(probabilidadDePaces(r, -1, 0.4, HABILIDAD.tipico));
     });
 
-    const perfil = { apariencia: { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron', piel: 'clara', cara: 'ovalada', distintivos: [] }, caracter: {} } as never;
-    const con = (caracter: Record<string, number>, fisicos: Record<string, string[]> = {}) =>
-      ({ ...rasgos(caracter), gustos: { fisicos: { peloColor: [], ojos: [], piel: [], cara: [], ...fisicos }, caracter: {} } }) as RasgosDe;
+    const perfil = { apariencia: { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron', piel: 'clara', cara: 'ovalada', distintivos: [] }, caracter: { sociabilidad: 30, optimismo: 20 } } as never;
+    const con = (caracter: Record<string, number>, gustosDeCaracter: Record<string, number> = {}, fisicos: Record<string, string[]> = {}) =>
+      ({ ...rasgos(caracter), gustos: { fisicos: { peloColor: [], ojos: [], piel: [], cara: [], ...fisicos }, caracter: gustosDeCaracter } }) as RasgosDe;
 
     it('una persona normal tiene disposición ×1; los sociables hablan más y los solitarios menos', () => {
       const neutra = disposicion(con({}), perfil);
-      // Sin coincidencias en sus gustos físicos y sin gustos de carácter, el agrado es 0,25: una primera impresión ligeramente fría.
-      expect(neutra.factor).toBeCloseTo(1 + DISPOSICION.primeraImpresion * (0.25 - 0.5), 6);
+      expect(neutra.factor).toBeCloseTo(1, 6); // sin preferencias de carácter, la primera impresión no pesa
       const sociable = disposicion(con({ sociabilidad: 50 }), perfil);
       const solitario = disposicion(con({ sociabilidad: -50 }), perfil);
       expect(sociable.factor).toBeGreaterThan(neutra.factor + 0.15);
@@ -83,17 +82,23 @@ describe('acciones de relación (reglas puras)', () => {
       expect(solitario.motivo).toBe('Es de pocas palabras');
     });
 
-    it('la primera impresión depende de los gustos: le gusta tu aspecto, te recibe mejor', () => {
-      const gusta = disposicion(con({}, { peloColor: ['negro'], ojos: ['marron'], piel: ['clara'], cara: ['ovalada'] }), perfil);
-      const noGusta = disposicion(con({}, { peloColor: ['rubio'], ojos: ['azul'], piel: ['oscura'], cara: ['redonda'] }), perfil);
+    it('la primera impresión depende de los gustos de carácter: le gustan los sociables y optimistas, te recibe mejor', () => {
+      const gusta = disposicion(con({}, { sociabilidad: 30, optimismo: 20 }), perfil);
+      const noGusta = disposicion(con({}, { sociabilidad: -50, optimismo: -50 }), perfil);
       expect(gusta.factor).toBeGreaterThan(noGusta.factor);
-      expect(gusta.motivo).toBe('Os caéis bien de primeras');
-      expect(noGusta.motivo).toBe('No conectáis a primera vista');
+      expect(gusta.motivo).toBe('Congeniáis de primeras');
+      expect(noGusta.motivo).toBe('No congeniáis de primeras');
+    });
+
+    it('el aspecto físico no cuenta: dos personas con gustos físicos opuestos tienen la misma disposición', () => {
+      const coincide = disposicion(con({}, {}, { peloColor: ['negro'], ojos: ['marron'], piel: ['clara'], cara: ['ovalada'] }), perfil);
+      const noCoincide = disposicion(con({}, {}, { peloColor: ['rubio'], ojos: ['azul'], piel: ['oscura'], cara: ['redonda'] }), perfil);
+      expect(coincide.factor).toBe(noCoincide.factor);
     });
 
     it('la disposición siempre queda entre ×0,75 y ×1,3, y sin rasgos no cambia nada', () => {
       for (const s of [-50, 50]) for (const o of [-50, 50]) {
-        const f = disposicion(con({ sociabilidad: s, optimismo: o }, { peloColor: ['negro'], ojos: ['marron'], piel: ['clara'], cara: ['ovalada'] }), perfil).factor;
+        const f = disposicion(con({ sociabilidad: s, optimismo: o }, { sociabilidad: 30, optimismo: 20 }), perfil).factor;
         expect(f).toBeGreaterThanOrEqual(DISPOSICION.min);
         expect(f).toBeLessThanOrEqual(DISPOSICION.max);
       }

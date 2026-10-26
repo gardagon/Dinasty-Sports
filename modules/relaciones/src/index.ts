@@ -8,8 +8,6 @@ import {
   inHours,
   isSchoolHours,
   enRecreo,
-  enLugar,
-  type Sitio,
   type PerfilDelPersonaje,
   NIVEL_ESTADO,
   type ActionContext,
@@ -113,43 +111,16 @@ const compatDe = (ctx: ReadContext, n: NpcView): number => {
 };
 
 /**
- * Dónde está cada persona ahora, según la presencia de `npcs`. Se pregunta en cada acción de cada persona conocida, así que se recuerda
- * por minuto de juego (la presencia solo cambia con el tiempo). Sin los servicios `presencia` y `lugares` no se restringe nada.
+ * Hablar con alguien exige que esté donde tú estás (entre la gente que tienes cerca). Si no está, no hay forma de hablarle ni de saber dónde
+ * anda: hasta que haya teléfono, solo se habla con quien coincide contigo. Sin los servicios `presencia` y `lugares` no se restringe nada.
  */
-const UBICACIONES = new WeakMap<ReadContext, { minuto: number; presencia?: PresenciaService; lugar?: string; donde: Map<string, Sitio | undefined> }>();
-
-function ubicaciones(ctx: ReadContext) {
-  let u = UBICACIONES.get(ctx);
-  if (!u || u.minuto !== ctx.time.minute) {
-    u = { minuto: ctx.time.minute, presencia: ctx.service<PresenciaService>(SERVICES.presencia), lugar: ctx.service<LugaresService>(SERVICES.lugares)?.actual().id, donde: new Map() };
-    UBICACIONES.set(ctx, u);
-  }
-  return u;
-}
-
-/** Dónde está esa persona: un lugar, `null` (fuera del mapa) o `undefined` (no se sabe: no se restringe). */
-function dondeEsta(ctx: ReadContext, id: string): Sitio | undefined {
-  const u = ubicaciones(ctx);
-  if (!u.presencia || !u.lugar) return undefined;
-  if (!u.donde.has(id)) u.donde.set(id, u.presencia.donde(id));
-  return u.donde.get(id);
-}
-
-/** Hablar con alguien exige que esté donde tú estás. Si está en otro lugar del mapa, basta con ir allí (`lugar`); si está fuera del mapa, no se puede. */
 const presenteAqui = (n: NpcView) => (ctx: ReadContext): true | string => {
-  const sitio = dondeEsta(ctx, n.id);
-  if (sitio === undefined) return true;
-  if (sitio === null) return `${nombreCorto(n)} no está por aquí ahora`;
-  return enLugar(ctx, sitio);
+  const cerca = cercanosConClave(ctx);
+  if (!cerca) return true;
+  return cerca.ids.has(n.id) ? true : `${nombreCorto(n)} no está aquí`;
 };
 
-/** Dónde hay que estar para hablar con esa persona (donde esté ahora, si está en el mapa). */
-const lugarDe = (n: NpcView) => (ctx: ReadContext): readonly string[] => {
-  const sitio = dondeEsta(ctx, n.id);
-  return sitio ? [sitio] : [];
-};
-
-/** Requisitos comunes: un solo contacto al día con cada persona y que esté donde tú estás. */
+/** Requisitos comunes: un solo contacto al día con cada persona y que esté contigo. */
 function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, extra?: (ctx: ReadContext, v: Vinculo) => true | string) {
   return (ctx: ReadContext): true | string => {
     const s = ctx.state<RelacionesState>();
@@ -157,7 +128,6 @@ function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, ex
     const h = horario(ctx);
     if (h !== true) return h;
     const otro = extra ? extra(ctx, vinculoDe(s, n, ctx.time.day)) : true;
-    // Lo último que se comprueba es dónde está: si es lo único que falta, basta con viajar.
     return otro !== true ? otro : presenteAqui(n)(ctx);
   };
 }
@@ -428,8 +398,6 @@ function accionesDe(n: NpcView): ActionDef[] {
     else if (esAutoridad(n)) lista = [hablarConAutoridad(n), discutir(n), hacerLasPaces(n)];
     else if (n.role === 'rival') lista = [saludarRival(n), discutir(n), hacerLasPaces(n)];
     else lista = [];
-    // Todas se hacen donde esté la persona: el motor lo sabe (`lugar`) para que quien quiera hablar con ella pueda ir hasta allí.
-    lista = lista.map((d) => ({ ...d, lugar: lugarDe(n) }));
     memoAcciones.set(clave, lista);
   }
   return lista;
@@ -464,8 +432,14 @@ function presentarse(n: NpcView): ActionDef {
  * Las personas que tienes cerca ahora (las que ves en el lugar donde estás). Se piden en cada acción de presentarse (hasta 40 a la vez),
  * así que se recuerdan mientras no cambie la presencia (su versión) ni el lugar: lo único que las cambia es un cambio de tramo o moverte.
  */
-const CERCANOS = new WeakMap<ReadContext, { clave: string; lista: NpcView[]; acciones?: ActionDef[] }>();
-function cercanosConClave(ctx: ReadContext): { clave: string; lista: NpcView[]; acciones?: ActionDef[] } | undefined {
+interface Cercanos {
+  clave: string;
+  lista: NpcView[];
+  ids: Set<string>;
+  acciones?: ActionDef[];
+}
+const CERCANOS = new WeakMap<ReadContext, Cercanos>();
+function cercanosConClave(ctx: ReadContext): Cercanos | undefined {
   const lugar = ctx.service<LugaresService>(SERVICES.lugares)?.actual().id;
   const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
   if (!lugar || !presencia) return undefined;
@@ -473,7 +447,8 @@ function cercanosConClave(ctx: ReadContext): { clave: string; lista: NpcView[]; 
   const clave = `${presencia.version}|${lugar}`;
   const guardado = CERCANOS.get(ctx);
   if (guardado?.clave === clave) return guardado;
-  const nuevo = { clave, lista: presencia.en(lugar, GENTE_CERCANA) };
+  const lista = presencia.en(lugar, GENTE_CERCANA);
+  const nuevo = { clave, lista, ids: new Set(lista.map((n) => n.id)) };
   CERCANOS.set(ctx, nuevo);
   return nuevo;
 }

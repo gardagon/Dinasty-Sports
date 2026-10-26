@@ -287,12 +287,25 @@ export function gustosAlAzar(rng: Rng, propia: Apariencia): Gustos {
   };
 }
 
-/** Atracción de 0 a 1 de quien tiene estos gustos hacia otra persona (se usará para la pareja). */
+/**
+ * Cuánto encaja un carácter con lo que le gusta a una persona en los demás, de 0 a 1 (0,5 si no tiene preferencias de carácter). Solo
+ * mira el carácter, no el aspecto: es lo que cuenta en una amistad y en la primera impresión de un niño.
+ */
+export function agradoPorCaracter(g: Gustos, c: Caracter): number {
+  const ejes = Object.entries(g.caracter ?? {});
+  return ejes.length ? ejes.reduce((s, [id, v]) => s + (1 - Math.abs((c[id] ?? 0) - v) / 100), 0) / ejes.length : 0.5;
+}
+
+/**
+ * Edad a partir de la cual los gustos de aspecto físico pueden importar entre dos personas (la pareja). Por debajo, y mientras no exista
+ * el sistema de pareja, no se usan: la primera impresión depende solo del carácter. Nunca entre un adulto y un menor.
+ */
+export const EDAD_ATRACCION_FISICA = 14;
+
+/** Atracción de 0 a 1 de quien tiene estos gustos hacia otra persona (se usará para la pareja, a partir de `EDAD_ATRACCION_FISICA`). */
 export function atraccion(g: Gustos, a: Apariencia, c: Caracter): number {
   const fis = ((g.fisicos.peloColor.includes(a.peloColor) ? 1 : 0) + (g.fisicos.ojos.includes(a.ojos) ? 1 : 0) + (g.fisicos.piel.includes(a.piel) ? 1 : 0) + (g.fisicos.cara.includes(a.cara) ? 1 : 0)) / 4;
-  const ejes = Object.entries(g.caracter);
-  const car = ejes.length ? ejes.reduce((s, [id, v]) => s + (1 - Math.abs((c[id] ?? 0) - v) / 100), 0) / ejes.length : 0.5;
-  return 0.5 * fis + 0.5 * car;
+  return 0.5 * fis + 0.5 * agradoPorCaracter(g, c);
 }
 
 // ---------------------------------------------------------------------------------------------------- una persona
