@@ -9,6 +9,7 @@ import {
   isSchoolHours,
   enRecreo,
   type PerfilDelPersonaje,
+  type IdentityService,
   NIVEL_ESTADO,
   type ActionContext,
   type ActionDef,
@@ -34,6 +35,7 @@ import {
   HABILIDADES_DE_PACES,
   disposicion,
   factorDeHabilidad,
+  usoDelAspecto,
   interesFavorito,
   mejorInteresEnComun,
   perdidaPorDiscusion,
@@ -463,11 +465,11 @@ function presentaciones(ctx: ReadContext): ActionDef[] {
 }
 
 /** El servicio de personas y el perfil del personaje, recordados por minuto de juego: los piden los modificadores de cada acción de cada persona. */
-const SOCIAL = new WeakMap<ReadContext, { minuto: number; dir?: NpcDirectory; perfil?: PerfilDelPersonaje }>();
+const SOCIAL = new WeakMap<ReadContext, { minuto: number; dir?: NpcDirectory; perfil?: PerfilDelPersonaje; edad?: number }>();
 function social(ctx: ReadContext) {
   let c = SOCIAL.get(ctx);
   if (!c || c.minuto !== ctx.time.minute) {
-    c = { minuto: ctx.time.minute, dir: dirDe(ctx), perfil: ctx.service<ProfileService>(SERVICES.perfil)?.view() };
+    c = { minuto: ctx.time.minute, dir: dirDe(ctx), perfil: ctx.service<ProfileService>(SERVICES.perfil)?.view(), edad: ctx.service<IdentityService>(SERVICES.identidad)?.view().age };
     SOCIAL.set(ctx, c);
   }
   return c;
@@ -549,10 +551,10 @@ export const relaciones = defineModule<RelacionesState>({
       apply: (ctx, action) => {
         const p = accionYPersona(action.id);
         if (!p || !HABILIDADES_DE_ACCION[p.accion]) return null;
-        const { dir, perfil } = social(ctx);
+        const { dir, perfil, edad } = social(ctx);
         const n = dir?.get(p.npc);
         if (!n) return null;
-        const { factor, motivo } = disposicion(n.rasgos, perfil);
+        const { factor, motivo } = disposicion(n.rasgos, perfil, usoDelAspecto(edad, n.age));
         return Math.abs(factor - 1) < 0.02 ? null : { efficiency: factor, reason: `${motivo ?? 'Su forma de ser'} (${n.name.split(' ')[0]})` };
       },
     },

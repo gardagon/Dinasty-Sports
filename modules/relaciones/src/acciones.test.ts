@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RasgosDe } from '@ds/contracts';
-import { DISPOSICION, HABILIDAD, HABILIDADES_DE_ACCION, disposicion, factorDeHabilidad, interesFavorito, mejorInteresEnComun, perdidaPorDiscusion, probabilidadDePaces } from './acciones';
+import { DISPOSICION, HABILIDAD, usoDelAspecto, HABILIDADES_DE_ACCION, disposicion, factorDeHabilidad, interesFavorito, mejorInteresEnComun, perdidaPorDiscusion, probabilidadDePaces } from './acciones';
 
 const rasgos = (caracter: Record<string, number> = {}, intereses: Record<string, number> = {}): RasgosDe =>
   ({ origen: {} as RasgosDe['origen'], apariencia: {} as RasgosDe['apariencia'], caracter, intereses, gustos: {} as RasgosDe['gustos'] });
@@ -90,15 +90,43 @@ describe('acciones de relación (reglas puras)', () => {
       expect(noGusta.motivo).toBe('No congeniáis de primeras');
     });
 
-    it('el aspecto físico no cuenta: dos personas con gustos físicos opuestos tienen la misma disposición', () => {
-      const coincide = disposicion(con({}, {}, { peloColor: ['negro'], ojos: ['marron'], piel: ['clara'], cara: ['ovalada'] }), perfil);
-      const noCoincide = disposicion(con({}, {}, { peloColor: ['rubio'], ojos: ['azul'], piel: ['oscura'], cara: ['redonda'] }), perfil);
-      expect(coincide.factor).toBe(noCoincide.factor);
+    const coincide = con({}, {}, { peloColor: ['negro'], ojos: ['marron'], piel: ['clara'], cara: ['ovalada'] });
+    const noCoincide = con({}, {}, { peloColor: ['rubio'], ojos: ['azul'], piel: ['oscura'], cara: ['redonda'] });
+
+    it('si el aspecto no cuenta (p. ej. con un adulto), los gustos físicos no cambian nada', () => {
+      expect(disposicion(coincide, perfil).factor).toBe(disposicion(noCoincide, perfil).factor);
+      expect(disposicion(coincide, perfil, { cuenta: false, seAnuncia: false }).factor).toBe(disposicion(noCoincide, perfil, { cuenta: false, seAnuncia: false }).factor);
+    });
+
+    it('el aspecto cuenta aunque no se anuncie: cambia el factor pero la frase no lo menciona', () => {
+      const uso = { cuenta: true, seAnuncia: false };
+      const a = disposicion(coincide, perfil, uso);
+      const b = disposicion(noCoincide, perfil, uso);
+      expect(a.factor).toBeGreaterThan(b.factor);
+      // Antes de los 14 la frase sale solo del carácter: es la misma que sin aspecto.
+      expect(a.motivo).toBe(disposicion(coincide, perfil).motivo);
+      expect(b.motivo).toBe(disposicion(noCoincide, perfil).motivo);
+    });
+
+    it('a partir de los 14 se anuncia: la frase ya refleja la primera impresión completa', () => {
+      const uso = { cuenta: true, seAnuncia: true };
+      expect(disposicion(coincide, perfil, uso).motivo).toBe('Congeniáis de primeras');
+      expect(disposicion(noCoincide, perfil, uso).motivo).toBe('No congeniáis de primeras');
+    });
+
+    it('cuándo cuenta y cuándo se anuncia el aspecto: entre iguales cuenta siempre, se anuncia desde los 14, y nunca con un adulto', () => {
+      expect(usoDelAspecto(8, 9)).toEqual({ cuenta: true, seAnuncia: false });
+      expect(usoDelAspecto(13, 15)).toEqual({ cuenta: true, seAnuncia: false }); // basta que una tenga menos de 14
+      expect(usoDelAspecto(14, 14)).toEqual({ cuenta: true, seAnuncia: true });
+      expect(usoDelAspecto(16, 19)).toEqual({ cuenta: true, seAnuncia: true });
+      expect(usoDelAspecto(10, undefined)).toEqual({ cuenta: false, seAnuncia: false }); // sin edad = adulto (profesorado)
+      expect(usoDelAspecto(10, 40)).toEqual({ cuenta: false, seAnuncia: false }); // un adulto con un menor, nunca
+      expect(usoDelAspecto(17, 22)).toEqual({ cuenta: false, seAnuncia: false });
     });
 
     it('la disposición siempre queda entre ×0,75 y ×1,3, y sin rasgos no cambia nada', () => {
       for (const s of [-50, 50]) for (const o of [-50, 50]) {
-        const f = disposicion(con({ sociabilidad: s, optimismo: o }, { sociabilidad: 30, optimismo: 20 }), perfil).factor;
+        const f = disposicion(con({ sociabilidad: s, optimismo: o }, { sociabilidad: 30, optimismo: 20 }, { peloColor: ['negro'], ojos: ['marron'], piel: ['clara'], cara: ['ovalada'] }), perfil, { cuenta: true, seAnuncia: true }).factor;
         expect(f).toBeGreaterThanOrEqual(DISPOSICION.min);
         expect(f).toBeLessThanOrEqual(DISPOSICION.max);
       }

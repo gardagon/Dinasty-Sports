@@ -297,12 +297,14 @@ export function agradoPorCaracter(g: Gustos, c: Caracter): number {
 }
 
 /**
- * Edad a partir de la cual los gustos de aspecto físico pueden importar entre dos personas (la pareja). Por debajo, y mientras no exista
- * el sistema de pareja, no se usan: la primera impresión depende solo del carácter. Nunca entre un adulto y un menor.
+ * Los gustos de aspecto físico SIEMPRE cuentan (pesan en la primera impresión y, más adelante, en la pareja), pero el juego no los anuncia
+ * (no dice «le gusta tu aspecto») hasta que las dos personas tienen al menos `EDAD_ATRACCION_FISICA` años. Y solo cuentan entre personas
+ * de edades parecidas: nunca entre un adulto y un menor (por encima de `EDAD_MAXIMA_ENTRE_IGUALES` no cuentan con un personaje menor).
  */
 export const EDAD_ATRACCION_FISICA = 14;
+export const EDAD_MAXIMA_ENTRE_IGUALES = 19;
 
-/** Atracción de 0 a 1 de quien tiene estos gustos hacia otra persona (se usará para la pareja, a partir de `EDAD_ATRACCION_FISICA`). */
+/** Atracción de 0 a 1 de quien tiene estos gustos hacia otra persona: mitad aspecto, mitad carácter. */
 export function atraccion(g: Gustos, a: Apariencia, c: Caracter): number {
   const fis = ((g.fisicos.peloColor.includes(a.peloColor) ? 1 : 0) + (g.fisicos.ojos.includes(a.ojos) ? 1 : 0) + (g.fisicos.piel.includes(a.piel) ? 1 : 0) + (g.fisicos.cara.includes(a.cara) ? 1 : 0)) / 4;
   return 0.5 * fis + 0.5 * agradoPorCaracter(g, c);

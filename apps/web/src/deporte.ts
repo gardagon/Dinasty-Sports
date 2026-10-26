@@ -2,7 +2,7 @@ import { PREFIJO_DE_DEPORTE, type DeporteService, type DeporteView, type LogTabl
 import type { Game } from '@ds/core';
 
 /**
- * Pestaña del deporte: habilidades, resumen, todas las pruebas de la temporada con su clasificación y las clasificaciones del año.
+ * Pestaña «Deporte»: habilidades propias, resumen, todas las pruebas de la temporada con su clasificación y las clasificaciones del año.
  * No conoce ningún deporte: dibuja la vista que publica cada módulo de deporte (`deporte.<id>`).
  */
 
@@ -59,10 +59,8 @@ function vista(g: Game, d: DeporteView): string {
     <dl class="identity">${d.resumen.map((r) => `<div><dt>${esc(r.etiqueta)}</dt><dd>${esc(r.valor)}</dd></div>`).join('')}</dl>
     <p class="note"><b>Próxima prueba:</b> ${esc(t.proxima)}</p>
     <h3>Habilidades de ${esc(d.nombre.toLowerCase())}</h3>
-    ${d.habilidades.propias.map((id) => barra(g, id)).join('')}
-    <h3>Lo que más las apoya</h3>
-    ${d.habilidades.apoyo.map((id) => barra(g, id)).join('')}
-    <p class="note">La marca gris es tu techo actual: sube con la edad y con las características que lo apoyan.</p>
+    ${d.habilidades.map((id) => barra(g, id)).join('')}
+    <p class="note">La marca gris es tu techo actual: sube con la edad y con las características que lo apoyan (las ves en la pestaña del personaje).</p>
   </section>
   <section class="sheet deporte">
     <h2>Temporada · ${esc(t.etiqueta)}</h2>
@@ -83,10 +81,9 @@ export function viewDeporte(g: Game): string {
   return selector + vista(g, actual);
 }
 
-/** Nombre de la pestaña: el del deporte si solo hay uno. */
+/** La pestaña se llama siempre «Deporte» (con varios deportes, un selector elige cuál); solo existe si se practica alguno. */
 export function etiquetaDeDeporte(g: Game): string | null {
-  const todos = deportesDe(g);
-  return !todos.length ? null : todos.length === 1 ? todos[0].nombre : 'Deporte';
+  return deportesDe(g).length ? 'Deporte' : null;
 }
 
 export function clicEnDeporte(el: HTMLElement): boolean {

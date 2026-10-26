@@ -35,7 +35,7 @@ Todos se multiplican entre sí y con el apoyo; con valores corrientes el product
 |---|---|---|
 | **Compatibilidad** (`relaciones.compatibilidad`) | ×0,7 – ×1,4 | 60 % intereses en común y 40 % parecido de carácter (ejes con pesos: sociabilidad 0,2; disciplina, honestidad, agresividad, optimismo 0,15; ambición 0,1; sacrificio y prudencia 0,05). Compatibilidad 0,25 → ×0,7; 0,5 → ×1,05; ≥ 0,75 → ×1,4. |
 | **Habilidad** del personaje (`relaciones.habilidad`) | ×0,8 – ×1,3 | Nivel «para su edad» (0,4 = típico): ×(1 + 0,6 × (nivel − 0,4)). Cada 0,1 por encima suma 0,06. Pesos por acción en la tabla siguiente. |
-| **Disposición** de la otra persona (`relaciones.disposicion`) | ×0,75 – ×1,3 | 1 + 0,2 × sociabilidad/50 + 0,05 × optimismo/50 + 0,16 × (agrado − 0,5). El agrado (0 a 1) es lo que encaja el **carácter** del personaje con lo que a esa persona le gusta en los demás (sus gustos de carácter: ejes como sociable, calmado u optimista; sin preferencias, 0,5). **El aspecto físico no cuenta** (ver sección 7). Frase que se enseña: «Le encanta hablar», «Es de pocas palabras», «Congeniáis de primeras», «No congeniáis de primeras». |
+| **Disposición** de la otra persona (`relaciones.disposicion`) | ×0,75 – ×1,3 | 1 + 0,2 × sociabilidad/50 + 0,05 × optimismo/50 + 0,16 × (agrado − 0,5). El agrado (0 a 1) es lo que encajan el personaje y los **gustos** de esa persona. Con aspecto (ver sección 7), es la atracción completa (50 % rasgos físicos: pelo, ojos, piel y cara; 50 % ejes de carácter que le gustan); sin aspecto, solo el carácter (sin preferencias, 0,5). Frase que se enseña: «Le encanta hablar», «Es de pocas palabras», «Congeniáis de primeras», «No congeniáis de primeras». |
 | **Apoyo** (`relaciones.apoyo`) | ×1 – ×1,3 | Quien te cae bien (afinidad ≥ 40) y apoya la etiqueta de una acción (entrenador: atletismo; tutor y compañero aplicado: estudio...) suma min(0,15, (afinidad − 40)/400) cada uno, hasta +0,3. Afecta a **todas** las acciones con esa etiqueta, no solo a las de relaciones. |
 
 Habilidades que cuentan en cada acción (pesos que suman 1; el nombre de la habilidad es el de `gen.*`):
@@ -102,7 +102,15 @@ Al cambiar cualquiera, ejecutar `npm run sim` antes y después y revisar el áre
 
 ## 7. Reglas decididas y pendientes
 
-**Edad y gustos (decidido con el usuario).** La primera impresión depende solo de los **gustos de carácter**, no de la atracción física, **al menos hasta los 14 años** (`EDAD_ATRACCION_FISICA`, en `rasgos.ts`). Los gustos de aspecto físico están guardados pero no se usan, y cuando exista la pareja solo podrán usarse entre personas de edades parecidas a partir de los 14: **nunca entre un adulto y un menor**. La frase que se enseña es neutra.
+**Edad y gustos (decidido con el usuario).** El **aspecto físico cuenta siempre** que corresponda (pesa en la primera impresión, hasta ±0,08 del factor de disposición), pero **no se anuncia** hasta que las dos personas tienen al menos 14 años (`EDAD_ATRACCION_FISICA`): antes, la frase que se enseña sale solo del carácter, así que se nota en la cifra pero no en el motivo. Una cosa es no anunciarse y otra no tenerse en cuenta. Cuándo cuenta y cuándo se anuncia (`usoDelAspecto`, en `acciones.ts`):
+
+| Personaje y otra persona | ¿Cuenta el aspecto? | ¿Se anuncia? |
+|---|---|---|
+| Los dos de 19 años o menos y alguno de menos de 14 | sí, en silencio | no |
+| Los dos de 14 a 19 años | sí | sí |
+| Con un adulto (más de 19 años) o con quien no tiene edad (profesorado, entrenador) | **nunca** | no |
+
+La frase anunciada es neutra («Congeniáis de primeras»). La pareja usará esta misma regla (y solo entre edades parecidas).
 
 **Sin teléfono (decidido).** No se puede contactar con quien no está contigo, y tampoco se sabe dónde está. Cuando haya teléfono: llamar, escribir y recibir mensajes.
 

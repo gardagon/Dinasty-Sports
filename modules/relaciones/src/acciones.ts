@@ -1,4 +1,4 @@
-import { GEN, INTERESES, agradoPorCaracter, type InteresesJugador, type NpcRole, type PerfilDelPersonaje, type RasgosDe } from '@ds/contracts';
+import { EDAD_ATRACCION_FISICA, EDAD_MAXIMA_ENTRE_IGUALES, GEN, INTERESES, agradoPorCaracter, atraccion, type InteresesJugador, type NpcRole, type PerfilDelPersonaje, type RasgosDe } from '@ds/contracts';
 
 /**
  * Reglas puras de las acciones de relación (sin motor): cuánto duele una discusión, qué probabilidad hay de hacer las
@@ -99,21 +99,45 @@ export const factorDeHabilidad = (nivel: number): number => clamp(1 + HABILIDAD.
 /** Cuánto pesa cada cosa en la disposición de la otra persona, y los topes del factor. */
 export const DISPOSICION = { sociabilidad: 0.2, optimismo: 0.05, primeraImpresion: 0.16, min: 0.75, max: 1.3 } as const;
 
+/** Si el aspecto cuenta entre estas dos personas y si el juego puede anunciarlo (ver `EDAD_ATRACCION_FISICA` en contracts). */
+export interface UsoDelAspecto {
+  cuenta: boolean;
+  seAnuncia: boolean;
+}
+
+/**
+ * El aspecto cuenta entre personas de edades parecidas (las dos hasta `EDAD_MAXIMA_ENTRE_IGUALES`; quien no tiene edad, como el
+ * profesorado, es adulto y no cuenta nunca) y solo se anuncia si las dos tienen al menos `EDAD_ATRACCION_FISICA` años.
+ */
+export function usoDelAspecto(edadDelPersonaje: number | undefined, edadDeLaOtra: number | undefined): UsoDelAspecto {
+  const cuenta = edadDelPersonaje !== undefined && edadDeLaOtra !== undefined && edadDelPersonaje <= EDAD_MAXIMA_ENTRE_IGUALES && edadDeLaOtra <= EDAD_MAXIMA_ENTRE_IGUALES;
+  return { cuenta, seAnuncia: cuenta && edadDelPersonaje! >= EDAD_ATRACCION_FISICA && edadDeLaOtra! >= EDAD_ATRACCION_FISICA };
+}
+
 /**
  * Disposición de la otra persona a hablar con el personaje: ×1 con una persona normal. Suma `sociabilidad × eje/50` (±0,2: un solitario
  * habla poco, un sociable mucho), `optimismo × eje/50` (±0,05) y `primeraImpresion × (agrado − 0,5)` (±0,08), donde el agrado es lo que
- * encaja el CARÁCTER del personaje con lo que a esa persona le gusta en los demás (sus gustos de carácter; sin preferencias, 0,5). Los
- * gustos de aspecto físico no cuentan (ver `EDAD_ATRACCION_FISICA`). Devuelve también una frase con lo que más pesa, para enseñarla.
+ * encajan el personaje y los gustos de esa persona (0 a 1). Si el aspecto **cuenta**, el agrado es la atracción completa (mitad aspecto,
+ * mitad carácter); si no, solo el carácter (sin preferencias, 0,5). El aspecto cuenta siempre que corresponda, pero **solo se anuncia**
+ * (la frase que se enseña) cuando `seAnuncia`: antes de eso la frase habla solo del carácter. Devuelve la frase con lo que más pesa.
  */
-export function disposicion(rasgos: RasgosDe | undefined, perfil: PerfilDelPersonaje | undefined): { factor: number; motivo?: string } {
+export function disposicion(
+  rasgos: RasgosDe | undefined,
+  perfil: PerfilDelPersonaje | undefined,
+  aspecto: UsoDelAspecto = { cuenta: false, seAnuncia: false },
+): { factor: number; motivo?: string } {
   if (!rasgos) return { factor: 1 };
   const social = (DISPOSICION.sociabilidad * eje(rasgos, 'sociabilidad')) / 50;
   const animo = (DISPOSICION.optimismo * eje(rasgos, 'optimismo')) / 50;
-  const agrado = perfil && rasgos.gustos?.caracter ? agradoPorCaracter(rasgos.gustos, perfil.caracter) : 0.5;
-  const impresion = DISPOSICION.primeraImpresion * (agrado - 0.5);
+  const gustos = rasgos.gustos;
+  const porCaracter = perfil && gustos?.caracter ? agradoPorCaracter(gustos, perfil.caracter) : 0.5;
+  const completo = aspecto.cuenta && perfil && gustos?.fisicos ? atraccion(gustos, perfil.apariencia, perfil.caracter) : porCaracter;
+  const impresion = DISPOSICION.primeraImpresion * (completo - 0.5);
   const factor = clamp(1 + social + animo + impresion, DISPOSICION.min, DISPOSICION.max);
+  // La frase solo habla de lo que se puede anunciar.
+  const anunciada = DISPOSICION.primeraImpresion * ((aspecto.seAnuncia ? completo : porCaracter) - 0.5);
   let motivo: string | undefined;
-  if (Math.abs(social) >= Math.abs(impresion) && Math.abs(social) >= 0.06) motivo = social > 0 ? 'Le encanta hablar' : 'Es de pocas palabras';
-  else if (Math.abs(impresion) >= 0.03) motivo = impresion > 0 ? 'Congeniáis de primeras' : 'No congeniáis de primeras';
+  if (Math.abs(social) >= Math.abs(anunciada) && Math.abs(social) >= 0.06) motivo = social > 0 ? 'Le encanta hablar' : 'Es de pocas palabras';
+  else if (Math.abs(anunciada) >= 0.03) motivo = anunciada > 0 ? 'Congeniáis de primeras' : 'No congeniáis de primeras';
   return { factor, motivo };
 }

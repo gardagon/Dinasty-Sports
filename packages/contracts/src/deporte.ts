@@ -44,8 +44,8 @@ export interface DeporteView {
   /** La prueba o disciplina (p. ej. «400 m»). */
   disciplina: string;
   resumen: DatoDeResumen[];
-  /** Stats que se enseñan con su barra: las propias del deporte y las genéricas que más lo apoyan. */
-  habilidades: { propias: StatId[]; apoyo: StatId[] };
+  /** Stats propias del deporte que se enseñan con su barra. Las genéricas (velocidad, resistencia...) se ven en la pestaña del personaje. */
+  habilidades: StatId[];
   temporada: {
     etiqueta: string;
     /** Cuándo es la próxima prueba (texto para el jugador). */

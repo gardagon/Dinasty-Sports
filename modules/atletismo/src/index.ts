@@ -545,10 +545,7 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
       { etiqueta: 'Mejor puesto del curso', valor: mejor ? `${orden(mejor.posicion)} de ${mejor.total}` : '—' },
       { etiqueta: 'Campeonato', valor: campeonato },
     ],
-    habilidades: {
-      propias: ['atletismo.tecnica', 'atletismo.ritmo', 'atletismo.salida', CONOCIMIENTO],
-      apoyo: [GEN.velocidad, GEN.resistencia, GEN.fuerza, GEN.coordinacion, GEN.agilidad, GEN.determinacion],
-    },
+    habilidades: ['atletismo.tecnica', 'atletismo.ritmo', 'atletismo.salida', CONOCIMIENTO],
     temporada: {
       etiqueta: `Curso ${t.schoolYear + 1}`,
       proxima: proximaPrueba(ctx, s),

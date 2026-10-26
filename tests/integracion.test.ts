@@ -676,7 +676,7 @@ describe('integración de módulos', () => {
       expect(v.clasificaciones).toEqual([]);
       expect(v.temporada.proxima).toMatch(/Pretemporada: la primera carrera es la semana 5/);
       expect(v.resumen.find((r) => r.etiqueta === 'Mejor marca')!.valor).toBe('—');
-      expect(v.habilidades.propias).toContain('atletismo.tecnica');
+      expect(v.habilidades).toEqual(['atletismo.tecnica', 'atletismo.ritmo', 'atletismo.salida', 'atletismo.conocimiento']); // solo las del deporte
     });
 
     it('tras una temporada enseña todas las carreras con su clasificación completa y las clasificaciones del año', () => {

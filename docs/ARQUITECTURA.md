@@ -71,7 +71,7 @@ Cada persona (`npcs`) guarda una lista de **tipos** (alumno, profesor, entrenado
 
 ## Pestaña del deporte
 
-Cada módulo de deporte publica el servicio `deporte.<id>` (`contracts/deporte.ts`: resumen, habilidades, pruebas de la temporada con su clasificación, clasificaciones del año y cursos anteriores) y la interfaz dibuja una pestaña por deporte sin conocer ninguno. Atletismo guarda la clasificación completa de cada carrera del curso en curso y el anterior. Cifras y reglas en [`ANEXO_DEPORTE.md`](ANEXO_DEPORTE.md).
+Cada módulo de deporte publica el servicio `deporte.<id>` (`contracts/deporte.ts`: resumen, habilidades propias, pruebas de la temporada con su clasificación, clasificaciones del año y cursos anteriores) y la interfaz dibuja la pestaña «Deporte» sin conocer ninguno. Atletismo guarda la clasificación completa de cada carrera del curso en curso y el anterior. Cifras y reglas en [`ANEXO_DEPORTE.md`](ANEXO_DEPORTE.md).
 
 ## Currículo escolar
 
