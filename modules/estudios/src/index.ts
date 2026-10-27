@@ -669,6 +669,8 @@ export const estudios = defineModule<EstudiosState>({
         absences: () => s.faltas,
         activeSubjects: () => activas.map(statId),
         courseName: () => cursoDef(ctx.time.schoolYear).nombre,
+        grades: (subject) => [...(s.notas[subject.replace('estudios.', '')] ?? [])],
+        reports: () => [...(s.boletines ?? [])],
         summerPath: () => (ctx.time.period === 'verano' ? (s.verano?.tipo ?? null) : null),
         levelText: (subject) => (ASIGNATURAS.some((a) => statId(a.key) === subject) ? nivelDeAsignatura(nivelVisible(ctx, subject.replace('estudios.', ''))) : null),
         timetable: (weekday) => asignaturasDeHoy(ctx.time.schoolYear, s.modalidad, weekday).map(statId),

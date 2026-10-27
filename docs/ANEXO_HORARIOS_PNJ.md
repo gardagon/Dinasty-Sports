@@ -2,7 +2,7 @@
 
 Es la referencia de **dónde está cada persona a cada hora** y de **cuántas personas habrá**. Los horarios son dato (`packages/contracts/src/agendas.ts`, función `tramosDe`) y esta tabla es la fuente: si cambias uno, cambia los dos y el test de `agendas.test.ts`.
 
-Estado: **horarios cerrados y población aprobada** (25/10/2026). La población de la sección 4 está generada (391 personas).
+Estado: **horarios cerrados y población aprobada** (27/10/2026). La población de la sección 4 está generada (391 personas).
 
 ## 1. Cómo funciona
 
@@ -21,7 +21,9 @@ Estado: **horarios cerrados y población aprobada** (25/10/2026). La población 
 - **La jornada:** 4 clases que empiezan a las 8:00, 9:20, 11:20 y 12:40 y duran 75 minutos (acaban a las 9:15, 10:35, 12:35 y 13:55), con un recreo de 10:40 a 11:20. Los 5 minutos al acabar cada clase se pasan en el aula, solo con los compañeros de tu clase. Ver `JORNADA_ESCOLAR` y `HUECO_ENTRE_CLASES` (`contracts/time.ts`).
 - **«Fuera»** (`null`) es cualquier sitio que no está en el mapa. Por eso solo los de la familia están en `casa`: los demás tienen su casa fuera del mapa.
 - **Azar estable:** a qué sitio va de varios posibles, o si falta ese día, sale de un hash de (persona, día, tramo). No se guarda y no cambia mientras dure el tramo. Es el «azar al llegar a un lugar».
-- **Presencia:** el servicio `presencia` (`en(lugar, max)`, `donde(persona)`, `agenda(persona)`) dice quién hay en un lugar ahora. Los de mayor nivel salen primero y el resto en un orden estable; con `max` se limita (la pantalla enseña 40, como el juego de referencia).
+- **Presencia:** el servicio `presencia` (`en(lugar, max)`, `donde(persona)`, `agenda(persona)`) dice quién hay en un lugar ahora. Los de mayor nivel salen primero y el resto en un orden estable; con `max` se limita (la pantalla enseña **entre 34 y 46**: ver «Gente cerca» abajo).
+- **Gente cerca (aforo variable):** en un lugar nunca hay siempre 40 personas. `aforoCercano(lugar, clave)` (`contracts/agendas.ts`) da `40 ± 15 %` (de 34 a 46, `GENTE_CERCANA` y `VARIACION_DE_GENTE_CERCANA`) a partir de un hash del lugar y de la clave (el tramo de presencia), así que cambia entre el recreo, la llegada al colegio, etc., pero no al refrescar la pantalla.
+- **Letra de clase:** una clase es curso + letra (`3.ºA`, `3.ºB`; `nombreDeClase`, `contracts/personas.ts`). La del jugador es siempre la **A** (`tuClase`); los alumnos de los `curso_*` son de la **B** y el resto reparte A/B por hash, para separar a los niños en clases distintas.
 - Se guarda por persona **solo la lista de tipos**. La agenda se calcula y se recuerda en memoria.
 - Los desconocidos se ven por su **descripción física** («Una chica de pelo negro liso, ojos marrones oscuros y piel clara») hasta que se habla con ellos.
 
@@ -50,8 +52,9 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 | lectivo | 8:00–10:40 y 11:20–14:00 | dando clase: ocupado |
 | lectivo | 10:40–11:20 y 14:00–17:00 | el recreo y las tutorías |
 
-Cuando no dan clase, el profesorado está en la **sala de profesores** (zona dentro del colegio): el 85 % cada día; el 15 % (un par de ellos, al azar) está en el patio (`colegio`). Para hablar con ellos hay que ir a la sala (2 minutos desde el colegio).
 | resto | | fuera |
+
+Cuando no dan clase, el profesorado está en la **sala de profesores** (zona dentro del colegio): el 85 % cada día; el 15 % (un par de ellos, al azar) está en el patio (`colegio`). Para hablar con ellos hay que ir a la sala (2 minutos desde el colegio).
 
 ### Entrenador, nivel 3
 
@@ -180,7 +183,7 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 - **Qué hacer cuando lleguen los deportes de equipo, si hiciera falta (de menor a mayor esfuerzo; fases en `docs/ALMACENAMIENTO.md`):**
   1. **Compactar los rasgos** (ids numéricos en vez de textos): de 535 a unos 60 bytes por persona.
   2. **Guardar solo lo que cambia:** la población sale de la semilla (es determinista) y la partida guarda solo las diferencias (la conoces, está en tu club, su nivel). Sin límite práctico.
-- **Presencia:** nadie aparece ni desaparece mientras no cambie un tramo: dentro de un tramo cada persona está siempre en el mismo sitio (su destino sale de un hash de persona, día y tramo, no del minuto). Por eso la presencia de toda la población se calcula **una vez por intervalo entre dos cambios de tramo de cualquier agenda** (unas 10 veces al día: 7:30, 10:00, 14:00, 15:00...) y se reutiliza. Un test avanza de 6 en 6 minutos durante dos días y comprueba que lo reutilizado coincide, a cualquier minuto, con calcular persona a persona. En clase son los mismos 25 durante las cuatro clases y el recreo.
+- **Presencia:** nadie aparece ni desaparece mientras no cambie un tramo: dentro de un tramo cada persona está siempre en el mismo sitio (su destino sale de un hash de persona, día y tramo, no del minuto). Por eso la presencia de toda la población se calcula **una vez por intervalo entre dos cambios de tramo de cualquier agenda** (unas 25 veces al día: 7:30, 10:00, 14:00, 15:00...) y se reutiliza. Un test avanza de 6 en 6 minutos durante dos días y comprueba que lo reutilizado coincide, a cualquier minuto, con calcular persona a persona. En clase son los mismos 25 durante las cuatro clases y el recreo.
 
 ## 6. Pendiente
 

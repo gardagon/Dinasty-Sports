@@ -1,6 +1,6 @@
 # Anexo: pestaña del deporte y clasificaciones
 
-Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasificaciones de temporada, con todas las cifras para revisarlas. Código: `modules/atletismo/src/temporada.ts` (reglas puras), `modules/atletismo/src/index.ts` (`vistaDeAtletismo`), `packages/contracts/src/deporte.ts` (contrato) y `apps/web/src/deporte.ts` (interfaz). Estado a 26/10/2026.
+Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasificaciones de temporada, con todas las cifras para revisarlas. Código: `modules/atletismo/src/temporada.ts` (reglas puras), `modules/atletismo/src/index.ts` (`vistaDeAtletismo`), `packages/contracts/src/deporte.ts` (contrato) y `apps/web/src/deporte.ts` (interfaz). Estado a 27/10/2026 (validado contra el código).
 
 ## 1. Cómo funciona
 

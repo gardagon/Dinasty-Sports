@@ -33,7 +33,7 @@ import {
   timeView,
   ubicacionEn,
   azarDe,
-  GENTE_CERCANA,
+  aforoCercano,
   descripcionDeDesconocido,
   edadAparente,
   nombreSegunEdad,
@@ -725,19 +725,17 @@ interface Cercanos {
   ids: Set<string>;
   acciones?: ActionDef[];
 }
-const CERCANOS = new WeakMap<ReadContext, Cercanos>();
+/** La última lista de cercanos: se pide en cada acción de relación (cientos por jugada) y solo cambia con la versión de la presencia o el lugar. */
+let ULTIMOS_CERCANOS: Cercanos | undefined;
 function cercanosConClave(ctx: ReadContext): Cercanos | undefined {
   const lugar = ctx.service<LugaresService>(SERVICES.lugares)?.actual().id;
   const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
   if (!lugar || !presencia) return undefined;
   // La presencia solo cambia con su versión (un cambio de tramo, de día o de personas): no hace falta recalcularla en cada acción.
   const clave = `${presencia.version}|${lugar}`;
-  const guardado = CERCANOS.get(ctx);
-  if (guardado?.clave === clave) return guardado;
-  const lista = presencia.en(lugar, GENTE_CERCANA);
-  const nuevo = { clave, lista, ids: new Set(lista.map((n) => n.id)) };
-  CERCANOS.set(ctx, nuevo);
-  return nuevo;
+  if (ULTIMOS_CERCANOS?.clave === clave) return ULTIMOS_CERCANOS;
+  const lista = presencia.en(lugar, aforoCercano(lugar, presencia.version));
+  return (ULTIMOS_CERCANOS = { clave, lista, ids: new Set(lista.map((n) => n.id)) });
 }
 
 const cercanos = (ctx: ReadContext): NpcView[] => cercanosConClave(ctx)?.lista ?? [];

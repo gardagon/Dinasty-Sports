@@ -44,7 +44,7 @@ export interface NpcView {
   /** Día de nacimiento (relativo al inicio de la partida) y años cumplidos hoy. Todas las personas lo tienen; la interfaz solo lo enseña si el personaje lo sabe (`sabe`). */
   nacimiento?: number;
   edadExacta?: number;
-  /** Cumpleaños («12 de marzo»). */
+  /** Cumpleaños en formato corto («26/04»). */
   cumple?: string;
   /** Altura hoy (cm): a simple vista se ve respecto a la tuya; la cifra exacta solo la sabe la familia. */
   alturaCm?: number;
@@ -106,6 +106,10 @@ export interface StudiesService {
   activeSubjects(): string[];
   /** Nombre del curso actual (p. ej. "1.º de ESO"). */
   courseName(): string;
+  /** Últimas notas de exámenes de una asignatura (la más reciente al final). */
+  grades(subject: string): number[];
+  /** Notas medias de cada evaluación de trimestre, por orden. */
+  reports(): { curso: number; trimestre: number; media: number }[];
   /** Cómo le toca pasar el verano según las notas del curso, o null si todavía no se sabe (o no es verano). */
   summerPath(): SummerPath | null;
 }

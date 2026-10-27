@@ -18,6 +18,13 @@ import { HUECO_ENTRE_CLASES, JORNADA_ESCOLAR, type TimeView, type Weekday } from
 
 /** Cuánta gente ves a la vez en un lugar (como en el juego de referencia): con cientos en el colegio, solo estas son las que tienes cerca y con las que puedes hablar. */
 export const GENTE_CERCANA = 40;
+/** Cuánto varía la gente que ves a la vez: ±15 % (de 34 a 46 personas). Cambia con cada cambio de tramo, no a cada minuto. */
+export const VARIACION_DE_GENTE_CERCANA = 0.15;
+
+/** Cuánta gente tienes cerca en un lugar ahora: en torno a 40, entre un 15 % menos y un 15 % más, estable mientras no cambie la presencia (`clave`). */
+export function aforoCercano(lugar: string, clave: string | number): number {
+  return Math.round(GENTE_CERCANA * (1 - VARIACION_DE_GENTE_CERCANA + 2 * VARIACION_DE_GENTE_CERCANA * azarDe('aforo', lugar, clave)));
+}
 
 /** Dónde se puede estar: un lugar del mapa o `null` (fuera del mapa: casa propia, trabajo, otro colegio...). */
 export type Sitio = LugarId | null;

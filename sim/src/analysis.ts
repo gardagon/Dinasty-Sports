@@ -95,8 +95,11 @@ export function calibrar(): number {
   return mejor;
 }
 
-/** Límite del coste por acción, en veces la calibración: más de esto es que el motor se ha vuelto más lento (no la máquina). */
-export const LIMITE_RELATIVO = 0.12;
+/**
+ * Límite del coste por acción, en veces la calibración: más de esto es que el motor se ha vuelto más lento (no la máquina).
+ * Subió de 0,12 a 0,15 el 28/10/2026: el mundo tiene ~400 personas con acciones propias y cada decisión evalúa mucho más (ver `docs/DECISIONES.md`).
+ */
+export const LIMITE_RELATIVO = 0.15;
 
 export function runChecks(sum: BotSummary[], areas: Area[], days: number, calibracion?: number): Check[] {
   const checks: Check[] = [];
