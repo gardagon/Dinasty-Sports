@@ -215,7 +215,8 @@ function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, ex
       const c = s.charlas?.[n.id];
       if (c?.dia === ctx.time.day && c.n >= CHARLAS_AL_DIA) return `Ya has charlado con ${nombreCorto(n)} todo lo que da de sí hoy`;
     } else if (s.grandes?.[n.id] === ctx.time.day) return `Ya has estado con ${nombreCorto(n)} hoy`;
-    const h = horario(ctx);
+    // La familia convive contigo: si está delante (aunque sea de madrugada) se puede hablar con ella.
+    const h = n.role === 'familia' ? true : horario(ctx);
     if (h !== true) return h;
     const otro = extra ? extra(ctx, vinculoDe(ctx, s, n, ctx.time.day)) : true;
     return otro !== true || sinPresencia ? otro : presente(ctx);
@@ -334,7 +335,7 @@ function proponerPlan(n: NpcView, actividad: ActividadDePlan, cuando: 'hoy' | 'm
       if (cuando === 'hoy' && ctx.time.minuteOfDay > cfg.hora - PLAN.antelacion) return 'Ya es tarde para quedar hoy';
       if (s.planes?.some((p) => p.npcId === n.id && p.dia === dia)) return `Ya habéis quedado ${textoDeDia(ctx.time.day, dia)}`;
       if (espera(s, clave, ctx.time.day) > 0) return `Ya se lo has propuesto: ${textoDeDia(ctx.time.day, dia)} ya no cambiará de idea`;
-      const horario = HORARIO_DE_PREGUNTAS(ctx);
+      const horario = n.role === 'familia' ? true : HORARIO_DE_PREGUNTAS(ctx);
       return horario !== true ? horario : presente(ctx);
     },
     run: (ctx) => {
@@ -635,7 +636,7 @@ function preguntarDe(n: NpcView, dato: DatoPersonal): ActionDef {
       duration: 2,
       available: (ctx) => {
         if (dirDe(ctx)?.get(n.id)?.sabe?.includes(dato)) return 'Ya lo sabes';
-        const horario = HORARIO_DE_PREGUNTAS(ctx);
+        const horario = n.role === 'familia' ? true : HORARIO_DE_PREGUNTAS(ctx);
         return horario !== true ? horario : presente(ctx);
       },
       run: (ctx) => {

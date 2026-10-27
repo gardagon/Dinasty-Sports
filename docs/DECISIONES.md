@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 27/10/2026 — Familia a cualquier hora, pestañas desplazables y «Estudios» sin descuadre
+
+- **Familia sin horario:** con los padres y hermanos se puede hablar (charlar, preguntar, proponer planes…) a cualquier hora si están delante: a las 7:00 de la mañana no dejaba porque las acciones solo valían de 10 a 22 h. La presencia sigue mandando (hay que coincidir en el sitio). El resto de personas conserva su horario.
+- **Pestañas:** cuando no caben se desplazan y aparece una flecha (‹ ›, con degradado) por el lado donde queda algo oculto; al redibujar se conserva el desplazamiento y se asegura que la pestaña elegida se vea.
+- **«Estudios» cabe en el móvil (340–390 px):** el horario es compacto (Lun–Vie, hora de inicio, columnas fijas y letra menor; el día de hoy se marca en la cabecera), las fichas del colegio usan letra menor y textos más cortos (3.ºA · 25 alumnos), y las columnas de la cuadrícula pueden encogerse (`.layout > * { min-width: 0 }`), que era lo que ensanchaba toda la página. Revisadas todas las pestañas a 340 y 390 px sin desbordes.
+- **Clase coherente:** «Tu clase» sale ahora de la misma ficha que ven los compañeros; antes usaba la edad de competición (9) y decía 4.ºA con el curso en 3.º.
+
 ## 27/10/2026 — Letra de clase, gente cerca variable y repaso de la documentación
 
 - **Clase = curso + letra** (`3.ºA`, `3.ºB`), para separar a los niños en clases distintas. La del jugador es la **A** (`LETRA_DE_TU_CLASE`, `tuClase`), los compañeros de `curso_*` son de la **B** y el resto de alumnos reparte A/B por hash (`letraDeClaseDe`, `nombreDeClase`, `cursoDeEdad` en `contracts/personas.ts`). Se ve en la ficha de la persona y en la pestaña «Estudios». No cambia el estado guardado (sin subir `SAVE_VERSION`).
