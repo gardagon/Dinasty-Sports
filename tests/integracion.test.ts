@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, GENTE_CERCANA, SERVICES, claveDeDeporte, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
+import { GEN, GENTE_CERCANA, SERVICES, claveDeDeporte, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type FamilyService, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
@@ -936,5 +936,62 @@ describe('los 10 minutos antes de clase: hablar con alguien al azar', () => {
     // Fuera de la ventana no se puede.
     advanceTo(g, 'gen.descansar', 1, 12);
     expect(g.preview('relaciones.al_azar')!.available).toBe(false);
+  });
+});
+
+describe('datos de las personas: edad, cumpleaños, altura, colegio y clase', () => {
+  const dir = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!;
+
+  it('todas las personas tienen fecha de nacimiento y cumpleaños; los padres, la misma edad y altura que en su ficha', () => {
+    const g = nuevaPartida({ seed: 31 });
+    for (const n of dir(g).list()) {
+      expect(n.nacimiento, n.id).toBeDefined();
+      expect(n.cumple, n.id).toMatch(/^\d+ de [a-z]+$/);
+      expect(n.alturaCm, n.id).toBeGreaterThan(50);
+    }
+    const f = g.service<FamilyService>(SERVICES.familia)!.parents();
+    for (const p of f) {
+      const n = dir(g).get(p.id)!;
+      expect(n.edadExacta).toBe(p.edad);
+      expect(n.alturaCm).toBeCloseTo(p.alturaCm, 0);
+    }
+  });
+
+  it('de la familia se sabe todo; del resto, solo el colegio de los compañeros y la clase de los de tu clase', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(dir(g).get('madre')!.sabe).toEqual(expect.arrayContaining(['edad', 'colegio', 'clase']));
+    const social = dir(g).get('companero_social')!;
+    expect(social.sabe).toEqual(['colegio', 'clase']);
+    expect(social.colegio).toBe('Tu colegio');
+    expect(social.clase).toBe('Tu clase');
+    const otra = dir(g).get('curso_1')!;
+    expect(otra.sabe).toEqual(['colegio']);
+    expect(otra.clase).toBe('La otra clase de tu curso');
+    const rival = dir(g).get('rival_1')!;
+    expect(rival.sabe).toEqual([]);
+    expect(rival.colegio === undefined || /^colegio\d$/.test(rival.colegio)).toBe(true);
+    expect(rival.clase).toBeUndefined(); // la clase solo se enseña a los compañeros de colegio
+    expect(dir(g).get('profesor_1')!.clase).toBeUndefined();
+    // Los vecinos adultos no van al colegio.
+    const adulto = dir(g).list({ role: 'vecino' }).find((n) => (n.age ?? 0) >= 18)!;
+    expect(adulto.colegio).toBeUndefined();
+  });
+
+  it('se puede preguntar la edad (y el cumpleaños) y a qué colegio va un rival, y entonces se sabe', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }), 'companero_estudio');
+    advanceTo(g, 'gen.descansar', 0, 11); // el recreo
+    g.perform('lugares.ir_colegio');
+    const pregunta = g.listActions().find((a) => a.id === 'relaciones.preguntar_edad.companero_estudio');
+    expect(pregunta).toBeDefined();
+    expect(pregunta!.duration).toBe(2);
+    expect(dir(g).get('companero_estudio')!.sabe).not.toContain('edad');
+    expect(g.perform('relaciones.preguntar_edad.companero_estudio').ok).toBe(true);
+    const n = dir(g).get('companero_estudio')!;
+    expect(n.sabe).toContain('edad');
+    expect(g.log.some((l) => l.text.includes(`tiene ${n.edadExacta} años y cumple el ${n.cumple}`))).toBe(true);
+    expect(g.preview('relaciones.preguntar_edad.companero_estudio')?.available ?? false).toBe(false);
+    // De un compañero ya sabes el colegio y, de uno de tu clase, la clase: no se pregunta.
+    expect(g.preview('relaciones.preguntar_colegio.companero_estudio')).toBeUndefined();
+    expect(g.preview('relaciones.preguntar_clase.companero_estudio')).toBeUndefined();
   });
 });

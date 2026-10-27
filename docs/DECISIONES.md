@@ -172,6 +172,15 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Rendimiento:** la primera versión recalculaba la ruta en cada evaluación y subió el coste de la simulación de ~2,7 s a ~3,2 s por año (límite 3 s). Las rutas se calculan ahora una sola vez (el mapa no cambia en partida): ~2,75 s. Ojo al añadir lugares: cada acción de ir se evalúa en cada `listActions`.
 - **Comprobado:** tests (incluida la arquitectura) y `sim:rapida` sin cambios en el balance.
 
+## 27/10/2026 — Datos de las personas: edad, cumpleaños, altura, colegio y clase
+
+- **Todos tienen fecha de nacimiento, cumpleaños y altura (decidido con el usuario).** Incluidos los padres (misma edad y estatura que en `familia`, ahora de una función de la semilla: `nacimientoDeProgenitor`, `alturaAdulta`) y el reparto inicial (entrenador y tutor, adultos; compañeros de 8 años como el personaje). La altura crece con la edad (`alturaDe`).
+- **Lo que se sabe y cómo:** la familia, edad y cumpleaños exactos y la altura en cm; de los demás, a simple vista, si es de tu edad o «un poco / bastante más / mucho más» mayor o menor, y lo mismo con la altura (bandas en `ANEXO_RELACIONES.md`). La edad exacta y el cumpleaños se averiguan con una pregunta de 2 minutos; la altura **no** se pregunta.
+- **Colegio y clase:** preguntas de 2 minutos. El colegio es por defecto el tuyo si es compañero y «Desconocido» si no lo sabes; la clase solo se enseña a los compañeros de colegio (la tuya, por defecto). Lo aprendido se guarda en `npcs` (`Npc.aprendido`, evento compartido `persona.dato`).
+- **Nada se guarda de más:** el colegio de fuera y la estatura de quien no es familia salen de un hash del id (estables y sin tocar el azar de la partida), y lo que se sabe por defecto se calcula.
+- **Rendimiento:** la vista de cada persona se recuerda por día; ~0,8 ms por acción en el simulador (límite ~1 ms, algo más ajustado).
+- **Pendiente:** cumpleaños como acontecimientos (felicitar, regalos), que se noten la edad y la altura del personaje, y preguntas sobre más cosas (a qué se dedica, qué le gusta).
+
 ## 26/10/2026 — Fichas con las acciones, charlas de 5 minutos, clases con margen y apellidos
 
 - **Interactuar con las personas desde su ficha (decidido con el usuario):** las acciones de relación (charlar, quedar, proponer planes...) ya no salen en «Qué hacer»: están en la ficha de cada persona, en «Gente», junto a lo que no se puede ahora y por qué. Se pierde menos lo que haces (el resultado se ve arriba en «Gente» y en «Qué hacer»).

@@ -21,6 +21,8 @@ import {
   type CompetitionResultData,
   type LugaresService,
   type PresenciaService,
+  type DatoPersonal,
+  type DatoPersonalData,
   type PlanView,
   type PresentacionData,
   NIVEL_AGENDA,
@@ -601,6 +603,54 @@ function pacesDe(n: NpcView): ActionDef {
   if (!a) memoPaces.set(clave, (a = hacerLasPaces(n)));
   return a;
 }
+/**
+ * Preguntas de 2 minutos para conocer mejor a alguien que tienes delante: cuántos años tiene (y cuándo cumple), a qué colegio va y a qué
+ * clase. Solo se ofrece lo que todavía no sabes y lo que tiene sentido (el colegio de un compañero ya lo sabes; la clase, solo si es de tu
+ * colegio). Lo aprendido lo guarda `npcs` (evento `persona.dato`).
+ */
+const PREGUNTAS: Readonly<Record<DatoPersonal, { nombre: (n: NpcView) => string; descripcion: string }>> = {
+  edad: { nombre: (n) => `Preguntar a ${nombreCorto(n)} cuántos años tiene y cuándo cumple`, descripcion: 'Si no lo sabes, a simple vista solo ves si es mayor o menor que tú.' },
+  colegio: { nombre: (n) => `Preguntar a ${nombreCorto(n)} a qué colegio va`, descripcion: 'Dos minutos de conversación.' },
+  clase: { nombre: (n) => `Preguntar a ${nombreCorto(n)} a qué clase va`, descripcion: 'Solo con quien es de tu colegio.' },
+};
+const memoPreguntas = new Map<string, ActionDef>();
+function preguntarDe(n: NpcView, dato: DatoPersonal): ActionDef {
+  const clave = `${n.id}|${dato}|${n.name}|${n.gender}`;
+  let a = memoPreguntas.get(clave);
+  if (!a) {
+    a = {
+      id: `relaciones.preguntar_${dato}.${n.id}`,
+      name: PREGUNTAS[dato].nombre(n),
+      description: PREGUNTAS[dato].descripcion,
+      tags: [TAGS.social],
+      group: grupoDe(n),
+      duration: 2,
+      available: (ctx) => {
+        if (dirDe(ctx)?.get(n.id)?.sabe?.includes(dato)) return 'Ya lo sabes';
+        const horario = fueraDeClase(8, 22, true)(ctx);
+        return horario !== true ? horario : presenteAqui(n)(ctx);
+      },
+      run: (ctx) => {
+        ctx.emit<DatoPersonalData>({ type: SHARED_EVENTS.DATO_PERSONAL, data: { npcId: n.id, dato } });
+        // Interesarse por alguien le gusta un poco.
+        const dia = ctx.time.day;
+        ctx.updateState<RelacionesState>((s) => ({ ...s, vinculos: { ...s.vinculos, [n.id]: conCambio(vinculoDe(ctx, s, n, dia), dia, 0.4, 0.2) } }));
+      },
+    };
+    memoPreguntas.set(clave, a);
+  }
+  return a;
+}
+/** Qué se le puede preguntar a esta persona: lo que aplica y todavía no sabes. */
+const preguntasPendientes = (n: NpcView): DatoPersonal[] => {
+  const sabe = n.sabe ?? [];
+  const lista: DatoPersonal[] = [];
+  if (n.nacimiento !== undefined && !sabe.includes('edad')) lista.push('edad');
+  if (n.colegio !== undefined && !sabe.includes('colegio')) lista.push('colegio');
+  if (n.clase !== undefined && !sabe.includes('clase')) lista.push('clase');
+  return lista;
+};
+
 /** Con quién se acuerdan planes: compañeros, amigos y hermanos (no los padres). Las propuestas solo se ofrecen a quien tienes delante. */
 const aceptaPlanes = (n: NpcView) => n.role === 'companero' || n.role === 'amigo' || (n.tags.includes('hermano') && (n.age ?? 8) >= 6);
 const memoPropuestas = new Map<string, ActionDef[]>();
@@ -788,6 +838,8 @@ export const relaciones = defineModule<RelacionesState>({
     // De los rivales conocidos solo se ofrecen los que más han marcado la relación (los demás son un nombre en una clasificación).
     rivales.sort((a, b) => Math.abs(s.vinculos[b.id]?.afinidad ?? 0) - Math.abs(s.vinculos[a.id]?.afinidad ?? 0));
     for (const n of rivales.slice(0, RIVALES_CON_ACCIONES)) lista.push(...accionesDe(n), ...(conPaces(n) ? [pacesDe(n)] : []));
+    // A quien conoces y tienes delante le puedes preguntar lo que no sepas de él o de ella.
+    if (cerca) for (const n of cerca.lista) if (conocida(n) && n.role !== 'familia') lista.push(...preguntasPendientes(n).map((d) => preguntarDe(n, d)));
     // A quien no conoces y tienes cerca le puedes preguntar el nombre.
     lista.push(...presentaciones(ctx));
     return lista;
@@ -800,7 +852,7 @@ export const relaciones = defineModule<RelacionesState>({
       tags: ['*'],
       apply: (ctx, action) => {
         // Solo lo que sube la relación (no preguntar el nombre ni proponer un plan).
-        if (!action.id.startsWith('relaciones.') || action.id.startsWith('relaciones.plan_') || action.id.startsWith('relaciones.presentarse.')) return null;
+        if (!action.id.startsWith('relaciones.') || action.id.startsWith('relaciones.plan_') || action.id.startsWith('relaciones.preguntar_') || action.id.startsWith('relaciones.presentarse.')) return null;
         const { dir, perfil: yo } = social(ctx);
         const n = dir?.get(action.id.split('.').pop()!);
         if (!n?.rasgos || !yo) return null;

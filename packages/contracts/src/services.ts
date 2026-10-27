@@ -1,3 +1,4 @@
+import type { DatoPersonal } from './personas';
 import type { Practica } from './herencia';
 import type { PerfilDelPersonaje, RasgosDe } from './rasgos';
 /**
@@ -40,6 +41,18 @@ export interface NpcView {
   age?: number;
   /** Club al que pertenece, si tiene. */
   club?: string;
+  /** Día de nacimiento (relativo al inicio de la partida) y años cumplidos hoy. Todas las personas lo tienen; la interfaz solo lo enseña si el personaje lo sabe (`sabe`). */
+  nacimiento?: number;
+  edadExacta?: number;
+  /** Cumpleaños («12 de marzo»). */
+  cumple?: string;
+  /** Altura hoy (cm): a simple vista se ve respecto a la tuya; la cifra exacta solo la sabe la familia. */
+  alturaCm?: number;
+  /** Colegio al que va y clase (esta, solo si es del mismo colegio), si aplica. Vale lo que el personaje sepa (`sabe`). */
+  colegio?: string;
+  clase?: string;
+  /** Lo que el personaje sabe de esta persona (por defecto o porque se lo ha preguntado). */
+  sabe?: readonly DatoPersonal[];
   /** ¿El personaje ya lo conoce? Los rivales se conocen al competir contra ellos. Ausente = sí. */
   known?: boolean;
   description?: string;

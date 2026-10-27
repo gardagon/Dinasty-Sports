@@ -10,6 +10,18 @@ import {
   INTERESES,
   apellidosDeFamilia,
   apellidosDePadres,
+  COLEGIO_DEL_PERSONAJE,
+  EDAD_DE_COLEGIO,
+  colegioDeFuera,
+  alturaDe,
+  estaturaZ,
+  edadCumplida,
+  cumpleaños,
+  nacimientoDeProgenitor,
+  nacimientoParaEdad,
+  edadAdultaDe,
+  type DatoPersonal,
+  type DatoPersonalData,
   nombreDeProgenitor,
   diferenciasDeEdad,
   numeroDeHermanos,
@@ -94,6 +106,10 @@ export interface Npc {
   known?: boolean;
   /** Club al que pertenece (los rivales). */
   club?: string;
+  /** Puntuación típica de estatura (hermanos y padres, que la heredan); el resto la saca de un hash de su id (`estaturaZ`). */
+  estatura?: number;
+  /** Lo que el personaje ha averiguado preguntando (se suma a lo que sabe por defecto). */
+  aprendido?: DatoPersonal[];
   /** Tipos de agenda: de ellos sale dónde está a cada hora (ver `contracts/agendas.ts`). */
   tipos?: TipoAsignado[];
   description?: string;
@@ -345,6 +361,9 @@ function progenitores(ctx: InitContext, usados: Set<string>): Npc[] {
       tags: ['progenitor'],
       levels: {},
       potential: {},
+      // Misma fecha de nacimiento y misma estatura que en el módulo `familia` (salen de la semilla y de la herencia).
+      nacimiento: nacimientoDeProgenitor(ctx.seed, id),
+      estatura: ctx.herencia('estatura')[id],
       rasgos: ctx.rasgosDePadres[id],
       tipos: [{ tipo: 'progenitor' as const }],
       description: id === 'padre' ? 'Tu padre. Vive en casa.' : 'Tu madre. Vive en casa.',
@@ -408,6 +427,8 @@ function hermanos(ctx: InitContext, usados: Set<string>): Npc[] {
       potential: { atletismo: potencial },
       ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
       nacimiento,
+      // Estatura: parecida a la de sus padres (media de los dos, algo atenuada) más una variación propia.
+      estatura: (ctx.herencia('estatura').padre + ctx.herencia('estatura').madre) * 0.45 + estaturaZ(`hermano_${i + 1}`) * 0.6,
       desfase,
       rasgos,
       tipos: tiposDeHermano(edad, compite),
@@ -421,7 +442,7 @@ function generarReparto(ctx: InitContext): Npc[] {
   const usados = new Set<string>();
   const nombre = (g: Gender) => nombreUnico(rng, g, usados);
   /** `extra` puede ser una función del género para concordar la descripción. */
-  const npc = (id: string, role: NpcRole, extra: (g: Gender) => Partial<Npc>): Npc => {
+  const npc = (id: string, role: NpcRole, extra: (g: Gender) => Partial<Npc>, edad: number): Npc => {
     const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
     return {
     id,
@@ -433,6 +454,7 @@ function generarReparto(ctx: InitContext): Npc[] {
     potential: {},
     // Quien te rodea al empezar es desconocido: se conoce hablando con él o con ella (el entrenador, al apuntarte a su club).
     known: false,
+    nacimiento: nacimientoParaEdad(id, edad),
     ...extra(gender),
     };
   };
@@ -444,25 +466,25 @@ function generarReparto(ctx: InitContext): Npc[] {
       tags: ['atletismo', 'mentor'],
       description: 'Entrena al grupo de atletismo del colegio.',
       tipos: [{ tipo: 'entrenador', club: 'colegio' }],
-    })),
+    }), edadAdultaDe('entrenador', 28, 55)),
     npc('tutor', 'profesor', (g) => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, honestidad: 10 }, interesesPreferidos: ['estudio', 'lectura'] }),
       tags: ['estudio', 'mentor'],
       description: `${o(g, 'Tu tutora', 'Tu tutor')}. Exigente pero ${o(g, 'justa', 'justo')}.`,
       tipos: [{ tipo: 'profesor' }],
-    })),
+    }), edadAdultaDe('tutor', 28, 60)),
     npc('companero_estudio', 'companero', (g) => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, sociabilidad: -5 }, interesesPreferidos: ['estudio', 'tecnologia'] }),
       tags: ['estudio'],
       description: `${o(g, 'Compañera de clase aplicada', 'Compañero de clase aplicado')}.`,
       tipos: [{ tipo: 'alumno', tuClase: true }],
-    })),
+    }), EDAD_ALUMNO_MIN),
     npc('companero_social', 'companero', () => ({
       rasgos: rasgosAlAzar(rng, { sesgoCaracter: { sociabilidad: 20, optimismo: 8 }, interesesPreferidos: ['videojuegos', 'cine', 'musica'] }),
       tags: ['social'],
       description: 'Conoce a todo el mundo en el colegio.',
       tipos: [{ tipo: 'alumno', tuClase: true }],
-    })),
+    }), EDAD_ALUMNO_MIN),
     ...rivalesIniciales(rng, usados),
     ...progenitores(ctx, usados),
     ...hermanos(ctx, usados),
@@ -475,19 +497,68 @@ function generarTodos(ctx: InitContext): Npc[] {
   return [...base, ...poblarElColegio(ctx.rng, new Set(base.map((n) => n.name)), base.filter((n) => n.role === 'companero').length)];
 }
 
-const vista = (n: Npc, day: number): NpcView => ({
-  id: n.id,
-  name: n.name,
-  role: n.role,
-  gender: n.gender,
-  tags: n.tags,
-  levels: n.levels,
-  age: edadNpc(n, day),
-  known: n.known,
-  club: n.club,
-  rasgos: n.rasgos,
-  description: n.description,
-});
+/** ¿Va al colegio del personaje? Alumnos, profesorado y los hermanos en edad escolar. */
+const delColegio = (n: Npc): boolean => !!n.tipos?.some((t) => t.tipo === 'alumno' || t.tipo === 'profesor' || (t.tipo === 'hermano' && t.escolar));
+
+/** A qué colegio va (si va a alguno): el del personaje o, en los rivales y los vecinos en edad escolar, uno de fuera. */
+function colegioDe(n: Npc, edad: number | undefined): string | undefined {
+  if (delColegio(n)) return COLEGIO_DEL_PERSONAJE;
+  if ((n.role === 'rival' || n.role === 'vecino') && edad !== undefined && edad >= EDAD_DE_COLEGIO.desde && edad <= EDAD_DE_COLEGIO.hasta) return colegioDeFuera(n.id);
+  return undefined;
+}
+
+/** A qué clase va (solo se enseña a quien es del mismo colegio y es alumno): la tuya, la otra de tu curso o la de su edad. */
+function claseDe(n: Npc, edad: number | undefined): string | undefined {
+  if (!delColegio(n) || n.role === 'profesor') return undefined;
+  if (n.tipos?.some((t) => t.tuClase)) return 'Tu clase';
+  if (n.id.startsWith('curso_')) return 'La otra clase de tu curso';
+  return edad === undefined ? undefined : `Clase de los de ${edad} años`;
+}
+
+/** Lo que se sabe de alguien sin preguntarle: su edad y su colegio y clase si es de la familia; el colegio, si es del tuyo; la clase, si es de la tuya. */
+function sabePorDefecto(n: Npc): DatoPersonal[] {
+  if (n.role === 'familia') return ['edad', 'colegio', 'clase'];
+  const base: DatoPersonal[] = delColegio(n) ? ['colegio'] : [];
+  return n.tipos?.some((t) => t.tuClase) ? [...base, 'clase'] : base;
+}
+
+/** Altura de hoy: padres y hermanos, de su herencia; el resto, de un hash de su id. */
+function alturaHoy(n: Npc, hoy: number): number | undefined {
+  if (n.nacimiento === undefined) return undefined;
+  return alturaDe(n.gender, (hoy - n.nacimiento) / 365, n.estatura ?? estaturaZ(n.id));
+}
+
+/** La vista de cada persona se recuerda mientras no cambie la persona ni el día: se pide muchas veces (listas, presencia, acciones). */
+const VISTAS = new WeakMap<Npc, { clave: string; vista: NpcView }>();
+const vista = (n: Npc, day: number, hoy: number = day): NpcView => {
+  const clave = `${day}|${hoy}`;
+  const guardada = VISTAS.get(n);
+  if (guardada?.clave === clave) return guardada.vista;
+  const v = construirVista(n, day, hoy);
+  VISTAS.set(n, { clave, vista: v });
+  return v;
+};
+
+const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
+  const age = edadNpc(n, day);
+  return {
+    id: n.id,
+    name: n.name,
+    role: n.role,
+    gender: n.gender,
+    tags: n.tags,
+    levels: n.levels,
+    age,
+    known: n.known,
+    club: n.club,
+    rasgos: n.rasgos,
+    description: n.description,
+    ...(n.nacimiento === undefined ? {} : { nacimiento: n.nacimiento, edadExacta: edadCumplida(n.nacimiento, hoy), cumple: cumpleaños(n.nacimiento).texto, alturaCm: alturaHoy(n, hoy) }),
+    colegio: colegioDe(n, age),
+    clase: claseDe(n, age),
+    sabe: [...new Set([...sabePorDefecto(n), ...(n.aprendido ?? [])])],
+  };
+};
 
 /** Sesiones de los clubes de fuera: se reparten en cuatro patrones según el nombre del club (todas las sedes, de momento, en el estadio). */
 const PATRONES_DE_SESION: readonly Omit<SesionDeClub, 'sede'>[] = [
@@ -673,6 +744,22 @@ export const npcs = defineModule<NpcsState>({
       ctx.log(`${profesor.gender === 'f' ? 'La profesora' : 'El profesor'} se presenta al empezar la clase: ${profesor.name}.`, 'info');
     },
 
+    // El personaje le ha preguntado algo a alguien (edad, colegio, clase): desde ahora lo sabe.
+    [SHARED_EVENTS.DATO_PERSONAL]: (ctx, ev) => {
+      const { npcId, dato } = ev.data as DatoPersonalData;
+      const n = ctx.state<NpcsState>().npcs.find((x) => x.id === npcId);
+      if (!n) return;
+      const v = vista(n, (ctx.time.week - ctx.time.schoolWeek) * 7, ctx.time.day);
+      if (v.sabe?.includes(dato)) return;
+      ctx.updateState<NpcsState>((st) => ({ npcs: st.npcs.map((x) => (x.id === npcId ? { ...x, aprendido: [...(x.aprendido ?? []), dato] } : x)) }));
+      const quien = n.name.split(' ')[0];
+      const respuesta =
+        dato === 'edad' ? `${quien} tiene ${v.edadExacta} años y cumple el ${v.cumple}.`
+        : dato === 'colegio' ? `${quien} va a ${v.colegio === COLEGIO_DEL_PERSONAJE ? 'tu colegio' : v.colegio}.`
+        : `${quien} va a ${v.clase?.toLowerCase()}.`;
+      ctx.log(respuesta, 'info');
+    },
+
     [SHARED_EVENTS.PRESENTACION]: (ctx, ev) => {
       const { npcId } = ev.data as PresentacionData;
       const n = ctx.state<NpcsState>().npcs.find((x) => x.id === npcId);
@@ -709,7 +796,7 @@ export const npcs = defineModule<NpcsState>({
       const indice = indiceDePresencia(lista, `${t.day}:${intervalo}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
       const servicio: PresenciaService = {
         version: indice.version,
-        en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso)),
+        en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso, t.day)),
         donde: (id) => {
           const n = personaPorId(lista, id);
           return n ? ubicacionEn(agendaDe(n), t, n.id).sitio : undefined;
@@ -745,7 +832,7 @@ export const npcs = defineModule<NpcsState>({
                 }
                 return true;
               })
-              .map((n) => vista(n, inicioCurso));
+              .map((n) => vista(n, inicioCurso, ctx.time.day));
             porFiltro.set(clave, vistas);
           }
           // Quien llama puede ordenar o modificar lo que recibe: se le da una copia.
@@ -753,7 +840,7 @@ export const npcs = defineModule<NpcsState>({
         },
         get: (id) => {
           const n = personaPorId(lista, id);
-          return n ? vista(n, inicioCurso) : undefined;
+          return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
       };
     },
