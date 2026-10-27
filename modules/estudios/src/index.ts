@@ -402,12 +402,12 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
   let def = CLASES_CACHE.get(id);
   if (!def) {
     const [inicio, fin] = JORNADA.clases[hora_];
-    def = conLugar(['colegio'], {
+    def = conLugar(['aula'], {
       id: `estudios.clase_${hora_ + 1}`,
       name: `Clase de ${asignatura(key).name.toLowerCase()} (${ORDINAL[hora_]} hora)`,
-      description: `De ${hora(inicio)} a ${hora(fin)}. Se entra desde 10 minutos antes; si llegas tarde solo avanzas lo que asistes. Faltar del todo no tiene castigo, pero no avanzas en la asignatura y cuenta como falta.`,
+      description: `De ${hora(inicio)} a ${hora(fin)}, en tu aula (se abre 10 minutos antes). Si la clase ya ha empezado vas tarde: solo avanzas lo que asistes. Faltar del todo no tiene castigo, pero no avanzas en la asignatura y cuenta como falta.`,
       tags: [TAGS.estudio, TAGS.mental, TAGS.social],
-      group: 'Colegio',
+      group: 'Aula',
       duration: (ctx: ReadContext) => Math.max(1, fin - ctx.time.minuteOfDay),
       available: (ctx: ReadContext) => {
         const m = ctx.time.minuteOfDay;
@@ -443,12 +443,12 @@ const repasoPrevio = (hora_: number, key: string): ActionDef => {
   let def = REPASOS_CACHE.get(id);
   if (!def) {
     const [inicio] = JORNADA.clases[hora_];
-    def = conLugar(['colegio'], {
+    def = conLugar(['aula'], {
       id: 'estudios.repaso_previo',
       name: `Repasar ${asignatura(key).name.toLowerCase()} antes de clase`,
-      description: `Los últimos minutos antes de que empiece la clase de las ${hora(inicio)}.`,
+      description: `Los últimos minutos antes de que empiece la clase de las ${hora(inicio)}, en el aula.`,
       tags: [TAGS.estudio, TAGS.mental],
-      group: 'Colegio',
+      group: 'Aula',
       duration: (ctx: ReadContext) => Math.max(1, inicio - ctx.time.minuteOfDay),
       available: (ctx: ReadContext) => {
         const m = ctx.time.minuteOfDay;

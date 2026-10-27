@@ -5,7 +5,7 @@ import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, typ
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { EstudiosState } from '@ds/mod-estudios';
-import { conocer, hacer, posible } from './ayudas';
+import { conocer, hacer, llegarA, posible } from './ayudas';
 
 const baseNueva = nuevaPartida;
 import { asignaturasDelCurso } from '../modules/estudios/src/curriculo';
@@ -545,8 +545,7 @@ describe('integración de módulos', () => {
 
     it('a quien no conoces y tienes cerca le puedes preguntar el nombre (2 minutos), y entonces lo conoces', () => {
       const g = nuevaPartida({ seed: 21 });
-      advanceTo(g, 'gen.descansar', 0, 11); // el recreo
-      g.perform('lugares.ir_colegio');
+      llegarA(g, 'colegio', 10, 45); // el recreo
       const posibles = presentaciones(g);
       expect(posibles.length).toBeGreaterThan(10);
       expect(posibles.length).toBeLessThanOrEqual(40); // solo los que tienes cerca
@@ -587,9 +586,7 @@ describe('integración de módulos', () => {
     const nuevaPartida = (o: Parameters<typeof baseNueva>[0]) => conocer(baseNueva(o));
     const colegioEnElRecreo = (semilla = 31) => {
       const g = nuevaPartida({ seed: semilla });
-      g.perform('lugares.ir_colegio');
-      advanceTo(g, 'gen.descansar', 0, 10);
-      advanceUntil(g, 'gen.descansar', (t) => t.minuteOfDay >= 10 * 60 + 40 || t.hour >= 11, 20);
+      llegarA(g, 'colegio', 10, 45);
       return g;
     };
 
@@ -598,8 +595,8 @@ describe('integración de módulos', () => {
       g.perform('lugares.ir_colegio');
       advanceTo(g, 'gen.descansar', 0, 9); // 9:xx: en clase
       expect(g.preview('relaciones.charlar.companero_social')!.reason).toMatch(/fuera de clase \(o en el recreo\)/);
-      advanceUntil(g, 'gen.descansar', (t) => t.minuteOfDay >= 10 * 60 + 40, 20);
-      expect(g.time.minuteOfDay).toBeLessThan(11 * 60 + 20); // hay recreo
+      advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 10 * 60 + 45, 40);
+      expect(g.time.minuteOfDay).toBeLessThan(11 * 60 + 10); // hay recreo
       const o = g.preview('relaciones.charlar.companero_social')!;
       expect(o.available).toBe(true);
       expect(g.perform(o.id).ok).toBe(true);
@@ -818,8 +815,8 @@ describe('familia en casa y planes con los demás', () => {
   };
   /** Va al colegio en el recreo de un día de clase y propone el plan; devuelve si lo han aceptado. */
   const proponerEnElRecreo = (g: Game, cuando: 'hoy' | 'manana') => {
-    advanceTo(g, 'gen.descansar', g.time.weekday, 11);
-    g.perform('lugares.ir_colegio');
+    advanceTo(g, 'gen.descansar', g.time.weekday, 10);
+    llegarA(g, 'colegio', 10, 45);
     const antes = rel(g).planes().length;
     expect(hacer(g, `relaciones.plan_${cuando}.companero_estudio`).ok).toBe(true);
     return rel(g).planes().length > antes;
@@ -856,7 +853,8 @@ describe('familia en casa y planes con los demás', () => {
     // El día del plan, a las 17:00 en casa, se puede estudiar (y no a otra hora).
     advanceUntil(g, 'gen.descansar', (t) => t.day === plan.dia && t.hour === 12, 80);
     expect(posible(g, 'relaciones.estudiar.companero_estudio')).toBe(false);
-    advanceUntil(g, 'gen.descansar', (t) => t.day === plan.dia && t.hour === 17, 20);
+    advanceUntil(g, 'gen.descansar', (t) => t.day === plan.dia && t.hour >= 16, 20);
+    advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 17 * 60); // a las 17:00 ya vale el plan; el viaje a casa (10 min) cabe en la cortesía
     expect(hacer(g, 'relaciones.estudiar.companero_estudio').ok).toBe(true);
     expect(rel(g).planes()).toEqual([]);
     expect(g.preview('relaciones.estudiar.companero_estudio')!.available).toBe(false);
@@ -932,12 +930,10 @@ describe('clase, profesores, apellidos y fichas', () => {
 describe('los 10 minutos antes de clase: hablar con alguien al azar', () => {
   it('solo en esos 10 minutos y con gente delante; sube la relación según el rato y presenta a quien no conocías', () => {
     const g = nuevaPartida({ seed: 31 });
-    advanceTo(g, 'gen.descansar', 0, 7);
-    for (let i = 0; i < 12 && g.time.minuteOfDay < 7 * 60 + 40; i++) g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
-    g.perform('lugares.ir_colegio'); // desde las 7:40 + viaje: ya dentro de la ventana
+    llegarA(g, 'aula', 7, 52); // el aula se abre a las 7:50: dentro ya están tus compañeros
     expect(g.time.minuteOfDay).toBeLessThan(8 * 60);
     const o = g.preview('relaciones.al_azar')!;
-    if (g.time.minuteOfDay >= 7 * 60 + 50) {
+    {
       expect(o.available).toBe(true);
       expect(o.duration).toBe(8 * 60 - g.time.minuteOfDay);
       const conocidos = g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).length;
@@ -976,14 +972,14 @@ describe('datos de las personas: edad, cumpleaños, altura, colegio y clase', ()
     const social = dir(g).get('companero_social')!;
     expect(social.sabe).toEqual(['colegio', 'clase']);
     expect(social.colegio).toBe('Colegio Cervantes');
-    expect(social.clase).toBe('3.ºA (tu clase)'); // a los 8 años, 3.º de primaria: los compañeros, en la A
+    expect(social.clase).toBe('3.ºA de primaria (tu clase)'); // a los 8 años, 3.º de primaria: los compañeros, en la A
     const otra = dir(g).get('curso_1')!;
     expect(otra.sabe).toEqual(['colegio']);
-    expect(otra.clase).toBe('3.ºB'); // la otra clase de tu curso
+    expect(otra.clase).toBe('3.ºB de primaria'); // la otra clase de tu curso
     // Los demás cursos se reparten entre la A y la B, cada uno con su número.
     const otros = dir(g).list({ role: 'companero' }).filter((n) => n.id.startsWith('alumno_'));
-    expect(otros.every((n) => /^[1-6]\.º[AB]$|^[1-4]\.º[AB]$/.test(n.clase ?? ''))).toBe(true);
-    expect(new Set(otros.map((n) => n.clase?.slice(-1)))).toEqual(new Set(['A', 'B']));
+    expect(otros.every((n) => /^[1-6]\.º[AB] de (infantil|primaria|ESO|bachillerato)$/.test(n.clase ?? ''))).toBe(true);
+    expect(new Set(otros.map((n) => n.clase?.match(/\.º([AB])/)?.[1]))).toEqual(new Set(['A', 'B']));
     const rival = dir(g).get('rival_1')!;
     expect(rival.sabe).toEqual([]);
     expect(rival.colegio === undefined || /^colegio\d$/.test(rival.colegio)).toBe(true);
@@ -996,8 +992,7 @@ describe('datos de las personas: edad, cumpleaños, altura, colegio y clase', ()
 
   it('se puede preguntar la edad (y el cumpleaños) y a qué colegio va un rival, y entonces se sabe', () => {
     const g = conocer(nuevaPartida({ seed: 31 }), 'companero_estudio');
-    advanceTo(g, 'gen.descansar', 0, 11); // el recreo
-    g.perform('lugares.ir_colegio');
+    llegarA(g, 'colegio', 10, 45); // el recreo
     const pregunta = g.listActions().find((a) => a.id === 'relaciones.preguntar_edad.companero_estudio');
     expect(pregunta).toBeDefined();
     expect(pregunta!.duration).toBe(2);
@@ -1048,7 +1043,8 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
 
   it('el profesorado está en la sala de profesores en el recreo (menos un par en el patio): para hablar con ellos hay que ir allí', () => {
     const g = conocer(nuevaPartida({ seed: 31 }), 'tutor');
-    advanceTo(g, 'gen.descansar', 0, 11); // el recreo
+    advanceTo(g, 'gen.descansar', 0, 10);
+    advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 10 * 60 + 45); // el recreo
     const donde = g.service<PresenciaService>(SERVICES.presencia)!.donde('tutor')!;
     expect(['sala_profesores', 'colegio']).toContain(donde);
     g.perform('lugares.ir_colegio');
@@ -1094,5 +1090,59 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     const v = g.service<DeporteService>(claveDeDeporte('atletismo'))!.view();
     expect(v.resumen.find((r) => r.etiqueta === 'Entrenador')!.valor).toBe(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador_club_ciudad_1')!.name); // 10 a 13 años
     expect(v.resumen.find((r) => r.etiqueta === 'Entrenamientos')!.valor).toBe('martes y jueves de 18 a 20');
+  });
+});
+
+describe('el aula, las calles y los viajes', () => {
+  const lugar = (g: Game) => g.service<LugaresService>(SERVICES.lugares)!.actual().id;
+  const aqui = (g: Game, donde: string) => g.service<PresenciaService>(SERVICES.presencia)!.en(donde).map((n) => n.id);
+
+  it('a las 7:50 la entrada se vacía y los de tu clase están en el aula; al aula solo se entra desde el colegio y desde 10 minutos antes', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }));
+    llegarA(g, 'colegio', 7, 40);
+    expect(lugar(g)).toBe('colegio');
+    expect(aqui(g, 'colegio').length).toBeGreaterThan(20); // llegando
+    expect(aqui(g, 'aula')).toEqual([]);
+    // Antes de las 7:50 el aula está cerrada.
+    expect(g.preview('lugares.ir_aula')!.available).toBe(false);
+    expect(g.preview('lugares.ir_aula')!.reason).toMatch(/cerrado|cerrará|estará cerrado/);
+    advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 7 * 60 + 50);
+    expect(aqui(g, 'colegio')).toEqual([]); // se han ido a sus clases
+    expect(aqui(g, 'aula')).toContain('companero_social');
+    expect(g.preview('lugares.ir_aula')!.available).toBe(true);
+    expect(g.perform('lugares.ir_aula').ok).toBe(true);
+    expect(lugar(g)).toBe('aula');
+  });
+
+  it('en los 5 minutos de entre clase y clase se puede hablar con los compañeros en el aula; en clase, no', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }));
+    llegarA(g, 'aula', 7, 52);
+    expect(hacer(g, 'estudios.clase_1').ok).toBe(true); // 8:00–9:15
+    expect(g.time.minuteOfDay).toBe(9 * 60 + 15);
+    expect(lugar(g)).toBe('aula');
+    expect(g.preview('relaciones.charlar.companero_social')!.available).toBe(true);
+    expect(g.preview('relaciones.al_azar')!.available).toBe(true);
+    expect(aqui(g, 'aula')).toContain('companero_social');
+  });
+
+  it('las clases se hacen en el aula: desde otro sitio piden estar allí, y llegar tarde cuenta lo asistido', () => {
+    const g = nuevaPartida({ seed: 31 });
+    llegarA(g, 'colegio', 8, 5);
+    expect(g.preview('estudios.clase_1')!.reason).toMatch(/Tienes que estar en tu aula/);
+    llegarA(g, 'aula', 8, 20);
+    const o = g.preview('estudios.clase_1')!;
+    expect(o.available).toBe(true);
+    expect(o.modifiers.some((m) => m.id === 'estudios.llegada_tarde')).toBe(true);
+  });
+
+  it('desde casa no se llega a una zona ni a otra calle sin pasar por la suya; el viaje rápido salta a lugares', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(g.preview('lugares.ir_aula')!.available).toBe(false);
+    expect(g.preview('lugares.ir_calle_colegio')!.available).toBe(false);
+    expect(g.preview('lugares.ir_calle_casa')!.available).toBe(true);
+    expect(g.service<LugaresService>(SERVICES.lugares)!.pasos().map((p) => p.lugar.id)).toEqual(['calle_casa']);
+    g.perform('lugares.ir_calle_casa');
+    expect(g.service<LugaresService>(SERVICES.lugares)!.pasos().map((p) => p.lugar.id).sort()).toEqual(['avenida_parque', 'calle_colegio', 'casa', 'restaurante', 'supermercado']);
+    expect(g.preview('lugares.ir_colegio')!.available).toBe(true); // viaje rápido
   });
 });

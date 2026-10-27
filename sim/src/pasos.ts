@@ -1,4 +1,4 @@
-import { faltaViajar, type ActionDef } from '@ds/contracts';
+import { CIUDAD_INICIAL, SERVICES, faltaViajar, rutaA, type ActionDef, type LugaresService } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game } from '@ds/core';
 
 /**
@@ -28,9 +28,13 @@ export function hacer(game: Game, opts: readonly ActionOption[], choice: string)
   const opt = opts.find((o) => o.id === choice);
   let viaje = 0;
   if (opt && faltaViajar(opt)) {
-    const v = game.perform(`lugares.ir_${opt.lugar![0]}`);
-    if (!v.ok) return { result: v, viaje: 0, traslado: false };
-    viaje = v.duration;
+    // Los destinos que hacen falta (una zona, como el aula, se alcanza desde la entrada de su lugar).
+    const desde = game.service<LugaresService>(SERVICES.lugares)!.actual().id;
+    for (const parada of rutaA(CIUDAD_INICIAL, desde, opt.lugar![0])) {
+      const v = game.perform(`lugares.ir_${parada}`);
+      if (!v.ok) return { result: v, viaje, traslado: false };
+      viaje += v.duration;
+    }
   }
   const result = game.perform(choice);
   return { result, viaje, traslado: viaje > 0 && !result.ok };

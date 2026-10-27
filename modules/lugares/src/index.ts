@@ -6,7 +6,9 @@ import {
   defineModule,
   timeView,
   tiempoEntre,
-  vecinosDe,
+  pasosDesde,
+  sePuedeIr,
+  tipoDeSitio,
   type ActionDef,
   type LlegadaData,
   type LugarDef,
@@ -38,7 +40,7 @@ const dondeEsta = (ctx: ReadContext): LugarDef => lugar(ctx.state<LugaresState>(
 /** Una acción de ir a cada sitio. Se crean una vez y se reutilizan (la acción lee el origen del estado al ejecutarse). */
 const ACCIONES: readonly ActionDef[] = MAPA.lugares.map((destino) => ({
   id: `lugares.ir_${destino.id}`,
-  name: `Ir a ${destino.name.toLowerCase()}`,
+  name: destino.calle ? `Ir a ${destino.name}` : `Ir a ${destino.name.toLowerCase()}`,
   description: destino.descripcion,
   tags: ['desplazamiento'],
   group: destino.grupo,
@@ -50,6 +52,12 @@ const ACCIONES: readonly ActionDef[] = MAPA.lugares.map((destino) => ({
     if (aqui.id === destino.id) return `Ya estás en ${destino.name.toLowerCase()}`;
     const minutos = tiempoEntre(MAPA, aqui.id, destino.id);
     if (minutos === undefined) return 'No hay camino';
+    // Las calles y las zonas se alcanzan paso a paso; solo los lugares, con el viaje rápido.
+    if (!sePuedeIr(MAPA, aqui.id, destino.id)) {
+      const tipo = tipoDeSitio(destino);
+      if (tipo === 'zona') return `Para entrar en ${destino.name.toLowerCase()} hay que estar en ${lugar(destino.dentroDe!)?.name.toLowerCase()}`;
+      return `Para llegar a ${destino.name.toLowerCase()} hay que estar en una de sus calles vecinas o en un lugar que dé a ella`;
+    }
     // Cerrado a la hora a la que se llegaría: no desaparece, pero no se puede ir (y se dice cuándo abre).
     const llegada = timeView(ctx.time.minute + minutos);
     return abiertoEn(destino, llegada) ? true : `${destino.name} estará cerrado cuando llegues (abre ${destino.horario!.texto})`;
@@ -75,7 +83,7 @@ export const lugares = defineModule<LugaresState>({
       actual: () => dondeEsta(ctx),
       lugar,
       lugares: () => MAPA.lugares,
-      vecinos: () => vecinosDe(MAPA, dondeEsta(ctx).id).map((v) => ({ lugar: lugar(v.lugar)!, minutos: v.minutos })),
+      pasos: () => pasosDesde(MAPA, dondeEsta(ctx).id).map((v) => ({ lugar: lugar(v.lugar)!, minutos: v.minutos, tipo: v.tipo })),
       minutosA: (hasta) => tiempoEntre(MAPA, dondeEsta(ctx).id, hasta),
       casa: () => lugar(MAPA.casa)!,
     }),

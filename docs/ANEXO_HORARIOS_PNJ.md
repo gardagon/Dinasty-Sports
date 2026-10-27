@@ -18,7 +18,7 @@ Estado: **horarios cerrados y población aprobada** (27/10/2026). La población 
 
 - Ejemplo: un compañero de clase (nivel 2) se apunta a tu club (nivel 3). Sigue yendo a clase, pero en la tarde de entrenamiento está donde entrena el club. Si el club se acaba, se le quita el tipo y vuelve su rutina.
 - **Ocupado = fuera:** en clase, en una carrera o en una sesión del club una persona **no se puede hablar contigo**: sigue en su agenda, pero cuenta como fuera del mapa (`TramoDeAgenda.ocupado`: intervalos del tramo en que está ocupada). Antes y después (llegar, el recreo, quedarse un rato al acabar) sí está en el sitio. No puede estar compitiendo y hablando contigo a la vez; lo mismo vale para cualquier acontecimiento parecido que se añada.
-- **La jornada:** 4 clases que empiezan a las 8:00, 9:20, 11:20 y 12:40 y duran 75 minutos (acaban a las 9:15, 10:35, 12:35 y 13:55), con un recreo de 10:40 a 11:20. Los 5 minutos al acabar cada clase se pasan en el aula, solo con los compañeros de tu clase. Ver `JORNADA_ESCOLAR` y `HUECO_ENTRE_CLASES` (`contracts/time.ts`).
+- **La jornada:** 4 clases que empiezan a las 8:00, 9:20, 11:20 y 12:40 y duran 75 minutos (acaban a las 9:15, 10:35, 12:35 y 13:55), con un recreo de 10:40 a 11:20. **El aula (zona `aula`, dentro del colegio) se abre 10 minutos antes de cada clase** (7:50 y 11:10): a esa hora la entrada del colegio se vacía y cada alumno se va a su aula. Los 5 minutos al acabar cada clase se pasan en el aula, solo con los compañeros de tu clase. Ver `JORNADA_ESCOLAR` y `HUECO_ENTRE_CLASES` (`contracts/time.ts`).
 - **«Fuera»** (`null`) es cualquier sitio que no está en el mapa. Por eso solo los de la familia están en `casa`: los demás tienen su casa fuera del mapa.
 - **Azar estable:** a qué sitio va de varios posibles, o si falta ese día, sale de un hash de (persona, día, tramo). No se guarda y no cambia mientras dure el tramo. Es el «azar al llegar a un lugar».
 - **Presencia:** el servicio `presencia` (`en(lugar, max)`, `donde(persona)`, `agenda(persona)`) dice quién hay en un lugar ahora. Los de mayor nivel salen primero y el resto en un orden estable; con `max` se limita (la pantalla enseña **entre 34 y 46**: ver «Gente cerca» abajo).
@@ -35,9 +35,9 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 
 | Días | Horas | Dónde |
 |---|---|---|
-| lectivo | 7:30–8:00 | colegio, llegando (se les puede hablar) |
-| lectivo | 8:00–10:40 y 11:20–14:00 | **en clase: ocupados** (no están disponibles), salvo **tus compañeros de clase** (`tuClase`: los 24 de tu clase y los del reparto inicial), que están libres los 5 minutos al acabar cada clase (9:15–9:20, 10:35–10:40, 12:35–12:40, 13:55–14:00). Los demás alumnos siguen ocupados |
-| lectivo | 10:40–11:20 | colegio: el recreo (se les puede hablar) |
+| lectivo | 7:30–7:50 | colegio (la entrada, fuera de las aulas), llegando (se les puede hablar) |
+| lectivo | 7:50–10:40 y 11:10–14:00 | **en su aula**: los demás alumnos están en sus aulas (fuera del mapa: **ocupados**). **Tus compañeros de clase** (`tuClase`: los 24 de tu clase y los del reparto inicial) están en **tu aula** (`aula`): libres de 7:50 a 8:00 (el aula ya está abierta) y los 5 minutos al acabar cada clase (9:15–9:20, 10:35–10:40, 12:35–12:40, 13:55–14:00); ocupados en clase |
+| lectivo | 10:40–11:10 | colegio: el recreo, en el patio (se les puede hablar) |
 | lectivo | 15:00–19:00 | fuera 60 %, parque 25 %, supermercado 10 %, gimnasio 5 % |
 | libre | 10:00–14:00 | fuera 50 %, parque 40 %, supermercado 10 % |
 | libre | 15:00–20:00 | fuera 50 %, parque 40 %, supermercado 5 %, gimnasio 5 % |
@@ -48,8 +48,8 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 
 | Días | Horas | Dónde |
 |---|---|---|
-| lectivo | 7:30–8:00 | llegando |
-| lectivo | 8:00–10:40 y 11:20–14:00 | dando clase: ocupado |
+| lectivo | 7:30–7:50 | llegando |
+| lectivo | 7:50–10:40 y 11:10–14:00 | dando clase: ocupado |
 | lectivo | 10:40–11:20 y 14:00–17:00 | el recreo y las tutorías |
 
 | resto | | fuera |
@@ -111,7 +111,7 @@ Viven en casa (los únicos, con los padres, que tienen `casa` en su agenda). Una
 | Días | Horas | Dónde | Nivel |
 |---|---|---|---|
 | todos | todo el día | casa | 1,5 (entre la base y el rol: manda sobre «fuera» y cede ante lo demás) |
-| lectivo, si tiene de 3 a 17 años (`escolar`) | 7:30–14:00 | colegio como un alumno: llegando y en el recreo en el colegio; **en clase, ocupado** (fuera) | 2 |
+| lectivo, si tiene de 3 a 17 años (`escolar`) | 7:30–14:00 | colegio como un alumno: llegando y en el recreo en el colegio; **en clase (7:50–10:40 y 11:10–14:00), ocupado** (fuera) | 2 |
 | sábado, si practica atletismo (`deporte`) | 8:45–13:15 | estadio; va el 40 %, como los rivales; ocupado de 9:00 a 13:00 | 3 |
 
 Al cumplir los 18 dejan el colegio (la marca `escolar` se quita al empezar el curso); al cumplir los 3 años entran. La marca `deporte` sigue a que tengan nivel de atletismo (desde los 8). Otros deportes y sesiones de club propias, pendientes.
@@ -126,12 +126,24 @@ Son personas del juego (ids `padre` y `madre`, rol `familia`, siempre conocidas)
 | libre | 9:00–23:00 | casa 85 %, fuera 15 % |
 | resto | | fuera (trabajo) |
 
-## 2 bis. Lugares y zonas con horario
+## 2 bis. Calles, lugares y zonas con horario
 
-Algunos lugares son **zonas dentro de otro** (`LugarDef.dentroDe`): se llega por su lugar y entrar o salir cuesta **2 minutos** (`MINUTOS_ENTRE_ZONAS`); de una zona a cualquier sitio, lo que cuesta desde su lugar más 2; entre dos zonas del mismo lugar, 4. La tabla de tiempos se completa sola (`conZonas`).
+**El mapa es un grafo** (`construirMapa`, `contracts/lugares.ts`): 4 **calles** donde no se hace nada, **lugares** que dan a una calle y **zonas** dentro de los lugares. Desde casa ya no se va al colegio de golpe: se **sale a la calle**, se ve lo que hay en ella o se va a otra calle y se **entra** en el lugar. «Viajar» enseña, por separado, lo que hay **dentro** del lugar (zonas) y **salir** (la calle); y el «Viaje rápido» (desplegable) salta a **lugares**, nunca a zonas ni a calles, con el mismo coste que el camino.
+
+| Calle | Lugares (minutos entre la calle y su entrada) |
+|---|---|
+| Calle de tu casa | casa 1, supermercado 4, restaurante 4 |
+| Calle del colegio | colegio 1 |
+| Avenida del Parque | parque 1, gimnasio 5 |
+| Avenida del Estadio | estadio 3 |
+
+Entre calles: casa–colegio 8, casa–parque 4, colegio–parque 6, colegio–estadio 6, parque–estadio 6 minutos. El tiempo entre dos sitios cualesquiera es el camino más corto (por ejemplo, casa → colegio: 1 + 8 + 1 = 10).
+
+Algunos lugares son **zonas dentro de otro** (`LugarDef.dentroDe`): se llega desde la entrada de su lugar y entrar o salir cuesta **2 minutos** (`MINUTOS_ENTRE_ZONAS`); entre dos zonas del mismo lugar, 4.
 
 | Zona | Dentro de | Horario | Para qué |
 |---|---|---|---|
+| Tu aula | colegio | días de clase, de 7:50 al recreo (10:40) y de 11:10 a 14:00 (se abre 10 minutos antes de cada clase) | dar clase, repasar y charlar con los compañeros antes de empezar |
 | Sala de profesores | colegio | siempre | donde está el profesorado fuera de clase |
 | Administración del colegio | colegio | días de clase, 9:00–13:30 y 15:00–18:00 | apuntarse y darse de baja del club del colegio |
 | Sala del Club Atletismo Ciudad | estadio | L–V 16:00–21:00; sábados 9:00–14:00 | prueba de acceso, inscripción, aceptar plaza y darse de baja |

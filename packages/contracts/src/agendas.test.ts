@@ -21,16 +21,36 @@ describe('agendas de las personas', () => {
     const alumno: TipoAsignado[] = [{ tipo: 'alumno' }];
     expect(donde(alumno, 0, 7, 20)).toBeNull();
     expect(donde(alumno, 0, 7, 30)).toBe('colegio'); // llegando, media hora antes de la primera clase
+    expect(donde(alumno, 0, 7, 49)).toBe('colegio'); // la entrada se vacía a las 7:50: se van a sus aulas
+    expect(donde(alumno, 0, 7, 50)).toBeNull();
     expect(donde(alumno, 0, 8)).toBeNull(); // en clase
     expect(donde(alumno, 0, 10, 39)).toBeNull();
     expect(donde(alumno, 0, 10, 40)).toBe('colegio'); // el recreo es de 10:40 a 11:20
-    expect(donde(alumno, 0, 11, 19)).toBe('colegio');
+    expect(donde(alumno, 0, 11, 9)).toBe('colegio');
+    expect(donde(alumno, 0, 11, 10)).toBeNull(); // a las 11:10 vuelven a sus aulas
     expect(donde(alumno, 0, 11, 20)).toBeNull(); // otra vez en clase
     expect(donde(alumno, 0, 13, 59)).toBeNull();
     expect(donde(alumno, 0, 22)).toBeNull();
     for (const h of [8, 10, 12]) expect(donde(alumno, 5, h)).not.toBe('colegio'); // sábado
     // Sigue en su agenda (el tramo es de colegio) pero cuenta como ocupado.
     expect(ubicacionEn(construirAgenda(alumno, datos), en(0, 9), 'x').ocupado).toBe(true);
+  });
+
+  it('los de tu clase esperan en el aula desde las 7:50 y están libres antes de empezar y entre clase y clase', () => {
+    const compa: TipoAsignado[] = [{ tipo: 'alumno', tuClase: true }];
+    const ubicacion = (hora: number, min = 0) => ubicacionEn(construirAgenda(compa, datos), en(0, hora, min), 'x');
+    expect(ubicacion(7, 40).sitio).toBe('colegio'); // antes de las 7:50, fuera de las aulas
+    expect(ubicacion(7, 50)).toMatchObject({ sitio: 'aula' }); // se abre el aula: ya están dentro
+    expect(ubicacion(7, 50).ocupado).toBeFalsy();
+    expect(ubicacion(7, 59).ocupado).toBeFalsy();
+    expect(ubicacion(8).ocupado).toBe(true); // en clase
+    expect(ubicacion(9, 15)).toMatchObject({ sitio: 'aula' }); // los 5 minutos de entre clase y clase
+    expect(ubicacion(9, 15).ocupado).toBeFalsy();
+    expect(ubicacion(9, 20).ocupado).toBe(true);
+    expect(ubicacion(10, 40).sitio).toBe('colegio'); // el recreo, en el patio
+    expect(ubicacion(11, 10).sitio).toBe('aula'); // 10 minutos antes de la tercera clase
+    expect(ubicacion(12, 35).sitio).toBe('aula');
+    expect(ubicacion(14).sitio).toBeNull();
   });
 
   it('un alumno reparte su tiempo libre por el barrio según los pesos, sin salirse de los destinos posibles', () => {
