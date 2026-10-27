@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, GENTE_CERCANA, SERVICES, claveDeDeporte, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
+import { GEN, GENTE_CERCANA, SERVICES, claveDeDeporte, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type FamilyService, type LugaresService, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
@@ -182,15 +182,21 @@ describe('integración de módulos', () => {
   describe('clubes', () => {
     const club = (g: Game) => g.service<ClubDirectory>(SERVICES.clubes)!.membership('atletismo');
 
-    it('empieza sin club y puede apuntarse al del colegio los días de clase por la tarde', () => {
+    it('empieza sin club y se apunta al del colegio en la administración, que tiene horario (y se ve cerrada, no desaparece)', () => {
       const g = nuevaPartida({ seed: 31 });
       expect(club(g)).toBeUndefined();
-      advanceToWeek(g, 'gen.descansar', 1, 2, 9);
-      expect(g.preview('atletismo.apuntarse_colegio')!.available).toBe(false); // de 14 a 19
-      advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+      advanceToWeek(g, 'gen.descansar', 1, 2, 14); // la administración cierra de 13:30 a 15:00
+      const cerrada = g.preview('atletismo.apuntarse_colegio')!;
+      expect(cerrada.available).toBe(false);
+      expect(cerrada.reason).toMatch(/cerrad.*9:00 a 13:30 y de 15:00 a 18:00/);
+      expect(cerrada.description).toMatch(/lunes y miércoles de 15 a 17/); // se cuenta cuándo entrena y compite antes de apuntarse
+      expect(cerrada.description).toMatch(/sábados de 9 a 13/);
+      expect(cerrada.lugar).toEqual(['administracion']);
+      advanceToWeek(g, 'gen.descansar', 1, 2, 15);
       expect(hacer(g, 'atletismo.apuntarse_colegio').ok).toBe(true);
+      expect(g.service<LugaresService>(SERVICES.lugares)!.actual().id).toBe('administracion');
       expect(club(g)?.id).toBe('colegio');
-      expect(g.preview('atletismo.apuntarse_colegio')!.available).toBe(false);
+      expect(g.preview('atletismo.apuntarse_colegio')).toBeUndefined();
       expect(g.log.some((l) => /Te apuntas al club deportivo del colegio/.test(l.text))).toBe(true);
     });
 
@@ -213,7 +219,7 @@ describe('integración de módulos', () => {
 
     it('las sesiones del club solo son los días y horas del club', () => {
       const g = nuevaPartida({ seed: 31 });
-      advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+      advanceToWeek(g, 'gen.descansar', 1, 2, 15);
       hacer(g, 'atletismo.apuntarse_colegio');
       advanceToWeek(g, 'gen.descansar', 2, 1, 15); // martes: el colegio entrena lunes y miércoles
       expect(g.preview('atletismo.club_sesion')!.available).toBe(false);
@@ -223,10 +229,14 @@ describe('integración de módulos', () => {
 
     it('un club de fuera pide edad y nivel, y se puede repetir la prueba pasadas unas semanas', () => {
       const g = nuevaPartida({ seed: 31 });
-      advanceToWeek(g, 'gen.descansar', 1, 2, 17);
+      advanceToWeek(g, 'gen.descansar', 1, 1, 18);
       const prueba = g.preview('atletismo.prueba.club_ciudad')!;
       expect(prueba.available).toBe(false);
       expect(prueba.reason).toMatch(/10 años/);
+      // Y fuera de sus entrenamientos no hay prueba aunque tengas la edad.
+      const g12 = con12(95);
+      advanceToWeek(g12, 'gen.descansar', 1, 2, 18);
+      expect(g12.preview('atletismo.prueba.club_ciudad')!.reason).toMatch(/entrenamientos: martes y jueves de 18 a 20/);
     });
 
     /** Partida con 12 años y el nivel pedido en las habilidades. */
@@ -245,8 +255,9 @@ describe('integración de módulos', () => {
 
     it('con nivel suficiente la prueba te abre las puertas de un club de mayor calidad', () => {
       const g = con12(95);
-      advanceToWeek(g, 'gen.descansar', 1, 2, 17);
+      advanceToWeek(g, 'gen.descansar', 1, 1, 18); // martes: entrena el club de la ciudad (las pruebas son en sus entrenamientos)
       expect(hacer(g, 'atletismo.prueba.club_ciudad').ok).toBe(true);
+      expect(g.service<LugaresService>(SERVICES.lugares)!.actual().id).toBe('sala_club_ciudad');
       expect(club(g)?.id).toBe('club_ciudad');
       expect(g.log.some((l) => /Ya eres del Club Atletismo Ciudad/.test(l.text))).toBe(true);
       advanceToWeek(g, 'gen.descansar', 2, 1, 18); // martes de club de la ciudad
@@ -257,7 +268,7 @@ describe('integración de módulos', () => {
 
     it('sin nivel suficiente no te cogen y no puedes repetirla enseguida', () => {
       const g = con12(20);
-      advanceToWeek(g, 'gen.descansar', 1, 2, 17);
+      advanceToWeek(g, 'gen.descansar', 1, 1, 18);
       hacer(g, 'atletismo.prueba.club_ciudad');
       expect(club(g)).toBeUndefined();
       expect(g.log.some((l) => /todavía no tienes el nivel/.test(l.text))).toBe(true);
@@ -267,7 +278,7 @@ describe('integración de módulos', () => {
 
     it('la clasificación muestra el club de cada corredor y el tuyo', () => {
       const g = nuevaPartida({ seed: 31 });
-      advanceToWeek(g, 'gen.descansar', 4, 2, 14);
+      advanceToWeek(g, 'gen.descansar', 4, 2, 15);
       hacer(g, 'atletismo.apuntarse_colegio');
       advanceToWeek(g, 'gen.descansar', 4, 5, 10);
       const r = hacer(g, 'atletismo.carrera');
@@ -280,7 +291,7 @@ describe('integración de módulos', () => {
 
     it('se puede dejar el club', () => {
       const g = nuevaPartida({ seed: 31 });
-      advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+      advanceToWeek(g, 'gen.descansar', 1, 2, 15);
       hacer(g, 'atletismo.apuntarse_colegio');
       expect(hacer(g, 'atletismo.dejar_club').ok).toBe(true);
       expect(club(g)).toBeUndefined();
@@ -742,7 +753,7 @@ describe('clubes: la pestaña del deporte, el entrenador y cambiar de club', () 
     const g = nuevaPartida({ seed: 31 });
     expect(vista(g).inactivo).toMatch(/club/);
     expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador')!.known).toBe(false);
-    advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     hacer(g, 'atletismo.apuntarse_colegio');
     const v = vista(g);
     expect(v.inactivo).toBeUndefined();
@@ -754,12 +765,13 @@ describe('clubes: la pestaña del deporte, el entrenador y cambiar de club', () 
 
   it('pasar la prueba de otro club estando en uno ofrece plaza; aceptarla sin haber salido antes enfada al entrenador y al equipo y estresa', () => {
     const g = nuevaPartida({ seed: 31 });
-    advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     hacer(g, 'atletismo.apuntarse_colegio');
     // Plaza ofrecida (se fuerza el guardado: la prueba depende de la forma del personaje).
     const s = g.serialize();
     (s.modules.atletismo as AtletismoState).ofertas = { club_ciudad: g.time.week };
     const g2 = cargarPartida(s);
+    advanceTo(g2, 'gen.descansar', g2.time.weekday, 17); // la sala del club abre de 16 a 21
     const afinidadAntes = rel2(g2, 'entrenador');
     const estresAntes = g2.stat(GEN.estres);
     expect(hacer(g2, 'atletismo.aceptar_plaza.club_ciudad').ok).toBe(true);
@@ -771,11 +783,12 @@ describe('clubes: la pestaña del deporte, el entrenador y cambiar de club', () 
 
   it('dejar el club antes de aceptar la plaza no cuesta nada', () => {
     const g = nuevaPartida({ seed: 31 });
-    advanceToWeek(g, 'gen.descansar', 1, 2, 14);
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     hacer(g, 'atletismo.apuntarse_colegio');
     const s = g.serialize();
     (s.modules.atletismo as AtletismoState).ofertas = { club_ciudad: g.time.week };
     const g2 = cargarPartida(s);
+    advanceTo(g2, 'gen.descansar', g2.time.weekday, 17);
     const afinidadAntes = rel2(g2, 'entrenador');
     hacer(g2, 'atletismo.dejar_club');
     expect(hacer(g2, 'atletismo.aceptar_plaza.club_ciudad').ok).toBe(true);
@@ -936,5 +949,146 @@ describe('los 10 minutos antes de clase: hablar con alguien al azar', () => {
     // Fuera de la ventana no se puede.
     advanceTo(g, 'gen.descansar', 1, 12);
     expect(g.preview('relaciones.al_azar')!.available).toBe(false);
+  });
+});
+
+describe('datos de las personas: edad, cumpleaños, altura, colegio y clase', () => {
+  const dir = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!;
+
+  it('todas las personas tienen fecha de nacimiento y cumpleaños; los padres, la misma edad y altura que en su ficha', () => {
+    const g = nuevaPartida({ seed: 31 });
+    for (const n of dir(g).list()) {
+      expect(n.nacimiento, n.id).toBeDefined();
+      expect(n.cumple, n.id).toMatch(/^\d+ de [a-z]+$/);
+      expect(n.alturaCm, n.id).toBeGreaterThan(50);
+    }
+    const f = g.service<FamilyService>(SERVICES.familia)!.parents();
+    for (const p of f) {
+      const n = dir(g).get(p.id)!;
+      expect(n.edadExacta).toBe(p.edad);
+      expect(n.alturaCm).toBeCloseTo(p.alturaCm, 0);
+    }
+  });
+
+  it('de la familia se sabe todo; del resto, solo el colegio de los compañeros y la clase de los de tu clase', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(dir(g).get('madre')!.sabe).toEqual(expect.arrayContaining(['edad', 'colegio', 'clase']));
+    const social = dir(g).get('companero_social')!;
+    expect(social.sabe).toEqual(['colegio', 'clase']);
+    expect(social.colegio).toBe('Colegio Cervantes');
+    expect(social.clase).toBe('Tu clase');
+    const otra = dir(g).get('curso_1')!;
+    expect(otra.sabe).toEqual(['colegio']);
+    expect(otra.clase).toBe('La otra clase de tu curso');
+    const rival = dir(g).get('rival_1')!;
+    expect(rival.sabe).toEqual([]);
+    expect(rival.colegio === undefined || /^colegio\d$/.test(rival.colegio)).toBe(true);
+    expect(rival.clase).toBeUndefined(); // la clase solo se enseña a los compañeros de colegio
+    expect(dir(g).get('profesor_1')!.clase).toBeUndefined();
+    // Los vecinos adultos no van al colegio.
+    const adulto = dir(g).list({ role: 'vecino' }).find((n) => (n.age ?? 0) >= 18)!;
+    expect(adulto.colegio).toBeUndefined();
+  });
+
+  it('se puede preguntar la edad (y el cumpleaños) y a qué colegio va un rival, y entonces se sabe', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }), 'companero_estudio');
+    advanceTo(g, 'gen.descansar', 0, 11); // el recreo
+    g.perform('lugares.ir_colegio');
+    const pregunta = g.listActions().find((a) => a.id === 'relaciones.preguntar_edad.companero_estudio');
+    expect(pregunta).toBeDefined();
+    expect(pregunta!.duration).toBe(2);
+    expect(dir(g).get('companero_estudio')!.sabe).not.toContain('edad');
+    expect(g.perform('relaciones.preguntar_edad.companero_estudio').ok).toBe(true);
+    const n = dir(g).get('companero_estudio')!;
+    expect(n.sabe).toContain('edad');
+    expect(g.log.some((l) => l.text.includes(`tiene ${n.edadExacta} años y cumple el ${n.cumple}`))).toBe(true);
+    expect(g.preview('relaciones.preguntar_edad.companero_estudio')?.available ?? false).toBe(false);
+    // De un compañero ya sabes el colegio y, de uno de tu clase, la clase: no se pregunta.
+    expect(g.preview('relaciones.preguntar_colegio.companero_estudio')).toBeUndefined();
+    expect(g.preview('relaciones.preguntar_clase.companero_estudio')).toBeUndefined();
+  });
+});
+
+describe('adultos, sala de profesores y entrenadores de los clubes', () => {
+  const dir = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!;
+
+  it('los adultos tienen profesión y lugar de trabajo; el profesorado, «Profesor» y su colegio, y la asignatura al ir a su clase', () => {
+    const g = nuevaPartida({ seed: 31 });
+    const tutor = dir(g).get('tutor')!;
+    expect(tutor.profesionBasica).toMatch(/^Profesor/);
+    expect(tutor.trabajo).toBe('Colegio Cervantes');
+    expect(tutor.sabe).toEqual(['trabajo']); // dónde trabaja se sabe; la asignatura, no
+    expect(tutor.colegio).toBeUndefined(); // el profesorado trabaja en el colegio, no va
+    expect(tutor.clase).toBeUndefined();
+    const adultos = dir(g).list({ role: 'vecino' }).filter((n) => (n.edadExacta ?? 0) >= 18);
+    expect(adultos.length).toBeGreaterThan(20);
+    for (const v of adultos) {
+      expect(v.profesion, v.id).toBeDefined();
+      expect(v.colegio, v.id).toBeUndefined();
+      if (v.profesion !== 'Jubilado' && v.profesion !== 'Jubilada') expect(v.trabajo, v.id).toBeDefined();
+    }
+    // Los niños tienen colegio y clase, no profesión.
+    expect(dir(g).get('companero_social')!.profesion).toBeUndefined();
+    // Ir a la clase de lengua enseña qué da su profesor.
+    advanceTo(g, 'gen.descansar', 0, 7);
+    for (let i = 0; i < 12 && g.time.minuteOfDay < 7 * 60 + 50; i++) g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+    const asignatura = g.service<StudiesService>(SERVICES.estudios)!.timetable(0)[0];
+    expect(hacer(g, 'estudios.clase_1').ok).toBe(true);
+    const numero = { 'estudios.lengua': 1, 'estudios.matematicas': 2, 'estudios.ingles': 3 }[asignatura as string];
+    if (numero) {
+      const p = dir(g).get(`profesor_${numero}`)!;
+      expect(p.sabe).toContain('profesion');
+      expect(p.profesion).toMatch(/^Profesor(a)? de /);
+    }
+  });
+
+  it('el profesorado está en la sala de profesores en el recreo (menos un par en el patio): para hablar con ellos hay que ir allí', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }), 'tutor');
+    advanceTo(g, 'gen.descansar', 0, 11); // el recreo
+    const donde = g.service<PresenciaService>(SERVICES.presencia)!.donde('tutor')!;
+    expect(['sala_profesores', 'colegio']).toContain(donde);
+    g.perform('lugares.ir_colegio');
+    const antes = g.time.minuteOfDay;
+    g.perform('lugares.ir_sala_profesores');
+    expect(g.time.minuteOfDay - antes).toBe(2);
+    const ahi = g.service<PresenciaService>(SERVICES.presencia)!.en('sala_profesores').map((n) => n.id);
+    expect(ahi.length).toBeGreaterThanOrEqual(7);
+    expect(ahi.every((id) => id === 'tutor' || id.startsWith('profesor_'))).toBe(true);
+    if (donde === 'sala_profesores') expect(g.preview('relaciones.hablar.tutor')?.available).toBe(true);
+  });
+
+  it('cada club de fuera tiene entrenadores por edades (alguno lleva varias categorías) y se presenta el que lleva tu edad', () => {
+    const g = nuevaPartida({ seed: 31 });
+    const delClub = (club: string) => dir(g).list({ role: 'entrenador' }).filter((n) => n.club === club);
+    expect(delClub('club_ciudad').map((n) => n.edades)).toEqual([[10, 13], [14, 17], [18, 99]]);
+    expect(delClub('club_alto_rendimiento').map((n) => n.edades)).toEqual([[14, 17], [18, 99]]);
+    expect(delClub('colegio')).toHaveLength(1);
+    for (const n of delClub('club_ciudad')) {
+      expect(n.trabajo).toBe('Club Atletismo Ciudad');
+      expect(n.profesionBasica).toMatch(/^Entrenador/);
+      expect(n.known).toBe(false);
+    }
+  });
+
+  it('en la pestaña del deporte salen tu entrenador, los días de entreno y las carreras', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
+    hacer(g, 'atletismo.apuntarse_colegio');
+    const v = g.service<DeporteService>(claveDeDeporte('atletismo'))!.view();
+    const dato = (e: string) => v.resumen.find((r) => r.etiqueta === e)!.valor;
+    expect(dato('Entrenador')).toBe(dir(g).get('entrenador')!.name);
+    expect(dato('Entrenamientos')).toBe('lunes y miércoles de 15 a 17');
+    expect(dato('Carreras')).toMatch(/sábados de 9 a 13/);
+  });
+
+  it('tu entrenador en un club de fuera es el que lleva tu edad', () => {
+    const base = nuevaPartida({ seed: 31 });
+    const guardado = base.serialize();
+    (guardado.modules.gen as { edadInicial: number }).edadInicial = 12;
+    (guardado.modules.clubes as { membresias: Record<string, unknown> }).membresias = { atletismo: { clubId: 'club_ciudad', desde: 0 } };
+    const g = conocer(cargarPartida(guardado), 'entrenador_club_ciudad_1', 'entrenador_club_ciudad_2');
+    const v = g.service<DeporteService>(claveDeDeporte('atletismo'))!.view();
+    expect(v.resumen.find((r) => r.etiqueta === 'Entrenador')!.valor).toBe(g.service<NpcDirectory>(SERVICES.npcs)!.get('entrenador_club_ciudad_1')!.name); // 10 a 13 años
+    expect(v.resumen.find((r) => r.etiqueta === 'Entrenamientos')!.valor).toBe('martes y jueves de 18 a 20');
   });
 });

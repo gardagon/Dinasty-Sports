@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CIUDAD_INICIAL, defineModule, enLugar, tiempoEntre, vecinosDe, type LugaresService } from '@ds/contracts';
-import { Game } from '@ds/core';
+import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { lugares } from './index';
 
@@ -68,6 +68,29 @@ describe('mapa de la ciudad', () => {
 
   it('los caminos directos usan lugares del mapa y salen en ambos sentidos', () => {
     for (const [a, b] of CIUDAD_INICIAL.directos) expect(ids).toContain(a), expect(ids).toContain(b);
-    expect(vecinosDe(CIUDAD_INICIAL, 'colegio').map((v) => v.lugar).sort()).toEqual(['casa', 'estadio', 'parque']);
+    expect(vecinosDe(CIUDAD_INICIAL, 'colegio').map((v) => v.lugar).sort()).toEqual(['administracion', 'casa', 'estadio', 'parque', 'sala_profesores']);
+    // Las zonas solo se enlazan con su lugar.
+    expect(vecinosDe(CIUDAD_INICIAL, 'sala_profesores')).toEqual([{ lugar: 'colegio', minutos: 2 }]);
+  });
+
+  it('las zonas cuestan 2 minutos desde su lugar y 2 más que su lugar desde cualquier otro sitio', () => {
+    expect(tiempoEntre(CIUDAD_INICIAL, 'colegio', 'sala_profesores')).toBe(2);
+    expect(tiempoEntre(CIUDAD_INICIAL, 'casa', 'sala_profesores')).toBe(tiempoEntre(CIUDAD_INICIAL, 'casa', 'colegio')! + 2);
+    expect(tiempoEntre(CIUDAD_INICIAL, 'sala_profesores', 'administracion')).toBe(4);
+    expect(tiempoEntre(CIUDAD_INICIAL, 'sala_club_ciudad', 'sala_profesores')).toBe(tiempoEntre(CIUDAD_INICIAL, 'estadio', 'colegio')! + 4);
+  });
+
+  it('las zonas con horario salen en gris fuera de horario y dicen cuándo abren', () => {
+    const g = Game.create([personaje, lugares], { seed: 1 });
+    advanceTo(g, 'gen.descansar', 0, 7); // lunes, 7:00: la administración abre a las 9:00
+    const o = g.preview('lugares.ir_administracion')!;
+    expect(o.available).toBe(false);
+    expect(o.reason).toMatch(/cerrado.*9:00 a 13:30/);
+    advanceTo(g, 'gen.descansar', 0, 10);
+    expect(g.preview('lugares.ir_administracion')!.available).toBe(true);
+    // El sábado, cerrada; la sala de un club abre a las 9.
+    advanceTo(g, 'gen.descansar', 5, 10);
+    expect(g.preview('lugares.ir_administracion')!.available).toBe(false);
+    expect(g.preview('lugares.ir_sala_club_ciudad')!.available).toBe(true);
   });
 });

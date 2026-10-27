@@ -19,7 +19,7 @@ describe('módulo NPCs', () => {
     const g = nueva();
     const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
     const hermanos = dir.list({ tag: 'hermano' }).length;
-    expect(dir.list().length).toBe(391 + 2 + hermanos); // 4 del entorno + 96 rivales (8 por edad de 8 a 19) + la población del colegio y del barrio + los padres + los hermanos
+    expect(dir.list().length).toBe(391 + 2 + 5 + hermanos); // 4 del entorno + 96 rivales (8 por edad de 8 a 19) + la población del colegio y del barrio + los padres + 5 entrenadores de clubes + los hermanos
     expect(dir.list({ role: 'rival' })).toHaveLength(96);
     expect(dir.get('entrenador')?.role).toBe('entrenador');
   });
@@ -172,7 +172,13 @@ describe('módulo NPCs', () => {
       expect(nombres(g, 'colegio')).toEqual([]);
       advanceTo(g, 'gen.descansar', 0, 11); // el recreo es de 10:40 a 11:20
       const aqui = nombres(g, 'colegio');
-      expect(aqui).toContain('tutor');
+      // El profesorado está en la sala de profesores (menos un par que salen al patio); para hablar con ellos hay que ir allí.
+      const sala = nombres(g, 'sala_profesores');
+      expect(sala.length).toBeGreaterThanOrEqual(7);
+      expect(sala.every((id) => id === 'tutor' || id.startsWith('profesor_'))).toBe(true);
+      const alPatio = aqui.filter((id) => id === 'tutor' || id.startsWith('profesor_'));
+      expect(alPatio.length).toBeLessThanOrEqual(5);
+      expect(sala.length + alPatio.length).toBe(12);
       expect(aqui).toContain('companero_estudio');
       expect(aqui).toContain('companero_social');
       expect(aqui.some((id) => id.startsWith('rival_'))).toBe(false);
@@ -201,7 +207,8 @@ describe('módulo NPCs', () => {
       const st = g.moduleState<NpcsState>('npcs') as NpcsState;
       st.npcs = st.npcs.map((n) => (n.id === 'tutor' ? { ...n, known: true } : n));
       advanceTo(g, 'gen.descansar', 0, 11);
-      const dos = nombres(g, 'colegio', 2);
+      const donde = g.service<PresenciaService>(SERVICES.presencia)!.donde('tutor')!;
+      const dos = nombres(g, donde, 2);
       expect(dos).toHaveLength(2);
       expect(dos).toContain('tutor');
     });
@@ -210,7 +217,7 @@ describe('módulo NPCs', () => {
       const g = nueva();
       advanceTo(g, 'gen.descansar', 0, 11);
       const p = g.service<PresenciaService>(SERVICES.presencia)!;
-      expect(p.donde('tutor')).toBe('colegio');
+      expect(['sala_profesores', 'colegio']).toContain(p.donde('tutor'));
       expect(p.donde('nadie')).toBeUndefined();
       expect(p.agenda('tutor').some((x) => x.tipo === 'profesor')).toBe(true);
     });

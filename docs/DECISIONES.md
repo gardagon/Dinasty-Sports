@@ -172,6 +172,26 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Rendimiento:** la primera versión recalculaba la ruta en cada evaluación y subió el coste de la simulación de ~2,7 s a ~3,2 s por año (límite 3 s). Las rutas se calculan ahora una sola vez (el mapa no cambia en partida): ~2,75 s. Ojo al añadir lugares: cada acción de ir se evalúa en cada `listActions`.
 - **Comprobado:** tests (incluida la arquitectura) y `sim:rapida` sin cambios en el balance.
 
+## 27/10/2026 — Zonas dentro de los lugares, administración y salas de clubes, entrenadores y profesiones
+
+- **Profesión y lugar de trabajo para los adultos (decidido con el usuario).** El colegio y la clase son solo para niños en edad escolar (3 a 17). Los adultos tienen **profesión** y **lugar de trabajo**: el profesor es «Profesor» (y «Profesor de lengua» al ir a su clase o preguntar) y trabaja en «Colegio Cervantes» (nombre provisional del colegio); los entrenadores, en su club; los vecinos, un oficio de una lista. Preguntas de 2 minutos. Los datos nuevos son `profesion` y `trabajo` (`DatoPersonal`).
+- **Zonas dentro de los lugares (decidido):** `LugarDef.dentroDe`. Ejemplos: sala de profesores y administración (dentro del colegio) y la sala de cada club (dentro del estadio). Entrar o salir cuesta 2 minutos; la tabla de tiempos se completa sola (`conZonas`). **Horarios:** un lugar con horario no desaparece fuera de él: sale en gris y dice cuándo abre; las acciones que se hacen allí también, y se mira la hora a la que se llegaría.
+- **Sala de profesores:** fuera de clase el profesorado está allí (85 %; el 15 %, un par al azar, en el patio): para hablar con ellos hay que ir.
+- **Clubes (decidido):** apuntarse (y darse de baja) del club del colegio se hace en la **administración**; en los clubes de fuera, en su **sala** del estadio, donde se pide la prueba (solo en las horas de entrenamiento del club) y la inscripción. Antes de aceptar se ven los días de entreno y de carreras (descripción de la acción y, ya dentro, la pestaña «Deporte»: «Entrenamientos» y «Carreras»).
+- **Entrenadores por club y categorías (decidido):** cada club tiene varios, cada uno con unas edades (alguno lleva varias): colegio 1, Club Atletismo Ciudad 3 y Alto Rendimiento 2. Te presentan al que lleva tu edad al apuntarte y el resumen muestra el de tu edad en tu club; solo los de tu club reaccionan a tus resultados. **A futuro** cada entrenador tendrá sus habilidades (según su carácter, su conocimiento del deporte y sus capacidades), mejores en los clubes que en el colegio.
+- **Pestaña principal:** la marca de 400 m ya no sale en «Qué hacer» (está en «Deporte»).
+- **Rendimiento:** más acciones y más gente: ~0,9 ms por acción en el simulador (límite relativo ~1,1 ms). Se evitó crear funciones en cada evaluación. Si sigue creciendo habrá que subir el límite o recortar lo que se evalúa.
+- **Pendiente:** habilidades de los entrenadores, un nombre propio para el colegio y sus comercios, profesión de los padres, horarios de los comercios, y más zonas (aulas, biblioteca...).
+
+## 27/10/2026 — Datos de las personas: edad, cumpleaños, altura, colegio y clase
+
+- **Todos tienen fecha de nacimiento, cumpleaños y altura (decidido con el usuario).** Incluidos los padres (misma edad y estatura que en `familia`, ahora de una función de la semilla: `nacimientoDeProgenitor`, `alturaAdulta`) y el reparto inicial (entrenador y tutor, adultos; compañeros de 8 años como el personaje). La altura crece con la edad (`alturaDe`).
+- **Lo que se sabe y cómo:** la familia, edad y cumpleaños exactos y la altura en cm; de los demás, a simple vista, si es de tu edad o «un poco / bastante más / mucho más» mayor o menor, y lo mismo con la altura (bandas en `ANEXO_RELACIONES.md`). La edad exacta y el cumpleaños se averiguan con una pregunta de 2 minutos; la altura **no** se pregunta.
+- **Colegio y clase:** preguntas de 2 minutos. El colegio es por defecto el tuyo si es compañero y «Desconocido» si no lo sabes; la clase solo se enseña a los compañeros de colegio (la tuya, por defecto). Lo aprendido se guarda en `npcs` (`Npc.aprendido`, evento compartido `persona.dato`).
+- **Nada se guarda de más:** el colegio de fuera y la estatura de quien no es familia salen de un hash del id (estables y sin tocar el azar de la partida), y lo que se sabe por defecto se calcula.
+- **Rendimiento:** la vista de cada persona se recuerda por día; ~0,8 ms por acción en el simulador (límite ~1 ms, algo más ajustado).
+- **Pendiente:** cumpleaños como acontecimientos (felicitar, regalos), que se noten la edad y la altura del personaje, y preguntas sobre más cosas (a qué se dedica, qué le gusta).
+
 ## 26/10/2026 — Fichas con las acciones, charlas de 5 minutos, clases con margen y apellidos
 
 - **Interactuar con las personas desde su ficha (decidido con el usuario):** las acciones de relación (charlar, quedar, proponer planes...) ya no salen en «Qué hacer»: están en la ficha de cada persona, en «Gente», junto a lo que no se puede ahora y por qué. Se pierde menos lo que haces (el resultado se ve arriba en «Gente» y en «Qué hacer»).

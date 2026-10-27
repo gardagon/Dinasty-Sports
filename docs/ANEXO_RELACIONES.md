@@ -119,6 +119,33 @@ donde `habilidad` es el nivel (empatía y comunicación, 0 a 1) y `nivel` es 1 c
 
 Charlar con un compañero cualquiera a los 8 años: afinidad base 2,5. Compatibilidad típica 0,4 (×0,9), habilidad típica (×1,0) y disposición de una persona normal sin preferencias de carácter (×1,0): sube 2,5 × 0,9 × 1,0 × 1,0 ≈ **2,3**. Con un amigo sociable (×1,2) que comparte tus intereses (×1,3) y un personaje que habla bien (×1,2): 2,5 × 1,2 × 1,3 × 1,2 ≈ **4,7**. Con un solitario (×0,8) con quien casi no compartes nada (×0,75) y un personaje callado (×0,85): ≈ **1,0**.
 
+### Datos de las personas: edad, cumpleaños, altura, colegio y clase
+
+**Todas las personas tienen fecha de nacimiento (y por tanto cumpleaños) y altura** (`nacimiento`, `alturaCm` en `NpcView`; reglas en `contracts/personas.ts`). Pero el personaje solo conoce lo que ve o lo que ha preguntado (`NpcView.sabe`):
+
+| Dato | Qué se ve sin preguntar | Cómo se llega a saber |
+|---|---|---|
+| **Edad y cumpleaños** | A simple vista, cuánto mayor o menor es respecto a ti (bandas de abajo). La familia (padres y hermanos): edad y cumpleaños exactos | Acción «Preguntar cuántos años tiene y cuándo cumple» (2 min): da los años y el día («12 de marzo») |
+| **Altura** | Siempre a simple vista respecto a la tuya (bandas de abajo); de la familia, la cifra en cm. **No se pregunta** | — |
+| **Profesión** (adultos) | Lo básico a simple vista en el profesorado y los entrenadores («Profesor», «Entrenador»); de los vecinos, nada | Acción «Preguntar a qué se dedica» (2 min); a los profesores, también al ir a su clase; a los entrenadores, al apuntarte a su club. Da el detalle («Profesor de lengua», «Entrenador de atletismo», «Camarero»…) |
+| **Lugar de trabajo** (adultos) | Por defecto el del profesorado y los entrenadores: «Colegio Cervantes» o el club. De los vecinos, «Desconocido». Los jubilados no tienen | Acción «Preguntar dónde trabaja» (2 min) |
+| **Colegio** | **Solo para niños en edad escolar** (3 a 17 años). **Por defecto**, el tuyo si es compañero («Colegio Cervantes»; alumnos y hermanos en edad escolar). Quien va a otro (rivales, vecinos de 3 a 17 años; nombres provisionales `colegio1`…`colegio4`) es «Desconocido» | Acción «Preguntar a qué colegio va» (2 min) |
+| **Clase** | Solo se enseña a los compañeros de colegio. Por defecto, la de tu clase («Tu clase»); la de los demás es «Desconocida» («La otra clase de tu curso» o «Clase de los de N años») | Acción «Preguntar a qué clase va» (2 min) |
+
+- **Oficios de los vecinos adultos** (`OFICIOS_DE_VECINOS`, por hash del id): dependiente/a (Supermercado), camarero/a y cocinero/a (Restaurante), monitor/a de gimnasio (Gimnasio municipal), oficinista (Oficina del centro), enfermero/a (Hospital), albañil (Obras), taxista (Taxi); a partir de 67 años, jubilado/a. Los padres no tienen profesión de momento.
+- Las preguntas se hacen a quien conoces y tienes delante, en su ficha («Qué hacer con…»), fuera de clase o en el recreo; solo se ofrece lo que aún no sabes y lo que aplica. Suben un poco la relación (+0,4 afinidad, +0,2 confianza) pero no cuentan como charla ni como actividad grande.
+- Las dos fechas (nacimiento y cumpleaños) usan el año de 365 días del juego. Los padres tienen de 38 a 54 años (salen de la semilla, igual en `familia` y `npcs`); los hermanos, la edad que ya tenían; los compañeros de tu clase, 8 años como tú; el entrenador y el tutor, de 28 a 55/60 años.
+- **Altura:** la altura adulta depende de la estatura heredada (hombre 178 ± 7 cm, mujer 165 ± 6,5; de los padres y hermanos, de su herencia; del resto, de un hash de su id) y crece con la edad (fracción de la adulta: 50 % a los 2 años, 66 % a los 6, 80 % a los 10, 94 % a los 14, 100 % a los 18).
+
+| Banda | Edad (diferencia en años) | Altura (diferencia en cm) | Texto |
+|---|---|---|---|
+| De los tuyos | 0 a 1 | 0 a 3 | «De tu edad, más o menos» / «De tu altura, más o menos» |
+| Un poco | 2 a 3 | 4 a 9 | «Un poco mayor/menor que tú» / «Un poco más alto/bajo que tú» |
+| Bastante | 4 a 7 | 10 a 19 | «Bastante más mayor/menor…» / «Bastante más alto/bajo…» |
+| Mucho | 8 o más | 20 o más | «Mucho más mayor/menor…» / «Mucho más alto/bajo…» |
+
+Pendiente: los cumpleaños como acontecimientos (felicitar, regalos, que te feliciten), y que alguien se fije en tu edad o tu altura.
+
 ### Cómo se llama a quien no conoces (según su edad)
 
 Quien no conoces se ve por su aspecto con un nombre que depende de su edad (`nombreSegunEdad`, `EDADES_DE_TRATO`, en `contracts/rasgos.ts`). Sin fecha de nacimiento se usa la edad aparente (`edadAparente`): profesorado y entrenadores 40 años, padres 42, compañeros 8.
@@ -145,6 +172,7 @@ Cada profesor da una asignatura (tabla `PROFESOR_DE_ASIGNATURA` en `modules/npcs
 |---|---|
 | Ganancia, confianza, duración, coste y entrenamiento de cada acción | `modules/relaciones/src/index.ts` (`accionesDeAmistad`, `hablarConAutoridad`, `saludarRival`, `discutir`, `hacerLasPaces`) |
 | Pesos de habilidad por acción, pendiente y topes de la habilidad, pesos de la disposición | `modules/relaciones/src/acciones.ts` (`HABILIDADES_DE_ACCION`, `HABILIDAD`, `DISPOSICION`) |
+| Bandas de edad y altura, cumpleaños, estaturas, colegios de fuera | `packages/contracts/src/personas.ts` |
 | Aptitudes por área | `packages/contracts/src/rasgos.ts` (`aptitudDe`) |
 | Ayuda máxima de la compañía, qué área usa cada actividad | `modules/relaciones/src/index.ts` (`AYUDA_MAXIMA`, `AFINIDAD_AYUDA_COMPLETA`, `AREA_DE_ACCION`) |
 | Reglas de los planes (probabilidades, margen, cortesía, plantón) | `modules/relaciones/src/acciones.ts` (`PLAN`, `PLANES`, `responderAPlan`) |

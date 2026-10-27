@@ -44,13 +44,19 @@ describe('agendas de las personas', () => {
     expect(vistos.size).toBe(4);
   });
 
-  it('el profesor llega a las 7:30, da clase (ocupado) hasta las 14:00 salvo el recreo, y atiende tutorías hasta las 17:00', () => {
-    expect(donde([{ tipo: 'profesor' }], 1, 7, 40)).toBe('colegio');
-    expect(donde([{ tipo: 'profesor' }], 1, 9)).toBeNull();
-    expect(donde([{ tipo: 'profesor' }], 1, 11)).toBe('colegio');
-    expect(donde([{ tipo: 'profesor' }], 1, 16)).toBe('colegio');
-    expect(donde([{ tipo: 'profesor' }], 1, 17)).toBeNull();
-    expect(donde([{ tipo: 'profesor' }], 5, 10)).toBeNull();
+  it('el profesor llega a las 7:30, da clase (ocupado) hasta las 14:00 salvo el recreo, y atiende tutorías hasta las 17:00; fuera de clase está en la sala de profesores o, un par, en el patio', () => {
+    const profesor = (dia: number, hora: number, min = 0) => donde([{ tipo: 'profesor' }], dia, hora, min);
+    const enElColegio = (s: string | null) => ['sala_profesores', 'colegio'].includes(s as string);
+    expect(enElColegio(profesor(1, 7, 40))).toBe(true);
+    expect(profesor(1, 9)).toBeNull();
+    expect(enElColegio(profesor(1, 11))).toBe(true);
+    expect(enElColegio(profesor(1, 16))).toBe(true);
+    expect(profesor(1, 17)).toBeNull();
+    expect(profesor(5, 10)).toBeNull();
+    // Del profesorado, casi todos en la sala: un 15 % en el patio.
+    const salas = Array.from({ length: 400 }, (_, i) => ubicacionEn(construirAgenda([{ tipo: 'profesor' }], datos), en(1, 11), `p${i}`).sitio).filter((s) => s === 'sala_profesores').length / 400;
+    expect(salas).toBeGreaterThan(0.78);
+    expect(salas).toBeLessThan(0.92);
   });
 
   it('el tipo dominante manda: un alumno que entra en un club de fuera va allí en la tarde de entrenamiento', () => {

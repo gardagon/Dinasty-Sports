@@ -3,6 +3,9 @@ import {
   SERVICES,
   descripcionDeDesconocido,
   edadAparente,
+  edadRelativa,
+  alturaRelativa,
+  type IdentityService,
   nombreSegunEdad,
   NOMBRE_RASGO,
   nombreEstado,
@@ -100,6 +103,34 @@ function accionesCon(g: Game, n: NpcView): string {
     ${luego.length ? `<details class="viaje-rapido"><summary>Lo que no se puede ahora (${luego.length})</summary><div class="actions">${luego.map(boton).join('')}</div></details>` : ''}`;
 }
 
+/** Edad, cumpleaños y altura: lo que sabes (la familia, o lo que has preguntado) con cifras; lo demás, a simple vista respecto a ti. */
+function datosDeCuerpo(g: Game, n: NpcView): string {
+  const yo = g.service<IdentityService>(SERVICES.identidad)?.view();
+  const filas: string[] = [];
+  if (n.edadExacta !== undefined) {
+    const sabe = n.sabe?.includes('edad');
+    const texto = sabe ? `${n.edadExacta} años · cumple el ${n.cumple}` : yo ? edadRelativa(n.edadExacta, yo.age) : '';
+    if (texto) filas.push(`<div><dt>Edad</dt><dd>${esc(texto)}</dd></div>`);
+  }
+  if (n.alturaCm !== undefined && yo) {
+    // La altura se ve a ojo respecto a la tuya; la cifra exacta solo la sabes de la familia.
+    const texto = n.role === 'familia' ? `${Math.round(n.alturaCm)} cm` : alturaRelativa(n.alturaCm, yo.heightCm, n.gender);
+    filas.push(`<div><dt>Altura</dt><dd>${esc(texto)}</dd></div>`);
+  }
+  return filas.length ? `<dl class="identity">${filas.join('')}</dl>` : '';
+}
+
+/** Colegio (si aplica: el tuyo por defecto si es compañero; si no, desconocido hasta que lo preguntes) y clase (solo si es de tu colegio). */
+function datosDeEstudios(n: NpcView): string {
+  const filas: string[] = [];
+  // Los adultos: a qué se dedican (lo que se ve sin preguntar y, preguntando, el detalle) y dónde trabajan.
+  if (n.profesion !== undefined) filas.push(`<div><dt>Profesión</dt><dd>${esc(n.sabe?.includes('profesion') ? n.profesion : (n.profesionBasica ?? 'Desconocida'))}</dd></div>`);
+  if (n.trabajo !== undefined) filas.push(`<div><dt>Trabajo</dt><dd>${esc(n.sabe?.includes('trabajo') ? n.trabajo : 'Desconocido')}</dd></div>`);
+  if (n.colegio !== undefined) filas.push(`<div><dt>Colegio</dt><dd>${esc(n.sabe?.includes('colegio') ? n.colegio : 'Desconocido')}</dd></div>`);
+  if (n.clase !== undefined) filas.push(`<div><dt>Clase</dt><dd>${esc(n.sabe?.includes('clase') ? n.clase : 'Desconocida')}</dd></div>`);
+  return filas.length ? `<dl class="identity">${filas.join('')}</dl>` : '';
+}
+
 function ficha(g: Game, n: NpcView): string {
   const rel = g.service<RelationsService>(SERVICES.relaciones)?.get(n.id);
   const nombre = conocida(n) ? esc(n.name) : '???';
@@ -107,7 +138,7 @@ function ficha(g: Game, n: NpcView): string {
   let cuerpo: string;
   if (pestana === 'aspecto') {
     // La frase ya dice el pelo, los ojos, la piel y los distintivos: aquí solo se añade lo que no dice (la forma de la cara).
-    cuerpo = `<p>${esc(aspecto(n))}.</p>${n.rasgos ? `<p class="note">Cara ${esc(NOMBRE_RASGO[n.rasgos.apariencia.cara])}.</p>` : ''}`;
+    cuerpo = `<p>${esc(aspecto(n))}.</p>${n.rasgos ? `<p class="note">Cara ${esc(NOMBRE_RASGO[n.rasgos.apariencia.cara])}.</p>` : ''}${datosDeCuerpo(g, n)}`;
   } else if (!conocida(n)) {
     // Preguntar el nombre solo se puede a quien tienes cerca (el motor lo dice en la disponibilidad de la acción).
     const pregunta = g.preview(`relaciones.presentarse.${n.id}`);
@@ -117,7 +148,7 @@ function ficha(g: Game, n: NpcView): string {
     cuerpo = `<p>${esc(aspecto(n))}.</p><p class="note">Todavía no sabes cómo se llama. ${n.description ? esc(n.description) : ''}</p>${barra('Amistad', 0, 'amistad')}${barra('Confianza', 0, 'confianza')}${boton}`;
   } else {
     const nivel = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
-    cuerpo = `<p>${esc(n.description ?? '')}</p>${rel ? `<p class="note"><b>${esc(nombreEstado(rel.estado, n.gender))}</b></p>` : ''}${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}${nivel ? `<p class="note">Nivel: ${esc(nivel)}</p>` : ''}${n.club ? `<p class="note">Club: ${esc(n.club)}</p>` : ''}`;
+    cuerpo = `<p>${esc(n.description ?? '')}</p>${rel ? `<p class="note"><b>${esc(nombreEstado(rel.estado, n.gender))}</b></p>` : ''}${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}${nivel ? `<p class="note">Nivel: ${esc(nivel)}</p>` : ''}${n.club ? `<p class="note">Club: ${esc(n.club)}</p>` : ''}${datosDeEstudios(n)}`;
   }
   const acciones = pestana === 'resumen' && conocida(n) ? accionesCon(g, n) : '';
   return `<section class="sheet ficha-gente">

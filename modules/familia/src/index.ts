@@ -1,4 +1,4 @@
-import { GEN, apellidosDeFamilia, nombreDeProgenitor, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext,
+import { GEN, alturaAdulta, apellidosDeFamilia, nacimientoDeProgenitor, nombreDeProgenitor, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext,
   type NpcDirectory, type ParentView, type Practica, type RasgosDe, type ReadContext } from '@ds/contracts';
 
 /**
@@ -48,8 +48,8 @@ function nuevoProgenitor(id: 'padre' | 'madre', ctx: InitContext): Progenitor {
     id,
     nombre: nombreDeProgenitor(ctx.seed, id),
     gender,
-    nacimiento: -Math.round((rng.range(30, 46) + 8) * 365),
-    alturaCm: redondea(id === 'padre' ? clamp(178 + 7 * ctx.herencia('estatura').padre, 160, 200) : clamp(165 + 6.5 * ctx.herencia('estatura').madre, 148, 185)),
+    nacimiento: nacimientoDeProgenitor(ctx.seed, id),
+    alturaCm: redondea(alturaAdulta(gender, ctx.herencia('estatura')[id])),
     ...(practica === 'ninguna' ? {} : { deporte: rng.pick(DEPORTES) }),
     practica,
     perks: { activos: [...ctx.perksDePadres[id].activos], pool: [...ctx.perksDePadres[id].pool] },
