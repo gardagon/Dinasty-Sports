@@ -337,6 +337,20 @@ describe('hermanos', () => {
     expect(cuenta.every((c) => c > 0)).toBe(true);
   });
 
+  it('«mayor» y «pequeño» concuerdan con la edad: el que tiene más años que el personaje (8) es mayor, y el que tiene menos, pequeño', () => {
+    let mayores = 0, menores = 0;
+    for (const g of partidas) {
+      for (const h of hermanosDe(g)) {
+        const mayor = h.age! > 8, menor = h.age! < 8;
+        expect(h.description, `${h.name}, ${h.age} años`).toMatch(mayor ? /mayor\./ : menor ? /pequeñ[oa]\./ : /Tu melliz[oa]\./);
+        if (mayor) mayores++;
+        if (menor) menores++;
+      }
+    }
+    expect(mayores).toBeGreaterThan(0);
+    expect(menores).toBeGreaterThan(0);
+  });
+
   it('son mayores o menores que el personaje (de 2 a 14 años al empezar), sin repetir edad', () => {
     for (const g of partidas) {
       const edades = hermanosDe(g).map((h) => g.service<NpcDirectory>(SERVICES.npcs)!.get(h.id)!.age!);

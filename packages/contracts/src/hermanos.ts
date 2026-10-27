@@ -64,8 +64,16 @@ export function numeroDeHermanos(rng: Rng): number {
   return PESOS_DE_HERMANOS.length - 1;
 }
 
+/** Lo que es un hermano para el personaje según cuánto más años tiene (positivo: mayor; negativo: menor; 0: mellizo). */
+export function relacionDeHermano(gender: 'f' | 'm', diferencia: number): string {
+  const f = gender === 'f';
+  if (diferencia === 0) return f ? 'Tu melliza' : 'Tu mellizo';
+  if (diferencia > 0) return f ? 'Tu hermana mayor' : 'Tu hermano mayor';
+  return f ? 'Tu hermana pequeña' : 'Tu hermano pequeño';
+}
+
 /**
- * Diferencias de edad con el personaje de `n` hermanos (negativo: mayor; positivo: menor). Sin repetir, salvo un mellizo
+ * Diferencias de edad con el personaje de `n` hermanos (positivo: el hermano es mayor; negativo: menor). Sin repetir, salvo un mellizo
  * (diferencia 0) con poca probabilidad.
  */
 export function diferenciasDeEdad(n: number, rng: Rng): number[] {

@@ -15,6 +15,7 @@ import {
   type NpcView,
   type PresenciaService,
   type RelationsService,
+  type RelationView,
 } from '@ds/contracts';
 import type { Game } from '@ds/core';
 
@@ -23,11 +24,12 @@ import type { Game } from '@ds/core';
  * descripción de su aspecto (y lo que es para ti: compañero, rival...) hasta que hables con él o con ella.
  */
 
-type Filtro = 'aqui' | 'conocidos' | 'companeros' | 'profesorado' | 'rivales' | 'vecinos';
+type Filtro = 'aqui' | 'familia' | 'conocidos' | 'companeros' | 'profesorado' | 'rivales' | 'vecinos';
 type Pestana = 'resumen' | 'aspecto';
 
 const FILTROS: [Filtro, string][] = [
   ['aqui', 'Aquí'],
+  ['familia', 'Familia'],
   ['conocidos', 'Conocidos'],
   ['companeros', 'Compañeros'],
   ['profesorado', 'Profesorado'],
@@ -57,13 +59,34 @@ const rol = (n: NpcView) =>
 const conocida = (n: NpcView) => n.known !== false;
 const aspecto = (n: NpcView) => (n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, edadAparente(n)) : nombreSegunEdad(n.gender, edadAparente(n)));
 
+/**
+ * Orden de todas las listas: de mayor a menor relación (mejor amigo, amigo, conocido, antipatía...), luego amistad y luego confianza.
+ * A quien aún no conoces (sin vínculo) se le deja al final; a igualdad, por nombre.
+ */
+export function ordenarPorRelacion<T extends Pick<NpcView, 'id' | 'name'>>(personas: readonly T[], vinculo: (id: string) => Pick<RelationView, 'nivel' | 'afinidad' | 'confianza'> | undefined): T[] {
+  const clave = (n: T) => {
+    const v = vinculo(n.id);
+    return v ? [v.nivel, v.afinidad, v.confianza] : [-Infinity, 0, 0];
+  };
+  return [...personas].sort((a, b) => {
+    const x = clave(a), y = clave(b);
+    return y[0] - x[0] || y[1] - x[1] || y[2] - x[2] || a.name.localeCompare(b.name, 'es');
+  });
+}
+
 /** Cuánta gente tienes cerca ahora (la de «Aquí»): es el número que lleva la pestaña. */
 export function genteAqui(g: Game): number {
   return personasDe(g, 'aqui').length;
 }
 
-/** Las personas del filtro elegido: en «Aquí» las que tienes cerca (conocidas o no) y en los demás solo las que conoces. */
+/** Las personas del filtro elegido, ordenadas por relación, amistad y confianza. */
 function personasDe(g: Game, f: Filtro): NpcView[] {
+  const relaciones = g.service<RelationsService>(SERVICES.relaciones);
+  return ordenarPorRelacion(personasSinOrdenar(g, f), (id) => relaciones?.get(id));
+}
+
+/** Las personas del filtro elegido: en «Aquí» las que tienes cerca (conocidas o no) y en los demás solo las que conoces. */
+function personasSinOrdenar(g: Game, f: Filtro): NpcView[] {
   const dir = g.service<NpcDirectory>(SERVICES.npcs);
   if (!dir) return [];
   if (f === 'aqui') {
@@ -74,6 +97,7 @@ function personasDe(g: Game, f: Filtro): NpcView[] {
   // Fuera de «Aquí» solo se guardan las personas que ya conoces: a quien no conoces solo lo ves cuando lo tienes cerca.
   const conocidas = { known: true };
   return f === 'conocidos' ? dir.list(conocidas)
+    : f === 'familia' ? dir.list({ role: 'familia', ...conocidas })
     : f === 'companeros' ? dir.list({ role: 'companero', ...conocidas })
     : f === 'rivales' ? dir.list({ role: 'rival', ...conocidas })
     : f === 'vecinos' ? dir.list({ role: 'vecino', ...conocidas })

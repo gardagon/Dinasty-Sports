@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 27/10/2026 — Hermanos mayor/menor, pestaña «Familia» y orden de la gente
+
+- **Fallo:** un hermano de 6 años salía como «Tu hermana mayor» (el personaje empieza con 8). El signo de la diferencia de edad estaba al revés al escribir la descripción (`edad = 8 + dif`, pero se llamaba «mayor» a `dif < 0`); la edad y los demás datos eran correctos. Ahora la diferencia es positiva si el hermano es mayor (`relacionDeHermano`, `contracts/hermanos.ts`) y el texto **se calcula al mostrar** a partir de los años de nacimiento (no se usa el guardado), así que corrige también las partidas ya empezadas. Test: el texto concuerda con la edad en 200 partidas.
+- **Gente:** nueva pestaña **Familia** (padres y hermanos) entre «Aquí» y «Conocidos».
+- **Orden de todas las listas** (Gente y la lista de Relaciones): de mayor a menor **relación** (mejor amigo, amigo, conocido, antipatía, enemigo...), después **amistad** y después **confianza**; quien aún no conoces va al final y a igualdad se ordena por nombre (`ordenarPorRelacion`, con tests). Antes salían en el orden del directorio, y una conocida con mucha amistad quedaba detrás de personas con menos; los padres y los hermanos se perdían entre los demás.
+
+---
+
 ## 27/10/2026 — Patio del colegio, «Pasar el rato» y texto de «Jugar con otros niños»
 
 - **«Esperar 5 minutos» pasa a «Pasar el rato»** (mismo id `gen.esperar`, 5 minutos). Cambian el nombre, la descripción y el aviso de la interfaz cuando no hay nada que hacer.
