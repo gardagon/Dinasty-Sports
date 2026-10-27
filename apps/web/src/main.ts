@@ -13,6 +13,7 @@ import {
   PRACTICA_TEXTO,
   type LogTable,
   type NpcDirectory,
+  fechaDelDia,
   type PerksService,
   type ProfileService,
   type Gustos,
@@ -31,7 +32,8 @@ import {
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
-import { clicEnDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
+import { hayEstudios, viewEstudios } from './estudios';
+import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { clicEnGente, genteAqui, reiniciarGente, viewPanelGente } from './gente';
 import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
@@ -42,7 +44,7 @@ import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida
 
 // ------------------------------------------------------------------ estado de la UI
 
-type Tab = 'hacer' | 'personaje' | 'deporte' | 'gente' | 'relaciones' | 'diario';
+type Tab = 'hacer' | 'personaje' | 'estudios' | 'deporte' | 'gente' | 'relaciones' | 'diario';
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const ESTADO = [GEN.energia, GEN.salud, GEN.estres, GEN.motivacion];
@@ -235,7 +237,7 @@ function viewDay(g: Game): string {
 
   return `<header class="day">
     <div class="day-top">
-      <h1 class="clock">${hhmm(t.minuteOfDay)}<small>${DIAS[t.weekday]} · curso ${t.schoolYear + 1}, semana ${t.schoolWeek + 1}<br>${t.period === 'clase' ? `${t.term}.º trimestre` : NOMBRE_PERIODO[t.period]}</small></h1>
+      <h1 class="clock">${hhmm(t.minuteOfDay)}<small>${DIAS[t.weekday]} ${fechaDelDia(t.day).texto} · curso ${t.schoolYear + 1}, semana ${t.schoolWeek + 1}<br>${t.period === 'clase' ? `${t.term}.º trimestre` : NOMBRE_PERIODO[t.period]}</small></h1>
       <div class="who"><strong>${esc(g.playerName)}</strong><span class="copias"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="reiniciar">Nueva partida</button></span></div>
     </div>
     <div class="lane" role="img" aria-label="Lo que has hecho hoy">${blocks}<span class="lane-now" style="left:calc(${now}% - 1px)"></span></div>
@@ -379,16 +381,17 @@ function viewFamily(g: Game): string {
   const filas = f
     .parents()
     .map((p) => {
-      const deporte = p.deporte ? `${PRACTICA_TEXTO[p.practica]} (${p.deporte})` : PRACTICA_TEXTO[p.practica];
+      // Lo que practicaron de deporte es herencia (pruebas): no sale en el juego normal.
+      const deporte = MOSTRAR_GENETICA ? ` ${p.deporte ? `${PRACTICA_TEXTO[p.practica]} (${p.deporte})` : PRACTICA_TEXTO[p.practica]}.` : '';
       const perksPadre = MOSTRAR_GENETICA ? ` Perks: ${textoPerks(p.perks)}. Origen: ${describirOrigen(p.rasgos.origen)}. Apariencia: ${describirApariencia(p.rasgos.apariencia)}. Carácter: ${describirCaracter(p.rasgos.caracter)}. Intereses: ${textoIntereses(p.rasgos.intereses, 'npc')}.` : '';
-      return `<p class="note"><b>${p.gender === 'f' ? 'Madre' : 'Padre'}:</b> ${esc(p.nombre)}, ${p.edad} años, ${Math.round(p.alturaCm)} cm. ${esc(deporte)}. Apoyo ${p.apoyo}, expectativas ${p.expectativas}, tiempo en casa ${p.tiempoEnCasa}.${esc(perksPadre)}</p>`;
+      return `<p class="note"><b>${p.gender === 'f' ? 'Madre' : 'Padre'}:</b> ${esc(p.nombre)}, ${p.edad} años, ${Math.round(p.alturaCm)} cm.${esc(deporte)} Apoyo ${p.apoyo}, expectativas ${p.expectativas}, tiempo en casa ${p.tiempoEnCasa}.${esc(perksPadre)}</p>`;
     })
     .join('');
   const hermanos = f
     .siblings()
     .map((h) => {
       const rasgos = MOSTRAR_GENETICA && h.rasgos ? ` Carácter: ${describirCaracter(h.rasgos.caracter)}. Intereses: ${textoIntereses(h.rasgos.intereses, 'npc')}.` : '';
-      const nivel = h.levels.atletismo !== undefined ? ` Atletismo ${Math.round(h.levels.atletismo)}.` : '';
+      const nivel = MOSTRAR_GENETICA && h.levels.atletismo !== undefined ? ` Atletismo ${Math.round(h.levels.atletismo)}.` : '';
       return `<p class="note"><b>${h.gender === 'f' ? 'Hermana' : 'Hermano'}:</b> ${esc(h.name)}, ${h.age ?? '?'} años.${nivel}${esc(rasgos)}</p>`;
     })
     .join('');
@@ -442,9 +445,6 @@ function viewIdentity(g: Game): string {
   const id = g.service<IdentityService>(SERVICES.identidad)?.view();
   if (!id) return '';
   const fmt = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  const curso = g.service<StudiesService>(SERVICES.estudios)?.courseName();
-  const clubes = g.service<ClubDirectory>(SERVICES.clubes);
-  const club = clubes ? (clubes.membership('atletismo')?.nombre ?? 'Sin club') : undefined;
   return `<section class="sheet"><h2>${esc(g.playerName)}</h2>
     <dl class="identity">
       <div><dt>Edad</dt><dd>${id.age} años</dd></div>
@@ -452,8 +452,6 @@ function viewIdentity(g: Game): string {
       <div><dt>Peso</dt><dd>${fmt(id.weightKg)} kg</dd></div>
       <div><dt>Dominancia</dt><dd>${id.leftHanded ? 'Zurdo' : 'Diestro'}</dd></div>
       <div><dt>Complexión</dt><dd>${COMPLEXION[id.bodyType]}</dd></div>
-      ${curso ? `<div><dt>Curso</dt><dd>${esc(curso)}</dd></div>` : ''}
-      ${club ? `<div><dt>Club de atletismo</dt><dd>${esc(club)}</dd></div>` : ''}
     </dl>
     ${viewFamily(g)}
     ${viewPerks(g)}
@@ -468,7 +466,7 @@ function viewGenetics(g: Game): string {
   if (!MOSTRAR_GENETICA) return '';
   const n = (v: number | undefined) => (v === undefined ? '—' : String(Math.round(v)));
   const filas = g.registry.statList
-    .filter((s) => g.hiddenPotential(s.def.id) !== undefined)
+    .filter((s) => g.hiddenPotential(s.def.id) !== undefined && s.module !== 'estudios' && !habilidadesDeDeporte(g).has(s.def.id))
     .map((s) => {
       const id = s.def.id;
       const origen = g.geneticOrigin(id);
@@ -483,7 +481,7 @@ function viewGenetics(g: Game): string {
   return `<section class="sheet"><h2>Genética (solo pruebas)</h2>
     <p class="note"><b>Padre:</b> ${esc(g.parentBias('padre') ?? '—')} (calidad ${Math.round((g.parentQuality('padre') ?? 0) * 100)}) · <b>Madre:</b> ${esc(g.parentBias('madre') ?? '—')} (calidad ${Math.round((g.parentQuality('madre') ?? 0) * 100)})</p>
     <div class="table"><table><thead><tr><th>Capacidad</th><th>Padre</th><th>Madre</th><th>Tope tuyo</th></tr></thead><tbody>${filas}</tbody></table></div>
-    <p class="note">Topes genéticos ocultos. Cada capacidad la hereda UN solo padre (la flecha marca cuál; la mitad de cada uno, al azar) con una variación de ±20 %, sin punto intermedio. Las asignaturas y las habilidades de atletismo no se heredan: salen de las capacidades que las apoyan más una aptitud propia (derivado). Se ocultará al pasar a beta.</p>
+    <p class="note">Topes genéticos ocultos. Cada capacidad la hereda UN solo padre (la flecha marca cuál; la mitad de cada uno, al azar) con una variación de ±20 %, sin punto intermedio. Las asignaturas y las habilidades de un deporte (que se ven en sus pestañas) no se heredan: salen de las capacidades que las apoyan más una aptitud propia. Se ocultará al pasar a beta.</p>
   </section>`;
 }
 
@@ -493,11 +491,11 @@ const MOSTRAR_CIFRAS_ASIGNATURAS = true;
 function viewCharacter(g: Game): string {
   const estudios = g.service<StudiesService>(SERVICES.estudios);
   const groups = new Map<string, string[]>();
-  // Solo se muestran las asignaturas del curso actual.
-  const activas = g.service<StudiesService>(SERVICES.estudios)?.activeSubjects();
+  // Las asignaturas van en la pestaña «Estudios» y las habilidades de un deporte en «Deporte»: aquí solo lo genérico.
+  const deSuPestana = habilidadesDeDeporte(g);
   for (const s of g.registry.statList) {
     if (s.def.category === 'estado' || s.def.hidden) continue;
-    if (activas && s.module === 'estudios' && !activas.includes(s.def.id)) continue;
+    if (s.module === 'estudios' || deSuPestana.has(s.def.id)) continue;
     const key = s.def.group ?? g.registry.moduleNames.get(s.module) ?? s.module;
     groups.set(key, [...(groups.get(key) ?? []), s.def.id]);
   }
@@ -528,24 +526,6 @@ function viewCharacter(g: Game): string {
   return `<section class="sheet"><h2>Características</h2>${rows}
     <p class="note">La marca gris es tu techo actual: sube con la edad y cuando mejoran las características que lo apoyan.${MOSTRAR_GENETICA ? ' La marca de color es tu tope genético (solo pruebas: se ocultará al pasar a beta).' : ''}</p>
   </section>${viewGenetics(g)}`;
-}
-
-function viewResults(g: Game): string {
-  const parts: string[] = [];
-  const est = g.service<StudiesService>(SERVICES.estudios);
-  if (est) {
-    const m = est.average();
-    const dias = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
-    const exs = est.upcomingExams(14);
-    const proximos = exs.length
-      ? `<ul class="note">${exs.map((e) => `<li><b>${esc(e.name)}</b> (${{ parcial1: 'parcial 1', parcial2: 'parcial 2', global: 'global' }[e.tipo]}): ${e.inDays === 0 ? 'hoy' : e.inDays === 1 ? 'mañana' : `el ${dias[e.day % 7]} (en ${e.inDays} días)`}</li>`).join('')}</ul>`
-      : '<span class="note">No hay exámenes a la vista.</span>';
-    const hoy = g.time.isSchoolDay ? est.timetable(g.time.weekday).map((id) => esc(g.registry.stats.get(id)?.def.name ?? id)).join(', ') : '';
-    parts.push(`<p>Nota media reciente: <b>${m === null ? 'sin exámenes aún' : m.toFixed(1)}</b><br><span class="note">Faltas: ${est.absences()}. Cada trimestre: dos parciales y el global (40 % la media de los parciales, 60 % el global).</span></p>
-      <h3>Exámenes próximos</h3>${proximos}${hoy ? `<p class="note">Hoy hay clase de: ${hoy}.</p>` : ''}`);
-  }
-  // Las marcas y carreras de un deporte van en su pestaña «Deporte», no aquí.
-  return parts.length ? `<section class="sheet"><h2>Resultados</h2>${parts.join('')}</section>` : '';
 }
 
 /** Mientras dure la fase de pruebas se enseñan las cifras de cada relación. Ponlo en `false` al pasar a beta. */
@@ -600,6 +580,7 @@ function viewGame(g: Game): string {
   const tabs: [Tab, string, string?][] = [
     ['hacer', 'Qué hacer'],
     ['personaje', 'Personaje'],
+    ...(hayEstudios(g) ? ([['estudios', 'Estudios']] as [Tab, string][]) : []),
     ...(deporte ? ([['deporte', deporte.etiqueta, deporte.inactivo]] as [Tab, string, string?][]) : []),
     ['gente', `Gente (${genteAqui(g)})`],
     ['relaciones', 'Relaciones'],
@@ -609,11 +590,11 @@ function viewGame(g: Game): string {
   let side = '';
   if (tab === 'hacer') {
     main = viewLugar(g) + viewResult() + viewActions(g);
-    side = viewViaje(g) + viewPlanes(g) + viewResults(g);
+    side = viewViaje(g) + viewPlanes(g);
   } else if (tab === 'personaje') {
     main = viewIdentity(g) + viewCharacter(g);
-    side = viewResults(g);
-  } else if (tab === 'deporte') main = viewDeporte(g);
+  } else if (tab === 'estudios') main = viewEstudios(g);
+  else if (tab === 'deporte') main = viewDeporte(g);
   else if (tab === 'gente') main = viewResult() + viewPanelGente(g);
   else if (tab === 'relaciones') main = viewPeople(g);
   else main = viewLog(g);

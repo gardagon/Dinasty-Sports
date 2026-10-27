@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DIAS_DE_ENERO_AL_INICIO_DEL_CURSO } from './calendar';
-import { alturaDe, alturaRelativa, cumpleaños, edadCumplida, edadRelativa, estaturaZ, nacimientoDeProgenitor, nacimientoParaEdad } from './personas';
+import { fechaDelDia, alturaDe, alturaRelativa, cumpleaños, edadCumplida, edadRelativa, estaturaZ, nacimientoDeProgenitor, nacimientoParaEdad } from './personas';
 
 describe('datos de las personas', () => {
   it('el cumpleaños sale del día de nacimiento: 1 de enero, 31 de diciembre y un día intermedio', () => {
@@ -9,6 +9,15 @@ describe('datos de las personas', () => {
     expect(cumpleaños(-DIAS_DE_ENERO_AL_INICIO_DEL_CURSO + 31 + 28 + 14).texto).toBe('15 de marzo');
     // Un año antes o después, el mismo día.
     expect(cumpleaños(-DIAS_DE_ENERO_AL_INICIO_DEL_CURSO - 365 * 8 + 59).texto).toBe(cumpleaños(-DIAS_DE_ENERO_AL_INICIO_DEL_CURSO + 59).texto);
+  });
+
+  it('la fecha del día: el día 0 es el 10 de septiembre y el año da la vuelta; el cumpleaños sale en formato corto', () => {
+    expect(fechaDelDia(0).texto).toBe('10 de septiembre');
+    expect(fechaDelDia(0).corto).toBe('10/09');
+    expect(fechaDelDia(0 + 365).corto).toBe('10/09');
+    expect(fechaDelDia(-DIAS_DE_ENERO_AL_INICIO_DEL_CURSO).corto).toBe('01/01');
+    expect(fechaDelDia(-DIAS_DE_ENERO_AL_INICIO_DEL_CURSO + 115).corto).toBe('26/04'); // 31+28+31+25 días después del 1 de enero
+    expect(cumpleaños(-DIAS_DE_ENERO_AL_INICIO_DEL_CURSO + 115).corto).toBe('26/04');
   });
 
   it('quien nace para tener una edad la cumple al empezar el curso o poco antes', () => {

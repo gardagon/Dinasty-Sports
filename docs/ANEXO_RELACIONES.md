@@ -125,7 +125,7 @@ Charlar con un compañero cualquiera a los 8 años: afinidad base 2,5. Compatibi
 
 | Dato | Qué se ve sin preguntar | Cómo se llega a saber |
 |---|---|---|
-| **Edad y cumpleaños** | A simple vista, cuánto mayor o menor es respecto a ti (bandas de abajo). La familia (padres y hermanos): edad y cumpleaños exactos | Acción «Preguntar cuántos años tiene y cuándo cumple» (2 min): da los años y el día («12 de marzo») |
+| **Edad y cumpleaños** | A simple vista, cuánto mayor o menor es respecto a ti (bandas de abajo). La familia (padres y hermanos): edad y cumpleaños exactos | Acción «Preguntar cuántos años tiene y cuándo cumple» (2 min): da los años y el día. En la ficha son **dos datos aparte**: «Edad: 8 años» y «Cumpleaños: 26/04» (día/mes del calendario) |
 | **Altura** | Siempre a simple vista respecto a la tuya (bandas de abajo); de la familia, la cifra en cm. **No se pregunta** | — |
 | **Profesión** (adultos) | Lo básico a simple vista en el profesorado y los entrenadores («Profesor», «Entrenador»); de los vecinos, nada | Acción «Preguntar a qué se dedica» (2 min); a los profesores, también al ir a su clase; a los entrenadores, al apuntarte a su club. Da el detalle («Profesor de lengua», «Entrenador de atletismo», «Camarero»…) |
 | **Lugar de trabajo** (adultos) | Por defecto el del profesorado y los entrenadores: «Colegio Cervantes» o el club. De los vecinos, «Desconocido». Los jubilados no tienen | Acción «Preguntar dónde trabaja» (2 min) |

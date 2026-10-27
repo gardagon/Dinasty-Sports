@@ -46,13 +46,16 @@ export function oficioDeVecino(id: string, gender: 'f' | 'm', edad: number): { p
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const DIAS_DEL_MES = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-/** Día y mes del cumpleaños de quien nació en el día `nacimiento` (relativo al inicio de la partida; el año tiene 365 días). */
-export function cumpleaños(nacimiento: number): { dia: number; mes: number; texto: string } {
-  let d = (((nacimiento + DIAS_DE_ENERO_AL_INICIO_DEL_CURSO) % 365) + 365) % 365;
+/** Fecha del calendario (día y mes) de un día de la partida (el día 0 es el lunes 10 de septiembre; el año tiene 365 días, sin bisiestos). */
+export function fechaDelDia(dia: number): { dia: number; mes: number; texto: string; corto: string } {
+  let d = (((dia + DIAS_DE_ENERO_AL_INICIO_DEL_CURSO) % 365) + 365) % 365;
   let mes = 0;
   while (d >= DIAS_DEL_MES[mes]) d -= DIAS_DEL_MES[mes++];
-  return { dia: d + 1, mes: mes + 1, texto: `${d + 1} de ${MESES[mes]}` };
+  return { dia: d + 1, mes: mes + 1, texto: `${d + 1} de ${MESES[mes]}`, corto: `${String(d + 1).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}` };
 }
+
+/** Cumpleaños de quien nació en el día `nacimiento`: la misma fecha del calendario cada año (`corto`: «26/04»). */
+export const cumpleaños = fechaDelDia;
 
 /** Años cumplidos el día `hoy` por quien nació el día `nacimiento`. */
 export const edadCumplida = (nacimiento: number, hoy: number): number => Math.floor((hoy - nacimiento) / 365);

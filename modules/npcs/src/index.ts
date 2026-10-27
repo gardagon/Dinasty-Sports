@@ -618,7 +618,7 @@ const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
     club: n.club,
     rasgos: n.rasgos,
     description: n.description,
-    ...(n.nacimiento === undefined ? {} : { nacimiento: n.nacimiento, edadExacta: edadCumplida(n.nacimiento, hoy), cumple: cumpleaños(n.nacimiento).texto, alturaCm: alturaHoy(n, hoy) }),
+    ...(n.nacimiento === undefined ? {} : { nacimiento: n.nacimiento, edadExacta: edadCumplida(n.nacimiento, hoy), cumple: cumpleaños(n.nacimiento).corto, alturaCm: alturaHoy(n, hoy) }),
     colegio: colegioDe(n, age),
     clase: claseDe(n, age),
     ...(n.nacimiento === undefined ? {} : (() => { const o = ocupacionDe(n, edadCumplida(n.nacimiento, hoy)); return { profesion: o.profesion, profesionBasica: o.basica, trabajo: o.trabajo }; })()),
@@ -827,7 +827,7 @@ export const npcs = defineModule<NpcsState>({
       ctx.updateState<NpcsState>((st) => ({ npcs: st.npcs.map((x) => (x.id === npcId ? { ...x, aprendido: [...(x.aprendido ?? []), dato] } : x)) }));
       const quien = n.name.split(' ')[0];
       const respuesta =
-        dato === 'edad' ? `${quien} tiene ${v.edadExacta} años y cumple el ${v.cumple}.`
+        dato === 'edad' ? `${quien} tiene ${v.edadExacta} años y cumple el ${cumpleaños(n.nacimiento!).texto}.`
         : dato === 'colegio' ? `${quien} va a ${v.colegio === COLEGIO_DEL_PERSONAJE ? 'tu colegio' : v.colegio}.`
         : `${quien} va a ${v.clase?.toLowerCase()}.`;
       ctx.log(respuesta, 'info');

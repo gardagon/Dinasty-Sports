@@ -18,6 +18,11 @@ export function deportesDe(g: Game): DeporteView[] {
     .filter((v): v is DeporteView => !!v);
 }
 
+/** Ids de las habilidades propias de los deportes: se ven en la pestaña «Deporte», no en «Personaje». */
+export function habilidadesDeDeporte(g: Game): Set<string> {
+  return new Set(deportesDe(g).flatMap((d) => d.habilidades));
+}
+
 function tabla(t: LogTable): string {
   const cls = (i: number) => (t.align?.[i] === 'right' ? ' class="num"' : '');
   const head = t.header.map((h, i) => `<th${cls(i)}>${esc(h)}</th>`).join('');

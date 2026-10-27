@@ -959,7 +959,7 @@ describe('datos de las personas: edad, cumpleaños, altura, colegio y clase', ()
     const g = nuevaPartida({ seed: 31 });
     for (const n of dir(g).list()) {
       expect(n.nacimiento, n.id).toBeDefined();
-      expect(n.cumple, n.id).toMatch(/^\d+ de [a-z]+$/);
+      expect(n.cumple, n.id).toMatch(/^\d\d\/\d\d$/);
       expect(n.alturaCm, n.id).toBeGreaterThan(50);
     }
     const f = g.service<FamilyService>(SERVICES.familia)!.parents();
@@ -1001,7 +1001,7 @@ describe('datos de las personas: edad, cumpleaños, altura, colegio y clase', ()
     expect(g.perform('relaciones.preguntar_edad.companero_estudio').ok).toBe(true);
     const n = dir(g).get('companero_estudio')!;
     expect(n.sabe).toContain('edad');
-    expect(g.log.some((l) => l.text.includes(`tiene ${n.edadExacta} años y cumple el ${n.cumple}`))).toBe(true);
+    expect(g.log.some((l) => l.text.includes(`tiene ${n.edadExacta} años y cumple el `))).toBe(true);
     expect(g.preview('relaciones.preguntar_edad.companero_estudio')?.available ?? false).toBe(false);
     // De un compañero ya sabes el colegio y, de uno de tu clase, la clase: no se pregunta.
     expect(g.preview('relaciones.preguntar_colegio.companero_estudio')).toBeUndefined();

@@ -109,8 +109,10 @@ function datosDeCuerpo(g: Game, n: NpcView): string {
   const filas: string[] = [];
   if (n.edadExacta !== undefined) {
     const sabe = n.sabe?.includes('edad');
-    const texto = sabe ? `${n.edadExacta} años · cumple el ${n.cumple}` : yo ? edadRelativa(n.edadExacta, yo.age) : '';
+    const texto = sabe ? `${n.edadExacta} años` : yo ? edadRelativa(n.edadExacta, yo.age) : '';
     if (texto) filas.push(`<div><dt>Edad</dt><dd>${esc(texto)}</dd></div>`);
+    // El cumpleaños, aparte (día/mes del calendario): se sabe junto con la edad.
+    if (sabe && n.cumple) filas.push(`<div><dt>Cumpleaños</dt><dd>${esc(n.cumple)}</dd></div>`);
   }
   if (n.alturaCm !== undefined && yo) {
     // La altura se ve a ojo respecto a la tuya; la cifra exacta solo la sabes de la familia.
