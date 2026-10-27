@@ -60,7 +60,7 @@ describe('módulo estudios', () => {
     irAClase(g, 2);
     expect(g.time.minuteOfDay).toBe(10 * 60 + 35);
     esperarHasta(g, 10 * 60 + 40);
-    g.perform('estudios.recreo');
+    esperarHasta(g, 11 * 60 + 20); // el recreo
     expect(g.time.minuteOfDay).toBe(11 * 60 + 20);
     irAClase(g, 3);
     irAClase(g, 4);

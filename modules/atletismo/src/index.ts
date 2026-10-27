@@ -187,8 +187,24 @@ const DEPORTE = 'atletismo';
 const EFICIENCIA_CAMPAMENTO = 1.2;
 const caminoDeVerano = (ctx: ReadContext) => ctx.service<StudiesService>(SERVICES.estudios)?.summerPath() ?? null;
 const clubDelJugador = (ctx: ReadContext): ClubView | undefined => ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(DEPORTE);
-/** Dónde entrena el club del personaje: el colegio si es el del colegio y, si no, el estadio (sin club, el colegio). */
-const sedeDelClub = (ctx: ReadContext): readonly string[] => (clubDelJugador(ctx)?.esColegio === false ? ['estadio'] : ['colegio']);
+/** Dónde entrena el club del personaje: la pista del colegio si es el del colegio y, si no, el estadio (sin club, la pista del colegio). */
+const sedeDelClub = (ctx: ReadContext): readonly string[] => (clubDelJugador(ctx)?.esColegio === false ? ['estadio'] : ['pista_colegio']);
+/** Los miembros del club están en la pista 10 minutos antes de la sesión: desde entonces se puede entrar a entrenar (o incorporarse más tarde, con la parte proporcional). */
+const MINUTOS_ANTES_DE_SESION = 10;
+/** ¿Está en marcha (o a punto de empezar) la sesión del club del personaje y aún no ha entrenado con él hoy? Entonces no se entrena por libre: se va al club. */
+function sesionDelClubAhora(ctx: ReadContext): ClubView | undefined {
+  const club = clubDelJugador(ctx);
+  const t = ctx.time;
+  if (!club || !club.sesiones.weekdays.includes(t.weekday) || ctx.state<AtletismoState>().ultimaSesionClub === t.day) return undefined;
+  return t.minuteOfDay >= club.sesiones.desde * 60 - MINUTOS_ANTES_DE_SESION && t.minuteOfDay < club.sesiones.hasta * 60 ? club : undefined;
+}
+/** Mientras hay entrenamiento del club no se entrena por libre. */
+const sinEntrenarPorLibreEnSesion = (acciones: readonly ActionDef[]): ActionDef[] =>
+  acciones.map((a) =>
+    ENTRENOS_LIBRES.includes(a.id)
+      ? { ...a, available: (ctx: ReadContext) => (a.available?.(ctx) ?? true) === true && sesionDelClubAhora(ctx) ? 'Ahora es el entrenamiento de tu club: únete a la sesión' : (a.available?.(ctx) ?? true) }
+      : a,
+  );
 const edadDelJugadorDeTemporada = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
 const edadDelJugador = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
 
@@ -679,21 +695,24 @@ export const atletismo = defineModule<AtletismoState>({
 
   dynamicActions: accionesDeClubes,
 
-  actions: ligarALugares([
+  actions: ligarALugares(sinEntrenarPorLibreEnSesion([
     {
       id: 'atletismo.club_sesion',
       name: 'Entrenamiento con el club',
       description: 'Sesión completa con el entrenador y el grupo del club: técnica, ritmo, salida y táctica. Rinde más que entrenar por tu cuenta, y más aún en los clubes de fuera del colegio.',
       tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, TAGS.club, 'atletismo'],
       group: 'Club',
-      duration: 120,
+      // Lo que queda de sesión: si te incorporas tarde solo entrenas la parte proporcional (modificador `atletismo.llegada_tarde`).
+      duration: (ctx) => Math.max(1, (clubDelJugador(ctx)?.sesiones.hasta ?? 0) * 60 - ctx.time.minuteOfDay),
       available: (ctx) => {
         const club = clubDelJugador(ctx);
         if (!club) return 'No perteneces a ningún club de atletismo';
         const t = ctx.time;
         if (!club.sesiones.weekdays.includes(t.weekday)) return `Las sesiones de ${club.nombre} son otros días`;
         if (ctx.state<AtletismoState>().ultimaSesionClub === t.day) return 'Ya has entrenado con el club hoy';
-        return inHours(t, club.sesiones.desde, club.sesiones.hasta - 1) ? true : `La sesión es de ${club.sesiones.desde} a ${club.sesiones.hasta}`;
+        return t.minuteOfDay >= club.sesiones.desde * 60 - MINUTOS_ANTES_DE_SESION && t.minuteOfDay < club.sesiones.hasta * 60
+          ? true
+          : `La sesión es de ${club.sesiones.desde} a ${club.sesiones.hasta} (se puede entrar desde ${MINUTOS_ANTES_DE_SESION} minutos antes)`;
       },
       delta: { [GEN.energia]: -24 },
       train: [
@@ -929,17 +948,17 @@ export const atletismo = defineModule<AtletismoState>({
       ],
       run: (ctx) => disputar(ctx, 'regular'),
     },
-  ], {
-    // El club del colegio entrena en el colegio; los de fuera, en el estadio. Las pistas del colegio, el parque y el estadio valen para entrenar solo.
+  ]), {
+    // El club del colegio entrena en la pista del colegio; los de fuera, en el estadio. La pista del colegio, el parque y el estadio valen para entrenar solo.
     'atletismo.club_sesion': sedeDelClub,
     'atletismo.dejar_club': (ctx) => tramitesDe(clubDelJugador(ctx)),
     'atletismo.subir_categoria': sedeDelClub,
     'atletismo.volver_categoria': sedeDelClub,
     'atletismo.campamento': ['estadio'],
     'atletismo.amigos': ['parque'],
-    'atletismo.series': ['colegio', 'estadio', 'parque'],
-    'atletismo.rodaje': ['parque', 'colegio', 'estadio'],
-    'atletismo.tecnica': ['colegio', 'estadio', 'parque'],
+    'atletismo.series': ['pista_colegio', 'estadio', 'parque'],
+    'atletismo.rodaje': ['parque', 'pista_colegio', 'estadio'],
+    'atletismo.tecnica': ['pista_colegio', 'estadio', 'parque'],
     'atletismo.clasificatoria': ['estadio'],
     'atletismo.final': ['estadio'],
     'atletismo.carrera': ['estadio'],
@@ -947,6 +966,19 @@ export const atletismo = defineModule<AtletismoState>({
   }),
 
   modifiers: [
+    {
+      // Incorporarse tarde a la sesión del club: solo se entrena la parte de sesión que queda.
+      id: 'atletismo.llegada_tarde',
+      tags: ['atletismo'],
+      apply: (ctx, action) => {
+        if (action.id !== 'atletismo.club_sesion') return null;
+        const club = clubDelJugador(ctx);
+        if (!club) return null;
+        const [desde, hasta] = [club.sesiones.desde * 60, club.sesiones.hasta * 60];
+        const parte = (hasta - Math.max(ctx.time.minuteOfDay, desde)) / (hasta - desde);
+        return parte >= 0.995 ? null : { efficiency: parte, reason: `Llegas tarde: solo entrenas el ${Math.round(parte * 100)} % de la sesión` };
+      },
+    },
     {
       id: 'atletismo.campamento',
       tags: ['campamento'],

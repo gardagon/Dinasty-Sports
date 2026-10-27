@@ -355,7 +355,7 @@ function viewActions(g: Game): string {
   // Los desplazamientos se hacen desde la pantalla del lugar, no desde la lista de acciones.
   // Los desplazamientos se hacen desde la pantalla del lugar y preguntar nombres, desde el panel «Gente».
   // Con las personas se interactúa desde su ficha, en «Gente».
-  const opts = g.listActions({ omitir: (d) => d.id.startsWith('relaciones.') && d.id !== 'relaciones.al_azar' }).filter((o) => o.module !== 'lugares');
+  const opts = g.listActions({ omitir: (d) => d.id.startsWith('relaciones.') && d.id !== 'relaciones.al_azar' && d.id !== 'relaciones.jugar_con_otros' }).filter((o) => o.module !== 'lugares');
   const aqui = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
   // Primero lo que se hace en el sitio donde estás (aunque ahora no se pueda): el resto, después.
   const delSitio = new Set(opts.filter((o) => aqui && o.lugar?.includes(aqui)).map((o) => o.group));

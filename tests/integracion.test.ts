@@ -377,7 +377,7 @@ describe('integración de módulos', () => {
       for (let dia = 0; g.moduleState<EstudiosState>('estudios').verano!.superada === false && dia < 80; dia++) {
         advanceUntil(g, 'gen.descansar', (t) => !t.isWeekend && t.hour === 10, 5000);
         if (posible(g, 'estudios.academia')) hacer(g, 'estudios.academia');
-        else g.perform('gen.descansar');
+        else g.perform('gen.esperar');
       }
       expect(g.moduleState<EstudiosState>('estudios').verano!.superada).toBe(true);
       expect(g.log.some((l) => /sacado los aprobados/.test(l.text))).toBe(true);
@@ -548,7 +548,7 @@ describe('integración de módulos', () => {
       llegarA(g, 'colegio', 10, 45); // el recreo
       const posibles = presentaciones(g);
       expect(posibles.length).toBeGreaterThan(10);
-      expect(posibles.length).toBeLessThanOrEqual(40); // solo los que tienes cerca
+      expect(posibles.length).toBeLessThanOrEqual(46); // solo los que tienes cerca
       const o = posibles.find((x) => x.available)!;
       const id = o.id.replace('relaciones.presentarse.', '');
       // Los servicios son una foto del momento: se piden de nuevo después de cada acción.
@@ -1144,5 +1144,83 @@ describe('el aula, las calles y los viajes', () => {
     g.perform('lugares.ir_calle_casa');
     expect(g.service<LugaresService>(SERVICES.lugares)!.pasos().map((p) => p.lugar.id).sort()).toEqual(['avenida_parque', 'calle_colegio', 'casa', 'restaurante', 'supermercado']);
     expect(g.preview('lugares.ir_colegio')!.available).toBe(true); // viaje rápido
+  });
+});
+
+describe('siesta, jugar y entrenar con el club', () => {
+  const rel = (g: Game) => g.service<RelationsService>(SERVICES.relaciones)!;
+
+  it('la siesta solo se echa en casa', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(g.preview('gen.descansar')!.name).toBe('Echarse una siesta');
+    expect(g.preview('gen.descansar')!.available).toBe(true);
+    g.perform('lugares.ir_parque');
+    expect(g.preview('gen.descansar')!.available).toBe(false);
+    expect(g.preview('gen.descansar')!.reason).toMatch(/Tienes que estar en casa/);
+  });
+
+  it('en el recreo se juega con un compañero (5 minutos) o con otros tres niños de tu edad, repartiendo lo que sube la relación', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }));
+    expect(g.preview('estudios.recreo')).toBeUndefined(); // ya no hay «Recreo»: se juega
+    llegarA(g, 'colegio', 10, 45);
+    const jugar = g.preview('relaciones.jugar.companero_social')!;
+    expect(jugar.available).toBe(true);
+    expect(jugar.duration).toBe(5);
+    const antes = rel(g).get('companero_social')!.afinidad;
+    expect(g.perform('relaciones.jugar.companero_social').ok).toBe(true);
+    expect(rel(g).get('companero_social')!.afinidad).toBeGreaterThan(antes);
+    // Con otros niños: tres, de tu edad (con un año de margen), conocidos o no.
+    const otros = g.preview('relaciones.jugar_con_otros')!;
+    expect(otros.available).toBe(true);
+    expect(otros.duration).toBe(5);
+    const conocidos = (g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true })).length;
+    expect(g.perform('relaciones.jugar_con_otros').ok).toBe(true);
+    expect(g.log.some((l) => /^Juegas con .+, .+, .+\.$/.test(l.text))).toBe(true);
+    expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).length).toBeGreaterThanOrEqual(conocidos);
+    // En clase no.
+    llegarA(g, 'aula', 11, 12);
+    expect(g.preview('relaciones.jugar_con_otros')!.available).toBe(false);
+  });
+
+  describe('entrenar con el club', () => {
+    const conClubDelColegio = () => {
+      const g = conocer(nuevaPartida({ seed: 31 }));
+      advanceToWeek(g, 'gen.descansar', 1, 0, 15);
+      hacer(g, 'atletismo.apuntarse_colegio');
+      advanceToWeek(g, 'gen.descansar', 2, 0, 13); // lunes: el club del colegio entrena de 15 a 17
+      return g;
+    };
+
+    it('los miembros están en la pista 10 minutos antes y mientras hay sesión no se entrena por libre', () => {
+      const g = conClubDelColegio();
+      llegarA(g, 'pista_colegio', 14, 40);
+      expect(g.service<PresenciaService>(SERVICES.presencia)!.en('pista_colegio')).toEqual([]); // faltan más de 10 minutos
+      advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 14 * 60 + 50);
+      expect(g.service<PresenciaService>(SERVICES.presencia)!.en('pista_colegio').map((n) => n.id)).toContain('entrenador');
+      expect(g.preview('atletismo.club_sesion')!.available).toBe(true);
+      // Con la sesión en marcha, entrenar por libre no está disponible.
+      advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 15 * 60 + 10);
+      expect(g.preview('atletismo.tecnica')!.available).toBe(false);
+      expect(g.preview('atletismo.tecnica')!.reason).toMatch(/entrenamiento de tu club/);
+    });
+
+    it('puedes incorporarte con la sesión empezada y solo entrenas la parte proporcional', () => {
+      const g = conClubDelColegio();
+      llegarA(g, 'pista_colegio', 14, 50);
+      const entera = g.preview('atletismo.club_sesion')!;
+      expect(entera.modifiers.some((m) => m.id === 'atletismo.llegada_tarde')).toBe(false);
+      const h = conClubDelColegio();
+      llegarA(h, 'pista_colegio', 16, 0);
+      const tarde = h.preview('atletismo.club_sesion')!;
+      expect(tarde.available).toBe(true);
+      expect(tarde.duration).toBe(17 * 60 - h.time.minuteOfDay);
+      expect(tarde.modifiers.find((m) => m.id === 'atletismo.llegada_tarde')!.result.efficiency).toBeCloseTo(0.5, 1);
+      const antes = h.stat('atletismo.tecnica');
+      const dentro = entera.efficiency;
+      expect(tarde.efficiency).toBeLessThan(dentro * 0.6);
+      expect(h.perform('atletismo.club_sesion').ok).toBe(true);
+      expect(h.stat('atletismo.tecnica')).toBeGreaterThan(antes);
+      expect(h.time.minuteOfDay).toBe(17 * 60);
+    });
   });
 });

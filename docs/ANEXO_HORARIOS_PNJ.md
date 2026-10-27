@@ -60,17 +60,17 @@ Cuando no dan clase, el profesorado está en la **sala de profesores** (zona den
 
 | Días | Horas | Dónde |
 |---|---|---|
-| las de las sesiones de su club | club del colegio: lunes y miércoles, 14:45–17:15 | colegio (pistas); **ocupado de 15:00 a 17:00**, se le habla al llegar y al acabar |
+| las de las sesiones de su club | club del colegio: lunes y miércoles, 14:50–17:15 | pista del colegio; **ocupado de 15:00 a 17:00**, se le habla al llegar y al acabar |
 | sábado | 8:45–13:15 | estadio (carreras); **ocupado de 9:00 a 13:00** |
 | resto | | fuera |
 
 ### Miembro de un club, nivel 3
 
-Las sesiones del club (catálogo de `modules/clubes`). Todas tienen un margen de 15 minutos antes (llegar) y después (quedarse un rato) y están ocupados durante la sesión:
+Las sesiones del club (catálogo de `modules/clubes`). Los miembros están en su pista **10 minutos antes** de empezar (`MARGEN_ANTES_DE_SESION`; desde entonces se puede entrar a entrenar), se quedan **15 minutos después** (`MARGEN_DE_SESION`) y están ocupados durante la sesión:
 
 | Club | Días | Horas | Dónde |
 |---|---|---|---|
-| Club del colegio | lunes y miércoles | 15:00–17:00 | colegio (pistas) |
+| Club del colegio | lunes y miércoles | 15:00–17:00 | pista de atletismo del colegio (zona `pista_colegio`, dentro del colegio) |
 | Club Atletismo Ciudad | martes y jueves | 18:00–20:00 | estadio |
 | Club de Alto Rendimiento | lunes, martes y jueves | 17:00–20:00 | estadio |
 
@@ -143,6 +143,7 @@ Algunos lugares son **zonas dentro de otro** (`LugarDef.dentroDe`): se llega des
 
 | Zona | Dentro de | Horario | Para qué |
 |---|---|---|---|
+| Pista de atletismo del colegio | colegio | siempre | entrenar el club del colegio (sesiones) y correr o hacer técnica por tu cuenta |
 | Tu aula | colegio | días de clase, de 7:50 al recreo (10:40) y de 11:10 a 14:00 (se abre 10 minutos antes de cada clase) | dar clase, repasar y charlar con los compañeros antes de empezar |
 | Sala de profesores | colegio | siempre | donde está el profesorado fuera de clase |
 | Administración del colegio | colegio | días de clase, 9:00–13:30 y 15:00–18:00 | apuntarse y darse de baja del club del colegio |
