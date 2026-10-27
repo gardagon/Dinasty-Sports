@@ -202,7 +202,13 @@ function sesionDelClubAhora(ctx: ReadContext): ClubView | undefined {
 const sinEntrenarPorLibreEnSesion = (acciones: readonly ActionDef[]): ActionDef[] =>
   acciones.map((a) =>
     ENTRENOS_LIBRES.includes(a.id)
-      ? { ...a, available: (ctx: ReadContext) => (a.available?.(ctx) ?? true) === true && sesionDelClubAhora(ctx) ? 'Ahora es el entrenamiento de tu club: únete a la sesión' : (a.available?.(ctx) ?? true) }
+      ? {
+          ...a,
+          available: (ctx: ReadContext) => {
+            const otro = a.available?.(ctx) ?? true;
+            return otro === true && sesionDelClubAhora(ctx) ? 'Ahora es el entrenamiento de tu club: únete a la sesión' : otro;
+          },
+        }
       : a,
   );
 const edadDelJugadorDeTemporada = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;

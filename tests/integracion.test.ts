@@ -62,7 +62,7 @@ describe('integración de módulos', () => {
       expect(checkInvariants(g)).toEqual([]);
     }
     expect(g.stat(GEN.energia)).toBeGreaterThanOrEqual(0);
-  });
+  }, 20000); // en una máquina lenta (la integración continua) la semana entera de acciones tarda más de los 5 s por defecto
 
   it('las series son de 8: los mejores rivales corren al principio y luego la serie rota', () => {
     const g = nuevaPartida({ seed: 4 });
