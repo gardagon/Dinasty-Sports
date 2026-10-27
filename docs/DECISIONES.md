@@ -5,6 +5,31 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 27/10/2026 — El olvido tira hacia un nivel natural: estudiar se nota (E6, ajuste de notas)
+
+- **Crítica (usuario):** con clase todos los días y 2 asignaturas estudiadas al día (3 horas) un alumno del montón apenas salvaba el curso. Cada clase daba ~+0,45 y cada sesión de estudio ~+0,50, pero cada noche se perdían ~0,85 en **todas** las asignaturas (también fines de semana): con 7 asignaturas se perdían ~6 puntos al día y se ganaban ~2,8. Medido: nadie llegaba al notable de media con esa rutina; el empollón sacaba 6,2 y el equilibrado 5,0.
+- **Objetivos acordados (realistas):** típico solo yendo a clase 5–6; estudiando ~1 h al día 6,5–7,5; 2–3 h al día 7,5–8,5; brillante sin estudiar 6,5–7 y estudiando 9 o más; flojo que estudia mucho 6–7; ni clase ni estudio 3–4. **Sin «empollar» la última semana** (descartado por el usuario).
+- **Cambio** (`modules/estudios`):
+  1. **Nivel natural** por asignatura = 22 + 0,52 × aptitud (aptitud 40 ⇒ 43, 60 ⇒ 53, 85 ⇒ 66): lo que se sabe solo yendo a clase.
+  2. **Olvido** diario = factor de aptitud (×0,6–1,4) × (0,06 + 1,5 % de lo que se sabe por encima del nivel natural). Lo estudiado se va despacio hacia el nivel natural (vida media ~1,5 meses), no hacia abajo sin parar. Sigue sin bajar de lo aprendido de base.
+  3. **Las clases llevan hasta el nivel natural** (+4): por debajo rinden entero; al pasarlo, cada vez menos (mínimo 15 %). Estudiar es lo que sube por encima.
+  4. **Faltar a una clase** resta 1,2 puntos por hora de currículo de esa asignatura (el temario avanza sin ti).
+  5. **Estudiar rinde más:** 4,4 por sesión de 90 minutos (antes 1,2); el factor de aptitud del estudio va de ×0,7 (antes ×0,85) a ×1,5.
+  6. **Repaso general** rinde por minuto el 80 % de estudiar una asignatura, repartido entre todas (antes, 120 minutos daban 0,9 a **cada** asignatura: rendía ~5 veces más que estudiar una).
+- **Banco de notas** (`sim/src/notas.ts`, `npm run sim:notas`; test `sim/src/notas.test.ts`): alumnos con aptitud 40, 60 y 85 en todas las asignaturas siguen rutinas fijas y se compara su nota media con los objetivos. Resultado (2.º curso, 3 semillas):
+
+| Rutina | Floja (40) | Típica (60) | Brillante (85) |
+|---|---|---|---|
+| Ni clase ni estudio (solo exámenes) | 2,6 | 4,2 | 6,1 |
+| Solo clase | 4,4 | 5,4 | 6,6 |
+| Clase + ~1 h al día | 5,4 | 6,6 | 7,9 |
+| Clase + 3 h al día | 6,9 | 8,1 | 8,8 |
+
+  «Ni clase ni estudio» del típico queda en 4,2 (objetivo 3–4) por el suelo de lo aprendido de base y la nota mínima de Educación física. El brillante con 3 h saca 8,8 de media: Educación física y Artística, que van con las skills, la bajan; en las académicas pasa del 9.
+- **Bots (365 días, 5 semillas), nota media antes → después:** equilibrado 5,0 → 7,3; empollón 6,2 → 8,3; atleta 4,7 → 5,9; vago 2,7 → 2,8. Los 13 chequeos siguen ✅. No cambia el guardado.
+
+---
+
 ## 27/10/2026 — Siesta, jugar en el recreo, entrenar con el club y «Curso» en Estudios
 
 - **«Descansar un rato» desaparece; hay «Echarse una siesta» solo en casa** (mismo id `gen.descansar`, ahora ligado a `casa`). Esperar fuera de casa es «Esperar 5 minutos». Los bots, si necesitan descansar, vuelven a casa; los tests (`advanceUntil`) esperan de 5 en 5 minutos fuera de casa y, si la espera pasa de 2 horas, vuelven a casa.
