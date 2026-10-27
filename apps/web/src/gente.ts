@@ -1,5 +1,5 @@
 import {
-  GENTE_CERCANA,
+  aforoCercano,
   SERVICES,
   descripcionDeDesconocido,
   edadAparente,
@@ -68,7 +68,8 @@ function personasDe(g: Game, f: Filtro): NpcView[] {
   if (!dir) return [];
   if (f === 'aqui') {
     const lugar = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
-    return lugar ? (g.service<PresenciaService>(SERVICES.presencia)?.en(lugar, GENTE_CERCANA) ?? []) : [];
+    const presencia = g.service<PresenciaService>(SERVICES.presencia);
+    return lugar && presencia ? presencia.en(lugar, aforoCercano(lugar, presencia.version)) : [];
   }
   // Fuera de «Aquí» solo se guardan las personas que ya conoces: a quien no conoces solo lo ves cuando lo tienes cerca.
   const conocidas = { known: true };

@@ -2,6 +2,9 @@ import {
   CALENDARIO_ESPANA,
   COLEGIO_DEL_PERSONAJE,
   HUECO_ENTRE_CLASES,
+  LETRA_DE_TU_CLASE,
+  nombreDeClase,
+  type IdentityService,
   JORNADA_ESCOLAR,
   NOMBRE_PERIODO,
   SERVICES,
@@ -45,12 +48,14 @@ const semanas = (desde: number, hasta: number): string => `semana${desde === has
 function colegio(g: Game, est: StudiesService): string {
   const dir = g.service<NpcDirectory>(SERVICES.npcs);
   const tutor = dir?.get('tutor');
-  const alumnos = dir ? dir.list().filter((n) => n.clase === 'Tu clase').length + 1 : undefined;
+  const alumnos = dir ? dir.list().filter((n) => n.clase?.endsWith('(tu clase)')).length + 1 : undefined;
+  const edad = g.service<IdentityService>(SERVICES.identidad)?.view().seasonAge;
+  const miClase = edad === undefined ? undefined : nombreDeClase(edad, LETRA_DE_TU_CLASE);
   const media = est.average();
   const filas = [
     ['Colegio', COLEGIO_DEL_PERSONAJE],
     ['Curso', est.courseName()],
-    ...(alumnos ? [['Tu clase', `${alumnos} alumnos (tú y ${alumnos - 1} compañeros)`]] : []),
+    ...(alumnos ? [['Tu clase', `${miClase ? `${miClase}: ` : ''}${alumnos} alumnos (tú y ${alumnos - 1} compañeros)`]] : []),
     ...(tutor ? [['Tutor', tutor.known === false ? 'Todavía no lo conoces' : tutor.name]] : []),
     ['Jornada', `De ${hhmm(JORNADA_ESCOLAR.clases[0][0])} a 14:00: 4 clases y un recreo (${hhmm(JORNADA_ESCOLAR.recreo[0])}–${hhmm(JORNADA_ESCOLAR.recreo[1])})`],
     ['Nota media reciente', media === null ? 'Sin exámenes aún' : media.toFixed(1)],

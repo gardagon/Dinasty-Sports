@@ -16,6 +16,9 @@ import {
   alturaDe,
   estaturaZ,
   edadCumplida,
+  LETRA_DE_TU_CLASE,
+  letraDeClaseDe,
+  nombreDeClase,
   cumpleaños,
   nacimientoDeProgenitor,
   nacimientoParaEdad,
@@ -570,12 +573,16 @@ function colegioDe(n: Npc, edad: number | undefined): string | undefined {
   return undefined;
 }
 
-/** A qué clase va (solo se enseña a quien es del mismo colegio y es alumno): la tuya, la otra de tu curso o la de su edad. */
+/**
+ * A qué clase va, con su letra («3.ºA»; solo se enseña a quien es del mismo colegio y es alumno). Cada curso tiene dos clases: tú y tus
+ * compañeros estáis en la A, la otra clase de tu curso es la B y los demás cursos se reparten entre A y B.
+ */
 function claseDe(n: Npc, edad: number | undefined): string | undefined {
-  if (!delColegio(n)) return undefined;
-  if (n.tipos?.some((t) => t.tuClase)) return 'Tu clase';
-  if (n.id.startsWith('curso_')) return 'La otra clase de tu curso';
-  return edad === undefined ? undefined : `Clase de los de ${edad} años`;
+  if (!delColegio(n) || edad === undefined) return undefined;
+  const tuya = n.tipos?.some((t) => t.tuClase);
+  const letra = tuya ? LETRA_DE_TU_CLASE : n.id.startsWith('curso_') ? 'B' : letraDeClaseDe(n.id);
+  const nombre = nombreDeClase(edad, letra);
+  return nombre && tuya ? `${nombre} (tu clase)` : nombre;
 }
 
 /** Lo que se sabe de alguien sin preguntarle: su edad y su colegio y clase si es de la familia; el colegio, si es del tuyo; la clase, si es de la tuya. */

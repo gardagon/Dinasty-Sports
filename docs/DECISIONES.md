@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 27/10/2026 — Letra de clase, gente cerca variable y repaso de la documentación
+
+- **Clase = curso + letra** (`3.ºA`, `3.ºB`), para separar a los niños en clases distintas. La del jugador es la **A** (`LETRA_DE_TU_CLASE`, `tuClase`), los compañeros de `curso_*` son de la **B** y el resto de alumnos reparte A/B por hash (`letraDeClaseDe`, `nombreDeClase`, `cursoDeEdad` en `contracts/personas.ts`). Se ve en la ficha de la persona y en la pestaña «Estudios». No cambia el estado guardado (sin subir `SAVE_VERSION`).
+- **Gente cerca variable:** ya no hay siempre 40 personas en el recreo o antes del colegio: `aforoCercano(lugar, clave)` da 40 ± 15 % (34–46) con un hash estable del lugar y del tramo (`VARIACION_DE_GENTE_CERCANA = 0,15`). Cambia entre momentos, no al refrescar.
+- **`LIMITE_RELATIVO` de la simulación sube de 0,12 a 0,15** (`sim/src/analysis.ts`): con ~400 personas con acciones el coste por acción ronda 0,9 ms y la comprobación de rendimiento relativo se acercaba al umbral sin que hubiera una regresión real. Se han hecho antes las optimizaciones fáciles (cierres sacados fuera, cachés de vistas y de cercanos).
+- **Repaso de la documentación contra el código:** `ANEXO_HORARIOS_PNJ` (tabla del profesorado rota, aforo, ~25 cambios de tramo al día, letra de clase), `ANEXO_RELACIONES` (charlas de 5 min también para entrenador/tutor y rival, horario del entrenador, preguntas, clases con letra, aforo), `ARQUITECTURA` (aforo y servicio `estudios`) y `ANEXO_DEPORTE` (puntos y constantes coinciden). Fechas de estado a 27/10/2026.
+- **Pendiente (anotado):** entrenadores con habilidades propias, nombre propio del colegio, profesión de los padres, comercios con horario, cumpleaños como acontecimientos, «entrenar con» alguien, año del calendario.
+
 ## 26/10/2026 — Correcciones: gustos, pestaña «Deporte» y puntos
 
 - **Gustos (corrige la entrada anterior):** el **aspecto físico cuenta**, pero **no se anuncia** hasta que las dos personas tienen al menos 14 años: «una cosa es no anunciarse y otra es no tenerse en cuenta». Antes de los 14 la primera impresión (±0,08) usa la atracción completa (mitad aspecto, mitad carácter) en silencio: se nota en la cifra de eficiencia, no en el motivo, que sale solo del carácter. A partir de los 14 (las dos) el motivo ya refleja la impresión completa. **Nunca cuenta con adultos** (más de 19 años) ni con quien no tiene edad (profesorado, entrenador): sin aspecto entre un adulto y un menor. Tablas en `ANEXO_RELACIONES.md` (sección 7); código en `usoDelAspecto` y `disposicion`.

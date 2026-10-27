@@ -41,6 +41,30 @@ export function oficioDeVecino(id: string, gender: 'f' | 'm', edad: number): { p
   return { profesion: o[gender], trabajo: o.trabajo };
 }
 
+// ------------------------------------------------------------------------------------------------------------ clases
+
+/** Cada curso se reparte en dos clases, A y B. El personaje y sus compañeros están en la A; la otra clase de su curso es la B. */
+export const LETRAS_DE_CLASE = ['A', 'B'] as const;
+export const LETRA_DE_TU_CLASE = 'A';
+
+/** Curso (ordinal dentro de su etapa) al que corresponde una edad de competición: 3 a 5, infantil (1.º a 3.º); 6 a 11, primaria (1.º a 6.º); 12 a 15, ESO (1.º a 4.º); 16 y 17, bachillerato (1.º y 2.º). */
+export function cursoDeEdad(edad: number): { numero: number; etapa: 'infantil' | 'primaria' | 'ESO' | 'bachillerato' } | undefined {
+  if (edad < 3 || edad > 17) return undefined;
+  if (edad <= 5) return { numero: edad - 2, etapa: 'infantil' };
+  if (edad <= 11) return { numero: edad - 5, etapa: 'primaria' };
+  if (edad <= 15) return { numero: edad - 11, etapa: 'ESO' };
+  return { numero: edad - 15, etapa: 'bachillerato' };
+}
+
+/** «3.ºA»: el curso y la letra de su clase. */
+export const nombreDeClase = (edad: number, letra: string): string | undefined => {
+  const c = cursoDeEdad(edad);
+  return c ? `${c.numero}.º${letra}` : undefined;
+};
+
+/** La letra de la clase de alguien que no es de tu clase ni de la otra de tu curso: estable por persona. */
+export const letraDeClaseDe = (id: string): string => LETRAS_DE_CLASE[Math.floor(azarDe('letra', id) * LETRAS_DE_CLASE.length)];
+
 // ------------------------------------------------------------------------------------------------------------ cumpleaños
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
