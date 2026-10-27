@@ -75,10 +75,10 @@ describe('datos de las personas', () => {
   });
 
   it('las clases tienen curso y letra: a los 8 años, 3.º de primaria; los cursos van de infantil a bachillerato', () => {
-    expect(nombreDeClase(8, 'A')).toBe('3.ºA');
-    expect(nombreDeClase(8, 'B')).toBe('3.ºB');
-    expect(nombreDeClase(11, 'A')).toBe('6.ºA');
-    expect(nombreDeClase(12, 'B')).toBe('1.ºB'); // 1.º de ESO
+    expect(nombreDeClase(8, 'A')).toBe('3.ºA de primaria');
+    expect(nombreDeClase(8, 'B')).toBe('3.ºB de primaria');
+    expect(nombreDeClase(11, 'A')).toBe('6.ºA de primaria');
+    expect(nombreDeClase(12, 'B')).toBe('1.ºB de ESO');
     expect(cursoDeEdad(12)).toEqual({ numero: 1, etapa: 'ESO' });
     expect(cursoDeEdad(16)).toEqual({ numero: 1, etapa: 'bachillerato' });
     expect(cursoDeEdad(17)).toEqual({ numero: 2, etapa: 'bachillerato' });

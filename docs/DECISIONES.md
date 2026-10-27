@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 27/10/2026 — Calles, aula como sublugar y etapa en la clase
+
+- **Mapa como grafo (`construirMapa`):** hay **calles** (sin acciones), **lugares** que dan a una calle y **zonas** dentro de los lugares. Antes los lugares estaban todos comunicados entre sí; ahora desde casa se **sale a la calle**, se va a otra calle y se entra en el lugar. Los tiempos son el camino más corto (casa → colegio sigue siendo 10 minutos; hay pequeñas diferencias en otros: casa → supermercado 5, gimnasio → estadio 14…). `LugarDef` gana `calle`, `enCalle` y `minutosDeCalle`; `MapaCiudad.directos` pasa a `entreCalles`; el servicio `lugares` pasa de `vecinos()` a `pasos()`.
+- **Viaje rápido solo a lugares** (decidido por el usuario): `lugares.ir_<id>` vale desde cualquier parte para los lugares, y solo paso a paso para las calles y las zonas (`sePuedeIr`). La interfaz separa lo de **dentro** del lugar (zonas, volver a la entrada) de **salir** (calle), y en una calle enseña sus lugares y las otras calles; lo del sitio donde estás va primero en «Qué hacer».
+- **El aula** (`aula`, zona del colegio, abierta desde 10 minutos antes de cada clase: 7:50 y 11:10): las clases (`estudios.clase_*`), el repaso previo y «charlar con alguien antes de clase» (`relaciones.al_azar`) exigen estar **en el aula**. Si la clase ya ha empezado, la acción avisa de que vas tarde (modificador `estudios.llegada_tarde`) y solo avanzas lo asistido. Antes los compañeros no se encontraban entre clase y clase porque el jugador estaba en el colegio y ellos en un tramo ocupado.
+- **Entrada vacía a las 7:50:** de 7:30 a 7:50 los alumnos están en la entrada (`colegio`); a las 7:50 (y a las 11:10, al volver del recreo) se van a sus aulas: los de tu clase a tu aula (libres antes de clase y entre clases), los demás, a sus aulas ocupados (fuera del mapa). El profesorado, igual.
+- **Clase con etapa:** «3.ºA de primaria», «1.ºB de ESO» (sin la etapa no se sabe si el 1.º es de ESO o de bachillerato). Para los tests y los bots, `rutaA` calcula las paradas hasta una zona.
+- **Balance:** la simulación apenas cambia (equilibrado 21,7; empollón 56,9 en estudios; atleta 18,6 en atletismo; todos los chequeos ✅).
+
 ## 27/10/2026 — Familia a cualquier hora, pestañas desplazables y «Estudios» sin descuadre
 
 - **Familia sin horario:** con los padres y hermanos se puede hablar (charlar, preguntar, proponer planes…) a cualquier hora si están delante: a las 7:00 de la mañana no dejaba porque las acciones solo valían de 10 a 22 h. La presencia sigue mandando (hay que coincidir en el sitio). El resto de personas conserva su horario.

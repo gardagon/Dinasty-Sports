@@ -303,27 +303,38 @@ function viewLugar(g: Game): string {
   return aqui ? `<section class="sheet lugar"><h2>${esc(aqui.name)}</h2><p>${esc(aqui.descripcion)}</p></section>` : '';
 }
 
-/** A dónde puedes ir: los vecinos primero y, desplegable, todo el mapa con lo que cuesta. Va separado de lo que se hace en el lugar. */
+/**
+ * A dónde puedes ir. Moverte **dentro** de un lugar (a su aula, a la sala de profesores…) y **fuera** (a la calle, y de ahí a otras calles y a sus
+ * lugares) son cosas distintas y van en bloques separados. El viaje rápido, desplegable, es solo a lugares: nunca a zonas ni a calles.
+ */
 function viewViaje(g: Game): string {
   const svc = g.service<LugaresService>(SERVICES.lugares);
   if (!svc) return '';
   const aqui = svc.actual();
-  const opcion = (id: string) => g.preview(`lugares.ir_${id}`);
-  const boton = (id: string, extra = '') => {
-    const o = opcion(id);
-    return o ? actionButton({ ...o, name: `${svc.lugar(id)?.name ?? o.name.replace(/^Ir a /, '')}${extra}` }) : '';
+  const boton = (id: string, nombre?: string) => {
+    const o = g.preview(`lugares.ir_${id}`);
+    return o ? actionButton({ ...o, name: nombre ?? svc.lugar(id)?.name ?? o.name }) : '';
   };
-  const cerca = svc.vecinos().map((v) => boton(v.lugar.id)).join('');
+  const pasos = svc.pasos();
+  const de = (...tipos: string[]) => pasos.filter((p) => tipos.includes(p.tipo));
+  const bloque = (titulo: string, ps: typeof pasos, nombre: (p: (typeof pasos)[number]) => string) =>
+    ps.length ? `<h4>${esc(titulo)}</h4><div class="actions">${ps.map((p) => boton(p.lugar.id, nombre(p))).join('')}</div>` : '';
+  const raiz = aqui.dentroDe ? svc.lugar(aqui.dentroDe) : aqui;
+  const del = (n: string) => (n === 'Casa' ? 'de casa' : `del ${n.toLowerCase()}`);
+  const html = aqui.calle
+    ? bloque('En esta calle', de('lugar'), (p) => `Entrar en ${p.lugar.name.toLowerCase()}`) + bloque('Ir a otra calle', de('otra_calle'), (p) => p.lugar.name)
+    : bloque(raiz ? `Dentro ${del(raiz.name)}` : 'Aquí dentro', de('dentro', 'entrada'), (p) => (p.tipo === 'entrada' ? `Volver a la entrada ${del(p.lugar.name)}` : p.lugar.name)) +
+      bloque('Salir', de('calle'), (p) => `Salir a la calle (${p.lugar.name})`);
   const grupos = new Map<string, string[]>();
   for (const l of svc.lugares()) {
-    if (l.id === aqui.id) continue;
+    if (l.calle || l.dentroDe || l.id === aqui.id) continue; // el viaje rápido es solo a lugares
     grupos.set(l.grupo, [...(grupos.get(l.grupo) ?? []), boton(l.id)]);
   }
   const todo = [...grupos].map(([grupo, botones]) => `<h4>${esc(grupo)}</h4><div class="actions">${botones.join('')}</div>`).join('');
   return `<section class="sheet lugar">
     <h3>Viajar</h3>
-    <div class="actions">${cerca}</div>
-    <details class="viaje-rapido"><summary>Viaje rápido</summary>${todo}</details>
+    ${html}
+    <details class="viaje-rapido"><summary>Viaje rápido (a otro lugar)</summary>${todo}</details>
   </section>`;
 }
 
@@ -345,8 +356,11 @@ function viewActions(g: Game): string {
   // Los desplazamientos se hacen desde la pantalla del lugar y preguntar nombres, desde el panel «Gente».
   // Con las personas se interactúa desde su ficha, en «Gente».
   const opts = g.listActions({ omitir: (d) => d.id.startsWith('relaciones.') && d.id !== 'relaciones.al_azar' }).filter((o) => o.module !== 'lugares');
+  const aqui = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
+  // Primero lo que se hace en el sitio donde estás (aunque ahora no se pueda): el resto, después.
+  const delSitio = new Set(opts.filter((o) => aqui && o.lugar?.includes(aqui)).map((o) => o.group));
   const groups = new Map<string, ActionOption[]>();
-  for (const o of opts) {
+  for (const o of [...opts.filter((o) => delSitio.has(o.group)), ...opts.filter((o) => !delSitio.has(o.group))]) {
     if (!o.available && !showUnavailable) continue;
     groups.set(o.group, [...(groups.get(o.group) ?? []), o]);
   }

@@ -56,10 +56,10 @@ export function cursoDeEdad(edad: number): { numero: number; etapa: 'infantil' |
   return { numero: edad - 15, etapa: 'bachillerato' };
 }
 
-/** «3.ºA»: el curso y la letra de su clase. */
+/** «3.ºA de primaria», «1.ºB de ESO»: el curso, la letra de su clase y la etapa (sin ella no se sabría si 1.º es de primaria, de ESO o de bachillerato). */
 export const nombreDeClase = (edad: number, letra: string): string | undefined => {
   const c = cursoDeEdad(edad);
-  return c ? `${c.numero}.º${letra}` : undefined;
+  return c ? `${c.numero}.º${letra} de ${c.etapa}` : undefined;
 };
 
 /** La letra de la clase de alguien que no es de tu clase ni de la otra de tu curso: estable por persona. */

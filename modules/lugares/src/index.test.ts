@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CIUDAD_INICIAL, defineModule, enLugar, tiempoEntre, vecinosDe, type LugaresService } from '@ds/contracts';
+import { CIUDAD_INICIAL, defineModule, enLugar, tiempoEntre, pasosDesde, sePuedeIr, type LugaresService } from '@ds/contracts';
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { lugares } from './index';
@@ -31,7 +31,8 @@ describe('módulo lugares', () => {
     g.perform('lugares.ir_parque');
     const svc = g.service<LugaresService>('lugares')!;
     expect(svc.minutosA('colegio')).toBe(8);
-    expect(svc.vecinos().map((v) => v.lugar.id).sort()).toEqual(['casa', 'colegio', 'gimnasio', 'restaurante']);
+    // Desde un lugar, los pasos son su calle y sus zonas (no otros lugares).
+    expect(svc.pasos()).toEqual([{ lugar: expect.objectContaining({ id: 'avenida_parque' }), minutos: 1, tipo: 'calle' }]);
   });
 
   it('enLugar deja pasar a una acción solo en el sitio indicado', () => {
@@ -66,11 +67,33 @@ describe('mapa de la ciudad', () => {
     for (const a of ids) for (const b of ids) expect(tiempoEntre(CIUDAD_INICIAL, a, b)).toBe(tiempoEntre(CIUDAD_INICIAL, b, a));
   });
 
-  it('los caminos directos usan lugares del mapa y salen en ambos sentidos', () => {
-    for (const [a, b] of CIUDAD_INICIAL.directos) expect(ids).toContain(a), expect(ids).toContain(b);
-    expect(vecinosDe(CIUDAD_INICIAL, 'colegio').map((v) => v.lugar).sort()).toEqual(['administracion', 'casa', 'estadio', 'parque', 'sala_profesores']);
+  it('los caminos del mapa usan sitios que existen y salen en ambos sentidos', () => {
+    for (const [a, b] of CIUDAD_INICIAL.entreCalles) expect(ids).toContain(a), expect(ids).toContain(b);
+    for (const l of CIUDAD_INICIAL.lugares) {
+      if (l.enCalle) expect(ids).toContain(l.enCalle);
+      if (l.dentroDe) expect(ids).toContain(l.dentroDe);
+    }
+    // Desde la entrada del colegio: sus zonas y su calle. Desde la calle: sus lugares y las calles vecinas.
+    expect(pasosDesde(CIUDAD_INICIAL, 'colegio').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['calle:calle_colegio', 'dentro:administracion', 'dentro:aula', 'dentro:sala_profesores']);
+    expect(pasosDesde(CIUDAD_INICIAL, 'calle_casa').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['lugar:casa', 'lugar:restaurante', 'lugar:supermercado', 'otra_calle:avenida_parque', 'otra_calle:calle_colegio']);
     // Las zonas solo se enlazan con su lugar.
-    expect(vecinosDe(CIUDAD_INICIAL, 'sala_profesores')).toEqual([{ lugar: 'colegio', minutos: 2 }]);
+    expect(pasosDesde(CIUDAD_INICIAL, 'sala_profesores')).toEqual([{ lugar: 'colegio', minutos: 2, tipo: 'entrada' }]);
+  });
+
+  it('el viaje rápido salta a cualquier lugar, pero nunca a una zona ni a una calle', () => {
+    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'colegio')).toBe(true);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'aula')).toBe(false);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'calle_colegio')).toBe(false);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'colegio', 'aula')).toBe(true);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'calle_casa')).toBe(true);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'aula', 'colegio')).toBe(true);
+  });
+
+  it('el camino por las calles cuesta lo mismo que el viaje rápido', () => {
+    const g = partida();
+    const antes = g.time.minute;
+    for (const id of ['calle_casa', 'calle_colegio', 'colegio']) expect(g.perform(`lugares.ir_${id}`).ok, id).toBe(true);
+    expect(g.time.minute - antes).toBe(tiempoEntre(CIUDAD_INICIAL, 'casa', 'colegio'));
   });
 
   it('las zonas cuestan 2 minutos desde su lugar y 2 más que su lugar desde cualquier otro sitio', () => {
@@ -83,6 +106,7 @@ describe('mapa de la ciudad', () => {
   it('las zonas con horario salen en gris fuera de horario y dicen cuándo abren', () => {
     const g = Game.create([personaje, lugares], { seed: 1 });
     advanceTo(g, 'gen.descansar', 0, 7); // lunes, 7:00: la administración abre a las 9:00
+    g.perform('lugares.ir_colegio');
     const o = g.preview('lugares.ir_administracion')!;
     expect(o.available).toBe(false);
     expect(o.reason).toMatch(/cerrado.*9:00 a 13:30/);
@@ -91,6 +115,7 @@ describe('mapa de la ciudad', () => {
     // El sábado, cerrada; la sala de un club abre a las 9.
     advanceTo(g, 'gen.descansar', 5, 10);
     expect(g.preview('lugares.ir_administracion')!.available).toBe(false);
+    g.perform('lugares.ir_estadio');
     expect(g.preview('lugares.ir_sala_club_ciudad')!.available).toBe(true);
   });
 });

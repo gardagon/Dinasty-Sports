@@ -788,12 +788,12 @@ export const relaciones = defineModule<RelacionesState>({
   actions: [
     // Los 10 minutos antes de clase se pueden gastar hablando con alguien de los que hay por allí (al azar: ves con quién te toca).
     // Si ya has entrado a clase no hay tiempo; es un extra de relación.
-    conLugar(['colegio'], {
+    conLugar(['aula'], {
       id: 'relaciones.al_azar',
       name: 'Charlar con alguien de los que hay antes de clase',
-      description: 'Hasta que empiece la clase hablas con alguien al azar de los que hay por allí. Cuanto más rato, más sube la relación; si no lo conocías, se presenta.',
+      description: 'Hasta que empiece la clase hablas con alguien al azar de los que hay en el aula. Cuanto más rato, más sube la relación; si no lo conocías, se presenta.',
       tags: [TAGS.social],
-      group: 'Colegio',
+      group: 'Aula',
       duration: (ctx) => {
         const c = claseQueVaAEmpezar(ctx.time);
         return c ? Math.max(1, c.inicio - ctx.time.minuteOfDay) : 1;
