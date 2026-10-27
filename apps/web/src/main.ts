@@ -34,7 +34,7 @@ import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
-import { clicEnGente, genteAqui, reiniciarGente, viewPanelGente } from './gente';
+import { clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
 import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
 /**
@@ -557,8 +557,7 @@ function viewPeople(g: Game): string {
     familia: ['Familia', 'Familia'],
   };
   const rel = g.service<RelationsService>(SERVICES.relaciones);
-  const items = dir
-    .list({ known: true })
+  const items = ordenarPorRelacion(dir.list({ known: true }), (id) => rel?.get(id))
     .map((n) => {
       const v = rel?.get(n.id);
       const yo = g.service<ProfileService>(SERVICES.perfil)?.view();

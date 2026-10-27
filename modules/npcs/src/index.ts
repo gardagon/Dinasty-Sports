@@ -28,6 +28,7 @@ import {
   type DatoPersonalData,
   nombreDeProgenitor,
   diferenciasDeEdad,
+  relacionDeHermano,
   numeroDeHermanos,
   rasgosHeredadosNpc,
   heredarTope,
@@ -421,7 +422,7 @@ function hermanos(ctx: InitContext, usados: Set<string>): Npc[] {
     const nacimiento = primerDiaDelAnio(anioNatural(0) - edad) + rng.int(0, 364);
     const rasgos = rasgosHeredadosNpc(rasgosPadre, rasgosMadre, rng);
     const o = (f: string, m: string) => (gender === 'f' ? f : m);
-    const relacion = dif === 0 ? o('Tu melliza', 'Tu mellizo') : dif < 0 ? o('Tu hermana mayor', 'Tu hermano mayor') : o('Tu hermana pequeña', 'Tu hermano pequeño');
+    const relacion = relacionDeHermano(gender, dif);
     const edadReal = (0 - nacimiento) / 365;
     const compite = edad >= EDAD_DE_INICIO;
     return {
@@ -611,6 +612,15 @@ const vista = (n: Npc, day: number, hoy: number = day): NpcView => {
   return v;
 };
 
+/**
+ * Lo que se cuenta de una persona. Para un hermano se calcula (no se usa lo guardado): si es mayor o menor sale de los años de nacimiento
+ * respecto a los del personaje, que empieza con `EDAD_DE_INICIO`. Así vale también para las partidas guardadas con el texto al revés.
+ */
+const descripcionDe = (n: Npc): string | undefined =>
+  n.tags.includes('hermano') && n.nacimiento !== undefined
+    ? `${relacionDeHermano(n.gender, anioNatural(0) - EDAD_DE_INICIO - anioNatural(n.nacimiento))}. Vive en casa.`
+    : n.description;
+
 const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
   const age = edadNpc(n, day);
   return {
@@ -624,7 +634,7 @@ const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
     known: n.known,
     club: n.club,
     rasgos: n.rasgos,
-    description: n.description,
+    description: descripcionDe(n),
     ...(n.nacimiento === undefined ? {} : { nacimiento: n.nacimiento, edadExacta: edadCumplida(n.nacimiento, hoy), cumple: cumpleaños(n.nacimiento).corto, alturaCm: alturaHoy(n, hoy) }),
     colegio: colegioDe(n, age),
     clase: claseDe(n, age),
