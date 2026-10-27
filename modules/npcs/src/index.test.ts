@@ -166,12 +166,12 @@ describe('módulo NPCs', () => {
   describe('presencia en los lugares', () => {
     const nombres = (g: Game, lugar: string, max?: number) => g.service<PresenciaService>(SERVICES.presencia)!.en(lugar, max).map((n) => n.id);
 
-    it('en clase están ocupados (no se les puede hablar); en el recreo, el tutor y los compañeros están en el colegio, y no los rivales de otros clubes', () => {
+    it('en clase están ocupados (no se les puede hablar); en el recreo, el tutor y los compañeros están en el patio, y no los rivales de otros clubes', () => {
       const g = nueva();
       advanceTo(g, 'gen.descansar', 0, 10); // lunes, 10:00: en clase
       expect(nombres(g, 'colegio')).toEqual([]);
-      advanceTo(g, 'gen.descansar', 0, 11); // el recreo es de 10:40 a 11:20
-      const aqui = nombres(g, 'colegio');
+      advanceTo(g, 'gen.descansar', 0, 11); // el recreo es de 10:40 a 11:20 (en el patio hasta las 11:10)
+      const aqui = nombres(g, 'patio');
       // El profesorado está en la sala de profesores (menos un par que salen al patio); para hablar con ellos hay que ir allí.
       const sala = nombres(g, 'sala_profesores');
       expect(sala.length).toBeGreaterThanOrEqual(7);
@@ -286,11 +286,11 @@ describe('módulo NPCs', () => {
       expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).filter((n) => n.role !== 'familia')).toHaveLength(0);
     });
 
-    it('el patio tiene gente de todos los cursos y el parque, de todas las edades', () => {
+    it('el patio tiene gente de todos los cursos (en el recreo) y el parque, de todas las edades', () => {
       const g = nueva();
       const edades = (ids: string[]) => ids.map((id) => g.service<NpcDirectory>(SERVICES.npcs)!.get(id)!.age!).filter((e) => e !== undefined);
       advanceTo(g, 'gen.descansar', 0, 11); // en el recreo
-      const enElColegio = g.service<PresenciaService>(SERVICES.presencia)!.en('colegio').map((n) => n.id);
+      const enElColegio = g.service<PresenciaService>(SERVICES.presencia)!.en('patio').map((n) => n.id);
       expect(enElColegio.length).toBeGreaterThan(200);
       const e = edades(enElColegio.filter((id) => id.startsWith('alumno_') || id.startsWith('curso_') || id.startsWith('clase_')));
       expect(Math.min(...e)).toBe(8);
@@ -356,7 +356,7 @@ describe('hermanos', () => {
       return g.service<PresenciaService>(SERVICES.presencia)!.donde(h.id);
     };
     expect(donde(0, 9)).toBeNull(); // lunes, en clase: ocupado
-    expect(donde(0, 11)).toBe('colegio'); // en el recreo
+    expect(donde(0, 11)).toBe('patio'); // en el recreo
     expect(donde(0, 22)).toBe('casa'); // de noche, en casa
     expect(donde(5, 8, 50)).toMatch(/casa|estadio/); // sábado: casa o llegando a las carreras
     // Si va a las carreras (el 40 %), a media mañana está corriendo (ocupado); si no, en casa.

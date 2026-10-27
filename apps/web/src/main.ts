@@ -369,7 +369,7 @@ function viewActions(g: Game): string {
     .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${list.map(actionButton).join('')}</div>`)
     .join('');
   return `<section class="sheet">
-    ${html || '<p class="note">Ahora mismo no puedes hacer nada. Descansa un rato para que pase el tiempo.</p>'}
+    ${html || '<p class="note">Ahora mismo no puedes hacer nada. Pasa el rato para que avance el tiempo.</p>'}
     ${hidden ? `<button class="toggle-unavailable" data-act="toggle">${showUnavailable ? 'Ocultar lo que no está disponible' : `Ver lo que no está disponible ahora (${hidden})`}</button>` : ''}
   </section>`;
 }

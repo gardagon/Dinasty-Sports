@@ -173,6 +173,26 @@ const fueraDeClase = (desde: number, hasta: number, recreo = false) => (ctx: Rea
 const HORARIO_DE_PREGUNTAS = fueraDeClase(8, 22, true);
 
 const nombreCorto = (n: NpcView) => n.name.split(' ')[0];
+
+const NUMERO = ['', 'un', 'dos', 'tres', 'cuatro', 'cinco'];
+/** «Ana, Víctor y Marta». */
+const conY = (xs: string[]): string => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}` : (xs[0] ?? ''));
+/**
+ * Con quién se juega: los que conoces por su nombre y, aparte, los que no conoces por lo que son («un niño que no conocías»,
+ * «dos niñas que no conocías», «un niño y una niña que no conocíais»...). Su nombre sale en la presentación, que se enseña a continuación.
+ */
+export function conQuienSeJuega(elegidos: NpcView[]): string {
+  const conocidos = elegidos.filter((n) => n.known !== false).map(nombreCorto);
+  const desconocidos = elegidos.filter((n) => n.known === false);
+  const grupos = (['m', 'f'] as const).flatMap((g) => {
+    const de = desconocidos.filter((n) => n.gender === g);
+    if (!de.length) return [];
+    const [articulo, sustantivo] = nombreSegunEdad(g, edadAparente(de[0])).toLowerCase().split(' ');
+    return [de.length === 1 ? `${articulo} ${sustantivo}` : `${NUMERO[de.length] ?? de.length} ${sustantivo}s`];
+  });
+  // «que no conocías» va al final y se refiere a los que no tienen nombre.
+  return conY([...conocidos, ...grupos]) + (grupos.length ? ' que no conocías' : '');
+}
 const esAutoridad = (n: NpcView) => n.role === 'entrenador' || n.role === 'profesor';
 
 /** Jugar: en el recreo o en el rato libre (de 10 a 21, fuera de clase). */
@@ -850,7 +870,7 @@ export const relaciones = defineModule<RelacionesState>({
       },
     }),
     // Jugar con otros niños de tu edad (los conozcas o no): se abre relación con tres y se reparte entre ellos lo que sube.
-    conLugar(['colegio', 'parque'], {
+    conLugar(['patio', 'parque'], {
       id: 'relaciones.jugar_con_otros',
       name: 'Jugar con otros niños',
       description: 'Cinco minutos de juego con otros tres niños de tu edad, los conozcas o no. Lo que sube la relación se reparte entre los tres.',
@@ -882,7 +902,7 @@ export const relaciones = defineModule<RelacionesState>({
             ...Object.fromEntries(elegidos.map((n) => [n.id, conContacto(vinculoDe(ctx, s, n, dia), dia, 6 * f, 3 * f)])),
           },
         }));
-        ctx.log(`Juegas con ${elegidos.map((n) => (n.known === false ? `${nombreSegunEdad(n.gender, edadAparente(n)).toLowerCase()} que no conocías` : nombreCorto(n))).join(', ')}.`, 'info');
+        ctx.log(`Juegas con ${conQuienSeJuega(elegidos)}.`, 'info');
       },
     }),
   ],

@@ -87,7 +87,7 @@ const CALLES: readonly LugarDef[] = [
 
 const LUGARES_DE_CALLE: readonly LugarDef[] = [
   { id: 'casa', name: 'Casa', descripcion: 'Tu edificio. Aquí vives con tu familia.', grupo: 'Vivienda', enCalle: 'calle_casa', minutosDeCalle: 1 },
-  { id: 'colegio', name: 'Colegio', descripcion: 'La entrada del colegio: el patio y las pistas. Desde aquí se va a las aulas y a las salas.', grupo: 'Estudios', enCalle: 'calle_colegio', minutosDeCalle: 1 },
+  { id: 'colegio', name: 'Colegio', descripcion: 'La entrada del colegio. Desde aquí se va al aula, al patio, a la sala de profesores, a la administración y a la pista de atletismo.', grupo: 'Estudios', enCalle: 'calle_colegio', minutosDeCalle: 1 },
   { id: 'parque', name: 'Parque', descripcion: 'Un parque con árboles, bancos y espacio para correr.', grupo: 'Ocio', enCalle: 'avenida_parque', minutosDeCalle: 1 },
   { id: 'gimnasio', name: 'Gimnasio', descripcion: 'El gimnasio municipal: sala de pesas, máquinas y una zona de cardio.', grupo: 'Deporte', enCalle: 'avenida_parque', minutosDeCalle: 5 },
   { id: 'estadio', name: 'Estadio', descripcion: 'El estadio de atletismo: pista, graderías y vestuarios. Aquí compiten los clubes y se celebran las carreras.', grupo: 'Deporte', enCalle: 'avenida_estadio', minutosDeCalle: 3 },
@@ -159,10 +159,11 @@ const HORARIO_DE_SALA_DE_CLUB: HorarioDeLugar = {
 };
 
 const ZONAS: readonly LugarDef[] = [
-  { id: 'pista_colegio', name: 'Pista de atletismo del colegio', descripcion: 'La pista de atletismo del colegio: aquí entrena el club del colegio y se puede correr por tu cuenta. Los miembros del club están 10 minutos antes de cada sesión.', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
   { id: 'aula', name: 'Tu aula', descripcion: 'El aula de tu clase: aquí das clase con tus compañeros y el profesor. Se abre 10 minutos antes de cada clase.', grupo: 'Dentro del colegio', dentroDe: 'colegio', horario: HORARIO_DEL_AULA },
+  { id: 'patio', name: 'Patio', descripcion: 'El patio del colegio: aquí se pasa el recreo (de 10:40 a 11:10) y se juega con los demás niños.', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
   { id: 'sala_profesores', name: 'Sala de profesores', descripcion: 'La sala de profesores, dentro del colegio: ahí están los profesores cuando no dan clase (salvo un par que salen al patio en el recreo).', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
   { id: 'administracion', name: 'Administración del colegio', descripcion: 'La secretaría del colegio: aquí te apuntas (o te das de baja) del club del colegio y te cuentan cuándo entrenan y compiten.', grupo: 'Dentro del colegio', dentroDe: 'colegio', horario: HORARIO_DE_ADMINISTRACION },
+  { id: 'pista_colegio', name: 'Pista de atletismo del colegio', descripcion: 'La pista de atletismo del colegio: aquí entrena el club del colegio y se puede correr por tu cuenta. Los miembros del club están 10 minutos antes de cada sesión.', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
   { id: 'sala_club_ciudad', name: 'Sala del Club Atletismo Ciudad', descripcion: 'La sala del Club Atletismo Ciudad, en el estadio: aquí pides la prueba de acceso y la inscripción de atletismo.', grupo: 'Dentro del estadio', dentroDe: 'estadio', horario: HORARIO_DE_SALA_DE_CLUB },
   { id: 'sala_club_alto_rendimiento', name: 'Sala del Club de Alto Rendimiento', descripcion: 'La sala del Club de Alto Rendimiento, en el estadio: aquí pides la prueba de acceso y la inscripción de atletismo.', grupo: 'Dentro del estadio', dentroDe: 'estadio', horario: HORARIO_DE_SALA_DE_CLUB },
 ];

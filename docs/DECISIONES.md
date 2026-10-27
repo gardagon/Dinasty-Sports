@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 27/10/2026 — Patio del colegio, «Pasar el rato» y texto de «Jugar con otros niños»
+
+- **«Esperar 5 minutos» pasa a «Pasar el rato»** (mismo id `gen.esperar`, 5 minutos). Cambian el nombre, la descripción y el aviso de la interfaz cuando no hay nada que hacer.
+- **Nuevo sublugar Patio** (`patio`, zona dentro del colegio, siempre abierto). **El recreo (10:40–11:10) se pasa allí**: los alumnos (de tu clase y de las demás) están en el patio, y a las 11:10 vuelven a sus aulas; antes estaban en la entrada (`colegio`). La entrada sigue siendo donde se llega a las 7:30. El profesorado que no está en la sala (15 %) sale al patio en el recreo y a la entrada el resto del día. «Jugar con otros niños» se hace ahora en el patio o en el parque.
+- **Orden de los sublugares del colegio** (también en «Viajar»): aula, patio, sala de profesores, administración y pista de atletismo.
+- **Texto de «Jugar con otros niños»:** salía «Juegas con Ana, un niño que no conocías, Víctor.», que parecía decir que Ana era un niño y no decía quién era el desconocido. Ahora los conocidos van por su nombre y los desconocidos, al final y por lo que son: «Juegas con Ana, Víctor y un niño que no conocías.» (varios: «dos niños y una niña que no conocías»). Su nombre sale a continuación, en la presentación («Se llama Biel Ibáñez…»). Función `conQuienSeJuega`, con test.
+- **Tests:** los de recreo (agendas, presencia, hermanos, charlar, planes, jugar) pasan al patio; el de mapa comprueba el orden de las zonas del colegio.
+
+---
+
 ## 27/10/2026 — El olvido tira hacia un nivel natural: estudiar se nota (E6, ajuste de notas)
 
 - **Crítica (usuario):** con clase todos los días y 2 asignaturas estudiadas al día (3 horas) un alumno del montón apenas salvaba el curso. Cada clase daba ~+0,45 y cada sesión de estudio ~+0,50, pero cada noche se perdían ~0,85 en **todas** las asignaturas (también fines de semana): con 7 asignaturas se perdían ~6 puntos al día y se ganaban ~2,8. Medido: nadie llegaba al notable de media con esa rutina; el empollón sacaba 6,2 y el equilibrado 5,0.

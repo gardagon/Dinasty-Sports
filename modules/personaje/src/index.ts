@@ -150,8 +150,8 @@ export const personaje = defineModule<IdentidadState>({
     },
     {
       id: 'gen.esperar',
-      name: 'Esperar 5 minutos',
-      description: 'Dejar pasar un rato corto (p. ej. hasta que se pueda entrar a clase).',
+      name: 'Pasar el rato',
+      description: 'Dejar pasar cinco minutos (p. ej. hasta que se pueda entrar a clase).',
       tags: [TAGS.descanso],
       group: 'Descanso',
       duration: 5,
@@ -203,7 +203,7 @@ export const personaje = defineModule<IdentidadState>({
       train: [{ stat: GEN.carisma, amount: 0.5 }],
     },
   ], {
-    // La siesta (`gen.descansar`) es solo en casa; para esperar en cualquier parte está «Esperar 5 minutos».
+    // La siesta (`gen.descansar`) es solo en casa; para esperar en cualquier parte está «Pasar el rato».
     'gen.dormir': ['casa'],
     'gen.descansar': ['casa'],
     'gen.gimnasio': ['gimnasio'],

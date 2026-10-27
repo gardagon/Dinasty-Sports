@@ -5,7 +5,7 @@ import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, typ
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { EstudiosState } from '@ds/mod-estudios';
-import { conocer, hacer, llegarA, posible } from './ayudas';
+import { conocer, hacer, llegarA, posible, viajarA } from './ayudas';
 
 const baseNueva = nuevaPartida;
 import { asignaturasDelCurso } from '../modules/estudios/src/curriculo';
@@ -545,7 +545,7 @@ describe('integración de módulos', () => {
 
     it('a quien no conoces y tienes cerca le puedes preguntar el nombre (2 minutos), y entonces lo conoces', () => {
       const g = nuevaPartida({ seed: 21 });
-      llegarA(g, 'colegio', 10, 45); // el recreo
+      llegarA(g, 'patio', 10, 45); // el recreo
       const posibles = presentaciones(g);
       expect(posibles.length).toBeGreaterThan(10);
       expect(posibles.length).toBeLessThanOrEqual(46); // solo los que tienes cerca
@@ -586,7 +586,7 @@ describe('integración de módulos', () => {
     const nuevaPartida = (o: Parameters<typeof baseNueva>[0]) => conocer(baseNueva(o));
     const colegioEnElRecreo = (semilla = 31) => {
       const g = nuevaPartida({ seed: semilla });
-      llegarA(g, 'colegio', 10, 45);
+      llegarA(g, 'patio', 10, 45);
       return g;
     };
 
@@ -595,7 +595,7 @@ describe('integración de módulos', () => {
       g.perform('lugares.ir_colegio');
       advanceTo(g, 'gen.descansar', 0, 9); // 9:xx: en clase
       expect(g.preview('relaciones.charlar.companero_social')!.reason).toMatch(/fuera de clase \(o en el recreo\)/);
-      advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 10 * 60 + 45, 40);
+      llegarA(g, 'patio', 10, 45); // el recreo es en el patio
       expect(g.time.minuteOfDay).toBeLessThan(11 * 60 + 10); // hay recreo
       const o = g.preview('relaciones.charlar.companero_social')!;
       expect(o.available).toBe(true);
@@ -816,7 +816,7 @@ describe('familia en casa y planes con los demás', () => {
   /** Va al colegio en el recreo de un día de clase y propone el plan; devuelve si lo han aceptado. */
   const proponerEnElRecreo = (g: Game, cuando: 'hoy' | 'manana') => {
     advanceTo(g, 'gen.descansar', g.time.weekday, 10);
-    llegarA(g, 'colegio', 10, 45);
+    llegarA(g, 'patio', 10, 45);
     const antes = rel(g).planes().length;
     expect(hacer(g, `relaciones.plan_${cuando}.companero_estudio`).ok).toBe(true);
     return rel(g).planes().length > antes;
@@ -881,7 +881,7 @@ describe('familia en casa y planes con los demás', () => {
       const sg = g.serialize();
       sg.minute = (dia - 1) * 1440 + 11 * 60;
       const gd = cargarPartida(sg);
-      gd.perform('lugares.ir_colegio');
+      viajarA(gd, 'patio');
       hacer(gd, 'relaciones.plan_manana.companero_estudio');
       aceptadosPegados += rel(gd).planes().filter((p) => p.dia === dia).length;
     }
@@ -992,7 +992,7 @@ describe('datos de las personas: edad, cumpleaños, altura, colegio y clase', ()
 
   it('se puede preguntar la edad (y el cumpleaños) y a qué colegio va un rival, y entonces se sabe', () => {
     const g = conocer(nuevaPartida({ seed: 31 }), 'companero_estudio');
-    llegarA(g, 'colegio', 10, 45); // el recreo
+    llegarA(g, 'patio', 10, 45); // el recreo
     const pregunta = g.listActions().find((a) => a.id === 'relaciones.preguntar_edad.companero_estudio');
     expect(pregunta).toBeDefined();
     expect(pregunta!.duration).toBe(2);
@@ -1046,7 +1046,7 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     advanceTo(g, 'gen.descansar', 0, 10);
     advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 10 * 60 + 45); // el recreo
     const donde = g.service<PresenciaService>(SERVICES.presencia)!.donde('tutor')!;
-    expect(['sala_profesores', 'colegio']).toContain(donde);
+    expect(['sala_profesores', 'patio']).toContain(donde);
     g.perform('lugares.ir_colegio');
     const antes = g.time.minuteOfDay;
     g.perform('lugares.ir_sala_profesores');
@@ -1162,7 +1162,7 @@ describe('siesta, jugar y entrenar con el club', () => {
   it('en el recreo se juega con un compañero (5 minutos) o con otros tres niños de tu edad, repartiendo lo que sube la relación', () => {
     const g = conocer(nuevaPartida({ seed: 31 }));
     expect(g.preview('estudios.recreo')).toBeUndefined(); // ya no hay «Recreo»: se juega
-    llegarA(g, 'colegio', 10, 45);
+    llegarA(g, 'patio', 10, 45);
     const jugar = g.preview('relaciones.jugar.companero_social')!;
     expect(jugar.available).toBe(true);
     expect(jugar.duration).toBe(5);
@@ -1175,7 +1175,7 @@ describe('siesta, jugar y entrenar con el club', () => {
     expect(otros.duration).toBe(5);
     const conocidos = (g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true })).length;
     expect(g.perform('relaciones.jugar_con_otros').ok).toBe(true);
-    expect(g.log.some((l) => /^Juegas con .+, .+, .+\.$/.test(l.text))).toBe(true);
+    expect(g.log.some((l) => /^Juegas con .+ y .+\.$/.test(l.text) || /^Juegas con .+, .+ y .+\.$/.test(l.text))).toBe(true);
     expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).length).toBeGreaterThanOrEqual(conocidos);
     // En clase no.
     llegarA(g, 'aula', 11, 12);

@@ -74,7 +74,9 @@ describe('mapa de la ciudad', () => {
       if (l.dentroDe) expect(ids).toContain(l.dentroDe);
     }
     // Desde la entrada del colegio: sus zonas y su calle. Desde la calle: sus lugares y las calles vecinas.
-    expect(pasosDesde(CIUDAD_INICIAL, 'colegio').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['calle:calle_colegio', 'dentro:administracion', 'dentro:aula', 'dentro:pista_colegio', 'dentro:sala_profesores']);
+    expect(pasosDesde(CIUDAD_INICIAL, 'colegio').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['calle:calle_colegio', 'dentro:administracion', 'dentro:aula', 'dentro:patio', 'dentro:pista_colegio', 'dentro:sala_profesores']);
+    // Las zonas del colegio salen en este orden: aula, patio, sala de profesores, administración y pista de atletismo.
+    expect(pasosDesde(CIUDAD_INICIAL, 'colegio').filter((p) => p.tipo === 'dentro').map((p) => p.lugar)).toEqual(['aula', 'patio', 'sala_profesores', 'administracion', 'pista_colegio']);
     expect(pasosDesde(CIUDAD_INICIAL, 'calle_casa').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['lugar:casa', 'lugar:restaurante', 'lugar:supermercado', 'otra_calle:avenida_parque', 'otra_calle:calle_colegio']);
     // Las zonas solo se enlazan con su lugar.
     expect(pasosDesde(CIUDAD_INICIAL, 'sala_profesores')).toEqual([{ lugar: 'colegio', minutos: 2, tipo: 'entrada' }]);
