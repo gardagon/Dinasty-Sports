@@ -51,8 +51,9 @@ import {
  * MÓDULO ESTUDIOS (id `estudios`).
  * Cada asignatura es una PREPARACIÓN de 0 a 100 (= la nota que se espera sacar × 10), que el jugador ve como un nivel con
  * texto (Mal, Regular, Bien, Muy bien, Excelente). Sube yendo a clase (solo las asignaturas que se dan ese día, según el
- * horario semanal) y estudiando, más rápido cuantas mejores capacidades de apoyo se tienen; y cae un poco cada día
- * (más rápido con peores capacidades), de modo que hay que estudiar para mantenerla. No hay controles semanales: cada
+ * horario semanal) y estudiando, más rápido cuanto mayor es la aptitud. Yendo a clase se llega al NIVEL NATURAL (según la
+ * aptitud: ~5,5 para un alumno típico); estudiar sube por encima, y lo estudiado se olvida poco a poco hacia ese nivel, así
+ * que un notable exige constancia. Faltar a clase hace perder lo que se da ese día. No hay controles semanales: cada
  * trimestre hay una semana de exámenes, con aviso una semana antes, y su nota sale de la preparación del día del examen.
  * Faltar ese día es un 0. Las notas quedan disponibles para otros módulos a través del servicio `estudios`.
  */
@@ -87,8 +88,30 @@ const MIN_HORA_CLASE = 7;
 const MAX_HORA_CLASE = 9;
 /** Todos parten de un Regular (~50), de 40 a 78 según las capacidades que apoyan la asignatura. */
 const PREPARACION_INICIAL = { min: 30, max: 92 };
-/** Puntos de preparación que se pierden al día por olvido, antes del ajuste por capacidades (0,6× con muy buenas, 1,5× con muy malas). */
-const CAIDA_DIARIA = 0.8;
+/**
+ * NIVEL NATURAL de una asignatura: lo que se sabe solo yendo a clase, según la aptitud (`base + porAptitud × aptitud`:
+ * aptitud 40 ⇒ 43, la típica, 60 ⇒ 53, 85 ⇒ 66). Es el punto de equilibrio: las clases llevan hasta él (y poco más) y el
+ * olvido de lo estudiado tira hacia él, no hacia abajo sin parar. Estudiar es lo que sube por encima.
+ */
+const NIVEL_NATURAL = { base: 22, porAptitud: 0.52 };
+/** Parte de lo que se sabe por encima del nivel natural que se olvida cada día (antes del ajuste por aptitud): lo estudiado se va si no se repasa. */
+const OLVIDO_SOBRE_NIVEL = 0.015;
+/** Puntos que se pierden al día hacia lo aprendido de base, antes del ajuste por aptitud: pequeño, lo compensan las clases (en vacaciones se nota). */
+const DERIVA_DIARIA = 0.06;
+/** Puntos que se pierden por cada hora de currículo de una clase a la que se falta: el temario sigue avanzando sin ti. */
+const PERDIDA_POR_FALTA = 1.2;
+/**
+ * Las clases llevan hasta el nivel natural más este margen: por debajo rinden entero; al acercarse rinden menos (en
+ * `RANGO_DE_CLASE` puntos) y por encima solo `MINIMO_DE_CLASE` (lo que ya se sabe aporta poco).
+ */
+const MARGEN_DE_CLASE = 4;
+const RANGO_DE_CLASE = 10;
+const MINIMO_DE_CLASE = 0.15;
+/** Cuánto rinde una clase (antes de aptitud, peso de la clase y nivel) y una sesión de estudio de 90 minutos. */
+const RENDIMIENTO_CLASE = 1.35;
+const RENDIMIENTO_ESTUDIO = 4.4;
+/** El repaso general (120 minutos) rinde por minuto el 80 % de estudiar una asignatura, repartido entre todas las del curso. */
+const RENDIMIENTO_REPASO = (RENDIMIENTO_ESTUDIO * 120) / 90 * 0.8;
 /** Puntos que pierde la preparación al empezar un curso: los contenidos son más difíciles. */
 const SALTO_DE_CURSO = 3;
 /** Cuánto por debajo de la preparación inicial queda lo aprendido de base: un alumno brillante lo es siempre aunque no estudie. */
@@ -129,14 +152,30 @@ const aptitudDe = (ctx: ReadContext, k: string): number => {
 };
 
 /** Cuánto rinde el estudio según la aptitud: de ×0,85 con aptitud baja a ×1,5 con la más alta (la típica, 60, es ×1). */
-const factorDeAptitud = (ctx: ReadContext, k: string): number => Math.min(1.5, Math.max(0.85, aptitudDe(ctx, k) / 60));
+const factorDeAptitud = (ctx: ReadContext, k: string): number => Math.min(1.5, Math.max(0.7, aptitudDe(ctx, k) / 60));
 
-/** Olvido diario de una asignatura: no baja de lo aprendido de base. */
-function olvidar(ctx: ActionContext, k: string): void {
+/** Nivel natural de una asignatura para este alumno (ver `NIVEL_NATURAL`). */
+const nivelNatural = (ctx: ReadContext, k: string): number => NIVEL_NATURAL.base + NIVEL_NATURAL.porAptitud * aptitudDe(ctx, k);
+
+/** Resta preparación a una asignatura sin bajar de lo aprendido de base. */
+function perder(ctx: ActionContext, k: string, puntos: number): void {
   const base = ctx.state<EstudiosState>().base?.[k] ?? 0;
-  const perdida = Math.min(Math.max(0, ctx.stat(statId(k)) - base), caidaDeHoy(aptitudDe(ctx, k)));
+  const perdida = Math.min(Math.max(0, ctx.stat(statId(k)) - base), puntos);
   if (perdida > 0) ctx.addStat(statId(k), -perdida);
 }
+
+/**
+ * Olvido diario de una asignatura: una deriva pequeña hacia lo aprendido de base y, de lo que se sabe por encima del nivel
+ * natural, una parte. Así mantener un notable exige constancia, pero el nivel natural se sostiene yendo a clase.
+ */
+function olvidar(ctx: ActionContext, k: string): void {
+  const exceso = Math.max(0, ctx.stat(statId(k)) - nivelNatural(ctx, k));
+  perder(ctx, k, factorDeOlvido(aptitudDe(ctx, k)) * (DERIVA_DIARIA + OLVIDO_SOBRE_NIVEL * exceso));
+}
+
+/** Cuánto rinde hoy una clase según lo que ya se sabe: entera por debajo del nivel natural, cada vez menos al pasarlo. */
+const tironDeClase = (ctx: ReadContext, k: string): number =>
+  Math.min(1, Math.max(MINIMO_DE_CLASE, (nivelNatural(ctx, k) + MARGEN_DE_CLASE - ctx.stat(statId(k))) / RANGO_DE_CLASE));
 
 /**
  * Habilidad en una asignatura práctica (0–100): las capacidades que la apoyan frente a lo típico de la edad.
@@ -168,8 +207,8 @@ export function nivelDeAsignatura(preparacion: number): NivelDeAsignatura {
   return 'Excelente';
 }
 
-/** Cuánto se olvida al día de una asignatura: menos cuanto mayor es la aptitud del alumno (×0,6 con la más alta, ×1,4 con la más baja; la típica, 60, es ×1). */
-const caidaDeHoy = (aptitud: number): number => CAIDA_DIARIA * Math.min(1.4, Math.max(0.6, 1.6 - aptitud / 100));
+/** Cuánto se olvida según la aptitud del alumno: menos cuanto mayor es (×0,6 con la más alta, ×1,4 con la más baja; la típica, 60, es ×1). */
+const factorDeOlvido = (aptitud: number): number => Math.min(1.4, Math.max(0.6, 1.6 - aptitud / 100));
 
 /** Asignaturas que se dan un día de la semana (0 = lunes ... 4 = viernes) del curso. */
 const asignaturasDeHoy = (curso: number, modalidad: Modalidad | undefined, weekday: number): string[] =>
@@ -209,7 +248,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
     { stat: GEN.concentracion, amount: 0.4 },
     ...(a.entrena ? [a.entrena] : []),
   ],
-  run: (ctx) => ctx.train(statId(a.key), 1.2 * factorDeAptitud(ctx, a.key)),
+  run: (ctx) => ctx.train(statId(a.key), RENDIMIENTO_ESTUDIO * factorDeAptitud(ctx, a.key)),
 });
 
 /**
@@ -426,7 +465,8 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
         ctx.updateState<EstudiosState>((st) => ({ ...st, asistencia: { day: ctx.time.day, clases: [...clasesDeHoy(ctx), hora_] } }));
         // Cada clase vale lo que valían las horas del currículo de la asignatura repartidas en los huecos del horario.
         const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
-        ctx.train(statId(key), 1.35 * factorDeAptitud(ctx, key) * pesoDeClase(activas, key));
+        // Las clases llevan hasta el nivel natural: si ya lo pasas, aportan poco.
+        ctx.train(statId(key), RENDIMIENTO_CLASE * factorDeAptitud(ctx, key) * pesoDeClase(activas, key) * tironDeClase(ctx, key));
         // El profesor de la asignatura se presenta si todavía no lo conoces.
         ctx.emit<ClassAttendedData>({ type: SHARED_EVENTS.CLASS_ATTENDED, data: { asignatura: statId(key) } });
       },
@@ -537,7 +577,8 @@ export const estudios = defineModule<EstudiosState>({
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
       train: [{ stat: GEN.determinacion, amount: 0.3 }],
       run: (ctx) => {
-        for (const k of activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad)) ctx.train(statId(k), 0.9 * factorDeAptitud(ctx, k));
+        const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
+        for (const k of activas) ctx.train(statId(k), (RENDIMIENTO_REPASO / activas.length) * factorDeAptitud(ctx, k));
       },
     },
     {
@@ -626,6 +667,10 @@ export const estudios = defineModule<EstudiosState>({
       }
 
       const activas = activasKeys(hoy.schoolYear, s.modalidad);
+      // Lo que se da en una clase a la que faltas se pierde: el temario sigue avanzando (en proporción a las horas que vale la clase).
+      asignaturasDeHoy(hoy.schoolYear, s.modalidad, weekday).forEach((k, h) => {
+        if (!fue.includes(h)) perder(ctx, k, PERDIDA_POR_FALTA * pesoDeClase(activas, k));
+      });
       const tipo = tipoDeSemana(hoy);
       if (tipo) {
         const hechos = s.examenes ?? {};
