@@ -135,18 +135,26 @@ const CLASES = JORNADA_ESCOLAR.clases as readonly (readonly [number, number])[];
 /** Las horas en que alumnos y profesores no están en el patio: en el aula (de 7:50 al recreo y de 11:10 al final). */
 const EN_CLASE = [[PRIMERA_CLASE - ENTRADA_A_AULA, RECREO_DESDE], [RECREO_HASTA - ENTRADA_A_AULA, FIN_DE_CLASES]] as const;
 /**
- * El tramo de ir al colegio. Llegan a las 7:30 a la entrada (`colegio`, el patio); a las 7:50, y a las 11:10 al volver del recreo, se
- * van a clase. Los de tu clase (`tuClase`) están en **el aula** (zona `aula`) y solo están ocupados en clase: en los 5 minutos de entre clase y
+ * El tramo de ir al colegio. Llegan a las 7:30 a la entrada (`colegio`); a las 7:50 se van a clase, y en el recreo (10:40–11:10) están
+ * en el **patio** (zona `patio`); a las 11:10, al volver del recreo, se van otra vez a clase. Los de tu clase (`tuClase`) están en **el aula** (zona `aula`) y solo están ocupados en clase: en los 5 minutos de entre clase y
  * clase y antes de empezar se les puede hablar allí. Los de otras clases están en sus aulas (fuera del mapa) y no se les puede hablar.
  */
 const colegio = (tipo: TipoDeAgenda, nivel: number, tuClase = false): TramoDeAgenda[] => {
   const [clase1, clase2, clase3, clase4] = CLASES;
   const llegada = PRIMERA_CLASE - LLEGADA_AL_COLEGIO;
-  if (!tuClase) return [tramo(tipo, nivel, 'lectivo', llegada, FIN_DE_CLASES, [['colegio', 1]], undefined, EN_CLASE)];
+  if (!tuClase) {
+    // Los de otras clases: en la entrada al llegar y en el patio en el recreo; el resto del tiempo están en sus aulas (ocupados, fuera del mapa).
+    return [
+      tramo(tipo, nivel, 'lectivo', llegada, EN_CLASE[0][0], [['colegio', 1]]),
+      tramo(tipo, nivel, 'lectivo', EN_CLASE[0][0], RECREO_DESDE, [['colegio', 1]], undefined, [[EN_CLASE[0][0], RECREO_DESDE]]),
+      tramo(tipo, nivel, 'lectivo', RECREO_DESDE, EN_CLASE[1][0], [['patio', 1]]),
+      tramo(tipo, nivel, 'lectivo', EN_CLASE[1][0], FIN_DE_CLASES, [['colegio', 1]], undefined, [[EN_CLASE[1][0], FIN_DE_CLASES]]),
+    ];
+  }
   return [
     tramo(tipo, nivel, 'lectivo', llegada, EN_CLASE[0][0], [['colegio', 1]]),
     tramo(tipo, nivel, 'lectivo', EN_CLASE[0][0], RECREO_DESDE, [['aula', 1]], undefined, [clase1, clase2]),
-    tramo(tipo, nivel, 'lectivo', RECREO_DESDE, EN_CLASE[1][0], [['colegio', 1]]),
+    tramo(tipo, nivel, 'lectivo', RECREO_DESDE, EN_CLASE[1][0], [['patio', 1]]),
     tramo(tipo, nivel, 'lectivo', EN_CLASE[1][0], FIN_DE_CLASES, [['aula', 1]], undefined, [clase3, clase4]),
   ];
 };
@@ -182,8 +190,13 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
     }
     case 'profesor':
       // Llega a las 7:30, da clase (ocupado) de 8 a 14 salvo el recreo y atiende tutorías de 14 a 17.
-      // Fuera de clase está en la sala de profesores (salvo un par que salen al patio, al azar cada día).
-      return [tramo('profesor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(7, 30), h(17), [['sala_profesores', 85], ['colegio', 15]], undefined, EN_CLASE)];
+      // Fuera de clase está en la sala de profesores (salvo un par que salen a la entrada, o al patio en el recreo, al azar cada día).
+      // La entrada (7:30) y las tutorías (14–17) las hace en la sala o en la entrada; en el recreo, la sala o el patio.
+      return [
+        tramo('profesor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(7, 30), RECREO_DESDE, [['sala_profesores', 85], ['colegio', 15]], undefined, EN_CLASE),
+        tramo('profesor', nivel(NIVEL_AGENDA.rol), 'lectivo', RECREO_DESDE, EN_CLASE[1][0], [['sala_profesores', 85], ['patio', 15]]),
+        tramo('profesor', nivel(NIVEL_AGENDA.rol), 'lectivo', EN_CLASE[1][0], h(17), [['sala_profesores', 85], ['colegio', 15]], undefined, EN_CLASE),
+      ];
     case 'entrenador':
       return [...(club ? sesiones('entrenador', nivel(NIVEL_AGENDA.pertenencia), club) : []), carreras('entrenador', nivel(NIVEL_AGENDA.pertenencia))];
     case 'club':

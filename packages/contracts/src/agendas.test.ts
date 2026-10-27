@@ -25,8 +25,8 @@ describe('agendas de las personas', () => {
     expect(donde(alumno, 0, 7, 50)).toBeNull();
     expect(donde(alumno, 0, 8)).toBeNull(); // en clase
     expect(donde(alumno, 0, 10, 39)).toBeNull();
-    expect(donde(alumno, 0, 10, 40)).toBe('colegio'); // el recreo es de 10:40 a 11:20
-    expect(donde(alumno, 0, 11, 9)).toBe('colegio');
+    expect(donde(alumno, 0, 10, 40)).toBe('patio'); // el recreo es de 10:40 a 11:20, en el patio
+    expect(donde(alumno, 0, 11, 9)).toBe('patio');
     expect(donde(alumno, 0, 11, 10)).toBeNull(); // a las 11:10 vuelven a sus aulas
     expect(donde(alumno, 0, 11, 20)).toBeNull(); // otra vez en clase
     expect(donde(alumno, 0, 13, 59)).toBeNull();
@@ -47,7 +47,7 @@ describe('agendas de las personas', () => {
     expect(ubicacion(9, 15)).toMatchObject({ sitio: 'aula' }); // los 5 minutos de entre clase y clase
     expect(ubicacion(9, 15).ocupado).toBeFalsy();
     expect(ubicacion(9, 20).ocupado).toBe(true);
-    expect(ubicacion(10, 40).sitio).toBe('colegio'); // el recreo, en el patio
+    expect(ubicacion(10, 40).sitio).toBe('patio'); // el recreo, en el patio
     expect(ubicacion(11, 10).sitio).toBe('aula'); // 10 minutos antes de la tercera clase
     expect(ubicacion(12, 35).sitio).toBe('aula');
     expect(ubicacion(14).sitio).toBeNull();
@@ -66,14 +66,15 @@ describe('agendas de las personas', () => {
 
   it('el profesor llega a las 7:30, da clase (ocupado) hasta las 14:00 salvo el recreo, y atiende tutorías hasta las 17:00; fuera de clase está en la sala de profesores o, un par, en el patio', () => {
     const profesor = (dia: number, hora: number, min = 0) => donde([{ tipo: 'profesor' }], dia, hora, min);
-    const enElColegio = (s: string | null) => ['sala_profesores', 'colegio'].includes(s as string);
+    const enElColegio = (s: string | null) => ['sala_profesores', 'colegio', 'patio'].includes(s as string);
     expect(enElColegio(profesor(1, 7, 40))).toBe(true);
     expect(profesor(1, 9)).toBeNull();
     expect(enElColegio(profesor(1, 11))).toBe(true);
     expect(enElColegio(profesor(1, 16))).toBe(true);
     expect(profesor(1, 17)).toBeNull();
     expect(profesor(5, 10)).toBeNull();
-    // Del profesorado, casi todos en la sala: un 15 % en el patio.
+    // Del profesorado, casi todos en la sala: un 15 % sale al patio en el recreo (y a la entrada fuera de él).
+    expect(Array.from({ length: 400 }, (_, i) => ubicacionEn(construirAgenda([{ tipo: 'profesor' }], datos), en(1, 10, 50), `p${i}`).sitio).filter((s) => s === 'patio').length).toBeGreaterThan(30);
     const salas = Array.from({ length: 400 }, (_, i) => ubicacionEn(construirAgenda([{ tipo: 'profesor' }], datos), en(1, 11), `p${i}`).sitio).filter((s) => s === 'sala_profesores').length / 400;
     expect(salas).toBeGreaterThan(0.78);
     expect(salas).toBeLessThan(0.92);
@@ -88,7 +89,7 @@ describe('agendas de las personas', () => {
     expect(donde(conClub, 1, 19)).toBeNull();
     expect(donde(conClub, 1, 20, 10)).toBe('estadio'); // se queda un rato al acabar
     // Fuera de la sesión sigue yendo a clase.
-    expect(donde(conClub, 1, 11)).toBe('colegio');
+    expect(donde(conClub, 1, 11)).toBe('patio'); // en el recreo
     // El miércoles no hay sesión del club de ciudad.
     expect(donde(conClub, 2, 17, 50)).not.toBe('estadio');
   });

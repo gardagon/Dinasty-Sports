@@ -5,7 +5,7 @@ import { personaje } from '@ds/mod-personaje';
 import { npcs, type NpcsState } from '@ds/mod-npcs';
 import { familia } from '@ds/mod-familia';
 import type { IdentidadState } from '@ds/mod-personaje';
-import { relaciones, type RelacionesState } from './index';
+import { conQuienSeJuega, relaciones, type RelacionesState } from './index';
 
 /** Las cuatro personas del reparto empiezan sin conocer; casi todos los tests parten de que ya se conocen. */
 const nueva = (conocidas = true, semilla = 9) => {
@@ -309,5 +309,15 @@ describe('módulo relaciones', () => {
       advanceTo(g, 'gen.descansar', 5, 16);
       expect(g.preview('gen.gimnasio')!.modifiers.some((m) => m.id === 'relaciones.compatibilidad')).toBe(false);
     });
+  });
+});
+
+describe('texto de jugar con otros niños', () => {
+  const niño = (name: string, gender: 'f' | 'm', known: boolean) => ({ id: name, name, gender, known, age: 8, role: 'companero', tags: [] }) as never;
+  it('los que conoces van por su nombre y los que no, por lo que son, al final y en una sola frase', () => {
+    expect(conQuienSeJuega([niño('Ana Gil', 'f', true), niño('Biel Ibáñez', 'm', false), niño('Víctor Soler', 'm', true)])).toBe('Ana, Víctor y un niño que no conocías');
+    expect(conQuienSeJuega([niño('Ana Gil', 'f', true), niño('Marta Rey', 'f', true), niño('Víctor Soler', 'm', true)])).toBe('Ana, Marta y Víctor');
+    expect(conQuienSeJuega([niño('Ana Gil', 'f', true), niño('Biel Ibáñez', 'm', false), niño('Lía Mas', 'f', false)])).toBe('Ana, un niño y una niña que no conocías');
+    expect(conQuienSeJuega([niño('Biel Ibáñez', 'm', false), niño('Ot Puig', 'm', false), niño('Lía Mas', 'f', false)])).toBe('dos niños y una niña que no conocías');
   });
 });
