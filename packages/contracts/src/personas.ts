@@ -8,10 +8,10 @@ import { DIAS_DE_ENERO_AL_INICIO_DEL_CURSO, anioNatural, primerDiaDelAnio } from
  */
 
 /** Datos que se pueden saber de alguien (y preguntarle). */
-export type DatoPersonal = 'edad' | 'colegio' | 'clase';
+export type DatoPersonal = 'edad' | 'colegio' | 'clase' | 'profesion' | 'trabajo';
 
 /** El colegio del personaje (todavía sin nombre propio) y los de fuera (nombres provisionales, como los clubes de fuera). */
-export const COLEGIO_DEL_PERSONAJE = 'Tu colegio';
+export const COLEGIO_DEL_PERSONAJE = 'Colegio Cervantes';
 export const COLEGIOS_DE_FUERA = ['colegio1', 'colegio2', 'colegio3', 'colegio4'] as const;
 
 /** Hasta qué edad (inclusive) se va al colegio, de 3 a 17 años. */
@@ -19,6 +19,27 @@ export const EDAD_DE_COLEGIO = { desde: 3, hasta: 17 } as const;
 
 /** A qué colegio de fuera va alguien (estable por persona: no se guarda). */
 export const colegioDeFuera = (id: string): string => COLEGIOS_DE_FUERA[Math.floor(azarDe('colegio', id) * COLEGIOS_DE_FUERA.length)];
+
+/** Oficios de los vecinos adultos: cómo se dice en masculino y femenino y dónde trabajan. Se reparten por un hash del id (los de 67 o más, jubilados). */
+export const OFICIOS_DE_VECINOS: readonly { m: string; f: string; trabajo: string }[] = [
+  { m: 'Dependiente', f: 'Dependienta', trabajo: 'Supermercado' },
+  { m: 'Camarero', f: 'Camarera', trabajo: 'Restaurante' },
+  { m: 'Cocinero', f: 'Cocinera', trabajo: 'Restaurante' },
+  { m: 'Monitor de gimnasio', f: 'Monitora de gimnasio', trabajo: 'Gimnasio municipal' },
+  { m: 'Oficinista', f: 'Oficinista', trabajo: 'Oficina del centro' },
+  { m: 'Enfermero', f: 'Enfermera', trabajo: 'Hospital' },
+  { m: 'Albañil', f: 'Albañil', trabajo: 'Obras' },
+  { m: 'Taxista', f: 'Taxista', trabajo: 'Taxi' },
+];
+/** A partir de esta edad se está jubilado. */
+export const EDAD_DE_JUBILACION = 67;
+
+/** Profesión y lugar de trabajo de un vecino adulto (los jubilados no tienen lugar de trabajo). */
+export function oficioDeVecino(id: string, gender: 'f' | 'm', edad: number): { profesion: string; trabajo?: string } {
+  if (edad >= EDAD_DE_JUBILACION) return { profesion: gender === 'f' ? 'Jubilada' : 'Jubilado' };
+  const o = OFICIOS_DE_VECINOS[Math.floor(azarDe('oficio', id) * OFICIOS_DE_VECINOS.length)];
+  return { profesion: o[gender], trabajo: o.trabajo };
+}
 
 // ------------------------------------------------------------------------------------------------------------ cumpleaños
 

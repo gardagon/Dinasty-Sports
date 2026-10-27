@@ -309,7 +309,7 @@ function viewViaje(g: Game): string {
   const opcion = (id: string) => g.preview(`lugares.ir_${id}`);
   const boton = (id: string, extra = '') => {
     const o = opcion(id);
-    return o ? actionButton({ ...o, name: `${o.name.replace(/^Ir a /, '')}${extra}`.replace(/^./, (c) => c.toUpperCase()) }) : '';
+    return o ? actionButton({ ...o, name: `${svc.lugar(id)?.name ?? o.name.replace(/^Ir a /, '')}${extra}` }) : '';
   };
   const cerca = svc.vecinos().map((v) => boton(v.lugar.id)).join('');
   const grupos = new Map<string, string[]>();
@@ -544,11 +544,7 @@ function viewResults(g: Game): string {
     parts.push(`<p>Nota media reciente: <b>${m === null ? 'sin exámenes aún' : m.toFixed(1)}</b><br><span class="note">Faltas: ${est.absences()}. Cada trimestre: dos parciales y el global (40 % la media de los parciales, 60 % el global).</span></p>
       <h3>Exámenes próximos</h3>${proximos}${hoy ? `<p class="note">Hoy hay clase de: ${hoy}.</p>` : ''}`);
   }
-  const atl = g.moduleState<{ mejorMarca: number | null; carreras: { position: number; total: number }[] } | undefined>('atletismo');
-  if (atl) {
-    const ult = atl.carreras[atl.carreras.length - 1];
-    parts.push(`<p>Mejor marca en 400 m: <b>${atl.mejorMarca === null ? 'sin carreras aún' : `${atl.mejorMarca.toFixed(2)} s`}</b><br><span class="note">${ult ? `Última carrera: ${ult.position}º de ${ult.total}.` : 'Las carreras son los sábados por la mañana.'}</span></p>`);
-  }
+  // Las marcas y carreras de un deporte van en su pestaña «Deporte», no aquí.
   return parts.length ? `<section class="sheet"><h2>Resultados</h2>${parts.join('')}</section>` : '';
 }
 

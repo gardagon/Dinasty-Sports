@@ -172,6 +172,17 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Rendimiento:** la primera versión recalculaba la ruta en cada evaluación y subió el coste de la simulación de ~2,7 s a ~3,2 s por año (límite 3 s). Las rutas se calculan ahora una sola vez (el mapa no cambia en partida): ~2,75 s. Ojo al añadir lugares: cada acción de ir se evalúa en cada `listActions`.
 - **Comprobado:** tests (incluida la arquitectura) y `sim:rapida` sin cambios en el balance.
 
+## 27/10/2026 — Zonas dentro de los lugares, administración y salas de clubes, entrenadores y profesiones
+
+- **Profesión y lugar de trabajo para los adultos (decidido con el usuario).** El colegio y la clase son solo para niños en edad escolar (3 a 17). Los adultos tienen **profesión** y **lugar de trabajo**: el profesor es «Profesor» (y «Profesor de lengua» al ir a su clase o preguntar) y trabaja en «Colegio Cervantes» (nombre provisional del colegio); los entrenadores, en su club; los vecinos, un oficio de una lista. Preguntas de 2 minutos. Los datos nuevos son `profesion` y `trabajo` (`DatoPersonal`).
+- **Zonas dentro de los lugares (decidido):** `LugarDef.dentroDe`. Ejemplos: sala de profesores y administración (dentro del colegio) y la sala de cada club (dentro del estadio). Entrar o salir cuesta 2 minutos; la tabla de tiempos se completa sola (`conZonas`). **Horarios:** un lugar con horario no desaparece fuera de él: sale en gris y dice cuándo abre; las acciones que se hacen allí también, y se mira la hora a la que se llegaría.
+- **Sala de profesores:** fuera de clase el profesorado está allí (85 %; el 15 %, un par al azar, en el patio): para hablar con ellos hay que ir.
+- **Clubes (decidido):** apuntarse (y darse de baja) del club del colegio se hace en la **administración**; en los clubes de fuera, en su **sala** del estadio, donde se pide la prueba (solo en las horas de entrenamiento del club) y la inscripción. Antes de aceptar se ven los días de entreno y de carreras (descripción de la acción y, ya dentro, la pestaña «Deporte»: «Entrenamientos» y «Carreras»).
+- **Entrenadores por club y categorías (decidido):** cada club tiene varios, cada uno con unas edades (alguno lleva varias): colegio 1, Club Atletismo Ciudad 3 y Alto Rendimiento 2. Te presentan al que lleva tu edad al apuntarte y el resumen muestra el de tu edad en tu club; solo los de tu club reaccionan a tus resultados. **A futuro** cada entrenador tendrá sus habilidades (según su carácter, su conocimiento del deporte y sus capacidades), mejores en los clubes que en el colegio.
+- **Pestaña principal:** la marca de 400 m ya no sale en «Qué hacer» (está en «Deporte»).
+- **Rendimiento:** más acciones y más gente: ~0,9 ms por acción en el simulador (límite relativo ~1,1 ms). Se evitó crear funciones en cada evaluación. Si sigue creciendo habrá que subir el límite o recortar lo que se evalúa.
+- **Pendiente:** habilidades de los entrenadores, un nombre propio para el colegio y sus comercios, profesión de los padres, horarios de los comercios, y más zonas (aulas, biblioteca...).
+
 ## 27/10/2026 — Datos de las personas: edad, cumpleaños, altura, colegio y clase
 
 - **Todos tienen fecha de nacimiento, cumpleaños y altura (decidido con el usuario).** Incluidos los padres (misma edad y estatura que en `familia`, ahora de una función de la semilla: `nacimientoDeProgenitor`, `alturaAdulta`) y el reparto inicial (entrenador y tutor, adultos; compañeros de 8 años como el personaje). La altura crece con la edad (`alturaDe`).

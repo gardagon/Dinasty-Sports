@@ -47,7 +47,7 @@ export interface ClubJoinData {
 
 export interface DatoPersonalData {
   npcId: string;
-  dato: 'edad' | 'colegio' | 'clase';
+  dato: 'edad' | 'colegio' | 'clase' | 'profesion' | 'trabajo';
 }
 
 export interface ClassAttendedData {

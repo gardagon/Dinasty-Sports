@@ -189,20 +189,49 @@ const caminoDeVerano = (ctx: ReadContext) => ctx.service<StudiesService>(SERVICE
 const clubDelJugador = (ctx: ReadContext): ClubView | undefined => ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(DEPORTE);
 /** Dónde entrena el club del personaje: el colegio si es el del colegio y, si no, el estadio (sin club, el colegio). */
 const sedeDelClub = (ctx: ReadContext): readonly string[] => (clubDelJugador(ctx)?.esColegio === false ? ['estadio'] : ['colegio']);
+const edadDelJugadorDeTemporada = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
 const edadDelJugador = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
+
+const DIAS_DE_LA_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+/** «lunes y miércoles de 15 a 17»: cuándo entrena un club. */
+function textoDeSesiones(s: ClubView['sesiones']): string {
+  const dias = s.weekdays.map((d) => DIAS_DE_LA_SEMANA[d]);
+  return `${dias.length > 1 ? `${dias.slice(0, -1).join(', ')} y ${dias[dias.length - 1]}` : dias[0]} de ${s.desde} a ${s.hasta}`;
+}
+/** Lo que se cuenta de un club antes de apuntarse: cuándo entrena y cuándo hay carreras. */
+const infoDeClub = (c: ClubView): string => `Entrena ${textoDeSesiones(c.sesiones)}. Carreras: los sábados de 9 a 13 en el estadio.`;
+/** Dónde se hacen los trámites de un club: la administración del colegio o la sala del club en el estadio. */
+const tramitesDe = (c: ClubView | undefined): readonly string[] => (!c || c.esColegio ? ['administracion'] : [`sala_${c.id}`]);
 
 /** Pruebas de acceso a los clubes de fuera del colegio (se pueden hacer estando en otro club) y aceptar la plaza ganada. */
 function accionesDeClubes(ctx: ReadContext): ActionDef[] {
   const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
   if (!clubes) return [];
   const actual = clubes.membership(DEPORTE);
+  const colegio = clubes.list(DEPORTE).find((c) => c.esColegio);
+  // Apuntarse al club del colegio: en la administración, y antes de aceptar se cuenta cuándo entrena y compite.
+  const apuntarse: ActionDef[] =
+    colegio && !actual
+      ? [
+          conLugar(tramitesDe(colegio), {
+            id: 'atletismo.apuntarse_colegio',
+            name: 'Apuntarte al club de atletismo del colegio',
+            description: `El club del colegio entrena con su entrenador en sesiones fijas. ${infoDeClub(colegio)} Es el primer paso para competir con un equipo.`,
+            tags: ['atletismo'],
+            group: 'Club',
+            duration: 30,
+            available: () => true,
+            run: (c2) => c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: colegio.id } }),
+          }),
+        ]
+      : [];
   const ofertas = ctx.state<AtletismoState>().ofertas ?? {};
-  return clubes
+  return [...apuntarse, ...clubes
     .list(DEPORTE)
     .filter((c) => !c.esColegio && c.id !== actual?.id && c.acceso?.[DEPORTE])
     .flatMap((c): ActionDef[] => {
       const acceso = c.acceso![DEPORTE];
-      const aceptar = conLugar(['estadio'], {
+      const aceptar = conLugar(tramitesDe(c), {
         id: `atletismo.aceptar_plaza.${c.id}`,
         name: `Aceptar la plaza en ${c.nombre}`,
         description: `Pasaste la prueba y te ofrecen entrar. Si todavía eres de otro club y no lo has dejado antes, lo dejas plantado: empeora tu relación con su entrenador y su equipo y te estresa. La plaza vale ${SEMANAS_DE_OFERTA} semanas.`,
@@ -221,10 +250,10 @@ function accionesDeClubes(ctx: ReadContext): ActionDef[] {
           c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: c.id } });
         },
       });
-      const prueba = conLugar(['estadio'], {
+      const prueba = conLugar(tramitesDe(c), {
         id: `atletismo.prueba.${c.id}`,
         name: `Prueba de acceso: ${c.nombre}`,
-        description: `El ${c.nombre} hace pruebas a quien quiere entrar. Exige edad (${acceso.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
+        description: `El ${c.nombre} hace pruebas a quien quiere entrar, solo en sus horas de entrenamiento. ${infoDeClub(c)} Exige edad (${acceso.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
         tags: [TAGS.fisico, 'atletismo'],
         group: 'Club',
         duration: 150,
@@ -233,7 +262,8 @@ function accionesDeClubes(ctx: ReadContext): ActionDef[] {
           if (edadDelJugador(c2) < acceso.edadMin) return `Hay que tener ${acceso.edadMin} años para probar en el ${c.nombre}`;
           const ultima = c2.state<AtletismoState>().pruebas?.[c.id];
           if (ultima !== undefined && t.week - ultima < SEMANAS_ENTRE_PRUEBAS) return 'Hiciste la prueba hace poco: espera unas semanas';
-          return inHours(t, t.isSchoolDay ? 16 : 10, t.isSchoolDay ? 19 : 13) ? true : 'Las pruebas son los días de clase de 16 a 19 y sin clase de 10 a 13';
+          // Las pruebas se hacen en las sesiones de entrenamiento del club.
+          return c.sesiones.weekdays.includes(t.weekday) && inHours(t, c.sesiones.desde, c.sesiones.hasta - 1) ? true : `Las pruebas se hacen en los entrenamientos: ${textoDeSesiones(c.sesiones)}`;
         },
         delta: { [GEN.energia]: -25, [GEN.estres]: 6 },
         run: (c2) => {
@@ -254,7 +284,7 @@ function accionesDeClubes(ctx: ReadContext): ActionDef[] {
         },
       });
       return [prueba, aceptar];
-    });
+    })];
 }
 
 const horarioEntreno = (ctx: ReadContext): true | string => {
@@ -539,8 +569,11 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
   const s = ctx.state<AtletismoState>();
   const { competida, superior } = categoriaDelJugador(ctx);
   const club = clubDelJugador(ctx);
-  // El entrenador del club del colegio es la persona del reparto; los clubes de fuera aún no tienen entrenador propio.
-  const entrenador = club?.esColegio ? ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ role: 'entrenador', known: true })[0] : undefined;
+  // Tu entrenador: el de tu club que lleva tu edad (los clubes tienen varios, cada uno con unas categorías).
+  const edadDeTemporada = edadDelJugadorDeTemporada(ctx);
+  const entrenador = club
+    ? ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ role: 'entrenador', known: true }).find((n) => n.club === club.id && (!n.edades || (edadDeTemporada >= n.edades[0] && edadDeTemporada <= n.edades[1])))
+    : undefined;
   const todas = s.resultados ?? [];
   const deEsteCurso = todas.filter((p) => p.curso === t.schoolYear);
   const mejor = deEsteCurso.reduce<PruebaGuardada | undefined>((m, p) => (!m || p.posicion < m.posicion ? p : m), undefined);
@@ -571,6 +604,8 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
       { etiqueta: 'Categoría', valor: `${competida.nombre}${superior ? ' (compites en la superior)' : ''}` },
       { etiqueta: 'Club', valor: club?.nombre ?? 'Sin club' },
       { etiqueta: 'Entrenador', valor: entrenador?.name ?? '—' },
+      { etiqueta: 'Entrenamientos', valor: club ? textoDeSesiones(club.sesiones) : '—' },
+      { etiqueta: 'Carreras', valor: 'Los sábados de 9 a 13, en el estadio' },
       { etiqueta: 'Mejor marca', valor: s.mejorMarca === null ? '—' : `${s.mejorMarca.toFixed(2)} s` },
       { etiqueta: 'Carreras este curso', valor: String(deEsteCurso.length) },
       { etiqueta: 'Mejor puesto del curso', valor: mejor ? `${orden(mejor.posicion)} de ${mejor.total}` : '—' },
@@ -645,20 +680,6 @@ export const atletismo = defineModule<AtletismoState>({
   dynamicActions: accionesDeClubes,
 
   actions: ligarALugares([
-    {
-      id: 'atletismo.apuntarse_colegio',
-      name: 'Apuntarte al club de atletismo del colegio',
-      description: 'El club del colegio entrena con su entrenador en sesiones fijas. Es el primer paso para competir con un equipo.',
-      tags: ['atletismo'],
-      group: 'Club',
-      duration: 30,
-      available: (ctx) => {
-        if (clubDelJugador(ctx)) return 'Ya perteneces a un club de atletismo';
-        const t = ctx.time;
-        return t.isSchoolDay && inHours(t, 14, 19) ? true : 'Puedes apuntarte los días de clase, de 14 a 19';
-      },
-      run: (ctx) => ctx.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: 'colegio' } }),
-    },
     {
       id: 'atletismo.club_sesion',
       name: 'Entrenamiento con el club',
@@ -910,9 +931,8 @@ export const atletismo = defineModule<AtletismoState>({
     },
   ], {
     // El club del colegio entrena en el colegio; los de fuera, en el estadio. Las pistas del colegio, el parque y el estadio valen para entrenar solo.
-    'atletismo.apuntarse_colegio': ['colegio'],
     'atletismo.club_sesion': sedeDelClub,
-    'atletismo.dejar_club': sedeDelClub,
+    'atletismo.dejar_club': (ctx) => tramitesDe(clubDelJugador(ctx)),
     'atletismo.subir_categoria': sedeDelClub,
     'atletismo.volver_categoria': sedeDelClub,
     'atletismo.campamento': ['estadio'],

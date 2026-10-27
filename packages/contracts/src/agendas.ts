@@ -158,7 +158,8 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
     }
     case 'profesor':
       // Llega a las 7:30, da clase (ocupado) de 8 a 14 salvo el recreo y atiende tutorías de 14 a 17.
-      return [tramo('profesor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(7, 30), h(17), [['colegio', 1]], undefined, EN_CLASE)];
+      // Fuera de clase está en la sala de profesores (salvo un par que salen al patio, al azar cada día).
+      return [tramo('profesor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(7, 30), h(17), [['sala_profesores', 85], ['colegio', 15]], undefined, EN_CLASE)];
     case 'entrenador':
       return [...(club ? sesiones('entrenador', nivel(NIVEL_AGENDA.pertenencia), club) : []), carreras('entrenador', nivel(NIVEL_AGENDA.pertenencia))];
     case 'club':

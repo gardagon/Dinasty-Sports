@@ -169,6 +169,9 @@ const fueraDeClase = (desde: number, hasta: number, recreo = false) => (ctx: Rea
     ? true
     : `Disponible de ${desde} a ${hasta}, fuera de clase${recreo ? ' (o en el recreo)' : ''}`;
 
+/** El horario de las preguntas y las propuestas (se crea una sola vez: se evalúa en cada acción). */
+const HORARIO_DE_PREGUNTAS = fueraDeClase(8, 22, true);
+
 const nombreCorto = (n: NpcView) => n.name.split(' ')[0];
 const esAutoridad = (n: NpcView) => n.role === 'entrenador' || n.role === 'profesor';
 
@@ -205,6 +208,7 @@ const presenteAqui = (n: NpcView) => (ctx: ReadContext): true | string => {
 
 /** Requisitos comunes: un solo contacto al día con cada persona y que esté contigo. */
 function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, extra?: (ctx: ReadContext, v: Vinculo) => true | string, sinPresencia = false, charla = false) {
+  const presente = presenteAqui(n);
   return (ctx: ReadContext): true | string => {
     const s = ctx.state<RelacionesState>();
     if (charla) {
@@ -214,7 +218,7 @@ function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, ex
     const h = horario(ctx);
     if (h !== true) return h;
     const otro = extra ? extra(ctx, vinculoDe(ctx, s, n, ctx.time.day)) : true;
-    return otro !== true || sinPresencia ? otro : presenteAqui(n)(ctx);
+    return otro !== true || sinPresencia ? otro : presente(ctx);
   };
 }
 
@@ -316,6 +320,7 @@ function proponerPlan(n: NpcView, actividad: ActividadDePlan, cuando: 'hoy' | 'm
   const cfg = PLANES[actividad];
   const dias = cuando === 'hoy' ? 0 : 1;
   const clave = `plan.${n.id}.${actividad}.${cuando}`;
+  const presente = presenteAqui(n);
   return {
     id: `relaciones.plan_${cuando}.${n.id}`,
     name: `Proponer a ${nombreCorto(n)} ${cfg.nombre} ${cuando === 'hoy' ? 'hoy' : 'mañana'} a las ${hhmm(cfg.hora)}`,
@@ -329,8 +334,8 @@ function proponerPlan(n: NpcView, actividad: ActividadDePlan, cuando: 'hoy' | 'm
       if (cuando === 'hoy' && ctx.time.minuteOfDay > cfg.hora - PLAN.antelacion) return 'Ya es tarde para quedar hoy';
       if (s.planes?.some((p) => p.npcId === n.id && p.dia === dia)) return `Ya habéis quedado ${textoDeDia(ctx.time.day, dia)}`;
       if (espera(s, clave, ctx.time.day) > 0) return `Ya se lo has propuesto: ${textoDeDia(ctx.time.day, dia)} ya no cambiará de idea`;
-      const horario = fueraDeClase(8, 22, true)(ctx);
-      return horario !== true ? horario : presenteAqui(n)(ctx);
+      const horario = HORARIO_DE_PREGUNTAS(ctx);
+      return horario !== true ? horario : presente(ctx);
     },
     run: (ctx) => {
       const s = ctx.state<RelacionesState>();
@@ -605,19 +610,22 @@ function pacesDe(n: NpcView): ActionDef {
 }
 /**
  * Preguntas de 2 minutos para conocer mejor a alguien que tienes delante: cuántos años tiene (y cuándo cumple), a qué colegio va y a qué
- * clase. Solo se ofrece lo que todavía no sabes y lo que tiene sentido (el colegio de un compañero ya lo sabes; la clase, solo si es de tu
+ * clase (los niños) o a qué se dedica y dónde trabaja (los adultos). Solo se ofrece lo que todavía no sabes y lo que tiene sentido (el colegio de un compañero ya lo sabes; la clase, solo si es de tu
  * colegio). Lo aprendido lo guarda `npcs` (evento `persona.dato`).
  */
 const PREGUNTAS: Readonly<Record<DatoPersonal, { nombre: (n: NpcView) => string; descripcion: string }>> = {
   edad: { nombre: (n) => `Preguntar a ${nombreCorto(n)} cuántos años tiene y cuándo cumple`, descripcion: 'Si no lo sabes, a simple vista solo ves si es mayor o menor que tú.' },
   colegio: { nombre: (n) => `Preguntar a ${nombreCorto(n)} a qué colegio va`, descripcion: 'Dos minutos de conversación.' },
   clase: { nombre: (n) => `Preguntar a ${nombreCorto(n)} a qué clase va`, descripcion: 'Solo con quien es de tu colegio.' },
+  profesion: { nombre: (n) => `Preguntar a ${nombreCorto(n)} a qué se dedica`, descripcion: 'Dos minutos de conversación.' },
+  trabajo: { nombre: (n) => `Preguntar a ${nombreCorto(n)} dónde trabaja`, descripcion: 'Dos minutos de conversación.' },
 };
 const memoPreguntas = new Map<string, ActionDef>();
 function preguntarDe(n: NpcView, dato: DatoPersonal): ActionDef {
   const clave = `${n.id}|${dato}|${n.name}|${n.gender}`;
   let a = memoPreguntas.get(clave);
   if (!a) {
+    const presente = presenteAqui(n);
     a = {
       id: `relaciones.preguntar_${dato}.${n.id}`,
       name: PREGUNTAS[dato].nombre(n),
@@ -627,8 +635,8 @@ function preguntarDe(n: NpcView, dato: DatoPersonal): ActionDef {
       duration: 2,
       available: (ctx) => {
         if (dirDe(ctx)?.get(n.id)?.sabe?.includes(dato)) return 'Ya lo sabes';
-        const horario = fueraDeClase(8, 22, true)(ctx);
-        return horario !== true ? horario : presenteAqui(n)(ctx);
+        const horario = HORARIO_DE_PREGUNTAS(ctx);
+        return horario !== true ? horario : presente(ctx);
       },
       run: (ctx) => {
         ctx.emit<DatoPersonalData>({ type: SHARED_EVENTS.DATO_PERSONAL, data: { npcId: n.id, dato } });
@@ -648,6 +656,8 @@ const preguntasPendientes = (n: NpcView): DatoPersonal[] => {
   if (n.nacimiento !== undefined && !sabe.includes('edad')) lista.push('edad');
   if (n.colegio !== undefined && !sabe.includes('colegio')) lista.push('colegio');
   if (n.clase !== undefined && !sabe.includes('clase')) lista.push('clase');
+  if (n.profesion !== undefined && !sabe.includes('profesion')) lista.push('profesion');
+  if (n.trabajo !== undefined && !sabe.includes('trabajo')) lista.push('trabajo');
   return lista;
 };
 
@@ -935,7 +945,7 @@ export const relaciones = defineModule<RelacionesState>({
       if (!dir) return;
       const nombre = ctx.service<ClubDirectory>(SERVICES.clubes)?.list(sport).find((c) => c.id === clubId)?.nombre;
       const dia = ctx.time.day;
-      const afectados = dir.list({ known: true }).filter((n) => (clubId === 'colegio' ? n.role === 'entrenador' || n.tags.includes('equipo') : n.club === nombre));
+      const afectados = dir.list({ known: true }).filter((n) => (n.role === 'entrenador' ? n.club === clubId : clubId === 'colegio' ? n.tags.includes('equipo') : n.club === nombre));
       if (!afectados.length) return;
       ctx.updateState<RelacionesState>((s) => {
         const vinculos = { ...s.vinculos };
@@ -955,7 +965,10 @@ export const relaciones = defineModule<RelacionesState>({
       ctx.updateState<RelacionesState>((s) => {
         const vinculos = { ...s.vinculos };
         // El entrenador de ese deporte valora el esfuerzo y más aún el podio.
+        const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(r.module);
         for (const n of dir.list({ role: 'entrenador' })) {
+          // Solo los de tu club (sin club, el del colegio).
+          if (n.club !== undefined && n.club !== (club?.id ?? 'colegio')) continue;
           if (n.tags.includes(r.module)) vinculos[n.id] = conCambio(vinculoDe(ctx, s, n, dia), dia, r.position <= 3 ? 3 : 1);
         }
         // Los rivales que te ganan se crecen; los que pierden, te respetan un poco más. Competir con alguien es conocerlo.

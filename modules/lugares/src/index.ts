@@ -2,7 +2,9 @@ import {
   CIUDAD_INICIAL,
   LUGARES_EVENTS,
   SERVICES,
+  abiertoEn,
   defineModule,
+  timeView,
   tiempoEntre,
   vecinosDe,
   type ActionDef,
@@ -46,7 +48,11 @@ const ACCIONES: readonly ActionDef[] = MAPA.lugares.map((destino) => ({
   available: (ctx) => {
     const aqui = dondeEsta(ctx);
     if (aqui.id === destino.id) return `Ya estás en ${destino.name.toLowerCase()}`;
-    return tiempoEntre(MAPA, aqui.id, destino.id) !== undefined ? true : 'No hay camino';
+    const minutos = tiempoEntre(MAPA, aqui.id, destino.id);
+    if (minutos === undefined) return 'No hay camino';
+    // Cerrado a la hora a la que se llegaría: no desaparece, pero no se puede ir (y se dice cuándo abre).
+    const llegada = timeView(ctx.time.minute + minutos);
+    return abiertoEn(destino, llegada) ? true : `${destino.name} estará cerrado cuando llegues (abre ${destino.horario!.texto})`;
   },
   run: (ctx) => {
     const desde = dondeEsta(ctx).id;

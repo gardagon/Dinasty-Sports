@@ -46,9 +46,11 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 
 | Días | Horas | Dónde |
 |---|---|---|
-| lectivo | 7:30–8:00 | colegio, llegando |
+| lectivo | 7:30–8:00 | llegando |
 | lectivo | 8:00–10:40 y 11:20–14:00 | dando clase: ocupado |
-| lectivo | 10:40–11:20 y 14:00–17:00 | colegio: el recreo y las tutorías |
+| lectivo | 10:40–11:20 y 14:00–17:00 | el recreo y las tutorías |
+
+Cuando no dan clase, el profesorado está en la **sala de profesores** (zona dentro del colegio): el 85 % cada día; el 15 % (un par de ellos, al azar) está en el patio (`colegio`). Para hablar con ellos hay que ir a la sala (2 minutos desde el colegio).
 | resto | | fuera |
 
 ### Entrenador, nivel 3
@@ -121,6 +123,19 @@ Son personas del juego (ids `padre` y `madre`, rol `familia`, siempre conocidas)
 | libre | 9:00–23:00 | casa 85 %, fuera 15 % |
 | resto | | fuera (trabajo) |
 
+## 2 bis. Lugares y zonas con horario
+
+Algunos lugares son **zonas dentro de otro** (`LugarDef.dentroDe`): se llega por su lugar y entrar o salir cuesta **2 minutos** (`MINUTOS_ENTRE_ZONAS`); de una zona a cualquier sitio, lo que cuesta desde su lugar más 2; entre dos zonas del mismo lugar, 4. La tabla de tiempos se completa sola (`conZonas`).
+
+| Zona | Dentro de | Horario | Para qué |
+|---|---|---|---|
+| Sala de profesores | colegio | siempre | donde está el profesorado fuera de clase |
+| Administración del colegio | colegio | días de clase, 9:00–13:30 y 15:00–18:00 | apuntarse y darse de baja del club del colegio |
+| Sala del Club Atletismo Ciudad | estadio | L–V 16:00–21:00; sábados 9:00–14:00 | prueba de acceso, inscripción, aceptar plaza y darse de baja |
+| Sala del Club de Alto Rendimiento | estadio | L–V 16:00–21:00; sábados 9:00–14:00 | ídem |
+
+Un lugar con horario no desaparece cuando está cerrado: sale en gris y dice cuándo abre. Las acciones que se hacen allí también se ven en gris (con el horario) en vez de pedir que vayas.
+
 ## 3. Comercios (horarios de apertura, sin implementar)
 
 Supuesto: **supermercado** de 9:00 a 21:00 de lunes a sábado y de 10:00 a 15:00 el domingo; **restaurante** de 13:00 a 16:00 y de 20:00 a 23:00. Los lugares existen pero no tienen acciones ni cierran todavía.
@@ -135,11 +150,12 @@ Son **391 personas persistentes** (el plan hablaba de ~410; ver «Total real» m
 | **Tu curso, otra clase** | 25 | La otra línea del curso: coinciden en el recreo y el patio. |
 | **Otros cursos** | ~150 | Alumnos de los demás cursos del colegio (en torno a 15 por curso): llenan el patio y el parque. No solo de la edad del personaje. |
 | **Profesores** | 12 | El tutor, un profesor por asignatura y el de educación física. |
+| **Entrenadores de los clubes de fuera** | 5 | Club Atletismo Ciudad: 3 (10–13, 14–17 y 18 o más); Alto Rendimiento: 2 (14–17 y 18 o más). Ver `ANEXO_DEPORTE.md`. |
 | **Equipo de atletismo del colegio** | ~16 + entrenador | Salen de las clases anteriores: unos 3–4 de tu clase, otros de tu curso y de los demás. Al tener el tipo `club` van a las sesiones del club del colegio. |
 | **Rivales** | 96 (8 por edad, de 8 a 19) | Se reparten en **12 clubes y colegios de fuera**: los dos del catálogo del personaje (Club Atletismo Ciudad y Club de Alto Rendimiento) y diez con nombres provisionales (`colegio1`…`colegio4`, `club1`…`club6`), unos 8 por club. Sedes en el estadio. Los que son de otro colegio no están en el nuestro. |
 | **Vecinos** | ~80 | De todas las edades. Parque, supermercado, restaurante y gimnasio. |
 | **Familia** | 2 padres + 0 a 3 hermanos | Son personas con las que te relacionas: los padres en casa (ver «Padre y madre») y los hermanos en casa, en el colegio y en su deporte (ver «Hermano»). |
-| **Total real generado** | **391 + 2 padres + los hermanos** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
+| **Total real generado** | **391 + 2 padres + 5 entrenadores de clubes + los hermanos** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
 
 Reglas de generación:
 

@@ -14,19 +14,20 @@ Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasifi
 
 | Qué | Reglas |
 |---|---|
-| Apuntarte al club del colegio | En el colegio, los días de clase de 14 a 19. Al entrar **conoces al entrenador** (se presenta). |
-| Prueba de un club de fuera | En el estadio (días de clase 16–19, sin clase 10–13; 150 min). Se puede hacer **estando en otro club**. Exige edad y nivel (Club Atletismo Ciudad: 10 años y nivel 45; Alto Rendimiento: 14 y 65); si no pasas, repetir tras 8 semanas. |
-| Si pasas sin tener club | Entras directamente. |
-| Si pasas teniendo ya otro club | Te **ofrecen plaza** (vale 8 semanas, `SEMANAS_DE_OFERTA`) y decides con «Aceptar la plaza en…» (en el estadio, 15 min). |
-| Dejar el club | «Dejar el club de atletismo»: sin coste. Quien deja antes el suyo y después acepta, no paga nada. |
+| Apuntarte al club del colegio | En la **administración del colegio** (zona dentro del colegio, a 2 minutos de él), con horario: días de clase de 9:00 a 13:30 y de 15:00 a 18:00. Antes de aceptar, la descripción de la acción cuenta **cuándo entrena y cuándo hay carreras**. Al entrar **conoces al entrenador** que lleva tu edad (se presenta). |
+| Prueba de un club de fuera | En la **sala del club** (dentro del estadio; de lunes a viernes de 16:00 a 21:00 y sábados de 9:00 a 14:00), **solo en las horas de entrenamiento del club** (Club Atletismo Ciudad: martes y jueves de 18 a 20; Alto Rendimiento: lunes, martes y jueves de 17 a 20); 150 min. Se puede hacer **estando en otro club**. Exige edad y nivel (Club Atletismo Ciudad: 10 años y nivel 45; Alto Rendimiento: 14 y 65); si no pasas, repetir tras 8 semanas. |
+| Si pasas sin tener club | Entras directamente (la inscripción se hace ahí mismo). |
+| Si pasas teniendo ya otro club | Te **ofrecen plaza** (vale 8 semanas, `SEMANAS_DE_OFERTA`) y decides con «Aceptar la plaza en…» (en la sala del club, 15 min). |
+| Dejar el club | «Dejar el club de atletismo» en la administración (club del colegio) o en la sala de tu club: sin coste. Quien deja antes el suyo y después acepta, no paga nada. |
 | Aceptar la plaza **sin haber dejado antes el otro** | Lo dejas plantado: **estrés +10** (`ESTRES_POR_PLANTON`), con su **entrenador** afinidad −15 y confianza −10 y con **cada miembro de su equipo que conoces** afinidad −6 y confianza −3 (`PLANTON`). |
-| Entrenador | El del club del colegio es una persona del reparto; los clubes de fuera todavía no tienen entrenador propio (el resumen muestra «—»). |
+| Horarios | Un lugar con horario **no desaparece** fuera de él: sale en gris y dice cuándo abre (también al ir allí: se mira la hora a la que llegarías). |
+| Entrenadores | Cada club tiene varios, cada uno con las categorías de unas edades (alguno lleva varias): **colegio** 1 (todas las edades); **Club Atletismo Ciudad** 3 (10–13, 14–17, 18 o más); **Alto Rendimiento** 2 (14–17, 18 o más). Los de fuera son personas desconocidas (nombre generado) hasta que te apuntas: se presenta el que lleva tu edad. En el resumen de la pestaña sale **el que lleva tu edad en tu club**, con los días de entreno y las carreras. A futuro cada entrenador tendrá **sus propias habilidades** (según su carácter, su conocimiento del deporte y sus capacidades), mejores en los clubes que en el colegio. |
 
 ## 3. Lo que enseña la pestaña de atletismo
 
 | Sección | Contenido |
 |---|---|
-| Resumen | Categoría (y si compites en la superior), club, entrenador, mejor marca, carreras del curso, mejor puesto del curso y estado del campeonato (sin disputar, clasificado, no clasificado). |
+| Resumen | Categoría (y si compites en la superior), club, entrenador (el de tu edad), **entrenamientos** (días y horas del club), **carreras**, mejor marca, carreras del curso, mejor puesto del curso y estado del campeonato (sin disputar, clasificado, no clasificado). |
 | Próxima prueba | Pretemporada (primera carrera en la semana 5), vacaciones, la carrera semanal (sábado de 9 a 13), la clasificatoria (semana 25) o la final (semana 39) si toca. |
 | Habilidades | Solo las **propias del deporte** (en atletismo: técnica, ritmo, salida y conocimiento), con la marca del techo actual. Las genéricas (velocidad, resistencia...) se ven en la pestaña del personaje. |
 | Carreras | Todas las del curso, la más reciente primero, cada una desplegable con su clasificación completa (corredor, club, tiempo y diferencia con el 1.º). ⭐ marca la mejor marca personal. |

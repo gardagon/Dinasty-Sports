@@ -1,5 +1,6 @@
 import type { ActionDef } from './actions';
 import type { ReadContext } from './context';
+import { timeView, type TimeView } from './time';
 
 /**
  * Lugares y desplazamientos. El mapa es un DATO por ciudad (como `CalendarioPais`): lugares y caminos con su
@@ -16,7 +17,37 @@ export interface LugarDef {
   descripcion: string;
   /** Agrupa los destinos en el menú de viaje ("Vivienda", "Estudios", "Ocio"...). */
   grupo: string;
+  /** Es una zona dentro de otro lugar (la sala de profesores, dentro del colegio): se llega por su lugar, y entrar o salir cuesta unos minutos (`MINUTOS_ENTRE_ZONAS`). */
+  dentroDe?: LugarId;
+  /**
+   * Cuándo está abierto. Sin horario, siempre. Fuera de horario el lugar no desaparece: sale en gris con su horario, y no se puede ir (ni
+   * hacer nada que se haga allí).
+   */
+  horario?: HorarioDeLugar;
 }
+
+/** Tramo de apertura: días (`lectivo`: días de clase; `libre`: el resto; `todos`; o días de la semana, 0 = lunes) y minutos del día [desde, hasta). */
+export interface TramoDeApertura {
+  dias: 'todos' | 'lectivo' | 'libre' | readonly number[];
+  desde: number;
+  hasta: number;
+}
+
+export interface HorarioDeLugar {
+  tramos: readonly TramoDeApertura[];
+  /** El horario en palabras, para decirlo cuando está cerrado. */
+  texto: string;
+}
+
+const vale = (dias: TramoDeApertura['dias'], t: TimeView): boolean =>
+  dias === 'todos' ? true : dias === 'lectivo' ? t.isSchoolDay : dias === 'libre' ? !t.isSchoolDay : dias.includes(t.weekday);
+
+/** ¿Está abierto el lugar en ese momento? (Sin horario, siempre.) */
+export const abiertoEn = (lugar: Pick<LugarDef, 'horario'>, t: TimeView): boolean =>
+  !lugar.horario || lugar.horario.tramos.some((x) => vale(x.dias, t) && t.minuteOfDay >= x.desde && t.minuteOfDay < x.hasta);
+
+/** Minutos que cuesta pasar de un lugar a una zona suya (o de una zona a otra de la misma). */
+export const MINUTOS_ENTRE_ZONAS = 2;
 
 export interface MapaCiudad {
   nombre: string;
@@ -34,8 +65,7 @@ export interface MapaCiudad {
   directos: readonly (readonly [LugarId, LugarId])[];
 }
 
-/** Ciudad de partida. Es un dato: crecerá con el estadio, el gimnasio, la tienda, el aeropuerto... */
-export const CIUDAD_INICIAL: MapaCiudad = {
+const CIUDAD_BASE: MapaCiudad = {
   nombre: 'Ciudad',
   inicio: 'casa',
   casa: 'casa',
@@ -69,6 +99,53 @@ export const CIUDAD_INICIAL: MapaCiudad = {
     ['parque', 'restaurante'],
   ],
 };
+
+/**
+ * Añade zonas dentro de lugares del mapa (la tabla de tiempos se completa sola: de una zona a su lugar, 2 minutos; a cualquier otro sitio, lo
+ * que cuesta desde su lugar más los 2 minutos de salir; entre dos zonas del mismo lugar, 4). Cada zona se enlaza solo con su lugar.
+ */
+export function conZonas(base: MapaCiudad, zonas: readonly LugarDef[]): MapaCiudad {
+  const lugares = [...base.lugares, ...zonas];
+  const raiz = (id: LugarId): LugarId => zonas.find((z) => z.id === id)?.dentroDe ?? id;
+  const tiempos: Record<LugarId, Record<LugarId, number>> = {};
+  for (const a of lugares) {
+    tiempos[a.id] = {};
+    for (const b of lugares) {
+      if (a.id === b.id) tiempos[a.id][b.id] = 0;
+      else {
+        const salidaA = raiz(a.id) === a.id ? 0 : MINUTOS_ENTRE_ZONAS;
+        const salidaB = raiz(b.id) === b.id ? 0 : MINUTOS_ENTRE_ZONAS;
+        // Una zona y su propio lugar: solo los minutos de entrar; dos zonas del mismo lugar: entrar y salir.
+        tiempos[a.id][b.id] = raiz(a.id) === raiz(b.id) ? salidaA + salidaB : (base.tiempos[raiz(a.id)][raiz(b.id)] ?? 0) + salidaA + salidaB;
+      }
+    }
+  }
+  return { ...base, lugares, tiempos, directos: [...base.directos, ...zonas.map((z) => [z.dentroDe!, z.id] as const)] };
+}
+
+/** Horarios de las zonas con puerta: la administración del colegio y las salas de los clubes del estadio. */
+const HORARIO_DE_ADMINISTRACION: HorarioDeLugar = {
+  tramos: [
+    { dias: 'lectivo', desde: 9 * 60, hasta: 13 * 60 + 30 },
+    { dias: 'lectivo', desde: 15 * 60, hasta: 18 * 60 },
+  ],
+  texto: 'los días de clase, de 9:00 a 13:30 y de 15:00 a 18:00',
+};
+const HORARIO_DE_SALA_DE_CLUB: HorarioDeLugar = {
+  tramos: [
+    { dias: [0, 1, 2, 3, 4], desde: 16 * 60, hasta: 21 * 60 },
+    { dias: [5], desde: 9 * 60, hasta: 14 * 60 },
+  ],
+  texto: 'de lunes a viernes de 16:00 a 21:00 y los sábados de 9:00 a 14:00',
+};
+
+/** Ciudad de partida. Es un dato: crecerá con la tienda, el aeropuerto... */
+export const CIUDAD_INICIAL: MapaCiudad = conZonas(CIUDAD_BASE, [
+  { id: 'sala_profesores', name: 'Sala de profesores', descripcion: 'La sala de profesores, dentro del colegio: ahí están los profesores cuando no dan clase (salvo un par que salen al patio en el recreo).', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
+  { id: 'administracion', name: 'Administración del colegio', descripcion: 'La secretaría del colegio: aquí te apuntas (o te das de baja) del club del colegio y te cuentan cuándo entrenan y compiten.', grupo: 'Dentro del colegio', dentroDe: 'colegio', horario: HORARIO_DE_ADMINISTRACION },
+  { id: 'sala_club_ciudad', name: 'Sala del Club Atletismo Ciudad', descripcion: 'La sala del Club Atletismo Ciudad, en el estadio: aquí pides la prueba de acceso y la inscripción de atletismo.', grupo: 'Dentro del estadio', dentroDe: 'estadio', horario: HORARIO_DE_SALA_DE_CLUB },
+  { id: 'sala_club_alto_rendimiento', name: 'Sala del Club de Alto Rendimiento', descripcion: 'La sala del Club de Alto Rendimiento, en el estadio: aquí pides la prueba de acceso y la inscripción de atletismo.', grupo: 'Dentro del estadio', dentroDe: 'estadio', horario: HORARIO_DE_SALA_DE_CLUB },
+]);
 
 /** Minutos de un lugar a otro, o `undefined` si el mapa no lo define. */
 export const tiempoEntre = (mapa: MapaCiudad, desde: LugarId, hasta: LugarId): number | undefined => mapa.tiempos[desde]?.[hasta];
@@ -110,6 +187,11 @@ export interface LlegadaData {
   minutos: number;
 }
 
+/** Si el lugar está cerrado ahora, el motivo (con su horario); si no, `undefined`. */
+export function cerradoAhora(ctx: ReadContext, lugar: Pick<LugarDef, 'name' | 'horario'>): string | undefined {
+  return abiertoEn(lugar, ctx.time) ? undefined : `${lugar.name} está cerrado (abre ${lugar.horario!.texto})`;
+}
+
 /** Principio del motivo que devuelve `enLugar` cuando el personaje no está donde hace falta (los bots y la interfaz lo reconocen). */
 export const MOTIVO_LUGAR = 'Tienes que estar en';
 
@@ -121,7 +203,7 @@ export function enLugar(ctx: ReadContext, ...ids: LugarId[]): true | string {
   const svc = ctx.service<LugaresService>('lugares');
   if (!svc) return true;
   const actual = svc.actual();
-  if (ids.includes(actual.id)) return true;
+  if (ids.includes(actual.id)) return cerradoAhora(ctx, actual) ?? true;
   const nombres = ids.map((id) => svc.lugar(id)?.name.toLowerCase() ?? id);
   return `${MOTIVO_LUGAR} ${nombres.join(' o en ')} (estás en ${actual.name.toLowerCase()})`;
 }
@@ -138,7 +220,18 @@ export function conLugar<T extends ActionDef>(lugar: T['lugar'], def: T): T {
     lugar,
     available: (ctx: ReadContext) => {
       const otro = def.available?.(ctx) ?? true;
-      return otro !== true ? otro : enLugar(ctx, ...donde(ctx));
+      if (otro !== true) return otro;
+      // Si todos los sitios donde se puede hacer están cerrados, no es cuestión de ir: se dice el horario.
+      const svc = ctx.service<LugaresService>('lugares');
+      const sitios = donde(ctx);
+      // Cerrado al llegar: si estás allí, ahora; si no, a la hora a la que llegarías (el viaje también cuesta tiempo).
+      const cerradoAlLlegar = (l: LugarDef): string | undefined => {
+        const minutos = svc!.actual().id === l.id ? 0 : (svc!.minutosA(l.id) ?? 0);
+        return abiertoEn(l, timeView(ctx.time.minute + minutos)) ? undefined : `${l.name} ${minutos ? 'estará cerrado cuando llegues' : 'está cerrado'} (abre ${l.horario!.texto})`;
+      };
+      const cerrados = svc ? sitios.map((id) => svc.lugar(id)).filter((l): l is LugarDef => !!l).map(cerradoAlLlegar) : [];
+      if (sitios.length && cerrados.length === sitios.length && cerrados.every((c) => c !== undefined)) return cerrados[0]!;
+      return enLugar(ctx, ...sitios);
     },
   };
 }

@@ -51,6 +51,12 @@ export interface NpcView {
   /** Colegio al que va y clase (esta, solo si es del mismo colegio), si aplica. Vale lo que el personaje sepa (`sabe`). */
   colegio?: string;
   clase?: string;
+  /** Profesión y lugar de trabajo de los adultos (los niños tienen colegio y clase). `profesionBasica` es lo que se ve sin preguntar (p. ej. «Profesor»). Valen lo que el personaje sepa (`sabe`). */
+  profesion?: string;
+  profesionBasica?: string;
+  trabajo?: string;
+  /** Entrenadores: edades de los deportistas a los que entrenan (ambas incluidas). */
+  edades?: readonly [number, number];
   /** Lo que el personaje sabe de esta persona (por defecto o porque se lo ha preguntado). */
   sabe?: readonly DatoPersonal[];
   /** ¿El personaje ya lo conoce? Los rivales se conocen al competir contra ellos. Ausente = sí. */
