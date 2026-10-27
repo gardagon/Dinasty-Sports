@@ -601,26 +601,55 @@ function viewGame(g: Game): string {
 
   return `<main class="app">
     ${viewDay(g)}
-    <nav class="tabs" role="tablist">${tabs
-      .map(([id, label, inactivo]) => `<button class="tab" role="tab" aria-selected="${tab === id}" data-tab="${id}"${inactivo ? ` disabled title="${esc(inactivo)}"` : ''}>${label}</button>`)
-      .join('')}</nav>
+    <div class="tabs-wrap">
+      <button class="tabs-flecha izq" data-tabscroll="-1" aria-label="Pestañas anteriores" tabindex="-1">‹</button>
+      <nav class="tabs" role="tablist">${tabs
+        .map(([id, label, inactivo]) => `<button class="tab" role="tab" aria-selected="${tab === id}" data-tab="${id}"${inactivo ? ` disabled title="${esc(inactivo)}"` : ''}>${label}</button>`)
+        .join('')}</nav>
+      <button class="tabs-flecha der" data-tabscroll="1" aria-label="Más pestañas" tabindex="-1">›</button>
+    </div>
     <div class="layout"><div class="main">${main}</div><aside class="side">${side}</aside></div>
   </main>`;
 }
 
+/** Las pestañas se desplazan si no caben: se enseñan flechas por el lado donde queda algo oculto. */
+function marcarDesbordePestañas(): void {
+  const nav = app.querySelector<HTMLElement>('.tabs');
+  const wrap = nav?.parentElement;
+  if (!nav || !wrap) return;
+  wrap.classList.toggle('mas-izq', nav.scrollLeft > 2);
+  wrap.classList.toggle('mas-der', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 2);
+}
+document.addEventListener('scroll', (e) => { if ((e.target as HTMLElement).classList?.contains('tabs')) marcarDesbordePestañas(); }, true);
+window.addEventListener('resize', marcarDesbordePestañas);
+
 function render(): void {
+  // Al redibujar se conserva el desplazamiento de las pestañas y se asegura que la elegida se vea.
+  const antes = app.querySelector<HTMLElement>('.tabs')?.scrollLeft ?? 0;
   app.innerHTML = game ? viewGame(game) : viewStart();
+  const nav = app.querySelector<HTMLElement>('.tabs');
+  if (nav) {
+    nav.scrollLeft = antes;
+    const elegida = nav.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (elegida && (elegida.offsetLeft < nav.scrollLeft || elegida.offsetLeft + elegida.offsetWidth > nav.scrollLeft + nav.clientWidth)) nav.scrollLeft = elegida.offsetLeft - 24;
+    marcarDesbordePestañas();
+  }
 }
 
 // ------------------------------------------------------------------ interacción
 
 app.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-do],[data-tab],[data-act],[data-gente],[data-deporte]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-tab],[data-act],[data-gente],[data-deporte]');
   if (el?.dataset.act === 'importar') {
     importarPartida();
     return;
   }
   if (!el || !game) return;
+  if (el.dataset.tabscroll) {
+    const nav = app.querySelector<HTMLElement>('.tabs');
+    nav?.scrollBy({ left: Number(el.dataset.tabscroll) * nav.clientWidth * 0.6, behavior: 'smooth' });
+    return;
+  }
   if (el.dataset.deporte) {
     if (clicEnDeporte(el)) render();
     return;

@@ -2,9 +2,6 @@ import {
   CALENDARIO_ESPANA,
   COLEGIO_DEL_PERSONAJE,
   HUECO_ENTRE_CLASES,
-  LETRA_DE_TU_CLASE,
-  nombreDeClase,
-  type IdentityService,
   JORNADA_ESCOLAR,
   NOMBRE_PERIODO,
   SERVICES,
@@ -22,12 +19,13 @@ import type { Game } from '@ds/core';
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const hhmm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+const DIAS_CORTOS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
 const TIPO: Record<string, string> = { parcial1: 'parcial 1', parcial2: 'parcial 2', global: 'global' };
 
-function tabla(cabecera: string[], filas: string[][], resaltada = -1): string {
-  const th = cabecera.map((h) => `<th>${esc(h)}</th>`).join('');
+function tabla(cabecera: string[], filas: string[][], resaltada = -1, columnaHoy = -1): string {
+  const th = cabecera.map((h, i) => `<th${i === columnaHoy ? ' class="hoy"' : ''}>${esc(h)}</th>`).join('');
   const tr = filas.map((f, i) => `<tr${i === resaltada ? ' class="me"' : ''}>${f.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('');
-  return `<div class="table"><table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
+  return `<div class="table compacta"><table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
 }
 
 function barra(g: Game, id: string, texto: string): string {
@@ -48,20 +46,21 @@ const semanas = (desde: number, hasta: number): string => `semana${desde === has
 function colegio(g: Game, est: StudiesService): string {
   const dir = g.service<NpcDirectory>(SERVICES.npcs);
   const tutor = dir?.get('tutor');
-  const alumnos = dir ? dir.list().filter((n) => n.clase?.endsWith('(tu clase)')).length + 1 : undefined;
-  const edad = g.service<IdentityService>(SERVICES.identidad)?.view().seasonAge;
-  const miClase = edad === undefined ? undefined : nombreDeClase(edad, LETRA_DE_TU_CLASE);
+  const companeros = dir ? dir.list().filter((n) => n.clase?.endsWith('(tu clase)')) : [];
+  const alumnos = dir ? companeros.length + 1 : undefined;
+  // La misma clase que ven los compañeros en su ficha (así no puede discrepar del curso).
+  const miClase = companeros[0]?.clase?.replace(' (tu clase)', '');
   const media = est.average();
   const filas = [
     ['Colegio', COLEGIO_DEL_PERSONAJE],
     ['Curso', est.courseName()],
-    ...(alumnos ? [['Tu clase', `${miClase ? `${miClase}: ` : ''}${alumnos} alumnos (tú y ${alumnos - 1} compañeros)`]] : []),
-    ...(tutor ? [['Tutor', tutor.known === false ? 'Todavía no lo conoces' : tutor.name]] : []),
-    ['Jornada', `De ${hhmm(JORNADA_ESCOLAR.clases[0][0])} a 14:00: 4 clases y un recreo (${hhmm(JORNADA_ESCOLAR.recreo[0])}–${hhmm(JORNADA_ESCOLAR.recreo[1])})`],
+    ...(alumnos ? [['Tu clase', `${miClase ? `${miClase} · ` : ''}${alumnos} alumnos`]] : []),
+    ...(tutor ? [['Tutor', tutor.known === false ? 'Sin conocer' : tutor.name]] : []),
+    ['Jornada', `${hhmm(JORNADA_ESCOLAR.clases[0][0])}–14:00 · recreo ${hhmm(JORNADA_ESCOLAR.recreo[0])}`],
     ['Nota media reciente', media === null ? 'Sin exámenes aún' : media.toFixed(1)],
     ['Faltas', String(est.absences())],
   ];
-  return `<section class="sheet"><h2>Estudios</h2><dl class="identity">${filas.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></section>`;
+  return `<section class="sheet"><h2>Estudios</h2><dl class="identity estudios">${filas.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></section>`;
 }
 
 function asignaturas(g: Game, est: StudiesService): string {
@@ -78,13 +77,13 @@ function asignaturas(g: Game, est: StudiesService): string {
 
 function horario(est: StudiesService, g: Game): string {
   const nombre = (id: string) => g.registry.stats.get(id)?.def.name ?? id;
-  const clases = JORNADA_ESCOLAR.clases.map(([inicio, fin], h) => [`${hhmm(inicio)}–${hhmm(fin)}`, ...DIAS.map((_, d) => nombre(est.timetable(d)[h] ?? ''))]);
+  const clases = JORNADA_ESCOLAR.clases.map(([inicio, fin], h) => [hhmm(inicio), ...DIAS.map((_, d) => nombre(est.timetable(d)[h] ?? ''))]);
   // El recreo va entre la segunda y la tercera clase.
-  const recreo = [`${hhmm(JORNADA_ESCOLAR.recreo[0])}–${hhmm(JORNADA_ESCOLAR.recreo[1])}`, ...DIAS.map(() => 'Recreo')];
+  const recreo = [hhmm(JORNADA_ESCOLAR.recreo[0]), ...DIAS.map(() => 'Recreo')];
   const filas = [...clases.slice(0, 2), recreo, ...clases.slice(2)];
   const hoy = g.time.isSchoolDay ? g.time.weekday : -1;
-  return `<section class="sheet"><h2>Horario de clases</h2>${tabla(['Hora', ...DIAS.map((d, i) => (i === hoy ? `${d} (hoy)` : d))], filas)}
-    <p class="note">Cada clase dura ${JORNADA_ESCOLAR.clases[0][1] - JORNADA_ESCOLAR.clases[0][0]} minutos y acaba ${HUECO_ENTRE_CLASES} antes de la hora de la siguiente. Se puede entrar 10 minutos antes y llegar tarde (sube solo la parte asistida).</p></section>`;
+  return `<section class="sheet"><h2>Horario de clases</h2>${tabla(['Hora', ...DIAS_CORTOS], filas, -1, hoy >= 0 ? hoy + 1 : -1)}
+    <p class="note">La hora es la de inicio (el recreo acaba a las ${hhmm(JORNADA_ESCOLAR.recreo[1])}). Hoy se marca en la cabecera. Cada clase dura ${JORNADA_ESCOLAR.clases[0][1] - JORNADA_ESCOLAR.clases[0][0]} minutos y acaba ${HUECO_ENTRE_CLASES} antes de la hora de la siguiente. Se puede entrar 10 minutos antes y llegar tarde (sube solo la parte asistida).</p></section>`;
 }
 
 function examenes(g: Game, est: StudiesService): string {

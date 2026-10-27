@@ -26,6 +26,14 @@ describe('módulo relaciones', () => {
     expect(g.service<NpcDirectory>(SERVICES.npcs)!.get('tutor')!.known).toBe(false);
   });
 
+  it('con la familia se puede hablar a cualquier hora si está delante (a las 7 de la mañana, por ejemplo)', () => {
+    const g = nueva(false);
+    expect(g.time.minuteOfDay).toBeLessThan(10 * 60);
+    const ids = g.availableActions().map((a) => a.id);
+    expect(ids).toContain('relaciones.charlar.madre');
+    expect(ids).toContain('relaciones.charlar.padre');
+  });
+
   it('el reparto, una vez conocido, empieza como conocido y los rivales, sin conocer', () => {
     const g = nueva();
     expect(rel(g).get('entrenador')).toMatchObject({ estado: 'conocido', afinidad: 0, nivel: 0 });
