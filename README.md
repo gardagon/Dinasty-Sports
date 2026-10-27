@@ -45,6 +45,7 @@ npm run typecheck
 npm run sim          # simula un año con 7 estrategias × 5 semillas → sim/reports/ultimo/informe.html
 npm run sim:largo    # simula tres años (cursos completos con vacaciones y temporadas); con --dias 3650, de los 8 a los 18
 npm run sim:vida     # lleva a un bot que lo entrena todo muchos años (70 por defecto) y enseña su nivel frente a su tope por edad y cuánto del tope han alcanzado sus 6 mejores capacidades
+npm run sim:notas    # banco de notas: nota media de alumnos flojos, típicos y brillantes según su rutina de estudio, frente a los objetivos
 npm run check        # todo lo anterior en versión rápida
 npm run build        # compila la web en apps/web/dist
 npm run nuevo-modulo -- natacion "Natación"
