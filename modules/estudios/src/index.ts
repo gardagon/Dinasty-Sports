@@ -488,24 +488,6 @@ function clasesDeHoyAcciones(ctx: ReadContext): ActionDef[] {
   return proxima >= 0 ? [...clases, repasoPrevio(proxima, hoy[proxima])] : clases;
 }
 
-const RECREO: ActionDef = {
-  id: 'estudios.recreo',
-  name: 'Recreo',
-  description: `De ${hora(JORNADA.recreo[0])} a ${hora(JORNADA.recreo[1])}: patio con los compañeros.`,
-  tags: [TAGS.social, TAGS.ocio],
-  group: 'Colegio',
-  duration: (ctx) => Math.max(1, JORNADA.recreo[1] - ctx.time.minuteOfDay),
-  available: (ctx) => {
-    const t = ctx.time;
-    if (!t.isSchoolDay) return 'No hay clase';
-    return t.minuteOfDay >= JORNADA.recreo[0] && t.minuteOfDay < JORNADA.recreo[1] ? true : `El recreo es de ${hora(JORNADA.recreo[0])} a ${hora(JORNADA.recreo[1])}`;
-  },
-  delta: { [GEN.estres]: -2 },
-  train: [
-    { stat: GEN.carisma, amount: 0.2 },
-    { stat: GEN.cooperacion, amount: 0.1 },
-  ],
-};
 
 export const estudios = defineModule<EstudiosState>({
   id: 'estudios',
@@ -544,7 +526,6 @@ export const estudios = defineModule<EstudiosState>({
   ],
 
   actions: ligarALugares([
-    RECREO,
     ...ASIGNATURAS.map(estudiar),
     {
       id: 'estudios.repaso',
@@ -594,7 +575,6 @@ export const estudios = defineModule<EstudiosState>({
       },
     },
   ], {
-    'estudios.recreo': ['colegio'],
     'estudios.repaso': ['casa', 'colegio'],
     'estudios.academia': ['colegio'],
     ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'colegio']])),

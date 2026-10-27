@@ -175,6 +175,10 @@ const HORARIO_DE_PREGUNTAS = fueraDeClase(8, 22, true);
 const nombreCorto = (n: NpcView) => n.name.split(' ')[0];
 const esAutoridad = (n: NpcView) => n.role === 'entrenador' || n.role === 'profesor';
 
+/** Jugar: en el recreo o en el rato libre (de 10 a 21, fuera de clase). */
+const HORARIO_DE_JUEGO = (ctx: ReadContext): true | string =>
+  enRecreo(ctx.time) || (!isSchoolHours(ctx.time) && inHours(ctx.time, 10, 21)) ? true : 'Se juega en el recreo o en el rato libre (de 10 a 21, fuera de clase)';
+
 /** Horario de hablar con cada tipo de persona. */
 function horarioDe(n: NpcView): (ctx: ReadContext) => true | string {
   // Al entrenador se le habla antes y después de la sesión o la carrera (durante, está ocupado: ver `ocupado` en las agendas).
@@ -460,6 +464,22 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
       sinPresencia: true,
       lugar: [PLANES.estudiar.lugar],
       alTerminar: (ctx) => cerrarPlan(ctx, n.id, 'estudiar'),
+    }),
+    interaccion(n, {
+      suffix: 'jugar',
+      name: `Jugar con ${yo}`,
+      description: 'Cinco minutos de juego en el recreo o en tu rato libre; se pueden juntar hasta seis al día con la misma persona.',
+      charla: true,
+      duration: 30,
+      tags: [TAGS.social, TAGS.ocio],
+      ganancia: 4,
+      confianza: 2,
+      train: [
+        { stat: GEN.carisma, amount: 0.3 },
+        { stat: GEN.cooperacion, amount: 0.2 },
+      ],
+      delta: { [GEN.energia]: -1, [GEN.estres]: -2 },
+      horario: HORARIO_DE_JUEGO,
     }),
   ];
 }
@@ -777,6 +797,14 @@ const NOMBRE_HABILIDAD: Record<string, string> = {
   [GEN.creatividad]: 'creatividad',
 };
 
+/** A cuántos niños se juega a la vez, y de qué edad (la tuya, con un año de margen). */
+const NINOS_QUE_JUEGAN = 3;
+function ninosDeTuEdad(ctx: ReadContext): NpcView[] {
+  const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge;
+  if (edad === undefined) return [];
+  return (cercanosConClave(ctx)?.lista ?? []).filter((n) => n.role !== 'familia' && !esAutoridad(n) && n.age !== undefined && Math.abs(n.age - edad) <= 1);
+}
+
 export const relaciones = defineModule<RelacionesState>({
   id: 'relaciones',
   name: 'Relaciones',
@@ -819,6 +847,42 @@ export const relaciones = defineModule<RelacionesState>({
         ctx.train(GEN.comunicacion, 0.4 * parte);
         ctx.train(GEN.empatia, 0.2 * parte);
         ctx.log(`Mientras llega la clase hablas con ${n.known === false ? `${nombreSegunEdad(n.gender, edadAparente(n)).toLowerCase()} que no conocías` : n.name}.`, 'info');
+      },
+    }),
+    // Jugar con otros niños de tu edad (los conozcas o no): se abre relación con tres y se reparte entre ellos lo que sube.
+    conLugar(['colegio', 'parque'], {
+      id: 'relaciones.jugar_con_otros',
+      name: 'Jugar con otros niños',
+      description: 'Cinco minutos de juego con otros tres niños de tu edad, los conozcas o no. Lo que sube la relación se reparte entre los tres.',
+      tags: [TAGS.social, TAGS.ocio],
+      group: 'Tiempo libre',
+      duration: MINUTOS_DE_CHARLA,
+      available: (ctx) => {
+        const h = HORARIO_DE_JUEGO(ctx);
+        if (h !== true) return h;
+        return ninosDeTuEdad(ctx).length >= NINOS_QUE_JUEGAN ? true : 'No hay suficientes niños de tu edad con quienes jugar';
+      },
+      delta: { [GEN.energia]: -1, [GEN.estres]: -2 },
+      train: [
+        { stat: GEN.carisma, amount: 0.3 },
+        { stat: GEN.cooperacion, amount: 0.2 },
+      ],
+      run: (ctx) => {
+        const candidatos = [...ninosDeTuEdad(ctx)];
+        const elegidos: NpcView[] = [];
+        while (elegidos.length < NINOS_QUE_JUEGAN && candidatos.length) elegidos.push(candidatos.splice(Math.floor(ctx.rng.next() * candidatos.length), 1)[0]);
+        const dia = ctx.time.day;
+        // Lo que sube la relación (la de una charla de 5 minutos con alguien que se te da bien) se reparte entre los tres.
+        const f = ctx.efficiency * PARTE_DE_CHARLA / elegidos.length;
+        for (const n of elegidos) if (n.known === false) ctx.emit<PresentacionData>({ type: SHARED_EVENTS.PRESENTACION, data: { npcId: n.id } });
+        ctx.updateState<RelacionesState>((s) => ({
+          ...s,
+          vinculos: {
+            ...s.vinculos,
+            ...Object.fromEntries(elegidos.map((n) => [n.id, conContacto(vinculoDe(ctx, s, n, dia), dia, 6 * f, 3 * f)])),
+          },
+        }));
+        ctx.log(`Juegas con ${elegidos.map((n) => (n.known === false ? `${nombreSegunEdad(n.gender, edadAparente(n)).toLowerCase()} que no conocías` : nombreCorto(n))).join(', ')}.`, 'info');
       },
     }),
   ],

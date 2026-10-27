@@ -645,7 +645,7 @@ const PATRONES_DE_SESION: readonly Omit<SesionDeClub, 'sede'>[] = [
 /** Sesiones de un club: las del catálogo de clubes (por id o por nombre) y, si no está, las de un club de fuera. */
 function sesionDeClub(clubes: ClubDirectory | undefined, club: string): SesionDeClub {
   const c = clubes?.list('atletismo').find((x) => x.id === club || x.nombre === club);
-  if (c) return { weekdays: c.sesiones.weekdays, desde: c.sesiones.desde, hasta: c.sesiones.hasta, sede: c.esColegio ? 'colegio' : 'estadio' };
+  if (c) return { weekdays: c.sesiones.weekdays, desde: c.sesiones.desde, hasta: c.sesiones.hasta, sede: c.esColegio ? 'pista_colegio' : 'estadio' };
   return { ...PATRONES_DE_SESION[Math.floor(azarDe('sesion', club) * PATRONES_DE_SESION.length)], sede: 'estadio' };
 }
 

@@ -120,6 +120,8 @@ const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: numb
 
 /** Minutos antes de empezar y después de acabar una sesión o una carrera en los que se está en el sitio sin estar ocupado. */
 export const MARGEN_DE_SESION = 15;
+/** Los miembros de un club ya están en su pista 10 minutos antes de la sesión (desde entonces se puede entrar a entrenar). */
+export const MARGEN_ANTES_DE_SESION = 10;
 /** Minutos antes de la primera clase que alumnos y profesores ya están en el colegio (desde las 7:30). */
 export const LLEGADA_AL_COLEGIO = 30;
 const [RECREO_DESDE, RECREO_HASTA] = JORNADA_ESCOLAR.recreo;
@@ -151,7 +153,7 @@ const colegio = (tipo: TipoDeAgenda, nivel: number, tuClase = false): TramoDeAge
 
 /** Los tramos de las sesiones de un club. */
 const sesiones = (tipo: TipoDeAgenda, nivel: number, s: SesionDeClub, asistencia?: number): TramoDeAgenda[] => [
-  tramo(tipo, nivel, s.weekdays as readonly Weekday[], h(s.desde) - MARGEN_DE_SESION, h(s.hasta) + MARGEN_DE_SESION, [[s.sede, 1]], asistencia, [[h(s.desde), h(s.hasta)]]),
+  tramo(tipo, nivel, s.weekdays as readonly Weekday[], h(s.desde) - MARGEN_ANTES_DE_SESION, h(s.hasta) + MARGEN_DE_SESION, [[s.sede, 1]], asistencia, [[h(s.desde), h(s.hasta)]]),
 ];
 
 /** Las carreras: los sábados por la mañana, en el estadio. */

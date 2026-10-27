@@ -3,6 +3,7 @@ import {
   COLEGIO_DEL_PERSONAJE,
   HUECO_ENTRE_CLASES,
   JORNADA_ESCOLAR,
+  LETRA_DE_TU_CLASE,
   NOMBRE_PERIODO,
   SERVICES,
   fechaDelDia,
@@ -46,15 +47,10 @@ const semanas = (desde: number, hasta: number): string => `semana${desde === has
 function colegio(g: Game, est: StudiesService): string {
   const dir = g.service<NpcDirectory>(SERVICES.npcs);
   const tutor = dir?.get('tutor');
-  const companeros = dir ? dir.list().filter((n) => n.clase?.endsWith('(tu clase)')) : [];
-  const alumnos = dir ? companeros.length + 1 : undefined;
-  // La misma clase que ven los compañeros en su ficha (así no puede discrepar del curso).
-  const miClase = companeros[0]?.clase?.replace(' (tu clase)', '');
   const media = est.average();
   const filas = [
     ['Colegio', COLEGIO_DEL_PERSONAJE],
-    ['Curso', est.courseName()],
-    ...(alumnos ? [['Tu clase', `${miClase ? `${miClase} · ` : ''}${alumnos} alumnos`]] : []),
+    ['Curso', `${est.courseName()} (Clase ${LETRA_DE_TU_CLASE})`],
     ...(tutor ? [['Tutor', tutor.known === false ? 'Sin conocer' : tutor.name]] : []),
     ['Jornada', `${hhmm(JORNADA_ESCOLAR.clases[0][0])}–14:00 · recreo ${hhmm(JORNADA_ESCOLAR.recreo[0])}`],
     ['Nota media reciente', media === null ? 'Sin exámenes aún' : media.toFixed(1)],

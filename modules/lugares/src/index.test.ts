@@ -74,7 +74,7 @@ describe('mapa de la ciudad', () => {
       if (l.dentroDe) expect(ids).toContain(l.dentroDe);
     }
     // Desde la entrada del colegio: sus zonas y su calle. Desde la calle: sus lugares y las calles vecinas.
-    expect(pasosDesde(CIUDAD_INICIAL, 'colegio').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['calle:calle_colegio', 'dentro:administracion', 'dentro:aula', 'dentro:sala_profesores']);
+    expect(pasosDesde(CIUDAD_INICIAL, 'colegio').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['calle:calle_colegio', 'dentro:administracion', 'dentro:aula', 'dentro:pista_colegio', 'dentro:sala_profesores']);
     expect(pasosDesde(CIUDAD_INICIAL, 'calle_casa').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['lugar:casa', 'lugar:restaurante', 'lugar:supermercado', 'otra_calle:avenida_parque', 'otra_calle:calle_colegio']);
     // Las zonas solo se enlazan con su lugar.
     expect(pasosDesde(CIUDAD_INICIAL, 'sala_profesores')).toEqual([{ lugar: 'colegio', minutos: 2, tipo: 'entrada' }]);
@@ -111,6 +111,7 @@ describe('mapa de la ciudad', () => {
     expect(o.available).toBe(false);
     expect(o.reason).toMatch(/cerrado.*9:00 a 13:30/);
     advanceTo(g, 'gen.descansar', 0, 10);
+    g.perform('lugares.ir_colegio'); // (esperar fuera de casa puede haberte llevado a casa)
     expect(g.preview('lugares.ir_administracion')!.available).toBe(true);
     // El sábado, cerrada; la sala de un club abre a las 9.
     advanceTo(g, 'gen.descansar', 5, 10);

@@ -159,6 +159,7 @@ const HORARIO_DE_SALA_DE_CLUB: HorarioDeLugar = {
 };
 
 const ZONAS: readonly LugarDef[] = [
+  { id: 'pista_colegio', name: 'Pista de atletismo del colegio', descripcion: 'La pista de atletismo del colegio: aquí entrena el club del colegio y se puede correr por tu cuenta. Los miembros del club están 10 minutos antes de cada sesión.', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
   { id: 'aula', name: 'Tu aula', descripcion: 'El aula de tu clase: aquí das clase con tus compañeros y el profesor. Se abre 10 minutos antes de cada clase.', grupo: 'Dentro del colegio', dentroDe: 'colegio', horario: HORARIO_DEL_AULA },
   { id: 'sala_profesores', name: 'Sala de profesores', descripcion: 'La sala de profesores, dentro del colegio: ahí están los profesores cuando no dan clase (salvo un par que salen al patio en el recreo).', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
   { id: 'administracion', name: 'Administración del colegio', descripcion: 'La secretaría del colegio: aquí te apuntas (o te das de baja) del club del colegio y te cuentan cuándo entrenan y compiten.', grupo: 'Dentro del colegio', dentroDe: 'colegio', horario: HORARIO_DE_ADMINISTRACION },
