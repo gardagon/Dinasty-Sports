@@ -154,8 +154,8 @@ const APELLIDOS = [
 ];
 
 /**
- * Población de rivales de atletismo: 8 por edad entre los 8 y los 19 años (16 por categoría de dos edades),
- * suficientes para clasificatorias, lesiones y rotaciones. Cada curso los mayores se van y entran niños nuevos.
+ * Población de rivales de atletismo: 9 por edad entre los 8 y los 19 años (18 por categoría de dos edades),
+ * los 18 corredores de una carrera con semifinales y final; los ausentes y las lesiones se cubren con reservas. Cada curso los mayores se van y entran niños nuevos.
  */
 /** Clubes y colegios de los rivales: 12, de unos 8 rivales cada uno. Sedes, de momento, todas en el estadio. */
 const CLUBES_RIVALES = [

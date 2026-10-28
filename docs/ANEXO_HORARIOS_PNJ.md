@@ -206,7 +206,7 @@ Son **391 personas persistentes** (más 2 bibliotecarios generados al final) (el
 | **Vecinos** | ~80 | De todas las edades. Parque, supermercado, restaurante, gimnasio y biblioteca. |
 | **Bibliotecarios** | 2 | Turno de mañana y turno de tarde en la biblioteca. |
 | **Familia** | 2 padres + 0 a 3 hermanos | Son personas con las que te relacionas: los padres en casa (ver «Padre y madre») y los hermanos en casa, en el colegio y en su deporte (ver «Hermano»). |
-| **Total real generado** | **391 + 2 padres + 5 entrenadores de clubes + 2 bibliotecarios + los hermanos** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
+| **Total real generado** | **403 + 2 padres + 5 entrenadores de clubes + 2 bibliotecarios + los hermanos** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 108 rivales y 80 vecinos |
 
 Reglas de generación:
 

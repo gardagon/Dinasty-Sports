@@ -54,7 +54,7 @@ Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ dif
 
 ## Hecho fuera del plan original
 
-- **Conocimiento del deporte** (adapta E2.3), **PWA**, **96 rivales persistentes por edad con padres y herencia**, **series de 8 con rotación**, **clasificación con tablas** tras cada carrera, **clubes**, **currículo de España**, **calendario por país**, **módulo `relaciones`** (E20) y **módulo `familia`**. Detalle y cifras en `DECISIONES.md`.
+- **Conocimiento del deporte** (adapta E2.3), **PWA**, **108 rivales persistentes por edad con padres y herencia**, **carreras de hasta 18 con semifinales (2 series de 9) y final, y ausencias según nivel**, **clasificación con tablas** tras cada carrera, **clubes**, **currículo de España**, **calendario por país**, **módulo `relaciones`** (E20) y **módulo `familia`**. Detalle y cifras en `DECISIONES.md`.
 - **Herramientas de medición:** `npm run sim` (balance a un año), `sim:largo` (tres años), `sim:vida` (vida entera de un bot que lo entrena todo, hasta los 70 años por defecto) y `sim:notas` (banco de notas: nota media por aptitud y rutina de estudio frente a los objetivos).
 - Para E7 (deportes de equipo) y E8 (dinastía): la plantilla de competición ya tiene rivales con padres y herencia propia, tabla de resultados y rotación de series, y el motor ya hereda topes de los padres y envejece por categorías.
 
@@ -188,7 +188,7 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 |---|---|---|
 | E9.1 ✅ | Calendario por país, definido como dato. **España (estimación, a confirmar):** curso de 52 semanas sin fechas absolutas, contadas desde el lunes de la 2.ª semana de septiembre | Hecho el 22/10 (ver tabla de abajo). Las semanas exactas son una aproximación |
 | E9.2 ✅ | Vacaciones con contenido propio: sin clase pero con entrenamiento, campamentos, tiempo libre | Hecho (ver E9.10): campamento y academia de verano según las notas |
-| E9.3 ✅ | Temporada deportiva: pretemporada, competición, clasificatorias y finales | Hecho (ver E9.11): clasificatorias y finales en las semanas 24 y 38 |
+| E9.3 ✅ | Temporada deportiva: pretemporada, competición, clasificatorias y finales | Hecho (ver E9.11): semifinales y finales en las semanas 37 y 38 (semana 38 y 39 del curso) |
 | E9.4 ✅ | Cursos y categorías por edad (decide el **año de nacimiento**, no la fecha exacta; los bots suben de categoría): el niño sube de curso y de categoría al cumplir años. **Categorías de la federación española** (sub-10, sub-12, sub-14, sub-16, sub-18, sub-20, sub-23), como dato por país igual que el calendario; en edades tempranas, algún niño sale y entra otro nuevo | Enlaza con la edad (E3.1) |
 | E9.5 ✅ (parcial) | Evaluaciones trimestrales con consecuencias (aprobar, repetir curso, becas) | Hecho: evaluación en las semanas 14, 28 y 40, con consecuencias en motivación y estrés. Repetir curso: decidido que no (el castigo es la academia). Becas: esperan al dinero (E16) |
 | E9.6 ✅ | Simulación de 10 años: nuevos chequeos y rendimiento | Hecho: `npm run sim:largo` simula 3 años (336 ms por año). Falta revisar los rivales para partidas de diez años |

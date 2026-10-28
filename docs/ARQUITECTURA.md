@@ -51,7 +51,7 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
 
 El calendario es un **dato por país** (`CalendarioPais`, en contracts), expresado en semanas desde el inicio del curso (52 por curso, sin
 fechas absolutas). El motor y los módulos solo consultan el `TimeView`: curso, semana del curso, periodo (`clase`, `navidad`, `semana_santa`,
-`verano`), trimestre, `isSchoolDay` e `isEvaluationWeek`. En atletismo, la clasificatoria autonómica cae en la semana 25 del curso y la final en la 39. Para un país nuevo basta con otro `CalendarioPais`. Un módulo nuevo debe usar
+`verano`), trimestre, `isSchoolDay` e `isEvaluationWeek`. En atletismo, las semifinales del campeonato caen en la semana 38 del curso y la final en la 39. Para un país nuevo basta con otro `CalendarioPais`. Un módulo nuevo debe usar
 `isSchoolDay` / `isSchoolHours` (no `isWeekend`) para saber si hay clase, así respeta las vacaciones sin tocar el calendario.
 
 ## Categorías y desarrollo con la edad
