@@ -948,7 +948,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Rivales adultos y profesionales** (E10): usarán la curva física por edad; hoy solo juegan hasta los 19.
 
 - **Equilibrio del jugador que entrena a diario:** sube al podio en el 67 a 77 % de las carreras a 3 y 10 años. Se revisará cuando estén las lesiones (E12), el bonus de verano por buenas notas y el resto de piezas; no se toca antes.
-- **Notas:** tras los ajustes posteriores el equilibrado ronda 7,3 y el empollón 8,3 (ver la revisión de notas, `npm run sim:notas`); el aviso de «~6,2» es antiguo. Quedan Educación física y Artística por debajo de las demás en quien no entrena coordinación o creatividad.
+- **Notas:** medido el 28/10 con `npm run sim:notas`: aptitud típica saca 6,6 con ~1 h de estudio al día y 8,1 con 3 h; la brillante, 7,9 y 8,8. Todo dentro de los objetivos; el aviso de «~6,2» es antiguo. Quedan Educación física y Artística por debajo de las demás en quien no entrena coordinación o creatividad.
 - **Conocimiento:** sin techo duro; es malus y bonus sobre lo táctico. Si el efecto (×0,85 a ×1,15) se queda corto, subirlo.
 - **Dificultad al crear la partida (E15.1):** los rangos de calidad de los padres del jugador (fácil, normal, difícil) ya están como dato; falta la pantalla.
 - ~~**Hermanos** con su propia tirada de herencia~~ **Hecho** (0 a 3, `numeroDeHermanos`). Siguen pendientes sus perks y ventaja de crianza.
