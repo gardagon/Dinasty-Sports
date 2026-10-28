@@ -324,6 +324,7 @@ Generador de azar propio para los rivales; migración de partidas guardadas; ren
 | E18.4 | Lecturas tácticas y opciones tácticas en la carrera, a partir del conocimiento | Hoy el conocimiento solo da bonus |
 | E18.5 | Hitos que abren caminos: ojeadores, selecciones, clasificatorias, becas, la oportunidad profesional (E10.2) | Puertas del ciclo de vida |
 | E18.6 | Colegio, familia y rivalidades como fuente de eventos | Dependen de E13 |
+| E18.7 | **Que los demás reaccionen a tu edad y tu altura** (decidido el 28/10): comentarios de compañeros («eres muy bajito para tu edad»), bromas, que un entrenador te prefiera por tu estatura para una prueba, que te traten como a un pequeño | Antes figuraba como pendiente suelto de las relaciones. Lo que se **ve** (edad y altura relativas de los demás) ya está en «Aspecto»; esto son eventos con condiciones sobre la edad y la altura del personaje, y por eso espera al motor (E18.1) |
 
 ## E19 · Clubes — 🟡 · Sin equivalente en el original
 

@@ -150,7 +150,7 @@ Charlar con un compañero cualquiera a los 8 años: afinidad base 2,5. Compatibi
 
 - **Año del calendario (28/10):** la partida no usa años reales. Empieza el 10 de septiembre del **año 1** y el año cambia cada 1 de enero (`anioDelCalendario`, `fechaDelDia().anio`; los días anteriores al inicio, el pasado de los padres, dan año 0 o negativos). La cabecera muestra «lunes 10 de septiembre del año 1 · curso 1, semana 1». Los cumpleaños siguen siendo día/mes, sin año.
 
-Pendiente: los cumpleaños como acontecimientos (felicitar, regalos, que te feliciten), y que alguien se fije en tu edad o tu altura.
+Pendiente: los cumpleaños como acontecimientos (felicitar, regalos, que te feliciten). Que los demás reaccionen a tu edad o tu altura (comentarios, bromas) pasó al motor de eventos (E18.7 en `BACKLOG_STATS.md`).
 
 ### Cómo se llama a quien no conoces (según su edad)
 

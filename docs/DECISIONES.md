@@ -19,9 +19,9 @@ Decidido con el usuario tras revisar los pendientes contra el código (varios es
   - **Error corregido de paso:** preguntar «a qué se dedica» o «dónde trabaja» respondía «va a undefined» (caían en la rama de la clase). Ahora responden con la profesión y el lugar de trabajo.
 - **Profesión de los padres** (`OFICIOS_DE_PADRES`, 12 oficios): sale de la semilla de la partida y se guarda como `oficio` en `npcs`. Tus padres se saben desde el principio. Es solo identidad; todavía no influye en nada (dinero, tiempo en casa).
 - **Año del calendario (decidido con el usuario: «año 0 o 1» para no atar la partida a años reales):** la partida empieza el 10 de septiembre del **año 1** y el año cambia cada 1 de enero (`anioDelCalendario`). La cabecera dice «lunes 10 de septiembre del año 1 · curso 1, semana 1». Los cumpleaños siguen en día/mes.
-- **Rendimiento medido (28/10, esta máquina: calibración 6,5 ms):** `npm run sim`: ~1,0 ms por acción y ~9,8 s por año simulado; `sim:vida` (bot «perfecto»): ~6,2 s por año simulado. Las cifras anteriores de los docs (336 ms, ~960 ms, ~1,4 s, ~2,1 s por año) eran de otras máquinas o de otros momentos y no son comparables. **Los cambios de esta entrada no empeoran el coste** (mismo valor con y sin ellos). **A vigilar:** el chequeo «Rendimiento» de `sim` sale ❌ en esta máquina con 365 días (1,02 ms frente a un límite de 0,97 ms), y también salía ❌ antes de tocar nada; con `sim:rapida` pasa. Opciones: subir `LIMITE_RELATIVO` o optimizar; sin decidir.
+- **Rendimiento medido (28/10, esta máquina: calibración 6,5 ms):** `npm run sim`: ~1,0 ms por acción y ~9,8 s por año simulado; `sim:vida` (bot «perfecto»): ~6,2 s por año simulado. Las cifras anteriores de los docs (336 ms, ~960 ms, ~1,4 s, ~2,1 s por año) eran de otras máquinas o de otros momentos y no son comparables. **Los cambios de esta entrada no empeoran el coste** (mismo valor con y sin ellos). **A vigilar:** el chequeo «Rendimiento» de `sim` sale ❌ en esta máquina con 365 días (1,02 ms frente a un límite de 0,97 ms), y también salía ❌ antes de tocar nada; con `sim:rapida` pasa. **Decidido con el usuario:** de momento se amplía el límite (`LIMITE_RELATIVO` 0,15 → 0,18) y el chequeo pasa a **aviso** (⚠️) en vez de fallo, porque en el móvil no se nota retardo al jugar. Se vuelve a mirar si el coste por acción sube de forma clara.
 - **Simulación (`npm run sim`, 365 días × 5 semillas):** todos los chequeos ✅ salvo el de rendimiento. `sim:rapida` deja ⚠️ «El esfuerzo hace progresar» (+5,8 frente a +7 esperado en 84 días), igual que antes de los cambios (el umbral es para un año). `sim:notas` sigue en objetivos.
-- **Sigue sin hacer** (de los puntos propuestos): nombre propio del colegio (se deja como está: más adelante habrá mods de edición para estos datos) y que se noten la edad y la altura del personaje (por aclarar con el usuario).
+- **Sigue sin hacer** (de los puntos propuestos): nombre propio del colegio (se deja como está: más adelante habrá mods de edición para estos datos) y que los demás reaccionen a la edad y la altura del personaje: decidido con el usuario que pasa al **motor de eventos** (E18.7 del backlog), porque son comentarios y bromas con condiciones, no datos que mostrar.
 
 ---
 
@@ -303,7 +303,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Colegio y clase:** preguntas de 2 minutos. El colegio es por defecto el tuyo si es compañero y «Desconocido» si no lo sabes; la clase solo se enseña a los compañeros de colegio (la tuya, por defecto). Lo aprendido se guarda en `npcs` (`Npc.aprendido`, evento compartido `persona.dato`).
 - **Nada se guarda de más:** el colegio de fuera y la estatura de quien no es familia salen de un hash del id (estables y sin tocar el azar de la partida), y lo que se sabe por defecto se calcula.
 - **Rendimiento:** la vista de cada persona se recuerda por día; ~0,8 ms por acción en el simulador (límite ~1 ms, algo más ajustado).
-- **Pendiente:** cumpleaños como acontecimientos (felicitar, regalos), que se noten la edad y la altura del personaje, y preguntas sobre más cosas. Hechas después: a qué se dedica y qué le gusta.
+- **Pendiente:** cumpleaños como acontecimientos (felicitar, regalos), que los demás reaccionen a la edad y la altura del personaje (motor de eventos, E18.7; decidido el 28/10), y preguntas sobre más cosas. Hechas después: a qué se dedica y qué le gusta.
 
 ## 26/10/2026 — Fichas con las acciones, charlas de 5 minutos, clases con margen y apellidos
 
@@ -963,7 +963,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Rasgos de los hijos del personaje y de los padres de los rivales** (ciclo de generaciones, E8).
 - **Antes de la beta:** poner `MOSTRAR_GENETICA` y `MOSTRAR_RELACIONES` a `false` en `apps/web/src/main.ts` (genética, perks, sesgo y calidad de los padres, apariencia, carácter, intereses y cifras de relaciones).
 
-- **Medir el rendimiento en una partida real** (en las simulaciones, ~1,0 ms por acción y ~9,8 s por año simulado en esta máquina; el chequeo ❌ por poco, ver la entrada del 28/10).
+- **Medir el rendimiento en una partida real** (en las simulaciones, ~1,0 ms por acción y ~9,8 s por año simulado en esta máquina; el chequeo pasa a aviso con límite 0,18, ver la entrada del 28/10; en el móvil del usuario no se nota retardo).
 - **Ajustar las curvas por edad y los topes** con muchas pruebas y tests (`sim:vida`, `sim:largo`).
 - **Rivales adultos y profesionales** (E10): usarán la curva física por edad; hoy solo juegan hasta los 19.
 
