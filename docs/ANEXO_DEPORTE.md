@@ -65,6 +65,6 @@ Cada corredor suma los puntos de cada prueba en la que ha corrido contra el pers
 
 - **Estudiar cómo funcionan las clasificaciones y los puntos en el atletismo real** (ligas, circuitos, rankings por marcas) y ajustar la tabla de la sección 3.
 - Clasificación **de todo el circuito** (no solo de las carreras que compartes con el personaje) cuando haya calendario completo de competiciones.
-- Entrenadores propios de cada club de fuera (hoy solo hay el del colegio) y compañeros de equipo conocidos al entrar.
+- ~~Entrenadores propios de cada club de fuera~~ **Hecho** (`ENTRENADORES_DE_CLUBES`). Pendiente: sus habilidades propias y compañeros de equipo conocidos al entrar.
 - Gráfica de la evolución de las marcas a lo largo de los cursos.
 - Deportes de equipo: partidos, tablas de liga y plantillas (usarán el mismo contrato con sus propias secciones).

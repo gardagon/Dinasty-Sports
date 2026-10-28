@@ -158,7 +158,7 @@ Un lugar con horario no desaparece cuando está cerrado: sale en gris y dice cu�
 
 ## 3. Comercios (horarios de apertura, sin implementar)
 
-Supuesto: **supermercado** de 9:00 a 21:00 de lunes a sábado y de 10:00 a 15:00 el domingo; **restaurante** de 13:00 a 16:00 y de 20:00 a 23:00. Los lugares existen pero no tienen acciones ni cierran todavía.
+Supuesto: **supermercado** de 9:00 a 21:00 de lunes a sábado y de 10:00 a 15:00 el domingo; **restaurante** de 13:00 a 16:00 y de 20:00 a 23:00. Estos dos comercios existen pero aún no tienen acciones ni cierran (sin `horario`); el aula, la administración y las salas de club sí cierran según la hora.
 
 ## 4. Población de PNJs (aprobada y generada)
 
@@ -204,6 +204,6 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 
 ## 6. Pendiente
 
-- **Pestaña del deporte:** habilidades, clasificación de todas las carreras del año y demás.
-- **Horarios de apertura** de los comercios y de los lugares (cerrado según la hora).
+- ~~Pestaña del deporte~~ **Hecha** (ver `ANEXO_DEPORTE.md`).
+- **Horarios de apertura** del supermercado y el restaurante (el mecanismo ya existe y lo usan aula, administración y salas de club).
 - **Eventos y decisiones:** pendientes de todo lo demás.
