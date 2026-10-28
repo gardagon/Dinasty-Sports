@@ -80,7 +80,7 @@ export const tipoDeSitio = (l: Pick<LugarDef, 'calle' | 'dentroDe'>): TipoDeSiti
 
 const CALLES: readonly LugarDef[] = [
   { id: 'calle_casa', name: 'Calle de tu casa', descripcion: 'Tu calle: da a tu casa, al supermercado y al restaurante. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
-  { id: 'calle_colegio', name: 'Calle del colegio', descripcion: 'La calle del colegio. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
+  { id: 'calle_colegio', name: 'Calle del colegio', descripcion: 'La calle del colegio: da al colegio y a la biblioteca. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
   { id: 'avenida_parque', name: 'Avenida del Parque', descripcion: 'Una avenida con el parque y el gimnasio municipal. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
   { id: 'avenida_estadio', name: 'Avenida del Estadio', descripcion: 'La avenida del estadio de atletismo. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
 ];
@@ -112,12 +112,24 @@ const HORARIO_DEL_RESTAURANTE: HorarioDeLugar = {
   texto: 'todos los días de 13:00 a 16:00 y de 20:00 a 23:00',
 };
 
+/** La biblioteca abre de lunes a viernes de 9:00 a 20:00 y los sábados de 10:00 a 14:00; los domingos, cerrada. */
+const HORARIO_DE_LA_BIBLIOTECA: HorarioDeLugar = {
+  tramos: [
+    { dias: [0, 1, 2, 3, 4], desde: 9 * 60, hasta: 20 * 60 },
+    { dias: [5], desde: 10 * 60, hasta: 14 * 60 },
+  ],
+  texto: 'de lunes a viernes de 9:00 a 20:00 y los sábados de 10:00 a 14:00',
+};
+const HORARIO_DEL_GIMNASIO: HorarioDeLugar = { tramos: [{ dias: 'todos', desde: 8 * 60, hasta: 22 * 60 }], texto: 'todos los días de 8:00 a 22:00' };
+const HORARIO_DEL_ESTADIO: HorarioDeLugar = { tramos: [{ dias: 'todos', desde: 8 * 60, hasta: 21 * 60 }], texto: 'todos los días de 8:00 a 21:00' };
+
 const LUGARES_DE_CALLE: readonly LugarDef[] = [
   { id: 'casa', name: 'Casa', descripcion: 'Tu edificio. Aquí vives con tu familia.', grupo: 'Vivienda', enCalle: 'calle_casa', minutosDeCalle: 1 },
   { id: 'colegio', name: 'Colegio', descripcion: 'La entrada del colegio. Desde aquí se va al aula, al patio, a la sala de profesores, a la administración y a la pista de atletismo.', grupo: 'Estudios', enCalle: 'calle_colegio', minutosDeCalle: 1, horario: HORARIO_DEL_COLEGIO },
+  { id: 'biblioteca', name: 'Biblioteca', descripcion: 'La biblioteca municipal, junto al colegio: mesas, silencio y estanterías. Aquí se estudia con calma.', grupo: 'Estudios', enCalle: 'calle_colegio', minutosDeCalle: 3, horario: HORARIO_DE_LA_BIBLIOTECA },
   { id: 'parque', name: 'Parque', descripcion: 'Un parque con árboles, bancos y espacio para correr.', grupo: 'Ocio', enCalle: 'avenida_parque', minutosDeCalle: 1 },
-  { id: 'gimnasio', name: 'Gimnasio', descripcion: 'El gimnasio municipal: sala de pesas, máquinas y una zona de cardio.', grupo: 'Deporte', enCalle: 'avenida_parque', minutosDeCalle: 5 },
-  { id: 'estadio', name: 'Estadio', descripcion: 'El estadio de atletismo: pista, graderías y vestuarios. Aquí compiten los clubes y se celebran las carreras.', grupo: 'Deporte', enCalle: 'avenida_estadio', minutosDeCalle: 3 },
+  { id: 'gimnasio', name: 'Gimnasio', descripcion: 'El gimnasio municipal: sala de pesas, máquinas y una zona de cardio.', grupo: 'Deporte', enCalle: 'avenida_parque', minutosDeCalle: 5, horario: HORARIO_DEL_GIMNASIO },
+  { id: 'estadio', name: 'Estadio', descripcion: 'El estadio de atletismo: pista, graderías y vestuarios. Aquí compiten los clubes y se celebran las carreras.', grupo: 'Deporte', enCalle: 'avenida_estadio', minutosDeCalle: 3, horario: HORARIO_DEL_ESTADIO },
   { id: 'supermercado', name: 'Supermercado', descripcion: 'El supermercado del barrio. Aquí se compra la comida (sin dinero todavía no se puede comprar nada).', grupo: 'Comercio', enCalle: 'calle_casa', minutosDeCalle: 4, horario: HORARIO_DEL_SUPERMERCADO },
   { id: 'restaurante', name: 'Restaurante', descripcion: 'Un restaurante cerca del supermercado. Por ahora no tienes dinero para comer fuera.', grupo: 'Comercio', enCalle: 'calle_casa', minutosDeCalle: 4, horario: HORARIO_DEL_RESTAURANTE },
 ];

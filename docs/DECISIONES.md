@@ -5,6 +5,21 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/10/2026 — Biblioteca, horarios del gimnasio y el estadio, y CI
+
+Decidido con el usuario (el parque se queda sin horario).
+
+- **Biblioteca nueva** (`biblioteca`, grupo «Estudios», en la calle del colegio a 3 min; 12 min desde casa). Horario decidido por mí (a revisar): lunes a viernes 9:00–20:00, sábados 10:00–14:00, domingos cerrada.
+  - **Estudiar solo en casa o en la biblioteca:** `estudios.estudiar_*` y `estudios.repaso` pasan de `['casa', 'colegio']` a `['casa', 'biblioteca']`: ya no se estudia en la entrada del colegio ni en el patio. Sin bonus ni penalización por el sitio (idea para más adelante: que la biblioteca dé algo más de concentración y que se pueda quedar allí con un compañero; hoy los planes de estudiar son en casa a las 17:00).
+  - **Población:** 2 bibliotecarios (`bibliotecario_1` de mañana y `bibliotecario_2` de tarde; nuevo tipo de agenda `bibliotecario` con `turno`); los alumnos la visitan (10 % por la tarde de los días de clase, 8 % en las mañanas libres, nunca los domingos) y los vecinos (8 % cuando está abierta). Se generan al final para no cambiar el azar de lo demás (lo mismo que los entrenadores de clubes): +2 personas (393 + padres, entrenadores y hermanos).
+  - **Nuevo mecanismo de agendas:** a igualdad de nivel gana el último tramo, y se usa para que el tramo de los domingos mande sobre el de «libre» (la biblioteca cierra). Los vecinos ya no tienen una lista fija de tramos: se calculan a partir de una tabla de visitas (`VISITAS_DE_VECINOS`) cortando donde empieza o acaba una.
+  - **El test de horarios es ahora más fuerte** (`horarios.test.ts`): en vez de mirar cada tramo, coloca a 24 personas por tipo cada media hora de un curso entero con `ubicacionEn` (como en el juego) y comprueba que ninguna está en un sitio cerrado. Detectó la biblioteca abierta los domingos para los alumnos.
+- **Gimnasio 8:00–22:00 y estadio 8:00–21:00, todos los días.** Las sesiones de los clubes (hasta las 20:00 más 15 minutos de margen) y las carreras de los sábados (9:00–13:00) caben dentro.
+- **Interfaz revisada con el navegador:** la cabecera dice «del año 1» y los lugares cerrados salen en gris con su horario («Biblioteca estará cerrado cuando llegues (abre de lunes a viernes…)»), en el grupo que les toca.
+- **Acciones de GitHub:** `ci.yml` pasa a `checkout@v6`, `setup-node@v6` y `upload-artifact@v6` (Node 24; versiones inferidas de una búsqueda web porque no se pudo consultar la API de GitHub: si el CI falla por la versión, se corrige). **`pages.yml` no se ha tocado** (`configure-pages@v5`, `upload-pages-artifact@v3`, `deploy-pages@v4`): solo se ejecuta al fusionar en `main`, así que no se puede probar en un PR; la última versión de `upload-pages-artifact` parece la 5, que exige `deploy-pages@v4` o posterior. Pendiente de actualizar con cuidado.
+
+---
+
 ## 28/10/2026 — Horarios del colegio y los comercios, «qué le gusta», profesión de los padres y año del calendario
 
 Decidido con el usuario tras revisar los pendientes contra el código (varios estaban ya hechos y se marcaron en este registro y en `BACKLOG_STATS.md`).
@@ -294,7 +309,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Entrenadores por club y categorías (decidido):** cada club tiene varios, cada uno con unas edades (alguno lleva varias): colegio 1, Club Atletismo Ciudad 3 y Alto Rendimiento 2. Te presentan al que lleva tu edad al apuntarte y el resumen muestra el de tu edad en tu club; solo los de tu club reaccionan a tus resultados. **A futuro** cada entrenador tendrá sus habilidades (según su carácter, su conocimiento del deporte y sus capacidades), mejores en los clubes que en el colegio.
 - **Pestaña principal:** la marca de 400 m ya no sale en «Qué hacer» (está en «Deporte»).
 - **Rendimiento:** más acciones y más gente: ~0,9 ms por acción en el simulador (límite relativo ~1,1 ms). Se evitó crear funciones en cada evaluación. Si sigue creciendo habrá que subir el límite o recortar lo que se evalúa.
-- **Pendiente:** habilidades de los entrenadores, un nombre propio para el colegio y sus comercios, y más zonas (aulas, biblioteca...). Hechos después (28/10): profesión de los padres y horarios de los comercios.
+- **Pendiente:** habilidades de los entrenadores, un nombre propio para el colegio y sus comercios, y más zonas (más aulas...). Hechos después (28/10): profesión de los padres, horarios de los comercios y la biblioteca.
 
 ## 27/10/2026 — Datos de las personas: edad, cumpleaños, altura, colegio y clase
 
@@ -325,7 +340,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Ocupado = fuera (decidido):** mientras alguien está en clase, corriendo o en una sesión del club no puedes hablar con él o ella, aunque siga en su agenda. Se modela con `TramoDeAgenda.ocupado` (intervalos): llegan antes (alumnos y profesores 30 min, desde las 7:30; sesiones y carreras, 15), están ocupados y vuelven a estar al acabar (recreo; 15 min tras la sesión). Esto resuelve que se pudiera preguntar el nombre en clase y luego «no se pudiera hablar más»: en clase ya no aparecen; en el recreo y al llegar sí, y se puede charlar desde las 7:30. Al entrenador se le habla antes o después de la sesión. Los tests de presencia usan el recreo (11:00) o la llegada (8:50).
 - **Planes (decidido):** estudiar con alguien se acuerda: se propone «hoy» o «mañana» a las 17:00 y la otra persona decide según su agenda (clase, entreno, carrera), si ese día tiene otros planes (25 %), el margen de un día entre planes (salvo afinidad ≥ 70) y lo bien que os llevéis. Si acepta, hay que llegar a tiempo a tu casa (30 min de cortesía) o se pierde afinidad y confianza. Cifras en `ANEXO_RELACIONES.md` («Planes»). Servicio `relaciones.planes()` y panel «Planes».
 - **Rendimiento:** el servicio de presencia se reutiliza dentro del mismo minuto y los modificadores de relaciones ignoran las propuestas; aun así el simulador pasa de ~0,5 a ~0,7 ms por acción (límite relativo ~1 ms) por las agendas con más cambios y dos personas más conocidas.
-- **Pendiente:** entrenar con alguien (el mismo sistema de planes, área deporte), proponer por chat cuando haya teléfono, otros sitios donde quedar (biblioteca), más horas del día para proponer, y que los padres también acuerden planes (ir a un sitio juntos).
+- **Pendiente:** entrenar con alguien (el mismo sistema de planes, área deporte), proponer por chat cuando haya teléfono, otros sitios donde quedar (la biblioteca ya existe desde el 28/10, pero los planes siguen siendo en casa), más horas del día para proponer, y que los padres también acuerden planes (ir a un sitio juntos).
 
 ## 26/10/2026 — Deporte solo con club, empezar sin conocer a nadie y ayuda según lo que sabe cada uno
 

@@ -19,7 +19,7 @@ describe('módulo NPCs', () => {
     const g = nueva();
     const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
     const hermanos = dir.list({ tag: 'hermano' }).length;
-    expect(dir.list().length).toBe(391 + 2 + 5 + hermanos); // 4 del entorno + 96 rivales (8 por edad de 8 a 19) + la población del colegio y del barrio + los padres + 5 entrenadores de clubes + los hermanos
+    expect(dir.list().length).toBe(391 + 2 + 5 + 2 + hermanos); // 4 del entorno + 96 rivales (8 por edad de 8 a 19) + la población del colegio y del barrio + los padres + 5 entrenadores de clubes + 2 bibliotecarios + los hermanos
     expect(dir.list({ role: 'rival' })).toHaveLength(96);
     expect(dir.get('entrenador')?.role).toBe('entrenador');
   });
@@ -270,7 +270,10 @@ describe('módulo NPCs', () => {
       expect(alumnos.filter((n) => n.id.startsWith('alumno_')).length).toBe(153);
       expect(de(g, (n) => n.tags.includes('equipo')).length).toBe(16);
       expect(de(g, (n) => n.role === 'profesor').length).toBe(12);
-      expect(de(g, (n) => n.role === 'vecino').length).toBe(80);
+      expect(de(g, (n) => n.role === 'vecino' && !n.tags.includes('bibliotecario')).length).toBe(80);
+      expect(de(g, (n) => n.tags.includes('bibliotecario')).map((n) => n.id)).toEqual(['bibliotecario_1', 'bibliotecario_2']);
+      const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
+      for (const id of ['bibliotecario_1', 'bibliotecario_2']) expect(dir.get(id)).toMatchObject({ profesion: expect.stringMatching(/^Bibliotecari[oa]$/), trabajo: 'Biblioteca municipal' });
       const clubes = new Set(de(g, (n) => n.role === 'rival').map((n) => n.club));
       expect(clubes.size).toBeGreaterThanOrEqual(10);
       expect([...clubes].every((c) => ['Club Atletismo Ciudad', 'Club de Alto Rendimiento'].includes(c!) || /^(colegio|club)\d+$/.test(c!))).toBe(true);

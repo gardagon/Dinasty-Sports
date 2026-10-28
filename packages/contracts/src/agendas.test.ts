@@ -54,14 +54,14 @@ describe('agendas de las personas', () => {
   });
 
   it('un alumno reparte su tiempo libre por el barrio según los pesos, sin salirse de los destinos posibles', () => {
-    const posibles = new Set([null, 'parque', 'supermercado', 'gimnasio']);
+    const posibles = new Set([null, 'parque', 'supermercado', 'gimnasio', 'biblioteca']);
     const vistos = new Set<string | null>();
     for (let i = 0; i < 400; i++) {
       const s = ubicacionEn(construirAgenda([{ tipo: 'alumno' }], datos), en(7 * Math.floor(i / 20) + (i % 5), 16), `p${i}`).sitio;
       expect(posibles.has(s)).toBe(true);
       vistos.add(s);
     }
-    expect(vistos.size).toBe(4);
+    expect(vistos.size).toBe(5);
   });
 
   it('el profesor llega a las 7:30, da clase (ocupado) hasta las 14:00 salvo el recreo, y atiende tutorías hasta las 17:00; fuera de clase está en la sala de profesores o, un par, en el patio', () => {

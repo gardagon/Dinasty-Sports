@@ -6,7 +6,7 @@ Estado: **horarios cerrados y población aprobada** (27/10/2026). La población 
 
 ## 1. Cómo funciona
 
-- Cada persona guarda una lista de **tipos** (`alumno`, `profesor`, `entrenador`, `club`, `rival`, `amigo`, `vecino`). Un tipo aporta **tramos** de la semana: de tal hora a tal hora, en tal lugar.
+- Cada persona guarda una lista de **tipos** (`alumno`, `profesor`, `entrenador`, `club`, `rival`, `amigo`, `vecino`, `bibliotecario`). Un tipo aporta **tramos** de la semana: de tal hora a tal hora, en tal lugar.
 - Dos tramos pueden coincidir. **Manda el de mayor nivel** (el tipo dominante):
 
 | Nivel | Qué es | Ejemplos |
@@ -38,8 +38,9 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 | lectivo | 7:30–7:50 | colegio (la entrada, fuera de las aulas), llegando (se les puede hablar) |
 | lectivo | 7:50–10:40 y 11:10–14:00 | **en su aula**: los demás alumnos están en sus aulas (fuera del mapa: **ocupados**). **Tus compañeros de clase** (`tuClase`: los 24 de tu clase y los del reparto inicial) están en **tu aula** (`aula`): libres de 7:50 a 8:00 (el aula ya está abierta) y los 5 minutos al acabar cada clase (9:15–9:20, 10:35–10:40, 12:35–12:40, 13:55–14:00); en clase siguen en el aula, a la vista, con el estado **«atendiendo en clase»** (ocupados, sin poder hablarles) |
 | lectivo | 10:40–11:10 | **patio** (zona del colegio): el recreo (se les puede hablar) |
-| lectivo | 15:00–19:00 | fuera 60 %, parque 25 %, supermercado 10 %, gimnasio 5 % |
-| libre | 10:00–14:00 | fuera 50 %, parque 40 %, supermercado 10 % |
+| lectivo | 15:00–19:00 | fuera 55 %, parque 22 %, supermercado 8 %, gimnasio 5 %, **biblioteca 10 %** |
+| libre | 10:00–14:00 | fuera 45 %, parque 37 %, supermercado 10 %, **biblioteca 8 %** |
+| domingo | 10:00–14:00 | fuera 50 %, parque 40 %, supermercado 10 % (la biblioteca cierra los domingos: este tramo manda sobre el anterior porque, a igualdad de nivel, gana el último) |
 | libre | 15:00–20:00 | fuera 55 %, parque 40 %, gimnasio 5 % (sin supermercado: el domingo cierra a las 15:00) |
 | sábado | 20:00–22:30 | fuera 80 %, restaurante 20 % |
 | resto | | fuera (casa, comer, dormir) |
@@ -99,18 +100,20 @@ Se suma a las del alumno y pesa más en el parque:
 
 ### Vecino (genérico), nivel 2
 
-| Días | Horas | Dónde |
-|---|---|---|
-| lunes a sábado | 9:00–13:00 | fuera 50 %, parque 30 %, supermercado 20 % |
-| lunes a sábado | 13:00–15:00 | fuera 50 %, parque 20 %, supermercado 15 %, restaurante 15 % |
-| lunes a sábado | 15:00–20:00 | fuera 50 %, parque 30 %, supermercado 20 % |
-| lunes a sábado | 20:00–21:00 | fuera 55 %, parque 20 %, supermercado 10 %, restaurante 15 % |
-| domingo | 9:00–10:00 | fuera 60 %, parque 40 % (el supermercado aún no ha abierto) |
-| domingo | 10:00–13:00 | fuera 50 %, parque 30 %, supermercado 20 % |
-| domingo | 13:00–15:00 | fuera 50 %, parque 20 %, supermercado 15 %, restaurante 15 % |
-| domingo | 15:00–20:00 | fuera 70 %, parque 30 % (el supermercado ya ha cerrado) |
-| domingo | 20:00–21:00 | fuera 70 %, parque 15 %, restaurante 15 % |
-| resto | | fuera |
+Entre las 9:00 y las 21:00 se queda fuera (50 %) o va al parque (30 %), al supermercado (20 %), al restaurante (15 %) o a la biblioteca (8 %), **solo a los sitios abiertos**. Las visitas son estas (`VISITAS_DE_VECINOS`, `agendas.ts`) y los tramos se parten donde empieza o acaba una (la función `vecino` los calcula):
+
+| Sitio | Días y horas de visita |
+|---|---|
+| Parque | todos los días 9:00–21:00 |
+| Supermercado | lunes a sábado 9:00–21:00; domingo 10:00–15:00 |
+| Restaurante | todos los días 13:00–15:00 (abre hasta las 16:00) y 20:00–21:00 |
+| Biblioteca | lunes a viernes 9:00–20:00; sábado 10:00–14:00 |
+
+Se evita partir en horas redondas donde no hace falta (p. ej. a las 16:00) para que la presencia no cambie sin motivo dentro de una tarde (hay un test).
+
+### Bibliotecario (`bibliotecario`), nivel 2
+
+Dos personas (`bibliotecario_1` y `bibliotecario_2`, `role: vecino`, etiqueta `bibliotecario`): «Bibliotecario/a» en «Biblioteca municipal» (se sabe dónde trabajan; no hace falta preguntar). Turno de **mañana** (`turno: 'manana'`): lunes a viernes 9:00–14:30 y sábados 10:00–14:00; turno de **tarde**: lunes a viernes 14:30–20:00. Trabajan también en vacaciones y festivos. Se generan al final de la población para no cambiar el azar de lo demás.
 
 Los vecinos solo van al supermercado y al restaurante cuando están abiertos (ver la sección 3); un test (`horarios.test.ts`) recorre un curso entero y comprueba que **nadie de ninguna agenda está en un sitio cerrado**.
 
@@ -144,7 +147,7 @@ Son personas del juego (ids `padre` y `madre`, rol `familia`, siempre conocidas)
 | Calle | Lugares (minutos entre la calle y su entrada) |
 |---|---|
 | Calle de tu casa | casa 1, supermercado 4, restaurante 4 |
-| Calle del colegio | colegio 1 |
+| Calle del colegio | colegio 1, biblioteca 3 |
 | Avenida del Parque | parque 1, gimnasio 5 |
 | Avenida del Estadio | estadio 3 |
 
@@ -175,12 +178,17 @@ Decididos con el usuario (28/10): además del aula, la administración y las sal
 | Colegio (entrada y todas sus zonas) | días de clase, 7:00–19:00. En vacaciones y festivos: de lunes a viernes 10:00–13:00 (la academia de verano) y lunes y miércoles 14:30–17:30 (las sesiones del club del colegio) |
 | Supermercado | lunes a sábado 9:00–21:00; domingo 10:00–15:00 |
 | Restaurante | todos los días 13:00–16:00 y 20:00–23:00 |
+| Gimnasio | todos los días 8:00–22:00 |
+| Estadio (y las salas de club de dentro, que además tienen su horario) | todos los días 8:00–21:00 |
+| Biblioteca | lunes a viernes 9:00–20:00; sábados 10:00–14:00; domingos cerrada |
+| Parque | siempre abierto (sin horario) |
 
 - **Las zonas cierran con su lugar:** si el colegio está cerrado, también lo están la pista, el patio y la sala de profesores, aunque no tengan horario propio.
 - **A la hora de llegar a la entrada:** para saber si se puede hacer algo en una zona se mira la hora a la que se llegaría a la **entrada** de su lugar (se pasa por ella), no solo a la zona. Si ya estás dentro, vale la hora de llegada a la zona.
 - **Varios sitios posibles:** si una acción vale en varios sitios (series: pista del colegio, estadio o parque) y el primero estaría cerrado al llegar, se va a uno abierto (`conLugar` pone primero los abiertos).
 - **Consecuencia en el juego:** entrenar por tu cuenta en la pista del colegio solo se puede en horario del colegio; fuera de él, el estadio o el parque. Subir y volver de categoría, que se hacen en la sede del club, requieren el colegio abierto (un sábado no se puede).
 - Los comercios todavía no tienen acciones (comprar, comer fuera): esperan al dinero.
+- **Biblioteca** (28/10, decidido con el usuario): lugar nuevo en la calle del colegio (3 min de la calle; 12 min desde tu casa). **Estudiar solo se hace en casa o en la biblioteca**: `estudios.estudiar_*` y `estudios.repaso` van ligadas a `['casa', 'biblioteca']` (antes `['casa', 'colegio']`, es decir, la entrada del colegio). La clase sigue siendo en el aula y la academia, en el colegio. Quien estudia en la biblioteca lo hace igual que en casa (no hay bonus ni penalización todavía).
 
 ## 4. Población de PNJs (aprobada y generada)
 
@@ -195,9 +203,10 @@ Son **391 personas persistentes** (el plan hablaba de ~410; ver «Total real» m
 | **Entrenadores de los clubes de fuera** | 5 | Club Atletismo Ciudad: 3 (10–13, 14–17 y 18 o más); Alto Rendimiento: 2 (14–17 y 18 o más). Ver `ANEXO_DEPORTE.md`. |
 | **Equipo de atletismo del colegio** | ~16 + entrenador | Salen de las clases anteriores: unos 3–4 de tu clase, otros de tu curso y de los demás. Al tener el tipo `club` van a las sesiones del club del colegio. |
 | **Rivales** | 96 (8 por edad, de 8 a 19) | Se reparten en **12 clubes y colegios de fuera**: los dos del catálogo del personaje (Club Atletismo Ciudad y Club de Alto Rendimiento) y diez con nombres provisionales (`colegio1`…`colegio4`, `club1`…`club6`), unos 8 por club. Sedes en el estadio. Los que son de otro colegio no están en el nuestro. |
-| **Vecinos** | ~80 | De todas las edades. Parque, supermercado, restaurante y gimnasio. |
+| **Vecinos** | ~80 | De todas las edades. Parque, supermercado, restaurante, gimnasio y biblioteca. |
+| **Bibliotecarios** | 2 | Turno de mañana y turno de tarde en la biblioteca. |
 | **Familia** | 2 padres + 0 a 3 hermanos | Son personas con las que te relacionas: los padres en casa (ver «Padre y madre») y los hermanos en casa, en el colegio y en su deporte (ver «Hermano»). |
-| **Total real generado** | **391 + 2 padres + 5 entrenadores de clubes + los hermanos** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
+| **Total real generado** | **391 + 2 padres + 5 entrenadores de clubes + 2 bibliotecarios + los hermanos** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 96 rivales y 80 vecinos |
 
 Reglas de generación:
 
@@ -227,5 +236,5 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 ## 6. Pendiente
 
 - ~~Pestaña del deporte~~ **Hecha** (ver `ANEXO_DEPORTE.md`).
-- ~~Horarios de apertura~~ **Hechos** del colegio, el supermercado y el restaurante (sección 3). Pendiente: horario del gimnasio, el parque y el estadio, y acciones en los comercios.
+- ~~Horarios de apertura~~ **Hechos** (sección 3): colegio, supermercado, restaurante, gimnasio, estadio y biblioteca; el parque no tiene horario. Pendiente: acciones en los comercios.
 - **Eventos y decisiones:** pendientes de todo lo demás.

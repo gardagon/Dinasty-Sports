@@ -1046,6 +1046,64 @@ describe('horarios de los lugares en las acciones', () => {
   });
 });
 
+describe('biblioteca, gimnasio y estadio', () => {
+  const lugarActual = (g: Game) => g.service<LugaresService>(SERVICES.lugares)!.actual().id;
+  const idEstudiar = (g: Game) => `estudios.estudiar_${g.service<StudiesService>(SERVICES.estudios)!.activeSubjects()[0].replace('estudios.', '')}`;
+  const ir = (g: Game, lugar: string) => g.preview(`lugares.ir_${lugar}`)!;
+
+  it('se estudia en casa o en la biblioteca, ya no en la entrada del colegio ni en el patio', () => {
+    const g = nuevaPartida({ seed: 31 });
+    const id = idEstudiar(g);
+    expect(g.preview(id)!.lugar).toEqual(['casa', 'biblioteca']);
+    expect(g.preview('estudios.repaso')?.lugar).toEqual(['casa', 'biblioteca']);
+    // En la entrada del colegio no se puede estudiar.
+    advanceToWeek(g, 'gen.descansar', 3, 2, 16);
+    viajarA(g, 'colegio');
+    expect(lugarActual(g)).toBe('colegio');
+    expect(g.preview(id)!.available).toBe(false);
+    // En la biblioteca, abierta, sí.
+    viajarA(g, 'biblioteca');
+    expect(lugarActual(g)).toBe('biblioteca');
+    expect(g.preview(id)!.available).toBe(true);
+    expect(hacer(g, id).ok).toBe(true);
+  });
+
+  it('la biblioteca cierra los domingos y de noche; su personal está en los turnos de entre semana', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 3, 6, 11); // domingo
+    viajarA(g, 'calle_colegio');
+    expect(ir(g, 'biblioteca')).toMatchObject({ available: false });
+    expect(ir(g, 'biblioteca').reason).toMatch(/Biblioteca estará cerrado cuando llegues/);
+    advanceToWeek(g, 'gen.descansar', 4, 2, 21); // miércoles por la noche
+    expect(ir(g, 'biblioteca').available).toBe(false);
+    // Entre semana a las 10:00 está el turno de mañana; a las 17:00, el de tarde.
+    advanceToWeek(g, 'gen.descansar', 5, 2, 10);
+    const presentes = () => g.service<PresenciaService>(SERVICES.presencia)!.en('biblioteca').map((n) => n.id);
+    expect(presentes()).toContain('bibliotecario_1');
+    expect(presentes()).not.toContain('bibliotecario_2');
+    advanceToWeek(g, 'gen.descansar', 5, 2, 17);
+    expect(presentes()).toContain('bibliotecario_2');
+    expect(presentes()).not.toContain('bibliotecario_1');
+  });
+
+  it('el gimnasio abre de 8:00 a 22:00 y el estadio de 8:00 a 21:00; el parque, siempre', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 3, 2, 7); // 7:00
+    viajarA(g, 'avenida_parque');
+    expect(ir(g, 'gimnasio').available).toBe(false); // abre a las 8:00 y desde la avenida se tardan 5 minutos
+    expect(ir(g, 'gimnasio').reason).toMatch(/Gimnasio estará cerrado/);
+    expect(ir(g, 'parque').available).toBe(true);
+    viajarA(g, 'avenida_estadio');
+    expect(ir(g, 'estadio').available).toBe(false);
+    advanceToWeek(g, 'gen.descansar', 3, 2, 9);
+    expect(ir(g, 'estadio').available).toBe(true);
+    advanceToWeek(g, 'gen.descansar', 3, 2, 21);
+    expect(ir(g, 'estadio').available).toBe(false);
+    viajarA(g, 'avenida_parque');
+    expect(ir(g, 'gimnasio').available).toBe(true); // el estadio ya ha cerrado (21:00), pero el gimnasio sigue abierto hasta las 22:00
+  });
+});
+
 describe('adultos, sala de profesores y entrenadores de los clubes', () => {
   const dir = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!;
 
