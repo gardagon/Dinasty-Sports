@@ -5,11 +5,19 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/10/2026 — Acciones de GitHub al día y las habilidades de los entrenadores, parte del futuro módulo de profesiones
+
+- **Versiones de las acciones de GitHub comprobadas** en la página de releases de cada una (la API daba 403): `checkout@v7`, `setup-node@v7`, `upload-artifact@v7`, `configure-pages@v6`, `upload-pages-artifact@v5` y `deploy-pages@v5`, en `ci.yml` **y `pages.yml`**. Las de `ci.yml` las prueba el CI del PR; `pages.yml` solo se ejecuta al llegar a `main`, así que su primera prueba real es la publicación tras fusionar (si falla, la web anterior sigue publicada y se corrige). Antes, el día 28, se había dejado `ci.yml` en v6 por una búsqueda web, sin comprobar que fuera lo último.
+- **Cuenta atrás de vacaciones y exámenes:** descartada de momento (decidido con el usuario). Los exámenes siguen saliendo en «Estudios».
+- **Habilidades de los entrenadores (decidido con el usuario): no son un detalle, son parte del futuro módulo de profesiones.** Si el jugador no llega a profesional, o quiere hacerse entrenador al retirarse, podrá elegir ese camino; por eso las habilidades de un entrenador (carácter, conocimiento del deporte, capacidad de enseñar, de motivar...) tienen mucho peso y se diseñarán en **ventanas de desarrollo independientes**, no como un parche de `npcs`. Hasta entonces los entrenadores siguen sin habilidades propias (`ENTRENADORES_DE_CLUBES`; ver E10.7 y E19.7 del backlog). Lo que haya que dejar preparado para ello: que el mismo modelo sirva para un entrenador-PNJ y para el jugador cuando lo sea, y que la profesión sea un módulo propio por oficio (como ya prevé E10.7).
+
+---
+
 ## 28/10/2026 — Biblioteca, horarios del gimnasio y el estadio, y CI
 
 Decidido con el usuario (el parque se queda sin horario).
 
-- **Biblioteca nueva** (`biblioteca`, grupo «Estudios», en la calle del colegio a 3 min; 12 min desde casa). Horario decidido por mí (a revisar): lunes a viernes 9:00–20:00, sábados 10:00–14:00, domingos cerrada.
+- **Biblioteca nueva** (`biblioteca`, grupo «Estudios», en la calle del colegio a 3 min; 12 min desde casa). Horario propuesto por mí y **confirmado por el usuario**: lunes a viernes 9:00–20:00, sábados 10:00–14:00, domingos cerrada.
   - **Estudiar solo en casa o en la biblioteca:** `estudios.estudiar_*` y `estudios.repaso` pasan de `['casa', 'colegio']` a `['casa', 'biblioteca']`: ya no se estudia en la entrada del colegio ni en el patio. Sin bonus ni penalización por el sitio (idea para más adelante: que la biblioteca dé algo más de concentración y que se pueda quedar allí con un compañero; hoy los planes de estudiar son en casa a las 17:00).
   - **Población:** 2 bibliotecarios (`bibliotecario_1` de mañana y `bibliotecario_2` de tarde; nuevo tipo de agenda `bibliotecario` con `turno`); los alumnos la visitan (10 % por la tarde de los días de clase, 8 % en las mañanas libres, nunca los domingos) y los vecinos (8 % cuando está abierta). Se generan al final para no cambiar el azar de lo demás (lo mismo que los entrenadores de clubes): +2 personas (393 + padres, entrenadores y hermanos).
   - **Nuevo mecanismo de agendas:** a igualdad de nivel gana el último tramo, y se usa para que el tramo de los domingos mande sobre el de «libre» (la biblioteca cierra). Los vecinos ya no tienen una lista fija de tramos: se calculan a partir de una tabla de visitas (`VISITAS_DE_VECINOS`) cortando donde empieza o acaba una.
@@ -298,7 +306,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Cumpleaños con fecha real, no «semana/día» (decidido; el usuario pidió elegir).** Se muestra aparte, como «Cumpleaños: 26/04», y el juego enseña la **fecha del calendario** en la cabecera («Lunes 10 de septiembre · curso 1, semana 1»). Razones: (1) la edad y las categorías ya cuentan por **año natural** (`anioNatural`, `edadDeCompeticion`), así que un cumpleaños es una fecha del calendario, no una semana del curso; (2) la semana del curso es un concepto de cada país (el calendario escolar es un dato `CalendarioPais`) y no sirve para otro país ni para la vida adulta, que no será por cursos; (3) el jugador necesita saber qué día es para esperar un cumpleaños, y «5/22» (semana/día) no se lee como fecha. El día 0 es el 10 de septiembre; el año tiene 365 días, sin bisiestos (`fechaDelDia`, en `contracts/personas.ts`).
 - **Pestaña «Estudios» (decidido con el usuario):** reúne todo lo del colegio: nombre del colegio, curso, tu clase (25 alumnos), tutor, jornada, nota media y faltas; la **evolución de cada asignatura** con sus últimas notas; el **horario semanal** (con el recreo y la clase de hoy marcada); los **próximos exámenes**, el **calendario del curso** (parciales y evaluación de cada trimestre con su fecha, y las vacaciones) y los **boletines**. Sale de «Personaje» (curso y asignaturas) y de «Qué hacer» (el panel «Resultados»). `StudiesService` añade `grades(asignatura)` y `reports()`.
 - **«Personaje» sin deporte (decidido):** se quitan el club de atletismo, las habilidades de un deporte (están en «Deporte») y el nivel de atletismo de los hermanos; lo que los padres practicaron de deporte y los topes genéticos de esas habilidades solo salen en la sección de pruebas.
-- **Pendiente:** los cumpleaños como acontecimientos (felicitar, regalos) y una cuenta atrás de las vacaciones y los exámenes en «Qué hacer». El año ya se cuenta desde el 28/10 (año 1; ver la entrada de ese día).
+- **Pendiente:** los cumpleaños como acontecimientos (felicitar, regalos). La cuenta atrás de vacaciones y exámenes en «Qué hacer» se descartó de momento (28/10). El año ya se cuenta desde el 28/10 (año 1; ver la entrada de ese día).
 
 ## 27/10/2026 — Zonas dentro de los lugares, administración y salas de clubes, entrenadores y profesiones
 
@@ -999,4 +1007,4 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **UI filtrada por inteligencia (E3.4):** hoy la identidad y las stats se ven siempre con todo detalle.
 - **Beca deportiva:** usar el servicio `estudios` (nota media) desde un deporte.
 - **App nativa en el móvil:** la PWA ya se instala desde el navegador; Capacitor solo si hace falta tienda de aplicaciones.
-- **Acciones de GitHub:** `ci.yml` ya usa `checkout@v6`, `setup-node@v6` y `upload-artifact@v6` (28/10). Falta `pages.yml` (`configure-pages@v5`, `upload-pages-artifact@v3`, `deploy-pages@v4`): comprobar las últimas versiones y actualizarlas con cuidado, porque solo se ejecuta al fusionar en `main`.
+- **Acciones de GitHub:** al día desde el 28/10 (ver la entrada de ese día). Revisar de vez en cuando las versiones (`ci.yml` y `pages.yml`).
