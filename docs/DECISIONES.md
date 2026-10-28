@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/10/2026 — Acciones ordenadas por tiempo, padres hasta medianoche, hermanos pequeños dormidos y compañeros «atendiendo en clase»
+
+- **Orden de las acciones con una persona** (`ordenarAcciones`, `apps/web/src/gente.ts`): de menos a más minutos (`duration`). A igualdad de tiempo: charlar, hablar, saludar, jugar, detalle y, por último, por nombre. Así las preguntas de 2 min (nombre, edad, cumpleaños) van primero, luego hablar, y lo largo (ayudar, quedar 120 min) al final. Se aplica a las acciones disponibles y a las de más tarde.
+- **Desplazamientos:** la lista de pasos (`viewViaje`) va de menor a mayor tiempo (`pasos()` por `minutos`); en el viaje rápido, dentro de cada grupo por `minutosA` y los grupos por su lugar más cercano.
+- **Padres:** están en casa hasta las 24:00 (antes desaparecían a las 23:00), también los días libres. Es el mismo margen que los hijos.
+- **Hermanos menores de 8 años** (sin la marca `deporte`): duermen de 23:00 a 7:00. Siguen en casa y se les ve, pero con el estado «durmiendo» y no se puede hablar con ellos. Los mayores de 8 siguen disponibles.
+- **Compañeros en clase:** ya no desaparecen de «Gente» mientras dura la clase: se ven en el aula con el estado «atendiendo en clase» y las acciones salen no disponibles con el motivo («está atendiendo en clase: ahora no puedes hablar con él»). Mecanismo general: `TramoDeAgenda.motivoOcupado` (con un solo destino, ocupado = visible en el sitio pero sin poder hablarle), `Ubicacion.atendiendo`, servicio `presencia.ocupadosEn(lugar)`. El motivo de ocupado se comprueba antes que el horario. Los de otras clases siguen fuera del mapa.
+- Tests: agendas (padres, hermanos, compañeros), integración (aula en clase y padres a las 23:00) y `ordenarAcciones`.
+
+---
+
 ## 27/10/2026 — Hermanos mayor/menor, pestaña «Familia» y orden de la gente
 
 - **Fallo:** un hermano de 6 años salía como «Tu hermana mayor» (el personaje empieza con 8). El signo de la diferencia de edad estaba al revés al escribir la descripción (`edad = 8 + dif`, pero se llamaba «mayor» a `dif < 0`); la edad y los demás datos eran correctos. Ahora la diferencia es positiva si el hermano es mayor (`relacionDeHermano`, `contracts/hermanos.ts`) y el texto **se calcula al mostrar** a partir de los años de nacimiento (no se usa el guardado), así que corrige también las partidas ya empezadas. Test: el texto concuerda con la edad en 200 partidas.

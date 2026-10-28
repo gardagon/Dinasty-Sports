@@ -36,7 +36,7 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 | Días | Horas | Dónde |
 |---|---|---|
 | lectivo | 7:30–7:50 | colegio (la entrada, fuera de las aulas), llegando (se les puede hablar) |
-| lectivo | 7:50–10:40 y 11:10–14:00 | **en su aula**: los demás alumnos están en sus aulas (fuera del mapa: **ocupados**). **Tus compañeros de clase** (`tuClase`: los 24 de tu clase y los del reparto inicial) están en **tu aula** (`aula`): libres de 7:50 a 8:00 (el aula ya está abierta) y los 5 minutos al acabar cada clase (9:15–9:20, 10:35–10:40, 12:35–12:40, 13:55–14:00); ocupados en clase |
+| lectivo | 7:50–10:40 y 11:10–14:00 | **en su aula**: los demás alumnos están en sus aulas (fuera del mapa: **ocupados**). **Tus compañeros de clase** (`tuClase`: los 24 de tu clase y los del reparto inicial) están en **tu aula** (`aula`): libres de 7:50 a 8:00 (el aula ya está abierta) y los 5 minutos al acabar cada clase (9:15–9:20, 10:35–10:40, 12:35–12:40, 13:55–14:00); en clase siguen en el aula, a la vista, con el estado **«atendiendo en clase»** (ocupados, sin poder hablarles) |
 | lectivo | 10:40–11:10 | **patio** (zona del colegio): el recreo (se les puede hablar) |
 | lectivo | 15:00–19:00 | fuera 60 %, parque 25 %, supermercado 10 %, gimnasio 5 % |
 | libre | 10:00–14:00 | fuera 50 %, parque 40 %, supermercado 10 % |
@@ -112,6 +112,7 @@ Viven en casa (los únicos, con los padres, que tienen `casa` en su agenda). Una
 |---|---|---|---|
 | todos | todo el día | casa | 1,5 (entre la base y el rol: manda sobre «fuera» y cede ante lo demás) |
 | lectivo, si tiene de 3 a 17 años (`escolar`) | 7:30–14:00 | colegio como un alumno: llegando en la entrada del colegio y en el recreo en el patio; **en clase (7:50–10:40 y 11:10–14:00), ocupado** (fuera) | 2 |
+| todos los días, si tiene menos de 8 años (sin `deporte`) | 23:00–7:00 | casa, **durmiendo**: se le ve en casa pero no se le puede hablar (`motivoOcupado`) | 2,25 |
 | sábado, si practica atletismo (`deporte`) | 8:45–13:15 | estadio; va el 40 %, como los rivales; ocupado de 9:00 a 13:00 | 3 |
 
 Al cumplir los 18 dejan el colegio (la marca `escolar` se quita al empezar el curso); al cumplir los 3 años entran. La marca `deporte` sigue a que tengan nivel de atletismo (desde los 8). Otros deportes y sesiones de club propias, pendientes.
@@ -122,8 +123,8 @@ Son personas del juego (ids `padre` y `madre`, rol `familia`, siempre conocidas)
 
 | Días | Horas | Dónde |
 |---|---|---|
-| lectivo | 6:30–8:00 y 18:30–23:00 | casa |
-| libre | 9:00–23:00 | casa 85 %, fuera 15 % |
+| lectivo | 6:30–8:00 y 18:30–24:00 | casa |
+| libre | 9:00–24:00 | casa 85 %, fuera 15 % |
 | resto | | fuera (trabajo) |
 
 ## 2 bis. Calles, lugares y zonas con horario

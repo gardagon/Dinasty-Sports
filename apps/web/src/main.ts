@@ -315,7 +315,8 @@ function viewViaje(g: Game): string {
     const o = g.preview(`lugares.ir_${id}`);
     return o ? actionButton({ ...o, name: nombre ?? svc.lugar(id)?.name ?? o.name }) : '';
   };
-  const pasos = svc.pasos();
+  // Lo más corto primero (a igualdad, el orden del mapa).
+  const pasos = [...svc.pasos()].sort((a, b) => a.minutos - b.minutos);
   const de = (...tipos: string[]) => pasos.filter((p) => tipos.includes(p.tipo));
   const bloque = (titulo: string, ps: typeof pasos, nombre: (p: (typeof pasos)[number]) => string) =>
     ps.length ? `<h4>${esc(titulo)}</h4><div class="actions">${ps.map((p) => boton(p.lugar.id, nombre(p))).join('')}</div>` : '';
@@ -325,12 +326,17 @@ function viewViaje(g: Game): string {
     ? bloque('En esta calle', de('lugar'), (p) => `Entrar en ${p.lugar.name.toLowerCase()}`) + bloque('Ir a otra calle', de('otra_calle'), (p) => p.lugar.name)
     : bloque(raiz ? `Dentro ${del(raiz.name)}` : 'Aquí dentro', de('dentro', 'entrada'), (p) => (p.tipo === 'entrada' ? `Volver a la entrada ${del(p.lugar.name)}` : p.lugar.name)) +
       bloque('Salir', de('calle'), (p) => `Salir a la calle (${p.lugar.name})`);
-  const grupos = new Map<string, string[]>();
+  // Viaje rápido: dentro de cada grupo, el más cercano primero, y los grupos por su lugar más cercano.
+  const grupos = new Map<string, { id: string; min: number }[]>();
   for (const l of svc.lugares()) {
     if (l.calle || l.dentroDe || l.id === aqui.id) continue; // el viaje rápido es solo a lugares
-    grupos.set(l.grupo, [...(grupos.get(l.grupo) ?? []), boton(l.id)]);
+    grupos.set(l.grupo, [...(grupos.get(l.grupo) ?? []), { id: l.id, min: svc.minutosA(l.id) ?? Infinity }]);
   }
-  const todo = [...grupos].map(([grupo, botones]) => `<h4>${esc(grupo)}</h4><div class="actions">${botones.join('')}</div>`).join('');
+  const todo = [...grupos]
+    .map(([grupo, ls]) => ({ grupo, ls: ls.sort((a, b) => a.min - b.min) }))
+    .sort((a, b) => a.ls[0].min - b.ls[0].min)
+    .map(({ grupo, ls }) => `<h4>${esc(grupo)}</h4><div class="actions">${ls.map((l) => boton(l.id)).join('')}</div>`)
+    .join('');
   return `<section class="sheet lugar">
     <h3>Viajar</h3>
     ${html}

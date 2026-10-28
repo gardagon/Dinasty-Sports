@@ -81,6 +81,11 @@ export interface TramoDeAgenda {
    * quedarse un rato al acabar) está en el sitio y se le puede hablar.
    */
   ocupado?: readonly (readonly [number, number])[];
+  /**
+   * Por qué está ocupado («atendiendo en clase», «durmiendo»). Con esto, mientras está ocupado **sigue en el sitio** (el tramo debe tener un solo
+   * destino): se le ve allí, con ese estado, pero no se puede hablar con él. Sin esto, ocupado es estar fuera del mapa.
+   */
+  motivoOcupado?: string;
   /** De qué tipo viene (para enseñarlo y depurarlo); `base` es estar fuera. */
   tipo: TipoDeAgenda | 'base';
 }
@@ -107,7 +112,7 @@ const SABADO: readonly Weekday[] = [5];
 /** Lo que hace cualquiera que no esté en ningún otro tramo: estar fuera. */
 const BASE: TramoDeAgenda = { dias: 'todos', desde: 0, hasta: 1440, destinos: [[FUERA, 1]], nivel: NIVEL_AGENDA.base, tipo: 'base' };
 
-const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: number, hasta: number, destinos: Destinos, asistencia?: number, ocupado?: TramoDeAgenda['ocupado']): TramoDeAgenda => ({
+const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: number, hasta: number, destinos: Destinos, asistencia?: number, ocupado?: TramoDeAgenda['ocupado'], motivoOcupado?: string): TramoDeAgenda => ({
   tipo,
   nivel,
   dias,
@@ -116,6 +121,7 @@ const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: numb
   destinos,
   ...(asistencia === undefined ? {} : { asistencia }),
   ...(ocupado ? { ocupado } : {}),
+  ...(motivoOcupado ? { motivoOcupado } : {}),
 });
 
 /** Minutos antes de empezar y después de acabar una sesión o una carrera en los que se está en el sitio sin estar ocupado. */
@@ -130,6 +136,8 @@ const PRIMERA_CLASE = JORNADA_ESCOLAR.clases[0][0];
 const FIN_DE_CLASES = JORNADA_ESCOLAR.clases[JORNADA_ESCOLAR.clases.length - 1][1] + HUECO_ENTRE_CLASES;
 /** Minutos antes de cada clase en que los alumnos dejan el patio y se van a sus aulas (a las 7:50 la entrada se vacía; también a las 11:10 al volver del recreo). */
 const ENTRADA_A_AULA = MINUTOS_ANTES_DE_CLASE;
+/** Lo que se dice de quien está en el aula durante una clase: está, pero no se le puede hablar. */
+const EN_CLASE_ATENDIENDO = 'atendiendo en clase';
 /** Las clases una a una. */
 const CLASES = JORNADA_ESCOLAR.clases as readonly (readonly [number, number])[];
 /** Las horas en que alumnos y profesores no están en el patio: en el aula (de 7:50 al recreo y de 11:10 al final). */
@@ -153,9 +161,9 @@ const colegio = (tipo: TipoDeAgenda, nivel: number, tuClase = false): TramoDeAge
   }
   return [
     tramo(tipo, nivel, 'lectivo', llegada, EN_CLASE[0][0], [['colegio', 1]]),
-    tramo(tipo, nivel, 'lectivo', EN_CLASE[0][0], RECREO_DESDE, [['aula', 1]], undefined, [clase1, clase2]),
+    tramo(tipo, nivel, 'lectivo', EN_CLASE[0][0], RECREO_DESDE, [['aula', 1]], undefined, [clase1, clase2], EN_CLASE_ATENDIENDO),
     tramo(tipo, nivel, 'lectivo', RECREO_DESDE, EN_CLASE[1][0], [['patio', 1]]),
-    tramo(tipo, nivel, 'lectivo', EN_CLASE[1][0], FIN_DE_CLASES, [['aula', 1]], undefined, [clase3, clase4]),
+    tramo(tipo, nivel, 'lectivo', EN_CLASE[1][0], FIN_DE_CLASES, [['aula', 1]], undefined, [clase3, clase4], EN_CLASE_ATENDIENDO),
   ];
 };
 
@@ -221,6 +229,8 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       return [
         // Vive en casa: está allí salvo en el colegio (si tiene edad) y en su deporte, que mandan sobre la casa.
         tramo('hermano', nivel(NIVEL_AGENDA.base + 0.5), 'todos', 0, 1440, [['casa', 1]]),
+        // Los menores de 8 años (aún sin deporte) duermen de 23:00 a 7:00: siguen en casa, pero no se puede hablar con ellos.
+        ...(t.deporte ? [] : [tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', 0, h(7), [['casa', 1]], undefined, [[0, h(7)]], 'durmiendo'), tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', h(23), h(24), [['casa', 1]], undefined, [[h(23), h(24)]], 'durmiendo')]),
         ...(t.escolar ? colegio('hermano', NIVEL_AGENDA.rol) : []),
         ...(t.deporte ? [carreras('hermano', NIVEL_AGENDA.pertenencia, ASISTENCIA_RIVAL.carreras)] : []),
       ];
@@ -228,8 +238,8 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       // Trabajan fuera: en casa antes de irse, por la tarde-noche y casi todo el fin de semana.
       return [
         tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(6, 30), h(8), [['casa', 1]]),
-        tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(18, 30), h(23), [['casa', 1]]),
-        tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'libre', h(9), h(23), [['casa', 85], [FUERA, 15]]),
+        tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'lectivo', h(18, 30), h(24), [['casa', 1]]),
+        tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'libre', h(9), h(24), [['casa', 85], [FUERA, 15]]),
       ];
     case 'vecino':
       return [tramo('vecino', nivel(NIVEL_AGENDA.rol), 'todos', h(9), h(21), [[FUERA, 50], ['parque', 30], ['supermercado', 15], ['restaurante', 5]])];
@@ -262,6 +272,8 @@ export interface Ubicacion {
   sitio: Sitio;
   /** Está en su agenda pero ocupado (en clase, corriendo...): cuenta como fuera del mapa y no se le puede hablar. */
   ocupado?: boolean;
+  /** Si está ocupado pero se le ve en el sitio (`TramoDeAgenda.motivoOcupado`): dónde está y qué hace. */
+  atendiendo?: { sitio: string; motivo: string };
   /** Nivel del tramo que manda ahora. */
   nivel: number;
   tipo: TipoDeAgenda | 'base';
@@ -296,7 +308,10 @@ export function ubicacionEn(agenda: readonly TramoDeAgenda[], t: TimeView, perso
     if (mejor < 0 || x.nivel >= agenda[mejor].nivel) mejor = i;
   }
   const x = agenda[mejor];
-  if (x.ocupado?.some(([a, b]) => t.minuteOfDay >= a && t.minuteOfDay < b)) return { sitio: FUERA, ocupado: true, nivel: x.nivel, tipo: x.tipo };
+  if (x.ocupado?.some(([a, b]) => t.minuteOfDay >= a && t.minuteOfDay < b)) {
+    const aqui = x.motivoOcupado && x.destinos.length === 1 ? x.destinos[0][0] : null;
+    return { sitio: FUERA, ocupado: true, ...(aqui ? { atendiendo: { sitio: aqui, motivo: x.motivoOcupado! } } : {}), nivel: x.nivel, tipo: x.tipo };
+  }
   if (x.destinos.length === 1) return { sitio: x.destinos[0][0], nivel: x.nivel, tipo: x.tipo };
   const total = x.destinos.reduce((s, [, peso]) => s + peso, 0);
   let tirada = azarDe(persona, t.day, mejor, 'donde') * total;
@@ -318,6 +333,11 @@ export interface PresenciaService {
    * un orden que no cambia mientras dure el tramo; como mucho `max` (por defecto, todas).
    */
   en(lugar: LugarId, max?: number): NpcView[];
+  /**
+   * Personas que están en un lugar pero ocupadas (atendiendo en clase, durmiendo): se las ve, con su estado, pero no se puede hablar con ellas
+   * (no salen en `en`). Son pocas: no hace falta limitar.
+   */
+  ocupadosEn(lugar: LugarId): { persona: NpcView; motivo: string }[];
   /** Dónde está una persona ahora (`null`: fuera del mapa) o `undefined` si no existe. */
   donde(npcId: string): Sitio | undefined;
   /** Tramos de la semana de una persona. */

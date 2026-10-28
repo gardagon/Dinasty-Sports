@@ -296,3 +296,6 @@ h3:first-child { margin-top: 0; }
 .prueba { border-bottom: 1px solid var(--line, #c9d3e0); padding: 6px 0; }
 .prueba summary { cursor: pointer; font-size: 14px; }
 .prueba .table { margin-top: 6px; }
+
+/* Quien está aquí pero no se puede hablar con él (atendiendo en clase, durmiendo). */
+.tarjeta-gente .ocupado, .ficha-gente .ocupado { color: var(--warn, #d9a441); font-size: 12px; }
