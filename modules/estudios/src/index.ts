@@ -616,9 +616,10 @@ export const estudios = defineModule<EstudiosState>({
       },
     },
   ], {
-    'estudios.repaso': ['casa', 'colegio'],
+    // Se estudia en casa o en la biblioteca (ya no en la entrada del colegio ni en el patio).
+    'estudios.repaso': ['casa', 'biblioteca'],
     'estudios.academia': ['colegio'],
-    ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'colegio']])),
+    ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'biblioteca']])),
   }),
 
   on: {

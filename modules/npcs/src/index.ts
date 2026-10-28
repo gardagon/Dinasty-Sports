@@ -513,7 +513,14 @@ function generarTodos(ctx: InitContext): Npc[] {
   const usados = new Set(base.map((n) => n.name));
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
   // Los entrenadores de los clubes de fuera van al final para no cambiar el azar de lo demás.
-  return [...base, ...colegio, ...entrenadoresDeClubes(ctx.rng, usados)];
+  return [...base, ...colegio, ...entrenadoresDeClubes(ctx.rng, usados), ...bibliotecarios(ctx.rng, usados)];
+}
+
+/** El personal de la biblioteca: uno en el turno de mañana (y los sábados) y otro en el de tarde. Van al final para no cambiar el azar de lo demás. */
+function bibliotecarios(rng: Rng, usados: Set<string>): Npc[] {
+  return (['manana', 'tarde'] as const).map((turno, i) =>
+    persona(rng, `bibliotecario_${i + 1}`, 'vecino', rng.int(30, 60), 0, usados, [{ tipo: 'bibliotecario', turno }], (g) => `${g === 'f' ? 'Bibliotecaria' : 'Bibliotecario'} de la biblioteca municipal (turno de ${turno === 'manana' ? 'mañana' : 'tarde'}).`, ['bibliotecario']),
+  );
 }
 
 /**
@@ -569,6 +576,7 @@ function ocupacionDe(n: Npc, edad: number | undefined): { profesion?: string; ba
     return { profesion: materia ? `${f ? 'Profesora' : 'Profesor'} de ${materia.toLowerCase()}` : f ? 'Profesora y tutora' : 'Profesor y tutor', basica: f ? 'Profesora' : 'Profesor', trabajo: COLEGIO_DEL_PERSONAJE };
   }
   if (n.role === 'entrenador') return { profesion: `${f ? 'Entrenadora' : 'Entrenador'} de atletismo`, basica: f ? 'Entrenadora' : 'Entrenador', trabajo: NOMBRES_DE_CLUB[n.club ?? 'colegio'] };
+  if (n.tags.includes('bibliotecario')) return { profesion: f ? 'Bibliotecaria' : 'Bibliotecario', basica: f ? 'Bibliotecaria' : 'Bibliotecario', trabajo: 'Biblioteca municipal' };
   if (n.role === 'vecino' && edad !== undefined && edad >= 18) return oficioDeVecino(n.id, n.gender, edad);
   if (n.oficio !== undefined && n.tags.includes('progenitor')) {
     const o = oficioDeProgenitor(n.oficio, n.gender);
@@ -601,7 +609,7 @@ function sabePorDefecto(n: Npc): DatoPersonal[] {
   // Tus padres: sabes cuántos años tienen y a qué se dedican y dónde trabajan.
   if (n.role === 'familia') return n.tags.includes('progenitor') ? ['edad', 'colegio', 'clase', 'profesion', 'trabajo'] : ['edad', 'colegio', 'clase'];
   // El profesorado y los entrenadores: se sabe dónde trabajan (no su asignatura o su deporte).
-  if (n.role === 'profesor' || n.role === 'entrenador') return ['trabajo'];
+  if (n.role === 'profesor' || n.role === 'entrenador' || n.tags.includes('bibliotecario')) return ['trabajo'];
   const base: DatoPersonal[] = delColegio(n) ? ['colegio'] : [];
   return n.tipos?.some((t) => t.tuClase) ? [...base, 'clase'] : base;
 }

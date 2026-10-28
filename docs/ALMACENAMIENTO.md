@@ -9,7 +9,7 @@ Plan y estado de cómo se guarda el juego. Decidido el 25/10/2026.
 | Qué | Tamaño |
 |---|---|
 | Una persona (con aspecto, carácter, intereses, gustos) | ~950 bytes (535 de rasgos) |
-| Partida con 391 personas | ~0,4 MB |
+| Partida con ~393 personas | ~0,4 MB |
 | 2 000 / 10 000 / 50 000 personas | 1,9 / 9,4 / 47 MB |
 
 

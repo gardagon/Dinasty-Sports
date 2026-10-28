@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { construirAgenda, type DatosDeAgenda, type TipoAsignado } from './agendas';
+import { construirAgenda, ubicacionEn, type DatosDeAgenda, type TipoAsignado } from './agendas';
 import { CIUDAD_INICIAL, abiertoEn } from './lugares';
 import { timeView } from './time';
 
@@ -59,24 +59,25 @@ describe('las agendas respetan los horarios', () => {
     [{ tipo: 'hermano', escolar: true, deporte: true }],
     [{ tipo: 'progenitor' }],
     [{ tipo: 'vecino' }],
+    [{ tipo: 'bibliotecario', turno: 'manana' }],
+    [{ tipo: 'bibliotecario', turno: 'tarde' }],
   ];
 
   it('nadie está en un sitio (ni en una zona de un sitio) mientras está cerrado', () => {
     const fallos = new Set<string>();
     for (const t of tipos) {
-      const tramos = construirAgenda(t, datos);
-      // Un curso entero: días de clase, fines de semana y vacaciones.
+      const agenda = construirAgenda(t, datos);
+      // Un curso entero (días de clase, fines de semana y vacaciones), cada media hora y con 24 personas distintas: cada una tiene su destino del día.
       for (let dia = 0; dia < 7 * 52; dia++) {
-        for (const x of tramos) {
-          const v = en(dia, 0);
-          if (!(x.dias === 'todos' || (x.dias === 'lectivo' ? v.isSchoolDay : x.dias === 'libre' ? !v.isSchoolDay : x.dias.includes(v.weekday)))) continue;
-          for (const [sitio] of x.destinos) {
-            if (!sitio) continue;
-            const l = lugar(sitio);
-            const padre = l.dentroDe ? lugar(l.dentroDe) : undefined;
-            for (let m = x.desde; m < x.hasta; m += 5) {
-              const instante = en(dia, 0, m);
-              if (!abiertoEn(l, instante) || (padre && !abiertoEn(padre, instante))) fallos.add(`${t[0].tipo}/${t[0].club ?? ''} en ${sitio}, ${['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'][instante.weekday]} ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`);
+        for (let m = 0; m < 1440; m += 30) {
+          const instante = en(dia, 0, m);
+          for (let p = 0; p < 24; p++) {
+            const u = ubicacionEn(agenda, instante, `persona_${p}`);
+            for (const sitio of [u.sitio, u.atendiendo?.sitio]) {
+              if (!sitio) continue;
+              const l = lugar(sitio);
+              const padre = l.dentroDe ? lugar(l.dentroDe) : undefined;
+              if (!abiertoEn(l, instante) || (padre && !abiertoEn(padre, instante))) fallos.add(`${t[0].tipo}/${t[0].club ?? t[0].turno ?? ''} en ${sitio}, ${['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'][instante.weekday]} ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`);
             }
           }
         }

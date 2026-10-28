@@ -41,7 +41,7 @@ export const NIVEL_AGENDA = {
   evento: 4,
 } as const;
 
-export type TipoDeAgenda = 'alumno' | 'profesor' | 'entrenador' | 'club' | 'rival' | 'amigo' | 'vecino' | 'hermano' | 'progenitor';
+export type TipoDeAgenda = 'alumno' | 'profesor' | 'entrenador' | 'club' | 'rival' | 'amigo' | 'vecino' | 'hermano' | 'progenitor' | 'bibliotecario';
 
 /** Un tipo asignado a una persona. */
 export interface TipoAsignado {
@@ -58,6 +58,8 @@ export interface TipoAsignado {
   escolar?: boolean;
   /** `hermano`: practica atletismo (corre los sábados en el estadio). */
   deporte?: boolean;
+  /** `bibliotecario`: el turno de mañana (hasta las 14:30, y los sábados) o el de tarde (desde las 14:30). */
+  turno?: 'manana' | 'tarde';
 }
 
 /** A qué días se aplica un tramo. `lectivo` y `libre` dependen del calendario (colegio abierto o no). */
@@ -178,25 +180,35 @@ const carreras = (tipo: TipoDeAgenda, nivel: number, asistencia?: number): Tramo
 /** Cuántos rivales corren un sábado cualquiera (los demás compiten en otras pruebas o en otros campeonatos) y cuántos van a una sesión de su club. */
 export const ASISTENCIA_RIVAL = { carreras: 0.4, sesion: 0.85 };
 
+/** Cuándo se puede ir a cada sitio (de las 9:00 a las 21:00), con su peso. Todo cabe dentro de su horario de apertura (`lugares.ts`). */
+const VISITAS_DE_VECINOS: readonly { sitio: string; peso: number; dias: readonly Weekday[]; desde: number; hasta: number }[] = [
+  { sitio: 'parque', peso: 30, dias: [0, 1, 2, 3, 4, 5, 6], desde: h(9), hasta: h(21) },
+  // El supermercado abre de lunes a sábado de 9:00 a 21:00 y el domingo de 10:00 a 15:00.
+  { sitio: 'supermercado', peso: 20, dias: [0, 1, 2, 3, 4, 5], desde: h(9), hasta: h(21) },
+  { sitio: 'supermercado', peso: 20, dias: [6], desde: h(10), hasta: h(15) },
+  // El restaurante, a la hora de comer (13:00–15:00; abre hasta las 16:00) y al cenar (20:00–21:00).
+  { sitio: 'restaurante', peso: 15, dias: [0, 1, 2, 3, 4, 5, 6], desde: h(13), hasta: h(15) },
+  { sitio: 'restaurante', peso: 15, dias: [0, 1, 2, 3, 4, 5, 6], desde: h(20), hasta: h(21) },
+  // La biblioteca abre de lunes a viernes de 9:00 a 20:00 y los sábados de 10:00 a 14:00.
+  { sitio: 'biblioteca', peso: 8, dias: [0, 1, 2, 3, 4], desde: h(9), hasta: h(20) },
+  { sitio: 'biblioteca', peso: 8, dias: [5], desde: h(10), hasta: h(14) },
+];
+
 /**
- * Lo que hace un vecino entre las 9:00 y las 21:00. Compras y comidas solo cuando el supermercado y el restaurante están abiertos
- * (`HORARIO_DEL_SUPERMERCADO` y `HORARIO_DEL_RESTAURANTE`, en `lugares.ts`): de lunes a sábado y el domingo cambian los tramos.
+ * Lo que hace un vecino entre las 9:00 y las 21:00: se queda fuera (50) o va al parque, al supermercado, al restaurante o a la biblioteca solo
+ * cuando están abiertos. Los tramos se parten donde empieza o acaba una visita (distintos de lunes a viernes, sábado y domingo).
  */
 function vecino(nivel: number): TramoDeAgenda[] {
-  const entreSemana: readonly Weekday[] = [0, 1, 2, 3, 4, 5];
-  const domingo: readonly Weekday[] = [6];
-  const t = (dias: DiasDeTramo, desde: number, hasta: number, destinos: Destinos) => tramo('vecino', nivel, dias, desde, hasta, destinos);
-  return [
-    t(entreSemana, h(9), h(13), [[FUERA, 50], ['parque', 30], ['supermercado', 20]]),
-    t(entreSemana, h(13), h(15), [[FUERA, 50], ['parque', 20], ['supermercado', 15], ['restaurante', 15]]),
-    t(entreSemana, h(15), h(20), [[FUERA, 50], ['parque', 30], ['supermercado', 20]]),
-    t(entreSemana, h(20), h(21), [[FUERA, 55], ['parque', 20], ['supermercado', 10], ['restaurante', 15]]),
-    t(domingo, h(9), h(10), [[FUERA, 60], ['parque', 40]]),
-    t(domingo, h(10), h(13), [[FUERA, 50], ['parque', 30], ['supermercado', 20]]),
-    t(domingo, h(13), h(15), [[FUERA, 50], ['parque', 20], ['supermercado', 15], ['restaurante', 15]]),
-    t(domingo, h(15), h(20), [[FUERA, 70], ['parque', 30]]),
-    t(domingo, h(20), h(21), [[FUERA, 70], ['parque', 15], ['restaurante', 15]]),
-  ];
+  const grupos: readonly (readonly Weekday[])[] = [[0, 1, 2, 3, 4], [5], [6]];
+  return grupos.flatMap((dias) => {
+    const visitas = VISITAS_DE_VECINOS.filter((v) => v.dias.includes(dias[0]));
+    const cortes = [...new Set([h(9), h(21), ...visitas.flatMap((v) => [v.desde, v.hasta])])].sort((a, b) => a - b);
+    return cortes.slice(0, -1).map((desde, i): TramoDeAgenda => {
+      const hasta = cortes[i + 1];
+      const abiertas = visitas.filter((v) => v.desde <= desde && v.hasta >= hasta);
+      return tramo('vecino', nivel, dias, desde, hasta, [[FUERA, 50], ...abiertas.map((v): [string, number] => [v.sitio, v.peso])]);
+    });
+  });
 }
 
 /**
@@ -211,8 +223,10 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       return [
         // Llega media hora antes de las clases (7:30) y se va a las dos; en clase no se le puede hablar, solo al llegar y en el recreo.
         ...colegio('alumno', n, t.tuClase),
-        tramo('alumno', n, 'lectivo', h(15), h(19), [[FUERA, 60], ['parque', 25], ['supermercado', 10], ['gimnasio', 5]]),
-        tramo('alumno', n, 'libre', h(10), h(14), [[FUERA, 50], ['parque', 40], ['supermercado', 10]]),
+        tramo('alumno', n, 'lectivo', h(15), h(19), [[FUERA, 55], ['parque', 22], ['supermercado', 8], ['gimnasio', 5], ['biblioteca', 10]]),
+        tramo('alumno', n, 'libre', h(10), h(14), [[FUERA, 45], ['parque', 37], ['supermercado', 10], ['biblioteca', 8]]),
+        // La biblioteca cierra los domingos: a igualdad de nivel gana el último tramo, así que este manda sobre el anterior ese día.
+        tramo('alumno', n, [6], h(10), h(14), [[FUERA, 50], ['parque', 40], ['supermercado', 10]]),
         // El supermercado cierra los domingos a las 15:00: por la tarde de los días libres ya no se va (ver `HORARIO_DEL_SUPERMERCADO`).
         tramo('alumno', n, 'libre', h(15), h(20), [[FUERA, 55], ['parque', 40], ['gimnasio', 5]]),
         tramo('alumno', n, SABADO, h(20), h(22, 30), [[FUERA, 80], ['restaurante', 20]]),
@@ -265,6 +279,14 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       ];
     case 'vecino':
       return vecino(nivel(NIVEL_AGENDA.rol));
+    case 'bibliotecario': {
+      // Turno de mañana: de lunes a viernes hasta las 14:30 y los sábados; turno de tarde: de lunes a viernes de 14:30 a 20:00.
+      const n = nivel(NIVEL_AGENDA.rol);
+      const entreSemana: readonly Weekday[] = [0, 1, 2, 3, 4];
+      return t.turno === 'tarde'
+        ? [tramo('bibliotecario', n, entreSemana, h(14, 30), h(20), [['biblioteca', 1]])]
+        : [tramo('bibliotecario', n, entreSemana, h(9), h(14, 30), [['biblioteca', 1]]), tramo('bibliotecario', n, SABADO, h(10), h(14), [['biblioteca', 1]])];
+    }
   }
 }
 

@@ -204,6 +204,6 @@ La frase anunciada es neutra («Congeniáis de primeras»). La pareja usará est
 
 **Sin teléfono (decidido).** No se puede contactar con quien no está contigo, y tampoco se sabe dónde está. Cuando haya teléfono: llamar, escribir y recibir mensajes.
 
-**Planes (decidido con el usuario; hecho para «estudiar» con compañeros, amigos y hermanos).** «Quedar» y «Hacer planes» siguen siendo inmediatos (un rato con quien tienes delante), pero las actividades largas (estudiar con alguien, y más adelante entrenar con alguien) se **acuerdan**: ver la sección «Planes». Pendiente: el chat/teléfono para proponer a distancia y otros sitios (la biblioteca, si se crea).
+**Planes (decidido con el usuario; hecho para «estudiar» con compañeros, amigos y hermanos).** «Quedar» y «Hacer planes» siguen siendo inmediatos (un rato con quien tienes delante), pero las actividades largas (estudiar con alguien, y más adelante entrenar con alguien) se **acuerdan**: ver la sección «Planes». Pendiente: el chat/teléfono para proponer a distancia y otros sitios (la biblioteca ya existe, pero los planes de estudiar siguen siendo en casa a las 17:00).
 
 **Saludos y otros eventos (apuntado).** Ahora solo hablan contigo si el personaje inicia. Más adelante los demás podrán hablarte: saludarte al verte (eventos), llamarte o escribirte al móvil.
