@@ -2,7 +2,7 @@
 
 Es la referencia de **dónde está cada persona a cada hora** y de **cuántas personas habrá**. Los horarios son dato (`packages/contracts/src/agendas.ts`, función `tramosDe`) y esta tabla es la fuente: si cambias uno, cambia los dos y el test de `agendas.test.ts`.
 
-Estado: **horarios cerrados y población aprobada** (27/10/2026). La población de la sección 4 está generada (391 personas).
+Estado: **horarios cerrados y población aprobada** (27/10/2026). La población de la sección 4 está generada (391 personas del colegio y del barrio, y al final se añaden 2 bibliotecarios, 5 entrenadores de clubes, los padres y los hermanos). Actualizado el 28/10/2026 (biblioteca y horarios de los lugares).
 
 ## 1. Cómo funciona
 
@@ -192,7 +192,7 @@ Decididos con el usuario (28/10): además del aula, la administración y las sal
 
 ## 4. Población de PNJs (aprobada y generada)
 
-Son **391 personas persistentes** (el plan hablaba de ~410; ver «Total real» más abajo), todas con descripción física desde el principio y desconocidas hasta que se habla con ellas (salvo la familia y quien el juego presente al empezar). Como en el juego de referencia, la pantalla enseña como mucho 40 a la vez.
+Son **391 personas persistentes** (más 2 bibliotecarios generados al final) (el plan hablaba de ~410; ver «Total real» más abajo), todas con descripción física desde el principio y desconocidas hasta que se habla con ellas (salvo la familia y quien el juego presente al empezar). Como en el juego de referencia, la pantalla enseña como mucho 40 a la vez.
 
 | Grupo | Cuántos | Detalle |
 |---|---|---|
