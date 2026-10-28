@@ -54,7 +54,7 @@ Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ dif
 
 ## Hecho fuera del plan original
 
-- **Conocimiento del deporte** (adapta E2.3), **PWA**, **96 rivales persistentes por edad con padres y herencia**, **series de 8 con rotación**, **clasificación con tablas** tras cada carrera, **clubes**, **currículo de España**, **calendario por país**, **módulo `relaciones`** (E20) y **módulo `familia`**. Detalle y cifras en `DECISIONES.md`.
+- **Conocimiento del deporte** (adapta E2.3), **PWA**, **108 rivales persistentes por edad con padres y herencia**, **carreras de hasta 18 con semifinales (2 series de 8) y final, y ausencias según nivel**, **clasificación con tablas** tras cada carrera, **clubes**, **currículo de España**, **calendario por país**, **módulo `relaciones`** (E20) y **módulo `familia`**. Detalle y cifras en `DECISIONES.md`.
 - **Herramientas de medición:** `npm run sim` (balance a un año), `sim:largo` (tres años), `sim:vida` (vida entera de un bot que lo entrena todo, hasta los 70 años por defecto) y `sim:notas` (banco de notas: nota media por aptitud y rutina de estudio frente a los objetivos).
 - Para E7 (deportes de equipo) y E8 (dinastía): la plantilla de competición ya tiene rivales con padres y herencia propia, tabla de resultados y rotación de series, y el motor ya hereda topes de los padres y envejece por categorías.
 
@@ -138,7 +138,7 @@ Ocho ejes de −50 a +50: disciplinado↔rebelde, honesto↔manipulador, ambicio
 | E5.4 ✅ | Bonus de perk sobre el tope: `techo = min(100, tope + bonus)` | Hecho el 24/10 (`ctx.bonusDeTope`); las habilidades y asignaturas derivadas se recalculan |
 | E5.5 ✅ | **Herencia unificada:** pool único de los dos padres, cada perk se tira por separado (40 % activo, 20 % en el pool, 1 % espontáneo), sin opuestos y con tope de 3 | Decidido el 24/10. Ajustar con pruebas |
 | E5.6 | Efectos pendientes: Suertudo y Gafe (ramas por evento), Recuperación rápida y lenta (lesiones, E12), agarre y alta densidad (deportes de equipo), Ambidiestro y Mano de palo | Esperan eventos, lesiones o deportes de equipo |
-| E5.7 | Perks en los rivales y en los hijos del personaje (ciclo de generaciones) | Hoy los rivales no llevan perks |
+| E5.7 ✅ (parcial) | Perks en los rivales y en los hijos del personaje (ciclo de generaciones) | **28/10:** asignados a rivales y hermanos (sin revelar; no se enseñan). Faltan los hijos del personaje (ciclo de generaciones) y que alguien muy perspicaz los vea (E3.4/E5.3) |
 
 ## E6 · Académico — 🟡 · Fidelidad: baja
 
@@ -164,7 +164,7 @@ Posiciones (16), roles (42), experiencia por posición/rol con afinidad, fórmul
 | ID | Tarea | Notas |
 |---|---|---|
 | E8.1 ✅ | **Topes genéticos desde los padres (rehecho el 23/10 con el modelo de Godot):** cada padre tiene un perfil de topes por capacidad en cuatro bandas (débil 35–50, normal 50–70, fuerte 70–85, destacado 85–95); con la dificultad normal, 0–1 débiles, 1–2 fuertes y 0–1 destacadas y el resto normales (tope típico ~62). El hijo hereda **cada capacidad de UN solo padre**: la mitad exacta de las capacidades del padre y la otra mitad de la madre, al azar cuáles, con el tope de ese padre ±20 %. No hay punto intermedio | `heredarTope`, `perfilDePadre` y `repartirHerencia` en contracts; `Game.parentPotential` y `Game.geneticOrigin` para pruebas. Sustituye al reparto 60/40 con mezcla |
-| E8.10 ✅ | **Hermanos (25/10):** de 0 a 3, hijos de los mismos padres con la misma herencia que el personaje; viven en `npcs` (rol `familia`), practican atletismo y progresan y compiten solos; aparecen en la ficha de familia y en la lista de personas, con acciones de relación y un vínculo familiar que empieza en positivo | Ver DECISIONES del 25/10. Pendiente: perks y ventaja de crianza, que se vayan de casa a los 18, su efecto en la vida del personaje (E20.8), otros deportes |
+| E8.10 ✅ | **Hermanos (25/10):** de 0 a 3, hijos de los mismos padres con la misma herencia que el personaje; viven en `npcs` (rol `familia`), practican atletismo y progresan y compiten solos; aparecen en la ficha de familia y en la lista de personas, con acciones de relación y un vínculo familiar que empieza en positivo | Ver DECISIONES del 25/10. **28/10:** ventaja de crianza y perks hechos. Pendiente: que se vayan de casa a los 18, su efecto en la vida del personaje (E20.8), otros deportes |
 | E8.2 ✅ | Altura heredada: la media de los dos padres más una variación (estatura sí se promedia) | `ctx.herencia('estatura')` en el contexto de creación |
 | E8.3 ✅ | **Rivales con padres completos:** cada rival tiene padre y madre con perfil de topes físicos y deporte practicado; hereda como el personaje (mitad de cada padre ±20 %) y su tope de atletismo es la media más una aptitud propia (±15 %). Lo que practicaron los padres le da ventaja de partida (×0,95 a ×1,10) | Los padres pueden no haber practicado deporte: es lo más frecuente |
 | E8.4 ✅ | Interfaz de pruebas: tabla de topes de padre y madre (la flecha marca de cuál se hereda), tope propio y datos de los padres. **Se oculta al pasar a beta** (`MOSTRAR_GENETICA` en `apps/web/src/main.ts`) | Decidido el 23/10 |
@@ -188,11 +188,11 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 |---|---|---|
 | E9.1 ✅ | Calendario por país, definido como dato. **España (estimación, a confirmar):** curso de 52 semanas sin fechas absolutas, contadas desde el lunes de la 2.ª semana de septiembre | Hecho el 22/10 (ver tabla de abajo). Las semanas exactas son una aproximación |
 | E9.2 ✅ | Vacaciones con contenido propio: sin clase pero con entrenamiento, campamentos, tiempo libre | Hecho (ver E9.10): campamento y academia de verano según las notas |
-| E9.3 ✅ | Temporada deportiva: pretemporada, competición, clasificatorias y finales | Hecho (ver E9.11): clasificatorias y finales en las semanas 24 y 38 |
+| E9.3 ✅ | Temporada deportiva: pretemporada, competición, clasificatorias y finales | Hecho (ver E9.11): semifinales y finales en las semanas 37 y 38 (semana 38 y 39 del curso) |
 | E9.4 ✅ | Cursos y categorías por edad (decide el **año de nacimiento**, no la fecha exacta; los bots suben de categoría): el niño sube de curso y de categoría al cumplir años. **Categorías de la federación española** (sub-10, sub-12, sub-14, sub-16, sub-18, sub-20, sub-23), como dato por país igual que el calendario; en edades tempranas, algún niño sale y entra otro nuevo | Enlaza con la edad (E3.1) |
 | E9.5 ✅ (parcial) | Evaluaciones trimestrales con consecuencias (aprobar, repetir curso, becas) | Hecho: evaluación en las semanas 14, 28 y 40, con consecuencias en motivación y estrés. Repetir curso: decidido que no (el castigo es la academia). Becas: esperan al dinero (E16) |
 | E9.6 ✅ | Simulación de 10 años: nuevos chequeos y rendimiento | Hecho: `npm run sim:largo` simula 3 años (336 ms por año). Falta revisar los rivales para partidas de diez años |
-| E9.7 ✅ (datos) | Calendario como dato por país, con España por defecto | Hecho el dato (España). Falta poder elegir el país al crear la partida (pantalla de inicio) |
+| E9.7 ✅ (datos) | Calendario como dato por país, con España por defecto | Hecho el dato (España). El selector de país ya está en «Nueva partida» (solo España, sin efecto todavía) |
 | E9.8 ✅ | **Desarrollo realista de los rivales:** curva por edad (nadie alcanza un potencial de 90 en tres años), renovación por cohortes (salen los mayores, entran nuevos con herencia de su edad) y **subida de categoría** de quien destaca (a los 9 años contra niños de 12 si hace falta, sobre todo en fútbol) | Decidido el 22/10. Hoy los rivales llegan a su potencial en ~3 años |
 | E9.9 ✅ | **Competir contra mayores desarrolla más:** la ganancia de entrenar y competir crece con el nivel del rival frente al propio | Decidido el 22/10 |
 | E9.10 ✅ | **Verano según las notas:** media baja, **academia obligatoria** durante el verano para sacar los aprobados (no se repite curso: ese es el castigo); media alta, campamento deportivo si lo piden a los padres (mejora más); media aceptable, tiempo con amigos (no mejora igual) | Decidido el 22/10. Se implementa a continuación; pedir permiso a los padres encaja con familia (E13.1) y decisiones (E18) |
@@ -300,7 +300,7 @@ Valida que la plantilla de deporte funciona sin tocar el motor. **Decidido el 22
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E15.1 | Creación de personaje (hoy solo el nombre) y elección de deporte al empezar | Aquí entrarían los modos de inicio de la personalidad (E4.2) |
+| E15.1 | Creación de personaje y elección de deporte al empezar. **28/10:** hecho el menú de inicio (Nueva partida, Continuar, Cargar, Opciones, Salir) y la nueva partida con país (solo España), sexo (solo masculino), nombre y apellidos al azar con sorteo; faltan dificultad, modos de personaje y elección de deporte | Aquí entrarían los modos de inicio de la personalidad (E4.2) |
 | E15.2 | Filtro de información por inteligencia | Es E3.4 |
 | E15.3 | Resumen semanal y gráficas de progreso | Enlaza con E11.3 |
 | E15.4 | Varias partidas guardadas | Hoy hay una sola |
@@ -312,7 +312,7 @@ Solo si se quiere: cuotas, material, viajes y, en la fase profesional, sueldo y 
 
 ## E17 · Técnica — 🟢
 
-Generador de azar propio para los rivales; migración de partidas guardadas; rendimiento con diez años simulados; Capacitor si se quiere app de tienda. **Migración de guardados al salir de la alfa** (hoy `SAVE_VERSION` se sube y se descartan; ver `DECISIONES.md` del 24/10).
+~~Generador de azar propio para los rivales~~ (hecho el 28/10: progreso y marcas); migración de partidas guardadas; rendimiento con diez años simulados; Capacitor si se quiere app de tienda. **Migración de guardados al salir de la alfa** (hoy `SAVE_VERSION` se sube y se descartan; ver `DECISIONES.md` del 24/10).
 
 ## E18 · Eventos y decisiones — 🟢 el motor, ⏸ el contenido
 

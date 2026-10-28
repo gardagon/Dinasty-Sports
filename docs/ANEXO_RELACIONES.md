@@ -67,11 +67,13 @@ Cada persona tiene una **aptitud** de 0 a 1 en tres áreas (`aptitudDe`, en `con
 | Social | 0,55 × sociabilidad + 0,25 × optimismo + 0,2 × interés (cine, música, videojuegos) |
 | Deporte | 0,6 × nivel de atletismo/100 (20 si no tiene) + 0,4 × interés (deporte, atletismo, fútbol) |
 
-La ayuda es el **+30 % máximo (`AYUDA_MAXIMA`)** × (aptitud − 0,4)/0,4 limitado a 0–1 × afinidad/40 limitado a 0–1. Es decir: hasta aptitud 0,4 (típica o menos) no ayuda (de momento tampoco estorba), con 0,8 ayuda del todo, y cuanto menos os conocéis menos pesa. Cada actividad usa un área: Estudiar con (plan acordado) → estudio; Quedar y Hacer planes → social; entrenar juntos (deporte) pendiente. Un amigo muy estudioso ayuda al estudiar juntos y poco al salir; uno muy sociable, al revés.
+La ayuda es el **+30 % máximo (`AYUDA_MAXIMA`)** × (aptitud − 0,4)/0,4 limitado a 0–1 × afinidad/40 limitado a 0–1. Es decir: con aptitud típica (0,4) no ayuda, con 0,8 ayuda del todo, y cuanto menos os conocéis menos pesa.
+
+**Quien no sabe, estorba (28/10, decidido con el usuario).** Por debajo de la aptitud típica la compañía **resta**: hasta **−20 % (`ESTORBO_MAXIMO`)** × (0,4 − aptitud)/0,4 limitado a 0–1, sin depender de cuánto os conocéis. Alguien sin ninguna disciplina que estudia contigo baja lo que sacarías solo hasta un 20 %. El bonus o el malus (`efectoDeCompania`, de −20 % a +30 %) es el modificador `relaciones.compania` y sale con su motivo («Marta no se concentra y te distrae»). Además, **al terminar la actividad salta una frase** según la persona y lo que hacéis (`fraseDeCompania`, `FRASES_DE_COMPANIA` en `acciones.ts`): buena («Marta te explica un truco que no conocías y se te queda mucho mejor») si ayuda o mala («Marta se pasa el rato mirando el móvil y te distrae») si estorba, con 3 frases por actividad y signo y concordancia de género. La elige un hash estable de persona, día y actividad. Solo cuenta si el efecto pasa del 2 %. Cada actividad usa un área: Estudiar con (plan acordado) → estudio; Quedar y Hacer planes → social; entrenar juntos (deporte) pendiente (para el deporte ya está la frase y el malus preparados). Un amigo muy estudioso ayuda al estudiar juntos y poco al salir; uno muy sociable, al revés.
 
 ## Planes: proponer un día y una hora
 
-Para estudiar (y, más adelante, entrenar) con alguien se le **propone un día y una hora**: «hoy» o «mañana» a las **17:00** (estudiar: 90 min, **en tu casa**). Solo a quien tienes delante (sin teléfono no hay otra forma). La otra persona decide (`responderAPlan`, en `acciones.ts`), en este orden:
+Para estudiar (y, más adelante, entrenar) con alguien se le **propone un día y una hora**: «hoy» o «mañana» a las **17:00** (estudiar: 90 min) **en tu casa o en la biblioteca, a elegir** (28/10). Hay una propuesta por día y sitio: «Quedar con Marta para estudiar mañana a las 17:00 en casa» o «… en la biblioteca» (`relaciones.plan_<hoy|manana>_<casa|biblioteca>.<id>`). La biblioteca solo se ofrece si está abierta durante todo el plan (de lunes a viernes; el sábado a las 17:00 y el domingo está cerrada y la propuesta sale gris con el horario). La hora sigue fija a las 17:00 de momento. Solo a quien tienes delante (sin teléfono no hay otra forma). La otra persona decide (`responderAPlan`, en `acciones.ts`), en este orden:
 
 | Orden | Regla | Resultado |
 |---|---|---|
@@ -81,9 +83,13 @@ Para estudiar (y, más adelante, entrenar) con alguien se le **propone un día y
 | 4 | **Ganas:** acepta si la tirada estable es menor que 0,15 + 0,6 × (afinidad/60, tope 1) + 0,25 × (confianza/100), entre 0,05 y 0,98 | acepta o «no le apetece» |
 
 - Dos planes el mismo día con la misma persona, nunca. Lo propuesto para un día no se vuelve a preguntar ese día.
-- Si acepta (+1 de afinidad), el plan queda guardado. **Hay que llegar a tiempo:** la acción «Estudiar con…» está disponible desde la hora acordada hasta 30 minutos después (`PLAN.cortesia`), en el sitio acordado; si no apareces, al acabar el día **pierdes 4 de afinidad y 3 de confianza** (`PLAN.planton`) y se avisa en el diario.
+- Si acepta (+1 de afinidad), el plan queda guardado. **Hay que llegar a tiempo:** la acción «Estudiar con…» está disponible desde la hora acordada hasta 30 minutos después (`PLAN.cortesia`), en el sitio acordado (casa o biblioteca: allí hay que ir); si no apareces, al acabar el día **pierdes 4 de afinidad y 3 de confianza** (`PLAN.planton`) y se avisa en el diario.
 - Proponer para hoy exige 1 hora de antelación (`PLAN.antelacion`: hasta las 16:00).
 - Los planes pendientes se ven en el panel «Planes» de «Qué hacer». Se guardan unos días tras cumplirse (para el margen).
+
+### Tutorías (28/10)
+
+Para estudiar con ayuda de un profesor no hace falta un tutor concreto: «Pedir tutoría de lengua» (`estudios.tutoria_<asignatura>`, 30 min) vale con **cualquier profesor de esa asignatura que ya conozcas** (se presentan al ir a su primera clase). **Se pide en persona, en la sala de profesores:** el personaje tiene que ir allí (`lugar: sala_profesores`; desde la entrada del colegio, 2 minutos) y el profesor tiene que estar en la sala en ese momento, no dando clase ni en el patio o la entrada (un par de profesores cada día salen de la sala). Sube la asignatura la mitad que 90 minutos de estudio y se puede una vez al día por asignatura. Es una acción de `estudios` (usa la presencia y las asignaturas que da cada profesor, `NpcView.asignaturas`), no de las de relación: no cambia la afinidad. Hablar con el tutor sigue siendo «Hablar».
 
 ## 4. El vínculo
 

@@ -277,3 +277,14 @@ export function practicaSegunTope(tope: number, rng: Rng): Practica {
 export function ventajaDeCrianza(padre: Practica, madre: Practica): number {
   return 0.95 + 0.025 * (NIVEL_PRACTICA[padre] + NIVEL_PRACTICA[madre]);
 }
+
+/**
+ * Cuánto conoce un niño un deporte porque sus padres lo practicaron (se crió oyendo hablar de ello): por cada padre, según lo que
+ * practicó (aficionado 4, federado 8, profesional 14) y solo del todo si fue ese deporte (para los demás deportes, un tercio:
+ * cultura deportiva). Como mucho 20.
+ */
+export const CONOCIMIENTO_DE_CRIANZA: Record<Practica, number> = { ninguna: 0, aficionado: 4, federado: 8, profesional: 14 };
+export function conocimientoDeCrianza(padres: readonly { practica: Practica; deporte?: string }[], deporte: string): number {
+  const total = padres.reduce((s, p) => s + CONOCIMIENTO_DE_CRIANZA[p.practica] * (p.deporte === deporte ? 1 : 0.35), 0);
+  return Math.min(20, Math.round(total * 10) / 10);
+}

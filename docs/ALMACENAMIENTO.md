@@ -49,7 +49,7 @@ Requisitos de la fase 2 que conviene cuidar desde ya:
 ## 5. Riesgos y decisiones abiertas
 
 - **Safari en iPhone** borra los datos de una web sin uso en 7 días, salvo que esté instalada en la pantalla de inicio (esta es una PWA instalable). Mitigación: pedir persistencia (hecho), recomendar instalar y exportar copias.
-- **Dos pestañas a la vez:** gana el último guardado. Pendiente (no urgente): bloquear con `navigator.locks` para que solo una pestaña guarde.
+- **Dos pestañas a la vez:** resuelto el 28/10 con `navigator.locks` (`apps/web/src/pestana.ts`): solo la primera pestaña guarda; la otra avisa, no guarda y se recarga sola cuando la primera se cierra. Sin la API de bloqueos (navegadores antiguos) gana el último guardado.
 - **Versiones:** en alfa una partida de otra versión se descarta (`SAVE_VERSION`). Desde la beta habrá que migrar: una función por salto de versión (`migraciones[v]`) que convierte el estado.
 - **Cuota:** si se llena, el guardado falla con aviso. La exportación es la salida.
 - **Privacidad:** todo queda en el navegador de la persona; no se envía nada.
@@ -57,4 +57,4 @@ Requisitos de la fase 2 que conviene cuidar desde ya:
 ## 6. Cómo probarlo
 
 - `npm test` (incluye `apps/web/src/almacen.test.ts`).
-- En un navegador real: empezar una partida, recargar (debe volver al mismo sitio y hora), exportar, «Nueva partida», importar. En las herramientas del navegador, Application → IndexedDB → `dinasty-sports` → `partidas`.
+- En un navegador real: empezar una partida, recargar (debe volver al mismo sitio y hora), exportar (en «Opciones»), «Menú» → «Nueva partida», «Cargar partida». En las herramientas del navegador, Application → IndexedDB → `dinasty-sports` → `partidas`.

@@ -46,6 +46,32 @@ export function nombreDeProgenitor(seed: number, id: 'padre' | 'madre'): string 
   return lista[h % lista.length];
 }
 
+const NOMBRES_DE_JUGADOR = [
+  'Álvaro', 'Adrián', 'Pablo', 'Daniel', 'Hugo', 'Mario', 'Diego', 'Sergio', 'Iván', 'Marcos', 'Lucas', 'Carlos',
+  'Rubén', 'Óscar', 'Gonzalo', 'Nicolás', 'Samuel', 'Víctor', 'Jorge', 'Enrique', 'Ángel', 'Guillermo', 'Alejandro', 'Martín',
+] as const;
+
+/** País elegible al crear la partida. De momento solo hay España (el calendario escolar y los apellidos son los suyos). */
+export const PAISES_DE_PARTIDA: readonly { id: string; nombre: string }[] = [{ id: 'espana', nombre: 'España' }];
+
+/** Quién da el apellido principal (el primero) al personaje: el padre o la madre. */
+export type ApellidoPrincipal = 'padre' | 'madre';
+
+/**
+ * El nombre del personaje al crear la partida, todo a partir de la semilla (así «volver a sortear» es otra semilla): nombre de pila (solo
+ * masculino de momento) y los dos apellidos, que son el primero del padre y el primero de la madre; el principal va primero.
+ * Los padres de esa semilla (`apellidosDePadres`) llevan esos mismos apellidos.
+ */
+export function identidadDeJugador(seed: number, principal: ApellidoPrincipal = 'padre'): { nombre: string; delPadre: string; delMadre: string; apellidos: string; completo: string } {
+  let h = (seed ^ 0x6a09e667) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x7feb352d) >>> 0;
+  h = Math.imul(h ^ (h >>> 15), 0x846ca68b) >>> 0;
+  const nombre = NOMBRES_DE_JUGADOR[((h ^ (h >>> 16)) >>> 0) % NOMBRES_DE_JUGADOR.length];
+  const { padre, madre } = apellidosDePadres(seed);
+  const apellidos = principal === 'padre' ? `${padre[0]} ${madre[0]}` : `${madre[0]} ${padre[0]}`;
+  return { nombre, delPadre: padre[0], delMadre: madre[0], apellidos, completo: `${nombre} ${apellidos}` };
+}
+
 /** Probabilidad de tener 0, 1, 2 o 3 hermanos. */
 export const PESOS_DE_HERMANOS: readonly number[] = [0.2, 0.45, 0.25, 0.1];
 

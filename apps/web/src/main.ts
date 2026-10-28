@@ -29,12 +29,16 @@ import {
   type RelationsService,
   nombreEstado,
   type StudiesService,
+  type ApellidoPrincipal,
+  PAISES_DE_PARTIDA,
+  identidadDeJugador,
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
+import { reclamarPestana } from './pestana';
 import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
 /**
@@ -57,6 +61,15 @@ let tab: Tab = 'hacer';
 let lastResult: { name: string; result: ActionResult; fresh: boolean } | null = null;
 let showUnavailable = false;
 
+/** Pantallas de antes de jugar: el menú, crear una partida y las opciones. Con una partida guardada también se empieza en el menú («Continuar»). */
+type Pantalla = 'menu' | 'nueva' | 'opciones';
+let pantalla: Pantalla = 'menu';
+let enMenu = true;
+const sortearSemilla = (): number => 1 + Math.floor(Math.random() * 0x7ffffffe);
+/** La partida que se está creando: la semilla decide el nombre, los apellidos y los padres; «volver a sortear» es otra semilla. */
+let nueva: { seed: number; principal: ApellidoPrincipal } = { seed: sortearSemilla(), principal: 'padre' };
+let avisoDeSalir = false;
+
 const app = document.getElementById('app')!;
 
 // ------------------------------------------------------------------ guardado
@@ -69,9 +82,12 @@ let guardadoPendiente: ReturnType<typeof setTimeout> | undefined;
 let hayCambios = false;
 let guardando = false;
 let pidioPersistencia = false;
+/** ¿Es esta la pestaña que guarda? Si hay otra abierta con la misma partida, esta no guarda (ver `pestana.ts`). */
+let esPrincipal = true;
 
 /** Guardar cuesta lo que pesa la partida: se agrupa lo que pasa en medio segundo y nunca se guarda a la vez dos veces. */
 function save(): void {
+  if (!esPrincipal) return;
   hayCambios = true;
   if (guardadoPendiente !== undefined) return;
   guardadoPendiente = setTimeout(() => void guardarYa(), 500);
@@ -80,7 +96,7 @@ function save(): void {
 async function guardarYa(): Promise<void> {
   if (guardadoPendiente !== undefined) clearTimeout(guardadoPendiente);
   guardadoPendiente = undefined;
-  if (guardando || !almacen) return; // si ya está guardando, lo hará de nuevo al acabar si hay cambios
+  if (guardando || !almacen || !esPrincipal) return; // si ya está guardando, lo hará de nuevo al acabar si hay cambios
   guardando = true;
   try {
     while (hayCambios && game) {
@@ -103,6 +119,7 @@ async function guardarYa(): Promise<void> {
 }
 
 function textoDeAvisoDeGuardado(): string {
+  if (!esPrincipal) return 'Esta partida está abierta en otra pestaña: aquí no se guarda nada. Cierra una de las dos; esta se recargará sola cuando la otra se cierre.';
   if (errorDeGuardado) return `No se pudo guardar la partida (${errorDeGuardado}). Exporta una copia para no perderla.`;
   return almacen?.tipo === 'memoria' ? 'Este navegador no permite guardar: la partida se perderá al cerrar la pestaña. Puedes exportar una copia.' : '';
 }
@@ -158,13 +175,7 @@ function importarPartida(): void {
     try {
       const data = deJSON(await archivo.text());
       game = cargarPartida(data.state, undefined, { copiar: false });
-      agenda = data.agenda;
-      lastResult = null;
-      tab = 'hacer';
-      reiniciarGente();
-      avisoPartidaAntigua = false;
-      save();
-      render();
+      empezarAJugar(data.agenda);
     } catch (e) {
       alert(e instanceof Error ? e.message : 'No se pudo importar la copia.');
     }
@@ -196,18 +207,64 @@ function signedChange(id: string, d: number): string {
 
 // ------------------------------------------------------------------ vistas
 
-function viewStart(): string {
+function viewInicio(): string {
+  if (pantalla === 'nueva') return viewNueva();
+  if (pantalla === 'opciones') return viewOpciones();
+  return viewMenu();
+}
+
+function viewMenu(): string {
   return `<main class="app"><section class="start">
     <h1>Dinasty Sports</h1>
     <p>Un curso escolar, un deporte y cada hora cuenta. Decide en qué inviertes tu tiempo.</p>
     ${avisoPartidaAntigua ? '<p class="note">Tu partida guardada era de una versión anterior y ya no se puede cargar (estamos en fase alfa y el juego cambia mucho). Empieza una nueva.</p>' : ''}
-    <form data-form="nueva">
-      <label for="nombre">Nombre de tu personaje</label>
-      <input id="nombre" name="nombre" maxlength="24" autocomplete="off" value="Alex" required />
-      <button class="primary" type="submit">Empezar el curso</button>
-    </form>
-    <p class="note"><button data-act="importar">Importar una copia de seguridad</button></p>
+    <div class="menu">
+      <button class="primary" data-act="ir-nueva">Nueva partida</button>
+      <button class="menu-boton" data-act="continuar"${game ? '' : ' disabled'}>Continuar${game ? ` <small>${esc(game.playerName)}</small>` : ''}</button>
+      <button class="menu-boton" data-act="importar">Cargar partida</button>
+      <button class="menu-boton" data-act="ir-opciones">Opciones</button>
+      <button class="menu-boton" data-act="salir">Salir</button>
+    </div>
+    ${avisoDeSalir ? '<p class="note">Ya puedes cerrar la pestaña: tu partida está guardada.</p>' : ''}
     <p class="note loss" id="aviso-guardado">${esc(textoDeAvisoDeGuardado())}</p>
+  </section></main>`;
+}
+
+function viewNueva(): string {
+  const id = identidadDeJugador(nueva.seed, nueva.principal);
+  const apellido = (quien: ApellidoPrincipal, texto: string, nombre: string) =>
+    `<button type="button" class="opcion" data-act="principal" data-quien="${quien}" aria-pressed="${nueva.principal === quien}"><b>${esc(nombre)}</b><small>${texto}</small></button>`;
+  return `<main class="app"><section class="start">
+    <h1>Nueva partida</h1>
+    <label for="pais">País</label>
+    <select id="pais" disabled>${PAISES_DE_PARTIDA.map((p) => `<option>${esc(p.nombre)}</option>`).join('')}</select>
+    <label for="sexo">Sexo</label>
+    <select id="sexo" disabled><option>Masculino</option></select>
+    <p class="note">De momento solo hay personaje masculino y el calendario de España.</p>
+    <label>Nombre</label>
+    <p class="nombre-sorteado">${esc(id.nombre)}</p>
+    <label>Apellido principal</label>
+    <div class="opciones">
+      ${apellido('padre', 'primer apellido de tu padre', id.delPadre)}
+      ${apellido('madre', 'primer apellido de tu madre', id.delMadre)}
+    </div>
+    <p class="te-llamaras">Te llamarás <b>${esc(id.completo)}</b></p>
+    <button type="button" class="menu-boton" data-act="sortear">Volver a sortear nombre y apellidos</button>
+    <button type="button" class="primary" data-act="empezar">Empezar el curso</button>
+    <p class="note"><button type="button" data-act="ir-menu">‹ Volver al menú</button></p>
+    ${game ? '<p class="note loss">Ya tienes una partida guardada: al empezar una nueva se perderá.</p>' : ''}
+  </section></main>`;
+}
+
+function viewOpciones(): string {
+  return `<main class="app"><section class="start">
+    <h1>Opciones</h1>
+    <p>Aún no hay muchas: el juego está en fase alfa.</p>
+    <div class="menu">
+      <button class="menu-boton" data-act="exportar"${game ? '' : ' disabled'}>Descargar una copia de seguridad</button>
+      <button class="menu-boton" data-act="borrar"${game ? '' : ' disabled'}>Borrar la partida guardada</button>
+    </div>
+    <p class="note"><button type="button" data-act="ir-menu">‹ Volver al menú</button></p>
   </section></main>`;
 }
 
@@ -238,7 +295,7 @@ function viewDay(g: Game): string {
   return `<header class="day">
     <div class="day-top">
       <h1 class="clock">${hhmm(t.minuteOfDay)}<small>${DIAS[t.weekday]} ${fechaDelDia(t.day).conAnio} · curso ${t.schoolYear + 1}, semana ${t.schoolWeek + 1}<br>${t.period === 'clase' ? `${t.term}.º trimestre` : NOMBRE_PERIODO[t.period]}</small></h1>
-      <div class="who"><strong>${esc(g.playerName)}</strong><span class="copias"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="reiniciar">Nueva partida</button></span></div>
+      <div class="who"><strong>${esc(g.playerName)}</strong><span class="copias"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="menu">Menú</button></span></div>
     </div>
     <div class="lane" role="img" aria-label="Lo que has hecho hoy">${blocks}<span class="lane-now" style="left:calc(${now}% - 1px)"></span></div>
     <div class="lane-hours"><span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>24 h</span></div>
@@ -645,7 +702,7 @@ window.addEventListener('resize', marcarDesbordePestañas);
 function render(): void {
   // Al redibujar se conserva el desplazamiento de las pestañas y se asegura que la elegida se vea.
   const antes = app.querySelector<HTMLElement>('.tabs')?.scrollLeft ?? 0;
-  app.innerHTML = game ? viewGame(game) : viewStart();
+  app.innerHTML = game && !enMenu ? viewGame(game) : viewInicio();
   const nav = app.querySelector<HTMLElement>('.tabs');
   if (nav) {
     nav.scrollLeft = antes;
@@ -663,6 +720,7 @@ app.addEventListener('click', (e) => {
     importarPartida();
     return;
   }
+  if (el && accionDeMenu(el.dataset.act, el)) return;
   if (!el || !game) return;
   if (el.dataset.tabscroll) {
     const nav = app.querySelector<HTMLElement>('.tabs');
@@ -691,17 +749,6 @@ app.addEventListener('click', (e) => {
     exportarPartida();
     return;
   }
-  if (el.dataset.act === 'reiniciar') {
-    if (confirm('¿Empezar una partida nueva? Se perderá la actual.')) {
-      hayCambios = false;
-      void almacen?.borrar().catch(() => undefined);
-      game = null;
-      agenda = [];
-      lastResult = null;
-      render();
-    }
-    return;
-  }
   const id = el.dataset.do;
   if (id) {
     const opt = game.preview(id);
@@ -714,23 +761,93 @@ app.addEventListener('click', (e) => {
   }
 });
 
-app.addEventListener('submit', (e) => {
-  const form = e.target as HTMLFormElement;
-  if (form.dataset.form !== 'nueva') return;
-  e.preventDefault();
-  const nombre = (new FormData(form).get('nombre') as string).trim() || 'Alex';
-  game = nuevaPartida({ playerName: nombre });
-  agenda = [];
+/** Acciones de las pantallas de antes de jugar (y «Menú» desde la partida). Devuelve si ha tratado el clic. */
+function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
+  switch (act) {
+    case 'menu':
+      enMenu = true;
+      pantalla = 'menu';
+      avisoDeSalir = false;
+      render();
+      return true;
+    case 'ir-menu':
+      pantalla = 'menu';
+      render();
+      return true;
+    case 'ir-nueva':
+      nueva = { seed: sortearSemilla(), principal: 'padre' };
+      pantalla = 'nueva';
+      render();
+      return true;
+    case 'ir-opciones':
+      pantalla = 'opciones';
+      render();
+      return true;
+    case 'continuar':
+      if (!game) return true;
+      enMenu = false;
+      render();
+      return true;
+    case 'principal':
+      nueva.principal = (el?.dataset.quien === 'madre' ? 'madre' : 'padre');
+      render();
+      return true;
+    case 'sortear':
+      nueva.seed = sortearSemilla();
+      render();
+      return true;
+    case 'empezar':
+      if (!esPrincipal) {
+        alert('La partida está abierta en otra pestaña: empieza una nueva desde allí (aquí no se guardaría).');
+        return true;
+      }
+      if (game && !confirm('Empezar una partida nueva sustituye la guardada. ¿Seguir?')) return true;
+      game = nuevaPartida({ seed: nueva.seed, playerName: identidadDeJugador(nueva.seed, nueva.principal).completo });
+      empezarAJugar();
+      return true;
+    case 'borrar':
+      if (!esPrincipal) {
+        alert('La partida está abierta en otra pestaña: bórrala desde allí.');
+        return true;
+      }
+      if (confirm('¿Borrar la partida guardada? No se puede deshacer.')) {
+        hayCambios = false;
+        void almacen?.borrar().catch(() => undefined);
+        game = null;
+        agenda = [];
+        lastResult = null;
+        pantalla = 'menu';
+        render();
+      }
+      return true;
+    case 'salir':
+      // Una pestaña solo se puede cerrar desde el código si la abrió el propio código: si no, se avisa.
+      window.close();
+      avisoDeSalir = true;
+      render();
+      return true;
+    default:
+      return false;
+  }
+}
+
+function empezarAJugar(agendaGuardada: AgendaItem[] = []): void {
+  agenda = agendaGuardada;
   lastResult = null;
   tab = 'hacer';
+  enMenu = false;
+  pantalla = 'menu';
+  avisoPartidaAntigua = false;
   reiniciarGente();
   save();
   render();
-});
+}
 
 async function iniciar(): Promise<void> {
   app.innerHTML = '<main class="app"><p class="note">Cargando…</p></main>';
   almacen = await crearAlmacen();
+  // Si la partida ya está abierta en otra pestaña, esta no guarda; cuando la otra se cierre, se recarga con lo último guardado.
+  esPrincipal = await reclamarPestana(() => location.reload());
   await load();
   try {
     render();

@@ -11,6 +11,7 @@ import {
   claseQueVaAEmpezar,
   SHARED_EVENTS,
   type ClassAttendedData,
+  type FaltasExcesivasData,
   ligarALugares,
   isSchoolHours,
   nivelTipicoPorEdad,
@@ -22,6 +23,8 @@ import {
   type ActionDef,
   type DayEventData,
   type IdentityService,
+  type NpcDirectory,
+  type PresenciaService,
   type ExamInfo,
   type NivelDeAsignatura,
   type ReadContext,
@@ -64,6 +67,8 @@ export interface EstudiosState {
   /** Últimas notas por asignatura (más reciente al final). */
   notas: Record<string, number[]>;
   faltas: number;
+  /** Faltas de clase del trimestre en curso y si ya se ha avisado de que son demasiadas (`FALTAS_PARA_AVISAR`). Cada trimestre empieza de cero. */
+  faltasTrimestre?: { curso: number; trimestre: number; n: number; avisado: boolean };
   /** Notas de los exámenes del trimestre en curso, con clave `asignatura:parcial1|parcial2|global` (se vacía en cada evaluación). */
   examenes?: Record<string, number>;
   /** Notas medias de cada evaluación de trimestre. */
@@ -78,11 +83,18 @@ export interface EstudiosState {
   verano?: { curso: number; tipo: SummerPath; exigidas: number; hechas: number; superada: boolean };
   /** Último día que fue a la academia (una sesión al día). */
   ultimaAcademia?: number;
+  /** Último día que tuvo tutoría de cada asignatura (una al día por asignatura). */
+  ultimaTutoria?: Record<string, number>;
   /** Clases a las que ha ido hoy (0 = primera hora): faltar a una no tiene castigo, solo no sube lo que tocaba, pero se cuenta. */
   asistencia: { day: number; clases: number[] };
 }
 
 const statId = (key: string) => `estudios.${key}`;
+/** Faltas de clase en un trimestre a partir de las cuales se avisa (12 = tres días enteros sin ir; una por clase, 4 clases al día). */
+export const FALTAS_PARA_AVISAR = 12;
+/** Las faltas del trimestre indicado (cero si el contador es de otro trimestre). */
+const faltasDelTrimestre = (s: EstudiosState, curso: number, trimestre: number): { n: number; avisado: boolean } =>
+  s.faltasTrimestre?.curso === curso && s.faltasTrimestre.trimestre === trimestre ? s.faltasTrimestre : { n: 0, avisado: false };
 const NOTAS_GUARDADAS = 12;
 const MIN_HORA_CLASE = 7;
 const MAX_HORA_CLASE = 9;
@@ -169,6 +181,7 @@ function perder(ctx: ActionContext, k: string, puntos: number): void {
  * natural, una parte. Así mantener un notable exige constancia, pero el nivel natural se sostiene yendo a clase.
  */
 function olvidar(ctx: ActionContext, k: string): void {
+  if (asignatura(k).porCapacidades) return; // las capacidades se mantienen por sí solas (con su propio olvido)
   const exceso = Math.max(0, ctx.stat(statId(k)) - nivelNatural(ctx, k));
   perder(ctx, k, factorDeOlvido(aptitudDe(ctx, k)) * (DERIVA_DIARIA + OLVIDO_SOBRE_NIVEL * exceso));
 }
@@ -188,12 +201,24 @@ function habilidadDe(ctx: ReadContext, a: Asignatura): number {
   return Math.min(100, Math.max(30, 55 + 110 * (media / nivelTipicoPorEdad(edad) - 1)));
 }
 
+/** Las asignaturas de capacidades guardan en su stat el nivel que sale de las capacidades (así la ficha del personaje y lo demás ven lo mismo que el examen). */
+function sincronizarCapacidades(ctx: ActionContext, claves: readonly string[]): void {
+  for (const k of claves) {
+    const a = asignatura(k);
+    if (!a.porCapacidades) continue;
+    const dif = habilidadDe(ctx, a) - ctx.stat(statId(k));
+    if (Math.abs(dif) > 0.05) ctx.addStat(statId(k), dif);
+  }
+}
+
 /** Preparación que se enseña: la efectiva, sin bajar de la nota mínima de la asignatura (Educación física: 5). */
 const nivelVisible = (ctx: ReadContext, k: string): number => Math.max((asignatura(k).notaMinima ?? 0) * 10, preparacionEfectiva(ctx, k));
 
 /** Preparación con la que se llega a un examen: en las asignaturas prácticas pesan las habilidades además del estudio. */
 function preparacionEfectiva(ctx: ReadContext, k: string): number {
   const a = asignatura(k);
+  // Educación física, Artística y Música: la nota sale solo de las capacidades que las apoyan, no de estudiar.
+  if (a.porCapacidades) return habilidadDe(ctx, a);
   const estudio = ctx.stat(statId(k));
   return a.practica ? (1 - a.practica) * estudio + a.practica * habilidadDe(ctx, a) : estudio;
 }
@@ -251,6 +276,51 @@ const estudiar = (a: Asignatura): ActionDef => ({
   run: (ctx) => ctx.train(statId(a.key), RENDIMIENTO_ESTUDIO * factorDeAptitud(ctx, a.key)),
 });
 
+
+/** Una tutoría (30 minutos) rinde la mitad de lo que rinde una sesión de estudio de hora y media. */
+const RENDIMIENTO_TUTORIA = RENDIMIENTO_ESTUDIO * 0.5;
+/** Los profesores de una asignatura que ya conoces (se presentan al ir a su primera clase). */
+const profesoresDe = (ctx: ReadContext, key: string) =>
+  ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ role: 'profesor', known: true }).filter((n) => n.asignaturas?.includes(statId(key))) ?? [];
+/** La tutoría se pide en persona, en la sala de profesores: el personaje tiene que ir allí y el profesor tiene que estar allí. */
+const SALA_DE_PROFESORES = 'sala_profesores';
+/** El profesor de la asignatura que está ahora en la sala de profesores (no dando clase, ni en el patio o la entrada), si lo hay. */
+const profesorEnLaSala = (ctx: ReadContext, key: string) => {
+  const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
+  return profesoresDe(ctx, key).find((n) => presencia?.donde(n.id) === SALA_DE_PROFESORES);
+};
+
+/**
+ * Tutoría: vas a la **sala de profesores** y le pides a un profesor de la asignatura un rato de ayuda. No hace falta un tutor concreto: vale
+ * cualquier profesor de esa asignatura que ya conozcas y que esté ahora en la sala (no dando clase ni fuera de ella). Una al día por asignatura.
+ */
+const tutoria = (a: Asignatura): ActionDef => ({
+  id: `estudios.tutoria_${a.key}`,
+  name: `Pedir tutoría de ${a.name.toLowerCase()}`,
+  description: 'Vas a la sala de profesores y le pides al profesor de la asignatura que te explique lo que no entiendes. Treinta minutos; solo vale si hay un profesor de esa asignatura en la sala y una vez al día por asignatura.',
+  tags: [TAGS.estudio, TAGS.mental, TAGS.social],
+  group: 'Estudiar',
+  duration: 30,
+  available: (ctx) => {
+    if (!seCursa(ctx, a.key)) return 'No cursas esta asignatura este curso';
+    if ((ctx.state<EstudiosState>().ultimaTutoria?.[a.key] ?? -1) === ctx.time.day) return 'Ya has tenido tutoría de esta asignatura hoy';
+    const conocidos = profesoresDe(ctx, a.key);
+    if (!conocidos.length) return `Todavía no conoces al profesor de ${a.name.toLowerCase()}: ve a su clase`;
+    return profesorEnLaSala(ctx, a.key) ? true : `Ahora no hay ningún profesor de ${a.name.toLowerCase()} en la sala de profesores (están en clase, en el patio o ya se han ido)`;
+  },
+  delta: { [GEN.energia]: -3, [GEN.estres]: 1 },
+  train: [
+    { stat: GEN.concentracion, amount: 0.2 },
+    { stat: GEN.comunicacion, amount: 0.2 },
+  ],
+  run: (ctx) => {
+    ctx.train(statId(a.key), RENDIMIENTO_TUTORIA * factorDeAptitud(ctx, a.key));
+    ctx.updateState<EstudiosState>((st) => ({ ...st, ultimaTutoria: { ...st.ultimaTutoria, [a.key]: ctx.time.day } }));
+    const profe = profesorEnLaSala(ctx, a.key);
+    ctx.log(`${profe ? profe.name.split(' ')[0] : 'El profesor'} te dedica un rato de tutoría de ${a.name.toLowerCase()}.`, 'info');
+  },
+});
+
 /**
  * Nota de un examen: la preparación /10, con azar (más cuanto peor concentrado) y una penalización si se llega muy estresado.
  */
@@ -286,7 +356,7 @@ function cambiarCurso(ctx: ActionContext, curso: number): void {
   const salen = antes.filter((k) => !ahora.includes(k));
   for (const k of nuevas) {
     const heredada = asignatura(k).hereda;
-    if (heredada) {
+    if (heredada && !asignatura(k).porCapacidades) {
       ctx.addStat(statId(k), ctx.stat(statId(heredada)) - ctx.stat(statId(k)));
       // Lo aprendido de base se hereda con el nivel.
       ctx.updateState<EstudiosState>((x) => ({ ...x, base: { ...x.base, [k]: x.base?.[heredada] ?? x.base?.[k] ?? 0 } }));
@@ -299,7 +369,7 @@ function cambiarCurso(ctx: ActionContext, curso: number): void {
     ctx.addStat(GEN.estres, 10);
   }
   // Cada curso exige más: lo aprendido pierde un poco de peso frente a los contenidos nuevos.
-  for (const k of ahora) ctx.addStat(statId(k), -SALTO_DE_CURSO);
+  for (const k of ahora) if (!asignatura(k).porCapacidades) ctx.addStat(statId(k), -SALTO_DE_CURSO);
   ctx.updateState<EstudiosState>((s) => ({ ...s, modalidad, cursoAplicado: curso, verano: undefined }));
   const nombres = (keys: string[]) => keys.map((k) => asignatura(k).name).join(', ');
   ctx.log(
@@ -460,13 +530,15 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
         { stat: GEN.atencion, amount: 0.3 / CLASES_POR_DIA },
         { stat: GEN.determinacion, amount: 0.3 / CLASES_POR_DIA },
         { stat: GEN.cooperacion, amount: 0.1 / CLASES_POR_DIA },
+        // En Educación física, Artística y Música la clase entrena las capacidades que las apoyan (el esfuerzo de una clase, repartido por sus pesos).
+        ...(asignatura(key).porCapacidades ? asignatura(key).apoyos.map((x) => ({ stat: x.stat, amount: (asignatura(key).entrenoDeClase ?? 0) * x.weight })) : []),
       ],
       run: (ctx: ActionContext) => {
         ctx.updateState<EstudiosState>((st) => ({ ...st, asistencia: { day: ctx.time.day, clases: [...clasesDeHoy(ctx), hora_] } }));
         // Cada clase vale lo que valían las horas del currículo de la asignatura repartidas en los huecos del horario.
         const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
-        // Las clases llevan hasta el nivel natural: si ya lo pasas, aportan poco.
-        ctx.train(statId(key), RENDIMIENTO_CLASE * factorDeAptitud(ctx, key) * pesoDeClase(activas, key) * tironDeClase(ctx, key));
+        // Las clases llevan hasta el nivel natural: si ya lo pasas, aportan poco. (Las de capacidades no suben la asignatura: suben las capacidades.)
+        if (!asignatura(key).porCapacidades) ctx.train(statId(key), RENDIMIENTO_CLASE * factorDeAptitud(ctx, key) * pesoDeClase(activas, key) * tironDeClase(ctx, key));
         // El profesor de la asignatura se presenta si todavía no lo conoces.
         ctx.emit<ClassAttendedData>({ type: SHARED_EVENTS.CLASS_ATTENDED, data: { asignatura: statId(key) } });
       },
@@ -525,7 +597,8 @@ function clasesDeHoyAcciones(ctx: ReadContext): ActionDef[] {
   const clases = hoy.map((k, h) => accionDeClase(h, k));
   // En los 10 minutos antes de una clase se puede repasar su asignatura.
   const proxima = hoy.findIndex((_, h) => t.minuteOfDay >= JORNADA.clases[h][0] - ANTES_DE_CLASE && t.minuteOfDay < JORNADA.clases[h][0]);
-  return proxima >= 0 ? [...clases, repasoPrevio(proxima, hoy[proxima])] : clases;
+  // (Las asignaturas de capacidades no se repasan.)
+  return proxima >= 0 && !asignatura(hoy[proxima]).porCapacidades ? [...clases, repasoPrevio(proxima, hoy[proxima])] : clases;
 }
 
 
@@ -566,7 +639,9 @@ export const estudios = defineModule<EstudiosState>({
   ],
 
   actions: ligarALugares([
-    ...ASIGNATURAS.map(estudiar),
+    // Las asignaturas de capacidades (Educación física, Artística, Música) no se estudian ni tienen tutoría: se mejoran entrenando las capacidades.
+    ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(estudiar),
+    ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(tutoria),
     {
       id: 'estudios.repaso',
       name: 'Repaso general',
@@ -578,7 +653,7 @@ export const estudios = defineModule<EstudiosState>({
       train: [{ stat: GEN.determinacion, amount: 0.3 }],
       run: (ctx) => {
         const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
-        for (const k of activas) ctx.train(statId(k), (RENDIMIENTO_REPASO / activas.length) * factorDeAptitud(ctx, k));
+        for (const k of activas) if (!asignatura(k).porCapacidades) ctx.train(statId(k), (RENDIMIENTO_REPASO / activas.length) * factorDeAptitud(ctx, k));
       },
     },
     {
@@ -602,6 +677,7 @@ export const estudios = defineModule<EstudiosState>({
         const s = ctx.state<EstudiosState>();
         // Se refuerzan las tres asignaturas más flojas del curso.
         const flojas = activasKeys(ctx.time.schoolYear, s.modalidad)
+          .filter((k) => !asignatura(k).porCapacidades)
           .map((k) => [k, ctx.stat(statId(k))] as const)
           .sort((a, b) => a[1] - b[1])
           .slice(0, 3);
@@ -619,7 +695,9 @@ export const estudios = defineModule<EstudiosState>({
     // Se estudia en casa o en la biblioteca (ya no en la entrada del colegio ni en el patio).
     'estudios.repaso': ['casa', 'biblioteca'],
     'estudios.academia': ['colegio'],
-    ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'biblioteca']])),
+    ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'biblioteca']])),
+    // La tutoría se pide en la sala de profesores.
+    ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.tutoria_${a.key}`, [SALA_DE_PROFESORES]])),
   }),
 
   on: {
@@ -644,6 +722,8 @@ export const estudios = defineModule<EstudiosState>({
       }
       // El evento llega al cerrar el día: se mira el calendario de ESE día, no el del siguiente.
       const hoy = timeView(day * MINUTES_PER_DAY);
+      // Las asignaturas de capacidades siguen a las capacidades (Educación física, Artística, Música).
+      sincronizarCapacidades(ctx, activasKeys(hoy.schoolYear, ctx.state<EstudiosState>().modalidad));
       const weekday = hoy.weekday;
       const s = ctx.state<EstudiosState>();
       // Academia obligatoria: faltar un día de academia cuenta como falta y sube el estrés.
@@ -661,7 +741,15 @@ export const estudios = defineModule<EstudiosState>({
       const fue = s.asistencia.day === day ? s.asistencia.clases : [];
       const faltadas = CLASES_POR_DIA - fue.length;
       if (faltadas > 0) {
-        ctx.updateState<EstudiosState>((st) => ({ ...st, faltas: st.faltas + faltadas }));
+        // Las faltas del trimestre: al llegar a `FALTAS_PARA_AVISAR` se avisa (una vez) y se lanza el evento que recogerán los padres.
+        const previo = faltasDelTrimestre(s, hoy.schoolYear, hoy.term);
+        const n = previo.n + faltadas;
+        const avisar = !previo.avisado && n >= FALTAS_PARA_AVISAR;
+        ctx.updateState<EstudiosState>((st) => ({ ...st, faltas: st.faltas + faltadas, faltasTrimestre: { curso: hoy.schoolYear, trimestre: hoy.term, n, avisado: previo.avisado || avisar } }));
+        if (avisar) {
+          ctx.log(`Llevas ${n} faltas de clase este trimestre. Si sigues faltando, tus padres se acabarán enterando.`, 'aviso');
+          ctx.emit<FaltasExcesivasData>({ type: SHARED_EVENTS.FALTAS_EXCESIVAS, data: { faltas: n, curso: hoy.schoolYear, trimestre: hoy.term } });
+        }
         // Faltar sube el estrés lo mismo que ir a clase (3 al día repartido en las clases). Habrá más consecuencias.
         ctx.addStat(GEN.estres, (ESTRES_POR_DIA_DE_CLASE / CLASES_POR_DIA) * faltadas);
         ctx.log(faltadas === CLASES_POR_DIA ? 'Has faltado a clase todo el día.' : `Has faltado a ${faltadas} ${faltadas === 1 ? 'clase' : 'clases'}.`, 'aviso');
@@ -670,7 +758,7 @@ export const estudios = defineModule<EstudiosState>({
       const activas = activasKeys(hoy.schoolYear, s.modalidad);
       // Lo que se da en una clase a la que faltas se pierde: el temario sigue avanzando (en proporción a las horas que vale la clase).
       asignaturasDeHoy(hoy.schoolYear, s.modalidad, weekday).forEach((k, h) => {
-        if (!fue.includes(h)) perder(ctx, k, PERDIDA_POR_FALTA * pesoDeClase(activas, k));
+        if (!fue.includes(h) && !asignatura(k).porCapacidades) perder(ctx, k, PERDIDA_POR_FALTA * pesoDeClase(activas, k));
       });
       const tipo = tipoDeSemana(hoy);
       if (tipo) {
@@ -693,6 +781,7 @@ export const estudios = defineModule<EstudiosState>({
       return {
         average: () => media(s, activas),
         absences: () => s.faltas,
+        absencesThisTerm: () => faltasDelTrimestre(s, ctx.time.schoolYear, ctx.time.term).n,
         activeSubjects: () => activas.map(statId),
         courseName: () => cursoDef(ctx.time.schoolYear).nombre,
         grades: (subject) => [...(s.notas[subject.replace('estudios.', '')] ?? [])],

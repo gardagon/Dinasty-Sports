@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { aptitudDe, type RasgosDe } from '@ds/contracts';
-import { DISPOSICION, HABILIDAD, usoDelAspecto, HABILIDADES_DE_ACCION, disposicion, factorDeHabilidad, interesFavorito, mejorInteresEnComun, perdidaPorDiscusion, probabilidadDePaces } from './acciones';
+import { APTITUD_TIPICA, ESTORBO_MAXIMO, estorboDe, fraseDeCompania, DISPOSICION, HABILIDAD, usoDelAspecto, HABILIDADES_DE_ACCION, disposicion, factorDeHabilidad, interesFavorito, mejorInteresEnComun, perdidaPorDiscusion, probabilidadDePaces } from './acciones';
 
 const rasgos = (caracter: Record<string, number> = {}, intereses: Record<string, number> = {}): RasgosDe =>
   ({ origen: {} as RasgosDe['origen'], apariencia: {} as RasgosDe['apariencia'], caracter, intereses, gustos: {} as RasgosDe['gustos'] });
@@ -150,5 +150,34 @@ describe('acciones de relación (reglas puras)', () => {
       }
       expect(disposicion(undefined, perfil)).toEqual({ factor: 1 });
     });
+  });
+});
+
+describe('estorbar y ayudar al hacer algo juntos', () => {
+  it('estorba solo por debajo de la aptitud típica, hasta un máximo, y sin tocar nada por encima', () => {
+    expect(estorboDe(APTITUD_TIPICA)).toBe(0);
+    expect(estorboDe(0.9)).toBe(0);
+    expect(estorboDe(0)).toBeCloseTo(ESTORBO_MAXIMO, 10);
+    expect(estorboDe(0.2)).toBeCloseTo(ESTORBO_MAXIMO / 2, 10);
+    expect(estorboDe(-1)).toBeCloseTo(ESTORBO_MAXIMO, 10);
+  });
+
+  it('hay frases buenas y malas para cada actividad, con el nombre y estables según el azar', () => {
+    for (const area of ['estudio', 'social', 'deporte']) {
+      for (const ayuda of [true, false]) {
+        for (const azar of [0, 0.34, 0.67, 0.999]) {
+          const f = fraseDeCompania(area, ayuda, 'Marta', 'f', azar);
+          expect(f, `${area} ${ayuda} ${azar}`).toContain('Marta');
+          expect(f).not.toContain('undefined');
+          expect(fraseDeCompania(area, ayuda, 'Marta', 'f', azar)).toBe(f);
+        }
+      }
+    }
+    expect(fraseDeCompania('inexistente', true, 'Marta', 'f', 0.5)).toBe('');
+    // Concuerda con el género.
+    const m = fraseDeCompania('social', true, 'Pablo', 'm', 0.9);
+    const f = fraseDeCompania('social', true, 'Marta', 'f', 0.9);
+    expect(m).toMatch(/animado/);
+    expect(f).toMatch(/animada/);
   });
 });

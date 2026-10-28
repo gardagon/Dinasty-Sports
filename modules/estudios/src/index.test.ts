@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, defineModule, type StudiesService } from '@ds/contracts';
+import { SERVICES, SHARED_EVENTS, defineModule, type StudiesService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil, type ActionResult } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { estudios, nivelDeAsignatura, notaExamen, notaFinal, type EstudiosState } from './index';
@@ -165,6 +165,35 @@ describe('módulo estudios', () => {
     const svc = g.service<StudiesService>(SERVICES.estudios)!;
     expect(svc.absences()).toBe(20);
     expect(svc.average()).toBeNull();
+  });
+
+  it('al llegar a 12 faltas en el trimestre avisa una sola vez y lanza el evento de las faltas excesivas; el trimestre siguiente cuenta de cero', () => {
+    // Un módulo de pruebas que escucha el evento (como harán los padres).
+    const oyente = defineModule<{ avisos: unknown[] }>({
+      id: 'oyente',
+      name: 'Oyente',
+      description: 'Solo para los tests: recoge el evento de las faltas excesivas.',
+      initState: () => ({ avisos: [] }),
+      on: { [SHARED_EVENTS.FALTAS_EXCESIVAS]: (ctx, ev) => ctx.updateState<{ avisos: unknown[] }>((s) => ({ avisos: [...s.avisos, ev.data] })) },
+    });
+    const g = Game.create([personaje, estudios, pausas, oyente], { seed: 3 });
+    const svc = () => g.service<StudiesService>(SERVICES.estudios)!; // el servicio se lee del estado al pedirlo: se vuelve a pedir cada vez
+    const avisos = () => g.moduleState<{ avisos: unknown[] }>('oyente').avisos;
+    const avisosDeLog = () => g.log.filter((l) => /Llevas \d+ faltas de clase este trimestre/.test(l.text)).length;
+    advanceTo(g, 'gen.descansar', 2, 10); // el lunes y el martes sin ir a clase (el día cuenta al acabar): 8 faltas
+    expect(svc().absencesThisTerm()).toBe(8);
+    expect(avisos()).toHaveLength(0);
+    advanceTo(g, 'gen.descansar', 4, 10); // hasta el jueves: 16 faltas; el miércoles se llegó a 12
+    expect(svc().absencesThisTerm()).toBe(16);
+    expect(avisos()).toEqual([{ faltas: 12, curso: 0, trimestre: 1 }]);
+    expect(avisosDeLog()).toBe(1);
+    advanceTo(g, 'gen.descansar', 5, 10); // sigue faltando (20): no se vuelve a avisar en este trimestre
+    expect(avisos()).toHaveLength(1);
+    expect(avisosDeLog()).toBe(1);
+    // En el trimestre siguiente la cuenta empieza de cero (las faltas totales siguen sumando).
+    advanceToWeek(g, 'gen.descansar', 17, 0, 10); // 2.º trimestre (semanas 17 a 28)
+    expect(svc().absencesThisTerm()).toBeLessThan(svc().absences());
+    expect(svc().absencesThisTerm()).toBeLessThanOrEqual(4 * 5); // como mucho una semana de faltas desde el principio del trimestre
   });
 
   it('el nivel con texto sigue la nota esperada: Mal <4, Regular 4–5,9, Bien 6–7,4, Muy bien 7,5–9,2, Excelente 9,3–10', () => {
@@ -491,5 +520,70 @@ describe('módulo estudios', () => {
       const g = nueva();
       for (const a of ASIGNATURAS) expect(g.hiddenPotential(`estudios.${a.key}`)).toBeUndefined();
     });
+  });
+});
+
+describe('asignaturas de capacidades (Educación física, Artística y Música)', () => {
+  const nivel = (g: Game, k: string) => g.service<StudiesService>(SERVICES.estudios)!.levelText(`estudios.${k}`);
+  const ORDEN = ['Mal', 'Regular', 'Bien', 'Muy bien', 'Excelente'];
+
+  it('no se estudian, no se repasan y no tienen tutoría: las académicas sí', () => {
+    const g = nueva();
+    for (const k of ['educacion_fisica', 'artistica']) {
+      expect(g.preview(`estudios.estudiar_${k}`), k).toBeUndefined();
+      expect(g.preview(`estudios.tutoria_${k}`), k).toBeUndefined();
+    }
+    expect(g.preview('estudios.estudiar_lengua')).toBeDefined();
+    expect(g.preview('estudios.tutoria_lengua')).toBeDefined();
+    // La música (ESO) tampoco.
+    expect(ASIGNATURAS.filter((a) => a.porCapacidades).map((a) => a.key).sort()).toEqual(['artistica', 'educacion_fisica', 'musica']);
+  });
+
+  it('su nivel sale de las capacidades que las apoyan (no del valor de la asignatura): físicas para Educación física, creatividad para Artística', () => {
+    const con = (stats: Record<string, number>) => {
+      const guardado = nueva().serialize();
+      for (const [id, v] of Object.entries(stats)) guardado.stats[id] = v;
+      return Game.load([personaje, estudios, pausas], guardado);
+    };
+    const fisicas = ['gen.velocidad', 'gen.fuerza', 'gen.resistencia', 'gen.agilidad', 'gen.coordinacion'];
+    const bajas = Object.fromEntries([...fisicas.map((id) => [id, 1]), ['estudios.educacion_fisica', 100]]);
+    const altas = Object.fromEntries([...fisicas.map((id) => [id, 100]), ['estudios.educacion_fisica', 0]]);
+    expect(nivel(con(altas), 'educacion_fisica')).toBe('Excelente'); // aunque la asignatura valga 0
+    expect(nivel(con(bajas), 'educacion_fisica')).toBe('Regular'); // aunque valga 100: no se suspende (nota mínima 5)
+    const creativo = con({ 'gen.creatividad': 100, 'gen.coordinacion': 100, 'gen.atencion': 100, 'estudios.artistica': 0 });
+    const romo = con({ 'gen.creatividad': 1, 'gen.coordinacion': 1, 'gen.atencion': 1, 'estudios.artistica': 100 });
+    expect(ORDEN.indexOf(nivel(creativo, 'artistica')!)).toBeGreaterThan(ORDEN.indexOf(nivel(romo, 'artistica')!));
+  });
+
+  it('ir a la clase de Educación física entrena las capacidades físicas (no la asignatura), y la asignatura sigue a las capacidades al acabar el día', () => {
+    const g = nueva();
+    const horario = horarioDeClases(asignaturasDelCurso(0));
+    const dia = horario.findIndex((d) => d.includes('educacion_fisica'));
+    const hora = horario[dia].indexOf('educacion_fisica');
+    advanceTo(g, 'gen.descansar', dia, 7);
+    const antes = { coord: g.stat('gen.coordinacion'), agil: g.stat('gen.agilidad'), res: g.stat('gen.resistencia') };
+    const asignaturaAntes = g.stat('estudios.educacion_fisica');
+    expect(irAClase(g, hora + 1).ok).toBe(true);
+    expect(g.stat('gen.coordinacion')).toBeGreaterThan(antes.coord);
+    expect(g.stat('gen.agilidad')).toBeGreaterThan(antes.agil);
+    expect(g.stat('gen.resistencia')).toBeGreaterThan(antes.res);
+    expect(g.stat('estudios.educacion_fisica')).toBeCloseTo(asignaturaAntes, 6); // la clase no la sube directamente
+    advanceTo(g, 'gen.descansar', (dia + 1) % 7, 7); // al cerrar el día se pone al nivel de las capacidades (entre 30 y 100)
+    expect(g.stat('estudios.educacion_fisica')).toBeGreaterThanOrEqual(30);
+  });
+
+  it('«Dibujar, tocar o inventar algo» sube la creatividad y con ella Artística', () => {
+    const g = nueva();
+    const guardado = g.serialize();
+    guardado.stats['gen.creatividad'] = 8;
+    const baja = Game.load([personaje, estudios, pausas], guardado);
+    advanceTo(baja, 'gen.descansar', 5, 10); // sábado: sin clase
+    expect(baja.preview('gen.crear')?.available).toBe(true);
+    const antes = baja.stat('gen.creatividad');
+    for (let i = 0; i < 6; i++) {
+      expect(baja.perform('gen.crear').ok).toBe(true);
+      baja.perform('gen.descansar');
+    }
+    expect(baja.stat('gen.creatividad')).toBeGreaterThan(antes);
   });
 });

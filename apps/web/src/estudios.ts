@@ -54,7 +54,7 @@ function colegio(g: Game, est: StudiesService): string {
     ...(tutor ? [['Tutor', tutor.known === false ? 'Sin conocer' : tutor.name]] : []),
     ['Jornada', `${hhmm(JORNADA_ESCOLAR.clases[0][0])}–14:00 · recreo ${hhmm(JORNADA_ESCOLAR.recreo[0])}`],
     ['Nota media reciente', media === null ? 'Sin exámenes aún' : media.toFixed(1)],
-    ['Faltas', String(est.absences())],
+    ['Faltas', `${est.absences()} (este trimestre: ${est.absencesThisTerm()})`],
   ];
   return `<section class="sheet"><h2>Estudios</h2><dl class="identity estudios">${filas.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></section>`;
 }

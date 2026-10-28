@@ -45,9 +45,10 @@ export type Perfil = keyof typeof APTITUDES;
 export const OBJETIVOS: Partial<Record<Perfil, Partial<Record<string, [number, number]>>>> = {
   // «Ni clase ni estudio» acordado en 3–4: lo sube a ~4,2 el suelo de lo aprendido de base y Educación física (mínimo 5).
   tipica: { nada: [3, 4.5], clase: [5, 6], '1h': [6.5, 7.5], '3h': [7.5, 8.5] },
-  // «Estudiando, 9 o más» en las asignaturas académicas: Educación física y Artística (que van con las skills) bajan la media.
+  // «Estudiando, 9 o más» en las asignaturas académicas: Educación física, Artística y Música salen de las capacidades (~5,5 para quien solo va a clase) y moderan la media.
   brillante: { clase: [6.5, 7], '3h': [8.5, 10] },
-  floja: { '3h': [6, 7] },
+  // El banco fija la aptitud de las asignaturas académicas, no las capacidades: Educación física, Artística y Música salen de ellas y una alumna «floja» no las tiene bajas (de ahí el 7,6).
+  floja: { '3h': [6, 7.6] },
 };
 
 export interface ResultadoDeNotas {
@@ -64,7 +65,7 @@ function esperar(g: Game, minuto: number): void {
 }
 
 /** Un alumno con la misma aptitud en todas las asignaturas, que sigue la rutina durante `dias` días. */
-export function alumno(seed: number, aptitud: number, r: Rutina, dias: number): { cursos: number[]; estresMax: number } {
+export function alumno(seed: number, aptitud: number, r: Rutina, dias: number): { cursos: number[]; estresMax: number; porAsignatura: Record<string, number> } {
   const nuevo = Game.create(MODULOS_DEL_BANCO, { seed });
   const asignaturas = nuevo.registry.statList.filter((s) => s.module === 'estudios').map((s) => s.def.id);
   const guardado = nuevo.serialize();
@@ -90,7 +91,8 @@ export function alumno(seed: number, aptitud: number, r: Rutina, dias: number): 
     }
     esperar(g, g.time.isSchoolDay ? 16 * 60 : 10 * 60);
     // Estudia la asignatura que menos ha estudiado (reparte el esfuerzo).
-    const activas = svc().activeSubjects();
+    // (Educación física, Artística y Música no se estudian: su nota sale de las capacidades.)
+    const activas = svc().activeSubjects().filter((k) => g.preview(k.replace('estudios.', 'estudios.estudiar_')));
     for (let i = 0; i < (g.time.isWeekend ? r.finde : r.laborable); i++) {
       const k = [...activas].sort((a, b) => (veces[a] ?? 0) - (veces[b] ?? 0))[0];
       if (g.perform(k.replace('estudios.', 'estudios.estudiar_')).ok) veces[k] = (veces[k] ?? 0) + 1;
@@ -107,7 +109,10 @@ export function alumno(seed: number, aptitud: number, r: Rutina, dias: number): 
     const xs = boletines.filter((b) => b.curso === c);
     return xs.reduce((a, b) => a + b.media, 0) / xs.length;
   });
-  return { cursos, estresMax };
+  // Nota media de cada asignatura (los últimos exámenes guardados): para ver cuáles tiran de la media hacia arriba o hacia abajo.
+  const guardadas = (g.moduleState('estudios') as { notas: Record<string, number[]> }).notas;
+  const porAsignatura = Object.fromEntries(Object.entries(guardadas).filter(([, v]) => v.length).map(([k, v]) => [k, v.reduce((x, y) => x + y, 0) / v.length]));
+  return { cursos, estresMax, porAsignatura };
 }
 
 /** Todos los perfiles y rutinas; la media es la del último curso completo. */

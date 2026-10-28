@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Rng } from './rng';
-import { DIFERENCIA_MAXIMA_DE_EDAD, apellidosDeFamilia, apellidosDePadres, diferenciasDeEdad, numeroDeHermanos } from './hermanos';
+import { rngEstable, type Rng } from './rng';
+import { conocimientoDeCrianza } from './herencia';
+import { DIFERENCIA_MAXIMA_DE_EDAD, apellidosDeFamilia, apellidosDePadres, diferenciasDeEdad, identidadDeJugador, numeroDeHermanos } from './hermanos';
 
 function createRng(semilla: number): Rng {
   let s = semilla | 0 || 1;
@@ -59,5 +60,58 @@ describe('apellidos de la familia', () => {
       expect(apellidosDeFamilia(semilla)).toBe(`${padre[0]} ${madre[0]}`);
       expect(apellidosDePadres(semilla)).toEqual({ padre, madre }); // estable
     }
+  });
+});
+
+describe('identidad del personaje al crear la partida', () => {
+  it('lleva el primer apellido del padre y de la madre, en el orden que se elija, y es estable', () => {
+    for (let semilla = 1; semilla <= 200; semilla++) {
+      const { padre, madre } = apellidosDePadres(semilla);
+      const a = identidadDeJugador(semilla, 'padre');
+      const b = identidadDeJugador(semilla, 'madre');
+      expect(a).toMatchObject({ delPadre: padre[0], delMadre: madre[0], apellidos: `${padre[0]} ${madre[0]}` });
+      expect(b.apellidos).toBe(`${madre[0]} ${padre[0]}`);
+      expect(a.nombre).toBe(b.nombre);
+      expect(a.completo).toBe(`${a.nombre} ${a.apellidos}`);
+      expect(identidadDeJugador(semilla)).toEqual(a);
+    }
+  });
+
+  it('otra semilla cambia el nombre y los apellidos (volver a sortear), con variedad', () => {
+    const nombres = new Set<string>();
+    const apellidos = new Set<string>();
+    for (const semilla of [...Array.from({ length: 300 }, (_, k) => k + 1), 0x7ffffffe, 2 ** 31 - 1, 123456789, 987654321, 2000000000]) {
+      const i = identidadDeJugador(semilla);
+      nombres.add(i.nombre);
+      apellidos.add(i.delPadre);
+      apellidos.add(i.delMadre);
+      expect(i.delPadre).not.toBe(i.delMadre);
+      expect(i.nombre, `semilla ${semilla}`).toMatch(/^\p{L}+$/u);
+    }
+    expect(nombres.size).toBeGreaterThan(15);
+    expect(apellidos.size).toBe(12);
+  });
+});
+
+describe('azar estable', () => {
+  it('es el mismo para las mismas partes y distinto si cambia cualquiera; separa las partes', () => {
+    const a = Array.from({ length: 5 }, () => 0).map(() => 0);
+    const secuencia = (...partes: (string | number)[]) => { const r = rngEstable(...partes); return a.map(() => r.next()); };
+    expect(secuencia('perks', 'rival_3', 7)).toEqual(secuencia('perks', 'rival_3', 7));
+    expect(secuencia('perks', 'rival_3', 7)).not.toEqual(secuencia('perks', 'rival_3', 8));
+    expect(secuencia('perks', 'rival_3', 7)).not.toEqual(secuencia('perks', 'rival_4', 7));
+    expect(secuencia('ab', 'c')).not.toEqual(secuencia('a', 'bc'));
+    for (const x of secuencia('x')) { expect(x).toBeGreaterThanOrEqual(0); expect(x).toBeLessThan(1); }
+  });
+});
+
+describe('conocimiento que viene de casa', () => {
+  it('crece con lo que practicaron los padres, más si fue el mismo deporte, y no pasa de 20', () => {
+    const ninguno = { practica: 'ninguna' as const };
+    expect(conocimientoDeCrianza([ninguno, ninguno], 'atletismo')).toBe(0);
+    expect(conocimientoDeCrianza([{ practica: 'aficionado', deporte: 'atletismo' }, ninguno], 'atletismo')).toBe(4);
+    expect(conocimientoDeCrianza([{ practica: 'federado', deporte: 'atletismo' }, ninguno], 'atletismo')).toBe(8);
+    expect(conocimientoDeCrianza([{ practica: 'federado', deporte: 'tenis' }, ninguno], 'atletismo')).toBe(2.8);
+    expect(conocimientoDeCrianza([{ practica: 'profesional', deporte: 'atletismo' }, { practica: 'profesional', deporte: 'atletismo' }], 'atletismo')).toBe(20);
   });
 });

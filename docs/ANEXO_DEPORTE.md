@@ -19,6 +19,8 @@ Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasifi
 | Si pasas sin tener club | Entras directamente (la inscripción se hace ahí mismo). |
 | Si pasas teniendo ya otro club | Te **ofrecen plaza** (vale 8 semanas, `SEMANAS_DE_OFERTA`) y decides con «Aceptar la plaza en…» (en la sala del club, 15 min). |
 | Entrenamiento con el club | Los miembros del club están en la **pista** (la del colegio, o el estadio) **10 minutos antes** de la sesión. Entras a la sesión desde entonces y hasta que acaba: la acción dura lo que queda y, si llegas tarde, **solo entrenas la parte proporcional** (modificador `atletismo.llegada_tarde`). **Mientras hay sesión de tu club (y no has entrenado con él ese día) no se puede entrenar por libre.** |
+| Pedir consejo al entrenador | «Pedir consejo a tu entrenador» (`atletismo.pedir_consejo`, 15 min): **una vez al día**, con el entrenador de tu club que lleva tu edad y que ya conoces, y solo cuando está libre en su sede (pista del colegio o estadio): antes o después de la sesión. Sube el **conocimiento** (+1, `CONOCIMIENTO_POR_CONSEJO`) y **un poco una habilidad** (+0,3: técnica, ritmo o salida por turnos según el día) y gasta 1 de energía. Hablar con él solo sube la afinidad. |
+| Conocimiento de partida | Si los padres del personaje practicaron deporte, empieza con algo de conocimiento de atletismo (primer día): por cada padre aficionado +4, federado +8, profesional +14, del todo si su deporte fue el atletismo y un tercio si fue otro; tope +20 (`conocimientoDeCrianza`). |
 | Dejar el club | «Dejar el club de atletismo» en la administración (club del colegio) o en la sala de tu club: sin coste. Quien deja antes el suyo y después acepta, no paga nada. |
 | Aceptar la plaza **sin haber dejado antes el otro** | Lo dejas plantado: **estrés +10** (`ESTRES_POR_PLANTON`), con su **entrenador** afinidad −15 y confianza −10 y con **cada miembro de su equipo que conoces** afinidad −6 y confianza −3 (`PLANTON`). |
 | Horarios | Un lugar con horario **no desaparece** fuera de él: sale en gris y dice cuándo abre (también al ir allí: se mira la hora a la que llegarías). |
@@ -29,11 +31,19 @@ Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasifi
 | Sección | Contenido |
 |---|---|
 | Resumen | Categoría (y si compites en la superior), club, entrenador (el de tu edad), **entrenamientos** (días y horas del club), **carreras**, mejor marca, carreras del curso, mejor puesto del curso y estado del campeonato (sin disputar, clasificado, no clasificado). |
-| Próxima prueba | Pretemporada (primera carrera en la semana 5), vacaciones, la carrera semanal (sábado de 9 a 13), la clasificatoria (semana 25) o la final (semana 39) si toca. |
+| Próxima prueba | Pretemporada (primera carrera en la semana 5), vacaciones, la carrera semanal (sábado de 9 a 13), la semifinal (semana 38) o la final (semana 39) si toca. |
 | Habilidades | Solo las **propias del deporte** (en atletismo: técnica, ritmo, salida y conocimiento), con la marca del techo actual. Las genéricas (velocidad, resistencia...) se ven en la pestaña del personaje. |
 | Carreras | Todas las del curso, la más reciente primero, cada una desplegable con su clasificación completa (corredor, club, tiempo y diferencia con el 1.º). ⭐ marca la mejor marca personal. |
 | Clasificaciones | Por **puntos** y por **mejores marcas**, una de cada por categoría en la que hayas competido este curso. Se enseñan los 10 primeros y, si no estás entre ellos, tu fila al final con tu puesto real. |
 | Cursos anteriores | Una fila por curso: carreras, mejor puesto y mejor marca. |
+
+## 3 bis. Formato de las carreras (28/10/2026)
+
+- **Hasta 18 corredores** por carrera: el jugador y, como mucho, 17 de los 18 rivales de su categoría (dos edades × 9 por edad).
+- **No todos se presentan.** Cada rival decide por sí solo (azar propio, no cambia con lo que haga el jugador) si acude: los **mejores casi nunca faltan** (98 % el primero) y **los peores faltan más** (60 % el último). Quien **quedó último** en su carrera anterior falla aún más (hasta −15 puntos, según lo cerca que estuvo del fondo). Siempre hay al menos 3 rivales.
+- **Semifinales** (sábado de la semana 38): dos series de 8 (16 corredores; los otros 2 de los 18 rotan) repartidas por cabezas de serie (los mejores, separados). Pasan a la final los **4 primeros de cada serie**; los 2 siguientes de cada serie son reservas por si algún finalista no acude. En campeonato acude algo más de gente (+8 puntos).
+- **Final** (sábado de la semana 39): 8 corredores (los clasificados; si alguno falta entra un reserva). Medallas de oro, plata y bronce.
+- La clasificación de la semifinal que se guarda (y puntúa en la temporada) junta las dos series por tiempos; la tabla del registro enseña tu serie.
 
 ## 4. Puntos de la clasificación de la temporada (provisional)
 
@@ -44,7 +54,7 @@ Cada corredor suma los puntos de cada prueba en la que ha corrido contra el pers
 | Puesto | 1.º | 2.º | 3.º | 4.º | 5.º | 6.º | 7.º | 8.º | 9.º o más |
 |---|---|---|---|---|---|---|---|---|---|
 | Carrera semanal | 10 | 8 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-| Clasificatoria autonómica y final (×2) | 20 | 16 | 12 | 10 | 8 | 6 | 4 | 2 | 0 |
+| Semifinal y final del campeonato (×2) | 20 | 16 | 12 | 10 | 8 | 6 | 4 | 2 | 0 |
 
 - Orden: más puntos primero y, a igualdad, mejor marca.
 - Un corredor de la población (rival) es el mismo en todas sus pruebas por su identificador; los corredores genéricos (relleno de las series) se distinguen solo por el nombre.
@@ -57,7 +67,9 @@ Cada corredor suma los puntos de cada prueba en la que ha corrido contra el pers
 |---|---|
 | Puntos por puesto, factor de campeonato, cursos con clasificación guardada | `modules/atletismo/src/temporada.ts` (`PUNTOS_POR_PUESTO`, `FACTOR_DE_CAMPEONATO`, `CURSOS_CON_CLASIFICACION`) |
 | Qué sale en el resumen y la próxima prueba | `modules/atletismo/src/index.ts` (`vistaDeAtletismo`, `proximaPrueba`) |
-| Semana de la clasificatoria y de la final, pretemporada | `modules/atletismo/src/index.ts` (`SEMANA_CLASIFICATORIA`, `SEMANA_FINAL`, `SEMANAS_PRETEMPORADA`) |
+| Semana de la semifinal y de la final, pretemporada | `modules/atletismo/src/index.ts` (`SEMANA_SEMIFINAL`, `SEMANA_FINAL`, `SEMANAS_PRETEMPORADA`) |
+| Corredores por carrera, series, clasificados y probabilidad de acudir | `modules/atletismo/src/temporada.ts` (`CORREDORES_POR_CARRERA`, `CLASIFICADOS_POR_SERIE`, `probabilidadDeAcudir`) |
+| Cuánto sube el bono de asistencia en campeonato | `modules/atletismo/src/index.ts` (`BONO_DE_CAMPEONATO`) |
 | Cómo se dibuja (y cuándo está desactivada) | `apps/web/src/deporte.ts`, `DeporteView.inactivo` |
 | Plazas ofrecidas, aceptar y estrés por plantón | `modules/atletismo/src/index.ts` (`SEMANAS_DE_OFERTA`), `modules/clubes/src/index.ts` (`ESTRES_POR_PLANTON`) |
 
