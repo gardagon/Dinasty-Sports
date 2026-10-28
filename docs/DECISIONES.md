@@ -11,7 +11,7 @@ Pedido por el usuario: «Amplia a 18 los corredores… semifinales y una final. 
 
 - **18 corredores por categoría** (`RIVALES_POR_EDAD` 8→9: 108 rivales; 18 por categoría de dos edades). Una carrera semanal es una sola serie de hasta 18.
 - **Asistencia** (`probabilidadDeAcudir`): del 98 % del mejor al 60 % del peor por nivel, menos hasta 15 puntos si quedó en el fondo de su serie la última vez (`ultimoPuesto`), con un mínimo de 3 rivales y +8 puntos en campeonato. El sorteo es **propio de cada rival** (`rngEstable('asistencia', id, semana, tipo)`).
-- **Semifinal** (semana 38): 2 series de 9 por cabezas de serie (`repartirEnSeries`, serpiente), pasan 4 por serie → 8 finalistas, 2 reservas por serie. **Final** (semana 39): los finalistas que acuden (y reservas si falta alguno) más el jugador si se clasificó. Acción `atletismo.semifinal` (antes `atletismo.clasificatoria`; las partidas guardadas conservan el tipo antiguo).
+- **Semifinal** (semana 38): 2 series de 8 (16 corredores, los otros 2 de los 18 rotan) por cabezas de serie (`repartirEnSeries`, serpiente), pasan 4 por serie → 8 finalistas, 2 reservas por serie. **Final** (semana 39): los finalistas que acuden (y reservas si falta alguno) más el jugador si se clasificó. Acción `atletismo.semifinal` (antes `atletismo.clasificatoria`; las partidas guardadas conservan el tipo antiguo).
 - **Mejora de paso de `rngEstable`:** añadida una mezcla final (murmur3). Sin ella, textos que solo cambian en el último carácter (la semana) daban sorteos casi iguales y las ausencias salían en bloque (6 de 18 un día). Cambia las tiradas propias de los rivales (marcas, progreso) respecto a versiones anteriores, no su calidad.
 - Documentación: `ANEXO_DEPORTE.md` §3 bis.
 

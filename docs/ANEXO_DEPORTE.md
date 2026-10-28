@@ -41,7 +41,7 @@ Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasifi
 
 - **Hasta 18 corredores** por carrera: el jugador y, como mucho, 17 de los 18 rivales de su categoría (dos edades × 9 por edad).
 - **No todos se presentan.** Cada rival decide por sí solo (azar propio, no cambia con lo que haga el jugador) si acude: los **mejores casi nunca faltan** (98 % el primero) y **los peores faltan más** (60 % el último). Quien **quedó último** en su carrera anterior falla aún más (hasta −15 puntos, según lo cerca que estuvo del fondo). Siempre hay al menos 3 rivales.
-- **Semifinales** (sábado de la semana 38): dos series de 9 repartidas por cabezas de serie (los mejores, separados). Pasan a la final los **4 primeros de cada serie**; los 2 siguientes de cada serie son reservas por si algún finalista no acude. En campeonato acude algo más de gente (+8 puntos).
+- **Semifinales** (sábado de la semana 38): dos series de 8 (16 corredores; los otros 2 de los 18 rotan) repartidas por cabezas de serie (los mejores, separados). Pasan a la final los **4 primeros de cada serie**; los 2 siguientes de cada serie son reservas por si algún finalista no acude. En campeonato acude algo más de gente (+8 puntos).
 - **Final** (sábado de la semana 39): 8 corredores (los clasificados; si alguno falta entra un reserva). Medallas de oro, plata y bronce.
 - La clasificación de la semifinal que se guarda (y puntúa en la temporada) junta las dos series por tiempos; la tabla del registro enseña tu serie.
 

@@ -54,7 +54,7 @@ Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ dif
 
 ## Hecho fuera del plan original
 
-- **Conocimiento del deporte** (adapta E2.3), **PWA**, **108 rivales persistentes por edad con padres y herencia**, **carreras de hasta 18 con semifinales (2 series de 9) y final, y ausencias según nivel**, **clasificación con tablas** tras cada carrera, **clubes**, **currículo de España**, **calendario por país**, **módulo `relaciones`** (E20) y **módulo `familia`**. Detalle y cifras en `DECISIONES.md`.
+- **Conocimiento del deporte** (adapta E2.3), **PWA**, **108 rivales persistentes por edad con padres y herencia**, **carreras de hasta 18 con semifinales (2 series de 8) y final, y ausencias según nivel**, **clasificación con tablas** tras cada carrera, **clubes**, **currículo de España**, **calendario por país**, **módulo `relaciones`** (E20) y **módulo `familia`**. Detalle y cifras en `DECISIONES.md`.
 - **Herramientas de medición:** `npm run sim` (balance a un año), `sim:largo` (tres años), `sim:vida` (vida entera de un bot que lo entrena todo, hasta los 70 años por defecto) y `sim:notas` (banco de notas: nota media por aptitud y rutina de estudio frente a los objetivos).
 - Para E7 (deportes de equipo) y E8 (dinastía): la plantilla de competición ya tiene rivales con padres y herencia propia, tabla de resultados y rotación de series, y el motor ya hereda topes de los padres y envejece por categorías.
 

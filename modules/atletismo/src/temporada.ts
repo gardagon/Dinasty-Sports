@@ -81,9 +81,11 @@ export function recortarPruebas(pruebas: readonly PruebaGuardada[], cursoActual:
 
 // ---------------------------------------------------------------------------------------------------- quién corre y cómo se clasifican
 
-/** Corredores de una carrera (el jugador y 17 rivales como mucho) y reparto del campeonato: dos series de 9, pasan 4 de cada una (8 finalistas). */
+/** Corredores de una carrera (el jugador y 17 rivales como mucho) y reparto del campeonato: dos series de 8 (16 corredores: los otros 2 de los 18 rotan), pasan 4 de cada una (8 finalistas). */
 export const CORREDORES_POR_CARRERA = 18;
 export const SERIES_DE_SEMIFINAL = 2;
+export const CORREDORES_POR_SERIE = 8;
+export const CORREDORES_DE_SEMIFINAL = SERIES_DE_SEMIFINAL * CORREDORES_POR_SERIE;
 export const CLASIFICADOS_POR_SERIE = 4;
 export const FINALISTAS = SERIES_DE_SEMIFINAL * CLASIFICADOS_POR_SERIE;
 /** Los reservas de la final por serie: si un clasificado no se presenta, entra el siguiente de su serie. */

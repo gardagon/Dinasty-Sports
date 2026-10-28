@@ -36,6 +36,7 @@ import {
 } from '@ds/contracts';
 import {
   CLASIFICADOS_POR_SERIE,
+  CORREDORES_DE_SEMIFINAL,
   CORREDORES_POR_CARRERA,
   FINALISTAS,
   MINIMO_DE_RIVALES,
@@ -499,12 +500,12 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
   } else {
     const { acuden, faltan: noVienen } = quienesAcuden(conocidos, previos, t.week, tipo);
     faltan = noVienen;
-    const plazas = CORREDORES_POR_CARRERA - 1;
+    const plazas = (tipo === 'semifinal' ? CORREDORES_DE_SEMIFINAL : CORREDORES_POR_CARRERA) - 1; // en la semifinal, 16: los otros 2 rotan
     rivalesQueCorren = acuden.length > plazas ? elegirRivales(acuden, plazas, t.week, enCategoria, previa, ctx.rng) : acuden;
   }
   // Sin base de personas (solo el módulo) se completa con corredores genéricos hasta una serie (o las dos de la semifinal).
   if (!npcs) {
-    const plazas = tipo === 'semifinal' ? CORREDORES_POR_CARRERA - 1 : PARTICIPANTES - 1;
+    const plazas = tipo === 'semifinal' ? CORREDORES_DE_SEMIFINAL - 1 : PARTICIPANTES - 1;
     rivalesQueCorren = [...rivalesQueCorren, ...rivalesGenericos(Math.max(0, plazas - rivalesQueCorren.length), t.week, ctx.rng)];
   }
 
@@ -513,7 +514,7 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
     { name: 'Tú', level: miNivel, mark: miMarca, isPlayer: true },
     ...rivalesQueCorren.map((r) => ({ ...r, mark: marca400(r.level, rngEstable('marca', r.npcId ?? r.name, t.week, tipo)) })),
   ];
-  // La semifinal se corre en dos series de nueve repartidas por cabezas de serie; las demás, en una.
+  // La semifinal se corre en dos series de ocho repartidas por cabezas de serie; las demás, en una.
   const series: Corre[][] = tipo === 'semifinal' ? repartirEnSeries(todos.map((c) => ({ ...c, nivel: c.level }))) : [todos];
   for (const serie of series) serie.sort((a, b) => a.mark - b.mark);
   const miSerie = series.find((x) => x.some((c) => c.isPlayer))!;
@@ -1013,7 +1014,7 @@ export const atletismo = defineModule<AtletismoState>({
     {
       id: 'atletismo.semifinal',
       name: 'Competir: semifinales del campeonato',
-      description: `Una vez por curso (sábado de la semana ${SEMANA_SEMIFINAL + 1}), con hasta ${CORREDORES_POR_CARRERA} corredores de tu categoría repartidos en dos series de nueve. Pasan a la final los ${CLASIFICADOS_POR_SERIE} primeros de cada serie.`,
+      description: `Una vez por curso (sábado de la semana ${SEMANA_SEMIFINAL + 1}), con ${CORREDORES_DE_SEMIFINAL} corredores de tu categoría (los otros ${CORREDORES_POR_CARRERA - CORREDORES_DE_SEMIFINAL} rotan) repartidos en dos series de ocho. Pasan a la final los ${CLASIFICADOS_POR_SERIE} primeros de cada serie.`,
       tags: [TAGS.fisico, TAGS.cardio, TAGS.competicion, 'atletismo'],
       group: 'Competición',
       duration: 180,

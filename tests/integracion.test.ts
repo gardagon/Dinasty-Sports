@@ -458,8 +458,8 @@ describe('integración de módulos', () => {
       expect(posible(g, 'atletismo.semifinal')).toBe(true);
       expect(posible(g, 'atletismo.final')).toBe(false);
       const entrada = filas(g, 'atletismo.semifinal');
-      expect(entrada.table!.rows.length).toBeGreaterThanOrEqual(6); // tu serie (de 9, con ausencias)
-      expect(entrada.table!.rows.length).toBeLessThanOrEqual(9);
+      expect(entrada.table!.rows.length).toBeGreaterThanOrEqual(6); // tu serie (de 8, con ausencias)
+      expect(entrada.table!.rows.length).toBeLessThanOrEqual(8);
       expect(entrada.text).toMatch(/semifinal del campeonato \(serie [12] de 2\)/);
     });
 
