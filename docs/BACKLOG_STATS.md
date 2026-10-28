@@ -243,7 +243,7 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 | E10.4 | **Transición a profesional:** más obligaciones (entrenamiento y calendario del club profesional), eventos, y la decisión de **dejar el colegio o seguir** | Dejar el colegio libera tiempo pero deja los estudios incompletos |
 | E10.5 | **Titulación y futuro** (decidido el 24/10: las asignaturas deben perderse al terminar el colegio; si aparece la universidad, traerá otras asignaturas o un cálculo genérico sin asignaturas según la carrera elegida; hasta los 18 años no es prioritario): el personaje conserva el nivel de estudios que ha terminado (1 primaria, 2 ESO, 3 bachillerato, 4 universidad); cuanto menor, más cuestan los oficios de después (entrenador, agente...) | Marca de estudios que se consultará en la fase 3 |
 | E10.6 | **Subir de nivel profesional** (los rivales de la cantera también tendrán su oportunidad de ser profesionales: será como un cambio de categoría, decidido el 24/10): por resultados y nivel, **no lineal** (a los 16 se puede entrar directamente en élite) | Los tres niveles se juegan; incluye ir a probar por cuenta propia |
-| E10.7 | Fase 3 (retiro): entrenador, representante u otro trabajo deportivo | Un módulo distinto por oficio; después de la fase 2 |
+| E10.7 | Fase 3 (retiro): entrenador, representante u otro trabajo deportivo | Un módulo distinto por oficio; después de la fase 2. **28/10:** el usuario subraya que el oficio de **entrenador** tiene mucho peso (también para quien no llega a profesional) y se diseñará en ventanas de desarrollo independientes; ahí entran las **habilidades de los entrenadores** (E19.7): un mismo modelo para el entrenador-PNJ y para el jugador cuando lo sea |
 | E10.8 | Fin de partida | Qué cuenta como terminar y cómo se resume la carrera |
 
 ### Orden de trabajo acordado el 23/10/2026
@@ -338,7 +338,7 @@ Decidido el 22/10/2026: habrá clubes en distintos deportes y un club puede tene
 | E19.4 ✅ | La calidad del club modifica la eficiencia de entrenar, el conocimiento y la competición | Modificador por club, sin que los deportes se conozcan |
 | E19.5 ✅ | Los rivales y compañeros pertenecen a clubes | Enlaza con los 16 rivales actuales y con E13 |
 | E19.6 | Cambiar de club: pruebas, ojeadores y subida de nivel | Camino hacia la oportunidad profesional (E10.2); necesita eventos (E18) |
-| E19.7 ✅ (parcial) | **Entrenador del club como personaje (NPC)**, igual que el resto de personajes que se añadan: nombre, relación, apoyo | Hechos: 5 entrenadores de clubes de fuera (`ENTRENADORES_DE_CLUBES`). Falta que tengan habilidades propias |
+| E19.7 ✅ (parcial) | **Entrenador del club como personaje (NPC)**, igual que el resto de personajes que se añadan: nombre, relación, apoyo | Hechos: 5 entrenadores de clubes de fuera (`ENTRENADORES_DE_CLUBES`). Falta que tengan habilidades propias: **va con el futuro módulo de profesiones** (E10.7), no como parche de `npcs` |
 
 ## E20 · Relaciones — 🟡 · Sin equivalente en el original
 
