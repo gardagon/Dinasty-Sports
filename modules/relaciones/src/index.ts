@@ -227,7 +227,9 @@ const compatDe = (ctx: ReadContext, n: NpcView): number => {
 const presenteAqui = (n: NpcView) => (ctx: ReadContext): true | string => {
   const cerca = cercanosConClave(ctx);
   if (!cerca) return true;
-  return cerca.ids.has(n.id) ? true : `${nombreCorto(n)} no está aquí`;
+  if (cerca.ids.has(n.id)) return true;
+  const motivo = cerca.ocupados.get(n.id);
+  return motivo ? `${nombreCorto(n)} está ${motivo}: ahora no puedes hablar con ${n.gender === 'f' ? 'ella' : 'él'}` : `${nombreCorto(n)} no está aquí`;
 };
 
 /** Requisitos comunes: un solo contacto al día con cada persona y que esté contigo. */
@@ -239,6 +241,11 @@ function disponible(n: NpcView, horario: (ctx: ReadContext) => true | string, ex
       const c = s.charlas?.[n.id];
       if (c?.dia === ctx.time.day && c.n >= CHARLAS_AL_DIA) return `Ya has charlado con ${nombreCorto(n)} todo lo que da de sí hoy`;
     } else if (s.grandes?.[n.id] === ctx.time.day) return `Ya has estado con ${nombreCorto(n)} hoy`;
+    // Si está a la vista pero ocupada (atendiendo en clase, durmiendo), eso es lo que se dice, antes que el horario.
+    if (!sinPresencia) {
+      const ocupado = presente(ctx);
+      if (ocupado !== true && / está /.test(ocupado) && ocupado.includes('ahora no puedes hablar')) return ocupado;
+    }
     // La familia convive contigo: si está delante (aunque sea de madrugada) se puede hablar con ella.
     const h = n.role === 'familia' ? true : horario(ctx);
     if (h !== true) return h;
@@ -764,6 +771,8 @@ interface Cercanos {
   clave: string;
   lista: NpcView[];
   ids: Set<string>;
+  /** Quien está aquí pero ocupado (atendiendo en clase, durmiendo): con qué. No se puede hablar con ellos. */
+  ocupados: Map<string, string>;
   acciones?: ActionDef[];
 }
 /** La última lista de cercanos: se pide en cada acción de relación (cientos por jugada) y solo cambia con la versión de la presencia o el lugar. */
@@ -776,7 +785,7 @@ function cercanosConClave(ctx: ReadContext): Cercanos | undefined {
   const clave = `${presencia.version}|${lugar}`;
   if (ULTIMOS_CERCANOS?.clave === clave) return ULTIMOS_CERCANOS;
   const lista = presencia.en(lugar, aforoCercano(lugar, presencia.version));
-  return (ULTIMOS_CERCANOS = { clave, lista, ids: new Set(lista.map((n) => n.id)) });
+  return (ULTIMOS_CERCANOS = { clave, lista, ids: new Set(lista.map((n) => n.id)), ocupados: new Map(presencia.ocupadosEn(lugar).map((o) => [o.persona.id, o.motivo])) });
 }
 
 const cercanos = (ctx: ReadContext): NpcView[] => cercanosConClave(ctx)?.lista ?? [];

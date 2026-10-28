@@ -74,6 +74,27 @@ export function ordenarPorRelacion<T extends Pick<NpcView, 'id' | 'name'>>(perso
   });
 }
 
+/** Qué hace quien está aquí pero no está disponible (`id` → «atendiendo en clase», «durmiendo»). */
+function ocupadosAqui(g: Game): Map<string, string> {
+  const lugar = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
+  const presencia = g.service<PresenciaService>(SERVICES.presencia);
+  return new Map(lugar && presencia ? presencia.ocupadosEn(lugar).map((o) => [o.persona.id, o.motivo]) : []);
+}
+const ocupadaTexto = (motivo: string) => motivo.charAt(0).toUpperCase() + motivo.slice(1);
+
+/**
+ * Orden de las acciones con una persona: de menos a más tiempo (preguntar el nombre o la edad, 2 minutos, antes que hablar, 5, y esto
+ * antes que quedar, 120). A igualdad, lo más habitual primero (hablar, jugar, un detalle...) y después por nombre.
+ */
+const PRIORIDAD_DE_ACCION = ['charlar', 'hablar', 'saludar', 'jugar', 'detalle'];
+export function ordenarAcciones<T extends { id: string; name: string; duration: number }>(acciones: readonly T[]): T[] {
+  const prioridad = (id: string) => {
+    const i = PRIORIDAD_DE_ACCION.indexOf(id.split('.')[1] ?? '');
+    return i < 0 ? PRIORIDAD_DE_ACCION.length : i;
+  };
+  return [...acciones].sort((a, b) => a.duration - b.duration || prioridad(a.id) - prioridad(b.id) || a.name.localeCompare(b.name, 'es'));
+}
+
 /** Cuánta gente tienes cerca ahora (la de «Aquí»): es el número que lleva la pestaña. */
 export function genteAqui(g: Game): number {
   return personasDe(g, 'aqui').length;
@@ -92,7 +113,8 @@ function personasSinOrdenar(g: Game, f: Filtro): NpcView[] {
   if (f === 'aqui') {
     const lugar = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
     const presencia = g.service<PresenciaService>(SERVICES.presencia);
-    return lugar && presencia ? presencia.en(lugar, aforoCercano(lugar, presencia.version)) : [];
+    // Quien está pero ocupado (atendiendo en clase, durmiendo) también se ve, con su estado: no desaparece.
+    return lugar && presencia ? [...presencia.en(lugar, aforoCercano(lugar, presencia.version)), ...presencia.ocupadosEn(lugar).map((o) => o.persona)] : [];
   }
   // Fuera de «Aquí» solo se guardan las personas que ya conoces: a quien no conoces solo lo ves cuando lo tienes cerca.
   const conocidas = { known: true };
@@ -107,13 +129,15 @@ function personasSinOrdenar(g: Game, f: Filtro): NpcView[] {
 const barra = (nombre: string, pct: number, clase: string) =>
   `<div class="barra-gente"><span>${nombre}</span><div class="bar ${clase}"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div></div>`;
 
-function tarjeta(g: Game, n: NpcView): string {
+const avisoDeOcupado = (motivo?: string) => (motivo ? `<span class="ocupado">${esc(ocupadaTexto(motivo))}: no puedes hablar</span>` : '');
+
+function tarjeta(g: Game, n: NpcView, ocupado?: string): string {
   const rel = g.service<RelationsService>(SERVICES.relaciones)?.get(n.id);
   if (!conocida(n)) {
-    return `<button class="tarjeta-gente desconocida" data-gente="ver" data-id="${esc(n.id)}"><b>???</b><span class="rol">${esc(rol(n))}</span><span>${esc(aspecto(n))}</span>${barra('Amistad', 0, 'amistad')}${barra('Confianza', 0, 'confianza')}</button>`;
+    return `<button class="tarjeta-gente desconocida" data-gente="ver" data-id="${esc(n.id)}"><b>???</b><span class="rol">${esc(rol(n))}</span><span>${esc(aspecto(n))}</span>${avisoDeOcupado(ocupado)}${barra('Amistad', 0, 'amistad')}${barra('Confianza', 0, 'confianza')}</button>`;
   }
   const estado = rel ? nombreEstado(rel.estado, n.gender) : rol(n);
-  return `<button class="tarjeta-gente" data-gente="ver" data-id="${esc(n.id)}"><b>${esc(n.name)}</b><span class="rol">${esc(estado)}</span><span>${esc(rol(n) === estado ? '' : rol(n))}</span>${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}</button>`;
+  return `<button class="tarjeta-gente" data-gente="ver" data-id="${esc(n.id)}"><b>${esc(n.name)}</b><span class="rol">${esc(estado)}</span><span>${esc(rol(n) === estado ? '' : rol(n))}</span>${avisoDeOcupado(ocupado)}${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}</button>`;
 }
 
 /** Todo lo que puedes hacer con esta persona (hablar, quedar, proponer planes...): lo disponible ahora y, aparte, lo que no con el motivo. */
@@ -121,8 +145,8 @@ function accionesCon(g: Game, n: NpcView): string {
   const todas = g.listActions({ omitir: (d) => !(d.id.startsWith('relaciones.') && d.id.endsWith(`.${n.id}`)) }).filter((o) => o.id.startsWith('relaciones.') && o.id.endsWith(`.${n.id}`));
   const boton = (o: (typeof todas)[number]) =>
     `<button class="action" data-do="${esc(o.id)}"${o.available ? '' : ' disabled'}><span class="action-name">${esc(o.name)}</span><span class="action-time">${o.duration} min</span>${o.available ? '' : `<span class="action-why">${esc(o.reason ?? '')}</span>`}</button>`;
-  const ahora = todas.filter((o) => o.available);
-  const luego = todas.filter((o) => !o.available);
+  const ahora = ordenarAcciones(todas.filter((o) => o.available));
+  const luego = ordenarAcciones(todas.filter((o) => !o.available));
   return `<h3>Qué hacer con ${esc(n.name.split(' ')[0])}</h3>
     <div class="actions">${ahora.map(boton).join('') || '<p class="note">Ahora mismo no puedes hacer nada con esta persona.</p>'}</div>
     ${luego.length ? `<details class="viaje-rapido"><summary>Lo que no se puede ahora (${luego.length})</summary><div class="actions">${luego.map(boton).join('')}</div></details>` : ''}`;
@@ -177,11 +201,14 @@ function ficha(g: Game, n: NpcView): string {
     const nivel = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
     cuerpo = `<p>${esc(n.description ?? '')}</p>${rel ? `<p class="note"><b>${esc(nombreEstado(rel.estado, n.gender))}</b></p>` : ''}${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}${nivel ? `<p class="note">Nivel: ${esc(nivel)}</p>` : ''}${n.club ? `<p class="note">Club: ${esc(n.club)}</p>` : ''}${datosDeEstudios(n)}`;
   }
+  const motivo = ocupadosAqui(g).get(n.id);
+  const aviso = motivo && pestana === 'resumen' ? `<p class="note ocupado">${esc(ocupadaTexto(motivo))}: ahora no puedes hablar con ${n.gender === 'f' ? 'ella' : 'él'}.</p>` : '';
   const acciones = pestana === 'resumen' && conocida(n) ? accionesCon(g, n) : '';
   return `<section class="sheet ficha-gente">
     <button data-gente="volver">← Volver</button>
     <h2>${nombre} <small>${esc(rol(n))}</small></h2>
     <nav class="tabs">${pestanas.map(([id, label]) => `<button class="tab" aria-selected="${pestana === id}" data-gente="pestana" data-id="${id}">${label}</button>`).join('')}</nav>
+    ${aviso}
     ${cuerpo}
     ${acciones}
   </section>`;
@@ -199,11 +226,12 @@ export function viewPanelGente(g: Game): string {
   pagina = Math.min(pagina, paginas - 1);
   const visibles = todas.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
   const lugar = g.service<LugaresService>(SERVICES.lugares)?.actual().name;
+  const ocupados = ocupadosAqui(g);
   return `<section class="sheet panel-gente">
     <h2>Gente</h2>
     <nav class="filtros-gente">${FILTROS.map(([id, label]) => `<button class="tab" aria-selected="${filtro === id}" data-gente="filtro" data-id="${id}">${label}</button>`).join('')}</nav>
     <p class="note">${filtro === 'aqui' && lugar ? `En ${esc(lugar.toLowerCase())}: ` : ''}${todas.length} ${todas.length === 1 ? 'persona' : 'personas'}. Pulsa una para ver más.</p>
-    <div class="gente-grid">${visibles.map((n) => tarjeta(g, n)).join('') || '<p class="note">No hay nadie.</p>'}</div>
+    <div class="gente-grid">${visibles.map((n) => tarjeta(g, n, ocupados.get(n.id))).join('') || '<p class="note">No hay nadie.</p>'}</div>
     <div class="paginas-gente"><button data-gente="pagina" data-id="-1" ${pagina === 0 ? 'disabled' : ''}>←</button><span>Página ${pagina + 1} de ${paginas}</span><button data-gente="pagina" data-id="1" ${pagina >= paginas - 1 ? 'disabled' : ''}>→</button></div>
   </section>`;
 }

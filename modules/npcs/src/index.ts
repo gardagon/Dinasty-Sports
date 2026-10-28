@@ -735,24 +735,28 @@ let versionDeIndices = 0;
  * cambie el intervalo ni la lista de personas. Cada lugar guarda sus personas ya ordenadas (a quien conoces primero, después el nivel, lo
  * que son y, por último, un orden estable al azar).
  */
-const INDICES = new WeakMap<Npc[], { clave: string; version: number; lugares: Map<string, EnLugar[]>; ordenados: Set<string> }>();
+const INDICES = new WeakMap<Npc[], { clave: string; version: number; lugares: Map<string, EnLugar[]>; ocupados: Map<string, { n: Npc; motivo: string }[]>; ordenados: Set<string> }>();
 
-function indiceDePresencia(lista: Npc[], clave: string, ubicar: (n: Npc) => { sitio: string | null; nivel: number; tipo: string }, dia: number) {
+function indiceDePresencia(lista: Npc[], clave: string, ubicar: (n: Npc) => { sitio: string | null; nivel: number; tipo: string; atendiendo?: { sitio: string; motivo: string } }, dia: number) {
   let idx = INDICES.get(lista);
   if (!idx || idx.clave !== clave) {
     const lugares = new Map<string, EnLugar[]>();
+    const ocupados = new Map<string, { n: Npc; motivo: string }[]>();
     for (const n of lista) {
       const u = ubicar(n);
+      // Ocupado pero a la vista (en clase, durmiendo): no está «aquí» para hablar, pero se ve en el sitio con su estado.
+      if (u.atendiendo) ocupados.set(u.atendiendo.sitio, [...(ocupados.get(u.atendiendo.sitio) ?? []), { n, motivo: u.atendiendo.motivo }]);
       if (u.sitio === null) continue;
       let l = lugares.get(u.sitio);
       if (!l) lugares.set(u.sitio, (l = []));
       l.push({ n, nivel: u.nivel, tipo: u.tipo });
     }
-    INDICES.set(lista, (idx = { clave, version: ++versionDeIndices, lugares, ordenados: new Set() }));
+    INDICES.set(lista, (idx = { clave, version: ++versionDeIndices, lugares, ocupados, ordenados: new Set() }));
   }
   const actual = idx;
   return {
     version: actual.version,
+    ocupadosEn: (lugar: string): { n: Npc; motivo: string }[] => actual.ocupados.get(lugar) ?? [],
     en(lugar: string): EnLugar[] {
       const l = actual.lugares.get(lugar) ?? [];
       if (!actual.ordenados.has(lugar)) {
@@ -887,6 +891,7 @@ export const npcs = defineModule<NpcsState>({
       const servicio: PresenciaService = {
         version: indice.version,
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso, t.day)),
+        ocupadosEn: (lugar) => indice.ocupadosEn(lugar).map((e) => ({ persona: vista(e.n, inicioCurso, t.day), motivo: e.motivo })),
         donde: (id) => {
           const n = personaPorId(lista, id);
           return n ? ubicacionEn(agendaDe(n), t, n.id).sitio : undefined;

@@ -127,4 +127,39 @@ describe('agendas de las personas', () => {
     expect(azarDe('a', 1)).toBe(azarDe('a', 1));
     expect(azarDe('a', 1)).not.toBe(azarDe('a', 2));
   });
+
+  it('los padres están en casa hasta medianoche (también los días de clase y los de fiesta)', () => {
+    const padre: TipoAsignado[] = [{ tipo: 'progenitor' }];
+    expect(donde(padre, 0, 22, 59)).toBe('casa');
+    expect(donde(padre, 0, 23, 30)).toBe('casa'); // lunes, día de clase
+    expect(donde(padre, 0, 23, 59)).toBe('casa');
+    expect(donde(padre, 5, 23, 30)).toBe('casa'); // sábado
+    // Y están a la vista: no están ocupados.
+    expect(ubicacionEn(construirAgenda(padre, datos), en(0, 23, 30), 'x').ocupado).toBeFalsy();
+  });
+
+  it('un hermano menor de 8 años (sin deporte) duerme de 23:00 a 7:00: está en casa, pero no se puede hablar con él; uno mayor sigue disponible', () => {
+    const pequeno: TipoAsignado[] = [{ tipo: 'hermano', escolar: true }];
+    const mayor: TipoAsignado[] = [{ tipo: 'hermano', escolar: true, deporte: true }];
+    const u = (tipos: TipoAsignado[], hora: number, min = 0) => ubicacionEn(construirAgenda(tipos, datos), en(5, hora, min), 'x');
+    expect(u(pequeno, 22, 59)).toMatchObject({ sitio: 'casa' });
+    expect(u(pequeno, 22, 59).ocupado).toBeFalsy();
+    expect(u(pequeno, 23)).toMatchObject({ ocupado: true, atendiendo: { sitio: 'casa', motivo: 'durmiendo' } });
+    expect(u(pequeno, 3)).toMatchObject({ ocupado: true, atendiendo: { sitio: 'casa', motivo: 'durmiendo' } });
+    expect(u(pequeno, 7).ocupado).toBeFalsy();
+    expect(u(mayor, 23, 30)).toMatchObject({ sitio: 'casa' });
+    expect(u(mayor, 23, 30).ocupado).toBeFalsy();
+  });
+
+  it('en el aula, durante la clase, tus compañeros siguen ahí pero ocupados («atendiendo en clase»); los de otras clases siguen fuera del mapa', () => {
+    const compa: TipoAsignado[] = [{ tipo: 'alumno', tuClase: true }];
+    const otro: TipoAsignado[] = [{ tipo: 'alumno' }];
+    const u = (tipos: TipoAsignado[], hora: number, min = 0) => ubicacionEn(construirAgenda(tipos, datos), en(0, hora, min), 'x');
+    expect(u(compa, 8)).toMatchObject({ sitio: null, ocupado: true, atendiendo: { sitio: 'aula', motivo: 'atendiendo en clase' } });
+    expect(u(compa, 12, 40)).toMatchObject({ ocupado: true, atendiendo: { sitio: 'aula', motivo: 'atendiendo en clase' } });
+    expect(u(compa, 9, 15)).toMatchObject({ sitio: 'aula' }); // los 5 minutos entre clases se puede hablar
+    expect(u(compa, 9, 15).atendiendo).toBeUndefined();
+    expect(u(otro, 8)).toMatchObject({ sitio: null, ocupado: true });
+    expect(u(otro, 8).atendiendo).toBeUndefined();
+  });
 });

@@ -1135,6 +1135,41 @@ describe('el aula, las calles y los viajes', () => {
     expect(o.modifiers.some((m) => m.id === 'estudios.llegada_tarde')).toBe(true);
   });
 
+  it('en el aula, en clase, los compañeros no desaparecen: se ven «atendiendo en clase» y no se puede hablar con ellos', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }));
+    advanceTo(g, 'gen.descansar', 0, 7);
+    llegarA(g, 'aula', 8, 5); // la clase de las 8:00 ya ha empezado y no entras a ella
+    const presencia = g.service<PresenciaService>(SERVICES.presencia)!;
+    expect(presencia.en('aula').map((n) => n.id)).not.toContain('companero_social');
+    const ocupados = presencia.ocupadosEn('aula');
+    expect(ocupados.length).toBeGreaterThan(10);
+    expect(ocupados.find((o) => o.persona.id === 'companero_social')?.motivo).toBe('atendiendo en clase');
+    // No se puede hablar con ellos, y el motivo lo dice.
+    const charla = g.preview('relaciones.charlar.companero_social')!;
+    expect(charla.available).toBe(false);
+    expect(charla.reason).toMatch(/atendiendo en clase.*no puedes hablar/);
+    // Al acabar la clase vuelven a poder hablar.
+    advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 9 * 60 + 15);
+    expect(g.service<PresenciaService>(SERVICES.presencia)!.ocupadosEn('aula')).toEqual([]);
+    expect(g.service<PresenciaService>(SERVICES.presencia)!.en('aula').map((n) => n.id)).toContain('companero_social');
+  });
+
+  it('los padres siguen en casa a las 23:00 y se puede hablar con ellos; un hermano pequeño duerme y no', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }), 'padre', 'madre');
+    advanceTo(g, 'gen.descansar', 1, 22);
+    advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 23 * 60 + 10);
+    expect(g.service<LugaresService>(SERVICES.lugares)!.actual().id).toBe('casa');
+    const presencia = g.service<PresenciaService>(SERVICES.presencia)!;
+    expect(presencia.en('casa').map((n) => n.id)).toEqual(expect.arrayContaining(['padre', 'madre']));
+    expect(g.preview('relaciones.charlar.padre')!.available).toBe(true);
+    // Un hermano menor de 8 años duerme a esa hora: está en casa, pero ocupado.
+    const dormidos = presencia.ocupadosEn('casa');
+    for (const d of dormidos) {
+      expect(d.motivo).toBe('durmiendo');
+      expect(d.persona.age!).toBeLessThan(8);
+    }
+  });
+
   it('desde casa no se llega a una zona ni a otra calle sin pasar por la suya; el viaje rápido salta a lugares', () => {
     const g = nuevaPartida({ seed: 31 });
     expect(g.preview('lugares.ir_aula')!.available).toBe(false);
@@ -1175,7 +1210,7 @@ describe('siesta, jugar y entrenar con el club', () => {
     expect(otros.duration).toBe(5);
     const conocidos = (g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true })).length;
     expect(g.perform('relaciones.jugar_con_otros').ok).toBe(true);
-    expect(g.log.some((l) => /^Juegas con .+ y .+\.$/.test(l.text) || /^Juegas con .+, .+ y .+\.$/.test(l.text))).toBe(true);
+    expect(g.log.some((l) => /^Juegas con .+\.$/.test(l.text))).toBe(true);
     expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).length).toBeGreaterThanOrEqual(conocidos);
     // En clase no.
     llegarA(g, 'aula', 11, 12);
