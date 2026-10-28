@@ -8,7 +8,7 @@ import { DIAS_DE_ENERO_AL_INICIO_DEL_CURSO, anioNatural, primerDiaDelAnio } from
  */
 
 /** Datos que se pueden saber de alguien (y preguntarle). */
-export type DatoPersonal = 'edad' | 'colegio' | 'clase' | 'profesion' | 'trabajo';
+export type DatoPersonal = 'edad' | 'colegio' | 'clase' | 'profesion' | 'trabajo' | 'gustos';
 
 /** El colegio del personaje (todavía sin nombre propio) y los de fuera (nombres provisionales, como los clubes de fuera). */
 export const COLEGIO_DEL_PERSONAJE = 'Colegio Cervantes';
@@ -41,6 +41,31 @@ export function oficioDeVecino(id: string, gender: 'f' | 'm', edad: number): { p
   return { profesion: o[gender], trabajo: o.trabajo };
 }
 
+/** Profesiones de los padres del personaje: cómo se dicen en masculino y femenino y dónde trabajan. Se reparten por la semilla de la partida (`oficioDeProgenitor`). */
+export const OFICIOS_DE_PADRES: readonly { m: string; f: string; trabajo: string }[] = [
+  { m: 'Ingeniero', f: 'Ingeniera', trabajo: 'Empresa de ingeniería' },
+  { m: 'Abogado', f: 'Abogada', trabajo: 'Despacho del centro' },
+  { m: 'Médico', f: 'Médica', trabajo: 'Hospital' },
+  { m: 'Enfermero', f: 'Enfermera', trabajo: 'Hospital' },
+  { m: 'Profesor de instituto', f: 'Profesora de instituto', trabajo: 'Instituto de otro barrio' },
+  { m: 'Administrativo', f: 'Administrativa', trabajo: 'Oficina del centro' },
+  { m: 'Comerciante', f: 'Comerciante', trabajo: 'Tienda propia' },
+  { m: 'Mecánico', f: 'Mecánica', trabajo: 'Taller' },
+  { m: 'Cocinero', f: 'Cocinera', trabajo: 'Restaurante del centro' },
+  { m: 'Electricista', f: 'Electricista', trabajo: 'Por su cuenta' },
+  { m: 'Arquitecto', f: 'Arquitecta', trabajo: 'Estudio de arquitectura' },
+  { m: 'Conductor de autobús', f: 'Conductora de autobús', trabajo: 'Transporte urbano' },
+];
+
+/** Índice de la profesión de un padre o una madre (sale de la semilla de la partida: cada partida tiene unos padres con su oficio). */
+export const oficioDeProgenitorAlAzar = (semilla: number | string, id: string): number => Math.floor(azarDe('oficio_padre', semilla, id) * OFICIOS_DE_PADRES.length);
+
+/** Profesión y lugar de trabajo de un padre o una madre a partir de su índice. */
+export function oficioDeProgenitor(indice: number, gender: 'f' | 'm'): { profesion: string; trabajo: string } {
+  const o = OFICIOS_DE_PADRES[indice % OFICIOS_DE_PADRES.length];
+  return { profesion: o[gender], trabajo: o.trabajo };
+}
+
 // ------------------------------------------------------------------------------------------------------------ clases
 
 /** Cada curso se reparte en dos clases, A y B. El personaje y sus compañeros están en la A; la otra clase de su curso es la B. */
@@ -70,12 +95,20 @@ export const letraDeClaseDe = (id: string): string => LETRAS_DE_CLASE[Math.floor
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const DIAS_DEL_MES = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-/** Fecha del calendario (día y mes) de un día de la partida (el día 0 es el lunes 10 de septiembre; el año tiene 365 días, sin bisiestos). */
-export function fechaDelDia(dia: number): { dia: number; mes: number; texto: string; corto: string } {
+/**
+ * Año del calendario de un día de la partida. La partida no usa años reales para no atarse a ninguno: empieza en el **año 1** (el día 0,
+ * un 10 de septiembre) y el año cambia cada 1 de enero. Los días anteriores al inicio (el pasado de los padres) dan años 0 o negativos.
+ */
+export const anioDelCalendario = (dia: number): number => anioNatural(dia) + 1;
+
+/** Fecha del calendario de un día de la partida (el día 0 es el lunes 10 de septiembre del año 1; el año tiene 365 días, sin bisiestos). `texto` y `corto` no llevan año (valen para los cumpleaños); `conAnio` sí. */
+export function fechaDelDia(dia: number): { dia: number; mes: number; anio: number; texto: string; corto: string; conAnio: string } {
   let d = (((dia + DIAS_DE_ENERO_AL_INICIO_DEL_CURSO) % 365) + 365) % 365;
   let mes = 0;
   while (d >= DIAS_DEL_MES[mes]) d -= DIAS_DEL_MES[mes++];
-  return { dia: d + 1, mes: mes + 1, texto: `${d + 1} de ${MESES[mes]}`, corto: `${String(d + 1).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}` };
+  const anio = anioDelCalendario(dia);
+  const texto = `${d + 1} de ${MESES[mes]}`;
+  return { dia: d + 1, mes: mes + 1, anio, texto, corto: `${String(d + 1).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}`, conAnio: `${texto} del año ${anio}` };
 }
 
 /** Cumpleaños de quien nació en el día `nacimiento`: la misma fecha del calendario cada año (`corto`: «26/04»). */

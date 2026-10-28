@@ -85,14 +85,41 @@ const CALLES: readonly LugarDef[] = [
   { id: 'avenida_estadio', name: 'Avenida del Estadio', descripcion: 'La avenida del estadio de atletismo. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
 ];
 
+/**
+ * El colegio abre los días de clase de 7:00 a 19:00. En vacaciones y festivos abre de lunes a viernes de 10:00 a 13:00 (la academia de verano)
+ * y los lunes y miércoles de 14:30 a 17:30 (las sesiones del club).
+ */
+const HORARIO_DEL_COLEGIO: HorarioDeLugar = {
+  tramos: [
+    { dias: 'lectivo', desde: 7 * 60, hasta: 19 * 60 },
+    { dias: [0, 1, 2, 3, 4], desde: 10 * 60, hasta: 13 * 60 },
+    { dias: [0, 2], desde: 14 * 60 + 30, hasta: 17 * 60 + 30 },
+  ],
+  texto: 'los días de clase, de 7:00 a 19:00 (y en vacaciones, de lunes a viernes de 10:00 a 13:00 y los lunes y miércoles de 14:30 a 17:30)',
+};
+const HORARIO_DEL_SUPERMERCADO: HorarioDeLugar = {
+  tramos: [
+    { dias: [0, 1, 2, 3, 4, 5], desde: 9 * 60, hasta: 21 * 60 },
+    { dias: [6], desde: 10 * 60, hasta: 15 * 60 },
+  ],
+  texto: 'de lunes a sábado de 9:00 a 21:00 y los domingos de 10:00 a 15:00',
+};
+const HORARIO_DEL_RESTAURANTE: HorarioDeLugar = {
+  tramos: [
+    { dias: 'todos', desde: 13 * 60, hasta: 16 * 60 },
+    { dias: 'todos', desde: 20 * 60, hasta: 23 * 60 },
+  ],
+  texto: 'todos los días de 13:00 a 16:00 y de 20:00 a 23:00',
+};
+
 const LUGARES_DE_CALLE: readonly LugarDef[] = [
   { id: 'casa', name: 'Casa', descripcion: 'Tu edificio. Aquí vives con tu familia.', grupo: 'Vivienda', enCalle: 'calle_casa', minutosDeCalle: 1 },
-  { id: 'colegio', name: 'Colegio', descripcion: 'La entrada del colegio. Desde aquí se va al aula, al patio, a la sala de profesores, a la administración y a la pista de atletismo.', grupo: 'Estudios', enCalle: 'calle_colegio', minutosDeCalle: 1 },
+  { id: 'colegio', name: 'Colegio', descripcion: 'La entrada del colegio. Desde aquí se va al aula, al patio, a la sala de profesores, a la administración y a la pista de atletismo.', grupo: 'Estudios', enCalle: 'calle_colegio', minutosDeCalle: 1, horario: HORARIO_DEL_COLEGIO },
   { id: 'parque', name: 'Parque', descripcion: 'Un parque con árboles, bancos y espacio para correr.', grupo: 'Ocio', enCalle: 'avenida_parque', minutosDeCalle: 1 },
   { id: 'gimnasio', name: 'Gimnasio', descripcion: 'El gimnasio municipal: sala de pesas, máquinas y una zona de cardio.', grupo: 'Deporte', enCalle: 'avenida_parque', minutosDeCalle: 5 },
   { id: 'estadio', name: 'Estadio', descripcion: 'El estadio de atletismo: pista, graderías y vestuarios. Aquí compiten los clubes y se celebran las carreras.', grupo: 'Deporte', enCalle: 'avenida_estadio', minutosDeCalle: 3 },
-  { id: 'supermercado', name: 'Supermercado', descripcion: 'El supermercado del barrio. Aquí se compra la comida (sin dinero todavía no se puede comprar nada).', grupo: 'Comercio', enCalle: 'calle_casa', minutosDeCalle: 4 },
-  { id: 'restaurante', name: 'Restaurante', descripcion: 'Un restaurante cerca del supermercado. Por ahora no tienes dinero para comer fuera.', grupo: 'Comercio', enCalle: 'calle_casa', minutosDeCalle: 4 },
+  { id: 'supermercado', name: 'Supermercado', descripcion: 'El supermercado del barrio. Aquí se compra la comida (sin dinero todavía no se puede comprar nada).', grupo: 'Comercio', enCalle: 'calle_casa', minutosDeCalle: 4, horario: HORARIO_DEL_SUPERMERCADO },
+  { id: 'restaurante', name: 'Restaurante', descripcion: 'Un restaurante cerca del supermercado. Por ahora no tienes dinero para comer fuera.', grupo: 'Comercio', enCalle: 'calle_casa', minutosDeCalle: 4, horario: HORARIO_DEL_RESTAURANTE },
 ];
 
 const ENTRE_CALLES: MapaCiudad['entreCalles'] = [
@@ -255,8 +282,33 @@ export interface LlegadaData {
 }
 
 /** Si el lugar está cerrado ahora, el motivo (con su horario); si no, `undefined`. */
-export function cerradoAhora(ctx: ReadContext, lugar: Pick<LugarDef, 'name' | 'horario'>): string | undefined {
-  return abiertoEn(lugar, ctx.time) ? undefined : `${lugar.name} está cerrado (abre ${lugar.horario!.texto})`;
+export function cerradoAhora(ctx: ReadContext, lugar: Pick<LugarDef, 'name' | 'horario' | 'dentroDe'>): string | undefined {
+  const cerrado = quienCierra(ctx.service<LugaresService>('lugares'), lugar, ctx.time);
+  return cerrado ? `${cerrado.name} está cerrado (abre ${cerrado.horario!.texto})` : undefined;
+}
+
+/** El lugar que impide estar en este sitio a esa hora: él mismo o, si es una zona, el lugar que la contiene. `undefined` si está abierto. */
+function quienCierra(svc: LugaresService | undefined, lugar: Pick<LugarDef, 'name' | 'horario' | 'dentroDe'>, t: TimeView): Pick<LugarDef, 'name' | 'horario'> | undefined {
+  const padre = lugar.dentroDe ? svc?.lugar(lugar.dentroDe) : undefined;
+  // Sin horario ni en el lugar ni en el que lo contiene, siempre está abierto.
+  if (!lugar.horario && !padre?.horario) return undefined;
+  if (!abiertoEn(lugar, t)) return lugar;
+  return padre && !abiertoEn(padre, t) ? padre : undefined;
+}
+
+/**
+ * Quién impediría hacer algo en `lugar` si se fuera ahora: él, o el lugar que lo contiene. Cada uno se mira a la hora a la que se llegaría a él:
+ * a una zona se llega pasando por la entrada de su lugar, que puede estar cerrada a esa hora aunque esté abierta cuando se llega a la zona.
+ */
+function cierraAlLlegar(ctx: ReadContext, svc: LugaresService, lugar: LugarDef): Pick<LugarDef, 'name' | 'horario'> | undefined {
+  const padre = lugar.dentroDe ? svc.lugar(lugar.dentroDe) : undefined;
+  if (!lugar.horario && !padre?.horario) return undefined;
+  const actual = svc.actual();
+  const en = (destino: LugarDef) => timeView(ctx.time.minute + (actual.id === destino.id ? 0 : (svc.minutosA(destino.id) ?? 0)));
+  if (!abiertoEn(lugar, en(lugar))) return lugar;
+  // Si ya estás dentro del lugar no se pasa por su entrada: cuenta la hora de llegada a la zona.
+  const dentro = !!padre && (actual.id === padre.id || actual.dentroDe === padre.id);
+  return padre && !abiertoEn(padre, dentro ? en(lugar) : en(padre)) ? padre : undefined;
 }
 
 /** Principio del motivo que devuelve `enLugar` cuando el personaje no está donde hace falta (los bots y la interfaz lo reconocen). */
@@ -282,9 +334,21 @@ export function enLugar(ctx: ReadContext, ...ids: LugarId[]): true | string {
  */
 export function conLugar<T extends ActionDef>(lugar: T['lugar'], def: T): T {
   const donde = (ctx: ReadContext): readonly string[] => (typeof lugar === 'function' ? lugar(ctx) : (lugar ?? []));
+  // El primer sitio es el destino por defecto: se pasan al final los que estarían cerrados al llegar, para que se viaje a uno abierto.
+  const abiertosPrimero = (ctx: ReadContext): readonly string[] => {
+    const sitios = donde(ctx);
+    if (sitios.length < 2) return sitios;
+    const svc = ctx.service<LugaresService>('lugares');
+    if (!svc) return sitios;
+    const abierto = (id: string): boolean => {
+      const l = svc.lugar(id);
+      return !l || !cierraAlLlegar(ctx, svc, l);
+    };
+    return [...sitios.filter(abierto), ...sitios.filter((id) => !abierto(id))];
+  };
   return {
     ...def,
-    lugar,
+    lugar: abiertosPrimero as T['lugar'],
     available: (ctx: ReadContext) => {
       const otro = def.available?.(ctx) ?? true;
       if (otro !== true) return otro;
@@ -293,8 +357,10 @@ export function conLugar<T extends ActionDef>(lugar: T['lugar'], def: T): T {
       const sitios = donde(ctx);
       // Cerrado al llegar: si estás allí, ahora; si no, a la hora a la que llegarías (el viaje también cuesta tiempo).
       const cerradoAlLlegar = (l: LugarDef): string | undefined => {
+        const cierra = cierraAlLlegar(ctx, svc!, l);
+        if (!cierra) return undefined;
         const minutos = svc!.actual().id === l.id ? 0 : (svc!.minutosA(l.id) ?? 0);
-        return abiertoEn(l, timeView(ctx.time.minute + minutos)) ? undefined : `${l.name} ${minutos ? 'estará cerrado cuando llegues' : 'está cerrado'} (abre ${l.horario!.texto})`;
+        return `${cierra.name} ${minutos ? 'estará cerrado cuando llegues' : 'está cerrado'} (abre ${cierra.horario!.texto})`;
       };
       const cerrados = svc ? sitios.map((id) => svc.lugar(id)).filter((l): l is LugarDef => !!l).map(cerradoAlLlegar) : [];
       if (sitios.length && cerrados.length === sitios.length && cerrados.every((c) => c !== undefined)) return cerrados[0]!;

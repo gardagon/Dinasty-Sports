@@ -237,7 +237,7 @@ function viewDay(g: Game): string {
 
   return `<header class="day">
     <div class="day-top">
-      <h1 class="clock">${hhmm(t.minuteOfDay)}<small>${DIAS[t.weekday]} ${fechaDelDia(t.day).texto} · curso ${t.schoolYear + 1}, semana ${t.schoolWeek + 1}<br>${t.period === 'clase' ? `${t.term}.º trimestre` : NOMBRE_PERIODO[t.period]}</small></h1>
+      <h1 class="clock">${hhmm(t.minuteOfDay)}<small>${DIAS[t.weekday]} ${fechaDelDia(t.day).conAnio} · curso ${t.schoolYear + 1}, semana ${t.schoolWeek + 1}<br>${t.period === 'clase' ? `${t.term}.º trimestre` : NOMBRE_PERIODO[t.period]}</small></h1>
       <div class="who"><strong>${esc(g.playerName)}</strong><span class="copias"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="reiniciar">Nueva partida</button></span></div>
     </div>
     <div class="lane" role="img" aria-label="Lo que has hecho hoy">${blocks}<span class="lane-now" style="left:calc(${now}% - 1px)"></span></div>

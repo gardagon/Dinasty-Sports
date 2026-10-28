@@ -667,6 +667,7 @@ const PREGUNTAS: Readonly<Record<DatoPersonal, { nombre: (n: NpcView) => string;
   clase: { nombre: (n) => `Preguntar a ${nombreCorto(n)} a qué clase va`, descripcion: 'Solo con quien es de tu colegio.' },
   profesion: { nombre: (n) => `Preguntar a ${nombreCorto(n)} a qué se dedica`, descripcion: 'Dos minutos de conversación.' },
   trabajo: { nombre: (n) => `Preguntar a ${nombreCorto(n)} dónde trabaja`, descripcion: 'Dos minutos de conversación.' },
+  gustos: { nombre: (n) => `Preguntar a ${nombreCorto(n)} qué le gusta`, descripcion: 'Qué cosas le interesan: te sirve para saber de qué hablarle.' },
 };
 const memoPreguntas = new Map<string, ActionDef>();
 function preguntarDe(n: NpcView, dato: DatoPersonal): ActionDef {
@@ -706,6 +707,7 @@ const preguntasPendientes = (n: NpcView): DatoPersonal[] => {
   if (n.clase !== undefined && !sabe.includes('clase')) lista.push('clase');
   if (n.profesion !== undefined && !sabe.includes('profesion')) lista.push('profesion');
   if (n.trabajo !== undefined && !sabe.includes('trabajo')) lista.push('trabajo');
+  if (n.rasgos && !sabe.includes('gustos')) lista.push('gustos');
   return lista;
 };
 

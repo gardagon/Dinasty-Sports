@@ -5,6 +5,26 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/10/2026 — Horarios del colegio y los comercios, «qué le gusta», profesión de los padres y año del calendario
+
+Decidido con el usuario tras revisar los pendientes contra el código (varios estaban ya hechos y se marcaron en este registro y en `BACKLOG_STATS.md`).
+
+- **Horarios de apertura** (`packages/contracts/src/lugares.ts`): el **colegio** abre los días de clase de 7:00 a 19:00 (en vacaciones, de lunes a viernes 10:00–13:00 por la academia de verano, y lunes y miércoles 14:30–17:30 por las sesiones del club); el **supermercado**, de lunes a sábado 9:00–21:00 y el domingo 10:00–15:00; el **restaurante**, todos los días 13:00–16:00 y 20:00–23:00. Las zonas del colegio (pista, patio, sala de profesores) cierran con él.
+  - **Por qué el colegio abre en vacaciones a esas horas:** sin ello la academia de verano (`estudios.academia`, en el colegio, de 10 a 13) y las sesiones del club (lunes y miércoles todo el año) no se podían hacer.
+  - **Fallo encontrado y corregido:** la comprobación «¿estará abierto al llegar?» miraba la hora de llegada a la zona (la pista), pero hay que pasar antes por la entrada del colegio, que podía estar aún cerrada. Ahora `cierraAlLlegar` mira cada lugar a la hora a la que se llegaría a él. Lo detectó `sim:vida` (semilla 5, 9 años); hay un test que falla con la lógica anterior (`tests/integracion.test.ts`, «horarios de los lugares en las acciones»).
+  - **Acciones con varios sitios** (series, rodaje y técnica: pista del colegio, estadio o parque): `conLugar` pone primero los sitios abiertos, así el bot y la interfaz viajan a uno abierto en vez de al primero de la lista (que podía estar cerrado).
+  - **Efecto en el juego:** entrenar solo en la pista del colegio exige horario de colegio. Subir y volver de categoría (en la sede del club) no se puede en fin de semana. Dos tests de integración pasaron a hacerlo en viernes.
+  - **Agendas coherentes:** nadie de la población está en un sitio cerrado. Los vecinos tienen tramos por día (de lunes a sábado y domingo) para ir al supermercado y al restaurante solo con ellos abiertos; los alumnos ya no van al supermercado por la tarde de los días libres (el domingo cierra a las 15:00; su 5 % pasó a «fuera»). Test `packages/contracts/src/horarios.test.ts`: recorre un curso entero con todos los tipos de agenda. Falla con las agendas anteriores.
+- **«Preguntar qué le gusta»:** nuevo dato `gustos` (`DatoPersonal`): 2 minutos, a quien conoces y tienes delante, sale en la ficha como «Le gusta» y responde con los intereses de más a menos (`gustosDe`, en `rasgos.ts`). No hay que confundirlo con los «gustos» de atracción física y de carácter de la entrada del 26/10, que siguen ocultos. La familia queda fuera de las preguntas, como las demás.
+  - **Error corregido de paso:** preguntar «a qué se dedica» o «dónde trabaja» respondía «va a undefined» (caían en la rama de la clase). Ahora responden con la profesión y el lugar de trabajo.
+- **Profesión de los padres** (`OFICIOS_DE_PADRES`, 12 oficios): sale de la semilla de la partida y se guarda como `oficio` en `npcs`. Tus padres se saben desde el principio. Es solo identidad; todavía no influye en nada (dinero, tiempo en casa).
+- **Año del calendario (decidido con el usuario: «año 0 o 1» para no atar la partida a años reales):** la partida empieza el 10 de septiembre del **año 1** y el año cambia cada 1 de enero (`anioDelCalendario`). La cabecera dice «lunes 10 de septiembre del año 1 · curso 1, semana 1». Los cumpleaños siguen en día/mes.
+- **Rendimiento medido (28/10, esta máquina: calibración 6,5 ms):** `npm run sim`: ~1,0 ms por acción y ~9,8 s por año simulado; `sim:vida` (bot «perfecto»): ~6,2 s por año simulado. Las cifras anteriores de los docs (336 ms, ~960 ms, ~1,4 s, ~2,1 s por año) eran de otras máquinas o de otros momentos y no son comparables. **Los cambios de esta entrada no empeoran el coste** (mismo valor con y sin ellos). **A vigilar:** el chequeo «Rendimiento» de `sim` sale ❌ en esta máquina con 365 días (1,02 ms frente a un límite de 0,97 ms), y también salía ❌ antes de tocar nada; con `sim:rapida` pasa. Opciones: subir `LIMITE_RELATIVO` o optimizar; sin decidir.
+- **Simulación (`npm run sim`, 365 días × 5 semillas):** todos los chequeos ✅ salvo el de rendimiento. `sim:rapida` deja ⚠️ «El esfuerzo hace progresar» (+5,8 frente a +7 esperado en 84 días), igual que antes de los cambios (el umbral es para un año). `sim:notas` sigue en objetivos.
+- **Sigue sin hacer** (de los puntos propuestos): nombre propio del colegio (se deja como está: más adelante habrá mods de edición para estos datos) y que se noten la edad y la altura del personaje (por aclarar con el usuario).
+
+---
+
 ## 28/10/2026 — Acciones ordenadas por tiempo, padres hasta medianoche, hermanos pequeños dormidos y compañeros «atendiendo en clase»
 
 - **Orden de las acciones con una persona** (`ordenarAcciones`, `apps/web/src/gente.ts`): de menos a más minutos (`duration`). A igualdad de tiempo: charlar, hablar, saludar, jugar, detalle y, por último, por nombre. Así las preguntas de 2 min (nombre, edad, cumpleaños) van primero, luego hablar, y lo largo (ayudar, quedar 120 min) al final. Se aplica a las acciones disponibles y a las de más tarde.
@@ -89,7 +109,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Gente cerca variable:** ya no hay siempre 40 personas en el recreo o antes del colegio: `aforoCercano(lugar, clave)` da 40 ± 15 % (34–46) con un hash estable del lugar y del tramo (`VARIACION_DE_GENTE_CERCANA = 0,15`). Cambia entre momentos, no al refrescar.
 - **`LIMITE_RELATIVO` de la simulación sube de 0,12 a 0,15** (`sim/src/analysis.ts`): con ~400 personas con acciones el coste por acción ronda 0,9 ms y la comprobación de rendimiento relativo se acercaba al umbral sin que hubiera una regresión real. Se han hecho antes las optimizaciones fáciles (cierres sacados fuera, cachés de vistas y de cercanos).
 - **Repaso de la documentación contra el código:** `ANEXO_HORARIOS_PNJ` (tabla del profesorado rota, aforo, ~25 cambios de tramo al día, letra de clase), `ANEXO_RELACIONES` (charlas de 5 min también para entrenador/tutor y rival, horario del entrenador, preguntas, clases con letra, aforo), `ARQUITECTURA` (aforo y servicio `estudios`) y `ANEXO_DEPORTE` (puntos y constantes coinciden). Fechas de estado a 27/10/2026.
-- **Pendiente (anotado):** entrenadores con habilidades propias, nombre propio del colegio, profesión de los padres, comercios con horario, cumpleaños como acontecimientos, «entrenar con» alguien, año del calendario.
+- **Pendiente (anotado; hechos después la profesión de los padres y los comercios con horario, 28/10):** entrenadores con habilidades propias, nombre propio del colegio, cumpleaños como acontecimientos, «entrenar con» alguien, año del calendario.
 
 ## 26/10/2026 — Correcciones: gustos, pestaña «Deporte» y puntos
 
@@ -263,7 +283,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Cumpleaños con fecha real, no «semana/día» (decidido; el usuario pidió elegir).** Se muestra aparte, como «Cumpleaños: 26/04», y el juego enseña la **fecha del calendario** en la cabecera («Lunes 10 de septiembre · curso 1, semana 1»). Razones: (1) la edad y las categorías ya cuentan por **año natural** (`anioNatural`, `edadDeCompeticion`), así que un cumpleaños es una fecha del calendario, no una semana del curso; (2) la semana del curso es un concepto de cada país (el calendario escolar es un dato `CalendarioPais`) y no sirve para otro país ni para la vida adulta, que no será por cursos; (3) el jugador necesita saber qué día es para esperar un cumpleaños, y «5/22» (semana/día) no se lee como fecha. El día 0 es el 10 de septiembre; el año tiene 365 días, sin bisiestos (`fechaDelDia`, en `contracts/personas.ts`).
 - **Pestaña «Estudios» (decidido con el usuario):** reúne todo lo del colegio: nombre del colegio, curso, tu clase (25 alumnos), tutor, jornada, nota media y faltas; la **evolución de cada asignatura** con sus últimas notas; el **horario semanal** (con el recreo y la clase de hoy marcada); los **próximos exámenes**, el **calendario del curso** (parciales y evaluación de cada trimestre con su fecha, y las vacaciones) y los **boletines**. Sale de «Personaje» (curso y asignaturas) y de «Qué hacer» (el panel «Resultados»). `StudiesService` añade `grades(asignatura)` y `reports()`.
 - **«Personaje» sin deporte (decidido):** se quitan el club de atletismo, las habilidades de un deporte (están en «Deporte») y el nivel de atletismo de los hermanos; lo que los padres practicaron de deporte y los topes genéticos de esas habilidades solo salen en la sección de pruebas.
-- **Pendiente:** el año (la partida no lo cuenta todavía), los cumpleaños como acontecimientos (felicitar, regalos) y una cuenta atrás de las vacaciones y los exámenes en «Qué hacer».
+- **Pendiente:** los cumpleaños como acontecimientos (felicitar, regalos) y una cuenta atrás de las vacaciones y los exámenes en «Qué hacer». El año ya se cuenta desde el 28/10 (año 1; ver la entrada de ese día).
 
 ## 27/10/2026 — Zonas dentro de los lugares, administración y salas de clubes, entrenadores y profesiones
 
@@ -274,7 +294,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Entrenadores por club y categorías (decidido):** cada club tiene varios, cada uno con unas edades (alguno lleva varias): colegio 1, Club Atletismo Ciudad 3 y Alto Rendimiento 2. Te presentan al que lleva tu edad al apuntarte y el resumen muestra el de tu edad en tu club; solo los de tu club reaccionan a tus resultados. **A futuro** cada entrenador tendrá sus habilidades (según su carácter, su conocimiento del deporte y sus capacidades), mejores en los clubes que en el colegio.
 - **Pestaña principal:** la marca de 400 m ya no sale en «Qué hacer» (está en «Deporte»).
 - **Rendimiento:** más acciones y más gente: ~0,9 ms por acción en el simulador (límite relativo ~1,1 ms). Se evitó crear funciones en cada evaluación. Si sigue creciendo habrá que subir el límite o recortar lo que se evalúa.
-- **Pendiente:** habilidades de los entrenadores, un nombre propio para el colegio y sus comercios, profesión de los padres, horarios de los comercios, y más zonas (aulas, biblioteca...).
+- **Pendiente:** habilidades de los entrenadores, un nombre propio para el colegio y sus comercios, y más zonas (aulas, biblioteca...). Hechos después (28/10): profesión de los padres y horarios de los comercios.
 
 ## 27/10/2026 — Datos de las personas: edad, cumpleaños, altura, colegio y clase
 
@@ -283,7 +303,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Colegio y clase:** preguntas de 2 minutos. El colegio es por defecto el tuyo si es compañero y «Desconocido» si no lo sabes; la clase solo se enseña a los compañeros de colegio (la tuya, por defecto). Lo aprendido se guarda en `npcs` (`Npc.aprendido`, evento compartido `persona.dato`).
 - **Nada se guarda de más:** el colegio de fuera y la estatura de quien no es familia salen de un hash del id (estables y sin tocar el azar de la partida), y lo que se sabe por defecto se calcula.
 - **Rendimiento:** la vista de cada persona se recuerda por día; ~0,8 ms por acción en el simulador (límite ~1 ms, algo más ajustado).
-- **Pendiente:** cumpleaños como acontecimientos (felicitar, regalos), que se noten la edad y la altura del personaje, y preguntas sobre más cosas (a qué se dedica, qué le gusta).
+- **Pendiente:** cumpleaños como acontecimientos (felicitar, regalos), que se noten la edad y la altura del personaje, y preguntas sobre más cosas. Hechas después: a qué se dedica y qué le gusta.
 
 ## 26/10/2026 — Fichas con las acciones, charlas de 5 minutos, clases con margen y apellidos
 
@@ -943,7 +963,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Rasgos de los hijos del personaje y de los padres de los rivales** (ciclo de generaciones, E8).
 - **Antes de la beta:** poner `MOSTRAR_GENETICA` y `MOSTRAR_RELACIONES` a `false` en `apps/web/src/main.ts` (genética, perks, sesgo y calidad de los padres, apariencia, carácter, intereses y cifras de relaciones).
 
-- **Medir el rendimiento en una partida real** (en las simulaciones, ~1,4 s por año simulado, dentro del límite de 3 s).
+- **Medir el rendimiento en una partida real** (en las simulaciones, ~1,0 ms por acción y ~9,8 s por año simulado en esta máquina; el chequeo ❌ por poco, ver la entrada del 28/10).
 - **Ajustar las curvas por edad y los topes** con muchas pruebas y tests (`sim:vida`, `sim:largo`).
 - **Rivales adultos y profesionales** (E10): usarán la curva física por edad; hoy solo juegan hasta los 19.
 
