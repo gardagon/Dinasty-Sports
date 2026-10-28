@@ -29,7 +29,7 @@ export const SHARED_EVENTS = {
   CLUB_ABANDONO: 'club.abandono',
   /** data: ClassAttendedData — el personaje ha ido a una clase (el profesor de esa asignatura se presenta si no lo conoce). */
   CLASS_ATTENDED: 'clase.asistida',
-  /** data: DatoPersonalData — el personaje le ha preguntado a alguien su edad, su colegio o su clase y ya lo sabe. */
+  /** data: DatoPersonalData — el personaje le ha preguntado a alguien su edad, su colegio, su clase, su profesión, su trabajo o sus gustos y ya lo sabe. */
   DATO_PERSONAL: 'persona.dato',
   /** data: PresentacionData — el personaje pregunta el nombre a alguien y se presentan: pasa de desconocido a conocido. */
   PRESENTACION: 'persona.presentarse',
@@ -47,7 +47,7 @@ export interface ClubJoinData {
 
 export interface DatoPersonalData {
   npcId: string;
-  dato: 'edad' | 'colegio' | 'clase' | 'profesion' | 'trabajo';
+  dato: 'edad' | 'colegio' | 'clase' | 'profesion' | 'trabajo' | 'gustos';
 }
 
 export interface ClassAttendedData {

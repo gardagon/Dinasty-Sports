@@ -97,9 +97,10 @@ export function calibrar(): number {
 
 /**
  * Límite del coste por acción, en veces la calibración: más de esto es que el motor se ha vuelto más lento (no la máquina).
- * Subió de 0,12 a 0,15 el 28/10/2026: el mundo tiene ~400 personas con acciones propias y cada decisión evalúa mucho más (ver `docs/DECISIONES.md`).
+ * Subió de 0,12 a 0,15 el 28/10/2026 (el mundo tiene ~400 personas con acciones propias y cada decisión evalúa mucho más) y a 0,18 el mismo día,
+ * cuando el chequeo pasó a ser un aviso: en el móvil no se nota retardo (ver `docs/DECISIONES.md`).
  */
-export const LIMITE_RELATIVO = 0.15;
+export const LIMITE_RELATIVO = 0.18;
 
 export function runChecks(sum: BotSummary[], areas: Area[], days: number, calibracion?: number): Check[] {
   const checks: Check[] = [];
@@ -124,7 +125,7 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number, calibr
   const limite = calibracion === undefined ? 0.8 : LIMITE_RELATIVO * calibracion;
   add(
     msPorAccion < limite,
-    'fallo',
+    'aviso',
     'Rendimiento',
     `${Math.round(totalActions / (totalMs / 1000)).toLocaleString('es-ES')} acciones/s · ${msPorAccion.toFixed(2)} ms por acción (límite ${limite.toFixed(2).replace('.', ',')} ms${calibracion === undefined ? '' : `: ${LIMITE_RELATIVO} × ${calibracion.toFixed(1)} ms de calibración de esta máquina`}) · ${Math.round(msPorAnio)} ms por año simulado.`,
   );

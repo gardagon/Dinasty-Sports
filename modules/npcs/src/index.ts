@@ -24,6 +24,8 @@ import {
   nacimientoParaEdad,
   edadAdultaDe,
   oficioDeVecino,
+  oficioDeProgenitor,
+  oficioDeProgenitorAlAzar,
   type DatoPersonal,
   type DatoPersonalData,
   nombreDeProgenitor,
@@ -39,6 +41,7 @@ import {
   type Practica,
   type RasgosDe,
   rasgosAlAzar,
+  gustosDe,
   timeView,
   SHARED_EVENTS,
   TAGS,
@@ -116,6 +119,8 @@ export interface Npc {
   edades?: [number, number];
   /** Puntuación típica de estatura (hermanos y padres, que la heredan); el resto la saca de un hash de su id (`estaturaZ`). */
   estatura?: number;
+  /** Padres: índice de su profesión (`OFICIOS_DE_PADRES`), según la semilla de la partida. */
+  oficio?: number;
   /** Lo que el personaje ha averiguado preguntando (se suma a lo que sabe por defecto). */
   aprendido?: DatoPersonal[];
   /** Tipos de agenda: de ellos sale dónde está a cada hora (ver `contracts/agendas.ts`). */
@@ -374,6 +379,7 @@ function progenitores(ctx: InitContext, usados: Set<string>): Npc[] {
       estatura: ctx.herencia('estatura')[id],
       rasgos: ctx.rasgosDePadres[id],
       tipos: [{ tipo: 'progenitor' as const }],
+      oficio: oficioDeProgenitorAlAzar(ctx.seed, id),
       description: id === 'padre' ? 'Tu padre. Vive en casa.' : 'Tu madre. Vive en casa.',
     };
   });
@@ -564,6 +570,10 @@ function ocupacionDe(n: Npc, edad: number | undefined): { profesion?: string; ba
   }
   if (n.role === 'entrenador') return { profesion: `${f ? 'Entrenadora' : 'Entrenador'} de atletismo`, basica: f ? 'Entrenadora' : 'Entrenador', trabajo: NOMBRES_DE_CLUB[n.club ?? 'colegio'] };
   if (n.role === 'vecino' && edad !== undefined && edad >= 18) return oficioDeVecino(n.id, n.gender, edad);
+  if (n.oficio !== undefined && n.tags.includes('progenitor')) {
+    const o = oficioDeProgenitor(n.oficio, n.gender);
+    return { profesion: o.profesion, basica: o.profesion, trabajo: o.trabajo };
+  }
   return {};
 }
 
@@ -588,7 +598,8 @@ function claseDe(n: Npc, edad: number | undefined): string | undefined {
 
 /** Lo que se sabe de alguien sin preguntarle: su edad y su colegio y clase si es de la familia; el colegio, si es del tuyo; la clase, si es de la tuya. */
 function sabePorDefecto(n: Npc): DatoPersonal[] {
-  if (n.role === 'familia') return ['edad', 'colegio', 'clase'];
+  // Tus padres: sabes cuántos años tienen y a qué se dedican y dónde trabajan.
+  if (n.role === 'familia') return n.tags.includes('progenitor') ? ['edad', 'colegio', 'clase', 'profesion', 'trabajo'] : ['edad', 'colegio', 'clase'];
   // El profesorado y los entrenadores: se sabe dónde trabajan (no su asignatura o su deporte).
   if (n.role === 'profesor' || n.role === 'entrenador') return ['trabajo'];
   const base: DatoPersonal[] = delColegio(n) ? ['colegio'] : [];
@@ -623,6 +634,7 @@ const descripcionDe = (n: Npc): string | undefined =>
 
 const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
   const age = edadNpc(n, day);
+  const sabe = [...new Set([...sabePorDefecto(n), ...(n.aprendido ?? [])])];
   return {
     id: n.id,
     name: n.name,
@@ -640,7 +652,8 @@ const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
     clase: claseDe(n, age),
     ...(n.nacimiento === undefined ? {} : (() => { const o = ocupacionDe(n, edadCumplida(n.nacimiento, hoy)); return { profesion: o.profesion, profesionBasica: o.basica, trabajo: o.trabajo }; })()),
     ...(n.edades ? { edades: n.edades } : {}),
-    sabe: [...new Set([...sabePorDefecto(n), ...(n.aprendido ?? [])])],
+    sabe,
+    ...(sabe.includes('gustos') && n.rasgos ? { gustos: gustosDe(n.rasgos.intereses) } : {}),
   };
 };
 
@@ -850,6 +863,9 @@ export const npcs = defineModule<NpcsState>({
       const respuesta =
         dato === 'edad' ? `${quien} tiene ${v.edadExacta} años y cumple el ${cumpleaños(n.nacimiento!).texto}.`
         : dato === 'colegio' ? `${quien} va a ${v.colegio === COLEGIO_DEL_PERSONAJE ? 'tu colegio' : v.colegio}.`
+        : dato === 'profesion' ? `${quien} trabaja como ${v.profesion?.toLowerCase()}.`
+        : dato === 'trabajo' ? `${quien} trabaja en ${v.trabajo}.`
+        : dato === 'gustos' ? `A ${quien} le gusta: ${gustosDe(n.rasgos?.intereses ?? {}).map((g) => g.toLowerCase()).join(', ')}.`
         : `${quien} va a ${v.clase?.toLowerCase()}.`;
       ctx.log(respuesta, 'info');
     },

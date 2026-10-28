@@ -40,7 +40,7 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 | lectivo | 10:40–11:10 | **patio** (zona del colegio): el recreo (se les puede hablar) |
 | lectivo | 15:00–19:00 | fuera 60 %, parque 25 %, supermercado 10 %, gimnasio 5 % |
 | libre | 10:00–14:00 | fuera 50 %, parque 40 %, supermercado 10 % |
-| libre | 15:00–20:00 | fuera 50 %, parque 40 %, supermercado 5 %, gimnasio 5 % |
+| libre | 15:00–20:00 | fuera 55 %, parque 40 %, gimnasio 5 % (sin supermercado: el domingo cierra a las 15:00) |
 | sábado | 20:00–22:30 | fuera 80 %, restaurante 20 % |
 | resto | | fuera (casa, comer, dormir) |
 
@@ -101,8 +101,18 @@ Se suma a las del alumno y pesa más en el parque:
 
 | Días | Horas | Dónde |
 |---|---|---|
-| todos | 9:00–21:00 | fuera 50 %, parque 30 %, supermercado 15 %, restaurante 5 % |
+| lunes a sábado | 9:00–13:00 | fuera 50 %, parque 30 %, supermercado 20 % |
+| lunes a sábado | 13:00–15:00 | fuera 50 %, parque 20 %, supermercado 15 %, restaurante 15 % |
+| lunes a sábado | 15:00–20:00 | fuera 50 %, parque 30 %, supermercado 20 % |
+| lunes a sábado | 20:00–21:00 | fuera 55 %, parque 20 %, supermercado 10 %, restaurante 15 % |
+| domingo | 9:00–10:00 | fuera 60 %, parque 40 % (el supermercado aún no ha abierto) |
+| domingo | 10:00–13:00 | fuera 50 %, parque 30 %, supermercado 20 % |
+| domingo | 13:00–15:00 | fuera 50 %, parque 20 %, supermercado 15 %, restaurante 15 % |
+| domingo | 15:00–20:00 | fuera 70 %, parque 30 % (el supermercado ya ha cerrado) |
+| domingo | 20:00–21:00 | fuera 70 %, parque 15 %, restaurante 15 % |
 | resto | | fuera |
+
+Los vecinos solo van al supermercado y al restaurante cuando están abiertos (ver la sección 3); un test (`horarios.test.ts`) recorre un curso entero y comprueba que **nadie de ninguna agenda está en un sitio cerrado**.
 
 ### Hermano, niveles 1,5 a 3
 
@@ -147,18 +157,30 @@ Algunos lugares son **zonas dentro de otro** (`LugarDef.dentroDe`): se llega des
 | Zona | Dentro de | Horario | Para qué |
 |---|---|---|---|
 | Tu aula | colegio | días de clase, de 7:50 al recreo (10:40) y de 11:10 a 14:00 (se abre 10 minutos antes de cada clase) | dar clase, repasar y charlar con los compañeros antes de empezar |
-| Patio | colegio | siempre (la gente está en el recreo, 10:40–11:10) | el recreo: jugar con los compañeros y con otros niños |
-| Sala de profesores | colegio | siempre | donde está el profesorado fuera de clase |
+| Patio | colegio | el del colegio (la gente está en el recreo, 10:40–11:10) | el recreo: jugar con los compañeros y con otros niños |
+| Sala de profesores | colegio | el del colegio | donde está el profesorado fuera de clase |
 | Administración del colegio | colegio | días de clase, 9:00–13:30 y 15:00–18:00 | apuntarse y darse de baja del club del colegio |
-| Pista de atletismo del colegio | colegio | siempre | entrenar el club del colegio (sesiones) y correr o hacer técnica por tu cuenta |
+| Pista de atletismo del colegio | colegio | el del colegio | entrenar el club del colegio (sesiones) y correr o hacer técnica por tu cuenta |
 | Sala del Club Atletismo Ciudad | estadio | L–V 16:00–21:00; sábados 9:00–14:00 | prueba de acceso, inscripción, aceptar plaza y darse de baja |
 | Sala del Club de Alto Rendimiento | estadio | L–V 16:00–21:00; sábados 9:00–14:00 | ídem |
 
 Un lugar con horario no desaparece cuando está cerrado: sale en gris y dice cuándo abre. Las acciones que se hacen allí también se ven en gris (con el horario) en vez de pedir que vayas.
 
-## 3. Comercios (horarios de apertura, sin implementar)
+## 3. Horarios de apertura de los lugares
 
-Supuesto: **supermercado** de 9:00 a 21:00 de lunes a sábado y de 10:00 a 15:00 el domingo; **restaurante** de 13:00 a 16:00 y de 20:00 a 23:00. Los lugares existen pero no tienen acciones ni cierran todavía.
+Decididos con el usuario (28/10): además del aula, la administración y las salas de club, cierran **el colegio, el supermercado y el restaurante**. Todos los horarios son datos de `packages/contracts/src/lugares.ts` (`horario` de cada lugar).
+
+| Lugar | Horario |
+|---|---|
+| Colegio (entrada y todas sus zonas) | días de clase, 7:00–19:00. En vacaciones y festivos: de lunes a viernes 10:00–13:00 (la academia de verano) y lunes y miércoles 14:30–17:30 (las sesiones del club del colegio) |
+| Supermercado | lunes a sábado 9:00–21:00; domingo 10:00–15:00 |
+| Restaurante | todos los días 13:00–16:00 y 20:00–23:00 |
+
+- **Las zonas cierran con su lugar:** si el colegio está cerrado, también lo están la pista, el patio y la sala de profesores, aunque no tengan horario propio.
+- **A la hora de llegar a la entrada:** para saber si se puede hacer algo en una zona se mira la hora a la que se llegaría a la **entrada** de su lugar (se pasa por ella), no solo a la zona. Si ya estás dentro, vale la hora de llegada a la zona.
+- **Varios sitios posibles:** si una acción vale en varios sitios (series: pista del colegio, estadio o parque) y el primero estaría cerrado al llegar, se va a uno abierto (`conLugar` pone primero los abiertos).
+- **Consecuencia en el juego:** entrenar por tu cuenta en la pista del colegio solo se puede en horario del colegio; fuera de él, el estadio o el parque. Subir y volver de categoría, que se hacen en la sede del club, requieren el colegio abierto (un sábado no se puede).
+- Los comercios todavía no tienen acciones (comprar, comer fuera): esperan al dinero.
 
 ## 4. Población de PNJs (aprobada y generada)
 
@@ -204,6 +226,6 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 
 ## 6. Pendiente
 
-- **Pestaña del deporte:** habilidades, clasificación de todas las carreras del año y demás.
-- **Horarios de apertura** de los comercios y de los lugares (cerrado según la hora).
+- ~~Pestaña del deporte~~ **Hecha** (ver `ANEXO_DEPORTE.md`).
+- ~~Horarios de apertura~~ **Hechos** del colegio, el supermercado y el restaurante (sección 3). Pendiente: horario del gimnasio, el parque y el estadio, y acciones en los comercios.
 - **Eventos y decisiones:** pendientes de todo lo demás.

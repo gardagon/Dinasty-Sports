@@ -177,6 +177,7 @@ function datosDeEstudios(n: NpcView): string {
   // Los adultos: a qué se dedican (lo que se ve sin preguntar y, preguntando, el detalle) y dónde trabajan.
   if (n.profesion !== undefined) filas.push(`<div><dt>Profesión</dt><dd>${esc(n.sabe?.includes('profesion') ? n.profesion : (n.profesionBasica ?? 'Desconocida'))}</dd></div>`);
   if (n.trabajo !== undefined) filas.push(`<div><dt>Trabajo</dt><dd>${esc(n.sabe?.includes('trabajo') ? n.trabajo : 'Desconocido')}</dd></div>`);
+  if (n.gustos?.length && n.sabe?.includes('gustos')) filas.push(`<div><dt>Le gusta</dt><dd>${esc(n.gustos.join(', '))}</dd></div>`);
   if (n.colegio !== undefined) filas.push(`<div><dt>Colegio</dt><dd>${esc(n.sabe?.includes('colegio') ? n.colegio : 'Desconocido')}</dd></div>`);
   if (n.clase !== undefined) filas.push(`<div><dt>Clase</dt><dd>${esc(n.sabe?.includes('clase') ? n.clase : 'Desconocida')}</dd></div>`);
   return filas.length ? `<dl class="identity">${filas.join('')}</dl>` : '';

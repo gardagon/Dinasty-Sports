@@ -5,6 +5,26 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/10/2026 — Horarios del colegio y los comercios, «qué le gusta», profesión de los padres y año del calendario
+
+Decidido con el usuario tras revisar los pendientes contra el código (varios estaban ya hechos y se marcaron en este registro y en `BACKLOG_STATS.md`).
+
+- **Horarios de apertura** (`packages/contracts/src/lugares.ts`): el **colegio** abre los días de clase de 7:00 a 19:00 (en vacaciones, de lunes a viernes 10:00–13:00 por la academia de verano, y lunes y miércoles 14:30–17:30 por las sesiones del club); el **supermercado**, de lunes a sábado 9:00–21:00 y el domingo 10:00–15:00; el **restaurante**, todos los días 13:00–16:00 y 20:00–23:00. Las zonas del colegio (pista, patio, sala de profesores) cierran con él.
+  - **Por qué el colegio abre en vacaciones a esas horas:** sin ello la academia de verano (`estudios.academia`, en el colegio, de 10 a 13) y las sesiones del club (lunes y miércoles todo el año) no se podían hacer.
+  - **Fallo encontrado y corregido:** la comprobación «¿estará abierto al llegar?» miraba la hora de llegada a la zona (la pista), pero hay que pasar antes por la entrada del colegio, que podía estar aún cerrada. Ahora `cierraAlLlegar` mira cada lugar a la hora a la que se llegaría a él. Lo detectó `sim:vida` (semilla 5, 9 años); hay un test que falla con la lógica anterior (`tests/integracion.test.ts`, «horarios de los lugares en las acciones»).
+  - **Acciones con varios sitios** (series, rodaje y técnica: pista del colegio, estadio o parque): `conLugar` pone primero los sitios abiertos, así el bot y la interfaz viajan a uno abierto en vez de al primero de la lista (que podía estar cerrado).
+  - **Efecto en el juego:** entrenar solo en la pista del colegio exige horario de colegio. Subir y volver de categoría (en la sede del club) no se puede en fin de semana. Dos tests de integración pasaron a hacerlo en viernes.
+  - **Agendas coherentes:** nadie de la población está en un sitio cerrado. Los vecinos tienen tramos por día (de lunes a sábado y domingo) para ir al supermercado y al restaurante solo con ellos abiertos; los alumnos ya no van al supermercado por la tarde de los días libres (el domingo cierra a las 15:00; su 5 % pasó a «fuera»). Test `packages/contracts/src/horarios.test.ts`: recorre un curso entero con todos los tipos de agenda. Falla con las agendas anteriores.
+- **«Preguntar qué le gusta»:** nuevo dato `gustos` (`DatoPersonal`): 2 minutos, a quien conoces y tienes delante, sale en la ficha como «Le gusta» y responde con los intereses de más a menos (`gustosDe`, en `rasgos.ts`). No hay que confundirlo con los «gustos» de atracción física y de carácter de la entrada del 26/10, que siguen ocultos. La familia queda fuera de las preguntas, como las demás.
+  - **Error corregido de paso:** preguntar «a qué se dedica» o «dónde trabaja» respondía «va a undefined» (caían en la rama de la clase). Ahora responden con la profesión y el lugar de trabajo.
+- **Profesión de los padres** (`OFICIOS_DE_PADRES`, 12 oficios): sale de la semilla de la partida y se guarda como `oficio` en `npcs`. Tus padres se saben desde el principio. Es solo identidad; todavía no influye en nada (dinero, tiempo en casa).
+- **Año del calendario (decidido con el usuario: «año 0 o 1» para no atar la partida a años reales):** la partida empieza el 10 de septiembre del **año 1** y el año cambia cada 1 de enero (`anioDelCalendario`). La cabecera dice «lunes 10 de septiembre del año 1 · curso 1, semana 1». Los cumpleaños siguen en día/mes.
+- **Rendimiento medido (28/10, esta máquina: calibración 6,5 ms):** `npm run sim`: ~1,0 ms por acción y ~9,8 s por año simulado; `sim:vida` (bot «perfecto»): ~6,2 s por año simulado. Las cifras anteriores de los docs (336 ms, ~960 ms, ~1,4 s, ~2,1 s por año) eran de otras máquinas o de otros momentos y no son comparables. **Los cambios de esta entrada no empeoran el coste** (mismo valor con y sin ellos). **A vigilar:** el chequeo «Rendimiento» de `sim` sale ❌ en esta máquina con 365 días (1,02 ms frente a un límite de 0,97 ms), y también salía ❌ antes de tocar nada; con `sim:rapida` pasa. **Decidido con el usuario:** de momento se amplía el límite (`LIMITE_RELATIVO` 0,15 → 0,18) y el chequeo pasa a **aviso** (⚠️) en vez de fallo, porque en el móvil no se nota retardo al jugar. Se vuelve a mirar si el coste por acción sube de forma clara.
+- **Simulación (`npm run sim`, 365 días × 5 semillas):** todos los chequeos ✅ salvo el de rendimiento. `sim:rapida` deja ⚠️ «El esfuerzo hace progresar» (+5,8 frente a +7 esperado en 84 días), igual que antes de los cambios (el umbral es para un año). `sim:notas` sigue en objetivos.
+- **Sigue sin hacer** (de los puntos propuestos): nombre propio del colegio (se deja como está: más adelante habrá mods de edición para estos datos) y que los demás reaccionen a la edad y la altura del personaje: decidido con el usuario que pasa al **motor de eventos** (E18.7 del backlog), porque son comentarios y bromas con condiciones, no datos que mostrar.
+
+---
+
 ## 28/10/2026 — Acciones ordenadas por tiempo, padres hasta medianoche, hermanos pequeños dormidos y compañeros «atendiendo en clase»
 
 - **Orden de las acciones con una persona** (`ordenarAcciones`, `apps/web/src/gente.ts`): de menos a más minutos (`duration`). A igualdad de tiempo: charlar, hablar, saludar, jugar, detalle y, por último, por nombre. Así las preguntas de 2 min (nombre, edad, cumpleaños) van primero, luego hablar, y lo largo (ayudar, quedar 120 min) al final. Se aplica a las acciones disponibles y a las de más tarde.
@@ -89,7 +109,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Gente cerca variable:** ya no hay siempre 40 personas en el recreo o antes del colegio: `aforoCercano(lugar, clave)` da 40 ± 15 % (34–46) con un hash estable del lugar y del tramo (`VARIACION_DE_GENTE_CERCANA = 0,15`). Cambia entre momentos, no al refrescar.
 - **`LIMITE_RELATIVO` de la simulación sube de 0,12 a 0,15** (`sim/src/analysis.ts`): con ~400 personas con acciones el coste por acción ronda 0,9 ms y la comprobación de rendimiento relativo se acercaba al umbral sin que hubiera una regresión real. Se han hecho antes las optimizaciones fáciles (cierres sacados fuera, cachés de vistas y de cercanos).
 - **Repaso de la documentación contra el código:** `ANEXO_HORARIOS_PNJ` (tabla del profesorado rota, aforo, ~25 cambios de tramo al día, letra de clase), `ANEXO_RELACIONES` (charlas de 5 min también para entrenador/tutor y rival, horario del entrenador, preguntas, clases con letra, aforo), `ARQUITECTURA` (aforo y servicio `estudios`) y `ANEXO_DEPORTE` (puntos y constantes coinciden). Fechas de estado a 27/10/2026.
-- **Pendiente (anotado):** entrenadores con habilidades propias, nombre propio del colegio, profesión de los padres, comercios con horario, cumpleaños como acontecimientos, «entrenar con» alguien, año del calendario.
+- **Pendiente (anotado; hechos después la profesión de los padres y los comercios con horario, 28/10):** entrenadores con habilidades propias, nombre propio del colegio, cumpleaños como acontecimientos, «entrenar con» alguien, año del calendario.
 
 ## 26/10/2026 — Correcciones: gustos, pestaña «Deporte» y puntos
 
@@ -144,7 +164,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 ## 25/10/2026 — Preguntar el nombre, guardado en IndexedDB y rendimiento relativo
 
 - **Preguntar el nombre:** a quien no conoces y tienes **cerca** (hasta `GENTE_CERCANA` = 40 en un lugar, como en el juego de referencia) le puedes preguntar el nombre: acción `relaciones.presentarse.<id>`, 2 minutos, etiqueta social. Emite el evento compartido `persona.presentarse` y `npcs` lo marca como conocido y escribe en el diario «Se llama X. <descripción>». A partir de ahí tiene sus acciones de relación. Se ofrece desde la ficha de la pestaña «Gente» (no en la lista de acciones) y solo si está cerca.
-- **Pendiente de esto:** conocer a mucha gente añade muchas acciones de relación (hasta 6 por persona) y todas valen en cualquier lugar. Lo natural es **ligar las acciones de relación a la presencia** (hablar con alguien solo si está donde estás, o por teléfono más adelante); queda como siguiente paso.
+- **Hecho después:** las acciones de relación ya van ligadas a la presencia (hablar con alguien solo si está donde estás; ver `ANEXO_RELACIONES.md`). Queda el teléfono para hablar con quien no está.
 - **Bots:** no preguntan nombres (la acción se omite antes de evaluarla: `listActions({ omitir })`), así que el balance no cambia (13/13 ✅ con las mismas cifras).
 - **Guardado:** IndexedDB como almacén y JSON como copia de seguridad; fases y disparadores en `docs/ALMACENAMIENTO.md`. Fase 1 hecha: capa `Almacen`, carga y guardado asíncronos, migración desde `localStorage`, persistencia pedida, errores visibles, exportar e importar. Probado en Chromium real y con tests (`fake-indexeddb`), incluida una partida de más de 5 MB.
 - **Rendimiento en la simulación:** la presencia se calcula una vez por intervalo entre cambios de tramo (unas 10 veces al día) y los bots toman ~15 decisiones al día, así que consultarla en cada decisión (para las presentaciones) cuesta ~20 % más en la simulación. Se abarata compartiendo la agenda entre personas con los mismos tipos, calculando el orden solo del lugar que se pide y recordando lo cercano por «versión» de la presencia (`PresenciaService.version`). En juego no se nota.
@@ -157,7 +177,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Pestaña nueva «Gente»** (junto a «Relaciones», que se queda con los datos de pruebas). Filtros: Aquí (por defecto, la gente del lugar donde estás), Conocidos, Compañeros, Profesorado, Rivales y Vecinos. Tarjetas de 12 por página con barras de **Amistad** (la afinidad positiva) y **Confianza**.
 - **Desconocidos:** `???`, lo que es para ti (compañero, rival, vecino...) y la frase de su aspecto. Sus barras salen vacías. Conocidos: nombre, vínculo y barras. Al pulsar una tarjeta, ficha con pestañas **Resumen** y **Aspecto**.
 - **Código:** `apps/web/src/gente.ts` (independiente de `main.ts`; solo usa servicios).
-- **Pendiente** (elegido el siguiente paso por el usuario entre tres): preguntar el nombre como acción (pasa de `???` a nombre), que añadirá el botón «Hablar» a la ficha; y la pestaña del deporte. Las otras dimensiones del juego de referencia (deseo, romance) no se copian: se decidirán según lo que necesite este juego.
+- **Hecho después:** preguntar el nombre como acción (`relaciones.presentarse.<id>`, botón «Preguntar su nombre» en la ficha; «Hablar» se cubre con «Qué hacer con…») y la pestaña del deporte. Las otras dimensiones del juego de referencia (deseo, romance) no se copian: se decidirán según lo que necesite este juego.
 
 ---
 
@@ -193,7 +213,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Pantalla:** «Gente aquí» en la pantalla del lugar (hasta 40, primero los de mayor nivel). Los desconocidos se muestran como `???` con una frase sobre su aspecto (`descripcionDeDesconocido`).
 - **Horarios cerrados** y **plan de población** (~410 PNJs: 25 alumnos por aula, equipo de atletismo del colegio, 12 clubes y colegios de fuera, vecinos): en `docs/ANEXO_HORARIOS_PNJ.md`. La población está pendiente de aprobar; los horarios, cerrados.
 - **Se sube `SAVE_VERSION` a 9** (las personas guardan sus tipos).
-- **Pendiente:** generar la población nueva, preguntar el nombre como acción, panel «Gente» con filtros y barras como el de referencia, pestaña del deporte (clasificaciones de todas las carreras del año) y horarios de apertura de los comercios.
+- **Hecho después:** población generada (391 PNJs en total, no ~410), preguntar el nombre como acción, panel «Gente» con filtros y barras, pestaña Familia y pestaña del deporte. **Sigue pendiente:** horarios de apertura del supermercado y el restaurante (el mecanismo `horario`/`abiertoEn` ya existe y lo usan aula, administración y salas de club).
 
 ---
 
@@ -263,7 +283,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Cumpleaños con fecha real, no «semana/día» (decidido; el usuario pidió elegir).** Se muestra aparte, como «Cumpleaños: 26/04», y el juego enseña la **fecha del calendario** en la cabecera («Lunes 10 de septiembre · curso 1, semana 1»). Razones: (1) la edad y las categorías ya cuentan por **año natural** (`anioNatural`, `edadDeCompeticion`), así que un cumpleaños es una fecha del calendario, no una semana del curso; (2) la semana del curso es un concepto de cada país (el calendario escolar es un dato `CalendarioPais`) y no sirve para otro país ni para la vida adulta, que no será por cursos; (3) el jugador necesita saber qué día es para esperar un cumpleaños, y «5/22» (semana/día) no se lee como fecha. El día 0 es el 10 de septiembre; el año tiene 365 días, sin bisiestos (`fechaDelDia`, en `contracts/personas.ts`).
 - **Pestaña «Estudios» (decidido con el usuario):** reúne todo lo del colegio: nombre del colegio, curso, tu clase (25 alumnos), tutor, jornada, nota media y faltas; la **evolución de cada asignatura** con sus últimas notas; el **horario semanal** (con el recreo y la clase de hoy marcada); los **próximos exámenes**, el **calendario del curso** (parciales y evaluación de cada trimestre con su fecha, y las vacaciones) y los **boletines**. Sale de «Personaje» (curso y asignaturas) y de «Qué hacer» (el panel «Resultados»). `StudiesService` añade `grades(asignatura)` y `reports()`.
 - **«Personaje» sin deporte (decidido):** se quitan el club de atletismo, las habilidades de un deporte (están en «Deporte») y el nivel de atletismo de los hermanos; lo que los padres practicaron de deporte y los topes genéticos de esas habilidades solo salen en la sección de pruebas.
-- **Pendiente:** el año (la partida no lo cuenta todavía), los cumpleaños como acontecimientos (felicitar, regalos) y una cuenta atrás de las vacaciones y los exámenes en «Qué hacer».
+- **Pendiente:** los cumpleaños como acontecimientos (felicitar, regalos) y una cuenta atrás de las vacaciones y los exámenes en «Qué hacer». El año ya se cuenta desde el 28/10 (año 1; ver la entrada de ese día).
 
 ## 27/10/2026 — Zonas dentro de los lugares, administración y salas de clubes, entrenadores y profesiones
 
@@ -274,7 +294,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Entrenadores por club y categorías (decidido):** cada club tiene varios, cada uno con unas edades (alguno lleva varias): colegio 1, Club Atletismo Ciudad 3 y Alto Rendimiento 2. Te presentan al que lleva tu edad al apuntarte y el resumen muestra el de tu edad en tu club; solo los de tu club reaccionan a tus resultados. **A futuro** cada entrenador tendrá sus habilidades (según su carácter, su conocimiento del deporte y sus capacidades), mejores en los clubes que en el colegio.
 - **Pestaña principal:** la marca de 400 m ya no sale en «Qué hacer» (está en «Deporte»).
 - **Rendimiento:** más acciones y más gente: ~0,9 ms por acción en el simulador (límite relativo ~1,1 ms). Se evitó crear funciones en cada evaluación. Si sigue creciendo habrá que subir el límite o recortar lo que se evalúa.
-- **Pendiente:** habilidades de los entrenadores, un nombre propio para el colegio y sus comercios, profesión de los padres, horarios de los comercios, y más zonas (aulas, biblioteca...).
+- **Pendiente:** habilidades de los entrenadores, un nombre propio para el colegio y sus comercios, y más zonas (aulas, biblioteca...). Hechos después (28/10): profesión de los padres y horarios de los comercios.
 
 ## 27/10/2026 — Datos de las personas: edad, cumpleaños, altura, colegio y clase
 
@@ -283,7 +303,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Colegio y clase:** preguntas de 2 minutos. El colegio es por defecto el tuyo si es compañero y «Desconocido» si no lo sabes; la clase solo se enseña a los compañeros de colegio (la tuya, por defecto). Lo aprendido se guarda en `npcs` (`Npc.aprendido`, evento compartido `persona.dato`).
 - **Nada se guarda de más:** el colegio de fuera y la estatura de quien no es familia salen de un hash del id (estables y sin tocar el azar de la partida), y lo que se sabe por defecto se calcula.
 - **Rendimiento:** la vista de cada persona se recuerda por día; ~0,8 ms por acción en el simulador (límite ~1 ms, algo más ajustado).
-- **Pendiente:** cumpleaños como acontecimientos (felicitar, regalos), que se noten la edad y la altura del personaje, y preguntas sobre más cosas (a qué se dedica, qué le gusta).
+- **Pendiente:** cumpleaños como acontecimientos (felicitar, regalos), que los demás reaccionen a la edad y la altura del personaje (motor de eventos, E18.7; decidido el 28/10), y preguntas sobre más cosas. Hechas después: a qué se dedica y qué le gusta.
 
 ## 26/10/2026 — Fichas con las acciones, charlas de 5 minutos, clases con margen y apellidos
 
@@ -296,7 +316,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **Apellidos:** los padres tienen dos apellidos cada uno y los hijos el primero de cada uno. Cambia `apellidosDeFamilia` y añade `apellidosDePadres`.
 - **Balance:** `npm run sim` con los mismos números que antes del cambio (equilibrado 41,1 en estudios y 17,9 en atletismo, empollón 56,6, atleta 19,0; todos los chequeos ✅). Rendimiento ~0,65 ms por acción (límite ~0,95).
 - **Los 10 minutos antes de clase (decidido con el usuario):** es una oportunidad que se puede usar **en cualquier minuto** de esos 10, y vale la parte del tiempo gastado: «Repasar la asignatura» (`estudios.repaso_previo`, eficiencia = minutos que quedan/10) o «Charlar con alguien de los que hay» (`relaciones.al_azar`): habla con una persona al azar de las que hay, se ve quién es (si no la conocías, se presenta) y sube la relación según el rato (2,5 de afinidad y 1,5 de confianza por media hora). Pinchar la clase antes consume esos minutos y ya no se puede hablar con nadie: la charla es un extra. A la clase se entra hasta el último minuto (sube la parte asistida).
-- **Pendiente:** mostrar quién hay en el aula cuando se dé la clase.
+- **Hecho después:** quién hay en el aula se ve como «atendiendo en clase».
 
 ## 26/10/2026 — Pantalla del lugar, padres, ocupados y planes con los demás
 
@@ -315,7 +335,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **«Gente»:** las pestañas distintas de «Aquí» solo guardan a quienes ya conoces. A quien no conoces solo lo ves en «Aquí» (cuando lo tienes cerca).
 - **Desaparecen los perfiles de apoyo** (`supports`, «Si os lleváis bien te ayuda en…» y el modificador `relaciones.apoyo`). En su lugar, **ayuda según lo que sabe hacer cada persona** (`aptitudDe`: estudio, social, deporte, a partir de carácter, intereses y nivel) en lo que hacéis juntos: nueva acción «Estudiar con…» y mejora de «Quedar» y «Hacer planes» con el modificador `relaciones.compania` (hasta +30 %, proporcional a la afinidad y a lo bueno que sea en esa área). Si no es bueno en eso no ayuda; que estorbe (hasta peor) queda para más adelante. El entrenador sigue reaccionando a los resultados por su etiqueta de deporte.
 - **Balance:** `npm run sim` antes y después: el equilibrado baja en estudios de 45,5 a 41,6 (ya no se beneficia del apoyo del compañero aplicado en todo lo que estudia), el resto casi igual y todos los chequeos ✅. Los bots no estudian con nadie todavía.
-- **Pendiente:** entrenar con alguien (área deporte, hoy sin acción), entrenadores propios de los clubes de fuera, que quien no sabe pueda estorbar, tutorías del tutor como acción propia más allá de «Hablar».
+- **Hecho después:** entrenadores propios de los clubes de fuera (`ENTRENADORES_DE_CLUBES`, 5). **Sigue pendiente:** entrenar con alguien (área deporte, hoy sin acción), que quien no sabe pueda estorbar, tutorías del tutor como acción propia más allá de «Hablar».
 
 ## 26/10/2026 — Agenda de los hermanos
 
@@ -782,7 +802,7 @@ Tras revisar el documento de arquitectura y el código de Godot (`family_generat
 - **Interfaz:** la cabecera muestra curso, semana del curso y trimestre o vacaciones.
 - **Simulación (un año):** los 12 chequeos en verde. Estudios baja en los bots que no estudian fuera de clase (atleta 49,6 → 40,4; vago 45,6 → 37,1) porque hay ~14 semanas sin clase y las asignaturas decaen en verano; el equilibrado casi no cambia (75,4 → 75,1). Carreras: atleta 23 % de victorias y 65 % de podios; equilibrado 16 %.
 - **Simulación de tres años** (`npm run sim:largo`, E9.6): chequeos en verde, 336 ms por año simulado. A tres años los rivales alcanzan su potencial y el atleta gana pocas carreras (4 % de victorias, 39 % de podios): conviene revisar la progresión de los rivales para partidas de diez años.
-- **Pendiente:** clasificatorias y finales; campamentos y contenido propio de vacaciones; cursos y categorías por edad (E9.4); repetir curso y becas; elegir país.
+- **Hecho después:** clasificatorias y finales, campamentos, cursos y categorías por edad (E9.4). **Siguen pendientes:** repetir curso (se decidió no repetir; el castigo es la academia), becas (necesitan dinero) y elegir país.
 
 ---
 
@@ -825,7 +845,7 @@ Ajuste de lo anterior tras revisar que solo el rodaje largo subía el conocimien
 - **Ver atletismo en la tele baja de 1,5 a 0,6:** ayuda a entender el deporte pero no sustituye a entrenar ni a competir. Un jugador que solo ve la tele llega a ~27 en un año; el equilibrado, a ~64; el atleta, a ~77.
 - **Atención e inteligencia pesan más** en el ritmo de subida (0,6 → 0,9 y 0,4 → 0,6). La relación con el entrenador ya mejora la eficiencia de todo lo etiquetado `atletismo` (modificador `npcs.apoyo`), así que también acelera el conocimiento.
 - **Simulación:** los 12 chequeos en verde; sin cambios apreciables en atletismo ni estudios.
-- **Pendiente (nivel inicial de los demás niños):** hoy los rivales arrancan con un nivel medio de 29 (hasta 54) en la escala de rendimiento; a los 10 años no debería haber nadie con nivel muy alto si sus padres no han practicado el deporte. A revisar con la herencia familiar y la edad: nivel inicial según la práctica deportiva de los padres, y potencial según la genética.
+- **Probablemente resuelto (sin medir):** el nivel inicial de los rivales ya se deriva de los padres (herencia, práctica deportiva y curva por edad, E8.3). Queda comprobar con una medición que la media de 29 ya no se da a los 10 años.
 
 ---
 
@@ -840,7 +860,7 @@ Motivo: competir contra 3 NPC y 4 corredores inventados en cada carrera era plan
 - **Nuevo chequeo en la simulación:** "Las carreras son una competición real" (el atleta gana < 60 % de las carreras, sube al podio algunas veces y supera al equilibrado).
 - **Simulación (5 semillas, un año):** atleta, 26 % de victorias y 73 % de podios; equilibrado, 20 % de podios; los 12 chequeos en verde. Con series de 8 la probabilidad base de podio sube a 3/8, así que se subió el nivel de los rivales dos veces (media de potencial 72 → 75 → 79) hasta que el atleta dejó de dominar. La variación entre semillas es grande a propósito (cada partida tiene su grupo de rivales).
 - **Partidas antiguas:** conservan sus 3 rivales; los 16 aparecen al empezar una partida nueva.
-- **Pendiente:** el azar de los rivales comparte el generador de la partida, así que lo que haga el jugador altera sus tiradas aunque su ritmo sea independiente; rivalidades y eventos con rivales concretos; lesiones y clasificatorias; la pestaña Relaciones muestra el nivel exacto de cada rival (a futuro, filtrado por inteligencia, E3.4).
+- **Pendiente:** el azar de los rivales comparte el generador de la partida, así que lo que haga el jugador altera sus tiradas aunque su ritmo sea independiente; rivalidades y eventos con rivales concretos; lesiones (las clasificatorias ya están hechas); la pestaña Relaciones muestra el nivel exacto de cada rival (a futuro, filtrado por inteligencia, E3.4).
 
 ---
 
@@ -943,15 +963,15 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Rasgos de los hijos del personaje y de los padres de los rivales** (ciclo de generaciones, E8).
 - **Antes de la beta:** poner `MOSTRAR_GENETICA` y `MOSTRAR_RELACIONES` a `false` en `apps/web/src/main.ts` (genética, perks, sesgo y calidad de los padres, apariencia, carácter, intereses y cifras de relaciones).
 
-- **Medir el rendimiento en una partida real** (en las simulaciones, ~1,4 s por año simulado, dentro del límite de 3 s).
+- **Medir el rendimiento en una partida real** (en las simulaciones, ~1,0 ms por acción y ~9,8 s por año simulado en esta máquina; el chequeo pasa a aviso con límite 0,18, ver la entrada del 28/10; en el móvil del usuario no se nota retardo).
 - **Ajustar las curvas por edad y los topes** con muchas pruebas y tests (`sim:vida`, `sim:largo`).
 - **Rivales adultos y profesionales** (E10): usarán la curva física por edad; hoy solo juegan hasta los 19.
 
 - **Equilibrio del jugador que entrena a diario:** sube al podio en el 67 a 77 % de las carreras a 3 y 10 años. Se revisará cuando estén las lesiones (E12), el bonus de verano por buenas notas y el resto de piezas; no se toca antes.
-- **Notas más bajas tras la nueva escala:** la media del equilibrado pasa de 7,2 a ~6,2 (el tope de las asignaturas ronda 62). Valorar si se quiere subir el tope típico de las asignaturas.
+- **Notas:** medido el 28/10 con `npm run sim:notas`: aptitud típica saca 6,6 con ~1 h de estudio al día y 8,1 con 3 h; la brillante, 7,9 y 8,8. Todo dentro de los objetivos; el aviso de «~6,2» es antiguo. Quedan Educación física y Artística por debajo de las demás en quien no entrena coordinación o creatividad.
 - **Conocimiento:** sin techo duro; es malus y bonus sobre lo táctico. Si el efecto (×0,85 a ×1,15) se queda corto, subirlo.
 - **Dificultad al crear la partida (E15.1):** los rangos de calidad de los padres del jugador (fácil, normal, difícil) ya están como dato; falta la pantalla.
-- **Hermanos** con su propia tirada de herencia (Godot genera 0 a 3).
+- ~~**Hermanos** con su propia tirada de herencia~~ **Hecho** (0 a 3, `numeroDeHermanos`). Siguen pendientes sus perks y ventaja de crianza.
 - **Relaciones, fase 2 de E20:** acciones variadas (charlar, ayudar, discutir, hacer las paces), intereses y rasgos de los NPCs.
 - **Nivel alcanzado de los padres** (frente a su tope) y su historia de lesiones: llegará con las lesiones y los eventos.
 
@@ -959,7 +979,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Segundo deporte:** validará que la plantilla de deporte funciona sin tocar el motor.
 - **Más vida para los NPCs:** eventos, conversaciones, rivalidades (los 16 rivales de atletismo ya existen y progresan; falta que sean personajes con historia).
 - **Plan de características, personalidad y perks:** ver `BACKLOG_STATS.md`. E1 y E3 (menos E3.4) hechas; siguiente paso a decidir: el sistema de eventos y decisiones, que desbloquea personalidad, perks, autoridad, picardía y las lecturas tácticas.
-- **Modificadores por edad:** la edad ya existe pero no afecta a la subida ni a la caída de stats (decay por edad, ritmo de crecimiento; E2.6).
+- **Modificadores por edad:** hechos (E2.6: `AJUSTE_POR_EDAD_DIARIO`, `CURVAS_POR_EDAD`). Falta que los rivales adultos usen las curvas (E10).
 - **Alimentación y lesiones:** el peso y la complexión dependen solo de hábitos de actividad; falta alimentación como decisión y lesiones ligadas a la constitución.
 - **UI filtrada por inteligencia (E3.4):** hoy la identidad y las stats se ven siempre con todo detalle.
 - **Beca deportiva:** usar el servicio `estudios` (nota media) desde un deporte.

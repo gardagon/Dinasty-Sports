@@ -55,6 +55,8 @@ export interface NpcView {
   profesion?: string;
   profesionBasica?: string;
   trabajo?: string;
+  /** Qué le gusta (nombres de sus intereses, de más a menos). Solo viene si el personaje se lo ha preguntado (`sabe` incluye `gustos`). */
+  gustos?: readonly string[];
   /** Entrenadores: edades de los deportistas a los que entrenan (ambas incluidas). */
   edades?: readonly [number, number];
   /** Lo que el personaje sabe de esta persona (por defecto o porque se lo ha preguntado). */

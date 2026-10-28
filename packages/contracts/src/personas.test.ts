@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { aforoCercano } from './agendas';
 import { DIAS_DE_ENERO_AL_INICIO_DEL_CURSO } from './calendar';
-import { cursoDeEdad, nombreDeClase, letraDeClaseDe, fechaDelDia, alturaDe, alturaRelativa, cumpleaños, edadCumplida, edadRelativa, estaturaZ, nacimientoDeProgenitor, nacimientoParaEdad } from './personas';
+import { cursoDeEdad, nombreDeClase, letraDeClaseDe, fechaDelDia, alturaDe, alturaRelativa, cumpleaños, edadCumplida, edadRelativa, estaturaZ, nacimientoDeProgenitor, nacimientoParaEdad, OFICIOS_DE_PADRES, anioDelCalendario, oficioDeProgenitor, oficioDeProgenitorAlAzar } from './personas';
 
 describe('datos de las personas', () => {
   it('el cumpleaños sale del día de nacimiento: 1 de enero, 31 de diciembre y un día intermedio', () => {
@@ -99,5 +99,33 @@ describe('datos de las personas', () => {
     expect(Math.abs(valores.reduce((a, b) => a + b, 0) / valores.length - 40)).toBeLessThan(1);
     expect(aforoCercano('colegio', 7)).toBe(aforoCercano('colegio', 7));
     expect(new Set([aforoCercano('colegio', 1), aforoCercano('parque', 1)]).size).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('profesión de los padres', () => {
+  it('el índice sale de la semilla, es estable y siempre vale; cada oficio se dice en masculino y femenino', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      for (const id of ['padre', 'madre']) {
+        const i = oficioDeProgenitorAlAzar(seed, id);
+        expect(i).toBe(oficioDeProgenitorAlAzar(seed, id));
+        expect(i).toBeGreaterThanOrEqual(0);
+        expect(i).toBeLessThan(OFICIOS_DE_PADRES.length);
+      }
+    }
+    expect(oficioDeProgenitor(2, 'm')).toEqual({ profesion: 'Médico', trabajo: 'Hospital' });
+    expect(oficioDeProgenitor(2, 'f')).toEqual({ profesion: 'Médica', trabajo: 'Hospital' });
+    expect(new Set(Array.from({ length: 200 }, (_, s) => oficioDeProgenitorAlAzar(s, 'padre'))).size).toBe(OFICIOS_DE_PADRES.length);
+  });
+});
+
+describe('año del calendario', () => {
+  it('la partida empieza el 10 de septiembre del año 1 y el año cambia cada 1 de enero', () => {
+    expect(fechaDelDia(0)).toMatchObject({ texto: '10 de septiembre', anio: 1, conAnio: '10 de septiembre del año 1' });
+    const primeroDeEnero = 365 - DIAS_DE_ENERO_AL_INICIO_DEL_CURSO;
+    expect(fechaDelDia(primeroDeEnero - 1)).toMatchObject({ texto: '31 de diciembre', anio: 1 });
+    expect(fechaDelDia(primeroDeEnero)).toMatchObject({ texto: '1 de enero', anio: 2 });
+    expect(anioDelCalendario(365)).toBe(2); // un año después, otro 10 de septiembre
+    expect(anioDelCalendario(-1)).toBe(1);
+    expect(anioDelCalendario(-DIAS_DE_ENERO_AL_INICIO_DEL_CURSO - 1)).toBe(0); // antes del 1 de enero del año 1: el pasado
   });
 });

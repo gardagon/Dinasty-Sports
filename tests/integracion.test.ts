@@ -6,6 +6,7 @@ import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
 import type { EstudiosState } from '@ds/mod-estudios';
 import { conocer, hacer, llegarA, posible, viajarA } from './ayudas';
+import { faltaViajar as faltaViajarA } from '@ds/contracts';
 
 const baseNueva = nuevaPartida;
 import { asignaturasDelCurso } from '../modules/estudios/src/curriculo';
@@ -146,11 +147,12 @@ describe('integración de módulos', () => {
 
     it('quien destaca mucho puede subir de categoría y compite contra mayores', () => {
       const g = destacado();
-      advanceToWeek(g, 'gen.descansar', 5, 5, 10);
+      advanceToWeek(g, 'gen.descansar', 5, 4, 10); // viernes: el colegio (sede del club) está abierto
       expect(posible(g, 'atletismo.subir_categoria')).toBe(true);
       expect(hacer(g, 'atletismo.subir_categoria').ok).toBe(true);
       expect(posible(g, 'atletismo.subir_categoria')).toBe(false);
       expect(posible(g, 'atletismo.volver_categoria')).toBe(true);
+      advanceToWeek(g, 'gen.descansar', 5, 5, 10); // el sábado, a la carrera
       const r = hacer(g, 'atletismo.carrera');
       const entrada = r.log.find((l) => l.table)!;
       expect(entrada.text).toMatch(/Sub-12/);
@@ -1006,6 +1008,42 @@ describe('datos de las personas: edad, cumpleaños, altura, colegio y clase', ()
     expect(g.preview('relaciones.preguntar_colegio.companero_estudio')).toBeUndefined();
     expect(g.preview('relaciones.preguntar_clase.companero_estudio')).toBeUndefined();
   });
+
+  it('se puede preguntar qué le gusta a alguien: antes no se ve y después salen sus intereses, de más a menos', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }), 'companero_estudio');
+    llegarA(g, 'patio', 10, 45); // el recreo
+    expect(dir(g).get('companero_estudio')!.gustos).toBeUndefined();
+    const pregunta = g.listActions().find((a) => a.id === 'relaciones.preguntar_gustos.companero_estudio');
+    expect(pregunta).toBeDefined();
+    expect(pregunta!.duration).toBe(2);
+    expect(g.perform('relaciones.preguntar_gustos.companero_estudio').ok).toBe(true);
+    const n = dir(g).get('companero_estudio')!;
+    expect(n.sabe).toContain('gustos');
+    expect(n.gustos!.length).toBeGreaterThanOrEqual(2);
+    expect(g.log.some((l) => l.text.includes('le gusta: ') && !l.text.includes('undefined'))).toBe(true);
+    expect(g.preview('relaciones.preguntar_gustos.companero_estudio')?.available ?? false).toBe(false);
+  });
+});
+
+describe('horarios de los lugares en las acciones', () => {
+  it('en vacaciones, si el colegio aún no ha abierto cuando se pasaría por su entrada, la acción va a otro sitio; ya abierto, vuelve a ser la pista del colegio', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 42, 2, 8); // un miércoles de verano (vacaciones)
+    g.perform('lugares.ir_calle_casa');
+    g.perform('lugares.ir_avenida_parque');
+    g.perform('lugares.ir_parque');
+    const primero = () => (g.preview('atletismo.series')!.lugar ?? [])[0];
+    const hasta = (minuto: number) => advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= minuto, 400);
+    expect(g.service<LugaresService>(SERVICES.lugares)!.actual().id).toBe('parque');
+    // El colegio abre a las 10:00. Justo cuando se llegaría a su entrada un minuto antes, aunque a la pista (2 minutos más allá) se llegaría ya abierto.
+    const alColegio = g.service<LugaresService>(SERVICES.lugares)!.minutosA('colegio')!;
+    hasta(10 * 60 - alColegio - 1);
+    expect(primero()).not.toBe('pista_colegio');
+    hasta(10 * 60 + 30);
+    expect(primero()).toBe('pista_colegio');
+    // La academia no se puede hacer antes de que abra el colegio, y el motivo es el horario, no el lugar.
+    expect(g.preview('atletismo.series')!.available || faltaViajarA(g.preview('atletismo.series')!)).toBe(true);
+  });
 });
 
 describe('adultos, sala de profesores y entrenadores de los clubes', () => {
@@ -1041,6 +1079,19 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     }
   });
 
+  it('tus padres tienen profesión y lugar de trabajo, que sabes sin preguntar, y cambian según la partida', () => {
+    const g = nuevaPartida({ seed: 31 });
+    for (const id of ['padre', 'madre']) {
+      const p = dir(g).get(id)!;
+      expect(p.profesion, id).toBeDefined();
+      expect(p.trabajo, id).toBeDefined();
+      expect(p.sabe).toEqual(expect.arrayContaining(['profesion', 'trabajo']));
+    }
+    expect(g.preview('relaciones.preguntar_profesion.padre')).toBeUndefined(); // ya lo sabes
+    const oficios = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((seed) => dir(nuevaPartida({ seed })).get('padre')!.profesion));
+    expect(oficios.size).toBeGreaterThan(2);
+  });
+
   it('el profesorado está en la sala de profesores en el recreo (menos un par en el patio): para hablar con ellos hay que ir allí', () => {
     const g = conocer(nuevaPartida({ seed: 31 }), 'tutor');
     advanceTo(g, 'gen.descansar', 0, 10);
@@ -1054,7 +1105,12 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     const ahi = g.service<PresenciaService>(SERVICES.presencia)!.en('sala_profesores').map((n) => n.id);
     expect(ahi.length).toBeGreaterThanOrEqual(7);
     expect(ahi.every((id) => id === 'tutor' || id.startsWith('profesor_'))).toBe(true);
-    if (donde === 'sala_profesores') expect(g.preview('relaciones.hablar.tutor')?.available).toBe(true);
+    if (donde === 'sala_profesores') {
+      expect(g.preview('relaciones.hablar.tutor')?.available).toBe(true);
+      // Preguntarle a qué se dedica: responde con su profesión (antes decía «va a undefined»).
+      expect(g.perform('relaciones.preguntar_profesion.tutor').ok).toBe(true);
+      expect(g.log.some((l) => /trabaja como profesor/i.test(l.text) && !l.text.includes('undefined'))).toBe(true);
+    }
   });
 
   it('cada club de fuera tiene entrenadores por edades (alguno lleva varias categorías) y se presenta el que lleva tu edad', () => {

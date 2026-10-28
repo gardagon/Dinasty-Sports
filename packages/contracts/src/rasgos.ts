@@ -114,6 +114,12 @@ export function interesesHeredados(padre: InteresesNpc, madre: InteresesNpc, rng
 /** Cuánto sube un interés del personaje por hora de una acción que lo alimenta (rendimientos decrecientes hacia 100). */
 export const SUBIDA_DE_INTERES_POR_HORA = 0.6;
 
+/** Los intereses de una persona como texto, de más a menos intensos (lo que se sabe al preguntarle qué le gusta). */
+export const gustosDe = (intereses: InteresesNpc): string[] =>
+  INTERESES.filter((i) => i.id in intereses)
+    .sort((a, b) => intereses[b.id] - intereses[a.id])
+    .map((i) => i.nombre);
+
 /** Qué intereses alimenta una acción con estas etiquetas. */
 export const interesesDe = (tagsAccion: readonly string[]): string[] => INTERESES.filter((i) => i.tags.some((t) => tagsAccion.includes(t))).map((i) => i.id);
 
