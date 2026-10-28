@@ -89,7 +89,7 @@ Para estudiar (y, más adelante, entrenar) con alguien se le **propone un día y
 
 ### Tutorías (28/10)
 
-Para estudiar con ayuda de un profesor no hace falta un tutor concreto: «Pedir tutoría de lengua» (`estudios.tutoria_<asignatura>`, 30 min) vale con **cualquier profesor de esa asignatura que ya conozcas** (se presentan al ir a su primera clase) **y esté disponible** (en el colegio y no dando clase: sala de profesores, entrada o patio). La acción te lleva a donde esté. Sube la asignatura la mitad que 90 minutos de estudio y se puede una vez al día por asignatura. Es una acción de `estudios` (usa la presencia y las asignaturas que da cada profesor, `NpcView.asignaturas`), no de las de relación: no cambia la afinidad. Hablar con el tutor sigue siendo «Hablar».
+Para estudiar con ayuda de un profesor no hace falta un tutor concreto: «Pedir tutoría de lengua» (`estudios.tutoria_<asignatura>`, 30 min) vale con **cualquier profesor de esa asignatura que ya conozcas** (se presentan al ir a su primera clase). **Se pide en persona, en la sala de profesores:** el personaje tiene que ir allí (`lugar: sala_profesores`; desde la entrada del colegio, 2 minutos) y el profesor tiene que estar en la sala en ese momento, no dando clase ni en el patio o la entrada (un par de profesores cada día salen de la sala). Sube la asignatura la mitad que 90 minutos de estudio y se puede una vez al día por asignatura. Es una acción de `estudios` (usa la presencia y las asignaturas que da cada profesor, `NpcView.asignaturas`), no de las de relación: no cambia la afinidad. Hablar con el tutor sigue siendo «Hablar».
 
 ## 4. El vínculo
 

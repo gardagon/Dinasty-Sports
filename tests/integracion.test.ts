@@ -1171,6 +1171,7 @@ describe('biblioteca, gimnasio y estadio', () => {
 
 describe('adultos, sala de profesores y entrenadores de los clubes', () => {
   const dir = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!;
+  const lugarActual = (g: Game) => g.service<LugaresService>(SERVICES.lugares)!.actual().id;
 
   it('los adultos tienen profesión y lugar de trabajo; el profesorado, «Profesor» y su colegio, y la asignatura al ir a su clase', () => {
     const g = nuevaPartida({ seed: 31 });
@@ -1215,12 +1216,20 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     expect(oficios.size).toBeGreaterThan(2);
   });
 
+  /** Avanza día lectivo a día lectivo hasta el minuto indicado y se queda en el primero en que el profesor está en ese sitio (`null` = fuera del mapa). */
+  const hastaQueEsteEn = (g: Game, id: string, sitio: string | null, minuto: number): void => {
+    for (let dia = 0; dia < 60; dia++) {
+      advanceUntil(g, 'gen.esperar', (t) => t.isSchoolDay && t.minuteOfDay >= minuto && t.minuteOfDay < minuto + 20, 20000);
+      if (g.service<PresenciaService>(SERVICES.presencia)!.donde(id) === sitio) return;
+      advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 23 * 60, 20000);
+    }
+    throw new Error(`${id} no ha estado en ${sitio} a esa hora en 60 días de clase`);
+  };
+
   it('el profesorado está en la sala de profesores en el recreo (menos un par en el patio): para hablar con ellos hay que ir allí', () => {
+    // Se busca un recreo en que el tutor esté en la sala: así las comprobaciones de dentro corren siempre (no dependen del azar de un día).
     const g = conocer(nuevaPartida({ seed: 31 }), 'tutor');
-    advanceTo(g, 'gen.descansar', 0, 10);
-    advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 10 * 60 + 45); // el recreo
-    const donde = g.service<PresenciaService>(SERVICES.presencia)!.donde('tutor')!;
-    expect(['sala_profesores', 'patio']).toContain(donde);
+    hastaQueEsteEn(g, 'tutor', 'sala_profesores', 10 * 60 + 45);
     g.perform('lugares.ir_colegio');
     const antes = g.time.minuteOfDay;
     g.perform('lugares.ir_sala_profesores');
@@ -1228,45 +1237,65 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     const ahi = g.service<PresenciaService>(SERVICES.presencia)!.en('sala_profesores').map((n) => n.id);
     expect(ahi.length).toBeGreaterThanOrEqual(7);
     expect(ahi.every((id) => id === 'tutor' || id.startsWith('profesor_'))).toBe(true);
-    if (donde === 'sala_profesores') {
-      expect(g.preview('relaciones.hablar.tutor')?.available).toBe(true);
-      // Preguntarle a qué se dedica: responde con su profesión (antes decía «va a undefined»).
-      expect(g.perform('relaciones.preguntar_profesion.tutor').ok).toBe(true);
-      expect(g.log.some((l) => /trabaja como profesor/i.test(l.text) && !l.text.includes('undefined'))).toBe(true);
-    }
+    expect(ahi).toContain('tutor');
+    expect(g.preview('relaciones.hablar.tutor')?.available).toBe(true);
+    // Preguntarle a qué se dedica: responde con su profesión (antes decía «va a undefined»).
+    expect(g.perform('relaciones.preguntar_profesion.tutor').ok).toBe(true);
+    expect(g.log.some((l) => /trabaja como profesor/i.test(l.text) && !l.text.includes('undefined'))).toBe(true);
   });
 
-  it('tutoría: se pide al profesor de la asignatura que esté disponible (no dando clase) y que ya conoces; una al día', () => {
-    const g = nuevaPartida({ seed: 31 });
-    expect(dir(g).get('profesor_1')!.asignaturas).toEqual(['estudios.lengua']);
-    expect(dir(g).get('tutor')!.asignaturas).toEqual([]);
-    // Sin conocerlo no se le puede pedir.
-    advanceUntil(g, 'gen.esperar', (t) => t.weekday === 0 && t.minuteOfDay >= 14 * 60 + 30);
-    expect(g.preview('estudios.tutoria_lengua')!.reason).toMatch(/Todavía no conoces al profesor de lengua/);
-    const s = g.serialize();
-    (s.modules.npcs as NpcsState).npcs.find((n) => n.id === 'profesor_1')!.known = true;
-    const g2 = cargarPartida(s);
-    // En clase (a media mañana) no hay profesor disponible; a primera hora de la tarde sí.
-    const presencia = () => g2.service<PresenciaService>(SERVICES.presencia)!;
-    expect(presencia().donde('profesor_1')).not.toBeNull();
-    expect(posible(g2, 'estudios.tutoria_lengua')).toBe(true);
-    expect(g2.preview('estudios.tutoria_lengua')!.lugar).toEqual([presencia().donde('profesor_1')]);
-    const antes = g2.stat('estudios.lengua');
-    expect(hacer(g2, 'estudios.tutoria_lengua').ok).toBe(true);
-    expect(g2.stat('estudios.lengua')).toBeGreaterThan(antes);
-    expect(g2.log.some((l) => /te dedica un rato de tutoría de lengua/.test(l.text))).toBe(true);
-    expect(g2.preview('estudios.tutoria_lengua')!.reason).toBe('Ya has tenido tutoría de esta asignatura hoy');
+  it('en otros recreos el tutor está en el patio: no sale en la sala de profesores', () => {
+    const g = conocer(nuevaPartida({ seed: 31 }), 'tutor');
+    hastaQueEsteEn(g, 'tutor', 'patio', 10 * 60 + 45);
+    g.perform('lugares.ir_colegio');
+    g.perform('lugares.ir_sala_profesores');
+    expect(g.service<PresenciaService>(SERVICES.presencia)!.en('sala_profesores').map((n) => n.id)).not.toContain('tutor');
   });
 
-  it('no hay tutoría mientras el profesor da clase', () => {
-    const g = nuevaPartida({ seed: 31 });
-    const s = g.serialize();
+  /** Una partida (seed 31) en la que ya conoces a `profesor_1` (da lengua), avanzada hasta el primer día lectivo a las 14:30 en que está donde se indica. */
+  const conProfesor1En = (sitio: string | null, minuto = 14 * 60 + 30) => {
+    const base = nuevaPartida({ seed: 31 });
+    const s = base.serialize();
     (s.modules.npcs as NpcsState).npcs.find((n) => n.id === 'profesor_1')!.known = true;
-    const g2 = cargarPartida(s);
-    advanceUntil(g2, 'gen.esperar', (t) => t.weekday === 1 && t.minuteOfDay >= 12 * 60 + 41); // en clase hasta las 13:55: profesor_1 está ocupado
-    const lugar = g2.service<PresenciaService>(SERVICES.presencia)!.donde('profesor_1');
-    if (lugar === null) expect(g2.preview('estudios.tutoria_lengua')!.reason).toMatch(/Ahora no hay ningún profesor de lengua disponible/);
-    expect(lugar).toBeNull(); // si no, el test no comprueba nada
+    const g = cargarPartida(s);
+    hastaQueEsteEn(g, 'profesor_1', sitio, minuto);
+    return g;
+  };
+
+  it('tutoría: se pide EN la sala de profesores (hay que ir allí) a un profesor de la asignatura que esté allí y que ya conoces; una al día', () => {
+    const sinConocer = nuevaPartida({ seed: 31 });
+    expect(dir(sinConocer).get('profesor_1')!.asignaturas).toEqual(['estudios.lengua']);
+    expect(dir(sinConocer).get('tutor')!.asignaturas).toEqual([]);
+    advanceUntil(sinConocer, 'gen.esperar', (t) => t.isSchoolDay && t.minuteOfDay >= 14 * 60 + 30);
+    expect(sinConocer.preview('estudios.tutoria_lengua')!.reason).toMatch(/Todavía no conoces al profesor de lengua/);
+
+    const g = conProfesor1En('sala_profesores');
+    expect(lugarActual(g)).not.toBe('sala_profesores'); // el personaje no está allí: tiene que trasladarse
+    expect(g.preview('estudios.tutoria_lengua')!.lugar).toEqual(['sala_profesores']);
+    expect(posible(g, 'estudios.tutoria_lengua')).toBe(true);
+    const antes = g.stat('estudios.lengua');
+    expect(hacer(g, 'estudios.tutoria_lengua').ok).toBe(true);
+    expect(lugarActual(g)).toBe('sala_profesores');
+    expect(g.stat('estudios.lengua')).toBeGreaterThan(antes);
+    expect(g.log.some((l) => /te dedica un rato de tutoría de lengua/.test(l.text))).toBe(true);
+    expect(g.preview('estudios.tutoria_lengua')!.reason).toBe('Ya has tenido tutoría de esta asignatura hoy');
+  });
+
+  it('tutoría: si el profesor está en la entrada o en el patio, no está en la sala y no se puede pedir (aunque el personaje esté allí)', () => {
+    const g = conProfesor1En('colegio');
+    g.perform('lugares.ir_colegio');
+    g.perform('lugares.ir_sala_profesores');
+    expect(lugarActual(g)).toBe('sala_profesores');
+    const p = g.preview('estudios.tutoria_lengua')!;
+    expect(p.available).toBe(false);
+    expect(p.reason).toMatch(/Ahora no hay ningún profesor de lengua en la sala de profesores/);
+    expect(p.lugar).toEqual(['sala_profesores']);
+  });
+
+  it('tutoría: mientras el profesor da clase no hay tutoría', () => {
+    const g = conProfesor1En(null, 12 * 60 + 40); // en clase hasta las 13:55
+    expect(g.service<PresenciaService>(SERVICES.presencia)!.donde('profesor_1')).toBeNull();
+    expect(g.preview('estudios.tutoria_lengua')!.reason).toMatch(/Ahora no hay ningún profesor de lengua en la sala de profesores/);
   });
 
   it('cada club de fuera tiene entrenadores por edades (alguno lleva varias categorías) y se presenta el que lleva tu edad', () => {

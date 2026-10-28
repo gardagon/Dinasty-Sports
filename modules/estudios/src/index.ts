@@ -269,20 +269,22 @@ const RENDIMIENTO_TUTORIA = RENDIMIENTO_ESTUDIO * 0.5;
 /** Los profesores de una asignatura que ya conoces (se presentan al ir a su primera clase). */
 const profesoresDe = (ctx: ReadContext, key: string) =>
   ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ role: 'profesor', known: true }).filter((n) => n.asignaturas?.includes(statId(key))) ?? [];
-/** El profesor de la asignatura que está disponible ahora (en algún sitio y no dando clase), si lo hay. */
-const profesorDisponible = (ctx: ReadContext, key: string) => {
+/** La tutoría se pide en persona, en la sala de profesores: el personaje tiene que ir allí y el profesor tiene que estar allí. */
+const SALA_DE_PROFESORES = 'sala_profesores';
+/** El profesor de la asignatura que está ahora en la sala de profesores (no dando clase, ni en el patio o la entrada), si lo hay. */
+const profesorEnLaSala = (ctx: ReadContext, key: string) => {
   const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
-  return profesoresDe(ctx, key).find((n) => presencia?.donde(n.id));
+  return profesoresDe(ctx, key).find((n) => presencia?.donde(n.id) === SALA_DE_PROFESORES);
 };
 
 /**
- * Tutoría: buscas al profesor de una asignatura y le pides un rato de ayuda. No hace falta un tutor concreto: vale cualquier profesor de
- * esa asignatura que esté disponible (no dando clase) y que ya conozcas. Una al día por asignatura.
+ * Tutoría: vas a la **sala de profesores** y le pides a un profesor de la asignatura un rato de ayuda. No hace falta un tutor concreto: vale
+ * cualquier profesor de esa asignatura que ya conozcas y que esté ahora en la sala (no dando clase ni fuera de ella). Una al día por asignatura.
  */
 const tutoria = (a: Asignatura): ActionDef => ({
   id: `estudios.tutoria_${a.key}`,
   name: `Pedir tutoría de ${a.name.toLowerCase()}`,
-  description: 'Buscas al profesor de la asignatura y le pides que te explique lo que no entiendes. Treinta minutos; solo vale si el profesor está disponible (no dando clase) y una vez al día por asignatura.',
+  description: 'Vas a la sala de profesores y le pides al profesor de la asignatura que te explique lo que no entiendes. Treinta minutos; solo vale si hay un profesor de esa asignatura en la sala y una vez al día por asignatura.',
   tags: [TAGS.estudio, TAGS.mental, TAGS.social],
   group: 'Estudiar',
   duration: 30,
@@ -291,7 +293,7 @@ const tutoria = (a: Asignatura): ActionDef => ({
     if ((ctx.state<EstudiosState>().ultimaTutoria?.[a.key] ?? -1) === ctx.time.day) return 'Ya has tenido tutoría de esta asignatura hoy';
     const conocidos = profesoresDe(ctx, a.key);
     if (!conocidos.length) return `Todavía no conoces al profesor de ${a.name.toLowerCase()}: ve a su clase`;
-    return profesorDisponible(ctx, a.key) ? true : `Ahora no hay ningún profesor de ${a.name.toLowerCase()} disponible (están en clase o ya se han ido)`;
+    return profesorEnLaSala(ctx, a.key) ? true : `Ahora no hay ningún profesor de ${a.name.toLowerCase()} en la sala de profesores (están en clase, en el patio o ya se han ido)`;
   },
   delta: { [GEN.energia]: -3, [GEN.estres]: 1 },
   train: [
@@ -301,7 +303,7 @@ const tutoria = (a: Asignatura): ActionDef => ({
   run: (ctx) => {
     ctx.train(statId(a.key), RENDIMIENTO_TUTORIA * factorDeAptitud(ctx, a.key));
     ctx.updateState<EstudiosState>((st) => ({ ...st, ultimaTutoria: { ...st.ultimaTutoria, [a.key]: ctx.time.day } }));
-    const profe = profesorDisponible(ctx, a.key);
+    const profe = profesorEnLaSala(ctx, a.key);
     ctx.log(`${profe ? profe.name.split(' ')[0] : 'El profesor'} te dedica un rato de tutoría de ${a.name.toLowerCase()}.`, 'info');
   },
 });
@@ -676,8 +678,8 @@ export const estudios = defineModule<EstudiosState>({
     'estudios.repaso': ['casa', 'biblioteca'],
     'estudios.academia': ['colegio'],
     ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'biblioteca']])),
-    // La tutoría es donde esté el profesor ahora (la sala de profesores, la entrada, el patio...).
-    ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.tutoria_${a.key}`, (ctx: ReadContext): readonly string[] => [ctx.service<PresenciaService>(SERVICES.presencia)?.donde(profesorDisponible(ctx, a.key)?.id ?? '') ?? 'sala_profesores']])),
+    // La tutoría se pide en la sala de profesores.
+    ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.tutoria_${a.key}`, [SALA_DE_PROFESORES]])),
   }),
 
   on: {
