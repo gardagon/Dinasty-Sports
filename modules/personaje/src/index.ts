@@ -193,6 +193,21 @@ export const personaje = defineModule<IdentidadState>({
       delta: { [GEN.energia]: -3, [GEN.estres]: -10, [GEN.motivacion]: 4 },
     },
     {
+      id: 'gen.crear',
+      name: 'Dibujar, tocar o inventar algo',
+      description: 'Un rato creando por ti mismo: dibujar, tocar un instrumento, hacer manualidades o inventar historias. Sube tu creatividad (de la que depende Educación artística y Música).',
+      tags: [TAGS.mental, TAGS.ocio, 'arte'],
+      group: 'Tiempo libre',
+      duration: 60,
+      available: (ctx) => (!isSchoolHours(ctx.time) ? true : 'Estás en horario de clase'),
+      delta: { [GEN.energia]: -3, [GEN.estres]: -4 },
+      train: [
+        { stat: GEN.creatividad, amount: 1 },
+        { stat: GEN.coordinacion, amount: 0.2 },
+        { stat: GEN.atencion, amount: 0.2 },
+      ],
+    },
+    {
       id: 'gen.pasear',
       name: 'Dar un paseo',
       tags: [TAGS.ocio, TAGS.social],
@@ -209,6 +224,7 @@ export const personaje = defineModule<IdentidadState>({
     'gen.gimnasio': ['gimnasio'],
     'gen.leer': ['casa', 'parque'],
     'gen.ocio': ['casa'],
+    'gen.crear': ['casa'],
     'gen.pasear': ['parque'],
   }),
 

@@ -181,6 +181,7 @@ function perder(ctx: ActionContext, k: string, puntos: number): void {
  * natural, una parte. Así mantener un notable exige constancia, pero el nivel natural se sostiene yendo a clase.
  */
 function olvidar(ctx: ActionContext, k: string): void {
+  if (asignatura(k).porCapacidades) return; // las capacidades se mantienen por sí solas (con su propio olvido)
   const exceso = Math.max(0, ctx.stat(statId(k)) - nivelNatural(ctx, k));
   perder(ctx, k, factorDeOlvido(aptitudDe(ctx, k)) * (DERIVA_DIARIA + OLVIDO_SOBRE_NIVEL * exceso));
 }
@@ -200,12 +201,24 @@ function habilidadDe(ctx: ReadContext, a: Asignatura): number {
   return Math.min(100, Math.max(30, 55 + 110 * (media / nivelTipicoPorEdad(edad) - 1)));
 }
 
+/** Las asignaturas de capacidades guardan en su stat el nivel que sale de las capacidades (así la ficha del personaje y lo demás ven lo mismo que el examen). */
+function sincronizarCapacidades(ctx: ActionContext, claves: readonly string[]): void {
+  for (const k of claves) {
+    const a = asignatura(k);
+    if (!a.porCapacidades) continue;
+    const dif = habilidadDe(ctx, a) - ctx.stat(statId(k));
+    if (Math.abs(dif) > 0.05) ctx.addStat(statId(k), dif);
+  }
+}
+
 /** Preparación que se enseña: la efectiva, sin bajar de la nota mínima de la asignatura (Educación física: 5). */
 const nivelVisible = (ctx: ReadContext, k: string): number => Math.max((asignatura(k).notaMinima ?? 0) * 10, preparacionEfectiva(ctx, k));
 
 /** Preparación con la que se llega a un examen: en las asignaturas prácticas pesan las habilidades además del estudio. */
 function preparacionEfectiva(ctx: ReadContext, k: string): number {
   const a = asignatura(k);
+  // Educación física, Artística y Música: la nota sale solo de las capacidades que las apoyan, no de estudiar.
+  if (a.porCapacidades) return habilidadDe(ctx, a);
   const estudio = ctx.stat(statId(k));
   return a.practica ? (1 - a.practica) * estudio + a.practica * habilidadDe(ctx, a) : estudio;
 }
@@ -343,7 +356,7 @@ function cambiarCurso(ctx: ActionContext, curso: number): void {
   const salen = antes.filter((k) => !ahora.includes(k));
   for (const k of nuevas) {
     const heredada = asignatura(k).hereda;
-    if (heredada) {
+    if (heredada && !asignatura(k).porCapacidades) {
       ctx.addStat(statId(k), ctx.stat(statId(heredada)) - ctx.stat(statId(k)));
       // Lo aprendido de base se hereda con el nivel.
       ctx.updateState<EstudiosState>((x) => ({ ...x, base: { ...x.base, [k]: x.base?.[heredada] ?? x.base?.[k] ?? 0 } }));
@@ -356,7 +369,7 @@ function cambiarCurso(ctx: ActionContext, curso: number): void {
     ctx.addStat(GEN.estres, 10);
   }
   // Cada curso exige más: lo aprendido pierde un poco de peso frente a los contenidos nuevos.
-  for (const k of ahora) ctx.addStat(statId(k), -SALTO_DE_CURSO);
+  for (const k of ahora) if (!asignatura(k).porCapacidades) ctx.addStat(statId(k), -SALTO_DE_CURSO);
   ctx.updateState<EstudiosState>((s) => ({ ...s, modalidad, cursoAplicado: curso, verano: undefined }));
   const nombres = (keys: string[]) => keys.map((k) => asignatura(k).name).join(', ');
   ctx.log(
@@ -517,13 +530,15 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
         { stat: GEN.atencion, amount: 0.3 / CLASES_POR_DIA },
         { stat: GEN.determinacion, amount: 0.3 / CLASES_POR_DIA },
         { stat: GEN.cooperacion, amount: 0.1 / CLASES_POR_DIA },
+        // En Educación física, Artística y Música la clase entrena las capacidades que las apoyan (el esfuerzo de una clase, repartido por sus pesos).
+        ...(asignatura(key).porCapacidades ? asignatura(key).apoyos.map((x) => ({ stat: x.stat, amount: (asignatura(key).entrenoDeClase ?? 0) * x.weight })) : []),
       ],
       run: (ctx: ActionContext) => {
         ctx.updateState<EstudiosState>((st) => ({ ...st, asistencia: { day: ctx.time.day, clases: [...clasesDeHoy(ctx), hora_] } }));
         // Cada clase vale lo que valían las horas del currículo de la asignatura repartidas en los huecos del horario.
         const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
-        // Las clases llevan hasta el nivel natural: si ya lo pasas, aportan poco.
-        ctx.train(statId(key), RENDIMIENTO_CLASE * factorDeAptitud(ctx, key) * pesoDeClase(activas, key) * tironDeClase(ctx, key));
+        // Las clases llevan hasta el nivel natural: si ya lo pasas, aportan poco. (Las de capacidades no suben la asignatura: suben las capacidades.)
+        if (!asignatura(key).porCapacidades) ctx.train(statId(key), RENDIMIENTO_CLASE * factorDeAptitud(ctx, key) * pesoDeClase(activas, key) * tironDeClase(ctx, key));
         // El profesor de la asignatura se presenta si todavía no lo conoces.
         ctx.emit<ClassAttendedData>({ type: SHARED_EVENTS.CLASS_ATTENDED, data: { asignatura: statId(key) } });
       },
@@ -582,7 +597,8 @@ function clasesDeHoyAcciones(ctx: ReadContext): ActionDef[] {
   const clases = hoy.map((k, h) => accionDeClase(h, k));
   // En los 10 minutos antes de una clase se puede repasar su asignatura.
   const proxima = hoy.findIndex((_, h) => t.minuteOfDay >= JORNADA.clases[h][0] - ANTES_DE_CLASE && t.minuteOfDay < JORNADA.clases[h][0]);
-  return proxima >= 0 ? [...clases, repasoPrevio(proxima, hoy[proxima])] : clases;
+  // (Las asignaturas de capacidades no se repasan.)
+  return proxima >= 0 && !asignatura(hoy[proxima]).porCapacidades ? [...clases, repasoPrevio(proxima, hoy[proxima])] : clases;
 }
 
 
@@ -623,8 +639,9 @@ export const estudios = defineModule<EstudiosState>({
   ],
 
   actions: ligarALugares([
-    ...ASIGNATURAS.map(estudiar),
-    ...ASIGNATURAS.map(tutoria),
+    // Las asignaturas de capacidades (Educación física, Artística, Música) no se estudian ni tienen tutoría: se mejoran entrenando las capacidades.
+    ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(estudiar),
+    ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(tutoria),
     {
       id: 'estudios.repaso',
       name: 'Repaso general',
@@ -636,7 +653,7 @@ export const estudios = defineModule<EstudiosState>({
       train: [{ stat: GEN.determinacion, amount: 0.3 }],
       run: (ctx) => {
         const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
-        for (const k of activas) ctx.train(statId(k), (RENDIMIENTO_REPASO / activas.length) * factorDeAptitud(ctx, k));
+        for (const k of activas) if (!asignatura(k).porCapacidades) ctx.train(statId(k), (RENDIMIENTO_REPASO / activas.length) * factorDeAptitud(ctx, k));
       },
     },
     {
@@ -660,6 +677,7 @@ export const estudios = defineModule<EstudiosState>({
         const s = ctx.state<EstudiosState>();
         // Se refuerzan las tres asignaturas más flojas del curso.
         const flojas = activasKeys(ctx.time.schoolYear, s.modalidad)
+          .filter((k) => !asignatura(k).porCapacidades)
           .map((k) => [k, ctx.stat(statId(k))] as const)
           .sort((a, b) => a[1] - b[1])
           .slice(0, 3);
@@ -677,9 +695,9 @@ export const estudios = defineModule<EstudiosState>({
     // Se estudia en casa o en la biblioteca (ya no en la entrada del colegio ni en el patio).
     'estudios.repaso': ['casa', 'biblioteca'],
     'estudios.academia': ['colegio'],
-    ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'biblioteca']])),
+    ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'biblioteca']])),
     // La tutoría se pide en la sala de profesores.
-    ...Object.fromEntries(ASIGNATURAS.map((a) => [`estudios.tutoria_${a.key}`, [SALA_DE_PROFESORES]])),
+    ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.tutoria_${a.key}`, [SALA_DE_PROFESORES]])),
   }),
 
   on: {
@@ -704,6 +722,8 @@ export const estudios = defineModule<EstudiosState>({
       }
       // El evento llega al cerrar el día: se mira el calendario de ESE día, no el del siguiente.
       const hoy = timeView(day * MINUTES_PER_DAY);
+      // Las asignaturas de capacidades siguen a las capacidades (Educación física, Artística, Música).
+      sincronizarCapacidades(ctx, activasKeys(hoy.schoolYear, ctx.state<EstudiosState>().modalidad));
       const weekday = hoy.weekday;
       const s = ctx.state<EstudiosState>();
       // Academia obligatoria: faltar un día de academia cuenta como falta y sube el estrés.
@@ -738,7 +758,7 @@ export const estudios = defineModule<EstudiosState>({
       const activas = activasKeys(hoy.schoolYear, s.modalidad);
       // Lo que se da en una clase a la que faltas se pierde: el temario sigue avanzando (en proporción a las horas que vale la clase).
       asignaturasDeHoy(hoy.schoolYear, s.modalidad, weekday).forEach((k, h) => {
-        if (!fue.includes(h)) perder(ctx, k, PERDIDA_POR_FALTA * pesoDeClase(activas, k));
+        if (!fue.includes(h) && !asignatura(k).porCapacidades) perder(ctx, k, PERDIDA_POR_FALTA * pesoDeClase(activas, k));
       });
       const tipo = tipoDeSemana(hoy);
       if (tipo) {

@@ -14,6 +14,15 @@ export interface Asignatura {
   horas: number;
   /** Parte de la nota que depende de las habilidades y no del estudio (0 a 1): Educación física va con el deporte y Artística con lo creativo; estudiar ayuda, pero importan las skills. */
   practica?: number;
+  /**
+   * Asignatura de capacidades (Educación física, Artística, Música): no se estudia. Su nivel sale **directamente de las capacidades que la
+   * apoyan** frente a lo típico de la edad (física: coordinación, agilidad, resistencia...; artística: creatividad), y lo que sube a ir a clase
+   * son esas capacidades, no la asignatura. No tiene «Estudiar», ni repaso, ni tutoría, ni olvido: se mejora entrenando (en el deporte, jugando,
+   * creando).
+   */
+  porCapacidades?: boolean;
+  /** Lo que entrena una clase de esta asignatura a sus capacidades (suma de lo que sube cada una, repartida por sus pesos). Solo con `porCapacidades`. */
+  entrenoDeClase?: number;
   /** Nota mínima que se saca presentándose al examen: en Educación física no se suspende (5). */
   notaMinima?: number;
   /** Genéricas que aceleran la asignatura y marcan su dificultad (suman 1): con peores capacidades, se empieza más bajo, se sube más lento y se olvida más rápido. */
@@ -31,16 +40,16 @@ export const ASIGNATURAS: readonly Asignatura[] = [
   { key: 'lengua', horas: 4, name: 'Lengua', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.3 } },
   { key: 'matematicas', horas: 4, name: 'Matemáticas', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)] },
   { key: 'ingles', horas: 3, name: 'Inglés', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.2 } },
-  { key: 'educacion_fisica', practica: 0.7, notaMinima: 5, horas: 2, name: 'Educación física', apoyos: [apoyo(GEN.coordinacion, 0.3), apoyo(GEN.agilidad, 0.25), apoyo(GEN.resistencia, 0.25), apoyo(GEN.determinacion, 0.2)] },
+  { key: 'educacion_fisica', porCapacidades: true, entrenoDeClase: 0.6, notaMinima: 5, horas: 2, name: 'Educación física', apoyos: [apoyo(GEN.coordinacion, 0.25), apoyo(GEN.agilidad, 0.25), apoyo(GEN.resistencia, 0.25), apoyo(GEN.velocidad, 0.15), apoyo(GEN.fuerza, 0.1)] },
   // Primaria
   { key: 'naturales', horas: 2, name: 'Ciencias naturales', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], entrena: { stat: GEN.creatividad, amount: 0.3 } },
   { key: 'sociales', horas: 2, name: 'Ciencias sociales', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.atencion, 0.25), apoyo(GEN.empatia, 0.15)] },
-  { key: 'artistica', practica: 0.5, horas: 1, name: 'Educación artística', apoyos: [apoyo(GEN.creatividad, 0.5), apoyo(GEN.coordinacion, 0.25), apoyo(GEN.atencion, 0.25)], entrena: { stat: GEN.creatividad, amount: 0.3 } },
+  { key: 'artistica', porCapacidades: true, entrenoDeClase: 0.25, horas: 1, name: 'Educación artística', apoyos: [apoyo(GEN.creatividad, 0.6), apoyo(GEN.coordinacion, 0.2), apoyo(GEN.atencion, 0.2)] },
   // ESO
   { key: 'biologia', horas: 3, name: 'Biología y geología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], hereda: 'naturales' },
   { key: 'historia', horas: 3, name: 'Geografía e historia', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.concentracion, 0.25), apoyo(GEN.empatia, 0.15)], hereda: 'sociales' },
   { key: 'tecnologia', practica: 0.3, horas: 2, name: 'Tecnología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.creatividad, 0.3), apoyo(GEN.coordinacion, 0.3)] },
-  { key: 'musica', practica: 0.5, horas: 2, name: 'Música', apoyos: [apoyo(GEN.creatividad, 0.4), apoyo(GEN.coordinacion, 0.3), apoyo(GEN.atencion, 0.3)], hereda: 'artistica' },
+  { key: 'musica', porCapacidades: true, entrenoDeClase: 0.25, horas: 2, name: 'Música', apoyos: [apoyo(GEN.creatividad, 0.6), apoyo(GEN.coordinacion, 0.2), apoyo(GEN.atencion, 0.2)] },
   { key: 'fisica_quimica', horas: 3, name: 'Física y química', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'naturales' },
   // Bachillerato
   { key: 'filosofia', horas: 2, name: 'Filosofía', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.creatividad, 0.2), apoyo(GEN.empatia, 0.15)] },

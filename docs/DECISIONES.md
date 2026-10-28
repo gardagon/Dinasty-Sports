@@ -5,6 +5,21 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/10/2026 — Educación Física, Artística y Música puntúan por capacidades
+
+Decidido con el usuario: estas asignaturas no se estudian; su nota depende de lo que el personaje **es capaz de hacer**. Sustituye al sistema mixto del 25/10 (`Asignatura.practica`: 70 % / 50 % de habilidad más el resto de estudio).
+
+- **`Asignatura.porCapacidades`** (Educación física, Artística y Música; Tecnología, con `practica` 0,3, no cambia). El nivel que se ve («Regular», «Bien»…) y la preparación con la que se llega al examen salen **solo de las capacidades de apoyo frente a lo típico de la edad** (`habilidadDe`: lo típico vale 55, un 10 % por encima o por debajo suma o resta 11, entre 30 y 100):
+  - **Educación física:** coordinación 25 %, agilidad 25 %, resistencia 25 %, velocidad 15 %, fuerza 10 % (antes incluía la determinación). Mantiene la nota mínima de 5 para quien se presenta.
+  - **Artística y Música:** creatividad 60 %, coordinación 20 %, atención 20 %.
+- **Ir a clase sube las capacidades, no la asignatura.** Una clase de Educación física entrena sus cinco capacidades (suma 0,6 por clase, repartida por sus pesos: `Asignatura.entrenoDeClase`); una de Artística o Música, 0,25. Al cerrar cada día el stat de la asignatura se pone al nivel que dan las capacidades (así la ficha y las medias ven lo mismo que el examen).
+- **Sin «Estudiar», sin repaso, sin tutoría, sin olvido y sin salto de curso** para estas tres asignaturas (el repaso general y la academia solo trabajan las académicas). Se mejoran entrenando: el deporte, el gimnasio y jugar para lo físico; **«Dibujar, tocar o inventar algo»** (`gen.crear`, nueva, en casa, 1 h: creatividad +1, coordinación y atención +0,2, estrés −4; etiqueta `arte`, que alimenta el interés «Arte») para lo creativo. Estudiar ciencias naturales, que entrena creatividad, también ayuda.
+- **Calibración** (30 semillas, sin entrenar y sin ir a clase: EF 5,6 y Artística 5,1; solo yendo a clase: 5,5 y 5,6). Con las primeras cifras de entreno de clase (1,6) un alumno que solo iba a clase sacaba 6,4 y 7,6: se bajaron. En el juego completo (4 semillas, 1 curso): quien hace deporte saca ~8,9 en Educación física, el empollón (solo estudia) ~6,3, y la Artística sube a ~8 en quien estudia ciencias.
+- **Banco de notas:** vuelve a quedar todo dentro de objetivos con un solo cambio: el de la alumna «floja» con 3 h diarias sube de [6, 7] a [6, 7,6] (7,5 medido), porque el banco fija la aptitud de las asignaturas académicas pero no las capacidades, y estas tres ya no dependen de la aptitud. Nota por asignatura disponible en `alumno().porAsignatura` (`sim/src/notas.ts`).
+- **`sim` (365 días × 3 semillas):** todos los chequeos ✅. «Especialista en estudios supera al equilibrado» queda más ajustado (empollón 80,9 frente a 76,6 del equilibrado, antes 83,1 frente a 68,3): el equilibrado, que entrena, ya no pierde puntos en Educación física y Artística.
+
+---
+
 ## 28/10/2026 — Herencia de casa, pedir consejo, tutorías, azar propio de los rivales y una sola pestaña que guarda
 
 Decidido con el usuario al contestar a las explicaciones de los «problemas pequeños».
@@ -38,7 +53,7 @@ Decidido con el usuario al repasar los «problemas pequeños».
 - **Quien no sabe, estorba** (ver `ANEXO_RELACIONES.md`): la compañía resta hasta un 20 % por debajo de la aptitud típica, y tras estudiar o quedar salta una frase buena o mala según la persona y la actividad.
 - **Nivel inicial de los rivales: medido** (ver «Pendiente e ideas»): a los 10 años, media 17,9 y máximo 25,2.
 - **Balance:** `npm run sim` (365 días × 3 semillas) con todos los chequeos ✅ y `sim:notas` sin cambios (los bots no usan estas acciones de compañía, así que el malus no mueve las cifras).
-- **Educación Física y Artística (propuesta del usuario, sin hacer; opinión dada):** que la nota de Educación Física salga de las **capacidades físicas** (no de la media de clase), que ir a clase suba las físicas, y que Artística dependa de la **creatividad** con alguna acción en casa que la suba. Se guarda como diseño pendiente de decidir y calibrar con `sim:notas`.
+- **Educación Física y Artística:** hecho (ver la entrada de arriba): su nota sale de las capacidades, ir a clase las entrena y hay una acción en casa para la creatividad.
 
 ---
 
@@ -472,7 +487,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
   2. **Lo aprendido de base** (`EstudiosState.base`): el olvido diario no baja de la preparación inicial menos 22 puntos. Un alumno brillante conserva un buen nivel aunque no estudie; quien parte bajo no tiene red. Se hereda con la asignatura al cambiar de curso (naturales → biología...).
   3. **Respuesta rápida en lugar de acumulación lenta:** ganancia y olvido ×2,5 en la misma proporción (clase 1,35; estudiar 1,2; repaso 0,9; academia 9; caída diaria 0,9 con factor 0,6–1,5 por capacidades). Como el olvido no baja de la base, el olvido más rápido ya no es duro; el estudio aplicado se nota en semanas, no en años.
 - **Resultado (empollón, 16 semillas, 2 años; trimestres):** tope mental bajo 6,0 · 7,0 · 7,4 · 7,2 · 7,4 · 7,7; medio 6,8 · 7,5 · 8,0 · 7,7 · 7,9 · 8,1; alto 7,0 · 7,8 · 7,8 · 7,9 · 7,9 · 7,9. Equilibrado: bajo 5,2 → 6,0; medio 5,8 → 6,6; alto 6,0 → 7,0. Se llega a la meseta en 2–3 trimestres y ya no sube (antes se tardaba un año). Primer año completo: equilibrado 6,0; empollón 7,3; atleta 4,5; vago 2,7 (a 3,1 con el margen anterior de 15: se subió a 22 para que el atleta que no estudia no quede cómodo).
-- **Sigue pendiente:** con aptitud alta el empollón no pasa de ~8 de media (el techo lo marcan las capacidades de ese momento, no el tope); y las asignaturas de Educación física y Artística siguen muy por debajo de las demás en quien no entrena coordinación o creatividad (ver la revisión de notas).
+- **Sigue pendiente:** con aptitud alta el empollón no pasa de ~8 de media (el techo lo marcan las capacidades de ese momento, no el tope); y las asignaturas de Educación física y Artística siguen muy por debajo de las demás en quien no entrena coordinación o creatividad (ver la revisión de notas). **Resuelto el 28/10:** ahora puntúan por capacidades y valen ~5,5 con lo típico.
 - **Guardado:** `EstudiosState` gana `base`; `SAVE_VERSION` sube a 5.
 - **Chequeo de simulación:** «El esfuerzo hace progresar» mide los estudios del equilibrado frente al vago (> +3 puntos) y no frente al arranque, porque la preparación parte de la aptitud y el olvido de las vacaciones la baja.
 
@@ -1028,7 +1043,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Rivales adultos y profesionales** (E10): usarán la curva física por edad; hoy solo juegan hasta los 19.
 
 - **Equilibrio del jugador que entrena a diario:** sube al podio en el 67 a 77 % de las carreras a 3 y 10 años. Se revisará cuando estén las lesiones (E12), el bonus de verano por buenas notas y el resto de piezas; no se toca antes.
-- **Notas:** medido el 28/10 con `npm run sim:notas`: aptitud típica saca 6,6 con ~1 h de estudio al día y 8,1 con 3 h; la brillante, 7,9 y 8,8. Todo dentro de los objetivos; el aviso de «~6,2» es antiguo. Quedan Educación física y Artística por debajo de las demás en quien no entrena coordinación o creatividad.
+- **Notas:** medido el 28/10 con `npm run sim:notas`: aptitud típica saca 6,6 con ~1 h de estudio al día y 8,1 con 3 h; la brillante, 7,9 y 8,8. Todo dentro de los objetivos; el aviso de «~6,2» es antiguo. (Educación física y Artística, resueltas el 28/10: ahora por capacidades.)
 - **Conocimiento:** sin techo duro; es malus y bonus sobre lo táctico. Si el efecto (×0,85 a ×1,15) se queda corto, subirlo.
 - **Dificultad al crear la partida (E15.1):** los rangos de calidad de los padres del jugador (fácil, normal, difícil) ya están como dato; falta la pantalla.
 - ~~**Hermanos** con su propia tirada de herencia~~ **Hecho** (0 a 3, `numeroDeHermanos`), y desde el 28/10 también su ventaja de crianza y sus perks.
@@ -1044,7 +1059,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **UI filtrada por inteligencia (E3.4):** hoy la identidad y las stats se ven siempre con todo detalle.
 - **Beca deportiva:** usar el servicio `estudios` (nota media) desde un deporte.
 - **App nativa en el móvil:** la PWA ya se instala desde el navegador; Capacitor solo si hace falta tienda de aplicaciones.
-- **Educación Física y Artística (diseño propuesto por el usuario el 28/10):** la nota de Educación Física saldría de las capacidades físicas «para su edad» (no de la media de clase), ir a clase subiría esas capacidades y «Estudiar educación física» desaparecería; Artística dependería de la creatividad, con alguna acción en casa que la suba. Se ve igual en «Estudios» (Mal, Regular, Bien…). Falta decidir y calibrar con `sim:notas`.
+- ~~Educación Física y Artística~~ **Hecho el 28/10** (por capacidades; ver su entrada). Diseño original del usuario: la nota de Educación Física saldría de las capacidades físicas «para su edad» (no de la media de clase), ir a clase subiría esas capacidades y «Estudiar educación física» desaparecería; Artística dependería de la creatividad, con alguna acción en casa que la suba. Se ve igual en «Estudios» (Mal, Regular, Bien…). Falta decidir y calibrar con `sim:notas`.
 - **Evento de los padres por faltas:** el aviso y el evento `clase.faltas_excesivas` ya existen (a las 12 faltas del trimestre); falta el evento que lo recoja (conversación, castigo...), que espera al motor de eventos.
 - **Planes de estudiar:** la hora sigue fija a las 17:00; se puede elegir casa o biblioteca.
 - **Hermanos:** quedan para eventos que se vayan de casa a los 18, que su vida afecte a la del personaje, otros deportes, entrenar juntos y comer y dormir con ellos (ver la entrada del 28/10). Perks y ventaja de crianza, hechos.

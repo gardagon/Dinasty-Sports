@@ -522,3 +522,68 @@ describe('módulo estudios', () => {
     });
   });
 });
+
+describe('asignaturas de capacidades (Educación física, Artística y Música)', () => {
+  const nivel = (g: Game, k: string) => g.service<StudiesService>(SERVICES.estudios)!.levelText(`estudios.${k}`);
+  const ORDEN = ['Mal', 'Regular', 'Bien', 'Muy bien', 'Excelente'];
+
+  it('no se estudian, no se repasan y no tienen tutoría: las académicas sí', () => {
+    const g = nueva();
+    for (const k of ['educacion_fisica', 'artistica']) {
+      expect(g.preview(`estudios.estudiar_${k}`), k).toBeUndefined();
+      expect(g.preview(`estudios.tutoria_${k}`), k).toBeUndefined();
+    }
+    expect(g.preview('estudios.estudiar_lengua')).toBeDefined();
+    expect(g.preview('estudios.tutoria_lengua')).toBeDefined();
+    // La música (ESO) tampoco.
+    expect(ASIGNATURAS.filter((a) => a.porCapacidades).map((a) => a.key).sort()).toEqual(['artistica', 'educacion_fisica', 'musica']);
+  });
+
+  it('su nivel sale de las capacidades que las apoyan (no del valor de la asignatura): físicas para Educación física, creatividad para Artística', () => {
+    const con = (stats: Record<string, number>) => {
+      const guardado = nueva().serialize();
+      for (const [id, v] of Object.entries(stats)) guardado.stats[id] = v;
+      return Game.load([personaje, estudios, pausas], guardado);
+    };
+    const fisicas = ['gen.velocidad', 'gen.fuerza', 'gen.resistencia', 'gen.agilidad', 'gen.coordinacion'];
+    const bajas = Object.fromEntries([...fisicas.map((id) => [id, 1]), ['estudios.educacion_fisica', 100]]);
+    const altas = Object.fromEntries([...fisicas.map((id) => [id, 100]), ['estudios.educacion_fisica', 0]]);
+    expect(nivel(con(altas), 'educacion_fisica')).toBe('Excelente'); // aunque la asignatura valga 0
+    expect(nivel(con(bajas), 'educacion_fisica')).toBe('Regular'); // aunque valga 100: no se suspende (nota mínima 5)
+    const creativo = con({ 'gen.creatividad': 100, 'gen.coordinacion': 100, 'gen.atencion': 100, 'estudios.artistica': 0 });
+    const romo = con({ 'gen.creatividad': 1, 'gen.coordinacion': 1, 'gen.atencion': 1, 'estudios.artistica': 100 });
+    expect(ORDEN.indexOf(nivel(creativo, 'artistica')!)).toBeGreaterThan(ORDEN.indexOf(nivel(romo, 'artistica')!));
+  });
+
+  it('ir a la clase de Educación física entrena las capacidades físicas (no la asignatura), y la asignatura sigue a las capacidades al acabar el día', () => {
+    const g = nueva();
+    const horario = horarioDeClases(asignaturasDelCurso(0));
+    const dia = horario.findIndex((d) => d.includes('educacion_fisica'));
+    const hora = horario[dia].indexOf('educacion_fisica');
+    advanceTo(g, 'gen.descansar', dia, 7);
+    const antes = { coord: g.stat('gen.coordinacion'), agil: g.stat('gen.agilidad'), res: g.stat('gen.resistencia') };
+    const asignaturaAntes = g.stat('estudios.educacion_fisica');
+    expect(irAClase(g, hora + 1).ok).toBe(true);
+    expect(g.stat('gen.coordinacion')).toBeGreaterThan(antes.coord);
+    expect(g.stat('gen.agilidad')).toBeGreaterThan(antes.agil);
+    expect(g.stat('gen.resistencia')).toBeGreaterThan(antes.res);
+    expect(g.stat('estudios.educacion_fisica')).toBeCloseTo(asignaturaAntes, 6); // la clase no la sube directamente
+    advanceTo(g, 'gen.descansar', (dia + 1) % 7, 7); // al cerrar el día se pone al nivel de las capacidades (entre 30 y 100)
+    expect(g.stat('estudios.educacion_fisica')).toBeGreaterThanOrEqual(30);
+  });
+
+  it('«Dibujar, tocar o inventar algo» sube la creatividad y con ella Artística', () => {
+    const g = nueva();
+    const guardado = g.serialize();
+    guardado.stats['gen.creatividad'] = 8;
+    const baja = Game.load([personaje, estudios, pausas], guardado);
+    advanceTo(baja, 'gen.descansar', 5, 10); // sábado: sin clase
+    expect(baja.preview('gen.crear')?.available).toBe(true);
+    const antes = baja.stat('gen.creatividad');
+    for (let i = 0; i < 6; i++) {
+      expect(baja.perform('gen.crear').ok).toBe(true);
+      baja.perform('gen.descansar');
+    }
+    expect(baja.stat('gen.creatividad')).toBeGreaterThan(antes);
+  });
+});
