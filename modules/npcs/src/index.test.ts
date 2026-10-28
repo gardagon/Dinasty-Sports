@@ -19,8 +19,8 @@ describe('módulo NPCs', () => {
     const g = nueva();
     const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
     const hermanos = dir.list({ tag: 'hermano' }).length;
-    expect(dir.list().length).toBe(391 + 2 + 5 + 2 + hermanos); // 4 del entorno + 96 rivales (8 por edad de 8 a 19) + la población del colegio y del barrio + los padres + 5 entrenadores de clubes + 2 bibliotecarios + los hermanos
-    expect(dir.list({ role: 'rival' })).toHaveLength(96);
+    expect(dir.list().length).toBe(403 + 2 + 5 + 2 + hermanos); // 4 del entorno + 108 rivales (9 por edad de 8 a 19) + la población del colegio y del barrio + los padres + 5 entrenadores de clubes + 2 bibliotecarios + los hermanos
+    expect(dir.list({ role: 'rival' })).toHaveLength(108);
     expect(dir.get('entrenador')?.role).toBe('entrenador');
   });
 
@@ -47,10 +47,10 @@ describe('módulo NPCs', () => {
     const rivales = (g: Game) => g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.role === 'rival');
     const dir = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!;
 
-    it('hay 8 rivales por cada edad de 8 a 19, desconocidos al principio y con nombres únicos', () => {
+    it('hay 9 rivales por cada edad de 8 a 19, desconocidos al principio y con nombres únicos', () => {
       const g = nueva();
       for (let edad = 8; edad <= 19; edad++) {
-        expect(dir(g).list({ role: 'rival', minAge: edad, maxAge: edad })).toHaveLength(8);
+        expect(dir(g).list({ role: 'rival', minAge: edad, maxAge: edad })).toHaveLength(9);
       }
       expect(dir(g).list({ role: 'rival', minAge: 20 })).toHaveLength(0);
       expect(rivales(g).every((n) => n.known === false)).toBe(true);
@@ -83,15 +83,15 @@ describe('módulo NPCs', () => {
       const idsAntes = new Set(rivales(g).map((n) => n.id));
       advanceUntil(g, 'gen.descansar', (t) => t.schoolYear >= 1, 20000);
       const despues = rivales(g);
-      // La edad de competición es por año de nacimiento: tras el relevo cada edad tiene exactamente 8 rivales.
+      // La edad de competición es por año de nacimiento: tras el relevo cada edad tiene exactamente 9 rivales.
       for (let edad = 8; edad <= 19; edad++) {
-        expect(dir(g).list({ role: 'rival', minAge: edad, maxAge: edad })).toHaveLength(8);
+        expect(dir(g).list({ role: 'rival', minAge: edad, maxAge: edad })).toHaveLength(9);
       }
-      expect(despues).toHaveLength(96);
+      expect(despues).toHaveLength(108);
       expect(dir(g).list({ role: 'rival', minAge: 21 })).toHaveLength(0);
       // Se han ido los de 19 años y han entrado niños de 8 que antes no estaban.
-      expect(despues.filter((n) => !idsAntes.has(n.id)).length).toBeGreaterThanOrEqual(8);
-      expect(despues.filter((n) => idsAntes.has(n.id)).length).toBeLessThan(96);
+      expect(despues.filter((n) => !idsAntes.has(n.id)).length).toBeGreaterThanOrEqual(9);
+      expect(despues.filter((n) => idsAntes.has(n.id)).length).toBeLessThan(108);
     });
   });
 

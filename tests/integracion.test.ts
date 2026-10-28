@@ -44,10 +44,11 @@ describe('integración de módulos', () => {
     const antes = g.service<RelationsService>(SERVICES.relaciones)!.get('entrenador')!.afinidad;
     const r = hacer(g, 'atletismo.carrera');
     expect(r.ok).toBe(true);
-    const entrada = r.log.find((l) => /de 8/.test(l.text)); // tú + 7 rivales de los 16 NPC
+    const entrada = r.log.find((l) => l.table); // tú + hasta 8 rivales de su serie (de los 18 NPC de la categoría)
     expect(entrada).toBeDefined();
     // La carrera deja una clasificación con nombres, posiciones y tiempos.
-    expect(entrada!.table?.rows).toHaveLength(8);
+    expect(entrada!.table!.rows.length).toBeGreaterThanOrEqual(10); // hasta 18 corredores con las ausencias
+    expect(entrada!.table!.rows.length).toBeLessThanOrEqual(18);
     expect(entrada!.table?.header).toEqual(['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.']);
     const mia = entrada!.table!.rows[entrada!.table!.highlight!];
     expect(mia[1]).toBe('Tú');
@@ -65,7 +66,7 @@ describe('integración de módulos', () => {
     expect(g.stat(GEN.energia)).toBeGreaterThanOrEqual(0);
   }, 20000); // en una máquina lenta (la integración continua) la semana entera de acciones tarda más de los 5 s por defecto
 
-  it('las series son de 8: los mejores rivales corren al principio y luego la serie rota', () => {
+  it('las carreras son de hasta 18: los mejores rivales corren al principio y luego la serie rota', () => {
     const g = nuevaPartida({ seed: 4 });
     // El servicio es una foto del momento: se pide de nuevo cada vez. Corren los de la categoría del jugador.
     const mejores = () => {
@@ -82,6 +83,7 @@ describe('integración de módulos', () => {
     let seriesIguales = 0;
     let anterior = '';
     let carreras = 0;
+    const presentes: boolean[] = []; // por cada carrera y cada uno de los tres mejores: ¿ha corrido?
     // Las carreras solo son en temporada: se recorren las semanas y se corre en las que hay carrera.
     for (let semana = 0; semana < 200 && carreras < 30; semana++) {
       advanceToWeek(g, 'gen.descansar', semana, 5, 10);
@@ -90,8 +92,9 @@ describe('integración de módulos', () => {
       const r = hacer(g, 'atletismo.carrera');
       expect(r.ok).toBe(true);
       const nombres = r.log.find((l) => l.table)!.table!.rows.map((f) => f[1]);
-      expect(nombres).toHaveLength(8);
-      if (carreras < 8) for (const m of top) expect(nombres).toContain(m);
+      expect(nombres.length).toBeGreaterThanOrEqual(10); // hay ausencias (los peores y los últimos faltan más)
+      expect(nombres.length).toBeLessThanOrEqual(18);
+      if (carreras < 8) for (const m of top) presentes.push(nombres.includes(m));
       const rivales = nombres.filter((n) => n !== 'Tú').sort();
       for (const n of rivales) vistos.add(n);
       if (rivales.join() === anterior) seriesIguales++;
@@ -99,6 +102,8 @@ describe('integración de módulos', () => {
       carreras++;
     }
     expect(carreras).toBe(30);
+    // Los mejores casi nunca faltan: de 8 carreras con cabezas de serie, los tres primeros corren casi siempre.
+    expect(presentes.filter(Boolean).length / presentes.length).toBeGreaterThan(0.85);
     expect(vistos.size).toBeGreaterThan(12); // la rotación recorre casi todo el pelotón
     expect(seriesIguales).toBeLessThan(3);
   });
@@ -430,7 +435,7 @@ describe('integración de módulos', () => {
     });
   });
 
-  describe('clasificatoria autonómica y final del campeonato', () => {
+  describe('semifinales y final del campeonato', () => {
     /** Partida con el nivel indicado en las habilidades de atletismo (95 = fuera de serie, 20 = principiante). */
     const conNivel = (nivel: number) => {
       const g = nuevaPartida({ seed: 51 });
@@ -445,30 +450,31 @@ describe('integración de módulos', () => {
     };
     const filas = (g: Game, id: string) => hacer(g, id).log.find((l) => l.table)!;
 
-    it('en la semana de la clasificatoria no hay carrera semanal y sí clasificatoria, con 16 corredores', () => {
+    it('en la semana de las semifinales no hay carrera semanal y sí semifinal, con hasta 18 corredores en dos series', () => {
       const g = conNivel(60);
-      advanceToWeek(g, 'gen.descansar', 24, 5, 10);
+      advanceToWeek(g, 'gen.descansar', 37, 5, 10);
       expect(posible(g, 'atletismo.carrera')).toBe(false);
-      expect(g.preview('atletismo.carrera')!.reason).toMatch(/clasificatoria/);
-      expect(posible(g, 'atletismo.clasificatoria')).toBe(true);
+      expect(g.preview('atletismo.carrera')!.reason).toMatch(/semifinal/);
+      expect(posible(g, 'atletismo.semifinal')).toBe(true);
       expect(posible(g, 'atletismo.final')).toBe(false);
-      const entrada = filas(g, 'atletismo.clasificatoria');
-      expect(entrada.table!.rows).toHaveLength(16);
-      expect(entrada.text).toMatch(/clasificatoria autonómica/);
+      const entrada = filas(g, 'atletismo.semifinal');
+      expect(entrada.table!.rows.length).toBeGreaterThanOrEqual(6); // tu serie (de 9, con ausencias)
+      expect(entrada.table!.rows.length).toBeLessThanOrEqual(9);
+      expect(entrada.text).toMatch(/semifinal del campeonato \(serie [12] de 2\)/);
     });
 
-    it('la clasificatoria y la final solo se pueden correr en su semana', () => {
+    it('la semifinal y la final solo se pueden correr en su semana', () => {
       const g = conNivel(60);
       advanceToWeek(g, 'gen.descansar', 10, 5, 10);
-      expect(posible(g, 'atletismo.clasificatoria')).toBe(false);
+      expect(posible(g, 'atletismo.semifinal')).toBe(false);
       expect(posible(g, 'atletismo.final')).toBe(false);
       expect(posible(g, 'atletismo.carrera')).toBe(true);
     });
 
     it('quien destaca se clasifica y corre la final de 8 con una medalla en juego', () => {
       const g = conNivel(97);
-      advanceToWeek(g, 'gen.descansar', 24, 5, 10);
-      const clasif = filas(g, 'atletismo.clasificatoria');
+      advanceToWeek(g, 'gen.descansar', 37, 5, 10);
+      const clasif = filas(g, 'atletismo.semifinal');
       expect(clasif.text).toMatch(/Te clasificas para la final/);
       advanceToWeek(g, 'gen.descansar', 38, 5, 10);
       expect(posible(g, 'atletismo.carrera')).toBe(false); // esa semana es la final
@@ -477,16 +483,16 @@ describe('integración de módulos', () => {
       expect(final.table!.rows).toHaveLength(8);
       expect(final.text).toMatch(/final del campeonato de España/);
       expect(final.text).toMatch(/Medalla de (oro|plata|bronce)/);
-      // Los finalistas son los mejores de la clasificatoria.
-      const clasificados = new Set(clasif.table!.rows.slice(0, 8).map((f) => f[1]));
+      // Los finalistas son los cuatro primeros de cada serie: de tu serie ya los ves en la tabla.
+      const clasificados = new Set(clasif.table!.rows.slice(0, 4).map((f) => f[1]));
       const corredores = final.table!.rows.map((f) => f[1]).filter((n) => n !== 'Tú');
-      expect(corredores.filter((n) => clasificados.has(n)).length).toBeGreaterThanOrEqual(6);
+      expect(corredores.filter((n) => clasificados.has(n)).length).toBeGreaterThanOrEqual(2);
     });
 
     it('quien no se clasifica no corre la final, pero sí su carrera semanal', () => {
       const g = conNivel(8);
-      advanceToWeek(g, 'gen.descansar', 24, 5, 10);
-      const clasif = filas(g, 'atletismo.clasificatoria');
+      advanceToWeek(g, 'gen.descansar', 37, 5, 10);
+      const clasif = filas(g, 'atletismo.semifinal');
       expect(clasif.text).toMatch(/No te clasificas/);
       advanceToWeek(g, 'gen.descansar', 38, 5, 10);
       expect(posible(g, 'atletismo.final')).toBe(false);
@@ -496,8 +502,8 @@ describe('integración de módulos', () => {
 
     it('el campeonato del curso siguiente empieza de cero', () => {
       const g = conNivel(97);
-      advanceToWeek(g, 'gen.descansar', 24, 5, 10);
-      hacer(g, 'atletismo.clasificatoria');
+      advanceToWeek(g, 'gen.descansar', 37, 5, 10);
+      hacer(g, 'atletismo.semifinal');
       advanceToWeek(g, 'gen.descansar', 52 + 38, 5, 10);
       expect(posible(g, 'atletismo.final')).toBe(false); // no se ha clasificado en este curso
     });
@@ -677,7 +683,7 @@ describe('integración de módulos', () => {
     const correr = (g: Game, desde: number, hasta: number) => {
       for (let semana = desde; semana <= hasta; semana++) {
         advanceToWeek(g, 'gen.descansar', semana, 5, 9);
-        for (const id of ['atletismo.clasificatoria', 'atletismo.final', 'atletismo.carrera']) {
+        for (const id of ['atletismo.semifinal', 'atletismo.final', 'atletismo.carrera']) {
           if (posible(g, id)) {
             hacer(g, id);
             break;
@@ -698,15 +704,15 @@ describe('integración de módulos', () => {
 
     it('tras una temporada enseña todas las carreras con su clasificación completa y las clasificaciones del año', () => {
       const g = nuevaPartida({ seed: 41 });
-      correr(g, 5, 30);
+      correr(g, 5, 38);
       const v = vista(g);
       expect(v.temporada.pruebas.length).toBeGreaterThanOrEqual(15);
       for (const p of v.temporada.pruebas) {
-        expect(p.tabla?.rows.length).toBeGreaterThanOrEqual(8);
+        expect(p.tabla?.rows.length).toBeGreaterThanOrEqual(5);
         expect(p.tabla!.rows[p.tabla!.highlight!][1]).toBe('Tú');
-        expect(p.tabla!.rows[p.posicion - 1][1]).toBe('Tú');
+        if (!/semifinal/.test(p.titulo)) expect(p.tabla!.rows[p.posicion - 1][1]).toBe('Tú'); // en la semifinal la tabla junta las dos series por tiempos
       }
-      expect(v.temporada.pruebas.some((p) => /clasificatoria autonómica/.test(p.titulo))).toBe(true);
+      expect(v.temporada.pruebas.some((p) => /semifinal/.test(p.titulo))).toBe(true);
       // Una clasificación por puntos y otra de mejores marcas, con el personaje (en su sitio real) y como mucho 11 filas.
       expect(v.clasificaciones.map((c) => c.titulo)).toEqual([expect.stringMatching(/^Clasificación por puntos/), expect.stringMatching(/^Mejores marcas/)]);
       for (const c of v.clasificaciones) {
@@ -1528,8 +1534,8 @@ describe('siesta, jugar y entrenar con el club', () => {
 describe('herencia de casa: ventaja de crianza, conocimiento y perks', () => {
   const dir = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!;
   /** Una partida igual a la de la semilla pero con la práctica de los padres cambiada (y su deporte). */
-  const conPadres = (practica: 'ninguna' | 'profesional', deporte?: string) => {
-    const g = nuevaPartida({ seed: 31 });
+  const conPadres = (practica: 'ninguna' | 'profesional', deporte?: string, seed = 31) => {
+    const g = nuevaPartida({ seed });
     const s = g.serialize();
     for (const p of (s.modules.familia as { padres: { practica: string; deporte?: string }[] }).padres) {
       p.practica = practica;
@@ -1541,10 +1547,12 @@ describe('herencia de casa: ventaja de crianza, conocimiento y perks', () => {
   const hermanoQueCompite = (g: Game) => dir(g).list({ tag: 'hermano' }).find((h) => h.levels.atletismo !== undefined);
 
   it('los hermanos que ya compiten reciben el primer día la ventaja de crianza que dan los padres (como los rivales)', () => {
-    const ninguna = conPadres('ninguna');
-    const profesional = conPadres('profesional', 'atletismo');
+    // Una partida cuyo personaje tenga un hermano que ya compite.
+    const seed = [31, 32, 33, 34, 35, 36, 37, 38, 39, 40].find((x) => hermanoQueCompite(conPadres('ninguna', undefined, x)))!;
+    expect(seed).toBeDefined();
+    const ninguna = conPadres('ninguna', undefined, seed);
+    const profesional = conPadres('profesional', 'atletismo', seed);
     const antes = hermanoQueCompite(ninguna)!;
-    expect(antes).toBeDefined();
     advanceTo(ninguna, 'gen.descansar', 1, 8);
     advanceTo(profesional, 'gen.descansar', 1, 8);
     const sin = dir(ninguna).get(antes.id)!.levels.atletismo;

@@ -24,6 +24,12 @@ export function rngEstable(...partes: (string | number)[]): Rng {
     for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 0x01000193);
     h = Math.imul(h ^ 0x2f, 0x01000193); // separa las partes: («ab», «c») no es («a», «bc»)
   }
+  // Mezcla final (murmur3): sin ella, dos textos que solo cambian en el último carácter dan sorteos parecidos.
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
   let estado = h | 0;
   const next = (): number => {
     estado = (estado + 0x6d2b79f5) | 0;

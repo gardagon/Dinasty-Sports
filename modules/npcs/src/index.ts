@@ -164,7 +164,7 @@ const CLUBES_RIVALES = [
 ];
 const EDAD_RIVAL_MIN = 8;
 const EDAD_RIVAL_MAX = 19;
-const RIVALES_POR_EDAD = 8;
+const RIVALES_POR_EDAD = 9;
 /** De esta edad en adelante dejan de aparecer (pasan a categorías que el juego no modela aún). */
 const EDAD_RETIRO = EDAD_RIVAL_MAX + 1;
 /** Hasta esta edad algún niño puede dejar el deporte cada curso (y entra otro nuevo). */

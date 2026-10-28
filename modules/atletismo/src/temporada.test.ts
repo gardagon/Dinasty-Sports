@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FACTOR_DE_CAMPEONATO, type FilaGuardada, PUNTOS_POR_PUESTO, clasificacionPorPuntos, mejoresMarcas, puntosDe, recortarPruebas, type PruebaGuardada } from './temporada';
+import { CLASIFICADOS_POR_SERIE, FACTOR_DE_CAMPEONATO, FINALISTAS, probabilidadDeAcudir, repartirEnSeries, type FilaGuardada, PUNTOS_POR_PUESTO, clasificacionPorPuntos, mejoresMarcas, puntosDe, recortarPruebas, type PruebaGuardada } from './temporada';
 
 const prueba = (curso: number, semana: number, marcas: Record<string, number>, tipo: PruebaGuardada['tipo'] = 'regular'): PruebaGuardada => {
   const filas: FilaGuardada[] = Object.entries(marcas).map(([nombre, marca]) => ({ nombre: nombre === 'Tú' ? 'Tú' : nombre, club: nombre === 'Tú' ? 'Mi club' : 'Otro', marca, ...(nombre === 'Tú' ? { yo: true } : { npcId: nombre }) }));
@@ -51,5 +51,42 @@ describe('temporada de atletismo (reglas puras)', () => {
     expect(r[2].filas).toHaveLength(2);
     expect(r.map((p) => p.posicion)).toEqual(todas.map((p) => p.posicion)); // el resumen se conserva
     expect(recortarPruebas(Array.from({ length: 300 }, (_, i) => prueba(2, i, { Tú: 70 })), 2)).toHaveLength(200);
+  });
+});
+
+describe('quién corre: asistencia y series', () => {
+  it('los mejores casi nunca faltan y los peores faltan más', () => {
+    expect(probabilidadDeAcudir(0)).toBeCloseTo(0.98, 5);
+    expect(probabilidadDeAcudir(1)).toBeCloseTo(0.6, 5);
+    expect(probabilidadDeAcudir(0.5)).toBeGreaterThan(probabilidadDeAcudir(0.9));
+    for (let p = 0.1; p <= 1; p += 0.1) expect(probabilidadDeAcudir(p)).toBeLessThanOrEqual(probabilidadDeAcudir(p - 0.1));
+  });
+
+  it('quien quedó último la vez anterior falla más; quien ganó, no; y no baja del 50 % ni pasa del 99 %', () => {
+    const base = probabilidadDeAcudir(0.8);
+    expect(probabilidadDeAcudir(0.8, { posicion: 1, total: 18 })).toBeCloseTo(base, 10);
+    expect(probabilidadDeAcudir(0.8, { posicion: 18, total: 18 })).toBeCloseTo(base - 0.15, 10);
+    expect(probabilidadDeAcudir(0.8, { posicion: 12, total: 18 })).toBeLessThan(base);
+    expect(probabilidadDeAcudir(0.8, { posicion: 12, total: 18 })).toBeGreaterThan(probabilidadDeAcudir(0.8, { posicion: 18, total: 18 }));
+    expect(probabilidadDeAcudir(1, { posicion: 18, total: 18 })).toBe(0.5);
+    expect(probabilidadDeAcudir(0, undefined, 0.5)).toBe(0.99);
+    expect(probabilidadDeAcudir(0.8, { posicion: 3, total: 1 })).toBeCloseTo(base, 10); // sin carrera real a la que mirar
+  });
+
+  it('las series se reparten en serpiente para que sean parejas', () => {
+    const corredores = Array.from({ length: 18 }, (_, i) => ({ id: i, nivel: 100 - i }));
+    const [a, b] = repartirEnSeries(corredores);
+    expect(a).toHaveLength(9);
+    expect(b).toHaveLength(9);
+    expect(a.map((c) => c.id)).toEqual([0, 3, 4, 7, 8, 11, 12, 15, 16]);
+    expect(b.map((c) => c.id)).toEqual([1, 2, 5, 6, 9, 10, 13, 14, 17]);
+    const media = (xs: { nivel: number }[]) => xs.reduce((s, c) => s + c.nivel, 0) / xs.length;
+    expect(Math.abs(media(a) - media(b))).toBeLessThan(1.5);
+    expect(repartirEnSeries(corredores.slice(0, 5)).map((s) => s.length)).toEqual([3, 2]); // con menos corredores, una más en la A
+  });
+
+  it('el campeonato clasifica a 4 por serie: 8 finalistas', () => {
+    expect(CLASIFICADOS_POR_SERIE).toBe(4);
+    expect(FINALISTAS).toBe(8);
   });
 });
