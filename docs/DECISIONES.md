@@ -15,6 +15,10 @@ Pedido por el usuario: «Amplia a 18 los corredores… semifinales y una final. 
 - **Mejora de paso de `rngEstable`:** añadida una mezcla final (murmur3). Sin ella, textos que solo cambian en el último carácter (la semana) daban sorteos casi iguales y las ausencias salían en bloque (6 de 18 un día). Cambia las tiradas propias de los rivales (marcas, progreso) respecto a versiones anteriores, no su calidad.
 - Documentación: `ANEXO_DEPORTE.md` §3 bis.
 
+### Siguientes pasos acordados (para la próxima sesión)
+- **Roles ligados a los 8 ejes de carácter (aprobado «en principio» por el usuario):** unos 12 roles **derivados** de los ejes (no asignados), con un efecto máximo de ±35 puntos porcentuales sobre una tirada, decisiones como datos con tirada estable (`rngEstable`). **Fase F1: decisiones de relaciones** (el 25 % de «otros planes» pasa a depender del carácter, calibrado para no cambiar la media de la población). F2–F4 después (deporte, estudios, eventos E18). Preguntas abiertas: rol derivado o asignado, frase de ficha, roles del jugador.
+- **Pendientes ya anotados:** evento de los padres por faltas (el aviso ya existe), entrenar con alguien, cumpleaños, hermanos que se van a los 18 (motor de eventos E18), habilidades de entrenadores (futuro módulo de profesiones), `MOSTRAR_*` a `false` al llegar la beta.
+
 ## 28/10/2026 — Educación Física, Artística y Música puntúan por capacidades
 
 Decidido con el usuario: estas asignaturas no se estudian; su nota depende de lo que el personaje **es capaz de hacer**. Sustituye al sistema mixto del 25/10 (`Asignatura.practica`: 70 % / 50 % de habilidad más el resto de estudio).
@@ -1073,6 +1077,6 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Evento de los padres por faltas:** el aviso y el evento `clase.faltas_excesivas` ya existen (a las 12 faltas del trimestre); falta el evento que lo recoja (conversación, castigo...), que espera al motor de eventos.
 - **Planes de estudiar:** la hora sigue fija a las 17:00; se puede elegir casa o biblioteca.
 - **Hermanos:** quedan para eventos que se vayan de casa a los 18, que su vida afecte a la del personaje, otros deportes, entrenar juntos y comer y dormir con ellos (ver la entrada del 28/10). Perks y ventaja de crianza, hechos.
-- **Azar de los rivales:** hecho (progreso y marcas con generador propio). Queda su elección de carrera y una posible tabla de roles por ejes de carácter.
+- **Azar de los rivales:** hecho (progreso y marcas con generador propio). La elección de carrera se sustituyó (28/10) por la asistencia según nivel y último puesto. Queda la tabla de roles por ejes de carácter (ver «Siguientes pasos»).
 - ~~Test de la sala de profesores~~ **Hecho** (28/10): ahora busca un recreo en que el tutor esté en la sala y otro en que esté en el patio, así que sus comprobaciones corren siempre.
 - **Acciones de GitHub:** al día desde el 28/10 (ver la entrada de ese día). Revisar de vez en cuando las versiones (`ci.yml` y `pages.yml`).
