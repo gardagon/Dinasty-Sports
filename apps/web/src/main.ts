@@ -38,6 +38,7 @@ import { cargarPartida, nuevaPartida } from '@ds/game';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
+import { reclamarPestana } from './pestana';
 import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
 /**
@@ -81,9 +82,12 @@ let guardadoPendiente: ReturnType<typeof setTimeout> | undefined;
 let hayCambios = false;
 let guardando = false;
 let pidioPersistencia = false;
+/** ¿Es esta la pestaña que guarda? Si hay otra abierta con la misma partida, esta no guarda (ver `pestana.ts`). */
+let esPrincipal = true;
 
 /** Guardar cuesta lo que pesa la partida: se agrupa lo que pasa en medio segundo y nunca se guarda a la vez dos veces. */
 function save(): void {
+  if (!esPrincipal) return;
   hayCambios = true;
   if (guardadoPendiente !== undefined) return;
   guardadoPendiente = setTimeout(() => void guardarYa(), 500);
@@ -92,7 +96,7 @@ function save(): void {
 async function guardarYa(): Promise<void> {
   if (guardadoPendiente !== undefined) clearTimeout(guardadoPendiente);
   guardadoPendiente = undefined;
-  if (guardando || !almacen) return; // si ya está guardando, lo hará de nuevo al acabar si hay cambios
+  if (guardando || !almacen || !esPrincipal) return; // si ya está guardando, lo hará de nuevo al acabar si hay cambios
   guardando = true;
   try {
     while (hayCambios && game) {
@@ -115,6 +119,7 @@ async function guardarYa(): Promise<void> {
 }
 
 function textoDeAvisoDeGuardado(): string {
+  if (!esPrincipal) return 'Esta partida está abierta en otra pestaña: aquí no se guarda nada. Cierra una de las dos; esta se recargará sola cuando la otra se cierre.';
   if (errorDeGuardado) return `No se pudo guardar la partida (${errorDeGuardado}). Exporta una copia para no perderla.`;
   return almacen?.tipo === 'memoria' ? 'Este navegador no permite guardar: la partida se perderá al cerrar la pestaña. Puedes exportar una copia.' : '';
 }
@@ -792,11 +797,19 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
       render();
       return true;
     case 'empezar':
+      if (!esPrincipal) {
+        alert('La partida está abierta en otra pestaña: empieza una nueva desde allí (aquí no se guardaría).');
+        return true;
+      }
       if (game && !confirm('Empezar una partida nueva sustituye la guardada. ¿Seguir?')) return true;
       game = nuevaPartida({ seed: nueva.seed, playerName: identidadDeJugador(nueva.seed, nueva.principal).completo });
       empezarAJugar();
       return true;
     case 'borrar':
+      if (!esPrincipal) {
+        alert('La partida está abierta en otra pestaña: bórrala desde allí.');
+        return true;
+      }
       if (confirm('¿Borrar la partida guardada? No se puede deshacer.')) {
         hayCambios = false;
         void almacen?.borrar().catch(() => undefined);
@@ -833,6 +846,8 @@ function empezarAJugar(agendaGuardada: AgendaItem[] = []): void {
 async function iniciar(): Promise<void> {
   app.innerHTML = '<main class="app"><p class="note">Cargando…</p></main>';
   almacen = await crearAlmacen();
+  // Si la partida ya está abierta en otra pestaña, esta no guarda; cuando la otra se cierre, se recarga con lo último guardado.
+  esPrincipal = await reclamarPestana(() => location.reload());
   await load();
   try {
     render();

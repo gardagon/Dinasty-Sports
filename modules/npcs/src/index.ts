@@ -38,6 +38,12 @@ import {
   repartirHerencia,
   practicaSegunTope,
   ventajaDeCrianza,
+  efectosDe,
+  heredarPerks,
+  perksDePadre,
+  rngEstable,
+  type PerksDe,
+  type FamilyService,
   type Practica,
   type RasgosDe,
   rasgosAlAzar,
@@ -119,6 +125,8 @@ export interface Npc {
   edades?: [number, number];
   /** Puntuación típica de estatura (hermanos y padres, que la heredan); el resto la saca de un hash de su id (`estaturaZ`). */
   estatura?: number;
+  /** Perks (rasgos genéticos especiales) de rivales y hermanos: se les asignan al crearlos; no se enseñan (revelarlos es cosa de los eventos o de un personaje muy perspicaz). */
+  perks?: PerksDe;
   /** Padres: índice de su profesión (`OFICIOS_DE_PADRES`), según la semilla de la partida. */
   oficio?: number;
   /** Lo que el personaje ha averiguado preguntando (se suma a lo que sabe por defecto). */
@@ -130,6 +138,8 @@ export interface Npc {
 
 export interface NpcsState {
   npcs: Npc[];
+  /** ¿Ya se ha aplicado a los hermanos la ventaja de crianza (lo que practicaron los padres del personaje)? Se hace el primer día. */
+  crianzaAplicada?: boolean;
 }
 
 const NOMBRES: Record<Gender, string[]> = {
@@ -185,6 +195,17 @@ export const desarrolloRival = (edad: number): number => 0.75 * factorPorEdad('f
 export const edadNpc = (n: Npc, primerDiaDelCurso: number): number | undefined =>
   n.nacimiento === undefined ? undefined : edadDeCompeticion(n.nacimiento, primerDiaDelCurso);
 
+/** Los topes con el efecto de los perks activos (cada uno en su capacidad física, entre 0 y 100). */
+const conPerks = (topes: readonly number[], perks: PerksDe): number[] => {
+  const efecto = efectosDe(perks.activos).tope;
+  return topes.map((t, i) => clamp(t + (efecto[FISICAS[i]] ?? 0), 0, 100));
+};
+/** Perks de un rival: se sortean los de sus dos padres y de ahí los suyos, con un generador que solo depende de él (no de la partida). */
+function perksDeRival(id: string, semilla: number): PerksDe {
+  const rng = rngEstable('perks', id, Math.round(semilla * 1000));
+  return heredarPerks(perksDePadre(rng), perksDePadre(rng), rng);
+}
+
 /**
  * Un rival de una edad dada. "Herencia": unos tienen más potencial y otros salen con ventaja o con otro ritmo de
  * desarrollo, pero a ninguna edad se alcanza el potencial: el techo es potencial × madurez de esa edad.
@@ -203,7 +224,9 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
   // más una aptitud propia. Lo que sus padres practicaron le da ventaja de partida.
   const reparto = repartirHerencia(FISICAS, rng);
   const heredadas = FISICAS.map((id) => heredarTope(padres[reparto[id]].topes[id], rng));
-  const potencial = clamp(mediaDe(heredadas) * (1 + APTITUD_ATLETISMO * (rng.next() * 2 - 1)), 20, 95);
+  // Sus perks salen de los de sus padres (que se sortean aparte, con un generador estable, para no cambiar el azar de lo demás) y suben o bajan sus topes.
+  const perks = perksDeRival(`rival_${num}`, mediaDe(heredadas));
+  const potencial = clamp(mediaDe(conPerks(heredadas, perks)) * (1 + APTITUD_ATLETISMO * (rng.next() * 2 - 1)), 20, 95);
   const ventaja = ventajaDeCrianza(padres.padre.practica, padres.madre.practica);
   const desfase = clamp(rng.normal() * 0.7, -1.2, 1.2);
   // Nace en un día cualquiera del año que le corresponde a su edad de competición en el curso que empieza en `day`.
@@ -220,6 +243,7 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Se
     padres,
     rasgos: rasgosAlAzar(rng, { sesgoCaracter: { ambicion: 8, agresividad: 5, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] }),
     potential: { atletismo: potencial },
+    perks,
     ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
     nacimiento,
     desfase,
@@ -279,6 +303,11 @@ const PROFESOR_DE_ASIGNATURA: Readonly<Record<string, number>> = {
   'estudios.fisica_quimica': 9, 'estudios.fisica': 9, 'estudios.quimica': 9,
   'estudios.filosofia': 10, 'estudios.latin': 10,
   'estudios.historia': 11, 'estudios.historia_espana': 11, 'estudios.historia_arte': 11,
+};
+/** Las asignaturas (ids de las stats) que da un profesor (`profesor_N`), a partir de `PROFESOR_DE_ASIGNATURA`. */
+const asignaturasDe = (id: string): string[] => {
+  const numero = Number(/^profesor_(\d+)$/.exec(id)?.[1]);
+  return numero ? Object.entries(PROFESOR_DE_ASIGNATURA).filter(([, n]) => n === numero).map(([stat]) => stat) : [];
 };
 const ASIGNATURAS_DE_PROFESORES = ['Lengua', 'Matemáticas', 'Inglés', 'Educación física', 'Ciencias', 'Ciencias sociales', 'Artística y música', 'Tecnología', 'Física y química', 'Filosofía', 'Historia'];
 /** Posiciones (dentro de su grupo) de los alumnos que forman el equipo de atletismo del colegio: 4 + 4 + 8 = 16. */
@@ -422,7 +451,9 @@ function hermanos(ctx: InitContext, usados: Set<string>): Npc[] {
     const reparto = repartirHerencia(FISICAS, rng);
     const topes = { padre, madre };
     const heredadas = FISICAS.map((id) => heredarTope(topes[reparto[id]][id] ?? 62, rng));
-    const potencial = clamp(mediaDe(heredadas) * (1 + APTITUD_ATLETISMO * (rng.next() * 2 - 1)), 20, 95);
+    // Perks: heredados de los mismos padres que los del personaje (con un generador propio de cada hermano).
+    const perks = heredarPerks(ctx.perksDePadres.padre, ctx.perksDePadres.madre, rngEstable('perks', ctx.seed, `hermano_${i + 1}`));
+    const potencial = clamp(mediaDe(conPerks(heredadas, perks)) * (1 + APTITUD_ATLETISMO * (rng.next() * 2 - 1)), 20, 95);
     const desfase = clamp(rng.normal() * 0.7, -1.2, 1.2);
     const edad = EDAD_DE_INICIO + dif;
     const nacimiento = primerDiaDelAnio(anioNatural(0) - edad) + rng.int(0, 364);
@@ -439,6 +470,7 @@ function hermanos(ctx: InitContext, usados: Set<string>): Npc[] {
       tags: compite ? ['hermano', 'atleta'] : ['hermano'],
       levels: (compite ? { atletismo: nivelInicialDeHermano(potencial, edadReal, desfase, rng) } : {}) as Record<string, number>,
       potential: { atletismo: potencial },
+      perks,
       ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
       nacimiento,
       // Estatura: parecida a la de sus padres (media de los dos, algo atenuada) más una variación propia.
@@ -660,6 +692,8 @@ const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
     clase: claseDe(n, age),
     ...(n.nacimiento === undefined ? {} : (() => { const o = ocupacionDe(n, edadCumplida(n.nacimiento, hoy)); return { profesion: o.profesion, profesionBasica: o.basica, trabajo: o.trabajo }; })()),
     ...(n.edades ? { edades: n.edades } : {}),
+    ...(n.role === 'profesor' ? { asignaturas: asignaturasDe(n.id) } : {}),
+    ...(n.perks ? { perks: { activos: [...n.perks.activos], pool: [...n.perks.pool] } } : {}),
     sabe,
     ...(sabe.includes('gustos') && n.rasgos ? { gustos: gustosDe(n.rasgos.intereses) } : {}),
   };
@@ -804,22 +838,31 @@ export const npcs = defineModule<NpcsState>({
   on: {
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as { day: number };
+      // Los hermanos se crían en la misma casa: lo que practicaron los padres del personaje les da ventaja de partida, como a los rivales.
+      const padres = ctx.service<FamilyService>(SERVICES.familia)?.parents();
+      const ventaja = padres?.length === 2 ? ventajaDeCrianza(padres.find((p) => p.id === 'padre')!.practica, padres.find((p) => p.id === 'madre')!.practica) : 1;
+      const primerDia = !ctx.state<NpcsState>().crianzaAplicada;
       ctx.updateState<NpcsState>((s) => ({
+        crianzaAplicada: true,
         npcs: s.npcs.map((n) => {
           const levels = { ...n.levels };
           const edad = n.nacimiento === undefined ? undefined : (day - n.nacimiento) / 365;
+          const conVentaja = (nivel: number): number => Math.min(nivel * ventaja, (n.potential.atletismo ?? 80) * desarrolloRival((edad ?? 0) + (n.desfase ?? 0)));
           // Un hermano pequeño empieza a practicar atletismo al cumplir 8 años.
           if (edad !== undefined && edad >= EDAD_DE_INICIO && n.tags.includes('hermano') && levels.atletismo === undefined) {
-            levels.atletismo = nivelInicialDeHermano(n.potential.atletismo ?? 60, edad, n.desfase ?? 0, ctx.rng);
+            levels.atletismo = conVentaja(nivelInicialDeHermano(n.potential.atletismo ?? 60, edad, n.desfase ?? 0, ctx.rng));
             return { ...n, levels, tags: [...n.tags, 'atleta'] };
           }
+          // El primer día, los hermanos que ya compiten reciben la ventaja (los que empiecen después, al empezar).
+          if (primerDia && n.tags.includes('hermano') && levels.atletismo !== undefined) levels.atletismo = conVentaja(levels.atletismo);
           for (const [k, v] of Object.entries(levels)) {
             const pot = n.potential[k] ?? 80;
             // El techo de cada edad es el potencial por el desarrollo físico de esa edad: sin edad, el potencial entero.
             const techo = edad === undefined ? pot : pot * desarrolloRival(edad + (n.desfase ?? 0));
             const ritmo = n.ritmo?.[k] ?? 1;
             // Progresan con rendimientos decrecientes hacia el techo de su edad.
-            if (v < techo) levels[k] = Math.min(techo, v + ctx.rng.range(0, 0.35) * (1 - v / techo) * 2 * ritmo);
+            // Su suerte de cada día es solo suya (id, disciplina y día): no cambia con lo que haga el jugador.
+            if (v < techo) levels[k] = Math.min(techo, v + rngEstable('progreso', n.id, k, day).range(0, 0.35) * (1 - v / techo) * 2 * ritmo);
           }
           return { ...n, levels };
         }),

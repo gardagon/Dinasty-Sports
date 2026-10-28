@@ -87,6 +87,10 @@ Para estudiar (y, más adelante, entrenar) con alguien se le **propone un día y
 - Proponer para hoy exige 1 hora de antelación (`PLAN.antelacion`: hasta las 16:00).
 - Los planes pendientes se ven en el panel «Planes» de «Qué hacer». Se guardan unos días tras cumplirse (para el margen).
 
+### Tutorías (28/10)
+
+Para estudiar con ayuda de un profesor no hace falta un tutor concreto: «Pedir tutoría de lengua» (`estudios.tutoria_<asignatura>`, 30 min) vale con **cualquier profesor de esa asignatura que ya conozcas** (se presentan al ir a su primera clase) **y esté disponible** (en el colegio y no dando clase: sala de profesores, entrada o patio). La acción te lleva a donde esté. Sube la asignatura la mitad que 90 minutos de estudio y se puede una vez al día por asignatura. Es una acción de `estudios` (usa la presencia y las asignaturas que da cada profesor, `NpcView.asignaturas`), no de las de relación: no cambia la afinidad. Hablar con el tutor sigue siendo «Hablar».
+
 ## 4. El vínculo
 
 **Estados** (afinidad; el confianza y los contactos recientes se exigen para subir; salir de un estado exige cruzar el umbral con un margen de 8 para que no parpadee):

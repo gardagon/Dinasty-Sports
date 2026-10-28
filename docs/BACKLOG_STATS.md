@@ -138,7 +138,7 @@ Ocho ejes de −50 a +50: disciplinado↔rebelde, honesto↔manipulador, ambicio
 | E5.4 ✅ | Bonus de perk sobre el tope: `techo = min(100, tope + bonus)` | Hecho el 24/10 (`ctx.bonusDeTope`); las habilidades y asignaturas derivadas se recalculan |
 | E5.5 ✅ | **Herencia unificada:** pool único de los dos padres, cada perk se tira por separado (40 % activo, 20 % en el pool, 1 % espontáneo), sin opuestos y con tope de 3 | Decidido el 24/10. Ajustar con pruebas |
 | E5.6 | Efectos pendientes: Suertudo y Gafe (ramas por evento), Recuperación rápida y lenta (lesiones, E12), agarre y alta densidad (deportes de equipo), Ambidiestro y Mano de palo | Esperan eventos, lesiones o deportes de equipo |
-| E5.7 | Perks en los rivales y en los hijos del personaje (ciclo de generaciones) | Hoy los rivales no llevan perks |
+| E5.7 ✅ (parcial) | Perks en los rivales y en los hijos del personaje (ciclo de generaciones) | **28/10:** asignados a rivales y hermanos (sin revelar; no se enseñan). Faltan los hijos del personaje (ciclo de generaciones) y que alguien muy perspicaz los vea (E3.4/E5.3) |
 
 ## E6 · Académico — 🟡 · Fidelidad: baja
 
@@ -164,7 +164,7 @@ Posiciones (16), roles (42), experiencia por posición/rol con afinidad, fórmul
 | ID | Tarea | Notas |
 |---|---|---|
 | E8.1 ✅ | **Topes genéticos desde los padres (rehecho el 23/10 con el modelo de Godot):** cada padre tiene un perfil de topes por capacidad en cuatro bandas (débil 35–50, normal 50–70, fuerte 70–85, destacado 85–95); con la dificultad normal, 0–1 débiles, 1–2 fuertes y 0–1 destacadas y el resto normales (tope típico ~62). El hijo hereda **cada capacidad de UN solo padre**: la mitad exacta de las capacidades del padre y la otra mitad de la madre, al azar cuáles, con el tope de ese padre ±20 %. No hay punto intermedio | `heredarTope`, `perfilDePadre` y `repartirHerencia` en contracts; `Game.parentPotential` y `Game.geneticOrigin` para pruebas. Sustituye al reparto 60/40 con mezcla |
-| E8.10 ✅ | **Hermanos (25/10):** de 0 a 3, hijos de los mismos padres con la misma herencia que el personaje; viven en `npcs` (rol `familia`), practican atletismo y progresan y compiten solos; aparecen en la ficha de familia y en la lista de personas, con acciones de relación y un vínculo familiar que empieza en positivo | Ver DECISIONES del 25/10. Pendiente: perks y ventaja de crianza, que se vayan de casa a los 18, su efecto en la vida del personaje (E20.8), otros deportes |
+| E8.10 ✅ | **Hermanos (25/10):** de 0 a 3, hijos de los mismos padres con la misma herencia que el personaje; viven en `npcs` (rol `familia`), practican atletismo y progresan y compiten solos; aparecen en la ficha de familia y en la lista de personas, con acciones de relación y un vínculo familiar que empieza en positivo | Ver DECISIONES del 25/10. **28/10:** ventaja de crianza y perks hechos. Pendiente: que se vayan de casa a los 18, su efecto en la vida del personaje (E20.8), otros deportes |
 | E8.2 ✅ | Altura heredada: la media de los dos padres más una variación (estatura sí se promedia) | `ctx.herencia('estatura')` en el contexto de creación |
 | E8.3 ✅ | **Rivales con padres completos:** cada rival tiene padre y madre con perfil de topes físicos y deporte practicado; hereda como el personaje (mitad de cada padre ±20 %) y su tope de atletismo es la media más una aptitud propia (±15 %). Lo que practicaron los padres le da ventaja de partida (×0,95 a ×1,10) | Los padres pueden no haber practicado deporte: es lo más frecuente |
 | E8.4 ✅ | Interfaz de pruebas: tabla de topes de padre y madre (la flecha marca de cuál se hereda), tope propio y datos de los padres. **Se oculta al pasar a beta** (`MOSTRAR_GENETICA` en `apps/web/src/main.ts`) | Decidido el 23/10 |
@@ -312,7 +312,7 @@ Solo si se quiere: cuotas, material, viajes y, en la fase profesional, sueldo y 
 
 ## E17 · Técnica — 🟢
 
-Generador de azar propio para los rivales; migración de partidas guardadas; rendimiento con diez años simulados; Capacitor si se quiere app de tienda. **Migración de guardados al salir de la alfa** (hoy `SAVE_VERSION` se sube y se descartan; ver `DECISIONES.md` del 24/10).
+~~Generador de azar propio para los rivales~~ (hecho el 28/10: progreso y marcas); migración de partidas guardadas; rendimiento con diez años simulados; Capacitor si se quiere app de tienda. **Migración de guardados al salir de la alfa** (hoy `SAVE_VERSION` se sube y se descartan; ver `DECISIONES.md` del 24/10).
 
 ## E18 · Eventos y decisiones — 🟢 el motor, ⏸ el contenido
 

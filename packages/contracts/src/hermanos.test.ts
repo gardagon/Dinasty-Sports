@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Rng } from './rng';
+import { rngEstable, type Rng } from './rng';
+import { conocimientoDeCrianza } from './herencia';
 import { DIFERENCIA_MAXIMA_DE_EDAD, apellidosDeFamilia, apellidosDePadres, diferenciasDeEdad, identidadDeJugador, numeroDeHermanos } from './hermanos';
 
 function createRng(semilla: number): Rng {
@@ -89,5 +90,28 @@ describe('identidad del personaje al crear la partida', () => {
     }
     expect(nombres.size).toBeGreaterThan(15);
     expect(apellidos.size).toBe(12);
+  });
+});
+
+describe('azar estable', () => {
+  it('es el mismo para las mismas partes y distinto si cambia cualquiera; separa las partes', () => {
+    const a = Array.from({ length: 5 }, () => 0).map(() => 0);
+    const secuencia = (...partes: (string | number)[]) => { const r = rngEstable(...partes); return a.map(() => r.next()); };
+    expect(secuencia('perks', 'rival_3', 7)).toEqual(secuencia('perks', 'rival_3', 7));
+    expect(secuencia('perks', 'rival_3', 7)).not.toEqual(secuencia('perks', 'rival_3', 8));
+    expect(secuencia('perks', 'rival_3', 7)).not.toEqual(secuencia('perks', 'rival_4', 7));
+    expect(secuencia('ab', 'c')).not.toEqual(secuencia('a', 'bc'));
+    for (const x of secuencia('x')) { expect(x).toBeGreaterThanOrEqual(0); expect(x).toBeLessThan(1); }
+  });
+});
+
+describe('conocimiento que viene de casa', () => {
+  it('crece con lo que practicaron los padres, más si fue el mismo deporte, y no pasa de 20', () => {
+    const ninguno = { practica: 'ninguna' as const };
+    expect(conocimientoDeCrianza([ninguno, ninguno], 'atletismo')).toBe(0);
+    expect(conocimientoDeCrianza([{ practica: 'aficionado', deporte: 'atletismo' }, ninguno], 'atletismo')).toBe(4);
+    expect(conocimientoDeCrianza([{ practica: 'federado', deporte: 'atletismo' }, ninguno], 'atletismo')).toBe(8);
+    expect(conocimientoDeCrianza([{ practica: 'federado', deporte: 'tenis' }, ninguno], 'atletismo')).toBe(2.8);
+    expect(conocimientoDeCrianza([{ practica: 'profesional', deporte: 'atletismo' }, { practica: 'profesional', deporte: 'atletismo' }], 'atletismo')).toBe(20);
   });
 });

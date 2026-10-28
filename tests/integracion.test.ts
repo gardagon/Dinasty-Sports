@@ -1236,6 +1236,39 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     }
   });
 
+  it('tutoría: se pide al profesor de la asignatura que esté disponible (no dando clase) y que ya conoces; una al día', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(dir(g).get('profesor_1')!.asignaturas).toEqual(['estudios.lengua']);
+    expect(dir(g).get('tutor')!.asignaturas).toEqual([]);
+    // Sin conocerlo no se le puede pedir.
+    advanceUntil(g, 'gen.esperar', (t) => t.weekday === 0 && t.minuteOfDay >= 14 * 60 + 30);
+    expect(g.preview('estudios.tutoria_lengua')!.reason).toMatch(/Todavía no conoces al profesor de lengua/);
+    const s = g.serialize();
+    (s.modules.npcs as NpcsState).npcs.find((n) => n.id === 'profesor_1')!.known = true;
+    const g2 = cargarPartida(s);
+    // En clase (a media mañana) no hay profesor disponible; a primera hora de la tarde sí.
+    const presencia = () => g2.service<PresenciaService>(SERVICES.presencia)!;
+    expect(presencia().donde('profesor_1')).not.toBeNull();
+    expect(posible(g2, 'estudios.tutoria_lengua')).toBe(true);
+    expect(g2.preview('estudios.tutoria_lengua')!.lugar).toEqual([presencia().donde('profesor_1')]);
+    const antes = g2.stat('estudios.lengua');
+    expect(hacer(g2, 'estudios.tutoria_lengua').ok).toBe(true);
+    expect(g2.stat('estudios.lengua')).toBeGreaterThan(antes);
+    expect(g2.log.some((l) => /te dedica un rato de tutoría de lengua/.test(l.text))).toBe(true);
+    expect(g2.preview('estudios.tutoria_lengua')!.reason).toBe('Ya has tenido tutoría de esta asignatura hoy');
+  });
+
+  it('no hay tutoría mientras el profesor da clase', () => {
+    const g = nuevaPartida({ seed: 31 });
+    const s = g.serialize();
+    (s.modules.npcs as NpcsState).npcs.find((n) => n.id === 'profesor_1')!.known = true;
+    const g2 = cargarPartida(s);
+    advanceUntil(g2, 'gen.esperar', (t) => t.weekday === 1 && t.minuteOfDay >= 12 * 60 + 41); // en clase hasta las 13:55: profesor_1 está ocupado
+    const lugar = g2.service<PresenciaService>(SERVICES.presencia)!.donde('profesor_1');
+    if (lugar === null) expect(g2.preview('estudios.tutoria_lengua')!.reason).toMatch(/Ahora no hay ningún profesor de lengua disponible/);
+    expect(lugar).toBeNull(); // si no, el test no comprueba nada
+  });
+
   it('cada club de fuera tiene entrenadores por edades (alguno lleva varias categorías) y se presenta el que lleva tu edad', () => {
     const g = nuevaPartida({ seed: 31 });
     const delClub = (club: string) => dir(g).list({ role: 'entrenador' }).filter((n) => n.club === club);
@@ -1247,6 +1280,30 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
       expect(n.profesionBasica).toMatch(/^Entrenador/);
       expect(n.known).toBe(false);
     }
+  });
+
+  it('pedir consejo al entrenador: una vez al día, solo cuando está libre, y sube el conocimiento y un poco una habilidad', () => {
+    const g = nuevaPartida({ seed: 31 });
+    expect(g.preview('atletismo.pedir_consejo')!.reason).toMatch(/apúntate a un club/);
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15); // miércoles: sesión del club del colegio de 15:00 a 17:00
+    hacer(g, 'atletismo.apuntarse_colegio');
+    advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 16 * 60);
+    // En plena sesión el entrenador está ocupado.
+    expect(g.preview('atletismo.pedir_consejo')!.available).toBe(false);
+    expect(g.preview('atletismo.pedir_consejo')!.reason).toMatch(/no está disponible/);
+    advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 17 * 60 + 1);
+    const antes = { conocimiento: g.stat('atletismo.conocimiento'), habilidad: g.stat('atletismo.ritmo') + g.stat('atletismo.tecnica') + g.stat('atletismo.salida') };
+    expect(posible(g, 'atletismo.pedir_consejo')).toBe(true);
+    expect(g.preview('atletismo.pedir_consejo')!.lugar).toEqual(['pista_colegio']);
+    expect(hacer(g, 'atletismo.pedir_consejo').ok).toBe(true);
+    expect(g.stat('atletismo.conocimiento')).toBeGreaterThan(antes.conocimiento);
+    expect(g.stat('atletismo.ritmo') + g.stat('atletismo.tecnica') + g.stat('atletismo.salida')).toBeGreaterThan(antes.habilidad);
+    expect(g.log.some((l) => /te da un consejo para mejorar tu/.test(l.text))).toBe(true);
+    expect(g.preview('atletismo.pedir_consejo')!.reason).toBe('Ya le has pedido consejo hoy');
+    // Hablar con él sigue subiendo solo la relación: no toca el conocimiento.
+    const c = g.stat('atletismo.conocimiento');
+    if (g.preview('relaciones.hablar.entrenador')?.available) g.perform('relaciones.hablar.entrenador');
+    expect(g.stat('atletismo.conocimiento')).toBeCloseTo(c, 6);
   });
 
   it('en la pestaña del deporte salen tu entrenador, los días de entreno y las carreras', () => {
@@ -1436,5 +1493,78 @@ describe('siesta, jugar y entrenar con el club', () => {
       expect(h.stat('atletismo.tecnica')).toBeGreaterThan(antes);
       expect(h.time.minuteOfDay).toBe(17 * 60);
     });
+  });
+});
+
+describe('herencia de casa: ventaja de crianza, conocimiento y perks', () => {
+  const dir = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!;
+  /** Una partida igual a la de la semilla pero con la práctica de los padres cambiada (y su deporte). */
+  const conPadres = (practica: 'ninguna' | 'profesional', deporte?: string) => {
+    const g = nuevaPartida({ seed: 31 });
+    const s = g.serialize();
+    for (const p of (s.modules.familia as { padres: { practica: string; deporte?: string }[] }).padres) {
+      p.practica = practica;
+      if (deporte) p.deporte = deporte;
+      else delete p.deporte;
+    }
+    return cargarPartida(s);
+  };
+  const hermanoQueCompite = (g: Game) => dir(g).list({ tag: 'hermano' }).find((h) => h.levels.atletismo !== undefined);
+
+  it('los hermanos que ya compiten reciben el primer día la ventaja de crianza que dan los padres (como los rivales)', () => {
+    const ninguna = conPadres('ninguna');
+    const profesional = conPadres('profesional', 'atletismo');
+    const antes = hermanoQueCompite(ninguna)!;
+    expect(antes).toBeDefined();
+    advanceTo(ninguna, 'gen.descansar', 1, 8);
+    advanceTo(profesional, 'gen.descansar', 1, 8);
+    const sin = dir(ninguna).get(antes.id)!.levels.atletismo;
+    const con = dir(profesional).get(antes.id)!.levels.atletismo;
+    // De ×0,95 (padres sin deporte) a ×1,10 (los dos profesionales): ~16 % más, salvo que el techo de su edad lo recorte.
+    expect(con).toBeGreaterThan(sin);
+    expect(con / sin).toBeLessThanOrEqual(1.1 / 0.95 + 0.01);
+  });
+
+  it('si los padres practicaron atletismo, el personaje empieza sabiendo algo del deporte; si no, nada', () => {
+    const base = conPadres('ninguna');
+    const atletas = conPadres('profesional', 'atletismo');
+    const futbol = conPadres('profesional', 'fútbol');
+    for (const g of [base, atletas, futbol]) advanceTo(g, 'gen.descansar', 1, 8);
+    const k = (g: Game) => g.stat('atletismo.conocimiento');
+    expect(k(atletas)).toBeGreaterThan(k(futbol));
+    expect(k(futbol)).toBeGreaterThan(k(base));
+    expect(atletas.log.some((l) => /oyendo hablar de atletismo/.test(l.text))).toBe(true);
+    expect(base.log.some((l) => /oyendo hablar de atletismo/.test(l.text))).toBe(false);
+  });
+
+  it('lo que hace el jugador (competir, entrenar...) no cambia a los rivales: su suerte es solo suya', () => {
+    const nivelesDe = (g: Game) => Object.fromEntries(dir(g).list({ role: 'rival' }).map((n) => [n.id, n.levels.atletismo]));
+    const a = nuevaPartida({ seed: 31 });
+    const b = nuevaPartida({ seed: 31 });
+    // B corre una carrera y entrena (usan el azar de la partida); A no hace nada.
+    advanceToWeek(b, 'gen.descansar', 6, 5, 9); // sábado de la semana 6 (pretemporada terminada)
+    expect(hacer(b, 'atletismo.carrera').ok).toBe(true);
+    advanceUntil(a, 'gen.descansar', (t) => t.day >= 60, 5000);
+    advanceUntil(b, 'gen.descansar', (t) => t.day >= 60, 5000);
+    expect(nivelesDe(b)).toEqual(nivelesDe(a));
+    // Y sí progresan: a los 60 días están por encima de donde empezaron.
+    const c = nuevaPartida({ seed: 31 });
+    const antes = nivelesDe(c);
+    expect(Object.keys(antes).some((id) => nivelesDe(a)[id]! > antes[id]!)).toBe(true);
+  });
+
+  it('rivales y hermanos tienen perks asignados (sin enseñarse), válidos y estables para una semilla', () => {
+    const a = nuevaPartida({ seed: 31 });
+    const b = nuevaPartida({ seed: 31 });
+    const rivales = dir(a).list({ role: 'rival' });
+    expect(rivales.every((r) => r.perks)).toBe(true);
+    for (const n of [...rivales, ...dir(a).list({ tag: 'hermano' })]) {
+      expect(n.perks!.activos.length).toBeLessThanOrEqual(3);
+      expect(new Set([...n.perks!.activos, ...n.perks!.pool]).size).toBe(n.perks!.activos.length + n.perks!.pool.length);
+    }
+    expect(rivales.map((r) => r.perks)).toEqual(dir(b).list({ role: 'rival' }).map((r) => r.perks));
+    // Con 96 rivales, algunos tienen algún perk y otros no.
+    expect(rivales.some((r) => r.perks!.activos.length > 0)).toBe(true);
+    expect(rivales.some((r) => r.perks!.activos.length === 0)).toBe(true);
   });
 });

@@ -57,6 +57,10 @@ export interface NpcView {
   trabajo?: string;
   /** Qué le gusta (nombres de sus intereses, de más a menos). Solo viene si el personaje se lo ha preguntado (`sabe` incluye `gustos`). */
   gustos?: readonly string[];
+  /** Perks (rasgos genéticos especiales) de rivales y hermanos, asignados al crearlos. La interfaz no los enseña: verlos es cosa de los eventos o de un personaje muy perspicaz (E3.4/E5.3). */
+  perks?: { activos: string[]; pool: string[] };
+  /** Profesorado: ids de las asignaturas (las stats, p. ej. `estudios.lengua`) que da; con ellas se pide tutoría. Vacío en el tutor y en quien no da asignaturas. */
+  asignaturas?: readonly string[];
   /** Entrenadores: edades de los deportistas a los que entrenan (ambas incluidas). */
   edades?: readonly [number, number];
   /** Lo que el personaje sabe de esta persona (por defecto o porque se lo ha preguntado). */

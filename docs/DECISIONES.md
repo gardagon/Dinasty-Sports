@@ -5,6 +5,24 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/10/2026 — Herencia de casa, pedir consejo, tutorías, azar propio de los rivales y una sola pestaña que guarda
+
+Decidido con el usuario al contestar a las explicaciones de los «problemas pequeños».
+
+- **Hermanos, ventaja de crianza y conocimiento de casa.**
+  - Los hermanos reciben la **ventaja de crianza** (×0,95 a ×1,10 según lo que practicaron los padres del personaje: `ventajaDeCrianza`), igual que los rivales. Se aplica el **primer día** de la partida (lo lee del servicio `familia`; los que empiezan a competir a los 8 años la reciben al empezar) y no puede superar el techo de su edad. Antes no la tenían.
+  - **El personaje empieza sabiendo algo del deporte si sus padres lo practicaron** (`conocimientoDeCrianza`, `CONOCIMIENTO_DE_CRIANZA`): por cada padre, aficionado +4, federado +8, profesional +14 de conocimiento de atletismo, **del todo si su deporte fue el atletismo y un tercio si fue otro** (cultura deportiva); como mucho +20. Se suma el primer día y sale una línea en el diario («Has crecido oyendo hablar de atletismo en casa…»). El conocimiento es el bonus/malus táctico de la carrera (×0,90 a ×1,15).
+  - **Perks asignados a rivales y hermanos** (sin enseñarlos): los hermanos los heredan de los mismos padres que el personaje (`heredarPerks`) y los rivales de unos padres propios sorteados (`perksDePadre`), como máximo 3 activos. Sus perks suben o bajan sus topes físicos (y por tanto su potencial). Para no cambiar el azar de lo demás se sortean con un generador estable (`rngEstable`) que depende solo de la persona. Están en `NpcView.perks` y **la interfaz no los enseña**: decidido que revelarlos no tiene sentido salvo que el personaje sea muy inteligente (E3.4) o un evento los revele (E5.3).
+  - **Futuro (eventos y otros PNJs):** que se vayan de casa a los 18, que su vida afecte a la del personaje, otros deportes, entrenar juntos y comer y dormir con ellos se tratan como con cualquier otro PNJ, cuando haya motor de eventos.
+- **«Pedir consejo» al entrenador** (`atletismo.pedir_consejo`, grupo «Entrenar atletismo»): 15 minutos, **una vez al día**, solo con tu entrenador (el de tu club que lleva tu edad y que ya conoces) y cuando está libre en su sede (la pista del colegio o el estadio): antes o después de la sesión, no durante. Sube el **conocimiento** (+1) y **muy poco una habilidad** (+0,3 de técnica, ritmo o salida, por turnos según el día). **Hablar con él sigue subiendo solo la afinidad.**
+- **Tutorías con cualquier profesor** (`estudios.tutoria_<asignatura>`, grupo «Estudiar»): 30 minutos; sube esa asignatura la mitad que una sesión de estudio (`RENDIMIENTO_TUTORIA`), una vez al día por asignatura. Ya **no hace falta un tutor concreto**: vale cualquier profesor de la asignatura que ya conozcas (se presentan al ir a su primera clase) y que esté **disponible** (en su sitio y no dando clase: sala de profesores, entrada o patio, normalmente de 14:00 a 17:00 y en el recreo). La acción te lleva a donde esté. Los profesores tienen ahora `NpcView.asignaturas` (el tutor no da asignatura).
+- **Azar propio de los rivales (probado y adoptado).** Antes, sus tiradas salían del generador de la partida: lo que hacía el jugador (competir, por ejemplo) movía la secuencia y, con la misma semilla, **los 96 rivales acababan con niveles distintos** según cómo jugaras (hasta 0,5 puntos de nivel en 90 días). Ahora su progreso diario y su marca en cada carrera salen de un generador propio (`rngEstable`: su id, la disciplina y el día o la semana). Resultado medido: **0 de 96 rivales difieren** entre un bot vago y uno atleta; la media por edad queda igual (p. ej. 10 años: 20,9 → 20,8). Un test lo vigila (falla con el azar compartido). Quedan con el generador compartido la elección de qué rivales corren y la suerte del propio jugador.
+  - **Idea futura del usuario (sin hacer):** una lista de **roles asociados a los ejes de carácter** (los 8 ejes), de modo que una tirada de un personaje sea menos aleatoria y más acorde con lo que haría (p. ej. alguien muy disciplinado no falta a un plan; uno agresivo discute más). Encajaría con el motor de eventos (E18) y la personalidad que mueve decisiones (E4.3).
+- **Balance:** `npm run sim` (365 días × 3 semillas) con todos los chequeos ✅; el atleta pasa de 20 % a 16 % de victorias y de 52 % a 51 % de podios (rivales con perks y suerte propia; sigue dentro de lo esperado), `sim:notas` sin cambios y `sim:vida` sin problemas.
+- **Una sola pestaña guarda** (`apps/web/src/pestana.ts`, `navigator.locks`): la primera pestaña se queda el derecho de guardar; otra pestaña con la misma partida avisa («Esta partida está abierta en otra pestaña: aquí no se guarda nada») y no guarda ni deja borrar o empezar una nueva; cuando la primera se cierra, la segunda se **recarga sola** con lo último guardado. Sin la API de bloqueos se guarda como siempre. Probado con dos pestañas reales.
+
+---
+
 ## 28/10/2026 — Menú de inicio, nueva partida con nombre y apellidos, planes en la biblioteca, aviso de faltas y compañía que estorba
 
 Decidido con el usuario al repasar los «problemas pequeños».
@@ -377,7 +395,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
 - **«Gente»:** las pestañas distintas de «Aquí» solo guardan a quienes ya conoces. A quien no conoces solo lo ves en «Aquí» (cuando lo tienes cerca).
 - **Desaparecen los perfiles de apoyo** (`supports`, «Si os lleváis bien te ayuda en…» y el modificador `relaciones.apoyo`). En su lugar, **ayuda según lo que sabe hacer cada persona** (`aptitudDe`: estudio, social, deporte, a partir de carácter, intereses y nivel) en lo que hacéis juntos: nueva acción «Estudiar con…» y mejora de «Quedar» y «Hacer planes» con el modificador `relaciones.compania` (hasta +30 %, proporcional a la afinidad y a lo bueno que sea en esa área). Si no es bueno en eso no ayuda; que estorbe (hasta peor) queda para más adelante. El entrenador sigue reaccionando a los resultados por su etiqueta de deporte.
 - **Balance:** `npm run sim` antes y después: el equilibrado baja en estudios de 45,5 a 41,6 (ya no se beneficia del apoyo del compañero aplicado en todo lo que estudia), el resto casi igual y todos los chequeos ✅. Los bots no estudian con nadie todavía.
-- **Hecho después:** entrenadores propios de los clubes de fuera (`ENTRENADORES_DE_CLUBES`, 5). **Sigue pendiente:** entrenar con alguien (área deporte, hoy sin acción), que quien no sabe pueda estorbar, tutorías del tutor como acción propia más allá de «Hablar».
+- **Hecho después:** entrenadores propios de los clubes de fuera (`ENTRENADORES_DE_CLUBES`, 5). **Sigue pendiente:** entrenar con alguien (área deporte, hoy sin acción). Hechos después (28/10): que quien no sabe estorbe y las tutorías (con cualquier profesor, ya sin tutor concreto).
 
 ## 26/10/2026 — Agenda de los hermanos
 
@@ -395,7 +413,7 @@ Inspirado en cómo Course of Temptation trata el movimiento (pantalla por lugar,
   5. **Vínculo:** empiezan en un valor positivo de 5 a 25 según la compatibilidad (intereses y carácter) y la diferencia de edad (−1,5 por año a partir de 3), con confianza 15. Es un vínculo familiar (`Vinculo.familia`): se enfría con el tiempo pero **no baja de 5 por sí solo** (no se olvida a la familia), aunque sí se puede enemistar con discusiones. Apoyan acciones (`supports`: lo social y las etiquetas de su interés favorito) cuando llegan a afinidad 40.
 - **Efectos secundarios:** hacer las paces solo se ofrece cuando hay algo que arreglar (vínculo negativo o intento reciente fallido), lo que limpia la interfaz y reduce el coste; el modificador de apoyo no consulta el directorio si nadie llega a afinidad 40. Año simulado: ~2,4 s (límite 3 s). Los podios del atleta suben a ~23 porque los hermanos suman corredores más flojos.
 - **Estado:** `FamilyService.siblings()` (nuevo); `Vinculo.familia`; `SAVE_VERSION` sube a 7.
-- **Pendiente:** perks y ventaja de crianza de los hermanos; que se vayan de casa al cumplir 18; que su vida afecte a la del personaje (celos, comparaciones, apoyo de los padres, E20.8); que compitan en otros deportes; entrenar juntos.
+- **Hecho después (28/10): perks y ventaja de crianza de los hermanos. Pendiente:** que se vayan de casa al cumplir 18; que su vida afecte a la del personaje (celos, comparaciones, apoyo de los padres, E20.8); que compitan en otros deportes; entrenar juntos.
 
 ---
 
@@ -916,7 +934,7 @@ Adapta E2.3 del backlog: en el diseño original el conocimiento era un **techo**
 - **Ritmo de subida ajustado con la simulación:** con 0,6 un jugador que veía la tele a diario llegaba a 96 en un año; con 0,15 llega a ~63 (el que solo entrena y compite, a ~14; quien deja el deporte se queda en ~14).
 - **Bots:** equilibrado y atleta ven la tele una vez al día. Los demás no (el vago no la elige: no lleva etiqueta de ocio a propósito).
 - **Efecto en la simulación:** los 11 chequeos en verde. Equilibrado: atletismo 67,5 → 67,2 y estudios 76,7 → 75,4 (ver la tele le quita tiempo de estudio). Resto sin cambios apreciables.
-- **Pendiente:** hablar con el entrenador no sube el conocimiento (el módulo de NPCs no puede referenciar stats de un deporte; hace falta un canal por etiquetas); usar el conocimiento para lecturas de "quién sale mejor" y opciones tácticas (necesita el sistema de decisiones); el segundo deporte definirá su propio conocimiento.
+- **Hecho después (28/10):** hablar con el entrenador sigue subiendo solo la afinidad, y para el conocimiento hay una acción propia, «Pedir consejo» (una vez al día). **Pendiente:** usar el conocimiento para lecturas de "quién sale mejor" y opciones tácticas (necesita el sistema de decisiones); el segundo deporte definirá su propio conocimiento.
 
 ---
 
@@ -1013,7 +1031,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Notas:** medido el 28/10 con `npm run sim:notas`: aptitud típica saca 6,6 con ~1 h de estudio al día y 8,1 con 3 h; la brillante, 7,9 y 8,8. Todo dentro de los objetivos; el aviso de «~6,2» es antiguo. Quedan Educación física y Artística por debajo de las demás en quien no entrena coordinación o creatividad.
 - **Conocimiento:** sin techo duro; es malus y bonus sobre lo táctico. Si el efecto (×0,85 a ×1,15) se queda corto, subirlo.
 - **Dificultad al crear la partida (E15.1):** los rangos de calidad de los padres del jugador (fácil, normal, difícil) ya están como dato; falta la pantalla.
-- ~~**Hermanos** con su propia tirada de herencia~~ **Hecho** (0 a 3, `numeroDeHermanos`). Siguen pendientes sus perks y ventaja de crianza.
+- ~~**Hermanos** con su propia tirada de herencia~~ **Hecho** (0 a 3, `numeroDeHermanos`), y desde el 28/10 también su ventaja de crianza y sus perks.
 - ~~**Relaciones, fase 2 de E20**~~ **Hecha** (acciones variadas, intereses y rasgos de los NPCs; ver `ANEXO_RELACIONES.md`). Pendiente de E20: regalos con coste, recuerdos compartidos y consecuencias de discutir.
 - **Nivel alcanzado de los padres** (frente a su tope) y su historia de lesiones: llegará con las lesiones y los eventos.
 
@@ -1029,5 +1047,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Educación Física y Artística (diseño propuesto por el usuario el 28/10):** la nota de Educación Física saldría de las capacidades físicas «para su edad» (no de la media de clase), ir a clase subiría esas capacidades y «Estudiar educación física» desaparecería; Artística dependería de la creatividad, con alguna acción en casa que la suba. Se ve igual en «Estudios» (Mal, Regular, Bien…). Falta decidir y calibrar con `sim:notas`.
 - **Evento de los padres por faltas:** el aviso y el evento `clase.faltas_excesivas` ya existen (a las 12 faltas del trimestre); falta el evento que lo recoja (conversación, castigo...), que espera al motor de eventos.
 - **Planes de estudiar:** la hora sigue fija a las 17:00; se puede elegir casa o biblioteca.
-- **Explicaciones pedidas por el usuario (28/10), sin decidir:** perks y ventaja de crianza de los hermanos, que el entrenador suba el conocimiento al hablar con él, test de la sala de profesores determinista, azar de los rivales con su propio generador y bloqueo de pestañas con `navigator.locks`.
+- **Hermanos:** quedan para eventos que se vayan de casa a los 18, que su vida afecte a la del personaje, otros deportes, entrenar juntos y comer y dormir con ellos (ver la entrada del 28/10). Perks y ventaja de crianza, hechos.
+- **Azar de los rivales:** hecho (progreso y marcas con generador propio). Queda su elección de carrera y una posible tabla de roles por ejes de carácter.
+- **Test de la sala de profesores:** sigue pendiente de dejarlo determinista (la comprobación de la profesión del tutor solo corre si el tutor está en la sala).
 - **Acciones de GitHub:** al día desde el 28/10 (ver la entrada de ese día). Revisar de vez en cuando las versiones (`ci.yml` y `pages.yml`).
