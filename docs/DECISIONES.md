@@ -987,16 +987,16 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Conocimiento:** sin techo duro; es malus y bonus sobre lo táctico. Si el efecto (×0,85 a ×1,15) se queda corto, subirlo.
 - **Dificultad al crear la partida (E15.1):** los rangos de calidad de los padres del jugador (fácil, normal, difícil) ya están como dato; falta la pantalla.
 - ~~**Hermanos** con su propia tirada de herencia~~ **Hecho** (0 a 3, `numeroDeHermanos`). Siguen pendientes sus perks y ventaja de crianza.
-- **Relaciones, fase 2 de E20:** acciones variadas (charlar, ayudar, discutir, hacer las paces), intereses y rasgos de los NPCs.
+- ~~**Relaciones, fase 2 de E20**~~ **Hecha** (acciones variadas, intereses y rasgos de los NPCs; ver `ANEXO_RELACIONES.md`). Pendiente de E20: regalos con coste, recuerdos compartidos y consecuencias de discutir.
 - **Nivel alcanzado de los padres** (frente a su tope) y su historia de lesiones: llegará con las lesiones y los eventos.
 
 - **Consecuencias de la salud muy baja:** ahora el bot que sobreentrena llega a salud 0 sin más castigo que rendir menos. Idea: lesión o baja médica que bloquee entrenar unos días.
 - **Segundo deporte:** validará que la plantilla de deporte funciona sin tocar el motor.
-- **Más vida para los NPCs:** eventos, conversaciones, rivalidades (los 16 rivales de atletismo ya existen y progresan; falta que sean personajes con historia).
+- **Más vida para los NPCs:** eventos, conversaciones, rivalidades (los 96 rivales de atletismo ya existen y progresan, y hay unas 390 personas con horarios en el colegio y el barrio; falta que sean personajes con historia).
 - **Plan de características, personalidad y perks:** ver `BACKLOG_STATS.md`. E1 y E3 (menos E3.4) hechas; siguiente paso a decidir: el sistema de eventos y decisiones, que desbloquea personalidad, perks, autoridad, picardía y las lecturas tácticas.
 - **Modificadores por edad:** hechos (E2.6: `AJUSTE_POR_EDAD_DIARIO`, `CURVAS_POR_EDAD`). Falta que los rivales adultos usen las curvas (E10).
 - **Alimentación y lesiones:** el peso y la complexión dependen solo de hábitos de actividad; falta alimentación como decisión y lesiones ligadas a la constitución.
 - **UI filtrada por inteligencia (E3.4):** hoy la identidad y las stats se ven siempre con todo detalle.
 - **Beca deportiva:** usar el servicio `estudios` (nota media) desde un deporte.
 - **App nativa en el móvil:** la PWA ya se instala desde el navegador; Capacitor solo si hace falta tienda de aplicaciones.
-- **Acciones de GitHub:** actualizar versiones cuando GitHub retire Node 20 en los runners (ahora sale un aviso, no un error).
+- **Acciones de GitHub:** `ci.yml` ya usa `checkout@v6`, `setup-node@v6` y `upload-artifact@v6` (28/10). Falta `pages.yml` (`configure-pages@v5`, `upload-pages-artifact@v3`, `deploy-pages@v4`): comprobar las últimas versiones y actualizarlas con cuidado, porque solo se ejecuta al fusionar en `main`.

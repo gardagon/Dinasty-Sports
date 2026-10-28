@@ -26,7 +26,7 @@ npm run dev        # abre la URL que aparece en la terminal
 | `modules/personaje` | Características genéricas, estado (energía, salud, estrés, motivación) e identidad (edad, altura, peso, complexión), genética heredada de los padres, perks, apariencia, origen, carácter e intereses |
 | `modules/estudios` | Currículo de España por cursos (de 3.º de primaria a 2.º de bachillerato), preparación de cada asignatura con nivel en texto, clases con horario semanal, estudio, dos parciales y un global por trimestre |
 | `modules/atletismo` | Primer deporte: 400 m, categorías de la federación española, entrenamiento libre y con club, carrera los sábados en series de 8, conocimiento del deporte |
-| `modules/npcs` | Entrenador, tutor, compañeros y 96 rivales de atletismo por edad que progresan por su cuenta y se renuevan cada curso |
+| `modules/npcs` | Entrenador, tutor, compañeros, 96 rivales de atletismo por edad que progresan por su cuenta y se renuevan cada curso, y la población del colegio y del barrio (~390 personas con horarios, profesiones y gustos) |
 | `modules/relaciones` | Vínculos con las personas (afinidad, confianza y estado: conocido, amigo, antipatía...) y sus acciones: quedar, charlar, ayudar, hacer planes, tener un detalle, discutir y hacer las paces |
 | `modules/familia` | Padre y madre del personaje (edad, altura, deporte, apoyo y expectativas) y su ficha con los hermanos |
 | `modules/clubes` | Clubes deportivos: el del colegio y los de fuera, con pruebas de acceso |
@@ -36,6 +36,7 @@ npm run dev        # abre la URL que aparece en la terminal
 La arquitectura y cómo añadir módulos están en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 Las decisiones tomadas y lo pendiente, en [`docs/DECISIONES.md`](docs/DECISIONES.md).
 El plan para ampliar características, personalidad y perks, en [`docs/BACKLOG_STATS.md`](docs/BACKLOG_STATS.md).
+Los anexos con las cifras: horarios y población de personas y lugares ([`docs/ANEXO_HORARIOS_PNJ.md`](docs/ANEXO_HORARIOS_PNJ.md)), relaciones ([`docs/ANEXO_RELACIONES.md`](docs/ANEXO_RELACIONES.md)) y deporte ([`docs/ANEXO_DEPORTE.md`](docs/ANEXO_DEPORTE.md)).
 
 ## Comandos
 
