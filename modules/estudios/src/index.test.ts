@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, defineModule, type StudiesService } from '@ds/contracts';
+import { SERVICES, SHARED_EVENTS, defineModule, type StudiesService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil, type ActionResult } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { estudios, nivelDeAsignatura, notaExamen, notaFinal, type EstudiosState } from './index';
@@ -165,6 +165,35 @@ describe('módulo estudios', () => {
     const svc = g.service<StudiesService>(SERVICES.estudios)!;
     expect(svc.absences()).toBe(20);
     expect(svc.average()).toBeNull();
+  });
+
+  it('al llegar a 12 faltas en el trimestre avisa una sola vez y lanza el evento de las faltas excesivas; el trimestre siguiente cuenta de cero', () => {
+    // Un módulo de pruebas que escucha el evento (como harán los padres).
+    const oyente = defineModule<{ avisos: unknown[] }>({
+      id: 'oyente',
+      name: 'Oyente',
+      description: 'Solo para los tests: recoge el evento de las faltas excesivas.',
+      initState: () => ({ avisos: [] }),
+      on: { [SHARED_EVENTS.FALTAS_EXCESIVAS]: (ctx, ev) => ctx.updateState<{ avisos: unknown[] }>((s) => ({ avisos: [...s.avisos, ev.data] })) },
+    });
+    const g = Game.create([personaje, estudios, pausas, oyente], { seed: 3 });
+    const svc = () => g.service<StudiesService>(SERVICES.estudios)!; // el servicio se lee del estado al pedirlo: se vuelve a pedir cada vez
+    const avisos = () => g.moduleState<{ avisos: unknown[] }>('oyente').avisos;
+    const avisosDeLog = () => g.log.filter((l) => /Llevas \d+ faltas de clase este trimestre/.test(l.text)).length;
+    advanceTo(g, 'gen.descansar', 2, 10); // el lunes y el martes sin ir a clase (el día cuenta al acabar): 8 faltas
+    expect(svc().absencesThisTerm()).toBe(8);
+    expect(avisos()).toHaveLength(0);
+    advanceTo(g, 'gen.descansar', 4, 10); // hasta el jueves: 16 faltas; el miércoles se llegó a 12
+    expect(svc().absencesThisTerm()).toBe(16);
+    expect(avisos()).toEqual([{ faltas: 12, curso: 0, trimestre: 1 }]);
+    expect(avisosDeLog()).toBe(1);
+    advanceTo(g, 'gen.descansar', 5, 10); // sigue faltando (20): no se vuelve a avisar en este trimestre
+    expect(avisos()).toHaveLength(1);
+    expect(avisosDeLog()).toBe(1);
+    // En el trimestre siguiente la cuenta empieza de cero (las faltas totales siguen sumando).
+    advanceToWeek(g, 'gen.descansar', 17, 0, 10); // 2.º trimestre (semanas 17 a 28)
+    expect(svc().absencesThisTerm()).toBeLessThan(svc().absences());
+    expect(svc().absencesThisTerm()).toBeLessThanOrEqual(4 * 5); // como mucho una semana de faltas desde el principio del trimestre
   });
 
   it('el nivel con texto sigue la nota esperada: Mal <4, Regular 4–5,9, Bien 6–7,4, Muy bien 7,5–9,2, Excelente 9,3–10', () => {

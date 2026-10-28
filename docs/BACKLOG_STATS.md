@@ -192,7 +192,7 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 | E9.4 ✅ | Cursos y categorías por edad (decide el **año de nacimiento**, no la fecha exacta; los bots suben de categoría): el niño sube de curso y de categoría al cumplir años. **Categorías de la federación española** (sub-10, sub-12, sub-14, sub-16, sub-18, sub-20, sub-23), como dato por país igual que el calendario; en edades tempranas, algún niño sale y entra otro nuevo | Enlaza con la edad (E3.1) |
 | E9.5 ✅ (parcial) | Evaluaciones trimestrales con consecuencias (aprobar, repetir curso, becas) | Hecho: evaluación en las semanas 14, 28 y 40, con consecuencias en motivación y estrés. Repetir curso: decidido que no (el castigo es la academia). Becas: esperan al dinero (E16) |
 | E9.6 ✅ | Simulación de 10 años: nuevos chequeos y rendimiento | Hecho: `npm run sim:largo` simula 3 años (336 ms por año). Falta revisar los rivales para partidas de diez años |
-| E9.7 ✅ (datos) | Calendario como dato por país, con España por defecto | Hecho el dato (España). Falta poder elegir el país al crear la partida (pantalla de inicio) |
+| E9.7 ✅ (datos) | Calendario como dato por país, con España por defecto | Hecho el dato (España). El selector de país ya está en «Nueva partida» (solo España, sin efecto todavía) |
 | E9.8 ✅ | **Desarrollo realista de los rivales:** curva por edad (nadie alcanza un potencial de 90 en tres años), renovación por cohortes (salen los mayores, entran nuevos con herencia de su edad) y **subida de categoría** de quien destaca (a los 9 años contra niños de 12 si hace falta, sobre todo en fútbol) | Decidido el 22/10. Hoy los rivales llegan a su potencial en ~3 años |
 | E9.9 ✅ | **Competir contra mayores desarrolla más:** la ganancia de entrenar y competir crece con el nivel del rival frente al propio | Decidido el 22/10 |
 | E9.10 ✅ | **Verano según las notas:** media baja, **academia obligatoria** durante el verano para sacar los aprobados (no se repite curso: ese es el castigo); media alta, campamento deportivo si lo piden a los padres (mejora más); media aceptable, tiempo con amigos (no mejora igual) | Decidido el 22/10. Se implementa a continuación; pedir permiso a los padres encaja con familia (E13.1) y decisiones (E18) |
@@ -300,7 +300,7 @@ Valida que la plantilla de deporte funciona sin tocar el motor. **Decidido el 22
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E15.1 | Creación de personaje (hoy solo el nombre) y elección de deporte al empezar | Aquí entrarían los modos de inicio de la personalidad (E4.2) |
+| E15.1 | Creación de personaje y elección de deporte al empezar. **28/10:** hecho el menú de inicio (Nueva partida, Continuar, Cargar, Opciones, Salir) y la nueva partida con país (solo España), sexo (solo masculino), nombre y apellidos al azar con sorteo; faltan dificultad, modos de personaje y elección de deporte | Aquí entrarían los modos de inicio de la personalidad (E4.2) |
 | E15.2 | Filtro de información por inteligencia | Es E3.4 |
 | E15.3 | Resumen semanal y gráficas de progreso | Enlaza con E11.3 |
 | E15.4 | Varias partidas guardadas | Hoy hay una sola |

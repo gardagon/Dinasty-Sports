@@ -142,12 +142,67 @@ export function disposicion(
   return { factor, motivo };
 }
 
+// ---------------------------------------------------------------------------------------------------- compañía: ayudar y estorbar
+
+/**
+ * Lo máximo que baja la eficiencia de lo que hacéis juntos cuando la otra persona no se le da nada bien (aptitud 0 en esa área): estorba.
+ * Es el reverso de la ayuda (+30 %, `AYUDA_MAXIMA` en el módulo): hasta aptitud 0,4 (lo típico) no pasa nada y de ahí hacia abajo crece.
+ */
+export const ESTORBO_MAXIMO = 0.2;
+/** Aptitud típica: por encima ayuda, por debajo estorba. */
+export const APTITUD_TIPICA = 0.4;
+
+/** Cuánto estorba alguien con esta aptitud en el área (0 a `ESTORBO_MAXIMO`). No depende de lo bien que os conozcáis. */
+export const estorboDe = (aptitud: number): number => ESTORBO_MAXIMO * clamp((APTITUD_TIPICA - aptitud) / APTITUD_TIPICA, 0, 1);
+
+/** Las frases del «suceso» que se cuenta tras hacer algo juntos: buenas si ayuda y malas si estorba, según lo que hacéis (área). */
+const FRASES_DE_COMPANIA: Readonly<Record<string, { bien: readonly ((n: string, g: 'f' | 'm') => string)[]; mal: readonly ((n: string, g: 'f' | 'm') => string)[] }>> = {
+  estudio: {
+    bien: [
+      (n) => `${n} te explica un truco que no conocías y se te queda mucho mejor.`,
+      (n) => `${n} te va preguntando la lección y te das cuenta de lo que ya te sabes.`,
+      (n) => `${n} lleva los apuntes al día y te los pasa: avanzáis el doble.`,
+    ],
+    mal: [
+      (n) => `${n} no para de charlar y te cuesta concentrarte.`,
+      (n) => `${n} se pasa el rato mirando el móvil y te distrae.`,
+      (n) => `${n} te pregunta cosas que no vienen a cuento y se te va la hora sin avanzar.`,
+    ],
+  },
+  social: {
+    bien: [
+      (n) => `${n} cuenta una anécdota y os reís un buen rato.`,
+      (n) => `${n} propone un juego y la tarde se pasa volando.`,
+      (n, g) => `${n} está ${g === 'f' ? 'animada' : 'animado'} y os contagia las ganas.`,
+    ],
+    mal: [
+      (n) => `${n} está de bajón y cuesta que lo paséis bien.`,
+      (n) => `${n} no deja de quejarse y se os corta el rollo.`,
+      (n, g) => `${n} está ${g === 'f' ? 'cansada' : 'cansado'} y la tarde se hace larga.`,
+    ],
+  },
+  deporte: {
+    bien: [(n) => `${n} marca el ritmo y te lleva más lejos de lo que irías solo.`],
+    mal: [(n) => `${n} no aguanta el ritmo y os paráis más de la cuenta.`],
+  },
+};
+
+/** Una frase para lo que ha pasado al hacer algo juntos. `azar` (0 a 1) elige entre las posibles de forma estable. */
+export function fraseDeCompania(area: string, ayuda: boolean, nombre: string, genero: 'f' | 'm', azar: number): string {
+  const lista = FRASES_DE_COMPANIA[area]?.[ayuda ? 'bien' : 'mal'] ?? [];
+  if (!lista.length) return '';
+  return lista[Math.min(lista.length - 1, Math.floor(azar * lista.length))](nombre, genero);
+}
+
 // ------------------------------------------------------------------------------------------------------------------ planes
 
 /** Las actividades que se acuerdan con antelación (hora y día), por el sufijo del id de la acción. */
 export const PLANES = {
-  estudiar: { nombre: 'estudiar', hora: 17 * 60, duracion: 90, lugar: 'casa', lugarTexto: 'en tu casa' },
+  /** Estudiar se acuerda en casa o en la biblioteca (a las 17:00, 90 minutos): se elige al proponerlo. */
+  estudiar: { nombre: 'estudiar', hora: 17 * 60, duracion: 90, lugares: { casa: 'en tu casa', biblioteca: 'en la biblioteca' } as Readonly<Record<string, string>> },
 } as const;
+/** El texto «en tu casa» / «en la biblioteca» del sitio acordado para un plan. */
+export const textoDeLugarDePlan = (actividad: keyof typeof PLANES, lugar: string): string => PLANES[actividad].lugares[lugar] ?? `en ${lugar}`;
 export type ActividadDePlan = keyof typeof PLANES;
 
 /**

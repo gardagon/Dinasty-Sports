@@ -104,6 +104,8 @@ export interface StudiesService {
   average(): number | null;
   /** Faltas de asistencia acumuladas. */
   absences(): number;
+  /** Faltas de clase de este trimestre (una por clase; se pone a cero al empezar cada trimestre). */
+  absencesThisTerm(): number;
   /** Ids de las habilidades de las asignaturas que se cursan este curso (el resto no se entrena ni puntúa). */
   activeSubjects(): string[];
   /** Nombre del curso actual (p. ej. "1.º de ESO"). */

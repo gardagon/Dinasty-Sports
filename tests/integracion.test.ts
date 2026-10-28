@@ -820,7 +820,7 @@ describe('familia en casa y planes con los demás', () => {
     advanceTo(g, 'gen.descansar', g.time.weekday, 10);
     llegarA(g, 'patio', 10, 45);
     const antes = rel(g).planes().length;
-    expect(hacer(g, `relaciones.plan_${cuando}.companero_estudio`).ok).toBe(true);
+    expect(hacer(g, `relaciones.plan_${cuando}_casa.companero_estudio`).ok).toBe(true);
     return rel(g).planes().length > antes;
   };
 
@@ -834,7 +834,7 @@ describe('familia en casa y planes con los demás', () => {
     expect(rel(g).get('padre')!.afinidad).toBeGreaterThan(10);
     expect(g.preview('relaciones.quedar.madre')!.available).toBe(true);
     expect(g.preview('relaciones.estudiar.madre')).toBeUndefined();
-    expect(g.preview('relaciones.plan_hoy.padre')).toBeUndefined();
+    expect(g.preview('relaciones.plan_hoy_casa.padre')).toBeUndefined();
     // De día lectivo a media mañana no están (trabajan).
     advanceTo(g, 'gen.descansar', 1, 11);
     expect(g.service<PresenciaService>(SERVICES.presencia)!.en('casa').map((n) => n.id)).not.toContain('padre');
@@ -862,6 +862,40 @@ describe('familia en casa y planes con los demás', () => {
     expect(g.preview('relaciones.estudiar.companero_estudio')!.available).toBe(false);
   });
 
+  it('se puede quedar para estudiar en la biblioteca: se estudia allí a la hora acordada (no en casa)', () => {
+    const g = conAmigo(100);
+    let aceptado = false;
+    for (let i = 0; i < 20 && !aceptado; i++) {
+      advanceTo(g, 'gen.descansar', 3, 10); // jueves: mañana es viernes y la biblioteca abre de 9:00 a 20:00
+      llegarA(g, 'patio', 10, 45);
+      if (!g.preview('relaciones.plan_manana_biblioteca.companero_estudio')?.available) continue;
+      expect(hacer(g, 'relaciones.plan_manana_biblioteca.companero_estudio').ok).toBe(true);
+      aceptado = rel(g).planes().length > 0;
+    }
+    expect(aceptado).toBe(true);
+    const plan = rel(g).planes()[0];
+    expect(plan).toMatchObject({ actividad: 'estudiar', lugar: 'biblioteca', minuto: 17 * 60 });
+    expect(g.log.some((l) => /acepta: estudiar mañana a las 17:00 en la biblioteca/.test(l.text))).toBe(true);
+    advanceUntil(g, 'gen.descansar', (t) => t.day === plan.dia && t.hour >= 16, 80);
+    advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 17 * 60);
+    expect(g.preview('relaciones.estudiar.companero_estudio')!.lugar).toEqual(['biblioteca']);
+    expect(hacer(g, 'relaciones.estudiar.companero_estudio').ok).toBe(true);
+    expect(g.service<LugaresService>(SERVICES.lugares)!.actual().id).toBe('biblioteca');
+    expect(rel(g).planes()).toEqual([]);
+  });
+
+  it('para el sábado por la tarde o el domingo no se puede quedar en la biblioteca (cerrada), pero sí en casa', () => {
+    const g = conAmigo(100);
+    advanceTo(g, 'gen.descansar', 4, 10); // viernes: mañana es sábado y la biblioteca cierra a las 14:00
+    llegarA(g, 'patio', 10, 45);
+    const biblioteca = g.preview('relaciones.plan_manana_biblioteca.companero_estudio')!;
+    expect(biblioteca.available).toBe(false);
+    expect(biblioteca.reason).toMatch(/Biblioteca está cerrada mañana a esa hora/);
+    expect(g.preview('relaciones.plan_manana_casa.companero_estudio')!.available).toBe(true);
+    // Las propuestas dicen qué y dónde.
+    expect(biblioteca.name).toMatch(/^Quedar con .+ para estudiar mañana a las 17:00 en la biblioteca$/);
+  });
+
   it('quien se te da bien estudiando ayuda al estudiar juntos (compañía)', () => {
     const g = conAmigo(80);
     const s = g.serialize();
@@ -870,6 +904,37 @@ describe('familia en casa y planes con los demás', () => {
     advanceTo(g2, 'gen.descansar', 0, 17);
     g2.perform('lugares.ir_casa');
     expect(g2.preview('relaciones.estudiar.companero_estudio')!.modifiers.some((m) => m.id === 'relaciones.compania')).toBe(true);
+  });
+
+  /** Estudiar con el compañero con el carácter y los intereses indicados (un plan para hoy a las 17:00 en casa). */
+  const estudiarCon = (caracter: Record<string, number>, intereses: Record<string, number>) => {
+    const base = conAmigo(80);
+    const s = base.serialize();
+    (s.modules.relaciones as RelacionesState).planes = [{ npcId: 'companero_estudio', actividad: 'estudiar', dia: 0, minuto: 17 * 60, lugar: 'casa' }];
+    const npc = (s.modules.npcs as NpcsState).npcs.find((n) => n.id === 'companero_estudio')!;
+    npc.rasgos = { ...npc.rasgos!, caracter: { ...npc.rasgos!.caracter, ...caracter }, intereses };
+    const g = cargarPartida(s);
+    advanceTo(g, 'gen.descansar', 0, 17);
+    g.perform('lugares.ir_casa');
+    return g;
+  };
+
+  it('quien no se concentra estorba al estudiar juntos: baja lo que sacarías solo y sale una frase negativa', () => {
+    const g = estudiarCon({ disciplina: -50, ambicion: -50 }, { cocina: 1 });
+    const m = g.preview('relaciones.estudiar.companero_estudio')!.modifiers.find((x) => x.id === 'relaciones.compania')!;
+    expect(m.result.efficiency).toBeLessThan(1);
+    expect(m.result.efficiency).toBeGreaterThanOrEqual(0.8);
+    expect(m.result.reason).toMatch(/distrae/);
+    expect(g.perform('relaciones.estudiar.companero_estudio').ok).toBe(true);
+    expect(g.log.some((l) => l.kind === 'aviso' && /distrae|concentrarte|se te va la hora/.test(l.text))).toBe(true);
+  });
+
+  it('quien es muy aplicado ayuda: sube lo que sacarías solo y sale una frase positiva', () => {
+    const g = estudiarCon({ disciplina: 50, ambicion: 50 }, { estudio: 3 });
+    const m = g.preview('relaciones.estudiar.companero_estudio')!.modifiers.find((x) => x.id === 'relaciones.compania')!;
+    expect(m.result.efficiency).toBeGreaterThan(1);
+    expect(g.perform('relaciones.estudiar.companero_estudio').ok).toBe(true);
+    expect(g.log.some((l) => l.kind === 'info' && /truco|lección|apuntes/.test(l.text))).toBe(true);
   });
 
   it('entre un plan y otro hace falta un día de margen salvo con mucha amistad', () => {
@@ -884,7 +949,7 @@ describe('familia en casa y planes con los demás', () => {
       sg.minute = (dia - 1) * 1440 + 11 * 60;
       const gd = cargarPartida(sg);
       viajarA(gd, 'patio');
-      hacer(gd, 'relaciones.plan_manana.companero_estudio');
+      hacer(gd, 'relaciones.plan_manana_casa.companero_estudio');
       aceptadosPegados += rel(gd).planes().filter((p) => p.dia === dia).length;
     }
     expect(aceptadosPegados).toBe(0);

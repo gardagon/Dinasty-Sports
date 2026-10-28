@@ -31,6 +31,7 @@ import {
   LLEGADA_AL_COLEGIO,
   JORNADA_ESCOLAR,
   timeView,
+  abiertoEn,
   ubicacionEn,
   azarDe,
   aforoCercano,
@@ -49,9 +50,13 @@ import {
 } from '@ds/contracts';
 import {
   AFINIDAD_PARA_AYUDAR,
+  APTITUD_TIPICA,
+  fraseDeCompania,
+  estorboDe,
   ESPERA,
   PLAN,
   PLANES,
+  textoDeLugarDePlan,
   responderAPlan,
   type ActividadDePlan,
   HABILIDADES_DE_ACCION,
@@ -117,10 +122,16 @@ const AYUDA_MAXIMA = 0.3;
 const AREA_DE_ACCION: Readonly<Record<string, AreaDeAyuda>> = { estudiar: 'estudio', quedar: 'social', planes: 'social' };
 const MOTIVO_DE_AREA: Readonly<Record<AreaDeAyuda, string>> = { estudio: 'se te da bien estudiar y te ayuda', social: 'es muy sociable y te contagia', deporte: 'es buen deportista y te ayuda' };
 
-/** Ayuda (0 a `AYUDA_MAXIMA`) de una persona en un área: su aptitud por encima de lo típico (0,4 → nada, 0,8 → todo) y cuánto os conocéis. */
-function ayudaDe(n: NpcView, area: AreaDeAyuda, afinidad: number): number {
-  const apt = limitar((aptitudDe(area, n.rasgos, n.levels) - 0.4) / 0.4, 0, 1);
-  return AYUDA_MAXIMA * apt * limitar(afinidad / AFINIDAD_AYUDA_COMPLETA, 0, 1);
+const MOTIVO_DE_ESTORBO: Readonly<Record<AreaDeAyuda, string>> = { estudio: 'no se concentra y te distrae', social: 'está de bajón y os cuesta divertiros', deporte: 'no sigue el ritmo y te frena' };
+
+/**
+ * Lo que cambia la compañía de una persona en lo que hacéis juntos (de −`ESTORBO_MAXIMO` a +`AYUDA_MAXIMA`): ayuda si su aptitud en el área está por
+ * encima de lo típico (0,4 → nada, 0,8 → todo, y cuenta cuánto os conocéis) y estorba si está por debajo (no depende de cuánto os conocéis).
+ */
+function efectoDeCompania(n: NpcView, area: AreaDeAyuda, afinidad: number): number {
+  const aptitud = aptitudDe(area, n.rasgos, n.levels);
+  const ayuda = AYUDA_MAXIMA * limitar((aptitud - APTITUD_TIPICA) / APTITUD_TIPICA, 0, 1) * limitar(afinidad / AFINIDAD_AYUDA_COMPLETA, 0, 1);
+  return ayuda - estorboDe(aptitud);
 }
 /** Cuántos rivales conocidos ofrecen acciones a la vez (los de mayor afinidad, a favor o en contra). */
 const RIVALES_CON_ACCIONES = 5;
@@ -283,7 +294,7 @@ function interaccion(
     /** No hace falta que esté entre la gente que tienes cerca (un plan acordado: ya estáis citados). */
     sinPresencia?: boolean;
     /** Sitio donde se hace (un plan se hace en el sitio acordado). */
-    lugar?: readonly string[];
+    lugar?: readonly string[] | ((ctx: ReadContext) => readonly string[]);
     /** Una charla: dura 5 minutos y vale una sexta parte de lo indicado (que es lo que daría media hora); hasta 6 al día. */
     charla?: boolean;
   },
@@ -306,6 +317,13 @@ function interaccion(
         vinculos: { ...s.vinculos, [n.id]: conContacto(vinculoDe(ctx, s, n, dia), dia, cfg.ganancia * f, cfg.confianza * f) },
         ...(cfg.charla ? { charlas: { ...s.charlas, [n.id]: { dia, n: (s.charlas?.[n.id]?.dia === dia ? s.charlas[n.id].n : 0) + 1 } } } : { grandes: { ...s.grandes, [n.id]: dia } }),
       }));
+      // Lo que ha pasado al hacerlo juntos: si ayuda o estorba (ya está en la eficiencia), se cuenta con una frase según la persona y lo que hacéis.
+      const area = AREA_DE_ACCION[cfg.suffix];
+      if (area) {
+        const actual = dirDe(ctx)?.get(n.id) ?? n; // las acciones se guardan por persona: se lee la persona de ahora, como hace el modificador
+        const efecto = efectoDeCompania(actual, area, vinculoDe(ctx, ctx.state<RelacionesState>(), actual, dia).afinidad);
+        if (Math.abs(efecto) >= 0.02) ctx.log(fraseDeCompania(area, efecto > 0, nombreCorto(n), n.gender, azarDe('compania', n.id, dia, cfg.suffix)), efecto > 0 ? 'info' : 'aviso');
+      }
       cfg.alTerminar?.(ctx);
     },
   };
@@ -348,15 +366,15 @@ function ocupacionDe(ctx: ReadContext, n: NpcView, dia: number, minuto: number, 
  * Proponer un plan (hoy o mañana a la hora de la actividad): la otra persona decide según lo que tenga que hacer, la amistad y la confianza,
  * y deja margen entre plan y plan. Solo se le puede proponer a quien tienes delante (aún no hay teléfono).
  */
-function proponerPlan(n: NpcView, actividad: ActividadDePlan, cuando: 'hoy' | 'manana'): ActionDef {
+function proponerPlan(n: NpcView, actividad: ActividadDePlan, cuando: 'hoy' | 'manana', lugar: string): ActionDef {
   const cfg = PLANES[actividad];
   const dias = cuando === 'hoy' ? 0 : 1;
   const clave = `plan.${n.id}.${actividad}.${cuando}`;
   const presente = presenteAqui(n);
   return {
-    id: `relaciones.plan_${cuando}.${n.id}`,
-    name: `Proponer a ${nombreCorto(n)} ${cfg.nombre} ${cuando === 'hoy' ? 'hoy' : 'mañana'} a las ${hhmm(cfg.hora)}`,
-    description: `${cfg.lugarTexto[0].toUpperCase()}${cfg.lugarTexto.slice(1)}, ${cfg.duracion} min. Acepta según lo que tenga que hacer, lo bien que os llevéis y cuándo fue la última vez: entre un plan y otro hace falta un día de margen, salvo que seáis muy amigos.`,
+    id: `relaciones.plan_${cuando}_${lugar}.${n.id}`,
+    name: `Quedar con ${nombreCorto(n)} para ${cfg.nombre} ${cuando === 'hoy' ? 'hoy' : 'mañana'} a las ${hhmm(cfg.hora)} ${textoDeLugarDePlan(actividad, lugar)}`,
+    description: `${textoDeLugarDePlan(actividad, lugar)[0].toUpperCase()}${textoDeLugarDePlan(actividad, lugar).slice(1)}, ${cfg.duracion} min. Acepta según lo que tenga que hacer, lo bien que os llevéis y cuándo fue la última vez: entre un plan y otro hace falta un día de margen, salvo que seáis muy amigos.`,
     tags: [TAGS.social],
     group: grupoDe(n),
     duration: MINUTOS_DE_CHARLA,
@@ -365,6 +383,11 @@ function proponerPlan(n: NpcView, actividad: ActividadDePlan, cuando: 'hoy' | 'm
       const dia = ctx.time.day + dias;
       if (cuando === 'hoy' && ctx.time.minuteOfDay > cfg.hora - PLAN.antelacion) return 'Ya es tarde para quedar hoy';
       if (s.planes?.some((p) => p.npcId === n.id && p.dia === dia)) return `Ya habéis quedado ${textoDeDia(ctx.time.day, dia)}`;
+      // El sitio tiene que estar abierto durante todo el plan (la biblioteca cierra los sábados por la tarde y los domingos).
+      const sitio = ctx.service<LugaresService>(SERVICES.lugares)?.lugar(lugar);
+      if (sitio?.horario && !(abiertoEn(sitio, timeView(dia * 1440 + cfg.hora)) && abiertoEn(sitio, timeView(dia * 1440 + cfg.hora + cfg.duracion - 1)))) {
+        return `${sitio.name} está cerrada ${textoDeDia(ctx.time.day, dia)} a esa hora (abre ${sitio.horario.texto})`;
+      }
       if (espera(s, clave, ctx.time.day) > 0) return `Ya se lo has propuesto: ${textoDeDia(ctx.time.day, dia)} ya no cambiará de idea`;
       const horario = n.role === 'familia' ? true : HORARIO_DE_PREGUNTAS(ctx);
       return horario !== true ? horario : presente(ctx);
@@ -389,10 +412,10 @@ function proponerPlan(n: NpcView, actividad: ActividadDePlan, cuando: 'hoy' | 'm
       }
       ctx.updateState<RelacionesState>((st) => ({
         ...st,
-        planes: [...(st.planes ?? []), { npcId: n.id, actividad, dia, minuto: cfg.hora, lugar: cfg.lugar }],
+        planes: [...(st.planes ?? []), { npcId: n.id, actividad, dia, minuto: cfg.hora, lugar }],
         vinculos: { ...st.vinculos, [n.id]: conCambio(vinculoDe(ctx, st, n, ctx.time.day), ctx.time.day, 1) },
       }));
-      ctx.log(`${nombreCorto(n)} acepta: ${cfg.nombre} ${textoDeDia(ctx.time.day, dia)} a las ${hhmm(cfg.hora)} ${cfg.lugarTexto}. Se espera que llegues a tiempo.`, 'logro');
+      ctx.log(`${nombreCorto(n)} acepta: ${cfg.nombre} ${textoDeDia(ctx.time.day, dia)} a las ${hhmm(cfg.hora)} ${textoDeLugarDePlan(actividad, lugar)}. Se espera que llegues a tiempo.`, 'logro');
     },
   };
 }
@@ -489,7 +512,8 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
       delta: { [GEN.energia]: -8 },
       horario: (ctx) => (planDeAhora(ctx, n.id, 'estudiar') ? true : 'Primero hay que quedar: propónselo para hoy o mañana'),
       sinPresencia: true,
-      lugar: [PLANES.estudiar.lugar],
+      // Se estudia en el sitio acordado (en casa o en la biblioteca).
+      lugar: (ctx) => [planDeAhora(ctx, n.id, 'estudiar')?.lugar ?? 'casa'],
       alTerminar: (ctx) => cerrarPlan(ctx, n.id, 'estudiar'),
     }),
     interaccion(n, {
@@ -717,7 +741,7 @@ const memoPropuestas = new Map<string, ActionDef[]>();
 function propuestasDe(n: NpcView): ActionDef[] {
   const clave = `${n.id}|${n.name}|${n.gender}`;
   let a = memoPropuestas.get(clave);
-  if (!a) memoPropuestas.set(clave, (a = (['hoy', 'manana'] as const).map((cuando) => proponerPlan(n, 'estudiar', cuando))));
+  if (!a) memoPropuestas.set(clave, (a = (['hoy', 'manana'] as const).flatMap((cuando) => Object.keys(PLANES.estudiar.lugares).map((lugar) => proponerPlan(n, 'estudiar', cuando, lugar)))));
   return a;
 }
 
@@ -1003,8 +1027,8 @@ export const relaciones = defineModule<RelacionesState>({
         if (!p || !area) return null;
         const n = dirDe(ctx)?.get(p.npc);
         if (!n) return null;
-        const ayuda = ayudaDe(n, area, vinculoDe(ctx, ctx.state<RelacionesState>(), n, ctx.time.day).afinidad);
-        return ayuda < 0.02 ? null : { efficiency: 1 + ayuda, reason: `${nombreCorto(n)} ${MOTIVO_DE_AREA[area]}` };
+        const efecto = efectoDeCompania(n, area, vinculoDe(ctx, ctx.state<RelacionesState>(), n, ctx.time.day).afinidad);
+        return Math.abs(efecto) < 0.02 ? null : { efficiency: 1 + efecto, reason: `${nombreCorto(n)} ${efecto > 0 ? MOTIVO_DE_AREA[area] : MOTIVO_DE_ESTORBO[area]}` };
       },
     },
   ],
@@ -1023,7 +1047,7 @@ export const relaciones = defineModule<RelacionesState>({
             const n = dir?.get(p.npcId);
             if (n) {
               vinculos[n.id] = conCambio(vinculoDe(ctx, { ...s, vinculos }, n, day), day, -PLAN.planton.afinidad, -PLAN.planton.confianza);
-              ctx.log(`Dejaste plantado a ${nombreCorto(n)}: ${PLANES[p.actividad].nombre} ${PLANES[p.actividad].lugarTexto} a las ${hhmm(p.minuto)}.`, 'aviso');
+              ctx.log(`Dejaste plantado a ${nombreCorto(n)}: ${PLANES[p.actividad].nombre} ${textoDeLugarDePlan(p.actividad, p.lugar)} a las ${hhmm(p.minuto)}.`, 'aviso');
             }
             planes.push({ ...p, resuelto: true });
           } else if (p.dia >= day - 2) planes.push(p);

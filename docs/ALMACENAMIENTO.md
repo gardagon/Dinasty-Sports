@@ -57,4 +57,4 @@ Requisitos de la fase 2 que conviene cuidar desde ya:
 ## 6. Cómo probarlo
 
 - `npm test` (incluye `apps/web/src/almacen.test.ts`).
-- En un navegador real: empezar una partida, recargar (debe volver al mismo sitio y hora), exportar, «Nueva partida», importar. En las herramientas del navegador, Application → IndexedDB → `dinasty-sports` → `partidas`.
+- En un navegador real: empezar una partida, recargar (debe volver al mismo sitio y hora), exportar (en «Opciones»), «Menú» → «Nueva partida», «Cargar partida». En las herramientas del navegador, Application → IndexedDB → `dinasty-sports` → `partidas`.

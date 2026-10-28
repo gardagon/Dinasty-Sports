@@ -11,6 +11,7 @@ import {
   claseQueVaAEmpezar,
   SHARED_EVENTS,
   type ClassAttendedData,
+  type FaltasExcesivasData,
   ligarALugares,
   isSchoolHours,
   nivelTipicoPorEdad,
@@ -64,6 +65,8 @@ export interface EstudiosState {
   /** Últimas notas por asignatura (más reciente al final). */
   notas: Record<string, number[]>;
   faltas: number;
+  /** Faltas de clase del trimestre en curso y si ya se ha avisado de que son demasiadas (`FALTAS_PARA_AVISAR`). Cada trimestre empieza de cero. */
+  faltasTrimestre?: { curso: number; trimestre: number; n: number; avisado: boolean };
   /** Notas de los exámenes del trimestre en curso, con clave `asignatura:parcial1|parcial2|global` (se vacía en cada evaluación). */
   examenes?: Record<string, number>;
   /** Notas medias de cada evaluación de trimestre. */
@@ -83,6 +86,11 @@ export interface EstudiosState {
 }
 
 const statId = (key: string) => `estudios.${key}`;
+/** Faltas de clase en un trimestre a partir de las cuales se avisa (12 = tres días enteros sin ir; una por clase, 4 clases al día). */
+export const FALTAS_PARA_AVISAR = 12;
+/** Las faltas del trimestre indicado (cero si el contador es de otro trimestre). */
+const faltasDelTrimestre = (s: EstudiosState, curso: number, trimestre: number): { n: number; avisado: boolean } =>
+  s.faltasTrimestre?.curso === curso && s.faltasTrimestre.trimestre === trimestre ? s.faltasTrimestre : { n: 0, avisado: false };
 const NOTAS_GUARDADAS = 12;
 const MIN_HORA_CLASE = 7;
 const MAX_HORA_CLASE = 9;
@@ -661,7 +669,15 @@ export const estudios = defineModule<EstudiosState>({
       const fue = s.asistencia.day === day ? s.asistencia.clases : [];
       const faltadas = CLASES_POR_DIA - fue.length;
       if (faltadas > 0) {
-        ctx.updateState<EstudiosState>((st) => ({ ...st, faltas: st.faltas + faltadas }));
+        // Las faltas del trimestre: al llegar a `FALTAS_PARA_AVISAR` se avisa (una vez) y se lanza el evento que recogerán los padres.
+        const previo = faltasDelTrimestre(s, hoy.schoolYear, hoy.term);
+        const n = previo.n + faltadas;
+        const avisar = !previo.avisado && n >= FALTAS_PARA_AVISAR;
+        ctx.updateState<EstudiosState>((st) => ({ ...st, faltas: st.faltas + faltadas, faltasTrimestre: { curso: hoy.schoolYear, trimestre: hoy.term, n, avisado: previo.avisado || avisar } }));
+        if (avisar) {
+          ctx.log(`Llevas ${n} faltas de clase este trimestre. Si sigues faltando, tus padres se acabarán enterando.`, 'aviso');
+          ctx.emit<FaltasExcesivasData>({ type: SHARED_EVENTS.FALTAS_EXCESIVAS, data: { faltas: n, curso: hoy.schoolYear, trimestre: hoy.term } });
+        }
         // Faltar sube el estrés lo mismo que ir a clase (3 al día repartido en las clases). Habrá más consecuencias.
         ctx.addStat(GEN.estres, (ESTRES_POR_DIA_DE_CLASE / CLASES_POR_DIA) * faltadas);
         ctx.log(faltadas === CLASES_POR_DIA ? 'Has faltado a clase todo el día.' : `Has faltado a ${faltadas} ${faltadas === 1 ? 'clase' : 'clases'}.`, 'aviso');
@@ -693,6 +709,7 @@ export const estudios = defineModule<EstudiosState>({
       return {
         average: () => media(s, activas),
         absences: () => s.faltas,
+        absencesThisTerm: () => faltasDelTrimestre(s, ctx.time.schoolYear, ctx.time.term).n,
         activeSubjects: () => activas.map(statId),
         courseName: () => cursoDef(ctx.time.schoolYear).nombre,
         grades: (subject) => [...(s.notas[subject.replace('estudios.', '')] ?? [])],
