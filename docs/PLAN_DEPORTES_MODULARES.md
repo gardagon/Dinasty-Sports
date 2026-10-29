@@ -139,7 +139,7 @@ Estamos en alfa: las partidas empezadas se descartan cuando cambie la forma del 
 
 | Fase | Qué deja hecho | `sim` |
 |---|---|---|
-| **G** | Botón «Opciones» con guardar, guardado automático elegible, exportar/importar y copia de recuperación (§6). Solo interfaz | Sin efecto |
+| **G** ✅ | Botón «Opciones» con guardar, guardado automático elegible, exportar/importar y copia de recuperación (§6). Solo interfaz. **Hecha el 30/10** | Sin efecto |
 | **K** ✅ | **Kit de deporte** y el atletismo reescrito encima (§7). **Hecho el 30/10:** huella exacta del estado igual antes y después (14 partidas de bots, 120 y 330 días) | Idéntico |
 | **0** | **Deporte practicado** (uno): módulo `deportes`, servicio `practica`, eventos `deporte.empezar` y `deporte.dejar`, ocultar lo que no se practica, «Empezar / Dejar el atletismo», elegir deporte en la nueva partida | Idéntico (salvo el bot que abandona, que pasa a dejarlo de verdad) |
 | **1** | **Aportes** en el motor (`GameModule.aportes`, `ctx.aportes`) y ficha de cada deporte (catálogo) | Idéntico |

@@ -70,7 +70,7 @@ Pregunta del usuario. **No es lo que se decidió ni lo que hace falta.** Lo deci
 - Con el modelo híbrido del fútbol (`ANALISIS_FUTBOL.md` §3.4) un deporte de equipo suma cientos de personas, no miles: no obliga a pasar de fase.
 - **Con el guardado elegible de §8** el coste de guardar la partida entera deja de notarse en cada acción (una vez al día, a la semana o al mes de juego), así que el límite práctico sube sin cambiar el almacén; lo que sigue creciendo con la población es el tiempo de abrir la partida y la memoria.
 
-## 8. Guardado manual y automático (propuesta del usuario, 30/10/2026)
+## 8. Guardado manual y automático (propuesta del usuario, 30/10/2026; hecho el mismo día)
 
 Hoy se guarda **tras cada acción** (agrupado cada medio segundo) y al cerrar u ocultar la pestaña, y bajo el nombre hay tres botones (Exportar, Importar, Menú). Propuesta (resumen en `PLAN_DEPORTES_MODULARES.md` §6):
 

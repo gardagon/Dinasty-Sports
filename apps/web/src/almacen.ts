@@ -1,4 +1,5 @@
 import { SAVE_VERSION, type Game, type GameState } from '@ds/core';
+import { MINUTES_PER_DAY, fechaDelDia } from '@ds/contracts';
 
 /**
  * Dónde se guardan las partidas. La interfaz solo habla con `Almacen`; la implementación real es IndexedDB y hay otra en memoria para los
@@ -174,4 +175,128 @@ export async function pedirAlmacenamientoPersistente(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// ------------------------------------------------------------------ guardado manual y automático (docs/ALMACENAMIENTO.md §8)
+
+/** Cada cuánto se guarda sola la partida. No cambia lo guardado: solo cuándo se escribe. */
+export type FrecuenciaDeGuardado = 'accion' | 'dia' | 'semana' | 'mes' | 'manual';
+
+export const FRECUENCIAS: readonly { id: FrecuenciaDeGuardado; nombre: string }[] = [
+  { id: 'accion', nombre: 'Tras cada acción' },
+  { id: 'dia', nombre: 'Cada día de juego' },
+  { id: 'semana', nombre: 'Cada semana de juego' },
+  { id: 'mes', nombre: 'Cada mes de juego' },
+  { id: 'manual', nombre: 'Solo a mano' },
+];
+export const FRECUENCIA_POR_DEFECTO: FrecuenciaDeGuardado = 'dia';
+
+export const esFrecuencia = (x: unknown): x is FrecuenciaDeGuardado => FRECUENCIAS.some((f) => f.id === x);
+
+/** Número del día, semana (empieza el lunes: el día 0 lo es) o mes del calendario del juego en que cae `dia`. */
+function periodoDe(f: 'dia' | 'semana' | 'mes', dia: number): number {
+  if (f === 'dia') return dia;
+  if (f === 'semana') return Math.floor(dia / 7);
+  const fecha = fechaDelDia(dia);
+  return fecha.anio * 12 + fecha.mes;
+}
+
+/** ¿Toca guardar solo ahora? `ultimoDia` es el día del juego del último guardado (`undefined` si aún no se guardó). */
+export function tocaGuardar(frecuencia: FrecuenciaDeGuardado, ultimoDia: number | undefined, dia: number): boolean {
+  if (frecuencia === 'accion') return true;
+  if (frecuencia === 'manual') return false;
+  return ultimoDia === undefined || periodoDe(frecuencia, ultimoDia) !== periodoDe(frecuencia, dia);
+}
+
+/** La frecuencia que se recomienda según lo que tarda en guardarse la partida (ms): cuanto más tarda, más espaciado. */
+export function recomendarFrecuencia(ms: number): FrecuenciaDeGuardado {
+  if (ms < 80) return 'accion';
+  if (ms < 250) return 'dia';
+  if (ms < 1000) return 'semana';
+  return 'mes';
+}
+
+export function textoDeRecomendacion(ms: number): string {
+  const f = recomendarFrecuencia(ms);
+  const tarda = ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toLocaleString('es-ES', { maximumFractionDigits: 1 })} s`;
+  return `Tu partida tarda ${tarda} en guardarse: te recomendamos «${FRECUENCIAS.find((x) => x.id === f)!.nombre.toLowerCase()}».`;
+}
+
+const CLAVE_FRECUENCIA = 'dinasty-sports.guardado.';
+
+/** La frecuencia elegida para una partida (se recuerda en el navegador, fuera de la partida guardada). */
+export function leerFrecuencia(id = PARTIDA_ACTUAL, almacenLocal: Pick<Storage, 'getItem'> | undefined = guardadoLocal()): FrecuenciaDeGuardado {
+  try {
+    const x = almacenLocal?.getItem(CLAVE_FRECUENCIA + id);
+    return esFrecuencia(x) ? x : FRECUENCIA_POR_DEFECTO;
+  } catch {
+    return FRECUENCIA_POR_DEFECTO;
+  }
+}
+
+export function escribirFrecuencia(f: FrecuenciaDeGuardado, id = PARTIDA_ACTUAL, almacenLocal: Pick<Storage, 'setItem'> | undefined = guardadoLocal()): void {
+  try {
+    almacenLocal?.setItem(CLAVE_FRECUENCIA + id, f);
+  } catch {
+    /* sin almacenamiento local: se queda la elegida mientras dure la pestaña */
+  }
+}
+
+function guardadoLocal(): Storage | undefined {
+  try {
+    return typeof localStorage === 'undefined' ? undefined : localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+// ------------------------------------------------------------------ copia de recuperación
+
+/** Copia aparte de la partida con cambios sin guardar: se escribe al ocultarse la pestaña y nunca pisa la partida guardada. */
+export const PARTIDA_DE_RECUPERACION = 'recuperacion';
+
+export interface Recuperacion {
+  texto: string;
+  nombre: string;
+  /** Cuándo se escribió la copia (hora real). */
+  guardadoEn: number;
+  /** Día del juego (para enseñar la fecha) y minuto absoluto (para comparar con la guardada). */
+  dia: number;
+  minuto: number;
+}
+
+const minutoDe = (texto: string): number | null => {
+  try {
+    const m = deJSON(texto).state.minute;
+    return typeof m === 'number' ? m : null;
+  } catch {
+    return null;
+  }
+};
+
+export const fechaDeJuego = (dia: number): string => fechaDelDia(dia).conAnio;
+
+export function guardarRecuperacion(almacen: Almacen, partida: PartidaEnTexto): Promise<void> {
+  return almacen.guardar(partida, PARTIDA_DE_RECUPERACION);
+}
+
+export function borrarRecuperacion(almacen: Almacen): Promise<void> {
+  return almacen.borrar(PARTIDA_DE_RECUPERACION);
+}
+
+/**
+ * La copia de recuperación si es más reciente que la partida guardada (`textoGuardado`, o `null` si no hay ninguna).
+ * Una copia que no aporta nada (igual o más antigua) o que no se puede leer se borra y devuelve `null`.
+ */
+export async function leerRecuperacion(almacen: Almacen, textoGuardado: string | null): Promise<Recuperacion | null> {
+  const texto = await almacen.cargar(PARTIDA_DE_RECUPERACION);
+  if (texto === null) return null;
+  const minuto = minutoDe(texto);
+  const guardada = textoGuardado === null ? -1 : (minutoDe(textoGuardado) ?? -1);
+  if (minuto === null || minuto <= guardada) {
+    await borrarRecuperacion(almacen).catch(() => undefined);
+    return null;
+  }
+  const resumen = (await almacen.listar()).find((r) => r.id === PARTIDA_DE_RECUPERACION);
+  return { texto, nombre: deJSON(texto).state.playerName, guardadoEn: resumen?.guardadoEn ?? 0, dia: Math.floor(minuto / MINUTES_PER_DAY), minuto };
 }
