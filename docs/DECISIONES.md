@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 29/10/2026 — Análisis del módulo de fútbol (propuesta, sin aprobar)
+
+Pedido por el usuario: empezar el fútbol como segundo deporte, que se active solo si el jugador lo elige, que pueda recibir eventos sin depender de ellos y valorar «despegar» los deportes del código común. Análisis completo en [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md); **no se ha cambiado código**.
+
+- **Hallazgo principal:** las reglas de imports se cumplen, pero el atletismo está metido como contenido en `npcs` (generación de rivales, entrenadores, equipo del colegio, hermanos), `clubes` (horario por club, no por deporte), `aptitudDe`, agendas, lugares, `relaciones` (gana quien tiene menos marca) y `sim`. Además no existe «elegir deporte»: con un segundo deporte los bots lo entrenarían todo y cambiarían todos los chequeos.
+- **Propuesta:** (1) puerta «deportes que practico» con un módulo pequeño `deportes`; (2) un **kit de deporte** (`@ds/kit-deporte`, cambia la regla 1) con lo común del atletismo, rehaciendo el atletismo encima sin cambiar la simulación; (3) **aportes declarativos** en el motor para que `npcs` y `clubes` lean la población y las secciones de cada deporte sin conocerlo; (4) fútbol con modelo **híbrido** de población (tu equipo como personas, rivales agregados) y la convocatoria como bucle propio.
+- **Preguntas abiertas:** sección 5 del análisis (uno o varios deportes, el kit, fútbol 7/11, equipos mixtos, modelo híbrido, posiciones, fútbol sala).
+
 ## 29/10/2026 — Viaje rápido solo desde la calle y «Proponer quedar para…»
 
 Pedido por el usuario tras revisar la interfaz.
