@@ -6,10 +6,10 @@ import { familia } from '@ds/mod-familia';
 import { lugares } from '@ds/mod-lugares';
 import { desarrolloRival, npcs, type NpcsState } from './index';
 
-/** Avanza hasta una hora y minuto concretos (de 6 en 6 minutos con los viajes al parque y a casa). */
+/** Avanza hasta una hora y minuto concretos (de 5 en 5 minutos). */
 function irA(g: Game, weekday: number, hora: number, minuto = 0): void {
   advanceTo(g, 'gen.descansar', weekday, hora);
-  for (let i = 0; g.time.minuteOfDay < hora * 60 + minuto && i < 30; i++) g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+  for (let i = 0; g.time.minuteOfDay < hora * 60 + minuto && i < 30; i++) g.perform('gen.esperar');
 }
 
 const nueva = () => Game.create([personaje, npcs, lugares], { seed: 9 });
@@ -242,7 +242,7 @@ describe('módulo NPCs', () => {
         const foto = lugares.map((l) => p.en(l).length).join(',');
         if (foto !== anterior) cambios++;
         anterior = foto;
-        g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+        g.perform('gen.esperar');
       }
       // Cambia solo cuando cambia algún tramo: unas pocas veces al día, no cada pocos minutos.
       expect(cambios).toBeLessThan(60);

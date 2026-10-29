@@ -362,7 +362,7 @@ function viewLugar(g: Game): string {
 
 /**
  * A dónde puedes ir. Moverte **dentro** de un lugar (a su aula, a la sala de profesores…) y **fuera** (a la calle, y de ahí a otras calles y a sus
- * lugares) son cosas distintas y van en bloques separados. El viaje rápido, desplegable, es solo a lugares: nunca a zonas ni a calles.
+ * lugares) son cosas distintas y van en bloques separados. El viaje rápido, desplegable, es solo a lugares (nunca a zonas ni a calles) y solo se ofrece estando en una calle.
  */
 function viewViaje(g: Game): string {
   const svc = g.service<LugaresService>(SERVICES.lugares);
@@ -397,7 +397,7 @@ function viewViaje(g: Game): string {
   return `<section class="sheet lugar">
     <h3>Viajar</h3>
     ${html}
-    <details class="viaje-rapido"><summary>Viaje rápido (a otro lugar)</summary>${todo}</details>
+    ${aqui.calle ? `<details class="viaje-rapido"><summary>Viaje rápido (a otro lugar)</summary>${todo}</details>` : ''}
   </section>`;
 }
 

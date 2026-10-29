@@ -584,7 +584,7 @@ describe('integración de módulos', () => {
     it('los bots no se paran a preguntar nombres y la gente cerca no pasa de 40', () => {
       const g = nuevaPartida({ seed: 22 });
       advanceTo(g, 'gen.descansar', 0, 10);
-      g.perform('lugares.ir_colegio');
+      viajarA(g, 'colegio');
       expect(presentaciones(g).length).toBeLessThanOrEqual(Math.round(GENTE_CERCANA * 1.15)); // 40 más o menos un 15 %
     });
   });
@@ -600,7 +600,7 @@ describe('integración de módulos', () => {
 
     it('en el recreo se puede charlar con un compañero que está en el colegio, y en clase no', () => {
       const g = nuevaPartida({ seed: 31 });
-      g.perform('lugares.ir_colegio');
+      viajarA(g, 'colegio');
       advanceTo(g, 'gen.descansar', 0, 9); // 9:xx: en clase
       expect(g.preview('relaciones.charlar.companero_social')!.reason).toMatch(/fuera de clase \(o en el recreo\)/);
       llegarA(g, 'patio', 10, 45); // el recreo es en el patio
@@ -628,7 +628,7 @@ describe('integración de módulos', () => {
         advanceToWeek(g, 'gen.descansar', semana, 5, 11);
         const donde = presencia().donde('companero_social');
         if (!donde) continue;
-        g.perform(`lugares.ir_${donde}`); // el jugador va a mirar a un sitio y se lo encuentra
+        viajarA(g, donde); // el jugador va a mirar a un sitio y se lo encuentra
         if (g.preview('relaciones.charlar.companero_social')!.available) habladas++;
       }
       expect(habladas).toBe(1);
@@ -833,7 +833,7 @@ describe('familia en casa y planes con los demás', () => {
   it('el padre y la madre son personas con las que relacionarse: están en casa por la tarde-noche, sin plan de estudio', () => {
     const g = nuevaPartida({ seed: 31 });
     advanceTo(g, 'gen.descansar', 0, 19);
-    g.perform('lugares.ir_casa');
+    viajarA(g, 'casa');
     const aqui = g.service<PresenciaService>(SERVICES.presencia)!.en('casa').map((n) => n.id);
     expect(aqui).toContain('padre');
     expect(aqui).toContain('madre');
@@ -908,7 +908,7 @@ describe('familia en casa y planes con los demás', () => {
     (s.modules.relaciones as RelacionesState).planes = [{ npcId: 'companero_estudio', actividad: 'estudiar', dia: 0, minuto: 17 * 60, lugar: 'casa' }];
     const g2 = cargarPartida(s);
     advanceTo(g2, 'gen.descansar', 0, 17);
-    g2.perform('lugares.ir_casa');
+    viajarA(g2, 'casa');
     expect(g2.preview('relaciones.estudiar.companero_estudio')!.modifiers.some((m) => m.id === 'relaciones.compania')).toBe(true);
   });
 
@@ -921,7 +921,7 @@ describe('familia en casa y planes con los demás', () => {
     npc.rasgos = { ...npc.rasgos!, caracter: { ...npc.rasgos!.caracter, ...caracter }, intereses };
     const g = cargarPartida(s);
     advanceTo(g, 'gen.descansar', 0, 17);
-    g.perform('lugares.ir_casa');
+    viajarA(g, 'casa');
     return g;
   };
 
@@ -980,7 +980,7 @@ describe('clase, profesores, apellidos y fichas', () => {
     advanceTo(g, 'gen.descansar', 0, 7);
     const npcs = () => g.service<NpcDirectory>(SERVICES.npcs)!;
     const antes = npcs().list({ role: 'profesor', known: true }).length;
-    for (let i = 0; i < 12 && g.time.minuteOfDay < 7 * 60 + 50; i++) g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+    for (let i = 0; i < 12 && g.time.minuteOfDay < 7 * 60 + 50; i++) viajarA(g, i % 2 === 0 ? 'parque' : 'casa');
     expect(hacer(g, 'estudios.clase_1').ok).toBe(true);
     expect(npcs().list({ role: 'profesor', known: true }).length).toBe(antes + 1);
     expect(g.log.some((l) => /se presenta al empezar la clase/.test(l.text))).toBe(true);
@@ -1100,9 +1100,9 @@ describe('horarios de los lugares en las acciones', () => {
   it('en vacaciones, si el colegio aún no ha abierto cuando se pasaría por su entrada, la acción va a otro sitio; ya abierto, vuelve a ser la pista del colegio', () => {
     const g = nuevaPartida({ seed: 31 });
     advanceToWeek(g, 'gen.descansar', 42, 2, 8); // un miércoles de verano (vacaciones)
-    g.perform('lugares.ir_calle_casa');
-    g.perform('lugares.ir_avenida_parque');
-    g.perform('lugares.ir_parque');
+    viajarA(g, 'calle_casa');
+    viajarA(g, 'avenida_parque');
+    viajarA(g, 'parque');
     const primero = () => (g.preview('atletismo.series')!.lugar ?? [])[0];
     const hasta = (minuto: number) => advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= minuto, 400);
     expect(g.service<LugaresService>(SERVICES.lugares)!.actual().id).toBe('parque');
@@ -1198,7 +1198,7 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     expect(dir(g).get('companero_social')!.profesion).toBeUndefined();
     // Ir a la clase de lengua enseña qué da su profesor.
     advanceTo(g, 'gen.descansar', 0, 7);
-    for (let i = 0; i < 12 && g.time.minuteOfDay < 7 * 60 + 50; i++) g.perform(i % 2 === 0 ? 'lugares.ir_parque' : 'lugares.ir_casa');
+    for (let i = 0; i < 12 && g.time.minuteOfDay < 7 * 60 + 50; i++) viajarA(g, i % 2 === 0 ? 'parque' : 'casa');
     const asignatura = g.service<StudiesService>(SERVICES.estudios)!.timetable(0)[0];
     expect(hacer(g, 'estudios.clase_1').ok).toBe(true);
     const numero = { 'estudios.lengua': 1, 'estudios.matematicas': 2, 'estudios.ingles': 3 }[asignatura as string];
@@ -1236,9 +1236,9 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     // Se busca un recreo en que el tutor esté en la sala: así las comprobaciones de dentro corren siempre (no dependen del azar de un día).
     const g = conocer(nuevaPartida({ seed: 31 }), 'tutor');
     hastaQueEsteEn(g, 'tutor', 'sala_profesores', 10 * 60 + 45);
-    g.perform('lugares.ir_colegio');
+    viajarA(g, 'colegio');
     const antes = g.time.minuteOfDay;
-    g.perform('lugares.ir_sala_profesores');
+    viajarA(g, 'sala_profesores');
     expect(g.time.minuteOfDay - antes).toBe(2);
     const ahi = g.service<PresenciaService>(SERVICES.presencia)!.en('sala_profesores').map((n) => n.id);
     expect(ahi.length).toBeGreaterThanOrEqual(7);
@@ -1253,8 +1253,8 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
   it('en otros recreos el tutor está en el patio: no sale en la sala de profesores', () => {
     const g = conocer(nuevaPartida({ seed: 31 }), 'tutor');
     hastaQueEsteEn(g, 'tutor', 'patio', 10 * 60 + 45);
-    g.perform('lugares.ir_colegio');
-    g.perform('lugares.ir_sala_profesores');
+    viajarA(g, 'colegio');
+    viajarA(g, 'sala_profesores');
     expect(g.service<PresenciaService>(SERVICES.presencia)!.en('sala_profesores').map((n) => n.id)).not.toContain('tutor');
   });
 
@@ -1289,8 +1289,8 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
 
   it('tutoría: si el profesor está en la entrada o en el patio, no está en la sala y no se puede pedir (aunque el personaje esté allí)', () => {
     const g = conProfesor1En('colegio');
-    g.perform('lugares.ir_colegio');
-    g.perform('lugares.ir_sala_profesores');
+    viajarA(g, 'colegio');
+    viajarA(g, 'sala_profesores');
     expect(lugarActual(g)).toBe('sala_profesores');
     const p = g.preview('estudios.tutoria_lengua')!;
     expect(p.available).toBe(false);
@@ -1381,7 +1381,7 @@ describe('el aula, las calles y los viajes', () => {
     expect(aqui(g, 'colegio')).toEqual([]); // se han ido a sus clases
     expect(aqui(g, 'aula')).toContain('companero_social');
     expect(g.preview('lugares.ir_aula')!.available).toBe(true);
-    expect(g.perform('lugares.ir_aula').ok).toBe(true);
+    viajarA(g, 'aula');
     expect(lugar(g)).toBe('aula');
   });
 
@@ -1447,7 +1447,7 @@ describe('el aula, las calles y los viajes', () => {
     expect(g.preview('lugares.ir_calle_colegio')!.available).toBe(false);
     expect(g.preview('lugares.ir_calle_casa')!.available).toBe(true);
     expect(g.service<LugaresService>(SERVICES.lugares)!.pasos().map((p) => p.lugar.id)).toEqual(['calle_casa']);
-    g.perform('lugares.ir_calle_casa');
+    viajarA(g, 'calle_casa');
     expect(g.service<LugaresService>(SERVICES.lugares)!.pasos().map((p) => p.lugar.id).sort()).toEqual(['avenida_parque', 'calle_colegio', 'casa', 'restaurante', 'supermercado']);
     expect(g.preview('lugares.ir_colegio')!.available).toBe(true); // viaje rápido
   });
@@ -1460,7 +1460,7 @@ describe('siesta, jugar y entrenar con el club', () => {
     const g = nuevaPartida({ seed: 31 });
     expect(g.preview('gen.descansar')!.name).toBe('Echarse una siesta');
     expect(g.preview('gen.descansar')!.available).toBe(true);
-    g.perform('lugares.ir_parque');
+    viajarA(g, 'parque');
     expect(g.preview('gen.descansar')!.available).toBe(false);
     expect(g.preview('gen.descansar')!.reason).toMatch(/Tienes que estar en casa/);
   });

@@ -1,5 +1,12 @@
-import type { TimeView } from '@ds/contracts';
+import { CIUDAD_INICIAL, SERVICES, rutaA, type LugaresService, type TimeView } from '@ds/contracts';
 import type { Game } from './game';
+
+/** Vuelve a casa por el camino que permite el mapa (primero se sale a la calle; el viaje rápido solo se hace desde ella). */
+function volverACasa(game: Game): void {
+  const aqui = game.service<LugaresService>(SERVICES.lugares)?.actual().id;
+  if (!aqui) return;
+  for (const parada of rutaA(CIUDAD_INICIAL, aqui, CIUDAD_INICIAL.casa)) if (!game.perform(`lugares.ir_${parada}`).ok) return;
+}
 
 /**
  * Utilidades para tests y simulación.
@@ -12,7 +19,7 @@ export function advanceUntil(game: Game, waitActionId: string, until: (t: TimeVi
     let r = game.perform(waitActionId);
     if (!r.ok && game.preview('gen.esperar')) {
       // Descansar (la siesta) solo se puede en casa: fuera, los tests esperan de 5 en 5 minutos y, si la espera se alarga (más de 2 horas), vuelven a casa.
-      if (++esperas > 24 && game.preview('lugares.ir_casa')?.available) game.perform('lugares.ir_casa');
+      if (++esperas > 24) volverACasa(game);
       r = game.perform('gen.esperar');
       if (game.preview(waitActionId)?.available) esperas = 0;
     }

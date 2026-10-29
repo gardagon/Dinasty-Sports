@@ -58,7 +58,7 @@ export const MINUTOS_ENTRE_ZONAS = 2;
 /**
  * El mapa es un grafo: **calles** (no se hace nada en ellas: solo se va de una a otra y se entra en sus lugares), **lugares** (con su
  * entrada a una calle) y **zonas** dentro de los lugares (el aula, la sala de profesores...). Un lugar se alcanza desde su calle y una zona,
- * desde la entrada de su lugar. El viaje rápido salta a cualquier lugar (nunca a una zona ni a una calle) y cuesta lo mismo que el camino.
+ * desde la entrada de su lugar. El viaje rápido salta a cualquier lugar (nunca a una zona ni a una calle) desde una calle (no desde dentro de un lugar) y cuesta lo mismo que el camino.
  */
 export interface MapaCiudad {
   nombre: string;
@@ -240,31 +240,39 @@ export function pasosDesde(mapa: MapaCiudad, desde: LugarId): Paso[] {
 }
 
 /**
- * ¿Se puede ir de `desde` a `hasta` ahora mismo? Los lugares, desde cualquier parte (viaje rápido); las zonas, solo desde la entrada
- * de su lugar; las calles, solo desde sus lugares o desde una calle vecina.
+ * ¿Se puede ir de `desde` a `hasta` ahora mismo? El viaje rápido a un lugar solo se hace **desde una calle** (no desde dentro de un lugar ni de una
+ * zona: primero hay que salir); las zonas, solo desde la entrada de su lugar; las calles, solo desde sus lugares o desde una calle vecina.
  */
 export const sePuedeIr = (mapa: MapaCiudad, desde: LugarId, hasta: LugarId): boolean => {
   const destino = mapa.lugares.find((l) => l.id === hasta);
-  if (!destino || desde === hasta) return false;
-  return tipoDeSitio(destino) === 'lugar' || pasosDesde(mapa, desde).some((p) => p.lugar === hasta);
+  const origen = mapa.lugares.find((l) => l.id === desde);
+  if (!destino || !origen || desde === hasta) return false;
+  if (tipoDeSitio(destino) === 'lugar') return !!origen.calle || pasosDesde(mapa, desde).some((p) => p.lugar === hasta);
+  return pasosDesde(mapa, desde).some((p) => p.lugar === hasta);
 };
 
 /**
- * Los destinos (en orden) que hay que pisar para llegar a `hasta` sin saltarse las reglas del mapa: un lugar, directo (viaje rápido); una
- * zona, primero la entrada de su lugar (si no se está ya en él o en otra zona suya) y luego la zona; una calle, desde un lugar suyo o vecino.
+ * Los destinos (en orden) que hay que pisar para llegar a `hasta` sin saltarse las reglas del mapa: primero salir a la calle (de la zona a su lugar y de
+ * este a su calle), luego el viaje rápido a un lugar; una zona, primero la entrada de su lugar y luego la zona; una calle, desde un lugar suyo o vecino.
  * Para los bots y los tests, que no piensan en el mapa; el jugador va paso a paso.
  */
 export function rutaA(mapa: MapaCiudad, desde: LugarId, hasta: LugarId): LugarId[] {
   const destino = mapa.lugares.find((l) => l.id === hasta);
-  if (!destino || desde === hasta) return [];
+  const origen = mapa.lugares.find((l) => l.id === desde);
+  if (!destino || !origen || desde === hasta) return [];
   if (sePuedeIr(mapa, desde, hasta)) return [hasta];
-  if (destino.dentroDe) return [destino.dentroDe, hasta];
+  if (destino.dentroDe) {
+    // Desde otra zona del mismo lugar se pasa por su entrada; desde cualquier otro sitio se llega primero al lugar.
+    return origen.dentroDe === destino.dentroDe ? [destino.dentroDe, hasta] : [...rutaA(mapa, desde, destino.dentroDe), hasta];
+  }
   if (destino.calle) {
     // Primero a un lugar de esa calle (así queda a un paso) y luego a la calle.
     const lugar = mapa.lugares.find((l) => l.enCalle === hasta);
-    return lugar ? [lugar.id, hasta] : [];
+    return lugar ? [...rutaA(mapa, desde, lugar.id), hasta] : [];
   }
-  return [hasta];
+  // Un lugar desde dentro de otro: se sale a su calle (pasando por la entrada si se está en una zona).
+  const raiz = origen.dentroDe ? mapa.lugares.find((l) => l.id === origen.dentroDe)! : origen;
+  return [...(origen.dentroDe ? [raiz.id] : []), ...(raiz.enCalle ? [raiz.enCalle] : []), hasta];
 }
 
 export interface LugaresService {

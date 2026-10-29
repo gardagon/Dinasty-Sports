@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { CIUDAD_INICIAL, defineModule, enLugar, tiempoEntre, pasosDesde, sePuedeIr, type LugaresService } from '@ds/contracts';
+import { CIUDAD_INICIAL, defineModule, enLugar, rutaA, tiempoEntre, pasosDesde, sePuedeIr, type LugaresService } from '@ds/contracts';
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { lugares } from './index';
+
+/** Va a un sitio por el camino del mapa (el viaje rápido solo se hace desde una calle). */
+const ir = (g: Game, lugar: string) => {
+  for (const parada of rutaA(CIUDAD_INICIAL, g.service<LugaresService>('lugares')!.actual().id, lugar)) g.perform(`lugares.ir_${parada}`);
+};
 
 const partida = () => Game.create([personaje, lugares], { seed: 1 });
 
@@ -15,8 +20,10 @@ describe('módulo lugares', () => {
   it('ir a un sitio cuesta lo que el camino y cambia la ubicación', () => {
     const g = partida();
     const antes = g.time.minute;
-    const r = g.perform('lugares.ir_colegio');
-    expect(r.ok).toBe(true);
+    // Desde casa el viaje rápido no existe: hay que salir a la calle (1 min) y de ahí al colegio (el resto del camino).
+    expect(g.perform('lugares.ir_colegio').ok).toBe(false);
+    expect(g.preview('lugares.ir_colegio')!.reason).toMatch(/solo se hace desde la calle/);
+    ir(g, 'colegio');
     expect(g.time.minute - antes).toBe(10);
     expect(g.service<LugaresService>('lugares')?.actual().id).toBe('colegio');
   });
@@ -28,7 +35,7 @@ describe('módulo lugares', () => {
 
   it('el viaje rápido cuesta lo que dice la tabla de tiempos', () => {
     const g = partida();
-    g.perform('lugares.ir_parque');
+    ir(g, 'parque');
     const svc = g.service<LugaresService>('lugares')!;
     expect(svc.minutosA('colegio')).toBe(8);
     // Desde un lugar, los pasos son su calle y sus zonas (no otros lugares).
@@ -43,7 +50,7 @@ describe('módulo lugares', () => {
     });
     const g = Game.create([personaje, lugares, prueba], { seed: 1 });
     expect(g.perform('prueba.clase').ok).toBe(false);
-    g.perform('lugares.ir_colegio');
+    ir(g, 'colegio');
     expect(g.perform('prueba.clase').ok).toBe(true);
   });
 });
@@ -82,13 +89,28 @@ describe('mapa de la ciudad', () => {
     expect(pasosDesde(CIUDAD_INICIAL, 'sala_profesores')).toEqual([{ lugar: 'colegio', minutos: 2, tipo: 'entrada' }]);
   });
 
-  it('el viaje rápido salta a cualquier lugar, pero nunca a una zona ni a una calle', () => {
-    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'colegio')).toBe(true);
+  it('el viaje rápido salta a cualquier lugar, pero solo desde una calle y nunca a una zona ni a una calle', () => {
+    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'colegio')).toBe(true);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'estadio')).toBe(true);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'aula')).toBe(false);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'calle_colegio')).toBe(true); // calle vecina: un paso, no viaje rápido
+    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'avenida_parque')).toBe(true);
+    // Desde dentro de un lugar o de una zona no hay viaje rápido: hay que salir.
+    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'colegio')).toBe(false);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'colegio', 'parque')).toBe(false);
+    expect(sePuedeIr(CIUDAD_INICIAL, 'aula', 'colegio')).toBe(true); // la entrada del lugar es un paso
+    expect(sePuedeIr(CIUDAD_INICIAL, 'aula', 'estadio')).toBe(false);
     expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'aula')).toBe(false);
     expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'calle_colegio')).toBe(false);
     expect(sePuedeIr(CIUDAD_INICIAL, 'colegio', 'aula')).toBe(true);
     expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'calle_casa')).toBe(true);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'aula', 'colegio')).toBe(true);
+  });
+
+  it('rutaA sale primero a la calle (de la zona al lugar y de este a su calle) y luego hace el viaje rápido', () => {
+    expect(rutaA(CIUDAD_INICIAL, 'casa', 'colegio')).toEqual(['calle_casa', 'colegio']);
+    expect(rutaA(CIUDAD_INICIAL, 'aula', 'parque')).toEqual(['colegio', 'calle_colegio', 'parque']);
+    expect(rutaA(CIUDAD_INICIAL, 'casa', 'aula')).toEqual(['calle_casa', 'colegio', 'aula']);
+    expect(rutaA(CIUDAD_INICIAL, 'calle_casa', 'colegio')).toEqual(['colegio']);
   });
 
   it('el camino por las calles cuesta lo mismo que el viaje rápido', () => {
@@ -108,17 +130,17 @@ describe('mapa de la ciudad', () => {
   it('las zonas con horario salen en gris fuera de horario y dicen cuándo abren', () => {
     const g = Game.create([personaje, lugares], { seed: 1 });
     advanceTo(g, 'gen.descansar', 0, 7); // lunes, 7:00: la administración abre a las 9:00
-    g.perform('lugares.ir_colegio');
+    ir(g, 'colegio');
     const o = g.preview('lugares.ir_administracion')!;
     expect(o.available).toBe(false);
     expect(o.reason).toMatch(/cerrado.*9:00 a 13:30/);
     advanceTo(g, 'gen.descansar', 0, 10);
-    g.perform('lugares.ir_colegio'); // (esperar fuera de casa puede haberte llevado a casa)
+    ir(g, 'colegio'); // (esperar fuera de casa puede haberte llevado a casa)
     expect(g.preview('lugares.ir_administracion')!.available).toBe(true);
     // El sábado, cerrada; la sala de un club abre a las 9.
     advanceTo(g, 'gen.descansar', 5, 10);
     expect(g.preview('lugares.ir_administracion')!.available).toBe(false);
-    g.perform('lugares.ir_estadio');
+    ir(g, 'estadio');
     expect(g.preview('lugares.ir_sala_club_ciudad')!.available).toBe(true);
   });
 });
