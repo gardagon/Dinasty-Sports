@@ -1,6 +1,6 @@
 # Plan: deportes que se instalan y conviven, uno para competir
 
-Plan por fases (29–30/10/2026), **revisado con las aclaraciones del usuario del 30/10** (§9). Va **antes de nada del fútbol**. El diseño propio del fútbol sigue en [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md) (§3.4 a §3.8) y empieza cuando terminen estas fases.
+Plan por fases (29–30/10/2026), **revisado con las aclaraciones del usuario del 30/10** (§9; la última, paquetes firmados, datos por deporte y luego por país, e instalador desde GitHub Pages con otras fuentes posibles). Va **antes de nada del fútbol**. El diseño propio del fútbol sigue en [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md) (§3.4 a §3.8) y empieza cuando terminen estas fases.
 
 ---
 
@@ -14,7 +14,7 @@ Plan por fases (29–30/10/2026), **revisado con las aclaraciones del usuario de
 
 | Nivel | Qué es | Quién lo decide |
 |---|---|---|
-| **Catálogo** | Los deportes que se pueden instalar | El desarrollo, al publicar |
+| **Catálogo** | Los deportes que se pueden instalar (de cada fuente: GitHub Pages, y más adelante una tienda o mods) | El desarrollo (o quien haga el mod), al publicar |
 | **Instalado** | Descargado en el dispositivo con el instalador: código y datos por país | El jugador (Opciones → Deportes) |
 | **En la partida** | Su mundo existe en esa partida: habilidades del personaje, gente, clubes, historial | Al crear la partida (todos los instalados) o al añadirlo a una empezada |
 | **Practicado** | El que compite (solo uno, o ninguno) | El jugador, dentro del juego, cuando quiera |
@@ -27,31 +27,78 @@ Plan por fases (29–30/10/2026), **revisado con las aclaraciones del usuario de
 - **Sin coste por cambiar**, salvo el plantón de un club si no se deja antes (como hoy). **Sin ningún deporte** también vale.
 - **Uno a la vez** (`MAX_DEPORTES_PRACTICADOS = 1`): empezar uno nuevo exige dejar el actual (la acción lo ofrece: «Dejar el atletismo y empezar fútbol»).
 
-## 3. El instalador: el código del deporte se descarga al instalarlo (viabilidad)
+## 3. Paquetes de deporte e instalador
 
-**Es viable** con lo que ya usa la web (Vite y la PWA con su *service worker*):
+### 3.1 Qué es un paquete de deporte
 
-- **Cada deporte se compila aparte** (un trozo de JavaScript propio con `import()` dinámico, más sus datos por país en JSON). El juego base no lo incluye.
-- **Instalar** = descargar ese trozo y sus datos **del propio servidor del juego** y guardarlos en el dispositivo (caché de la PWA), para que funcione **sin conexión**. **Desinstalar** = borrarlos. La lista de instalados se guarda en el navegador.
-- **Al abrir o crear una partida** se cargan los deportes instalados que usa y se monta la partida con ellos (hoy la lista de módulos es fija, `packages/game/src/modulos.ts`; pasaría a ser «base + los deportes cargados»).
-- **Una partida que usa un deporte desinstalado no se abre** hasta reinstalarlo (se avisa; no se borra), igual que con un país no cargado.
-- **Seguridad:** el código solo se descarga del servidor del juego (es parte de la misma publicación), nunca de un archivo cualquiera: ejecutar código de un archivo importado podría hacer cualquier cosa en el navegador. Si algún día hay deportes de terceros, harán falta firmas y lo pensaremos aparte. **Los datos** (un país nuevo para un deporte) **sí se pueden importar como archivo**, porque son datos y se validan.
-- **Versiones:** al principio el código de los deportes se publica con el juego (misma versión: no puede haber incompatibilidades). Los **datos por país** de un deporte sí se pueden actualizar por separado. Publicar el código de un deporte aparte del juego exigiría una «versión del contrato» que compruebe que encajan: se deja para cuando haga falta.
-- **Lo común no se descarga con cada deporte:** el kit de deporte (§7) va en el juego base, así cada deporte pesa poco.
+El motor de un deporte **es código y llega como código**, dentro de un **paquete** con:
+
+| Parte | Qué es |
+|---|---|
+| **Manifiesto** | Id, nombre, versión del paquete, **versión del juego con la que es compatible** (la del vocabulario común y el kit que usa), países que trae, tamaño y la huella de cada archivo |
+| **Código** | El módulo del deporte (`GameModule`) compilado aparte. **No lleva su propia copia de `contracts` ni del kit:** usa las del juego instalado (así pesa poco y todos los deportes hablan el mismo idioma) |
+| **Datos por país** | Un archivo por país con categorías, temporada, competiciones, clubes, lugares y población (ver §4). España siempre; los demás, cuando los haya |
+| **Firma** | La firma de todo lo anterior |
+
+- **Compatibilidad:** el juego rechaza un paquete hecho para otra versión del vocabulario común o del kit («Este fútbol es para la versión 3 del juego; actualiza el juego o el deporte»). Estas dos piezas pasan a ser la **interfaz pública de los deportes**: cambiarlas exige subir su versión y avisar (también a quien haga mods, §3.4).
+- **Instalar** = descargar el paquete, comprobar firma, compatibilidad y huellas, y guardarlo en el dispositivo (para jugar sin conexión). **Desinstalar** = borrarlo. Al abrir o crear una partida se cargan los deportes instalados que usa (hoy la lista de módulos es fija en `packages/game/src/modulos.ts`; pasa a ser «base + los deportes cargados»).
+- **Una partida que usa un deporte que no está instalado no se abre** hasta instalarlo (se avisa; no se borra), igual que con un país no cargado.
+
+### 3.2 La firma: por qué un archivo con código sí puede instalarse
+
+El riesgo de ejecutar código no es que sea código sino **quién lo ha hecho**: un deporte corre dentro de la página del juego y podría leer o borrar partidas o enviar datos fuera. Por eso:
+
+- **Los paquetes oficiales se firman** al publicarlos con una clave privada que **no está en el repositorio** (se guarda como secreto de GitHub Actions). El juego lleva dentro la clave pública y comprueba la firma con las funciones criptográficas del navegador (Web Crypto) antes de instalar.
+- **Firmado por nosotros = se instala, venga de donde venga** (GitHub, un archivo bajado a mano, una tienda). Sin firma o modificado = se rechaza (salvo los mods, §3.4).
+- **La firma protege de paquetes falsos o manipulados, no de copias:** un paquete oficial copiado sigue siendo válido. Lo que evita copias es la venta con licencias (§3.4).
+
+### 3.3 De dónde se instala: fuentes intercambiables (GitHub Pages primero)
+
+El instalador no está atado a un sitio: habla con **fuentes de instalación**, todas con la misma forma (dar el catálogo, descargar un paquete y, si hace falta, comprobar una licencia). La firma y la compatibilidad se comprueban igual venga de la fuente que venga.
+
+| Fuente | Para qué | Cuándo |
+|---|---|---|
+| **GitHub Pages** | Los paquetes en una carpeta de la misma web del juego (`deportes/<id>/<versión>/`) y un catálogo. Gratis, mismo sitio que el juego (el navegador no pone pegas al descargar) y se publica con el flujo que ya existe (`pages.yml`). Límites de Pages (1 GB de sitio, ~100 GB al mes de descarga) de sobra | **Ahora** (decidido el 30/10) |
+| **Archivo local** | Instalar un paquete bajado a mano (sin conexión, o de otra fuente) | Con el instalador |
+| **GitHub Releases** | Una descarga por versión de cada deporte | Opcional: hay que probar si el navegador deja leer las descargas desde la web del juego (redirigen a otro dominio) |
+| **Tienda o servidor con licencias** | Vender deportes (§3.4) | Si se pone a la venta |
+| **Tiendas de apps** (Capacitor) | Las normas de Apple, y en parte las de Google, limitan descargar código que cambie la app: ahí los deportes irían dentro de la app y «instalar» sería activarlo | Si se publica como app |
+
+### 3.4 Venta y modding (para no cerrarnos)
+
+- **Peso:** solo se descarga lo que se instala. El juego base lleva el motor, los módulos base y el kit.
+- **Venta:** **todo lo que esté en GitHub Pages es público** (cualquiera puede descargarlo, sin necesidad de hackear nada). Los deportes de pago **no pueden ir en Pages**: irían en una fuente con licencias (una tienda como itch.io o Steam, o un servidor propio) que solo entrega el paquete a quien lo ha comprado, con una licencia firmada ligada a su cuenta que el juego comprueba al instalar. **Ninguna protección es total** en un juego que funciona sin conexión en el navegador: quien ha comprado un deporte puede copiar sus archivos. Lo realista es ponerlo incómodo (licencia por cuenta, comprobación al instalar y al actualizar), no imposible. Por eso el instalador se diseña con fuentes intercambiables desde el principio.
+- **Modding:** otras personas podrán hacer deportes con el kit y el vocabulario común (la interfaz pública de §3.1). Un mod no está firmado por nosotros, así que hay que decidir cuánto se le deja hacer:
+  1. **Avisar y confiar** (como muchos juegos de PC): se activa un «modo mods», cada mod se instala con un aviso claro («no es oficial: podría leer o borrar tus partidas») y sus partidas se marcan. Es lo más sencillo.
+  2. **Mods firmados por su autor:** el juego dice quién lo ha hecho y avisa si cambia de autor.
+  3. **Aislarlos** para que no puedan tocar partidas ni red: hoy el motor llama a las funciones de cada deporte directamente en cada acción, y aislarlas obligaría a cambiar el motor a fondo. Se valoraría cuando haya mods de verdad.
+
+  Propuesta: empezar por 1 y 2. No hace falta decidirlo hasta la fase de modding.
 
 ## 4. Dos juegos de rol: el colegio (país) y el deporte (viabilidad)
 
-Propuesta del usuario: el país se incorpora con su módulo de estudios, calendario y demás (con España por defecto); el deporte se importa aparte y trae **sus propios datos de cada país**, también con España por defecto hasta que una actualización traiga el país.
+Propuesta del usuario: el país se incorpora con su módulo de estudios, calendario y demás (con España por defecto); el deporte se instala aparte y trae **sus propios datos de cada país**, también con España por defecto hasta que una actualización traiga el país. **El paquete de país no sabe nada de deportes.**
 
 | | Paquete de país (el colegio y la vida) | Paquete de deporte (el deporte) |
 |---|---|---|
-| Qué trae | Calendario escolar, cursos y asignaturas, jornada, horarios de los lugares comunes, gente (demografía, nombres, apellidos) | Código del deporte y, **por país**: categorías, temporada, competiciones y sus nombres («campeonato de España»), federación, clubes y sus secciones, lugares propios (campo de fútbol) y sus horarios, población que necesita |
-| Si falta un país | `copiaDeEspana` (ya existe) | **Su modelo de España**, con el nombre del país, hasta una actualización |
-| Cómo llega | Importar paquete de país (ya existe, `paquetes.ts`) | Instalador (código y datos) e importar datos de un país para un deporte (JSON) |
+| Qué trae | Calendario escolar, cursos y asignaturas, jornada, horarios de los lugares comunes, gente (demografía, nombres, apellidos) | Código del deporte y sus datos **por país** (abajo) |
+| Si falta un país | `copiaDeEspana` (ya existe) | **Los datos de España de ese deporte**, con el nombre del país, hasta una actualización |
+| Cómo llega | Importar paquete de país (ya existe, `paquetes.ts`) | Instalador (§3); los datos de un país nuevo pueden llegar con una versión nueva del deporte o como archivo de datos |
+
+**Los datos van por deporte y, dentro del deporte, por país** (decidido el 30/10). Una «sub-10» del atletismo de España puede no existir en Argentina, y eso lo sabe el atletismo, no Argentina:
+
+```
+atletismo
+ └─ países
+     ├─ España     → categorías, temporada, competiciones y federación, clubes y secciones, lugares, población
+     └─ Argentina  → las suyas (si no están, se usan las de España)
+```
+
+Solo manda el deporte (se retira la propuesta anterior de que el paquete de país pudiera corregir datos de un deporte).
 
 **Es viable**, y buena parte ya existe (`PaisDef`, `copiaDeEspana`, validación e importación, `ctx.pais`). Lo que hay que cambiar o cuidar:
 
-1. **Las categorías salen del paquete de país.** Hoy `PaisDef.categorias` tiene las del atletismo: pasan a los datos del deporte. El paquete de país deja de saber de deportes.
+1. **Las categorías salen del paquete de país.** Hoy `PaisDef.categorias` (del trabajo de países, ya en `main`) tiene las del atletismo: pasan a los datos del atletismo y `PaisDef` deja de saber de deportes. Hay que coordinarlo con el trabajo de países.
 2. **La temporada no puede ir en semanas fijas.** Hoy el atletismo tiene la semifinal en la semana 37 del curso. Con el calendario real de Argentina (curso de marzo a diciembre) eso caería en otro sitio. La temporada se expresa **respecto al calendario escolar del país** («primera competición en la 5.ª semana de clase», «semifinales 3 semanas antes de acabar las clases del último trimestre», «sin competición en vacaciones») o al año natural si el deporte no sigue al colegio. Así **los datos de España de un deporte encajan solos en cualquier calendario**, que es lo que hace viable lo de «España por defecto». Es el punto más importante.
 3. **Lo que el deporte pone en la ciudad** (un campo de fútbol, sus horarios, las agendas de su gente) lo aporta el deporte al instalarse, no el mapa base ni el país.
 4. **Actualizaciones a mitad de partida:** si una actualización trae los datos reales de tu país para tu deporte, se aplican **al empezar el curso siguiente**, no a mitad de temporada (cambiar las categorías en medio rompería clasificaciones y resultados guardados). La partida recuerda qué datos usa cada deporte en la temporada en curso.
@@ -96,16 +143,23 @@ Estamos en alfa: las partidas empezadas se descartan cuando cambie la forma del 
 | **K** ✅ | **Kit de deporte** y el atletismo reescrito encima (§7). **Hecho el 30/10:** huella exacta del estado igual antes y después (14 partidas de bots, 120 y 330 días) | Idéntico |
 | **0** | **Deporte practicado** (uno): módulo `deportes`, servicio `practica`, eventos `deporte.empezar` y `deporte.dejar`, ocultar lo que no se practica, «Empezar / Dejar el atletismo», elegir deporte en la nueva partida | Idéntico (salvo el bot que abandona, que pasa a dejarlo de verdad) |
 | **1** | **Aportes** en el motor (`GameModule.aportes`, `ctx.aportes`) y ficha de cada deporte (catálogo) | Idéntico |
-| **2** | **Datos de cada deporte por país** (§4): categorías fuera del paquete de país, temporada relativa al calendario escolar, nombres de competiciones; España de respaldo; importables en JSON | Idéntico en España |
+| **2** | **Datos de cada deporte, por país dentro del deporte** (§4): `DatosDeDeporte` (categorías, temporada relativa al calendario escolar, competiciones y federación); las categorías salen de `PaisDef`; España del deporte de respaldo; validación de los datos | Idéntico en España |
 | **3** | **Lo que el deporte pone en el mundo:** clubes con secciones por deporte, lugares y agendas aportados por el deporte | Idéntico |
 | **4** | **La gente de cada deporte:** lo que pide cada deporte como dato, reclutar personas que encajan y crear las que falten, guardar lo pedido para seguir viviendo sin el módulo (§5); generalizar `aptitudDe` y la lectura de `competicion.resultado` | Idéntico |
 | **5** | **Deportes en la partida:** añadir uno a una partida empezada (con pantalla de espera) y quitarlo; stats del deporte quitado que siguen cayendo (§5) | Idéntico |
-| **6** | **Instalador** (§3): cada deporte compilado aparte, descarga, caché sin conexión, Opciones → Deportes | Sin efecto |
+| **6** | **Paquetes e instalador** (§3): cada deporte compilado aparte (sin su copia del kit ni de `contracts`), manifiesto con versión compatible, firma (clave privada como secreto de GitHub Actions), fuentes intercambiables con **GitHub Pages** y archivo local, caché sin conexión, Opciones → Deportes | Sin efecto |
 | **7** | **Validación:** dos deportes de prueba (solo en los tests) instalados con el atletismo; cambiar de uno a otro; quitar uno un año y volver; bots que cambian de deporte; medida con 4 instalados (tamaño, espera, coste por acción y día) | Chequeos nuevos |
 
 Después, **el fútbol**: debería tocar solo su módulo y sus datos.
 
-**Orden:** G y K no dependen de nada (K se hace ya: va en el juego base y todo lo demás se apoya en él). 0 da el cambio de deporte con lo que hay. 1–5 sueltan los nudos del atletismo uno a uno. 6 cambia cómo llega el código, cuando ya no hay nada atado. 7 lo demuestra. Las fases 2 a 4 tocan `contracts/paises`, `clubes`, `npcs` y `relaciones`, que comparten el trabajo de países: PR cortos y fusionados pronto.
+**Más adelante, sin fecha** (el instalador queda preparado para ellas):
+
+| Fase | Qué |
+|---|---|
+| **V** | **Venta:** fuente de instalación con licencias (tienda o servidor propio) para los deportes de pago, que no pueden estar en GitHub Pages (§3.4) |
+| **M** | **Modding:** documentar la interfaz pública (vocabulario común y kit) con sus versiones, «modo mods» con aviso, mods firmados por su autor; aislarlos si hace falta (§3.4) |
+
+**Orden:** G y K no dependen de nada (K se hace ya: va en el juego base y todo lo demás se apoya en él). 0 da el cambio de deporte con lo que hay. 1–5 sueltan los nudos del atletismo uno a uno. 6 cambia cómo llega el código, cuando ya no hay nada atado. 7 lo demuestra. V y M se apoyan en las fuentes y la firma de la 6. Las fases 2 a 4 tocan `contracts/paises`, `clubes`, `npcs` y `relaciones`, que comparten el trabajo de países: PR cortos y fusionados pronto.
 
 ## 9. Decisiones del usuario (30/10/2026)
 
@@ -118,3 +172,6 @@ Después, **el fútbol**: debería tocar solo su módulo y sus datos.
 - **Opciones:** un botón de Opciones con los de exportar e importar y los del guardado.
 - **Desinstalar no archiva:** hay que prever cómo vuelve un deporte sin recrear nada ni dejar datos desfasados (§5).
 - **Al cerrar la pestaña:** preguntar si guardar (respondido en §6: con nuestros botones sí; al cerrar la pestaña, aviso del navegador y copia de recuperación).
+- **El motor de cada deporte llega como código en su paquete**, firmado: lo firmado por nosotros se instala venga de donde venga (§3.2).
+- **Los datos van por deporte y, dentro del deporte, por país**; el país no sabe del deporte (§4).
+- **Instalador: GitHub Pages de momento**, sin cerrarse a otras fuentes, porque si se vende el juego los deportes de pago no pueden estar en un sitio público, porque así el juego base pesa poco y porque se quiere abrir a modding (§3.3 y §3.4).

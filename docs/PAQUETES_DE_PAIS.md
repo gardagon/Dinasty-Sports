@@ -9,7 +9,7 @@ Un **paquete de país** (`PaisDef`, en `packages/contracts/src/paises/`) reúne 
 | `id`, `nombre` | Identificador (minúsculas y guion bajo) y nombre en español | todo |
 | `calendario` | Calendario escolar: semanas del curso, tramos (clase, Navidad, Semana Santa, verano), evaluaciones y parciales | el motor (`ctx.time`, `ctx.timeAt`) |
 | `cursos`, `cursoDeModalidad` | Cursos desde los 8 años (nombre, etapa, asignaturas por curso, modalidades) | módulo `estudios` |
-| `categorias` | Categorías por edad de cada deporte (`{ atletismo: [...] }`) | módulo `atletismo` |
+| `categorias` | Categorías por edad de cada deporte (`{ atletismo: [...] }`). **Provisional:** el plan de deportes (`PLAN_DEPORTES_MODULARES.md` §4, decidido el 30/10) las saca del paquete de país y las lleva a los datos de cada deporte, por país dentro del deporte; el país no sabrá de deportes | módulo `atletismo` |
 | `horarios` | Horarios de apertura por id de lugar (colegio, biblioteca, supermercado…) | módulo `lugares` (servicio `lugares`) |
 | `demografia` | Peso de cada origen familiar entre la gente del país | generación de personas (`origenAlAzar`) |
 | `origenesLocales` | Orígenes «de aquí» (de ellos sale el nombre local de las mezclas) | `nombres.ts` |

@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Paquetes de deporte firmados, datos por deporte y luego por país, e instalador desde GitHub Pages
+
+Aclaraciones del usuario sobre el plan de deportes (detalle en `PLAN_DEPORTES_MODULARES.md` §3 y §4); no se ha cambiado código.
+
+- **El motor de cada deporte llega como código** dentro de un paquete (manifiesto con la versión del juego con la que es compatible, código sin su propia copia de `contracts` ni del kit, datos por país y firma). **Los paquetes oficiales se firman** con una clave privada guardada como secreto de GitHub Actions; el juego comprueba la firma con Web Crypto. Lo firmado por nosotros se instala venga de donde venga (GitHub, un archivo bajado a mano, una tienda). La firma evita paquetes falsos o manipulados, no las copias.
+- **`contracts` y el kit pasan a ser la interfaz pública de los deportes:** cambiarlos exige subir su versión, y el juego rechaza paquetes de otra versión.
+- **Datos por deporte y, dentro del deporte, por país** (corrección del usuario): las categorías, la temporada, las competiciones, los clubes y los lugares los trae el deporte para cada país, con los de España de respaldo. El paquete de país no sabe de deportes (`PaisDef.categorias` saldrá de ahí en la fase 2). Se retira la propuesta de que el paquete de país pudiera corregir a un deporte.
+- **Instalador: GitHub Pages de momento** (no hay servidores propios), con **fuentes intercambiables** (archivo local, GitHub Releases si el navegador lo permite, tienda o servidor con licencias, tiendas de apps). Motivos del usuario: si se vende el juego, lo que está en Pages es público y cualquiera tendría todos los deportes gratis; así el juego base pesa poco; y se quiere abrir a **modding**.
+- **Venta (fase V, sin fecha):** los deportes de pago irían en una fuente con licencias por cuenta; ninguna protección es total en un juego que funciona sin conexión, lo realista es ponerlo incómodo.
+- **Modding (fase M, sin fecha):** propuesta de empezar con «modo mods» con aviso y mods firmados por su autor; aislar los mods del resto del juego obligaría a cambiar el motor a fondo y se valoraría cuando haga falta.
+- **Aviso:** como app de tienda (Capacitor), las normas de Apple y en parte las de Google limitan descargar código; ahí los deportes irían dentro de la app.
+
 ## 30/10/2026 — Kit de deporte (fase K del plan de deportes)
 
 Aprobado por el usuario («me parece correcto. Hazlo»). Paquete nuevo `packages/kit-deporte` (`@ds/kit-deporte`) con lo común a cualquier deporte con club y entrenador, sacado del atletismo: habilidades deportivas y conocimiento, valor efectivo en competición, acciones de club (apuntarse al del colegio, prueba de acceso, plaza ofrecida, sesión con llegada tarde, dejar el club), pedir consejo al entrenador, categorías (subir y volver), campamento y amigos en verano, verlo en la tele, modificadores (llegada tarde, campamento, por tu cuenta, conocimiento, sobrecarga) y manejadores (conocimiento de casa y cuenta de la sobrecarga).
