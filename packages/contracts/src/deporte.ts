@@ -1,4 +1,5 @@
-import type { LogTable } from './context';
+import type { LogTable, ReadContext } from './context';
+import { SERVICES, type PracticaService } from './services';
 import type { StatId } from './stats';
 
 /**
@@ -62,3 +63,15 @@ export interface DeporteView {
 export interface DeporteService {
   view(): DeporteView;
 }
+
+/** Cuántos deportes puede practicar a la vez el personaje: empezar uno exige dejar el actual. */
+export const MAX_DEPORTES_PRACTICADOS = 1;
+
+/**
+ * Los deportes que ofrece el juego (provisional: la ficha de cada deporte, con su catálogo, llega con la fase 1 del plan de deportes
+ * modulares). Solo cuentan los que están cargados en la partida. El primero es con el que empieza una partida si no se elige.
+ */
+export const CATALOGO_DE_DEPORTES: readonly { id: string; nombre: string }[] = [{ id: 'atletismo', nombre: 'Atletismo' }];
+
+/** ¿Practica el personaje este deporte? Sin el módulo `deportes` en la partida, todos los cargados se practican (como antes de existir). */
+export const sePractica = (ctx: ReadContext, deporte: string): boolean => ctx.service<PracticaService>(SERVICES.practica)?.practica(deporte) ?? true;

@@ -14,6 +14,7 @@ import {
   type LogTable,
   type NpcDirectory,
   fechaDelDia,
+  CATALOGO_DE_DEPORTES,
   type PerksService,
   type ProfileService,
   type Gustos,
@@ -89,7 +90,7 @@ let pantalla: Pantalla = 'menu';
 let enMenu = true;
 const sortearSemilla = (): number => 1 + Math.floor(Math.random() * 0x7ffffffe);
 /** La partida que se está creando: la semilla decide el nombre, los apellidos y los padres; «volver a sortear» es otra semilla. */
-let nueva: { seed: number; principal: ApellidoPrincipal; pais: string } = { seed: sortearSemilla(), principal: 'padre', pais: 'espana' };
+let nueva: { seed: number; principal: ApellidoPrincipal; pais: string; deporte: string } = { seed: sortearSemilla(), principal: 'padre', pais: 'espana', deporte: CATALOGO_DE_DEPORTES[0]?.id ?? '' };
 let avisoDeSalir = false;
 
 const app = document.getElementById('app')!;
@@ -357,6 +358,9 @@ function viewNueva(): string {
     <label for="sexo">Sexo</label>
     <select id="sexo" disabled><option>Masculino</option></select>
     <p class="note">De momento solo hay personaje masculino. La gente (nombres, orígenes y aspecto) es del país que elijas; el calendario, el currículo, las categorías y los horarios de otros países son, por ahora, copia de los de España. Puedes importar más países desde Opciones.</p>
+    <label for="deporte-inicial">Deporte con el que empiezas</label>
+    <select id="deporte-inicial">${CATALOGO_DE_DEPORTES.map((d) => `<option value="${esc(d.id)}"${d.id === nueva.deporte ? ' selected' : ''}>${esc(d.nombre)}</option>`).join('')}<option value=""${nueva.deporte === '' ? ' selected' : ''}>Ninguno por ahora</option></select>
+    <p class="note">Se practica un deporte a la vez y puedes dejarlo, cambiarlo o empezarlo más tarde desde «Hacer».</p>
     <label>Nombre</label>
     <p class="nombre-sorteado">${esc(id.nombre)}</p>
     ${
@@ -888,6 +892,10 @@ app.addEventListener('change', (e) => {
     render();
     return;
   }
+  if (el instanceof HTMLSelectElement && el.id === 'deporte-inicial') {
+    nueva.deporte = el.value;
+    return;
+  }
   if (el instanceof HTMLSelectElement && el.id === 'frecuencia' && esFrecuencia(el.value)) {
     frecuencia = el.value;
     escribirFrecuencia(frecuencia);
@@ -1015,7 +1023,7 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
       render();
       return true;
     case 'ir-nueva':
-      nueva = { seed: sortearSemilla(), principal: 'padre', pais: nueva.pais };
+      nueva = { seed: sortearSemilla(), principal: 'padre', pais: nueva.pais, deporte: nueva.deporte };
       pantalla = 'nueva';
       render();
       return true;
@@ -1045,7 +1053,7 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
         return true;
       }
       if (game && !confirm('Empezar una partida nueva sustituye la guardada. ¿Seguir?')) return true;
-      game = nuevaPartida({ seed: nueva.seed, pais: nueva.pais, playerName: identidadDeJugador(nueva.seed, nueva.principal, paisPorId(nueva.pais)).completo });
+      game = nuevaPartida({ seed: nueva.seed, pais: nueva.pais, deporte: nueva.deporte || null, playerName: identidadDeJugador(nueva.seed, nueva.principal, paisPorId(nueva.pais)).completo });
       empezarAJugar();
       return true;
     case 'borrar':

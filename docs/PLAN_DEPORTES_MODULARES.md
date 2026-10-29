@@ -141,7 +141,7 @@ Estamos en alfa: las partidas empezadas se descartan cuando cambie la forma del 
 |---|---|---|
 | **G** ✅ | Botón «Opciones» con guardar, guardado automático elegible, exportar/importar y copia de recuperación (§6). Solo interfaz. **Hecha el 30/10** | Sin efecto |
 | **K** ✅ | **Kit de deporte** y el atletismo reescrito encima (§7). **Hecho el 30/10:** huella exacta del estado igual antes y después (14 partidas de bots, 120 y 330 días) | Idéntico |
-| **0** | **Deporte practicado** (uno): módulo `deportes`, servicio `practica`, eventos `deporte.empezar` y `deporte.dejar`, ocultar lo que no se practica, «Empezar / Dejar el atletismo», elegir deporte en la nueva partida | Idéntico (salvo el bot que abandona, que pasa a dejarlo de verdad) |
+| **0** ✅ | **Deporte practicado** (uno): módulo `deportes`, servicio `practica`, eventos `deporte.empezar` y `deporte.dejar`, ocultar lo que no se practica, «Empezar / Dejar el atletismo», elegir deporte en la nueva partida. **Hecha el 30/10** (huella exacta de 14 partidas de bots a 120 días: igual salvo el bot que abandona) | Idéntico (salvo el bot que abandona, que pasa a dejarlo de verdad) |
 | **1** | **Aportes** en el motor (`GameModule.aportes`, `ctx.aportes`) y ficha de cada deporte (catálogo) | Idéntico |
 | **2** | **Datos de cada deporte, por país dentro del deporte** (§4): `DatosDeDeporte` (categorías, temporada relativa al calendario escolar, competiciones y federación); las categorías salen de `PaisDef`; España del deporte de respaldo; validación de los datos | Idéntico en España |
 | **3** | **Lo que el deporte pone en el mundo:** clubes con secciones por deporte, lugares y agendas aportados por el deporte | Idéntico |
