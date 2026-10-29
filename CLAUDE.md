@@ -10,8 +10,8 @@ Cuando tomes una decisión de diseño o de balance, añade una entrada en `docs/
 
 ## Reglas que no se rompen
 
-1. **Un módulo (`modules/*`) solo importa `@ds/contracts`.** Nunca otro módulo, nunca `@ds/core`
-   (salvo en sus `*.test.ts`). Lo vigila `tests/arquitectura.test.ts`.
+1. **Un módulo (`modules/*`) solo importa `@ds/contracts` y el kit de deporte (`@ds/kit-deporte`).** Nunca otro módulo,
+   nunca `@ds/core` (salvo en sus `*.test.ts`). El kit solo importa `@ds/contracts`. Lo vigila `tests/arquitectura.test.ts`.
 2. **Los módulos se comunican solo por:** etiquetas + modificadores, eventos (propios `modulo.*` o
    compartidos de `SHARED_EVENTS`), servicios definidos en `packages/contracts/src/services.ts`,
    y referencias por id a las stats genéricas `gen.*`.
@@ -47,4 +47,6 @@ Si un bot se comporta de forma poco razonable, arregla el bot (`sim/src/bots.ts`
 ## Al añadir un módulo
 
 Usa el generador. El módulo debe tener un test que lo cargue solo con `gen`.
-Si es un deporte: etiqueta propia + `entrenamiento`/`competicion`, emite `competicion.resultado`.
+Si es un deporte: etiqueta propia + `entrenamiento`/`competicion`, emite `competicion.resultado`, y monta lo común
+(club, entrenador, categorías, verano, tele, sobrecarga, conocimiento) con el kit de deporte (`packages/kit-deporte`) en vez de copiarlo.
+El plan para instalar, quitar y cambiar de deporte está en `docs/PLAN_DEPORTES_MODULARES.md`.

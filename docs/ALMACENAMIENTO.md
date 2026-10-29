@@ -58,3 +58,25 @@ Requisitos de la fase 2 que conviene cuidar desde ya:
 
 - `npm test` (incluye `apps/web/src/almacen.test.ts`).
 - En un navegador real: empezar una partida, recargar (debe volver al mismo sitio y hora), exportar (en «Opciones»), «Menú» → «Nueva partida», «Cargar partida». En las herramientas del navegador, Application → IndexedDB → `dinasty-sports` → `partidas`.
+
+## 7. ¿Una base de datos en un servidor para tener más de 30 000 personas? (29/10/2026)
+
+Pregunta del usuario. **No es lo que se decidió ni lo que hace falta.** Lo decidido (§2) es **IndexedDB, que es una base de datos del propio navegador** (local, en el dispositivo), y se descartó expresamente un servidor. IndexedDB quita el problema del **espacio** (cientos de MB), pero no el del **tiempo de guardar**, porque hoy se guarda la partida entera cada vez.
+
+- **Lo que dicen las medidas** (anexo de horarios §5 y §3 de este documento, equipo de pruebas): el procesador no es el límite; con 30 000 personas, un día entero ~17 ms y la lista de acciones ~15 ms. El límite es el guardado completo: ~28 MB de partida y, con el guardado en texto de hoy (~60 ms con 10 000), **unos 0,2 s cada vez en el equipo de pruebas y varias veces más en un móvil**, cada medio segundo mientras se juega. Se notaría.
+- **Un servidor no lo arregla por sí solo:** la partida se simula en el navegador, así que habría que enviar esos 28 MB por la red en cada guardado (peor que escribirlos en local). Solo ayudaría si la simulación también se hiciera en el servidor: es otra arquitectura (cuentas, coste de servidores y sin jugar sin conexión, cuando hoy es una PWA que funciona sin red).
+- **Lo que sí permite 30 000 personas o más sin salir del dispositivo** son las fases de §4: guardado incremental (solo las personas que cambian), rasgos compactos (de ~950 a ~500 bytes por persona) y población desde la semilla guardando solo las diferencias (sin límite práctico). Cada una tiene su disparador medido.
+- **Un servidor tendría sentido por otros motivos**: jugar la misma partida en el móvil y el ordenador, copias en la nube. Sería una **copia o sincronización** de la partida local, no el almacén con el que se juega.
+- Con el modelo híbrido del fútbol (`ANALISIS_FUTBOL.md` §3.4) un deporte de equipo suma cientos de personas, no miles: no obliga a pasar de fase.
+- **Con el guardado elegible de §8** el coste de guardar la partida entera deja de notarse en cada acción (una vez al día, a la semana o al mes de juego), así que el límite práctico sube sin cambiar el almacén; lo que sigue creciendo con la población es el tiempo de abrir la partida y la memoria.
+
+## 8. Guardado manual y automático (propuesta del usuario, 30/10/2026)
+
+Hoy se guarda **tras cada acción** (agrupado cada medio segundo) y al cerrar u ocultar la pestaña, y bajo el nombre hay tres botones (Exportar, Importar, Menú). Propuesta (resumen en `PLAN_DEPORTES_MODULARES.md` §6):
+
+- **Botón «Opciones»** en la cabecera de la partida, al lado de «Menú», que reúne: **Guardar partida** (con la última vez que se guardó, en fecha del juego), **guardado automático**, **exportar e importar una copia**, el **instalador de deportes** y los **paquetes de país**.
+- **Guardado automático a elegir:** tras cada acción (como ahora), **cada día** (al pasar la medianoche del juego), **cada semana** (al empezar el lunes), **cada mes** (al cambiar de mes en el calendario del juego) o **solo a mano**. Se guarda por partida. **Por defecto, cada día.**
+- **Recomendación según la máquina:** el juego mide cuánto tarda cada guardado y sugiere una frecuencia.
+- **Salir con los botones del juego** (Menú, Salir) con cambios sin guardar: «Guardar y salir / Salir sin guardar / Cancelar».
+- **Cerrar la pestaña:** el navegador no deja preguntar «¿guardar?» con botones propios (solo su aviso genérico, y en el móvil ni eso). Por eso: aviso genérico del navegador (`beforeunload`) si hay cambios y **copia de recuperación**: al ocultarse o cerrarse la pestaña se escribe en IndexedDB una copia aparte (no la partida guardada). Al volver, si es más reciente que la guardada: «Hay una partida sin guardar más reciente: ¿recuperarla?».
+- **No cambia el formato** de lo guardado ni las copias de seguridad. Solo toca la interfaz (`apps/web/src/main.ts`, `almacen.ts`).

@@ -1,6 +1,6 @@
 # Anexo: pestaña del deporte y clasificaciones
 
-Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasificaciones de temporada, con todas las cifras para revisarlas. Código: `modules/atletismo/src/temporada.ts` (reglas puras), `modules/atletismo/src/index.ts` (`vistaDeAtletismo`), `packages/contracts/src/deporte.ts` (contrato) y `apps/web/src/deporte.ts` (interfaz). Estado a 27/10/2026 (validado contra el código).
+Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasificaciones de temporada, con todas las cifras para revisarlas. Código: `modules/atletismo/src/temporada.ts` (reglas puras), `modules/atletismo/src/index.ts` (`vistaDeAtletismo`), `packages/contracts/src/deporte.ts` (contrato), `packages/kit-deporte` (lo común a todos los deportes con club: clubes, entrenador, categorías, verano, tele, sobrecarga) y `apps/web/src/deporte.ts` (interfaz). Estado a 27/10/2026 (validado contra el código).
 
 ## 1. Cómo funciona
 
@@ -71,7 +71,9 @@ Cada corredor suma los puntos de cada prueba en la que ha corrido contra el pers
 | Corredores por carrera, series, clasificados y probabilidad de acudir | `modules/atletismo/src/temporada.ts` (`CORREDORES_POR_CARRERA`, `CLASIFICADOS_POR_SERIE`, `probabilidadDeAcudir`) |
 | Cuánto sube el bono de asistencia en campeonato | `modules/atletismo/src/index.ts` (`BONO_DE_CAMPEONATO`) |
 | Cómo se dibuja (y cuándo está desactivada) | `apps/web/src/deporte.ts`, `DeporteView.inactivo` |
-| Plazas ofrecidas, aceptar y estrés por plantón | `modules/atletismo/src/index.ts` (`SEMANAS_DE_OFERTA`), `modules/clubes/src/index.ts` (`ESTRES_POR_PLANTON`) |
+| Plazas ofrecidas, aceptar y estrés por plantón | `packages/kit-deporte/src/club.ts` (`SEMANAS_DE_OFERTA`, `SEMANAS_ENTRE_PRUEBAS`), `modules/clubes/src/index.ts` (`ESTRES_POR_PLANTON`) |
+| Sesión de club, llegada tarde, por tu cuenta, consejo del entrenador | `packages/kit-deporte/src/club.ts` (`MINUTOS_ANTES_DE_SESION`, `EFICIENCIA_POR_TU_CUENTA`, `CONOCIMIENTO_POR_CONSEJO`, `HABILIDAD_POR_CONSEJO`); lo que entrena cada sesión, en el módulo del deporte |
+| Sobrecarga, campamento, efecto del conocimiento | `packages/kit-deporte/src/comunes.ts` (`SESIONES_SIN_SOBRECARGA`, `EFICIENCIA_CAMPAMENTO`, `EFECTO_CONOCIMIENTO`) |
 
 ## 6. Pendiente
 

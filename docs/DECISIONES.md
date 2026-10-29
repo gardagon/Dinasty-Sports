@@ -5,6 +5,41 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Paquetes de deporte firmados, datos por deporte y luego por país, e instalador desde GitHub Pages
+
+Aclaraciones del usuario sobre el plan de deportes (detalle en `PLAN_DEPORTES_MODULARES.md` §3 y §4); no se ha cambiado código.
+
+- **El motor de cada deporte llega como código** dentro de un paquete (manifiesto con la versión del juego con la que es compatible, código sin su propia copia de `contracts` ni del kit, datos por país y firma). **Los paquetes oficiales se firman** con una clave privada guardada como secreto de GitHub Actions; el juego comprueba la firma con Web Crypto. Lo firmado por nosotros se instala venga de donde venga (GitHub, un archivo bajado a mano, una tienda). La firma evita paquetes falsos o manipulados, no las copias.
+- **`contracts` y el kit pasan a ser la interfaz pública de los deportes:** cambiarlos exige subir su versión, y el juego rechaza paquetes de otra versión.
+- **Datos por deporte y, dentro del deporte, por país** (corrección del usuario): las categorías, la temporada, las competiciones, los clubes y los lugares los trae el deporte para cada país, con los de España de respaldo. El paquete de país no sabe de deportes (`PaisDef.categorias` saldrá de ahí en la fase 2). Se retira la propuesta de que el paquete de país pudiera corregir a un deporte.
+- **Instalador: GitHub Pages de momento** (no hay servidores propios), con **fuentes intercambiables** (archivo local, GitHub Releases si el navegador lo permite, tienda o servidor con licencias, tiendas de apps). Motivos del usuario: si se vende el juego, lo que está en Pages es público y cualquiera tendría todos los deportes gratis; así el juego base pesa poco; y se quiere abrir a **modding**.
+- **Venta (fase V, sin fecha):** los deportes de pago irían en una fuente con licencias por cuenta; ninguna protección es total en un juego que funciona sin conexión, lo realista es ponerlo incómodo.
+- **Modding (fase M, sin fecha):** propuesta de empezar con «modo mods» con aviso y mods firmados por su autor; aislar los mods del resto del juego obligaría a cambiar el motor a fondo y se valoraría cuando haga falta.
+- **Aviso:** como app de tienda (Capacitor), las normas de Apple y en parte las de Google limitan descargar código; ahí los deportes irían dentro de la app.
+
+## 30/10/2026 — Kit de deporte (fase K del plan de deportes)
+
+Aprobado por el usuario («me parece correcto. Hazlo»). Paquete nuevo `packages/kit-deporte` (`@ds/kit-deporte`) con lo común a cualquier deporte con club y entrenador, sacado del atletismo: habilidades deportivas y conocimiento, valor efectivo en competición, acciones de club (apuntarse al del colegio, prueba de acceso, plaza ofrecida, sesión con llegada tarde, dejar el club), pedir consejo al entrenador, categorías (subir y volver), campamento y amigos en verano, verlo en la tele, modificadores (llegada tarde, campamento, por tu cuenta, conocimiento, sobrecarga) y manejadores (conocimiento de casa y cuenta de la sobrecarga).
+
+- **Cambia la regla 1** (`CLAUDE.md`): un módulo puede importar `@ds/contracts` y `@ds/kit-deporte`; el kit solo `@ds/contracts`. `tests/arquitectura.test.ts` lo vigila.
+- **El kit no tiene estado ni es un módulo:** cada deporte lo monta con su `ConfigDeporte` (id, nombre para los textos, categorías de España, sedes, texto de cuándo compite, rendimiento, entrenos por libre) y el kit lee y escribe el estado de ese deporte (`EstadoBaseDeDeporte`, con los mismos nombres de campo que ya usaba el atletismo, así que no cambia la forma del guardado).
+- **El atletismo pasa de 1 173 a 779 líneas** y conserva lo suyo: rendimiento, marca de 400 m, carreras, series, semifinal, final y clasificaciones.
+- **Comprobado que no cambia nada:** huella exacta (SHA-1 del estado completo serializado) de 14 partidas (7 bots × 2 semillas) a 120 y a 330 días, igual antes y después; 505 tests en verde, más los 6 del kit (un deporte mínimo hecho solo con el kit, que carga solo con `gen`).
+- **Mismo coste:** `sim:rapida` da 1,45–1,52 ms por acción con el atletismo antiguo y con el nuevo (dos pasadas de cada). El test de la simulación «un bot que destaca acepta subir de categoría» (dos partidas de tres años) ya tardaba ~60 s con el código antiguo, justo su límite, y fallaba por tiempo con la máquina cargada: su límite pasa de 60 s a 150 s.
+- **Un cambio de paso, sin efecto con un solo deporte:** el modificador de campamento solo se aplica al campamento de su propio deporte (antes valía para cualquier acción con la etiqueta `campamento`; con dos deportes instalados se habría aplicado dos veces).
+
+## 30/10/2026 — Plan de deportes: instalados los que se quiera, uno para competir; dos juegos de rol; kit aprobado
+
+Aclaraciones y decisiones del usuario sobre el plan (sustituyen a las entradas anteriores del plan). Plan completo en [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md).
+
+- **Instalados los que se quiera (4 o más) y conviviendo; practicado solo uno**, el que compite en «Deporte», que se cambia cuando se quiera. Jugar a otros deportes con compañeros, más adelante (la estructura lo deja preparado).
+- **El código del deporte va en el instalador:** cada deporte se compila aparte y se descarga al instalarlo (carga diferida con `import()` y caché de la PWA para jugar sin conexión). Solo del servidor del juego; lo que se puede importar como archivo son datos. Viable con Vite y el *service worker* actuales.
+- **Dos juegos de rol:** el paquete de país (colegio, calendario, gente) y el paquete de deporte (código y sus datos por país: categorías, temporada, competiciones, clubes, lugares), cada uno con España por defecto hasta que una actualización traiga lo propio. Viable; lo clave es que la **temporada de un deporte se exprese respecto al calendario escolar del país** (no en semanas fijas) y que las categorías salgan de `PaisDef`. Los datos nuevos de un país se aplican al empezar el curso siguiente.
+- **Desinstalar no archiva:** la partida guarda la definición de las stats del deporte quitado para que el motor les siga aplicando caída y envejecimiento, y `npcs` guarda lo que pidió cada deporte para seguir renovando su gente. Al volver, todo está al día sin recrear nada.
+- **Opciones y guardado:** botón «Opciones» (guardar, guardado automático por acción, día, semana, mes o solo a mano; exportar e importar; deportes; países). Al cerrar la pestaña el navegador no deja preguntar con botones propios: se pregunta al salir con los botones del juego y se guarda una copia de recuperación al ocultar o cerrar (`ALMACENAMIENTO.md` §8).
+- **Kit de deporte aprobado** (cambia la regla 1: los módulos pueden importar `@ds/contracts` y `@ds/kit-deporte`).
+- **Alfa:** se pueden descartar partidas. **Fases:** G opciones y guardado, K kit, 0 deporte practicado, 1 aportes, 2 datos de deporte por país, 3 clubes, lugares y agendas del deporte, 4 gente de cada deporte, 5 deportes en la partida, 6 instalador, 7 validación. Después, el fútbol.
+
 ## 30/10/2026 — Países como paquetes de datos importables (fase 2)
 
 Pedido por el usuario: «todo lo que pueda cambiar, como calendarios y cosas así, haz una copia de lo que hay en España, con el nombre del país, para que en un futuro solo haya que cambiar estos datos para partidas nuevas… planificarlo como addons que podamos importar, como los deportes: no cargar todos los países para poder jugar en todo el mundo». Países de la primera tanda: **España, Argentina y quizá Inglaterra** (Marruecos descartado). Documentado en `PAQUETES_DE_PAIS.md`.
