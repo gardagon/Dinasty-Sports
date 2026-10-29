@@ -27,7 +27,14 @@ export type Gender = 'f' | 'm';
 
 export interface NpcView {
   id: string;
+  /** Nombre completo (nombre de pila, compuesto o no, y apellidos). */
   name: string;
+  /** Solo el nombre de pila («José Manuel»). Si falta (partidas guardadas), es la primera palabra del nombre. */
+  nombrePila?: string;
+  /** Apodo: puede salir al azar (José Manuel → Chema) o ponerlo el jugador. */
+  apodo?: string;
+  /** Cómo se le llama en los textos: el apodo si lo tiene y, si no, el nombre de pila entero. */
+  nombreCorto: string;
   role: NpcRole;
   /** Para concordar los textos (entrenador/entrenadora, con él/con ella). */
   gender: Gender;

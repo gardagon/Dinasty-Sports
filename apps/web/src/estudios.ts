@@ -1,5 +1,4 @@
 import {
-  CALENDARIO_ESPANA,
   COLEGIO_DEL_PERSONAJE,
   HUECO_ENTRE_CLASES,
   JORNADA_ESCOLAR,
@@ -87,7 +86,7 @@ function examenes(g: Game, est: StudiesService): string {
   const proximos = exs.length
     ? `<ul class="note">${exs.map((e) => `<li><b>${esc(e.name)}</b> (${TIPO[e.tipo]}): ${e.inDays === 0 ? 'hoy' : e.inDays === 1 ? 'mañana' : `el ${DIAS[e.day % 7]?.toLowerCase() ?? ''} ${fechaDelDia(e.day).corto} (en ${e.inDays} días)`}</li>`).join('')}</ul>`
     : '<p class="note">No hay exámenes a la vista (se avisan con una semana de antelación).</p>';
-  const cal = CALENDARIO_ESPANA;
+  const cal = g.pais.calendario;
   const semana = g.time.schoolWeek;
   const filas = [1, 2, 3].map((t) => {
     const p1 = cal.parciales[(t - 1) * 2];

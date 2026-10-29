@@ -210,6 +210,9 @@ const ZONAS: readonly LugarDef[] = [
 /** Ciudad de partida. Es un dato: crecerá con la tienda, el aeropuerto... */
 export const CIUDAD_INICIAL: MapaCiudad = construirMapa({ nombre: 'Ciudad', inicio: 'casa', casa: 'casa' }, [...CALLES, ...LUGARES_DE_CALLE, ...ZONAS], ENTRE_CALLES);
 
+/** Los horarios de apertura de los lugares de la ciudad de partida (los de España), por id de lugar: lo que un paquete de país copia y cambia. */
+export const HORARIOS_DE_ESPANA: Readonly<Record<LugarId, HorarioDeLugar>> = Object.fromEntries(CIUDAD_INICIAL.lugares.filter((x) => x.horario).map((x) => [x.id, x.horario!]));
+
 /** Minutos de un lugar a otro, o `undefined` si el mapa no lo define. */
 export const tiempoEntre = (mapa: MapaCiudad, desde: LugarId, hasta: LugarId): number | undefined => mapa.tiempos[desde]?.[hasta];
 
@@ -324,7 +327,7 @@ function cierraAlLlegar(ctx: ReadContext, svc: LugaresService, lugar: LugarDef):
   const padre = lugar.dentroDe ? svc.lugar(lugar.dentroDe) : undefined;
   if (!lugar.horario && !padre?.horario) return undefined;
   const actual = svc.actual();
-  const en = (destino: LugarDef) => timeView(ctx.time.minute + (actual.id === destino.id ? 0 : (svc.minutosA(destino.id) ?? 0)));
+  const en = (destino: LugarDef) => ctx.timeAt(ctx.time.minute + (actual.id === destino.id ? 0 : (svc.minutosA(destino.id) ?? 0)));
   if (!abiertoEn(lugar, en(lugar))) return lugar;
   // Si ya estás dentro del lugar no se pasa por su entrada: cuenta la hora de llegada a la zona.
   const dentro = !!padre && (actual.id === padre.id || actual.dentroDe === padre.id);

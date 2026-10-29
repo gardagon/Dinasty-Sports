@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, type FamilyService, type NpcDirectory, type ProfileService } from '@ds/contracts';
+import { SERVICES, apellidosDeFamilia, type FamilyService, type NpcDirectory, type ProfileService } from '@ds/contracts';
 import { Game } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { npcs } from '@ds/mod-npcs';
@@ -76,7 +76,7 @@ describe('hermanos en la ficha de familia', () => {
       const f = g.service<FamilyService>(SERVICES.familia)!;
       const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
       expect(f.siblings().map((h) => h.id)).toEqual(dir.list({ tag: 'hermano' }).map((h) => h.id));
-      for (const h of f.siblings()) expect(h.name.endsWith(f.apellidos)).toBe(true);
+      for (const h of f.siblings()) expect(h.name.endsWith(apellidosDeFamilia(seed, h.gender))).toBe(true);
     }
   });
 

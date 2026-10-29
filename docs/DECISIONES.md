@@ -22,6 +22,29 @@ Pedido por el usuario: empezar el fútbol como segundo deporte, que se active so
 - **Propuesta:** (1) puerta «deportes que practico» con un módulo pequeño `deportes`; (2) un **kit de deporte** (`@ds/kit-deporte`, cambia la regla 1) con lo común del atletismo, rehaciendo el atletismo encima sin cambiar la simulación; (3) **aportes declarativos** en el motor para que `npcs` y `clubes` lean la población y las secciones de cada deporte sin conocerlo; (4) fútbol con modelo **híbrido** de población (tu equipo como personas, rivales agregados) y la convocatoria como bucle propio.
 - **Preguntas abiertas:** sección 5 del análisis (uno o varios deportes, el kit, fútbol 7/11, equipos mixtos, modelo híbrido, posiciones, fútbol sala).
 
+## 30/10/2026 — Países como paquetes de datos importables (fase 2)
+
+Pedido por el usuario: «todo lo que pueda cambiar, como calendarios y cosas así, haz una copia de lo que hay en España, con el nombre del país, para que en un futuro solo haya que cambiar estos datos para partidas nuevas… planificarlo como addons que podamos importar, como los deportes: no cargar todos los países para poder jugar en todo el mundo». Países de la primera tanda: **España, Argentina y quizá Inglaterra** (Marruecos descartado). Documentado en `PAQUETES_DE_PAIS.md`.
+
+- **`PaisDef`** (contracts, JSON serializable): calendario, cursos, categorías por deporte, horarios por lugar, demografía de orígenes, orígenes locales, apellidos de los nacidos allí, y (opcional) orígenes y reservas de nombres propios. `copiaDeEspana(id, nombre, cambios)` crea un paquete nuevo como copia de España con su nombre; `validarPais` / `registrarPais` / `importarPais` (JSON) lo comprueban y registran, con los errores en español.
+- **Motor:** `GameState.pais` (`SAVE_VERSION` 16), `Game.create({ pais })`, `ctx.pais` y `ctx.timeAt(minuto)` (el calendario del país). Los módulos leen `ctx.pais`: **estudios** (cursos y curso de modalidad), **atletismo** (categorías), **lugares** (horarios por país en el servicio `lugares`) y **npcs/familia** (demografía, nombres). Se movieron a contracts el currículo de España (`CURSOS_ESPANA`), las categorías (`CATEGORIAS_ESPANA`) y los horarios (`HORARIOS_DE_ESPANA`).
+- **Argentina e Inglaterra:** la gente es propia (demografía, culturas de nombres, aspecto, **un solo apellido**: el del padre, también para el personaje y sus hermanos) y calendario, currículo, categorías y horarios son **copia de España** con su nombre, listos para ir cambiándolos.
+- **Interfaz:** el selector de país de «Nueva partida» está activo (cambia los padres, nombres y apellidos de la semilla); en «Opciones», «Importar un paquete de país (.json)» (se guarda en el navegador y se registra al arrancar). Una partida de un país no cargado no se abre ni se borra: se avisa.
+- **Pendiente (en `PAQUETES_DE_PAIS.md` §5):** jornada escolar y agendas de las personas por país, catálogo de asignaturas por país, festivos, moneda, textos en otros idiomas, mapa distinto, guardar los paquetes importados con las copias de seguridad, y los datos reales de calendario/currículo/categorías de Argentina e Inglaterra.
+
+## 29/10/2026 — Nombres y apellidos según el origen (fase 1) y plan de paquetes de país
+
+Pedido por el usuario al ver a una madre de origen de Europa del este llamada Patricia. Todo en `ANEXO_NOMBRES.md`.
+
+- **Causa:** el origen/aspecto y el nombre salían de generadores separados (el nombre, de listas fijas españolas). **Ahora primero el origen y luego el nombre.** Los padres salen de la semilla (`padresDeSemilla`): `rasgosAlAzar` recibe su origen (con la tirada de siempre descartada para no cambiar el azar del resto), y la pantalla de nueva partida y el motor coinciden.
+- **Reglas (decididas por el usuario):** un solo origen → nombre de ese origen; mezcla → uno de los orígenes según su peso (alto porcentaje dentro de la mezcla); mezcla sin el país de juego → un 12 % de nombre del país de juego. Los apellidos, de su origen: el hijo lleva el primero del padre y el primero de la madre (el segundo de un hijo de madre del este es del este). Apellidos femeninos en las culturas eslavas.
+- **Datos:** listas largas por cultura (España ≈190+180 nombres y ≈260 apellidos; 15 culturas en 7 reservas), con **nombres compuestos** (José Manuel, María José…) y **nombres por generación** (jóvenes/adultos).
+- **Homónimos:** se permiten, como mucho 2 con el mismo nombre completo y 15 años o más de diferencia (el hijo se puede llamar como el padre; dos niños del colegio, no). Antes eran únicos.
+- **Ajustes posteriores (30/10, del usuario):** (1) las personas de origen extranjero/no hispano llevan **un solo apellido**, también los niños; (2) los nombres compuestos **se muestran enteros** en las acciones (José Manuel, no José) y hay **apodo**: al azar (35 % si el nombre tiene apodos habituales: José Manuel → Chema) y que el jugador puede poner o quitar en la ficha (`npcs.apodo.<persona>.<apodo>`); (3) para los niños y las futuras generaciones la lista de nombres es la **unión sin repetir** de las de jóvenes y adultos; los adultos mantienen la suya.
+- **Valores míos a revisar:** 12 % de nombre local, 35 % de apodo, 16 % de compuestos en adultos y 3 % en jóvenes, el corte de 25 años para los nombres de jóvenes y de 18 para los apellidos del país de juego, el peso de las culturas dentro de una reserva.
+- **Impacto técnico:** el orden de los sorteos cambia la población de cada semilla (ajustados los tests que dependían de semillas concretas). Las partidas guardadas no cambian. `nombreCorto` es la primera palabra del nombre (para «José Manuel», «José»).
+- **Fase 2:** hecha el 30/10 (ver la entrada de arriba y `PAQUETES_DE_PAIS.md`).
+
 ## 29/10/2026 — Viaje rápido solo desde la calle y «Proponer quedar para…»
 
 Pedido por el usuario tras revisar la interfaz.
@@ -46,6 +69,7 @@ Pedido por el usuario: «Amplia a 18 los corredores… semifinales y una final. 
 
 ### Siguientes pasos acordados (para la próxima sesión)
 - **Roles ligados a los 8 ejes de carácter (aprobado «en principio» por el usuario):** unos 12 roles **derivados** de los ejes (no asignados), con un efecto máximo de ±35 puntos porcentuales sobre una tirada, decisiones como datos con tirada estable (`rngEstable`). **Fase F1: decisiones de relaciones** (el 25 % de «otros planes» pasa a depender del carácter, calibrado para no cambiar la media de la población). F2–F4 después (deporte, estudios, eventos E18). Preguntas abiertas: rol derivado o asignado, frase de ficha, roles del jugador.
+- **Países (fase 2 hecha, 30/10):** pendientes los datos reales de Argentina e Inglaterra, jornada escolar y agendas por país, y más (ver `PAQUETES_DE_PAIS.md` §5). **Nombres:** más culturas y listas, y el nombre de los hijos del personaje en la fase adulta (comprobar homónimos).
 - **Pendientes ya anotados:** evento de los padres por faltas (el aviso ya existe), entrenar con alguien, cumpleaños, hermanos que se van a los 18 (motor de eventos E18), habilidades de entrenadores (futuro módulo de profesiones), `MOSTRAR_*` a `false` al llegar la beta.
 
 ## 28/10/2026 — Educación Física, Artística y Música puntúan por capacidades

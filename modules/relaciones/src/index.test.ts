@@ -88,7 +88,7 @@ describe('módulo relaciones', () => {
       const catalogo = ['quedar', 'charlar', 'ayudar', 'planes', 'detalle', 'discutir'].map((x) => g.preview(id(x))!);
       expect(catalogo.every((p) => p !== undefined)).toBe(true);
       expect(new Set(g.availableActions().filter((a) => a.id.endsWith('.companero_social')).map((a) => a.group)).size).toBe(1);
-      expect(g.availableActions().find((a) => a.id === id('charlar'))!.group).toBe('Relaciones · ' + g.service<NpcDirectory>(SERVICES.npcs)!.get('companero_social')!.name.split(' ')[0]);
+      expect(g.availableActions().find((a) => a.id === id('charlar'))!.group).toBe('Relaciones · ' + g.service<NpcDirectory>(SERVICES.npcs)!.get('companero_social')!.nombreCorto);
       expect(g.preview(id('hablar', 'entrenador'))).toBeDefined();
       expect(g.preview(id('discutir', 'entrenador'))).toBeDefined();
       // Las paces solo existen cuando hay algo que arreglar.
@@ -313,7 +313,7 @@ describe('módulo relaciones', () => {
 });
 
 describe('texto de jugar con otros niños', () => {
-  const niño = (name: string, gender: 'f' | 'm', known: boolean) => ({ id: name, name, gender, known, age: 8, role: 'companero', tags: [] }) as never;
+  const niño = (name: string, gender: 'f' | 'm', known: boolean) => ({ id: name, name, nombreCorto: name.split(' ')[0], gender, known, age: 8, role: 'companero', tags: [] }) as never;
   it('los que conoces van por su nombre y los que no, por lo que son, al final y en una sola frase', () => {
     expect(conQuienSeJuega([niño('Ana Gil', 'f', true), niño('Biel Ibáñez', 'm', false), niño('Víctor Soler', 'm', true)])).toBe('Ana, Víctor y un niño que no conocías');
     expect(conQuienSeJuega([niño('Ana Gil', 'f', true), niño('Marta Rey', 'f', true), niño('Víctor Soler', 'm', true)])).toBe('Ana, Marta y Víctor');

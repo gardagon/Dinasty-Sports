@@ -1,3 +1,4 @@
+import type { PaisDef } from './paises/tipos';
 import type { Rng } from './rng';
 import type { PerksDe } from './perks';
 import type { RasgosDe } from './rasgos';
@@ -35,6 +36,10 @@ export interface GameEvent<T = unknown> {
  */
 export interface ReadContext {
   readonly time: TimeView;
+  /** El país de la partida (su calendario, currículo, categorías, horarios y gente): un paquete de datos, ver `paises/`. */
+  readonly pais: PaisDef;
+  /** La vista de un minuto cualquiera de la partida con el calendario del país (úsala en vez de `timeView` para mirar otros días: así vale en todos los países). */
+  timeAt(minute: number): TimeView;
   /** Id del módulo al que pertenece este contexto. */
   readonly moduleId: string;
   stat(id: StatId): number;
@@ -72,6 +77,8 @@ export interface ActionContext extends ReadContext {
 export interface InitContext {
   readonly rng: Rng;
   readonly seed: number;
+  /** El país de la partida. */
+  readonly pais: PaisDef;
   readonly playerName: string;
   /**
    * Genética de un rasgo que no es una stat (p. ej. la altura), como puntuación típica (media 0, desviación 1) de cada
