@@ -1,40 +1,57 @@
 import {
-  CORE_EVENTS,
   GEN,
   SERVICES,
   SHARED_EVENTS,
   TAGS,
   CATEGORIAS_ESPANA,
-  categoriaDeEdad,
   categoriaSuperior,
   defineModule,
   inHours,
-  conLugar,
   ligarALugares,
-  type ActionDoneData,
   type ActionContext,
-  type ActionDef,
-  type CategoriaDef,
-  type ClubDirectory,
-  type ClubJoinData,
-  type ClubLeaveData,
-  type ClubView,
   type CompetitionResultData,
   type DeporteView,
   type LogTable,
   claveDeDeporte,
-  type IdentityService,
   type NpcDirectory,
-  type NpcView,
-  type FamilyService,
-  conocimientoDeCrianza,
   rngEstable,
-  type PresenciaService,
   type ReadContext,
-  type StudiesService,
   type Rng,
-  type StatDef,
 } from '@ds/contracts';
+import {
+  accionesDeCategoria,
+  accionesDeClubes,
+  campamento,
+  categoriaDelJugador as categoriaDelJugadorEn,
+  categoriasDe,
+  clubDelJugador as clubDelJugadorEn,
+  conLosAmigos,
+  conocimientoDelDeporte,
+  dejarClub,
+  entrenadorDelJugador as entrenadorDelJugadorEn,
+  habilidadDeportiva,
+  idDeConocimiento,
+  manejadoresDeDeporte,
+  modificadorDeCampamento,
+  modificadorDeConocimiento,
+  modificadorDeLlegadaTarde,
+  modificadorDeSobrecarga,
+  modificadorPorTuCuenta,
+  nombreDeCategoria as nombreDeCategoriaEn,
+  orden,
+  pedirConsejo,
+  recorte,
+  sedeDelClub as sedeDelClubEn,
+  sesionDeClub,
+  sinEntrenarPorLibreEnSesion,
+  textoDeSesiones,
+  tramitesDe,
+  valorEfectivo,
+  verEnLaTele,
+  type Apoyo,
+  type ConfigDeporte,
+  type EstadoBaseDeDeporte,
+} from '@ds/kit-deporte';
 import {
   CLASIFICADOS_POR_SERIE,
   CORREDORES_DE_SEMIFINAL,
@@ -58,37 +75,19 @@ import {
  * MÓDULO ATLETISMO (id `atletismo`) — el deporte más sencillo de modelar:
  * individual, sin posiciones ni tácticas. Prueba: 400 m lisos.
  *
- * Plantilla para futuros deportes: 3 habilidades propias apoyadas en genéricas,
- * entrenamientos por la tarde, competición semanal y resultado publicado con el
- * evento compartido `competicion.resultado` (los NPCs reaccionan sin conocer este módulo).
+ * 3 habilidades propias apoyadas en genéricas, entrenamientos por la tarde, competición semanal y resultado publicado con el
+ * evento compartido `competicion.resultado` (los NPCs reaccionan sin conocer este módulo). Lo común a cualquier deporte con
+ * club (clubes, entrenador, categorías, verano, tele, sobrecarga, conocimiento) lo pone el kit de deporte (`@ds/kit-deporte`);
+ * aquí queda lo propio del atletismo: el rendimiento, la marca, las carreras y sus clasificaciones.
  */
 
-export interface AtletismoState {
+/** Estado del atletismo: los campos comunes del kit (`EstadoBaseDeDeporte`) y los de las carreras. */
+export interface AtletismoState extends EstadoBaseDeDeporte {
   mejorMarca: number | null;
   carreras: { week: number; position: number; total: number; mark: number; categoria?: string; superior?: boolean }[];
   ultimaSemanaCarrera: number;
-  /** Sesiones de entrenamiento hechas hoy (para la sobrecarga). */
-  sesionesHoy: { day: number; n: number };
-  /** Último día que vio atletismo en la tele (una vez al día; ausente en partidas antiguas). */
-  ultimaTele?: number;
-  /** ¿Ya se ha sumado el conocimiento de partida por lo que practicaron los padres? Se hace el primer día. */
-  herenciaAplicada?: boolean;
-  /** Último día que pidió consejo a su entrenador (una vez al día). */
-  ultimoConsejo?: number;
   /** Última semana en que cada rival corrió contra el jugador (para rotar la serie). */
   ultimaCarreraRival?: Record<string, number>;
-  /** ¿Compite en la categoría superior a la que le toca por edad? */
-  categoriaSuperior?: boolean;
-  /** Categoría que le tocaba por edad la última vez (para saber cuándo cambia). */
-  categoriaPropia?: string;
-  /** Último día que fue a una sesión de su club (una al día). */
-  ultimaSesionClub?: number;
-  /** Última semana en que hizo la prueba de acceso de cada club (para no repetirla enseguida). */
-  pruebas?: Record<string, number>;
-  /** Plazas ofrecidas por clubes de fuera tras pasar su prueba: semana en que se ofreció (valen unas semanas). */
-  ofertas?: Record<string, number>;
-  /** Último día que fue al campamento o practicó con los amigos en verano (uno al día). */
-  ultimoVerano?: number;
   /** Campeonato del curso: si se clasificó en la autonómica y quiénes corren la final. */
   campeonato?: { curso: number; clasificado: boolean; finalistas: string[]; reservas?: string[] };
   /** Cómo quedó cada rival la última vez que corrió (puesto y corredores de su serie): quien quedó último falla más la próxima. */
@@ -99,27 +98,28 @@ export interface AtletismoState {
   campeonatos?: { curso: number; categoria: string; tipo: Exclude<TipoDePrueba, 'regular'>; position: number; total: number }[];
 }
 
-/** Las categorías por edad del atletismo en el país de la partida (por defecto, las de España). */
-const categoriasDe = (ctx: ReadContext): readonly CategoriaDef[] => ctx.pais.categorias.atletismo ?? CATEGORIAS_ESPANA;
+const DEPORTE = 'atletismo';
+const DISCIPLINA = '400 m';
+const CONOCIMIENTO = idDeConocimiento(DEPORTE);
+const ENTRENOS_LIBRES = ['atletismo.series', 'atletismo.rodaje', 'atletismo.tecnica'];
 
-interface CategoriaJugador {
-  /** La que le toca por edad. */
-  propia: CategoriaDef;
-  /** En la que compite (la superior si ha subido). */
-  competida: CategoriaDef;
-  superior: boolean;
-}
+/** Lo que el kit de deporte necesita saber del atletismo. */
+const CONFIG: ConfigDeporte = {
+  id: DEPORTE,
+  nombre: 'atletismo',
+  categoriasEspana: CATEGORIAS_ESPANA,
+  // El club del colegio entrena en la pista del colegio; los de fuera, en el estadio.
+  sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
+  textoDeCompeticion: 'Carreras: los sábados de 9 a 13 en el estadio.',
+  rendimiento: (ctx) => rendimiento(ctx),
+  entrenosLibres: ENTRENOS_LIBRES,
+};
 
-/** Categoría del jugador según su edad y si ha subido de categoría. */
-function categoriaDelJugador(ctx: ReadContext): CategoriaJugador {
-  // La categoría depende de la edad de temporada (la que se tenía al empezar el curso), como en la federación.
-  const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
-  const propia = categoriaDeEdad(categoriasDe(ctx), edad);
-  const s = ctx.state<AtletismoState>();
-  const sup = categoriaSuperior(categoriasDe(ctx), propia);
-  const superior = !!s.categoriaSuperior && s.categoriaPropia === propia.id && !!sup;
-  return { propia, competida: superior ? sup! : propia, superior };
-}
+const clubDelJugador = (ctx: ReadContext) => clubDelJugadorEn(ctx, DEPORTE);
+const sedeDelClub = (ctx: ReadContext) => sedeDelClubEn(ctx, CONFIG);
+const categoriaDelJugador = (ctx: ReadContext) => categoriaDelJugadorEn(ctx, CONFIG);
+const entrenadorDelJugador = (ctx: ReadContext) => entrenadorDelJugadorEn(ctx, DEPORTE);
+const nombreDeCategoria = (ctx: ReadContext, id: string) => nombreDeCategoriaEn(ctx, CONFIG, id);
 
 const mediana = (xs: number[]): number => {
   const o = [...xs].sort((a, b) => a - b);
@@ -133,7 +133,7 @@ const mediana = (xs: number[]): number => {
 function puedeSubir(ctx: ReadContext): true | string {
   const { propia, superior } = categoriaDelJugador(ctx);
   if (superior) return 'Ya compites en la categoría superior';
-  const sup = categoriaSuperior(categoriasDe(ctx), propia);
+  const sup = categoriaSuperior(categoriasDe(ctx, CONFIG), propia);
   if (!sup) return 'No hay categoría superior';
   const recientes = ctx.state<AtletismoState>().carreras.filter((c) => c.categoria === propia.id && !c.superior).slice(-5);
   if (recientes.length < 4) return 'Aún no has competido lo suficiente en tu categoría';
@@ -145,182 +145,14 @@ function puedeSubir(ctx: ReadContext): true | string {
   return true;
 }
 
-const DISCIPLINA = '400 m';
-const CONOCIMIENTO = 'atletismo.conocimiento';
-/** Efecto del conocimiento sobre la eficiencia de entrenar y competir: de ×0,90 (0) a ×1,15 (100). */
-const EFECTO_CONOCIMIENTO = { min: 0.9, rango: 0.25 };
-const SESIONES_SIN_SOBRECARGA = 2;
-
-/** Genérica que apoya a una habilidad y su peso sobre el ritmo de subida (el techo pesa la mitad). */
-type Apoyo = { stat: string; weight: number };
-
-const habilidad = (key: string, name: string, apoyos: Apoyo[], description: string, tope: Apoyo[]): StatDef => ({
-  id: `atletismo.${key}`,
-  name,
-  description,
-  group: 'Atletismo',
-  category: 'habilidad',
-  initial: { min: 5, max: 15 },
-  talentSpread: 0.2,
-  // El tope no se hereda: sale de las genéricas físicas (y mentales) que la apoyan más una aptitud propia (±15 %).
-  genetics: { derivedFrom: tope, aptitude: 0.15 },
-  growth: {
-    rate: 0.36,
-    curve: 1.5,
-    speedFrom: [...apoyos, { stat: GEN.determinacion, weight: 0.2 }],
-    potentialFactor: GEN.vigorTecnico,
-    cap: {
-      // El techo de una habilidad deportiva crece con el desarrollo por la edad: nadie llega a su máximo antes de madurar.
-      base: 0.15,
-      from: [
-        ...apoyos.map((a) => ({ stat: a.stat, weight: a.weight / 2 })),
-        { stat: GEN.determinacion, weight: 0.15 },
-        { stat: GEN.madurez, weight: 0.45 },
-      ],
-    },
-  },
-  decay: { graceDays: 4, ratePerDay: 0.012, floorRatio: 0.7 },
-});
+const habilidad = (key: string, name: string, apoyos: Apoyo[], description: string, tope: Apoyo[]) =>
+  habilidadDeportiva(DEPORTE, 'Atletismo', key, name, apoyos, description, tope);
 
 /** Semanas de pretemporada al empezar cada curso: se entrena pero todavía no hay carreras. */
 const SEMANAS_PRETEMPORADA = 4;
 /** Semanas del curso (0 = la primera) de las semifinales y de la final del campeonato de España (sábados consecutivos). */
 const SEMANA_SEMIFINAL = 37;
 const SEMANA_FINAL = 38;
-/** Semanas que hay que esperar para repetir la prueba de acceso de un club. */
-const SEMANAS_ENTRE_PRUEBAS = 8;
-/** Semanas que vale una plaza ganada en la prueba de un club antes de decidirse. */
-const SEMANAS_DE_OFERTA = 8;
-/** Entrenar solo, sin entrenador ni grupo, rinde menos que una sesión de club. */
-const EFICIENCIA_POR_TU_CUENTA = 0.85;
-const ENTRENOS_LIBRES = ['atletismo.series', 'atletismo.rodaje', 'atletismo.tecnica'];
-
-const DEPORTE = 'atletismo';
-/** El campamento de verano rinde más que cualquier otro entrenamiento: entrenadores, grupo y todo el día. */
-const EFICIENCIA_CAMPAMENTO = 1.2;
-const caminoDeVerano = (ctx: ReadContext) => ctx.service<StudiesService>(SERVICES.estudios)?.summerPath() ?? null;
-const clubDelJugador = (ctx: ReadContext): ClubView | undefined => ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(DEPORTE);
-/** Dónde entrena el club del personaje: la pista del colegio si es el del colegio y, si no, el estadio (sin club, la pista del colegio). */
-const sedeDelClub = (ctx: ReadContext): readonly string[] => (clubDelJugador(ctx)?.esColegio === false ? ['estadio'] : ['pista_colegio']);
-/** Los miembros del club están en la pista 10 minutos antes de la sesión: desde entonces se puede entrar a entrenar (o incorporarse más tarde, con la parte proporcional). */
-const MINUTOS_ANTES_DE_SESION = 10;
-/** ¿Está en marcha (o a punto de empezar) la sesión del club del personaje y aún no ha entrenado con él hoy? Entonces no se entrena por libre: se va al club. */
-function sesionDelClubAhora(ctx: ReadContext): ClubView | undefined {
-  const club = clubDelJugador(ctx);
-  const t = ctx.time;
-  if (!club || !club.sesiones.weekdays.includes(t.weekday) || ctx.state<AtletismoState>().ultimaSesionClub === t.day) return undefined;
-  return t.minuteOfDay >= club.sesiones.desde * 60 - MINUTOS_ANTES_DE_SESION && t.minuteOfDay < club.sesiones.hasta * 60 ? club : undefined;
-}
-/** Mientras hay entrenamiento del club no se entrena por libre. */
-const sinEntrenarPorLibreEnSesion = (acciones: readonly ActionDef[]): ActionDef[] =>
-  acciones.map((a) =>
-    ENTRENOS_LIBRES.includes(a.id)
-      ? {
-          ...a,
-          available: (ctx: ReadContext) => {
-            const otro = a.available?.(ctx) ?? true;
-            return otro === true && sesionDelClubAhora(ctx) ? 'Ahora es el entrenamiento de tu club: únete a la sesión' : otro;
-          },
-        }
-      : a,
-  );
-const edadDelJugadorDeTemporada = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
-const edadDelJugador = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
-
-const DIAS_DE_LA_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
-/** «lunes y miércoles de 15 a 17»: cuándo entrena un club. */
-function textoDeSesiones(s: ClubView['sesiones']): string {
-  const dias = s.weekdays.map((d) => DIAS_DE_LA_SEMANA[d]);
-  return `${dias.length > 1 ? `${dias.slice(0, -1).join(', ')} y ${dias[dias.length - 1]}` : dias[0]} de ${s.desde} a ${s.hasta}`;
-}
-/** Lo que se cuenta de un club antes de apuntarse: cuándo entrena y cuándo hay carreras. */
-const infoDeClub = (c: ClubView): string => `Entrena ${textoDeSesiones(c.sesiones)}. Carreras: los sábados de 9 a 13 en el estadio.`;
-/** Dónde se hacen los trámites de un club: la administración del colegio o la sala del club en el estadio. */
-const tramitesDe = (c: ClubView | undefined): readonly string[] => (!c || c.esColegio ? ['administracion'] : [`sala_${c.id}`]);
-
-/** Pruebas de acceso a los clubes de fuera del colegio (se pueden hacer estando en otro club) y aceptar la plaza ganada. */
-function accionesDeClubes(ctx: ReadContext): ActionDef[] {
-  const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
-  if (!clubes) return [];
-  const actual = clubes.membership(DEPORTE);
-  const colegio = clubes.list(DEPORTE).find((c) => c.esColegio);
-  // Apuntarse al club del colegio: en la administración, y antes de aceptar se cuenta cuándo entrena y compite.
-  const apuntarse: ActionDef[] =
-    colegio && !actual
-      ? [
-          conLugar(tramitesDe(colegio), {
-            id: 'atletismo.apuntarse_colegio',
-            name: 'Apuntarte al club de atletismo del colegio',
-            description: `El club del colegio entrena con su entrenador en sesiones fijas. ${infoDeClub(colegio)} Es el primer paso para competir con un equipo.`,
-            tags: ['atletismo'],
-            group: 'Club',
-            duration: 30,
-            available: () => true,
-            run: (c2) => c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: colegio.id } }),
-          }),
-        ]
-      : [];
-  const ofertas = ctx.state<AtletismoState>().ofertas ?? {};
-  return [...apuntarse, ...clubes
-    .list(DEPORTE)
-    .filter((c) => !c.esColegio && c.id !== actual?.id && c.acceso?.[DEPORTE])
-    .flatMap((c): ActionDef[] => {
-      const acceso = c.acceso![DEPORTE];
-      const aceptar = conLugar(tramitesDe(c), {
-        id: `atletismo.aceptar_plaza.${c.id}`,
-        name: `Aceptar la plaza en ${c.nombre}`,
-        description: `Pasaste la prueba y te ofrecen entrar. Si todavía eres de otro club y no lo has dejado antes, lo dejas plantado: empeora tu relación con su entrenador y su equipo y te estresa. La plaza vale ${SEMANAS_DE_OFERTA} semanas.`,
-        tags: ['atletismo'],
-        group: 'Club',
-        duration: 15,
-        available: (c2) => {
-          const semana = c2.state<AtletismoState>().ofertas?.[c.id];
-          return semana !== undefined && c2.time.week - semana < SEMANAS_DE_OFERTA ? true : 'No tienes una plaza en este club (haz su prueba de acceso)';
-        },
-        run: (c2) => {
-          c2.updateState<AtletismoState>((st) => {
-            const { [c.id]: _usada, ...resto } = st.ofertas ?? {};
-            return { ...st, ofertas: resto };
-          });
-          c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: c.id } });
-        },
-      });
-      const prueba = conLugar(tramitesDe(c), {
-        id: `atletismo.prueba.${c.id}`,
-        name: `Prueba de acceso: ${c.nombre}`,
-        description: `El ${c.nombre} hace pruebas a quien quiere entrar, solo en sus horas de entrenamiento. ${infoDeClub(c)} Exige edad (${acceso.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
-        tags: [TAGS.fisico, 'atletismo'],
-        group: 'Club',
-        duration: 150,
-        available: (c2) => {
-          const t = c2.time;
-          if (edadDelJugador(c2) < acceso.edadMin) return `Hay que tener ${acceso.edadMin} años para probar en el ${c.nombre}`;
-          const ultima = c2.state<AtletismoState>().pruebas?.[c.id];
-          if (ultima !== undefined && t.week - ultima < SEMANAS_ENTRE_PRUEBAS) return 'Hiciste la prueba hace poco: espera unas semanas';
-          // Las pruebas se hacen en las sesiones de entrenamiento del club.
-          return c.sesiones.weekdays.includes(t.weekday) && inHours(t, c.sesiones.desde, c.sesiones.hasta - 1) ? true : `Las pruebas se hacen en los entrenamientos: ${textoDeSesiones(c.sesiones)}`;
-        },
-        delta: { [GEN.energia]: -25, [GEN.estres]: 6 },
-        run: (c2) => {
-          const t = c2.time;
-          const forma = 0.85 + 0.15 * Math.min(1.2, c2.efficiency);
-          const rinde = rendimiento(c2) * forma + c2.rng.normal() * 3;
-          c2.updateState<AtletismoState>((s) => ({ ...s, pruebas: { ...(s.pruebas ?? {}), [c.id]: t.week } }));
-          if (rinde >= acceso.nivel && !c2.service<ClubDirectory>(SERVICES.clubes)?.membership(DEPORTE)) {
-            c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: DEPORTE, clubId: c.id } });
-          } else if (rinde >= acceso.nivel) {
-            // Con otro club, la plaza se ofrece y decides: salir antes de él no cuesta nada; aceptarla sin salir sí.
-            c2.updateState<AtletismoState>((st) => ({ ...st, ofertas: { ...(st.ofertas ?? {}), [c.id]: t.week } }));
-            c2.log(`Has pasado la prueba del ${c.nombre}: te ofrecen plaza. Antes de aceptarla conviene dejar tu club actual.`, 'logro');
-          } else {
-            c2.log(`Prueba en el ${c.nombre}: todavía no tienes el nivel que piden. Sigue entrenando y vuelve a intentarlo.`, 'aviso');
-            c2.addStat(GEN.motivacion, -3);
-          }
-        },
-      });
-      return [prueba, aceptar];
-    })];
-}
 
 const horarioEntreno = (ctx: ReadContext): true | string => {
   const t = ctx.time;
@@ -330,19 +162,15 @@ const horarioEntreno = (ctx: ReadContext): true | string => {
 };
 
 /**
- * Efecto del conocimiento del deporte sobre las habilidades que dependen de entender la carrera: de ×0,85 (no conoces
- * el deporte: fallas la colocación, el ritmo, el momento de la salida) a ×1,15 (lo conoces a fondo: sacas más de lo que
- * tu cuerpo da). Lo puramente físico (velocidad, resistencia) no cambia: saber de atletismo no te hace más lento.
- * La sensibilidad dice cuánto depende cada habilidad del conocimiento.
+ * Lo que depende de entender la carrera vale de ×0,85 (no conoces el deporte: fallas la colocación, el ritmo, el momento
+ * de la salida) a ×1,15 (lo conoces a fondo) según el conocimiento (`valorEfectivo`, del kit). Lo puramente físico
+ * (velocidad, resistencia) no cambia: saber de atletismo no te hace más lento. La sensibilidad dice cuánto depende cada
+ * habilidad del conocimiento.
  */
-const CONOCIMIENTO_EN_COMPETICION = { min: 0.85, rango: 0.3 };
 const SENSIBILIDAD = { tecnica: 0.5, ritmo: 1, salida: 1 };
 
 /** Valor efectivo de una habilidad táctica en competición: su nivel por el efecto del conocimiento. */
-const efectivo = (ctx: ReadContext, key: keyof typeof SENSIBILIDAD): number => {
-  const f = CONOCIMIENTO_EN_COMPETICION.min + CONOCIMIENTO_EN_COMPETICION.rango * ctx.norm(CONOCIMIENTO);
-  return ctx.stat(`atletismo.${key}`) * (1 + SENSIBILIDAD[key] * (f - 1));
-};
+const efectivo = (ctx: ReadContext, key: keyof typeof SENSIBILIDAD): number => valorEfectivo(ctx, DEPORTE, `atletismo.${key}`, SENSIBILIDAD[key]);
 
 /** Rendimiento 0..100 a partir de las stats (el corazón del deporte; ajustable sin tocar nada más). */
 export function rendimiento(ctx: ReadContext): number {
@@ -615,8 +443,6 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
 
 // ---------------------------------------------------------------------------------------------------- pestaña del deporte
 
-const nombreDeCategoria = (ctx: ReadContext, id: string): string => categoriasDe(ctx).find((c) => c.id === id)?.nombre ?? id;
-const orden = (n: number) => `${n}º`;
 
 const tablaDeLaPrueba = (p: PruebaGuardada): LogTable | undefined => {
   if (!p.filas?.length) return undefined;
@@ -630,14 +456,6 @@ const tablaDeLaPrueba = (p: PruebaGuardada): LogTable | undefined => {
   };
 };
 
-/** Las 10 primeras filas de una clasificación y, si el personaje no está entre ellas, su fila al final con su puesto real. */
-function recorte(filas: FilaDeClasificacion[], fila: (f: FilaDeClasificacion, puesto: number) => string[]): { rows: string[][]; highlight: number } {
-  const top = filas.slice(0, 10);
-  const yo = filas.findIndex((f) => f.yo);
-  const rows = top.map((f, i) => fila(f, i + 1));
-  if (yo >= 10) rows.push(fila(filas[yo], yo + 1));
-  return { rows, highlight: yo < 0 ? -1 : Math.min(yo, rows.length - 1) };
-}
 
 function proximaPrueba(ctx: ReadContext, s: AtletismoState): string {
   const t = ctx.time;
@@ -658,20 +476,12 @@ function proximaPrueba(ctx: ReadContext, s: AtletismoState): string {
   return `Carrera semanal: el sábado, de 9 a 13.${resto}`;
 }
 
-/** Tu entrenador: el de tu club que lleva tu edad (los clubes tienen varios, cada uno con unas categorías) y que ya conoces. */
-function entrenadorDelJugador(ctx: ReadContext): NpcView | undefined {
-  const club = clubDelJugador(ctx);
-  if (!club) return undefined;
-  const edad = edadDelJugadorDeTemporada(ctx);
-  return ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ role: 'entrenador', known: true }).find((n) => n.club === club.id && (!n.edades || (edad >= n.edades[0] && edad <= n.edades[1])));
-}
-
-const NOMBRE_DE_HABILIDAD: Readonly<Record<string, string>> = { 'atletismo.tecnica': 'técnica', 'atletismo.ritmo': 'ritmo', 'atletismo.salida': 'salida' };
 /** Las habilidades que sube un poco un consejo del entrenador, por turnos según el día (técnica, ritmo, salida). */
-const HABILIDADES_DE_CONSEJO = ['atletismo.tecnica', 'atletismo.ritmo', 'atletismo.salida'] as const;
-/** Lo que sube el conocimiento con un consejo (15 minutos): como media sesión de técnica, pero solo una vez al día. */
-const CONOCIMIENTO_POR_CONSEJO = 1;
-const HABILIDAD_POR_CONSEJO = 0.3;
+const HABILIDADES_DE_CONSEJO = [
+  { stat: 'atletismo.tecnica', nombre: 'técnica' },
+  { stat: 'atletismo.ritmo', nombre: 'ritmo' },
+  { stat: 'atletismo.salida', nombre: 'salida' },
+];
 
 /** Todo lo que enseña la pestaña de atletismo. */
 function vistaDeAtletismo(ctx: ReadContext): DeporteView {
@@ -680,7 +490,6 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
   const { competida, superior } = categoriaDelJugador(ctx);
   const club = clubDelJugador(ctx);
   // Tu entrenador: el de tu club que lleva tu edad (los clubes tienen varios, cada uno con unas categorías).
-  const edadDeTemporada = edadDelJugadorDeTemporada(ctx);
   const entrenador = entrenadorDelJugador(ctx);
   const todas = s.resultados ?? [];
   const deEsteCurso = todas.filter((p) => p.curso === t.schoolYear);
@@ -749,27 +558,11 @@ export const atletismo = defineModule<AtletismoState>({
   stats: [
     habilidad('tecnica', 'Técnica de carrera', [{ stat: GEN.coordinacion, weight: 0.4 }, { stat: GEN.agilidad, weight: 0.2 }], 'Zancada eficiente y postura.', [{ stat: GEN.coordinacion, weight: 0.5 }, { stat: GEN.agilidad, weight: 0.3 }, { stat: GEN.determinacion, weight: 0.2 }]),
     habilidad('ritmo', 'Gestión del ritmo', [{ stat: GEN.resistencia, weight: 0.4 }, { stat: GEN.inteligencia, weight: 0.2 }], 'Repartir el esfuerzo en la vuelta.', [{ stat: GEN.resistencia, weight: 0.5 }, { stat: GEN.inteligencia, weight: 0.25 }, { stat: GEN.determinacion, weight: 0.25 }]),
-    {
-      id: CONOCIMIENTO,
-      name: 'Conocimiento de atletismo',
-      description: 'Entender el deporte: ritmos, tácticas, quién sale mejor. Sube entrenando, compitiendo y, en menor medida, viendo atletismo; casi no se olvida.',
-      group: 'Conocimiento',
-      category: 'conocimiento',
-      initial: 0,
-      talentSpread: 0,
-      growth: {
-        // Sube rápido al principio (la primera carrera da ~1 punto) y cada vez más despacio: a 70 puntos, ver atletismo
-        // en la tele da apenas centésimas. Todo el mundo puede llegar a 100, pero el último tramo cuesta años.
-        rate: 0.3,
-        curve: 2.5,
-        // Quien presta atención y razona bien aprende más de lo mismo.
-        speedFrom: [
-          { stat: GEN.atencion, weight: 0.9 },
-          { stat: GEN.inteligencia, weight: 0.6 },
-        ],
-      },
-      decay: { graceDays: 30, ratePerDay: 0.003, floorRatio: 0.95 },
-    },
+    conocimientoDelDeporte(
+      DEPORTE,
+      'Conocimiento de atletismo',
+      'Entender el deporte: ritmos, tácticas, quién sale mejor. Sube entrenando, compitiendo y, en menor medida, viendo atletismo; casi no se olvida.',
+    ),
     habilidad('salida', 'Salida y aceleración', [{ stat: GEN.velocidad, weight: 0.4 }, { stat: GEN.fuerza, weight: 0.2 }], 'Arrancar rápido desde los tacos.', [{ stat: GEN.velocidad, weight: 0.5 }, { stat: GEN.fuerza, weight: 0.3 }, { stat: GEN.coordinacion, weight: 0.2 }]),
   ],
 
@@ -785,27 +578,13 @@ export const atletismo = defineModule<AtletismoState>({
     [claveDeDeporte(DEPORTE)]: (ctx) => ({ view: () => vistaDeAtletismo(ctx) }),
   },
 
-  dynamicActions: accionesDeClubes,
+  // Apuntarse al club del colegio, pruebas de acceso a los de fuera y aceptar la plaza ganada (kit).
+  dynamicActions: accionesDeClubes(CONFIG),
 
-  actions: ligarALugares(sinEntrenarPorLibreEnSesion([
-    {
-      id: 'atletismo.club_sesion',
-      name: 'Entrenamiento con el club',
+  actions: ligarALugares(sinEntrenarPorLibreEnSesion(CONFIG, [
+    sesionDeClub(CONFIG, {
       description: 'Sesión completa con el entrenador y el grupo del club: técnica, ritmo, salida y táctica. Rinde más que entrenar por tu cuenta, y más aún en los clubes de fuera del colegio.',
       tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, TAGS.club, 'atletismo'],
-      group: 'Club',
-      // Lo que queda de sesión: si te incorporas tarde solo entrenas la parte proporcional (modificador `atletismo.llegada_tarde`).
-      duration: (ctx) => Math.max(1, (clubDelJugador(ctx)?.sesiones.hasta ?? 0) * 60 - ctx.time.minuteOfDay),
-      available: (ctx) => {
-        const club = clubDelJugador(ctx);
-        if (!club) return 'No perteneces a ningún club de atletismo';
-        const t = ctx.time;
-        if (!club.sesiones.weekdays.includes(t.weekday)) return `Las sesiones de ${club.nombre} son otros días`;
-        if (ctx.state<AtletismoState>().ultimaSesionClub === t.day) return 'Ya has entrenado con el club hoy';
-        return t.minuteOfDay >= club.sesiones.desde * 60 - MINUTOS_ANTES_DE_SESION && t.minuteOfDay < club.sesiones.hasta * 60
-          ? true
-          : `La sesión es de ${club.sesiones.desde} a ${club.sesiones.hasta} (se puede entrar desde ${MINUTOS_ANTES_DE_SESION} minutos antes)`;
-      },
       delta: { [GEN.energia]: -24 },
       train: [
         { stat: 'atletismo.tecnica', amount: 2 },
@@ -817,31 +596,10 @@ export const atletismo = defineModule<AtletismoState>({
         // Con entrenador y grupo se aprende el deporte como en ningún otro entrenamiento.
         { stat: CONOCIMIENTO, amount: 1.6 },
       ],
-      run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimaSesionClub: ctx.time.day })),
-    },
-    {
-      id: 'atletismo.dejar_club',
-      name: 'Dejar el club de atletismo',
-      tags: ['atletismo'],
-      group: 'Club',
-      duration: 15,
-      available: (ctx) => (clubDelJugador(ctx) ? true : 'No perteneces a ningún club de atletismo'),
-      run: (ctx) => ctx.emit<ClubLeaveData>({ type: SHARED_EVENTS.CLUB_LEAVE, data: { sport: DEPORTE } }),
-    },
-    {
-      id: 'atletismo.campamento',
-      name: 'Campamento de atletismo',
-      description: 'Con buenas notas, tus padres te dejan ir a un campamento del deporte que practicas: una jornada completa de entrenamiento con entrenadores. Mejoras más que de ninguna otra forma.',
+    }),
+    dejarClub(CONFIG),
+    campamento(CONFIG, {
       tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'atletismo', 'campamento'],
-      group: 'Verano',
-      duration: 300,
-      available: (ctx) => {
-        if (caminoDeVerano(ctx) !== 'campamento') return 'Solo puedes pedir campamento en verano si has sacado buenas notas';
-        const t = ctx.time;
-        if (t.weekday === 6) return 'El campamento no abre los domingos';
-        if (ctx.state<AtletismoState>().ultimoVerano === t.day) return 'Ya has ido al campamento hoy';
-        return inHours(t, 9, 10) ? true : 'El campamento empieza a las 9';
-      },
       delta: { [GEN.energia]: -35 },
       train: [
         { stat: 'atletismo.tecnica', amount: 4 },
@@ -852,21 +610,10 @@ export const atletismo = defineModule<AtletismoState>({
         { stat: GEN.coordinacion, amount: 0.8 },
         { stat: CONOCIMIENTO, amount: 3 },
       ],
-      run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimoVerano: ctx.time.day })),
-    },
-    {
-      id: 'atletismo.amigos',
-      name: 'Practicar con los amigos',
+    }),
+    conLosAmigos(CONFIG, {
       description: 'Con notas aceptables, el verano se pasa jugando y corriendo con los amigos: sienta bien, pero no se mejora igual que entrenando.',
       tags: [TAGS.fisico, TAGS.social, 'atletismo'],
-      group: 'Verano',
-      duration: 120,
-      available: (ctx) => {
-        if (caminoDeVerano(ctx) !== 'amigos') return 'Solo en verano, con notas aceptables';
-        const t = ctx.time;
-        if (ctx.state<AtletismoState>().ultimoVerano === t.day) return 'Ya has quedado con los amigos hoy';
-        return inHours(t, 10, 19) ? true : 'De 10 a 19';
-      },
       delta: { [GEN.energia]: -12, [GEN.estres]: -6 },
       train: [
         { stat: 'atletismo.tecnica', amount: 0.4 },
@@ -875,8 +622,8 @@ export const atletismo = defineModule<AtletismoState>({
         { stat: GEN.carisma, amount: 0.4 },
         { stat: GEN.cooperacion, amount: 0.3 },
       ],
-      run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimoVerano: ctx.time.day })),
-    },
+    }),
+
     {
       id: 'atletismo.series',
       name: 'Series de velocidad',
@@ -922,85 +669,10 @@ export const atletismo = defineModule<AtletismoState>({
         { stat: CONOCIMIENTO, amount: 1.2 },
       ],
     },
-    {
-      id: 'atletismo.ver_tele',
-      name: 'Ver atletismo en la tele',
-      description: 'Retransmisiones y carreras de otros: aprendes cómo se corre y quién sale mejor.',
-      tags: [TAGS.mental],
-      group: 'Tiempo libre',
-      duration: 90,
-      available: (ctx) => {
-        const t = ctx.time;
-        if ((ctx.state<AtletismoState>().ultimaTele ?? -1) === t.day) return 'Ya has visto atletismo hoy';
-        return inHours(t, t.isSchoolDay ? 18 : 10, 23) ? true : 'Retransmisiones: días de clase de 18 a 23, sin clase de 10 a 23';
-      },
-      delta: { [GEN.energia]: -2, [GEN.estres]: -4 },
-      train: [
-        // Ayuda a entender el deporte, pero no sustituye a entrenar ni a competir.
-        { stat: CONOCIMIENTO, amount: 0.6 },
-        { stat: GEN.atencion, amount: 0.2 },
-      ],
-      run: (ctx) => ctx.updateState<AtletismoState>((s) => ({ ...s, ultimaTele: ctx.time.day })),
-    },
-    {
-      id: 'atletismo.pedir_consejo',
-      name: 'Pedir consejo a tu entrenador',
-      description: 'Le preguntas qué mejorar y cómo. Solo una vez al día y cuando está contigo (antes o después de la sesión): sube tu conocimiento del deporte y un poco una habilidad. Hablar con él solo mejora la relación.',
-      tags: [TAGS.mental, 'atletismo'],
-      group: 'Entrenar atletismo',
-      duration: 15,
-      available: (ctx) => {
-        if ((ctx.state<AtletismoState>().ultimoConsejo ?? -1) === ctx.time.day) return 'Ya le has pedido consejo hoy';
-        if (!clubDelJugador(ctx)) return 'Necesitas un entrenador: apúntate a un club';
-        const entrenador = entrenadorDelJugador(ctx);
-        if (!entrenador) return 'Todavía no conoces a tu entrenador';
-        const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
-        // Sin el módulo de presencia no se comprueba. Con él, el entrenador tiene que estar en su sitio (no ocupado en la sesión).
-        if (presencia && presencia.donde(entrenador.id) !== sedeDelClub(ctx)[0]) return `${entrenador.nombreCorto} ahora no está disponible: búscalo antes o después de la sesión`;
-        return true;
-      },
-      delta: { [GEN.energia]: -1 },
-      train: [
-        { stat: CONOCIMIENTO, amount: CONOCIMIENTO_POR_CONSEJO },
-        { stat: GEN.atencion, amount: 0.15 },
-      ],
-      run: (ctx) => {
-        // Además, un poco de una habilidad del deporte (cada día, otra).
-        const habilidad = HABILIDADES_DE_CONSEJO[ctx.time.day % HABILIDADES_DE_CONSEJO.length];
-        ctx.train(habilidad, HABILIDAD_POR_CONSEJO * ctx.efficiency);
-        ctx.updateState<AtletismoState>((s) => ({ ...s, ultimoConsejo: ctx.time.day }));
-        const entrenador = entrenadorDelJugador(ctx);
-        ctx.log(`${entrenador ? entrenador.nombreCorto : 'Tu entrenador'} te da un consejo para mejorar tu ${NOMBRE_DE_HABILIDAD[habilidad]}.`, 'info');
-      },
-    },
-    {
-      id: 'atletismo.subir_categoria',
-      name: 'Aceptar competir en la categoría superior',
-      description: 'Tu entrenador propone que compitas con los mayores si destacas mucho en tu categoría y puedes ser competitivo. Contra rivales más fuertes se aprende más.',
-      tags: ['atletismo'],
-      group: 'Competición',
-      duration: 15,
-      available: puedeSubir,
-      run: (ctx) => {
-        const { propia } = categoriaDelJugador(ctx);
-        const sup = categoriaSuperior(categoriasDe(ctx), propia)!;
-        ctx.updateState<AtletismoState>((s) => ({ ...s, categoriaSuperior: true, categoriaPropia: propia.id }));
-        ctx.log(`Tu entrenador te propone competir en ${sup.nombre}, aunque te toca ${propia.nombre}. Aceptas.`, 'logro');
-      },
-    },
-    {
-      id: 'atletismo.volver_categoria',
-      name: 'Volver a competir en tu categoría',
-      tags: ['atletismo'],
-      group: 'Competición',
-      duration: 15,
-      available: (ctx) => (categoriaDelJugador(ctx).superior ? true : 'Ya compites en tu categoría'),
-      run: (ctx) => {
-        const { propia } = categoriaDelJugador(ctx);
-        ctx.updateState<AtletismoState>((s) => ({ ...s, categoriaSuperior: false }));
-        ctx.log(`Vuelves a competir en ${propia.nombre}.`);
-      },
-    },
+    verEnLaTele(CONFIG, 'Retransmisiones y carreras de otros: aprendes cómo se corre y quién sale mejor.'),
+    pedirConsejo(CONFIG, HABILIDADES_DE_CONSEJO),
+    ...accionesDeCategoria(CONFIG, puedeSubir),
+
     {
       id: 'atletismo.semifinal',
       name: 'Competir: semifinales del campeonato',
@@ -1090,84 +762,17 @@ export const atletismo = defineModule<AtletismoState>({
     'atletismo.pedir_consejo': sedeDelClub,
   }),
 
+  // Llegar tarde a la sesión, campamento, entrenar por tu cuenta, conocimiento y sobrecarga (kit), en este orden.
   modifiers: [
-    {
-      // Incorporarse tarde a la sesión del club: solo se entrena la parte de sesión que queda.
-      id: 'atletismo.llegada_tarde',
-      tags: ['atletismo'],
-      apply: (ctx, action) => {
-        if (action.id !== 'atletismo.club_sesion') return null;
-        const club = clubDelJugador(ctx);
-        if (!club) return null;
-        const [desde, hasta] = [club.sesiones.desde * 60, club.sesiones.hasta * 60];
-        const parte = (hasta - Math.max(ctx.time.minuteOfDay, desde)) / (hasta - desde);
-        return parte >= 0.995 ? null : { efficiency: parte, reason: `Llegas tarde: solo entrenas el ${Math.round(parte * 100)} % de la sesión` };
-      },
-    },
-    {
-      id: 'atletismo.campamento',
-      tags: ['campamento'],
-      apply: () => ({ efficiency: EFICIENCIA_CAMPAMENTO, reason: 'Campamento con entrenadores' }),
-    },
-    {
-      id: 'atletismo.por_tu_cuenta',
-      tags: ['atletismo'],
-      apply: (_ctx, action) =>
-        ENTRENOS_LIBRES.includes(action.id) ? { efficiency: EFICIENCIA_POR_TU_CUENTA, reason: 'Entrenas por tu cuenta, sin entrenador' } : null,
-    },
-    {
-      id: 'atletismo.conocimiento',
-      tags: ['atletismo'],
-      apply: (ctx, action) => {
-        if (!action.tags.includes(TAGS.entrenamiento) && !action.tags.includes(TAGS.competicion)) return null;
-        const f = EFECTO_CONOCIMIENTO.min + EFECTO_CONOCIMIENTO.rango * ctx.norm(CONOCIMIENTO);
-        if (Math.abs(f - 1) < 0.02) return null;
-        return { efficiency: f, reason: f < 1 ? 'Conoces poco el deporte' : 'Conocimiento del deporte' };
-      },
-    },
-    {
-      id: 'atletismo.sobrecarga',
-      tags: ['atletismo'],
-      apply: (ctx, action) => {
-        if (!action.tags.includes(TAGS.entrenamiento)) return null;
-        const s = ctx.state<AtletismoState>().sesionesHoy;
-        const n = s.day === ctx.time.day ? s.n : 0;
-        if (n < SESIONES_SIN_SOBRECARGA) return null;
-        return { efficiency: 0.6, cost: 1.3, reason: 'Sobrecarga: demasiadas sesiones hoy' };
-      },
-    },
+    modificadorDeLlegadaTarde(CONFIG),
+    modificadorDeCampamento(CONFIG),
+    modificadorPorTuCuenta(CONFIG),
+    modificadorDeConocimiento(CONFIG),
+    modificadorDeSobrecarga(CONFIG),
   ],
 
-  on: {
-    // El primer día se suma el conocimiento del deporte que le viene de casa: si sus padres practicaron atletismo, algo sabe (más si llegaron lejos).
-    [CORE_EVENTS.DAY_END]: (ctx) => {
-      if (ctx.state<AtletismoState>().herenciaAplicada) return;
-      ctx.updateState<AtletismoState>((s) => ({ ...s, herenciaAplicada: true }));
-      const padres = ctx.service<FamilyService>(SERVICES.familia)?.parents();
-      const conocimiento = padres ? conocimientoDeCrianza(padres, DEPORTE) : 0;
-      if (conocimiento > 0) {
-        ctx.addStat(CONOCIMIENTO, conocimiento);
-        ctx.log(`Has crecido oyendo hablar de atletismo en casa: ya sabes algo del deporte.`, 'info');
-      }
-    },
-    [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
-      const d = ev.data as ActionDoneData;
-      if (d.module !== 'atletismo' || !d.tags.includes(TAGS.entrenamiento)) return;
-      // El día se toma del momento en que empezó la sesión (antes de avanzar el reloj).
-      const dia = Math.floor((ctx.time.minute - d.duration) / 1440);
-      const prev = ctx.state<AtletismoState>().sesionesHoy;
-      const n = prev.day === dia ? prev.n + 1 : 1;
-      ctx.updateState<AtletismoState>((s) => ({ ...s, sesionesHoy: { day: dia, n } }));
-      // Entrenar con sobrecarga castiga el cuerpo y puede lesionar.
-      if (n > SESIONES_SIN_SOBRECARGA) {
-        ctx.addStat(GEN.salud, -4);
-        if (ctx.rng.chance(0.15)) {
-          ctx.addStat(GEN.salud, -10);
-          ctx.log('Molestias musculares: te has pasado entrenando.', 'aviso');
-        }
-      }
-    },
-  },
+  // El primer día, el conocimiento que viene de casa; cada sesión, la cuenta de la sobrecarga (kit).
+  on: manejadoresDeDeporte(CONFIG),
 });
 
 export default atletismo;

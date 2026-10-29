@@ -8,7 +8,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@ds/contracts": "*"
+    "@ds/contracts": "*",
+    "@ds/kit-deporte": "*"
   },
   "devDependencies": {
     "@ds/core": "*",

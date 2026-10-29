@@ -26,10 +26,11 @@ function imports(file: string): string[] {
 const reglas: { carpeta: string; permitidos: RegExp; motivo: string }[] = [
   { carpeta: 'packages/contracts/src', permitidos: /^\.\.?\//, motivo: 'contracts no depende de nada' },
   { carpeta: 'packages/core/src', permitidos: /^(\.\.?\/|@ds\/contracts$)/, motivo: 'core solo conoce contracts' },
+  { carpeta: 'packages/kit-deporte/src', permitidos: /^(\.\.?\/|@ds\/contracts$)/, motivo: 'el kit de deporte solo conoce contracts' },
   ...readdirSync(join(ROOT, 'modules')).map((m) => ({
     carpeta: `modules/${m}/src`,
-    permitidos: /^(\.\.?\/|@ds\/contracts$)/,
-    motivo: 'un módulo solo puede importar @ds/contracts (nunca otro módulo ni el núcleo)',
+    permitidos: /^(\.\.?\/|@ds\/contracts$|@ds\/kit-deporte$)/,
+    motivo: 'un módulo solo puede importar @ds/contracts y el kit de deporte (nunca otro módulo ni el núcleo)',
   })),
 ];
 

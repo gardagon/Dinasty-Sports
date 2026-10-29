@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Kit de deporte (fase K del plan de deportes)
+
+Aprobado por el usuario («me parece correcto. Hazlo»). Paquete nuevo `packages/kit-deporte` (`@ds/kit-deporte`) con lo común a cualquier deporte con club y entrenador, sacado del atletismo: habilidades deportivas y conocimiento, valor efectivo en competición, acciones de club (apuntarse al del colegio, prueba de acceso, plaza ofrecida, sesión con llegada tarde, dejar el club), pedir consejo al entrenador, categorías (subir y volver), campamento y amigos en verano, verlo en la tele, modificadores (llegada tarde, campamento, por tu cuenta, conocimiento, sobrecarga) y manejadores (conocimiento de casa y cuenta de la sobrecarga).
+
+- **Cambia la regla 1** (`CLAUDE.md`): un módulo puede importar `@ds/contracts` y `@ds/kit-deporte`; el kit solo `@ds/contracts`. `tests/arquitectura.test.ts` lo vigila.
+- **El kit no tiene estado ni es un módulo:** cada deporte lo monta con su `ConfigDeporte` (id, nombre para los textos, categorías de España, sedes, texto de cuándo compite, rendimiento, entrenos por libre) y el kit lee y escribe el estado de ese deporte (`EstadoBaseDeDeporte`, con los mismos nombres de campo que ya usaba el atletismo, así que no cambia la forma del guardado).
+- **El atletismo pasa de 1 173 a 779 líneas** y conserva lo suyo: rendimiento, marca de 400 m, carreras, series, semifinal, final y clasificaciones.
+- **Comprobado que no cambia nada:** huella exacta (SHA-1 del estado completo serializado) de 14 partidas (7 bots × 2 semillas) a 120 y a 330 días, igual antes y después; 505 tests en verde, más los 6 del kit (un deporte mínimo hecho solo con el kit, que carga solo con `gen`).
+- **Mismo coste:** `sim:rapida` da 1,45–1,52 ms por acción con el atletismo antiguo y con el nuevo (dos pasadas de cada). El test de la simulación «un bot que destaca acepta subir de categoría» (dos partidas de tres años) ya tardaba ~60 s con el código antiguo, justo su límite, y fallaba por tiempo con la máquina cargada: su límite pasa de 60 s a 150 s.
+- **Un cambio de paso, sin efecto con un solo deporte:** el modificador de campamento solo se aplica al campamento de su propio deporte (antes valía para cualquier acción con la etiqueta `campamento`; con dos deportes instalados se habría aplicado dos veces).
+
 ## 30/10/2026 — Plan de deportes: instalados los que se quiera, uno para competir; dos juegos de rol; kit aprobado
 
 Aclaraciones y decisiones del usuario sobre el plan (sustituyen a las entradas anteriores del plan). Plan completo en [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md).

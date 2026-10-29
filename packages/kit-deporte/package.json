@@ -1,0 +1,17 @@
+{
+  "name": "@ds/kit-deporte",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Piezas comunes de los deportes con club y entrenador. Solo depende de @ds/contracts; lo usan los módulos de deporte.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*"
+  },
+  "devDependencies": {
+    "@ds/core": "*",
+    "@ds/mod-personaje": "*"
+  }
+}

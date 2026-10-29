@@ -13,13 +13,23 @@ y sin perder velocidad.
 apps/web            Interfaz (sustituible). Solo habla con @ds/game.
 sim/                Equipo de testeo: bots, chequeos de balance, informes.
 packages/game       ENSAMBLADOR: el único sitio que lista los módulos.
-modules/*           Contenido. Cada módulo solo importa @ds/contracts.
+modules/*           Contenido. Cada módulo solo importa @ds/contracts (y los deportes, el kit de deporte).
+packages/kit-deporte Piezas comunes de los deportes (club, entrenador, categorías, verano...). Solo importa @ds/contracts.
 packages/core       Motor genérico: no sabe nada de deportes ni de estudios.
 packages/contracts  La "ley": interfaces y vocabulario común. Sin lógica de juego.
 ```
 
-**Regla de oro:** un módulo **nunca** importa otro módulo ni el núcleo. Solo `@ds/contracts`.
+**Regla de oro:** un módulo **nunca** importa otro módulo ni el núcleo. Solo `@ds/contracts` y, si es un deporte, el kit de deporte.
 El test `tests/arquitectura.test.ts` lo comprueba y falla si alguien la rompe.
+
+**Kit de deporte (`@ds/kit-deporte`).** Lo que necesita cualquier deporte con club y entrenador, escrito una vez: habilidades
+deportivas y conocimiento (`habilidadDeportiva`, `conocimientoDelDeporte`, `valorEfectivo`), acciones de club (apuntarse,
+prueba de acceso, plaza ofrecida, sesión con llegada tarde, dejar el club, pedir consejo), categorías (`categoriaDelJugador`,
+subir y volver), verano (campamento y amigos), verlo en la tele, modificadores (por tu cuenta, conocimiento, sobrecarga,
+campamento) y manejadores (conocimiento de casa, cuenta de la sobrecarga). No es un módulo ni tiene estado: cada deporte
+lo monta con su `ConfigDeporte` y el kit trabaja con el estado de ese deporte, que extiende `EstadoBaseDeDeporte`. Lo
+propio del deporte (rendimiento, competición, clasificaciones) se queda en su módulo. Plan de deportes instalables y
+cambio de deporte: [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md).
 
 ## Los unificadores
 
