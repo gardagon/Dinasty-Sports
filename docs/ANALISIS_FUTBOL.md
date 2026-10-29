@@ -1,6 +1,6 @@
 # Análisis: módulo de fútbol y cómo separar los deportes del resto del juego
 
-Primer análisis (29/10/2026), **pendiente de aprobar**. No se ha cambiado código. Recoge lo que hay hoy, qué del atletismo vale para cualquier deporte, qué está atado al atletismo fuera de su módulo y una propuesta por fases para el fútbol. Al final, las preguntas que hay que decidir antes de empezar.
+Primer análisis (29/10/2026), **pendiente de aprobar**. No se ha cambiado código. **Antes del fútbol va la estructura para poner, quitar y cambiar de deporte: [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md)**, que sustituye a §3.1–§3.3 y a las fases 1 y 2 de §4 de este documento. Recoge lo que hay hoy, qué del atletismo vale para cualquier deporte, qué está atado al atletismo fuera de su módulo y una propuesta por fases para el fútbol. Al final, las preguntas que hay que decidir antes de empezar.
 
 Contexto previo: `BACKLOG_STATS.md` (E7 competición de equipo, E14 segundo deporte, E15.1 elegir deporte, E19 clubes), `ANEXO_DEPORTE.md` §6 («deportes de equipo: partidos, tablas de liga y plantillas»), `ALMACENAMIENTO.md` §4 (población y guardado con deportes de equipo) y `DECISIONES.md` del 22/10 (fútbol como segundo deporte) y del 17/10 (`cooperacion` provisional hasta el diseño del fútbol).
 

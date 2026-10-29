@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 29/10/2026 — Plan: deportes que se pueden poner, quitar y cambiar (propuesta, sin aprobar)
+
+Pedido por el usuario: antes de nada del fútbol, planificar por fases la estructura para incluir y quitar deportes **sin estropear las partidas en curso**, porque el objetivo es que el jugador pueda **cambiar de deporte en cualquier momento**. Plan en [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md); no se ha cambiado código.
+
+- **Tres niveles:** instalado (lo decide el desarrollo), practicado (lo decide el jugador, en cualquier momento) y visible. Cambiar de deporte es un dato del estado, no instalar o quitar módulos.
+- **Fases:** 0 migraciones por módulo y partidas de referencia (se acabaría descartar partidas por versión); 1 deporte practicado y dejar/volver al atletismo; 2 aportes declarativos en el motor; 3 clubes con secciones por deporte; 4 población de cada deporte por datos (un deporte nuevo llega a partidas en curso); 5 kit de deporte y atletismo encima; 6 deporte de prueba y bots multideporte. Todas salvo la 6 con `sim` idéntico.
+- **Comprobado en el código:** `Game.fillMissing` ya crea al cargar el estado y las stats de un módulo nuevo (cada stat con su propio hilo de azar) y el motor solo recorre lo registrado, así que el estado de un módulo retirado queda inerte; lo que falta es que `Game.load` no rechace otras versiones y que `npcs` y `clubes` generen lo de un deporte nuevo.
+- **Pregunta del usuario sobre una base de datos en servidor para más de 30 000 personas:** respondida en `ALMACENAMIENTO.md` §7.
+
 ## 29/10/2026 — Análisis del módulo de fútbol (propuesta, sin aprobar)
 
 Pedido por el usuario: empezar el fútbol como segundo deporte, que se active solo si el jugador lo elige, que pueda recibir eventos sin depender de ellos y valorar «despegar» los deportes del código común. Análisis completo en [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md); **no se ha cambiado código**.
