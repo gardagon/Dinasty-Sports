@@ -42,7 +42,26 @@ import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } fr
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
 import { reclamarPestana } from './pestana';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles } from './paquetes';
-import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
+import {
+  FRECUENCIAS,
+  borrarRecuperacion,
+  crearAlmacen,
+  deJSON,
+  escribirFrecuencia,
+  esFrecuencia,
+  fechaDeJuego,
+  guardarRecuperacion,
+  leerFrecuencia,
+  leerRecuperacion,
+  pedirAlmacenamientoPersistente,
+  serializarPartida,
+  textoDeRecomendacion,
+  tocaGuardar,
+  type AgendaItem,
+  type Almacen,
+  type FrecuenciaDeGuardado,
+  type Recuperacion,
+} from './almacen';
 
 /**
  * Interfaz web mínima. Solo habla con el motor (@ds/game / @ds/core): no conoce
@@ -82,42 +101,73 @@ let almacen: Almacen | null = null;
 /** Último motivo por el que no se pudo guardar (se enseña en la cabecera). */
 let errorDeGuardado: string | null = null;
 let guardadoPendiente: ReturnType<typeof setTimeout> | undefined;
+/** Hay algo por escribir (lo que pasa mientras se guarda se escribe al acabar). */
 let hayCambios = false;
-let guardando = false;
+/** Hay cambios que la partida guardada no tiene (con el guardado automático espaciado puede pasar mucho tiempo). */
+let sinGuardar = false;
+let enCurso: Promise<void> | null = null;
 let pidioPersistencia = false;
 /** ¿Es esta la pestaña que guarda? Si hay otra abierta con la misma partida, esta no guarda (ver `pestana.ts`). */
 let esPrincipal = true;
+let frecuencia: FrecuenciaDeGuardado = leerFrecuencia();
+/** Día del juego del último guardado, lo que tardó (ms) y si hay una copia de recuperación escrita. */
+let ultimoGuardado: { dia: number; minuto: number } | undefined;
+let msDeGuardado: number | undefined;
+let recuperacionEscrita = false;
 
-/** Guardar cuesta lo que pesa la partida: se agrupa lo que pasa en medio segundo y nunca se guarda a la vez dos veces. */
-function save(): void {
+/** Se llama tras cada cambio. Guarda según la frecuencia elegida; `forzar` guarda ya sea cual sea (partida nueva, importada, «Guardar partida»). */
+function save(forzar = false): void {
   if (!esPrincipal) return;
+  sinGuardar = true;
+  if (!forzar && !(game && tocaGuardar(frecuencia, ultimoGuardado?.dia, game.time.day))) return;
   hayCambios = true;
   if (guardadoPendiente !== undefined) return;
   guardadoPendiente = setTimeout(() => void guardarYa(), 500);
 }
 
-async function guardarYa(): Promise<void> {
+/** Guarda ahora lo pendiente. Si ya se está guardando, espera a que acabe (que repite si hubo cambios). */
+function guardarYa(): Promise<void> {
   if (guardadoPendiente !== undefined) clearTimeout(guardadoPendiente);
   guardadoPendiente = undefined;
-  if (guardando || !almacen || !esPrincipal) return; // si ya está guardando, lo hará de nuevo al acabar si hay cambios
-  guardando = true;
+  if (!almacen || !esPrincipal) return Promise.resolve();
+  enCurso ??= escribirPartida().finally(() => {
+    enCurso = null;
+    const aviso = document.getElementById('aviso-guardado');
+    if (aviso) aviso.textContent = textoDeAvisoDeGuardado();
+  });
+  return enCurso;
+}
+
+async function escribirPartida(): Promise<void> {
+  const a = almacen!;
   try {
     while (hayCambios && game) {
       hayCambios = false;
-      await almacen.guardar(serializarPartida(game, agenda.slice(-60)));
+      sinGuardar = false;
+      const t0 = performance.now();
+      const marca = { dia: game.time.day, minuto: game.time.minute };
+      try {
+        await a.guardar(serializarPartida(game, agenda.slice(-60)));
+      } catch (e) {
+        sinGuardar = true;
+        throw e;
+      }
+      msDeGuardado = performance.now() - t0;
+      ultimoGuardado = marca;
       errorDeGuardado = null;
     }
-    if (!pidioPersistencia && almacen.tipo === 'indexeddb') {
+    // Con todo guardado, la copia de recuperación sobra.
+    if (!sinGuardar && recuperacionEscrita) {
+      recuperacionEscrita = false;
+      await borrarRecuperacion(a).catch(() => undefined);
+    }
+    if (!pidioPersistencia && a.tipo === 'indexeddb') {
       pidioPersistencia = true;
       void pedirAlmacenamientoPersistente();
     }
   } catch (e) {
     console.warn('No se pudo guardar la partida', e);
     errorDeGuardado = e instanceof Error ? e.message : 'error desconocido';
-  } finally {
-    guardando = false;
-    const aviso = document.getElementById('aviso-guardado');
-    if (aviso) aviso.textContent = textoDeAvisoDeGuardado();
   }
 }
 
@@ -127,9 +177,33 @@ function textoDeAvisoDeGuardado(): string {
   return almacen?.tipo === 'memoria' ? 'Este navegador no permite guardar: la partida se perderá al cerrar la pestaña. Puedes exportar una copia.' : '';
 }
 
-// Al cerrar o cambiar de pestaña se guarda lo que quede pendiente.
-window.addEventListener('pagehide', () => hayCambios && void guardarYa());
-document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && hayCambios && void guardarYa());
+/**
+ * Al ocultarse o cerrarse la pestaña: si se guarda tras cada acción, se escribe lo pendiente; si no, se guarda aparte una copia de
+ * recuperación (la partida guardada no se toca) que se ofrece al volver.
+ */
+function alOcultar(): void {
+  if (!sinGuardar || !game || !almacen || !esPrincipal) return;
+  if (frecuencia === 'accion') {
+    void guardarYa();
+    return;
+  }
+  recuperacionEscrita = true;
+  void guardarRecuperacion(almacen, serializarPartida(game, agenda.slice(-60))).catch((e) => console.warn('No se pudo guardar la copia de recuperación', e));
+}
+window.addEventListener('pagehide', alOcultar);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && alOcultar());
+// El navegador no deja preguntar con botones propios al cerrar la pestaña: solo su aviso genérico, y solo con cambios sin guardar.
+window.addEventListener('beforeunload', (e) => {
+  if (!sinGuardar || !esPrincipal || !game) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
+/** Una copia de recuperación más reciente que la partida guardada, que se ofrece en el menú. */
+let recuperacion: Recuperacion | null = null;
+/** Lo que se hará cuando el jugador conteste «Guardar y salir / Salir sin guardar / Cancelar». */
+let preguntaDeSalida: 'menu' | 'salir' | null = null;
+let opcionesAbiertas = false;
 
 /** Aviso en la pantalla inicial cuando se descarta una partida guardada que ya no sirve (alfa: sin compatibilidad entre versiones). */
 let avisoPartidaAntigua = false;
@@ -147,6 +221,8 @@ let avisoDePaisFaltante = '';
 async function load(): Promise<void> {
   try {
     const texto = await almacen!.cargar();
+    if (esPrincipal) recuperacion = await leerRecuperacion(almacen!, texto).catch(() => null);
+    recuperacionEscrita = recuperacion !== null;
     if (!texto) return;
     const data = deJSON(texto);
     try {
@@ -158,6 +234,7 @@ async function load(): Promise<void> {
     // El estado acaba de salir del texto y no lo usa nadie más: no hace falta copiarlo.
     game = cargarPartida(data.state, undefined, { copiar: false });
     agenda = data.agenda;
+    ultimoGuardado = { dia: game.time.day, minuto: game.time.minute };
   } catch (e) {
     console.warn('No se pudo cargar la partida guardada', e);
     descartarPartida();
@@ -255,6 +332,7 @@ function viewMenu(): string {
     <h1>Dinasty Sports</h1>
     <p>Un curso escolar, un deporte y cada hora cuenta. Decide en qué inviertes tu tiempo.</p>
     ${avisoDePaisFaltante ? `<p class="note loss">${esc(avisoDePaisFaltante)}</p>` : ''}
+    ${viewRecuperacion()}
     ${avisoPartidaAntigua ? '<p class="note">Tu partida guardada era de una versión anterior y ya no se puede cargar (estamos en fase alfa y el juego cambia mucho). Empieza una nueva.</p>' : ''}
     <div class="menu">
       <button class="primary" data-act="ir-nueva">Nueva partida</button>
@@ -312,6 +390,37 @@ function viewOpciones(): string {
   </section></main>`;
 }
 
+/** «Hay una partida sin guardar más reciente…»: la copia de recuperación que dejó una pestaña cerrada con cambios. */
+function viewRecuperacion(): string {
+  if (!recuperacion) return '';
+  const r = recuperacion;
+  const cuando = r.guardadoEn ? new Date(r.guardadoEn).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' }) : '';
+  return `<div class="note loss recuperacion"><p>Hay una partida sin guardar más reciente de <b>${esc(r.nombre)}</b> (${esc(fechaDeJuego(r.dia))}${cuando ? `; la pestaña se cerró el ${esc(cuando)}` : ''}). ¿Recuperarla?</p>
+    <p><button data-act="recuperar">Recuperar</button> <button data-act="descartar-recuperacion">Descartar</button></p></div>`;
+}
+
+/** Ventanas encima de la partida: la pregunta al salir con cambios sin guardar y «Opciones». */
+function viewVentana(g: Game | null): string {
+  if (preguntaDeSalida) {
+    return `<div class="velo" role="dialog" aria-modal="true"><div class="ventana">
+      <h2>${preguntaDeSalida === 'salir' ? 'Salir' : 'Volver al menú'}</h2>
+      <p>Tienes cambios sin guardar${ultimoGuardado ? ` (lo último guardado es del ${esc(fechaDeJuego(ultimoGuardado.dia))})` : ''}. ¿Qué quieres hacer?</p>
+      <p class="botones"><button data-act="salida-guardar">Guardar y salir</button><button data-act="salida-sin-guardar">Salir sin guardar</button><button data-act="salida-cancelar">Cancelar</button></p>
+    </div></div>`;
+  }
+  if (!opcionesAbiertas || !g || enMenu) return '';
+  const opciones = FRECUENCIAS.map((f) => `<option value="${f.id}"${f.id === frecuencia ? ' selected' : ''}>${esc(f.nombre)}</option>`).join('');
+  return `<div class="velo" role="dialog" aria-modal="true"><div class="ventana">
+    <h2>Opciones</h2>
+    <p><button data-act="guardar">Guardar partida</button></p>
+    <p class="note" id="ultimo-guardado">${ultimoGuardado ? `Último guardado: ${esc(fechaDeJuego(ultimoGuardado.dia))}, ${hhmm(ultimoGuardado.minuto % MINUTES_PER_DAY)}.` : 'Aún no se ha guardado en esta sesión.'}${sinGuardar ? ' Hay cambios sin guardar.' : ''}</p>
+    <p><label>Guardado automático <select id="frecuencia">${opciones}</select></label></p>
+    ${msDeGuardado === undefined ? '<p class="note">Cuando se haya guardado una vez, aquí verás cuánto tarda y qué frecuencia te recomendamos.</p>' : `<p class="note">${esc(textoDeRecomendacion(msDeGuardado))}</p>`}
+    <p class="botones"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="importar-pais">Importar un país</button></p>
+    <p class="botones"><button data-act="cerrar-opciones">Cerrar</button></p>
+  </div></div>`;
+}
+
 function viewDay(g: Game): string {
   const t = g.time;
   const dayStart = t.day * MINUTES_PER_DAY;
@@ -339,7 +448,7 @@ function viewDay(g: Game): string {
   return `<header class="day">
     <div class="day-top">
       <h1 class="clock">${hhmm(t.minuteOfDay)}<small>${DIAS[t.weekday]} ${fechaDelDia(t.day).conAnio} · curso ${t.schoolYear + 1}, semana ${t.schoolWeek + 1}<br>${t.period === 'clase' ? `${t.term}.º trimestre` : NOMBRE_PERIODO[t.period]}</small></h1>
-      <div class="who"><strong>${esc(g.playerName)}</strong><span class="copias"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="menu">Menú</button></span></div>
+      <div class="who"><strong>${esc(g.playerName)}</strong><span class="copias"><button data-act="opciones" title="Guardar, guardado automático, exportar e importar">Opciones</button><button data-act="menu">Menú</button></span></div>
     </div>
     <div class="lane" role="img" aria-label="Lo que has hecho hoy">${blocks}<span class="lane-now" style="left:calc(${now}% - 1px)"></span></div>
     <div class="lane-hours"><span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>24 h</span></div>
@@ -750,7 +859,7 @@ window.addEventListener('resize', marcarDesbordePestañas);
 function render(): void {
   // Al redibujar se conserva el desplazamiento de las pestañas y se asegura que la elegida se vea.
   const antes = app.querySelector<HTMLElement>('.tabs')?.scrollLeft ?? 0;
-  app.innerHTML = game && !enMenu ? viewGame(game) : viewInicio();
+  app.innerHTML = (game && !enMenu ? viewGame(game) : viewInicio()) + viewVentana(game);
   const nav = app.querySelector<HTMLElement>('.tabs');
   if (nav) {
     nav.scrollLeft = antes;
@@ -776,6 +885,12 @@ app.addEventListener('change', (e) => {
   // El país de la nueva partida: cambia los padres (orígenes, nombres y apellidos) que salen de la semilla.
   if (el instanceof HTMLSelectElement && el.id === 'pais') {
     nueva.pais = el.value;
+    render();
+    return;
+  }
+  if (el instanceof HTMLSelectElement && el.id === 'frecuencia' && esFrecuencia(el.value)) {
+    frecuencia = el.value;
+    escribirFrecuencia(frecuencia);
     render();
     return;
   }
@@ -833,9 +948,66 @@ app.addEventListener('click', (e) => {
 function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
   switch (act) {
     case 'menu':
-      enMenu = true;
-      pantalla = 'menu';
-      avisoDeSalir = false;
+      if (preguntarAntesDeSalir('menu')) return true;
+      irAlMenu();
+      return true;
+    case 'opciones':
+      opcionesAbiertas = true;
+      render();
+      return true;
+    case 'cerrar-opciones':
+      opcionesAbiertas = false;
+      render();
+      return true;
+    case 'guardar':
+      if (!esPrincipal) {
+        alert('La partida está abierta en otra pestaña: aquí no se guarda nada.');
+        return true;
+      }
+      save(true);
+      void guardarYa().then(render);
+      return true;
+    case 'salida-cancelar':
+      preguntaDeSalida = null;
+      render();
+      return true;
+    case 'salida-guardar':
+      save(true);
+      void guardarYa().then(() => {
+        if (errorDeGuardado) {
+          // No se pudo guardar: no se sale, para no perder nada.
+          preguntaDeSalida = null;
+          alert(`No se pudo guardar la partida (${errorDeGuardado}). Exporta una copia antes de salir.`);
+          render();
+          return;
+        }
+        terminarSalida();
+      });
+      return true;
+    case 'salida-sin-guardar':
+      void descartarCambios().then(terminarSalida);
+      return true;
+    case 'recuperar': {
+      if (!recuperacion) return true;
+      if (!esPrincipal) {
+        alert('La partida está abierta en otra pestaña: recupérala desde allí.');
+        return true;
+      }
+      try {
+        const data = deJSON(recuperacion.texto);
+        comprobarPais(data.state);
+        game = cargarPartida(data.state, undefined, { copiar: false });
+        recuperacion = null;
+        empezarAJugar(data.agenda);
+      } catch (e) {
+        alert(e instanceof Error ? e.message : 'No se pudo recuperar la partida.');
+      }
+      return true;
+    }
+    case 'descartar-recuperacion':
+      recuperacion = null;
+      recuperacionEscrita = false;
+      if (almacen) void borrarRecuperacion(almacen).catch(() => undefined);
       render();
       return true;
     case 'ir-menu':
@@ -883,7 +1055,12 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
       }
       if (confirm('¿Borrar la partida guardada? No se puede deshacer.')) {
         hayCambios = false;
+        sinGuardar = false;
+        ultimoGuardado = undefined;
+        recuperacion = null;
         void almacen?.borrar().catch(() => undefined);
+        if (almacen) void borrarRecuperacion(almacen).catch(() => undefined);
+        recuperacionEscrita = false;
         game = null;
         agenda = [];
         lastResult = null;
@@ -892,25 +1069,70 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
       }
       return true;
     case 'salir':
-      // Una pestaña solo se puede cerrar desde el código si la abrió el propio código: si no, se avisa.
-      window.close();
-      avisoDeSalir = true;
-      render();
+      if (preguntarAntesDeSalir('salir')) return true;
+      salir();
       return true;
     default:
       return false;
   }
 }
 
+function irAlMenu(): void {
+  opcionesAbiertas = false;
+  enMenu = true;
+  pantalla = 'menu';
+  avisoDeSalir = false;
+  render();
+}
+
+function salir(): void {
+  // Una pestaña solo se puede cerrar desde el código si la abrió el propio código: si no, se avisa.
+  window.close();
+  avisoDeSalir = true;
+  render();
+}
+
+/** Con cambios sin guardar pregunta «Guardar y salir / Salir sin guardar / Cancelar» en vez de salir. Devuelve si ha preguntado. */
+function preguntarAntesDeSalir(que: 'menu' | 'salir'): boolean {
+  if (!game || !sinGuardar || !esPrincipal) return false;
+  preguntaDeSalida = que;
+  render();
+  return true;
+}
+
+function terminarSalida(): void {
+  const que = preguntaDeSalida;
+  preguntaDeSalida = null;
+  if (que === 'salir') salir();
+  else irAlMenu();
+}
+
+/** «Salir sin guardar»: se tira lo que no está guardado (también la copia de recuperación) y la partida vuelve a lo último guardado. */
+async function descartarCambios(): Promise<void> {
+  if (guardadoPendiente !== undefined) clearTimeout(guardadoPendiente);
+  guardadoPendiente = undefined;
+  hayCambios = false;
+  sinGuardar = false;
+  await enCurso?.catch(() => undefined);
+  if (almacen) await borrarRecuperacion(almacen).catch(() => undefined);
+  recuperacionEscrita = false;
+  game = null;
+  agenda = [];
+  lastResult = null;
+  await load();
+}
+
 function empezarAJugar(agendaGuardada: AgendaItem[] = []): void {
   agenda = agendaGuardada;
+  recuperacion = null;
+  opcionesAbiertas = false;
   lastResult = null;
   tab = 'hacer';
   enMenu = false;
   pantalla = 'menu';
   avisoPartidaAntigua = false;
   reiniciarGente();
-  save();
+  save(true);
   render();
 }
 

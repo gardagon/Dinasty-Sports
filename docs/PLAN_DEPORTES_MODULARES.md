@@ -115,13 +115,13 @@ Decidido el 30/10: no se archiva nada. Para que al volver todo esté al día sin
 
 ## 6. Opciones y guardado
 
-Hoy, bajo el nombre, hay tres botones: Exportar, Importar y Menú. Propuesta:
+**Hecho en la fase G (30/10).** Antes había tres botones bajo el nombre (Exportar, Importar y Menú); ahora hay «Opciones» y «Menú». Lo que se hizo:
 
 - **Un botón «Opciones»** en la cabecera de la partida (y «Menú» al lado), con:
   - **Guardar partida** (y cuándo se guardó por última vez, en fecha del juego).
   - **Guardado automático:** tras cada acción (como ahora), cada día, cada semana, cada mes de juego o solo a mano. El juego mide cuánto tarda en guardar y recomienda una frecuencia según la máquina («tu partida tarda 0,4 s en guardarse: te recomendamos cada semana»). Por defecto, cada día.
   - **Exportar e importar una copia** (los botones de hoy).
-  - **Deportes** (el instalador, §3) y **paquetes de país**.
+  - **Deportes** (el instalador, §3; llegará con la fase 6) y **paquetes de país** (ya está «Importar un país»).
 - **¿Preguntar si quiere guardar al cerrar la pestaña?** No es demasiado, pero el navegador no deja hacerlo bien: al cerrar una pestaña solo permite su aviso genérico («¿Salir del sitio? Puede que no se guarden los cambios»), sin botón de «Guardar», y en el móvil ni siquiera eso (el sistema cierra la pestaña sin avisar). Propuesta:
   1. Al salir **con nuestros botones** (Menú, Salir), preguntar: «Guardar y salir / Salir sin guardar / Cancelar».
   2. Al cerrar la pestaña con cambios sin guardar, el aviso genérico del navegador (en el ordenador).
@@ -139,7 +139,7 @@ Estamos en alfa: las partidas empezadas se descartan cuando cambie la forma del 
 
 | Fase | Qué deja hecho | `sim` |
 |---|---|---|
-| **G** | Botón «Opciones» con guardar, guardado automático elegible, exportar/importar y copia de recuperación (§6). Solo interfaz | Sin efecto |
+| **G** ✅ | Botón «Opciones» con guardar, guardado automático elegible, exportar/importar y copia de recuperación (§6). Solo interfaz. **Hecha el 30/10** | Sin efecto |
 | **K** ✅ | **Kit de deporte** y el atletismo reescrito encima (§7). **Hecho el 30/10:** huella exacta del estado igual antes y después (14 partidas de bots, 120 y 330 días) | Idéntico |
 | **0** | **Deporte practicado** (uno): módulo `deportes`, servicio `practica`, eventos `deporte.empezar` y `deporte.dejar`, ocultar lo que no se practica, «Empezar / Dejar el atletismo», elegir deporte en la nueva partida | Idéntico (salvo el bot que abandona, que pasa a dejarlo de verdad) |
 | **1** | **Aportes** en el motor (`GameModule.aportes`, `ctx.aportes`) y ficha de cada deporte (catálogo) | Idéntico |

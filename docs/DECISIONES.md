@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Fase G: «Opciones», guardado automático elegible y copia de recuperación
+
+Hecha la fase G de `PLAN_DEPORTES_MODULARES.md` (§6, detalle en `ALMACENAMIENTO.md` §8). Solo interfaz (`apps/web`); el formato del guardado y las copias de seguridad no cambian, y `npm run sim` no se ve afectado.
+
+- **Botón «Opciones»** en la cabecera de la partida, al lado de «Menú» (sustituye a Exportar e Importar, que pasan dentro): Guardar partida (con la fecha del juego del último guardado y si hay cambios sin guardar), guardado automático, Exportar, Importar y «Importar un país». «Deportes» llegará con el instalador (fase 6).
+- **Guardado automático:** tras cada acción, cada día, cada semana (al empezar el lunes), cada mes del calendario del juego o solo a mano. **Por defecto, cada día.** Se decide comparando el período del último guardado con el de ahora (`tocaGuardar`), así que un salto de varios días guarda igual. La elección se recuerda por partida en `localStorage` (fuera de la partida, para no tocar el formato; si el navegador no lo deja, vale la por defecto).
+- **Recomendación:** se mide lo que tarda cada guardado (convertir a texto + escribir) y se recomienda: menos de 80 ms, tras cada acción; menos de 250 ms, cada día; menos de 1 s, cada semana; más, cada mes. Umbrales a ojo, a revisar con medidas en móviles.
+- **Salir con los botones del juego** (Menú, Salir) con cambios sin guardar: ventana «Guardar y salir / Salir sin guardar / Cancelar». «Salir sin guardar» vuelve a leer la última partida guardada (si no, «Continuar» seguiría con lo descartado); si falla el guardado de «Guardar y salir», no se sale.
+- **Cerrar la pestaña:** aviso genérico del navegador (`beforeunload`) si hay cambios sin guardar. Al ocultarse o cerrarse: con «tras cada acción» se escribe lo pendiente como antes; con cualquier otra frecuencia se escribe **una copia de recuperación aparte** (id `recuperacion` en el mismo almacén, sin cambiar el esquema de IndexedDB), nunca sobre la guardada. Al volver, si es más reciente que la guardada, el menú pregunta «Hay una partida sin guardar más reciente…: ¿recuperarla?» (Recuperar / Descartar); una que no aporta nada se borra sola, y también cuando se guarda todo.
+- Nota: `almacen.listar()` incluye la copia de recuperación como una partida más; hoy nada lista partidas, habrá que filtrarla cuando haya selector de partidas.
+- Tests en `almacen.test.ts` (frecuencias, recomendación, preferencia, copia de recuperación en memoria e IndexedDB). La ventana de Opciones y las preguntas no tienen test de interfaz (el repositorio no los tiene para `main.ts`).
+
+---
+
 ## 30/10/2026 — Paquetes de deporte firmados, datos por deporte y luego por país, e instalador desde GitHub Pages
 
 Aclaraciones del usuario sobre el plan de deportes (detalle en `PLAN_DEPORTES_MODULARES.md` §3 y §4); no se ha cambiado código.

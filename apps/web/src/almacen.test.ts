@@ -1,7 +1,24 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { cargarPartida, nuevaPartida } from '@ds/game';
-import { AlmacenEnMemoria, AlmacenIndexedDB, crearAlmacen, deJSON, serializarPartida, type Almacen } from './almacen';
+import {
+  AlmacenEnMemoria,
+  AlmacenIndexedDB,
+  FRECUENCIA_POR_DEFECTO,
+  PARTIDA_ACTUAL,
+  borrarRecuperacion,
+  crearAlmacen,
+  deJSON,
+  escribirFrecuencia,
+  guardarRecuperacion,
+  leerFrecuencia,
+  leerRecuperacion,
+  recomendarFrecuencia,
+  serializarPartida,
+  textoDeRecomendacion,
+  tocaGuardar,
+  type Almacen,
+} from './almacen';
 
 const agenda = [{ start: 420, duration: 60, name: 'Descansar', rest: true }];
 const partida = (nombre = 'Alex', semilla = 1) => serializarPartida(nuevaPartida({ seed: semilla, playerName: nombre }), agenda);
@@ -105,4 +122,114 @@ describe('la partida en texto (también es la copia de seguridad)', () => {
     const b = cargarPartida(s);
     for (const id of ['gen.fuerza', 'estudios.matematicas', 'atletismo.tecnica']) expect(a.stat(id)).toBe(b.stat(id));
   });
+});
+
+describe('guardado automático elegible', () => {
+  it('por defecto es cada día', () => {
+    expect(FRECUENCIA_POR_DEFECTO).toBe('dia');
+    expect(leerFrecuencia(PARTIDA_ACTUAL, { getItem: () => null })).toBe('dia');
+  });
+
+  it('tras cada acción guarda siempre y a mano nunca', () => {
+    expect(tocaGuardar('accion', 5, 5)).toBe(true);
+    expect(tocaGuardar('manual', 5, 400)).toBe(false);
+    expect(tocaGuardar('manual', undefined, 400)).toBe(false);
+  });
+
+  it('cada día solo al cambiar de día', () => {
+    expect(tocaGuardar('dia', 10, 10)).toBe(false);
+    expect(tocaGuardar('dia', 10, 11)).toBe(true);
+    expect(tocaGuardar('dia', undefined, 10)).toBe(true);
+  });
+
+  it('cada semana al empezar el lunes (el día 0 es lunes)', () => {
+    expect(tocaGuardar('semana', 0, 6)).toBe(false);
+    expect(tocaGuardar('semana', 0, 7)).toBe(true);
+    expect(tocaGuardar('semana', 7, 13)).toBe(false);
+    expect(tocaGuardar('semana', 7, 14)).toBe(true);
+  });
+
+  it('cada mes al cambiar de mes del calendario (el día 0 es el 10 de septiembre)', () => {
+    expect(tocaGuardar('mes', 0, 20)).toBe(false); // 30 de septiembre
+    expect(tocaGuardar('mes', 0, 21)).toBe(true); // 1 de octubre
+    expect(tocaGuardar('mes', 21, 51)).toBe(false); // 31 de octubre
+    expect(tocaGuardar('mes', 21, 52)).toBe(true); // 1 de noviembre
+  });
+
+  it('recomienda más espaciado cuanto más tarda en guardar', () => {
+    expect(recomendarFrecuencia(10)).toBe('accion');
+    expect(recomendarFrecuencia(150)).toBe('dia');
+    expect(recomendarFrecuencia(400)).toBe('semana');
+    expect(recomendarFrecuencia(3000)).toBe('mes');
+    expect(textoDeRecomendacion(400)).toBe('Tu partida tarda 400 ms en guardarse: te recomendamos «cada semana de juego».');
+  });
+
+  it('recuerda la frecuencia elegida y ignora valores raros o un almacenamiento que falla', () => {
+    const mem = new Map<string, string>();
+    const local = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
+    escribirFrecuencia('semana', PARTIDA_ACTUAL, local);
+    expect(leerFrecuencia(PARTIDA_ACTUAL, local)).toBe('semana');
+    mem.set([...mem.keys()][0], 'cada hora');
+    expect(leerFrecuencia(PARTIDA_ACTUAL, local)).toBe('dia');
+    const roto = { getItem: () => { throw new Error('bloqueado'); }, setItem: () => { throw new Error('bloqueado'); } };
+    expect(leerFrecuencia(PARTIDA_ACTUAL, roto)).toBe('dia');
+    expect(() => escribirFrecuencia('mes', PARTIDA_ACTUAL, roto)).not.toThrow();
+  });
+});
+
+describe('copia de recuperación', () => {
+  /** Una partida a la que se le han hecho acciones: más reciente que la recién creada. */
+  const avanzada = () => {
+    const g = nuevaPartida({ seed: 1, playerName: 'Alex' });
+    g.perform('gen.descansar');
+    return serializarPartida(g, agenda);
+  };
+
+  for (const [nombre, crear] of [
+    ['memoria', () => new AlmacenEnMemoria()],
+    ['IndexedDB', () => new AlmacenIndexedDB('recuperacion', new IDBFactory())],
+  ] as const) {
+    it(`no toca la partida guardada y se ofrece si es más reciente (${nombre})`, async () => {
+      const a = crear();
+      const guardada = partida();
+      await a.guardar(guardada);
+      const nueva = avanzada();
+      await guardarRecuperacion(a, nueva);
+      expect(await a.cargar()).toBe(guardada.texto);
+      const r = await leerRecuperacion(a, guardada.texto);
+      expect(r?.texto).toBe(nueva.texto);
+      expect(r?.nombre).toBe('Alex');
+      expect(r!.minuto).toBeGreaterThan(deJSON(guardada.texto).state.minute);
+      expect(r!.dia).toBe(Math.floor(r!.minuto / 1440));
+    });
+
+    it(`se ofrece aunque no haya partida guardada (${nombre})`, async () => {
+      const a = crear();
+      await guardarRecuperacion(a, avanzada());
+      expect(await leerRecuperacion(a, null)).not.toBeNull();
+    });
+
+    it(`si no es más reciente se descarta (${nombre})`, async () => {
+      const a = crear();
+      const antigua = partida();
+      await guardarRecuperacion(a, antigua);
+      expect(await leerRecuperacion(a, avanzada().texto)).toBeNull();
+      expect(await a.cargar('recuperacion')).toBeNull();
+    });
+
+    it(`sin copia no hay nada que ofrecer, y se puede borrar (${nombre})`, async () => {
+      const a = crear();
+      expect(await leerRecuperacion(a, null)).toBeNull();
+      await guardarRecuperacion(a, avanzada());
+      await borrarRecuperacion(a);
+      expect(await leerRecuperacion(a, null)).toBeNull();
+    });
+
+    it(`una copia ilegible se borra sin romper nada (${nombre})`, async () => {
+      const a = crear();
+      await a.guardar({ texto: 'no es json', nombre: 'x', version: 1 }, 'recuperacion');
+      expect(await leerRecuperacion(a, null)).toBeNull();
+      expect(await a.cargar('recuperacion')).toBeNull();
+    });
+  }
 });
