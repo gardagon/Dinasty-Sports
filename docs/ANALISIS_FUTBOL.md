@@ -133,7 +133,7 @@ Coste orientativo: la fase 1 es pequeña; la 2 es la más delicada (refactor sin
 
 ## 5. Preguntas para decidir
 
-1. **¿Uno o varios deportes a la vez?** Propongo **uno al empezar** y poder añadir un segundo más adelante (el tiempo ya lo limita solo), o cambiar dejando el anterior.
+1. ~~¿Uno o varios deportes a la vez?~~ **Decidido el 30/10: hasta 4 a la vez** (ver `PLAN_DEPORTES_MODULARES.md`).
 2. **¿Se aprueba el kit de deporte (`@ds/kit-deporte`)?** Cambia la regla 1 de `CLAUDE.md`: los módulos podrán importar `contracts` y el kit (nunca otro módulo ni el núcleo).
 3. **¿Fútbol 7 hasta alevín y fútbol 11 desde infantil**, como en España?
 4. **Equipos:** hoy el personaje solo puede ser chico. ¿Equipos masculinos, o mixtos en las categorías pequeñas como pasa en muchas escuelas?

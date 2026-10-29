@@ -5,14 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
-## 29/10/2026 — Plan: deportes que se pueden poner, quitar y cambiar (propuesta, sin aprobar)
+## 30/10/2026 — Plan de deportes revisado: complementos de la partida, hasta 4 a la vez y datos por país
 
-Pedido por el usuario: antes de nada del fútbol, planificar por fases la estructura para incluir y quitar deportes **sin estropear las partidas en curso**, porque el objetivo es que el jugador pueda **cambiar de deporte en cualquier momento**. Plan en [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md); no se ha cambiado código.
+Decisiones del usuario sobre el plan del 29/10 (que queda sustituido). Plan completo en [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md); no se ha cambiado código.
 
-- **Tres niveles:** instalado (lo decide el desarrollo), practicado (lo decide el jugador, en cualquier momento) y visible. Cambiar de deporte es un dato del estado, no instalar o quitar módulos.
-- **Fases:** 0 migraciones por módulo y partidas de referencia (se acabaría descartar partidas por versión); 1 deporte practicado y dejar/volver al atletismo; 2 aportes declarativos en el motor; 3 clubes con secciones por deporte; 4 población de cada deporte por datos (un deporte nuevo llega a partidas en curso); 5 kit de deporte y atletismo encima; 6 deporte de prueba y bots multideporte. Todas salvo la 6 con `sim` idéntico.
-- **Comprobado en el código:** `Game.fillMissing` ya crea al cargar el estado y las stats de un módulo nuevo (cada stat con su propio hilo de azar) y el motor solo recorre lo registrado, así que el estado de un módulo retirado queda inerte; lo que falta es que `Game.load` no rechace otras versiones y que `npcs` y `clubes` generen lo de un deporte nuevo.
-- **Pregunta del usuario sobre una base de datos en servidor para más de 30 000 personas:** respondida en `ALMACENAMIENTO.md` §7.
+- **Los deportes son complementos de la partida:** el jugador instala y desinstala los que quiera y conviven mientras la máquina lo soporte. El historial de un deporte se guarda y se mantiene al desinstalarlo. Al instalar uno se reutilizan personas que encajan y se crean las que falten, aunque tarde (pantalla de espera).
+- **Alfa:** se pueden descartar las partidas empezadas (se sigue subiendo `SAVE_VERSION`). Ya no hace falta la fase de migraciones del plan anterior; sí que instalar y desinstalar funcione dentro de una partida.
+- **Hasta 4 deportes practicados a la vez; se prueba con 2.** El cansancio (sobrecarga) pasa a contarse entre todos los deportes, y se avisa de los choques de horario.
+- **Reglas de cambio de deporte:** aprobadas (sin coste, se conserva todo, se puede volver), asegurando que no se rompe nada.
+- **Países:** calendario, categorías, temporada y nombres de competiciones cambian con cada país y cada deporte. Si no hay datos propios para un país, se usa el modelo de España en el mismo formato (como `copiaDeEspana`). Propuesto: paquete de país > datos del deporte para ese país > España del deporte.
+- **Guardado:** botón de guardar y guardado automático elegible (cada acción, día, semana, mes o solo a mano), detallado en `ALMACENAMIENTO.md` §8.
+- **Fases:** G guardado; 0 deportes instalados por partida; 1 practicados y cambio; 2 aportes; 3 datos por país; 4 clubes por secciones; 5 gente de cada deporte; 6 kit de deporte; 7 validación con dos deportes de prueba. Después, el fútbol.
+- **Pendiente:** el kit de deporte (explicado en §4 del plan), el orden de los datos por país, guardar siempre al cerrar la pestaña y si se archiva la gente creada solo para un deporte desinstalado.
 
 ## 29/10/2026 — Análisis del módulo de fútbol (propuesta, sin aprobar)
 

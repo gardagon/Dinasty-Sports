@@ -68,3 +68,15 @@ Pregunta del usuario. **No es lo que se decidió ni lo que hace falta.** Lo deci
 - **Lo que sí permite 30 000 personas o más sin salir del dispositivo** son las fases de §4: guardado incremental (solo las personas que cambian), rasgos compactos (de ~950 a ~500 bytes por persona) y población desde la semilla guardando solo las diferencias (sin límite práctico). Cada una tiene su disparador medido.
 - **Un servidor tendría sentido por otros motivos**: jugar la misma partida en el móvil y el ordenador, copias en la nube. Sería una **copia o sincronización** de la partida local, no el almacén con el que se juega.
 - Con el modelo híbrido del fútbol (`ANALISIS_FUTBOL.md` §3.4) un deporte de equipo suma cientos de personas, no miles: no obliga a pasar de fase.
+- **Con el guardado elegible de §8** el coste de guardar la partida entera deja de notarse en cada acción (una vez al día, a la semana o al mes de juego), así que el límite práctico sube sin cambiar el almacén; lo que sigue creciendo con la población es el tiempo de abrir la partida y la memoria.
+
+## 8. Guardado manual y automático (propuesta del usuario, 30/10/2026)
+
+Hoy se guarda **tras cada acción** (agrupado cada medio segundo) y al cerrar u ocultar la pestaña. Propuesta:
+
+- **Botón «Guardar partida»** en Opciones (y en el menú cuando hay una partida abierta), con el resultado («Guardado: martes 14 de octubre, 17:30 del juego»).
+- **Guardado automático a elegir** en Opciones: **tras cada acción** (como ahora), **cada día** (al pasar la medianoche del juego), **cada semana** (al empezar el lunes), **cada mes** (al cambiar de mes en el calendario del juego) o **solo a mano**. Se guarda por partida.
+- **Recomendación según la máquina:** el juego mide cuánto tarda cada guardado y lo sugiere (p. ej. «tu partida tarda 0,4 s en guardarse: te recomendamos guardar cada semana»). Por defecto, **cada día**.
+- **Aviso de lo que no está guardado:** en la cabecera, «Sin guardar desde hace 3 días de juego», y aviso del navegador al cerrar si hay cambios sin guardar (`beforeunload`).
+- **Al cerrar u ocultar la pestaña** (sobre todo en el móvil, donde el sistema cierra pestañas sin avisar): propongo **guardar siempre**, también con el automático semanal o mensual, salvo en «solo a mano». Pendiente de confirmar por el usuario.
+- **No cambia el formato** de lo guardado ni las copias de seguridad. Solo toca la interfaz (`apps/web/src/main.ts`): no choca con el plan de deportes y se puede hacer en cualquier momento.
