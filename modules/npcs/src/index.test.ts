@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, madurezPorEdad, ventajaDeCrianza, type FamilyService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
+import { SERVICES, apellidosDeFamilia, madurezPorEdad, origen, reservaDeNombres, ventajaDeCrianza, type FamilyService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { familia } from '@ds/mod-familia';
@@ -108,7 +108,8 @@ describe('módulo NPCs', () => {
       // Su tope de atletismo ronda lo que hereda de sus padres (±20 % por capacidad y ±15 % de aptitud).
       expect(r.potential.atletismo).toBeGreaterThanOrEqual(20);
       expect(r.potential.atletismo).toBeLessThanOrEqual(95);
-      expect(padre.nombre.split(' ').slice(1).join(' ')).toBe(r.name.split(' ').slice(1).join(' '));
+      // El padre y el hijo comparten apellido (el último de los dos nombres).
+      expect(padre.nombre.split(' ').pop()).toBe(r.name.split(' ').pop());
     }
     // Los padres sin deporte no dan ventaja; los dos profesionales, la máxima.
     expect(ventajaDeCrianza('ninguna', 'ninguna')).toBeLessThan(ventajaDeCrianza('aficionado', 'ninguna'));
@@ -199,7 +200,8 @@ describe('módulo NPCs', () => {
     it('de noche no hay nadie en ningún lugar del mapa', () => {
       const g = nueva();
       advanceTo(g, 'gen.descansar', 2, 3);
-      for (const l of ['colegio', 'estadio', 'parque', 'gimnasio', 'supermercado', 'restaurante', 'casa']) expect(nombres(g, l)).toEqual([]);
+      // (Los hermanos duermen en casa: no cuentan.)
+      for (const l of ['colegio', 'estadio', 'parque', 'gimnasio', 'supermercado', 'restaurante', 'casa']) expect(nombres(g, l).filter((id) => !id.startsWith('hermano'))).toEqual([]);
     });
 
     it('se puede limitar cuántos hay, y primero salen los conocidos y los de mayor nivel (el tutor, si lo conoces, antes que un compañero)', () => {
@@ -285,8 +287,37 @@ describe('módulo NPCs', () => {
       expect(new Set(todos.map((n) => n.name)).size).toBe(todos.length);
       expect(new Set(todos.map((n) => n.id)).size).toBe(todos.length);
       expect(todos.every((n) => n.rasgos)).toBe(true);
-      expect(todos.filter((n) => n.known !== false).map((n) => n.id).sort()).toEqual(['madre', 'padre']); // el reparto inicial no: se conoce hablando (o, el entrenador, apuntándose a su club); solo la familia
+      expect(todos.filter((n) => n.known !== false).map((n) => n.id).filter((id) => !id.startsWith('hermano')).sort()).toEqual(['madre', 'padre']); // el reparto inicial no: se conoce hablando (o, el entrenador, apuntándose a su club); solo la familia
       expect(g.service<NpcDirectory>(SERVICES.npcs)!.list({ known: true }).filter((n) => n.role !== 'familia')).toHaveLength(0);
+    });
+
+    it('hay homónimos solo si son dos, de momentos distintos (15 años o más), y los nombres salen del origen de cada persona', () => {
+      let conRepetidos = 0;
+      let compuestos = 0;
+      for (const seed of [1, 2, 3, 9, 31]) {
+        const g = Game.create([personaje, npcs, familia, lugares], { seed });
+        const todos = lista(g);
+        const porNombre = new Map<string, number[]>();
+        for (const n of todos) porNombre.set(n.name, [...(porNombre.get(n.name) ?? []), n.nacimiento ?? 0]);
+        for (const [nombre, nacimientos] of porNombre) {
+          expect(nacimientos.length, `${nombre} (semilla ${seed})`).toBeLessThanOrEqual(2);
+          if (nacimientos.length === 2) {
+            conRepetidos++;
+            expect(Math.abs(nacimientos[0] - nacimientos[1]), nombre).toBeGreaterThanOrEqual(15 * 365);
+          }
+        }
+        for (const n of todos) {
+          // Nombre de pila de una cultura de su origen (o, en una mezcla sin el país de juego, del país de juego).
+          const culturas = n.rasgos!.origen.flatMap((o) => reservaDeNombres(origen(o.id)!.reserva));
+          const locales = reservaDeNombres('espana');
+          const pila = n.name.split(' ')[0];
+          const conocido = [...culturas, ...(n.rasgos!.origen.length > 1 ? locales : [])].some((c) => [...c.nombres.f.jovenes, ...c.nombres.f.adultos, ...c.nombres.m.jovenes, ...c.nombres.m.adultos, ...(c.compuestos?.f ?? []), ...(c.compuestos?.m ?? [])].some((x) => x.split(' ')[0] === pila));
+          expect(conocido, `${n.id} ${n.name} ${JSON.stringify(n.rasgos!.origen)}`).toBe(true);
+          if (/^(José|Juan|Luis|Miguel|María|Ana) \p{Lu}/u.test(n.name) && n.name.split(' ').length > 3) compuestos++;
+        }
+      }
+      expect(compuestos).toBeGreaterThan(0);
+      expect(conRepetidos).toBeGreaterThanOrEqual(0);
     });
 
     it('el patio tiene gente de todos los cursos (en el recreo) y el parque, de todas las edades', () => {
@@ -328,10 +359,9 @@ describe('hermanos', () => {
       const hs = hermanosDe(g);
       expect(hs.length).toBeLessThanOrEqual(3);
       cuenta[hs.length]++;
-      const apellidos = g.service<FamilyService>(SERVICES.familia)!.apellidos;
       for (const h of hs) {
         expect(h.role).toBe('familia');
-        expect(h.name.endsWith(apellidos)).toBe(true);
+        expect(h.name.endsWith(apellidosDeFamilia(partidas.indexOf(g) + 1, h.gender))).toBe(true);
         expect(h.known).not.toBe(false);
       }
     }

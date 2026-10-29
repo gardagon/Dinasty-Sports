@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 29/10/2026 — Nombres y apellidos según el origen (fase 1) y plan de paquetes de país
+
+Pedido por el usuario al ver a una madre de origen de Europa del este llamada Patricia. Todo en `ANEXO_NOMBRES.md`.
+
+- **Causa:** el origen/aspecto y el nombre salían de generadores separados (el nombre, de listas fijas españolas). **Ahora primero el origen y luego el nombre.** Los padres salen de la semilla (`padresDeSemilla`): `rasgosAlAzar` recibe su origen (con la tirada de siempre descartada para no cambiar el azar del resto), y la pantalla de nueva partida y el motor coinciden.
+- **Reglas (decididas por el usuario):** un solo origen → nombre de ese origen; mezcla → uno de los orígenes según su peso (alto porcentaje dentro de la mezcla); mezcla sin el país de juego → un 12 % de nombre del país de juego. Los apellidos, de su origen: el hijo lleva el primero del padre y el primero de la madre (el segundo de un hijo de madre del este es del este). Apellidos femeninos en las culturas eslavas.
+- **Datos:** listas largas por cultura (España ≈190+180 nombres y ≈260 apellidos; 15 culturas en 7 reservas), con **nombres compuestos** (José Manuel, María José…) y **nombres por generación** (jóvenes/adultos).
+- **Homónimos:** se permiten, como mucho 2 con el mismo nombre completo y 15 años o más de diferencia (el hijo se puede llamar como el padre; dos niños del colegio, no). Antes eran únicos.
+- **Valores míos a revisar:** 12 % de nombre local, 16 % de compuestos en adultos y 3 % en jóvenes, el corte de 25 años para los nombres de jóvenes y de 18 para los apellidos del país de juego, el peso de las culturas dentro de una reserva.
+- **Impacto técnico:** el orden de los sorteos cambia la población de cada semilla (ajustados los tests que dependían de semillas concretas). Las partidas guardadas no cambian. `nombreCorto` es la primera palabra del nombre (para «José Manuel», «José»).
+- **Fase 2 (planificada, sin hacer):** paquetes de país importables (demografía, nombres, calendario, currículo, categorías, horarios), empezando por **España, Argentina y quizá Inglaterra**, copiando primero lo de España con el nombre del país; guardar el país en la partida y activar el selector. Ver `ANEXO_NOMBRES.md` §6.
+
 ## 29/10/2026 — Viaje rápido solo desde la calle y «Proponer quedar para…»
 
 Pedido por el usuario tras revisar la interfaz.

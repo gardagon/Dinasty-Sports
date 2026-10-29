@@ -19,4 +19,6 @@ export * from './lugares';
 export * from './agendas';
 export * from './deporte';
 export * from './hermanos';
+export * from './nombres';
+export * from './culturas';
 export * from './personas';
