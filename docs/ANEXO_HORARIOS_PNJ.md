@@ -208,6 +208,8 @@ Son **391 personas persistentes** (más 2 bibliotecarios generados al final) (el
 | **Familia** | 2 padres + 0 a 3 hermanos | Son personas con las que te relacionas: los padres en casa (ver «Padre y madre») y los hermanos en casa, en el colegio y en su deporte (ver «Hermano»). |
 | **Total real generado** | **403 + 2 padres + 5 entrenadores de clubes + 2 bibliotecarios + los hermanos** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 108 rivales y 80 vecinos |
 
+**Nombres (29–30/10):** cada persona sortea primero su origen y de él salen el nombre y los apellidos (ver `ANEXO_NOMBRES.md`); puede haber **dos homónimos como mucho, con 15 años o más de diferencia** (antes eran únicos). **Horarios de apertura y país:** los de este anexo son los de España; cada país puede traer los suyos (`PAQUETES_DE_PAIS.md`).
+
 Reglas de generación:
 
 - Todos persistentes: se generan al crear la partida (con su semilla) y se guardan.

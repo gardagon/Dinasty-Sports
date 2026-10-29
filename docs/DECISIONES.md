@@ -52,6 +52,7 @@ Pedido por el usuario: «Amplia a 18 los corredores… semifinales y una final. 
 
 ### Siguientes pasos acordados (para la próxima sesión)
 - **Roles ligados a los 8 ejes de carácter (aprobado «en principio» por el usuario):** unos 12 roles **derivados** de los ejes (no asignados), con un efecto máximo de ±35 puntos porcentuales sobre una tirada, decisiones como datos con tirada estable (`rngEstable`). **Fase F1: decisiones de relaciones** (el 25 % de «otros planes» pasa a depender del carácter, calibrado para no cambiar la media de la población). F2–F4 después (deporte, estudios, eventos E18). Preguntas abiertas: rol derivado o asignado, frase de ficha, roles del jugador.
+- **Países (fase 2 hecha, 30/10):** pendientes los datos reales de Argentina e Inglaterra, jornada escolar y agendas por país, y más (ver `PAQUETES_DE_PAIS.md` §5). **Nombres:** más culturas y listas, y el nombre de los hijos del personaje en la fase adulta (comprobar homónimos).
 - **Pendientes ya anotados:** evento de los padres por faltas (el aviso ya existe), entrenar con alguien, cumpleaños, hermanos que se van a los 18 (motor de eventos E18), habilidades de entrenadores (futuro módulo de profesiones), `MOSTRAR_*` a `false` al llegar la beta.
 
 ## 28/10/2026 — Educación Física, Artística y Música puntúan por capacidades
