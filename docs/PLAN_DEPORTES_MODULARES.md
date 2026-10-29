@@ -115,13 +115,13 @@ Decidido el 30/10: no se archiva nada. Para que al volver todo esté al día sin
 
 ## 6. Opciones y guardado
 
-Hoy, bajo el nombre, hay tres botones: Exportar, Importar y Menú. Propuesta:
+**Hecho en la fase G (30/10).** Antes había tres botones bajo el nombre (Exportar, Importar y Menú); ahora hay «Opciones» y «Menú». Lo que se hizo:
 
 - **Un botón «Opciones»** en la cabecera de la partida (y «Menú» al lado), con:
   - **Guardar partida** (y cuándo se guardó por última vez, en fecha del juego).
   - **Guardado automático:** tras cada acción (como ahora), cada día, cada semana, cada mes de juego o solo a mano. El juego mide cuánto tarda en guardar y recomienda una frecuencia según la máquina («tu partida tarda 0,4 s en guardarse: te recomendamos cada semana»). Por defecto, cada día.
   - **Exportar e importar una copia** (los botones de hoy).
-  - **Deportes** (el instalador, §3) y **paquetes de país**.
+  - **Deportes** (el instalador, §3; llegará con la fase 6) y **paquetes de país** (ya está «Importar un país»).
 - **¿Preguntar si quiere guardar al cerrar la pestaña?** No es demasiado, pero el navegador no deja hacerlo bien: al cerrar una pestaña solo permite su aviso genérico («¿Salir del sitio? Puede que no se guarden los cambios»), sin botón de «Guardar», y en el móvil ni siquiera eso (el sistema cierra la pestaña sin avisar). Propuesta:
   1. Al salir **con nuestros botones** (Menú, Salir), preguntar: «Guardar y salir / Salir sin guardar / Cancelar».
   2. Al cerrar la pestaña con cambios sin guardar, el aviso genérico del navegador (en el ordenador).
