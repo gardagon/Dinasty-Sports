@@ -23,6 +23,8 @@ import {
   nombreSesgo,
   perksDePadre,
   origenDePadre,
+  paisPorId,
+  type PaisDef,
   rasgosAlAzar,
   perfilDePadre,
   repartirHerencia,
@@ -83,6 +85,8 @@ export interface ActionResult {
 export interface CreateOptions {
   seed?: number;
   playerName?: string;
+  /** Id del paquete de país (por defecto, España). */
+  pais?: string;
 }
 
 const MAX_EVENTS_PER_ACTION = 5000;
@@ -132,6 +136,7 @@ export class Game {
       seed,
       rng: seed,
       playerName,
+      pais: paisPorId(opts.pais).id,
       minute: START_MINUTE,
       stats: {},
       peaks: {},
@@ -217,7 +222,7 @@ export class Game {
     // Perks de los padres: se sortean al final para no alterar el resto de tiradas.
     lin.perks ??= { padre: perksDePadre(rng), madre: perksDePadre(rng) };
     // Su origen sale de la semilla (no del azar de la partida) para que sus nombres, que se piden aparte, sean coherentes con él.
-    lin.rasgos ??= { padre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'padre') }), madre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'madre') }) };
+    lin.rasgos ??= { padre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'padre', paisPorId(state.pais)) }), madre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'madre', paisPorId(state.pais)) }) };
   }
 
   /** Tope de las stats derivadas: media ponderada de los topes de las que apoyan, por la aptitud propia. */
@@ -292,6 +297,7 @@ export class Game {
     const ictx: InitContext = {
       rng: init,
       seed: state.seed,
+      pais: paisPorId(state.pais),
       playerName: state.playerName,
       topesDePadres: { padre: Game.lineage(state).padre.topes, madre: Game.lineage(state).madre.topes },
       rasgosDePadres: Game.lineage(state).rasgos!,
@@ -342,7 +348,12 @@ export class Game {
   // ------------------------------------------------------------------ lectura
 
   get time(): TimeView {
-    return timeView(this.s.minute);
+    return timeView(this.s.minute, this.pais.calendario);
+  }
+
+  /** El país de la partida. */
+  get pais(): PaisDef {
+    return paisPorId(this.s.pais);
   }
 
   get playerName(): string {
@@ -711,7 +722,8 @@ export class Game {
     const game = this;
     const s = this.s;
     const reg = this.registry;
-    let vista = timeView(s.minute);
+    const calendario = () => paisPorId(s.pais).calendario;
+    let vista = timeView(s.minute, calendario());
     const norm = (id: StatId) => {
       const info = reg.stats.get(id);
       if (!info) throw new Error(`Stat desconocida: ${id}`);
@@ -723,9 +735,13 @@ export class Game {
     return {
       get time() {
         // Las condiciones consultan la hora muchas veces por decisión: la vista se calcula una vez por minuto de juego.
-        if (vista.minute !== s.minute) vista = timeView(s.minute);
+        if (vista.minute !== s.minute) vista = timeView(s.minute, calendario());
         return vista;
       },
+      get pais() {
+        return paisPorId(s.pais);
+      },
+      timeAt: (minute: number) => timeView(minute, calendario()),
       moduleId,
       stat: (id) => game.stat(id),
       norm,

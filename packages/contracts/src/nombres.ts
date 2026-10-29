@@ -1,4 +1,5 @@
 import { apodosDe, culturaPorId, reservaDeNombres, type Cultura } from './culturas';
+import { PAIS_ESPANA, type PaisDeNombres } from './paises';
 import { origen, origenAlAzar, origenHeredado, type OrigenFamiliar } from './rasgos';
 import { rngEstable, type Rng } from './rng';
 
@@ -15,18 +16,6 @@ import { rngEstable, type Rng } from './rng';
  * - Nombres compuestos (José Manuel), que se muestran enteros, y apodos (José Manuel → Chema) que pueden salir al azar o poner el jugador.
  * - Nombres por generación: los adultos usan su lista y los niños, la unión (sin repetir) de las dos, con los de su generación primero.
  */
-
-/** País de juego, en lo que importa a los nombres. Un paquete de país (un dato) define el suyo. */
-export interface PaisDeNombres {
-  id: string;
-  nombre: string;
-  /** Orígenes que son «de aquí» (los de ese país): el nombre «local» sale de su reserva. */
-  origenesLocales: readonly string[];
-  /** Apellidos de los nacidos aquí: dos (España, Argentina a veces) o uno. */
-  apellidosDeLosNacidosAqui: 1 | 2;
-}
-
-export const PAIS_ESPANA: PaisDeNombres = { id: 'espana', nombre: 'España', origenesLocales: ['espana_norte', 'espana_centro', 'espana_sur'], apellidosDeLosNacidosAqui: 2 };
 
 /** Si la mezcla no incluye el origen del país de juego, probabilidad de que el nombre sea del país de juego. */
 export const PROBABILIDAD_DE_NOMBRE_LOCAL = 0.12;
@@ -201,7 +190,8 @@ export interface PadreDeSemilla {
 }
 
 /** El origen del padre o de la madre de una semilla: siempre el mismo (así lo usan el motor y el módulo de personas sin depender uno del otro). */
-export const origenDePadre = (seed: number, lado: 'padre' | 'madre'): OrigenFamiliar => origenAlAzar(rngEstable('origen', seed, lado));
+export const origenDePadre = (seed: number, lado: 'padre' | 'madre', pais: PaisDeNombres = PAIS_ESPANA): OrigenFamiliar =>
+  origenAlAzar(rngEstable('origen', seed, lado), pais.demografia);
 
 const EDAD_DE_REFERENCIA_DE_PADRES = 45;
 let ULTIMOS: { clave: string; padres: { padre: PadreDeSemilla; madre: PadreDeSemilla } } | undefined;
@@ -214,7 +204,7 @@ export function padresDeSemilla(seed: number, pais: PaisDeNombres = PAIS_ESPANA)
   const clave = `${seed}|${pais.id}`;
   if (ULTIMOS?.clave === clave) return ULTIMOS.padres;
   const hacer = (lado: 'padre' | 'madre', evitar?: string): PadreDeSemilla => {
-    const o = origenDePadre(seed, lado);
+    const o = origenDePadre(seed, lado, pais);
     const rng = rngEstable('nombre', seed, lado);
     let identidad = identidadAlAzar(rng, lado === 'padre' ? 'm' : 'f', o, { edad: EDAD_DE_REFERENCIA_DE_PADRES, pais });
     for (let i = 0; i < 20 && evitar !== undefined && identidad.apellidos[0].base === evitar; i++) identidad = identidadAlAzar(rng, lado === 'padre' ? 'm' : 'f', o, { edad: EDAD_DE_REFERENCIA_DE_PADRES, pais });
@@ -228,7 +218,7 @@ export function padresDeSemilla(seed: number, pais: PaisDeNombres = PAIS_ESPANA)
 }
 
 /** Los orígenes de una semilla: la mezcla de los de sus padres es el del personaje. */
-export const origenDeJugador = (seed: number): OrigenFamiliar => origenHeredado(origenDePadre(seed, 'padre'), origenDePadre(seed, 'madre'));
+export const origenDeJugador = (seed: number, pais: PaisDeNombres = PAIS_ESPANA): OrigenFamiliar => origenHeredado(origenDePadre(seed, 'padre', pais), origenDePadre(seed, 'madre', pais));
 
 // ---------------------------------------------------------------------------------------------------- homónimos
 

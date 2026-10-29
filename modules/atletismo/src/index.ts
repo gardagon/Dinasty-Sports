@@ -4,6 +4,7 @@ import {
   SERVICES,
   SHARED_EVENTS,
   TAGS,
+  CATEGORIAS_ESPANA,
   categoriaDeEdad,
   categoriaSuperior,
   defineModule,
@@ -98,21 +99,8 @@ export interface AtletismoState {
   campeonatos?: { curso: number; categoria: string; tipo: Exclude<TipoDePrueba, 'regular'>; position: number; total: number }[];
 }
 
-/**
- * Categorías de la federación española de atletismo (por edad). Es un DATO por país: otro país o deporte
- * tendrá las suyas. Los de 23 años o más compiten en absoluta.
- */
-export const CATEGORIAS_ESPANA: readonly CategoriaDef[] = [
-  { id: 'sub10', nombre: 'Sub-10', edadMin: 0, edadMax: 9 },
-  { id: 'sub12', nombre: 'Sub-12', edadMin: 10, edadMax: 11 },
-  { id: 'sub14', nombre: 'Sub-14', edadMin: 12, edadMax: 13 },
-  { id: 'sub16', nombre: 'Sub-16', edadMin: 14, edadMax: 15 },
-  { id: 'sub18', nombre: 'Sub-18', edadMin: 16, edadMax: 17 },
-  { id: 'sub20', nombre: 'Sub-20', edadMin: 18, edadMax: 19 },
-  { id: 'sub23', nombre: 'Sub-23', edadMin: 20, edadMax: 22 },
-  { id: 'absoluta', nombre: 'Absoluta', edadMin: 23, edadMax: 200 },
-];
-const CATEGORIAS = CATEGORIAS_ESPANA;
+/** Las categorías por edad del atletismo en el país de la partida (por defecto, las de España). */
+const categoriasDe = (ctx: ReadContext): readonly CategoriaDef[] => ctx.pais.categorias.atletismo ?? CATEGORIAS_ESPANA;
 
 interface CategoriaJugador {
   /** La que le toca por edad. */
@@ -126,9 +114,9 @@ interface CategoriaJugador {
 function categoriaDelJugador(ctx: ReadContext): CategoriaJugador {
   // La categoría depende de la edad de temporada (la que se tenía al empezar el curso), como en la federación.
   const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
-  const propia = categoriaDeEdad(CATEGORIAS, edad);
+  const propia = categoriaDeEdad(categoriasDe(ctx), edad);
   const s = ctx.state<AtletismoState>();
-  const sup = categoriaSuperior(CATEGORIAS, propia);
+  const sup = categoriaSuperior(categoriasDe(ctx), propia);
   const superior = !!s.categoriaSuperior && s.categoriaPropia === propia.id && !!sup;
   return { propia, competida: superior ? sup! : propia, superior };
 }
@@ -145,7 +133,7 @@ const mediana = (xs: number[]): number => {
 function puedeSubir(ctx: ReadContext): true | string {
   const { propia, superior } = categoriaDelJugador(ctx);
   if (superior) return 'Ya compites en la categoría superior';
-  const sup = categoriaSuperior(CATEGORIAS, propia);
+  const sup = categoriaSuperior(categoriasDe(ctx), propia);
   if (!sup) return 'No hay categoría superior';
   const recientes = ctx.state<AtletismoState>().carreras.filter((c) => c.categoria === propia.id && !c.superior).slice(-5);
   if (recientes.length < 4) return 'Aún no has competido lo suficiente en tu categoría';
@@ -627,7 +615,7 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
 
 // ---------------------------------------------------------------------------------------------------- pestaña del deporte
 
-const nombreDeCategoria = (id: string): string => CATEGORIAS.find((c) => c.id === id)?.nombre ?? id;
+const nombreDeCategoria = (ctx: ReadContext, id: string): string => categoriasDe(ctx).find((c) => c.id === id)?.nombre ?? id;
 const orden = (n: number) => `${n}º`;
 
 const tablaDeLaPrueba = (p: PruebaGuardada): LogTable | undefined => {
@@ -704,8 +692,8 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
     const puntos = recorte(clasificacionPorPuntos(pruebas), (f, i) => [orden(i), f.yo ? 'Tú' : f.nombre, f.club || '—', String(f.puntos), String(f.pruebas), `${f.mejorMarca.toFixed(2)} s`]);
     const marcas = recorte(mejoresMarcas(pruebas), (f, i) => [orden(i), f.yo ? 'Tú' : f.nombre, f.club || '—', `${f.mejorMarca.toFixed(2)} s`]);
     return [
-      { titulo: `Clasificación por puntos · ${nombreDeCategoria(cat)}`, tabla: { header: ['Pos.', 'Corredor', 'Club', 'Puntos', 'Carreras', 'Mejor marca'], align: ['left', 'left', 'left', 'right', 'right', 'right'] as ('left' | 'right')[], ...puntos } },
-      { titulo: `Mejores marcas · ${nombreDeCategoria(cat)}`, tabla: { header: ['Pos.', 'Corredor', 'Club', 'Mejor marca'], align: ['left', 'left', 'left', 'right'] as ('left' | 'right')[], ...marcas } },
+      { titulo: `Clasificación por puntos · ${nombreDeCategoria(ctx, cat)}`, tabla: { header: ['Pos.', 'Corredor', 'Club', 'Puntos', 'Carreras', 'Mejor marca'], align: ['left', 'left', 'left', 'right', 'right', 'right'] as ('left' | 'right')[], ...puntos } },
+      { titulo: `Mejores marcas · ${nombreDeCategoria(ctx, cat)}`, tabla: { header: ['Pos.', 'Corredor', 'Club', 'Mejor marca'], align: ['left', 'left', 'left', 'right'] as ('left' | 'right')[], ...marcas } },
     ];
   });
 
@@ -740,7 +728,7 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
         .sort((a, b) => a.semana - b.semana)
         .map((p) => ({
           semana: p.semana - (t.week - t.schoolWeek) + 1,
-          titulo: `${DISCIPLINA} ${nombreDeCategoria(p.categoria)}${NOMBRE_TIPO[p.tipo]}`,
+          titulo: `${DISCIPLINA} ${nombreDeCategoria(ctx, p.categoria)}${NOMBRE_TIPO[p.tipo]}`,
           posicion: p.posicion,
           total: p.total,
           marca: `${p.marca.toFixed(2)} s`,
@@ -995,7 +983,7 @@ export const atletismo = defineModule<AtletismoState>({
       available: puedeSubir,
       run: (ctx) => {
         const { propia } = categoriaDelJugador(ctx);
-        const sup = categoriaSuperior(CATEGORIAS, propia)!;
+        const sup = categoriaSuperior(categoriasDe(ctx), propia)!;
         ctx.updateState<AtletismoState>((s) => ({ ...s, categoriaSuperior: true, categoriaPropia: propia.id }));
         ctx.log(`Tu entrenador te propone competir en ${sup.nombre}, aunque te toca ${propia.nombre}. Aceptas.`, 'logro');
       },

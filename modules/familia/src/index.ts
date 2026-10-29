@@ -46,7 +46,7 @@ function nuevoProgenitor(id: 'padre' | 'madre', ctx: InitContext): Progenitor {
   const practica = practicaSegunTope(fisico.length ? fisico.reduce((a, b) => a + b, 0) / fisico.length : 62, rng);
   return {
     id,
-    nombre: nombreDeProgenitor(ctx.seed, id),
+    nombre: nombreDeProgenitor(ctx.seed, id, ctx.pais),
     gender,
     nacimiento: nacimientoDeProgenitor(ctx.seed, id),
     alturaCm: redondea(alturaAdulta(gender, ctx.herencia('estatura')[id])),
@@ -87,7 +87,7 @@ export const familia = defineModule<FamiliaState>({
   initState: (ctx) => {
     return {
       // Los dos apellidos salen de la semilla para que los hermanos (módulo `npcs`) lleven los mismos sin depender de este módulo.
-      apellidos: apellidosDeFamilia(ctx.seed),
+      apellidos: apellidosDeFamilia(ctx.seed, 'm', ctx.pais),
       padres: [nuevoProgenitor('padre', ctx), nuevoProgenitor('madre', ctx)],
     };
   },

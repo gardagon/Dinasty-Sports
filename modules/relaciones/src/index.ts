@@ -360,7 +360,7 @@ function ocupacionDe(ctx: ReadContext, n: NpcView, dia: number, minuto: number, 
   const agenda = ctx.service<PresenciaService>(SERVICES.presencia)?.agenda(n.id);
   if (!agenda?.length) return undefined;
   for (const m of [minuto, minuto + Math.floor(duracion / 2), minuto + duracion - 1]) {
-    const u = ubicacionEn(agenda, timeView(dia * 1440 + m), n.id);
+    const u = ubicacionEn(agenda, ctx.timeAt(dia * 1440 + m), n.id);
     if (u.ocupado || u.nivel >= NIVEL_AGENDA.pertenencia) return u.tipo === 'club' || u.tipo === 'rival' || u.tipo === 'entrenador' ? 'tiene entrenamiento o carrera a esa hora' : 'tiene clase a esa hora';
   }
   return undefined;
@@ -372,7 +372,7 @@ const DIAS_DE = { hoy: 0, manana: 1 } as const;
 /** ¿Está el sitio abierto durante todo el plan? (la biblioteca cierra los sábados por la tarde y los domingos). */
 function sitioAbiertoTodoElPlan(sitio: { horario?: unknown } | undefined, ctx: ReadContext, dia: number, minuto: number, duracion: number): boolean {
   const lugar = sitio as Parameters<typeof abiertoEn>[0] | undefined;
-  return !lugar?.horario || (abiertoEn(lugar, timeView(dia * 1440 + minuto)) && abiertoEn(lugar, timeView(dia * 1440 + minuto + duracion - 1)));
+  return !lugar?.horario || (abiertoEn(lugar, ctx.timeAt(dia * 1440 + minuto)) && abiertoEn(lugar, ctx.timeAt(dia * 1440 + minuto + duracion - 1)));
 }
 
 /** Lo que impide proponer un plan a esa persona ese día (ya habéis quedado, ya se lo propusiste), sin mirar la hora ni el sitio. */

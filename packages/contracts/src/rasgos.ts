@@ -160,7 +160,7 @@ export const describirApariencia = (a: Apariencia): string =>
 export interface OrigenDef {
   id: string;
   nombre: string;
-  /** Peso de cada origen en el mundo del juego (España por defecto). */
+  /** Peso de cada origen en el mundo del juego de España (el país de partida). Los orígenes que añade un paquete de país llevan 0: su peso está en la `demografia` de ese país. */
   frecuencia: number;
   /** De qué reserva de nombres y apellidos sale la gente de este origen (ver `culturas/`). */
   reserva: string;
@@ -172,7 +172,7 @@ export interface OrigenDef {
 }
 
 /** Orígenes familiares como dato (otro país tendría otra tabla). Las distribuciones son aproximadas y solo sesgan a la generación 0. */
-export const ORIGENES: readonly OrigenDef[] = [
+export const ORIGENES: OrigenDef[] = [
   { id: 'espana_norte', reserva: 'espana', nombre: 'España (norte)', frecuencia: 0.15, peloColor: [0.12, 0.3, 0.3, 0.14, 0.08, 0.06], peloTipo: [0.4, 0.4, 0.17, 0.03], ojos: [0.15, 0.3, 0.22, 0.13, 0.05, 0.15], piel: [0.08, 0.5, 0.32, 0.1, 0, 0] },
   { id: 'espana_centro', reserva: 'espana', nombre: 'España (centro)', frecuencia: 0.3, peloColor: [0.28, 0.4, 0.22, 0.07, 0.02, 0.01], peloTipo: [0.38, 0.4, 0.19, 0.03], ojos: [0.3, 0.35, 0.2, 0.08, 0.03, 0.04], piel: [0.04, 0.35, 0.4, 0.18, 0.03, 0] },
   { id: 'espana_sur', reserva: 'espana', nombre: 'España (sur)', frecuencia: 0.3, peloColor: [0.4, 0.38, 0.15, 0.05, 0.01, 0.01], peloTipo: [0.3, 0.42, 0.24, 0.04], ojos: [0.4, 0.35, 0.15, 0.05, 0.02, 0.03], piel: [0.02, 0.2, 0.38, 0.28, 0.12, 0] },
@@ -185,6 +185,13 @@ export const ORIGENES: readonly OrigenDef[] = [
 ];
 
 export const origen = (id: string): OrigenDef | undefined => ORIGENES.find((o) => o.id === id);
+
+/** Añade (o sustituye) un origen del catálogo: lo usa un paquete de país que trae los suyos. */
+export function registrarOrigen(o: OrigenDef): void {
+  const i = ORIGENES.findIndex((x) => x.id === o.id);
+  if (i >= 0) ORIGENES[i] = o;
+  else ORIGENES.push(o);
+}
 
 /** De dónde viene la gente de una persona: uno o dos orígenes con su peso (suman 1). */
 export type OrigenFamiliar = { id: string; peso: number }[];
@@ -202,8 +209,11 @@ function ponderado(pesos: readonly number[], rng: Rng): number {
 }
 
 /** Origen de un adulto del mundo: casi siempre uno solo y a veces mezcla de dos. */
-export function origenAlAzar(rng: Rng): OrigenFamiliar {
-  const uno = () => ORIGENES[ponderado(ORIGENES.map((o) => o.frecuencia), rng)].id;
+export function origenAlAzar(rng: Rng, demografia?: Readonly<Record<string, number>>): OrigenFamiliar {
+  // La demografía de un país (id de origen → peso) sustituye a la de España (`frecuencia`); los orígenes que no cita pesan 0.
+  const candidatos = demografia ? ORIGENES.filter((o) => (demografia[o.id] ?? 0) > 0) : ORIGENES;
+  const pesos = candidatos.map((o) => (demografia ? demografia[o.id] : o.frecuencia));
+  const uno = () => candidatos[ponderado(pesos, rng)].id;
   const a = uno();
   if (!rng.chance(0.1)) return [{ id: a, peso: 1 }];
   const b = uno();
@@ -329,9 +339,9 @@ export interface RasgosDe {
 }
 
 /** Rasgos de una persona del mundo (un NPC o un padre de la generación 0). */
-export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Record<string, number>>; interesesPreferidos?: readonly string[]; origen?: OrigenFamiliar } = {}): RasgosDe {
+export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Record<string, number>>; interesesPreferidos?: readonly string[]; origen?: OrigenFamiliar; demografia?: Readonly<Record<string, number>> } = {}): RasgosDe {
   // Con un origen dado (los padres, que salen de la semilla para que sus nombres lo sigan) se hace la tirada igualmente: así no cambia el resto del azar.
-  const sorteado = origenAlAzar(rng);
+  const sorteado = origenAlAzar(rng, opciones.demografia);
   const o = opciones.origen ?? sorteado;
   const apariencia = aparienciaAlAzar(rng, o);
   return {

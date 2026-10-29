@@ -21,4 +21,5 @@ export * from './deporte';
 export * from './hermanos';
 export * from './nombres';
 export * from './culturas';
+export * from './paises';
 export * from './personas';

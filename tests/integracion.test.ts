@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, GENTE_CERCANA, SERVICES, apellidosDeFamilia, claveDeDeporte, idDeProponerPlan, nombreCompleto, padresDeSemilla, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type FamilyService, type LugaresService, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
-import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
+import { CATEGORIAS_ESPANA, GEN, GENTE_CERCANA, SERVICES, apellidosDeFamilia, claveDeDeporte, idDeProponerPlan, nombreCompleto, padresDeSemilla, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type FamilyService, type LugaresService, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';

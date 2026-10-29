@@ -52,7 +52,8 @@ export const CALENDARIO_ESPANA: CalendarioPais = {
   parciales: [6, 11, 21, 25, 33, 37],
 };
 
-export const CALENDARIOS: Readonly<Record<string, CalendarioPais>> = { espana: CALENDARIO_ESPANA };
+/** Los calendarios por país (lo rellena cada paquete de país al registrarse). */
+export const CALENDARIOS: Record<string, CalendarioPais> = { espana: CALENDARIO_ESPANA };
 
 export const NOMBRE_PERIODO: Readonly<Record<Periodo, string>> = {
   clase: 'Curso',

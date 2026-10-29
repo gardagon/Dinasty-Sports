@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { apodosDe, reservaDeNombres, type Cultura } from './culturas';
 import {
-  PAIS_ESPANA,
   PROBABILIDAD_DE_APODO,
   PROBABILIDAD_DE_NOMBRE_LOCAL,
   apodoAlAzar,
@@ -18,6 +17,7 @@ import {
   registrarNombre,
   type RegistroDeNombres,
 } from './nombres';
+import { PAIS_ESPANA } from './paises';
 import { ORIGENES, origen, origenAlAzar } from './rasgos';
 import { rngEstable } from './rng';
 

@@ -14,6 +14,7 @@ import {
   type LugarDef,
   type LugaresService,
   type MapaCiudad,
+  type PaisDef,
   type ReadContext,
 } from '@ds/contracts';
 
@@ -33,9 +34,26 @@ export interface LugaresState {
 
 const MAPA: MapaCiudad = CIUDAD_INICIAL;
 
+/**
+ * Los lugares con los horarios del país de la partida (`PaisDef.horarios`): el mapa es el mismo en todos los países y solo cambian las horas de apertura.
+ * Se calcula una vez por país; si no cambia ninguno (España), son los del mapa tal cual.
+ */
+const LUGARES_POR_PAIS = new WeakMap<PaisDef, { lista: readonly LugarDef[]; porId: Map<string, LugarDef> }>();
+function lugaresDe(pais: PaisDef): { lista: readonly LugarDef[]; porId: Map<string, LugarDef> } {
+  let r = LUGARES_POR_PAIS.get(pais);
+  if (!r) {
+    const cambia = MAPA.lugares.some((l) => pais.horarios[l.id] !== undefined && pais.horarios[l.id] !== l.horario);
+    const lista = cambia ? MAPA.lugares.map((l) => (pais.horarios[l.id] !== undefined ? { ...l, horario: pais.horarios[l.id] } : l)) : MAPA.lugares;
+    LUGARES_POR_PAIS.set(pais, (r = { lista, porId: new Map(lista.map((l) => [l.id, l])) }));
+  }
+  return r;
+}
+
+const lugarDe = (ctx: ReadContext, id: string): LugarDef | undefined => lugaresDe(ctx.pais).porId.get(id);
+/** Un lugar del mapa (sin país: para lo que no depende de los horarios). */
 const lugar = (id: string): LugarDef | undefined => MAPA.lugares.find((l) => l.id === id);
 
-const dondeEsta = (ctx: ReadContext): LugarDef => lugar(ctx.state<LugaresState>().actual) ?? lugar(MAPA.inicio)!;
+const dondeEsta = (ctx: ReadContext): LugarDef => lugarDe(ctx, ctx.state<LugaresState>().actual) ?? lugarDe(ctx, MAPA.inicio)!;
 
 /** Una acción de ir a cada sitio. Se crean una vez y se reutilizan (la acción lee el origen del estado al ejecutarse). */
 const ACCIONES: readonly ActionDef[] = MAPA.lugares.map((destino) => ({
@@ -62,8 +80,9 @@ const ACCIONES: readonly ActionDef[] = MAPA.lugares.map((destino) => ({
     // Salir (a la entrada del lugar o a su calle) nunca está cerrado: si se cierra con el personaje dentro, tiene que poder irse.
     if (aqui.dentroDe === destino.id || aqui.enCalle === destino.id) return true;
     // Cerrado a la hora a la que se llegaría: no desaparece, pero no se puede ir (y se dice cuándo abre).
-    const llegada = timeView(ctx.time.minute + minutos);
-    return abiertoEn(destino, llegada) ? true : `${destino.name} estará cerrado cuando llegues (abre ${destino.horario!.texto})`;
+    const llegada = ctx.timeAt(ctx.time.minute + minutos);
+    const abre = lugarDe(ctx, destino.id) ?? destino;
+    return abiertoEn(abre, llegada) ? true : `${destino.name} estará cerrado cuando llegues (abre ${abre.horario!.texto})`;
   },
   run: (ctx) => {
     const desde = dondeEsta(ctx).id;
@@ -84,11 +103,11 @@ export const lugares = defineModule<LugaresState>({
   services: {
     [SERVICES.lugares]: (ctx): LugaresService => ({
       actual: () => dondeEsta(ctx),
-      lugar,
-      lugares: () => MAPA.lugares,
-      pasos: () => pasosDesde(MAPA, dondeEsta(ctx).id).map((v) => ({ lugar: lugar(v.lugar)!, minutos: v.minutos, tipo: v.tipo })),
+      lugar: (id) => lugarDe(ctx, id),
+      lugares: () => lugaresDe(ctx.pais).lista,
+      pasos: () => pasosDesde(MAPA, dondeEsta(ctx).id).map((v) => ({ lugar: lugarDe(ctx, v.lugar)!, minutos: v.minutos, tipo: v.tipo })),
       minutosA: (hasta) => tiempoEntre(MAPA, dondeEsta(ctx).id, hasta),
-      casa: () => lugar(MAPA.casa)!,
+      casa: () => lugarDe(ctx, MAPA.casa)!,
     }),
   },
 });

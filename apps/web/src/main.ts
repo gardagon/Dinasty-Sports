@@ -647,7 +647,7 @@ function viewLog(g: Game): string {
   const items = [...g.log]
     .reverse()
     .map((l) => {
-      const t = timeView(l.minute);
+      const t = timeView(l.minute, g.pais.calendario);
       return `<li><time>${DIAS[t.weekday].slice(0, 3)} ${hhmm(t.minuteOfDay)}</time><span class="${l.kind ?? ''}">${esc(l.text)}</span>${l.table ? `<div class="log-table">${viewTable({ ...l.table }).replace(' open>', '>')}</div>` : ''}</li>`;
     })
     .join('');
