@@ -37,7 +37,7 @@ import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
-import { clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
+import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
 import { reclamarPestana } from './pestana';
 import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
@@ -408,10 +408,14 @@ function viewPlanes(g: Game): string {
   const planes = rel?.planes() ?? [];
   if (!planes.length) return '';
   const cuando = (d: number) => (d === g.time.day ? 'hoy' : d === g.time.day + 1 ? 'mañana' : `dentro de ${d - g.time.day} días`);
+  const lugares = g.service<LugaresService>(SERVICES.lugares);
   const filas = planes
-    .map((p) => `<li><b>${esc(dir?.get(p.npcId)?.name ?? p.npcId)}</b>: ${esc(p.actividad)} ${cuando(p.dia)} a las ${hhmm(p.minuto)} (${esc(p.lugar)})</li>`)
+    .map(
+      (p) =>
+        `<li><b>${esc(dir?.get(p.npcId)?.name ?? p.npcId)}</b>: ${esc(p.nombre)} ${cuando(p.dia)} a las ${hhmm(p.minuto)} (${esc(lugares?.lugar(p.lugar)?.name.toLowerCase() ?? p.lugar)}) <button class="action" data-do="${esc(p.cancelar)}"><span class="action-name">Cancelar</span><span class="action-time">5 min</span></button></li>`,
+    )
     .join('');
-  return `<section class="sheet"><h3>Planes</h3><ul class="planes">${filas}</ul><p class="note">Llega a tiempo: si no apareces, pierdes afinidad y confianza.</p></section>`;
+  return `<section class="sheet"><h3>Planes</h3><ul class="planes">${filas}</ul><p class="note">Llega a tiempo: si no apareces, pierdes afinidad y confianza. Si no vas a poder, cancélalo: con tiempo apenas se nota.</p></section>`;
 }
 
 function viewActions(g: Game): string {
@@ -713,6 +717,12 @@ function render(): void {
 }
 
 // ------------------------------------------------------------------ interacción
+
+// Los desplegables del formulario de «Proponer quedar para…» (cada cambio redibuja la ficha).
+app.addEventListener('change', (e) => {
+  const el = e.target as HTMLElement;
+  if (el instanceof HTMLSelectElement && game && cambioEnGente(el)) render();
+});
 
 app.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-tab],[data-act],[data-gente],[data-deporte]');

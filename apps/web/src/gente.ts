@@ -18,6 +18,7 @@ import {
   type RelationView,
 } from '@ds/contracts';
 import type { Game } from '@ds/core';
+import { ajustarEleccion, hhmm, viewFormularioDePlan, type EleccionDePlan } from './planes';
 
 /**
  * Panel «Gente»: las personas del juego con filtros, tarjetas paginadas y una ficha. Quien no conoces sale sin nombre y con la
@@ -52,6 +53,9 @@ let filtro: Filtro = 'aqui';
 let pagina = 0;
 let seleccionada: string | null = null;
 let pestana: Pestana = 'resumen';
+/** «Proponer quedar para…»: si está desplegado y lo que se ha ido eligiendo con cada persona. */
+let planAbierto = false;
+const eleccionesDePlan = new Map<string, Partial<EleccionDePlan>>();
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const rol = (n: NpcView) =>
@@ -152,6 +156,25 @@ function accionesCon(g: Game, n: NpcView): string {
     ${luego.length ? `<details class="viaje-rapido"><summary>Lo que no se puede ahora (${luego.length})</summary><div class="actions">${luego.map(boton).join('')}</div></details>` : ''}`;
 }
 
+/** Los planes que tienes con esta persona (con su botón de cancelar) y el formulario para proponerle otro: actividad, sitio, día y hora. */
+function bloqueDePlanes(g: Game, n: NpcView): string {
+  const rel = g.service<RelationsService>(SERVICES.relaciones);
+  if (!rel) return '';
+  const lugares = g.service<LugaresService>(SERVICES.lugares);
+  const cuando = (d: number) => (d === g.time.day ? 'hoy' : d === g.time.day + 1 ? 'mañana' : `dentro de ${d - g.time.day} días`);
+  const pendientes = rel.planes().filter((p) => p.npcId === n.id);
+  const f = rel.formularioDePlan(n.id);
+  if (!pendientes.length && !f.actividades.length) return '';
+  const nombre = n.name.split(' ')[0];
+  const lista = pendientes
+    .map((p) => `<li>${esc(p.nombre)} ${cuando(p.dia)} a las ${hhmm(p.minuto)} (${esc(lugares?.lugar(p.lugar)?.name.toLowerCase() ?? p.lugar)}) <button class="action" data-do="${esc(p.cancelar)}"><span class="action-name">Cancelar plan</span><span class="action-time">5 min</span></button></li>`)
+    .join('');
+  const eleccion = ajustarEleccion(f, eleccionesDePlan.get(n.id));
+  return `<h3>Quedar con ${esc(nombre)}</h3>
+    ${lista ? `<ul class="planes">${lista}</ul>` : ''}
+    ${f.actividades.length ? `<button class="action" data-gente="plan-abrir"><span class="action-name">Proponer quedar para…</span><span class="action-time">${planAbierto ? '▲' : '▼'}</span></button>${planAbierto ? viewFormularioDePlan(n.id, f, eleccion, nombre) : ''}` : ''}`;
+}
+
 /** Edad, cumpleaños y altura: lo que sabes (la familia, o lo que has preguntado) con cifras; lo demás, a simple vista respecto a ti. */
 function datosDeCuerpo(g: Game, n: NpcView): string {
   const yo = g.service<IdentityService>(SERVICES.identidad)?.view();
@@ -204,7 +227,7 @@ function ficha(g: Game, n: NpcView): string {
   }
   const motivo = ocupadosAqui(g).get(n.id);
   const aviso = motivo && pestana === 'resumen' ? `<p class="note ocupado">${esc(ocupadaTexto(motivo))}: ahora no puedes hablar con ${n.gender === 'f' ? 'ella' : 'él'}.</p>` : '';
-  const acciones = pestana === 'resumen' && conocida(n) ? accionesCon(g, n) : '';
+  const acciones = pestana === 'resumen' && conocida(n) ? bloqueDePlanes(g, n) + accionesCon(g, n) : '';
   return `<section class="sheet ficha-gente">
     <button data-gente="volver">← Volver</button>
     <h2>${nombre} <small>${esc(rol(n))}</small></h2>
@@ -258,9 +281,27 @@ export function clicEnGente(el: HTMLElement): boolean {
     case 'pestana':
       pestana = id as Pestana;
       return true;
+    case 'plan-abrir':
+      planAbierto = !planAbierto;
+      return true;
+    case 'plan-dia':
+      if (seleccionada) eleccionesDePlan.set(seleccionada, { ...eleccionesDePlan.get(seleccionada), cuando: id as EleccionDePlan['cuando'], minuto: undefined });
+      return true;
     default:
       return false;
   }
+}
+
+/** Cambia un desplegable del formulario de proponer un plan (actividad, sitio u hora). `true` si hay que volver a dibujar. */
+export function cambioEnGente(el: HTMLSelectElement): boolean {
+  if (el.dataset.gente !== 'plan-campo' || !seleccionada) return false;
+  const campo = el.dataset.campo;
+  const previo = eleccionesDePlan.get(seleccionada) ?? {};
+  if (campo === 'actividad') eleccionesDePlan.set(seleccionada, { ...previo, actividad: el.value, lugar: undefined, minuto: undefined });
+  else if (campo === 'lugar') eleccionesDePlan.set(seleccionada, { ...previo, lugar: el.value, minuto: undefined });
+  else if (campo === 'minuto') eleccionesDePlan.set(seleccionada, { ...previo, minuto: Number(el.value) });
+  else return false;
+  return true;
 }
 
 /** Al empezar otra partida se vuelve al principio. */
@@ -269,4 +310,6 @@ export function reiniciarGente(): void {
   pagina = 0;
   seleccionada = null;
   pestana = 'resumen';
+  planAbierto = false;
+  eleccionesDePlan.clear();
 }

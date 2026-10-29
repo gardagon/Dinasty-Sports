@@ -49,6 +49,7 @@ export interface Registry {
   actions: ReadonlyMap<string, CompiledAction>;
   actionList: readonly CompiledAction[];
   dynamicActions: readonly { module: string; fn: (ctx: ReadContext) => ActionDef[] }[];
+  resolvers: readonly { module: string; fn: (ctx: ReadContext, id: string) => ActionDef | undefined }[];
   modifiersByTag: ReadonlyMap<string, readonly CompiledModifier[]>;
   wildcardModifiers: readonly CompiledModifier[];
   handlers: ReadonlyMap<string, readonly CompiledHandler[]>;
@@ -80,6 +81,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
   const handlers = new Map<string, CompiledHandler[]>();
   const services = new Map<string, { module: string; fn: (ctx: ReadContext) => unknown }>();
   const dynamicActions: { module: string; fn: (ctx: ReadContext) => ActionDef[] }[] = [];
+  const resolvers: { module: string; fn: (ctx: ReadContext, id: string) => ActionDef | undefined }[] = [];
 
   const prefixed = (id: string, module: string) => id.startsWith(`${module}.`);
 
@@ -110,6 +112,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
     }
 
     if (m.dynamicActions) dynamicActions.push({ module: m.id, fn: m.dynamicActions });
+    if (m.resolverAccion) resolvers.push({ module: m.id, fn: m.resolverAccion });
 
     for (const def of m.modifiers ?? []) {
       if (!prefixed(def.id, m.id)) problems.push(`Modificador "${def.id}" debe empezar por "${m.id}."`);
@@ -161,6 +164,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
     actions,
     actionList: [...actions.values()],
     dynamicActions,
+    resolvers,
     modifiersByTag,
     wildcardModifiers,
     handlers,

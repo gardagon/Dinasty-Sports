@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, GENTE_CERCANA, SERVICES, claveDeDeporte, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type FamilyService, type LugaresService, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
+import { GEN, GENTE_CERCANA, SERVICES, claveDeDeporte, idDeProponerPlan, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type FamilyService, type LugaresService, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
@@ -826,7 +826,7 @@ describe('familia en casa y planes con los demás', () => {
     advanceTo(g, 'gen.descansar', g.time.weekday, 10);
     llegarA(g, 'patio', 10, 45);
     const antes = rel(g).planes().length;
-    expect(hacer(g, `relaciones.plan_${cuando}_casa.companero_estudio`).ok).toBe(true);
+    expect(hacer(g, idDeProponerPlan('companero_estudio', 'estudiar', 'casa', cuando, 17 * 60)).ok).toBe(true);
     return rel(g).planes().length > antes;
   };
 
@@ -840,7 +840,7 @@ describe('familia en casa y planes con los demás', () => {
     expect(rel(g).get('padre')!.afinidad).toBeGreaterThan(10);
     expect(g.preview('relaciones.quedar.madre')!.available).toBe(true);
     expect(g.preview('relaciones.estudiar.madre')).toBeUndefined();
-    expect(g.preview('relaciones.plan_hoy_casa.padre')).toBeUndefined();
+    expect(g.preview(idDeProponerPlan('padre', 'estudiar', 'casa', 'hoy', 17 * 60))).toBeUndefined();
     // De día lectivo a media mañana no están (trabajan).
     advanceTo(g, 'gen.descansar', 1, 11);
     expect(g.service<PresenciaService>(SERVICES.presencia)!.en('casa').map((n) => n.id)).not.toContain('padre');
@@ -874,8 +874,8 @@ describe('familia en casa y planes con los demás', () => {
     for (let i = 0; i < 20 && !aceptado; i++) {
       advanceTo(g, 'gen.descansar', 3, 10); // jueves: mañana es viernes y la biblioteca abre de 9:00 a 20:00
       llegarA(g, 'patio', 10, 45);
-      if (!g.preview('relaciones.plan_manana_biblioteca.companero_estudio')?.available) continue;
-      expect(hacer(g, 'relaciones.plan_manana_biblioteca.companero_estudio').ok).toBe(true);
+      if (!g.preview(idDeProponerPlan('companero_estudio', 'estudiar', 'biblioteca', 'manana', 17 * 60))?.available) continue;
+      expect(hacer(g, idDeProponerPlan('companero_estudio', 'estudiar', 'biblioteca', 'manana', 17 * 60)).ok).toBe(true);
       aceptado = rel(g).planes().length > 0;
     }
     expect(aceptado).toBe(true);
@@ -894,12 +894,12 @@ describe('familia en casa y planes con los demás', () => {
     const g = conAmigo(100);
     advanceTo(g, 'gen.descansar', 4, 10); // viernes: mañana es sábado y la biblioteca cierra a las 14:00
     llegarA(g, 'patio', 10, 45);
-    const biblioteca = g.preview('relaciones.plan_manana_biblioteca.companero_estudio')!;
+    const biblioteca = g.preview(idDeProponerPlan('companero_estudio', 'estudiar', 'biblioteca', 'manana', 17 * 60))!;
     expect(biblioteca.available).toBe(false);
     expect(biblioteca.reason).toMatch(/Biblioteca está cerrada mañana a esa hora/);
-    expect(g.preview('relaciones.plan_manana_casa.companero_estudio')!.available).toBe(true);
+    expect(g.preview(idDeProponerPlan('companero_estudio', 'estudiar', 'casa', 'manana', 17 * 60))!.available).toBe(true);
     // Las propuestas dicen qué y dónde.
-    expect(biblioteca.name).toMatch(/^Quedar con .+ para estudiar mañana a las 17:00 en la biblioteca$/);
+    expect(biblioteca.name).toMatch(/^Proponer a .+: estudiar mañana a las 17:00 en la biblioteca$/);
   });
 
   it('quien se te da bien estudiando ayuda al estudiar juntos (compañía)', () => {
@@ -955,10 +955,145 @@ describe('familia en casa y planes con los demás', () => {
       sg.minute = (dia - 1) * 1440 + 11 * 60;
       const gd = cargarPartida(sg);
       viajarA(gd, 'patio');
-      hacer(gd, 'relaciones.plan_manana_casa.companero_estudio');
+      hacer(gd, idDeProponerPlan('companero_estudio', 'estudiar', 'casa', 'manana', 17 * 60));
       aceptadosPegados += rel(gd).planes().filter((p) => p.dia === dia).length;
     }
     expect(aceptadosPegados).toBe(0);
+  });
+
+  describe('proponer quedar para… (actividad, sitio, día y hora)', () => {
+    const id = (actividad: string, lugar: string, cuando: 'hoy' | 'manana', minuto: number, npc = 'companero_estudio') => idDeProponerPlan(npc, actividad, lugar, cuando, minuto);
+    /** En el patio en el recreo de un día de clase (con el compañero delante). */
+    const enElRecreo = (g: Game, weekday = 1) => {
+      advanceTo(g, 'gen.descansar', weekday, 10);
+      llegarA(g, 'patio', 10, 45);
+    };
+
+    it('las propuestas con parámetros no salen en la lista de acciones, pero se pueden ver y hacer por su id; un id inventado no existe', () => {
+      const g = conAmigo(80);
+      enElRecreo(g);
+      expect(g.listActions().some((o) => o.id.startsWith('relaciones.proponer.'))).toBe(false);
+      expect(g.preview(id('estudiar', 'biblioteca', 'manana', 16 * 60 + 30))!.available).toBe(true);
+      expect(g.preview(id('estudiar', 'biblioteca', 'manana', 16 * 60 + 17))!.reason).toMatch(/no existe/); // fuera de las horas posibles
+      expect(g.preview(id('jugar_al_golf', 'parque', 'manana', 17 * 60))).toBeUndefined();
+      expect(g.preview(id('estudiar', 'parque', 'manana', 17 * 60))!.reason).toMatch(/no existe/); // estudiar no se acuerda en el parque
+    });
+
+    it('el formulario ofrece actividades, sitios y las horas de cada día según el horario del sitio y la antelación', () => {
+      const g = conAmigo(80);
+      enElRecreo(g, 4); // viernes: mañana es sábado
+      const f = rel(g).formularioDePlan('companero_estudio');
+      expect(f.motivo).toBeUndefined();
+      expect(f.actividades.map((a) => a.id)).toEqual(['estudiar', 'pasar_rato']);
+      const estudiar = f.actividades[0];
+      expect(estudiar.lugares.map((l) => l.id)).toEqual(['casa', 'biblioteca']);
+      const biblioteca = estudiar.lugares[1];
+      // Hoy (viernes, recreo): desde una hora después de ahora; la biblioteca cierra a las 20:00 y el plan dura 90 minutos (empieza como tarde a las 18:30).
+      expect(Math.min(...biblioteca.dias.hoy.horas)).toBeGreaterThanOrEqual(g.time.minuteOfDay + 60);
+      expect(Math.max(...biblioteca.dias.hoy.horas)).toBe(18 * 60 + 30);
+      // Mañana (sábado): cierra a las 14:00, así que como tarde empieza a las 12:30.
+      expect(Math.max(...biblioteca.dias.manana.horas)).toBe(12 * 60 + 30);
+      // En casa no hay horario: de las 9:00 a las 19:30 (acaba a las 21:00).
+      expect(estudiar.lugares[0].dias.manana.horas[0]).toBe(9 * 60);
+      expect(Math.max(...estudiar.lugares[0].dias.manana.horas)).toBe(19 * 60 + 30);
+      // Cada hora que ofrece el formulario es una propuesta que el motor da por posible.
+      for (const m of biblioteca.dias.manana.horas) expect(g.preview(id('estudiar', 'biblioteca', 'manana', m))!.available, `a las ${m}`).toBe(true);
+    });
+
+    it('el domingo la biblioteca no ofrece horas, y dice por qué', () => {
+      const g = conAmigo(80);
+      enElRecreo(g, 5); // sábado: mañana es domingo
+      const biblioteca = rel(g).formularioDePlan('companero_estudio').actividades[0].lugares[1];
+      expect(biblioteca.dias.manana.horas).toEqual([]);
+      expect(biblioteca.dias.manana.motivo).toMatch(/Biblioteca no está abierta/);
+    });
+
+    it('sin la persona delante no se le puede proponer nada: el formulario lo dice', () => {
+      const g = conAmigo(80);
+      advanceTo(g, 'gen.descansar', 1, 11); // en casa, y él en clase
+      expect(rel(g).formularioDePlan('companero_estudio').motivo).toBeTruthy();
+      expect(g.preview(id('estudiar', 'casa', 'manana', 17 * 60))!.available).toBe(false);
+      expect(rel(g).formularioDePlan('padre').actividades).toEqual([]); // con los padres no se acuerdan planes
+    });
+
+    it('quien apenas confía en ti no va a tu casa, pero sí a otro sitio; y se puede probar con otro sitio el mismo día', () => {
+      const g = conAmigo(100);
+      const s = g.serialize();
+      const v = (s.modules.relaciones as RelacionesState).vinculos.companero_estudio;
+      v.confianza = 5;
+      const g2 = cargarPartida(s);
+      // Probamos varios días hasta que no sea cosa de «ya tiene planes» o «no le apetece» (el azar propio de cada día).
+      let probado = false;
+      for (let semana = 0; semana < 12 && !probado; semana++) {
+        advanceTo(g2, 'gen.descansar', 1, 10);
+        llegarA(g2, 'patio', 10, 45);
+        const antes = rel(g2).planes().length;
+        hacer(g2, id('estudiar', 'casa', 'manana', 17 * 60));
+        if (!g2.log.some((l) => /todavía|tanta confianza para ir a tu casa/.test(l.text))) {
+          advanceTo(g2, 'gen.descansar', 1, 8);
+          continue;
+        }
+        probado = true;
+        expect(rel(g2).planes().length).toBe(antes);
+        // No es cosa suya sino del sitio: puede proponer otro y no le ha dicho «ya no cambiará de idea».
+        expect(g2.preview(id('estudiar', 'biblioteca', 'manana', 17 * 60))!.available).toBe(true);
+      }
+      expect(probado).toBe(true);
+    });
+
+    it('si acepta, queda el plan con la hora y el sitio elegidos, y a esa hora se hace; pasar el rato en el parque también', () => {
+      const g = conAmigo(100);
+      let plan: ReturnType<RelationsService['planes']>[number] | undefined;
+      for (let i = 0; i < 20 && !plan; i++) {
+        enElRecreo(g, (g.time.weekday + 1) % 7 === 5 || (g.time.weekday + 1) % 7 === 6 ? 0 : (g.time.weekday + 1) % 7);
+        hacer(g, id('pasar_rato', 'parque', 'manana', 16 * 60 + 30));
+        plan = rel(g).planes()[0];
+      }
+      expect(plan).toMatchObject({ npcId: 'companero_estudio', actividad: 'pasar_rato', lugar: 'parque', minuto: 16 * 60 + 30 });
+      expect(g.log.some((l) => /acepta: pasar el rato mañana a las 16:30 en el parque/.test(l.text))).toBe(true);
+      const dia = plan!.dia;
+      advanceUntil(g, 'gen.descansar', (t) => t.day === dia && t.hour >= 15, 80);
+      advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 16 * 60 + 30);
+      expect(g.preview('relaciones.pasar_rato.companero_estudio')!.lugar).toEqual(['parque']);
+      expect(hacer(g, 'relaciones.pasar_rato.companero_estudio').ok).toBe(true);
+      expect(g.service<LugaresService>(SERVICES.lugares)!.actual().id).toBe('parque');
+      expect(rel(g).planes()).toEqual([]);
+    });
+
+    it('cancelar un plan: la acción sale con el plan, lo quita y cuesta poco con un día de antelación y más el mismo día', () => {
+      const g = conAmigo(50);
+      const s = g.serialize();
+      (s.modules.relaciones as RelacionesState).planes = [
+        { npcId: 'companero_estudio', actividad: 'estudiar', dia: 0, minuto: 17 * 60, lugar: 'casa' },
+        { npcId: 'companero_estudio', actividad: 'pasar_rato', dia: 1, minuto: 12 * 60, lugar: 'parque' },
+      ];
+      const g2 = cargarPartida(s);
+      const planes = rel(g2).planes();
+      expect(planes.map((p) => p.cancelar)).toEqual(['relaciones.cancelar.companero_estudio.0', 'relaciones.cancelar.companero_estudio.1']);
+      const antes = aq(g2, 'companero_estudio');
+      expect(g2.perform(planes[1].cancelar).ok).toBe(true); // mañana: con antelación
+      const trasMañana = aq(g2, 'companero_estudio');
+      expect(antes - trasMañana).toBeCloseTo(0.5, 1);
+      expect(rel(g2).planes().map((p) => p.dia)).toEqual([0]);
+      expect(g2.perform(planes[0].cancelar).ok).toBe(true); // hoy: se resiente más
+      expect(trasMañana - aq(g2, 'companero_estudio')).toBeCloseTo(2, 1);
+      expect(rel(g2).planes()).toEqual([]);
+      expect(g2.log.some((l) => /Cancelas el plan con/.test(l.text))).toBe(true);
+      // Ya no hay nada que cancelar, y cancelar no deja plantón.
+      expect(g2.perform(planes[0].cancelar).ok).toBe(false);
+      advanceTo(g2, 'gen.descansar', 1, 8);
+      expect(g2.log.some((l) => /Dejaste plantado/.test(l.text))).toBe(false);
+    });
+
+    it('no se puede cancelar un plan cuando ya ha pasado la hora y la cortesía (eso es un plantón)', () => {
+      const g = conAmigo(50);
+      const s = g.serialize();
+      (s.modules.relaciones as RelacionesState).planes = [{ npcId: 'companero_estudio', actividad: 'estudiar', dia: 0, minuto: 10 * 60, lugar: 'casa' }];
+      const g2 = cargarPartida(s);
+      advanceTo(g2, 'gen.descansar', 0, 11);
+      expect(g2.preview('relaciones.cancelar.companero_estudio.0')!.available).toBe(false);
+      expect(g2.preview('relaciones.cancelar.companero_estudio.0')!.reason).toMatch(/Ya es tarde/);
+    });
   });
 
   it('plantar un plan cuesta afinidad y confianza', () => {
