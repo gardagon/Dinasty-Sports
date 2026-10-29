@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, GENTE_CERCANA, SERVICES, claveDeDeporte, idDeProponerPlan, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type FamilyService, type LugaresService, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
-import { CATEGORIAS_ESPANA } from '@ds/mod-atletismo';
+import { CATEGORIAS_ESPANA, GEN, GENTE_CERCANA, SERVICES, apellidosDeFamilia, claveDeDeporte, idDeProponerPlan, nombreCompleto, padresDeSemilla, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type FamilyService, type LugaresService, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import type { AtletismoState } from '@ds/mod-atletismo';
@@ -490,7 +489,7 @@ describe('integración de módulos', () => {
     });
 
     it('quien no se clasifica no corre la final, pero sí su carrera semanal', () => {
-      const g = conNivel(8);
+      const g = conNivel(1);
       advanceToWeek(g, 'gen.descansar', 37, 5, 10);
       const clasif = filas(g, 'atletismo.semifinal');
       expect(clasif.text).toMatch(/No te clasificas/);
@@ -635,7 +634,10 @@ describe('integración de módulos', () => {
     });
 
     it('las conversaciones llevan dos motivos nuevos: tu habilidad y cómo es la otra persona', () => {
-      const g = colegioEnElRecreo();
+      // La compatibilidad solo sale si su forma de ser se parece (o no) a la tuya: se busca una partida donde sea así.
+      const semilla = [31, 32, 33, 34, 35, 36, 37, 38, 39, 40].find((x) => colegioEnElRecreo(x).preview('relaciones.charlar.companero_social')!.modifiers.some((m) => m.id === 'relaciones.compatibilidad'))!;
+      expect(semilla).toBeDefined();
+      const g = colegioEnElRecreo(semilla);
       const ids = g.preview('relaciones.charlar.companero_social')!.modifiers.map((m) => m.id);
       expect(ids).toContain('relaciones.compatibilidad');
       // Con un carácter o unas habilidades corrientes alguno de los dos puede no aparecer; con extremos, sí.
@@ -1121,16 +1123,17 @@ describe('clase, profesores, apellidos y fichas', () => {
     expect(g.log.some((l) => /se presenta al empezar la clase/.test(l.text))).toBe(true);
   });
 
-  it('los padres tienen sus dos apellidos y los hijos el primero de cada uno', () => {
-    for (const seed of [1, 2, 3, 4, 5, 31]) {
+  it('los padres llevan nombre y apellidos de su origen y los hijos, el primer apellido de cada uno (con la forma de su sexo)', () => {
+    for (const seed of [1, 2, 3, 4, 5, 31, 77, 123]) {
       const g = nuevaPartida({ seed });
       const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
-      const padre = dir.get('padre')!.name.split(' ');
-      const madre = dir.get('madre')!.name.split(' ');
-      expect(padre).toHaveLength(3);
-      expect(madre).toHaveLength(3);
-      expect(new Set([...padre.slice(1), ...madre.slice(1)]).size).toBe(4);
-      for (const h of dir.list({ tag: 'hermano' })) expect(h.name.split(' ').slice(1)).toEqual([padre[1], madre[1]]);
+      const { padre, madre } = padresDeSemilla(seed);
+      expect(dir.get('padre')!.name).toBe(nombreCompleto(padre.identidad, 'm'));
+      expect(dir.get('madre')!.name).toBe(nombreCompleto(madre.identidad, 'f'));
+      // El origen de los rasgos de cada uno es el de su nombre (sale de la misma semilla).
+      expect(dir.get('padre')!.rasgos!.origen).toEqual(padre.origen);
+      expect(dir.get('madre')!.rasgos!.origen).toEqual(madre.origen);
+      for (const h of dir.list({ tag: 'hermano' })) expect(h.name.endsWith(apellidosDeFamilia(seed, h.gender))).toBe(true);
     }
   });
 });

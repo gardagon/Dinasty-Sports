@@ -26,7 +26,7 @@ Leyenda de estado: 🟢 listo para empezar · 🟡 necesita decisión · ⏸ dif
 - **Modo historia:** el personaje llega nuevo a la ciudad y empieza en un colegio nuevo, sin conocer a nadie. Obliga a desarrollar las relaciones sociales desde cero (ver E13).
 - **Oportunidad profesional:** entre los 16 y los 18 años, según nivel y deporte.
 - **Inicio del curso:** la segunda semana de septiembre (el día numérico concreto da igual). El día 0 de la partida es el lunes de esa semana.
-- **Calendario por país:** hoy solo España, pero el calendario debe ser un dato por país (inicio, vacaciones, semana de primavera, fin de curso) para poder elegirlo en el futuro.
+- **Calendario por país:** hecho (30/10): el calendario es parte del **paquete de país** (`docs/PAQUETES_DE_PAIS.md`); España, Argentina e Inglaterra (copia de España con su nombre, a cambiar) y paquetes importables.
 - **Semana Santa:** en España es el primer domingo tras la primera luna llena posterior al equinoccio de primavera (entre el 22 de marzo y el 25 de abril). El juego no tiene lunas y el año de la partida es el año 0, así que se usa una **estimación constante**, igual todos los años y marcada como tal.
 - **Deporte de la fase 1:** atletismo primero; el deporte de equipo (fútbol, E7) después como segundo deporte.
 
@@ -192,11 +192,13 @@ Hoy los 365 días son iguales: clase de lunes a viernes de 8 a 14 y carrera cada
 | E9.4 ✅ | Cursos y categorías por edad (decide el **año de nacimiento**, no la fecha exacta; los bots suben de categoría): el niño sube de curso y de categoría al cumplir años. **Categorías de la federación española** (sub-10, sub-12, sub-14, sub-16, sub-18, sub-20, sub-23), como dato por país igual que el calendario; en edades tempranas, algún niño sale y entra otro nuevo | Enlaza con la edad (E3.1) |
 | E9.5 ✅ (parcial) | Evaluaciones trimestrales con consecuencias (aprobar, repetir curso, becas) | Hecho: evaluación en las semanas 14, 28 y 40, con consecuencias en motivación y estrés. Repetir curso: decidido que no (el castigo es la academia). Becas: esperan al dinero (E16) |
 | E9.6 ✅ | Simulación de 10 años: nuevos chequeos y rendimiento | Hecho: `npm run sim:largo` simula 3 años (336 ms por año). Falta revisar los rivales para partidas de diez años |
-| E9.7 ✅ (datos) | Calendario como dato por país, con España por defecto | Hecho el dato (España). El selector de país ya está en «Nueva partida» (solo España, sin efecto todavía) |
+| E9.7 ✅ (datos) | Calendario como dato por país, con España por defecto | Hecho el dato (España). **30/10:** el selector de país de «Nueva partida» está activo y cambia la gente; el calendario, el currículo, las categorías y los horarios de otros países son copia de España hasta que tengan sus datos (ver E9.12) |
 | E9.8 ✅ | **Desarrollo realista de los rivales:** curva por edad (nadie alcanza un potencial de 90 en tres años), renovación por cohortes (salen los mayores, entran nuevos con herencia de su edad) y **subida de categoría** de quien destaca (a los 9 años contra niños de 12 si hace falta, sobre todo en fútbol) | Decidido el 22/10. Hoy los rivales llegan a su potencial en ~3 años |
 | E9.9 ✅ | **Competir contra mayores desarrolla más:** la ganancia de entrenar y competir crece con el nivel del rival frente al propio | Decidido el 22/10 |
 | E9.10 ✅ | **Verano según las notas:** media baja, **academia obligatoria** durante el verano para sacar los aprobados (no se repite curso: ese es el castigo); media alta, campamento deportivo si lo piden a los padres (mejora más); media aceptable, tiempo con amigos (no mejora igual) | Decidido el 22/10. Se implementa a continuación; pedir permiso a los padres encaja con familia (E13.1) y decisiones (E18) |
 | E9.11 ✅ | Clasificatorias y finales: si hay un clasificatorio previo, se monta; si no, un evento especial | Decidido el 22/10. Se implementa a continuación como puerta a la oportunidad profesional |
+| E9.12 ✅ (parcial) | **Países como paquetes de datos importables (30/10):** calendario, currículo, categorías, horarios y gente por país; España, Argentina (gente propia) e Inglaterra (gente propia); importar paquetes JSON | Hecho el esqueleto y la gente. **Pendiente:** datos reales de calendario/currículo/categorías de Argentina e Inglaterra, jornada escolar y agendas por país, catálogo de asignaturas por país, festivos, textos en otros idiomas y paquetes de deportes (ver `PAQUETES_DE_PAIS.md` §5) |
+| E9.13 ✅ | **Nombres y apellidos según el origen (29–30/10):** culturas con compuestos, apodos, mezclas, un apellido fuera del mundo hispano, homónimos (≤ 2, 15 años) | Hecho (ver `ANEXO_NOMBRES.md`). Pendiente: más culturas y listas, nombres de los hijos del personaje en la fase adulta |
 
 **Calendario de España (estimación constante; semana 0 = lunes de la 2.ª semana de septiembre)**
 
@@ -300,7 +302,7 @@ Valida que la plantilla de deporte funciona sin tocar el motor. **Decidido el 22
 
 | ID | Tarea | Notas |
 |---|---|---|
-| E15.1 | Creación de personaje y elección de deporte al empezar. **28/10:** hecho el menú de inicio (Nueva partida, Continuar, Cargar, Opciones, Salir) y la nueva partida con país (solo España), sexo (solo masculino), nombre y apellidos al azar con sorteo; faltan dificultad, modos de personaje y elección de deporte | Aquí entrarían los modos de inicio de la personalidad (E4.2) |
+| E15.1 | Creación de personaje y elección de deporte al empezar. **28/10:** hecho el menú de inicio (Nueva partida, Continuar, Cargar, Opciones, Salir) y la nueva partida con país (**29–30/10:** España, Argentina, Inglaterra e importados), sexo (solo masculino), nombre y apellidos al azar con sorteo; faltan dificultad, modos de personaje y elección de deporte | Aquí entrarían los modos de inicio de la personalidad (E4.2) |
 | E15.2 | Filtro de información por inteligencia | Es E3.4 |
 | E15.3 | Resumen semanal y gráficas de progreso | Enlaza con E11.3 |
 | E15.4 | Varias partidas guardadas | Hoy hay una sola |

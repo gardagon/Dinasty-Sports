@@ -177,7 +177,7 @@ Quien no conoces se ve por su aspecto con un nombre que depende de su edad (`nom
 
 ### Apellidos de la familia
 
-Los padres llevan **dos apellidos cada uno** (los cuatro distintos) y los hijos, **el primero del padre y el primero de la madre** (`apellidosDePadres`, `apellidosDeFamilia`, en `contracts/hermanos.ts`).
+Los padres llevan los apellidos de su cultura (**uno o dos**, según su origen) y los hijos, **el primero del padre y el primero de la madre** (`apellidosDePadres`, `apellidosDeFamilia`, en `contracts/hermanos.ts`). Nombres, apellidos y orígenes: ver `ANEXO_NOMBRES.md`.
 
 ### Profesores
 

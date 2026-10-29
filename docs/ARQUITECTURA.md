@@ -50,6 +50,10 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
   con herencia propia (potencial, nivel inicial y ritmo) que progresan solos. La serie es de 8: los mejores rivales corren siempre
   las primeras semanas y después las plazas rotan (ver `elegirRivales` en `modules/atletismo`).
 
+## Países
+
+Lo que cambia de un país a otro es un **paquete de datos** (`PaisDef`, ver `PAQUETES_DE_PAIS.md`): calendario, currículo, categorías, horarios y gente (demografía, nombres). El país se guarda en la partida (`GameState.pais`, `SAVE_VERSION` 16) y los módulos lo leen con **`ctx.pais`**; para mirar otro día con el calendario del país usan **`ctx.timeAt(minuto)`** (no `timeView`, que es el de España por defecto). Un módulo nunca importa datos de un país concreto: pide `ctx.pais.<dato>` y, si falta, usa el de España. Los paquetes se registran con `registrarPais` (los de serie, al cargar contracts; los importados, desde la interfaz).
+
 ## Calendario escolar
 
 El calendario es un **dato por país** (`CalendarioPais`, en contracts), expresado en semanas desde el inicio del curso (52 por curso, sin

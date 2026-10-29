@@ -27,6 +27,7 @@ import {
   type PresenciaService,
   type ExamInfo,
   type NivelDeAsignatura,
+  type CursoDef,
   type ReadContext,
   type StatDef,
   type StudiesService,
@@ -35,7 +36,6 @@ import {
 } from '@ds/contracts';
 import {
   ASIGNATURAS,
-  CURSO_DE_MODALIDAD,
   asignatura,
   asignaturasDelCurso,
   cursoDef,
@@ -236,11 +236,11 @@ export function nivelDeAsignatura(preparacion: number): NivelDeAsignatura {
 const factorDeOlvido = (aptitud: number): number => Math.min(1.4, Math.max(0.6, 1.6 - aptitud / 100));
 
 /** Asignaturas que se dan un día de la semana (0 = lunes ... 4 = viernes) del curso. */
-const asignaturasDeHoy = (curso: number, modalidad: Modalidad | undefined, weekday: number): string[] =>
-  [...(horarioDeClases(activasKeys(curso, modalidad))[weekday] ?? [])];
+const asignaturasDeHoy = (cursos: readonly CursoDef[], curso: number, modalidad: Modalidad | undefined, weekday: number): string[] =>
+  [...(horarioDeClases(activasKeys(cursos, curso, modalidad))[weekday] ?? [])];
 
 /** Días de la semana en que se da una asignatura del curso (los exámenes caen en uno de ellos). */
-const diasDe = (curso: number, modalidad: Modalidad | undefined, key: string): number[] => horarioSemanal(activasKeys(curso, modalidad))[key] ?? [];
+const diasDe = (cursos: readonly CursoDef[], curso: number, modalidad: Modalidad | undefined, key: string): number[] => horarioSemanal(activasKeys(cursos, curso, modalidad))[key] ?? [];
 
 /** Clases a las que se ha ido hoy. */
 const clasesDeHoy = (ctx: ReadContext): number[] => {
@@ -249,7 +249,7 @@ const clasesDeHoy = (ctx: ReadContext): number[] => {
 };
 
 /** Asignaturas que se cursan ahora (ids de stat). */
-const activasKeys = (curso: number, modalidad?: Modalidad): string[] => asignaturasDelCurso(curso, modalidad);
+const activasKeys = (cursos: readonly CursoDef[], curso: number, modalidad?: Modalidad): string[] => asignaturasDelCurso(curso, modalidad, cursos);
 
 const tiempoDeEstudio = (ctx: ReadContext): true | string => {
   if (isSchoolHours(ctx.time)) return 'Estás en horario de clase';
@@ -258,7 +258,7 @@ const tiempoDeEstudio = (ctx: ReadContext): true | string => {
 
 /** ¿Se cursa esta asignatura en el curso en que está el personaje? */
 const seCursa = (ctx: ReadContext, key: string): boolean =>
-  activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad).includes(key);
+  activasKeys(ctx.pais.cursos, ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad).includes(key);
 
 const estudiar = (a: Asignatura): ActionDef => ({
   id: `estudios.estudiar_${a.key}`,
@@ -317,7 +317,7 @@ const tutoria = (a: Asignatura): ActionDef => ({
     ctx.train(statId(a.key), RENDIMIENTO_TUTORIA * factorDeAptitud(ctx, a.key));
     ctx.updateState<EstudiosState>((st) => ({ ...st, ultimaTutoria: { ...st.ultimaTutoria, [a.key]: ctx.time.day } }));
     const profe = profesorEnLaSala(ctx, a.key);
-    ctx.log(`${profe ? profe.name.split(' ')[0] : 'El profesor'} te dedica un rato de tutoría de ${a.name.toLowerCase()}.`, 'info');
+    ctx.log(`${profe ? profe.nombreCorto : 'El profesor'} te dedica un rato de tutoría de ${a.name.toLowerCase()}.`, 'info');
   },
 });
 
@@ -346,12 +346,12 @@ function cambiarCurso(ctx: ActionContext, curso: number): void {
   const anterior = st.cursoAplicado ?? 0;
   if (curso === anterior) return;
   let modalidad = st.modalidad;
-  if (modalidad === undefined && curso >= CURSO_DE_MODALIDAD) {
+  if (modalidad === undefined && curso >= ctx.pais.cursoDeModalidad) {
     modalidad = elegirModalidad((k) => ctx.stat(statId(k)));
     ctx.log(`Para el bachillerato eliges ${modalidad === 'ciencias' ? 'ciencias' : 'humanidades'}, que es donde mejor te va.`, 'info');
   }
-  const antes = activasKeys(anterior, modalidad);
-  const ahora = activasKeys(curso, modalidad);
+  const antes = activasKeys(ctx.pais.cursos, anterior, modalidad);
+  const ahora = activasKeys(ctx.pais.cursos, curso, modalidad);
   const nuevas = ahora.filter((k) => !antes.includes(k));
   const salen = antes.filter((k) => !ahora.includes(k));
   for (const k of nuevas) {
@@ -373,7 +373,7 @@ function cambiarCurso(ctx: ActionContext, curso: number): void {
   ctx.updateState<EstudiosState>((s) => ({ ...s, modalidad, cursoAplicado: curso, verano: undefined }));
   const nombres = (keys: string[]) => keys.map((k) => asignatura(k).name).join(', ');
   ctx.log(
-    `Empiezas ${cursoDef(curso).nombre}.${nuevas.length ? ` Asignaturas nuevas: ${nombres(nuevas)}.` : ''}${salen.length ? ` Dejas: ${nombres(salen)}.` : ''}`,
+    `Empiezas ${cursoDef(curso, ctx.pais.cursos).nombre}.${nuevas.length ? ` Asignaturas nuevas: ${nombres(nuevas)}.` : ''}${salen.length ? ` Dejas: ${nombres(salen)}.` : ''}`,
     'info',
   );
 }
@@ -390,7 +390,7 @@ export const notaFinal = (parcial1: number | undefined, parcial2: number | undef
 function evaluarTrimestre(ctx: ActionContext, curso: number, trimestre: number): void {
   const st = ctx.state<EstudiosState>();
   const ex = st.examenes ?? {};
-  const activas = activasKeys(curso, st.modalidad);
+  const activas = activasKeys(ctx.pais.cursos, curso, st.modalidad);
   const finales = activas.map((k) => notaFinal(ex[`${k}:parcial1`], ex[`${k}:parcial2`], ex[`${k}:global`]));
   const media = finales.length ? finales.reduce((a, b) => a + b, 0) / finales.length : 0;
   const boletines = [...(st.boletines ?? []), { curso, trimestre, media }].slice(-12);
@@ -476,12 +476,12 @@ function examinar(ctx: ActionContext, keys: string[], tipo: TipoDeExamen, estuvo
 }
 
 /** Calendario de exámenes de la semana absoluta `semana`: asignatura y día. */
-function calendarioDeExamenes(semana: number, modalidad: Modalidad | undefined): { key: string; weekday: number; tipo: TipoDeExamen }[] {
-  const t = timeView(semana * 7 * MINUTES_PER_DAY);
+function calendarioDeExamenes(ctx: ReadContext, semana: number, modalidad: Modalidad | undefined): { key: string; weekday: number; tipo: TipoDeExamen }[] {
+  const t = ctx.timeAt(semana * 7 * MINUTES_PER_DAY);
   const tipo = tipoDeSemana(t);
   if (!tipo) return [];
-  return activasKeys(t.schoolYear, modalidad)
-    .map((key) => ({ key, tipo, weekday: diaDeExamen(t.schoolYear, t.term, key, tipo, diasDe(t.schoolYear, modalidad, key)) }))
+  return activasKeys(ctx.pais.cursos, t.schoolYear, modalidad)
+    .map((key) => ({ key, tipo, weekday: diaDeExamen(t.schoolYear, t.term, key, tipo, diasDe(ctx.pais.cursos, t.schoolYear, modalidad, key)) }))
     .sort((a, b) => a.weekday - b.weekday);
 }
 
@@ -536,7 +536,7 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
       run: (ctx: ActionContext) => {
         ctx.updateState<EstudiosState>((st) => ({ ...st, asistencia: { day: ctx.time.day, clases: [...clasesDeHoy(ctx), hora_] } }));
         // Cada clase vale lo que valían las horas del currículo de la asignatura repartidas en los huecos del horario.
-        const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
+        const activas = activasKeys(ctx.pais.cursos, ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
         // Las clases llevan hasta el nivel natural: si ya lo pasas, aportan poco. (Las de capacidades no suben la asignatura: suben las capacidades.)
         if (!asignatura(key).porCapacidades) ctx.train(statId(key), RENDIMIENTO_CLASE * factorDeAptitud(ctx, key) * pesoDeClase(activas, key) * tironDeClase(ctx, key));
         // El profesor de la asignatura se presenta si todavía no lo conoces.
@@ -569,7 +569,7 @@ const repasoPrevio = (hora_: number, key: string): ActionDef => {
       },
       delta: { [GEN.energia]: -1 },
       run: (ctx: ActionContext) => {
-        const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
+        const activas = activasKeys(ctx.pais.cursos, ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
         // Vale la parte de los 10 minutos que se gasta (modificador `estudios.repaso_parcial`, que ya va en la eficiencia).
         ctx.train(statId(key), 0.25 * factorDeAptitud(ctx, key) * pesoDeClase(activas, key));
       },
@@ -593,7 +593,7 @@ const SIN_CLASE: ActionDef = {
 function clasesDeHoyAcciones(ctx: ReadContext): ActionDef[] {
   const t = ctx.time;
   if (!t.isSchoolDay) return [SIN_CLASE];
-  const hoy = asignaturasDeHoy(t.schoolYear, ctx.state<EstudiosState>().modalidad, t.weekday);
+  const hoy = asignaturasDeHoy(ctx.pais.cursos, t.schoolYear, ctx.state<EstudiosState>().modalidad, t.weekday);
   const clases = hoy.map((k, h) => accionDeClase(h, k));
   // En los 10 minutos antes de una clase se puede repasar su asignatura.
   const proxima = hoy.findIndex((_, h) => t.minuteOfDay >= JORNADA.clases[h][0] - ANTES_DE_CLASE && t.minuteOfDay < JORNADA.clases[h][0]);
@@ -652,7 +652,7 @@ export const estudios = defineModule<EstudiosState>({
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
       train: [{ stat: GEN.determinacion, amount: 0.3 }],
       run: (ctx) => {
-        const activas = activasKeys(ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
+        const activas = activasKeys(ctx.pais.cursos, ctx.time.schoolYear, ctx.state<EstudiosState>().modalidad);
         for (const k of activas) if (!asignatura(k).porCapacidades) ctx.train(statId(k), (RENDIMIENTO_REPASO / activas.length) * factorDeAptitud(ctx, k));
       },
     },
@@ -676,7 +676,7 @@ export const estudios = defineModule<EstudiosState>({
       run: (ctx) => {
         const s = ctx.state<EstudiosState>();
         // Se refuerzan las tres asignaturas más flojas del curso.
-        const flojas = activasKeys(ctx.time.schoolYear, s.modalidad)
+        const flojas = activasKeys(ctx.pais.cursos, ctx.time.schoolYear, s.modalidad)
           .filter((k) => !asignatura(k).porCapacidades)
           .map((k) => [k, ctx.stat(statId(k))] as const)
           .sort((a, b) => a[1] - b[1])
@@ -704,10 +704,10 @@ export const estudios = defineModule<EstudiosState>({
     [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
       const { week } = ev.data as WeekEventData;
       // Si la semana que viene empieza un curso nuevo, cambian las asignaturas.
-      const proximo = timeView((week + 1) * 7 * MINUTES_PER_DAY);
+      const proximo = ctx.timeAt((week + 1) * 7 * MINUTES_PER_DAY);
       if (proximo.schoolWeek === 0) cambiarCurso(ctx, proximo.schoolYear);
       // Los exámenes se avisan con una semana de antelación: cuando la semana que empieza es la anterior a la de evaluación.
-      const examenes = calendarioDeExamenes(week + 2, ctx.state<EstudiosState>().modalidad);
+      const examenes = calendarioDeExamenes(ctx, week + 2, ctx.state<EstudiosState>().modalidad);
       if (examenes.length) {
         const filas = examenes.map((e) => [DIAS[e.weekday], asignatura(e.key).name]);
         ctx.log(`La semana que viene: ${NOMBRE_DE_EXAMEN[examenes[0].tipo].toLowerCase()} del trimestre.`, 'aviso', { header: ['Día', 'Examen'], rows: filas, align: ['left', 'left'] });
@@ -721,9 +721,9 @@ export const estudios = defineModule<EstudiosState>({
         ctx.updateState<EstudiosState>((x) => ({ ...x, base: Object.fromEntries(ASIGNATURAS.map((a) => [a.key, Math.max(0, ctx.stat(statId(a.key)) - MARGEN_DE_BASE)])) }));
       }
       // El evento llega al cerrar el día: se mira el calendario de ESE día, no el del siguiente.
-      const hoy = timeView(day * MINUTES_PER_DAY);
+      const hoy = ctx.timeAt(day * MINUTES_PER_DAY);
       // Las asignaturas de capacidades siguen a las capacidades (Educación física, Artística, Música).
-      sincronizarCapacidades(ctx, activasKeys(hoy.schoolYear, ctx.state<EstudiosState>().modalidad));
+      sincronizarCapacidades(ctx, activasKeys(ctx.pais.cursos, hoy.schoolYear, ctx.state<EstudiosState>().modalidad));
       const weekday = hoy.weekday;
       const s = ctx.state<EstudiosState>();
       // Academia obligatoria: faltar un día de academia cuenta como falta y sube el estrés.
@@ -734,7 +734,7 @@ export const estudios = defineModule<EstudiosState>({
       }
       if (!hoy.isSchoolDay) {
         // Fuera del horario escolar (fines de semana y vacaciones) también se olvida.
-        for (const k of activasKeys(hoy.schoolYear, s.modalidad)) olvidar(ctx, k);
+        for (const k of activasKeys(ctx.pais.cursos, hoy.schoolYear, s.modalidad)) olvidar(ctx, k);
         return;
       }
 
@@ -755,17 +755,17 @@ export const estudios = defineModule<EstudiosState>({
         ctx.log(faltadas === CLASES_POR_DIA ? 'Has faltado a clase todo el día.' : `Has faltado a ${faltadas} ${faltadas === 1 ? 'clase' : 'clases'}.`, 'aviso');
       }
 
-      const activas = activasKeys(hoy.schoolYear, s.modalidad);
+      const activas = activasKeys(ctx.pais.cursos, hoy.schoolYear, s.modalidad);
       // Lo que se da en una clase a la que faltas se pierde: el temario sigue avanzando (en proporción a las horas que vale la clase).
-      asignaturasDeHoy(hoy.schoolYear, s.modalidad, weekday).forEach((k, h) => {
+      asignaturasDeHoy(ctx.pais.cursos, hoy.schoolYear, s.modalidad, weekday).forEach((k, h) => {
         if (!fue.includes(h) && !asignatura(k).porCapacidades) perder(ctx, k, PERDIDA_POR_FALTA * pesoDeClase(activas, k));
       });
       const tipo = tipoDeSemana(hoy);
       if (tipo) {
         const hechos = s.examenes ?? {};
-        const hoyToca = activas.filter((k) => diaDeExamen(hoy.schoolYear, hoy.term, k, tipo, diasDe(hoy.schoolYear, s.modalidad, k)) === weekday && hechos[`${k}:${tipo}`] === undefined);
+        const hoyToca = activas.filter((k) => diaDeExamen(hoy.schoolYear, hoy.term, k, tipo, diasDe(ctx.pais.cursos, hoy.schoolYear, s.modalidad, k)) === weekday && hechos[`${k}:${tipo}`] === undefined);
         // Se examina quien fue a la clase de esa asignatura de hoy.
-        const dia = asignaturasDeHoy(hoy.schoolYear, s.modalidad, weekday);
+        const dia = asignaturasDeHoy(ctx.pais.cursos, hoy.schoolYear, s.modalidad, weekday);
         if (hoyToca.length) examinar(ctx, hoyToca, tipo, (k) => fue.includes(dia.indexOf(k)));
         if (weekday === 4 && tipo === 'global') evaluarTrimestre(ctx, hoy.schoolYear, hoy.term);
       }
@@ -777,25 +777,25 @@ export const estudios = defineModule<EstudiosState>({
   services: {
     [SERVICES.estudios]: (ctx): StudiesService => {
       const s = ctx.state<EstudiosState>();
-      const activas = activasKeys(ctx.time.schoolYear, s.modalidad);
+      const activas = activasKeys(ctx.pais.cursos, ctx.time.schoolYear, s.modalidad);
       return {
         average: () => media(s, activas),
         absences: () => s.faltas,
         absencesThisTerm: () => faltasDelTrimestre(s, ctx.time.schoolYear, ctx.time.term).n,
         activeSubjects: () => activas.map(statId),
-        courseName: () => cursoDef(ctx.time.schoolYear).nombre,
+        courseName: () => cursoDef(ctx.time.schoolYear, ctx.pais.cursos).nombre,
         grades: (subject) => [...(s.notas[subject.replace('estudios.', '')] ?? [])],
         reports: () => [...(s.boletines ?? [])],
         summerPath: () => (ctx.time.period === 'verano' ? (s.verano?.tipo ?? null) : null),
         levelText: (subject) => (ASIGNATURAS.some((a) => statId(a.key) === subject) ? nivelDeAsignatura(nivelVisible(ctx, subject.replace('estudios.', ''))) : null),
-        timetable: (weekday) => asignaturasDeHoy(ctx.time.schoolYear, s.modalidad, weekday).map(statId),
+        timetable: (weekday) => asignaturasDeHoy(ctx.pais.cursos, ctx.time.schoolYear, s.modalidad, weekday).map(statId),
         upcomingExams: (days): ExamInfo[] => {
           const salida: ExamInfo[] = [];
           for (let d = 0; d < Math.min(days, 14); d++) {
-            const t = timeView((ctx.time.day + d) * MINUTES_PER_DAY);
+            const t = ctx.timeAt((ctx.time.day + d) * MINUTES_PER_DAY);
             // Solo se conocen los de la semana en curso y la siguiente a la que se avisó.
             if (!t.isSchoolDay || t.week - ctx.time.week > 1) continue;
-            for (const e of calendarioDeExamenes(t.week, s.modalidad)) {
+            for (const e of calendarioDeExamenes(ctx, t.week, s.modalidad)) {
               if (e.weekday !== t.weekday || (d === 0 && s.examenes?.[`${e.key}:${e.tipo}`] !== undefined)) continue;
               salida.push({ subject: statId(e.key), name: asignatura(e.key).name, tipo: e.tipo, day: t.day, inDays: d });
             }

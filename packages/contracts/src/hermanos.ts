@@ -1,55 +1,40 @@
-import type { Rng } from './rng';
+import type { PaisDeNombres } from './paises';
+import { formaDeApellido, identidadDeHijo, nombreCompleto, origenDeJugador, padresDeSemilla } from './nombres';
+import { rngEstable, type Rng } from './rng';
 
 /**
  * Hermanos del personaje: reglas puras compartidas por el módulo que los crea (`npcs`) y el que enseña a la familia (`familia`).
  * Los hermanos se generan con el mismo proceso de herencia que el personaje, a partir de los mismos padres.
  */
 
-const APELLIDOS = ['García', 'Martín', 'López', 'Sánchez', 'Romero', 'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Serrano'];
-
 /**
- * Los apellidos de los padres, siempre los mismos para una semilla (así los pueden usar varios módulos sin depender uno del otro): cada uno
- * tiene dos, distintos entre sí y de los del otro. Los hijos llevan el primero del padre y el primero de la madre.
+ * Los nombres y apellidos de los padres y del personaje salen de la semilla y del origen de cada uno (ver `nombres.ts`): el motor y los módulos
+ * los piden por separado sin depender unos de otros, y «volver a sortear» en la pantalla de nueva partida es otra semilla.
  */
-export function apellidosDePadres(seed: number): { padre: [string, string]; madre: [string, string] } {
-  // Mezcla barata de la semilla: cuatro índices distintos y estables.
-  let h = (seed ^ 0x9e3779b1) >>> 0;
-  const elegidos: number[] = [];
-  while (elegidos.length < 4) {
-    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b) >>> 0;
-    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
-    h = (h ^ (h >>> 16)) >>> 0;
-    const i = h % APELLIDOS.length;
-    if (!elegidos.includes(i)) elegidos.push(i);
-  }
-  const [a, b, c, d] = elegidos.map((i) => APELLIDOS[i]);
-  return { padre: [a, b], madre: [c, d] };
+
+/** Los apellidos de los padres (en su forma de base), siempre los mismos para una semilla: cada uno lleva uno o dos según su origen. */
+export function apellidosDePadres(seed: number, pais?: PaisDeNombres): { padre: string[]; madre: string[] } {
+  const { padre, madre } = padresDeSemilla(seed, pais);
+  return { padre: padre.identidad.apellidos.map((a) => a.base), madre: madre.identidad.apellidos.map((a) => formaDeApellido(a, 'f')) };
 }
 
-/** Los dos apellidos de los hijos: el primero del padre y el primero de la madre. */
-export function apellidosDeFamilia(seed: number): string {
-  const { padre, madre } = apellidosDePadres(seed);
-  return `${padre[0]} ${madre[0]}`;
+/** Los apellidos de un hijo: el primero del padre y el primero de la madre, con la forma de su sexo (por defecto, la masculina). */
+export function apellidosDeFamilia(seed: number, genero: 'f' | 'm' = 'm', pais?: PaisDeNombres): string {
+  const { padre, madre } = padresDeSemilla(seed, pais);
+  // Donde los nacidos llevan un solo apellido (Argentina, Inglaterra), el del padre.
+  if (pais?.apellidosDeLosNacidosAqui === 1) return formaDeApellido(padre.identidad.apellidos[0], genero);
+  return [formaDeApellido(padre.identidad.apellidos[0], genero), formaDeApellido(madre.identidad.apellidos[0], genero)].join(' ');
 }
-
-const NOMBRES_DE_PROGENITOR = {
-  f: ['Carmen', 'María', 'Laura', 'Cristina', 'Patricia', 'Isabel', 'Raquel', 'Silvia', 'Beatriz', 'Marta', 'Eva', 'Pilar'],
-  m: ['Antonio', 'José', 'Manuel', 'Javier', 'David', 'Miguel', 'Rafael', 'Alberto', 'Jesús', 'Fernando', 'Raúl', 'Andrés'],
-} as const;
 
 /** El nombre de pila del padre o la madre, fijo para una semilla: lo usan `familia` (su ficha) y `npcs` (la persona con la que te relacionas). */
-export function nombreDeProgenitor(seed: number, id: 'padre' | 'madre'): string {
-  let h = (seed ^ (id === 'padre' ? 0x51ed270b : 0x2545f491)) >>> 0;
-  h = Math.imul(h ^ (h >>> 16), 0x7feb352d) >>> 0;
-  h = Math.imul(h ^ (h >>> 15), 0x846ca68b) >>> 0;
-  const lista = NOMBRES_DE_PROGENITOR[id === 'padre' ? 'm' : 'f'];
-  return lista[h % lista.length];
+export function nombreDeProgenitor(seed: number, id: 'padre' | 'madre', pais?: PaisDeNombres): string {
+  return padresDeSemilla(seed, pais)[id].identidad.pila;
 }
 
-const NOMBRES_DE_JUGADOR = [
-  'Álvaro', 'Adrián', 'Pablo', 'Daniel', 'Hugo', 'Mario', 'Diego', 'Sergio', 'Iván', 'Marcos', 'Lucas', 'Carlos',
-  'Rubén', 'Óscar', 'Gonzalo', 'Nicolás', 'Samuel', 'Víctor', 'Jorge', 'Enrique', 'Ángel', 'Guillermo', 'Alejandro', 'Martín',
-] as const;
+/** El nombre completo del padre o la madre (con sus apellidos). */
+export function nombreCompletoDeProgenitor(seed: number, id: 'padre' | 'madre', pais?: PaisDeNombres): string {
+  return nombreCompleto(padresDeSemilla(seed, pais)[id].identidad, id === 'padre' ? 'm' : 'f');
+}
 
 /** País elegible al crear la partida. De momento solo hay España (el calendario escolar y los apellidos son los suyos). */
 export const PAISES_DE_PARTIDA: readonly { id: string; nombre: string }[] = [{ id: 'espana', nombre: 'España' }];
@@ -58,18 +43,18 @@ export const PAISES_DE_PARTIDA: readonly { id: string; nombre: string }[] = [{ i
 export type ApellidoPrincipal = 'padre' | 'madre';
 
 /**
- * El nombre del personaje al crear la partida, todo a partir de la semilla (así «volver a sortear» es otra semilla): nombre de pila (solo
- * masculino de momento) y los dos apellidos, que son el primero del padre y el primero de la madre; el principal va primero.
- * Los padres de esa semilla (`apellidosDePadres`) llevan esos mismos apellidos.
+ * El nombre del personaje al crear la partida, todo a partir de la semilla: nombre de pila (solo masculino de momento), del origen de sus padres, y los
+ * dos apellidos, que son el primero del padre y el primero de la madre; el principal va primero. Los padres de esa semilla (`padresDeSemilla`) llevan esos apellidos.
  */
-export function identidadDeJugador(seed: number, principal: ApellidoPrincipal = 'padre'): { nombre: string; delPadre: string; delMadre: string; apellidos: string; completo: string } {
-  let h = (seed ^ 0x6a09e667) >>> 0;
-  h = Math.imul(h ^ (h >>> 16), 0x7feb352d) >>> 0;
-  h = Math.imul(h ^ (h >>> 15), 0x846ca68b) >>> 0;
-  const nombre = NOMBRES_DE_JUGADOR[((h ^ (h >>> 16)) >>> 0) % NOMBRES_DE_JUGADOR.length];
-  const { padre, madre } = apellidosDePadres(seed);
-  const apellidos = principal === 'padre' ? `${padre[0]} ${madre[0]}` : `${madre[0]} ${padre[0]}`;
-  return { nombre, delPadre: padre[0], delMadre: madre[0], apellidos, completo: `${nombre} ${apellidos}` };
+export function identidadDeJugador(seed: number, principal: ApellidoPrincipal = 'padre', pais?: PaisDeNombres): { nombre: string; delPadre: string; delMadre: string; apellidos: string; completo: string } {
+  const { padre, madre } = padresDeSemilla(seed, pais);
+  const hijo = identidadDeHijo(rngEstable('nombre', seed, 'jugador'), 'm', padre.identidad, madre.identidad, origenDeJugador(seed, pais), { edad: 8, pais });
+  const delPadre = formaDeApellido(padre.identidad.apellidos[0], 'm');
+  const delMadre = formaDeApellido(madre.identidad.apellidos[0], 'm');
+  // Con un solo apellido por persona (Argentina, Inglaterra) el personaje lleva el de su padre; con dos, el principal va primero.
+  const unico = pais?.apellidosDeLosNacidosAqui === 1;
+  const apellidos = unico ? delPadre : principal === 'padre' ? `${delPadre} ${delMadre}` : `${delMadre} ${delPadre}`;
+  return { nombre: hijo.pila, delPadre, delMadre, apellidos, completo: `${hijo.pila} ${apellidos}` };
 }
 
 /** Probabilidad de tener 0, 1, 2 o 3 hermanos. */

@@ -1,4 +1,4 @@
-import { GEN } from '@ds/contracts';
+import { CURSOS_ESPANA, GEN, type CursoDef, type Modalidad } from '@ds/contracts';
 
 /**
  * Currículo escolar de España como DATO: las asignaturas de cada curso, desde 3.º de primaria (8 años) hasta
@@ -63,55 +63,23 @@ export const ASIGNATURAS: readonly Asignatura[] = [
 
 export const asignatura = (key: string): Asignatura => ASIGNATURAS.find((a) => a.key === key)!;
 
-export type Modalidad = 'ciencias' | 'humanidades';
-export type Etapa = 'primaria' | 'eso' | 'bachillerato';
+export type { CursoDef, Etapa, Modalidad } from '@ds/contracts';
+export { CURSOS_ESPANA } from '@ds/contracts';
 
-export interface CursoDef {
-  nombre: string;
-  etapa: Etapa;
-  /** Asignaturas del curso; en bachillerato, las de la modalidad elegida se añaden a las comunes. */
-  asignaturas: readonly string[];
-  modalidad?: Readonly<Record<Modalidad, readonly string[]>>;
-}
-
-const PRIMARIA = ['lengua', 'matematicas', 'naturales', 'sociales', 'ingles', 'educacion_fisica', 'artistica'];
-const ESO_1 = ['lengua', 'matematicas', 'biologia', 'historia', 'ingles', 'educacion_fisica', 'tecnologia', 'musica'];
-const ESO_2 = [...ESO_1, 'fisica_quimica'];
-const ESO_3_4 = ['lengua', 'matematicas', 'biologia', 'fisica_quimica', 'historia', 'ingles', 'educacion_fisica', 'tecnologia'];
-const MODALIDADES = {
-  ciencias: ['matematicas', 'fisica', 'quimica'],
-  humanidades: ['latin', 'historia_arte', 'economia'],
-} as const;
-
-/** Currículo de España. El curso 0 es 3.º de primaria (8 años); se cuenta desde el inicio de la partida. */
-export const CURSOS_ESPANA: readonly CursoDef[] = [
-  { nombre: '3.º de primaria', etapa: 'primaria', asignaturas: PRIMARIA },
-  { nombre: '4.º de primaria', etapa: 'primaria', asignaturas: PRIMARIA },
-  { nombre: '5.º de primaria', etapa: 'primaria', asignaturas: PRIMARIA },
-  { nombre: '6.º de primaria', etapa: 'primaria', asignaturas: PRIMARIA },
-  { nombre: '1.º de ESO', etapa: 'eso', asignaturas: ESO_1 },
-  { nombre: '2.º de ESO', etapa: 'eso', asignaturas: ESO_2 },
-  { nombre: '3.º de ESO', etapa: 'eso', asignaturas: ESO_3_4 },
-  { nombre: '4.º de ESO', etapa: 'eso', asignaturas: ESO_3_4 },
-  { nombre: '1.º de bachillerato', etapa: 'bachillerato', asignaturas: ['lengua', 'ingles', 'filosofia', 'educacion_fisica'], modalidad: MODALIDADES },
-  { nombre: '2.º de bachillerato', etapa: 'bachillerato', asignaturas: ['lengua', 'ingles', 'historia_espana'], modalidad: MODALIDADES },
-];
-
-/** Primer curso en que se elige modalidad (bachillerato). */
-export const CURSO_DE_MODALIDAD = 8;
-
-/** El curso se cuenta desde el inicio; pasado el último se repite el último. */
-export const cursoDef = (curso: number): CursoDef => CURSOS_ESPANA[Math.min(Math.max(0, curso), CURSOS_ESPANA.length - 1)];
+/** El curso se cuenta desde el inicio; pasado el último se repite el último. Los cursos son los del país de la partida (por defecto, España). */
+export const cursoDef = (curso: number, cursos: readonly CursoDef[] = CURSOS_ESPANA): CursoDef => cursos[Math.min(Math.max(0, curso), cursos.length - 1)];
 
 /** Las listas no cambian: se calculan una vez por curso y modalidad (se consultan en cada acción). No se deben modificar. */
-const POR_CURSO = new Map<string, string[]>();
+const POR_CURSO = new WeakMap<readonly CursoDef[], Map<string, string[]>>();
 
-export function asignaturasDelCurso(curso: number, modalidad: Modalidad = 'ciencias'): string[] {
-  const clave = `${Math.min(Math.max(0, curso), CURSOS_ESPANA.length - 1)}:${modalidad}`;
-  let lista = POR_CURSO.get(clave);
+export function asignaturasDelCurso(curso: number, modalidad: Modalidad = 'ciencias', cursos: readonly CursoDef[] = CURSOS_ESPANA): string[] {
+  const clave = `${Math.min(Math.max(0, curso), cursos.length - 1)}:${modalidad}`;
+  let porClave = POR_CURSO.get(cursos);
+  if (!porClave) POR_CURSO.set(cursos, (porClave = new Map()));
+  let lista = porClave.get(clave);
   if (!lista) {
-    const c = cursoDef(curso);
-    POR_CURSO.set(clave, (lista = Object.freeze([...c.asignaturas, ...(c.modalidad?.[modalidad] ?? [])]) as string[]));
+    const c = cursoDef(curso, cursos);
+    porClave.set(clave, (lista = Object.freeze([...c.asignaturas, ...(c.modalidad?.[modalidad] ?? [])]) as string[]));
   }
   return lista;
 }
