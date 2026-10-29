@@ -490,7 +490,7 @@ describe('integración de módulos', () => {
     });
 
     it('quien no se clasifica no corre la final, pero sí su carrera semanal', () => {
-      const g = conNivel(8);
+      const g = conNivel(1);
       advanceToWeek(g, 'gen.descansar', 37, 5, 10);
       const clasif = filas(g, 'atletismo.semifinal');
       expect(clasif.text).toMatch(/No te clasificas/);

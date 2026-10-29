@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, apellidosDeFamilia, madurezPorEdad, origen, reservaDeNombres, ventajaDeCrianza, type FamilyService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
+import { SERVICES, apellidosDeFamilia, idDePonerApodo, madurezPorEdad, origen, reservaDeNombres, ventajaDeCrianza, type FamilyService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { familia } from '@ds/mod-familia';
@@ -318,6 +318,34 @@ describe('módulo NPCs', () => {
       }
       expect(compuestos).toBeGreaterThan(0);
       expect(conRepetidos).toBeGreaterThanOrEqual(0);
+    });
+
+    it('el nombre corto es el nombre de pila entero (José Manuel) o, si lo tiene, su apodo; y el jugador puede ponérselo o quitárselo', () => {
+      const g = Game.create([personaje, npcs, familia, lugares], { seed: 3 });
+      const dir = () => g.service<NpcDirectory>(SERVICES.npcs)!;
+      const todos = dir().list();
+      // Todos tienen nombre de pila y el nombre completo empieza por él.
+      for (const n of todos) {
+        expect(n.nombrePila, n.id).toBeDefined();
+        expect(n.name.startsWith(n.nombrePila!), n.id).toBe(true);
+        expect(n.nombreCorto).toBe(n.apodo ?? n.nombrePila);
+      }
+      expect(todos.some((n) => n.nombrePila!.includes(' '))).toBe(true); // hay compuestos y salen enteros
+      expect(todos.some((n) => n.apodo)).toBe(true); // y apodos al azar
+      // Poner un apodo a alguien que conoces (el padre) cambia su nombre corto; quitarlo vuelve al nombre de pila.
+      const padre = dir().get('padre')!;
+      const id = idDePonerApodo('padre', 'Papá Oso');
+      expect(g.preview(id)!.available).toBe(true);
+      expect(g.perform(id).ok).toBe(true);
+      expect(dir().get('padre')!.nombreCorto).toBe('Papá Oso');
+      expect(g.perform(id).ok).toBe(false); // ya se llama así
+      expect(g.perform(idDePonerApodo('padre', '')).ok).toBe(true);
+      expect(dir().get('padre')!.nombreCorto).toBe(padre.nombrePila);
+      // Los textos no valen, y a quien no conoces no se le pone apodo.
+      expect(g.preview('npcs.apodo.padre.%3Cb%3E')).toBeUndefined();
+      const desconocido = todos.find((n) => n.known === false)!;
+      expect(g.preview(idDePonerApodo(desconocido.id, 'Fulano'))!.available).toBe(false);
+      expect(g.preview(idDePonerApodo('no_existe', 'Fulano'))).toBeUndefined();
     });
 
     it('el patio tiene gente de todos los cursos (en el recreo) y el parque, de todas las edades', () => {

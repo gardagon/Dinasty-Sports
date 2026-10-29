@@ -14,6 +14,7 @@ export const MAGREB: Cultura = {
       adultos: lista('Mohamed, Ahmed, Abdelkader, Said, Rachid, Khalid, Hassan, Youssef, Karim, Mustapha, Abdelaziz, Driss, Brahim, Hicham, Samir, Nabil, Jamal, Mourad, Hussein, Omar, Abdelaziz, Tarik, Ali, Fouad, Abderrahim, Larbi, Mimoun, Kamal, Noureddine, Redouane, Lahcen, Abdelhak, Mohammed'),
     },
   },
+  apodos: { Mohamed: ['Momo', 'Moha'], Mohammed: ['Momo', 'Moha'], Ahmed: ['Ahmi'], Abdelaziz: ['Aziz'], Abdelkader: ['Kader'], Youssef: ['Yus', 'Yusuf'], Mustapha: ['Mus'], Hamza: ['Hamzi'], Abderrahim: ['Rahim'], Noureddine: ['Nour'], Fatima: ['Fati'], Khadija: ['Khadi'], Meryem: ['Meri'], Yasmine: ['Yasi'], Soukaina: ['Souki'], Hanane: ['Hani'], Fatiha: ['Fati'], Rachida: ['Racha'] },
   apellidos: lista('El Idrissi, Benali, Amrani, Alaoui, Bouzid, Haddad, Tahiri, Mansouri, Chakir, Bennani, El Fassi, Berrada, Lahlou, Saidi, Belkacem, Mokhtari, Hamdaoui, Benmoussa, Boukhari, Ouali, Cherkaoui, Naciri, Rahmani, Sebti, El Amrani, El Khatib, Slimani, Ziani, Kadiri, Lamrani, Tazi, Bouazza, Fakir, El Ouafi, Bakkali, Aboulkacem, Ait Taleb, Zaidi, Messaoudi, Bensalah, Larbi, Moussaoui, Benkirane, Choukri, El Yousfi, Ouarzazi, Maghraoui, Bouhlal, Fennich, Oulad, Zerouali, Akhannouch, Hajji, Karimi, Laaroussi, Sbai, Talbi'),
   numeroDeApellidos: 1,
 };

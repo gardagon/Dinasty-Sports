@@ -18,6 +18,8 @@ export interface Cultura {
   nombres: { f: NombresPorEdad; m: NombresPorEdad };
   /** Nombres compuestos (José Manuel, María José…), del más al menos frecuente. */
   compuestos?: { f: readonly string[]; m: readonly string[] };
+  /** Apodos habituales de cada nombre (clave: el nombre de pila tal cual, compuesto o no): José Manuel → Chema. */
+  apodos?: Readonly<Record<string, readonly string[]>>;
   /** Probabilidad de nombre compuesto (si hay lista): adultos y jóvenes. */
   probabilidadDeCompuesto?: { adultos: number; jovenes: number };
   apellidos: readonly string[];

@@ -32,6 +32,7 @@ import {
   type ApellidoPrincipal,
   PAISES_DE_PARTIDA,
   identidadDeJugador,
+  idDePonerApodo,
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { cargarPartida, nuevaPartida } from '@ds/game';
@@ -717,6 +718,14 @@ function render(): void {
 }
 
 // ------------------------------------------------------------------ interacción
+
+// El cuadro del apodo: el botón lleva el id de la acción con lo escrito (sin redibujar, para no perder el foco).
+app.addEventListener('input', (e) => {
+  const el = e.target as HTMLInputElement;
+  if (el.dataset?.gente !== 'apodo-campo') return;
+  const boton = app.querySelector<HTMLElement>('#apodo-boton');
+  if (boton) boton.dataset.do = idDePonerApodo(el.dataset.npc ?? '', el.value);
+});
 
 // Los desplegables del formulario de «Proponer quedar para…» (cada cambio redibuja la ficha).
 app.addEventListener('change', (e) => {

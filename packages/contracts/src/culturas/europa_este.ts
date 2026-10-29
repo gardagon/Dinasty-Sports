@@ -14,6 +14,7 @@ export const RUMANIA: Cultura = {
       adultos: lista('Marian, Florin, Gabriel, Daniel, Răzvan, Adrian, Bogdan, Cătălin, Dorin, Marius, Ovidiu, Vasile, Sorin, Viorel, Ionuț, Cristian, Mihai, Andrei, Alexandru, Constantin, Nicolae, Ion, Gheorghe, Costel, Lucian'),
     },
   },
+  apodos: { Alexandru: ['Alex', 'Sandu'], Cristian: ['Cristi'], Gabriel: ['Gabi'], Constantin: ['Costi'], Florin: ['Flori'], Mihai: ['Mihăiță'], Gheorghe: ['George'], Mihaela: ['Mihi'], Elena: ['Lenuța'], Andreea: ['Andra'], Georgiana: ['Gina'], Ionela: ['Ioni'] },
   apellidos: lista('Popescu, Ionescu, Popa, Stan, Dumitru, Marin, Constantin, Radu, Georgescu, Stoica, Munteanu, Rusu, Moldovan, Gheorghe, Ilie, Matei, Toma, Lungu, Ciobanu, Mocanu, Preda, Tudor, Dinu, Barbu, Nistor, Florea, Anghel, Cristea, Diaconu, Enache, Manole, Neagu, Oprea, Pavel, Rădulescu, Sandu, Șerban, Voicu, Zamfir'),
   numeroDeApellidos: 1,
 };
@@ -32,6 +33,7 @@ export const POLONIA_Y_ESLAVOS: Cultura = {
       adultos: lista('Piotr, Krzysztof, Tomasz, Marcin, Paweł, Michał, Andrzej, Jan, Stanisław, Oleksandr, Andriy, Dmytro, Serhiy, Volodymyr, Ivan, Sergey, Alexey, Dmitry, Igor, Yuri, Vasyl, Taras, Oleh, Mykola, Anatoliy, Viktor'),
     },
   },
+  apodos: { Oleksandr: ['Sasha'], Alexey: ['Alyosha', 'Alex'], Dmitry: ['Dima'], Vladimir: ['Vova'], Ekaterina: ['Katya'], Yulia: ['Yulya'], Natalia: ['Natasha'], Anastasia: ['Nastya'], Elena: ['Lena'], Katarzyna: ['Kasia'], Małgorzata: ['Gosia'], Agnieszka: ['Aga'], Krzysztof: ['Krzys'], Tomasz: ['Tomek'], Michał: ['Michu'], Piotr: ['Piotrek'], Jakub: ['Kuba'], Mykola: ['Kolya'], Sergey: ['Seryozha'], Ivan: ['Vanya'], Tetiana: ['Tanya'], Svitlana: ['Sveta'], Oksana: ['Oksi'], Irina: ['Ira'] },
   apellidos: lista('Kowalski, Nowak, Wiśniewski, Wójcik, Kowalczyk, Kamiński, Lewandowski, Zieliński, Szymański, Woźniak, Dąbrowski, Kozłowski, Jankowski, Mazur, Wojciechowski, Kwiatkowski, Krawczyk, Piotrowski, Grabowski, Pawlak, Michalski, Zając, Król, Wieczorek, Ivanov, Petrov, Kovalenko, Shevchenko, Bondarenko, Tkachenko, Melnyk, Kravchenko, Boyko, Kovalchuk, Sidorov, Smirnov, Popov, Sokolov, Volkov, Morozov, Novikov, Fedorov, Lebedev, Orlov'),
   numeroDeApellidos: 1,
   femenino: [['ski', 'ska'], ['cki', 'cka'], ['dzki', 'dzka'], ['ov', 'ova'], ['ev', 'eva'], ['in', 'ina']],

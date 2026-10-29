@@ -1,5 +1,7 @@
 import {
   aforoCercano,
+  idDePonerApodo,
+  LONGITUD_MAXIMA_DE_APODO,
   SERVICES,
   descripcionDeDesconocido,
   edadAparente,
@@ -151,9 +153,20 @@ function accionesCon(g: Game, n: NpcView): string {
     `<button class="action" data-do="${esc(o.id)}"${o.available ? '' : ' disabled'}><span class="action-name">${esc(o.name)}</span><span class="action-time">${o.duration} min</span>${o.available ? '' : `<span class="action-why">${esc(o.reason ?? '')}</span>`}</button>`;
   const ahora = ordenarAcciones(todas.filter((o) => o.available));
   const luego = ordenarAcciones(todas.filter((o) => !o.available));
-  return `<h3>Qué hacer con ${esc(n.name.split(' ')[0])}</h3>
+  return `<h3>Qué hacer con ${esc(n.nombreCorto)}</h3>
     <div class="actions">${ahora.map(boton).join('') || '<p class="note">Ahora mismo no puedes hacer nada con esta persona.</p>'}</div>
     ${luego.length ? `<details class="viaje-rapido"><summary>Lo que no se puede ahora (${luego.length})</summary><div class="actions">${luego.map(boton).join('')}</div></details>` : ''}`;
+}
+
+/** Cómo le llamas: el apodo (puesto por ti o con el que ya viene) y un cuadro para cambiarlo. El botón lleva el id de la acción (lo actualiza `main.ts` al escribir). */
+function bloqueDeApodo(n: NpcView): string {
+  return `<div class="apodo-gente">
+    <label class="campo-plan"><span>Apodo${n.apodo ? `: «${esc(n.apodo)}»` : ''}</span>
+      <input type="text" id="apodo-texto" data-gente="apodo-campo" data-npc="${esc(n.id)}" maxlength="${LONGITUD_MAXIMA_DE_APODO}" value="${esc(n.apodo ?? '')}" placeholder="${esc(n.nombrePila ?? n.nombreCorto)}" autocomplete="off">
+    </label>
+    <button class="action" id="apodo-boton" data-do="${esc(idDePonerApodo(n.id, n.apodo ?? ''))}"><span class="action-name">Llamarle así en los textos</span><span class="action-time">1 min</span></button>
+    <p class="note">Déjalo vacío para quitarlo. Sale en las acciones y los diarios en lugar de su nombre.</p>
+  </div>`;
 }
 
 /** Los planes que tienes con esta persona (con su botón de cancelar) y el formulario para proponerle otro: actividad, sitio, día y hora. */
@@ -165,7 +178,7 @@ function bloqueDePlanes(g: Game, n: NpcView): string {
   const pendientes = rel.planes().filter((p) => p.npcId === n.id);
   const f = rel.formularioDePlan(n.id);
   if (!pendientes.length && !f.actividades.length) return '';
-  const nombre = n.name.split(' ')[0];
+  const nombre = n.nombreCorto;
   const lista = pendientes
     .map((p) => `<li>${esc(p.nombre)} ${cuando(p.dia)} a las ${hhmm(p.minuto)} (${esc(lugares?.lugar(p.lugar)?.name.toLowerCase() ?? p.lugar)}) <button class="action" data-do="${esc(p.cancelar)}"><span class="action-name">Cancelar plan</span><span class="action-time">5 min</span></button></li>`)
     .join('');
@@ -227,7 +240,7 @@ function ficha(g: Game, n: NpcView): string {
   }
   const motivo = ocupadosAqui(g).get(n.id);
   const aviso = motivo && pestana === 'resumen' ? `<p class="note ocupado">${esc(ocupadaTexto(motivo))}: ahora no puedes hablar con ${n.gender === 'f' ? 'ella' : 'él'}.</p>` : '';
-  const acciones = pestana === 'resumen' && conocida(n) ? bloqueDePlanes(g, n) + accionesCon(g, n) : '';
+  const acciones = pestana === 'resumen' && conocida(n) ? bloqueDePlanes(g, n) + accionesCon(g, n) + bloqueDeApodo(n) : '';
   return `<section class="sheet ficha-gente">
     <button data-gente="volver">← Volver</button>
     <h2>${nombre} <small>${esc(rol(n))}</small></h2>

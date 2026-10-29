@@ -28,10 +28,14 @@ import {
   type DatoPersonal,
   type DatoPersonalData,
   nombreCompletoDeProgenitor,
+  nombreDeProgenitor,
   padresDeSemilla,
   identidadAlAzar,
   identidadDeHijo,
+  apodoAlAzar,
+  apodoDeId,
   nombreCompleto,
+  nombreCortoDe,
   nombrePermitido,
   registrarNombre,
   origenHeredado,
@@ -109,7 +113,11 @@ const APTITUD_ATLETISMO = 0.15;
 
 export interface Npc {
   id: string;
+  /** Nombre completo. */
   name: string;
+  /** Nombre de pila (compuesto o no) y apodo, si tiene (al azar o puesto por el jugador). */
+  nombrePila?: string;
+  apodo?: string;
   role: NpcRole;
   gender: Gender;
   tags: string[];
@@ -175,13 +183,19 @@ const clamp = (v: number, a = 0, b = 100) => Math.min(b, Math.max(a, v));
  * La identidad de una persona nueva según su origen, sin repetir a nadie del mundo: se permiten dos homónimos como mucho y de «momentos» distintos
  * (15 años o más de diferencia de nacimiento: el hijo se puede llamar como su padre, pero no hay dos «Nicolás Sánchez» en el mismo colegio).
  */
-function nombreUnico(rng: Rng, g: Gender, origen: OrigenFamiliar, edad: number, nacimiento: number, usados: RegistroDeNombres): { identidad: Identidad; completo: string } {
+function nombreUnico(rng: Rng, g: Gender, origen: OrigenFamiliar, edad: number, nacimiento: number, usados: RegistroDeNombres): { identidad: Identidad; completo: string; nombrePila: string; apodo?: string } {
   let identidad = identidadAlAzar(rng, g, origen, { edad });
   for (let i = 0; i < 60 && !nombrePermitido(usados, nombreCompleto(identidad, g), nacimiento); i++) identidad = identidadAlAzar(rng, g, origen, { edad });
   const completo = nombreCompleto(identidad, g);
   registrarNombre(usados, completo, nacimiento);
-  return { identidad, completo };
+  return { identidad, completo, ...datosDeNombre(identidad, completo) };
 }
+
+/** El nombre de pila y el apodo al azar de una identidad (para guardarlos con la persona). */
+const datosDeNombre = (identidad: Identidad, completo: string): { nombrePila: string; apodo?: string } => {
+  const apodo = apodoAlAzar(completo, identidad.pila);
+  return { nombrePila: identidad.pila, ...(apodo ? { apodo } : {}) };
+};
 
 /** El registro de nombres de lo que ya hay (para añadir gente nueva sin repetir). */
 const registroDe = (npcs: readonly Npc[]): RegistroDeNombres => {
@@ -224,7 +238,7 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Re
   // Su origen decide su nombre y apellidos (y los de sus padres); nace en un día cualquiera del año que le corresponde a su edad de competición en el curso que empieza en `day`.
   const rasgos = rasgosAlAzar(rng, { sesgoCaracter: { ambicion: 8, agresividad: 5, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] });
   const nacimiento = primerDiaDelAnio(anioNatural(day) - edad) + rng.int(0, 364);
-  const { identidad, completo: name } = nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados);
+  const { identidad, completo: name, nombrePila, apodo } = nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados);
   const apellido = name.slice(identidad.pila.length + 1);
   const progenitor = (g: Gender): PadreRival => {
     // Los padres del resto del mundo recorren toda la escala de calidad: unos muy buenos, otros flojos.
@@ -246,6 +260,8 @@ function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: Re
   const rival: Npc = {
     id: `rival_${num}`,
     name,
+    nombrePila,
+    ...(apodo ? { apodo } : {}),
     role: 'rival',
     gender,
     tags: ['atleta'],
@@ -328,9 +344,12 @@ function persona(rng: Rng, id: string, role: NpcRole, edad: number, dia: number,
   const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
   const rasgos = rasgosAlAzar(rng);
   const nacimiento = primerDiaDelAnio(anioNatural(dia) - edad) + rng.int(0, 364);
+  const nombre = nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados);
   return {
     id,
-    name: nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados).completo,
+    name: nombre.completo,
+    nombrePila: nombre.nombrePila,
+    ...(nombre.apodo ? { apodo: nombre.apodo } : {}),
     role,
     gender,
     tags,
@@ -406,9 +425,13 @@ function progenitores(ctx: InitContext, usados: RegistroDeNombres): Npc[] {
     // Su nombre y apellidos salen de su origen y de la semilla (los hijos llevan el primer apellido de cada uno).
     const name = nombreCompletoDeProgenitor(ctx.seed, id);
     registrarNombre(usados, name, nacimientoDeProgenitor(ctx.seed, id));
+    const nombrePila = nombreDeProgenitor(ctx.seed, id);
+    const apodo = apodoAlAzar(name, nombrePila);
     return {
       id,
       name,
+      nombrePila,
+      ...(apodo ? { apodo } : {}),
       role: 'familia' as NpcRole,
       gender,
       tags: ['progenitor'],
@@ -470,6 +493,7 @@ function hermanos(ctx: InitContext, usados: RegistroDeNombres): Npc[] {
     for (let i = 0; i < 60 && !nombrePermitido(usados, nombreCompleto(identidad, gender), nacimiento); i++) identidad = identidadDeHijo(rng, gender, padres.padre.identidad, padres.madre.identidad, rasgos.origen, { edad });
     const nombre = nombreCompleto(identidad, gender);
     registrarNombre(usados, nombre, nacimiento);
+    const apodo = apodoAlAzar(nombre, identidad.pila);
     const o = (f: string, m: string) => (gender === 'f' ? f : m);
     const relacion = relacionDeHermano(gender, dif);
     const edadReal = (0 - nacimiento) / 365;
@@ -477,6 +501,8 @@ function hermanos(ctx: InitContext, usados: RegistroDeNombres): Npc[] {
     return {
       id: `hermano_${i + 1}`,
       name: nombre,
+      nombrePila: identidad.pila,
+      ...(apodo ? { apodo } : {}),
       role: 'familia' as NpcRole,
       gender,
       tags: compite ? ['hermano', 'atleta'] : ['hermano'],
@@ -503,9 +529,12 @@ function generarReparto(ctx: InitContext): Npc[] {
     const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
     const extras = extra(gender);
     const nacimiento = nacimientoParaEdad(id, edad);
+    const nombre = nombreUnico(rng, gender, extras.rasgos?.origen ?? [{ id: 'espana_centro', peso: 1 }], edad, nacimiento, usados);
     return {
     id,
-    name: nombreUnico(rng, gender, extras.rasgos?.origen ?? [{ id: 'espana_centro', peso: 1 }], edad, nacimiento, usados).completo,
+    name: nombre.completo,
+    nombrePila: nombre.nombrePila,
+    ...(nombre.apodo ? { apodo: nombre.apodo } : {}),
     role,
     gender,
     tags: [],
@@ -586,9 +615,12 @@ function entrenadoresDeClubes(rng: Rng, usados: RegistroDeNombres): Npc[] {
       const rasgos = rasgosAlAzar(rng, { sesgoCaracter: { disciplina: 15, ambicion: 10, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] });
       const edad = edadAdultaDe(id, 30, 55);
       const nacimiento = nacimientoParaEdad(id, edad);
+      const nombre = nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados);
       return {
         id,
-        name: nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados).completo,
+        name: nombre.completo,
+        nombrePila: nombre.nombrePila,
+        ...(nombre.apodo ? { apodo: nombre.apodo } : {}),
         role: 'entrenador',
         gender,
         tags: ['atletismo', 'mentor'],
@@ -694,6 +726,9 @@ const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
   return {
     id: n.id,
     name: n.name,
+    nombrePila: n.nombrePila,
+    apodo: n.apodo,
+    nombreCorto: nombreCortoDe(n),
     role: n.role,
     gender: n.gender,
     tags: n.tags,
@@ -851,6 +886,29 @@ export const npcs = defineModule<NpcsState>({
 
   initState: (ctx) => ({ npcs: generarTodos(ctx) }),
 
+  // Ponerle (o quitarle) un apodo a alguien que conoces: el texto va en el id de la acción (`idDePonerApodo`).
+  resolverAccion: (ctx, id) => {
+    const partes = id.split('.');
+    if (partes[0] !== 'npcs' || partes[1] !== 'apodo' || partes.length !== 4) return undefined;
+    const n = ctx.state<NpcsState>().npcs.find((x) => x.id === partes[2]);
+    const apodo = apodoDeId(partes[3]);
+    if (!n || apodo === undefined) return undefined;
+    const pila = n.nombrePila ?? n.name.split(' ')[0];
+    return {
+      id,
+      name: apodo ? `Llamarle «${apodo}»` : 'Quitarle el apodo',
+      description: 'Cómo le llamas en los textos. No cambia lo que siente por ti.',
+      tags: [],
+      group: 'Gente',
+      duration: 1,
+      available: () => (n.known === false ? 'Todavía no sabes cómo se llama' : (n.apodo ?? '') === apodo ? 'Ya le llamas así' : true),
+      run: (c) => {
+        c.updateState<NpcsState>((st) => ({ ...st, npcs: st.npcs.map((x) => (x.id === n.id ? (apodo ? { ...x, apodo } : { ...x, apodo: undefined }) : x)) }));
+        c.log(apodo ? `Desde ahora le llamas «${apodo}» a ${pila}.` : `Vuelves a llamarle ${pila}.`, 'info');
+      },
+    };
+  },
+
   on: {
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as { day: number };
@@ -926,7 +984,7 @@ export const npcs = defineModule<NpcsState>({
       const v = vista(n, (ctx.time.week - ctx.time.schoolWeek) * 7, ctx.time.day);
       if (v.sabe?.includes(dato)) return;
       ctx.updateState<NpcsState>((st) => ({ npcs: st.npcs.map((x) => (x.id === npcId ? { ...x, aprendido: [...(x.aprendido ?? []), dato] } : x)) }));
-      const quien = n.name.split(' ')[0];
+      const quien = nombreCortoDe(n);
       const respuesta =
         dato === 'edad' ? `${quien} tiene ${v.edadExacta} años y cumple el ${cumpleaños(n.nacimiento!).texto}.`
         : dato === 'colegio' ? `${quien} va a ${v.colegio === COLEGIO_DEL_PERSONAJE ? 'tu colegio' : v.colegio}.`

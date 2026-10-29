@@ -14,6 +14,7 @@ export const BRITANICA: Cultura = {
       adultos: lista('James, John, David, Michael, Paul, Mark, Andrew, Peter, Stephen, Richard, Simon, Daniel, Christopher, Matthew, Robert, Thomas, Martin, Ian, Gary, Steven, Adam, Ben, Tom, Jonathan, Alan, Keith'),
     },
   },
+  apodos: { William: ['Will', 'Billy'], James: ['Jim', 'Jamie'], Elizabeth: ['Liz', 'Beth'], Thomas: ['Tom', 'Tommy'], Robert: ['Rob', 'Bob'], Michael: ['Mike'], Christopher: ['Chris'], Daniel: ['Dan', 'Danny'], Jonathan: ['Jon'], Matthew: ['Matt'], Andrew: ['Andy'], Stephen: ['Steve'], Richard: ['Rich', 'Dick'], Jessica: ['Jess'], Katie: ['Kat'], Charlotte: ['Charlie', 'Lottie'], Victoria: ['Vicky'], Rebecca: ['Becky'], Alexander: ['Alex'], Benjamin: ['Ben'], Samuel: ['Sam'], Joshua: ['Josh'] },
   apellidos: lista('Smith, Jones, Taylor, Brown, Williams, Wilson, Johnson, Davies, Evans, Thomas, Roberts, Walker, Wright, Robinson, Thompson, White, Hughes, Edwards, Green, Hall, Wood, Harris, Lewis, Martin, Jackson, Clarke, Turner, Hill, Scott, Cooper, Morris, Ward, Moore, King, Watson, Baker, Harrison, Morgan, Patel, Young, Allen, Mitchell, James, Anderson, Phillips, Lee, Bell, Parker, Murphy, Kelly, O\'Brien, Ryan, Walsh'),
   numeroDeApellidos: 1,
 };

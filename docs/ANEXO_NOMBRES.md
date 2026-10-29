@@ -18,15 +18,20 @@ Antes, el origen y el aspecto salían de un sorteo y el nombre de una lista fija
 | Mezcla **sin el origen del país de juego** | Además, un **12 %** de las veces (`PROBABILIDAD_DE_NOMBRE_LOCAL`) el nombre es del país de juego. |
 | Hijo de padres de orígenes distintos | Su origen es la mezcla de los de sus padres, y el nombre sigue la regla de la mezcla. |
 
-- **Compuestos:** José Manuel, María José, Juan Carlos… (lista por cultura, con su probabilidad: en España el 16 % de los adultos y el 3 % de los jóvenes).
-- **Por generación:** cada cultura tiene lista de nombres «jóvenes» (menos de 25 años, `EDAD_DE_NOMBRES_JOVENES`) y de «adultos»; el 85 % de las veces se usa la de su edad. Una madre de 45 años es Patricia o Montserrat; una niña de 9, Lucía o Martina.
+- **Compuestos:** José Manuel, María José, Juan Carlos… (lista por cultura, con su probabilidad: en España el 16 % de los adultos y el 3 % de los jóvenes). **Se muestran enteros** («José Manuel»), no solo la primera palabra.
+- **Por generación (30/10):** cada cultura tiene lista de nombres «jóvenes» y de «adultos». **Los adultos usan la suya** (85 % de las veces; el resto, algún nombre «joven»). **Los niños y las futuras generaciones (menos de 25 años, `EDAD_DE_NOMBRES_JOVENES`) usan la unión de las dos listas sin repetir** (`unidos`), con los de su generación primero: una niña de 9 años puede llamarse Lucía o Patricia, pero Lucía sale más.
 - **Frecuencia:** las listas van del más al menos frecuente y el primero pesa 5 veces lo que el último.
-- `nombreCorto` (cómo le llaman en los textos) es la primera palabra del nombre: «José» para «José Manuel».
+
+### Cómo se le llama: nombre corto y apodo
+
+- `NpcView.nombreCorto` = **el apodo si lo tiene y, si no, el nombre de pila entero** (`nombreCortoDe`). Sale en las acciones («Charlar un rato con José Manuel»), los diarios y los textos. Cada persona guarda `nombrePila` y `apodo`; las partidas guardadas sin ellos usan la primera palabra del nombre.
+- **Apodos al azar:** cada cultura puede dar apodos habituales de un nombre (`Cultura.apodos`: José Manuel → Chema, Josema; Francisco → Paco, Curro; María José → Majo; Mohamed → Momo…). Una persona con un nombre que los tiene lo lleva con un **35 %** (`PROBABILIDAD_DE_APODO`); el sorteo sale de su nombre completo (siempre el mismo, sin gastar azar de la partida).
+- **Apodo del jugador:** en la ficha de cada persona que conoces hay un cuadro «Apodo» (hasta 20 letras; vacío lo quita). Es la acción `npcs.apodo.<persona>.<apodo>` (1 minuto; `idDePonerApodo`, `apodoDeId`) y no cambia la relación.
 
 ## 3. Apellidos
 
-- **Un adulto** lleva los apellidos de su cultura: dos (España, Latinoamérica) o uno (el resto, `numeroDeApellidos`). **Un nacido en el país de juego** lleva los del país (en España, dos: `PaisDeNombres.apellidosDeLosNacidosAqui`), cada uno de un origen de su mezcla (de los dos orígenes si la mezcla tiene dos; si solo hay uno, dos distintos de ese origen).
-- **Los hijos** llevan **el primer apellido del padre y el primero de la madre**. Si la madre es de Europa del este, el segundo apellido del hijo es el de ella («García Kowalski»); no «Robles Martín».
+- **Las personas del mundo** (compañeros, rivales, profesores, vecinos…) llevan los apellidos de su cultura: **dos** (España, Latinoamérica: `Cultura.numeroDeApellidos`) o **uno** (el resto del mundo, **también los niños**: como en la realidad). Una mezcla con un origen hispano lleva dos, uno de cada origen; una mezcla de orígenes no hispanos, uno.
+- **La familia del personaje** (los padres, él y sus hermanos) sigue la regla de España: **los hijos llevan el primer apellido del padre y el primero de la madre** (`PaisDeNombres.apellidosDeLosNacidosAqui`), aunque un padre extranjero tenga solo uno. Si la madre es de Europa del este, el segundo apellido del hijo es el de ella («García Kowalski»); no «Robles Martín».
 - **Forma femenina:** en las culturas eslavas el apellido cambia según el sexo (`Cultura.femenino`: Kowalski → Kowalska, Ivanov → Ivanova). Se guarda la forma de base y se muestra la de cada persona (`formaDeApellido`): la madre es «Kowalska» y su hijo, «Kowalski».
 - Los padres de una semilla no pueden compartir el primer apellido.
 

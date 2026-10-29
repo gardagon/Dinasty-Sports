@@ -1,4 +1,4 @@
-import { culturaPorId, reservaDeNombres, type Cultura } from './culturas';
+import { apodosDe, culturaPorId, reservaDeNombres, type Cultura } from './culturas';
 import { origen, origenAlAzar, origenHeredado, type OrigenFamiliar } from './rasgos';
 import { rngEstable, type Rng } from './rng';
 
@@ -9,9 +9,11 @@ import { rngEstable, type Rng } from './rng';
  * - Un solo origen: nombre y apellidos de ese origen (una cultura de su reserva; el nombre y los apellidos son de la misma).
  * - Una mezcla (padres de orígenes distintos): el nombre sale de uno de los orígenes según su peso y los apellidos, uno de cada. Si la mezcla no
  *   incluye el origen del país de juego, un 12 % de las veces el nombre es del país de juego (`PROBABILIDAD_DE_NOMBRE_LOCAL`).
- * - Los nacidos en el país de juego llevan sus apellidos como allí (en España, dos); los adultos, los de su cultura.
+ * - Los apellidos que lleva cada persona son los de su cultura: **dos** (España, Latinoamérica: el del padre y el de la madre) o **uno** (el resto del
+ *   mundo, también los niños); una mezcla con un origen hispano lleva dos. El personaje y sus hermanos llevan siempre el primero de cada uno de sus padres.
  * - Los hijos llevan el primer apellido del padre y el primero de la madre, con la forma de su sexo (Kowalski / Kowalska).
- * - Nombres compuestos (José Manuel) y nombres por generación (los de los niños no son los de sus padres).
+ * - Nombres compuestos (José Manuel), que se muestran enteros, y apodos (José Manuel → Chema) que pueden salir al azar o poner el jugador.
+ * - Nombres por generación: los adultos usan su lista y los niños, la unión (sin repetir) de las dos, con los de su generación primero.
  */
 
 /** País de juego, en lo que importa a los nombres. Un paquete de país (un dato) define el suyo. */
@@ -55,9 +57,6 @@ export function formaDeApellido(a: ApellidoDe, genero: 'f' | 'm'): string {
 export const apellidosTexto = (apellidos: readonly ApellidoDe[], genero: 'f' | 'm'): string => apellidos.map((a) => formaDeApellido(a, genero)).join(' ');
 export const nombreCompleto = (i: Identidad, genero: 'f' | 'm'): string => `${i.pila} ${apellidosTexto(i.apellidos, genero)}`.trim();
 
-/** El nombre de pila de una persona dado su nombre completo (el primer apellido empieza donde acaba la pila, que puede ser compuesta: «José Manuel García»). */
-export const nombreCorto = (nombre: string): string => nombre.split(' ')[0];
-
 // ---------------------------------------------------------------------------------------------------- sorteos
 
 /** Elige por su posición en una lista ordenada de más a menos frecuente (el primero pesa 5 veces lo que el último). */
@@ -89,15 +88,56 @@ const culturaDeOrigen = (rng: Rng, origenId: string): Cultura => {
   return culturas.length === 1 ? culturas[0] : porPeso(culturas, (c) => c.peso, rng);
 };
 
+/** La lista de los niños: los nombres de su generación y, detrás, los de los adultos que no estén ya (sin repetir). */
+const UNIDAS = new WeakMap<object, readonly string[]>();
+function unidos(listas: Cultura['nombres']['f']): readonly string[] {
+  let u = UNIDAS.get(listas);
+  if (!u) UNIDAS.set(listas, (u = [...new Set([...listas.jovenes, ...listas.adultos])]));
+  return u;
+}
+
 function pilaDe(rng: Rng, cultura: Cultura, genero: 'f' | 'm', edad: number): string {
   const joven = edad < EDAD_DE_NOMBRES_JOVENES;
   if (cultura.compuestos && rng.chance(joven ? cultura.probabilidadDeCompuesto?.jovenes ?? 0 : cultura.probabilidadDeCompuesto?.adultos ?? 0)) return porFrecuencia(cultura.compuestos[genero], rng);
   const listas = cultura.nombres[genero];
-  // Casi siempre los de su generación; algún adulto lleva un nombre «joven» y al revés.
-  const propia = joven ? listas.jovenes : listas.adultos;
-  const otra = joven ? listas.adultos : listas.jovenes;
-  return porFrecuencia(rng.chance(0.85) ? propia : otra, rng);
+  // Los niños (y las futuras generaciones) usan los nombres de todos; los adultos, los suyos (y algún nombre «joven»).
+  if (joven) return porFrecuencia(unidos(listas), rng);
+  return porFrecuencia(rng.chance(0.85) ? listas.adultos : listas.jovenes, rng);
 }
+
+/** Probabilidad de que alguien con un nombre que tiene apodos habituales lo lleve. */
+export const PROBABILIDAD_DE_APODO = 0.35;
+
+/**
+ * Un apodo al azar de los habituales de ese nombre (José Manuel → Chema), o `undefined`. Sale solo de la clave que se dé (el nombre completo o el id):
+ * siempre el mismo para la misma persona, sin gastar azar de la partida.
+ */
+export function apodoAlAzar(clave: string, pila: string): string | undefined {
+  const posibles = apodosDe(pila);
+  if (!posibles.length) return undefined;
+  const rng = rngEstable('apodo', clave);
+  return rng.chance(PROBABILIDAD_DE_APODO) ? rng.pick(posibles) : undefined;
+}
+
+/** Longitud máxima de un apodo. */
+export const LONGITUD_MAXIMA_DE_APODO = 20;
+
+/** El id de la acción de ponerle (o quitarle, con texto vacío) un apodo a alguien: `npcs.apodo.<persona>.<apodo>`. */
+export const idDePonerApodo = (npcId: string, apodo: string): string => `npcs.apodo.${npcId}.${encodeURIComponent(apodo.trim()).replace(/\./g, '%2E')}`;
+
+/** El apodo de un id de acción, o `undefined` si no vale (solo letras, espacios, guiones y apóstrofos, hasta `LONGITUD_MAXIMA_DE_APODO`). Vacío = quitarlo. */
+export function apodoDeId(texto: string): string | undefined {
+  let apodo: string;
+  try {
+    apodo = decodeURIComponent(texto).trim();
+  } catch {
+    return undefined;
+  }
+  return apodo.length <= LONGITUD_MAXIMA_DE_APODO && /^[\p{L}][\p{L} '’-]*$|^$/u.test(apodo) ? apodo : undefined;
+}
+
+/** Cómo se le llama en los textos: el apodo si lo tiene y, si no, el nombre de pila entero («José Manuel»). */
+export const nombreCortoDe = (p: { name: string; nombrePila?: string; apodo?: string }): string => p.apodo || p.nombrePila || p.name.split(' ')[0];
 
 /** De qué origen sale el nombre de pila: el único, el de la mezcla según su peso o, a veces, el del país de juego. */
 function origenDelNombre(rng: Rng, o: OrigenFamiliar, pais: PaisDeNombres): string {
@@ -108,17 +148,14 @@ function origenDelNombre(rng: Rng, o: OrigenFamiliar, pais: PaisDeNombres): stri
 }
 
 export interface OpcionesDeNombre {
-  /** Edad de la persona: decide los nombres de su generación y si lleva los apellidos de su cultura o los del país de juego. */
+  /** Edad de la persona: decide los nombres de su generación. */
   edad: number;
   pais?: PaisDeNombres;
 }
 
-/** Edad desde la que se considera que alguien no ha nacido «aquí» y lleva los apellidos de su cultura. */
-const EDAD_DE_ADULTO = 18;
-
 /**
  * La identidad de una persona del mundo (un adulto o un niño) según su origen. El nombre sale del origen (o, en una mezcla sin el del país de
- * juego, a veces del país de juego) y los apellidos, uno de cada origen de la mezcla.
+ * juego, a veces del país de juego) y los apellidos, uno de cada origen de la mezcla (o los de su cultura: uno o dos).
  */
 export function identidadAlAzar(rng: Rng, genero: 'f' | 'm', o: OrigenFamiliar, { edad, pais = PAIS_ESPANA }: OpcionesDeNombre): Identidad {
   const culturas = new Map<string, Cultura>();
@@ -126,11 +163,11 @@ export function identidadAlAzar(rng: Rng, genero: 'f' | 'm', o: OrigenFamiliar, 
   const origenNombre = origenDelNombre(rng, o, pais);
   const cultNombre = de(origenNombre);
   const pila = pilaDe(rng, cultNombre, genero, edad);
-  // Los adultos llevan los apellidos de su cultura (uno o dos); los nacidos aquí, los del país de juego.
-  const numero = edad >= EDAD_DE_ADULTO ? cultNombre.numeroDeApellidos : pais.apellidosDeLosNacidosAqui;
   // De qué origen sale cada apellido: el único, o uno de cada origen de la mezcla (el primero, el del nombre).
   const primero = o.some((x) => x.id === origenNombre) ? origenNombre : o[0].id;
   const origenes = [primero, ...o.map((x) => x.id).filter((id) => id !== primero)];
+  // Dos apellidos si algún origen es hispano (el del padre y el de la madre); uno si no (también los niños de origen extranjero).
+  const numero = origenes.some((id) => de(id).numeroDeApellidos === 2) ? 2 : 1;
   const apellidos: ApellidoDe[] = [];
   for (let i = 0; i < numero; i++) {
     const c = de(origenes[i % origenes.length]);

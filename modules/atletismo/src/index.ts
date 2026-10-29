@@ -382,6 +382,8 @@ const CARRERAS_CON_CABEZAS = 8;
 interface Corredor {
   npcId?: string;
   name: string;
+  /** Cómo se le llama en los textos (su apodo o su nombre de pila). */
+  corto?: string;
   club?: string;
   level: number;
 }
@@ -472,7 +474,7 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
   const conocidos: Corredor[] = npcs
     ? npcs
         .list({ tag: 'atleta', minAge: competida.edadMin, maxAge: competida.edadMax })
-        .map((n) => ({ npcId: n.id, name: n.name, club: n.club, level: n.levels.atletismo ?? 30 }))
+        .map((n) => ({ npcId: n.id, name: n.name, corto: n.nombreCorto, club: n.club, level: n.levels.atletismo ?? 30 }))
     : [];
   const estado = ctx.state<AtletismoState>();
   const previa = estado.ultimaCarreraRival ?? {};
@@ -566,7 +568,7 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
       const reservas = rivalesDe(series.flatMap((serie) => serie.slice(CLASIFICADOS_POR_SERIE, CLASIFICADOS_POR_SERIE + RESERVAS_POR_SERIE)).sort((a, b) => a.mark - b.mark));
       ctx.setState<AtletismoState>({ ...base, campeonatos: resultados, campeonato: { curso: t.schoolYear, clasificado, finalistas, reservas } });
       const otra = series.find((serie) => serie !== miSerie);
-      const pasanDeLaOtra = otra ? otra.slice(0, CLASIFICADOS_POR_SERIE).map((c) => c.name.split(' ')[0]).join(', ') : '';
+      const pasanDeLaOtra = otra ? otra.slice(0, CLASIFICADOS_POR_SERIE).map((c) => c.corto ?? c.name.split(' ')[0]).join(', ') : '';
       cierre =
         (clasificado
           ? ` ¡Te clasificas para la final del campeonato de España, el sábado de la semana ${SEMANA_FINAL + 1}!`
@@ -966,7 +968,7 @@ export const atletismo = defineModule<AtletismoState>({
         if (!entrenador) return 'Todavía no conoces a tu entrenador';
         const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
         // Sin el módulo de presencia no se comprueba. Con él, el entrenador tiene que estar en su sitio (no ocupado en la sesión).
-        if (presencia && presencia.donde(entrenador.id) !== sedeDelClub(ctx)[0]) return `${entrenador.name.split(' ')[0]} ahora no está disponible: búscalo antes o después de la sesión`;
+        if (presencia && presencia.donde(entrenador.id) !== sedeDelClub(ctx)[0]) return `${entrenador.nombreCorto} ahora no está disponible: búscalo antes o después de la sesión`;
         return true;
       },
       delta: { [GEN.energia]: -1 },
@@ -980,7 +982,7 @@ export const atletismo = defineModule<AtletismoState>({
         ctx.train(habilidad, HABILIDAD_POR_CONSEJO * ctx.efficiency);
         ctx.updateState<AtletismoState>((s) => ({ ...s, ultimoConsejo: ctx.time.day }));
         const entrenador = entrenadorDelJugador(ctx);
-        ctx.log(`${entrenador ? entrenador.name.split(' ')[0] : 'Tu entrenador'} te da un consejo para mejorar tu ${NOMBRE_DE_HABILIDAD[habilidad]}.`, 'info');
+        ctx.log(`${entrenador ? entrenador.nombreCorto : 'Tu entrenador'} te da un consejo para mejorar tu ${NOMBRE_DE_HABILIDAD[habilidad]}.`, 'info');
       },
     },
     {

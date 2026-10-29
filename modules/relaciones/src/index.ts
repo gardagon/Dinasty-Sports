@@ -187,7 +187,7 @@ const fueraDeClase = (desde: number, hasta: number, recreo = false) => (ctx: Rea
 /** El horario de las preguntas y las propuestas (se crea una sola vez: se evalúa en cada acción). */
 const HORARIO_DE_PREGUNTAS = fueraDeClase(8, 22, true);
 
-const nombreCorto = (n: NpcView) => n.name.split(' ')[0];
+const nombreCorto = (n: NpcView) => n.nombreCorto;
 
 const NUMERO = ['', 'un', 'dos', 'tres', 'cuatro', 'cinco'];
 /** «Ana, Víctor y Marta». */
@@ -1101,7 +1101,7 @@ export const relaciones = defineModule<RelacionesState>({
         const n = dir?.get(action.id.split('.').pop()!);
         if (!n?.rasgos || !yo) return null;
         const f = factorDeCompatibilidad(compatibilidad(n.rasgos, yo));
-        return Math.abs(f - 1) < 0.02 ? null : { efficiency: f, reason: `Compatibilidad con ${n.name.split(' ')[0]}` };
+        return Math.abs(f - 1) < 0.02 ? null : { efficiency: f, reason: `Compatibilidad con ${n.nombreCorto}` };
       },
     },
     {
@@ -1129,7 +1129,7 @@ export const relaciones = defineModule<RelacionesState>({
         const n = dir?.get(p.npc);
         if (!n) return null;
         const { factor, motivo } = disposicion(n.rasgos, perfil, usoDelAspecto(edad, n.age));
-        return Math.abs(factor - 1) < 0.02 ? null : { efficiency: factor, reason: `${motivo ?? 'Su forma de ser'} (${n.name.split(' ')[0]})` };
+        return Math.abs(factor - 1) < 0.02 ? null : { efficiency: factor, reason: `${motivo ?? 'Su forma de ser'} (${n.nombreCorto})` };
       },
     },
     {

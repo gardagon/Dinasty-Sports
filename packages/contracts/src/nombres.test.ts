@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { reservaDeNombres, type Cultura } from './culturas';
+import { apodosDe, reservaDeNombres, type Cultura } from './culturas';
 import {
   PAIS_ESPANA,
+  PROBABILIDAD_DE_APODO,
   PROBABILIDAD_DE_NOMBRE_LOCAL,
+  apodoAlAzar,
+  apodoDeId,
+  idDePonerApodo,
+  nombreCortoDe,
   formaDeApellido,
   identidadAlAzar,
   identidadDeHijo,
@@ -62,14 +67,22 @@ describe('identidad según el origen', () => {
     }
   });
 
-  it('un adulto lleva los apellidos de su cultura (uno o dos) y un niño nacido aquí, dos', () => {
-    for (const i of sorteos('europa_este', 'm', 40)) expect(i.apellidos).toHaveLength(1);
-    for (const i of sorteos('espana_sur', 'f', 40)) expect(i.apellidos).toHaveLength(2);
-    for (const i of sorteos('europa_este', 'm', 10)) {
-      expect(i.apellidos).toHaveLength(2);
-      expect(i.apellidos[0].base).not.toBe(i.apellidos[1].base);
+  it('los de origen hispano llevan dos apellidos y los de origen extranjero uno, también los niños; una mezcla con un origen hispano, dos', () => {
+    for (const edad of [10, 40]) {
+      for (const i of sorteos('europa_este', 'm', edad)) expect(i.apellidos).toHaveLength(1);
+      for (const i of sorteos('magreb', 'f', edad)) expect(i.apellidos).toHaveLength(1);
+      for (const i of sorteos('asia_oriental', 'm', edad)) expect(i.apellidos).toHaveLength(1);
+      for (const origenId of ['espana_sur', 'latinoamerica']) {
+        for (const i of sorteos(origenId, 'f', edad)) {
+          expect(i.apellidos).toHaveLength(2);
+          expect(i.apellidos[0].base).not.toBe(i.apellidos[1].base);
+        }
+      }
     }
-    for (const i of sorteos('magreb', 'f', 10)) expect(i.apellidos).toHaveLength(2);
+    for (let k = 0; k < 100; k++) {
+      expect(identidadAlAzar(rngEstable('mix2', k), 'm', [{ id: 'espana_sur', peso: 0.5 }, { id: 'magreb', peso: 0.5 }], { edad: 10 }).apellidos).toHaveLength(2);
+      expect(identidadAlAzar(rngEstable('mix1', k), 'm', [{ id: 'asia_oriental', peso: 0.5 }, { id: 'magreb', peso: 0.5 }], { edad: 10 }).apellidos).toHaveLength(1); // dos orígenes extranjeros: uno
+    }
   });
 
   it('las mujeres eslavas llevan el apellido en femenino (Kowalski → Kowalska) y los hombres, el de base', () => {
@@ -89,14 +102,54 @@ describe('identidad según el origen', () => {
     expect(compuestos(9)).toBeLessThan(60);
   });
 
-  it('los nombres cambian con la generación: los de los niños no son los de sus padres', () => {
+  it('los niños usan los nombres de todos (jóvenes y adultos, sin repetir) y los adultos, sobre todo los suyos', () => {
     const [espana] = culturasDe('espana_centro');
     const solo = (xs: readonly string[]) => new Set(xs);
     const exclusivosAdultos = espana.nombres.f.adultos.filter((n) => !solo(espana.nombres.f.jovenes).has(n));
-    const ninas = sorteos('espana_centro', 'f', 9, 600).filter((i) => !i.pila.includes(' '));
-    const madres = sorteos('espana_centro', 'f', 45, 600).filter((i) => !i.pila.includes(' '));
-    const frac = (xs: typeof ninas) => xs.filter((i) => exclusivosAdultos.includes(i.pila)).length / xs.length;
-    expect(frac(madres)).toBeGreaterThan(frac(ninas) * 2);
+    const exclusivosJovenes = espana.nombres.f.jovenes.filter((n) => !solo(espana.nombres.f.adultos).has(n));
+    const ninas = sorteos('espana_centro', 'f', 9, 3000).filter((i) => !i.pila.includes(' '));
+    const madres = sorteos('espana_centro', 'f', 45, 3000).filter((i) => !i.pila.includes(' '));
+    const cuantos = (xs: typeof ninas, lista: string[]) => xs.filter((i) => lista.includes(i.pila)).length;
+    // Una niña puede llamarse como una madre (Patricia, Montserrat) y una madre como una niña; los de cada generación salen más en la suya.
+    expect(cuantos(ninas, exclusivosAdultos)).toBeGreaterThan(0);
+    expect(cuantos(madres, exclusivosJovenes)).toBeGreaterThan(0);
+    expect(cuantos(madres, exclusivosAdultos) / madres.length).toBeGreaterThan(cuantos(ninas, exclusivosAdultos) / ninas.length);
+    expect(cuantos(ninas, exclusivosJovenes) / ninas.length).toBeGreaterThan(cuantos(madres, exclusivosJovenes) / madres.length);
+  });
+
+  it('los nombres compuestos se quedan enteros y tienen apodo habitual (José Manuel → Chema); sale al azar y siempre el mismo para la misma persona', () => {
+    expect(apodosDe('José Manuel')).toContain('Chema');
+    expect(apodosDe('Mohamed')).toContain('Momo');
+    expect(apodosDe('Nombre Inexistente')).toEqual([]);
+    expect(apodoAlAzar('x', 'Nombre Inexistente')).toBeUndefined();
+    let con = 0;
+    for (let k = 0; k < 1000; k++) {
+      const a = apodoAlAzar(`José Manuel Gil ${k}`, 'José Manuel');
+      expect(apodoAlAzar(`José Manuel Gil ${k}`, 'José Manuel')).toBe(a);
+      if (a) {
+        con++;
+        expect(apodosDe('José Manuel')).toContain(a);
+      }
+    }
+    expect(con / 1000).toBeGreaterThan(PROBABILIDAD_DE_APODO - 0.07);
+    expect(con / 1000).toBeLessThan(PROBABILIDAD_DE_APODO + 0.07);
+  });
+
+  it('cómo se le llama en los textos: el apodo y, si no, el nombre de pila entero (no solo la primera palabra)', () => {
+    expect(nombreCortoDe({ name: 'José Manuel García López', nombrePila: 'José Manuel' })).toBe('José Manuel');
+    expect(nombreCortoDe({ name: 'José Manuel García López', nombrePila: 'José Manuel', apodo: 'Chema' })).toBe('Chema');
+    expect(nombreCortoDe({ name: 'Marta Gil Sanz' })).toBe('Marta'); // partidas guardadas sin nombre de pila
+  });
+
+  it('el apodo viaja en el id de la acción: se codifica, solo vale con letras (hasta 20) y vacío es quitarlo', () => {
+    expect(idDePonerApodo('alumno_3', 'Chema')).toBe('npcs.apodo.alumno_3.Chema');
+    expect(apodoDeId(idDePonerApodo('x', ' Pepe Luis ').split('.')[3])).toBe('Pepe Luis');
+    expect(apodoDeId(idDePonerApodo('x', 'J.R.').split('.')[3])).toBeUndefined(); // los puntos no valen
+    expect(apodoDeId('')).toBe('');
+    expect(apodoDeId(encodeURIComponent('Ñoño-ñ'))).toBe('Ñoño-ñ');
+    expect(apodoDeId(encodeURIComponent('a'.repeat(21)))).toBeUndefined();
+    expect(apodoDeId(encodeURIComponent('<b>'))).toBeUndefined();
+    expect(apodoDeId('%E0%A4%A')).toBeUndefined();
   });
 
   it('en una mezcla el nombre es de uno de los orígenes y los apellidos, uno de cada', () => {

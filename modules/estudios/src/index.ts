@@ -317,7 +317,7 @@ const tutoria = (a: Asignatura): ActionDef => ({
     ctx.train(statId(a.key), RENDIMIENTO_TUTORIA * factorDeAptitud(ctx, a.key));
     ctx.updateState<EstudiosState>((st) => ({ ...st, ultimaTutoria: { ...st.ultimaTutoria, [a.key]: ctx.time.day } }));
     const profe = profesorEnLaSala(ctx, a.key);
-    ctx.log(`${profe ? profe.name.split(' ')[0] : 'El profesor'} te dedica un rato de tutoría de ${a.name.toLowerCase()}.`, 'info');
+    ctx.log(`${profe ? profe.nombreCorto : 'El profesor'} te dedica un rato de tutoría de ${a.name.toLowerCase()}.`, 'info');
   },
 });
 

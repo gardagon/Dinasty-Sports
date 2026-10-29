@@ -30,5 +30,10 @@ export function registrarReserva(id: string, culturas: readonly Cultura[]): void
   RESERVAS[id] = culturas;
 }
 
+/** Los apodos habituales de un nombre de pila (de cualquier cultura): vacío si no hay. */
+export function apodosDe(pila: string): readonly string[] {
+  return Object.values(RESERVAS).flat().flatMap((c) => c.apodos?.[pila] ?? []);
+}
+
 /** Una cultura por su id (en cualquier reserva). */
 export const culturaPorId = (id: string): Cultura | undefined => Object.values(RESERVAS).flat().find((c) => c.id === id);
