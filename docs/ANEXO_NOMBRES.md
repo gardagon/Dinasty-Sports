@@ -55,18 +55,10 @@ Se permiten, con límites (`nombrePermitido`, `RegistroDeNombres`): **como mucho
 
 Cada lista es un texto separado por comas (`lista('a, b, c')`): se pueden añadir o quitar nombres sin tocar el código. `registrarReserva(id, culturas)` añade o sustituye una reserva (lo usará un paquete de país o un mod).
 
-## 6. Países (plan, fase 2)
+## 6. Países (hecho, fase 2)
 
-Hoy el país es solo una etiqueta (el selector de «Nueva partida» está desactivado en España). **Lo que cambia con el país**: la demografía de orígenes (`ORIGENES.frecuencia`), qué orígenes son «locales» (`PaisDeNombres.origenesLocales`), la convención de apellidos de los nacidos allí y, a más largo plazo, calendario, currículo y categorías deportivas.
+El país se elige al crear la partida, se guarda en ella (`GameState.pais`) y **cambia la gente**: la **demografía** de orígenes (`PaisDef.demografia`, que sustituye a `ORIGENES.frecuencia`), los orígenes **locales** (de donde sale el nombre «local» de las mezclas), los **nombres y apellidos** (cada paquete añade sus culturas y orígenes) y cuántos **apellidos** llevan los nacidos allí (en España 2; en **Argentina e Inglaterra, 1: el del padre**, también el personaje y sus hermanos). Todo lo que define un país —calendario, currículo, categorías, horarios— y cómo importar paquetes está en **`PAQUETES_DE_PAIS.md`**.
 
-**Paquetes de país (addons importables).** Idea del usuario: cada país es un paquete de datos que se puede importar, igual que los deportes, para no cargar todos los países en cada partida. Un paquete contiene:
-
-1. **Identidad:** id, nombre, idioma de los textos.
-2. **Demografía:** pesos de los orígenes del país y los orígenes «locales».
-3. **Nombres y apellidos:** las culturas que añade (o sustituye) en `registrarReserva`.
-4. **Calendario escolar** (`CalendarioPais`), **currículo** (asignaturas por curso), **categorías deportivas por edad**, **horarios** de colegios y comercios, **festivos**.
-5. **Convención de apellidos** de los nacidos allí.
-
-**Primera tanda decidida (29/10):** **España**, **Argentina** y quizá **Inglaterra**. Para cada país nuevo se **copia primero lo de España con el nombre del país** (calendario, currículo, categorías…) para que después solo haya que cambiar los datos sin tocar el código; las partidas nuevas eligen el país y lo guardan en el estado (las antiguas son España). Lo que no tenga paquete usa el de España.
-
-Estado: la fase 1 (este anexo, §1–§5) está hecha; los paquetes de país, el selector activo y el guardado del país en la partida son la fase 2.
+- **Argentina:** culturas «criolla» e «italiana» (nombres argentinos; apellidos españoles/de la región o italianos), origen propio (aspecto), demografía con mayoría argentina.
+- **Inglaterra:** británicos, Asia del sur (india/sikh —«Singh» pasa a «Kaur» en las mujeres— y paquistaní/bangladesí), afrocaribeños británicos y el resto de orígenes con su peso.
+- Los orígenes que añade un paquete llevan `frecuencia: 0` (su peso está en la demografía de su país): así no cambian la población de España.

@@ -4,7 +4,7 @@ RPG de decisiones (deporte + vida escolar) en TypeScript, monorepo con npm works
 Lee `docs/ARQUITECTURA.md` antes de cambios grandes y `docs/DECISIONES.md` para el contexto y lo pendiente.
 Los horarios de las personas (dónde está cada una a cada hora) y la población prevista de PNJs están en `docs/ANEXO_HORARIOS_PNJ.md`: si cambias un horario, cambia el anexo y `packages/contracts/src/agendas.ts`.
 Las cifras de las relaciones (cuánto sube cada acción, habilidades y gustos que influyen, estados) están en `docs/ANEXO_RELACIONES.md`: si cambias una, actualiza el anexo.
-Los nombres, apellidos y orígenes de las personas (listas por cultura, reglas de mezcla, homónimos, paquetes de país) están en `docs/ANEXO_NOMBRES.md`: si cambias una regla o una lista, actualiza el anexo.
+Los nombres, apellidos y orígenes de las personas (listas por cultura, reglas de mezcla, homónimos) están en `docs/ANEXO_NOMBRES.md`, y lo que cambia de un país a otro (paquetes de país: calendario, currículo, categorías, horarios, gente) en `docs/PAQUETES_DE_PAIS.md`: si cambias una regla o un dato, actualiza el anexo.
 La pestaña del deporte y las reglas de las clasificaciones (puntos por puesto, qué se guarda) están en `docs/ANEXO_DEPORTE.md`.
 Cuando tomes una decisión de diseño o de balance, añade una entrada en `docs/DECISIONES.md`.
 

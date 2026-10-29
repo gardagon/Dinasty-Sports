@@ -30,8 +30,9 @@ import {
   nombreEstado,
   type StudiesService,
   type ApellidoPrincipal,
-  PAISES_DE_PARTIDA,
+  existePais,
   identidadDeJugador,
+  paisPorId,
   idDePonerApodo,
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
@@ -40,6 +41,7 @@ import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
 import { reclamarPestana } from './pestana';
+import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles } from './paquetes';
 import { crearAlmacen, deJSON, pedirAlmacenamientoPersistente, serializarPartida, type AgendaItem, type Almacen } from './almacen';
 
 /**
@@ -68,7 +70,7 @@ let pantalla: Pantalla = 'menu';
 let enMenu = true;
 const sortearSemilla = (): number => 1 + Math.floor(Math.random() * 0x7ffffffe);
 /** La partida que se está creando: la semilla decide el nombre, los apellidos y los padres; «volver a sortear» es otra semilla. */
-let nueva: { seed: number; principal: ApellidoPrincipal } = { seed: sortearSemilla(), principal: 'padre' };
+let nueva: { seed: number; principal: ApellidoPrincipal; pais: string } = { seed: sortearSemilla(), principal: 'padre', pais: 'espana' };
 let avisoDeSalir = false;
 
 const app = document.getElementById('app')!;
@@ -139,11 +141,20 @@ function descartarPartida(): void {
   void almacen?.borrar().catch(() => undefined);
 }
 
+/** Aviso en la pantalla inicial si la partida guardada es de un país cuyo paquete no está cargado (no se borra: se puede importar y volver). */
+let avisoDePaisFaltante = '';
+
 async function load(): Promise<void> {
   try {
     const texto = await almacen!.cargar();
     if (!texto) return;
     const data = deJSON(texto);
+    try {
+      comprobarPais(data.state);
+    } catch (e) {
+      avisoDePaisFaltante = e instanceof Error ? e.message : String(e);
+      return;
+    }
     // El estado acaba de salir del texto y no lo usa nadie más: no hace falta copiarlo.
     game = cargarPartida(data.state, undefined, { copiar: false });
     agenda = data.agenda;
@@ -165,6 +176,30 @@ function exportarPartida(): void {
   setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
 }
 
+/** Importa un paquete de país de un archivo JSON (se valida, se guarda en el navegador y queda entre los países que se pueden elegir). */
+function importarPaqueteDeArchivo(): void {
+  const entrada = document.createElement('input');
+  entrada.type = 'file';
+  entrada.accept = 'application/json,.json';
+  entrada.onchange = async () => {
+    const archivo = entrada.files?.[0];
+    if (!archivo) return;
+    try {
+      const pais = importarPaquete(await archivo.text());
+      alert(`País «${pais.nombre}» importado. Ya lo puedes elegir al crear una partida.`);
+      render();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo importar el paquete.');
+    }
+  };
+  entrada.click();
+}
+
+/** Una partida de un país cuyo paquete no está cargado no se puede abrir (se jugaría con España sin saberlo). */
+function comprobarPais(estado: { pais?: string }): void {
+  if (estado.pais && !existePais(estado.pais)) throw new Error(`Esta partida es del país «${estado.pais}», que no está cargado: impórtalo desde Opciones («Importar un paquete de país») y vuelve a abrirla.`);
+}
+
 function importarPartida(): void {
   if (game && !confirm('Importar una copia sustituye la partida actual. ¿Seguir?')) return;
   const entrada = document.createElement('input');
@@ -175,6 +210,7 @@ function importarPartida(): void {
     if (!archivo) return;
     try {
       const data = deJSON(await archivo.text());
+      comprobarPais(data.state);
       game = cargarPartida(data.state, undefined, { copiar: false });
       empezarAJugar(data.agenda);
     } catch (e) {
@@ -218,6 +254,7 @@ function viewMenu(): string {
   return `<main class="app"><section class="start">
     <h1>Dinasty Sports</h1>
     <p>Un curso escolar, un deporte y cada hora cuenta. Decide en qué inviertes tu tiempo.</p>
+    ${avisoDePaisFaltante ? `<p class="note loss">${esc(avisoDePaisFaltante)}</p>` : ''}
     ${avisoPartidaAntigua ? '<p class="note">Tu partida guardada era de una versión anterior y ya no se puede cargar (estamos en fase alfa y el juego cambia mucho). Empieza una nueva.</p>' : ''}
     <div class="menu">
       <button class="primary" data-act="ir-nueva">Nueva partida</button>
@@ -232,23 +269,27 @@ function viewMenu(): string {
 }
 
 function viewNueva(): string {
-  const id = identidadDeJugador(nueva.seed, nueva.principal);
+  const id = identidadDeJugador(nueva.seed, nueva.principal, paisPorId(nueva.pais));
   const apellido = (quien: ApellidoPrincipal, texto: string, nombre: string) =>
     `<button type="button" class="opcion" data-act="principal" data-quien="${quien}" aria-pressed="${nueva.principal === quien}"><b>${esc(nombre)}</b><small>${texto}</small></button>`;
   return `<main class="app"><section class="start">
     <h1>Nueva partida</h1>
     <label for="pais">País</label>
-    <select id="pais" disabled>${PAISES_DE_PARTIDA.map((p) => `<option>${esc(p.nombre)}</option>`).join('')}</select>
+    <select id="pais">${paisesElegibles().map((p) => `<option value="${esc(p.id)}"${p.id === nueva.pais ? ' selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
     <label for="sexo">Sexo</label>
     <select id="sexo" disabled><option>Masculino</option></select>
-    <p class="note">De momento solo hay personaje masculino y el calendario de España.</p>
+    <p class="note">De momento solo hay personaje masculino. La gente (nombres, orígenes y aspecto) es del país que elijas; el calendario, el currículo, las categorías y los horarios de otros países son, por ahora, copia de los de España. Puedes importar más países desde Opciones.</p>
     <label>Nombre</label>
     <p class="nombre-sorteado">${esc(id.nombre)}</p>
-    <label>Apellido principal</label>
+    ${
+      paisPorId(nueva.pais).apellidosDeLosNacidosAqui === 1
+        ? `<label>Apellido</label><p class="nombre-sorteado">${esc(id.delPadre)} <small>el de tu padre (aquí se lleva un solo apellido)</small></p>`
+        : `<label>Apellido principal</label>
     <div class="opciones">
       ${apellido('padre', 'primer apellido de tu padre', id.delPadre)}
       ${apellido('madre', 'primer apellido de tu madre', id.delMadre)}
-    </div>
+    </div>`
+    }
     <p class="te-llamaras">Te llamarás <b>${esc(id.completo)}</b></p>
     <button type="button" class="menu-boton" data-act="sortear">Volver a sortear nombre y apellidos</button>
     <button type="button" class="primary" data-act="empezar">Empezar el curso</button>
@@ -261,7 +302,9 @@ function viewOpciones(): string {
   return `<main class="app"><section class="start">
     <h1>Opciones</h1>
     <p>Aún no hay muchas: el juego está en fase alfa.</p>
+    <p class="note">Países disponibles: ${paisesElegibles().map((p) => esc(p.nombre) + (idsImportados().includes(p.id) ? ' (importado)' : '')).join(', ')}.</p>
     <div class="menu">
+      <button class="menu-boton" data-act="importar-pais">Importar un paquete de país (.json)</button>
       <button class="menu-boton" data-act="exportar"${game ? '' : ' disabled'}>Descargar una copia de seguridad</button>
       <button class="menu-boton" data-act="borrar"${game ? '' : ' disabled'}>Borrar la partida guardada</button>
     </div>
@@ -730,6 +773,12 @@ app.addEventListener('input', (e) => {
 // Los desplegables del formulario de «Proponer quedar para…» (cada cambio redibuja la ficha).
 app.addEventListener('change', (e) => {
   const el = e.target as HTMLElement;
+  // El país de la nueva partida: cambia los padres (orígenes, nombres y apellidos) que salen de la semilla.
+  if (el instanceof HTMLSelectElement && el.id === 'pais') {
+    nueva.pais = el.value;
+    render();
+    return;
+  }
   if (el instanceof HTMLSelectElement && game && cambioEnGente(el)) render();
 });
 
@@ -794,9 +843,12 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
       render();
       return true;
     case 'ir-nueva':
-      nueva = { seed: sortearSemilla(), principal: 'padre' };
+      nueva = { seed: sortearSemilla(), principal: 'padre', pais: nueva.pais };
       pantalla = 'nueva';
       render();
+      return true;
+    case 'importar-pais':
+      importarPaqueteDeArchivo();
       return true;
     case 'ir-opciones':
       pantalla = 'opciones';
@@ -821,7 +873,7 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
         return true;
       }
       if (game && !confirm('Empezar una partida nueva sustituye la guardada. ¿Seguir?')) return true;
-      game = nuevaPartida({ seed: nueva.seed, playerName: identidadDeJugador(nueva.seed, nueva.principal).completo });
+      game = nuevaPartida({ seed: nueva.seed, pais: nueva.pais, playerName: identidadDeJugador(nueva.seed, nueva.principal, paisPorId(nueva.pais)).completo });
       empezarAJugar();
       return true;
     case 'borrar':
@@ -865,6 +917,8 @@ function empezarAJugar(agendaGuardada: AgendaItem[] = []): void {
 async function iniciar(): Promise<void> {
   app.innerHTML = '<main class="app"><p class="note">Cargando…</p></main>';
   almacen = await crearAlmacen();
+  // Los paquetes de país que importó el jugador se vuelven a registrar antes de abrir la partida (puede ser de uno de ellos).
+  for (const aviso of cargarPaquetesGuardados()) console.warn(aviso);
   // Si la partida ya está abierta en otra pestaña, esta no guarda; cuando la otra se cierre, se recarga con lo último guardado.
   esPrincipal = await reclamarPestana(() => location.reload());
   await load();

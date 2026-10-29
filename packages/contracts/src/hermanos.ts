@@ -21,6 +21,8 @@ export function apellidosDePadres(seed: number, pais?: PaisDeNombres): { padre: 
 /** Los apellidos de un hijo: el primero del padre y el primero de la madre, con la forma de su sexo (por defecto, la masculina). */
 export function apellidosDeFamilia(seed: number, genero: 'f' | 'm' = 'm', pais?: PaisDeNombres): string {
   const { padre, madre } = padresDeSemilla(seed, pais);
+  // Donde los nacidos llevan un solo apellido (Argentina, Inglaterra), el del padre.
+  if (pais?.apellidosDeLosNacidosAqui === 1) return formaDeApellido(padre.identidad.apellidos[0], genero);
   return [formaDeApellido(padre.identidad.apellidos[0], genero), formaDeApellido(madre.identidad.apellidos[0], genero)].join(' ');
 }
 
@@ -49,7 +51,9 @@ export function identidadDeJugador(seed: number, principal: ApellidoPrincipal = 
   const hijo = identidadDeHijo(rngEstable('nombre', seed, 'jugador'), 'm', padre.identidad, madre.identidad, origenDeJugador(seed, pais), { edad: 8, pais });
   const delPadre = formaDeApellido(padre.identidad.apellidos[0], 'm');
   const delMadre = formaDeApellido(madre.identidad.apellidos[0], 'm');
-  const apellidos = principal === 'padre' ? `${delPadre} ${delMadre}` : `${delMadre} ${delPadre}`;
+  // Con un solo apellido por persona (Argentina, Inglaterra) el personaje lleva el de su padre; con dos, el principal va primero.
+  const unico = pais?.apellidosDeLosNacidosAqui === 1;
+  const apellidos = unico ? delPadre : principal === 'padre' ? `${delPadre} ${delMadre}` : `${delMadre} ${delPadre}`;
   return { nombre: hijo.pila, delPadre, delMadre, apellidos, completo: `${hijo.pila} ${apellidos}` };
 }
 

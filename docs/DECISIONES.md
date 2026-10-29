@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Países como paquetes de datos importables (fase 2)
+
+Pedido por el usuario: «todo lo que pueda cambiar, como calendarios y cosas así, haz una copia de lo que hay en España, con el nombre del país, para que en un futuro solo haya que cambiar estos datos para partidas nuevas… planificarlo como addons que podamos importar, como los deportes: no cargar todos los países para poder jugar en todo el mundo». Países de la primera tanda: **España, Argentina y quizá Inglaterra** (Marruecos descartado). Documentado en `PAQUETES_DE_PAIS.md`.
+
+- **`PaisDef`** (contracts, JSON serializable): calendario, cursos, categorías por deporte, horarios por lugar, demografía de orígenes, orígenes locales, apellidos de los nacidos allí, y (opcional) orígenes y reservas de nombres propios. `copiaDeEspana(id, nombre, cambios)` crea un paquete nuevo como copia de España con su nombre; `validarPais` / `registrarPais` / `importarPais` (JSON) lo comprueban y registran, con los errores en español.
+- **Motor:** `GameState.pais` (`SAVE_VERSION` 16), `Game.create({ pais })`, `ctx.pais` y `ctx.timeAt(minuto)` (el calendario del país). Los módulos leen `ctx.pais`: **estudios** (cursos y curso de modalidad), **atletismo** (categorías), **lugares** (horarios por país en el servicio `lugares`) y **npcs/familia** (demografía, nombres). Se movieron a contracts el currículo de España (`CURSOS_ESPANA`), las categorías (`CATEGORIAS_ESPANA`) y los horarios (`HORARIOS_DE_ESPANA`).
+- **Argentina e Inglaterra:** la gente es propia (demografía, culturas de nombres, aspecto, **un solo apellido**: el del padre, también para el personaje y sus hermanos) y calendario, currículo, categorías y horarios son **copia de España** con su nombre, listos para ir cambiándolos.
+- **Interfaz:** el selector de país de «Nueva partida» está activo (cambia los padres, nombres y apellidos de la semilla); en «Opciones», «Importar un paquete de país (.json)» (se guarda en el navegador y se registra al arrancar). Una partida de un país no cargado no se abre ni se borra: se avisa.
+- **Pendiente (en `PAQUETES_DE_PAIS.md` §5):** jornada escolar y agendas de las personas por país, catálogo de asignaturas por país, festivos, moneda, textos en otros idiomas, mapa distinto, guardar los paquetes importados con las copias de seguridad, y los datos reales de calendario/currículo/categorías de Argentina e Inglaterra.
+
 ## 29/10/2026 — Nombres y apellidos según el origen (fase 1) y plan de paquetes de país
 
 Pedido por el usuario al ver a una madre de origen de Europa del este llamada Patricia. Todo en `ANEXO_NOMBRES.md`.
@@ -16,7 +26,7 @@ Pedido por el usuario al ver a una madre de origen de Europa del este llamada Pa
 - **Ajustes posteriores (30/10, del usuario):** (1) las personas de origen extranjero/no hispano llevan **un solo apellido**, también los niños; (2) los nombres compuestos **se muestran enteros** en las acciones (José Manuel, no José) y hay **apodo**: al azar (35 % si el nombre tiene apodos habituales: José Manuel → Chema) y que el jugador puede poner o quitar en la ficha (`npcs.apodo.<persona>.<apodo>`); (3) para los niños y las futuras generaciones la lista de nombres es la **unión sin repetir** de las de jóvenes y adultos; los adultos mantienen la suya.
 - **Valores míos a revisar:** 12 % de nombre local, 35 % de apodo, 16 % de compuestos en adultos y 3 % en jóvenes, el corte de 25 años para los nombres de jóvenes y de 18 para los apellidos del país de juego, el peso de las culturas dentro de una reserva.
 - **Impacto técnico:** el orden de los sorteos cambia la población de cada semilla (ajustados los tests que dependían de semillas concretas). Las partidas guardadas no cambian. `nombreCorto` es la primera palabra del nombre (para «José Manuel», «José»).
-- **Fase 2 (planificada, sin hacer):** paquetes de país importables (demografía, nombres, calendario, currículo, categorías, horarios), empezando por **España, Argentina y quizá Inglaterra**, copiando primero lo de España con el nombre del país; guardar el país en la partida y activar el selector. Ver `ANEXO_NOMBRES.md` §6.
+- **Fase 2:** hecha el 30/10 (ver la entrada de arriba y `PAQUETES_DE_PAIS.md`).
 
 ## 29/10/2026 — Viaje rápido solo desde la calle y «Proponer quedar para…»
 
