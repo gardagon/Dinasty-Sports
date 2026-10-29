@@ -52,9 +52,43 @@ export interface PlanView {
   dia: number;
   minuto: number;
   lugar: string;
+  /** Cómo se llama lo que se hace («estudiar», «pasar el rato»). */
+  nombre: string;
+  /** Id de la acción que cancela este plan. */
+  cancelar: string;
 }
 
+/** Cuándo es un plan: hoy o mañana. */
+export type CuandoDePlan = 'hoy' | 'manana';
+
+/**
+ * Lo que se puede elegir al proponer un plan a alguien: la actividad, el sitio y, según el día, las horas posibles (las que deja el horario del sitio).
+ * Son los desplegables de «Proponer quedar para…»; la otra persona acepta o no al recibir la propuesta.
+ */
+export interface FormularioDePlan {
+  /** Si ahora no se le puede proponer nada (no está aquí, no es momento de preguntar), por qué. */
+  motivo?: string;
+  actividades: {
+    id: string;
+    nombre: string;
+    /** Lo que dura (minutos). */
+    duracion: number;
+    lugares: {
+      id: string;
+      /** «en tu casa», «en la biblioteca». */
+      texto: string;
+      dias: Record<CuandoDePlan, { /** Minutos del día en que puede empezar. */ horas: number[]; /** Por qué no hay horas (cerrado, ya quedasteis, ya se lo propusiste). */ motivo?: string }>;
+    }[];
+  }[];
+}
+
+/** El id de la acción de proponer un plan: `relaciones.proponer.<persona>.<actividad>.<lugar>.<hoy|manana>.<minuto del día>`. */
+export const idDeProponerPlan = (npcId: string, actividad: string, lugar: string, cuando: CuandoDePlan, minuto: number): string =>
+  `relaciones.proponer.${npcId}.${actividad}.${lugar}.${cuando}.${minuto}`;
+
 export interface RelationsService {
+  /** Lo que se puede elegir al proponerle un plan a esta persona. */
+  formularioDePlan(npcId: string): FormularioDePlan;
   /** Planes acordados que todavía no han llegado (hoy o más adelante). */
   planes(): PlanView[];
   /** Vínculo con una persona, o `undefined` si el personaje aún no la conoce. */

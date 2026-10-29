@@ -23,6 +23,11 @@ export interface GameModule<S = unknown> {
   actions?: ActionDef[];
   /** Acciones que dependen del estado (p. ej. "Quedar con <NPC>"). */
   dynamicActions?: (ctx: ReadContext) => ActionDef[];
+  /**
+   * Acciones con parámetros en el id (p. ej. «proponer un plan a esta hora en este sitio»): hay demasiadas combinaciones para listarlas, así que no
+   * salen en las listas (ni las ven los bots) pero `preview` y `perform` las encuentran por su id. Devuelve `undefined` si el id no es suyo.
+   */
+  resolverAccion?: (ctx: ReadContext, id: string) => ActionDef | undefined;
   modifiers?: ModifierDef[];
   /** Escucha de eventos: `{ 'dia.fin': (ctx, ev) => ... }`. */
   on?: Record<string, EventHandler>;

@@ -55,9 +55,12 @@ const ACCIONES: readonly ActionDef[] = MAPA.lugares.map((destino) => ({
     // Las calles y las zonas se alcanzan paso a paso; solo los lugares, con el viaje rápido.
     if (!sePuedeIr(MAPA, aqui.id, destino.id)) {
       const tipo = tipoDeSitio(destino);
+      if (tipo === 'lugar') return `El viaje rápido solo se hace desde la calle: sal primero de ${aqui.name.toLowerCase()}`;
       if (tipo === 'zona') return `Para entrar en ${destino.name.toLowerCase()} hay que estar en ${lugar(destino.dentroDe!)?.name.toLowerCase()}`;
       return `Para llegar a ${destino.name.toLowerCase()} hay que estar en una de sus calles vecinas o en un lugar que dé a ella`;
     }
+    // Salir (a la entrada del lugar o a su calle) nunca está cerrado: si se cierra con el personaje dentro, tiene que poder irse.
+    if (aqui.dentroDe === destino.id || aqui.enCalle === destino.id) return true;
     // Cerrado a la hora a la que se llegaría: no desaparece, pero no se puede ir (y se dice cuándo abre).
     const llegada = timeView(ctx.time.minute + minutos);
     return abiertoEn(destino, llegada) ? true : `${destino.name} estará cerrado cuando llegues (abre ${destino.horario!.texto})`;

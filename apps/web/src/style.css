@@ -324,3 +324,17 @@ h3:first-child { margin-top: 0; }
 .opcion b { font-size: 18px; }
 .opcion small { color: var(--ink-soft); }
 .opcion[aria-pressed="true"] { border-color: var(--ink); }
+
+/* Proponer quedar para…: desplegables (qué, dónde, a las…) y el interruptor Hoy / Mañana. */
+.formulario-plan { display: grid; gap: 10px; margin: 8px 0 14px; padding: 12px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--sheet); }
+.campo-plan { display: grid; gap: 4px; }
+.campo-plan > span { color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.75rem; }
+.campo-plan select { font: inherit; color: var(--ink); padding: 10px; border-radius: var(--radius); border: 1px solid var(--rule); background: var(--paper); }
+.campo-plan select:disabled { opacity: 0.5; }
+.interruptor-plan { display: flex; gap: 8px; align-items: stretch; }
+.interruptor-plan .campo-plan { flex: 1; min-width: 6em; }
+.interruptor-plan .campo-plan > span { display: none; }
+.dia-plan { font: inherit; color: var(--ink); padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--rule); background: var(--paper); cursor: pointer; }
+.dia-plan[aria-pressed="true"] { background: var(--lane); border-color: var(--lane); color: #fff; }
+ul.planes { list-style: none; padding: 0; margin: 6px 0 12px; display: grid; gap: 8px; }
+ul.planes li { display: grid; gap: 6px; }

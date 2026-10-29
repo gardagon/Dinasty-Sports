@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 29/10/2026 — Viaje rápido solo desde la calle y «Proponer quedar para…»
+
+Pedido por el usuario tras revisar la interfaz.
+
+- **El viaje rápido solo se hace desde una calle** (fuera de los lugares y de las zonas). `sePuedeIr` solo da el salto a un lugar si el origen es una calle (o un paso: la entrada de su lugar, su calle); `rutaA` sale primero a la calle (de la zona a la entrada y de esta a su calle) y luego salta. La interfaz solo enseña el desplegable «Viaje rápido» en una calle. El tiempo total no cambia (el mapa es un grafo y el camino ya pasaba por la calle). **Salir de un lugar (a su entrada o a su calle) nunca está cerrado**: si el colegio cierra con el personaje dentro, tiene que poder irse (lo encontró la simulación). Los tests y los bots viajan con `viajarA`/`rutaA`.
+- **«Proponer quedar para…» sustituye a las acciones sueltas «Quedar con X para estudiar hoy a las 17:00 en…»** (`relaciones.plan_<cuando>_<sitio>.<id>`, eliminadas). Un único botón en la ficha abre un formulario: actividad → sitio → Hoy/Mañana + hora (solo las horas que deja el horario del sitio). Detalle y reglas en `ANEXO_RELACIONES.md` («Planes»).
+  - **Acción con parámetros en el id** y nuevo punto de extensión del motor: `ModuleDef.resolverAccion(ctx, id)` (ver `ARQUITECTURA.md`). Contracts: `idDeProponerPlan`, `FormularioDePlan`, `RelationsService.formularioDePlan`, `PlanView.cancelar/nombre`.
+  - **El jugador es responsable de poder ir** (el formulario no mira su agenda). **La otra persona decide al momento** por agenda, otros planes, margen, confianza para ir a tu casa (≥ 15, salvo familia), amistad, confianza y rol (la familia +0,15). Si el no es de la hora o del sitio se puede probar con otro; si es suyo, ese día no cambia de idea.
+  - **Actividades:** estudiar (casa o biblioteca) y **pasar el rato** (casa o parque, 120 min; nueva acción del plan «Pasar el rato con… (plan acordado)»). Entrenar con alguien queda para cuando haya actividades de deporte con otra persona.
+  - **Cancelar plan** (`relaciones.cancelar.<persona>.<día>`): −0,5 de afinidad con un día de antelación; −2 de afinidad y −1,5 de confianza el mismo día; siempre menos que el plantón (−4 / −3).
+  - **Valores propios a revisar (míos):** horas cada 30 min de 9:00 a 21:00, la confianza de 15 para ir a casa, el bono de familia, el coste de cancelar.
+
 ## 28/10/2026 — Carreras de 18, semifinales y final, con ausencias
 
 Pedido por el usuario: «Amplia a 18 los corredores… semifinales y una final. Los mejores no suelen faltar. Los peores y que quedan últimos fallan más.» Sustituye a la clasificatoria autonómica de 16 y a las series de 8 (E9.11, 22/10).

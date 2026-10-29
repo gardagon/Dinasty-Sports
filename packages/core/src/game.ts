@@ -513,6 +513,11 @@ export class Game {
       const def = d.fn(this.readCtx(d.module)).find((a: ActionDef) => a.id === id);
       if (def) return this.compilar(def, d.module);
     }
+    // Las acciones con parámetros en el id no se listan: las resuelve el módulo que las define.
+    for (const r of this.registry.resolvers) {
+      const def = r.fn(this.readCtx(r.module), id);
+      if (def) return this.compilar(def, r.module);
+    }
     return undefined;
   }
 

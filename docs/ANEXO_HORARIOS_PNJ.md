@@ -142,7 +142,7 @@ Son personas del juego (ids `padre` y `madre`, rol `familia`, siempre conocidas)
 
 ## 2 bis. Calles, lugares y zonas con horario
 
-**El mapa es un grafo** (`construirMapa`, `contracts/lugares.ts`): 4 **calles** donde no se hace nada, **lugares** que dan a una calle y **zonas** dentro de los lugares. Desde casa ya no se va al colegio de golpe: se **sale a la calle**, se ve lo que hay en ella o se va a otra calle y se **entra** en el lugar. «Viajar» enseña, por separado, lo que hay **dentro** del lugar (zonas) y **salir** (la calle); y el «Viaje rápido» (desplegable) salta a **lugares**, nunca a zonas ni a calles, con el mismo coste que el camino.
+**El mapa es un grafo** (`construirMapa`, `contracts/lugares.ts`): 4 **calles** donde no se hace nada, **lugares** que dan a una calle y **zonas** dentro de los lugares. Desde casa ya no se va al colegio de golpe: se **sale a la calle**, se ve lo que hay en ella o se va a otra calle y se **entra** en el lugar. «Viajar» enseña, por separado, lo que hay **dentro** del lugar (zonas) y **salir** (la calle); y el «Viaje rápido» (desplegable) salta a **lugares**, nunca a zonas ni a calles, con el mismo coste que el camino, y **solo se ofrece estando en una calle** (desde dentro de un lugar o de una zona hay que salir primero, 29/10).
 
 | Calle | Lugares (minutos entre la calle y su entrada) |
 |---|---|

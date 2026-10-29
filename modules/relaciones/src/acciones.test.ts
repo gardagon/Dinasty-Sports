@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { aptitudDe, type RasgosDe } from '@ds/contracts';
-import { APTITUD_TIPICA, ESTORBO_MAXIMO, estorboDe, fraseDeCompania, DISPOSICION, HABILIDAD, usoDelAspecto, HABILIDADES_DE_ACCION, disposicion, factorDeHabilidad, interesFavorito, mejorInteresEnComun, perdidaPorDiscusion, probabilidadDePaces } from './acciones';
+import { APTITUD_TIPICA, ESTORBO_MAXIMO, estorboDe, fraseDeCompania, DISPOSICION, HABILIDAD, usoDelAspecto, HABILIDADES_DE_ACCION, disposicion, factorDeHabilidad, interesFavorito, mejorInteresEnComun, perdidaPorDiscusion, probabilidadDePaces, PLAN, PLANES, horasDeInicio, responderAPlan } from './acciones';
 
 const rasgos = (caracter: Record<string, number> = {}, intereses: Record<string, number> = {}): RasgosDe =>
   ({ origen: {} as RasgosDe['origen'], apariencia: {} as RasgosDe['apariencia'], caracter, intereses, gustos: {} as RasgosDe['gustos'] });
@@ -179,5 +179,36 @@ describe('estorbar y ayudar al hacer algo juntos', () => {
     const f = fraseDeCompania('social', true, 'Marta', 'f', 0.9);
     expect(m).toMatch(/animado/);
     expect(f).toMatch(/animada/);
+  });
+});
+
+describe('responder a una propuesta de plan', () => {
+  const base = { afinidad: 40, confianza: 40, planPegado: false, azarOcupado: 0.9 };
+  it('en tu casa, quien apenas confía en ti dice que no (y se puede probar con otro sitio); con la familia, no hace falta', () => {
+    const r = responderAPlan({ ...base, confianza: PLAN.confianzaParaIrACasa - 1, azarGusto: 0, enCasa: true });
+    expect(r).toMatchObject({ acepta: false, repetible: true });
+    expect(responderAPlan({ ...base, confianza: PLAN.confianzaParaIrACasa, azarGusto: 0, enCasa: true }).acepta).toBe(true);
+    expect(responderAPlan({ ...base, confianza: 0, azarGusto: 0, enCasa: true, esFamilia: true }).acepta).toBe(true);
+    expect(responderAPlan({ ...base, confianza: 5, azarGusto: 0, enCasa: false }).acepta).toBe(true);
+  });
+  it('lo que depende de su agenda se puede repetir con otra hora; lo que depende de él ese día, no', () => {
+    expect(responderAPlan({ ...base, azarGusto: 0, ocupadoPorAgenda: 'tiene clase a esa hora' })).toMatchObject({ acepta: false, repetible: true });
+    const ocupado = responderAPlan({ ...base, azarGusto: 0, azarOcupado: 0.1 });
+    expect(ocupado.acepta).toBe(false);
+    expect((ocupado as { repetible?: boolean }).repetible).toBeUndefined();
+  });
+  it('a la familia se le acepta algo más: con el mismo azar, el hermano dice que sí donde un compañero dice que no', () => {
+    const azarGusto = 0.5;
+    const flojo = { ...base, afinidad: 20, confianza: 20, azarGusto };
+    expect(responderAPlan(flojo).acepta).toBe(false);
+    expect(responderAPlan({ ...flojo, esFamilia: true }).acepta).toBe(true);
+  });
+  it('las horas de inicio son en punto o y media, desde las 9:00, y el plan acaba como tarde a las 21:00', () => {
+    const horas = horasDeInicio(PLANES.estudiar.duracion);
+    expect(horas[0]).toBe(9 * 60);
+    expect(horas[1]).toBe(9 * 60 + 30);
+    expect(horas[horas.length - 1] + PLANES.estudiar.duracion).toBeLessThanOrEqual(PLAN.horas.fin);
+    expect(horasDeInicio(PLANES.pasar_rato.duracion).at(-1)).toBe(19 * 60);
+    expect(horasDeInicio(90, 14 * 60 + 10)[0]).toBe(14 * 60 + 30); // desde las 14:10: la primera es a las 14:30
   });
 });

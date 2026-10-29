@@ -198,8 +198,10 @@ export function fraseDeCompania(area: string, ayuda: boolean, nombre: string, ge
 
 /** Las actividades que se acuerdan con antelación (hora y día), por el sufijo del id de la acción. */
 export const PLANES = {
-  /** Estudiar se acuerda en casa o en la biblioteca (a las 17:00, 90 minutos): se elige al proponerlo. */
-  estudiar: { nombre: 'estudiar', hora: 17 * 60, duracion: 90, lugares: { casa: 'en tu casa', biblioteca: 'en la biblioteca' } as Readonly<Record<string, string>> },
+  /** Estudiar se acuerda en casa o en la biblioteca (90 minutos). */
+  estudiar: { nombre: 'estudiar', titulo: 'Estudiar', duracion: 90, lugares: { casa: 'en tu casa', biblioteca: 'en la biblioteca' } as Readonly<Record<string, string>> },
+  /** Pasar un rato juntos: en casa o en el parque (2 horas). Entrenar juntos llegará con las actividades de deporte. */
+  pasar_rato: { nombre: 'pasar el rato', titulo: 'Pasar el rato', duracion: 120, lugares: { casa: 'en tu casa', parque: 'en el parque' } as Readonly<Record<string, string>> },
 } as const;
 /** El texto «en tu casa» / «en la biblioteca» del sitio acordado para un plan. */
 export const textoDeLugarDePlan = (actividad: keyof typeof PLANES, lugar: string): string => PLANES[actividad].lugares[lugar] ?? `en ${lugar}`;
@@ -227,7 +229,22 @@ export const PLAN = {
   antelacion: 60,
   /** Lo que se pierde al plantar a alguien. */
   planton: { afinidad: 4, confianza: 3 },
+  /** Los planes empiezan en punto o y media, desde las 9:00, y acaban como tarde a las 21:00. */
+  horas: { desde: 9 * 60, fin: 21 * 60, paso: 30 },
+  /** Confianza mínima (salvo la familia) para ir a tu casa: con alguien a quien apenas conoces se queda fuera. */
+  confianzaParaIrACasa: 15,
+  /** Lo que se suma a la probabilidad de aceptar si es de la familia (un hermano casi siempre dice que sí). */
+  bonoDeFamilia: 0.15,
+  /** Lo que se pierde al cancelar un plan: con un día de antelación casi nada; el mismo día, más (pero menos que plantar). */
+  cancelar: { conAntelacion: { afinidad: 0.5, confianza: 0 }, mismoDia: { afinidad: 2, confianza: 1.5 } },
 } as const;
+
+/** Las horas (minuto del día) a las que puede empezar un plan de esta duración dentro del horario del plan. */
+export function horasDeInicio(duracion: number, desde: number = PLAN.horas.desde): number[] {
+  const horas: number[] = [];
+  for (let m = Math.ceil(Math.max(desde, PLAN.horas.desde) / PLAN.horas.paso) * PLAN.horas.paso; m + duracion <= PLAN.horas.fin; m += PLAN.horas.paso) horas.push(m);
+  return horas;
+}
 
 export function probabilidadDeAceptar(afinidad: number, confianza: number): number {
   const p = PLAN.base + PLAN.porAfinidad * clamp(afinidad / PLAN.afinidadTope, 0, 1) + PLAN.porConfianza * clamp(confianza / 100, 0, 1);
@@ -244,14 +261,19 @@ export interface EntradaDePlan {
   /** Dos tiradas estables de 0 a 1: ¿tiene otros planes ese día? y ¿le apetece? */
   azarOcupado: number;
   azarGusto: number;
+  /** El plan es en casa del personaje. */
+  enCasa?: boolean;
+  /** Es de su familia (un hermano). */
+  esFamilia?: boolean;
 }
 
-export type RespuestaAPlan = { acepta: true } | { acepta: false; motivo: string };
+export type RespuestaAPlan = { acepta: true } | { acepta: false; motivo: string; /** Cambiando la hora o el sitio podría decir que sí (no es cosa del día ni de su ánimo). */ repetible?: boolean };
 
 export function responderAPlan(x: EntradaDePlan): RespuestaAPlan {
-  if (x.ocupadoPorAgenda) return { acepta: false, motivo: x.ocupadoPorAgenda };
+  if (x.ocupadoPorAgenda) return { acepta: false, motivo: x.ocupadoPorAgenda, repetible: true };
   if (x.azarOcupado < PLAN.ocupadoPorAzar) return { acepta: false, motivo: 'ya tiene otros planes' };
   if (x.planPegado && x.afinidad < PLAN.afinidadSinMargen) return { acepta: false, motivo: 'prefiere dejar un día de margen entre plan y plan' };
-  if (x.azarGusto >= probabilidadDeAceptar(x.afinidad, x.confianza)) return { acepta: false, motivo: 'no le apetece mucho; quizá otro día' };
+  if (x.enCasa && !x.esFamilia && x.confianza < PLAN.confianzaParaIrACasa) return { acepta: false, motivo: 'aún no hay tanta confianza para ir a tu casa; mejor en otro sitio', repetible: true };
+  if (x.azarGusto >= Math.min(PLAN.max, probabilidadDeAceptar(x.afinidad, x.confianza) + (x.esFamilia ? PLAN.bonoDeFamilia : 0))) return { acepta: false, motivo: 'no le apetece mucho; quizá otro día' };
   return { acepta: true };
 }
