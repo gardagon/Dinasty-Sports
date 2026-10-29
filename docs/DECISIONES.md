@@ -5,26 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
-## 30/10/2026 — Plan de deportes revisado: complementos de la partida, hasta 4 a la vez y datos por país
+## 30/10/2026 — Plan de deportes: instalados los que se quiera, uno para competir; dos juegos de rol; kit aprobado
 
-Decisiones del usuario sobre el plan del 29/10 (que queda sustituido). Plan completo en [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md); no se ha cambiado código.
+Aclaraciones y decisiones del usuario sobre el plan (sustituyen a las entradas anteriores del plan). Plan completo en [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md).
 
-- **Los deportes son complementos de la partida:** el jugador instala y desinstala los que quiera y conviven mientras la máquina lo soporte. El historial de un deporte se guarda y se mantiene al desinstalarlo. Al instalar uno se reutilizan personas que encajan y se crean las que falten, aunque tarde (pantalla de espera).
-- **Alfa:** se pueden descartar las partidas empezadas (se sigue subiendo `SAVE_VERSION`). Ya no hace falta la fase de migraciones del plan anterior; sí que instalar y desinstalar funcione dentro de una partida.
-- **Hasta 4 deportes practicados a la vez; se prueba con 2.** El cansancio (sobrecarga) pasa a contarse entre todos los deportes, y se avisa de los choques de horario.
-- **Reglas de cambio de deporte:** aprobadas (sin coste, se conserva todo, se puede volver), asegurando que no se rompe nada.
-- **Países:** calendario, categorías, temporada y nombres de competiciones cambian con cada país y cada deporte. Si no hay datos propios para un país, se usa el modelo de España en el mismo formato (como `copiaDeEspana`). Propuesto: paquete de país > datos del deporte para ese país > España del deporte.
-- **Guardado:** botón de guardar y guardado automático elegible (cada acción, día, semana, mes o solo a mano), detallado en `ALMACENAMIENTO.md` §8.
-- **Fases:** G guardado; 0 deportes instalados por partida; 1 practicados y cambio; 2 aportes; 3 datos por país; 4 clubes por secciones; 5 gente de cada deporte; 6 kit de deporte; 7 validación con dos deportes de prueba. Después, el fútbol.
-- **Pendiente:** el kit de deporte (explicado en §4 del plan), el orden de los datos por país, guardar siempre al cerrar la pestaña y si se archiva la gente creada solo para un deporte desinstalado.
-
-## 29/10/2026 — Análisis del módulo de fútbol (propuesta, sin aprobar)
-
-Pedido por el usuario: empezar el fútbol como segundo deporte, que se active solo si el jugador lo elige, que pueda recibir eventos sin depender de ellos y valorar «despegar» los deportes del código común. Análisis completo en [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md); **no se ha cambiado código**.
-
-- **Hallazgo principal:** las reglas de imports se cumplen, pero el atletismo está metido como contenido en `npcs` (generación de rivales, entrenadores, equipo del colegio, hermanos), `clubes` (horario por club, no por deporte), `aptitudDe`, agendas, lugares, `relaciones` (gana quien tiene menos marca) y `sim`. Además no existe «elegir deporte»: con un segundo deporte los bots lo entrenarían todo y cambiarían todos los chequeos.
-- **Propuesta:** (1) puerta «deportes que practico» con un módulo pequeño `deportes`; (2) un **kit de deporte** (`@ds/kit-deporte`, cambia la regla 1) con lo común del atletismo, rehaciendo el atletismo encima sin cambiar la simulación; (3) **aportes declarativos** en el motor para que `npcs` y `clubes` lean la población y las secciones de cada deporte sin conocerlo; (4) fútbol con modelo **híbrido** de población (tu equipo como personas, rivales agregados) y la convocatoria como bucle propio.
-- **Preguntas abiertas:** sección 5 del análisis (uno o varios deportes, el kit, fútbol 7/11, equipos mixtos, modelo híbrido, posiciones, fútbol sala).
+- **Instalados los que se quiera (4 o más) y conviviendo; practicado solo uno**, el que compite en «Deporte», que se cambia cuando se quiera. Jugar a otros deportes con compañeros, más adelante (la estructura lo deja preparado).
+- **El código del deporte va en el instalador:** cada deporte se compila aparte y se descarga al instalarlo (carga diferida con `import()` y caché de la PWA para jugar sin conexión). Solo del servidor del juego; lo que se puede importar como archivo son datos. Viable con Vite y el *service worker* actuales.
+- **Dos juegos de rol:** el paquete de país (colegio, calendario, gente) y el paquete de deporte (código y sus datos por país: categorías, temporada, competiciones, clubes, lugares), cada uno con España por defecto hasta que una actualización traiga lo propio. Viable; lo clave es que la **temporada de un deporte se exprese respecto al calendario escolar del país** (no en semanas fijas) y que las categorías salgan de `PaisDef`. Los datos nuevos de un país se aplican al empezar el curso siguiente.
+- **Desinstalar no archiva:** la partida guarda la definición de las stats del deporte quitado para que el motor les siga aplicando caída y envejecimiento, y `npcs` guarda lo que pidió cada deporte para seguir renovando su gente. Al volver, todo está al día sin recrear nada.
+- **Opciones y guardado:** botón «Opciones» (guardar, guardado automático por acción, día, semana, mes o solo a mano; exportar e importar; deportes; países). Al cerrar la pestaña el navegador no deja preguntar con botones propios: se pregunta al salir con los botones del juego y se guarda una copia de recuperación al ocultar o cerrar (`ALMACENAMIENTO.md` §8).
+- **Kit de deporte aprobado** (cambia la regla 1: los módulos pueden importar `@ds/contracts` y `@ds/kit-deporte`).
+- **Alfa:** se pueden descartar partidas. **Fases:** G opciones y guardado, K kit, 0 deporte practicado, 1 aportes, 2 datos de deporte por país, 3 clubes, lugares y agendas del deporte, 4 gente de cada deporte, 5 deportes en la partida, 6 instalador, 7 validación. Después, el fútbol.
 
 ## 30/10/2026 — Países como paquetes de datos importables (fase 2)
 

@@ -1,148 +1,120 @@
-# Plan: deportes que se instalan, conviven y se cambian
+# Plan: deportes que se instalan y conviven, uno para competir
 
-Plan por fases (29–30/10/2026). **Revisado con las decisiones del usuario del 30/10** (ver §7). Va **antes de nada del fútbol**: que el jugador pueda instalar y desinstalar deportes, practicar varios a la vez y cambiar cuando quiera, sin perder su historial y con los datos de cada país. El diseño propio del fútbol sigue en [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md) (§3.4 a §3.8) y empieza cuando terminen estas fases.
+Plan por fases (29–30/10/2026), **revisado con las aclaraciones del usuario del 30/10** (§9). Va **antes de nada del fútbol**. El diseño propio del fútbol sigue en [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md) (§3.4 a §3.8) y empieza cuando terminen estas fases.
 
 ---
 
-## 1. Cuatro niveles
+## 1. La idea
 
-| Nivel | Qué es | Quién lo decide | Cuándo |
-|---|---|---|---|
-| **Disponible** | El deporte viene con el juego (catálogo de módulos de deporte) | El desarrollo | Al publicar una versión |
-| **Instalado** | El deporte está en **esta partida**: sus habilidades, su estado, su gente y sus clubes existen | **El jugador** | Al crear la partida y en cualquier momento después (Opciones) |
-| **Practicado** | El personaje hace ese deporte ahora (**hasta 4 a la vez**) | **El jugador** | En cualquier momento, dentro del juego |
-| **Visible** | Sus acciones, su pestaña y su gente salen en la interfaz | Sale de «practicado» | — |
+- Se pueden tener **instalados los deportes que se quiera** (4 o los que hagan falta) y **conviven** en la partida: su mundo existe y avanza (sus rivales crecen, sus clubes entrenan, sus categorías cambian con los cursos) aunque el personaje no los practique.
+- El personaje **compite en un solo deporte**, el de la pestaña «Deporte», y **puede cambiarlo cuando quiera**.
+- **Jugar a otros deportes de forma informal** (quedar con compañeros para jugar un partido) queda para más adelante, pero la estructura lo deja preparado: un deporte instalado y no practicado podrá ofrecer actividades sueltas.
+- **Instalar un deporte es instalar su código** (su «motor de juego») y sus datos con el instalador: quien no juega al fútbol no descarga el fútbol.
+- Son **dos juegos de rol que se encajan**: el del colegio y la vida (lo trae el **paquete de país**) y el del deporte (lo trae el **paquete del deporte**). Ver §4.
 
-- **Los módulos base están siempre** (personaje, estudios, personas, clubes, familia, relaciones, lugares y el nuevo `deportes`). Solo los deportes se instalan y desinstalan.
-- **Instalar un deporte en una partida empezada** crea lo que le falte: sus habilidades (con su genética, como ya hace el motor al cargar: `Game.fillMissing`), su estado, las secciones de sus clubes y **su gente**. Para esto último **primero se buscan personas que ya existen y encajan** (edad, intereses como «fútbol», capacidades) y **después se crean las que falten**. Puede tardar: se enseña una pantalla de espera («Preparando el fútbol: 180 personas…») y el jugador espera.
-- **Desinstalar un deporte** lo quita de la partida pero **guarda su historial** (habilidades, resultados, clasificaciones, cursos), que queda dormido: el motor solo recorre lo registrado. Si se vuelve a instalar, se recupera tal cual. Su gente se queda (son personas con relaciones); opcionalmente, las que se crearon solo para ese deporte y el personaje no conoce se pueden archivar para aligerar la partida.
-- **«Instalar» significa elegir entre los deportes que trae el juego**, no traer código de fuera: un deporte es código y ejecutar código de un archivo importado sería un riesgo de seguridad. Lo que sí se podrá importar como archivo, igual que un país, son **los datos de un deporte para un país** (§3, fase 3). Más adelante cada deporte puede ser un trozo de la web que solo se descarga si se instala, para que la máquina no cargue lo que no usa.
+| Nivel | Qué es | Quién lo decide |
+|---|---|---|
+| **Catálogo** | Los deportes que se pueden instalar | El desarrollo, al publicar |
+| **Instalado** | Descargado en el dispositivo con el instalador: código y datos por país | El jugador (Opciones → Deportes) |
+| **En la partida** | Su mundo existe en esa partida: habilidades del personaje, gente, clubes, historial | Al crear la partida (todos los instalados) o al añadirlo a una empezada |
+| **Practicado** | El que compite (solo uno, o ninguno) | El jugador, dentro del juego, cuando quiera |
 
 ## 2. Reglas de practicar y cambiar (aprobadas el 30/10)
 
-- **Dejar un deporte:** se sale de su club (`club.salir`), sus acciones y su pestaña desaparecen y sus habilidades caen con la caída normal (gracia de 4 días y suelo del 70 % de lo máximo alcanzado). El conocimiento casi no se olvida (30 días de gracia, suelo del 95 %).
-- **Empezar o volver:** a mitad de curso si se quiere. Se entra sin club (se entrena por libre y se apunta después). Si ya se practicó, se recuperan sus habilidades, su historial y sus clasificaciones.
-- **No se pierde nada:** relaciones con entrenadores y compañeros, resultados de cursos anteriores, historial por deporte («Atletismo: cursos 1 a 3; fútbol: desde el curso 2»).
+- **Dejar el deporte:** se sale de su club (`club.salir`), sus acciones y su pestaña desaparecen y sus habilidades caen con la caída normal (gracia de 4 días y suelo del 70 % de lo máximo alcanzado). El conocimiento casi no se olvida (30 días de gracia, suelo del 95 %).
+- **Empezar otro o volver:** a mitad de curso si se quiere, sin club al principio (se entrena por libre y se apunta después). Si ya se practicó, se recupera su historial.
+- **No se pierde nada:** relaciones con entrenadores y compañeros, resultados de cursos anteriores, historial por deporte («Atletismo: cursos 1 a 3; fútbol: desde el curso 4»).
 - **Sin coste por cambiar**, salvo el plantón de un club si no se deja antes (como hoy). **Sin ningún deporte** también vale.
-- **Varios a la vez (hasta 4; se prueba con 2):**
-  - **El tiempo manda.** Si dos sesiones de club o dos competiciones coinciden, hay que elegir: el juego avisa del choque al apuntarse («los martes de 18 a 20 coincide con tu club de atletismo»).
-  - **El cansancio es uno solo.** Hoy la sobrecarga (más de 2 sesiones al día) se cuenta **por deporte**: con dos deportes se podrían hacer 4 sesiones sin castigo. Pasa a contarse **entre todos los deportes** (todas las acciones con `entrenamiento`).
-  - **Lo genérico se comparte** (la velocidad sirve para los dos) y **lo propio no** (cada deporte tiene sus habilidades y su conocimiento).
-  - El verano según las notas da campamento **de uno** de los deportes que practicas (se elige) y la pestaña «Deporte» tiene un selector entre los practicados (ya existe).
+- **Uno a la vez** (`MAX_DEPORTES_PRACTICADOS = 1`): empezar uno nuevo exige dejar el actual (la acción lo ofrece: «Dejar el atletismo y empezar fútbol»).
 
-## 3. Las fases
+## 3. El instalador: el código del deporte se descarga al instalarlo (viabilidad)
 
-Estamos en alfa: **las partidas empezadas se pueden descartar** cuando cambie la forma del estado (se sube `SAVE_VERSION`, como hasta ahora). Lo que **sí** debe funcionar dentro de una misma versión es instalar y desinstalar deportes en una partida empezada. Cada fase es un PR que deja todo en verde; en las de reorganización, **`npm run sim` debe dar exactamente lo mismo** (es la prueba de que no se rompe nada).
+**Es viable** con lo que ya usa la web (Vite y la PWA con su *service worker*):
 
-### Fase G — Guardado manual y automático (independiente, se puede hacer ya)
+- **Cada deporte se compila aparte** (un trozo de JavaScript propio con `import()` dinámico, más sus datos por país en JSON). El juego base no lo incluye.
+- **Instalar** = descargar ese trozo y sus datos **del propio servidor del juego** y guardarlos en el dispositivo (caché de la PWA), para que funcione **sin conexión**. **Desinstalar** = borrarlos. La lista de instalados se guarda en el navegador.
+- **Al abrir o crear una partida** se cargan los deportes instalados que usa y se monta la partida con ellos (hoy la lista de módulos es fija, `packages/game/src/modulos.ts`; pasaría a ser «base + los deportes cargados»).
+- **Una partida que usa un deporte desinstalado no se abre** hasta reinstalarlo (se avisa; no se borra), igual que con un país no cargado.
+- **Seguridad:** el código solo se descarga del servidor del juego (es parte de la misma publicación), nunca de un archivo cualquiera: ejecutar código de un archivo importado podría hacer cualquier cosa en el navegador. Si algún día hay deportes de terceros, harán falta firmas y lo pensaremos aparte. **Los datos** (un país nuevo para un deporte) **sí se pueden importar como archivo**, porque son datos y se validan.
+- **Versiones:** al principio el código de los deportes se publica con el juego (misma versión: no puede haber incompatibilidades). Los **datos por país** de un deporte sí se pueden actualizar por separado. Publicar el código de un deporte aparte del juego exigiría una «versión del contrato» que compruebe que encajan: se deja para cuando haga falta.
+- **Lo común no se descarga con cada deporte:** el kit de deporte (§7) va en el juego base, así cada deporte pesa poco.
 
-Propuesta del usuario; detalle en [`ALMACENAMIENTO.md`](ALMACENAMIENTO.md) §8. Solo toca la interfaz, no choca con las demás fases y reduce lo que cuesta guardar partidas grandes.
+## 4. Dos juegos de rol: el colegio (país) y el deporte (viabilidad)
 
-### Fase 0 — Deportes instalados por partida
+Propuesta del usuario: el país se incorpora con su módulo de estudios, calendario y demás (con España por defecto); el deporte se importa aparte y trae **sus propios datos de cada país**, también con España por defecto hasta que una actualización traiga el país.
 
-- `GameState.deportesInstalados` (lista de ids). El ensamblador (`packages/game`) separa **módulos base** y **catálogo de deportes**; `nuevaPartida` y `cargarPartida` montan la partida con los base y los deportes instalados en ella.
-- **Instalar** = volver a montar la partida con un deporte más (lo nuevo se crea al cargar) y avisar a los módulos con el evento compartido `deporte.instalado`, para que creen lo suyo. **Desinstalar** = montarla sin él: su estado se conserva en el guardado y no se usa. Hay que probar que una partida con un estado «dormido» carga, se juega, se guarda y vuelve a cargar sin perderlo.
-- **Interfaz:** en «Nueva partida», qué deportes instalar (hoy solo atletismo, marcado); en «Opciones», instalar y desinstalar, con la pantalla de espera y aviso de lo que se conserva.
-- Una partida que tiene instalado un deporte que esta versión no trae **no se abre** y se avisa (igual que con un país no cargado).
-- `sim` idéntico (las partidas de la simulación instalan atletismo).
+| | Paquete de país (el colegio y la vida) | Paquete de deporte (el deporte) |
+|---|---|---|
+| Qué trae | Calendario escolar, cursos y asignaturas, jornada, horarios de los lugares comunes, gente (demografía, nombres, apellidos) | Código del deporte y, **por país**: categorías, temporada, competiciones y sus nombres («campeonato de España»), federación, clubes y sus secciones, lugares propios (campo de fútbol) y sus horarios, población que necesita |
+| Si falta un país | `copiaDeEspana` (ya existe) | **Su modelo de España**, con el nombre del país, hasta una actualización |
+| Cómo llega | Importar paquete de país (ya existe, `paquetes.ts`) | Instalador (código y datos) e importar datos de un país para un deporte (JSON) |
 
-### Fase 1 — Deporte practicado (hasta 4) y cambiar de deporte
+**Es viable**, y buena parte ya existe (`PaisDef`, `copiaDeEspana`, validación e importación, `ctx.pais`). Lo que hay que cambiar o cuidar:
 
-- **Módulo `deportes`** (base): qué deportes se practican y el historial (`{ deporte, desde, hasta }`). Servicio `practica` (`practica(id)`, `actuales()`, `historial()`), eventos compartidos `deporte.empezar` y `deporte.dejar`, límite `MAX_DEPORTES_A_LA_VEZ = 4`.
-- **Ocultar lo que no se practica:** campo genérico del motor `ActionDef.oculta(ctx)` (no sale ni en gris) y una ayuda en contracts, `soloSiPractica(deporte, acciones)`. Los manejadores diarios del deporte no hacen nada si no se practica.
-- **Cansancio común:** la sobrecarga pasa de atletismo al módulo `deportes`, contando las sesiones de todos los deportes (con uno solo, las mismas cifras de hoy).
-- **Atletismo detrás de la puerta:** «Empezar atletismo» y «Dejar el atletismo» en la administración del colegio. La nueva partida pregunta qué deportes se practican al empezar (de los instalados).
-- `sim`: los bots empiezan practicando atletismo (mismas cifras). El bot «abandona el deporte» pasa a dejarlo de verdad: sus cifras cambian y el chequeo de la caída debe seguir en lo esperado.
+1. **Las categorías salen del paquete de país.** Hoy `PaisDef.categorias` tiene las del atletismo: pasan a los datos del deporte. El paquete de país deja de saber de deportes.
+2. **La temporada no puede ir en semanas fijas.** Hoy el atletismo tiene la semifinal en la semana 37 del curso. Con el calendario real de Argentina (curso de marzo a diciembre) eso caería en otro sitio. La temporada se expresa **respecto al calendario escolar del país** («primera competición en la 5.ª semana de clase», «semifinales 3 semanas antes de acabar las clases del último trimestre», «sin competición en vacaciones») o al año natural si el deporte no sigue al colegio. Así **los datos de España de un deporte encajan solos en cualquier calendario**, que es lo que hace viable lo de «España por defecto». Es el punto más importante.
+3. **Lo que el deporte pone en la ciudad** (un campo de fútbol, sus horarios, las agendas de su gente) lo aporta el deporte al instalarse, no el mapa base ni el país.
+4. **Actualizaciones a mitad de partida:** si una actualización trae los datos reales de tu país para tu deporte, se aplican **al empezar el curso siguiente**, no a mitad de temporada (cambiar las categorías en medio rompería clasificaciones y resultados guardados). La partida recuerda qué datos usa cada deporte en la temporada en curso.
+5. **Lo que queda en el país** y aún no cambia (ya anotado en `PAQUETES_DE_PAIS.md` §5): jornada escolar, agendas, catálogo de asignaturas. Es trabajo del juego del colegio, independiente de los deportes.
 
-### Fase 2 — Aportes: saber qué deportes hay sin conocerlos
+## 5. Un deporte que se quita y vuelve: sin archivar y sin datos desfasados
 
-- **Motor:** `GameModule.aportes` (datos declarados para un punto de extensión con nombre) y `ctx.aportes<T>(clave)`. El motor no sabe qué contienen.
-- **Ficha de cada deporte** (`'deportes.catalogo'`): id, nombre, dónde se empieza. `deportes` ofrece «Empezar…» de todos los instalados; la interfaz los usa en «Nueva partida» y «Opciones»; `familia` sortea de ahí el deporte de los padres.
-- `sim` idéntico.
+Decidido el 30/10: no se archiva nada. Para que al volver todo esté al día sin recrear nada:
 
-### Fase 3 — Datos de cada deporte por país
+- **Las habilidades del personaje siguen cayendo y envejeciendo.** Hoy el motor solo aplica la caída diaria a las stats registradas: si el deporte se quita un año, sus habilidades se quedarían congeladas y al volver valdrían lo mismo que el día que se quitó. Como la definición de una stat es un dato puro (sin funciones), **la partida guarda la definición de las stats del deporte quitado** y el motor les sigue aplicando caída y envejecimiento cada día. Al volver valen lo que valdrían si hubiera dejado el deporte. Nada se ve en la interfaz mientras tanto.
+- **Su gente sigue viviendo.** El progreso diario de los niveles en `npcs` ya es genérico (no depende del módulo del deporte). Al añadir el deporte, `npcs` **guarda lo que ese deporte le pidió** (cuántos por edad, de qué capacidades sale su potencial…) y con eso sigue renovando a los rivales cada curso aunque el deporte no esté. Al volver, sus rivales tienen la edad y el nivel que tocan.
+- **Su historial y su estado se conservan intactos.** Lo que caduca con el tiempo (plazas ofrecidas por un club, el campeonato de un curso) caduca solo, porque se compara con la semana actual. Hay que probarlo con un hueco de un año.
+- **Si al volver el deporte trae una versión nueva** que pide más gente, se completa (se reclutan o crean las que falten), sin rehacer la que hay.
 
-Lo que cambia con el país **y** con el deporte. Hoy solo están las categorías (`PaisDef.categorias`), y el atletismo tiene textos de España escritos en el código («campeonato de España», «federación española»).
+## 6. Opciones y guardado
 
-- **Un tipo común, `DatosDeDeporte`** (contracts, JSON serializable): categorías (nombres y edades), **temporada** (cuándo hay competición, pretemporada, semifinales y final, con su ancla: el curso escolar del país o el año natural, porque en algunos países la temporada no sigue al colegio), nombres de las competiciones y de la federación, clubes y sus secciones (fase 4) y puntos de las clasificaciones.
-- **Dónde se busca, en este orden** (el primero que lo tenga gana):
-  1. el **paquete de país**, si trae datos de ese deporte (`PaisDef.deportes[deporte]`, que sustituye a `PaisDef.categorias`);
-  2. el **módulo del deporte**, si trae datos propios para ese país;
-  3. el **modelo de España del módulo del deporte**, copiado con el nombre del país.
+Hoy, bajo el nombre, hay tres botones: Exportar, Importar y Menú. Propuesta:
 
-  Es lo mismo que ya hacen los países (`copiaDeEspana`), aplicado a cada deporte.
-- **Importable:** «Importar datos de un deporte para un país (.json)», validado con errores en español, igual que los paquetes de país (`paquetes.ts`).
-- El atletismo pasa sus constantes de temporada y sus textos de España a `DatosDeDeporte` de España. `sim` idéntico en España.
+- **Un botón «Opciones»** en la cabecera de la partida (y «Menú» al lado), con:
+  - **Guardar partida** (y cuándo se guardó por última vez, en fecha del juego).
+  - **Guardado automático:** tras cada acción (como ahora), cada día, cada semana, cada mes de juego o solo a mano. El juego mide cuánto tarda en guardar y recomienda una frecuencia según la máquina («tu partida tarda 0,4 s en guardarse: te recomendamos cada semana»). Por defecto, cada día.
+  - **Exportar e importar una copia** (los botones de hoy).
+  - **Deportes** (el instalador, §3) y **paquetes de país**.
+- **¿Preguntar si quiere guardar al cerrar la pestaña?** No es demasiado, pero el navegador no deja hacerlo bien: al cerrar una pestaña solo permite su aviso genérico («¿Salir del sitio? Puede que no se guarden los cambios»), sin botón de «Guardar», y en el móvil ni siquiera eso (el sistema cierra la pestaña sin avisar). Propuesta:
+  1. Al salir **con nuestros botones** (Menú, Salir), preguntar: «Guardar y salir / Salir sin guardar / Cancelar».
+  2. Al cerrar la pestaña con cambios sin guardar, el aviso genérico del navegador (en el ordenador).
+  3. **Copia de recuperación:** al ocultarse o cerrarse la pestaña se guarda, sin tocar la partida guardada, una copia aparte. Al volver: «Hay una partida sin guardar más reciente (martes 14 de octubre, 17:30): ¿recuperarla?». Así el guardado a mano se respeta y no se pierde nada si el móvil cierra la pestaña.
 
-### Fase 4 — Clubes con secciones por deporte
+Detalle técnico en `ALMACENAMIENTO.md` §8.
 
-- `ClubView` pasa de un horario por club a **secciones por deporte** (horario, acceso, sede y trámites de cada una). El catálogo de clubes (colegio, clubes de la ciudad) sigue en `clubes`; las secciones salen de los datos del deporte por país (fase 3).
-- Una membresía de un deporte desinstalado se conserva sin efecto. Los choques de horario entre secciones de deportes practicados se avisan.
-- `sim` idéntico.
+## 7. El kit de deporte (aprobado el 30/10)
 
-### Fase 5 — La gente de cada deporte
+Las piezas que necesita cualquier deporte con club (apuntarse al club del colegio, prueba de acceso y plaza ofrecida, entrenar con el club y llegar tarde, no entrenar por libre durante la sesión, pedir consejo al entrenador, campamento y amigos en verano, verlo en la tele, subir y volver de categoría, sobrecarga, conocimiento del deporte y lo que traes de casa) salen del atletismo a un paquete común, `packages/kit-deporte` (`@ds/kit-deporte`), que cada deporte usa con sus datos. **Cambia la regla 1:** un módulo puede importar `@ds/contracts` y `@ds/kit-deporte`; el kit solo `@ds/contracts`. El kit va en el juego base y no tiene estado propio: trabaja con el estado del deporte que lo usa.
 
-Hoy `npcs` genera a mano a los rivales, los entrenadores, el equipo del colegio y los hermanos de atletismo.
+## 8. Las fases
 
-- **Lo que necesita cada deporte, como dato** (`'npcs.poblacion'`): cuántos por edad, de qué capacidades sale su potencial, entrenadores por club y edades, alumnos del colegio que lo practican, sesgo de carácter e intereses. El atletismo aporta lo de hoy.
-- **Reclutar y completar:** al instalar un deporte, `npcs` busca primero personas que ya existen y encajan (edad, interés en ese deporte, capacidades, que no estén ya en demasiados deportes) y les da nivel en él; **después crea las que falten**. Una persona puede hacer varios deportes (ya guarda un nivel por disciplina). La gente nueva se crea con su propio azar estable por deporte, sin cambiar la que ya existe.
-- **Misma gente con la misma semilla** en partidas nuevas con solo atletismo: se genera en el mismo orden y con el mismo azar que hoy (`sim` idéntico).
-- `npcs` guarda qué deportes ha poblado; al instalar uno nuevo lo puebla (con la pantalla de espera) y al desinstalarlo marca a su gente como «hacía…» y deja de hacerla progresar en él.
-- **Lo que suponía atletismo se generaliza:** `aptitudDe('deporte')` mira el deporte de la actividad; los hermanos eligen deporte de los instalados; `relaciones` y `npcs` leen de `competicion.resultado` quién ha quedado por delante sin suponer que menos marca es mejor (campo opcional para que el atletismo no cambie).
-- Cambia la forma del estado de `npcs`: se sube `SAVE_VERSION`.
+Estamos en alfa: las partidas empezadas se descartan cuando cambie la forma del estado (se sube `SAVE_VERSION`). En las fases de reorganización **`npm run sim` debe dar exactamente lo mismo**: es la prueba de que no se rompe nada.
 
-### Fase 6 — El kit de deporte
+| Fase | Qué deja hecho | `sim` |
+|---|---|---|
+| **G** | Botón «Opciones» con guardar, guardado automático elegible, exportar/importar y copia de recuperación (§6). Solo interfaz | Sin efecto |
+| **K** | **Kit de deporte** y el atletismo reescrito encima (§7) | Idéntico |
+| **0** | **Deporte practicado** (uno): módulo `deportes`, servicio `practica`, eventos `deporte.empezar` y `deporte.dejar`, ocultar lo que no se practica, «Empezar / Dejar el atletismo», elegir deporte en la nueva partida | Idéntico (salvo el bot que abandona, que pasa a dejarlo de verdad) |
+| **1** | **Aportes** en el motor (`GameModule.aportes`, `ctx.aportes`) y ficha de cada deporte (catálogo) | Idéntico |
+| **2** | **Datos de cada deporte por país** (§4): categorías fuera del paquete de país, temporada relativa al calendario escolar, nombres de competiciones; España de respaldo; importables en JSON | Idéntico en España |
+| **3** | **Lo que el deporte pone en el mundo:** clubes con secciones por deporte, lugares y agendas aportados por el deporte | Idéntico |
+| **4** | **La gente de cada deporte:** lo que pide cada deporte como dato, reclutar personas que encajan y crear las que falten, guardar lo pedido para seguir viviendo sin el módulo (§5); generalizar `aptitudDe` y la lectura de `competicion.resultado` | Idéntico |
+| **5** | **Deportes en la partida:** añadir uno a una partida empezada (con pantalla de espera) y quitarlo; stats del deporte quitado que siguen cayendo (§5) | Idéntico |
+| **6** | **Instalador** (§3): cada deporte compilado aparte, descarga, caché sin conexión, Opciones → Deportes | Sin efecto |
+| **7** | **Validación:** dos deportes de prueba (solo en los tests) instalados con el atletismo; cambiar de uno a otro; quitar uno un año y volver; bots que cambian de deporte; medida con 4 instalados (tamaño, espera, coste por acción y día) | Chequeos nuevos |
 
-Ver §4. El atletismo se reescribe sobre el kit sin cambiar ids, textos ni el orden del azar: `sim` idéntico.
+Después, **el fútbol**: debería tocar solo su módulo y sus datos.
 
-### Fase 7 — Validación con dos deportes a la vez
+**Orden:** G y K no dependen de nada (K se hace ya: va en el juego base y todo lo demás se apoya en él). 0 da el cambio de deporte con lo que hay. 1–5 sueltan los nudos del atletismo uno a uno. 6 cambia cómo llega el código, cuando ya no hay nada atado. 7 lo demuestra. Las fases 2 a 4 tocan `contracts/paises`, `clubes`, `npcs` y `relaciones`, que comparten el trabajo de países: PR cortos y fusionados pronto.
 
-- **Dos deportes de prueba** que solo existen en los tests, hechos con el kit (unas 100 líneas cada uno). Demuestran que un deporte se añade **sin tocar nada fuera de su módulo** y prueban, en una partida empezada: instalar uno, practicar los dos con el atletismo a la vez, dejar uno, desinstalarlo, cargar, volver a instalarlo y recuperar su historial.
-- **Simulación:** cada bot elige deportes; `analysis.ts` mide los deportes de cada bot (no el atletismo fijo); un bot con **dos deportes** (el cansancio común no se salta, los dos progresan menos que uno solo pero más que nada) y un bot que **cambia de deporte** a mitad de curso.
-- **Medida con 4 deportes instalados:** tamaño de la partida, tiempo de instalar (la espera) y coste por acción y por día. Con eso se ve si hace falta adelantar fases de `ALMACENAMIENTO.md`.
-- **Documentación:** `ARQUITECTURA.md`, `ANEXO_DEPORTE.md`, `PAQUETES_DE_PAIS.md` y `CLAUDE.md` (checklist «Al añadir un deporte»).
+## 9. Decisiones del usuario (30/10/2026)
 
-**Después de la fase 7 empieza el fútbol**: debería tocar solo `modules/futbol`, su catálogo de datos por país, el mapa y las agendas.
-
-## 4. El kit de deporte, explicado
-
-Todos los deportes con club necesitan **las mismas piezas**: apuntarse al club del colegio, la prueba de acceso de un club de fuera y la plaza que te ofrecen, entrenar con el club (y llegar tarde), no entrenar por libre durante la sesión, pedir consejo al entrenador, el campamento de verano, verlo en la tele, subir a la categoría superior, el conocimiento del deporte y lo que traes de casa. Hoy esas piezas están escritas **dentro del atletismo**.
-
-Para el fútbol hay dos caminos:
-
-- **Copiarlas en el fútbol.** Es rápido, pero con 4 deportes la misma pieza estaría escrita 4 veces: un arreglo (p. ej. en la llegada tarde) habría que hacerlo 4 veces, y los deportes acabarían comportándose distinto sin querer.
-- **Sacarlas a una «caja de piezas» común** (el kit) que cada deporte usa con sus propios datos (sus horarios, sus habilidades, sus textos). Cada pieza se escribe una vez y todos los deportes se comportan igual en lo que es igual.
-
-Para el jugador **no cambia nada**; para desarrollar, cada deporte nuevo es más o menos un tercio del código y más fiable. El único coste es una regla: hoy un módulo solo puede usar `contracts` (el vocabulario común) y pasaría a poder usar también el kit. El kit, a su vez, solo puede usar `contracts`; ningún deporte puede usar a otro deporte ni al motor. El test de arquitectura lo seguiría vigilando. **Recomiendo hacerlo.**
-
-## 5. Resumen
-
-| Fase | Qué deja hecho | `sim` | Partidas |
-|---|---|---|---|
-| G | Guardar a mano y guardado automático elegible | Sin efecto | — |
-| 0 | Deportes instalados por partida; instalar y desinstalar conservando el historial | Idéntico | Se descartan (versión nueva) |
-| 1 | Deporte practicado (hasta 4), cambiar de deporte, cansancio común | Idéntico (salvo el bot que abandona) | Se descartan |
-| 2 | Aportes y catálogo de deportes | Idéntico | — |
-| 3 | Datos de cada deporte por país, con España de respaldo e importables | Idéntico | Se descartan |
-| 4 | Clubes con secciones por deporte | Idéntico | — |
-| 5 | Gente de cada deporte: reclutar y completar | Idéntico | Se descartan |
-| 6 | Kit de deporte y atletismo encima | Idéntico | — |
-| 7 | Dos deportes de prueba, bots con varios deportes, medida con 4 | Chequeos nuevos | — |
-
-Las fases 3, 4 y 5 tocan `contracts/paises`, `clubes`, `npcs` y `relaciones`, que comparten el trabajo de países y otras líneas: conviene hacerlas en PR cortos y fusionarlos pronto.
-
-## 6. Pendiente de decidir
-
-1. **Kit de deporte (§4):** ¿sí?
-2. **Orden de los datos por país (fase 3):** propongo que el paquete de país mande sobre los datos del módulo del deporte (así un país importado puede corregir un deporte sin esperar a una versión nueva). ¿O al revés?
-3. **Guardado (`ALMACENAMIENTO.md` §8):** ¿se guarda siempre al cerrar la pestaña aunque el automático sea semanal o mensual?
-4. **Archivar gente al desinstalar:** ¿se archivan las personas creadas solo para ese deporte que el personaje no conoce, o se conservan siempre?
-
-## 7. Decisiones del usuario (30/10/2026)
-
-- **Deportes como complementos de la partida:** se instalan y desinstalan los que se quieran y conviven mientras la máquina lo soporte; el historial de un deporte se guarda y se mantiene; al instalar uno se crean o se reubican personas según haga falta, aunque tarde (se avisa y se espera).
+- **Instalados, los que se quiera; practicado, uno.** Los deportes instalados conviven; se compite solo en uno (el de «Deporte») y se puede cambiar cuando se quiera. Jugar a otros con compañeros, más adelante.
+- **El código del deporte se instala con el deporte** (instalador), para no cargar todos los deportes en todos los jugadores.
+- **Kit de deporte:** aprobado.
 - **Alfa:** se pueden descartar las partidas empezadas.
-- **Varios deportes a la vez:** hasta 4 en paralelo; probar con 2.
-- **Reglas de cambio (§2):** valen, asegurando que no se rompe nada y que queda listo para futuros deportes.
-- **Países:** calendarios, categorías y nombres cambian con cada país **y** cada deporte; si un módulo no trae datos propios para un país, se usa el modelo de España en el mismo formato.
-- **Guardado:** botón de guardar en Opciones y guardado automático con la frecuencia que elija el jugador (diario, semanal, mensual), según lo que aguante su máquina.
+- **Reglas de cambio:** valen, asegurando que no se rompe nada y que queda listo para futuros deportes.
+- **Dos juegos de rol:** el paquete de país (colegio, calendario, gente) y el paquete de deporte (código y sus datos por país), cada uno con España por defecto hasta que una actualización traiga lo propio.
+- **Opciones:** un botón de Opciones con los de exportar e importar y los del guardado.
+- **Desinstalar no archiva:** hay que prever cómo vuelve un deporte sin recrear nada ni dejar datos desfasados (§5).
+- **Al cerrar la pestaña:** preguntar si guardar (respondido en §6: con nuestros botones sí; al cerrar la pestaña, aviso del navegador y copia de recuperación).

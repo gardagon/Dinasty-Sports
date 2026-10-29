@@ -72,11 +72,11 @@ Pregunta del usuario. **No es lo que se decidió ni lo que hace falta.** Lo deci
 
 ## 8. Guardado manual y automático (propuesta del usuario, 30/10/2026)
 
-Hoy se guarda **tras cada acción** (agrupado cada medio segundo) y al cerrar u ocultar la pestaña. Propuesta:
+Hoy se guarda **tras cada acción** (agrupado cada medio segundo) y al cerrar u ocultar la pestaña, y bajo el nombre hay tres botones (Exportar, Importar, Menú). Propuesta (resumen en `PLAN_DEPORTES_MODULARES.md` §6):
 
-- **Botón «Guardar partida»** en Opciones (y en el menú cuando hay una partida abierta), con el resultado («Guardado: martes 14 de octubre, 17:30 del juego»).
-- **Guardado automático a elegir** en Opciones: **tras cada acción** (como ahora), **cada día** (al pasar la medianoche del juego), **cada semana** (al empezar el lunes), **cada mes** (al cambiar de mes en el calendario del juego) o **solo a mano**. Se guarda por partida.
-- **Recomendación según la máquina:** el juego mide cuánto tarda cada guardado y lo sugiere (p. ej. «tu partida tarda 0,4 s en guardarse: te recomendamos guardar cada semana»). Por defecto, **cada día**.
-- **Aviso de lo que no está guardado:** en la cabecera, «Sin guardar desde hace 3 días de juego», y aviso del navegador al cerrar si hay cambios sin guardar (`beforeunload`).
-- **Al cerrar u ocultar la pestaña** (sobre todo en el móvil, donde el sistema cierra pestañas sin avisar): propongo **guardar siempre**, también con el automático semanal o mensual, salvo en «solo a mano». Pendiente de confirmar por el usuario.
-- **No cambia el formato** de lo guardado ni las copias de seguridad. Solo toca la interfaz (`apps/web/src/main.ts`): no choca con el plan de deportes y se puede hacer en cualquier momento.
+- **Botón «Opciones»** en la cabecera de la partida, al lado de «Menú», que reúne: **Guardar partida** (con la última vez que se guardó, en fecha del juego), **guardado automático**, **exportar e importar una copia**, el **instalador de deportes** y los **paquetes de país**.
+- **Guardado automático a elegir:** tras cada acción (como ahora), **cada día** (al pasar la medianoche del juego), **cada semana** (al empezar el lunes), **cada mes** (al cambiar de mes en el calendario del juego) o **solo a mano**. Se guarda por partida. **Por defecto, cada día.**
+- **Recomendación según la máquina:** el juego mide cuánto tarda cada guardado y sugiere una frecuencia.
+- **Salir con los botones del juego** (Menú, Salir) con cambios sin guardar: «Guardar y salir / Salir sin guardar / Cancelar».
+- **Cerrar la pestaña:** el navegador no deja preguntar «¿guardar?» con botones propios (solo su aviso genérico, y en el móvil ni eso). Por eso: aviso genérico del navegador (`beforeunload`) si hay cambios y **copia de recuperación**: al ocultarse o cerrarse la pestaña se escribe en IndexedDB una copia aparte (no la partida guardada). Al volver, si es más reciente que la guardada: «Hay una partida sin guardar más reciente: ¿recuperarla?».
+- **No cambia el formato** de lo guardado ni las copias de seguridad. Solo toca la interfaz (`apps/web/src/main.ts`, `almacen.ts`).
