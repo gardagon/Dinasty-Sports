@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Fase 5: deportes en la partida (añadir y quitar con la partida empezada)
+
+Hecha la fase 5 de `PLAN_DEPORTES_MODULARES.md`. Nada cambia en una partida normal (no se toca el azar ni el balance); `SAVE_VERSION` sigue en 17 (`GameState.retirados` es opcional).
+
+- **Añadir** (`añadirDeporteALaPartida`, en `@ds/game`): carga la partida con el módulo del deporte (el motor ya sabía inicializar módulos y stats que faltan) y avisa con el evento compartido `deporte.anadido` (`Game.notificar`, solo eventos compartidos y sin que pase el tiempo). `npcs` lo recoge: guarda lo que pide el deporte (`poblaciones`), crea sus entrenadores y sus equipos reclutan entre los niños que no juegan a nada (los que ya están en otro deporte siguen en él). Las edades se miran el primer día del curso en curso. Devuelve una partida nueva; la anterior no se toca.
+- **Quitar** (`quitarDeporteDeLaPartida`): no se archiva ni se borra nada. La partida guarda las definiciones de las stats del deporte (`GameState.retirados`, por id de módulo) y el motor las carga como un módulo sin más que esas stats (ocultas): siguen cayendo y envejeciendo cada día. Ese módulo no cuenta como cargado (`hasModule`). El estado del módulo y su gente se quedan; la gente se renueva cada curso sin el módulo (fase 4).
+- **Volver:** al añadir un deporte que estuvo, se borra su entrada de `retirados`, sus stats valen lo que les tocaba y `npcs` solo completa las plantillas (no duplica su población).
+- **Reglas:** siempre queda al menos un deporte y no se quita el de un club al que se pertenece (`motivoParaNoQuitar`: hay que dejar antes el club).
+- **Interfaz:** Opciones → «Deportes de la partida» (añadir/quitar con el motivo si no se puede) y una pantalla de espera mientras se prepara. Hoy solo hay atletismo (no se puede quitar), así que el flujo completo se prueba con un segundo deporte de prueba (`tests/deporte-de-prueba.ts`).
+- **Rendimiento (aviso):** el test `un bot que destaca acepta subir de categoría` pasó de ~60 s a ~150 s por la población de la fase 4 (se sube su límite a 300 s); sigue pendiente recortar el estado.
+- Tests: `tests/deportes-en-la-partida.test.ts`.
+
 ## 30/10/2026 — Fase 4: la gente de cada deporte (los niños se crean sin deporte y los deportes los reclutan)
 
 Hecha la fase 4 de `PLAN_DEPORTES_MODULARES.md`, rehecha según el diseño del usuario. **La partida ya no es idéntica a la de antes** (`npm run huella` deja de servir para comparar con versiones anteriores; vale entre cambios que no toquen esto). `SAVE_VERSION` 17 (sin publicar: no hay migración).

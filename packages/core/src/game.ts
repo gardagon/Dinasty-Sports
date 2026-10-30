@@ -158,11 +158,20 @@ export class Game {
     if (saved.version !== SAVE_VERSION) {
       throw new Error(`Versión de guardado ${saved.version} no soportada (actual: ${SAVE_VERSION})`);
     }
-    const registry = buildRegistry(modules);
+    // Los módulos quitados de la partida (un deporte que se dejó) siguen como módulos sin más que sus stats: así las habilidades siguen cayendo.
+    const retirados = Game.modulosRetirados(saved, modules);
+    const registry = buildRegistry([...modules, ...retirados]);
+    // Siguen en el registro por sus stats, pero ya no cuentan como módulos cargados.
+    for (const m of retirados) (registry.moduleIds as Set<string>).delete(m.id);
     // Se copia para no tocar el objeto de quien llama; con `copiar: false` se usa tal cual (p. ej. recién leído de un texto JSON).
     const state = opciones.copiar === false ? saved : structuredClone(saved);
     Game.fillMissing(registry, state);
     return new Game(registry, state);
+  }
+
+  private static modulosRetirados(state: GameState, cargados: readonly GameModule<any>[]): GameModule<any>[] {
+    const ids = new Set(cargados.map((m) => m.id));
+    return Object.entries(state.retirados ?? {}).filter(([id]) => !ids.has(id)).map(([id, stats]) => ({ id, name: id, stats: stats.map((d) => ({ ...d, hidden: true })) }));
   }
 
   private static lineage(state: GameState): Lineage {
@@ -429,6 +438,13 @@ export class Game {
   /** Lo que aportan los módulos cargados a un punto de extensión (ver `GameModule.aportes`). */
   aportes<T>(clave: string): readonly T[] {
     return this.readCtx('core').aportes<T>(clave);
+  }
+
+  /** Avisa a los módulos de un acontecimiento de fuera (p. ej. que se ha añadido un deporte), sin que pase el tiempo. Solo vale con eventos compartidos. */
+  notificar<T>(evento: GameEvent<T>): void {
+    if (!SHARED_EVENT_TYPES.has(evento.type)) throw new Error(`Solo se puede avisar con eventos compartidos (no "${evento.type}")`);
+    this.queue.push(evento);
+    this.drain();
   }
 
   /** Copia serializable del estado (para tests y para quien necesite un objeto). */

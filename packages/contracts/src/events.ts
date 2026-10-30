@@ -35,7 +35,14 @@ export const SHARED_EVENTS = {
   DATO_PERSONAL: 'persona.dato',
   /** data: PresentacionData — el personaje pregunta el nombre a alguien y se presentan: pasa de desconocido a conocido. */
   PRESENTACION: 'persona.presentarse',
+  /** data: DeporteAnadidoData — se ha añadido un deporte a una partida empezada (los que tienen gente, como `npcs`, la preparan). */
+  DEPORTE_ANADIDO: 'deporte.anadido',
 } as const;
+
+export interface DeporteAnadidoData {
+  /** Id del deporte (el de su ficha). */
+  deporte: string;
+}
 
 export interface PresentacionData {
   npcId: string;
