@@ -1191,7 +1191,7 @@ describe('datos de las personas: edad, cumpleaños, altura, colegio y clase', ()
     const otros = dir(g).list({ role: 'companero' }).filter((n) => n.id.startsWith('alumno_'));
     expect(otros.every((n) => /^[1-6]\.º[AB] de (infantil|primaria|ESO|bachillerato)$/.test(n.clase ?? ''))).toBe(true);
     expect(new Set(otros.map((n) => n.clase?.match(/\.º([AB])/)?.[1]))).toEqual(new Set(['A', 'B']));
-    const rival = dir(g).get('rival_1')!;
+    const rival = dir(g).list({ role: 'rival' })[0];
     expect(rival.sabe).toEqual([]);
     expect(rival.colegio === undefined || /^colegio\d$/.test(rival.colegio)).toBe(true);
     expect(rival.clase).toBeUndefined(); // la clase solo se enseña a los compañeros de colegio
@@ -1684,21 +1684,20 @@ describe('herencia de casa: ventaja de crianza, conocimiento y perks', () => {
   };
   const hermanoQueCompite = (g: Game) => dir(g).list({ tag: 'hermano' }).find((h) => h.levels.atletismo !== undefined);
 
-  it('los hermanos que ya compiten reciben el primer día la ventaja de crianza que dan los padres (como los rivales)', () => {
-    // Una partida cuyo personaje tenga un hermano que ya compite.
-    const seed = [31, 32, 33, 34, 35, 36, 37, 38, 39, 40].find((x) => hermanoQueCompite(conPadres('ninguna', undefined, x)))!;
-    expect(seed).toBeDefined();
-    const ninguna = conPadres('ninguna', undefined, seed);
-    const profesional = conPadres('profesional', 'atletismo', seed);
-    const antes = hermanoQueCompite(ninguna)!;
-    advanceTo(ninguna, 'gen.descansar', 1, 8);
-    advanceTo(profesional, 'gen.descansar', 1, 8);
-    const sin = dir(ninguna).get(antes.id)!.levels.atletismo;
-    const con = dir(profesional).get(antes.id)!.levels.atletismo;
-    // De ×0,95 (padres sin deporte) a ×1,10 (los dos profesionales): ~16 % más, salvo que el techo de su edad lo recorte.
-    expect(con).toBeGreaterThan(sin);
-    expect(con / sin).toBeLessThanOrEqual(1.1 / 0.95 + 0.01);
-  });
+  it('los hermanos que compiten llevan la ventaja de crianza de sus propios padres (según su perfil físico), entre ×0,95 y ×1,10, y su nivel no pasa de su potencial', () => {
+    let g: Game | undefined;
+    for (let seed = 1; seed <= 150 && !g; seed++) {
+      const c = nuevaPartida({ seed });
+      if (hermanoQueCompite(c)) g = c;
+    }
+    expect(g).toBeDefined();
+    if (!g) return;
+    const h = g.moduleState<NpcsState>('npcs').npcs.find((n) => n.tags.includes('hermano') && n.levels.atletismo !== undefined)!;
+    expect(h.genetica!.ventaja).toBeGreaterThanOrEqual(0.95);
+    expect(h.genetica!.ventaja).toBeLessThanOrEqual(1.1);
+    expect(h.levels.atletismo).toBeGreaterThan(0);
+    expect(h.levels.atletismo).toBeLessThanOrEqual(h.potential.atletismo);
+  }, 30000);
 
   it('si los padres practicaron atletismo, el personaje empieza sabiendo algo del deporte; si no, nada', () => {
     const base = conPadres('ninguna');

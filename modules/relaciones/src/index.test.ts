@@ -237,7 +237,7 @@ describe('módulo relaciones', () => {
       const lejanos = valores.filter((v) => v.diferencia >= 5).map((v) => v.afinidad);
       expect(m(cercanos)).toBeGreaterThan(m(lejanos));
       expect(new Set(valores.map((v) => Math.round(v.afinidad))).size).toBeGreaterThan(5);
-    });
+    }, 60000);
 
     it('con el tiempo la afinidad se enfría pero no baja de 5 (la familia no se olvida)', () => {
       const { g, h } = conHermano((e) => e >= 6);

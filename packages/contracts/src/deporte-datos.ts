@@ -89,30 +89,49 @@ export interface ClubDeDeporte {
 }
 
 /**
- * La gente de un deporte: lo que `npcs` necesita para crear a sus rivales y a sus entrenadores y para renovarlos cada curso. La partida **guarda lo
- * que pidió cada deporte** (`npcs` copia esto al empezar), así que su gente sigue viviendo aunque el módulo del deporte ya no esté (plan §5).
+ * Un club o el equipo de un colegio que recluta niños para el deporte. La plantilla es un número más o menos definido (se sortea entre `min` y `max`
+ * al crear la partida y se mantiene): así un club no tiene veinte niños. Los equipos de un colegio solo reclutan a sus alumnos; los clubes, a cualquiera
+ * (por ahora, los de más calidad escogen primero; más adelante, el prestigio).
+ */
+export interface EquipoDeDeporte {
+  /** Id del club en `clubes` (`colegio`, `club_ciudad`...) o un nombre libre para los que no están en el catálogo del personaje (`colegio2`, `club3`). */
+  club: string;
+  /** Cómo se llama, si no está en el catálogo del personaje. */
+  nombre?: string;
+  /** Equipo de un colegio: `propio` (el del personaje) o uno de los de fuera (`COLEGIOS_DE_FUERA`). Solo recluta alumnos de ese colegio. Sin él, es un club abierto a cualquier colegio. */
+  colegio?: string;
+  /** 1 colegio, 2 club de la ciudad, 3 alto rendimiento. Sin él: la del club en el catálogo del personaje, o 1 si es de un colegio y 2 si no. */
+  calidad?: 1 | 2 | 3;
+  /** Edades de competición que recluta (por defecto, las del deporte; los equipos de un colegio solo llegan a la edad en que acaba el colegio). */
+  edades?: { min?: number; max?: number };
+  plantilla: { min: number; max: number };
+}
+
+/**
+ * La gente de un deporte: lo que `npcs` necesita para reclutar a los niños que lo practican y para renovarlos cada curso. Todos los niños se crean
+ * iguales (con su genética y sus gustos) y cada deporte recluta a los que mejor encajan, primero entre los interesados. La partida **guarda lo que
+ * pidió cada deporte** (`npcs` copia esto al empezar), así que su gente sigue viviendo aunque el módulo del deporte ya no esté (plan §5).
  */
 export interface PoblacionDeDeporte {
   /** Etiqueta de los deportistas (p. ej. `atleta`): así los buscan los módulos del deporte (`NpcDirectory.list({ tag })`). */
   etiqueta: string;
-  /** Descripción de un rival («Compite en atletismo.»). */
+  /** Descripción de un deportista que no es del colegio del personaje («Compite en atletismo.»). */
   descripcionDeRival: string;
-  /** Capacidades (ids de stats genéricas) de las que sale su tope: la media de lo que hereda de cada padre. */
+  /** Capacidades (ids de stats genéricas) de las que sale su potencial: la media de lo que heredan, por la aptitud propia de cada uno. */
   capacidades: readonly string[];
   /** Cuánto varía su aptitud propia respecto a lo heredado (0,15 = ±15 %). */
   aptitud: number;
-  /** Carácter (ejes con su sesgo) e intereses que tienden a tener los deportistas. */
-  deportistas: { sesgoCaracter: Readonly<Record<string, number>>; interesesPreferidos: readonly string[] };
-  rivales: {
-    /** Edades de competición que cubre (ambas incluidas) y cuántos rivales hay de cada una. A la siguiente a la última se retiran. */
+  reclutamiento: {
+    /** Edades de competición que cubre (ambas incluidas). A la siguiente a la última se retiran. */
     edades: { min: number; max: number };
-    porEdad: number;
-    /** Hasta esta edad algún niño puede dejar el deporte cada curso (con esta probabilidad) y entra otro nuevo. */
+    /** Hasta esta edad algún niño puede dejar el deporte cada curso (con esta probabilidad) y otro ocupa su plaza. */
     edadMaxBaja: number;
     probabilidadBaja: number;
-    /** Clubes en los que compiten (nombres o ids: los del catálogo del personaje y otros, por si no están en él). */
-    clubes: readonly string[];
   };
+  /** Los clubes y equipos de colegio que reclutan, con su plantilla. */
+  equipos: readonly EquipoDeDeporte[];
+  /** Frase que se añade a la descripción de un alumno del colegio del personaje que entra en el equipo del colegio («Del equipo de atletismo del colegio.»). */
+  descripcionDelEquipo: string;
   entrenadores: {
     sesgoCaracter: Readonly<Record<string, number>>;
     interesesPreferidos: readonly string[];
@@ -122,13 +141,6 @@ export interface PoblacionDeDeporte {
     dedicacion: string;
     /** Los entrenadores de los clubes de fuera: de cada club, las edades que lleva cada uno. */
     deFuera: readonly { club: string; edades: readonly (readonly [number, number])[] }[];
-  };
-  /** Los alumnos del colegio que forman el equipo del club del colegio: cuántos y, si se dan, qué posiciones (si no, se reclutan los que mejor encajan). */
-  equipoDelColegio: {
-    tamano: number;
-    posiciones?: { tuClase: readonly number[]; otraClase: readonly number[]; otrosCursos: readonly number[] };
-    /** Frase que se añade a su descripción («Del equipo de atletismo del colegio.»). */
-    descripcion: string;
   };
 }
 
@@ -235,17 +247,24 @@ export function validarDatosDeDeporte(x: unknown): string[] {
     const pob = d.poblacion;
     if (!esObjeto(pob)) p.push(`${en}: falta la «poblacion»`);
     else {
-      const r = pob.rivales;
+      const r = pob.reclutamiento;
       const e = pob.entrenadores;
-      if (typeof pob.etiqueta !== 'string' || !pob.etiqueta || typeof pob.descripcionDeRival !== 'string') p.push(`${en}: la «poblacion» necesita etiqueta y descripcionDeRival`);
+      if (typeof pob.etiqueta !== 'string' || !pob.etiqueta || typeof pob.descripcionDeRival !== 'string' || typeof pob.descripcionDelEquipo !== 'string') p.push(`${en}: la «poblacion» necesita etiqueta, descripcionDeRival y descripcionDelEquipo`);
       if (!Array.isArray(pob.capacidades) || !pob.capacidades.length || pob.capacidades.some((c) => typeof c !== 'string')) p.push(`${en}: la «poblacion» necesita sus capacidades (ids de stats)`);
       if (typeof pob.aptitud !== 'number' || pob.aptitud < 0 || pob.aptitud >= 1) p.push(`${en}: la «poblacion.aptitud» tiene que estar entre 0 y 1`);
-      if (!esObjeto(pob.deportistas) || !esObjeto(e) || !esObjeto(pob.equipoDelColegio)) p.push(`${en}: la «poblacion» necesita deportistas, entrenadores y equipoDelColegio`);
-      if (!esObjeto(r) || !esObjeto(r.edades) || !esEntero(r.edades.min) || !esEntero(r.edades.max) || r.edades.max < r.edades.min || !esEntero(r.porEdad) || !esEntero(r.edadMaxBaja) || typeof r.probabilidadBaja !== 'number' || !Array.isArray(r.clubes) || !r.clubes.length) {
-        p.push(`${en}: los «rivales» de la población necesitan edades (min y max), porEdad, edadMaxBaja, probabilidadBaja y clubes`);
+      if (!esObjeto(r) || !esObjeto(r.edades) || !esEntero(r.edades.min) || !esEntero(r.edades.max) || r.edades.max < r.edades.min || !esEntero(r.edadMaxBaja) || typeof r.probabilidadBaja !== 'number') {
+        p.push(`${en}: el «reclutamiento» de la población necesita edades (min y max), edadMaxBaja y probabilidadBaja`);
       }
-      if (esObjeto(e) && (!Array.isArray(e.deFuera) || typeof e.dedicacion !== 'string' || typeof e.descripcionDelColegio !== 'string')) p.push(`${en}: los «entrenadores» de la población necesitan descripcionDelColegio, dedicacion y deFuera`);
-      if (esObjeto(pob.equipoDelColegio) && (!esEntero(pob.equipoDelColegio.tamano) || typeof pob.equipoDelColegio.descripcion !== 'string')) p.push(`${en}: el «equipoDelColegio» necesita tamano y descripcion`);
+      if (!Array.isArray(pob.equipos) || !pob.equipos.length) p.push(`${en}: la «poblacion» necesita sus equipos`);
+      else {
+        const ids = new Set<string>();
+        for (const q of pob.equipos as Partial<EquipoDeDeporte>[]) {
+          if (typeof q.club !== 'string' || !q.club || !esObjeto(q.plantilla) || !esEntero(q.plantilla.min) || !esEntero(q.plantilla.max) || q.plantilla.max < q.plantilla.min || q.plantilla.max < 1) p.push(`${en}: equipo mal formado (${JSON.stringify(q)?.slice(0, 60)}): necesita club y plantilla (min y max)`);
+          else if (ids.has(q.club)) p.push(`${en}: el equipo «${q.club}» está repetido`);
+          else ids.add(q.club);
+        }
+      }
+      if (!esObjeto(e) || !Array.isArray(e.deFuera) || typeof e.dedicacion !== 'string' || typeof e.descripcionDelColegio !== 'string') p.push(`${en}: los «entrenadores» de la población necesitan descripcionDelColegio, dedicacion y deFuera`);
     }
     const s = d.sedes;
     if (!esObjeto(s) || typeof s.colegio !== 'string' || typeof s.fuera !== 'string') p.push(`${en}: las «sedes» tienen que traer colegio y fuera`);

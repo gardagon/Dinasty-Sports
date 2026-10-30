@@ -138,9 +138,9 @@ describe('agendas de las personas', () => {
     expect(ubicacionEn(construirAgenda(padre, datos), en(0, 23, 30), 'x').ocupado).toBeFalsy();
   });
 
-  it('un hermano menor de 8 años (sin deporte) duerme de 23:00 a 7:00: está en casa, pero no se puede hablar con él; uno mayor sigue disponible', () => {
-    const pequeno: TipoAsignado[] = [{ tipo: 'hermano', escolar: true }];
-    const mayor: TipoAsignado[] = [{ tipo: 'hermano', escolar: true, deporte: true }];
+  it('un hermano menor de 8 años duerme de 23:00 a 7:00: está en casa, pero no se puede hablar con él; uno mayor sigue disponible', () => {
+    const pequeno: TipoAsignado[] = [{ tipo: 'hermano', escolar: true, duerme: true }];
+    const mayor: TipoAsignado[] = [{ tipo: 'hermano', escolar: true }];
     const u = (tipos: TipoAsignado[], hora: number, min = 0) => ubicacionEn(construirAgenda(tipos, datos), en(5, hora, min), 'x');
     expect(u(pequeno, 22, 59)).toMatchObject({ sitio: 'casa' });
     expect(u(pequeno, 22, 59).ocupado).toBeFalsy();

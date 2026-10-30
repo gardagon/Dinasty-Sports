@@ -6,7 +6,7 @@ Estado: **horarios cerrados y población aprobada** (27/10/2026). La población 
 
 **Lo que pone el deporte (fase 3 del plan de deportes, 30/10/2026):** las sesiones y las sedes de los clubes y la jornada de competición (los sábados de 9 a 13 en el estadio, en el atletismo) ya no están escritas en `agendas.ts`: salen de los datos del deporte para el país de la partida (`DatosDeDeportePais.clubes` y `competiciones.jornada`, ver `modules/atletismo/src/datos.ts`) y las agendas las reciben en `DatosDeAgenda`. Las tablas de abajo describen los datos de España del atletismo.
 
-**La gente de cada deporte (fase 4, 30/10/2026):** los rivales, los entrenadores y el equipo del colegio los pide cada deporte como dato (`DatosDeDeportePais.poblacion`). Las cifras de las tablas de abajo (9 rivales por edad de 8 a 19, 16 del equipo del colegio, 5 entrenadores de clubes...) son las del atletismo de España (`modules/atletismo/src/datos.ts`). Un segundo deporte suma la suya al final de la población.
+**La gente de cada deporte (fase 4, 30/10/2026):** los rivales, los entrenadores y el equipo del colegio los pide cada deporte como dato (`DatosDeDeportePais.poblacion`). Los deportistas ya no son un número fijo: los niños (del colegio y de otros colegios, creados con herencia y sin deporte) los recluta cada deporte por gustos y aptitud en equipos con plantilla definida (`modules/atletismo/src/datos.ts`, ~115 en el atletismo de España, 5-13 por edad). Las cifras de rivales y equipo de las tablas de abajo son orientativas de la versión anterior; los entrenadores de clubes (5) siguen igual.
 
 ## 1. Cómo funciona
 
@@ -129,7 +129,7 @@ Viven en casa (los únicos, con los padres, que tienen `casa` en su agenda). Una
 |---|---|---|---|
 | todos | todo el día | casa | 1,5 (entre la base y el rol: manda sobre «fuera» y cede ante lo demás) |
 | lectivo, si tiene de 3 a 17 años (`escolar`) | 7:30–14:00 | colegio como un alumno: llegando en la entrada del colegio y en el recreo en el patio; **en clase (7:50–10:40 y 11:10–14:00), ocupado** (fuera) | 2 |
-| todos los días, si tiene menos de 8 años (sin `deporte`) | 23:00–7:00 | casa, **durmiendo**: se le ve en casa pero no se le puede hablar (`motivoOcupado`) | 2,25 |
+| todos los días, si tiene menos de 8 años (`duerme`) | 23:00–7:00 | casa, **durmiendo**: se le ve en casa pero no se le puede hablar (`motivoOcupado`) | 2,25 |
 | sábado, si practica atletismo (`deporte`) | 8:45–13:15 | estadio; va el 40 %, como los rivales; ocupado de 9:00 a 13:00 | 3 |
 
 Al cumplir los 18 dejan el colegio (la marca `escolar` se quita al empezar el curso); al cumplir los 3 años entran. La marca `deporte` sigue a que tengan nivel de atletismo (desde los 8). Otros deportes y sesiones de club propias, pendientes.

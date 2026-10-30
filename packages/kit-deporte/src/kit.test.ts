@@ -44,10 +44,10 @@ const DATOS: DatosDeDeporte = {
         descripcionDeRival: 'Juega.',
         capacidades: ['gen.velocidad', 'gen.resistencia'],
         aptitud: 0.15,
-        deportistas: { sesgoCaracter: {}, interesesPreferidos: [] },
-        rivales: { edades: { min: 8, max: 19 }, porEdad: 2, edadMaxBaja: 13, probabilidadBaja: 0.1, clubes: ['Club A', 'Club B'] },
+        reclutamiento: { edades: { min: 8, max: 19 }, edadMaxBaja: 13, probabilidadBaja: 0.1 },
+        equipos: [{ club: 'colegio', colegio: 'propio', plantilla: { min: 4, max: 6 } }],
+        descripcionDelEquipo: 'Del equipo.',
         entrenadores: { sesgoCaracter: {}, interesesPreferidos: [], descripcionDelColegio: 'Entrena.', dedicacion: 'de prueba', deFuera: [] },
-        equipoDelColegio: { tamano: 4, descripcion: 'Del equipo.' },
       },
       clubes: [
         { id: 'colegio', nombre: 'Club deportivo del colegio', esColegio: true, calidad: 1, sesiones: { weekdays: [0, 2], desde: 15, hasta: 17 }, sede: 'pista_colegio', tramites: 'administracion' },

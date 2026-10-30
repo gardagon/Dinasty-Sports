@@ -57,6 +57,8 @@ export interface TipoAsignado {
   tuClase?: boolean;
   /** `hermano`: está en edad de colegio (va a clase como un alumno). */
   escolar?: boolean;
+  /** `hermano`: es pequeño (menos de 8 años) y duerme de 23:00 a 7:00 (se le ve en casa, pero no se le puede hablar). */
+  duerme?: boolean;
   /**
    * El deporte al que se refiere (`rival`, `entrenador`, `club`): su id. Sin él, el primero de la partida. En `hermano` basta `true`: practica
    * ese deporte y compite en su jornada.
@@ -276,8 +278,8 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       return [
         // Vive en casa: está allí salvo en el colegio (si tiene edad) y en su deporte, que mandan sobre la casa.
         tramo('hermano', nivel(NIVEL_AGENDA.base + 0.5), 'todos', 0, 1440, [['casa', 1]]),
-        // Los menores de 8 años (aún sin deporte) duermen de 23:00 a 7:00: siguen en casa, pero no se puede hablar con ellos.
-        ...(t.deporte ? [] : [tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', 0, h(7), [['casa', 1]], undefined, [[0, h(7)]], 'durmiendo'), tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', h(23), h(24), [['casa', 1]], undefined, [[h(23), h(24)]], 'durmiendo')]),
+        // Los menores de 8 años duermen de 23:00 a 7:00: siguen en casa, pero no se puede hablar con ellos.
+        ...(!t.duerme ? [] : [tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', 0, h(7), [['casa', 1]], undefined, [[0, h(7)]], 'durmiendo'), tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', h(23), h(24), [['casa', 1]], undefined, [[h(23), h(24)]], 'durmiendo')]),
         ...(t.escolar ? colegio('hermano', NIVEL_AGENDA.rol) : []),
         ...(t.deporte ? carreras('hermano', NIVEL_AGENDA.pertenencia, datos, deporte, ASISTENCIA_RIVAL.carreras) : []),
       ];
