@@ -1,4 +1,4 @@
-import type { LogEntry, PerksDe, RasgosDe, StatId } from '@ds/contracts';
+import type { LogEntry, PerksDe, RasgosDe, StatDef, StatId } from '@ds/contracts';
 
 /**
  * Versión del formato de guardado. En la fase alfa no se mantiene compatibilidad: se sube cada vez que cambia la forma del estado de
@@ -40,6 +40,11 @@ export interface GameState {
   log: LogEntry[];
   /** Contador de acciones realizadas (estadística y depuración). */
   actionCount: number;
+  /**
+   * Módulos quitados de la partida (un deporte que se deja de jugar): la definición de sus stats, para que sigan cayendo y envejeciendo cada día aunque
+   * el módulo ya no esté cargado. Al volver el módulo se borra su entrada y sus stats siguen valiendo lo que les tocaba.
+   */
+  retirados?: Record<string, StatDef[]>;
 }
 
 /** Genética de un progenitor: tope de cada capacidad con herencia directa y puntuación típica de sus rasgos que no son stats. */

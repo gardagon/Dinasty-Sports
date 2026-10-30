@@ -65,6 +65,7 @@ import {
   gustosDe,
   timeView,
   SHARED_EVENTS,
+  type DeporteAnadidoData,
   TAGS,
   defineModule,
   type CompetitionResultData,
@@ -1119,6 +1120,22 @@ export const npcs = defineModule<NpcsState>({
     },
 
     // Al entrar en un club conoces a su entrenador: se presenta el primer día.
+    // Se añade un deporte a una partida empezada: sus equipos reclutan entre los niños que no juegan a nada (si ya estuvo, solo completan lo que falte).
+    [SHARED_EVENTS.DEPORTE_ANADIDO]: (ctx, ev) => {
+      const { deporte } = ev.data as DeporteAnadidoData;
+      const ficha = fichasDeDeporte(ctx).find((f) => f.id === deporte);
+      if (!ficha) return;
+      const guardadas = poblacionesGuardadas(ctx);
+      const previa = guardadas.find((p) => p.deporte === deporte);
+      // Las edades se miran el primer día del curso en curso, como en la renovación de cada curso.
+      const dia = (ctx.time.week - ctx.time.schoolWeek) * 7;
+      ctx.updateState<NpcsState>((s) => {
+        const pob = previa ?? poblacionDe(ctx, ficha, false, s.semilla ?? 0);
+        const npcs = conPais(ctx.pais, () => (previa ? reclutarDeportistas(s.npcs, pob, dia) : añadirDeporte(s.npcs, pob, dia, ctx.rng)));
+        return { ...s, poblaciones: previa ? guardadas : [...guardadas, pob], npcs };
+      });
+    },
+
     [SHARED_EVENTS.CLUB_JOIN]: (ctx, ev) => {
       const { clubId, sport } = ev.data as ClubJoinData;
       // El que entrena tu edad en ese club (los clubes tienen varios, cada uno con unas categorías).

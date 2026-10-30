@@ -15,6 +15,6 @@ describe('simulación rápida', () => {
     const bot = BOTS.find((b) => b.id === 'atleta')!;
     const carrerasArriba = [1, 2].map((semilla) => runBot(bot, semilla, 1095).extras.carrerasSuperior ?? 0);
     expect(Math.max(...carrerasArriba)).toBeGreaterThan(0);
-    // Dos partidas de tres años: unos 60 s en el contenedor de desarrollo (medido el 30/10), más con la máquina cargada.
-  }, 150_000);
+    // Dos partidas de tres años: unos 150 s en el contenedor de desarrollo desde que todos los niños existen (fase 4; antes, 60 s).
+  }, 300_000);
 });

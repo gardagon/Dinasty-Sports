@@ -36,7 +36,7 @@ import {
   idDePonerApodo,
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
-import { cargarPartida, catalogoDeDeportes, nuevaPartida } from '@ds/game';
+import { añadirDeporteALaPartida, cargarPartida, catalogoDeDeportes, deportesDeLaPartida, motivoParaNoQuitar, nuevaPartida, quitarDeporteDeLaPartida } from '@ds/game';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
@@ -206,6 +206,8 @@ let recuperacion: Recuperacion | null = null;
 /** Lo que se hará cuando el jugador conteste «Guardar y salir / Salir sin guardar / Cancelar». */
 let preguntaDeSalida: 'menu' | 'salir' | null = null;
 let opcionesAbiertas = false;
+/** Lo que se está preparando ahora (añadir o quitar un deporte): mientras dura, una pantalla de espera tapa la partida. */
+let preparando: string | null = null;
 
 /** Aviso en la pantalla inicial cuando se descarta una partida guardada que ya no sirve (alfa: sin compatibilidad entre versiones). */
 let avisoPartidaAntigua = false;
@@ -409,6 +411,12 @@ function viewRecuperacion(): string {
 
 /** Ventanas encima de la partida: la pregunta al salir con cambios sin guardar y «Opciones». */
 function viewVentana(g: Game | null): string {
+  if (preparando) {
+    return `<div class="velo" role="alertdialog" aria-modal="true" aria-busy="true"><div class="ventana">
+      <h2>Un momento…</h2>
+      <p>${esc(preparando)}</p>
+    </div></div>`;
+  }
   if (preguntaDeSalida) {
     return `<div class="velo" role="dialog" aria-modal="true"><div class="ventana">
       <h2>${preguntaDeSalida === 'salir' ? 'Salir' : 'Volver al menú'}</h2>
@@ -425,8 +433,23 @@ function viewVentana(g: Game | null): string {
     <p><label>Guardado automático <select id="frecuencia">${opciones}</select></label></p>
     ${msDeGuardado === undefined ? '<p class="note">Cuando se haya guardado una vez, aquí verás cuánto tarda y qué frecuencia te recomendamos.</p>' : `<p class="note">${esc(textoDeRecomendacion(msDeGuardado))}</p>`}
     <p class="botones"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="importar-pais">Importar un país</button></p>
+    ${viewDeportesDeLaPartida(g)}
     <p class="botones"><button data-act="cerrar-opciones">Cerrar</button></p>
   </div></div>`;
+}
+
+/** Los deportes del catálogo y si están en la partida: se pueden añadir o quitar (siempre queda uno, y no se deja el de un club al que se pertenece). */
+function viewDeportesDeLaPartida(g: Game): string {
+  const hay = deportesDeLaPartida(g);
+  const filas = CATALOGO.map((d) => {
+    const en = hay.includes(d.id);
+    const motivo = en ? motivoParaNoQuitar(g, d.id) : undefined;
+    const boton = en
+      ? `<button data-act="quitar-deporte" data-gestionar-deporte="${esc(d.id)}"${motivo ? ` disabled title="${esc(motivo)}"` : ''}>Quitar</button>`
+      : `<button data-act="anadir-deporte" data-gestionar-deporte="${esc(d.id)}">Añadir</button>`;
+    return `<p class="botones"><span>${esc(d.nombre)}<small> · ${esc(d.disciplina)} · ${en ? 'en tu partida' : 'no está en tu partida'}</small></span>${boton}</p>${motivo ? `<p class="note">${esc(motivo)}</p>` : ''}`;
+  }).join('');
+  return `<h3>Deportes de la partida</h3>${filas}<p class="note">Al quitar un deporte no se pierde nada: tus habilidades siguen bajando con el tiempo y, si lo vuelves a añadir, todo está como tocaba.</p>`;
 }
 
 function viewDay(g: Game): string {
@@ -975,6 +998,32 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
       opcionesAbiertas = false;
       render();
       return true;
+    case 'anadir-deporte':
+    case 'quitar-deporte': {
+      const id = el?.dataset.gestionarDeporte;
+      const ficha = CATALOGO.find((d) => d.id === id);
+      if (!game || !ficha || preparando) return true;
+      if (!esPrincipal) {
+        alert('La partida está abierta en otra pestaña: aquí no se cambia nada.');
+        return true;
+      }
+      const anadir = act === 'anadir-deporte';
+      preparando = anadir ? `Preparando ${ficha.nombre}: su gente, sus clubes y sus habilidades…` : `Quitando ${ficha.nombre}…`;
+      render();
+      // Se deja pintar la pantalla de espera antes de empezar (preparar un deporte con su gente tarda un momento).
+      setTimeout(() => {
+        try {
+          const actual = game!;
+          game = anadir ? añadirDeporteALaPartida(actual, ficha.id) : quitarDeporteDeLaPartida(actual, ficha.id);
+          save(true);
+        } catch (e) {
+          alert(e instanceof Error ? e.message : 'No se pudo cambiar el deporte.');
+        }
+        preparando = null;
+        render();
+      }, 50);
+      return true;
+    }
     case 'guardar':
       if (!esPrincipal) {
         alert('La partida está abierta en otra pestaña: aquí no se guarda nada.');
