@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { APORTES, GEN, SERVICES, SHARED_EVENTS, aptitudDe, defineModule, validarDatosDeDeporte, type DatosDeDeporte, type NpcDirectory, type PresenciaService } from '@ds/contracts';
+import { APORTES, CAPACIDADES_GENETICAS, GEN, GRUPO_DE_CAPACIDAD, SERVICES, SHARED_EVENTS, aptitudDe, defineModule, validarDatosDeDeporte, type DatosDeDeporte, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
-import { geneticaDeNino, interesPor, potencialEn } from '../modules/npcs/src/deportistas';
+import { geneticaDeNino, interesPor, nivelEn, potencialEn } from '../modules/npcs/src/deportistas';
+import { reclutarEnTodos, sinDeporte } from '../modules/npcs/src/index';
 import type { Npc, NpcsState } from '@ds/mod-npcs';
 import { rngEstable } from '@ds/contracts';
 
@@ -57,51 +58,143 @@ const lista = (g: ReturnType<typeof nuevaPartida>) => g.moduleState<NpcsState>('
 const atletas = (g: ReturnType<typeof nuevaPartida>, deporte = 'atletismo') => lista(g).filter((n) => n.deporte === deporte && n.genetica);
 const media = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
-describe('la genética de los niños es una campana (Gauss), sin forzar a nadie', () => {
+const FISICAS = CAPACIDADES_GENETICAS.filter((c) => GRUPO_DE_CAPACIDAD[c] === 'fisico');
+const topeMedio = (g: { topes: Record<string, number> }, caps: readonly string[] = CAPACIDADES_GENETICAS) => media(caps.map((c) => g.topes[c]));
+const desviacion = (xs: number[]) => Math.sqrt(media(xs.map((x) => (x - media(xs)) ** 2)));
+const rangosDe = (xs: number[]): number[] => {
+  const orden = xs.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
+  const r = new Array<number>(xs.length);
+  orden.forEach(([, i], k) => (r[i] = k));
+  return r;
+};
+const spearman = (a: number[], b: number[]): number => {
+  const ra = rangosDe(a), rb = rangosDe(b), n = a.length;
+  return 1 - (6 * ra.reduce((s, x, i) => s + (x - rb[i]) ** 2, 0)) / (n * (n * n - 1));
+};
+
+describe('todos los niños se crean como el personaje: con padres de distinto nivel, sin forzar a nadie', () => {
   const N = 6000;
-  const potenciales = Array.from({ length: N }, (_, i) => {
-    const g = geneticaDeNino(rngEstable('medida', i), `nino_${i}`);
-    return potencialEn(`nino_${i}`, g, { deporte: 'atletismo', ...DATOS_ATLETISMO.paises.espana.poblacion });
-  });
-  const m = media(potenciales);
-  const sd = Math.sqrt(media(potenciales.map((x) => (x - m) ** 2)));
+  const ninos = Array.from({ length: N }, (_, i) => ({ g: geneticaDeNino(rngEstable('medida', i), `nino_${i}`), id: `nino_${i}` }));
+  const nivelDe = (c: number) => (c < 0.3 ? 'dificil' : c > 0.7 ? 'facil' : 'normal');
 
-  it('el potencial en un deporte se reparte en campana: media en torno a 62, asimetría y apuntamiento pequeños, y ~68 % a una desviación', () => {
-    expect(m).toBeGreaterThan(58);
-    expect(m).toBeLessThan(66);
-    expect(sd).toBeGreaterThan(6);
-    expect(sd).toBeLessThan(10);
-    const asimetria = media(potenciales.map((x) => ((x - m) / sd) ** 3));
-    const curtosis = media(potenciales.map((x) => ((x - m) / sd) ** 4)) - 3;
-    expect(Math.abs(asimetria)).toBeLessThan(0.4);
-    expect(Math.abs(curtosis)).toBeLessThan(0.6);
-    const dentro = (k: number) => potenciales.filter((x) => Math.abs(x - m) <= k * sd).length / N;
-    expect(dentro(1)).toBeGreaterThan(0.62);
-    expect(dentro(1)).toBeLessThan(0.74);
-    expect(dentro(2)).toBeGreaterThan(0.93);
+  it('llevan las 18 capacidades (físicas, mentales y sociales) y los padres salen de tres niveles: fácil, normal y difícil', () => {
+    expect(Object.keys(ninos[0].g.topes).sort()).toEqual([...CAPACIDADES_GENETICAS].sort());
+    const reparto = (nivel: string) => ninos.filter(({ g }) => nivelDe(g.calidad!.padre) === nivel).length / N;
+    expect(reparto('dificil')).toBeGreaterThan(0.2);
+    expect(reparto('dificil')).toBeLessThan(0.3);
+    expect(reparto('normal')).toBeGreaterThan(0.45);
+    expect(reparto('normal')).toBeLessThan(0.55);
+    expect(reparto('facil')).toBeGreaterThan(0.2);
+    expect(reparto('facil')).toBeLessThan(0.3);
   });
 
-  it('entre muchos niños siempre hay unos pocos que destacan por arriba (y otros por abajo): los extremos existen sin forzarlos', () => {
-    expect(Math.max(...potenciales)).toBeGreaterThan(m + 2.8 * sd);
-    expect(Math.min(...potenciales)).toBeLessThan(m - 2.5 * sd);
+  it('los hijos de padres de mejor nivel salen en media con topes más altos, pero en cada nivel hay de todo: muy dotados y muy flojos', () => {
+    const de = (nivel: string) => ninos.filter(({ g }) => nivelDe(g.calidad!.padre) === nivel && nivelDe(g.calidad!.madre) === nivel).map(({ g }) => g);
+    const [dificil, normal, facil] = [de('dificil'), de('normal'), de('facil')];
+    expect(dificil.length).toBeGreaterThan(200);
+    expect(facil.length).toBeGreaterThan(200);
+    const m = (xs: typeof dificil) => media(xs.map((g) => topeMedio(g)));
+    expect(m(normal)).toBeGreaterThan(m(dificil) + 3);
+    expect(m(facil)).toBeGreaterThan(m(normal) + 3);
+    // Los extremos existen en todos los niveles: nadie está condenado ni asegurado.
+    for (const grupo of [dificil, normal, facil]) {
+      const fuertes = grupo.map((g) => Math.max(...Object.values(g.topes)));
+      expect(Math.max(...fuertes)).toBeGreaterThan(85);
+      expect(Math.min(...grupo.map((g) => Math.min(...Object.values(g.topes))))).toBeLessThan(45);
+    }
+    // Y se cruzan: hay hijos de padres difíciles más dotados que la media de los de padres fáciles, y al revés.
+    expect(dificil.some((g) => topeMedio(g) > m(normal))).toBe(true);
+    expect(facil.some((g) => topeMedio(g) < m(normal))).toBe(true);
   });
 
-  it('los hijos de padres deportistas salen en media más dotados y más aficionados, pero no todos: también salen al revés', () => {
-    const niños = Array.from({ length: N }, (_, i) => ({ g: geneticaDeNino(rngEstable('medida', i), `nino_${i}`), i }));
-    const hijosDe = (f: (p: string) => boolean) => niños.filter(({ g }) => f(g.padres.padre) && f(g.padres.madre));
-    const deportistas = hijosDe((p) => p === 'federado' || p === 'profesional');
-    const sedentarios = hijosDe((p) => p === 'ninguna');
+  it('cada capacidad (también las mentales y sociales) se reparte en campana entre todos los niños', () => {
+    for (const cap of ['gen.velocidad', 'gen.inteligencia', 'gen.carisma']) {
+      const xs = ninos.map(({ g }) => g.topes[cap]);
+      const m = media(xs), sd = desviacion(xs);
+      expect(m, cap).toBeGreaterThan(55);
+      expect(m, cap).toBeLessThan(68);
+      expect(sd, cap).toBeGreaterThan(7);
+      const asimetria = media(xs.map((x) => ((x - m) / sd) ** 3));
+      const curtosis = media(xs.map((x) => ((x - m) / sd) ** 4)) - 3;
+      expect(Math.abs(asimetria), cap).toBeLessThan(0.8);
+      expect(Math.abs(curtosis), cap).toBeLessThan(1);
+      expect(Math.max(...xs), cap).toBeGreaterThan(m + 2.5 * sd);
+      expect(Math.min(...xs), cap).toBeLessThan(m - 2 * sd);
+    }
+  });
+
+  it('los hijos de padres que hicieron deporte (según su perfil físico) salen en media más dotados físicamente y más aficionados, pero no todos', () => {
+    const deportistas = ninos.filter(({ g }) => (g.padres.padre === 'federado' || g.padres.padre === 'profesional') && (g.padres.madre === 'federado' || g.padres.madre === 'profesional'));
+    const sedentarios = ninos.filter(({ g }) => g.padres.padre === 'ninguna' && g.padres.madre === 'ninguna');
     expect(deportistas.length).toBeGreaterThan(30);
     expect(sedentarios.length).toBeGreaterThan(300);
-    const topes = (xs: typeof niños) => media(xs.map(({ g }) => media(Object.values(g.topes))));
-    expect(topes(deportistas)).toBeGreaterThan(topes(sedentarios) + 1.5);
-    expect(deportistas.reduce((a, { g }) => a + g.ventaja, 0) / deportistas.length).toBeGreaterThan(sedentarios.reduce((a, { g }) => a + g.ventaja, 0) / sedentarios.length);
-    // Pero no es una regla: entre los hijos de deportistas hay quien sale flojo, y entre los de sedentarios, quien sale muy dotado.
-    const todos = niños.map(({ g }) => media(Object.values(g.topes)));
-    const mediaTodos = media(todos);
-    expect(deportistas.some(({ g }) => media(Object.values(g.topes)) < mediaTodos)).toBe(true);
-    expect(sedentarios.some(({ g }) => media(Object.values(g.topes)) > mediaTodos + 5)).toBe(true);
+    const fisico = (xs: typeof ninos) => media(xs.map(({ g }) => topeMedio(g, FISICAS)));
+    expect(fisico(deportistas)).toBeGreaterThan(fisico(sedentarios) + 2);
+    expect(media(deportistas.map(({ g }) => g.ventaja))).toBeGreaterThan(media(sedentarios.map(({ g }) => g.ventaja)));
+    const todos = media(ninos.map(({ g }) => topeMedio(g, FISICAS)));
+    expect(deportistas.some(({ g }) => topeMedio(g, FISICAS) < todos)).toBe(true);
+    expect(sedentarios.some(({ g }) => topeMedio(g, FISICAS) > todos + 4)).toBe(true);
   });
+
+  it('en una partida, el potencial deportivo de todos sus niños (no solo de los reclutados) sale en campana', () => {
+    const potenciales: number[] = [];
+    for (const seed of [31, 32, 33, 34, 35, 36]) {
+      const g = nuevaPartida({ seed });
+      const pob = g.moduleState<NpcsState>('npcs').poblaciones![0];
+      for (const n of lista(g)) if (n.genetica) potenciales.push(potencialEn(n.id, n.genetica, { ...pob, deporte: 'atletismo' }));
+    }
+    expect(potenciales.length).toBeGreaterThan(5000); // todos los niños de la partida: los del colegio, los de otros colegios y los del barrio
+    const m = media(potenciales), sd = desviacion(potenciales);
+    expect(m).toBeGreaterThan(58);
+    expect(m).toBeLessThan(66);
+    expect(Math.abs(media(potenciales.map((x) => ((x - m) / sd) ** 3)))).toBeLessThan(0.4);
+    expect(Math.abs(media(potenciales.map((x) => ((x - m) / sd) ** 4)) - 3)).toBeLessThan(0.6);
+    const dentro = potenciales.filter((x) => Math.abs(x - m) <= sd).length / potenciales.length;
+    expect(dentro).toBeGreaterThan(0.62);
+    expect(dentro).toBeLessThan(0.74);
+  });
+});
+
+describe('quien destaca un año no tiene por qué destacar tres años después', () => {
+  it('el nivel que rinde cada niño cambia de un curso a otro (constancia y suerte del año), así que el orden entre ellos se mueve sin deshacerse', () => {
+    const rhos: number[] = [];
+    let cambiosDeLider = 0, cohortes = 0;
+    for (const seed of [31, 32, 33, 34, 35, 36]) {
+      const g = nuevaPartida({ seed });
+      const pob = g.moduleState<NpcsState>('npcs').poblaciones![0];
+      const coh = lista(g).filter((n) => n.genetica && n.nacimiento !== undefined && Math.floor(-n.nacimiento / 365) === 10 && n.role !== 'familia');
+      expect(coh.length).toBeGreaterThan(40);
+      const pot = coh.map((n) => potencialEn(n.id, n.genetica!, { ...pob, deporte: 'atletismo' }));
+      const nivel = (edad: number) => coh.map((n, i) => nivelEn(n.id, n.genetica!, pot[i], edad, 'atletismo', (edad - 10) * 365));
+      const [a, b] = [nivel(10), nivel(13)];
+      rhos.push(spearman(a, b));
+      cohortes++;
+      if (a.indexOf(Math.max(...a)) !== b.indexOf(Math.max(...b))) cambiosDeLider++;
+    }
+    expect(media(rhos)).toBeGreaterThan(0.4); // el orden se conserva en parte: el potencial sigue pesando
+    expect(media(rhos)).toBeLessThan(0.93); // pero no del todo: la constancia, el desarrollo y la suerte del año lo mueven
+    expect(cambiosDeLider).toBeGreaterThan(0); // y en alguna cohorte el que destacaba a los 10 ya no es el primero a los 13
+    expect(cambiosDeLider).toBeLessThan(cohortes);
+  });
+
+  it('en una partida de dos cursos, el orden de los deportistas de una misma edad se mueve (no es el del primer día)', () => {
+    const rhos: number[] = [];
+    for (const seed of [31, 32, 33]) {
+      const g = nuevaPartida({ seed });
+      const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
+      const antes = new Map(atletas(g).map((n) => [n.id, { nivel: n.levels.atletismo, edad: dir.get(n.id)!.age! }]));
+      advanceToWeek(g, 'gen.descansar', 106, 1, 10);
+      // Se compara dentro de cada edad: entre edades distintas el orden lo marca la edad, no el niño.
+      for (const edad of [8, 9, 10, 11, 12, 13]) {
+        const siguen = atletas(g).filter((n) => antes.get(n.id)?.edad === edad);
+        if (siguen.length < 8) continue;
+        rhos.push(spearman(siguen.map((n) => antes.get(n.id)!.nivel), siguen.map((n) => n.levels.atletismo)));
+      }
+    }
+    expect(rhos.length).toBeGreaterThan(5);
+    expect(media(rhos)).toBeLessThan(0.93);
+    expect(media(rhos)).toBeGreaterThan(0.3);
+  }, 60000);
 });
 
 describe('los clubes reclutan por gustos y aptitudes', () => {
@@ -210,20 +303,25 @@ describe('varios deportes reclutan sin pisarse', () => {
     expect(JSON.parse(JSON.stringify(g.serialize())).modules.npcs.poblaciones).toEqual(pobs);
   });
 
-  it('el equipo del colegio de un deporte nuevo recluta entre los alumnos que encajan, y los hermanos compiten en el deporte que les corresponda, no en el primero', () => {
-    let hermanoEnPrueba = 0, hermanoEnAtletismo = 0;
-    for (let seed = 1; seed <= 60; seed++) {
-      const g = nuevaPartida({ seed }, CON_PRUEBA);
-      for (const h of lista(g).filter((n) => n.tags.includes('hermano') && n.deporte)) {
-        if (h.deporte === 'prueba') hermanoEnPrueba++;
-        else hermanoEnAtletismo++;
-        // Si compite, es en un deporte que le interesa o en el que tiene aptitud: lo recluta un club, no se le asigna.
-        expect(h.equipo).toBeDefined();
-      }
+  it('los hermanos compiten en el deporte que les encaja por gustos y aptitud, no en el primero: a quien le interesa un deporte, lo recluta ese deporte', () => {
+    let g: ReturnType<typeof nuevaPartida> | undefined;
+    for (let seed = 1; seed <= 40 && !g; seed++) {
+      const c = nuevaPartida({ seed }, CON_PRUEBA);
+      if (lista(c).some((n) => n.tags.includes('hermano') && n.genetica)) g = c;
     }
-    expect(hermanoEnPrueba + hermanoEnAtletismo).toBeGreaterThan(0);
-    expect(hermanoEnPrueba).toBeGreaterThan(0); // con dos deportes, los hermanos no van todos al primero
-  }, 60000);
+    expect(g, 'una partida con hermanos').toBeDefined();
+    const estado = g!.moduleState<NpcsState>('npcs');
+    const pobs = estado.poblaciones!.map((p) => ({ ...p, equipos: p.equipos.map((e) => (e.club === 'colegio' ? { ...e, objetivo: 16, plantilla: { min: 16, max: 16 } } : e)) }));
+    for (const deporte of ['prueba', 'atletismo']) {
+      // Todos sin deporte, el hermano muy dotado y con interés solo por ese deporte: lo recluta ese deporte y no el otro.
+      const hermano = estado.npcs.find((n) => n.tags.includes('hermano') && n.genetica)!;
+      const sin = estado.npcs.map((n) => (n.deporte ? sinDeporte(n, pobs.find((p) => p.deporte === n.deporte)!, false) : n));
+      const jovenes = sin.map((n) => (n.id === hermano.id ? { ...n, nacimiento: -10 * 365 - 100, genetica: { ...n.genetica!, topes: Object.fromEntries(CAPACIDADES_GENETICAS.map((c) => [c, 95])) }, rasgos: { ...n.rasgos!, intereses: { [deporte]: 3 } } } : n));
+      const despues = reclutarEnTodos(jovenes, pobs, 0).find((n) => n.id === hermano.id)!;
+      expect(despues.deporte, deporte).toBe(deporte);
+      expect(despues.tipos?.find((t) => t.tipo === 'hermano')?.deporte).toBe(deporte);
+    }
+  });
 });
 
 describe('la gente de un deporte sigue viviendo sin su módulo', () => {
@@ -239,15 +337,13 @@ describe('la gente de un deporte sigue viviendo sin su módulo', () => {
     expect(atletas(sin)).toHaveLength(sin.moduleState<NpcsState>('npcs').poblaciones![0].equipos.reduce((a, e) => a + e.objetivo, 0));
   });
 
-  it('los niños que dejan el deporte no se vuelven a reclutar para él', () => {
+  it('los niños que dejan el deporte siguen siendo personas del barrio y no se vuelven a reclutar para él', () => {
     const g = nuevaPartida({ seed: 31 });
     advanceToWeek(g, 'gen.descansar', 106, 1, 10); // dos cursos
-    const abandonos = g.moduleState<NpcsState>('npcs').abandonos ?? [];
-    expect(abandonos.length).toBeGreaterThan(0);
-    const ids = new Set(lista(g).map((n) => n.id));
-    expect(abandonos.some((id) => ids.has(id))).toBe(false);
     const dejado = lista(g).filter((n) => n.dejado?.includes('atletismo'));
-    expect(dejado.every((n) => n.deporte === undefined)).toBe(true);
+    expect(dejado.length).toBeGreaterThan(0);
+    expect(dejado.every((n) => n.deporte === undefined && n.role !== 'rival')).toBe(true);
+    expect(dejado.some((n) => n.id.startsWith('nino_'))).toBe(true); // un niño de otro colegio que lo deja sigue en el barrio
   });
 });
 

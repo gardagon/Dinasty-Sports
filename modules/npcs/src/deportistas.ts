@@ -1,5 +1,7 @@
 import {
-  GEN,
+  CAPACIDADES_GENETICAS,
+  GRUPO_DE_CAPACIDAD,
+  calidadDePadreDelMundo,
   azarDe,
   efectosDe,
   factorPorEdad,
@@ -8,13 +10,9 @@ import {
   perfilDePadre,
   perksDePadre,
   practicaSegunTope,
-  primerDiaDelAnio,
-  rasgosAlAzar,
   repartirHerencia,
   rngEstable,
   ventajaDeCrianza,
-  type Gender,
-  type PaisDef,
   type PerksDe,
   type Practica,
   type PoblacionDeDeporte,
@@ -24,23 +22,24 @@ import {
 
 /**
  * Lo que hace falta para que un niño sea deportista: su genética (que no depende del deporte), cuánto le encaja un deporte (su potencial en él y si le
- * interesa) y cómo se reparten las plazas de un club por edades. Los niños se crean como en la vida real, sin pensar en ningún deporte: con padres que tienen su
- * perfil físico y lo que practicaron, de los que heredan sus topes, su ventaja de crianza y, con alguna probabilidad (nunca por obligación), su afición. Puede
+ * interesa) y cómo se reparten las plazas de un club por edades. Los niños se crean como en la vida real, sin pensar en ningún deporte: con padres de nivel fácil, normal o difícil
+ * (como el personaje), de los que heredan sus 18 topes, su ventaja de crianza y, con alguna probabilidad (nunca por obligación), su afición. Puede
  * salir un niño muy dotado de padres deportistas o uno poco dotado de padres que no hicieron deporte, pero también lo contrario. Los deportes los reclutan después (ver `npcs`).
  *
  * Todo lo que depende de un niño y de un deporte se sortea con un generador propio de ese par (`rngEstable`), no con el de la partida: así no cambia
  * con el orden en que se crea la gente ni con los deportes que haya.
  */
 
-/** Capacidades físicas que se heredan (las de las que sale el potencial de cualquier deporte; un deporte usa las suyas, entre estas). */
-export const CAPACIDADES_HEREDABLES: readonly string[] = [GEN.velocidad, GEN.fuerza, GEN.resistencia, GEN.constitucion, GEN.agilidad, GEN.coordinacion];
-
 const mediaDe = (v: readonly number[]): number => v.reduce((a, b) => a + b, 0) / v.length;
 const clamp = (v: number, a = 0, b = 100): number => Math.min(b, Math.max(a, v));
 
+/** Las capacidades físicas (de las que sale lo que practican los padres). */
+const FISICAS = CAPACIDADES_GENETICAS.filter((c) => GRUPO_DE_CAPACIDAD[c] === 'fisico');
+const fisicaDe = (topes: Readonly<Record<string, number>>): number => mediaDe(FISICAS.map((c) => topes[c] ?? 62));
+
 /** La genética de un niño: lo que heredó de sus padres y cómo se desarrolla. Es lo que decide, junto a sus gustos, qué deporte le encaja. */
 export interface Genetica {
-  /** Tope heredado de cada capacidad física (de un padre o de otro, ±20 %). Los topes se distribuyen en campana: unos pocos son muy buenos y otros muy flojos. */
+  /** Tope heredado de cada capacidad (las 18 de `gen`: físicas, mentales y sociales; de un padre o de otro, ±20 %). Los topes se distribuyen en campana: unos pocos son muy buenos y otros muy flojos. */
   topes: Record<string, number>;
   /** Perks (rasgos genéticos especiales): suben o bajan sus topes. */
   perks: PerksDe;
@@ -50,6 +49,8 @@ export interface Genetica {
   ventaja: number;
   /** Lo que practicó de deporte cada uno de sus padres (según su perfil físico: los más dotados llegan más lejos). */
   padres: { padre: Practica; madre: Practica };
+  /** Calidad de sus padres (0 a 1; ver `calidadDePadreDelMundo`). Los hermanos del personaje no la llevan: sus padres son los del personaje. */
+  calidad?: { padre: number; madre: number };
 }
 
 /**
@@ -65,17 +66,19 @@ export function perksDeNino(id: string, semilla: number): PerksDe {
 }
 
 /**
- * La genética de un niño de otra familia: unos padres con su perfil de topes (de calidad al azar: unos muy buenos, otros flojos) de los que hereda la
- * mitad de cada uno, ±20 %. Con tantos niños, el potencial de cada capacidad sale en campana (Gauss): unos pocos destacan y otros quedan por debajo.
+ * La genética de un niño de otra familia, igual que la del personaje: unos padres de calidad distinta (de nivel fácil, normal o difícil) con su perfil de
+ * topes en las 18 capacidades (y su sesgo hacia lo físico, lo mental o lo social), de los que hereda cada capacidad de uno de ellos, ±20 %. Con tantos niños, el
+ * potencial de cada capacidad sale en campana (Gauss): unos pocos destacan y otros quedan por debajo, y los de padres mejores salen mejor en media.
  */
 export function geneticaDeNino(rng: Rng, id: string): Genetica {
-  const padre = perfilDePadre(CAPACIDADES_HEREDABLES, rng, rng.next());
-  const madre = perfilDePadre(CAPACIDADES_HEREDABLES, rng, rng.next());
-  const practica = { padre: practicaSegunTope(mediaDe(Object.values(padre.topes)), rng), madre: practicaSegunTope(mediaDe(Object.values(madre.topes)), rng) };
-  const reparto = repartirHerencia(CAPACIDADES_HEREDABLES, rng);
+  const calidad = { padre: calidadDePadreDelMundo(rng), madre: calidadDePadreDelMundo(rng) };
+  const padre = perfilDePadre(CAPACIDADES_GENETICAS, rng, calidad.padre, GRUPO_DE_CAPACIDAD);
+  const madre = perfilDePadre(CAPACIDADES_GENETICAS, rng, calidad.madre, GRUPO_DE_CAPACIDAD);
+  const practica = { padre: practicaSegunTope(fisicaDe(padre.topes), rng), madre: practicaSegunTope(fisicaDe(madre.topes), rng) };
+  const reparto = repartirHerencia(CAPACIDADES_GENETICAS, rng);
   const padres = { padre, madre };
-  const topes = Object.fromEntries(CAPACIDADES_HEREDABLES.map((c) => [c, heredarTope(padres[reparto[c]].topes[c], rng)]));
-  return { topes, perks: perksDeNino(id, mediaDe(Object.values(topes))), desfase: clamp(rng.normal() * 0.7, -1.2, 1.2), ventaja: ventajaDeCrianza(practica.padre, practica.madre), padres: practica };
+  const topes = Object.fromEntries(CAPACIDADES_GENETICAS.map((c) => [c, heredarTope(padres[reparto[c]].topes[c], rng)]));
+  return { topes, perks: perksDeNino(id, mediaDe(Object.values(topes))), desfase: clamp(rng.normal() * 0.9, -1.6, 1.6), ventaja: ventajaDeCrianza(practica.padre, practica.madre), padres: practica, calidad };
 }
 
 /** La genética de un hermano del personaje: hereda de los mismos padres que él (sus topes y sus perks), con su propio azar. */
@@ -87,13 +90,13 @@ export function geneticaDeHermano(
   semilla: number,
   id: string,
 ): Genetica {
-  const reparto = repartirHerencia(CAPACIDADES_HEREDABLES, rng);
-  const topes = Object.fromEntries(CAPACIDADES_HEREDABLES.map((c) => [c, heredarTope(padres[reparto[c]][c] ?? 62, rng)]));
+  const reparto = repartirHerencia(CAPACIDADES_GENETICAS, rng);
+  const topes = Object.fromEntries(CAPACIDADES_GENETICAS.map((c) => [c, heredarTope(padres[reparto[c]][c] ?? 62, rng)]));
   const perks = heredarPerks(perksPadres.padre, perksPadres.madre, rngPerks);
-  // Lo que practicaron sus padres (los del personaje) se saca de sus topes, con un generador estable: no hace falta el módulo `familia`.
-  const practica = (cual: 'padre' | 'madre') => practicaSegunTope(mediaDe(CAPACIDADES_HEREDABLES.map((c) => padres[cual][c] ?? 62)), rngEstable('practica', semilla, id, cual));
+  // Lo que practicaron sus padres (los del personaje) se saca de sus topes físicos, con un generador estable: no hace falta el módulo `familia`.
+  const practica = (cual: 'padre' | 'madre') => practicaSegunTope(fisicaDe(padres[cual]), rngEstable('practica', semilla, id, cual));
   const hechas = { padre: practica('padre'), madre: practica('madre') };
-  return { topes, perks, desfase: clamp(rng.normal() * 0.7, -1.2, 1.2), ventaja: ventajaDeCrianza(hechas.padre, hechas.madre), padres: hechas };
+  return { topes, perks, desfase: clamp(rng.normal() * 0.9, -1.6, 1.6), ventaja: ventajaDeCrianza(hechas.padre, hechas.madre), padres: hechas };
 }
 
 /** Lo que un deporte necesita de un niño para valorarlo (de `PoblacionGuardada`). */
@@ -110,13 +113,29 @@ export function potencialEn(id: string, g: Genetica, d: DeporteDeNino): number {
   return clamp((topes.length ? mediaDe(topes) : 50) * (1 + d.aptitud * (u * 2 - 1)), 20, 95);
 }
 
-/** Su ritmo de progreso en un deporte (1 = medio): lo constante y bien entrenado que es. */
-export const ritmoEn = (id: string, deporte: string): number => clamp(1 + rngEstable('ritmo', id, deporte).normal() * 0.22, 0.55, 1.5);
+/** Las capacidades mentales que hacen a un niño constante y bien entrenado. */
+const DE_CONSTANCIA = ['gen.determinacion', 'gen.concentracion', 'gen.resiliencia'];
 
-/** Su nivel en un deporte a una edad (en años, con el desfase de su desarrollo): el potencial desarrollado a esa edad por su ventaja de crianza, entre el 80 y el 100 %. */
-export function nivelEn(id: string, g: Genetica, potencial: number, edadReal: number, deporte: string): number {
+/**
+ * Su ritmo de progreso en un deporte (1 = medio): lo constante y bien entrenado que es. Sale de su carácter (la media de sus topes de determinación,
+ * concentración y resiliencia, que no son físicas) y de su suerte con ese deporte (entrenador, lesiones, ganas), con un generador propio del niño y el deporte.
+ */
+export const ritmoEn = (id: string, g: Genetica, deporte: string): number => {
+  const constancia = (mediaDe(DE_CONSTANCIA.map((c) => g.topes[c] ?? 62)) - 62) / 15;
+  return clamp(1 + rngEstable('ritmo', id, deporte).normal() * 0.18 + constancia * 0.22, 0.55, 1.5);
+};
+
+/**
+ * Qué parte de su techo rinde un niño en un curso (0,8 a 1,05): depende de lo constante que es (su ritmo, que no cambia) y de cómo le va ese año (un generador
+ * propio de él, el deporte y el curso). Por eso el que destaca un año puede no destacar tres años después: unos se estancan y otros dan el estirón.
+ */
+export const formaEn = (id: string, deporte: string, dia: number, ritmo: number): number =>
+  clamp(0.95 + 0.06 * ((ritmo - 1) / 0.22) + 0.055 * rngEstable('forma', id, deporte, Math.floor(dia / 365)).normal(), 0.8, 1.05);
+
+/** Su nivel en un deporte a una edad (en años, con el desfase de su desarrollo): el potencial desarrollado a esa edad, por lo que rinde ese año y su ventaja de crianza. */
+export function nivelEn(id: string, g: Genetica, potencial: number, edadReal: number, deporte: string, dia: number): number {
   const techo = potencial * desarrolloRival(edadReal + g.desfase);
-  return Math.min(techo, techo * rngEstable('nivel', id, deporte).range(0.8, 1) * g.ventaja);
+  return techo * formaEn(id, deporte, dia, ritmoEn(id, g, deporte)) * g.ventaja;
 }
 
 /** Probabilidad de que cada padre pase la afición al deporte según lo que practicó. */
@@ -146,31 +165,4 @@ export function plazasPorEdad(club: string, plantilla: number, edades: readonly 
   const resto = plantilla - base * edades.length;
   const conExtra = new Set([...edades].sort((a, b) => azarDe('plaza', club, a) - azarDe('plaza', club, b)).slice(0, resto));
   return new Map(edades.map((e) => [e, base + (conExtra.has(e) ? 1 : 0)]));
-}
-
-/** Un niño de otro colegio (o ya sin colegio) que no existe como persona hasta que un club lo recluta: sale siempre igual de su colegio, su cohorte y su número. */
-export interface NinoVirtual {
-  id: string;
-  colegio: string;
-  gender: Gender;
-  rasgos: RasgosDe;
-  nacimiento: number;
-  genetica: Genetica;
-}
-
-/** Id de un niño virtual (`nino_<colegio>_<año de nacimiento>_<n>`). */
-export const idDeNino = (colegio: string, anioNac: number, i: number): string => `nino_${colegio}_${anioNac}_${i}`;
-
-/**
- * Un niño de otro colegio, con su género, sus gustos, su genética y su día de nacimiento: todo sale de la semilla y de su id (colegio, año de nacimiento y
- * número), no de la secuencia de la partida. Así cada curso se pueden volver a mirar los mismos niños sin guardarlos.
- */
-export function ninoVirtual(semilla: number, colegio: string, anioNac: number, i: number, pais: Pick<PaisDef, 'demografia'>): NinoVirtual {
-  const id = idDeNino(colegio, anioNac, i);
-  const rng = rngEstable('nino', semilla, id);
-  const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
-  const gustos = rasgosAlAzar(rng, { demografia: pais.demografia });
-  const nacimiento = primerDiaDelAnio(anioNac) + rng.int(0, 364);
-  const genetica = geneticaDeNino(rng, id);
-  return { id, colegio, gender, rasgos: aficionadoPorLosPadres(gustos, genetica.padres, rng), nacimiento, genetica };
 }

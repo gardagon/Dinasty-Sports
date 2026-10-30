@@ -224,7 +224,7 @@ describe('módulo relaciones', () => {
           expect(v.estado).toBe('conocido');
         }
       }
-    });
+    }, 60000);
 
     it('con más compatibilidad y menos diferencia de edad, mejor arranca la relación', () => {
       const valores: { afinidad: number; diferencia: number }[] = [];

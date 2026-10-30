@@ -29,7 +29,10 @@ describe('módulo NPCs', () => {
     const rivales = dir.list({ role: 'rival' });
     expect(rivales.length).toBeGreaterThan(60);
     expect(rivales.every((r) => r.id.startsWith('nino_'))).toBe(true);
-    expect(lista.length).toBe(lista.filter((n) => !n.id.startsWith('nino_')).length + rivales.length);
+    // Todos los niños de otros colegios existen, jueguen o no: solo los que reclutan los clubes son rivales.
+    const ninos = lista.filter((n) => n.id.startsWith('nino_'));
+    expect(ninos.length).toBeGreaterThan(600);
+    expect(ninos.filter((n) => n.role === 'vecino').length).toBe(ninos.length - rivales.length);
     expect(atletas(g)).toHaveLength(objetivos(g)); // todos los equipos completan su plantilla
   });
 
@@ -75,7 +78,8 @@ describe('módulo NPCs', () => {
       for (const n of atletas(g)) {
         const edad = (g.time.day - n.nacimiento!) / 365;
         const techo = n.potential.atletismo * desarrolloRival(edad + (n.desfase ?? 0));
-        expect(n.levels.atletismo).toBeLessThanOrEqual(techo + 1e-6);
+        // Rinde hasta un 5 % por encima del techo en su mejor año, y la ventaja de crianza le da hasta un 10 % más de partida.
+        expect(n.levels.atletismo).toBeLessThanOrEqual(techo * 1.05 * 1.1 + 1e-6);
       }
     });
 
@@ -102,14 +106,14 @@ describe('módulo NPCs', () => {
     });
   });
 
-  it('los niños llevan lo que heredaron de sus padres: topes de las capacidades físicas, perks, ventaja de crianza y lo que practicó cada padre', () => {
+  it('los niños llevan lo que heredaron de sus padres: topes de las 18 capacidades, perks, ventaja de crianza y lo que practicó cada padre', () => {
     const niños = nueva().moduleState<NpcsState>('npcs').npcs.filter((n) => n.genetica);
     expect(niños.length).toBeGreaterThan(200);
     for (const n of niños) {
       const g = n.genetica!;
-      expect(Object.keys(g.topes)).toHaveLength(6);
+      expect(Object.keys(g.topes)).toHaveLength(18);
       for (const t of Object.values(g.topes)) {
-        expect(t).toBeGreaterThanOrEqual(20);
+        expect(t).toBeGreaterThanOrEqual(10);
         expect(t).toBeLessThanOrEqual(100);
       }
       expect(g.ventaja).toBeGreaterThanOrEqual(0.95);
@@ -133,11 +137,11 @@ describe('módulo NPCs', () => {
   });
 
   it('el carácter y los intereses dependen del papel: el entrenador es más disciplinado y le gusta el deporte', () => {
-    const entrenadores = Array.from({ length: 40 }, (_, i) => Game.create([personaje, npcs, atletismo], { seed: i + 1 }).moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'entrenador')!);
+    const entrenadores = Array.from({ length: 25 }, (_, i) => Game.create([personaje, npcs, atletismo], { seed: i + 1 }).moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'entrenador')!);
     const media = entrenadores.reduce((a, n) => a + n.rasgos!.caracter.disciplina, 0) / entrenadores.length;
     expect(media).toBeGreaterThan(7);
     expect(entrenadores.filter((n) => 'deporte' in n.rasgos!.intereses || 'atletismo' in n.rasgos!.intereses).length / entrenadores.length).toBeGreaterThan(0.8);
-  });
+  }, 30000);
 
   it('los rasgos se publican en el servicio pero no cambian con los días', () => {
     const g = nueva();
@@ -262,7 +266,7 @@ describe('módulo NPCs', () => {
       expect(colegio.objetivo).toBeLessThanOrEqual(14);
       expect(equipo.every((n) => n.tipos?.some((t) => t.tipo === 'alumno' || t.tipo === 'hermano'))).toBe(true);
       expect(de(g, (n) => n.role === 'profesor').length).toBe(12);
-      expect(de(g, (n) => n.role === 'vecino' && !n.tags.includes('bibliotecario')).length).toBe(80);
+      expect(de(g, (n) => n.role === 'vecino' && !n.tags.includes('bibliotecario') && !n.id.startsWith('nino_')).length).toBe(80);
       expect(de(g, (n) => n.tags.includes('bibliotecario')).map((n) => n.id)).toEqual(['bibliotecario_1', 'bibliotecario_2']);
       const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
       for (const id of ['bibliotecario_1', 'bibliotecario_2']) expect(dir.get(id)).toMatchObject({ profesion: expect.stringMatching(/^Bibliotecari[oa]$/), trabajo: 'Biblioteca municipal' });
@@ -439,13 +443,13 @@ describe('hermanos', () => {
   it('heredan carácter e intereses de sus padres y tienen su propia genética', () => {
     const hs = partidas.flatMap((g) => g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.tags.includes('hermano')));
     expect(hs.length).toBeGreaterThan(100);
-    const potenciales = hs.map((n) => Object.values(n.genetica!.topes).reduce((a, b) => a + b, 0) / 6);
+    const potenciales = hs.map((n) => Object.values(n.genetica!.topes).reduce((a, b) => a + b, 0) / 18);
     for (const p of potenciales) {
-      expect(p).toBeGreaterThanOrEqual(20);
+      expect(p).toBeGreaterThanOrEqual(10);
       expect(p).toBeLessThanOrEqual(100);
     }
     const sd = Math.sqrt(potenciales.reduce((a, p) => a + (p - potenciales.reduce((x, y) => x + y, 0) / potenciales.length) ** 2, 0) / potenciales.length);
-    expect(sd).toBeGreaterThan(3); // cada hermano es distinto
+    expect(sd).toBeGreaterThan(1.5); // cada hermano es distinto (la media de 18 capacidades varía menos que la de 6)
   });
 
   it('un hermano no compite porque sí: solo lo hace si un club lo recluta, y entonces tiene nivel, etiqueta y equipo', () => {

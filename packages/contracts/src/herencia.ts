@@ -53,6 +53,29 @@ export const CALIDAD_DE_PADRES_DEL_JUGADOR: Record<Dificultad, readonly [number,
   dificil: [0.1, 0.2],
 };
 
+/** Las 18 capacidades genéticas (las de `gen`: físicas, mentales y sociales) y la categoría de cada una, que es el grupo con el que se reparte el sesgo de los padres. */
+export const GRUPO_DE_CAPACIDAD: Readonly<Record<string, string>> = {
+  'gen.velocidad': 'fisico', 'gen.fuerza': 'fisico', 'gen.resistencia': 'fisico', 'gen.constitucion': 'fisico', 'gen.agilidad': 'fisico', 'gen.coordinacion': 'fisico',
+  'gen.inteligencia': 'mental', 'gen.concentracion': 'mental', 'gen.determinacion': 'mental', 'gen.resiliencia': 'mental', 'gen.atencion': 'mental', 'gen.creatividad': 'mental',
+  'gen.carisma': 'social', 'gen.comunicacion': 'social', 'gen.autoridad': 'social', 'gen.empatia': 'social', 'gen.picardia': 'social', 'gen.cooperacion': 'social',
+};
+export const CAPACIDADES_GENETICAS: readonly string[] = Object.keys(GRUPO_DE_CAPACIDAD);
+
+/** Cuánta gente del mundo (que no es la familia del jugador) tiene padres de cada nivel de dificultad. Dentro de cada nivel, la calidad cae en el mismo rango que la de los padres del jugador. */
+export const NIVELES_DE_PADRES_DEL_MUNDO: Record<Dificultad, number> = { facil: 0.25, normal: 0.5, dificil: 0.25 };
+
+/** Calidad de unos padres cualquiera del mundo: se elige su nivel (fácil, normal o difícil, `NIVELES_DE_PADRES_DEL_MUNDO`) y dentro de él, la calidad. */
+export function calidadDePadreDelMundo(rng: Rng): Calidad {
+  let u = rng.next();
+  let nivel: Dificultad = 'normal';
+  for (const [d, peso] of Object.entries(NIVELES_DE_PADRES_DEL_MUNDO) as [Dificultad, number][]) {
+    if (u < peso) { nivel = d; break; }
+    u -= peso;
+  }
+  const [a, b] = CALIDAD_DE_PADRES_DEL_JUGADOR[nivel];
+  return rng.range(a, b);
+}
+
 /** Puntos que separan las capacidades normales del peor padre (calidad 0) y del mejor (calidad 1). */
 const DESPLAZAMIENTO_NORMAL = 20;
 
