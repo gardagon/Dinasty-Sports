@@ -55,6 +55,8 @@ export interface ReadContext {
   /** Servicio publicado por otro módulo (ver services.ts). `undefined` si ese módulo no está cargado. */
   service<T>(key: string): T | undefined;
   hasModule(moduleId: string): boolean;
+  /** Lo que los módulos cargados aportan a un punto de extensión (ver `GameModule.aportes`), en el orden de los módulos. Vacío si nadie aporta. */
+  aportes<T>(clave: string): readonly T[];
 }
 
 /** Contexto con permisos de escritura: lo reciben las acciones (`run`) y los manejadores de eventos. */

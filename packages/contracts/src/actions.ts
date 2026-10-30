@@ -8,8 +8,9 @@ import type { StatId } from './stats';
 export interface ActionDef {
   /** `<idModulo>.<nombre>` */
   id: string;
-  name: string;
-  description?: string;
+  /** Puede depender de la partida (p. ej. el nombre del campeonato del país). */
+  name: string | ((ctx: ReadContext) => string);
+  description?: string | ((ctx: ReadContext) => string);
   /**
    * Etiquetas: el lenguaje común entre módulos. Los modificadores se enganchan a etiquetas,
    * nunca a ids concretos. Ej.: `fisico`, `mental`, `social`, `estudio`, `entrenamiento`, `ocio`.

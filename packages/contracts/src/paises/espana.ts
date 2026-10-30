@@ -1,5 +1,4 @@
 import { CALENDARIO_ESPANA } from '../calendar';
-import { CATEGORIAS_ESPANA } from '../categories';
 import { HORARIOS_DE_ESPANA } from '../lugares';
 import { ORIGENES } from '../rasgos';
 import { CURSOS_ESPANA, CURSO_DE_MODALIDAD_ESPANA } from './curriculo';
@@ -12,7 +11,6 @@ export const PAIS_ESPANA: PaisDef = {
   calendario: CALENDARIO_ESPANA,
   cursos: CURSOS_ESPANA,
   cursoDeModalidad: CURSO_DE_MODALIDAD_ESPANA,
-  categorias: { atletismo: CATEGORIAS_ESPANA },
   horarios: HORARIOS_DE_ESPANA,
   demografia: Object.fromEntries(ORIGENES.map((o) => [o.id, o.frecuencia])),
   origenesLocales: ['espana_norte', 'espana_centro', 'espana_sur'],

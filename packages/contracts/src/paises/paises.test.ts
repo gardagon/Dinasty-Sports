@@ -10,7 +10,6 @@ describe('paquetes de país', () => {
     expect(paisPorId(undefined)).toBe(PAIS_ESPANA);
     expect(paisPorId('atlantida')).toBe(PAIS_ESPANA);
     expect(PAIS_ESPANA.cursos).toHaveLength(10);
-    expect(PAIS_ESPANA.categorias.atletismo[0].id).toBe('sub10');
     expect(PAIS_ESPANA.horarios).toBe(HORARIOS_DE_ESPANA);
     expect(Object.keys(PAIS_ESPANA.horarios)).toEqual(expect.arrayContaining(['colegio', 'biblioteca', 'supermercado']));
   });
@@ -23,7 +22,7 @@ describe('paquetes de país', () => {
       expect(pais.calendario).toMatchObject({ id, nombre });
       expect(CALENDARIOS[id]).toBe(pais.calendario);
       // Lo demás, igual que en España.
-      expect({ ...pais, id: 'x', nombre: 'x', calendario: { ...pais.calendario, id: 'x', nombre: 'x' } }).toMatchObject({ cursos: PAIS_ESPANA.cursos, categorias: PAIS_ESPANA.categorias, horarios: PAIS_ESPANA.horarios, cursoDeModalidad: PAIS_ESPANA.cursoDeModalidad });
+      expect({ ...pais, id: 'x', nombre: 'x', calendario: { ...pais.calendario, id: 'x', nombre: 'x' } }).toMatchObject({ cursos: PAIS_ESPANA.cursos, horarios: PAIS_ESPANA.horarios, cursoDeModalidad: PAIS_ESPANA.cursoDeModalidad });
       expect(validarPais(pais)).toEqual([]);
     }
     expect(listarPaises().map((p) => p.id)).toEqual(expect.arrayContaining(['espana', 'argentina', 'inglaterra']));
@@ -44,7 +43,6 @@ describe('paquetes de país', () => {
     expect(roto({ calendario: { ...PAIS_ESPANA.calendario, tramos: [{ desde: 0, hasta: 14, periodo: 'clase', trimestre: 1 }, { desde: 20, hasta: 51, periodo: 'verano', trimestre: 0 }] } }).join()).toMatch(/no continúa al anterior/);
     expect(roto({ calendario: { ...PAIS_ESPANA.calendario, tramos: [{ desde: 0, hasta: 14, periodo: 'clase', trimestre: 1 }] } }).join()).toMatch(/tiene que cubrir las 52 semanas/);
     expect(roto({ cursos: [] }).join()).toMatch(/Faltan los «cursos»/);
-    expect(roto({ categorias: { atletismo: [{ id: 'a', nombre: 'A', edadMin: 0, edadMax: 9 }, { id: 'b', nombre: 'B', edadMin: 12, edadMax: 13 }] } }).join()).toMatch(/no son seguidas/);
     expect(roto({ horarios: { la_luna: { tramos: [], texto: 'x' } } }).join()).toMatch(/no existe en el mapa/);
     expect(roto({ demografia: { atlantes: 1 } }).join()).toMatch(/el origen «atlantes» no existe/);
     expect(roto({ origenesLocales: ['magreb'] , demografia: { espana_centro: 1 } }).join()).toMatch(/origenesLocales/);

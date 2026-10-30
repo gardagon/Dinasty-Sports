@@ -15,12 +15,12 @@ const club = (id: string, desde: number): ClubView => ({ id, nombre: id, esColeg
 describe('deporte principal', () => {
   it('sin club no hay principal; al apuntarse a un club de un deporte, ese es el principal; al dejarlo, ninguno', () => {
     const g = nuevaPartida({ seed: 31 });
-    expect(deportePrincipal(clubes(g))).toBeNull();
+    expect(deportePrincipal(clubes(g), ['atletismo'])).toBeNull();
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     expect(hacer(g, 'atletismo.apuntarse_colegio').ok).toBe(true);
-    expect(deportePrincipal(clubes(g))).toBe('atletismo');
+    expect(deportePrincipal(clubes(g), ['atletismo'])).toBe('atletismo');
     expect(hacer(g, 'atletismo.dejar_club').ok).toBe(true);
-    expect(deportePrincipal(clubes(g))).toBeNull();
+    expect(deportePrincipal(clubes(g), ['atletismo'])).toBeNull();
   });
 
   it('con clubes en varios deportes gana el último en el que entró (y a igualdad, el primero)', () => {
@@ -28,7 +28,7 @@ describe('deporte principal', () => {
     expect(deportePrincipal(dir({ a: club('x', 3), b: club('y', 9) }), ['a', 'b'])).toBe('b');
     expect(deportePrincipal(dir({ a: club('x', 5), b: club('y', 5) }), ['a', 'b'])).toBe('a');
     expect(deportePrincipal(dir({}), ['a', 'b'])).toBeNull();
-    expect(deportePrincipal(undefined)).toBeNull();
+    expect(deportePrincipal(undefined, ['a'])).toBeNull();
   });
 
   it('no se ofrece empezar ni dejar un deporte: se entra y se sale de los clubes, y se puede entrenar sin ser de ninguno', () => {

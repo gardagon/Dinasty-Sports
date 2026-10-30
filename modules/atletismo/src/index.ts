@@ -3,7 +3,10 @@ import {
   SERVICES,
   SHARED_EVENTS,
   TAGS,
-  CATEGORIAS_ESPANA,
+  APORTES,
+  datosDeDeporte,
+  semanasDeTemporada,
+  textoConPais,
   categoriaSuperior,
   defineModule,
   inHours,
@@ -70,6 +73,9 @@ import {
   type TipoDePrueba,
   type UltimoPuesto,
 } from './temporada';
+import { DATOS_ATLETISMO, FICHA_ATLETISMO } from './datos';
+
+export { CATEGORIAS_ESPANA } from './datos';
 
 /**
  * MÓDULO ATLETISMO (id `atletismo`) — el deporte más sencillo de modelar:
@@ -107,7 +113,6 @@ const ENTRENOS_LIBRES = ['atletismo.series', 'atletismo.rodaje', 'atletismo.tecn
 const CONFIG: ConfigDeporte = {
   id: DEPORTE,
   nombre: 'atletismo',
-  categoriasEspana: CATEGORIAS_ESPANA,
   // El club del colegio entrena en la pista del colegio; los de fuera, en el estadio.
   sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
   textoDeCompeticion: 'Carreras: los sábados de 9 a 13 en el estadio.',
@@ -148,11 +153,13 @@ function puedeSubir(ctx: ReadContext): true | string {
 const habilidad = (key: string, name: string, apoyos: Apoyo[], description: string, tope: Apoyo[]) =>
   habilidadDeportiva(DEPORTE, 'Atletismo', key, name, apoyos, description, tope);
 
-/** Semanas de pretemporada al empezar cada curso: se entrena pero todavía no hay carreras. */
-const SEMANAS_PRETEMPORADA = 4;
-/** Semanas del curso (0 = la primera) de las semifinales y de la final del campeonato de España (sábados consecutivos). */
-const SEMANA_SEMIFINAL = 37;
-const SEMANA_FINAL = 38;
+/**
+ * La temporada, en semanas del curso (0 = la primera) y con el calendario del país: la pretemporada (se entrena pero todavía no hay carreras) y las
+ * semifinales y la final del campeonato (sábados consecutivos). Salen de los datos del deporte (`datos.ts`), que las dan relativas al final de las clases.
+ */
+const semanas = (ctx: ReadContext) => semanasDeTemporada(ctx.pais.calendario, datosDeDeporte(ctx, DEPORTE).temporada);
+/** El campeonato nacional del país de la partida («campeonato de España»). */
+const campeonato = (ctx: ReadContext) => textoConPais(datosDeDeporte(ctx, DEPORTE).competiciones.campeonato, ctx);
 
 const horarioEntreno = (ctx: ReadContext): true | string => {
   const t = ctx.time;
@@ -241,12 +248,9 @@ function rivalesGenericos(n: number, week: number, rng: Rng) {
 
 type TipoCarrera = 'regular' | 'semifinal' | 'final';
 
-const NOMBRE_TIPO: Record<TipoDePrueba, string> = {
-  regular: '',
-  clasificatoria: ' · semifinal del campeonato', // nombre antiguo de las semifinales (partidas guardadas)
-  semifinal: ' · semifinal del campeonato',
-  final: ' · final del campeonato de España',
-};
+const nombreDeTipo = (ctx: ReadContext, tipo: TipoDePrueba): string =>
+  // `clasificatoria` es el nombre antiguo de las semifinales (partidas guardadas).
+  ({ regular: '', clasificatoria: ' · semifinal del campeonato', semifinal: ' · semifinal del campeonato', final: ` · final del ${campeonato(ctx)}` })[tipo];
 
 /** Un corredor que corre una carrera: con su marca ya sorteada y, si es el personaje, `isPlayer`. */
 interface Corre extends Corredor {
@@ -387,7 +391,7 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
       const pasanDeLaOtra = otra ? otra.slice(0, CLASIFICADOS_POR_SERIE).map((c) => c.corto ?? c.name.split(' ')[0]).join(', ') : '';
       cierre =
         (clasificado
-          ? ` ¡Te clasificas para la final del campeonato de España, el sábado de la semana ${SEMANA_FINAL + 1}!`
+          ? ` ¡Te clasificas para la final del ${campeonato(ctx)}, el sábado de la semana ${semanas(ctx).final + 1}!`
           : ' No te clasificas para la final (pasan los cuatro primeros de cada serie): a por la del año que viene.') + (pasanDeLaOtra ? ` De la otra serie pasan: ${pasanDeLaOtra}.` : '');
     } else {
       ctx.setState<AtletismoState>({ ...base, campeonatos: resultados });
@@ -413,7 +417,7 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
   const dif = position === 1 ? '' : `, a ${(miMarca - ganador).toFixed(2)} s del 1º`;
   const serieTexto = series.length > 1 ? ` (serie ${series.indexOf(miSerie) + 1} de ${series.length})` : '';
   ctx.log(
-    `${DISCIPLINA} ${competida.nombre}${NOMBRE_TIPO[tipo]}${serieTexto}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${dif}${record ? ' (¡mejor marca personal!)' : ''}.${cierre}`,
+    `${DISCIPLINA} ${competida.nombre}${nombreDeTipo(ctx, tipo)}${serieTexto}: ${position}º de ${total} con ${miMarca.toFixed(2)} s${dif}${record ? ' (¡mejor marca personal!)' : ''}.${cierre}`,
     tipo === 'regular' ? 'resultado' : 'logro',
     tabla,
   );
@@ -436,7 +440,7 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
 
   ctx.emit<CompetitionResultData>({
     type: SHARED_EVENTS.COMPETITION_RESULT,
-    data: { module: 'atletismo', discipline: `${DISCIPLINA}${NOMBRE_TIPO[tipo]}`, position, total, mark: miMarca, unit: 's', participants },
+    data: { module: 'atletismo', discipline: `${DISCIPLINA}${nombreDeTipo(ctx, tipo)}`, position, total, mark: miMarca, unit: 's', participants },
   });
 }
 
@@ -460,17 +464,18 @@ const tablaDeLaPrueba = (p: PruebaGuardada): LogTable | undefined => {
 function proximaPrueba(ctx: ReadContext, s: AtletismoState): string {
   const t = ctx.time;
   if (t.period !== 'clase') return 'No hay carreras en vacaciones: la temporada empieza en septiembre.';
-  if (t.schoolWeek < SEMANAS_PRETEMPORADA) return `Pretemporada: la primera carrera es la semana ${SEMANAS_PRETEMPORADA + 1} del curso.`;
+  const sem = semanas(ctx);
+  if (t.schoolWeek < sem.primeraCompeticion) return `Pretemporada: la primera carrera es la semana ${sem.primeraCompeticion + 1} del curso.`;
   const hechas = (s.campeonatos ?? []).filter((c) => c.curso === t.schoolYear);
-  if (t.schoolWeek === SEMANA_SEMIFINAL && !hechas.some((c) => c.tipo === 'semifinal' || c.tipo === 'clasificatoria')) return 'Esta semana, el sábado de 9 a 13: semifinales del campeonato.';
-  if (t.schoolWeek === SEMANA_FINAL && s.campeonato?.clasificado && s.campeonato.curso === t.schoolYear && !hechas.some((c) => c.tipo === 'final')) {
-    return 'Esta semana, el sábado de 9 a 13: final del campeonato de España.';
+  if (t.schoolWeek === sem.semifinal && !hechas.some((c) => c.tipo === 'semifinal' || c.tipo === 'clasificatoria')) return 'Esta semana, el sábado de 9 a 13: semifinales del campeonato.';
+  if (t.schoolWeek === sem.final && s.campeonato?.clasificado && s.campeonato.curso === t.schoolYear && !hechas.some((c) => c.tipo === 'final')) {
+    return `Esta semana, el sábado de 9 a 13: final del ${campeonato(ctx)}.`;
   }
   const resto =
-    t.schoolWeek < SEMANA_SEMIFINAL
-      ? ` Las semifinales del campeonato son la semana ${SEMANA_SEMIFINAL + 1}.`
-      : t.schoolWeek < SEMANA_FINAL && s.campeonato?.clasificado && s.campeonato.curso === t.schoolYear
-        ? ` La final del campeonato es la semana ${SEMANA_FINAL + 1}.`
+    t.schoolWeek < sem.semifinal
+      ? ` Las semifinales del campeonato son la semana ${sem.semifinal + 1}.`
+      : t.schoolWeek < sem.final && s.campeonato?.clasificado && s.campeonato.curso === t.schoolYear
+        ? ` La final del campeonato es la semana ${sem.final + 1}.`
         : '';
   if (s.ultimaSemanaCarrera === t.week) return `Ya has corrido esta semana: la próxima carrera es el sábado que viene, de 9 a 13.${resto}`;
   return `Carrera semanal: el sábado, de 9 a 13.${resto}`;
@@ -489,6 +494,7 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
   const s = ctx.state<AtletismoState>();
   const { competida, superior } = categoriaDelJugador(ctx);
   const club = clubDelJugador(ctx);
+  const datos = datosDeDeporte(ctx, DEPORTE);
   // Tu entrenador: el de tu club que lleva tu edad (los clubes tienen varios, cada uno con unas categorías).
   const entrenador = entrenadorDelJugador(ctx);
   const todas = s.resultados ?? [];
@@ -519,6 +525,7 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
     inactivo: club ? undefined : 'Apúntate a un club de atletismo (en el colegio o en el estadio) para ver aquí tu deporte',
     resumen: [
       { etiqueta: 'Categoría', valor: `${competida.nombre}${superior ? ' (compites en la superior)' : ''}` },
+      { etiqueta: 'Federación', valor: `${datos.competiciones.federacion}${datos.deRespaldo ? ` (con los datos de España: ${ctx.pais.nombre} aún no tiene los suyos)` : ''}` },
       { etiqueta: 'Club', valor: club?.nombre ?? 'Sin club' },
       { etiqueta: 'Entrenador', valor: entrenador?.name ?? '—' },
       { etiqueta: 'Entrenamientos', valor: club ? textoDeSesiones(club.sesiones) : '—' },
@@ -537,7 +544,7 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
         .sort((a, b) => a.semana - b.semana)
         .map((p) => ({
           semana: p.semana - (t.week - t.schoolWeek) + 1,
-          titulo: `${DISCIPLINA} ${nombreDeCategoria(ctx, p.categoria)}${NOMBRE_TIPO[p.tipo]}`,
+          titulo: `${DISCIPLINA} ${nombreDeCategoria(ctx, p.categoria)}${nombreDeTipo(ctx, p.tipo)}`,
           posicion: p.posicion,
           total: p.total,
           marca: `${p.marca.toFixed(2)} s`,
@@ -555,6 +562,8 @@ export const atletismo = defineModule<AtletismoState>({
   name: 'Atletismo',
   description: '400 metros lisos. Entrena por la tarde y compite los sábados.',
   dependsOn: ['gen'],
+  // La ficha (para listarlo al crear la partida) y sus datos por país (categorías, temporada, competiciones).
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_ATLETISMO], [APORTES.datosDeDeporte]: [DATOS_ATLETISMO] },
   stats: [
     habilidad('tecnica', 'Técnica de carrera', [{ stat: GEN.coordinacion, weight: 0.4 }, { stat: GEN.agilidad, weight: 0.2 }], 'Zancada eficiente y postura.', [{ stat: GEN.coordinacion, weight: 0.5 }, { stat: GEN.agilidad, weight: 0.3 }, { stat: GEN.determinacion, weight: 0.2 }]),
     habilidad('ritmo', 'Gestión del ritmo', [{ stat: GEN.resistencia, weight: 0.4 }, { stat: GEN.inteligencia, weight: 0.2 }], 'Repartir el esfuerzo en la vuelta.', [{ stat: GEN.resistencia, weight: 0.5 }, { stat: GEN.inteligencia, weight: 0.25 }, { stat: GEN.determinacion, weight: 0.25 }]),
@@ -676,13 +685,13 @@ export const atletismo = defineModule<AtletismoState>({
     {
       id: 'atletismo.semifinal',
       name: 'Competir: semifinales del campeonato',
-      description: `Una vez por curso (sábado de la semana ${SEMANA_SEMIFINAL + 1}), con ${CORREDORES_DE_SEMIFINAL} corredores de tu categoría (los otros ${CORREDORES_POR_CARRERA - CORREDORES_DE_SEMIFINAL} rotan) repartidos en dos series de ocho. Pasan a la final los ${CLASIFICADOS_POR_SERIE} primeros de cada serie.`,
+      description: (ctx) => `Una vez por curso (sábado de la semana ${semanas(ctx).semifinal + 1}), con ${CORREDORES_DE_SEMIFINAL} corredores de tu categoría (los otros ${CORREDORES_POR_CARRERA - CORREDORES_DE_SEMIFINAL} rotan) repartidos en dos series de ocho. Pasan a la final los ${CLASIFICADOS_POR_SERIE} primeros de cada serie.`,
       tags: [TAGS.fisico, TAGS.cardio, TAGS.competicion, 'atletismo'],
       group: 'Competición',
       duration: 180,
       available: (ctx) => {
         const t = ctx.time;
-        if (t.period !== 'clase' || t.schoolWeek !== SEMANA_SEMIFINAL) return `Las semifinales del campeonato son en la semana ${SEMANA_SEMIFINAL + 1} del curso`;
+        if (t.period !== 'clase' || t.schoolWeek !== semanas(ctx).semifinal) return `Las semifinales del campeonato son en la semana ${semanas(ctx).semifinal + 1} del curso`;
         if (ctx.state<AtletismoState>().ultimaSemanaCarrera === t.week) return 'Ya has competido esta semana';
         return t.weekday === 5 && inHours(t, 9, 13) ? true : 'Es el sábado, de 9 a 13';
       },
@@ -696,14 +705,14 @@ export const atletismo = defineModule<AtletismoState>({
     },
     {
       id: 'atletismo.final',
-      name: 'Competir: final del campeonato de España',
-      description: `Para quien se clasificó en las semifinales (sábado de la semana ${SEMANA_FINAL + 1}): ocho corredores, los cuatro primeros de cada serie. Hay medallas.`,
+      name: (ctx) => `Competir: final del ${campeonato(ctx)}`,
+      description: (ctx) => `Para quien se clasificó en las semifinales (sábado de la semana ${semanas(ctx).final + 1}): ocho corredores, los cuatro primeros de cada serie. Hay medallas.`,
       tags: [TAGS.fisico, TAGS.cardio, TAGS.competicion, 'atletismo'],
       group: 'Competición',
       duration: 180,
       available: (ctx) => {
         const t = ctx.time;
-        if (t.period !== 'clase' || t.schoolWeek !== SEMANA_FINAL) return `La final es en la semana ${SEMANA_FINAL + 1} del curso`;
+        if (t.period !== 'clase' || t.schoolWeek !== semanas(ctx).final) return `La final es en la semana ${semanas(ctx).final + 1} del curso`;
         const c = ctx.state<AtletismoState>().campeonato;
         if (!c?.clasificado || c.curso !== t.schoolYear) return 'No te has clasificado para la final';
         if (ctx.state<AtletismoState>().ultimaSemanaCarrera === t.week) return 'Ya has competido esta semana';
@@ -728,9 +737,10 @@ export const atletismo = defineModule<AtletismoState>({
         const t = ctx.time;
         if (ctx.state<AtletismoState>().ultimaSemanaCarrera === t.week) return 'Ya has competido esta semana';
         if (t.period !== 'clase') return 'No hay carreras en vacaciones';
-        if (t.schoolWeek < SEMANAS_PRETEMPORADA) return 'Pretemporada: todavía no hay carreras';
-        if (t.schoolWeek === SEMANA_SEMIFINAL) return 'Esta semana son las semifinales del campeonato';
-        if (t.schoolWeek === SEMANA_FINAL && ctx.state<AtletismoState>().campeonato?.clasificado) return 'Esta semana es la final del campeonato';
+        const sem = semanas(ctx);
+        if (t.schoolWeek < sem.primeraCompeticion) return 'Pretemporada: todavía no hay carreras';
+        if (t.schoolWeek === sem.semifinal) return 'Esta semana son las semifinales del campeonato';
+        if (t.schoolWeek === sem.final && ctx.state<AtletismoState>().campeonato?.clasificado) return 'Esta semana es la final del campeonato';
         return t.weekday === 5 && inHours(t, 9, 13) ? true : 'Las carreras son los sábados de 9 a 13';
       },
       delta: { [GEN.energia]: -30, [GEN.estres]: 5 },

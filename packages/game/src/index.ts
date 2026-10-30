@@ -1,12 +1,17 @@
 import { Game, type CreateOptions, type GameState } from '@ds/core';
-import { CATALOGO_DE_DEPORTES, type GameModule } from '@ds/contracts';
+import { APORTES, type FichaDeDeporte, type GameModule } from '@ds/contracts';
 import { MODULOS } from './modulos';
 
 export { MODULOS } from './modulos';
 
-/** Los módulos sin los deportes que no están entre los incluidos (los que no son del catálogo de deportes se quedan siempre). */
+/** Los deportes de los módulos (o de los que se indiquen): lo que cada uno aporta como ficha. Sirve para listarlos antes de crear la partida. */
+export function catalogoDeDeportes(modulos: readonly GameModule<any>[] = MODULOS): FichaDeDeporte[] {
+  return modulos.flatMap((m) => (m.aportes?.[APORTES.fichaDeDeporte] ?? []) as FichaDeDeporte[]);
+}
+
+/** Los módulos sin los deportes que no están entre los incluidos (los módulos que no son un deporte se quedan siempre). */
 function conDeportes(modulos: readonly GameModule<any>[], incluidos: readonly string[]): readonly GameModule<any>[] {
-  const fuera = new Set(CATALOGO_DE_DEPORTES.map((d) => d.id).filter((id) => !incluidos.includes(id)));
+  const fuera = new Set(catalogoDeDeportes(modulos).map((d) => d.id).filter((id) => !incluidos.includes(id)));
   return modulos.filter((m) => !fuera.has(m.id));
 }
 
@@ -18,7 +23,7 @@ function conDeportes(modulos: readonly GameModule<any>[], incluidos: readonly st
 export function nuevaPartida(opts: CreateOptions & { deportes?: readonly string[] } = {}, modulos: readonly GameModule<any>[] = MODULOS): Game {
   const { deportes, ...resto } = opts;
   if (!deportes) return Game.create(modulos, resto);
-  const validos = CATALOGO_DE_DEPORTES.filter((d) => deportes.includes(d.id) && modulos.some((m) => m.id === d.id));
+  const validos = catalogoDeDeportes(modulos).filter((d) => deportes.includes(d.id));
   if (!validos.length) throw new Error('Una partida necesita al menos un deporte.');
   return Game.create(conDeportes(modulos, validos.map((d) => d.id)), resto);
 }
@@ -26,6 +31,6 @@ export function nuevaPartida(opts: CreateOptions & { deportes?: readonly string[
 /** Carga una partida guardada. `copiar: false` evita copiar el estado cuando acaba de salir de un texto JSON (nadie más lo usa). */
 export function cargarPartida(saved: GameState, modulos: readonly GameModule<any>[] = MODULOS, opciones?: { copiar?: boolean }): Game {
   // Los deportes de la partida son los que ya tiene guardados: no se le añade uno que se eligió no incluir.
-  const guardados = CATALOGO_DE_DEPORTES.map((d) => d.id).filter((id) => id in saved.modules);
+  const guardados = catalogoDeDeportes(modulos).map((d) => d.id).filter((id) => id in saved.modules);
   return Game.load(guardados.length ? conDeportes(modulos, guardados) : modulos, saved, opciones);
 }
