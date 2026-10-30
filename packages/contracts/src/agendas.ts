@@ -1,3 +1,4 @@
+import type { JornadaDeCompeticion } from './deporte-datos';
 import type { LugarId } from './lugares';
 import type { NpcView } from './services';
 import { HUECO_ENTRE_CLASES, JORNADA_ESCOLAR, MINUTOS_ANTES_DE_CLASE, type TimeView, type Weekday } from './time';
@@ -105,6 +106,8 @@ export interface SesionDeClub {
 export interface DatosDeAgenda {
   /** Sesiones de un club por su id o nombre; `undefined` si no se conoce. */
   sesionDeClub(club: string): SesionDeClub | undefined;
+  /** Cuándo y dónde se compite cada semana (la jornada que da el deporte, ver `JornadaDeCompeticion`); `undefined` si no hay ninguna (sin deportes). */
+  jornada(): JornadaDeCompeticion | undefined;
 }
 
 const h = (horas: number, minutos = 0): number => horas * 60 + minutos;
@@ -174,8 +177,11 @@ const sesiones = (tipo: TipoDeAgenda, nivel: number, s: SesionDeClub, asistencia
   tramo(tipo, nivel, s.weekdays as readonly Weekday[], h(s.desde) - MARGEN_ANTES_DE_SESION, h(s.hasta) + MARGEN_DE_SESION, [[s.sede, 1]], asistencia, [[h(s.desde), h(s.hasta)]]),
 ];
 
-/** Las carreras: los sábados por la mañana, en el estadio. */
-const carreras = (tipo: TipoDeAgenda, nivel: number, asistencia?: number): TramoDeAgenda => tramo(tipo, nivel, SABADO, h(9) - MARGEN_DE_SESION, h(13) + MARGEN_DE_SESION, [['estadio', 1]], asistencia, [[h(9), h(13)]]);
+/** La jornada de competición de cada semana (en el atletismo, las carreras: los sábados por la mañana, en el estadio), si el deporte da una. */
+const carreras = (tipo: TipoDeAgenda, nivel: number, datos: DatosDeAgenda, asistencia?: number): TramoDeAgenda[] => {
+  const j = datos.jornada();
+  return j ? [tramo(tipo, nivel, j.dias as readonly Weekday[], h(j.desde) - MARGEN_DE_SESION, h(j.hasta) + MARGEN_DE_SESION, [[j.lugar, 1]], asistencia, [[h(j.desde), h(j.hasta)]])] : [];
+};
 
 /** Cuántos rivales corren un sábado cualquiera (los demás compiten en otras pruebas o en otros campeonatos) y cuántos van a una sesión de su club. */
 export const ASISTENCIA_RIVAL = { carreras: 0.4, sesion: 0.85 };
@@ -242,7 +248,7 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
         tramo('profesor', nivel(NIVEL_AGENDA.rol), 'lectivo', EN_CLASE[1][0], h(17), [['sala_profesores', 85], ['colegio', 15]], undefined, EN_CLASE),
       ];
     case 'entrenador':
-      return [...(club ? sesiones('entrenador', nivel(NIVEL_AGENDA.pertenencia), club) : []), carreras('entrenador', nivel(NIVEL_AGENDA.pertenencia))];
+      return [...(club ? sesiones('entrenador', nivel(NIVEL_AGENDA.pertenencia), club) : []), ...carreras('entrenador', nivel(NIVEL_AGENDA.pertenencia), datos)];
     case 'club':
       return club ? sesiones('club', nivel(NIVEL_AGENDA.pertenencia), club) : [];
     case 'rival':
@@ -251,7 +257,7 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
         tramo('rival', NIVEL_AGENDA.rol, 'lectivo', h(15), h(19), [[FUERA, 85], ['parque', 15]]),
         tramo('rival', NIVEL_AGENDA.rol, 'libre', h(10), h(20), [[FUERA, 75], ['parque', 25]]),
         ...(club ? sesiones('rival', nivel(NIVEL_AGENDA.pertenencia), club, ASISTENCIA_RIVAL.sesion) : []),
-        carreras('rival', nivel(NIVEL_AGENDA.pertenencia), ASISTENCIA_RIVAL.carreras),
+        ...carreras('rival', nivel(NIVEL_AGENDA.pertenencia), datos, ASISTENCIA_RIVAL.carreras),
       ];
     case 'amigo': {
       const n = nivel(NIVEL_AGENDA.pertenencia);
@@ -268,7 +274,7 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
         // Los menores de 8 años (aún sin deporte) duermen de 23:00 a 7:00: siguen en casa, pero no se puede hablar con ellos.
         ...(t.deporte ? [] : [tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', 0, h(7), [['casa', 1]], undefined, [[0, h(7)]], 'durmiendo'), tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', h(23), h(24), [['casa', 1]], undefined, [[h(23), h(24)]], 'durmiendo')]),
         ...(t.escolar ? colegio('hermano', NIVEL_AGENDA.rol) : []),
-        ...(t.deporte ? [carreras('hermano', NIVEL_AGENDA.pertenencia, ASISTENCIA_RIVAL.carreras)] : []),
+        ...(t.deporte ? carreras('hermano', NIVEL_AGENDA.pertenencia, datos, ASISTENCIA_RIVAL.carreras) : []),
       ];
     case 'progenitor':
       // Trabajan fuera: en casa antes de irse, por la tarde-noche y casi todo el fin de semana.

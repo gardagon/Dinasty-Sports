@@ -1,11 +1,11 @@
-import { CIUDAD_INICIAL, SERVICES, rutaA, type LugaresService, type TimeView } from '@ds/contracts';
+import { SERVICES, rutaA, type LugaresService, type TimeView } from '@ds/contracts';
 import type { Game } from './game';
 
 /** Vuelve a casa por el camino que permite el mapa (primero se sale a la calle; el viaje rápido solo se hace desde ella). */
 function volverACasa(game: Game): void {
-  const aqui = game.service<LugaresService>(SERVICES.lugares)?.actual().id;
-  if (!aqui) return;
-  for (const parada of rutaA(CIUDAD_INICIAL, aqui, CIUDAD_INICIAL.casa)) if (!game.perform(`lugares.ir_${parada}`).ok) return;
+  const lugares = game.service<LugaresService>(SERVICES.lugares);
+  if (!lugares) return;
+  for (const parada of rutaA(lugares.mapa(), lugares.actual().id, lugares.mapa().casa)) if (!game.perform(`lugares.ir_${parada}`).ok) return;
 }
 
 /**

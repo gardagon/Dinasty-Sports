@@ -80,6 +80,8 @@ import {
   type ClubJoinData,
   type IdentityService,
   type DatosDeAgenda,
+  datosDeDeporte,
+  fichasDeDeporte,
   type PresenciaService,
   type SesionDeClub,
   type TipoAsignado,
@@ -776,11 +778,14 @@ const PATRONES_DE_SESION: readonly Omit<SesionDeClub, 'sede'>[] = [
   { weekdays: [2, 4], desde: 17, hasta: 19 },
 ];
 
-/** Sesiones de un club: las del catálogo de clubes (por id o por nombre) y, si no está, las de un club de fuera. */
-function sesionDeClub(clubes: ClubDirectory | undefined, club: string): SesionDeClub {
-  const c = clubes?.list('atletismo').find((x) => x.id === club || x.nombre === club);
-  if (c) return { weekdays: c.sesiones.weekdays, desde: c.sesiones.desde, hasta: c.sesiones.hasta, sede: c.esColegio ? 'pista_colegio' : 'estadio' };
-  return { ...PATRONES_DE_SESION[Math.floor(azarDe('sesion', club) * PATRONES_DE_SESION.length)], sede: 'estadio' };
+/**
+ * Sesiones de un club: las del catálogo de clubes (por id o por nombre) y, si no está, las de un club de fuera, que entrena en la sede por defecto de
+ * los clubes de fuera de su deporte. Provisional: toda la gente es del primer deporte de la partida (la gente de cada deporte llega en la fase 4).
+ */
+function sesionDeClub(clubes: ClubDirectory | undefined, deporte: string | undefined, sedeDeFuera: string | null, club: string): SesionDeClub {
+  const c = deporte ? clubes?.list(deporte).find((x) => x.id === club || x.nombre === club) : undefined;
+  if (c) return { weekdays: c.sesiones.weekdays, desde: c.sesiones.desde, hasta: c.sesiones.hasta, sede: c.sede };
+  return { ...PATRONES_DE_SESION[Math.floor(azarDe('sesion', club) * PATRONES_DE_SESION.length)], sede: sedeDeFuera };
 }
 
 /** Qué tipo de persona sale antes en una lista de «Gente aquí» a igualdad de nivel. */
@@ -799,7 +804,7 @@ function personaPorId(lista: Npc[], id: string): Npc | undefined {
 
 const SERVICIOS_DE_PRESENCIA = new WeakMap<Npc[], { minuto: number; servicio: PresenciaService }>();
 const SIN_TIPOS: TipoAsignado[] = [];
-/** La agenda depende solo de los tipos de la persona: se monta una vez por lista de tipos (los acontecimientos con fecha de fin no se guardan). */
+/** La agenda depende de los tipos de la persona y de los datos del deporte del país: se monta una vez por lista de tipos (los acontecimientos con fecha de fin no se guardan). */
 const AGENDAS = new WeakMap<TipoAsignado[], TramoDeAgenda[]>();
 /** Las personas con los mismos tipos comparten la misma agenda (el mismo objeto): así lo que se calcula para una vale para todas. */
 const AGENDAS_COMPARTIDAS = new Map<string, TramoDeAgenda[]>();
@@ -809,7 +814,8 @@ function agendaDePersona(n: Npc, datos: DatosDeAgenda, dia: number): TramoDeAgen
   if (tipos.some((x) => x.hasta !== undefined)) return construirAgenda(tipos, datos, dia);
   let a = AGENDAS.get(tipos);
   if (!a) {
-    const clave = JSON.stringify(tipos);
+    // La agenda también depende de lo que da el deporte del país (la jornada de competición y las sesiones y sedes de los clubes): entra en la clave.
+    const clave = JSON.stringify([tipos, datos.jornada(), tipos.map((x) => (x.club ? datos.sesionDeClub(x.club) : null))]);
     let compartida = AGENDAS_COMPARTIDAS.get(clave);
     if (!compartida) AGENDAS_COMPARTIDAS.set(clave, (compartida = construirAgenda(tipos, datos, dia)));
     AGENDAS.set(tipos, (a = compartida));
@@ -1038,7 +1044,12 @@ export const npcs = defineModule<NpcsState>({
       const hecho = SERVICIOS_DE_PRESENCIA.get(lista);
       if (hecho?.minuto === t.minute) return hecho.servicio;
       const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
-      const datos: DatosDeAgenda = { sesionDeClub: (club) => sesionDeClub(clubes, club) };
+      const deporte = fichasDeDeporte(ctx)[0]?.id; // provisional: la gente es del primer deporte (fase 4)
+      const delDeporte = deporte ? datosDeDeporte(ctx, deporte) : undefined;
+      const datos: DatosDeAgenda = {
+        sesionDeClub: (club) => sesionDeClub(clubes, deporte, delDeporte?.sedes.fuera ?? null, club),
+        jornada: () => delDeporte?.competiciones.jornada,
+      };
       const inicioCurso = (t.week - t.schoolWeek) * 7;
       const agendaDe = (n: Npc): TramoDeAgenda[] => agendaDePersona(n, datos, t.day);
       /**

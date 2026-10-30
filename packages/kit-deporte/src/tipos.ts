@@ -9,10 +9,6 @@ export interface ConfigDeporte {
   id: string;
   /** Nombre en minúscula para los textos: «el club de atletismo», «Entrenar atletismo». */
   nombre: string;
-  /** Dónde entrena el club del personaje: la sede del club del colegio y la de los clubes de fuera. */
-  sedes: { colegio: string; fuera: string };
-  /** Cuándo y dónde se compite, para contarlo antes de apuntarse a un club (p. ej. «Carreras: los sábados de 9 a 13 en el estadio.»). */
-  textoDeCompeticion: string;
   /** Rendimiento 0..100 del personaje en este deporte (para las pruebas de acceso a los clubes). */
   rendimiento: (ctx: ReadContext) => number;
   /** Acciones de entrenar por libre: rinden menos y no se pueden hacer durante la sesión del club. */

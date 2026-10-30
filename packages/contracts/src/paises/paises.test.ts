@@ -43,7 +43,8 @@ describe('paquetes de país', () => {
     expect(roto({ calendario: { ...PAIS_ESPANA.calendario, tramos: [{ desde: 0, hasta: 14, periodo: 'clase', trimestre: 1 }, { desde: 20, hasta: 51, periodo: 'verano', trimestre: 0 }] } }).join()).toMatch(/no continúa al anterior/);
     expect(roto({ calendario: { ...PAIS_ESPANA.calendario, tramos: [{ desde: 0, hasta: 14, periodo: 'clase', trimestre: 1 }] } }).join()).toMatch(/tiene que cubrir las 52 semanas/);
     expect(roto({ cursos: [] }).join()).toMatch(/Faltan los «cursos»/);
-    expect(roto({ horarios: { la_luna: { tramos: [], texto: 'x' } } }).join()).toMatch(/no existe en el mapa/);
+    expect(roto({ horarios: { 'La Luna': { tramos: [], texto: 'x' } } }).join()).toMatch(/no es un id de lugar válido/);
+    expect(roto({ horarios: { la_luna: { tramos: [], texto: 'x' } } }).join()).toMatch(/está mal formado/);
     expect(roto({ demografia: { atlantes: 1 } }).join()).toMatch(/el origen «atlantes» no existe/);
     expect(roto({ origenesLocales: ['magreb'] , demografia: { espana_centro: 1 } }).join()).toMatch(/origenesLocales/);
     expect(roto({ apellidosDeLosNacidosAqui: 3 }).join()).toMatch(/1 o 2/);

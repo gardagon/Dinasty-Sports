@@ -82,7 +82,6 @@ const CALLES: readonly LugarDef[] = [
   { id: 'calle_casa', name: 'Calle de tu casa', descripcion: 'Tu calle: da a tu casa, al supermercado y al restaurante. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
   { id: 'calle_colegio', name: 'Calle del colegio', descripcion: 'La calle del colegio: da al colegio y a la biblioteca. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
   { id: 'avenida_parque', name: 'Avenida del Parque', descripcion: 'Una avenida con el parque y el gimnasio municipal. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
-  { id: 'avenida_estadio', name: 'Avenida del Estadio', descripcion: 'La avenida del estadio de atletismo. Desde aquí se va a otras calles.', grupo: 'Calles', calle: true },
 ];
 
 /**
@@ -121,7 +120,6 @@ const HORARIO_DE_LA_BIBLIOTECA: HorarioDeLugar = {
   texto: 'de lunes a viernes de 9:00 a 20:00 y los sábados de 10:00 a 14:00',
 };
 const HORARIO_DEL_GIMNASIO: HorarioDeLugar = { tramos: [{ dias: 'todos', desde: 8 * 60, hasta: 22 * 60 }], texto: 'todos los días de 8:00 a 22:00' };
-const HORARIO_DEL_ESTADIO: HorarioDeLugar = { tramos: [{ dias: 'todos', desde: 8 * 60, hasta: 21 * 60 }], texto: 'todos los días de 8:00 a 21:00' };
 
 const LUGARES_DE_CALLE: readonly LugarDef[] = [
   { id: 'casa', name: 'Casa', descripcion: 'Tu edificio. Aquí vives con tu familia.', grupo: 'Vivienda', enCalle: 'calle_casa', minutosDeCalle: 1 },
@@ -129,7 +127,6 @@ const LUGARES_DE_CALLE: readonly LugarDef[] = [
   { id: 'biblioteca', name: 'Biblioteca', descripcion: 'La biblioteca municipal, junto al colegio: mesas, silencio y estanterías. Aquí se estudia con calma.', grupo: 'Estudios', enCalle: 'calle_colegio', minutosDeCalle: 3, horario: HORARIO_DE_LA_BIBLIOTECA },
   { id: 'parque', name: 'Parque', descripcion: 'Un parque con árboles, bancos y espacio para correr.', grupo: 'Ocio', enCalle: 'avenida_parque', minutosDeCalle: 1 },
   { id: 'gimnasio', name: 'Gimnasio', descripcion: 'El gimnasio municipal: sala de pesas, máquinas y una zona de cardio.', grupo: 'Deporte', enCalle: 'avenida_parque', minutosDeCalle: 5, horario: HORARIO_DEL_GIMNASIO },
-  { id: 'estadio', name: 'Estadio', descripcion: 'El estadio de atletismo: pista, graderías y vestuarios. Aquí compiten los clubes y se celebran las carreras.', grupo: 'Deporte', enCalle: 'avenida_estadio', minutosDeCalle: 3, horario: HORARIO_DEL_ESTADIO },
   { id: 'supermercado', name: 'Supermercado', descripcion: 'El supermercado del barrio. Aquí se compra la comida (sin dinero todavía no se puede comprar nada).', grupo: 'Comercio', enCalle: 'calle_casa', minutosDeCalle: 4, horario: HORARIO_DEL_SUPERMERCADO },
   { id: 'restaurante', name: 'Restaurante', descripcion: 'Un restaurante cerca del supermercado. Por ahora no tienes dinero para comer fuera.', grupo: 'Comercio', enCalle: 'calle_casa', minutosDeCalle: 4, horario: HORARIO_DEL_RESTAURANTE },
 ];
@@ -138,8 +135,6 @@ const ENTRE_CALLES: MapaCiudad['entreCalles'] = [
   ['calle_casa', 'calle_colegio', 8],
   ['calle_casa', 'avenida_parque', 4],
   ['calle_colegio', 'avenida_parque', 6],
-  ['calle_colegio', 'avenida_estadio', 6],
-  ['avenida_parque', 'avenida_estadio', 6],
 ];
 
 /**
@@ -189,25 +184,35 @@ const HORARIO_DEL_AULA: HorarioDeLugar = {
   ],
   texto: 'los días de clase, desde 10 minutos antes de cada clase (7:50 y 11:10) hasta el recreo y hasta las 14:00',
 };
-const HORARIO_DE_SALA_DE_CLUB: HorarioDeLugar = {
-  tramos: [
-    { dias: [0, 1, 2, 3, 4], desde: 16 * 60, hasta: 21 * 60 },
-    { dias: [5], desde: 9 * 60, hasta: 14 * 60 },
-  ],
-  texto: 'de lunes a viernes de 16:00 a 21:00 y los sábados de 9:00 a 14:00',
-};
 
 const ZONAS: readonly LugarDef[] = [
   { id: 'aula', name: 'Tu aula', descripcion: 'El aula de tu clase: aquí das clase con tus compañeros y el profesor. Se abre 10 minutos antes de cada clase.', grupo: 'Dentro del colegio', dentroDe: 'colegio', horario: HORARIO_DEL_AULA },
   { id: 'patio', name: 'Patio', descripcion: 'El patio del colegio: aquí se pasa el recreo (de 10:40 a 11:10) y se juega con los demás niños.', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
   { id: 'sala_profesores', name: 'Sala de profesores', descripcion: 'La sala de profesores, dentro del colegio: ahí están los profesores cuando no dan clase (salvo un par que salen al patio en el recreo).', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
   { id: 'administracion', name: 'Administración del colegio', descripcion: 'La secretaría del colegio: aquí te apuntas (o te das de baja) del club del colegio y te cuentan cuándo entrenan y compiten.', grupo: 'Dentro del colegio', dentroDe: 'colegio', horario: HORARIO_DE_ADMINISTRACION },
-  { id: 'pista_colegio', name: 'Pista de atletismo del colegio', descripcion: 'La pista de atletismo del colegio: aquí entrena el club del colegio y se puede correr por tu cuenta. Los miembros del club están 10 minutos antes de cada sesión.', grupo: 'Dentro del colegio', dentroDe: 'colegio' },
-  { id: 'sala_club_ciudad', name: 'Sala del Club Atletismo Ciudad', descripcion: 'La sala del Club Atletismo Ciudad, en el estadio: aquí pides la prueba de acceso y la inscripción de atletismo.', grupo: 'Dentro del estadio', dentroDe: 'estadio', horario: HORARIO_DE_SALA_DE_CLUB },
-  { id: 'sala_club_alto_rendimiento', name: 'Sala del Club de Alto Rendimiento', descripcion: 'La sala del Club de Alto Rendimiento, en el estadio: aquí pides la prueba de acceso y la inscripción de atletismo.', grupo: 'Dentro del estadio', dentroDe: 'estadio', horario: HORARIO_DE_SALA_DE_CLUB },
 ];
 
-/** Ciudad de partida. Es un dato: crecerá con la tienda, el aeropuerto... */
+/**
+ * Lo que un deporte pone en el mapa de la ciudad (aporte `lugares.mapa`, ver `APORTES`): sus calles, lugares y zonas (el estadio, la pista del colegio,
+ * las salas de sus clubes) y los caminos entre calles. `despuesDe` dice detrás de qué sitio sale en las listas (si no, al final).
+ */
+export interface AporteDeLugares {
+  lugares: readonly (LugarDef & { despuesDe?: LugarId })[];
+  entreCalles?: MapaCiudad['entreCalles'];
+}
+
+/** El mapa con lo que aportan los deportes cargados: sus lugares se colocan donde dicen y sus caminos se suman a los de la ciudad. */
+export function ensamblarMapa(base: MapaCiudad, aportes: readonly AporteDeLugares[]): MapaCiudad {
+  if (!aportes.length) return base;
+  const lugares: LugarDef[] = [...base.lugares];
+  for (const { despuesDe, ...lugar } of aportes.flatMap((a) => a.lugares)) {
+    const i = despuesDe ? lugares.findIndex((l) => l.id === despuesDe) : -1;
+    lugares.splice(i >= 0 ? i + 1 : lugares.length, 0, lugar);
+  }
+  return construirMapa(base, lugares, [...base.entreCalles, ...aportes.flatMap((a) => a.entreCalles ?? [])]);
+}
+
+/** La ciudad de partida **sin los sitios de los deportes** (cada deporte pone los suyos, ver `AporteDeLugares`). Es un dato: crecerá con la tienda, el aeropuerto... */
 export const CIUDAD_INICIAL: MapaCiudad = construirMapa({ nombre: 'Ciudad', inicio: 'casa', casa: 'casa' }, [...CALLES, ...LUGARES_DE_CALLE, ...ZONAS], ENTRE_CALLES);
 
 /** Los horarios de apertura de los lugares de la ciudad de partida (los de España), por id de lugar: lo que un paquete de país copia y cambia. */
@@ -290,6 +295,8 @@ export interface LugaresService {
   minutosA(hasta: LugarId): number | undefined;
   /** La casa del personaje. */
   casa(): LugarDef;
+  /** El mapa de la ciudad de esta partida: el base más los sitios de los deportes cargados (con los horarios de la ciudad, sin los del país). */
+  mapa(): MapaCiudad;
 }
 
 /** Evento que emite `lugares` al llegar a un sitio. */

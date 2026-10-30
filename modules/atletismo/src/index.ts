@@ -73,9 +73,9 @@ import {
   type TipoDePrueba,
   type UltimoPuesto,
 } from './temporada';
-import { DATOS_ATLETISMO, FICHA_ATLETISMO } from './datos';
+import { DATOS_ATLETISMO, FICHA_ATLETISMO, LUGARES_ATLETISMO } from './datos';
 
-export { CATEGORIAS_ESPANA } from './datos';
+export { CATEGORIAS_ESPANA, LUGARES_ATLETISMO } from './datos';
 
 /**
  * MÓDULO ATLETISMO (id `atletismo`) — el deporte más sencillo de modelar:
@@ -113,9 +113,6 @@ const ENTRENOS_LIBRES = ['atletismo.series', 'atletismo.rodaje', 'atletismo.tecn
 const CONFIG: ConfigDeporte = {
   id: DEPORTE,
   nombre: 'atletismo',
-  // El club del colegio entrena en la pista del colegio; los de fuera, en el estadio.
-  sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
-  textoDeCompeticion: 'Carreras: los sábados de 9 a 13 en el estadio.',
   rendimiento: (ctx) => rendimiento(ctx),
   entrenosLibres: ENTRENOS_LIBRES,
 };
@@ -562,8 +559,8 @@ export const atletismo = defineModule<AtletismoState>({
   name: 'Atletismo',
   description: '400 metros lisos. Entrena por la tarde y compite los sábados.',
   dependsOn: ['gen'],
-  // La ficha (para listarlo al crear la partida) y sus datos por país (categorías, temporada, competiciones).
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_ATLETISMO], [APORTES.datosDeDeporte]: [DATOS_ATLETISMO] },
+  // La ficha (para listarlo al crear la partida), sus datos por país (categorías, temporada, competiciones, clubes) y lo que pone en el mapa de la ciudad.
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_ATLETISMO], [APORTES.datosDeDeporte]: [DATOS_ATLETISMO], [APORTES.lugaresDeDeporte]: [LUGARES_ATLETISMO] },
   stats: [
     habilidad('tecnica', 'Técnica de carrera', [{ stat: GEN.coordinacion, weight: 0.4 }, { stat: GEN.agilidad, weight: 0.2 }], 'Zancada eficiente y postura.', [{ stat: GEN.coordinacion, weight: 0.5 }, { stat: GEN.agilidad, weight: 0.3 }, { stat: GEN.determinacion, weight: 0.2 }]),
     habilidad('ritmo', 'Gestión del ritmo', [{ stat: GEN.resistencia, weight: 0.4 }, { stat: GEN.inteligencia, weight: 0.2 }], 'Repartir el esfuerzo en la vuelta.', [{ stat: GEN.resistencia, weight: 0.5 }, { stat: GEN.inteligencia, weight: 0.25 }, { stat: GEN.determinacion, weight: 0.25 }]),

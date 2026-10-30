@@ -56,5 +56,5 @@ Forma de los datos (no su contenido de juego): `id` y `nombre`; calendario con t
 | Nombres, apellidos, apodos por cultura | `packages/contracts/src/culturas/` |
 | Currículo de España | `paises/curriculo.ts` (`CURSOS_ESPANA`) |
 | Datos del atletismo por país (categorías, temporada, competiciones) | `modules/atletismo/src/datos.ts` (`DATOS_ATLETISMO`); forma y validación en `contracts/deporte-datos.ts` |
-| Horarios de España | `lugares.ts` (`HORARIOS_DE_ESPANA`) |
+| Horarios de España (los lugares de la ciudad base; los de los deportes los trae el deporte) | `lugares.ts` (`HORARIOS_DE_ESPANA`) |
 | Interfaz (selector, importar) | `apps/web/src/main.ts`, `apps/web/src/paquetes.ts` |

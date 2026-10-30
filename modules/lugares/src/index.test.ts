@@ -1,20 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { CIUDAD_INICIAL, defineModule, enLugar, rutaA, tiempoEntre, pasosDesde, sePuedeIr, type LugaresService } from '@ds/contracts';
+import { CIUDAD_INICIAL, ensamblarMapa, defineModule, enLugar, rutaA, tiempoEntre, pasosDesde, sePuedeIr, type LugaresService } from '@ds/contracts';
 import { Game, advanceTo } from '@ds/core';
+import { atletismo, LUGARES_ATLETISMO } from '@ds/mod-atletismo';
 import { personaje } from '@ds/mod-personaje';
 import { lugares } from './index';
 
+/** El mapa de la ciudad con los sitios que pone el atletismo (el estadio, la pista del colegio, las salas de los clubes). */
+const MAPA = ensamblarMapa(CIUDAD_INICIAL, [LUGARES_ATLETISMO]);
+
 /** Va a un sitio por el camino del mapa (el viaje rápido solo se hace desde una calle). */
 const ir = (g: Game, lugar: string) => {
-  for (const parada of rutaA(CIUDAD_INICIAL, g.service<LugaresService>('lugares')!.actual().id, lugar)) g.perform(`lugares.ir_${parada}`);
+  for (const parada of rutaA(MAPA, g.service<LugaresService>('lugares')!.actual().id, lugar)) g.perform(`lugares.ir_${parada}`);
 };
 
-const partida = () => Game.create([personaje, lugares], { seed: 1 });
+const partida = () => Game.create([personaje, lugares, atletismo], { seed: 1 });
 
 describe('módulo lugares', () => {
   it('funciona solo con el módulo base y la partida empieza en casa', () => {
-    const g = partida();
+    const g = Game.create([personaje, lugares], { seed: 1 });
     expect(g.service<LugaresService>('lugares')?.actual().id).toBe('casa');
+  });
+
+  it('los sitios de un deporte salen del deporte: sin él no hay estadio ni acciones para ir', () => {
+    const sin = Game.create([personaje, lugares], { seed: 1 });
+    const con = partida();
+    const ids = (g: Game) => g.service<LugaresService>('lugares')!.mapa().lugares.map((l) => l.id);
+    for (const id of ['avenida_estadio', 'estadio', 'pista_colegio', 'sala_club_ciudad', 'sala_club_alto_rendimiento']) {
+      expect(ids(sin)).not.toContain(id);
+      expect(sin.preview(`lugares.ir_${id}`)).toBeUndefined();
+      expect(ids(con)).toContain(id);
+      expect(con.preview(`lugares.ir_${id}`)).toBeDefined();
+    }
+    expect(ids(con)).toEqual(MAPA.lugares.map((l) => l.id)); // y salen donde dicen, no al final
   });
 
   it('ir a un sitio cuesta lo que el camino y cambia la ubicación', () => {
@@ -56,12 +73,12 @@ describe('módulo lugares', () => {
 });
 
 describe('mapa de la ciudad', () => {
-  const ids = CIUDAD_INICIAL.lugares.map((l) => l.id);
+  const ids = MAPA.lugares.map((l) => l.id);
 
   it('la tabla de tiempos está completa: todos con todos, y cero con uno mismo', () => {
     for (const a of ids) {
       for (const b of ids) {
-        const t = tiempoEntre(CIUDAD_INICIAL, a, b);
+        const t = tiempoEntre(MAPA, a, b);
         expect(t, `${a} → ${b}`).toBeDefined();
         if (a === b) expect(t).toBe(0);
         else expect(t).toBeGreaterThan(0);
@@ -70,65 +87,65 @@ describe('mapa de la ciudad', () => {
   });
 
   it('la tabla es simétrica y no tiene lugares que no existan', () => {
-    expect(Object.keys(CIUDAD_INICIAL.tiempos).sort()).toEqual([...ids].sort());
-    for (const a of ids) for (const b of ids) expect(tiempoEntre(CIUDAD_INICIAL, a, b)).toBe(tiempoEntre(CIUDAD_INICIAL, b, a));
+    expect(Object.keys(MAPA.tiempos).sort()).toEqual([...ids].sort());
+    for (const a of ids) for (const b of ids) expect(tiempoEntre(MAPA, a, b)).toBe(tiempoEntre(MAPA, b, a));
   });
 
   it('los caminos del mapa usan sitios que existen y salen en ambos sentidos', () => {
-    for (const [a, b] of CIUDAD_INICIAL.entreCalles) expect(ids).toContain(a), expect(ids).toContain(b);
-    for (const l of CIUDAD_INICIAL.lugares) {
+    for (const [a, b] of MAPA.entreCalles) expect(ids).toContain(a), expect(ids).toContain(b);
+    for (const l of MAPA.lugares) {
       if (l.enCalle) expect(ids).toContain(l.enCalle);
       if (l.dentroDe) expect(ids).toContain(l.dentroDe);
     }
     // Desde la entrada del colegio: sus zonas y su calle. Desde la calle: sus lugares y las calles vecinas.
-    expect(pasosDesde(CIUDAD_INICIAL, 'colegio').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['calle:calle_colegio', 'dentro:administracion', 'dentro:aula', 'dentro:patio', 'dentro:pista_colegio', 'dentro:sala_profesores']);
+    expect(pasosDesde(MAPA, 'colegio').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['calle:calle_colegio', 'dentro:administracion', 'dentro:aula', 'dentro:patio', 'dentro:pista_colegio', 'dentro:sala_profesores']);
     // Las zonas del colegio salen en este orden: aula, patio, sala de profesores, administración y pista de atletismo.
-    expect(pasosDesde(CIUDAD_INICIAL, 'colegio').filter((p) => p.tipo === 'dentro').map((p) => p.lugar)).toEqual(['aula', 'patio', 'sala_profesores', 'administracion', 'pista_colegio']);
-    expect(pasosDesde(CIUDAD_INICIAL, 'calle_casa').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['lugar:casa', 'lugar:restaurante', 'lugar:supermercado', 'otra_calle:avenida_parque', 'otra_calle:calle_colegio']);
+    expect(pasosDesde(MAPA, 'colegio').filter((p) => p.tipo === 'dentro').map((p) => p.lugar)).toEqual(['aula', 'patio', 'sala_profesores', 'administracion', 'pista_colegio']);
+    expect(pasosDesde(MAPA, 'calle_casa').map((p) => `${p.tipo}:${p.lugar}`).sort()).toEqual(['lugar:casa', 'lugar:restaurante', 'lugar:supermercado', 'otra_calle:avenida_parque', 'otra_calle:calle_colegio']);
     // Las zonas solo se enlazan con su lugar.
-    expect(pasosDesde(CIUDAD_INICIAL, 'sala_profesores')).toEqual([{ lugar: 'colegio', minutos: 2, tipo: 'entrada' }]);
+    expect(pasosDesde(MAPA, 'sala_profesores')).toEqual([{ lugar: 'colegio', minutos: 2, tipo: 'entrada' }]);
   });
 
   it('el viaje rápido salta a cualquier lugar, pero solo desde una calle y nunca a una zona ni a una calle', () => {
-    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'colegio')).toBe(true);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'estadio')).toBe(true);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'aula')).toBe(false);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'calle_colegio')).toBe(true); // calle vecina: un paso, no viaje rápido
-    expect(sePuedeIr(CIUDAD_INICIAL, 'calle_casa', 'avenida_parque')).toBe(true);
+    expect(sePuedeIr(MAPA, 'calle_casa', 'colegio')).toBe(true);
+    expect(sePuedeIr(MAPA, 'calle_casa', 'estadio')).toBe(true);
+    expect(sePuedeIr(MAPA, 'calle_casa', 'aula')).toBe(false);
+    expect(sePuedeIr(MAPA, 'calle_casa', 'calle_colegio')).toBe(true); // calle vecina: un paso, no viaje rápido
+    expect(sePuedeIr(MAPA, 'calle_casa', 'avenida_parque')).toBe(true);
     // Desde dentro de un lugar o de una zona no hay viaje rápido: hay que salir.
-    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'colegio')).toBe(false);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'colegio', 'parque')).toBe(false);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'aula', 'colegio')).toBe(true); // la entrada del lugar es un paso
-    expect(sePuedeIr(CIUDAD_INICIAL, 'aula', 'estadio')).toBe(false);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'aula')).toBe(false);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'calle_colegio')).toBe(false);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'colegio', 'aula')).toBe(true);
-    expect(sePuedeIr(CIUDAD_INICIAL, 'casa', 'calle_casa')).toBe(true);
+    expect(sePuedeIr(MAPA, 'casa', 'colegio')).toBe(false);
+    expect(sePuedeIr(MAPA, 'colegio', 'parque')).toBe(false);
+    expect(sePuedeIr(MAPA, 'aula', 'colegio')).toBe(true); // la entrada del lugar es un paso
+    expect(sePuedeIr(MAPA, 'aula', 'estadio')).toBe(false);
+    expect(sePuedeIr(MAPA, 'casa', 'aula')).toBe(false);
+    expect(sePuedeIr(MAPA, 'casa', 'calle_colegio')).toBe(false);
+    expect(sePuedeIr(MAPA, 'colegio', 'aula')).toBe(true);
+    expect(sePuedeIr(MAPA, 'casa', 'calle_casa')).toBe(true);
   });
 
   it('rutaA sale primero a la calle (de la zona al lugar y de este a su calle) y luego hace el viaje rápido', () => {
-    expect(rutaA(CIUDAD_INICIAL, 'casa', 'colegio')).toEqual(['calle_casa', 'colegio']);
-    expect(rutaA(CIUDAD_INICIAL, 'aula', 'parque')).toEqual(['colegio', 'calle_colegio', 'parque']);
-    expect(rutaA(CIUDAD_INICIAL, 'casa', 'aula')).toEqual(['calle_casa', 'colegio', 'aula']);
-    expect(rutaA(CIUDAD_INICIAL, 'calle_casa', 'colegio')).toEqual(['colegio']);
+    expect(rutaA(MAPA, 'casa', 'colegio')).toEqual(['calle_casa', 'colegio']);
+    expect(rutaA(MAPA, 'aula', 'parque')).toEqual(['colegio', 'calle_colegio', 'parque']);
+    expect(rutaA(MAPA, 'casa', 'aula')).toEqual(['calle_casa', 'colegio', 'aula']);
+    expect(rutaA(MAPA, 'calle_casa', 'colegio')).toEqual(['colegio']);
   });
 
   it('el camino por las calles cuesta lo mismo que el viaje rápido', () => {
     const g = partida();
     const antes = g.time.minute;
     for (const id of ['calle_casa', 'calle_colegio', 'colegio']) expect(g.perform(`lugares.ir_${id}`).ok, id).toBe(true);
-    expect(g.time.minute - antes).toBe(tiempoEntre(CIUDAD_INICIAL, 'casa', 'colegio'));
+    expect(g.time.minute - antes).toBe(tiempoEntre(MAPA, 'casa', 'colegio'));
   });
 
   it('las zonas cuestan 2 minutos desde su lugar y 2 más que su lugar desde cualquier otro sitio', () => {
-    expect(tiempoEntre(CIUDAD_INICIAL, 'colegio', 'sala_profesores')).toBe(2);
-    expect(tiempoEntre(CIUDAD_INICIAL, 'casa', 'sala_profesores')).toBe(tiempoEntre(CIUDAD_INICIAL, 'casa', 'colegio')! + 2);
-    expect(tiempoEntre(CIUDAD_INICIAL, 'sala_profesores', 'administracion')).toBe(4);
-    expect(tiempoEntre(CIUDAD_INICIAL, 'sala_club_ciudad', 'sala_profesores')).toBe(tiempoEntre(CIUDAD_INICIAL, 'estadio', 'colegio')! + 4);
+    expect(tiempoEntre(MAPA, 'colegio', 'sala_profesores')).toBe(2);
+    expect(tiempoEntre(MAPA, 'casa', 'sala_profesores')).toBe(tiempoEntre(MAPA, 'casa', 'colegio')! + 2);
+    expect(tiempoEntre(MAPA, 'sala_profesores', 'administracion')).toBe(4);
+    expect(tiempoEntre(MAPA, 'sala_club_ciudad', 'sala_profesores')).toBe(tiempoEntre(MAPA, 'estadio', 'colegio')! + 4);
   });
 
   it('las zonas con horario salen en gris fuera de horario y dicen cuándo abren', () => {
-    const g = Game.create([personaje, lugares], { seed: 1 });
+    const g = Game.create([personaje, lugares, atletismo], { seed: 1 });
     advanceTo(g, 'gen.descansar', 0, 7); // lunes, 7:00: la administración abre a las 9:00
     ir(g, 'colegio');
     const o = g.preview('lugares.ir_administracion')!;

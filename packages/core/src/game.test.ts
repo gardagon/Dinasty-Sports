@@ -718,6 +718,19 @@ describe('aportes', () => {
     expect(Object.keys(con.serialize().modules)).not.toContain('aportes');
   });
 
+  it('las acciones calculadas con los aportes son acciones fijas más, en el sitio de su módulo', () => {
+    const lugares = defineModule({
+      id: 'l',
+      name: 'L',
+      actions: [{ id: 'l.a', name: 'A', tags: [], duration: 1 }],
+      accionesSegunAportes: (aporte) => aporte('sitios').map((s) => ({ id: `l.ir_${s}`, name: `Ir a ${s}`, tags: [], duration: 1 })),
+    });
+    const g = Game.create([base, lugares, aporta('x', 'sitios', ['norte', 'sur']), aporta('y', 'sitios', ['este'])], { seed: 1 });
+    expect(g.listActions().filter((o) => o.module === 'l').map((o) => o.id)).toEqual(['l.a', 'l.ir_norte', 'l.ir_sur', 'l.ir_este']);
+    expect(g.perform('l.ir_sur').ok).toBe(true);
+    expect(Game.create([base, lugares], { seed: 1 }).preview('l.ir_sur')).toBeUndefined();
+  });
+
   it('rechaza un aporte que no es una lista', () => {
     const mal = defineModule({ id: 'm', name: 'M', aportes: { cosas: { n: 1 } as unknown as unknown[] } });
     expect(() => Game.create([base, mal], { seed: 1 })).toThrow(RegistryError);

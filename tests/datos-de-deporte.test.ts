@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { APORTES, CALENDARIO_ESPANA, claveDeDeporte, copiaDeEspana, registrarPais, validarDatosDeDeporte, type DatosDeDeporte, type DeporteService, type FichaDeDeporte } from '@ds/contracts';
+import { APORTES, CALENDARIO_ESPANA, SERVICES, claveDeDeporte, copiaDeEspana, registrarPais, validarDatosDeDeporte, type ClubDirectory, type DatosDeDeporte, type DeporteService, type FichaDeDeporte, type LugaresService, type PresenciaService } from '@ds/contracts';
 import { MODULOS, catalogoDeDeportes, nuevaPartida } from '@ds/game';
 import { atletismo } from '@ds/mod-atletismo';
 
@@ -53,7 +53,7 @@ describe('los datos del deporte son por país', () => {
         { id: 'u11', nombre: 'Under 11', edadMin: 0, edadMax: 10 },
         { id: 'abierta', nombre: 'Abierta', edadMin: 11, edadMax: 200 },
       ],
-      competiciones: { federacion: 'Federación de prueba', campeonato: 'campeonato nacional de {pais}' },
+      competiciones: { ...datosDeAtletismo().paises.espana.competiciones, federacion: 'Federación de prueba', campeonato: 'campeonato nacional de {pais}' },
     };
     const datos: DatosDeDeporte = { id: 'atletismo', paises: { ...datosDeAtletismo().paises, con_datos: propios } };
     expect(validarDatosDeDeporte(datos)).toEqual([]);
@@ -88,5 +88,55 @@ describe('los datos del deporte son por país', () => {
     const g = nuevaPartida({ seed: 31, pais: 'curso_corto' });
     expect(g.preview('atletismo.semifinal')!.description).toMatch(/sábado de la semana 32\)/);
     expect(g.preview('atletismo.final')!.description).toMatch(/sábado de la semana 33\)/);
+  });
+});
+
+describe('lo que el deporte pone en el mundo: clubes, lugares y agendas', () => {
+  const conPais = (pais: string, cambios: Partial<DatosDeDeporte['paises'][string]>) => {
+    const datos: DatosDeDeporte = { id: 'atletismo', paises: { ...datosDeAtletismo().paises, [pais]: { ...datosDeAtletismo().paises.espana, ...cambios } } };
+    expect(validarDatosDeDeporte(datos)).toEqual([]);
+    const variante = { ...atletismo, aportes: { ...atletismo.aportes, [APORTES.datosDeDeporte]: [datos] } };
+    return MODULOS.map((m) => (m.id === 'atletismo' ? variante : m));
+  };
+
+  it('los sitios del atletismo están en el mapa donde estaban, entre los de la ciudad', () => {
+    const ids = nuevaPartida({ seed: 31 }).service<LugaresService>(SERVICES.lugares)!.mapa().lugares.map((l) => l.id);
+    expect(ids).toEqual([
+      'calle_casa', 'calle_colegio', 'avenida_parque', 'avenida_estadio',
+      'casa', 'colegio', 'biblioteca', 'parque', 'gimnasio', 'estadio', 'supermercado', 'restaurante',
+      'aula', 'patio', 'sala_profesores', 'administracion', 'pista_colegio', 'sala_club_ciudad', 'sala_club_alto_rendimiento',
+    ]);
+  });
+
+  it('los clubes de un deporte, con sus sesiones, su acceso y sus sitios, son los de su país', () => {
+    registrarPais(copiaDeEspana('con_clubes', 'Con clubes'));
+    const modulos = conPais('con_clubes', {
+      clubes: [
+        { id: 'colegio', nombre: 'Club deportivo del colegio', esColegio: true, calidad: 1, sesiones: { weekdays: [4], desde: 16, hasta: 18 }, sede: 'pista_colegio', tramites: 'administracion' },
+        { id: 'club_norte', nombre: 'Club Norte', calidad: 2, sesiones: { weekdays: [1], desde: 18, hasta: 19 }, acceso: { nivel: 30, edadMin: 9 }, sede: 'estadio', tramites: 'sala_club_ciudad' },
+      ],
+    });
+    const lista = (pais: string) => nuevaPartida({ seed: 5, pais }, modulos).service<ClubDirectory>(SERVICES.clubes)!.list('atletismo');
+    expect(lista('con_clubes').map((c) => c.id)).toEqual(['colegio', 'club_norte']);
+    expect(lista('con_clubes')[0].sesiones.weekdays).toEqual([4]);
+    expect(lista('con_clubes')[1]).toMatchObject({ nombre: 'Club Norte', acceso: { atletismo: { nivel: 30, edadMin: 9 } } });
+    expect(lista('espana').map((c) => c.id)).toEqual(['colegio', 'club_ciudad', 'club_alto_rendimiento']);
+  });
+
+  it('la jornada de competición del deporte decide cuándo y dónde están los rivales y el entrenador', () => {
+    registrarPais(copiaDeEspana('otra_jornada', 'Otra jornada'));
+    const modulos = conPais('otra_jornada', {
+      competiciones: { ...datosDeAtletismo().paises.espana.competiciones, jornada: { dias: [6], desde: 10, hasta: 12, lugar: 'parque', texto: 'Carreras: los domingos de 10 a 12 en el parque.' } },
+    });
+    // Las carreras del entrenador en su agenda: el día, la hora y el sitio salen de los datos del deporte.
+    const carreras = (pais: string) =>
+      nuevaPartida({ seed: 9, pais }, modulos)
+        .service<PresenciaService>(SERVICES.presencia)!
+        .agenda('entrenador')
+        .filter((t) => t.tipo === 'entrenador' && t.ocupado?.length)
+        .map((t) => ({ dias: t.dias, sitio: t.destinos[0][0], ocupado: t.ocupado }));
+    expect(carreras('otra_jornada')).toContainEqual({ dias: [6], sitio: 'parque', ocupado: [[10 * 60, 12 * 60]] });
+    expect(carreras('espana')).toContainEqual({ dias: [5], sitio: 'estadio', ocupado: [[9 * 60, 13 * 60]] });
+    expect(carreras('espana')).not.toContainEqual(expect.objectContaining({ sitio: 'parque' }));
   });
 });
