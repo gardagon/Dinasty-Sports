@@ -1,0 +1,13 @@
+{
+  "name": "@ds/paquetes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Paquetes de deporte: manifiesto, firma, carga del código, fuentes de instalación y caché. No sabe de ningún deporte ni del motor.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*"
+  }
+}

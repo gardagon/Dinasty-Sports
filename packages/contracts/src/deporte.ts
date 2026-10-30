@@ -78,3 +78,10 @@ export function deportePrincipal(clubes: ClubDirectory | undefined, deportes: re
   }
   return mejor?.id ?? null;
 }
+
+/**
+ * Versión de la interfaz pública de los deportes: el vocabulario común (`@ds/contracts`) y el kit de deporte (`@ds/kit-deporte`), que un deporte empaquetado
+ * usa sin llevar su copia. Hay que subirla cuando cambie algo de ellos que pueda romper a un deporte ya publicado; el juego rechaza los paquetes hechos
+ * para otra (plan de deportes modulares, §3.1).
+ */
+export const INTERFAZ_DE_DEPORTES = 1;

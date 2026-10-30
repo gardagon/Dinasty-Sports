@@ -5,6 +5,30 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Fase 7: validación con deportes de prueba instalados
+
+Hecha la fase 7 de `PLAN_DEPORTES_MODULARES.md`. No se toca el juego: solo tests y herramientas. `tests/validacion-de-deportes.test.ts`.
+
+- **Tres deportes de prueba** (`tests/deportes-de-prueba/`: Pelota, Natación, Tenis, hechos con una fábrica) que existen solo en los tests, pero se **empaquetan, firman, instalan y cargan como los de verdad** (`empaquetarDeporte` acepta ahora un archivo de origen). Cada uno pesa unos 10 KB. Con el atletismo son cuatro deportes.
+- **Comprobado:** cada deporte crea su gente (14 deportistas y 2 entrenadores en los de prueba), nadie juega a dos; el deporte principal es el del último club; lo que se deja de practicar cae sin bajar de su suelo y lo que se practica sube; quitar un deporte instalado, guardar y cargar la partida a medias y volver un año después deja la habilidad exactamente como tocaba, sin duplicar personas; un jugador que durante tres cursos añade, usa y quita deportes (nueve cambios, con clubes y entrenamientos) mantiene la partida coherente (`checkInvariants`) y sin ids repetidos.
+- **Medido con 4 deportes frente a 1** (este contenedor): tamaño del estado 1.913 KB frente a 1.895 KB (+1 %), crear la partida sin diferencia apreciable, ~1,8–2 ms por día simulado y ~0,06 ms por acción simple en ambos casos. Cada deporte reutiliza a los niños que ya existen (solo añade sus entrenadores), así que **lo que pesa es la población, no el número de deportes**: el recorte del estado (pendiente desde la fase 4) es independiente de cuántos deportes se instalen. Los tests exigen holgura (estado < 1,6×, crear < 3×, por día < 3×).
+- **Pendiente:** el chequeo de la simulación (`npm run sim`) sigue usando solo el atletismo; un bot que cambie de deporte dentro de la simulación (hoy es un test) queda para cuando haya un segundo deporte real.
+
+## 30/10/2026 — Fase 6: paquetes de deporte e instalador
+
+Hecha la fase 6 de `PLAN_DEPORTES_MODULARES.md` (el partido entre el deporte y el juego, sin cambiar lo jugable). Un deporte compilado aparte da **exactamente la misma partida** que el integrado (test: estado serializado idéntico al crear y cuatro semanas después).
+
+- **`@ds/paquetes`** (nuevo, solo depende de `contracts`): manifiesto (`id`, `nombre`, `version`, `interfaz`, `paises`, `codigo`, huella SHA-256 de cada archivo), firma, verificación, carga del código, fuentes y caché. Un paquete es **un solo archivo JSON** (`PaqueteDeDeporte`: el texto del manifiesto tal cual se firmó, su firma y el contenido de cada archivo): se descarga de una web, se guarda en el navegador o se instala a mano.
+- **Compilado aparte y sin copias:** `tools/empaquetar.ts` compila `modules/<id>` con esbuild cambiando los imports de `@ds/contracts` y `@ds/kit-deporte` por lecturas del objeto `__ds` que presta el juego al ejecutarlo (`cargarModulo`). El atletismo empaquetado pesa 30 KB. Los deportes usan las mismas funciones que el juego (no hay dos copias que puedan diferir).
+- **Firma:** ECDSA P-256 + SHA-256 con Web Crypto (en navegadores y Node, sin dependencias; Ed25519 todavía no está en todos). **Decisión mía:** la clave pública va en el repositorio (`packages/game/src/clave-publica.ts`) y la privada solo como secreto `DS_CLAVE_PRIVADA` de GitHub Actions. **Pendiente de hacer una vez (solo tú puedes): `npm run clave-deportes`, copiar la clave privada que imprime a Settings → Secrets → Actions con ese nombre y subir la pública.** Hasta entonces la clave pública es `null`, el juego rechaza todo paquete con «no tiene configurada la clave» y `pages.yml` no publica deportes.
+- **Compatibilidad:** `INTERFAZ_DE_DEPORTES` (en `contracts`) es la versión de la interfaz pública de los deportes (vocabulario común y kit). Un paquete de otra versión se rechaza diciendo si hay que actualizar el juego o el deporte. **Hay que subirla a mano cuando se cambie algo de `contracts` o del kit que pueda romper un deporte ya publicado** (no hay aún un chequeo automático).
+- **Instalar:** comprueba firma, versión e huellas, no deja bajar de versión y guarda el paquete (IndexedDB; memoria si no se puede). Al cargar vuelve a comprobarlo todo; lo que ya no sirve no se carga y se avisa.
+- **Fuentes intercambiables** (`FuenteDeInstalacion`): una carpeta de la web del juego (`deportes/catalogo.json` + `deportes/<id>/<versión>/paquete.json`, publicada por `pages.yml` con `tools/publicar-deportes.ts`) y el archivo local. Otras fuentes (tienda con licencias, Releases) caben sin tocar el instalador.
+- **Interfaz:** Opciones (menú y partida) → «Deportes»: buscar en la web del juego, instalar, actualizar, desinstalar (no el que está en tu partida) e instalar desde un archivo. La lista de módulos del juego pasa a ser los del juego + los instalados (detrás, en ese orden). Una partida que usa un deporte no instalado no se abre ni se borra (`deportesQueFaltan`).
+- **El atletismo sigue integrado** en el juego (no hace falta instalarlo ni hay otro deporte que pruebe el flujo completo en la interfaz); si una fuente lo ofrece, no se lista. Quitarlo del juego base queda para cuando haya un segundo deporte.
+- **Pendiente:** los datos de más países como archivos aparte dentro del paquete (hoy los de España van en el código); mods sin firmar (modding, §3.4); descarga desde GitHub Releases.
+- Tests: `tests/paquetes-de-deporte.test.ts` (paquete, firma y huellas manipuladas, otra clave, otra interfaz, instalador, fuente web simulada, y partida idéntica con el atletismo cargado desde su paquete).
+
 ## 30/10/2026 — Fase 5: deportes en la partida (añadir y quitar con la partida empezada)
 
 Hecha la fase 5 de `PLAN_DEPORTES_MODULARES.md`. Nada cambia en una partida normal (no se toca el azar ni el balance); `SAVE_VERSION` sigue en 17 (`GameState.retirados` es opcional).

@@ -35,8 +35,10 @@ import {
   paisPorId,
   idDePonerApodo,
 } from '@ds/contracts';
+import type { GameModule } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
-import { añadirDeporteALaPartida, cargarPartida, catalogoDeDeportes, deportesDeLaPartida, motivoParaNoQuitar, nuevaPartida, quitarDeporteDeLaPartida } from '@ds/game';
+import { MODULOS, añadirDeporteALaPartida, cargarPartida, catalogoDeDeportes, deportesDeLaPartida, deportesQueFaltan, motivoParaNoQuitar, nuevaPartida, quitarDeporteDeLaPartida } from '@ds/game';
+import { cargarInstalados, consultarCatalogo, desinstalarDeporte, estadoDeDeportes, instalarDeporte } from './deportes-instalados';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
@@ -90,7 +92,25 @@ let enMenu = true;
 const sortearSemilla = (): number => 1 + Math.floor(Math.random() * 0x7ffffffe);
 /** La partida que se está creando: la semilla decide el nombre, los apellidos y los padres; «volver a sortear» es otra semilla. */
 /** Los deportes que trae el juego (cada módulo de deporte aporta su ficha). */
-const CATALOGO = catalogoDeDeportes();
+/** Los módulos de esta sesión: los del juego más los deportes que se hayan instalado en este dispositivo (ver `deportes-instalados.ts`). */
+let modulosActuales: readonly GameModule<any>[] = MODULOS;
+let CATALOGO = catalogoDeDeportes(modulosActuales);
+
+/** Vuelve a leer los deportes instalados y rehace la lista de módulos y el catálogo. Devuelve los avisos de los paquetes que no se pudieron cargar. */
+async function actualizarModulos(): Promise<string[]> {
+  const { modulos, avisos } = await cargarInstalados();
+  modulosActuales = [...MODULOS, ...modulos.filter((m) => !MODULOS.some((b) => b.id === m.id))];
+  CATALOGO = catalogoDeDeportes(modulosActuales);
+  nueva.deportes = nueva.deportes.filter((id) => CATALOGO.some((d) => d.id === id));
+  if (!nueva.deportes.length) nueva.deportes = CATALOGO.slice(0, 1).map((d) => d.id);
+  return avisos;
+}
+
+/** Una partida que usa un deporte que no está instalado no se abre (no se borra): se dice cuál instalar. */
+function comprobarDeportes(estado: GameState): void {
+  const faltan = deportesQueFaltan(estado, modulosActuales);
+  if (faltan.length) throw new Error(`Esta partida usa ${faltan.length === 1 ? 'el deporte' : 'los deportes'} «${faltan.join('», «')}», que no ${faltan.length === 1 ? 'está instalado' : 'están instalados'}: instálalo desde Opciones («Deportes») y vuelve a abrirla.`);
+}
 let nueva: { seed: number; principal: ApellidoPrincipal; pais: string; deportes: string[] } = { seed: sortearSemilla(), principal: 'padre', pais: 'espana', deportes: CATALOGO.map((d) => d.id) };
 let avisoDeSalir = false;
 
@@ -231,12 +251,13 @@ async function load(): Promise<void> {
     const data = deJSON(texto);
     try {
       comprobarPais(data.state);
+      comprobarDeportes(data.state);
     } catch (e) {
       avisoDePaisFaltante = e instanceof Error ? e.message : String(e);
       return;
     }
     // El estado acaba de salir del texto y no lo usa nadie más: no hace falta copiarlo.
-    game = cargarPartida(data.state, undefined, { copiar: false });
+    game = cargarPartida(data.state, modulosActuales, { copiar: false });
     agenda = data.agenda;
     ultimoGuardado = { dia: game.time.day, minuto: game.time.minute };
   } catch (e) {
@@ -258,6 +279,32 @@ function exportarPartida(): void {
 }
 
 /** Importa un paquete de país de un archivo JSON (se valida, se guarda en el navegador y queda entre los países que se pueden elegir). */
+/** Hace algo con los deportes (consultar, instalar, quitar) enseñando qué se hace, y vuelve a montar los módulos al acabar. */
+async function trabajarConDeportes(texto: string, tarea: () => Promise<void>): Promise<void> {
+  estadoDeDeportes.ocupado = texto;
+  render();
+  try {
+    await tarea();
+    for (const aviso of await actualizarModulos()) estadoDeDeportes.error ||= aviso;
+  } catch (e) {
+    estadoDeDeportes.error = e instanceof Error ? e.message : String(e);
+  }
+  estadoDeDeportes.ocupado = '';
+  render();
+}
+
+function instalarDeporteDeArchivo(): void {
+  const entrada = document.createElement('input');
+  entrada.type = 'file';
+  entrada.accept = 'application/json,.json,.dsdeporte';
+  entrada.onchange = async () => {
+    const archivo = entrada.files?.[0];
+    if (!archivo) return;
+    await trabajarConDeportes('Comprobando el deporte…', async () => void (await instalarDeporte(await archivo.text())));
+  };
+  entrada.click();
+}
+
 function importarPaqueteDeArchivo(): void {
   const entrada = document.createElement('input');
   entrada.type = 'file';
@@ -292,7 +339,8 @@ function importarPartida(): void {
     try {
       const data = deJSON(await archivo.text());
       comprobarPais(data.state);
-      game = cargarPartida(data.state, undefined, { copiar: false });
+      comprobarDeportes(data.state);
+      game = cargarPartida(data.state, modulosActuales, { copiar: false });
       empezarAJugar(data.agenda);
     } catch (e) {
       alert(e instanceof Error ? e.message : 'No se pudo importar la copia.');
@@ -386,6 +434,29 @@ function viewNueva(): string {
   </section></main>`;
 }
 
+/** Deportes que se pueden instalar (los de la web del juego) y los instalados: instalar, actualizar, desinstalar o cargar un archivo bajado a mano. */
+function viewInstaladorDeDeportes(): string {
+  const e = estadoDeDeportes;
+  const integrados = new Set(MODULOS.map((m) => m.id));
+  const enUso = new Set(game ? deportesDeLaPartida(game, modulosActuales) : []);
+  const instalados = e.instalados.map((d) => {
+    const m = d.manifiesto;
+    return `<p class="botones"><span>${esc(m.nombre)}<small> · instalado, versión ${esc(m.version)}</small></span><button data-act="desinstalar-deporte" data-id="${esc(m.id)}"${enUso.has(m.id) ? ' disabled title="Está en tu partida: quítalo primero de ella"' : ''}>Desinstalar</button></p>`;
+  }).join('');
+  const disponibles = e.catalogo
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => !integrados.has(c.id) && !e.instalados.some((d) => d.manifiesto.id === c.id && d.manifiesto.version === c.version))
+    .map(({ c, i }) => `<p class="botones"><span>${esc(c.nombre)}<small> · versión ${esc(c.version)} · ${Math.max(1, Math.round(c.bytes / 1024))} KB</small></span><button data-act="instalar-deporte" data-entrada="${i}">${e.instalados.some((d) => d.manifiesto.id === c.id) ? 'Actualizar' : 'Instalar'}</button></p>`)
+    .join('');
+  return `<h3>Deportes</h3>
+    ${instalados || '<p class="note">No has instalado ningún deporte (el atletismo viene con el juego).</p>'}
+    ${disponibles ? `<p class="note">Disponibles:</p>${disponibles}` : e.catalogo.length ? '<p class="note">No hay más deportes que instalar.</p>' : ''}
+    ${e.error ? `<p class="note loss">${esc(e.error)}</p>` : ''}
+    ${e.ocupado ? `<p class="note" aria-busy="true">${esc(e.ocupado)}</p>` : ''}
+    <p class="botones"><button data-act="consultar-deportes">Buscar deportes</button><button data-act="instalar-archivo-deporte">Instalar desde un archivo</button></p>
+    <p class="note">Los deportes se comprueban antes de instalarse (firma y versión) y quedan guardados en este dispositivo para jugar sin conexión.</p>`;
+}
+
 function viewOpciones(): string {
   return `<main class="app"><section class="start">
     <h1>Opciones</h1>
@@ -396,6 +467,7 @@ function viewOpciones(): string {
       <button class="menu-boton" data-act="exportar"${game ? '' : ' disabled'}>Descargar una copia de seguridad</button>
       <button class="menu-boton" data-act="borrar"${game ? '' : ' disabled'}>Borrar la partida guardada</button>
     </div>
+    ${viewInstaladorDeDeportes()}
     <p class="note"><button type="button" data-act="ir-menu">‹ Volver al menú</button></p>
   </section></main>`;
 }
@@ -434,16 +506,17 @@ function viewVentana(g: Game | null): string {
     ${msDeGuardado === undefined ? '<p class="note">Cuando se haya guardado una vez, aquí verás cuánto tarda y qué frecuencia te recomendamos.</p>' : `<p class="note">${esc(textoDeRecomendacion(msDeGuardado))}</p>`}
     <p class="botones"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="importar-pais">Importar un país</button></p>
     ${viewDeportesDeLaPartida(g)}
+    ${viewInstaladorDeDeportes()}
     <p class="botones"><button data-act="cerrar-opciones">Cerrar</button></p>
   </div></div>`;
 }
 
 /** Los deportes del catálogo y si están en la partida: se pueden añadir o quitar (siempre queda uno, y no se deja el de un club al que se pertenece). */
 function viewDeportesDeLaPartida(g: Game): string {
-  const hay = deportesDeLaPartida(g);
+  const hay = deportesDeLaPartida(g, modulosActuales);
   const filas = CATALOGO.map((d) => {
     const en = hay.includes(d.id);
-    const motivo = en ? motivoParaNoQuitar(g, d.id) : undefined;
+    const motivo = en ? motivoParaNoQuitar(g, d.id, modulosActuales) : undefined;
     const boton = en
       ? `<button data-act="quitar-deporte" data-gestionar-deporte="${esc(d.id)}"${motivo ? ` disabled title="${esc(motivo)}"` : ''}>Quitar</button>`
       : `<button data-act="anadir-deporte" data-gestionar-deporte="${esc(d.id)}">Añadir</button>`;
@@ -1014,7 +1087,7 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
       setTimeout(() => {
         try {
           const actual = game!;
-          game = anadir ? añadirDeporteALaPartida(actual, ficha.id) : quitarDeporteDeLaPartida(actual, ficha.id);
+          game = anadir ? añadirDeporteALaPartida(actual, ficha.id, modulosActuales) : quitarDeporteDeLaPartida(actual, ficha.id, modulosActuales);
           save(true);
         } catch (e) {
           alert(e instanceof Error ? e.message : 'No se pudo cambiar el deporte.');
@@ -1061,7 +1134,8 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
       try {
         const data = deJSON(recuperacion.texto);
         comprobarPais(data.state);
-        game = cargarPartida(data.state, undefined, { copiar: false });
+      comprobarDeportes(data.state);
+        game = cargarPartida(data.state, modulosActuales, { copiar: false });
         recuperacion = null;
         empezarAJugar(data.agenda);
       } catch (e) {
@@ -1087,9 +1161,26 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
     case 'importar-pais':
       importarPaqueteDeArchivo();
       return true;
+    case 'consultar-deportes':
+      void trabajarConDeportes('Buscando deportes…', () => consultarCatalogo());
+      return true;
+    case 'instalar-deporte': {
+      const entrada = estadoDeDeportes.catalogo[Number(el?.dataset.entrada)];
+      if (entrada) void trabajarConDeportes(`Descargando ${entrada.nombre}…`, async () => void (await instalarDeporte(entrada)));
+      return true;
+    }
+    case 'desinstalar-deporte': {
+      const id = el?.dataset.id;
+      if (id && confirm('¿Desinstalar este deporte? Las partidas que lo usen no se podrán abrir hasta volver a instalarlo.')) void trabajarConDeportes('Desinstalando…', () => desinstalarDeporte(id));
+      return true;
+    }
+    case 'instalar-archivo-deporte':
+      instalarDeporteDeArchivo();
+      return true;
     case 'ir-opciones':
       pantalla = 'opciones';
       render();
+      if (!estadoDeDeportes.catalogo.length) void trabajarConDeportes('Buscando deportes…', () => consultarCatalogo());
       return true;
     case 'continuar':
       if (!game) return true;
@@ -1110,7 +1201,7 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
         return true;
       }
       if (game && !confirm('Empezar una partida nueva sustituye la guardada. ¿Seguir?')) return true;
-      game = nuevaPartida({ seed: nueva.seed, pais: nueva.pais, deportes: nueva.deportes, playerName: identidadDeJugador(nueva.seed, nueva.principal, paisPorId(nueva.pais)).completo });
+      game = nuevaPartida({ seed: nueva.seed, pais: nueva.pais, deportes: nueva.deportes, playerName: identidadDeJugador(nueva.seed, nueva.principal, paisPorId(nueva.pais)).completo }, modulosActuales);
       empezarAJugar();
       return true;
     case 'borrar':
@@ -1206,6 +1297,8 @@ async function iniciar(): Promise<void> {
   almacen = await crearAlmacen();
   // Los paquetes de país que importó el jugador se vuelven a registrar antes de abrir la partida (puede ser de uno de ellos).
   for (const aviso of cargarPaquetesGuardados()) console.warn(aviso);
+  // Los deportes instalados en este dispositivo se cargan antes de abrir la partida (puede usar alguno).
+  for (const aviso of await actualizarModulos().catch((e) => [String(e)])) console.warn(aviso);
   // Si la partida ya está abierta en otra pestaña, esta no guarda; cuando la otra se cierre, se recarga con lo último guardado.
   esPrincipal = await reclamarPestana(() => location.reload());
   await load();
