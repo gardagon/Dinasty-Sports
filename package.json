@@ -19,6 +19,7 @@
     "sim": "tsx sim/src/cli.ts",
     "sim:rapida": "tsx sim/src/cli.ts --dias 84 --semillas 2",
     "huella": "tsx tools/huella.ts",
+    "rendimiento": "tsx tools/rendimiento.ts",
     "sim:largo": "tsx sim/src/cli.ts --dias 1095 --semillas 3",
     "check": "npm run typecheck && npm run test && npm run sim:rapida",
     "nuevo-modulo": "tsx tools/nuevo-modulo.ts",
