@@ -6,7 +6,7 @@ const CLUBES: Record<string, { weekdays: number[]; desde: number; hasta: number;
   colegio: { weekdays: [0, 2], desde: 15, hasta: 17, sede: 'colegio' },
   ciudad: { weekdays: [1, 3], desde: 18, hasta: 20, sede: 'estadio' },
 };
-const datos: DatosDeAgenda = { sesionDeClub: (c) => CLUBES[c] };
+const datos: DatosDeAgenda = { sesionDeClub: (c) => CLUBES[c], jornada: () => ({ dias: [5], desde: 9, hasta: 13, lugar: 'estadio', texto: 'Carreras: los sábados.' }) };
 
 /** Minuto absoluto: día 0 es lunes de la segunda semana de septiembre (lectivo). */
 const en = (dia: number, hora: number, min = 0) => timeView(dia * 1440 + hora * 60 + min);

@@ -11,7 +11,9 @@ const DATOS: DatosDeDeporte = {
         { id: 'b', nombre: 'B', edadMin: 10, edadMax: 200 },
       ],
       temporada: { semanasDePretemporada: 4, semifinalAntesDelFinal: 3, finalAntesDelFinal: 2 },
-      competiciones: { federacion: 'Federación', campeonato: 'campeonato de {pais}' },
+      competiciones: { federacion: 'Federación', campeonato: 'campeonato de {pais}', jornada: { dias: [5], desde: 9, hasta: 13, lugar: 'estadio', texto: 'Partidos: los sábados.' } },
+      sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
+      clubes: [{ id: 'colegio', nombre: 'Club del colegio', esColegio: true, calidad: 1, sesiones: { weekdays: [0, 2], desde: 15, hasta: 17 }, sede: 'pista_colegio', tramites: 'administracion' }],
     },
   },
 };
@@ -65,5 +67,11 @@ describe('validar los datos de un deporte', () => {
     expect(conEspana({ temporada: { semanasDePretemporada: 4 } }).join()).toMatch(/«temporada»/);
     expect(conEspana({ temporada: { semanasDePretemporada: 4, semifinalAntesDelFinal: 2, finalAntesDelFinal: 3 } }).join()).toMatch(/la final tiene que ser después/);
     expect(conEspana({ competiciones: { federacion: '' } }).join()).toMatch(/«competiciones»/);
+    expect(conEspana({ competiciones: { ...DATOS.paises.espana.competiciones, jornada: { dias: [9], desde: 9, hasta: 13, lugar: 'estadio', texto: 'x' } } }).join()).toMatch(/«jornada»/);
+    expect(conEspana({ sedes: { colegio: 'pista' } }).join()).toMatch(/«sedes»/);
+    expect(conEspana({ clubes: [] }).join()).toMatch(/faltan los «clubes»/);
+    const club = DATOS.paises.espana.clubes[0];
+    expect(conEspana({ clubes: [club, club] }).join()).toMatch(/está repetido/);
+    expect(conEspana({ clubes: [{ ...club, calidad: 7 }] }).join()).toMatch(/club mal formado/);
   });
 });

@@ -21,6 +21,11 @@ export interface GameModule<S = unknown> {
   dependsOn?: string[];
   stats?: StatDef[];
   actions?: ActionDef[];
+  /**
+   * Acciones que se calculan al registrar los módulos, con lo que todos aportan (`aportes`): son acciones fijas más (con su sitio en la lista, justo
+   * detrás de las de `actions`), pero su lista depende de qué módulos están cargados. P. ej. ir a cada sitio del mapa, incluidos los de los deportes.
+   */
+  accionesSegunAportes?: (aportes: (clave: string) => readonly unknown[]) => ActionDef[];
   /** Acciones que dependen del estado (p. ej. "Quedar con <NPC>"). */
   dynamicActions?: (ctx: ReadContext) => ActionDef[];
   /**

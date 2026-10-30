@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { construirAgenda, ubicacionEn, type DatosDeAgenda, type TipoAsignado } from './agendas';
 import { CIUDAD_INICIAL, abiertoEn } from './lugares';
 import { timeView } from './time';
 
@@ -37,52 +36,5 @@ describe('horarios de los lugares', () => {
       expect(abiertoEn(r, en(dia, 20))).toBe(true);
       expect(abiertoEn(r, en(dia, 23))).toBe(false);
     }
-  });
-});
-
-describe('las agendas respetan los horarios', () => {
-  const CLUBES: Record<string, { weekdays: number[]; desde: number; hasta: number; sede: string }> = {
-    colegio: { weekdays: [0, 2], desde: 15, hasta: 17, sede: 'pista_colegio' },
-    ciudad: { weekdays: [1, 3], desde: 18, hasta: 20, sede: 'estadio' },
-  };
-  const datos: DatosDeAgenda = { sesionDeClub: (c) => CLUBES[c] };
-  const tipos: TipoAsignado[][] = [
-    [{ tipo: 'alumno' }],
-    [{ tipo: 'alumno', tuClase: true }],
-    [{ tipo: 'profesor' }],
-    [{ tipo: 'entrenador', club: 'colegio' }],
-    [{ tipo: 'entrenador', club: 'ciudad' }],
-    [{ tipo: 'club', club: 'colegio' }],
-    [{ tipo: 'rival', club: 'colegio' }],
-    [{ tipo: 'rival', club: 'ciudad' }],
-    [{ tipo: 'amigo' }],
-    [{ tipo: 'hermano', escolar: true, deporte: true }],
-    [{ tipo: 'progenitor' }],
-    [{ tipo: 'vecino' }],
-    [{ tipo: 'bibliotecario', turno: 'manana' }],
-    [{ tipo: 'bibliotecario', turno: 'tarde' }],
-  ];
-
-  it('nadie está en un sitio (ni en una zona de un sitio) mientras está cerrado', () => {
-    const fallos = new Set<string>();
-    for (const t of tipos) {
-      const agenda = construirAgenda(t, datos);
-      // Un curso entero (días de clase, fines de semana y vacaciones), cada media hora y con 24 personas distintas: cada una tiene su destino del día.
-      for (let dia = 0; dia < 7 * 52; dia++) {
-        for (let m = 0; m < 1440; m += 30) {
-          const instante = en(dia, 0, m);
-          for (let p = 0; p < 24; p++) {
-            const u = ubicacionEn(agenda, instante, `persona_${p}`);
-            for (const sitio of [u.sitio, u.atendiendo?.sitio]) {
-              if (!sitio) continue;
-              const l = lugar(sitio);
-              const padre = l.dentroDe ? lugar(l.dentroDe) : undefined;
-              if (!abiertoEn(l, instante) || (padre && !abiertoEn(padre, instante))) fallos.add(`${t[0].tipo}/${t[0].club ?? t[0].turno ?? ''} en ${sitio}, ${['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'][instante.weekday]} ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`);
-            }
-          }
-        }
-      }
-    }
-    expect([...fallos]).toEqual([]);
   });
 });

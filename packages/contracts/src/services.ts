@@ -217,6 +217,9 @@ export interface ClubView {
   acceso?: Readonly<Record<string, { nivel: number; edadMin: number }>>;
   /** Día de la partida en que el personaje entró, solo en el club que devuelve `membership`. */
   desde?: number;
+  /** Dónde entrena la sección de este deporte y dónde se hacen sus trámites (apuntarse, pruebas de acceso). */
+  sede: string;
+  tramites: string;
 }
 
 export interface ClubDirectory {

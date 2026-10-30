@@ -4,6 +4,8 @@ Es la referencia de **dónde está cada persona a cada hora** y de **cuántas pe
 
 Estado: **horarios cerrados y población aprobada** (27/10/2026). La población de la sección 4 está generada (391 personas del colegio y del barrio, y al final se añaden 2 bibliotecarios, 5 entrenadores de clubes, los padres y los hermanos). Actualizado el 28/10/2026 (biblioteca y horarios de los lugares).
 
+**Lo que pone el deporte (fase 3 del plan de deportes, 30/10/2026):** las sesiones y las sedes de los clubes y la jornada de competición (los sábados de 9 a 13 en el estadio, en el atletismo) ya no están escritas en `agendas.ts`: salen de los datos del deporte para el país de la partida (`DatosDeDeportePais.clubes` y `competiciones.jornada`, ver `modules/atletismo/src/datos.ts`) y las agendas las reciben en `DatosDeAgenda`. Las tablas de abajo describen los datos de España del atletismo.
+
 ## 1. Cómo funciona
 
 - Cada persona guarda una lista de **tipos** (`alumno`, `profesor`, `entrenador`, `club`, `rival`, `amigo`, `vecino`, `bibliotecario`). Un tipo aporta **tramos** de la semana: de tal hora a tal hora, en tal lugar.

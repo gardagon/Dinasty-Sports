@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@ds/core": "*",
+    "@ds/mod-atletismo": "*",
     "@ds/mod-personaje": "*",
     "@ds/mod-familia": "*",
     "@ds/mod-lugares": "*"

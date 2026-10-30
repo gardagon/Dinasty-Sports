@@ -4,6 +4,7 @@ import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { familia } from '@ds/mod-familia';
 import { lugares } from '@ds/mod-lugares';
+import { atletismo } from '@ds/mod-atletismo';
 import { desarrolloRival, npcs, type NpcsState } from './index';
 
 /** Avanza hasta una hora y minuto concretos (de 5 en 5 minutos). */
@@ -12,7 +13,7 @@ function irA(g: Game, weekday: number, hora: number, minuto = 0): void {
   for (let i = 0; g.time.minuteOfDay < hora * 60 + minuto && i < 30; i++) g.perform('gen.esperar');
 }
 
-const nueva = () => Game.create([personaje, npcs, lugares], { seed: 9 });
+const nueva = () => Game.create([personaje, npcs, lugares, atletismo], { seed: 9 });
 
 describe('módulo NPCs', () => {
   it('genera un reparto y lo publica como servicio', () => {
@@ -378,7 +379,7 @@ describe('módulo NPCs', () => {
 });
 
 describe('hermanos', () => {
-  const partidas = Array.from({ length: 200 }, (_, i) => Game.create([personaje, familia, npcs], { seed: i + 1 }));
+  const partidas = Array.from({ length: 200 }, (_, i) => Game.create([personaje, familia, npcs, atletismo], { seed: i + 1 }));
   const hermanosDe = (g: Game) => g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' });
 
   it('hay de 0 a 3 hermanos, con los apellidos de la familia y el rol familia', () => {

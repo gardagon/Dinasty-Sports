@@ -1,10 +1,10 @@
-import { CIUDAD_INICIAL, SERVICES, faltaViajar, rutaA, tiempoEntre, type LugaresService } from '@ds/contracts';
+import { SERVICES, faltaViajar, rutaA, tiempoEntre, type LugaresService } from '@ds/contracts';
 import type { ActionResult, Game } from '@ds/core';
 
 /** Va a un sitio por el camino que permite el mapa (una zona, desde la entrada de su lugar). */
 export function viajarA(game: Game, lugar: string): void {
-  const desde = game.service<LugaresService>(SERVICES.lugares)!.actual().id;
-  for (const parada of rutaA(CIUDAD_INICIAL, desde, lugar)) game.perform(`lugares.ir_${parada}`);
+  const lugares = game.service<LugaresService>(SERVICES.lugares)!;
+  for (const parada of rutaA(lugares.mapa(), lugares.actual().id, lugar)) game.perform(`lugares.ir_${parada}`);
 }
 
 /** Hace una acción viajando antes al sitio si solo faltaba estar allí (los tests no piensan en el mapa). */
@@ -35,11 +35,12 @@ export function conocer(game: Game, ...ids: string[]): Game {
  * es tarde). Los tests de horarios de colegio necesitan caer en una ventana de minutos concreta (7:50, el recreo...).
  */
 export function llegarA(game: Game, lugar: string, hora: number, minuto = 0): void {
-  const desde = game.service<LugaresService>(SERVICES.lugares)!.actual().id;
-  let previo = desde;
+  const lugares = game.service<LugaresService>(SERVICES.lugares)!;
+  const mapa = lugares.mapa();
+  let previo = lugares.actual().id;
   let viaje = 0;
-  for (const parada of rutaA(CIUDAD_INICIAL, desde, lugar)) {
-    viaje += tiempoEntre(CIUDAD_INICIAL, previo, parada) ?? 0;
+  for (const parada of rutaA(mapa, previo, lugar)) {
+    viaje += tiempoEntre(mapa, previo, parada) ?? 0;
     previo = parada;
   }
   while (game.time.minuteOfDay + viaje < hora * 60 + minuto && game.perform('gen.esperar').ok) {

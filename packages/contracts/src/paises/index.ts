@@ -1,6 +1,5 @@
 import { CALENDARIOS } from '../calendar';
 import { registrarReserva } from '../culturas';
-import { HORARIOS_DE_ESPANA } from '../lugares';
 import { OJOS, PELO_COLOR, PELO_TIPO, PIEL, origen, registrarOrigen } from '../rasgos';
 import { PAIS_ARGENTINA } from './argentina';
 import { PAIS_ESPANA } from './espana';
@@ -65,7 +64,7 @@ export function validarPais(x: unknown): string[] {
   if (!esObjeto(x.horarios)) p.push('Faltan los «horarios» (puede ser {})');
   else {
     for (const [lugar, h] of Object.entries(x.horarios)) {
-      if (!(lugar in HORARIOS_DE_ESPANA)) p.push(`«horarios»: el lugar «${lugar}» no existe en el mapa`);
+      if (!/^[a-z][a-z0-9_]*$/.test(lugar)) p.push(`«horarios»: «${lugar}» no es un id de lugar válido`);
       if (!esObjeto(h) || !esLista(h.tramos) || typeof h.texto !== 'string') p.push(`«horarios.${lugar}» está mal formado (tramos y texto)`);
     }
   }

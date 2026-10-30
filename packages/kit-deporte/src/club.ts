@@ -4,6 +4,7 @@ import {
   SHARED_EVENTS,
   TAGS,
   conLugar,
+  datosDeDeporte,
   inHours,
   type ActionDef,
   type ClubDirectory,
@@ -38,11 +39,11 @@ const estado = (ctx: ReadContext) => ctx.state<EstadoBaseDeDeporte>();
 /** El club del personaje en este deporte, si es de alguno. */
 export const clubDelJugador = (ctx: ReadContext, deporte: string): ClubView | undefined => ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
 
-/** Dónde entrena el club del personaje: la sede del club del colegio o la de los de fuera (sin club, la del colegio). */
-export const sedeDelClub = (ctx: ReadContext, cfg: ConfigDeporte): readonly string[] => (clubDelJugador(ctx, cfg.id)?.esColegio === false ? [cfg.sedes.fuera] : [cfg.sedes.colegio]);
+/** Dónde entrena el club del personaje: la sede de su sección (sin club, la que dan los datos del deporte para quien aún no tiene). */
+export const sedeDelClub = (ctx: ReadContext, cfg: ConfigDeporte): readonly string[] => [clubDelJugador(ctx, cfg.id)?.sede ?? datosDeDeporte(ctx, cfg.id).sedes.colegio];
 
 /** Dónde se hacen los trámites de un club: la administración del colegio o la sala del club. */
-export const tramitesDe = (c: ClubView | undefined): readonly string[] => (!c || c.esColegio ? ['administracion'] : [`sala_${c.id}`]);
+export const tramitesDe = (c: ClubView | undefined): readonly string[] => [c?.tramites ?? 'administracion'];
 
 const edadDelJugador = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
 const edadDelJugadorDeTemporada = (ctx: ReadContext): number => ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
@@ -54,7 +55,7 @@ export function textoDeSesiones(s: ClubView['sesiones']): string {
   return `${dias.length > 1 ? `${dias.slice(0, -1).join(', ')} y ${dias[dias.length - 1]}` : dias[0]} de ${s.desde} a ${s.hasta}`;
 }
 /** Lo que se cuenta de un club antes de apuntarse: cuándo entrena y cuándo se compite. */
-const infoDeClub = (cfg: ConfigDeporte, c: ClubView): string => `Entrena ${textoDeSesiones(c.sesiones)}. ${cfg.textoDeCompeticion}`;
+const infoDeClub = (ctx: ReadContext, cfg: ConfigDeporte, c: ClubView): string => `Entrena ${textoDeSesiones(c.sesiones)}. ${datosDeDeporte(ctx, cfg.id).competiciones.jornada.texto}`;
 
 /** ¿Está en marcha (o a punto de empezar) la sesión del club del personaje y aún no ha entrenado con él hoy? Entonces no se entrena por libre: se va al club. */
 export function sesionDelClubAhora(ctx: ReadContext, deporte: string): ClubView | undefined {
@@ -96,7 +97,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
             conLugar(tramitesDe(colegio), {
               id: `${deporte}.apuntarse_colegio`,
               name: `Apuntarte al club de ${nombre} del colegio`,
-              description: `El club del colegio entrena con su entrenador en sesiones fijas. ${infoDeClub(cfg, colegio)} Es el primer paso para competir con un equipo.`,
+              description: `El club del colegio entrena con su entrenador en sesiones fijas. ${infoDeClub(ctx, cfg, colegio)} Es el primer paso para competir con un equipo.`,
               tags: [deporte],
               group: 'Club',
               duration: 30,
@@ -132,7 +133,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
         const prueba = conLugar(tramitesDe(c), {
           id: `${deporte}.prueba.${c.id}`,
           name: `Prueba de acceso: ${c.nombre}`,
-          description: `El ${c.nombre} hace pruebas a quien quiere entrar, solo en sus horas de entrenamiento. ${infoDeClub(cfg, c)} Exige edad (${acceso.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
+          description: `El ${c.nombre} hace pruebas a quien quiere entrar, solo en sus horas de entrenamiento. ${infoDeClub(ctx, cfg, c)} Exige edad (${acceso.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
           tags: [TAGS.fisico, deporte],
           group: 'Club',
           duration: 150,

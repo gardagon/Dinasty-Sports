@@ -10,7 +10,7 @@ import { hacer, posible } from './ayudas';
  */
 
 const clubes = (g: ReturnType<typeof nuevaPartida>) => g.service<ClubDirectory>(SERVICES.clubes)!;
-const club = (id: string, desde: number): ClubView => ({ id, nombre: id, esColegio: false, calidad: 1, deportes: [], sesiones: { weekdays: [], desde: 0, hasta: 0 }, desde });
+const club = (id: string, desde: number): ClubView => ({ id, nombre: id, esColegio: false, calidad: 1, deportes: [], sesiones: { weekdays: [], desde: 0, hasta: 0 }, sede: 'x', tramites: 'x', desde });
 
 describe('deporte principal', () => {
   it('sin club no hay principal; al apuntarse a un club de un deporte, ese es el principal; al dejarlo, ninguno', () => {

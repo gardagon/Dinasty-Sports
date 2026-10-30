@@ -1,6 +1,7 @@
 import { tramoDeSemana, type CalendarioPais } from './calendar';
 import type { CategoriaDef } from './categories';
 import type { ReadContext } from './context';
+import type { LugarId } from './lugares';
 
 /**
  * FICHA Y DATOS DE UN DEPORTE. Cada módulo de deporte los aporta con `GameModule.aportes` (claves en `APORTES`), así que el juego puede
@@ -17,6 +18,8 @@ export const APORTES = {
   fichaDeDeporte: 'deportes.ficha',
   /** Un `DatosDeDeporte` por deporte. */
   datosDeDeporte: 'deportes.datos',
+  /** Un `AporteDeLugares` por deporte: lo que pone en el mapa de la ciudad (su estadio, sus pistas, las salas de sus clubes). */
+  lugaresDeDeporte: 'lugares.mapa',
 } as const;
 
 /** Lo que el juego sabe de un deporte sin cargar su partida: para listarlo al crear la partida. */
@@ -42,11 +45,47 @@ export interface TemporadaDeDeporte {
   finalAntesDelFinal: number;
 }
 
-/** Cómo se llama lo que organiza la federación (se pueden usar `{pais}` para el nombre del país de la partida). */
+/** Cuándo y dónde se compite cada semana (la jornada): lo que usan las agendas de rivales y entrenadores y los textos de los clubes. */
+export interface JornadaDeCompeticion {
+  /** Días de la semana (0 = lunes). */
+  dias: readonly number[];
+  /** Horas del día. */
+  desde: number;
+  hasta: number;
+  /** Dónde es. */
+  lugar: LugarId;
+  /** En palabras, para contarlo antes de apuntarse a un club (p. ej. «Carreras: los sábados de 9 a 13 en el estadio.»). */
+  texto: string;
+}
+
+/** Lo que organiza la federación (se puede usar `{pais}` para el nombre del país de la partida). */
 export interface CompeticionesDeDeporte {
   federacion: string;
   /** El campeonato nacional (la final), p. ej. «campeonato de {pais}». */
   campeonato: string;
+  /** La competición de cada semana. */
+  jornada: JornadaDeCompeticion;
+}
+
+/**
+ * Una sección de club en un deporte: el club (que puede tener secciones en varios deportes; el primero que lo define pone su nombre y su calidad) y lo
+ * que tiene para este deporte: sus sesiones, su acceso y sus sitios. El módulo `clubes` junta las secciones de todos los deportes cargados.
+ */
+export interface ClubDeDeporte {
+  id: string;
+  nombre: string;
+  /** El club del colegio: entrenamientos de menor nivel que un club de fuera. */
+  esColegio?: boolean;
+  /** 1 = colegio, 2 = club de la ciudad, 3 = alto rendimiento. */
+  calidad: 1 | 2 | 3;
+  /** Días de la semana (0 = lunes) y horas de las sesiones de esta sección. */
+  sesiones: { weekdays: readonly number[]; desde: number; hasta: number };
+  /** Nivel y edad mínimos para entrar (sin él, abierto). */
+  acceso?: { nivel: number; edadMin: number };
+  /** Dónde entrena esta sección. */
+  sede: LugarId;
+  /** Dónde se hacen los trámites (apuntarse, pruebas de acceso): la administración del colegio o la sala del club. */
+  tramites: LugarId;
 }
 
 /** Lo que un deporte pone de un país: sus categorías, su temporada y sus competiciones. */
@@ -54,6 +93,10 @@ export interface DatosDeDeportePais {
   categorias: readonly CategoriaDef[];
   temporada: TemporadaDeDeporte;
   competiciones: CompeticionesDeDeporte;
+  /** Los clubes con sección en este deporte. */
+  clubes: readonly ClubDeDeporte[];
+  /** Dónde entrena quien aún no tiene club (`colegio`) y dónde, por defecto, los clubes de fuera que no están en el catálogo (`fuera`). */
+  sedes: { colegio: LugarId; fuera: LugarId };
 }
 
 export interface DatosDeDeporte {
@@ -137,6 +180,25 @@ export function validarDatosDeDeporte(x: unknown): string[] {
     else if (t.finalAntesDelFinal >= t.semifinalAntesDelFinal) p.push(`${en}: la final tiene que ser después de las semifinales (finalAntesDelFinal menor que semifinalAntesDelFinal)`);
     const c = d.competiciones;
     if (!esObjeto(c) || ['federacion', 'campeonato'].some((k) => typeof c[k] !== 'string' || !c[k])) p.push(`${en}: las «competiciones» tienen que traer federacion y campeonato`);
+    else {
+      const j = c.jornada;
+      if (!esObjeto(j) || !Array.isArray(j.dias) || !j.dias.length || j.dias.some((x) => !Number.isInteger(x) || (x as number) < 0 || (x as number) > 6) || typeof j.desde !== 'number' || typeof j.hasta !== 'number' || j.hasta <= j.desde || typeof j.lugar !== 'string' || typeof j.texto !== 'string') {
+        p.push(`${en}: la «jornada» de las competiciones tiene que traer dias (0 a 6), desde, hasta (horas), lugar y texto`);
+      }
+    }
+    const s = d.sedes;
+    if (!esObjeto(s) || typeof s.colegio !== 'string' || typeof s.fuera !== 'string') p.push(`${en}: las «sedes» tienen que traer colegio y fuera`);
+    const clubes = d.clubes;
+    if (!Array.isArray(clubes) || !clubes.length) p.push(`${en}: faltan los «clubes»`);
+    else {
+      const ids = new Set<string>();
+      for (const k of clubes as Partial<ClubDeDeporte>[]) {
+        const mal = typeof k.id !== 'string' || typeof k.nombre !== 'string' || ![1, 2, 3].includes(k.calidad as number) || typeof k.sede !== 'string' || typeof k.tramites !== 'string' || !esObjeto(k.sesiones) || !Array.isArray(k.sesiones.weekdays) || typeof k.sesiones.desde !== 'number' || typeof k.sesiones.hasta !== 'number' || k.sesiones.hasta <= k.sesiones.desde || (k.acceso !== undefined && (typeof k.acceso.nivel !== 'number' || typeof k.acceso.edadMin !== 'number'));
+        if (mal) p.push(`${en}: club mal formado (${JSON.stringify(k)?.slice(0, 60)})`);
+        else if (ids.has(k.id!)) p.push(`${en}: el club «${k.id}» está repetido`);
+        else ids.add(k.id!);
+      }
+    }
   }
   return p;
 }

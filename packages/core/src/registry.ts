@@ -94,6 +94,15 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
     moduleIds.add(m.id);
   }
 
+  // Los aportes de todos los módulos se juntan antes de nada: `accionesSegunAportes` los necesita.
+  for (const m of modules) {
+    for (const [clave, lista] of Object.entries(m.aportes ?? {})) {
+      if (!clave || !Array.isArray(lista)) problems.push(`Aporte "${clave}" de "${m.id}": tiene que ser una lista`);
+      else aportes.set(clave, [...(aportes.get(clave) ?? []), ...lista]);
+    }
+  }
+  const aportado = (clave: string): readonly unknown[] => aportes.get(clave) ?? [];
+
   for (const m of modules) {
     for (const dep of m.dependsOn ?? []) {
       if (!moduleIds.has(dep)) problems.push(`"${m.id}" necesita el módulo "${dep}", que no está cargado`);
@@ -108,7 +117,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
       stats.set(def.id, { def, module: m.id, min, max });
     }
 
-    for (const def of m.actions ?? []) {
+    for (const def of [...(m.actions ?? []), ...(m.accionesSegunAportes?.(aportado) ?? [])]) {
       if (!prefixed(def.id, m.id)) problems.push(`Acción "${def.id}" debe empezar por "${m.id}."`);
       if (actions.has(def.id)) problems.push(`Acción duplicada: "${def.id}"`);
       actions.set(def.id, compileAction(def, m.id));
@@ -136,11 +145,6 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
       const list = handlers.get(type) ?? [];
       list.push({ module: m.id, fn });
       handlers.set(type, list);
-    }
-
-    for (const [clave, lista] of Object.entries(m.aportes ?? {})) {
-      if (!clave || !Array.isArray(lista)) problems.push(`Aporte "${clave}" de "${m.id}": tiene que ser una lista`);
-      else aportes.set(clave, [...(aportes.get(clave) ?? []), ...lista]);
     }
 
     for (const [key, fn] of Object.entries(m.services ?? {})) {

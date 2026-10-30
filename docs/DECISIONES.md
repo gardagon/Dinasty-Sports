@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Fase 3: clubes con secciones, lugares y agendas que aporta el deporte
+
+Hecha la fase 3 de `PLAN_DEPORTES_MODULARES.md`. `npm run huella -- 120` da exactamente lo mismo que antes en los 14 bots, también el orden de los sitios del mapa.
+
+- **Clubes con secciones:** los clubes salen de los datos del deporte por país (`DatosDeDeportePais.clubes`, `ClubDeDeporte`: sesiones, acceso, `sede`, `tramites`). `clubes` arma el catálogo con las secciones de los deportes cargados (el primero que define un club pone su nombre y su calidad). `CLUBES_ESPANA` desaparece de `clubes`. `ClubView` gana `sede` y `tramites` y el kit los usa (`sedeDelClub`, `tramitesDe`); `ConfigDeporte.sedes` y `textoDeCompeticion` se van: las sedes por defecto están en `DatosDeDeportePais.sedes` y el texto de las carreras en `competiciones.jornada.texto`.
+- **Lugares aportados:** `AporteDeLugares` (clave `lugares.mapa`) con `despuesDe` para conservar el orden de las listas. El atletismo pone la avenida y el estadio, la pista del colegio y las salas de sus clubes (`LUGARES_ATLETISMO`). `CIUDAD_INICIAL` pasa a ser la ciudad base; `ensamblarMapa` arma la de la partida y `LugaresService.mapa()` la publica (la usan los bots y los tests en vez de `CIUDAD_INICIAL`). Las acciones `lugares.ir_*` se siguen registrando como acciones fijas (con O(1) en `perform`) gracias a `GameModule.accionesSegunAportes`. Los horarios del estadio y de las salas viven con el lugar (los de España) y un país los sigue cambiando en `PaisDef.horarios`.
+- **Agendas:** `DatosDeAgenda.jornada()` (días, horas y lugar de la competición semanal) sustituye a las carreras fijas de los sábados en el estadio. `npcs` usa los datos del primer deporte de la partida mientras no haya gente de cada deporte (fase 4).
+- **Fallo evitado:** la agenda compartida de las personas con los mismos tipos se guardaba en una caché global solo por sus tipos; ahora los datos del deporte (jornada y sesiones de los clubes) entran en la clave, o dos países habrían compartido agenda. Lo comprueba `tests/datos-de-deporte.test.ts`.
+- **Validación de países:** `validarPais` ya no comprueba que un lugar de `horarios` exista en el mapa (el mapa depende de los deportes): solo que el id sea válido y el horario tenga su forma; lo desconocido se ignora al usarlo.
+- **Pendiente (otras fases):** la descripción del colegio y su horario siguen nombrando la pista de atletismo y las sesiones del club (texto del mapa base); la población (`npcs`, `familia`) sigue escrita para el atletismo (fase 4).
+- Tests: `tests/datos-de-deporte.test.ts` (orden del mapa, clubes y jornada por país), `tests/horarios-de-agendas.test.ts` (antes en contracts, necesita el mapa real), `modules/clubes` y `modules/lugares` con un deporte de prueba.
+
+---
+
 ## 30/10/2026 — Fases 1 y 2: aportes, ficha de cada deporte y datos de cada deporte por país
 
 Hechas juntas las fases 1 y 2 de `PLAN_DEPORTES_MODULARES.md`. `npm run huella -- 120` da exactamente lo mismo que antes en los 14 bots.

@@ -71,6 +71,7 @@ Cada corredor suma los puntos de cada prueba en la que ha corrido contra el pers
 | Corredores por carrera, series, clasificados y probabilidad de acudir | `modules/atletismo/src/temporada.ts` (`CORREDORES_POR_CARRERA`, `CLASIFICADOS_POR_SERIE`, `probabilidadDeAcudir`) |
 | Cuánto sube el bono de asistencia en campeonato | `modules/atletismo/src/index.ts` (`BONO_DE_CAMPEONATO`) |
 | Cómo se dibuja (y cuándo está desactivada) | `apps/web/src/deporte.ts`, `DeporteView.inactivo` |
+| Clubes del atletismo (sesiones, acceso, sedes), jornada de carreras y sitios del mapa (estadio, pista del colegio, salas) | `modules/atletismo/src/datos.ts` (`DATOS_ATLETISMO`, `LUGARES_ATLETISMO`); el catálogo lo arma `modules/clubes/src/index.ts` |
 | Plazas ofrecidas, aceptar y estrés por plantón | `packages/kit-deporte/src/club.ts` (`SEMANAS_DE_OFERTA`, `SEMANAS_ENTRE_PRUEBAS`), `modules/clubes/src/index.ts` (`ESTRES_POR_PLANTON`) |
 | Sesión de club, llegada tarde, por tu cuenta, consejo del entrenador | `packages/kit-deporte/src/club.ts` (`MINUTOS_ANTES_DE_SESION`, `EFICIENCIA_POR_TU_CUENTA`, `CONOCIMIENTO_POR_CONSEJO`, `HABILIDAD_POR_CONSEJO`); lo que entrena cada sesión, en el módulo del deporte |
 | Sobrecarga, campamento, efecto del conocimiento | `packages/kit-deporte/src/comunes.ts` (`SESIONES_SIN_SOBRECARGA`, `EFICIENCIA_CAMPAMENTO`, `EFECTO_CONOCIMIENTO`) |
