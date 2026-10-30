@@ -1,4 +1,5 @@
 import type { LogTable } from './context';
+import type { ClubDirectory } from './services';
 import type { StatId } from './stats';
 
 /**
@@ -61,4 +62,25 @@ export interface DeporteView {
 
 export interface DeporteService {
   view(): DeporteView;
+}
+
+/**
+ * Los deportes que ofrece el juego (provisional: la ficha de cada deporte, con su catálogo, llega con la fase 1 del plan de deportes
+ * modulares). Cada uno es un módulo que se incluye o no al crear la partida.
+ */
+export const CATALOGO_DE_DEPORTES: readonly { id: string; nombre: string }[] = [{ id: 'atletismo', nombre: 'Atletismo' }];
+
+/**
+ * El deporte principal del personaje: aquel en cuyo club entró más recientemente (a igualdad, el primero del catálogo), o `null` si no
+ * está apuntado a ningún club. Cualquier deporte de la partida se puede hacer por libre; el principal es el que enseña la pestaña «Deporte».
+ */
+export function deportePrincipal(clubes: ClubDirectory | undefined, deportes: readonly string[] = CATALOGO_DE_DEPORTES.map((d) => d.id)): string | null {
+  let mejor: { id: string; desde: number } | null = null;
+  for (const id of deportes) {
+    const club = clubes?.membership(id);
+    if (!club) continue;
+    const desde = club.desde ?? 0;
+    if (!mejor || desde > mejor.desde) mejor = { id, desde };
+  }
+  return mejor?.id ?? null;
 }

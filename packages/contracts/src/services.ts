@@ -215,6 +215,8 @@ export interface ClubView {
   sesiones: { weekdays: readonly number[]; desde: number; hasta: number };
   /** Acceso por deporte: nivel mínimo (en la escala del deporte) y edad mínima. Sin entrada = abierto. */
   acceso?: Readonly<Record<string, { nivel: number; edadMin: number }>>;
+  /** Día de la partida en que el personaje entró, solo en el club que devuelve `membership`. */
+  desde?: number;
 }
 
 export interface ClubDirectory {

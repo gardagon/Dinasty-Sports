@@ -5,6 +5,21 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Fase 0: deportes de la partida y deporte principal (el del club)
+
+Hecha la fase 0 de `PLAN_DEPORTES_MODULARES.md` **con otro diseño que el escrito**, por indicación del usuario (se deshizo una primera versión con módulo `deportes`, acciones «Empezar / Dejar el X», eventos `deporte.empezar`/`deporte.dejar` y acciones ocultas):
+
+- **No se ofrece «empezar un deporte»:** para practicarlo hay que apuntarse a un club. Dejarlo es dejar el club.
+- **Se puede hacer cualquier deporte sin limitación** (no se oculta nada de los deportes de la partida).
+- **Deporte principal = el del club** (`deportePrincipal`, contracts): el último en que se entró (`ClubView.desde`, nuevo, en lo que devuelve `membership`); sin club, ninguno. La pestaña «Deporte» enseña por defecto el principal (★ en el selector).
+- **Nueva partida:** no hay deporte con el que empezar, pero se listan los deportes cargados con casillas para incluirlos o quitarlos de la partida; siempre queda al menos uno (hoy el atletismo no se puede desmarcar por ser el único; a futuro se podrá). `nuevaPartida({ deportes })` filtra los módulos de deporte del catálogo y `cargarPartida` solo carga los que la partida ya tiene guardados.
+- **Catálogo provisional:** `CATALOGO_DE_DEPORTES` en contracts (solo el atletismo), a sustituir por la ficha de la fase 1.
+- **Simulación:** huella exacta de 7 bots × 2 semillas a 120 días, idéntica a la de antes en todos (también el que abandona: no cambia nada del motor para ellos). Se añade `npm run huella` para repetir la prueba en las próximas reorganizaciones.
+- Tests en `tests/deportes-de-la-partida.test.ts`.
+- **Pendiente:** añadir o quitar un deporte de una partida empezada (fase 5) y desmarcar el atletismo cuando haya otro deporte (fase 3 o posterior; hoy los demás módulos aún dan por hecho el atletismo).
+
+---
+
 ## 30/10/2026 — Fase G: «Opciones», guardado automático elegible y copia de recuperación
 
 Hecha la fase G de `PLAN_DEPORTES_MODULARES.md` (§6, detalle en `ALMACENAMIENTO.md` §8). Solo interfaz (`apps/web`); el formato del guardado y las copias de seguridad no cambian, y `npm run sim` no se ve afectado.

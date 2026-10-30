@@ -102,7 +102,9 @@ que sustituyen. Cada asignatura es una **preparación 0–100 (= nota esperada �
 
 El módulo `clubes` guarda las membresías y la calidad de cada club (catálogo como dato por país). Los deportes ponen el contenido de las sesiones
 (etiqueta `club`) y las pruebas de acceso, y piden entrar o salir con los eventos compartidos `club.unirse` y `club.salir`. El servicio `clubes`
-expone los clubes de un deporte y la membresía del personaje.
+expone los clubes de un deporte y la membresía del personaje (con el día en que entró).
+
+**Deportes de la partida y deporte principal.** Los deportes son módulos que se incluyen o no al crear la partida (`nuevaPartida({ deportes })` en `@ds/game`, al menos uno; `CATALOGO_DE_DEPORTES` en contracts los lista, provisional hasta la ficha de la fase 1). Una partida guardada conserva los que ya tiene. El personaje puede hacer cualquier deporte de la partida; el **principal** (`deportePrincipal`, contracts) es el del club en el que entró más recientemente, y es el que enseña la pestaña «Deporte». No hay acción de «empezar un deporte»: se entra y se sale de los clubes.
 
 **Relaciones.** El módulo `npcs` es la población (reparto, rivales, edad, club, padres de los rivales). El módulo `relaciones` ofrece un catálogo de acciones por persona (quedar, charlar, ayudar, hacer planes, tener un detalle, discutir, hacer las paces; ver `modules/relaciones/src/acciones.ts` para las reglas puras) y guarda el vínculo con cada persona (afinidad −100..100, confianza, estado, contactos) y publica el servicio `relaciones` (`get`, `list`); lee a las personas por el servicio `npcs`. Las acciones `quedar`/`hablar`, el modificador `relaciones.compania` (la ayuda de quien sabe hacer lo que hacéis juntos, según `aptitudDe`) y los cambios por carreras (evento compartido `competicion.resultado`) son suyos. Funciones puras del vínculo en `modules/relaciones/src/vinculo.ts`; estados y nombres concordados en `contracts/relaciones.ts`.
 

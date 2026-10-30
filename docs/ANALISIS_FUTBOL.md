@@ -39,6 +39,8 @@ La regla de que un módulo solo importa `contracts` se cumple, pero **el atletis
 
 ### 3.1 La puerta: el deporte solo existe si el jugador lo elige
 
+> **Corregido el 30/10 (fase 0 del plan de deportes modulares):** no hay estado «deportes que practico», ni eventos `deporte.empezar`/`deporte.dejar`, ni módulo `deportes`, ni se oculta lo que no se practica. Los deportes se eligen al crear la partida, se puede hacer cualquiera, y el principal es el del club (`deportePrincipal`). Lo de abajo es el planteamiento original.
+
 - **Estado «deportes que practico»** con eventos compartidos nuevos `deporte.empezar` y `deporte.dejar` y un servicio `practica` (`practica(id)`, `deportes()`). Lo guarda un módulo pequeño nuevo, `deportes`, para no tocar `personaje` ni `clubes` (que tienen otro trabajo).
 - **Cada deporte se apaga solo** si no se practica: sus acciones no salen en la lista (ni grises), no corre su lógica diaria, su pestaña no aparece y sus PNJs propios no se ven en «Gente». Se haría con una ayuda en contracts del estilo de `ligarALugares` (`soloSiPractica(deporte, acciones)`); si hace falta que la acción no salga ni en gris, un campo genérico `ActionDef.oculta(ctx)` en el motor (no sabe de deportes).
 - **Dónde se elige:** al crear la partida (E15.1: el formulario ya tiene país y sexo) y, durante el juego, en la administración del colegio o en la sala de un club («Empezar a jugar al fútbol», «Dejar el fútbol»). Para pasar las opciones de la nueva partida a los módulos hace falta un dato genérico en el motor (`CreateOptions.opciones` → `InitContext.opciones`).
