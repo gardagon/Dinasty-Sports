@@ -3,13 +3,14 @@ import { SERVICES, type NpcDirectory, type RelationsService } from '@ds/contract
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { npcs, type NpcsState } from '@ds/mod-npcs';
+import { atletismo } from '@ds/mod-atletismo';
 import { familia } from '@ds/mod-familia';
 import type { IdentidadState } from '@ds/mod-personaje';
 import { conQuienSeJuega, relaciones, type RelacionesState } from './index';
 
 /** Las cuatro personas del reparto empiezan sin conocer; casi todos los tests parten de que ya se conocen. */
 const nueva = (conocidas = true, semilla = 9) => {
-  const g = Game.create([personaje, npcs, relaciones], { seed: semilla });
+  const g = Game.create([personaje, npcs, atletismo, relaciones], { seed: semilla });
   if (conocidas) {
     const s = g.moduleState<NpcsState>('npcs') as NpcsState;
     s.npcs = s.npcs.map((n) => (n.known === false && !n.id.startsWith('rival_') ? { ...n, known: true } : n));
@@ -79,7 +80,7 @@ describe('módulo relaciones', () => {
       const e = guardado.modules.relaciones as RelacionesState;
       e.vinculos.companero_social = { npcId: 'companero_social', afinidad, confianza: 10, estado: estado as never, desde: 0, ultimoContacto: -1, contactos: [], ...cambios };
       guardado.minute = (5 * 1440) + 11 * 60; // sábado 11:00
-      return Game.load([personaje, npcs, relaciones], guardado);
+      return Game.load([personaje, npcs, atletismo, relaciones], guardado);
     };
 
     it('cada persona tiene su propio grupo y su catálogo de acciones', () => {
@@ -131,12 +132,12 @@ describe('módulo relaciones', () => {
       const g = conAfinidad(0);
       const guardado = g.serialize();
       (guardado.modules.gen as IdentidadState).perfil.intereses = {};
-      const sin = Game.load([personaje, npcs, relaciones], guardado);
+      const sin = Game.load([personaje, npcs, atletismo, relaciones], guardado);
       expect(sin.preview(id('planes'))!.available).toBe(false);
       expect(sin.preview(id('planes'))!.reason).toMatch(/guste a los dos/);
       const intereses = g.service<NpcDirectory>(SERVICES.npcs)!.get('companero_social')!.rasgos!.intereses;
       (guardado.modules.gen as IdentidadState).perfil.intereses = Object.fromEntries(Object.keys(intereses).map((k) => [k, 60]));
-      const con = Game.load([personaje, npcs, relaciones], guardado);
+      const con = Game.load([personaje, npcs, atletismo, relaciones], guardado);
       expect(con.preview(id('planes'))!.available).toBe(true);
     });
 
@@ -177,7 +178,7 @@ describe('módulo relaciones', () => {
         const base = nueva(true, semilla).serialize();
         (base.modules.relaciones as RelacionesState).vinculos.companero_social = { npcId: 'companero_social', afinidad: -30, confianza: 20, estado: 'antipatia', desde: 0, ultimoContacto: -1, contactos: [] };
         base.minute = 5 * 1440 + 11 * 60;
-        const g = Game.load([personaje, npcs, relaciones], base);
+        const g = Game.load([personaje, npcs, atletismo, relaciones], base);
         expect(g.perform(id('paces')).ok).toBe(true);
         const v = rel(g).get('companero_social')!;
         if (v.estado === 'conocido' && v.afinidad > -30) {
@@ -205,7 +206,7 @@ describe('módulo relaciones', () => {
   describe('hermanos', () => {
     const conHermano = (condicion: (edad: number) => boolean) => {
       for (let seed = 1; seed <= 200; seed++) {
-        const g = Game.create([personaje, familia, npcs, relaciones], { seed });
+        const g = Game.create([personaje, familia, npcs, atletismo, relaciones], { seed });
         const h = g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' }).find((x) => condicion(x.age ?? 0));
         if (h) return { g, h };
       }
@@ -214,7 +215,7 @@ describe('módulo relaciones', () => {
 
     it('empiezan con un vínculo positivo (5 a 25) y confianza, y nunca como un desconocido', () => {
       for (let seed = 1; seed <= 60; seed++) {
-        const g = Game.create([personaje, familia, npcs, relaciones], { seed });
+        const g = Game.create([personaje, familia, npcs, atletismo, relaciones], { seed });
         for (const h of g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' })) {
           const v = rel(g).get(h.id)!;
           expect(v.afinidad).toBeGreaterThanOrEqual(5);
@@ -228,7 +229,7 @@ describe('módulo relaciones', () => {
     it('con más compatibilidad y menos diferencia de edad, mejor arranca la relación', () => {
       const valores: { afinidad: number; diferencia: number }[] = [];
       for (let seed = 1; seed <= 120; seed++) {
-        const g = Game.create([personaje, familia, npcs, relaciones], { seed });
+        const g = Game.create([personaje, familia, npcs, atletismo, relaciones], { seed });
         for (const h of g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' })) valores.push({ afinidad: rel(g).get(h.id)!.afinidad, diferencia: Math.abs((h.age ?? 8) - 8) });
       }
       const m = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
@@ -242,7 +243,7 @@ describe('módulo relaciones', () => {
       const { g, h } = conHermano((e) => e >= 6);
       const guardado = g.serialize();
       (guardado.modules.relaciones as RelacionesState).vinculos[h.id] = { npcId: h.id, afinidad: 60, confianza: 40, estado: 'amigo', desde: 0, ultimoContacto: 0, contactos: [0], familia: true };
-      const cargado = Game.load([personaje, familia, npcs, relaciones], guardado);
+      const cargado = Game.load([personaje, familia, npcs, atletismo, relaciones], guardado);
       for (let i = 0; i < 200; i++) advanceTo(cargado, 'gen.descansar', (cargado.time.weekday + 1) % 7, 8);
       expect(rel(cargado).get(h.id)!.afinidad).toBeGreaterThanOrEqual(5);
       expect(rel(cargado).get(h.id)!.afinidad).toBeLessThan(60);
@@ -274,7 +275,7 @@ describe('módulo relaciones', () => {
     const conPerfil = (intereses: Record<string, number>) => {
       const guardado = nueva().serialize();
       (guardado.modules.gen as IdentidadState).perfil.intereses = intereses;
-      return Game.load([personaje, npcs, relaciones], guardado);
+      return Game.load([personaje, npcs, atletismo, relaciones], guardado);
     };
     const factor = (g: Game, accion: string) => {
       advanceTo(g, 'gen.descansar', 5, 11);

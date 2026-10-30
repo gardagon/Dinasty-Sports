@@ -67,14 +67,16 @@ export function describirCaracter(c: Caracter): string {
 export interface InteresDef {
   id: string;
   nombre: string;
+  /** Es un deporte concreto (y no el interés general por el deporte): cuenta para la aptitud en el área `deporte`. */
+  deporte?: true;
   /** Las acciones con alguna de estas etiquetas lo alimentan en el personaje. */
   tags: readonly string[];
 }
 
 export const INTERESES: readonly InteresDef[] = [
   { id: 'deporte', nombre: 'Deporte', tags: [TAGS.entrenamiento, TAGS.competicion] },
-  { id: 'atletismo', nombre: 'Atletismo', tags: ['atletismo'] },
-  { id: 'futbol', nombre: 'Fútbol', tags: ['futbol'] },
+  { id: 'atletismo', nombre: 'Atletismo', tags: ['atletismo'], deporte: true },
+  { id: 'futbol', nombre: 'Fútbol', tags: ['futbol'], deporte: true },
   { id: 'estudio', nombre: 'Estudio y ciencia', tags: [TAGS.estudio] },
   { id: 'lectura', nombre: 'Lectura', tags: [TAGS.mental] },
   { id: 'musica', nombre: 'Música', tags: ['musica'] },
@@ -426,8 +428,12 @@ export function aptitudDe(area: AreaDeAyuda, rasgos: RasgosDe | undefined, nivel
       return 0.5 * eje('disciplina') + 0.15 * eje('ambicion') + 0.35 * interes('estudio', 'lectura', 'tecnologia');
     case 'social':
       return 0.55 * eje('sociabilidad') + 0.25 * eje('optimismo') + 0.2 * interes('cine', 'musica', 'videojuegos');
-    case 'deporte':
-      return 0.6 * ((niveles.atletismo ?? 20) / 100) + 0.4 * interes('deporte', 'atletismo', 'futbol');
+    case 'deporte': {
+      // Su nivel en el deporte en que más destaca (20 si no practica ninguno) y su interés por el deporte en general o por alguno en concreto.
+      const valores = Object.values(niveles);
+      const mejor = valores.length ? Math.max(...valores) : 20;
+      return 0.6 * (mejor / 100) + 0.4 * interes('deporte', ...INTERESES.filter((i) => i.deporte).map((i) => i.id));
+    }
   }
 }
 

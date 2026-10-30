@@ -1,4 +1,4 @@
-import type { AporteDeLugares, CategoriaDef, ClubDeDeporte, DatosDeDeporte, FichaDeDeporte } from '@ds/contracts';
+import { GEN, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type DatosDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte } from '@ds/contracts';
 
 /**
  * Lo que el atletismo trae de cada país (datos puros, ver `DatosDeDeporte`): sus categorías, su temporada y sus competiciones. Hoy solo España;
@@ -48,6 +48,43 @@ const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
   },
 ];
 
+/**
+ * La gente del atletismo: 9 rivales por edad de los 8 a los 19 años (18 por categoría de dos edades: los 18 corredores de una carrera con semifinales y
+ * final; los ausentes y las lesiones se cubren con reservas), el entrenador del colegio y los de los clubes de fuera, y el equipo del club del colegio.
+ */
+const POBLACION_ESPANA: PoblacionDeDeporte = {
+  etiqueta: 'atleta',
+  descripcionDeRival: 'Compite en atletismo.',
+  capacidades: [GEN.velocidad, GEN.fuerza, GEN.resistencia, GEN.constitucion, GEN.agilidad, GEN.coordinacion],
+  aptitud: 0.15,
+  deportistas: { sesgoCaracter: { ambicion: 8, agresividad: 5, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] },
+  rivales: {
+    edades: { min: 8, max: 19 },
+    porEdad: 9,
+    edadMaxBaja: 13,
+    probabilidadBaja: 0.1,
+    // 12 clubes y colegios de unos 8 rivales cada uno: los dos del catálogo del personaje y otros con nombres provisionales.
+    clubes: ['Club Atletismo Ciudad', 'Club de Alto Rendimiento', 'colegio1', 'colegio2', 'colegio3', 'colegio4', 'club1', 'club2', 'club3', 'club4', 'club5', 'club6'],
+  },
+  entrenadores: {
+    sesgoCaracter: { disciplina: 15, ambicion: 10, sacrificio: 8 },
+    interesesPreferidos: ['deporte', 'atletismo'],
+    descripcionDelColegio: 'Entrena al grupo de atletismo del colegio.',
+    dedicacion: 'de atletismo',
+    // Cada club de fuera tiene varios entrenadores, cada uno con las categorías de unas edades (alguno lleva varias).
+    deFuera: [
+      { club: 'club_ciudad', edades: [[10, 13], [14, 17], [18, 99]] },
+      { club: 'club_alto_rendimiento', edades: [[14, 17], [18, 99]] },
+    ],
+  },
+  // Alumnos de las distintas clases que van a las sesiones del club: 4 de tu clase + 4 de la otra + 8 de otros cursos.
+  equipoDelColegio: {
+    tamano: 16,
+    posiciones: { tuClase: [2, 7, 12, 18], otraClase: [1, 8, 15, 22], otrosCursos: [3, 22, 41, 60, 79, 98, 117, 136] },
+    descripcion: 'Del equipo de atletismo del colegio.',
+  },
+};
+
 export const FICHA_ATLETISMO: FichaDeDeporte = {
   id: 'atletismo',
   nombre: 'Atletismo',
@@ -72,6 +109,7 @@ export const DATOS_ATLETISMO: DatosDeDeporte = {
       // El club del colegio entrena en la pista del colegio; los de fuera, en el estadio.
       sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
       clubes: CLUBES_ESPANA,
+      poblacion: POBLACION_ESPANA,
     },
   },
 };

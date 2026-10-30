@@ -39,6 +39,16 @@ const DATOS: DatosDeDeporte = {
   id: 'prueba',
   paises: { espana: { categorias: CATEGORIAS, temporada: { semanasDePretemporada: 4, semifinalAntesDelFinal: 3, finalAntesDelFinal: 2 }, competiciones: { federacion: 'Federación de prueba', campeonato: 'campeonato de {pais}', jornada: { dias: [5], desde: 9, hasta: 13, lugar: 'estadio', texto: 'Partidos: los sábados.' } },
       sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
+      poblacion: {
+        etiqueta: 'jugador',
+        descripcionDeRival: 'Juega.',
+        capacidades: ['gen.velocidad', 'gen.resistencia'],
+        aptitud: 0.15,
+        deportistas: { sesgoCaracter: {}, interesesPreferidos: [] },
+        rivales: { edades: { min: 8, max: 19 }, porEdad: 2, edadMaxBaja: 13, probabilidadBaja: 0.1, clubes: ['Club A', 'Club B'] },
+        entrenadores: { sesgoCaracter: {}, interesesPreferidos: [], descripcionDelColegio: 'Entrena.', dedicacion: 'de prueba', deFuera: [] },
+        equipoDelColegio: { tamano: 4, descripcion: 'Del equipo.' },
+      },
       clubes: [
         { id: 'colegio', nombre: 'Club deportivo del colegio', esColegio: true, calidad: 1, sesiones: { weekdays: [0, 2], desde: 15, hasta: 17 }, sede: 'pista_colegio', tramites: 'administracion' },
         { id: 'club_ciudad', nombre: 'Club Ciudad', calidad: 2, sesiones: { weekdays: [1, 3], desde: 18, hasta: 20 }, acceso: { nivel: 45, edadMin: 10 }, sede: 'estadio', tramites: 'sala_club_ciudad' },

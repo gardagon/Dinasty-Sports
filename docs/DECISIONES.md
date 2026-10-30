@@ -5,6 +5,23 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Fase 4: la gente de cada deporte
+
+Hecha la fase 4 de `PLAN_DEPORTES_MODULARES.md`. `npm run huella -- 120` da exactamente lo mismo que antes en los 14 bots.
+
+- **Lo que pide cada deporte, como dato:** `PoblacionDeDeporte` en `DatosDeDeportePais.poblacion` (etiqueta de sus deportistas, capacidades de las que sale su tope, aptitud, carácter e intereses, rivales —edades, cuántos por edad, bajas, clubes—, entrenadores y equipo del colegio) con su validación. Los valores del atletismo son los que estaban escritos en `npcs` (`modules/atletismo/src/datos.ts`).
+- **`npcs` ya no sabe de atletismo para crear gente:** rivales, entrenador del colegio, entrenadores de los clubes de fuera y equipo del colegio salen de lo pedido. Cada deporte lleva sus ids: el primero, los de siempre (`rival_N`, `entrenador`...); los demás, con su id (`rival_<deporte>_N`, `entrenador_<deporte>`). La gente de los demás deportes se genera detrás de todo para no cambiar el azar de lo demás.
+- **Guardar lo pedido (plan §5):** `NpcsState.poblaciones` (`PoblacionGuardada`) copia lo que pidió cada deporte. La renovación de cada curso usa lo guardado, así que los rivales de un deporte siguen viviendo y renovándose aunque su módulo ya no se cargue (probado cargando una partida de dos deportes sin el segundo). Una partida anterior sin ese campo lo calcula con los deportes cargados en el primer cambio de curso. Los entrenadores guardan a qué se dedican y dónde trabajan.
+- **Reclutar y crear:** el equipo del colegio del primer deporte sale de las posiciones que da el deporte (como antes); el de los demás se recluta entre los alumnos que mejor encajan por `aptitudDe` (`reclutarEquipo`), y los rivales y entrenadores que faltan se crean. `gentePorDeporte` junta todo y es lo que usará la fase 5 al añadir un deporte a una partida empezada.
+- **Deporte en las agendas:** `TipoAsignado.deporte` (id) en rival, entrenador y club; `DatosDeAgenda.sesionDeClub(club, deporte)` y `jornada(deporte)`. Cada persona sigue la jornada y los clubes de su deporte; si el deporte ya no está cargado, no hay sesiones ni jornada que seguir.
+- **`aptitudDe` general:** el área `deporte` cuenta el mejor nivel que tenga en cualquier deporte (20 si no practica ninguno) y el interés por cualquier deporte concreto (`InteresDef.deporte`) o por el deporte en general. Con un solo deporte da lo mismo que antes. La lectura de `competicion.resultado` (en `npcs` y en `relaciones`) ya era genérica: usa el módulo del evento y los participantes.
+- **Hermanos:** compiten en el primer deporte de la partida y, sin ningún deporte cargado, no compiten.
+- **Fallo que ya estaba y NO se ha tocado:** varios manejadores de `npcs` (presentarse un entrenador o un profesor, aprender un dato, saber el nombre, competir contra un rival) devuelven un estado nuevo sin `crianzaAplicada`, y eso hace que la ventaja de crianza de los hermanos se vuelva a aplicar en el siguiente `dia.fin`. Arreglarlo cambia el balance (los hermanos entran en las carreras), así que se deja como está para que la fase siga siendo idéntica; todos esos manejadores conservan ahora `poblaciones`. Conviene arreglarlo aparte, con su comprobación de balance.
+- **Pendiente:** `familia` sigue sorteando los deportes que practican los padres de una lista fija; el rival de otro deporte aún no tiene su propia temporada de clasificaciones (eso lo trae cada deporte); añadir un deporte a una partida empezada es la fase 5.
+- Tests: `tests/gente-de-deportes.test.ts` (con un segundo deporte de prueba), validación en `deporte-datos.test.ts`; los tests de `npcs` y `relaciones` cargan ahora el atletismo (sin deportes no hay rivales ni entrenadores).
+
+---
+
 ## 30/10/2026 — Fase 3: clubes con secciones, lugares y agendas que aporta el deporte
 
 Hecha la fase 3 de `PLAN_DEPORTES_MODULARES.md`. `npm run huella -- 120` da exactamente lo mismo que antes en los 14 bots, también el orden de los sitios del mapa.

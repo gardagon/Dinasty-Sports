@@ -75,7 +75,7 @@ import {
 } from './temporada';
 import { DATOS_ATLETISMO, FICHA_ATLETISMO, LUGARES_ATLETISMO } from './datos';
 
-export { CATEGORIAS_ESPANA, LUGARES_ATLETISMO } from './datos';
+export { CATEGORIAS_ESPANA, DATOS_ATLETISMO, LUGARES_ATLETISMO } from './datos';
 
 /**
  * MÓDULO ATLETISMO (id `atletismo`) — el deporte más sencillo de modelar:

@@ -152,7 +152,7 @@ describe('módulo NPCs', () => {
   });
 
   it('el carácter y los intereses dependen del papel: el entrenador es más disciplinado y le gusta el deporte', () => {
-    const entrenadores = Array.from({ length: 150 }, (_, i) => Game.create([personaje, npcs], { seed: i + 1 }).moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'entrenador')!);
+    const entrenadores = Array.from({ length: 150 }, (_, i) => Game.create([personaje, npcs, atletismo], { seed: i + 1 }).moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'entrenador')!);
     const media = entrenadores.reduce((a, n) => a + n.rasgos!.caracter.disciplina, 0) / entrenadores.length;
     expect(media).toBeGreaterThan(7);
     expect(entrenadores.filter((n) => 'deporte' in n.rasgos!.intereses || 'atletismo' in n.rasgos!.intereses).length / entrenadores.length).toBeGreaterThan(0.8);

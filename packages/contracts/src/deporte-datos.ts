@@ -88,6 +88,50 @@ export interface ClubDeDeporte {
   tramites: LugarId;
 }
 
+/**
+ * La gente de un deporte: lo que `npcs` necesita para crear a sus rivales y a sus entrenadores y para renovarlos cada curso. La partida **guarda lo
+ * que pidió cada deporte** (`npcs` copia esto al empezar), así que su gente sigue viviendo aunque el módulo del deporte ya no esté (plan §5).
+ */
+export interface PoblacionDeDeporte {
+  /** Etiqueta de los deportistas (p. ej. `atleta`): así los buscan los módulos del deporte (`NpcDirectory.list({ tag })`). */
+  etiqueta: string;
+  /** Descripción de un rival («Compite en atletismo.»). */
+  descripcionDeRival: string;
+  /** Capacidades (ids de stats genéricas) de las que sale su tope: la media de lo que hereda de cada padre. */
+  capacidades: readonly string[];
+  /** Cuánto varía su aptitud propia respecto a lo heredado (0,15 = ±15 %). */
+  aptitud: number;
+  /** Carácter (ejes con su sesgo) e intereses que tienden a tener los deportistas. */
+  deportistas: { sesgoCaracter: Readonly<Record<string, number>>; interesesPreferidos: readonly string[] };
+  rivales: {
+    /** Edades de competición que cubre (ambas incluidas) y cuántos rivales hay de cada una. A la siguiente a la última se retiran. */
+    edades: { min: number; max: number };
+    porEdad: number;
+    /** Hasta esta edad algún niño puede dejar el deporte cada curso (con esta probabilidad) y entra otro nuevo. */
+    edadMaxBaja: number;
+    probabilidadBaja: number;
+    /** Clubes en los que compiten (nombres o ids: los del catálogo del personaje y otros, por si no están en él). */
+    clubes: readonly string[];
+  };
+  entrenadores: {
+    sesgoCaracter: Readonly<Record<string, number>>;
+    interesesPreferidos: readonly string[];
+    /** Descripción del entrenador del club del colegio («Entrena al grupo de atletismo del colegio.»). */
+    descripcionDelColegio: string;
+    /** A qué se dedican, para «Entrenador de atletismo» (`de atletismo`). */
+    dedicacion: string;
+    /** Los entrenadores de los clubes de fuera: de cada club, las edades que lleva cada uno. */
+    deFuera: readonly { club: string; edades: readonly (readonly [number, number])[] }[];
+  };
+  /** Los alumnos del colegio que forman el equipo del club del colegio: cuántos y, si se dan, qué posiciones (si no, se reclutan los que mejor encajan). */
+  equipoDelColegio: {
+    tamano: number;
+    posiciones?: { tuClase: readonly number[]; otraClase: readonly number[]; otrosCursos: readonly number[] };
+    /** Frase que se añade a su descripción («Del equipo de atletismo del colegio.»). */
+    descripcion: string;
+  };
+}
+
 /** Lo que un deporte pone de un país: sus categorías, su temporada y sus competiciones. */
 export interface DatosDeDeportePais {
   categorias: readonly CategoriaDef[];
@@ -97,6 +141,8 @@ export interface DatosDeDeportePais {
   clubes: readonly ClubDeDeporte[];
   /** Dónde entrena quien aún no tiene club (`colegio`) y dónde, por defecto, los clubes de fuera que no están en el catálogo (`fuera`). */
   sedes: { colegio: LugarId; fuera: LugarId };
+  /** La gente del deporte (rivales, entrenadores y equipo del colegio). */
+  poblacion: PoblacionDeDeporte;
 }
 
 export interface DatosDeDeporte {
@@ -106,13 +152,13 @@ export interface DatosDeDeporte {
 }
 
 /** Las fichas de los deportes cargados en la partida. */
-export const fichasDeDeporte = (ctx: ReadContext): readonly FichaDeDeporte[] => ctx.aportes<FichaDeDeporte>(APORTES.fichaDeDeporte);
+export const fichasDeDeporte = (ctx: Pick<ReadContext, 'aportes'>): readonly FichaDeDeporte[] => ctx.aportes<FichaDeDeporte>(APORTES.fichaDeDeporte);
 
 /**
  * Los datos de un deporte para el país de la partida; si el deporte no trae ese país, los de España (`deRespaldo`). Lanza un error si el deporte
  * no ha aportado sus datos.
  */
-export function datosDeDeporte(ctx: ReadContext, deporte: string): DatosDeDeportePais & { deRespaldo: boolean } {
+export function datosDeDeporte(ctx: Pick<ReadContext, 'aportes' | 'pais'>, deporte: string): DatosDeDeportePais & { deRespaldo: boolean } {
   const d = ctx.aportes<DatosDeDeporte>(APORTES.datosDeDeporte).find((x) => x.id === deporte);
   if (!d) throw new Error(`El deporte «${deporte}» no ha aportado sus datos (aporte «${APORTES.datosDeDeporte}»)`);
   const propios = d.paises[ctx.pais.id];
@@ -120,7 +166,7 @@ export function datosDeDeporte(ctx: ReadContext, deporte: string): DatosDeDeport
 }
 
 /** Un texto de los datos de un deporte con el nombre del país de la partida donde pone `{pais}`. */
-export const textoConPais = (texto: string, ctx: ReadContext): string => texto.replaceAll('{pais}', ctx.pais.nombre);
+export const textoConPais = (texto: string, ctx: Pick<ReadContext, 'pais'>): string => texto.replaceAll('{pais}', ctx.pais.nombre);
 
 /** Las semanas del curso (0 = la primera) en que empieza la competición y se juegan las semifinales y la final. */
 export interface SemanasDeTemporada {
@@ -185,6 +231,21 @@ export function validarDatosDeDeporte(x: unknown): string[] {
       if (!esObjeto(j) || !Array.isArray(j.dias) || !j.dias.length || j.dias.some((x) => !Number.isInteger(x) || (x as number) < 0 || (x as number) > 6) || typeof j.desde !== 'number' || typeof j.hasta !== 'number' || j.hasta <= j.desde || typeof j.lugar !== 'string' || typeof j.texto !== 'string') {
         p.push(`${en}: la «jornada» de las competiciones tiene que traer dias (0 a 6), desde, hasta (horas), lugar y texto`);
       }
+    }
+    const pob = d.poblacion;
+    if (!esObjeto(pob)) p.push(`${en}: falta la «poblacion»`);
+    else {
+      const r = pob.rivales;
+      const e = pob.entrenadores;
+      if (typeof pob.etiqueta !== 'string' || !pob.etiqueta || typeof pob.descripcionDeRival !== 'string') p.push(`${en}: la «poblacion» necesita etiqueta y descripcionDeRival`);
+      if (!Array.isArray(pob.capacidades) || !pob.capacidades.length || pob.capacidades.some((c) => typeof c !== 'string')) p.push(`${en}: la «poblacion» necesita sus capacidades (ids de stats)`);
+      if (typeof pob.aptitud !== 'number' || pob.aptitud < 0 || pob.aptitud >= 1) p.push(`${en}: la «poblacion.aptitud» tiene que estar entre 0 y 1`);
+      if (!esObjeto(pob.deportistas) || !esObjeto(e) || !esObjeto(pob.equipoDelColegio)) p.push(`${en}: la «poblacion» necesita deportistas, entrenadores y equipoDelColegio`);
+      if (!esObjeto(r) || !esObjeto(r.edades) || !esEntero(r.edades.min) || !esEntero(r.edades.max) || r.edades.max < r.edades.min || !esEntero(r.porEdad) || !esEntero(r.edadMaxBaja) || typeof r.probabilidadBaja !== 'number' || !Array.isArray(r.clubes) || !r.clubes.length) {
+        p.push(`${en}: los «rivales» de la población necesitan edades (min y max), porEdad, edadMaxBaja, probabilidadBaja y clubes`);
+      }
+      if (esObjeto(e) && (!Array.isArray(e.deFuera) || typeof e.dedicacion !== 'string' || typeof e.descripcionDelColegio !== 'string')) p.push(`${en}: los «entrenadores» de la población necesitan descripcionDelColegio, dedicacion y deFuera`);
+      if (esObjeto(pob.equipoDelColegio) && (!esEntero(pob.equipoDelColegio.tamano) || typeof pob.equipoDelColegio.descripcion !== 'string')) p.push(`${en}: el «equipoDelColegio» necesita tamano y descripcion`);
     }
     const s = d.sedes;
     if (!esObjeto(s) || typeof s.colegio !== 'string' || typeof s.fuera !== 'string') p.push(`${en}: las «sedes» tienen que traer colegio y fuera`);
