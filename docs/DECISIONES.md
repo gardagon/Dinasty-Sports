@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Fase 7: validación con deportes de prueba instalados
+
+Hecha la fase 7 de `PLAN_DEPORTES_MODULARES.md`. No se toca el juego: solo tests y herramientas. `tests/validacion-de-deportes.test.ts`.
+
+- **Tres deportes de prueba** (`tests/deportes-de-prueba/`: Pelota, Natación, Tenis, hechos con una fábrica) que existen solo en los tests, pero se **empaquetan, firman, instalan y cargan como los de verdad** (`empaquetarDeporte` acepta ahora un archivo de origen). Cada uno pesa unos 10 KB. Con el atletismo son cuatro deportes.
+- **Comprobado:** cada deporte crea su gente (14 deportistas y 2 entrenadores en los de prueba), nadie juega a dos; el deporte principal es el del último club; lo que se deja de practicar cae sin bajar de su suelo y lo que se practica sube; quitar un deporte instalado, guardar y cargar la partida a medias y volver un año después deja la habilidad exactamente como tocaba, sin duplicar personas; un jugador que durante tres cursos añade, usa y quita deportes (nueve cambios, con clubes y entrenamientos) mantiene la partida coherente (`checkInvariants`) y sin ids repetidos.
+- **Medido con 4 deportes frente a 1** (este contenedor): tamaño del estado 1.913 KB frente a 1.895 KB (+1 %), crear la partida sin diferencia apreciable, ~1,8–2 ms por día simulado y ~0,06 ms por acción simple en ambos casos. Cada deporte reutiliza a los niños que ya existen (solo añade sus entrenadores), así que **lo que pesa es la población, no el número de deportes**: el recorte del estado (pendiente desde la fase 4) es independiente de cuántos deportes se instalen. Los tests exigen holgura (estado < 1,6×, crear < 3×, por día < 3×).
+- **Pendiente:** el chequeo de la simulación (`npm run sim`) sigue usando solo el atletismo; un bot que cambie de deporte dentro de la simulación (hoy es un test) queda para cuando haya un segundo deporte real.
+
 ## 30/10/2026 — Fase 6: paquetes de deporte e instalador
 
 Hecha la fase 6 de `PLAN_DEPORTES_MODULARES.md` (el partido entre el deporte y el juego, sin cambiar lo jugable). Un deporte compilado aparte da **exactamente la misma partida** que el integrado (test: estado serializado idéntico al crear y cuatro semanas después).

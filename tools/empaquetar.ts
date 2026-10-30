@@ -30,8 +30,8 @@ const puenteConElJuego: Plugin = {
 };
 
 /** El código de un deporte, compilado aparte: un cuerpo de función que recibe `__ds` y devuelve el módulo. */
-export async function compilarDeporte(raiz: string, id: string): Promise<string> {
-  const entrada = join(raiz, 'modules', id, 'src', 'index.ts');
+export async function compilarDeporte(raiz: string, id: string, archivo = join(raiz, 'modules', id, 'src', 'index.ts')): Promise<string> {
+  const entrada = archivo;
   const salida = await build({
     stdin: { contents: `export { ${id} } from ${JSON.stringify(entrada)};`, resolveDir: raiz, loader: 'ts' },
     bundle: true,
@@ -47,10 +47,10 @@ export async function compilarDeporte(raiz: string, id: string): Promise<string>
   return `${salida.outputFiles[0].text}\nreturn __modulo.${id};`;
 }
 
-/** Empaqueta y firma un deporte del repositorio (`modules/<id>`). */
-export async function empaquetarDeporte(raiz: string, id: string, nombre: string, privada: string, paises = ['espana']): Promise<PaqueteDeDeporte> {
-  const version = (JSON.parse(readFileSync(join(raiz, 'modules', id, 'package.json'), 'utf8')) as { version: string }).version;
-  const codigo = await compilarDeporte(raiz, id);
+/** Empaqueta y firma un deporte del repositorio (`modules/<id>`, o el archivo que se indique en `origen`, p. ej. los deportes de prueba de los tests). */
+export async function empaquetarDeporte(raiz: string, id: string, nombre: string, privada: string, paises = ['espana'], origen: { archivo?: string; version?: string } = {}): Promise<PaqueteDeDeporte> {
+  const version = origen.version ?? (JSON.parse(readFileSync(join(raiz, 'modules', id, 'package.json'), 'utf8')) as { version: string }).version;
+  const codigo = await compilarDeporte(raiz, id, origen.archivo);
   return crearPaquete({ id, nombre, version, interfaz: INTERFAZ_DE_DEPORTES, paises, archivos: { 'codigo.js': codigo }, codigo: 'codigo.js' }, privada);
 }
 
