@@ -36,6 +36,8 @@ npm run sim:vida         # vida entera de un bot que lo entrena todo (70 años p
 npm run sim:notas        # banco de notas: nota media por aptitud y rutina de estudio frente a los objetivos
 npm run huella -- 120     # huella exacta de las partidas de los bots: antes y después de una reorganización debe salir igual
 npm run rendimiento -- 60  # dónde se va el tiempo: crear, guardar, cargar, ms por acción y peso del estado por módulo y campo
+npm run clave-deportes   # genera el par de claves con que se firman los deportes (la privada, a un secreto DS_CLAVE_PRIVADA de GitHub)
+npm run publicar-deportes -- <carpeta>  # empaqueta y firma los deportes en <carpeta>/deportes (necesita DS_CLAVE_PRIVADA)
 npm run check            # tipos + tests + simulación rápida
 npm run nuevo-modulo -- <id> "<Nombre>"
 ```

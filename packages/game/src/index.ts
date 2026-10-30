@@ -1,8 +1,14 @@
 import { Game, type CreateOptions, type GameState } from '@ds/core';
 import { APORTES, SERVICES, SHARED_EVENTS, type ClubDirectory, type DeporteAnadidoData, type FichaDeDeporte, type GameModule } from '@ds/contracts';
+import * as contracts from '@ds/contracts';
+import * as kit from '@ds/kit-deporte';
 import { MODULOS } from './modulos';
 
 export { MODULOS } from './modulos';
+export { CLAVE_PUBLICA_DE_DEPORTES } from './clave-publica';
+
+/** Lo que el juego presta al código de un deporte instalado (ver `@ds/paquetes`): sus piezas comunes, que el deporte no lleva copiadas. */
+export const ANFITRION_DE_DEPORTES: Readonly<Record<string, object>> = { '@ds/contracts': contracts, '@ds/kit-deporte': kit };
 
 /** Los deportes de los módulos (o de los que se indiquen): lo que cada uno aporta como ficha. Sirve para listarlos antes de crear la partida. */
 export function catalogoDeDeportes(modulos: readonly GameModule<any>[] = MODULOS): FichaDeDeporte[] {
@@ -79,4 +85,10 @@ export function quitarDeporteDeLaPartida(game: Game, id: string, modulos: readon
   const definiciones = game.registry.modules.find((m) => m.id === id)?.stats ?? [];
   estado.retirados = { ...estado.retirados, [id]: structuredClone(definiciones) };
   return Game.load(conDeportes(modulos, deportesDeLaPartida(game, modulos).filter((d) => d !== id)), estado, { copiar: false });
+}
+
+/** Los deportes que usa una partida guardada y no están entre los módulos cargados (ni se quitaron): hay que instalarlos antes de abrirla. */
+export function deportesQueFaltan(saved: GameState, modulos: readonly GameModule<any>[] = MODULOS): string[] {
+  const cargados = new Set(modulos.map((m) => m.id));
+  return Object.keys(saved.modules).filter((id) => !cargados.has(id) && !(id in (saved.retirados ?? {})));
 }
