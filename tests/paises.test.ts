@@ -3,7 +3,6 @@ import {
   CALENDARIO_ESPANA,
   apellidosDeFamilia,
   identidadDeJugador,
-  CATEGORIAS_ESPANA,
   HORARIOS_DE_ESPANA,
   SERVICES,
   copiaDeEspana,
@@ -77,14 +76,6 @@ describe('el país de la partida', () => {
     expect(est.courseName()).toBe('Primer año');
     expect(est.activeSubjects().sort()).toEqual(['estudios.lengua', 'estudios.matematicas']);
     expect(nuevaPartida({ seed: 5 }).service<StudiesService>(SERVICES.estudios)!.courseName()).toBe('3.º de primaria');
-  });
-
-  it('las categorías deportivas son las del país', () => {
-    pais('cat_prueba', { categorias: { atletismo: [{ id: 'u11', nombre: 'Under 11', edadMin: 0, edadMax: 10 }, { id: 'u13', nombre: 'Under 13', edadMin: 11, edadMax: 12 }, { id: 'abierta', nombre: 'Abierta', edadMin: 13, edadMax: 200 }] } });
-    const categoria = (id: string) => nuevaPartida({ seed: 5, pais: id }).service<DeporteService>(claveDeDeporte('atletismo'))!.view().resumen.find((r) => r.etiqueta === 'Categoría')!.valor;
-    expect(categoria('cat_prueba')).toMatch(/Under 11/);
-    expect(categoria('espana')).toMatch(/Sub-10/);
-    expect(CATEGORIAS_ESPANA[0].id).toBe('sub10'); // la copia es independiente
   });
 
   it('los horarios de los lugares son los del país', () => {

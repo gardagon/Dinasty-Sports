@@ -9,7 +9,6 @@ Un **paquete de país** (`PaisDef`, en `packages/contracts/src/paises/`) reúne 
 | `id`, `nombre` | Identificador (minúsculas y guion bajo) y nombre en español | todo |
 | `calendario` | Calendario escolar: semanas del curso, tramos (clase, Navidad, Semana Santa, verano), evaluaciones y parciales | el motor (`ctx.time`, `ctx.timeAt`) |
 | `cursos`, `cursoDeModalidad` | Cursos desde los 8 años (nombre, etapa, asignaturas por curso, modalidades) | módulo `estudios` |
-| `categorias` | Categorías por edad de cada deporte (`{ atletismo: [...] }`). **Provisional:** el plan de deportes (`PLAN_DEPORTES_MODULARES.md` §4, decidido el 30/10) las saca del paquete de país y las lleva a los datos de cada deporte, por país dentro del deporte; el país no sabrá de deportes | módulo `atletismo` |
 | `horarios` | Horarios de apertura por id de lugar (colegio, biblioteca, supermercado…) | módulo `lugares` (servicio `lugares`) |
 | `demografia` | Peso de cada origen familiar entre la gente del país | generación de personas (`origenAlAzar`) |
 | `origenesLocales` | Orígenes «de aquí» (de ellos sale el nombre local de las mezclas) | `nombres.ts` |
@@ -17,14 +16,14 @@ Un **paquete de país** (`PaisDef`, en `packages/contracts/src/paises/`) reúne 
 | `origenes` (opcional) | Orígenes nuevos del catálogo, con su aspecto y su reserva de nombres | `rasgos.ts` |
 | `reservasDeNombres` (opcional) | Culturas de nombres y apellidos que añade (`ANEXO_NOMBRES.md` §5) | `culturas/` |
 
-**Lo que un paquete no trae lo pone España** (el módulo usa lo suyo por defecto): por ejemplo, sin `categorias.atletismo` valen las españolas.
+**Lo que un paquete no trae lo pone España** (el módulo usa lo suyo por defecto): por ejemplo, un calendario o un horario que falte. **Lo del deporte no va aquí:** las categorías por edad, la temporada y las competiciones de cada deporte son datos del propio deporte, por país dentro del deporte (`DatosDeDeporte`, en el módulo del deporte; ver `PLAN_DEPORTES_MODULARES.md` §4). Un paquete de país antiguo con `categorias` se importa igual y se ignora ese campo.
 
 ## 2. Paquetes de serie
 
 | País | Estado |
 |---|---|
 | **España** (`espana`) | El de partida. Es la copia de la que nacen los demás (`copiaDeEspana`). |
-| **Argentina** (`argentina`) | **Gente propia** (demografía, nombres criollos e italianos, un solo apellido, aspecto) y **calendario, currículo, categorías y horarios copiados de España** con su nombre. |
+| **Argentina** (`argentina`) | **Gente propia** (demografía, nombres criollos e italianos, un solo apellido, aspecto) y **calendario, currículo y horarios copiados de España** con su nombre. |
 | **Inglaterra** (`inglaterra`) | **Gente propia** (británicos, Asia del sur, afrocaribeños, polacos…, un solo apellido, aspecto) y el resto copiado de España con su nombre. |
 
 Cuando se estudie la realidad de cada país, solo hay que **cambiar los datos del paquete** (`paises/argentina.ts`, `paises/inglaterra.ts`) sin tocar el código: el curso argentino empieza en marzo y el verano es en enero y febrero; en Inglaterra son *years* y tres *terms*, y las categorías son *under*.
@@ -37,7 +36,7 @@ Cuando se estudie la realidad de cada país, solo hay que **cambiar los datos de
 
 ## 4. Qué se valida
 
-Forma de los datos (no su contenido de juego): `id` y `nombre`; calendario con tramos seguidos que cubren todas las semanas del curso; cursos con nombre y asignaturas; categorías con edades seguidas; horarios solo de lugares que existen; demografía con orígenes que existen (del catálogo o del propio paquete), `origenesLocales` dentro de la demografía; orígenes con listas de probabilidades de la longitud correcta; culturas de nombres con nombres de jóvenes y adultos de ambos sexos y apellidos.
+Forma de los datos (no su contenido de juego): `id` y `nombre`; calendario con tramos seguidos que cubren todas las semanas del curso; cursos con nombre y asignaturas; horarios solo de lugares que existen; demografía con orígenes que existen (del catálogo o del propio paquete), `origenesLocales` dentro de la demografía; orígenes con listas de probabilidades de la longitud correcta; culturas de nombres con nombres de jóvenes y adultos de ambos sexos y apellidos.
 
 ## 5. Lo que todavía NO cambia con el país (pendiente)
 
@@ -56,6 +55,6 @@ Forma de los datos (no su contenido de juego): `id` y `nombre`; calendario con t
 | Validación e importación | `paises/index.ts` (`validarPais`, `registrarPais`, `importarPais`) |
 | Nombres, apellidos, apodos por cultura | `packages/contracts/src/culturas/` |
 | Currículo de España | `paises/curriculo.ts` (`CURSOS_ESPANA`) |
-| Categorías del atletismo de España | `packages/contracts/src/categories.ts` (`CATEGORIAS_ESPANA`) |
+| Datos del atletismo por país (categorías, temporada, competiciones) | `modules/atletismo/src/datos.ts` (`DATOS_ATLETISMO`); forma y validación en `contracts/deporte-datos.ts` |
 | Horarios de España | `lugares.ts` (`HORARIOS_DE_ESPANA`) |
 | Interfaz (selector, importar) | `apps/web/src/main.ts`, `apps/web/src/paquetes.ts` |

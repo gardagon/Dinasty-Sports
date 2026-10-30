@@ -1,8 +1,8 @@
-import { SERVICES, categoriaDeEdad, categoriaSuperior, type ActionDef, type CategoriaDef, type IdentityService, type ReadContext } from '@ds/contracts';
+import { SERVICES, categoriaDeEdad, datosDeDeporte, categoriaSuperior, type ActionDef, type CategoriaDef, type IdentityService, type ReadContext } from '@ds/contracts';
 import type { ConfigDeporte, EstadoBaseDeDeporte } from './tipos';
 
-/** Las categorías por edad del deporte en el país de la partida (si el país no trae las suyas, las de España). */
-export const categoriasDe = (ctx: ReadContext, cfg: ConfigDeporte): readonly CategoriaDef[] => ctx.pais.categorias[cfg.id] ?? cfg.categoriasEspana;
+/** Las categorías por edad del deporte en el país de la partida (datos del deporte; si no trae el país, las de España). */
+export const categoriasDe = (ctx: ReadContext, cfg: ConfigDeporte): readonly CategoriaDef[] => datosDeDeporte(ctx, cfg.id).categorias;
 
 export interface CategoriaJugador {
   /** La que le toca por edad. */

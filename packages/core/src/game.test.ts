@@ -700,3 +700,37 @@ describe('añadir una stat no cambia a las que ya había', () => {
     expect(a.stat('p.fuerza')).not.toBe(b.stat('p.fuerza'));
   });
 });
+
+describe('aportes', () => {
+  const aporta = (id: string, clave: string, datos: unknown[]) => defineModule({ id, name: id, aportes: { [clave]: datos } });
+
+  it('juntan lo que aportan todos los módulos a una clave, en el orden de los módulos, y es una lista vacía si nadie aporta', () => {
+    const g = Game.create([base, aporta('x', 'cosas', [{ n: 1 }, { n: 2 }]), aporta('y', 'cosas', [{ n: 3 }]), aporta('z', 'otras', ['a'])], { seed: 1 });
+    expect(g.aportes<{ n: number }>('cosas').map((a) => a.n)).toEqual([1, 2, 3]);
+    expect(g.aportes<string>('otras')).toEqual(['a']);
+    expect(g.aportes('nadie')).toEqual([]);
+  });
+
+  it('un módulo descargado no aporta nada y el estado de la partida no cambia', () => {
+    const sin = Game.create([base], { seed: 1 });
+    const con = Game.create([base, aporta('x', 'cosas', [1])], { seed: 1 });
+    expect(sin.aportes('cosas')).toEqual([]);
+    expect(Object.keys(con.serialize().modules)).not.toContain('aportes');
+  });
+
+  it('rechaza un aporte que no es una lista', () => {
+    const mal = defineModule({ id: 'm', name: 'M', aportes: { cosas: { n: 1 } as unknown as unknown[] } });
+    expect(() => Game.create([base, mal], { seed: 1 })).toThrow(RegistryError);
+  });
+
+  it('el nombre y la descripción de una acción pueden depender de la partida', () => {
+    const m = defineModule({
+      id: 'n',
+      name: 'N',
+      actions: [{ id: 'n.a', name: (ctx) => `Hola ${ctx.stat('b.fuerza')}`, description: (ctx) => `Con ${ctx.stat('b.fuerza')}`, tags: [], duration: 10 }],
+    });
+    const o = Game.create([base, m], { seed: 1 }).preview('n.a')!;
+    expect(o.name).toMatch(/^Hola \d+/);
+    expect(o.description).toMatch(/^Con \d+/);
+  });
+});

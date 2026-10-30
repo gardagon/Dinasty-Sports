@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORIAS_ESPANA, GEN, TAGS, defineModule, type ActionView, type ReadContext } from '@ds/contracts';
+import { APORTES, GEN, TAGS, defineModule, type CategoriaDef, type DatosDeDeporte, type ActionView, type ReadContext } from '@ds/contracts';
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import {
@@ -26,17 +26,27 @@ import {
 const CONFIG: ConfigDeporte = {
   id: 'prueba',
   nombre: 'prueba',
-  categoriasEspana: CATEGORIAS_ESPANA,
   sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
   textoDeCompeticion: 'Partidos: los sábados.',
   rendimiento: (ctx: ReadContext) => ctx.stat('prueba.tecnica'),
   entrenosLibres: ['prueba.entreno'],
 };
 
+const CATEGORIAS: readonly CategoriaDef[] = [
+  { id: 'sub10', nombre: 'Sub-10', edadMin: 0, edadMax: 9 },
+  { id: 'sub12', nombre: 'Sub-12', edadMin: 10, edadMax: 11 },
+  { id: 'absoluta', nombre: 'Absoluta', edadMin: 12, edadMax: 200 },
+];
+const DATOS: DatosDeDeporte = {
+  id: 'prueba',
+  paises: { espana: { categorias: CATEGORIAS, temporada: { semanasDePretemporada: 4, semifinalAntesDelFinal: 3, finalAntesDelFinal: 2 }, competiciones: { federacion: 'Federación de prueba', campeonato: 'campeonato de {pais}' } } },
+};
+
 const deporteDePrueba = defineModule<EstadoBaseDeDeporte>({
   id: 'prueba',
   name: 'Prueba',
   dependsOn: ['gen'],
+  aportes: { [APORTES.datosDeDeporte]: [DATOS] },
   stats: [
     habilidadDeportiva('prueba', 'Prueba', 'tecnica', 'Técnica', [{ stat: GEN.coordinacion, weight: 0.4 }], 'Técnica de prueba.', [{ stat: GEN.coordinacion, weight: 1 }]),
     conocimientoDelDeporte('prueba', 'Conocimiento de prueba', 'Entender el deporte de prueba.'),

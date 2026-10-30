@@ -1,4 +1,4 @@
-import type { ActionDef, CategoriaDef, ReadContext, StatId } from '@ds/contracts';
+import type { ActionDef, ReadContext, StatId } from '@ds/contracts';
 
 /**
  * Lo que un deporte le dice al kit de sí mismo. Con esto el kit monta las piezas comunes (club, entrenador, categorías,
@@ -9,8 +9,6 @@ export interface ConfigDeporte {
   id: string;
   /** Nombre en minúscula para los textos: «el club de atletismo», «Entrenar atletismo». */
   nombre: string;
-  /** Categorías por edad de España: valen si el país de la partida no trae las suyas para este deporte. */
-  categoriasEspana: readonly CategoriaDef[];
   /** Dónde entrena el club del personaje: la sede del club del colegio y la de los clubes de fuera. */
   sedes: { colegio: string; fuera: string };
   /** Cuándo y dónde se compite, para contarlo antes de apuntarse a un club (p. ej. «Carreras: los sábados de 9 a 13 en el estadio.»). */

@@ -89,6 +89,7 @@ export interface CreateOptions {
   pais?: string;
 }
 
+const SIN_APORTES: readonly unknown[] = Object.freeze([]);
 const MAX_EVENTS_PER_ACTION = 5000;
 const SHARED_EVENT_TYPES: ReadonlySet<string> = new Set(Object.values(SHARED_EVENTS));
 const EPS = 1e-9;
@@ -424,6 +425,11 @@ export class Game {
     return this.readCtx('core').service<T>(key);
   }
 
+  /** Lo que aportan los módulos cargados a un punto de extensión (ver `GameModule.aportes`). */
+  aportes<T>(clave: string): readonly T[] {
+    return this.readCtx('core').aportes<T>(clave);
+  }
+
   /** Copia serializable del estado (para tests y para quien necesite un objeto). */
   serialize(): GameState {
     return structuredClone(this.s);
@@ -580,8 +586,8 @@ export class Game {
 
     return {
       id: def.id,
-      name: def.name,
-      description: def.description,
+      name: typeof def.name === 'function' ? def.name(ctx) : def.name,
+      description: typeof def.description === 'function' ? def.description(ctx) : def.description,
       module,
       group: def.group ?? this.moduleName(module),
       tags: view.tags,
@@ -759,6 +765,7 @@ export class Game {
         return svc ? (svc.fn(game.readCtx(svc.module)) as T) : undefined;
       },
       hasModule: (id) => reg.moduleIds.has(id),
+      aportes: <T>(clave: string) => (reg.aportes.get(clave) ?? SIN_APORTES) as readonly T[],
     };
   }
 

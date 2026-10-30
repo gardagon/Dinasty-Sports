@@ -55,6 +55,8 @@ export interface Registry {
   handlers: ReadonlyMap<string, readonly CompiledHandler[]>;
   services: ReadonlyMap<string, { module: string; fn: (ctx: ReadContext) => unknown }>;
   decayStats: readonly CompiledStat[];
+  /** Lo que aporta cada módulo a cada punto de extensión (clave → aportes, en el orden de los módulos). */
+  aportes: ReadonlyMap<string, readonly unknown[]>;
 }
 
 export class RegistryError extends Error {
@@ -81,6 +83,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
   const handlers = new Map<string, CompiledHandler[]>();
   const services = new Map<string, { module: string; fn: (ctx: ReadContext) => unknown }>();
   const dynamicActions: { module: string; fn: (ctx: ReadContext) => ActionDef[] }[] = [];
+  const aportes = new Map<string, unknown[]>();
   const resolvers: { module: string; fn: (ctx: ReadContext, id: string) => ActionDef | undefined }[] = [];
 
   const prefixed = (id: string, module: string) => id.startsWith(`${module}.`);
@@ -135,6 +138,11 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
       handlers.set(type, list);
     }
 
+    for (const [clave, lista] of Object.entries(m.aportes ?? {})) {
+      if (!clave || !Array.isArray(lista)) problems.push(`Aporte "${clave}" de "${m.id}": tiene que ser una lista`);
+      else aportes.set(clave, [...(aportes.get(clave) ?? []), ...lista]);
+    }
+
     for (const [key, fn] of Object.entries(m.services ?? {})) {
       if (services.has(key)) problems.push(`Servicio "${key}" publicado por dos módulos`);
       services.set(key, { module: m.id, fn });
@@ -170,6 +178,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
     handlers,
     services,
     decayStats: statList.filter((s) => s.def.decay && s.def.category !== 'estado'),
+    aportes,
   };
 }
 

@@ -61,22 +61,6 @@ export function validarPais(x: unknown): string[] {
     }
     if (typeof x.cursoDeModalidad !== 'number' || x.cursoDeModalidad < 0) p.push('Falta «cursoDeModalidad» (el curso en que se elige modalidad)');
   }
-  // Categorías
-  if (!esObjeto(x.categorias)) p.push('Faltan las «categorias» (por deporte)');
-  else {
-    for (const [deporte, lista] of Object.entries(x.categorias)) {
-      if (!esLista(lista)) {
-        p.push(`«categorias.${deporte}» está vacío`);
-        continue;
-      }
-      let esperada = -1;
-      for (const c of lista as { id?: string; edadMin?: number; edadMax?: number }[]) {
-        if (typeof c.id !== 'string' || typeof c.edadMin !== 'number' || typeof c.edadMax !== 'number' || c.edadMax < c.edadMin) p.push(`«categorias.${deporte}»: categoría mal formada`);
-        else if (esperada >= 0 && c.edadMin !== esperada) p.push(`«categorias.${deporte}»: las edades no son seguidas (tras la ${esperada - 1} viene la ${c.edadMin})`);
-        esperada = (c.edadMax ?? 0) + 1;
-      }
-    }
-  }
   // Horarios
   if (!esObjeto(x.horarios)) p.push('Faltan los «horarios» (puede ser {})');
   else {

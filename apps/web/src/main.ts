@@ -14,7 +14,6 @@ import {
   type LogTable,
   type NpcDirectory,
   fechaDelDia,
-  CATALOGO_DE_DEPORTES,
   type PerksService,
   type ProfileService,
   type Gustos,
@@ -37,7 +36,7 @@ import {
   idDePonerApodo,
 } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
-import { cargarPartida, nuevaPartida } from '@ds/game';
+import { cargarPartida, catalogoDeDeportes, nuevaPartida } from '@ds/game';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
@@ -90,7 +89,9 @@ let pantalla: Pantalla = 'menu';
 let enMenu = true;
 const sortearSemilla = (): number => 1 + Math.floor(Math.random() * 0x7ffffffe);
 /** La partida que se está creando: la semilla decide el nombre, los apellidos y los padres; «volver a sortear» es otra semilla. */
-let nueva: { seed: number; principal: ApellidoPrincipal; pais: string; deportes: string[] } = { seed: sortearSemilla(), principal: 'padre', pais: 'espana', deportes: CATALOGO_DE_DEPORTES.map((d) => d.id) };
+/** Los deportes que trae el juego (cada módulo de deporte aporta su ficha). */
+const CATALOGO = catalogoDeDeportes();
+let nueva: { seed: number; principal: ApellidoPrincipal; pais: string; deportes: string[] } = { seed: sortearSemilla(), principal: 'padre', pais: 'espana', deportes: CATALOGO.map((d) => d.id) };
 let avisoDeSalir = false;
 
 const app = document.getElementById('app')!;
@@ -359,9 +360,9 @@ function viewNueva(): string {
     <select id="sexo" disabled><option>Masculino</option></select>
     <p class="note">De momento solo hay personaje masculino. La gente (nombres, orígenes y aspecto) es del país que elijas; el calendario, el currículo, las categorías y los horarios de otros países son, por ahora, copia de los de España. Puedes importar más países desde Opciones.</p>
     <label>Deportes en la partida</label>
-    <div class="opciones">${CATALOGO_DE_DEPORTES.map((d) => {
+    <div class="opciones">${CATALOGO.map((d) => {
       const marcado = nueva.deportes.includes(d.id);
-      return `<label class="casilla"><input type="checkbox" data-deporte-incluido="${esc(d.id)}"${marcado ? ' checked' : ''}${marcado && nueva.deportes.length === 1 ? ' disabled' : ''}> ${esc(d.nombre)}</label>`;
+      return `<label class="casilla"><input type="checkbox" data-deporte-incluido="${esc(d.id)}"${marcado ? ' checked' : ''}${marcado && nueva.deportes.length === 1 ? ' disabled' : ''}> ${esc(d.nombre)}<small> · ${esc(d.disciplina)}</small></label>`;
     }).join('')}</div>
     <p class="note">Son los deportes que existen en tu partida; no empiezas practicando ninguno. Podrás hacer cualquiera, y tu deporte principal será el del club al que te apuntes. Siempre hace falta al menos uno.</p>
     <label>Nombre</label>

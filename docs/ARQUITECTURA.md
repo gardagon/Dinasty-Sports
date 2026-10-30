@@ -62,7 +62,7 @@ Al dividir tanto, el riesgo es la lentitud y el caos de conexiones. Lo resuelven
 
 ## Países
 
-Lo que cambia de un país a otro es un **paquete de datos** (`PaisDef`, ver `PAQUETES_DE_PAIS.md`): calendario, currículo, categorías, horarios y gente (demografía, nombres). El país se guarda en la partida (`GameState.pais`, `SAVE_VERSION` 16) y los módulos lo leen con **`ctx.pais`**; para mirar otro día con el calendario del país usan **`ctx.timeAt(minuto)`** (no `timeView`, que es el de España por defecto). Un módulo nunca importa datos de un país concreto: pide `ctx.pais.<dato>` y, si falta, usa el de España. Los paquetes se registran con `registrarPais` (los de serie, al cargar contracts; los importados, desde la interfaz).
+Lo que cambia de un país a otro es un **paquete de datos** (`PaisDef`, ver `PAQUETES_DE_PAIS.md`): calendario, currículo, horarios y gente (demografía, nombres). El país se guarda en la partida (`GameState.pais`, `SAVE_VERSION` 16) y los módulos lo leen con **`ctx.pais`**; para mirar otro día con el calendario del país usan **`ctx.timeAt(minuto)`** (no `timeView`, que es el de España por defecto). Un módulo nunca importa datos de un país concreto: pide `ctx.pais.<dato>` y, si falta, usa el de España. Los paquetes se registran con `registrarPais` (los de serie, al cargar contracts; los importados, desde la interfaz).
 
 ## Calendario escolar
 
@@ -73,8 +73,7 @@ fechas absolutas). El motor y los módulos solo consultan el `TimeView`: curso, 
 
 ## Categorías y desarrollo con la edad
 
-Las categorías por edad son un dato por país y deporte (`CategoriaDef`, `categoriaDeEdad`, en contracts; las de atletismo español están en el
-módulo de atletismo). `madurezPorEdad` (contracts) es la fracción de capacidad adulta alcanzable a cada edad: la usan el personaje, como techo de
+Las categorías por edad son un dato por deporte y, dentro del deporte, por país (`CategoriaDef`, `categoriaDeEdad`, en contracts; las del atletismo español están en `modules/atletismo/src/datos.ts`; ver «Aportes» más abajo). `madurezPorEdad` (contracts) es la fracción de capacidad adulta alcanzable a cada edad: la usan el personaje, como techo de
 lo físico (estado oculto `gen.madurez`), y los NPCs, como nivel máximo de cada rival. Los rivales tienen fecha de nacimiento, se renuevan cada
 curso y son desconocidos hasta que compiten contra el personaje (`known`).
 
@@ -103,6 +102,10 @@ que sustituyen. Cada asignatura es una **preparación 0–100 (= nota esperada �
 El módulo `clubes` guarda las membresías y la calidad de cada club (catálogo como dato por país). Los deportes ponen el contenido de las sesiones
 (etiqueta `club`) y las pruebas de acceso, y piden entrar o salir con los eventos compartidos `club.unirse` y `club.salir`. El servicio `clubes`
 expone los clubes de un deporte y la membresía del personaje (con el día en que entró).
+
+**Aportes (`GameModule.aportes`, `ctx.aportes<T>(clave)`).** Un módulo declara datos para un punto de extensión por una clave (`{ 'deportes.ficha': [...] }`); el registro los junta de todos los módulos cargados y el motor no sabe qué son (como no sabe qué es un servicio). Así se puede preguntar «qué deportes hay» sin importar ninguno. Hoy los usan los deportes: `deportes.ficha` (`FichaDeDeporte`: id, nombre, disciplina, descripción y tipo; con ellas `catalogoDeDeportes()` de `@ds/game` lista los deportes antes de crear la partida) y `deportes.datos` (`DatosDeDeporte`).
+
+**Datos de cada deporte, por país.** Las categorías por edad, la temporada y las competiciones de un deporte las trae el propio deporte, un bloque por país, con España obligatoria como respaldo (`datosDeDeporte(ctx, deporte)` devuelve los del país de la partida o, si el deporte no lo trae, los de España con `deRespaldo`; `{pais}` en un texto se sustituye por el nombre del país con `textoConPais`). El país ya no sabe de deportes (`PaisDef.categorias` desapareció). **La temporada es relativa al calendario escolar** (`TemporadaDeDeporte`: semanas de pretemporada y semanas antes del final de las clases de la semifinal y la final; `semanasDeTemporada(calendario, temporada)` las pasa a semanas del curso), así que los datos de España encajan en cualquier calendario. `validarDatosDeDeporte` comprueba la forma. El nombre y la descripción de una acción pueden ser una función de la partida (`ActionDef.name` y `description`) para mostrar, p. ej., el nombre del campeonato del país.
 
 **Deportes de la partida y deporte principal.** Los deportes son módulos que se incluyen o no al crear la partida (`nuevaPartida({ deportes })` en `@ds/game`, al menos uno; `CATALOGO_DE_DEPORTES` en contracts los lista, provisional hasta la ficha de la fase 1). Una partida guardada conserva los que ya tiene. El personaje puede hacer cualquier deporte de la partida; el **principal** (`deportePrincipal`, contracts) es el del club en el que entró más recientemente, y es el que enseña la pestaña «Deporte». No hay acción de «empezar un deporte»: se entra y se sale de los clubes.
 

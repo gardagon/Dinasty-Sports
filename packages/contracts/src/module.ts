@@ -33,6 +33,12 @@ export interface GameModule<S = unknown> {
   on?: Record<string, EventHandler>;
   /** Servicios que publica (ver services.ts). */
   services?: Record<string, (ctx: ReadContext) => unknown>;
+  /**
+   * Aportes: datos declarativos para un punto de extensión que otro módulo (o el kit) define por una clave, p. ej. `deportes.ficha`. El motor
+   * los junta de todos los módulos cargados y no sabe qué son (igual que no sabe qué es un servicio); quien los consume los lee con
+   * `ctx.aportes<T>(clave)`. Es la forma de que un módulo pregunte «qué deportes hay» sin importar a ninguno. Deben ser JSON serializable.
+   */
+  aportes?: Record<string, readonly unknown[]>;
   /** Estado propio inicial del módulo (debe ser JSON serializable). */
   initState?: (ctx: InitContext) => S;
 }

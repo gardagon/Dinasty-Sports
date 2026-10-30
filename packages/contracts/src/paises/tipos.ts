@@ -1,5 +1,4 @@
 import type { CalendarioPais } from '../calendar';
-import type { CategoriaDef } from '../categories';
 import type { Cultura } from '../culturas/tipos';
 import type { HorarioDeLugar } from '../lugares';
 import type { OrigenDef } from '../rasgos';
@@ -22,8 +21,6 @@ export interface PaisDef {
   cursos: readonly CursoDef[];
   /** Curso en que se elige modalidad (el bachillerato español). */
   cursoDeModalidad: number;
-  /** Categorías por edad de cada deporte (clave: id del deporte, p. ej. `atletismo`). */
-  categorias: Readonly<Record<string, readonly CategoriaDef[]>>;
   /** Horarios de apertura de los lugares, por id de lugar (lo que no esté, no cambia). */
   horarios: Readonly<Record<string, HorarioDeLugar>>;
 

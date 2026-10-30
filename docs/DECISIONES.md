@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 30/10/2026 — Fases 1 y 2: aportes, ficha de cada deporte y datos de cada deporte por país
+
+Hechas juntas las fases 1 y 2 de `PLAN_DEPORTES_MODULARES.md`. `npm run huella -- 120` da exactamente lo mismo que antes en los 14 bots.
+
+- **Aportes (fase 1):** `GameModule.aportes` (clave → lista) y `ctx.aportes<T>(clave)` (también `Game.aportes`). El registro junta lo de todos los módulos cargados, en orden; el motor no sabe qué son. Un aporte que no es una lista es un error de registro. No cambia el estado de la partida.
+- **Ficha de cada deporte (fase 1):** `FichaDeDeporte` (id, nombre, disciplina, descripción, tipo individual/equipo) en la clave `deportes.ficha`. Sustituye al `CATALOGO_DE_DEPORTES` provisional de la fase 0: `catalogoDeDeportes()` (`@ds/game`) las lee de los módulos y la nueva partida lista los deportes con ellas. `deportePrincipal` recibe ahora la lista de deportes.
+- **Datos por deporte y país (fase 2):** `DatosDeDeporte` (`deportes.datos`): para cada país, categorías por edad, temporada y competiciones (federación y nombre del campeonato). **España es obligatoria** y es el respaldo: si el deporte no trae el país de la partida, se usan los de España (`deRespaldo`), con el nombre del país donde el texto pone `{pais}` («campeonato de Argentina»). La pestaña del deporte lo avisa en la fila «Federación». `validarDatosDeDeporte` comprueba la forma.
+- **Temporada relativa al calendario:** `TemporadaDeDeporte` en semanas de clase (pretemporada) y en semanas antes del final de las clases (semifinal y final). Con el calendario de España: primera carrera en la semana 5, semifinal en la 38 y final en la 39, como antes. Con un curso que acaba antes se adelantan. Las semanas de pretemporada cuentan semanas de clase (no las vacaciones).
+- **El país ya no sabe de deportes:** `PaisDef.categorias` y `CATEGORIAS_ESPANA` salen de contracts (ahora en `modules/atletismo/src/datos.ts`, reexportada por el módulo). El paquete de país antiguo con `categorias` se importa igual y se ignora ese campo. El test de «categorías del país» pasa a ser «datos del deporte por país» (`tests/datos-de-deporte.test.ts`).
+- **Para poder mostrar el nombre del campeonato del país:** `ActionDef.name` y `description` pueden ser una función de la partida (se resuelven al evaluar la acción).
+- **Pendiente:** que los datos lleguen en un archivo por país dentro del paquete del deporte (fase 6) y que una actualización con los datos reales de un país se aplique al empezar el curso siguiente (§4.4 del plan); hoy solo hay datos de España.
+
+---
+
 ## 30/10/2026 — Fase 0: deportes de la partida y deporte principal (el del club)
 
 Hecha la fase 0 de `PLAN_DEPORTES_MODULARES.md` **con otro diseño que el escrito**, por indicación del usuario (se deshizo una primera versión con módulo `deportes`, acciones «Empezar / Dejar el X», eventos `deporte.empezar`/`deporte.dejar` y acciones ocultas):

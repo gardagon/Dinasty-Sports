@@ -30,7 +30,7 @@ Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasifi
 
 | Sección | Contenido |
 |---|---|
-| Resumen | Categoría (y si compites en la superior), club, entrenador (el de tu edad), **entrenamientos** (días y horas del club), **carreras**, mejor marca, carreras del curso, mejor puesto del curso y estado del campeonato (sin disputar, clasificado, no clasificado). |
+| Resumen | Categoría (y si compites en la superior), federación (con aviso si son los datos de España), club, entrenador (el de tu edad), **entrenamientos** (días y horas del club), **carreras**, mejor marca, carreras del curso, mejor puesto del curso y estado del campeonato (sin disputar, clasificado, no clasificado). |
 | Próxima prueba | Pretemporada (primera carrera en la semana 5), vacaciones, la carrera semanal (sábado de 9 a 13), la semifinal (semana 38) o la final (semana 39) si toca. |
 | Habilidades | Solo las **propias del deporte** (en atletismo: técnica, ritmo, salida y conocimiento), con la marca del techo actual. Las genéricas (velocidad, resistencia...) se ven en la pestaña del personaje. |
 | Carreras | Todas las del curso, la más reciente primero, cada una desplegable con su clasificación completa (corredor, club, tiempo y diferencia con el 1.º). ⭐ marca la mejor marca personal. |
