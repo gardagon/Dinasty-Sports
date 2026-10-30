@@ -33,18 +33,9 @@ export const SHARED_EVENTS = {
   FALTAS_EXCESIVAS: 'clase.faltas_excesivas',
   /** data: DatoPersonalData — el personaje le ha preguntado a alguien su edad, su colegio, su clase, su profesión, su trabajo o sus gustos y ya lo sabe. */
   DATO_PERSONAL: 'persona.dato',
-  /** data: DeporteData — el personaje empieza a practicar un deporte (lo emite `deportes`). */
-  DEPORTE_EMPEZAR: 'deporte.empezar',
-  /** data: DeporteData — el personaje deja de practicar un deporte (lo emite `deportes`). */
-  DEPORTE_DEJAR: 'deporte.dejar',
   /** data: PresentacionData — el personaje pregunta el nombre a alguien y se presentan: pasa de desconocido a conocido. */
   PRESENTACION: 'persona.presentarse',
 } as const;
-
-export interface DeporteData {
-  /** Id del deporte (p. ej. 'atletismo'). */
-  sport: string;
-}
 
 export interface PresentacionData {
   npcId: string;

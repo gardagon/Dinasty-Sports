@@ -1,4 +1,4 @@
-import { PREFIJO_DE_DEPORTE, type DeporteService, type DeporteView, type LogTable } from '@ds/contracts';
+import { PREFIJO_DE_DEPORTE, SERVICES, deportePrincipal, type ClubDirectory, type DeporteService, type DeporteView, type LogTable } from '@ds/contracts';
 import type { Game } from '@ds/core';
 
 /**
@@ -78,10 +78,12 @@ function vista(g: Game, d: DeporteView): string {
 export function viewDeporte(g: Game): string {
   const todos = deportesDe(g).filter((d) => !d.inactivo);
   if (!todos.length) return '<section class="sheet"><p class="note">No practicas ningún deporte.</p></section>';
-  const actual = todos.find((d) => d.id === elegido) ?? todos[0];
+  // Se enseña el deporte principal (el del club en el que entraste último) salvo que elijas otro de los que tienen club.
+  const principal = deportePrincipal(g.service<ClubDirectory>(SERVICES.clubes), todos.map((d) => d.id));
+  const actual = todos.find((d) => d.id === elegido) ?? todos.find((d) => d.id === principal) ?? todos[0];
   const selector =
     todos.length > 1
-      ? `<nav class="filtros-gente">${todos.map((d) => `<button class="tab" aria-selected="${d.id === actual.id}" data-deporte="${esc(d.id)}">${esc(d.nombre)}</button>`).join('')}</nav>`
+      ? `<nav class="filtros-gente">${todos.map((d) => `<button class="tab" aria-selected="${d.id === actual.id}" data-deporte="${esc(d.id)}">${esc(d.nombre)}${d.id === principal ? ' ★' : ''}</button>`).join('')}</nav>`
       : '';
   return selector + vista(g, actual);
 }

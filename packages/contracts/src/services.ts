@@ -17,7 +17,6 @@ export const SERVICES = {
   perfil: 'perfil',
   lugares: 'lugares',
   presencia: 'presencia',
-  practica: 'practica',
 } as const;
 
 // ---------- NPCs ----------
@@ -216,6 +215,8 @@ export interface ClubView {
   sesiones: { weekdays: readonly number[]; desde: number; hasta: number };
   /** Acceso por deporte: nivel mínimo (en la escala del deporte) y edad mínima. Sin entrada = abierto. */
   acceso?: Readonly<Record<string, { nivel: number; edadMin: number }>>;
+  /** Día de la partida en que el personaje entró, solo en el club que devuelve `membership`. */
+  desde?: number;
 }
 
 export interface ClubDirectory {
@@ -235,25 +236,4 @@ export function edadAparente(n: Pick<NpcView, 'age' | 'role' | 'tags'>): number 
   if (n.tags.includes('progenitor')) return 42;
   if (n.role === 'companero' || n.role === 'amigo') return 8;
   return undefined;
-}
-
-// ---------- Deporte practicado ----------
-
-/** Un deporte que el personaje ha practicado: desde qué curso (0 = el primero) y, si lo dejó, hasta cuál. */
-export interface TramoDeDeporte {
-  deporte: string;
-  desde: number;
-  hasta?: number;
-}
-
-/**
- * Qué deporte practica el personaje (publicado por `deportes`). El personaje compite en uno solo (o en ninguno);
- * cada deporte oculta sus acciones y su pestaña mientras no se practica. Ver `sePractica`.
- */
-export interface PracticaService {
-  /** El deporte que practica, o `null` si no practica ninguno. */
-  practicado(): string | null;
-  practica(deporte: string): boolean;
-  /** Todos los deportes que ha practicado, en orden (los que dejó llevan `hasta`). */
-  historial(): readonly TramoDeDeporte[];
 }

@@ -17,7 +17,6 @@ import {
   rngEstable,
   type ReadContext,
   type Rng,
-  sePractica,
 } from '@ds/contracts';
 import {
   accionesDeCategoria,
@@ -45,8 +44,6 @@ import {
   sedeDelClub as sedeDelClubEn,
   sesionDeClub,
   sinEntrenarPorLibreEnSesion,
-  soloSiSePractica,
-  soloSiSePracticaDinamicas,
   textoDeSesiones,
   tramitesDe,
   valorEfectivo,
@@ -519,7 +516,7 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
     id: DEPORTE,
     nombre: 'Atletismo',
     disciplina: DISCIPLINA,
-    inactivo: !sePractica(ctx, DEPORTE) ? 'No practicas atletismo: puedes empezar a practicarlo desde «Hacer»' : club ? undefined : 'Apúntate a un club de atletismo (en el colegio o en el estadio) para ver aquí tu deporte',
+    inactivo: club ? undefined : 'Apúntate a un club de atletismo (en el colegio o en el estadio) para ver aquí tu deporte',
     resumen: [
       { etiqueta: 'Categoría', valor: `${competida.nombre}${superior ? ' (compites en la superior)' : ''}` },
       { etiqueta: 'Club', valor: club?.nombre ?? 'Sin club' },
@@ -582,9 +579,9 @@ export const atletismo = defineModule<AtletismoState>({
   },
 
   // Apuntarse al club del colegio, pruebas de acceso a los de fuera y aceptar la plaza ganada (kit).
-  dynamicActions: soloSiSePracticaDinamicas(CONFIG, accionesDeClubes(CONFIG)),
+  dynamicActions: accionesDeClubes(CONFIG),
 
-  actions: ligarALugares(soloSiSePractica(CONFIG, sinEntrenarPorLibreEnSesion(CONFIG, [
+  actions: ligarALugares(sinEntrenarPorLibreEnSesion(CONFIG, [
     sesionDeClub(CONFIG, {
       description: 'Sesión completa con el entrenador y el grupo del club: técnica, ritmo, salida y táctica. Rinde más que entrenar por tu cuenta, y más aún en los clubes de fuera del colegio.',
       tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, TAGS.club, 'atletismo'],
@@ -746,7 +743,7 @@ export const atletismo = defineModule<AtletismoState>({
       ],
       run: (ctx) => disputar(ctx, 'regular'),
     },
-  ])), {
+  ]), {
     // El club del colegio entrena en la pista del colegio; los de fuera, en el estadio. La pista del colegio, el parque y el estadio valen para entrenar solo.
     'atletismo.club_sesion': sedeDelClub,
     'atletismo.dejar_club': (ctx) => tramitesDe(clubDelJugador(ctx)),

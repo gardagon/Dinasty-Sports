@@ -229,9 +229,6 @@ export const BOTS: Bot[] = [
     name: 'Abandona el deporte',
     description: 'Atleta las 8 primeras semanas; después solo estudia. Sirve para medir la caída.',
     choose(game, opts, rng, mem) {
-      // A las 8 semanas deja el deporte de verdad (sale del club y se oculta su pestaña); el resto de la partida solo estudia.
-      const dejar = game.time.week >= 8 ? opts.find((o) => o.id === 'deportes.dejar') : undefined;
-      if (dejar) return dejar.id;
       const fase = game.time.week < 8 ? BOTS.find((b) => b.id === 'atleta')! : BOTS.find((b) => b.id === 'empollon')!;
       return fase.choose(game, opts, rng, mem);
     },
@@ -241,8 +238,7 @@ export const BOTS: Bot[] = [
     name: 'Aleatorio',
     description: 'Elige al azar entre lo disponible. Busca combinaciones raras que rompan cosas.',
     choose(_game, opts, rng) {
-      // Cambiar de deporte no es parte de lo que se busca romper aquí: empezar y dejar el deporte lo hace el bot que abandona.
-      return rng.pick(opts.filter((o) => o.module !== 'deportes')).id;
+      return rng.pick(opts).id;
     },
   },
 ];

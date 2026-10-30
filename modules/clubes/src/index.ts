@@ -109,7 +109,10 @@ export const clubes = defineModule<ClubesState>({
       const m = ctx.state<ClubesState>().membresias;
       return {
         list: (sport) => CLUBES_ESPANA.filter((c) => c.deportes.includes(sport)),
-        membership: (sport) => (m[sport] ? club(m[sport].clubId) : undefined),
+        membership: (sport) => {
+          const c = m[sport] ? club(m[sport].clubId) : undefined;
+          return c && { ...c, desde: m[sport].desde };
+        },
       };
     },
   },

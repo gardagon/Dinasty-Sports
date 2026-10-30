@@ -7,8 +7,8 @@ Plan por fases (29–30/10/2026), **revisado con las aclaraciones del usuario de
 ## 1. La idea
 
 - Se pueden tener **instalados los deportes que se quiera** (4 o los que hagan falta) y **conviven** en la partida: su mundo existe y avanza (sus rivales crecen, sus clubes entrenan, sus categorías cambian con los cursos) aunque el personaje no los practique.
-- El personaje **compite en un solo deporte**, el de la pestaña «Deporte», y **puede cambiarlo cuando quiera**.
-- **Jugar a otros deportes de forma informal** (quedar con compañeros para jugar un partido) queda para más adelante, pero la estructura lo deja preparado: un deporte instalado y no practicado podrá ofrecer actividades sueltas.
+- El personaje **puede hacer cualquier deporte de la partida sin limitación** (entrenar por libre, y en los que tengan club, apuntarse). Su **deporte principal** es **el del club al que se apunta** (si hay varios, el último en que entró); es el que enseña la pestaña «Deporte». **No se «empieza» un deporte con una acción:** para practicarlo en serio hay que ir a apuntarse a un club, y dejarlo es dejar el club.
+- **Jugar a otros deportes de forma informal** (quedar con compañeros para jugar un partido) queda para más adelante, pero la estructura lo deja preparado: un deporte de la partida en el que no se tiene club podrá ofrecer actividades sueltas.
 - **Instalar un deporte es instalar su código** (su «motor de juego») y sus datos con el instalador: quien no juega al fútbol no descarga el fútbol.
 - Son **dos juegos de rol que se encajan**: el del colegio y la vida (lo trae el **paquete de país**) y el del deporte (lo trae el **paquete del deporte**). Ver §4.
 
@@ -16,16 +16,17 @@ Plan por fases (29–30/10/2026), **revisado con las aclaraciones del usuario de
 |---|---|---|
 | **Catálogo** | Los deportes que se pueden instalar (de cada fuente: GitHub Pages, y más adelante una tienda o mods) | El desarrollo (o quien haga el mod), al publicar |
 | **Instalado** | Descargado en el dispositivo con el instalador: código y datos por país | El jugador (Opciones → Deportes) |
-| **En la partida** | Su mundo existe en esa partida: habilidades del personaje, gente, clubes, historial | Al crear la partida (todos los instalados) o al añadirlo a una empezada |
-| **Practicado** | El que compite (solo uno, o ninguno) | El jugador, dentro del juego, cuando quiera |
+| **En la partida** | Su mundo existe en esa partida: habilidades del personaje, gente, clubes, historial. Al menos uno | El jugador al crear la partida (lista de los deportes cargados, que se marcan o desmarcan; hoy el atletismo no se puede desmarcar por ser el único) o, más adelante, al añadirlo o quitarlo de una empezada (fase 5) |
+| **Principal** | El del club al que se apunta el personaje (ninguno hasta que se apunta) | El jugador, apuntándose a un club o dejándolo |
 
-## 2. Reglas de practicar y cambiar (aprobadas el 30/10)
+## 2. Reglas del deporte principal (corregidas el 30/10)
 
-- **Dejar el deporte:** se sale de su club (`club.salir`), sus acciones y su pestaña desaparecen y sus habilidades caen con la caída normal (gracia de 4 días y suelo del 70 % de lo máximo alcanzado). El conocimiento casi no se olvida (30 días de gracia, suelo del 95 %).
-- **Empezar otro o volver:** a mitad de curso si se quiere, sin club al principio (se entrena por libre y se apunta después). Si ya se practicó, se recupera su historial.
-- **No se pierde nada:** relaciones con entrenadores y compañeros, resultados de cursos anteriores, historial por deporte («Atletismo: cursos 1 a 3; fútbol: desde el curso 4»).
-- **Sin coste por cambiar**, salvo el plantón de un club si no se deja antes (como hoy). **Sin ningún deporte** también vale.
-- **Uno a la vez** (`MAX_DEPORTES_PRACTICADOS = 1`): empezar uno nuevo exige dejar el actual (la acción lo ofrece: «Dejar el atletismo y empezar fútbol»).
+- **Se empieza sin deporte principal.** Al crear la partida se eligen los deportes que existen en ella (al menos uno), pero no se empieza practicando ninguno ni el juego ofrece «Empezar un deporte».
+- **Se hace cualquiera, sin limitación:** las acciones de todos los deportes de la partida están disponibles (entrenar por libre, verlo en la tele, el verano...). Con la regla del club de siempre (las sesiones con entrenador y las competiciones piden estar en un club).
+- **Principal = el club.** Apuntarse a un club de un deporte lo convierte en el principal (si ya tenías otro, manda el último en que entraste); la pestaña «Deporte» enseña sus habilidades y su temporada por defecto, con un selector entre los deportes en los que tengas club. **Sin club no hay principal** y la pestaña está desactivada.
+- **Dejar el deporte principal es dejar el club** (`club.salir`, con el plantón de siempre si se cambia de club sin salir antes). Las habilidades caen con la caída normal (gracia de 4 días y suelo del 70 % de lo máximo alcanzado) y el conocimiento casi no se olvida (30 días de gracia, suelo del 95 %).
+- **No se pierde nada:** relaciones con entrenadores y compañeros, resultados de cursos anteriores, historial por deporte.
+- **Sin coste por cambiar**, salvo el plantón de un club si no se deja antes.
 
 ## 3. Paquetes de deporte e instalador
 
@@ -141,7 +142,7 @@ Estamos en alfa: las partidas empezadas se descartan cuando cambie la forma del 
 |---|---|---|
 | **G** ✅ | Botón «Opciones» con guardar, guardado automático elegible, exportar/importar y copia de recuperación (§6). Solo interfaz. **Hecha el 30/10** | Sin efecto |
 | **K** ✅ | **Kit de deporte** y el atletismo reescrito encima (§7). **Hecho el 30/10:** huella exacta del estado igual antes y después (14 partidas de bots, 120 y 330 días) | Idéntico |
-| **0** ✅ | **Deporte practicado** (uno): módulo `deportes`, servicio `practica`, eventos `deporte.empezar` y `deporte.dejar`, ocultar lo que no se practica, «Empezar / Dejar el atletismo», elegir deporte en la nueva partida. **Hecha el 30/10** (huella exacta de 14 partidas de bots a 120 días: igual salvo el bot que abandona) | Idéntico (salvo el bot que abandona, que pasa a dejarlo de verdad) |
+| **0** ✅ | **Deportes de la partida y deporte principal:** lista de los deportes cargados en la nueva partida (se marcan o desmarcan, al menos uno), `deportePrincipal` (el del club) y la pestaña «Deporte» que enseña el principal. **Hecha el 30/10** (sin módulo `deportes`, sin eventos ni acciones de empezar: ver `DECISIONES.md`) | Idéntico (huella exacta de 14 partidas de bots) |
 | **1** | **Aportes** en el motor (`GameModule.aportes`, `ctx.aportes`) y ficha de cada deporte (catálogo) | Idéntico |
 | **2** | **Datos de cada deporte, por país dentro del deporte** (§4): `DatosDeDeporte` (categorías, temporada relativa al calendario escolar, competiciones y federación); las categorías salen de `PaisDef`; España del deporte de respaldo; validación de los datos | Idéntico en España |
 | **3** | **Lo que el deporte pone en el mundo:** clubes con secciones por deporte, lugares y agendas aportados por el deporte | Idéntico |
@@ -163,7 +164,7 @@ Después, **el fútbol**: debería tocar solo su módulo y sus datos.
 
 ## 9. Decisiones del usuario (30/10/2026)
 
-- **Instalados, los que se quiera; practicado, uno.** Los deportes instalados conviven; se compite solo en uno (el de «Deporte») y se puede cambiar cuando se quiera. Jugar a otros con compañeros, más adelante.
+- **Instalados, los que se quiera; principal, el del club.** Los deportes de la partida conviven y se puede hacer cualquiera; el principal es el del club al que se apunta (corrección del 30/10: no se «empieza» un deporte con una acción). Jugar a otros con compañeros, más adelante.
 - **El código del deporte se instala con el deporte** (instalador), para no cargar todos los deportes en todos los jugadores.
 - **Kit de deporte:** aprobado.
 - **Alfa:** se pueden descartar las partidas empezadas.

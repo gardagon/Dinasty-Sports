@@ -24,11 +24,6 @@ export interface ActionDef {
   delta?: Record<StatId, number>;
   /** Requisitos mínimos/máximos de stats. */
   requires?: { stat: StatId; min?: number; max?: number; label?: string }[];
-  /**
-   * Si devuelve `true`, la acción no se lista (ni la ven la interfaz ni los bots) aunque exista: es para lo que no tiene sentido
-   * enseñar ahora (p. ej. las acciones de un deporte que no se practica). Además hay que impedirla en `available`.
-   */
-  oculta?: (ctx: ReadContext) => boolean;
   /** Condición libre. Devuelve `true` o el motivo por el que no está disponible. */
   available?: (ctx: ReadContext) => true | string;
   /** Entrenamiento. `amount` = puntos que ganaría un personaje a nivel 0 con eficiencia 1. */

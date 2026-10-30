@@ -87,8 +87,6 @@ export interface CreateOptions {
   playerName?: string;
   /** Id del paquete de país (por defecto, España). */
   pais?: string;
-  /** Deporte con el que empieza el personaje (`null` = ninguno). Sin elegir, el módulo que lo guarda decide. */
-  deporte?: string | null;
 }
 
 const MAX_EVENTS_PER_ACTION = 5000;
@@ -150,7 +148,7 @@ export class Game {
       log: [],
       actionCount: 0,
     };
-    Game.fillMissing(registry, state, opts.deporte);
+    Game.fillMissing(registry, state);
     return new Game(registry, state);
   }
 
@@ -251,7 +249,7 @@ export class Game {
   }
 
   /** Inicializa lo que falte: permite añadir módulos a partidas ya empezadas. */
-  private static fillMissing(registry: Registry, state: GameState, deporte?: string | null): void {
+  private static fillMissing(registry: Registry, state: GameState): void {
     const previas = Object.keys(state.stats).length;
     const init = seededRng((state.seed ^ 0x5bd1e995) + previas);
     const nuevas = new Set(registry.statList.filter((s) => !(s.def.id in state.stats)).map((s) => s.def.id));
@@ -301,7 +299,6 @@ export class Game {
       seed: state.seed,
       pais: paisPorId(state.pais),
       playerName: state.playerName,
-      deporte,
       topesDePadres: { padre: Game.lineage(state).padre.topes, madre: Game.lineage(state).madre.topes },
       rasgosDePadres: Game.lineage(state).rasgos!,
       perksDePadres: Game.lineage(state).perks ?? { padre: { activos: [], pool: [] }, madre: { activos: [], pool: [] } },
@@ -446,9 +443,7 @@ export class Game {
   listActions(opciones?: { omitir?: (def: ActionDef) => boolean }): ActionOption[] {
     const todas = this.allActions();
     // `omitir` descarta acciones antes de evaluarlas (evaluar cada una cuesta): los bots no piden las que no van a usar.
-    const ver = opciones?.omitir ? todas.filter((a) => !opciones.omitir!(a.def)) : todas;
-    // Las ocultas (p. ej. las de un deporte que no se practica) no se listan; `preview` y `perform` siguen encontrándolas.
-    return ver.filter((a) => !a.def.oculta?.(this.readCtx(a.module))).map((a) => this.evaluate(a));
+    return (opciones?.omitir ? todas.filter((a) => !opciones.omitir!(a.def)) : todas).map((a) => this.evaluate(a));
   }
 
   /** Solo las disponibles (lo que usan los bots). */

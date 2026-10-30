@@ -5,18 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
-## 30/10/2026 — Fase 0: deporte practicado (uno o ninguno)
+## 30/10/2026 — Fase 0: deportes de la partida y deporte principal (el del club)
 
-Hecha la fase 0 de `PLAN_DEPORTES_MODULARES.md`. Qué se hizo y qué se decidió por el camino:
+Hecha la fase 0 de `PLAN_DEPORTES_MODULARES.md` **con otro diseño que el escrito**, por indicación del usuario (se deshizo una primera versión con módulo `deportes`, acciones «Empezar / Dejar el X», eventos `deporte.empezar`/`deporte.dejar` y acciones ocultas):
 
-- **Módulo `deportes`** (nuevo, sin stats): estado `{ practicado, historial }`, servicio `practica`, acciones dinámicas «Empezar el X», «Dejar el X» y «Dejar el X y empezar Y» (15 min, sin coste, en cualquier sitio) y eventos compartidos `deporte.empezar` / `deporte.dejar`. Dejar emite también `club.salir` (sin plantón: se sale antes de cambiar). El historial guarda cada tramo con su curso de inicio y fin; volver añade un tramo nuevo y no borra nada.
-- **Ocultar lo que no se practica:** `ActionDef.oculta` (nuevo, en contracts): la acción no se lista (ni la ven la interfaz ni los bots) pero `preview`/`perform` la siguen encontrando y la rechazan con «No practicas atletismo». El kit lo monta con `soloSiSePractica` (acciones fijas) y `soloSiSePracticaDinamicas` (clubes). La vista de la pestaña del deporte se marca `inactivo` y dice cómo activarla.
-- **Compatibilidad:** sin el módulo `deportes` todos los deportes cargados se practican (`sePractica` devuelve `true`), así que los módulos siguen valiendo en solitario y las partidas guardadas antes de este módulo lo reciben con el atletismo practicado (no hizo falta subir `SAVE_VERSION`).
-- **Partida nueva:** `CreateOptions.deporte` → `InitContext.deporte` (genérico; `null` = ninguno, sin elegir = el primero del catálogo). La pantalla de nueva partida tiene «Deporte con el que empiezas» (con «Ninguno por ahora»).
-- **Catálogo provisional:** `CATALOGO_DE_DEPORTES` en contracts (solo el atletismo). Lo sustituye la ficha de cada deporte de la fase 1.
-- **Simulación:** huella exacta (SHA del resultado completo de cada partida) de 7 bots × 2 semillas a 120 días, antes y después: idéntica salvo el bot «Abandona el deporte», que ahora deja el deporte de verdad a las 8 semanas (`deportes.dejar`). El bot aleatorio no elige acciones del módulo `deportes` (para no cambiar su serie ni romper lo que no busca).
-- Tests en `tests/deporte-practicado.test.ts` y `modules/deportes`.
-- **Pendiente de las siguientes fases:** que el deporte quitado siga cayendo y envejeciendo sin su módulo (fase 5), la gente de cada deporte (fase 4) y el selector de varios deportes.
+- **No se ofrece «empezar un deporte»:** para practicarlo hay que apuntarse a un club. Dejarlo es dejar el club.
+- **Se puede hacer cualquier deporte sin limitación** (no se oculta nada de los deportes de la partida).
+- **Deporte principal = el del club** (`deportePrincipal`, contracts): el último en que se entró (`ClubView.desde`, nuevo, en lo que devuelve `membership`); sin club, ninguno. La pestaña «Deporte» enseña por defecto el principal (★ en el selector).
+- **Nueva partida:** no hay deporte con el que empezar, pero se listan los deportes cargados con casillas para incluirlos o quitarlos de la partida; siempre queda al menos uno (hoy el atletismo no se puede desmarcar por ser el único; a futuro se podrá). `nuevaPartida({ deportes })` filtra los módulos de deporte del catálogo y `cargarPartida` solo carga los que la partida ya tiene guardados.
+- **Catálogo provisional:** `CATALOGO_DE_DEPORTES` en contracts (solo el atletismo), a sustituir por la ficha de la fase 1.
+- **Simulación:** huella exacta de 7 bots × 2 semillas a 120 días, idéntica a la de antes en todos (también el que abandona: no cambia nada del motor para ellos). Se añade `npm run huella` para repetir la prueba en las próximas reorganizaciones.
+- Tests en `tests/deportes-de-la-partida.test.ts`.
+- **Pendiente:** añadir o quitar un deporte de una partida empezada (fase 5) y desmarcar el atletismo cuando haya otro deporte (fase 3 o posterior; hoy los demás módulos aún dan por hecho el atletismo).
 
 ---
 

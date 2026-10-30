@@ -17,7 +17,6 @@
     "@ds/mod-clubes": "*",
     "@ds/mod-familia": "*",
     "@ds/mod-relaciones": "*",
-    "@ds/mod-lugares": "*",
-    "@ds/mod-deportes": "*"
+    "@ds/mod-lugares": "*"
   }
 }

@@ -5,7 +5,6 @@ import {
   TAGS,
   conocimientoDeCrianza,
   inHours,
-  sePractica,
   type ActionDef,
   type ActionDoneData,
   type EventHandler,
@@ -24,25 +23,6 @@ export const EFICIENCIA_CAMPAMENTO = 1.2;
 export const SESIONES_SIN_SOBRECARGA = 2;
 /** Efecto del conocimiento sobre la eficiencia de entrenar y competir: de ×0,90 (0) a ×1,15 (100). */
 export const EFECTO_CONOCIMIENTO = { min: 0.9, rango: 0.25 };
-
-/**
- * Solo se ofrece lo del deporte que se practica: las acciones de un deporte que el personaje no practica se ocultan y no se pueden hacer
- * (el motivo es el que se vería al forzarlas). Envuelve las acciones fijas del deporte y, con `soloSiSePracticaDinamicas`, las dinámicas.
- */
-export const soloSiSePractica = (cfg: ConfigDeporte, acciones: readonly ActionDef[]): ActionDef[] => acciones.map((a) => ocultarSiNoSePractica(cfg, a));
-
-export const soloSiSePracticaDinamicas =
-  (cfg: ConfigDeporte, acciones: (ctx: ReadContext) => ActionDef[]) =>
-  (ctx: ReadContext): ActionDef[] =>
-    sePractica(ctx, cfg.id) ? acciones(ctx) : [];
-
-function ocultarSiNoSePractica(cfg: ConfigDeporte, a: ActionDef): ActionDef {
-  return {
-    ...a,
-    oculta: (ctx) => !sePractica(ctx, cfg.id) || (a.oculta?.(ctx) ?? false),
-    available: (ctx) => (sePractica(ctx, cfg.id) ? (a.available?.(ctx) ?? true) : `No practicas ${cfg.nombre}`),
-  };
-}
 
 const estado = (ctx: ReadContext) => ctx.state<EstadoBaseDeDeporte>();
 const caminoDeVerano = (ctx: ReadContext) => ctx.service<StudiesService>(SERVICES.estudios)?.summerPath() ?? null;

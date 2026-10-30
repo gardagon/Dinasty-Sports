@@ -8,7 +8,7 @@ Qué enseña la pestaña «Deporte» de cada deporte y las reglas de las clasifi
 - **Un deporte nuevo** solo tiene que publicar ese servicio. Para tener clasificaciones completas, guardar en su estado la clasificación de cada prueba (como hace atletismo en `resultados`).
 - Se guarda la **clasificación completa** (todos los corredores con su marca y club) de cada prueba del **curso en curso y el anterior**; de los cursos más viejos solo queda el resumen (puesto, total y marca). Máximo 200 pruebas guardadas. Medido: ~25 carreras con su clasificación suman menos de 80 KB de partida.
 
-- **La pestaña está desactivada hasta que practicas el deporte** (hasta apuntarte a un club): se ve «Deporte» en gris, con el motivo al pasar el ratón. En cuanto te apuntas se completa con todo lo de abajo; si dejas el club, vuelve a desactivarse. El módulo marca `DeporteView.inactivo` (texto de qué hacer).
+- **La pestaña está desactivada hasta que practicas el deporte** (hasta apuntarte a un club): se ve «Deporte» en gris, con el motivo al pasar el ratón. En cuanto te apuntas se completa con todo lo de abajo; si dejas el club, vuelve a desactivarse. El módulo marca `DeporteView.inactivo` (texto de qué hacer). Con clubes en varios deportes, la pestaña enseña por defecto el **principal** (el del club en el que entraste último, marcado con ★) y un selector deja ver los demás (`deportePrincipal`, contracts).
 
 ## 2. Clubes: cómo entrar, cambiar y salir
 
