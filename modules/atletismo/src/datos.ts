@@ -1,4 +1,4 @@
-import type { AporteDeLugares, CategoriaDef, ClubDeDeporte, DatosDeDeporte, FichaDeDeporte } from '@ds/contracts';
+import { GEN, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type DatosDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte } from '@ds/contracts';
 
 /**
  * Lo que el atletismo trae de cada país (datos puros, ver `DatosDeDeporte`): sus categorías, su temporada y sus competiciones. Hoy solo España;
@@ -48,6 +48,41 @@ const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
   },
 ];
 
+/**
+ * La gente del atletismo. Todos los niños se crean iguales y el atletismo recluta a los que mejor encajan (primero entre los interesados) en sus
+ * equipos y clubes, de unas 8 a 14 plantillas de niños cada uno (de 8 a 19 años: en torno a 9 por edad, los 18 corredores de una carrera con semifinales
+ * y final; los ausentes y las lesiones se cubren con reservas). El equipo del colegio solo recluta a sus alumnos y el de cada colegio de fuera, a los suyos;
+ * los clubes, a cualquiera (los de más calidad escogen primero). Un compañero del personaje puede ir a un club de fuera, pero nunca un niño de otro colegio
+ * al equipo del colegio del personaje.
+ */
+const POBLACION_ESPANA: PoblacionDeDeporte = {
+  etiqueta: 'atleta',
+  descripcionDeRival: 'Compite en atletismo.',
+  capacidades: [GEN.velocidad, GEN.fuerza, GEN.resistencia, GEN.constitucion, GEN.agilidad, GEN.coordinacion],
+  aptitud: 0.15,
+  reclutamiento: { edades: { min: 8, max: 19 }, edadMaxBaja: 13, probabilidadBaja: 0.1 },
+  equipos: [
+    { club: 'club_alto_rendimiento', calidad: 3, edades: { min: 14 }, plantilla: { min: 8, max: 10 } },
+    { club: 'club_ciudad', calidad: 2, edades: { min: 10 }, plantilla: { min: 10, max: 12 } },
+    // Otros clubes de la ciudad que no están en el catálogo del personaje (nombres provisionales).
+    ...[1, 2, 3, 4, 5, 6].map((n) => ({ club: `club${n}`, nombre: `club${n}`, calidad: 2 as const, plantilla: { min: 8, max: 10 } })),
+    { club: 'colegio', colegio: 'propio', plantilla: { min: 10, max: 14 } },
+    ...[1, 2, 3, 4].map((n) => ({ club: `colegio${n}`, nombre: `colegio${n}`, colegio: `colegio${n}`, plantilla: { min: 8, max: 10 } })),
+  ],
+  descripcionDelEquipo: 'Del equipo de atletismo del colegio.',
+  entrenadores: {
+    sesgoCaracter: { disciplina: 15, ambicion: 10, sacrificio: 8 },
+    interesesPreferidos: ['deporte', 'atletismo'],
+    descripcionDelColegio: 'Entrena al grupo de atletismo del colegio.',
+    dedicacion: 'de atletismo',
+    // Cada club de fuera tiene varios entrenadores, cada uno con las categorías de unas edades (alguno lleva varias).
+    deFuera: [
+      { club: 'club_ciudad', edades: [[10, 13], [14, 17], [18, 99]] },
+      { club: 'club_alto_rendimiento', edades: [[14, 17], [18, 99]] },
+    ],
+  },
+};
+
 export const FICHA_ATLETISMO: FichaDeDeporte = {
   id: 'atletismo',
   nombre: 'Atletismo',
@@ -72,6 +107,7 @@ export const DATOS_ATLETISMO: DatosDeDeporte = {
       // El club del colegio entrena en la pista del colegio; los de fuera, en el estadio.
       sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
       clubes: CLUBES_ESPANA,
+      poblacion: POBLACION_ESPANA,
     },
   },
 };

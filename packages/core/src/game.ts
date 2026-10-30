@@ -300,6 +300,7 @@ export class Game {
       seed: state.seed,
       pais: paisPorId(state.pais),
       playerName: state.playerName,
+      aportes: <T>(clave: string) => (registry.aportes.get(clave) ?? SIN_APORTES) as readonly T[],
       topesDePadres: { padre: Game.lineage(state).padre.topes, madre: Game.lineage(state).madre.topes },
       rasgosDePadres: Game.lineage(state).rasgos!,
       perksDePadres: Game.lineage(state).perks ?? { padre: { activos: [], pool: [] }, madre: { activos: [], pool: [] } },

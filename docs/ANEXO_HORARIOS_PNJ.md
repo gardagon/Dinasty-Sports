@@ -6,6 +6,8 @@ Estado: **horarios cerrados y población aprobada** (27/10/2026). La población 
 
 **Lo que pone el deporte (fase 3 del plan de deportes, 30/10/2026):** las sesiones y las sedes de los clubes y la jornada de competición (los sábados de 9 a 13 en el estadio, en el atletismo) ya no están escritas en `agendas.ts`: salen de los datos del deporte para el país de la partida (`DatosDeDeportePais.clubes` y `competiciones.jornada`, ver `modules/atletismo/src/datos.ts`) y las agendas las reciben en `DatosDeAgenda`. Las tablas de abajo describen los datos de España del atletismo.
 
+**La gente de cada deporte (fase 4, 30/10/2026):** los rivales, los entrenadores y el equipo del colegio los pide cada deporte como dato (`DatosDeDeportePais.poblacion`). Los deportistas ya no son un número fijo: los niños (los del colegio, los de los cuatro colegios de fuera —17 por curso y colegio de 8 a 17 años y los jóvenes de 18 y 19— y los del barrio, todos creados con herencia y sin deporte, ≈ 1.100 personas) los recluta cada deporte por gustos y aptitud en equipos con plantilla definida (`modules/atletismo/src/datos.ts`, ~115 en el atletismo de España, 5-13 por edad). Las cifras de rivales y equipo de las tablas de abajo son orientativas de la versión anterior; los entrenadores de clubes (5) siguen igual.
+
 ## 1. Cómo funciona
 
 - Cada persona guarda una lista de **tipos** (`alumno`, `profesor`, `entrenador`, `club`, `rival`, `amigo`, `vecino`, `bibliotecario`). Un tipo aporta **tramos** de la semana: de tal hora a tal hora, en tal lugar.
@@ -127,7 +129,7 @@ Viven en casa (los únicos, con los padres, que tienen `casa` en su agenda). Una
 |---|---|---|---|
 | todos | todo el día | casa | 1,5 (entre la base y el rol: manda sobre «fuera» y cede ante lo demás) |
 | lectivo, si tiene de 3 a 17 años (`escolar`) | 7:30–14:00 | colegio como un alumno: llegando en la entrada del colegio y en el recreo en el patio; **en clase (7:50–10:40 y 11:10–14:00), ocupado** (fuera) | 2 |
-| todos los días, si tiene menos de 8 años (sin `deporte`) | 23:00–7:00 | casa, **durmiendo**: se le ve en casa pero no se le puede hablar (`motivoOcupado`) | 2,25 |
+| todos los días, si tiene menos de 8 años (`duerme`) | 23:00–7:00 | casa, **durmiendo**: se le ve en casa pero no se le puede hablar (`motivoOcupado`) | 2,25 |
 | sábado, si practica atletismo (`deporte`) | 8:45–13:15 | estadio; va el 40 %, como los rivales; ocupado de 9:00 a 13:00 | 3 |
 
 Al cumplir los 18 dejan el colegio (la marca `escolar` se quita al empezar el curso); al cumplir los 3 años entran. La marca `deporte` sigue a que tengan nivel de atletismo (desde los 8). Otros deportes y sesiones de club propias, pendientes.
@@ -203,7 +205,7 @@ Son **391 personas persistentes** (más 2 bibliotecarios generados al final) (el
 | **Otros cursos** | ~150 | Alumnos de los demás cursos del colegio (en torno a 15 por curso): llenan el patio y el parque. No solo de la edad del personaje. |
 | **Profesores** | 12 | El tutor, un profesor por asignatura y el de educación física. |
 | **Entrenadores de los clubes de fuera** | 5 | Club Atletismo Ciudad: 3 (10–13, 14–17 y 18 o más); Alto Rendimiento: 2 (14–17 y 18 o más). Ver `ANEXO_DEPORTE.md`. |
-| **Equipo de atletismo del colegio** | ~16 + entrenador | Salen de las clases anteriores: unos 3–4 de tu clase, otros de tu curso y de los demás. Al tener el tipo `club` van a las sesiones del club del colegio. |
+| **Equipo del colegio del primer deporte (atletismo)** | ~16 + entrenador | Salen de las clases anteriores: unos 3–4 de tu clase, otros de tu curso y de los demás. Al tener el tipo `club` van a las sesiones del club del colegio. |
 | **Rivales** | 96 (8 por edad, de 8 a 19) | Se reparten en **12 clubes y colegios de fuera**: los dos del catálogo del personaje (Club Atletismo Ciudad y Club de Alto Rendimiento) y diez con nombres provisionales (`colegio1`…`colegio4`, `club1`…`club6`), unos 8 por club. Sedes en el estadio. Los que son de otro colegio no están en el nuestro. |
 | **Vecinos** | ~80 | De todas las edades. Parque, supermercado, restaurante, gimnasio y biblioteca. |
 | **Bibliotecarios** | 2 | Turno de mañana y turno de tarde en la biblioteca. |

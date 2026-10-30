@@ -19,6 +19,16 @@ const DATOS = (id: string, clubes: readonly ClubDeDeporte[]): DatosDeDeporte => 
       competiciones: { federacion: 'Federación', campeonato: 'campeonato de {pais}', jornada: { dias: [5], desde: 9, hasta: 13, lugar: 'estadio', texto: 'Partidos.' } },
       sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
       clubes,
+      poblacion: {
+        etiqueta: 'jugador',
+        descripcionDeRival: 'Juega.',
+        capacidades: ['gen.velocidad', 'gen.resistencia'],
+        aptitud: 0.15,
+        reclutamiento: { edades: { min: 8, max: 19 }, edadMaxBaja: 13, probabilidadBaja: 0.1 },
+        equipos: [{ club: 'colegio', colegio: 'propio', plantilla: { min: 4, max: 6 } }],
+        descripcionDelEquipo: 'Del equipo.',
+        entrenadores: { sesgoCaracter: {}, interesesPreferidos: [], descripcionDelColegio: 'Entrena.', dedicacion: 'de prueba', deFuera: [] },
+      },
     },
   },
 });

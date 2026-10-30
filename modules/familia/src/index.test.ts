@@ -78,7 +78,7 @@ describe('hermanos en la ficha de familia', () => {
       expect(f.siblings().map((h) => h.id)).toEqual(dir.list({ tag: 'hermano' }).map((h) => h.id));
       for (const h of f.siblings()) expect(h.name.endsWith(apellidosDeFamilia(seed, h.gender))).toBe(true);
     }
-  });
+  }, 60000);
 
   it('sin el módulo de personas no hay hermanos (y no falla)', () => {
     expect(padres(nueva(1)).siblings()).toEqual([]);

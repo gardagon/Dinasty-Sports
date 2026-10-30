@@ -80,8 +80,14 @@ import {
   type ClubJoinData,
   type IdentityService,
   type DatosDeAgenda,
+  COLEGIOS_DE_FUERA,
+  aptitudDe,
   datosDeDeporte,
   fichasDeDeporte,
+  type EquipoDeDeporte,
+  type FichaDeDeporte,
+  type PoblacionDeDeporte,
+  type ReadContext,
   type PresenciaService,
   type SesionDeClub,
   type TipoAsignado,
@@ -90,6 +96,19 @@ import {
   ubicacionEn,
   type TramoDeAgenda,
 } from '@ds/contracts';
+import {
+  aficionadoPorLosPadres,
+  desarrolloRival,
+  geneticaDeHermano,
+  geneticaDeNino,
+  interesPor,
+  nivelEn,
+  plazasPorEdad,
+  potencialEn,
+  ritmoEn,
+  formaEn,
+  type Genetica,
+} from './deportistas';
 
 /**
  * MÓDULO NPCs (id `npcs`).
@@ -101,20 +120,7 @@ import {
  * - Publican el servicio `npcs` para que otros módulos los consulten.
  */
 
-/** Padre o madre de un rival: de su tope sale el del niño y de lo que practicó, la ventaja con la que arranca. */
-export interface PadreRival {
-  nombre: string;
-  /** Topes de sus capacidades físicas (los mismos ids que las del personaje). */
-  topes: Record<string, number>;
-  practica: Practica;
-}
-
-/** Capacidades físicas de las que hereda un rival: su tope de atletismo es la media de lo que toma de cada padre. */
-const FISICAS = [GEN.velocidad, GEN.fuerza, GEN.resistencia, GEN.constitucion, GEN.agilidad, GEN.coordinacion];
 const mediaDe = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
-/** Aptitud propia para el atletismo (±15 %), igual que la de las habilidades del personaje. */
-const APTITUD_ATLETISMO = 0.15;
-
 export interface Npc {
   id: string;
   /** Nombre completo. */
@@ -128,8 +134,13 @@ export interface Npc {
   levels: Record<string, number>;
   /** Origen, apariencia, carácter, intereses y gustos. */
   rasgos?: RasgosDe;
-  /** Padres de los rivales (su herencia). */
-  padres?: { padre: PadreRival; madre: PadreRival };
+  /** Lo que heredó de sus padres (topes, perks, ventaja de crianza y lo que ellos practicaron): lo tienen los niños, y de ahí sale qué deporte les encaja. */
+  genetica?: Genetica;
+  /** Colegio al que va si no es el del personaje: uno de `COLEGIOS_DE_FUERA` o `ninguno` (ya no va al colegio). Ausente: el del personaje (si es alumno) o el que le da `colegioDeFuera`. */
+  colegio?: string;
+  /** Equipo o club de su deporte en el que juega (id del club) y deportes que ha dejado (para que no lo vuelvan a reclutar). */
+  equipo?: string;
+  dejado?: string[];
   /** Nivel máximo al que puede llegar cada disciplina. */
   potential: Record<string, number>;
   /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
@@ -154,32 +165,50 @@ export interface Npc {
   aprendido?: DatoPersonal[];
   /** Tipos de agenda: de ellos sale dónde está a cada hora (ver `contracts/agendas.ts`). */
   tipos?: TipoAsignado[];
+  /** Deporte que practica (deportistas) o al que se dedica (entrenadores): su id. Ausente = ninguno (los niños que no han sido reclutados). */
+  deporte?: string;
+  /** Entrenadores: a qué se dedican («de atletismo») y dónde trabajan, guardados con ellos para no depender del módulo del deporte. */
+  dedicacion?: string;
+  trabajo?: string;
   description?: string;
+}
+
+/** Un equipo o club con su plantilla ya sorteada y su nombre y calidad resueltos con los datos del país. */
+export interface EquipoGuardado extends EquipoDeDeporte {
+  nombre: string;
+  calidad: 1 | 2 | 3;
+  /** Cuántos niños tiene aproximadamente (sorteado entre su plantilla mínima y máxima al crear la partida). */
+  objetivo: number;
+}
+
+/**
+ * Lo que un deporte pidió de la gente, guardado con la partida: con ello `npcs` sigue reclutando y renovando a los niños de ese deporte cada curso aunque el
+ * módulo del deporte ya no esté cargado (plan de deportes §5).
+ */
+export interface PoblacionGuardada extends Omit<PoblacionDeDeporte, 'equipos'> {
+  deporte: string;
+  /** Nombre del deporte en minúscula para los textos («atletismo»). */
+  nombre: string;
+  /** ¿Es el primer deporte de la partida? Sus entrenadores llevan los ids de siempre (`entrenador`, `entrenador_<club>_N`). */
+  primero: boolean;
+  equipos: EquipoGuardado[];
+  /** Cómo se llaman sus clubes (id → nombre del sitio donde trabajan), para decir dónde trabajan los entrenadores. */
+  nombresDeClub: Record<string, string>;
 }
 
 export interface NpcsState {
   npcs: Npc[];
-  /** ¿Ya se ha aplicado a los hermanos la ventaja de crianza (lo que practicaron los padres del personaje)? Se hace el primer día. */
-  crianzaAplicada?: boolean;
+  /** Lo que ha pedido cada deporte de la partida, en orden. Ausente en partidas anteriores. */
+  poblaciones?: PoblacionGuardada[];
+  /** Semilla de la partida: de ella salen los niños de otros colegios que los clubes pueden reclutar. */
+  semilla?: number;
 }
 
 /**
- * Población de rivales de atletismo: 9 por edad entre los 8 y los 19 años (18 por categoría de dos edades),
- * los 18 corredores de una carrera con semifinales y final; los ausentes y las lesiones se cubren con reservas. Cada curso los mayores se van y entran niños nuevos.
+ * La gente de un deporte la pide cada deporte como dato (`PoblacionDeDeporte`, en sus datos por país) y `npcs` la guarda con la partida
+ * (`PoblacionGuardada`). Los niños se crean con su genética y sus gustos y los clubes y equipos de cada deporte reclutan a los que mejor encajan (ver
+ * `reclutarDeportistas`). Un deportista lleva su deporte (`Npc.deporte`) y el equipo en el que juega (`Npc.equipo`).
  */
-/** Clubes y colegios de los rivales: 12, de unos 8 rivales cada uno. Sedes, de momento, todas en el estadio. */
-const CLUBES_RIVALES = [
-  'Club Atletismo Ciudad', 'Club de Alto Rendimiento', // los dos del catálogo de clubes del personaje
-  'colegio1', 'colegio2', 'colegio3', 'colegio4', 'club1', 'club2', 'club3', 'club4', 'club5', 'club6', // nombres provisionales
-];
-const EDAD_RIVAL_MIN = 8;
-const EDAD_RIVAL_MAX = 19;
-const RIVALES_POR_EDAD = 9;
-/** De esta edad en adelante dejan de aparecer (pasan a categorías que el juego no modela aún). */
-const EDAD_RETIRO = EDAD_RIVAL_MAX + 1;
-/** Hasta esta edad algún niño puede dejar el deporte cada curso (y entra otro nuevo). */
-const EDAD_MAX_BAJA = 13;
-const PROBABILIDAD_BAJA = 0.1;
 
 /**
  * El país de la partida mientras se genera la gente (sus orígenes siguen la demografía del país y sus nombres, su cultura). Las funciones de
@@ -224,12 +253,7 @@ const registroDe = (npcs: readonly Npc[]): RegistroDeNombres => {
   return r;
 };
 
-/**
- * Parte de su potencial que un rival ha desarrollado a una edad: la misma curva física por edad que el jugador
- * (`CURVAS_POR_EDAD`) por 0,75, porque un rival típico no entrena a diario como el mejor jugador posible. Los rivales solo
- * juegan hasta los 19 años.
- */
-export const desarrolloRival = (edad: number): number => 0.75 * factorPorEdad('fisico', edad);
+export { desarrolloRival };
 
 /**
  * Edad de competición de un NPC con fecha de nacimiento: año del curso menos año de nacimiento. Es la que decide su
@@ -237,97 +261,6 @@ export const desarrolloRival = (edad: number): number => 0.75 * factorPorEdad('f
  */
 export const edadNpc = (n: Npc, primerDiaDelCurso: number): number | undefined =>
   n.nacimiento === undefined ? undefined : edadDeCompeticion(n.nacimiento, primerDiaDelCurso);
-
-/** Los topes con el efecto de los perks activos (cada uno en su capacidad física, entre 0 y 100). */
-const conPerks = (topes: readonly number[], perks: PerksDe): number[] => {
-  const efecto = efectosDe(perks.activos).tope;
-  return topes.map((t, i) => clamp(t + (efecto[FISICAS[i]] ?? 0), 0, 100));
-};
-/** Perks de un rival: se sortean los de sus dos padres y de ahí los suyos, con un generador que solo depende de él (no de la partida). */
-function perksDeRival(id: string, semilla: number): PerksDe {
-  const rng = rngEstable('perks', id, Math.round(semilla * 1000));
-  return heredarPerks(perksDePadre(rng), perksDePadre(rng), rng);
-}
-
-/**
- * Un rival de una edad dada. "Herencia": unos tienen más potencial y otros salen con ventaja o con otro ritmo de
- * desarrollo, pero a ninguna edad se alcanza el potencial: el techo es potencial × madurez de esa edad.
- */
-function nuevoRival(rng: Rng, num: number, edad: number, day: number, usados: RegistroDeNombres): Npc {
-  const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
-  // Su origen decide su nombre y apellidos (y los de sus padres); nace en un día cualquiera del año que le corresponde a su edad de competición en el curso que empieza en `day`.
-  const rasgos = rasgosDeAqui(rng, { sesgoCaracter: { ambicion: 8, agresividad: 5, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] });
-  const nacimiento = primerDiaDelAnio(anioNatural(day) - edad) + rng.int(0, 364);
-  const { identidad, completo: name, nombrePila, apodo } = nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados);
-  const apellido = name.slice(identidad.pila.length + 1);
-  const progenitor = (g: Gender): PadreRival => {
-    // Los padres del resto del mundo recorren toda la escala de calidad: unos muy buenos, otros flojos.
-    const { topes } = perfilDePadre(FISICAS, rng, rng.next());
-    return { nombre: `${identidadAlAzar(rng, g, rasgos.origen, { edad: 42, pais: PAIS_GENERANDO }).pila} ${apellido}`, topes, practica: practicaSegunTope(mediaDe(Object.values(topes)), rng) };
-  };
-  const padres = { padre: progenitor('m'), madre: progenitor('f') };
-  // Hereda como el personaje: la mitad de las capacidades físicas de cada padre (±20 %); su tope de atletismo es la media
-  // más una aptitud propia. Lo que sus padres practicaron le da ventaja de partida.
-  const reparto = repartirHerencia(FISICAS, rng);
-  const heredadas = FISICAS.map((id) => heredarTope(padres[reparto[id]].topes[id], rng));
-  // Sus perks salen de los de sus padres (que se sortean aparte, con un generador estable, para no cambiar el azar de lo demás) y suben o bajan sus topes.
-  const perks = perksDeRival(`rival_${num}`, mediaDe(heredadas));
-  const potencial = clamp(mediaDe(conPerks(heredadas, perks)) * (1 + APTITUD_ATLETISMO * (rng.next() * 2 - 1)), 20, 95);
-  const ventaja = ventajaDeCrianza(padres.padre.practica, padres.madre.practica);
-  const desfase = clamp(rng.normal() * 0.7, -1.2, 1.2);
-  // Su nivel depende de su edad real (puede ser menor que la de competición si nació tarde dentro de su año).
-  const techo = potencial * desarrolloRival((day - nacimiento) / 365 + desfase);
-  const rival: Npc = {
-    id: `rival_${num}`,
-    name,
-    nombrePila,
-    ...(apodo ? { apodo } : {}),
-    role: 'rival',
-    gender,
-    tags: ['atleta'],
-    levels: { atletismo: Math.min(techo, techo * rng.range(0.8, 1) * ventaja) },
-    padres,
-    rasgos,
-    potential: { atletismo: potencial },
-    perks,
-    ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
-    nacimiento,
-    desfase,
-    known: false,
-    club: rng.pick(CLUBES_RIVALES),
-    description: 'Compite en atletismo.',
-  };
-  // Vive y estudia fuera del mapa: solo coincide con el personaje en las sesiones de su club y en las carreras.
-  rival.tipos = [{ tipo: 'rival', club: rival.club }];
-  return rival;
-}
-
-function rivalesIniciales(rng: Rng, usados: RegistroDeNombres): Npc[] {
-  const lista: Npc[] = [];
-  let num = 1;
-  for (let edad = EDAD_RIVAL_MIN; edad <= EDAD_RIVAL_MAX; edad++) {
-    for (let i = 0; i < RIVALES_POR_EDAD; i++) lista.push(nuevoRival(rng, num++, edad, 0, usados));
-  }
-  return lista;
-}
-
-/** Nuevo curso: los mayores se van, algún niño deja el deporte y entran niños nuevos hasta completar cada edad. */
-function renovarRivales(npcs: Npc[], day: number, rng: Rng): Npc[] {
-  const usados = registroDe(npcs);
-  let num = npcs.reduce((m, n) => Math.max(m, Number(/^rival_(\d+)$/.exec(n.id)?.[1] ?? 0)), 0) + 1;
-  const quedan = npcs.filter((n) => {
-    if (n.role !== 'rival') return true;
-    const edad = edadNpc(n, day) ?? 0;
-    if (edad >= EDAD_RETIRO) return false;
-    return !(edad <= EDAD_MAX_BAJA && rng.chance(PROBABILIDAD_BAJA));
-  });
-  const nuevos: Npc[] = [];
-  for (let edad = EDAD_RIVAL_MIN; edad <= EDAD_RIVAL_MAX; edad++) {
-    const hay = quedan.filter((n) => n.role === 'rival' && edadNpc(n, day) === edad).length;
-    for (let i = hay; i < RIVALES_POR_EDAD; i++) nuevos.push(nuevoRival(rng, num++, edad, day, usados));
-  }
-  return [...quedan, ...nuevos];
-}
 
 /**
  * Población del colegio y del barrio (ver `docs/ANEXO_HORARIOS_PNJ.md`): 24 compañeros de tu clase (con los 2 del reparto),
@@ -337,6 +270,12 @@ function renovarRivales(npcs: Npc[], day: number, rng: Rng): Npc[] {
 const ALUMNOS_POR_AULA = 25;
 const COMPANEROS_DE_CLASE = ALUMNOS_POR_AULA - 1;
 const ALUMNOS_POR_CURSO_DE_FUERA = 17;
+/** Alumnos por curso de cada colegio de fuera, y de jóvenes de cada edad que ya no van al colegio (18 y 19 años). */
+const ALUMNOS_POR_CURSO_DE_CADA_COLEGIO = 17;
+const JOVENES_POR_EDAD = ALUMNOS_POR_CURSO_DE_CADA_COLEGIO * COLEGIOS_DE_FUERA.length;
+/** A esta edad (de competición) los jóvenes de otros colegios dejan de formar parte del barrio. */
+const EDAD_FIN_JOVENES = 20;
+const descripcionDeOtroColegio = (g: Gender): string => (g === 'f' ? 'Alumna de otro colegio.' : 'Alumno de otro colegio.');
 const EDAD_ALUMNO_MIN = 8;
 /** A esta edad (de competición) se termina el colegio: 2.º de bachillerato es a los 17. */
 const EDAD_FIN_COLEGIO = 18;
@@ -356,15 +295,18 @@ const asignaturasDe = (id: string): string[] => {
   return numero ? Object.entries(PROFESOR_DE_ASIGNATURA).filter(([, n]) => n === numero).map(([stat]) => stat) : [];
 };
 const ASIGNATURAS_DE_PROFESORES = ['Lengua', 'Matemáticas', 'Inglés', 'Educación física', 'Ciencias', 'Ciencias sociales', 'Artística y música', 'Tecnología', 'Física y química', 'Filosofía', 'Historia'];
-/** Posiciones (dentro de su grupo) de los alumnos que forman el equipo de atletismo del colegio: 4 + 4 + 8 = 16. */
-const EQUIPO = { tuClase: [2, 7, 12, 18], otraClase: [1, 8, 15, 22], otrosCursos: [3, 22, 41, 60, 79, 98, 117, 136] };
 
-/** Una persona sin más: desconocida, con edad y aspecto, sin nivel deportivo. */
-function persona(rng: Rng, id: string, role: NpcRole, edad: number, dia: number, usados: RegistroDeNombres, tipos: TipoAsignado[], descripcion: (g: Gender) => string, tags: string[] = []): Npc {
+/**
+ * Una persona sin más: desconocida, con edad y aspecto, sin nivel deportivo. Los niños (`conGenetica`) llevan además lo que heredaron de sus padres,
+ * y de ello sale, con sus gustos, a qué deporte les encaja ser reclutados.
+ */
+function persona(rng: Rng, id: string, role: NpcRole, edad: number, dia: number, usados: RegistroDeNombres, tipos: TipoAsignado[], descripcion: (g: Gender) => string, tags: string[] = [], conGenetica = false): Npc {
   const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
-  const rasgos = rasgosDeAqui(rng);
+  const gustos = rasgosDeAqui(rng);
   const nacimiento = primerDiaDelAnio(anioNatural(dia) - edad) + rng.int(0, 364);
-  const nombre = nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados);
+  const nombre = nombreUnico(rng, gender, gustos.origen, edad, nacimiento, usados);
+  const genetica = conGenetica ? geneticaDeNino(rng, id) : undefined;
+  const rasgos = genetica ? aficionadoPorLosPadres(gustos, genetica.padres, rng) : gustos;
   return {
     id,
     name: nombre.completo,
@@ -379,62 +321,75 @@ function persona(rng: Rng, id: string, role: NpcRole, edad: number, dia: number,
     nacimiento,
     known: false,
     tipos,
+    ...(genetica ? { genetica, perks: genetica.perks, desfase: genetica.desfase } : {}),
     description: descripcion(gender),
   };
 }
 
 function poblarElColegio(rng: Rng, usados: RegistroDeNombres, existentes: number): Npc[] {
   const o = (g: Gender, f: string, m: string) => (g === 'f' ? f : m);
-  const alumno = (id: string, edad: number, desc: (g: Gender) => string, tuClase = false): Npc => persona(rng, id, 'companero', edad, 0, usados, [{ tipo: 'alumno', ...(tuClase ? { tuClase: true } : {}) }], desc);
+  const alumno = (id: string, edad: number, desc: (g: Gender) => string, tuClase = false): Npc => persona(rng, id, 'companero', edad, 0, usados, [{ tipo: 'alumno', ...(tuClase ? { tuClase: true } : {}) }], desc, [], true);
   const tuClase = Array.from({ length: COMPANEROS_DE_CLASE - existentes }, (_, i) => alumno(`clase_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Compañera de tu clase.', 'Compañero de tu clase.'), true));
   const otraClase = Array.from({ length: ALUMNOS_POR_AULA }, (_, i) => alumno(`curso_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Alumna de la otra clase de tu curso.', 'Alumno de la otra clase de tu curso.')));
   const otrosCursos: Npc[] = [];
   for (let edad = EDAD_ALUMNO_MIN + 1; edad < EDAD_FIN_COLEGIO; edad++) {
     for (let i = 0; i < ALUMNOS_POR_CURSO_DE_FUERA; i++) otrosCursos.push(alumno(`alumno_${otrosCursos.length + 1}`, edad, (g) => o(g, 'Alumna del colegio.', 'Alumno del colegio.')));
   }
-  // El equipo de atletismo del colegio: alumnos de las distintas clases que van a las sesiones del club.
-  const alEquipo = (grupo: Npc[], posiciones: number[]) => {
-    for (const i of posiciones) {
-      const n = grupo[i % grupo.length];
-      n.tipos = [...(n.tipos ?? []), { tipo: 'club', club: 'colegio' }];
-      n.tags = [...n.tags, 'equipo'];
-      n.description = `${n.description?.replace(/\.$/, '')}. Del equipo de atletismo del colegio.`;
-    }
-  };
-  alEquipo(tuClase, EQUIPO.tuClase);
-  alEquipo(otraClase, EQUIPO.otraClase);
-  alEquipo(otrosCursos, EQUIPO.otrosCursos);
-
   const profesores = ASIGNATURAS_DE_PROFESORES.map((materia, i) =>
     persona(rng, `profesor_${i + 1}`, 'profesor', rng.int(28, 60), 0, usados, [{ tipo: 'profesor' }], (g) => `${o(g, 'Profesora', 'Profesor')} de ${materia.toLowerCase()}.`, ['profesor']),
   );
   const vecinos = Array.from({ length: VECINOS }, (_, i) => {
     const r = rng.next();
     const edad = r < 0.15 ? rng.int(5, 12) : r < 0.25 ? rng.int(13, 17) : rng.int(18, 75);
-    return persona(rng, `vecino_${i + 1}`, 'vecino', edad, 0, usados, [{ tipo: 'vecino' }], (g) => o(g, 'Vecina del barrio.', 'Vecino del barrio.'));
+    const id = `vecino_${i + 1}`;
+    // Los niños del barrio van a un colegio de fuera: también pueden ser reclutados por un club.
+    const nino = edad < EDAD_FIN_COLEGIO;
+    const vecino = persona(rng, id, 'vecino', edad, 0, usados, [{ tipo: 'vecino' }], (g) => o(g, 'Vecina del barrio.', 'Vecino del barrio.'), [], nino);
+    return nino ? { ...vecino, colegio: colegioDeFuera(id) } : vecino;
   });
-  return [...tuClase, ...otraClase, ...otrosCursos, ...profesores, ...vecinos];
+  return [...tuClase, ...otraClase, ...otrosCursos, ...profesores, ...vecinos, ...ninosDeOtrosColegios(rng, usados, 0, 1)];
 }
 
-/** Nuevo curso: quien acaba el colegio se va y entra un niño de 8 años con los mismos tipos (así el equipo del colegio no se vacía). */
+/**
+ * Los niños de otros colegios, a todos: personas del barrio con su genética (`nino_N`), jueguen o no a algún deporte. Al crear la partida, de 8 años a los
+ * que ya terminaron el colegio (18 y 19 años, sin colegio); cada curso, solo los que entran con 8 años. `desde` es el número del primero.
+ */
+function ninosDeOtrosColegios(rng: Rng, usados: RegistroDeNombres, dia: number, desde: number, soloEntrantes = false): Npc[] {
+  const lista: Npc[] = [];
+  const nino = (colegio: string, edad: number): void => {
+    lista.push({ ...persona(rng, `nino_${desde + lista.length}`, 'vecino', edad, dia, usados, [{ tipo: 'vecino' }], descripcionDeOtroColegio, [], true), colegio });
+  };
+  for (const colegio of COLEGIOS_DE_FUERA) {
+    for (let edad = EDAD_ALUMNO_MIN; edad < (soloEntrantes ? EDAD_ALUMNO_MIN + 1 : EDAD_FIN_COLEGIO); edad++) {
+      for (let i = 0; i < ALUMNOS_POR_CURSO_DE_CADA_COLEGIO; i++) nino(colegio, edad);
+    }
+  }
+  if (!soloEntrantes) {
+    for (let edad = EDAD_FIN_COLEGIO; edad < EDAD_FIN_JOVENES; edad++) for (let i = 0; i < JOVENES_POR_EDAD; i++) nino('ninguno', edad);
+  }
+  return lista;
+}
+
+/**
+ * Nuevo curso: quien acaba el colegio se va y entra un niño de 8 años (con su genética y sin deporte: los equipos reclutan después). Los niños de otros
+ * colegios hacen lo mismo: los que acaban el colegio pasan a no tener colegio, los que cumplen 20 años salen del barrio y cada colegio recibe sus nuevos alumnos.
+ */
 function renovarAlumnos(npcs: Npc[], dia: number, rng: Rng): Npc[] {
   const usados = registroDe(npcs);
   let num = npcs.reduce((m, n) => Math.max(m, Number(/^alumno_(\d+)$/.exec(n.id)?.[1] ?? 0)), 0) + 1;
   const sale = (n: Npc) => n.role === 'companero' && n.nacimiento !== undefined && (edadNpc(n, dia) ?? 0) >= EDAD_FIN_COLEGIO;
+  const esDeFuera = (n: Npc) => /^nino_\d+$/.test(n.id);
+  const seVa = (n: Npc) => esDeFuera(n) && (edadNpc(n, dia) ?? 0) >= EDAD_FIN_JOVENES;
   const nuevos = npcs.filter(sale).map((viejo) =>
-    persona(rng, `alumno_${num++}`, 'companero', EDAD_ALUMNO_MIN, dia, usados, viejo.tipos ?? [{ tipo: 'alumno' }], (g) => (g === 'f' ? 'Alumna del colegio.' : 'Alumno del colegio.'), viejo.tags.filter((t) => t === 'equipo')),
+    persona(rng, `alumno_${num++}`, 'companero', EDAD_ALUMNO_MIN, dia, usados, (viejo.tipos ?? [{ tipo: 'alumno' }]).filter((t) => t.tipo === 'alumno'), (g) => (g === 'f' ? 'Alumna del colegio.' : 'Alumno del colegio.'), [], true)
   );
-  return [...npcs.filter((n) => !sale(n)), ...nuevos];
+  const desde = npcs.reduce((m, n) => Math.max(m, Number(/^nino_(\d+)$/.exec(n.id)?.[1] ?? 0)), 0) + 1;
+  const quedan = npcs.filter((n) => !sale(n) && !seVa(n)).map((n) => (esDeFuera(n) && n.colegio !== 'ninguno' && (edadNpc(n, dia) ?? 0) >= EDAD_FIN_COLEGIO ? { ...n, colegio: 'ninguno' } : n));
+  return [...quedan, ...nuevos, ...ninosDeOtrosColegios(rng, usados, dia, desde, true)];
 }
 
 /** Edad a la que empieza el personaje y desde la que se compite (el primer curso del juego). */
 const EDAD_DE_INICIO = 8;
-/** Nivel de atletismo de un hermano que acaba de cumplir los 8 años (o de empezar la partida con ellos). */
-const nivelInicialDeHermano = (potencial: number, edadReal: number, desfase: number, rng: Rng): number => {
-  const techo = potencial * desarrolloRival(edadReal + desfase);
-  return Math.min(techo, techo * rng.range(0.8, 1));
-};
-
 /**
  * El padre y la madre como personas con las que relacionarse (rol `familia`, etiqueta `progenitor`): el mismo nombre y los mismos rasgos
  * que en el módulo `familia`, que los saca de la semilla. Viven en casa y salen a trabajar. No llevan edad aquí (la ficha está en `familia`).
@@ -470,78 +425,71 @@ function progenitores(ctx: InitContext, usados: RegistroDeNombres): Npc[] {
 
 /** Edad de los hermanos a la que empiezan el colegio (a los 18 lo terminan, como el resto del alumnado). */
 const EDAD_COLEGIO_HERMANOS = 3;
-const tiposDeHermano = (edad: number, deporte: boolean): TipoAsignado[] => [
-  { tipo: 'hermano', ...(edad >= EDAD_COLEGIO_HERMANOS && edad < EDAD_FIN_COLEGIO ? { escolar: true } : {}), ...(deporte ? { deporte: true } : {}) },
+/** Los tipos de agenda de un hermano: va al colegio si tiene edad y, si practica un deporte, compite en su jornada (y sigue los tipos de su club). */
+const tiposDeHermano = (edad: number, deporte: string | undefined, otros: readonly TipoAsignado[] = []): TipoAsignado[] => [
+  { tipo: 'hermano', ...(edad < 8 ? { duerme: true } : {}), ...(edad >= EDAD_COLEGIO_HERMANOS && edad < EDAD_FIN_COLEGIO ? { escolar: true } : {}), ...(deporte ? { deporte } : {}) },
+  ...otros.filter((t) => t.tipo !== 'hermano'),
 ];
 
-/** Cada curso, los hermanos que cumplen la edad del colegio entran y los que acaban salen; los que empiezan a competir corren los sábados. */
+/** Cada curso, los hermanos que cumplen la edad del colegio entran y los que acaban salen (los tipos de su deporte y su club se conservan). */
 function actualizarHermanos(npcs: Npc[], dia: number): Npc[] {
   return npcs.map((n) => {
     if (!n.tags.includes('hermano')) return n;
-    const tipos = tiposDeHermano(edadNpc(n, dia) ?? EDAD_DE_INICIO, n.levels.atletismo !== undefined);
+    const tipos = tiposDeHermano(edadNpc(n, dia) ?? EDAD_DE_INICIO, n.deporte, n.tipos ?? []);
     return JSON.stringify(tipos) === JSON.stringify(n.tipos) ? n : { ...n, tipos };
   });
 }
 
 /**
- * Los hermanos del personaje (0 a 3): hijos de los mismos padres, con el mismo proceso de herencia (la mitad de las capacidades
- * físicas de cada padre ±20 %, carácter e intereses heredados). Viven su vida como los rivales: practican atletismo, progresan
- * solos y compiten en su categoría; los que aún no tienen 8 años empiezan a competir al cumplirlos.
+ * Los hermanos del personaje (0 a 3): hijos de los mismos padres, con el mismo proceso de herencia (la mitad de las capacidades físicas de cada padre
+ * ±20 %, carácter e intereses heredados). Son niños como los demás del colegio: si les encaja un deporte, un club los recluta (ver `reclutarDeportistas`)
+ * y compiten en el que les corresponda; los que aún no tienen 8 años pueden ser reclutados al cumplirlos.
  */
 function hermanos(ctx: InitContext, usados: RegistroDeNombres): Npc[] {
   const { rng } = ctx;
   const padres = padresDeSemilla(ctx.seed, ctx.pais);
   const diferencias = diferenciasDeEdad(numeroDeHermanos(rng), rng);
-  const { padre, madre } = ctx.topesDePadres;
   const rasgosPadre = ctx.rasgosDePadres.padre;
   const rasgosMadre = ctx.rasgosDePadres.madre;
   return diferencias.map((dif, i) => {
     const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
-    // Hereda como el personaje: cada capacidad física de UN padre (la mitad de cada uno), con su tope ±20 %.
-    const reparto = repartirHerencia(FISICAS, rng);
-    const topes = { padre, madre };
-    const heredadas = FISICAS.map((id) => heredarTope(topes[reparto[id]][id] ?? 62, rng));
-    // Perks: heredados de los mismos padres que los del personaje (con un generador propio de cada hermano).
-    const perks = heredarPerks(ctx.perksDePadres.padre, ctx.perksDePadres.madre, rngEstable('perks', ctx.seed, `hermano_${i + 1}`));
-    const potencial = clamp(mediaDe(conPerks(heredadas, perks)) * (1 + APTITUD_ATLETISMO * (rng.next() * 2 - 1)), 20, 95);
-    const desfase = clamp(rng.normal() * 0.7, -1.2, 1.2);
+    const id = `hermano_${i + 1}`;
+    // Hereda como el personaje: cada capacidad física de UN padre (la mitad de cada uno), con su tope ±20 %; sus perks, de los mismos padres (con un generador propio de cada hermano).
+    const genetica = geneticaDeHermano(rng, ctx.topesDePadres, ctx.perksDePadres, rngEstable('perks', ctx.seed, id), ctx.seed, id);
     const edad = EDAD_DE_INICIO + dif;
     const nacimiento = primerDiaDelAnio(anioNatural(0) - edad) + rng.int(0, 364);
     const rasgos = rasgosHeredadosNpc(rasgosPadre, rasgosMadre, rng);
     // Su nombre sale del origen de sus padres y lleva el primer apellido de cada uno; puede llamarse como su padre o su madre (15 años de diferencia), no como otro niño.
     let identidad = identidadDeHijo(rng, gender, padres.padre.identidad, padres.madre.identidad, rasgos.origen, { edad, pais: PAIS_GENERANDO });
-    for (let i = 0; i < 60 && !nombrePermitido(usados, nombreCompleto(identidad, gender), nacimiento); i++) identidad = identidadDeHijo(rng, gender, padres.padre.identidad, padres.madre.identidad, rasgos.origen, { edad, pais: PAIS_GENERANDO });
+    for (let k = 0; k < 60 && !nombrePermitido(usados, nombreCompleto(identidad, gender), nacimiento); k++) identidad = identidadDeHijo(rng, gender, padres.padre.identidad, padres.madre.identidad, rasgos.origen, { edad, pais: PAIS_GENERANDO });
     const nombre = nombreCompleto(identidad, gender);
     registrarNombre(usados, nombre, nacimiento);
     const apodo = apodoAlAzar(nombre, identidad.pila);
-    const o = (f: string, m: string) => (gender === 'f' ? f : m);
     const relacion = relacionDeHermano(gender, dif);
-    const edadReal = (0 - nacimiento) / 365;
-    const compite = edad >= EDAD_DE_INICIO;
     return {
-      id: `hermano_${i + 1}`,
+      id,
       name: nombre,
       nombrePila: identidad.pila,
       ...(apodo ? { apodo } : {}),
       role: 'familia' as NpcRole,
       gender,
-      tags: compite ? ['hermano', 'atleta'] : ['hermano'],
-      levels: (compite ? { atletismo: nivelInicialDeHermano(potencial, edadReal, desfase, rng) } : {}) as Record<string, number>,
-      potential: { atletismo: potencial },
-      perks,
-      ritmo: { atletismo: clamp(1 + rng.normal() * 0.22, 0.55, 1.5) },
+      tags: ['hermano'],
+      levels: {},
+      potential: {},
+      perks: genetica.perks,
+      genetica,
       nacimiento,
       // Estatura: parecida a la de sus padres (media de los dos, algo atenuada) más una variación propia.
-      estatura: (ctx.herencia('estatura').padre + ctx.herencia('estatura').madre) * 0.45 + estaturaZ(`hermano_${i + 1}`) * 0.6,
-      desfase,
+      estatura: (ctx.herencia('estatura').padre + ctx.herencia('estatura').madre) * 0.45 + estaturaZ(id) * 0.6,
+      desfase: genetica.desfase,
       rasgos,
-      tipos: tiposDeHermano(edad, compite),
+      tipos: tiposDeHermano(edad, undefined),
       description: `${relacion}. Vive en casa.`,
     };
   });
 }
 
-function generarReparto(ctx: InitContext): Npc[] {
+function generarReparto(ctx: InitContext, pob: PoblacionGuardada | undefined): Npc[] {
   const { rng } = ctx;
   const usados: RegistroDeNombres = new Map();
   /** `extra` puede ser una función del género para concordar la descripción. */
@@ -569,14 +517,7 @@ function generarReparto(ctx: InitContext): Npc[] {
   const o = (g: Gender, f: string, m: string) => (g === 'f' ? f : m);
 
   return [
-    npc('entrenador', 'entrenador', () => ({
-      rasgos: rasgosDeAqui(rng, { sesgoCaracter: { disciplina: 15, ambicion: 10, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] }),
-      tags: ['atletismo', 'mentor'],
-      description: 'Entrena al grupo de atletismo del colegio.',
-      club: 'colegio',
-      edades: [0, 99],
-      tipos: [{ tipo: 'entrenador', club: 'colegio' }],
-    }), edadAdultaDe('entrenador', 28, 55)),
+    ...(pob ? [nuevoEntrenador(rng, pob, usados, { id: 'entrenador', club: 'colegio', edades: [0, 99], edad: [28, 55], descripcion: pob.entrenadores.descripcionDelColegio })] : []),
     npc('tutor', 'profesor', (g) => ({
       rasgos: rasgosDeAqui(rng, { sesgoCaracter: { disciplina: 15, honestidad: 10 }, interesesPreferidos: ['estudio', 'lectura'] }),
       tags: ['estudio', 'mentor'],
@@ -595,19 +536,207 @@ function generarReparto(ctx: InitContext): Npc[] {
       description: 'Conoce a todo el mundo en el colegio.',
       tipos: [{ tipo: 'alumno', tuClase: true }],
     }), EDAD_ALUMNO_MIN),
-    ...rivalesIniciales(rng, usados),
     ...progenitores(ctx, usados),
     ...hermanos(ctx, usados),
   ];
 }
 
-/** El reparto base, los rivales y la población del colegio y del barrio. */
-function generarTodos(ctx: InitContext): Npc[] {
-  const base = generarReparto(ctx);
+/**
+ * Lo que pide un deporte de la gente, con los datos del país de la partida, para guardarlo: sus equipos con su nombre, su calidad y su plantilla ya sorteada
+ * (entre el mínimo y el máximo, con un generador propio del equipo y la partida). `primero` es si es el primer deporte de la partida (sus entrenadores
+ * llevan los ids de siempre).
+ */
+function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeDeporte, primero: boolean, semilla: number): PoblacionGuardada {
+  const datos = datosDeDeporte(ctx, ficha.id);
+  const nombresDeClub: Record<string, string> = Object.fromEntries(datos.clubes.map((c) => [c.id, c.esColegio ? COLEGIO_DEL_PERSONAJE : c.nombre]));
+  const equipos: EquipoGuardado[] = datos.poblacion.equipos.map((e) => {
+    const catalogo = datos.clubes.find((c) => c.id === e.club);
+    return {
+      ...e,
+      nombre: e.nombre ?? catalogo?.nombre ?? e.club,
+      calidad: e.calidad ?? catalogo?.calidad ?? (e.colegio ? 1 : 2),
+      objetivo: rngEstable('plantilla', semilla, ficha.id, e.club).int(e.plantilla.min, e.plantilla.max),
+    };
+  });
+  return JSON.parse(JSON.stringify({ ...datos.poblacion, equipos, deporte: ficha.id, nombre: ficha.nombre.toLowerCase(), primero, nombresDeClub }));
+}
+
+/** Lo que han pedido los deportes de la partida (en el orden de sus fichas). */
+const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: number): PoblacionGuardada[] => fichasDeDeporte(ctx).map((f, i) => poblacionDe(ctx, f, i === 0, semilla));
+
+// ---------------------------------------------------------------------------------------------------- reclutamiento de deportistas
+
+/** Las edades en las que recluta un equipo: las del deporte, acotadas por las suyas (un equipo de colegio solo llega a la edad en que acaba el colegio). */
+const edadesDe = (pob: PoblacionGuardada, e: EquipoGuardado): number[] => {
+  const min = Math.max(pob.reclutamiento.edades.min, e.edades?.min ?? 0);
+  const max = Math.min(pob.reclutamiento.edades.max, e.edades?.max ?? (e.colegio ? EDAD_FIN_COLEGIO - 1 : Infinity));
+  return Array.from({ length: Math.max(0, max - min + 1) }, (_, i) => min + i);
+};
+
+/** Un niño al que un equipo puede mirar: una persona del mundo con genética que aún no juega a nada (ni lo ha dejado). */
+interface Aspirante {
+  npc: Npc;
+  /** Su colegio: `propio` (el del personaje), uno de `COLEGIOS_DE_FUERA` o `ninguno` (ya no va al colegio). */
+  colegio: string;
+  /** Cuánto le interesa el deporte (0 a 3) y su potencial en él: lo que decide a quién recluta un equipo. */
+  interes: number;
+  potencial: number;
+}
+
+const colegioDeNino = (n: Npc): string => n.colegio ?? (delColegio(n) ? 'propio' : 'ninguno');
+
+/** Los niños de una edad que un deporte puede reclutar: los del colegio del personaje, los de otros colegios, los hermanos y los jóvenes que ya no van al colegio. */
+function aspirantesDeEdad(npcs: readonly Npc[], pob: PoblacionGuardada, edad: number, dia: number): Aspirante[] {
+  const lista: Aspirante[] = [];
+  for (const n of npcs) {
+    if (!n.genetica || n.deporte !== undefined || n.dejado?.includes(pob.deporte) || edadNpc(n, dia) !== edad) continue;
+    lista.push({ npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial: potencialEn(n.id, n.genetica, pob) });
+  }
+  return lista;
+}
+
+/** Un equipo recluta a un niño: pasa a jugar al deporte en ese equipo, con su potencial, su ritmo y su nivel a esa edad, y sigue los tipos de agenda de su club. */
+function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardada, edad: number, dia: number): Npc {
+  const base = a.npc;
+  const g = base.genetica!;
+  const enSuColegio = e.colegio === 'propio';
+  // Un niño de otro colegio pasa a ser un rival (juega en su club o en el equipo de su colegio); un compañero, un hermano o un niño del barrio sigue siendo quien es y además va a las sesiones de su club.
+  const deFuera = base.role === 'vecino';
+  const tipos: TipoAsignado[] = deFuera
+    ? [{ tipo: 'rival', club: e.nombre, deporte: pob.deporte }]
+    : [...(base.tipos ?? []).map((t) => (t.tipo === 'hermano' ? { ...t, deporte: pob.deporte } : t)), { tipo: 'club', club: e.club, deporte: pob.deporte }];
+  return {
+    ...base,
+    ...(deFuera ? { role: 'rival' as NpcRole } : {}),
+    deporte: pob.deporte,
+    equipo: e.club,
+    club: e.nombre,
+    tags: [...base.tags, pob.etiqueta, ...(enSuColegio ? ['equipo'] : [])],
+    levels: { ...base.levels, [pob.deporte]: nivelEn(base.id, g, a.potencial, (dia - base.nacimiento!) / 365, pob.deporte, dia) },
+    potential: { ...base.potential, [pob.deporte]: a.potencial },
+    ritmo: { ...base.ritmo, [pob.deporte]: ritmoEn(base.id, g, pob.deporte) },
+    tipos,
+    description: deFuera ? pob.descripcionDeRival : enSuColegio ? `${base.description?.replace(/\.$/, '')}. ${pob.descripcionDelEquipo}` : base.description,
+  };
+}
+
+/**
+ * Los equipos y clubes de un deporte completan sus plantillas. Cada equipo tiene un número de niños más o menos definido y reparte sus plazas entre las
+ * edades que recluta; en cada edad, los equipos escogen por orden de calidad (los clubes de más nivel, primero) entre los niños que les corresponden: los
+ * equipos de un colegio, solo entre sus alumnos; los clubes, entre los de cualquier colegio (puede pasar que un compañero del personaje vaya a un club de
+ * fuera, pero nunca que un niño de otro colegio juegue en el equipo del colegio del personaje). Entre ellos se recluta primero a los interesados en el
+ * deporte y, de ellos, a los de más potencial: así, entre tantos niños, de forma natural unos destacan sobre otros. Sirve para crear la partida, para
+ * rellenar las plazas que quedan libres cada curso y para añadir un deporte a una partida empezada.
+ */
+export function reclutarDeportistas(npcs: Npc[], pob: PoblacionGuardada, dia: number, soloInteresados = false): Npc[] {
+  const equipos = [...pob.equipos].sort((a, b) => b.calidad - a.calidad);
+  const plazas = new Map(equipos.map((e) => [e.club, plazasPorEdad(e.club, e.objetivo, edadesDe(pob, e))]));
+  const ocupadas = new Map<string, number>();
+  // Cuántos le faltan a cada equipo para completar su plantilla (los niños envejecen y las plazas por edad ya no coinciden con quien hay: lo que cuenta es el total).
+  const faltan = new Map(equipos.map((e) => [e.club, e.objetivo]));
+  for (const n of npcs) {
+    const edad = n.deporte === pob.deporte && n.equipo !== undefined ? edadNpc(n, dia) : undefined;
+    if (edad === undefined) continue;
+    ocupadas.set(`${n.equipo}|${edad}`, (ocupadas.get(`${n.equipo}|${edad}`) ?? 0) + 1);
+    faltan.set(n.equipo!, (faltan.get(n.equipo!) ?? 0) - 1);
+  }
+  const cambios = new Map<string, Npc>();
+  const tomados = new Set<string>();
+  const orden = (x: Aspirante, y: Aspirante): number => y.potencial - x.potencial || (x.npc.id < y.npc.id ? -1 : 1);
+  for (let edad = pob.reclutamiento.edades.min; edad <= pob.reclutamiento.edades.max; edad++) {
+    // En cada edad, un equipo busca cubrir lo que le falta respecto a su reparto ideal por edades, sin pasar de lo que le falta en total.
+    const huecos = equipos
+      .map((e) => ({ e, falta: Math.min((plazas.get(e.club)?.get(edad) ?? 0) - (ocupadas.get(`${e.club}|${edad}`) ?? 0), faltan.get(e.club) ?? 0) }))
+      .filter((h) => h.falta > 0);
+    if (!huecos.length) continue;
+    const pool = aspirantesDeEdad(npcs, pob, edad, dia);
+    for (const { e, falta } of huecos) {
+      const elegibles = pool.filter((a) => !tomados.has(a.npc.id) && (e.colegio === undefined || a.colegio === e.colegio));
+      const elegidos = [...elegibles.filter((a) => a.interes > 0).sort(orden), ...(soloInteresados ? [] : elegibles.filter((a) => a.interes === 0).sort(orden))].slice(0, falta);
+      faltan.set(e.club, (faltan.get(e.club) ?? 0) - elegidos.length);
+      for (const a of elegidos) {
+        tomados.add(a.npc.id);
+        cambios.set(a.npc.id, reclutarA(a, e, pob, edad, dia));
+      }
+    }
+  }
+  return npcs.map((n) => cambios.get(n.id) ?? n);
+}
+
+/**
+ * Los equipos de todos los deportes completan sus plantillas en dos vueltas: primero cada deporte recluta a los interesados en él y, solo después, los
+ * que aún faltan se cubren con quien encaje (aunque no le interese). Así un niño al que le gusta un deporte no lo pierde porque otro deporte, que va antes,
+ * tuviese plazas por cubrir.
+ */
+export function reclutarEnTodos(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number): Npc[] {
+  const interesados = pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia, true), npcs);
+  return pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia), interesados);
+}
+
+/** Un niño deja el deporte (o se retira): ya no está en ningún equipo y, si lo dejó, no se le vuelve a reclutar para él. */
+export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc {
+  const { [pob.deporte]: _n, ...levels } = n.levels;
+  const { [pob.deporte]: _p, ...potential } = n.potential;
+  const ritmo = n.ritmo ? Object.fromEntries(Object.entries(n.ritmo).filter(([k]) => k !== pob.deporte)) : undefined;
+  return {
+    ...n,
+    deporte: undefined,
+    equipo: undefined,
+    club: undefined,
+    tags: n.tags.filter((t) => t !== pob.etiqueta && t !== 'equipo'),
+    levels,
+    potential,
+    ritmo,
+    // Un niño de otro colegio que deja de jugar vuelve a ser un niño del barrio.
+    ...(n.role === 'rival'
+      ? { role: 'vecino' as NpcRole, tipos: [{ tipo: 'vecino' as const }], description: descripcionDeOtroColegio(n.gender) }
+      : { tipos: n.tipos?.filter((t) => !(t.tipo === 'club' && t.deporte === pob.deporte)).map((t) => (t.tipo === 'hermano' ? { ...t, deporte: undefined } : t)) }),
+    ...(dejado ? { dejado: [...(n.dejado ?? []), pob.deporte] } : {}),
+  };
+}
+
+/**
+ * Nuevo curso: los que pasan la edad máxima del deporte se retiran, algún niño pequeño lo deja (con la probabilidad que pide el deporte) y los equipos
+ * rellenan las plazas libres con otros niños que encajan. Los niños de otros colegios que se van desaparecen (los que lo dejaron no se vuelven a reclutar);
+ * los compañeros, los hermanos y los niños del barrio siguen siendo quienes son, solo que sin deporte.
+ */
+function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng): Npc[] {
+  let lista = npcs;
+  for (const pob of pobs) {
+    const { edades, edadMaxBaja, probabilidadBaja } = pob.reclutamiento;
+    lista = lista.flatMap((n) => {
+      if (n.deporte !== pob.deporte || !n.genetica) return [n];
+      const edad = edadNpc(n, dia) ?? 0;
+      const retirado = edad > edades.max;
+      const baja = !retirado && edad <= edadMaxBaja && rng.chance(probabilidadBaja);
+      return retirado || baja ? [sinDeporte(n, pob, baja)] : [n];
+    });
+  }
+  return reclutarEnTodos(lista, pobs, dia);
+}
+
+/**
+ * Lo que trae un deporte que se añade a una partida empezada: su entrenador del colegio y los de sus clubes de fuera y el reclutamiento de sus equipos entre
+ * los niños que ya hay (y los de otros colegios). La partida, al crearse, recluta en todos los deportes a la vez (`reclutarEnTodos`).
+ */
+export function añadirDeporte(npcs: Npc[], pob: PoblacionGuardada, dia: number, rng: Rng): Npc[] {
+  return reclutarDeportistas([...npcs, ...entrenadoresDeUnDeporte(npcs, pob, rng)], pob, dia);
+}
+
+/** Los entrenadores de un deporte: el del colegio (el primer deporte ya trae el suyo) y los de los clubes de fuera. */
+function entrenadoresDeUnDeporte(npcs: readonly Npc[], pob: PoblacionGuardada, rng: Rng): Npc[] {
+  const usados = registroDe(npcs);
+  return [...(pob.primero ? [] : [nuevoEntrenador(rng, pob, usados, { id: `entrenador_${pob.deporte}`, club: 'colegio', edades: [0, 99], edad: [28, 55], descripcion: pob.entrenadores.descripcionDelColegio })]), ...entrenadoresDeClubes(rng, pob, usados)];
+}
+
+/** El reparto base, la población del colegio y del barrio, los entrenadores y, al final, los niños que reclutan los deportes. */
+function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): Npc[] {
+  const base = generarReparto(ctx, pobs[0]);
   const usados = registroDe(base);
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
-  // Los entrenadores de los clubes de fuera van al final para no cambiar el azar de lo demás.
-  return [...base, ...colegio, ...entrenadoresDeClubes(ctx.rng, usados), ...bibliotecarios(ctx.rng, usados)];
+  const sin = [...base, ...colegio, ...bibliotecarios(ctx.rng, usados)];
+  const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng)], sin);
+  return reclutarEnTodos(conEntrenadores, pobs, 0);
 }
 
 /** El personal de la biblioteca: uno en el turno de mañana (y los sábados) y otro en el de tarde. Van al final para no cambiar el azar de lo demás. */
@@ -618,50 +747,55 @@ function bibliotecarios(rng: Rng, usados: RegistroDeNombres): Npc[] {
 }
 
 /**
- * Los entrenadores de los clubes de fuera del colegio: cada club tiene varios, cada uno con las categorías de unas edades (alguno lleva
- * varias). Más adelante cada entrenador tendrá sus propias habilidades (según su carácter, su conocimiento del deporte y sus capacidades),
- * mejores en los clubes que en el colegio. El del colegio es `entrenador` (de todas las edades).
+ * Un entrenador de un deporte (el del club del colegio o uno de los clubes de fuera): su carácter y sus intereses son los que pide el deporte, y lleva
+ * guardado a qué se dedica y dónde trabaja (así no depende del módulo del deporte). Más adelante cada entrenador tendrá sus propias habilidades
+ * (según su carácter, su conocimiento del deporte y sus capacidades), mejores en los clubes que en el colegio.
  */
-const ENTRENADORES_DE_CLUBES: readonly { club: string; edades: readonly (readonly [number, number])[] }[] = [
-  { club: 'club_ciudad', edades: [[10, 13], [14, 17], [18, 99]] },
-  { club: 'club_alto_rendimiento', edades: [[14, 17], [18, 99]] },
-];
-
-function entrenadoresDeClubes(rng: Rng, usados: RegistroDeNombres): Npc[] {
-  return ENTRENADORES_DE_CLUBES.flatMap(({ club, edades }) =>
-    edades.map(([min, max], i): Npc => {
-      const id = `entrenador_${club}_${i + 1}`;
-      const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
-      const rasgos = rasgosDeAqui(rng, { sesgoCaracter: { disciplina: 15, ambicion: 10, sacrificio: 8 }, interesesPreferidos: ['deporte', 'atletismo'] });
-      const edad = edadAdultaDe(id, 30, 55);
-      const nacimiento = nacimientoParaEdad(id, edad);
-      const nombre = nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados);
-      return {
-        id,
-        name: nombre.completo,
-        nombrePila: nombre.nombrePila,
-        ...(nombre.apodo ? { apodo: nombre.apodo } : {}),
-        role: 'entrenador',
-        gender,
-        tags: ['atletismo', 'mentor'],
-        levels: {},
-        potential: {},
-        rasgos,
-        nacimiento,
-        known: false,
-        club,
-        edades: [min, max],
-        tipos: [{ tipo: 'entrenador', club }],
-        description: `Entrena ${max >= 99 ? `a partir de ${min} años` : `de ${min} a ${max} años`} en el ${NOMBRES_DE_CLUB[club]}.`,
-      };
-    }),
-  );
+function nuevoEntrenador(
+  rng: Rng,
+  pob: PoblacionGuardada,
+  usados: RegistroDeNombres,
+  e: { id: string; club: string; edades: readonly [number, number]; edad: readonly [number, number]; descripcion?: string },
+): Npc {
+  const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
+  const rasgos = rasgosDeAqui(rng, { sesgoCaracter: pob.entrenadores.sesgoCaracter, interesesPreferidos: pob.entrenadores.interesesPreferidos });
+  const edad = edadAdultaDe(e.id, e.edad[0], e.edad[1]);
+  const nacimiento = nacimientoParaEdad(e.id, edad);
+  const nombre = nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados);
+  const [min, max] = e.edades;
+  return {
+    id: e.id,
+    name: nombre.completo,
+    nombrePila: nombre.nombrePila,
+    ...(nombre.apodo ? { apodo: nombre.apodo } : {}),
+    role: 'entrenador',
+    gender,
+    tags: [pob.deporte, 'mentor'],
+    levels: {},
+    potential: {},
+    rasgos,
+    nacimiento,
+    known: false,
+    club: e.club,
+    edades: [min, max],
+    deporte: pob.deporte,
+    dedicacion: pob.entrenadores.dedicacion,
+    trabajo: pob.nombresDeClub[e.club],
+    tipos: [{ tipo: 'entrenador', club: e.club, deporte: pob.deporte }],
+    description: e.descripcion ?? `Entrena ${max >= 99 ? `a partir de ${min} años` : `de ${min} a ${max} años`} en el ${pob.nombresDeClub[e.club]}.`,
+  };
 }
+
+/** Los entrenadores de los clubes de fuera del colegio: cada club tiene varios, cada uno con las categorías de unas edades (alguno lleva varias). El del colegio es `entrenador` (de todas las edades). */
+const entrenadoresDeClubes = (rng: Rng, pob: PoblacionGuardada, usados: RegistroDeNombres): Npc[] =>
+  pob.entrenadores.deFuera.flatMap(({ club, edades }) =>
+    edades.map(([min, max], i) => nuevoEntrenador(rng, pob, usados, { id: `entrenador${pob.primero ? '' : `_${pob.deporte}`}_${club}_${i + 1}`, club, edades: [min, max], edad: [30, 55] })),
+  );
 
 /** ¿Es alumno del colegio del personaje? Los compañeros y los hermanos en edad escolar (el profesorado trabaja allí, no va). */
 const delColegio = (n: Npc): boolean => !!n.tipos?.some((t) => t.tipo === 'alumno' || (t.tipo === 'hermano' && t.escolar));
 
-/** Clubes con entrenadores propios: cómo se llaman (para decir dónde trabajan). */
+/** Clubes con entrenadores propios en las partidas anteriores a guardar el lugar de trabajo con cada entrenador: cómo se llaman (para decir dónde trabajan). */
 const NOMBRES_DE_CLUB: Readonly<Record<string, string>> = { colegio: COLEGIO_DEL_PERSONAJE, club_ciudad: 'Club Atletismo Ciudad', club_alto_rendimiento: 'Club de Alto Rendimiento' };
 
 /**
@@ -675,7 +809,7 @@ function ocupacionDe(n: Npc, edad: number | undefined): { profesion?: string; ba
     const materia = numero ? ASIGNATURAS_DE_PROFESORES[numero - 1] : undefined;
     return { profesion: materia ? `${f ? 'Profesora' : 'Profesor'} de ${materia.toLowerCase()}` : f ? 'Profesora y tutora' : 'Profesor y tutor', basica: f ? 'Profesora' : 'Profesor', trabajo: COLEGIO_DEL_PERSONAJE };
   }
-  if (n.role === 'entrenador') return { profesion: `${f ? 'Entrenadora' : 'Entrenador'} de atletismo`, basica: f ? 'Entrenadora' : 'Entrenador', trabajo: NOMBRES_DE_CLUB[n.club ?? 'colegio'] };
+  if (n.role === 'entrenador') return { profesion: `${f ? 'Entrenadora' : 'Entrenador'} ${n.dedicacion ?? 'de atletismo'}`, basica: f ? 'Entrenadora' : 'Entrenador', trabajo: n.trabajo ?? NOMBRES_DE_CLUB[n.club ?? 'colegio'] };
   if (n.tags.includes('bibliotecario')) return { profesion: f ? 'Bibliotecaria' : 'Bibliotecario', basica: f ? 'Bibliotecaria' : 'Bibliotecario', trabajo: 'Biblioteca municipal' };
   if (n.role === 'vecino' && edad !== undefined && edad >= 18) return oficioDeVecino(n.id, n.gender, edad);
   if (n.oficio !== undefined && n.tags.includes('progenitor')) {
@@ -688,6 +822,9 @@ function ocupacionDe(n: Npc, edad: number | undefined): { profesion?: string; ba
 /** A qué colegio va (si va a alguno): el del personaje o, en los rivales y los vecinos en edad escolar, uno de fuera. */
 function colegioDe(n: Npc, edad: number | undefined): string | undefined {
   if (delColegio(n)) return COLEGIO_DEL_PERSONAJE;
+  // Los niños reclutados de otros colegios y los del barrio llevan el suyo; los jóvenes que ya no van al colegio, ninguno.
+  if (n.colegio === 'ninguno') return undefined;
+  if (n.colegio) return n.colegio;
   if ((n.role === 'rival' || n.role === 'vecino') && edad !== undefined && edad >= EDAD_DE_COLEGIO.desde && edad <= EDAD_DE_COLEGIO.hasta) return colegioDeFuera(n.id);
   return undefined;
 }
@@ -791,6 +928,12 @@ function sesionDeClub(clubes: ClubDirectory | undefined, deporte: string | undef
 /** Qué tipo de persona sale antes en una lista de «Gente aquí» a igualdad de nivel. */
 const RELEVANCIA: Record<string, number> = { profesor: 6, entrenador: 6, amigo: 5, club: 4, rival: 3, alumno: 2, vecino: 1 };
 
+/**
+ * Lo que pidió cada deporte de la gente: lo guardado en la partida (así sigue valiendo si el módulo del deporte ya no está) o, en una partida
+ * anterior a guardarlo, lo que piden ahora los deportes cargados.
+ */
+const poblacionesGuardadas = (ctx: ReadContext): PoblacionGuardada[] => ctx.state<NpcsState>().poblaciones ?? poblacionesDe(ctx, ctx.state<NpcsState>().semilla ?? 0);
+
 /** Consultas del servicio `npcs` ya resueltas, por lista de personas (cambia cuando cambia la población) y filtro. */
 const CONSULTAS = new WeakMap<Npc[], Map<string, NpcView[]>>();
 const POR_ID = new WeakMap<Npc[], Map<string, Npc>>();
@@ -815,7 +958,7 @@ function agendaDePersona(n: Npc, datos: DatosDeAgenda, dia: number): TramoDeAgen
   let a = AGENDAS.get(tipos);
   if (!a) {
     // La agenda también depende de lo que da el deporte del país (la jornada de competición y las sesiones y sedes de los clubes): entra en la clave.
-    const clave = JSON.stringify([tipos, datos.jornada(), tipos.map((x) => (x.club ? datos.sesionDeClub(x.club) : null))]);
+    const clave = JSON.stringify([tipos, tipos.map((x) => [typeof x.deporte === 'string' ? x.deporte : undefined, datos.jornada(typeof x.deporte === 'string' ? x.deporte : undefined), x.club ? datos.sesionDeClub(x.club, typeof x.deporte === 'string' ? x.deporte : undefined) : null])]);
     let compartida = AGENDAS_COMPARTIDAS.get(clave);
     if (!compartida) AGENDAS_COMPARTIDAS.set(clave, (compartida = construirAgenda(tipos, datos, dia)));
     AGENDAS.set(tipos, (a = compartida));
@@ -908,7 +1051,11 @@ export const npcs = defineModule<NpcsState>({
   description: 'La población: compañeros, tutores, entrenadores y rivales.',
   dependsOn: ['gen'],
 
-  initState: (ctx) => ({ npcs: conPais(ctx.pais, () => generarTodos(ctx)) }),
+  initState: (ctx) => {
+    // Cada deporte de la partida pide su gente (y se guarda lo que pidió, para que siga viviendo sin su módulo).
+    const poblaciones = poblacionesDe(ctx, ctx.seed);
+    return { npcs: conPais(ctx.pais, () => generarTodos(ctx, poblaciones)), poblaciones, semilla: ctx.seed };
+  },
 
   // Ponerle (o quitarle) un apodo a alguien que conoces: el texto va en el id de la acción (`idDePonerApodo`).
   resolverAccion: (ctx, id) => {
@@ -936,28 +1083,20 @@ export const npcs = defineModule<NpcsState>({
   on: {
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as { day: number };
-      // Los hermanos se crían en la misma casa: lo que practicaron los padres del personaje les da ventaja de partida, como a los rivales.
-      const padres = ctx.service<FamilyService>(SERVICES.familia)?.parents();
-      const ventaja = padres?.length === 2 ? ventajaDeCrianza(padres.find((p) => p.id === 'padre')!.practica, padres.find((p) => p.id === 'madre')!.practica) : 1;
-      const primerDia = !ctx.state<NpcsState>().crianzaAplicada;
       ctx.updateState<NpcsState>((s) => ({
-        crianzaAplicada: true,
+        ...s,
         npcs: s.npcs.map((n) => {
+          // Los que practican un deporte progresan solos hacia el techo de su edad.
+          const entradas = Object.entries(n.levels);
+          if (!entradas.length) return n;
           const levels = { ...n.levels };
           const edad = n.nacimiento === undefined ? undefined : (day - n.nacimiento) / 365;
-          const conVentaja = (nivel: number): number => Math.min(nivel * ventaja, (n.potential.atletismo ?? 80) * desarrolloRival((edad ?? 0) + (n.desfase ?? 0)));
-          // Un hermano pequeño empieza a practicar atletismo al cumplir 8 años.
-          if (edad !== undefined && edad >= EDAD_DE_INICIO && n.tags.includes('hermano') && levels.atletismo === undefined) {
-            levels.atletismo = conVentaja(nivelInicialDeHermano(n.potential.atletismo ?? 60, edad, n.desfase ?? 0, ctx.rng));
-            return { ...n, levels, tags: [...n.tags, 'atleta'] };
-          }
-          // El primer día, los hermanos que ya compiten reciben la ventaja (los que empiecen después, al empezar).
-          if (primerDia && n.tags.includes('hermano') && levels.atletismo !== undefined) levels.atletismo = conVentaja(levels.atletismo);
-          for (const [k, v] of Object.entries(levels)) {
+          for (const [k, v] of entradas) {
             const pot = n.potential[k] ?? 80;
             // El techo de cada edad es el potencial por el desarrollo físico de esa edad: sin edad, el potencial entero.
-            const techo = edad === undefined ? pot : pot * desarrolloRival(edad + (n.desfase ?? 0));
             const ritmo = n.ritmo?.[k] ?? 1;
+            // Rinde cada curso una parte distinta de su techo (su constancia y cómo le va el año), así que el orden entre ellos cambia con los años.
+            const techo = edad === undefined ? pot : pot * desarrolloRival(edad + (n.desfase ?? 0)) * formaEn(n.id, k, day, ritmo);
             // Progresan con rendimientos decrecientes hacia el techo de su edad.
             // Su suerte de cada día es solo suya (id, disciplina y día): no cambia con lo que haga el jugador.
             if (v < techo) levels[k] = Math.min(techo, v + rngEstable('progreso', n.id, k, day).range(0, 0.35) * (1 - v / techo) * 2 * ritmo);
@@ -969,21 +1108,26 @@ export const npcs = defineModule<NpcsState>({
 
     [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
       const { week } = ev.data as { week: number };
-      // Si la semana que viene empieza un curso nuevo, se renueva el pelotón de rivales.
+      // Si la semana que viene empieza un curso nuevo, se renueva la gente: los que acaban el colegio se van, entran niños nuevos y los equipos rellenan sus plazas.
       const proximo = ctx.timeAt((week + 1) * 7 * MINUTES_PER_DAY);
       if (proximo.schoolWeek !== 0) return;
-      ctx.updateState<NpcsState>((s) => ({ npcs: conPais(ctx.pais, () => actualizarHermanos(renovarAlumnos(renovarRivales(s.npcs, proximo.day, ctx.rng), proximo.day, ctx.rng), proximo.day)) }));
+      const pobs = poblacionesGuardadas(ctx);
+      ctx.updateState<NpcsState>((s) => {
+        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(renovarAlumnos(s.npcs, proximo.day, ctx.rng), pobs, proximo.day, ctx.rng), proximo.day));
+        return { ...s, poblaciones: pobs, npcs };
+      });
     },
 
     // Al entrar en un club conoces a su entrenador: se presenta el primer día.
     [SHARED_EVENTS.CLUB_JOIN]: (ctx, ev) => {
-      const { clubId } = ev.data as ClubJoinData;
+      const { clubId, sport } = ev.data as ClubJoinData;
       // El que entrena tu edad en ese club (los clubes tienen varios, cada uno con unas categorías).
       const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
-      const delClub = ctx.state<NpcsState>().npcs.filter((n) => n.known === false && n.tipos?.some((t) => t.tipo === 'entrenador' && t.club === clubId));
+      const pobs = poblacionesGuardadas(ctx);
+      const delClub = ctx.state<NpcsState>().npcs.filter((n) => n.known === false && n.tipos?.some((t) => t.tipo === 'entrenador' && t.club === clubId && (t.deporte ?? pobs[0]?.deporte) === sport));
       const entrenador = delClub.find((n) => !n.edades || (edad >= n.edades[0] && edad <= n.edades[1])) ?? delClub[0];
       if (!entrenador) return;
-      ctx.updateState<NpcsState>((st) => ({ npcs: st.npcs.map((x) => (x.id === entrenador.id ? { ...x, known: true, aprendido: [...(x.aprendido ?? []), 'profesion' as const] } : x)) }));
+      ctx.updateState<NpcsState>((st) => ({ ...st, npcs: st.npcs.map((x) => (x.id === entrenador.id ? { ...x, known: true, aprendido: [...(x.aprendido ?? []), 'profesion' as const] } : x)) }));
       ctx.log(`${entrenador.gender === 'f' ? 'Tu entrenadora' : 'Tu entrenador'} se presenta: ${entrenador.name}.`, 'info');
     },
 
@@ -996,7 +1140,7 @@ export const npcs = defineModule<NpcsState>({
       const nuevo = profesor.known === false;
       // Ir a su clase es saber qué da (aunque ya lo conocieras por el nombre).
       if (!nuevo && profesor.aprendido?.includes('profesion')) return;
-      ctx.updateState<NpcsState>((st) => ({ npcs: st.npcs.map((x) => (x.id === profesor.id ? { ...x, known: true, aprendido: [...new Set([...(x.aprendido ?? []), 'profesion' as const])] } : x)) }));
+      ctx.updateState<NpcsState>((st) => ({ ...st, npcs: st.npcs.map((x) => (x.id === profesor.id ? { ...x, known: true, aprendido: [...new Set([...(x.aprendido ?? []), 'profesion' as const])] } : x)) }));
       if (nuevo) ctx.log(`${profesor.gender === 'f' ? 'La profesora' : 'El profesor'} se presenta al empezar la clase: ${profesor.name}.`, 'info');
     },
 
@@ -1007,7 +1151,7 @@ export const npcs = defineModule<NpcsState>({
       if (!n) return;
       const v = vista(n, (ctx.time.week - ctx.time.schoolWeek) * 7, ctx.time.day);
       if (v.sabe?.includes(dato)) return;
-      ctx.updateState<NpcsState>((st) => ({ npcs: st.npcs.map((x) => (x.id === npcId ? { ...x, aprendido: [...(x.aprendido ?? []), dato] } : x)) }));
+      ctx.updateState<NpcsState>((st) => ({ ...st, npcs: st.npcs.map((x) => (x.id === npcId ? { ...x, aprendido: [...(x.aprendido ?? []), dato] } : x)) }));
       const quien = nombreCortoDe(n);
       const respuesta =
         dato === 'edad' ? `${quien} tiene ${v.edadExacta} años y cumple el ${cumpleaños(n.nacimiento!).texto}.`
@@ -1023,15 +1167,16 @@ export const npcs = defineModule<NpcsState>({
       const { npcId } = ev.data as PresentacionData;
       const n = ctx.state<NpcsState>().npcs.find((x) => x.id === npcId);
       if (!n || n.known !== false) return;
-      ctx.updateState<NpcsState>((s) => ({ npcs: s.npcs.map((x) => (x.id === npcId ? { ...x, known: true } : x)) }));
+      ctx.updateState<NpcsState>((s) => ({ ...s, npcs: s.npcs.map((x) => (x.id === npcId ? { ...x, known: true } : x)) }));
       ctx.log(`Se llama ${n.name}. ${n.description ?? ''}`.trim(), 'info');
     },
 
     [SHARED_EVENTS.COMPETITION_RESULT]: (ctx, ev) => {
       const r = ev.data as CompetitionResultData;
       ctx.updateState<NpcsState>((s) => ({
-        // Competir contra alguien es conocerlo.
-        npcs: s.npcs.map((n) => (n.role === 'rival' && r.participants.some((x) => x.npcId === n.id) ? { ...n, known: true } : n)),
+        ...s,
+        // Competir contra alguien (sea de otro colegio, un compañero o un hermano) es conocerlo.
+        npcs: s.npcs.map((n) => (n.known === false && r.participants.some((x) => x.npcId === n.id) ? { ...n, known: true } : n)),
       }));
     },
   },
@@ -1044,11 +1189,18 @@ export const npcs = defineModule<NpcsState>({
       const hecho = SERVICIOS_DE_PRESENCIA.get(lista);
       if (hecho?.minuto === t.minute) return hecho.servicio;
       const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
-      const deporte = fichasDeDeporte(ctx)[0]?.id; // provisional: la gente es del primer deporte (fase 4)
-      const delDeporte = deporte ? datosDeDeporte(ctx, deporte) : undefined;
+      // Cada persona sigue la jornada y los clubes de su deporte (el primero de la partida si no dice cuál); si el deporte ya no está cargado, no hay nada que seguir.
+      const cargados = fichasDeDeporte(ctx).map((f) => f.id);
+      const datosDe = (deporte: string | undefined) => {
+        const id = deporte ?? cargados[0];
+        return id !== undefined && cargados.includes(id) ? { id, datos: datosDeDeporte(ctx, id) } : undefined;
+      };
       const datos: DatosDeAgenda = {
-        sesionDeClub: (club) => sesionDeClub(clubes, deporte, delDeporte?.sedes.fuera ?? null, club),
-        jornada: () => delDeporte?.competiciones.jornada,
+        sesionDeClub: (club, deporte) => {
+          const d = datosDe(deporte);
+          return sesionDeClub(clubes, d?.id, d?.datos.sedes.fuera ?? null, club);
+        },
+        jornada: (deporte) => datosDe(deporte)?.datos.competiciones.jornada,
       };
       const inicioCurso = (t.week - t.schoolWeek) * 7;
       const agendaDe = (n: Npc): TramoDeAgenda[] => agendaDePersona(n, datos, t.day);

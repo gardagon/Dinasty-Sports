@@ -82,6 +82,8 @@ export interface InitContext {
   /** El país de la partida. */
   readonly pais: PaisDef;
   readonly playerName: string;
+  /** Lo que aportan los módulos cargados a un punto de extensión (como `ReadContext.aportes`): p. ej. lo que pide cada deporte de la gente. */
+  aportes<T>(clave: string): readonly T[];
   /**
    * Genética de un rasgo que no es una stat (p. ej. la altura), como puntuación típica (media 0, desviación 1) de cada
    * progenitor y del hijo. El del hijo es la media de los de sus padres más una variación (ver `mezclarZ`). Estable: la misma familia da lo mismo.

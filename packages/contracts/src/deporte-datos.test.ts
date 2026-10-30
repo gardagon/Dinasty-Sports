@@ -13,6 +13,16 @@ const DATOS: DatosDeDeporte = {
       temporada: { semanasDePretemporada: 4, semifinalAntesDelFinal: 3, finalAntesDelFinal: 2 },
       competiciones: { federacion: 'Federación', campeonato: 'campeonato de {pais}', jornada: { dias: [5], desde: 9, hasta: 13, lugar: 'estadio', texto: 'Partidos: los sábados.' } },
       sedes: { colegio: 'pista_colegio', fuera: 'estadio' },
+      poblacion: {
+        etiqueta: 'jugador',
+        descripcionDeRival: 'Juega.',
+        capacidades: ['gen.velocidad', 'gen.resistencia'],
+        aptitud: 0.15,
+        reclutamiento: { edades: { min: 8, max: 19 }, edadMaxBaja: 13, probabilidadBaja: 0.1 },
+        equipos: [{ club: 'colegio', colegio: 'propio', plantilla: { min: 4, max: 6 } }],
+        descripcionDelEquipo: 'Del equipo.',
+        entrenadores: { sesgoCaracter: {}, interesesPreferidos: [], descripcionDelColegio: 'Entrena.', dedicacion: 'de prueba', deFuera: [] },
+      },
       clubes: [{ id: 'colegio', nombre: 'Club del colegio', esColegio: true, calidad: 1, sesiones: { weekdays: [0, 2], desde: 15, hasta: 17 }, sede: 'pista_colegio', tramites: 'administracion' }],
     },
   },
@@ -70,6 +80,15 @@ describe('validar los datos de un deporte', () => {
     expect(conEspana({ competiciones: { ...DATOS.paises.espana.competiciones, jornada: { dias: [9], desde: 9, hasta: 13, lugar: 'estadio', texto: 'x' } } }).join()).toMatch(/«jornada»/);
     expect(conEspana({ sedes: { colegio: 'pista' } }).join()).toMatch(/«sedes»/);
     expect(conEspana({ clubes: [] }).join()).toMatch(/faltan los «clubes»/);
+    const pob = DATOS.paises.espana.poblacion;
+    expect(conEspana({ poblacion: undefined }).join()).toMatch(/falta la «poblacion»/);
+    expect(conEspana({ poblacion: { ...pob, capacidades: [] } }).join()).toMatch(/sus capacidades/);
+    expect(conEspana({ poblacion: { ...pob, aptitud: 3 } }).join()).toMatch(/entre 0 y 1/);
+    expect(conEspana({ poblacion: { ...pob, reclutamiento: { ...pob.reclutamiento, edades: { min: 9, max: 8 } } } }).join()).toMatch(/«reclutamiento» de la población/);
+    expect(conEspana({ poblacion: { ...pob, equipos: [] } }).join()).toMatch(/necesita sus equipos/);
+    expect(conEspana({ poblacion: { ...pob, equipos: [{ club: 'a', plantilla: { min: 5, max: 3 } }] } }).join()).toMatch(/equipo mal formado/);
+    expect(conEspana({ poblacion: { ...pob, equipos: [pob.equipos[0], pob.equipos[0]] } }).join()).toMatch(/«colegio» está repetido/);
+    expect(conEspana({ poblacion: { ...pob, entrenadores: { ...pob.entrenadores, deFuera: undefined } } }).join()).toMatch(/«entrenadores» de la población/);
     const club = DATOS.paises.espana.clubes[0];
     expect(conEspana({ clubes: [club, club] }).join()).toMatch(/está repetido/);
     expect(conEspana({ clubes: [{ ...club, calidad: 7 }] }).join()).toMatch(/club mal formado/);
