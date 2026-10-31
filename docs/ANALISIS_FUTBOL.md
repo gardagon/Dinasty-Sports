@@ -9,7 +9,8 @@ Segunda versión (31/10/2026), **con las decisiones del usuario del 31/10 en §0
 Respuestas a las preguntas de §8 (las tablas de abajo conservan el análisis original; donde chocan, manda esto):
 
 1. **El conocimiento es un bonus/malus**, como en el atletismo, **para subir las habilidades y para usarlas** (ya está hablado). Es lo que hace el kit: `modificadorDeConocimiento` (entrenar y competir, ×0,90 a ×1,15) y `valorEfectivo` (lo táctico en competición, ×0,85 a ×1,15). No hay techo duro.
-2. **Valor efectivo:** pendiente; con la propuesta del potenciador por categoría (§3 ter, punto 5) se resuelve a la vez.
+2. **Valor efectivo:** decidido con el potenciador (§3 ter, punto 5): en el partido todo se lleva a escala de adulto y cada capacidad de apoyo se compara con lo típico de un adulto, de ×0,6 a ×1,2, pesando más la primera.
+11. **Potenciador por categoría y nivel (§3 ter), aprobado entero:** se multiplica (no se suma); sale de la curva por edad que ya existe como tabla fija (benjamín ×2,8, alevín ×2, infantil ×1,6, cadete ×1,33, juvenil ×1,1, sénior ×1), dato del deporte por país; un segundo factor por nivel de división (élite ×1, a calibrar) llega con los clubes de élite y el sénior; solo existe dentro del partido y lo vigila un banco de partidos.
 3. **`gen.cooperacion` se mantiene.** Saber cooperar no es saber jugar en equipo al fútbol: **Juego colectivo pasa a ser una habilidad que se entrena** (`futbol.juego_colectivo`), apoyada en la cooperación (y en la sociabilidad y la autoridad), en vez de una derivada como dice el diseño.
 4. **Cansancio en el partido:** se llama *cansancio*. Sube durante el partido más o menos deprisa según la energía con la que se empieza, y también según decisiones: jugar más relajado lo frena y exigirse más lo acelera. La tabla de 5 tramos del addon dice cuánto rinde según el cansancio acumulado. El cansancio general (`gen.cansancio`) no se aplica además al rendimiento del partido, para no cobrarlo dos veces.
 5. **Fútbol 11 desde el principio**, también a los 8 años (a esa edad ya hay equipos). El fútbol 7 obligaría a otro motor, como el fútbol sala. Valen las reglas de formación del JSON.
@@ -90,7 +91,7 @@ El problema es la escala del juego. Las capacidades crecen con la edad: un niño
 
 Así se respeta la idea del diseño (lo entrenado manda y las capacidades suben o bajan hasta un 20 %) y un niño de 8 años no juega con cero. Además, la primera capacidad de cada habilidad pesa más que la última (el diseño las da por orden de peso). **Si te parece bien, lo aplico así.**
 
-## 3 ter. Potenciador por categoría y por nivel (propuesta del usuario, 31/10)
+## 3 ter. Potenciador por categoría y por nivel (propuesta del usuario, aprobada el 31/10)
 
 **El problema.** Con las habilidades tal cual, los partidos de niños acabarían 0 a 0: a los 8 años todo está en torno a 12 y un motor pensado para adultos (40 o más) no les deja marcar.
 
@@ -210,9 +211,4 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 
 ## 8. Preguntas para decidir
 
-Respondidas el 31/10 (ver §0). Quedan, sobre el potenciador (§3 ter):
-
-1. ¿**Multiplicar** en vez de sumar?
-2. ¿Sale de la **curva por edad que ya existe** (benjamín ×2,8, alevín ×2, infantil ×1,6, cadete ×1,33, juvenil ×1,1, sénior ×1), como tabla fija y como dato del deporte por país, en vez de la media real de cada liga?
-3. ¿**Un segundo factor por nivel de división** (élite ×1, nacional ×1,15, regional ×1,3, a calibrar), que llegue con los clubes de élite y el sénior?
-4. ¿Vale que esto **resuelva también el valor efectivo** (§3 bis): capacidades llevadas a escala de adulto y comparadas con lo típico de un adulto, de ×0,6 a ×1,2?
+Todas respondidas el 31/10 (ver §0). Lo siguiente es empezar por la fase F0 (§7).

@@ -18,8 +18,8 @@ Respuestas a las preguntas de `ANALISIS_FUTBOL.md` (§0 de ese documento):
 - **No hay requisitos de debut:** lo que el JSON llama así es cuándo el personaje podría entrar en un equipo sénior o en una cantera de élite; se hará con el acceso de los clubes.
 - **El JSON y el documento de diseño** se guardan como referencia en `docs/diseno/`; los datos del módulo van en TypeScript con ids en español (a mi criterio, como pidió el usuario).
 - **Las capacidades mentales siguen decayendo muy poco.**
-- **Pendiente:** confirmar la propuesta del valor efectivo (`ANALISIS_FUTBOL.md` §3 bis).
-- **Potenciador por categoría (idea del usuario, analizada en §3 ter):** en los partidos, un impulso por categoría para que los niños marquen goles y subir de categoría cueste. Propuesta: multiplicar (no sumar), con la curva por edad que ya existe (benjamín ×2,8 … juvenil ×1,1, sénior ×1) por un factor de nivel de división (élite ×1); como tabla fija y dato del deporte por país, vigilada por un banco de partidos. Pendiente de confirmar.
+- **Potenciador por categoría y nivel (idea del usuario, aprobado entero; `ANALISIS_FUTBOL.md` §3 ter):** en los partidos todos los valores se multiplican (no se suman) por un impulso que lleva cada categoría a la escala de adulto, sacado de la curva por edad que ya existe: benjamín ×2,8, alevín ×2, infantil ×1,6, cadete ×1,33, juvenil ×1,1, sénior ×1. Es una tabla fija, dato del deporte por país. Más adelante, un factor por nivel de división (élite ×1, a calibrar) para las divisiones flojas. Se aplica según la categoría y el nivel **del partido**, a todos los que juegan, y solo dentro del partido (no cambia lo que se entrena ni lo que se guarda). Un banco de partidos vigilará goles por partido, pocos 0 a 0, que el mejor no gane siempre y que subir de categoría cueste.
+- **Valor efectivo (resuelto con el potenciador):** en escala de adulto, cada capacidad de apoyo se compara con lo típico de un adulto, de ×0,6 a ×1,2, pesando más la primera.
 
 ## 31/10/2026 — Preparación del addon de fútbol (análisis, sin aprobar)
 
