@@ -1,6 +1,6 @@
 # Análisis: módulo de fútbol y cómo separar los deportes del resto del juego
 
-Primer análisis (29/10/2026), **pendiente de aprobar**. No se ha cambiado código. **Antes del fútbol va la estructura para poner, quitar y cambiar de deporte: [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md)**, que sustituye a §3.1–§3.3 y a las fases 1 y 2 de §4 de este documento. Recoge lo que hay hoy, qué del atletismo vale para cualquier deporte, qué está atado al atletismo fuera de su módulo y una propuesta por fases para el fútbol. Al final, las preguntas que hay que decidir antes de empezar.
+Primer análisis (29/10/2026), **fase 0 hecha el 31/10 (preguntas de §5 decididas)**. No se ha cambiado código. **Antes del fútbol va la estructura para poner, quitar y cambiar de deporte: [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md)**, que sustituye a §3.1–§3.3 y a las fases 1 y 2 de §4 de este documento. Recoge lo que hay hoy, qué del atletismo vale para cualquier deporte, qué está atado al atletismo fuera de su módulo y una propuesta por fases para el fútbol. Al final, las preguntas que hay que decidir antes de empezar.
 
 Contexto previo: `BACKLOG_STATS.md` (E7 competición de equipo, E14 segundo deporte, E15.1 elegir deporte, E19 clubes), `ANEXO_DEPORTE.md` §6 («deportes de equipo: partidos, tablas de liga y plantillas»), `ALMACENAMIENTO.md` §4 (población y guardado con deportes de equipo) y `DECISIONES.md` del 22/10 (fútbol como segundo deporte) y del 17/10 (`cooperacion` provisional hasta el diseño del fútbol).
 
@@ -136,9 +136,11 @@ Coste orientativo: la fase 1 es pequeña; la 2 es la más delicada (refactor sin
 ## 5. Preguntas para decidir
 
 1. ~~¿Uno o varios deportes a la vez?~~ **Decidido el 30/10: hasta 4 a la vez** (ver `PLAN_DEPORTES_MODULARES.md`).
-2. **¿Se aprueba el kit de deporte (`@ds/kit-deporte`)?** Cambia la regla 1 de `CLAUDE.md`: los módulos podrán importar `contracts` y el kit (nunca otro módulo ni el núcleo).
-3. **¿Fútbol 7 hasta alevín y fútbol 11 desde infantil**, como en España?
-4. **Equipos:** hoy el personaje solo puede ser chico. ¿Equipos masculinos, o mixtos en las categorías pequeñas como pasa en muchas escuelas?
-5. **¿Modelo híbrido** (tu equipo y unas pocas figuras rivales como personas; el resto, equipos agregados)?
-6. **Posiciones:** ¿empezar por 4 y que el entrenador te asigne la tuya según tus capacidades (con la opción de pedir otra)?
-7. **¿Fútbol sala?** Lo dejo fuera de esta primera versión (sería otra disciplina del mismo módulo más adelante).
+2. ~~¿Se aprueba el kit de deporte?~~ **Aprobado el 30/10** (los módulos importan `contracts` y el kit).
+3. ~~¿Fútbol 7 hasta alevín y fútbol 11 desde infantil?~~ **Decidido el 31/10: siempre fútbol 11.**
+4. ~~Equipos masculinos o mixtos~~ **Decidido el 31/10: mixtos hasta alevín, masculinos desde infantil.**
+5. ~~¿Modelo híbrido?~~ **Decidido el 31/10: sí.**
+6. ~~Posiciones~~ **Decidido el 31/10: las 16 posiciones y los 42 roles desde la primera versión** (no las 4 propuestas).
+7. ~~¿Fútbol sala?~~ **Decidido el 31/10: fuera de la primera versión.**
+
+Registrado en `DECISIONES.md` (31/10/2026, fase 0).

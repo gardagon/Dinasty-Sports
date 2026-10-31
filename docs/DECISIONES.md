@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 31/10/2026 — Fútbol, fase 0: decisiones de `ANALISIS_FUTBOL.md` §5
+
+Resueltas las preguntas abiertas del análisis del fútbol (sin código; la fase 3 de §4 empieza cuando se confirme).
+
+- **Un deporte o varios (§5.1) y kit de deporte (§5.2):** ya decididos en `PLAN_DEPORTES_MODULARES.md` §9 (hasta 4 a la vez; kit aprobado).
+- **Categorías: siempre fútbol 11.** Se descarta fútbol 7 en las categorías pequeñas (cambia §3.5: sin diferencia de formato entre prebenjamín/alevín e infantil/juvenil; las categorías por edad de la federación se mantienen como dato del deporte).
+- **Equipos mixtos hasta alevín, masculinos desde infantil.** Hay que concordar los textos con `gender` en las compañeras y compañeros de equipo.
+- **Modelo híbrido de población:** tu equipo, sus entrenadores y 2–3 figuras por rival son personas completas; el resto de equipos rivales va agregado en el estado del fútbol (nivel por líneas, forma), con nombres sacados de la semilla al dibujar.
+- **Posiciones: las 16 y los 42 roles del diseño original (E7) desde la primera versión**, **en contra de la recomendación** del análisis (que proponía empezar por 4 posiciones y dejar roles para la fase 5). Riesgo asumido: mucho más contenido y balance en la fase 3; conviene definirlos como datos (tabla de posiciones y roles con pesos de habilidades y capacidades) y revisar el reparto en `npm run sim` y `sim:notas`.
+- **Fútbol sala: fuera de la primera versión;** más adelante, otra disciplina del mismo módulo.
+
 ## 30/10/2026 — Fase 7: validación con deportes de prueba instalados
 
 Hecha la fase 7 de `PLAN_DEPORTES_MODULARES.md`. No se toca el juego: solo tests y herramientas. `tests/validacion-de-deportes.test.ts`.
