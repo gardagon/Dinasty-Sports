@@ -19,6 +19,7 @@ Respuestas a las preguntas de `ANALISIS_FUTBOL.md` (§0 de ese documento):
 - **El JSON y el documento de diseño** se guardan como referencia en `docs/diseno/`; los datos del módulo van en TypeScript con ids en español (a mi criterio, como pidió el usuario).
 - **Las capacidades mentales siguen decayendo muy poco.**
 - **Pendiente:** confirmar la propuesta del valor efectivo (`ANALISIS_FUTBOL.md` §3 bis).
+- **Potenciador por categoría (idea del usuario, analizada en §3 ter):** en los partidos, un impulso por categoría para que los niños marquen goles y subir de categoría cueste. Propuesta: multiplicar (no sumar), con la curva por edad que ya existe (benjamín ×2,8 … juvenil ×1,1, sénior ×1) por un factor de nivel de división (élite ×1); como tabla fija y dato del deporte por país, vigilada por un banco de partidos. Pendiente de confirmar.
 
 ## 31/10/2026 — Preparación del addon de fútbol (análisis, sin aprobar)
 

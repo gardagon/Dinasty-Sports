@@ -9,7 +9,7 @@ Segunda versión (31/10/2026), **con las decisiones del usuario del 31/10 en §0
 Respuestas a las preguntas de §8 (las tablas de abajo conservan el análisis original; donde chocan, manda esto):
 
 1. **El conocimiento es un bonus/malus**, como en el atletismo, **para subir las habilidades y para usarlas** (ya está hablado). Es lo que hace el kit: `modificadorDeConocimiento` (entrenar y competir, ×0,90 a ×1,15) y `valorEfectivo` (lo táctico en competición, ×0,85 a ×1,15). No hay techo duro.
-2. **Valor efectivo:** pendiente de confirmar la propuesta, explicada mejor en §3 bis.
+2. **Valor efectivo:** pendiente; con la propuesta del potenciador por categoría (§3 ter, punto 5) se resuelve a la vez.
 3. **`gen.cooperacion` se mantiene.** Saber cooperar no es saber jugar en equipo al fútbol: **Juego colectivo pasa a ser una habilidad que se entrena** (`futbol.juego_colectivo`), apoyada en la cooperación (y en la sociabilidad y la autoridad), en vez de una derivada como dice el diseño.
 4. **Cansancio en el partido:** se llama *cansancio*. Sube durante el partido más o menos deprisa según la energía con la que se empieza, y también según decisiones: jugar más relajado lo frena y exigirse más lo acelera. La tabla de 5 tramos del addon dice cuánto rinde según el cansancio acumulado. El cansancio general (`gen.cansancio`) no se aplica además al rendimiento del partido, para no cobrarlo dos veces.
 5. **Fútbol 11 desde el principio**, también a los 8 años (a esa edad ya hay equipos). El fútbol 7 obligaría a otro motor, como el fútbol sala. Valen las reglas de formación del JSON.
@@ -90,6 +90,62 @@ El problema es la escala del juego. Las capacidades crecen con la edad: un niño
 
 Así se respeta la idea del diseño (lo entrenado manda y las capacidades suben o bajan hasta un 20 %) y un niño de 8 años no juega con cero. Además, la primera capacidad de cada habilidad pesa más que la última (el diseño las da por orden de peso). **Si te parece bien, lo aplico así.**
 
+## 3 ter. Potenciador por categoría y por nivel (propuesta del usuario, 31/10)
+
+**El problema.** Con las habilidades tal cual, los partidos de niños acabarían 0 a 0: a los 8 años todo está en torno a 12 y un motor pensado para adultos (40 o más) no les deja marcar.
+
+**La idea del usuario.** Dar un impulso en los partidos según la categoría, de modo que lo mejor de la categoría cuente como si fuera lo mejor de verdad (si el tope de alevín es 25, un niño con 25 juega «como un 100»). Ejemplo orientativo: alevín +50, infantil +40, juvenil mucho menos o nada. Dos consecuencias buscadas: un alevín muy bueno al que suben a infantil juega con sus habilidades y el impulso del infantil, así que queda donde le corresponde; y una categoría o división muy floja también necesitaría impulso para que haya goles.
+
+### Análisis
+
+**1. El juego ya sabe cuánto puede tener cada edad.** Es la curva por edad (`factorPorEdad`), la que pone el techo de las habilidades: lo que se puede tener del tope a cada edad. Medido en el código:
+
+| Categoría (España) | Edad mayor | Del tope de adulto | Impulso (×) que lo lleva a la escala de adulto |
+|---|---|---|---|
+| Prebenjamín | 7 | ~25 % | ×4 |
+| Benjamín | 9 | 36 % | ×2,8 |
+| Alevín | 11 | 49 % | ×2,0 |
+| Infantil | 13 | 62 % | ×1,6 |
+| Cadete | 15 | 75 % | ×1,33 |
+| Juvenil | 18 | 91 % | ×1,1 |
+| Sénior | 24 o más | 100 % | ×1 (sin impulso) |
+
+El impulso sale solo de una curva que ya existe y ya está calibrada (`sim:vida`), y tiene la forma que describe el usuario: grande en las edades pequeñas, poco en juvenil y nada en sénior.
+
+**2. Mejor multiplicar que sumar.** Tres alevines con 10 (flojo), 18 (normal) y 25 (el mejor):
+
+| | Flojo | Normal | El mejor | El mejor frente al flojo |
+|---|---|---|---|---|
+| Sin impulso | 10 | 18 | 25 | 2,5 veces |
+| Sumando +50 | 60 | 68 | 75 | 1,25 veces |
+| Multiplicando ×2 | 20 | 36 | 50 | 2,5 veces |
+
+Al sumar, todos se parecen: el mejor apenas destaca y los partidos se vuelven una lotería. Al multiplicar, cada uno conserva lo que vale frente a los demás y solo cambia la escala.
+
+**3. Por qué sirve de verdad.** En un partido hay dos tipos de duelos:
+
+- **Entre jugadores** (regate contra entrada, tiro contra portero): solo cuenta quién es mejor que quién. Si todos se multiplican por lo mismo, no cambia nada.
+- **Contra una dificultad fija** (un pase largo preciso, una falta a la escuadra): aquí la escala sí importa, y es donde los niños fallarían todo y saldría el 0 a 0.
+
+El impulso arregla el segundo tipo sin tocar el primero. Así **el motor se calibra una sola vez, en escala de adulto, y vale para todas las categorías**.
+
+**4. Subir de categoría queda bien solo.** Un alevín muy bueno (25) al que suben a infantil juega con ×1,6 en vez de ×2: 40 en lugar de 50. Los mejores infantiles (unos 32 sin impulso) quedan en unos 51. Es competitivo pero no domina, como pide el usuario. También sale bien que, dentro de una categoría de dos años, los del primer año sean algo peores que los del segundo (pasa en la realidad).
+
+**5. Regla única: todo se mide frente al partido, no frente al jugador.** El impulso es el de la categoría y el nivel **del partido**, para todos los que juegan. Se aplica a las habilidades y a las capacidades que las apoyan. Así resuelve también la pregunta de §3 bis: una vez llevadas a escala de adulto, cada capacidad se compara con lo típico de un adulto (40), de ×0,6 a ×1,2. Un niño normal juega con lo que ha entrenado y uno con capacidades buenas para la categoría saca hasta un 20 % más por cada una.
+
+**6. El nivel de la división.** Dentro de una categoría hay divisiones (en España, juvenil de División de Honor, Liga Nacional, regional; en sénior, de Primera a las regionales). Una división floja necesita algo de impulso para que haya goles, y la élite ninguno. Se haría con un segundo factor: **impulso = edad × nivel**. Por ejemplo élite ×1, nacional ×1,15, regional ×1,3. Así la élite sénior queda sin impulso, que es lo que pide el usuario. Al principio la ciudad tiene una sola liga por categoría y el nivel no hace falta; llega con los clubes de élite y el fútbol sénior.
+
+**7. Tabla fija o media real de la liga.** El diseño propone dividir por la media real de la categoría. Una tabla fija (la curva por edad por el nivel) es mejor:
+
+- Es estable y fácil de entender: subir de categoría siempre cuesta lo mismo.
+- Con la media real, una generación floja parecería normal y el personaje no notaría que ha mejorado frente a ella.
+
+Para que no se desajuste, la simulación vigilaría que la media de cada liga quede cerca de lo esperado. La tabla sería un dato del deporte por país, como las categorías: un país la cambia si su fútbol es distinto.
+
+**8. Lo que no toca.** El impulso solo existe dentro del partido. No cambia lo que se entrena, lo que se sube ni lo que se guarda. La pestaña puede contarlo en palabras («para tu categoría, muy bueno»).
+
+**9. Cómo se comprueba.** Un banco de partidos como el de notas (`sim:notas`): ligas de cada categoría con jugadores de la ciudad. Se comprueba que los goles por partido estén en un rango realista en cada categoría, que haya pocos 0 a 0, que el mejor equipo gane la liga a menudo pero no siempre, y que un niño subido de categoría rinda menos que en la suya.
+
 ## 4. Las habilidades del addon en el juego
 
 **40 habilidades** en el JSON: 28 entrenables (14 técnicas de campo, 6 mentales, 2 físicas, 6 de portero) y 12 derivadas (4 mentales, 2 de portero, 4 ocultas). Con la decisión 3, Juego colectivo pasa de derivada a entrenable: **29 entrenables y 11 derivadas**. El atletismo tiene 3 más el conocimiento.
@@ -154,6 +210,9 @@ Así se respeta la idea del diseño (lo entrenado manda y las capacidades suben 
 
 ## 8. Preguntas para decidir
 
-Respondidas el 31/10 (ver §0). Queda una:
+Respondidas el 31/10 (ver §0). Quedan, sobre el potenciador (§3 ter):
 
-1. **Valor efectivo:** ¿aplico la propuesta de §3 bis (cada capacidad frente a lo normal de su edad, de ×0,6 a ×1,2)?
+1. ¿**Multiplicar** en vez de sumar?
+2. ¿Sale de la **curva por edad que ya existe** (benjamín ×2,8, alevín ×2, infantil ×1,6, cadete ×1,33, juvenil ×1,1, sénior ×1), como tabla fija y como dato del deporte por país, en vez de la media real de cada liga?
+3. ¿**Un segundo factor por nivel de división** (élite ×1, nacional ×1,15, regional ×1,3, a calibrar), que llegue con los clubes de élite y el sénior?
+4. ¿Vale que esto **resuelva también el valor efectivo** (§3 bis): capacidades llevadas a escala de adulto y comparadas con lo típico de un adulto, de ×0,6 a ×1,2?
