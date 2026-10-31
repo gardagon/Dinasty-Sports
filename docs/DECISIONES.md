@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 31/10/2026 — Preparación del addon de fútbol (análisis, sin aprobar)
+
+Pedido por el usuario: comprobar que el plan de deportes encaja con `main` tras las fases G a 7 y analizar sus documentos `addon_football_v2.json` (addon 2.1) y `desing_stats_personality_system.md` (diseño v0.2) para preparar el fútbol. Análisis en `ANALISIS_FUTBOL.md` (reescrito); no se ha cambiado código.
+
+- **El plan encaja**, con los cambios del otro hilo que el fútbol respeta: no hay deporte «practicado» (el principal es el del club), todos los niños existen y los deportes los reclutan (ya no hace falta la población híbrida del primer análisis) y falta configurar la clave de firma.
+- **Pendientes del plan que necesita el fútbol:** `relaciones` sigue suponiendo que gana la menor marca, la pestaña no sabe de plantillas ni ligas, la temporada no admite una liga y los equipos no son por categoría.
+- **Choques de los documentos con decisiones tomadas** (§3 del análisis): ids en inglés, conocimiento como techo duro (el juego lo usa como bonus/malus), la fórmula multiplicativa del valor efectivo (hunde los valores en la escala del juego), herencia y caída distintas, `gen.cooperacion` (el diseño la sustituye por una derivada), «equilibrio» que no existe, doble penalización por energía, reglas de formación solo de fútbol 11 y cifras que no cuadran entre el diseño y el JSON (se toma el JSON: 16 posiciones y 42 roles).
+- **Preguntas abiertas:** §8 del análisis.
+
 ## 30/10/2026 — Fase 7: validación con deportes de prueba instalados
 
 Hecha la fase 7 de `PLAN_DEPORTES_MODULARES.md`. No se toca el juego: solo tests y herramientas. `tests/validacion-de-deportes.test.ts`.
