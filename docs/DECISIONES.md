@@ -5,6 +5,21 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 31/10/2026 — Fútbol: decisiones del usuario sobre el análisis
+
+Respuestas a las preguntas de `ANALISIS_FUTBOL.md` (§0 de ese documento):
+
+- **Conocimiento = bonus/malus** para subir las habilidades y para usarlas, como en el atletismo (sin techo duro).
+- **`gen.cooperacion` se mantiene;** Juego colectivo pasa a ser una **habilidad del fútbol que se entrena** (`futbol.juego_colectivo`), apoyada en la cooperación, en vez de una derivada.
+- **Cansancio en el partido:** sube según la energía con la que se empieza y según decisiones (jugar relajado lo frena, exigirse lo acelera); la tabla de 5 tramos del addon dice cuánto rinde. El cansancio general no se aplica además al rendimiento del partido.
+- **Fútbol 11 desde los 8 años** (el fútbol 7 pediría otro motor).
+- **Equipos solo con gente de la ciudad** para empezar; después, **jugadores genéricos** sin interacción que crecen (propuesta: calculados desde la semilla, sin guardarse).
+- **Partidos los sábados.**
+- **No hay requisitos de debut:** lo que el JSON llama así es cuándo el personaje podría entrar en un equipo sénior o en una cantera de élite; se hará con el acceso de los clubes.
+- **El JSON y el documento de diseño** se guardan como referencia en `docs/diseno/`; los datos del módulo van en TypeScript con ids en español (a mi criterio, como pidió el usuario).
+- **Las capacidades mentales siguen decayendo muy poco.**
+- **Pendiente:** confirmar la propuesta del valor efectivo (`ANALISIS_FUTBOL.md` §3 bis).
+
 ## 31/10/2026 — Preparación del addon de fútbol (análisis, sin aprobar)
 
 Pedido por el usuario: comprobar que el plan de deportes encaja con `main` tras las fases G a 7 y analizar sus documentos `addon_football_v2.json` (addon 2.1) y `desing_stats_personality_system.md` (diseño v0.2) para preparar el fútbol. Análisis en `ANALISIS_FUTBOL.md` (reescrito); no se ha cambiado código.

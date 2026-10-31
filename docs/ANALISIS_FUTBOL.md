@@ -1,8 +1,23 @@
 # Análisis: preparación del addon de fútbol
 
-Segunda versión (31/10/2026), **pendiente de aprobar**. No se ha cambiado código. Sustituye al primer análisis del 29/10 (que quedó desfasado al hacerse las fases G a 7 del plan de deportes). Parte de dos documentos del usuario: **`addon_football_v2.json`** (versión 2.1 del addon) y **`desing_stats_personality_system.md`** (diseño de stats, perks y personalidad v0.2, del proyecto original en Godot). Se compara cada cosa con lo que hay en `main` y con `DECISIONES.md`.
+Segunda versión (31/10/2026), **con las decisiones del usuario del 31/10 en §0**. No se ha cambiado código. Sustituye al primer análisis del 29/10 (que quedó desfasado al hacerse las fases G a 7 del plan de deportes). Parte de dos documentos del usuario: **`addon_football_v2.json`** (versión 2.1 del addon) y **`desing_stats_personality_system.md`** (diseño de stats, perks y personalidad v0.2, del proyecto original en Godot). Se compara cada cosa con lo que hay en `main` y con `DECISIONES.md`.
 
 ---
+
+## 0. Decisiones del usuario (31/10/2026)
+
+Respuestas a las preguntas de §8 (las tablas de abajo conservan el análisis original; donde chocan, manda esto):
+
+1. **El conocimiento es un bonus/malus**, como en el atletismo, **para subir las habilidades y para usarlas** (ya está hablado). Es lo que hace el kit: `modificadorDeConocimiento` (entrenar y competir, ×0,90 a ×1,15) y `valorEfectivo` (lo táctico en competición, ×0,85 a ×1,15). No hay techo duro.
+2. **Valor efectivo:** pendiente de confirmar la propuesta, explicada mejor en §3 bis.
+3. **`gen.cooperacion` se mantiene.** Saber cooperar no es saber jugar en equipo al fútbol: **Juego colectivo pasa a ser una habilidad que se entrena** (`futbol.juego_colectivo`), apoyada en la cooperación (y en la sociabilidad y la autoridad), en vez de una derivada como dice el diseño.
+4. **Cansancio en el partido:** se llama *cansancio*. Sube durante el partido más o menos deprisa según la energía con la que se empieza, y también según decisiones: jugar más relajado lo frena y exigirse más lo acelera. La tabla de 5 tramos del addon dice cuánto rinde según el cansancio acumulado. El cansancio general (`gen.cansancio`) no se aplica además al rendimiento del partido, para no cobrarlo dos veces.
+5. **Fútbol 11 desde el principio**, también a los 8 años (a esa edad ya hay equipos). El fútbol 7 obligaría a otro motor, como el fútbol sala. Valen las reglas de formación del JSON.
+6. **Hacen falta muchos niños para los equipos.** La idea es que haya **jugadores genéricos** con los que no se puede interactuar, pero que **crecen y se desarrollan**. **Para empezar, los equipos se hacen solo con gente de la ciudad**, y después se verá cómo ampliar.
+7. **Día de partido: el sábado** (lo habitual en España; el día da igual de momento).
+8. **No hay requisitos de debut.** Lo que el JSON llama así es, en realidad, **cuándo podría el personaje entrar en un equipo sénior o en un club que ya juega a alto nivel en categorías inferiores** (un Real Madrid o un Atlético de Madrid en juvenil). Encaja con el **acceso de los clubes** (nivel y edad mínimos, `ClubDeDeporte.acceso`) que ya existe: los clubes de élite serán los de acceso más exigente.
+9. **Fuente de datos, a mi criterio:** el JSON y el documento de diseño se guardan en el repositorio como referencia (`docs/diseno/`) y los datos del módulo se escriben en TypeScript con los ids del juego (en español), con tipos y tests; el JSON no se lee en el juego.
+10. **Las capacidades mentales siguen decayendo muy poco**, como ahora.
 
 ## 1. El plan de deportes frente a `main`: qué cambió y qué implica para el fútbol
 
@@ -55,14 +70,34 @@ Las fases G a 7 de [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md) es
 | 15 | En partido, los ejes abren y cierran opciones («Regatear / Tirar / Pasar (desactivado)») | **No hay motor de decisiones** (E18 pendiente) | La primera versión simula el partido sin decisiones del jugador; las decisiones llegan con E18 |
 | 16 | La información se filtra por la inteligencia (Persona 5, no Football Manager) | En la alfa se enseñan los números (E3.4 pendiente) | El fútbol enseña lo mismo que el atletismo hasta que exista el filtro |
 
+## 3 bis. La pregunta del valor efectivo, explicada
+
+En el diseño, lo que vale una habilidad en el partido es **lo entrenado multiplicado por un factor por cada capacidad que la apoya**, y ese factor es `capacidad / 100 × 1,2`. Es decir: con la capacidad en 100 la habilidad rinde un 20 % más; con 50, se queda en el 60 %; con 25, en el 30 %.
+
+El problema es la escala del juego. Las capacidades crecen con la edad: un niño de 8 años normal las tiene en torno a 12, uno de 16 en torno a 32 y un adulto normal en torno a 40. Con la fórmula tal cual:
+
+- Un niño de 8 años normal con Pase 10 (que se apoya en tres capacidades) jugaría con un Pase de **0,03**: 10 × 0,14 × 0,14 × 0,14.
+- Un adulto normal perdería **la mitad por cada capacidad**: con tres, se queda en una décima parte de lo entrenado.
+- Solo ayuda a quien tiene una capacidad por encima de 83, cosa que casi nadie tiene.
+
+**Propuesta:** comparar cada capacidad con **lo normal para su edad** (el juego ya lo sabe: `nivelTipicoPorEdad`):
+
+| La capacidad, frente a lo normal de su edad | Factor |
+|---|---|
+| Normal | ×1 (juega con lo que ha entrenado) |
+| Muy por encima (el doble o más) | hasta ×1,2 (el máximo del diseño) |
+| Muy por debajo (la mitad o menos) | hasta ×0,6 |
+
+Así se respeta la idea del diseño (lo entrenado manda y las capacidades suben o bajan hasta un 20 %) y un niño de 8 años no juega con cero. Además, la primera capacidad de cada habilidad pesa más que la última (el diseño las da por orden de peso). **Si te parece bien, lo aplico así.**
+
 ## 4. Las habilidades del addon en el juego
 
-**40 habilidades** en el JSON: 28 entrenables (14 técnicas de campo, 6 mentales, 2 físicas, 6 de portero) y 12 derivadas (4 mentales, 2 de portero, 4 ocultas). El atletismo tiene 3 más el conocimiento.
+**40 habilidades** en el JSON: 28 entrenables (14 técnicas de campo, 6 mentales, 2 físicas, 6 de portero) y 12 derivadas (4 mentales, 2 de portero, 4 ocultas). Con la decisión 3, Juego colectivo pasa de derivada a entrenable: **29 entrenables y 11 derivadas**. El atletismo tiene 3 más el conocimiento.
 
 | Tipo | Cómo se hace en el juego |
 |---|---|
-| **Entrenables** (28) | Una `StatDef` por habilidad con `habilidadDeportiva` del kit: tope derivado de sus capacidades, techo por edad, caída. Ids en español: `futbol.pase`, `futbol.control`, `futbol.regate`, `futbol.definicion`, `futbol.tecnica`, `futbol.centros`, `futbol.cabeza`, `futbol.marcaje`, `futbol.entrada`, `futbol.disparo_lejano`, `futbol.faltas`, `futbol.penaltis`, `futbol.corners`, `futbol.saque_banda`; mentales `futbol.vision`, `futbol.posicionamiento`, `futbol.desmarque`, `futbol.anticipacion`, `futbol.decisiones`, `futbol.sangre_fria`; físicas `futbol.arrancada`, `futbol.salto`; portero `futbol.reflejos`, `futbol.mano_a_mano`, `futbol.blocaje`, `futbol.despeje`, `futbol.alcance_aereo`, `futbol.dominio_area` |
-| **Derivadas** (6 visibles) | **No son stats:** se calculan al vuelo (como el valor efectivo del atletismo) con los ejes pasados de −50..+50 a 0..100. Agresividad en juego, Liderazgo en campo, Juego colectivo, Creatividad en partido, Comunicación de portero, Excentricidad |
+| **Entrenables** (29) | Una `StatDef` por habilidad con `habilidadDeportiva` del kit: tope derivado de sus capacidades, techo por edad, caída. Ids en español: `futbol.pase`, `futbol.control`, `futbol.regate`, `futbol.definicion`, `futbol.tecnica`, `futbol.centros`, `futbol.cabeza`, `futbol.marcaje`, `futbol.entrada`, `futbol.disparo_lejano`, `futbol.faltas`, `futbol.penaltis`, `futbol.corners`, `futbol.saque_banda`; mentales `futbol.vision`, `futbol.posicionamiento`, `futbol.desmarque`, `futbol.anticipacion`, `futbol.decisiones`, `futbol.sangre_fria`; físicas `futbol.arrancada`, `futbol.salto`; portero `futbol.reflejos`, `futbol.mano_a_mano`, `futbol.blocaje`, `futbol.despeje`, `futbol.alcance_aereo`, `futbol.dominio_area`; y `futbol.juego_colectivo` (decisión 3: apoyada en la cooperación, la sociabilidad y la autoridad) |
+| **Derivadas** (5 visibles) | **No son stats:** se calculan al vuelo (como el valor efectivo del atletismo) con los ejes pasados de −50..+50 a 0..100. Agresividad en juego, Liderazgo en campo, Creatividad en partido, Comunicación de portero, Excentricidad |
 | **Ocultas** (4) | Igual, solo para el motor del partido: Consistencia (varianza partido a partido), Dureza (faltas), Partidos grandes (rendimiento en los importantes), Bajo presión (momentos de tensión) |
 | **Conocimiento** | `futbol.conocimiento`, con el kit |
 | **Secundarias** | Las que son capacidades salen de `gen.*`; las que son técnicas (Visión, Anticipación, Sangre fría, Salto, Técnica) se leen de la propia habilidad; la **altura** sale de `identidad` |
@@ -78,24 +113,26 @@ Las fases G a 7 de [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md) es
 ## 5. La gente del fútbol
 
 - **Reclutamiento:** el fútbol aporta su `PoblacionDeDeporte` (etiqueta `futbolista`, capacidades de las que sale su potencial, equipos con plantilla, entrenadores) y `npcs` recluta como para el atletismo, primero los interesados en el fútbol (el interés `futbol` ya existe).
-- **Cuántos:** una categoría de fútbol 7 con 8 equipos de 12 son 96 niños para dos edades; una de fútbol 11 con 10 equipos de 18, 180. Con unos 90 niños por edad entre 8 y 17 años, el fútbol 11 **no cabe** con personas reales si cada equipo tiene sus 18 de cada categoría. Opciones: ligas más pequeñas en las edades altas, plantillas cortas con jugadores genéricos de relleno (como los «Corredor N» del atletismo cuando no hay personas), o más niños en la ciudad (coste de guardado: ~950 bytes por persona).
+- **Cuántos caben solo con gente de la ciudad (decisión 6):** hay unos 90 niños por edad entre 8 y 17 años y el atletismo se lleva unos 9. Un equipo de fútbol 11 con 14 jugadores (11 y 3 suplentes) por categoría de dos edades son unos 7 por edad. Con **6 o 7 equipos por categoría** caben (42–49 por edad) y salen ligas de 10 a 12 partidos a doble vuelta, lo que el JSON pide para la infancia. En las edades altas (18–19) hay menos gente (no van al colegio de la ciudad): ligas más pequeñas.
+- **Jugadores genéricos (después):** para ampliar las ligas sin cargar el guardado, jugadores sin rasgos, sin agenda y sin relación, que crecen con su propio azar estable. Pueden **no guardarse**: su nivel en cada día sale de la semilla, de su id y del día (como ya se hace con el progreso de los rivales), así que no pesan nada en la partida. Es la fase 4 de `ALMACENAMIENTO.md` aplicada solo a ellos.
 - **Nivel de cada jugador:** hoy una persona tiene un solo nivel por deporte (`levels.futbol`). Su posición y su perfil (qué técnicas tiene mejor) pueden salir de sus 18 capacidades (ya las tiene) con un azar estable, sin guardar 28 habilidades por persona.
 - **Normalización por categoría:** la media de la categoría sale del nivel de los jugadores de esa categoría.
+- **Clubes de élite (decisión 8):** un club de fuera con acceso exigente en juvenil y sénior (al estilo de las canteras de los grandes) es la puerta a jugar a alto nivel; usa el acceso de los clubes que ya existe.
 
 ## 6. Lo que falta en los documentos para hacer el addon
 
 1. **Cómo se resuelve un partido:** de los valores precalculados al marcador, los minutos, los goles y la nota del jugador. Propuesta: fuerza de cada equipo por líneas, goles con una distribución de Poisson según la diferencia, y la nota y las acciones del jugador según su posición y sus valores en partido.
 2. **La convocatoria:** cómo decide el entrenador titular, suplente o no convocado (nivel en su posición frente a los compañeros, asistencia a los entrenamientos, relación con él). Es lo que hace distinto al fútbol del atletismo.
 3. **Qué acciones hay y qué entrena cada una:** sesión de club, entreno por libre (técnica con balón, tiro, físico, porteros), ver fútbol, verano. Y cuánto sube cada habilidad.
-4. **Fútbol 7:** posiciones (¿las mismas 16 o un subconjunto?), reglas de formación y en qué edades.
+4. ~~Fútbol 7~~ (decidido: fútbol 11 desde el principio). Falta cómo **sube y baja el cansancio** durante el partido (decisión 4): cuánto según la energía inicial, la resistencia y la intensidad.
 5. **Categorías y temporada de España** (RFEF: prebenjamín, benjamín, alevín, infantil, cadete, juvenil), clubes y horarios, el campo (lugar nuevo) y la jornada.
 6. **Lesiones por contacto:** E12 está pendiente; el fútbol las hará más visibles.
 
 ## 7. Cómo se montaría (propuesta)
 
-- **Módulo `modules/futbol`** con el kit, tipo `equipo` en su ficha, empaquetable como los de prueba de la fase 7:
+- **Módulo `modules/futbol`** con el kit, tipo `equipo` en su ficha, empaquetable como los de prueba de la fase 7 (datos de referencia en `docs/diseno/`):
   - `datos.ts`: datos de España (categorías, temporada en liga, clubes, sedes, población), posiciones, roles y afinidades del JSON con ids en español.
-  - `habilidades.ts`: las 28 `StatDef` y las secundarias de cada una.
+  - `habilidades.ts`: las 29 `StatDef` y las secundarias de cada una.
   - `derivadas.ts`: derivadas y ocultas, funciones puras.
   - `partido.ts`: el motor del partido, funciones puras (con tests y sin estado).
   - `plantilla.ts`: equipos, convocatoria y posición.
@@ -106,23 +143,17 @@ Las fases G a 7 de [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md) es
 
 | Fase | Qué |
 |---|---|
-| F0 | Vocabulario común: resultado de equipo, secciones en la pestaña, liga en la temporada, equipos por categoría |
-| F1 | Habilidades, conocimiento, entreno por libre y club del colegio (con el kit) |
-| F2 | Gente del fútbol, equipos por categoría y liga con partido simulado (fuerza por líneas, marcador, nota), convocatoria y pestaña con tabla de liga |
-| F3 | Posiciones, roles y experiencia con afinidades; formaciones de fútbol 7 y 11 |
+| F0 | Vocabulario común: resultado de equipo en `competicion.resultado` (y `relaciones` sin suponer «menos marca gana»), secciones en la pestaña, liga en la temporada, equipos por categoría |
+| F1 | Habilidades (las 28 del JSON más Juego colectivo), conocimiento, entreno por libre y club del colegio (con el kit) |
+| F2 | Gente del fútbol con equipos de la ciudad (fútbol 11, 6–7 equipos por categoría), liga a doble vuelta los sábados, motor del partido con cansancio, convocatoria y pestaña con la tabla de la liga. Propuesta: elegir la intensidad antes del partido (relajado, normal, a tope) hasta que haya decisiones dentro del partido |
+| F3 | Posiciones, roles y experiencia con afinidades; formaciones de fútbol 11 |
 | F4 | Derivadas y ocultas en el partido; transferencias de entrenamiento |
-| F5 | Clubes de fuera con prueba de acceso, jugar con los mayores, verano, tele, goleadores |
-| F6 | Decisiones dentro del partido con los ejes, cuando exista el motor de eventos (E18) |
+| F5 | Clubes de fuera con prueba de acceso (y los de élite), jugar con los mayores, verano, tele, goleadores |
+| F6 | Jugadores genéricos que crecen, para ampliar las ligas |
+| F7 | Decisiones dentro del partido con los ejes (también las que suben o frenan el cansancio), cuando exista el motor de eventos (E18) |
 
 ## 8. Preguntas para decidir
 
-1. **Conocimiento:** ¿bonus/malus (como el atletismo) o techo duro como dice el diseño? Si es techo, ¿solo en el fútbol o en todos los deportes? (§3, punto 2)
-2. **Valor efectivo:** ¿vale la propuesta de medir cada secundaria frente a lo típico de su edad, con ×1 para lo típico y ×1,2 de techo? (§3, punto 3)
-3. **`gen.cooperacion`:** ¿se quita ahora que el juego en equipo es una derivada, o se mantiene? (§3, punto 7)
-4. **Energía en el partido:** ¿la tabla del addon en lugar del cansancio general? (§3, punto 9)
-5. **Fútbol 7:** ¿en qué edades, con qué posiciones y qué reglas de formación? (§3, punto 14)
-6. **Plantillas en fútbol 11:** ¿ligas más pequeñas, jugadores genéricos de relleno o más gente en la ciudad? (§5)
-7. **Día de partido:** ¿el 6 del JSON es el domingo o el sábado?
-8. **`debut_requirements`:** ¿en qué escala están los mínimos y qué significa el umbral 0,6?
-9. **Fuente de datos:** ¿el JSON del addon se queda como documento de diseño y los datos del módulo se escriben con los ids del juego (propuesta), o quieres que el módulo lea un JSON con ese formato?
-10. **Mentales sin caída:** el diseño dice que las capacidades mentales no decaen en la vida activa y en el juego decaen muy poco. ¿Se cambia (para todo el juego)? (§3, punto 6)
+Respondidas el 31/10 (ver §0). Queda una:
+
+1. **Valor efectivo:** ¿aplico la propuesta de §3 bis (cada capacidad frente a lo normal de su edad, de ×0,6 a ×1,2)?
