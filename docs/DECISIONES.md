@@ -5,6 +5,31 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 31/10/2026 — Fútbol: decisiones del usuario sobre el análisis
+
+Respuestas a las preguntas de `ANALISIS_FUTBOL.md` (§0 de ese documento):
+
+- **Conocimiento = bonus/malus** para subir las habilidades y para usarlas, como en el atletismo (sin techo duro).
+- **`gen.cooperacion` se mantiene;** Juego colectivo pasa a ser una **habilidad del fútbol que se entrena** (`futbol.juego_colectivo`), apoyada en la cooperación, en vez de una derivada.
+- **Cansancio en el partido:** sube según la energía con la que se empieza y según decisiones (jugar relajado lo frena, exigirse lo acelera); la tabla de 5 tramos del addon dice cuánto rinde. El cansancio general no se aplica además al rendimiento del partido.
+- **Fútbol 11 desde los 8 años** (el fútbol 7 pediría otro motor).
+- **Equipos solo con gente de la ciudad** para empezar; después, **jugadores genéricos** sin interacción que crecen (propuesta: calculados desde la semilla, sin guardarse).
+- **Partidos los sábados.**
+- **No hay requisitos de debut:** lo que el JSON llama así es cuándo el personaje podría entrar en un equipo sénior o en una cantera de élite; se hará con el acceso de los clubes.
+- **El JSON y el documento de diseño** se guardan como referencia en `docs/diseno/`; los datos del módulo van en TypeScript con ids en español (a mi criterio, como pidió el usuario).
+- **Las capacidades mentales siguen decayendo muy poco.**
+- **Potenciador por categoría y nivel (idea del usuario, aprobado entero; `ANALISIS_FUTBOL.md` §3 ter):** en los partidos todos los valores se multiplican (no se suman) por un impulso que lleva cada categoría a la escala de adulto, sacado de la curva por edad que ya existe: benjamín ×2,8, alevín ×2, infantil ×1,6, cadete ×1,33, juvenil ×1,1, sénior ×1. Es una tabla fija, dato del deporte por país. Más adelante, un factor por nivel de división (élite ×1, a calibrar) para las divisiones flojas. Se aplica según la categoría y el nivel **del partido**, a todos los que juegan, y solo dentro del partido (no cambia lo que se entrena ni lo que se guarda). Un banco de partidos vigilará goles por partido, pocos 0 a 0, que el mejor no gane siempre y que subir de categoría cueste.
+- **Valor efectivo (resuelto con el potenciador):** en escala de adulto, cada capacidad de apoyo se compara con lo típico de un adulto, de ×0,6 a ×1,2, pesando más la primera.
+
+## 31/10/2026 — Preparación del addon de fútbol (análisis, sin aprobar)
+
+Pedido por el usuario: comprobar que el plan de deportes encaja con `main` tras las fases G a 7 y analizar sus documentos `addon_football_v2.json` (addon 2.1) y `desing_stats_personality_system.md` (diseño v0.2) para preparar el fútbol. Análisis en `ANALISIS_FUTBOL.md` (reescrito); no se ha cambiado código.
+
+- **El plan encaja**, con los cambios del otro hilo que el fútbol respeta: no hay deporte «practicado» (el principal es el del club), todos los niños existen y los deportes los reclutan (ya no hace falta la población híbrida del primer análisis) y falta configurar la clave de firma.
+- **Pendientes del plan que necesita el fútbol:** `relaciones` sigue suponiendo que gana la menor marca, la pestaña no sabe de plantillas ni ligas, la temporada no admite una liga y los equipos no son por categoría.
+- **Choques de los documentos con decisiones tomadas** (§3 del análisis): ids en inglés, conocimiento como techo duro (el juego lo usa como bonus/malus), la fórmula multiplicativa del valor efectivo (hunde los valores en la escala del juego), herencia y caída distintas, `gen.cooperacion` (el diseño la sustituye por una derivada), «equilibrio» que no existe, doble penalización por energía, reglas de formación solo de fútbol 11 y cifras que no cuadran entre el diseño y el JSON (se toma el JSON: 16 posiciones y 42 roles).
+- **Preguntas abiertas:** §8 del análisis.
+
 ## 30/10/2026 — Fase 7: validación con deportes de prueba instalados
 
 Hecha la fase 7 de `PLAN_DEPORTES_MODULARES.md`. No se toca el juego: solo tests y herramientas. `tests/validacion-de-deportes.test.ts`.

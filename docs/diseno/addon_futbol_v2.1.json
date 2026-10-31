@@ -1,0 +1,870 @@
+{
+  "id": "football",
+  "name": "Fútbol",
+  "version": "2.1",
+  "debut_requirements": {
+    "min_stats": {
+      "constitution": 12,
+      "coordination": 10,
+      "determination": 8,
+      "concentration": 6,
+      "resilience": 5
+    },
+    "min_stats_threshold": 0.6
+  },
+  "sport_knowledge": {
+    "key": "football",
+    "channels": {
+      "matches": {
+        "weight": "primary"
+      },
+      "specific_training": {
+        "weight": "secondary"
+      },
+      "passive_study": {
+        "weight": "tertiary",
+        "intelligence_multiplier": true
+      }
+    }
+  },
+  "positions": [
+    {
+      "id": "GK",
+      "name": "Portero",
+      "line": 0
+    },
+    {
+      "id": "CB",
+      "name": "Central",
+      "line": 1
+    },
+    {
+      "id": "LB",
+      "name": "Lateral izquierdo",
+      "line": 1
+    },
+    {
+      "id": "RB",
+      "name": "Lateral derecho",
+      "line": 1
+    },
+    {
+      "id": "CDM",
+      "name": "Pivote",
+      "line": 2
+    },
+    {
+      "id": "LCR",
+      "name": "Carrilero izquierdo",
+      "line": 2
+    },
+    {
+      "id": "RCR",
+      "name": "Carrilero derecho",
+      "line": 2
+    },
+    {
+      "id": "CM",
+      "name": "Mediocentro",
+      "line": 3
+    },
+    {
+      "id": "LM",
+      "name": "Interior izquierdo",
+      "line": 3
+    },
+    {
+      "id": "RM",
+      "name": "Interior derecho",
+      "line": 3
+    },
+    {
+      "id": "CAM",
+      "name": "Mediapunta",
+      "line": 4
+    },
+    {
+      "id": "LW",
+      "name": "Extremo izquierdo",
+      "line": 4
+    },
+    {
+      "id": "RW",
+      "name": "Extremo derecho",
+      "line": 4
+    },
+    {
+      "id": "ST",
+      "name": "Delantero centro",
+      "line": 5
+    },
+    {
+      "id": "LST",
+      "name": "Delantero izquierdo",
+      "line": 5
+    },
+    {
+      "id": "RST",
+      "name": "Delantero derecho",
+      "line": 5
+    }
+  ],
+  "formation_rules": {
+    "GK_required": true,
+    "line_1_min": 3,
+    "lines_2_3_combined_min": 3,
+    "lines_4_5_combined_min": 1
+  },
+  "roles": [
+    {
+      "id": "GK_traditional",
+      "name": "Portero tradicional",
+      "position_id": "GK"
+    },
+    {
+      "id": "GK_sweeper",
+      "name": "Portero sweeper",
+      "position_id": "GK"
+    },
+    {
+      "id": "CB_defensive",
+      "name": "Central defensivo",
+      "position_id": "CB"
+    },
+    {
+      "id": "CB_builder",
+      "name": "Central constructor",
+      "position_id": "CB"
+    },
+    {
+      "id": "CB_libero",
+      "name": "Líbero",
+      "position_id": "CB"
+    },
+    {
+      "id": "LB_defensive",
+      "name": "Lateral defensivo",
+      "position_id": "LB"
+    },
+    {
+      "id": "LB_offensive",
+      "name": "Lateral ofensivo",
+      "position_id": "LB"
+    },
+    {
+      "id": "LB_support",
+      "name": "Lateral en apoyo",
+      "position_id": "LB"
+    },
+    {
+      "id": "RB_defensive",
+      "name": "Lateral defensivo",
+      "position_id": "RB"
+    },
+    {
+      "id": "RB_offensive",
+      "name": "Lateral ofensivo",
+      "position_id": "RB"
+    },
+    {
+      "id": "RB_support",
+      "name": "Lateral en apoyo",
+      "position_id": "RB"
+    },
+    {
+      "id": "CDM_destroyer",
+      "name": "Pivote destructor",
+      "position_id": "CDM"
+    },
+    {
+      "id": "CDM_organizer",
+      "name": "Pivote organizador",
+      "position_id": "CDM"
+    },
+    {
+      "id": "LCR_defensive",
+      "name": "Carrilero defensivo",
+      "position_id": "LCR"
+    },
+    {
+      "id": "LCR_offensive",
+      "name": "Carrilero ofensivo",
+      "position_id": "LCR"
+    },
+    {
+      "id": "RCR_defensive",
+      "name": "Carrilero defensivo",
+      "position_id": "RCR"
+    },
+    {
+      "id": "RCR_offensive",
+      "name": "Carrilero ofensivo",
+      "position_id": "RCR"
+    },
+    {
+      "id": "CM_organizer",
+      "name": "Mediocentro organizador",
+      "position_id": "CM"
+    },
+    {
+      "id": "CM_box_to_box",
+      "name": "Mediocentro caja a caja",
+      "position_id": "CM"
+    },
+    {
+      "id": "CM_defensive",
+      "name": "Mediocentro defensivo",
+      "position_id": "CM"
+    },
+    {
+      "id": "LM_arriving",
+      "name": "Interior llegador",
+      "position_id": "LM"
+    },
+    {
+      "id": "LM_organizer",
+      "name": "Interior organizador",
+      "position_id": "LM"
+    },
+    {
+      "id": "LM_defensive",
+      "name": "Interior defensivo",
+      "position_id": "LM"
+    },
+    {
+      "id": "RM_arriving",
+      "name": "Interior llegador",
+      "position_id": "RM"
+    },
+    {
+      "id": "RM_organizer",
+      "name": "Interior organizador",
+      "position_id": "RM"
+    },
+    {
+      "id": "RM_defensive",
+      "name": "Interior defensivo",
+      "position_id": "RM"
+    },
+    {
+      "id": "CAM_classic",
+      "name": "Mediapunta clásico",
+      "position_id": "CAM"
+    },
+    {
+      "id": "CAM_interior",
+      "name": "Mediapunta interior",
+      "position_id": "CAM"
+    },
+    {
+      "id": "CAM_support",
+      "name": "Mediapunta en apoyo",
+      "position_id": "CAM"
+    },
+    {
+      "id": "LW_winger",
+      "name": "Extremo desbordador",
+      "position_id": "LW"
+    },
+    {
+      "id": "LW_inverted",
+      "name": "Extremo interior",
+      "position_id": "LW"
+    },
+    {
+      "id": "LW_support",
+      "name": "Extremo de apoyo",
+      "position_id": "LW"
+    },
+    {
+      "id": "RW_winger",
+      "name": "Extremo desbordador",
+      "position_id": "RW"
+    },
+    {
+      "id": "RW_inverted",
+      "name": "Extremo interior",
+      "position_id": "RW"
+    },
+    {
+      "id": "RW_support",
+      "name": "Extremo de apoyo",
+      "position_id": "RW"
+    },
+    {
+      "id": "ST_reference",
+      "name": "Delantero referencia",
+      "position_id": "ST"
+    },
+    {
+      "id": "ST_mobile",
+      "name": "Delantero móvil",
+      "position_id": "ST"
+    },
+    {
+      "id": "ST_associative",
+      "name": "Delantero asociativo",
+      "position_id": "ST"
+    },
+    {
+      "id": "LST_wide",
+      "name": "Delantero en banda",
+      "position_id": "LST"
+    },
+    {
+      "id": "LST_inverted",
+      "name": "Delantero interior",
+      "position_id": "LST"
+    },
+    {
+      "id": "RST_wide",
+      "name": "Delantero en banda",
+      "position_id": "RST"
+    },
+    {
+      "id": "RST_inverted",
+      "name": "Delantero interior",
+      "position_id": "RST"
+    }
+  ],
+  "technical_stats": {
+    "field_trainable": [
+      {
+        "id": "passing",
+        "name": "Pase",
+        "category": "technical",
+        "secondaries": [
+          "attention",
+          "game_vision",
+          "intelligence"
+        ]
+      },
+      {
+        "id": "first_touch",
+        "name": "Control",
+        "category": "technical",
+        "secondaries": [
+          "coordination",
+          "attention",
+          "agility"
+        ]
+      },
+      {
+        "id": "dribbling",
+        "name": "Regate",
+        "category": "technical",
+        "secondaries": [
+          "agility",
+          "balance",
+          "creativity"
+        ]
+      },
+      {
+        "id": "finishing",
+        "name": "Definición",
+        "category": "technical",
+        "secondaries": [
+          "coordination",
+          "concentration",
+          "strength"
+        ]
+      },
+      {
+        "id": "technique",
+        "name": "Técnica",
+        "category": "technical",
+        "secondaries": [
+          "coordination",
+          "creativity"
+        ]
+      },
+      {
+        "id": "crossing",
+        "name": "Centros",
+        "category": "technical",
+        "secondaries": [
+          "coordination",
+          "strength",
+          "attention"
+        ]
+      },
+      {
+        "id": "heading",
+        "name": "Juego de cabeza",
+        "category": "technical",
+        "secondaries": [
+          "strength",
+          "coordination",
+          "attention",
+          "jumping"
+        ]
+      },
+      {
+        "id": "marking",
+        "name": "Marcaje",
+        "category": "technical",
+        "secondaries": [
+          "attention",
+          "intelligence",
+          "anticipation"
+        ]
+      },
+      {
+        "id": "tackling",
+        "name": "Entrada",
+        "category": "technical",
+        "secondaries": [
+          "strength",
+          "coordination",
+          "attention"
+        ]
+      },
+      {
+        "id": "long_shots",
+        "name": "Disparo lejano",
+        "category": "technical",
+        "secondaries": [
+          "strength",
+          "coordination",
+          "concentration"
+        ]
+      },
+      {
+        "id": "free_kick_taking",
+        "name": "Golpeo de falta",
+        "category": "technical",
+        "secondaries": [
+          "technique",
+          "strength",
+          "coordination"
+        ]
+      },
+      {
+        "id": "penalty_taking",
+        "name": "Penaltis",
+        "category": "technical",
+        "secondaries": [
+          "concentration",
+          "composure",
+          "technique",
+          "strength",
+          "coordination"
+        ]
+      },
+      {
+        "id": "corners",
+        "name": "Saques de esquina",
+        "category": "technical",
+        "secondaries": [
+          "technique",
+          "strength",
+          "attention"
+        ]
+      },
+      {
+        "id": "long_throws",
+        "name": "Saque de banda largo",
+        "category": "technical",
+        "secondaries": [
+          "strength",
+          "technique",
+          "attention",
+          "intelligence"
+        ]
+      }
+    ],
+    "mental_trainable": [
+      {
+        "id": "game_vision",
+        "name": "Visión de juego",
+        "category": "mental",
+        "secondaries": [
+          "intelligence",
+          "attention"
+        ]
+      },
+      {
+        "id": "positioning",
+        "name": "Posicionamiento",
+        "category": "mental",
+        "secondaries": [
+          "attention",
+          "intelligence"
+        ]
+      },
+      {
+        "id": "off_the_ball",
+        "name": "Desmarque",
+        "category": "mental",
+        "secondaries": [
+          "intelligence",
+          "speed",
+          "attention"
+        ]
+      },
+      {
+        "id": "anticipation",
+        "name": "Anticipación",
+        "category": "mental",
+        "secondaries": [
+          "attention",
+          "intelligence",
+          "concentration"
+        ]
+      },
+      {
+        "id": "decisions",
+        "name": "Toma de decisiones",
+        "category": "mental",
+        "secondaries": [
+          "intelligence",
+          "attention",
+          "concentration"
+        ]
+      },
+      {
+        "id": "composure",
+        "name": "Sangre fría en partido",
+        "category": "mental",
+        "secondaries": [
+          "concentration",
+          "resilience"
+        ]
+      }
+    ],
+    "mental_derived": [
+      {
+        "id": "aggression",
+        "name": "Agresividad en juego",
+        "category": "mental",
+        "type": "derived",
+        "formula": "determination * 0.6 + axis_calm_aggressive * 0.4"
+      },
+      {
+        "id": "leadership",
+        "name": "Liderazgo en campo",
+        "category": "mental",
+        "type": "derived",
+        "formula": "authority * 0.7 + sport_knowledge * 0.3"
+      },
+      {
+        "id": "teamwork",
+        "name": "Juego colectivo",
+        "category": "mental",
+        "type": "derived",
+        "formula": "axis_solitary_sociable * 0.6 + authority * 0.4"
+      },
+      {
+        "id": "flair",
+        "name": "Creatividad en partido",
+        "category": "mental",
+        "type": "derived",
+        "formula": "creativity * 0.7 + sport_knowledge * 0.3"
+      }
+    ],
+    "physical_trainable": [
+      {
+        "id": "acceleration",
+        "name": "Arrancada",
+        "category": "physical",
+        "secondaries": [
+          "speed",
+          "agility"
+        ]
+      },
+      {
+        "id": "jumping",
+        "name": "Salto",
+        "category": "physical",
+        "secondaries": [
+          "strength",
+          "coordination",
+          "height"
+        ]
+      }
+    ],
+    "goalkeeper_trainable": [
+      {
+        "id": "reflexes",
+        "name": "Reflejos",
+        "category": "goalkeeper",
+        "secondaries": [
+          "coordination",
+          "attention"
+        ]
+      },
+      {
+        "id": "one_on_ones",
+        "name": "Mano a mano",
+        "category": "goalkeeper",
+        "secondaries": [
+          "anticipation",
+          "composure"
+        ]
+      },
+      {
+        "id": "handling",
+        "name": "Blocaje",
+        "category": "goalkeeper",
+        "secondaries": [
+          "coordination",
+          "constitution"
+        ]
+      },
+      {
+        "id": "kicking",
+        "name": "Despeje con pie",
+        "category": "goalkeeper",
+        "secondaries": [
+          "technique",
+          "strength"
+        ]
+      },
+      {
+        "id": "aerial_reach",
+        "name": "Alcance aéreo",
+        "category": "goalkeeper",
+        "secondaries": [
+          "jumping",
+          "coordination"
+        ]
+      },
+      {
+        "id": "command_of_area",
+        "name": "Dominio del área",
+        "category": "goalkeeper",
+        "secondaries": [
+          "authority",
+          "anticipation"
+        ]
+      }
+    ],
+    "goalkeeper_derived": [
+      {
+        "id": "gk_communication",
+        "name": "Comunicación de portero",
+        "category": "goalkeeper",
+        "type": "derived",
+        "formula": "communication * 0.6 + sport_knowledge * 0.4"
+      },
+      {
+        "id": "eccentricity",
+        "name": "Excentricidad",
+        "category": "goalkeeper",
+        "type": "derived",
+        "formula": "axis_reckless_cautious * 0.5 + flair * 0.5"
+      }
+    ],
+    "hidden_derived": [
+      {
+        "id": "consistency",
+        "name": "Consistencia",
+        "type": "hidden_derived",
+        "formula": "determination * 0.4 + resilience * 0.35 + concentration * 0.25"
+      },
+      {
+        "id": "dirtiness",
+        "name": "Dureza",
+        "type": "hidden_derived",
+        "formula": "axis_calm_aggressive * 0.6 + aggression * 0.4"
+      },
+      {
+        "id": "important_matches",
+        "name": "Partidos grandes",
+        "type": "hidden_derived",
+        "formula": "composure * 0.6 + resilience * 0.4"
+      },
+      {
+        "id": "pressure",
+        "name": "Rendimiento bajo presión",
+        "type": "hidden_derived",
+        "formula": "concentration * 0.4 + composure * 0.35 + axis_optimist_pessimist * 0.25"
+      }
+    ]
+  },
+  "match_engine": {
+    "value_effective_formula": "trained_value * PRODUCT(secondary_i / 100 * 1.2)",
+    "amplifier_max_per_secondary": 1.2,
+    "position_experience_weight": 0.7,
+    "role_experience_weight": 0.3,
+    "energy_modifiers": [
+      {
+        "min": 70,
+        "max": 100,
+        "modifier": 1
+      },
+      {
+        "min": 50,
+        "max": 69,
+        "modifier": 0.9
+      },
+      {
+        "min": 30,
+        "max": 49,
+        "modifier": 0.75
+      },
+      {
+        "min": 10,
+        "max": 29,
+        "modifier": 0.55
+      },
+      {
+        "min": 0,
+        "max": 9,
+        "modifier": 0.3
+      }
+    ],
+    "category_normalization": true,
+    "training_transfer": {
+      "global_to_technical": {
+        "min": 0.1,
+        "max": 0.2
+      },
+      "technical_to_technical": {
+        "min": 0.15,
+        "max": 0.25
+      },
+      "technical_to_global": {
+        "min": 0.03,
+        "max": 0.05
+      }
+    }
+  },
+  "position_affinity": {
+    "note": "Percentage of experience transferred from one position to another. Indicative values — calibrate in MVP.",
+    "GK": {
+      "CB": 0.2,
+      "LB": 0.05,
+      "RB": 0.05,
+      "CDM": 0.05
+    },
+    "CB": {
+      "GK": 0.05,
+      "LB": 0.4,
+      "RB": 0.4,
+      "CDM": 0.3,
+      "LCR": 0.2,
+      "RCR": 0.2,
+      "CM": 0.15
+    },
+    "LB": {
+      "CB": 0.3,
+      "RB": 0.2,
+      "LCR": 0.4,
+      "CDM": 0.2,
+      "CM": 0.2,
+      "LW": 0.3,
+      "LM": 0.2
+    },
+    "RB": {
+      "CB": 0.3,
+      "LB": 0.2,
+      "RCR": 0.4,
+      "CDM": 0.2,
+      "CM": 0.2,
+      "RW": 0.3,
+      "RM": 0.2
+    },
+    "CDM": {
+      "CB": 0.25,
+      "LCR": 0.3,
+      "RCR": 0.3,
+      "CM": 0.5,
+      "LM": 0.2,
+      "RM": 0.2
+    },
+    "LCR": {
+      "LB": 0.35,
+      "CDM": 0.3,
+      "CM": 0.3,
+      "LM": 0.3,
+      "LW": 0.35
+    },
+    "RCR": {
+      "RB": 0.35,
+      "CDM": 0.3,
+      "CM": 0.3,
+      "RM": 0.3,
+      "RW": 0.35
+    },
+    "CM": {
+      "CDM": 0.4,
+      "LCR": 0.25,
+      "RCR": 0.25,
+      "LM": 0.35,
+      "RM": 0.35,
+      "CAM": 0.35
+    },
+    "LM": {
+      "LCR": 0.3,
+      "CM": 0.35,
+      "CDM": 0.2,
+      "CAM": 0.3,
+      "LW": 0.3,
+      "LST": 0.15
+    },
+    "RM": {
+      "RCR": 0.3,
+      "CM": 0.35,
+      "CDM": 0.2,
+      "CAM": 0.3,
+      "RW": 0.3,
+      "RST": 0.15
+    },
+    "CAM": {
+      "CM": 0.35,
+      "LM": 0.25,
+      "RM": 0.25,
+      "LW": 0.25,
+      "RW": 0.25,
+      "ST": 0.25
+    },
+    "LW": {
+      "LCR": 0.25,
+      "LM": 0.3,
+      "CAM": 0.25,
+      "LB": 0.2,
+      "LST": 0.3
+    },
+    "RW": {
+      "RCR": 0.25,
+      "RM": 0.3,
+      "CAM": 0.25,
+      "RB": 0.2,
+      "RST": 0.3
+    },
+    "ST": {
+      "CAM": 0.25,
+      "LST": 0.4,
+      "RST": 0.4,
+      "LW": 0.2,
+      "RW": 0.2
+    },
+    "LST": {
+      "ST": 0.4,
+      "RST": 0.3,
+      "LW": 0.35,
+      "LM": 0.2,
+      "CAM": 0.2
+    },
+    "RST": {
+      "ST": 0.4,
+      "LST": 0.3,
+      "RW": 0.35,
+      "RM": 0.2,
+      "CAM": 0.2
+    }
+  },
+  "role_affinity": {
+    "note": "Pending definition. Initialize with 0 for different roles, 1.0 for identical role. Calibrate in MVP.",
+    "default_same_role": 1,
+    "default_different_role": 0
+  },
+  "competition_structure": {
+    "season_weeks": 36,
+    "match_day": 6,
+    "matches_per_season_childhood": 12,
+    "matches_per_season_adolescence": 24,
+    "matches_per_season_professional": 38
+  }
+}
