@@ -1210,7 +1210,8 @@ export const relaciones = defineModule<RelacionesState>({
         // Al rival al que ganas le subes 1; el que te gana te baja 0,5 (en un partido, un empate sube 0,5). Competir con alguien es conocerlo.
         for (const p of r.participants) {
           const n = p.npcId ? dir.get(p.npcId) : undefined;
-          if (!n || n.role !== 'rival') continue;
+          // Un compañero de equipo de otro colegio también tiene el papel `rival` (fase 4): jugar juntos no es competir contra él.
+          if (!n || n.role !== 'rival' || p.bando === 'companero') continue;
           const cambio = elPersonajeLeGana(r, p) ? 1 : r.equipo?.resultado === 'empate' && p.bando === 'rival' ? 0.5 : -0.5;
           vinculos[n.id] = conCambio(vinculos[n.id] ?? nuevoVinculo(n.id, dia), dia, cambio);
         }

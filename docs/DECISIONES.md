@@ -25,10 +25,36 @@ Hecha la F1 de `ANALISIS_FUTBOL.md` §7, con el kit de deporte. **Sin partidos**
 Hecha la F0 de `ANALISIS_FUTBOL.md` §7. Todo son **campos opcionales**: el atletismo no cambia (`npm run huella -- 120` idéntica antes y después) y no se sube `INTERFAZ_DE_DEPORTES` (los paquetes ya publicados siguen valiendo).
 
 - **`competicion.resultado`:** `equipo` (`ResultadoDeEquipo`: victoria/empate/derrota, marcador y nombres de los equipos), `participants[].bando` (`companero` | `rival`) y `mayorEsMejor`. Ayudas puras en contracts: `elPersonajeLeGana(r, p)` y `fueUnExito(r)`.
-- **`relaciones` ya no supone que gana la menor marca:** compara con `elPersonajeLeGana`; en un partido gana el equipo (solo cuentan los del bando rival; empate +0,5) y el entrenador sube 3 si el equipo gana (en pruebas, el podio). Misma cifra de siempre en atletismo (rival al que ganas +1, el que te gana −0,5; el comentario del código lo decía al revés, el anexo y el código no). Cifras en `ANEXO_RELACIONES.md`.
+- **`relaciones` ya no supone que gana la menor marca:** compara con `elPersonajeLeGana`; en un partido gana el equipo (solo cuentan los del bando rival; empate +0,5) y el entrenador sube 3 si el equipo gana (en pruebas, el podio). Misma cifra de siempre en atletismo (rival al que ganas +1, el que te gana −0,5; el comentario del código lo decía al revés, el anexo y el código no). Cifras en `ANEXO_RELACIONES.md`. **Revisión (01/11):** un compañero de equipo de otro colegio tiene el papel `rival` (fase 4); `relaciones` se salta a los participantes con `bando: 'companero'` (jugar juntos no es competir contra él), para que no pierda afinidad aunque el equipo gane.
 - **Pestaña del deporte:** `DeporteView.secciones` (bloques libres: plantilla, tabla de la liga, partidos), `PruebaDeTemporada.resultado` («Ganado 3-1») y `temporada.nombreDePruebas`.
 - **Liga:** `TemporadaDeDeporte.liga` (`vueltas` 1 o 2 y `equiposPorCategoria` min–max) con `jornadasDeLiga` y validación; `EquipoDeDeporte.categorias` para decir en qué categorías tiene equipo cada club (validado contra las categorías del país).
 - **No incluido:** quién juega contra quién cada jornada (el calendario de la liga) ni el motor del partido: van con la F2.
+
+---
+
+## 01/11/2026 — Motor de los partidos: respuestas del usuario
+
+Respuestas a las preguntas de `MOTOR_PARTIDOS.md` (§0 de ese documento):
+
+- **Los goles salen de la simulación**, sin objetivo previo por categoría: más diferencia de nivel o un portero muy malo dan más goles. El banco de partidos solo vigila que el motor no se rompa.
+- **Intensidad antes del partido** (relajado, normal, a tope), aprobada.
+- **Cambios como en la vida real, por categoría:** dato por categoría y nivel en los datos del deporte por país. En España los fija cada federación territorial (encontrado: 7 en 3 interrupciones en la Autonómica y Preferente de Valencia, volantes en sus regionales, 5 en Castilla-La Mancha y en el juvenil de la RFEF; a confirmar con las circulares vigentes).
+- **Experiencia en el puesto desde 0**, que se gana jugando con rendimientos decrecientes, más deprisa con inteligencia, atención y conocimiento. En el partido pesa desde una base que pone el conocimiento (`0,5 + 0,3 × conocimiento / 100`), para que el primer partido no valga 0 (lo decidí yo a petición del usuario: la experiencia queda como dato limpio y lo general lo pone el conocimiento).
+- **Ventaja de jugar en casa** pequeña (+4 %); quizá después con el público.
+- **La roja y la acumulación de amarillas suspenden** (1 partido cada 5 amarillas). **Cambios de partida en España** aprobados mientras no se confirmen las circulares: las ligas de la ciudad con cambios volantes y 18 convocados, autonómica y nacional con 7 en 3 interrupciones, juvenil nacional con 5.
+- **Lesiones: esperan al sistema de salud, pero pueden pasar durante el partido y en cualquier acción** (precisión del usuario). Como el partido se calcula dentro de una sola acción, el fútbol **pregunta en cada tramo y en cada jugada de contacto a un servicio `salud`** (contrato nuevo) la probabilidad de lesión con el esfuerzo de ese momento, tira el dado con su azar y, si hay lesión, saca al jugador y avisa con el evento compartido `salud.lesion`; el sistema de salud decidirá tipo y baja. Igual en cualquier otra acción (el kit puede traer la pieza). Sin el servicio la probabilidad es 0: no cambia nada hasta que exista.
+
+## 01/11/2026 — Motor de los partidos de fútbol (diseño, sin aprobar)
+
+Pedido por el usuario: diseñar el motor de los partidos, que ni el addon 2.1 ni el diseño de stats definen. Diseño en `MOTOR_PARTIDOS.md`; no hay código.
+
+- **Duelos relativos** (cocientes entre valores) más una parte pequeña contra dificultad fija, todo en escala de adulto gracias al potenciador; **6 tramos de 15 minutos**, con todo precalculado salvo el cansancio.
+- **Cinco zonas por equipo** (portería, defensa, creación, ataque, balón parado) según el puesto, el rol y la formación; posesión, ataques, ocasiones, tiro contra portero, balón parado, faltas y tarjetas.
+- **Cansancio:** empieza en 0, sube según la resistencia, la energía al empezar y la intensidad (relajado, normal, a tope, elegida antes del partido hasta que haya decisiones dentro); rinde con la tabla de 5 tramos del addon.
+- **Experiencia en el puesto:** propuesta ×0,75 a ×1 (el diseño deja a cero a quien juega por primera vez en un puesto).
+- **Convocatoria** por valor en el puesto, asistencia a los entrenamientos, relación y carácter del entrenador; **nota de 1 a 10** y crónica en el diario.
+- **Prototipo** (fuera del juego, liga de 7 a doble vuelta): sin potenciador los benjamines marcan 0,48 goles por partido con un 62 % de 0 a 0; con él, todas las categorías quedan en torno a 2,9 goles y un 5–7 % de 0 a 0, y el mejor equipo gana la liga el 47–67 % de las veces.
+- **Preguntas abiertas:** `MOTOR_PARTIDOS.md` §13.
 
 ---
 
