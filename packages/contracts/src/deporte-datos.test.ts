@@ -104,6 +104,14 @@ describe('validar los datos de un deporte', () => {
     expect(conEspana({ temporada: { ...t, liga: { vueltas: 1, equiposPorCategoria: { min: 8, max: 7 } } } }).join()).toMatch(/«liga»/);
     expect(conEspana({ poblacion: { ...pob, equipos: [{ ...pob.equipos[0], categorias: ['a', 'zeta'] }] } }).join()).toMatch(/categorías que no existen \(zeta\)/);
     expect(conEspana({ poblacion: { ...pob, equipos: [{ ...pob.equipos[0], categorias: ['a', 'b'] }] } }).join()).toBe('');
+    // Sin liga hacen falta las fases finales; con liga no (pero o los dos o ninguno).
+    const { semifinalAntesDelFinal: _s, finalAntesDelFinal: _f, ...sinFases } = t;
+    const liga = { vueltas: 2 as const, equiposPorCategoria: { min: 6, max: 7 } };
+    expect(conEspana({ temporada: sinFases }).join()).toMatch(/solo una liga puede no tener fases finales/);
+    expect(conEspana({ temporada: { ...sinFases, liga } }).join()).toBe('');
+    expect(conEspana({ temporada: { ...sinFases, semifinalAntesDelFinal: 3, liga } }).join()).toMatch(/los dos o ninguno/);
+    expect(conEspana({ temporada: { ...sinFases, semifinalAntesDelFinal: 1, finalAntesDelFinal: 2, liga } }).join()).toMatch(/la final tiene que ser después/);
+    expect(semanasDeTemporada(CALENDARIO_ESPANA, { ...sinFases, liga })).toEqual({ primeraCompeticion: 4 });
     const club = DATOS.paises.espana.clubes[0];
     expect(conEspana({ clubes: [club, club] }).join()).toMatch(/está repetido/);
     expect(conEspana({ clubes: [{ ...club, calidad: 7 }] }).join()).toMatch(/club mal formado/);

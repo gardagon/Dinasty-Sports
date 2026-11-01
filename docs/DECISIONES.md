@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 01/11/2026 — Revisión de la F0 y la F1: sobrecarga conjunta y liga sin fases finales
+
+De la revisión (`MOTOR_PARTIDOS.md` §14, puntos 2 y 4). `npm run huella -- 120` idéntica a `main`.
+
+- **Sobrecarga entre deportes (kit):** `manejadoresDeDeporte` cuenta ahora **las sesiones de entrenamiento de todos los deportes de la partida** (acciones con la etiqueta `entrenamiento` de un módulo con ficha de deporte), no solo las propias; cada deporte lleva la misma cuenta en su estado y `modificadorDeSobrecarga` sigue leyéndola. Con atletismo y fútbol, la tercera sesión del día sufre sobrecarga sea del deporte que sea. **Decisión mía:** no cuentan el gimnasio ni estudiar (también llevan la etiqueta, y contarlos cambiaría la partida de un solo deporte). El castigo a la salud y la lesión los aplica solo el deporte de la sesión, para no cobrarlos dos veces.
+- **Liga sin semifinal ni final:** `semifinalAntesDelFinal` y `finalAntesDelFinal` son opcionales **si la temporada trae `liga`** (o vienen los dos o ninguno; sin liga siguen siendo obligatorios). `SemanasDeTemporada.semifinal/final` pasan a opcionales. Los datos del fútbol ya no los traen.
+
+---
+
 ## 01/11/2026 — Fútbol, F1: módulo `modules/futbol` (habilidades, conocimiento, entreno y club del colegio)
 
 Hecha la F1 de `ANALISIS_FUTBOL.md` §7, con el kit de deporte. **Sin partidos**: el motor se diseña aparte (F2).
