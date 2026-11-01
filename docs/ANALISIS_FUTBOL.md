@@ -178,7 +178,7 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 
 ## 6. Lo que falta en los documentos para hacer el addon
 
-1. **Cómo se resuelve un partido:** de los valores precalculados al marcador, los minutos, los goles y la nota del jugador. Propuesta: fuerza de cada equipo por líneas, goles con una distribución de Poisson según la diferencia, y la nota y las acciones del jugador según su posición y sus valores en partido.
+1. **Cómo se resuelve un partido** (diseñado en [`MOTOR_PARTIDOS.md`](MOTOR_PARTIDOS.md), pendiente de aprobar): de los valores precalculados al marcador, los minutos, los goles y la nota del jugador. Propuesta: fuerza de cada equipo por líneas, goles con una distribución de Poisson según la diferencia, y la nota y las acciones del jugador según su posición y sus valores en partido.
 2. **La convocatoria:** cómo decide el entrenador titular, suplente o no convocado (nivel en su posición frente a los compañeros, asistencia a los entrenamientos, relación con él). Es lo que hace distinto al fútbol del atletismo.
 3. **Qué acciones hay y qué entrena cada una:** sesión de club, entreno por libre (técnica con balón, tiro, físico, porteros), ver fútbol, verano. Y cuánto sube cada habilidad.
 4. ~~Fútbol 7~~ (decidido: fútbol 11 desde el principio). Falta cómo **sube y baja el cansancio** durante el partido (decisión 4): cuánto según la energía inicial, la resistencia y la intensidad.
