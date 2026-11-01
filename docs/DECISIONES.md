@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 01/11/2026 — Motor de los partidos de fútbol (diseño, sin aprobar)
+
+Pedido por el usuario: diseñar el motor de los partidos, que ni el addon 2.1 ni el diseño de stats definen. Diseño en `MOTOR_PARTIDOS.md`; no hay código.
+
+- **Duelos relativos** (cocientes entre valores) más una parte pequeña contra dificultad fija, todo en escala de adulto gracias al potenciador; **6 tramos de 15 minutos**, con todo precalculado salvo el cansancio.
+- **Cinco zonas por equipo** (portería, defensa, creación, ataque, balón parado) según el puesto, el rol y la formación; posesión, ataques, ocasiones, tiro contra portero, balón parado, faltas y tarjetas.
+- **Cansancio:** empieza en 0, sube según la resistencia, la energía al empezar y la intensidad (relajado, normal, a tope, elegida antes del partido hasta que haya decisiones dentro); rinde con la tabla de 5 tramos del addon.
+- **Experiencia en el puesto:** propuesta ×0,75 a ×1 (el diseño deja a cero a quien juega por primera vez en un puesto).
+- **Convocatoria** por valor en el puesto, asistencia a los entrenamientos, relación y carácter del entrenador; **nota de 1 a 10** y crónica en el diario.
+- **Prototipo** (fuera del juego, liga de 7 a doble vuelta): sin potenciador los benjamines marcan 0,48 goles por partido con un 62 % de 0 a 0; con él, todas las categorías quedan en torno a 2,9 goles y un 5–7 % de 0 a 0, y el mejor equipo gana la liga el 47–67 % de las veces.
+- **Preguntas abiertas:** `MOTOR_PARTIDOS.md` §13.
+
 ## 31/10/2026 — Fútbol: decisiones del usuario sobre el análisis
 
 Respuestas a las preguntas de `ANALISIS_FUTBOL.md` (§0 de ese documento):
