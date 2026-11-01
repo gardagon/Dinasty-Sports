@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 01/11/2026 — Fútbol, F0: vocabulario común para los deportes de equipo
+
+Hecha la F0 de `ANALISIS_FUTBOL.md` §7. Todo son **campos opcionales**: el atletismo no cambia (`npm run huella -- 120` idéntica antes y después) y no se sube `INTERFAZ_DE_DEPORTES` (los paquetes ya publicados siguen valiendo).
+
+- **`competicion.resultado`:** `equipo` (`ResultadoDeEquipo`: victoria/empate/derrota, marcador y nombres de los equipos), `participants[].bando` (`companero` | `rival`) y `mayorEsMejor`. Ayudas puras en contracts: `elPersonajeLeGana(r, p)` y `fueUnExito(r)`.
+- **`relaciones` ya no supone que gana la menor marca:** compara con `elPersonajeLeGana`; en un partido gana el equipo (solo cuentan los del bando rival; empate +0,5) y el entrenador sube 3 si el equipo gana (en pruebas, el podio). Misma cifra de siempre en atletismo (rival al que ganas +1, el que te gana −0,5; el comentario del código lo decía al revés, el anexo y el código no). Cifras en `ANEXO_RELACIONES.md`.
+- **Pestaña del deporte:** `DeporteView.secciones` (bloques libres: plantilla, tabla de la liga, partidos), `PruebaDeTemporada.resultado` («Ganado 3-1») y `temporada.nombreDePruebas`.
+- **Liga:** `TemporadaDeDeporte.liga` (`vueltas` 1 o 2 y `equiposPorCategoria` min–max) con `jornadasDeLiga` y validación; `EquipoDeDeporte.categorias` para decir en qué categorías tiene equipo cada club (validado contra las categorías del país).
+- **No incluido:** quién juega contra quién cada jornada (el calendario de la liga) ni el motor del partido: van con la F2.
+
+---
+
 ## 31/10/2026 — Fútbol: decisiones del usuario sobre el análisis
 
 Respuestas a las preguntas de `ANALISIS_FUTBOL.md` (§0 de ese documento):

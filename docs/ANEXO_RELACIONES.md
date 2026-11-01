@@ -126,7 +126,7 @@ La confianza baja 0,1 al día tras 30 días sin verse.
 `0,35 + 0,15 × (habilidad − 0,4)/0,4 + 0,2 × sociabilidad/50 + 0,15 × optimismo/50 + 0,1 × honestidad/50 − 0,15 × (|nivel| − 1) + 0,2 × (compatibilidad − 0,4)`,
 donde `habilidad` es el nivel (empatía y comunicación, 0 a 1) y `nivel` es 1 con antipatía, 2 con enemigo y 3 con antagonista.
 
-**Competiciones:** el entrenador del deporte sube su afinidad contigo 1 por competir y 3 si quedas en el podio; un rival al que ganas te sube 1 y uno que te gana, −0,5. No cuentan como haber estado juntos.
+**Competiciones:** el entrenador del deporte sube su afinidad contigo 1 por competir y 3 si quedas en el podio (en un partido, 3 si tu equipo gana); un rival al que ganas te sube 1 y uno que te gana, −0,5. En una prueba individual se comparan las marcas (por defecto gana la menor; con `mayorEsMejor`, la mayor); **en un partido no se comparan marcas: ganas o pierdes con tu equipo** y solo cuentan los del bando rival (un empate sube 0,5). No cuentan como haber estado juntos.
 
 ## 5. Un ejemplo
 

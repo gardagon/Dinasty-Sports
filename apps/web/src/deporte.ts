@@ -49,15 +49,19 @@ function vista(g: Game, d: DeporteView): string {
     ? [...t.pruebas]
         .reverse()
         .map(
-          (p) => `<details class="prueba"><summary><b>Semana ${p.semana}</b> · ${esc(p.titulo)} · <b>${p.posicion}º de ${p.total}</b> · ${esc(p.marca)}${p.record ? ' ⭐' : ''}</summary>${p.tabla ? tabla(p.tabla) : '<p class="note">Sin clasificación guardada.</p>'}</details>`,
+          (p) => `<details class="prueba"><summary><b>Semana ${p.semana}</b> · ${esc(p.titulo)} · <b>${p.resultado ? esc(p.resultado) : `${p.posicion}º de ${p.total}`}</b> · ${esc(p.marca)}${p.record ? ' ⭐' : ''}</summary>${p.tabla ? tabla(p.tabla) : '<p class="note">Sin clasificación guardada.</p>'}</details>`,
         )
         .join('')
     : '<p class="note">Todavía no has competido este curso.</p>';
   const clasificaciones = d.clasificaciones.length
     ? d.clasificaciones.map((c) => `<h4>${esc(c.titulo)}</h4>${tabla(c.tabla)}`).join('')
     : '<p class="note">Las clasificaciones aparecen cuando hayas competido.</p>';
+  const pruebasNombre = t.nombreDePruebas ?? 'Carreras';
+  const secciones = (d.secciones ?? [])
+    .map((x) => `<h3>${esc(x.titulo)}</h3>${x.texto ? `<p class="note">${esc(x.texto)}</p>` : ''}${x.tabla ? tabla(x.tabla) : ''}`)
+    .join('');
   const anteriores = d.temporadasAnteriores.length
-    ? `<h3>Cursos anteriores</h3>${tabla({ header: ['Curso', 'Carreras', 'Mejor puesto', 'Mejor marca'], rows: d.temporadasAnteriores.map((a) => [a.etiqueta, String(a.pruebas), a.mejorPuesto, a.mejorMarca]), align: ['left', 'right', 'left', 'right'] })}`
+    ? `<h3>Cursos anteriores</h3>${tabla({ header: ['Curso', pruebasNombre, 'Mejor puesto', 'Mejor marca'], rows: d.temporadasAnteriores.map((a) => [a.etiqueta, String(a.pruebas), a.mejorPuesto, a.mejorMarca]), align: ['left', 'right', 'left', 'right'] })}`
     : '';
   return `<section class="sheet deporte">
     <h2>${esc(d.nombre)} <small>${esc(d.disciplina)}</small></h2>
@@ -69,7 +73,8 @@ function vista(g: Game, d: DeporteView): string {
   </section>
   <section class="sheet deporte">
     <h2>Temporada · ${esc(t.etiqueta)}</h2>
-    <h3>Carreras</h3>${pruebas}
+    <h3>${esc(pruebasNombre)}</h3>${pruebas}
+    ${secciones}
     <h3>Clasificaciones</h3>${clasificaciones}
     ${anteriores}
   </section>`;

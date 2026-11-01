@@ -82,19 +82,53 @@ export interface ClubLeaveData {
   sport: string;
 }
 
+/** Quién es alguien que sale en una competición: un rival, un compañero de equipo o (sin `bando`) un participante más de una prueba individual. */
+export type BandoEnCompeticion = 'companero' | 'rival';
+
+/** Lo que añade un partido (o cualquier competición por equipos) al resultado: el marcador y quién ganó. */
+export interface ResultadoDeEquipo {
+  /** Desde el punto de vista del equipo del personaje. */
+  resultado: 'victoria' | 'empate' | 'derrota';
+  /** Marcador: tantos del equipo del personaje y del rival. */
+  propio: number;
+  rival: number;
+  /** Los nombres de los dos equipos (p. ej. para el registro). */
+  equipoPropio: string;
+  equipoRival: string;
+}
+
 export interface CompetitionResultData {
   /** Módulo que la organiza (p. ej. 'atletismo'). */
   module: string;
-  /** Nombre visible de la prueba (p. ej. '400 m'). */
+  /** Nombre visible de la prueba (p. ej. '400 m') o del partido. */
   discipline: string;
-  /** 1 = primero. */
+  /** 1 = primero. En un partido, el puesto del equipo en la clasificación de la competición. */
   position: number;
   total: number;
-  /** Marca del personaje, en la unidad de la prueba. */
+  /** Marca del personaje, en la unidad de la prueba. En un partido, su valoración (la que decida el deporte). */
   mark: number;
   unit: string;
-  participants: { npcId?: string; name: string; mark: number; isPlayer?: boolean }[];
+  participants: { npcId?: string; name: string; mark: number; isPlayer?: boolean; bando?: BandoEnCompeticion }[];
+  /**
+   * Si es mejor la marca mayor (puntos, goles, una nota) y no la menor (tiempos, como en atletismo). Sin él, gana la menor, como hasta ahora.
+   * Solo vale para comparar `mark` entre participantes de una prueba individual.
+   */
+  mayorEsMejor?: boolean;
+  /** Presente en las competiciones por equipos: el marcador y quién ganó. Ahí no se comparan marcas: gana el equipo. */
+  equipo?: ResultadoDeEquipo;
 }
+
+/**
+ * ¿Le ha ganado el personaje a este participante? En una prueba individual se comparan las marcas (por defecto gana la menor, como en atletismo; con
+ * `mayorEsMejor`, la mayor; un empate cuenta como no ganar). En un partido, solo se le gana al bando rival y solo si el equipo del personaje ha ganado.
+ */
+export function elPersonajeLeGana(r: Pick<CompetitionResultData, 'mark' | 'mayorEsMejor' | 'equipo'>, p: { mark: number; bando?: BandoEnCompeticion }): boolean {
+  if (r.equipo) return p.bando === 'rival' && r.equipo.resultado === 'victoria';
+  return r.mayorEsMejor ? r.mark > p.mark : r.mark < p.mark;
+}
+
+/** ¿Fue un buen resultado para el personaje? En una prueba, el podio; en un partido, ganar. */
+export const fueUnExito = (r: Pick<CompetitionResultData, 'position' | 'equipo'>): boolean => (r.equipo ? r.equipo.resultado === 'victoria' : r.position <= 3);
 
 export interface DayEventData {
   day: number;
