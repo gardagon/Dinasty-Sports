@@ -12,10 +12,10 @@ Respuestas a las preguntas de `MOTOR_PARTIDOS.md` (§0 de ese documento):
 - **Los goles salen de la simulación**, sin objetivo previo por categoría: más diferencia de nivel o un portero muy malo dan más goles. El banco de partidos solo vigila que el motor no se rompa.
 - **Intensidad antes del partido** (relajado, normal, a tope), aprobada.
 - **Cambios como en la vida real, por categoría:** dato por categoría y nivel en los datos del deporte por país. En España los fija cada federación territorial (encontrado: 7 en 3 interrupciones en la Autonómica y Preferente de Valencia, volantes en sus regionales, 5 en Castilla-La Mancha y en el juvenil de la RFEF; a confirmar con las circulares vigentes).
-- **Experiencia en el puesto desde 0**, que se gana jugando con rendimientos decrecientes, más deprisa con inteligencia, atención y conocimiento. Pendiente: que en el partido pese desde una base que pone el conocimiento, para que el primer partido no valga 0.
+- **Experiencia en el puesto desde 0**, que se gana jugando con rendimientos decrecientes, más deprisa con inteligencia, atención y conocimiento. En el partido pesa desde una base que pone el conocimiento (`0,5 + 0,3 × conocimiento / 100`), para que el primer partido no valga 0 (lo decidí yo a petición del usuario: la experiencia queda como dato limpio y lo general lo pone el conocimiento).
 - **Ventaja de jugar en casa** pequeña (+4 %); quizá después con el público.
-- **La roja y la acumulación de amarillas suspenden** (propuesta: 1 partido cada 5 amarillas).
-- **Lesiones: esperan al sistema de salud.** El fútbol emitirá un evento compartido de esfuerzo (minutos, intensidad, cansancio, energía, sobrecarga, contacto) que hoy nadie escucha y que recogerá ese sistema, sin refactorizar nada.
+- **La roja y la acumulación de amarillas suspenden** (1 partido cada 5 amarillas). **Cambios de partida en España** aprobados mientras no se confirmen las circulares: las ligas de la ciudad con cambios volantes y 18 convocados, autonómica y nacional con 7 en 3 interrupciones, juvenil nacional con 5.
+- **Lesiones: esperan al sistema de salud, pero pueden pasar durante el partido y en cualquier acción** (precisión del usuario). Como el partido se calcula dentro de una sola acción, el fútbol **pregunta en cada tramo y en cada jugada de contacto a un servicio `salud`** (contrato nuevo) la probabilidad de lesión con el esfuerzo de ese momento, tira el dado con su azar y, si hay lesión, saca al jugador y avisa con el evento compartido `salud.lesion`; el sistema de salud decidirá tipo y baja. Igual en cualquier otra acción (el kit puede traer la pieza). Sin el servicio la probabilidad es 0: no cambia nada hasta que exista.
 
 ## 01/11/2026 — Motor de los partidos de fútbol (diseño, sin aprobar)
 

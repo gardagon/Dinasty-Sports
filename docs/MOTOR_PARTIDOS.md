@@ -12,7 +12,8 @@ Propuesta del 01/11/2026, **revisada con las respuestas del usuario del 01/11 (�
 4. **La experiencia en un puesto empieza en 0** y se gana jugando en él: mucho al principio y cada vez menos (curva exponencial invertida), más deprisa con inteligencia, atención y conocimiento del fútbol (§3).
 5. **Ventaja de jugar en casa:** sí, pequeña. Más adelante quizá con el público.
 6. **Tarjetas:** la roja y la acumulación de amarillas suspenden partidos.
-7. **Lesiones:** esperan al sistema de salud. El fútbol solo lanza una señal con el esfuerzo de cada partido (sin tipos de lesión ni duración), para que ese sistema la recoja cuando exista (§9).
+7. **Lesiones:** esperan al sistema de salud (los tipos, la duración y la recuperación son suyos). **Pueden ocurrir durante el partido, en cualquier tramo, y en cualquier acción**, no solo al final (precisión del 01/11). El fútbol deja preparado cómo preguntar y avisar (§9), sin refactorizar nada.
+8. **Experiencia en el partido (decidido por mí, a petición del usuario):** la experiencia de cada puesto empieza en 0 de verdad, y en el partido pesa desde una base que pone el conocimiento del fútbol (§3).
 
 ## 1. Qué tiene que cumplir
 
@@ -58,7 +59,7 @@ y en cada tramo  × cansancio                              (tabla de 5 tramos, �
 
   Con eso, un curso de titular en un puesto (12 partidos) lleva a unos 65 a un niño normal y a unos 75 a uno listo y atento. Los primeros partidos dan mucho (unos 9 puntos el primero) y llegar a 90 cuesta años. Los entrenamientos con el club dan algo en el puesto que te asigna el entrenador. Las afinidades del addon pasan experiencia de un puesto a otro (un lateral derecho que juega de carrilero aprovecha el 40 %), y la combinada es 70 % posición y 30 % rol.
 
-  **Un detalle que hay que decidir:** el diseño multiplica el valor por `experiencia / 100`. Con la experiencia empezando en 0, el primer partido de cualquier niño valdría 0 (y todos los de 8 años empiezan sin experiencia, así que volverían los 0 a 0). Propuesta: la experiencia empieza en 0 como se pide, pero en el partido pesa **desde una base que pone el conocimiento del fútbol**: `valor × (base + (1 − base) × experiencia / 100)`, con `base = 0,5 + 0,3 × conocimiento / 100`. Quien no ha jugado nunca en un puesto rinde la mitad o algo más según cuánto sepa de fútbol, y con la experiencia llega al 100 %.
+  **Cómo pesa en el partido (decidido):** el diseño multiplica el valor por `experiencia / 100`. Con la experiencia empezando en 0, el primer partido de cualquier niño valdría 0 (y todos los de 8 años empiezan sin experiencia, así que volverían los 0 a 0). Propuesta: la experiencia empieza en 0 como se pide, pero en el partido pesa **desde una base que pone el conocimiento del fútbol**: `valor × (base + (1 − base) × experiencia / 100)`, con `base = 0,5 + 0,3 × conocimiento / 100`. Quien no ha jugado nunca en un puesto rinde la mitad o algo más según cuánto sepa de fútbol, y con la experiencia llega al 100 %. **Por qué así y no empezando por encima de 0:** la experiencia queda como un dato limpio («nunca has jugado de central») que la interfaz y los eventos pueden contar, y lo que sabe de fútbol en general lo pone el conocimiento, que es lo que lo representa.
 - **Experiencia de los demás:** no se guarda por persona. Sale de los años que lleva en su equipo y de su puesto, con la misma curva (un juvenil que juega de central desde alevín tiene mucha).
 - **Jugadores que no son el personaje:** una persona solo tiene un nivel por deporte (`levels.futbol`) y sus 18 capacidades. Su valor en cada habilidad sale de su nivel por un **perfil** que se calcula con sus capacidades (un niño rápido tiene más arrancada y regate que uno lento con el mismo nivel), con un azar estable por persona. No se guardan 29 habilidades por persona.
 - **Su puesto:** el que mejor encaja con su perfil, calculado igual. El entrenador de cada equipo hace la alineación (§8).
@@ -159,7 +160,12 @@ Confirma el problema y la solución: sin potenciador, los benjamines casi no mar
 - **Motivación:** sube con la victoria, el buen papel y los minutos; baja con el banquillo y las derrotas, más en quien es ambicioso.
 - **Relaciones:** el evento compartido `competicion.resultado` con los datos de equipo (marcador, compañeros y rivales), para que `relaciones` y `npcs` reaccionen.
 - **Clasificación:** se juegan todos los partidos de la jornada de su liga (solo los de su categoría) y se actualiza la tabla.
-- **Señal de esfuerzo para el sistema de salud (decisión 7).** Las lesiones esperan al sistema de salud (E12). Para no tener que tocar el fútbol cuando llegue, al acabar cada partido (y cada sesión de entrenamiento) el fútbol emite un **evento compartido de esfuerzo**, sin tipos de lesión ni duración: el deporte, los minutos, la intensidad elegida, el cansancio con el que acabó, la energía con la que empezó, si iba con sobrecarga y cuánto contacto hubo (duelos y entradas recibidas). Hoy nadie lo escucha y no cambia nada. Cuando exista el sistema de salud, lo recogerá y decidirá si hay lesión, con más riesgo si el esfuerzo fue alto, con sobrecarga o con poca energía, y con su punto de azar. El atletismo puede emitir la misma señal (hoy tiene sus «molestias musculares» por sobrecarga, que se quedan como están). Es un tipo nuevo en `contracts` (`SHARED_EVENTS`), sin refactorizar nada.
+- **Lesiones (decisión 7): durante el partido y en cualquier acción.** El partido entero se calcula dentro de una sola acción, así que un evento no puede interrumpirlo a mitad: el sistema de salud no se enteraría hasta el final. Por eso se usan las dos piezas que ya da el motor:
+  1. **Un servicio para preguntar, durante el partido.** En cada tramo (y en las jugadas de contacto, como una entrada dura), el fútbol pregunta al servicio `salud` (contrato nuevo en `contracts/services.ts`) **qué probabilidad hay de lesionarse** con el esfuerzo de ese momento: deporte, minuto, intensidad, cansancio, energía con la que empezó, si va con sobrecarga y el contacto de esa jugada. El servicio solo lee (devuelve una probabilidad, con la constitución, los perks como Endeble o Recuperación lenta, la salud y la edad), y **el fútbol tira el dado con su propio azar**.
+  2. **Un evento para avisar.** Si hay lesión, el fútbol saca al jugador (lo cambia o, si no quedan cambios, el equipo juega con uno menos) y emite el evento compartido `salud.lesion` (persona, deporte, momento y contexto). El sistema de salud lo recoge y decide el tipo, la gravedad y la baja.
+  3. **En cualquier otra acción** (un entrenamiento, el gimnasio, una carrera del atletismo), igual: la acción pregunta al servicio y avisa con el evento. El kit de deporte puede traer la pieza para que todos los deportes lo hagan igual.
+
+  **Hoy no existe el servicio**, así que la probabilidad es 0 y no pasa nada: el fútbol funciona sin él, como exige la regla de los servicios. Cuando llegue el sistema de salud, lo publicará y las lesiones aparecerán solas, sin tocar el fútbol. Las «molestias musculares» del atletismo por sobrecarga se quedan como están hasta entonces. Los demás jugadores (compañeros y rivales) también podrán lesionarse con el mismo servicio; al principio, solo el personaje.
 
 ## 10. Coste y lo que se guarda
 
@@ -188,8 +194,6 @@ Una herramienta como el banco de notas (`npm run sim:partidos`): ligas de cada c
 
 ## 13. Preguntas para decidir
 
-Respondidas el 01/11 (ver §0). Quedan:
+Respondidas el 01/11 (ver §0).
 
-1. **Experiencia en el partido:** ¿vale que, empezando en 0, pese desde una base que pone el conocimiento del fútbol (de la mitad a algo más), para que el primer partido de un niño no valga 0? (§3)
-2. **Cambios de partida en España:** ¿vale la propuesta (ligas de la ciudad con cambios volantes y 18 convocados, autonómica y nacional con 7 en 3 interrupciones, juvenil nacional con 5) mientras no se confirmen las circulares?
-3. **Amarillas:** ¿un partido de sanción cada 5 amarillas?
+Todas respondidas el 01/11: experiencia desde 0 con base del conocimiento (decidido por mí), cambios de partida propuestos para España mientras no se confirmen las circulares, un partido de sanción cada 5 amarillas, y lesiones durante el partido y en cualquier acción con el servicio de salud (§9). El motor está listo para la fase F2.
