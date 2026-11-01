@@ -42,8 +42,9 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
   capacidades: [GEN.velocidad, GEN.resistencia, GEN.agilidad, GEN.coordinacion, GEN.fuerza, GEN.inteligencia],
   aptitud: 0.15,
   reclutamiento: { edades: { min: 8, max: 19 }, edadMaxBaja: 13, probabilidadBaja: 0.1 },
-  // Once titulares y suplentes.
-  equipos: [{ club: 'colegio', colegio: 'propio', plantilla: { min: 14, max: 18 } }],
+  // Un equipo del colegio por categoría (de benjamín a juvenil: el colegio acaba a los 17), de 14 a 18 jugadores (once titulares y suplentes). Se recluta primero a
+  // los interesados hasta 18 y, si no llegan a 14, se completa con niños sin interés hasta 14: así quedan huecos para el personaje.
+  equipos: [{ club: 'colegio', colegio: 'propio', categorias: ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'], plantillaPorCategoria: { min: 14, max: 18 } }],
   descripcionDelEquipo: 'Del equipo de fútbol del colegio.',
   entrenadores: {
     sesgoCaracter: { disciplina: 12, sacrificio: 8 },

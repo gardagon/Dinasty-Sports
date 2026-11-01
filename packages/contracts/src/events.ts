@@ -51,6 +51,8 @@ export interface PresentacionData {
 export interface ClubJoinData {
   /** Deporte (p. ej. 'atletismo'). */
   sport: string;
+  /** Nivel del personaje en el deporte al entrar (0 a 100): si el equipo está completo, entra quitando la plaza de alguien peor. */
+  nivel?: number;
   clubId: string;
 }
 

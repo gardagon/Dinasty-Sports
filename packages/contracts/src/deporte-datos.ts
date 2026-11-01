@@ -122,7 +122,14 @@ export interface EquipoDeDeporte {
   edades?: { min?: number; max?: number };
   /** Ids de las categorías (de `categorias`) en las que el club tiene equipo, para los deportes con liga por categoría. Sin él, tiene equipo en todas las que cubren sus edades. */
   categorias?: readonly string[];
-  plantilla: { min: number; max: number };
+  /** Plantilla del club entero, repartida entre las edades que recluta (atletismo). Obligatoria salvo que traiga `plantillaPorCategoria`. */
+  plantilla?: { min: number; max: number };
+  /**
+   * Un equipo **por categoría** (deportes de equipo): cada categoría de `categorias` (por defecto, todas las que recluta el club) tiene su propio equipo con
+   * esta plantilla. Se recluta primero a los interesados hasta el máximo y, si no se llega al mínimo, se completa con niños sin interés hasta el mínimo y no
+   * más: así quedan huecos para el personaje. Un equipo por club, categoría y deporte.
+   */
+  plantillaPorCategoria?: { min: number; max: number };
 }
 
 /**
@@ -289,7 +296,8 @@ export function validarDatosDeDeporte(x: unknown): string[] {
       else {
         const ids = new Set<string>();
         for (const q of pob.equipos as Partial<EquipoDeDeporte>[]) {
-          if (typeof q.club !== 'string' || !q.club || !esObjeto(q.plantilla) || !esEntero(q.plantilla.min) || !esEntero(q.plantilla.max) || q.plantilla.max < q.plantilla.min || q.plantilla.max < 1) p.push(`${en}: equipo mal formado (${JSON.stringify(q)?.slice(0, 60)}): necesita club y plantilla (min y max)`);
+          const plantillaMal = (x: unknown): boolean => !esObjeto(x) || !esEntero(x.min) || !esEntero(x.max) || (x.max as number) < (x.min as number) || (x.max as number) < 1;
+          if (typeof q.club !== 'string' || !q.club || plantillaMal(q.plantillaPorCategoria ?? q.plantilla) || (q.plantilla !== undefined && plantillaMal(q.plantilla))) p.push(`${en}: equipo mal formado (${JSON.stringify(q)?.slice(0, 60)}): necesita club y plantilla o plantillaPorCategoria (min y max)`);
           else if (ids.has(q.club)) p.push(`${en}: el equipo «${q.club}» está repetido`);
           else {
             ids.add(q.club);

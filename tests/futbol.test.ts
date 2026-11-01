@@ -2,16 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { SERVICES, validarDatosDeDeporte, type ClubDirectory, type DeporteService, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
-import { DATOS_FUTBOL, futbol } from '@ds/mod-futbol';
+import { DATOS_FUTBOL, HABILIDADES_DE_FUTBOL, futbol } from '@ds/mod-futbol';
 import * as contracts from '@ds/contracts';
 import * as kit from '@ds/kit-deporte';
 import { cargarModulo, generarClaves } from '@ds/paquetes';
 import { empaquetarDeporte } from '../tools/empaquetar';
+import { edadNpc, sinDeporte, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
 
 /** El fútbol (F1) en una partida completa: con su gente, su club, sus lugares y la pestaña. Va junto al atletismo, que no cambia. */
 
-const nueva = (seed = 31) => nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+/**
+ * Una partida con atletismo y fútbol. El equipo de fútbol de su categoría empieza completo (18 interesados) y, si el personaje no es mejor que alguno, no entra:
+ * aquí se deja un hueco para centrarse en lo que prueban estos tests (los equipos completos se prueban en `futbol-plantillas.test.ts`).
+ */
+const nueva = (seed = 31) => {
+  const g = nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  const s = g.moduleState<NpcsState>('npcs') as { npcs: Npc[]; poblaciones?: PoblacionGuardada[] };
+  const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
+  const uno = s.npcs.find((n) => n.deporte === 'futbol' && n.genetica && edadNpc(n, 0)! <= 9)!;
+  s.npcs = s.npcs.map((n) => (n.id === uno.id ? sinDeporte(n, pob, false) : n));
+  return g;
+};
 
 describe('fútbol en una partida completa', () => {
   it('aparece en el catálogo de la partida como deporte de equipo', () => {
@@ -57,6 +69,24 @@ describe('fútbol en una partida completa', () => {
     const g2 = cargarPartida(JSON.parse(JSON.stringify(g.serialize())), [...MODULOS, futbol]);
     expect(g2.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')?.id).toBe('colegio');
     expect(g2.stat('futbol.pase')).toBe(g.stat('futbol.pase'));
+  });
+});
+
+describe('ejercicios de la sesión del club', () => {
+  it('el entrenador elige dos ejercicios: la sesión los cuenta antes y después, y sube solo lo que entrenan', () => {
+    const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
+    expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+    advanceToWeek(g, 'gen.descansar', 1, 3, 15);
+    const hoy = /Hoy: (.+)\.$/.exec(g.preview('futbol.club_sesion')!.description ?? '')?.[1];
+    expect(hoy).toBeTruthy();
+    const antes = Object.fromEntries(HABILIDADES_DE_FUTBOL.map((id) => [id, g.stat(id)]));
+    expect(hacer(g, 'futbol.club_sesion').ok).toBe(true);
+    const subidas = HABILIDADES_DE_FUTBOL.filter((id) => g.stat(id) > antes[id]);
+    // Dos ejercicios de unas 3-4 habilidades cada uno (con el juego colectivo repetido a veces): no las 29 de golpe.
+    expect(subidas.length).toBeGreaterThanOrEqual(4);
+    expect(subidas.length).toBeLessThanOrEqual(9);
+    expect(g.log.some((l) => l.text === `Hoy toca: ${hoy}.`)).toBe(true);
   });
 });
 

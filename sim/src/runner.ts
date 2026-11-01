@@ -1,4 +1,4 @@
-import { SERVICES, type NpcDirectory, type StatDef, type StudiesService } from '@ds/contracts';
+import { SERVICES, type GameModule, type NpcDirectory, type StatDef, type StudiesService } from '@ds/contracts';
 import { checkInvariants, seededRng, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 import type { Bot, BotMemory } from './bots';
@@ -88,8 +88,14 @@ function extras(game: Game): Record<string, number | null> {
   return out;
 }
 
-export function runBot(bot: Bot, seed: number, days: number): RunResult {
-  const game = nuevaPartida({ seed, playerName: bot.name });
+/** Con qué se juega: por defecto, los módulos del juego (con su atletismo); un deporte instalable (el fútbol) se pasa aquí. */
+export interface Juego {
+  modulos?: readonly GameModule<any>[];
+  deportes?: readonly string[];
+}
+
+export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}): RunResult {
+  const game = nuevaPartida({ seed, playerName: bot.name, ...(juego.deportes ? { deportes: juego.deportes } : {}) }, juego.modulos);
   const rng = seededRng(seed * 31 + 7);
   const areas = areasFor(game);
   const mem: BotMemory = { day: -1, hoy: {}, total: {} };

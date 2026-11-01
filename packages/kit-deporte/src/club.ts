@@ -80,6 +80,17 @@ export const sinEntrenarPorLibreEnSesion = (cfg: ConfigDeporte, acciones: readon
   );
 
 /**
+ * Por qué el personaje no entra en el equipo de su categoría de un club: si está completo y todos los que juegan son mejores que él. Si es mejor que alguno,
+ * entra y el peor pierde su plaza (lo hace `npcs` al recibir `club.unirse`). `undefined` si puede entrar.
+ */
+export function motivoSinPlaza(ctx: ReadContext, cfg: ConfigDeporte, club: string): string | undefined {
+  const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx));
+  return plaza?.estado === 'completo'
+    ? `El equipo de tu categoría está completo y todos juegan mejor que tú (el peor, ${plaza.peor?.nombre}, tiene nivel ${Math.round(plaza.peor?.nivel ?? 0)} y tú ${Math.round(cfg.rendimiento(ctx))}): sigue entrenando por tu cuenta y vuelve a intentarlo`
+    : undefined;
+}
+
+/**
  * Acciones de los clubes del deporte (acciones dinámicas): apuntarse al del colegio, en la administración (antes de aceptar
  * se cuenta cuándo entrena y cuándo se compite); y, de cada club de fuera, su prueba de acceso (se puede hacer estando en
  * otro club) y aceptar la plaza ganada.
@@ -101,8 +112,8 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
               tags: [deporte],
               group: 'Club',
               duration: 30,
-              available: () => true,
-              run: (c2) => c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: colegio.id } }),
+              available: (c2) => motivoSinPlaza(c2, cfg, colegio.id) ?? true,
+              run: (c2) => c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: colegio.id, nivel: cfg.rendimiento(c2) } }),
             }),
           ]
         : [];
@@ -120,14 +131,15 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
           duration: 15,
           available: (c2) => {
             const semana = estado(c2).ofertas?.[c.id];
-            return semana !== undefined && c2.time.week - semana < SEMANAS_DE_OFERTA ? true : 'No tienes una plaza en este club (haz su prueba de acceso)';
+            if (semana === undefined || c2.time.week - semana >= SEMANAS_DE_OFERTA) return 'No tienes una plaza en este club (haz su prueba de acceso)';
+            return motivoSinPlaza(c2, cfg, c.id) ?? true;
           },
           run: (c2) => {
             c2.updateState<EstadoBaseDeDeporte>((st) => {
               const { [c.id]: _usada, ...resto } = st.ofertas ?? {};
               return { ...st, ofertas: resto };
             });
-            c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: c.id } });
+            c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: c.id, nivel: cfg.rendimiento(c2) } });
           },
         });
         const prueba = conLugar(tramitesDe(c), {
@@ -152,7 +164,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
             const rinde = cfg.rendimiento(c2) * forma + c2.rng.normal() * 3;
             c2.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, pruebas: { ...(s.pruebas ?? {}), [c.id]: t.week } }));
             if (rinde >= acceso.nivel && !c2.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte)) {
-              c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: c.id } });
+              c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: c.id, nivel: cfg.rendimiento(c2) } });
             } else if (rinde >= acceso.nivel) {
               // Con otro club, la plaza se ofrece y decides: salir antes de él no cuesta nada; aceptarla sin salir sí.
               c2.updateState<EstadoBaseDeDeporte>((st) => ({ ...st, ofertas: { ...(st.ofertas ?? {}), [c.id]: t.week } }));

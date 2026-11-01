@@ -112,6 +112,36 @@ export function seguirPlan(opts: ActionOption[], mem: BotMemory, plan: Plan): st
 export const descansarOEsperar = (opts: ActionOption[]) =>
   opts.find(id('gen.leer'))?.id ?? opts.find(id('gen.descansar'))?.id ?? opts[0].id;
 
+/**
+ * Un deportista de cualquier deporte con club: el mismo plan que el `Atleta` (va a clase, entra en el club, hace su sesión, entrena con cabeza, ve el deporte en la tele,
+ * campamento y amigos en verano), con los ids del deporte. Sirve para medir cuánto se aprende en un curso en cada deporte frente al atletismo (`npm run sim:futbol`).
+ */
+export function deportistaDe(deporte: string): Bot {
+  const d = (x: string) => id(`${deporte}.${x}`);
+  return {
+    id: `deportista_${deporte}`,
+    name: `Deportista de ${deporte}`,
+    description: `Como el Atleta, pero en ${deporte}.`,
+    choose(game, opts, _rng, mem) {
+      return (
+        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
+        seguirPlan(opts, mem, [
+          ['unirse', 1, d('apuntarse_colegio')],
+          ['campamento', 1, d('campamento')],
+          ['club', 1, sesionDeClub],
+          ['deporte', 2, (o) => entrenoDeporte(o) && (mem.hoy.club ?? 0) + (mem.hoy.deporte ?? 0) < 2],
+          ['entrenador', 1, (o) => relacion(o) && /entrenador/.test(o.name)],
+          ['tele', 1, d('ver_tele')],
+          ['gym', 1, id('gen.gimnasio')],
+          ['amigos', 1, d('amigos')],
+          ['ocio', 1, (o) => game.stat(GEN.estres) > 40 && tag(TAGS.ocio)(o)],
+        ]) ??
+        descansarOEsperar(opts)
+      );
+    },
+  };
+}
+
 export const BOTS: Bot[] = [
   {
     id: 'equilibrado',
