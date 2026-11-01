@@ -1,8 +1,18 @@
 # Motor de los partidos de fútbol (diseño)
 
-Propuesta del 01/11/2026, **pendiente de aprobar**. No hay código. Completa [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md) (decisiones de §0 y potenciador de §3 ter) con lo que ni el addon 2.1 ni el diseño de stats definen: **cómo los valores de los jugadores se convierten en un partido** (marcador, minutos, goles, nota). Entra en la fase F2 del fútbol; las piezas de posición y rol (F3), ocultas y derivadas (F4) y decisiones dentro del partido (F7) se enchufan después sin cambiar la estructura.
+Propuesta del 01/11/2026, **revisada con las respuestas del usuario del 01/11 (§0)**. No hay código. Completa [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md) (decisiones de §0 y potenciador de §3 ter) con lo que ni el addon 2.1 ni el diseño de stats definen: **cómo los valores de los jugadores se convierten en un partido** (marcador, minutos, goles, nota). Entra en la fase F2 del fútbol; las piezas de posición y rol (F3), ocultas y derivadas (F4) y decisiones dentro del partido (F7) se enchufan después sin cambiar la estructura.
 
 ---
+
+## 0. Decisiones del usuario (01/11/2026)
+
+1. **Los goles salen de la simulación, sin objetivo previo.** No se facilitan ni se frenan los goles por categoría: si juega el mejor contra el peor con mucha diferencia, o un portero es muy malo, habrá más goles y más diferencia. El banco de partidos solo vigila que el motor no se rompa (§11).
+2. **Intensidad elegida antes del partido** (relajado, normal, a tope): aprobada.
+3. **Cambios como en la vida real, por categoría** (§6): dato del deporte por país y por categoría y nivel.
+4. **La experiencia en un puesto empieza en 0** y se gana jugando en él: mucho al principio y cada vez menos (curva exponencial invertida), más deprisa con inteligencia, atención y conocimiento del fútbol (§3).
+5. **Ventaja de jugar en casa:** sí, pequeña. Más adelante quizá con el público.
+6. **Tarjetas:** la roja y la acumulación de amarillas suspenden partidos.
+7. **Lesiones:** esperan al sistema de salud. El fútbol solo lanza una señal con el esfuerzo de cada partido (sin tipos de lesión ni duración), para que ese sistema la recoja cuando exista (§9).
 
 ## 1. Qué tiene que cumplir
 
@@ -37,7 +47,19 @@ valor_en_partido = entrenado
 y en cada tramo  × cansancio                              (tabla de 5 tramos, §6)
 ```
 
-- **Experiencia (F3):** el diseño multiplica por `experiencia / 100`, lo que deja a cero a quien juega por primera vez en un puesto. Propuesta: **×0,75 a ×1** (`0,75 + 0,25 × experiencia combinada / 100`), con la experiencia combinada de posición (70 %) y rol (30 %) y sus afinidades del addon.
+- **Experiencia en el puesto (F3, decisión 4).** Cada posición y cada rol tienen una experiencia de 0 a 100 que **empieza en 0**. Se gana jugando en ese puesto, con rendimientos decrecientes:
+
+  ```
+  gana = (100 − experiencia) × 0,09 × minutos / 90 × aprendizaje
+  aprendizaje = 0,7 + 0,6 × media(inteligencia, atención, conocimiento del fútbol)
+  ```
+
+  En `aprendizaje`, cada valor se mide frente a lo típico de su edad (lo típico cuenta 0,5): un niño normal aprende ×1, uno muy listo y atento hasta ×1,3 y uno flojo ×0,7.
+
+  Con eso, un curso de titular en un puesto (12 partidos) lleva a unos 65 a un niño normal y a unos 75 a uno listo y atento. Los primeros partidos dan mucho (unos 9 puntos el primero) y llegar a 90 cuesta años. Los entrenamientos con el club dan algo en el puesto que te asigna el entrenador. Las afinidades del addon pasan experiencia de un puesto a otro (un lateral derecho que juega de carrilero aprovecha el 40 %), y la combinada es 70 % posición y 30 % rol.
+
+  **Un detalle que hay que decidir:** el diseño multiplica el valor por `experiencia / 100`. Con la experiencia empezando en 0, el primer partido de cualquier niño valdría 0 (y todos los de 8 años empiezan sin experiencia, así que volverían los 0 a 0). Propuesta: la experiencia empieza en 0 como se pide, pero en el partido pesa **desde una base que pone el conocimiento del fútbol**: `valor × (base + (1 − base) × experiencia / 100)`, con `base = 0,5 + 0,3 × conocimiento / 100`. Quien no ha jugado nunca en un puesto rinde la mitad o algo más según cuánto sepa de fútbol, y con la experiencia llega al 100 %.
+- **Experiencia de los demás:** no se guarda por persona. Sale de los años que lleva en su equipo y de su puesto, con la misma curva (un juvenil que juega de central desde alevín tiene mucha).
 - **Jugadores que no son el personaje:** una persona solo tiene un nivel por deporte (`levels.futbol`) y sus 18 capacidades. Su valor en cada habilidad sale de su nivel por un **perfil** que se calcula con sus capacidades (un niño rápido tiene más arrancada y regate que uno lento con el mismo nivel), con un azar estable por persona. No se guardan 29 habilidades por persona.
 - **Su puesto:** el que mejor encaja con su perfil, calculado igual. El entrenador de cada equipo hace la alineación (§8).
 
@@ -67,8 +89,8 @@ En cada tramo de 15 minutos y para cada equipo:
 4. **Quién tira:** se sortea entre los atacantes según su puesto y rol (el delantero centro más que el mediocentro).
 5. **Gol:** el tiro se compara con el portero rival (definición, disparo lejano o cabeza según la ocasión, frente a reflejos, mano a mano o alcance aéreo).
 6. **Balón parado:** faltas, córners y penaltis salen de las faltas y de los ataques rechazados, y se resuelven con los lanzadores y los rematadores frente a la portería.
-7. **Faltas y tarjetas (F4):** cada duelo defensivo puede acabar en falta según la **dureza** y la **agresividad**; con su probabilidad de amarilla y roja. Una expulsión deja al equipo con diez (todas sus zonas ×10/11).
-8. **Ventaja de jugar en casa:** pequeña (propuesta: +4 % en las zonas del local).
+7. **Faltas y tarjetas (F4):** cada duelo defensivo puede acabar en falta según la **dureza** y la **agresividad**; con su probabilidad de amarilla y roja. Una expulsión deja al equipo con diez (todas sus zonas ×10/11). **Sanciones (decisión 6):** la roja suspende el partido siguiente y la acumulación de amarillas también (propuesta: un partido cada 5 amarillas). Es un dato del deporte por país, como los cambios.
+8. **Ventaja de jugar en casa (decisión 5):** pequeña, +4 % en las zonas del local. Más adelante podrá depender del público.
 
 **Prototipo** (no es código del juego; liga de 7 equipos a doble vuelta, 60 temporadas por categoría, jugadores con el nivel típico de su edad):
 
@@ -81,7 +103,7 @@ En cada tramo de 15 minutos y para cada equipo:
 | Juvenil | 2,73 goles, 7 % | 2,84 goles, 7 % | 67 % |
 | Sénior | 2,87 goles, 7 % | 2,99 goles, 5 % | 62 % |
 
-Confirma el problema y la solución: sin potenciador, los benjamines casi no marcan. Con él, todas las categorías quedan en cifras de fútbol real. Si se quiere que los partidos de niños sean más abiertos (más goles, más goleadas), basta un **ritmo por categoría** en los datos (más ataques por tramo), sin tocar el motor.
+Confirma el problema y la solución: sin potenciador, los benjamines casi no marcan. Con él, todas las categorías se juegan con el mismo motor. **No hay un objetivo de goles por categoría** (decisión 1): el prototipo usa jugadores parecidos entre sí; en el juego, las diferencias de nivel entre equipos y jugadores (más grandes entre niños que entre profesionales) darán más goles y más goleadas donde las haya.
 
 ## 6. Cansancio
 
@@ -103,7 +125,16 @@ Confirma el problema y la solución: sin potenciador, los benjamines casi no mar
 
   Los demás jugadores juegan a intensidad normal (o según su carácter: los sacrificados más a tope, los relajados menos).
 - **Al acabar,** el personaje pierde de energía lo que ha acumulado de cansancio (proporcional): es el coste de la acción del partido. El cansancio general (`gen.cansancio`) no se aplica a su rendimiento en el partido, solo a lo que aprende de él (la eficiencia de la acción, como en cualquier acción).
-- **Cambios:** el entrenador cambia a los más cansados o a los que peor juegan a partir del tramo 4 (propuesta: 5 cambios por partido; en el fútbol base el número cambia según la federación y en algunas no hay límite, así que es un dato del deporte por país).
+- **Cambios (decisión 3): como en la vida real, por categoría y nivel.** En España no hay una norma única: la fija cada federación territorial y cambia según la liga. Lo encontrado (31/10, a confirmar con las circulares de cada temporada):
+
+  | Liga | Cambios | Fuente |
+  |---|---|---|
+  | Cadete e infantil, Liga Autonómica y Preferente (Valencia, 2025/26) | Hasta 7, en 3 interrupciones (más el descanso) | Circular 22 de la FFCV |
+  | Cadete e infantil, Primera y Segunda Regional (Valencia) | Volantes (se puede volver a entrar), hasta 18 convocados | Circular 22 de la FFCV |
+  | Cadete e infantil, Liga Regional (Castilla-La Mancha, 2022/23) | 5, entre 7 suplentes | Bases de competición de Castilla-La Mancha |
+  | Juvenil (RFEF) | 5, entre 7 suplentes (norma antigua; no se ha podido confirmar la vigente) | Normas reguladoras del fútbol juvenil de la RFEF |
+
+  Por eso los cambios son un **dato por categoría y nivel** en los datos del deporte por país: cuántos, en cuántas interrupciones, si son volantes y cuántos convocados. Para España, propuesta de partida: las ligas de la ciudad (de nivel regional) con cambios volantes y 18 convocados; las de nivel autonómico y nacional, 7 cambios en 3 interrupciones; juvenil nacional, 5. Con cambios volantes el entrenador reparte los minutos (entran los cansados y vuelven a salir), y eso hace que casi todos los convocados jueguen. El entrenador cambia a los más cansados y a los que peor juegan.
 
 ## 7. El personaje dentro del partido
 
@@ -128,6 +159,7 @@ Confirma el problema y la solución: sin potenciador, los benjamines casi no mar
 - **Motivación:** sube con la victoria, el buen papel y los minutos; baja con el banquillo y las derrotas, más en quien es ambicioso.
 - **Relaciones:** el evento compartido `competicion.resultado` con los datos de equipo (marcador, compañeros y rivales), para que `relaciones` y `npcs` reaccionen.
 - **Clasificación:** se juegan todos los partidos de la jornada de su liga (solo los de su categoría) y se actualiza la tabla.
+- **Señal de esfuerzo para el sistema de salud (decisión 7).** Las lesiones esperan al sistema de salud (E12). Para no tener que tocar el fútbol cuando llegue, al acabar cada partido (y cada sesión de entrenamiento) el fútbol emite un **evento compartido de esfuerzo**, sin tipos de lesión ni duración: el deporte, los minutos, la intensidad elegida, el cansancio con el que acabó, la energía con la que empezó, si iba con sobrecarga y cuánto contacto hubo (duelos y entradas recibidas). Hoy nadie lo escucha y no cambia nada. Cuando exista el sistema de salud, lo recogerá y decidirá si hay lesión, con más riesgo si el esfuerzo fue alto, con sobrecarga o con poca energía, y con su punto de azar. El atletismo puede emitir la misma señal (hoy tiene sus «molestias musculares» por sobrecarga, que se quedan como están). Es un tipo nuevo en `contracts` (`SHARED_EVENTS`), sin refactorizar nada.
 
 ## 10. Coste y lo que se guarda
 
@@ -139,7 +171,7 @@ Confirma el problema y la solución: sin potenciador, los benjamines casi no mar
 
 Una herramienta como el banco de notas (`npm run sim:partidos`): ligas de cada categoría con equipos de la ciudad. Comprueba por categoría:
 
-- goles por partido en un rango realista (propuesta: entre 2,5 y 3,5 en sénior; algo más en los niños si se quiere);
+- que el motor no se rompa, sin objetivo de goles (decisión 1): que no casi todo acabe 0 a 0 ni con goleadas absurdas entre equipos parecidos, y que **a más diferencia de nivel, más goles y más diferencia en el marcador**;
 - menos de un 10 % de 0 a 0;
 - que el mejor equipo gane la liga entre el 40 % y el 75 % de las veces;
 - que un niño subido de categoría rinda menos que en la suya;
@@ -156,10 +188,8 @@ Una herramienta como el banco de notas (`npm run sim:partidos`): ligas de cada c
 
 ## 13. Preguntas para decidir
 
-1. **Goles por categoría:** ¿todas en torno a 3 (como sale ahora) o partidos de niños más abiertos (4–5 goles, más goleadas)?
-2. **Intensidad antes del partido** (relajado, normal, a tope) hasta que haya decisiones dentro: ¿vale?
-3. **Cambios y minutos:** ¿5 cambios, o sin límite como en algunas federaciones de fútbol base? ¿Todos los convocados juegan algún minuto?
-4. **Experiencia:** ¿×0,75 a ×1 en vez de ×0 a ×1, para que jugar por primera vez en un puesto no deje el valor a cero?
-5. **Ventaja de jugar en casa:** ¿pequeña (+4 %) o ninguna?
-6. **Tarjetas:** ¿la roja o varias amarillas suspenden el partido siguiente?
-7. **Lesiones en el partido:** ¿se dejan para E12 (salud y lesiones) o se empieza con algo sencillo?
+Respondidas el 01/11 (ver §0). Quedan:
+
+1. **Experiencia en el partido:** ¿vale que, empezando en 0, pese desde una base que pone el conocimiento del fútbol (de la mitad a algo más), para que el primer partido de un niño no valga 0? (§3)
+2. **Cambios de partida en España:** ¿vale la propuesta (ligas de la ciudad con cambios volantes y 18 convocados, autonómica y nacional con 7 en 3 interrupciones, juvenil nacional con 5) mientras no se confirmen las circulares?
+3. **Amarillas:** ¿un partido de sanción cada 5 amarillas?

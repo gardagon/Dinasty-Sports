@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 01/11/2026 — Motor de los partidos: respuestas del usuario
+
+Respuestas a las preguntas de `MOTOR_PARTIDOS.md` (§0 de ese documento):
+
+- **Los goles salen de la simulación**, sin objetivo previo por categoría: más diferencia de nivel o un portero muy malo dan más goles. El banco de partidos solo vigila que el motor no se rompa.
+- **Intensidad antes del partido** (relajado, normal, a tope), aprobada.
+- **Cambios como en la vida real, por categoría:** dato por categoría y nivel en los datos del deporte por país. En España los fija cada federación territorial (encontrado: 7 en 3 interrupciones en la Autonómica y Preferente de Valencia, volantes en sus regionales, 5 en Castilla-La Mancha y en el juvenil de la RFEF; a confirmar con las circulares vigentes).
+- **Experiencia en el puesto desde 0**, que se gana jugando con rendimientos decrecientes, más deprisa con inteligencia, atención y conocimiento. Pendiente: que en el partido pese desde una base que pone el conocimiento, para que el primer partido no valga 0.
+- **Ventaja de jugar en casa** pequeña (+4 %); quizá después con el público.
+- **La roja y la acumulación de amarillas suspenden** (propuesta: 1 partido cada 5 amarillas).
+- **Lesiones: esperan al sistema de salud.** El fútbol emitirá un evento compartido de esfuerzo (minutos, intensidad, cansancio, energía, sobrecarga, contacto) que hoy nadie escucha y que recogerá ese sistema, sin refactorizar nada.
+
 ## 01/11/2026 — Motor de los partidos de fútbol (diseño, sin aprobar)
 
 Pedido por el usuario: diseñar el motor de los partidos, que ni el addon 2.1 ni el diseño de stats definen. Diseño en `MOTOR_PARTIDOS.md`; no hay código.
