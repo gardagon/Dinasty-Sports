@@ -77,6 +77,7 @@ Las sesiones del club (catálogo de `modules/clubes`). Los miembros están en su
 |---|---|---|---|
 | Club del colegio | lunes y miércoles | 15:00–17:00 | pista de atletismo del colegio (zona `pista_colegio`, dentro del colegio) |
 | Club Atletismo Ciudad | martes y jueves | 18:00–20:00 | estadio |
+| Club del colegio (**fútbol**, F1 del fútbol, 1/11) | martes y jueves | 15:00–17:00 | campo de fútbol del colegio (zona `campo_colegio`, dentro del colegio). Otros días que el atletismo del colegio para poder hacer los dos. Partidos de liga: sábados de 9 a 13 en el campo municipal (zona `campo_municipal`, en la avenida del Parque) |
 | Club de Alto Rendimiento | lunes, martes y jueves | 17:00–20:00 | estadio |
 
 ### Rival, niveles 2 y 3

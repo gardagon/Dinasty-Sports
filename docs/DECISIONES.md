@@ -5,6 +5,21 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 01/11/2026 — Fútbol, F1: módulo `modules/futbol` (habilidades, conocimiento, entreno y club del colegio)
+
+Hecha la F1 de `ANALISIS_FUTBOL.md` §7, con el kit de deporte. **Sin partidos**: el motor se diseña aparte (F2).
+
+- **29 habilidades entrenables** (`futbol.*`, ids en español): las 28 del addon 2.1 más `futbol.juego_colectivo` (apoyada en `gen.cooperacion` 0,4, `gen.comunicacion` 0,3 y `gen.autoridad` 0,2; «sociabilidad» del acuerdo = comunicación). Más `futbol.conocimiento` del kit. El test lee `docs/diseno/addon_futbol_v2.1.json` y comprueba que no falta ninguna de las 28.
+- **Secundarias del addon → juego:** las genéricas con su equivalente (`balance` → coordinación; `creativity` → creatividad; `constitution` → constitución…) y las del propio fútbol (visión, anticipación, sangre fría, técnica, salto) como apoyo del **ritmo de subida y del techo**, no del tope genético (que sale solo de genéricas: 80 % las secundarias genéricas normalizadas, 20 % determinación; la altura no tiene stat y se ignora). Pesos por orden en el addon: 0,4 / 0,3 / 0,2 / 0,15 / 0,1.
+- **Desarrollo:** las físicas (arrancada, salto) siguen `gen.vigor_fisico`; las mentales, `gen.vigor_mental` y **decaen muy poco** (14 días de gracia, 0,004/día, suelo 85 %; decisión 10). Técnicas y de portería, como el atletismo.
+- **Entreno:** por libre cuatro acciones (`balon`, `tiro`, `fisico`, `porteria`) en el campo del colegio, el municipal y el parque (rinden ×0,85 sin entrenador); sesión del club del colegio (martes y jueves de 15 a 17, otros días que el atletismo), campamento, amigos en verano, verlo en la tele y pedir consejo (kit). **Sin** subir/volver de categoría hasta que haya partidos (F2).
+- **Datos de España:** categorías de la RFEF (prebenjamín 0–7, benjamín 8–9, alevín, infantil, cadete, juvenil 16–18, sénior), todas en fútbol 11; liga a doble vuelta con 6–7 equipos por categoría; partidos los sábados de 9 a 13 en el campo municipal. Solo el club del colegio; la gente es solo el equipo del colegio (14–18) y su entrenador: los equipos de la ciudad llegan en la F2 y los clubes de fuera en la F5.
+- **Lugares:** `campo_colegio` (dentro del colegio) y `campo_municipal` (avenida del Parque).
+- **No está en `MODULOS`** (la lista de módulos del juego): el fútbol se instala como los deportes de la fase 7 (o se añade a la lista cuando esté el motor de partidos). Así `npm run huella` y `npm run sim` no cambian. Un test lo empaqueta y comprueba que da exactamente la misma partida que el módulo integrado.
+- **Rendimiento (acceso a clubes):** provisional, mezcla velocidad, resistencia, arrancada, técnica, cabeza y juego colectivo con el valor efectivo del kit; con las posiciones (F3) cada puesto pesará lo suyo.
+
+---
+
 ## 01/11/2026 — Fútbol, F0: vocabulario común para los deportes de equipo
 
 Hecha la F0 de `ANALISIS_FUTBOL.md` §7. Todo son **campos opcionales**: el atletismo no cambia (`npm run huella -- 120` idéntica antes y después) y no se sube `INTERFAZ_DE_DEPORTES` (los paquetes ya publicados siguen valiendo).

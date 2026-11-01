@@ -201,7 +201,7 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 | Fase | Qué |
 |---|---|
 | F0 ✅ (hecha el 1/11) | Vocabulario común: resultado de equipo en `competicion.resultado` (y `relaciones` sin suponer «menos marca gana»), secciones en la pestaña, liga en la temporada, equipos por categoría |
-| F1 | Habilidades (las 28 del JSON más Juego colectivo), conocimiento, entreno por libre y club del colegio (con el kit) |
+| F1 ✅ (hecha el 1/11) | Habilidades (las 28 del JSON más Juego colectivo), conocimiento, entreno por libre y club del colegio (con el kit) |
 | F2 | Gente del fútbol con equipos de la ciudad (fútbol 11, 6–7 equipos por categoría), liga a doble vuelta los sábados, motor del partido con cansancio, convocatoria y pestaña con la tabla de la liga. Propuesta: elegir la intensidad antes del partido (relajado, normal, a tope) hasta que haya decisiones dentro del partido |
 | F3 | Posiciones, roles y experiencia con afinidades; formaciones de fútbol 11 |
 | F4 | Derivadas y ocultas en el partido; transferencias de entrenamiento |
