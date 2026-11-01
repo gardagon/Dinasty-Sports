@@ -364,6 +364,17 @@ describe('competicion.resultado', () => {
     expect(e).toBeGreaterThanOrEqual(d);
   });
 
+  it('un compañero de equipo con papel de rival (de otro colegio) no pierde afinidad aunque se gane, ni se le trata como rival aunque se pierda', () => {
+    for (const r of ['victoria', 'derrota'] as const) {
+      const g = conResultado({ ...equipo(r), participants: [{ name: 'Tú', mark: 7, isPlayer: true }, { npcId: RIVAL, name: 'Compañero', mark: 9, bando: 'companero' }] });
+      expect(g.service<NpcDirectory>(SERVICES.npcs)!.get(RIVAL)!.role).toBe('rival');
+      expect(rel(g).get(RIVAL)?.afinidad ?? 0).toBe(0);
+    }
+    // Contraste: el mismo niño en el bando rival, tras perder, sí baja.
+    const perdido = conResultado({ ...equipo('derrota') });
+    expect(afinidadConElRival(perdido)).toBeLessThan(0);
+  });
+
   it('en una prueba con mayorEsMejor se le gana a quien tiene menos marca', () => {
     const base: CompetitionResultData = { module: 'x', discipline: 'Puntos', position: 1, total: 2, mark: 10, unit: 'pts', mayorEsMejor: true, participants: [{ name: 'Tú', mark: 10, isPlayer: true }, { npcId: RIVAL, name: 'Rival', mark: 4 }] };
     const ganas = afinidadConElRival(conResultado(base));
