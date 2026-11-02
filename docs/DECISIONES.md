@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 02/11/2026 — Mismas reglas, P1: capacidades reales de los PNJ
+
+Hecha la fase P1 de `MISMAS_REGLAS.md`. **No cambia la partida**: `npm run huella -- 120` idéntica a la de antes de P1 y la tabla de `npm run sim` idéntica (las capacidades todavía no las lee nadie; las usará la P2).
+
+- **Fórmulas compartidas:** las de `packages/core/src/progression.ts` pasan a `contracts` (`progresion.ts`; el archivo de core las reexporta). Nuevo `desarrollo-de-persona.ts` (contracts): las reglas que el motor aplicaba dentro de `applyDecay` y de la identidad del personaje, ahora una sola copia: `evolucionDiaria` (caída, envejecimiento y desarrollo natural; el motor la usa cada día con el personaje), `evolucionSemanal` (lo mismo de golpe, con fórmulas cerradas, para los PNJ), `vigoresPorEdad` (madurez y vigor físico, técnico, mental y social por edad, con el adelanto o retraso propio) y las constantes de las capacidades (caída por grupo, 45 % de desarrollo natural, rango inicial 5–20). El módulo `personaje` las usa para definir sus 18 capacidades y su desarrollo diario. Medido: la huella de 14 partidas de bots es idéntica antes y después del refactor.
+- **Capacidades reales:** cada niño con genética lleva `cap` (las 18 capacidades de `gen`, en el orden de `CAPACIDADES_GENETICAS`) y `pico` (su máximo, para la caída). El valor inicial no se guarda: sale de su genética (`capacidadesIniciales`, con el mismo rango y la misma ventaja de crianza que el personaje; el tope del niño en lugar del de su progenitor). Cada semana (`WEEK_END`) se desarrollan y caen 7 días **en el sitio** (sin cambiar la lista de personas: cambiarla invalida las cachés de presencia y de consultas y subía el coste por acción).
+- **Historia al crear la partida:** cada niño parte de los 8 años (rango inicial) y se calcula su desarrollo hasta hoy en bloques de 4 semanas con la fórmula cerrada. Medido (`npm run rendimiento`): **≈ 0,28 s** para ~1.330 niños (el objetivo era < 2 s); crear la partida pasa de ≈ 0,30 s a ≈ 0,57 s. Semana a semana daría ≈ 0,6 s y también cabría; elegí los bloques porque los tests que crean decenas de partidas lo notaban; un test comprueba que bloques y semanas dan lo mismo (diferencia < 0,35). **Peso:** estado 2.406 → 2.696 KB (+12 %): `cap` y `pico` ≈ 270 KB (dos decimales).
+- **Equivalencia con el personaje (el test que lo ata, `tests/mismas-reglas.test.ts`):** un niño con la genética del personaje (sus topes y su adelanto o retraso) y sus mismas capacidades de partida acaba, sin entrenar, con las mismas capacidades que él: diferencia máxima 0,1 puntos tras dos años (cambios de 1–2 puntos de media), con 3 semillas; el test exige < 0,25. Excluye la constitución (el personaje la forja con hábitos cada semana).
+- **Edad de empezar (decidido el 02/11):** `edadDeEmpezar(niño, deporte, interés, padres)`, con azar estable: desde los 6 los muy interesados o con padres deportistas (más probable cuanto más interés y mejor deportistas sean los padres), entre los 8 y los 10 la mayoría (40/35/25 %) y algunos de 11 a 13 (más los poco interesados). La usará la historia de los deportes en la P2; en P1 no cambia nada porque aún no hay rutina que entrene.
+- **Tests y plazos:** crear una partida cuesta ≈ 0,25 s más, y varios tests que crean decenas subieron de plazo; el plazo general de vitest pasa de 5 a 15 s.
+- **Pendiente (P2):** habilidades y conocimiento de cada deporte en los PNJ con la rutina de su club, el juego informal (4, 8 o 12 semanas según el interés; también para el personaje, que además trae el conocimiento de casa), rendimiento sobre un lector de persona y recalibrar la simulación.
+
+---
+
 ## 01/11/2026 — Fútbol: plantillas por equipo y ejercicios de las sesiones del club
 
 De la revisión (`MOTOR_PARTIDOS.md` §14, puntos 3 y 5), decidido por el usuario. Cambia la población: `huella` ya no es idéntica (es lo esperado).

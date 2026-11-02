@@ -113,7 +113,7 @@ import {
   formaEn,
   type Genetica,
 } from './deportistas';
-import { aGuardar, avanzarSemana, capacidadesIniciales, historiaDe } from './capacidades';
+import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 
 /**
  * MÓDULO NPCs (id `npcs`).
@@ -581,7 +581,9 @@ const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: numb
 // ---------------------------------------------------------------------------------------------------- capacidades reales
 
 /** Da a los niños con genética que aún no las tienen sus capacidades con su historia hasta `dia` (al crear la partida, al llegar un niño nuevo, en partidas anteriores). */
-export function conCapacidades(npcs: readonly Npc[], dia: number): Npc[] {
+export function conCapacidades(npcs: Npc[], dia: number): Npc[] {
+  // Si nadie las necesita se devuelve la misma lista: cambiar la lista invalida las cachés de presencia y de consultas, que cuestan mucho más que esto.
+  if (!npcs.some((n) => n.genetica && n.nacimiento !== undefined && !n.cap)) return npcs;
   return npcs.map((n) => {
     if (!n.genetica || n.nacimiento === undefined || n.cap) return n;
     const c = historiaDe(n.id, n.genetica, n.nacimiento, dia);
@@ -589,11 +591,28 @@ export function conCapacidades(npcs: readonly Npc[], dia: number): Npc[] {
   });
 }
 
+/**
+ * Lo mismo que `avanzarCapacidades`, pero **en el sitio**: cambia los números de las listas de cada niño sin cambiar la lista de personas. Es lo que se hace cada semana:
+ * las capacidades todavía no las lee nadie desde fuera (las vistas y las cachés de presencia y de consultas no dependen de ellas) y crear una lista nueva cada semana
+ * invalidaría esas cachés. Son datos del propio módulo (regla 5).
+ */
+export function avanzarCapacidadesEnSitio(npcs: readonly Npc[], dia: number): void {
+  for (const n of npcs) {
+    if (!n.genetica || n.nacimiento === undefined || !n.cap || !n.pico) continue;
+    const c = { cap: n.cap, pico: n.pico, base: valoresIniciales(n.id, n.genetica) as number[] };
+    avanzarSemana(c, n.genetica, n.nacimiento, dia);
+    for (let i = 0; i < c.cap.length; i++) {
+      c.cap[i] = Math.round(c.cap[i] * 100) / 100;
+      c.pico[i] = Math.round(c.pico[i] * 100) / 100;
+    }
+  }
+}
+
 /** Una semana más para todos los que tienen capacidades: desarrollo natural y caída (las mismas reglas que el personaje). `dia` es el día en que acaba la semana. */
 export function avanzarCapacidades(npcs: readonly Npc[], dia: number): Npc[] {
   return npcs.map((n) => {
     if (!n.genetica || n.nacimiento === undefined || !n.cap || !n.pico) return n;
-    const c = { cap: [...n.cap], pico: [...n.pico], base: capacidadesIniciales(n.id, n.genetica).base };
+    const c = { cap: [...n.cap], pico: [...n.pico], base: valoresIniciales(n.id, n.genetica) as number[] };
     avanzarSemana(c, n.genetica, n.nacimiento, dia);
     return { ...n, ...aGuardar(c) };
   });
@@ -1232,7 +1251,11 @@ export const npcs = defineModule<NpcsState>({
     [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
       const { week } = ev.data as { week: number };
       // Cada semana, las capacidades de los niños se desarrollan y caen (las mismas reglas que las del personaje).
-      ctx.updateState<NpcsState>((s) => ({ ...s, npcs: avanzarCapacidades(conCapacidades(s.npcs, week * 7), (week + 1) * 7) }));
+      ctx.updateState<NpcsState>((s) => {
+        const npcs = conCapacidades(s.npcs, week * 7);
+        avanzarCapacidadesEnSitio(npcs, (week + 1) * 7);
+        return { ...s, npcs };
+      });
       // Si la semana que viene empieza un curso nuevo, se renueva la gente: los que acaban el colegio se van, entran niños nuevos y los equipos rellenan sus plazas.
       const proximo = ctx.timeAt((week + 1) * 7 * MINUTES_PER_DAY);
       if (proximo.schoolWeek !== 0) return;

@@ -44,6 +44,14 @@ const REGLAS: readonly ReglaDeEvolucion[] = CAPACIDADES_GENETICAS.map((c) => ({ 
 /** Edad decimal de una persona en un día (los días se cuentan desde el comienzo de la partida; `nacimiento` es el día de su nacimiento). */
 export const edadDecimalDe = (nacimiento: number, dia: number): number => (dia - nacimiento) / DIAS_POR_ANIO;
 
+/** Los valores iniciales de cada niño, por su genética: salen siempre igual y se necesitan cada semana (la caída no baja de ellos), así que se calculan una vez. */
+const INICIALES = new WeakMap<Genetica, number[]>();
+export function valoresIniciales(id: string, g: Genetica): readonly number[] {
+  let v = INICIALES.get(g);
+  if (!v) INICIALES.set(g, (v = capacidadesIniciales(id, g).cap));
+  return v;
+}
+
 /** Las capacidades de un niño a los 8 años, como las del personaje: dentro del rango inicial según su tope y la ventaja de su crianza. */
 export function capacidadesIniciales(id: string, g: Genetica): CapacidadesDe {
   const cap = CAPACIDADES_GENETICAS.map((c) => {
