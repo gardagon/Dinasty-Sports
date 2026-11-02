@@ -1,4 +1,4 @@
-import { rngEstable, type ActionDef, type ReadContext, type StatId } from '@ds/contracts';
+import { rngEstable, type ActionDef, type EjercicioDeClub, type ReadContext, type StatId } from '@ds/contracts';
 import { sesionDeClub } from './club';
 import type { ConfigDeporte, Entreno } from './tipos';
 
@@ -8,18 +8,8 @@ import type { ConfigDeporte, Entreno } from './tipos';
  * usar también el jugador-entrenador.
  */
 
-/** Un ejercicio de entrenamiento: un nombre y las pocas habilidades que sube. */
-export interface Ejercicio {
-  id: string;
-  /** Cómo se dice en «Hoy: rondos y finalización». */
-  nombre: string;
-  /** Tipo de ejercicio (técnica, táctica, físico, balón parado, porteros...): en una sesión no se repite, y el carácter del entrenador inclina hacia unos u otros. */
-  foco: string;
-  /** Lo que sube (el mismo formato que `ActionDef.train`). */
-  entrena: Entreno;
-  /** Solo para quien juega en este puesto (p. ej. `portero`). Sin él vale para cualquiera. */
-  soloPuesto?: string;
-}
+/** Un ejercicio de entrenamiento: un nombre y las pocas habilidades que sube (el tipo vive en contracts: lo guardan los datos del deporte y lo usan los PNJ). */
+export type Ejercicio = EjercicioDeClub;
 
 /** Con qué se elige: el nivel de quien entrena, lo que importa cada habilidad en su puesto, el carácter del entrenador y un azar estable. */
 export interface ContextoDeEleccion {

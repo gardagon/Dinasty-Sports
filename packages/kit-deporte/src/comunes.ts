@@ -11,6 +11,9 @@ import {
   type EventHandler,
   type FamilyService,
   type ModifierDef,
+  type ProfileService,
+  SEMANAS_DE_JUEGO_INFORMAL,
+  nivelDeInteresDelPersonaje,
   type ReadContext,
   type StatId,
   type StudiesService,
@@ -151,6 +154,12 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
       if (conocimiento > 0) {
         ctx.addStat(idDeConocimiento(cfg.id), conocimiento);
         ctx.log(`Has crecido oyendo hablar de ${cfg.nombre} en casa: ya sabes algo del deporte.`, 'info');
+      }
+      // Antes de llegar ha jugado un poco con los amigos a lo que le gusta: unas semanas de juego informal según su interés (la misma regla que cualquier niño).
+      const intereses = ctx.service<ProfileService>(SERVICES.perfil)?.view().intereses;
+      if (cfg.juegoInformal && intereses) {
+        const semanas = SEMANAS_DE_JUEGO_INFORMAL[nivelDeInteresDelPersonaje(Math.max(intereses[cfg.id] ?? 0, intereses.deporte ?? 0))];
+        for (let w = 0; w < semanas; w++) for (const e of cfg.juegoInformal) ctx.train(e.stat, e.amount);
       }
     },
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {

@@ -13,6 +13,8 @@ export interface ConfigDeporte {
   rendimiento: (ctx: ReadContext) => number;
   /** Acciones de entrenar por libre: rinden menos y no se pueden hacer durante la sesión del club. */
   entrenosLibres: readonly string[];
+  /** Lo que sube una semana de juego informal («practicar con los amigos»): el primer día se aplica tantas semanas como diga el interés del personaje por el deporte. */
+  juegoInformal?: readonly Entreno[number][];
 }
 
 /** Lo que entrena una acción (el mismo formato que `ActionDef.train`). */

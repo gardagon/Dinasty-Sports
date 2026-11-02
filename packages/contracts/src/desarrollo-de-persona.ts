@@ -9,6 +9,15 @@ import { GEN } from './tags';
  * Aquí está lo que hace crecer y caer las 18 capacidades sin entrenar: cuánto de su tope permite cada edad, el desarrollo natural, el envejecimiento y la caída.
  */
 
+/**
+ * Semanas de juego informal («practicar con los amigos») antes de entrar en un club según el interés por el deporte (0 a 3): ninguna, 4, 8 o 12. Todo niño ha jugado
+ * un poco a los deportes que le gustan, y el personaje, que llega sin años de práctica en un club, también (`MISMAS_REGLAS.md` §5 y §7). No cuenta como años practicando.
+ */
+export const SEMANAS_DE_JUEGO_INFORMAL = [0, 4, 8, 12] as const;
+
+/** El interés (0 a 3) de un valor de interés del personaje: sus intereses heredados valen 20 + 8 por cada nivel de los padres, y suben después con lo que hace. */
+export const nivelDeInteresDelPersonaje = (valor: number): 0 | 1 | 2 | 3 => Math.min(3, Math.max(0, Math.round((valor - 20) / 8))) as 0 | 1 | 2 | 3;
+
 /** Fracción diaria de la distancia al tope efectivo que se pierde por envejecimiento. */
 export const AJUSTE_POR_EDAD_DIARIO = 0.004;
 /** Fracción de lo que falta para el mínimo natural que se gana cada día. */

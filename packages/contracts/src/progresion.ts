@@ -36,6 +36,25 @@ export function computeGain(def: StatDef, i: ProgressionInputs): number {
   return Math.min(gain, i.cap - i.value);
 }
 
+/**
+ * Lo que sube una stat con `veces` prácticas seguidas iguales (con los mismos techo, talento y velocidad): la solución exacta de aplicar `computeGain` una y otra vez
+ * como si fuesen infinitamente pequeñas. Sirve para calcular de golpe un bloque de semanas (la historia de un PNJ) respetando los rendimientos decrecientes de
+ * dentro del bloque: sumar las cantidades en una sola práctica los ignoraría y sobrestimaría la subida. Con `veces` = 1 es `computeGain`.
+ */
+export function computeGainVarias(def: StatDef, i: ProgressionInputs, veces: number): number {
+  if (veces <= 1) return computeGain(def, i);
+  if (i.amount <= 0 || i.efficiency <= 0 || i.value >= i.cap) return 0;
+  const rate = def.growth?.rate ?? 1;
+  const curve = def.growth?.curve ?? DEFAULT_CURVE;
+  const span = Math.max(1e-9, i.cap - i.min);
+  const u0 = 1 - Math.min(1, Math.max(0, (i.value - i.min) / span));
+  if (u0 <= 0) return 0;
+  // d(1−p)/dn = −k (1−p)^curva, con k = cantidad × eficiencia × ritmo × talento × velocidad / amplitud.
+  const k = (i.amount * i.efficiency * rate * i.talent * i.speed) / span;
+  const u = Math.abs(curve - 1) < 1e-9 ? u0 * Math.exp(-k * veces) : Math.pow(Math.pow(u0, 1 - curve) + (curve - 1) * k * veces, 1 / (1 - curve));
+  return Math.min(span * (u0 - u), i.cap - i.value);
+}
+
 /** Techo = max × clamp(base + Σ peso × genéricaNormalizada). */
 export function computeCap(def: StatDef, min: number, max: number, norm: (id: string) => number): number {
   const cap = def.growth?.cap;

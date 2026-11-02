@@ -18,6 +18,7 @@ import {
   claveDeDeporte,
   type NpcDirectory,
   rngEstable,
+  type LectorDePersona,
   type ReadContext,
   type Rng,
 } from '@ds/contracts';
@@ -74,6 +75,7 @@ import {
   type UltimoPuesto,
 } from './temporada';
 import { DATOS_ATLETISMO, FICHA_ATLETISMO, LUGARES_ATLETISMO } from './datos';
+import { CONOCIMIENTO, DEPORTE, JUEGO_INFORMAL, SESION_DE_CLUB, STATS_DE_ATLETISMO } from './habilidades';
 
 export { CATEGORIAS_ESPANA, DATOS_ATLETISMO, LUGARES_ATLETISMO } from './datos';
 
@@ -104,9 +106,7 @@ export interface AtletismoState extends EstadoBaseDeDeporte {
   campeonatos?: { curso: number; categoria: string; tipo: Exclude<TipoDePrueba, 'regular'>; position: number; total: number }[];
 }
 
-const DEPORTE = 'atletismo';
 const DISCIPLINA = '400 m';
-const CONOCIMIENTO = idDeConocimiento(DEPORTE);
 const ENTRENOS_LIBRES = ['atletismo.series', 'atletismo.rodaje', 'atletismo.tecnica'];
 
 /** Lo que el kit de deporte necesita saber del atletismo. */
@@ -115,6 +115,7 @@ const CONFIG: ConfigDeporte = {
   nombre: 'atletismo',
   rendimiento: (ctx) => rendimiento(ctx),
   entrenosLibres: ENTRENOS_LIBRES,
+  juegoInformal: JUEGO_INFORMAL,
 };
 
 const clubDelJugador = (ctx: ReadContext) => clubDelJugadorEn(ctx, DEPORTE);
@@ -147,9 +148,6 @@ function puedeSubir(ctx: ReadContext): true | string {
   return true;
 }
 
-const habilidad = (key: string, name: string, apoyos: Apoyo[], description: string, tope: Apoyo[]) =>
-  habilidadDeportiva(DEPORTE, 'Atletismo', key, name, apoyos, description, tope);
-
 /**
  * La temporada, en semanas del curso (0 = la primera) y con el calendario del país: la pretemporada (se entrena pero todavía no hay carreras) y las
  * semifinales y la final del campeonato (sábados consecutivos). Salen de los datos del deporte (`datos.ts`), que las dan relativas al final de las clases.
@@ -175,10 +173,10 @@ const horarioEntreno = (ctx: ReadContext): true | string => {
 const SENSIBILIDAD = { tecnica: 0.5, ritmo: 1, salida: 1 };
 
 /** Valor efectivo de una habilidad táctica en competición: su nivel por el efecto del conocimiento. */
-const efectivo = (ctx: ReadContext, key: keyof typeof SENSIBILIDAD): number => valorEfectivo(ctx, DEPORTE, `atletismo.${key}`, SENSIBILIDAD[key]);
+const efectivo = (ctx: LectorDePersona, key: keyof typeof SENSIBILIDAD): number => valorEfectivo(ctx, DEPORTE, `atletismo.${key}`, SENSIBILIDAD[key]);
 
 /** Rendimiento 0..100 a partir de las stats (el corazón del deporte; ajustable sin tocar nada más). */
-export function rendimiento(ctx: ReadContext): number {
+export function rendimiento(ctx: LectorDePersona): number {
   return (
     0.25 * ctx.stat(GEN.velocidad) +
     0.2 * ctx.stat(GEN.resistencia) +
@@ -561,17 +559,8 @@ export const atletismo = defineModule<AtletismoState>({
   description: '400 metros lisos. Entrena por la tarde y compite los sábados.',
   dependsOn: ['gen'],
   // La ficha (para listarlo al crear la partida), sus datos por país (categorías, temporada, competiciones, clubes) y lo que pone en el mapa de la ciudad.
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_ATLETISMO], [APORTES.datosDeDeporte]: [DATOS_ATLETISMO], [APORTES.lugaresDeDeporte]: [LUGARES_ATLETISMO] },
-  stats: [
-    habilidad('tecnica', 'Técnica de carrera', [{ stat: GEN.coordinacion, weight: 0.4 }, { stat: GEN.agilidad, weight: 0.2 }], 'Zancada eficiente y postura.', [{ stat: GEN.coordinacion, weight: 0.5 }, { stat: GEN.agilidad, weight: 0.3 }, { stat: GEN.determinacion, weight: 0.2 }]),
-    habilidad('ritmo', 'Gestión del ritmo', [{ stat: GEN.resistencia, weight: 0.4 }, { stat: GEN.inteligencia, weight: 0.2 }], 'Repartir el esfuerzo en la vuelta.', [{ stat: GEN.resistencia, weight: 0.5 }, { stat: GEN.inteligencia, weight: 0.25 }, { stat: GEN.determinacion, weight: 0.25 }]),
-    conocimientoDelDeporte(
-      DEPORTE,
-      'Conocimiento de atletismo',
-      'Entender el deporte: ritmos, tácticas, quién sale mejor. Sube entrenando, compitiendo y, en menor medida, viendo atletismo; casi no se olvida.',
-    ),
-    habilidad('salida', 'Salida y aceleración', [{ stat: GEN.velocidad, weight: 0.4 }, { stat: GEN.fuerza, weight: 0.2 }], 'Arrancar rápido desde los tacos.', [{ stat: GEN.velocidad, weight: 0.5 }, { stat: GEN.fuerza, weight: 0.3 }, { stat: GEN.coordinacion, weight: 0.2 }]),
-  ],
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_ATLETISMO], [APORTES.datosDeDeporte]: [DATOS_ATLETISMO], [APORTES.lugaresDeDeporte]: [LUGARES_ATLETISMO], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento }] },
+  stats: [...STATS_DE_ATLETISMO],
 
   initState: () => ({
     mejorMarca: null,
@@ -593,16 +582,7 @@ export const atletismo = defineModule<AtletismoState>({
       description: 'Sesión completa con el entrenador y el grupo del club: técnica, ritmo, salida y táctica. Rinde más que entrenar por tu cuenta, y más aún en los clubes de fuera del colegio.',
       tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, TAGS.club, 'atletismo'],
       delta: { [GEN.energia]: -24 },
-      train: [
-        { stat: 'atletismo.tecnica', amount: 2 },
-        { stat: 'atletismo.ritmo', amount: 2 },
-        { stat: 'atletismo.salida', amount: 2 },
-        { stat: GEN.velocidad, amount: 0.6 },
-        { stat: GEN.resistencia, amount: 0.6 },
-        { stat: GEN.coordinacion, amount: 0.4 },
-        // Con entrenador y grupo se aprende el deporte como en ningún otro entrenamiento.
-        { stat: CONOCIMIENTO, amount: 1.6 },
-      ],
+      train: [...SESION_DE_CLUB],
     }),
     dejarClub(CONFIG),
     campamento(CONFIG, {
@@ -622,13 +602,7 @@ export const atletismo = defineModule<AtletismoState>({
       description: 'Con notas aceptables, el verano se pasa jugando y corriendo con los amigos: sienta bien, pero no se mejora igual que entrenando.',
       tags: [TAGS.fisico, TAGS.social, 'atletismo'],
       delta: { [GEN.energia]: -12, [GEN.estres]: -6 },
-      train: [
-        { stat: 'atletismo.tecnica', amount: 0.4 },
-        { stat: 'atletismo.ritmo', amount: 0.4 },
-        { stat: 'atletismo.salida', amount: 0.4 },
-        { stat: GEN.carisma, amount: 0.4 },
-        { stat: GEN.cooperacion, amount: 0.3 },
-      ],
+      train: [...JUEGO_INFORMAL],
     }),
 
     {

@@ -53,3 +53,13 @@ export function sesgoDelEntrenador(caracter: Readonly<Record<string, number>> | 
     porteros: 1,
   };
 }
+
+/** Practicar con los amigos (juego informal): sienta bien, pero no se mejora igual que entrenando. Lo usan la acción del personaje y la rutina de los PNJ. */
+export const JUEGO_INFORMAL = [
+  { stat: 'futbol.control', amount: 0.3 },
+  { stat: 'futbol.regate', amount: 0.4 },
+  { stat: 'futbol.definicion', amount: 0.3 },
+  { stat: 'futbol.juego_colectivo', amount: 0.4 },
+  { stat: GEN.carisma, amount: 0.4 },
+  { stat: GEN.cooperacion, amount: 0.4 },
+] as const;

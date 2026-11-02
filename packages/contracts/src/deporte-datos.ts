@@ -2,6 +2,7 @@ import { tramoDeSemana, type CalendarioPais } from './calendar';
 import type { CategoriaDef } from './categories';
 import type { ReadContext } from './context';
 import type { LugarId } from './lugares';
+import type { StatDef } from './stats';
 
 /**
  * FICHA Y DATOS DE UN DEPORTE. Cada módulo de deporte los aporta con `GameModule.aportes` (claves en `APORTES`), así que el juego puede
@@ -139,7 +140,49 @@ export interface EquipoDeDeporte {
  * iguales (con su genética y sus gustos) y cada deporte recluta a los que mejor encajan, primero entre los interesados. La partida **guarda lo que
  * pidió cada deporte** (`npcs` copia esto al empezar), así que su gente sigue viviendo aunque el módulo del deporte ya no esté (plan §5).
  */
+/** Lo que sube una práctica: una stat y cuánto (el mismo formato que `ActionDef.train`). */
+export interface Entrenamiento {
+  stat: string;
+  amount: number;
+}
+
+/** Un ejercicio de las sesiones del club (fútbol): unas pocas habilidades. El entrenador elige varios por sesión. */
+export interface EjercicioDeClub {
+  id: string;
+  /** Cómo se dice en «Hoy: rondos y finalización». */
+  nombre: string;
+  /** Tipo de ejercicio: en una sesión no se repite, y el carácter del entrenador inclina hacia unos u otros. */
+  foco: string;
+  entrena: readonly Entrenamiento[];
+  /** Solo para quien juega en este puesto (p. ej. `portero`). */
+  soloPuesto?: string;
+}
+
+/**
+ * La rutina de un deporte, como dato: lo que hace falta para que **cualquier PNJ que lo juegue tenga las mismas habilidades que el personaje y las entrene con las
+ * mismas reglas** (`MISMAS_REGLAS.md`). La partida lo guarda con la población, así que sus jugadores siguen viviendo aunque el módulo del deporte ya no esté.
+ */
+export interface RutinaDeDeporte {
+  /** Las stats propias del deporte (habilidades y conocimiento), tal como las define el módulo: los PNJ las llevan con las mismas reglas de subida, techo y caída. */
+  stats: readonly StatDef[];
+  /** Id del conocimiento del deporte (uno de `stats`). */
+  conocimiento: string;
+  /** Lo que sube una sesión del club cuando es siempre la misma (atletismo). */
+  sesionFija?: readonly Entrenamiento[];
+  /** Los ejercicios que elige el entrenador en cada sesión (fútbol) y lo que sube siempre además. Todos los de un equipo entrenan lo mismo. */
+  ejercicios?: readonly EjercicioDeClub[];
+  siempre?: readonly Entrenamiento[];
+  ejerciciosPorSesion?: number;
+  /** Lo que sube una semana de juego informal («practicar con los amigos»): lo que hace todo niño, y el personaje, antes de entrar en un club. */
+  informal: readonly Entrenamiento[];
+  /** Sesiones de club por semana: las de cada club y, para los que no están en la lista, las de por defecto. */
+  sesionesPorSemana: Readonly<Record<string, number>>;
+  sesionesPorDefecto: number;
+}
+
 export interface PoblacionDeDeporte {
+  /** La rutina del deporte, si trae las habilidades de sus jugadores: sin ella, los PNJ solo llevan un nivel por deporte (los deportes de prueba). */
+  rutina?: RutinaDeDeporte;
   /** Etiqueta de los deportistas (p. ej. `atleta`): así los buscan los módulos del deporte (`NpcDirectory.list({ tag })`). */
   etiqueta: string;
   /** Descripción de un deportista que no es del colegio del personaje («Compite en atletismo.»). */
