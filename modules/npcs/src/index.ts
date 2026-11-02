@@ -116,6 +116,7 @@ import {
   type Genetica,
 } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
+import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { type HabilidadesDe } from './rutina';
 import { NUNCA, historiaDeportiva, listaDeSesion, semanaDeNino, type Rendimientos } from './semana';
 
@@ -644,7 +645,7 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
   return npcs.map((n) => {
     const pob = n.deporte ? porDeporte.get(n.deporte) : undefined;
     if (!pob || !n.genetica || n.nacimiento === undefined || n.hab?.[pob.deporte]) return n;
-    const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (fin, i, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.id, fin, i]));
+    const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco]));
     return { ...n, cap: h.cap, pico: h.pico, capUlt: h.capUlt, hab: { ...n.hab, [pob.deporte]: h.hab }, levels: { ...n.levels, [pob.deporte]: h.nivel } };
   });
 }
@@ -654,29 +655,19 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
  * capacidades y habilidades, y su rendimiento (`levels`) calculado con ellas. `fin` es el día en que acaba la semana. Los de un equipo con ejercicios elegidos por el
  * entrenador hacen todos los mismos, según lo que le falta al equipo.
  */
-export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number): void {
+export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number): void {
   for (const pob of pobs) {
     const r = pob.rutina;
     const f = rend.get(pob.deporte);
     if (!r || !f) continue;
     const jugadores = npcs.filter((n) => n.hab?.[pob.deporte] && n.genetica && n.nacimiento !== undefined && n.cap && n.pico);
-    // Lo que le falta a cada equipo: la media de sus jugadores en cada habilidad (los ejercicios de la semana son los mismos para todos).
-    const medias = new Map<string, Map<string, number>>();
-    if (r.ejercicios) {
-      const sumas = new Map<string, { n: number; v: number[] }>();
-      for (const n of jugadores) {
-        if (n.deporte !== pob.deporte || !n.equipo) continue;
-        const e = sumas.get(n.equipo) ?? { n: 0, v: r.stats.map(() => 0) };
-        n.hab![pob.deporte].v.forEach((x, i) => (e.v[i] += x));
-        e.n++;
-        sumas.set(n.equipo, e);
-      }
-      for (const [club, e] of sumas) medias.set(club, new Map(r.stats.map((d, i) => [d.id, e.v[i] / e.n])));
-    }
+    // Lo que le falta a cada equipo (club y categoría): la media de sus jugadores en cada habilidad. Los ejercicios de la sesión son los mismos para todos.
+    const medias = r.ejercicios ? mediasDeLosEquipos(jugadores, pob, inicioCurso) : new Map<string, Record<string, number>>();
     for (const n of jugadores) {
-      const media = n.equipo ? medias.get(n.equipo) : undefined;
-      const res = semanaDeNino(n as never, pob.deporte, r, f, fin, (i, lector) =>
-        listaDeSesion(r, (stat) => media?.get(stat) ?? lector.stat(stat), [pob.deporte, n.equipo ?? n.id, fin, i]),
+      const clave = claveDeEquipoCategoria(pob, n, inicioCurso);
+      const media = clave ? medias.get(clave) : undefined;
+      const res = semanaDeNino(n as never, pob.deporte, r, f, fin, (semana, hueco, lector) =>
+        listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), clave ? semillaDeSesionDeEquipo(pob.deporte, clave.split('|')[0], clave.split('|')[1], semana, hueco) : [pob.deporte, n.id, semana, hueco]),
       );
       n.cap!.splice(0, n.cap!.length, ...res.cap);
       n.pico!.splice(0, n.pico!.length, ...res.pico);
@@ -685,6 +676,43 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
       n.levels[pob.deporte] = res.nivel;
     }
   }
+}
+
+/** El equipo de un jugador (club y categoría que le toca por edad de competición) como clave, o `undefined` si no está en un equipo. */
+function claveDeEquipoCategoria(pob: PoblacionGuardada, n: Npc, inicioCurso: number): string | undefined {
+  if (n.deporte !== pob.deporte || !n.equipo) return undefined;
+  const edad = edadNpc(n, inicioCurso);
+  const cat = edad === undefined ? undefined : categoriaDe(pob, edad);
+  return `${n.equipo}|${cat?.id ?? 'sin-categoria'}`;
+}
+
+/** Lo que vale cada equipo (club y categoría) en cada habilidad del deporte: la media de sus jugadores. */
+function mediasDeLosEquipos(jugadores: readonly Npc[], pob: PoblacionGuardada, inicioCurso: number): Map<string, Record<string, number>> {
+  const r = pob.rutina!;
+  const sumas = new Map<string, { n: number; v: number[] }>();
+  for (const n of jugadores) {
+    const clave = claveDeEquipoCategoria(pob, n, inicioCurso);
+    if (!clave) continue;
+    const e = sumas.get(clave) ?? { n: 0, v: r.stats.map(() => 0) };
+    n.hab![pob.deporte].v.forEach((x, i) => (e.v[i] += x));
+    e.n++;
+    sumas.set(clave, e);
+  }
+  return new Map([...sumas].map(([clave, e]) => [clave, Object.fromEntries(r.stats.map((d, i) => [d.id, e.v[i] / e.n]))]));
+}
+
+/** Las medias de los equipos para el servicio, guardadas por lista de personas y semana (las listas de habilidades se cambian en el sitio cada semana). */
+const MEDIAS_DE_EQUIPOS = new WeakMap<readonly Npc[], { semana: number; porDeporte: Map<string, Map<string, Record<string, number>>> }>();
+export function nivelesDelEquipoDe(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, categoria: string, semana: number, inicioCurso: number): Record<string, number> | undefined {
+  let c = MEDIAS_DE_EQUIPOS.get(npcs);
+  if (!c || c.semana !== semana) MEDIAS_DE_EQUIPOS.set(npcs, (c = { semana, porDeporte: new Map() }));
+  let m = c.porDeporte.get(deporte);
+  if (!m) {
+    const pob = pobs.find((p) => p.deporte === deporte);
+    m = pob?.rutina ? mediasDeLosEquipos(npcs.filter((n) => n.hab?.[deporte] && n.nacimiento !== undefined), pob, inicioCurso) : new Map();
+    c.porDeporte.set(deporte, m);
+  }
+  return m.get(`${club}|${categoria}`);
 }
 
 // ---------------------------------------------------------------------------------------------------- plaza del personaje en un equipo
@@ -1310,7 +1338,7 @@ export const npcs = defineModule<NpcsState>({
         const pobs = s.poblaciones ?? poblacionesDe(ctx, s.semilla ?? 0);
         const npcs = conCapacidades(conHabilidades(s.npcs, pobs, rend, week * 7), week * 7);
         avanzarCapacidadesEnSitio(npcs, (week + 1) * 7);
-        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7);
+        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7);
         return { ...s, npcs };
       });
       // Si la semana que viene empieza un curso nuevo, se renueva la gente: los que acaban el colegio se van, entran niños nuevos y los equipos rellenan sus plazas.
@@ -1500,6 +1528,7 @@ export const npcs = defineModule<NpcsState>({
           const n = personaPorId(lista, id);
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
+        nivelesDelEquipo: (deporte, club, categoria) => nivelesDelEquipoDe(lista, poblacionesGuardadas(ctx), deporte, club, categoria, ctx.time.week, inicioCurso),
         plaza: (deporte, club, nivel) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso),
       };
     },

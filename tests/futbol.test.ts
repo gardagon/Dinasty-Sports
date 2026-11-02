@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { SERVICES, validarDatosDeDeporte, type ClubDirectory, type DeporteService, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
-import { DATOS_FUTBOL, HABILIDADES_DE_FUTBOL, futbol } from '@ds/mod-futbol';
+import { DATOS_FUTBOL, EJERCICIOS_DE_FUTBOL, HABILIDADES_DE_FUTBOL, futbol } from '@ds/mod-futbol';
+import { elegirEjercicios, semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import * as contracts from '@ds/contracts';
 import * as kit from '@ds/kit-deporte';
 import { cargarModulo, generarClaves } from '@ds/paquetes';
@@ -47,9 +48,11 @@ describe('fútbol en una partida completa', () => {
 
     // Jueves a las 15: sesión del club (martes y jueves, otros días que atletismo).
     advanceToWeek(g, 'gen.descansar', 1, 3, 15);
-    const antes = g.stat('futbol.juego_colectivo');
+    const suma = () => HABILIDADES_DE_FUTBOL.reduce((t, id) => t + g.stat(id), 0);
+    const antes = suma();
     expect(hacer(g, 'futbol.club_sesion').ok).toBe(true);
-    expect(g.stat('futbol.juego_colectivo')).toBeGreaterThan(antes);
+    // Sube lo que entrenan los ejercicios que ha elegido el entrenador ese día.
+    expect(suma()).toBeGreaterThan(antes);
   });
 
   it('el entreno por libre está en el campo (y no durante la sesión del club)', () => {
@@ -135,3 +138,40 @@ describe('fútbol empaquetado', () => {
   });
 });
 
+
+describe('los ejercicios son los mismos para todo el equipo', () => {
+  const equipo = (g: ReturnType<typeof nueva>) => g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.hab?.futbol && edadNpc(n, 0)! <= 9);
+
+  it('en una semana, las habilidades que suben los jugadores de un equipo son las de los mismos ejercicios (no las de ejercicios distintos para cada uno)', () => {
+    const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 2, 0, 8);
+    const antes = new Map(equipo(g).map((n) => [n.id, [...n.hab!.futbol.v]]));
+    advanceToWeek(g, 'gen.descansar', 3, 0, 8);
+    const habilidades = HABILIDADES_DE_FUTBOL;
+    const subieron = new Set<string>();
+    let con = 0;
+    for (const n of equipo(g)) {
+      const a = antes.get(n.id);
+      if (!a) continue;
+      const cambios = n.hab!.futbol.v.map((v, i) => v - a[i]);
+      if (cambios.some((c) => c > 1e-6)) con++;
+      cambios.forEach((c, i) => c > 1e-6 && subieron.add(habilidades[i] ?? `stat${i}`));
+    }
+    expect(con).toBeGreaterThan(5);
+    // Dos sesiones de dos ejercicios de 3 o 4 habilidades cada uno, más lo que se suma siempre y el juego colectivo: unas 12 a lo sumo. Con ejercicios propios de cada uno saldrían casi todas (29).
+    expect(subieron.size).toBeLessThanOrEqual(14);
+  });
+
+  it('el personaje entrena lo que entrena su equipo: los ejercicios de su sesión salen de lo que le falta al equipo, con la misma semilla', () => {
+    const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 2, 2, 15);
+    expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+    advanceToWeek(g, 'gen.descansar', 3, 3, 15);
+    const niveles = g.service<NpcDirectory>(SERVICES.npcs)!.nivelesDelEquipo!('futbol', 'colegio', 'benjamin')!;
+    expect(niveles).toBeDefined();
+    const esperados = elegirEjercicios(EJERCICIOS_DE_FUTBOL, { nivel: (stat) => niveles[stat] ?? g.stat(stat), semilla: semillaDeSesionDeEquipo('futbol', 'colegio', 'benjamin', g.time.week, 1), cuantos: 2 }).map((e) => e.nombre);
+    const hoy = /Hoy: (.+)\.$/.exec(g.preview('futbol.club_sesion')!.description ?? '')?.[1];
+    expect(hoy).toBeTruthy();
+    for (const nombre of esperados) expect(hoy).toContain(nombre);
+  });
+});

@@ -95,6 +95,11 @@ export interface NpcDirectory {
    * (`EquipoDeDeporte.plantillaPorCategoria`); en el resto siempre hay sitio. En la fase de deportes de equipo con puestos se comparará por puesto.
    */
   plaza(deporte: string, club: string, nivel: number): PlazaEnEquipo;
+  /**
+   * Lo que vale el equipo de un club en una categoría en cada habilidad del deporte (la media de sus jugadores, con valores reales): con ello el entrenador elige los ejercicios
+   * de la sesión, **los mismos para todos los que entrenan juntos**, personaje incluido. `undefined` si el deporte no tiene jugadores con habilidades en ese equipo.
+   */
+  nivelesDelEquipo?(deporte: string, club: string, categoria: string): Readonly<Record<string, number>> | undefined;
 }
 
 // ---------- Estudios ----------

@@ -1,6 +1,7 @@
 import {
   APORTES,
   GEN,
+  SERVICES,
   TAGS,
   claveDeDeporte,
   datosDeDeporte,
@@ -9,6 +10,7 @@ import {
   ligarALugares,
   type DeporteView,
   type LectorDePersona,
+  type NpcDirectory,
   type ReadContext,
 } from '@ds/contracts';
 import {
@@ -27,6 +29,7 @@ import {
   modificadorPorTuCuenta,
   pedirConsejo,
   sedeDelClub as sedeDelClubEn,
+  semillaDeSesionDeEquipo,
   sesionDeClubConEjercicios,
   sinEntrenarPorLibreEnSesion,
   textoDeSesiones,
@@ -162,8 +165,16 @@ export const futbol = defineModule<FutbolState>({
         delta: { [GEN.energia]: -24 },
         catalogo: EJERCICIOS_DE_FUTBOL,
         siempre: SIEMPRE,
-        contexto: (ctx) => ({ nivel: (stat) => ctx.stat(stat), sesgo: sesgoDelEntrenador(entrenadorDelJugador(ctx)?.rasgos?.caracter) }),
-        semilla: (ctx) => [DEPORTE, clubDelJugador(ctx)?.id ?? 'club', ctx.time.day],
+        // Los ejercicios los elige el entrenador según lo que le falta al equipo (club y categoría) y son los mismos para todos los que entrenan juntos: los jugadores del
+        // equipo, con la misma semilla (club, categoría, semana y número de sesión de la semana), y el personaje.
+        contexto: (ctx) => {
+          const niveles = ctx.service<NpcDirectory>(SERVICES.npcs)?.nivelesDelEquipo?.(DEPORTE, clubDelJugador(ctx)?.id ?? '', categoriaDelJugador(ctx).competida.id);
+          return { nivel: (stat) => niveles?.[stat] ?? ctx.stat(stat), sesgo: sesgoDelEntrenador(entrenadorDelJugador(ctx)?.rasgos?.caracter) };
+        },
+        semilla: (ctx) => {
+          const club = clubDelJugador(ctx);
+          return semillaDeSesionDeEquipo(DEPORTE, club?.id ?? 'club', categoriaDelJugador(ctx).competida.id, ctx.time.week, Math.max(0, club?.sesiones.weekdays.indexOf(ctx.time.weekday) ?? 0));
+        },
       }),
       dejarClub(CONFIG),
       campamento(CONFIG, {

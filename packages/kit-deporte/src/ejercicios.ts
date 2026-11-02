@@ -54,6 +54,12 @@ export function elegirEjercicios(catalogo: readonly Ejercicio[], c: ContextoDeEl
   return elegidos;
 }
 
+/**
+ * La semilla de los ejercicios de una sesión de un equipo (club y categoría): la misma para todos los que entrenan juntos, los jugadores del equipo y el personaje, así que
+ * eligen los mismos. `semana` es el número de la semana del reloj del juego y `hueco`, el de la sesión dentro de la semana (0 la primera).
+ */
+export const semillaDeSesionDeEquipo = (deporte: string, club: string, categoria: string, semana: number, hueco: number): (string | number)[] => [deporte, club, categoria, semana, hueco];
+
 /** «rondos y finalización», «rondos, defensa y balón parado». */
 export const listaDeEjercicios = (es: readonly Ejercicio[]): string => (es.length < 2 ? (es[0]?.nombre ?? '') : `${es.slice(0, -1).map((e) => e.nombre).join(', ')} y ${es[es.length - 1].nombre}`);
 

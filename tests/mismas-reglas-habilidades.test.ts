@@ -130,7 +130,7 @@ describe('la historia por bloques da lo mismo que semana a semana', () => {
     const g = nuevaPartida({ seed: 31 });
     const s = g.moduleState<NpcsState>('npcs');
     const rend = rendimiento;
-    const lista = (fin: number, i: number, lector: { stat(id: string): number }) => listaDeSesion(RUTINA, (id) => lector.stat(id), ['atletismo', 'x', fin, i]);
+    const lista = (semana: number, hueco: number, lector: { stat(id: string): number }) => listaDeSesion(RUTINA, (id) => lector.stat(id), ['atletismo', 'x', semana, hueco]);
     let peor = 0;
     let peorNivel = 0;
     for (const n of s.npcs.filter((x) => x.hab?.atletismo && x.nacimiento !== undefined && x.genetica).slice(0, 40)) {
@@ -162,7 +162,7 @@ describe('los jugadores de una partida llevan sus habilidades y su nivel sale de
     const s = g.moduleState<NpcsState>('npcs') as NpcsState;
     const n = s.npcs.find((x) => x.deporte === 'atletismo' && x.hab && x.genetica)!;
     const antes = [...n.hab!.atletismo.v];
-    const r = semanaDeNino(n as unknown as NinoDeportista, 'atletismo', RUTINA, rendimiento, 7, (i, l) => listaDeSesion(RUTINA, (id) => l.stat(id), ['atletismo', 'x', 7, i]));
+    const r = semanaDeNino(n as unknown as NinoDeportista, 'atletismo', RUTINA, rendimiento, 7, (semana, hueco, l) => listaDeSesion(RUTINA, (id) => l.stat(id), ['atletismo', 'x', semana, hueco]));
     expect(aGuardarHabilidades(r.hab).v.length).toBe(antes.length);
     expect(r.nivel).toBeGreaterThan(0);
   });

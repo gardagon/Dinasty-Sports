@@ -34,6 +34,8 @@ import {
  */
 
 const DIAS_POR_ANIO = 365;
+/** El número de la semana (la que cuenta el reloj del juego) que acaba el día `fin`. */
+export const semanaQueAcaba = (fin: number): number => Math.floor((fin - 1) / 7);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 /** Semanas que se calculan de golpe al hacer la historia de un niño. */
 export const SEMANAS_POR_BLOQUE = 4;
@@ -72,14 +74,17 @@ export const interesDe = (n: Pick<NinoDeportista, 'rasgos'>, deporte: string): n
 /** Qué parte de las sesiones del club cumple un niño: la que le da su constancia (su ritmo), de un 55 % a un 100 %. */
 export const asistencia = (ritmo: number): number => clamp(0.55 + 0.45 * ((ritmo - 0.55) / 0.95), 0.55, 1);
 
-/** Las sesiones del club a las que va un niño una semana: cada una la cumple con su probabilidad de asistencia (su azar es solo suyo, el de esa semana). */
-export function sesionesQueHace(n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo'>, deporte: string, r: RutinaDeDeporte, semana: number): number {
+/** Las sesiones del club de la semana a las que va un niño (el número de cada una dentro de la semana): cada una la cumple con su probabilidad de asistencia (su azar es solo suyo, el de esa semana). */
+export function huecosQueHace(n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo'>, deporte: string, r: RutinaDeDeporte, semana: number): number[] {
   const porSemana = (n.equipo !== undefined ? r.sesionesPorSemana[n.equipo] : undefined) ?? r.sesionesPorDefecto;
   const p = asistencia(n.ritmo?.[deporte] ?? ritmoEn(n.id, n.genetica, deporte));
-  let hechas = 0;
-  for (let s = 0; s < porSemana; s++) if (rngEstable('asiste', n.id, deporte, semana, s).chance(p)) hechas++;
+  const hechas: number[] = [];
+  for (let s = 0; s < porSemana; s++) if (rngEstable('asiste', n.id, deporte, semana, s).chance(p)) hechas.push(s);
   return hechas;
 }
+
+/** Cuántas sesiones del club hace un niño una semana. */
+export const sesionesQueHace = (n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo'>, deporte: string, r: RutinaDeDeporte, semana: number): number => huecosQueHace(n, deporte, r, semana).length;
 
 /** Lo que sube una sesión del club ese día: la lista fija del deporte o los ejercicios que elige el entrenador (con lo que le falta a quien se mira). */
 export function listaDeSesion(r: RutinaDeDeporte, nivel: (stat: string) => number, semilla: readonly (string | number)[]): readonly Entrenamiento[] {
@@ -99,7 +104,7 @@ export function pasoDeSemanas(
   t: Trabajo,
   fin: number,
   semanas: number,
-  opciones: { porSemana: readonly number[]; informales: number; lista: (i: number, lector: LectorDePersona) => readonly Entrenamiento[] },
+  opciones: { porSemana: readonly (readonly number[])[]; informales: number; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] },
 ): void {
   const ultAntes = t.hab.ult;
   const capUltAntes = [...t.capUlt];
@@ -107,9 +112,10 @@ export function pasoDeSemanas(
   enElDia(t, fin - DIAS_DESDE_LA_SESION, fin - 3.5 * semanas);
   const lector = lectorDe(t);
   if (opciones.informales > 0) practicar(t, acumular(Array.from({ length: opciones.informales }, () => t.rutina.informal)), 1);
-  const total = opciones.porSemana.reduce((a, b) => a + b, 0);
   const sesiones: (readonly Entrenamiento[])[] = [];
-  for (let i = 0; i < total; i++) sesiones.push(opciones.lista(i, lector));
+  opciones.porSemana.forEach((huecos, w) => {
+    for (const h of huecos) sesiones.push(opciones.lista(semanaQueAcaba(fin - 7 * (semanas - 1 - w)), h, lector));
+  });
   if (sesiones.length) sesionDeClub(t, semanas === 1 ? sesiones.flat() : acumular(sesiones));
   const entrenadas = new Set<string>([...sesiones.flat().map((e) => e.stat), ...(opciones.informales > 0 ? t.rutina.informal.map((e) => e.stat) : [])]);
   // Cuándo entrenó por última vez cada cosa, semana a semana (empieza como estaba antes del bloque).
@@ -118,7 +124,7 @@ export function pasoDeSemanas(
   const base = t.capBase;
   for (let w = 0; w < semanas; w++) {
     const finSemana = fin - 7 * (semanas - 1 - w);
-    const entrenoEstaSemana = opciones.porSemana[w] > 0 || (opciones.informales > 0 && w < opciones.informales);
+    const entrenoEstaSemana = opciones.porSemana[w].length > 0 || (opciones.informales > 0 && w < opciones.informales);
     if (entrenoEstaSemana) {
       ultHab = finSemana - DIAS_DESDE_LA_SESION;
       for (let i = 0; i < CAPACIDADES_GENETICAS.length; i++) if (entrenadas.has(CAPACIDADES_GENETICAS[i])) ultCap[i] = finSemana - DIAS_DESDE_LA_SESION;
@@ -148,8 +154,8 @@ export function pasoDeSemanas(
 }
 
 /** Una semana: ver `pasoDeSemanas`. */
-export const pasoDeSemana = (t: Trabajo, fin: number, o: { sesiones: number; informal: boolean; lista: (i: number, lector: LectorDePersona) => readonly Entrenamiento[] }): void =>
-  pasoDeSemanas(t, fin, 1, { porSemana: [o.sesiones], informales: o.informal ? 1 : 0, lista: o.lista });
+export const pasoDeSemana = (t: Trabajo, fin: number, o: { huecos: readonly number[]; informal: boolean; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] }): void =>
+  pasoDeSemanas(t, fin, 1, { porSemana: [o.huecos], informales: o.informal ? 1 : 0, lista: o.lista });
 
 const redondea = (x: number) => Math.round(x * 100) / 100;
 
@@ -179,11 +185,11 @@ export function semanaDeNino(
   r: RutinaDeDeporte,
   rend: (p: LectorDePersona) => number,
   fin: number,
-  lista: (i: number, lector: LectorDePersona) => readonly Entrenamiento[],
+  lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[],
 ): Resultado {
   const t = prepararTrabajo(n, valoresIniciales(n.id, n.genetica), deporte, r, n.hab![deporte], n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), fin - 7);
   const enClub = n.deporte === deporte && n.equipo !== undefined;
-  pasoDeSemana(t, fin, { sesiones: enClub ? sesionesQueHace(n, deporte, r, Math.floor(fin / 7)) : 0, informal: false, lista });
+  pasoDeSemana(t, fin, { huecos: enClub ? huecosQueHace(n, deporte, r, semanaQueAcaba(fin)) : [], informal: false, lista });
   return resultado(t, rend);
 }
 
@@ -198,7 +204,7 @@ export function historiaDeportiva(
   r: RutinaDeDeporte,
   rend: (p: LectorDePersona) => number,
   dia: number,
-  listaDe: (fin: number, i: number, lector: LectorDePersona) => readonly Entrenamiento[],
+  listaDe: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[],
   bloque = SEMANAS_POR_BLOQUE,
 ): Resultado {
   const interes = clamp(Math.round(interesDe(n, deporte)), 0, 3);
@@ -227,8 +233,8 @@ export function historiaDeportiva(
     // El juego informal se hace semana a semana (son pocas y así es exactamente lo que hace el personaje); la rutina del club, por bloques.
     const semanas = informal ? 1 : Math.min(bloque, faltan);
     fin += 7 * semanas;
-    const porSemana = Array.from({ length: semanas }, (_, w) => (informal ? 0 : sesionesQueHace(n, deporte, r, Math.floor((fin - 7 * (semanas - 1 - w)) / 7))));
-    pasoDeSemanas(t, fin, semanas, { porSemana, informales: informal ? semanas : 0, lista: (i, lector) => listaDe(fin, i, lector) });
+    const porSemana = Array.from({ length: semanas }, (_, w) => (informal ? [] : huecosQueHace(n, deporte, r, semanaQueAcaba(fin - 7 * (semanas - 1 - w)))));
+    pasoDeSemanas(t, fin, semanas, { porSemana, informales: informal ? semanas : 0, lista: listaDe });
   }
   enElDia(t, dia);
   return resultado(t, rend);
