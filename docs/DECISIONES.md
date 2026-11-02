@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 02/11/2026 — Personaje y PNJ con las mismas reglas (diseño, decidido por el usuario)
+
+Al revisar por qué el personaje (del montón) nunca entraba en el equipo de fútbol del colegio (PR #60): con 12 semillas, su potencial está en el percentil 46, pero su nivel al empezar es 9,5 frente a 12,9 si se le calculase como a un niño, y el peor del equipo tiene 12,8. **No es la genética ni (apenas) el conocimiento** (con 50 de conocimiento solo sube a 10,2): son **dos modelos distintos**. Un niño tiene solo topes y un nivel por deporte calculado como «potencial × 75 % de lo que permite su edad»; el personaje tiene sus valores reales y empieza sin haber practicado.
+
+- **Decidido (usuario):** una sola regla para todos: los PNJ parten de cero en un deporte y suben según los años que lo practican (opción 1), y **tienen sus valores reales** (capacidades, habilidades de cada deporte, conocimiento, experiencia por puesto), no solo los topes, para que el entrenador y el motor sepan quién juega mejor en cada puesto. «Vamos a dejar todo esto claro ya, para evitar tener que volverlo a tocar.»
+- **Diseño en `MISMAS_REGLAS.md`:** fórmulas de progresión compartidas en `contracts`; rutina semanal de cada PNJ (club según su constancia, ejercicios del entrenador, competición, verano); historia de cada niño al crear la partida; rendimiento de cada deporte sobre un lector de persona, igual para todos (el atletismo deja de usar `levels.atletismo` fijo); plaza en el equipo del colegio en dificultad normal; un test de equivalencia (misma genética y misma rutina, mismos valores). Fases P1 y P2, antes de la F2 del fútbol.
+- **Pendiente:** la edad de empezar de los niños y si el personaje trae algo de antes según sus padres (§9 de ese documento).
+
 ## 01/11/2026 — Motor de los partidos: respuestas del usuario
 
 Respuestas a las preguntas de `MOTOR_PARTIDOS.md` (§0 de ese documento):
