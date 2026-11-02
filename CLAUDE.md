@@ -6,6 +6,7 @@ Los horarios de las personas (dónde está cada una a cada hora) y la población
 Las cifras de las relaciones (cuánto sube cada acción, habilidades y gustos que influyen, estados) están en `docs/ANEXO_RELACIONES.md`: si cambias una, actualiza el anexo.
 Los nombres, apellidos y orígenes de las personas (listas por cultura, reglas de mezcla, homónimos) están en `docs/ANEXO_NOMBRES.md`, y lo que cambia de un país a otro (paquetes de país: calendario, currículo, horarios, gente; las categorías, la temporada y las competiciones de cada deporte son datos del deporte, por país: `docs/PAQUETES_DE_PAIS.md` y `docs/PLAN_DEPORTES_MODULARES.md` §4) en `docs/PAQUETES_DE_PAIS.md`: si cambias una regla o un dato, actualiza el anexo.
 La pestaña del deporte y las reglas de las clasificaciones (puntos por puesto, qué se guarda) están en `docs/ANEXO_DEPORTE.md`.
+El mundo del fútbol base (ciudad grande, colegios, clubes, filiales, divisiones, liga y copa) está en `docs/CIUDAD_Y_LIGAS.md`.
 Cuando tomes una decisión de diseño o de balance, añade una entrada en `docs/DECISIONES.md`.
 
 ## Reglas que no se rompen

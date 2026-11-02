@@ -5,6 +5,29 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 02/11/2026 — Ciudad grande: colegios, clubes con filial, dos divisiones de 10 y copa
+
+El usuario: «Prefiero irnos ya a la B [la ciudad grande con dos divisiones], y la dejamos lista. Pero yo no haría 14 equipos por división. Lo dejaría en 10. Podemos hacer también una "copa del rey" en formato eliminatoria [...] uno tras otro, no como la vida real. Estamos intentando simular una ciudad grande, como Madrid o Barcelona [...] deberemos plantear los filiales, donde se suelen concentrar los jugadores de primer año, y en su segundo año pasar al primer equipo, salvo que uno de primer año destaque». Escrito en `CIUDAD_Y_LIGAS.md`.
+
+- **Se simula la zona del personaje entera,** con datos de verdad para todos. El resto de la ciudad llega con los clubes de élite (F5).
+- **Población:** el colegio del personaje igual y 9 colegios más de 2 clases de 25 por curso: ~500 niños por año y ~6.000 personas. El número de colegios y de clases es un dato de la ciudad.
+- **Clubes con tamaño** (grandes con filial, medianos, pequeños y de colegio). Reclutan en ese orden. Son los «clubes de fuera» de `MISMAS_REGLAS.md` §7 bis.
+- **Divisiones por categoría:** Primera (10), Segunda (10) y una Tercera con el resto (por qué: con «equipos de sobra», los que no caben en dos divisiones también juegan, y la Tercera resuelve dónde va un filial cuando su primer equipo baja). Suben 2 y bajan 2. La plaza es del equipo del club.
+- **Reglas del filial:** no coincide en división con su A salvo en la última, no sube a la división de su A y baja si su A baja a la suya.
+- **Primer y segundo año:** los de primer año van al B, salvo que serían titulares en el A. Se espera de 0 a 2 por club y temporada, y la simulación lo vigila.
+- **Copa después de la liga:** la juegan los A de todos los clubes, en un cuadro de 16, a partido único en el campo del de división más baja, con penaltis directos si hay empate y la final en el estadio. El motor necesita una tanda de penaltis.
+- **Coste:** dispara el guardado por partes (y seguramente los rasgos compactos) de `ALMACENAMIENTO.md`. Antes de subir la población hay que tenerlos. Si algo no cabe, se calcula o se guarda mejor; el último recurso es tener menos colegios, nunca menos datos.
+- **Por pasos:** en la P2, población y ligas como datos y medir el coste con la población de ahora, el doble y por cinco; en la F2, divisiones, filiales y copa; en una fase propia, el guardado por partes y la población grande.
+
+## 02/11/2026 — El personaje nace el mismo año que sus compañeros (corrección del usuario)
+
+El usuario: «Si empezamos en 3.º de primaria, el niño podría ser de 7 u 8 años y entraría a benjamín de primer año en fútbol». En España las categorías van por año de nacimiento, igual que los cursos. Un niño de 3.º nace en el año del curso menos 8: el día que empieza el curso tiene entre 7,3 y 8,7 años y es benjamín de primer año.
+
+- **El error:** el personaje empezaba con entre 8,0 y 9,0 años (`identidad.ts`: `EDAD_INICIAL = 8` más una fracción al azar), mientras que sus compañeros nacen todos en el año que toca (`npcs`: `primerDiaDelAnio(anioNatural(0) − 8) + rng.int(0, 364)`). En el 31 % de las partidas el personaje nacía un año antes: era un año mayor que toda su clase y jugaba de benjamín de segundo año. Es un trato especial que choca con `VISION.md` (principio 6).
+- **El arreglo:** el personaje nace como los PNJ, un día al azar del mismo año que su clase. Siempre empieza en 3.º y como benjamín de primer año. La diferencia entre nacer en enero o en diciembre se mantiene, porque es real. Las partidas guardadas conservan su edad.
+- **Hay que revisar** lo que suponía que empieza con 8 años o más (curva de madurez, `vigoresPorEdad`, los `?? 8`, los textos). Cambia la huella, y es a propósito; hay que pasar `npm run sim` antes y después.
+- **En atletismo** también se compite por año de nacimiento, y el juego usa la misma edad de competición para los dos deportes.
+
 ## 02/11/2026 — Visión del juego: datos de verdad para todos
 
 El usuario: «tengo la sensación de que estás recortando cosas para que no sea un juego pesado, pero no es lo que busco: es un RPG en el que los datos importan y tiene que verse una progresión en el mundo». La referencia es **Football Manager** desde un jugador (que después puede ser mánager, presidente u ojeador), con la parte de vida del RPG, perks al estilo de **Crusader Kings III** y cosas concretas del fútbol al estilo de **Hattrick**. Escrito en `VISION.md`.

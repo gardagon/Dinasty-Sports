@@ -94,6 +94,8 @@ Simular años de rutina para ~1.400 personas al crear la partida puede ser lento
 
 ## 7 bis. Los clubes de fuera fichan a los que destacan (propuesta del usuario, 02/11)
 
+**Con la ciudad grande (`CIUDAD_Y_LIGAS.md`, 02/11), los clubes de fuera son los clubes de la zona** (grandes, medianos y pequeños, con filiales). El club del colegio es uno pequeño más. Las reglas de abajo siguen igual; las cifras de «unos 54 interesados por categoría» eran de la ciudad pequeña.
+
 Para que un personaje del montón pueda entrar en el equipo de su colegio sin trato especial, y porque es lo que pasa en la realidad (los que quieren mejorar acaban en un club):
 
 - **Los clubes de fuera reclutan primero**, los de más calidad antes, entre los niños de todos los colegios, **por lo que vale cada uno de verdad**. Ya funciona así en atletismo.
