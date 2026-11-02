@@ -8,6 +8,8 @@ Estado: **horarios cerrados y población aprobada** (27/10/2026). La población 
 
 **La gente de cada deporte (fase 4, 30/10/2026):** los rivales, los entrenadores y el equipo del colegio los pide cada deporte como dato (`DatosDeDeportePais.poblacion`). Los deportistas ya no son un número fijo: los niños (los del colegio, los de los cuatro colegios de fuera —17 por curso y colegio de 8 a 17 años y los jóvenes de 18 y 19— y los del barrio, todos creados con herencia y sin deporte, ≈ 1.100 personas) los recluta cada deporte por gustos y aptitud en equipos con plantilla definida (`modules/atletismo/src/datos.ts`, ~115 en el atletismo de España, 5-13 por edad). Las cifras de rivales y equipo de las tablas de abajo son orientativas de la versión anterior; los entrenadores de clubes (5) siguen igual.
 
+**Población prevista con la ciudad grande (02/11, `CIUDAD_Y_LIGAS.md` §2):** el colegio del personaje igual (2 clases de 25 por curso) y 9 colegios más de 2 clases de 25: ~500 niños por año de nacimiento, ~6.000 personas, con unos 15–20 clubes de fútbol y sus entrenadores. Llega en su propia fase, después del guardado por partes; hasta entonces, la de arriba.
+
 ## 1. Cómo funciona
 
 - Cada persona guarda una lista de **tipos** (`alumno`, `profesor`, `entrenador`, `club`, `rival`, `amigo`, `vecino`, `bibliotecario`). Un tipo aporta **tramos** de la semana: de tal hora a tal hora, en tal lugar.

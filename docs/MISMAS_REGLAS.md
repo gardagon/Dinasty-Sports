@@ -36,7 +36,7 @@ El 75 % de los niños se calibró frente a un personaje que entrena muy bien dur
 Lo único distinto, a propósito:
 
 - **Quién decide qué hace.** El jugador elige las acciones del personaje. Un PNJ sigue una **rutina**: las sesiones de su club, los partidos o carreras, los ejercicios que elige su entrenador y el verano. Esa rutina se cumple más o menos según su constancia y su forma del año.
-- **Los estados del día** (energía, estrés, motivación, salud) solo se simulan para el personaje. En un PNJ los resume su **forma**.
+- **Cada cuánto se calcula.** El personaje vive día a día (energía, estrés, motivación y salud cambian con cada acción). Un PNJ lleva **los mismos estados que importan para jugar** (corregido el 02/11 con `VISION.md`: datos de verdad para todos): **condición física** (baja con las sesiones y los partidos y se recupera descansando), **moral** (sube y baja con los resultados, los minutos y su relación con el entrenador), **forma** (cómo le va estas semanas) y **salud** (lesiones). Se actualizan cada semana y en cada partido, no cada hora.
 
 ## 3. Qué guarda cada PNJ con genética
 
@@ -49,7 +49,9 @@ Niños, jóvenes, hermanos y rivales:
 | **Habilidades de cada deporte que practica o ha practicado** | Un número por deporte (`levels`) | **Las mismas habilidades que el personaje** (en fútbol, las 29), con su valor y su máximo |
 | **Conocimiento** de cada deporte | No | **Sí** |
 | **Años practicando** cada deporte | No | **Sí** (desde cuándo) |
-| **Experiencia en cada puesto** (deportes de equipo) | No | **Sí**, solo en los puestos en que ha jugado (F3) |
+| **Experiencia en cada puesto** (deportes de equipo) | No | **Sí**, guardada partido a partido en los puestos en que ha jugado (F3) |
+| **Estado** (condición física, moral, forma, salud) | No | **Sí** (corregido el 02/11 con `VISION.md`: datos de verdad para todos) |
+| **Historial** (temporadas, equipos, partidos, minutos, goles, notas) | No | **Sí**: lo que necesitará un ojeador, un entrenador o un mánager (corregido el 02/11 con `VISION.md`: datos de verdad para todos) |
 
 Los adultos (padres, profesores, entrenadores) se quedan como están hasta el futuro módulo de profesiones (decisión del 28/10: las habilidades de los entrenadores son parte de ese módulo). Están preparados para tener lo mismo.
 
@@ -88,7 +90,20 @@ Simular años de rutina para ~1.400 personas al crear la partida puede ser lento
   - **conocimiento** de cada deporte por lo que practicaron sus padres (ya existe: `conocimientoDeCrianza`);
   - **un pequeño plus de haber jugado un poco**, sobre todo en sus deportes favoritos: el **juego informal** de §5, con la misma regla que los niños. Según su interés por cada deporte (0 a 3, los intereses que hereda de sus padres): ninguno, unas 4, 8 o 12 semanas de juego con amigos. Da algo en las habilidades de ese deporte (y un poco de conocimiento), no años de práctica: un niño que lleva dos años en un club sigue por delante.
 - Frente a sus compañeros de 8 años que empiezan este curso, está igual. Frente a los que empezaron a los 6, por detrás, y es lo realista: con constancia los alcanza.
-- **Plaza en el equipo de su colegio en dificultad normal** (propuesta del desarrollador, apoyada en la revisión): el equipo del colegio no rechaza a un alumno que quiere jugar. Ser titular depende de la convocatoria. En los clubes de fuera, prueba de acceso, y la regla «solo entra si es mejor que el peor» al estar completos. La dificultad ya existe en parte en el motor (la calidad de los padres del personaje); se deja fija en «normal» hasta la creación de personaje.
+- **Sin plaza reservada en ningún equipo** (corregido por el usuario el 02/11: había entrado en este documento como decidida sin que lo estuviera). Un sitio guardado lo metería en el equipo **como el peor**, y así difícilmente jugaría: no es realista ni sirve. El personaje entra como cualquier niño: si el equipo tiene hueco (no ha llegado a su máximo) o, si está completo, si es mejor que alguno de los que hay. Lo que se espera es que, con las mismas reglas que los demás (§2), un personaje del montón pueda ganarse el sitio entrenando por su cuenta y con el juego informal. **Tras la P2 se mide con semillas** cuánto le cuesta entrar. Si un personaje del montón casi nunca entra, se revisa con una regla para todos (más equipos o plantillas en el colegio cuando hay muchos interesados), nunca con un trato especial al personaje. La dificultad ya existe en parte en el motor (la calidad de los padres del personaje); se deja fija en «normal» hasta la creación de personaje.
+
+## 7 bis. Los clubes de fuera fichan a los que destacan (propuesta del usuario, 02/11)
+
+**Con la ciudad grande (`CIUDAD_Y_LIGAS.md`, 02/11), los clubes de fuera son los clubes de la zona** (grandes, medianos y pequeños, con filiales). El club del colegio es uno pequeño más. Las reglas de abajo siguen igual; las cifras de «unos 54 interesados por categoría» eran de la ciudad pequeña.
+
+Para que un personaje del montón pueda entrar en el equipo de su colegio sin trato especial, y porque es lo que pasa en la realidad (los que quieren mejorar acaban en un club):
+
+- **Los clubes de fuera reclutan primero**, los de más calidad antes, entre los niños de todos los colegios, **por lo que vale cada uno de verdad**. Ya funciona así en atletismo.
+- **No se van todos los buenos:** cada niño decide según su **ambición** (eje de carácter), lo que practicaron sus padres y que el club tenga plaza. Algunos se quedan en el colegio con sus amigos.
+- **Cada verano los clubes fichan** a los que más han destacado esa temporada en los equipos de colegio: las plantillas cambian de verdad.
+- El equipo del colegio se queda con los que juegan por gusto o aún no destacan. Con unos 54 interesados por categoría, si los clubes se llevan a 12–15 de los mejores, un niño del montón queda por la mitad de los que optan a las 18 plazas.
+- **En la P2 hacen falta clubes de fútbol de fuera** (con sus equipos por categoría), aunque el personaje no pueda aún pedir su prueba de acceso (eso sigue en la F5 del fútbol).
+- **Tras la P2 se mide con semillas** cuánto le cuesta entrar a un personaje del montón. Si aún es muy difícil, se ajusta el número de clubes o de plazas, nunca con un trato especial al personaje.
 
 ## 8. Lo que no cambia y lo que hay que vigilar
 
@@ -106,6 +121,6 @@ Simular años de rutina para ~1.400 personas al crear la partida puede ser lento
 | Fase | Qué |
 |---|---|
 | **P1** | Fórmulas de progresión compartidas en `contracts`. Capacidades reales de los PNJ con desarrollo natural y caída semanales. Historia al crear la partida (§5, midiendo), con la edad de empezar decidida. Test de equivalencia de capacidades |
-| **P2** | Habilidades y conocimiento de cada deporte en los PNJ, con la rutina de su club (y los ejercicios del entrenador) y el juego informal antes de empezar; el mismo juego informal da al personaje su plus inicial según su interés (§7). Rendimiento con lector de persona para todos; atletismo lo usa. Plaza en el equipo del colegio. Recalibrar la simulación. Test de equivalencia de habilidades |
+| **P2** | Habilidades, conocimiento, estado e historial de cada deporte en los PNJ; clubes de fuera que reclutan y fichan a los que destacan (§7 bis); con la rutina de su club (y los ejercicios del entrenador) y el juego informal antes de empezar; el mismo juego informal da al personaje su plus inicial según su interés (§7). Rendimiento con lector de persona para todos; atletismo lo usa. Medir con semillas cuánto le cuesta al personaje entrar en el equipo de su colegio (sin plaza reservada, §7). Recalibrar la simulación. Test de equivalencia de habilidades |
 
 Después, la **F2 del fútbol** usa los valores reales para el entrenador, la alineación y el partido.
