@@ -41,7 +41,8 @@ describe('módulo NPCs', () => {
     const id = atletas(g).find((n) => n.role === 'rival')!.id;
     const nivel = () => g.service<NpcDirectory>(SERVICES.npcs)!.get(id)!.levels.atletismo;
     const antes = nivel();
-    advanceTo(g, 'gen.descansar', 6, 20);
+    // Su rutina se aplica cada semana: al acabar la primera, sus habilidades (y con ellas su nivel) han subido.
+    advanceToWeek(g, 'gen.descansar', 2, 0, 8);
     expect(nivel()).toBeGreaterThan(antes);
   });
 

@@ -122,19 +122,19 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
 
   it('con hueco, entra aunque sea peor que todos', () => {
     const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     const equipo = llenar(g, 99);
     // Se va uno: hay hueco.
     const s = estado(g);
     s.npcs = s.npcs.map((n) => (n.id === equipo[0].id ? { ...n, deporte: undefined, equipo: undefined } : n));
-    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     expect(plaza(g, 0).estado).toBe('libre');
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
   });
 
   it('completo y peor que todos: no entra y se le dice por qué', () => {
     const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15); // cada semana se recalcula el nivel de los jugadores: se fija después
     llenar(g, 99);
-    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     expect(plaza(g, 20).estado).toBe('completo');
     expect(posible(g, 'futbol.apuntarse_colegio')).toBe(false);
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').toMatch(/completo y todos juegan mejor que tú/);
@@ -142,9 +142,9 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
 
   it('completo pero mejor que el peor: entra y el peor queda sin equipo, sin volver a ser reclutado ese curso', () => {
     const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     const equipo = llenar(g, 99, 1);
     const peor = equipo.find((n) => n.levels.futbol === 1)!;
-    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     expect(plaza(g, 30)).toMatchObject({ estado: 'por_merito', peor: { id: peor.id } });
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     const despues = estado(g).npcs.find((n) => n.id === peor.id)!;
