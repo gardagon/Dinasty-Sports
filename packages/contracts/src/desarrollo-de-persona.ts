@@ -87,6 +87,15 @@ export function evolucionDiaria(r: ReglaDeEvolucion, e: EntradaDeEvolucion): num
   return v;
 }
 
+/** x elevado a n: la semana completa (n = 7) se hace con multiplicaciones, que es lo que más se repite al calcular la historia de miles de personas. */
+const potencia = (x: number, n: number): number => {
+  if (n !== 7) return x ** n;
+  const x2 = x * x;
+  return x2 * x2 * x2 * x;
+};
+const NATURAL_SEMANAL = potencia(1 - DESARROLLO_NATURAL_DIARIO, 7);
+const ENVEJECER_SEMANAL = potencia(1 - AJUSTE_POR_EDAD_DIARIO, 7);
+
 /**
  * Una semana de lo mismo de una vez (siete días de caída, de envejecimiento y de desarrollo natural), con fórmulas cerradas: para los PNJ, que son
  * muchos y no se simulan día a día. Da lo mismo que siete `evolucionDiaria` dentro de un margen pequeño (lo prueba un test).
@@ -97,12 +106,12 @@ export function evolucionSemanal(r: ReglaDeEvolucion, e: EntradaDeEvolucion): nu
   if (d) {
     const dias = Math.max(0, Math.min(7, e.diasSinEntrenar + 7 - d.graceDays));
     const suelo = Math.max(e.base, e.pico * d.floorRatio);
-    if (dias > 0 && v > suelo) v = suelo + (v - suelo) * (1 - d.ratePerDay) ** dias;
+    if (dias > 0 && v > suelo) v = suelo + (v - suelo) * potencia(1 - d.ratePerDay, dias);
   }
-  if (e.envejece && e.techo !== undefined && v > e.techo) v = e.techo + (v - e.techo) * (1 - AJUSTE_POR_EDAD_DIARIO) ** 7;
+  if (e.envejece && e.techo !== undefined && v > e.techo) v = e.techo + (v - e.techo) * ENVEJECER_SEMANAL;
   if (r.natural && e.techo !== undefined && v < e.techo * r.natural) {
     const objetivo = e.techo * r.natural;
-    v = objetivo - (objetivo - v) * (1 - DESARROLLO_NATURAL_DIARIO) ** 7;
+    v = objetivo - (objetivo - v) * NATURAL_SEMANAL;
   }
   return v;
 }

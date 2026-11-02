@@ -113,6 +113,7 @@ import {
   formaEn,
   type Genetica,
 } from './deportistas';
+import { aGuardar, avanzarSemana, capacidadesIniciales, historiaDe } from './capacidades';
 
 /**
  * MÓDULO NPCs (id `npcs`).
@@ -147,6 +148,9 @@ export interface Npc {
   dejado?: string[];
   /** Deportes de los que lo han echado del equipo (por entrar el personaje en su plaza): no se le vuelve a reclutar hasta el curso siguiente. */
   apartado?: string[];
+  /** Sus 18 capacidades reales (`gen.*`, en el orden de `CAPACIDADES_GENETICAS`), y el máximo que alcanzó cada una. Los niños con genética las tienen (plan `MISMAS_REGLAS.md`). */
+  cap?: number[];
+  pico?: number[];
   /** Nivel máximo al que puede llegar cada disciplina. */
   potential: Record<string, number>;
   /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
@@ -574,6 +578,27 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
 /** Lo que han pedido los deportes de la partida (en el orden de sus fichas). */
 const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: number): PoblacionGuardada[] => fichasDeDeporte(ctx).map((f, i) => poblacionDe(ctx, f, i === 0, semilla));
 
+// ---------------------------------------------------------------------------------------------------- capacidades reales
+
+/** Da a los niños con genética que aún no las tienen sus capacidades con su historia hasta `dia` (al crear la partida, al llegar un niño nuevo, en partidas anteriores). */
+export function conCapacidades(npcs: readonly Npc[], dia: number): Npc[] {
+  return npcs.map((n) => {
+    if (!n.genetica || n.nacimiento === undefined || n.cap) return n;
+    const c = historiaDe(n.id, n.genetica, n.nacimiento, dia);
+    return { ...n, ...c };
+  });
+}
+
+/** Una semana más para todos los que tienen capacidades: desarrollo natural y caída (las mismas reglas que el personaje). `dia` es el día en que acaba la semana. */
+export function avanzarCapacidades(npcs: readonly Npc[], dia: number): Npc[] {
+  return npcs.map((n) => {
+    if (!n.genetica || n.nacimiento === undefined || !n.cap || !n.pico) return n;
+    const c = { cap: [...n.cap], pico: [...n.pico], base: capacidadesIniciales(n.id, n.genetica).base };
+    avanzarSemana(c, n.genetica, n.nacimiento, dia);
+    return { ...n, ...aGuardar(c) };
+  });
+}
+
 // ---------------------------------------------------------------------------------------------------- plaza del personaje en un equipo
 
 /** Lo que hace «normal» a la dificultad, mientras no haya creación de personaje: el equipo del colegio del personaje (`colegio: 'propio'`) siempre tiene sitio para él. */
@@ -834,7 +859,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): Npc
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
   const sin = [...base, ...colegio, ...bibliotecarios(ctx.rng, usados)];
   const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng)], sin);
-  return reclutarEnTodos(conEntrenadores, pobs, 0, huecosDelColegio(pobs, EDAD_DE_INICIO));
+  return conCapacidades(reclutarEnTodos(conEntrenadores, pobs, 0, huecosDelColegio(pobs, EDAD_DE_INICIO)), 0);
 }
 
 /** El personal de la biblioteca: uno en el turno de mañana (y los sábados) y otro en el de tarde. Van al final para no cambiar el azar de lo demás. */
@@ -1206,6 +1231,8 @@ export const npcs = defineModule<NpcsState>({
 
     [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
       const { week } = ev.data as { week: number };
+      // Cada semana, las capacidades de los niños se desarrollan y caen (las mismas reglas que las del personaje).
+      ctx.updateState<NpcsState>((s) => ({ ...s, npcs: avanzarCapacidades(conCapacidades(s.npcs, week * 7), (week + 1) * 7) }));
       // Si la semana que viene empieza un curso nuevo, se renueva la gente: los que acaban el colegio se van, entran niños nuevos y los equipos rellenan sus plazas.
       const proximo = ctx.timeAt((week + 1) * 7 * MINUTES_PER_DAY);
       if (proximo.schoolWeek !== 0) return;
@@ -1221,7 +1248,7 @@ export const npcs = defineModule<NpcsState>({
       }
       ctx.updateState<NpcsState>((s) => {
         const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(renovarAlumnos(s.npcs, proximo.day, ctx.rng), pobs, proximo.day, ctx.rng, reservas), proximo.day));
-        return { ...s, poblaciones: pobs, npcs };
+        return { ...s, poblaciones: pobs, npcs: conCapacidades(npcs, proximo.day) };
       });
     },
 
