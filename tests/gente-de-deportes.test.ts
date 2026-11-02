@@ -166,8 +166,8 @@ describe('los clubes reclutan por gustos y aptitudes', () => {
       const porEquipo = new Map<string, number>();
       for (const n of atletas(g)) porEquipo.set(n.equipo!, (porEquipo.get(n.equipo!) ?? 0) + 1);
       for (const e of pob.equipos) {
-        expect(e.objetivo).toBeGreaterThanOrEqual(e.plantilla.min);
-        expect(e.objetivo).toBeLessThanOrEqual(e.plantilla.max);
+        expect(e.objetivo).toBeGreaterThanOrEqual(e.plantilla!.min);
+        expect(e.objetivo).toBeLessThanOrEqual(e.plantilla!.max);
         expect(porEquipo.get(e.club), e.club).toBe(e.objetivo);
         expect(e.objetivo).toBeLessThan(15); // un club no tiene veinte niños
       }

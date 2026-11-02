@@ -77,10 +77,24 @@ export interface NpcView {
   description?: string;
 }
 
+/**
+ * Si el personaje puede entrar en el equipo de su categoría de un deporte (`NpcDirectory.plaza`). `libre`: hay sitio (o el equipo no tiene tope por categoría);
+ * `por_merito`: está completo pero el personaje es mejor que alguien (saldría `peor`); `completo`: está completo y es peor que todos (no entra; `peor` es el peor de ellos).
+ */
+export interface PlazaEnEquipo {
+  estado: 'libre' | 'por_merito' | 'completo';
+  peor?: { id: string; nombre: string; nivel: number };
+}
+
 export interface NpcDirectory {
   /** `known`: solo las que el personaje conoce (true) o solo las que no (false). */
   list(filter?: { role?: NpcRole; tag?: string; minAge?: number; maxAge?: number; known?: boolean }): NpcView[];
   get(id: string): NpcView | undefined;
+  /**
+   * ¿Entra el personaje, con este nivel en el deporte, en el equipo de su categoría de un club? Solo los deportes con equipos por categoría tienen tope
+   * (`EquipoDeDeporte.plantillaPorCategoria`); en el resto siempre hay sitio. En la fase de deportes de equipo con puestos se comparará por puesto.
+   */
+  plaza(deporte: string, club: string, nivel: number): PlazaEnEquipo;
 }
 
 // ---------- Estudios ----------

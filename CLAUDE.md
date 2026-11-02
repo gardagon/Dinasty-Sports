@@ -39,6 +39,7 @@ npm run huella -- 120     # huella exacta de las partidas de los bots: antes y d
 npm run rendimiento -- 60  # dónde se va el tiempo: crear, guardar, cargar, ms por acción y peso del estado por módulo y campo
 npm run clave-deportes   # genera el par de claves con que se firman los deportes (la privada, a un secreto DS_CLAVE_PRIVADA de GitHub)
 npm run publicar-deportes -- <carpeta>  # empaqueta y firma los deportes en <carpeta>/deportes (necesita DS_CLAVE_PRIVADA)
+npm run sim:futbol -- 365 3  # cuánto se aprende en un curso con el club: deportista de fútbol frente al de atletismo (mismo plan)
 npm run check            # tipos + tests + simulación rápida
 npm run nuevo-modulo -- <id> "<Nombre>"
 ```

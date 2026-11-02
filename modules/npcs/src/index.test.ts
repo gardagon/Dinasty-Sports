@@ -257,7 +257,7 @@ describe('módulo NPCs', () => {
       // Tu clase (24 compañeros) y la otra de tu curso (25): los de 8 años, sin ti.
       expect(alumnos.filter((n) => n.id.startsWith('clase_') || n.id.startsWith('companero_')).length).toBe(24);
       expect(alumnos.filter((n) => n.id.startsWith('curso_')).length).toBe(25);
-      expect(alumnos.filter((n) => n.id.startsWith('alumno_')).length).toBe(153);
+      expect(alumnos.filter((n) => n.id.startsWith('alumno_')).length).toBe(450);
       // El equipo del colegio tiene el número de niños que pide el atletismo (más o menos definido), todos alumnos del colegio.
       const equipo = de(g, (n) => n.tags.includes('equipo'));
       const colegio = g.moduleState<NpcsState>('npcs').poblaciones![0].equipos.find((e) => e.club === 'colegio')!;
@@ -365,7 +365,7 @@ describe('módulo NPCs', () => {
       const despues = lista(g);
       const colegio = g.moduleState<NpcsState>('npcs').poblaciones![0].equipos.find((e) => e.club === 'colegio')!;
       expect(despues.filter((n) => n.tags.includes('equipo')).length).toBe(colegio.objetivo);
-      expect(despues.filter((n) => n.role === 'companero' && n.id.startsWith('alumno_')).length).toBeGreaterThanOrEqual(153);
+      expect(despues.filter((n) => n.role === 'companero' && n.id.startsWith('alumno_')).length).toBeGreaterThanOrEqual(450);
       // Los niños nuevos del colegio también tienen su genética y ninguno juega todavía a nada por ser de la clase.
       expect(despues.filter((n) => n.role === 'companero' && n.id.startsWith('alumno_') && !n.genetica)).toHaveLength(0);
       // La población del colegio no crece ni se vacía (los deportistas de otros colegios se renuevan aparte).

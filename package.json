@@ -26,7 +26,8 @@
     "sim:vida": "tsx sim/src/vida.ts",
     "sim:notas": "tsx sim/src/notas.ts",
     "clave-deportes": "tsx tools/clave-deportes.ts",
-    "publicar-deportes": "tsx tools/publicar-deportes.ts"
+    "publicar-deportes": "tsx tools/publicar-deportes.ts",
+    "sim:futbol": "tsx sim/src/futbol.ts"
   },
   "engines": {
     "node": ">=20"

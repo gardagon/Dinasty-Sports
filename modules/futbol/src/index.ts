@@ -26,7 +26,7 @@ import {
   modificadorPorTuCuenta,
   pedirConsejo,
   sedeDelClub as sedeDelClubEn,
-  sesionDeClub,
+  sesionDeClubConEjercicios,
   sinEntrenarPorLibreEnSesion,
   textoDeSesiones,
   tramitesDe,
@@ -35,11 +35,13 @@ import {
   type ConfigDeporte,
   type EstadoBaseDeDeporte,
 } from '@ds/kit-deporte';
+import { EJERCICIOS_DE_FUTBOL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 
 export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 export { HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
+export { EJERCICIOS_DE_FUTBOL, sesgoDelEntrenador } from './ejercicios';
 
 /**
  * MÓDULO FÚTBOL (id `futbol`): fútbol 11, deporte de equipo. **F1: habilidades, conocimiento, entreno por libre y club del colegio.** Todavía no hay
@@ -151,19 +153,15 @@ export const futbol = defineModule<FutbolState>({
 
   actions: ligarALugares(
     sinEntrenarPorLibreEnSesion(CONFIG, [
-      sesionDeClub(CONFIG, {
-        description: 'Entrenamiento completo con el entrenador y el equipo: balón, tiro, táctica y físico. Rinde más que entrenar por tu cuenta.',
+      // El entrenador elige dos ejercicios de tipos distintos; la sesión sube solo lo que entrenan (más lo de `SIEMPRE`).
+      sesionDeClubConEjercicios(CONFIG, {
+        description: 'Entrenamiento con el entrenador y el equipo: él elige dos ejercicios (lo que más te falta, según su criterio) y trabajáis solo eso. Rinde más que entrenar por tu cuenta.',
         tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, TAGS.club, 'futbol'],
         delta: { [GEN.energia]: -24 },
-        train: [
-          t('futbol.control', 1), t('futbol.pase', 1.2), t('futbol.regate', 0.8), t('futbol.tecnica', 1), t('futbol.definicion', 0.8),
-          t('futbol.marcaje', 0.6), t('futbol.entrada', 0.6), t('futbol.vision', 0.8), t('futbol.posicionamiento', 0.8), t('futbol.desmarque', 0.6),
-          t('futbol.decisiones', 0.6), t('futbol.anticipacion', 0.6), t('futbol.arrancada', 0.5),
-          // Entrenar en equipo es lo que enseña a jugar en equipo.
-          t('futbol.juego_colectivo', 1.5),
-          t(GEN.velocidad, 0.5), t(GEN.resistencia, 0.6), t(GEN.coordinacion, 0.4), t(GEN.cooperacion, 0.4),
-          t(CONOCIMIENTO, 1.6),
-        ],
+        catalogo: EJERCICIOS_DE_FUTBOL,
+        siempre: SIEMPRE,
+        contexto: (ctx) => ({ nivel: (stat) => ctx.stat(stat), sesgo: sesgoDelEntrenador(entrenadorDelJugador(ctx)?.rasgos?.caracter) }),
+        semilla: (ctx) => [DEPORTE, clubDelJugador(ctx)?.id ?? 'club', ctx.time.day],
       }),
       dejarClub(CONFIG),
       campamento(CONFIG, {

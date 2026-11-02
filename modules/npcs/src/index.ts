@@ -1,6 +1,9 @@
 import {
   GEN,
   CORE_EVENTS,
+  categoriaDeEdad,
+  type CategoriaDef,
+  type PlazaEnEquipo,
   MINUTES_PER_DAY,
   SERVICES,
   anioNatural,
@@ -142,6 +145,8 @@ export interface Npc {
   /** Equipo o club de su deporte en el que juega (id del club) y deportes que ha dejado (para que no lo vuelvan a reclutar). */
   equipo?: string;
   dejado?: string[];
+  /** Deportes de los que lo han echado del equipo (por entrar el personaje en su plaza): no se le vuelve a reclutar hasta el curso siguiente. */
+  apartado?: string[];
   /** Nivel máximo al que puede llegar cada disciplina. */
   potential: Record<string, number>;
   /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
@@ -193,6 +198,8 @@ export interface PoblacionGuardada extends Omit<PoblacionDeDeporte, 'equipos'> {
   /** ¿Es el primer deporte de la partida? Sus entrenadores llevan los ids de siempre (`entrenador`, `entrenador_<club>_N`). */
   primero: boolean;
   equipos: EquipoGuardado[];
+  /** Las categorías del deporte en el país de la partida (para los equipos por categoría). Ausente en partidas anteriores. */
+  categorias?: CategoriaDef[];
   /** Cómo se llaman sus clubes (id → nombre del sitio donde trabajan), para decir dónde trabajan los entrenadores. */
   nombresDeClub: Record<string, string>;
 }
@@ -270,7 +277,8 @@ export const edadNpc = (n: Npc, primerDiaDelCurso: number): number | undefined =
  */
 const ALUMNOS_POR_AULA = 25;
 const COMPANEROS_DE_CLASE = ALUMNOS_POR_AULA - 1;
-const ALUMNOS_POR_CURSO_DE_FUERA = 17;
+/** Todos los cursos del colegio tienen dos clases de 25 (el del personaje también). */
+const ALUMNOS_POR_CURSO = 2 * ALUMNOS_POR_AULA;
 /** Alumnos por curso de cada colegio de fuera, y de jóvenes de cada edad que ya no van al colegio (18 y 19 años). */
 const ALUMNOS_POR_CURSO_DE_CADA_COLEGIO = 17;
 const JOVENES_POR_EDAD = ALUMNOS_POR_CURSO_DE_CADA_COLEGIO * COLEGIOS_DE_FUERA.length;
@@ -334,7 +342,7 @@ function poblarElColegio(rng: Rng, usados: RegistroDeNombres, existentes: number
   const otraClase = Array.from({ length: ALUMNOS_POR_AULA }, (_, i) => alumno(`curso_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Alumna de la otra clase de tu curso.', 'Alumno de la otra clase de tu curso.')));
   const otrosCursos: Npc[] = [];
   for (let edad = EDAD_ALUMNO_MIN + 1; edad < EDAD_FIN_COLEGIO; edad++) {
-    for (let i = 0; i < ALUMNOS_POR_CURSO_DE_FUERA; i++) otrosCursos.push(alumno(`alumno_${otrosCursos.length + 1}`, edad, (g) => o(g, 'Alumna del colegio.', 'Alumno del colegio.')));
+    for (let i = 0; i < ALUMNOS_POR_CURSO; i++) otrosCursos.push(alumno(`alumno_${otrosCursos.length + 1}`, edad, (g) => o(g, 'Alumna del colegio.', 'Alumno del colegio.')));
   }
   const profesores = ASIGNATURAS_DE_PROFESORES.map((materia, i) =>
     persona(rng, `profesor_${i + 1}`, 'profesor', rng.int(28, 60), 0, usados, [{ tipo: 'profesor' }], (g) => `${o(g, 'Profesora', 'Profesor')} de ${materia.toLowerCase()}.`, ['profesor']),
@@ -556,14 +564,40 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
       ...e,
       nombre: e.nombre ?? catalogo?.nombre ?? e.club,
       calidad: e.calidad ?? catalogo?.calidad ?? (e.colegio ? 1 : 2),
-      objetivo: rngEstable('plantilla', semilla, ficha.id, e.club).int(e.plantilla.min, e.plantilla.max),
+      // Los equipos por categoría no tienen un objetivo del club: cada categoría reclutará entre su mínimo y su máximo.
+      objetivo: e.plantilla ? rngEstable('plantilla', semilla, ficha.id, e.club).int(e.plantilla.min, e.plantilla.max) : 0,
     };
   });
-  return JSON.parse(JSON.stringify({ ...datos.poblacion, equipos, deporte: ficha.id, nombre: ficha.nombre.toLowerCase(), primero, nombresDeClub }));
+  return JSON.parse(JSON.stringify({ ...datos.poblacion, equipos, categorias: datos.categorias, deporte: ficha.id, nombre: ficha.nombre.toLowerCase(), primero, nombresDeClub }));
 }
 
 /** Lo que han pedido los deportes de la partida (en el orden de sus fichas). */
 const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: number): PoblacionGuardada[] => fichasDeDeporte(ctx).map((f, i) => poblacionDe(ctx, f, i === 0, semilla));
+
+// ---------------------------------------------------------------------------------------------------- plaza del personaje en un equipo
+
+/** La categoría del deporte a una edad de competición, o `undefined` si el deporte no guardó sus categorías. */
+const categoriaDe = (pob: PoblacionGuardada, edad: number): CategoriaDef | undefined => (pob.categorias?.length ? categoriaDeEdad(pob.categorias, edad) : undefined);
+
+/** Quiénes juegan hoy en el equipo de un club en una categoría del deporte. */
+const jugadoresDelEquipo = (npcs: readonly Npc[], pob: PoblacionGuardada, club: string, cat: CategoriaDef, dia: number): Npc[] =>
+  npcs.filter((n) => n.deporte === pob.deporte && n.equipo === club && (edadNpc(n, dia) ?? -1) >= cat.edadMin && (edadNpc(n, dia) ?? -1) <= cat.edadMax);
+
+/**
+ * ¿Entra el personaje (de esta edad de competición y este nivel en el deporte) en el equipo de su categoría? Si el equipo tiene hueco, sí. Si está completo
+ * (en su máximo), solo si es mejor que alguno de los que hay (en global, de momento): saldría el peor. Los deportes sin equipos por categoría no tienen tope.
+ */
+export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, edad: number, nivel: number, dia: number): PlazaEnEquipo {
+  const pob = pobs.find((p) => p.deporte === deporte);
+  const equipo = pob?.equipos.find((e) => e.club === club);
+  const cat = pob && equipo?.plantillaPorCategoria ? categoriaDe(pob, edad) : undefined;
+  if (!pob || !equipo?.plantillaPorCategoria || !cat) return { estado: 'libre' };
+  const jugadores = jugadoresDelEquipo(npcs, pob, club, cat, dia);
+  if (jugadores.length < equipo.plantillaPorCategoria.max) return { estado: 'libre' };
+  const peor = jugadores.reduce((m, n) => ((n.levels[deporte] ?? 0) < (m.levels[deporte] ?? 0) || ((n.levels[deporte] ?? 0) === (m.levels[deporte] ?? 0) && n.id > m.id) ? n : m));
+  const datos = { id: peor.id, nombre: peor.name, nivel: peor.levels[deporte] ?? 0 };
+  return nivel > datos.nivel ? { estado: 'por_merito', peor: datos } : { estado: 'completo', peor: datos };
+}
 
 // ---------------------------------------------------------------------------------------------------- reclutamiento de deportistas
 
@@ -590,7 +624,7 @@ const colegioDeNino = (n: Npc): string => n.colegio ?? (delColegio(n) ? 'propio'
 function aspirantesDeEdad(npcs: readonly Npc[], pob: PoblacionGuardada, edad: number, dia: number): Aspirante[] {
   const lista: Aspirante[] = [];
   for (const n of npcs) {
-    if (!n.genetica || n.deporte !== undefined || n.dejado?.includes(pob.deporte) || edadNpc(n, dia) !== edad) continue;
+    if (!n.genetica || n.deporte !== undefined || n.dejado?.includes(pob.deporte) || n.apartado?.includes(pob.deporte) || edadNpc(n, dia) !== edad) continue;
     lista.push({ npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial: potencialEn(n.id, n.genetica, pob) });
   }
   return lista;
@@ -629,8 +663,8 @@ function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardada, edad
  * deporte y, de ellos, a los de más potencial: así, entre tantos niños, de forma natural unos destacan sobre otros. Sirve para crear la partida, para
  * rellenar las plazas que quedan libres cada curso y para añadir un deporte a una partida empezada.
  */
-export function reclutarDeportistas(npcs: Npc[], pob: PoblacionGuardada, dia: number, soloInteresados = false): Npc[] {
-  const equipos = [...pob.equipos].sort((a, b) => b.calidad - a.calidad);
+export function reclutarDeportistas(npcs: Npc[], pob: PoblacionGuardada, dia: number, soloInteresados = false, reservas: ReadonlyMap<string, number> = new Map()): Npc[] {
+  const equipos = [...pob.equipos].filter((e) => !e.plantillaPorCategoria).sort((a, b) => b.calidad - a.calidad);
   const plazas = new Map(equipos.map((e) => [e.club, plazasPorEdad(e.club, e.objetivo, edadesDe(pob, e))]));
   const ocupadas = new Map<string, number>();
   // Cuántos le faltan a cada equipo para completar su plantilla (los niños envejecen y las plazas por edad ya no coinciden con quien hay: lo que cuenta es el total).
@@ -661,6 +695,50 @@ export function reclutarDeportistas(npcs: Npc[], pob: PoblacionGuardada, dia: nu
       }
     }
   }
+  const conLegados = npcs.map((n) => cambios.get(n.id) ?? n);
+  return reclutarEquiposPorCategoria(conLegados, pob, dia, soloInteresados, reservas, tomados);
+}
+
+/** Las categorías en que un equipo tiene su propio equipo (las de `categorias`, o todas las que recluta el club) con las edades que recluta en cada una. */
+function categoriasDelEquipo(pob: PoblacionGuardada, e: EquipoGuardado): { id: string; edades: number[] }[] {
+  const delClub = new Set(edadesDe(pob, e));
+  return (pob.categorias ?? [])
+    .filter((c) => !e.categorias || e.categorias.includes(c.id))
+    .map((c) => ({ id: c.id, edades: [...delClub].filter((x) => x >= c.edadMin && x <= c.edadMax).sort((a, b) => a - b) }))
+    .filter((c) => c.edades.length > 0);
+}
+
+/** Clave de un equipo por categoría (club y categoría) en el mapa de reservas del personaje. */
+export const claveDeEquipo = (club: string, categoria: string): string => `${club}|${categoria}`;
+
+/**
+ * Los equipos por categoría (`plantillaPorCategoria`): uno por club y categoría. Se recluta primero a los interesados hasta el máximo (menos la plaza que ocupa el
+ * personaje, si juega ahí: `reservas`) y, si con ellos no se llega al mínimo, se completa con niños sin interés hasta el mínimo y no más allá. Con
+ * `soloInteresados` solo se hace lo primero. Los equipos de más calidad escogen antes.
+ */
+function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada, dia: number, soloInteresados: boolean, reservas: ReadonlyMap<string, number>, tomados: Set<string>): Npc[] {
+  const equipos = pob.equipos.filter((e) => e.plantillaPorCategoria).sort((a, b) => b.calidad - a.calidad);
+  if (!equipos.length) return npcs;
+  const cambios = new Map<string, Npc>();
+  const orden = (x: Aspirante, y: Aspirante): number => y.potencial - x.potencial || (x.npc.id < y.npc.id ? -1 : 1);
+  for (const e of equipos) {
+    const { min, max } = e.plantillaPorCategoria!;
+    for (const cat of categoriasDelEquipo(pob, e)) {
+      const enEquipo = npcs.filter((n) => n.deporte === pob.deporte && n.equipo === e.club && cat.edades.includes(edadNpc(n, dia) ?? -1)).length + [...cambios.values()].filter((n) => n.equipo === e.club && cat.edades.includes(edadNpc(n, dia) ?? -1)).length;
+      const tope = max - (reservas.get(claveDeEquipo(e.club, cat.id)) ?? 0);
+      const elegibles = cat.edades
+        .flatMap((edad) => aspirantesDeEdad(npcs, pob, edad, dia).map((a) => ({ a, edad })))
+        .filter(({ a }) => !tomados.has(a.npc.id) && !cambios.has(a.npc.id) && (e.colegio === undefined || a.colegio === e.colegio));
+      const interesados = elegibles.filter(({ a }) => a.interes > 0).sort((x, y) => orden(x.a, y.a)).slice(0, Math.max(0, tope - enEquipo));
+      let total = enEquipo + interesados.length;
+      const completan = !soloInteresados && total < min ? elegibles.filter(({ a }) => a.interes === 0).sort((x, y) => orden(x.a, y.a)).slice(0, min - total) : [];
+      total += completan.length;
+      for (const { a, edad } of [...interesados, ...completan]) {
+        tomados.add(a.npc.id);
+        cambios.set(a.npc.id, reclutarA(a, e, pob, edad, dia));
+      }
+    }
+  }
   return npcs.map((n) => cambios.get(n.id) ?? n);
 }
 
@@ -669,9 +747,9 @@ export function reclutarDeportistas(npcs: Npc[], pob: PoblacionGuardada, dia: nu
  * que aún faltan se cubren con quien encaje (aunque no le interese). Así un niño al que le gusta un deporte no lo pierde porque otro deporte, que va antes,
  * tuviese plazas por cubrir.
  */
-export function reclutarEnTodos(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number): Npc[] {
-  const interesados = pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia, true), npcs);
-  return pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia), interesados);
+export function reclutarEnTodos(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, reservas: ReadonlyMap<string, number> = new Map()): Npc[] {
+  const interesados = pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia, true, reservas), npcs);
+  return pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia, false, reservas), interesados);
 }
 
 /** Un niño deja el deporte (o se retira): ya no está en ningún equipo y, si lo dejó, no se le vuelve a reclutar para él. */
@@ -701,8 +779,9 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
  * rellenan las plazas libres con otros niños que encajan. Los niños de otros colegios que se van desaparecen (los que lo dejaron no se vuelven a reclutar);
  * los compañeros, los hermanos y los niños del barrio siguen siendo quienes son, solo que sin deporte.
  */
-function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng): Npc[] {
-  let lista = npcs;
+function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map()): Npc[] {
+  // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
+  let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
   for (const pob of pobs) {
     const { edades, edadMaxBaja, probabilidadBaja } = pob.reclutamiento;
     lista = lista.flatMap((n) => {
@@ -713,7 +792,7 @@ function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia
       return retirado || baja ? [sinDeporte(n, pob, baja)] : [n];
     });
   }
-  return reclutarEnTodos(lista, pobs, dia);
+  return reclutarEnTodos(lista, pobs, dia, reservas);
 }
 
 /**
@@ -1113,8 +1192,18 @@ export const npcs = defineModule<NpcsState>({
       const proximo = ctx.timeAt((week + 1) * 7 * MINUTES_PER_DAY);
       if (proximo.schoolWeek !== 0) return;
       const pobs = poblacionesGuardadas(ctx);
+      // Si el personaje ya es miembro de un equipo por categoría, su plaza cuenta: el equipo se queda en el máximo menos uno (el curso que viene tendrá un año más).
+      // Si aún no es miembro no se le guarda ningún hueco: entra como cualquier niño (hay hueco, o está completo y es mejor que alguno).
+      const edadProxima = (ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8) + 1;
+      const reservas = new Map<string, number>();
+      const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
+      for (const pob of pobs) {
+        const club = clubes?.membership(pob.deporte);
+        const cat = club && pob.equipos.some((e) => e.club === club.id && e.plantillaPorCategoria) ? categoriaDe(pob, edadProxima) : undefined;
+        if (club && cat) reservas.set(claveDeEquipo(club.id, cat.id), 1);
+      }
       ctx.updateState<NpcsState>((s) => {
-        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(renovarAlumnos(s.npcs, proximo.day, ctx.rng), pobs, proximo.day, ctx.rng), proximo.day));
+        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(renovarAlumnos(s.npcs, proximo.day, ctx.rng), pobs, proximo.day, ctx.rng, reservas), proximo.day));
         return { ...s, poblaciones: pobs, npcs };
       });
     },
@@ -1137,10 +1226,20 @@ export const npcs = defineModule<NpcsState>({
     },
 
     [SHARED_EVENTS.CLUB_JOIN]: (ctx, ev) => {
-      const { clubId, sport } = ev.data as ClubJoinData;
+      const { clubId, sport, nivel } = ev.data as ClubJoinData;
       // El que entrena tu edad en ese club (los clubes tienen varios, cada uno con unas categorías).
       const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
       const pobs = poblacionesGuardadas(ctx);
+      // Si su equipo está completo y el personaje es mejor que alguno, ocupa su plaza: el peor vuelve a ser un niño sin equipo (hasta el curso siguiente).
+      if (nivel !== undefined) {
+        const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
+        const plaza = plazaEnElEquipo(ctx.state<NpcsState>().npcs, pobs, sport, clubId, edad, nivel, inicioCurso);
+        const pob = pobs.find((p) => p.deporte === sport);
+        if (plaza.estado === 'por_merito' && plaza.peor && pob) {
+          ctx.updateState<NpcsState>((st) => ({ ...st, npcs: st.npcs.map((x) => (x.id === plaza.peor!.id ? { ...sinDeporte(x, pob, false), apartado: [...(x.apartado ?? []), sport] } : x)) }));
+          ctx.log(`${plaza.peor.nombre} pierde su plaza en el equipo para dejarte sitio: eres mejor.`, 'info');
+        }
+      }
       const delClub = ctx.state<NpcsState>().npcs.filter((n) => n.known === false && n.tipos?.some((t) => t.tipo === 'entrenador' && t.club === clubId && (t.deporte ?? pobs[0]?.deporte) === sport));
       const entrenador = delClub.find((n) => !n.edades || (edad >= n.edades[0] && edad <= n.edades[1])) ?? delClub[0];
       if (!entrenador) return;
@@ -1276,6 +1375,7 @@ export const npcs = defineModule<NpcsState>({
           const n = personaPorId(lista, id);
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
+        plaza: (deporte, club, nivel) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso),
       };
     },
   },

@@ -7,6 +7,7 @@
 export * from './tipos';
 export * from './habilidades';
 export * from './club';
+export * from './ejercicios';
 export * from './categorias';
 export * from './comunes';
 export * from './tablas';
