@@ -1,7 +1,8 @@
 import { factorPorEdad, madurezPorEdad } from './development';
 import { GRUPO_DE_CAPACIDAD } from './herencia';
 import { computeDecay } from './progresion';
-import type { DecayDef } from './stats';
+import type { DecayDef, StatDef } from './stats';
+import { GEN } from './tags';
 
 /**
  * EL DESARROLLO DE UNA PERSONA, para todas: el personaje (el motor) y cualquier PNJ con genética (`npcs`) siguen estas reglas (plan `docs/MISMAS_REGLAS.md`).
@@ -120,4 +121,32 @@ export function evolucionSemanal(r: ReglaDeEvolucion, e: EntradaDeEvolucion, sem
     v = objetivo - (objetivo - v) * potencia(NATURAL, 1 - DESARROLLO_NATURAL_DIARIO, 7 * semanas);
   }
   return v;
+}
+
+// ---------------------------------------------------------------------------------------------------- la definición de las 18 capacidades
+
+/** Qué vigor (fracción del tope que permite la edad) limita a cada grupo de capacidades. */
+const VIGOR_DEL_GRUPO: Readonly<Record<string, string>> = { fisico: GEN.vigorFisico, mental: GEN.vigorMental, social: GEN.vigorSocial };
+const NOMBRE_DE_GRUPO: Readonly<Record<string, string>> = { fisico: 'Físico', mental: 'Mental', social: 'Social' };
+/** Techo de lo físico: crece con el desarrollo por la edad (a los 8 años ~57, a los 18 el máximo). */
+const TECHO_POR_EDAD = { base: 0.3, from: [{ stat: GEN.madurez, weight: 0.7 }] };
+
+/**
+ * La definición de una de las 18 capacidades de `gen` (velocidad, fuerza... carisma...). **Es de todas las personas**: el módulo del personaje la usa para las suyas
+ * y `npcs`, con los mismos números, para las de cualquier niño (`MISMAS_REGLAS.md`): cómo suben al entrenarlas, su techo, su caída y su desarrollo natural.
+ */
+export function statDeCapacidad(id: string, name: string, description: string): StatDef {
+  const grupo = GRUPO_DE_CAPACIDAD[id];
+  return {
+    id,
+    name,
+    group: NOMBRE_DE_GRUPO[grupo],
+    description,
+    category: 'generica',
+    initial: { ...INICIAL_DE_CAPACIDAD },
+    growth: { rate: 0.5, curve: 2, potentialFactor: VIGOR_DEL_GRUPO[grupo], naturalFraction: DESARROLLO_NATURAL, ...(grupo === 'fisico' ? { cap: TECHO_POR_EDAD } : {}) },
+    // Todas tienen un tope genético heredado de los padres; lo físico, además, depende del desarrollo por la edad.
+    genetics: { grupo },
+    decay: caidaDeCapacidad(id),
+  };
 }

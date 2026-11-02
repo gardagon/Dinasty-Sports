@@ -4,6 +4,7 @@ export * from './categories';
 export * from './development';
 export * from './progresion';
 export * from './desarrollo-de-persona';
+export * from './lector';
 export * from './time';
 export * from './rng';
 export * from './context';

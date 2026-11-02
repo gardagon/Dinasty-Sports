@@ -20,6 +20,8 @@ export const APORTES = {
   datosDeDeporte: 'deportes.datos',
   /** Un `AporteDeLugares` por deporte: lo que pone en el mapa de la ciudad (su estadio, sus pistas, las salas de sus clubes). */
   lugaresDeDeporte: 'lugares.mapa',
+  /** Un `RendimientoDeDeporte` por deporte: cómo vale a una persona (el personaje o cualquier PNJ) en ese deporte. */
+  rendimientoDeDeporte: 'deportes.rendimiento',
 } as const;
 
 /** Lo que el juego sabe de un deporte sin cargar su partida: para listarlo al crear la partida. */
