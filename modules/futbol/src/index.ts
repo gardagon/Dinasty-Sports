@@ -1,0 +1,260 @@
+import {
+  APORTES,
+  GEN,
+  TAGS,
+  claveDeDeporte,
+  datosDeDeporte,
+  defineModule,
+  inHours,
+  ligarALugares,
+  type DeporteView,
+  type ReadContext,
+} from '@ds/contracts';
+import {
+  accionesDeClubes,
+  campamento,
+  categoriaDelJugador as categoriaDelJugadorEn,
+  clubDelJugador as clubDelJugadorEn,
+  conLosAmigos,
+  dejarClub,
+  entrenadorDelJugador as entrenadorDelJugadorEn,
+  manejadoresDeDeporte,
+  modificadorDeCampamento,
+  modificadorDeConocimiento,
+  modificadorDeLlegadaTarde,
+  modificadorDeSobrecarga,
+  modificadorPorTuCuenta,
+  pedirConsejo,
+  sedeDelClub as sedeDelClubEn,
+  sesionDeClub,
+  sinEntrenarPorLibreEnSesion,
+  textoDeSesiones,
+  tramitesDe,
+  valorEfectivo,
+  verEnLaTele,
+  type ConfigDeporte,
+  type EstadoBaseDeDeporte,
+} from '@ds/kit-deporte';
+import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
+import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
+
+export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
+export { HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
+
+/**
+ * MÓDULO FÚTBOL (id `futbol`): fútbol 11, deporte de equipo. **F1: habilidades, conocimiento, entreno por libre y club del colegio.** Todavía no hay
+ * partidos, liga ni gente propia más allá del equipo y el entrenador del colegio (F2); posiciones y roles, F3; derivadas y ocultas, F4; clubes de fuera, F5.
+ * Lo común a cualquier deporte con club (clubes, entrenador, verano, tele, sobrecarga, conocimiento) lo pone el kit de deporte.
+ */
+
+/** Estado del fútbol: de momento, los campos comunes del kit. */
+export type FutbolState = EstadoBaseDeDeporte;
+
+const ENTRENOS_LIBRES = ['futbol.balon', 'futbol.tiro', 'futbol.fisico', 'futbol.porteria'];
+
+/** Lo que el kit de deporte necesita saber del fútbol. */
+const CONFIG: ConfigDeporte = {
+  id: DEPORTE,
+  nombre: 'fútbol',
+  rendimiento: (ctx) => rendimiento(ctx),
+  entrenosLibres: ENTRENOS_LIBRES,
+};
+
+const clubDelJugador = (ctx: ReadContext) => clubDelJugadorEn(ctx, DEPORTE);
+const sedeDelClub = (ctx: ReadContext) => sedeDelClubEn(ctx, CONFIG);
+const categoriaDelJugador = (ctx: ReadContext) => categoriaDelJugadorEn(ctx, CONFIG);
+const entrenadorDelJugador = (ctx: ReadContext) => entrenadorDelJugadorEn(ctx, DEPORTE);
+
+/**
+ * Cuánto depende cada habilidad de entender el juego (de 0 a 1): lo táctico y lo mental, del todo; lo técnico, a medias; lo físico, nada.
+ * Se usa con el valor efectivo del kit (conocimiento: de ×0,85 a ×1,15).
+ */
+const SENSIBILIDAD = { vision: 1, posicionamiento: 1, decisiones: 1, juego_colectivo: 1, control: 0.3, pase: 0.5, regate: 0.3, tecnica: 0.3 };
+const efectivo = (ctx: ReadContext, key: keyof typeof SENSIBILIDAD) => valorEfectivo(ctx, DEPORTE, `futbol.${key}`, SENSIBILIDAD[key]);
+
+/**
+ * Rendimiento 0..100 del jugador de campo (sirve para las pruebas de acceso a los clubes). Es provisional: con los partidos (F2) y las posiciones
+ * (F3) cada puesto pesará sus propias habilidades.
+ */
+export function rendimiento(ctx: ReadContext): number {
+  const tecnica = (efectivo(ctx, 'control') + efectivo(ctx, 'pase') + efectivo(ctx, 'regate') + efectivo(ctx, 'tecnica')) / 4;
+  const cabeza = (efectivo(ctx, 'vision') + efectivo(ctx, 'posicionamiento') + efectivo(ctx, 'decisiones')) / 3;
+  return 0.15 * ctx.stat(GEN.velocidad) + 0.1 * ctx.stat(GEN.resistencia) + 0.1 * ctx.stat('futbol.arrancada') + 0.25 * tecnica + 0.2 * cabeza + 0.2 * efectivo(ctx, 'juego_colectivo');
+}
+
+const horarioEntreno = (ctx: ReadContext): true | string => {
+  const t = ctx.time;
+  // Sin clase (fines de semana y vacaciones) los campos abren todo el día.
+  if (!t.isSchoolDay) return inHours(t, 8, 20) ? true : 'Los campos abren de 8 a 20 sin clase (fines de semana y vacaciones)';
+  return inHours(t, 15, 21) ? true : 'Entrenamientos entre semana de 15 a 21';
+};
+
+/** Las habilidades que sube un poco un consejo del entrenador, por turnos según el día. */
+const HABILIDADES_DE_CONSEJO = [
+  { stat: 'futbol.tecnica', nombre: 'técnica' },
+  { stat: 'futbol.pase', nombre: 'pase' },
+  { stat: 'futbol.juego_colectivo', nombre: 'juego colectivo' },
+  { stat: 'futbol.posicionamiento', nombre: 'posicionamiento' },
+];
+
+/** La pestaña del fútbol. Todavía sin partidos: enseña las habilidades y los datos del club. */
+function vistaDeFutbol(ctx: ReadContext): DeporteView {
+  const t = ctx.time;
+  const { competida } = categoriaDelJugador(ctx);
+  const club = clubDelJugador(ctx);
+  const datos = datosDeDeporte(ctx, DEPORTE);
+  const entrenador = entrenadorDelJugador(ctx);
+  return {
+    id: DEPORTE,
+    nombre: 'Fútbol',
+    disciplina: 'Fútbol 11',
+    inactivo: club ? undefined : 'Apúntate al club de fútbol del colegio (en la administración) para ver aquí tu deporte',
+    resumen: [
+      { etiqueta: 'Categoría', valor: competida.nombre },
+      { etiqueta: 'Federación', valor: `${datos.competiciones.federacion}${datos.deRespaldo ? ` (con los datos de España: ${ctx.pais.nombre} aún no tiene los suyos)` : ''}` },
+      { etiqueta: 'Club', valor: club?.nombre ?? 'Sin club' },
+      { etiqueta: 'Entrenador', valor: entrenador?.name ?? '—' },
+      { etiqueta: 'Entrenamientos', valor: club ? textoDeSesiones(club.sesiones) : '—' },
+      { etiqueta: 'Partidos', valor: datos.competiciones.jornada.texto },
+    ],
+    habilidades: [...HABILIDADES_DE_FUTBOL, CONOCIMIENTO],
+    temporada: {
+      etiqueta: `Curso ${t.schoolYear + 1}`,
+      proxima: 'Los partidos de liga llegan en la siguiente fase del fútbol: de momento se entrena.',
+      pruebas: [],
+      nombreDePruebas: 'Partidos',
+    },
+    clasificaciones: [],
+    temporadasAnteriores: [],
+  };
+}
+
+/** Lo que entrenan las sesiones, de menos a más: libre (técnica o físico), club y campamento. */
+const t = (stat: string, amount: number) => ({ stat, amount });
+
+export const futbol = defineModule<FutbolState>({
+  id: 'futbol',
+  name: 'Fútbol',
+  description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
+  dependsOn: ['gen'],
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL] },
+  stats: [...STATS_DE_FUTBOL],
+
+  initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),
+
+  services: {
+    [claveDeDeporte(DEPORTE)]: (ctx) => ({ view: () => vistaDeFutbol(ctx) }),
+  },
+
+  // Apuntarse al club del colegio (kit).
+  dynamicActions: accionesDeClubes(CONFIG),
+
+  actions: ligarALugares(
+    sinEntrenarPorLibreEnSesion(CONFIG, [
+      sesionDeClub(CONFIG, {
+        description: 'Entrenamiento completo con el entrenador y el equipo: balón, tiro, táctica y físico. Rinde más que entrenar por tu cuenta.',
+        tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, TAGS.club, 'futbol'],
+        delta: { [GEN.energia]: -24 },
+        train: [
+          t('futbol.control', 1), t('futbol.pase', 1.2), t('futbol.regate', 0.8), t('futbol.tecnica', 1), t('futbol.definicion', 0.8),
+          t('futbol.marcaje', 0.6), t('futbol.entrada', 0.6), t('futbol.vision', 0.8), t('futbol.posicionamiento', 0.8), t('futbol.desmarque', 0.6),
+          t('futbol.decisiones', 0.6), t('futbol.anticipacion', 0.6), t('futbol.arrancada', 0.5),
+          // Entrenar en equipo es lo que enseña a jugar en equipo.
+          t('futbol.juego_colectivo', 1.5),
+          t(GEN.velocidad, 0.5), t(GEN.resistencia, 0.6), t(GEN.coordinacion, 0.4), t(GEN.cooperacion, 0.4),
+          t(CONOCIMIENTO, 1.6),
+        ],
+      }),
+      dejarClub(CONFIG),
+      campamento(CONFIG, {
+        tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'futbol', 'campamento'],
+        delta: { [GEN.energia]: -35 },
+        train: [
+          t('futbol.control', 2), t('futbol.pase', 2), t('futbol.regate', 1.5), t('futbol.tecnica', 2), t('futbol.definicion', 1.5), t('futbol.vision', 1.5),
+          t('futbol.posicionamiento', 1.5), t('futbol.juego_colectivo', 2.5), t('futbol.arrancada', 1),
+          t(GEN.velocidad, 1), t(GEN.resistencia, 1), t(GEN.cooperacion, 0.6), t(CONOCIMIENTO, 3),
+        ],
+      }),
+      conLosAmigos(CONFIG, {
+        description: 'Con notas aceptables, el verano se pasa jugando al fútbol con los amigos: sienta bien, pero no se mejora igual que entrenando.',
+        tags: [TAGS.fisico, TAGS.social, 'futbol'],
+        delta: { [GEN.energia]: -12, [GEN.estres]: -6 },
+        train: [t('futbol.control', 0.3), t('futbol.regate', 0.4), t('futbol.definicion', 0.3), t('futbol.juego_colectivo', 0.4), t(GEN.carisma, 0.4), t(GEN.cooperacion, 0.4)],
+      }),
+
+      {
+        id: 'futbol.balon',
+        name: 'Trabajo con balón',
+        description: 'Controles, pases contra la pared, conducciones y regates por tu cuenta.',
+        tags: [TAGS.fisico, TAGS.entrenamiento, 'futbol'],
+        group: 'Entrenar fútbol',
+        duration: 60,
+        available: horarioEntreno,
+        delta: { [GEN.energia]: -14 },
+        train: [t('futbol.control', 2), t('futbol.pase', 1.5), t('futbol.regate', 1.5), t('futbol.tecnica', 2), t(GEN.coordinacion, 0.5), t(CONOCIMIENTO, 0.8)],
+      },
+      {
+        id: 'futbol.tiro',
+        name: 'Tiro y remate',
+        description: 'Tiros a puerta desde dentro y fuera del área, faltas, penaltis y córners.',
+        tags: [TAGS.fisico, TAGS.entrenamiento, 'futbol'],
+        group: 'Entrenar fútbol',
+        duration: 60,
+        available: horarioEntreno,
+        delta: { [GEN.energia]: -14 },
+        train: [t('futbol.definicion', 2), t('futbol.disparo_lejano', 1.5), t('futbol.penaltis', 1), t('futbol.faltas', 1), t('futbol.corners', 0.6), t('futbol.cabeza', 0.6), t(GEN.fuerza, 0.4), t(CONOCIMIENTO, 0.8)],
+      },
+      {
+        id: 'futbol.fisico',
+        name: 'Preparación física',
+        description: 'Carreras, cambios de ritmo, saltos y resistencia para aguantar un partido.',
+        tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'futbol'],
+        group: 'Entrenar fútbol',
+        duration: 75,
+        available: horarioEntreno,
+        delta: { [GEN.energia]: -22, [GEN.estres]: -2 },
+        train: [t('futbol.arrancada', 2.5), t('futbol.salto', 1.5), t(GEN.velocidad, 1), t(GEN.resistencia, 1.2), t(GEN.agilidad, 0.5), t(CONOCIMIENTO, 0.5)],
+      },
+      {
+        id: 'futbol.porteria',
+        name: 'Entrenar de portero',
+        description: 'Paradas, blocajes, salidas y despejes bajo palos.',
+        tags: [TAGS.fisico, TAGS.entrenamiento, 'futbol'],
+        group: 'Entrenar fútbol',
+        duration: 60,
+        available: horarioEntreno,
+        delta: { [GEN.energia]: -14 },
+        train: [t('futbol.reflejos', 2), t('futbol.mano_a_mano', 1.2), t('futbol.blocaje', 1.5), t('futbol.despeje', 1), t('futbol.alcance_aereo', 1), t('futbol.dominio_area', 1), t(GEN.coordinacion, 0.5), t(CONOCIMIENTO, 0.8)],
+      },
+      verEnLaTele(CONFIG, 'Partidos y resúmenes de otros: aprendes cómo se mueve un equipo y por qué un pase abre la defensa.'),
+      pedirConsejo(CONFIG, HABILIDADES_DE_CONSEJO),
+    ]),
+    {
+      // El club del colegio entrena en el campo del colegio. Se puede entrenar por libre en el campo del colegio, el municipal y el parque.
+      'futbol.club_sesion': sedeDelClub,
+      'futbol.dejar_club': (ctx) => tramitesDe(clubDelJugador(ctx)),
+      'futbol.campamento': ['campo_municipal'],
+      'futbol.amigos': ['parque'],
+      'futbol.balon': ['campo_colegio', 'campo_municipal', 'parque'],
+      'futbol.tiro': ['campo_colegio', 'campo_municipal'],
+      'futbol.fisico': ['campo_colegio', 'campo_municipal', 'parque'],
+      'futbol.porteria': ['campo_colegio', 'campo_municipal'],
+      'futbol.ver_tele': ['casa'],
+      'futbol.pedir_consejo': sedeDelClub,
+    },
+  ),
+
+  // Llegar tarde a la sesión, campamento, entrenar por tu cuenta, conocimiento y sobrecarga (kit), en este orden.
+  modifiers: [
+    modificadorDeLlegadaTarde(CONFIG),
+    modificadorDeCampamento(CONFIG),
+    modificadorPorTuCuenta(CONFIG),
+    modificadorDeConocimiento(CONFIG),
+    modificadorDeSobrecarga(CONFIG),
+  ],
+
+  // El primer día, el conocimiento que viene de casa; cada sesión, la cuenta de la sobrecarga (kit).
+  on: manejadoresDeDeporte(CONFIG),
+});
+
+export default futbol;

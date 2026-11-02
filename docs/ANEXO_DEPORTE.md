@@ -82,4 +82,5 @@ Cada corredor suma los puntos de cada prueba en la que ha corrido contra el pers
 - Clasificación **de todo el circuito** (no solo de las carreras que compartes con el personaje) cuando haya calendario completo de competiciones.
 - ~~Entrenadores propios de cada club de fuera~~ **Hecho** (`ENTRENADORES_DE_CLUBES`). Pendiente: sus habilidades propias y compañeros de equipo conocidos al entrar.
 - Gráfica de la evolución de las marcas a lo largo de los cursos.
+- Fútbol (F1, 1/11): `modules/futbol` con las 29 habilidades, el conocimiento, el entreno por libre y el club del colegio; sin partidos todavía (la pestaña enseña habilidades y datos del club, con «Partidos» vacío). Ver `ANALISIS_FUTBOL.md` §7.
 - Deportes de equipo: partidos, tablas de liga y plantillas. **El contrato ya lo admite (fútbol F0, 1/11):** `DeporteView.secciones` (bloques libres con título, texto y tabla), `PruebaDeTemporada.resultado` (texto como «Ganado 3-1» en lugar de «Xº de Y»), `temporada.nombreDePruebas` («Partidos» en vez de «Carreras») y `TemporadaDeDeporte.liga` (vueltas y equipos por categoría; `jornadasDeLiga`). Atletismo no usa nada de esto.
