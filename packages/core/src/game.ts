@@ -32,20 +32,21 @@ import {
   type Rng,
   mezclarZ,
   nivelTipicoPorEdad,
+  computeCap,
+  computeGain,
+  computeSpeed,
+  evolucionDiaria,
+  potentialSpeed,
   plasticidadPorEdad,
   type IdentityService,
   type StatId,
   type TimeView,
 } from '@ds/contracts';
-import { computeCap, computeDecay, computeGain, computeSpeed, potentialSpeed } from './progression';
+
 import { buildRegistry, compileAction, modifiersFor, type CompiledAction, type Registry } from './registry';
 import { createRng, seededRng, seededRngDe, type RngHolder } from './rng';
 import { LOG_LIMIT, SAVE_VERSION, type GameState, type Lineage, type ParentGenes } from './state';
 
-/** Fracción diaria de la distancia al tope efectivo que se pierde por envejecimiento. */
-const AJUSTE_POR_EDAD_DIARIO = 0.004;
-/** Fracción de lo que falta para el mínimo natural que se gana cada día. */
-const DESARROLLO_NATURAL_DIARIO = 0.05;
 
 /** Lo que la interfaz (o un bot) ve de cada acción antes de elegirla. */
 export interface ActionOption {
@@ -702,20 +703,20 @@ export class Game {
     for (const { def } of this.registry.decayStats) {
       const id = def.id;
       const days = (this.s.minute - (this.s.lastTrained[id] ?? this.s.minute)) / MINUTES_PER_DAY;
-      let next = computeDecay(def, this.s.stats[id], days, this.s.peaks[id], this.s.baseline[id]);
-      // Envejecimiento: si la fracción de tope alcanzable ha bajado desde su máximo, lo que queda por encima del tope
-      // efectivo cae hacia él (despacio: un 0,4 % de la diferencia cada día).
+      // Caída, envejecimiento y desarrollo natural: la regla es de todas las personas (`evolucionDiaria`, en contracts), la misma que usan los PNJ.
       const factor = def.growth?.potentialFactor;
-      if (factor && this.s.stats[factor] < (this.s.peaks[factor] ?? 0) - 0.25) {
-        const techo = this.effectivePotential(id);
-        if (techo !== undefined && next > techo) next -= (next - techo) * AJUSTE_POR_EDAD_DIARIO;
-      }
-      // Desarrollo natural: crecer da un mínimo que sube con la edad aunque no se entrene.
-      const natural = def.growth?.naturalFraction;
-      if (natural) {
-        const pot = this.effectivePotential(id);
-        if (pot !== undefined && next < pot * natural) next += (pot * natural - next) * DESARROLLO_NATURAL_DIARIO;
-      }
+      const next = evolucionDiaria(
+        { decay: def.decay, natural: def.growth?.naturalFraction },
+        {
+          valor: this.s.stats[id],
+          pico: this.s.peaks[id],
+          base: this.s.baseline[id],
+          diasSinEntrenar: days,
+          techo: this.effectivePotential(id),
+          // Envejecimiento: si la fracción de tope alcanzable ha bajado desde su máximo, lo que queda por encima del tope efectivo cae hacia él.
+          envejece: !!factor && this.s.stats[factor] < (this.s.peaks[factor] ?? 0) - 0.25,
+        },
+      );
       this.s.stats[id] = next;
       if (next > (this.s.peaks[id] ?? -Infinity)) this.s.peaks[id] = next;
     }
