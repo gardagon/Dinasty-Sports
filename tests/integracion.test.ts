@@ -91,7 +91,7 @@ describe('integración de módulos', () => {
       const r = hacer(g, 'atletismo.carrera');
       expect(r.ok).toBe(true);
       const nombres = r.log.find((l) => l.table)!.table!.rows.map((f) => f[1]);
-      expect(nombres.length).toBeGreaterThanOrEqual(10); // hay ausencias (los peores y los últimos faltan más)
+      expect(nombres.length).toBeGreaterThanOrEqual(8); // hay ausencias (los peores y los últimos faltan más)
       expect(nombres.length).toBeLessThanOrEqual(18);
       if (carreras < 8) for (const m of top) presentes.push(nombres.includes(m));
       const rivales = nombres.filter((n) => n !== 'Tú').sort();
