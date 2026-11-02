@@ -3,7 +3,7 @@ import { SERVICES, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
-import { claveDeEquipo, edadNpc, plazaEnElEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { claveDeEquipo, edadNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
 
 /**
@@ -94,83 +94,64 @@ describe('reclutamiento por equipo: interesados hasta el máximo, el resto solo 
   });
 });
 
-describe('el personaje y el equipo de su colegio (dificultad normal)', () => {
-  it('el equipo de su categoría guarda un hueco: empieza con 17 de 18 y el personaje entra aunque sea peor que todos', () => {
-    for (const seed of [31, 32, 33]) {
-      const g = nueva(seed);
-      const benjamin = estado(g).npcs.filter((n) => n.deporte === 'futbol' && edadNpc(n, 0)! <= 9 && n.genetica);
-      expect(benjamin.length).toBeLessThanOrEqual(17);
-      expect(g.service<NpcDirectory>(SERVICES.npcs)!.plaza('futbol', 'colegio', 0).estado).toBe('libre');
-      advanceToWeek(g, 'gen.descansar', 1, 2, 15);
-      expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
-    }
-  });
-
-  it('aunque el equipo se llene del todo, el del colegio no lo rechaza ni echa a nadie', () => {
-    const g = nueva();
+describe('el personaje entra en el equipo de su colegio como cualquier niño', () => {
+  /** Los jugadores del equipo de benjamín (la categoría del personaje a los 8 años). */
+  const benjamin = (g: ReturnType<typeof nueva>) => estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! <= 9);
+  /** Llena el equipo hasta el máximo con niños de nivel `nivel` (el del peor, `peorNivel`, si se dice). */
+  const llenar = (g: ReturnType<typeof nueva>, nivel: number, peorNivel?: number) => {
     const s = estado(g);
-    const libres = s.npcs.filter((n) => n.genetica && n.deporte === undefined && n.colegio === undefined && edadNpc(n, 0)! <= 9 && n.tipos?.some((t) => t.tipo === 'alumno')).slice(0, 5);
-    s.npcs = s.npcs.map((n) => (libres.some((l) => l.id === n.id) ? { ...n, deporte: 'futbol', equipo: 'colegio', levels: { ...n.levels, futbol: 99 } } : n));
-    const antes = s.npcs.filter((n) => n.deporte === 'futbol' && edadNpc(n, 0)! <= 9).length;
-    expect(antes).toBeGreaterThanOrEqual(18);
-    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
-    expect(g.service<NpcDirectory>(SERVICES.npcs)!.plaza('futbol', 'colegio', 0).estado).toBe('libre');
-    expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
-    expect(estado(g).npcs.filter((n) => n.deporte === 'futbol' && edadNpc(n, 0)! <= 9)).toHaveLength(antes);
-  });
-
-  it('el curso siguiente el hueco sigue: el equipo de su nueva categoría se queda en el máximo menos uno', () => {
-    const g = nueva();
-    const base = estado(g);
-    const pob = pobDeFutbol(g);
-    // Con muchos interesados en alevín, la renovación guarda el hueco del colegio para el personaje (que tendrá 9 años: sigue en benjamín) o su categoría.
-    const todos = new Set(base.npcs.filter((n) => n.genetica && n.tipos?.some((t) => t.tipo === 'alumno') && categoriaDe(pob, n) === 'benjamin').map((n) => n.id));
-    const npcs = base.npcs.map((n) => (n.genetica ? { ...n, deporte: undefined, equipo: undefined, rasgos: n.rasgos && { ...n.rasgos, intereses: todos.has(n.id) ? { futbol: 3 } : {} } } : n)) as Npc[];
-    const r = reclutarEnTodos(npcs, [pob], 0, new Map([[claveDeEquipo('colegio', 'benjamin'), 1]]));
-    expect(r.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && categoriaDe(pob, n) === 'benjamin')).toHaveLength(17);
-  });
-});
-
-describe('equipos que no son del colegio del personaje: completos, solo entra quien es mejor que alguno', () => {
-  /** Quita al equipo del colegio la marca de «del colegio del personaje» (como un club de fuera) y lo llena con niños de nivel 99, salvo el peor. */
-  const clubDeFuera = (g: ReturnType<typeof nueva>, peorNivel?: number) => {
-    const s = estado(g);
-    const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
-    pob.equipos = pob.equipos.map((e) => ({ ...e, colegio: undefined }));
-    const base = s.npcs.filter((n) => n.deporte === 'futbol' && edadNpc(n, 0)! <= 9);
+    const base = benjamin(g);
     const libres = s.npcs.filter((n) => n.genetica && n.deporte === undefined && n.colegio === undefined && edadNpc(n, 0)! <= 9 && n.tipos?.some((t) => t.tipo === 'alumno')).slice(0, 18 - base.length);
     let primero = true;
     s.npcs = s.npcs.map((n) => {
-      const esDelEquipo = libres.some((l) => l.id === n.id);
-      if (!esDelEquipo && !(n.deporte === 'futbol' && edadNpc(n, 0)! <= 9)) return n;
-      const nivel = primero && peorNivel !== undefined ? peorNivel : 99;
+      const delEquipo = libres.some((l) => l.id === n.id) || (n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! <= 9);
+      if (!delEquipo) return n;
+      const nv = primero && peorNivel !== undefined ? peorNivel : nivel;
       primero = false;
-      return { ...n, deporte: 'futbol', equipo: 'colegio', levels: { ...n.levels, futbol: nivel } };
+      return { ...n, deporte: 'futbol', equipo: 'colegio', levels: { ...n.levels, futbol: nv } };
     });
-    return s.npcs.filter((n) => n.deporte === 'futbol' && edadNpc(n, 0)! <= 9);
+    return benjamin(g);
   };
+  const plaza = (g: ReturnType<typeof nueva>, nivel: number) => g.service<NpcDirectory>(SERVICES.npcs)!.plaza('futbol', 'colegio', nivel);
 
-  it('todos mejores que él: no entra y se le dice por qué', () => {
+  it('no se le guarda ningún hueco: el equipo de su categoría empieza lleno cuando hay interesados de sobra', () => {
+    const llenos = [31, 32, 33].map((seed) => benjamin(nueva(seed)).length);
+    expect(llenos.every((n) => n >= 14 && n <= 18)).toBe(true);
+    expect(Math.max(...llenos)).toBe(18);
+  });
+
+  it('con hueco, entra aunque sea peor que todos', () => {
     const g = nueva();
-    clubDeFuera(g);
+    const equipo = llenar(g, 99);
+    // Se va uno: hay hueco.
+    const s = estado(g);
+    s.npcs = s.npcs.map((n) => (n.id === equipo[0].id ? { ...n, deporte: undefined, equipo: undefined } : n));
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
-    expect(g.service<NpcDirectory>(SERVICES.npcs)!.plaza('futbol', 'colegio', 20).estado).toBe('completo');
+    expect(plaza(g, 0).estado).toBe('libre');
+    expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+  });
+
+  it('completo y peor que todos: no entra y se le dice por qué', () => {
+    const g = nueva();
+    llenar(g, 99);
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
+    expect(plaza(g, 20).estado).toBe('completo');
     expect(posible(g, 'futbol.apuntarse_colegio')).toBe(false);
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').toMatch(/completo y todos juegan mejor que tú/);
   });
 
-  it('mejor que el peor: entra y el peor queda sin equipo, sin volver a ser reclutado ese curso', () => {
+  it('completo pero mejor que el peor: entra y el peor queda sin equipo, sin volver a ser reclutado ese curso', () => {
     const g = nueva();
-    const equipo = clubDeFuera(g, 1);
+    const equipo = llenar(g, 99, 1);
     const peor = equipo.find((n) => n.levels.futbol === 1)!;
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
-    expect(g.service<NpcDirectory>(SERVICES.npcs)!.plaza('futbol', 'colegio', 30)).toMatchObject({ estado: 'por_merito', peor: { id: peor.id } });
+    expect(plaza(g, 30)).toMatchObject({ estado: 'por_merito', peor: { id: peor.id } });
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     const despues = estado(g).npcs.find((n) => n.id === peor.id)!;
     expect(despues.deporte).toBeUndefined();
     expect(despues.apartado).toEqual(['futbol']);
     const otra = reclutarDeportistas(estado(g).npcs, pobDeFutbol(g), 0);
     expect(otra.find((n) => n.id === peor.id)!.deporte).toBeUndefined();
-    expect(estado(g).npcs.filter((n) => n.deporte === 'futbol' && edadNpc(n, 0)! <= 9)).toHaveLength(17);
+    expect(benjamin(g)).toHaveLength(17);
   });
 });

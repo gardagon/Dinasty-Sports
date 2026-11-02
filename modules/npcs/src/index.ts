@@ -281,8 +281,8 @@ export const edadNpc = (n: Npc, primerDiaDelCurso: number): number | undefined =
  */
 const ALUMNOS_POR_AULA = 25;
 const COMPANEROS_DE_CLASE = ALUMNOS_POR_AULA - 1;
-/** Todos los cursos del colegio tienen dos clases de 25 (como el del personaje). */
-const ALUMNOS_POR_CURSO_DE_FUERA = 2 * ALUMNOS_POR_AULA;
+/** Todos los cursos del colegio tienen dos clases de 25 (el del personaje también). */
+const ALUMNOS_POR_CURSO = 2 * ALUMNOS_POR_AULA;
 /** Alumnos por curso de cada colegio de fuera, y de jóvenes de cada edad que ya no van al colegio (18 y 19 años). */
 const ALUMNOS_POR_CURSO_DE_CADA_COLEGIO = 17;
 const JOVENES_POR_EDAD = ALUMNOS_POR_CURSO_DE_CADA_COLEGIO * COLEGIOS_DE_FUERA.length;
@@ -346,7 +346,7 @@ function poblarElColegio(rng: Rng, usados: RegistroDeNombres, existentes: number
   const otraClase = Array.from({ length: ALUMNOS_POR_AULA }, (_, i) => alumno(`curso_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Alumna de la otra clase de tu curso.', 'Alumno de la otra clase de tu curso.')));
   const otrosCursos: Npc[] = [];
   for (let edad = EDAD_ALUMNO_MIN + 1; edad < EDAD_FIN_COLEGIO; edad++) {
-    for (let i = 0; i < ALUMNOS_POR_CURSO_DE_FUERA; i++) otrosCursos.push(alumno(`alumno_${otrosCursos.length + 1}`, edad, (g) => o(g, 'Alumna del colegio.', 'Alumno del colegio.')));
+    for (let i = 0; i < ALUMNOS_POR_CURSO; i++) otrosCursos.push(alumno(`alumno_${otrosCursos.length + 1}`, edad, (g) => o(g, 'Alumna del colegio.', 'Alumno del colegio.')));
   }
   const profesores = ASIGNATURAS_DE_PROFESORES.map((materia, i) =>
     persona(rng, `profesor_${i + 1}`, 'profesor', rng.int(28, 60), 0, usados, [{ tipo: 'profesor' }], (g) => `${o(g, 'Profesora', 'Profesor')} de ${materia.toLowerCase()}.`, ['profesor']),
@@ -620,9 +620,6 @@ export function avanzarCapacidades(npcs: readonly Npc[], dia: number): Npc[] {
 
 // ---------------------------------------------------------------------------------------------------- plaza del personaje en un equipo
 
-/** Lo que hace «normal» a la dificultad, mientras no haya creación de personaje: el equipo del colegio del personaje (`colegio: 'propio'`) siempre tiene sitio para él. */
-const DIFICULTAD_NORMAL = { equipoDelColegioAbierto: 'propio' } as const;
-
 /** La categoría del deporte a una edad de competición, o `undefined` si el deporte no guardó sus categorías. */
 const categoriaDe = (pob: PoblacionGuardada, edad: number): CategoriaDef | undefined => (pob.categorias?.length ? categoriaDeEdad(pob.categorias, edad) : undefined);
 
@@ -639,8 +636,6 @@ export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGu
   const equipo = pob?.equipos.find((e) => e.club === club);
   const cat = pob && equipo?.plantillaPorCategoria ? categoriaDe(pob, edad) : undefined;
   if (!pob || !equipo?.plantillaPorCategoria || !cat) return { estado: 'libre' };
-  // Dificultad normal (fija por ahora): el equipo del colegio del personaje no rechaza a un alumno que quiere jugar. Ser titular depende de la convocatoria.
-  if (equipo.colegio === DIFICULTAD_NORMAL.equipoDelColegioAbierto) return { estado: 'libre' };
   const jugadores = jugadoresDelEquipo(npcs, pob, club, cat, dia);
   if (jugadores.length < equipo.plantillaPorCategoria.max) return { estado: 'libre' };
   const peor = jugadores.reduce((m, n) => ((n.levels[deporte] ?? 0) < (m.levels[deporte] ?? 0) || ((n.levels[deporte] ?? 0) === (m.levels[deporte] ?? 0) && n.id > m.id) ? n : m));
@@ -757,19 +752,6 @@ function categoriasDelEquipo(pob: PoblacionGuardada, e: EquipoGuardado): { id: s
     .filter((c) => c.edades.length > 0);
 }
 
-/**
- * El hueco que el equipo del colegio del personaje guarda para él en su categoría (a la edad que tenga ese curso), sea ya miembro o no: así, al entrar, el
- * equipo no pasa de su máximo. Es la otra mitad de «el equipo del colegio no rechaza a un alumno que quiere jugar» (`plazaEnElEquipo`).
- */
-function huecosDelColegio(pobs: readonly PoblacionGuardada[], edad: number): Map<string, number> {
-  const reservas = new Map<string, number>();
-  for (const pob of pobs) {
-    const cat = categoriaDe(pob, edad);
-    for (const e of pob.equipos) if (cat && e.plantillaPorCategoria && e.colegio === DIFICULTAD_NORMAL.equipoDelColegioAbierto && categoriasDelEquipo(pob, e).some((c) => c.id === cat.id)) reservas.set(claveDeEquipo(e.club, cat.id), 1);
-  }
-  return reservas;
-}
-
 /** Clave de un equipo por categoría (club y categoría) en el mapa de reservas del personaje. */
 export const claveDeEquipo = (club: string, categoria: string): string => `${club}|${categoria}`;
 
@@ -878,7 +860,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): Npc
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
   const sin = [...base, ...colegio, ...bibliotecarios(ctx.rng, usados)];
   const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng)], sin);
-  return conCapacidades(reclutarEnTodos(conEntrenadores, pobs, 0, huecosDelColegio(pobs, EDAD_DE_INICIO)), 0);
+  return conCapacidades(reclutarEnTodos(conEntrenadores, pobs, 0), 0);
 }
 
 /** El personal de la biblioteca: uno en el turno de mañana (y los sábados) y otro en el de tarde. Van al final para no cambiar el azar de lo demás. */
@@ -1260,9 +1242,10 @@ export const npcs = defineModule<NpcsState>({
       const proximo = ctx.timeAt((week + 1) * 7 * MINUTES_PER_DAY);
       if (proximo.schoolWeek !== 0) return;
       const pobs = poblacionesGuardadas(ctx);
-      // Los equipos por categoría dejan un hueco a la plaza que ocupa el personaje (el curso que viene tendrá un año más).
+      // Si el personaje ya es miembro de un equipo por categoría, su plaza cuenta: el equipo se queda en el máximo menos uno (el curso que viene tendrá un año más).
+      // Si aún no es miembro no se le guarda ningún hueco: entra como cualquier niño (hay hueco, o está completo y es mejor que alguno).
       const edadProxima = (ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8) + 1;
-      const reservas = huecosDelColegio(pobs, edadProxima);
+      const reservas = new Map<string, number>();
       const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
       for (const pob of pobs) {
         const club = clubes?.membership(pob.deporte);
