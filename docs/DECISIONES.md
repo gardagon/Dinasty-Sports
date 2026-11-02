@@ -21,7 +21,7 @@ El usuario: «Prefiero irnos ya a la B [la ciudad grande con dos divisiones], y 
 
 ## 02/11/2026 — El personaje nace el mismo año que sus compañeros (corrección del usuario)
 
-El usuario: «Si empezamos en 3.º de primaria, el niño podría ser de 7 u 8 años y entraría a benjamín de primer año en fútbol». En España las categorías van por año de nacimiento, igual que los cursos. Un niño de 3.º nace en el año del curso menos 8: el día que empieza el curso tiene entre 7,3 y 8,7 años y es benjamín de primer año.
+El usuario: «Si empezamos en 3.º de primaria, el niño podría ser de 7 u 8 años y entraría a benjamín de primer año en fútbol». En España las categorías van por año de nacimiento, igual que los cursos. Un niño de 3.º nace en el año del curso menos 8: el día que empieza el curso tiene entre 7,7 y 8,7 años (del 10 de septiembre al 31 de diciembre van 112 días: el nacido el 31 de diciembre tiene 7 años y unos 253 días) y es benjamín de primer año.
 
 - **El error:** el personaje empezaba con entre 8,0 y 9,0 años (`identidad.ts`: `EDAD_INICIAL = 8` más una fracción al azar), mientras que sus compañeros nacen todos en el año que toca (`npcs`: `primerDiaDelAnio(anioNatural(0) − 8) + rng.int(0, 364)`). En el 31 % de las partidas el personaje nacía un año antes: era un año mayor que toda su clase y jugaba de benjamín de segundo año. Es un trato especial que choca con `VISION.md` (principio 6).
 - **El arreglo:** el personaje nace como los PNJ, un día al azar del mismo año que su clase. Siempre empieza en 3.º y como benjamín de primer año. La diferencia entre nacer en enero o en diciembre se mantiene, porque es real. Las partidas guardadas conservan su edad.
