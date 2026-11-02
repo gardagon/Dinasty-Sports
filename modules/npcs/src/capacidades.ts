@@ -1,6 +1,7 @@
 import {
   CAPACIDADES_GENETICAS,
   GRUPO_DE_CAPACIDAD,
+  NIVEL_PRACTICA,
   DESARROLLO_NATURAL,
   INICIAL_DE_CAPACIDAD,
   caidaDeCapacidad,
@@ -8,6 +9,7 @@ import {
   nivelInicialHeredado,
   rngEstable,
   vigoresPorEdad,
+  type Practica,
   type ReglaDeEvolucion,
 } from '@ds/contracts';
 import type { Genetica } from './deportistas';
@@ -90,4 +92,26 @@ export function historiaDe(id: string, g: Genetica, nacimiento: number, dia: num
     avanzarSemana(c, g, nacimiento, d, semanas);
   }
   return aGuardar(c);
+}
+
+// ---------------------------------------------------------------------------------------------------- edad de empezar
+
+/** Edad (en años) a la que un niño empezó a practicar un deporte en un club. Desde `EDAD_MINIMA_DE_EMPEZAR` (prebenjamín). */
+export const EDAD_MINIMA_DE_EMPEZAR = 6;
+
+/**
+ * La edad a la que un niño empezó en un deporte, con un azar estable (solo depende de él y del deporte): **desde los 6** los muy interesados o con padres
+ * deportistas, **entre los 8 y los 10 la mayoría**, y algunos más tarde (de 11 a 13). Decidido el 02/11 (`MISMAS_REGLAS.md` §5). Es la historia que se simula al
+ * crear la partida: se llega a los valores de haber seguido su rutina desde esa edad (el llamador no la pasa de la edad actual del niño).
+ */
+export function edadDeEmpezar(id: string, deporte: string, interes: number, padres: { padre: Practica; madre: Practica }): number {
+  const r = rngEstable('edad-de-empezar', id, deporte);
+  // Cuánto empuja a empezar pronto: el interés (de 0 a 3) y lo que practicaron sus padres (de 0 a 3 cada uno, el mayor cuenta más).
+  const deportistas = Math.max(NIVEL_PRACTICA[padres.padre], NIVEL_PRACTICA[padres.madre]);
+  const empuje = interes / 3 + deportistas / 3;
+  if (r.chance(Math.min(0.75, Math.max(0, empuje - 0.45)))) return EDAD_MINIMA_DE_EMPEZAR + (r.chance(0.35) ? 1 : 0);
+  // Algunos empiezan más tarde, sobre todo los poco interesados.
+  if (r.chance(0.08 + 0.12 * (1 - interes / 3))) return r.int(11, 13);
+  const u = r.next();
+  return u < 0.4 ? 8 : u < 0.75 ? 9 : 10;
 }

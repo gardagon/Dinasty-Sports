@@ -4,7 +4,8 @@ import { Game, advanceToWeek } from '@ds/core';
 import { personaje, type IdentidadState } from '@ds/mod-personaje';
 import { cargarPartida, nuevaPartida } from '@ds/game';
 import type { Npc, NpcsState } from '@ds/mod-npcs';
-import { EDAD_DE_PARTIDA, avanzarSemana, capacidadesIniciales, historiaDe, type CapacidadesDe } from '../modules/npcs/src/capacidades';
+import type { Practica } from '@ds/contracts';
+import { EDAD_DE_PARTIDA, avanzarSemana, edadDeEmpezar, capacidadesIniciales, historiaDe, type CapacidadesDe } from '../modules/npcs/src/capacidades';
 import type { Genetica } from '../modules/npcs/src/deportistas';
 
 /**
@@ -111,5 +112,36 @@ describe('los niños de la partida tienen sus capacidades reales', () => {
     const nuevos = niños(g).filter((n) => /^alumno_(4[5-9]\d|[5-9]\d\d)$/.test(n.id));
     expect(nuevos.length).toBeGreaterThan(0);
     expect(nuevos.every((n) => n.cap?.length === 18)).toBe(true);
+  });
+});
+
+describe('la edad de empezar de los niños', () => {
+  const muestra = (interes: number, padres: Practica, n = 2000) =>
+    Array.from({ length: n }, (_, i) => edadDeEmpezar(`nino_${i}`, 'futbol', interes, { padre: padres, madre: padres }));
+  const cuenta = (xs: number[], f: (e: number) => boolean) => xs.filter(f).length / xs.length;
+
+  it('es estable: la misma edad para el mismo niño y deporte, y puede ser otra en otro deporte', () => {
+    expect(edadDeEmpezar('nino_1', 'futbol', 2, { padre: 'ninguna', madre: 'federado' })).toBe(edadDeEmpezar('nino_1', 'futbol', 2, { padre: 'ninguna', madre: 'federado' }));
+    const deportes = new Set(['futbol', 'atletismo', 'tenis', 'natacion', 'baloncesto', 'rugby'].map((d) => edadDeEmpezar('nino_1', d, 1, { padre: 'ninguna', madre: 'ninguna' })));
+    expect(deportes.size).toBeGreaterThan(1);
+  });
+
+  it('la mayoría empieza entre los 8 y los 10; algunos desde los 6 y otros más tarde', () => {
+    const todos = [...muestra(1, 'ninguna'), ...muestra(2, 'aficionado'), ...muestra(1, 'federado')];
+    expect(cuenta(todos, (e) => e >= 8 && e <= 10)).toBeGreaterThan(0.5);
+    expect(cuenta(todos, (e) => e <= 7)).toBeGreaterThan(0.03);
+    expect(cuenta(todos, (e) => e >= 11)).toBeGreaterThan(0.03);
+    expect(Math.min(...todos)).toBeGreaterThanOrEqual(6);
+    expect(Math.max(...todos)).toBeLessThanOrEqual(13);
+  });
+
+  it('empiezan antes los muy interesados o con padres deportistas, y más tarde los poco interesados', () => {
+    const pronto = (interes: number, padres: Practica) => cuenta(muestra(interes, padres), (e) => e <= 7);
+    expect(pronto(3, 'profesional')).toBeGreaterThan(0.4);
+    expect(pronto(3, 'profesional')).toBeGreaterThan(pronto(1, 'ninguna') + 0.2);
+    expect(pronto(3, 'ninguna')).toBeGreaterThan(pronto(0, 'ninguna'));
+    expect(pronto(0, 'profesional')).toBeGreaterThan(pronto(0, 'ninguna'));
+    const tarde = (interes: number) => cuenta(muestra(interes, 'ninguna'), (e) => e >= 11);
+    expect(tarde(0)).toBeGreaterThan(tarde(3));
   });
 });
