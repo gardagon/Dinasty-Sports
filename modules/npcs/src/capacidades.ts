@@ -1,5 +1,6 @@
 import {
   CAPACIDADES_GENETICAS,
+  GRUPO_DE_CAPACIDAD,
   DESARROLLO_NATURAL,
   INICIAL_DE_CAPACIDAD,
   caidaDeCapacidad,
@@ -7,7 +8,6 @@ import {
   nivelInicialHeredado,
   rngEstable,
   vigoresPorEdad,
-  vigorDeCapacidad,
   type ReglaDeEvolucion,
 } from '@ds/contracts';
 import type { Genetica } from './deportistas';
@@ -31,9 +31,12 @@ export interface CapacidadesDe {
 /** La edad a la que empieza el personaje, y desde la que se cuenta la historia de un niño: las capacidades de un niño de 8 años salen del rango inicial. */
 export const EDAD_DE_PARTIDA = 8;
 const DIAS_POR_ANIO = 365;
+/** Semanas que se calculan de golpe al hacer la historia de un niño. */
+export const SEMANAS_POR_BLOQUE = 4;
 const redondea = (x: number) => Math.round(x * 100) / 100;
 
 /** Las reglas de cada capacidad, en el orden de `CAPACIDADES_GENETICAS`. */
+const GRUPOS = CAPACIDADES_GENETICAS.map((c) => GRUPO_DE_CAPACIDAD[c] as 'fisico' | 'mental' | 'social');
 const REGLAS: readonly ReglaDeEvolucion[] = CAPACIDADES_GENETICAS.map((c) => ({ decay: caidaDeCapacidad(c), natural: DESARROLLO_NATURAL }));
 
 /** Edad decimal de una persona en un día (los días se cuentan desde el comienzo de la partida; `nacimiento` es el día de su nacimiento). */
@@ -53,13 +56,14 @@ export function capacidadesIniciales(id: string, g: Genetica): CapacidadesDe {
  * Una semana de una persona: sus capacidades se desarrollan y caen siete días. `dia` es el día en que acaba la semana; la edad (con su adelanto o retraso,
  * `desfase`) decide cuánto de su tope permite el cuerpo. Muta las listas que se le pasan (los PNJ las copian antes).
  */
-export function avanzarSemana(c: CapacidadesDe, g: Genetica, nacimiento: number, dia: number): void {
-  const v = vigoresPorEdad(edadDecimalDe(nacimiento, dia), g.desfase);
+export function avanzarSemana(c: CapacidadesDe, g: Genetica, nacimiento: number, dia: number, semanas = 1): void {
+  // Con varias semanas de golpe, lo que permite la edad se mide a mitad del periodo.
+  const v = vigoresPorEdad(edadDecimalDe(nacimiento, dia - 3.5 * (semanas - 1)), g.desfase);
   for (let i = 0; i < CAPACIDADES_GENETICAS.length; i++) {
     const id = CAPACIDADES_GENETICAS[i];
-    const techo = (g.topes[id] * vigorDeCapacidad(id, v)) / 100;
+    const techo = (g.topes[id] * v[GRUPOS[i]]) / 100;
     // Un PNJ sin rutina no entrena sus capacidades: lleva mucho sin hacerlo. Los jóvenes que se desarrollan no envejecen (el envejecimiento llega después de los 24).
-    const siguiente = evolucionSemanal(REGLAS[i], { valor: c.cap[i], pico: c.pico[i], base: c.base[i], diasSinEntrenar: 1e6, techo, envejece: false });
+    const siguiente = evolucionSemanal(REGLAS[i], { valor: c.cap[i], pico: c.pico[i], base: c.base[i], diasSinEntrenar: 1e6, techo, envejece: false }, semanas);
     c.cap[i] = siguiente;
     if (siguiente > c.pico[i]) c.pico[i] = siguiente;
   }
@@ -77,6 +81,13 @@ export function aGuardar(c: CapacidadesDe): { cap: number[]; pico: number[] } {
 export function historiaDe(id: string, g: Genetica, nacimiento: number, dia: number): { cap: number[]; pico: number[] } {
   const c = capacidadesIniciales(id, g);
   const desde = nacimiento + EDAD_DE_PARTIDA * DIAS_POR_ANIO;
-  for (let d = desde + 7; d <= dia; d += 7) avanzarSemana(c, g, nacimiento, d);
+  // La historia se calcula de a `SEMANAS_POR_BLOQUE` semanas (con las fórmulas cerradas): lo mismo que semana a semana, dentro de un margen pequeño que prueba un test, en una cuarta parte del tiempo.
+  let d = desde;
+  while (d < dia) {
+    const semanas = Math.min(SEMANAS_POR_BLOQUE, Math.floor((dia - d) / 7));
+    if (semanas < 1) break;
+    d += 7 * semanas;
+    avanzarSemana(c, g, nacimiento, d, semanas);
+  }
   return aGuardar(c);
 }

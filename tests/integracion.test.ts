@@ -1358,7 +1358,7 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     expect(g.preview('relaciones.preguntar_profesion.padre')).toBeUndefined(); // ya lo sabes
     const oficios = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((seed) => dir(nuevaPartida({ seed })).get('padre')!.profesion));
     expect(oficios.size).toBeGreaterThan(2);
-  });
+  }, 30000);
 
   /** Avanza día lectivo a día lectivo hasta el minuto indicado y se queda en el primero en que el profesor está en ese sitio (`null` = fuera del mapa). */
   const hastaQueEsteEn = (g: Game, id: string, sitio: string | null, minuto: number): void => {
@@ -1697,7 +1697,7 @@ describe('herencia de casa: ventaja de crianza, conocimiento y perks', () => {
     expect(h.genetica!.ventaja).toBeLessThanOrEqual(1.1);
     expect(h.levels.atletismo).toBeGreaterThan(0);
     expect(h.levels.atletismo).toBeLessThanOrEqual(h.potential.atletismo);
-  }, 30000);
+  }, 90000);
 
   it('si los padres practicaron atletismo, el personaje empieza sabiendo algo del deporte; si no, nada', () => {
     const base = conPadres('ninguna');

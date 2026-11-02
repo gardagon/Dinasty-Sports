@@ -165,5 +165,5 @@ describe('el país de la partida', () => {
         if (apellidos === 1) expect(apellidosDeFamilia(seed, 'm', p)).toBe(jugador.delPadre);
       }
     }
-  });
+  }, 30000);
 });

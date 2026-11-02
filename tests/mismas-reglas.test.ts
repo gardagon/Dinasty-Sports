@@ -4,7 +4,7 @@ import { Game, advanceToWeek } from '@ds/core';
 import { personaje, type IdentidadState } from '@ds/mod-personaje';
 import { cargarPartida, nuevaPartida } from '@ds/game';
 import type { Npc, NpcsState } from '@ds/mod-npcs';
-import { avanzarSemana, historiaDe, type CapacidadesDe } from '../modules/npcs/src/capacidades';
+import { EDAD_DE_PARTIDA, avanzarSemana, capacidadesIniciales, historiaDe, type CapacidadesDe } from '../modules/npcs/src/capacidades';
 import type { Genetica } from '../modules/npcs/src/deportistas';
 
 /**
@@ -82,6 +82,18 @@ describe('los niños de la partida tienen sus capacidades reales', () => {
     expect(subieron).toBeGreaterThan(despues.length / 2);
     const g2 = cargarPartida(JSON.parse(JSON.stringify(g.serialize())));
     expect(niños(g2).map((n) => n.cap)).toEqual(despues.map((n) => n.cap));
+  });
+
+  it('la historia calculada por bloques da lo mismo que semana a semana (dentro de un margen pequeño)', () => {
+    const lista = niños(nueva()).filter((n) => edad(n) >= 12);
+    let peor = 0;
+    for (const n of lista.slice(0, 120)) {
+      const c = capacidadesIniciales(n.id, n.genetica!);
+      for (let d = EDAD_DE_PARTIDA * 365 + n.nacimiento! + 7; d <= 0; d += 7) avanzarSemana(c, n.genetica!, n.nacimiento!, d);
+      const porBloques = historiaDe(n.id, n.genetica!, n.nacimiento!, 0);
+      c.cap.forEach((v, i) => (peor = Math.max(peor, Math.abs(v - porBloques.cap[i]))));
+    }
+    expect(peor).toBeLessThan(0.35);
   });
 
   it('la historia de todos los niños se calcula en menos de 2 segundos', () => {
