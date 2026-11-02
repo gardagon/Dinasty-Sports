@@ -42,6 +42,10 @@ Al revisar por qué el personaje (del montón) nunca entraba en el equipo de fú
 ---
 
 
+- **Decidido después (02/11):** los niños empiezan un deporte desde los 6 los muy interesados o con padres deportistas, entre los 8 y los 10 la mayoría y algunos más tarde. El personaje llega **sin años de práctica en un club**, pero con el conocimiento de casa y **un pequeño plus de haber jugado un poco**, más en sus deportes favoritos. Para que sea la misma regla para todos, ese plus es un **juego informal** (como «practicar con los amigos», unas 4, 8 o 12 semanas según el interés de 1 a 3) que también tienen los niños antes de entrar en un club (`MISMAS_REGLAS.md` §5, §7 y §9).
+---
+
+
 ## 01/11/2026 — Motor de los partidos: respuestas del usuario
 
 Respuestas a las preguntas de `MOTOR_PARTIDOS.md` (§0 de ese documento):
