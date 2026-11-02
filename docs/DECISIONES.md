@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 02/11/2026 — Visión del juego: datos de verdad para todos
+
+El usuario: «tengo la sensación de que estás recortando cosas para que no sea un juego pesado, pero no es lo que busco: es un RPG en el que los datos importan y tiene que verse una progresión en el mundo». La referencia es **Football Manager** desde un jugador (que después puede ser mánager, presidente u ojeador), con la parte de vida del RPG, perks al estilo de **Crusader Kings III** y cosas concretas del fútbol al estilo de **Hattrick**. Escrito en `VISION.md`.
+
+- **Principios:** datos de verdad para todos (capacidades, habilidades, conocimiento, experiencia, estado e historial); las mismas reglas para el personaje y los PNJ; el mundo avanza aunque el personaje no mire; se guarda todo lo que el mundo necesita (si pesa, se guarda mejor, no menos); calcular por semanas no es recortar; el personaje empieza del montón y sin tratos especiales.
+- **Recortes míos que se quitan:** jugadores genéricos calculados desde la semilla (pasan a guardarse con sus datos); la experiencia en un puesto de los demás estimada por sus años (se guarda partido a partido); simular solo la liga del personaje (se juegan todas, con las estadísticas de cada jugador); los estados (condición física, moral, forma, salud) solo para el personaje (los PNJ también, por semana y en cada partido); las lesiones solo para el personaje al principio (para todos). Corregidos `MISMAS_REGLAS.md`, `MOTOR_PARTIDOS.md` y `ANALISIS_FUTBOL.md`.
+- **Los clubes de fuera fichan a los que destacan** (propuesta del usuario, en lugar de montar equipos A y B en el colegio): los clubes reclutan primero, por lo que vale cada niño, y cada verano fichan a los que destacan; no se van todos (según su ambición, sus padres y las plazas). Así el equipo del colegio queda al alcance de un personaje del montón sin trato especial. Va en la P2, con clubes de fútbol de fuera aunque el personaje no pueda aún pedir su prueba (F5). Tras la P2 se mide con semillas.
+
 ## 02/11/2026 — Sin plaza reservada para el personaje
 
 Corrección del usuario: de las propuestas para que el personaje pudiera entrar en el equipo de fútbol del colegio, solo eligió la A (las mismas reglas para todos). La B, guardarle un hueco en el equipo del colegio en dificultad normal, la propuso el desarrollador; yo la apoyé y la escribí en `MISMAS_REGLAS.md` como decidida sin que el usuario la hubiera aprobado, y el desarrollador la añadió al PR #60. **Se quita.** Motivo del usuario: «¿Qué tiene de realista que le cojan y que sea el peor del equipo? Así difícilmente jugará». El personaje entra como cualquier niño (hay hueco, o es mejor que alguno de los que hay). Tras la P2 se mide con semillas cuánto le cuesta entrar; si un personaje del montón casi nunca entra, se revisa con una regla para todos, no con un trato especial al personaje.
