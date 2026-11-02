@@ -13,11 +13,11 @@ const SEMILLAS = Array.from({ length: 200 }, (_, i) => i + 1);
 const nacimientoDe = (i: IdentidadState) => Math.round(-(i.edadInicial + i.fraccionInicial) * 365);
 
 describe('el personaje nace el mismo año natural que su clase', () => {
-  it('empieza con entre 7,3 y 8,7 años, nunca más', () => {
+  it('empieza con entre 7,68 y 8,7 años, nunca más', () => {
     for (const seed of SEMILLAS) {
       const i = Game.create([personaje], { seed }).moduleState<IdentidadState>('gen') as IdentidadState;
       const edad = i.edadInicial + i.fraccionInicial;
-      expect(edad, `semilla ${seed}`).toBeGreaterThan(7.3);
+      expect(edad, `semilla ${seed}`).toBeGreaterThan(7.68);
       expect(edad, `semilla ${seed}`).toBeLessThan(8.7);
     }
   });

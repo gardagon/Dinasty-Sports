@@ -48,7 +48,7 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /** `zAltura`: genética de la estatura del personaje (puntuación típica del hijo de `ctx.herencia('estatura')`). */
 export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, perfil: PerfilDelPersonaje, alturaExtraCm = 0): IdentidadState {
-  // Nace como los PNJ: un día al azar del año natural de su clase (los que cumplen EDAD_INICIAL años ese año). Así empieza con entre 7 y 9 años según el día en que cae el
+  // Nace como los PNJ: un día al azar del año natural de su clase (los que cumplen EDAD_INICIAL años ese año). Así empieza con entre 7,7 y 8,7 años según el día en que cae el
   // inicio del curso, nunca un año mayor que sus compañeros (antes tenía entre 8,0 y 9,0, y en 3 de cada 10 partidas nacía un año antes que su clase).
   const nacimiento = primerDiaDelAnio(anioNatural(0) - EDAD_INICIAL) + rng.int(0, 364);
   const anios = -nacimiento / 365;
