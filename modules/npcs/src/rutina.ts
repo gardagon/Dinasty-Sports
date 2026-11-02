@@ -35,8 +35,8 @@ import type { Genetica } from './deportistas';
 export interface HabilidadesDe {
   v: number[];
   pico: number[];
-  /** Último día (de la partida) que entrenó el deporte: para la caída. */
-  ult: number;
+  /** Último día (de la partida) que entrenó cada una (en el orden de `v`): para la caída, como el `lastTrained` por stat del motor. */
+  ult: number[];
 }
 
 /** Lo que `npcs` necesita saber de un niño para entrenarlo (un `Npc` lo cumple). */
@@ -123,7 +123,7 @@ function fijosDe(id: string, g: Genetica, deporte: string, r: RutinaDeDeporte): 
 /** Las habilidades de un niño que empieza un deporte: dentro del rango inicial de cada una y el conocimiento en 0 (lo que hace el motor con el personaje). */
 export function habilidadesIniciales(id: string, g: Genetica, deporte: string, r: RutinaDeDeporte, dia: number): HabilidadesDe {
   const v = fijosDe(id, g, deporte, r).inicial.map((x, i) => redondea(clamp(x, r.stats[i].min ?? 0, r.stats[i].max ?? 100)));
-  return { v, pico: [...v], ult: dia };
+  return { v, pico: [...v], ult: v.map(() => dia) };
 }
 
 /** Todo lo que se mueve al entrenar a un niño un día: su edad, sus capacidades y las habilidades del deporte. Se trabaja sobre copias. */
@@ -160,7 +160,7 @@ export function prepararTrabajo(n: Entrenable, capBase: readonly number[], depor
     cap: [...n.cap],
     capPico: [...n.pico],
     capBase,
-    hab: { v: [...hab.v], pico: [...hab.pico], ult: hab.ult },
+    hab: { v: [...hab.v], pico: [...hab.pico], ult: [...hab.ult] },
     nacimiento: n.nacimiento,
     dia,
     capUlt: [...capUlt],
@@ -233,7 +233,7 @@ function entrenarStat(t: Trabajo, id: string, amount: number, eficiencia: number
   if (ci === undefined) {
     t.hab.v[hi] = Math.min(max, valor + gain);
     if (t.hab.v[hi] > t.hab.pico[hi]) t.hab.pico[hi] = t.hab.v[hi];
-    t.hab.ult = t.dia;
+    t.hab.ult[hi] = t.dia;
   } else {
     t.cap[ci] = Math.min(max, valor + gain);
     if (t.cap[ci] > t.capPico[ci]) t.capPico[ci] = t.cap[ci];
@@ -278,22 +278,7 @@ export function acumular(listas: readonly (readonly Entrenamiento[])[]): Entrena
   return [...suma].map(([stat, s]) => ({ stat, amount: s.total / s.veces, veces: s.veces }));
 }
 
-/**
- * La caída de la semana de las habilidades del deporte: las que no se han entrenado en un tiempo pierden hacia su suelo (el mayor entre su valor inicial y su máximo
- * por el `floorRatio`), como el motor cada día. Se aplica `dias` días seguidos, contados desde la última vez que se entrenó.
- */
-export function caidaDeHabilidades(t: Trabajo, dias: number): void {
-  for (let i = 0; i < t.rutina.stats.length; i++) {
-    const def = t.rutina.stats[i];
-    if (!def.decay) continue;
-    let v = t.hab.v[i];
-    const base = t.fijos.inicial[i];
-    for (let d = 0; d < dias; d++) v = computeDecay(def, v, t.dia - t.hab.ult - dias + d + 1, t.hab.pico[i], base);
-    t.hab.v[i] = v;
-  }
-}
-
 /** Las listas de capacidades y habilidades de un trabajo, redondeadas para guardarlas. */
-export const aGuardarHabilidades = (h: HabilidadesDe): HabilidadesDe => ({ v: h.v.map(redondea), pico: h.pico.map(redondea), ult: h.ult });
+export const aGuardarHabilidades = (h: HabilidadesDe): HabilidadesDe => ({ v: h.v.map(redondea), pico: h.pico.map(redondea), ult: [...h.ult] });
 
 export { GRUPO_DE_CAPACIDAD, caidaDeCapacidad };

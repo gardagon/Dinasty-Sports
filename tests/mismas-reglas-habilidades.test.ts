@@ -6,6 +6,7 @@ import { atletismo, rendimiento } from '@ds/mod-atletismo';
 import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
 import { personaje, type IdentidadState } from '@ds/mod-personaje';
 import type { NpcsState } from '@ds/mod-npcs';
+import type { RutinaDeDeporte } from '@ds/contracts';
 import { aGuardarHabilidades, fijarTalentosDeCapacidades, fijosDeNino, lectorDe, practicar, prepararTrabajo, type HabilidadesDe } from '../modules/npcs/src/rutina';
 import { historiaDeportiva, listaDeSesion, semanaDeNino, type NinoDeportista } from '../modules/npcs/src/semana';
 import type { Genetica } from '../modules/npcs/src/deportistas';
@@ -33,7 +34,7 @@ const entreno = defineModule<{ rendimiento: number }>({
 const nueva = (seed: number) => Game.create([personaje, atletismo, entreno], { seed });
 
 /** Un niño con la genética y los valores del personaje, para entrenarlo con la rutina de los PNJ y compararlo con él. */
-function comoElPersonaje(g: Game) {
+function comoElPersonaje(g: Game, deporte = 'atletismo', rutina: RutinaDeDeporte = RUTINA) {
   const ident = g.moduleState<IdentidadState>('gen') as IdentidadState;
   const genetica = {
     topes: Object.fromEntries(CAPACIDADES_GENETICAS.map((c) => [c, g.hiddenPotential(c)!])),
@@ -43,14 +44,16 @@ function comoElPersonaje(g: Game) {
     padres: { padre: 'ninguna', madre: 'ninguna' },
   } as unknown as Genetica;
   const caps = CAPACIDADES_GENETICAS.map((c) => g.stat(c));
-  const hab: HabilidadesDe = { v: HABILIDADES.map((id) => g.stat(id)), pico: HABILIDADES.map((id) => g.stat(id)), ult: 0 };
+  const ids = rutina.stats.map((d) => d.id);
+  const hab: HabilidadesDe = { v: ids.map((id) => g.stat(id)), pico: ids.map((id) => g.stat(id)), ult: ids.map(() => 0) };
   const nacimiento = -(ident.edadInicial + ident.fraccionInicial) * 365;
-  const t = prepararTrabajo({ id: 'nino_x', genetica, nacimiento, cap: caps, pico: caps }, caps, 'atletismo', RUTINA, hab, CAPACIDADES_GENETICAS.map(() => -1e9), 0);
+  const t = prepararTrabajo({ id: 'nino_x', genetica, nacimiento, cap: caps, pico: caps }, caps, deporte, rutina, hab, CAPACIDADES_GENETICAS.map(() => -1e9), 0);
   // Lo que el motor sortea para el personaje (su talento y su tope en cada habilidad), igual para el niño; y el vigor que el motor tiene guardado el día 0.
-  const fijos = fijosDeNino('nino_x', genetica, 'atletismo', RUTINA);
-  RUTINA.stats.forEach((d, i) => {
+  const fijos = fijosDeNino('nino_x', genetica, deporte, rutina);
+  rutina.stats.forEach((d, i) => {
     fijos.talento[i] = g.talent(d.id);
     fijos.tope[i] = g.hiddenPotential(d.id);
+    fijos.inicial[i] = g.stat(d.id);
   });
   fijarTalentosDeCapacidades('nino_x', CAPACIDADES_GENETICAS.map((c) => g.talent(c)));
   t.edad = ident.edadInicial + ident.fraccionInicial;

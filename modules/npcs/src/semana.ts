@@ -15,7 +15,6 @@ import { EDAD_DE_PARTIDA, capacidadesIniciales, edadDeEmpezar, historiaDe, valor
 import { ritmoEn, type Genetica } from './deportistas';
 import {
   acumular,
-  caidaDeHabilidades,
   enElDia,
   habilidadesIniciales,
   lectorDe,
@@ -106,35 +105,40 @@ export function pasoDeSemanas(
   semanas: number,
   opciones: { porSemana: readonly (readonly number[])[]; informales: number; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] },
 ): void {
-  const ultAntes = t.hab.ult;
+  const ultAntes = [...t.hab.ult];
   const capUltAntes = [...t.capUlt];
   // El entrenamiento de todo el bloque junto. Lo que permite la edad se mide a mitad del periodo.
   enElDia(t, fin - DIAS_DESDE_LA_SESION, fin - 3.5 * semanas);
   const lector = lectorDe(t);
   if (opciones.informales > 0) practicar(t, acumular(Array.from({ length: opciones.informales }, () => t.rutina.informal)), 1);
   const sesiones: (readonly Entrenamiento[])[] = [];
+  // Qué stats se entrenaron cada semana del bloque: solo esas marcan su «último día entrenado» (con ejercicios distintos cada sesión, las demás siguen sin entrenarse y caen).
+  const entrenadasEnLaSemana: Set<string>[] = [];
   opciones.porSemana.forEach((huecos, w) => {
-    for (const h of huecos) sesiones.push(opciones.lista(semanaQueAcaba(fin - 7 * (semanas - 1 - w)), h, lector));
+    const ese = new Set<string>(opciones.informales > 0 && w < opciones.informales ? t.rutina.informal.map((e) => e.stat) : []);
+    for (const h of huecos) {
+      const l = opciones.lista(semanaQueAcaba(fin - 7 * (semanas - 1 - w)), h, lector);
+      sesiones.push(l);
+      for (const e of l) ese.add(e.stat);
+    }
+    entrenadasEnLaSemana.push(ese);
   });
   if (sesiones.length) sesionDeClub(t, semanas === 1 ? sesiones.flat() : acumular(sesiones));
-  const entrenadas = new Set<string>([...sesiones.flat().map((e) => e.stat), ...(opciones.informales > 0 ? t.rutina.informal.map((e) => e.stat) : [])]);
   // Cuándo entrenó por última vez cada cosa, semana a semana (empieza como estaba antes del bloque).
-  let ultHab = ultAntes;
+  const ultHab = [...ultAntes];
   const ultCap = [...capUltAntes];
   const base = t.capBase;
   for (let w = 0; w < semanas; w++) {
     const finSemana = fin - 7 * (semanas - 1 - w);
-    const entrenoEstaSemana = opciones.porSemana[w].length > 0 || (opciones.informales > 0 && w < opciones.informales);
-    if (entrenoEstaSemana) {
-      ultHab = finSemana - DIAS_DESDE_LA_SESION;
-      for (let i = 0; i < CAPACIDADES_GENETICAS.length; i++) if (entrenadas.has(CAPACIDADES_GENETICAS[i])) ultCap[i] = finSemana - DIAS_DESDE_LA_SESION;
-    }
+    const ese = entrenadasEnLaSemana[w];
+    for (let i = 0; i < t.rutina.stats.length; i++) if (ese.has(t.rutina.stats[i].id)) ultHab[i] = finSemana - DIAS_DESDE_LA_SESION;
+    for (let i = 0; i < CAPACIDADES_GENETICAS.length; i++) if (ese.has(CAPACIDADES_GENETICAS[i])) ultCap[i] = finSemana - DIAS_DESDE_LA_SESION;
     enElDia(t, finSemana, finSemana - 3.5);
     // Las habilidades que llevan días sin entrenarse pierden hacia su suelo (el máximo entre su valor inicial y su máximo alcanzado por el `floorRatio`).
     for (let i = 0; i < t.rutina.stats.length; i++) {
       const def = t.rutina.stats[i];
       if (!def.decay) continue;
-      const dias = clamp(finSemana - ultHab - def.decay.graceDays, 0, 7);
+      const dias = clamp(finSemana - ultHab[i] - def.decay.graceDays, 0, 7);
       if (dias <= 0) continue;
       const suelo = Math.max(t.fijos.inicial[i], t.hab.pico[i] * def.decay.floorRatio);
       if (t.hab.v[i] > suelo) t.hab.v[i] = suelo + (t.hab.v[i] - suelo) * (1 - def.decay.ratePerDay) ** dias;
@@ -149,7 +153,7 @@ export function pasoDeSemanas(
       if (v > t.capPico[i]) t.capPico[i] = v;
     }
   }
-  t.hab.ult = Math.max(ultHab, ultAntes);
+  for (let i = 0; i < ultHab.length; i++) t.hab.ult[i] = Math.max(ultHab[i], ultAntes[i]);
   for (let i = 0; i < ultCap.length; i++) t.capUlt[i] = ultCap[i];
 }
 
@@ -173,7 +177,7 @@ function resultado(t: Trabajo, rend: (p: LectorDePersona) => number): Resultado 
     cap: t.cap.map(redondea),
     pico: t.capPico.map(redondea),
     capUlt: t.capUlt,
-    hab: { v: t.hab.v.map(redondea), pico: t.hab.pico.map(redondea), ult: t.hab.ult },
+    hab: { v: t.hab.v.map(redondea), pico: t.hab.pico.map(redondea), ult: [...t.hab.ult] },
     nivel: rend(lectorDe(t)),
   };
 }
