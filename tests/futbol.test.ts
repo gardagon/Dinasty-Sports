@@ -7,23 +7,11 @@ import * as contracts from '@ds/contracts';
 import * as kit from '@ds/kit-deporte';
 import { cargarModulo, generarClaves } from '@ds/paquetes';
 import { empaquetarDeporte } from '../tools/empaquetar';
-import { edadNpc, sinDeporte, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
 
 /** El fútbol (F1) en una partida completa: con su gente, su club, sus lugares y la pestaña. Va junto al atletismo, que no cambia. */
 
-/**
- * Una partida con atletismo y fútbol. El equipo de fútbol de su categoría empieza completo (18 interesados) y, si el personaje no es mejor que alguno, no entra:
- * aquí se deja un hueco para centrarse en lo que prueban estos tests (los equipos completos se prueban en `futbol-plantillas.test.ts`).
- */
-const nueva = (seed = 31) => {
-  const g = nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
-  const s = g.moduleState<NpcsState>('npcs') as { npcs: Npc[]; poblaciones?: PoblacionGuardada[] };
-  const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
-  const uno = s.npcs.find((n) => n.deporte === 'futbol' && n.genetica && edadNpc(n, 0)! <= 9)!;
-  s.npcs = s.npcs.map((n) => (n.id === uno.id ? sinDeporte(n, pob, false) : n));
-  return g;
-};
+const nueva = (seed = 31) => nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
 
 describe('fútbol en una partida completa', () => {
   it('aparece en el catálogo de la partida como deporte de equipo', () => {

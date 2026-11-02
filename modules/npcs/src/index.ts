@@ -576,6 +576,9 @@ const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: numb
 
 // ---------------------------------------------------------------------------------------------------- plaza del personaje en un equipo
 
+/** Lo que hace «normal» a la dificultad, mientras no haya creación de personaje: el equipo del colegio del personaje (`colegio: 'propio'`) siempre tiene sitio para él. */
+const DIFICULTAD_NORMAL = { equipoDelColegioAbierto: 'propio' } as const;
+
 /** La categoría del deporte a una edad de competición, o `undefined` si el deporte no guardó sus categorías. */
 const categoriaDe = (pob: PoblacionGuardada, edad: number): CategoriaDef | undefined => (pob.categorias?.length ? categoriaDeEdad(pob.categorias, edad) : undefined);
 
@@ -592,6 +595,8 @@ export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGu
   const equipo = pob?.equipos.find((e) => e.club === club);
   const cat = pob && equipo?.plantillaPorCategoria ? categoriaDe(pob, edad) : undefined;
   if (!pob || !equipo?.plantillaPorCategoria || !cat) return { estado: 'libre' };
+  // Dificultad normal (fija por ahora): el equipo del colegio del personaje no rechaza a un alumno que quiere jugar. Ser titular depende de la convocatoria.
+  if (equipo.colegio === DIFICULTAD_NORMAL.equipoDelColegioAbierto) return { estado: 'libre' };
   const jugadores = jugadoresDelEquipo(npcs, pob, club, cat, dia);
   if (jugadores.length < equipo.plantillaPorCategoria.max) return { estado: 'libre' };
   const peor = jugadores.reduce((m, n) => ((n.levels[deporte] ?? 0) < (m.levels[deporte] ?? 0) || ((n.levels[deporte] ?? 0) === (m.levels[deporte] ?? 0) && n.id > m.id) ? n : m));
@@ -708,6 +713,19 @@ function categoriasDelEquipo(pob: PoblacionGuardada, e: EquipoGuardado): { id: s
     .filter((c) => c.edades.length > 0);
 }
 
+/**
+ * El hueco que el equipo del colegio del personaje guarda para él en su categoría (a la edad que tenga ese curso), sea ya miembro o no: así, al entrar, el
+ * equipo no pasa de su máximo. Es la otra mitad de «el equipo del colegio no rechaza a un alumno que quiere jugar» (`plazaEnElEquipo`).
+ */
+function huecosDelColegio(pobs: readonly PoblacionGuardada[], edad: number): Map<string, number> {
+  const reservas = new Map<string, number>();
+  for (const pob of pobs) {
+    const cat = categoriaDe(pob, edad);
+    for (const e of pob.equipos) if (cat && e.plantillaPorCategoria && e.colegio === DIFICULTAD_NORMAL.equipoDelColegioAbierto && categoriasDelEquipo(pob, e).some((c) => c.id === cat.id)) reservas.set(claveDeEquipo(e.club, cat.id), 1);
+  }
+  return reservas;
+}
+
 /** Clave de un equipo por categoría (club y categoría) en el mapa de reservas del personaje. */
 export const claveDeEquipo = (club: string, categoria: string): string => `${club}|${categoria}`;
 
@@ -816,7 +834,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): Npc
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
   const sin = [...base, ...colegio, ...bibliotecarios(ctx.rng, usados)];
   const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng)], sin);
-  return reclutarEnTodos(conEntrenadores, pobs, 0);
+  return reclutarEnTodos(conEntrenadores, pobs, 0, huecosDelColegio(pobs, EDAD_DE_INICIO));
 }
 
 /** El personal de la biblioteca: uno en el turno de mañana (y los sábados) y otro en el de tarde. Van al final para no cambiar el azar de lo demás. */
@@ -1193,9 +1211,9 @@ export const npcs = defineModule<NpcsState>({
       if (proximo.schoolWeek !== 0) return;
       const pobs = poblacionesGuardadas(ctx);
       // Los equipos por categoría dejan un hueco a la plaza que ocupa el personaje (el curso que viene tendrá un año más).
-      const reservas = new Map<string, number>();
-      const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
       const edadProxima = (ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8) + 1;
+      const reservas = huecosDelColegio(pobs, edadProxima);
+      const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
       for (const pob of pobs) {
         const club = clubes?.membership(pob.deporte);
         const cat = club && pob.equipos.some((e) => e.club === club.id && e.plantillaPorCategoria) ? categoriaDe(pob, edadProxima) : undefined;
