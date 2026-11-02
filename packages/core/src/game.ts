@@ -19,7 +19,8 @@ import {
   CALIDAD_DE_PADRES_DEL_JUGADOR,
   HERENCIA,
   heredarTope,
-  nivelInicialHeredado,
+  factorDeHerencia,
+  valorInicialDeCapacidad,
   nombreSesgo,
   perksDePadre,
   origenDePadre,
@@ -209,16 +210,15 @@ export class Game {
         lin[lado].calidad = calidad;
       }
       const reparto = repartirHerencia(ids, rng);
-      const factor = (lin.factor ??= rng.range(HERENCIA.nivelInicial.factorMin, HERENCIA.nivelInicial.factorMax));
+      const factor = (lin.factor ??= factorDeHerencia(rng));
       for (const { def, min, max } of directas) {
         const lado = reparto[def.id];
         lin.origen[def.id] = lado;
         const tope = heredarTope(lin[lado].topes[def.id], rng);
         state.potential[def.id] = tope;
-        // El nivel inicial también sale del progenitor del que hereda, dentro del rango inicial de la característica.
+        // El nivel inicial sale de su propio tope y de su factor de herencia, dentro del rango inicial de la característica: la misma regla que sigue cualquier niño (`valorInicialDeCapacidad`).
         if (typeof def.initial !== 'number') {
-          const n = nivelInicialHeredado(lin[lado].topes[def.id], factor, rng);
-          const v = Math.min(tope, max, Math.max(min, def.initial.min + (def.initial.max - def.initial.min) * n));
+          const v = valorInicialDeCapacidad(def.initial, tope, factor, rng, { min, max });
           state.stats[def.id] = state.peaks[def.id] = state.baseline[def.id] = v;
         }
       }

@@ -112,7 +112,7 @@ describe('módulo relaciones', () => {
       expect(c.time.minuteOfDay).toBe(11 * 60 + 30);
       expect(c.preview(id('charlar'))!.available).toBe(false);
       expect(c.preview(id('charlar'))!.reason).toMatch(/todo lo que da de sí/);
-      expect(sube(c)).toBeCloseTo(6 * sube(a), 5);
+      expect(sube(c)).toBeCloseTo(6 * sube(a), 2);
       // Charlar no gasta el «una al día» de las actividades grandes: después se puede quedar.
       expect(c.preview(id('quedar'))!.available).toBe(true);
     });

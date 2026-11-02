@@ -24,6 +24,35 @@ function comoElPersonaje(g: Game) {
   return { genetica, c, nacimiento };
 }
 
+describe('de dónde parten el personaje y un niño con su genética', () => {
+  // Un niño y el personaje con los mismos topes empiezan igual en media: el valor inicial sale de la misma función (`valorInicialDeCapacidad`), con su tope propio y su
+  // factor de herencia. Antes el niño usaba la ventaja de crianza (×0,95–1,10) como factor y el personaje un factor de 0,7–0,9 sobre el tope de su progenitor:
+  // con un tope de 62, el niño empezaba en torno a 14,9 y el personaje en torno a 12,1 (+23 %). Este test fallaba con esa diferencia.
+  const SEMILLAS = Array.from({ length: 60 }, (_, i) => i + 1);
+
+  it('en media empiezan en el mismo sitio (diferencia < 0,4 puntos), en cada una de las 18 capacidades y en conjunto', () => {
+    const dePersonaje: number[][] = [];
+    const deNino: number[][] = [];
+    for (const seed of SEMILLAS) {
+      const g = Game.create([personaje], { seed });
+      dePersonaje.push(CAPACIDADES_GENETICAS.map((c) => g.stat(c)));
+      // El niño, por el camino de los PNJ, con la genética del personaje (sus topes) y un identificador propio.
+      const genetica = { topes: Object.fromEntries(CAPACIDADES_GENETICAS.map((c) => [c, g.hiddenPotential(c)!])), desfase: 0, ventaja: 1.1 } as unknown as Genetica;
+      deNino.push(capacidadesIniciales(`nino_${seed}`, genetica).cap);
+    }
+    const media = (m: number[][], i?: number) => m.reduce((t, f) => t + (i === undefined ? f.reduce((a, b) => a + b, 0) / f.length : f[i]), 0) / m.length;
+    expect(Math.abs(media(dePersonaje) - media(deNino))).toBeLessThan(0.4);
+    CAPACIDADES_GENETICAS.forEach((c, i) => expect(Math.abs(media(dePersonaje, i) - media(deNino, i)), c).toBeLessThan(1.5));
+  });
+
+  it('la ventaja de crianza no cambia las capacidades de partida de un niño (a ninguno)', () => {
+    const g = Game.create([personaje], { seed: 5 });
+    const topes = Object.fromEntries(CAPACIDADES_GENETICAS.map((c) => [c, g.hiddenPotential(c)!]));
+    const con = (ventaja: number) => capacidadesIniciales('nino_7', { topes, desfase: 0, ventaja } as unknown as Genetica).cap;
+    expect(con(0.95)).toEqual(con(1.1));
+  });
+});
+
 describe('el personaje y un niño con su genética, sin entrenar', () => {
   // Medido con 3 semillas: la diferencia máxima es de 0,1 puntos tras dos años, con cambios de 1 a 2 puntos de media.
   for (const seed of [3, 11, 27]) {

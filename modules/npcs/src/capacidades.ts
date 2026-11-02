@@ -6,7 +6,8 @@ import {
   INICIAL_DE_CAPACIDAD,
   caidaDeCapacidad,
   evolucionSemanal,
-  nivelInicialHeredado,
+  factorDeHerencia,
+  valorInicialDeCapacidad,
   rngEstable,
   vigoresPorEdad,
   type Practica,
@@ -54,10 +55,10 @@ export function valoresIniciales(id: string, g: Genetica): readonly number[] {
 
 /** Las capacidades de un niño a los 8 años, como las del personaje: dentro del rango inicial según su tope y la ventaja de su crianza. */
 export function capacidadesIniciales(id: string, g: Genetica): CapacidadesDe {
+  const factor = factorDeHerencia(rngEstable('factor-de-herencia', id));
   const cap = CAPACIDADES_GENETICAS.map((c) => {
-    const tope = g.topes[c];
-    const n = nivelInicialHeredado(tope, g.ventaja, rngEstable('capacidad-inicial', id, c));
-    return redondea(Math.min(tope, Math.max(0, INICIAL_DE_CAPACIDAD.min + (INICIAL_DE_CAPACIDAD.max - INICIAL_DE_CAPACIDAD.min) * n)));
+    // La misma regla que el personaje (`valorInicialDeCapacidad`): su tope propio, su factor de herencia y una variación. La ventaja de crianza no entra (es del nivel deportivo).
+    return redondea(valorInicialDeCapacidad(INICIAL_DE_CAPACIDAD, g.topes[c], factor, rngEstable('capacidad-inicial', id, c)));
   });
   return { cap, pico: [...cap], base: [...cap] };
 }
