@@ -60,6 +60,38 @@ describe('fútbol en una partida completa', () => {
   });
 });
 
+describe('sobrecarga entre deportes', () => {
+  it('las sesiones de entrenamiento de todos los deportes cuentan juntas: la tercera del día sufre sobrecarga sea del deporte que sea', () => {
+    const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 2, 5, 8); // sábado por la mañana, los campos abiertos
+    const sobrecarga = (id: string) => g.preview(id)!.modifiers.some((m) => m.id.endsWith('.sobrecarga'));
+    expect(sobrecarga('atletismo.tecnica')).toBe(false);
+    expect(hacer(g, 'atletismo.tecnica').ok).toBe(true);
+    expect(sobrecarga('futbol.balon')).toBe(false);
+    expect(hacer(g, 'futbol.balon').ok).toBe(true);
+    // Dos sesiones (una de cada deporte): la siguiente, de cualquiera de los dos, ya sufre sobrecarga.
+    expect(sobrecarga('futbol.tiro')).toBe(true);
+    expect(sobrecarga('atletismo.series')).toBe(true);
+  });
+
+  it('con un solo deporte no cambia: cada deporte cuenta como siempre', () => {
+    const g = nuevaPartida({ seed: 31, deportes: ['atletismo'] });
+    advanceToWeek(g, 'gen.descansar', 2, 5, 8);
+    hacer(g, 'atletismo.tecnica');
+    expect(g.preview('atletismo.tecnica')!.modifiers.some((m) => m.id === 'atletismo.sobrecarga')).toBe(false);
+    hacer(g, 'atletismo.tecnica');
+    expect(g.preview('atletismo.tecnica')!.modifiers.some((m) => m.id === 'atletismo.sobrecarga')).toBe(true);
+  });
+
+  it('el gimnasio (que también lleva la etiqueta entrenamiento) no cuenta: solo los deportes', () => {
+    const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 2, 5, 10);
+    for (let i = 0; i < 3; i++) expect(hacer(g, 'gen.gimnasio').ok).toBe(true);
+    expect(g.moduleState<{ sesionesHoy: { n: number } }>('futbol').sesionesHoy.n).toBe(0);
+    expect(g.preview('futbol.balon')!.modifiers.some((m) => m.id === 'futbol.sobrecarga')).toBe(false);
+  });
+});
+
 describe('fútbol empaquetado', () => {
   it('se compila aparte, sin copia de contracts ni del kit, y el módulo cargado da la misma partida que el integrado', async () => {
     const claves = await generarClaves();

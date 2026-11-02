@@ -68,8 +68,8 @@ export const DATOS_FUTBOL: DatosDeDeporte = {
     espana: {
       categorias: CATEGORIAS_ESPANA,
       // Con el calendario de España: la liga empieza en la semana 5 del curso (cuatro semanas de pretemporada) y acaba con las clases. Una liga a doble vuelta
-      // de 6 o 7 equipos tiene 10 o 14 jornadas. No hay fases finales: `semifinalAntesDelFinal` y `finalAntesDelFinal` solo marcan las últimas jornadas.
-      temporada: { semanasDePretemporada: 4, semifinalAntesDelFinal: 2, finalAntesDelFinal: 1, liga: { vueltas: 2, equiposPorCategoria: { min: 6, max: 7 } } },
+      // de 6 o 7 equipos tiene 10 o 14 jornadas. Sin semifinales ni final: una liga se juega a jornadas.
+      temporada: { semanasDePretemporada: 4, liga: { vueltas: 2, equiposPorCategoria: { min: 6, max: 7 } } },
       competiciones: {
         federacion: 'Real Federación Española de Fútbol',
         campeonato: 'campeonato de {pais}',

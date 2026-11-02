@@ -154,7 +154,8 @@ const habilidad = (key: string, name: string, apoyos: Apoyo[], description: stri
  * La temporada, en semanas del curso (0 = la primera) y con el calendario del país: la pretemporada (se entrena pero todavía no hay carreras) y las
  * semifinales y la final del campeonato (sábados consecutivos). Salen de los datos del deporte (`datos.ts`), que las dan relativas al final de las clases.
  */
-const semanas = (ctx: ReadContext) => semanasDeTemporada(ctx.pais.calendario, datosDeDeporte(ctx, DEPORTE).temporada);
+// El atletismo no tiene liga, así que sus datos siempre traen las fases finales (lo exige la validación).
+const semanas = (ctx: ReadContext) => semanasDeTemporada(ctx.pais.calendario, datosDeDeporte(ctx, DEPORTE).temporada) as Required<ReturnType<typeof semanasDeTemporada>>;
 /** El campeonato nacional del país de la partida («campeonato de España»). */
 const campeonato = (ctx: ReadContext) => textoConPais(datosDeDeporte(ctx, DEPORTE).competiciones.campeonato, ctx);
 

@@ -4,6 +4,7 @@ import {
   SERVICES,
   TAGS,
   conocimientoDeCrianza,
+  fichasDeDeporte,
   inHours,
   type ActionDef,
   type ActionDoneData,
@@ -116,7 +117,10 @@ export function modificadorDeConocimiento(cfg: ConfigDeporte): ModifierDef {
   };
 }
 
-/** Más de `SESIONES_SIN_SOBRECARGA` sesiones de entrenamiento del deporte en el día: rinden menos y cuestan más. */
+/**
+ * Más de `SESIONES_SIN_SOBRECARGA` sesiones de entrenamiento en el día: rinden menos y cuestan más. **Se cuentan las de todos los deportes**
+ * (acciones con la etiqueta `entrenamiento` de cualquier módulo de deporte): el cuerpo es uno solo. Cada deporte lleva la cuenta en su estado.
+ */
 export function modificadorDeSobrecarga(cfg: ConfigDeporte): ModifierDef {
   return {
     id: `${cfg.id}.sobrecarga`,
@@ -134,7 +138,8 @@ export function modificadorDeSobrecarga(cfg: ConfigDeporte): ModifierDef {
 /**
  * Manejadores comunes de un deporte:
  * - el primer día se suma el conocimiento del deporte que le viene de casa (si sus padres lo practicaron, algo sabe; más si llegaron lejos);
- * - cada sesión de entrenamiento cuenta para la sobrecarga, y entrenar con sobrecarga castiga el cuerpo y puede lesionar.
+ * - cada sesión de entrenamiento, **de cualquier deporte**, cuenta para la sobrecarga (cada deporte lleva la misma cuenta en su estado); entrenar con
+ *   sobrecarga castiga el cuerpo y puede lesionar, y lo aplica el deporte al que pertenece la sesión (una sola vez).
  */
 export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHandler> {
   return {
@@ -150,13 +155,16 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
     },
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
       const d = ev.data as ActionDoneData;
-      if (d.module !== cfg.id || !d.tags.includes(TAGS.entrenamiento)) return;
+      if (!d.tags.includes(TAGS.entrenamiento)) return;
+      // Solo cuentan las sesiones de los deportes de la partida (no estudiar ni el gimnasio, que también llevan la etiqueta).
+      if (d.module !== cfg.id && !fichasDeDeporte(ctx).some((f) => f.id === d.module)) return;
       // El día se toma del momento en que empezó la sesión (antes de avanzar el reloj).
       const dia = Math.floor((ctx.time.minute - d.duration) / 1440);
       const prev = estado(ctx).sesionesHoy;
       const n = prev.day === dia ? prev.n + 1 : 1;
       ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, sesionesHoy: { day: dia, n } }));
-      if (n > SESIONES_SIN_SOBRECARGA) {
+      // El castigo lo pone el deporte de la sesión, para que con varios deportes no se cobre dos veces.
+      if (d.module === cfg.id && n > SESIONES_SIN_SOBRECARGA) {
         ctx.addStat(GEN.salud, -4);
         if (ctx.rng.chance(0.15)) {
           ctx.addStat(GEN.salud, -10);

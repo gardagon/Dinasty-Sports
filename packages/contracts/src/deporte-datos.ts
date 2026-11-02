@@ -40,9 +40,12 @@ export interface FichaDeDeporte {
 export interface TemporadaDeDeporte {
   /** Semanas de clase al empezar el curso en que se entrena pero aún no se compite (la primera competición es la siguiente). */
   semanasDePretemporada: number;
-  /** Cuántas semanas antes de la última semana de clase del curso se juegan las semifinales y la final del campeonato (la final, después). */
-  semifinalAntesDelFinal: number;
-  finalAntesDelFinal: number;
+  /**
+   * Cuántas semanas antes de la última semana de clase del curso se juegan las semifinales y la final del campeonato (la final, después). **Obligatorios
+   * salvo que el deporte tenga `liga`** (una liga se juega a jornadas y no tiene fases finales): o vienen los dos o ninguno.
+   */
+  semifinalAntesDelFinal?: number;
+  finalAntesDelFinal?: number;
   /** Si el deporte se juega en liga (equipos que se enfrentan todos contra todos), cómo es. Sin él, no hay liga (atletismo). */
   liga?: FormatoDeLiga;
 }
@@ -198,8 +201,9 @@ export const textoConPais = (texto: string, ctx: Pick<ReadContext, 'pais'>): str
 /** Las semanas del curso (0 = la primera) en que empieza la competición y se juegan las semifinales y la final. */
 export interface SemanasDeTemporada {
   primeraCompeticion: number;
-  semifinal: number;
-  final: number;
+  /** Solo si la temporada tiene fases finales (ver `TemporadaDeDeporte`). */
+  semifinal?: number;
+  final?: number;
 }
 
 const CACHE_DE_SEMANAS = new WeakMap<TemporadaDeDeporte, WeakMap<CalendarioPais, SemanasDeTemporada>>();
@@ -213,10 +217,9 @@ export function semanasDeTemporada(cal: CalendarioPais, t: TemporadaDeDeporte): 
   const clase: number[] = [];
   for (let w = 0; w < cal.semanasPorCurso; w++) if (tramoDeSemana(cal, w).periodo === 'clase') clase.push(w);
   const ultima = clase[clase.length - 1];
-  const semanas = {
+  const semanas: SemanasDeTemporada = {
     primeraCompeticion: clase[Math.min(t.semanasDePretemporada, clase.length - 1)],
-    semifinal: ultima - t.semifinalAntesDelFinal,
-    final: ultima - t.finalAntesDelFinal,
+    ...(t.semifinalAntesDelFinal !== undefined && t.finalAntesDelFinal !== undefined ? { semifinal: ultima - t.semifinalAntesDelFinal, final: ultima - t.finalAntesDelFinal } : {}),
   };
   porCalendario.set(cal, semanas);
   return semanas;
@@ -249,12 +252,19 @@ export function validarDatosDeDeporte(x: unknown): string[] {
       }
     }
     const t = d.temporada;
-    if (!esObjeto(t) || !esEntero(t.semanasDePretemporada) || !esEntero(t.semifinalAntesDelFinal) || !esEntero(t.finalAntesDelFinal)) p.push(`${en}: la «temporada» tiene que traer semanasDePretemporada, semifinalAntesDelFinal y finalAntesDelFinal (enteros)`);
-    else if (t.finalAntesDelFinal >= t.semifinalAntesDelFinal) p.push(`${en}: la final tiene que ser después de las semifinales (finalAntesDelFinal menor que semifinalAntesDelFinal)`);
-    else if (t.liga !== undefined) {
-      const l = t.liga;
-      const e = esObjeto(l) ? l.equiposPorCategoria : undefined;
-      if (!esObjeto(l) || ![1, 2].includes(l.vueltas as number) || !esObjeto(e) || !esEntero(e.min) || !esEntero(e.max) || e.min < 2 || e.max < e.min) p.push(`${en}: la «liga» de la temporada tiene que traer vueltas (1 o 2) y equiposPorCategoria (min y max, de al menos 2 equipos)`);
+    if (!esObjeto(t) || !esEntero(t.semanasDePretemporada)) p.push(`${en}: la «temporada» tiene que traer semanasDePretemporada (entero)`);
+    else {
+      const fases = [t.semifinalAntesDelFinal, t.finalAntesDelFinal];
+      if (fases.some((x) => x !== undefined && !esEntero(x))) p.push(`${en}: la «temporada» tiene que traer semifinalAntesDelFinal y finalAntesDelFinal como enteros`);
+      else if (fases.every((x) => x === undefined)) {
+        if (t.liga === undefined) p.push(`${en}: la «temporada» tiene que traer semifinalAntesDelFinal y finalAntesDelFinal (solo una liga puede no tener fases finales)`);
+      } else if (fases.some((x) => x === undefined)) p.push(`${en}: la «temporada» tiene que traer semifinalAntesDelFinal y finalAntesDelFinal los dos o ninguno`);
+      else if ((t.finalAntesDelFinal as number) >= (t.semifinalAntesDelFinal as number)) p.push(`${en}: la final tiene que ser después de las semifinales (finalAntesDelFinal menor que semifinalAntesDelFinal)`);
+      if (t.liga !== undefined) {
+        const l = t.liga;
+        const e = esObjeto(l) ? l.equiposPorCategoria : undefined;
+        if (!esObjeto(l) || ![1, 2].includes(l.vueltas as number) || !esObjeto(e) || !esEntero(e.min) || !esEntero(e.max) || e.min < 2 || e.max < e.min) p.push(`${en}: la «liga» de la temporada tiene que traer vueltas (1 o 2) y equiposPorCategoria (min y max, de al menos 2 equipos)`);
+      }
     }
     const c = d.competiciones;
     if (!esObjeto(c) || ['federacion', 'campeonato'].some((k) => typeof c[k] !== 'string' || !c[k])) p.push(`${en}: las «competiciones» tienen que traer federacion y campeonato`);
