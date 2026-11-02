@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, type NpcDirectory, type RelationsService } from '@ds/contracts';
+import { SERVICES, SHARED_EVENTS, type CompetitionResultData, type GameModule, type NpcDirectory, type RelationsService } from '@ds/contracts';
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { npcs, type NpcsState } from '@ds/mod-npcs';
@@ -320,5 +320,65 @@ describe('texto de jugar con otros niños', () => {
     expect(conQuienSeJuega([niño('Ana Gil', 'f', true), niño('Marta Rey', 'f', true), niño('Víctor Soler', 'm', true)])).toBe('Ana, Marta y Víctor');
     expect(conQuienSeJuega([niño('Ana Gil', 'f', true), niño('Biel Ibáñez', 'm', false), niño('Lía Mas', 'f', false)])).toBe('Ana, un niño y una niña que no conocías');
     expect(conQuienSeJuega([niño('Biel Ibáñez', 'm', false), niño('Ot Puig', 'm', false), niño('Lía Mas', 'f', false)])).toBe('dos niños y una niña que no conocías');
+  });
+});
+
+describe('competicion.resultado', () => {
+  /** Un rival (de los que reclutan los deportes) de esta semilla. */
+  const RIVAL = Game.create([personaje, npcs, atletismo, relaciones], { seed: 9 }).service<NpcDirectory>(SERVICES.npcs)!.list({ role: 'rival' })[0].id;
+  /** Un módulo de prueba que emite el resultado que se le pasa en una acción. */
+  const conResultado = (datos: CompetitionResultData) => {
+    const emisor: GameModule = {
+      id: 'partido',
+      name: 'Partido',
+      dependsOn: ['gen'],
+      actions: [{ id: 'partido.emitir', name: 'Emitir', tags: [], duration: 5, run: (ctx) => ctx.emit<CompetitionResultData>({ type: SHARED_EVENTS.COMPETITION_RESULT, data: datos }) }],
+    };
+    const g = Game.create([personaje, npcs, atletismo, relaciones, emisor], { seed: 9 });
+    expect(g.perform('partido.emitir').ok).toBe(true);
+    return g;
+  };
+  const afinidadConElRival = (g: Game) => rel(g).get(RIVAL)?.afinidad ?? 0;
+  const equipo = (resultado: 'victoria' | 'empate' | 'derrota'): CompetitionResultData => ({
+    module: 'futbol',
+    discipline: 'Liga',
+    position: 3,
+    total: 8,
+    mark: 7,
+    unit: 'nota',
+    mayorEsMejor: true,
+    participants: [{ name: 'Tú', mark: 7, isPlayer: true }, { npcId: RIVAL, name: 'Rival', mark: 6, bando: 'rival' }],
+    equipo: { resultado, propio: 2, rival: 1, equipoPropio: 'A', equipoRival: 'B' },
+  });
+
+  it('en un partido gana el equipo, no la marca: a quien juega en el equipo rival le subes si ganas, aunque su marca sea mayor', () => {
+    const ganado = conResultado({ ...equipo('victoria'), participants: [{ name: 'Tú', mark: 5, isPlayer: true }, { npcId: RIVAL, name: 'Rival', mark: 9, bando: 'rival' }] });
+    const perdido = conResultado({ ...equipo('derrota'), participants: [{ name: 'Tú', mark: 9, isPlayer: true }, { npcId: RIVAL, name: 'Rival', mark: 5, bando: 'rival' }] });
+    expect(afinidadConElRival(ganado)).toBeGreaterThan(afinidadConElRival(perdido));
+    expect(afinidadConElRival(ganado)).toBeGreaterThan(0);
+  });
+
+  it('un empate queda entre ganar y perder', () => {
+    const [v, e, d] = (['victoria', 'empate', 'derrota'] as const).map((r) => afinidadConElRival(conResultado(equipo(r))));
+    expect(v).toBeGreaterThan(e);
+    expect(e).toBeGreaterThanOrEqual(d);
+  });
+
+  it('un compañero de equipo con papel de rival (de otro colegio) no pierde afinidad aunque se gane, ni se le trata como rival aunque se pierda', () => {
+    for (const r of ['victoria', 'derrota'] as const) {
+      const g = conResultado({ ...equipo(r), participants: [{ name: 'Tú', mark: 7, isPlayer: true }, { npcId: RIVAL, name: 'Compañero', mark: 9, bando: 'companero' }] });
+      expect(g.service<NpcDirectory>(SERVICES.npcs)!.get(RIVAL)!.role).toBe('rival');
+      expect(rel(g).get(RIVAL)?.afinidad ?? 0).toBe(0);
+    }
+    // Contraste: el mismo niño en el bando rival, tras perder, sí baja.
+    const perdido = conResultado({ ...equipo('derrota') });
+    expect(afinidadConElRival(perdido)).toBeLessThan(0);
+  });
+
+  it('en una prueba con mayorEsMejor se le gana a quien tiene menos marca', () => {
+    const base: CompetitionResultData = { module: 'x', discipline: 'Puntos', position: 1, total: 2, mark: 10, unit: 'pts', mayorEsMejor: true, participants: [{ name: 'Tú', mark: 10, isPlayer: true }, { npcId: RIVAL, name: 'Rival', mark: 4 }] };
+    const ganas = afinidadConElRival(conResultado(base));
+    const pierdes = afinidadConElRival(conResultado({ ...base, mark: 2, participants: [{ name: 'Tú', mark: 2, isPlayer: true }, { npcId: RIVAL, name: 'Rival', mark: 4 }] }));
+    expect(ganas).toBeGreaterThan(pierdes);
   });
 });

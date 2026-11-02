@@ -43,7 +43,20 @@ export interface TemporadaDeDeporte {
   /** Cuántas semanas antes de la última semana de clase del curso se juegan las semifinales y la final del campeonato (la final, después). */
   semifinalAntesDelFinal: number;
   finalAntesDelFinal: number;
+  /** Si el deporte se juega en liga (equipos que se enfrentan todos contra todos), cómo es. Sin él, no hay liga (atletismo). */
+  liga?: FormatoDeLiga;
 }
+
+/** Cómo es una liga: cuántos equipos la juegan en cada categoría y si hay ida y vuelta. */
+export interface FormatoDeLiga {
+  /** 1 = una vuelta; 2 = ida y vuelta. */
+  vueltas: 1 | 2;
+  /** Cuántos equipos tiene la liga de cada categoría (se sortea entre `min` y `max`). */
+  equiposPorCategoria: { min: number; max: number };
+}
+
+/** Cuántas jornadas tiene una liga de `equipos` equipos: cada uno juega con todos los demás `vueltas` veces (con un número impar, uno descansa cada jornada). */
+export const jornadasDeLiga = (equipos: number, vueltas: 1 | 2): number => (equipos < 2 ? 0 : (equipos % 2 === 0 ? equipos - 1 : equipos) * vueltas);
 
 /** Cuándo y dónde se compite cada semana (la jornada): lo que usan las agendas de rivales y entrenadores y los textos de los clubes. */
 export interface JornadaDeCompeticion {
@@ -104,6 +117,8 @@ export interface EquipoDeDeporte {
   calidad?: 1 | 2 | 3;
   /** Edades de competición que recluta (por defecto, las del deporte; los equipos de un colegio solo llegan a la edad en que acaba el colegio). */
   edades?: { min?: number; max?: number };
+  /** Ids de las categorías (de `categorias`) en las que el club tiene equipo, para los deportes con liga por categoría. Sin él, tiene equipo en todas las que cubren sus edades. */
+  categorias?: readonly string[];
   plantilla: { min: number; max: number };
 }
 
@@ -236,6 +251,11 @@ export function validarDatosDeDeporte(x: unknown): string[] {
     const t = d.temporada;
     if (!esObjeto(t) || !esEntero(t.semanasDePretemporada) || !esEntero(t.semifinalAntesDelFinal) || !esEntero(t.finalAntesDelFinal)) p.push(`${en}: la «temporada» tiene que traer semanasDePretemporada, semifinalAntesDelFinal y finalAntesDelFinal (enteros)`);
     else if (t.finalAntesDelFinal >= t.semifinalAntesDelFinal) p.push(`${en}: la final tiene que ser después de las semifinales (finalAntesDelFinal menor que semifinalAntesDelFinal)`);
+    else if (t.liga !== undefined) {
+      const l = t.liga;
+      const e = esObjeto(l) ? l.equiposPorCategoria : undefined;
+      if (!esObjeto(l) || ![1, 2].includes(l.vueltas as number) || !esObjeto(e) || !esEntero(e.min) || !esEntero(e.max) || e.min < 2 || e.max < e.min) p.push(`${en}: la «liga» de la temporada tiene que traer vueltas (1 o 2) y equiposPorCategoria (min y max, de al menos 2 equipos)`);
+    }
     const c = d.competiciones;
     if (!esObjeto(c) || ['federacion', 'campeonato'].some((k) => typeof c[k] !== 'string' || !c[k])) p.push(`${en}: las «competiciones» tienen que traer federacion y campeonato`);
     else {
@@ -261,7 +281,12 @@ export function validarDatosDeDeporte(x: unknown): string[] {
         for (const q of pob.equipos as Partial<EquipoDeDeporte>[]) {
           if (typeof q.club !== 'string' || !q.club || !esObjeto(q.plantilla) || !esEntero(q.plantilla.min) || !esEntero(q.plantilla.max) || q.plantilla.max < q.plantilla.min || q.plantilla.max < 1) p.push(`${en}: equipo mal formado (${JSON.stringify(q)?.slice(0, 60)}): necesita club y plantilla (min y max)`);
           else if (ids.has(q.club)) p.push(`${en}: el equipo «${q.club}» está repetido`);
-          else ids.add(q.club);
+          else {
+            ids.add(q.club);
+            const conocidas = new Set(Array.isArray(cats) ? (cats as Partial<CategoriaDef>[]).map((c) => c.id) : []);
+            const mal = q.categorias?.filter((c) => !conocidas.has(c));
+            if (mal?.length) p.push(`${en}: el equipo «${q.club}» tiene equipo en categorías que no existen (${mal.join(', ')})`);
+          }
         }
       }
       if (!esObjeto(e) || !Array.isArray(e.deFuera) || typeof e.dedicacion !== 'string' || typeof e.descripcionDelColegio !== 'string') p.push(`${en}: los «entrenadores» de la población necesitan descripcionDelColegio, dedicacion y deFuera`);

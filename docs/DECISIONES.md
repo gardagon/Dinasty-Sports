@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 01/11/2026 — Fútbol, F0: vocabulario común para los deportes de equipo
+
+Hecha la F0 de `ANALISIS_FUTBOL.md` §7. Todo son **campos opcionales**: el atletismo no cambia (`npm run huella -- 120` idéntica antes y después) y no se sube `INTERFAZ_DE_DEPORTES` (los paquetes ya publicados siguen valiendo).
+
+- **`competicion.resultado`:** `equipo` (`ResultadoDeEquipo`: victoria/empate/derrota, marcador y nombres de los equipos), `participants[].bando` (`companero` | `rival`) y `mayorEsMejor`. Ayudas puras en contracts: `elPersonajeLeGana(r, p)` y `fueUnExito(r)`.
+- **`relaciones` ya no supone que gana la menor marca:** compara con `elPersonajeLeGana`; en un partido gana el equipo (solo cuentan los del bando rival; empate +0,5) y el entrenador sube 3 si el equipo gana (en pruebas, el podio). Misma cifra de siempre en atletismo (rival al que ganas +1, el que te gana −0,5; el comentario del código lo decía al revés, el anexo y el código no). Cifras en `ANEXO_RELACIONES.md`. **Revisión (01/11):** un compañero de equipo de otro colegio tiene el papel `rival` (fase 4); `relaciones` se salta a los participantes con `bando: 'companero'` (jugar juntos no es competir contra él), para que no pierda afinidad aunque el equipo gane.
+- **Pestaña del deporte:** `DeporteView.secciones` (bloques libres: plantilla, tabla de la liga, partidos), `PruebaDeTemporada.resultado` («Ganado 3-1») y `temporada.nombreDePruebas`.
+- **Liga:** `TemporadaDeDeporte.liga` (`vueltas` 1 o 2 y `equiposPorCategoria` min–max) con `jornadasDeLiga` y validación; `EquipoDeDeporte.categorias` para decir en qué categorías tiene equipo cada club (validado contra las categorías del país).
+- **No incluido:** quién juega contra quién cada jornada (el calendario de la liga) ni el motor del partido: van con la F2.
+
 ## 02/11/2026 — Ciudad grande: colegios, clubes con filial, dos divisiones de 10 y copa
 
 El usuario: «Prefiero irnos ya a la B [la ciudad grande con dos divisiones], y la dejamos lista. Pero yo no haría 14 equipos por división. Lo dejaría en 10. Podemos hacer también una "copa del rey" en formato eliminatoria [...] uno tras otro, no como la vida real. Estamos intentando simular una ciudad grande, como Madrid o Barcelona [...] deberemos plantear los filiales, donde se suelen concentrar los jugadores de primer año, y en su segundo año pasar al primer equipo, salvo que uno de primer año destaque». Escrito en `CIUDAD_Y_LIGAS.md`.
@@ -48,6 +58,8 @@ Corrección de un error. El personaje empezaba con entre 8,0 y 9,0 años (`EDAD_
 - **Lo que daba por hecho una edad de 8 o más al empezar, revisado:** las curvas por edad (`madurezPorEdad`, `factorPorEdad`, `nivelTipicoPorEdad`, `plasticidadPorEdad`) están acotadas por abajo y valen a los 7 años (los vigores empiezan en el valor de los 8 años y se corrigen en el primer día: diferencia ≤ 4 puntos de 100); `vigoresPorEdad` y la historia de capacidades de los niños arrancan a los 8 años y a quien aún no los tiene le basta el valor inicial; las edades de club y categoría usan la edad de competición (8) y los accesos por edad mínima (`age`, años cumplidos) funcionan con 7; los `?? 8` son valores por omisión de servicios que no existen; la relación con los hermanos ya se calculaba por años naturales. Textos: la interfaz enseña la edad real (puede ser «7 años» al empezar). No hay nada más que cambiar.
 - **Cambia la huella, a propósito.** `npm run sim` antes (`main`) y después: 0 ❌ y los mismos chequeos; todo baja ≈ 1 punto porque el personaje es de media unos 0,3 años más joven (techos por edad algo más bajos): Equilibrado 31,2 → 30,2 (atletismo +11,4 → +10,1), Atleta 26,3 → 25,4, Empollón 28,4 → 28,1. El único ⚠️ es el de rendimiento, que ya lo era. El banco de notas con 8 semillas casi no se mueve (típica sin clase ni estudio 4,25 → 4,38; solo clase 5,47 → 5,63, dentro de objetivo); su test pasa de 2 a 3 semillas, porque con 2 caía en el borde.
 - **Tests:** `tests/edad-del-personaje.test.ts` (200 semillas: edad entre 7,3 y 8,7; edad de competición 8 y año natural de su clase en todas; comparte año con los compañeros de la partida; las partidas guardadas conservan la edad) y el del vigor por edad pasa a esperar el de un niño de 10-11 años a los tres años.
+---
+
 
 ---
 
@@ -58,6 +70,12 @@ Al revisar por qué el personaje (del montón) nunca entraba en el equipo de fú
 - **Decidido (usuario):** una sola regla para todos: los PNJ parten de cero en un deporte y suben según los años que lo practican (opción 1), y **tienen sus valores reales** (capacidades, habilidades de cada deporte, conocimiento, experiencia por puesto), no solo los topes, para que el entrenador y el motor sepan quién juega mejor en cada puesto. «Vamos a dejar todo esto claro ya, para evitar tener que volverlo a tocar.»
 - **Diseño en `MISMAS_REGLAS.md`:** fórmulas de progresión compartidas en `contracts`; rutina semanal de cada PNJ (club según su constancia, ejercicios del entrenador, competición, verano); historia de cada niño al crear la partida; rendimiento de cada deporte sobre un lector de persona, igual para todos (el atletismo deja de usar `levels.atletismo` fijo); un test de equivalencia (misma genética y misma rutina, mismos valores). Fases P1 y P2, antes de la F2 del fútbol.
 - **Decidido después (02/11):** los niños empiezan un deporte desde los 6 los muy interesados o con padres deportistas, entre los 8 y los 10 la mayoría y algunos más tarde. El personaje llega **sin años de práctica en un club**, pero con el conocimiento de casa y **un pequeño plus de haber jugado un poco**, más en sus deportes favoritos. Para que sea la misma regla para todos, ese plus es un **juego informal** (como «practicar con los amigos», unas 4, 8 o 12 semanas según el interés de 1 a 3) que también tienen los niños antes de entrar en un club (`MISMAS_REGLAS.md` §5, §7 y §9).
+---
+
+
+- **Decidido después (02/11):** los niños empiezan un deporte desde los 6 los muy interesados o con padres deportistas, entre los 8 y los 10 la mayoría y algunos más tarde. El personaje llega **sin años de práctica en un club**, pero con el conocimiento de casa y **un pequeño plus de haber jugado un poco**, más en sus deportes favoritos. Para que sea la misma regla para todos, ese plus es un **juego informal** (como «practicar con los amigos», unas 4, 8 o 12 semanas según el interés de 1 a 3) que también tienen los niños antes de entrar en un club (`MISMAS_REGLAS.md` §5, §7 y §9).
+---
+
 
 ## 01/11/2026 — Motor de los partidos: respuestas del usuario
 
@@ -82,6 +100,8 @@ Pedido por el usuario: diseñar el motor de los partidos, que ni el addon 2.1 ni
 - **Convocatoria** por valor en el puesto, asistencia a los entrenamientos, relación y carácter del entrenador; **nota de 1 a 10** y crónica en el diario.
 - **Prototipo** (fuera del juego, liga de 7 a doble vuelta): sin potenciador los benjamines marcan 0,48 goles por partido con un 62 % de 0 a 0; con él, todas las categorías quedan en torno a 2,9 goles y un 5–7 % de 0 a 0, y el mejor equipo gana la liga el 47–67 % de las veces.
 - **Preguntas abiertas:** `MOTOR_PARTIDOS.md` §13.
+
+---
 
 ## 31/10/2026 — Fútbol: decisiones del usuario sobre el análisis
 

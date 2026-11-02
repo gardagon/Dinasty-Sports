@@ -25,6 +25,15 @@ export interface PruebaDeTemporada {
   /** Fue la mejor marca personal hasta entonces. */
   record: boolean;
   tabla?: LogTable;
+  /** Resultado en texto para lo que no es un puesto y una marca (p. ej. «Ganado 3-1»). Si está, la pestaña lo enseña en lugar de «Xº de Y». */
+  resultado?: string;
+}
+
+/** Un bloque libre de la pestaña del deporte (la plantilla, la tabla de la liga, los últimos partidos...): un título con un texto, una tabla o ambos. */
+export interface SeccionDeDeporte {
+  titulo: string;
+  texto?: string;
+  tabla?: LogTable;
 }
 
 export interface ClasificacionDeTemporada {
@@ -54,10 +63,14 @@ export interface DeporteView {
     /** Cuándo es la próxima prueba (texto para el jugador). */
     proxima: string;
     pruebas: PruebaDeTemporada[];
+    /** Cómo se llaman las pruebas de la temporada, en plural y con mayúscula inicial (por defecto, «Carreras»; p. ej. «Partidos»). */
+    nombreDePruebas?: string;
   };
   /** Clasificaciones de lo que va de temporada (por puntos, por marcas...). */
   clasificaciones: ClasificacionDeTemporada[];
   temporadasAnteriores: TemporadaPasada[];
+  /** Bloques libres que el deporte añade a la temporada, en este orden (plantilla, tabla de la liga, partidos...). */
+  secciones?: SeccionDeDeporte[];
 }
 
 export interface DeporteService {

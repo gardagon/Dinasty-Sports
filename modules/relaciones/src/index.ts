@@ -19,6 +19,8 @@ import {
   type ClubAbandonoData,
   type ClubDirectory,
   type CompetitionResultData,
+  elPersonajeLeGana,
+  fueUnExito,
   type LugaresService,
   type PresenciaService,
   type DatoPersonal,
@@ -1203,13 +1205,15 @@ export const relaciones = defineModule<RelacionesState>({
         for (const n of dir.list({ role: 'entrenador' })) {
           // Solo los de tu club (sin club, el del colegio).
           if (n.club !== undefined && n.club !== (club?.id ?? 'colegio')) continue;
-          if (n.tags.includes(r.module)) vinculos[n.id] = conCambio(vinculoDe(ctx, s, n, dia), dia, r.position <= 3 ? 3 : 1);
+          if (n.tags.includes(r.module)) vinculos[n.id] = conCambio(vinculoDe(ctx, s, n, dia), dia, fueUnExito(r) ? 3 : 1);
         }
-        // Los rivales que te ganan se crecen; los que pierden, te respetan un poco más. Competir con alguien es conocerlo.
+        // Al rival al que ganas le subes 1; el que te gana te baja 0,5 (en un partido, un empate sube 0,5). Competir con alguien es conocerlo.
         for (const p of r.participants) {
           const n = p.npcId ? dir.get(p.npcId) : undefined;
-          if (!n || n.role !== 'rival') continue;
-          vinculos[n.id] = conCambio(vinculos[n.id] ?? nuevoVinculo(n.id, dia), dia, p.mark > r.mark ? 1 : -0.5);
+          // Un compañero de equipo de otro colegio también tiene el papel `rival` (fase 4): jugar juntos no es competir contra él.
+          if (!n || n.role !== 'rival' || p.bando === 'companero') continue;
+          const cambio = elPersonajeLeGana(r, p) ? 1 : r.equipo?.resultado === 'empate' && p.bando === 'rival' ? 0.5 : -0.5;
+          vinculos[n.id] = conCambio(vinculos[n.id] ?? nuevoVinculo(n.id, dia), dia, cambio);
         }
         return { ...s, vinculos };
       });
