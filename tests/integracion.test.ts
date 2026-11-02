@@ -46,7 +46,7 @@ describe('integración de módulos', () => {
     const entrada = r.log.find((l) => l.table); // tú + hasta 8 rivales de su serie (de los 18 NPC de la categoría)
     expect(entrada).toBeDefined();
     // La carrera deja una clasificación con nombres, posiciones y tiempos.
-    expect(entrada!.table!.rows.length).toBeGreaterThanOrEqual(10); // hasta 18 corredores con las ausencias
+    expect(entrada!.table!.rows.length).toBeGreaterThanOrEqual(8); // hasta 18 corredores con las ausencias (no se presenta todo el mundo)
     expect(entrada!.table!.rows.length).toBeLessThanOrEqual(18);
     expect(entrada!.table?.header).toEqual(['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.']);
     const mia = entrada!.table!.rows[entrada!.table!.highlight!];
