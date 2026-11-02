@@ -78,7 +78,7 @@ export function huecosQueHace(n: Pick<NinoDeportista, 'id' | 'genetica' | 'equip
   const porSemana = (n.equipo !== undefined ? r.sesionesPorSemana[n.equipo] : undefined) ?? r.sesionesPorDefecto;
   const p = asistencia(n.ritmo?.[deporte] ?? ritmoEn(n.id, n.genetica, deporte));
   const hechas: number[] = [];
-  for (let s = 0; s < porSemana; s++) if (rngEstable('asiste', n.id, deporte, semana, s).chance(p)) hechas.push(s);
+  for (let s = 0; s < porSemana; s++) if (rngEstable('asiste', n.genetica.semilla ?? 0, n.id, deporte, semana, s).chance(p)) hechas.push(s);
   return hechas;
 }
 
@@ -213,7 +213,7 @@ export function historiaDeportiva(
 ): Resultado {
   const interes = clamp(Math.round(interesDe(n, deporte)), 0, 3);
   const edadAhora = (dia - n.nacimiento) / DIAS_POR_ANIO;
-  const empezo = clamp(edadDeEmpezar(n.id, deporte, interes, n.genetica.padres), EDAD_MINIMA, Math.max(EDAD_MINIMA, edadAhora));
+  const empezo = clamp(edadDeEmpezar(n.id, deporte, interes, n.genetica.padres, n.genetica.semilla ?? 0), EDAD_MINIMA, Math.max(EDAD_MINIMA, edadAhora));
   const diaClub = n.nacimiento + empezo * DIAS_POR_ANIO;
   const desde = Math.max(n.nacimiento + EDAD_MINIMA * DIAS_POR_ANIO, diaClub - SEMANAS_DE_JUEGO_INFORMAL[interes] * 7);
   // Sus capacidades al empezar a jugar: las de los 8 años si aún no los tiene; si no, lo que han desarrollado sin más desde entonces.

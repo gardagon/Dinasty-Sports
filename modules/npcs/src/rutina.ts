@@ -69,11 +69,12 @@ export function topeEfectivo(g: Genetica, c: string): number {
 
 /** El talento de un niño en cada capacidad, como lo sortea el motor para el personaje. Se calcula una vez. */
 const TALENTOS = new Map<string, number[]>();
-function talentoDeCapacidad(id: string, c: string): number {
-  let t = TALENTOS.get(id);
+const claveDeTalento = (semilla: number, id: string): string => `${semilla}|${id}`;
+function talentoDeCapacidad(semilla: number, id: string, c: string): number {
+  let t = TALENTOS.get(claveDeTalento(semilla, id));
   if (!t) {
-    t = CAPACIDADES_GENETICAS.map((x) => 1 + (rngEstable('talento', id, x).next() * 2 - 1) * (GEN_DEFS.get(x)!.talentSpread ?? 0.15));
-    TALENTOS.set(id, t);
+    t = CAPACIDADES_GENETICAS.map((x) => 1 + (rngEstable('talento', semilla, id, x).next() * 2 - 1) * (GEN_DEFS.get(x)!.talentSpread ?? 0.15));
+    TALENTOS.set(claveDeTalento(semilla, id), t);
   }
   return t[INDICE_DE_CAPACIDAD.get(c)!];
 }
@@ -89,7 +90,7 @@ const FIJOS = new WeakMap<Genetica, Map<string, Fijos>>();
 /** Para pruebas: los valores fijos de un niño en un deporte (su talento y su tope en cada habilidad), para fijarlos a los de otra persona. */
 export const fijosDeNino = (id: string, g: Genetica, deporte: string, r: RutinaDeDeporte): Fijos => fijosDe(id, g, deporte, r);
 /** Para pruebas: fija el talento de un niño en cada capacidad. */
-export const fijarTalentosDeCapacidades = (id: string, talentos: number[]): void => void TALENTOS.set(id, talentos);
+export const fijarTalentosDeCapacidades = (id: string, talentos: number[], semilla = 0): void => void TALENTOS.set(claveDeTalento(semilla, id), talentos);
 
 function fijosDe(id: string, g: Genetica, deporte: string, r: RutinaDeDeporte): Fijos {
   let porDeporte = FIJOS.get(g);
@@ -97,10 +98,11 @@ function fijosDe(id: string, g: Genetica, deporte: string, r: RutinaDeDeporte): 
   let f = porDeporte.get(deporte);
   if (f) return f;
   f = { talento: [], tope: [], inicial: [] };
+  const semilla = g.semilla ?? 0;
   for (const def of r.stats) {
     // El talento de cada stat y el rango inicial, como los sortea el motor para el personaje (cada stat, con su propio hilo).
-    f.talento.push(1 + (rngEstable('talento', id, def.id).next() * 2 - 1) * (def.talentSpread ?? 0.15));
-    f.inicial.push(typeof def.initial === 'number' ? def.initial : def.initial.min + (def.initial.max - def.initial.min) * rngEstable('inicial-habilidad', id, def.id).next());
+    f.talento.push(1 + (rngEstable('talento', semilla, id, def.id).next() * 2 - 1) * (def.talentSpread ?? 0.15));
+    f.inicial.push(typeof def.initial === 'number' ? def.initial : def.initial.min + (def.initial.max - def.initial.min) * rngEstable('inicial-habilidad', semilla, id, def.id).next());
     const d = def.genetics?.derivedFrom;
     if (!d) {
       f.tope.push(undefined);
@@ -113,7 +115,7 @@ function fijosDe(id: string, g: Genetica, deporte: string, r: RutinaDeDeporte): 
       suma += inf.weight * topeEfectivo(g, inf.stat);
       peso += inf.weight;
     }
-    const aptitud = 1 + (def.genetics!.aptitude ?? 0.1) * (rngEstable('aptitud-habilidad', id, def.id).next() * 2 - 1);
+    const aptitud = 1 + (def.genetics!.aptitude ?? 0.1) * (rngEstable('aptitud-habilidad', semilla, id, def.id).next() * 2 - 1);
     f.tope.push(clamp((suma / peso) * aptitud, HERENCIA.min, 100));
   }
   porDeporte.set(deporte, f);
@@ -213,7 +215,7 @@ function entrenarStat(t: Trabajo, id: string, amount: number, eficiencia: number
   const max = def.max ?? 100;
   const valor = ci === undefined ? t.hab.v[hi] : t.cap[ci];
   const tope = ci === undefined ? t.fijos.tope[hi] : topeEfectivo(t.genetica, id);
-  const talento = ci === undefined ? t.fijos.talento[hi] : talentoDeCapacidad(t.id, id);
+  const talento = ci === undefined ? t.fijos.talento[hi] : talentoDeCapacidad(t.genetica.semilla ?? 0, t.id, id);
   // El tope efectivo es el genético por lo que permite la edad (el vigor de su categoría).
   const factor = def.growth?.potentialFactor;
   const vigor = factor ? lector.stat(factor) : undefined;

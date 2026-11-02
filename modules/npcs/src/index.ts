@@ -587,6 +587,12 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
 /** Lo que han pedido los deportes de la partida (en el orden de sus fichas). */
 const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: number): PoblacionGuardada[] => fichasDeDeporte(ctx).map((f, i) => poblacionDe(ctx, f, i === 0, semilla));
 
+/** Marca a los niños con la semilla de la partida: sus sorteos estables (talento, aptitud, valor inicial, asistencia...) salen de su id y de ella, para que el mismo `nino_5` no sea igual en todas las partidas. */
+export function conSemilla(npcs: Npc[], semilla: number): Npc[] {
+  if (!npcs.some((n) => n.genetica && n.genetica.semilla === undefined)) return npcs;
+  return npcs.map((n) => (n.genetica && n.genetica.semilla === undefined ? { ...n, genetica: { ...n.genetica, semilla } } : n));
+}
+
 // ---------------------------------------------------------------------------------------------------- capacidades reales
 
 /** Da a los niños con genética que aún no las tienen sus capacidades con su historia hasta `dia` (al crear la partida, al llegar un niño nuevo, en partidas anteriores). */
@@ -955,7 +961,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): Npc
   const base = generarReparto(ctx, pobs[0]);
   const usados = registroDe(base);
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
-  const sin = [...base, ...colegio, ...bibliotecarios(ctx.rng, usados)];
+  const sin = conSemilla([...base, ...colegio, ...bibliotecarios(ctx.rng, usados)], ctx.seed);
   const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng)], sin);
   const equipos = reclutarEnTodos(conEntrenadores, pobs, 0);
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
@@ -1320,7 +1326,7 @@ export const npcs = defineModule<NpcsState>({
             // El techo de cada edad es el potencial por el desarrollo físico de esa edad: sin edad, el potencial entero.
             const ritmo = n.ritmo?.[k] ?? 1;
             // Rinde cada curso una parte distinta de su techo (su constancia y cómo le va el año), así que el orden entre ellos cambia con los años.
-            const techo = edad === undefined ? pot : pot * desarrolloRival(edad + (n.desfase ?? 0)) * formaEn(n.id, k, day, ritmo);
+            const techo = edad === undefined ? pot : pot * desarrolloRival(edad + (n.desfase ?? 0)) * formaEn(n.id, k, day, ritmo, n.genetica?.semilla ?? 0);
             // Progresan con rendimientos decrecientes hacia el techo de su edad.
             // Su suerte de cada día es solo suya (id, disciplina y día): no cambia con lo que haga el jugador.
             if (v < techo) levels[k] = Math.min(techo, v + rngEstable('progreso', n.id, k, day).range(0, 0.35) * (1 - v / techo) * 2 * ritmo);
@@ -1356,7 +1362,7 @@ export const npcs = defineModule<NpcsState>({
         if (club && cat) reservas.set(claveDeEquipo(club.id, cat.id), 1);
       }
       ctx.updateState<NpcsState>((s) => {
-        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(renovarAlumnos(s.npcs, proximo.day, ctx.rng), pobs, proximo.day, ctx.rng, reservas), proximo.day));
+        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), pobs, proximo.day, ctx.rng, reservas), proximo.day));
         return { ...s, poblaciones: pobs, npcs: conCapacidades(conHabilidades(npcs, pobs, rendimientosDe(ctx), proximo.day), proximo.day) };
       });
     },
