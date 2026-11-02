@@ -1,11 +1,14 @@
-import { SD_Z_HIJO, edadDeCompeticion, type BodyType, type IdentityView, type PerfilDelPersonaje, type PerksDe, type Rng } from '@ds/contracts';
+import { SD_Z_HIJO, anioNatural, edadDeCompeticion, primerDiaDelAnio, type BodyType, type IdentityView, type PerfilDelPersonaje, type PerksDe, type Rng } from '@ds/contracts';
 
 /**
  * Identidad del personaje: edad, altura, peso, dominancia lateral y complexión.
  * Funciones puras (sin motor) para poder probarlas y ajustarlas sin tocar el módulo.
  */
 
-/** Años cumplidos al empezar la partida. Cámbialo aquí para empezar con otra edad. */
+/**
+ * La edad de su clase al empezar la partida (3.º de primaria: niños que cumplen 8 años en el año natural en que empieza). Es la edad con la que se calculan los
+ * valores de partida, y de ella sale su año de nacimiento: ver `initIdentidad`. Cámbialo aquí para empezar en otro curso.
+ */
 export const EDAD_INICIAL = 8;
 
 export interface HabitosSemana {
@@ -19,6 +22,7 @@ export interface HabitosSemana {
 export const SIN_HABITOS: HabitosSemana = { fuerza: 0, cardio: 0, activo: 0, descanso: 0 };
 
 export interface IdentidadState {
+  /** Años cumplidos al empezar la partida (7 o 8: nace como el resto de su clase, un día al azar del mismo año natural). */
   edadInicial: number;
   /** Parte del año ya transcurrida al empezar (0..1): reparte los cumpleaños. */
   fraccionInicial: number;
@@ -44,9 +48,14 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /** `zAltura`: genética de la estatura del personaje (puntuación típica del hijo de `ctx.herencia('estatura')`). */
 export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, perfil: PerfilDelPersonaje, alturaExtraCm = 0): IdentidadState {
+  // Nace como los PNJ: un día al azar del año natural de su clase (los que cumplen EDAD_INICIAL años ese año). Así empieza con entre 7 y 9 años según el día en que cae el
+  // inicio del curso, nunca un año mayor que sus compañeros (antes tenía entre 8,0 y 9,0, y en 3 de cada 10 partidas nacía un año antes que su clase).
+  const nacimiento = primerDiaDelAnio(anioNatural(0) - EDAD_INICIAL) + rng.int(0, 364);
+  const anios = -nacimiento / 365;
+  const edadInicial = Math.floor(anios);
   return {
-    edadInicial: EDAD_INICIAL,
-    fraccionInicial: rng.range(0, 1),
+    edadInicial,
+    fraccionInicial: anios - edadInicial,
     alturaAdulta: Math.round(clamp(171 + (zAltura / SD_Z_HIJO) * 8, 150, 195) * 10 + alturaExtraCm * 10) / 10,
     madurez: clamp(rng.normal() * 0.8, -1.5, 1.5),
     zurdo: rng.chance(0.11),
