@@ -171,8 +171,8 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 
 - **Reclutamiento:** el fútbol aporta su `PoblacionDeDeporte` (etiqueta `futbolista`, capacidades de las que sale su potencial, equipos con plantilla, entrenadores) y `npcs` recluta como para el atletismo, primero los interesados en el fútbol (el interés `futbol` ya existe).
 - **Cuántos caben solo con gente de la ciudad (decisión 6):** hay unos 90 niños por edad entre 8 y 17 años y el atletismo se lleva unos 9. Un equipo de fútbol 11 con 14 jugadores (11 y 3 suplentes) por categoría de dos edades son unos 7 por edad. Con **6 o 7 equipos por categoría** caben (42–49 por edad) y salen ligas de 10 a 12 partidos a doble vuelta, lo que el JSON pide para la infancia. En las edades altas (18–19) hay menos gente (no van al colegio de la ciudad): ligas más pequeñas.
-- **Jugadores genéricos (después):** para ampliar las ligas sin cargar el guardado, jugadores sin rasgos, sin agenda y sin relación, que crecen con su propio azar estable. Pueden **no guardarse**: su nivel en cada día sale de la semilla, de su id y del día (como ya se hace con el progreso de los rivales), así que no pesan nada en la partida. Es la fase 4 de `ALMACENAMIENTO.md` aplicada solo a ellos.
-- **Nivel de cada jugador:** hoy una persona tiene un solo nivel por deporte (`levels.futbol`). Su posición y su perfil (qué técnicas tiene mejor) pueden salir de sus 18 capacidades (ya las tiene) con un azar estable, sin guardar 28 habilidades por persona.
+- **Jugadores genéricos (después):** para ampliar las ligas, jugadores con los que no se puede interactuar (sin agenda ni relación), pero **con sus datos de verdad guardados** y las mismas reglas que todos (corregido el 02/11 con `VISION.md`: datos de verdad para todos). Antes proponía calcularlos desde la semilla sin guardarlos: se descarta.
+- **Nivel de cada jugador:** sustituido por `MISMAS_REGLAS.md`: cada jugador tiene sus capacidades y sus 29 habilidades reales, guardadas.
 - **Normalización por categoría:** la media de la categoría sale del nivel de los jugadores de esa categoría.
 - **Clubes de élite (decisión 8):** un club de fuera con acceso exigente en juvenil y sénior (al estilo de las canteras de los grandes) es la puerta a jugar a alto nivel; usa el acceso de los clubes que ya existe.
 
@@ -206,7 +206,7 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 | F3 | Posiciones, roles y experiencia con afinidades; formaciones de fútbol 11 |
 | F4 | Derivadas y ocultas en el partido; transferencias de entrenamiento |
 | F5 | Clubes de fuera con prueba de acceso (y los de élite), jugar con los mayores, verano, tele, goleadores |
-| F6 | Jugadores genéricos que crecen, para ampliar las ligas |
+| F6 | Jugadores genéricos (sin interacción, con sus datos guardados) que crecen, para ampliar las ligas |
 | F7 | Decisiones dentro del partido con los ejes (también las que suben o frenan el cansancio), cuando exista el motor de eventos (E18) |
 
 ## 8. Preguntas para decidir
