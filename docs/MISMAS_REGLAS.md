@@ -1,6 +1,6 @@
 # Personaje y PNJ: las mismas reglas
 
-Diseño del 02/11/2026, **decidido por el usuario** («tiene mucho más sentido el 1» y «los personajes deberían tener todos no el tope, sino también los puntos de verdad»), pendiente de dos detalles (§9). Va **antes de la F2 del fútbol**: el motor de los partidos y el entrenador necesitan saber cuánto vale de verdad cada jugador en cada habilidad.
+Diseño del 02/11/2026, **decidido por el usuario** («tiene mucho más sentido el 1» y «los personajes deberían tener todos no el tope, sino también los puntos de verdad»), con los dos detalles de §9 decididos el 02/11. Va **antes de la F2 del fútbol**: el motor de los partidos y el entrenador necesitan saber cuánto vale de verdad cada jugador en cada habilidad.
 
 ---
 
@@ -66,7 +66,9 @@ Los adultos (padres, profesores, entrenadores) se quedan como están hasta el fu
 
 ## 5. Al crear la partida: la historia de cada niño
 
-Los niños de 9 a 19 años que ya juegan a un deporte llevan años. Cada uno tiene su **edad de empezar**, con un azar estable: antes si le interesa mucho el deporte o sus padres lo practicaron, más tarde o nunca si no. Sus valores iniciales son los de **haber seguido su rutina desde entonces**.
+Los niños de 9 a 19 años que ya juegan a un deporte llevan años. Cada uno tiene su **edad de empezar** (decidido, §9), con un azar estable: **desde los 6** los muy interesados o con padres deportistas, **entre los 8 y los 10 la mayoría**, y algunos más tarde. Sus valores iniciales son los de **haber seguido su rutina desde entonces**.
+
+**Antes de empezar en un club, juego informal.** Todo niño (y el personaje, §7) ha jugado un poco a los deportes que le gustan, con amigos o en el patio: es la misma rutina que «practicar con los amigos» (poco rendimiento, sin entrenador), unas semanas al año según su interés por ese deporte. No cuenta como años practicando.
 
 Simular años de rutina para ~1.400 personas al crear la partida puede ser lento. Dos formas, a elegir **midiendo**:
 
@@ -81,7 +83,10 @@ Simular años de rutina para ~1.400 personas al crear la partida puede ser lento
 
 ## 7. El personaje al llegar
 
-- **Llega a la ciudad sin haber practicado ningún deporte** (cero años): sus valores iniciales son los de hoy. A partir de ahí sigue exactamente las mismas reglas.
+- **Llega a la ciudad sin haber practicado ningún deporte en un club** (cero años de práctica; decidido, §9). A partir de ahí sigue exactamente las mismas reglas.
+- **Pero sí trae algo de casa y del patio:**
+  - **conocimiento** de cada deporte por lo que practicaron sus padres (ya existe: `conocimientoDeCrianza`);
+  - **un pequeño plus de haber jugado un poco**, sobre todo en sus deportes favoritos: el **juego informal** de §5, con la misma regla que los niños. Según su interés por cada deporte (0 a 3, los intereses que hereda de sus padres): ninguno, unas 4, 8 o 12 semanas de juego con amigos. Da algo en las habilidades de ese deporte (y un poco de conocimiento), no años de práctica: un niño que lleva dos años en un club sigue por delante.
 - Frente a sus compañeros de 8 años que empiezan este curso, está igual. Frente a los que empezaron a los 6, por detrás, y es lo realista: con constancia los alcanza.
 - **Plaza en el equipo de su colegio en dificultad normal** (propuesta del desarrollador, apoyada en la revisión): el equipo del colegio no rechaza a un alumno que quiere jugar. Ser titular depende de la convocatoria. En los clubes de fuera, prueba de acceso, y la regla «solo entra si es mejor que el peor» al estar completos. La dificultad ya existe en parte en el motor (la calidad de los padres del personaje); se deja fija en «normal» hasta la creación de personaje.
 
@@ -91,16 +96,16 @@ Simular años de rutina para ~1.400 personas al crear la partida puede ser lento
 - **Peso de la partida.** Unas 1.400 personas × 18 capacidades (valor y máximo) más las habilidades de los que practican (fútbol: 29 por futbolista) dan unos 350 KB más sobre 2,4 MB (+15 %). Hay que medirlo con `npm run rendimiento`. Si hiciera falta, se guardan con un decimal.
 - **El test que lo ata, para no volver a tocarlo:** un PNJ y el personaje con **la misma genética y la misma rutina** acaban con los mismos valores (dentro de un margen pequeño). Si alguien cambia una regla para uno solo, el test falla.
 
-## 9. Lo que falta decidir
+## 9. Decidido el 02/11
 
-1. **Edad de empezar de los niños:** propuesta: desde los 6 (prebenjamín) los muy interesados o con padres deportistas; entre los 8 y los 10 la mayoría; algunos más tarde.
-2. **El personaje al llegar:** ¿siempre cero años practicando, o puede traer algo de antes según lo que practicaron sus padres? (Hoy ya trae conocimiento de casa.)
+1. **Edad de empezar de los niños:** desde los 6 los muy interesados o con padres deportistas, entre los 8 y los 10 la mayoría, algunos más tarde (§5).
+2. **El personaje al llegar:** sin años de práctica en un club, pero con conocimiento (lo que practicaron sus padres) y un pequeño plus de haber jugado un poco a los deportes, más en sus favoritos (§7). Para que sea la misma regla para todos, ese plus es el **juego informal** que también tienen los niños antes de entrar en un club (§5).
 
 ## 10. Fases
 
 | Fase | Qué |
 |---|---|
-| **P1** | Fórmulas de progresión compartidas en `contracts`. Capacidades reales de los PNJ con desarrollo natural y caída semanales. Historia al crear la partida (§5, midiendo). Test de equivalencia de capacidades |
-| **P2** | Habilidades y conocimiento de cada deporte en los PNJ, con la rutina de su club (y los ejercicios del entrenador). Rendimiento con lector de persona para todos; atletismo lo usa. Plaza en el equipo del colegio. Recalibrar la simulación. Test de equivalencia de habilidades |
+| **P1** | Fórmulas de progresión compartidas en `contracts`. Capacidades reales de los PNJ con desarrollo natural y caída semanales. Historia al crear la partida (§5, midiendo), con la edad de empezar decidida. Test de equivalencia de capacidades |
+| **P2** | Habilidades y conocimiento de cada deporte en los PNJ, con la rutina de su club (y los ejercicios del entrenador) y el juego informal antes de empezar; el mismo juego informal da al personaje su plus inicial según su interés (§7). Rendimiento con lector de persona para todos; atletismo lo usa. Plaza en el equipo del colegio. Recalibrar la simulación. Test de equivalencia de habilidades |
 
 Después, la **F2 del fútbol** usa los valores reales para el entrenador, la alineación y el partido.
