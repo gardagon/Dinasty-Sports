@@ -34,6 +34,8 @@ Plan y estado de cómo se guarda el juego. Decidido el 25/10/2026.
 
 No se hacen hasta que se cumpla la condición; medir antes.
 
+**La ciudad grande (`CIUDAD_Y_LIGAS.md`, 02/11) dispara la fase 2 y seguramente la 3:** unas 6.000 personas, 2.400 de ellas con todos los datos del fútbol. El guardado por partes tiene que estar antes de subir la población.
+
 | Fase | Qué | Disparador |
 |---|---|---|
 | 2 | **Guardado incremental por colecciones.** La partida se guarda en trozos: el núcleo (tiempo, stats, módulos pequeños) y una colección por módulo grande (`npcs`, una entrada por persona). Solo se escriben las entradas que han cambiado. | Un guardado completo tarda más de ~100 ms (hoy: 10 ms con 400 personas; ~3 000 personas). |

@@ -92,6 +92,7 @@ En cada tramo de 15 minutos y para cada equipo:
 6. **Balón parado:** faltas, córners y penaltis salen de las faltas y de los ataques rechazados, y se resuelven con los lanzadores y los rematadores frente a la portería.
 7. **Faltas y tarjetas (F4):** cada duelo defensivo puede acabar en falta según la **dureza** y la **agresividad**; con su probabilidad de amarilla y roja. Una expulsión deja al equipo con diez (todas sus zonas ×10/11). **Sanciones (decisión 6):** la roja suspende el partido siguiente y la acumulación de amarillas también (propuesta: un partido cada 5 amarillas). Es un dato del deporte por país, como los cambios.
 8. **Ventaja de jugar en casa (decisión 5):** pequeña, +4 % en las zonas del local. Más adelante podrá depender del público.
+9. **Tanda de penaltis (para la copa, `CIUDAD_Y_LIGAS.md` §6):** si una eliminatoria acaba en empate, penaltis directamente, sin prórroga. Cinco por equipo y después uno a uno; cada penalti es un duelo entre el que tira (los elige el entrenador por golpeo y compostura) y el portero, con sus habilidades y su estado.
 
 **Prototipo** (no es código del juego; liga de 7 equipos a doble vuelta, 60 temporadas por categoría, jugadores con el nivel típico de su edad):
 
@@ -169,7 +170,7 @@ Confirma el problema y la solución: sin potenciador, los benjamines casi no mar
 
 ## 10. Coste y lo que se guarda
 
-- **Un partido:** 22 jugadores, 6 tramos, unas decenas de jugadas: milisegundos. Una jornada de todas las categorías de la ciudad (unos 20 partidos), unas decenas de milisegundos.
+- **Un partido:** 22 jugadores, 6 tramos, unas decenas de jugadas: milisegundos. Una jornada de todas las categorías de la ciudad (unos 20 partidos), unas decenas de milisegundos. Con la ciudad grande (`CIUDAD_Y_LIGAS.md`) son unos 75 partidos por sábado: hay que medirlo.
 - **Se guarda lo que el mundo necesita** (corregido el 02/11 con `VISION.md`: datos de verdad para todos): el resultado de todos los partidos de todas las ligas y, **de cada jugador**, sus estadísticas de la temporada (partidos, titularidades, minutos, goles, asistencias, tarjetas, nota media) y su historial de temporadas. Del partido del personaje, además, la crónica y sus jugadas. Hay que medir el peso con `npm run rendimiento`; si crece mucho, se resuelve con el guardado por partes (`ALMACENAMIENTO.md`), no guardando menos.
 - **No se guarda:** los valores precalculados ni el detalle de las jugadas (se recalculan si hace falta).
 

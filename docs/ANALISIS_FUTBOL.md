@@ -170,6 +170,7 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 ## 5. La gente del fútbol
 
 - **Reclutamiento:** el fútbol aporta su `PoblacionDeDeporte` (etiqueta `futbolista`, capacidades de las que sale su potencial, equipos con plantilla, entrenadores) y `npcs` recluta como para el atletismo, primero los interesados en el fútbol (el interés `futbol` ya existe).
+- **Sustituido el 02/11 por la ciudad grande (`CIUDAD_Y_LIGAS.md`):** ~500 niños por edad, unos 30 equipos por categoría en Primera, Segunda y Tercera. Lo que sigue era el cálculo con la ciudad pequeña.
 - **Cuántos caben solo con gente de la ciudad (decisión 6):** hay unos 90 niños por edad entre 8 y 17 años y el atletismo se lleva unos 9. Un equipo de fútbol 11 con 14 jugadores (11 y 3 suplentes) por categoría de dos edades son unos 7 por edad. Con **6 o 7 equipos por categoría** caben (42–49 por edad) y salen ligas de 10 a 12 partidos a doble vuelta, lo que el JSON pide para la infancia. En las edades altas (18–19) hay menos gente (no van al colegio de la ciudad): ligas más pequeñas.
 - **Jugadores genéricos (después):** para ampliar las ligas, jugadores con los que no se puede interactuar (sin agenda ni relación), pero **con sus datos de verdad guardados** y las mismas reglas que todos (corregido el 02/11 con `VISION.md`: datos de verdad para todos). Antes proponía calcularlos desde la semilla sin guardarlos: se descarta.
 - **Nivel de cada jugador:** sustituido por `MISMAS_REGLAS.md`: cada jugador tiene sus capacidades y sus 29 habilidades reales, guardadas.
@@ -202,11 +203,11 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 |---|---|
 | F0 | Vocabulario común: resultado de equipo en `competicion.resultado` (y `relaciones` sin suponer «menos marca gana»), secciones en la pestaña, liga en la temporada, equipos por categoría |
 | F1 | Habilidades (las 28 del JSON más Juego colectivo), conocimiento, entreno por libre y club del colegio (con el kit) |
-| F2 | Gente del fútbol con equipos de la ciudad (fútbol 11, 6–7 equipos por categoría), liga a doble vuelta los sábados, motor del partido con cansancio, convocatoria y pestaña con la tabla de la liga. Propuesta: elegir la intensidad antes del partido (relajado, normal, a tope) hasta que haya decisiones dentro del partido |
+| F2 | Gente del fútbol con equipos de la ciudad (fútbol 11; **con la ciudad grande, Primera y Segunda de 10 y una Tercera, filiales y una copa después de la liga: `CIUDAD_Y_LIGAS.md`**), liga a doble vuelta los sábados, motor del partido con cansancio, convocatoria y pestaña con la tabla de la liga. Propuesta: elegir la intensidad antes del partido (relajado, normal, a tope) hasta que haya decisiones dentro del partido |
 | F3 | Posiciones, roles y experiencia con afinidades; formaciones de fútbol 11 |
 | F4 | Derivadas y ocultas en el partido; transferencias de entrenamiento |
 | F5 | Clubes de fuera con prueba de acceso (y los de élite), jugar con los mayores, verano, tele, goleadores |
-| F6 | Jugadores genéricos (sin interacción, con sus datos guardados) que crecen, para ampliar las ligas |
+| F6 | Jugadores genéricos (sin interacción, con sus datos guardados) que crecen, para ampliar las ligas. **Con la ciudad grande (`CIUDAD_Y_LIGAS.md`) seguramente no hacen falta:** las ligas se llenan con los niños de la zona |
 | F7 | Decisiones dentro del partido con los ejes (también las que suben o frenan el cansancio), cuando exista el motor de eventos (E18) |
 
 ## 8. Preguntas para decidir
