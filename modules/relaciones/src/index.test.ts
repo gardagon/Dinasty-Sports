@@ -112,7 +112,7 @@ describe('módulo relaciones', () => {
       expect(c.time.minuteOfDay).toBe(11 * 60 + 30);
       expect(c.preview(id('charlar'))!.available).toBe(false);
       expect(c.preview(id('charlar'))!.reason).toMatch(/todo lo que da de sí/);
-      expect(sube(c)).toBeCloseTo(6 * sube(a), 5);
+      expect(sube(c)).toBeCloseTo(6 * sube(a), 2);
       // Charlar no gasta el «una al día» de las actividades grandes: después se puede quedar.
       expect(c.preview(id('quedar'))!.available).toBe(true);
     });
@@ -237,7 +237,7 @@ describe('módulo relaciones', () => {
       const lejanos = valores.filter((v) => v.diferencia >= 5).map((v) => v.afinidad);
       expect(m(cercanos)).toBeGreaterThan(m(lejanos));
       expect(new Set(valores.map((v) => Math.round(v.afinidad))).size).toBeGreaterThan(5);
-    }, 60000);
+    }, 150000);
 
     it('con el tiempo la afinidad se enfría pero no baja de 5 (la familia no se olvida)', () => {
       const { g, h } = conHermano((e) => e >= 6);

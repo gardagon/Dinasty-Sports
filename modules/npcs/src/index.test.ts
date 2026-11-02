@@ -477,5 +477,5 @@ describe('hermanos', () => {
     const antes = hermanosDe(g).map((h) => h.id);
     advanceUntil(g, 'gen.descansar', (t) => t.schoolYear >= 3, 30000);
     expect(hermanosDe(g).map((h) => h.id)).toEqual(antes);
-  });
+  }, 30000);
 });

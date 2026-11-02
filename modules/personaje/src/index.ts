@@ -3,7 +3,10 @@ import {
   GEN,
   SERVICES,
   factorPorEdad,
-  madurezPorEdad,
+  CAIDA_POR_GRUPO,
+  DESARROLLO_NATURAL,
+  INICIAL_DE_CAPACIDAD,
+  vigoresPorEdad,
   TAGS,
   defineModule,
   inHours,
@@ -44,9 +47,8 @@ export type { IdentidadState } from './identidad';
  * - Estado: energía, salud, estrés y motivación. Modulan la eficiencia de todo.
  */
 
-const fisica: DecayDef = { graceDays: 5, ratePerDay: 0.01, floorRatio: 0.85 };
-const mental: DecayDef = { graceDays: 10, ratePerDay: 0.005, floorRatio: 0.9 };
-const social: DecayDef = { graceDays: 14, ratePerDay: 0.004, floorRatio: 0.9 };
+// La caída, el desarrollo natural y el rango inicial de las capacidades son reglas de todas las personas (`desarrollo-de-persona.ts`, en contracts).
+const { fisico: fisica, mental, social } = CAIDA_POR_GRUPO;
 
 /** Techo de lo físico: crece con el desarrollo por la edad (a los 8 años ~57, a los 18 el máximo). */
 const techoPorEdad = { base: 0.3, from: [{ stat: GEN.madurez, weight: 0.7 }] };
@@ -60,8 +62,8 @@ const generica = (id: string, name: string, group: string, decay: DecayDef, desc
   group,
   description,
   category: 'generica',
-  initial: { min: 5, max: 20 },
-  growth: { rate: 0.5, curve: 2, potentialFactor: VIGOR[group], naturalFraction: 0.45, ...(limitadaPorEdad ? { cap: techoPorEdad } : {}) },
+  initial: { ...INICIAL_DE_CAPACIDAD },
+  growth: { rate: 0.5, curve: 2, potentialFactor: VIGOR[group], naturalFraction: DESARROLLO_NATURAL, ...(limitadaPorEdad ? { cap: techoPorEdad } : {}) },
   // Todas las genéricas tienen un tope genético heredado de los padres; lo físico, además, depende del desarrollo por la edad.
   genetics: { grupo: group.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() },
   decay,
@@ -361,20 +363,17 @@ export const personaje = defineModule<IdentidadState>({
       const s = ctx.state<IdentidadState>();
       const edad = Math.floor(edadDecimal(s, day + 1));
       if (edad > Math.floor(edadDecimal(s, day))) ctx.log(`¡Cumples ${edad} años!`, 'logro');
-      // El desarrollo físico sigue a la edad (con el adelanto o retraso propio): es el techo de lo físico.
-      const objetivo = 100 * madurezPorEdad(edadDecimal(s, day + 1) + s.madurez);
-      ctx.addStat(GEN.madurez, objetivo - ctx.stat(GEN.madurez));
-      // Lo alcanzable por edad en cada categoría. Lo físico y lo técnico se adelantan o se retrasan con la madurez propia
-      // mientras se crece; pasada la juventud, la edad es la que es.
-      const edadReal = edadDecimal(s, day + 1);
-      const edadCuerpo = edadReal < 24 ? edadReal + s.madurez : edadReal;
+      // El desarrollo físico sigue a la edad (con el adelanto o retraso propio): es el techo de lo físico. Lo alcanzable por edad en cada categoría
+      // (`vigoresPorEdad`, en contracts) es la misma regla que sigue cualquier PNJ.
+      const v = vigoresPorEdad(edadDecimal(s, day + 1), s.madurez);
+      ctx.addStat(GEN.madurez, v.madurez - ctx.stat(GEN.madurez));
       const vigor: [string, number][] = [
-        [GEN.vigorFisico, factorPorEdad('fisico', edadCuerpo)],
-        [GEN.vigorTecnico, factorPorEdad('tecnico', edadCuerpo)],
-        [GEN.vigorMental, factorPorEdad('mental', edadReal)],
-        [GEN.vigorSocial, factorPorEdad('social', edadReal)],
+        [GEN.vigorFisico, v.fisico],
+        [GEN.vigorTecnico, v.tecnico],
+        [GEN.vigorMental, v.mental],
+        [GEN.vigorSocial, v.social],
       ];
-      for (const [id, f] of vigor) ctx.addStat(id, 100 * f - ctx.stat(id));
+      for (const [id, valor] of vigor) ctx.addStat(id, valor - ctx.stat(id));
 
       const energia = ctx.stat(GEN.energia);
       const estres = ctx.stat(GEN.estres);

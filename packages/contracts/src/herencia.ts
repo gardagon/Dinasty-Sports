@@ -256,6 +256,22 @@ export function nivelInicialHeredado(topeDelProgenitor: number, factor: number, 
   return Math.min(1, Math.max(0, (raw - bajo) / (alto - bajo)));
 }
 
+/**
+ * El factor de herencia de una persona (entre 0,7 y 0,9): cuánto de su tope aprovecha al empezar. Propio de cada persona: el personaje lo sortea una vez al crear
+ * la partida y cada niño con su generador estable (`rngEstable('factor-de-herencia', id)`).
+ */
+export const factorDeHerencia = (rng: Rng): number => rng.range(HERENCIA.nivelInicial.factorMin, HERENCIA.nivelInicial.factorMax);
+
+/**
+ * El valor inicial (a los 8 años) de una capacidad: **una sola regla para el personaje y para cualquier niño** (`MISMAS_REGLAS.md`). Sale del tope PROPIO de la
+ * capacidad (lo que esa persona puede llegar a ser), el factor de herencia de la persona y una variación (`nivelInicialHeredado`), llevado al rango inicial de la
+ * capacidad y sin pasar de su tope. La ventaja de crianza por lo que practicaron los padres (×0,95–1,10) no entra: es del nivel deportivo, no de las capacidades.
+ */
+export function valorInicialDeCapacidad(rango: { min: number; max: number }, tope: number, factor: number, rng: Rng, limites: { min: number; max: number } = { min: 0, max: 100 }): number {
+  const n = nivelInicialHeredado(tope, factor, rng);
+  return Math.min(tope, limites.max, Math.max(limites.min, rango.min + (rango.max - rango.min) * n));
+}
+
 /** Estatura heredada: la media de los dos padres (en puntuación típica) más una variación. */
 export function mezclarZ(padre: number, madre: number, rng: Rng): number {
   return (padre + madre) / 2 + HERENCIA.variacionZ * rng.normal();
