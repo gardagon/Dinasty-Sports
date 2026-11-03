@@ -4,6 +4,10 @@ import {
   SERVICES,
   factorPorEdad,
   statDeCapacidad,
+  factorPorCansancio,
+  factorPorEstres,
+  factorPorMotivacion,
+  factorPorSalud,
   vigoresPorEdad,
   TAGS,
   defineModule,
@@ -222,23 +226,23 @@ export const personaje = defineModule<IdentidadState>({
       id: 'gen.cansancio',
       tags: ['*'],
       apply: (ctx) => {
-        const e = ctx.stat(GEN.energia);
-        return e < 35 ? { efficiency: 0.5 + (0.5 * e) / 35, reason: 'Cansancio' } : null;
+        const f = factorPorCansancio(ctx.stat(GEN.energia));
+        return f < 1 ? { efficiency: f, reason: 'Cansancio' } : null;
       },
     },
     {
       id: 'gen.estres',
       tags: [TAGS.mental, TAGS.estudio],
       apply: (ctx) => {
-        const s = ctx.stat(GEN.estres);
-        return s > 50 ? { efficiency: 1 - (s - 50) / 100, reason: 'Estrés' } : null;
+        const f = factorPorEstres(ctx.stat(GEN.estres));
+        return f < 1 ? { efficiency: f, reason: 'Estrés' } : null;
       },
     },
     {
       id: 'gen.motivacion',
       tags: [TAGS.entrenamiento, TAGS.estudio],
       apply: (ctx) => {
-        const f = 0.85 + 0.3 * ctx.norm(GEN.motivacion);
+        const f = factorPorMotivacion(ctx.norm(GEN.motivacion));
         if (Math.abs(f - 1) < 0.05) return null;
         return { efficiency: f, reason: f > 1 ? 'Motivación alta' : 'Motivación baja' };
       },
@@ -250,7 +254,7 @@ export const personaje = defineModule<IdentidadState>({
         const h = ctx.stat(GEN.salud);
         if (h >= 60) return null;
         // Con mala salud rinde menos todo; lo físico además cansa más.
-        return { efficiency: 0.4 + h / 100, cost: action.tags.includes(TAGS.fisico) ? 1.2 : 1, reason: 'Salud baja' };
+        return { efficiency: factorPorSalud(h), cost: action.tags.includes(TAGS.fisico) ? 1.2 : 1, reason: 'Salud baja' };
       },
     },
     {
