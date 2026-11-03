@@ -97,7 +97,7 @@ Sobran semanas: 18 jornadas más 5 rondas de copa son 23 sábados de los ~30 que
   1. Busca otro club de su deporte, del más grande al más pequeño, con la misma regla de plaza (si desplaza a su vez a otro, este hace lo mismo).
   2. Si no encuentra, **deja ese deporte al menos ese curso** (puede volver a intentarlo en el siguiente plazo) y busca club en **otro deporte que le interese**, con la misma regla y dentro del mismo plazo.
   3. Si ningún club de ningún deporte lo quiere, **deja el deporte para siempre**: deja de ser deportista y no vuelve a apuntarse.
-  - **En el personaje** las restricciones son las mismas (ningún club lo coge si no hay hueco o no es mejor que el peor), pero las decisiones son del jugador: si otro que vale más le ocupa el sitio se le avisa («Has perdido tu plaza…») y él elige si prueba en otro club, en otro deporte o en el siguiente plazo. **Nunca se le retira a la fuerza**: sigue siendo del club (aunque deje de contar como uno de los jugadores del equipo).
+  - **En el personaje** las restricciones son las mismas y **sale del club como cualquier niño** cuando otro que vale más le quita el sitio; lo único distinto es que las decisiones son suyas y que nunca se le retira del deporte para siempre. Se le avisa («Has perdido tu plaza…», qué ha pasado y qué puede hacer) y elige si prueba en otro club con la regla de plaza, en otro deporte o espera al siguiente plazo.
 
 Cada verano, en este orden y para todos los clubes (todo dentro del plazo):
 1. Cada jugador sube de categoría si le toca, según su año de nacimiento.
