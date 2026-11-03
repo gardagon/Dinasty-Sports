@@ -5,6 +5,22 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 05/11/2026 — Mismas reglas, P2b-2: plazo de fichajes, desplazados que buscan club y fichajes de verano
+
+Decisiones del usuario del 03/11, **iguales para el personaje y los PNJ y para todos los deportes** (la regla, en el kit del deporte; las fechas, como dato del deporte por país).
+
+- **Plazo de fichajes: del verano a la primera competición del curso** (en el fútbol, la primera jornada de liga; en el atletismo, la primera carrera). Sale de la temporada del deporte en cada país (`semanasDePretemporada`) y del calendario del país (`plazoDeFichajesAbierto`, `proximaAperturaDelPlazo` en `contracts`). En España: de la semana 42 del curso a la 4 del siguiente.
+  - **Dentro del plazo**, cualquiera entra en un club o se cambia: con hueco, entra; con el equipo lleno, entra quien vale más que el peor (`reglaDePlaza`), y el desplazado busca otro club con la misma regla.
+  - **Fuera del plazo**, quien está en un club no puede cambiarse; quien no está en ninguno entra solo si hay hueco, sin sacar a nadie; quien deja su club fuera de plazo no entra en otro del mismo deporte hasta el siguiente plazo (`EstadoBaseDeDeporte.sinFichajesHasta`). Las acciones del personaje lo explican («El plazo de fichajes está cerrado hasta el verano…»).
+- **Quien se queda sin equipo** (`colocarDesplazados`): busca otro club de su deporte, del más grande al más pequeño, con la misma regla (si desplaza a su vez a otro, este hace lo mismo); si no encuentra, **deja ese deporte al menos ese curso** (`apartado`, puede volver a intentarlo en el siguiente plazo) y busca club en **otro deporte que le interese**; si ningún club de ningún deporte lo quiere, **deja los deportes que ha intentado para siempre** (`dejado`) y no vuelve a ser reclutado.
+- **En el personaje** las restricciones son las mismas, pero las decisiones son suyas. Si otro que vale más le ocupa el sitio en los fichajes de verano (el personaje cuenta como un jugador más de su equipo, con lo que vale), se le avisa (evento `club.plaza_perdida`: «Has perdido tu plaza…») y **sigue siendo del club**: elige si prueba en otro club, en otro deporte o espera al siguiente plazo. Deja de contar como uno de los jugadores del equipo (`NpcsState.sinPlaza`) hasta que cambie de club. **Nunca se le retira a la fuerza.**
+- **Los fichajes de verano** (ambición, padres y plaza) se hacen dentro del plazo, al empezar el curso: cada club, del más grande al más pequeño, mira a los **tres mejores** de cada equipo de los clubes más pequeños de su categoría. Cada niño decide con `probabilidadDeFichar` (de 5 % a 95 %: 35 % de base, ±35 % por la ambición del carácter y hasta +25 % por lo que practicaron sus padres) y la plaza. Si no la consigue, se queda donde estaba.
+- **Sin huecos reservados**: se quita el comentario «así quedan huecos para el personaje» de los datos del fútbol y del contrato: el personaje entra como cualquier niño; el equipo solo cuenta con su plaza si ya es miembro.
+- **Medido** (`npm run fichajes -- 12 3`: 12 semillas y 3 cursos; en `tools/fichajes.ts`):
+  - **Cuándo entra un personaje del montón** (nivel de partida en fútbol, mediana 9,5; benjamín, equipo completo): el nivel del peor de cada equipo es 10,8 (grande), 10,4 (mediano), 10,0 (pequeño) y 9,1 (colegio). Entra en el club grande en **1 de 12 semillas**, en el mediano en 3, en el pequeño en 4 y en el del colegio en 8. Los equipos empiezan completos (0 de 12 con hueco).
+  - **Cuántos dejan el deporte para siempre por no encontrar club**: 0,4; 0,7 y 0,4 niños por partida y curso (máximo 2). Los futbolistas no se vacían: 369 al empezar, 395 tras el primer curso y 401 tras el tercero. No hace falta tocar nada.
+- **Medido con `sim`** (`main` frente a la rama): ver más abajo.
+
 ## 04/11/2026 — Mismas reglas, P2b-1: la ciudad como datos, clubes de fútbol con tamaño y reclutamiento por lo que vale cada niño
 
 - **La ciudad como datos** (`packages/contracts/src/ciudad.ts`, `PaisDef.ciudad`): cuántos colegios de fuera hay, cuántas clases por curso y alumnos por clase, alumnos por curso de cada colegio de fuera y vecinos. Sin ciudad propia, un país usa `CIUDAD_ACTUAL` (4 colegios de fuera, 2 clases de 25, 17 alumnos por curso en cada colegio de fuera, 80 vecinos): **no cambia ni una persona**. `npcs` ya no tiene esos números en el código. El paquete de país los valida (`validarPais`).
