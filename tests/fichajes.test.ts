@@ -233,8 +233,8 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
   }, 240000);
 });
 
-describe('el personaje desplazado no queda retirado', () => {
-  it('si otro jugador que vale más le ocupa el sitio en los fichajes de verano, se le avisa y sigue siendo del club', () => {
+describe('el personaje desplazado sale del club, como cualquier niño, y decide él', () => {
+  it('si otro jugador que vale más le ocupa el sitio en los fichajes de verano, el personaje queda fuera de su equipo (lo avisa el evento que sale del club)', () => {
     const g = nueva();
     const fut = estado(g).poblaciones!.find((p) => p.deporte === 'futbol')!;
     const npcs = estado(g).npcs;
@@ -254,7 +254,7 @@ describe('el personaje desplazado no queda retirado', () => {
     expect(perdio, 'ninguna semilla de fichajes le quitó el sitio al personaje').toBeGreaterThan(0);
   }, 180000);
 
-  it('al perder la plaza se le avisa y no se le saca del club: él decide', () => {
+  it('al perder la plaza sale del club (sin que cuente como dejarlo plantado ni cierre el plazo) y se le explica qué ha pasado y qué puede hacer', () => {
     const avisa = defineModule<Record<string, never>>({
       id: 'avisa',
       name: 'Aviso',
@@ -265,9 +265,16 @@ describe('el personaje desplazado no queda retirado', () => {
     const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, avisa]);
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+    expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeDefined();
+    const estres = g.stat(GEN.estres);
     expect(g.perform('avisa.perdida').ok).toBe(true);
-    expect(g.log.some((l) => /Has perdido tu plaza en el equipo de fútbol.*nadie te echa.*otro club.*otro deporte.*siguiente plazo/.test(l.text))).toBe(true);
-    expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeDefined(); // sigue siendo del club
-    expect(posible(g, 'futbol.dejar_club')).toBe(true);
+    // Sale del club como cualquier niño desplazado…
+    expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeUndefined();
+    // …se le explica qué ha pasado y qué puede hacer (otro club con la regla de plaza, otro deporte o esperar al siguiente plazo)…
+    expect(g.log.some((l) => /Has perdido tu plaza en el equipo de fútbol.*sales del club.*otro club.*otro deporte.*siguiente plazo.*nunca se te retira del deporte para siempre/.test(l.text))).toBe(true);
+    // …no lo ha dejado él (ni plantón ni plazo cerrado) y decide: puede volver a probar en un club en cuanto haya plaza.
+    expect(g.stat(GEN.estres)).toBeLessThanOrEqual(estres + 0.5);
+    expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').not.toMatch(/fuera de plazo|plazo de fichajes está cerrado/);
+    expect(g.preview('futbol.dejar_club')!.available).toBe(false); // ya no tiene club que dejar
   }, 120000);
 });

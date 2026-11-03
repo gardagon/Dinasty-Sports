@@ -27,7 +27,7 @@ export const SHARED_EVENTS = {
   CLUB_LEAVE: 'club.salir',
   /** data: ClubAbandonoData — el personaje se cambia de club sin haber dejado antes el que tenía. */
   CLUB_ABANDONO: 'club.abandono',
-  /** data: PlazaPerdidaData — un jugador del mundo con mejor nivel ha ocupado la plaza del personaje en su equipo (el personaje no sale del club: decide él qué hace). */
+  /** data: PlazaPerdidaData — un jugador del mundo con mejor nivel ha ocupado la plaza del personaje en su equipo: sale del club, como cualquier niño, y decide él qué hace. */
   PLAZA_PERDIDA: 'club.plaza_perdida',
   /** data: ClassAttendedData — el personaje ha ido a una clase (el profesor de esa asignatura se presenta si no lo conoce). */
   CLASS_ATTENDED: 'clase.asistida',

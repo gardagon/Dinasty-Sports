@@ -164,12 +164,12 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
         for (let w = 0; w < semanas; w++) for (const e of cfg.juegoInformal) ctx.train(e.stat, e.amount);
       }
     },
-    // Un niño del mundo con mejor nivel ha ocupado su plaza: se le avisa, pero no se le saca del club; elige él si prueba en otro club, en otro deporte o espera al siguiente plazo.
+    // Un niño del mundo con mejor nivel ha ocupado su plaza: sale del club (lo hace el módulo de clubes), como cualquier niño, y se le explica qué ha pasado y qué puede hacer.
     [SHARED_EVENTS.PLAZA_PERDIDA]: (ctx, ev) => {
       const d = ev.data as PlazaPerdidaData;
       if (d.sport !== cfg.id) return;
       ctx.log(
-        `Has perdido tu plaza en el equipo de ${cfg.nombre}: un jugador que vale más ha ocupado tu sitio. Sigues en el club (nadie te echa) y eliges tú qué hacer: probar en otro club, en otro deporte o esperar al siguiente plazo de fichajes.`,
+        `Has perdido tu plaza en el equipo de ${cfg.nombre}: un jugador que vale más ha ocupado tu sitio y sales del club, como le pasa a cualquier niño. Ahora decides tú: puedes probar en otro club (entras si hay hueco o si vales más que el peor del equipo), en otro deporte o esperar al siguiente plazo de fichajes. A ti nunca se te retira del deporte para siempre.`,
         'aviso',
       );
     },

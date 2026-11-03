@@ -12,6 +12,7 @@ import {
   type ClubDirectory,
   type ClubJoinData,
   type ClubLeaveData,
+  type PlazaPerdidaData,
   type ClubView,
   type PaisDef,
   type ReadContext,
@@ -132,6 +133,16 @@ export const clubes = defineModule<ClubesState>({
         ctx.emit<ClubAbandonoData>({ type: SHARED_EVENTS.CLUB_ABANDONO, data: { sport, clubId: previo.clubId } });
       }
       ctx.log(nuevo.esColegio ? `Te apuntas al ${nuevo.nombre.toLowerCase()}.` : `¡Ya eres del ${nuevo.nombre}!`, 'logro');
+    },
+    // Otro jugador que vale más le ocupa la plaza al personaje en los fichajes de verano: sale del club, como cualquier niño (no es dejarlo plantado ni cierra el plazo).
+    [SHARED_EVENTS.PLAZA_PERDIDA]: (ctx, ev) => {
+      const { sport, clubId } = ev.data as PlazaPerdidaData;
+      const actual = ctx.state<ClubesState>().membresias[sport];
+      if (!actual || actual.clubId !== clubId) return;
+      ctx.updateState<ClubesState>((s) => {
+        const { [sport]: _fuera, ...resto } = s.membresias;
+        return { membresias: resto };
+      });
     },
     [SHARED_EVENTS.CLUB_LEAVE]: (ctx, ev) => {
       const { sport } = ev.data as ClubLeaveData;
