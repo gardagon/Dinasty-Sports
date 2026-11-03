@@ -4,6 +4,20 @@ import {
   SERVICES,
   factorPorEdad,
   statDeCapacidad,
+  factorPorCansancio,
+  factorPorEstres,
+  factorPorMotivacion,
+  factorPorSalud,
+  eficienciaDeEstado,
+  fatigaDeLaSemana,
+  formaTrasLaSemana,
+  formaTrasUnaCompeticion,
+  gravedadDeLesion,
+  riesgoDeLesion,
+  rngEstable,
+  SHARED_EVENTS,
+  valoracionDelPuesto,
+  type CompetitionResultData,
   vigoresPorEdad,
   TAGS,
   defineModule,
@@ -99,6 +113,9 @@ export const personaje = defineModule<IdentidadState>({
     { id: GEN.salud, name: 'Salud', group: 'Estado', category: 'estado', initial: 90 },
     { id: GEN.estres, name: 'Estrés', group: 'Estado', category: 'estado', initial: 20 },
     { id: GEN.motivacion, name: 'Motivación', group: 'Estado', category: 'estado', initial: 60 },
+    // La forma y las lesiones siguen las mismas reglas que las de cualquier jugador (`estado-de-jugador.ts`).
+    { id: GEN.forma, name: 'Forma', group: 'Estado', category: 'estado', initial: 60 },
+    { id: GEN.baja, name: 'Baja por lesión (semanas)', group: 'Estado', category: 'estado', initial: 0, min: 0, max: 12 },
   ],
 
   actions: ligarALugares([
@@ -222,23 +239,23 @@ export const personaje = defineModule<IdentidadState>({
       id: 'gen.cansancio',
       tags: ['*'],
       apply: (ctx) => {
-        const e = ctx.stat(GEN.energia);
-        return e < 35 ? { efficiency: 0.5 + (0.5 * e) / 35, reason: 'Cansancio' } : null;
+        const f = factorPorCansancio(ctx.stat(GEN.energia));
+        return f < 1 ? { efficiency: f, reason: 'Cansancio' } : null;
       },
     },
     {
       id: 'gen.estres',
       tags: [TAGS.mental, TAGS.estudio],
       apply: (ctx) => {
-        const s = ctx.stat(GEN.estres);
-        return s > 50 ? { efficiency: 1 - (s - 50) / 100, reason: 'Estrés' } : null;
+        const f = factorPorEstres(ctx.stat(GEN.estres));
+        return f < 1 ? { efficiency: f, reason: 'Estrés' } : null;
       },
     },
     {
       id: 'gen.motivacion',
       tags: [TAGS.entrenamiento, TAGS.estudio],
       apply: (ctx) => {
-        const f = 0.85 + 0.3 * ctx.norm(GEN.motivacion);
+        const f = factorPorMotivacion(ctx.norm(GEN.motivacion));
         if (Math.abs(f - 1) < 0.05) return null;
         return { efficiency: f, reason: f > 1 ? 'Motivación alta' : 'Motivación baja' };
       },
@@ -250,7 +267,7 @@ export const personaje = defineModule<IdentidadState>({
         const h = ctx.stat(GEN.salud);
         if (h >= 60) return null;
         // Con mala salud rinde menos todo; lo físico además cansa más.
-        return { efficiency: 0.4 + h / 100, cost: action.tags.includes(TAGS.fisico) ? 1.2 : 1, reason: 'Salud baja' };
+        return { efficiency: factorPorSalud(h), cost: action.tags.includes(TAGS.fisico) ? 1.2 : 1, reason: 'Salud baja' };
       },
     },
     {
@@ -309,6 +326,10 @@ export const personaje = defineModule<IdentidadState>({
           return { ...s, perfil: { ...s.perfil, intereses } };
         });
       }
+      // Sus sesiones de club y competiciones de la semana cuentan como carga para el riesgo de lesión.
+      if (d.tags.includes(TAGS.club) || d.tags.includes(TAGS.competicion)) {
+        ctx.updateState<IdentidadState>((s) => ({ ...s, semana: { ...s.semana, cargas: (s.semana.cargas ?? 0) + 1 } }));
+      }
       const fisico = d.tags.includes(TAGS.fisico);
       const fuerza = d.tags.includes(TAGS.fuerza);
       const cardio = d.tags.includes(TAGS.cardio);
@@ -325,8 +346,33 @@ export const personaje = defineModule<IdentidadState>({
       }));
     },
 
-    [CORE_EVENTS.WEEK_END]: (ctx) => {
+    // Un resultado cambia su forma como la de cualquier jugador.
+    [SHARED_EVENTS.COMPETITION_RESULT]: (ctx, ev) => {
+      const r = ev.data as CompetitionResultData;
+      const f = ctx.stat(GEN.forma);
+      ctx.addStat(GEN.forma, formaTrasUnaCompeticion(f, valoracionDelPuesto(r.position, r.total)) - f);
+    },
+
+    [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
       const antes = ctx.state<IdentidadState>();
+      // Su forma y sus lesiones: las mismas reglas que las de los demás jugadores (la condición es su energía; la carga, sus sesiones y competiciones).
+      const week = (ev.data as { week: number }).week;
+      const forma = ctx.stat(GEN.forma);
+      const eficiencia = eficienciaDeEstado({ fisica: ctx.stat(GEN.energia), moral: ctx.stat(GEN.motivacion), forma, salud: ctx.stat(GEN.salud) });
+      ctx.addStat(GEN.forma, formaTrasLaSemana(forma, eficiencia) - forma);
+      const baja = ctx.stat(GEN.baja);
+      if (baja > 0) {
+        ctx.addStat(GEN.baja, -1);
+        if (baja <= 1) ctx.log('Ya estás recuperado de la lesión.', 'info');
+      } else {
+        const fatiga = fatigaDeLaSemana(ctx.stat(GEN.energia), antes.semana.cargas ?? 0);
+        if (rngEstable('lesion', antes.alturaAdulta, antes.fraccionInicial, week).next() < riesgoDeLesion(fatiga, ctx.stat(GEN.constitucion))) {
+          const g = gravedadDeLesion(rngEstable('gravedad', antes.alturaAdulta, antes.fraccionInicial, week).next());
+          ctx.addStat(GEN.baja, g.baja);
+          ctx.addStat(GEN.salud, Math.min(0, g.salud - ctx.stat(GEN.salud)));
+          ctx.log(`Te has lesionado: ${g.baja} ${g.baja === 1 ? 'semana' : 'semanas'} de baja (sin entrenar con el club ni competir).`, 'aviso');
+        }
+      }
       const sana = antes.semana.activo >= 120 && antes.semana.descanso >= 50 * 60 && ctx.stat(GEN.estres) < 60;
       const despues = actualizarCuerpo(antes);
       ctx.setState<IdentidadState>(despues);

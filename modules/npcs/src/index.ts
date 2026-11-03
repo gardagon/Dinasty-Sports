@@ -62,6 +62,14 @@ import {
   heredarPerks,
   perksDePadre,
   rngEstable,
+  ESTADO_INICIAL,
+  CAPACIDADES_GENETICAS,
+  eficienciaDeEstado,
+  pasoDeSemanaDelEstado,
+  trasUnaCompeticion,
+  valoracionDelPuesto,
+  type EstadoDeJugador,
+  type CompeticionDelMundoData,
   type PerksDe,
   type FamilyService,
   type Practica,
@@ -118,7 +126,7 @@ import {
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { type HabilidadesDe } from './rutina';
-import { NUNCA, historiaDeportiva, listaDeSesion, semanaDeNino, type Rendimientos } from './semana';
+import { NUNCA, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
 
 /**
  * MÓDULO NPCs (id `npcs`).
@@ -160,6 +168,10 @@ export interface Npc {
   capUlt?: number[];
   /** Las habilidades y el conocimiento de cada deporte que juega o ha jugado (las mismas que el personaje; ver `rutina.ts`). Su `levels` es el rendimiento calculado con ellas. */
   hab?: Record<string, HabilidadesDe>;
+  /** Cómo está para jugar: condición física, moral, forma y salud (y semanas de baja por lesión). Los que juegan a un deporte con rutina lo tienen (`estado-de-jugador.ts`). */
+  estado?: EstadoDeJugador;
+  /** Lo que ha competido en cada deporte (resumen: pruebas, victorias, podios, mejor marca y las últimas). */
+  historial?: Record<string, HistorialDeDeporte>;
   /** Nivel máximo al que puede llegar cada disciplina. */
   potential: Record<string, number>;
   /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
@@ -215,6 +227,70 @@ export interface PoblacionGuardada extends Omit<PoblacionDeDeporte, 'equipos'> {
   categorias?: CategoriaDef[];
   /** Cómo se llaman sus clubes (id → nombre del sitio donde trabajan), para decir dónde trabajan los entrenadores. */
   nombresDeClub: Record<string, string>;
+}
+
+/** Lo que hizo un jugador en una temporada (curso) en una categoría y con un club: una entrada por temporada para su historial de siempre (lo que pedirá un ojeador o un mánager). */
+export interface TemporadaDeJugador {
+  curso: number;
+  categoria: string;
+  club: string;
+  pruebas: number;
+  victorias: number;
+  podios: number;
+  mejorMarca?: number;
+}
+
+/**
+ * El historial de un jugador en un deporte, compacto: totales, una entrada por temporada y sus últimas competiciones (semana absoluta, tipo, puesto en la clasificación general,
+ * total de corredores, marca y su serie).
+ */
+export interface HistorialDeDeporte {
+  pruebas: number;
+  victorias: number;
+  podios: number;
+  mejorMarca?: number;
+  temporadas?: TemporadaDeJugador[];
+  ultimas: [number, string, number, number, number, number?][];
+}
+/** Cuántas competiciones recientes se guardan por jugador y deporte (los totales y las temporadas no se recortan). */
+export const ULTIMAS_COMPETICIONES = 12;
+
+/** Los datos de una competición para anotar en el historial de un jugador. */
+export interface CompeticionAnotada {
+  semana: number;
+  tipo: string;
+  puesto: number;
+  total: number;
+  marca: number;
+  serie?: number;
+  curso?: number;
+  categoria?: string;
+  club?: string;
+}
+
+/** Anota una competición en el historial de un deporte (puro): totales, la entrada de su temporada y las últimas. */
+export function anotarCompeticion(h: HistorialDeDeporte | undefined, c: CompeticionAnotada): HistorialDeDeporte {
+  const base = h ?? { pruebas: 0, victorias: 0, podios: 0, ultimas: [] };
+  const gana = c.puesto === 1 ? 1 : 0;
+  const podio = c.puesto <= 3 ? 1 : 0;
+  let temporadas = base.temporadas;
+  if (c.curso !== undefined) {
+    const lista = [...(temporadas ?? [])];
+    const i = lista.findIndex((x) => x.curso === c.curso && x.categoria === (c.categoria ?? '') && x.club === (c.club ?? ''));
+    const antes = i >= 0 ? lista[i] : { curso: c.curso, categoria: c.categoria ?? '', club: c.club ?? '', pruebas: 0, victorias: 0, podios: 0 };
+    const nueva: TemporadaDeJugador = { ...antes, pruebas: antes.pruebas + 1, victorias: antes.victorias + gana, podios: antes.podios + podio, mejorMarca: antes.mejorMarca === undefined ? c.marca : Math.min(antes.mejorMarca, c.marca) };
+    if (i >= 0) lista[i] = nueva;
+    else lista.push(nueva);
+    temporadas = lista;
+  }
+  return {
+    pruebas: base.pruebas + 1,
+    victorias: base.victorias + gana,
+    podios: base.podios + podio,
+    mejorMarca: base.mejorMarca === undefined ? c.marca : Math.min(base.mejorMarca, c.marca),
+    ...(temporadas ? { temporadas } : {}),
+    ultimas: [...base.ultimas, [c.semana, c.tipo, c.puesto, c.total, c.marca, c.serie] as [number, string, number, number, number, number?]].slice(-ULTIMAS_COMPETICIONES),
+  };
 }
 
 export interface NpcsState {
@@ -672,9 +748,22 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
     for (const n of jugadores) {
       const clave = claveDeEquipoCategoria(pob, n, inicioCurso);
       const media = clave ? medias.get(clave) : undefined;
+      const estado = n.estado ?? ESTADO_INICIAL;
       const res = semanaDeNino(n as never, pob.deporte, r, f, fin, (semana, hueco, lector) =>
         listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), clave ? semillaDeSesionDeEquipo(pob.deporte, clave.split('|')[0], clave.split('|')[1], semana, hueco) : [pob.deporte, n.id, semana, hueco]),
+        { baja: !!estado.baja, eficiencia: eficienciaDeEstado(estado) },
       );
+      // Su estado pasa la semana: las sesiones lo cansan, descansa, se anima o se desanima y puede lesionarse (sus azares son solo suyos).
+      const semanaAbs = semanaQueAcaba(fin);
+      const semilla = n.genetica!.semilla ?? 0;
+      const resil = (n.cap![CAPACIDADES_GENETICAS.indexOf('gen.resiliencia')] ?? 50) / 100;
+      n.estado = pasoDeSemanaDelEstado(estado, {
+        sesiones: res.sesiones,
+        azarDeLesion: rngEstable('lesion', semilla, n.id, semanaAbs).next(),
+        azarDeGravedad: rngEstable('gravedad', semilla, n.id, semanaAbs).next(),
+        animo: resil,
+        constitucion: n.cap![CAPACIDADES_GENETICAS.indexOf('gen.constitucion')] ?? 50,
+      });
       n.cap!.splice(0, n.cap!.length, ...res.cap);
       n.pico!.splice(0, n.pico!.length, ...res.pico);
       n.capUlt = res.capUlt;
@@ -1119,6 +1208,7 @@ const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
     gender: n.gender,
     tags: n.tags,
     levels: n.levels,
+    ...(n.estado ? { estadoDeJuego: { eficiencia: eficienciaDeEstado(n.estado, false), baja: !!n.estado.baja } } : {}),
     age,
     known: n.known,
     club: n.club,
@@ -1444,6 +1534,33 @@ export const npcs = defineModule<NpcsState>({
       if (!n || n.known !== false) return;
       ctx.updateState<NpcsState>((s) => ({ ...s, npcs: s.npcs.map((x) => (x.id === npcId ? { ...x, known: true } : x)) }));
       ctx.log(`Se llama ${n.name}. ${n.description ?? ''}`.trim(), 'info');
+    },
+
+    // Una competición del mundo: cada jugador anota su resultado en su historial y le cambian la moral, la forma y la condición (las mismas reglas para todos).
+    [SHARED_EVENTS.COMPETICION_MUNDO]: (ctx, ev) => {
+      const c = ev.data as CompeticionDelMundoData;
+      const por = new Map<string, CompeticionAnotada[]>();
+      for (const p of c.pruebas) {
+        for (const x of p.resultados) {
+          por.set(x.npcId, [...(por.get(x.npcId) ?? []), { semana: c.semana, tipo: p.tipo, puesto: x.puesto, total: x.total, marca: x.marca, serie: x.serie, curso: c.curso, categoria: p.categoria }]);
+        }
+      }
+      if (!por.size) return;
+      ctx.updateState<NpcsState>((s) => ({
+        ...s,
+        npcs: s.npcs.map((n) => {
+          const xs = por.get(n.id);
+          if (!xs) return n;
+          const resil = (n.cap?.[CAPACIDADES_GENETICAS.indexOf('gen.resiliencia')] ?? 50) / 100;
+          let estado = n.estado ?? ESTADO_INICIAL;
+          let h = n.historial?.[c.deporte];
+          for (const x of xs) {
+            estado = trasUnaCompeticion(estado, valoracionDelPuesto(x.puesto, x.total), resil);
+            h = anotarCompeticion(h, { ...x, club: n.equipo ?? n.club ?? '' });
+          }
+          return { ...n, estado, historial: { ...n.historial, [c.deporte]: h! } };
+        }),
+      }));
     },
 
     [SHARED_EVENTS.COMPETITION_RESULT]: (ctx, ev) => {

@@ -26,6 +26,9 @@ export interface PruebaGuardada {
   total: number;
   marca: number;
   record: boolean;
+  /** La serie del personaje (de 1) y cuántas series tuvo la prueba. */
+  serie?: number;
+  series?: number;
   filas?: FilaGuardada[];
 }
 
@@ -81,18 +84,6 @@ export function recortarPruebas(pruebas: readonly PruebaGuardada[], cursoActual:
 
 // ---------------------------------------------------------------------------------------------------- quién corre y cómo se clasifican
 
-/** Corredores de una carrera (el jugador y 17 rivales como mucho) y reparto del campeonato: dos series de 8 (16 corredores: los otros 2 de los 18 rotan), pasan 4 de cada una (8 finalistas). */
-export const CORREDORES_POR_CARRERA = 18;
-export const SERIES_DE_SEMIFINAL = 2;
-export const CORREDORES_POR_SERIE = 8;
-export const CORREDORES_DE_SEMIFINAL = SERIES_DE_SEMIFINAL * CORREDORES_POR_SERIE;
-export const CLASIFICADOS_POR_SERIE = 4;
-export const FINALISTAS = SERIES_DE_SEMIFINAL * CLASIFICADOS_POR_SERIE;
-/** Los reservas de la final por serie: si un clasificado no se presenta, entra el siguiente de su serie. */
-export const RESERVAS_POR_SERIE = 2;
-/** Como poco corren estos rivales: si casi nadie se presenta, se completa con los mejores que faltaban. */
-export const MINIMO_DE_RIVALES = 3;
-
 /** Cómo quedó un corredor la última vez que corrió: de ahí depende que se presente la próxima. */
 export interface UltimoPuesto {
   posicion: number;
@@ -111,10 +102,13 @@ export function probabilidadDeAcudir(percentil: number, ultimo?: UltimoPuesto, b
 }
 
 /**
- * Reparte a los corredores en series por cabezas de serie («serpiente»: el mejor a la serie A, los dos siguientes a la B, los dos siguientes a
- * la A...), para que las series sean parejas. Devuelve las series con sus corredores del mejor al peor.
+ * Reparte a los corredores en series de `maxPorSerie` como mucho, **equilibradas en número y en nivel**: `ceil(n / maxPorSerie)` series con el mismo número de corredores en cada
+ * una o uno de diferencia (13 → 7 y 6; 17 → 6, 6 y 5), por cabezas de serie en serpentina (el 1.º a la A, el 2.º a la B, el 3.º a la B, el 4.º a la A...). Devuelve las series
+ * con sus corredores del mejor al peor. Con menos de 2 corredores no hay prueba (devuelve una serie vacía o de uno).
  */
-export function repartirEnSeries<T extends { nivel: number }>(corredores: readonly T[], series = SERIES_DE_SEMIFINAL): T[][] {
+export function repartirEnSeries<T extends { nivel: number }>(corredores: readonly T[], maxPorSerie: number): T[][] {
+  const n = corredores.length;
+  const series = Math.max(1, Math.ceil(n / Math.max(1, maxPorSerie)));
   const orden = [...corredores].sort((a, b) => b.nivel - a.nivel);
   const out: T[][] = Array.from({ length: series }, () => []);
   orden.forEach((c, i) => {
@@ -124,3 +118,87 @@ export function repartirEnSeries<T extends { nivel: number }>(corredores: readon
   });
   return out;
 }
+
+/** Un corredor ya clasificado en una prueba: su serie, su puesto en ella y su puesto en la clasificación general (por tiempos, con todas las series juntas). */
+export interface PuestoEnPrueba {
+  serie: number;
+  puestoEnSerie: number;
+  puesto: number;
+  marca: number;
+}
+
+/** Los puestos de una prueba: dentro de cada serie por tiempo y en general por tiempo (todas las series juntas). Conserva el orden de entrada de `series` y de sus corredores. */
+export function clasificarPrueba<T extends { mark: number }>(series: readonly (readonly T[])[]): (T & PuestoEnPrueba)[][] {
+  const todos = series.flatMap((serie) => serie.map((c) => c.mark)).sort((a, b) => a - b);
+  return series.map((serie, i) => {
+    const ordenada = [...serie].sort((a, b) => a.mark - b.mark);
+    return ordenada.map((c, j) => ({ ...c, serie: i, puestoEnSerie: j + 1, puesto: todos.indexOf(c.mark) + 1, marca: c.mark }));
+  });
+}
+
+/**
+ * Quiénes corren una prueba que tiene límite de plazas (la semifinal): se recorre la clasificación en orden y se llena con los que acuden hasta `plazas`, mirando solo los
+ * `plazas + reservas` primeros (los reservas cubren a quien no acude: una baja o una ausencia). Con menos clasificados que plazas corren todos los que acuden.
+ */
+export function plazasConReservas<T extends { acude: boolean }>(clasificacion: readonly T[], plazas: number, reservas: number): T[] {
+  const elegidos: T[] = [];
+  for (const c of clasificacion.slice(0, plazas + reservas)) if (c.acude && elegidos.length < plazas) elegidos.push(c);
+  return elegidos;
+}
+
+/** Cómo quedaron los de una semifinal: cada serie con los ids de sus corredores por su puesto en ella, y todos por tiempo. */
+export interface ResultadoDeSemifinal {
+  series: string[][];
+  general: string[];
+}
+
+/**
+ * Quiénes corren la final: de cada serie, los `porSerie` primeros que acuden (si uno no acude, entra su reserva: el siguiente de su serie, hasta `reservasPorSerie`). Si aun así
+ * no se llega a `plazas`, entran los mejores tiempos de los demás que acuden. Con menos de `plazas` disponibles corren todos. Devuelve los ids.
+ */
+export function finalistasDe(sf: ResultadoDeSemifinal, acude: (id: string) => boolean, formato: { plazas: number; porSerie: number; reservasPorSerie: number }): string[] {
+  const elegidos: string[] = [];
+  for (const serie of sf.series) {
+    let cogidos = 0;
+    for (const id of serie.slice(0, formato.porSerie + formato.reservasPorSerie)) {
+      if (cogidos >= formato.porSerie) break;
+      if (acude(id)) {
+        elegidos.push(id);
+        cogidos++;
+      }
+    }
+  }
+  for (const id of sf.general) {
+    if (elegidos.length >= formato.plazas) break;
+    if (!elegidos.includes(id) && acude(id)) elegidos.push(id);
+  }
+  return elegidos;
+}
+
+// ---------------------------------------------------------------------------------------------------- la clasificación de la temporada y del trimestre
+
+/** Lo que lleva acumulado un corredor en una clasificación: puntos, pruebas y mejor marca. Los números van cortos porque se guardan de todos los corredores. */
+export interface FilaDeTabla {
+  pt: number;
+  pr: number;
+  mm: number;
+}
+
+/** Las filas de una clasificación por corredor (su id, o `yo` el personaje). */
+export type TablaDeCategoria = Record<string, FilaDeTabla>;
+
+/** Anota una prueba en una clasificación: a cada corredor, los puntos de su puesto general (×2 en el campeonato), una prueba más y su mejor marca (puro: no cambia la tabla de entrada). */
+export function anotarEnTabla(tabla: TablaDeCategoria | undefined, filas: readonly { clave: string; puesto: number; marca: number }[], tipo: TipoDePrueba): TablaDeCategoria {
+  const nueva: TablaDeCategoria = { ...tabla };
+  for (const f of filas) {
+    const antes = nueva[f.clave];
+    nueva[f.clave] = { pt: (antes?.pt ?? 0) + puntosDe(f.puesto, tipo), pr: (antes?.pr ?? 0) + 1, mm: Math.min(antes?.mm ?? Infinity, f.marca) };
+  }
+  return nueva;
+}
+
+/** Las claves de una clasificación de más a menos puntos y, a igualdad, mejor marca (después, por clave, para que el orden sea siempre el mismo). */
+export const ordenDeTabla = (tabla: TablaDeCategoria | undefined): string[] =>
+  Object.entries(tabla ?? {})
+    .sort(([ka, a], [kb, b]) => b.pt - a.pt || a.mm - b.mm || (ka < kb ? -1 : ka > kb ? 1 : 0))
+    .map(([k]) => k);

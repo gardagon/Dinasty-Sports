@@ -17,6 +17,8 @@ export interface HabitosSemana {
   cardio: number;
   activo: number;
   descanso: number;
+  /** Sesiones de club y competiciones de la semana (su carga para el riesgo de lesión). Ausente en partidas anteriores. */
+  cargas?: number;
 }
 
 export const SIN_HABITOS: HabitosSemana = { fuerza: 0, cardio: 0, activo: 0, descanso: 0 };

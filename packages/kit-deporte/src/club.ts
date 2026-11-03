@@ -1,5 +1,6 @@
 import {
   GEN,
+  factorDeCompeticion,
   SERVICES,
   SHARED_EVENTS,
   TAGS,
@@ -151,6 +152,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
           duration: 150,
           available: (c2) => {
             const t = c2.time;
+            if (c2.stat(GEN.baja) > 0) return 'Estás de baja por una lesión';
             if (edadDelJugador(c2) < acceso.edadMin) return `Hay que tener ${acceso.edadMin} años para probar en el ${c.nombre}`;
             const ultima = estado(c2).pruebas?.[c.id];
             if (ultima !== undefined && t.week - ultima < SEMANAS_ENTRE_PRUEBAS) return 'Hiciste la prueba hace poco: espera unas semanas';
@@ -160,8 +162,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
           delta: { [GEN.energia]: -25, [GEN.estres]: 6 },
           run: (c2) => {
             const t = c2.time;
-            const forma = 0.85 + 0.15 * Math.min(1.2, c2.efficiency);
-            const rinde = cfg.rendimiento(c2) * forma + c2.rng.normal() * 3;
+            const rinde = cfg.rendimiento(c2) * factorDeCompeticion(c2.efficiency) + c2.rng.normal() * 3;
             c2.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, pruebas: { ...(s.pruebas ?? {}), [c.id]: t.week } }));
             if (rinde >= acceso.nivel && !c2.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte)) {
               c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: c.id, nivel: cfg.rendimiento(c2) } });
@@ -196,6 +197,7 @@ export function sesionDeClub(cfg: ConfigDeporte, def: { description: string; tag
     available: (ctx) => {
       const club = clubDelJugador(ctx, deporte);
       if (!club) return `No perteneces a ningún club de ${nombre}`;
+      if (ctx.stat(GEN.baja) > 0) return 'Estás de baja por una lesión: no puedes entrenar con el club';
       const t = ctx.time;
       if (!club.sesiones.weekdays.includes(t.weekday)) return `Las sesiones de ${club.nombre} son otros días`;
       if (estado(ctx).ultimaSesionClub === t.day) return 'Ya has entrenado con el club hoy';

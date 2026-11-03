@@ -107,8 +107,13 @@ export const DATOS_ATLETISMO: DatosDeDeporte = {
   paises: {
     espana: {
       categorias: CATEGORIAS_ESPANA,
-      // Con el calendario de España: la primera carrera en la semana 5 del curso y las semifinales y la final en las semanas 38 y 39 (las clases acaban en la 41).
-      temporada: { semanasDePretemporada: 4, semifinalAntesDelFinal: 3, finalAntesDelFinal: 2 },
+      // Con el calendario de España: la primera carrera en la semana 5 del curso y un campeonato al final de cada trimestre (semifinal en la penúltima semana de clase y final en la última).
+      // Corre todo el que se presenta, en series de 8 como mucho y equilibradas; a la semifinal van los 16 mejores del trimestre (con 2 de reserva) y a la final, los 4 primeros de cada serie.
+      temporada: {
+        semanasDePretemporada: 4,
+        campeonatoPorTrimestre: { semifinalAntesDelFinalDeTrimestre: 1, finalAntesDelFinalDeTrimestre: 0 },
+        formatoDeCarrera: { maxPorSerie: 8, semifinal: { plazas: 16, reservas: 2 }, final: { plazas: 8, porSerie: 4, reservasPorSerie: 2 } },
+      },
       competiciones: {
         federacion: 'Real Federación Española de Atletismo',
         campeonato: 'campeonato de {pais}',

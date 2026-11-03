@@ -37,7 +37,27 @@ export const SHARED_EVENTS = {
   PRESENTACION: 'persona.presentarse',
   /** data: DeporteAnadidoData — se ha añadido un deporte a una partida empezada (los que tienen gente, como `npcs`, la preparan). */
   DEPORTE_ANADIDO: 'deporte.anadido',
+  /** data: CompeticionDelMundoData — se ha disputado una competición entre PNJ (o con el personaje): cada jugador guarda su historial y su ánimo cambia. */
+  COMPETICION_MUNDO: 'competicion.mundo',
 } as const;
+
+/** Una prueba disputada entre jugadores de la población (de cualquier categoría, con o sin el personaje): quién corrió y cómo le fue. */
+export interface PruebaDelMundo {
+  /** `regular`, `semifinal` o `final`. */
+  tipo: string;
+  categoria: string;
+  /** `puesto` y `total` son los de la clasificación general (todas las series juntas por tiempos); `serie` es la suya (de 1). */
+  resultados: { npcId: string; puesto: number; total: number; marca: number; serie?: number }[];
+}
+
+/** Las pruebas del mundo de una semana: con ellas cada jugador guarda su historial y le cambian la moral, la forma y la condición (mismas reglas para todos). */
+export interface CompeticionDelMundoData {
+  deporte: string;
+  /** Semana absoluta de la partida y curso (para el historial por temporada). */
+  semana: number;
+  curso?: number;
+  pruebas: PruebaDelMundo[];
+}
 
 export interface DeporteAnadidoData {
   /** Id del deporte (el de su ficha). */

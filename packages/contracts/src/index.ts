@@ -5,6 +5,7 @@ export * from './development';
 export * from './progresion';
 export * from './desarrollo-de-persona';
 export * from './lector';
+export * from './estado-de-jugador';
 export * from './time';
 export * from './rng';
 export * from './context';
