@@ -44,6 +44,8 @@ export interface NpcView {
   rasgos?: RasgosDe;
   /** Niveles del NPC por disciplina (p. ej. { atletismo: 42 }). */
   levels: Readonly<Record<string, number>>;
+  /** Cómo está para jugar hoy (los que juegan a un deporte): cuánto rinde por su estado (1 = normal) y si está de baja por una lesión. */
+  estadoDeJuego?: { eficiencia: number; baja: boolean };
   /** Edad de competición (año del curso menos año de nacimiento), si el NPC la tiene (los rivales sí). Define su categoría. */
   age?: number;
   /** Club al que pertenece, si tiene. */

@@ -257,9 +257,9 @@ export function practicar(t: Trabajo, lista: readonly EntrenamientoRepetido[], e
 }
 
 /** Una sesión del club (o varias juntas, ya sumadas): lo que sube la lista, con la eficiencia que le da lo que sabe del deporte. */
-export function sesionDeClub(t: Trabajo, lista: readonly EntrenamientoRepetido[]): void {
+export function sesionDeClub(t: Trabajo, lista: readonly EntrenamientoRepetido[], factor = 1): void {
   const lector = lectorDe(t);
-  const e = eficienciaPorConocimiento(t, lector);
+  const e = eficienciaPorConocimiento(t, lector) * factor;
   for (const x of lista) entrenarStat(t, x.stat, x.amount, e, lector, x.veces ?? 1);
 }
 

@@ -4,6 +4,10 @@ import {
   SHARED_EVENTS,
   TAGS,
   APORTES,
+  CORE_EVENTS,
+  factorDeCompeticion,
+  type CompeticionDelMundoData,
+  type PruebaDelMundo,
   datosDeDeporte,
   semanasDeTemporada,
   textoConPais,
@@ -276,11 +280,52 @@ function quienesAcuden(candidatos: readonly Corredor[], previos: Record<string, 
 /** En las carreras de campeonato se presenta más gente (se preparan más). */
 const BONO_DE_CAMPEONATO = 0.08;
 
+/**
+ * LAS CARRERAS DEL MUNDO (P2a-2): cada semana de competición, en cada categoría corre una carrera regular entre los atletas que se presentan (los de baja no), y en la
+ * semana de las semifinales y de la final, también esas pruebas. Las del personaje las corre él (y avisa de lo suyo con el mismo evento); las demás, el mundo, aunque
+ * el personaje no mire. Cada rival tiene su azar de marca (el mismo que en la carrera del personaje) y su estado cuenta. La semifinal y la final del mundo no encadenan:
+ * corren los que se presentan (en la semifinal, 16 por sorteo; en la final, los ocho mejores).
+ */
+function carrerasDelMundo(ctx: ActionContext, semana: number): void {
+  const npcs = ctx.service<NpcDirectory>(SERVICES.npcs);
+  if (!npcs) return;
+  const t = ctx.timeAt(semana * 7 * 1440);
+  const sem = semanas(ctx);
+  if (t.period !== 'clase' || t.schoolWeek < sem.primeraCompeticion) return;
+  const estado = ctx.state<AtletismoState>();
+  // Lo que ha corrido ya el personaje esta semana (su prueba la ha emitido él).
+  const suyas = new Set((estado.resultados ?? []).filter((p) => p.semana === semana).map((p) => `${p.categoria}|${p.tipo}`));
+  const tipos: TipoCarrera[] = ['regular'];
+  if (t.schoolWeek === sem.semifinal) tipos.push('semifinal');
+  if (t.schoolWeek === sem.final) tipos.push('final');
+  const pruebas: PruebaDelMundo[] = [];
+  for (const cat of categoriasDe(ctx, CONFIG)) {
+    const candidatos: Corredor[] = npcs
+      .list({ tag: 'atleta', minAge: cat.edadMin, maxAge: cat.edadMax })
+      .filter((n) => !n.estadoDeJuego?.baja)
+      .map((n) => ({ npcId: n.id, name: n.name, level: (n.levels.atletismo ?? 30) * factorDeCompeticion(n.estadoDeJuego?.eficiencia ?? 1) }));
+    for (const tipo of tipos) {
+      if (suyas.has(`${cat.id}|${tipo}`) || (tipo === 'regular' && suyas.has(`${cat.id}|clasificatoria`))) continue;
+      const { acuden } = quienesAcuden(candidatos, {}, semana, tipo);
+      const plazas = tipo === 'semifinal' ? CORREDORES_DE_SEMIFINAL : tipo === 'final' ? FINALISTAS : CORREDORES_POR_CARRERA;
+      const corren = (tipo === 'final' ? [...acuden].sort((a, b) => b.level - a.level) : [...acuden].sort((a, b) => rngEstable('plaza', a.npcId!, semana, tipo).next() - rngEstable('plaza', b.npcId!, semana, tipo).next())).slice(0, plazas);
+      if (corren.length < 2) continue;
+      const conMarca = corren.map((c) => ({ ...c, nivel: c.level, mark: marca400(c.level, rngEstable('marca', c.npcId!, semana, tipo)) }));
+      const series = tipo === 'semifinal' ? repartirEnSeries(conMarca) : [conMarca];
+      const resultados = series.flatMap((serie) =>
+        [...serie].sort((a, b) => a.mark - b.mark).map((c, i) => ({ npcId: c.npcId!, puesto: i + 1, total: serie.length, marca: c.mark })),
+      );
+      pruebas.push({ tipo, categoria: cat.id, resultados });
+    }
+  }
+  if (pruebas.length) ctx.emit<CompeticionDelMundoData>({ type: SHARED_EVENTS.COMPETICION_MUNDO, data: { deporte: DEPORTE, semana, pruebas } });
+}
+
 /** Corre una carrera (semanal, semifinal o final) y aplica todas sus consecuencias. */
 function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
   const t = ctx.time;
   // El día cuenta: cansancio, salud, motivación... ya vienen en la eficiencia.
-  const forma = 0.85 + 0.15 * Math.min(1.2, ctx.efficiency);
+  const forma = factorDeCompeticion(ctx.efficiency);
   const miNivel = rendimiento(ctx) * forma;
   const miMarca = marca400(miNivel, ctx.rng);
 
@@ -290,7 +335,8 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
   const conocidos: Corredor[] = npcs
     ? npcs
         .list({ tag: 'atleta', minAge: competida.edadMin, maxAge: competida.edadMax })
-        .map((n) => ({ npcId: n.id, name: n.name, corto: n.nombreCorto, club: n.club, level: n.levels.atletismo ?? 30 }))
+        .filter((n) => !n.estadoDeJuego?.baja)
+        .map((n) => ({ npcId: n.id, name: n.name, corto: n.nombreCorto, club: n.club, level: (n.levels.atletismo ?? 30) * factorDeCompeticion(n.estadoDeJuego?.eficiencia ?? 1) }))
     : [];
   const estado = ctx.state<AtletismoState>();
   const previa = estado.ultimaCarreraRival ?? {};
@@ -433,6 +479,15 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
   }
   // Los golpes curten: perder entrena la resiliencia mucho más que ganar.
   ctx.train(GEN.resiliencia, position > total / 2 ? 0.8 : 0.2);
+
+  // Los rivales anotan la prueba en su historial y les cambia el ánimo (como a cualquier jugador del mundo).
+  const resultadosDelMundo = series.flatMap((serie) => serie.flatMap((c, i) => (c.npcId ? [{ npcId: c.npcId, puesto: i + 1, total: serie.length, marca: c.mark }] : [])));
+  if (resultadosDelMundo.length) {
+    ctx.emit<CompeticionDelMundoData>({
+      type: SHARED_EVENTS.COMPETICION_MUNDO,
+      data: { deporte: DEPORTE, semana: t.week, pruebas: [{ tipo, categoria: competida.id, resultados: resultadosDelMundo }] },
+    });
+  }
 
   ctx.emit<CompetitionResultData>({
     type: SHARED_EVENTS.COMPETITION_RESULT,
@@ -754,7 +809,16 @@ export const atletismo = defineModule<AtletismoState>({
   ],
 
   // El primer día, el conocimiento que viene de casa; cada sesión, la cuenta de la sobrecarga (kit).
-  on: manejadoresDeDeporte(CONFIG),
+  on: (() => {
+    const comunes = manejadoresDeDeporte(CONFIG);
+    return {
+      ...comunes,
+      [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
+        comunes[CORE_EVENTS.WEEK_END]?.(ctx, ev);
+        carrerasDelMundo(ctx, (ev.data as { week: number }).week);
+      },
+    };
+  })(),
 });
 
 export default atletismo;

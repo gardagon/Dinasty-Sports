@@ -103,7 +103,7 @@ export function pasoDeSemanas(
   t: Trabajo,
   fin: number,
   semanas: number,
-  opciones: { porSemana: readonly (readonly number[])[]; informales: number; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] },
+  opciones: { porSemana: readonly (readonly number[])[]; informales: number; /** Cuánto rinde por su estado (cansancio, ánimo, salud y forma); 1 = normal. */ eficiencia?: number; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] },
 ): void {
   const ultAntes = [...t.hab.ult];
   const capUltAntes = [...t.capUlt];
@@ -123,7 +123,7 @@ export function pasoDeSemanas(
     }
     entrenadasEnLaSemana.push(ese);
   });
-  if (sesiones.length) sesionDeClub(t, semanas === 1 ? sesiones.flat() : acumular(sesiones));
+  if (sesiones.length) sesionDeClub(t, semanas === 1 ? sesiones.flat() : acumular(sesiones), opciones.eficiencia ?? 1);
   // Cuándo entrenó por última vez cada cosa, semana a semana (empieza como estaba antes del bloque).
   const ultHab = [...ultAntes];
   const ultCap = [...capUltAntes];
@@ -158,8 +158,8 @@ export function pasoDeSemanas(
 }
 
 /** Una semana: ver `pasoDeSemanas`. */
-export const pasoDeSemana = (t: Trabajo, fin: number, o: { huecos: readonly number[]; informal: boolean; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] }): void =>
-  pasoDeSemanas(t, fin, 1, { porSemana: [o.huecos], informales: o.informal ? 1 : 0, lista: o.lista });
+export const pasoDeSemana = (t: Trabajo, fin: number, o: { huecos: readonly number[]; informal: boolean; eficiencia?: number; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] }): void =>
+  pasoDeSemanas(t, fin, 1, { porSemana: [o.huecos], informales: o.informal ? 1 : 0, eficiencia: o.eficiencia, lista: o.lista });
 
 const redondea = (x: number) => Math.round(x * 100) / 100;
 
@@ -170,10 +170,13 @@ export interface Resultado {
   capUlt: number[];
   hab: HabilidadesDe;
   nivel: number;
+  /** Cuántas sesiones del club ha hecho esa semana (para su cansancio). */
+  sesiones: number;
 }
 
-function resultado(t: Trabajo, rend: (p: LectorDePersona) => number): Resultado {
+function resultado(t: Trabajo, rend: (p: LectorDePersona) => number, sesiones = 0): Resultado {
   return {
+    sesiones,
     cap: t.cap.map(redondea),
     pico: t.capPico.map(redondea),
     capUlt: t.capUlt,
@@ -190,11 +193,14 @@ export function semanaDeNino(
   rend: (p: LectorDePersona) => number,
   fin: number,
   lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[],
+  /** Su estado: de baja no va a las sesiones, y con él rinde más o menos en ellas. */
+  estado?: { baja: boolean; eficiencia: number },
 ): Resultado {
   const t = prepararTrabajo(n, valoresIniciales(n.id, n.genetica), deporte, r, n.hab![deporte], n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), fin - 7);
-  const enClub = n.deporte === deporte && n.equipo !== undefined;
-  pasoDeSemana(t, fin, { huecos: enClub ? huecosQueHace(n, deporte, r, semanaQueAcaba(fin)) : [], informal: false, lista });
-  return resultado(t, rend);
+  const enClub = n.deporte === deporte && n.equipo !== undefined && !estado?.baja;
+  const huecos = enClub ? huecosQueHace(n, deporte, r, semanaQueAcaba(fin)) : [];
+  pasoDeSemana(t, fin, { huecos, informal: false, eficiencia: estado?.eficiencia, lista });
+  return resultado(t, rend, huecos.length);
 }
 
 /**
