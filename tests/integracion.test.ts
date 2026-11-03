@@ -745,7 +745,7 @@ describe('integración de módulos', () => {
       const antes = JSON.stringify(g.serialize()).length;
       correr(g, 5, 30);
       const despues = g.serializarJSON().length;
-      expect(despues - antes).toBeLessThan(80_000); // ~25 carreras con su clasificación y lo que cambia por jugar medio curso
+      expect(despues - antes).toBeLessThan(200_000); // ~25 carreras con su clasificación, el estado y el historial de cada jugador tras medio curso
       const otra = cargarPartida(JSON.parse(g.serializarJSON()).state, undefined, { copiar: false });
       expect(vista(otra).temporada.pruebas.length).toBe(vista(g).temporada.pruebas.length);
     });
