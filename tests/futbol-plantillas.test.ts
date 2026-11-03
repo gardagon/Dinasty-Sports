@@ -3,7 +3,7 @@ import { SERVICES, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
-import { claveDeEquipo, edadNpc, reclutarDeportistas, reclutarEnTodos, reglaDePlaza, sinDeporte, valorRealDe, valoracionDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { capacidadDe, claveDeEquipo, edadNpc, reclutarDeportistas, reclutarEnTodos, reglaDePlaza, sinDeporte, valorRealDe, valoracionDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
 
 /**
@@ -17,7 +17,7 @@ const pobDeFutbol = (g: ReturnType<typeof nueva>): PoblacionGuardada => estado(g
 const categoriaDe = (pob: PoblacionGuardada, n: Npc, dia = 0) => pob.categorias!.find((c) => c.edadMin <= edadNpc(n, dia)! && edadNpc(n, dia)! <= c.edadMax)!.id;
 
 describe('cada club de la zona tiene su equipo por categoría', () => {
-  it('cada club (grande, mediano, pequeño y el del colegio) tiene de 14 a 18 jugadores por categoría, de benjamín a juvenil: salen llenos con la población de ahora', () => {
+  it('cada club (grande, mediano, pequeño y el del colegio) tiene en cada categoría, de benjamín a juvenil, equipos de 14 a 18 jugadores: salen llenos con la población de ahora', () => {
     for (const seed of [31, 32]) {
       const g = nueva(seed);
       const pob = pobDeFutbol(g);
@@ -27,8 +27,11 @@ describe('cada club de la zona tiene su equipo por categoría', () => {
       for (const club of ['club_grande', 'club_mediano', 'club_pequeno', 'colegio']) {
         for (const cat of ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil']) {
           const jugadores = porEquipo.get(`${club}|${cat}`) ?? [];
-          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeGreaterThanOrEqual(14);
-          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeLessThanOrEqual(18);
+          // Un club tiene tantos equipos como ha abierto en la categoría (según la demanda): cada uno de 14 a 18 jugadores.
+          const e = pob.equipos.find((x) => x.club === club)!;
+          const k = e.equiposPorCategoria?.[cat] ?? 1;
+          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeGreaterThanOrEqual((k - 1) * 18 + 14);
+          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeLessThanOrEqual(capacidadDe(e, cat));
         }
       }
       // El equipo del colegio solo tiene alumnos del colegio; ningún equipo tiene jugadores de otra categoría.
