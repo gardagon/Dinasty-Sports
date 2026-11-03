@@ -130,3 +130,24 @@ En la simulación (`sim/src/analysis.ts`), con varias semillas:
 | 3 (fase propia: la ciudad grande) | Guardado por partes (y rasgos compactos si hace falta) y después la población de §2, con su calibración | ~6.000 |
 
 El orden de los pasos 2 y 3 lo decide la medida del paso 1. Si el guardado por partes llega antes, la F2 puede probarse ya con la ciudad grande.
+
+## 11. Menos equipos en las edades altas y archivo de los que salen (idea del usuario, 03/11; pendiente de diseño)
+
+La apuntó el usuario para tenerla en cuenta; todavía no se ha encargado. Es una idea, no una decisión cerrada.
+
+**Menos equipos en cadete y juvenil, como en la vida real.** A esas edades muchos niños empiezan a hacer otras cosas y dejan el deporte. Propuesta para que salga solo, sin fijar el número de equipos por edad:
+- Cada verano, cada deportista decide si sigue. La probabilidad de dejarlo sube con la edad (sobre todo desde cadete) y pesan su interés, su ambición, los minutos o las carreras que tuvo, sus estudios (más en 4.º de la ESO y en bachillerato) y lo que hacen sus padres. El personaje ve los mismos motivos, pero lo de seguir lo decide el jugador.
+- Un club solo saca equipo en una categoría si llega al mínimo de la plantilla. Si no llega, ese curso no lo tiene y sus jugadores buscan otro club con la regla de plaza. Los primeros en quedarse sin equipo son los clubes pequeños.
+- Con la ciudad grande, los «unos 30 equipos por categoría» de §2 serían menos en cadete y juvenil. Las probabilidades se calibran midiendo cuántos equipos quedan por categoría.
+
+**Archivar a quien sale del mundo que se juega.** Un PNJ que ha dejado el deporte para siempre y no ha tenido relación con el personaje ya no forma parte de ese mundo (por ejemplo, un niño de otro colegio con el que nunca ha coincidido, ya en cadete). Se archiva:
+- **Qué se guarda:** una ficha pequeña (nombre, sexo, fecha de nacimiento y colegio) y su historial deportivo (temporadas, clubes, categorías y cifras), para que las clasificaciones y las plantillas de cada temporada sigan siendo ciertas.
+- **Qué deja de existir:** sus capacidades, habilidades, estado, agenda y simulación semanal. No aparece por la ciudad y no vuelve.
+- **Por qué no choca con `VISION.md`:** se guarda todo lo que el mundo que se juega necesita, y él ya no está en ese mundo. Es lo que hace Football Manager con los jugadores retirados.
+- **Lo que aporta:** con la ciudad grande, buena parte de la población pasa al archivo con los años, lo que aligera el guardado y el avance semanal. El archivo casi no cambia, así que encaja con el guardado por partes (`ALMACENAMIENTO.md`).
+
+**Preguntas abiertas para el usuario:**
+1. ¿Qué cuenta como «haber tenido relación con el personaje»? Propuesta: que lo conozca, que tengan relación, que haya sido su compañero de equipo o de clase, o que sea de su familia. Haber corrido alguna carrera contra él no cuenta.
+2. ¿Se archivan también los que nunca hicieron deporte, cuando salen del colegio sin haber tenido relación con el personaje? Es la mayor parte del ahorro con la ciudad grande.
+
+**Cuándo:** el abandono por edad encaja con las decisiones de verano (después de la P2b-2). El archivo, junto con el guardado por partes y antes de subir a la ciudad grande (paso 3 de §10).
