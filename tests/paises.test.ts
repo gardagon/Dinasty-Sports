@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   CALENDARIO_ESPANA,
+  SUFIJO_CIUDAD_DE_PRUEBA,
+  conCiudadDePrueba,
   apellidosDeFamilia,
   identidadDeJugador,
   HORARIOS_DE_ESPANA,
@@ -160,10 +162,12 @@ describe('el país de la partida', () => {
         expect(jugador.apellidos.split(' ').length >= apellidos).toBe(true);
         if (apellidos === 1) expect(jugador.apellidos).toBe(jugador.delPadre);
         else expect(jugador.apellidos).toBe(`${jugador.delMadre} ${jugador.delPadre}`);
-        const g = nuevaPartida({ seed, pais: id });
+        // En la ciudad pequeña de prueba (los mismos nombres y datos del país, con menos gente): son muchas partidas.
+        registrarPais(conCiudadDePrueba(p));
+        const g = nuevaPartida({ seed, pais: `${id}${SUFIJO_CIUDAD_DE_PRUEBA}` });
         for (const h of g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' })) expect(h.name.endsWith(apellidosDeFamilia(seed, h.gender, p)), `${id} ${seed} ${h.name}`).toBe(true);
         if (apellidos === 1) expect(apellidosDeFamilia(seed, 'm', p)).toBe(jugador.delPadre);
       }
     }
-  }, 120000);
+  }, 30000);
 });

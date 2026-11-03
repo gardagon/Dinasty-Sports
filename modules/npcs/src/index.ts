@@ -94,7 +94,10 @@ import {
   type ClubJoinData,
   type IdentityService,
   type DatosDeAgenda,
-  COLEGIOS_DE_FUERA,
+  CALIDAD_DE_TAMANO,
+  CIUDAD_ACTUAL,
+  idsDeColegiosDeFuera,
+  type CiudadDef,
   aptitudDe,
   datosDeDeporte,
   fichasDeDeporte,
@@ -125,7 +128,7 @@ import {
 } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
-import { type HabilidadesDe } from './rutina';
+import { habilidadesIniciales, lectorDe, prepararTrabajo, type HabilidadesDe } from './rutina';
 import { NUNCA, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
 
 /**
@@ -364,20 +367,19 @@ export const edadNpc = (n: Npc, primerDiaDelCurso: number): number | undefined =
  * otros 25 de la otra clase de tu curso, ~150 alumnos de los demás cursos, 11 profesores más (con el tutor son 12), un equipo
  * de atletismo del colegio de 16 alumnos y 80 vecinos de todas las edades. Todos son desconocidos hasta que se habla con ellos.
  */
-const ALUMNOS_POR_AULA = 25;
-const COMPANEROS_DE_CLASE = ALUMNOS_POR_AULA - 1;
-/** Todos los cursos del colegio tienen dos clases de 25 (el del personaje también). */
-const ALUMNOS_POR_CURSO = 2 * ALUMNOS_POR_AULA;
-/** Alumnos por curso de cada colegio de fuera, y de jóvenes de cada edad que ya no van al colegio (18 y 19 años). */
-const ALUMNOS_POR_CURSO_DE_CADA_COLEGIO = 17;
-const JOVENES_POR_EDAD = ALUMNOS_POR_CURSO_DE_CADA_COLEGIO * COLEGIOS_DE_FUERA.length;
+/** La ciudad de la partida mientras se genera la gente: cuántos colegios, clases y vecinos hay (datos del país; ver `CiudadDef`). */
+const ciudad = (): CiudadDef => PAIS_GENERANDO.ciudad ?? CIUDAD_ACTUAL;
+/** Los compañeros de tu clase (sin ti) y los alumnos por curso del colegio (todas sus clases, la tuya incluida). */
+const companerosDeClase = (): number => ciudad().alumnosPorAula - 1;
+const alumnosPorCurso = (): number => ciudad().aulasPorCurso * ciudad().alumnosPorAula;
+/** Jóvenes de cada edad que ya no van al colegio (18 y 19 años): tantos como alumnos por curso tienen los colegios de fuera juntos. */
+const jovenesPorEdad = (): number => ciudad().alumnosPorCursoDeCadaColegio * ciudad().colegiosDeFuera;
 /** A esta edad (de competición) los jóvenes de otros colegios dejan de formar parte del barrio. */
 const EDAD_FIN_JOVENES = 20;
 const descripcionDeOtroColegio = (g: Gender): string => (g === 'f' ? 'Alumna de otro colegio.' : 'Alumno de otro colegio.');
 const EDAD_ALUMNO_MIN = 8;
 /** A esta edad (de competición) se termina el colegio: 2.º de bachillerato es a los 17. */
 const EDAD_FIN_COLEGIO = 18;
-const VECINOS = 80;
 /** Qué profesor da cada asignatura (número de `profesor_N`, por orden de `ASIGNATURAS_DE_PROFESORES`): al ir a su clase se presenta. */
 const PROFESOR_DE_ASIGNATURA: Readonly<Record<string, number>> = {
   'estudios.lengua': 1, 'estudios.matematicas': 2, 'estudios.ingles': 3, 'estudios.educacion_fisica': 4,
@@ -427,23 +429,24 @@ function persona(rng: Rng, id: string, role: NpcRole, edad: number, dia: number,
 function poblarElColegio(rng: Rng, usados: RegistroDeNombres, existentes: number): Npc[] {
   const o = (g: Gender, f: string, m: string) => (g === 'f' ? f : m);
   const alumno = (id: string, edad: number, desc: (g: Gender) => string, tuClase = false): Npc => persona(rng, id, 'companero', edad, 0, usados, [{ tipo: 'alumno', ...(tuClase ? { tuClase: true } : {}) }], desc, [], true);
-  const tuClase = Array.from({ length: COMPANEROS_DE_CLASE - existentes }, (_, i) => alumno(`clase_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Compañera de tu clase.', 'Compañero de tu clase.'), true));
-  const otraClase = Array.from({ length: ALUMNOS_POR_AULA }, (_, i) => alumno(`curso_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Alumna de la otra clase de tu curso.', 'Alumno de la otra clase de tu curso.')));
+  const tuClase = Array.from({ length: companerosDeClase() - existentes }, (_, i) => alumno(`clase_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Compañera de tu clase.', 'Compañero de tu clase.'), true));
+  // Las demás clases de tu curso (con una sola clase por curso no hay otra).
+  const otraClase = Array.from({ length: (ciudad().aulasPorCurso - 1) * ciudad().alumnosPorAula }, (_, i) => alumno(`curso_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Alumna de la otra clase de tu curso.', 'Alumno de la otra clase de tu curso.')));
   const otrosCursos: Npc[] = [];
   for (let edad = EDAD_ALUMNO_MIN + 1; edad < EDAD_FIN_COLEGIO; edad++) {
-    for (let i = 0; i < ALUMNOS_POR_CURSO; i++) otrosCursos.push(alumno(`alumno_${otrosCursos.length + 1}`, edad, (g) => o(g, 'Alumna del colegio.', 'Alumno del colegio.')));
+    for (let i = 0; i < alumnosPorCurso(); i++) otrosCursos.push(alumno(`alumno_${otrosCursos.length + 1}`, edad, (g) => o(g, 'Alumna del colegio.', 'Alumno del colegio.')));
   }
   const profesores = ASIGNATURAS_DE_PROFESORES.map((materia, i) =>
     persona(rng, `profesor_${i + 1}`, 'profesor', rng.int(28, 60), 0, usados, [{ tipo: 'profesor' }], (g) => `${o(g, 'Profesora', 'Profesor')} de ${materia.toLowerCase()}.`, ['profesor']),
   );
-  const vecinos = Array.from({ length: VECINOS }, (_, i) => {
+  const vecinos = Array.from({ length: ciudad().vecinos }, (_, i) => {
     const r = rng.next();
     const edad = r < 0.15 ? rng.int(5, 12) : r < 0.25 ? rng.int(13, 17) : rng.int(18, 75);
     const id = `vecino_${i + 1}`;
     // Los niños del barrio van a un colegio de fuera: también pueden ser reclutados por un club.
     const nino = edad < EDAD_FIN_COLEGIO;
     const vecino = persona(rng, id, 'vecino', edad, 0, usados, [{ tipo: 'vecino' }], (g) => o(g, 'Vecina del barrio.', 'Vecino del barrio.'), [], nino);
-    return nino ? { ...vecino, colegio: colegioDeFuera(id) } : vecino;
+    return nino ? { ...vecino, colegio: colegioDeFuera(id, ciudad().colegiosDeFuera) } : vecino;
   });
   return [...tuClase, ...otraClase, ...otrosCursos, ...profesores, ...vecinos, ...ninosDeOtrosColegios(rng, usados, 0, 1)];
 }
@@ -457,13 +460,13 @@ function ninosDeOtrosColegios(rng: Rng, usados: RegistroDeNombres, dia: number, 
   const nino = (colegio: string, edad: number): void => {
     lista.push({ ...persona(rng, `nino_${desde + lista.length}`, 'vecino', edad, dia, usados, [{ tipo: 'vecino' }], descripcionDeOtroColegio, [], true), colegio });
   };
-  for (const colegio of COLEGIOS_DE_FUERA) {
+  for (const colegio of idsDeColegiosDeFuera(ciudad())) {
     for (let edad = EDAD_ALUMNO_MIN; edad < (soloEntrantes ? EDAD_ALUMNO_MIN + 1 : EDAD_FIN_COLEGIO); edad++) {
-      for (let i = 0; i < ALUMNOS_POR_CURSO_DE_CADA_COLEGIO; i++) nino(colegio, edad);
+      for (let i = 0; i < ciudad().alumnosPorCursoDeCadaColegio; i++) nino(colegio, edad);
     }
   }
   if (!soloEntrantes) {
-    for (let edad = EDAD_FIN_COLEGIO; edad < EDAD_FIN_JOVENES; edad++) for (let i = 0; i < JOVENES_POR_EDAD; i++) nino('ninguno', edad);
+    for (let edad = EDAD_FIN_COLEGIO; edad < EDAD_FIN_JOVENES; edad++) for (let i = 0; i < jovenesPorEdad(); i++) nino('ninguno', edad);
   }
   return lista;
 }
@@ -652,7 +655,7 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
     return {
       ...e,
       nombre: e.nombre ?? catalogo?.nombre ?? e.club,
-      calidad: e.calidad ?? catalogo?.calidad ?? (e.colegio ? 1 : 2),
+      calidad: e.tamano ? CALIDAD_DE_TAMANO[e.tamano] : (e.calidad ?? catalogo?.calidad ?? (e.colegio ? 1 : 2)),
       // Los equipos por categoría no tienen un objetivo del club: cada categoría reclutará entre su mínimo y su máximo.
       objetivo: e.plantilla ? rngEstable('plantilla', semilla, ficha.id, e.club).int(e.plantilla.min, e.plantilla.max) : 0,
     };
@@ -828,11 +831,27 @@ export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGu
   const equipo = pob?.equipos.find((e) => e.club === club);
   const cat = pob && equipo?.plantillaPorCategoria ? categoriaDe(pob, edad) : undefined;
   if (!pob || !equipo?.plantillaPorCategoria || !cat) return { estado: 'libre' };
-  const jugadores = jugadoresDelEquipo(npcs, pob, club, cat, dia);
-  if (jugadores.length < equipo.plantillaPorCategoria.max) return { estado: 'libre' };
-  const peor = jugadores.reduce((m, n) => ((n.levels[deporte] ?? 0) < (m.levels[deporte] ?? 0) || ((n.levels[deporte] ?? 0) === (m.levels[deporte] ?? 0) && n.id > m.id) ? n : m));
-  const datos = { id: peor.id, nombre: peor.name, nivel: peor.levels[deporte] ?? 0 };
-  return nivel > datos.nivel ? { estado: 'por_merito', peor: datos } : { estado: 'completo', peor: datos };
+  const jugadores = jugadoresDelEquipo(npcs, pob, club, cat, dia).map((n) => ({ id: n.id, nombre: n.name, valor: n.levels[deporte] ?? 0 }));
+  return reglaDePlaza(jugadores, equipo.plantillaPorCategoria.max, nivel);
+}
+
+/** Un jugador de un equipo, con lo que vale de verdad (su rendimiento en el deporte). */
+export interface JugadorDeEquipo {
+  id: string;
+  nombre: string;
+  valor: number;
+}
+
+/**
+ * LA REGLA DE PLAZA en un equipo, **la misma para el personaje y para cualquier PNJ**: si el equipo tiene hueco, la plaza es libre; si está completo, solo entra quien vale más
+ * que el peor de los que hay (en un empate, sale el de id mayor), que sería quien deje el sitio; y si no, el equipo está completo. `valor` es lo que vale de verdad el que
+ * quiere entrar (su rendimiento en el deporte). La usan `plazaEnElEquipo` (el personaje) y el reclutamiento de los clubes (los niños del mundo).
+ */
+export function reglaDePlaza(equipo: readonly JugadorDeEquipo[], max: number, valor: number): PlazaEnEquipo {
+  if (equipo.length < max) return { estado: 'libre' };
+  const peor = equipo.reduce((m, n) => (n.valor < m.valor || (n.valor === m.valor && n.id > m.id) ? n : m));
+  const datos = { id: peor.id, nombre: peor.nombre, nivel: peor.valor };
+  return valor > peor.valor ? { estado: 'por_merito', peor: datos } : { estado: 'completo', peor: datos };
 }
 
 // ---------------------------------------------------------------------------------------------------- reclutamiento de deportistas
@@ -849,19 +868,45 @@ interface Aspirante {
   npc: Npc;
   /** Su colegio: `propio` (el del personaje), uno de `COLEGIOS_DE_FUERA` o `ninguno` (ya no va al colegio). */
   colegio: string;
-  /** Cuánto le interesa el deporte (0 a 3) y su potencial en él: lo que decide a quién recluta un equipo. */
+  /** Cuánto le interesa el deporte (0 a 3), su potencial en él y **lo que vale de verdad hoy** (su rendimiento con sus capacidades reales): lo que decide a quién recluta un equipo. */
   interes: number;
   potencial: number;
+  valor: number;
+}
+
+/** Lo que necesita el reclutamiento para valer a cada niño de verdad: el rendimiento de cada deporte (con sus capacidades reales) y una caché del valor de cada uno en este reclutamiento. */
+export interface Valoracion {
+  rend: Rendimientos;
+  valores: Map<string, number>;
+}
+export const valoracionDe = (rend: Rendimientos = new Map()): Valoracion => ({ rend, valores: new Map() });
+
+/**
+ * Lo que vale hoy un niño en un deporte: su rendimiento con sus capacidades reales y sus habilidades (las que lleva si ya juega o las de partida si aún no). Sin rendimiento del
+ * deporte (los deportes de prueba) o sin capacidades, `undefined`: entonces se usa su potencial.
+ */
+export function valorRealDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): number | undefined {
+  const f = v.rend.get(pob.deporte);
+  if (!f || !pob.rutina || !n.genetica || !n.cap || !n.pico || n.nacimiento === undefined) return undefined;
+  const clave = `${n.id}|${pob.deporte}`;
+  const guardado = v.valores.get(clave);
+  if (guardado !== undefined) return guardado;
+  const hab = n.hab?.[pob.deporte] ?? habilidadesIniciales(n.id, n.genetica, pob.deporte, pob.rutina, dia);
+  const t = prepararTrabajo({ id: n.id, genetica: n.genetica, nacimiento: n.nacimiento, cap: n.cap, pico: n.pico }, valoresIniciales(n.id, n.genetica), pob.deporte, pob.rutina, hab, n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), dia);
+  const valor = f(lectorDe(t));
+  v.valores.set(clave, valor);
+  return valor;
 }
 
 const colegioDeNino = (n: Npc): string => n.colegio ?? (delColegio(n) ? 'propio' : 'ninguno');
 
 /** Los niños de una edad que un deporte puede reclutar: los del colegio del personaje, los de otros colegios, los hermanos y los jóvenes que ya no van al colegio. */
-function aspirantesDeEdad(npcs: readonly Npc[], pob: PoblacionGuardada, edad: number, dia: number): Aspirante[] {
+function aspirantesDeEdad(npcs: readonly Npc[], pob: PoblacionGuardada, edad: number, dia: number, val: Valoracion): Aspirante[] {
   const lista: Aspirante[] = [];
   for (const n of npcs) {
     if (!n.genetica || n.deporte !== undefined || n.dejado?.includes(pob.deporte) || n.apartado?.includes(pob.deporte) || edadNpc(n, dia) !== edad) continue;
-    lista.push({ npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial: potencialEn(n.id, n.genetica, pob) });
+    const potencial = potencialEn(n.id, n.genetica, pob);
+    lista.push({ npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor: valorRealDe(n, pob, val, dia) ?? potencial });
   }
   return lista;
 }
@@ -899,8 +944,8 @@ function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardada, edad
  * deporte y, de ellos, a los de más potencial: así, entre tantos niños, de forma natural unos destacan sobre otros. Sirve para crear la partida, para
  * rellenar las plazas que quedan libres cada curso y para añadir un deporte a una partida empezada.
  */
-export function reclutarDeportistas(npcs: Npc[], pob: PoblacionGuardada, dia: number, soloInteresados = false, reservas: ReadonlyMap<string, number> = new Map()): Npc[] {
-  const equipos = [...pob.equipos].filter((e) => !e.plantillaPorCategoria).sort((a, b) => b.calidad - a.calidad);
+export function reclutarDeportistas(npcs: Npc[], pob: PoblacionGuardada, dia: number, soloInteresados = false, reservas: ReadonlyMap<string, number> = new Map(), val: Valoracion = valoracionDe()): Npc[] {
+  const equipos = [...pob.equipos].filter((e) => !e.plantillaPorCategoria).sort((a, b) => b.calidad - a.calidad || (a.club < b.club ? -1 : 1));
   const plazas = new Map(equipos.map((e) => [e.club, plazasPorEdad(e.club, e.objetivo, edadesDe(pob, e))]));
   const ocupadas = new Map<string, number>();
   // Cuántos le faltan a cada equipo para completar su plantilla (los niños envejecen y las plazas por edad ya no coinciden con quien hay: lo que cuenta es el total).
@@ -913,14 +958,14 @@ export function reclutarDeportistas(npcs: Npc[], pob: PoblacionGuardada, dia: nu
   }
   const cambios = new Map<string, Npc>();
   const tomados = new Set<string>();
-  const orden = (x: Aspirante, y: Aspirante): number => y.potencial - x.potencial || (x.npc.id < y.npc.id ? -1 : 1);
+  const orden = (x: Aspirante, y: Aspirante): number => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1);
   for (let edad = pob.reclutamiento.edades.min; edad <= pob.reclutamiento.edades.max; edad++) {
     // En cada edad, un equipo busca cubrir lo que le falta respecto a su reparto ideal por edades, sin pasar de lo que le falta en total.
     const huecos = equipos
       .map((e) => ({ e, falta: Math.min((plazas.get(e.club)?.get(edad) ?? 0) - (ocupadas.get(`${e.club}|${edad}`) ?? 0), faltan.get(e.club) ?? 0) }))
       .filter((h) => h.falta > 0);
     if (!huecos.length) continue;
-    const pool = aspirantesDeEdad(npcs, pob, edad, dia);
+    const pool = aspirantesDeEdad(npcs, pob, edad, dia, val);
     for (const { e, falta } of huecos) {
       const elegibles = pool.filter((a) => !tomados.has(a.npc.id) && (e.colegio === undefined || a.colegio === e.colegio));
       const elegidos = [...elegibles.filter((a) => a.interes > 0).sort(orden), ...(soloInteresados ? [] : elegibles.filter((a) => a.interes === 0).sort(orden))].slice(0, falta);
@@ -932,7 +977,7 @@ export function reclutarDeportistas(npcs: Npc[], pob: PoblacionGuardada, dia: nu
     }
   }
   const conLegados = npcs.map((n) => cambios.get(n.id) ?? n);
-  return reclutarEquiposPorCategoria(conLegados, pob, dia, soloInteresados, reservas, tomados);
+  return reclutarEquiposPorCategoria(conLegados, pob, dia, soloInteresados, reservas, tomados, val);
 }
 
 /** Las categorías en que un equipo tiene su propio equipo (las de `categorias`, o todas las que recluta el club) con las edades que recluta en cada una. */
@@ -948,34 +993,49 @@ function categoriasDelEquipo(pob: PoblacionGuardada, e: EquipoGuardado): { id: s
 export const claveDeEquipo = (club: string, categoria: string): string => `${club}|${categoria}`;
 
 /**
- * Los equipos por categoría (`plantillaPorCategoria`): uno por club y categoría. Se recluta primero a los interesados hasta el máximo (menos la plaza que ocupa el
- * personaje, si juega ahí: `reservas`) y, si con ellos no se llega al mínimo, se completa con niños sin interés hasta el mínimo y no más allá. Con
- * `soloInteresados` solo se hace lo primero. Los equipos de más calidad escogen antes.
+ * Los equipos por categoría (`plantillaPorCategoria`): uno por club y categoría. Los clubes escogen por orden de tamaño (los grandes primero) y cada uno recluta a los
+ * interesados **por lo que vale cada uno de verdad** (su rendimiento hoy), con **la misma regla de plaza que el personaje** (`reglaDePlaza`): con hueco entra, y con el equipo
+ * completo solo entra quien vale más que el peor, que deja el sitio y vuelve a estar disponible para los clubes que escojan después. Se llega como mucho al máximo (menos
+ * la plaza que ocupa el personaje, si juega ahí: `reservas`) y, si con los interesados no se llega al mínimo, se completa con niños sin interés hasta el mínimo y no más allá.
+ * Con `soloInteresados` solo se hace lo primero.
  */
-function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada, dia: number, soloInteresados: boolean, reservas: ReadonlyMap<string, number>, tomados: Set<string>): Npc[] {
-  const equipos = pob.equipos.filter((e) => e.plantillaPorCategoria).sort((a, b) => b.calidad - a.calidad);
+function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada, dia: number, soloInteresados: boolean, reservas: ReadonlyMap<string, number>, tomados: Set<string>, val: Valoracion): Npc[] {
+  const equipos = pob.equipos.filter((e) => e.plantillaPorCategoria).sort((a, b) => b.calidad - a.calidad || (a.club < b.club ? -1 : 1));
   if (!equipos.length) return npcs;
-  const cambios = new Map<string, Npc>();
-  const orden = (x: Aspirante, y: Aspirante): number => y.potencial - x.potencial || (x.npc.id < y.npc.id ? -1 : 1);
+  // La lista de trabajo: los niños que van cambiando de equipo mientras los clubes escogen.
+  const lista = new Map(npcs.map((n) => [n.id, n]));
+  const orden = (x: Aspirante, y: Aspirante): number => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1);
+  const valorDe = (n: Npc): number => valorRealDe(n, pob, val, dia) ?? n.levels[pob.deporte] ?? 0;
   for (const e of equipos) {
     const { min, max } = e.plantillaPorCategoria!;
     for (const cat of categoriasDelEquipo(pob, e)) {
-      const enEquipo = npcs.filter((n) => n.deporte === pob.deporte && n.equipo === e.club && cat.edades.includes(edadNpc(n, dia) ?? -1)).length + [...cambios.values()].filter((n) => n.equipo === e.club && cat.edades.includes(edadNpc(n, dia) ?? -1)).length;
+      const enEquipo = (): Npc[] => [...lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club && cat.edades.includes(edadNpc(n, dia) ?? -1));
       const tope = max - (reservas.get(claveDeEquipo(e.club, cat.id)) ?? 0);
+      const todos = [...lista.values()];
       const elegibles = cat.edades
-        .flatMap((edad) => aspirantesDeEdad(npcs, pob, edad, dia).map((a) => ({ a, edad })))
-        .filter(({ a }) => !tomados.has(a.npc.id) && !cambios.has(a.npc.id) && (e.colegio === undefined || a.colegio === e.colegio));
-      const interesados = elegibles.filter(({ a }) => a.interes > 0).sort((x, y) => orden(x.a, y.a)).slice(0, Math.max(0, tope - enEquipo));
-      let total = enEquipo + interesados.length;
-      const completan = !soloInteresados && total < min ? elegibles.filter(({ a }) => a.interes === 0).sort((x, y) => orden(x.a, y.a)).slice(0, min - total) : [];
-      total += completan.length;
-      for (const { a, edad } of [...interesados, ...completan]) {
+        .flatMap((edad) => aspirantesDeEdad(todos, pob, edad, dia, val).map((a) => ({ a, edad })))
+        .filter(({ a }) => !tomados.has(a.npc.id) && (e.colegio === undefined || a.colegio === e.colegio));
+      const ficha = ({ a, edad }: { a: Aspirante; edad: number }): void => {
         tomados.add(a.npc.id);
-        cambios.set(a.npc.id, reclutarA(a, e, pob, edad, dia));
+        lista.set(a.npc.id, reclutarA(a, e, pob, edad, dia));
+      };
+      for (const c of elegibles.filter(({ a }) => a.interes > 0).sort((x, y) => orden(x.a, y.a))) {
+        const actuales = enEquipo();
+        const plaza = reglaDePlaza(actuales.map((n) => ({ id: n.id, nombre: n.name, valor: valorDe(n) })), tope, c.a.valor);
+        if (plaza.estado === 'completo') continue;
+        if (plaza.estado === 'por_merito') {
+          // Entra quien vale más que el peor: el peor deja el sitio (sin quedar vetado: otro club puede escogerlo).
+          const sale = lista.get(plaza.peor!.id)!;
+          lista.set(sale.id, sinDeporte(sale, pob, false));
+          tomados.delete(sale.id);
+        }
+        ficha(c);
       }
+      const total = enEquipo().length;
+      if (!soloInteresados && total < min) for (const c of elegibles.filter(({ a }) => a.interes === 0 && !tomados.has(a.npc.id)).sort((x, y) => orden(x.a, y.a)).slice(0, min - total)) ficha(c);
     }
   }
-  return npcs.map((n) => cambios.get(n.id) ?? n);
+  return npcs.map((n) => lista.get(n.id) ?? n);
 }
 
 /**
@@ -983,9 +1043,9 @@ function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada, dia: n
  * que aún faltan se cubren con quien encaje (aunque no le interese). Así un niño al que le gusta un deporte no lo pierde porque otro deporte, que va antes,
  * tuviese plazas por cubrir.
  */
-export function reclutarEnTodos(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, reservas: ReadonlyMap<string, number> = new Map()): Npc[] {
-  const interesados = pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia, true, reservas), npcs);
-  return pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia, false, reservas), interesados);
+export function reclutarEnTodos(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map()): Npc[] {
+  const interesados = pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia, true, reservas, valoracionDe(rend)), npcs);
+  return pobs.reduce((lista, pob) => reclutarDeportistas(lista, pob, dia, false, reservas, valoracionDe(rend)), interesados);
 }
 
 /** Un niño deja el deporte (o se retira): ya no está en ningún equipo y, si lo dejó, no se le vuelve a reclutar para él. */
@@ -1015,7 +1075,7 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
  * rellenan las plazas libres con otros niños que encajan. Los niños de otros colegios que se van desaparecen (los que lo dejaron no se vuelven a reclutar);
  * los compañeros, los hermanos y los niños del barrio siguen siendo quienes son, solo que sin deporte.
  */
-function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map()): Npc[] {
+function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map()): Npc[] {
   // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
   let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
   for (const pob of pobs) {
@@ -1028,15 +1088,15 @@ function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia
       return retirado || baja ? [sinDeporte(n, pob, baja)] : [n];
     });
   }
-  return reclutarEnTodos(lista, pobs, dia, reservas);
+  return reclutarEnTodos(lista, pobs, dia, reservas, rend);
 }
 
 /**
  * Lo que trae un deporte que se añade a una partida empezada: su entrenador del colegio y los de sus clubes de fuera y el reclutamiento de sus equipos entre
  * los niños que ya hay (y los de otros colegios). La partida, al crearse, recluta en todos los deportes a la vez (`reclutarEnTodos`).
  */
-export function añadirDeporte(npcs: Npc[], pob: PoblacionGuardada, dia: number, rng: Rng): Npc[] {
-  return reclutarDeportistas([...npcs, ...entrenadoresDeUnDeporte(npcs, pob, rng)], pob, dia);
+export function añadirDeporte(npcs: Npc[], pob: PoblacionGuardada, dia: number, rng: Rng, rend: Rendimientos = new Map()): Npc[] {
+  return reclutarDeportistas([...npcs, ...entrenadoresDeUnDeporte(npcs, pob, rng)], pob, dia, false, new Map(), valoracionDe(rend));
 }
 
 /** Los entrenadores de un deporte: el del colegio (el primer deporte ya trae el suyo) y los de los clubes de fuera. */
@@ -1052,9 +1112,11 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): Npc
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
   const sin = conSemilla([...base, ...colegio, ...bibliotecarios(ctx.rng, usados)], ctx.seed);
   const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng)], sin);
-  const equipos = reclutarEnTodos(conEntrenadores, pobs, 0);
+  // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
+  const rend = rendimientosDe(ctx);
+  const equipos = reclutarEnTodos(conCapacidades(conEntrenadores, 0), pobs, 0, new Map(), rend);
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
-  return conCapacidades(conHabilidades(equipos, pobs, rendimientosDe(ctx), 0), 0);
+  return conCapacidades(conHabilidades(equipos, pobs, rend, 0), 0);
 }
 
 /** El personal de la biblioteca: uno en el turno de mañana (y los sábados) y otro en el de tarde. Van al final para no cambiar el azar de lo demás. */
@@ -1452,7 +1514,7 @@ export const npcs = defineModule<NpcsState>({
         if (club && cat) reservas.set(claveDeEquipo(club.id, cat.id), 1);
       }
       ctx.updateState<NpcsState>((s) => {
-        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), pobs, proximo.day, ctx.rng, reservas), proximo.day));
+        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rendimientosDe(ctx)), proximo.day));
         return { ...s, poblaciones: pobs, npcs: conCapacidades(conHabilidades(npcs, pobs, rendimientosDe(ctx), proximo.day), proximo.day) };
       });
     },
@@ -1469,7 +1531,7 @@ export const npcs = defineModule<NpcsState>({
       const dia = (ctx.time.week - ctx.time.schoolWeek) * 7;
       ctx.updateState<NpcsState>((s) => {
         const pob = previa ?? poblacionDe(ctx, ficha, false, s.semilla ?? 0);
-        const npcs = conPais(ctx.pais, () => (previa ? reclutarDeportistas(s.npcs, pob, dia) : añadirDeporte(s.npcs, pob, dia, ctx.rng)));
+        const npcs = conPais(ctx.pais, () => (previa ? reclutarDeportistas(conCapacidades(s.npcs, dia), pob, dia, false, new Map(), valoracionDe(rendimientosDe(ctx))) : añadirDeporte(conCapacidades(s.npcs, dia), pob, dia, ctx.rng, rendimientosDe(ctx))));
         return { ...s, poblaciones: previa ? guardadas : [...guardadas, pob], npcs };
       });
     },

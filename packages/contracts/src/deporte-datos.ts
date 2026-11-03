@@ -127,6 +127,11 @@ export interface ClubDeDeporte {
   tramites: LugarId;
 }
 
+/** El tamaño de un club de la zona: decide el orden en que recluta (grande, mediano, pequeño). */
+export type TamanoDeClub = 'grande' | 'mediano' | 'pequeno';
+/** La calidad (3, 2, 1) que corresponde a cada tamaño: el orden en que se escoge. */
+export const CALIDAD_DE_TAMANO: Readonly<Record<TamanoDeClub, 1 | 2 | 3>> = { grande: 3, mediano: 2, pequeno: 1 };
+
 /**
  * Un club o el equipo de un colegio que recluta niños para el deporte. La plantilla es un número más o menos definido (se sortea entre `min` y `max`
  * al crear la partida y se mantiene): así un club no tiene veinte niños. Los equipos de un colegio solo reclutan a sus alumnos; los clubes, a cualquiera
@@ -139,7 +144,12 @@ export interface EquipoDeDeporte {
   nombre?: string;
   /** Equipo de un colegio: `propio` (el del personaje) o uno de los de fuera (`COLEGIOS_DE_FUERA`). Solo recluta alumnos de ese colegio. Sin él, es un club abierto a cualquier colegio. */
   colegio?: string;
-  /** 1 colegio, 2 club de la ciudad, 3 alto rendimiento. Sin él: la del club en el catálogo del personaje, o 1 si es de un colegio y 2 si no. */
+  /**
+   * El **tamaño** del club en la zona (`CIUDAD_Y_LIGAS.md` §3): decide en qué orden recluta (los grandes escogen primero, por lo que vale cada niño de verdad, en todos los colegios;
+   * después los medianos; al final los pequeños). El equipo del colegio del personaje es un club pequeño más. Sin él: el que corresponde a su `calidad`.
+   */
+  tamano?: TamanoDeClub;
+  /** 1 colegio, 2 club de la ciudad, 3 alto rendimiento. Es lo mismo que el tamaño (pequeño, mediano, grande): con `tamano`, sale de él. Sin ninguno: la del club en el catálogo del personaje, o 1 si es de un colegio y 2 si no. */
   calidad?: 1 | 2 | 3;
   /** Edades de competición que recluta (por defecto, las del deporte; los equipos de un colegio solo llegan a la edad en que acaba el colegio). */
   edades?: { min?: number; max?: number };

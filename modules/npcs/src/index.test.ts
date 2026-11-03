@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, apellidosDeFamilia, idDePonerApodo, madurezPorEdad, origen, reservaDeNombres, ventajaDeCrianza, type FamilyService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
+import { ID_PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA, registrarPais, SERVICES, apellidosDeFamilia, idDePonerApodo, madurezPorEdad, origen, reservaDeNombres, ventajaDeCrianza, type FamilyService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { familia } from '@ds/mod-familia';
@@ -14,6 +14,8 @@ function irA(g: Game, weekday: number, hora: number, minuto = 0): void {
 }
 
 const nueva = () => Game.create([personaje, npcs, lugares, atletismo], { seed: 9 });
+/** Para los tests que crean muchas partidas: la ciudad pequeña de prueba (los mismos datos con unas 220 personas en vez de 1.100). */
+registrarPais(PAIS_CIUDAD_DE_PRUEBA);
 
 describe('módulo NPCs', () => {
   /** Los deportistas del atletismo de la partida (lo que pone el atletismo; los niños de otros colegios que reclutan los clubes son «rivales»). */
@@ -139,11 +141,11 @@ describe('módulo NPCs', () => {
   });
 
   it('el carácter y los intereses dependen del papel: el entrenador es más disciplinado y le gusta el deporte', () => {
-    const entrenadores = Array.from({ length: 25 }, (_, i) => Game.create([personaje, npcs, atletismo], { seed: i + 1 }).moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'entrenador')!);
+    const entrenadores = Array.from({ length: 25 }, (_, i) => Game.create([personaje, npcs, atletismo], { seed: i + 1, pais: ID_PAIS_CIUDAD_DE_PRUEBA }).moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'entrenador')!);
     const media = entrenadores.reduce((a, n) => a + n.rasgos!.caracter.disciplina, 0) / entrenadores.length;
     expect(media).toBeGreaterThan(7);
     expect(entrenadores.filter((n) => 'deporte' in n.rasgos!.intereses || 'atletismo' in n.rasgos!.intereses).length / entrenadores.length).toBeGreaterThan(0.8);
-  }, 120000);
+  }, 30000);
 
   it('los rasgos se publican en el servicio pero no cambian con los días', () => {
     const g = nueva();

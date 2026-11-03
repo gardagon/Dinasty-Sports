@@ -18,7 +18,7 @@ export const COLEGIOS_DE_FUERA = ['colegio1', 'colegio2', 'colegio3', 'colegio4'
 export const EDAD_DE_COLEGIO = { desde: 3, hasta: 17 } as const;
 
 /** A qué colegio de fuera va alguien (estable por persona: no se guarda). */
-export const colegioDeFuera = (id: string): string => COLEGIOS_DE_FUERA[Math.floor(azarDe('colegio', id) * COLEGIOS_DE_FUERA.length)];
+export const colegioDeFuera = (id: string, cuantos: number = COLEGIOS_DE_FUERA.length): string => `colegio${1 + Math.floor(azarDe('colegio', id) * cuantos)}`;
 
 /** Oficios de los vecinos adultos: cómo se dice en masculino y femenino y dónde trabajan. Se reparten por un hash del id (los de 67 o más, jubilados). */
 export const OFICIOS_DE_VECINOS: readonly { m: string; f: string; trabajo: string }[] = [

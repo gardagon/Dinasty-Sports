@@ -1,4 +1,5 @@
 import type { CalendarioPais } from '../calendar';
+import type { CiudadDef } from '../ciudad';
 import type { Cultura } from '../culturas/tipos';
 import type { HorarioDeLugar } from '../lugares';
 import type { OrigenDef } from '../rasgos';
@@ -25,6 +26,8 @@ export interface PaisDef {
   horarios: Readonly<Record<string, HorarioDeLugar>>;
 
   // ---- quiénes viven allí
+  /** La ciudad: cuántos colegios y clases tiene y cuánta gente vive en ella (si no, `CIUDAD_ACTUAL`). */
+  ciudad?: CiudadDef;
   /** Peso de cada origen familiar entre la gente del país (id de origen → peso). */
   demografia: Readonly<Record<string, number>>;
   /** Orígenes que son «de aquí»: de ellos sale el nombre «local» de las mezclas sin origen local. */

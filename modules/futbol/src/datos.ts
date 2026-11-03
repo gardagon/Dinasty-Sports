@@ -38,6 +38,9 @@ const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
  * La gente del fútbol, de momento solo la del colegio: la plantilla del equipo del colegio (reclutada entre los alumnos) y su entrenador. Los equipos
  * de la ciudad y las ligas con sus rivales llegan en la F2.
  */
+/** Las categorías en que los clubes de la zona tienen equipo (benjamín a juvenil: los de fuera siguen en el sénior, que llega con la liga). */
+const CATEGORIAS_DE_LOS_CLUBES = ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
+
 const POBLACION_ESPANA: PoblacionDeDeporte = {
   // Las habilidades de sus jugadores y su rutina: los futbolistas del mundo las llevan como el personaje; el entrenador elige los ejercicios de cada sesión y son los mismos
   // para todo el equipo (`MISMAS_REGLAS.md`).
@@ -48,7 +51,8 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
     siempre: SIEMPRE,
     ejerciciosPorSesion: 2,
     informal: JUEGO_INFORMAL,
-    sesionesPorSemana: Object.fromEntries(CLUBES_ESPANA.map((c) => [c.id, c.sesiones.weekdays.length])),
+    // Cuántas sesiones por semana entrena cada club: el del colegio, 2; los de la zona, más cuanto más grandes (los grandes entrenan cuatro días).
+    sesionesPorSemana: { ...Object.fromEntries(CLUBES_ESPANA.map((c) => [c.id, c.sesiones.weekdays.length])), club_grande: 4, club_mediano: 3, club_pequeno: 2 },
     sesionesPorDefecto: 2,
   },
   etiqueta: 'futbolista',
@@ -56,16 +60,28 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
   capacidades: [GEN.velocidad, GEN.resistencia, GEN.agilidad, GEN.coordinacion, GEN.fuerza, GEN.inteligencia],
   aptitud: 0.15,
   reclutamiento: { edades: { min: 8, max: 19 }, edadMaxBaja: 13, probabilidadBaja: 0.1 },
-  // Un equipo del colegio por categoría (de benjamín a juvenil: el colegio acaba a los 17), de 14 a 18 jugadores (once titulares y suplentes). Se recluta primero a
-  // los interesados hasta 18 y, si no llegan a 14, se completa con niños sin interés hasta 14: así quedan huecos para el personaje.
-  equipos: [{ club: 'colegio', colegio: 'propio', categorias: ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'], plantillaPorCategoria: { min: 14, max: 18 } }],
+  // Los equipos de la zona (`CIUDAD_Y_LIGAS.md` §3): el del colegio es un club pequeño más y escoge a sus alumnos; los de fuera escogen entre todos los colegios por lo que vale cada
+  // niño, los grandes primero. Un equipo por categoría (de benjamín a juvenil), de 14 a 18 jugadores (once titulares y suplentes): se recluta primero a los interesados hasta 18 y, si no
+  // llegan a 14, se completa con niños sin interés hasta 14, así quedan huecos para el personaje. Con la población de ahora (unos 120 niños por edad) salen llenos. Los filiales (el equipo B
+  // de los clubes grandes y medianos) llegan con la liga por divisiones (F2).
+  equipos: [
+    { club: 'club_grande', nombre: 'Real Ciudad C. F.', tamano: 'grande', categorias: CATEGORIAS_DE_LOS_CLUBES, plantillaPorCategoria: { min: 14, max: 18 } },
+    { club: 'club_mediano', nombre: 'Unión Deportiva del Barrio', tamano: 'mediano', categorias: CATEGORIAS_DE_LOS_CLUBES, plantillaPorCategoria: { min: 14, max: 18 } },
+    { club: 'club_pequeno', nombre: 'Escuela de Fútbol Los Pinos', tamano: 'pequeno', categorias: CATEGORIAS_DE_LOS_CLUBES, plantillaPorCategoria: { min: 14, max: 18 } },
+    { club: 'colegio', colegio: 'propio', tamano: 'pequeno', categorias: ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'], plantillaPorCategoria: { min: 14, max: 18 } },
+  ],
   descripcionDelEquipo: 'Del equipo de fútbol del colegio.',
   entrenadores: {
     sesgoCaracter: { disciplina: 12, sacrificio: 8 },
     interesesPreferidos: ['deporte', 'futbol'],
     descripcionDelColegio: 'Entrena al equipo de fútbol del colegio.',
     dedicacion: 'de fútbol',
-    deFuera: [],
+    // Cada club de la zona tiene sus entrenadores, uno por tramo de edades.
+    deFuera: [
+      { club: 'club_grande', edades: [[8, 11], [12, 15], [16, 19]] },
+      { club: 'club_mediano', edades: [[8, 11], [12, 15], [16, 19]] },
+      { club: 'club_pequeno', edades: [[8, 13], [14, 19]] },
+    ],
   },
 };
 
