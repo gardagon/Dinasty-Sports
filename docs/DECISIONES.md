@@ -16,9 +16,19 @@ Decisiones del usuario del 03/11, **iguales para el personaje y los PNJ y para t
 - **En el personaje** las restricciones son las mismas y **sale del club como cualquier niño**; lo único distinto es que las decisiones son suyas y que nunca se le retira del deporte para siempre. El personaje cuenta como un jugador más de su equipo, con lo que vale (`rend(ctx)`, como en la regla de plaza): si otro que vale más le ocupa el sitio en los fichajes de verano, el módulo de clubes lo saca del club (evento `club.plaza_perdida`; no cuenta como dejarlo plantado ni cierra el plazo) y se le explica qué ha pasado y qué puede hacer: probar en otro club (con la regla de plaza), en otro deporte o esperar al siguiente plazo. *(Revisión del 05/11: la primera versión lo dejaba en el club y entrenando con él, un trato especial.)*
 - **Los fichajes de verano** (ambición, padres y plaza) se hacen dentro del plazo, al empezar el curso: cada club, del más grande al más pequeño, mira a los **tres mejores** de cada equipo de los clubes más pequeños de su categoría. Cada niño decide con `probabilidadDeFichar` (de 5 % a 95 %: 35 % de base, ±35 % por la ambición del carácter y hasta +25 % por lo que practicaron sus padres) y la plaza. Si no la consigue, se queda donde estaba.
 - **Sin huecos reservados**: se quita el comentario «así quedan huecos para el personaje» de los datos del fútbol y del contrato: el personaje entra como cualquier niño; el equipo solo cuenta con su plaza si ya es miembro (como un jugador más: puede perderla).
-- **Medido** (`npm run fichajes -- 12 3`: 12 semillas y 3 cursos; en `tools/fichajes.ts`):
-  - **Cuándo entra un personaje del montón** (nivel de partida en fútbol, mediana 9,5; benjamín, equipo completo): el nivel del peor de cada equipo es 10,8 (grande), 10,4 (mediano), 10,0 (pequeño) y 9,1 (colegio). Entra en el club grande en **1 de 12 semillas**, en el mediano en 3, en el pequeño en 4 y en el del colegio en 8. Los equipos empiezan completos (0 de 12 con hueco).
-  - **Cuántos dejan el deporte para siempre por no encontrar club**: 0,4; 0,7 y 0,4 niños por partida y curso (máximo 2). Los futbolistas no se vacían: 369 al empezar, 395 tras el primer curso y 401 tras el tercero. No hace falta tocar nada.
+- **Medido** (`npm run fichajes -- 12 3`: 12 semillas y 3 cursos; `tools/fichajes.ts`), **con el nivel real del personaje** (el lector del motor, como lo calcula la regla de plaza para él; la primera medida usaba `stat/100`, que no ajusta las capacidades a la edad):
+  - **Al empezar** (nivel de partida en fútbol, mediana 9,5; benjamín, equipos completos): el nivel del peor de cada equipo es 10,8 (grande), 10,4 (mediano), 10,0 (pequeño) y 9,1 (colegio). Entra en el club grande en 1 de 12 semillas, en el mediano en 3, en el pequeño en 4 y en el del colegio en 8. **En 4 de 12 semillas no entra en ningún club de fútbol** al empezar.
+  - **Bot del montón** (el deportista de fútbol con el plan de siempre, que mira en cada plazo si entraría; nivel real 10,5 → 14,8 → 16,9 al empezar los cursos 1, 2 y 3): primer curso en que entraría en cada club (12 semillas):
+
+    | Club | Curso 1 | Curso 2 | Curso 3 | Nunca |
+    |---|---|---|---|---|
+    | Grande | 3 | 7 | 0 | 2 |
+    | Mediano | 7 | 4 | 1 | 0 |
+    | Pequeño | 8 | 4 | 0 | 0 |
+    | Colegio | 10 | 2 | 0 | 0 |
+
+    En el curso 2 todos entrarían en un club pequeño o en el del colegio; el grande se queda fuera de 2 de 12 en los tres cursos.
+  - **Cuántos dejan el deporte para siempre por no encontrar club**: 0,4; 0,6 y 0,0 niños por partida en los cursos 1, 2 y 3 (máximo 2). Los futbolistas no se vacían: 369 al empezar y 395 tras cada curso. No hace falta tocar nada.
 - **Medido con `sim`** (`main` frente a la rama, 365 días × 5 semillas): 0 ❌ y los mismos chequeos (el ⚠️ de rendimiento es el de la velocidad de la máquina, igual en `main`); la tabla, igual salvo el bot «Aleatorio» (28,9 → 28,5), que es el que más se lesiona y más cambia de acciones.
 - **Un test que suponía lo de antes se corrige**: «completo pero mejor que el peor» comprobaba que el desplazado quedaba sin equipo; ahora busca club con la misma regla (y con los niveles puestos a mano en el test puede volver a entrar desplazando a otro, porque la regla mira lo que vale de verdad). Se comprueba que solo deja el deporte, y entonces para siempre, si ningún club lo quiere.
 
