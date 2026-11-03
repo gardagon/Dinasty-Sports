@@ -19,8 +19,9 @@ export const CATEGORIAS_ESPANA: readonly CategoriaDef[] = [
 ];
 
 /**
- * Los clubes con sección de fútbol en España. De momento solo el del colegio: los de fuera, con su prueba de acceso (y los de élite), llegan en la F5.
- * Entrena otros días que el de atletismo (martes y jueves, de 15 a 17), para poder hacer los dos.
+ * Los clubes con sección de fútbol en España: el del colegio y los de la zona (grande, mediano y pequeño). **Cualquier club de la zona admite a quien quiera apuntarse, con la regla de plaza**
+ * (hueco, o ser mejor que el peor del equipo de su categoría) y dentro del plazo de fichajes; la prueba de acceso queda para los clubes de élite (F5). Entrenan otros días que el de atletismo,
+ * para poder hacer los dos. Los trámites se hacen en la secretaría de los clubes, en el campo municipal.
  */
 const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
   {
@@ -32,6 +33,9 @@ const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
     sede: 'campo_colegio',
     tramites: 'administracion',
   },
+  { id: 'club_grande', nombre: 'Real Ciudad C. F.', calidad: 3, sesiones: { weekdays: [0, 1, 3, 4], desde: 17, hasta: 19 }, sede: 'campo_municipal', tramites: 'secretaria_futbol' },
+  { id: 'club_mediano', nombre: 'Unión Deportiva del Barrio', calidad: 2, sesiones: { weekdays: [0, 2, 3], desde: 17, hasta: 19 }, sede: 'campo_municipal', tramites: 'secretaria_futbol' },
+  { id: 'club_pequeno', nombre: 'Escuela de Fútbol Los Pinos', calidad: 2, sesiones: { weekdays: [1, 3], desde: 18, hasta: 20 }, sede: 'campo_municipal', tramites: 'secretaria_futbol' },
 ];
 
 /**
@@ -51,8 +55,8 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
     siempre: SIEMPRE,
     ejerciciosPorSesion: 2,
     informal: JUEGO_INFORMAL,
-    // Cuántas sesiones por semana entrena cada club: el del colegio, 2; los de la zona, más cuanto más grandes (los grandes entrenan cuatro días).
-    sesionesPorSemana: { ...Object.fromEntries(CLUBES_ESPANA.map((c) => [c.id, c.sesiones.weekdays.length])), club_grande: 4, club_mediano: 3, club_pequeno: 2 },
+    // Cuántas sesiones por semana entrena cada club (sus días de entrenamiento): el del colegio, 2; los de la zona, más cuanto más grandes (el grande entrena cuatro días).
+    sesionesPorSemana: Object.fromEntries(CLUBES_ESPANA.map((c) => [c.id, c.sesiones.weekdays.length])),
     sesionesPorDefecto: 2,
   },
   etiqueta: 'futbolista',
@@ -134,6 +138,21 @@ export const LUGARES_FUTBOL: AporteDeLugares = {
       minutosDeCalle: 4,
       horario: { tramos: [{ dias: 'todos', desde: 8 * 60, hasta: 21 * 60 }], texto: 'todos los días de 8:00 a 21:00' },
       despuesDe: 'gimnasio',
+    },
+    {
+      id: 'secretaria_futbol',
+      name: 'Secretaría de los clubes de fútbol',
+      descripcion: 'La secretaría de los clubes de fútbol de la zona, en el campo municipal: aquí te apuntas a un club de fútbol (si hay hueco en el equipo de tu categoría o eres mejor que el peor) dentro del plazo de fichajes.',
+      grupo: 'Dentro del campo municipal',
+      dentroDe: 'campo_municipal',
+      horario: {
+        tramos: [
+          { dias: [0, 1, 2, 3, 4], desde: 16 * 60, hasta: 21 * 60 },
+          { dias: [5], desde: 9 * 60, hasta: 14 * 60 },
+        ],
+        texto: 'de lunes a viernes de 16:00 a 21:00 y los sábados de 9:00 a 14:00',
+      },
+      despuesDe: 'campo_municipal',
     },
   ],
   entreCalles: [],

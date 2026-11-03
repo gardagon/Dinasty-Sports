@@ -271,7 +271,7 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
     // Sale del club como cualquier niño desplazado…
     expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeUndefined();
     // …se le explica qué ha pasado y qué puede hacer (otro club con la regla de plaza, otro deporte o esperar al siguiente plazo)…
-    expect(g.log.some((l) => /Has perdido tu plaza en el equipo de fútbol.*sales del club.*otro club.*otro deporte.*siguiente plazo.*nunca se te retira del deporte para siempre/.test(l.text))).toBe(true);
+    expect(g.log.some((l) => /Un jugador que vale más ha ocupado tu plaza en el equipo de fútbol y sales del club\. Puedes probar en otro club, en otro deporte o esperar al siguiente plazo de fichajes\./.test(l.text))).toBe(true);
     // …no lo ha dejado él (ni plantón ni plazo cerrado) y decide: puede volver a probar en un club en cuanto haya plaza.
     expect(g.stat(GEN.estres)).toBeLessThanOrEqual(estres + 0.5);
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').not.toMatch(/fuera de plazo|plazo de fichajes está cerrado/);
