@@ -55,6 +55,7 @@ Forma de los datos (no su contenido de juego): `id` y `nombre`; calendario con t
 | Validación e importación | `paises/index.ts` (`validarPais`, `registrarPais`, `importarPais`) |
 | Nombres, apellidos, apodos por cultura | `packages/contracts/src/culturas/` |
 | Currículo de España | `paises/curriculo.ts` (`CURSOS_ESPANA`) |
+| La ciudad (colegios de fuera, clases por curso, alumnos y vecinos) y su versión pequeña de prueba | `packages/contracts/src/ciudad.ts` (`CiudadDef`, `CIUDAD_ACTUAL`, `CIUDAD_DE_PRUEBA`); en el paquete, `PaisDef.ciudad`; `conCiudadDePrueba(pais)` en `paises/index.ts` |
 | Datos del atletismo por país (categorías, temporada, competiciones) | `modules/atletismo/src/datos.ts` (`DATOS_ATLETISMO`); forma y validación en `contracts/deporte-datos.ts` |
 | Horarios de España (los lugares de la ciudad base; los de los deportes los trae el deporte) | `lugares.ts` (`HORARIOS_DE_ESPANA`) |
 | Interfaz (selector, importar) | `apps/web/src/main.ts`, `apps/web/src/paquetes.ts` |
