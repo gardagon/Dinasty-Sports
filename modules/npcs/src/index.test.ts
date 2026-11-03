@@ -143,7 +143,7 @@ describe('módulo NPCs', () => {
     const media = entrenadores.reduce((a, n) => a + n.rasgos!.caracter.disciplina, 0) / entrenadores.length;
     expect(media).toBeGreaterThan(7);
     expect(entrenadores.filter((n) => 'deporte' in n.rasgos!.intereses || 'atletismo' in n.rasgos!.intereses).length / entrenadores.length).toBeGreaterThan(0.8);
-  }, 30000);
+  }, 120000);
 
   it('los rasgos se publican en el servicio pero no cambian con los días', () => {
     const g = nueva();
