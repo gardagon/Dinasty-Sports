@@ -1,6 +1,6 @@
 # Motor de los partidos de fútbol (diseño)
 
-Diseño del 01/11/2026, **aprobado con las respuestas del usuario del 01/11 (§0)**; notas de la revisión de la F0 y la F1 en §14. No hay código. Completa [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md) (decisiones de §0 y potenciador de §3 ter) con lo que ni el addon 2.1 ni el diseño de stats definen: **cómo los valores de los jugadores se convierten en un partido** (marcador, minutos, goles, nota). Entra en la fase F2 del fútbol; las piezas de posición y rol (F3), ocultas y derivadas (F4) y decisiones dentro del partido (F7) se enchufan después sin cambiar la estructura.
+Diseño del 01/11/2026, **aprobado con las respuestas del usuario del 01/11 (§0)**; lo que queda de la revisión de la F0 y la F1, en §14. No hay código. Completa [`ANALISIS_FUTBOL.md`](ANALISIS_FUTBOL.md) (decisiones de §0 y potenciador de §3 ter) con lo que ni el addon 2.1 ni el diseño de stats definen: **cómo los valores de los jugadores se convierten en un partido** (marcador, minutos, goles, nota). Entra en la fase F2 del fútbol; las piezas de posición y rol (F3), ocultas y derivadas (F4) y decisiones dentro del partido (F7) se enchufan después sin cambiar la estructura.
 
 ---
 
@@ -195,16 +195,14 @@ Una herramienta como el banco de notas (`npm run sim:partidos`): ligas de cada c
 
 ## 13. Preguntas para decidir
 
-Respondidas el 01/11 (ver §0).
+Todas respondidas el 01/11 (ver §0): experiencia desde 0 con base del conocimiento (decidido por mí), cambios de partida propuestos para España mientras no se confirmen las circulares, un partido de sanción cada 5 amarillas, y lesiones durante el partido y en cualquier acción con el servicio de salud (§9). El motor está listo para la fase F2.
 
-Todas respondidas el 01/11: experiencia desde 0 con base del conocimiento (decidido por mí), cambios de partida propuestos para España mientras no se confirmen las circulares, un partido de sanción cada 5 amarillas, y lesiones durante el partido y en cualquier acción con el servicio de salud (§9). El motor está listo para la fase F2.
+## 14. Lo que la F2 tiene que tener en cuenta (revisión de la F0 y la F1, al día el 03/11)
 
-## 14. Lo que la F2 tiene que tener en cuenta (revisión de los PR de la F0 y la F1, 01/11)
+Hecho desde la revisión del 01/11: los compañeros de equipo ya no cuentan como rivales en `relaciones` (F0), la sobrecarga cuenta todas las sesiones de cualquier deporte y la liga ya no exige semifinal ni final (#59), la plantilla es la de cada equipo de cada categoría (#60), y el entrenador elige los ejercicios de cada sesión (#60). Además, los PNJ entrenan con las mismas fórmulas que el personaje (#63 y #69). Queda:
 
-1. **Compañeros de otros colegios en `relaciones`.** Un niño de otro colegio reclutado por un club pasa a tener el papel `rival` (fase 4). En un partido, si es compañero de equipo del personaje (`bando: 'companero'`), `relaciones` lo trata como rival: `elPersonajeLeGana` da falso y le resta 0,5 de afinidad **aunque el equipo gane**. Hoy no se nota porque aún no hay partidos. Arreglo de una línea: saltar a los participantes con `bando === 'companero'` (o darles algo por jugar juntos).
-2. **Sobrecarga entre deportes.** El kit cuenta las sesiones por deporte, y se puede hacer cualquier deporte sin limitación: con atletismo y fútbol en club se pueden hacer cuatro sesiones al día sin sobrecarga. Con dos deportes reales hay que contar todas las sesiones de entrenamiento del día, de cualquier deporte (por ejemplo, con la etiqueta `entrenamiento` en `accion.realizada`).
-3. **Plantilla por categoría.** `EquipoDeDeporte.categorias` dice en qué categorías tiene equipo un club, pero `plantilla` sigue siendo una sola. Para el fútbol la plantilla tiene que ser **la de cada equipo de cada categoría** (14 a 18 en fútbol 11). Hoy el equipo del colegio tiene 14 a 18 niños **para todas las edades**, uno o dos por edad: no da para un once.
-4. **Temporada en liga sin semifinal ni final.** La validación sigue exigiendo `semifinalAntesDelFinal` y `finalAntesDelFinal`, y el fútbol los rellena aunque no los use. Con `liga`, deberían ser opcionales.
-5. **Cuándo entra el fútbol en el juego.** No está en `MODULOS` (bien: así no cambian `huella` ni `sim`). Pero la clave de firma no está configurada, así que en la web todavía no se puede instalar: hoy el fútbol solo existe en los tests. Hay que configurar la clave (`npm run clave-deportes` y el secreto `DS_CLAVE_PRIVADA`), o añadirlo a `MODULOS` desde la F2 sin que salga en las partidas de la simulación.
-6. **Equilibrio.** La F1 traduce la secundaria «balance» del regate como coordinación. El análisis (§3, punto 8) proponía quitarla y usar el perk `equilibrio_natural` / `desequilibrado` como modificador. No es grave: se puede ajustar con los perks (F4).
-7. **Balance de los entrenamientos.** La sesión del club de fútbol entrena 18 cosas a la vez (cada una poco) y la del atletismo 7. Nadie lo ha medido todavía: la simulación no incluye el fútbol. Hay que medirlo con el banco de partidos y algún bot de fútbol en la F2.
+1. **Cuándo entra el fútbol en el juego.** No está en `MODULOS` (así no cambian `huella` ni `sim`) y en la web todavía no se puede instalar, porque la clave de firma no está configurada: hoy el fútbol solo existe en los tests y en `npm run sim:futbol`. Hay que configurar la clave (`npm run clave-deportes` y el secreto `DS_CLAVE_PRIVADA`, lo hace el usuario), o añadirlo a `MODULOS` en la F2 sin que salga en las partidas de la simulación.
+2. **Equilibrio.** La F1 traduce la secundaria «balance» del regate como coordinación. El análisis (§3, punto 8) proponía quitarla y usar el perk `equilibrio_natural` / `desequilibrado` como modificador. No es grave: se puede ajustar con los perks (F4).
+3. **Balance de los entrenamientos.** Con los ejercicios del entrenador (dos por sesión), cada sesión entrena menos cosas a la vez. El bot de fútbol (`npm run sim:futbol`) ya entra en el equipo a tiempo (#69). Falta medirlo con el banco de partidos en la F2.
+4. **Ligas y copa de la ciudad grande** (`CIUDAD_Y_LIGAS.md`): Primera, Segunda y Tercera con ascensos, descensos y reglas del filial; reparto entre primer y segundo año; copa por eliminatorias con tanda de penaltis (§5, punto 9).
+5. **La experiencia por puesto se rellena partido a partido**, para todos los jugadores (las estructuras llegan con la P2).
