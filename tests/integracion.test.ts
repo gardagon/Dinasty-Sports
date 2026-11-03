@@ -46,9 +46,10 @@ describe('integración de módulos', () => {
     const entrada = r.log.find((l) => l.table); // tú + hasta 8 rivales de su serie (de los 18 NPC de la categoría)
     expect(entrada).toBeDefined();
     // La carrera deja una clasificación con nombres, posiciones y tiempos.
-    expect(entrada!.table!.rows.length).toBeGreaterThanOrEqual(8); // hasta 18 corredores con las ausencias (no se presenta todo el mundo)
+    expect(entrada!.table!.rows.length).toBeGreaterThanOrEqual(8); // corre todo el que se presenta (hasta 18 de la categoría, con las ausencias)
     expect(entrada!.table!.rows.length).toBeLessThanOrEqual(18);
-    expect(entrada!.table?.header).toEqual(['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.']);
+    // Con más de 8 corredores hay varias series (de 8 como mucho) y la tabla dice la serie de cada uno.
+    expect(entrada!.table?.header).toEqual(entrada!.table!.rows.length > 8 ? ['Pos.', 'Corredor', 'Club', 'Serie', 'Tiempo', 'Dif.'] : ['Pos.', 'Corredor', 'Club', 'Tiempo', 'Dif.']);
     const mia = entrada!.table!.rows[entrada!.table!.highlight!];
     expect(mia[1]).toBe('Tú');
     expect(g.service<RelationsService>(SERVICES.relaciones)!.get('entrenador')!.afinidad).toBeGreaterThan(antes);
@@ -65,7 +66,7 @@ describe('integración de módulos', () => {
     expect(g.stat(GEN.energia)).toBeGreaterThanOrEqual(0);
   }, 20000); // en una máquina lenta (la integración continua) la semana entera de acciones tarda más de los 5 s por defecto
 
-  it('las carreras son de hasta 18: los mejores rivales corren al principio y luego la serie rota', () => {
+  it('las carreras son abiertas (hasta 18 de la categoría): los mejores casi siempre se presentan y el pelotón varía según quién acude', () => {
     const g = nuevaPartida({ seed: 4 });
     // El servicio es una foto del momento: se pide de nuevo cada vez. Corren los de la categoría del jugador.
     const mejores = () => {
@@ -101,9 +102,9 @@ describe('integración de módulos', () => {
       carreras++;
     }
     expect(carreras).toBe(30);
-    // Los mejores casi nunca faltan: de 8 carreras con cabezas de serie, los tres primeros corren casi siempre.
+    // Los mejores casi nunca faltan: de las 8 primeras carreras, los tres primeros corren casi siempre.
     expect(presentes.filter(Boolean).length / presentes.length).toBeGreaterThan(0.85);
-    expect(vistos.size).toBeGreaterThan(12); // la rotación recorre casi todo el pelotón
+    expect(vistos.size).toBeGreaterThan(12); // con las ausencias, a lo largo de las carreras corre casi todo el pelotón
     expect(seriesIguales).toBeLessThan(3);
   });
 

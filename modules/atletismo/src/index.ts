@@ -421,6 +421,13 @@ function carrerasDelMundo(ctx: ActionContext, semana: number): void {
   registrar(ctx, pruebas, t);
 }
 
+/** Las semanas del curso de la semifinal o la final de cada trimestre, para los textos: «la semana 14», «las semanas 14, 28 y 40». */
+function semanasDelCampeonato(ctx: ReadContext, cual: 'semifinal' | 'final'): string {
+  const n = (semanas(ctx).campeonatos ?? []).map((c) => c[cual] + 1);
+  if (n.length < 2) return `la semana ${n[0] ?? '?'} del curso`;
+  return `las semanas ${n.slice(0, -1).join(', ')} y ${n[n.length - 1]} del curso`;
+}
+
 /** ¿Puede el personaje correr hoy esta prueba? `true` o el motivo (en español). */
 function puedeCorrer(ctx: ReadContext, tipo: TipoCarrera): true | string {
   const t = ctx.time;
@@ -778,7 +785,7 @@ export const atletismo = defineModule<AtletismoState>({
       name: 'Competir: semifinales del campeonato',
       description: (ctx) => {
         const f = formatoDeCarrera(ctx);
-        return `Al final de cada trimestre (sábado de la penúltima semana de clase): los ${f.semifinal.plazas} mejores de la clasificación del trimestre en tu categoría (con ${f.semifinal.reservas} de reserva para las bajas y ausencias), en series de ${f.maxPorSerie} como mucho. Pasan a la final los ${f.final.porSerie} primeros de cada serie.`;
+        return `Al final de cada trimestre (sábado de ${semanasDelCampeonato(ctx, 'semifinal')}): los ${f.semifinal.plazas} mejores de la clasificación del trimestre en tu categoría (con ${f.semifinal.reservas} de reserva para las bajas y ausencias), en series de ${f.maxPorSerie} como mucho. Pasan a la final los ${f.final.porSerie} primeros de cada serie.`;
       },
       tags: [TAGS.fisico, TAGS.cardio, TAGS.competicion, 'atletismo'],
       group: 'Competición',
@@ -797,7 +804,7 @@ export const atletismo = defineModule<AtletismoState>({
       name: (ctx) => `Competir: final del ${campeonato(ctx)}`,
       description: (ctx) => {
         const f = formatoDeCarrera(ctx);
-        return `Para quien pasó la semifinal (sábado de la última semana de clase del trimestre): ${f.final.plazas} corredores, los ${f.final.porSerie} primeros de cada serie. Hay medallas.`;
+        return `Para quien pasó la semifinal (sábado de ${semanasDelCampeonato(ctx, 'final')}): ${f.final.plazas} corredores, los ${f.final.porSerie} primeros de cada serie. Hay medallas.`;
       },
       tags: [TAGS.fisico, TAGS.cardio, TAGS.competicion, 'atletismo'],
       group: 'Competición',

@@ -33,14 +33,14 @@ describe('los datos del deporte son por país', () => {
   it('España: los textos y las semanas de siempre', () => {
     const g = nuevaPartida({ seed: 31 });
     expect(nombreDe(g, 'atletismo.final')).toBe('Competir: final del campeonato de España');
-    expect(g.preview('atletismo.semifinal')!.description).toMatch(/sábado de la semana 38\)/);
-    expect(g.preview('atletismo.final')!.description).toMatch(/sábado de la semana 39\)/);
+    expect(g.preview('atletismo.semifinal')!.description).toMatch(/sábado de las semanas 14, 28 y 40 del curso\)/);
+    expect(g.preview('atletismo.final')!.description).toMatch(/sábado de las semanas 15, 29 y 41 del curso\)/);
   });
 
   it('un país que el deporte no trae usa los datos de España con su nombre', () => {
     const g = nuevaPartida({ seed: 31, pais: 'argentina' });
     expect(nombreDe(g, 'atletismo.final')).toBe('Competir: final del campeonato de Argentina');
-    expect(g.preview('atletismo.semifinal')!.description).toMatch(/semana 38\)/); // su calendario es copia del de España
+    expect(g.preview('atletismo.semifinal')!.description).toMatch(/semanas 14, 28 y 40 del curso\)/); // su calendario es copia del de España
     expect(federacion(g)).toBe('Real Federación Española de Atletismo (con los datos de España: Argentina aún no tiene los suyos)');
     expect(federacion(nuevaPartida({ seed: 31 }))).toBe('Real Federación Española de Atletismo');
   });
@@ -86,8 +86,8 @@ describe('los datos del deporte son por país', () => {
       }),
     );
     const g = nuevaPartida({ seed: 31, pais: 'curso_corto' });
-    expect(g.preview('atletismo.semifinal')!.description).toMatch(/sábado de la semana 32\)/);
-    expect(g.preview('atletismo.final')!.description).toMatch(/sábado de la semana 33\)/);
+    expect(g.preview('atletismo.semifinal')!.description).toMatch(/sábado de las semanas 14, 28 y 34 del curso\)/);
+    expect(g.preview('atletismo.final')!.description).toMatch(/sábado de las semanas 15, 29 y 35 del curso\)/);
   });
 });
 
