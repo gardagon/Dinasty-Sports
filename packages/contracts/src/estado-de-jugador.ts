@@ -73,6 +73,27 @@ export const factorPorForma = (forma: number): number => 1 + 0.001 * (forma - 50
 /** Lo que mide el resultado de una competición para el ánimo: de −1 (el último) a +1 (el primero), por el puesto. */
 export const valoracionDelPuesto = (puesto: number, total: number): number => (total <= 1 ? 0 : 1 - (2 * (puesto - 1)) / (total - 1));
 
+/** La forma tras una competición: sube con un buen puesto y baja con uno malo (`valoracion` de −1 a +1). Es la misma para el personaje y para cualquier PNJ. */
+export const formaTrasUnaCompeticion = (forma: number, valoracion: number): number => clamp(forma + 6 * valoracion, 0, 100);
+
+/** La forma tras una semana: tiende despacio a lo que dice el estado de esa semana (`eficiencia` de cansancio, ánimo y salud). */
+export function formaTrasLaSemana(forma: number, eficiencia: number): number {
+  const blanco = 100 * clamp((0.5 * (eficiencia - 0.85)) / 0.3 + 0.1, 0, 1);
+  return clamp(MEMORIA_DE_LA_FORMA * forma + (1 - MEMORIA_DE_LA_FORMA) * blanco, 0, 100);
+}
+
+/** La fatiga de una semana: lo que falta para 100 de condición y lo que añaden las sesiones y las competiciones de la semana. */
+export const fatigaDeLaSemana = (fisica: number, sesiones: number): number => 100 - fisica + CARGA.sesion * sesiones;
+
+/** La probabilidad de lesionarse en una semana: crece con la fatiga y baja con la constitución (0 a 100). La misma para el personaje y los PNJ. */
+export const riesgoDeLesion = (fatiga: number, constitucion: number): number => PROBABILIDAD_DE_LESION * (1 + fatiga / 40) * (1.4 - (0.8 * clamp(constitucion, 0, 100)) / 100);
+
+/** Cuánto pesa una lesión (`azar` de 0 a 1): semanas de baja (1 a 6) y la salud que queda. La misma para el personaje y los PNJ. */
+export function gravedadDeLesion(azar: number): { baja: number; salud: number } {
+  const baja = 1 + Math.floor(clamp(azar, 0, 0.999999) * 6);
+  return { baja, salud: clamp(80 - 9 * baja, 15, 80) };
+}
+
 /** Lo que cambia en un jugador al acabar una competición: cansa y le sube o baja la moral y la forma según cómo le fue. `resiliencia` va de 0 a 1. */
 export function trasUnaCompeticion(e: EstadoDeJugador, valoracion: number, resiliencia: number): EstadoDeJugador {
   const amortigua = 1 - 0.5 * clamp(resiliencia, 0, 1);
@@ -80,7 +101,7 @@ export function trasUnaCompeticion(e: EstadoDeJugador, valoracion: number, resil
     ...e,
     fisica: clamp(e.fisica - CARGA.competicion, 0, 100),
     moral: clamp(e.moral + EFECTO_DEL_RESULTADO_EN_LA_MORAL * valoracion * amortigua, 0, 100),
-    forma: clamp(e.forma + 6 * valoracion, 0, 100),
+    forma: formaTrasUnaCompeticion(e.forma, valoracion),
   };
 }
 
@@ -100,20 +121,17 @@ export interface EntradaDeSemana {
  * despacio hacia lo que dice su estado; la salud se recupera y puede haber una lesión (más probable con mucha carga o poco descanso y menos con buena constitución).
  */
 export function pasoDeSemanaDelEstado(e: EstadoDeJugador, i: EntradaDeSemana): EstadoDeJugador {
-  const fatiga = 100 - e.fisica + CARGA.sesion * i.sesiones;
+  const fatiga = fatigaDeLaSemana(e.fisica, i.sesiones);
   const fisica = clamp(100 - fatiga * (1 - RECUPERACION_SEMANAL), 0, 100);
   const baseDeLaMoral = 45 + 30 * clamp(i.animo, 0, 1);
   const moral = clamp(e.moral + (baseDeLaMoral - e.moral) * RECUPERACION_DE_LA_MORAL, 0, 100);
-  // La forma tiende despacio a lo que dice su estado de esta semana (ánimo, descanso y salud).
-  const blanco = 100 * clamp(0.5 * (eficienciaDeEstado({ ...e, fisica, moral }) - 0.85) / 0.3 + 0.1, 0, 1);
-  const forma = clamp(MEMORIA_DE_LA_FORMA * e.forma + (1 - MEMORIA_DE_LA_FORMA) * blanco, 0, 100);
+  const forma = formaTrasLaSemana(e.forma, eficienciaDeEstado({ ...e, fisica, moral }));
   let salud = clamp(e.salud + RECUPERACION_DE_LA_SALUD, 0, 100);
   let baja = e.baja && e.baja > 1 ? e.baja - 1 : undefined;
-  // Una lesión: más probable con mucha fatiga y menos con constitución; su gravedad decide la baja y cuánta salud pierde.
-  const riesgo = PROBABILIDAD_DE_LESION * (1 + fatiga / 40) * (1.4 - (0.8 * clamp(i.constitucion, 0, 100)) / 100);
-  if (!baja && i.azarDeLesion < riesgo) {
-    baja = 1 + Math.floor(i.azarDeGravedad * 6);
-    salud = clamp(80 - 9 * baja, 15, 80);
+  if (!baja && i.azarDeLesion < riesgoDeLesion(fatiga, i.constitucion)) {
+    const g = gravedadDeLesion(i.azarDeGravedad);
+    baja = g.baja;
+    salud = g.salud;
   }
   return { fisica, moral, forma, salud, ...(baja ? { baja } : {}) };
 }

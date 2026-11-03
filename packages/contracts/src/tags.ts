@@ -55,4 +55,8 @@ export const GEN = {
   salud: 'gen.salud',
   estres: 'gen.estres',
   motivacion: 'gen.motivacion',
+  /** Cómo le va estos días (0..100): sube con buenos resultados y se olvida despacio (`estado-de-jugador.ts`). */
+  forma: 'gen.forma',
+  /** Semanas de baja que le quedan por una lesión (0 = sano): no puede entrenar con el club ni competir. */
+  baja: 'gen.baja',
 } as const;

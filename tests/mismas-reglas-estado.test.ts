@@ -10,8 +10,12 @@ import {
   valoracionDelPuesto,
   type EstadoDeJugador,
 } from '@ds/contracts';
-import { advanceToWeek } from '@ds/core';
-import { nuevaPartida } from '@ds/game';
+import { GEN, factorPorForma, formaTrasLaSemana, formaTrasUnaCompeticion, gravedadDeLesion, riesgoDeLesion, fatigaDeLaSemana } from '@ds/contracts';
+import { Game, advanceToWeek } from '@ds/core';
+import { personaje } from '@ds/mod-personaje';
+import { defineModule, SHARED_EVENTS } from '@ds/contracts';
+import { cargarPartida, nuevaPartida } from '@ds/game';
+import { hacer, posible } from './ayudas';
 import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
 import { anotarCompeticion, type NpcsState } from '@ds/mod-npcs';
 import { semanaDeNino, listaDeSesion, type NinoDeportista } from '../modules/npcs/src/semana';
@@ -63,8 +67,8 @@ describe('el estado de un jugador', () => {
   });
 
   it('el historial guarda totales y solo las últimas competiciones', () => {
-    let h = anotarCompeticion(undefined, 1, 'regular', 1, 8, 50);
-    for (let i = 2; i <= 30; i++) h = anotarCompeticion(h, i, 'regular', 5, 8, 52);
+    let h = anotarCompeticion(undefined, { semana: 1, tipo: 'regular', puesto: 1, total: 8, marca: 50 });
+    for (let i = 2; i <= 30; i++) h = anotarCompeticion(h, { semana: i, tipo: 'regular', puesto: 5, total: 8, marca: 52 });
     expect(h.pruebas).toBe(30);
     expect(h.victorias).toBe(1);
     expect(h.podios).toBe(1);
@@ -112,4 +116,112 @@ describe('el mundo juega aunque el personaje no mire', () => {
     const victorias = con.reduce((a, x) => a + x.historial!.atletismo.victorias, 0);
     expect(victorias).toBeGreaterThan(0);
   }, 120000);
+});
+
+describe('el personaje se lesiona y tiene forma con las mismas reglas que los demás', () => {
+  it('misma carga y misma constitución dan el mismo riesgo y la misma gravedad (el estado de un PNJ y la función que usa el personaje)', () => {
+    for (const sesiones of [0, 2, 5]) {
+      for (const constitucion of [10, 50, 90]) {
+        const fatiga = fatigaDeLaSemana(SANO().fisica, sesiones);
+        const riesgo = riesgoDeLesion(fatiga, constitucion);
+        // Por debajo del riesgo, el PNJ se lesiona; por encima, no.
+        const ent = { sesiones, azarDeGravedad: 0.7, animo: 0.5, constitucion };
+        expect(pasoDeSemanaDelEstado(SANO(), { ...ent, azarDeLesion: riesgo * 0.99 }).baja).toBe(gravedadDeLesion(0.7).baja);
+        expect(pasoDeSemanaDelEstado(SANO(), { ...ent, azarDeLesion: riesgo * 1.01 }).baja).toBeUndefined();
+        expect(pasoDeSemanaDelEstado(SANO(), { ...ent, azarDeLesion: 0 }).salud).toBe(gravedadDeLesion(0.7).salud);
+      }
+    }
+    // Más carga, más riesgo; más constitución, menos.
+    expect(riesgoDeLesion(60, 50)).toBeGreaterThan(riesgoDeLesion(10, 50));
+    expect(riesgoDeLesion(30, 90)).toBeLessThan(riesgoDeLesion(30, 10));
+  });
+
+  it('la misma racha de resultados da la misma forma al personaje y a un PNJ', () => {
+    // El personaje: tres resultados seguidos (el último puesto, la victoria, un puesto medio) emitidos con el evento compartido de resultados.
+    const racha: [number, number][] = [[8, 8], [1, 8], [4, 8]];
+    // Un módulo de prueba que emite resultados de competición (como cualquier deporte).
+    const resultados = defineModule<Record<string, never>>({
+      id: 'resultados',
+      name: 'Resultados',
+      dependsOn: ['gen'],
+      initState: () => ({}),
+      actions: racha.map(([position, total], i) => ({
+        id: `resultados.r${i}`,
+        name: `Resultado ${i}`,
+        tags: [],
+        duration: 1,
+        run: (ctx) => ctx.emit({ type: SHARED_EVENTS.COMPETITION_RESULT, data: { module: 'x', discipline: 'x', position, total, mark: 60, unit: 's', participants: [] } }),
+      })),
+    });
+    const g = Game.create([personaje, resultados], { seed: 7 });
+    let esperada = g.stat(GEN.forma);
+    racha.forEach(([position, total], i) => {
+      expect(g.perform(`resultados.r${i}`).ok).toBe(true);
+      esperada = formaTrasUnaCompeticion(esperada, valoracionDelPuesto(position, total));
+    });
+    expect(g.stat(GEN.forma)).toBeCloseTo(esperada, 6);
+    // Un PNJ con la misma forma de partida: la misma racha por su camino (`trasUnaCompeticion`) da la misma forma.
+    let e = SANO({ forma: 60 });
+    for (const [position, total] of racha) e = trasUnaCompeticion(e, valoracionDelPuesto(position, total), 0.5);
+    expect(e.forma).toBeCloseTo(esperada, 6);
+    // Y la forma se olvida igual cada semana.
+    expect(formaTrasLaSemana(90, 1)).toBeLessThan(90);
+    expect(factorPorForma(80)).toBeGreaterThan(factorPorForma(20));
+  });
+
+  it('una lesión del personaje le impide competir y entrenar con el club', () => {
+    // Busca una partida (semilla) en que se lesione pronto: con constitución muy baja el riesgo semanal es mayor.
+    let g;
+    for (let seed = 1; seed <= 40 && !g; seed++) {
+      const base = nuevaPartida({ seed });
+      const guardado = base.serialize();
+      guardado.stats['gen.constitucion'] = 0;
+      const p = cargarPartida(guardado);
+      for (let w = 3; w <= 44; w++) {
+        advanceToWeek(p, 'gen.descansar', w, 5, 10);
+        if (p.stat(GEN.baja) > 0) {
+          g = p;
+          break;
+        }
+      }
+    }
+    expect(g, 'ninguna semilla se lesionó en 40 semanas').toBeDefined();
+    if (!g) return;
+    expect(g.stat(GEN.baja)).toBeGreaterThan(0);
+    expect(g.stat(GEN.salud)).toBeLessThan(90);
+    expect(g.preview('atletismo.carrera')!.available).toBe(false);
+    expect(g.preview('atletismo.carrera')!.reason).toMatch(/baja|lesi/i);
+    expect(posible(g, 'atletismo.club_sesion')).toBe(false);
+    // Se cura: pasadas las semanas de baja vuelve a poder competir.
+    const semanas = g.stat(GEN.baja);
+    advanceToWeek(g, 'gen.descansar', g.time.week + semanas + 1, 5, 10);
+    expect(g.stat(GEN.baja)).toBe(0);
+  }, 120000);
+});
+
+describe('el personaje corre siempre que decide competir', () => {
+  it('en cada jornada normal entra en la prueba y sale en la clasificación', () => {
+    const g = nuevaPartida({ seed: 51 });
+    for (let w = 5; w <= 9; w++) {
+      advanceToWeek(g, 'gen.descansar', w, 5, 10);
+      const r = hacer(g, 'atletismo.carrera');
+      expect(r.ok, `semana ${w}`).toBe(true);
+      const tabla = r.log.find((l) => l.table)!.table!;
+      expect(tabla.rows.some((f) => f[1] === 'Tú')).toBe(true);
+      expect(tabla.rows.length).toBeGreaterThanOrEqual(2);
+    }
+  }, 60000);
+});
+
+describe('el historial de un jugador guarda una entrada por temporada', () => {
+  it('con categoría, club, pruebas, victorias, podios y mejor marca', () => {
+    let h = anotarCompeticion(undefined, { semana: 5, tipo: 'regular', puesto: 1, total: 12, marca: 60, curso: 0, categoria: 'sub12', club: 'cc' });
+    h = anotarCompeticion(h, { semana: 6, tipo: 'regular', puesto: 5, total: 12, marca: 61, curso: 0, categoria: 'sub12', club: 'cc' });
+    h = anotarCompeticion(h, { semana: 60, tipo: 'regular', puesto: 3, total: 9, marca: 59, curso: 1, categoria: 'sub12', club: 'cc' });
+    expect(h.temporadas).toEqual([
+      { curso: 0, categoria: 'sub12', club: 'cc', pruebas: 2, victorias: 1, podios: 1, mejorMarca: 60 },
+      { curso: 1, categoria: 'sub12', club: 'cc', pruebas: 1, victorias: 0, podios: 1, mejorMarca: 59 },
+    ]);
+    expect(h.pruebas).toBe(3);
+  });
 });

@@ -46,14 +46,16 @@ export interface PruebaDelMundo {
   /** `regular`, `semifinal` o `final`. */
   tipo: string;
   categoria: string;
-  resultados: { npcId: string; puesto: number; total: number; marca: number }[];
+  /** `puesto` y `total` son los de la clasificación general (todas las series juntas por tiempos); `serie` es la suya (de 1). */
+  resultados: { npcId: string; puesto: number; total: number; marca: number; serie?: number }[];
 }
 
 /** Las pruebas del mundo de una semana: con ellas cada jugador guarda su historial y le cambian la moral, la forma y la condición (mismas reglas para todos). */
 export interface CompeticionDelMundoData {
   deporte: string;
-  /** Semana absoluta de la partida. */
+  /** Semana absoluta de la partida y curso (para el historial por temporada). */
   semana: number;
+  curso?: number;
   pruebas: PruebaDelMundo[];
 }
 

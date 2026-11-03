@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CLASIFICADOS_POR_SERIE, FACTOR_DE_CAMPEONATO, FINALISTAS, probabilidadDeAcudir, repartirEnSeries, type FilaGuardada, PUNTOS_POR_PUESTO, clasificacionPorPuntos, mejoresMarcas, puntosDe, recortarPruebas, type PruebaGuardada } from './temporada';
+import { FACTOR_DE_CAMPEONATO, anotarEnTabla, clasificarPrueba, finalistasDe, ordenDeTabla, plazasConReservas, probabilidadDeAcudir, repartirEnSeries, type FilaGuardada, PUNTOS_POR_PUESTO, clasificacionPorPuntos, mejoresMarcas, puntosDe, recortarPruebas, type PruebaGuardada } from './temporada';
 
 const prueba = (curso: number, semana: number, marcas: Record<string, number>, tipo: PruebaGuardada['tipo'] = 'regular'): PruebaGuardada => {
   const filas: FilaGuardada[] = Object.entries(marcas).map(([nombre, marca]) => ({ nombre: nombre === 'Tú' ? 'Tú' : nombre, club: nombre === 'Tú' ? 'Mi club' : 'Otro', marca, ...(nombre === 'Tú' ? { yo: true } : { npcId: nombre }) }));
@@ -73,20 +73,78 @@ describe('quién corre: asistencia y series', () => {
     expect(probabilidadDeAcudir(0.8, { posicion: 3, total: 1 })).toBeCloseTo(base, 10); // sin carrera real a la que mirar
   });
 
-  it('las series se reparten en serpiente para que sean parejas', () => {
-    const corredores = Array.from({ length: 18 }, (_, i) => ({ id: i, nivel: 100 - i }));
-    const [a, b] = repartirEnSeries(corredores);
-    expect(a).toHaveLength(9);
-    expect(b).toHaveLength(9);
-    expect(a.map((c) => c.id)).toEqual([0, 3, 4, 7, 8, 11, 12, 15, 16]);
-    expect(b.map((c) => c.id)).toEqual([1, 2, 5, 6, 9, 10, 13, 14, 17]);
-    const media = (xs: { nivel: number }[]) => xs.reduce((s, c) => s + c.nivel, 0) / xs.length;
-    expect(Math.abs(media(a) - media(b))).toBeLessThan(1.5);
-    expect(repartirEnSeries(corredores.slice(0, 5)).map((s) => s.length)).toEqual([3, 2]); // con menos corredores, una más en la A
+  const gente = (n: number) => Array.from({ length: n }, (_, i) => ({ id: i, nivel: 100 - i }));
+
+  it('las series: ceil(n / 8) series, con el mismo número de corredores en cada una o uno de diferencia', () => {
+    for (const n of [0, 1, 2, 7, 8, 9, 13, 16, 17, 25, 40]) {
+      const series = repartirEnSeries(gente(n), 8);
+      expect(series.flat()).toHaveLength(n);
+      expect(series).toHaveLength(Math.max(1, Math.ceil(n / 8)));
+      const tam = series.map((x) => x.length);
+      expect(Math.max(...tam), `n=${n}`).toBeLessThanOrEqual(8);
+      expect(Math.max(...tam) - Math.min(...tam), `n=${n}`).toBeLessThanOrEqual(1);
+    }
+    expect(repartirEnSeries(gente(13), 8).map((x) => x.length).sort()).toEqual([6, 7]);
+    expect(repartirEnSeries(gente(17), 8).map((x) => x.length).sort()).toEqual([5, 6, 6]);
+    expect(repartirEnSeries(gente(15), 8).map((x) => x.length).sort()).toEqual([7, 8]);
+    expect(repartirEnSeries(gente(11), 8).map((x) => x.length).sort()).toEqual([5, 6]);
   });
 
-  it('el campeonato clasifica a 4 por serie: 8 finalistas', () => {
-    expect(CLASIFICADOS_POR_SERIE).toBe(4);
-    expect(FINALISTAS).toBe(8);
+  it('el reparto es en serpentina por nivel: 1.º a la A, 2.º y 3.º a la B, 4.º a la A...', () => {
+    const [a, b] = repartirEnSeries(gente(8), 4);
+    expect(a.map((c) => c.id)).toEqual([0, 3, 4, 7]);
+    expect(b.map((c) => c.id)).toEqual([1, 2, 5, 6]);
+    const [x, y] = repartirEnSeries(gente(18), 9);
+    const media = (xs: { nivel: number }[]) => xs.reduce((t, c) => t + c.nivel, 0) / xs.length;
+    expect(Math.abs(media(x) - media(y))).toBeLessThan(1.5);
+  });
+
+  it('la clasificación general junta las series por tiempos y cada uno conserva su puesto en la serie', () => {
+    const series = clasificarPrueba([
+      [{ mark: 60 }, { mark: 62 }],
+      [{ mark: 59 }, { mark: 61 }],
+    ]);
+    expect(series.flat().map((c) => [c.serie, c.puestoEnSerie, c.puesto])).toEqual([
+      [0, 1, 2],
+      [0, 2, 4],
+      [1, 1, 1],
+      [1, 2, 3],
+    ]);
+  });
+
+  it('la semifinal: los 16 mejores acuden; las bajas y ausencias las cubren los 2 reservas; con menos, corren los que hay', () => {
+    const clasif = Array.from({ length: 20 }, (_, i) => ({ clave: `c${i}`, acude: true }));
+    expect(plazasConReservas(clasif, 16, 2).map((c) => c.clave)).toEqual(clasif.slice(0, 16).map((c) => c.clave));
+    const dos = clasif.map((c, i) => ({ ...c, acude: i !== 3 && i !== 7 }));
+    expect(plazasConReservas(dos, 16, 2).map((c) => c.clave)).toEqual([...dos.slice(0, 16).filter((c) => c.acude), dos[16], dos[17]].map((c) => c.clave));
+    const tres = clasif.map((c, i) => ({ ...c, acude: i !== 1 && i !== 2 && i !== 3 }));
+    expect(plazasConReservas(tres, 16, 2)).toHaveLength(15); // solo hay 2 reservas: nadie más entra
+    expect(plazasConReservas(clasif.slice(0, 11), 16, 2)).toHaveLength(11);
+  });
+
+  const semis = { series: [['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'], ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7']], general: ['a1', 'b1', 'a2', 'b2', 'a3', 'b3', 'a4', 'b4', 'a5', 'b5', 'a6', 'b6', 'a7', 'b7', 'a8'] };
+  const formato = { plazas: 8, porSerie: 4, reservasPorSerie: 2 };
+
+  it('la final: los 4 primeros de cada serie; si uno no acude entra su reserva', () => {
+    expect(finalistasDe(semis, () => true, formato)).toEqual(['a1', 'a2', 'a3', 'a4', 'b1', 'b2', 'b3', 'b4']);
+    expect(finalistasDe(semis, (id) => id !== 'a2', formato)).toEqual(['a1', 'a3', 'a4', 'a5', 'b1', 'b2', 'b3', 'b4']);
+  });
+
+  it('la final con series incompletas: lo que falta lo cubre el mejor tiempo de los no clasificados; con menos de 8, corren todos los que quedan', () => {
+    // En la serie B solo hay 3 que acudan: el hueco lo ocupa el mejor tiempo de los que quedaban (a5).
+    expect(finalistasDe(semis, (id) => !['b4', 'b5', 'b6'].includes(id), formato)).toEqual(['a1', 'a2', 'a3', 'a4', 'b1', 'b2', 'b3', 'a5']);
+    const pocos = { series: [['x1', 'x2', 'x3']], general: ['x1', 'x2', 'x3'] };
+    expect(finalistasDe(pocos, () => true, formato)).toEqual(['x1', 'x2', 'x3']);
+    expect(finalistasDe(pocos, (id) => id !== 'x2', formato)).toEqual(['x1', 'x3']);
+  });
+
+  it('la clasificación acumula los puntos de todas las pruebas de la categoría (×2 en el campeonato) y ordena por puntos y marca', () => {
+    let t = anotarEnTabla(undefined, [{ clave: 'a', puesto: 1, marca: 60 }, { clave: 'b', puesto: 2, marca: 61 }, { clave: 'yo', puesto: 9, marca: 70 }], 'regular');
+    t = anotarEnTabla(t, [{ clave: 'b', puesto: 1, marca: 59.5 }, { clave: 'a', puesto: 2, marca: 60.5 }], 'regular');
+    expect(t.a).toEqual({ pt: 18, pr: 2, mm: 60 });
+    expect(t.b).toEqual({ pt: 18, pr: 2, mm: 59.5 });
+    expect(t.yo).toEqual({ pt: 0, pr: 1, mm: 70 });
+    expect(ordenDeTabla(t)).toEqual(['b', 'a', 'yo']); // empatan a puntos: gana la mejor marca
+    expect(anotarEnTabla(t, [{ clave: 'a', puesto: 1, marca: 60 }], 'semifinal').a.pt).toBe(18 + 20);
   });
 });

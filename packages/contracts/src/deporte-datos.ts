@@ -49,8 +49,28 @@ export interface TemporadaDeDeporte {
    */
   semifinalAntesDelFinal?: number;
   finalAntesDelFinal?: number;
+  /**
+   * Un campeonato al final de **cada trimestre** (en vez de uno al final del curso): cuántas semanas de clase antes de la última del trimestre se juegan las semifinales y la
+   * final (0 = la última semana de clase; 1 = la penúltima). Es una alternativa a `semifinalAntesDelFinal`/`finalAntesDelFinal`. Las demás semanas de competición son jornadas normales.
+   */
+  campeonatoPorTrimestre?: { semifinalAntesDelFinalDeTrimestre: number; finalAntesDelFinalDeTrimestre: number };
+  /** Cómo se corren las pruebas de los deportes de carreras (series, plazas de las semifinales y de la final). */
+  formatoDeCarrera?: FormatoDeCarrera;
   /** Si el deporte se juega en liga (equipos que se enfrentan todos contra todos), cómo es. Sin él, no hay liga (atletismo). */
   liga?: FormatoDeLiga;
+}
+
+/**
+ * Cómo se corren las pruebas: corre todo el que se presenta, en series de `maxPorSerie` como mucho, equilibradas (el mismo número de corredores en cada una o uno de diferencia)
+ * y con una clasificación conjunta por tiempos. En el campeonato de cada trimestre, a la semifinal van los mejores de la clasificación del trimestre en su categoría y a la final,
+ * los mejores de cada serie de la semifinal.
+ */
+export interface FormatoDeCarrera {
+  maxPorSerie: number;
+  /** Plazas de la semifinal (los mejores de la clasificación del trimestre) y cuántos más hacen de reserva por si hay bajas o ausencias. */
+  semifinal: { plazas: number; reservas: number };
+  /** Plazas de la final: los `porSerie` primeros de cada serie de la semifinal y, si falta alguno, sus reservas (los siguientes de su serie). */
+  final: { plazas: number; porSerie: number; reservasPorSerie: number };
 }
 
 /** Cómo es una liga: cuántos equipos la juegan en cada categoría y si hay ida y vuelta. */
@@ -253,9 +273,11 @@ export const textoConPais = (texto: string, ctx: Pick<ReadContext, 'pais'>): str
 /** Las semanas del curso (0 = la primera) en que empieza la competición y se juegan las semifinales y la final. */
 export interface SemanasDeTemporada {
   primeraCompeticion: number;
-  /** Solo si la temporada tiene fases finales (ver `TemporadaDeDeporte`). */
+  /** Solo si la temporada tiene fases finales al final del curso (ver `TemporadaDeDeporte`). */
   semifinal?: number;
   final?: number;
+  /** Solo si el campeonato es por trimestres: la semana de la semifinal y de la final de cada trimestre (1, 2 y 3). */
+  campeonatos?: { trimestre: number; semifinal: number; final: number }[];
 }
 
 const CACHE_DE_SEMANAS = new WeakMap<TemporadaDeDeporte, WeakMap<CalendarioPais, SemanasDeTemporada>>();
@@ -269,8 +291,18 @@ export function semanasDeTemporada(cal: CalendarioPais, t: TemporadaDeDeporte): 
   const clase: number[] = [];
   for (let w = 0; w < cal.semanasPorCurso; w++) if (tramoDeSemana(cal, w).periodo === 'clase') clase.push(w);
   const ultima = clase[clase.length - 1];
+  const porTrimestre: { trimestre: number; semifinal: number; final: number }[] = [];
+  if (t.campeonatoPorTrimestre) {
+    const { semifinalAntesDelFinalDeTrimestre: sf, finalAntesDelFinalDeTrimestre: fi } = t.campeonatoPorTrimestre;
+    const tri = [...new Set(clase.map((w) => tramoDeSemana(cal, w).trimestre))];
+    for (const n of tri) {
+      const ws = clase.filter((w) => tramoDeSemana(cal, w).trimestre === n);
+      porTrimestre.push({ trimestre: n, semifinal: ws[Math.max(0, ws.length - 1 - sf)], final: ws[Math.max(0, ws.length - 1 - fi)] });
+    }
+  }
   const semanas: SemanasDeTemporada = {
     primeraCompeticion: clase[Math.min(t.semanasDePretemporada, clase.length - 1)],
+    ...(porTrimestre.length ? { campeonatos: porTrimestre } : {}),
     ...(t.semifinalAntesDelFinal !== undefined && t.finalAntesDelFinal !== undefined ? { semifinal: ultima - t.semifinalAntesDelFinal, final: ultima - t.finalAntesDelFinal } : {}),
   };
   porCalendario.set(cal, semanas);
@@ -307,7 +339,19 @@ export function validarDatosDeDeporte(x: unknown): string[] {
     if (!esObjeto(t) || !esEntero(t.semanasDePretemporada)) p.push(`${en}: la «temporada» tiene que traer semanasDePretemporada (entero)`);
     else {
       const fases = [t.semifinalAntesDelFinal, t.finalAntesDelFinal];
-      if (fases.some((x) => x !== undefined && !esEntero(x))) p.push(`${en}: la «temporada» tiene que traer semifinalAntesDelFinal y finalAntesDelFinal como enteros`);
+      const porTri = t.campeonatoPorTrimestre;
+      if (porTri !== undefined) {
+        if (!esObjeto(porTri) || !esEntero(porTri.semifinalAntesDelFinalDeTrimestre) || !esEntero(porTri.finalAntesDelFinalDeTrimestre)) p.push(`${en}: el «campeonatoPorTrimestre» tiene que traer semifinalAntesDelFinalDeTrimestre y finalAntesDelFinalDeTrimestre como enteros`);
+        else if ((porTri.finalAntesDelFinalDeTrimestre as number) >= (porTri.semifinalAntesDelFinalDeTrimestre as number)) p.push(`${en}: la final del trimestre tiene que ser después de las semifinales (finalAntesDelFinalDeTrimestre menor que semifinalAntesDelFinalDeTrimestre)`);
+      }
+      const f = t.formatoDeCarrera;
+      if (f !== undefined) {
+        const ok = esObjeto(f) && esEntero(f.maxPorSerie) && (f.maxPorSerie as number) >= 2 && esObjeto(f.semifinal) && esEntero(f.semifinal.plazas) && esEntero(f.semifinal.reservas) && esObjeto(f.final) && esEntero(f.final.plazas) && esEntero(f.final.porSerie) && esEntero(f.final.reservasPorSerie);
+        if (!ok) p.push(`${en}: el «formatoDeCarrera» tiene que traer maxPorSerie (2 o más), semifinal {plazas, reservas} y final {plazas, porSerie, reservasPorSerie}`);
+      }
+      if (porTri !== undefined) {
+        // El campeonato por trimestres sustituye al del final del curso.
+      } else if (fases.some((x) => x !== undefined && !esEntero(x))) p.push(`${en}: la «temporada» tiene que traer semifinalAntesDelFinal y finalAntesDelFinal como enteros`);
       else if (fases.every((x) => x === undefined)) {
         if (t.liga === undefined) p.push(`${en}: la «temporada» tiene que traer semifinalAntesDelFinal y finalAntesDelFinal (solo una liga puede no tener fases finales)`);
       } else if (fases.some((x) => x === undefined)) p.push(`${en}: la «temporada» tiene que traer semifinalAntesDelFinal y finalAntesDelFinal los dos o ninguno`);
