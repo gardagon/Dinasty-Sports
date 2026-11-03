@@ -85,11 +85,23 @@ En los clubes con filial, cada verano el entrenador reparte a sus jugadores:
 
 Sobran semanas: 18 jornadas más 5 rondas de copa son 23 sábados de los ~30 que tiene un curso.
 
-## 7. El verano: plantillas nuevas
+## 7. El verano: plazo de fichajes y plantillas nuevas
 
-Cada verano, en este orden y para todos los clubes:
+**Decidido por el usuario el 03/11/2026, igual para el personaje y los PNJ y para todos los deportes** (la regla está en el kit del deporte; las fechas, en los datos del deporte por país).
+
+**El plazo de fichajes va del verano a la primera competición del curso** (en el fútbol, la primera jornada de liga; en el atletismo, la primera carrera). Sale de la temporada de cada deporte en cada país (`semanasDePretemporada`) y del calendario del país (`plazoDeFichajesAbierto` en `contracts`). En España, de la semana 42 del curso (el verano) a la 4 del curso siguiente.
+
+- **Dentro del plazo**, cualquiera puede entrar en un club o cambiarse: con hueco, entra; con el equipo lleno, entra quien vale más que el peor (`reglaDePlaza`, la misma para todos), y el desplazado busca otro club con hueco con la misma regla.
+- **Fuera del plazo**, quien está en un club no puede cambiarse. Quien no está en ningún club puede entrar solo si hay hueco, sin sacar a nadie. Quien deja su club fuera de plazo no puede entrar en otro del mismo deporte hasta el siguiente plazo. La acción del personaje explica por qué no puede («El plazo de fichajes está cerrado hasta el verano…»).
+- **Quien se queda sin equipo** (desplazado por otro que vale más), dentro del mismo plazo:
+  1. Busca otro club de su deporte, del más grande al más pequeño, con la misma regla de plaza (si desplaza a su vez a otro, este hace lo mismo).
+  2. Si no encuentra, **deja ese deporte al menos ese curso** (puede volver a intentarlo en el siguiente plazo) y busca club en **otro deporte que le interese**, con la misma regla y dentro del mismo plazo.
+  3. Si ningún club de ningún deporte lo quiere, **deja el deporte para siempre**: deja de ser deportista y no vuelve a apuntarse.
+  - **En el personaje** las restricciones son las mismas (ningún club lo coge si no hay hueco o no es mejor que el peor), pero las decisiones son del jugador: si otro que vale más le ocupa el sitio se le avisa («Has perdido tu plaza…») y él elige si prueba en otro club, en otro deporte o en el siguiente plazo. **Nunca se le retira a la fuerza**: sigue siendo del club (aunque deje de contar como uno de los jugadores del equipo).
+
+Cada verano, en este orden y para todos los clubes (todo dentro del plazo):
 1. Cada jugador sube de categoría si le toca, según su año de nacimiento.
-2. **Los clubes fichan** por orden de tamaño (los grandes primero) a los que han destacado. Cada niño decide si se va, según su ambición, sus padres, la plaza y, ahora también, si iría al A o al B (§3 y `MISMAS_REGLAS.md` §7 bis).
+2. **Los clubes fichan** por orden de tamaño (los grandes primero): miran a los mejores de los clubes más pequeños de su categoría (los tres mejores de cada equipo). Cada niño decide si se va según su **ambición** (eje del carácter), lo que **practicaron sus padres** y la **plaza** (con hueco, o siendo mejor que el peor del equipo) (`probabilidadDeFichar`: de 5 % a 95 %). Los desplazados buscan club como se ha dicho.
 3. Cada club reparte entre el A y el B (§5) y completa sus plantillas con los interesados que quedan. **Nadie interesado se queda sin equipo** mientras haya plazas en algún club de la zona: con una ciudad grande, las hay.
 4. Los ascensos y descensos de la temporada pasada ya están aplicados.
 

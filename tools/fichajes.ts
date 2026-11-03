@@ -25,6 +25,7 @@ const huecos: Record<string, number> = {};
 const medianos: Record<string, number[]> = {};
 const personaje: number[] = [];
 const dejadosPorCurso: number[][] = Array.from({ length: CURSOS }, () => []);
+const entraPorClub: Record<string, number> = {};
 const futbolistasPorCurso: number[][] = Array.from({ length: CURSOS + 1 }, () => []);
 
 for (let seed = 1; seed <= SEMILLAS; seed++) {
@@ -37,16 +38,17 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
     const niveles = equipo.map((n) => n.levels.futbol);
     (medianos[club] ??= []).push(mediana(niveles));
     if (equipo.length < 18) huecos[club] = (huecos[club] ?? 0) + 1;
-    else (umbral[club] ??= []).push(Math.min(...niveles));
+    else {
+      (umbral[club] ??= []).push(Math.min(...niveles));
+      if (personaje[personaje.length - 1] > Math.min(...niveles)) entraPorClub[club] = (entraPorClub[club] ?? 0) + 1;
+    }
+    if (equipo.length < 18) entraPorClub[club] = (entraPorClub[club] ?? 0) + 1;
   }
   futbolistasPorCurso[0].push(s0.npcs.filter((n) => n.deporte === 'futbol').length);
-  let dejadosAntes = s0.npcs.filter((n) => n.dejado?.length).length;
   for (let c = 1; c <= CURSOS; c++) {
     advanceToWeek(g, 'gen.descansar', 52 * c + 1, 2, 15);
     const s = g.moduleState<NpcsState>('npcs') as NpcsState;
-    const dejados = s.npcs.filter((n) => n.dejado?.length).length;
-    dejadosPorCurso[c - 1].push(dejados - dejadosAntes);
-    dejadosAntes = dejados;
+    dejadosPorCurso[c - 1].push(s.dejanSinClub?.[c] ?? 0);
     futbolistasPorCurso[c].push(s.npcs.filter((n) => n.deporte === 'futbol').length);
   }
   const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
@@ -58,14 +60,13 @@ const media = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max
 console.log(`\nMedidas de fichajes: ${SEMILLAS} semillas, ${CURSOS} cursos\n`);
 console.log(`Nivel del personaje de partida en fútbol: mediana ${f(mediana(personaje))} (mín ${f(Math.min(...personaje))}, máx ${f(Math.max(...personaje))})\n`);
 console.log('Equipo de benjamín (8-9 años) de cada club, al empezar:');
-console.log('| Club | Nivel mediano del equipo | Equipos con hueco | Nivel del peor (equipo completo) | Entra el personaje |');
+console.log('| Club | Nivel mediano del equipo | Equipos con hueco | Nivel del peor (equipo completo) | Semillas en que entra el personaje de partida |');
 console.log('|---|---|---|---|---|');
 for (const club of CLUBES) {
   const peor = umbral[club] ?? [];
-  const entra = media(personaje) > mediana(peor) ? 'por mérito' : 'no entra si está completo';
-  console.log(`| ${club} | ${f(mediana(medianos[club]))} | ${huecos[club] ?? 0} de ${SEMILLAS} | ${peor.length ? f(mediana(peor)) : '—'} | ${huecos[club] ? `con hueco entra (${huecos[club]}/${SEMILLAS})` : ''} ${peor.length ? entra : ''} |`);
+  console.log(`| ${club} | ${f(mediana(medianos[club]))} | ${huecos[club] ?? 0} de ${SEMILLAS} | ${peor.length ? f(mediana(peor)) : '—'} | ${entraPorClub[club] ?? 0} de ${SEMILLAS} |`);
 }
-console.log('\nQuienes dejan el deporte para siempre (niños que tienen `dejado`) por curso, y futbolistas en total:');
+console.log('\nNiños que dejan el deporte para siempre al empezar cada curso por no encontrar club (ningún club los quiso), y futbolistas en total:');
 console.log('| Curso | Dejan el deporte (media por partida) | Máx | Futbolistas (media) |');
 console.log('|---|---|---|---|');
 console.log(`| 0 (inicio) | — | — | ${f(media(futbolistasPorCurso[0]))} |`);

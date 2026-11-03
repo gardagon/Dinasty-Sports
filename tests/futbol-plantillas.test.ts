@@ -158,7 +158,7 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').toMatch(/completo y todos juegan mejor que tú/);
   });
 
-  it('completo pero mejor que el peor: entra y el peor queda sin equipo, sin volver a ser reclutado ese curso', () => {
+  it('completo pero mejor que el peor: entra y el peor busca otro club (con la misma regla); si ninguno lo coge, deja el deporte', () => {
     const g = nueva();
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     const equipo = llenar(g, 99, 1);
@@ -166,10 +166,9 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
     expect(plaza(g, 30)).toMatchObject({ estado: 'por_merito', peor: { id: peor.id } });
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     const despues = estado(g).npcs.find((n) => n.id === peor.id)!;
-    expect(despues.deporte).toBeUndefined();
-    expect(despues.apartado).toEqual(['futbol']);
-    const otra = reclutarDeportistas(estado(g).npcs, pobDeFutbol(g), 0);
-    expect(otra.find((n) => n.id === peor.id)!.deporte).toBeUndefined();
+    // Ya no está en el equipo del colegio: o ha fichado por otro club (de fútbol o de otro deporte) o, si ninguno lo ha querido, ha dejado el deporte.
+    expect(despues.deporte === 'futbol' && despues.equipo === 'colegio').toBe(false);
+    if (despues.deporte === undefined) expect(despues.dejado).toContain('futbol');
     expect(benjamin(g)).toHaveLength(17);
   });
 });

@@ -307,6 +307,8 @@ export interface NpcsState {
   semilla?: number;
   /** Deportes en que el personaje ha perdido su plaza en el equipo de su club (deporte → club): sigue en el club, pero ya no cuenta como uno de los jugadores del equipo. */
   sinPlaza?: Record<string, string>;
+  /** Cuántos niños han dejado el deporte para siempre en cada nuevo curso por no encontrar club (desplazados que ningún club quiso), por curso: para vigilar que los equipos no se vacían. */
+  dejanSinClub?: Record<number, number>;
 }
 
 /**
@@ -1235,7 +1237,7 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
  * rellenan las plazas libres con otros niños que encajan. Los niños de otros colegios que se van desaparecen (los que lo dejaron no se vuelven a reclutar);
  * los compañeros, los hermanos y los niños del barrio siguen siendo quienes son, solo que sin deporte.
  */
-export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[] } = { sinPlaza: [] }): Npc[] {
+export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; dejanSinClub?: number } = { sinPlaza: [] }): Npc[] {
   // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
   let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
   for (const pob of pobs) {
@@ -1252,7 +1254,9 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // club. El personaje cuenta como un jugador más de su equipo, con lo que vale (si otro que vale más le ocupa el sitio, se le avisa y sigue en el club: decide él qué hace).
   const mercado: MercadoDeFichajes = { lista: new Map(lista.map((n) => [n.id, n])), pobs, dia, val: valoracionDe(rend), reservas: new Map() };
   for (const j of personaje) mercado.lista.set(idDelPersonaje(j.deporte), jugadorComoNpc(j, dia));
+  const dejadosAntes = new Set(lista.filter((n) => n.dejado?.length).map((n) => n.id));
   fichajesDeVerano(mercado, semilla, curso);
+  resultado.dejanSinClub = [...mercado.lista.values()].filter((n) => n.deporte === undefined && n.dejado?.length && !dejadosAntes.has(n.id)).length;
   const reservasQueQuedan = new Map(reservas);
   for (const j of personaje) {
     const dentro = mercado.lista.get(idDelPersonaje(j.deporte))?.deporte !== undefined;
@@ -1694,11 +1698,11 @@ export const npcs = defineModule<NpcsState>({
         const f = rend.get(pob.deporte);
         if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: f(ctx), edad: edadProxima });
       }
-      const resultado = { sinPlaza: [] as string[] };
+      const resultado = { sinPlaza: [] as string[], dejanSinClub: 0 };
       ctx.updateState<NpcsState>((s) => {
         const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), proximo.day));
         const perdidas = Object.fromEntries(resultado.sinPlaza.map((d) => [d, clubes!.membership(d)!.id]));
-        return { ...s, poblaciones: pobs, npcs: conCapacidades(conHabilidades(npcs, pobs, rend, proximo.day), proximo.day), sinPlaza: { ...s.sinPlaza, ...perdidas } };
+        return { ...s, poblaciones: pobs, npcs: conCapacidades(conHabilidades(npcs, pobs, rend, proximo.day), proximo.day), sinPlaza: { ...s.sinPlaza, ...perdidas }, dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
       });
       for (const deporte of resultado.sinPlaza) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
     },
