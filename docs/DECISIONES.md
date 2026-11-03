@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 03/11/2026 — Mismas reglas, P2a-2: estado de los jugadores e historial de atletismo
+
+- **Estado** (`packages/contracts/src/estado-de-jugador.ts`): cada PNJ que juega lleva cuatro números: condición física (hace de energía), moral (de motivación), forma y salud, más las semanas de baja por lesión. Rinden con **los mismos factores del personaje** (`factorPorCansancio/Estres/Motivacion/Salud` están en un solo sitio y `modules/personaje` los usa): la huella de los bots salió idéntica. La forma pesa poco (×0,97 a ×1,03).
+- **Cada semana** (`semanaDeportiva`): las sesiones cansan (6 puntos cada una), se recupera el 60 % de la fatiga, la moral vuelve a su nivel (más alto con más resiliencia) y puede haber una lesión (0,4 % base, más con fatiga, menos con constitución; de 1 a 6 semanas, con la salud perdida). De baja no va a las sesiones; el resto entrena con su eficiencia de estado. Los azares son solo suyos (`rngEstable` con la semilla).
+- **Cada competición**: cansa (8), y la moral y la forma suben o bajan según el puesto, amortiguadas por la resiliencia.
+- **Historial** (`Npc.historial[deporte]`): pruebas, victorias, podios, mejor marca y las últimas 12 competiciones. Los totales no se recortan.
+- **Carreras del mundo** (atletismo, evento compartido `competicion.mundo`): cada semana de competición corre una carrera regular por categoría entre los atletas que se presentan (los de baja no), y en las semanas de semifinal y final, esas pruebas. **Sin el personaje**: lo que él haga no cambia el estado ni el historial de los rivales (su suerte es solo suya; un test lo vigila). Sus marcas usan el mismo azar que en la carrera del personaje y su estado cuenta. Simplificación: en el mundo, la semifinal (16 por sorteo) y la final (los 8 mejores) no encadenan.
+- **Medido** (`npm run sim`, antes/después): sin cambios de balance; en conjunto los chequeos coinciden (el único ⚠️ es el de velocidad de la máquina, igual que en `main`). Podios del atleta 9 % → 12 % en 5 semillas (ruido, como ya se vio). `rendimiento -- 60`: crear partida 0,95 → 1,02 s, 2,24 → 2,33 ms/acción, lista de todos 10 → 18 ms (la vista lleva el estado de juego).
+- **Peso**: el estado y el historial se crean al jugar. El guardado crece unos 130 KB tras medio curso (antes ~80 KB), con ~230 jugadores de atletismo; el umbral del test pasa a 200 KB. Es dato de verdad, no se recorta. Se vigilará en la P2c con población ×2 y ×5.
+- **Queda**: el estado aún no cambia la asistencia a las sesiones más que por la baja; las lesiones no salen en la historia previa al crear la partida; el fútbol (partidos) usará este mismo estado.
+
 ## 02/11/2026 — Mismas reglas, P2a-1: habilidades y rutina de los PNJ que juegan
 
 Primera mitad de la P2a de `MISMAS_REGLAS.md` (la segunda, estado e historial, va en otro PR). Cada niño que juega a un deporte lleva **las mismas habilidades que el personaje** y las entrena **con las mismas fórmulas del motor**; su nivel (`levels`) sale de ellas.
