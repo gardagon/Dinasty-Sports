@@ -84,6 +84,16 @@ export function recortarPruebas(pruebas: readonly PruebaGuardada[], cursoActual:
 
 // ---------------------------------------------------------------------------------------------------- quién corre y cómo se clasifican
 
+/** La marca de 400 m (segundos) de quien rinde `nivel`, sin el azar del día: 30 → ~69 s, 70 → ~57 s. La usa `marca400` y la marca esperada de quien aún no ha corrido. */
+export const marcaEsperada400 = (nivel: number): number => 78 - nivel * 0.3;
+
+/**
+ * La marca con que se inscribe un corredor, que es con la que se reparten las series (como en la vida real): su mejor marca de la temporada y, si aún no tiene
+ * (no ha corrido este curso en la categoría), la que se espera de su nivel. No usa nada oculto: es lo que todos ven en la clasificación.
+ */
+export const marcaDeInscripcion = (mejorDeLaTemporada: number | undefined, nivel: number): number => mejorDeLaTemporada ?? marcaEsperada400(nivel);
+
+
 /** Cómo quedó un corredor la última vez que corrió: de ahí depende que se presente la próxima. */
 export interface UltimoPuesto {
   posicion: number;

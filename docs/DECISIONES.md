@@ -5,6 +5,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 03/11/2026 — Detalles tras el #71: series por marca de inscripción, semilla en las lesiones y forma solo en competición
+
+- **Series por marca de inscripción**: se reparten por la mejor marca de la temporada del corredor en la categoría (`tablas.temporada`, las mismas que el historial) y, si no tiene, por la marca que se espera de su nivel (`marcaEsperada400`). Es lo que se hace en la vida real y no usa datos ocultos (antes se repartía por el nivel esperado de todos).
+- **Lesiones del personaje con la semilla de la partida**: `rngEstable('lesion', semilla, 'personaje', semana)`, como los PNJ (`rngEstable('lesion', semilla, id, semana)`). El personaje guarda la semilla (`IdentidadState.semilla`; en partidas anteriores, 0).
+- **La forma no cambia el entrenamiento** (en los dos): el motor la usa en la marca del día de una competición (`factorPorForma`), no en los modificadores de entrenar del personaje, así que se quita del entrenamiento de los PNJ (`eficienciaDeEstado(e, true)` ya no la lleva; la lleva `eficienciaDeEstado(e, false)`, la de competición). Los PNJ entrenan ahora un ±3 % distinto al de antes según su forma; la forma se acerca a su estado de la semana sin depender de sí misma.
+
 ## 03/11/2026 — Cómo se compite en atletismo (decidido por el usuario): prueba abierta, series equilibradas y campeonato por trimestre
 
 Cambia la P2a-2 (#71) tras su revisión. En atletismo no hay convocatorias: corre quien se inscribe.

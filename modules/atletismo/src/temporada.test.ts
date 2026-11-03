@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FACTOR_DE_CAMPEONATO, anotarEnTabla, clasificarPrueba, finalistasDe, ordenDeTabla, plazasConReservas, probabilidadDeAcudir, repartirEnSeries, type FilaGuardada, PUNTOS_POR_PUESTO, clasificacionPorPuntos, mejoresMarcas, puntosDe, recortarPruebas, type PruebaGuardada } from './temporada';
+import { marcaDeInscripcion, marcaEsperada400, FACTOR_DE_CAMPEONATO, anotarEnTabla, clasificarPrueba, finalistasDe, ordenDeTabla, plazasConReservas, probabilidadDeAcudir, repartirEnSeries, type FilaGuardada, PUNTOS_POR_PUESTO, clasificacionPorPuntos, mejoresMarcas, puntosDe, recortarPruebas, type PruebaGuardada } from './temporada';
 
 const prueba = (curso: number, semana: number, marcas: Record<string, number>, tipo: PruebaGuardada['tipo'] = 'regular'): PruebaGuardada => {
   const filas: FilaGuardada[] = Object.entries(marcas).map(([nombre, marca]) => ({ nombre: nombre === 'Tú' ? 'Tú' : nombre, club: nombre === 'Tú' ? 'Mi club' : 'Otro', marca, ...(nombre === 'Tú' ? { yo: true } : { npcId: nombre }) }));
@@ -97,6 +97,21 @@ describe('quién corre: asistencia y series', () => {
     const [x, y] = repartirEnSeries(gente(18), 9);
     const media = (xs: { nivel: number }[]) => xs.reduce((t, c) => t + c.nivel, 0) / xs.length;
     expect(Math.abs(media(x) - media(y))).toBeLessThan(1.5);
+  });
+
+  it('las series se reparten por la marca de inscripción: la mejor de la temporada y, si no tiene, la que se espera de su nivel', () => {
+    expect(marcaDeInscripcion(58.2, 30)).toBe(58.2);
+    expect(marcaDeInscripcion(undefined, 30)).toBeCloseTo(marcaEsperada400(30), 10);
+    // Un corredor con buena marca de la temporada pero poco nivel hoy sale por delante de uno sin marca y con un nivel esperado peor.
+    const inscritos = [
+      { id: 'sinMarca', nivel: -marcaDeInscripcion(undefined, 40) },
+      { id: 'conMarca', nivel: -marcaDeInscripcion(55, 20) },
+      { id: 'otro', nivel: -marcaDeInscripcion(undefined, 60) },
+      { id: 'ultimo', nivel: -marcaDeInscripcion(undefined, 10) },
+    ];
+    const [a, b] = repartirEnSeries(inscritos, 2);
+    expect(a.map((c) => c.id)).toEqual(['conMarca', 'ultimo']); // el 1.º a la A, el 4.º a la A
+    expect(b.map((c) => c.id)).toEqual(['otro', 'sinMarca']);
   });
 
   it('la clasificación general junta las series por tiempos y cada uno conserva su puesto en la serie', () => {
