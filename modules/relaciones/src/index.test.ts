@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, SHARED_EVENTS, type CompetitionResultData, type GameModule, type NpcDirectory, type RelationsService } from '@ds/contracts';
+import { ID_PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA, registrarPais, SERVICES, SHARED_EVENTS, type CompetitionResultData, type GameModule, type NpcDirectory, type RelationsService } from '@ds/contracts';
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { npcs, type NpcsState } from '@ds/mod-npcs';
@@ -7,6 +7,9 @@ import { atletismo } from '@ds/mod-atletismo';
 import { familia } from '@ds/mod-familia';
 import type { IdentidadState } from '@ds/mod-personaje';
 import { conQuienSeJuega, relaciones, type RelacionesState } from './index';
+
+/** Para los tests que crean muchas partidas: la ciudad pequeña de prueba (los mismos datos con unas 220 personas en vez de 1.100). */
+registrarPais(PAIS_CIUDAD_DE_PRUEBA);
 
 /** Las cuatro personas del reparto empiezan sin conocer; casi todos los tests parten de que ya se conocen. */
 const nueva = (conocidas = true, semilla = 9) => {
@@ -229,7 +232,7 @@ describe('módulo relaciones', () => {
     it('con más compatibilidad y menos diferencia de edad, mejor arranca la relación', () => {
       const valores: { afinidad: number; diferencia: number }[] = [];
       for (let seed = 1; seed <= 120; seed++) {
-        const g = Game.create([personaje, familia, npcs, atletismo, relaciones], { seed });
+        const g = Game.create([personaje, familia, npcs, atletismo, relaciones], { seed, pais: ID_PAIS_CIUDAD_DE_PRUEBA });
         for (const h of g.service<NpcDirectory>(SERVICES.npcs)!.list({ tag: 'hermano' })) valores.push({ afinidad: rel(g).get(h.id)!.afinidad, diferencia: Math.abs((h.age ?? 8) - 8) });
       }
       const m = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
@@ -237,7 +240,7 @@ describe('módulo relaciones', () => {
       const lejanos = valores.filter((v) => v.diferencia >= 5).map((v) => v.afinidad);
       expect(m(cercanos)).toBeGreaterThan(m(lejanos));
       expect(new Set(valores.map((v) => Math.round(v.afinidad))).size).toBeGreaterThan(5);
-    }, 450000);
+    }, 150000);
 
     it('con el tiempo la afinidad se enfría pero no baja de 5 (la familia no se olvida)', () => {
       const { g, h } = conHermano((e) => e >= 6);

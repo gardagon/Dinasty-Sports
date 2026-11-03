@@ -1,8 +1,9 @@
 import { CALENDARIOS } from '../calendar';
+import { CIUDAD_DE_PRUEBA } from '../ciudad';
 import { registrarReserva } from '../culturas';
 import { OJOS, PELO_COLOR, PELO_TIPO, PIEL, origen, registrarOrigen } from '../rasgos';
 import { PAIS_ARGENTINA } from './argentina';
-import { PAIS_ESPANA } from './espana';
+import { PAIS_ESPANA, copiaDeEspana } from './espana';
 import { PAIS_INGLATERRA } from './inglaterra';
 import type { PaisDef } from './tipos';
 
@@ -11,6 +12,20 @@ export * from './curriculo';
 export { PAIS_ESPANA, copiaDeEspana } from './espana';
 export { PAIS_ARGENTINA } from './argentina';
 export { PAIS_INGLATERRA } from './inglaterra';
+
+/**
+ * Un país con la **ciudad pequeña de prueba** (`CIUDAD_DE_PRUEBA`): los mismos datos (calendario, currículo, nombres, deportes), pero unas 220 personas en vez de 1.100, así que crear
+ * una partida cuesta una fracción. Los tests que crean muchas partidas lo registran (`registrarPais(conCiudadDePrueba(PAIS_ESPANA))`) y piden su id (`id + SUFIJO_CIUDAD_DE_PRUEBA`).
+ */
+export const SUFIJO_CIUDAD_DE_PRUEBA = '_ciudad_de_prueba';
+export function conCiudadDePrueba(pais: PaisDef): PaisDef {
+  const id = `${pais.id}${SUFIJO_CIUDAD_DE_PRUEBA}`;
+  const copia = structuredClone(pais) as PaisDef;
+  return { ...copia, id, calendario: { ...copia.calendario, id }, ciudad: CIUDAD_DE_PRUEBA };
+}
+/** España con la ciudad pequeña de prueba, lista para registrar. */
+export const PAIS_CIUDAD_DE_PRUEBA = conCiudadDePrueba(PAIS_ESPANA);
+export const ID_PAIS_CIUDAD_DE_PRUEBA = PAIS_CIUDAD_DE_PRUEBA.id;
 
 /** Los países disponibles (el de España siempre; los demás, los de los paquetes registrados). */
 const PAISES: Record<string, PaisDef> = { espana: PAIS_ESPANA };
@@ -32,6 +47,13 @@ export function validarPais(x: unknown): string[] {
   if (!esObjeto(x)) return ['El paquete de país no es un objeto'];
   if (typeof x.id !== 'string' || !/^[a-z][a-z0-9_]{1,30}$/.test(x.id)) p.push('«id» tiene que ser un texto corto en minúsculas (letras, cifras y guion bajo)');
   if (typeof x.nombre !== 'string' || !x.nombre.trim()) p.push('Falta el «nombre» del país');
+  // Ciudad (opcional)
+  if (x.ciudad !== undefined) {
+    const c = x.ciudad;
+    const campos: [string, number][] = [['colegiosDeFuera', 1], ['aulasPorCurso', 1], ['alumnosPorAula', 2], ['alumnosPorCursoDeCadaColegio', 1], ['vecinos', 0]];
+    if (!esObjeto(c)) p.push('«ciudad» no es un objeto');
+    else for (const [k, min] of campos) if (!Number.isInteger(c[k]) || (c[k] as number) < min) p.push(`«ciudad.${k}» tiene que ser un entero de ${min} o más`);
+  }
   // Calendario
   const cal = x.calendario;
   if (!esObjeto(cal)) p.push('Falta el «calendario»');

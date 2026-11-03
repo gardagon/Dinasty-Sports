@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, apellidosDeFamilia, idDePonerApodo, madurezPorEdad, origen, reservaDeNombres, ventajaDeCrianza, type FamilyService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
+import { ID_PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA, registrarPais, SERVICES, apellidosDeFamilia, idDePonerApodo, madurezPorEdad, origen, reservaDeNombres, ventajaDeCrianza, type FamilyService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { familia } from '@ds/mod-familia';
@@ -14,6 +14,8 @@ function irA(g: Game, weekday: number, hora: number, minuto = 0): void {
 }
 
 const nueva = () => Game.create([personaje, npcs, lugares, atletismo], { seed: 9 });
+/** Para los tests que crean muchas partidas: la ciudad pequeña de prueba (los mismos datos con unas 220 personas en vez de 1.100). */
+registrarPais(PAIS_CIUDAD_DE_PRUEBA);
 
 describe('módulo NPCs', () => {
   /** Los deportistas del atletismo de la partida (lo que pone el atletismo; los niños de otros colegios que reclutan los clubes son «rivales»). */
@@ -74,15 +76,20 @@ describe('módulo NPCs', () => {
       expect(new Set(rivales(g).map((n) => n.name)).size).toBe(rivales(g).length);
     });
 
-    it('nadie supera el techo de su edad: potencial × desarrollo', () => {
+    it('nadie supera el techo de su edad: potencial × desarrollo (y en conjunto rinden cerca de él, no por encima)', () => {
       const g = nueva();
       advanceTo(g, 'gen.descansar', 6, 20);
+      let suma = 0;
       for (const n of atletas(g)) {
         const edad = (g.time.day - n.nacimiento!) / 365;
         const techo = n.potential.atletismo * desarrolloRival(edad + (n.desfase ?? 0));
-        // Rinde hasta un 5 % por encima del techo en su mejor año, y la ventaja de crianza le da hasta un 10 % más de partida.
-        expect(n.levels.atletismo).toBeLessThanOrEqual(techo * 1.05 * 1.1 + 1e-6);
+        // El potencial es una estimación antigua: lo que rinden de verdad sale de sus capacidades reales, y los clubes escogen a los que más valen, así que algunos pasan de la estimación
+        // (medido con 4 semillas: hasta un 44 % por encima). Ninguno se dispara...
+        expect(n.levels.atletismo).toBeLessThanOrEqual(techo * 1.6 + 1e-6);
+        suma += n.levels.atletismo / techo;
       }
+      // ...y en conjunto rinden por debajo de su techo (medido: 0,93 a 0,98 del techo).
+      expect(suma / atletas(g).length).toBeLessThan(1.05);
     });
 
     it('los más jóvenes están lejos de su potencial y los mayores cerca', () => {
@@ -139,11 +146,11 @@ describe('módulo NPCs', () => {
   });
 
   it('el carácter y los intereses dependen del papel: el entrenador es más disciplinado y le gusta el deporte', () => {
-    const entrenadores = Array.from({ length: 25 }, (_, i) => Game.create([personaje, npcs, atletismo], { seed: i + 1 }).moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'entrenador')!);
+    const entrenadores = Array.from({ length: 25 }, (_, i) => Game.create([personaje, npcs, atletismo], { seed: i + 1, pais: ID_PAIS_CIUDAD_DE_PRUEBA }).moduleState<NpcsState>('npcs').npcs.find((n) => n.id === 'entrenador')!);
     const media = entrenadores.reduce((a, n) => a + n.rasgos!.caracter.disciplina, 0) / entrenadores.length;
     expect(media).toBeGreaterThan(7);
     expect(entrenadores.filter((n) => 'deporte' in n.rasgos!.intereses || 'atletismo' in n.rasgos!.intereses).length / entrenadores.length).toBeGreaterThan(0.8);
-  }, 120000);
+  }, 30000);
 
   it('los rasgos se publican en el servicio pero no cambian con los días', () => {
     const g = nueva();

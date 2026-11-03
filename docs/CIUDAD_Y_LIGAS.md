@@ -125,7 +125,7 @@ En la simulación (`sim/src/analysis.ts`), con varias semillas:
 
 | Paso | Qué | Población |
 |---|---|---|
-| 1 (en la P2 de `MISMAS_REGLAS.md`) | El número de colegios y de clases pasan a ser datos de la ciudad (con los valores de ahora). Varios clubes con tamaño. Medir con `npm run rendimiento` la población de ahora, el doble y por cinco, con los datos de la P2 | La de ahora |
+| 1 (en la P2 de `MISMAS_REGLAS.md`; **P2b-1 hecha**) | El número de colegios y de clases pasan a ser datos de la ciudad (con los valores de ahora; `CiudadDef` en `PaisDef.ciudad`, con una versión pequeña de prueba). Varios clubes con tamaño (en el fútbol: grande, mediano, pequeño y el del colegio, que es un pequeño más; los filiales llegan con la F2). Reclutamiento por lo que vale cada niño de verdad y regla de plaza única. Medir con `npm run rendimiento` la población de ahora, el doble y por cinco, con los datos de la P2 | La de ahora |
 | 2 (con la F2 del fútbol) | Liga por divisiones con ascensos, descensos y reglas del filial; filiales y reparto entre primer y segundo año; copa con tanda de penaltis. Se prueba con una población de prueba más grande | La de ahora, o la que quepa |
 | 3 (fase propia: la ciudad grande) | Guardado por partes (y rasgos compactos si hace falta) y después la población de §2, con su calibración | ~6.000 |
 

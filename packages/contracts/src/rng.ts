@@ -30,24 +30,37 @@ export function rngEstable(...partes: (string | number)[]): Rng {
   h ^= h >>> 13;
   h = Math.imul(h, 0xc2b2ae35);
   h ^= h >>> 16;
-  let estado = h | 0;
-  const next = (): number => {
-    estado = (estado + 0x6d2b79f5) | 0;
-    let t = estado;
+  return new GeneradorEstable(h | 0);
+}
+
+/**
+ * El generador de `rngEstable` (mulberry32). Es una clase con sus métodos en el prototipo, no un objeto con funciones nuevas: se crea millones de veces al crear una partida
+ * (cada sorteo de cada niño y de cada sesión) y crear ocho funciones por generador era lo que más costaba. Da exactamente los mismos números.
+ */
+class GeneradorEstable implements Rng {
+  constructor(private estado: number) {}
+  next(): number {
+    this.estado = (this.estado + 0x6d2b79f5) | 0;
+    let t = this.estado;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  return {
-    next,
-    int: (min, max) => Math.floor(next() * (max - min + 1)) + min,
-    range: (min, max) => next() * (max - min) + min,
-    chance: (p) => next() < p,
-    pick: (items) => items[Math.floor(next() * items.length)],
-    normal: () => {
-      let s = 0;
-      for (let i = 0; i < 6; i++) s += next();
-      return (s - 3) / Math.sqrt(0.5);
-    },
-  };
+  }
+  int(min: number, max: number): number {
+    return Math.floor(this.next() * (max - min + 1)) + min;
+  }
+  range(min: number, max: number): number {
+    return this.next() * (max - min) + min;
+  }
+  chance(p: number): boolean {
+    return this.next() < p;
+  }
+  pick<T>(items: readonly T[]): T {
+    return items[Math.floor(this.next() * items.length)];
+  }
+  normal(): number {
+    let s = 0;
+    for (let i = 0; i < 6; i++) s += this.next();
+    return (s - 3) / Math.sqrt(0.5);
+  }
 }
