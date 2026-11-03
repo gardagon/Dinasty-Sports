@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 03/11/2026 — Ideas del usuario para más adelante: quién sigue en el mundo (abandono, archivo, profesiones y gente de fuera)
+
+Apuntadas para tenerlas en cuenta, sin encargar todavía. Están en `CIUDAD_Y_LIGAS.md` §11:
+
+- **Menos equipos a partir de cadete**, porque muchos niños dejan el deporte: saldría de la decisión de cada verano de seguir o no, y de que un club solo saque equipo si llega al mínimo.
+- **Al salir del colegio (o al dejar el deporte, si ya había salido), cada PNJ:** sigue si sigue en el deporte (los mejores pasan a sénior y a profesional), si puede trabajar en una profesión del juego (ojeador, entrenador, entrenador asistente, fisioterapeuta…) o si ha tenido relación con el personaje. Si practicó deporte y no se da nada de eso, **se archiva** (ficha e historial). Si nunca practicó deporte y no se da nada de eso, **se borra**.
+- **Relación con el personaje** (aprobado): que lo conozca, que tengan relación, que haya sido su compañero de equipo o de clase, o que sea de su familia. Haber corrido contra él no cuenta.
+- **Gente de fuera de la ciudad** (otras ciudades y países) para los equipos de nivel nacional, a medida que el personaje crece, con datos de verdad y su historia.
+- Hasta que existan las profesiones, nadie se borra: los que se borrarían se archivan.
+
 ## 04/11/2026 — Mismas reglas, P2b-1: la ciudad como datos, clubes de fútbol con tamaño y reclutamiento por lo que vale cada niño
 
 - **La ciudad como datos** (`packages/contracts/src/ciudad.ts`, `PaisDef.ciudad`): cuántos colegios de fuera hay, cuántas clases por curso y alumnos por clase, alumnos por curso de cada colegio de fuera y vecinos. Sin ciudad propia, un país usa `CIUDAD_ACTUAL` (4 colegios de fuera, 2 clases de 25, 17 alumnos por curso en cada colegio de fuera, 80 vecinos): **no cambia ni una persona**. `npcs` ya no tiene esos números en el código. El paquete de país los valida (`validarPais`).

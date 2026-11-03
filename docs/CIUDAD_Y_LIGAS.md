@@ -130,3 +130,34 @@ En la simulación (`sim/src/analysis.ts`), con varias semillas:
 | 3 (fase propia: la ciudad grande) | Guardado por partes (y rasgos compactos si hace falta) y después la población de §2, con su calibración | ~6.000 |
 
 El orden de los pasos 2 y 3 lo decide la medida del paso 1. Si el guardado por partes llega antes, la F2 puede probarse ya con la ciudad grande.
+
+## 11. Quién sigue en el mundo: abandono, archivo, profesiones y gente de fuera (ideas del usuario, 03/11; pendiente de diseño)
+
+Ideas del usuario para tenerlas en cuenta; todavía no se han encargado. Las dos preguntas que hice las contestó el 03/11 (abajo).
+
+**1. Menos equipos en cadete y juvenil, como en la vida real.** A esas edades muchos niños empiezan a hacer otras cosas y dejan el deporte. Propuesta para que salga solo, sin fijar el número de equipos por edad:
+- Cada verano, cada deportista decide si sigue. La probabilidad de dejarlo sube con la edad (sobre todo desde cadete) y pesan su interés, su ambición, los minutos o las carreras que tuvo, sus estudios (más en 4.º de la ESO y en bachillerato) y lo que hacen sus padres. El personaje ve los mismos motivos, pero lo de seguir lo decide el jugador.
+- Un club solo saca equipo en una categoría si llega al mínimo de la plantilla. Si no llega, ese curso no lo tiene y sus jugadores buscan otro club con la regla de plaza. Los primeros en quedarse sin equipo son los clubes pequeños.
+- Con la ciudad grande, los «unos 30 equipos por categoría» de §2 serían menos en cadete y juvenil. Las probabilidades se calibran midiendo cuántos equipos quedan por categoría.
+
+**2. Qué pasa con cada PNJ al salir del colegio (18 años)** o, si ya había salido, al dejar el deporte. Se decide en ese momento y no antes, para que un niño que dejó el deporte a los 15 todavía pueda servir para una profesión a los 18.
+
+| Situación | Qué pasa |
+|---|---|
+| **Sigue en el deporte** | Sigue con todos sus datos. **Los mejores pasan a sénior y a profesional**, y ahí se siguen simulando |
+| **Puede trabajar en una profesión del juego** (ojeador, entrenador, entrenador asistente que entrena unas habilidades concretas, fisioterapeuta…) | Sigue con todos sus datos y puede acabar en ella: así se reutiliza gente del mundo en vez de crearla de cero. El potencial para cada profesión saldrá de sus capacidades, su conocimiento y su historial, cuando se diseñen las profesiones |
+| **Ha tenido relación con el personaje** | Sigue: forma parte de su vida |
+| **Practicó deporte**, pero lo ha dejado, sin relación con el personaje ni potencial para una profesión | **Se archiva:** queda una ficha pequeña (nombre, sexo, fecha de nacimiento y colegio) y su historial deportivo (temporadas, clubes, categorías y cifras), para que las clasificaciones y las plantillas de cada temporada sigan siendo ciertas. Deja de simularse (sin capacidades, habilidades, estado ni agenda), no aparece por la ciudad y no vuelve |
+| **Nunca practicó deporte**, sin relación con el personaje ni potencial para una profesión | **Se borra:** no aparece en ningún historial, así que no hace falta ni archivarlo |
+
+- **«Haber tenido relación con el personaje»** (aprobado por el usuario): que lo conozca, que tengan relación, que haya sido su compañero de equipo o de clase, o que sea de su familia. Haber corrido alguna carrera contra él no cuenta.
+- **Por qué no choca con `VISION.md`:** se guarda todo lo que el mundo que se juega necesita, y quien se archiva o se borra ya no está en ese mundo. Es lo que hace Football Manager con los jugadores retirados.
+- **Lo que aporta:** con la ciudad grande, buena parte de la población sale del mundo con los años, lo que aligera el guardado y el avance semanal. El archivo casi no cambia, así que encaja con el guardado por partes (`ALMACENAMIENTO.md`).
+
+**3. Gente de fuera para los equipos de nivel nacional.** A medida que el personaje crece (las mejores divisiones juveniles, el sénior y el profesional), las competiciones nacionales necesitan equipos de otras ciudades y de otros países. Se crean cuando hacen falta, para los niveles que existan en ese momento, **con sus datos de verdad y su historia** al crearlos (como los niños de la ciudad en la P1 y la P2) y con nombres de su origen (`ANEXO_NOMBRES.md`). Siguen las mismas reglas que todos y sus ligas se juegan aunque el personaje no esté en ellas.
+
+**Cuándo:**
+- El abandono por edad, después de la P2b-2, con las decisiones de verano.
+- El archivo y el borrado, junto con el guardado por partes y antes de la ciudad grande (paso 3 de §10).
+- La gente de fuera, con los clubes de élite, el sénior y el profesional (F5 en adelante).
+- Las profesiones, cuando se diseñen las carreras de después de jugador (entrenador, ojeador, mánager…). Hasta entonces, el potencial para una profesión no existe: hasta que exista, nadie se borra; los que se borrarían se archivan.
