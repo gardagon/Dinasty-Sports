@@ -135,7 +135,9 @@ describe('fútbol empaquetado', () => {
     const a = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     const b = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, cargado]);
     expect(JSON.stringify(b.serialize())).toBe(JSON.stringify(a.serialize()));
-  });
+    // Tiempo máximo propio (60 s): crea dos partidas con fútbol (unos 3,7 s cada una con los 368 futbolistas) y compila el paquete; con el de por defecto (15 s) se pasa en una máquina lenta.
+    // PENDIENTE (P2c): quitarlo cuando baje el coste de crear la partida.
+  }, 60000);
 });
 
 

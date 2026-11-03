@@ -29,6 +29,7 @@ Decisiones del usuario del 03/11, **iguales para el personaje y los PNJ y para t
 
     En el curso 2 todos entrarían en un club pequeño o en el del colegio; el grande se queda fuera de 2 de 12 en los tres cursos.
   - **Cuántos dejan el deporte para siempre por no encontrar club**: 0,4; 0,6 y 0,0 niños por partida en los cursos 1, 2 y 3 (máximo 2). Los futbolistas no se vacían: 369 al empezar y 395 tras cada curso. No hace falta tocar nada.
+- **Test con plazo propio, para quitar en la P2c**: «fútbol empaquetado» (`tests/futbol.test.ts`) crea dos partidas con fútbol (unos 3,7 s cada una con los 368 futbolistas; ~12 s en local) y compila el paquete: con el plazo por defecto (15 s) se pasó en la integración continua. Tiene 60 s. **Quitarlo cuando la P2c baje el coste de crear la partida.**
 - **Medido con `sim`** (`main` frente a la rama, 365 días × 5 semillas): 0 ❌ y los mismos chequeos (el ⚠️ de rendimiento es el de la velocidad de la máquina, igual en `main`); la tabla, igual salvo el bot «Aleatorio» (28,9 → 28,5), que es el que más se lesiona y más cambia de acciones.
 - **Un test que suponía lo de antes se corrige**: «completo pero mejor que el peor» comprobaba que el desplazado quedaba sin equipo; ahora busca club con la misma regla (y con los niveles puestos a mano en el test puede volver a entrar desplazando a otro, porque la regla mira lo que vale de verdad). Se comprueba que solo deja el deporte, y entonces para siempre, si ningún club lo quiere.
 
