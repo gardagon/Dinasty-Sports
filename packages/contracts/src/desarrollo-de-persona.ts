@@ -1,12 +1,22 @@
 import { factorPorEdad, madurezPorEdad } from './development';
 import { GRUPO_DE_CAPACIDAD } from './herencia';
 import { computeDecay } from './progresion';
-import type { DecayDef } from './stats';
+import type { DecayDef, StatDef } from './stats';
+import { GEN } from './tags';
 
 /**
  * EL DESARROLLO DE UNA PERSONA, para todas: el personaje (el motor) y cualquier PNJ con genética (`npcs`) siguen estas reglas (plan `docs/MISMAS_REGLAS.md`).
  * Aquí está lo que hace crecer y caer las 18 capacidades sin entrenar: cuánto de su tope permite cada edad, el desarrollo natural, el envejecimiento y la caída.
  */
+
+/**
+ * Semanas de juego informal («practicar con los amigos») antes de entrar en un club según el interés por el deporte (0 a 3): ninguna, 4, 8 o 12. Todo niño ha jugado
+ * un poco a los deportes que le gustan, y el personaje, que llega sin años de práctica en un club, también (`MISMAS_REGLAS.md` §5 y §7). No cuenta como años practicando.
+ */
+export const SEMANAS_DE_JUEGO_INFORMAL = [0, 4, 8, 12] as const;
+
+/** El interés (0 a 3) de un valor de interés del personaje: sus intereses heredados valen 20 + 8 por cada nivel de los padres, y suben después con lo que hace. */
+export const nivelDeInteresDelPersonaje = (valor: number): 0 | 1 | 2 | 3 => Math.min(3, Math.max(0, Math.round((valor - 20) / 8))) as 0 | 1 | 2 | 3;
 
 /** Fracción diaria de la distancia al tope efectivo que se pierde por envejecimiento. */
 export const AJUSTE_POR_EDAD_DIARIO = 0.004;
@@ -120,4 +130,32 @@ export function evolucionSemanal(r: ReglaDeEvolucion, e: EntradaDeEvolucion, sem
     v = objetivo - (objetivo - v) * potencia(NATURAL, 1 - DESARROLLO_NATURAL_DIARIO, 7 * semanas);
   }
   return v;
+}
+
+// ---------------------------------------------------------------------------------------------------- la definición de las 18 capacidades
+
+/** Qué vigor (fracción del tope que permite la edad) limita a cada grupo de capacidades. */
+const VIGOR_DEL_GRUPO: Readonly<Record<string, string>> = { fisico: GEN.vigorFisico, mental: GEN.vigorMental, social: GEN.vigorSocial };
+const NOMBRE_DE_GRUPO: Readonly<Record<string, string>> = { fisico: 'Físico', mental: 'Mental', social: 'Social' };
+/** Techo de lo físico: crece con el desarrollo por la edad (a los 8 años ~57, a los 18 el máximo). */
+const TECHO_POR_EDAD = { base: 0.3, from: [{ stat: GEN.madurez, weight: 0.7 }] };
+
+/**
+ * La definición de una de las 18 capacidades de `gen` (velocidad, fuerza... carisma...). **Es de todas las personas**: el módulo del personaje la usa para las suyas
+ * y `npcs`, con los mismos números, para las de cualquier niño (`MISMAS_REGLAS.md`): cómo suben al entrenarlas, su techo, su caída y su desarrollo natural.
+ */
+export function statDeCapacidad(id: string, name: string, description: string): StatDef {
+  const grupo = GRUPO_DE_CAPACIDAD[id];
+  return {
+    id,
+    name,
+    group: NOMBRE_DE_GRUPO[grupo],
+    description,
+    category: 'generica',
+    initial: { ...INICIAL_DE_CAPACIDAD },
+    growth: { rate: 0.5, curve: 2, potentialFactor: VIGOR_DEL_GRUPO[grupo], naturalFraction: DESARROLLO_NATURAL, ...(grupo === 'fisico' ? { cap: TECHO_POR_EDAD } : {}) },
+    // Todas tienen un tope genético heredado de los padres; lo físico, además, depende del desarrollo por la edad.
+    genetics: { grupo },
+    decay: caidaDeCapacidad(id),
+  };
 }

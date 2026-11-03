@@ -7,6 +7,9 @@ import type { Npc, NpcsState } from '@ds/mod-npcs';
 import type { Practica } from '@ds/contracts';
 import { EDAD_DE_PARTIDA, avanzarSemana, edadDeEmpezar, capacidadesIniciales, historiaDe, type CapacidadesDe } from '../modules/npcs/src/capacidades';
 import type { Genetica } from '../modules/npcs/src/deportistas';
+import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
+import { fijarTalentosDeCapacidades, fijosDeNino, practicar, prepararTrabajo } from '../modules/npcs/src/rutina';
+import { huecosQueHace } from '../modules/npcs/src/semana';
 
 /**
  * Personaje y PNJ con las mismas reglas (`docs/MISMAS_REGLAS.md`, fase P1): un niño con la misma genética que el personaje, sin entrenar, acaba con las mismas
@@ -172,5 +175,53 @@ describe('la edad de empezar de los niños', () => {
     expect(pronto(0, 'profesional')).toBeGreaterThan(pronto(0, 'ninguna'));
     const tarde = (interes: number) => cuenta(muestra(interes, 'ninguna'), (e) => e >= 11);
     expect(tarde(0)).toBeGreaterThan(tarde(3));
+  });
+});
+
+const RUTINA_ATLETISMO = DATOS_ATLETISMO.paises.espana.poblacion.rutina!;
+
+describe('la semilla de la partida entra en los sorteos de cada niño', () => {
+  const nino = (semilla?: number) => {
+    const g = nuevaPartida({ seed: 31 });
+    const n = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs.find((x) => x.genetica && x.nacimiento !== undefined && x.id.startsWith('alumno_'))!;
+    return { n, genetica: { ...n.genetica!, semilla } as Genetica };
+  };
+
+  it('todos los niños de una partida llevan su semilla (también los que llegan después)', () => {
+    const g = nuevaPartida({ seed: 31 });
+    const lista = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs.filter((x) => x.genetica);
+    expect(lista.length).toBeGreaterThan(1000);
+    expect(lista.every((x) => x.genetica!.semilla === 31)).toBe(true);
+    advanceToWeek(g, 'gen.descansar', 53, 0, 7); // empieza otro curso: llegan niños nuevos
+    expect((g.moduleState<NpcsState>('npcs') as NpcsState).npcs.filter((x) => x.genetica).every((x) => x.genetica!.semilla === 31)).toBe(true);
+  });
+
+  it('el mismo niño con otra semilla tiene otro valor inicial, otro talento, otra asistencia y otra edad de empezar; con la misma, lo mismo', () => {
+    const { n, genetica } = nino(1);
+    const otra = { ...genetica, semilla: 2 } as Genetica;
+    const igual = { ...genetica } as Genetica;
+    expect(capacidadesIniciales(n.id, genetica).cap).not.toEqual(capacidadesIniciales(n.id, otra).cap);
+    expect(capacidadesIniciales(n.id, genetica).cap).toEqual(capacidadesIniciales(n.id, igual).cap);
+    const stats = RUTINA_ATLETISMO.stats;
+    expect(fijosDeNino(n.id, genetica, 'atletismo', RUTINA_ATLETISMO).talento).not.toEqual(fijosDeNino(n.id, otra, 'atletismo', RUTINA_ATLETISMO).talento);
+    expect(fijosDeNino(n.id, genetica, 'atletismo', RUTINA_ATLETISMO).inicial).not.toEqual(fijosDeNino(n.id, otra, 'atletismo', RUTINA_ATLETISMO).inicial);
+    expect(stats.length).toBeGreaterThan(0);
+    const asiste = (g: Genetica) => Array.from({ length: 60 }, (_, w) => huecosQueHace({ id: n.id, genetica: g, equipo: 'colegio', ritmo: { atletismo: 0.8 } }, 'atletismo', RUTINA_ATLETISMO, w).join());
+    expect(asiste(genetica)).not.toEqual(asiste(otra));
+    expect(asiste(genetica)).toEqual(asiste(igual));
+    const empieza = (g: Genetica) => Array.from({ length: 40 }, (_, i) => edadDeEmpezar(`nino_${i}`, 'atletismo', 2, { padre: 'ninguna', madre: 'ninguna' }, g.semilla));
+    expect(empieza(genetica)).not.toEqual(empieza(otra));
+  });
+
+  it('la caché de talentos de las capacidades distingue semillas', () => {
+    fijarTalentosDeCapacidades('nino_z', CAPACIDADES_GENETICAS.map(() => 1.1), 1);
+    fijarTalentosDeCapacidades('nino_z', CAPACIDADES_GENETICAS.map(() => 0.9), 2);
+    const t = (semilla: number) => prepararTrabajo({ id: 'nino_z', genetica: { topes: Object.fromEntries(CAPACIDADES_GENETICAS.map((c) => [c, 60])), perks: { activos: [], pool: [] }, desfase: 0, ventaja: 1, padres: { padre: 'ninguna', madre: 'ninguna' }, semilla } as unknown as Genetica, nacimiento: -3000, cap: CAPACIDADES_GENETICAS.map(() => 10), pico: CAPACIDADES_GENETICAS.map(() => 10) }, CAPACIDADES_GENETICAS.map(() => 10), 'atletismo', RUTINA_ATLETISMO, { v: RUTINA_ATLETISMO.stats.map(() => 10), pico: RUTINA_ATLETISMO.stats.map(() => 10), ult: RUTINA_ATLETISMO.stats.map(() => 0) }, CAPACIDADES_GENETICAS.map(() => -1e9), 0);
+    const a = t(1);
+    const b = t(2);
+    practicar(a, [{ stat: 'gen.velocidad', amount: 3 }], 1);
+    practicar(b, [{ stat: 'gen.velocidad', amount: 3 }], 1);
+    // Con más talento sube más: no se mezclan las semillas.
+    expect(a.cap[0]).toBeGreaterThan(b.cap[0]);
   });
 });

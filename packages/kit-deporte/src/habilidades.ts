@@ -1,4 +1,4 @@
-import { GEN, type ReadContext, type StatDef } from '@ds/contracts';
+import { GEN, type LectorDePersona, type StatDef } from '@ds/contracts';
 
 /** Genérica que apoya a una habilidad y su peso sobre el ritmo de subida (el techo pesa la mitad). */
 export type Apoyo = { stat: string; weight: number };
@@ -73,7 +73,7 @@ export function conocimientoDelDeporte(deporte: string, name: string, descriptio
 const CONOCIMIENTO_EN_COMPETICION = { min: 0.85, rango: 0.3 };
 
 /** Valor efectivo de una habilidad en competición: su nivel por el efecto del conocimiento del deporte. */
-export function valorEfectivo(ctx: ReadContext, deporte: string, stat: string, sensibilidad: number): number {
+export function valorEfectivo(ctx: LectorDePersona, deporte: string, stat: string, sensibilidad: number): number {
   const f = CONOCIMIENTO_EN_COMPETICION.min + CONOCIMIENTO_EN_COMPETICION.rango * ctx.norm(idDeConocimiento(deporte));
   return ctx.stat(stat) * (1 + sensibilidad * (f - 1));
 }

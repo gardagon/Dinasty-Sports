@@ -1,3 +1,4 @@
+import { CONOCIMIENTO, JUEGO_INFORMAL, SESION_DE_CLUB, STATS_DE_ATLETISMO } from './habilidades';
 import { GEN, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type DatosDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte } from '@ds/contracts';
 
 /**
@@ -56,6 +57,16 @@ const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
  * al equipo del colegio del personaje.
  */
 const POBLACION_ESPANA: PoblacionDeDeporte = {
+  // Las habilidades de sus jugadores y su rutina: los atletas del mundo las llevan como el personaje y entrenan con las mismas listas que sus acciones (`habilidades.ts`).
+  rutina: {
+    stats: STATS_DE_ATLETISMO,
+    conocimiento: CONOCIMIENTO,
+    sesionFija: SESION_DE_CLUB,
+    informal: JUEGO_INFORMAL,
+    // Las sesiones por semana de cada club (días de entreno de `CLUBES_ESPANA`); los demás clubes de la ciudad, dos.
+    sesionesPorSemana: Object.fromEntries(CLUBES_ESPANA.map((c) => [c.id, c.sesiones.weekdays.length])),
+    sesionesPorDefecto: 2,
+  },
   etiqueta: 'atleta',
   descripcionDeRival: 'Compite en atletismo.',
   capacidades: [GEN.velocidad, GEN.fuerza, GEN.resistencia, GEN.constitucion, GEN.agilidad, GEN.coordinacion],

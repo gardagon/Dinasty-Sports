@@ -1,6 +1,7 @@
 import {
   APORTES,
   GEN,
+  SERVICES,
   TAGS,
   claveDeDeporte,
   datosDeDeporte,
@@ -8,6 +9,8 @@ import {
   inHours,
   ligarALugares,
   type DeporteView,
+  type LectorDePersona,
+  type NpcDirectory,
   type ReadContext,
 } from '@ds/contracts';
 import {
@@ -26,6 +29,7 @@ import {
   modificadorPorTuCuenta,
   pedirConsejo,
   sedeDelClub as sedeDelClubEn,
+  semillaDeSesionDeEquipo,
   sesionDeClubConEjercicios,
   sinEntrenarPorLibreEnSesion,
   textoDeSesiones,
@@ -35,7 +39,7 @@ import {
   type ConfigDeporte,
   type EstadoBaseDeDeporte,
 } from '@ds/kit-deporte';
-import { EJERCICIOS_DE_FUTBOL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
+import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 
@@ -60,6 +64,7 @@ const CONFIG: ConfigDeporte = {
   nombre: 'fútbol',
   rendimiento: (ctx) => rendimiento(ctx),
   entrenosLibres: ENTRENOS_LIBRES,
+  juegoInformal: JUEGO_INFORMAL,
 };
 
 const clubDelJugador = (ctx: ReadContext) => clubDelJugadorEn(ctx, DEPORTE);
@@ -72,13 +77,13 @@ const entrenadorDelJugador = (ctx: ReadContext) => entrenadorDelJugadorEn(ctx, D
  * Se usa con el valor efectivo del kit (conocimiento: de ×0,85 a ×1,15).
  */
 const SENSIBILIDAD = { vision: 1, posicionamiento: 1, decisiones: 1, juego_colectivo: 1, control: 0.3, pase: 0.5, regate: 0.3, tecnica: 0.3 };
-const efectivo = (ctx: ReadContext, key: keyof typeof SENSIBILIDAD) => valorEfectivo(ctx, DEPORTE, `futbol.${key}`, SENSIBILIDAD[key]);
+const efectivo = (ctx: LectorDePersona, key: keyof typeof SENSIBILIDAD) => valorEfectivo(ctx, DEPORTE, `futbol.${key}`, SENSIBILIDAD[key]);
 
 /**
  * Rendimiento 0..100 del jugador de campo (sirve para las pruebas de acceso a los clubes). Es provisional: con los partidos (F2) y las posiciones
  * (F3) cada puesto pesará sus propias habilidades.
  */
-export function rendimiento(ctx: ReadContext): number {
+export function rendimiento(ctx: LectorDePersona): number {
   const tecnica = (efectivo(ctx, 'control') + efectivo(ctx, 'pase') + efectivo(ctx, 'regate') + efectivo(ctx, 'tecnica')) / 4;
   const cabeza = (efectivo(ctx, 'vision') + efectivo(ctx, 'posicionamiento') + efectivo(ctx, 'decisiones')) / 3;
   return 0.15 * ctx.stat(GEN.velocidad) + 0.1 * ctx.stat(GEN.resistencia) + 0.1 * ctx.stat('futbol.arrancada') + 0.25 * tecnica + 0.2 * cabeza + 0.2 * efectivo(ctx, 'juego_colectivo');
@@ -139,7 +144,7 @@ export const futbol = defineModule<FutbolState>({
   name: 'Fútbol',
   description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
   dependsOn: ['gen'],
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL] },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento }] },
   stats: [...STATS_DE_FUTBOL],
 
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),
@@ -160,8 +165,16 @@ export const futbol = defineModule<FutbolState>({
         delta: { [GEN.energia]: -24 },
         catalogo: EJERCICIOS_DE_FUTBOL,
         siempre: SIEMPRE,
-        contexto: (ctx) => ({ nivel: (stat) => ctx.stat(stat), sesgo: sesgoDelEntrenador(entrenadorDelJugador(ctx)?.rasgos?.caracter) }),
-        semilla: (ctx) => [DEPORTE, clubDelJugador(ctx)?.id ?? 'club', ctx.time.day],
+        // Los ejercicios los elige el entrenador según lo que le falta al equipo (club y categoría) y son los mismos para todos los que entrenan juntos: los jugadores del
+        // equipo, con la misma semilla (club, categoría, semana y número de sesión de la semana), y el personaje.
+        contexto: (ctx) => {
+          const niveles = ctx.service<NpcDirectory>(SERVICES.npcs)?.nivelesDelEquipo?.(DEPORTE, clubDelJugador(ctx)?.id ?? '', categoriaDelJugador(ctx).competida.id);
+          return { nivel: (stat) => niveles?.[stat] ?? ctx.stat(stat), sesgo: sesgoDelEntrenador(entrenadorDelJugador(ctx)?.rasgos?.caracter) };
+        },
+        semilla: (ctx) => {
+          const club = clubDelJugador(ctx);
+          return semillaDeSesionDeEquipo(DEPORTE, club?.id ?? 'club', categoriaDelJugador(ctx).competida.id, ctx.time.week, Math.max(0, club?.sesiones.weekdays.indexOf(ctx.time.weekday) ?? 0));
+        },
       }),
       dejarClub(CONFIG),
       campamento(CONFIG, {
@@ -177,7 +190,7 @@ export const futbol = defineModule<FutbolState>({
         description: 'Con notas aceptables, el verano se pasa jugando al fútbol con los amigos: sienta bien, pero no se mejora igual que entrenando.',
         tags: [TAGS.fisico, TAGS.social, 'futbol'],
         delta: { [GEN.energia]: -12, [GEN.estres]: -6 },
-        train: [t('futbol.control', 0.3), t('futbol.regate', 0.4), t('futbol.definicion', 0.3), t('futbol.juego_colectivo', 0.4), t(GEN.carisma, 0.4), t(GEN.cooperacion, 0.4)],
+        train: [...JUEGO_INFORMAL],
       }),
 
       {

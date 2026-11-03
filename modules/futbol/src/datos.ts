@@ -1,3 +1,5 @@
+import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE } from './ejercicios';
+import { CONOCIMIENTO, STATS_DE_FUTBOL } from './habilidades';
 import { GEN, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type DatosDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte } from '@ds/contracts';
 
 /**
@@ -37,6 +39,18 @@ const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
  * de la ciudad y las ligas con sus rivales llegan en la F2.
  */
 const POBLACION_ESPANA: PoblacionDeDeporte = {
+  // Las habilidades de sus jugadores y su rutina: los futbolistas del mundo las llevan como el personaje; el entrenador elige los ejercicios de cada sesión y son los mismos
+  // para todo el equipo (`MISMAS_REGLAS.md`).
+  rutina: {
+    stats: STATS_DE_FUTBOL,
+    conocimiento: CONOCIMIENTO,
+    ejercicios: EJERCICIOS_DE_FUTBOL,
+    siempre: SIEMPRE,
+    ejerciciosPorSesion: 2,
+    informal: JUEGO_INFORMAL,
+    sesionesPorSemana: Object.fromEntries(CLUBES_ESPANA.map((c) => [c.id, c.sesiones.weekdays.length])),
+    sesionesPorDefecto: 2,
+  },
   etiqueta: 'futbolista',
   descripcionDeRival: 'Juega al fútbol.',
   capacidades: [GEN.velocidad, GEN.resistencia, GEN.agilidad, GEN.coordinacion, GEN.fuerza, GEN.inteligencia],

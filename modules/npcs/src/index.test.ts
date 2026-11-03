@@ -38,11 +38,13 @@ describe('módulo NPCs', () => {
 
   it('los deportistas progresan con los días', () => {
     const g = nueva();
-    const id = atletas(g).find((n) => n.role === 'rival')!.id;
-    const nivel = () => g.service<NpcDirectory>(SERVICES.npcs)!.get(id)!.levels.atletismo;
-    const antes = nivel();
-    advanceTo(g, 'gen.descansar', 6, 20);
-    expect(nivel()).toBeGreaterThan(antes);
+    const ids = atletas(g).filter((n) => n.role === 'rival').map((n) => n.id);
+    const dir = () => g.service<NpcDirectory>(SERVICES.npcs)!;
+    const media = () => ids.reduce((t, id) => t + dir().get(id)!.levels.atletismo, 0) / ids.length;
+    const antes = media();
+    // Su rutina se aplica cada semana: en conjunto, sus habilidades (y con ellas su nivel) suben (uno concreto puede no subir en una semana si no fue al club).
+    advanceToWeek(g, 'gen.descansar', 5, 0, 8);
+    expect(media()).toBeGreaterThan(antes);
   });
 
   it('los deportistas son distintos entre sí: unos parten con ventaja y otros con más potencial', () => {

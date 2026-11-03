@@ -1,6 +1,8 @@
 import {
+  APORTES,
   GEN,
   CORE_EVENTS,
+  type RendimientoDeDeporte,
   categoriaDeEdad,
   type CategoriaDef,
   type PlazaEnEquipo,
@@ -114,6 +116,9 @@ import {
   type Genetica,
 } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
+import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
+import { type HabilidadesDe } from './rutina';
+import { NUNCA, historiaDeportiva, listaDeSesion, semanaDeNino, type Rendimientos } from './semana';
 
 /**
  * MÓDULO NPCs (id `npcs`).
@@ -151,6 +156,10 @@ export interface Npc {
   /** Sus 18 capacidades reales (`gen.*`, en el orden de `CAPACIDADES_GENETICAS`), y el máximo que alcanzó cada una. Los niños con genética las tienen (plan `MISMAS_REGLAS.md`). */
   cap?: number[];
   pico?: number[];
+  /** Cuándo entrenó por última vez cada capacidad con la rutina de su deporte (días de la partida; ausente = nunca). */
+  capUlt?: number[];
+  /** Las habilidades y el conocimiento de cada deporte que juega o ha jugado (las mismas que el personaje; ver `rutina.ts`). Su `levels` es el rendimiento calculado con ellas. */
+  hab?: Record<string, HabilidadesDe>;
   /** Nivel máximo al que puede llegar cada disciplina. */
   potential: Record<string, number>;
   /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
@@ -578,6 +587,12 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
 /** Lo que han pedido los deportes de la partida (en el orden de sus fichas). */
 const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: number): PoblacionGuardada[] => fichasDeDeporte(ctx).map((f, i) => poblacionDe(ctx, f, i === 0, semilla));
 
+/** Marca a los niños con la semilla de la partida: sus sorteos estables (talento, aptitud, valor inicial, asistencia...) salen de su id y de ella, para que el mismo `nino_5` no sea igual en todas las partidas. */
+export function conSemilla(npcs: Npc[], semilla: number): Npc[] {
+  if (!npcs.some((n) => n.genetica && n.genetica.semilla === undefined)) return npcs;
+  return npcs.map((n) => (n.genetica && n.genetica.semilla === undefined ? { ...n, genetica: { ...n.genetica, semilla } } : n));
+}
+
 // ---------------------------------------------------------------------------------------------------- capacidades reales
 
 /** Da a los niños con genética que aún no las tienen sus capacidades con su historia hasta `dia` (al crear la partida, al llegar un niño nuevo, en partidas anteriores). */
@@ -598,7 +613,8 @@ export function conCapacidades(npcs: Npc[], dia: number): Npc[] {
  */
 export function avanzarCapacidadesEnSitio(npcs: readonly Npc[], dia: number): void {
   for (const n of npcs) {
-    if (!n.genetica || n.nacimiento === undefined || !n.cap || !n.pico) continue;
+    // Los que juegan a un deporte con rutina avanzan con ella (`semanaDeportiva`), que ya incluye el desarrollo natural y la caída de sus capacidades.
+    if (!n.genetica || n.nacimiento === undefined || !n.cap || !n.pico || n.hab) continue;
     const c = { cap: n.cap, pico: n.pico, base: valoresIniciales(n.id, n.genetica) as number[] };
     avanzarSemana(c, n.genetica, n.nacimiento, dia);
     for (let i = 0; i < c.cap.length; i++) {
@@ -616,6 +632,93 @@ export function avanzarCapacidades(npcs: readonly Npc[], dia: number): Npc[] {
     avanzarSemana(c, n.genetica, n.nacimiento, dia);
     return { ...n, ...aGuardar(c) };
   });
+}
+
+// ---------------------------------------------------------------------------------------------------- habilidades reales de los que juegan
+
+/** Cómo vale cada deporte de la partida a una persona: lo que aportan los módulos de deporte cargados (`APORTES.rendimientoDeDeporte`). */
+export const rendimientosDe = (ctx: Pick<ReadContext, 'aportes'>): Rendimientos =>
+  new Map(ctx.aportes<RendimientoDeDeporte>(APORTES.rendimientoDeDeporte).map((r) => [r.id, r.rendimiento]));
+
+/**
+ * Da sus habilidades a los niños que juegan a un deporte con rutina y aún no las tienen (al crear la partida, al llegar un niño nuevo a un equipo): su historia, con el
+ * juego informal y la rutina de su club desde que empezó (`historiaDeportiva`). Cambia sus capacidades también: la rutina las entrena. Los deportes sin rutina (o sin
+ * módulo cargado) se quedan con el nivel de siempre.
+ */
+export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, dia: number): Npc[] {
+  const porDeporte = new Map(pobs.filter((p) => p.rutina && rend.has(p.deporte)).map((p) => [p.deporte, p]));
+  if (!npcs.some((n) => n.deporte && porDeporte.has(n.deporte) && n.genetica && n.nacimiento !== undefined && !n.hab?.[n.deporte])) return npcs;
+  return npcs.map((n) => {
+    const pob = n.deporte ? porDeporte.get(n.deporte) : undefined;
+    if (!pob || !n.genetica || n.nacimiento === undefined || n.hab?.[pob.deporte]) return n;
+    const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco]));
+    return { ...n, cap: h.cap, pico: h.pico, capUlt: h.capUlt, hab: { ...n.hab, [pob.deporte]: h.hab }, levels: { ...n.levels, [pob.deporte]: h.nivel } };
+  });
+}
+
+/**
+ * Una semana de los niños que juegan a un deporte con rutina, **en el sitio** (no cambia la lista de personas): las sesiones de su club, la caída y el desarrollo de sus
+ * capacidades y habilidades, y su rendimiento (`levels`) calculado con ellas. `fin` es el día en que acaba la semana. Los de un equipo con ejercicios elegidos por el
+ * entrenador hacen todos los mismos, según lo que le falta al equipo.
+ */
+export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number): void {
+  for (const pob of pobs) {
+    const r = pob.rutina;
+    const f = rend.get(pob.deporte);
+    if (!r || !f) continue;
+    const jugadores = npcs.filter((n) => n.hab?.[pob.deporte] && n.genetica && n.nacimiento !== undefined && n.cap && n.pico);
+    // Lo que le falta a cada equipo (club y categoría): la media de sus jugadores en cada habilidad. Los ejercicios de la sesión son los mismos para todos.
+    const medias = r.ejercicios ? mediasDeLosEquipos(jugadores, pob, inicioCurso) : new Map<string, Record<string, number>>();
+    for (const n of jugadores) {
+      const clave = claveDeEquipoCategoria(pob, n, inicioCurso);
+      const media = clave ? medias.get(clave) : undefined;
+      const res = semanaDeNino(n as never, pob.deporte, r, f, fin, (semana, hueco, lector) =>
+        listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), clave ? semillaDeSesionDeEquipo(pob.deporte, clave.split('|')[0], clave.split('|')[1], semana, hueco) : [pob.deporte, n.id, semana, hueco]),
+      );
+      n.cap!.splice(0, n.cap!.length, ...res.cap);
+      n.pico!.splice(0, n.pico!.length, ...res.pico);
+      n.capUlt = res.capUlt;
+      n.hab![pob.deporte] = res.hab;
+      n.levels[pob.deporte] = res.nivel;
+    }
+  }
+}
+
+/** El equipo de un jugador (club y categoría que le toca por edad de competición) como clave, o `undefined` si no está en un equipo. */
+function claveDeEquipoCategoria(pob: PoblacionGuardada, n: Npc, inicioCurso: number): string | undefined {
+  if (n.deporte !== pob.deporte || !n.equipo) return undefined;
+  const edad = edadNpc(n, inicioCurso);
+  const cat = edad === undefined ? undefined : categoriaDe(pob, edad);
+  return `${n.equipo}|${cat?.id ?? 'sin-categoria'}`;
+}
+
+/** Lo que vale cada equipo (club y categoría) en cada habilidad del deporte: la media de sus jugadores. */
+function mediasDeLosEquipos(jugadores: readonly Npc[], pob: PoblacionGuardada, inicioCurso: number): Map<string, Record<string, number>> {
+  const r = pob.rutina!;
+  const sumas = new Map<string, { n: number; v: number[] }>();
+  for (const n of jugadores) {
+    const clave = claveDeEquipoCategoria(pob, n, inicioCurso);
+    if (!clave) continue;
+    const e = sumas.get(clave) ?? { n: 0, v: r.stats.map(() => 0) };
+    n.hab![pob.deporte].v.forEach((x, i) => (e.v[i] += x));
+    e.n++;
+    sumas.set(clave, e);
+  }
+  return new Map([...sumas].map(([clave, e]) => [clave, Object.fromEntries(r.stats.map((d, i) => [d.id, e.v[i] / e.n]))]));
+}
+
+/** Las medias de los equipos para el servicio, guardadas por lista de personas y semana (las listas de habilidades se cambian en el sitio cada semana). */
+const MEDIAS_DE_EQUIPOS = new WeakMap<readonly Npc[], { semana: number; porDeporte: Map<string, Map<string, Record<string, number>>> }>();
+export function nivelesDelEquipoDe(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, categoria: string, semana: number, inicioCurso: number): Record<string, number> | undefined {
+  let c = MEDIAS_DE_EQUIPOS.get(npcs);
+  if (!c || c.semana !== semana) MEDIAS_DE_EQUIPOS.set(npcs, (c = { semana, porDeporte: new Map() }));
+  let m = c.porDeporte.get(deporte);
+  if (!m) {
+    const pob = pobs.find((p) => p.deporte === deporte);
+    m = pob?.rutina ? mediasDeLosEquipos(npcs.filter((n) => n.hab?.[deporte] && n.nacimiento !== undefined), pob, inicioCurso) : new Map();
+    c.porDeporte.set(deporte, m);
+  }
+  return m.get(`${club}|${categoria}`);
 }
 
 // ---------------------------------------------------------------------------------------------------- plaza del personaje en un equipo
@@ -858,9 +961,11 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): Npc
   const base = generarReparto(ctx, pobs[0]);
   const usados = registroDe(base);
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
-  const sin = [...base, ...colegio, ...bibliotecarios(ctx.rng, usados)];
+  const sin = conSemilla([...base, ...colegio, ...bibliotecarios(ctx.rng, usados)], ctx.seed);
   const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng)], sin);
-  return conCapacidades(reclutarEnTodos(conEntrenadores, pobs, 0), 0);
+  const equipos = reclutarEnTodos(conEntrenadores, pobs, 0);
+  // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
+  return conCapacidades(conHabilidades(equipos, pobs, rendimientosDe(ctx), 0), 0);
 }
 
 /** El personal de la biblioteca: uno en el turno de mañana (y los sábados) y otro en el de tarde. Van al final para no cambiar el azar de lo demás. */
@@ -1211,7 +1316,8 @@ export const npcs = defineModule<NpcsState>({
         ...s,
         npcs: s.npcs.map((n) => {
           // Los que practican un deporte progresan solos hacia el techo de su edad.
-          const entradas = Object.entries(n.levels);
+          // Los que tienen las habilidades reales de su deporte avanzan con su rutina cada semana (`semanaDeportiva`), no con esta aproximación.
+          const entradas = Object.entries(n.levels).filter(([k]) => !n.hab?.[k]);
           if (!entradas.length) return n;
           const levels = { ...n.levels };
           const edad = n.nacimiento === undefined ? undefined : (day - n.nacimiento) / 365;
@@ -1220,7 +1326,7 @@ export const npcs = defineModule<NpcsState>({
             // El techo de cada edad es el potencial por el desarrollo físico de esa edad: sin edad, el potencial entero.
             const ritmo = n.ritmo?.[k] ?? 1;
             // Rinde cada curso una parte distinta de su techo (su constancia y cómo le va el año), así que el orden entre ellos cambia con los años.
-            const techo = edad === undefined ? pot : pot * desarrolloRival(edad + (n.desfase ?? 0)) * formaEn(n.id, k, day, ritmo);
+            const techo = edad === undefined ? pot : pot * desarrolloRival(edad + (n.desfase ?? 0)) * formaEn(n.id, k, day, ritmo, n.genetica?.semilla ?? 0);
             // Progresan con rendimientos decrecientes hacia el techo de su edad.
             // Su suerte de cada día es solo suya (id, disciplina y día): no cambia con lo que haga el jugador.
             if (v < techo) levels[k] = Math.min(techo, v + rngEstable('progreso', n.id, k, day).range(0, 0.35) * (1 - v / techo) * 2 * ritmo);
@@ -1234,8 +1340,11 @@ export const npcs = defineModule<NpcsState>({
       const { week } = ev.data as { week: number };
       // Cada semana, las capacidades de los niños se desarrollan y caen (las mismas reglas que las del personaje).
       ctx.updateState<NpcsState>((s) => {
-        const npcs = conCapacidades(s.npcs, week * 7);
+        const rend = rendimientosDe(ctx);
+        const pobs = s.poblaciones ?? poblacionesDe(ctx, s.semilla ?? 0);
+        const npcs = conCapacidades(conHabilidades(s.npcs, pobs, rend, week * 7), week * 7);
         avanzarCapacidadesEnSitio(npcs, (week + 1) * 7);
+        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7);
         return { ...s, npcs };
       });
       // Si la semana que viene empieza un curso nuevo, se renueva la gente: los que acaban el colegio se van, entran niños nuevos y los equipos rellenan sus plazas.
@@ -1253,8 +1362,8 @@ export const npcs = defineModule<NpcsState>({
         if (club && cat) reservas.set(claveDeEquipo(club.id, cat.id), 1);
       }
       ctx.updateState<NpcsState>((s) => {
-        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(renovarAlumnos(s.npcs, proximo.day, ctx.rng), pobs, proximo.day, ctx.rng, reservas), proximo.day));
-        return { ...s, poblaciones: pobs, npcs: conCapacidades(npcs, proximo.day) };
+        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), pobs, proximo.day, ctx.rng, reservas), proximo.day));
+        return { ...s, poblaciones: pobs, npcs: conCapacidades(conHabilidades(npcs, pobs, rendimientosDe(ctx), proximo.day), proximo.day) };
       });
     },
 
@@ -1425,6 +1534,7 @@ export const npcs = defineModule<NpcsState>({
           const n = personaPorId(lista, id);
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
+        nivelesDelEquipo: (deporte, club, categoria) => nivelesDelEquipoDe(lista, poblacionesGuardadas(ctx), deporte, club, categoria, ctx.time.week, inicioCurso),
         plaza: (deporte, club, nivel) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso),
       };
     },

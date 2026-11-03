@@ -3,9 +3,7 @@ import {
   GEN,
   SERVICES,
   factorPorEdad,
-  CAIDA_POR_GRUPO,
-  DESARROLLO_NATURAL,
-  INICIAL_DE_CAPACIDAD,
+  statDeCapacidad,
   vigoresPorEdad,
   TAGS,
   defineModule,
@@ -47,27 +45,8 @@ export type { IdentidadState } from './identidad';
  * - Estado: energía, salud, estrés y motivación. Modulan la eficiencia de todo.
  */
 
-// La caída, el desarrollo natural y el rango inicial de las capacidades son reglas de todas las personas (`desarrollo-de-persona.ts`, en contracts).
-const { fisico: fisica, mental, social } = CAIDA_POR_GRUPO;
-
-/** Techo de lo físico: crece con el desarrollo por la edad (a los 8 años ~57, a los 18 el máximo). */
-const techoPorEdad = { base: 0.3, from: [{ stat: GEN.madurez, weight: 0.7 }] };
-
-/** Qué fracción del tope alcanzable por edad aplica a cada grupo de genéricas. */
-const VIGOR: Record<string, string> = { 'Físico': GEN.vigorFisico, Mental: GEN.vigorMental, Social: GEN.vigorSocial };
-
-const generica = (id: string, name: string, group: string, decay: DecayDef, description: string, limitadaPorEdad = false): StatDef => ({
-  id,
-  name,
-  group,
-  description,
-  category: 'generica',
-  initial: { ...INICIAL_DE_CAPACIDAD },
-  growth: { rate: 0.5, curve: 2, potentialFactor: VIGOR[group], naturalFraction: DESARROLLO_NATURAL, ...(limitadaPorEdad ? { cap: techoPorEdad } : {}) },
-  // Todas las genéricas tienen un tope genético heredado de los padres; lo físico, además, depende del desarrollo por la edad.
-  genetics: { grupo: group.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() },
-  decay,
-});
+// Las 18 capacidades las define `statDeCapacidad` (contracts): son las mismas reglas para el personaje y para cualquier niño.
+const generica = statDeCapacidad;
 
 const WAKE_HOUR = 7;
 
@@ -87,26 +66,26 @@ export const personaje = defineModule<IdentidadState>({
   },
   stats: [
     // Físicos
-    generica(GEN.velocidad, 'Velocidad', 'Físico', fisica, 'Desplazamiento puro: lo rápido que mueves el cuerpo de un punto a otro.', true),
-    generica(GEN.fuerza, 'Fuerza', 'Físico', fisica, 'Potencia muscular: empujar, cargar, resistir un choque.', true),
-    generica(GEN.resistencia, 'Resistencia', 'Físico', fisica, 'Cuánto aguanta el cuerpo el esfuerzo antes de ceder.', true),
-    generica(GEN.constitucion, 'Constitución', 'Físico', fisica, 'Robustez del cuerpo: lesiones, recuperación y esfuerzo acumulado. Se forja con hábitos sostenidos.', true),
-    generica(GEN.agilidad, 'Agilidad', 'Físico', fisica, 'Cambiar de dirección con rapidez y control.', true),
-    generica(GEN.coordinacion, 'Coordinación', 'Físico', fisica, 'Precisión del movimiento: que el cuerpo haga lo que el cerebro ordena.', true),
+    generica(GEN.velocidad, 'Velocidad', 'Desplazamiento puro: lo rápido que mueves el cuerpo de un punto a otro.'),
+    generica(GEN.fuerza, 'Fuerza', 'Potencia muscular: empujar, cargar, resistir un choque.'),
+    generica(GEN.resistencia, 'Resistencia', 'Cuánto aguanta el cuerpo el esfuerzo antes de ceder.'),
+    generica(GEN.constitucion, 'Constitución', 'Robustez del cuerpo: lesiones, recuperación y esfuerzo acumulado. Se forja con hábitos sostenidos.'),
+    generica(GEN.agilidad, 'Agilidad', 'Cambiar de dirección con rapidez y control.'),
+    generica(GEN.coordinacion, 'Coordinación', 'Precisión del movimiento: que el cuerpo haga lo que el cerebro ordena.'),
     // Mentales
-    generica(GEN.inteligencia, 'Inteligencia', 'Mental', mental, 'Rapidez y calidad del razonamiento; entender y decidir bajo presión.'),
-    generica(GEN.concentracion, 'Concentración', 'Mental', mental, 'Mantener el foco durante periodos largos.'),
-    generica(GEN.determinacion, 'Determinación', 'Mental', mental, 'Empuje ante el esfuerzo y la dificultad; persistir cuando el progreso es lento.'),
-    generica(GEN.resiliencia, 'Resiliencia', 'Mental', mental, 'Recuperarse tras un fracaso, una lesión o una mala racha.'),
-    generica(GEN.atencion, 'Atención', 'Mental', mental, 'Captar lo relevante del entorno cuando hay mucho estímulo.'),
-    generica(GEN.creatividad, 'Creatividad', 'Mental', mental, 'Encontrar soluciones que nadie espera.'),
+    generica(GEN.inteligencia, 'Inteligencia', 'Rapidez y calidad del razonamiento; entender y decidir bajo presión.'),
+    generica(GEN.concentracion, 'Concentración', 'Mantener el foco durante periodos largos.'),
+    generica(GEN.determinacion, 'Determinación', 'Empuje ante el esfuerzo y la dificultad; persistir cuando el progreso es lento.'),
+    generica(GEN.resiliencia, 'Resiliencia', 'Recuperarse tras un fracaso, una lesión o una mala racha.'),
+    generica(GEN.atencion, 'Atención', 'Captar lo relevante del entorno cuando hay mucho estímulo.'),
+    generica(GEN.creatividad, 'Creatividad', 'Encontrar soluciones que nadie espera.'),
     // Sociales
-    generica(GEN.carisma, 'Carisma', 'Social', social, 'Magnetismo natural: caer bien sin esforzarse.'),
-    generica(GEN.comunicacion, 'Comunicación', 'Social', social, 'Claridad al transmitir ideas, instrucciones y acuerdos.'),
-    generica(GEN.autoridad, 'Autoridad', 'Social', social, 'Capacidad de mando: el respeto que infundes al grupo.'),
-    generica(GEN.empatia, 'Empatía', 'Social', social, 'Leer lo que sienten los demás.'),
-    generica(GEN.picardia, 'Picardía', 'Social', social, 'Astucia para jugar al límite y salirte con la tuya.'),
-    generica(GEN.cooperacion, 'Cooperación', 'Social', social, 'Trabajar con otros hacia un objetivo común. (Provisional.)'),
+    generica(GEN.carisma, 'Carisma', 'Magnetismo natural: caer bien sin esforzarse.'),
+    generica(GEN.comunicacion, 'Comunicación', 'Claridad al transmitir ideas, instrucciones y acuerdos.'),
+    generica(GEN.autoridad, 'Autoridad', 'Capacidad de mando: el respeto que infundes al grupo.'),
+    generica(GEN.empatia, 'Empatía', 'Leer lo que sienten los demás.'),
+    generica(GEN.picardia, 'Picardía', 'Astucia para jugar al límite y salirte con la tuya.'),
+    generica(GEN.cooperacion, 'Cooperación', 'Trabajar con otros hacia un objetivo común. (Provisional.)'),
     { id: GEN.madurez, name: 'Madurez física', group: 'Estado', category: 'estado', initial: 41, hidden: true },
     // Fracción del tope genético alcanzable por la edad en cada categoría (ver `CURVAS_POR_EDAD`): el techo sube hasta el
     // pico y baja con el envejecimiento. Se actualizan cada día con la edad.

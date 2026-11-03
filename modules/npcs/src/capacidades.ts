@@ -55,10 +55,11 @@ export function valoresIniciales(id: string, g: Genetica): readonly number[] {
 
 /** Las capacidades de un niño a los 8 años, como las del personaje: dentro del rango inicial según su tope y la ventaja de su crianza. */
 export function capacidadesIniciales(id: string, g: Genetica): CapacidadesDe {
-  const factor = factorDeHerencia(rngEstable('factor-de-herencia', id));
+  const semilla = g.semilla ?? 0;
+  const factor = factorDeHerencia(rngEstable('factor-de-herencia', semilla, id));
   const cap = CAPACIDADES_GENETICAS.map((c) => {
     // La misma regla que el personaje (`valorInicialDeCapacidad`): su tope propio, su factor de herencia y una variación. La ventaja de crianza no entra (es del nivel deportivo).
-    return redondea(valorInicialDeCapacidad(INICIAL_DE_CAPACIDAD, g.topes[c], factor, rngEstable('capacidad-inicial', id, c)));
+    return redondea(valorInicialDeCapacidad(INICIAL_DE_CAPACIDAD, g.topes[c], factor, rngEstable('capacidad-inicial', semilla, id, c)));
   });
   return { cap, pico: [...cap], base: [...cap] };
 }
@@ -113,8 +114,8 @@ export const EDAD_MINIMA_DE_EMPEZAR = 6;
  * deportistas, **entre los 8 y los 10 la mayoría**, y algunos más tarde (de 11 a 13). Decidido el 02/11 (`MISMAS_REGLAS.md` §5). Es la historia que se simula al
  * crear la partida: se llega a los valores de haber seguido su rutina desde esa edad (el llamador no la pasa de la edad actual del niño).
  */
-export function edadDeEmpezar(id: string, deporte: string, interes: number, padres: { padre: Practica; madre: Practica }): number {
-  const r = rngEstable('edad-de-empezar', id, deporte);
+export function edadDeEmpezar(id: string, deporte: string, interes: number, padres: { padre: Practica; madre: Practica }, semilla = 0): number {
+  const r = rngEstable('edad-de-empezar', semilla, id, deporte);
   // Cuánto empuja a empezar pronto: el interés (de 0 a 3) y lo que practicaron sus padres (de 0 a 3 cada uno, el mayor cuenta más).
   const deportistas = Math.max(NIVEL_PRACTICA[padres.padre], NIVEL_PRACTICA[padres.madre]);
   const empuje = interes / 3 + deportistas / 3;
