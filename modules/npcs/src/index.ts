@@ -1226,8 +1226,9 @@ const idDeEntrenadorDeEquipo = (club: string, categoria: string, numero: number)
  * 1. **Un club cierra el equipo que no llega al mínimo de jugadores**: si lo que sobra del último equipo no alcanza el mínimo de una plantilla, se cierra (con su entrenador) y los que
  *    sobran, los de menos valor, buscan club como cualquier desplazado.
  * 2. **Si quedan sin equipo al menos tantos interesados como el mínimo de una plantilla, un club abre otro equipo en esa categoría**, con su entrenador. Abre el club con menos equipos en
- *    la categoría (así se reparten) y, a igualdad, el que tiene más demanda (más interesados que podría coger) y el más grande; recluta a los interesados (por lo que valen). Se repite hasta
- *    que no quede demanda para otro equipo.
+ *    la categoría (así se reparten) y, a igualdad, el que tiene más demanda (más interesados que podría coger) y el más grande. El equipo nace con los mejores (por lo que valen) de los
+ *    que se habían quedado sin equipo, hasta el mínimo de una plantilla (14): con huecos, para que quien vale menos también pueda entrar por la regla de plaza. Se repite hasta que no
+ *    quede demanda para otro equipo (quedan sin equipo menos interesados que el mínimo de una plantilla).
  * Dentro de cada club y categoría no cambia nada: si está lleno, entra quien vale más que el peor. (Cuando lleguen los filiales, F2, el segundo equipo será el B.)
  * Devuelve los entrenadores nuevos. Cambia `m.lista` y `m.pobs` (los clubes con sus equipos abiertos).
  */
@@ -1284,9 +1285,10 @@ export function equiposPorDemanda(m: MercadoDeFichajes, rng: Rng): Npc[] {
         e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: numero };
         entrenadores.push(nuevoEntrenador(rng, pob, registroDe([...arr, ...entrenadores]), { id: idDeEntrenadorDeEquipo(e.club, catId, numero), club: e.club, edades: [catDef.edadMin, Math.min(catDef.edadMax, 99)], edad: [28, 55] }));
         m.pobs = [...pobsNuevas, pob, ...m.pobs.slice(pobsNuevas.length + 1)];
-        // El equipo nuevo recluta a los interesados (por lo que valen); los clubes de la categoría con hueco también.
-        const reclutados = reclutarDeportistas([...m.lista.values()], pob, m.dia, true, m.reservas, m.val);
-        m.lista = new Map(reclutados.map((n) => [n.id, n]));
+        // El equipo nuevo se forma con los mejores (por lo que valen) de los interesados que se habían quedado sin equipo, hasta el mínimo de una plantilla: así nace con huecos
+        // (quien vale menos que los demás también puede entrar, por la regla de plaza) y no se queda ningún otro equipo sin jugadores.
+        const elegibles = sinEquipoParaClub([...m.lista.values()], pob, e, categorias.get(catId) ? categoriasDelEquipo(pob, e).find((c) => c.id === catId)!.edades : [], m).sort((a, b) => b.valor - a.valor || (a.npc.id < b.npc.id ? -1 : 1));
+        for (const a of elegibles.slice(0, e.plantillaPorCategoria!.min)) intentarEntrar(m, a.npc, e, pob);
       }
     }
     pobsNuevas.push(pob);
@@ -1354,9 +1356,6 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   const dejadosAntes = new Set(lista.filter((n) => n.dejado?.length).map((n) => n.id));
   fichajesDeVerano(mercado, semilla, curso);
   resultado.dejanSinClub = [...mercado.lista.values()].filter((n) => n.deporte === undefined && n.dejado?.length && !dejadosAntes.has(n.id)).length;
-  // Equipos según la demanda: cierran los que no llegan al mínimo y abren los que hacen falta para que los interesados tengan equipo.
-  equiposPorDemanda(mercado, rng);
-  resultado.pobs = [...mercado.pobs];
   const reservasQueQuedan = new Map(reservas);
   for (const j of personaje) {
     const dentro = mercado.lista.get(idDelPersonaje(j.deporte))?.deporte !== undefined;
@@ -1366,7 +1365,13 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
       reservasQueQuedan.delete(claveDeEquipo(j.club, j.categoria));
     }
   }
-  return reclutarEnTodos([...mercado.lista.values()], mercado.pobs, dia, reservasQueQuedan, rend);
+  // Los equipos se rellenan con los interesados y, después, la regla de los equipos según la demanda: cierran los que no llegan al mínimo y abren los que hacen falta para que los
+  // interesados que se quedan sin equipo (tantos como el mínimo de una plantilla) lo tengan.
+  const llenos = reclutarEnTodos([...mercado.lista.values()], mercado.pobs, dia, reservasQueQuedan, rend);
+  const final: MercadoDeFichajes = { lista: new Map(llenos.map((n) => [n.id, n])), pobs: mercado.pobs, dia, val: valoracionDe(rend), reservas: reservasQueQuedan };
+  equiposPorDemanda(final, rng);
+  resultado.pobs = [...final.pobs];
+  return [...final.lista.values()];
 }
 
 /**

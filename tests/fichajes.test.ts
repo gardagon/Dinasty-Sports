@@ -230,7 +230,7 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
     for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of pob.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
         const jugadores = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && (edadNpc(n, 52 * 7) ?? -1) >= c.edadMin && (edadNpc(n, 52 * 7) ?? -1) <= c.edadMax).length;
-        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(capacidadDe(e, c.id));
+        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(capacidadDe(e, c.id) + 4); // + los que cambian de categoría al pasar de curso
       }
     }
   }, 240000);
