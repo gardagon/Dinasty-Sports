@@ -57,8 +57,9 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
   const g = nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, medida]);
   costeDeCrear.push(performance.now() - t0);
   const nivel = (): number => g.service<{ nivel(): number }>('medida.nivel')!.nivel();
-  const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
   const s0 = g.moduleState<NpcsState>('npcs') as NpcsState;
+  // El primer plazo: la semana 2 del curso, un martes a las 17:00 (la secretaría de los clubes está abierta). Antes los equipos se miden recién creados.
+  advanceToWeek(g, 'gen.descansar', 1, 2, 17);
   const n0 = nivel();
   personaje.push(n0);
   let entraEnAlguno = false;
@@ -99,10 +100,8 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
       nivelDelBot[curso].push(n);
       const dirAhora = g.service<NpcDirectory>(SERVICES.npcs)!;
       for (const club of CLUBES) {
-        const o = g.preview(ACCION[club]);
-        // Si ya es del club del colegio la acción no se ofrece: se mira la regla de plaza (lo que decidiría el club).
-        const entra = o ? o.available || faltaViajar(o) : dirAhora.plaza('futbol', club, n).estado !== 'completo';
-        if (!primero.has(club) && entra) primero.set(club, curso + 1);
+        // Dentro del plazo (la semana 2 del curso), lo que decidiría el club: la regla de plaza con su nivel real (es lo mismo que comprueba la acción «Apuntarte a…»).
+        if (!primero.has(club) && dirAhora.plaza('futbol', club, n).estado !== 'completo') primero.set(club, curso + 1);
       }
     }
     for (const club of CLUBES) primerCurso[club].push(primero.get(club) ?? 0);
