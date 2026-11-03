@@ -61,10 +61,14 @@ export const RECUPERACION_DE_LA_SALUD = 25;
 /** Probabilidad base de lesión por semana de un jugador activo (el 0,4 %); crece con la carga y baja con una buena constitución. */
 export const PROBABILIDAD_DE_LESION = 0.004;
 
-/** El rendimiento de un jugador por su estado: los mismos factores del personaje (cansancio, motivación y salud) y una pequeña ventaja o desventaja por su forma. */
+/**
+ * El rendimiento de un jugador por su estado: los mismos factores del personaje. Al **entrenar** cuentan el cansancio, la salud y la motivación (la moral); en una
+ * **competición**, el cansancio, la salud y la **forma** (una pequeña ventaja o desventaja de ×0,97 a ×1,03). La forma no cambia el entrenamiento, ni en los PNJ ni en el
+ * personaje: así la usa el motor (en la marca del día, `factorPorForma`), y el entrenamiento solo mira lo que el personaje ya tiene en sus modificadores.
+ */
 export function eficienciaDeEstado(e: EstadoDeJugador, entrenando = true): number {
-  const f = factorPorCansancio(e.fisica) * factorPorSalud(e.salud) * (entrenando ? factorPorMotivacion(e.moral / 100) : 1);
-  return f * factorPorForma(e.forma);
+  const f = factorPorCansancio(e.fisica) * factorPorSalud(e.salud);
+  return entrenando ? f * factorPorMotivacion(e.moral / 100) : f * factorPorForma(e.forma);
 }
 
 /** De ×0,97 (forma 20) a ×1,03 (forma 80): neutra en 50. Es pequeña: la forma pesa poco, pero se nota entre iguales. */

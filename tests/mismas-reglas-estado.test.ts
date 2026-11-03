@@ -39,6 +39,13 @@ describe('el estado de un jugador', () => {
     expect(enfermo / descansado).toBeCloseTo(factorPorSalud(20), 5);
   });
 
+  it('la forma cuenta en la competición y no en el entrenamiento (en los PNJ y en el personaje)', () => {
+    const buena = SANO({ forma: 90 });
+    const mala = SANO({ forma: 10 });
+    expect(eficienciaDeEstado(buena)).toBe(eficienciaDeEstado(mala)); // entrenando
+    expect(eficienciaDeEstado(buena, false)).toBeGreaterThan(eficienciaDeEstado(mala, false)); // en la competición
+  });
+
   it('descansar recupera la condición; las sesiones y las competiciones la gastan', () => {
     const cansado = SANO({ fisica: 40 });
     expect(pasoDeSemanaDelEstado(cansado, SEMANA).fisica).toBeGreaterThan(cansado.fisica);
@@ -223,5 +230,14 @@ describe('el historial de un jugador guarda una entrada por temporada', () => {
       { curso: 1, categoria: 'sub12', club: 'cc', pruebas: 1, victorias: 0, podios: 1, mejorMarca: 59 },
     ]);
     expect(h.pruebas).toBe(3);
+  });
+});
+
+describe('los sorteos del personaje usan la semilla de la partida', () => {
+  it('el personaje guarda la semilla de su partida (de ella salen sus lesiones, como las de los PNJ)', () => {
+    const a = nuevaPartida({ seed: 31 }).moduleState<{ semilla?: number }>('gen');
+    const b = nuevaPartida({ seed: 32 }).moduleState<{ semilla?: number }>('gen');
+    expect(a.semilla).toBe(31);
+    expect(b.semilla).toBe(32);
   });
 });

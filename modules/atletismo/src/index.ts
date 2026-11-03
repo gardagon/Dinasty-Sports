@@ -67,6 +67,8 @@ import {
 import {
   anotarEnTabla,
   clasificarPrueba,
+  marcaDeInscripcion,
+  marcaEsperada400,
   finalistasDe,
   ordenDeTabla,
   plazasConReservas,
@@ -205,7 +207,7 @@ export function rendimiento(ctx: LectorDePersona): number {
 
 /** Marca de 400 m (segundos) a partir del rendimiento: 30 → ~69 s, 70 → ~57 s. */
 export function marca400(perf: number, rng: Rng): number {
-  const t = 78 - perf * 0.3 + rng.normal() * 0.9;
+  const t = marcaEsperada400(perf) + rng.normal() * 0.9;
   return Math.round(t * 100) / 100;
 }
 
@@ -347,7 +349,10 @@ function correrPrueba(ctx: ActionContext, cat: CategoriaDef, tipo: TipoCarrera, 
   }
   const todos: Corre[] = [...(jugador ? [{ name: 'Tú', level: jugador.level, mark: jugador.mark, isPlayer: true }] : []), ...rivales];
   if (todos.length < 2) return undefined;
-  const series = clasificarPrueba(repartirEnSeries(todos.map((c) => ({ ...c, nivel: c.level })), formatoDeCarrera(ctx).maxPorSerie));
+  // Las series se reparten por la marca de inscripción: la mejor de la temporada en la categoría y, si no tiene, la que se espera de su nivel.
+  const mejores = ctx.state<AtletismoState>().tablas?.curso === t.schoolYear ? ctx.state<AtletismoState>().tablas!.temporada[cat.id] : undefined;
+  const inscripcion = (c: Corre) => marcaDeInscripcion(mejores?.[c.isPlayer ? 'yo' : (c.npcId ?? '')]?.mm, c.level);
+  const series = clasificarPrueba(repartirEnSeries(todos.map((c) => ({ ...c, nivel: -inscripcion(c) })), formatoDeCarrera(ctx).maxPorSerie));
   return { cat, tipo, semana, series, todos: series.flat().sort((a, b) => a.puesto - b.puesto || a.serie - b.serie), faltan: conv.faltan };
 }
 

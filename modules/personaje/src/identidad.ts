@@ -28,6 +28,8 @@ export interface IdentidadState {
   edadInicial: number;
   /** Parte del año ya transcurrida al empezar (0..1): reparte los cumpleaños. */
   fraccionInicial: number;
+  /** Semilla de la partida: de ella salen los sorteos estables del personaje (sus lesiones), como los de los PNJ. Ausente en partidas anteriores (entonces 0). */
+  semilla?: number;
   /** Altura adulta objetivo (cm). Hoy sale de la semilla; con padres saldrá de la herencia. */
   alturaAdulta: number;
   /** Años de adelanto (+) o retraso (−) en el crecimiento. */

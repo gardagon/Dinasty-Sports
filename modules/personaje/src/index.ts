@@ -76,7 +76,7 @@ export const personaje = defineModule<IdentidadState>({
     for (const [stat, delta] of Object.entries(efecto.tope)) ctx.bonusDeTope(stat, delta);
     // Origen, apariencia, carácter e intereses salen de los padres (la opción de elegirlos a mano llegará con la creación de personaje).
     const perfil = perfilHeredado(ctx.rasgosDePadres.padre, ctx.rasgosDePadres.madre, ctx.rng);
-    return initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, perfil, efecto.alturaCm);
+    return { ...initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, perfil, efecto.alturaCm), semilla: ctx.seed };
   },
   stats: [
     // Físicos
@@ -366,8 +366,8 @@ export const personaje = defineModule<IdentidadState>({
         if (baja <= 1) ctx.log('Ya estás recuperado de la lesión.', 'info');
       } else {
         const fatiga = fatigaDeLaSemana(ctx.stat(GEN.energia), antes.semana.cargas ?? 0);
-        if (rngEstable('lesion', antes.alturaAdulta, antes.fraccionInicial, week).next() < riesgoDeLesion(fatiga, ctx.stat(GEN.constitucion))) {
-          const g = gravedadDeLesion(rngEstable('gravedad', antes.alturaAdulta, antes.fraccionInicial, week).next());
+        if (rngEstable('lesion', antes.semilla ?? 0, 'personaje', week).next() < riesgoDeLesion(fatiga, ctx.stat(GEN.constitucion))) {
+          const g = gravedadDeLesion(rngEstable('gravedad', antes.semilla ?? 0, 'personaje', week).next());
           ctx.addStat(GEN.baja, g.baja);
           ctx.addStat(GEN.salud, Math.min(0, g.salud - ctx.stat(GEN.salud)));
           ctx.log(`Te has lesionado: ${g.baja} ${g.baja === 1 ? 'semana' : 'semanas'} de baja (sin entrenar con el club ni competir).`, 'aviso');
