@@ -5,6 +5,34 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 05/11/2026 — Mismas reglas, P2b-2: plazo de fichajes, desplazados que buscan club y fichajes de verano
+
+Decisiones del usuario del 03/11, **iguales para el personaje y los PNJ y para todos los deportes** (la regla, en el kit del deporte; las fechas, como dato del deporte por país).
+
+- **Plazo de fichajes: del verano a la primera competición del curso** (en el fútbol, la primera jornada de liga; en el atletismo, la primera carrera). Sale de la temporada del deporte en cada país (`semanasDePretemporada`) y del calendario del país (`plazoDeFichajesAbierto`, `proximaAperturaDelPlazo` en `contracts`). En España: de la semana 42 del curso a la 4 del siguiente.
+  - **Dentro del plazo**, cualquiera entra en un club o se cambia: con hueco, entra; con el equipo lleno, entra quien vale más que el peor (`reglaDePlaza`), y el desplazado busca otro club con la misma regla.
+  - **Fuera del plazo**, quien está en un club no puede cambiarse; quien no está en ninguno entra solo si hay hueco, sin sacar a nadie; quien deja su club fuera de plazo no entra en otro del mismo deporte hasta el siguiente plazo (`EstadoBaseDeDeporte.sinFichajesHasta`). Las acciones del personaje lo explican («El plazo de fichajes está cerrado hasta el verano…»).
+- **Quien se queda sin equipo** (`colocarDesplazados`): busca otro club de su deporte, del más grande al más pequeño, con la misma regla (si desplaza a su vez a otro, este hace lo mismo); si no encuentra, **deja ese deporte al menos ese curso** (`apartado`, puede volver a intentarlo en el siguiente plazo) y busca club en **otro deporte que le interese**; si ningún club de ningún deporte lo quiere, **deja los deportes que ha intentado para siempre** (`dejado`) y no vuelve a ser reclutado.
+- **En el personaje** las restricciones son las mismas y **sale del club como cualquier niño**; lo único distinto es que las decisiones son suyas y que nunca se le retira del deporte para siempre. El personaje cuenta como un jugador más de su equipo, con lo que vale (`rend(ctx)`, como en la regla de plaza): si otro que vale más le ocupa el sitio en los fichajes de verano, el módulo de clubes lo saca del club (evento `club.plaza_perdida`; no cuenta como dejarlo plantado ni cierra el plazo) y se le explica qué ha pasado y qué puede hacer: probar en otro club (con la regla de plaza), en otro deporte o esperar al siguiente plazo. *(Revisión del 05/11: la primera versión lo dejaba en el club y entrenando con él, un trato especial.)*
+- **Los fichajes de verano** (ambición, padres y plaza) se hacen dentro del plazo, al empezar el curso: cada club, del más grande al más pequeño, mira a los **tres mejores** de cada equipo de los clubes más pequeños de su categoría. Cada niño decide con `probabilidadDeFichar` (de 5 % a 95 %: 35 % de base, ±35 % por la ambición del carácter y hasta +25 % por lo que practicaron sus padres) y la plaza. Si no la consigue, se queda donde estaba.
+- **Sin huecos reservados**: se quita el comentario «así quedan huecos para el personaje» de los datos del fútbol y del contrato: el personaje entra como cualquier niño; el equipo solo cuenta con su plaza si ya es miembro (como un jugador más: puede perderla).
+- **Medido** (`npm run fichajes -- 12 3`: 12 semillas y 3 cursos; `tools/fichajes.ts`), **con el nivel real del personaje** (el lector del motor, como lo calcula la regla de plaza para él; la primera medida usaba `stat/100`, que no ajusta las capacidades a la edad):
+  - **Al empezar** (nivel de partida en fútbol, mediana 9,5; benjamín, equipos completos): el nivel del peor de cada equipo es 10,8 (grande), 10,4 (mediano), 10,0 (pequeño) y 9,1 (colegio). Entra en el club grande en 1 de 12 semillas, en el mediano en 3, en el pequeño en 4 y en el del colegio en 8. **En 4 de 12 semillas no entra en ningún club de fútbol** al empezar.
+  - **Bot del montón** (el deportista de fútbol con el plan de siempre, que mira en cada plazo si entraría; nivel real 10,5 → 14,8 → 16,9 al empezar los cursos 1, 2 y 3): primer curso en que entraría en cada club (12 semillas):
+
+    | Club | Curso 1 | Curso 2 | Curso 3 | Nunca |
+    |---|---|---|---|---|
+    | Grande | 3 | 7 | 0 | 2 |
+    | Mediano | 7 | 4 | 1 | 0 |
+    | Pequeño | 8 | 4 | 0 | 0 |
+    | Colegio | 10 | 2 | 0 | 0 |
+
+    En el curso 2 todos entrarían en un club pequeño o en el del colegio; el grande se queda fuera de 2 de 12 en los tres cursos.
+  - **Cuántos dejan el deporte para siempre por no encontrar club**: 0,4; 0,6 y 0,0 niños por partida en los cursos 1, 2 y 3 (máximo 2). Los futbolistas no se vacían: 369 al empezar y 395 tras cada curso. No hace falta tocar nada.
+- **Test con plazo propio, para quitar en la P2c**: «fútbol empaquetado» (`tests/futbol.test.ts`) crea dos partidas con fútbol (unos 3,7 s cada una con los 368 futbolistas; ~12 s en local) y compila el paquete: con el plazo por defecto (15 s) se pasó en la integración continua. Tiene 60 s. **Quitarlo cuando la P2c baje el coste de crear la partida.**
+- **Medido con `sim`** (`main` frente a la rama, 365 días × 5 semillas): 0 ❌ y los mismos chequeos (el ⚠️ de rendimiento es el de la velocidad de la máquina, igual en `main`); la tabla, igual salvo el bot «Aleatorio» (28,9 → 28,5), que es el que más se lesiona y más cambia de acciones.
+- **Un test que suponía lo de antes se corrige**: «completo pero mejor que el peor» comprobaba que el desplazado quedaba sin equipo; ahora busca club con la misma regla (y con los niveles puestos a mano en el test puede volver a entrar desplazando a otro, porque la regla mira lo que vale de verdad). Se comprueba que solo deja el deporte, y entonces para siempre, si ningún club lo quiere.
+
 ## 03/11/2026 — Ideas del usuario para más adelante: quién sigue en el mundo (abandono, archivo, profesiones y gente de fuera)
 
 Apuntadas para tenerlas en cuenta, sin encargar todavía. Están en `CIUDAD_Y_LIGAS.md` §11:

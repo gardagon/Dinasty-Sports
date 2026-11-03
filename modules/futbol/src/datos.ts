@@ -62,7 +62,7 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
   reclutamiento: { edades: { min: 8, max: 19 }, edadMaxBaja: 13, probabilidadBaja: 0.1 },
   // Los equipos de la zona (`CIUDAD_Y_LIGAS.md` §3): el del colegio es un club pequeño más y escoge a sus alumnos; los de fuera escogen entre todos los colegios por lo que vale cada
   // niño, los grandes primero. Un equipo por categoría (de benjamín a juvenil), de 14 a 18 jugadores (once titulares y suplentes): se recluta primero a los interesados hasta 18 y, si no
-  // llegan a 14, se completa con niños sin interés hasta 14, así quedan huecos para el personaje. Con la población de ahora (unos 120 niños por edad) salen llenos. Los filiales (el equipo B
+  // llegan a 14, se completa con niños sin interés hasta 14 (no se guarda ningún hueco al personaje: entra como cualquier niño, por la regla de plaza). Con la población de ahora (unos 120 niños por edad) salen llenos. Los filiales (el equipo B
   // de los clubes grandes y medianos) llegan con la liga por divisiones (F2).
   equipos: [
     { club: 'club_grande', nombre: 'Real Ciudad C. F.', tamano: 'grande', categorias: CATEGORIAS_DE_LOS_CLUBES, plantillaPorCategoria: { min: 14, max: 18 } },

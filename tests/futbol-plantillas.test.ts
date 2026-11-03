@@ -83,7 +83,7 @@ describe('reclutamiento por equipo: interesados hasta el máximo, el resto solo 
     expect(delEquipo(r, pob, 'infantil')).toHaveLength(18);
   });
 
-  it('con pocos interesados se completa con niños sin interés hasta el mínimo, y no más: quedan huecos para el personaje', () => {
+  it('con pocos interesados se completa con niños sin interés hasta el mínimo, y no más: no se guarda ningún hueco al personaje', () => {
     const g = nueva();
     const base = sinNadie(new Set(), g);
     const cinco = new Set(delColegioEnCategoria(base.npcs, base.pob, 'infantil').slice(0, 5).map((n) => n.id));
@@ -158,7 +158,7 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').toMatch(/completo y todos juegan mejor que tú/);
   });
 
-  it('completo pero mejor que el peor: entra y el peor queda sin equipo, sin volver a ser reclutado ese curso', () => {
+  it('completo pero mejor que el peor: entra y el peor busca otro club (con la misma regla); si ninguno lo coge, deja el deporte', () => {
     const g = nueva();
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     const equipo = llenar(g, 99, 1);
@@ -166,10 +166,10 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
     expect(plaza(g, 30)).toMatchObject({ estado: 'por_merito', peor: { id: peor.id } });
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     const despues = estado(g).npcs.find((n) => n.id === peor.id)!;
-    expect(despues.deporte).toBeUndefined();
-    expect(despues.apartado).toEqual(['futbol']);
-    const otra = reclutarDeportistas(estado(g).npcs, pobDeFutbol(g), 0);
-    expect(otra.find((n) => n.id === peor.id)!.deporte).toBeUndefined();
+    // No queda sin equipo sin más: busca club con la misma regla (por lo que vale de verdad, que aquí no es el nivel que se le ha puesto a mano: puede volver a entrar desplazando a otro) y
+    // solo si ningún club de ningún deporte lo quiere deja el deporte, y entonces es para siempre.
+    if (despues.deporte === undefined) expect(despues.dejado).toContain('futbol');
+    else expect(despues.dejado ?? []).not.toContain('futbol');
     expect(benjamin(g)).toHaveLength(17);
   });
 });
