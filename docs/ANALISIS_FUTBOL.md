@@ -2,6 +2,22 @@
 
 Segunda versión (31/10/2026), **con las decisiones del usuario del 31/10 en §0**. No se ha cambiado código. Sustituye al primer análisis del 29/10 (que quedó desfasado al hacerse las fases G a 7 del plan de deportes). Parte de dos documentos del usuario: **`addon_football_v2.json`** (versión 2.1 del addon) y **`desing_stats_personality_system.md`** (diseño de stats, perks y personalidad v0.2, del proyecto original en Godot). Se compara cada cosa con lo que hay en `main` y con `DECISIONES.md`.
 
+## Estado (03/11/2026)
+
+| Hecho | PR |
+|---|---|
+| F0: vocabulario común (resultado de equipo, `relaciones` con compañeros y rivales, secciones en la pestaña, liga en la temporada, equipos por categoría) | #56 |
+| F1: módulo de fútbol (29 habilidades, conocimiento, entreno por libre y club del colegio con el kit) | #57 |
+| Sobrecarga contando todas las sesiones de cualquier deporte; liga sin semifinal ni final | #59 |
+| Plantilla por equipo y categoría (de 14 a 18) y ejercicios elegidos por el entrenador; sin plaza reservada para el personaje | #60 |
+| Mismas reglas, P1: capacidades reales de los PNJ y fórmulas de progresión compartidas | #63 |
+| El personaje nace el mismo año que su clase (benjamín de primer año) | #67 |
+| Mismas reglas, P2a-1: habilidades y rutina de los PNJ que juegan, rendimiento sobre el lector de persona, ejercicios iguales para todo el equipo y la semilla en los sorteos de cada niño | #69 |
+
+**Lo siguiente:** P2a-2 (estado de los jugadores e historial de atletismo), P2b (clubes de la zona) y P2c (medidas) de `MISMAS_REGLAS.md`. Después, la **F2** con el motor de `MOTOR_PARTIDOS.md` y las ligas de `CIUDAD_Y_LIGAS.md`. El fútbol todavía no está en `MODULOS` ni se puede instalar en la web: falta la clave de firma (§1).
+
+Este documento conserva el análisis del 31/10. Donde algo cambió después, lo dicen `VISION.md`, `MISMAS_REGLAS.md`, `CIUDAD_Y_LIGAS.md` y `MOTOR_PARTIDOS.md`, que mandan sobre esto.
+
 ---
 
 ## 0. Decisiones del usuario (31/10/2026)
@@ -27,12 +43,12 @@ Las fases G a 7 de [`PLAN_DEPORTES_MODULARES.md`](PLAN_DEPORTES_MODULARES.md) es
 | Propuesto | Cómo quedó en `main` | Para el fútbol |
 |---|---|---|
 | Un deporte «practicado» con acciones Empezar/Dejar y lo demás oculto | **No hay «practicado» ni nada oculto.** Se puede hacer cualquier deporte de la partida. El **deporte principal es el del club** al que el personaje entró el último (`deportePrincipal`) | El fútbol se activa **apuntándose a un club de fútbol**. Sin club no hay pestaña ni partidos, pero sí entreno por libre |
-| Población híbrida para el fútbol (tu equipo como personas, rivales agregados) | **Todos los niños existen** (~1.100 personas: los del colegio, los de 4 colegios de fuera y los jóvenes de 18-19) y **cada deporte recluta** entre ellos por gustos y aptitud, en equipos con plantilla (`EquipoDeDeporte`). Nadie juega a dos deportes | **Ya no hace falta el modelo híbrido:** los equipos rivales pueden ser personas reales reclutadas. Con unos 90 niños por edad, una liga de 8 equipos de fútbol 7 (unos 12 por equipo, 2 edades) ocupa ~48 por edad: cabe, pero deja poco a los demás deportes (ver §5) |
+| Población híbrida para el fútbol (tu equipo como personas, rivales agregados) | (Con la ciudad grande serán ~6.000: `CIUDAD_Y_LIGAS.md`.) **Todos los niños existen** (~1.100 personas: los del colegio, los de 4 colegios de fuera y los jóvenes de 18-19) y **cada deporte recluta** entre ellos por gustos y aptitud, en equipos con plantilla (`EquipoDeDeporte`). Nadie juega a dos deportes | **Ya no hace falta el modelo híbrido:** los equipos rivales pueden ser personas reales reclutadas. Con unos 90 niños por edad, una liga de 8 equipos de fútbol 7 (unos 12 por equipo, 2 edades) ocupa ~48 por edad: cabe, pero deja poco a los demás deportes (ver §5) |
 | Datos por deporte y, dentro, por país | Hecho: `DatosDeDeporte` (categorías, temporada relativa al calendario escolar, competiciones, clubes, sedes, población) con España obligatoria de respaldo | El fútbol aporta sus datos de España (RFEF) y lo demás sale solo |
 | Paquetes firmados e instalador | Hecho (`@ds/paquetes`, firma ECDSA, fuentes con GitHub Pages). **Falta la clave:** hay que ejecutar una vez `npm run clave-deportes` y guardar la privada como secreto `DS_CLAVE_PRIVADA` (solo puede hacerlo el usuario); hasta entonces se rechaza todo paquete | El fútbol puede nacer como paquete instalable. El atletismo sigue integrado en el juego |
 | Kit de deporte | Hecho; `ConfigDeporte` se quedó en id, nombre, rendimiento y entrenos libres (lo demás pasó a los datos) | El fútbol lo usa para club, entrenador, categorías, verano, tele, sobrecarga y conocimiento |
 
-**Lo que el plan dejó pendiente y el fútbol necesita** (comprobado en el código):
+**Lo que el plan dejó pendiente y el fútbol necesita** (comprobado en el código el 31/10; los puntos 1 a 4 se hicieron en la F0 y en los #59 y #60):
 
 1. **`relaciones` sigue suponiendo que gana quien tiene menos marca** al recibir `competicion.resultado` (`p.mark > r.mark`) y trata a todos los participantes como rivales. En un partido hay compañeros y rivales y gana un equipo. Hay que ampliar el evento (campos opcionales de equipo).
 2. **La pestaña del deporte (`DeporteView`) solo sabe de pruebas con puesto y marca.** Hace falta poder enseñar la plantilla, la tabla de la liga y los partidos («Ganado 3-1»).
@@ -174,12 +190,14 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 - **Cuántos caben solo con gente de la ciudad (decisión 6):** hay unos 90 niños por edad entre 8 y 17 años y el atletismo se lleva unos 9. Un equipo de fútbol 11 con 14 jugadores (11 y 3 suplentes) por categoría de dos edades son unos 7 por edad. Con **6 o 7 equipos por categoría** caben (42–49 por edad) y salen ligas de 10 a 12 partidos a doble vuelta, lo que el JSON pide para la infancia. En las edades altas (18–19) hay menos gente (no van al colegio de la ciudad): ligas más pequeñas.
 - **Jugadores genéricos (después):** para ampliar las ligas, jugadores con los que no se puede interactuar (sin agenda ni relación), pero **con sus datos de verdad guardados** y las mismas reglas que todos (corregido el 02/11 con `VISION.md`: datos de verdad para todos). Antes proponía calcularlos desde la semilla sin guardarlos: se descarta.
 - **Nivel de cada jugador:** sustituido por `MISMAS_REGLAS.md`: cada jugador tiene sus capacidades y sus 29 habilidades reales, guardadas.
-- **Normalización por categoría:** la media de la categoría sale del nivel de los jugadores de esa categoría.
+- ~~**Normalización por categoría:** la media de la categoría sale del nivel de los jugadores de esa categoría.~~ Sustituida por la tabla fija del potenciador (§3 ter, punto 7).
 - **Clubes de élite (decisión 8):** un club de fuera con acceso exigente en juvenil y sénior (al estilo de las canteras de los grandes) es la puerta a jugar a alto nivel; usa el acceso de los clubes que ya existe.
 
 ## 6. Lo que falta en los documentos para hacer el addon
 
-1. **Cómo se resuelve un partido** (diseñado en [`MOTOR_PARTIDOS.md`](MOTOR_PARTIDOS.md), pendiente de aprobar): de los valores precalculados al marcador, los minutos, los goles y la nota del jugador. Propuesta: fuerza de cada equipo por líneas, goles con una distribución de Poisson según la diferencia, y la nota y las acciones del jugador según su posición y sus valores en partido.
+Al día el 03/11: el motor (1, 2 y 4) está en `MOTOR_PARTIDOS.md`, con su diseño aprobado; las acciones y lo que entrena cada una (3) y las categorías y la temporada de España (5) se hicieron en la F1. Quedan las lesiones (6), que esperan al sistema de salud.
+
+1. **Cómo se resuelve un partido** (diseñado y aprobado en [`MOTOR_PARTIDOS.md`](MOTOR_PARTIDOS.md)): de los valores al marcador, los minutos, los goles y la nota del jugador. La propuesta inicial (fuerza por líneas y goles con una distribución de Poisson) se sustituyó por duelos por zonas en 6 tramos.
 2. **La convocatoria:** cómo decide el entrenador titular, suplente o no convocado (nivel en su posición frente a los compañeros, asistencia a los entrenamientos, relación con él). Es lo que hace distinto al fútbol del atletismo.
 3. **Qué acciones hay y qué entrena cada una:** sesión de club, entreno por libre (técnica con balón, tiro, físico, porteros), ver fútbol, verano. Y cuánto sube cada habilidad.
 4. ~~Fútbol 7~~ (decidido: fútbol 11 desde el principio). Falta cómo **sube y baja el cansancio** durante el partido (decisión 4): cuánto según la energía inicial, la resistencia y la intensidad.
@@ -203,6 +221,7 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 |---|---|
 | F0 ✅ (hecha el 1/11) | Vocabulario común: resultado de equipo en `competicion.resultado` (y `relaciones` sin suponer «menos marca gana»), secciones en la pestaña, liga en la temporada, equipos por categoría |
 | F1 ✅ (hecha el 1/11) | Habilidades (las 28 del JSON más Juego colectivo), conocimiento, entreno por libre y club del colegio (con el kit) |
+| P1 y P2 | Antes de la F2: las mismas reglas para el personaje y los PNJ (`MISMAS_REGLAS.md`). P1 y P2a-1 hechas (#63 y #69); quedan P2a-2, P2b y P2c |
 | F2 | Gente del fútbol con equipos de la ciudad (fútbol 11; **con la ciudad grande, Primera y Segunda de 10 y una Tercera, filiales y una copa después de la liga: `CIUDAD_Y_LIGAS.md`**), liga a doble vuelta los sábados, motor del partido con cansancio, convocatoria y pestaña con la tabla de la liga. Propuesta: elegir la intensidad antes del partido (relajado, normal, a tope) hasta que haya decisiones dentro del partido |
 | F3 | Posiciones, roles y experiencia con afinidades; formaciones de fútbol 11 |
 | F4 | Derivadas y ocultas en el partido; transferencias de entrenamiento |
@@ -212,4 +231,4 @@ Para que no se desajuste, la simulación vigilaría que la media de cada liga qu
 
 ## 8. Preguntas para decidir
 
-Todas respondidas el 31/10 (ver §0). Lo siguiente es empezar por la fase F0 (§7).
+Todas respondidas el 31/10 (ver §0). Lo que sigue está en el estado, al principio del documento.
