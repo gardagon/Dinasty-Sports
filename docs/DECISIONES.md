@@ -19,7 +19,8 @@ Decisiones del usuario del 03/11, **iguales para el personaje y los PNJ y para t
 - **Medido** (`npm run fichajes -- 12 3`: 12 semillas y 3 cursos; en `tools/fichajes.ts`):
   - **Cuándo entra un personaje del montón** (nivel de partida en fútbol, mediana 9,5; benjamín, equipo completo): el nivel del peor de cada equipo es 10,8 (grande), 10,4 (mediano), 10,0 (pequeño) y 9,1 (colegio). Entra en el club grande en **1 de 12 semillas**, en el mediano en 3, en el pequeño en 4 y en el del colegio en 8. Los equipos empiezan completos (0 de 12 con hueco).
   - **Cuántos dejan el deporte para siempre por no encontrar club**: 0,4; 0,7 y 0,4 niños por partida y curso (máximo 2). Los futbolistas no se vacían: 369 al empezar, 395 tras el primer curso y 401 tras el tercero. No hace falta tocar nada.
-- **Medido con `sim`** (`main` frente a la rama): ver más abajo.
+- **Medido con `sim`** (`main` frente a la rama, 365 días × 5 semillas): 0 ❌ y los mismos chequeos (el ⚠️ de rendimiento es el de la velocidad de la máquina, igual en `main`); la tabla, igual salvo el bot «Aleatorio» (28,9 → 28,5), que es el que más se lesiona y más cambia de acciones.
+- **Un test que suponía lo de antes se corrige**: «completo pero mejor que el peor» comprobaba que el desplazado quedaba sin equipo; ahora busca club con la misma regla (y con los niveles puestos a mano en el test puede volver a entrar desplazando a otro, porque la regla mira lo que vale de verdad). Se comprueba que solo deja el deporte, y entonces para siempre, si ningún club lo quiere.
 
 ## 04/11/2026 — Mismas reglas, P2b-1: la ciudad como datos, clubes de fútbol con tamaño y reclutamiento por lo que vale cada niño
 

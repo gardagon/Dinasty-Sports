@@ -166,9 +166,10 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
     expect(plaza(g, 30)).toMatchObject({ estado: 'por_merito', peor: { id: peor.id } });
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     const despues = estado(g).npcs.find((n) => n.id === peor.id)!;
-    // Ya no está en el equipo del colegio: o ha fichado por otro club (de fútbol o de otro deporte) o, si ninguno lo ha querido, ha dejado el deporte.
-    expect(despues.deporte === 'futbol' && despues.equipo === 'colegio').toBe(false);
+    // No queda sin equipo sin más: busca club con la misma regla (por lo que vale de verdad, que aquí no es el nivel que se le ha puesto a mano: puede volver a entrar desplazando a otro) y
+    // solo si ningún club de ningún deporte lo quiere deja el deporte, y entonces es para siempre.
     if (despues.deporte === undefined) expect(despues.dejado).toContain('futbol');
+    else expect(despues.dejado ?? []).not.toContain('futbol');
     expect(benjamin(g)).toHaveLength(17);
   });
 });
