@@ -5,6 +5,25 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 05/11/2026 — Equipos según la demanda y apuntarse a cualquier club de la zona (decisión del usuario, 03/11)
+
+El objetivo del juego es que **un personaje del montón siempre encuentre equipo en su categoría** y que lo difícil sea subir, no entrar. Con unos 130 interesados por categoría y unas 72 plazas, más de 50 se quedaban fuera.
+
+- **La regla** (`equiposPorDemanda`, igual para todos; al crear la partida y cada verano, después de los fichajes y del relleno de plantillas):
+  - **Un club abre otro equipo en una categoría** si quedan sin equipo **al menos tantos interesados como el mínimo de una plantilla** (14), con su **entrenador** (`entrenador_<club>_<categoría>_<n>`). Abre el club con menos equipos en la categoría (así se reparten) y, a igualdad, el que tiene más demanda y el más grande; hasta 4 por club y categoría. Un club con varios equipos tiene en la categoría una plantilla de tantos equipos como ha abierto por el máximo de un equipo (`EquipoGuardado.equiposPorCategoria`, `capacidadDe`). El equipo nuevo **nace con los mejores de los que se habían quedado sin equipo, hasta el mínimo (14)**: con huecos, de modo que quien vale menos también entra por la regla de plaza.
+  - **Un club cierra el equipo que no llega al mínimo de jugadores**: se va con su entrenador y los que ya no caben (los de menos valor) buscan club como cualquier desplazado.
+  - Dentro de cada equipo no cambia nada: si está lleno, entra quien vale más que el peor. Cuando lleguen los filiales (F2), ese segundo equipo será el B.
+  - **Al crear la partida** (que empieza dentro del plazo de fichajes) se aplica igual: es ahí donde el personaje se quedaba sin club en 4 de 12 semillas.
+- **El personaje puede apuntarse a cualquier club de la zona con la regla de plaza** (adelanto de la F5, sin prueba de acceso): los tres clubes de fútbol de la zona (Real Ciudad C. F., Unión Deportiva del Barrio, Escuela de Fútbol Los Pinos) entran en el catálogo de clubes con sus sesiones y se tramitan en la nueva **secretaría de los clubes de fútbol** (campo municipal, de lunes a viernes de 16 a 21 y sábados de 9 a 14). Acción `futbol.apuntarse.<club>` (hueco, o mejor que el peor, dentro del plazo de fichajes; el motivo si no puede se explica). La prueba de acceso queda para los clubes de élite.
+- **El aviso de plaza perdida**, en lo que vive el personaje: «Un jugador que vale más ha ocupado tu plaza en el equipo de fútbol y sales del club. Puedes probar en otro club, en otro deporte o esperar al siguiente plazo de fichajes.»
+- **Medido** (`npm run fichajes -- 12 3`, nivel y acciones reales del personaje):
+  - **El personaje real encuentra equipo en su categoría en el primer plazo en las 12 semillas** (0 sin ningún club): a la semana 2 del curso podría apuntarse al club grande y al mediano en 12 de 12, al pequeño en 10 y al del colegio en 9. El bot del montón (nivel real 9,9 → 14,8 → 16,9) entra en los tres clubes de la zona en el curso 1 en las 12 semillas y en el del colegio en el curso 1 en 9 y en el curso 2 en 3. (Antes de esta regla, con el mismo nivel, no entraba en ningún club en 4 de 12 semillas.)
+  - **Equipos por categoría** (media de las 12 semillas): benjamín 6,8; alevín 6,7; infantil 6,7; cadete 6,7; juvenil 8,8 (los cuatro clubes tienen un equipo y abren de 2 a 6 más, según la demanda).
+  - **Coste de crear una partida con fútbol: 3,7 s → 6,3 s de media** (mín 5,8, máx 7,4); futbolistas al empezar: 368 → 602. Es el coste de la P2c (los 29 stats de cada futbolista); el test «fútbol empaquetado» tiene plazo propio de 60 s hasta entonces.
+  - Nadie deja el deporte para siempre por no encontrar club (0,0 por curso): los equipos no se vacían (603 futbolistas al empezar, 576 tras el primer curso, estable después).
+  - `npm run sim`: 0 ❌ y sin cambios (no carga el fútbol; el atletismo no se ve afectado).
+- **Tests**: `tests/equipos-por-demanda.test.ts` (los interesados que se quedan sin equipo son menos que el mínimo en cada categoría; cada equipo abierto tiene su entrenador y llega al mínimo; abrir con demanda de sobra y no abrir con poca; cerrar el que no llega al mínimo; el personaje real, con las acciones, encuentra equipo en las 12 semillas). Los tests de fútbol que suponían un solo equipo por club y categoría se ajustan a los equipos abiertos.
+
 ## 05/11/2026 — Mismas reglas, P2b-2: plazo de fichajes, desplazados que buscan club y fichajes de verano
 
 Decisiones del usuario del 03/11, **iguales para el personaje y los PNJ y para todos los deportes** (la regla, en el kit del deporte; las fechas, como dato del deporte por país).

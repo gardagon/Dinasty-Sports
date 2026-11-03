@@ -30,7 +30,7 @@ describe('cada club de la zona tiene su equipo por categoría', () => {
           // Un club tiene tantos equipos como ha abierto en la categoría (según la demanda): cada uno de 14 a 18 jugadores.
           const e = pob.equipos.find((x) => x.club === club)!;
           const k = e.equiposPorCategoria?.[cat] ?? 1;
-          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeGreaterThanOrEqual((k - 1) * 18 + 14);
+          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeGreaterThanOrEqual(k === 1 ? 14 : 18 + (k - 1) * 14); // el primer equipo lleno y los que se abren nacen con el mínimo
           expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeLessThanOrEqual(capacidadDe(e, cat));
         }
       }

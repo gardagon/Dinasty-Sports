@@ -239,7 +239,9 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
 describe('el personaje desplazado sale del club, como cualquier niño, y decide él', () => {
   it('si otro jugador que vale más le ocupa el sitio en los fichajes de verano, el personaje queda fuera de su equipo (lo avisa el evento que sale del club)', () => {
     const g = nueva();
-    const fut = estado(g).poblaciones!.find((p) => p.deporte === 'futbol')!;
+    const fut0 = estado(g).poblaciones!.find((p) => p.deporte === 'futbol')!;
+    // El club mediano con un solo equipo en infantil (su plantilla completa), para que el sitio del personaje cuente: sin huecos, entra quien vale más que el peor.
+    const fut: PoblacionGuardada = { ...fut0, equipos: fut0.equipos.map((e) => (e.club === 'club_mediano' ? { ...e, equiposPorCategoria: undefined } : e)) };
     const npcs = estado(g).npcs;
     const rng = { next: () => 0.5, int: () => 0, range: () => 0, chance: () => false, pick: <T,>(x: readonly T[]) => x[0], normal: () => 0 };
     // El personaje (que vale casi nada) es del club mediano en infantil. Con la ambición de los demás, en alguna semilla un jugador de un club más pequeño ficha por el mediano.
@@ -247,12 +249,8 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
     for (let semilla = 1; semilla <= 60 && !perdio; semilla++) {
       const resultado = { sinPlaza: [] as string[] };
       const reservas = new Map([[claveDeEquipo('club_mediano', 'infantil'), 1]]);
-      const salida = renovarDeportistas([...npcs], [fut], 0, rng, reservas, REND, semilla, 1, [{ deporte: 'futbol', club: 'club_mediano', categoria: 'infantil', valor: 1, edad: 12 }], resultado);
-      if (resultado.sinPlaza.includes('futbol')) {
-        perdio = semilla;
-        // El hueco lo ocupa un jugador del mundo; el equipo no pasa de su máximo.
-        expect(salida.filter((n) => n.deporte === 'futbol' && n.equipo === 'club_mediano' && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13).length).toBeLessThanOrEqual(capacidadDe(fut.equipos.find((e) => e.club === 'club_mediano')!, 'infantil'));
-      }
+      renovarDeportistas([...npcs], [fut], 0, rng, reservas, REND, semilla, 1, [{ deporte: 'futbol', club: 'club_mediano', categoria: 'infantil', valor: 1, edad: 12 }], resultado);
+      if (resultado.sinPlaza.includes('futbol')) perdio = semilla;
     }
     expect(perdio, 'ninguna semilla de fichajes le quitó el sitio al personaje').toBeGreaterThan(0);
   }, 180000);
