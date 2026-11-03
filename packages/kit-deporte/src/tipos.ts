@@ -49,6 +49,8 @@ export interface EstadoBaseDeDeporte {
   pruebas?: Record<string, number>;
   /** Plazas ofrecidas por clubes de fuera tras pasar su prueba: semana en que se ofreció (valen unas semanas). */
   ofertas?: Record<string, number>;
+  /** Semana (absoluta) hasta la que no puede entrar en otro club de este deporte: la del siguiente plazo de fichajes, si dejó su club fuera de plazo. */
+  sinFichajesHasta?: number;
   /** Último día que fue al campamento o practicó con los amigos en verano (uno al día). */
   ultimoVerano?: number;
 }

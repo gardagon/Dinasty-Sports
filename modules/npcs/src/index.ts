@@ -79,6 +79,7 @@ import {
   timeView,
   SHARED_EVENTS,
   type DeporteAnadidoData,
+  type PlazaPerdidaData,
   TAGS,
   defineModule,
   type CompetitionResultData,
@@ -92,9 +93,11 @@ import {
   type ClubDirectory,
   type ClassAttendedData,
   type ClubJoinData,
+  type ClubLeaveData,
   type IdentityService,
   type DatosDeAgenda,
   CALIDAD_DE_TAMANO,
+  NIVEL_PRACTICA,
   CIUDAD_ACTUAL,
   idsDeColegiosDeFuera,
   type CiudadDef,
@@ -302,6 +305,8 @@ export interface NpcsState {
   poblaciones?: PoblacionGuardada[];
   /** Semilla de la partida: de ella salen los niños de otros colegios que los clubes pueden reclutar. */
   semilla?: number;
+  /** Deportes en que el personaje ha perdido su plaza en el equipo de su club (deporte → club): sigue en el club, pero ya no cuenta como uno de los jugadores del equipo. */
+  sinPlaza?: Record<string, string>;
 }
 
 /**
@@ -1038,6 +1043,161 @@ function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada, dia: n
   return npcs.map((n) => lista.get(n.id) ?? n);
 }
 
+// ---------------------------------------------------------------------------------------------------- fichajes, desplazados y quien se queda sin equipo
+
+/** Quiénes juegan hoy en el equipo de un club para niños de esta edad y cuántos caben (menos la plaza del personaje, si es de ese equipo); `undefined` si el club no tiene equipo para esa edad. */
+function plantelDe(lista: ReadonlyMap<string, Npc>, pob: PoblacionGuardada, e: EquipoGuardado, edad: number, dia: number, reservas: ReadonlyMap<string, number>): { jugadores: Npc[]; max: number } | undefined {
+  if (!edadesDe(pob, e).includes(edad)) return undefined;
+  const delClub = [...lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club);
+  if (!e.plantillaPorCategoria) return { jugadores: delClub, max: e.objetivo };
+  const cat = categoriaDe(pob, edad);
+  if (!cat || (e.categorias && !e.categorias.includes(cat.id))) return undefined;
+  const jugadores = delClub.filter((n) => (edadNpc(n, dia) ?? -1) >= cat.edadMin && (edadNpc(n, dia) ?? -1) <= cat.edadMax);
+  return { jugadores, max: e.plantillaPorCategoria.max - (reservas.get(claveDeEquipo(e.club, cat.id)) ?? 0) };
+}
+
+/** Lo que necesitan los fichajes y la búsqueda de club: la lista de trabajo, el día, cómo se valora a cada niño y las plazas que ocupa el personaje. */
+export interface MercadoDeFichajes {
+  lista: Map<string, Npc>;
+  pobs: readonly PoblacionGuardada[];
+  dia: number;
+  val: Valoracion;
+  reservas: ReadonlyMap<string, number>;
+}
+
+/** Cuánto vale un niño en un deporte (su rendimiento hoy; si no se puede calcular, su nivel o su potencial). */
+const valorEn = (n: Npc, pob: PoblacionGuardada, m: MercadoDeFichajes): number => valorRealDe(n, pob, m.val, m.dia) ?? n.levels[pob.deporte] ?? potencialEn(n.id, n.genetica!, pob);
+
+/** El personaje como jugador de un equipo: su deporte, su club, su categoría (id), cuánto vale en el deporte, su edad de competición y su nombre. */
+export interface JugadorEnClub {
+  deporte: string;
+  club: string;
+  categoria: string;
+  valor: number;
+  edad: number;
+}
+const idDelPersonaje = (deporte: string): string => `personaje@${deporte}`;
+/** El personaje como un jugador más del mundo, solo mientras se hacen los fichajes (para que la regla de plaza lo trate como a los demás). */
+const jugadorComoNpc = (j: JugadorEnClub, dia: number): Npc => ({
+  id: idDelPersonaje(j.deporte),
+  name: 'Tú',
+  role: 'companero',
+  gender: 'm',
+  tags: [],
+  levels: { [j.deporte]: j.valor },
+  potential: {},
+  deporte: j.deporte,
+  equipo: j.club,
+  nacimiento: primerDiaDelAnio(anioNatural(dia) - j.edad),
+});
+
+type Entrada = { entra: false } | { entra: true; desplazado?: Npc };
+
+/**
+ * Un niño sin equipo intenta entrar en un club con **la regla de plaza** (`reglaDePlaza`, la misma que el personaje): con hueco, entra; con el equipo lleno, entra si vale más que
+ * el peor, que deja el sitio (queda sin equipo y busca otro). Respeta que los equipos de un colegio solo cogen a sus alumnos y las edades del club.
+ */
+function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: PoblacionGuardada): Entrada {
+  if (!n.genetica || n.nacimiento === undefined) return { entra: false };
+  const edad = edadNpc(n, m.dia);
+  if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
+  const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas);
+  if (!plantel) return { entra: false };
+  const valor = valorEn(n, pob, m);
+  const plaza = reglaDePlaza(plantel.jugadores.map((j) => ({ id: j.id, nombre: j.name, valor: valorEn(j, pob, m) })), plantel.max, valor);
+  if (plaza.estado === 'completo') return { entra: false };
+  const desplazado = plaza.estado === 'por_merito' ? m.lista.get(plaza.peor!.id) : undefined;
+  const potencial = potencialEn(n.id, n.genetica, pob);
+  m.lista.set(n.id, reclutarA({ npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor }, e, pob, edad, m.dia));
+  if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
+  return { entra: true, desplazado };
+}
+
+/** Los clubes de un deporte del más grande al más pequeño: el orden en que un niño busca plaza. */
+const clubesPorTamano = (pob: PoblacionGuardada): EquipoGuardado[] => [...pob.equipos].sort((a, b) => b.calidad - a.calidad || (a.club < b.club ? -1 : 1));
+
+/**
+ * Los niños que se quedan sin equipo (desplazados por otro que vale más) buscan club, **dentro del plazo de fichajes y con la misma regla de plaza**:
+ * 1. otro club de su deporte, del más grande al más pequeño, con hueco o desplazando a uno peor (que a su vez busca);
+ * 2. si no encuentra, deja ese deporte al menos ese curso (`apartado`: puede volver a intentarlo en el siguiente plazo) y busca club en otro deporte que le interese, con la misma regla;
+ * 3. si ningún club de ningún deporte lo quiere, deja los deportes que ha intentado **para siempre** (`dejado`): deja de ser deportista y no vuelve a apuntarse.
+ * `origen` es el deporte del que se les ha desplazado.
+ */
+export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly { id: string; origen: string }[]): void {
+  const cola = [...desplazados];
+  for (let vueltas = 0; cola.length && vueltas < 20000; vueltas++) {
+    const { id, origen } = cola.shift()!;
+    let n = m.lista.get(id);
+    if (!n || n.deporte !== undefined || id.startsWith('personaje@')) continue;
+    const deportes = [origen, ...m.pobs.filter((p) => p.deporte !== origen && interesPor(n!.rasgos, p.deporte) > 0).sort((a, b) => interesPor(n!.rasgos, b.deporte) - interesPor(n!.rasgos, a.deporte)).map((p) => p.deporte)];
+    const intentados: string[] = [];
+    let colocado = false;
+    for (const deporte of deportes) {
+      const pob = m.pobs.find((p) => p.deporte === deporte);
+      if (!pob || n.dejado?.includes(deporte)) continue;
+      // Quien deja un deporte (el de origen) no vuelve a él en este plazo después de intentarlo.
+      if (deporte !== origen && n.apartado?.includes(deporte)) continue;
+      intentados.push(deporte);
+      for (const e of clubesPorTamano(pob)) {
+        const res = intentarEntrar(m, n, e, pob);
+        if (!res.entra) continue;
+        colocado = true;
+        if (res.desplazado) cola.push({ id: res.desplazado.id, origen: deporte });
+        break;
+      }
+      if (colocado) break;
+      if (deporte === origen) {
+        n = { ...n, apartado: [...new Set([...(n.apartado ?? []), origen])] };
+        m.lista.set(id, n);
+      }
+    }
+    if (!colocado) m.lista.set(id, { ...n, apartado: n.apartado?.filter((x) => !intentados.includes(x)), dejado: [...new Set([...(n.dejado ?? []), ...intentados])] });
+  }
+}
+
+/** Cuánto ceden los padres y la ambición a un fichaje: de 5 % a 95 %. La ambición (eje del carácter, de −50 a 50) y lo que practicaron los padres (de 0 a 3) la suben; es lo que decide el niño. */
+export function probabilidadDeFichar(rasgos: RasgosDe | undefined, padres: { padre: Practica; madre: Practica } | undefined): number {
+  const ambicion = (rasgos?.caracter.ambicion ?? 0) / 50;
+  const deportivos = padres ? (NIVEL_PRACTICA[padres.padre] + NIVEL_PRACTICA[padres.madre]) / 6 : 0;
+  return clamp(0.35 + 0.35 * ambicion + 0.25 * deportivos, 0.05, 0.95);
+}
+
+/** A cuántos de cada equipo mira cada club en el verano: los mejores de los clubes más pequeños. */
+const CANDIDATOS_POR_EQUIPO = 3;
+
+/**
+ * Los fichajes de verano (dentro del plazo, `CIUDAD_Y_LIGAS.md` §7): los clubes, de más grandes a más pequeños, miran a los mejores de los clubes más pequeños de su categoría; cada
+ * niño decide si se va según su ambición y lo que practicaron sus padres (`probabilidadDeFichar`) y la plaza (`reglaDePlaza`: con hueco o siendo mejor que el peor). Si la plaza no
+ * se consigue, se queda donde estaba. Los desplazados buscan club (`colocarDesplazados`).
+ */
+export function fichajesDeVerano(m: MercadoDeFichajes, semilla: number, curso: number): void {
+  const desplazados: { id: string; origen: string }[] = [];
+  for (const pob of m.pobs) {
+    for (const e of clubesPorTamano(pob)) {
+      const unidades = e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : [{ id: 'club', edades: edadesDe(pob, e) }];
+      for (const u of unidades) {
+        const candidatos = [...m.lista.values()]
+          .filter((n) => {
+            if (n.deporte !== pob.deporte || !n.equipo || n.equipo === e.club || !n.genetica) return false;
+            const suyo = pob.equipos.find((x) => x.club === n.equipo);
+            return !!suyo && suyo.calidad < e.calidad && u.edades.includes(edadNpc(n, m.dia) ?? -1) && (e.colegio === undefined || colegioDeNino(n) === e.colegio);
+          })
+          .sort((a, b) => valorEn(b, pob, m) - valorEn(a, pob, m) || (a.id < b.id ? -1 : 1))
+          .slice(0, CANDIDATOS_POR_EQUIPO);
+        for (const viejo of candidatos) {
+          if (!rngEstable('ficha', semilla, viejo.id, e.club, curso).chance(probabilidadDeFichar(viejo.rasgos, viejo.genetica?.padres))) continue;
+          const libre = sinDeporte(viejo, pob, false);
+          m.lista.set(libre.id, libre);
+          const res = intentarEntrar(m, libre, e, pob);
+          if (!res.entra) m.lista.set(viejo.id, viejo); // sin plaza: se queda donde estaba
+          else if (res.desplazado) desplazados.push({ id: res.desplazado.id, origen: pob.deporte });
+        }
+      }
+    }
+  }
+  colocarDesplazados(m, desplazados);
+}
+
 /**
  * Los equipos de todos los deportes completan sus plantillas en dos vueltas: primero cada deporte recluta a los interesados en él y, solo después, los
  * que aún faltan se cubren con quien encaje (aunque no le interese). Así un niño al que le gusta un deporte no lo pierde porque otro deporte, que va antes,
@@ -1075,7 +1235,7 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
  * rellenan las plazas libres con otros niños que encajan. Los niños de otros colegios que se van desaparecen (los que lo dejaron no se vuelven a reclutar);
  * los compañeros, los hermanos y los niños del barrio siguen siendo quienes son, solo que sin deporte.
  */
-function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map()): Npc[] {
+export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[] } = { sinPlaza: [] }): Npc[] {
   // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
   let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
   for (const pob of pobs) {
@@ -1088,7 +1248,21 @@ function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia
       return retirado || baja ? [sinDeporte(n, pob, baja)] : [n];
     });
   }
-  return reclutarEnTodos(lista, pobs, dia, reservas, rend);
+  // Los fichajes de verano, dentro del plazo (el nuevo curso empieza antes de la primera competición): los clubes grandes miran a los mejores de los pequeños y los desplazados buscan
+  // club. El personaje cuenta como un jugador más de su equipo, con lo que vale (si otro que vale más le ocupa el sitio, se le avisa y sigue en el club: decide él qué hace).
+  const mercado: MercadoDeFichajes = { lista: new Map(lista.map((n) => [n.id, n])), pobs, dia, val: valoracionDe(rend), reservas: new Map() };
+  for (const j of personaje) mercado.lista.set(idDelPersonaje(j.deporte), jugadorComoNpc(j, dia));
+  fichajesDeVerano(mercado, semilla, curso);
+  const reservasQueQuedan = new Map(reservas);
+  for (const j of personaje) {
+    const dentro = mercado.lista.get(idDelPersonaje(j.deporte))?.deporte !== undefined;
+    mercado.lista.delete(idDelPersonaje(j.deporte));
+    if (!dentro) {
+      resultado.sinPlaza.push(j.deporte);
+      reservasQueQuedan.delete(claveDeEquipo(j.club, j.categoria));
+    }
+  }
+  return reclutarEnTodos(lista.map((n) => mercado.lista.get(n.id) ?? n), pobs, dia, reservasQueQuedan, rend);
 }
 
 /**
@@ -1507,16 +1681,26 @@ export const npcs = defineModule<NpcsState>({
       // Si aún no es miembro no se le guarda ningún hueco: entra como cualquier niño (hay hueco, o está completo y es mejor que alguno).
       const edadProxima = (ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8) + 1;
       const reservas = new Map<string, number>();
+      const personaje: JugadorEnClub[] = [];
+      const rend = rendimientosDe(ctx);
       const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
+      const sinPlaza = ctx.state<NpcsState>().sinPlaza ?? {};
       for (const pob of pobs) {
         const club = clubes?.membership(pob.deporte);
         const cat = club && pob.equipos.some((e) => e.club === club.id && e.plantillaPorCategoria) ? categoriaDe(pob, edadProxima) : undefined;
-        if (club && cat) reservas.set(claveDeEquipo(club.id, cat.id), 1);
+        // Si ya perdió su plaza en ese club, no cuenta como uno de los jugadores del equipo (sigue en el club, pero sin sitio).
+        if (!club || !cat || sinPlaza[pob.deporte] === club.id) continue;
+        reservas.set(claveDeEquipo(club.id, cat.id), 1);
+        const f = rend.get(pob.deporte);
+        if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: f(ctx), edad: edadProxima });
       }
+      const resultado = { sinPlaza: [] as string[] };
       ctx.updateState<NpcsState>((s) => {
-        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rendimientosDe(ctx)), proximo.day));
-        return { ...s, poblaciones: pobs, npcs: conCapacidades(conHabilidades(npcs, pobs, rendimientosDe(ctx), proximo.day), proximo.day) };
+        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), proximo.day));
+        const perdidas = Object.fromEntries(resultado.sinPlaza.map((d) => [d, clubes!.membership(d)!.id]));
+        return { ...s, poblaciones: pobs, npcs: conCapacidades(conHabilidades(npcs, pobs, rend, proximo.day), proximo.day), sinPlaza: { ...s.sinPlaza, ...perdidas } };
       });
+      for (const deporte of resultado.sinPlaza) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
     },
 
     // Al entrar en un club conoces a su entrenador: se presenta el primer día.
@@ -1541,14 +1725,31 @@ export const npcs = defineModule<NpcsState>({
       // El que entrena tu edad en ese club (los clubes tienen varios, cada uno con unas categorías).
       const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
       const pobs = poblacionesGuardadas(ctx);
-      // Si su equipo está completo y el personaje es mejor que alguno, ocupa su plaza: el peor vuelve a ser un niño sin equipo (hasta el curso siguiente).
+      // Al entrar en un club el personaje vuelve a contar como uno de los jugadores de su equipo.
+      ctx.updateState<NpcsState>((st) => {
+        const { [sport]: _antes, ...resto } = st.sinPlaza ?? {};
+        return st.sinPlaza ? { ...st, sinPlaza: resto } : st;
+      });
+      // Si su equipo está completo y el personaje es mejor que alguno, ocupa su plaza (la misma regla que para cualquier niño): el peor deja el sitio y busca otro club, dentro del plazo,
+      // y si ninguno lo coge deja el deporte (`colocarDesplazados`).
       if (nivel !== undefined) {
         const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
         const plaza = plazaEnElEquipo(ctx.state<NpcsState>().npcs, pobs, sport, clubId, edad, nivel, inicioCurso);
         const pob = pobs.find((p) => p.deporte === sport);
         if (plaza.estado === 'por_merito' && plaza.peor && pob) {
-          ctx.updateState<NpcsState>((st) => ({ ...st, npcs: st.npcs.map((x) => (x.id === plaza.peor!.id ? { ...sinDeporte(x, pob, false), apartado: [...(x.apartado ?? []), sport] } : x)) }));
-          ctx.log(`${plaza.peor.nombre} pierde su plaza en el equipo para dejarte sitio: eres mejor.`, 'info');
+          const cat = categoriaDe(pob, edad);
+          const reservas = new Map<string, number>(cat ? [[claveDeEquipo(clubId, cat.id), 1]] : []);
+          let final: Npc | undefined;
+          ctx.updateState<NpcsState>((st) => {
+            const m: MercadoDeFichajes = { lista: new Map(st.npcs.map((x) => [x.id, x])), pobs, dia: inicioCurso, val: valoracionDe(rendimientosDe(ctx)), reservas };
+            const sale = m.lista.get(plaza.peor!.id)!;
+            m.lista.set(sale.id, sinDeporte(sale, pob, false));
+            colocarDesplazados(m, [{ id: sale.id, origen: sport }]);
+            final = m.lista.get(sale.id);
+            return { ...st, npcs: st.npcs.map((x) => m.lista.get(x.id) ?? x) };
+          });
+          const dondeAcabo = final?.deporte === undefined ? ' y no encuentra otro club: deja el deporte' : final.deporte === sport ? ' y ficha por otro club' : ` y se va a otro deporte`;
+          ctx.log(`${plaza.peor.nombre} pierde su plaza en el equipo para dejarte sitio: eres mejor${dondeAcabo}.`, 'info');
         }
       }
       const delClub = ctx.state<NpcsState>().npcs.filter((n) => n.known === false && n.tipos?.some((t) => t.tipo === 'entrenador' && t.club === clubId && (t.deporte ?? pobs[0]?.deporte) === sport));
@@ -1556,6 +1757,16 @@ export const npcs = defineModule<NpcsState>({
       if (!entrenador) return;
       ctx.updateState<NpcsState>((st) => ({ ...st, npcs: st.npcs.map((x) => (x.id === entrenador.id ? { ...x, known: true, aprendido: [...(x.aprendido ?? []), 'profesion' as const] } : x)) }));
       ctx.log(`${entrenador.gender === 'f' ? 'Tu entrenadora' : 'Tu entrenador'} se presenta: ${entrenador.name}.`, 'info');
+    },
+
+    // Al dejar el club, el personaje ya no tiene una plaza que perder.
+    [SHARED_EVENTS.CLUB_LEAVE]: (ctx, ev) => {
+      const { sport } = ev.data as ClubLeaveData;
+      ctx.updateState<NpcsState>((st) => {
+        if (!st.sinPlaza?.[sport]) return st;
+        const { [sport]: _fuera, ...resto } = st.sinPlaza;
+        return { ...st, sinPlaza: resto };
+      });
     },
 
     // Al ir a una clase, su profesor se presenta si todavía no lo conoces.

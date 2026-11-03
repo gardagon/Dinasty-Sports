@@ -27,6 +27,8 @@ export const SHARED_EVENTS = {
   CLUB_LEAVE: 'club.salir',
   /** data: ClubAbandonoData — el personaje se cambia de club sin haber dejado antes el que tenía. */
   CLUB_ABANDONO: 'club.abandono',
+  /** data: PlazaPerdidaData — un jugador del mundo con mejor nivel ha ocupado la plaza del personaje en su equipo (el personaje no sale del club: decide él qué hace). */
+  PLAZA_PERDIDA: 'club.plaza_perdida',
   /** data: ClassAttendedData — el personaje ha ido a una clase (el profesor de esa asignatura se presenta si no lo conoce). */
   CLASS_ATTENDED: 'clase.asistida',
   /** data: FaltasExcesivasData — el personaje ha llegado al número de faltas de clase del trimestre que avisa a los padres (el evento de los padres está pendiente). */
@@ -66,6 +68,11 @@ export interface DeporteAnadidoData {
 
 export interface PresentacionData {
   npcId: string;
+}
+
+export interface PlazaPerdidaData {
+  sport: string;
+  clubId: string;
 }
 
 export interface ClubJoinData {

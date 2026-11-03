@@ -7,6 +7,8 @@ import {
   conLugar,
   datosDeDeporte,
   inHours,
+  plazoDeFichajesAbierto,
+  proximaAperturaDelPlazo,
   type ActionDef,
   type ClubDirectory,
   type ClubJoinData,
@@ -92,6 +94,20 @@ export function motivoSinPlaza(ctx: ReadContext, cfg: ConfigDeporte, club: strin
 }
 
 /**
+ * Por qué el personaje no puede entrar hoy en un club (o cambiarse a él), con las reglas del plazo de fichajes (del verano a la primera competición; las mismas que los niños del mundo):
+ * dentro del plazo, entra con hueco o siendo mejor que el peor del equipo; fuera de plazo, quien está en un club no puede cambiarse, quien dejó el suyo fuera de plazo no entra en
+ * otro hasta el siguiente plazo, y quien no tiene club solo entra si hay hueco, sin sacar a nadie. `undefined` si puede.
+ */
+export function motivoSinFichaje(ctx: ReadContext, cfg: ConfigDeporte, club: string): string | undefined {
+  const t = ctx.time;
+  if (plazoDeFichajesAbierto(ctx.pais.calendario, datosDeDeporte(ctx, cfg.id).temporada, t.schoolWeek)) return motivoSinPlaza(ctx, cfg, club);
+  if (clubDelJugador(ctx, cfg.id)) return 'El plazo de fichajes está cerrado hasta el verano: mientras estés en un club no puedes cambiarte';
+  if ((estado(ctx).sinFichajesHasta ?? -1) > t.week) return `Dejaste tu club fuera de plazo: no puedes entrar en otro club de ${cfg.nombre} hasta el siguiente plazo de fichajes (el verano)`;
+  const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx));
+  return plaza && plaza.estado !== 'libre' ? 'El plazo de fichajes está cerrado hasta el verano: ya solo se entra en un club con hueco, sin sacar a nadie, y el equipo de tu categoría está completo' : undefined;
+}
+
+/**
  * Acciones de los clubes del deporte (acciones dinámicas): apuntarse al del colegio, en la administración (antes de aceptar
  * se cuenta cuándo entrena y cuándo se compite); y, de cada club de fuera, su prueba de acceso (se puede hacer estando en
  * otro club) y aceptar la plaza ganada.
@@ -113,7 +129,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
               tags: [deporte],
               group: 'Club',
               duration: 30,
-              available: (c2) => motivoSinPlaza(c2, cfg, colegio.id) ?? true,
+              available: (c2) => motivoSinFichaje(c2, cfg, colegio.id) ?? true,
               run: (c2) => c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: colegio.id, nivel: cfg.rendimiento(c2) } }),
             }),
           ]
@@ -133,7 +149,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
           available: (c2) => {
             const semana = estado(c2).ofertas?.[c.id];
             if (semana === undefined || c2.time.week - semana >= SEMANAS_DE_OFERTA) return 'No tienes una plaza en este club (haz su prueba de acceso)';
-            return motivoSinPlaza(c2, cfg, c.id) ?? true;
+            return motivoSinFichaje(c2, cfg, c.id) ?? true;
           },
           run: (c2) => {
             c2.updateState<EstadoBaseDeDeporte>((st) => {
@@ -153,6 +169,8 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
           available: (c2) => {
             const t = c2.time;
             if (c2.stat(GEN.baja) > 0) return 'Estás de baja por una lesión';
+            const sinFichaje = motivoSinFichaje(c2, cfg, c.id);
+            if (sinFichaje) return sinFichaje;
             if (edadDelJugador(c2) < acceso.edadMin) return `Hay que tener ${acceso.edadMin} años para probar en el ${c.nombre}`;
             const ultima = estado(c2).pruebas?.[c.id];
             if (ultima !== undefined && t.week - ultima < SEMANAS_ENTRE_PRUEBAS) return 'Hiciste la prueba hace poco: espera unas semanas';
@@ -220,7 +238,16 @@ export function dejarClub(cfg: ConfigDeporte): ActionDef {
     group: 'Club',
     duration: 15,
     available: (ctx) => (clubDelJugador(ctx, cfg.id) ? true : `No perteneces a ningún club de ${cfg.nombre}`),
-    run: (ctx) => ctx.emit<ClubLeaveData>({ type: SHARED_EVENTS.CLUB_LEAVE, data: { sport: cfg.id } }),
+    run: (ctx) => {
+      // Dejar el club fuera del plazo de fichajes cierra la puerta a los demás clubes del deporte hasta el siguiente plazo.
+      const temporada = datosDeDeporte(ctx, cfg.id).temporada;
+      if (!plazoDeFichajesAbierto(ctx.pais.calendario, temporada, ctx.time.schoolWeek)) {
+        const hasta = proximaAperturaDelPlazo(ctx.pais.calendario, temporada, ctx.time.week);
+        ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, sinFichajesHasta: hasta }));
+        ctx.log(`Has dejado tu club fuera del plazo de fichajes: no podrás entrar en otro club de ${cfg.nombre} hasta el verano.`, 'aviso');
+      }
+      ctx.emit<ClubLeaveData>({ type: SHARED_EVENTS.CLUB_LEAVE, data: { sport: cfg.id } });
+    },
   };
 }
 

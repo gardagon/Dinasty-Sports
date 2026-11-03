@@ -83,7 +83,7 @@ describe('reclutamiento por equipo: interesados hasta el máximo, el resto solo 
     expect(delEquipo(r, pob, 'infantil')).toHaveLength(18);
   });
 
-  it('con pocos interesados se completa con niños sin interés hasta el mínimo, y no más: quedan huecos para el personaje', () => {
+  it('con pocos interesados se completa con niños sin interés hasta el mínimo, y no más: no se guarda ningún hueco al personaje', () => {
     const g = nueva();
     const base = sinNadie(new Set(), g);
     const cinco = new Set(delColegioEnCategoria(base.npcs, base.pob, 'infantil').slice(0, 5).map((n) => n.id));

@@ -160,7 +160,7 @@ export interface EquipoDeDeporte {
   /**
    * Un equipo **por categoría** (deportes de equipo): cada categoría de `categorias` (por defecto, todas las que recluta el club) tiene su propio equipo con
    * esta plantilla. Se recluta primero a los interesados hasta el máximo y, si no se llega al mínimo, se completa con niños sin interés hasta el mínimo y no
-   * más: así quedan huecos para el personaje. Un equipo por club, categoría y deporte.
+   * más (no se guarda ningún hueco al personaje: entra por la regla de plaza). Un equipo por club, categoría y deporte.
    */
   plantillaPorCategoria?: { min: number; max: number };
 }
