@@ -1107,7 +1107,7 @@ function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada, dia: n
         tomados.add(a.npc.id);
         lista.set(a.npc.id, reclutarA(a, e, pob, edad, dia));
       };
-      if (pob.puestos) {
+      if (pob.puestos && val.rend.get(pob.deporte)?.puestos) {
         // Con puestos: se llena el reparto de la plantilla grupo a grupo (los más escasos primero: porteros, centrales...) con los interesados que más valen en cada grupo y que aceptan el
         // puesto (siempre el favorito; los demás, según su carácter); después, quien vale más que el peor de un grupo lo sustituye, y por último se completa hasta el mínimo con los demás.
         const mercado: MercadoDeFichajes = { lista, pobs: [pob], dia, val, reservas };
@@ -1405,10 +1405,11 @@ export function equiposPorDemanda(m: MercadoDeFichajes, rng: Rng): Npc[] {
     const categorias = new Map<string, CategoriaDef>();
     for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
     for (const [catId] of categorias) {
+      const sinDemanda = new Set<string>();
       for (let ronda = 0; ronda < 3 * MAX_EQUIPOS_POR_CATEGORIA * pob.equipos.length; ronda++) {
         const arr = [...m.lista.values()];
         const candidatos = pob.equipos
-          .filter((e) => e.plantillaPorCategoria && (e.equiposPorCategoria?.[catId] ?? 1) < MAX_EQUIPOS_POR_CATEGORIA)
+          .filter((e) => e.plantillaPorCategoria && (e.equiposPorCategoria?.[catId] ?? 1) < MAX_EQUIPOS_POR_CATEGORIA && !sinDemanda.has(`${e.club}|${catId}`))
           .flatMap((e) => {
             const cat = categoriasDelEquipo(pob, e).find((c) => c.id === catId);
             return cat ? [{ e, cat, demanda: sinEquipoParaClub(arr, pob, e, cat.edades, m).length }] : [];
@@ -1426,10 +1427,19 @@ export function equiposPorDemanda(m: MercadoDeFichajes, rng: Rng): Npc[] {
         // El equipo nuevo se forma con los mejores (por lo que valen) de los interesados que se habían quedado sin equipo, hasta el mínimo de una plantilla: así nace con huecos
         // (quien vale menos que los demás también puede entrar, por la regla de plaza) y no se queda ningún otro equipo sin jugadores.
         const elegibles = sinEquipoParaClub([...m.lista.values()], pob, e, categorias.get(catId) ? categoriasDelEquipo(pob, e).find((c) => c.id === catId)!.edades : [], m).sort((a, b) => b.valor - a.valor || (a.npc.id < b.npc.id ? -1 : 1));
+        // Si, con los puestos que aceptan, el equipo no llega al mínimo de jugadores, no se abre (se deshace): un club no tiene un equipo que se cierra al año siguiente.
+        const antes = new Map(m.lista);
         let colocados = 0;
         for (const a of elegibles) {
           if (colocados >= e.plantillaPorCategoria!.min) break;
           if (intentarEntrar(m, a.npc, e, pob).entra) colocados++;
+        }
+        if (colocados < e.plantillaPorCategoria!.min) {
+          m.lista = antes;
+          e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: numero - 1 };
+          if (numero - 1 === 1) delete e.equiposPorCategoria[catId];
+          entrenadores.pop();
+          sinDemanda.add(`${e.club}|${catId}`);
         }
       }
     }
