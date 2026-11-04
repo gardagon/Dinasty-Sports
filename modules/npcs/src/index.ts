@@ -997,6 +997,7 @@ function aceptaElPuesto(n: Npc, pob: PoblacionGuardada, club: string, favorito: 
 }
 
 const colegioDeNino = (n: Npc): string => n.colegio ?? (delColegio(n) ? 'propio' : 'ninguno');
+export const colegioDeNinoPublico = colegioDeNino;
 
 /** Los niños de una edad que un deporte puede reclutar: los del colegio del personaje, los de otros colegios, los hermanos y los jóvenes que ya no van al colegio. */
 function aspirantesDeEdad(npcs: readonly Npc[], pob: PoblacionGuardada, edad: number, dia: number, val: Valoracion): Aspirante[] {

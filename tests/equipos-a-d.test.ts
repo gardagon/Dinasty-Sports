@@ -1,0 +1,163 @@
+import { beforeAll, describe, expect, it } from 'vitest';
+import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
+import { advanceToWeek } from '@ds/core';
+import { MODULOS, nuevaPartida } from '@ds/game';
+import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
+import { colegioDeNinoPublico as colegioDeNino, edadNpc, equiposDelClub, favoritoDe, ofertaAlCandidato, piernaDe, valoracionDe, valoresPorPuestoDe, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { repartirEnEquipos, suplentesDe, type MiembroDeClub } from '../modules/npcs/src/equipos';
+
+/**
+ * Equipos A, B, C y D de un club por categoría (`CIUDAD_Y_LIGAS.md` §5): los grandes, por año; los demás, por nivel; cada equipo con su reparto por puestos; los suplentes y los equipos nuevos.
+ */
+
+const P = PUESTOS_DE_FUTBOL;
+const REND = new Map([['futbol', Object.assign((p: Parameters<typeof rendimientoDeFutbol>[0]) => rendimientoDeFutbol(p), { puestos: rendimientoPorPuestos })]]);
+
+/** Una plantilla de `n` jugadores repartida como manda el reparto, de valor decreciente, con los años alternados. */
+function plantilla(n: number, valorBase = 50): MiembroDeClub[] {
+  const cupos = cuposPorGrupo(P, 18);
+  const puestos = P.reparto.flatMap((r) => Array.from({ length: Math.ceil((cupos[r.grupo] * n) / 18) }, () => r.puestos[0]));
+  return puestos.slice(0, n).map((puesto, i) => ({ id: `j${String(i).padStart(2, '0')}`, puesto, valor: valorBase - i * 0.1, anio: (i % 2 === 0 ? 1 : 2) as 1 | 2 }));
+}
+
+describe('el reparto de un club en equipos A a D', () => {
+  it('los medianos, pequeños y el del colegio reparten por nivel con los años mezclados: el A con los mejores y el B con los siguientes, cada uno con su reparto por puestos', () => {
+    const miembros = plantilla(36);
+    const r = repartirEnEquipos(miembros, P, 2, 18, false);
+    expect(r.A.length).toBeGreaterThan(0);
+    expect(r.B.length).toBeGreaterThan(0);
+    const valor = (id: string) => miembros.find((m) => m.id === id)!.valor;
+    // En cada puesto, el A tiene a los mejores: nadie del B vale más que alguien del A de su mismo grupo.
+    for (const g of P.reparto) {
+      const delGrupo = (ids: string[]) => ids.filter((id) => g.puestos.includes(miembros.find((m) => m.id === id)!.puesto)).map(valor);
+      const a = delGrupo(r.A);
+      const b = delGrupo(r.B);
+      if (a.length && b.length) expect(Math.min(...a)).toBeGreaterThanOrEqual(Math.max(...b));
+    }
+    // Años mezclados en el A.
+    const anios = new Set(r.A.map((id) => miembros.find((m) => m.id === id)!.anio));
+    expect(anios.size).toBe(2);
+    // Ningún equipo pasa de sus cupos por puesto.
+    const cupos = cuposPorGrupo(P, 18);
+    for (const equipo of [r.A, r.B]) for (const g of P.reparto) expect(equipo.filter((id) => g.puestos.includes(miembros.find((m) => m.id === id)!.puesto)).length).toBeLessThanOrEqual(cupos[g.grupo]);
+  });
+
+  it('los grandes reparten por año: A, los de segundo año más los de primer año que destacan; B, los de primer año; C, los de segundo año que no entran en el A; D, los de primer año que no entran en el B', () => {
+    const miembros = plantilla(72);
+    const r = repartirEnEquipos(miembros, P, 4, 18, true, 0);
+    const anio = (id: string) => miembros.find((m) => m.id === id)!.anio;
+    // El B y el D son de primer año; el C, de segundo.
+    expect(r.B.every((id) => anio(id) === 1)).toBe(true);
+    expect(r.D.every((id) => anio(id) === 1)).toBe(true);
+    expect(r.C.every((id) => anio(id) === 2)).toBe(true);
+    // El A lo forman sobre todo los de segundo año.
+    expect(r.A.filter((id) => anio(id) === 2).length).toBeGreaterThanOrEqual(r.A.filter((id) => anio(id) === 1).length);
+  });
+
+  it('con el listón, un jugador de primer año solo es titular en el A de un grande si vale más que el de segundo año por ese margen', () => {
+    const miembros: MiembroDeClub[] = [
+      { id: 'viejo', puesto: 'GK', valor: 50, anio: 2 },
+      { id: 'joven', puesto: 'GK', valor: 52, anio: 1 },
+    ];
+    // Un solo hueco de portero en el A: hace falta que el de primer año supere al de segundo por más del listón.
+    const cupos = { ...cuposPorGrupo(P, 18) };
+    void cupos;
+    const sinListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 0);
+    expect(sinListon.A).toEqual(['joven']);
+    const conListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 4);
+    expect(conListon.A).toEqual(['viejo']);
+    expect(conListon.B).toEqual(['joven']);
+  });
+
+  it('los suplentes de un equipo son los que no están entre sus titulares (1 portero, 2 centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero)', () => {
+    const miembros = plantilla(18);
+    const suplentes = suplentesDe(miembros, P, P.equipos!.titulares);
+    expect(suplentes).toHaveLength(18 - 11);
+    const titulares = miembros.filter((m) => !suplentes.includes(m.id));
+    expect(titulares).toHaveLength(11);
+    const delGrupo = (g: string) => titulares.filter((m) => P.reparto.find((r) => r.grupo === g)!.puestos.includes(m.puesto)).length;
+    expect([delGrupo('portero'), delGrupo('central'), delGrupo('lateral'), delGrupo('medio'), delGrupo('banda'), delGrupo('delantero')]).toEqual([1, 2, 2, 3, 2, 1]);
+  });
+});
+
+describe('los equipos de los clubes en la partida', () => {
+  let g: ReturnType<typeof nuevaPartida>;
+  beforeAll(() => {
+    g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  }, 90000);
+  const estado = () => g.moduleState<NpcsState>('npcs') as NpcsState;
+  const pob = (): PoblacionGuardada => estado().poblaciones!.find((p) => p.deporte === 'futbol')!;
+  const categorias = () =>
+    pob()
+      .categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))
+      .map((c) => ({ id: c.id, edadMin: c.edadMin, edades: Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i).filter((x) => x <= 19) }));
+
+  it('los clubes grandes tienen siempre dos equipos por categoría (A y B, por año) y cada club respeta su plantilla por puestos', () => {
+    const lista = new Map(estado().npcs.map((n) => [n.id, n]));
+    const grande = pob().equipos.find((e) => e.club === 'club_grande')!;
+    const val = valoracionDe(REND);
+    for (const c of categorias()) {
+      expect(grande.equiposPorCategoria?.[c.id], c.id).toBeGreaterThanOrEqual(2);
+      const r = equiposDelClub(lista, pob(), grande, c, 0, val);
+      expect(r.equipos.A.length, c.id).toBeGreaterThan(10);
+      expect(r.equipos.B.length, c.id).toBeGreaterThan(5);
+      // El B de un grande es de primer año.
+      expect(r.equipos.B.every((id) => (edadNpc(lista.get(id)!, 0) ?? 0) === c.edadMin), c.id).toBe(true);
+    }
+  });
+
+  it('los primeros años en el A de un grande son pocos: con el listón y las posiciones obligadas, de media por debajo de 5 por categoría', () => {
+    const lista = new Map(estado().npcs.map((n) => [n.id, n]));
+    const grande = pob().equipos.find((e) => e.club === 'club_grande')!;
+    const val = valoracionDe(REND);
+    const primeros = categorias().map((c) => equiposDelClub(lista, pob(), grande, c, 0, val).equipos.A.filter((id) => (edadNpc(lista.get(id)!, 0) ?? 0) === c.edadMin).length);
+    expect(primeros.reduce((a, b) => a + b, 0) / primeros.length).toBeLessThan(5);
+  });
+
+  it('ningún club tiene en una categoría más jugadores que equipos × el máximo de un equipo, y los que más tienen reparten en equipos hasta la D', () => {
+    const lista = new Map(estado().npcs.map((n) => [n.id, n]));
+    const val = valoracionDe(REND);
+    for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria)) {
+      for (const c of categorias()) {
+        const r = equiposDelClub(lista, pob(), e, c, 0, val);
+        expect(r.miembros.length, `${e.club} ${c.id}`).toBeLessThanOrEqual((e.equiposPorCategoria?.[c.id] ?? 1) * e.plantillaPorCategoria!.max);
+      }
+    }
+  });
+
+  /**
+   * Los interesados sin equipo que tendrían sitio libre en su puesto favorito en un club que los coja (equipo de su categoría, con hueco en el grupo de su puesto favorito y, si es un equipo de
+   * colegio, de su colegio): tiene que haber ninguno, o ese niño se estaría quedando fuera con hueco.
+   */
+  const conHuecoEnSuPuesto = (): string[] => {
+    const lista = new Map(estado().npcs.map((n) => [n.id, n]));
+    const val = valoracionDe(REND);
+    const interesa = (n: { rasgos?: { intereses: Record<string, number> } }) => Math.max(n.rasgos?.intereses.futbol ?? 0, n.rasgos?.intereses.deporte ?? 0) > 0;
+    const dia = (g.time.week - g.time.schoolWeek) * 7;
+    const sin = estado().npcs.filter((n) => n.genetica && n.deporte === undefined && interesa(n) && !n.dejado?.includes('futbol') && !n.apartado?.includes('futbol') && n.cap);
+    const casos: string[] = [];
+    for (const n of sin) {
+      const edad = edadNpc(n, dia);
+      const c = categorias().find((x) => edad !== undefined && x.edades.includes(edad));
+      if (!c) continue;
+      const valores = valoresPorPuestoDe(n, pob(), val, dia);
+      if (!valores) continue;
+      const favorito = favoritoDe(n, pob(), val, dia);
+      for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria && (x.categorias ?? [c.id]).includes(c.id) && (x.colegio === undefined || colegioDeNino(n) === x.colegio))) {
+        const jugadores = equiposDelClub(lista, pob(), e, c, dia, val).miembros.map((x) => x.n);
+        const oferta = ofertaAlCandidato(jugadores, (e.equiposPorCategoria?.[c.id] ?? 1) * e.plantillaPorCategoria!.max, pob(), valores, favorito, val, dia, piernaDe(n, pob()));
+        if (oferta?.estado === 'libre' && favorito && grupoDePuesto(P, oferta.puesto) === grupoDePuesto(P, favorito)) casos.push(`${n.id}@${e.club}:${oferta.puesto}`);
+      }
+    }
+    return casos;
+  };
+
+  it('sin huecos guardados: tras crear la partida, ningún interesado se queda sin equipo mientras haya hueco en su puesto favorito en un club que lo coja', () => {
+    expect(conHuecoEnSuPuesto()).toEqual([]);
+  });
+
+  it('y tras el primer verano (fichajes, equipos nuevos y relleno de plantillas) tampoco', () => {
+    advanceToWeek(g, 'gen.descansar', 52 + 2, 2, 15);
+    expect(conHuecoEnSuPuesto()).toEqual([]);
+  }, 240000);
+});
