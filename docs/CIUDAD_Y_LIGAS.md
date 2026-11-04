@@ -91,7 +91,7 @@ Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F
 **El puesto del personaje y el consejo del profesor de Educación Física:**
 - El personaje puede **preguntar a su profesor de Educación Física** qué deporte y qué puesto le irían bien (el puesto, si el deporte lo tiene). El profesor le nombra **varios puestos** en los que podría funcionar, según lo que ve de él (lo que percibe, no los números exactos: `VISION.md`, principio 7).
 - **Al apuntarse o al pedir una prueba, el personaje elige dónde quiere jugar**, y la regla de plaza se mide en ese puesto. Que el entrenador lo ponga en otro puesto queda para la F3.
-- Los niños del mundo empiezan con su puesto favorito en el que más valen (o, si su carácter lo pide, en el que más les gusta jugar).
+- El puesto favorito de un niño del mundo es, al empezar, aquel en el que más vale.
 
 ## 6. La temporada: liga y después copa
 
