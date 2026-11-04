@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 04/11/2026 — Los equipos de cada club (A, B, C y D), por puestos, con prueba de acceso y consejo del profesor de Educación Física (decisión del usuario)
+
+Tras revisar el #77 (equipos según la demanda), el usuario decidió cómo se forman los equipos. Está en `CIUDAD_Y_LIGAS.md` §5; va en el siguiente PR, antes de la P2c, y sustituye a los filiales de la F2.
+
+- **Hasta cuatro equipos por club y categoría.** En los **grandes**, por año: A (segundo año y los de primer año que destacan), B (primer año, solo los mejores), C (los de segundo año que no entran en el A) y D (los de primer año que no entran en el B). En **medianos, pequeños y el del colegio**, por nivel, con los años mezclados. Los equipos de más de un grande salen de sus propios jugadores.
+- **Todo por puestos:** reparto por puestos en cada plantilla, el valor de cada niño medido en su puesto (se adelanta la valoración por líneas de la F3) y la regla de plaza por puesto. «No tiene sentido meter a los 11 mejores si todos son delanteros».
+- **Equipos según la demanda, con movimiento:** primero se llenan todos; al abrir uno nuevo, también se van a él los suplentes que serían titulares allí («mejor ser titular en un equipo nuevo que el 18.º en otro»), y sus huecos los ocupa cualquiera con la regla de plaza. Sin huecos guardados para nadie.
+- **Prueba de acceso** para entrar en cualquier club que no sea el del colegio, para el personaje y para los niños: sale mejor o peor (estado, forma y azar) y eso es lo que cuenta en la regla de plaza.
+- **El profesor de Educación Física aconseja** al personaje el deporte y varios puestos donde podría funcionar; el personaje elige dónde quiere jugar al apuntarse o al pedir la prueba.
+- El #77 se fusionó como paso intermedio (nadie se queda sin equipo), sabiendo que esto lo sustituye.
+
 ## 05/11/2026 — Equipos según la demanda y apuntarse a cualquier club de la zona (decisión del usuario, 03/11)
 
 El objetivo del juego es que **un personaje del montón siempre encuentre equipo en su categoría** y que lo difícil sea subir, no entrar. Con unos 130 interesados por categoría y unas 72 plazas, más de 50 se quedaban fuera.

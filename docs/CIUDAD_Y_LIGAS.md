@@ -35,9 +35,9 @@ Cada club tiene un **tamaño**, que es un dato y decide cuántos equipos saca po
 
 | Tamaño | Cuántos en la zona (orientativo) | Equipos por categoría | Recluta |
 |---|---|---|---|
-| Grande | 4 | A y B (filial) | Primero, por lo que vale cada niño, en todos los colegios |
-| Mediano | 6 | A, y B si tiene interesados de sobra | Después |
-| Pequeño y club de colegio | 8–10 | Solo A | Al final. El club de un colegio, antes entre sus propios alumnos |
+| Grande | 4 | Hasta cuatro (A, B, C y D), por año (§5) | Primero, por lo que vale cada niño, en todos los colegios |
+| Mediano | 6 | Hasta cuatro, por nivel (§5) | Después |
+| Pequeño y club de colegio | 8–10 | Hasta cuatro, por nivel (§5) | Al final. El club de un colegio, antes entre sus propios alumnos |
 
 - **El club del colegio del personaje es un club pequeño más.** Un personaje del montón cabe en él, o en el filial de uno mediano. Llegar al A de un grande exige ser bueno de verdad.
 - **Los equipos se abren y se cierran según la demanda** (decisión del usuario, 03/11/2026): el objetivo es que un personaje del montón siempre encuentre equipo en su categoría y que lo difícil sea subir, no entrar. En cada categoría, **si quedan sin equipo al menos tantos interesados como el mínimo de una plantilla (14), un club abre otro equipo** (con su entrenador): el club con menos equipos en la categoría y, a igualdad, el que tiene más demanda y el más grande (hasta 4 por club y categoría). El equipo nuevo nace con los **mejores de los que se habían quedado sin equipo, hasta el mínimo**: con huecos, de modo que quien vale menos también puede entrar por la regla de plaza. **Un club cierra el equipo que no llega al mínimo de jugadores**: se va con su entrenador y los que sobran buscan club. Dentro de cada equipo no cambia nada: si está lleno, entra quien vale más que el peor. Cuando lleguen los filiales (F2), el segundo equipo será el B. Se aplica al crear la partida (que empieza dentro del plazo de fichajes) y cada verano, después de los fichajes y del relleno de las plantillas (`equiposPorDemanda`).
@@ -58,16 +58,38 @@ Cada club tiene un **tamaño**, que es un dato y decide cuántos equipos saca po
 2. **Un filial no sube a la división de su primer equipo:** si queda en puesto de ascenso, sube el siguiente.
 3. **Si el primer equipo baja a la división de su filial, el filial baja una más.** Si ya estaba en Tercera, se queda.
 
-## 5. Filiales: primer y segundo año
+## 5. Los equipos de cada club: A, B, C y D, por puestos (decisión del usuario, 03/11)
 
-En los clubes con filial, cada verano el entrenador reparte a sus jugadores:
+Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F2). Va antes de la P2c.
 
-- **Los de segundo año van al A y los de primer año, al B.** En juvenil, que tiene tres años, los de primer año van al B y los de segundo y tercero, al A.
-- **Un primer año sube al A si destaca:** si sería titular en el A, es decir, uno de los 11 mejores por su rendimiento, con el mismo «lector de persona» que usan todos (`MISMAS_REGLAS.md`).
-- **Un segundo año se queda en el B** si en el A no tiene sitio entre los 18 mejores. Si no le vale, puede irse a otro club en verano (§7).
-- Los clubes sin filial mezclan los dos años en su A, como ahora.
+**Hasta cuatro equipos por club y categoría.** Cada club abre los que le permiten sus jugadores.
 
-**Lo que se espera:** por club con filial y temporada, de 0 a 2 primeros años en el A, casi nunca más. La simulación lo vigila (§9). Si salen muchos más, el umbral está mal: se sube el listón, sin tocar a nadie en concreto.
+| Club | Cómo reparte |
+|---|---|
+| **Grandes** (los «top») | **Por año:** **A**, los de segundo año más los de primer año que destacan (los que serían titulares en el A, como al subir de categoría); **B (filial)**, los de primer año, y solo los mejores; **C**, los de segundo año que no entran en el A; **D**, los de primer año que no entran en el B. En juvenil, que tiene tres años, «segundo año» es segundo y tercero |
+| **Medianos, pequeños y el del colegio** | **Por nivel, con los años mezclados**, como los grupos de un colegio: el A con los mejores, el B con los siguientes, y así |
+
+- **Los equipos de más (C y D en un grande) salen de los propios jugadores del club**, no de los que sobran en la ciudad: que el Real Ciudad tenga un C no le abre la puerta del club grande a cualquiera.
+- **Un primer año en el A de un grande, de 0 a 2 por club y temporada**, casi nunca más. La simulación lo vigila (§9). Si salen muchos más, se sube el listón, sin tocar a nadie en concreto.
+
+**Todo por puestos.** No tiene sentido un equipo con once delanteros:
+- Cada plantilla tiene un **reparto por puestos** (dato del deporte; propuesta para 18: 2 porteros, 6 defensas, 6 centrocampistas y 4 delanteros).
+- **Lo que vale cada niño se mide en su puesto**, con sus habilidades y las afinidades de cada puesto del JSON del fútbol (se adelanta la valoración por líneas de la F3; los roles y la experiencia en cada puesto siguen en la F3).
+- **La regla de plaza va por puesto:** se entra con hueco en tu puesto o valiendo más que el peor de tu puesto. Así se ficha, se abren equipos y se decide quién se va.
+
+**Equipos según la demanda, con movimiento:**
+- Primero se llenan todos los equipos.
+- Si los que se han quedado sin equipo, **más los suplentes de otros equipos que serían titulares en uno nuevo**, llegan al mínimo, se abre otro equipo: en los clubes pequeños y en el del colegio primero; en los grandes, solo como su C o su D, con sus jugadores. «Mejor ser titular en un equipo nuevo que el 18.º en otro»: cada suplente decide si se va según su ambición.
+- Los huecos que dejan los que se van los ocupa cualquiera con la regla de plaza, el personaje incluido. **No hay huecos guardados para nadie**: después de crear la partida y de cada verano, ningún interesado se queda sin equipo mientras haya hueco en su puesto en un club que lo coja.
+
+**Entrar en un club de fuera: una prueba de acceso** (en el del colegio, no):
+- Quien quiere entrar en un club que no es el de su colegio (el personaje o un niño) **hace una prueba**, que le puede salir mejor o peor: cuenta su estado, su forma del día y algo de azar, como una competición. **Lo que vale en la prueba es lo que cuenta para la regla de plaza.**
+- En los grandes, quien viene de fuera solo entra si su prueba vale más que el peor de su puesto, aunque haya hueco (el B de un grande solo coge a los mejores de primer año). En los medianos y pequeños, con hueco en su puesto entra si la prueba no es muy mala (un mínimo, como dato del club).
+
+**El puesto del personaje y el consejo del profesor de Educación Física:**
+- El personaje puede **preguntar a su profesor de Educación Física** qué deporte y qué puesto le irían bien (el puesto, si el deporte lo tiene). El profesor le nombra **varios puestos** en los que podría funcionar, según lo que ve de él (lo que percibe, no los números exactos: `VISION.md`, principio 7).
+- **Al apuntarse o al pedir una prueba, el personaje elige dónde quiere jugar**, y la regla de plaza se mide en ese puesto. Que el entrenador lo ponga en otro puesto queda para la F3.
+- Los niños del mundo juegan en el puesto en el que más valen.
 
 ## 6. La temporada: liga y después copa
 
