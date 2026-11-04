@@ -1,4 +1,6 @@
 import {
+  conLaPierna,
+  type IdentityService,
   APORTES,
   GEN,
   SERVICES,
@@ -65,7 +67,8 @@ const CONFIG: ConfigDeporte = {
   id: DEPORTE,
   nombre: 'fútbol',
   rendimiento: (ctx) => rendimiento(ctx),
-  puestos: (ctx) => rendimientoPorPuestos(ctx),
+  // Lo que vale el personaje en cada puesto, con su pierna buena (la misma regla que los PNJ: `conLaPierna`).
+  puestos: (ctx) => conLaPierna(rendimientoPorPuestos(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', PUESTOS_DE_FUTBOL.pierna?.ventajaDelLado ?? 0.25),
   entrenosLibres: ENTRENOS_LIBRES,
   juegoInformal: JUEGO_INFORMAL,
 };

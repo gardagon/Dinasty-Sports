@@ -1,4 +1,4 @@
-import { SD_Z_HIJO, anioNatural, edadDeCompeticion, primerDiaDelAnio, type BodyType, type IdentityView, type PerfilDelPersonaje, type PerksDe, type Rng } from '@ds/contracts';
+import { PROPORCION_DE_ZURDOS, SD_Z_HIJO, anioNatural, edadDeCompeticion, primerDiaDelAnio, type BodyType, type IdentityView, type PerfilDelPersonaje, type PerksDe, type Rng } from '@ds/contracts';
 
 /**
  * Identidad del personaje: edad, altura, peso, dominancia lateral y complexión.
@@ -34,6 +34,7 @@ export interface IdentidadState {
   alturaAdulta: number;
   /** Años de adelanto (+) o retraso (−) en el crecimiento. */
   madurez: number;
+  /** Su pierna buena (y su mano): zurdo o diestro. La misma proporción que los PNJ (`PROPORCION_DE_ZURDOS`, en torno a un 20 %: la del pie, no la de la mano, que era el 11 %). */
   zurdo: boolean;
   /** 0..100. Se forma con fuerza sostenida y se pierde sin ella. */
   musculo: number;
@@ -62,7 +63,7 @@ export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, perfil:
     fraccionInicial: anios - edadInicial,
     alturaAdulta: Math.round(clamp(171 + (zAltura / SD_Z_HIJO) * 8, 150, 195) * 10 + alturaExtraCm * 10) / 10,
     madurez: clamp(rng.normal() * 0.8, -1.5, 1.5),
-    zurdo: rng.chance(0.11),
+    zurdo: rng.chance(PROPORCION_DE_ZURDOS),
     musculo: rng.range(18, 30),
     grasa: rng.range(34, 44),
     cuerpo: 'normal',

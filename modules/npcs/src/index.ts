@@ -82,6 +82,10 @@ import {
   type DeporteAnadidoData,
   type PlazaPerdidaData,
   cuposPorGrupo,
+  PROPORCION_DE_ZURDOS,
+  conLaPierna,
+  ladoDePuesto,
+  type Pierna,
   TAGS,
   defineModule,
   type CompetitionResultData,
@@ -181,6 +185,8 @@ export interface Npc {
   estado?: EstadoDeJugador;
   /** Lo que ha competido en cada deporte (resumen: pruebas, victorias, podios, mejor marca y las últimas). */
   historial?: Record<string, HistorialDeDeporte>;
+  /** Su pierna buena (diestro o zurdo): un rasgo estable. Sale de un sorteo suyo con la proporción de zurdos del deporte (en torno a un 20 %), igual que el personaje; se guarda al empezar a jugar. */
+  pierna?: Pierna;
   /** En los deportes con puestos: el puesto en que juega en su equipo (id del puesto) y el que prefiere (el favorito, aquel en que más valía al empezar), por deporte. */
   puesto?: Record<string, string>;
   puestoFavorito?: Record<string, string>;
@@ -844,7 +850,7 @@ const jugadoresDelEquipo = (npcs: readonly Npc[], pob: PoblacionGuardada, club: 
  * ¿Entra el personaje (de esta edad de competición y este nivel en el deporte) en el equipo de su categoría? Si el equipo tiene hueco, sí. Si está completo
  * (en su máximo), solo si es mejor que alguno de los que hay (en global, de momento): saldría el peor. Los deportes sin equipos por categoría no tienen tope.
  */
-export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, edad: number, nivel: number, dia: number, puestos?: Readonly<Record<string, number>>, rend: Rendimientos = new Map()): PlazaEnEquipo {
+export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, edad: number, nivel: number, dia: number, puestos?: Readonly<Record<string, number>>, rend: Rendimientos = new Map(), pierna?: Pierna): PlazaEnEquipo {
   const pob = pobs.find((p) => p.deporte === deporte);
   const equipo = pob?.equipos.find((e) => e.club === club);
   const cat = pob && equipo?.plantillaPorCategoria ? categoriaDe(pob, edad) : undefined;
@@ -855,7 +861,7 @@ export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGu
   if (pob.puestos && puestos) {
     const val = valoracionDe(rend);
     const favorito = puestoDondeMasVale(puestos);
-    const oferta = ofertaAlCandidato(delEquipo, max, pob, puestos, favorito, val, dia);
+    const oferta = ofertaAlCandidato(delEquipo, max, pob, puestos, favorito, val, dia, pierna);
     if (oferta) return { estado: oferta.estado, ...(oferta.peor ? { peor: { id: oferta.peor.id, nombre: oferta.peor.nombre, nivel: oferta.peor.valor } } : {}), puesto: oferta.puesto };
     // Completo en todos los puestos: se dice quién es el peor del grupo de su mejor puesto.
     const grupo = pob.puestos.reparto.find((g) => g.puestos.includes(favorito));
@@ -929,7 +935,7 @@ export function valorRealDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: 
   const lector = lectorDe(t);
   const valor = f(lector);
   v.valores.set(clave, valor);
-  if (f.puestos && pob.puestos) v.puestos.set(clave, conSuLado(n.id, n.genetica.semilla ?? 0, f.puestos(lector)));
+  if (f.puestos && pob.puestos) v.puestos.set(clave, conLaPierna(f.puestos(lector), piernaDe(n, pob), ventajaDelLado(pob)));
   return valor;
 }
 
@@ -939,14 +945,18 @@ export function valoresPorPuestoDe(n: Npc, pob: PoblacionGuardada, v: Valoracion
   return v.puestos.get(`${n.id}|${pob.deporte}`);
 }
 
-/**
- * Cada niño es más de una banda que de la otra (su pierna buena, un rasgo suyo y estable): los puestos de izquierda y derecha pesan lo mismo, así que sin esto un niño valdría igual en los dos y
- * siempre saldría el mismo lado. Desplaza lo que vale en cada puesto de izquierda o derecha una fracción de punto (±0,25) según su lado: deshace el empate sin cambiar quién vale más.
- */
-const conSuLado = (id: string, semilla: number, valores: Record<string, number>): Record<string, number> => {
-  const lado = rngEstable('lado', semilla, id).next() < 0.5 ? 1 : -1;
-  return Object.fromEntries(Object.entries(valores).map(([p, v]) => [p, /^[LR][A-Z]+$/.test(p) ? v + (p[0] === 'L' ? 0.25 * lado : -0.25 * lado) : v]));
+/** La pierna buena de un niño: la que tiene o, si aún no la ha dado (partidas anteriores), un sorteo estable suyo con la proporción de zurdos del deporte. */
+export const piernaDe = (n: Pick<Npc, 'id' | 'pierna' | 'genetica'>, pob: PoblacionGuardada): Pierna =>
+  n.pierna ?? (rngEstable('pierna', n.genetica?.semilla ?? 0, n.id).next() < (pob.puestos?.pierna?.proporcionDeZurdos ?? PROPORCION_DE_ZURDOS) ? 'izquierda' : 'derecha');
+
+/** Lo que vale el personaje en cada puesto con su pierna buena (la misma regla que los PNJ), o `undefined` si el deporte no tiene puestos. */
+const puestosDelPersonaje = (ctx: ReadContext, rend: Rendimientos, pob: PoblacionGuardada): Record<string, number> | undefined => {
+  const crudos = rend.get(pob.deporte)?.puestos?.(ctx);
+  return crudos ? conLaPierna(crudos, ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', ventajaDelLado(pob)) : undefined;
 };
+
+/** Lo que vale la pierna buena de base en los puestos de su lado (±0,25 por defecto): la misma regla para el personaje y los PNJ (`conLaPierna`). */
+const ventajaDelLado = (pob: PoblacionGuardada): number => pob.puestos?.pierna?.ventajaDelLado ?? 0.25;
 
 /** El puesto favorito de un niño: el que se le dio o, si aún no lo tiene, aquel en que más vale. */
 export function favoritoDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): string | undefined {
@@ -966,12 +976,12 @@ const valorEnSuPuesto = (n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: num
  * La oferta de puesto de un equipo (con `jugadores`, que caben `max`) a un candidato que vale `valores` en cada puesto: la regla de plaza por puesto (`ofertaDePuesto`), con el reparto de la
  * plantilla por grupos del deporte. `undefined`: no entra en ningún puesto.
  */
-export function ofertaAlCandidato(jugadores: readonly Npc[], max: number, pob: PoblacionGuardada, valores: Readonly<Record<string, number>>, favorito: string | undefined, v: Valoracion, dia: number): OfertaDePuesto | undefined {
+export function ofertaAlCandidato(jugadores: readonly Npc[], max: number, pob: PoblacionGuardada, valores: Readonly<Record<string, number>>, favorito: string | undefined, v: Valoracion, dia: number, piernaDelCandidato?: Pierna): OfertaDePuesto | undefined {
   const conPuesto: JugadorConPuesto[] = jugadores.flatMap((j) => {
     const puesto = puestoDeJugador(j, pob, v, dia);
-    return puesto ? [{ id: j.id, nombre: j.name, puesto, valor: valorEnSuPuesto(j, pob, v, dia, puesto) }] : [];
+    return puesto ? [{ id: j.id, nombre: j.name, puesto, valor: valorEnSuPuesto(j, pob, v, dia, puesto), pierna: j.pierna ?? (j.genetica ? piernaDe(j, pob) : undefined) }] : [];
   });
-  return ofertaDePuesto(conPuesto, cuposPorGrupo(pob.puestos!, max), pob.puestos!, valores, favorito);
+  return ofertaDePuesto(conPuesto, cuposPorGrupo(pob.puestos!, max), pob.puestos!, valores, favorito, piernaDelCandidato);
 }
 
 /** ¿Acepta el niño el puesto que le ofrece el club? Siempre el favorito; los demás según su carácter, lo que se parece a su puesto y si sería titular (un sorteo suyo y del club). */
@@ -1012,6 +1022,7 @@ function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardada, edad
     tags: [...base.tags, pob.etiqueta, ...(enSuColegio ? ['equipo'] : [])],
     levels: { ...base.levels, [pob.deporte]: nivelEn(base.id, g, a.potencial, (dia - base.nacimiento!) / 365, pob.deporte, dia) },
     potential: { ...base.potential, [pob.deporte]: a.potencial },
+    ...(pob.puestos ? { pierna: piernaDe(base, pob) } : {}),
     ...(puesto ? { puesto: { ...base.puesto, [pob.deporte]: puesto } } : {}),
     ...(favorito || base.puestoFavorito?.[pob.deporte] ? { puestoFavorito: { ...base.puestoFavorito, [pob.deporte]: base.puestoFavorito?.[pob.deporte] ?? favorito! } } : {}),
     ritmo: { ...base.ritmo, [pob.deporte]: ritmoEn(base.id, g, pob.deporte) },
@@ -1208,8 +1219,9 @@ export interface JugadorEnClub {
   categoria: string;
   valor: number;
   edad: number;
-  /** El puesto en que juega, si el deporte tiene puestos (y `valor` es lo que vale en él). */
+  /** El puesto en que juega, si el deporte tiene puestos (y `valor` es lo que vale en él), y su pierna buena. */
   puesto?: string;
+  pierna?: Pierna;
 }
 const idDelPersonaje = (deporte: string): string => `personaje@${deporte}`;
 /** El personaje como un jugador más del mundo, solo mientras se hacen los fichajes (para que la regla de plaza lo trate como a los demás). */
@@ -1224,6 +1236,7 @@ const jugadorComoNpc = (j: JugadorEnClub, dia: number): Npc => ({
   deporte: j.deporte,
   equipo: j.club,
   ...(j.puesto ? { puesto: { [j.deporte]: j.puesto } } : {}),
+  ...(j.pierna ? { pierna: j.pierna } : {}),
   nacimiento: primerDiaDelAnio(anioNatural(dia) - j.edad),
 });
 
@@ -1245,7 +1258,7 @@ function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: Po
   const valores = valoresPorPuestoDe(n, pob, m.val, m.dia);
   if (pob.puestos && valores) {
     const favorito = favoritoDe(n, pob, m.val, m.dia);
-    const oferta = ofertaAlCandidato(plantel.jugadores, plantel.max, pob, valores, favorito, m.val, m.dia);
+    const oferta = ofertaAlCandidato(plantel.jugadores, plantel.max, pob, valores, favorito, m.val, m.dia, piernaDe(n, pob));
     if (!oferta || !aceptaElPuesto(n, pob, e.club, favorito, oferta)) return { entra: false };
     const desplazado = oferta.peor ? m.lista.get(oferta.peor.id) : undefined;
     m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto, favorito));
@@ -1958,8 +1971,8 @@ export const npcs = defineModule<NpcsState>({
         reservas.set(claveDeEquipo(club.id, cat.id), 1);
         const f = rend.get(pob.deporte);
         const puestoDelPersonaje = ctx.state<NpcsState>().puestoDelPersonaje?.[pob.deporte];
-        const valoresDelPersonaje = f?.puestos?.(ctx);
-        if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: puestoDelPersonaje && valoresDelPersonaje ? valoresDelPersonaje[puestoDelPersonaje] : f(ctx), edad: edadProxima, ...(puestoDelPersonaje ? { puesto: puestoDelPersonaje } : {}) });
+        const valoresDelPersonaje = puestosDelPersonaje(ctx, rend, pob);
+        if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: puestoDelPersonaje && valoresDelPersonaje ? valoresDelPersonaje[puestoDelPersonaje] : f(ctx), edad: edadProxima, pierna: ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', ...(puestoDelPersonaje ? { puesto: puestoDelPersonaje } : {}) });
       }
       const resultado = { sinPlaza: [] as string[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined };
       ctx.updateState<NpcsState>((s) => {
@@ -2001,8 +2014,8 @@ export const npcs = defineModule<NpcsState>({
       if (nivel !== undefined) {
         const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
         const rendDelClub = rendimientosDe(ctx);
-        const plaza = plazaEnElEquipo(ctx.state<NpcsState>().npcs, pobs, sport, clubId, edad, nivel, inicioCurso, rendDelClub.get(sport)?.puestos?.(ctx), rendDelClub);
         const pob = pobs.find((p) => p.deporte === sport);
+        const plaza = plazaEnElEquipo(ctx.state<NpcsState>().npcs, pobs, sport, clubId, edad, nivel, inicioCurso, pob ? puestosDelPersonaje(ctx, rendDelClub, pob) : undefined, rendDelClub);
         if (plaza.estado === 'por_merito' && plaza.peor && pob) {
           const cat = categoriaDe(pob, edad);
           const reservas = new Map<string, number>(cat ? [[claveDeEquipo(clubId, cat.id), 1]] : []);
@@ -2182,7 +2195,7 @@ export const npcs = defineModule<NpcsState>({
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
         nivelesDelEquipo: (deporte, club, categoria) => nivelesDelEquipoDe(lista, poblacionesGuardadas(ctx), deporte, club, categoria, ctx.time.week, inicioCurso),
-        plaza: (deporte, club, nivel, puestos) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso, puestos, rendimientosDe(ctx)),
+        plaza: (deporte, club, nivel, puestos) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso, puestos, rendimientosDe(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha'),
       };
     },
   },

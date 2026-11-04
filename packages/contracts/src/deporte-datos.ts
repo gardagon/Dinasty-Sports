@@ -184,9 +184,38 @@ export interface PuestoDeDeporte {
   afinidades: Readonly<Record<string, number>>;
 }
 
+/** La pierna buena de una persona. */
+export type Pierna = 'izquierda' | 'derecha';
+
+/** La proporción de zurdos (de pierna izquierda) por defecto: en torno a un 20 %. La misma para el personaje y los PNJ; cada deporte puede afinarla (`PuestosDeDeporte.pierna`). */
+export const PROPORCION_DE_ZURDOS = 0.2;
+
+/** Todos tienen pierna buena (diestro o zurdo): el personaje y los PNJ, con la misma regla y la misma proporción. Cuánto cuenta, como dato del deporte. */
+export interface PiernaDeDeporte {
+  /** Proporción de zurdos (0 a 1). */
+  proporcionDeZurdos: number;
+  /** Mientras no tenga una banda clara, cada uno vale esto más de base en los puestos del lado de su pierna buena (y esto menos en los del otro lado): ±0,25 puntos. */
+  ventajaDelLado: number;
+  /** Cuánto más deprisa gana experiencia en un puesto del lado de su pierna buena (×). Preparado para la experiencia por puesto, que llega con los partidos (F2 y F3). */
+  factorDeExperienciaDelLado: number;
+}
+
+/** El lado de un puesto (los que empiezan por L o R, como LB o RW) o `undefined` si es central (GK, CB, CM, CAM, ST...). */
+export const ladoDePuesto = (id: string): Pierna | undefined => (/^[LR][A-Z]+$/.test(id) ? (id[0] === 'L' ? 'izquierda' : 'derecha') : undefined);
+
+/**
+ * La regla de la pierna buena sobre lo que vale alguien en cada puesto: en los puestos del lado de su pierna vale `ventaja` más y en los del otro lado `ventaja` menos. Es la **misma** para el
+ * personaje y para cualquier PNJ.
+ */
+export function conLaPierna(valores: Readonly<Record<string, number>>, pierna: Pierna, ventaja: number): Record<string, number> {
+  return Object.fromEntries(Object.entries(valores).map(([p, v]) => [p, ladoDePuesto(p) === undefined ? v : v + (ladoDePuesto(p) === pierna ? ventaja : -ventaja)]));
+}
+
 /** Los puestos de un deporte y cómo se reparte una plantilla entre ellos. */
 export interface PuestosDeDeporte {
   puestos: readonly PuestoDeDeporte[];
+  /** La pierna buena: proporción de zurdos, lo que vale de base el lado de su pierna y lo que acelera la experiencia en él. Sin él, los valores por defecto. */
+  pierna?: PiernaDeDeporte;
   /**
    * El reparto de una plantilla del máximo de jugadores (18 en el fútbol) por grupos de puestos: «2 porteros, 3 centrales, 3 laterales, 4 mediocentros, 3 de banda o extremos y 3
    * delanteros». Un equipo de otro tamaño reparte lo mismo en proporción (`cuposPorGrupo`).

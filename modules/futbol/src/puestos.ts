@@ -73,6 +73,8 @@ function pesosDe(id: string): Record<string, number> {
 }
 
 export const PUESTOS_DE_FUTBOL: PuestosDeDeporte = {
+  // La pierna buena (decisión del 04/11): en torno a un 20 % de zurdos; el lado de su pierna vale ±0,25 de base; y la experiencia en un puesto de su lado crecerá un 25 % más deprisa (a calibrar).
+  pierna: { proporcionDeZurdos: 0.2, ventajaDelLado: 0.25, factorDeExperienciaDelLado: 1.25 },
   puestos: NOMBRES.map(([id, nombre, linea]): PuestoDeDeporte => ({ id, nombre, linea, pesos: pesosDe(id), afinidades: AFINIDADES[id] ?? {} })),
   // Una plantilla de 18: 2 porteros, 3 centrales, 3 laterales, 4 mediocentros, 3 de banda o extremos y 3 delanteros.
   reparto: [
