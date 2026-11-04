@@ -1626,13 +1626,27 @@ function entrenadoresDeUnDeporte(npcs: readonly Npc[], pob: PoblacionGuardada, r
   return [...(pob.primero ? [] : [nuevoEntrenador(rng, pob, usados, { id: `entrenador_${pob.deporte}`, club: 'colegio', edades: [0, 99], edad: [28, 55], descripcion: pob.entrenadores.descripcionDelColegio })]), ...entrenadoresDeClubes(rng, pob, usados)];
 }
 
+/** Los entrenadores de los equipos que un club ya tiene abiertos al empezar (el B de cada club grande): uno por equipo, con las edades de su categoría. */
+function entrenadoresDeEquiposExtra(npcs: readonly Npc[], pob: PoblacionGuardada, rng: Rng): Npc[] {
+  const usados = registroDe(npcs);
+  const nuevos: Npc[] = [];
+  for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
+    for (const [catId, k] of Object.entries(e.equiposPorCategoria ?? {})) {
+      const cat = (pob.categorias ?? []).find((c) => c.id === catId);
+      if (!cat) continue;
+      for (let numero = 2; numero <= k; numero++) nuevos.push(nuevoEntrenador(rng, pob, usados, { id: idDeEntrenadorDeEquipo(e.club, catId, numero), club: e.club, edades: [cat.edadMin, Math.min(cat.edadMax, 99)], edad: [28, 55] }));
+    }
+  }
+  return nuevos;
+}
+
 /** El reparto base, la población del colegio y del barrio, los entrenadores y, al final, los niños que reclutan los deportes. */
 function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { npcs: Npc[]; pobs: PoblacionGuardada[] } {
   const base = generarReparto(ctx, pobs[0]);
   const usados = registroDe(base);
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
   const sin = conSemilla([...base, ...colegio, ...bibliotecarios(ctx.rng, usados)], ctx.seed);
-  const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng)], sin);
+  const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng), ...entrenadoresDeEquiposExtra(lista, pob, ctx.rng)], sin);
   // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
   const rend = rendimientosDe(ctx);
   const equipos = reclutarEnTodos(conCapacidades(conEntrenadores, 0), pobs, 0, new Map(), rend);

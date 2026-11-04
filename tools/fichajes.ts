@@ -3,7 +3,7 @@ import { advanceToWeek, seededRng } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
 import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
-import { edadNpc, type NpcsState } from '@ds/mod-npcs';
+import { edadNpc, equiposDelClub, valoracionDe, type NpcsState } from '@ds/mod-npcs';
 import { deportistaDe, type BotMemory } from '../sim/src/bots';
 import { hacer, opcionesDelBot } from '../sim/src/pasos';
 
@@ -49,6 +49,11 @@ const equiposPorCat: Record<string, number[]> = {};
 const costeDeCrear: number[] = [];
 const ofertasPorClub: Record<string, Record<string, number>> = {};
 const primerSitio: string[] = [];
+const equiposAD: Record<string, number[]> = {};
+const primerosEnElA: number[] = [];
+const sinZurdoEnLaBanda: { faltan: number; de: number } = { faltan: 0, de: 0 };
+let zurdosTotal = 0;
+let jugadoresTotal = 0;
 let equiposDescompensados = 0;
 let equiposRevisados = 0;
 const dejadosPorCurso: number[][] = Array.from({ length: CURSOS }, () => []);
@@ -87,6 +92,29 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
   }
   if (!entraEnAlguno) sinNingunClub++;
   futbolistasPorCurso[0].push(s0.npcs.filter((n) => n.deporte === 'futbol').length);
+  {
+    const pobAD = s0.poblaciones!.find((p) => p.deporte === 'futbol')!;
+    const listaAD = new Map(s0.npcs.map((n) => [n.id, n]));
+    const valAD = valoracionDe(new Map([['futbol', Object.assign((p: Parameters<typeof rendimientoDeFutbol>[0]) => rendimientoDeFutbol(p), { puestos: rendimientoPorPuestos })]]));
+    for (const e of pobAD.equipos.filter((x) => x.plantillaPorCategoria)) {
+      for (const c of pobAD.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
+        const cat = { id: c.id, edades: Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i).filter((x) => x <= 19) };
+        const r = equiposDelClub(listaAD, pobAD, e, cat, 0, valAD);
+        for (const l of ['A', 'B', 'C', 'D'] as const) (equiposAD[`${e.club}|${l}`] ??= []).push(r.equipos[l].length >= 14 * 0 + 1 ? r.equipos[l].length : 0);
+        if (e.calidad >= 3) primerosEnElA.push(r.equipos.A.filter((id) => (edadNpc(listaAD.get(id)!, 0) ?? 0) === c.edadMin).length);
+        // ¿Falta un zurdo para la banda izquierda? (extremo o interior izquierdo, LW o LM: nadie de pierna izquierda entre los que juegan ahí).
+        const izq = r.miembros.filter((x) => x.m.puesto === 'LW' || x.m.puesto === 'LM');
+        if (izq.length) {
+          sinZurdoEnLaBanda.de++;
+          if (!izq.some((x) => x.n.pierna === 'izquierda')) sinZurdoEnLaBanda.faltan++;
+        }
+        for (const x of r.miembros) {
+          jugadoresTotal++;
+          if (x.n.pierna === 'izquierda') zurdosTotal++;
+        }
+      }
+    }
+  }
   for (const e of s0.poblaciones!.find((p) => p.deporte === 'futbol')!.equipos.filter((x) => x.plantillaPorCategoria)) {
     for (const c of s0.poblaciones!.find((p) => p.deporte === 'futbol')!.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
       const del = s0.npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && n.puesto?.futbol && edadNpc(n, 0)! >= c.edadMin && edadNpc(n, 0)! <= c.edadMax);
@@ -143,6 +171,13 @@ for (const club of CLUBES) console.log(`| ${club} | ${f(mediana(medianosDelEquip
 console.log('\nPuestos que los clubes le ofrecen al personaje al empezar (suma de las 12 semillas, por club):');
 for (const club of CLUBES) console.log(`- ${club}: ${Object.entries(ofertasPorClub[club] ?? {}).sort((a, b) => b[1] - a[1]).map(([p, n]) => `${p} ${n}`).join(', ') || '—'}`);
 console.log(`\nPrimer sitio (club:puesto) por semilla, en el orden de las ofertas: ${primerSitio.map((x, i) => `${i + 1}:${x ?? '—'}`).join('  ')}`);
+console.log('\nEquipos A, B, C y D por club (jugadores de cada uno, media de las 5 categorías y las 12 semillas; 0 = no hay ese equipo):');
+console.log('| Club | A | B | C | D |');
+console.log('|---|---|---|---|---|');
+for (const club of CLUBES) console.log(`| ${club} | ${(['A', 'B', 'C', 'D'] as const).map((l) => f(media(equiposAD[`${club}|${l}`] ?? [0]))).join(' | ')} |`);
+console.log(`\nPrimeros años en el A de un club grande (0 a 2 es lo esperado): media ${f(media(primerosEnElA))}, máximo ${Math.max(...primerosEnElA)}, ${primerosEnElA.filter((x) => x <= 2).length} de ${primerosEnElA.length} club-categorías con 2 o menos`);
+console.log(`Zurdos entre los futbolistas: ${f((100 * zurdosTotal) / Math.max(1, jugadoresTotal))} %`);
+console.log(`Equipos en que falta un zurdo para la banda izquierda (hay extremo o interior izquierdo y ninguno es zurdo): ${sinZurdoEnLaBanda.faltan} de ${sinZurdoEnLaBanda.de} club-categorías con banda izquierda`);
 console.log(`\nEquipos descompensados por puestos (algún grupo sin jugadores o pasado de su cupo): ${equiposDescompensados} de ${equiposRevisados}`);
 console.log('\nEquipos por categoría (media entre semillas; los 4 clubes de la zona, con los equipos que abren según la demanda):');
 console.log('| Categoría | Equipos (media) | Mín | Máx |');

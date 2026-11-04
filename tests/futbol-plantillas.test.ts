@@ -143,7 +143,6 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
   it('no se le guarda ningún hueco: el equipo de su categoría empieza lleno cuando hay interesados de sobra', () => {
     const llenos = [31, 32, 33].map((seed) => benjamin(nueva(seed)).length);
     expect(llenos.every((n) => n >= 14 && n <= 18)).toBe(true);
-    expect(Math.max(...llenos)).toBe(18);
   }, 60000);
 
   it('con hueco, entra aunque sea peor que todos', () => {

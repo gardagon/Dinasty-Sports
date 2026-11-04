@@ -119,15 +119,20 @@ describe('los niños del mundo con puestos', () => {
     }
   });
 
-  it('el valor de un niño en cada puesto sale de sus habilidades: el portero vale por su portería y un niño sin portería vale poco de portero', () => {
-    const val = valoracionDe(REND);
-    const porteros = jugadores().filter((n) => n.puesto!.futbol === 'GK');
-    const delanteros = jugadores().filter((n) => n.puesto!.futbol === 'ST');
-    expect(porteros.length).toBeGreaterThan(0);
-    const media = (xs: Npc[], puesto: string) => xs.reduce((t, n) => t + valoresPorPuestoDe(n, pob(), val, 0)![puesto], 0) / xs.length;
-    // Los porteros valen más de portero que los delanteros y los delanteros más de delantero que los porteros.
-    expect(media(porteros, 'GK')).toBeGreaterThan(media(delanteros, 'GK'));
-    expect(media(delanteros, 'ST')).toBeGreaterThan(media(porteros, 'ST'));
+  it('el valor de una persona en cada puesto sale de sus habilidades: el portero vale por su portería y el delantero por su definición', () => {
+    const lector = (stats: Record<string, number>) => ({ stat: (id: string) => stats[id] ?? 20, norm: (id: string) => (stats[id] ?? 20) / 100 });
+    const portero = rendimientoPorPuestos(lector({ 'futbol.reflejos': 80, 'futbol.blocaje': 80, 'futbol.mano_a_mano': 80, 'futbol.alcance_aereo': 80, 'futbol.dominio_area': 80 }));
+    const delantero = rendimientoPorPuestos(lector({ 'futbol.definicion': 80, 'futbol.desmarque': 80, 'futbol.sangre_fria': 80, 'futbol.cabeza': 80 }));
+    expect(portero.GK).toBeGreaterThan(delantero.GK);
+    expect(delantero.ST).toBeGreaterThan(portero.ST);
+    // El portero vale más de portero que de cualquier otra cosa, y el delantero más de delantero que de portero.
+    expect(puestoDondeMasVale(portero)).toBe('GK');
+    expect(['ST', 'LST', 'RST']).toContain(puestoDondeMasVale(delantero));
+    // Todos los valores salen entre 0 y 100.
+    for (const v of [...Object.values(portero), ...Object.values(delantero)]) {
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThanOrEqual(100);
+    }
   });
 
   it('la oferta del club a un candidato con el equipo completo es por puesto: solo entra quien vale más que el peor de ese puesto', () => {

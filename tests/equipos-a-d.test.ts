@@ -44,7 +44,7 @@ describe('el reparto de un club en equipos A a D', () => {
 
   it('los grandes reparten por año: A, los de segundo año más los de primer año que destacan; B, los de primer año; C, los de segundo año que no entran en el A; D, los de primer año que no entran en el B', () => {
     const miembros = plantilla(72);
-    const r = repartirEnEquipos(miembros, P, 4, 18, true, 0);
+    const r = repartirEnEquipos(miembros, P, 4, 18, true, 3);
     const anio = (id: string) => miembros.find((m) => m.id === id)!.anio;
     // El B y el D son de primer año; el C, de segundo.
     expect(r.B.every((id) => anio(id) === 1)).toBe(true);
