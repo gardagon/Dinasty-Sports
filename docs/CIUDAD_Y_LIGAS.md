@@ -72,10 +72,12 @@ Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F
 - **Los equipos de más (C y D en un grande) salen de los propios jugadores del club**, no de los que sobran en la ciudad: que el Real Ciudad tenga un C no le abre la puerta del club grande a cualquiera.
 - **Un primer año en el A de un grande, de 0 a 2 por club y temporada**, casi nunca más. La simulación lo vigila (§9). Si salen muchos más, se sube el listón, sin tocar a nadie en concreto.
 
-**Todo por puestos.** No tiene sentido un equipo con once delanteros:
-- Cada plantilla tiene un **reparto por puestos** (dato del deporte; propuesta para 18: 2 porteros, 6 defensas, 6 centrocampistas y 4 delanteros).
-- **Lo que vale cada niño se mide en su puesto**, con sus habilidades y las afinidades de cada puesto del JSON del fútbol (se adelanta la valoración por líneas de la F3; los roles y la experiencia en cada puesto siguen en la F3).
-- **La regla de plaza va por puesto:** se entra con hueco en tu puesto o valiendo más que el peor de tu puesto. Así se ficha, se abren equipos y se decide quién se va.
+**Todo por puestos.** No tiene sentido un equipo con once delanteros, y nadie (ni un PNJ ni el personaje) se limita a un único puesto: el descarte de un delantero puede ser un gran extremo.
+- **Se calcula el nivel de cada jugador en cada puesto** (los 16 del JSON del fútbol: portero, centrales, laterales, mediocentros, bandas, mediapuntas, extremos y delanteros), con sus habilidades y las afinidades de cada puesto (se adelanta esa parte de la F3; los roles y la experiencia en cada puesto siguen en la F3).
+- Cada plantilla tiene un **reparto por puestos** (dato del deporte; propuesta para 18: 2 porteros, 3 centrales, 3 laterales, 4 mediocentros, 3 de banda o extremos y 3 delanteros).
+- **La regla de plaza va por puesto:** un club mira al candidato en todos los puestos y le ofrece aquel en el que entraría (con hueco en ese puesto o valiendo más que el peor de ese puesto).
+- **Cada uno tiene un puesto favorito.** Si el club le ofrece otro, un PNJ lo acepta o no según su carácter (propuesta: más fácil cuanto más disciplinado y sacrificado sea, cuanto más se parezca el puesto al suyo y si en él sería titular). Si acepta, se queda en el equipo en ese puesto; si no, busca sitio en otro club.
+- **El personaje igual, decidiendo él:** hace la prueba en el puesto que elige, pero el entrenador le puede proponer otro en la prueba, y él decide si acepta.
 
 **Equipos según la demanda, con movimiento:**
 - Primero se llenan todos los equipos.
@@ -89,7 +91,7 @@ Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F
 **El puesto del personaje y el consejo del profesor de Educación Física:**
 - El personaje puede **preguntar a su profesor de Educación Física** qué deporte y qué puesto le irían bien (el puesto, si el deporte lo tiene). El profesor le nombra **varios puestos** en los que podría funcionar, según lo que ve de él (lo que percibe, no los números exactos: `VISION.md`, principio 7).
 - **Al apuntarse o al pedir una prueba, el personaje elige dónde quiere jugar**, y la regla de plaza se mide en ese puesto. Que el entrenador lo ponga en otro puesto queda para la F3.
-- Los niños del mundo juegan en el puesto en el que más valen.
+- Los niños del mundo empiezan con su puesto favorito en el que más valen (o, si su carácter lo pide, en el que más les gusta jugar).
 
 ## 6. La temporada: liga y después copa
 
