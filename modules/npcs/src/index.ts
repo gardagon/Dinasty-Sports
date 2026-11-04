@@ -138,6 +138,7 @@ import {
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { habilidadesIniciales, lectorDe, prepararTrabajo, type HabilidadesDe } from './rutina';
+import { repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, probabilidadDeAceptarPuesto, puestoDondeMasVale, type JugadorConPuesto, type OfertaDePuesto } from './puestos';
 import { NUNCA, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
 
@@ -684,7 +685,12 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
       objetivo: e.plantilla ? rngEstable('plantilla', semilla, ficha.id, e.club).int(e.plantilla.min, e.plantilla.max) : 0,
     };
   });
-  return JSON.parse(JSON.stringify({ ...datos.poblacion, equipos, categorias: datos.categorias, deporte: ficha.id, nombre: ficha.nombre.toLowerCase(), primero, nombresDeClub }));
+  const pob: PoblacionGuardada = JSON.parse(JSON.stringify({ ...datos.poblacion, equipos, categorias: datos.categorias, deporte: ficha.id, nombre: ficha.nombre.toLowerCase(), primero, nombresDeClub }));
+  // Los clubes grandes tienen siempre dos equipos por categoría, el A y el B (por año: segundo año y primero); los C y D los abren cuando sus propios suplentes llegan al mínimo.
+  for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria && x.calidad >= 3 && pob.puestos)) {
+    e.equiposPorCategoria = Object.fromEntries(categoriasDelEquipo(pob, e).map((c) => [c.id, 2]));
+  }
+  return pob;
 }
 
 /** Lo que han pedido los deportes de la partida (en el orden de sus fichas). */
@@ -1358,6 +1364,36 @@ export function fichajesDeVerano(m: MercadoDeFichajes, semilla: number, curso: n
   colocarDesplazados(m, desplazados);
 }
 
+// ---------------------------------------------------------------------------------------------------- equipos A, B, C y D de un club
+
+/** Los miembros de un club en una categoría, con el puesto en que juegan, lo que valen en él y su año en la categoría (el primero es el de la edad más baja). */
+function miembrosDelClub(lista: ReadonlyMap<string, Npc>, pob: PoblacionGuardada, e: EquipoGuardado, edades: readonly number[], dia: number, val: Valoracion): { n: Npc; m: MiembroDeClub }[] {
+  const primero = Math.min(...edades);
+  return [...lista.values()]
+    .filter((n) => n.deporte === pob.deporte && n.equipo === e.club && edades.includes(edadNpc(n, dia) ?? -1))
+    .flatMap((n) => {
+      const puesto = puestoDeJugador(n, pob, val, dia);
+      return puesto ? [{ n, m: { id: n.id, puesto, valor: valorEnSuPuesto(n, pob, val, dia, puesto), anio: ((edadNpc(n, dia) ?? primero) === primero ? 1 : 2) as 1 | 2 } }] : [];
+    });
+}
+
+/**
+ * Los equipos A, B, C y D de un club en una categoría (derivados de quienes hay, no guardados): los grandes, por año; los demás, por nivel; cada uno con su reparto por puestos. Los suplentes de
+ * cada equipo son los que no están entre sus titulares (`formacion` del deporte).
+ */
+export function equiposDelClub(lista: ReadonlyMap<string, Npc>, pob: PoblacionGuardada, e: EquipoGuardado, categoria: { id: string; edades: readonly number[] }, dia: number, val: Valoracion): { equipos: EquiposDelClub; suplentes: string[]; miembros: { n: Npc; m: MiembroDeClub }[] } {
+  const miembros = miembrosDelClub(lista, pob, e, categoria.edades, dia, val);
+  const k = e.equiposPorCategoria?.[categoria.id] ?? 1;
+  const equipos = repartirEnEquipos(miembros.map((x) => x.m), pob.puestos!, k, e.plantillaPorCategoria!.max, e.calidad >= 3, pob.puestos!.equipos?.listonDePrimerAno ?? 0);
+  const titulares = pob.puestos!.equipos?.titulares ?? {};
+  const suplentes = (['A', 'B', 'C', 'D'] as const).flatMap((l) => suplentesDe(miembros.filter((x) => equipos[l].includes(x.m.id)).map((x) => x.m), pob.puestos!, titulares));
+  return { equipos, suplentes, miembros };
+}
+
+/** ¿Se va un suplente a un equipo nuevo? Lo decide según su ambición (de 15 % a 85 %: lo prefiere ser titular en uno nuevo que el 18.º de otro). Un sorteo suyo. */
+const quiereIrseDeSuplente = (n: Npc, club: string, dia: number): boolean =>
+  rngEstable('suplente', n.genetica?.semilla ?? 0, n.id, club, dia).chance(Math.min(0.85, Math.max(0.15, 0.15 + 0.7 * (((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100))));
+
 // ---------------------------------------------------------------------------------------------------- equipos según la demanda
 
 /** Tope de equipos que un club puede tener en una categoría (para que no se abran equipos sin fin). */
@@ -1419,40 +1455,74 @@ export function equiposPorDemanda(m: MercadoDeFichajes, rng: Rng): Npc[] {
     for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
     for (const [catId] of categorias) {
       const sinDemanda = new Set<string>();
+      const conPuestos = !!pob.puestos && !!m.val.rend.get(pob.deporte)?.puestos;
       for (let ronda = 0; ronda < 3 * MAX_EQUIPOS_POR_CATEGORIA * pob.equipos.length; ronda++) {
         const arr = [...m.lista.values()];
+        // Los suplentes de todos los equipos de la categoría (los de un club grande, solo para sus propios equipos nuevos) que se irían a uno nuevo según su ambición.
+        // Un suplente solo se va si su club conserva el mínimo de jugadores en cada uno de sus equipos de la categoría: cada club puede dar a lo sumo los que le sobran sobre `equipos × mínimo`.
+        const suplentesDeLaCategoria = conPuestos
+          ? pob.equipos.filter((x) => x.plantillaPorCategoria).flatMap((x) => {
+              const cx = categoriasDelEquipo(pob, x).find((c) => c.id === catId);
+              if (!cx) return [];
+              const del = equiposDelClub(m.lista, pob, x, cx, m.dia, m.val);
+              const puedeDar = Math.max(0, del.miembros.length - (x.equiposPorCategoria?.[catId] ?? 1) * x.plantillaPorCategoria!.min);
+              return del.suplentes.flatMap((id) => (m.lista.get(id)?.genetica ? [{ n: m.lista.get(id)!, club: x.club }] : [])).sort((a, b) => valorEn(b.n, pob, m) - valorEn(a.n, pob, m) || (a.n.id < b.n.id ? -1 : 1)).slice(0, puedeDar);
+            })
+          : [];
         const candidatos = pob.equipos
           .filter((e) => e.plantillaPorCategoria && (e.equiposPorCategoria?.[catId] ?? 1) < MAX_EQUIPOS_POR_CATEGORIA && !sinDemanda.has(`${e.club}|${catId}`))
           .flatMap((e) => {
             const cat = categoriasDelEquipo(pob, e).find((c) => c.id === catId);
-            return cat ? [{ e, cat, demanda: sinEquipoParaClub(arr, pob, e, cat.edades, m).length }] : [];
+            if (!cat) return [];
+            const interesados = sinEquipoParaClub(arr, pob, e, cat.edades, m);
+            // Los que quedan sin equipo, más los suplentes que serían titulares en un equipo nuevo y se van (según su ambición): un club pequeño o el del colegio los coge todos; un club grande,
+            // solo a sus propios suplentes (su C o su D sale de sus propios jugadores, no de los que sobran en la ciudad).
+            const grande = e.calidad >= 3;
+            const suplentes = suplentesDeLaCategoria.filter((x) => (grande ? x.club === e.club : true) && (e.colegio === undefined || colegioDeNino(x.n) === e.colegio) && quiereIrseDeSuplente(x.n, e.club, m.dia));
+            return [{ e, cat, grande, interesados, suplentes, demanda: (grande ? 0 : interesados.length) + suplentes.length }];
           })
           .filter((c) => c.demanda >= c.e.plantillaPorCategoria!.min)
-          // Abre el club que tiene menos equipos en la categoría (así se reparten) y, a igualdad, el que tiene más demanda y el más grande.
-          .sort((a, b) => (a.e.equiposPorCategoria?.[catId] ?? 1) - (b.e.equiposPorCategoria?.[catId] ?? 1) || b.demanda - a.demanda || b.e.calidad - a.e.calidad || (a.e.club < b.e.club ? -1 : 1));
+          // Primero abren los clubes pequeños y el del colegio (el que tiene menos equipos en la categoría y, a igualdad, el más pequeño y el de más demanda); los grandes, después.
+          .sort((a, b) => Number(a.grande) - Number(b.grande) || (a.e.equiposPorCategoria?.[catId] ?? 1) - (b.e.equiposPorCategoria?.[catId] ?? 1) || a.e.calidad - b.e.calidad || b.demanda - a.demanda || (a.e.club < b.e.club ? -1 : 1));
         if (!candidatos.length) break;
-        const { e } = candidatos[0];
+        const { e, grande, interesados, suplentes } = candidatos[0];
         const catDef = categorias.get(catId)!;
         const numero = (e.equiposPorCategoria?.[catId] ?? 1) + 1;
         e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: numero };
         entrenadores.push(nuevoEntrenador(rng, pob, registroDe([...arr, ...entrenadores]), { id: idDeEntrenadorDeEquipo(e.club, catId, numero), club: e.club, edades: [catDef.edadMin, Math.min(catDef.edadMax, 99)], edad: [28, 55] }));
         m.pobs = [...pobsNuevas, pob, ...m.pobs.slice(pobsNuevas.length + 1)];
-        // El equipo nuevo se forma con los mejores (por lo que valen) de los interesados que se habían quedado sin equipo, hasta el mínimo de una plantilla: así nace con huecos
-        // (quien vale menos que los demás también puede entrar, por la regla de plaza) y no se queda ningún otro equipo sin jugadores.
-        const elegibles = sinEquipoParaClub([...m.lista.values()], pob, e, categorias.get(catId) ? categoriasDelEquipo(pob, e).find((c) => c.id === catId)!.edades : [], m).sort((a, b) => b.valor - a.valor || (a.npc.id < b.npc.id ? -1 : 1));
-        // Si, con los puestos que aceptan, el equipo no llega al mínimo de jugadores, no se abre (se deshace): un club no tiene un equipo que se cierra al año siguiente.
-        const antes = new Map(m.lista);
-        let colocados = 0;
-        for (const a of elegibles) {
-          if (colocados >= e.plantillaPorCategoria!.min) break;
-          if (intentarEntrar(m, a.npc, e, pob).entra) colocados++;
+        if (grande) {
+          // El C o el D de un grande son sus propios jugadores: no se recluta a nadie para él; los huecos que dejan los suplentes en los demás equipos los ocupa cualquiera por la regla de plaza.
+          sinDemanda.add(`${e.club}|${catId}`);
+          continue;
         }
+        // El equipo nuevo se forma con los mejores (por lo que valen) de los que no tienen equipo y los suplentes que se van, hasta el mínimo de una plantilla: nace con huecos (quien vale menos
+        // también puede entrar, por la regla de plaza). Los huecos que dejan los suplentes en sus equipos los ocupa cualquiera por la misma regla (sin huecos guardados para nadie).
+        const antes = new Map(m.lista);
+        const pool = [
+          ...interesados.map((a) => ({ n: a.npc, valor: a.valor, deSuplente: false, pob })),
+          ...suplentes.map((x) => ({ n: x.n, valor: valorEn(x.n, pob, m), deSuplente: true, pob })),
+        ].sort((x, y) => y.valor - x.valor || (x.n.id < y.n.id ? -1 : 1));
+        let colocados = 0;
+        for (const c of pool) {
+          if (colocados >= e.plantillaPorCategoria!.min) break;
+          const antiguo = m.lista.get(c.n.id)!;
+          const libre = c.deSuplente ? sinDeporte(antiguo, pob, false) : antiguo;
+          if (c.deSuplente) m.lista.set(libre.id, libre);
+          if (intentarEntrar(m, libre, e, pob).entra) colocados++;
+          else if (c.deSuplente) m.lista.set(antiguo.id, antiguo);
+        }
+        // Si, con los puestos que aceptan, el equipo no llega al mínimo de jugadores, no se abre (se deshace): un club no tiene un equipo que se cierra al año siguiente.
         if (colocados < e.plantillaPorCategoria!.min) {
           m.lista = antes;
           e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: numero - 1 };
           if (numero - 1 === 1) delete e.equiposPorCategoria[catId];
           entrenadores.pop();
           sinDemanda.add(`${e.club}|${catId}`);
+        } else if (conPuestos) {
+          // Los huecos de los suplentes que se fueron se llenan con quien tenga sitio (la regla de plaza), para que otro vuelva a tener demanda si hace falta.
+          const llenos = reclutarDeportistas([...m.lista.values()], pob, m.dia, true, m.reservas, m.val);
+          m.lista = new Map(llenos.map((n) => [n.id, n]));
         }
       }
     }
