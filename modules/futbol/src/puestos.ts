@@ -76,7 +76,7 @@ export const PUESTOS_DE_FUTBOL: PuestosDeDeporte = {
   // La pierna buena (decisión del 04/11): en torno a un 20 % de zurdos; el lado de su pierna vale ±0,25 de base; y la experiencia en un puesto de su lado crecerá un 25 % más deprisa (a calibrar).
   pierna: { proporcionDeZurdos: 0.2, ventajaDelLado: 0.25, factorDeExperienciaDelLado: 1.25 },
   // Cómo se forman los equipos: 11 titulares (un 4-3-3: 1 portero, 2 centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y 7 suplentes; y el listón de los de primer año (+4 puntos: con las posiciones obligadas, aun así entran en el A unos 3 o 4 primeros años por club y categoría).
-  equipos: { titulares: { portero: 1, central: 2, lateral: 2, medio: 3, banda: 2, delantero: 1 }, listonDePrimerAno: 4 },
+  equipos: { titulares: { portero: 1, central: 2, lateral: 2, medio: 3, banda: 2, delantero: 1 }, listonDePrimerAno: 7 },
   puestos: NOMBRES.map(([id, nombre, linea]): PuestoDeDeporte => ({ id, nombre, linea, pesos: pesosDe(id), afinidades: AFINIDADES[id] ?? {} })),
   // Una plantilla de 18: 2 porteros, 3 centrales, 3 laterales, 4 mediocentros, 3 de banda o extremos y 3 delanteros.
   reparto: [
