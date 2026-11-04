@@ -69,6 +69,7 @@ const CONFIG: ConfigDeporte = {
   rendimiento: (ctx) => rendimiento(ctx),
   // Lo que vale el personaje en cada puesto, con su pierna buena (la misma regla que los PNJ: `conLaPierna`).
   puestos: (ctx) => conLaPierna(rendimientoPorPuestos(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', PUESTOS_DE_FUTBOL.pierna?.ventajaDelLado ?? 0.25),
+  puestosDelDeporte: PUESTOS_DE_FUTBOL.puestos.map((p) => ({ id: p.id, nombre: p.nombre })),
   entrenosLibres: ENTRENOS_LIBRES,
   juegoInformal: JUEGO_INFORMAL,
 };

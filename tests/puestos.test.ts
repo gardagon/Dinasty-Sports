@@ -151,12 +151,13 @@ describe('los niños del mundo con puestos', () => {
 });
 
 describe('la pierna buena: todos son diestros o zurdos, con la misma regla y la misma proporción', () => {
-  it('el personaje y los PNJ salen zurdos en torno a un 20 % (dato del deporte)', async () => {
+  it('el personaje y los PNJ salen zurdos en torno a un 20 % (un solo dato en contracts)', async () => {
     const { Game } = await import('@ds/core');
     const { personaje } = await import('@ds/mod-personaje');
     const { PROPORCION_DE_ZURDOS } = await import('@ds/contracts');
     expect(PROPORCION_DE_ZURDOS).toBe(0.2);
-    expect(P.pierna?.proporcionDeZurdos).toBe(0.2);
+    // Un solo dato: el deporte no la repite.
+    expect(Object.keys(P.pierna ?? {})).not.toContain('proporcionDeZurdos');
     // El personaje: 400 semillas (solo el módulo del personaje: baratas).
     let zurdos = 0;
     for (let seed = 1; seed <= 400; seed++) if (Game.create([personaje], { seed }).moduleState<{ zurdo: boolean }>('gen').zurdo) zurdos++;

@@ -82,12 +82,27 @@ export interface NpcView {
 /**
  * Si el personaje puede entrar en el equipo de su categoría de un deporte (`NpcDirectory.plaza`). `libre`: hay sitio (o el equipo no tiene tope por categoría);
  * `por_merito`: está completo pero el personaje es mejor que alguien (saldría `peor`); `completo`: está completo y es peor que todos (no entra; `peor` es el peor de ellos).
+ * En una prueba de acceso, `no_llega`: aunque haya hueco, la prueba no alcanza el mínimo del club en ese puesto (`peor` es el peor de ese puesto).
  */
 export interface PlazaEnEquipo {
-  estado: 'libre' | 'por_merito' | 'completo';
+  estado: 'libre' | 'por_merito' | 'completo' | 'no_llega';
   peor?: { id: string; nombre: string; nivel: number };
   /** En los deportes con puestos, el puesto que el club ofrece al candidato: aquel en que entraría (con hueco en él o valiendo más que el peor de ese puesto). */
   puesto?: string;
+}
+
+/** Una prueba de acceso a un club (`plaza` con `prueba`): `nivel` y `puestos` son lo que valió la prueba y `puesto`, donde pide jugar (la plaza se mide en ese puesto; sin él, en el que más vale). */
+export interface PruebaEnClub {
+  puesto?: string;
+  /** La prueba ya se pasó (el personaje entra ahora): solo se mide el puesto, sin pedir otra vez el mínimo del club. */
+  yaPasada?: boolean;
+}
+
+/** El consejo del profesor de Educación Física: un deporte y, si tiene puestos, varios en los que podría funcionar. */
+export interface ConsejoDeDeporte {
+  deporte: string;
+  nombre: string;
+  puestos: { id: string; nombre: string }[];
 }
 
 export interface NpcDirectory {
@@ -98,7 +113,12 @@ export interface NpcDirectory {
    * ¿Entra el personaje, con este nivel en el deporte, en el equipo de su categoría de un club? Solo los deportes con equipos por categoría tienen tope
    * (`EquipoDeDeporte.plantillaPorCategoria`); en el resto siempre hay sitio. En los deportes con puestos, `puestos` es lo que vale el candidato en cada uno y la plaza se mide por puesto.
    */
-  plaza(deporte: string, club: string, nivel: number, puestos?: Readonly<Record<string, number>>): PlazaEnEquipo;
+  plaza(deporte: string, club: string, nivel: number, puestos?: Readonly<Record<string, number>>, prueba?: PruebaEnClub): PlazaEnEquipo;
+  /**
+   * Lo que un profesor de Educación Física ve en el personaje: los deportes que le irían bien y, en los que tienen puestos, **varios puestos** donde podría funcionar (lo que percibe, sin cifras:
+   * `VISION.md`, principio 7). Vacío si no ve nada claro.
+   */
+  consejoDeportivo?(): ConsejoDeDeporte[];
   /**
    * Lo que vale el equipo de un club en una categoría en cada habilidad del deporte (la media de sus jugadores, con valores reales): con ello el entrenador elige los ejercicios
    * de la sesión, **los mismos para todos los que entrenan juntos**, personaje incluido. `undefined` si el deporte no tiene jugadores con habilidades en ese equipo.

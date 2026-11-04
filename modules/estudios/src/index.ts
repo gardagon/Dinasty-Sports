@@ -85,6 +85,8 @@ export interface EstudiosState {
   ultimaAcademia?: number;
   /** Último día que tuvo tutoría de cada asignatura (una al día por asignatura). */
   ultimaTutoria?: Record<string, number>;
+  /** Último día que preguntó a su profesor de Educación Física qué deporte y puesto le irían bien (uno al día). */
+  ultimoConsejoDeDeporte?: number;
   /** Clases a las que ha ido hoy (0 = primera hora): faltar a una no tiene castigo, solo no sube lo que tocaba, pero se cuenta. */
   asistencia: { day: number; clases: number[] };
 }
@@ -320,6 +322,38 @@ const tutoria = (a: Asignatura): ActionDef => ({
     ctx.log(`${profe ? profe.nombreCorto : 'El profesor'} te dedica un rato de tutoría de ${a.name.toLowerCase()}.`, 'info');
   },
 });
+
+/** Preguntar al profesor de Educación Física qué deporte y qué puesto le irían bien (`CIUDAD_Y_LIGAS.md` §5): le nombra varios puestos, sin cifras. */
+const consejoDeEducacionFisica: ActionDef = {
+  id: 'estudios.consejo_educacion_fisica',
+  name: 'Preguntar a tu profesor de Educación Física qué deporte y qué puesto te irían bien',
+  description: 'Vas a la sala de profesores y le preguntas a tu profesor de Educación Física. Te dice, por lo que te ve en clase, en qué deporte podrías funcionar y en qué puestos (varios, no uno). Solo si está en la sala; una vez al día.',
+  tags: [TAGS.social],
+  group: 'Estudiar',
+  duration: 15,
+  available: (ctx) => {
+    if (!seCursa(ctx, 'educacion_fisica')) return 'No tienes Educación Física este curso';
+    if ((ctx.state<EstudiosState>().ultimoConsejoDeDeporte ?? -1) === ctx.time.day) return 'Ya le has preguntado hoy';
+    if (!profesoresDe(ctx, 'educacion_fisica').length) return 'Todavía no conoces a tu profesor de Educación Física: ve a su clase';
+    return profesorEnLaSala(ctx, 'educacion_fisica') ? true : 'Ahora no hay ningún profesor de Educación Física en la sala de profesores (están en clase, en el patio o ya se han ido)';
+  },
+  delta: { [GEN.energia]: -1 },
+  run: (ctx) => {
+    ctx.updateState<EstudiosState>((st) => ({ ...st, ultimoConsejoDeDeporte: ctx.time.day }));
+    const profe = profesorEnLaSala(ctx, 'educacion_fisica');
+    const quien = profe ? profe.nombreCorto : 'Tu profesor de Educación Física';
+    const consejos = ctx.service<NpcDirectory>(SERVICES.npcs)?.consejoDeportivo?.() ?? [];
+    if (!consejos.length) {
+      ctx.log(`${quien} te mira un momento: «Todavía no te veo claro en ningún deporte; sigue moviéndote y pregúntame más adelante».`, 'info');
+      return;
+    }
+    const frases = consejos.map((c) => (c.puestos.length ? `en ${c.nombre} te veo bien de ${listaDePuestos(c.puestos.map((p) => p.nombre.toLowerCase()))}` : `te veo bien en ${c.nombre}`));
+    ctx.log(`${quien} te dice: «${frases.join('; ')}». Al hacer una prueba puedes pedir el puesto que quieras.`, 'info');
+  },
+};
+
+/** «a, b y c». */
+const listaDePuestos = (xs: readonly string[]): string => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} o ${xs[xs.length - 1]}` : (xs[0] ?? ''));
 
 /**
  * Nota de un examen: la preparación /10, con azar (más cuanto peor concentrado) y una penalización si se llega muy estresado.
@@ -642,6 +676,7 @@ export const estudios = defineModule<EstudiosState>({
     // Las asignaturas de capacidades (Educación física, Artística, Música) no se estudian ni tienen tutoría: se mejoran entrenando las capacidades.
     ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(estudiar),
     ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(tutoria),
+    consejoDeEducacionFisica,
     {
       id: 'estudios.repaso',
       name: 'Repaso general',
@@ -698,6 +733,7 @@ export const estudios = defineModule<EstudiosState>({
     ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'biblioteca']])),
     // La tutoría se pide en la sala de profesores.
     ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.tutoria_${a.key}`, [SALA_DE_PROFESORES]])),
+    'estudios.consejo_educacion_fisica': [SALA_DE_PROFESORES],
   }),
 
   on: {
