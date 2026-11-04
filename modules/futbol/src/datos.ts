@@ -1,4 +1,5 @@
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE } from './ejercicios';
+import { PUESTOS_DE_FUTBOL } from './puestos';
 import { CONOCIMIENTO, STATS_DE_FUTBOL } from './habilidades';
 import { GEN, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type DatosDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte } from '@ds/contracts';
 
@@ -46,6 +47,8 @@ const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
 const CATEGORIAS_DE_LOS_CLUBES = ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
 
 const POBLACION_ESPANA: PoblacionDeDeporte = {
+  // Los 16 puestos y el reparto de una plantilla de 18 por puestos (adelanto de la F3): los clubes reparten la plantilla y deciden las plazas por puesto.
+  puestos: PUESTOS_DE_FUTBOL,
   // Las habilidades de sus jugadores y su rutina: los futbolistas del mundo las llevan como el personaje; el entrenador elige los ejercicios de cada sesión y son los mismos
   // para todo el equipo (`MISMAS_REGLAS.md`).
   rutina: {

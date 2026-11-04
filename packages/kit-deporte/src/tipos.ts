@@ -11,6 +11,8 @@ export interface ConfigDeporte {
   nombre: string;
   /** Rendimiento 0..100 del personaje en este deporte (para las pruebas de acceso a los clubes). */
   rendimiento: (ctx: ReadContext) => number;
+  /** Lo que vale el personaje en cada puesto del deporte (id → 0 a 100), si tiene puestos: con ello se mide su plaza en un equipo por puesto. */
+  puestos?: (ctx: ReadContext) => Record<string, number>;
   /** Acciones de entrenar por libre: rinden menos y no se pueden hacer durante la sesión del club. */
   entrenosLibres: readonly string[];
   /** Lo que sube una semana de juego informal («practicar con los amigos»): el primer día se aplica tantas semanas como diga el interés del personaje por el deporte. */
@@ -49,6 +51,8 @@ export interface EstadoBaseDeDeporte {
   pruebas?: Record<string, number>;
   /** Plazas ofrecidas por clubes de fuera tras pasar su prueba: semana en que se ofreció (valen unas semanas). */
   ofertas?: Record<string, number>;
+  /** El puesto del personaje en su equipo (el que le ofreció el club al entrar), en los deportes con puestos. */
+  puesto?: string;
   /** Semana (absoluta) hasta la que no puede entrar en otro club de este deporte: la del siguiente plazo de fichajes, si dejó su club fuera de plazo. */
   sinFichajesHasta?: number;
   /** Último día que fue al campamento o practicó con los amigos en verano (uno al día). */

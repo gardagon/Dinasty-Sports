@@ -170,6 +170,51 @@ export interface EquipoDeDeporte {
  * iguales (con su genética y sus gustos) y cada deporte recluta a los que mejor encajan, primero entre los interesados. La partida **guarda lo que
  * pidió cada deporte** (`npcs` copia esto al empezar), así que su gente sigue viviendo aunque el módulo del deporte ya no esté (plan §5).
  */
+/**
+ * Un puesto de un deporte de equipo: su línea (de la portería al ataque), cuánto pesa cada habilidad del deporte en él (el nivel de un jugador en el puesto es la media ponderada) y a qué
+ * otros puestos se parece (de 0 a 1, para saber cuánto le cuesta a quien tiene un puesto favorito aceptar otro).
+ */
+export interface PuestoDeDeporte {
+  id: string;
+  nombre: string;
+  linea: number;
+  /** Peso de cada stat (habilidad del deporte o capacidad `gen.*`) en este puesto; lo que no esté no cuenta. */
+  pesos: Readonly<Record<string, number>>;
+  /** Parecido con otros puestos (id → 0 a 1). El parecido de dos puestos es el mayor de los dos sentidos. */
+  afinidades: Readonly<Record<string, number>>;
+}
+
+/** Los puestos de un deporte y cómo se reparte una plantilla entre ellos. */
+export interface PuestosDeDeporte {
+  puestos: readonly PuestoDeDeporte[];
+  /**
+   * El reparto de una plantilla del máximo de jugadores (18 en el fútbol) por grupos de puestos: «2 porteros, 3 centrales, 3 laterales, 4 mediocentros, 3 de banda o extremos y 3
+   * delanteros». Un equipo de otro tamaño reparte lo mismo en proporción (`cuposPorGrupo`).
+   */
+  reparto: readonly { grupo: string; nombre: string; puestos: readonly string[]; jugadores: number }[];
+}
+
+/** Cuántos jugadores de cada grupo caben en una plantilla de `total` jugadores: el reparto del máximo, en proporción (los que sobran, a los restos mayores). */
+export function cuposPorGrupo(p: PuestosDeDeporte, total: number): Record<string, number> {
+  const base = p.reparto.reduce((t, g) => t + g.jugadores, 0) || 1;
+  const exactos = p.reparto.map((g) => ({ g: g.grupo, v: (g.jugadores * total) / base }));
+  const cupos: Record<string, number> = Object.fromEntries(exactos.map((e) => [e.g, Math.floor(e.v)]));
+  let faltan = total - Object.values(cupos).reduce((a, b) => a + b, 0);
+  for (const e of [...exactos].sort((a, b) => b.v - Math.floor(b.v) - (a.v - Math.floor(a.v)) || (a.g < b.g ? -1 : 1))) {
+    if (faltan <= 0) break;
+    cupos[e.g]++;
+    faltan--;
+  }
+  return cupos;
+}
+
+/** El grupo de un puesto en el reparto de una plantilla, o `undefined` si no está. */
+export const grupoDePuesto = (p: PuestosDeDeporte, puesto: string): string | undefined => p.reparto.find((g) => g.puestos.includes(puesto))?.grupo;
+
+/** Cuánto se parecen dos puestos (de 0 a 1; 1 si son el mismo): el mayor de los dos sentidos de la afinidad del deporte. */
+export const parecidoDePuestos = (p: PuestosDeDeporte, a: string, b: string): number =>
+  a === b ? 1 : Math.max(p.puestos.find((x) => x.id === a)?.afinidades[b] ?? 0, p.puestos.find((x) => x.id === b)?.afinidades[a] ?? 0);
+
 /** Lo que sube una práctica: una stat y cuánto (el mismo formato que `ActionDef.train`). */
 export interface Entrenamiento {
   stat: string;
@@ -211,6 +256,8 @@ export interface RutinaDeDeporte {
 }
 
 export interface PoblacionDeDeporte {
+  /** Los puestos del deporte, si es de equipo con puestos (el fútbol): con ellos los clubes reparten la plantilla y la regla de plaza va por puesto. */
+  puestos?: PuestosDeDeporte;
   /** La rutina del deporte, si trae las habilidades de sus jugadores: sin ella, los PNJ solo llevan un nivel por deporte (los deportes de prueba). */
   rutina?: RutinaDeDeporte;
   /** Etiqueta de los deportistas (p. ej. `atleta`): así los buscan los módulos del deporte (`NpcDirectory.list({ tag })`). */

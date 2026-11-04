@@ -1,7 +1,8 @@
 import { SERVICES, defineModule, faltaViajar, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek, seededRng } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
+import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
+import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
 import { edadNpc, type NpcsState } from '@ds/mod-npcs';
 import { deportistaDe, type BotMemory } from '../sim/src/bots';
 import { hacer, opcionesDelBot } from '../sim/src/pasos';
@@ -29,7 +30,7 @@ const medida = defineModule<Record<string, never>>({
   name: 'Medida',
   dependsOn: ['gen'],
   initState: () => ({}),
-  services: { 'medida.nivel': (ctx) => ({ nivel: () => rendimientoDeFutbol(ctx) }) },
+  services: { 'medida.nivel': (ctx) => ({ nivel: () => rendimientoDeFutbol(ctx), puestos: () => rendimientoPorPuestos(ctx) }) },
 });
 
 const mediana = (xs: number[]): number => {
@@ -46,6 +47,10 @@ const personaje: number[] = [];
 let sinNingunClub = 0;
 const equiposPorCat: Record<string, number[]> = {};
 const costeDeCrear: number[] = [];
+const ofertasPorClub: Record<string, Record<string, number>> = {};
+const primerSitio: string[] = [];
+let equiposDescompensados = 0;
+let equiposRevisados = 0;
 const dejadosPorCurso: number[][] = Array.from({ length: CURSOS }, () => []);
 const futbolistasPorCurso: number[][] = Array.from({ length: CURSOS + 1 }, () => []);
 // Del bot: el primer curso (1, 2, ...) en que entraría en cada club; 0 = no entra en ninguno de los cursos medidos.
@@ -57,6 +62,7 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
   const g = nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, medida]);
   costeDeCrear.push(performance.now() - t0);
   const nivel = (): number => g.service<{ nivel(): number }>('medida.nivel')!.nivel();
+  const puestosDelPersonaje = (): Record<string, number> => g.service<{ puestos(): Record<string, number> }>('medida.nivel')!.puestos();
   const s0 = g.moduleState<NpcsState>('npcs') as NpcsState;
   // El primer plazo: la semana 2 del curso, un martes a las 17:00 (la secretaría de los clubes está abierta). Antes los equipos se miden recién creados.
   advanceToWeek(g, 'gen.descansar', 1, 2, 17);
@@ -69,6 +75,11 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
     if (equipo.length >= 18) (umbral[club] ??= []).push(Math.min(...equipo.map((n) => n.levels.futbol)));
     // Con la acción de verdad (apuntarse al club): disponible si hay hueco o si vale más que el peor, dentro del plazo.
     const o = g.preview(ACCION[club]);
+    const oferta = (g.service<NpcDirectory>(SERVICES.npcs) as NpcDirectory).plaza('futbol', club, n0, puestosDelPersonaje());
+    if (oferta.estado !== 'completo' && oferta.puesto) {
+      (ofertasPorClub[club] ??= {})[oferta.puesto] = (ofertasPorClub[club][oferta.puesto] ?? 0) + 1;
+      if (!primerSitio[seed - 1]) primerSitio[seed - 1] = `${club}:${oferta.puesto}`;
+    }
     if (o && (o.available || faltaViajar(o))) {
       entraAlEmpezar[club] = (entraAlEmpezar[club] ?? 0) + 1;
       entraEnAlguno = true;
@@ -76,6 +87,16 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
   }
   if (!entraEnAlguno) sinNingunClub++;
   futbolistasPorCurso[0].push(s0.npcs.filter((n) => n.deporte === 'futbol').length);
+  for (const e of s0.poblaciones!.find((p) => p.deporte === 'futbol')!.equipos.filter((x) => x.plantillaPorCategoria)) {
+    for (const c of s0.poblaciones!.find((p) => p.deporte === 'futbol')!.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
+      const del = s0.npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && n.puesto?.futbol && edadNpc(n, 0)! >= c.edadMin && edadNpc(n, 0)! <= c.edadMax);
+      const cupos = cuposPorGrupo(PUESTOS_DE_FUTBOL, e.plantillaPorCategoria!.max * (e.equiposPorCategoria?.[c.id] ?? 1));
+      const cuenta: Record<string, number> = {};
+      for (const n of del) cuenta[grupoDePuesto(PUESTOS_DE_FUTBOL, n.puesto!.futbol)!] = (cuenta[grupoDePuesto(PUESTOS_DE_FUTBOL, n.puesto!.futbol)!] ?? 0) + 1;
+      equiposRevisados++;
+      if (PUESTOS_DE_FUTBOL.reparto.some((r) => (cuenta[r.grupo] ?? 0) === 0 || (cuenta[r.grupo] ?? 0) > cupos[r.grupo])) equiposDescompensados++;
+    }
+  }
   const pob0 = s0.poblaciones!.find((p) => p.deporte === 'futbol')!;
   for (const c of ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil']) (equiposPorCat[c] ??= []).push(pob0.equipos.filter((e) => e.plantillaPorCategoria).reduce((t, e) => t + (e.equiposPorCategoria?.[c] ?? 1), 0));
 
@@ -119,6 +140,10 @@ console.log('Equipo de benjamín (8-9 años) de cada club, al empezar:');
 console.log('| Club | Nivel mediano del equipo | Nivel del peor (equipo completo) | Semillas en que entra el personaje de partida |');
 console.log('|---|---|---|---|');
 for (const club of CLUBES) console.log(`| ${club} | ${f(mediana(medianosDelEquipo[club]))} | ${umbral[club]?.length ? f(mediana(umbral[club])) : '—'} | ${entraAlEmpezar[club] ?? 0} de ${SEMILLAS} |`);
+console.log('\nPuestos que los clubes le ofrecen al personaje al empezar (suma de las 12 semillas, por club):');
+for (const club of CLUBES) console.log(`- ${club}: ${Object.entries(ofertasPorClub[club] ?? {}).sort((a, b) => b[1] - a[1]).map(([p, n]) => `${p} ${n}`).join(', ') || '—'}`);
+console.log(`\nPrimer sitio (club:puesto) por semilla, en el orden de las ofertas: ${primerSitio.map((x, i) => `${i + 1}:${x ?? '—'}`).join('  ')}`);
+console.log(`\nEquipos descompensados por puestos (algún grupo sin jugadores o pasado de su cupo): ${equiposDescompensados} de ${equiposRevisados}`);
 console.log('\nEquipos por categoría (media entre semillas; los 4 clubes de la zona, con los equipos que abren según la demanda):');
 console.log('| Categoría | Equipos (media) | Mín | Máx |');
 console.log('|---|---|---|---|');

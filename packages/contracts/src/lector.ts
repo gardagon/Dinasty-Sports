@@ -14,4 +14,9 @@ export interface LectorDePersona {
 export interface RendimientoDeDeporte {
   id: string;
   rendimiento: (persona: LectorDePersona) => number;
+  /**
+   * Lo que vale la persona **en cada puesto** del deporte (id del puesto → 0 a 100), con sus habilidades y lo que pesa cada una en cada puesto: lo dan los deportes de equipo con
+   * puestos (el fútbol) y es lo que usan los clubes para la regla de plaza por puesto. Es el servicio con que los módulos se hablan sin importarse entre sí.
+   */
+  puestos?: (persona: LectorDePersona) => Record<string, number>;
 }

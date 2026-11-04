@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, type NpcDirectory } from '@ds/contracts';
+import { SERVICES, cuposPorGrupo, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
+import { PUESTOS_DE_FUTBOL, futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
 import { capacidadDe, claveDeEquipo, edadNpc, reclutarDeportistas, reclutarEnTodos, reglaDePlaza, sinDeporte, valorRealDe, valoracionDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
 
@@ -30,7 +30,7 @@ describe('cada club de la zona tiene su equipo por categoría', () => {
           // Un club tiene tantos equipos como ha abierto en la categoría (según la demanda): cada uno de 14 a 18 jugadores.
           const e = pob.equipos.find((x) => x.club === club)!;
           const k = e.equiposPorCategoria?.[cat] ?? 1;
-          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeGreaterThanOrEqual(k === 1 ? 14 : 18 + (k - 1) * 14); // el primer equipo lleno y los que se abren nacen con el mínimo
+          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeGreaterThanOrEqual(12 * k); // cada equipo, de 14 a 18 (los que se abren nacen con el mínimo; algún jugador pasa a otro club por mérito al abrirse los demás)
           expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeLessThanOrEqual(capacidadDe(e, cat));
         }
       }
@@ -118,22 +118,27 @@ describe('reclutamiento por equipo: interesados hasta el máximo, el resto solo 
 describe('el personaje entra en el equipo de su colegio como cualquier niño', () => {
   /** Los jugadores del equipo de benjamín (la categoría del personaje a los 8 años). */
   const benjamin = (g: ReturnType<typeof nueva>) => estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! <= 9);
-  /** Llena el equipo hasta el máximo con niños de nivel `nivel` (el del peor, `peorNivel`, si se dice). */
+  /**
+   * Llena el equipo hasta el máximo con 18 jugadores de nivel `nivel` (o `peorNivel`, si se dice, todos) repartidos como manda la plantilla (2 porteros, 3 centrales...): cada uno con su puesto y sin genética,
+   * para que lo que valgan sea ese nivel. Así el equipo está completo en todos los puestos.
+   */
   const llenar = (g: ReturnType<typeof nueva>, nivel: number, peorNivel?: number) => {
     const s = estado(g);
     const base = benjamin(g);
     const libres = s.npcs.filter((n) => n.genetica && n.deporte === undefined && n.colegio === undefined && edadNpc(n, 0)! <= 9 && n.tipos?.some((t) => t.tipo === 'alumno')).slice(0, 18 - base.length);
-    let primero = true;
+    const cupos = cuposPorGrupo(PUESTOS_DE_FUTBOL, 18);
+    const puestos = PUESTOS_DE_FUTBOL.reparto.flatMap((r) => Array.from({ length: cupos[r.grupo] }, () => r.puestos[0]));
+    let i = 0;
     s.npcs = s.npcs.map((n) => {
       const delEquipo = libres.some((l) => l.id === n.id) || (n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! <= 9);
       if (!delEquipo) return n;
-      const nv = primero && peorNivel !== undefined ? peorNivel : nivel;
-      primero = false;
-      return { ...n, deporte: 'futbol', equipo: 'colegio', levels: { ...n.levels, futbol: nv } };
+      return { ...n, genetica: undefined, deporte: 'futbol', equipo: 'colegio', puesto: { futbol: puestos[i++] }, levels: { ...n.levels, futbol: peorNivel ?? nivel } };
     });
     return benjamin(g);
   };
-  const plaza = (g: ReturnType<typeof nueva>, nivel: number) => g.service<NpcDirectory>(SERVICES.npcs)!.plaza('futbol', 'colegio', nivel);
+  const plaza = (g: ReturnType<typeof nueva>, nivel: number) => g.service<NpcDirectory>(SERVICES.npcs)!.plaza('futbol', 'colegio', nivel, puestosDelPersonaje(g, nivel));
+  /** Lo que vale el personaje en cada puesto: el mismo `nivel` en todos (lo que se prueba es la regla de plaza, no sus habilidades). */
+  const puestosDelPersonaje = (_g: ReturnType<typeof nueva>, nivel: number) => Object.fromEntries(PUESTOS_DE_FUTBOL.puestos.map((p) => [p.id, nivel]));
 
   it('no se le guarda ningún hueco: el equipo de su categoría empieza lleno cuando hay interesados de sobra', () => {
     const llenos = [31, 32, 33].map((seed) => benjamin(nueva(seed)).length);
@@ -145,9 +150,10 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
     const g = nueva();
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     const equipo = llenar(g, 99);
-    // Se va uno: hay hueco.
+    // Se va uno de cada grupo de puestos: hay hueco en todos.
     const s = estado(g);
-    s.npcs = s.npcs.map((n) => (n.id === equipo[0].id ? { ...n, deporte: undefined, equipo: undefined } : n));
+    const salen = new Set(PUESTOS_DE_FUTBOL.reparto.map((r) => equipo.find((n) => r.puestos.includes(n.puesto!.futbol))!.id));
+    s.npcs = s.npcs.map((n) => (salen.has(n.id) ? { ...n, deporte: undefined, equipo: undefined } : n));
     expect(plaza(g, 0).estado).toBe('libre');
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
   });
@@ -165,8 +171,10 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
     const g = nueva();
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     const equipo = llenar(g, 99, 1);
-    const peor = equipo.find((n) => n.levels.futbol === 1)!;
-    expect(plaza(g, 30)).toMatchObject({ estado: 'por_merito', peor: { id: peor.id } });
+    // Todos valen 1: el personaje (30) entra por mérito y el peor de su puesto (el de id mayor, en un empate) deja el sitio.
+    const oferta = plaza(g, 30);
+    expect(oferta.estado).toBe('por_merito');
+    const peor = equipo.find((n) => n.id === oferta.peor!.id)!;
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     const despues = estado(g).npcs.find((n) => n.id === peor.id)!;
     // No queda sin equipo sin más: busca club con la misma regla (por lo que vale de verdad, que aquí no es el nivel que se le ha puesto a mano: puede volver a entrar desplazando a otro) y
