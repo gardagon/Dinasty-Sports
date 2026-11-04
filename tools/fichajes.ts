@@ -1,4 +1,4 @@
-import { SERVICES, defineModule, type NpcDirectory } from '@ds/contracts';
+import { SERVICES, defineModule, faltaViajar, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek, seededRng } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
@@ -20,6 +20,8 @@ const SEMILLAS = Number(process.argv[2] ?? 12);
 const CURSOS = Number(process.argv[3] ?? 3);
 const CON_BOT = process.argv[4] !== 'sinBot';
 const CLUBES = ['club_grande', 'club_mediano', 'club_pequeno', 'colegio'];
+/** La acción con que el personaje se apunta a cada club. */
+const ACCION: Record<string, string> = { club_grande: 'futbol.apuntarse.club_grande', club_mediano: 'futbol.apuntarse.club_mediano', club_pequeno: 'futbol.apuntarse.club_pequeno', colegio: 'futbol.apuntarse_colegio' };
 
 /** Un módulo de medida: da el rendimiento de fútbol del personaje con el lector real del motor. */
 const medida = defineModule<Record<string, never>>({
@@ -42,6 +44,8 @@ const umbral: Record<string, number[]> = {};
 const entraAlEmpezar: Record<string, number> = {};
 const personaje: number[] = [];
 let sinNingunClub = 0;
+const equiposPorCat: Record<string, number[]> = {};
+const costeDeCrear: number[] = [];
 const dejadosPorCurso: number[][] = Array.from({ length: CURSOS }, () => []);
 const futbolistasPorCurso: number[][] = Array.from({ length: CURSOS + 1 }, () => []);
 // Del bot: el primer curso (1, 2, ...) en que entraría en cada club; 0 = no entra en ninguno de los cursos medidos.
@@ -49,10 +53,13 @@ const primerCurso: Record<string, number[]> = Object.fromEntries(CLUBES.map((c) 
 const nivelDelBot: number[][] = Array.from({ length: CURSOS }, () => []);
 
 for (let seed = 1; seed <= SEMILLAS; seed++) {
+  const t0 = performance.now();
   const g = nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, medida]);
+  costeDeCrear.push(performance.now() - t0);
   const nivel = (): number => g.service<{ nivel(): number }>('medida.nivel')!.nivel();
-  const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
   const s0 = g.moduleState<NpcsState>('npcs') as NpcsState;
+  // El primer plazo: la semana 2 del curso, un martes a las 17:00 (la secretaría de los clubes está abierta). Antes los equipos se miden recién creados.
+  advanceToWeek(g, 'gen.descansar', 1, 2, 17);
   const n0 = nivel();
   personaje.push(n0);
   let entraEnAlguno = false;
@@ -60,14 +67,17 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
     const equipo = s0.npcs.filter((n) => n.deporte === 'futbol' && n.equipo === club && (edadNpc(n, 0) ?? 99) <= 9);
     (medianosDelEquipo[club] ??= []).push(mediana(equipo.map((n) => n.levels.futbol)));
     if (equipo.length >= 18) (umbral[club] ??= []).push(Math.min(...equipo.map((n) => n.levels.futbol)));
-    // Lo mismo que decide la regla de plaza: `plaza` del servicio de personas con su nivel real.
-    if (dir.plaza('futbol', club, n0).estado !== 'completo') {
+    // Con la acción de verdad (apuntarse al club): disponible si hay hueco o si vale más que el peor, dentro del plazo.
+    const o = g.preview(ACCION[club]);
+    if (o && (o.available || faltaViajar(o))) {
       entraAlEmpezar[club] = (entraAlEmpezar[club] ?? 0) + 1;
       entraEnAlguno = true;
     }
   }
   if (!entraEnAlguno) sinNingunClub++;
   futbolistasPorCurso[0].push(s0.npcs.filter((n) => n.deporte === 'futbol').length);
+  const pob0 = s0.poblaciones!.find((p) => p.deporte === 'futbol')!;
+  for (const c of ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil']) (equiposPorCat[c] ??= []).push(pob0.equipos.filter((e) => e.plantillaPorCategoria).reduce((t, e) => t + (e.equiposPorCategoria?.[c] ?? 1), 0));
 
   // El bot del montón: juega con su plan y, al empezar cada curso (en pleno plazo), mira en qué clubes entraría.
   const primero = new Map<string, number>();
@@ -89,7 +99,10 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
       const n = nivel();
       nivelDelBot[curso].push(n);
       const dirAhora = g.service<NpcDirectory>(SERVICES.npcs)!;
-      for (const club of CLUBES) if (!primero.has(club) && dirAhora.plaza('futbol', club, n).estado !== 'completo') primero.set(club, curso + 1);
+      for (const club of CLUBES) {
+        // Dentro del plazo (la semana 2 del curso), lo que decidiría el club: la regla de plaza con su nivel real (es lo mismo que comprueba la acción «Apuntarte a…»).
+        if (!primero.has(club) && dirAhora.plaza('futbol', club, n).estado !== 'completo') primero.set(club, curso + 1);
+      }
     }
     for (const club of CLUBES) primerCurso[club].push(primero.get(club) ?? 0);
   } else {
@@ -106,6 +119,11 @@ console.log('Equipo de benjamín (8-9 años) de cada club, al empezar:');
 console.log('| Club | Nivel mediano del equipo | Nivel del peor (equipo completo) | Semillas en que entra el personaje de partida |');
 console.log('|---|---|---|---|');
 for (const club of CLUBES) console.log(`| ${club} | ${f(mediana(medianosDelEquipo[club]))} | ${umbral[club]?.length ? f(mediana(umbral[club])) : '—'} | ${entraAlEmpezar[club] ?? 0} de ${SEMILLAS} |`);
+console.log('\nEquipos por categoría (media entre semillas; los 4 clubes de la zona, con los equipos que abren según la demanda):');
+console.log('| Categoría | Equipos (media) | Mín | Máx |');
+console.log('|---|---|---|---|');
+for (const [c, xs] of Object.entries(equiposPorCat)) console.log(`| ${c} | ${f(media(xs))} | ${Math.min(...xs)} | ${Math.max(...xs)} |`);
+console.log(`\nCoste de crear una partida con fútbol: ${f(media(costeDeCrear) / 1000)} s de media (mín ${f(Math.min(...costeDeCrear) / 1000)}, máx ${f(Math.max(...costeDeCrear) / 1000)}); futbolistas al empezar: ${f(media(futbolistasPorCurso[0]))}`);
 console.log(`\nSemillas en las que el personaje de partida **no entra en ningún club de fútbol**: ${sinNingunClub} de ${SEMILLAS}`);
 if (CON_BOT) {
   console.log('\nBot del montón (deportista de fútbol con el plan de siempre) que mira en cada plazo si entraría: curso en que entra por primera vez en cada club (0 = en ninguno de los cursos medidos)');

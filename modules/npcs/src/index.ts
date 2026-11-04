@@ -216,6 +216,11 @@ export interface EquipoGuardado extends EquipoDeDeporte {
   calidad: 1 | 2 | 3;
   /** Cuántos niños tiene aproximadamente (sorteado entre su plantilla mínima y máxima al crear la partida). */
   objetivo: number;
+  /**
+   * Cuántos equipos tiene el club en cada categoría (id → número; ausente = 1). Los abre el club cuando quedan sin equipo tantos interesados como el mínimo de una plantilla
+   * (`equiposPorDemanda`) y los cierra si no llega al mínimo de jugadores. La plantilla del club en esa categoría es el máximo de un equipo por el número de equipos.
+   */
+  equiposPorCategoria?: Record<string, number>;
 }
 
 /**
@@ -837,7 +842,7 @@ export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGu
   const cat = pob && equipo?.plantillaPorCategoria ? categoriaDe(pob, edad) : undefined;
   if (!pob || !equipo?.plantillaPorCategoria || !cat) return { estado: 'libre' };
   const jugadores = jugadoresDelEquipo(npcs, pob, club, cat, dia).map((n) => ({ id: n.id, nombre: n.name, valor: n.levels[deporte] ?? 0 }));
-  return reglaDePlaza(jugadores, equipo.plantillaPorCategoria.max, nivel);
+  return reglaDePlaza(jugadores, capacidadDe(equipo, cat.id), nivel);
 }
 
 /** Un jugador de un equipo, con lo que vale de verdad (su rendimiento en el deporte). */
@@ -994,6 +999,9 @@ function categoriasDelEquipo(pob: PoblacionGuardada, e: EquipoGuardado): { id: s
     .filter((c) => c.edades.length > 0);
 }
 
+/** Cuántos jugadores caben en el club en una categoría: el máximo de un equipo por los equipos que el club tiene abiertos en ella. */
+export const capacidadDe = (e: EquipoGuardado, categoria: string): number => (e.plantillaPorCategoria?.max ?? 0) * (e.equiposPorCategoria?.[categoria] ?? 1);
+
 /** Clave de un equipo por categoría (club y categoría) en el mapa de reservas del personaje. */
 export const claveDeEquipo = (club: string, categoria: string): string => `${club}|${categoria}`;
 
@@ -1012,8 +1020,9 @@ function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada, dia: n
   const orden = (x: Aspirante, y: Aspirante): number => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1);
   const valorDe = (n: Npc): number => valorRealDe(n, pob, val, dia) ?? n.levels[pob.deporte] ?? 0;
   for (const e of equipos) {
-    const { min, max } = e.plantillaPorCategoria!;
+    const { min } = e.plantillaPorCategoria!;
     for (const cat of categoriasDelEquipo(pob, e)) {
+      const max = capacidadDe(e, cat.id);
       const enEquipo = (): Npc[] => [...lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club && cat.edades.includes(edadNpc(n, dia) ?? -1));
       const tope = max - (reservas.get(claveDeEquipo(e.club, cat.id)) ?? 0);
       const todos = [...lista.values()];
@@ -1053,7 +1062,7 @@ function plantelDe(lista: ReadonlyMap<string, Npc>, pob: PoblacionGuardada, e: E
   const cat = categoriaDe(pob, edad);
   if (!cat || (e.categorias && !e.categorias.includes(cat.id))) return undefined;
   const jugadores = delClub.filter((n) => (edadNpc(n, dia) ?? -1) >= cat.edadMin && (edadNpc(n, dia) ?? -1) <= cat.edadMax);
-  return { jugadores, max: e.plantillaPorCategoria.max - (reservas.get(claveDeEquipo(e.club, cat.id)) ?? 0) };
+  return { jugadores, max: capacidadDe(e, cat.id) - (reservas.get(claveDeEquipo(e.club, cat.id)) ?? 0) };
 }
 
 /** Lo que necesitan los fichajes y la búsqueda de club: la lista de trabajo, el día, cómo se valora a cada niño y las plazas que ocupa el personaje. */
@@ -1198,6 +1207,97 @@ export function fichajesDeVerano(m: MercadoDeFichajes, semilla: number, curso: n
   colocarDesplazados(m, desplazados);
 }
 
+// ---------------------------------------------------------------------------------------------------- equipos según la demanda
+
+/** Tope de equipos que un club puede tener en una categoría (para que no se abran equipos sin fin). */
+export const MAX_EQUIPOS_POR_CATEGORIA = 4;
+
+/** Los niños que quieren jugar al deporte (les interesa) y siguen sin equipo, de las edades de una categoría, y que un club podría coger (un equipo de colegio, solo a sus alumnos). */
+function sinEquipoParaClub(arr: readonly Npc[], pob: PoblacionGuardada, e: EquipoGuardado, edades: readonly number[], m: MercadoDeFichajes): Aspirante[] {
+  return edades.flatMap((edad) => aspirantesDeEdad(arr, pob, edad, m.dia, m.val)).filter((a) => a.interes > 0 && (e.colegio === undefined || a.colegio === e.colegio));
+}
+
+/** Un entrenador para un equipo nuevo: lleva las edades de su categoría y lleva el id de su equipo (para cerrarlo con él). */
+const idDeEntrenadorDeEquipo = (club: string, categoria: string, numero: number): string => `entrenador_${club}_${categoria}_${numero}`;
+
+/**
+ * **Equipos según la demanda** (decisión del usuario, 03/11/2026): el objetivo es que un personaje del montón siempre encuentre equipo en su categoría y que lo difícil sea subir, no entrar.
+ * Cada vez que se fichan jugadores (al crear la partida, que empieza dentro del plazo, y cada verano, después de los fichajes), en cada categoría:
+ * 1. **Un club cierra el equipo que no llega al mínimo de jugadores**: si lo que sobra del último equipo no alcanza el mínimo de una plantilla, se cierra (con su entrenador) y los que
+ *    sobran, los de menos valor, buscan club como cualquier desplazado.
+ * 2. **Si quedan sin equipo al menos tantos interesados como el mínimo de una plantilla, un club abre otro equipo en esa categoría**, con su entrenador. Abre el club con menos equipos en
+ *    la categoría (así se reparten) y, a igualdad, el que tiene más demanda (más interesados que podría coger) y el más grande. El equipo nace con los mejores (por lo que valen) de los
+ *    que se habían quedado sin equipo, hasta el mínimo de una plantilla (14): con huecos, para que quien vale menos también pueda entrar por la regla de plaza. Se repite hasta que no
+ *    quede demanda para otro equipo (quedan sin equipo menos interesados que el mínimo de una plantilla).
+ * Dentro de cada club y categoría no cambia nada: si está lleno, entra quien vale más que el peor. (Cuando lleguen los filiales, F2, el segundo equipo será el B.)
+ * Devuelve los entrenadores nuevos. Cambia `m.lista` y `m.pobs` (los clubes con sus equipos abiertos).
+ */
+export function equiposPorDemanda(m: MercadoDeFichajes, rng: Rng): Npc[] {
+  const entrenadores: Npc[] = [];
+  const pobsNuevas: PoblacionGuardada[] = [];
+  for (const pob0 of m.pobs) {
+    let pob: PoblacionGuardada = { ...pob0, equipos: pob0.equipos.map((e) => ({ ...e })) };
+    if (!pob.equipos.some((e) => e.plantillaPorCategoria)) {
+      pobsNuevas.push(pob0);
+      continue;
+    }
+    // 1. Cierres.
+    const desplazados: { id: string; origen: string }[] = [];
+    for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
+      for (const cat of categoriasDelEquipo(pob, e)) {
+        const k = e.equiposPorCategoria?.[cat.id] ?? 1;
+        if (k <= 1) continue;
+        const { min, max } = e.plantillaPorCategoria!;
+        const miembros = [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club && cat.edades.includes(edadNpc(n, m.dia) ?? -1));
+        if (miembros.length - (k - 1) * max >= min) continue;
+        // El último equipo no llega al mínimo: se cierra con su entrenador y los que ya no caben (los de menos valor) buscan club.
+        e.equiposPorCategoria = { ...e.equiposPorCategoria, [cat.id]: k - 1 };
+        if (k - 1 === 1) delete e.equiposPorCategoria[cat.id];
+        m.lista.delete(idDeEntrenadorDeEquipo(e.club, cat.id, k));
+        const sobran = miembros.length - (k - 1) * max;
+        for (const n of [...miembros].sort((a, b) => valorEn(a, pob, m) - valorEn(b, pob, m) || (a.id < b.id ? -1 : 1)).slice(0, Math.max(0, sobran))) {
+          m.lista.set(n.id, sinDeporte(n, pob, false));
+          desplazados.push({ id: n.id, origen: pob.deporte });
+        }
+      }
+    }
+    m.pobs = [...pobsNuevas, pob, ...m.pobs.slice(pobsNuevas.length + 1)];
+    colocarDesplazados(m, desplazados);
+    // 2. Aperturas, categoría a categoría.
+    const categorias = new Map<string, CategoriaDef>();
+    for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
+    for (const [catId] of categorias) {
+      for (let ronda = 0; ronda < 3 * MAX_EQUIPOS_POR_CATEGORIA * pob.equipos.length; ronda++) {
+        const arr = [...m.lista.values()];
+        const candidatos = pob.equipos
+          .filter((e) => e.plantillaPorCategoria && (e.equiposPorCategoria?.[catId] ?? 1) < MAX_EQUIPOS_POR_CATEGORIA)
+          .flatMap((e) => {
+            const cat = categoriasDelEquipo(pob, e).find((c) => c.id === catId);
+            return cat ? [{ e, cat, demanda: sinEquipoParaClub(arr, pob, e, cat.edades, m).length }] : [];
+          })
+          .filter((c) => c.demanda >= c.e.plantillaPorCategoria!.min)
+          // Abre el club que tiene menos equipos en la categoría (así se reparten) y, a igualdad, el que tiene más demanda y el más grande.
+          .sort((a, b) => (a.e.equiposPorCategoria?.[catId] ?? 1) - (b.e.equiposPorCategoria?.[catId] ?? 1) || b.demanda - a.demanda || b.e.calidad - a.e.calidad || (a.e.club < b.e.club ? -1 : 1));
+        if (!candidatos.length) break;
+        const { e } = candidatos[0];
+        const catDef = categorias.get(catId)!;
+        const numero = (e.equiposPorCategoria?.[catId] ?? 1) + 1;
+        e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: numero };
+        entrenadores.push(nuevoEntrenador(rng, pob, registroDe([...arr, ...entrenadores]), { id: idDeEntrenadorDeEquipo(e.club, catId, numero), club: e.club, edades: [catDef.edadMin, Math.min(catDef.edadMax, 99)], edad: [28, 55] }));
+        m.pobs = [...pobsNuevas, pob, ...m.pobs.slice(pobsNuevas.length + 1)];
+        // El equipo nuevo se forma con los mejores (por lo que valen) de los interesados que se habían quedado sin equipo, hasta el mínimo de una plantilla: así nace con huecos
+        // (quien vale menos que los demás también puede entrar, por la regla de plaza) y no se queda ningún otro equipo sin jugadores.
+        const elegibles = sinEquipoParaClub([...m.lista.values()], pob, e, categorias.get(catId) ? categoriasDelEquipo(pob, e).find((c) => c.id === catId)!.edades : [], m).sort((a, b) => b.valor - a.valor || (a.npc.id < b.npc.id ? -1 : 1));
+        for (const a of elegibles.slice(0, e.plantillaPorCategoria!.min)) intentarEntrar(m, a.npc, e, pob);
+      }
+    }
+    pobsNuevas.push(pob);
+  }
+  m.pobs = pobsNuevas;
+  for (const c of entrenadores) m.lista.set(c.id, c);
+  return entrenadores;
+}
+
 /**
  * Los equipos de todos los deportes completan sus plantillas en dos vueltas: primero cada deporte recluta a los interesados en él y, solo después, los
  * que aún faltan se cubren con quien encaje (aunque no le interese). Así un niño al que le gusta un deporte no lo pierde porque otro deporte, que va antes,
@@ -1235,7 +1335,7 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
  * rellenan las plazas libres con otros niños que encajan. Los niños de otros colegios que se van desaparecen (los que lo dejaron no se vuelven a reclutar);
  * los compañeros, los hermanos y los niños del barrio siguen siendo quienes son, solo que sin deporte.
  */
-export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; dejanSinClub?: number } = { sinPlaza: [] }): Npc[] {
+export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; dejanSinClub?: number; pobs?: PoblacionGuardada[] } = { sinPlaza: [] }): Npc[] {
   // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
   let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
   for (const pob of pobs) {
@@ -1265,7 +1365,13 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
       reservasQueQuedan.delete(claveDeEquipo(j.club, j.categoria));
     }
   }
-  return reclutarEnTodos(lista.map((n) => mercado.lista.get(n.id) ?? n), pobs, dia, reservasQueQuedan, rend);
+  // Los equipos se rellenan con los interesados y, después, la regla de los equipos según la demanda: cierran los que no llegan al mínimo y abren los que hacen falta para que los
+  // interesados que se quedan sin equipo (tantos como el mínimo de una plantilla) lo tengan.
+  const llenos = reclutarEnTodos([...mercado.lista.values()], mercado.pobs, dia, reservasQueQuedan, rend);
+  const final: MercadoDeFichajes = { lista: new Map(llenos.map((n) => [n.id, n])), pobs: mercado.pobs, dia, val: valoracionDe(rend), reservas: reservasQueQuedan };
+  equiposPorDemanda(final, rng);
+  resultado.pobs = [...final.pobs];
+  return [...final.lista.values()];
 }
 
 /**
@@ -1283,7 +1389,7 @@ function entrenadoresDeUnDeporte(npcs: readonly Npc[], pob: PoblacionGuardada, r
 }
 
 /** El reparto base, la población del colegio y del barrio, los entrenadores y, al final, los niños que reclutan los deportes. */
-function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): Npc[] {
+function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { npcs: Npc[]; pobs: PoblacionGuardada[] } {
   const base = generarReparto(ctx, pobs[0]);
   const usados = registroDe(base);
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
@@ -1292,8 +1398,11 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): Npc
   // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
   const rend = rendimientosDe(ctx);
   const equipos = reclutarEnTodos(conCapacidades(conEntrenadores, 0), pobs, 0, new Map(), rend);
+  // La partida empieza dentro del plazo de fichajes: aquí también se aplica la regla de los equipos según la demanda (los interesados que se quedan sin equipo abren otros).
+  const mercado: MercadoDeFichajes = { lista: new Map(equipos.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(rend), reservas: new Map() };
+  equiposPorDemanda(mercado, ctx.rng);
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
-  return conCapacidades(conHabilidades(equipos, pobs, rend, 0), 0);
+  return { npcs: conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), pobs: [...mercado.pobs] };
 }
 
 /** El personal de la biblioteca: uno en el turno de mañana (y los sábados) y otro en el de tarde. Van al final para no cambiar el azar de lo demás. */
@@ -1612,7 +1721,8 @@ export const npcs = defineModule<NpcsState>({
   initState: (ctx) => {
     // Cada deporte de la partida pide su gente (y se guarda lo que pidió, para que siga viviendo sin su módulo).
     const poblaciones = poblacionesDe(ctx, ctx.seed);
-    return { npcs: conPais(ctx.pais, () => generarTodos(ctx, poblaciones)), poblaciones, semilla: ctx.seed };
+    const { npcs, pobs } = conPais(ctx.pais, () => generarTodos(ctx, poblaciones));
+    return { npcs, poblaciones: pobs, semilla: ctx.seed };
   },
 
   // Ponerle (o quitarle) un apodo a alguien que conoces: el texto va en el id de la acción (`idDePonerApodo`).
@@ -1695,10 +1805,11 @@ export const npcs = defineModule<NpcsState>({
         const f = rend.get(pob.deporte);
         if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: f(ctx), edad: edadProxima });
       }
-      const resultado = { sinPlaza: [] as string[], dejanSinClub: 0 };
+      const resultado = { sinPlaza: [] as string[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined };
       ctx.updateState<NpcsState>((s) => {
         const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), proximo.day));
-        return { ...s, poblaciones: pobs, npcs: conCapacidades(conHabilidades(npcs, pobs, rend, proximo.day), proximo.day), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
+        const pobsNuevas = resultado.pobs ?? pobs;
+        return { ...s, poblaciones: pobsNuevas, npcs: conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
       });
       for (const deporte of resultado.sinPlaza) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
     },

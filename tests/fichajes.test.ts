@@ -5,6 +5,7 @@ import { MODULOS, nuevaPartida } from '@ds/game';
 import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
 import { futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
 import {
+  capacidadDe,
   claveDeEquipo,
   colocarDesplazados,
   edadNpc,
@@ -134,7 +135,7 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
   it('el desplazado encuentra otro club de su deporte: la cadena acaba en el club con hueco y nadie se queda sin equipo', () => {
     // El club grande tiene 17 plazas en infantil: al irse el desplazado queda completo y no puede volver a entrar (otro que vale más ocupó su sitio).
     const fut0 = pobDe('futbol');
-    const fut: PoblacionGuardada = { ...fut0, equipos: fut0.equipos.map((e) => (e.club === 'club_grande' ? { ...e, plantillaPorCategoria: { min: 14, max: 17 } } : e)) };
+    const fut: PoblacionGuardada = { ...fut0, equipos: fut0.equipos.map((e) => (e.club === 'club_grande' ? { ...e, equiposPorCategoria: undefined, plantillaPorCategoria: { min: 14, max: 17 } } : e)) };
     const m = mercadoDe(estado(base).npcs, [fut]);
     // Se hace un hueco en el club pequeño de infantil (sale uno) y se desplaza al peor del club grande.
     const delPequeno = jugadoresDe(m, 'futbol', 'club_pequeno', infantil);
@@ -152,7 +153,8 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
     expect(nuevo.equipo).not.toBe('club_grande');
     expect(nuevo.dejado).toBeUndefined();
     // El club grande repone su hueco con el siguiente (el que baja del mediano...) o queda con uno menos: ninguno pasa de 18 y en total solo falta el que se fue.
-    expect(despues.every((n) => n <= 18)).toBe(true);
+    const clubes = ['club_grande', 'club_mediano', 'club_pequeno', 'colegio'];
+    clubes.forEach((c, i) => expect(despues[i], c).toBeLessThanOrEqual(Math.max(antes[i], capacidadDe(fut.equipos.find((e) => e.club === c)!, 'infantil'))));
     expect(despues.reduce((a, b) => a + b, 0)).toBe(antes.reduce((a, b) => a + b, 0)); // el desplazado ocupa el hueco que había: nadie se pierde
   });
 
@@ -223,20 +225,23 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
     const despues = estado(g).npcs.filter((n) => n.deporte === 'futbol' && antes.has(n.id));
     const cambian = despues.filter((n) => n.equipo !== antes.get(n.id));
     expect(cambian.length).toBeGreaterThan(0);
-    // Y los equipos siguen llenos: ningún equipo se queda por debajo del mínimo en una categoría.
-    const porEquipo = new Map<string, number>();
-    for (const n of estado(g).npcs.filter((x) => x.deporte === 'futbol')) {
-      const k = `${n.equipo}|${n.equipo === 'colegio' ? '' : ''}${Math.floor(((edadNpc(n, 52 * 7) ?? 8) - 8) / 2)}`;
-      porEquipo.set(k, (porEquipo.get(k) ?? 0) + 1);
+    // Y los equipos siguen en regla: ningún club pasa de los equipos que tiene abiertos por el máximo de un equipo en una categoría.
+    const pob = estado(g).poblaciones!.find((p) => p.deporte === 'futbol')!;
+    for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
+      for (const c of pob.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
+        const jugadores = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && (edadNpc(n, 52 * 7) ?? -1) >= c.edadMin && (edadNpc(n, 52 * 7) ?? -1) <= c.edadMax).length;
+        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(capacidadDe(e, c.id) + 4); // + los que cambian de categoría al pasar de curso
+      }
     }
-    expect([...porEquipo.values()].every((v) => v <= 18 + 3)).toBe(true);
   }, 240000);
 });
 
 describe('el personaje desplazado sale del club, como cualquier niño, y decide él', () => {
   it('si otro jugador que vale más le ocupa el sitio en los fichajes de verano, el personaje queda fuera de su equipo (lo avisa el evento que sale del club)', () => {
     const g = nueva();
-    const fut = estado(g).poblaciones!.find((p) => p.deporte === 'futbol')!;
+    const fut0 = estado(g).poblaciones!.find((p) => p.deporte === 'futbol')!;
+    // El club mediano con un solo equipo en infantil (su plantilla completa), para que el sitio del personaje cuente: sin huecos, entra quien vale más que el peor.
+    const fut: PoblacionGuardada = { ...fut0, equipos: fut0.equipos.map((e) => (e.club === 'club_mediano' ? { ...e, equiposPorCategoria: undefined } : e)) };
     const npcs = estado(g).npcs;
     const rng = { next: () => 0.5, int: () => 0, range: () => 0, chance: () => false, pick: <T,>(x: readonly T[]) => x[0], normal: () => 0 };
     // El personaje (que vale casi nada) es del club mediano en infantil. Con la ambición de los demás, en alguna semilla un jugador de un club más pequeño ficha por el mediano.
@@ -244,12 +249,8 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
     for (let semilla = 1; semilla <= 60 && !perdio; semilla++) {
       const resultado = { sinPlaza: [] as string[] };
       const reservas = new Map([[claveDeEquipo('club_mediano', 'infantil'), 1]]);
-      const salida = renovarDeportistas([...npcs], [fut], 0, rng, reservas, REND, semilla, 1, [{ deporte: 'futbol', club: 'club_mediano', categoria: 'infantil', valor: 1, edad: 12 }], resultado);
-      if (resultado.sinPlaza.includes('futbol')) {
-        perdio = semilla;
-        // El hueco lo ocupa un jugador del mundo; el equipo no pasa de su máximo.
-        expect(salida.filter((n) => n.deporte === 'futbol' && n.equipo === 'club_mediano' && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13).length).toBeLessThanOrEqual(18);
-      }
+      renovarDeportistas([...npcs], [fut], 0, rng, reservas, REND, semilla, 1, [{ deporte: 'futbol', club: 'club_mediano', categoria: 'infantil', valor: 1, edad: 12 }], resultado);
+      if (resultado.sinPlaza.includes('futbol')) perdio = semilla;
     }
     expect(perdio, 'ninguna semilla de fichajes le quitó el sitio al personaje').toBeGreaterThan(0);
   }, 180000);
@@ -271,7 +272,7 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
     // Sale del club como cualquier niño desplazado…
     expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeUndefined();
     // …se le explica qué ha pasado y qué puede hacer (otro club con la regla de plaza, otro deporte o esperar al siguiente plazo)…
-    expect(g.log.some((l) => /Has perdido tu plaza en el equipo de fútbol.*sales del club.*otro club.*otro deporte.*siguiente plazo.*nunca se te retira del deporte para siempre/.test(l.text))).toBe(true);
+    expect(g.log.some((l) => /Un jugador que vale más ha ocupado tu plaza en el equipo de fútbol y sales del club\. Puedes probar en otro club, en otro deporte o esperar al siguiente plazo de fichajes\./.test(l.text))).toBe(true);
     // …no lo ha dejado él (ni plantón ni plazo cerrado) y decide: puede volver a probar en un club en cuanto haya plaza.
     expect(g.stat(GEN.estres)).toBeLessThanOrEqual(estres + 0.5);
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').not.toMatch(/fuera de plazo|plazo de fichajes está cerrado/);

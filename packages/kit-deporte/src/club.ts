@@ -134,7 +134,25 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
             }),
           ]
         : [];
-    return [...apuntarse, ...clubes
+    // Los clubes de la zona sin prueba de acceso: cualquiera puede apuntarse con la regla de plaza (hueco, o mejor que el peor del equipo de su categoría), dentro del plazo de fichajes.
+    const deLaZona: ActionDef[] = !actual
+      ? clubes
+          .list(deporte)
+          .filter((c) => !c.esColegio && !c.acceso?.[deporte])
+          .map((c) =>
+            conLugar(tramitesDe(c), {
+              id: `${deporte}.apuntarse.${c.id}`,
+              name: `Apuntarte a ${c.nombre}`,
+              description: `Te apuntas al equipo de tu categoría de ${c.nombre}: entras si hay hueco o si eres mejor que el peor de los que juegan, dentro del plazo de fichajes (del verano a la primera competición). ${infoDeClub(ctx, cfg, c)}`,
+              tags: [deporte],
+              group: 'Club',
+              duration: 30,
+              available: (c2) => motivoSinFichaje(c2, cfg, c.id) ?? true,
+              run: (c2) => c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: c.id, nivel: cfg.rendimiento(c2) } }),
+            }),
+          )
+      : [];
+    return [...apuntarse, ...deLaZona, ...clubes
       .list(deporte)
       .filter((c) => !c.esColegio && c.id !== actual?.id && c.acceso?.[deporte])
       .flatMap((c): ActionDef[] => {
