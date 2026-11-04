@@ -64,7 +64,9 @@ export interface NinoDeportista {
   rasgos?: { intereses: Record<string, number> };
 }
 
-export type Rendimientos = ReadonlyMap<string, (persona: LectorDePersona) => number>;
+/** El rendimiento de un deporte (de 0 a 100) y, si tiene puestos, lo que vale la persona en cada uno. */
+export type FuncionDeRendimiento = ((persona: LectorDePersona) => number) & { puestos?: (persona: LectorDePersona) => Record<string, number> };
+export type Rendimientos = ReadonlyMap<string, FuncionDeRendimiento>;
 
 /** Cuánto le interesa un deporte (0 a 3): el interés por ese deporte o por el deporte en general, el mayor. */
 export const interesDe = (n: Pick<NinoDeportista, 'rasgos'>, deporte: string): number =>

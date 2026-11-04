@@ -80,6 +80,8 @@ export interface ClubJoinData {
   sport: string;
   /** Nivel del personaje en el deporte al entrar (0 a 100): si el equipo está completo, entra quitando la plaza de alguien peor. */
   nivel?: number;
+  /** En los deportes con puestos, el puesto en que entra (el que le ofrece el club): el equipo mide la plaza y el desplazado en ese puesto. */
+  puesto?: string;
   clubId: string;
 }
 

@@ -3,6 +3,7 @@ import {
   GEN,
   CORE_EVENTS,
   type RendimientoDeDeporte,
+  type LectorDePersona,
   categoriaDeEdad,
   type CategoriaDef,
   type PlazaEnEquipo,
@@ -80,6 +81,7 @@ import {
   SHARED_EVENTS,
   type DeporteAnadidoData,
   type PlazaPerdidaData,
+  cuposPorGrupo,
   TAGS,
   defineModule,
   type CompetitionResultData,
@@ -132,6 +134,7 @@ import {
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { habilidadesIniciales, lectorDe, prepararTrabajo, type HabilidadesDe } from './rutina';
+import { ofertaDePuesto, probabilidadDeAceptarPuesto, puestoDondeMasVale, type JugadorConPuesto, type OfertaDePuesto } from './puestos';
 import { NUNCA, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
 
 /**
@@ -178,6 +181,9 @@ export interface Npc {
   estado?: EstadoDeJugador;
   /** Lo que ha competido en cada deporte (resumen: pruebas, victorias, podios, mejor marca y las últimas). */
   historial?: Record<string, HistorialDeDeporte>;
+  /** En los deportes con puestos: el puesto en que juega en su equipo (id del puesto) y el que prefiere (el favorito, aquel en que más valía al empezar), por deporte. */
+  puesto?: Record<string, string>;
+  puestoFavorito?: Record<string, string>;
   /** Nivel máximo al que puede llegar cada disciplina. */
   potential: Record<string, number>;
   /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
@@ -312,6 +318,8 @@ export interface NpcsState {
   semilla?: number;
   /** Cuántos niños han dejado el deporte para siempre en cada nuevo curso por no encontrar club (desplazados que ningún club quiso), por curso: para vigilar que los equipos no se vacían. */
   dejanSinClub?: Record<number, number>;
+  /** El puesto en que juega el personaje en el equipo de su club, por deporte (el que le ofreció el club al entrar): cuenta como un jugador más del equipo en los fichajes de verano. */
+  puestoDelPersonaje?: Record<string, string>;
 }
 
 /**
@@ -727,7 +735,7 @@ export function avanzarCapacidades(npcs: readonly Npc[], dia: number): Npc[] {
 
 /** Cómo vale cada deporte de la partida a una persona: lo que aportan los módulos de deporte cargados (`APORTES.rendimientoDeDeporte`). */
 export const rendimientosDe = (ctx: Pick<ReadContext, 'aportes'>): Rendimientos =>
-  new Map(ctx.aportes<RendimientoDeDeporte>(APORTES.rendimientoDeDeporte).map((r) => [r.id, r.rendimiento]));
+  new Map(ctx.aportes<RendimientoDeDeporte>(APORTES.rendimientoDeDeporte).map((r) => [r.id, Object.assign((persona: LectorDePersona) => r.rendimiento(persona), r.puestos ? { puestos: r.puestos } : {})]));
 
 /**
  * Da sus habilidades a los niños que juegan a un deporte con rutina y aún no las tienen (al crear la partida, al llegar un niño nuevo a un equipo): su historia, con el
@@ -836,13 +844,26 @@ const jugadoresDelEquipo = (npcs: readonly Npc[], pob: PoblacionGuardada, club: 
  * ¿Entra el personaje (de esta edad de competición y este nivel en el deporte) en el equipo de su categoría? Si el equipo tiene hueco, sí. Si está completo
  * (en su máximo), solo si es mejor que alguno de los que hay (en global, de momento): saldría el peor. Los deportes sin equipos por categoría no tienen tope.
  */
-export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, edad: number, nivel: number, dia: number): PlazaEnEquipo {
+export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, edad: number, nivel: number, dia: number, puestos?: Readonly<Record<string, number>>, rend: Rendimientos = new Map()): PlazaEnEquipo {
   const pob = pobs.find((p) => p.deporte === deporte);
   const equipo = pob?.equipos.find((e) => e.club === club);
   const cat = pob && equipo?.plantillaPorCategoria ? categoriaDe(pob, edad) : undefined;
   if (!pob || !equipo?.plantillaPorCategoria || !cat) return { estado: 'libre' };
-  const jugadores = jugadoresDelEquipo(npcs, pob, club, cat, dia).map((n) => ({ id: n.id, nombre: n.name, valor: n.levels[deporte] ?? 0 }));
-  return reglaDePlaza(jugadores, capacidadDe(equipo, cat.id), nivel);
+  const delEquipo = jugadoresDelEquipo(npcs, pob, club, cat, dia);
+  const max = capacidadDe(equipo, cat.id);
+  // Con puestos (el fútbol), la plaza se mide por puesto: el club le ofrece el puesto en que entraría (el suyo, si entra; si no, aquel en que más vale).
+  if (pob.puestos && puestos) {
+    const val = valoracionDe(rend);
+    const favorito = puestoDondeMasVale(puestos);
+    const oferta = ofertaAlCandidato(delEquipo, max, pob, puestos, favorito, val, dia);
+    if (oferta) return { estado: oferta.estado, ...(oferta.peor ? { peor: { id: oferta.peor.id, nombre: oferta.peor.nombre, nivel: oferta.peor.valor } } : {}), puesto: oferta.puesto };
+    // Completo en todos los puestos: se dice quién es el peor del grupo de su mejor puesto.
+    const grupo = pob.puestos.reparto.find((g) => g.puestos.includes(favorito));
+    const delGrupo = delEquipo.filter((j) => grupo?.puestos.includes(puestoDeJugador(j, pob, val, dia) ?? ''));
+    const peor = delGrupo.length ? delGrupo.reduce((m, j) => (valorEnSuPuesto(j, pob, val, dia, puestoDeJugador(j, pob, val, dia)!) < valorEnSuPuesto(m, pob, val, dia, puestoDeJugador(m, pob, val, dia)!) ? j : m)) : undefined;
+    return { estado: 'completo', ...(peor ? { peor: { id: peor.id, nombre: peor.name, nivel: valorEnSuPuesto(peor, pob, val, dia, puestoDeJugador(peor, pob, val, dia)!) } } : {}), puesto: favorito };
+  }
+  return reglaDePlaza(delEquipo.map((n) => ({ id: n.id, nombre: n.name, valor: n.levels[deporte] ?? 0 })), max, nivel);
 }
 
 /** Un jugador de un equipo, con lo que vale de verdad (su rendimiento en el deporte). */
@@ -888,8 +909,10 @@ interface Aspirante {
 export interface Valoracion {
   rend: Rendimientos;
   valores: Map<string, number>;
+  /** Lo que vale cada niño en cada puesto del deporte (si lo tiene), por niño y deporte. */
+  puestos: Map<string, Record<string, number>>;
 }
-export const valoracionDe = (rend: Rendimientos = new Map()): Valoracion => ({ rend, valores: new Map() });
+export const valoracionDe = (rend: Rendimientos = new Map()): Valoracion => ({ rend, valores: new Map(), puestos: new Map() });
 
 /**
  * Lo que vale hoy un niño en un deporte: su rendimiento con sus capacidades reales y sus habilidades (las que lleva si ya juega o las de partida si aún no). Sin rendimiento del
@@ -903,9 +926,58 @@ export function valorRealDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: 
   if (guardado !== undefined) return guardado;
   const hab = n.hab?.[pob.deporte] ?? habilidadesIniciales(n.id, n.genetica, pob.deporte, pob.rutina, dia);
   const t = prepararTrabajo({ id: n.id, genetica: n.genetica, nacimiento: n.nacimiento, cap: n.cap, pico: n.pico }, valoresIniciales(n.id, n.genetica), pob.deporte, pob.rutina, hab, n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), dia);
-  const valor = f(lectorDe(t));
+  const lector = lectorDe(t);
+  const valor = f(lector);
   v.valores.set(clave, valor);
+  if (f.puestos && pob.puestos) v.puestos.set(clave, conSuLado(n.id, n.genetica.semilla ?? 0, f.puestos(lector)));
   return valor;
+}
+
+/** Lo que vale un niño en cada puesto del deporte (`undefined` si el deporte no tiene puestos o no se puede calcular). */
+export function valoresPorPuestoDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): Record<string, number> | undefined {
+  if (!pob.puestos || valorRealDe(n, pob, v, dia) === undefined) return undefined;
+  return v.puestos.get(`${n.id}|${pob.deporte}`);
+}
+
+/**
+ * Cada niño es más de una banda que de la otra (su pierna buena, un rasgo suyo y estable): los puestos de izquierda y derecha pesan lo mismo, así que sin esto un niño valdría igual en los dos y
+ * siempre saldría el mismo lado. Desplaza lo que vale en cada puesto de izquierda o derecha una fracción de punto (±0,25) según su lado: deshace el empate sin cambiar quién vale más.
+ */
+const conSuLado = (id: string, semilla: number, valores: Record<string, number>): Record<string, number> => {
+  const lado = rngEstable('lado', semilla, id).next() < 0.5 ? 1 : -1;
+  return Object.fromEntries(Object.entries(valores).map(([p, v]) => [p, /^[LR][A-Z]+$/.test(p) ? v + (p[0] === 'L' ? 0.25 * lado : -0.25 * lado) : v]));
+};
+
+/** El puesto favorito de un niño: el que se le dio o, si aún no lo tiene, aquel en que más vale. */
+export function favoritoDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): string | undefined {
+  const guardado = n.puestoFavorito?.[pob.deporte];
+  if (guardado) return guardado;
+  const valores = valoresPorPuestoDe(n, pob, v, dia);
+  return valores ? puestoDondeMasVale(valores) : undefined;
+}
+
+/** El puesto en que juega un niño de un equipo: el que tiene o, si aún no lo tiene (partidas anteriores), aquel en que más vale. */
+const puestoDeJugador = (n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): string | undefined => n.puesto?.[pob.deporte] ?? favoritoDe(n, pob, v, dia);
+
+/** Lo que vale un jugador de un equipo en su puesto (el personaje, que no tiene capacidades de niño, lleva su valor en `levels`). */
+const valorEnSuPuesto = (n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number, puesto: string): number => valoresPorPuestoDe(n, pob, v, dia)?.[puesto] ?? n.levels[pob.deporte] ?? 0;
+
+/**
+ * La oferta de puesto de un equipo (con `jugadores`, que caben `max`) a un candidato que vale `valores` en cada puesto: la regla de plaza por puesto (`ofertaDePuesto`), con el reparto de la
+ * plantilla por grupos del deporte. `undefined`: no entra en ningún puesto.
+ */
+export function ofertaAlCandidato(jugadores: readonly Npc[], max: number, pob: PoblacionGuardada, valores: Readonly<Record<string, number>>, favorito: string | undefined, v: Valoracion, dia: number): OfertaDePuesto | undefined {
+  const conPuesto: JugadorConPuesto[] = jugadores.flatMap((j) => {
+    const puesto = puestoDeJugador(j, pob, v, dia);
+    return puesto ? [{ id: j.id, nombre: j.name, puesto, valor: valorEnSuPuesto(j, pob, v, dia, puesto) }] : [];
+  });
+  return ofertaDePuesto(conPuesto, cuposPorGrupo(pob.puestos!, max), pob.puestos!, valores, favorito);
+}
+
+/** ¿Acepta el niño el puesto que le ofrece el club? Siempre el favorito; los demás según su carácter, lo que se parece a su puesto y si sería titular (un sorteo suyo y del club). */
+function aceptaElPuesto(n: Npc, pob: PoblacionGuardada, club: string, favorito: string | undefined, oferta: OfertaDePuesto): boolean {
+  const p = probabilidadDeAceptarPuesto(pob.puestos!, n.rasgos?.caracter, favorito, oferta.puesto, oferta.titular);
+  return p >= 1 || rngEstable('puesto', n.genetica?.semilla ?? 0, n.id, club, oferta.puesto).chance(p);
 }
 
 const colegioDeNino = (n: Npc): string => n.colegio ?? (delColegio(n) ? 'propio' : 'ninguno');
@@ -922,7 +994,7 @@ function aspirantesDeEdad(npcs: readonly Npc[], pob: PoblacionGuardada, edad: nu
 }
 
 /** Un equipo recluta a un niño: pasa a jugar al deporte en ese equipo, con su potencial, su ritmo y su nivel a esa edad, y sigue los tipos de agenda de su club. */
-function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardada, edad: number, dia: number): Npc {
+function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardada, edad: number, dia: number, puesto?: string, favorito?: string): Npc {
   const base = a.npc;
   const g = base.genetica!;
   const enSuColegio = e.colegio === 'propio';
@@ -940,6 +1012,8 @@ function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardada, edad
     tags: [...base.tags, pob.etiqueta, ...(enSuColegio ? ['equipo'] : [])],
     levels: { ...base.levels, [pob.deporte]: nivelEn(base.id, g, a.potencial, (dia - base.nacimiento!) / 365, pob.deporte, dia) },
     potential: { ...base.potential, [pob.deporte]: a.potencial },
+    ...(puesto ? { puesto: { ...base.puesto, [pob.deporte]: puesto } } : {}),
+    ...(favorito || base.puestoFavorito?.[pob.deporte] ? { puestoFavorito: { ...base.puestoFavorito, [pob.deporte]: base.puestoFavorito?.[pob.deporte] ?? favorito! } } : {}),
     ritmo: { ...base.ritmo, [pob.deporte]: ritmoEn(base.id, g, pob.deporte) },
     tipos,
     description: deFuera ? pob.descripcionDeRival : enSuColegio ? `${base.description?.replace(/\.$/, '')}. ${pob.descripcionDelEquipo}` : base.description,
@@ -1033,6 +1107,56 @@ function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada, dia: n
         tomados.add(a.npc.id);
         lista.set(a.npc.id, reclutarA(a, e, pob, edad, dia));
       };
+      if (pob.puestos) {
+        // Con puestos: se llena el reparto de la plantilla grupo a grupo (los más escasos primero: porteros, centrales...) con los interesados que más valen en cada grupo y que aceptan el
+        // puesto (siempre el favorito; los demás, según su carácter); después, quien vale más que el peor de un grupo lo sustituye, y por último se completa hasta el mínimo con los demás.
+        const mercado: MercadoDeFichajes = { lista, pobs: [pob], dia, val, reservas };
+        const pasos = (interesados: boolean) => (a: Aspirante) => (interesados ? a.interes > 0 : a.interes === 0) && !tomados.has(a.npc.id);
+        const intentar = (c: { a: Aspirante; edad: number }, grupo?: string): boolean => {
+          const valores = valoresPorPuestoDe(c.a.npc, pob, val, dia);
+          if (!valores) return false;
+          const favorito = favoritoDe(c.a.npc, pob, val, dia);
+          const jugadores = enEquipo();
+          const cupos = cuposPorGrupo(pob.puestos!, tope);
+          const solo = grupo ? { [grupo]: cupos[grupo] } : cupos;
+          const oferta = ofertaAlCandidato(jugadores, tope, pob, valores, favorito, val, dia);
+          const ofrecida = grupo ? ofertaDePuesto(jugadores.flatMap((j) => { const pj = puestoDeJugador(j, pob, val, dia); return pj ? [{ id: j.id, nombre: j.name, puesto: pj, valor: valorEnSuPuesto(j, pob, val, dia, pj) }] : []; }), solo as Record<string, number>, pob.puestos!, valores, favorito) : oferta;
+          if (!ofrecida || (c.a.interes > 0 && !aceptaElPuesto(c.a.npc, pob, e.club, favorito, ofrecida))) return false;
+          if (ofrecida.peor) {
+            lista.set(ofrecida.peor.id, sinDeporte(lista.get(ofrecida.peor.id)!, pob, false));
+            tomados.delete(ofrecida.peor.id);
+          }
+          tomados.add(c.a.npc.id);
+          lista.set(c.a.npc.id, reclutarA(c.a, e, pob, c.edad, dia, ofrecida.puesto, favorito));
+          return true;
+        };
+        void mercado;
+        const grupos = [...pob.puestos.reparto].sort((x, y) => x.jugadores - y.jugadores || (x.grupo < y.grupo ? -1 : 1));
+        const cupos = cuposPorGrupo(pob.puestos, tope);
+        const enGrupo = (g: { puestos: readonly string[] }) => enEquipo().filter((j) => g.puestos.includes(puestoDeJugador(j, pob, val, dia) ?? '')).length;
+        for (const g of grupos) {
+          const mejoresEnElGrupo = (a: Aspirante) => {
+            const vs = valoresPorPuestoDe(a.npc, pob, val, dia);
+            const fav = favoritoDe(a.npc, pob, val, dia);
+            return (fav && g.puestos.includes(fav) ? 1000 : 0) + (vs ? Math.max(...g.puestos.map((p) => vs[p] ?? 0)) : 0);
+          };
+          for (const c of elegibles.filter(({ a }) => pasos(true)(a)).sort((x, y) => mejoresEnElGrupo(y.a) - mejoresEnElGrupo(x.a) || (x.a.npc.id < y.a.npc.id ? -1 : 1))) {
+            if (enGrupo(g) >= (cupos[g.grupo] ?? 0)) break;
+            intentar(c, g.grupo);
+          }
+        }
+        // Los que quedan (interesados), del que más vale al que menos: entran por mérito si valen más que el peor de algún grupo.
+        for (const c of elegibles.filter(({ a }) => pasos(true)(a)).sort((x, y) => orden(x.a, y.a))) intentar(c);
+        if (!soloInteresados) {
+          for (const g of grupos) {
+            for (const c of elegibles.filter(({ a }) => pasos(false)(a)).sort((x, y) => orden(x.a, y.a))) {
+              if (enEquipo().length >= min || enGrupo(g) >= (cupos[g.grupo] ?? 0)) break;
+              intentar(c, g.grupo);
+            }
+          }
+        }
+        continue;
+      }
       for (const c of elegibles.filter(({ a }) => a.interes > 0).sort((x, y) => orden(x.a, y.a))) {
         const actuales = enEquipo();
         const plaza = reglaDePlaza(actuales.map((n) => ({ id: n.id, nombre: n.name, valor: valorDe(n) })), tope, c.a.valor);
@@ -1084,6 +1208,8 @@ export interface JugadorEnClub {
   categoria: string;
   valor: number;
   edad: number;
+  /** El puesto en que juega, si el deporte tiene puestos (y `valor` es lo que vale en él). */
+  puesto?: string;
 }
 const idDelPersonaje = (deporte: string): string => `personaje@${deporte}`;
 /** El personaje como un jugador más del mundo, solo mientras se hacen los fichajes (para que la regla de plaza lo trate como a los demás). */
@@ -1097,6 +1223,7 @@ const jugadorComoNpc = (j: JugadorEnClub, dia: number): Npc => ({
   potential: {},
   deporte: j.deporte,
   equipo: j.club,
+  ...(j.puesto ? { puesto: { [j.deporte]: j.puesto } } : {}),
   nacimiento: primerDiaDelAnio(anioNatural(dia) - j.edad),
 });
 
@@ -1112,12 +1239,23 @@ function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: Po
   if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
   const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas);
   if (!plantel) return { entra: false };
-  const valor = valorEn(n, pob, m);
-  const plaza = reglaDePlaza(plantel.jugadores.map((j) => ({ id: j.id, nombre: j.name, valor: valorEn(j, pob, m) })), plantel.max, valor);
+  const potencial = potencialEn(n.id, n.genetica, pob);
+  const aspirante = { npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor: valorEn(n, pob, m) };
+  // Con puestos: el club le ofrece el puesto en que entraría (con hueco en él o valiendo más que el peor de ese puesto) y el niño lo acepta o no según su carácter.
+  const valores = valoresPorPuestoDe(n, pob, m.val, m.dia);
+  if (pob.puestos && valores) {
+    const favorito = favoritoDe(n, pob, m.val, m.dia);
+    const oferta = ofertaAlCandidato(plantel.jugadores, plantel.max, pob, valores, favorito, m.val, m.dia);
+    if (!oferta || !aceptaElPuesto(n, pob, e.club, favorito, oferta)) return { entra: false };
+    const desplazado = oferta.peor ? m.lista.get(oferta.peor.id) : undefined;
+    m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto, favorito));
+    if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
+    return { entra: true, desplazado };
+  }
+  const plaza = reglaDePlaza(plantel.jugadores.map((j) => ({ id: j.id, nombre: j.name, valor: valorEn(j, pob, m) })), plantel.max, aspirante.valor);
   if (plaza.estado === 'completo') return { entra: false };
   const desplazado = plaza.estado === 'por_merito' ? m.lista.get(plaza.peor!.id) : undefined;
-  const potencial = potencialEn(n.id, n.genetica, pob);
-  m.lista.set(n.id, reclutarA({ npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor }, e, pob, edad, m.dia));
+  m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia));
   if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
   return { entra: true, desplazado };
 }
@@ -1288,7 +1426,11 @@ export function equiposPorDemanda(m: MercadoDeFichajes, rng: Rng): Npc[] {
         // El equipo nuevo se forma con los mejores (por lo que valen) de los interesados que se habían quedado sin equipo, hasta el mínimo de una plantilla: así nace con huecos
         // (quien vale menos que los demás también puede entrar, por la regla de plaza) y no se queda ningún otro equipo sin jugadores.
         const elegibles = sinEquipoParaClub([...m.lista.values()], pob, e, categorias.get(catId) ? categoriasDelEquipo(pob, e).find((c) => c.id === catId)!.edades : [], m).sort((a, b) => b.valor - a.valor || (a.npc.id < b.npc.id ? -1 : 1));
-        for (const a of elegibles.slice(0, e.plantillaPorCategoria!.min)) intentarEntrar(m, a.npc, e, pob);
+        let colocados = 0;
+        for (const a of elegibles) {
+          if (colocados >= e.plantillaPorCategoria!.min) break;
+          if (intentarEntrar(m, a.npc, e, pob).entra) colocados++;
+        }
       }
     }
     pobsNuevas.push(pob);
@@ -1313,8 +1455,10 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
   const { [pob.deporte]: _n, ...levels } = n.levels;
   const { [pob.deporte]: _p, ...potential } = n.potential;
   const ritmo = n.ritmo ? Object.fromEntries(Object.entries(n.ritmo).filter(([k]) => k !== pob.deporte)) : undefined;
+  const puesto = n.puesto ? Object.fromEntries(Object.entries(n.puesto).filter(([k]) => k !== pob.deporte)) : undefined;
   return {
     ...n,
+    puesto,
     deporte: undefined,
     equipo: undefined,
     club: undefined,
@@ -1803,7 +1947,9 @@ export const npcs = defineModule<NpcsState>({
         if (!club || !cat) continue;
         reservas.set(claveDeEquipo(club.id, cat.id), 1);
         const f = rend.get(pob.deporte);
-        if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: f(ctx), edad: edadProxima });
+        const puestoDelPersonaje = ctx.state<NpcsState>().puestoDelPersonaje?.[pob.deporte];
+        const valoresDelPersonaje = f?.puestos?.(ctx);
+        if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: puestoDelPersonaje && valoresDelPersonaje ? valoresDelPersonaje[puestoDelPersonaje] : f(ctx), edad: edadProxima, ...(puestoDelPersonaje ? { puesto: puestoDelPersonaje } : {}) });
       }
       const resultado = { sinPlaza: [] as string[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined };
       ctx.updateState<NpcsState>((s) => {
@@ -1832,7 +1978,11 @@ export const npcs = defineModule<NpcsState>({
     },
 
     [SHARED_EVENTS.CLUB_JOIN]: (ctx, ev) => {
-      const { clubId, sport, nivel } = ev.data as ClubJoinData;
+      const { clubId, sport, nivel, puesto } = ev.data as ClubJoinData;
+      ctx.updateState<NpcsState>((st) => {
+        const { [sport]: _antes, ...resto } = st.puestoDelPersonaje ?? {};
+        return { ...st, puestoDelPersonaje: puesto ? { ...resto, [sport]: puesto } : resto };
+      });
       // El que entrena tu edad en ese club (los clubes tienen varios, cada uno con unas categorías).
       const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
       const pobs = poblacionesGuardadas(ctx);
@@ -1840,7 +1990,8 @@ export const npcs = defineModule<NpcsState>({
       // y si ninguno lo coge deja el deporte (`colocarDesplazados`).
       if (nivel !== undefined) {
         const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
-        const plaza = plazaEnElEquipo(ctx.state<NpcsState>().npcs, pobs, sport, clubId, edad, nivel, inicioCurso);
+        const rendDelClub = rendimientosDe(ctx);
+        const plaza = plazaEnElEquipo(ctx.state<NpcsState>().npcs, pobs, sport, clubId, edad, nivel, inicioCurso, rendDelClub.get(sport)?.puestos?.(ctx), rendDelClub);
         const pob = pobs.find((p) => p.deporte === sport);
         if (plaza.estado === 'por_merito' && plaza.peor && pob) {
           const cat = categoriaDe(pob, edad);
@@ -2021,7 +2172,7 @@ export const npcs = defineModule<NpcsState>({
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
         nivelesDelEquipo: (deporte, club, categoria) => nivelesDelEquipoDe(lista, poblacionesGuardadas(ctx), deporte, club, categoria, ctx.time.week, inicioCurso),
-        plaza: (deporte, club, nivel) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso),
+        plaza: (deporte, club, nivel, puestos) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso, puestos, rendimientosDe(ctx)),
       };
     },
   },

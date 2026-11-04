@@ -86,6 +86,8 @@ export interface NpcView {
 export interface PlazaEnEquipo {
   estado: 'libre' | 'por_merito' | 'completo';
   peor?: { id: string; nombre: string; nivel: number };
+  /** En los deportes con puestos, el puesto que el club ofrece al candidato: aquel en que entraría (con hueco en él o valiendo más que el peor de ese puesto). */
+  puesto?: string;
 }
 
 export interface NpcDirectory {
@@ -94,9 +96,9 @@ export interface NpcDirectory {
   get(id: string): NpcView | undefined;
   /**
    * ¿Entra el personaje, con este nivel en el deporte, en el equipo de su categoría de un club? Solo los deportes con equipos por categoría tienen tope
-   * (`EquipoDeDeporte.plantillaPorCategoria`); en el resto siempre hay sitio. En la fase de deportes de equipo con puestos se comparará por puesto.
+   * (`EquipoDeDeporte.plantillaPorCategoria`); en el resto siempre hay sitio. En los deportes con puestos, `puestos` es lo que vale el candidato en cada uno y la plaza se mide por puesto.
    */
-  plaza(deporte: string, club: string, nivel: number): PlazaEnEquipo;
+  plaza(deporte: string, club: string, nivel: number, puestos?: Readonly<Record<string, number>>): PlazaEnEquipo;
   /**
    * Lo que vale el equipo de un club en una categoría en cada habilidad del deporte (la media de sus jugadores, con valores reales): con ello el entrenador elige los ejercicios
    * de la sesión, **los mismos para todos los que entrenan juntos**, personaje incluido. `undefined` si el deporte no tiene jugadores con habilidades en ese equipo.

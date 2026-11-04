@@ -42,9 +42,11 @@ import {
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
+import { PUESTOS_DE_FUTBOL } from './puestos';
 
 export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 export { HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
+export { PUESTOS_DE_FUTBOL } from './puestos';
 export { EJERCICIOS_DE_FUTBOL, sesgoDelEntrenador } from './ejercicios';
 
 /**
@@ -63,6 +65,7 @@ const CONFIG: ConfigDeporte = {
   id: DEPORTE,
   nombre: 'fútbol',
   rendimiento: (ctx) => rendimiento(ctx),
+  puestos: (ctx) => rendimientoPorPuestos(ctx),
   entrenosLibres: ENTRENOS_LIBRES,
   juegoInformal: JUEGO_INFORMAL,
 };
@@ -83,6 +86,24 @@ const efectivo = (ctx: LectorDePersona, key: keyof typeof SENSIBILIDAD) => valor
  * Rendimiento 0..100 del jugador de campo (sirve para las pruebas de acceso a los clubes). Es provisional: con los partidos (F2) y las posiciones
  * (F3) cada puesto pesará sus propias habilidades.
  */
+/**
+ * Lo que vale el jugador **en cada uno de los 16 puestos** (de 0 a 100): la media de sus habilidades ponderada por lo que pesa cada una en el puesto (`PUESTOS_DE_FUTBOL`), con el efecto
+ * del conocimiento del deporte que ya tiene cada habilidad (lo táctico y lo mental, del todo; lo técnico, a medias; lo físico, nada). Es el servicio con que los clubes valoran a cualquiera.
+ */
+const SENSIBILIDAD_POR_GRUPO: Readonly<Record<string, number>> = { mental: 1, técnica: 0.3, portería: 0.3, física: 0 };
+const GRUPO_DE_HABILIDAD = new Map(STATS_DE_FUTBOL.map((d) => [d.id, (d.group ?? '').toLowerCase()]));
+export function rendimientoPorPuestos(ctx: LectorDePersona): Record<string, number> {
+  const valor = (stat: string): number => {
+    if (stat.startsWith('gen.')) return ctx.stat(stat);
+    const grupo = GRUPO_DE_HABILIDAD.get(stat) ?? '';
+    const sens = Object.entries(SENSIBILIDAD_POR_GRUPO).find(([g]) => grupo.includes(g))?.[1] ?? 0.3;
+    return valorEfectivo(ctx, DEPORTE, stat, (SENSIBILIDAD as Record<string, number>)[stat.slice(7)] ?? sens);
+  };
+  const memo = new Map<string, number>();
+  const v = (stat: string): number => memo.get(stat) ?? (memo.set(stat, valor(stat)), memo.get(stat)!);
+  return Object.fromEntries(PUESTOS_DE_FUTBOL.puestos.map((p) => [p.id, Object.entries(p.pesos).reduce((t, [stat, peso]) => t + peso * v(stat), 0)]));
+}
+
 export function rendimiento(ctx: LectorDePersona): number {
   const tecnica = (efectivo(ctx, 'control') + efectivo(ctx, 'pase') + efectivo(ctx, 'regate') + efectivo(ctx, 'tecnica')) / 4;
   const cabeza = (efectivo(ctx, 'vision') + efectivo(ctx, 'posicionamiento') + efectivo(ctx, 'decisiones')) / 3;
@@ -144,7 +165,7 @@ export const futbol = defineModule<FutbolState>({
   name: 'Fútbol',
   description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
   dependsOn: ['gen'],
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento }] },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }] },
   stats: [...STATS_DE_FUTBOL],
 
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),

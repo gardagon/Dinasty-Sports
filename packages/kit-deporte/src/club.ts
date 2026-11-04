@@ -9,6 +9,7 @@ import {
   inHours,
   plazoDeFichajesAbierto,
   proximaAperturaDelPlazo,
+  type ActionContext,
   type ActionDef,
   type ClubDirectory,
   type ClubJoinData,
@@ -87,10 +88,21 @@ export const sinEntrenarPorLibreEnSesion = (cfg: ConfigDeporte, acciones: readon
  * entra y el peor pierde su plaza (lo hace `npcs` al recibir `club.unirse`). `undefined` si puede entrar.
  */
 export function motivoSinPlaza(ctx: ReadContext, cfg: ConfigDeporte, club: string): string | undefined {
-  const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx));
+  const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx), cfg.puestos?.(ctx));
   return plaza?.estado === 'completo'
     ? `El equipo de tu categoría está completo y todos juegan mejor que tú (el peor, ${plaza.peor?.nombre}, tiene nivel ${Math.round(plaza.peor?.nivel ?? 0)} y tú ${Math.round(cfg.rendimiento(ctx))}): sigue entrenando por tu cuenta y vuelve a intentarlo`
     : undefined;
+}
+
+/**
+ * El personaje entra en un club: con la regla de plaza (por puesto, si el deporte tiene puestos), el club le ofrece el puesto en que entraría; se guarda y el equipo mide su plaza (y a quién
+ * desplaza) en ese puesto.
+ */
+export function unirseA(ctx: ActionContext, cfg: ConfigDeporte, clubId: string): void {
+  const nivel = cfg.rendimiento(ctx);
+  const puesto = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, clubId, nivel, cfg.puestos?.(ctx))?.puesto;
+  ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, puesto }));
+  ctx.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: cfg.id, clubId, nivel, ...(puesto ? { puesto } : {}) } });
 }
 
 /**
@@ -103,7 +115,7 @@ export function motivoSinFichaje(ctx: ReadContext, cfg: ConfigDeporte, club: str
   if (plazoDeFichajesAbierto(ctx.pais.calendario, datosDeDeporte(ctx, cfg.id).temporada, t.schoolWeek)) return motivoSinPlaza(ctx, cfg, club);
   if (clubDelJugador(ctx, cfg.id)) return 'El plazo de fichajes está cerrado hasta el verano: mientras estés en un club no puedes cambiarte';
   if ((estado(ctx).sinFichajesHasta ?? -1) > t.week) return `Dejaste tu club fuera de plazo: no puedes entrar en otro club de ${cfg.nombre} hasta el siguiente plazo de fichajes (el verano)`;
-  const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx));
+  const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx), cfg.puestos?.(ctx));
   return plaza && plaza.estado !== 'libre' ? 'El plazo de fichajes está cerrado hasta el verano: ya solo se entra en un club con hueco, sin sacar a nadie, y el equipo de tu categoría está completo' : undefined;
 }
 
@@ -130,7 +142,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
               group: 'Club',
               duration: 30,
               available: (c2) => motivoSinFichaje(c2, cfg, colegio.id) ?? true,
-              run: (c2) => c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: colegio.id, nivel: cfg.rendimiento(c2) } }),
+              run: (c2) => unirseA(c2, cfg, colegio.id),
             }),
           ]
         : [];
@@ -148,7 +160,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
               group: 'Club',
               duration: 30,
               available: (c2) => motivoSinFichaje(c2, cfg, c.id) ?? true,
-              run: (c2) => c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: c.id, nivel: cfg.rendimiento(c2) } }),
+              run: (c2) => unirseA(c2, cfg, c.id),
             }),
           )
       : [];
@@ -174,7 +186,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
               const { [c.id]: _usada, ...resto } = st.ofertas ?? {};
               return { ...st, ofertas: resto };
             });
-            c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: c.id, nivel: cfg.rendimiento(c2) } });
+            unirseA(c2, cfg, c.id);
           },
         });
         const prueba = conLugar(tramitesDe(c), {
@@ -201,7 +213,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
             const rinde = cfg.rendimiento(c2) * factorDeCompeticion(c2.efficiency) + c2.rng.normal() * 3;
             c2.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, pruebas: { ...(s.pruebas ?? {}), [c.id]: t.week } }));
             if (rinde >= acceso.nivel && !c2.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte)) {
-              c2.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: deporte, clubId: c.id, nivel: cfg.rendimiento(c2) } });
+              unirseA(c2, cfg, c.id);
             } else if (rinde >= acceso.nivel) {
               // Con otro club, la plaza se ofrece y decides: salir antes de él no cuesta nada; aceptarla sin salir sí.
               c2.updateState<EstadoBaseDeDeporte>((st) => ({ ...st, ofertas: { ...(st.ofertas ?? {}), [c.id]: t.week } }));
