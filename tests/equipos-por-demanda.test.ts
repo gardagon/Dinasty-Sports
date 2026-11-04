@@ -119,6 +119,8 @@ describe('el personaje del montón encuentra equipo en su categoría dentro del 
       // Un miércoles a las 17:00 el club mediano hace sus pruebas; después, el del colegio (sin prueba) como segunda opción.
       if (posible(j, 'futbol.prueba.club_mediano')) hacer(j, 'futbol.prueba.club_mediano');
       const club = () => j.service<{ membership(d: string): unknown }>('clubes')!.membership('futbol');
+      // Si la prueba no sale, al día siguiente, a la hora de siempre, el club del colegio (sin prueba) como segunda opción.
+      if (!club()) advanceToWeek(j, 'gen.descansar', 1, 3, 15);
       if (!club() && (!posible(j, 'futbol.apuntarse_colegio') || !hacer(j, 'futbol.apuntarse_colegio').ok)) noEntra.push(seed);
     }
     expect(noEntra, `semillas en que no encuentra equipo: ${noEntra.join(', ')}`).toEqual([]);
