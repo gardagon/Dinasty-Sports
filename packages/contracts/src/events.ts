@@ -82,6 +82,8 @@ export interface ClubJoinData {
   nivel?: number;
   /** En los deportes con puestos, el puesto en que entra (el que le ofrece el club): el equipo mide la plaza y el desplazado en ese puesto. */
   puesto?: string;
+  /** Si entra tras una prueba de acceso: lo que valió la prueba en cada puesto. El equipo mide la plaza (y a quién desplaza) con ello, en `puesto`, como en la prueba. */
+  valores?: Record<string, number>;
   clubId: string;
 }
 

@@ -119,15 +119,20 @@ describe('los niños del mundo con puestos', () => {
     }
   });
 
-  it('el valor de un niño en cada puesto sale de sus habilidades: el portero vale por su portería y un niño sin portería vale poco de portero', () => {
-    const val = valoracionDe(REND);
-    const porteros = jugadores().filter((n) => n.puesto!.futbol === 'GK');
-    const delanteros = jugadores().filter((n) => n.puesto!.futbol === 'ST');
-    expect(porteros.length).toBeGreaterThan(0);
-    const media = (xs: Npc[], puesto: string) => xs.reduce((t, n) => t + valoresPorPuestoDe(n, pob(), val, 0)![puesto], 0) / xs.length;
-    // Los porteros valen más de portero que los delanteros y los delanteros más de delantero que los porteros.
-    expect(media(porteros, 'GK')).toBeGreaterThan(media(delanteros, 'GK'));
-    expect(media(delanteros, 'ST')).toBeGreaterThan(media(porteros, 'ST'));
+  it('el valor de una persona en cada puesto sale de sus habilidades: el portero vale por su portería y el delantero por su definición', () => {
+    const lector = (stats: Record<string, number>) => ({ stat: (id: string) => stats[id] ?? 20, norm: (id: string) => (stats[id] ?? 20) / 100 });
+    const portero = rendimientoPorPuestos(lector({ 'futbol.reflejos': 80, 'futbol.blocaje': 80, 'futbol.mano_a_mano': 80, 'futbol.alcance_aereo': 80, 'futbol.dominio_area': 80 }));
+    const delantero = rendimientoPorPuestos(lector({ 'futbol.definicion': 80, 'futbol.desmarque': 80, 'futbol.sangre_fria': 80, 'futbol.cabeza': 80 }));
+    expect(portero.GK).toBeGreaterThan(delantero.GK);
+    expect(delantero.ST).toBeGreaterThan(portero.ST);
+    // El portero vale más de portero que de cualquier otra cosa, y el delantero más de delantero que de portero.
+    expect(puestoDondeMasVale(portero)).toBe('GK');
+    expect(['ST', 'LST', 'RST']).toContain(puestoDondeMasVale(delantero));
+    // Todos los valores salen entre 0 y 100.
+    for (const v of [...Object.values(portero), ...Object.values(delantero)]) {
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThanOrEqual(100);
+    }
   });
 
   it('la oferta del club a un candidato con el equipo completo es por puesto: solo entra quien vale más que el peor de ese puesto', () => {
@@ -142,5 +147,69 @@ describe('los niños del mundo con puestos', () => {
     if (oferta) expect(oferta.estado).toBe('libre'); // solo si hay hueco en algún puesto
     const crack = Object.fromEntries(P.puestos.map((x) => [x.id, 99]));
     expect(ofertaAlCandidato(del, max, p, crack, 'CB', val, 0)).toBeDefined();
+  });
+});
+
+describe('la pierna buena: todos son diestros o zurdos, con la misma regla y la misma proporción', () => {
+  it('el personaje y los PNJ salen zurdos en torno a un 20 % (un solo dato en contracts)', async () => {
+    const { Game } = await import('@ds/core');
+    const { personaje } = await import('@ds/mod-personaje');
+    const { PROPORCION_DE_ZURDOS } = await import('@ds/contracts');
+    expect(PROPORCION_DE_ZURDOS).toBe(0.2);
+    // Un solo dato: el deporte no la repite.
+    expect(Object.keys(P.pierna ?? {})).not.toContain('proporcionDeZurdos');
+    // El personaje: 400 semillas (solo el módulo del personaje: baratas).
+    let zurdos = 0;
+    for (let seed = 1; seed <= 400; seed++) if (Game.create([personaje], { seed }).moduleState<{ zurdo: boolean }>('gen').zurdo) zurdos++;
+    expect(zurdos / 400).toBeGreaterThan(0.14);
+    expect(zurdos / 400).toBeLessThan(0.26);
+  });
+
+  it('los niños del mundo llevan la pierna como rasgo estable, en torno a un 20 % de zurdos', () => {
+    const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const jugadores = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs.filter((n) => n.deporte === 'futbol' && n.equipo && n.genetica);
+    expect(jugadores.every((n) => n.pierna === 'izquierda' || n.pierna === 'derecha')).toBe(true);
+    const zurdos = jugadores.filter((n) => n.pierna === 'izquierda').length / jugadores.length;
+    expect(zurdos).toBeGreaterThan(0.12);
+    expect(zurdos).toBeLessThan(0.3);
+  }, 90000);
+
+  it('la pierna buena da de base ±0,25 en los puestos del lado de cada pierna, y a los centrales nada; es la misma regla para todos', async () => {
+    const { conLaPierna, ladoDePuesto } = await import('@ds/contracts');
+    const base = Object.fromEntries(P.puestos.map((x) => [x.id, 50]));
+    const zurdo = conLaPierna(base, 'izquierda', 0.25);
+    const diestro = conLaPierna(base, 'derecha', 0.25);
+    for (const x of ['LB', 'LCR', 'LM', 'LW', 'LST']) {
+      expect(zurdo[x], x).toBe(50.25);
+      expect(diestro[x], x).toBe(49.75);
+    }
+    for (const x of ['RB', 'RCR', 'RM', 'RW', 'RST']) {
+      expect(zurdo[x], x).toBe(49.75);
+      expect(diestro[x], x).toBe(50.25);
+    }
+    for (const x of ['GK', 'CB', 'CDM', 'CM', 'CAM', 'ST']) {
+      expect(zurdo[x], x).toBe(50);
+      expect(ladoDePuesto(x)).toBeUndefined();
+    }
+    // Un diestro de extremo izquierdo juega en su lado malo; un zurdo, en el bueno.
+    expect(ladoDePuesto('LW')).toBe('izquierda');
+  });
+
+  it('si dos jugadores empatan en un puesto de banda, decide la pierna: entra el que juega en el lado de su pierna buena', () => {
+    const cupos = cuposPorGrupo(P, 18);
+    const equipo: JugadorConPuesto[] = P.reparto.flatMap((r) => Array.from({ length: cupos[r.grupo] }, (_, i) => ({ id: `${r.grupo}${i}`, nombre: `${r.grupo}${i}`, puesto: r.puestos[0], valor: 40, pierna: 'derecha' as const })));
+    // En la banda juegan LM, LM y LM: diestros en el lado izquierdo (su lado malo), con 40.
+    const valores = Object.fromEntries(P.puestos.map((p) => [p.id, 10]));
+    valores.LM = 40;
+    // Un zurdo que vale lo mismo (40) en el interior izquierdo les quita el sitio al empatar; un diestro, no.
+    expect(ofertaDePuesto(equipo, cupos, P, valores, 'LM', 'izquierda')).toMatchObject({ puesto: 'LM', estado: 'por_merito' });
+    expect(ofertaDePuesto(equipo, cupos, P, valores, 'LM', 'derecha')).toBeUndefined();
+    // Si el que juega ahí es zurdo (su lado bueno), el empate no cambia nada.
+    const conZurdos = equipo.map((j) => (j.puesto === 'LM' ? { ...j, pierna: 'izquierda' as const } : j));
+    expect(ofertaDePuesto(conZurdos, cupos, P, valores, 'LM', 'izquierda')).toBeUndefined();
+  });
+
+  it('el factor de experiencia del lado de la pierna buena está preparado en los datos (para la experiencia por puesto de la F2 y la F3)', () => {
+    expect(P.pierna!.factorDeExperienciaDelLado).toBeGreaterThan(1);
   });
 });

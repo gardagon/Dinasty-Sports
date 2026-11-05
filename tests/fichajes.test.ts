@@ -51,16 +51,13 @@ describe('el plazo de fichajes: del verano a la primera competición', () => {
 describe('el personaje y el plazo', () => {
   const club = (g: ReturnType<typeof nueva>) => g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol');
 
-  it('fuera de plazo, sin club, entra si hay hueco; el motivo del rechazo se explica', () => {
+  it('fuera de plazo, sin club, entra solo si hay hueco en su puesto (sin sacar a nadie); si no, se le explica por qué', () => {
     const g = nueva();
     advanceToWeek(g, 'gen.descansar', 10, 2, 15);
-    // Sin club y con hueco en su equipo: entra aunque el plazo esté cerrado (sin sacar a nadie).
-    const equipo = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! <= 9);
-    expect(equipo.length).toBeLessThanOrEqual(18);
-    if (equipo.length < 18) {
-      expect(posible(g, 'futbol.apuntarse_colegio')).toBe(true);
+    // Con puestos, «hueco» es hueco en el puesto que le ofrecería el club: puede haberlo o no. Si no lo hay, no entra y se dice por qué.
+    if (posible(g, 'futbol.apuntarse_colegio')) {
+      expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     } else {
-      expect(posible(g, 'futbol.apuntarse_colegio')).toBe(false);
       expect(g.preview('futbol.apuntarse_colegio')!.reason).toMatch(/plazo de fichajes está cerrado hasta el verano/);
     }
   }, 60000);

@@ -1,3 +1,4 @@
+import { factorDeCompeticion } from './estado-de-jugador';
 import { tramoDeSemana, type CalendarioPais } from './calendar';
 import type { CategoriaDef } from './categories';
 import type { ReadContext } from './context';
@@ -133,6 +134,24 @@ export type TamanoDeClub = 'grande' | 'mediano' | 'pequeno';
 export const CALIDAD_DE_TAMANO: Readonly<Record<TamanoDeClub, 1 | 2 | 3>> = { grande: 3, mediano: 2, pequeno: 1 };
 
 /**
+ * La **prueba de acceso** a un club que no es el del colegio (`CIUDAD_Y_LIGAS.md` §5): quien quiere entrar (el personaje o un niño) la hace, y **lo que vale en la prueba es lo que cuenta
+ * para la regla de plaza**. `minimo` es cuánto tiene que valer la prueba, en su puesto, frente al peor de ese puesto del equipo, aunque haya hueco: 1 o más = hay que superarlo (los grandes);
+ * menos de 1 = con hueco basta con llegar a esa fracción (los medianos y los pequeños). Sin equipo en ese puesto, basta con la prueba que sea.
+ */
+export interface PruebaDeAcceso {
+  minimo: number;
+}
+/** La prueba de cada tamaño de club (dato): los grandes exigen superar al peor de su puesto; los medianos y pequeños, no ser muy malo. */
+export const PRUEBA_DE_TAMANO: Readonly<Record<TamanoDeClub, PruebaDeAcceso>> = { grande: { minimo: 1 }, mediano: { minimo: 0.9 }, pequeno: { minimo: 0.8 } };
+/** Cuánto se desvía una prueba de lo que vale quien la hace (±6 % de desviación): el azar de un día. */
+export const RUIDO_DE_LA_PRUEBA = 0.06;
+/**
+ * Lo que vale una prueba: lo que vale de verdad quien la hace, por cómo rinde ese día (`factorDeCompeticion` de su eficiencia: estado, forma del día) y un poco de azar (`z`, normal estándar).
+ * La misma para el personaje y para cualquier niño.
+ */
+export const valorDeLaPrueba = (valor: number, eficiencia: number, z: number): number => valor * factorDeCompeticion(eficiencia) * (1 + RUIDO_DE_LA_PRUEBA * z);
+
+/**
  * Un club o el equipo de un colegio que recluta niños para el deporte. La plantilla es un número más o menos definido (se sortea entre `min` y `max`
  * al crear la partida y se mantiene): así un club no tiene veinte niños. Los equipos de un colegio solo reclutan a sus alumnos; los clubes, a cualquiera
  * (por ahora, los de más calidad escogen primero; más adelante, el prestigio).
@@ -149,6 +168,8 @@ export interface EquipoDeDeporte {
    * después los medianos; al final los pequeños). El equipo del colegio del personaje es un club pequeño más. Sin él: el que corresponde a su `calidad`.
    */
   tamano?: TamanoDeClub;
+  /** Su prueba de acceso, si no es la de su tamaño (`PRUEBA_DE_TAMANO`). El equipo de un colegio no la tiene: solo coge a sus alumnos. */
+  pruebaDeAcceso?: PruebaDeAcceso;
   /** 1 colegio, 2 club de la ciudad, 3 alto rendimiento. Es lo mismo que el tamaño (pequeño, mediano, grande): con `tamano`, sale de él. Sin ninguno: la del club en el catálogo del personaje, o 1 si es de un colegio y 2 si no. */
   calidad?: 1 | 2 | 3;
   /** Edades de competición que recluta (por defecto, las del deporte; los equipos de un colegio solo llegan a la edad en que acaba el colegio). */
@@ -184,9 +205,41 @@ export interface PuestoDeDeporte {
   afinidades: Readonly<Record<string, number>>;
 }
 
+/** La pierna buena de una persona. */
+export type Pierna = 'izquierda' | 'derecha';
+
+/** La proporción de zurdos (de pierna izquierda): en torno a un 20 %. Un solo dato, en un solo sitio: el personaje (su identidad) y los PNJ la leen de aquí, y ningún deporte la repite ni la cambia. */
+export const PROPORCION_DE_ZURDOS = 0.2;
+
+/** Todos tienen pierna buena (diestro o zurdo): el personaje y los PNJ, con la misma regla y la misma proporción. Cuánto cuenta, como dato del deporte (la proporción de zurdos no: es `PROPORCION_DE_ZURDOS`). */
+export interface PiernaDeDeporte {
+  /** Mientras no tenga una banda clara, cada uno vale esto más de base en los puestos del lado de su pierna buena (y esto menos en los del otro lado): ±0,25 puntos. */
+  ventajaDelLado: number;
+  /** Cuánto más deprisa gana experiencia en un puesto del lado de su pierna buena (×). Preparado para la experiencia por puesto, que llega con los partidos (F2 y F3). */
+  factorDeExperienciaDelLado: number;
+}
+
+/** El lado de un puesto (los que empiezan por L o R, como LB o RW) o `undefined` si es central (GK, CB, CM, CAM, ST...). */
+export const ladoDePuesto = (id: string): Pierna | undefined => (/^[LR][A-Z]+$/.test(id) ? (id[0] === 'L' ? 'izquierda' : 'derecha') : undefined);
+
+/**
+ * La regla de la pierna buena sobre lo que vale alguien en cada puesto: en los puestos del lado de su pierna vale `ventaja` más y en los del otro lado `ventaja` menos. Es la **misma** para el
+ * personaje y para cualquier PNJ.
+ */
+export function conLaPierna(valores: Readonly<Record<string, number>>, pierna: Pierna, ventaja: number): Record<string, number> {
+  return Object.fromEntries(Object.entries(valores).map(([p, v]) => [p, ladoDePuesto(p) === undefined ? v : v + (ladoDePuesto(p) === pierna ? ventaja : -ventaja)]));
+}
+
 /** Los puestos de un deporte y cómo se reparte una plantilla entre ellos. */
 export interface PuestosDeDeporte {
   puestos: readonly PuestoDeDeporte[];
+  /**
+   * Cómo se forman los equipos de un club (`CIUDAD_Y_LIGAS.md` §5): los **titulares** de cada equipo por grupo de puestos (un equipo de 18 tiene 11 titulares y 7 suplentes: en el fútbol, 1 portero, 2
+   * centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y el **listón** que un jugador de primer año necesita sobre uno de segundo para ser titular en el A de un club grande.
+   */
+  equipos?: { titulares: Readonly<Record<string, number>>; listonDePrimerAno: number };
+  /** La pierna buena: proporción de zurdos, lo que vale de base el lado de su pierna y lo que acelera la experiencia en él. Sin él, los valores por defecto. */
+  pierna?: PiernaDeDeporte;
   /**
    * El reparto de una plantilla del máximo de jugadores (18 en el fútbol) por grupos de puestos: «2 porteros, 3 centrales, 3 laterales, 4 mediocentros, 3 de banda o extremos y 3
    * delanteros». Un equipo de otro tamaño reparte lo mismo en proporción (`cuposPorGrupo`).
