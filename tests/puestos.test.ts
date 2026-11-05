@@ -115,7 +115,8 @@ describe('los niños del mundo con puestos', () => {
         const cuenta: Record<string, number> = {};
         for (const n of del) cuenta[grupoDePuesto(P, n.puesto!.futbol)!] = (cuenta[grupoDePuesto(P, n.puesto!.futbol)!] ?? 0) + 1;
         for (const r of P.reparto) {
-          expect(cuenta[r.grupo] ?? 0, `${e.club} ${c.id} ${r.grupo}`).toBeGreaterThan(0);
+          // El equipo del colegio va el último en el «draft» y se queda con los alumnos que sobran: puede no tener de todos los grupos.
+          if (e.colegio === undefined) expect(cuenta[r.grupo] ?? 0, `${e.club} ${c.id} ${r.grupo}`).toBeGreaterThan(0);
           expect(cuenta[r.grupo] ?? 0, `${e.club} ${c.id} ${r.grupo}`).toBeLessThanOrEqual(cupos[r.grupo]);
         }
       }

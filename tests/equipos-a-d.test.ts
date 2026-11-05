@@ -65,11 +65,29 @@ describe('el reparto de un club en equipos A a D', () => {
     // Un solo hueco de portero en el A: hace falta que el de primer año supere al de segundo por más del listón.
     const cupos = { ...cuposPorGrupo(P, 18) };
     void cupos;
-    const sinListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 0);
+    const sinListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 0, 0);
     expect(sinListon.A).toEqual(['joven']);
-    const conListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 4);
+    const conListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 4, 0);
     expect(conListon.A).toEqual(['viejo']);
     expect(conListon.B).toEqual(['joven']);
+  });
+
+  it('un jugador no sube al equipo de arriba si deja a su equipo con menos de 14 o si el de arriba está completo; todos los clubes reparten por año', () => {
+    // 16 de primer año y 6 de segundo: solo pueden subir al A los que dejan al B con 14 (los 2 mejores de primer año).
+    const miembros: MiembroDeClub[] = [
+      ...Array.from({ length: 16 }, (_, i) => ({ id: `p${String(i).padStart(2, '0')}`, puesto: ['GK', 'CB', 'LB', 'CM', 'LM', 'ST'][i % 6], valor: 90 - i, anio: 1 as const })),
+      ...Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, puesto: ['GK', 'CB', 'LB', 'CM', 'LM', 'ST'][i % 6], valor: 20 - i, anio: 2 as const })),
+    ];
+    const r = repartirEnEquipos(miembros, P, 2, 18, true, 0);
+    expect(r.A.filter((id) => id.startsWith('p')).length).toBeLessThanOrEqual(2); // 16 - 14
+    expect(r.B.length).toBeGreaterThanOrEqual(14);
+    expect(r.B.every((id) => id.startsWith('p'))).toBe(true);
+    // Con tres equipos, el C es una mezcla de los dos años; con cuatro, el C son los de segundo año (completados con los de primer año si no llegan al mínimo) y el D los de primer año.
+    const muchos: MiembroDeClub[] = [...Array.from({ length: 40 }, (_, i) => ({ id: `p${i}`, puesto: P.puestos[i % P.puestos.length].id, valor: 50 - i * 0.1, anio: 1 as const })), ...Array.from({ length: 40 }, (_, i) => ({ id: `s${i}`, puesto: P.puestos[i % P.puestos.length].id, valor: 49 - i * 0.1, anio: 2 as const }))];
+    const tres = repartirEnEquipos(muchos, P, 3, 18, true, 0);
+    expect(tres.C.length).toBeGreaterThan(0); // mezcla: entran de los dos años por lo que valen
+    const cuatro = repartirEnEquipos(muchos, P, 4, 18, true, 0);
+    expect(cuatro.C.every((id) => id.startsWith('s')) && cuatro.D.every((id) => id.startsWith('p'))).toBe(true);
   });
 
   it('los suplentes de un equipo son los que no están entre sus titulares (1 portero, 2 centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero)', () => {
@@ -148,7 +166,8 @@ describe('los equipos de los clubes en la partida', () => {
       const favorito = favoritoDe(n, pob(), val, dia);
       for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria && (x.categorias ?? [c.id]).includes(c.id) && (x.colegio === undefined || colegioDeNino(n) === x.colegio))) {
         const jugadores = equiposDelClub(lista, pob(), e, c, dia, val).miembros.map((x) => x.n);
-        const oferta = ofertaAlCandidato(jugadores, (e.equiposPorCategoria?.[c.id] ?? 1) * e.plantillaPorCategoria!.max, pob(), valores, favorito, val, dia, piernaDe(n, pob()), e.colegio === undefined ? {} : undefined); // los clubes de fuera hacen prueba: con hueco, hay que superar al suplente que mejor juega en el puesto
+        // Con una mala prueba (×0,75 de lo que vale) todavía pasaría: el azar del día no cuenta como hueco guardado.
+        const oferta = ofertaAlCandidato(jugadores, (e.equiposPorCategoria?.[c.id] ?? 1) * e.plantillaPorCategoria!.max, pob(), e.colegio === undefined ? Object.fromEntries(Object.entries(valores).map(([p, v]) => [p, v * 0.75])) : valores, favorito, val, dia, piernaDe(n, pob()), e.colegio === undefined ? {} : undefined); // los clubes de fuera hacen prueba: con hueco, hay que superar al suplente que mejor juega en el puesto
         if (oferta?.estado === 'libre' && favorito && grupoDePuesto(P, oferta.puesto) === grupoDePuesto(P, favorito)) casos.push(`${n.id}@${e.club}:${oferta.puesto}`);
       }
     }

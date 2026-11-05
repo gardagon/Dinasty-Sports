@@ -33,7 +33,8 @@ describe('cada club de la zona tiene su equipo por categoría', () => {
           // Un club tiene tantos equipos como ha abierto en la categoría (según la demanda): cada uno de 14 a 18 jugadores.
           const e = pob.equipos.find((x) => x.club === club)!;
           const k = e.equiposPorCategoria?.[cat] ?? 1;
-          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeGreaterThanOrEqual(12 * k); // cada equipo, de 14 a 18 (los que se abren nacen con el mínimo; algún jugador pasa a otro club por mérito al abrirse los demás)
+          // Los clubes de fuera, de 14 a 18 por equipo (con 14 basta); el del colegio va el último del «draft» y se queda con los alumnos que sobran: no tiene mínimo.
+          if (club !== 'colegio') expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeGreaterThanOrEqual(12 * k);
           expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeLessThanOrEqual(capacidadDe(e, cat));
         }
       }
@@ -143,9 +144,16 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
   /** Lo que vale el personaje en cada puesto: el mismo `nivel` en todos (lo que se prueba es la regla de plaza, no sus habilidades). */
   const puestosDelPersonaje = (_g: ReturnType<typeof nueva>, nivel: number) => Object.fromEntries(PUESTOS_DE_FUTBOL.puestos.map((p) => [p.id, nivel]));
 
-  it('no se le guarda ningún hueco: el equipo de su categoría empieza lleno cuando hay interesados de sobra', () => {
-    const llenos = [31, 32, 33].map((seed) => benjamin(nueva(seed)).length);
-    expect(llenos.every((n) => n >= 14 && n <= 18)).toBe(true);
+  it('no se le guarda ningún hueco: el «draft» se hace sin él y el equipo de su colegio es lo que queda de sus alumnos (nunca más de 18)', () => {
+    for (const seed of [31, 32, 33]) {
+      const g = nueva(seed);
+      const equipo = benjamin(g);
+      expect(equipo.length).toBeLessThanOrEqual(18);
+      expect(equipo.some((n) => n.id.startsWith('personaje@'))).toBe(false);
+      // Los clubes de fuera sí salen con sus equipos (de 14 a 18 por equipo) en benjamín.
+      const s = estado(g);
+      for (const club of ['club_grande', 'club_mediano', 'club_pequeno']) expect(s.npcs.filter((n) => n.deporte === 'futbol' && n.equipo === club && edadNpc(n, 0)! <= 9).length, `${club} (semilla ${seed})`).toBeGreaterThanOrEqual(14);
+    }
   });
 
   it('con hueco, entra aunque sea peor que todos', () => {

@@ -1,13 +1,13 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
+import { futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
 import {
   MAX_EQUIPOS_POR_CATEGORIA,
   capacidadDe,
   edadNpc,
-  equiposPorDemanda,
-  reclutarEnTodos,
+  draftDeEquipos,
+  valorRealDe,
   sinDeporte,
   valoracionDe,
   type MercadoDeFichajes,
@@ -65,51 +65,86 @@ describe('al crear la partida (dentro del plazo) los interesados tienen equipo',
   });
 });
 
-describe('abrir y cerrar equipos', () => {
-  const infantil = (n: Npc) => (edadNpc(n, 0) ?? -1) >= 12 && (edadNpc(n, 0) ?? -1) <= 13;
-  /** Un club (el mediano) en el que todos los niños están sin deporte y solo les interesa el fútbol a los `interesados`. */
-  const escenario = (interesados: Set<string>) => {
+describe('el «draft» por rondas (sustituye a los equipos según la demanda)', () => {
+  const REND_PUESTOS = new Map([['futbol', Object.assign((p: Parameters<typeof rendimientoDeFutbol>[0]) => rendimientoDeFutbol(p), { puestos: rendimientoPorPuestos })]]);
+  const enCategoria = (n: Npc, cat: { edadMin: number; edadMax: number }) => (edadNpc(n, 0) ?? -1) >= cat.edadMin && (edadNpc(n, 0) ?? -1) <= cat.edadMax;
+  /** El mundo con todos los futbolistas de vuelta a la bolsa (sin equipo) y sin ningún equipo de más: el «draft» los forma otra vez, solo con los `interesados` (todos si no se dice). */
+  const desdeLaBolsa = (interesados?: Set<string>) => {
     const pob0 = pobDeFutbol();
-    const pob: PoblacionGuardada = { ...pob0, equipos: pob0.equipos.filter((e) => e.club === 'club_mediano').map((e) => ({ ...e, equiposPorCategoria: undefined })) };
-    const libres = estado().npcs.map((n) => (n.genetica ? { ...(n.deporte === 'futbol' ? sinDeporte(n, pob0, false) : n), rasgos: n.rasgos && { ...n.rasgos, intereses: interesados.has(n.id) ? { futbol: 3 } : {} } } : n));
-    return { pob, npcs: reclutarEnTodos(libres, [pob], 0, new Map(), REND) };
+    const pob: PoblacionGuardada = { ...pob0, equipos: pob0.equipos.map((e) => ({ ...e, equiposPorCategoria: undefined })) };
+    const lista = new Map(estado().npcs.filter((n) => !n.id.startsWith('entrenador_club')).map((n) => [n.id, n.genetica && n.deporte === 'futbol' ? sinDeporte(n, pob0, false) : n]));
+    if (interesados) for (const [id, n] of lista) if (n.genetica && !interesados.has(id)) lista.set(id, { ...n, rasgos: n.rasgos && { ...n.rasgos, intereses: {} } });
+    const m: MercadoDeFichajes = { lista, pobs: [pob], dia: 0, val: valoracionDe(REND_PUESTOS), reservas: new Map() };
+    draftDeEquipos(m, { next: () => 0.5, int: () => 0, range: () => 0, chance: () => false, pick: <T,>(x: readonly T[]) => x[0], normal: () => 0 }, { conPrueba: false, conAmbicion: false, reiniciar: true });
+    return { m, pob: m.pobs[0] };
   };
-  const delMediano = (m: MercadoDeFichajes) => [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === 'club_mediano' && infantil(n));
-  const candidatos = () => estado().npcs.filter((n) => n.genetica && n.colegio === undefined && infantil(n));
-
-  it('con demanda de sobra un club abre otro equipo con los mejores que quedaban sin equipo (hasta el mínimo, con huecos); con poca demanda no abre', () => {
-    // 40 interesados en infantil: el mediano (18) se llena y los 22 que sobran bastan para otro equipo (mínimo 14).
-    const { pob, npcs } = escenario(new Set(candidatos().slice(0, 40).map((n) => n.id)));
-    const m = mercado(npcs, pob);
-    expect(delMediano(m)).toHaveLength(18);
-    equiposPorDemanda(m, rngNulo);
-    expect(m.pobs[0].equipos[0].equiposPorCategoria?.infantil).toBe(2);
-    expect(delMediano(m)).toHaveLength(18 + 14); // el equipo nuevo nace con el mínimo (hay huecos hasta 36)
-    expect(m.lista.has('entrenador_club_mediano_infantil_2')).toBe(true);
-    // Con 25 interesados no sobra para otro equipo (25 - 18 = 7 < 14): no abre.
-    const poco = escenario(new Set(candidatos().slice(0, 25).map((n) => n.id)));
-    const m2 = mercado(poco.npcs, poco.pob);
-    equiposPorDemanda(m2, rngNulo);
-    expect(m2.pobs[0].equipos[0].equiposPorCategoria?.infantil).toBeUndefined();
+  const delClub = (m: MercadoDeFichajes, club: string, cat: { edadMin: number; edadMax: number }) => [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === club && enCategoria(n, cat));
+  let mundo: ReturnType<typeof desdeLaBolsa>;
+  beforeAll(() => {
+    mundo = desdeLaBolsa();
   });
 
-  it('un club cierra el equipo que no llega al mínimo de jugadores: se va con su entrenador y los que sobran buscan club', () => {
-    // El mediano tiene dos equipos en infantil pero solo 23 jugadores: el segundo tendría 5 (< 14).
-    const { pob, npcs } = escenario(new Set(candidatos().slice(0, 23).map((n) => n.id)));
-    const m = mercado(npcs, { ...pob, equipos: pob.equipos.map((e) => ({ ...e, equiposPorCategoria: { infantil: 2 } })) });
-    // Los 23 interesados caben (capacidad 36): están todos en el club.
-    const antes = [...npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'club_mediano' && infantil(n))];
-    expect(antes.length).toBeLessThanOrEqual(23);
-    // Se fuerzan a 23 jugadores en el club.
-    const faltan = 23 - antes.length;
-    const extra = npcs.filter((n) => n.genetica && n.deporte === undefined && infantil(n)).slice(0, faltan);
-    for (const n of extra) m.lista.set(n.id, { ...n, deporte: 'futbol', equipo: 'club_mediano', levels: { ...n.levels, futbol: 5 } });
-    m.lista.set('entrenador_club_mediano_infantil_2', { ...npcs.find((n) => n.role === 'entrenador')!, id: 'entrenador_club_mediano_infantil_2' });
-    expect(delMediano(m)).toHaveLength(23);
-    equiposPorDemanda(m, rngNulo);
-    expect(m.pobs[0].equipos[0].equiposPorCategoria?.infantil).toBeUndefined();
-    expect(m.lista.has('entrenador_club_mediano_infantil_2')).toBe(false);
-    expect(delMediano(m)).toHaveLength(18);
+  it('primera ronda: los clubes de fuera salen con A y B (o más) de 14 jugadores como mínimo por equipo, y ningún equipo pasa de su máximo', () => {
+    const { m, pob } = mundo;
+    for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria && x.colegio === undefined)) {
+      for (const cat of pob.categorias!.filter((c) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(c.id))) {
+        const jugadores = delClub(m, e.club, cat).length;
+        const k = e.equiposPorCategoria?.[cat.id] ?? 1;
+        expect(jugadores, `${e.club} ${cat.id}`).toBeGreaterThanOrEqual(14 * k);
+        expect(jugadores, `${e.club} ${cat.id}`).toBeLessThanOrEqual(capacidadDe(e, cat.id));
+        expect(k).toBeLessThanOrEqual(MAX_EQUIPOS_POR_CATEGORIA);
+      }
+      // Casi todos tienen A y B: un club solo se queda con un equipo en una categoría si los que fueron a probar no daban para más.
+      const conDos = pob.categorias!.filter((c) => (e.equiposPorCategoria?.[c.id] ?? 1) >= 2).length;
+      expect(conDos, e.club).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('cada club solo ve a una parte de la bolsa y los más atractivos escogen primero: el grande se queda con los mejores, y los que vienen detrás, con menos', () => {
+    const { m, pob } = mundo;
+    const val = valoracionDe(REND_PUESTOS);
+    const media = (club: string) => {
+      const xs = [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === club && n.genetica).map((n) => valorRealDe(n, pob, val, 0) ?? 0);
+      return xs.reduce((a, b) => a + b, 0) / xs.length;
+    };
+    expect(media('club_grande')).toBeGreaterThan(media('club_mediano'));
+    expect(media('club_mediano')).toBeGreaterThan(media('club_pequeno'));
+    // Pero hay muy buenos en clubes modestos: el mejor del pequeño vale más que el peor del grande.
+    const valores = (club: string) => [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === club && n.genetica).map((n) => valorRealDe(n, pob, val, 0) ?? 0);
+    expect(Math.max(...valores('club_pequeno'))).toBeGreaterThan(Math.min(...valores('club_grande')));
+  });
+
+  it('los colegios van los últimos y solo con sus alumnos; ningún equipo del colegio pasa de su máximo y nadie está en dos equipos', () => {
+    const { m, pob } = mundo;
+    const colegio = pob.equipos.find((e) => e.club === 'colegio')!;
+    const delColegio = [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio');
+    expect(delColegio.every((n) => n.colegio === undefined || n.colegio === 'propio')).toBe(true);
+    for (const cat of pob.categorias!.filter((c) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(c.id))) expect(delClub(m, 'colegio', cat).length).toBeLessThanOrEqual(capacidadDe(colegio, cat.id));
+    const ids = [...m.lista.values()].filter((n) => n.deporte === 'futbol').map((n) => n.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('segunda ronda: con la bolsa que queda salen C y D en algunos clubes (de uno a dos equipos más cada uno), con su entrenador', () => {
+    const { m, pob } = mundo;
+    const abiertos = pob.equipos.flatMap((e) => Object.values(e.equiposPorCategoria ?? {}));
+    expect(abiertos.some((k) => k >= 3)).toBe(true);
+    expect(Math.max(...abiertos)).toBeLessThanOrEqual(MAX_EQUIPOS_POR_CATEGORIA);
+    for (const e of pob.equipos) for (const [cat, k] of Object.entries(e.equiposPorCategoria ?? {})) for (let n = 2; n <= k; n++) expect(m.lista.has(`entrenador_${e.club}_${cat}_${n}`), `${e.club} ${cat} ${n}`).toBe(true);
+  });
+
+  it('con poca bolsa, un club que no llega al mínimo para sus equipos no los monta: los que fueron a probar vuelven a la bolsa', () => {
+    const pob0 = pobDeFutbol();
+    const cat = pob0.categorias!.find((c) => c.id === 'infantil')!;
+    // Solo 20 interesados en infantil: no salen ni dos equipos de 14.
+    const pocos = new Set(estado().npcs.filter((n) => n.genetica && enCategoria(n, cat)).slice(0, 20).map((n) => n.id));
+    const { m, pob } = desdeLaBolsa(pocos);
+    for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
+      const jugadores = delClub(m, e.club, cat).length;
+      const k = e.equiposPorCategoria?.infantil ?? 1;
+      expect(jugadores === 0 || jugadores >= 14 * Math.max(1, k) || e.colegio !== undefined, `${e.club}: ${jugadores} jugadores con ${k} equipos`).toBe(true);
+      expect(k).toBeLessThanOrEqual(1 + Math.floor(jugadores / 14));
+      if (!e.colegio) expect(m.lista.has(`entrenador_${e.club}_infantil_2`) && k < 2).toBe(false); // sin segundo equipo no queda su entrenador
+    }
   });
 });
 

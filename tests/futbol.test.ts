@@ -148,11 +148,14 @@ describe('fútbol empaquetado', () => {
 
 
 // Necesitan un equipo de verdad (los niños de 8 y 9 años del colegio): la ciudad grande, con plazo propio para todo el bloque.
+// El equipo del colegio va el último del «draft» y se queda con los alumnos que sobran (a veces, uno o dos): estos tests miran lo que entrena un equipo y necesitan una partida en que tenga al menos cuatro.
+const SEMILLA_CON_EQUIPO_DE_COLEGIO = 35;
+
 describe('los ejercicios son los mismos para todo el equipo', { timeout: 90000 }, () => {
   const equipo = (g: ReturnType<typeof nueva>) => g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.hab?.futbol && edadNpc(n, 0)! <= 9);
 
   it('en una semana, las habilidades que suben los jugadores de un equipo son las de los mismos ejercicios (no las de ejercicios distintos para cada uno)', () => {
-    const g = nueva(31, true);
+    const g = nueva(SEMILLA_CON_EQUIPO_DE_COLEGIO, true);
     advanceToWeek(g, 'gen.descansar', 2, 0, 8);
     const antes = new Map(equipo(g).map((n) => [n.id, [...n.hab!.futbol.v]]));
     advanceToWeek(g, 'gen.descansar', 3, 0, 8);
@@ -166,13 +169,13 @@ describe('los ejercicios son los mismos para todo el equipo', { timeout: 90000 }
       if (cambios.some((c) => c > 1e-6)) con++;
       cambios.forEach((c, i) => c > 1e-6 && subieron.add(habilidades[i] ?? `stat${i}`));
     }
-    expect(con).toBeGreaterThan(5);
+    expect(con).toBeGreaterThan(3);
     // Dos sesiones de dos ejercicios de 3 o 4 habilidades cada uno, más lo que se suma siempre y el juego colectivo: unas 12 a lo sumo. Con ejercicios propios de cada uno saldrían casi todas (29).
     expect(subieron.size).toBeLessThanOrEqual(14);
   });
 
   it('el personaje entrena lo que entrena su equipo: los ejercicios de su sesión salen de lo que le falta al equipo, con la misma semilla', () => {
-    const g = nueva(31, true);
+    const g = nueva(SEMILLA_CON_EQUIPO_DE_COLEGIO, true);
     advanceToWeek(g, 'gen.descansar', 2, 2, 15);
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     advanceToWeek(g, 'gen.descansar', 3, 3, 15);

@@ -145,6 +145,9 @@ export const RUIDO_DE_LA_PRUEBA = 0.06;
  */
 export const valorDeLaPrueba = (valor: number, eficiencia: number, z: number): number => valor * factorDeCompeticion(eficiencia) * (1 + RUIDO_DE_LA_PRUEBA * z);
 
+/** Qué parte de la bolsa de interesados de una categoría va a probar con un club en la primera ronda del «draft» (`CIUDAD_Y_LIGAS.md` §5): los grandes atraen más. Los colegios no la usan (ven a todos sus alumnos). */
+export const ATRACTIVO_DE_TAMANO: Readonly<Record<TamanoDeClub, number>> = { grande: 0.6, mediano: 0.5, pequeno: 0.4 };
+
 /**
  * Un club o el equipo de un colegio que recluta niños para el deporte. La plantilla es un número más o menos definido (se sortea entre `min` y `max`
  * al crear la partida y se mantiene): así un club no tiene veinte niños. Los equipos de un colegio solo reclutan a sus alumnos; los clubes, a cualquiera
@@ -162,6 +165,8 @@ export interface EquipoDeDeporte {
    * después los medianos; al final los pequeños). El equipo del colegio del personaje es un club pequeño más. Sin él: el que corresponde a su `calidad`.
    */
   tamano?: TamanoDeClub;
+  /** Qué parte de la bolsa va a probar con el club en la primera ronda del «draft» (0 a 1); sin él, la de su tamaño (`ATRACTIVO_DE_TAMANO`). Marca también el orden: los más atractivos escogen primero. */
+  atractivo?: number;
   /** 1 colegio, 2 club de la ciudad, 3 alto rendimiento. Es lo mismo que el tamaño (pequeño, mediano, grande): con `tamano`, sale de él. Sin ninguno: la del club en el catálogo del personaje, o 1 si es de un colegio y 2 si no. */
   calidad?: 1 | 2 | 3;
   /** Edades de competición que recluta (por defecto, las del deporte; los equipos de un colegio solo llegan a la edad en que acaba el colegio). */

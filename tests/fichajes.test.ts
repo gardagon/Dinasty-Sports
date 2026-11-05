@@ -189,14 +189,16 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
 
   it('si ningún club de ningún deporte lo quiere, deja el deporte para siempre y no vuelve a ser reclutado', () => {
     const fut = pobDe('futbol');
-    // Solo el equipo del colegio, completo; el niño (el peor de todos, sin interés por otros deportes) no entra en ningún club.
-    const colegio: PoblacionGuardada = { ...fut, equipos: fut.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, plantillaPorCategoria: { min: 1, max: 16 } })) };
     const base0 = estado(base).npcs;
     // El que menos vale del equipo (así, con el equipo completo, no hay a quién superar), sea cual sea el mundo que salga de crear la partida.
     const valB = valoracionDe(REND);
     const k = base0
       .filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.tipos?.some((t) => t.tipo === 'alumno') && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13)
       .sort((x, y) => valorRealDe(x, fut, valB, 0)! - valorRealDe(y, fut, valB, 0)! || (x.id < y.id ? -1 : 1))[0];
+    const catDelNino = fut.categorias!.find((c) => edadNpc(k, 0)! >= c.edadMin && edadNpc(k, 0)! <= c.edadMax)!;
+    const enSuCategoria = base0.filter((n) => n.id !== k.id && n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! >= catDelNino.edadMin && edadNpc(n, 0)! <= catDelNino.edadMax).length;
+    // Solo el equipo del colegio, completo (con tantos como tiene sin él); el niño (el peor de todos, sin interés por otros deportes) no entra en ningún club.
+    const colegio: PoblacionGuardada = { ...fut, equipos: fut.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, equiposPorCategoria: undefined, plantillaPorCategoria: { min: 1, max: enSuCategoria } })) };
     const m = mercadoDe(
       base0.map((n) => (n.id === k.id ? { ...sinDeporte(n, fut, false), cap: n.cap!.map(() => 1), pico: n.pico!.map(() => 1), rasgos: n.rasgos && { ...n.rasgos, intereses: { futbol: 3 } } } : n)),
       [colegio],
