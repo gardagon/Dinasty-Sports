@@ -177,15 +177,15 @@ Esto multiplica por unas 5 la población, y por más el número de jugadores con
 Por eso:
 - **Antes de subir la población hace falta el guardado por partes** (`ALMACENAMIENTO.md` §4, fase 2), y seguramente rasgos compactos (fase 3). Sus disparadores, unas 3.000 personas, se superan con mucho.
 - **Tiempos que hay que mantener** (a confirmar con la medida; decisión del usuario, 05/11): **lo que importa es que la partida vaya fluida**: lo que tarda cada acción, avanzar una semana con todos los partidos (menos de ~1 s en un ordenador normal) y guardar sin que se note. **Crear la partida puede pesar** (personas, clubes, historia): hasta unos 30 s está bien, con una pantalla de «creando el mundo». Los tests que crean muchas partidas no deben depender de eso: usan la ciudad pequeña de prueba o un plazo propio por fichero.
-- **Medida de fluidez** *(`npm run fluidez`; semilla 31, fútbol y atletismo, 12 semanas de curso con el bot del montón; el factor multiplica los colegios de fuera, las clases del colegio del personaje y los vecinos)*, **con los valores por puesto guardados** (calculados al crear la partida y al final de cada semana; las consultas solo los leen):
+- **Medida de fluidez** *(`npm run fluidez`; semilla 31, fútbol y atletismo; el factor multiplica los colegios de fuera, las clases del colegio del personaje y los vecinos; 12 semanas de curso con el bot del montón y, aparte, 55 para ver el cambio de curso)*, **con el «draft» y los valores por puesto guardados cada semana**. La semana es lo que tarda el juego en avanzar sus acciones (**sin** lo que tarda el bot en mirar qué hacer, que las medidas anteriores sí contaban):
 
-| Población | Personas | Futbolistas | Crear | Estado | Guardar | Cargar | Acción (media / p95 / máx) | Semana (media / máx) |
-|---|---|---|---|---|---|---|---|---|
-| ×1 | 1.444 | 635 | 9,6 s | 3,5 MB | 59 ms | 0,1 s | 1,3 ms / 1 ms / 191 ms | 0,78 s / 1,02 s |
-| ×2 | 2.873 | 1.258 | 49 s | 7,0 MB | 111 ms | 0,1 s | 2,1 ms / 1,1 ms / 386 ms | 1,03 s / 1,25 s |
-| ×5 | 7.061 | 1.319 | 332 s | 15,0 MB | 294 ms | 0,1 s | 2,0 ms / 1,4 ms / 301 ms | 1,39 s / 1,60 s |
+| Población | Personas | Futbolistas | Crear | Estado | Guardar | Cargar | Acción (media / p95) | Apuntarse | Semana (media / máx) | Cambio de curso |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ×1 | 1.445 | 620 | 6,3 s | 3,5 MB | 38 ms | 0,0 s | 1,3 ms / 0,9 ms | 27 ms | 0,18 s / 0,23 s | 1,0 s |
+| ×2 | 2.880 | 1.338 | 13,5 s | 7,0 MB | 76 ms | 0,1 s | 2,2 ms / 1,2 ms | 26 ms | 0,31 s / 0,44 s | 1,5 s |
+| ×5 | 7.071 | 1.509 | 25,8 s | 15,3 MB | 179 ms | 0,1 s | 4,4 ms / 1,7 ms | 52 ms | 0,62 s / 0,52 s* | **14,6 s** |
 
-  Antes (sin valores guardados, `main` del 05/11): la acción de apuntarse al empezar el curso tardaba 2,4–6 s y a ×5 la semana, 1,24 s. **Qué era:** no era solo recalcular los valores: un desplazado que busca club podía desplazar a otro por un puesto distinto y la cadena **daba vueltas hasta el tope (40.000 intentos por un solo desplazado)**. Ahora cada uno busca como mucho tres veces por tanda (el que llega al tope se queda sin equipo, sin apartarlo, y el relleno posterior lo coge si hay hueco). **Lo que sale:** guardar (<300 ms hasta ×2, 294 ms a ×5) y cargar no se notan; una acción normal, 1–2 ms y la peor, 0,2–0,4 s (hay que bajarla de 100 ms: pendiente); **la semana cumple a ×1 (0,78 s) y se pasa a ×2 y ×5** (1,0–1,4 s); crear la partida, 10 s, 49 s a ×2 y 5,5 min a ×5 (con barra de progreso: vale de momento).
+  \* la media de ×5 incluye el cambio de curso; una semana normal, 0,3–0,5 s. **Lo que sale:** apuntarse baja de 100 ms (27–52 ms; antes, 2,4–6 s por la cadena de desplazados y el recálculo); **la semana cumple a ×5 (<0,5 s)**; guardar (<300 ms) y cargar no se notan; **crear la partida a ×5 pasa de 332 s a 26 s** (el «draft» no itera abriendo equipo a equipo). **Lo único que se sale es el cambio de curso a ×5 (14,6 s, el límite es ~5 s)**: es el plazo de fichajes de verano, que sustituirá el porcentaje que prueba en otro club (siguiente PR).
 - **Si algo no cabe, se arregla calculando o guardando mejor, no recortando** (`VISION.md`, principios 4 y 5). El último recurso es tener menos colegios, nunca menos datos por persona.
 
 ## 9. Cómo se comprueba

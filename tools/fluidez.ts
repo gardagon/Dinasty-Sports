@@ -9,6 +9,7 @@ import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
 import { deportistaDe, type BotMemory } from '../sim/src/bots';
 import { hacer, opcionesDelBot } from '../sim/src/pasos';
+import { hacer as hacerAccion } from '../tests/ayudas';
 import { seededRng } from '@ds/core';
 
 const SEMANAS = Number(process.argv[2] ?? 12);
@@ -36,8 +37,8 @@ const paisPor = (k: number): PaisDef => {
 };
 
 console.log(`Fluidez: ${SEMANAS} semanas de curso, fútbol y atletismo, factores de población ${FACTORES.join(', ')}\n`);
-console.log('| Población | Personas | Futbolistas | Crear (s) | Estado (KB) | Guardar (ms) | Cargar (s) | Acción media / p95 / máx (ms) | Semana media / máx (ms) |');
-console.log('|---|---|---|---|---|---|---|---|---|');
+console.log('| Población | Personas | Futbolistas | Crear (s) | Estado (KB) | Guardar (ms) | Cargar (s) | Acción media / p95 / máx (ms) | Apuntarse (ms) | Semana media / máx (ms) |');
+console.log('|---|---|---|---|---|---|---|---|---|---|');
 for (const k of FACTORES) {
   const pais = paisPor(k);
   registrarPais(pais);
@@ -52,8 +53,10 @@ for (const k of FACTORES) {
   const semanas: number[] = [];
   const guardados: number[] = [];
   advanceToWeek(g, 'gen.descansar', 1, 2, 17);
+  // Apuntarse al club del colegio (la acción que mide al desplazado y le busca club): lo que tarda, con lo que cuesta ir hasta allí.
+  const [, apuntarse] = t(() => hacerAccion(g, 'futbol.apuntarse_colegio'));
   let semana = g.time.week;
-  let inicio = performance.now();
+  let enLaSemana = 0; // lo que tarda el juego en la semana (sus acciones), sin lo que tarda el bot en mirar qué hacer
   while (g.time.week < SEMANAS + 1) {
     if (mem.day !== g.time.day) {
       mem.day = g.time.day;
@@ -63,9 +66,10 @@ for (const k of FACTORES) {
     if (!opts.length) break;
     const [, ms] = t(() => hacer(g, opts, bot.choose(g, opts, rng, mem)));
     acciones.push(ms);
+    enLaSemana += ms;
     if (g.time.week !== semana) {
-      semanas.push(performance.now() - inicio);
-      inicio = performance.now();
+      semanas.push(enLaSemana);
+      enLaSemana = 0;
       semana = g.time.week;
       guardados.push(t(() => g.serializarJSON()).at(-1) as number);
     }
@@ -74,6 +78,6 @@ for (const k of FACTORES) {
   const texto = JSON.stringify(g.serialize());
   const [, cargar] = t(() => cargarPartida(JSON.parse(texto), [...MODULOS, futbol], { copiar: false }));
   console.log(
-    `| ×${k} | ${npcs.length} | ${npcs.filter((n) => n.deporte === 'futbol').length} | ${f(crear / 1000)} | ${f(json.length / 1024)} | ${f(media(guardados))} | ${f(cargar / 1000)} | ${f(media(acciones))} / ${f(p95(acciones))} / ${f(Math.max(...acciones))} | ${f(media(semanas))} / ${f(Math.max(...semanas))} |`,
+    `| ×${k} | ${npcs.length} | ${npcs.filter((n) => n.deporte === 'futbol').length} | ${f(crear / 1000)} | ${f(json.length / 1024)} | ${f(media(guardados))} | ${f(cargar / 1000)} | ${f(media(acciones))} / ${f(p95(acciones))} / ${f(Math.max(...acciones))} | ${f(apuntarse)} | ${f(media(semanas))} / ${f(Math.max(...semanas))} |`,
   );
 }
