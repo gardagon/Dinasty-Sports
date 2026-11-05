@@ -195,6 +195,11 @@ export interface Npc {
   /** En los deportes con puestos: el puesto en que juega en su equipo (id del puesto) y el que prefiere (el favorito, aquel en que más valía al empezar), por deporte. */
   puesto?: Record<string, string>;
   puestoFavorito?: Record<string, string>;
+  /**
+   * Lo que vale en cada deporte que juega y en cada puesto, **calculado al crear la partida y al final de cada semana** (con la pierna ya contada): las consultas (la regla de plaza, los equipos,
+   * las pruebas) solo lo leen, no lo recalculan. Se redondea a dos decimales.
+   */
+  vp?: Record<string, { valor: number; puestos?: Record<string, number> }>;
   /** Nivel máximo al que puede llegar cada disciplina. */
   potential: Record<string, number>;
   /** Ritmo de progreso por disciplina (1 = medio): lo constante y bien entrenado que es. Ausente = 1. */
@@ -765,7 +770,7 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
     const pob = n.deporte ? porDeporte.get(n.deporte) : undefined;
     if (!pob || !n.genetica || n.nacimiento === undefined || n.hab?.[pob.deporte]) return n;
     const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco]));
-    return { ...n, cap: h.cap, pico: h.pico, capUlt: h.capUlt, hab: { ...n.hab, [pob.deporte]: h.hab }, levels: { ...n.levels, [pob.deporte]: h.nivel } };
+    return { ...n, cap: h.cap, pico: h.pico, capUlt: h.capUlt, hab: { ...n.hab, [pob.deporte]: h.hab }, levels: { ...n.levels, [pob.deporte]: h.nivel }, vp: { ...n.vp, [pob.deporte]: valoresGuardados(n, pob, h.nivel, h.puestos) } };
   });
 }
 
@@ -806,6 +811,7 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
       n.capUlt = res.capUlt;
       n.hab![pob.deporte] = res.hab;
       n.levels[pob.deporte] = res.nivel;
+      n.vp = { ...n.vp, [pob.deporte]: valoresGuardados(n, pob, res.nivel, res.puestos) };
     }
   }
 }
@@ -961,6 +967,13 @@ export interface Valoracion {
 }
 export const valoracionDe = (rend: Rendimientos = new Map()): Valoracion => ({ rend, valores: new Map(), puestos: new Map() });
 
+/** Lo que se guarda de lo que vale un niño en un deporte: su valor y lo que vale en cada puesto (con su pierna), a dos decimales. */
+function valoresGuardados(n: Npc, pob: PoblacionGuardada, valor: number, crudos?: Record<string, number>): { valor: number; puestos?: Record<string, number> } {
+  const r2 = (x: number): number => Math.round(x * 100) / 100;
+  const puestos = crudos && pob.puestos ? conLaPierna(crudos, piernaDe(n, pob), ventajaDelLado(pob)) : undefined;
+  return { valor: r2(valor), ...(puestos ? { puestos: Object.fromEntries(Object.entries(puestos).map(([p, x]) => [p, r2(x)])) } : {}) };
+}
+
 /**
  * Lo que vale hoy un niño en un deporte: su rendimiento con sus capacidades reales y sus habilidades (las que lleva si ya juega o las de partida si aún no). Sin rendimiento del
  * deporte (los deportes de prueba) o sin capacidades, `undefined`: entonces se usa su potencial.
@@ -971,6 +984,14 @@ export function valorRealDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: 
   const clave = `${n.id}|${pob.deporte}`;
   const guardado = v.valores.get(clave);
   if (guardado !== undefined) return guardado;
+  // Quien ya juega lleva calculado lo que vale (al crear la partida y cada semana): se lee, no se recalcula.
+  const leido = n.deporte === pob.deporte ? n.vp?.[pob.deporte] : undefined;
+  const conPuestos = !!pob.puestos && !!f.puestos; // los puestos solo cuentan si quien valora los da
+  if (leido && (!conPuestos || leido.puestos)) {
+    v.valores.set(clave, leido.valor);
+    if (leido.puestos && conPuestos) v.puestos.set(clave, leido.puestos);
+    return leido.valor;
+  }
   const hab = n.hab?.[pob.deporte] ?? habilidadesIniciales(n.id, n.genetica, pob.deporte, pob.rutina, dia);
   const t = prepararTrabajo({ id: n.id, genetica: n.genetica, nacimiento: n.nacimiento, cap: n.cap, pico: n.pico }, valoresIniciales(n.id, n.genetica), pob.deporte, pob.rutina, hab, n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), dia);
   const lector = lectorDe(t);
@@ -1327,6 +1348,9 @@ function pruebaDeUnNino(n: Npc, e: EquipoGuardado, valores: Readonly<Record<stri
 /** Los clubes de un deporte del más grande al más pequeño: el orden en que un niño busca plaza. */
 const clubesPorTamano = (pob: PoblacionGuardada): EquipoGuardado[] => [...pob.equipos].sort((a, b) => b.calidad - a.calidad || (a.club < b.club ? -1 : 1));
 
+/** Cuántas veces busca club un mismo desplazado en una tanda antes de dejar de buscar en ella. */
+const MAX_BUSQUEDAS = 3;
+
 /**
  * Los niños que se quedan sin equipo (desplazados por otro que vale más) buscan club, **dentro del plazo de fichajes y con la misma regla de plaza**:
  * 1. otro club de su deporte, del más grande al más pequeño, con hueco o desplazando a uno peor (que a su vez busca);
@@ -1336,10 +1360,16 @@ const clubesPorTamano = (pob: PoblacionGuardada): EquipoGuardado[] => [...pob.eq
  */
 export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly { id: string; origen: string }[]): void {
   const cola = [...desplazados];
+  // Cuántas veces ha tenido que buscar club cada uno en esta tanda: como un desplazado puede desplazar a otro por un puesto distinto, la cadena podría dar vueltas (40.000 intentos por un solo
+  // desplazado). Quien llega a `MAX_BUSQUEDAS` deja de buscar en esta tanda, sin apartarlo ni dejarlo: el relleno de plantillas posterior lo coge si hay hueco.
+  const busquedas = new Map<string, number>();
   for (let vueltas = 0; cola.length && vueltas < 20000; vueltas++) {
     const { id, origen } = cola.shift()!;
     let n = m.lista.get(id);
     if (!n || n.deporte !== undefined || id.startsWith('personaje@')) continue;
+    const veces = (busquedas.get(id) ?? 0) + 1;
+    busquedas.set(id, veces);
+    if (veces > MAX_BUSQUEDAS) continue; // se queda sin equipo, sin apartar: los equipos que se rellenan después lo cogen si hay hueco
     const deportes = [origen, ...m.pobs.filter((p) => p.deporte !== origen && interesPor(n!.rasgos, p.deporte) > 0).sort((a, b) => interesPor(n!.rasgos, b.deporte) - interesPor(n!.rasgos, a.deporte)).map((p) => p.deporte)];
     const intentados: string[] = [];
     let colocado = false;

@@ -172,9 +172,14 @@ export interface Resultado {
   capUlt: number[];
   hab: HabilidadesDe;
   nivel: number;
+  /** Lo que vale en cada puesto del deporte (sin contar la pierna), si el deporte los tiene. */
+  puestos?: Record<string, number>;
   /** Cuántas sesiones del club ha hecho esa semana (para su cansancio). */
   sesiones: number;
 }
+
+/** Lo que vale en cada puesto, si el rendimiento del deporte los da. */
+const puestosDe = (rend: (p: LectorDePersona) => number, t: Trabajo): Record<string, number> | undefined => (rend as { puestos?: (p: LectorDePersona) => Record<string, number> }).puestos?.(lectorDe(t));
 
 function resultado(t: Trabajo, rend: (p: LectorDePersona) => number, sesiones = 0): Resultado {
   return {
@@ -184,6 +189,7 @@ function resultado(t: Trabajo, rend: (p: LectorDePersona) => number, sesiones = 
     capUlt: t.capUlt,
     hab: { v: t.hab.v.map(redondea), pico: t.hab.pico.map(redondea), ult: [...t.hab.ult] },
     nivel: rend(lectorDe(t)),
+    ...(puestosDe(rend, t) ? { puestos: puestosDe(rend, t) } : {}),
   };
 }
 

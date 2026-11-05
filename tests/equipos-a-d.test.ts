@@ -148,7 +148,7 @@ describe('los equipos de los clubes en la partida', () => {
       const favorito = favoritoDe(n, pob(), val, dia);
       for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria && (x.categorias ?? [c.id]).includes(c.id) && (x.colegio === undefined || colegioDeNino(n) === x.colegio))) {
         const jugadores = equiposDelClub(lista, pob(), e, c, dia, val).miembros.map((x) => x.n);
-        const oferta = ofertaAlCandidato(jugadores, (e.equiposPorCategoria?.[c.id] ?? 1) * e.plantillaPorCategoria!.max, pob(), valores, favorito, val, dia, piernaDe(n, pob()));
+        const oferta = ofertaAlCandidato(jugadores, (e.equiposPorCategoria?.[c.id] ?? 1) * e.plantillaPorCategoria!.max, pob(), valores, favorito, val, dia, piernaDe(n, pob()), e.colegio === undefined ? {} : undefined); // los clubes de fuera hacen prueba: con hueco, hay que superar al suplente que mejor juega en el puesto
         if (oferta?.estado === 'libre' && favorito && grupoDePuesto(P, oferta.puesto) === grupoDePuesto(P, favorito)) casos.push(`${n.id}@${e.club}:${oferta.puesto}`);
       }
     }
