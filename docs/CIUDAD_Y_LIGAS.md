@@ -63,14 +63,20 @@ Cada club tiene un **tamaño**, que es un dato y decide cuántos equipos saca po
 
 Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F2). Va antes de la P2c.
 
-**Hasta cuatro equipos por club y categoría.** Cada club abre los que le permiten sus jugadores.
+**Hasta cuatro equipos por club y categoría.** Cuántos tiene cada club sale del «draft» (abajo).
 
-| Club | Cómo reparte |
+**Todos los clubes reparten por año** (decisión del usuario, 05/11; antes solo los grandes):
+
+| Equipo | Quién juega |
 |---|---|
-| **Grandes** (los «top») | **Por año:** **A**, los de segundo año más los de primer año que destacan (los que serían titulares en el A, como al subir de categoría); **B (filial)**, los de primer año, y solo los mejores; **C**, los de segundo año que no entran en el A; **D**, los de primer año que no entran en el B. En juvenil, que tiene tres años, «segundo año» es segundo y tercero |
-| **Medianos, pequeños y el del colegio** | **Por nivel, con los años mezclados**, como los grupos de un colegio: el A con los mejores, el B con los siguientes, y así |
+| **A** | Los de segundo año, más los de primer año que destacan (los que serían titulares en el A, como al subir de categoría) |
+| **B** | Los de primer año |
+| **C**, si el club solo tiene C | Mezcla de los dos años |
+| **C y D**, si tiene los dos | El C, los de segundo año (si no llegan, se completa con los de primer año); el D, los de primer año |
 
-- **Los equipos de más (C y D en un grande) salen de los propios jugadores del club**, no de los que sobran en la ciudad: que el Real Ciudad tenga un C no le abre la puerta del club grande a cualquiera.
+En juvenil, que tiene tres años, «segundo año» es segundo y tercero.
+- **Subir a un jugador a un equipo de arriba tiene dos límites:** no sube si su equipo se queda con menos de 14 (lo desarmaría) ni si el de arriba está completo.
+
 - **Un primer año en el A de un grande, de 0 a 2 por club y temporada**, casi nunca más. La simulación lo vigila (§9). Si salen muchos más, se sube el listón, sin tocar a nadie en concreto.
 
 **Todo por puestos** *(hecho: puestos, reparto de la plantilla, regla de plaza por puesto y aceptación según el carácter en la parte 1, 06/11; equipos A–D en la parte 2, 07/11; prueba de acceso, puesto elegido y consejo del profesor en la parte 3, 08/11)*. No tiene sentido un equipo con once delanteros, y nadie (ni un PNJ ni el personaje) se limita a un único puesto: el descarte de un delantero puede ser un gran extremo.
@@ -80,10 +86,30 @@ Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F
 - **Cada uno tiene un puesto favorito.** Si el club le ofrece otro, un PNJ lo acepta o no según su carácter (propuesta: más fácil cuanto más disciplinado y sacrificado sea, cuanto más se parezca el puesto al suyo y si en él sería titular). Si acepta, se queda en el equipo en ese puesto; si no, busca sitio en otro club.
 - **El personaje igual, decidiendo él:** hace la prueba en el puesto que elige, pero el entrenador le puede proponer otro en la prueba, y él decide si acepta.
 
-**Equipos según la demanda, con movimiento:**
-- Primero se llenan todos los equipos.
-- Si los que se han quedado sin equipo, **más los suplentes de otros equipos que serían titulares en uno nuevo**, llegan al mínimo, se abre otro equipo: en los clubes pequeños y en el del colegio primero; en los grandes, solo como su C o su D, con sus jugadores. «Mejor ser titular en un equipo nuevo que el 18.º en otro»: cada suplente decide si se va según su ambición.
-- Los huecos que dejan los que se van los ocupa cualquiera con la regla de plaza, el personaje incluido. **No hay huecos guardados para nadie**: después de crear la partida y de cada verano, ningún interesado se queda sin equipo mientras haya hueco en su puesto en un club que lo coja.
+**Cómo se forman los equipos: un «draft» por rondas** (decisión del usuario, 05/11; sustituye al reparto por orden de tamaño y a los equipos según la demanda). Cada club solo ve a los niños que van a probar con él, no a todos: así hay niños muy buenos en clubes modestos y los equipos quedan más compensados. La idea es hacer las plantillas de 2, 3 o 4 equipos por club y después ajustarlas. Ejemplo con 1.000 interesados en una categoría, cuatro clubes y un colegio:
+
+1. **Primera ronda, los A y B.** Los clubes van por orden de **atractivo** (dato de cada club; los colegios, los últimos, son los menos atractivos):
+
+   | Club | Bolsa | Van a probar | Coge | Vuelven a la bolsa |
+   |---|---|---|---|---|
+   | Grande | 1.000 | 60 % → 600 | A y B (36) | 564 descartados |
+   | Mediano | 400 que no fueron + 564 = 964 | 50 % → 482 | A y B | Los descartados |
+   | Pequeño 1 | Los que no fueron + los descartados | 40 % | A y B | Los descartados |
+   | Pequeño 2 | Ídem | 40 % | A y B | Los descartados |
+   | Cada colegio con club | Sus alumnos que siguen en la bolsa | Todos, sin porcentaje ni prueba | A y B | El resto |
+
+   - **Quién va a probar:** un sorteo en el que pesan la ambición y el interés de cada niño (el ambicioso va más a probar al grande). Si eso hace la función mucho más lenta, al crear la partida el sorteo es simple y lo de la ambición se usa desde el segundo curso, en los cambios de equipo.
+   - **Los que van a probar son de los dos años mezclados**, no un porcentaje de cada año. Si al sorteo le faltan niños de un año para el A o el B, se añaden al azar de la bolsa los de ese año que hagan falta.
+   - **Cada club coge a los mejores por puesto**, al crear la partida por lo que vale cada uno (en los plazos de fichajes, por su prueba). Puede que no llene los 18 (alguno rechaza el puesto que le ofrecen, o en la bolsa salen 20 delanteros): **con 14 basta**, y la segunda ronda equilibra.
+2. **Segunda ronda, los C y D.** Con los que quedan en la bolsa se mira cuántos equipos de 14 a 18 salen (a 14 por equipo; los jugadores, repartidos para que queden parejos). **Esos equipos se sortean** entre clubes y colegios (cada uno, como mucho dos más: C y D), **teniendo en cuenta el año** que pide cada equipo (un D necesita niños de primer año). Después se repite lo de la primera ronda con su porcentaje: si los que van a probar no llegan al mínimo, van al menos el mínimo; si están entre el mínimo y el máximo, entran todos; si pasan del máximo, los que sobran vuelven a la bolsa.
+   - Un club con C y D: el C con los de segundo año (si no llegan, se completa con los de primer año); si faltan de primer año para el D, entran los de primer año de la bolsa y los de segundo que no caben en el C vuelven a ella. **Si ni así se monta el D**, ese equipo pasa por sorteo a otro club que no tenga ni C ni D.
+   - Si un colegio no llega a formar su C o su D, sus jugadores van a la bolsa final de descartes.
+3. **Ajuste de las plantillas.** Cada club reordena sus equipos (con el azar, uno del D podría ser titular en el A), con los límites de subir de arriba. El que no puede bajar por su año (uno de segundo año no puede ir al D) va a la bolsa de descartes.
+4. **Última revisión de los descartes definitivos:** con ellos se monta un equipo en su colegio, si lo tiene, o en un club, según dónde estudie cada uno. Los que siguen sin equipo se quedan apartados ese curso (§7, dos plazos).
+
+**El personaje no entra en los porcentajes:** decide él a qué clubes va a probar, y su prueba sigue la regla de plaza (abajo). Al crear la partida el «draft» se hace sin él; después prueba dentro del plazo.
+
+**Los años siguientes:** un porcentaje pequeño, según su carácter, prueba en otro club (el suplente del grande que prueba en el mediano para ser titular, o el titular del mediano que prueba en el grande). Los ojeadores y los fichajes, más adelante.
 
 **Entrar en un club de fuera: una prueba de acceso** *(hecho en la parte 3, 08/11)* (en el del colegio, no):
 - Quien quiere entrar en un club que no es el de su colegio (el personaje o un niño) **hace una prueba**, que le puede salir mejor o peor: cuenta su estado, su forma del día y algo de azar, como una competición. **Lo que vale en la prueba es lo que cuenta para la regla de plaza.**
