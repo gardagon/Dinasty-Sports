@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { APORTES, CAPACIDADES_GENETICAS, GEN, GRUPO_DE_CAPACIDAD, SERVICES, SHARED_EVENTS, aptitudDe, defineModule, validarDatosDeDeporte, type DatosDeDeporte, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
@@ -8,6 +8,9 @@ import { CON_PRUEBA, DATOS_PRUEBA } from './deporte-de-prueba';
 import { reclutarEnTodos, sinDeporte } from '../modules/npcs/src/index';
 import type { Npc, NpcsState } from '@ds/mod-npcs';
 import { rngEstable } from '@ds/contracts';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * La gente de cada deporte (fase 4 del plan de deportes modulares): los niños se crean con su genética heredada y sus gustos, sin pensar en ningún deporte, y
@@ -155,7 +158,7 @@ describe('quien destaca un año no tiene por qué destacar tres años después',
     expect(rhos.length).toBeGreaterThan(5);
     expect(media(rhos)).toBeLessThan(0.93);
     expect(media(rhos)).toBeGreaterThan(0.3);
-  }, 60000);
+  });
 });
 
 describe('los clubes reclutan por gustos y aptitudes', () => {

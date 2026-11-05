@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { CALENDARIO_ESPANA, GEN, SERVICES, SHARED_EVENTS, defineModule, plazoDeFichajesAbierto, proximaAperturaDelPlazo, type ClubDirectory } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
@@ -21,6 +21,9 @@ import {
 } from '@ds/mod-npcs';
 import { rendimiento as rendimientoDeAtletismo } from '@ds/mod-atletismo';
 import { hacer, posible } from './ayudas';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * El plazo de fichajes y quien se queda sin equipo (decisión del usuario, 03/11/2026; `CIUDAD_Y_LIGAS.md` §7). Mismas reglas para el personaje y los niños del mundo.
@@ -60,7 +63,7 @@ describe('el personaje y el plazo', () => {
     } else {
       expect(g.preview('futbol.apuntarse_colegio')!.reason).toMatch(/plazo de fichajes está cerrado hasta el verano/);
     }
-  }, 60000);
+  });
 
   it('dentro de plazo, con el equipo lleno y mejor que el peor, entra; fuera de plazo, no', () => {
     const lleno = (g: ReturnType<typeof nueva>) => {
@@ -79,7 +82,7 @@ describe('el personaje y el plazo', () => {
     lleno(fuera);
     expect(posible(fuera, 'futbol.apuntarse_colegio')).toBe(false);
     expect(fuera.preview('futbol.apuntarse_colegio')!.reason).toMatch(/plazo de fichajes está cerrado hasta el verano.*hueco/);
-  }, 90000);
+  });
 
   it('quien deja su club fuera de plazo no entra en otro de ese deporte hasta el siguiente plazo; dentro de plazo, sí', () => {
     const g = nueva();
@@ -96,7 +99,7 @@ describe('el personaje y el plazo', () => {
     advanceToWeek(g, 'gen.descansar', 42, 2, 15);
     // Ya no lo frena el plazo (si no entra será por la plaza del equipo, no por haber dejado el club).
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').not.toMatch(/fuera de plazo|plazo de fichajes/);
-  }, 90000);
+  });
 
   it('dejar el club dentro de plazo no cierra la puerta', () => {
     const g = nueva();
@@ -104,7 +107,7 @@ describe('el personaje y el plazo', () => {
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     expect(hacer(g, 'futbol.dejar_club').ok).toBe(true);
     expect(posible(g, 'futbol.apuntarse_colegio')).toBe(true);
-  }, 90000);
+  });
 
   it('quien está en un club de atletismo no puede cambiarse a otro fuera de plazo', () => {
     const g = nueva();
@@ -115,14 +118,14 @@ describe('el personaje y el plazo', () => {
     expect(prueba?.available).toBe(false);
     expect(prueba?.reason).toMatch(/plazo de fichajes está cerrado hasta el verano/);
     void GEN;
-  }, 90000);
+  });
 });
 
 describe('quien se queda sin equipo busca club con la misma regla', () => {
   let base: ReturnType<typeof nueva>;
   beforeAll(() => {
     base = nueva();
-  }, 60000);
+  });
   const pobDe = (deporte: string): PoblacionGuardada => estado(base).poblaciones!.find((p) => p.deporte === deporte)!;
   const mercadoDe = (npcs: Npc[], pobs: PoblacionGuardada[]): MercadoDeFichajes => ({ lista: new Map(npcs.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(REND), reservas: new Map() });
   const jugadoresDe = (m: MercadoDeFichajes, deporte: string, club: string, cat: [number, number]) =>
@@ -213,7 +216,7 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
     const despues = equipos();
     const cambios = [...antes].filter(([id, v]) => despues.get(id) !== v);
     expect(cambios).toEqual([]);
-  }, 180000);
+  });
 
   it('al empezar el curso (dentro del plazo) sí hay fichajes: algunos jugadores cambian a un club más grande', () => {
     const g = nueva();
@@ -227,10 +230,10 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
     for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of pob.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
         const jugadores = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && (edadNpc(n, 52 * 7) ?? -1) >= c.edadMin && (edadNpc(n, 52 * 7) ?? -1) <= c.edadMax).length;
-        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(Math.ceil(capacidadDe(e, c.id) * 1.25)); // + los que cambian de categoría al pasar de curso
+        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(Math.ceil(capacidadDe(e, c.id) * 1.5)); // + los que cambian de categoría al pasar de curso (con la plaza con hueco contra el suplente entran más: el sobrante, hasta 26 de 18 en un mediano, está anotado en DECISIONES)
       }
     }
-  }, 240000);
+  });
 });
 
 describe('el personaje desplazado sale del club, como cualquier niño, y decide él', () => {
@@ -250,7 +253,7 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
       if (resultado.sinPlaza.includes('futbol')) perdio = semilla;
     }
     expect(perdio, 'ninguna semilla de fichajes le quitó el sitio al personaje').toBeGreaterThan(0);
-  }, 180000);
+  });
 
   it('al perder la plaza sale del club (sin que cuente como dejarlo plantado ni cierre el plazo) y se le explica qué ha pasado y qué puede hacer', () => {
     const avisa = defineModule<Record<string, never>>({
@@ -274,5 +277,5 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
     expect(g.stat(GEN.estres)).toBeLessThanOrEqual(estres + 0.5);
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').not.toMatch(/fuera de plazo|plazo de fichajes está cerrado/);
     expect(g.preview('futbol.dejar_club')!.available).toBe(false); // ya no tiene club que dejar
-  }, 120000);
+  });
 });

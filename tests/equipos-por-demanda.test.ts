@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
@@ -17,6 +17,9 @@ import {
 } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
 
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
+
 /**
  * Equipos según la demanda (decisión del usuario, 03/11/2026): un personaje del montón siempre encuentra equipo en su categoría y lo difícil es subir, no entrar. Si quedan sin equipo
  * al menos tantos interesados como el mínimo de una plantilla, un club abre otro equipo en esa categoría (con su entrenador); un club cierra el equipo que no llega al mínimo.
@@ -27,7 +30,7 @@ const rngNulo = { next: () => 0.5, int: () => 0, range: () => 0, chance: () => f
 let g: ReturnType<typeof nuevaPartida>;
 beforeAll(() => {
   g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
-}, 90000);
+});
 const estado = () => g.moduleState<NpcsState>('npcs') as NpcsState;
 const pobDeFutbol = (): PoblacionGuardada => estado().poblaciones!.find((p) => p.deporte === 'futbol')!;
 const interesa = (n: Npc) => Math.max(n.rasgos?.intereses.futbol ?? 0, n.rasgos?.intereses.deporte ?? 0) > 0;

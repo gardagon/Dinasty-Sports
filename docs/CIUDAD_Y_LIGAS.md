@@ -149,6 +149,15 @@ Esto multiplica por unas 5 la población, y por más el número de jugadores con
 Por eso:
 - **Antes de subir la población hace falta el guardado por partes** (`ALMACENAMIENTO.md` §4, fase 2), y seguramente rasgos compactos (fase 3). Sus disparadores, unas 3.000 personas, se superan con mucho.
 - **Tiempos que hay que mantener** (a confirmar con la medida; decisión del usuario, 05/11): **lo que importa es que la partida vaya fluida**: lo que tarda cada acción, avanzar una semana con todos los partidos (menos de ~1 s en un ordenador normal) y guardar sin que se note. **Crear la partida puede pesar** (personas, clubes, historia): hasta unos 30 s está bien, con una pantalla de «creando el mundo». Los tests que crean muchas partidas no deben depender de eso: usan la ciudad pequeña de prueba o un plazo propio por fichero.
+- **Medida de fluidez** *(hecha el 05/11, `npm run fluidez`; semilla 31, fútbol y atletismo, 12 semanas de curso con el bot del montón)*: el factor multiplica los colegios de fuera, las clases del colegio del personaje y los vecinos (los clubes no cambian: abren equipos según la demanda, hasta cuatro por categoría, por eso los futbolistas se quedan en ~1.300).
+
+| Población | Personas | Futbolistas | Crear | Estado | Guardar | Cargar | Acción (media / p95 / máx) | Semana (media / máx) |
+|---|---|---|---|---|---|---|---|---|
+| ×1 | 1.444 | 641 | 8 s | 3,4 MB | 44 ms | 0,1 s | 2 ms / 1 ms / 2,7 s | 0,87 s / 3,2 s |
+| ×2 | 2.873 | 1.289 | 40 s | 6,7 MB | 75 ms | 0,2 s | 1 ms / 1,2 ms / 140 ms | 0,78 s / 1,0 s |
+| ×5 | 7.061 | 1.319 | 250 s | 14,7 MB | 192 ms | 0,2 s | 1,3 ms / 1,8 ms / 185 ms | 1,24 s / 1,46 s |
+
+  Lo que dice: **guardar y cargar no se notan** ni a ×5; **una acción normal cuesta 1–2 ms**; **una semana entera cuesta ~0,7–0,9 s a ×1** (en el límite) **y ~1,2 s a ×5**; **crear la partida** se sale del margen de 30 s ya a ×2 (40 s) y a ×5 es inviable (250 s: crece más que la población). Dos cosas que se salen: la **primera semana del curso tarda ~2,9 s** (es la acción de apuntarse a un club, que mide al desplazado y le busca club en los demás: 2,4 s, casi todo en valorar a los jugadores de los equipos con las habilidades de cada uno, una caché por llamada) y **crear la partida a ×2 y a ×5**. Pendiente para la P2c: guardar los valores calculados entre llamadas (para la acción de apuntarse) y bajar el coste de crear con más gente.
 - **Si algo no cabe, se arregla calculando o guardando mejor, no recortando** (`VISION.md`, principios 4 y 5). El último recurso es tener menos colegios, nunca menos datos por persona.
 
 ## 9. Cómo se comprueba

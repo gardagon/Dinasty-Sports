@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GEN, GENTE_CERCANA, SERVICES, apellidosDeFamilia, claveDeDeporte, idDeProponerPlan, nombreCompleto, padresDeSemilla, type DeporteService, type PresenciaService, categoriaDeEdad, type ClubDirectory, type FamilyService, type LugaresService, type IdentityService, type NpcDirectory, type RelationsService, type StudiesService } from '@ds/contracts';
 import { advanceTo, advanceToWeek, advanceUntil, checkInvariants, seededRng, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
@@ -11,6 +11,9 @@ const baseNueva = nuevaPartida;
 import { asignaturasDelCurso } from '../modules/estudios/src/curriculo';
 import type { NpcsState } from '@ds/mod-npcs';
 import type { RelacionesState } from '@ds/mod-relaciones';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /** Pruebas de los NEXOS: módulos que colaboran sin conocerse. */
 
@@ -64,7 +67,7 @@ describe('integración de módulos', () => {
       expect(checkInvariants(g)).toEqual([]);
     }
     expect(g.stat(GEN.energia)).toBeGreaterThanOrEqual(0);
-  }, 20000); // en una máquina lenta (la integración continua) la semana entera de acciones tarda más de los 5 s por defecto
+  }); // en una máquina lenta (la integración continua) la semana entera de acciones tarda más de los 5 s por defecto
 
   it('las carreras son abiertas (hasta 18 de la categoría): los mejores casi siempre se presentan y el pelotón varía según quién acude', () => {
     const g = nuevaPartida({ seed: 4 });
@@ -1375,7 +1378,7 @@ describe('adultos, sala de profesores y entrenadores de los clubes', () => {
     expect(g.preview('relaciones.preguntar_profesion.padre')).toBeUndefined(); // ya lo sabes
     const oficios = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((seed) => dir(nuevaPartida({ seed })).get('padre')!.profesion));
     expect(oficios.size).toBeGreaterThan(2);
-  }, 30000);
+  });
 
   /** Avanza día lectivo a día lectivo hasta el minuto indicado y se queda en el primero en que el profesor está en ese sitio (`null` = fuera del mapa). */
   const hastaQueEsteEn = (g: Game, id: string, sitio: string | null, minuto: number): void => {
@@ -1714,7 +1717,7 @@ describe('herencia de casa: ventaja de crianza, conocimiento y perks', () => {
     expect(h.genetica!.ventaja).toBeLessThanOrEqual(1.1);
     expect(h.levels.atletismo).toBeGreaterThan(0);
     expect(h.levels.atletismo).toBeLessThanOrEqual(h.potential.atletismo);
-  }, 90000);
+  });
 
   it('si los padres practicaron atletismo, el personaje empieza sabiendo algo del deporte; si no, nada', () => {
     const base = conPadres('ninguna');

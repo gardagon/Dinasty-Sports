@@ -1,10 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { RUIDO_DE_LA_PRUEBA, cuposPorGrupo, valorDeLaPrueba, type NpcDirectory } from '@ds/contracts';
 import { PUESTOS_DE_FUTBOL, futbol } from '@ds/mod-futbol';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { advanceToWeek } from '@ds/core';
 import { ofertaDePuesto, type JugadorConPuesto } from '../modules/npcs/src/puestos';
 import { hacer, posible } from './ayudas';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * La prueba de acceso a un club que no es el del colegio (`CIUDAD_Y_LIGAS.md` §5): lo que vale en la prueba es lo que cuenta para la regla de plaza; con hueco, se enfrenta al suplente que mejor cubriría el puesto; el personaje elige puesto y el entrenador le puede proponer otro; el profesor de Educación Física aconseja varios.
@@ -83,7 +86,7 @@ describe('con el juego entero: la prueba del personaje, su puesto y el consejo d
     expect(g.preview('futbol.apuntarse.club_grande')).toBeUndefined();
     expect(g.preview('futbol.prueba.colegio')).toBeUndefined();
     expect(g.preview('futbol.apuntarse_colegio')).toBeDefined();
-  }, 120000);
+  });
 
   it('elige el puesto en que quiere probar; al hacer la prueba, o entra en un puesto de la prueba o se queda sin plaza con el motivo', () => {
     const g = partida();
@@ -99,7 +102,7 @@ describe('con el juego entero: la prueba del personaje, su puesto y el consejo d
     // Entra (y entonces tiene puesto, el pedido o el que le propone el entrenador) o no entra y no tiene puesto.
     if (miembro) expect(estado.puesto).toBeDefined();
     else expect(estado.puesto).toBeUndefined();
-  }, 120000);
+  });
 
   it('el profesor de Educación Física nombra varios puestos (sin cifras) y el deporte; el consejo es el mismo para el mismo día', () => {
     const g = partida();
@@ -112,5 +115,5 @@ describe('con el juego entero: la prueba del personaje, su puesto y el consejo d
       expect(dir.consejoDeportivo!().find((c) => c.deporte === 'futbol')).toEqual(futbolista);
     }
     expect(consejo.every((c) => c.nombre.length > 0)).toBe(true);
-  }, 120000);
+  });
 });

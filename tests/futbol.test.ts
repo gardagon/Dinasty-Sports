@@ -5,11 +5,19 @@ import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import { DATOS_FUTBOL, EJERCICIOS_DE_FUTBOL, HABILIDADES_DE_FUTBOL, futbol } from '@ds/mod-futbol';
 import { elegirEjercicios, semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import * as contracts from '@ds/contracts';
+import { ID_PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA, registrarPais } from '@ds/contracts';
 import * as kit from '@ds/kit-deporte';
 import { cargarModulo, generarClaves } from '@ds/paquetes';
 import { empaquetarDeporte } from '../tools/empaquetar';
 import { edadNpc, sinDeporte, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
+
+/**
+ * Estos tests miran lo que hace el fútbol en una partida, no cuánta gente hay: crean la partida con la **ciudad pequeña de prueba** (unas 220 personas), que sale mucho más barata que la de verdad
+ * (`CIUDAD_Y_LIGAS.md` §10). Lo que depende de la ciudad grande (equipos completos, medidas) se prueba en los demás ficheros de fútbol, con su plazo propio.
+ */
+registrarPais(PAIS_CIUDAD_DE_PRUEBA);
+const CIUDAD = { pais: ID_PAIS_CIUDAD_DE_PRUEBA };
 
 /** El fútbol (F1) en una partida completa: con su gente, su club, sus lugares y la pestaña. Va junto al atletismo, que no cambia. */
 
@@ -17,8 +25,8 @@ import { hacer, posible } from './ayudas';
  * Una partida con atletismo y fútbol. El equipo de fútbol de su categoría puede empezar completo (18 interesados) y entonces el personaje solo entra si es
  * mejor que alguno: aquí se deja un hueco para centrarse en lo que prueban estos tests (los equipos completos se prueban en `futbol-plantillas.test.ts`).
  */
-const nueva = (seed = 31) => {
-  const g = nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+const nueva = (seed = 31, ciudadGrande = false) => {
+  const g = nuevaPartida({ seed, ...(ciudadGrande ? {} : CIUDAD), deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   const s = g.moduleState<NpcsState>('npcs') as { npcs: Npc[]; poblaciones?: PoblacionGuardada[] };
   const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
   const uno = s.npcs.find((n) => n.deporte === 'futbol' && n.genetica && edadNpc(n, 0)! <= 9)!;
@@ -132,20 +140,19 @@ describe('fútbol empaquetado', () => {
     const codigo = paquete.archivos['codigo.js'];
     expect(codigo).not.toMatch(/from\s+['"]@ds\//);
     const cargado = cargarModulo(codigo, { '@ds/contracts': contracts, '@ds/kit-deporte': kit }, 'futbol');
-    const a = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
-    const b = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, cargado]);
+    const a = nuevaPartida({ seed: 31, ...CIUDAD, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const b = nuevaPartida({ seed: 31, ...CIUDAD, deportes: ['atletismo', 'futbol'] }, [...MODULOS, cargado]);
     expect(JSON.stringify(b.serialize())).toBe(JSON.stringify(a.serialize()));
-    // Tiempo máximo propio (60 s): crea dos partidas con fútbol (unos 3,7 s cada una con los 368 futbolistas) y compila el paquete; con el de por defecto (15 s) se pasa en una máquina lenta.
-    // PENDIENTE (P2c): quitarlo cuando baje el coste de crear la partida.
-  }, 60000);
+  });
 });
 
 
-describe('los ejercicios son los mismos para todo el equipo', () => {
+// Necesitan un equipo de verdad (los niños de 8 y 9 años del colegio): la ciudad grande, con plazo propio para todo el bloque.
+describe('los ejercicios son los mismos para todo el equipo', { timeout: 90000 }, () => {
   const equipo = (g: ReturnType<typeof nueva>) => g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.hab?.futbol && edadNpc(n, 0)! <= 9);
 
   it('en una semana, las habilidades que suben los jugadores de un equipo son las de los mismos ejercicios (no las de ejercicios distintos para cada uno)', () => {
-    const g = nueva();
+    const g = nueva(31, true);
     advanceToWeek(g, 'gen.descansar', 2, 0, 8);
     const antes = new Map(equipo(g).map((n) => [n.id, [...n.hab!.futbol.v]]));
     advanceToWeek(g, 'gen.descansar', 3, 0, 8);
@@ -165,7 +172,7 @@ describe('los ejercicios son los mismos para todo el equipo', () => {
   });
 
   it('el personaje entrena lo que entrena su equipo: los ejercicios de su sesión salen de lo que le falta al equipo, con la misma semilla', () => {
-    const g = nueva();
+    const g = nueva(31, true);
     advanceToWeek(g, 'gen.descansar', 2, 2, 15);
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     advanceToWeek(g, 'gen.descansar', 3, 3, 15);

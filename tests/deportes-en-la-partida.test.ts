@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SERVICES, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek, type Game } from '@ds/core';
 import { MODULOS, añadirDeporteALaPartida, cargarPartida, deportesDeLaPartida, motivoParaNoQuitar, nuevaPartida, quitarDeporteDeLaPartida } from '@ds/game';
 import type { NpcsState } from '@ds/mod-npcs';
 import { CON_PRUEBA } from './deporte-de-prueba';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * Deportes en la partida (fase 5 del plan de deportes modulares): añadir uno a una partida empezada, quitarlo sin perder nada y volver a añadirlo.
@@ -119,5 +122,5 @@ describe('quitar un deporte y volver a añadirlo', () => {
     // Y se puede seguir jugando.
     advanceToWeek(vuelve, 'gen.descansar', 56, 1, 10);
     expect(MODULOS.length).toBeGreaterThan(0);
-  }, 60000);
+  });
 });

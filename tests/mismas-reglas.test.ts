@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CAPACIDADES_GENETICAS, GEN } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { personaje, type IdentidadState } from '@ds/mod-personaje';
@@ -10,6 +10,9 @@ import type { Genetica } from '../modules/npcs/src/deportistas';
 import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
 import { fijarTalentosDeCapacidades, fijosDeNino, practicar, prepararTrabajo } from '../modules/npcs/src/rutina';
 import { huecosQueHace } from '../modules/npcs/src/semana';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * Personaje y PNJ con las mismas reglas (`docs/MISMAS_REGLAS.md`, fase P1): un niño con la misma genética que el personaje, sin entrenar, acaba con las mismas

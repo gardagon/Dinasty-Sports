@@ -1,10 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SERVICES, cuposPorGrupo, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
 import { capacidadDe, claveDeEquipo, edadNpc, reclutarDeportistas, reclutarEnTodos, reglaDePlaza, sinDeporte, valorRealDe, valoracionDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * Plantillas por equipo (club, categoría y deporte): un mínimo y un máximo por equipo, interesados primero hasta el máximo, sin interés solo hasta el mínimo,
@@ -38,7 +41,7 @@ describe('cada club de la zona tiene su equipo por categoría', () => {
       expect(equipo.filter((n) => n.equipo === 'colegio').every((n) => n.club?.includes('colegio') && (n.colegio === undefined || n.colegio === 'propio'))).toBe(true);
       expect([...new Set(equipo.map((n) => categoriaDe(pob, n)))].sort()).toEqual(['alevin', 'benjamin', 'cadete', 'infantil', 'juvenil']);
     }
-  }, 60000);
+  });
 
   it('los clubes escogen por tamaño y por lo que vale cada niño: los jugadores del club grande valen más que los del mediano, y estos más que los del pequeño', () => {
     const g = nueva();
@@ -51,7 +54,7 @@ describe('cada club de la zona tiene su equipo por categoría', () => {
       expect(media('club_grande', cat), cat).toBeGreaterThan(media('club_mediano', cat));
       expect(media('club_mediano', cat), cat).toBeGreaterThan(media('club_pequeno', cat));
     }
-  }, 60000);
+  });
 
   it('el colegio tiene dos clases de 25 por curso: unos 50 alumnos de cada edad', () => {
     const g = nueva();
@@ -143,7 +146,7 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
   it('no se le guarda ningún hueco: el equipo de su categoría empieza lleno cuando hay interesados de sobra', () => {
     const llenos = [31, 32, 33].map((seed) => benjamin(nueva(seed)).length);
     expect(llenos.every((n) => n >= 14 && n <= 18)).toBe(true);
-  }, 60000);
+  });
 
   it('con hueco, entra aunque sea peor que todos', () => {
     const g = nueva();
@@ -220,5 +223,5 @@ describe('la plaza en un equipo completo tiene una sola regla, para el personaje
     // Ahora a todos les interesa: como el equipo está completo, los mejores entran en lugar de los que menos valen, por la misma regla de plaza que el personaje.
     const todosInteresados = conLosPeores.map((n) => (n.genetica && n.rasgos ? { ...n, rasgos: { ...n.rasgos, intereses: { futbol: 3 } } } : n));
     expect(recluta(todosInteresados)).toEqual(mejores);
-  }, 60000);
+  });
 });

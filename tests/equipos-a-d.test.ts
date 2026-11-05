@@ -1,10 +1,13 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
 import { colegioDeNinoPublico as colegioDeNino, edadNpc, equiposDelClub, favoritoDe, ofertaAlCandidato, piernaDe, valoracionDe, valoresPorPuestoDe, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { repartirEnEquipos, suplentesDe, type MiembroDeClub } from '../modules/npcs/src/equipos';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * Equipos A, B, C y D de un club por categoría (`CIUDAD_Y_LIGAS.md` §5): los grandes, por año; los demás, por nivel; cada equipo con su reparto por puestos; los suplentes y los equipos nuevos.
@@ -84,7 +87,7 @@ describe('los equipos de los clubes en la partida', () => {
   let g: ReturnType<typeof nuevaPartida>;
   beforeAll(() => {
     g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
-  }, 90000);
+  });
   const estado = () => g.moduleState<NpcsState>('npcs') as NpcsState;
   const pob = (): PoblacionGuardada => estado().poblaciones!.find((p) => p.deporte === 'futbol')!;
   const categorias = () =>
@@ -159,5 +162,5 @@ describe('los equipos de los clubes en la partida', () => {
   it('y tras el primer verano (fichajes, equipos nuevos y relleno de plantillas) tampoco', () => {
     advanceToWeek(g, 'gen.descansar', 52 + 2, 2, 15);
     expect(conHuecoEnSuPuesto()).toEqual([]);
-  }, 240000);
+  });
 });
