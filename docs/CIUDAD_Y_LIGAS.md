@@ -86,7 +86,8 @@ Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F
 
 **Entrar en un club de fuera: una prueba de acceso** *(hecho en la parte 3, 08/11)* (en el del colegio, no):
 - Quien quiere entrar en un club que no es el de su colegio (el personaje o un niño) **hace una prueba**, que le puede salir mejor o peor: cuenta su estado, su forma del día y algo de azar, como una competición. **Lo que vale en la prueba es lo que cuenta para la regla de plaza.**
-- En los grandes, quien viene de fuera solo entra si su prueba vale más que el peor de su puesto, aunque haya hueco (el B de un grande solo coge a los mejores de primer año). En los medianos y pequeños, con hueco en su puesto entra si la prueba no es muy mala (un mínimo, como dato del club).
+- **Con el equipo lleno en su puesto**, en todos los clubes, hay que superar en la prueba al peor de ese puesto, que sale del club.
+- **Con hueco en su puesto (decisión del usuario, 05/11; sustituye al 0,9 de los medianos y el 0,8 de los pequeños):** el candidato se enfrenta en la prueba al **suplente que mejor cubriría ese puesto** si hiciera falta (por ejemplo, si falta un central, el lateral izquierdo suplente, que es quien jugaría de central si no hubiera ninguno). Si hay dos huecos en el puesto, el primer candidato se enfrenta a ese suplente y el segundo al siguiente que mejor lo cubriría (por ejemplo, el mediocentro suplente). **Si ningún suplente puede cubrir el puesto, entra**: el equipo no puede jugar sin él. Igual en todos los clubes de fuera, también en los grandes (cuyos suplentes ya son mejores) y para el personaje y los niños. Los suplentes son los que no están en el once del equipo, por el reparto por puestos. En el club del colegio, con hueco se entra, sin prueba.
 
 **El puesto del personaje y el consejo del profesor de Educación Física:**
 - El personaje puede **preguntar a su profesor de Educación Física** qué deporte y qué puesto le irían bien (el puesto, si el deporte lo tiene). El profesor le nombra **varios puestos** en los que podría funcionar, según lo que ve de él (lo que percibe, no los números exactos: `VISION.md`, principio 7).
@@ -147,7 +148,7 @@ Esto multiplica por unas 5 la población, y por más el número de jugadores con
 
 Por eso:
 - **Antes de subir la población hace falta el guardado por partes** (`ALMACENAMIENTO.md` §4, fase 2), y seguramente rasgos compactos (fase 3). Sus disparadores, unas 3.000 personas, se superan con mucho.
-- **Tiempos que hay que mantener** (a confirmar con la medida): avanzar una semana con todos los partidos en menos de ~1 s en un ordenador normal, crear la partida en pocos segundos con un aviso de «creando el mundo», y guardar sin que se note.
+- **Tiempos que hay que mantener** (a confirmar con la medida; decisión del usuario, 05/11): **lo que importa es que la partida vaya fluida**: lo que tarda cada acción, avanzar una semana con todos los partidos (menos de ~1 s en un ordenador normal) y guardar sin que se note. **Crear la partida puede pesar** (personas, clubes, historia): hasta unos 30 s está bien, con una pantalla de «creando el mundo». Los tests que crean muchas partidas no deben depender de eso: usan la ciudad pequeña de prueba o un plazo propio por fichero.
 - **Si algo no cabe, se arregla calculando o guardando mejor, no recortando** (`VISION.md`, principios 4 y 5). El último recurso es tener menos colegios, nunca menos datos por persona.
 
 ## 9. Cómo se comprueba

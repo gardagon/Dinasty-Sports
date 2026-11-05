@@ -5,6 +5,11 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 05/11/2026 — Plaza con hueco: contra el suplente que cubriría el puesto; crear la partida puede pesar (decisión del usuario)
+
+- **Regla de plaza con hueco en un puesto** (sustituye al 0,9 de los medianos, al 0,8 de los pequeños y a la regla especial de los grandes del #82): el candidato se enfrenta en la prueba al **suplente que mejor cubriría ese puesto** si hiciera falta («si falta un central, el lateral izquierdo suplente, que es quien jugaría de central»); con dos huecos, el segundo candidato se enfrenta al siguiente que mejor lo cubriría; **si ningún suplente puede cubrirlo, entra**, porque el equipo no puede jugar sin él. Con el equipo lleno, como antes: superar al peor del puesto. Igual en todos los clubes de fuera y para el personaje y los niños; el del colegio, con hueco, sin prueba. Motivo del usuario: con un hueco, el candidato no tiene a priori con quien enfrentarse, y el rival real es quien jugaría en ese puesto. Detalle en `CIUDAD_Y_LIGAS.md` §5.
+- **Crear la partida puede pesar** (hasta unos 30 s con una pantalla de «creando el mundo»): lo que importa es la fluidez (cada acción, avanzar una semana, guardar). Los tests que crean muchas partidas usan la ciudad pequeña o un plazo propio por fichero. Cambia el objetivo de la P2c (`CIUDAD_Y_LIGAS.md` §8).
+
 ## 04/11/2026 — Los equipos de cada club (A, B, C y D), por puestos, con prueba de acceso y consejo del profesor de Educación Física (decisión del usuario)
 
 Tras revisar el #77 (equipos según la demanda), el usuario decidió cómo se forman los equipos. Está en `CIUDAD_Y_LIGAS.md` §5; va en el siguiente PR, antes de la P2c, y sustituye a los filiales de la F2.
