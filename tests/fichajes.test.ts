@@ -162,7 +162,11 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
     const fut = pobDe('futbol');
     const atl = pobDe('atletismo');
     const base0 = estado(base).npcs;
-    const k = base0.find((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.tipos?.some((t) => t.tipo === 'alumno') && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13)!;
+    // El que menos vale del equipo (así, con el equipo completo, no hay a quién superar), sea cual sea el mundo que salga de crear la partida.
+    const valB = valoracionDe(REND);
+    const k = base0
+      .filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.tipos?.some((t) => t.tipo === 'alumno') && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13)
+      .sort((x, y) => valorRealDe(x, fut, valB, 0)! - valorRealDe(y, fut, valB, 0)! || (x.id < y.id ? -1 : 1))[0];
     const enInfantil = base0.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13).length;
     // El fútbol: solo el equipo del colegio, que con él fuera queda completo (y él es el peor de todos). El atletismo: solo el equipo del colegio, con un hueco.
     const futbolCompleto: PoblacionGuardada = { ...fut, equipos: fut.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, plantillaPorCategoria: { min: 1, max: enInfantil - 1 } })) };
@@ -188,7 +192,11 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
     // Solo el equipo del colegio, completo; el niño (el peor de todos, sin interés por otros deportes) no entra en ningún club.
     const colegio: PoblacionGuardada = { ...fut, equipos: fut.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, plantillaPorCategoria: { min: 1, max: 16 } })) };
     const base0 = estado(base).npcs;
-    const k = base0.find((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.tipos?.some((t) => t.tipo === 'alumno') && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13)!;
+    // El que menos vale del equipo (así, con el equipo completo, no hay a quién superar), sea cual sea el mundo que salga de crear la partida.
+    const valB = valoracionDe(REND);
+    const k = base0
+      .filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.tipos?.some((t) => t.tipo === 'alumno') && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13)
+      .sort((x, y) => valorRealDe(x, fut, valB, 0)! - valorRealDe(y, fut, valB, 0)! || (x.id < y.id ? -1 : 1))[0];
     const m = mercadoDe(
       base0.map((n) => (n.id === k.id ? { ...sinDeporte(n, fut, false), cap: n.cap!.map(() => 1), pico: n.pico!.map(() => 1), rasgos: n.rasgos && { ...n.rasgos, intereses: { futbol: 3 } } } : n)),
       [colegio],
@@ -230,7 +238,7 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
     for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of pob.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
         const jugadores = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && (edadNpc(n, 52 * 7) ?? -1) >= c.edadMin && (edadNpc(n, 52 * 7) ?? -1) <= c.edadMax).length;
-        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(Math.ceil(capacidadDe(e, c.id) * 1.5)); // + los que cambian de categoría al pasar de curso (con la plaza con hueco contra el suplente entran más: el sobrante, hasta 26 de 18 en un mediano, está anotado en DECISIONES)
+        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(capacidadDe(e, c.id)); // el máximo es un tope: nunca más que la capacidad (al subir de categoría, el entrenador recoloca y lo que sobra busca club)
       }
     }
   });

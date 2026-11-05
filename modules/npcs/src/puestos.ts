@@ -52,25 +52,25 @@ export const puestoDondeMasVale = (valores: Readonly<Record<string, number>>, en
 export interface CondicionesDePrueba {
   puesto?: string;
   yaPasada?: boolean;
-  /** Cuántos han entrado ya con hueco en cada grupo en esta tanda de fichajes: el siguiente se enfrenta al siguiente suplente que mejor cubriría el puesto (ver `rivalConHueco`). */
-  orden?: Readonly<Record<string, number>>;
 }
 
 /**
- * **Plaza con hueco** (decisión del usuario, 05/11/2026): con hueco en su puesto, el candidato se enfrenta en la prueba al **suplente que mejor cubriría ese puesto** (los que no están en el once, por
- * el reparto por puestos; con la formación escalada al tamaño de la plantilla): si falta un central, el lateral suplente. Con dos huecos, el segundo candidato se enfrenta al siguiente que mejor lo
- * cubriría (`orden`: cuántos han entrado ya con hueco en ese grupo en esta tanda de fichajes). Devuelve lo que vale ese rival en el puesto, o `undefined` si ningún suplente puede cubrirlo (parecido por debajo de `parecidoParaCubrir`, como el portero): entonces el candidato entra, porque el equipo no puede jugar sin él.
+ * **Plaza con hueco** (decisión del usuario, 05/11/2026): con hueco en su puesto, el candidato se enfrenta en la prueba al **suplente que mejor juega en ese puesto**, por malo que sea en él y por
+ * poco que se parezca a su puesto (sin umbral de parecido: si falta un portero, el suplente que mejor para). Los suplentes son los que no están en el once, por el reparto por puestos (con la
+ * formación escalada al tamaño de la plantilla). **Con varios huecos, se enfrenta al que cubriría el último**: con dos huecos, al segundo mejor suplente; con tres, al tercero. Devuelve lo que vale
+ * ese rival en el puesto, o `undefined` si hay más huecos que suplentes: entonces entra. Igual para el personaje y para los niños.
  */
-export function rivalConHueco(jugadores: readonly JugadorConPuesto[], cupos: Readonly<Record<string, number>>, p: PuestosDeDeporte, grupo: string, puesto: string, orden = 0): number | undefined {
+export function rivalConHueco(jugadores: readonly JugadorConPuesto[], cupos: Readonly<Record<string, number>>, p: PuestosDeDeporte, grupo: string, puesto: string): number | undefined {
   const base = p.reparto.reduce((t, g) => t + g.jugadores, 0) || 1;
   const escala = Object.values(cupos).reduce((a, b) => a + b, 0) / base;
   const titulares = Object.fromEntries(Object.entries(p.equipos?.titulares ?? {}).map(([g, n]) => [g, Math.round(n * escala)]));
   const suplentes = new Set(suplentesDe(jugadores, p, titulares));
   const cubren = jugadores
-    .filter((j) => suplentes.has(j.id) && parecidoDePuestos(p, j.puesto, puesto) >= (p.equipos?.parecidoParaCubrir ?? 0.3))
+    .filter((j) => suplentes.has(j.id))
     .map((j) => j.valores?.[puesto] ?? j.valor * parecidoDePuestos(p, j.puesto, puesto))
     .sort((a, b) => b - a);
-  return cubren[orden];
+  const huecos = (cupos[grupo] ?? 0) - jugadores.filter((j) => grupoDePuesto(p, j.puesto) === grupo).length;
+  return cubren[Math.max(0, huecos - 1)];
 }
 
 /**
@@ -80,6 +80,7 @@ export function rivalConHueco(jugadores: readonly JugadorConPuesto[], cupos: Rea
  */
 export function ofertasDePuesto(jugadores: readonly JugadorConPuesto[], cupos: Readonly<Record<string, number>>, p: PuestosDeDeporte, valores: Readonly<Record<string, number>>, favorito?: string, piernaDelCandidato?: Pierna, prueba?: CondicionesDePrueba): OfertaDePuesto[] {
   const ofertas: OfertaDePuesto[] = [];
+  const totalDeCupos = Object.values(cupos).reduce((a, b) => a + b, 0);
   for (const g of p.reparto) {
     const cupo = cupos[g.grupo] ?? 0;
     if (cupo <= 0) continue;
@@ -90,13 +91,16 @@ export function ofertasDePuesto(jugadores: readonly JugadorConPuesto[], cupos: R
     if (!puesto) continue;
     const valor = valores[puesto];
     const titular = delGrupo.length === 0 || valor >= mediana(delGrupo.map((j) => j.valor));
-    if (delGrupo.length < cupo) {
+    // El máximo es un tope: con el equipo completo no se entra por hueco (tras subir de categoría puede haber grupos con menos de su cupo y el equipo ya en su máximo).
+    const completo = jugadores.length >= totalDeCupos;
+    if (delGrupo.length < cupo && !completo) {
       // Con hueco, en una prueba (el club del colegio no la hace) hay que superar al suplente que mejor cubriría ese puesto; si nadie puede cubrirlo, entra.
-      const rival = prueba && !prueba.yaPasada ? rivalConHueco(jugadores, cupos, p, g.grupo, puesto, prueba.orden?.[g.grupo] ?? 0) : undefined;
+      const rival = prueba && !prueba.yaPasada ? rivalConHueco(jugadores, cupos, p, g.grupo, puesto) : undefined;
       if (rival === undefined || valor > rival) ofertas.push({ puesto, estado: 'libre', valor, titular });
-    } else {
-      // El peor de un puesto: el que menos vale; en un empate, el que juega en el lado contrario al de su pierna y, después, el de id mayor.
-      const peor = delGrupo.reduce((m, j) => (j.valor < m.valor || (j.valor === m.valor && (enSuLadoMalo(j) !== enSuLadoMalo(m) ? enSuLadoMalo(j) : j.id > m.id)) ? j : m));
+    } else if (jugadores.length) {
+      // El peor de un puesto (si el grupo está vacío y el equipo completo, el peor de todo el equipo, que dejaría el sitio): el que menos vale; en un empate, el que juega en el lado contrario al de su pierna y, después, el de id mayor.
+      const referencia = delGrupo.length ? delGrupo : jugadores;
+      const peor = referencia.reduce((m, j) => (j.valor < m.valor || (j.valor === m.valor && (enSuLadoMalo(j) !== enSuLadoMalo(m) ? enSuLadoMalo(j) : j.id > m.id)) ? j : m));
       // En un empate en un puesto de banda decide la pierna: entra el que juega en el lado de su pierna buena (y el peor, no).
       const empataYDecideLaPierna = valor === peor.valor && !!piernaDelCandidato && ladoDePuesto(puesto) === piernaDelCandidato && enSuLadoMalo(peor);
       if (valor > peor.valor || empataYDecideLaPierna) ofertas.push({ puesto, estado: 'por_merito', peor, valor, titular });

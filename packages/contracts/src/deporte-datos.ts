@@ -227,9 +227,9 @@ export interface PuestosDeDeporte {
   puestos: readonly PuestoDeDeporte[];
   /**
    * Cómo se forman los equipos de un club (`CIUDAD_Y_LIGAS.md` §5): los **titulares** de cada equipo por grupo de puestos (un equipo de 18 tiene 11 titulares y 7 suplentes: en el fútbol, 1 portero, 2
-   * centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y el **listón** que un jugador de primer año necesita sobre uno de segundo para ser titular en el A de un club grande. `parecidoParaCubrir` (0,3 por defecto) es el parecido entre dos puestos desde el que un suplente puede cubrir el otro (un lateral cubre de central; nadie cubre de portero).
+   * centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y el **listón** que un jugador de primer año necesita sobre uno de segundo para ser titular en el A de un club grande.
    */
-  equipos?: { titulares: Readonly<Record<string, number>>; listonDePrimerAno: number; parecidoParaCubrir?: number };
+  equipos?: { titulares: Readonly<Record<string, number>>; listonDePrimerAno: number };
   /** La pierna buena: proporción de zurdos, lo que vale de base el lado de su pierna y lo que acelera la experiencia en él. Sin él, los valores por defecto. */
   pierna?: PiernaDeDeporte;
   /**

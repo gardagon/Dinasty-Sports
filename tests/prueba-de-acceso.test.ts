@@ -25,50 +25,67 @@ describe('lo que vale una prueba', () => {
   });
 });
 
-describe('plaza con hueco: el candidato se enfrenta al suplente que mejor cubriría el puesto', () => {
+describe('plaza con hueco: el candidato se enfrenta al suplente que mejor juega en el puesto, sin umbral de parecido', () => {
   const j = (id: string, puesto: string, valor: number, valores: Record<string, number> = {}): JugadorConPuesto => ({ id, nombre: id, puesto, valor, valores: { [puesto]: valor, ...valores } });
   /**
-   * Un equipo de 18 con `centrales` centrales: porteros 2, laterales 3, mediocentros 4, bandas 3 y delanteros 3 (todos de 40). Con la formación (1-2-2-3-2-1) sobran un lateral, un mediocentro, una
-   * banda, dos delanteros y un portero. El lateral suplente cubriría de central con 25 y el mediocentro suplente con 20; los demás no pueden (parecido bajo).
+   * Un equipo con `centrales` centrales: porteros 2, laterales 3, mediocentros 4, bandas 3 y delanteros 3 (todos de 40). Con la formación (1-2-2-3-2-1) sobran un portero, un lateral, un mediocentro,
+   * una banda y dos delanteros. Lo que valen de central: el lateral suplente 25, el mediocentro 20, la banda 15 y los delanteros 10 y 8 (el portero suplente, 5).
    */
-  const equipo = (centrales: number): JugadorConPuesto[] => [
+  const equipo = (centrales: number, extra: JugadorConPuesto[] = []): JugadorConPuesto[] => [
     ...Array.from({ length: centrales }, (_, i) => j(`cb${i}`, 'CB', 40)),
-    ...[0, 1].map((i) => j(`gk${i}`, 'GK', 40 - i)),
+    j('gk0', 'GK', 40), j('gkS', 'GK', 30, { CB: 5 }),
     j('lb0', 'LB', 40), j('lb1', 'LB', 39), j('lbS', 'LB', 30, { CB: 25 }),
     j('cdm0', 'CDM', 40), j('cdm1', 'CDM', 39), j('cdm2', 'CDM', 38), j('cdmS', 'CDM', 30, { CB: 20 }),
-    j('lm0', 'LM', 40), j('lm1', 'LM', 39), j('lmS', 'LM', 30),
-    j('st0', 'ST', 40), j('st1', 'ST', 39), j('st2', 'ST', 38),
+    j('lm0', 'LM', 40), j('lm1', 'LM', 39), j('lmS', 'LM', 30, { CB: 15 }),
+    j('st0', 'ST', 40), j('st1', 'ST', 30, { CB: 10 }), j('st2', 'ST', 29, { CB: 8 }),
+    ...extra,
   ];
-  const prueba = (orden = 0) => ({ orden: { central: orden } });
-  const oferta = (equipoDe: JugadorConPuesto[], puesto: string, valor: number, orden = 0, p: { orden?: Record<string, number>; yaPasada?: boolean } = prueba(orden)) => ofertaDePuesto(equipoDe, cupos, P, todosA(1, { [puesto]: valor }), undefined, undefined, { puesto, ...p });
+  const prueba = { puesto: undefined as string | undefined };
+  const oferta = (equipoDe: JugadorConPuesto[], puesto: string, valor: number, cond: { yaPasada?: boolean } | null = {}) =>
+    ofertaDePuesto(equipoDe, cupos, P, todosA(1, { [puesto]: valor }), undefined, undefined, cond ? { puesto, ...cond } : undefined);
+  void prueba;
 
-  it('un hueco: si falta un central, se enfrenta al lateral suplente (lo que vale de central): hay que superarlo', () => {
+  it('un hueco: se enfrenta al mejor suplente en el puesto (el lateral, 25 de central); hay que superarlo, empatar no basta', () => {
     expect(oferta(equipo(2), 'CB', 24)).toBeUndefined();
-    expect(oferta(equipo(2), 'CB', 25)).toBeUndefined(); // empatar no basta
+    expect(oferta(equipo(2), 'CB', 25)).toBeUndefined();
     expect(oferta(equipo(2), 'CB', 26)).toMatchObject({ puesto: 'CB', estado: 'libre' });
   });
 
-  it('dos huecos: el primero se enfrenta al que mejor cubriría el puesto y el segundo, al siguiente (el mediocentro suplente)', () => {
-    expect(oferta(equipo(1), 'CB', 22)).toBeUndefined(); // el primero no supera al lateral (25)
-    expect(oferta(equipo(1), 'CB', 22, 1)).toMatchObject({ puesto: 'CB', estado: 'libre' }); // el segundo sí supera al mediocentro (20)
-    expect(oferta(equipo(1), 'CB', 19, 1)).toBeUndefined();
-    // Con más entradas que suplentes que cubran, entra.
-    expect(oferta(equipo(1), 'CB', 1, 2)).toMatchObject({ puesto: 'CB', estado: 'libre' });
+  it('dos huecos: se enfrenta al segundo mejor suplente (el mediocentro, 20)', () => {
+    expect(oferta(equipo(1), 'CB', 20)).toBeUndefined();
+    expect(oferta(equipo(1), 'CB', 21)).toMatchObject({ puesto: 'CB', estado: 'libre' });
   });
 
-  it('sin nadie que pueda cubrir el puesto, entra: nadie suple a un portero', () => {
-    const sinPortero = equipo(3).filter((x) => x.id !== 'gk1');
-    expect(oferta(sinPortero, 'GK', 1, 0, {})).toMatchObject({ puesto: 'GK', estado: 'libre' });
+  it('tres huecos: se enfrenta al tercero (la banda, 15)', () => {
+    expect(oferta(equipo(0), 'CB', 15)).toBeUndefined();
+    expect(oferta(equipo(0), 'CB', 16)).toMatchObject({ puesto: 'CB', estado: 'libre' });
   });
 
-  it('con el equipo lleno, como siempre: superar al peor del puesto, que sale', () => {
-    expect(oferta(equipo(3), 'CB', 40)).toBeUndefined();
-    expect(oferta(equipo(3), 'CB', 41)).toMatchObject({ puesto: 'CB', estado: 'por_merito', peor: { id: 'cb2' } });
+  it('más huecos que suplentes: entra', () => {
+    // Un equipo pequeño con solo dos suplentes (un lateral y un mediocentro) y tres huecos de central.
+    const pequeno = [j('gk0', 'GK', 40), j('lb0', 'LB', 40), j('lb1', 'LB', 39), j('lbS', 'LB', 30, { CB: 25 }), j('cdm0', 'CDM', 40), j('cdm1', 'CDM', 39), j('cdm2', 'CDM', 38), j('cdmS', 'CDM', 30, { CB: 20 }), j('lm0', 'LM', 40), j('lm1', 'LM', 39), j('st0', 'ST', 40)];
+    expect(oferta(pequeno, 'CB', 1)).toMatchObject({ puesto: 'CB', estado: 'libre' });
+  });
+
+  it('portero: se enfrenta al suplente que mejor para, por poco que se parezca (sin umbral de parecido)', () => {
+    const sinSegundoPortero = equipo(3).filter((x) => x.id !== 'gkS');
+    // Los suplentes valen de portero: el lateral 12, el mediocentro 5, la banda 3...
+    const conValoresDePortero = sinSegundoPortero.map((x) => (x.id === 'lbS' ? { ...x, valores: { ...x.valores, GK: 12 } } : x.id === 'cdmS' ? { ...x, valores: { ...x.valores, GK: 5 } } : x));
+    expect(oferta(conValoresDePortero, 'GK', 12)).toBeUndefined();
+    expect(oferta(conValoresDePortero, 'GK', 13)).toMatchObject({ puesto: 'GK', estado: 'libre' });
+  });
+
+  it('el máximo es un tope: con el equipo completo no se entra por hueco, hay que superar al peor del puesto', () => {
+    // 18 jugadores (el equipo completo) pero con un hueco de central (2 de 3): no hay hueco que valga, hay que superar al peor central (40).
+    const completo = equipo(2, [j('st3', 'ST', 20, { CB: 1 })]);
+    expect(completo).toHaveLength(18);
+    expect(oferta(completo, 'CB', 30)).toBeUndefined();
+    expect(oferta(completo, 'CB', 41)).toMatchObject({ puesto: 'CB', estado: 'por_merito' });
   });
 
   it('el club del colegio (sin prueba) y quien ya pasó la prueba entran con hueco sin enfrentarse a nadie', () => {
-    expect(ofertaDePuesto(equipo(2), cupos, P, todosA(1, { CB: 1 }), undefined, undefined, undefined)).toMatchObject({ puesto: 'CB', estado: 'libre' });
-    expect(oferta(equipo(2), 'CB', 1, 0, { yaPasada: true })).toMatchObject({ puesto: 'CB', estado: 'libre' });
+    expect(oferta(equipo(2), 'CB', 1, null)).toMatchObject({ puesto: 'CB', estado: 'libre' });
+    expect(oferta(equipo(2), 'CB', 1, { yaPasada: true })).toMatchObject({ puesto: 'CB', estado: 'libre' });
   });
 });
 
