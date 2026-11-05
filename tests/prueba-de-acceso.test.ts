@@ -1,25 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { PRUEBA_DE_TAMANO, RUIDO_DE_LA_PRUEBA, cuposPorGrupo, valorDeLaPrueba, type NpcDirectory } from '@ds/contracts';
+import { RUIDO_DE_LA_PRUEBA, cuposPorGrupo, valorDeLaPrueba, type NpcDirectory } from '@ds/contracts';
 import { PUESTOS_DE_FUTBOL, futbol } from '@ds/mod-futbol';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { advanceToWeek } from '@ds/core';
-import { minimoDePrueba } from '@ds/mod-npcs';
-import { ofertaDePuesto, ofertasDePuesto, pasaLaPrueba, type JugadorConPuesto } from '../modules/npcs/src/puestos';
+import { ofertaDePuesto, type JugadorConPuesto } from '../modules/npcs/src/puestos';
 import { hacer, posible } from './ayudas';
 
 /**
- * La prueba de acceso a un club que no es el del colegio (`CIUDAD_Y_LIGAS.md` §5): lo que vale en la prueba es lo que cuenta para la regla de plaza; los grandes piden superar al peor de
- * su puesto aunque haya hueco; los medianos y pequeños, un mínimo; el personaje elige puesto y el entrenador le puede proponer otro; el profesor de Educación Física aconseja varios.
+ * La prueba de acceso a un club que no es el del colegio (`CIUDAD_Y_LIGAS.md` §5): lo que vale en la prueba es lo que cuenta para la regla de plaza; con hueco, se enfrenta al suplente que mejor cubriría el puesto; el personaje elige puesto y el entrenador le puede proponer otro; el profesor de Educación Física aconseja varios.
  */
 
 const P = PUESTOS_DE_FUTBOL;
 const cupos = cuposPorGrupo(P, 18);
-const jugador = (id: string, puesto: string, valor: number): JugadorConPuesto => ({ id, nombre: id, puesto, valor });
 const todosA = (v: number, extra: Record<string, number> = {}): Record<string, number> => ({ ...Object.fromEntries(P.puestos.map((p) => [p.id, v])), ...extra });
-/** Un equipo al que le falta un portero (hay hueco de portero) y con el resto completo, todos de valor 40. */
-const conHuecoDePortero = (): JugadorConPuesto[] =>
-  P.reparto.flatMap((r) => Array.from({ length: cupos[r.grupo] - (r.grupo === 'portero' ? 1 : 0) }, (_, i) => jugador(`${r.grupo}${i}`, r.puestos[0], 40)));
-
 describe('lo que vale una prueba', () => {
   it('es lo que vale de verdad por cómo rinde ese día y un poco de azar: la misma cuenta para el personaje y para un niño', () => {
     expect(valorDeLaPrueba(50, 1, 0)).toBeCloseTo(50, 6);
@@ -29,40 +22,50 @@ describe('lo que vale una prueba', () => {
   });
 });
 
-describe('la prueba pide un mínimo frente al peor de su puesto, aunque haya hueco', () => {
-  it('en un grande (mínimo 1) hay que superar al peor del puesto aunque haya hueco; en uno mediano o pequeño basta con llegar a una fracción', () => {
-    const equipo = conHuecoDePortero();
-    const delGrupo = equipo.filter((j) => j.puesto === 'GK');
-    expect(PRUEBA_DE_TAMANO.grande.minimo).toBeGreaterThanOrEqual(1);
-    expect(PRUEBA_DE_TAMANO.mediano.minimo).toBeLessThan(1);
-    expect(PRUEBA_DE_TAMANO.pequeno.minimo).toBeLessThan(PRUEBA_DE_TAMANO.mediano.minimo);
-    // Hay hueco de portero, el peor portero vale 40.
-    expect(ofertaDePuesto(equipo, cupos, P, todosA(10, { GK: 39 }), undefined, undefined, { minimo: 1 })).toBeUndefined();
-    expect(ofertaDePuesto(equipo, cupos, P, todosA(10, { GK: 40 }), undefined, undefined, { minimo: 1 })).toBeUndefined(); // empatar no basta
-    expect(ofertaDePuesto(equipo, cupos, P, todosA(10, { GK: 41 }), undefined, undefined, { minimo: 1 })).toMatchObject({ puesto: 'GK', estado: 'libre' });
-    // En un mediano (0,9) entra con 37 (≥ 36) y no con 35.
-    expect(ofertaDePuesto(equipo, cupos, P, todosA(10, { GK: 37 }), undefined, undefined, { minimo: PRUEBA_DE_TAMANO.mediano.minimo })).toMatchObject({ puesto: 'GK', estado: 'libre' });
-    expect(ofertaDePuesto(equipo, cupos, P, todosA(10, { GK: 35 }), undefined, undefined, { minimo: PRUEBA_DE_TAMANO.mediano.minimo })).toBeUndefined();
-    // Sin prueba (el club del colegio), con hueco entra siempre.
-    expect(ofertaDePuesto(equipo, cupos, P, todosA(10, { GK: 1 }))).toMatchObject({ puesto: 'GK', estado: 'libre' });
-    expect(pasaLaPrueba(1, [], 1)).toBe(true); // sin nadie en el puesto, basta con la prueba que sea
-    expect(pasaLaPrueba(10, delGrupo, 0)).toBe(true); // ya pasada
+describe('plaza con hueco: el candidato se enfrenta al suplente que mejor cubriría el puesto', () => {
+  const j = (id: string, puesto: string, valor: number, valores: Record<string, number> = {}): JugadorConPuesto => ({ id, nombre: id, puesto, valor, valores: { [puesto]: valor, ...valores } });
+  /**
+   * Un equipo de 18 con `centrales` centrales: porteros 2, laterales 3, mediocentros 4, bandas 3 y delanteros 3 (todos de 40). Con la formación (1-2-2-3-2-1) sobran un lateral, un mediocentro, una
+   * banda, dos delanteros y un portero. El lateral suplente cubriría de central con 25 y el mediocentro suplente con 20; los demás no pueden (parecido bajo).
+   */
+  const equipo = (centrales: number): JugadorConPuesto[] => [
+    ...Array.from({ length: centrales }, (_, i) => j(`cb${i}`, 'CB', 40)),
+    ...[0, 1].map((i) => j(`gk${i}`, 'GK', 40 - i)),
+    j('lb0', 'LB', 40), j('lb1', 'LB', 39), j('lbS', 'LB', 30, { CB: 25 }),
+    j('cdm0', 'CDM', 40), j('cdm1', 'CDM', 39), j('cdm2', 'CDM', 38), j('cdmS', 'CDM', 30, { CB: 20 }),
+    j('lm0', 'LM', 40), j('lm1', 'LM', 39), j('lmS', 'LM', 30),
+    j('st0', 'ST', 40), j('st1', 'ST', 39), j('st2', 'ST', 38),
+  ];
+  const prueba = (orden = 0) => ({ orden: { central: orden } });
+  const oferta = (equipoDe: JugadorConPuesto[], puesto: string, valor: number, orden = 0, p: { orden?: Record<string, number>; yaPasada?: boolean } = prueba(orden)) => ofertaDePuesto(equipoDe, cupos, P, todosA(1, { [puesto]: valor }), undefined, undefined, { puesto, ...p });
+
+  it('un hueco: si falta un central, se enfrenta al lateral suplente (lo que vale de central): hay que superarlo', () => {
+    expect(oferta(equipo(2), 'CB', 24)).toBeUndefined();
+    expect(oferta(equipo(2), 'CB', 25)).toBeUndefined(); // empatar no basta
+    expect(oferta(equipo(2), 'CB', 26)).toMatchObject({ puesto: 'CB', estado: 'libre' });
   });
 
-  it('el minimo de un club sale de su tamaño (o del suyo propio) y el del colegio no tiene prueba', () => {
-    expect(minimoDePrueba({ tamano: 'grande', calidad: 3 })).toBe(PRUEBA_DE_TAMANO.grande.minimo);
-    expect(minimoDePrueba({ tamano: 'pequeno', calidad: 1 })).toBe(PRUEBA_DE_TAMANO.pequeno.minimo);
-    expect(minimoDePrueba({ calidad: 2 })).toBe(PRUEBA_DE_TAMANO.mediano.minimo); // sin tamaño, el de su calidad
-    expect(minimoDePrueba({ tamano: 'grande', calidad: 3, pruebaDeAcceso: { minimo: 1.2 } })).toBe(1.2);
+  it('dos huecos: el primero se enfrenta al que mejor cubriría el puesto y el segundo, al siguiente (el mediocentro suplente)', () => {
+    expect(oferta(equipo(1), 'CB', 22)).toBeUndefined(); // el primero no supera al lateral (25)
+    expect(oferta(equipo(1), 'CB', 22, 1)).toMatchObject({ puesto: 'CB', estado: 'libre' }); // el segundo sí supera al mediocentro (20)
+    expect(oferta(equipo(1), 'CB', 19, 1)).toBeUndefined();
+    // Con más entradas que suplentes que cubran, entra.
+    expect(oferta(equipo(1), 'CB', 1, 2)).toMatchObject({ puesto: 'CB', estado: 'libre' });
   });
 
-  it('al pedir un puesto, la plaza se mide solo en ese puesto, aunque en otro entrase', () => {
-    const equipo = conHuecoDePortero();
-    const v = todosA(10, { GK: 80, CB: 5 });
-    // Pidiendo central (hay equipo completo y vale menos), no entra; sin pedir, entra de portero.
-    expect(ofertaDePuesto(equipo, cupos, P, v, 'CB', undefined, { minimo: 0.9, puesto: 'CB' })).toBeUndefined();
-    expect(ofertasDePuesto(equipo, cupos, P, v, undefined, undefined, { minimo: 0.9 }).map((o) => o.puesto)).toEqual(['GK']);
-    expect(ofertaDePuesto(equipo, cupos, P, v, undefined, undefined, { minimo: 0.9, puesto: 'GK' })).toMatchObject({ puesto: 'GK' });
+  it('sin nadie que pueda cubrir el puesto, entra: nadie suple a un portero', () => {
+    const sinPortero = equipo(3).filter((x) => x.id !== 'gk1');
+    expect(oferta(sinPortero, 'GK', 1, 0, {})).toMatchObject({ puesto: 'GK', estado: 'libre' });
+  });
+
+  it('con el equipo lleno, como siempre: superar al peor del puesto, que sale', () => {
+    expect(oferta(equipo(3), 'CB', 40)).toBeUndefined();
+    expect(oferta(equipo(3), 'CB', 41)).toMatchObject({ puesto: 'CB', estado: 'por_merito', peor: { id: 'cb2' } });
+  });
+
+  it('el club del colegio (sin prueba) y quien ya pasó la prueba entran con hueco sin enfrentarse a nadie', () => {
+    expect(ofertaDePuesto(equipo(2), cupos, P, todosA(1, { CB: 1 }), undefined, undefined, undefined)).toMatchObject({ puesto: 'CB', estado: 'libre' });
+    expect(oferta(equipo(2), 'CB', 1, 0, { yaPasada: true })).toMatchObject({ puesto: 'CB', estado: 'libre' });
   });
 });
 

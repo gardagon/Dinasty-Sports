@@ -83,7 +83,7 @@ import {
   type PlazaPerdidaData,
   cuposPorGrupo,
   PROPORCION_DE_ZURDOS,
-  PRUEBA_DE_TAMANO,
+  grupoDePuesto,
   valorDeLaPrueba,
   type PruebaEnClub,
   type ConsejoDeDeporte,
@@ -871,8 +871,8 @@ export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGu
   if (pob.puestos && puestos) {
     const val = valoracionDe(rend);
     const favorito = prueba?.puesto && puestos[prueba.puesto] !== undefined ? prueba.puesto : puestoDondeMasVale(puestos);
-    // Una prueba de acceso (a cualquier club menos el del colegio): lo que vale la prueba es lo que cuenta, y el club pide su mínimo frente al peor de ese puesto aunque haya hueco.
-    const condiciones: CondicionesDePrueba | undefined = prueba && equipo.colegio === undefined ? { minimo: prueba.yaPasada ? 0 : minimoDePrueba(equipo), ...(prueba.puesto && puestos[prueba.puesto] !== undefined ? { puesto: prueba.puesto } : {}) } : undefined;
+    // Una prueba de acceso (a cualquier club menos el del colegio): lo que vale la prueba es lo que cuenta; con hueco en su puesto se enfrenta al suplente que mejor lo cubriría (`rivalConHueco`).
+    const condiciones: CondicionesDePrueba | undefined = prueba && equipo.colegio === undefined ? { ...(prueba.yaPasada ? { yaPasada: true } : {}), ...(prueba.puesto && puestos[prueba.puesto] !== undefined ? { puesto: prueba.puesto } : {}) } : undefined;
     const oferta = ofertaAlCandidato(delEquipo, max, pob, puestos, favorito, val, dia, pierna, condiciones);
     if (oferta) return { estado: oferta.estado, ...(oferta.peor ? { peor: { id: oferta.peor.id, nombre: oferta.peor.nombre, nivel: oferta.peor.valor } } : {}), puesto: oferta.puesto };
     // Completo en todos los puestos: se dice quién es el peor del grupo de su mejor puesto.
@@ -912,10 +912,6 @@ function consejoDeUnProfesor(ctx: ReadContext, lista: readonly Npc[], pobs: read
   }
   return consejos;
 }
-
-/** Lo que pide la prueba de acceso de un club: la suya, o la de su tamaño (los grandes, superar al peor de su puesto; los demás, un mínimo). */
-export const minimoDePrueba = (e: Pick<EquipoGuardado, 'pruebaDeAcceso' | 'tamano' | 'calidad'>): number =>
-  e.pruebaDeAcceso?.minimo ?? PRUEBA_DE_TAMANO[e.tamano ?? (e.calidad >= 3 ? 'grande' : e.calidad === 2 ? 'mediano' : 'pequeno')].minimo;
 
 /** Un jugador de un equipo, con lo que vale de verdad (su rendimiento en el deporte). */
 export interface JugadorDeEquipo {
@@ -1024,7 +1020,7 @@ const valorEnSuPuesto = (n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: num
 export function ofertaAlCandidato(jugadores: readonly Npc[], max: number, pob: PoblacionGuardada, valores: Readonly<Record<string, number>>, favorito: string | undefined, v: Valoracion, dia: number, piernaDelCandidato?: Pierna, prueba?: CondicionesDePrueba): OfertaDePuesto | undefined {
   const conPuesto: JugadorConPuesto[] = jugadores.flatMap((j) => {
     const puesto = puestoDeJugador(j, pob, v, dia);
-    return puesto ? [{ id: j.id, nombre: j.name, puesto, valor: valorEnSuPuesto(j, pob, v, dia, puesto), pierna: j.pierna ?? (j.genetica ? piernaDe(j, pob) : undefined) }] : [];
+    return puesto ? [{ id: j.id, nombre: j.name, puesto, valor: valorEnSuPuesto(j, pob, v, dia, puesto), pierna: j.pierna ?? (j.genetica ? piernaDe(j, pob) : undefined), valores: valoresPorPuestoDe(j, pob, v, dia) }] : [];
   });
   return ofertaDePuesto(conPuesto, cuposPorGrupo(pob.puestos!, max), pob.puestos!, valores, favorito, piernaDelCandidato, prueba);
 }
@@ -1253,6 +1249,8 @@ export interface MercadoDeFichajes {
   dia: number;
   val: Valoracion;
   reservas: ReadonlyMap<string, number>;
+  /** Cuántos han entrado ya con hueco en cada grupo de puestos de un equipo en esta tanda de fichajes (`club|categoría|grupo`): el siguiente se enfrenta al siguiente suplente que cubriría el puesto. */
+  entradas?: Map<string, number>;
 }
 
 /** Cuánto vale un niño en un deporte (su rendimiento hoy; si no se puede calcular, su nivel o su potencial). */
@@ -1305,10 +1303,16 @@ function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: Po
   if (pob.puestos && valores) {
     const favorito = favoritoDe(n, pob, m.val, m.dia);
     // Un club que no es el del colegio le hace una prueba (la misma que al personaje): lo que vale ese día, por su estado y un poco de azar suyo, es lo que cuenta para la plaza.
-    const prueba = e.colegio === undefined ? pruebaDeUnNino(n, e, valores, m.dia) : undefined;
+    const claveOrden = (grupo: string): string => `${e.club}|${categoriaDe(pob, edad)?.id}|${grupo}`;
+    const prueba = e.colegio === undefined ? pruebaDeUnNino(n, e, valores, m.dia, Object.fromEntries(pob.puestos.reparto.map((g) => [g.grupo, m.entradas?.get(claveOrden(g.grupo)) ?? 0]))) : undefined;
     const oferta = ofertaAlCandidato(plantel.jugadores, plantel.max, pob, prueba?.valores ?? valores, favorito, m.val, m.dia, piernaDe(n, pob), prueba?.condiciones);
     if (!oferta || !aceptaElPuesto(n, pob, e.club, favorito, oferta)) return { entra: false };
     const desplazado = oferta.peor ? m.lista.get(oferta.peor.id) : undefined;
+    // Con hueco, el siguiente que entre en ese grupo se enfrentará al siguiente suplente que mejor cubriría el puesto.
+    if (oferta.estado === 'libre' && prueba) {
+      const clave = claveOrden(grupoDePuesto(pob.puestos, oferta.puesto) ?? '');
+      (m.entradas ??= new Map()).set(clave, (m.entradas.get(clave) ?? 0) + 1);
+    }
     m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto, favorito));
     if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
     return { entra: true, desplazado };
@@ -1322,10 +1326,10 @@ function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: Po
 }
 
 /** La prueba de acceso de un niño a un club: lo que vale en cada puesto ese día (`valorDeLaPrueba`: su estado y un azar estable suyo) y lo que pide el club. */
-function pruebaDeUnNino(n: Npc, e: EquipoGuardado, valores: Readonly<Record<string, number>>, dia: number): { valores: Record<string, number>; condiciones: CondicionesDePrueba } {
+function pruebaDeUnNino(n: Npc, e: EquipoGuardado, valores: Readonly<Record<string, number>>, dia: number, orden: Readonly<Record<string, number>>): { valores: Record<string, number>; condiciones: CondicionesDePrueba } {
   const z = rngEstable('prueba', n.genetica?.semilla ?? 0, n.id, e.club, dia).normal();
   const eficiencia = eficienciaDeEstado(n.estado ?? ESTADO_INICIAL);
-  return { valores: Object.fromEntries(Object.entries(valores).map(([p, v]) => [p, valorDeLaPrueba(v, eficiencia, z)])), condiciones: { minimo: minimoDePrueba(e) } };
+  return { valores: Object.fromEntries(Object.entries(valores).map(([p, v]) => [p, valorDeLaPrueba(v, eficiencia, z)])), condiciones: { orden } };
 }
 
 /** Los clubes de un deporte del más grande al más pequeño: el orden en que un niño busca plaza. */

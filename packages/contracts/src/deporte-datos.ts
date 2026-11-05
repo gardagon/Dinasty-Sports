@@ -134,15 +134,9 @@ export type TamanoDeClub = 'grande' | 'mediano' | 'pequeno';
 export const CALIDAD_DE_TAMANO: Readonly<Record<TamanoDeClub, 1 | 2 | 3>> = { grande: 3, mediano: 2, pequeno: 1 };
 
 /**
- * La **prueba de acceso** a un club que no es el del colegio (`CIUDAD_Y_LIGAS.md` §5): quien quiere entrar (el personaje o un niño) la hace, y **lo que vale en la prueba es lo que cuenta
- * para la regla de plaza**. `minimo` es cuánto tiene que valer la prueba, en su puesto, frente al peor de ese puesto del equipo, aunque haya hueco: 1 o más = hay que superarlo (los grandes);
- * menos de 1 = con hueco basta con llegar a esa fracción (los medianos y los pequeños). Sin equipo en ese puesto, basta con la prueba que sea.
+ * La **prueba de acceso** a un club que no es el del colegio (`CIUDAD_Y_LIGAS.md` §5): quien quiere entrar (el personaje o un niño) la hace, y **lo que vale en la prueba es lo que cuenta para la regla
+ * de plaza**: con el equipo lleno en su puesto, hay que superar al peor; con hueco, al suplente que mejor cubriría ese puesto (y si nadie puede, entra). Igual en todos los clubes de fuera.
  */
-export interface PruebaDeAcceso {
-  minimo: number;
-}
-/** La prueba de cada tamaño de club (dato): los grandes exigen superar al peor de su puesto; los medianos y pequeños, no ser muy malo. */
-export const PRUEBA_DE_TAMANO: Readonly<Record<TamanoDeClub, PruebaDeAcceso>> = { grande: { minimo: 1 }, mediano: { minimo: 0.9 }, pequeno: { minimo: 0.8 } };
 /** Cuánto se desvía una prueba de lo que vale quien la hace (±6 % de desviación): el azar de un día. */
 export const RUIDO_DE_LA_PRUEBA = 0.06;
 /**
@@ -168,8 +162,6 @@ export interface EquipoDeDeporte {
    * después los medianos; al final los pequeños). El equipo del colegio del personaje es un club pequeño más. Sin él: el que corresponde a su `calidad`.
    */
   tamano?: TamanoDeClub;
-  /** Su prueba de acceso, si no es la de su tamaño (`PRUEBA_DE_TAMANO`). El equipo de un colegio no la tiene: solo coge a sus alumnos. */
-  pruebaDeAcceso?: PruebaDeAcceso;
   /** 1 colegio, 2 club de la ciudad, 3 alto rendimiento. Es lo mismo que el tamaño (pequeño, mediano, grande): con `tamano`, sale de él. Sin ninguno: la del club en el catálogo del personaje, o 1 si es de un colegio y 2 si no. */
   calidad?: 1 | 2 | 3;
   /** Edades de competición que recluta (por defecto, las del deporte; los equipos de un colegio solo llegan a la edad en que acaba el colegio). */
@@ -235,9 +227,9 @@ export interface PuestosDeDeporte {
   puestos: readonly PuestoDeDeporte[];
   /**
    * Cómo se forman los equipos de un club (`CIUDAD_Y_LIGAS.md` §5): los **titulares** de cada equipo por grupo de puestos (un equipo de 18 tiene 11 titulares y 7 suplentes: en el fútbol, 1 portero, 2
-   * centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y el **listón** que un jugador de primer año necesita sobre uno de segundo para ser titular en el A de un club grande.
+   * centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y el **listón** que un jugador de primer año necesita sobre uno de segundo para ser titular en el A de un club grande. `parecidoParaCubrir` (0,3 por defecto) es el parecido entre dos puestos desde el que un suplente puede cubrir el otro (un lateral cubre de central; nadie cubre de portero).
    */
-  equipos?: { titulares: Readonly<Record<string, number>>; listonDePrimerAno: number };
+  equipos?: { titulares: Readonly<Record<string, number>>; listonDePrimerAno: number; parecidoParaCubrir?: number };
   /** La pierna buena: proporción de zurdos, lo que vale de base el lado de su pierna y lo que acelera la experiencia en él. Sin él, los valores por defecto. */
   pierna?: PiernaDeDeporte;
   /**

@@ -42,7 +42,7 @@ function llenar(candidatos: readonly MiembroDeClub[], p: PuestosDeDeporte, max: 
   return dentro;
 }
 
-const porValor = (a: MiembroDeClub, b: MiembroDeClub): number => b.valor - a.valor || (a.id < b.id ? -1 : 1);
+const porValor = (a: Pick<MiembroDeClub, 'id' | 'valor'>, b: Pick<MiembroDeClub, 'id' | 'valor'>): number => b.valor - a.valor || (a.id < b.id ? -1 : 1);
 
 /**
  * Reparte a los miembros de un club en una categoría en sus equipos A a D. `nEquipos` es cuántos tiene abiertos (de 1 a 4), `max` los jugadores de cada uno, `porAnio` si es un club grande
@@ -78,7 +78,7 @@ export function repartirEnEquipos(miembros: readonly MiembroDeClub[], p: Puestos
  * Los suplentes de un equipo: los que no están entre los titulares. Los titulares son, en cada grupo de puestos, los que más valen hasta los que dice la formación (`titulares`: 1 portero, 2
  * centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero en el fútbol).
  */
-export function suplentesDe(equipo: readonly MiembroDeClub[], p: PuestosDeDeporte, titulares: Readonly<Record<string, number>>): string[] {
+export function suplentesDe(equipo: readonly Pick<MiembroDeClub, 'id' | 'puesto' | 'valor'>[], p: PuestosDeDeporte, titulares: Readonly<Record<string, number>>): string[] {
   const cuenta: Record<string, number> = {};
   const titular = new Set<string>();
   for (const m of [...equipo].sort(porValor)) {
