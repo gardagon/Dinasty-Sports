@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 05/11/2026 — Cómo se forman los equipos: un «draft» por rondas, y todos los clubes por año (decisión del usuario)
+
+El usuario: no todos los niños van a probar al club grande; cada club solo ve a una parte. Está en `CIUDAD_Y_LIGAS.md` §5, con su ejemplo de 1.000 niños. Sustituye al reparto por orden de tamaño (cada club veía a todos los interesados y el grande se llevaba siempre a los mejores) y a los equipos según la demanda.
+
+- **Primera ronda (A y B):** por orden de atractivo (grande 60 %, mediano 50 %, pequeños 40 % de la bolsa van a probar; los colegios, los últimos, con todos sus alumnos que quedan y sin prueba). Cada club coge a los mejores por puesto; con 14 basta. Los descartados vuelven a la bolsa. Quién va a probar: sorteo con la ambición y el interés de cada niño (o simple al crear, si lo otro es lento).
+- **Segunda ronda (C y D):** los equipos que salen de la bolsa a 14 por equipo se sortean entre clubes y colegios, teniendo en cuenta el año; mismas reglas de porcentaje, con mínimo y máximo.
+- **Ajuste final y descartes:** cada club reordena sus equipos; los descartes definitivos, a un equipo de su colegio o de un club; los demás, apartados (dos plazos).
+- **Todos los clubes reparten por año** (antes solo los grandes): A, segundo año y los de primer año que destacan; B, primer año; un C solo, mezcla; C y D, segundo y primer año. Un jugador no sube si deja su equipo con menos de 14 o si el de arriba está completo.
+- El personaje no entra en los porcentajes: decide dónde prueba. Los años siguientes, un porcentaje pequeño cambia de club según su carácter.
+
 ## 05/11/2026 — Revisión del #84: suplente que mejor juega en el puesto, tope de plantilla, dos plazos antes de dejarlo y más clubes de colegio (decisiones del usuario)
 
 - **Plaza con hueco:** sin umbral de parecido; el rival es el suplente que mejor juega en ese puesto, por malo que sea («que coja el que más encaja en ese puesto, por muy malo que sea»). Con varios huecos, el candidato se enfrenta al que cubriría el último (con dos, al segundo). Igual para el personaje y para los niños.
