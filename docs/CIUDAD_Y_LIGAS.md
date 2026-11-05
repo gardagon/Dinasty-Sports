@@ -63,7 +63,7 @@ Cada club tiene un **tamaño**, que es un dato y decide cuántos equipos saca po
 
 Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F2). Va antes de la P2c.
 
-**Hasta cuatro equipos por club y categoría.** Cada club abre los que le permiten sus jugadores.
+**Hasta cuatro equipos por club y categoría.** Cuántos tiene cada club sale del «draft» (abajo).
 
 **Todos los clubes reparten por año** (decisión del usuario, 05/11; antes solo los grandes):
 
@@ -77,7 +77,6 @@ Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F
 En juvenil, que tiene tres años, «segundo año» es segundo y tercero.
 - **Subir a un jugador a un equipo de arriba tiene dos límites:** no sube si su equipo se queda con menos de 14 (lo desarmaría) ni si el de arriba está completo.
 
-- **Los equipos de más (C y D en un grande) salen de los propios jugadores del club**, no de los que sobran en la ciudad: que el Real Ciudad tenga un C no le abre la puerta del club grande a cualquiera.
 - **Un primer año en el A de un grande, de 0 a 2 por club y temporada**, casi nunca más. La simulación lo vigila (§9). Si salen muchos más, se sube el listón, sin tocar a nadie en concreto.
 
 **Todo por puestos** *(hecho: puestos, reparto de la plantilla, regla de plaza por puesto y aceptación según el carácter en la parte 1, 06/11; equipos A–D en la parte 2, 07/11; prueba de acceso, puesto elegido y consejo del profesor en la parte 3, 08/11)*. No tiene sentido un equipo con once delanteros, y nadie (ni un PNJ ni el personaje) se limita a un único puesto: el descarte de un delantero puede ser un gran extremo.
