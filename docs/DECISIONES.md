@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 05/11/2026 — Revisión del #84: suplente que mejor juega en el puesto, tope de plantilla, dos plazos antes de dejarlo y más clubes de colegio (decisiones del usuario)
+
+- **Plaza con hueco:** sin umbral de parecido; el rival es el suplente que mejor juega en ese puesto, por malo que sea («que coja el que más encaja en ese puesto, por muy malo que sea»). Con varios huecos, el candidato se enfrenta al que cubriría el último (con dos, al segundo). Igual para el personaje y para los niños.
+- **El máximo de la plantilla es un tope** (había equipos de 26 con sitio para 18: los huecos se miraban por grupo de puestos sin mirar el total). Al empezar el curso, el entrenador recoloca primero a sus jugadores entre los puestos; lo que sobre, a otro equipo o a buscar club.
+- **Dejar el deporte para siempre solo tras dos plazos seguidos sin que ningún club lo quiera**; tras uno, se queda apartado ese curso.
+- **Más clubes de colegio:** algunos de los otros colegios también tienen su club (dato de la ciudad; propuesta: la mitad), con las mismas reglas que el del personaje. «No todo van a ser clubes independientes».
+- **Tiempos:** los límites de `CIUDAD_Y_LIGAS.md` §8 valen de momento; se revisan cuando el usuario pruebe el módulo. Lo que vale cada jugador en cada puesto se calcula una vez por semana (apuntarse tardaba 2,4 s por recalcularlo en cada consulta).
+
 ## 05/11/2026 — Plaza con hueco: contra el suplente que cubriría el puesto; crear la partida puede pesar (decisión del usuario)
 
 - **Regla de plaza con hueco en un puesto** (sustituye al 0,9 de los medianos, al 0,8 de los pequeños y a la regla especial de los grandes del #82): el candidato se enfrenta en la prueba al **suplente que mejor cubriría ese puesto** si hiciera falta («si falta un central, el lateral izquierdo suplente, que es quien jugaría de central»); con dos huecos, el segundo candidato se enfrenta al siguiente que mejor lo cubriría; **si ningún suplente puede cubrirlo, entra**, porque el equipo no puede jugar sin él. Con el equipo lleno, como antes: superar al peor del puesto. Igual en todos los clubes de fuera y para el personaje y los niños; el del colegio, con hueco, sin prueba. Motivo del usuario: con un hueco, el candidato no tiene a priori con quien enfrentarse, y el rival real es quien jugaría en ese puesto. Detalle en `CIUDAD_Y_LIGAS.md` §5.
