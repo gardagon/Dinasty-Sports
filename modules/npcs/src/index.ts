@@ -1671,38 +1671,40 @@ function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: 
         if (faltan > 0 && kDe(e) >= 2) van = [...van, ...resto.filter((a) => primeroAnio(a.npc) === primero).sort((x, y) => clave(y) - clave(x)).slice(0, faltan)];
       }
     }
-    // El club escoge a los mejores por puesto: primero los grupos más escasos (porteros, centrales...), con quien mejor juega en ellos (y prefiere ese puesto); después, el resto por mérito.
-    const cupos = cuposPorGrupo(pob.puestos!, capacidadDe(e, catId));
-    const delGrupo = (g: { puestos: readonly string[] }): number => miembros(e).filter((n) => g.puestos.includes(puestoDeJugador(n, pob, m.val, m.dia) ?? '')).length;
-    for (const g of [...pob.puestos!.reparto].sort((x, y) => x.jugadores - y.jugadores || (x.grupo < y.grupo ? -1 : 1))) {
-      const puntos = (a: Aspirante): number => {
-        const vs = valoresPorPuestoDe(a.npc, pob, m.val, m.dia);
-        const fav = favoritoDe(a.npc, pob, m.val, m.dia);
-        return (fav && g.puestos.includes(fav) ? 1000 : 0) + (vs ? Math.max(...g.puestos.map((p) => vs[p] ?? 0)) : 0);
-      };
-      for (const a of [...van].sort((x, y) => puntos(y) - puntos(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
-        if (delGrupo(g) >= (cupos[g.grupo] ?? 0)) break;
+    // El club monta sus equipos de uno en uno (así cada plantilla respeta su reparto por puestos): en cada paso escoge a los mejores por puesto (primero los grupos más escasos, con quien mejor juega en
+    // ellos y prefiere ese puesto; después el resto por mérito). Cada equipo necesita sus 14 (con 14 basta, aunque no lleguen a 18, también el del colegio): si un paso no los reúne, se deshace.
+    const objetivo = kDe(e);
+    for (let t = Math.max(1, kAntes); t <= objetivo; t++) {
+      ponerK(e, t);
+      const antesDelPaso = new Set(miembros(e).map((n) => n.id));
+      const cupos = cuposPorGrupo(pob.puestos!, capacidadDe(e, catId));
+      const delGrupo = (g: { puestos: readonly string[] }): number => miembros(e).filter((n) => g.puestos.includes(puestoDeJugador(n, pob, m.val, m.dia) ?? '')).length;
+      for (const g of [...pob.puestos!.reparto].sort((x, y) => x.jugadores - y.jugadores || (x.grupo < y.grupo ? -1 : 1))) {
+        const puntos = (a: Aspirante): number => {
+          const vs = valoresPorPuestoDe(a.npc, pob, m.val, m.dia);
+          const fav = favoritoDe(a.npc, pob, m.val, m.dia);
+          return (fav && g.puestos.includes(fav) ? 1000 : 0) + (vs ? Math.max(...g.puestos.map((p) => vs[p] ?? 0)) : 0);
+        };
+        for (const a of [...van].sort((x, y) => puntos(y) - puntos(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
+          if (delGrupo(g) >= (cupos[g.grupo] ?? 0)) break;
+          const n = m.lista.get(a.npc.id);
+          const vs = n && valoresPorPuestoDe(n, pob, m.val, m.dia);
+          if (n && n.deporte === undefined && vs) intentarEntrar(m, n, e, pob, !o.conPrueba, puestoDondeMasVale(vs, g.puestos));
+        }
+      }
+      for (const a of [...van].sort((x, y) => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1))) {
         const n = m.lista.get(a.npc.id);
-        const vs = n && valoresPorPuestoDe(n, pob, m.val, m.dia);
-        if (n && n.deporte === undefined && vs) intentarEntrar(m, n, e, pob, !o.conPrueba, puestoDondeMasVale(vs, g.puestos));
+        if (n && n.deporte === undefined) intentarEntrar(m, n, e, pob, !o.conPrueba);
+      }
+      if (miembros(e).length < minimoDe(e) * t) {
+        // No llega a los 14 de este equipo: se deshace este paso (los que entraron vuelven a la bolsa) y el club se queda con los equipos que ya tenía.
+        liberar(miembros(e).filter((n) => !antesDelPaso.has(n.id)).map((n) => n.id));
+        ponerK(e, t - 1 >= 1 ? t - 1 : kAntes);
+        if (t - 1 < Math.max(1, kAntes) || miembros(e).length === 0) liberar(miembros(e).filter((n) => !antes.has(n.id)).map((n) => n.id));
+        break;
       }
     }
-    for (const a of [...van].sort((x, y) => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1))) {
-      const n = m.lista.get(a.npc.id);
-      if (n && n.deporte === undefined) intentarEntrar(m, n, e, pob, !o.conPrueba);
-    }
-    const ahora = miembros(e);
-    const nuevos = ahora.filter((n) => !antes.has(n.id));
-    // Cada equipo tiene que llegar al mínimo: se montan los que se puedan (con 14 basta, aunque no lleguen a 18); si ni el que había se sostiene, se deshace la ronda y los nuevos vuelven a la bolsa.
-    const montables = Math.floor(ahora.length / minimoDe(e));
-    if (montables < kDe(e)) {
-      if (montables >= Math.max(1, kAntes)) ponerK(e, montables);
-      else {
-        liberar(nuevos.map((n) => n.id));
-        ponerK(e, kAntes);
-        return false;
-      }
-    }
+    if (kDe(e) < kAntes) ponerK(e, kAntes);
     return kDe(e) >= k;
   };
   /** El ajuste de un club: reordena sus equipos por año; quien no cabe en ninguno (por puestos, por año o por el máximo) vuelve a la bolsa de descartes. */
@@ -1755,12 +1757,14 @@ function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: 
   }
   for (const e of clubes) ajustar(e);
   // Un club de fuera sin los 14 de un equipo no lo tiene: los pocos que le quedan vuelven a la bolsa.
-  for (const e of fuera) if (miembros(e).length < minimoDe(e)) liberar(miembros(e).map((n) => n.id));
+  // (también el colegio: si no llega a 14 en una categoría, ese curso no saca equipo en ella y sus alumnos van a la bolsa final).
+  for (const e of clubes) if (miembros(e).length > 0 && miembros(e).length < minimoDe(e)) liberar(miembros(e).map((n) => n.id));
   for (const a of [...bolsa()].sort((x, y) => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1))) {
     let n = m.lista.get(a.npc.id)!;
     let dentro = false;
     // Un club de fuera solo recoge descartes si ya tiene equipo (con el mínimo): no se monta un equipo de 13.
-    for (const e of [...delColegio.filter((x) => x.colegio === a.colegio), ...fuera.filter((x) => miembros(x).length >= minimoDe(x))]) {
+    // Todos los equipos, también el del colegio, necesitan sus 14: solo se entra en un club que ya tiene equipo.
+    for (const e of [...delColegio.filter((x) => x.colegio === a.colegio), ...fuera].filter((x) => miembros(x).length >= minimoDe(x))) {
       if (n.deporte === undefined && intentarEntrar(m, n, e, pob, true, undefined, true).entra) { dentro = true; break; }
       n = m.lista.get(a.npc.id)!;
     }
@@ -1784,9 +1788,12 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
   const { [pob.deporte]: _p, ...potential } = n.potential;
   const ritmo = n.ritmo ? Object.fromEntries(Object.entries(n.ritmo).filter(([k]) => k !== pob.deporte)) : undefined;
   const puesto = n.puesto ? Object.fromEntries(Object.entries(n.puesto).filter(([k]) => k !== pob.deporte)) : undefined;
+  // Lo que valía jugando ya no vale: si vuelve a jugar, se calcula de nuevo (y la semana lo guarda).
+  const vp = n.vp ? Object.fromEntries(Object.entries(n.vp).filter(([k]) => k !== pob.deporte)) : undefined;
   return {
     ...n,
     puesto,
+    vp,
     deporte: undefined,
     equipo: undefined,
     club: undefined,

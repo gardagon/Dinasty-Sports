@@ -137,23 +137,23 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
     const fut0 = pobDe('futbol');
     const fut: PoblacionGuardada = { ...fut0, equipos: fut0.equipos.map((e) => (e.club === 'club_grande' ? { ...e, equiposPorCategoria: undefined, plantillaPorCategoria: { min: 14, max: 17 } } : e)) };
     const m = mercadoDe(estado(base).npcs, [fut]);
-    // Se hace un hueco en el club pequeño de infantil (sale uno) y se desplaza al peor del club grande.
-    const delPequeno = jugadoresDe(m, 'futbol', 'club_pequeno', infantil);
+    // Se hace un hueco en el club mediano de infantil (sale uno) y se desplaza al peor del club grande.
+    const delMediano = jugadoresDe(m, 'futbol', 'club_mediano', infantil);
     const val = valoracionDe(REND);
-    const peorPequeno = [...delPequeno].sort((a, b) => valorRealDe(a, fut, val, 0)! - valorRealDe(b, fut, val, 0)!)[0];
-    m.lista.set(peorPequeno.id, sinDeporte(peorPequeno, fut, true));
+    const peorMediano = [...delMediano].sort((a, b) => valorRealDe(a, fut, val, 0)! - valorRealDe(b, fut, val, 0)!)[0];
+    m.lista.set(peorMediano.id, sinDeporte(peorMediano, fut, true));
     const delGrande = jugadoresDe(m, 'futbol', 'club_grande', infantil);
     const peorGrande = [...delGrande].sort((a, b) => valorRealDe(a, fut, val, 0)! - valorRealDe(b, fut, val, 0)!)[0];
-    const antes = ['club_grande', 'club_mediano', 'club_pequeno', 'colegio'].map((c) => jugadoresDe(m, 'futbol', c, infantil).length);
+    const antes = ['club_grande', 'club_mediano', 'colegio'].map((c) => jugadoresDe(m, 'futbol', c, infantil).length);
     m.lista.set(peorGrande.id, sinDeporte(peorGrande, fut, false));
     colocarDesplazados(m, [{ id: peorGrande.id, origen: 'futbol' }]);
-    const despues = ['club_grande', 'club_mediano', 'club_pequeno', 'colegio'].map((c) => jugadoresDe(m, 'futbol', c, infantil).length);
+    const despues = ['club_grande', 'club_mediano', 'colegio'].map((c) => jugadoresDe(m, 'futbol', c, infantil).length);
     const nuevo = m.lista.get(peorGrande.id)!;
     expect(nuevo.deporte).toBe('futbol'); // sigue jugando: ha encontrado otro club
     expect(nuevo.equipo).not.toBe('club_grande');
     expect(nuevo.dejado).toBeUndefined();
     // El club grande repone su hueco con el siguiente (el que baja del mediano...) o queda con uno menos: ninguno pasa de 18 y en total solo falta el que se fue.
-    const clubes = ['club_grande', 'club_mediano', 'club_pequeno', 'colegio'];
+    const clubes = ['club_grande', 'club_mediano', 'colegio'];
     clubes.forEach((c, i) => expect(despues[i], c).toBeLessThanOrEqual(Math.max(antes[i], capacidadDe(fut.equipos.find((e) => e.club === c)!, 'infantil'))));
     expect(despues.reduce((a, b) => a + b, 0)).toBe(antes.reduce((a, b) => a + b, 0)); // el desplazado ocupa el hueco que había: nadie se pierde
   });

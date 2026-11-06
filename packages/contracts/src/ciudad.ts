@@ -13,7 +13,16 @@ export interface CiudadDef {
   alumnosPorCursoDeCadaColegio: number;
   /** Vecinos del barrio de todas las edades. */
   vecinos: number;
+  /** Cuánta gente corresponde a cada club de la zona (los clubes de un deporte, sin contar los de colegio): el número de clubes es la población entre esto (`clubesDeLaZona`). Sin él, `PERSONAS_POR_CLUB`. */
+  personasPorClub?: number;
 }
+
+/** Personas por club de la zona, por defecto (`CIUDAD_Y_LIGAS.md` §3): con la ciudad de ahora (unas 1.450 personas), dos clubes; con cinco veces más, diez. */
+export const PERSONAS_POR_CLUB = 700;
+/** Cuánta gente tiene una ciudad (aproximada: los alumnos de doce cursos más los vecinos). */
+export const personasDeLaCiudad = (c: CiudadDef): number => (c.aulasPorCurso * c.alumnosPorAula + c.alumnosPorCursoDeCadaColegio * c.colegiosDeFuera) * 12 + c.vecinos;
+/** Cuántos clubes de la zona tiene la ciudad, en proporción a su población (al menos uno). */
+export const clubesDeLaZona = (c: CiudadDef): number => Math.max(1, Math.round(personasDeLaCiudad(c) / (c.personasPorClub ?? PERSONAS_POR_CLUB)));
 
 /** La ciudad de ahora: 4 colegios de fuera, 2 clases de 25 por curso en el del personaje, 17 alumnos por curso en cada colegio de fuera y 80 vecinos (unas 1.100 personas). */
 export const CIUDAD_ACTUAL: CiudadDef = { colegiosDeFuera: 4, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 17, vecinos: 80 };

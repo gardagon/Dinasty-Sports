@@ -16,6 +16,7 @@ import {
   type PoblacionGuardada,
 } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
+import { ID_TRES_CLUBES } from './ciudades';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
@@ -29,7 +30,7 @@ const REND = new Map([['futbol', rendimientoDeFutbol]]);
 const rngNulo = { next: () => 0.5, int: () => 0, range: () => 0, chance: () => false, pick: <T,>(x: readonly T[]) => x[0], normal: () => 0 };
 let g: ReturnType<typeof nuevaPartida>;
 beforeAll(() => {
-  g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  g = nuevaPartida({ seed: 31, pais: ID_TRES_CLUBES, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
 });
 const estado = () => g.moduleState<NpcsState>('npcs') as NpcsState;
 const pobDeFutbol = (): PoblacionGuardada => estado().poblaciones!.find((p) => p.deporte === 'futbol')!;
@@ -152,7 +153,7 @@ describe('el personaje del montón encuentra equipo en su categoría dentro del 
   it('en 12 semillas, con las acciones de verdad (una prueba de acceso en un club de la zona o apuntarse al del colegio), entra en algún equipo de fútbol de su categoría', () => {
     const noEntra: number[] = [];
     for (let seed = 1; seed <= 12; seed++) {
-      const j = nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+      const j = nuevaPartida({ seed, pais: ID_TRES_CLUBES, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
       advanceToWeek(j, 'gen.descansar', 1, 2, 17);
       // Un miércoles a las 17:00 el club mediano hace sus pruebas; después, el del colegio (sin prueba) como segunda opción.
       if (posible(j, 'futbol.prueba.club_mediano')) hacer(j, 'futbol.prueba.club_mediano');

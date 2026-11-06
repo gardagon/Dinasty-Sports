@@ -1,3 +1,4 @@
+import { CIUDAD_ACTUAL, clubesDeLaZona, type CiudadDef } from './ciudad';
 import { factorDeCompeticion } from './estado-de-jugador';
 import { tramoDeSemana, type CalendarioPais } from './calendar';
 import type { CategoriaDef } from './categories';
@@ -352,7 +353,39 @@ export interface DatosDeDeportePais {
   sedes: { colegio: LugarId; fuera: LugarId };
   /** La gente del deporte (rivales, entrenadores y equipo del colegio). */
   poblacion: PoblacionDeDeporte;
+  /** Nombres para los clubes de la zona que la ciudad pide además de los del catálogo (por tamaño); sin ellos, el del modelo con un número. */
+  nombresDeClubes?: Readonly<Partial<Record<TamanoDeClub, readonly string[]>>>;
 }
+
+/**
+ * Los clubes de la zona **en proporción a la población** (`CiudadDef.personasPorClub`): los del catálogo (grande, mediano, pequeño) son los modelos y la ciudad pide tantos como le correspondan
+ * (`clubesDeLaZona`): un grande por cada diez, tres medianos de cada diez y el resto, pequeños (siempre un grande como mínimo). Los extra copian al modelo de su tamaño (sesiones, sedes,
+ * plantilla) con otro id (`club_mediano2`) y otro nombre. El club del colegio no cuenta. Lo usan a la vez el catálogo de clubes del personaje y la gente del mundo.
+ */
+export function conClubesDeLaCiudad(datos: DatosDeDeportePais, ciudad: CiudadDef): DatosDeDeportePais {
+  const modelo = (t: TamanoDeClub) => datos.poblacion.equipos.find((e) => e.tamano === t && e.colegio === undefined);
+  if (!modelo('grande') && !modelo('mediano') && !modelo('pequeno')) return datos;
+  const n = clubesDeLaZona(ciudad);
+  const grandes = Math.max(1, Math.round(n / 10));
+  const medianos = Math.min(n - grandes, Math.round(0.3 * n));
+  const cuantos: Record<TamanoDeClub, number> = { grande: grandes, mediano: Math.max(0, medianos), pequeno: Math.max(0, n - grandes - Math.max(0, medianos)) };
+  const equipos: EquipoDeDeporte[] = datos.poblacion.equipos.filter((e) => e.tamano === undefined || e.colegio !== undefined);
+  const clubes: ClubDeDeporte[] = datos.clubes.filter((c) => !datos.poblacion.equipos.some((e) => e.club === c.id && e.tamano !== undefined && e.colegio === undefined));
+  for (const t of ['grande', 'mediano', 'pequeno'] as const) {
+    const m = modelo(t);
+    const mc = m && datos.clubes.find((c) => c.id === m.club);
+    if (!m || !mc) continue;
+    for (let i = 0; i < cuantos[t]; i++) {
+      const id = i === 0 ? m.club : `${m.club}${i + 1}`;
+      const nombre = i === 0 ? (m.nombre ?? mc.nombre) : (datos.nombresDeClubes?.[t]?.[i - 1] ?? `${m.nombre ?? mc.nombre} ${i + 1}`);
+      equipos.push({ ...m, club: id, nombre });
+      clubes.push({ ...mc, id, nombre });
+    }
+  }
+  return { ...datos, clubes, poblacion: { ...datos.poblacion, equipos } };
+}
+
+const CON_CLUBES = new WeakMap<DatosDeDeportePais, Map<CiudadDef, DatosDeDeportePais>>();
 
 export interface DatosDeDeporte {
   id: string;
@@ -371,7 +404,17 @@ export function datosDeDeporte(ctx: Pick<ReadContext, 'aportes' | 'pais'>, depor
   const d = ctx.aportes<DatosDeDeporte>(APORTES.datosDeDeporte).find((x) => x.id === deporte);
   if (!d) throw new Error(`El deporte «${deporte}» no ha aportado sus datos (aporte «${APORTES.datosDeDeporte}»)`);
   const propios = d.paises[ctx.pais.id];
-  return { ...(propios ?? d.paises.espana), deRespaldo: !propios };
+  const base = propios ?? d.paises.espana;
+  // Los clubes de la zona, en proporción a la población de la ciudad (con memoria: se pide en cada consulta).
+  const ciudad = ctx.pais.ciudad ?? CIUDAD_ACTUAL;
+  const porCiudad = CON_CLUBES.get(base) ?? new Map<CiudadDef, DatosDeDeportePais>();
+  CON_CLUBES.set(base, porCiudad);
+  let datos = porCiudad.get(ciudad);
+  if (!datos) {
+    datos = conClubesDeLaCiudad(base, ciudad);
+    porCiudad.set(ciudad, datos);
+  }
+  return { ...datos, deRespaldo: !propios };
 }
 
 /** Un texto de los datos de un deporte con el nombre del país de la partida donde pone `{pais}`. */

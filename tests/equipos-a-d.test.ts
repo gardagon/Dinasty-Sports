@@ -113,6 +113,28 @@ describe('los equipos de los clubes en la partida', () => {
       .categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))
       .map((c) => ({ id: c.id, edadMin: c.edadMin, edades: Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i).filter((x) => x <= 19) }));
 
+  /** Ningún equipo de ningún club ni colegio con menos de 14: cada categoría, o no tiene equipo, o tiene al menos 14 jugadores por equipo (el colegio también: si no llega, ese curso no saca equipo). */
+  const sinEquiposDeMenosDe14 = (): string[] => {
+    const dia = (g.time.week - g.time.schoolWeek) * 7;
+    const mal: string[] = [];
+    for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria)) {
+      for (const c of categorias()) {
+        const n = estado().npcs.filter((x) => x.deporte === 'futbol' && x.equipo === e.club && c.edades.includes(edadNpc(x, dia) ?? -1)).length;
+        const k = e.equiposPorCategoria?.[c.id] ?? 1;
+        if (n > 0 && n < 14 * k) mal.push(`${e.club} ${c.id}: ${n} jugadores con ${k} equipos`);
+      }
+    }
+    return mal;
+  };
+
+  it('ningún equipo de ningún club ni colegio tiene menos de 14 jugadores tras crear la partida, y el colegio saca equipo en la mayoría de las categorías', () => {
+    expect(sinEquiposDeMenosDe14()).toEqual([]);
+    const colegio = pob().equipos.find((e) => e.club === 'colegio')!;
+    const conEquipo = categorias().filter((c) => estado().npcs.filter((x) => x.deporte === 'futbol' && x.equipo === 'colegio' && c.edades.includes(edadNpc(x, 0) ?? -1)).length >= 14).length;
+    expect(colegio).toBeDefined();
+    expect(conEquipo).toBeGreaterThanOrEqual(3); // con la población de ahora, un equipo de colegio de verdad en la mayoría de las categorías
+  });
+
   it('los clubes grandes tienen siempre dos equipos por categoría (A y B, por año) y cada club respeta su plantilla por puestos', () => {
     const lista = new Map(estado().npcs.map((n) => [n.id, n]));
     const grande = pob().equipos.find((e) => e.club === 'club_grande')!;
@@ -181,5 +203,11 @@ describe('los equipos de los clubes en la partida', () => {
   it('y tras el primer verano (fichajes, equipos nuevos y relleno de plantillas) tampoco', () => {
     advanceToWeek(g, 'gen.descansar', 52 + 2, 2, 15);
     expect(conHuecoEnSuPuesto()).toEqual([]);
+  });
+
+  it('ni tras cada verano: sigue sin haber equipos de menos de 14 (el primero y el segundo)', () => {
+    expect(sinEquiposDeMenosDe14()).toEqual([]); // tras el primero (el test anterior ya lo avanzó)
+    advanceToWeek(g, 'gen.descansar', 2 * 52 + 2, 2, 15);
+    expect(sinEquiposDeMenosDe14()).toEqual([]);
   });
 });

@@ -5,6 +5,7 @@ import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
 import { capacidadDe, claveDeEquipo, edadNpc, reclutarDeportistas, reclutarEnTodos, reglaDePlaza, sinDeporte, valorRealDe, valoracionDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { hacer, posible } from './ayudas';
+import { ID_TRES_CLUBES } from './ciudades';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
@@ -15,6 +16,8 @@ vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
  */
 
 const nueva = (seed = 31) => nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+/** La ciudad de ahora con tres clubes en la zona (por defecto le tocan dos): para lo que compara los tres tamaños. */
+const nuevaConTresClubes = (seed = 31) => nuevaPartida({ seed, pais: ID_TRES_CLUBES, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
 const estado = (g: ReturnType<typeof nueva>) => g.moduleState<NpcsState>('npcs') as { -readonly [K in keyof NpcsState]: NpcsState[K] };
 const pobDeFutbol = (g: ReturnType<typeof nueva>): PoblacionGuardada => estado(g).poblaciones!.find((p) => p.deporte === 'futbol')!;
 const categoriaDe = (pob: PoblacionGuardada, n: Npc, dia = 0) => pob.categorias!.find((c) => c.edadMin <= edadNpc(n, dia)! && edadNpc(n, dia)! <= c.edadMax)!.id;
@@ -22,7 +25,7 @@ const categoriaDe = (pob: PoblacionGuardada, n: Npc, dia = 0) => pob.categorias!
 describe('cada club de la zona tiene su equipo por categoría', () => {
   it('cada club (grande, mediano, pequeño y el del colegio) tiene en cada categoría, de benjamín a juvenil, equipos de 14 a 18 jugadores: salen llenos con la población de ahora', () => {
     for (const seed of [31, 32]) {
-      const g = nueva(seed);
+      const g = nuevaConTresClubes(seed);
       const pob = pobDeFutbol(g);
       const equipo = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.genetica);
       const porEquipo = new Map<string, Npc[]>();
@@ -33,8 +36,9 @@ describe('cada club de la zona tiene su equipo por categoría', () => {
           // Un club tiene tantos equipos como ha abierto en la categoría (según la demanda): cada uno de 14 a 18 jugadores.
           const e = pob.equipos.find((x) => x.club === club)!;
           const k = e.equiposPorCategoria?.[cat] ?? 1;
-          // Los clubes de fuera, de 14 a 18 por equipo (con 14 basta); el del colegio va el último del «draft» y se queda con los alumnos que sobran: no tiene mínimo.
-          if (club !== 'colegio') expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeGreaterThanOrEqual(12 * k);
+          // Los clubes de fuera, de 14 a 18 por equipo (con 14 basta); el del colegio va el último del «draft» y se queda con los alumnos que sobran.
+          // El mínimo de 14 vale para todos los equipos, también para el del colegio: si no llega en una categoría, ese curso no saca equipo en ella.
+          expect(jugadores.length === 0 || jugadores.length >= 14 * k, `${club} ${cat} (semilla ${seed}): ${jugadores.length} jugadores con ${k} equipos`).toBe(true);
           expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeLessThanOrEqual(capacidadDe(e, cat));
         }
       }
@@ -45,7 +49,7 @@ describe('cada club de la zona tiene su equipo por categoría', () => {
   });
 
   it('los clubes escogen por tamaño y por lo que vale cada niño: los jugadores del club grande valen más que los del mediano, y estos más que los del pequeño', () => {
-    const g = nueva();
+    const g = nuevaConTresClubes();
     const pob = pobDeFutbol(g);
     const media = (club: string, cat: string) => {
       const xs = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === club && categoriaDe(pob, n) === cat).map((n) => n.levels.futbol);
@@ -152,7 +156,7 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
       expect(equipo.some((n) => n.id.startsWith('personaje@'))).toBe(false);
       // Los clubes de fuera sí salen con sus equipos (de 14 a 18 por equipo) en benjamín.
       const s = estado(g);
-      for (const club of ['club_grande', 'club_mediano', 'club_pequeno']) expect(s.npcs.filter((n) => n.deporte === 'futbol' && n.equipo === club && edadNpc(n, 0)! <= 9).length, `${club} (semilla ${seed})`).toBeGreaterThanOrEqual(14);
+      for (const club of ['club_grande', 'club_mediano']) expect(s.npcs.filter((n) => n.deporte === 'futbol' && n.equipo === club && edadNpc(n, 0)! <= 9).length, `${club} (semilla ${seed})`).toBeGreaterThanOrEqual(14);
     }
   });
 
@@ -209,10 +213,10 @@ describe('la plaza en un equipo completo tiene una sola regla, para el personaje
   });
 
   it('un niño del mundo entra por la misma regla: con el equipo completo con los más flojos, los mejores los sustituyen y el equipo acaba con los que más valen', () => {
-    const g = nueva();
+    const g = nueva(32); // la semilla 32: con otras salen empates que dependen del mundo (el reclutamiento antiguo, sin puestos, solo lo usan los deportes de prueba)
     const pob0 = pobDeFutbol(g);
     // Solo el equipo del colegio, con plantilla de 3 en la categoría infantil: lo que se prueba es la regla, no el tamaño.
-    const pob: PoblacionGuardada = { ...pob0, equipos: pob0.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, categorias: ['infantil'], plantillaPorCategoria: { min: 3, max: 3 } })) };
+    const pob: PoblacionGuardada = { ...pob0, equipos: pob0.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, equiposPorCategoria: undefined, categorias: ['infantil'], plantillaPorCategoria: { min: 3, max: 3 } })) };
     const libres = estado(g).npcs.map((n) => (n.genetica ? { ...(n.deporte === 'futbol' ? sinDeporte(n, pob0, false) : n), rasgos: n.rasgos && { ...n.rasgos, intereses: { futbol: 3 } } } : n));
     const equipo = (npcs: Npc[]) => new Set(npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio').map((n) => n.id));
     const rend = new Map([['futbol', rendimientoDeFutbol]]);

@@ -1,5 +1,5 @@
 import { CALENDARIOS } from '../calendar';
-import { CIUDAD_DE_PRUEBA } from '../ciudad';
+import { CIUDAD_DE_PRUEBA, type CiudadDef } from '../ciudad';
 import { registrarReserva } from '../culturas';
 import { OJOS, PELO_COLOR, PELO_TIPO, PIEL, origen, registrarOrigen } from '../rasgos';
 import { PAIS_ARGENTINA } from './argentina';
@@ -18,6 +18,12 @@ export { PAIS_INGLATERRA } from './inglaterra';
  * una partida cuesta una fracción. Los tests que crean muchas partidas lo registran (`registrarPais(conCiudadDePrueba(PAIS_ESPANA))`) y piden su id (`id + SUFIJO_CIUDAD_DE_PRUEBA`).
  */
 export const SUFIJO_CIUDAD_DE_PRUEBA = '_ciudad_de_prueba';
+/** Un país con otra ciudad (otra población, otro número de clubes...): el mismo país con su id acabado en `sufijo`, listo para registrar. */
+export function conCiudad(pais: PaisDef, ciudad: CiudadDef, sufijo: string): PaisDef {
+  const id = `${pais.id}${sufijo}`;
+  const copia = structuredClone(pais) as PaisDef;
+  return { ...copia, id, calendario: { ...copia.calendario, id }, ciudad };
+}
 export function conCiudadDePrueba(pais: PaisDef): PaisDef {
   const id = `${pais.id}${SUFIJO_CIUDAD_DE_PRUEBA}`;
   const copia = structuredClone(pais) as PaisDef;
@@ -53,6 +59,7 @@ export function validarPais(x: unknown): string[] {
     const campos: [string, number][] = [['colegiosDeFuera', 1], ['aulasPorCurso', 1], ['alumnosPorAula', 2], ['alumnosPorCursoDeCadaColegio', 1], ['vecinos', 0]];
     if (!esObjeto(c)) p.push('«ciudad» no es un objeto');
     else for (const [k, min] of campos) if (!Number.isInteger(c[k]) || (c[k] as number) < min) p.push(`«ciudad.${k}» tiene que ser un entero de ${min} o más`);
+    if (esObjeto(c) && c.personasPorClub !== undefined && (typeof c.personasPorClub !== 'number' || c.personasPorClub < 50)) p.push('«ciudad.personasPorClub» tiene que ser un número de 50 o más');
   }
   // Calendario
   const cal = x.calendario;
