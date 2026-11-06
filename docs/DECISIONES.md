@@ -39,6 +39,31 @@ Tras revisar el #77 (equipos según la demanda), el usuario decidió cómo se fo
 - **El profesor de Educación Física aconseja** al personaje el deporte y varios puestos donde podría funcionar; el personaje elige dónde quiere jugar al apuntarse o al pedir la prueba.
 - El #77 se fusionó como paso intermedio (nadie se queda sin equipo), sabiendo que esto lo sustituye.
 
+## 05/11/2026 — Continuidad: el «draft» solo al crear la partida (los años siguientes, cada niño sigue en su club)
+
+**El «draft» es solo al crear la partida** (y al añadir un deporte): los años siguientes cada niño sigue en su club y pasa a la categoría que le toque dentro de él. Al empezar el curso (`renovarDeportistas`): 1) retiradas y bajas; 2) el entrenador **recoloca a los suyos** (`recolocarPropios`: los que sobran en un grupo pasan a los puestos que faltan si lo aceptan por su carácter; **al personaje se le propone el cambio** —`club.propuesta_de_puesto`, acciones `aceptar_cambio_de_puesto` y `rechazar_cambio_de_puesto`, `club.cambio_de_puesto`— y decide él); 3) **cambios de club, un porcentaje pequeño, según su carácter** (`fichajesDeVerano`): hacia arriba, los mejores de los clubes más pequeños (por su ambición) y **hacia abajo**, un 3–15 % de los suplentes de los clubes grandes (por su ambición) prueban en uno menor para ser titulares, con la prueba de siempre; 4) la **bolsa** (los que empiezan a jugar y los que se quedaron sin equipo) pasa por un «draft» solo para ellos (`completarEquipos`): cada club (los de fuera por atractivo, el colegio con todos sus alumnos) completa los huecos de sus equipos con un porcentaje de la bolsa, **solo por hueco** (no le quita el sitio a nadie, para que haya continuidad); un club o colegio **sin equipo** en una categoría lo monta si hay 14 en la bolsa que puedan jugar en él; con lo que sobra (14 o más) se abre un equipo en el club con menos.
+
+**Equipos con menos de 14 (clubes y colegios, sin prioridad especial):** primero se completan con la bolsa y, solo si no llegan, **se cierran y sus jugadores buscan otro equipo** (un club solo coge desplazados si ya tiene equipo: no se monta uno de tres; el equipo que se cierra no los vuelve a coger).
+
+**Dos plazos antes de dejarlo para siempre** (`apartarODejar`): quien no consigue equipo en un plazo queda apartado ese curso (`apartado`) y vuelve a la bolsa en el siguiente; solo si en el segundo plazo tampoco lo quiere ningún club lo deja para siempre (`dejado`). `colocarDesplazados` ya no deja a nadie para siempre de golpe: lo aparta. El número que lo deja se guarda por curso (`dejanSinClub`).
+
+**Colegios de fuera con club** (dato de la ciudad, `CiudadDef.colegiosConClub`; por defecto la mitad de los colegios de fuera): el mismo equipo que el del colegio del personaje (`conClubesDeLaCiudad`), solo para sus alumnos, que entran con hueco y sin prueba; no están en el catálogo del personaje. **Implementación de rendimiento:** `ListaDeTrabajo` (un `Map` que sabe quién juega en cada equipo) evita recorrer a todos cada vez que un club mira su plantilla; el cambio de curso a ×5 baja de 8,5 s a 4,8 s.
+
+**Test robusto en lugar del de la semilla 32** («un niño del mundo entra por la misma regla»): el fallo no eran los empates sino que el test cogía como candidatos a niños que juegan a otro deporte o están apartados; ahora los valores que se comparan los fija el test (todos distintos) y los candidatos son solo los que el club puede coger, y pasa con cuatro semillas.
+
+**Medidas** (`npm run equipos`, 3 semillas a ×1 y ×2, 1 a ×5; `npm run fluidez`):
+
+| | Momento | Clubes con equipo | Colegios con equipo (el del personaje, de 5) | Jugadores por equipo | Interesados sin equipo | Dejan el fútbol (acum.) |
+|---|---|---|---|---|---|---|
+| ×1 (2 clubes, 3 colegios con club) | al crear | 10 de 10 | 5,3 de 15 (5,0) | 16,6 | 23 | 0 |
+| | verano 1 / 2 / 3 | 10 de 10 | 3,7 / 2,3 / 1,0 de 15 (3,3 / 2,3 / 1,0) | 16,2 / 15,7 / 16,4 | 30 / 25 / 33 | 14 / 23 / 29 |
+| ×2 (4 clubes, 5 colegios) | al crear | 20 de 20 | 5,0 de 25 | 17,2 | 17 | 0 |
+| | verano 1 / 2 / 3 | 20 de 20 | 5,0 de 25 | 16,2 / 15,9 / 16,1 | 32 / 28 / 27 | 12 / 26 / 36 |
+| ×5 (11 clubes, 11 colegios) | al crear | 55 de 55 | 6 de 55 (5) | 17,6 | 10 | 0 |
+| | verano 1 / 2 / 3 | 55 de 55 | 5 de 55 (5) | 16,2 / 16,0 / 15,9 | 51 / 25 / 31 | 3 / 19 / 32 |
+
+Cambio de curso: ×1 0,47 s, ×2 1,3 s, ×5 4,8 s. **Lo que hay que mirar:** (1) **los colegios pierden sus equipos con los años a ×1** (el del personaje, de 5 a 3,3, 2,3 y 1,0 categorías con equipo en tres veranos): con ~15 jugadores por equipo, cualquier baja deja al equipo bajo 14 y el colegio va el último a la bolsa, así que no se rehace; el colegio escogiendo primero entre sus alumnos al completar (probado) lo deja en 4,0 / 3,0 / 2,3, mejor pero tampoco estable (no lo dejé: es una prioridad especial para el colegio). (2) Los colegios de fuera casi nunca llegan a 14 (6 de 55 equipos de colegio a ×5 son los del colegio del personaje). (3) **Los interesados sin equipo siguen en 23–33 a ×1** y unos 30 a ×2 y ×5; cada curso dejan el fútbol para siempre unos 10 a ×1 (por dos plazos seguidos sin equipo).
+
 ## 05/11/2026 — Mínimo de 14 también para el colegio y clubes en proporción a la población (revisión del #88)
 
 **El mínimo de 14 vale para todos los equipos, también el del colegio.** Si el colegio no llega a 14 en una categoría, ese curso no saca equipo en ella y sus alumnos van a la bolsa final (por hueco en un club con equipo, o apartados). El «draft» monta ahora **los equipos de uno en uno** (cada paso escoge a los mejores por puesto con el reparto de una plantilla, y si no reúne los 14 de ese equipo, se deshace): así el reparto por puestos no deja un equipo de 16 en 13 (antes los de más de un grupo se descartaban después del ajuste). Un club de fuera (o colegio) con menos de 14 en una categoría no tiene equipo en ella. Tests: `tests/equipos-a-d.test.ts` (ningún equipo de ningún club ni colegio con menos de 14 tras crear y tras cada verano, y el colegio saca equipo en la mayoría de las categorías).

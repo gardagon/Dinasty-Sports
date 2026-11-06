@@ -949,6 +949,42 @@ const edadesDe = (pob: PoblacionGuardada, e: EquipoGuardado): number[] => {
   return Array.from({ length: Math.max(0, max - min + 1) }, (_, i) => min + i);
 };
 
+/**
+ * La lista de trabajo de los fichajes: un `Map` de personas que además sabe quién juega en cada equipo (`deEquipo`), para no recorrer a todo el mundo cada vez que un club mira su plantilla
+ * (con 7.000 personas, el recorrido repetido era lo que más costaba del cambio de curso). Se mantiene sola en `set` y `delete`.
+ */
+export class ListaDeTrabajo extends Map<string, Npc> {
+  private equipos = new Map<string, Set<string>>();
+  constructor(entradas?: Iterable<readonly [string, Npc]>) {
+    super();
+    if (entradas) for (const [id, n] of entradas) this.set(id, n);
+  }
+  private clave(n: Npc | undefined): string | undefined {
+    return n?.deporte !== undefined && n.equipo !== undefined ? `${n.deporte}|${n.equipo}` : undefined;
+  }
+  override set(id: string, n: Npc): this {
+    const antes = this.clave(super.get(id));
+    const ahora = this.clave(n);
+    if (antes !== ahora) {
+      if (antes) this.equipos.get(antes)?.delete(id);
+      if (ahora) (this.equipos.get(ahora) ?? this.equipos.set(ahora, new Set()).get(ahora)!).add(id);
+    }
+    return super.set(id, n);
+  }
+  override delete(id: string): boolean {
+    const antes = this.clave(super.get(id));
+    if (antes) this.equipos.get(antes)?.delete(id);
+    return super.delete(id);
+  }
+  /** Los que juegan a un deporte en un equipo (club). */
+  deEquipo(deporte: string, club: string): Npc[] {
+    return [...(this.equipos.get(`${deporte}|${club}`) ?? [])].flatMap((id) => {
+      const n = super.get(id);
+      return n ? [n] : [];
+    });
+  }
+}
+
 /** Un niño al que un equipo puede mirar: una persona del mundo con genética que aún no juega a nada (ni lo ha dejado). */
 interface Aspirante {
   npc: Npc;
@@ -1260,7 +1296,7 @@ function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada, dia: n
 /** Quiénes juegan hoy en el equipo de un club para niños de esta edad y cuántos caben (menos la plaza del personaje, si es de ese equipo); `undefined` si el club no tiene equipo para esa edad. */
 function plantelDe(lista: ReadonlyMap<string, Npc>, pob: PoblacionGuardada, e: EquipoGuardado, edad: number, dia: number, reservas: ReadonlyMap<string, number>): { jugadores: Npc[]; max: number } | undefined {
   if (!edadesDe(pob, e).includes(edad)) return undefined;
-  const delClub = [...lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club);
+  const delClub = lista instanceof ListaDeTrabajo ? lista.deEquipo(pob.deporte, e.club) : [...lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club);
   if (!e.plantillaPorCategoria) return { jugadores: delClub, max: e.objetivo };
   const cat = categoriaDe(pob, edad);
   if (!cat || (e.categorias && !e.categorias.includes(cat.id))) return undefined;
@@ -1673,7 +1709,7 @@ function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: 
     e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
     if (k <= 1) delete e.equiposPorCategoria[catId];
   };
-  const miembros = (e: EquipoGuardado): Npc[] => [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club && edades.includes(edadNpc(n, m.dia) ?? -1));
+  const miembros = (e: EquipoGuardado): Npc[] => (m.lista instanceof ListaDeTrabajo ? m.lista.deEquipo(pob.deporte, e.club) : [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club)).filter((n) => edades.includes(edadNpc(n, m.dia) ?? -1));
   /** La bolsa: los interesados sin equipo de la categoría (con el conocimiento de que ya probaron y se quedaron apartados no se les excluye aquí: los plazos los gestionan). */
   const bolsa = (): Aspirante[] => edades.flatMap((edad) => aspirantesDeEdad([...m.lista.values()], pob, edad, m.dia, m.val)).filter((a) => a.interes > 0);
   const liberar = (ids: readonly string[]): void => {
@@ -1849,7 +1885,7 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
     e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
     if (k <= 1) delete e.equiposPorCategoria[catId];
   };
-  const miembros = (e: EquipoGuardado): Npc[] => [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club && edades.includes(edadNpc(n, m.dia) ?? -1));
+  const miembros = (e: EquipoGuardado): Npc[] => (m.lista instanceof ListaDeTrabajo ? m.lista.deEquipo(pob.deporte, e.club) : [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club)).filter((n) => edades.includes(edadNpc(n, m.dia) ?? -1));
   const bolsa = (): Aspirante[] => edades.flatMap((edad) => aspirantesDeEdad([...m.lista.values()], pob, edad, m.dia, m.val)).filter((a) => a.interes > 0);
   const valorDe = (a: Aspirante): number => a.valor;
   const elegibles = (e: EquipoGuardado): Aspirante[] => bolsa().filter((a) => e.colegio === undefined || a.colegio === e.colegio);
@@ -1874,6 +1910,17 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
       if (miembros(e).length >= capacidadDe(e, catId)) break;
       entrar(e, a, o.conPrueba);
     }
+  }
+  // 1b. Un club (o colegio) sin equipo en la categoría monta uno si en la bolsa hay 14 que puedan jugar en él (los alumnos, en un colegio): así un colegio que se quedó sin equipo vuelve a tenerlo.
+  for (const e of [...fuera, ...delColegio]) {
+    if (miembros(e).length > 0) continue;
+    const pool = elegibles(e).sort((x, y) => valorDe(y) - valorDe(x) || (x.npc.id < y.npc.id ? -1 : 1));
+    if (pool.length < minimoDe(e)) continue;
+    for (const a of pool) {
+      if (miembros(e).length >= capacidadDe(e, catId)) break;
+      entrar(e, a, false);
+    }
+    if (miembros(e).length < minimoDe(e)) for (const x of miembros(e)) m.lista.set(x.id, sinDeporte(x, pob, false));
   }
   // 2. Un equipo con menos de 14: se completa con la bolsa (sin prueba: es el club quien los llama) y, solo si no llega, se cierra y sus jugadores buscan otro equipo.
   const cerrados: { id: string; origen: string; no?: string }[] = [];
@@ -2009,7 +2056,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // Los fichajes de verano, dentro del plazo (el nuevo curso empieza antes de la primera competición): los clubes grandes miran a los mejores de los pequeños y los desplazados buscan
   // club. El personaje cuenta como un jugador más de su equipo, con lo que vale: si otro que vale más le ocupa el sitio, **sale del club como cualquier niño** (se le avisa con
   // `club.plaza_perdida` y decide él qué hace; lo único distinto es que a él nunca se le retira del deporte para siempre).
-  const mercado: MercadoDeFichajes = { lista: new Map(lista.map((n) => [n.id, n])), pobs, dia, val: valoracionDe(rend), reservas: new Map() };
+  const mercado: MercadoDeFichajes = { lista: new ListaDeTrabajo(lista.map((n) => [n.id, n])), pobs, dia, val: valoracionDe(rend), reservas: new Map() };
   for (const j of personaje) mercado.lista.set(idDelPersonaje(j.deporte), jugadorComoNpc(j, dia));
   fichajesDeVerano(mercado, semilla, curso);
   resultado.propuestas = mercado.propuestas ?? [];
@@ -2025,7 +2072,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // Los equipos se rellenan con los interesados y, después, la regla de los equipos según la demanda: cierran los que no llegan al mínimo y abren los que hacen falta para que los
   // interesados que se quedan sin equipo (tantos como el mínimo de una plantilla) lo tengan.
   const llenos = reclutarEnTodos([...mercado.lista.values()], mercado.pobs, dia, reservasQueQuedan, rend);
-  const final: MercadoDeFichajes = { lista: new Map(llenos.map((n) => [n.id, n])), pobs: mercado.pobs, dia, val: valoracionDe(rend), reservas: reservasQueQuedan };
+  const final: MercadoDeFichajes = { lista: new ListaDeTrabajo(llenos.map((n) => [n.id, n])), pobs: mercado.pobs, dia, val: valoracionDe(rend), reservas: reservasQueQuedan };
   // No hay «draft» los años siguientes: cada uno sigue en su club; la bolsa (los que empiezan y los que se quedaron sin equipo) completa los equipos con su prueba, los que se quedan con menos de 14 se
   // completan o se cierran, y quien no consigue equipo en dos plazos seguidos lo deja para siempre.
   completarEquipos(final, rng, { conPrueba: true });
@@ -2040,7 +2087,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
  */
 export function añadirDeporte(npcs: Npc[], pob: PoblacionGuardada, dia: number, rng: Rng, rend: Rendimientos = new Map()): Npc[] {
   const reclutados = reclutarDeportistas([...npcs, ...entrenadoresDeUnDeporte(npcs, pob, rng)], pob, dia, false, new Map(), valoracionDe(rend));
-  const m: MercadoDeFichajes = { lista: new Map(reclutados.map((n) => [n.id, n])), pobs: [pob], dia, val: valoracionDe(rend), reservas: new Map() };
+  const m: MercadoDeFichajes = { lista: new ListaDeTrabajo(reclutados.map((n) => [n.id, n])), pobs: [pob], dia, val: valoracionDe(rend), reservas: new Map() };
   draftDeEquipos(m, rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
   return [...m.lista.values()];
 }
@@ -2076,7 +2123,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   const rend = rendimientosDe(ctx);
   const equipos = reclutarEnTodos(conCapacidades(conEntrenadores, 0), pobs, 0, new Map(), rend);
   // La partida empieza dentro del plazo de fichajes: aquí también se aplica la regla de los equipos según la demanda (los interesados que se quedan sin equipo abren otros).
-  const mercado: MercadoDeFichajes = { lista: new Map(equipos.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(rend), reservas: new Map() };
+  const mercado: MercadoDeFichajes = { lista: new ListaDeTrabajo(equipos.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(rend), reservas: new Map() };
   // Los equipos de los clubes salen del «draft» por rondas (sin el personaje: no entra en los porcentajes).
   draftDeEquipos(mercado, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
@@ -2540,7 +2587,7 @@ export const npcs = defineModule<NpcsState>({
           const reservas = new Map<string, number>(cat ? [[claveDeEquipo(clubId, cat.id), 1]] : []);
           let final: Npc | undefined;
           ctx.updateState<NpcsState>((st) => {
-            const m: MercadoDeFichajes = { lista: new Map(st.npcs.map((x) => [x.id, x])), pobs, dia: inicioCurso, val: valoracionDe(rendimientosDe(ctx)), reservas };
+            const m: MercadoDeFichajes = { lista: new ListaDeTrabajo(st.npcs.map((x) => [x.id, x])), pobs, dia: inicioCurso, val: valoracionDe(rendimientosDe(ctx)), reservas };
             const sale = m.lista.get(plaza.peor!.id)!;
             m.lista.set(sale.id, sinDeporte(sale, pob, false));
             colocarDesplazados(m, [{ id: sale.id, origen: sport }]);
