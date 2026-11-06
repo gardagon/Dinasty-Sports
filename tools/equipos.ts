@@ -1,7 +1,7 @@
 /**
- * Cuántos equipos hay por club y categoría y de qué tamaño, con la población de ahora y con la de ×5 (`CIUDAD_Y_LIGAS.md` §5 y §8).
- * `npm run equipos -- [semillas] [factores...]` (por defecto 3 semillas, ×1 y ×5). Muestra, al crear la partida y tras el primer verano, por club: equipos (k) y jugadores medios por categoría,
- * y en cuántas categorías el equipo del colegio llega a 14.
+ * Cuántos equipos hay por club y categoría y de qué tamaño, al crear la partida y tras cada verano (`CIUDAD_Y_LIGAS.md` §5 y §8), con la población de ahora y con la de ×2 y ×5.
+ * `npm run equipos -- [semillas] [veranos] [factores...]` (por defecto 3 semillas, 3 veranos, ×1, ×2 y ×5). Por momento: cuántos clubes y colegios tienen equipo por categoría, el tamaño de los
+ * equipos, cuántos interesados se quedan sin equipo, cuántos han dejado el deporte para siempre (por curso) y lo que tarda el cambio de curso.
  */
 import { CIUDAD_ACTUAL, PAIS_ESPANA, registrarPais, type CiudadDef, type PaisDef } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
@@ -10,7 +10,8 @@ import { futbol } from '@ds/mod-futbol';
 import { edadNpc, type NpcsState } from '@ds/mod-npcs';
 
 const SEMILLAS = Number(process.argv[2] ?? 3);
-const FACTORES = process.argv.length > 3 ? process.argv.slice(3).map(Number) : [1, 5];
+const VERANOS = Number(process.argv[3] ?? 3);
+const FACTORES = process.argv.length > 4 ? process.argv.slice(4).map(Number) : [1, 2, 5];
 const CATEGORIAS = ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
 const media = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 const f = (x: number): string => x.toFixed(1);
@@ -22,40 +23,63 @@ const paisPor = (k: number): PaisDef => {
   return { ...copia, id, calendario: { ...copia.calendario, id }, ciudad: ciudadPor(k) };
 };
 
+interface Momento {
+  clubesConEquipo: number[]; // de las (clubes de la zona × categorías)
+  clubesTotal: number[];
+  colegiosConEquipo: number[]; // de las (colegios con club × categorías)
+  colegiosTotal: number[];
+  equiposPorEquipoMin: number[];
+  jugadoresPorEquipo: number[];
+  sinEquipo: number[];
+  dejados: number[]; // acumulados (han dejado el fútbol para siempre)
+  apartados: number[];
+  futbolistas: number[];
+  cambioDeCurso: number[]; // segundos
+}
+const vacio = (): Momento => ({ clubesConEquipo: [], clubesTotal: [], colegiosConEquipo: [], colegiosTotal: [], equiposPorEquipoMin: [], jugadoresPorEquipo: [], sinEquipo: [], dejados: [], apartados: [], futbolistas: [], cambioDeCurso: [] });
+
 for (const k of FACTORES) {
   const pais = paisPor(k);
   registrarPais(pais);
-  for (const momento of ['al crear', 'tras el primer verano'] as const) {
-    const porClub: Record<string, Record<string, { k: number[]; n: number[] }>> = {};
-    const colegioConEquipo: number[] = [];
-    const sinEquipo: number[] = [];
-    const minimos: number[] = [];
-    for (let seed = 1; seed <= SEMILLAS; seed++) {
-      const g = nuevaPartida({ seed, pais: k === 1 ? undefined : pais.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
-      if (momento !== 'al crear') advanceToWeek(g, 'gen.descansar', 52 + 2, 2, 15);
+  const momentos: Momento[] = Array.from({ length: VERANOS + 1 }, vacio);
+  for (let seed = 1; seed <= SEMILLAS; seed++) {
+    const g = nuevaPartida({ seed, pais: k === 1 ? undefined : pais.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    for (let v = 0; v <= VERANOS; v++) {
+      let segundos = 0;
+      if (v > 0) {
+        const t0 = performance.now();
+        advanceToWeek(g, 'gen.descansar', 52 * v + 2, 2, 15);
+        segundos = (performance.now() - t0) / 1000;
+      }
       const s = g.moduleState<NpcsState>('npcs') as NpcsState;
-      const dia = momento === 'al crear' ? 0 : (g.time.week - g.time.schoolWeek) * 7;
+      const dia = v === 0 ? 0 : (g.time.week - g.time.schoolWeek) * 7;
       const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
-      let colegios = 0;
+      const m = momentos[v];
+      let clubes = 0, clubesT = 0, colegios = 0, colegiosT = 0;
       for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
         for (const c of pob.categorias!.filter((x) => CATEGORIAS.includes(x.id))) {
           const n = s.npcs.filter((x) => x.deporte === 'futbol' && x.equipo === e.club && (edadNpc(x, dia) ?? -1) >= c.edadMin && (edadNpc(x, dia) ?? -1) <= c.edadMax).length;
           const kk = e.equiposPorCategoria?.[c.id] ?? 1;
-          const celda = ((porClub[e.club] ??= {})[c.id] ??= { k: [], n: [] });
-          celda.k.push(kk);
-          celda.n.push(n);
-          if (n > 0) minimos.push(n / kk);
-          if (e.colegio !== undefined && n >= 14) colegios++;
+          if (e.colegio !== undefined) { colegiosT++; if (n >= 14) colegios++; } else { clubesT++; if (n >= 14) clubes++; }
+          if (n > 0) { m.equiposPorEquipoMin.push(n / kk); m.jugadoresPorEquipo.push(n / kk); }
         }
       }
-      colegioConEquipo.push(colegios);
-      sinEquipo.push(s.npcs.filter((x) => x.genetica && x.deporte === undefined && Math.max(x.rasgos?.intereses.futbol ?? 0, x.rasgos?.intereses.deporte ?? 0) > 0 && !x.dejado?.includes('futbol') && CATEGORIAS.some((cat) => { const c = pob.categorias!.find((y) => y.id === cat)!; const ed = edadNpc(x, dia) ?? -1; return ed >= c.edadMin && ed <= c.edadMax; })).length);
+      m.clubesConEquipo.push(clubes); m.clubesTotal.push(clubesT); m.colegiosConEquipo.push(colegios); m.colegiosTotal.push(colegiosT);
+      const interesados = (x: { rasgos?: { intereses: Record<string, number> } }) => Math.max(x.rasgos?.intereses.futbol ?? 0, x.rasgos?.intereses.deporte ?? 0) > 0;
+      const enCategorias = (x: { nacimiento?: number } & Parameters<typeof edadNpc>[0]) => CATEGORIAS.some((cat) => { const c = pob.categorias!.find((y) => y.id === cat)!; const ed = edadNpc(x, dia) ?? -1; return ed >= c.edadMin && ed <= c.edadMax; });
+      const libres = s.npcs.filter((x) => x.genetica && x.deporte === undefined && interesados(x) && enCategorias(x));
+      m.sinEquipo.push(libres.filter((x) => !x.dejado?.includes('futbol')).length);
+      m.apartados.push(libres.filter((x) => x.apartado?.includes('futbol') && !x.dejado?.includes('futbol')).length);
+      m.dejados.push(s.npcs.filter((x) => x.genetica && x.dejado?.includes('futbol')).length);
+      m.futbolistas.push(s.npcs.filter((x) => x.deporte === 'futbol').length);
+      m.cambioDeCurso.push(segundos);
     }
-    console.log(`\n×${k}, ${momento} (${SEMILLAS} semillas): equipos (k) y jugadores por club y categoría`);
-    console.log(`| Club | ${CATEGORIAS.join(' | ')} |`);
-    console.log(`|---|${CATEGORIAS.map(() => '---').join('|')}|`);
-    for (const [club, cats] of Object.entries(porClub)) console.log(`| ${club} | ${CATEGORIAS.map((c) => `k${f(media(cats[c].k))} · ${f(media(cats[c].n))}`).join(' | ')} |`);
-    const colegios = Object.keys(porClub).filter((c) => c.startsWith('colegio')).length;
-    console.log(`Categorías con equipo de colegio de 14 o más: ${f(media(colegioConEquipo))} de ${colegios * CATEGORIAS.length} · jugadores por equipo (mínimo medio): ${f(Math.min(...minimos))} · interesados que quedan sin equipo: ${f(media(sinEquipo))}`);
   }
+  const clubes = momentos[0].clubesTotal[0] / CATEGORIAS.length;
+  console.log(`\n×${k} (${SEMILLAS} semillas; ${f(clubes)} clubes de la zona; colegios con club: ${f(momentos[0].colegiosTotal[0] / CATEGORIAS.length)})`);
+  console.log('| Momento | Clubes con equipo (de sus categorías) | Colegios con equipo | Jugadores por equipo (media) | Futbolistas | Interesados sin equipo (apartados) | Han dejado el fútbol (acum.) | Cambio de curso |');
+  console.log('|---|---|---|---|---|---|---|---|');
+  momentos.forEach((m, v) => {
+    console.log(`| ${v === 0 ? 'al crear' : `tras el verano ${v}`} | ${f(media(m.clubesConEquipo))} de ${f(media(m.clubesTotal))} | ${f(media(m.colegiosConEquipo))} de ${f(media(m.colegiosTotal))} | ${f(media(m.jugadoresPorEquipo))} | ${f(media(m.futbolistas))} | ${f(media(m.sinEquipo))} (${f(media(m.apartados))}) | ${f(media(m.dejados))} | ${v === 0 ? '—' : `${f(media(m.cambioDeCurso))} s (máx ${f(Math.max(...m.cambioDeCurso))})`} |`);
+  });
 }

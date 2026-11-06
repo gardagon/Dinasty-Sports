@@ -1,4 +1,4 @@
-import { CIUDAD_ACTUAL, clubesDeLaZona, type CiudadDef } from './ciudad';
+import { CIUDAD_ACTUAL, clubesDeLaZona, colegiosConClubDe, idsDeColegiosDeFuera, type CiudadDef } from './ciudad';
 import { factorDeCompeticion } from './estado-de-jugador';
 import { tramoDeSemana, type CalendarioPais } from './calendar';
 import type { CategoriaDef } from './categories';
@@ -381,6 +381,11 @@ export function conClubesDeLaCiudad(datos: DatosDeDeportePais, ciudad: CiudadDef
       equipos.push({ ...m, club: id, nombre });
       clubes.push({ ...mc, id, nombre });
     }
+  }
+  // Los colegios de fuera con club (los primeros `colegiosConClub`): el mismo equipo que el del colegio del personaje, solo para sus alumnos. No están en el catálogo del personaje.
+  const propio = datos.poblacion.equipos.find((e) => e.colegio === 'propio');
+  if (propio) {
+    for (const [i, colegio] of idsDeColegiosDeFuera(ciudad).slice(0, colegiosConClubDe(ciudad)).entries()) equipos.push({ ...propio, club: colegio, nombre: `Club deportivo del colegio ${i + 1}`, colegio });
   }
   return { ...datos, clubes, poblacion: { ...datos.poblacion, equipos } };
 }

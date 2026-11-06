@@ -76,7 +76,8 @@ describe('el número de clubes, en proporción a la población (dato de la ciuda
     expect(new Set(fuera.map((e) => e.nombre)).size).toBe(11);
     expect(once.poblacion.equipos.some((e) => e.club === 'colegio')).toBe(true);
     // El catálogo del personaje lleva los mismos clubes (los mismos ids), cada uno con sus sesiones y sede.
-    expect(once.clubes.map((c) => c.id).sort()).toEqual(once.poblacion.equipos.map((e) => e.club).sort());
+    // (los colegios de fuera con club no están en el catálogo del personaje: solo juegan sus alumnos)
+    expect(once.clubes.map((c) => c.id).sort()).toEqual(once.poblacion.equipos.filter((e) => e.colegio === undefined || e.colegio === 'propio').map((e) => e.club).sort());
   });
 });
 

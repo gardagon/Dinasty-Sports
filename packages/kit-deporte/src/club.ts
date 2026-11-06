@@ -17,6 +17,7 @@ import {
   type ClubView,
   type IdentityService,
   type ModifierDef,
+  type PuestoPropuestoData,
   valorDeLaPrueba,
   type NpcDirectory,
   type NpcView,
@@ -392,7 +393,28 @@ function accionesDeElegirPuesto(cfg: ConfigDeporte): ActionDef[] {
         return id ? { ...resto, puestoElegido: id } : resto;
       }),
   });
-  return [...(cfg.puestosDelDeporte ?? []).map((p) => elegir(p.id, p.nombre.toLowerCase())), elegir(undefined, '')];
+  // La propuesta del entrenador al empezar el curso: aceptarla (el equipo cuenta con él en el nuevo puesto) o dejarla.
+  const propuesta = (aceptar: boolean): ActionDef => ({
+    id: `${deporte}.${aceptar ? 'aceptar' : 'rechazar'}_cambio_de_puesto`,
+    name: aceptar ? 'Aceptar el cambio de puesto que te propone tu entrenador' : 'Quedarte en tu puesto (rechazar la propuesta del entrenador)',
+    description: 'Al empezar el curso, en tu puesto sobran jugadores y en otro faltan: tu entrenador te propone cambiar. Tú decides.',
+    tags: [deporte],
+    group: 'Puesto',
+    duration: 5,
+    available: (ctx) => (ctx.state<EstadoBaseDeDeporte>().propuestaDePuesto ? true : 'Tu entrenador no te ha propuesto ningún cambio de puesto'),
+    run: (ctx) => {
+      const puesto = ctx.state<EstadoBaseDeDeporte>().propuestaDePuesto;
+      ctx.updateState<EstadoBaseDeDeporte>((s) => {
+        const { propuestaDePuesto: _p, ...resto } = s;
+        return aceptar && puesto ? { ...resto, puesto } : resto;
+      });
+      if (aceptar && puesto) {
+        ctx.emit<PuestoPropuestoData>({ type: SHARED_EVENTS.CAMBIO_DE_PUESTO, data: { sport: deporte, puesto } });
+        ctx.log(`Aceptas el cambio: este curso juegas de ${nombreDePuesto(cfg, puesto)}.`, 'info');
+      }
+    },
+  });
+  return [...(cfg.puestosDelDeporte ?? []).map((p) => elegir(p.id, p.nombre.toLowerCase())), elegir(undefined, ''), propuesta(true), propuesta(false)];
 }
 
 /**

@@ -3,8 +3,9 @@ import { CALENDARIO_ESPANA, GEN, SERVICES, SHARED_EVENTS, defineModule, plazoDeF
 import { Game, advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
-import { futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
+import { futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
 import {
+  apartarODejar,
   capacidadDe,
   claveDeEquipo,
   colocarDesplazados,
@@ -206,7 +207,18 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
     colocarDesplazados(m, [{ id: k.id, origen: 'futbol' }]);
     const despues = m.lista.get(k.id)!;
     expect(despues.deporte).toBeUndefined();
-    expect(despues.dejado).toContain('futbol');
+    // Dos plazos antes de dejarlo para siempre: sin club en este plazo, queda apartado ese curso (no lo deja todavía)...
+    expect(despues.apartado).toContain('futbol');
+    expect(despues.dejado ?? []).not.toContain('futbol');
+    // ...y si en el siguiente plazo (vuelve a la bolsa) tampoco lo quiere ningún club, lo deja para siempre; si lo coge uno, no.
+    const conPuestos = valoracionDe(new Map([['futbol', Object.assign((p: Parameters<typeof rendimientoDeFutbol>[0]) => rendimientoDeFutbol(p), { puestos: rendimientoPorPuestos })]]));
+    const segundo: MercadoDeFichajes = { lista: new Map([...m.lista].map(([id, n]) => [id, id === k.id ? { ...n, apartado: undefined } : n])), pobs: [colegio], dia: 0, val: conPuestos, reservas: new Map() };
+    expect(apartarODejar(segundo, new Set())).toBe(0); // la primera vez: apartado, no dejado
+    expect(segundo.lista.get(k.id)!.apartado).toContain('futbol');
+    const tercero: MercadoDeFichajes = { ...segundo, lista: new Map([...segundo.lista].map(([id, n]) => [id, id === k.id ? { ...n, apartado: undefined } : n])) };
+    expect(apartarODejar(tercero, new Set([k.id]))).toBeGreaterThanOrEqual(1); // la segunda: dejado para siempre
+    expect(tercero.lista.get(k.id)!.dejado).toContain('futbol');
+    m.lista.set(k.id, tercero.lista.get(k.id)!);
     // Ya no vuelve a ser reclutado, aunque haya hueco y le encante el fútbol (pasa también al renovar el curso).
     const hueco: PoblacionGuardada = { ...colegio, equipos: colegio.equipos.map((e) => ({ ...e, plantillaPorCategoria: { min: 18, max: 18 } })) };
     const recluta = reclutarEnTodos([...m.lista.values()], [hueco], 0, new Map(), REND);

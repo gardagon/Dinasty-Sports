@@ -59,6 +59,7 @@ export function validarPais(x: unknown): string[] {
     const campos: [string, number][] = [['colegiosDeFuera', 1], ['aulasPorCurso', 1], ['alumnosPorAula', 2], ['alumnosPorCursoDeCadaColegio', 1], ['vecinos', 0]];
     if (!esObjeto(c)) p.push('«ciudad» no es un objeto');
     else for (const [k, min] of campos) if (!Number.isInteger(c[k]) || (c[k] as number) < min) p.push(`«ciudad.${k}» tiene que ser un entero de ${min} o más`);
+    if (esObjeto(c) && c.colegiosConClub !== undefined && (!Number.isInteger(c.colegiosConClub) || (c.colegiosConClub as number) < 0)) p.push('«ciudad.colegiosConClub» tiene que ser un entero de 0 o más');
     if (esObjeto(c) && c.personasPorClub !== undefined && (typeof c.personasPorClub !== 'number' || c.personasPorClub < 50)) p.push('«ciudad.personasPorClub» tiene que ser un número de 50 o más');
   }
   // Calendario

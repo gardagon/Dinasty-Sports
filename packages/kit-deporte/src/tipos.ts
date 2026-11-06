@@ -57,6 +57,8 @@ export interface EstadoBaseDeDeporte {
   plazasOfrecidas?: Record<string, { puesto: string; valores: Record<string, number> }>;
   /** El puesto en que el personaje pide jugar en las pruebas de acceso (sin él, el que más vale). */
   puestoElegido?: string;
+  /** El puesto que su entrenador le propone al empezar el curso (sobran en el suyo y faltan en otro): decide él (`aceptar_cambio_de_puesto`). */
+  propuestaDePuesto?: string;
   /** El puesto del personaje en su equipo (el que le ofreció el club al entrar), en los deportes con puestos. */
   puesto?: string;
   /** Semana (absoluta) hasta la que no puede entrar en otro club de este deporte: la del siguiente plazo de fichajes, si dejó su club fuera de plazo. */

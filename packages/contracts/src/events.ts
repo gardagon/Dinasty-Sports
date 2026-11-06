@@ -29,6 +29,10 @@ export const SHARED_EVENTS = {
   CLUB_ABANDONO: 'club.abandono',
   /** data: PlazaPerdidaData — un jugador del mundo con mejor nivel ha ocupado la plaza del personaje en su equipo: sale del club, como cualquier niño, y decide él qué hace. */
   PLAZA_PERDIDA: 'club.plaza_perdida',
+  /** Al empezar el curso, el entrenador le propone al personaje jugar en otro puesto (sobran en el suyo y faltan en otro): decide él. */
+  PROPUESTA_DE_PUESTO: 'club.propuesta_de_puesto',
+  /** El personaje acepta el cambio de puesto que le propuso su entrenador: el equipo cuenta con él en el nuevo. */
+  CAMBIO_DE_PUESTO: 'club.cambio_de_puesto',
   /** data: ClassAttendedData — el personaje ha ido a una clase (el profesor de esa asignatura se presenta si no lo conoce). */
   CLASS_ATTENDED: 'clase.asistida',
   /** data: FaltasExcesivasData — el personaje ha llegado al número de faltas de clase del trimestre que avisa a los padres (el evento de los padres está pendiente). */
@@ -73,6 +77,12 @@ export interface PresentacionData {
 export interface PlazaPerdidaData {
   sport: string;
   clubId: string;
+}
+
+/** La propuesta de puesto del entrenador al personaje (`PROPUESTA_DE_PUESTO`) o el puesto al que cambia (`CAMBIO_DE_PUESTO`). */
+export interface PuestoPropuestoData {
+  sport: string;
+  puesto: string;
 }
 
 export interface ClubJoinData {

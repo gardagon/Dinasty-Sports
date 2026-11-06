@@ -81,6 +81,7 @@ import {
   SHARED_EVENTS,
   type DeporteAnadidoData,
   type PlazaPerdidaData,
+  type PuestoPropuestoData,
   cuposPorGrupo,
   PROPORCION_DE_ZURDOS,
   ATRACTIVO_DE_TAMANO,
@@ -981,18 +982,19 @@ function valoresGuardados(n: Npc, pob: PoblacionGuardada, valor: number, crudos?
  */
 export function valorRealDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): number | undefined {
   const f = v.rend.get(pob.deporte);
-  if (!f || !pob.rutina || !n.genetica || !n.cap || !n.pico || n.nacimiento === undefined) return undefined;
+  if (!f) return undefined;
   const clave = `${n.id}|${pob.deporte}`;
   const guardado = v.valores.get(clave);
   if (guardado !== undefined) return guardado;
-  // Quien ya juega lleva calculado lo que vale (al crear la partida y cada semana): se lee, no se recalcula.
-  const leido = n.deporte === pob.deporte ? n.vp?.[pob.deporte] : undefined;
+  // Quien ya juega lleva calculado lo que vale (al crear la partida y cada semana; el personaje, al hacer los fichajes): se lee, no se recalcula.
+  const leido = n.deporte === pob.deporte && (n.genetica || n.id.startsWith('personaje@')) ? n.vp?.[pob.deporte] : undefined;
   const conPuestos = !!pob.puestos && !!f.puestos; // los puestos solo cuentan si quien valora los da
   if (leido && (!conPuestos || leido.puestos)) {
     v.valores.set(clave, leido.valor);
     if (leido.puestos && conPuestos) v.puestos.set(clave, leido.puestos);
     return leido.valor;
   }
+  if (!pob.rutina || !n.genetica || !n.cap || !n.pico || n.nacimiento === undefined) return undefined;
   const hab = n.hab?.[pob.deporte] ?? habilidadesIniciales(n.id, n.genetica, pob.deporte, pob.rutina, dia);
   const t = prepararTrabajo({ id: n.id, genetica: n.genetica, nacimiento: n.nacimiento, cap: n.cap, pico: n.pico }, valoresIniciales(n.id, n.genetica), pob.deporte, pob.rutina, hab, n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), dia);
   const lector = lectorDe(t);
@@ -1273,6 +1275,8 @@ export interface MercadoDeFichajes {
   dia: number;
   val: Valoracion;
   reservas: ReadonlyMap<string, number>;
+  /** Las propuestas de puesto que el entrenador le hace al personaje al recolocar (decide él). */
+  propuestas?: { deporte: string; puesto: string }[];
 }
 
 /** Cuánto vale un niño en un deporte (su rendimiento hoy; si no se puede calcular, su nivel o su potencial). */
@@ -1288,6 +1292,8 @@ export interface JugadorEnClub {
   /** El puesto en que juega, si el deporte tiene puestos (y `valor` es lo que vale en él), y su pierna buena. */
   puesto?: string;
   pierna?: Pierna;
+  /** Lo que vale en cada puesto (con su pierna): con ello el entrenador puede proponerle otro puesto al recolocar. */
+  valores?: Record<string, number>;
 }
 const idDelPersonaje = (deporte: string): string => `personaje@${deporte}`;
 /** El personaje como un jugador más del mundo, solo mientras se hacen los fichajes (para que la regla de plaza lo trate como a los demás). */
@@ -1303,6 +1309,7 @@ const jugadorComoNpc = (j: JugadorEnClub, dia: number): Npc => ({
   equipo: j.club,
   ...(j.puesto ? { puesto: { [j.deporte]: j.puesto } } : {}),
   ...(j.pierna ? { pierna: j.pierna } : {}),
+  ...(j.valores ? { vp: { [j.deporte]: { valor: j.valor, puestos: j.valores } } } : {}),
   nacimiento: primerDiaDelAnio(anioNatural(dia) - j.edad),
 });
 
@@ -1364,13 +1371,13 @@ const MAX_BUSQUEDAS = 3;
  * 3. si ningún club de ningún deporte lo quiere, deja los deportes que ha intentado **para siempre** (`dejado`): deja de ser deportista y no vuelve a apuntarse.
  * `origen` es el deporte del que se les ha desplazado.
  */
-export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly { id: string; origen: string }[]): void {
+export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly { id: string; origen: string; no?: string }[]): void {
   const cola = [...desplazados];
   // Cuántas veces ha tenido que buscar club cada uno en esta tanda: como un desplazado puede desplazar a otro por un puesto distinto, la cadena podría dar vueltas (40.000 intentos por un solo
   // desplazado). Quien llega a `MAX_BUSQUEDAS` deja de buscar en esta tanda, sin apartarlo ni dejarlo: el relleno de plantillas posterior lo coge si hay hueco.
   const busquedas = new Map<string, number>();
   for (let vueltas = 0; cola.length && vueltas < 20000; vueltas++) {
-    const { id, origen } = cola.shift()!;
+    const { id, origen, no } = cola.shift()!;
     let n = m.lista.get(id);
     if (!n || n.deporte !== undefined || id.startsWith('personaje@')) continue;
     const veces = (busquedas.get(id) ?? 0) + 1;
@@ -1386,6 +1393,13 @@ export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly {
       if (deporte !== origen && n.apartado?.includes(deporte)) continue;
       intentados.push(deporte);
       for (const e of clubesPorTamano(pob)) {
+        if (e.club === no && deporte === origen) continue; // el equipo que se ha cerrado no los vuelve a coger
+        // En los deportes del «draft» solo se entra en un equipo que ya existe (con sus 14): un desplazado no monta un equipo de tres en un club que acaba de cerrar el suyo.
+        if (conDraft(pob, m.val) && e.plantillaPorCategoria) {
+          const edadN = edadNpc(n, m.dia);
+          const plantel = edadN === undefined ? undefined : plantelDe(m.lista, pob, e, edadN, m.dia, m.reservas);
+          if (!plantel || plantel.jugadores.length < minimoDe(e)) continue;
+        }
         const res = intentarEntrar(m, n, e, pob);
         if (!res.entra) continue;
         colocado = true;
@@ -1398,7 +1412,8 @@ export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly {
         m.lista.set(id, n);
       }
     }
-    if (!colocado) m.lista.set(id, { ...n, apartado: n.apartado?.filter((x) => !intentados.includes(x)), dejado: [...new Set([...(n.dejado ?? []), ...intentados])] });
+    // Dos plazos antes de dejarlo para siempre: sin equipo en este plazo, queda apartado ese curso y lo vuelve a intentar en el siguiente (`apartarODejar`).
+    if (!colocado) m.lista.set(id, { ...n, apartado: [...new Set([...(n.apartado ?? []), ...intentados])] });
   }
 }
 
@@ -1442,7 +1457,7 @@ export function recolocarPropios(m: MercadoDeFichajes): { id: string; origen: st
             const sobran = c[g.grupo] - cupos[g.grupo];
             if (sobran <= 0) continue;
             const candidatos = lista
-              .filter((n) => grupoDe(n) === g.grupo && !n.id.startsWith('personaje@'))
+              .filter((n) => grupoDe(n) === g.grupo)
               .sort((a, b) => valorEnSuPuesto(a, pob, m.val, m.dia, puestoDeJugador(a, pob, m.val, m.dia)!) - valorEnSuPuesto(b, pob, m.val, m.dia, puestoDeJugador(b, pob, m.val, m.dia)!) || (a.id < b.id ? -1 : 1))
               .slice(0, sobran);
             for (const n of candidatos) {
@@ -1453,6 +1468,11 @@ export function recolocarPropios(m: MercadoDeFichajes): { id: string; origen: st
               const puesto = puestoDondeMasVale(valores, faltan.flatMap((x) => x.puestos));
               const grupoNuevo = grupoDePuesto(p, puesto);
               if (!puesto || !grupoNuevo) continue;
+              // Al personaje el entrenador le propone el cambio (y decide él: aquí no se mueve).
+              if (n.id.startsWith('personaje@')) {
+                (m.propuestas ??= []).push({ deporte: pob.deporte, puesto });
+                continue;
+              }
               const delNuevo = lista.filter((x) => grupoDe(x) === grupoNuevo).map((x) => valorEnSuPuesto(x, pob, m.val, m.dia, puestoDeJugador(x, pob, m.val, m.dia)!)).sort((a, b) => a - b);
               const titular = !delNuevo.length || valores[puesto] >= delNuevo[Math.floor((delNuevo.length - 1) / 2)];
               const favorito = favoritoDe(n, pob, m.val, m.dia);
@@ -1514,6 +1534,24 @@ export function fichajesDeVerano(m: MercadoDeFichajes, semilla: number, curso: n
           const res = intentarEntrar(m, libre, e, pob);
           if (!res.entra) m.lista.set(viejo.id, viejo); // sin plaza: se queda donde estaba
           else if (res.desplazado) desplazados.push({ id: res.desplazado.id, origen: pob.deporte });
+        }
+        // Y hacia abajo: un porcentaje pequeño de los suplentes de los clubes más grandes, según su ambición, prueba en este para ser titular (el del grande que prueba en el mediano).
+        if (conDraft(pob, m.val) && e.plantillaPorCategoria) {
+          for (const grande of pob.equipos.filter((x) => x.plantillaPorCategoria && x.calidad > e.calidad && x.colegio === undefined)) {
+            const cx = categoriasDelEquipo(pob, grande).find((c) => c.id === u.id);
+            if (!cx) continue;
+            for (const id of equiposDelClub(m.lista, pob, grande, cx, m.dia, m.val).suplentes) {
+              const viejo = m.lista.get(id);
+              if (!viejo?.genetica || (e.colegio !== undefined && colegioDeNino(viejo) !== e.colegio)) continue;
+              const ambicion = ((viejo.rasgos?.caracter.ambicion ?? 0) + 50) / 100;
+              if (!rngEstable('ficha-baja', semilla, viejo.id, e.club, curso).chance(0.03 + 0.12 * ambicion)) continue;
+              const libre = sinDeporte(viejo, pob, false);
+              m.lista.set(libre.id, libre);
+              const res = intentarEntrar(m, libre, e, pob);
+              if (!res.entra) m.lista.set(viejo.id, viejo);
+              else if (res.desplazado) desplazados.push({ id: res.desplazado.id, origen: pob.deporte });
+            }
+          }
         }
       }
     }
@@ -1773,6 +1811,145 @@ function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: 
 }
 
 /**
+ * **Los años siguientes no hay «draft»** (decisión del usuario, 05/11/2026): cada niño sigue en su club (pasa a la categoría que le toque dentro de él) y solo los que empiezan a jugar o se quedaron
+ * sin equipo (la bolsa) pasan por un «draft» solo para ellos: en cada categoría, 1) cada club (los de fuera por atractivo; los colegios, con todos sus alumnos) completa los huecos de sus equipos con
+ * un porcentaje de la bolsa (por hueco, sin quitarle el sitio a nadie); 2) **un equipo al que le quedan menos de 14 intenta completarse con la bolsa y, solo si no llega, se cierra y sus jugadores
+ * buscan otro equipo** (igual para clubes y colegios, sin prioridad especial); 3) con lo que sobra de la bolsa (14 o más) se abre un equipo en el club con menos equipos. Lo que sobre queda
+ * apartado (`apartarOLasDeJar` lo decide con los dos plazos). Devuelve los entrenadores nuevos.
+ */
+export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba: boolean }): Npc[] {
+  const nuevos: Npc[] = [];
+  const pobsNuevas: PoblacionGuardada[] = [];
+  const cerrados: { id: string; origen: string; no?: string }[] = [];
+  for (const pob0 of m.pobs) {
+    if (!conDraft(pob0, m.val)) {
+      pobsNuevas.push(pob0);
+      continue;
+    }
+    const pob: PoblacionGuardada = { ...pob0, equipos: pob0.equipos.map((e) => ({ ...e })) };
+    const categorias = new Map<string, CategoriaDef>();
+    for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
+    for (const [catId, cat] of [...categorias].sort((a, b) => a[1].edadMin - b[1].edadMin)) cerrados.push(...completarUnaCategoria(m, pob, cat, catId, o));
+    pobsNuevas.push(pob);
+    m.pobs = [...pobsNuevas, ...m.pobs.slice(pobsNuevas.length)];
+    nuevos.push(...entrenadoresDeLosEquipos(m, pob, rng));
+  }
+  m.pobs = pobsNuevas;
+  // Los jugadores de un equipo que se cierra buscan otro equipo como cualquier desplazado.
+  colocarDesplazados(m, cerrados);
+  return nuevos;
+}
+
+function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: CategoriaDef, catId: string, o: { conPrueba: boolean }): { id: string; origen: string; no?: string }[] {
+  const clubes = pob.equipos.filter((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((c) => c.id === catId));
+  if (!clubes.length) return [];
+  const edades = Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i);
+  const kDe = (e: EquipoGuardado): number => e.equiposPorCategoria?.[catId] ?? 1;
+  const ponerK = (e: EquipoGuardado, k: number): void => {
+    e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
+    if (k <= 1) delete e.equiposPorCategoria[catId];
+  };
+  const miembros = (e: EquipoGuardado): Npc[] => [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club && edades.includes(edadNpc(n, m.dia) ?? -1));
+  const bolsa = (): Aspirante[] => edades.flatMap((edad) => aspirantesDeEdad([...m.lista.values()], pob, edad, m.dia, m.val)).filter((a) => a.interes > 0);
+  const valorDe = (a: Aspirante): number => a.valor;
+  const elegibles = (e: EquipoGuardado): Aspirante[] => bolsa().filter((a) => e.colegio === undefined || a.colegio === e.colegio);
+  const entrar = (e: EquipoGuardado, a: Aspirante, conPrueba: boolean): boolean => {
+    const n = m.lista.get(a.npc.id);
+    return !!n && n.deporte === undefined && intentarEntrar(m, n, e, pob, !conPrueba, undefined, true).entra;
+  };
+  const fuera = clubes.filter((e) => e.colegio === undefined).sort((a, b) => atractivoDe(b) - atractivoDe(a) || b.calidad - a.calidad || (a.club < b.club ? -1 : 1));
+  const delColegio = clubes.filter((e) => e.colegio !== undefined).sort((a, b) => (a.club < b.club ? -1 : 1));
+  // 1. Cada club completa los huecos de sus equipos con un porcentaje de la bolsa (los colegios, con todos sus alumnos), por hueco.
+  for (const e of [...fuera, ...delColegio]) {
+    if (miembros(e).length === 0 || miembros(e).length >= capacidadDe(e, catId)) continue;
+    const toda = bolsa();
+    const posibles = elegibles(e);
+    const quieren = e.colegio === undefined ? Math.min(posibles.length, Math.round(atractivoDe(e) * toda.length)) : posibles.length;
+    const clave = (a: Aspirante): number => {
+      const ambicion = ((a.npc.rasgos?.caracter.ambicion ?? 0) + 50) / 100;
+      return Math.pow(rngEstable('probar', a.npc.genetica?.semilla ?? 0, a.npc.id, e.club, catId, m.dia).next() || 1e-9, 1 / (0.5 + a.interes * 0.5 + ambicion * (e.calidad - 1)));
+    };
+    const van = [...posibles].sort((x, y) => clave(y) - clave(x) || (x.npc.id < y.npc.id ? -1 : 1)).slice(0, quieren);
+    for (const a of van.sort((x, y) => valorDe(y) - valorDe(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
+      if (miembros(e).length >= capacidadDe(e, catId)) break;
+      entrar(e, a, o.conPrueba);
+    }
+  }
+  // 2. Un equipo con menos de 14: se completa con la bolsa (sin prueba: es el club quien los llama) y, solo si no llega, se cierra y sus jugadores buscan otro equipo.
+  const cerrados: { id: string; origen: string; no?: string }[] = [];
+  for (const e of [...fuera, ...delColegio]) {
+    const min = minimoDe(e);
+    const k = kDe(e);
+    if (miembros(e).length === 0 || miembros(e).length >= min * k) continue;
+    for (const a of [...elegibles(e)].sort((x, y) => valorDe(y) - valorDe(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
+      if (miembros(e).length >= min * k) break;
+      entrar(e, a, false);
+    }
+    const n = miembros(e).length;
+    if (n >= min * k) continue;
+    const montables = Math.floor(n / min);
+    if (montables >= 1) {
+      // Cierra los equipos de más: los que ya no caben (los de menos valor) buscan otro equipo.
+      ponerK(e, montables);
+      const sobran = n - capacidadDe(e, catId);
+      if (sobran > 0) {
+        for (const x of [...miembros(e)].filter((x) => !x.id.startsWith('personaje@')).sort((a, b) => valorEn(a, pob, m) - valorEn(b, pob, m) || (a.id < b.id ? -1 : 1)).slice(0, sobran)) {
+          m.lista.set(x.id, sinDeporte(x, pob, false));
+          cerrados.push({ id: x.id, origen: pob.deporte, no: e.club });
+        }
+      }
+    } else {
+      for (const x of miembros(e)) {
+        if (x.id.startsWith('personaje@')) continue;
+        m.lista.set(x.id, sinDeporte(x, pob, false));
+        cerrados.push({ id: x.id, origen: pob.deporte, no: e.club });
+      }
+      ponerK(e, 1);
+    }
+  }
+  // 3. Con lo que sobra de la bolsa (14 o más) se abre un equipo en el club con menos equipos (el más pequeño primero), solo con ellos.
+  for (let vuelta = 0; vuelta < 6; vuelta++) {
+    const min = Math.min(...clubes.map(minimoDe));
+    if (bolsa().length < min) break;
+    const e = [...fuera].filter((x) => kDe(x) < MAX_EQUIPOS_POR_CATEGORIA && miembros(x).length >= minimoDe(x) * kDe(x)).sort((a, b) => kDe(a) - kDe(b) || atractivoDe(a) - atractivoDe(b) || (a.club < b.club ? -1 : 1))[0];
+    if (!e) break;
+    const antes = new Set(miembros(e).map((n) => n.id));
+    ponerK(e, kDe(e) + 1);
+    for (const a of [...elegibles(e)].sort((x, y) => valorDe(y) - valorDe(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
+      if (miembros(e).length >= capacidadDe(e, catId)) break;
+      entrar(e, a, false);
+    }
+    if (miembros(e).length < minimoDe(e) * kDe(e)) {
+      for (const x of miembros(e).filter((x) => !antes.has(x.id))) m.lista.set(x.id, sinDeporte(x, pob, false));
+      ponerK(e, kDe(e) - 1);
+      break;
+    }
+  }
+  return cerrados;
+}
+
+/**
+ * **Dos plazos antes de dejarlo para siempre** (decisión del usuario, 05/11/2026): quien no consigue equipo en un plazo se queda apartado ese curso (`apartado`) y lo vuelve a intentar en el siguiente
+ * (entra en la bolsa); solo lo deja para siempre (`dejado`) si en dos plazos seguidos ningún club lo ha querido. `segunda` son los que ya estaban apartados. Devuelve cuántos lo dejan.
+ */
+export function apartarODejar(m: MercadoDeFichajes, segunda: ReadonlySet<string>): number {
+  let dejan = 0;
+  for (const pob of m.pobs) {
+    if (!conDraft(pob, m.val)) continue;
+    const edadesDeLasCategorias = new Set((pob.categorias ?? []).flatMap((c) => Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i)));
+    for (const [id, n] of m.lista) {
+      if (!n.genetica || n.deporte !== undefined || n.dejado?.includes(pob.deporte) || n.apartado?.includes(pob.deporte) || interesPor(n.rasgos, pob.deporte) <= 0) continue;
+      if (!edadesDeLasCategorias.has(edadNpc(n, m.dia) ?? -1) || !pob.equipos.some((e) => e.plantillaPorCategoria && edadesDe(pob, e).includes(edadNpc(n, m.dia) ?? -1))) continue;
+      if (segunda.has(id)) {
+        m.lista.set(id, { ...n, dejado: [...new Set([...(n.dejado ?? []), pob.deporte])] });
+        dejan++;
+      } else m.lista.set(id, { ...n, apartado: [...new Set([...(n.apartado ?? []), pob.deporte])] });
+    }
+  }
+  return dejan;
+}
+
+/**
  * Los equipos de todos los deportes completan sus plantillas en dos vueltas: primero cada deporte recluta a los interesados en él y, solo después, los
  * que aún faltan se cubren con quien encaje (aunque no le interese). Así un niño al que le gusta un deporte no lo pierde porque otro deporte, que va antes,
  * tuviese plazas por cubrir.
@@ -1814,8 +1991,10 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
  * rellenan las plazas libres con otros niños que encajan. Los niños de otros colegios que se van desaparecen (los que lo dejaron no se vuelven a reclutar);
  * los compañeros, los hermanos y los niños del barrio siguen siendo quienes son, solo que sin deporte.
  */
-export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; dejanSinClub?: number; pobs?: PoblacionGuardada[] } = { sinPlaza: [] }): Npc[] {
+export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; dejanSinClub?: number; pobs?: PoblacionGuardada[]; propuestas?: { deporte: string; puesto: string }[] } = { sinPlaza: [] }): Npc[] {
   // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
+  // Los apartados del plazo anterior vuelven a la bolsa (su segunda oportunidad): si tampoco ahora los quiere ningún club, lo dejan para siempre.
+  const segunda = new Set(npcs.filter((n) => n.apartado?.length).map((n) => n.id));
   let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
   for (const pob of pobs) {
     const { edades, edadMaxBaja, probabilidadBaja } = pob.reclutamiento;
@@ -1832,9 +2011,8 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // `club.plaza_perdida` y decide él qué hace; lo único distinto es que a él nunca se le retira del deporte para siempre).
   const mercado: MercadoDeFichajes = { lista: new Map(lista.map((n) => [n.id, n])), pobs, dia, val: valoracionDe(rend), reservas: new Map() };
   for (const j of personaje) mercado.lista.set(idDelPersonaje(j.deporte), jugadorComoNpc(j, dia));
-  const dejadosAntes = new Set(lista.filter((n) => n.dejado?.length).map((n) => n.id));
   fichajesDeVerano(mercado, semilla, curso);
-  resultado.dejanSinClub = [...mercado.lista.values()].filter((n) => n.deporte === undefined && n.dejado?.length && !dejadosAntes.has(n.id)).length;
+  resultado.propuestas = mercado.propuestas ?? [];
   const reservasQueQuedan = new Map(reservas);
   for (const j of personaje) {
     const dentro = mercado.lista.get(idDelPersonaje(j.deporte))?.deporte !== undefined;
@@ -1848,8 +2026,10 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // interesados que se quedan sin equipo (tantos como el mínimo de una plantilla) lo tengan.
   const llenos = reclutarEnTodos([...mercado.lista.values()], mercado.pobs, dia, reservasQueQuedan, rend);
   const final: MercadoDeFichajes = { lista: new Map(llenos.map((n) => [n.id, n])), pobs: mercado.pobs, dia, val: valoracionDe(rend), reservas: reservasQueQuedan };
-  // El «draft» coloca a los que están en la bolsa (con su prueba, en los plazos; con la ambición, desde el segundo curso) y ajusta los equipos.
-  draftDeEquipos(final, rng, { conPrueba: true, conAmbicion: true, reiniciar: false });
+  // No hay «draft» los años siguientes: cada uno sigue en su club; la bolsa (los que empiezan y los que se quedaron sin equipo) completa los equipos con su prueba, los que se quedan con menos de 14 se
+  // completan o se cierran, y quien no consigue equipo en dos plazos seguidos lo deja para siempre.
+  completarEquipos(final, rng, { conPrueba: true });
+  resultado.dejanSinClub = apartarODejar(final, segunda);
   resultado.pobs = [...final.pobs];
   return [...final.lista.values()];
 }
@@ -2303,15 +2483,23 @@ export const npcs = defineModule<NpcsState>({
         const f = rend.get(pob.deporte);
         const puestoDelPersonaje = ctx.state<NpcsState>().puestoDelPersonaje?.[pob.deporte];
         const valoresDelPersonaje = puestosDelPersonaje(ctx, rend, pob);
-        if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: puestoDelPersonaje && valoresDelPersonaje ? valoresDelPersonaje[puestoDelPersonaje] : f(ctx), edad: edadProxima, pierna: ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', ...(puestoDelPersonaje ? { puesto: puestoDelPersonaje } : {}) });
+        if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: puestoDelPersonaje && valoresDelPersonaje ? valoresDelPersonaje[puestoDelPersonaje] : f(ctx), edad: edadProxima, pierna: ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', ...(puestoDelPersonaje ? { puesto: puestoDelPersonaje } : {}), ...(valoresDelPersonaje ? { valores: valoresDelPersonaje } : {}) });
       }
-      const resultado = { sinPlaza: [] as string[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined };
+      const resultado = { sinPlaza: [] as string[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined, propuestas: [] as { deporte: string; puesto: string }[] };
       ctx.updateState<NpcsState>((s) => {
         const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), proximo.day));
         const pobsNuevas = resultado.pobs ?? pobs;
         return { ...s, poblaciones: pobsNuevas, npcs: conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
       });
+      // El entrenador le propone al personaje otro puesto si en el suyo sobran y en otro faltan (decide él: `club.cambio_de_puesto`).
+      for (const p of resultado.propuestas) if (!resultado.sinPlaza.includes(p.deporte)) ctx.emit<PuestoPropuestoData>({ type: SHARED_EVENTS.PROPUESTA_DE_PUESTO, data: { sport: p.deporte, puesto: p.puesto } });
       for (const deporte of resultado.sinPlaza) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
+    },
+
+    // El personaje acepta el cambio de puesto que le propuso su entrenador: el equipo cuenta con él en el nuevo.
+    [SHARED_EVENTS.CAMBIO_DE_PUESTO]: (ctx, ev) => {
+      const { sport, puesto } = ev.data as PuestoPropuestoData;
+      ctx.updateState<NpcsState>((st) => ({ ...st, puestoDelPersonaje: { ...(st.puestoDelPersonaje ?? {}), [sport]: puesto } }));
     },
 
     // Al entrar en un club conoces a su entrenador: se presenta el primer día.
