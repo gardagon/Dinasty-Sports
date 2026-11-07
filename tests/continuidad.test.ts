@@ -3,8 +3,11 @@ import { CIUDAD_ACTUAL, ID_PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA, conClub
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { DATOS_FUTBOL, futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
-import { capacidadDe, completarEquipos, edadNpc, recolocarPropios, sinDeporte, valoracionDe, type MercadoDeFichajes, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { agotaLasBusquedas, apartadoPorBusquedas, capacidadDe, completarEquipos, edadNpc, recolocarPropios, sinDeporte, valoracionDe, type MercadoDeFichajes, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { hacer } from './ayudas';
+import { PUESTOS_DE_FUTBOL as PUESTOS } from '@ds/mod-futbol';
+import { cuposPorGrupo, parecidoDePuestos } from '@ds/contracts';
+import { ofertasOrdenadas, type JugadorConPuesto } from '../modules/npcs/src/puestos';
 
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 registrarPais(PAIS_CIUDAD_DE_PRUEBA);
@@ -86,7 +89,7 @@ describe('un equipo con menos de 14 se completa con la bolsa o se cierra', () =>
 });
 
 describe('si hay 14 que pueden formar un equipo, se forma (aunque el reparto por puestos no cuadre)', () => {
-  it('un colegio sin equipo con 20 alumnos interesados que quieren jugar todos de lateral monta su equipo: los que no caben en su grupo entran en su puesto favorito', () => {
+  it('un colegio sin equipo con 20 alumnos interesados que quieren jugar todos de lateral monta su equipo: los que no caben de lateral reciben puestos parecidos (y, solo como último recurso, entran en el suyo con el grupo lleno)', () => {
     const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     const s = g.moduleState<NpcsState>('npcs') as NpcsState;
     const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
@@ -105,7 +108,8 @@ describe('si hay 14 que pueden formar un equipo, se forma (aunque el reparto por
     completarEquipos(m, rngNulo, { conPrueba: false });
     const delColegio = [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && enCat(n));
     expect(delColegio.length).toBeGreaterThanOrEqual(14); // se forma, aunque solo caben 3 laterales por equipo
-    expect(delColegio.filter((n) => n.puesto?.futbol === 'LB').length).toBeGreaterThan(3); // los de más entran en su puesto favorito
+    // Los que no caben de lateral reciben los puestos parecidos (de central, de medio...) y los aceptan o no según su carácter; solo como último recurso entran de lateral con el grupo lleno.
+    expect(new Set(delColegio.map((n) => n.puesto?.futbol)).size).toBeGreaterThan(3);
   });
 });
 
@@ -159,5 +163,57 @@ describe('el entrenador le propone al personaje otro puesto al recolocar', () =>
     expect((h.moduleState('futbol') as { puesto?: string; propuestaDePuesto?: string }).puesto).toBe('CB');
     expect((h.moduleState('futbol') as { propuestaDePuesto?: string }).propuestaDePuesto).toBeUndefined();
     expect((h.moduleState('npcs') as NpcsState).puestoDelPersonaje?.futbol).toBe('CB');
+  });
+});
+
+describe('tres intentos de búsqueda cuentan como un plazo sin equipo (la función sola)', () => {
+  const nino = (extra: Partial<Npc> = {}): Npc => ({ id: 'alumno_1', name: 'Uno', role: 'companero', gender: 'm', tags: [], levels: {}, potential: {}, ...extra });
+
+  it('a la cuarta búsqueda en la misma tanda se agotan los intentos; antes, no; y cada niño lleva su cuenta', () => {
+    const cuenta = new Map<string, number>();
+    expect([1, 2, 3].map(() => agotaLasBusquedas(cuenta, 'a'))).toEqual([false, false, false]);
+    expect(agotaLasBusquedas(cuenta, 'a')).toBe(true);
+    expect(agotaLasBusquedas(cuenta, 'b')).toBe(false); // otro niño, otra cuenta
+  });
+
+  it('quien los agota queda apartado, no dejado: es un plazo sin equipo (el segundo plazo lo comprueba `apartarODejar`, en `fichajes.test.ts`)', () => {
+    const apartado = apartadoPorBusquedas(nino(), 'futbol');
+    expect(apartado.apartado).toEqual(['futbol']);
+    expect(apartado.dejado).toBeUndefined();
+    expect(apartadoPorBusquedas(apartado, 'futbol').apartado).toEqual(['futbol']); // sin repetir
+  });
+});
+
+describe('puestos parecidos al montar un equipo', () => {
+  const cupos = cuposPorGrupo(PUESTOS, 18);
+  const jug = (id: string, puesto: string): JugadorConPuesto => ({ id, nombre: id, puesto, valor: 40 });
+  /** Un equipo con los laterales completos (3) y sitio en los demás grupos. */
+  const equipo = (): JugadorConPuesto[] => ['LB', 'RB', 'LB'].map((p, i) => jug(`l${i}`, p));
+  const todos = (v: number): Record<string, number> => Object.fromEntries(PUESTOS.puestos.map((p) => [p.id, v]));
+
+  it('a quien no cabe en su puesto se le ofrecen los demás de más a menos parecido (un lateral, de central antes que de delantero)', () => {
+    const ofertas = ofertasOrdenadas(equipo(), cupos, PUESTOS, todos(30), 'LB');
+    expect(ofertas.length).toBeGreaterThan(3);
+    expect(ofertas.some((o) => o.puesto === 'LB' || o.puesto === 'RB')).toBe(false); // su grupo está completo
+    const parecidos = ofertas.map((o) => parecidoDePuestos(PUESTOS, 'LB', o.puesto));
+    expect(parecidos).toEqual([...parecidos].sort((a, b) => b - a)); // de más a menos parecido
+    expect(['CB', 'LCR']).toContain(ofertas[0].puesto);
+    const iCentral = ofertas.findIndex((o) => o.puesto === 'CB');
+    const iDelantero = ofertas.findIndex((o) => ['ST', 'CAM', 'LST', 'RST'].includes(o.puesto));
+    expect(iCentral).toBeLessThan(iDelantero);
+  });
+
+  it('un extremo con su grupo completo recibe antes los de su línea y los cercanos (delantero) que el de portero', () => {
+    const bandas = ['LW', 'RW', 'LM'].map((p, i) => jug(`b${i}`, p));
+    const ofertas = ofertasOrdenadas(bandas, cupos, PUESTOS, todos(30), 'LW');
+    const iDelantero = ofertas.findIndex((o) => ['ST', 'CAM', 'LST', 'RST'].includes(o.puesto));
+    const iPortero = ofertas.findIndex((o) => o.puesto === 'GK');
+    expect(iDelantero).toBeGreaterThanOrEqual(0);
+    expect(iDelantero).toBeLessThan(iPortero === -1 ? 99 : iPortero);
+  });
+
+  it('con su grupo libre, la primera oferta es su puesto favorito', () => {
+    const ofertas = ofertasOrdenadas([], cupos, PUESTOS, todos(30), 'CB');
+    expect(ofertas[0].puesto).toBe('CB');
   });
 });

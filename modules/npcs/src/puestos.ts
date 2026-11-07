@@ -124,6 +124,18 @@ export function ofertaDePuesto(jugadores: readonly JugadorConPuesto[], cupos: Re
 }
 
 /**
+ * **El entrenador ofrece puestos parecidos al montar un equipo** (decisión del usuario, 07/11/2026): todas las ofertas posibles, de la más a la menos adecuada: primero la del grupo de su puesto favorito
+ * (si entra en él) y después, **de más a menos parecido** al favorito (los de su línea y los cercanos: un lateral, de central; un extremo, de delantero), las de los demás grupos; a igualdad, la que más
+ * vale. Cada oferta la acepta o no el niño según su carácter (`probabilidadDeAceptarPuesto`), y se queda con la primera que acepta.
+ */
+export function ofertasOrdenadas(jugadores: readonly JugadorConPuesto[], cupos: Readonly<Record<string, number>>, p: PuestosDeDeporte, valores: Readonly<Record<string, number>>, favorito?: string, piernaDelCandidato?: Pierna, prueba?: CondicionesDePrueba): OfertaDePuesto[] {
+  const ofertas = ofertasDePuesto(jugadores, cupos, p, valores, favorito, piernaDelCandidato, prueba);
+  const grupoFavorito = favorito ? grupoDePuesto(p, favorito) : undefined;
+  const parecido = (o: OfertaDePuesto): number => (favorito ? parecidoDePuestos(p, favorito, o.puesto) : 0);
+  return [...ofertas].sort((a, b) => Number(grupoDePuesto(p, b.puesto) === grupoFavorito) - Number(grupoDePuesto(p, a.puesto) === grupoFavorito) || parecido(b) - parecido(a) || b.valor - a.valor || (a.puesto < b.puesto ? -1 : 1));
+}
+
+/**
  * Cuánto acepta un niño un puesto que no es su favorito, de 5 % a 95 %: más fácil cuanto más **disciplinado** y **sacrificado** es (ejes del carácter, de −50 a 50), cuanto más se parece el
  * puesto ofrecido al suyo y si en él sería **titular**. En el puesto favorito (o uno del mismo grupo y parecido total) siempre lo acepta.
  */
