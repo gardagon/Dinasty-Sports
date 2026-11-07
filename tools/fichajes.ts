@@ -1,4 +1,4 @@
-import { SERVICES, defineModule, faltaViajar, type NpcDirectory } from '@ds/contracts';
+import { PAIS_CIUDAD_GRANDE, SERVICES, defineModule, faltaViajar, registrarPais, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek, seededRng } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
@@ -21,6 +21,9 @@ import { hacer, opcionesDelBot } from '../sim/src/pasos';
 const SEMILLAS = Number(process.argv[2] ?? 12);
 const CURSOS = Number(process.argv[3] ?? 3);
 const CON_BOT = process.argv[4] !== 'sinBot';
+/** `CIUDAD=grande npm run fichajes`: con la ciudad grande del diseño (9 colegios de fuera de 2 clases de 25 por curso; clubes en proporción). */
+const PAIS = process.env.CIUDAD === 'grande' ? PAIS_CIUDAD_GRANDE.id : undefined;
+if (PAIS) registrarPais(PAIS_CIUDAD_GRANDE);
 const CLUBES = ['club_grande', 'club_mediano', 'club_pequeno', 'colegio'];
 /** La acción con que el personaje se apunta al club del colegio (a los demás entra con una prueba de acceso). */
 const ACCION: Record<string, string> = { colegio: 'futbol.apuntarse_colegio' };
@@ -66,7 +69,7 @@ const nivelDelBot: number[][] = Array.from({ length: CURSOS }, () => []);
 
 for (let seed = 1; seed <= SEMILLAS; seed++) {
   const t0 = performance.now();
-  const g = nuevaPartida({ seed, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, medida]);
+  const g = nuevaPartida({ seed, pais: PAIS, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, medida]);
   costeDeCrear.push(performance.now() - t0);
   const nivel = (): number => g.service<{ nivel(): number }>('medida.nivel')!.nivel();
   const puestosDelPersonaje = (): Record<string, number> => g.service<{ puestos(): Record<string, number> }>('medida.nivel')!.puestos();

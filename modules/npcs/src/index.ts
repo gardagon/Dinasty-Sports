@@ -1355,7 +1355,7 @@ type Entrada = { entra: false } | { entra: true; desplazado?: Npc };
  * Un niño sin equipo intenta entrar en un club con **la regla de plaza** (`reglaDePlaza`, la misma que el personaje): con hueco, entra; con el equipo lleno, entra si vale más que
  * el peor, que deja el sitio (queda sin equipo y busca otro). Respeta que los equipos de un colegio solo cogen a sus alumnos y las edades del club.
  */
-function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: PoblacionGuardada, sinPrueba = false, puestoForzado?: string, soloHueco = false): Entrada {
+function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: PoblacionGuardada, sinPrueba = false, puestoForzado?: string, soloHueco = false, relajado = false): Entrada {
   if (!n.genetica || n.nacimiento === undefined) return { entra: false };
   const edad = edadNpc(n, m.dia);
   if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
@@ -1370,7 +1370,7 @@ function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: Po
     // Un club que no es el del colegio le hace una prueba (la misma que al personaje): lo que vale ese día, por su estado y un poco de azar suyo, es lo que cuenta para la plaza.
     const prueba = e.colegio === undefined && !sinPrueba ? pruebaDeUnNino(n, e, valores, m.dia) : undefined;
     // En el «draft», el club pide primero los grupos más escasos: solo se mide ese puesto (y con hueco entra sin enfrentarse a un suplente: no hay once aún).
-    const forzado: CondicionesDePrueba | undefined = puestoForzado ? { puesto: puestoForzado, yaPasada: true } : undefined;
+    const forzado: CondicionesDePrueba | undefined = relajado ? { puesto: favorito, yaPasada: true, sinCuposPorGrupo: true } : puestoForzado ? { puesto: puestoForzado, yaPasada: true } : undefined;
     const oferta = ofertaAlCandidato(plantel.jugadores, plantel.max, pob, prueba?.valores ?? valores, favorito, m.val, m.dia, piernaDe(n, pob), forzado ?? prueba?.condiciones);
     // Los descartes definitivos solo entran por un hueco: quitarle el sitio a otro solo lo cambia de sitio en la bolsa.
     if (!oferta || (soloHueco && oferta.estado === 'por_merito') || !aceptaElPuesto(n, pob, e.club, favorito, oferta)) return { entra: false };
@@ -1410,7 +1410,7 @@ const MAX_BUSQUEDAS = 3;
 export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly { id: string; origen: string; no?: string }[]): void {
   const cola = [...desplazados];
   // Cuántas veces ha tenido que buscar club cada uno en esta tanda: como un desplazado puede desplazar a otro por un puesto distinto, la cadena podría dar vueltas (40.000 intentos por un solo
-  // desplazado). Quien llega a `MAX_BUSQUEDAS` deja de buscar en esta tanda, sin apartarlo ni dejarlo: el relleno de plantillas posterior lo coge si hay hueco.
+  // desplazado). Quien llega a `MAX_BUSQUEDAS` deja de buscar y queda apartado (cuenta como un plazo sin equipo).
   const busquedas = new Map<string, number>();
   for (let vueltas = 0; cola.length && vueltas < 20000; vueltas++) {
     const { id, origen, no } = cola.shift()!;
@@ -1418,7 +1418,11 @@ export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly {
     if (!n || n.deporte !== undefined || id.startsWith('personaje@')) continue;
     const veces = (busquedas.get(id) ?? 0) + 1;
     busquedas.set(id, veces);
-    if (veces > MAX_BUSQUEDAS) continue; // se queda sin equipo, sin apartar: los equipos que se rellenan después lo cogen si hay hueco
+    // Tres búsquedas sin quedarse: sin equipo en este plazo; cuenta como un plazo más (apartado), y si en el siguiente tampoco, lo deja para siempre.
+    if (veces > MAX_BUSQUEDAS) {
+      m.lista.set(id, { ...n, apartado: [...new Set([...(n.apartado ?? []), origen])] });
+      continue;
+    }
     const deportes = [origen, ...m.pobs.filter((p) => p.deporte !== origen && interesPor(n!.rasgos, p.deporte) > 0).sort((a, b) => interesPor(n!.rasgos, b.deporte) - interesPor(n!.rasgos, a.deporte)).map((p) => p.deporte)];
     const intentados: string[] = [];
     let colocado = false;
@@ -1770,6 +1774,14 @@ function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: 
         const n = m.lista.get(a.npc.id);
         if (n && n.deporte === undefined) intentarEntrar(m, n, e, pob, !o.conPrueba);
       }
+      // Un equipo nuevo de los descartes (todos los que quedan) o de un colegio (todos sus alumnos): si con el reparto por puestos no llega a los 14, los demás entran en su puesto favorito.
+      if (miembros(e).length < minimoDe(e) * t && (porcentaje === null || porcentaje >= 1)) {
+        for (const a of [...van].sort((x, y) => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1))) {
+          if (miembros(e).length >= capacidadDe(e, catId)) break;
+          const n = m.lista.get(a.npc.id);
+          if (n && n.deporte === undefined) intentarEntrar(m, n, e, pob, true, undefined, true, true);
+        }
+      }
       if (miembros(e).length < minimoDe(e) * t) {
         // No llega a los 14 de este equipo: se deshace este paso (los que entraron vuelven a la bolsa) y el club se queda con los equipos que ya tenía.
         liberar(miembros(e).filter((n) => !antesDelPaso.has(n.id)).map((n) => n.id));
@@ -1893,6 +1905,14 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
     const n = m.lista.get(a.npc.id);
     return !!n && n.deporte === undefined && intentarEntrar(m, n, e, pob, !conPrueba, undefined, true).entra;
   };
+  /** Si con el reparto por puestos no llegan a los 14 de un equipo nuevo, los que quedan entran en su puesto favorito aunque su grupo esté lleno (un equipo de once con tres bandas de más es un equipo; uno que no se monta, no). */
+  const completarRelajado = (e: EquipoGuardado, hasta: number): void => {
+    for (const a of [...elegibles(e)].sort((x, y) => valorDe(y) - valorDe(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
+      if (miembros(e).length >= hasta) break;
+      const n = m.lista.get(a.npc.id);
+      if (n && n.deporte === undefined) intentarEntrar(m, n, e, pob, true, undefined, true, true);
+    }
+  };
   const fuera = clubes.filter((e) => e.colegio === undefined).sort((a, b) => atractivoDe(b) - atractivoDe(a) || b.calidad - a.calidad || (a.club < b.club ? -1 : 1));
   const delColegio = clubes.filter((e) => e.colegio !== undefined).sort((a, b) => (a.club < b.club ? -1 : 1));
   // 1. Cada club completa los huecos de sus equipos con un porcentaje de la bolsa (los colegios, con todos sus alumnos), por hueco.
@@ -1920,6 +1940,7 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
       if (miembros(e).length >= capacidadDe(e, catId)) break;
       entrar(e, a, false);
     }
+    if (miembros(e).length < minimoDe(e)) completarRelajado(e, capacidadDe(e, catId));
     if (miembros(e).length < minimoDe(e)) for (const x of miembros(e)) m.lista.set(x.id, sinDeporte(x, pob, false));
   }
   // 2. Un equipo con menos de 14: se completa con la bolsa (sin prueba: es el club quien los llama) y, solo si no llega, se cierra y sus jugadores buscan otro equipo.
@@ -1966,6 +1987,7 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
       if (miembros(e).length >= capacidadDe(e, catId)) break;
       entrar(e, a, false);
     }
+    if (miembros(e).length < minimoDe(e) * kDe(e)) completarRelajado(e, capacidadDe(e, catId));
     if (miembros(e).length < minimoDe(e) * kDe(e)) {
       for (const x of miembros(e).filter((x) => !antes.has(x.id))) m.lista.set(x.id, sinDeporte(x, pob, false));
       ponerK(e, kDe(e) - 1);

@@ -85,6 +85,30 @@ describe('un equipo con menos de 14 se completa con la bolsa o se cierra', () =>
   });
 });
 
+describe('si hay 14 que pueden formar un equipo, se forma (aunque el reparto por puestos no cuadre)', () => {
+  it('un colegio sin equipo con 20 alumnos interesados que quieren jugar todos de lateral monta su equipo: los que no caben en su grupo entran en su puesto favorito', () => {
+    const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const s = g.moduleState<NpcsState>('npcs') as NpcsState;
+    const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
+    const cat = pob.categorias!.find((c) => c.id === 'infantil')!;
+    const enCat = (n: Npc) => (edadNpc(n, 0) ?? -1) >= cat.edadMin && (edadNpc(n, 0) ?? -1) <= cat.edadMax;
+    const lista = new Map(s.npcs.map((n) => [n.id, n]));
+    // El colegio sin equipo en infantil: sus jugadores a la bolsa.
+    for (const n of s.npcs.filter((x) => x.deporte === 'futbol' && x.equipo === 'colegio' && enCat(x))) lista.set(n.id, sinDeporte(n, pob, false));
+    // 20 alumnos del colegio, interesados y de lateral (el grupo de lateral cabe 3 por equipo de 18): todos sin equipo.
+    const alumnos = [...lista.values()].filter((n) => n.genetica && n.deporte === undefined && n.colegio === undefined && n.tipos?.some((t) => t.tipo === 'alumno') && enCat(n) && !n.dejado?.includes('futbol')).slice(0, 20);
+    expect(alumnos.length).toBe(20);
+    for (const n of alumnos) lista.set(n.id, { ...n, puestoFavorito: { futbol: 'LB' }, rasgos: n.rasgos && { ...n.rasgos, intereses: { futbol: 3 }, caracter: { ...n.rasgos.caracter, disciplina: -50, sacrificio: -50 } }, apartado: undefined });
+    // Los demás interesados, fuera de la bolsa (no quieren jugar): solo cuentan estos 20.
+    for (const [id, n] of lista) if (n.genetica && n.deporte === undefined && !alumnos.some((a) => a.id === id)) lista.set(id, { ...n, rasgos: n.rasgos && { ...n.rasgos, intereses: {} } });
+    const m: MercadoDeFichajes = { lista, pobs: [pob], dia: 0, val: valoracionDe(REND), reservas: new Map() };
+    completarEquipos(m, rngNulo, { conPrueba: false });
+    const delColegio = [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && enCat(n));
+    expect(delColegio.length).toBeGreaterThanOrEqual(14); // se forma, aunque solo caben 3 laterales por equipo
+    expect(delColegio.filter((n) => n.puesto?.futbol === 'LB').length).toBeGreaterThan(3); // los de más entran en su puesto favorito
+  });
+});
+
 describe('colegios de fuera con club (dato de la ciudad)', () => {
   const datos = DATOS_FUTBOL.paises.espana;
   it('por defecto, la mitad de los colegios de fuera tiene club, con las mismas reglas que el del colegio del personaje (solo para sus alumnos); es un dato de la ciudad', () => {
