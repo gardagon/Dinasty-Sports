@@ -145,7 +145,7 @@ import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacid
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { habilidadesIniciales, lectorDe, prepararTrabajo, type HabilidadesDe } from './rutina';
 import { repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
-import { ofertaDePuesto, probabilidadDeAceptarPuesto, puestoDondeMasVale, type CondicionesDePrueba, type JugadorConPuesto, type OfertaDePuesto } from './puestos';
+import { ofertaDePuesto, ofertasOrdenadas, probabilidadDeAceptarPuesto, puestoDondeMasVale, type CondicionesDePrueba, type JugadorConPuesto, type OfertaDePuesto } from './puestos';
 import { NUNCA, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
 
 /**
@@ -1073,6 +1073,15 @@ const puestoDeJugador = (n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: num
 /** Lo que vale un jugador de un equipo en su puesto (el personaje, que no tiene capacidades de niño, lleva su valor en `levels`). */
 const valorEnSuPuesto = (n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number, puesto: string): number => valoresPorPuestoDe(n, pob, v, dia)?.[puesto] ?? n.levels[pob.deporte] ?? 0;
 
+/** Todas las ofertas de puesto de un equipo a un candidato, de la más a la menos adecuada (`ofertasOrdenadas`: su puesto, y los parecidos de más a menos). */
+export function ofertasAlCandidato(jugadores: readonly Npc[], max: number, pob: PoblacionGuardada, valores: Readonly<Record<string, number>>, favorito: string | undefined, v: Valoracion, dia: number, piernaDelCandidato?: Pierna, prueba?: CondicionesDePrueba): OfertaDePuesto[] {
+  const conPuesto: JugadorConPuesto[] = jugadores.flatMap((j) => {
+    const puesto = puestoDeJugador(j, pob, v, dia);
+    return puesto ? [{ id: j.id, nombre: j.name, puesto, valor: valorEnSuPuesto(j, pob, v, dia, puesto), pierna: j.pierna ?? (j.genetica ? piernaDe(j, pob) : undefined), valores: valoresPorPuestoDe(j, pob, v, dia) }] : [];
+  });
+  return ofertasOrdenadas(conPuesto, cuposPorGrupo(pob.puestos!, max), pob.puestos!, valores, favorito, piernaDelCandidato, prueba);
+}
+
 /**
  * La oferta de puesto de un equipo (con `jugadores`, que caben `max`) a un candidato que vale `valores` en cada puesto: la regla de plaza por puesto (`ofertaDePuesto`), con el reparto de la
  * plantilla por grupos del deporte. `undefined`: no entra en ningún puesto.
@@ -1355,7 +1364,7 @@ type Entrada = { entra: false } | { entra: true; desplazado?: Npc };
  * Un niño sin equipo intenta entrar en un club con **la regla de plaza** (`reglaDePlaza`, la misma que el personaje): con hueco, entra; con el equipo lleno, entra si vale más que
  * el peor, que deja el sitio (queda sin equipo y busca otro). Respeta que los equipos de un colegio solo cogen a sus alumnos y las edades del club.
  */
-function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: PoblacionGuardada, sinPrueba = false, puestoForzado?: string, soloHueco = false, relajado = false): Entrada {
+function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: PoblacionGuardada, sinPrueba = false, puestoForzado?: string, soloHueco = false, relajado = false, equipoNuevo = false): Entrada {
   if (!n.genetica || n.nacimiento === undefined) return { entra: false };
   const edad = edadNpc(n, m.dia);
   if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
@@ -1371,9 +1380,11 @@ function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: Po
     const prueba = e.colegio === undefined && !sinPrueba ? pruebaDeUnNino(n, e, valores, m.dia) : undefined;
     // En el «draft», el club pide primero los grupos más escasos: solo se mide ese puesto (y con hueco entra sin enfrentarse a un suplente: no hay once aún).
     const forzado: CondicionesDePrueba | undefined = relajado ? { puesto: favorito, yaPasada: true, sinCuposPorGrupo: true } : puestoForzado ? { puesto: puestoForzado, yaPasada: true } : undefined;
-    const oferta = ofertaAlCandidato(plantel.jugadores, plantel.max, pob, prueba?.valores ?? valores, favorito, m.val, m.dia, piernaDe(n, pob), forzado ?? prueba?.condiciones);
-    // Los descartes definitivos solo entran por un hueco: quitarle el sitio a otro solo lo cambia de sitio en la bolsa.
-    if (!oferta || (soloHueco && oferta.estado === 'por_merito') || !aceptaElPuesto(n, pob, e.club, favorito, oferta)) return { entra: false };
+    // El entrenador ofrece su puesto y, si no cabe, los parecidos de más a menos (un lateral, de central; un extremo, de delantero); cada oferta la acepta o no según su carácter, y se queda con
+    // la primera que acepta. En un equipo nuevo todos serían titulares. Los descartes definitivos solo entran por un hueco: quitarle el sitio a otro solo lo cambia de sitio en la bolsa.
+    const ofertas = ofertasAlCandidato(plantel.jugadores, plantel.max, pob, prueba?.valores ?? valores, favorito, m.val, m.dia, piernaDe(n, pob), forzado ?? prueba?.condiciones);
+    const oferta = ofertas.find((o) => !(soloHueco && o.estado === 'por_merito') && aceptaElPuesto(n, pob, e.club, favorito, equipoNuevo ? { ...o, titular: true } : o));
+    if (!oferta) return { entra: false };
     const desplazado = oferta.peor ? m.lista.get(oferta.peor.id) : undefined;
     m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto, favorito));
     if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
@@ -1400,6 +1411,16 @@ const clubesPorTamano = (pob: PoblacionGuardada): EquipoGuardado[] => [...pob.eq
 /** Cuántas veces busca club un mismo desplazado en una tanda antes de dejar de buscar en ella. */
 const MAX_BUSQUEDAS = 3;
 
+/** Cuenta una búsqueda de club de un desplazado en esta tanda y dice si ya ha agotado sus `MAX_BUSQUEDAS` intentos (la cuarta vez, sí). */
+export function agotaLasBusquedas(busquedas: Map<string, number>, id: string): boolean {
+  const veces = (busquedas.get(id) ?? 0) + 1;
+  busquedas.set(id, veces);
+  return veces > MAX_BUSQUEDAS;
+}
+
+/** Quien agota las búsquedas queda apartado en su deporte: **cuenta como un plazo sin equipo** (si en el siguiente tampoco lo quiere ningún club, lo deja para siempre: `apartarODejar`). */
+export const apartadoPorBusquedas = (n: Npc, deporte: string): Npc => ({ ...n, apartado: [...new Set([...(n.apartado ?? []), deporte])] });
+
 /**
  * Los niños que se quedan sin equipo (desplazados por otro que vale más) buscan club, **dentro del plazo de fichajes y con la misma regla de plaza**:
  * 1. otro club de su deporte, del más grande al más pequeño, con hueco o desplazando a uno peor (que a su vez busca);
@@ -1416,11 +1437,9 @@ export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly {
     const { id, origen, no } = cola.shift()!;
     let n = m.lista.get(id);
     if (!n || n.deporte !== undefined || id.startsWith('personaje@')) continue;
-    const veces = (busquedas.get(id) ?? 0) + 1;
-    busquedas.set(id, veces);
     // Tres búsquedas sin quedarse: sin equipo en este plazo; cuenta como un plazo más (apartado), y si en el siguiente tampoco, lo deja para siempre.
-    if (veces > MAX_BUSQUEDAS) {
-      m.lista.set(id, { ...n, apartado: [...new Set([...(n.apartado ?? []), origen])] });
+    if (agotaLasBusquedas(busquedas, id)) {
+      m.lista.set(id, apartadoPorBusquedas(n, origen));
       continue;
     }
     const deportes = [origen, ...m.pobs.filter((p) => p.deporte !== origen && interesPor(n!.rasgos, p.deporte) > 0).sort((a, b) => interesPor(n!.rasgos, b.deporte) - interesPor(n!.rasgos, a.deporte)).map((p) => p.deporte)];
@@ -1901,9 +1920,14 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
   const bolsa = (): Aspirante[] => edades.flatMap((edad) => aspirantesDeEdad([...m.lista.values()], pob, edad, m.dia, m.val)).filter((a) => a.interes > 0);
   const valorDe = (a: Aspirante): number => a.valor;
   const elegibles = (e: EquipoGuardado): Aspirante[] => bolsa().filter((a) => e.colegio === undefined || a.colegio === e.colegio);
-  const entrar = (e: EquipoGuardado, a: Aspirante, conPrueba: boolean): boolean => {
+  const entrar = (e: EquipoGuardado, a: Aspirante, conPrueba: boolean, nuevo = false): boolean => {
     const n = m.lista.get(a.npc.id);
-    return !!n && n.deporte === undefined && intentarEntrar(m, n, e, pob, !conPrueba, undefined, true).entra;
+    return !!n && n.deporte === undefined && intentarEntrar(m, n, e, pob, !conPrueba, undefined, true, false, nuevo).entra;
+  };
+  const esPrimero = (a: Aspirante): boolean => (edadNpc(a.npc, m.dia) ?? -1) === cat.edadMin;
+  const clavePrueba = (e: EquipoGuardado) => (a: Aspirante): number => {
+    const ambicion = ((a.npc.rasgos?.caracter.ambicion ?? 0) + 50) / 100;
+    return Math.pow(rngEstable('probar', a.npc.genetica?.semilla ?? 0, a.npc.id, e.club, catId, m.dia).next() || 1e-9, 1 / (0.5 + a.interes * 0.5 + ambicion * (e.calidad - 1)));
   };
   /** Si con el reparto por puestos no llegan a los 14 de un equipo nuevo, los que quedan entran en su puesto favorito aunque su grupo esté lleno (un equipo de once con tres bandas de más es un equipo; uno que no se monta, no). */
   const completarRelajado = (e: EquipoGuardado, hasta: number): void => {
@@ -1915,20 +1939,29 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
   };
   const fuera = clubes.filter((e) => e.colegio === undefined).sort((a, b) => atractivoDe(b) - atractivoDe(a) || b.calidad - a.calidad || (a.club < b.club ? -1 : 1));
   const delColegio = clubes.filter((e) => e.colegio !== undefined).sort((a, b) => (a.club < b.club ? -1 : 1));
-  // 1. Cada club completa los huecos de sus equipos con un porcentaje de la bolsa (los colegios, con todos sus alumnos), por hueco.
-  for (const e of [...fuera, ...delColegio]) {
-    if (miembros(e).length === 0 || miembros(e).length >= capacidadDe(e, catId)) continue;
-    const toda = bolsa();
-    const posibles = elegibles(e);
-    const quieren = e.colegio === undefined ? Math.min(posibles.length, Math.round(atractivoDe(e) * toda.length)) : posibles.length;
-    const clave = (a: Aspirante): number => {
-      const ambicion = ((a.npc.rasgos?.caracter.ambicion ?? 0) + 50) / 100;
-      return Math.pow(rngEstable('probar', a.npc.genetica?.semilla ?? 0, a.npc.id, e.club, catId, m.dia).next() || 1e-9, 1 / (0.5 + a.interes * 0.5 + ambicion * (e.calidad - 1)));
-    };
-    const van = [...posibles].sort((x, y) => clave(y) - clave(x) || (x.npc.id < y.npc.id ? -1 : 1)).slice(0, quieren);
+  // 1. **Los de primer año, su propio «draft»** (decisión del usuario, 07/11/2026): cada club ya ha subido a sus de primer año al A (con los límites de subir) y mira qué le falta por puestos para su nuevo
+  // B; los de primer año de la categoría que están en la bolsa pasan por el mismo «draft» que al crear la partida, solo ellos: cada club, por su atractivo, ve a un porcentaje y coge lo que le falta
+  // para su B. (Antes los clubes rellenaban todos sus huecos, A, B, C y D, con los nuevos antes que nadie, y los colegios se quedaban sin equipos.)
+  for (const e of fuera) {
+    if (miembros(e).length === 0 || kDe(e) < 2) continue;
+    const delPrimero = miembros(e).filter((n) => edadNpc(n, m.dia) === cat.edadMin).length;
+    const falta = Math.min(e.plantillaPorCategoria!.max - delPrimero, capacidadDe(e, catId) - miembros(e).length);
+    if (falta <= 0) continue;
+    const primeros = bolsa().filter(esPrimero);
+    const clave = clavePrueba(e);
+    const van = [...primeros].sort((x, y) => clave(y) - clave(x) || (x.npc.id < y.npc.id ? -1 : 1)).slice(0, Math.round(atractivoDe(e) * primeros.length));
+    let cogidos = 0;
     for (const a of van.sort((x, y) => valorDe(y) - valorDe(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
+      if (cogidos >= falta) break;
+      if (entrar(e, a, o.conPrueba)) cogidos++;
+    }
+  }
+  // 1a. Los colegios reciben a sus alumnos que no han probado fuera o a los que han rechazado (todos los alumnos que quedan en la bolsa, sin porcentaje ni prueba), sin prioridad sobre nadie más.
+  for (const e of delColegio) {
+    if (miembros(e).length === 0 || miembros(e).length >= capacidadDe(e, catId)) continue;
+    for (const a of [...elegibles(e)].sort((x, y) => valorDe(y) - valorDe(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
       if (miembros(e).length >= capacidadDe(e, catId)) break;
-      entrar(e, a, o.conPrueba);
+      entrar(e, a, false);
     }
   }
   // 1b. Un club (o colegio) sin equipo en la categoría monta uno si en la bolsa hay 14 que puedan jugar en él (los alumnos, en un colegio): así un colegio que se quedó sin equipo vuelve a tenerlo.
@@ -1938,7 +1971,7 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
     if (pool.length < minimoDe(e)) continue;
     for (const a of pool) {
       if (miembros(e).length >= capacidadDe(e, catId)) break;
-      entrar(e, a, false);
+      entrar(e, a, false, true);
     }
     if (miembros(e).length < minimoDe(e)) completarRelajado(e, capacidadDe(e, catId));
     if (miembros(e).length < minimoDe(e)) for (const x of miembros(e)) m.lista.set(x.id, sinDeporte(x, pob, false));
@@ -1975,23 +2008,33 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
       ponerK(e, 1);
     }
   }
-  // 3. Con lo que sobra de la bolsa (14 o más) se abre un equipo en el club con menos equipos (el más pequeño primero), solo con ellos.
-  for (let vuelta = 0; vuelta < 6; vuelta++) {
+  // 3. **Los C y D de la categoría se vuelven a sortear entre clubes y colegios**: con lo que sobra de la bolsa (14 o más) se abre un equipo en un club o colegio que tenga sitio, sorteado (un colegio, solo
+  // con sus alumnos), y se repite mientras haya 14.
+  const sorteo = [...clubes].sort((x, y) => rngEstable('sorteo', catId, x.club, m.dia).next() - rngEstable('sorteo', catId, y.club, m.dia).next());
+  for (let vuelta = 0; vuelta < 3 * clubes.length; vuelta++) {
     const min = Math.min(...clubes.map(minimoDe));
     if (bolsa().length < min) break;
-    const e = [...fuera].filter((x) => kDe(x) < MAX_EQUIPOS_POR_CATEGORIA && miembros(x).length >= minimoDe(x) * kDe(x)).sort((a, b) => kDe(a) - kDe(b) || atractivoDe(a) - atractivoDe(b) || (a.club < b.club ? -1 : 1))[0];
+    const posibles = sorteo.filter((x) => kDe(x) < MAX_EQUIPOS_POR_CATEGORIA && miembros(x).length >= minimoDe(x) * kDe(x) && elegibles(x).length >= minimoDe(x));
+    const e = posibles[vuelta % Math.max(1, posibles.length)];
     if (!e) break;
     const antes = new Set(miembros(e).map((n) => n.id));
     ponerK(e, kDe(e) + 1);
     for (const a of [...elegibles(e)].sort((x, y) => valorDe(y) - valorDe(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
       if (miembros(e).length >= capacidadDe(e, catId)) break;
-      entrar(e, a, false);
+      entrar(e, a, false, true);
     }
     if (miembros(e).length < minimoDe(e) * kDe(e)) completarRelajado(e, capacidadDe(e, catId));
     if (miembros(e).length < minimoDe(e) * kDe(e)) {
       for (const x of miembros(e).filter((x) => !antes.has(x.id))) m.lista.set(x.id, sinDeporte(x, pob, false));
       ponerK(e, kDe(e) - 1);
-      break;
+    }
+  }
+  // 4. Lo que queda en la bolsa (los de segundo año y más que no han entrado en ningún sitio) completa los huecos que queden en los clubes, por su atractivo, ya sin quitarle nada a los colegios.
+  for (const e of fuera) {
+    if (miembros(e).length === 0) continue;
+    for (const a of [...bolsa()].sort((x, y) => valorDe(y) - valorDe(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
+      if (miembros(e).length >= capacidadDe(e, catId)) break;
+      entrar(e, a, o.conPrueba);
     }
   }
   return cerrados;

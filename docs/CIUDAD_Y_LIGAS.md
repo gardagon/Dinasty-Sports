@@ -201,7 +201,7 @@ Por eso:
 |---|---|---|---|---|---|---|---|---|
 | 6.110 | 3.026 | 38 s | 15,3 MB | 174 ms | 4,8 ms / 1,6 ms | 121 ms | 0,6 s | 3,3 s |
 
-  Dentro de los límites, salvo apuntarse (121 ms, algo por encima de 100). Detalle de equipos, interesados sin equipo y quién deja el fútbol en `DECISIONES.md` (07/11/2026).
+  Dentro de los límites (apuntarse, que midió 121 ms, queda en 80–85 ms con el juego en marcha y 24 ms recién creada la partida). Detalle de equipos, interesados sin equipo y quién deja el fútbol en `DECISIONES.md` (07/11/2026).
 - **Si algo no cabe, se arregla calculando o guardando mejor, no recortando** (`VISION.md`, principios 4 y 5). El último recurso es tener menos colegios, nunca menos datos por persona.
 
 ## 9. Cómo se comprueba
