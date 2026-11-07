@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 07/11/2026 — Draft de los de primer año cada verano, puestos parecidos, abandono por edad y la elección entre el grande y el mediano (decisiones del usuario)
+
+Tras medir la ciudad grande (#90): los colegios perdían sus equipos en tres veranos, sobraban 70–80 juveniles y el personaje del montón entraba en el C o el D del grande. Está en `CIUDAD_Y_LIGAS.md` §5 y §11.
+
+- **Cada verano, los de primer año pasan por su propio «draft»:** el club sube a sus jugadores de primer año al A, mira qué le falta para su B y los nuevos pasan por el mismo «draft» que al crear la partida (porcentaje por atractivo; los colegios reciben a sus alumnos que no han probado fuera o han sido rechazados; los C y D se vuelven a sortear). Sin prioridad para el colegio.
+- **Puestos parecidos al montar un equipo:** el entrenador ofrece al que no cabe los puestos de su línea y los cercanos, de más a menos parecido, y cada uno acepta o no según su carácter. Lo del puesto favorito con el grupo lleno, solo como último recurso. «Un lateral aceptaría jugar de central, o un extremo de delantero».
+- **Abandono por edad ya:** desde cadete más niños lo dejan, y quedan menos equipos en las categorías de mayores; entonces llegan las ligas provinciales y nacionales (diseño pendiente, con la F2). No se sube el tope de equipos en juvenil.
+- **Titular en el mediano o en el C/D del grande:** lo decide cada uno (un PNJ por su carácter, el personaje él). Cada equipo tiene sus sesiones y su entrenador, y **cada club sus instalaciones y su zona de entrenamiento**, con una calidad que ayuda a mejorar (el grande, las mejores). Los minutos darán experiencia con la F2.
+
 ## 05/11/2026 — Cómo se forman los equipos: un «draft» por rondas, y todos los clubes por año (decisión del usuario)
 
 El usuario: no todos los niños van a probar al club grande; cada club solo ve a una parte. Está en `CIUDAD_Y_LIGAS.md` §5, con su ejemplo de 1.000 niños. Sustituye al reparto por orden de tamaño (cada club veía a todos los interesados y el grande se llevaba siempre a los mejores) y a los equipos según la demanda.
