@@ -186,6 +186,13 @@ Por eso:
 | ×5 | 7.139 | 11 | 3.501 | 39 s | 17,6 MB | 208 ms | 5,4 ms / 2,4 ms | 84 ms | 0,6–0,7 s | **4,8 s** |
 
   **Lo que sale:** el cambio de curso a ×5 baja de 8,5 s (con el «draft» cada año) a **4,8 s** (el límite era ~5 s), a ×1 son 0,5 s; apuntarse, por debajo de 100 ms; la semana normal, por debajo de 1 s; guardar (<300 ms) y cargar no se notan. Lo que más costaba del cambio de curso era recorrer a todas las personas cada vez que un club miraba su plantilla (`ListaDeTrabajo` lo evita: sabe quién juega en cada equipo).
+- **Medida con la ciudad grande del diseño** *(`CIUDAD_GRANDE` en `packages/contracts/src/ciudad.ts`, país `PAIS_CIUDAD_GRANDE`: el colegio del personaje igual y 9 colegios de fuera de 2 clases de 25 por curso; 9 clubes de la zona —uno cada 700 personas: 1 grande, 3 medianos, 5 pequeños— y 5 colegios de fuera con club; `CIUDAD=grande npm run fichajes`, `npm run equipos -- 3 3 grande`, `npm run fluidez -- 53 grande`)*:
+
+| Personas | Futbolistas | Crear | Estado | Guardar | Acción (media / p95) | Apuntarse | Semana normal | Cambio de curso |
+|---|---|---|---|---|---|---|---|---|
+| 6.110 | 3.026 | 38 s | 15,3 MB | 174 ms | 4,8 ms / 1,6 ms | 121 ms | 0,6 s | 3,3 s |
+
+  Dentro de los límites, salvo apuntarse (121 ms, algo por encima de 100). Detalle de equipos, interesados sin equipo y quién deja el fútbol en `DECISIONES.md` (07/11/2026).
 - **Si algo no cabe, se arregla calculando o guardando mejor, no recortando** (`VISION.md`, principios 4 y 5). El último recurso es tener menos colegios, nunca menos datos por persona.
 
 ## 9. Cómo se comprueba
