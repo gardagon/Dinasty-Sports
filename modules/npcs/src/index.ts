@@ -1877,6 +1877,9 @@ function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: 
   }
 }
 
+/** Para medir (`npm run colegios`): se avisa de cada equipo que se cierra por quedar bajo el mínimo, con cuántos jugadores se quedó. No cambia nada del juego. */
+export const DIAGNOSTICO: { alCerrar?: (d: { club: string; categoria: string; jugadores: number; equipos: number; montables: number }) => void } = {};
+
 /**
  * **Los años siguientes no hay «draft»** (decisión del usuario, 05/11/2026): cada niño sigue en su club (pasa a la categoría que le toque dentro de él) y solo los que empiezan a jugar o se quedaron
  * sin equipo (la bolsa) pasan por un «draft» solo para ellos: en cada categoría, 1) cada club (los de fuera por atractivo; los colegios, con todos sus alumnos) completa los huecos de sus equipos con
@@ -1989,6 +1992,7 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
     const n = miembros(e).length;
     if (n >= min * k) continue;
     const montables = Math.floor(n / min);
+    DIAGNOSTICO.alCerrar?.({ club: e.club, categoria: catId, jugadores: n, equipos: k, montables });
     if (montables >= 1) {
       // Cierra los equipos de más: los que ya no caben (los de menos valor) buscan otro equipo.
       ponerK(e, montables);
