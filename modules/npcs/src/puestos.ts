@@ -52,6 +52,8 @@ export const puestoDondeMasVale = (valores: Readonly<Record<string, number>>, en
 export interface CondicionesDePrueba {
   puesto?: string;
   yaPasada?: boolean;
+  /** Un equipo nuevo que se forma con lo que queda de la bolsa: entra por hueco sin mirar el cupo de su grupo de puestos (solo el máximo del equipo), para que si hay 14 que pueden formarlo, se forme. */
+  sinCuposPorGrupo?: boolean;
 }
 
 /**
@@ -93,7 +95,7 @@ export function ofertasDePuesto(jugadores: readonly JugadorConPuesto[], cupos: R
     const titular = delGrupo.length === 0 || valor >= mediana(delGrupo.map((j) => j.valor));
     // El máximo es un tope: con el equipo completo no se entra por hueco (tras subir de categoría puede haber grupos con menos de su cupo y el equipo ya en su máximo).
     const completo = jugadores.length >= totalDeCupos;
-    if (delGrupo.length < cupo && !completo) {
+    if ((prueba?.sinCuposPorGrupo || delGrupo.length < cupo) && !completo) {
       // Con hueco, en una prueba (el club del colegio no la hace) hay que superar al suplente que mejor cubriría ese puesto; si nadie puede cubrirlo, entra.
       const rival = prueba && !prueba.yaPasada ? rivalConHueco(jugadores, cupos, p, g.grupo, puesto) : undefined;
       if (rival === undefined || valor > rival) ofertas.push({ puesto, estado: 'libre', valor, titular });

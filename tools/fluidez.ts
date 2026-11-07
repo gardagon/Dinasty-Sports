@@ -3,7 +3,7 @@
  * tarda cada acción, avanzar una semana con todos los partidos (objetivo: menos de ~1 s) y guardar sin que se note. Se mide con la población de ahora, el doble y por cinco.
  * `npm run fluidez` (o `npx tsx tools/fluidez.ts [semanas] [factores...]`, p. ej. `1 2 5`).
  */
-import { CIUDAD_ACTUAL, PAIS_ESPANA, registrarPais, type CiudadDef, type PaisDef } from '@ds/contracts';
+import { CIUDAD_ACTUAL, PAIS_CIUDAD_GRANDE, PAIS_ESPANA, registrarPais, type CiudadDef, type PaisDef } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
@@ -13,7 +13,8 @@ import { hacer as hacerAccion } from '../tests/ayudas';
 import { seededRng } from '@ds/core';
 
 const SEMANAS = Number(process.argv[2] ?? 12);
-const FACTORES = process.argv.length > 3 ? process.argv.slice(3).map(Number) : [1, 2, 5];
+/** `grande` es la ciudad grande del diseño; un número, la ciudad de ahora multiplicada. */
+const FACTORES: (number | 'grande')[] = process.argv.length > 3 ? process.argv.slice(3).map((x) => (x === 'grande' ? 'grande' : Number(x))) : [1, 2, 5];
 const f = (x: number): string => (x >= 100 ? x.toFixed(0) : x.toFixed(1));
 const media = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 const p95 = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(0.95 * (xs.length - 1))] ?? 0;
@@ -30,7 +31,8 @@ const ciudadPor = (k: number): CiudadDef => ({
   aulasPorCurso: CIUDAD_ACTUAL.aulasPorCurso * k,
   vecinos: CIUDAD_ACTUAL.vecinos * k,
 });
-const paisPor = (k: number): PaisDef => {
+const paisPor = (k: number | 'grande'): PaisDef => {
+  if (k === 'grande') return PAIS_CIUDAD_GRANDE;
   const id = `espana_x${k}`;
   const copia = structuredClone(PAIS_ESPANA) as PaisDef;
   return { ...copia, id, calendario: { ...copia.calendario, id }, ciudad: ciudadPor(k) };
