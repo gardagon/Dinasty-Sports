@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CAPACIDADES_GENETICAS, TAGS, defineModule, type Entrenamiento, type RutinaDeDeporte } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { DATOS_FUTBOL, EJERCICIOS_DE_FUTBOL, futbol } from '@ds/mod-futbol';
@@ -8,6 +8,9 @@ import { fijarTalentosDeCapacidades, fijosDeNino, prepararTrabajo, type Habilida
 import { pasoDeSemana } from '../modules/npcs/src/semana';
 import type { Genetica } from '../modules/npcs/src/deportistas';
 import { GEN } from '@ds/contracts';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * Personaje y PNJ con las mismas reglas, FÚTBOL: con ejercicios distintos en cada sesión, las habilidades que no se entrenan esa semana caen (el motor lleva el último día

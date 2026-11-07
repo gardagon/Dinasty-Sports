@@ -1,10 +1,11 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { CALENDARIO_ESPANA, GEN, SERVICES, SHARED_EVENTS, defineModule, plazoDeFichajesAbierto, proximaAperturaDelPlazo, type ClubDirectory } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
-import { futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
+import { futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
 import {
+  apartarODejar,
   capacidadDe,
   claveDeEquipo,
   colocarDesplazados,
@@ -21,6 +22,9 @@ import {
 } from '@ds/mod-npcs';
 import { rendimiento as rendimientoDeAtletismo } from '@ds/mod-atletismo';
 import { hacer, posible } from './ayudas';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * El plazo de fichajes y quien se queda sin equipo (decisión del usuario, 03/11/2026; `CIUDAD_Y_LIGAS.md` §7). Mismas reglas para el personaje y los niños del mundo.
@@ -60,7 +64,7 @@ describe('el personaje y el plazo', () => {
     } else {
       expect(g.preview('futbol.apuntarse_colegio')!.reason).toMatch(/plazo de fichajes está cerrado hasta el verano/);
     }
-  }, 60000);
+  });
 
   it('dentro de plazo, con el equipo lleno y mejor que el peor, entra; fuera de plazo, no', () => {
     const lleno = (g: ReturnType<typeof nueva>) => {
@@ -79,7 +83,7 @@ describe('el personaje y el plazo', () => {
     lleno(fuera);
     expect(posible(fuera, 'futbol.apuntarse_colegio')).toBe(false);
     expect(fuera.preview('futbol.apuntarse_colegio')!.reason).toMatch(/plazo de fichajes está cerrado hasta el verano.*hueco/);
-  }, 90000);
+  });
 
   it('quien deja su club fuera de plazo no entra en otro de ese deporte hasta el siguiente plazo; dentro de plazo, sí', () => {
     const g = nueva();
@@ -96,7 +100,7 @@ describe('el personaje y el plazo', () => {
     advanceToWeek(g, 'gen.descansar', 42, 2, 15);
     // Ya no lo frena el plazo (si no entra será por la plaza del equipo, no por haber dejado el club).
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').not.toMatch(/fuera de plazo|plazo de fichajes/);
-  }, 90000);
+  });
 
   it('dejar el club dentro de plazo no cierra la puerta', () => {
     const g = nueva();
@@ -104,7 +108,7 @@ describe('el personaje y el plazo', () => {
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     expect(hacer(g, 'futbol.dejar_club').ok).toBe(true);
     expect(posible(g, 'futbol.apuntarse_colegio')).toBe(true);
-  }, 90000);
+  });
 
   it('quien está en un club de atletismo no puede cambiarse a otro fuera de plazo', () => {
     const g = nueva();
@@ -115,14 +119,14 @@ describe('el personaje y el plazo', () => {
     expect(prueba?.available).toBe(false);
     expect(prueba?.reason).toMatch(/plazo de fichajes está cerrado hasta el verano/);
     void GEN;
-  }, 90000);
+  });
 });
 
 describe('quien se queda sin equipo busca club con la misma regla', () => {
   let base: ReturnType<typeof nueva>;
   beforeAll(() => {
     base = nueva();
-  }, 60000);
+  });
   const pobDe = (deporte: string): PoblacionGuardada => estado(base).poblaciones!.find((p) => p.deporte === deporte)!;
   const mercadoDe = (npcs: Npc[], pobs: PoblacionGuardada[]): MercadoDeFichajes => ({ lista: new Map(npcs.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(REND), reservas: new Map() });
   const jugadoresDe = (m: MercadoDeFichajes, deporte: string, club: string, cat: [number, number]) =>
@@ -134,23 +138,23 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
     const fut0 = pobDe('futbol');
     const fut: PoblacionGuardada = { ...fut0, equipos: fut0.equipos.map((e) => (e.club === 'club_grande' ? { ...e, equiposPorCategoria: undefined, plantillaPorCategoria: { min: 14, max: 17 } } : e)) };
     const m = mercadoDe(estado(base).npcs, [fut]);
-    // Se hace un hueco en el club pequeño de infantil (sale uno) y se desplaza al peor del club grande.
-    const delPequeno = jugadoresDe(m, 'futbol', 'club_pequeno', infantil);
+    // Se hace un hueco en el club mediano de infantil (sale uno) y se desplaza al peor del club grande.
+    const delMediano = jugadoresDe(m, 'futbol', 'club_mediano', infantil);
     const val = valoracionDe(REND);
-    const peorPequeno = [...delPequeno].sort((a, b) => valorRealDe(a, fut, val, 0)! - valorRealDe(b, fut, val, 0)!)[0];
-    m.lista.set(peorPequeno.id, sinDeporte(peorPequeno, fut, true));
+    const peorMediano = [...delMediano].sort((a, b) => valorRealDe(a, fut, val, 0)! - valorRealDe(b, fut, val, 0)!)[0];
+    m.lista.set(peorMediano.id, sinDeporte(peorMediano, fut, true));
     const delGrande = jugadoresDe(m, 'futbol', 'club_grande', infantil);
     const peorGrande = [...delGrande].sort((a, b) => valorRealDe(a, fut, val, 0)! - valorRealDe(b, fut, val, 0)!)[0];
-    const antes = ['club_grande', 'club_mediano', 'club_pequeno', 'colegio'].map((c) => jugadoresDe(m, 'futbol', c, infantil).length);
+    const antes = ['club_grande', 'club_mediano', 'colegio'].map((c) => jugadoresDe(m, 'futbol', c, infantil).length);
     m.lista.set(peorGrande.id, sinDeporte(peorGrande, fut, false));
     colocarDesplazados(m, [{ id: peorGrande.id, origen: 'futbol' }]);
-    const despues = ['club_grande', 'club_mediano', 'club_pequeno', 'colegio'].map((c) => jugadoresDe(m, 'futbol', c, infantil).length);
+    const despues = ['club_grande', 'club_mediano', 'colegio'].map((c) => jugadoresDe(m, 'futbol', c, infantil).length);
     const nuevo = m.lista.get(peorGrande.id)!;
     expect(nuevo.deporte).toBe('futbol'); // sigue jugando: ha encontrado otro club
     expect(nuevo.equipo).not.toBe('club_grande');
     expect(nuevo.dejado).toBeUndefined();
     // El club grande repone su hueco con el siguiente (el que baja del mediano...) o queda con uno menos: ninguno pasa de 18 y en total solo falta el que se fue.
-    const clubes = ['club_grande', 'club_mediano', 'club_pequeno', 'colegio'];
+    const clubes = ['club_grande', 'club_mediano', 'colegio'];
     clubes.forEach((c, i) => expect(despues[i], c).toBeLessThanOrEqual(Math.max(antes[i], capacidadDe(fut.equipos.find((e) => e.club === c)!, 'infantil'))));
     expect(despues.reduce((a, b) => a + b, 0)).toBe(antes.reduce((a, b) => a + b, 0)); // el desplazado ocupa el hueco que había: nadie se pierde
   });
@@ -159,7 +163,11 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
     const fut = pobDe('futbol');
     const atl = pobDe('atletismo');
     const base0 = estado(base).npcs;
-    const k = base0.find((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.tipos?.some((t) => t.tipo === 'alumno') && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13)!;
+    // El que menos vale del equipo (así, con el equipo completo, no hay a quién superar), sea cual sea el mundo que salga de crear la partida.
+    const valB = valoracionDe(REND);
+    const k = base0
+      .filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.tipos?.some((t) => t.tipo === 'alumno') && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13)
+      .sort((x, y) => valorRealDe(x, fut, valB, 0)! - valorRealDe(y, fut, valB, 0)! || (x.id < y.id ? -1 : 1))[0];
     const enInfantil = base0.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13).length;
     // El fútbol: solo el equipo del colegio, que con él fuera queda completo (y él es el peor de todos). El atletismo: solo el equipo del colegio, con un hueco.
     const futbolCompleto: PoblacionGuardada = { ...fut, equipos: fut.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, plantillaPorCategoria: { min: 1, max: enInfantil - 1 } })) };
@@ -182,10 +190,16 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
 
   it('si ningún club de ningún deporte lo quiere, deja el deporte para siempre y no vuelve a ser reclutado', () => {
     const fut = pobDe('futbol');
-    // Solo el equipo del colegio, completo; el niño (el peor de todos, sin interés por otros deportes) no entra en ningún club.
-    const colegio: PoblacionGuardada = { ...fut, equipos: fut.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, plantillaPorCategoria: { min: 1, max: 16 } })) };
     const base0 = estado(base).npcs;
-    const k = base0.find((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.tipos?.some((t) => t.tipo === 'alumno') && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13)!;
+    // El que menos vale del equipo (así, con el equipo completo, no hay a quién superar), sea cual sea el mundo que salga de crear la partida.
+    const valB = valoracionDe(REND);
+    const k = base0
+      .filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.tipos?.some((t) => t.tipo === 'alumno') && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13)
+      .sort((x, y) => valorRealDe(x, fut, valB, 0)! - valorRealDe(y, fut, valB, 0)! || (x.id < y.id ? -1 : 1))[0];
+    const catDelNino = fut.categorias!.find((c) => edadNpc(k, 0)! >= c.edadMin && edadNpc(k, 0)! <= c.edadMax)!;
+    const enSuCategoria = base0.filter((n) => n.id !== k.id && n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! >= catDelNino.edadMin && edadNpc(n, 0)! <= catDelNino.edadMax).length;
+    // Solo el equipo del colegio, completo (con tantos como tiene sin él); el niño (el peor de todos, sin interés por otros deportes) no entra en ningún club.
+    const colegio: PoblacionGuardada = { ...fut, equipos: fut.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, equiposPorCategoria: undefined, plantillaPorCategoria: { min: 1, max: enSuCategoria } })) };
     const m = mercadoDe(
       base0.map((n) => (n.id === k.id ? { ...sinDeporte(n, fut, false), cap: n.cap!.map(() => 1), pico: n.pico!.map(() => 1), rasgos: n.rasgos && { ...n.rasgos, intereses: { futbol: 3 } } } : n)),
       [colegio],
@@ -193,7 +207,18 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
     colocarDesplazados(m, [{ id: k.id, origen: 'futbol' }]);
     const despues = m.lista.get(k.id)!;
     expect(despues.deporte).toBeUndefined();
-    expect(despues.dejado).toContain('futbol');
+    // Dos plazos antes de dejarlo para siempre: sin club en este plazo, queda apartado ese curso (no lo deja todavía)...
+    expect(despues.apartado).toContain('futbol');
+    expect(despues.dejado ?? []).not.toContain('futbol');
+    // ...y si en el siguiente plazo (vuelve a la bolsa) tampoco lo quiere ningún club, lo deja para siempre; si lo coge uno, no.
+    const conPuestos = valoracionDe(new Map([['futbol', Object.assign((p: Parameters<typeof rendimientoDeFutbol>[0]) => rendimientoDeFutbol(p), { puestos: rendimientoPorPuestos })]]));
+    const segundo: MercadoDeFichajes = { lista: new Map([...m.lista].map(([id, n]) => [id, id === k.id ? { ...n, apartado: undefined } : n])), pobs: [colegio], dia: 0, val: conPuestos, reservas: new Map() };
+    expect(apartarODejar(segundo, new Set())).toBe(0); // la primera vez: apartado, no dejado
+    expect(segundo.lista.get(k.id)!.apartado).toContain('futbol');
+    const tercero: MercadoDeFichajes = { ...segundo, lista: new Map([...segundo.lista].map(([id, n]) => [id, id === k.id ? { ...n, apartado: undefined } : n])) };
+    expect(apartarODejar(tercero, new Set([k.id]))).toBeGreaterThanOrEqual(1); // la segunda: dejado para siempre
+    expect(tercero.lista.get(k.id)!.dejado).toContain('futbol');
+    m.lista.set(k.id, tercero.lista.get(k.id)!);
     // Ya no vuelve a ser reclutado, aunque haya hueco y le encante el fútbol (pasa también al renovar el curso).
     const hueco: PoblacionGuardada = { ...colegio, equipos: colegio.equipos.map((e) => ({ ...e, plantillaPorCategoria: { min: 18, max: 18 } })) };
     const recluta = reclutarEnTodos([...m.lista.values()], [hueco], 0, new Map(), REND);
@@ -213,7 +238,7 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
     const despues = equipos();
     const cambios = [...antes].filter(([id, v]) => despues.get(id) !== v);
     expect(cambios).toEqual([]);
-  }, 180000);
+  });
 
   it('al empezar el curso (dentro del plazo) sí hay fichajes: algunos jugadores cambian a un club más grande', () => {
     const g = nueva();
@@ -227,10 +252,10 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
     for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of pob.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
         const jugadores = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && (edadNpc(n, 52 * 7) ?? -1) >= c.edadMin && (edadNpc(n, 52 * 7) ?? -1) <= c.edadMax).length;
-        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(Math.ceil(capacidadDe(e, c.id) * 1.25)); // + los que cambian de categoría al pasar de curso
+        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(capacidadDe(e, c.id)); // el máximo es un tope: nunca más que la capacidad (al subir de categoría, el entrenador recoloca y lo que sobra busca club)
       }
     }
-  }, 240000);
+  });
 });
 
 describe('el personaje desplazado sale del club, como cualquier niño, y decide él', () => {
@@ -250,7 +275,7 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
       if (resultado.sinPlaza.includes('futbol')) perdio = semilla;
     }
     expect(perdio, 'ninguna semilla de fichajes le quitó el sitio al personaje').toBeGreaterThan(0);
-  }, 180000);
+  });
 
   it('al perder la plaza sale del club (sin que cuente como dejarlo plantado ni cierre el plazo) y se le explica qué ha pasado y qué puede hacer', () => {
     const avisa = defineModule<Record<string, never>>({
@@ -274,5 +299,5 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
     expect(g.stat(GEN.estres)).toBeLessThanOrEqual(estres + 0.5);
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').not.toMatch(/fuera de plazo|plazo de fichajes está cerrado/);
     expect(g.preview('futbol.dejar_club')!.available).toBe(false); // ya no tiene club que dejar
-  }, 120000);
+  });
 });

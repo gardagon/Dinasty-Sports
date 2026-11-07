@@ -21,6 +21,8 @@
     "huella": "tsx tools/huella.ts",
     "rendimiento": "tsx tools/rendimiento.ts",
     "fichajes": "tsx tools/fichajes.ts",
+    "fluidez": "tsx tools/fluidez.ts",
+    "equipos": "tsx tools/equipos.ts",
     "sim:largo": "tsx sim/src/cli.ts --dias 1095 --semillas 3",
     "check": "npm run typecheck && npm run test && npm run sim:rapida",
     "nuevo-modulo": "tsx tools/nuevo-modulo.ts",

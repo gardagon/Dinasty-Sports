@@ -1,3 +1,4 @@
+import { CIUDAD_ACTUAL, clubesDeLaZona, colegiosConClubDe, idsDeColegiosDeFuera, type CiudadDef } from './ciudad';
 import { factorDeCompeticion } from './estado-de-jugador';
 import { tramoDeSemana, type CalendarioPais } from './calendar';
 import type { CategoriaDef } from './categories';
@@ -134,15 +135,9 @@ export type TamanoDeClub = 'grande' | 'mediano' | 'pequeno';
 export const CALIDAD_DE_TAMANO: Readonly<Record<TamanoDeClub, 1 | 2 | 3>> = { grande: 3, mediano: 2, pequeno: 1 };
 
 /**
- * La **prueba de acceso** a un club que no es el del colegio (`CIUDAD_Y_LIGAS.md` §5): quien quiere entrar (el personaje o un niño) la hace, y **lo que vale en la prueba es lo que cuenta
- * para la regla de plaza**. `minimo` es cuánto tiene que valer la prueba, en su puesto, frente al peor de ese puesto del equipo, aunque haya hueco: 1 o más = hay que superarlo (los grandes);
- * menos de 1 = con hueco basta con llegar a esa fracción (los medianos y los pequeños). Sin equipo en ese puesto, basta con la prueba que sea.
+ * La **prueba de acceso** a un club que no es el del colegio (`CIUDAD_Y_LIGAS.md` §5): quien quiere entrar (el personaje o un niño) la hace, y **lo que vale en la prueba es lo que cuenta para la regla
+ * de plaza**: con el equipo lleno en su puesto, hay que superar al peor; con hueco, al suplente que mejor cubriría ese puesto (y si nadie puede, entra). Igual en todos los clubes de fuera.
  */
-export interface PruebaDeAcceso {
-  minimo: number;
-}
-/** La prueba de cada tamaño de club (dato): los grandes exigen superar al peor de su puesto; los medianos y pequeños, no ser muy malo. */
-export const PRUEBA_DE_TAMANO: Readonly<Record<TamanoDeClub, PruebaDeAcceso>> = { grande: { minimo: 1 }, mediano: { minimo: 0.9 }, pequeno: { minimo: 0.8 } };
 /** Cuánto se desvía una prueba de lo que vale quien la hace (±6 % de desviación): el azar de un día. */
 export const RUIDO_DE_LA_PRUEBA = 0.06;
 /**
@@ -150,6 +145,9 @@ export const RUIDO_DE_LA_PRUEBA = 0.06;
  * La misma para el personaje y para cualquier niño.
  */
 export const valorDeLaPrueba = (valor: number, eficiencia: number, z: number): number => valor * factorDeCompeticion(eficiencia) * (1 + RUIDO_DE_LA_PRUEBA * z);
+
+/** Qué parte de la bolsa de interesados de una categoría va a probar con un club en la primera ronda del «draft» (`CIUDAD_Y_LIGAS.md` §5): los grandes atraen más. Los colegios no la usan (ven a todos sus alumnos). */
+export const ATRACTIVO_DE_TAMANO: Readonly<Record<TamanoDeClub, number>> = { grande: 0.6, mediano: 0.5, pequeno: 0.4 };
 
 /**
  * Un club o el equipo de un colegio que recluta niños para el deporte. La plantilla es un número más o menos definido (se sortea entre `min` y `max`
@@ -168,8 +166,8 @@ export interface EquipoDeDeporte {
    * después los medianos; al final los pequeños). El equipo del colegio del personaje es un club pequeño más. Sin él: el que corresponde a su `calidad`.
    */
   tamano?: TamanoDeClub;
-  /** Su prueba de acceso, si no es la de su tamaño (`PRUEBA_DE_TAMANO`). El equipo de un colegio no la tiene: solo coge a sus alumnos. */
-  pruebaDeAcceso?: PruebaDeAcceso;
+  /** Qué parte de la bolsa va a probar con el club en la primera ronda del «draft» (0 a 1); sin él, la de su tamaño (`ATRACTIVO_DE_TAMANO`). Marca también el orden: los más atractivos escogen primero. */
+  atractivo?: number;
   /** 1 colegio, 2 club de la ciudad, 3 alto rendimiento. Es lo mismo que el tamaño (pequeño, mediano, grande): con `tamano`, sale de él. Sin ninguno: la del club en el catálogo del personaje, o 1 si es de un colegio y 2 si no. */
   calidad?: 1 | 2 | 3;
   /** Edades de competición que recluta (por defecto, las del deporte; los equipos de un colegio solo llegan a la edad en que acaba el colegio). */
@@ -355,7 +353,44 @@ export interface DatosDeDeportePais {
   sedes: { colegio: LugarId; fuera: LugarId };
   /** La gente del deporte (rivales, entrenadores y equipo del colegio). */
   poblacion: PoblacionDeDeporte;
+  /** Nombres para los clubes de la zona que la ciudad pide además de los del catálogo (por tamaño); sin ellos, el del modelo con un número. */
+  nombresDeClubes?: Readonly<Partial<Record<TamanoDeClub, readonly string[]>>>;
 }
+
+/**
+ * Los clubes de la zona **en proporción a la población** (`CiudadDef.personasPorClub`): los del catálogo (grande, mediano, pequeño) son los modelos y la ciudad pide tantos como le correspondan
+ * (`clubesDeLaZona`): un grande por cada diez, tres medianos de cada diez y el resto, pequeños (siempre un grande como mínimo). Los extra copian al modelo de su tamaño (sesiones, sedes,
+ * plantilla) con otro id (`club_mediano2`) y otro nombre. El club del colegio no cuenta. Lo usan a la vez el catálogo de clubes del personaje y la gente del mundo.
+ */
+export function conClubesDeLaCiudad(datos: DatosDeDeportePais, ciudad: CiudadDef): DatosDeDeportePais {
+  const modelo = (t: TamanoDeClub) => datos.poblacion.equipos.find((e) => e.tamano === t && e.colegio === undefined);
+  if (!modelo('grande') && !modelo('mediano') && !modelo('pequeno')) return datos;
+  const n = clubesDeLaZona(ciudad);
+  const grandes = Math.max(1, Math.round(n / 10));
+  const medianos = Math.min(n - grandes, Math.round(0.3 * n));
+  const cuantos: Record<TamanoDeClub, number> = { grande: grandes, mediano: Math.max(0, medianos), pequeno: Math.max(0, n - grandes - Math.max(0, medianos)) };
+  const equipos: EquipoDeDeporte[] = datos.poblacion.equipos.filter((e) => e.tamano === undefined || e.colegio !== undefined);
+  const clubes: ClubDeDeporte[] = datos.clubes.filter((c) => !datos.poblacion.equipos.some((e) => e.club === c.id && e.tamano !== undefined && e.colegio === undefined));
+  for (const t of ['grande', 'mediano', 'pequeno'] as const) {
+    const m = modelo(t);
+    const mc = m && datos.clubes.find((c) => c.id === m.club);
+    if (!m || !mc) continue;
+    for (let i = 0; i < cuantos[t]; i++) {
+      const id = i === 0 ? m.club : `${m.club}${i + 1}`;
+      const nombre = i === 0 ? (m.nombre ?? mc.nombre) : (datos.nombresDeClubes?.[t]?.[i - 1] ?? `${m.nombre ?? mc.nombre} ${i + 1}`);
+      equipos.push({ ...m, club: id, nombre });
+      clubes.push({ ...mc, id, nombre });
+    }
+  }
+  // Los colegios de fuera con club (los primeros `colegiosConClub`): el mismo equipo que el del colegio del personaje, solo para sus alumnos. No están en el catálogo del personaje.
+  const propio = datos.poblacion.equipos.find((e) => e.colegio === 'propio');
+  if (propio) {
+    for (const [i, colegio] of idsDeColegiosDeFuera(ciudad).slice(0, colegiosConClubDe(ciudad)).entries()) equipos.push({ ...propio, club: colegio, nombre: `Club deportivo del colegio ${i + 1}`, colegio });
+  }
+  return { ...datos, clubes, poblacion: { ...datos.poblacion, equipos } };
+}
+
+const CON_CLUBES = new WeakMap<DatosDeDeportePais, Map<CiudadDef, DatosDeDeportePais>>();
 
 export interface DatosDeDeporte {
   id: string;
@@ -374,7 +409,17 @@ export function datosDeDeporte(ctx: Pick<ReadContext, 'aportes' | 'pais'>, depor
   const d = ctx.aportes<DatosDeDeporte>(APORTES.datosDeDeporte).find((x) => x.id === deporte);
   if (!d) throw new Error(`El deporte «${deporte}» no ha aportado sus datos (aporte «${APORTES.datosDeDeporte}»)`);
   const propios = d.paises[ctx.pais.id];
-  return { ...(propios ?? d.paises.espana), deRespaldo: !propios };
+  const base = propios ?? d.paises.espana;
+  // Los clubes de la zona, en proporción a la población de la ciudad (con memoria: se pide en cada consulta).
+  const ciudad = ctx.pais.ciudad ?? CIUDAD_ACTUAL;
+  const porCiudad = CON_CLUBES.get(base) ?? new Map<CiudadDef, DatosDeDeportePais>();
+  CON_CLUBES.set(base, porCiudad);
+  let datos = porCiudad.get(ciudad);
+  if (!datos) {
+    datos = conClubesDeLaCiudad(base, ciudad);
+    porCiudad.set(ciudad, datos);
+  }
+  return { ...datos, deRespaldo: !propios };
 }
 
 /** Un texto de los datos de un deporte con el nombre del país de la partida donde pone `{pais}`. */

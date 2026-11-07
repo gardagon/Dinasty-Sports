@@ -177,7 +177,15 @@ Esto multiplica por unas 5 la población, y por más el número de jugadores con
 Por eso:
 - **Antes de subir la población hace falta el guardado por partes** (`ALMACENAMIENTO.md` §4, fase 2), y seguramente rasgos compactos (fase 3). Sus disparadores, unas 3.000 personas, se superan con mucho.
 - **Tiempos que hay que mantener** (a confirmar con la medida; decisión del usuario, 05/11): **lo que importa es que la partida vaya fluida**: lo que tarda cada acción, avanzar una semana con todos los partidos (menos de ~1 s en un ordenador normal) y guardar sin que se note. **Crear la partida puede pesar** (personas, clubes, historia): hasta unos 30 s está bien, con una pantalla de «creando el mundo». Los tests que crean muchas partidas no deben depender de eso: usan la ciudad pequeña de prueba o un plazo propio por fichero.
-- **Límites propuestos y aceptados de momento (05/11; se revisan cuando el usuario pruebe el módulo):** cada acción, menos de 100 ms; guardar, menos de 300 ms y sin bloquear; avanzar una semana normal, menos de 1 s (es lo que más se nota); el cambio de curso, hasta unos 5 s con un aviso; crear la partida, lo que haga falta con una barra de progreso (a ×5, unos 4 minutos, vale de momento). Para cumplirlos, lo que vale cada jugador en cada puesto se calcula al crear la partida y al final de cada semana, y las consultas solo lo leen.
+- **Medida de fluidez** *(`npm run fluidez`; semilla 31, fútbol y atletismo; el factor multiplica los colegios de fuera, las clases del colegio del personaje y los vecinos, y con ello el número de clubes; 12 semanas de curso con el bot del montón y, aparte, 53 para ver el cambio de curso)*, **con el «draft» solo al crear la partida, los clubes en proporción a la población y los valores por puesto guardados cada semana**. La semana es lo que tarda el juego en avanzar sus acciones (sin lo que tarda el bot en mirar qué hacer):
+
+| Población | Personas | Clubes de la zona | Futbolistas | Crear | Estado | Guardar | Acción (media / p95) | Apuntarse | Semana normal | Cambio de curso |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ×1 | 1.447 | 2 | 628 | 6,4 s | 3,5 MB | 37 ms | 1,1 ms / 0,9 ms | 26 ms | 0,15 s | **0,47 s** |
+| ×2 | 2.873 | 4 | 1.341 | 12 s | 7,1 MB | 74 ms | 2,1 ms / 1,3 ms | 26 ms | 0,30 s | **1,3 s** |
+| ×5 | 7.139 | 11 | 3.501 | 39 s | 17,6 MB | 208 ms | 5,4 ms / 2,4 ms | 84 ms | 0,6–0,7 s | **4,8 s** |
+
+  **Lo que sale:** el cambio de curso a ×5 baja de 8,5 s (con el «draft» cada año) a **4,8 s** (el límite era ~5 s), a ×1 son 0,5 s; apuntarse, por debajo de 100 ms; la semana normal, por debajo de 1 s; guardar (<300 ms) y cargar no se notan. Lo que más costaba del cambio de curso era recorrer a todas las personas cada vez que un club miraba su plantilla (`ListaDeTrabajo` lo evita: sabe quién juega en cada equipo).
 - **Si algo no cabe, se arregla calculando o guardando mejor, no recortando** (`VISION.md`, principios 4 y 5). El último recurso es tener menos colegios, nunca menos datos por persona.
 
 ## 9. Cómo se comprueba

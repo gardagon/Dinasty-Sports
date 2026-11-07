@@ -10,6 +10,7 @@ import {
   type ActionDef,
   type ActionDoneData,
   type PlazaPerdidaData,
+  type PuestoPropuestoData,
   type EventHandler,
   type FamilyService,
   type ModifierDef,
@@ -172,6 +173,14 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
         `Un jugador que vale más ha ocupado tu plaza en el equipo de ${cfg.nombre} y sales del club. Puedes probar en otro club, en otro deporte o esperar al siguiente plazo de fichajes.`,
         'aviso',
       );
+    },
+    // Al empezar el curso, el entrenador le propone al personaje jugar en otro puesto (sobran en el suyo y faltan en otro): decide él con las acciones de aceptarlo o dejarlo.
+    [SHARED_EVENTS.PROPUESTA_DE_PUESTO]: (ctx, ev) => {
+      const d = ev.data as PuestoPropuestoData;
+      if (d.sport !== cfg.id) return;
+      ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, propuestaDePuesto: d.puesto }));
+      const nombre = cfg.puestosDelDeporte?.find((p) => p.id === d.puesto)?.nombre.toLowerCase() ?? d.puesto;
+      ctx.log(`Tu entrenador de ${cfg.nombre} te propone jugar este curso de ${nombre}: en tu puesto sobran jugadores y en ese faltan. Tú decides si lo aceptas.`, 'info');
     },
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
       const d = ev.data as ActionDoneData;

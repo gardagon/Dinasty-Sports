@@ -1,10 +1,13 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
 import { colegioDeNinoPublico as colegioDeNino, edadNpc, equiposDelClub, favoritoDe, ofertaAlCandidato, piernaDe, valoracionDe, valoresPorPuestoDe, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { repartirEnEquipos, suplentesDe, type MiembroDeClub } from '../modules/npcs/src/equipos';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * Equipos A, B, C y D de un club por categoría (`CIUDAD_Y_LIGAS.md` §5): los grandes, por año; los demás, por nivel; cada equipo con su reparto por puestos; los suplentes y los equipos nuevos.
@@ -62,11 +65,29 @@ describe('el reparto de un club en equipos A a D', () => {
     // Un solo hueco de portero en el A: hace falta que el de primer año supere al de segundo por más del listón.
     const cupos = { ...cuposPorGrupo(P, 18) };
     void cupos;
-    const sinListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 0);
+    const sinListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 0, 0);
     expect(sinListon.A).toEqual(['joven']);
-    const conListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 4);
+    const conListon = repartirEnEquipos(miembros, { ...P, reparto: P.reparto.map((r) => (r.grupo === 'portero' ? { ...r, jugadores: 1 } : { ...r, jugadores: 0 })) }, 2, 1, true, 4, 0);
     expect(conListon.A).toEqual(['viejo']);
     expect(conListon.B).toEqual(['joven']);
+  });
+
+  it('un jugador no sube al equipo de arriba si deja a su equipo con menos de 14 o si el de arriba está completo; todos los clubes reparten por año', () => {
+    // 16 de primer año y 6 de segundo: solo pueden subir al A los que dejan al B con 14 (los 2 mejores de primer año).
+    const miembros: MiembroDeClub[] = [
+      ...Array.from({ length: 16 }, (_, i) => ({ id: `p${String(i).padStart(2, '0')}`, puesto: ['GK', 'CB', 'LB', 'CM', 'LM', 'ST'][i % 6], valor: 90 - i, anio: 1 as const })),
+      ...Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, puesto: ['GK', 'CB', 'LB', 'CM', 'LM', 'ST'][i % 6], valor: 20 - i, anio: 2 as const })),
+    ];
+    const r = repartirEnEquipos(miembros, P, 2, 18, true, 0);
+    expect(r.A.filter((id) => id.startsWith('p')).length).toBeLessThanOrEqual(2); // 16 - 14
+    expect(r.B.length).toBeGreaterThanOrEqual(14);
+    expect(r.B.every((id) => id.startsWith('p'))).toBe(true);
+    // Con tres equipos, el C es una mezcla de los dos años; con cuatro, el C son los de segundo año (completados con los de primer año si no llegan al mínimo) y el D los de primer año.
+    const muchos: MiembroDeClub[] = [...Array.from({ length: 40 }, (_, i) => ({ id: `p${i}`, puesto: P.puestos[i % P.puestos.length].id, valor: 50 - i * 0.1, anio: 1 as const })), ...Array.from({ length: 40 }, (_, i) => ({ id: `s${i}`, puesto: P.puestos[i % P.puestos.length].id, valor: 49 - i * 0.1, anio: 2 as const }))];
+    const tres = repartirEnEquipos(muchos, P, 3, 18, true, 0);
+    expect(tres.C.length).toBeGreaterThan(0); // mezcla: entran de los dos años por lo que valen
+    const cuatro = repartirEnEquipos(muchos, P, 4, 18, true, 0);
+    expect(cuatro.C.every((id) => id.startsWith('s')) && cuatro.D.every((id) => id.startsWith('p'))).toBe(true);
   });
 
   it('los suplentes de un equipo son los que no están entre sus titulares (1 portero, 2 centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero)', () => {
@@ -84,13 +105,35 @@ describe('los equipos de los clubes en la partida', () => {
   let g: ReturnType<typeof nuevaPartida>;
   beforeAll(() => {
     g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
-  }, 90000);
+  });
   const estado = () => g.moduleState<NpcsState>('npcs') as NpcsState;
   const pob = (): PoblacionGuardada => estado().poblaciones!.find((p) => p.deporte === 'futbol')!;
   const categorias = () =>
     pob()
       .categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))
       .map((c) => ({ id: c.id, edadMin: c.edadMin, edades: Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i).filter((x) => x <= 19) }));
+
+  /** Ningún equipo de ningún club ni colegio con menos de 14: cada categoría, o no tiene equipo, o tiene al menos 14 jugadores por equipo (el colegio también: si no llega, ese curso no saca equipo). */
+  const sinEquiposDeMenosDe14 = (): string[] => {
+    const dia = (g.time.week - g.time.schoolWeek) * 7;
+    const mal: string[] = [];
+    for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria)) {
+      for (const c of categorias()) {
+        const n = estado().npcs.filter((x) => x.deporte === 'futbol' && x.equipo === e.club && c.edades.includes(edadNpc(x, dia) ?? -1)).length;
+        const k = e.equiposPorCategoria?.[c.id] ?? 1;
+        if (n > 0 && n < 14 * k) mal.push(`${e.club} ${c.id}: ${n} jugadores con ${k} equipos`);
+      }
+    }
+    return mal;
+  };
+
+  it('ningún equipo de ningún club ni colegio tiene menos de 14 jugadores tras crear la partida, y el colegio saca equipo en la mayoría de las categorías', () => {
+    expect(sinEquiposDeMenosDe14()).toEqual([]);
+    const colegio = pob().equipos.find((e) => e.club === 'colegio')!;
+    const conEquipo = categorias().filter((c) => estado().npcs.filter((x) => x.deporte === 'futbol' && x.equipo === 'colegio' && c.edades.includes(edadNpc(x, 0) ?? -1)).length >= 14).length;
+    expect(colegio).toBeDefined();
+    expect(conEquipo).toBeGreaterThanOrEqual(3); // con la población de ahora, un equipo de colegio de verdad en la mayoría de las categorías
+  });
 
   it('los clubes grandes tienen siempre dos equipos por categoría (A y B, por año) y cada club respeta su plantilla por puestos', () => {
     const lista = new Map(estado().npcs.map((n) => [n.id, n]));
@@ -145,7 +188,8 @@ describe('los equipos de los clubes en la partida', () => {
       const favorito = favoritoDe(n, pob(), val, dia);
       for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria && (x.categorias ?? [c.id]).includes(c.id) && (x.colegio === undefined || colegioDeNino(n) === x.colegio))) {
         const jugadores = equiposDelClub(lista, pob(), e, c, dia, val).miembros.map((x) => x.n);
-        const oferta = ofertaAlCandidato(jugadores, (e.equiposPorCategoria?.[c.id] ?? 1) * e.plantillaPorCategoria!.max, pob(), valores, favorito, val, dia, piernaDe(n, pob()));
+        // Con una mala prueba (×0,75 de lo que vale) todavía pasaría: el azar del día no cuenta como hueco guardado.
+        const oferta = ofertaAlCandidato(jugadores, (e.equiposPorCategoria?.[c.id] ?? 1) * e.plantillaPorCategoria!.max, pob(), e.colegio === undefined ? Object.fromEntries(Object.entries(valores).map(([p, v]) => [p, v * 0.75])) : valores, favorito, val, dia, piernaDe(n, pob()), e.colegio === undefined ? {} : undefined); // los clubes de fuera hacen prueba: con hueco, hay que superar al suplente que mejor juega en el puesto
         if (oferta?.estado === 'libre' && favorito && grupoDePuesto(P, oferta.puesto) === grupoDePuesto(P, favorito)) casos.push(`${n.id}@${e.club}:${oferta.puesto}`);
       }
     }
@@ -159,5 +203,11 @@ describe('los equipos de los clubes en la partida', () => {
   it('y tras el primer verano (fichajes, equipos nuevos y relleno de plantillas) tampoco', () => {
     advanceToWeek(g, 'gen.descansar', 52 + 2, 2, 15);
     expect(conHuecoEnSuPuesto()).toEqual([]);
-  }, 240000);
+  });
+
+  it('ni tras cada verano: sigue sin haber equipos de menos de 14 (el primero y el segundo)', () => {
+    expect(sinEquiposDeMenosDe14()).toEqual([]); // tras el primero (el test anterior ya lo avanzó)
+    advanceToWeek(g, 'gen.descansar', 2 * 52 + 2, 2, 15);
+    expect(sinEquiposDeMenosDe14()).toEqual([]);
+  });
 });

@@ -1,9 +1,12 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { cuposPorGrupo, grupoDePuesto, parecidoDePuestos } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
 import { edadNpc, ofertaAlCandidato, valoracionDe, valoresPorPuestoDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { ofertaDePuesto, ofertasDePuesto, probabilidadDeAceptarPuesto, puestoDondeMasVale, type JugadorConPuesto } from '../modules/npcs/src/puestos';
+
+// Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
 /**
  * Puestos (adelanto de la F3, `CIUDAD_Y_LIGAS.md` §5): el nivel de cada jugador en cada uno de los 16 puestos, el reparto de una plantilla por puestos y la regla de plaza por puesto,
@@ -84,7 +87,7 @@ describe('los niños del mundo con puestos', () => {
   let g: ReturnType<typeof nuevaPartida>;
   beforeAll(() => {
     g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
-  }, 90000);
+  });
   const estado = () => g.moduleState<NpcsState>('npcs') as NpcsState;
   const pob = (): PoblacionGuardada => estado().poblaciones!.find((p) => p.deporte === 'futbol')!;
   const jugadores = (): Npc[] => estado().npcs.filter((n) => n.deporte === 'futbol' && n.equipo && n.genetica);
@@ -112,7 +115,8 @@ describe('los niños del mundo con puestos', () => {
         const cuenta: Record<string, number> = {};
         for (const n of del) cuenta[grupoDePuesto(P, n.puesto!.futbol)!] = (cuenta[grupoDePuesto(P, n.puesto!.futbol)!] ?? 0) + 1;
         for (const r of P.reparto) {
-          expect(cuenta[r.grupo] ?? 0, `${e.club} ${c.id} ${r.grupo}`).toBeGreaterThan(0);
+          // El equipo del colegio va el último en el «draft» y se queda con los alumnos que sobran: puede no tener de todos los grupos.
+          if (e.colegio === undefined) expect(cuenta[r.grupo] ?? 0, `${e.club} ${c.id} ${r.grupo}`).toBeGreaterThan(0);
           expect(cuenta[r.grupo] ?? 0, `${e.club} ${c.id} ${r.grupo}`).toBeLessThanOrEqual(cupos[r.grupo]);
         }
       }
@@ -172,7 +176,7 @@ describe('la pierna buena: todos son diestros o zurdos, con la misma regla y la 
     const zurdos = jugadores.filter((n) => n.pierna === 'izquierda').length / jugadores.length;
     expect(zurdos).toBeGreaterThan(0.12);
     expect(zurdos).toBeLessThan(0.3);
-  }, 90000);
+  });
 
   it('la pierna buena da de base ±0,25 en los puestos del lado de cada pierna, y a los centrales nada; es la misma regla para todos', async () => {
     const { conLaPierna, ladoDePuesto } = await import('@ds/contracts');
