@@ -3,7 +3,7 @@
  * `npm run equipos -- [semillas] [veranos] [factores...]` (por defecto 3 semillas, 3 veranos, ×1, ×2 y ×5). Por momento: cuántos clubes y colegios tienen equipo por categoría, el tamaño de los
  * equipos, cuántos interesados se quedan sin equipo, cuántos han dejado el deporte para siempre (por curso) (el cambio de curso se mide con `npm run fluidez`, que separa la semana del cambio).
  */
-import { CIUDAD_ACTUAL, PAIS_ESPANA, registrarPais, type CiudadDef, type PaisDef } from '@ds/contracts';
+import { CIUDAD_ACTUAL, PAIS_CIUDAD_GRANDE, PAIS_ESPANA, registrarPais, type CiudadDef, type PaisDef } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
@@ -11,13 +11,15 @@ import { edadNpc, type NpcsState } from '@ds/mod-npcs';
 
 const SEMILLAS = Number(process.argv[2] ?? 3);
 const VERANOS = Number(process.argv[3] ?? 3);
-const FACTORES = process.argv.length > 4 ? process.argv.slice(4).map(Number) : [1, 2, 5];
+/** `grande` es la ciudad grande del diseño (`CIUDAD_GRANDE`); un número, la ciudad de ahora multiplicada. */
+const FACTORES: (number | 'grande')[] = process.argv.length > 4 ? process.argv.slice(4).map((x) => (x === 'grande' ? 'grande' : Number(x))) : ['grande'];
 const CATEGORIAS = ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
 const media = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 const f = (x: number): string => x.toFixed(1);
 
 const ciudadPor = (k: number): CiudadDef => ({ ...CIUDAD_ACTUAL, colegiosDeFuera: CIUDAD_ACTUAL.colegiosDeFuera * k, aulasPorCurso: CIUDAD_ACTUAL.aulasPorCurso * k, vecinos: CIUDAD_ACTUAL.vecinos * k });
-const paisPor = (k: number): PaisDef => {
+const paisPor = (k: number | 'grande'): PaisDef => {
+  if (k === 'grande') return PAIS_CIUDAD_GRANDE;
   const id = `espana_x${k}`;
   const copia = structuredClone(PAIS_ESPANA) as PaisDef;
   return { ...copia, id, calendario: { ...copia.calendario, id }, ciudad: ciudadPor(k) };
@@ -36,8 +38,12 @@ interface Momento {
   apartados: number[];
   futbolistas: number[];
   cambioDeCurso: number[]; // segundos
+  /** Interesados sin equipo por categoría: con interés por el fútbol y solo por el deporte en general. */
+  sinPorCategoria: Record<string, { futbol: number[]; general: number[] }>;
+  /** Equipos (k) y jugadores por club y categoría. */
+  porClub: Record<string, Record<string, { k: number[]; n: number[] }>>;
 }
-const vacio = (): Momento => ({ clubesConEquipo: [], clubesTotal: [], colegiosConEquipo: [], colegiosTotal: [], propioConEquipo: [], equiposPorEquipoMin: [], jugadoresPorEquipo: [], sinEquipo: [], dejados: [], apartados: [], futbolistas: [], cambioDeCurso: [] });
+const vacio = (): Momento => ({ clubesConEquipo: [], clubesTotal: [], colegiosConEquipo: [], colegiosTotal: [], propioConEquipo: [], equiposPorEquipoMin: [], jugadoresPorEquipo: [], sinEquipo: [], dejados: [], apartados: [], futbolistas: [], cambioDeCurso: [], sinPorCategoria: Object.fromEntries(CATEGORIAS.map((c) => [c, { futbol: [], general: [] }])), porClub: {} });
 
 for (const k of FACTORES) {
   const pais = paisPor(k);
@@ -62,6 +68,9 @@ for (const k of FACTORES) {
           const n = s.npcs.filter((x) => x.deporte === 'futbol' && x.equipo === e.club && (edadNpc(x, dia) ?? -1) >= c.edadMin && (edadNpc(x, dia) ?? -1) <= c.edadMax).length;
           const kk = e.equiposPorCategoria?.[c.id] ?? 1;
           if (e.colegio !== undefined) { colegiosT++; if (n >= 14) { colegios++; if (e.colegio === 'propio') propio++; } } else { clubesT++; if (n >= 14) clubes++; }
+          const celda = ((m.porClub[e.club] ??= {})[c.id] ??= { k: [], n: [] });
+          celda.k.push(n > 0 ? kk : 0);
+          celda.n.push(n);
           if (n > 0) { m.equiposPorEquipoMin.push(n / kk); m.jugadoresPorEquipo.push(n / kk); }
         }
       }
@@ -69,6 +78,12 @@ for (const k of FACTORES) {
       const interesados = (x: { rasgos?: { intereses: Record<string, number> } }) => Math.max(x.rasgos?.intereses.futbol ?? 0, x.rasgos?.intereses.deporte ?? 0) > 0;
       const enCategorias = (x: { nacimiento?: number } & Parameters<typeof edadNpc>[0]) => CATEGORIAS.some((cat) => { const c = pob.categorias!.find((y) => y.id === cat)!; const ed = edadNpc(x, dia) ?? -1; return ed >= c.edadMin && ed <= c.edadMax; });
       const libres = s.npcs.filter((x) => x.genetica && x.deporte === undefined && interesados(x) && enCategorias(x));
+      for (const cat of CATEGORIAS) {
+        const c = pob.categorias!.find((y) => y.id === cat)!;
+        const deLaCategoria = libres.filter((x) => !x.dejado?.includes('futbol') && (edadNpc(x, dia) ?? -1) >= c.edadMin && (edadNpc(x, dia) ?? -1) <= c.edadMax);
+        m.sinPorCategoria[cat].futbol.push(deLaCategoria.filter((x) => (x.rasgos?.intereses.futbol ?? 0) > 0).length);
+        m.sinPorCategoria[cat].general.push(deLaCategoria.filter((x) => (x.rasgos?.intereses.futbol ?? 0) === 0).length);
+      }
       m.sinEquipo.push(libres.filter((x) => !x.dejado?.includes('futbol')).length);
       m.apartados.push(libres.filter((x) => x.apartado?.includes('futbol') && !x.dejado?.includes('futbol')).length);
       // Los que lo dejan para siempre por no conseguir equipo en dos plazos seguidos, en este curso (`dejanSinClub`), sumados a los de cursos anteriores.
@@ -84,4 +99,15 @@ for (const k of FACTORES) {
   momentos.forEach((m, v) => {
     console.log(`| ${v === 0 ? 'al crear' : `tras el verano ${v}`} | ${f(media(m.clubesConEquipo))} de ${f(media(m.clubesTotal))} | ${f(media(m.colegiosConEquipo))} de ${f(media(m.colegiosTotal))} (${f(media(m.propioConEquipo))}) | ${f(media(m.jugadoresPorEquipo))} | ${f(media(m.futbolistas))} | ${f(media(m.sinEquipo))} (${f(media(m.apartados))}) | ${f(media(m.dejados))} |`);
   });
+  console.log('\nInteresados sin equipo por categoría (con interés por el fútbol / solo por el deporte en general):');
+  console.log(`| Momento | ${CATEGORIAS.join(' | ')} |`);
+  console.log(`|---|${CATEGORIAS.map(() => '---').join('|')}|`);
+  momentos.forEach((m, v) => console.log(`| ${v === 0 ? 'al crear' : `tras el verano ${v}`} | ${CATEGORIAS.map((c) => `${f(media(m.sinPorCategoria[c].futbol))} / ${f(media(m.sinPorCategoria[c].general))}`).join(' | ')} |`));
+  for (const v of [0, VERANOS]) {
+    const m = momentos[v];
+    console.log(`\nEquipos (k) · jugadores por club y categoría, ${v === 0 ? 'al crear' : `tras el verano ${v}`} (media de las semillas; k = 0 si no hay equipo):`);
+    console.log(`| Club | ${CATEGORIAS.join(' | ')} |`);
+    console.log(`|---|${CATEGORIAS.map(() => '---').join('|')}|`);
+    for (const [club, cats] of Object.entries(m.porClub)) console.log(`| ${club} | ${CATEGORIAS.map((c) => `k${f(media(cats[c].k))} · ${f(media(cats[c].n))}`).join(' | ')} |`);
+  }
 }

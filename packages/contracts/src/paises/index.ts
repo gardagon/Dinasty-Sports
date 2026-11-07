@@ -1,5 +1,5 @@
 import { CALENDARIOS } from '../calendar';
-import { CIUDAD_DE_PRUEBA, type CiudadDef } from '../ciudad';
+import { CIUDAD_DE_PRUEBA, CIUDAD_GRANDE, type CiudadDef } from '../ciudad';
 import { registrarReserva } from '../culturas';
 import { OJOS, PELO_COLOR, PELO_TIPO, PIEL, origen, registrarOrigen } from '../rasgos';
 import { PAIS_ARGENTINA } from './argentina';
@@ -29,6 +29,10 @@ export function conCiudadDePrueba(pais: PaisDef): PaisDef {
   const copia = structuredClone(pais) as PaisDef;
   return { ...copia, id, calendario: { ...copia.calendario, id }, ciudad: CIUDAD_DE_PRUEBA };
 }
+/** España con la **ciudad grande del diseño** (`CIUDAD_GRANDE`), lista para registrar: es con la que se mide si el fútbol puede entrar en el juego. */
+export const SUFIJO_CIUDAD_GRANDE = '_ciudad_grande';
+export const PAIS_CIUDAD_GRANDE = conCiudad(PAIS_ESPANA, CIUDAD_GRANDE, SUFIJO_CIUDAD_GRANDE);
+export const ID_PAIS_CIUDAD_GRANDE = PAIS_CIUDAD_GRANDE.id;
 /** España con la ciudad pequeña de prueba, lista para registrar. */
 export const PAIS_CIUDAD_DE_PRUEBA = conCiudadDePrueba(PAIS_ESPANA);
 export const ID_PAIS_CIUDAD_DE_PRUEBA = PAIS_CIUDAD_DE_PRUEBA.id;
