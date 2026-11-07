@@ -111,6 +111,15 @@ En juvenil, que tiene tres años, «segundo año» es segundo y tercero.
 
 **Los años siguientes:** un porcentaje pequeño, según su carácter, prueba en otro club (el suplente del grande que prueba en el mediano para ser titular, o el titular del mediano que prueba en el grande). Los ojeadores y los fichajes, más adelante.
 
+**Cada verano, los de primer año pasan por su propio «draft»** (decisión del usuario, 07/11): en cada club, los de primer año suben al A en su segundo año (con los límites de subir) y el club mira qué le falta por puestos para su nuevo B. Los niños de primer año de esa categoría pasan entonces por el mismo «draft» que al crear la partida, solo ellos: cada club, por su atractivo, ve a un porcentaje y coge lo que le falta para su B; los colegios reciben a sus alumnos que no han probado fuera o a los que han rechazado; y los C y D de esa categoría se vuelven a sortear entre clubes y colegios. Así cada colegio tiene cada año su grupo de primer año y no se queda sin equipos (antes los clubes rellenaban todos sus huecos con los nuevos antes que nadie).
+
+**Al montar un equipo, el entrenador ofrece puestos parecidos** (decisión del usuario, 07/11): a quien no cabe en su puesto le ofrece, de más a menos parecido, los de su línea y los cercanos (un lateral, de central; un extremo, de delantero), y cada uno acepta o no según su carácter, hasta llenar el reparto. Solo si aun así no se llega a 14, los que quedan entran en su puesto favorito.
+
+**¿Titular en un club peor o en el C o el D de uno mejor?** (decisión del usuario, 07/11) Es una decisión de cada uno: un PNJ, según su carácter (el ambicioso prefiere el grande aunque sea en el D; el que quiere jugar, o tiene amigos, ser titular en el mediano); el personaje, eligiendo él, con lo que le dice cada club sin números («con nosotros entrenarías cuatro días, pero en el D» frente a «aquí serías titular en el A»). Para que pese:
+- **Cada equipo tiene su entrenamiento:** sus sesiones por semana y su entrenador (dato por equipo: el A de un grande, más sesiones y el mejor entrenador; sus equipos de abajo, menos).
+- **Cada club tiene sus instalaciones y su zona propia de entrenamiento** (un campo en el mapa), con una calidad que ayuda a mejorar: el grande, a priori, las mejores. Las comparten todos sus equipos.
+- **Los minutos dan experiencia en el puesto** (con los partidos, en la F2): jugar más en un club peor también hace crecer.
+
 **Entrar en un club de fuera: una prueba de acceso** *(hecho en la parte 3, 08/11)* (en el del colegio, no):
 - Quien quiere entrar en un club que no es el de su colegio (el personaje o un niño) **hace una prueba**, que le puede salir mejor o peor: cuenta su estado, su forma del día y algo de azar, como una competición. **Lo que vale en la prueba es lo que cuenta para la regla de plaza.**
 - **Con el equipo lleno en su puesto**, en todos los clubes, hay que superar en la prueba al peor de ese puesto, que sale del club.
@@ -219,7 +228,7 @@ El orden de los pasos 2 y 3 lo decide la medida del paso 1. Si el guardado por p
 
 Ideas del usuario para tenerlas en cuenta; todavía no se han encargado. Las dos preguntas que hice las contestó el 03/11 (abajo).
 
-**1. Menos equipos en cadete y juvenil, como en la vida real.** A esas edades muchos niños empiezan a hacer otras cosas y dejan el deporte. Propuesta para que salga solo, sin fijar el número de equipos por edad:
+**1. Menos equipos en cadete y juvenil, como en la vida real.** A esas edades muchos niños empiezan a hacer otras cosas y dejan el deporte. Propuesta para que salga solo, sin fijar el número de equipos por edad: **Decidido el 07/11: se hace ya** (antes de subir el tope de equipos en juvenil): cuando por el abandono queden menos equipos en una categoría de la zona, la competición pasa a ligas provinciales y nacionales, con equipos de fuera de la ciudad (punto 3; diseño pendiente, con la F2).
 - Cada verano, cada deportista decide si sigue. La probabilidad de dejarlo sube con la edad (sobre todo desde cadete) y pesan su interés, su ambición, los minutos o las carreras que tuvo, sus estudios (más en 4.º de la ESO y en bachillerato) y lo que hacen sus padres. El personaje ve los mismos motivos, pero lo de seguir lo decide el jugador.
 - Un club solo saca equipo en una categoría si llega al mínimo de la plantilla. Si no llega, ese curso no lo tiene y sus jugadores buscan otro club con la regla de plaza. Los primeros en quedarse sin equipo son los clubes pequeños.
 - Con la ciudad grande, los «unos 30 equipos por categoría» de §2 serían menos en cadete y juvenil. Las probabilidades se calibran midiendo cuántos equipos quedan por categoría.
