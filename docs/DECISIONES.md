@@ -12,6 +12,24 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Puesto favorito:** a los 8 años, en torno al 60 % sin puesto definido, un 30 % con un puesto concreto y un 10 % con una zona («en categorías tan pequeñas todavía no saben dónde pueden ser mejores»); la preferencia se forma con los años según el tiempo que juegan en un puesto y lo bien que lo hacen. Sustituye al 60/40 del #98.
 - Las demás cifras del #98 se quedan: aceptan otro puesto fuera de lo suyo entre el 55 % y el 97 %, según su carácter; prueban en otro club el 15 % de cada equipo de club y el 6 % de cada uno de colegio.
 
+## 08/11/2026 — Hecho: refactor de la lógica de equipos, grupo vacío cubierto y puesto favorito que se forma con los años
+
+- **Refactor (sin cambiar nada):** la lógica de equipos salió de `modules/npcs/src/index.ts` (de ~2.800 a ~1.500 líneas) a `plaza.ts`, `plantillas.ts`, `fichajes.ts` y `draft.ts`. `npm run huella -- 120` idéntica antes y después. Como los bots no juegan al fútbol, la huella incluye ahora también el mundo de una partida con fútbol (ciudad de prueba, 2 semillas, tres veranos): también idéntica. Va en su propio commit.
+- **Un grupo de puestos vacío** (sin portero, por ejemplo) **lo cubre el que mejor se adapte de los no titulares** del mismo equipo (de un grupo en que quedan más de uno), aunque no le guste: como última opción casi siempre acepta. Equipos con algún grupo vacío en la ciudad grande (3 semillas, 3 veranos): **0** de ~1.070 (antes 6,7 % de los colegios y 5,3 % de los clubes). Se mira al acabar cada categoría y otra vez al final del cambio de curso. Aviso: los equipos A–D se derivan de lo que vale cada jugador, que cambia cada semana; si el reparto se reordena después, puede reaparecer un grupo vacío hasta el siguiente verano (no se ha visto en la medida, que se toma a las dos semanas).
+- **Puesto favorito que se forma con los años** (sustituye al 60 % concreto y 40 % por zona): a los 8 años, **61,7 % sin puesto definido** (acepta cualquiera), **28,3 % con puesto concreto y 10,1 % con zona**; después, con las temporadas jugadas y lo que vale en su puesto, quien no la tenía pasa a una zona y luego a un puesto (por temporada, 25 % y 20 % a un valor de referencia de 60; más si vale más, menos si vale menos). Proporciones y ritmo son datos del deporte (`favoritos.alEmpezar` y `favoritos.formacion`). El puesto que prefiere es el que juega (o, si aún no juega, uno de los tres que mejor encajan). Hasta los partidos (F2) el tiempo en un puesto son las temporadas en su equipo (`Npc.temporadas`; sin ellas, desde los 8 años).
+
+  | Edad | Sin puesto definido | Solo zona | Puesto concreto |
+  |---|---|---|---|
+  | 8 | 61,7 % | 10,1 % | 28,3 % |
+  | 10 | 44,3 % | 23,8 % | 31,9 % |
+  | 12 | 36,4 % | 26,0 % | 37,5 % |
+  | 14 | 29,5 % | 28,3 % | 42,1 % |
+  | 16 | 25,0 % | 28,1 % | 46,9 % |
+  | 18 | 16,6 % | 30,0 % | 53,4 % |
+
+- **Rechazos de puesto:** 4,7 % de las ofertas (antes 10,9 %). Por categoría: benjamín 3,4 %, alevín 4,8 %, infantil 4,4 %, cadete 6,5 %, juvenil 6,0 %. Como última opción, 34 de 3.150 (1 %).
+- **Efecto en los colegios (aviso):** colegios con equipo tras el verano 3 (de 5): benjamín 3,3, alevín 3,3, infantil 1,3, cadete 2,7, juvenil 3,7 (tras el #98: 4,7, 3,7, 1,7, 2,7, 4,0); cierres de colegio 56 (49). Con 3 semillas y 5 colegios la variación entre ejecuciones es grande y no he podido separar si es el azar o que casi todos aceptan: queda anotado para mirar con más semillas.
+
 ## 08/11/2026 — Hecho: continuidad de los equipos (medidas antes y después con `npm run colegios`)
 
 Implementa lo decidido el 08/11 (entrada de abajo). Ciudad grande, 3 semillas, 3 veranos; entre paréntesis, antes.

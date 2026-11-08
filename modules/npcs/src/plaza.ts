@@ -6,7 +6,7 @@ import { categoriaDeEdad, type CategoriaDef, type PlazaEnEquipo, SERVICES, rngEs
 import { potencialEn } from './deportistas';
 import { valoresIniciales } from './capacidades';
 import { habilidadesIniciales, lectorDe, prepararTrabajo } from './rutina';
-import { esDeLoSuyo, ofertaDePuesto, ofertasOrdenadas, probabilidadDeAceptarPuesto, puestoDondeMasVale, type CondicionesDePrueba, type JugadorConPuesto, type OfertaDePuesto } from './puestos';
+import { grupoDeFavorito, ofertaDePuesto, ofertasOrdenadas, probabilidadDeAceptarPuesto, puestoDondeMasVale, type CondicionesDePrueba, type JugadorConPuesto, type OfertaDePuesto } from './puestos';
 import { NUNCA, type Rendimientos } from './semana';
 
 /**
@@ -185,31 +185,61 @@ export const puestosDelPersonaje = (ctx: ReadContext, rend: Rendimientos, pob: P
 export const ventajaDelLado = (pob: PoblacionGuardada): number => pob.puestos?.pierna?.ventajaDelLado ?? 0.25;
 
 
-/** Entre cuántos de los puestos que mejor encajan con sus habilidades elige un niño su favorito. */
+/** Entre cuántos de los puestos que mejor encajan con sus habilidades elige un niño el suyo (su puesto favorito concreto o la zona de ese puesto). */
 export const PUESTOS_ENTRE_LOS_QUE_ELIGE = 3;
 
-
-/** El puesto favorito de un niño: el que se le dio o, si aún no lo tiene, uno de los que mejor encajan con sus habilidades (a su suerte, estable). */
-export function favoritoDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): string | undefined {
-  const guardado = n.puestoFavorito?.[pob.deporte];
-  if (guardado) return guardado;
-  const valores = valoresPorPuestoDe(n, pob, v, dia);
-  if (!valores) return undefined;
-  const mejores = Object.entries(valores).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, PUESTOS_ENTRE_LOS_QUE_ELIGE).map(([p]) => p);
-  return mejores[Math.floor(rngEstable('favorito', n.genetica?.semilla ?? 0, n.id, pob.deporte).next() * mejores.length)];
+/** La preferencia de un niño por un puesto: un puesto concreto, una zona (portería, defensa, medio o ataque) o ninguna (acepta cualquiera). */
+export interface Preferencia {
+  puesto?: string;
+  zona?: string;
 }
 
+/** Cuántas temporadas tarda en pasar a la siguiente fase quien tiene una probabilidad `p` por temporada (un sorteo estable `u`: la temporada en que ocurre, de 1 en adelante). */
+const temporadaDelPaso = (u: number, p: number): number => Math.ceil(Math.log(1 - Math.min(u, 0.999999)) / Math.log(1 - Math.min(0.95, Math.max(0.02, p))));
 
-/** El grupo favorito de un niño (portería, defensa, medio o ataque) si tiene un grupo en lugar de un puesto concreto (`favoritos` del deporte: una parte tiene puesto concreto y el resto, grupo). */
-export function grupoFavoritoDe(n: Npc, pob: PoblacionGuardada, favorito: string | undefined): string | undefined {
+/**
+ * **El puesto favorito de un niño se forma con los años** (decisión del usuario, 08/11/2026; `favoritos` del deporte). A la edad de inicio, en torno al 60 % no tiene preferencia (acepta cualquier puesto), un 30 %
+ * tiene un puesto concreto y un 10 %, una zona. Después, **según las temporadas que ha jugado y lo que vale en su puesto**, quien no la tenía pasa a preferir una zona y más tarde un puesto: cada temporada es
+ * una oportunidad (más probable si vale más que el valor de referencia; sorteos estables suyos). El puesto que prefiere es el que juega o, si aún no juega, uno de los que mejor encajan con sus habilidades.
+ * Las temporadas son las que lleva en un equipo (`temporadas`); si no las tiene, las que habría jugado desde la edad de inicio. Sin `favoritos` en los datos, nadie tiene preferencia.
+ */
+export function preferenciaDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): Preferencia {
   const f = pob.puestos?.favoritos;
-  if (!f || !favorito || rngEstable('favorito-grupo', n.genetica?.semilla ?? 0, n.id, pob.deporte).next() < f.proporcionDePuestoConcreto) return undefined;
-  return f.grupos.find((g) => g.puestos.includes(favorito))?.id;
+  if (!f) return {};
+  const valores = valoresPorPuestoDe(n, pob, v, dia);
+  if (!valores) return {};
+  const semilla = n.genetica?.semilla ?? 0;
+  const mejores = Object.entries(valores).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, PUESTOS_ENTRE_LOS_QUE_ELIGE).map(([p]) => p);
+  const puesto = n.puesto?.[pob.deporte] ?? mejores[Math.floor(rngEstable('favorito', semilla, n.id, pob.deporte).next() * mejores.length)];
+  const zona = grupoDeFavorito(pob.puestos!, puesto);
+  const edad = edadNpc(n, dia) ?? f.formacion.edadDeInicio;
+  const t = n.temporadas?.[pob.deporte] ?? Math.max(0, edad - f.formacion.edadDeInicio);
+  const rng = rngEstable('preferencia', semilla, n.id, pob.deporte);
+  const u0 = rng.next();
+  const u1 = rng.next();
+  const u2 = rng.next();
+  const valor = Math.min(1.6, Math.max(0.4, (valores[puesto] ?? 0) / f.formacion.valorDeReferencia));
+  const empiezaConcreto = u0 >= f.alEmpezar.sinPuesto && u0 < f.alEmpezar.sinPuesto + f.alEmpezar.concreto;
+  const empiezaConZona = u0 >= f.alEmpezar.sinPuesto + f.alEmpezar.concreto;
+  if (empiezaConcreto) return { puesto, zona };
+  // Cuándo (temporada) pasa a zona y cuándo a puesto concreto, con lo que vale.
+  const aZona = empiezaConZona ? 0 : temporadaDelPaso(u1, f.formacion.aZonaPorTemporada * valor);
+  if (t < aZona) return {};
+  const aPuesto = aZona + temporadaDelPaso(u2, f.formacion.aPuestoPorTemporada * valor);
+  return t >= aPuesto ? { puesto, zona } : { zona };
 }
 
+/** El puesto favorito concreto de un niño, si lo tiene (si no, `undefined`: sin puesto definido o solo una zona). */
+export const favoritoDe = (n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): string | undefined => preferenciaDe(n, pob, v, dia).puesto;
+
+/** ¿Le gusta a un niño un grupo de puestos del reparto? Su puesto concreto está en él o su zona favorita lo cubre. */
+export function leGustaElGrupo(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number, puestos: readonly string[]): boolean {
+  const p = preferenciaDe(n, pob, v, dia);
+  return (!!p.puesto && puestos.includes(p.puesto)) || (!!p.zona && puestos.some((x) => grupoDeFavorito(pob.puestos!, x) === p.zona));
+}
 
 /** El puesto en que juega un niño de un equipo: el que tiene o, si aún no lo tiene (partidas anteriores), aquel en que más vale. */
-export const puestoDeJugador = (n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): string | undefined => n.puesto?.[pob.deporte] ?? favoritoDe(n, pob, v, dia);
+export const puestoDeJugador = (n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): string | undefined => n.puesto?.[pob.deporte] ?? (() => { const valores = valoresPorPuestoDe(n, pob, v, dia); return valores ? puestoDondeMasVale(valores) : undefined; })();
 
 
 /** Lo que vale un jugador de un equipo en su puesto (el personaje, que no tiene capacidades de niño, lleva su valor en `levels`). */
@@ -240,14 +270,14 @@ export function ofertaAlCandidato(jugadores: readonly Npc[], max: number, pob: P
 
 
 /**
- * ¿Acepta el niño el puesto que le ofrece el club? Siempre lo suyo (su puesto favorito o, si tiene un grupo, cualquier puesto de su grupo); los demás, casi siempre, según su carácter, lo que se parece a su
- * puesto y si sería titular; si es su última opción, aún más (un sorteo suyo y del club). Avisa a la medida (`DIAGNOSTICO.alOfertar`).
+ * ¿Acepta el niño el puesto que le ofrece el club? Sin preferencia (sin puesto definido), siempre; lo suyo (su puesto favorito o cualquier puesto de su zona), siempre; los demás, casi siempre, según su carácter,
+ * lo que se parece a lo suyo y si sería titular; si es su última opción, aún más (un sorteo suyo y del club). Avisa a la medida (`DIAGNOSTICO.alOfertar`).
  */
-export function aceptaElPuesto(n: Npc, pob: PoblacionGuardada, club: string, favorito: string | undefined, oferta: OfertaDePuesto, ultimaOpcion = false): boolean {
-  const grupoFavorito = grupoFavoritoDe(n, pob, favorito);
-  const p = probabilidadDeAceptarPuesto(pob.puestos!, n.rasgos?.caracter, favorito, oferta.puesto, oferta.titular, { grupoFavorito, ultimaOpcion });
+export function aceptaElPuesto(n: Npc, pob: PoblacionGuardada, club: string, v: Valoracion, dia: number, oferta: OfertaDePuesto, ultimaOpcion = false): boolean {
+  const pref = preferenciaDe(n, pob, v, dia);
+  const p = probabilidadDeAceptarPuesto(pob.puestos!, n.rasgos?.caracter, pref.puesto, oferta.puesto, oferta.titular, { grupoFavorito: pref.zona, ultimaOpcion });
   const acepta = p >= 1 || rngEstable('puesto', n.genetica?.semilla ?? 0, n.id, club, oferta.puesto).chance(p);
-  DIAGNOSTICO.alOfertar?.({ id: n.id, club, aceptada: acepta, ultimaOpcion, esSuyo: esDeLoSuyo(pob.puestos!, favorito, grupoFavorito, oferta.puesto) });
+  DIAGNOSTICO.alOfertar?.({ id: n.id, club, aceptada: acepta, ultimaOpcion, esSuyo: p >= 1 });
   return acepta;
 }
 

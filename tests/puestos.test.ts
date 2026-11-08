@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { cuposPorGrupo, grupoDePuesto, parecidoDePuestos } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
-import { edadNpc, grupoFavoritoDe, ofertaAlCandidato, valoracionDe, valoresPorPuestoDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
-import { esDeLoSuyo, ofertaDePuesto, ofertasDePuesto, probabilidadDeAceptarPuesto, puestoDondeMasVale, type JugadorConPuesto } from '../modules/npcs/src/puestos';
+import { edadNpc, ofertaAlCandidato, preferenciaDe, valoracionDe, valoresPorPuestoDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { ofertaDePuesto, ofertasDePuesto, probabilidadDeAceptarPuesto, puestoDondeMasVale, type JugadorConPuesto } from '../modules/npcs/src/puestos';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
@@ -118,21 +118,54 @@ describe('los niños del mundo con puestos', () => {
   const pob = (): PoblacionGuardada => estado().poblaciones!.find((p) => p.deporte === 'futbol')!;
   const jugadores = (): Npc[] => estado().npcs.filter((n) => n.deporte === 'futbol' && n.equipo && n.genetica);
 
-  it('cada futbolista tiene un puesto y un puesto favorito (aquel en que más valía al empezar); los dos lados están en juego', () => {
-    for (const n of jugadores()) {
-      expect(P.puestos.some((p) => p.id === n.puesto?.futbol), n.id).toBe(true);
-      expect(P.puestos.some((p) => p.id === n.puestoFavorito?.futbol), n.id).toBe(true);
-    }
+  it('cada futbolista tiene un puesto; los dos lados están en juego', () => {
+    for (const n of jugadores()) expect(P.puestos.some((p) => p.id === n.puesto?.futbol), n.id).toBe(true);
     const puestos = new Set(jugadores().map((n) => n.puesto!.futbol));
     for (const lado of ['LB', 'RB', 'LW', 'RW', 'LCR', 'RCR']) expect(puestos.has(lado), lado).toBe(true);
-    // Muchos juegan en lo suyo (su puesto favorito o, si tienen un grupo, un puesto de su grupo); los que no, lo aceptaron por el club (casi siempre aceptan).
-    const enLoSuyo = jugadores().filter((n) => esDeLoSuyo(P, n.puestoFavorito!.futbol, grupoFavoritoDe(n, pob(), n.puestoFavorito!.futbol), n.puesto!.futbol)).length;
-    // (El entrenador ofrece el puesto en que mejor los ve, que no siempre es el suyo: casi la mitad juega en lo suyo.)
-    expect(enLoSuyo / jugadores().length).toBeGreaterThan(0.4);
-    // Unos tienen un puesto concreto y otros, un grupo: en la proporción del dato.
-    const conGrupo = jugadores().filter((n) => grupoFavoritoDe(n, pob(), n.puestoFavorito!.futbol) !== undefined).length / jugadores().length;
-    expect(conGrupo).toBeGreaterThan(0.3);
-    expect(conGrupo).toBeLessThan(0.5);
+  });
+
+  it('el puesto favorito se forma con los años: a los 8, en torno al 60 % sin puesto definido, un 30 % con puesto concreto y un 10 % con zona; de mayores, la mayoría tiene preferencia', () => {
+    const val = valoracionDe(REND);
+    const por = (min: number, max: number) => {
+      const js = jugadores().filter((n) => (edadNpc(n, 0) ?? -1) >= min && (edadNpc(n, 0) ?? -1) <= max);
+      const prefs = js.map((n) => preferenciaDe(n, pob(), val, 0));
+      return { n: js.length, sin: prefs.filter((p) => !p.puesto && !p.zona).length / js.length, zona: prefs.filter((p) => !p.puesto && p.zona).length / js.length, puesto: prefs.filter((p) => p.puesto).length / js.length };
+    };
+    const pequenos = por(8, 8);
+    expect(pequenos.n).toBeGreaterThan(30);
+    expect(pequenos.sin).toBeGreaterThan(0.5);
+    expect(pequenos.sin).toBeLessThan(0.75);
+    expect(pequenos.puesto).toBeGreaterThan(0.2);
+    expect(pequenos.puesto).toBeLessThan(0.42);
+    const mayores = por(16, 18);
+    expect(mayores.sin).toBeLessThan(0.3);
+    expect(mayores.puesto).toBeGreaterThan(0.4);
+    // Entre medias, cada vez menos sin preferencia.
+    expect(por(12, 13).sin).toBeLessThan(pequenos.sin);
+    expect(mayores.sin).toBeLessThan(por(12, 13).sin);
+  });
+
+  it('con las temporadas pasa de sin puesto a una zona y después a un puesto, y nunca al revés; lo que vale en su puesto lo acelera', () => {
+    const val = valoracionDe(REND);
+    const n = jugadores().find((x) => preferenciaDe({ ...x, temporadas: { futbol: 0 } }, pob(), val, 0).puesto === undefined && preferenciaDe({ ...x, temporadas: { futbol: 0 } }, pob(), val, 0).zona === undefined)!;
+    expect(n).toBeDefined();
+    const fase = (t: number) => { const p = preferenciaDe({ ...n, temporadas: { futbol: t } }, pob(), val, 0); return p.puesto ? 2 : p.zona ? 1 : 0; };
+    const fases = Array.from({ length: 40 }, (_, t) => fase(t));
+    expect(fases).toEqual([...fases].sort((a, b) => a - b));
+    expect(fases[0]).toBe(0);
+    expect(fases[39]).toBe(2);
+    // Si en su puesto vale más, se forma antes (o a la vez).
+    const antes = (valor: number) => {
+      const m = { ...n, vp: { futbol: { valor, puestos: Object.fromEntries(P.puestos.map((q) => [q.id, valor])) } } };
+      return Array.from({ length: 40 }, (_, t) => t).find((t) => preferenciaDe({ ...m, temporadas: { futbol: t } }, pob(), val, 0).puesto !== undefined) ?? 99;
+    };
+    expect(antes(100)).toBeLessThanOrEqual(antes(30));
+  });
+
+  it('sin preferencia, un niño acepta cualquier puesto; con una zona, cualquiera de la zona; con puesto concreto, el suyo siempre y los demás casi siempre', () => {
+    expect(probabilidadDeAceptarPuesto(P, {}, undefined, 'ST', false)).toBe(1);
+    expect(probabilidadDeAceptarPuesto(P, {}, undefined, 'ST', false, { grupoFavorito: 'defensa' })).toBeLessThan(1);
+    expect(probabilidadDeAceptarPuesto(P, {}, undefined, 'LB', false, { grupoFavorito: 'defensa' })).toBe(1);
   });
 
   it('ningún equipo queda descompensado por puestos: todos los grupos tienen jugadores y ninguno pasa de su cupo', () => {

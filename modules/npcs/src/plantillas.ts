@@ -20,7 +20,7 @@ import { type Rendimientos } from './semana';
 
 import { EDAD_FIN_COLEGIO, EquipoGuardado, Npc, PoblacionGuardada, delColegio, descripcionDeOtroColegio, edadDeJuego, edadNpc, hermanos, npcs, persona } from './index';
 import { conDraft, draftDeEquipos } from './draft';
-import { Valoracion, aceptaElPuesto, categoriaDe, favoritoDe, ofertaAlCandidato, piernaDe, puestoDeJugador, reglaDePlaza, valorEnSuPuesto, valorRealDe, valoracionDe, valoresPorPuestoDe } from './plaza';
+import { Valoracion, aceptaElPuesto, categoriaDe, leGustaElGrupo, ofertaAlCandidato, piernaDe, puestoDeJugador, reglaDePlaza, valorEnSuPuesto, valorRealDe, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** Las edades en las que recluta un equipo: las del deporte, acotadas por las suyas (un equipo de colegio solo llega a la edad en que acaba el colegio). */
 export const edadesDe = (pob: PoblacionGuardada, e: EquipoGuardado): number[] => {
@@ -97,7 +97,7 @@ export function aspirantesDeEdad(npcs: readonly Npc[], pob: PoblacionGuardada, e
 
 
 /** Un equipo recluta a un niño: pasa a jugar al deporte en ese equipo, con su potencial, su ritmo y su nivel a esa edad, y sigue los tipos de agenda de su club. */
-export function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardada, edad: number, dia: number, puesto?: string, favorito?: string): Npc {
+export function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardada, edad: number, dia: number, puesto?: string): Npc {
   const base = a.npc;
   const g = base.genetica!;
   const enSuColegio = e.colegio === 'propio';
@@ -117,7 +117,6 @@ export function reclutarA(a: Aspirante, e: EquipoGuardado, pob: PoblacionGuardad
     potential: { ...base.potential, [pob.deporte]: a.potencial },
     ...(pob.puestos ? { pierna: piernaDe(base, pob) } : {}),
     ...(puesto ? { puesto: { ...base.puesto, [pob.deporte]: puesto } } : {}),
-    ...(favorito || base.puestoFavorito?.[pob.deporte] ? { puestoFavorito: { ...base.puestoFavorito, [pob.deporte]: base.puestoFavorito?.[pob.deporte] ?? favorito! } } : {}),
     ritmo: { ...base.ritmo, [pob.deporte]: ritmoEn(base.id, g, pob.deporte) },
     tipos,
     description: deFuera ? pob.descripcionDeRival : enSuColegio ? `${base.description?.replace(/\.$/, '')}. ${pob.descripcionDelEquipo}` : base.description,
@@ -226,19 +225,18 @@ export function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada,
         const intentar = (c: { a: Aspirante; edad: number }, grupo?: string): boolean => {
           const valores = valoresPorPuestoDe(c.a.npc, pob, val, dia);
           if (!valores) return false;
-          const favorito = favoritoDe(c.a.npc, pob, val, dia);
           const jugadores = enEquipo();
           const cupos = cuposPorGrupo(pob.puestos!, tope);
           const solo = grupo ? { [grupo]: cupos[grupo] } : cupos;
-          const oferta = ofertaAlCandidato(jugadores, tope, pob, valores, favorito, val, dia);
-          const ofrecida = grupo ? ofertaDePuesto(jugadores.flatMap((j) => { const pj = puestoDeJugador(j, pob, val, dia); return pj ? [{ id: j.id, nombre: j.name, puesto: pj, valor: valorEnSuPuesto(j, pob, val, dia, pj) }] : []; }), solo as Record<string, number>, pob.puestos!, valores, favorito) : oferta;
-          if (!ofrecida || (c.a.interes > 0 && !aceptaElPuesto(c.a.npc, pob, e.club, favorito, ofrecida))) return false;
+          const oferta = ofertaAlCandidato(jugadores, tope, pob, valores, puestoDondeMasVale(valores), val, dia);
+          const ofrecida = grupo ? ofertaDePuesto(jugadores.flatMap((j) => { const pj = puestoDeJugador(j, pob, val, dia); return pj ? [{ id: j.id, nombre: j.name, puesto: pj, valor: valorEnSuPuesto(j, pob, val, dia, pj) }] : []; }), solo as Record<string, number>, pob.puestos!, valores, puestoDondeMasVale(valores)) : oferta;
+          if (!ofrecida || (c.a.interes > 0 && !aceptaElPuesto(c.a.npc, pob, e.club, val, dia, ofrecida))) return false;
           if (ofrecida.peor) {
             lista.set(ofrecida.peor.id, sinDeporte(lista.get(ofrecida.peor.id)!, pob, false));
             tomados.delete(ofrecida.peor.id);
           }
           tomados.add(c.a.npc.id);
-          lista.set(c.a.npc.id, reclutarA(c.a, e, pob, c.edad, dia, ofrecida.puesto, favorito));
+          lista.set(c.a.npc.id, reclutarA(c.a, e, pob, c.edad, dia, ofrecida.puesto));
           return true;
         };
         void mercado;
@@ -248,8 +246,7 @@ export function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada,
         for (const g of grupos) {
           const mejoresEnElGrupo = (a: Aspirante) => {
             const vs = valoresPorPuestoDe(a.npc, pob, val, dia);
-            const fav = favoritoDe(a.npc, pob, val, dia);
-            return (fav && g.puestos.includes(fav) ? 1000 : 0) + (vs ? Math.max(...g.puestos.map((p) => vs[p] ?? 0)) : 0);
+            return (leGustaElGrupo(a.npc, pob, val, dia, g.puestos) ? 1000 : 0) + (vs ? Math.max(...g.puestos.map((p) => vs[p] ?? 0)) : 0);
           };
           for (const c of elegibles.filter(({ a }) => pasos(true)(a)).sort((x, y) => mejoresEnElGrupo(y.a) - mejoresEnElGrupo(x.a) || (x.a.npc.id < y.a.npc.id ? -1 : 1))) {
             if (enGrupo(g) >= (cupos[g.grupo] ?? 0)) break;
@@ -401,12 +398,14 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
   const { [pob.deporte]: _p, ...potential } = n.potential;
   const ritmo = n.ritmo ? Object.fromEntries(Object.entries(n.ritmo).filter(([k]) => k !== pob.deporte)) : undefined;
   const puesto = n.puesto ? Object.fromEntries(Object.entries(n.puesto).filter(([k]) => k !== pob.deporte)) : undefined;
+  const temporadas = n.temporadas ? Object.fromEntries(Object.entries(n.temporadas).filter(([k]) => k !== pob.deporte)) : undefined;
   const adelanto = n.adelanto ? Object.fromEntries(Object.entries(n.adelanto).filter(([k]) => k !== pob.deporte)) : undefined;
   // Lo que valía jugando ya no vale: si vuelve a jugar, se calcula de nuevo (y la semana lo guarda).
   const vp = n.vp ? Object.fromEntries(Object.entries(n.vp).filter(([k]) => k !== pob.deporte)) : undefined;
   return {
     ...n,
     puesto,
+    temporadas: temporadas && Object.keys(temporadas).length ? temporadas : undefined,
     adelanto: adelanto && Object.keys(adelanto).length ? (adelanto as Record<string, 1>) : undefined,
     vp,
     deporte: undefined,
@@ -464,8 +463,7 @@ export function cubrirGruposVacios(m: MercadoDeFichajes, pob: PoblacionGuardada,
             .sort((a, b) => b.valor - a.valor || (a.n.id < b.n.id ? -1 : 1))
             .slice(0, 3);
           for (const c of candidatos) {
-            const favorito = favoritoDe(c.n, pob, m.val, m.dia);
-            if (!aceptaElPuesto(c.n, pob, e.club, favorito, { puesto: c.puesto, estado: 'libre', valor: c.valor, titular: true }, true)) continue;
+            if (!aceptaElPuesto(c.n, pob, e.club, m.val, m.dia, { puesto: c.puesto, estado: 'libre', valor: c.valor, titular: true }, true)) continue;
             m.lista.set(c.n.id, { ...c.n, puesto: { ...(c.n.puesto ?? {}), [pob.deporte]: c.puesto } });
             cambios++;
             cambio = true;

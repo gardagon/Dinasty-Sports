@@ -21,7 +21,7 @@ import { type Rendimientos } from './semana';
 import { EquipoGuardado, Npc, PoblacionGuardada, delColegio, edadDeJuego, edadNpc, hermanos, npcs, nuevoEntrenador, registroDe, entrenadoresDeClubes } from './index';
 import { colocarDesplazados, fichajesDeVerano, intentarEntrar } from './fichajes';
 import { cubrirGruposVacios, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
-import { Valoracion, favoritoDe, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
+import { Valoracion, leGustaElGrupo, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** ¿Forma sus equipos el «draft»? Los deportes con equipos por categoría y puestos (el fútbol); el atletismo y los de prueba, no. */
 export const conDraft = (pob: PoblacionGuardada, val: Valoracion): boolean => !!pob.puestos && pob.equipos.some((e) => e.plantillaPorCategoria) && !!val.rend.get(pob.deporte)?.puestos;
@@ -159,8 +159,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       for (const g of [...pob.puestos!.reparto].sort((x, y) => x.jugadores - y.jugadores || (x.grupo < y.grupo ? -1 : 1))) {
         const puntos = (a: Aspirante): number => {
           const vs = valoresPorPuestoDe(a.npc, pob, m.val, m.dia);
-          const fav = favoritoDe(a.npc, pob, m.val, m.dia);
-          return (fav && g.puestos.includes(fav) ? 1000 : 0) + (vs ? Math.max(...g.puestos.map((p) => vs[p] ?? 0)) : 0);
+          return (leGustaElGrupo(a.npc, pob, m.val, m.dia, g.puestos) ? 1000 : 0) + (vs ? Math.max(...g.puestos.map((p) => vs[p] ?? 0)) : 0);
         };
         for (const a of [...van].sort((x, y) => puntos(y) - puntos(x) || (x.npc.id < y.npc.id ? -1 : 1))) {
           if (delGrupo(g) >= (cupos[g.grupo] ?? 0)) break;
@@ -540,7 +539,10 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
       // Quien juega un año por encima y ya no cabe en la categoría más alta, juega con los de su edad.
       if (!retirado && n.adelanto?.[pob.deporte] && edad + 1 > edades.max) n = { ...n, adelanto: undefined };
       const baja = !retirado && edad <= edadMaxBaja && rng.chance(probabilidadBaja);
-      return retirado || baja ? [sinDeporte(n, pob, baja)] : [n];
+      if (retirado || baja) return [sinDeporte(n, pob, baja)];
+      // Una temporada más en su equipo: con ellas (y lo que vale en su puesto) se va formando su puesto favorito (`preferenciaDe`).
+      const inicio = pob.puestos?.favoritos?.formacion.edadDeInicio ?? 8;
+      return [{ ...n, temporadas: { ...n.temporadas, [pob.deporte]: (n.temporadas?.[pob.deporte] ?? Math.max(0, edad - inicio)) + 1 } }];
     });
   }
   // Los fichajes de verano, dentro del plazo (el nuevo curso empieza antes de la primera competición): los clubes grandes miran a los mejores de los pequeños y los desplazados buscan

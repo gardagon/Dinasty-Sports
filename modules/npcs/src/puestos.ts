@@ -138,20 +138,23 @@ export function ofertasOrdenadas(jugadores: readonly JugadorConPuesto[], cupos: 
 /** El grupo de favoritos (portería, defensa, medio o ataque) al que pertenece un puesto, si el deporte los tiene. */
 export const grupoDeFavorito = (p: PuestosDeDeporte, puesto: string): string | undefined => p.favoritos?.grupos.find((g) => g.puestos.includes(puesto))?.id;
 
-/** ¿Es el puesto ofrecido «de lo suyo»? Su puesto favorito concreto o, si tiene un grupo favorito (`grupoFavorito`), cualquier puesto de ese grupo. */
-export const esDeLoSuyo = (p: PuestosDeDeporte, favorito: string | undefined, grupoFavorito: string | undefined, ofrecido: string): boolean =>
-  !!favorito && (favorito === ofrecido || (!!grupoFavorito && grupoDeFavorito(p, ofrecido) === grupoFavorito));
+/** ¿Es el puesto ofrecido «de lo suyo»? Su puesto favorito concreto (si lo tiene) o, si tiene una zona favorita (`zona`), cualquier puesto de esa zona. */
+export const esDeLoSuyo = (p: PuestosDeDeporte, favorito: string | undefined, zona: string | undefined, ofrecido: string): boolean =>
+  (!!favorito && favorito === ofrecido) || (!!zona && grupoDeFavorito(p, ofrecido) === zona);
 
 /**
- * Cuánto acepta un niño un puesto que no es de lo suyo (decisión del usuario, 08/11/2026: «al final, si un niño quiere jugar al fútbol, juega»): casi siempre, de 55 % a 97 %; más fácil cuanto más
- * **disciplinado** y **sacrificado** es (ejes del carácter, de −50 a 50), cuanto más se parece el puesto al suyo y si en él sería **titular**. Si es de lo suyo (su puesto favorito o cualquier
- * puesto de su grupo favorito) siempre lo acepta. **Si es su última opción** (se queda sin equipo), la probabilidad de aceptar sube mucho: aceptaría uno que normalmente rechazaría.
+ * Cuánto acepta un niño un puesto que no es de lo suyo (decisión del usuario, 08/11/2026: «al final, si un niño quiere jugar al fútbol, juega»): **sin preferencia (sin puesto definido), siempre**; si es de lo suyo
+ * (su puesto favorito o cualquier puesto de su zona favorita), siempre; los demás, casi siempre, de 55 % a 97 %: más fácil cuanto más **disciplinado** y **sacrificado** es (ejes del carácter, de −50 a 50),
+ * cuanto más se parece el puesto al suyo (o a los de su zona) y si en él sería **titular**. **Si es su última opción** (se queda sin equipo), la probabilidad de aceptar sube mucho: aceptaría uno que
+ * normalmente rechazaría.
  */
 export function probabilidadDeAceptarPuesto(p: PuestosDeDeporte, caracter: Readonly<Record<string, number>> | undefined, favorito: string | undefined, ofrecido: string, titular: boolean, o: { grupoFavorito?: string; ultimaOpcion?: boolean } = {}): number {
-  if (!favorito || esDeLoSuyo(p, favorito, o.grupoFavorito, ofrecido)) return 1;
+  if ((!favorito && !o.grupoFavorito) || esDeLoSuyo(p, favorito, o.grupoFavorito, ofrecido)) return 1;
   const disciplina = (caracter?.disciplina ?? 0) / 50;
   const sacrificio = (caracter?.sacrificio ?? 0) / 50;
-  const x = 0.8 + 0.1 * disciplina + 0.06 * sacrificio + 0.08 * (parecidoDePuestos(p, favorito, ofrecido) - 0.3) + 0.04 * (titular ? 1 : 0);
+  const suyos = [...(favorito ? [favorito] : []), ...(o.grupoFavorito ? (p.favoritos?.grupos.find((g) => g.id === o.grupoFavorito)?.puestos ?? []) : [])];
+  const parecido = Math.max(...suyos.map((x) => parecidoDePuestos(p, x, ofrecido)));
+  const x = 0.8 + 0.1 * disciplina + 0.06 * sacrificio + 0.08 * (parecido - 0.3) + 0.04 * (titular ? 1 : 0);
   const normal = Math.min(0.97, Math.max(0.55, x));
   return o.ultimaOpcion ? normal + (1 - normal) * ULTIMA_OPCION : normal;
 }

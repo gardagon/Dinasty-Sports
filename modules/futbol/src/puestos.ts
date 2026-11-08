@@ -78,9 +78,10 @@ export const PUESTOS_DE_FUTBOL: PuestosDeDeporte = {
   // Cómo se forman los equipos: 11 titulares (un 4-3-3: 1 portero, 2 centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y 7 suplentes; y el listón de los de primer año (+4 puntos: con las posiciones obligadas, aun así entran en el A unos 3 o 4 primeros años por club y categoría).
   equipos: { titulares: { portero: 1, central: 2, lateral: 2, medio: 3, banda: 2, delantero: 1 }, listonDePrimerAno: 7 },
   puestos: NOMBRES.map(([id, nombre, linea]): PuestoDeDeporte => ({ id, nombre, linea, pesos: pesosDe(id), afinidades: AFINIDADES[id] ?? {} })),
-  // Los favoritos de los niños (decisión del 08/11): 6 de cada 10 tienen un puesto concreto y 4 de cada 10, un grupo (portería, defensa, medio o ataque; las bandas, en el medio y los extremos, en el ataque).
+  // El puesto favorito se forma con los años (decisión del 08/11): a los 8, en torno al 60 % sin puesto definido, un 30 % con puesto concreto y un 10 % con zona (portería, defensa, medio o ataque; las bandas, en el medio y los extremos, en el ataque); después, con las temporadas y lo que vale en su puesto, pasan a una zona y a un puesto (propuesta de ritmo a calibrar).
   favoritos: {
-    proporcionDePuestoConcreto: 0.6,
+    alEmpezar: { sinPuesto: 0.6, concreto: 0.3, zona: 0.1 },
+    formacion: { edadDeInicio: 8, aZonaPorTemporada: 0.25, aPuestoPorTemporada: 0.2, valorDeReferencia: 60 },
     grupos: [
       { id: 'porteria', nombre: 'Portería', puestos: ['GK'] },
       { id: 'defensa', nombre: 'Defensa', puestos: ['CB', 'LB', 'RB'] },

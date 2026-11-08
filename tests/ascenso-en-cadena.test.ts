@@ -73,7 +73,7 @@ describe('completar antes de cerrar: el ascenso en cadena', () => {
   const CLUB = 'club_mediano';
 
   /** Una estrella: vale 99 en todos los puestos (con el puesto que se le da). */
-  const estrella = (n: Npc, puesto: string): Npc => ({ ...n, puesto: { futbol: puesto }, puestoFavorito: { futbol: puesto }, vp: { futbol: { valor: 99, puestos: Object.fromEntries(pob().puestos!.puestos.map((p) => [p.id, 99])) } } });
+  const estrella = (n: Npc, puesto: string): Npc => ({ ...n, puesto: { futbol: puesto }, vp: { futbol: { valor: 99, puestos: Object.fromEntries(pob().puestos!.puestos.map((p) => [p.id, 99])) } } });
 
   /**
    * El club mediano con `infantiles` jugadores de infantil (el resto, a la bolsa, que no quiere jugar), un solo equipo, `alevines` de alevín (traídos de otros clubes si hace falta, de 14 a 18 sin estrellas)
@@ -95,6 +95,8 @@ describe('completar antes de cerrar: el ascenso en cadena', () => {
     // Nadie de la bolsa quiere jugar: así solo cuenta el ascenso.
     for (const [id, n] of lista) if (n.genetica && n.deporte === undefined) lista.set(id, { ...n, rasgos: n.rasgos && { ...n.rasgos, intereses: {} }, dejado: undefined, apartado: undefined });
     expect(alevinesDelClub()).toHaveLength(alevines);
+    // Hacen falta `estrellas` de segundo año: si el club tiene menos, algunos de primer año son un año mayores.
+    for (const n of alevinesDelClub().filter((x) => edadNpc(x, 0) === cat('alevin').edadMin).slice(0, Math.max(0, estrellas - alevinesDelClub().filter((x) => edadNpc(x, 0) === cat('alevin').edadMax).length))) lista.set(n.id, { ...n, nacimiento: (n.nacimiento ?? 0) - 365 });
     const segundoAnio = alevinesDelClub().filter((n) => edadNpc(n, 0) === cat('alevin').edadMax);
     const puestos = ['GK', 'CB', 'CM', 'ST', 'LB'];
     const ids = segundoAnio.slice(0, estrellas).map((n, i) => {

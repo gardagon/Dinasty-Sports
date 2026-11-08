@@ -51,21 +51,20 @@ export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, 
   // Con puestos: el club le ofrece el puesto en que entraría (con hueco en él o valiendo más que el peor de ese puesto) y el niño lo acepta o no según su carácter.
   const valores = valoresPorPuestoDe(n, pob, m.val, m.dia);
   if (pob.puestos && valores) {
-    const favorito = favoritoDe(n, pob, m.val, m.dia);
     // Un club que no es el del colegio le hace una prueba (la misma que al personaje): lo que vale ese día, por su estado y un poco de azar suyo, es lo que cuenta para la plaza.
     const prueba = e.colegio === undefined && !sinPrueba ? pruebaDeUnNino(n, e, valores, m.dia) : undefined;
     // En el «draft», el club pide primero los grupos más escasos: solo se mide ese puesto (y con hueco entra sin enfrentarse a un suplente: no hay once aún).
-    const forzado: CondicionesDePrueba | undefined = relajado ? { puesto: favorito, yaPasada: true, sinCuposPorGrupo: true } : puestoForzado ? { puesto: puestoForzado, yaPasada: true } : undefined;
+    const forzado: CondicionesDePrueba | undefined = relajado ? { puesto: puestoDondeMasVale(valores), yaPasada: true, sinCuposPorGrupo: true } : puestoForzado ? { puesto: puestoForzado, yaPasada: true } : undefined;
     // El entrenador ofrece su puesto y, si no cabe, los parecidos de más a menos (un lateral, de central; un extremo, de delantero); cada oferta la acepta o no según su carácter, y se queda con
     // la primera que acepta. En un equipo nuevo todos serían titulares. Los descartes definitivos solo entran por un hueco: quitarle el sitio a otro solo lo cambia de sitio en la bolsa.
     // **El entrenador ofrece siempre el puesto en que mejor ve al jugador** (donde más vale ese día) y, si no lo acepta, los parecidos de más a menos (decisión del usuario, 08/11/2026).
     const valoresDeLaPrueba = prueba?.valores ?? valores;
     const ofertas = ofertasAlCandidato(plantel.jugadores, plantel.max, pob, valoresDeLaPrueba, puestoDondeMasVale(valoresDeLaPrueba), m.val, m.dia, piernaDe(n, pob), forzado ?? prueba?.condiciones);
-    const oferta = ofertas.find((x) => !(soloHueco && x.estado === 'por_merito') && aceptaElPuesto(n, pob, e.club, favorito, equipoNuevo ? { ...x, titular: true } : x, ultimaOpcion));
+    const oferta = ofertas.find((x) => !(soloHueco && x.estado === 'por_merito') && aceptaElPuesto(n, pob, e.club, m.val, m.dia, equipoNuevo ? { ...x, titular: true } : x, ultimaOpcion));
     if (!oferta) return { entra: false };
     const desplazado = oferta.peor ? m.lista.get(oferta.peor.id) : undefined;
     if (desplazado) DIAGNOSTICO.alDesplazar?.({ id: desplazado.id, desde: e.club, motivo: 'merito' });
-    m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto, favorito));
+    m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto));
     if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
     return { entra: true, desplazado };
   }
@@ -227,13 +226,12 @@ export function recolocarPropios(m: MercadoDeFichajes): { id: string; origen: st
                 (m.propuestas ??= []).push({ deporte: pob.deporte, puesto: ofertas[0] });
                 continue;
               }
-              const favorito = favoritoDe(n, pob, m.val, m.dia);
               for (const puesto of ofertas) {
                 const grupoNuevo = grupoDePuesto(p, puesto);
                 if (!grupoNuevo) continue;
                 const delNuevo = lista.filter((x) => grupoDe(x) === grupoNuevo).map((x) => valorEnSuPuesto(x, pob, m.val, m.dia, puestoDeJugador(x, pob, m.val, m.dia)!)).sort((a, b) => a - b);
                 const titular = !delNuevo.length || valores[puesto] >= delNuevo[Math.floor((delNuevo.length - 1) / 2)];
-                if (!aceptaElPuesto(n, pob, e.club, favorito, { puesto, estado: 'libre', valor: valores[puesto], titular })) continue;
+                if (!aceptaElPuesto(n, pob, e.club, m.val, m.dia, { puesto, estado: 'libre', valor: valores[puesto], titular })) continue;
                 m.lista.set(n.id, { ...n, puesto: { ...(n.puesto ?? {}), [pob.deporte]: puesto } });
                 c[g.grupo]--;
                 c[grupoNuevo]++;

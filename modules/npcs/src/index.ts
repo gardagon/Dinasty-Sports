@@ -63,7 +63,8 @@ export interface Npc {
   pierna?: Pierna;
   /** En los deportes con puestos: el puesto en que juega en su equipo (id del puesto) y el que prefiere (el favorito, aquel en que más valía al empezar), por deporte. */
   puesto?: Record<string, string>;
-  puestoFavorito?: Record<string, string>;
+  /** Las temporadas que lleva jugando en un equipo de cada deporte (con ellas y lo que vale en su puesto se forma su puesto favorito: `preferenciaDe`). */
+  temporadas?: Record<string, number>;
   /** Los deportes en que juega **un año por encima de su edad** (el que sería titular en la categoría de arriba asciende: `completarUnaCategoria`). Un 1 por deporte. */
   adelanto?: Record<string, 1>;
   /**
