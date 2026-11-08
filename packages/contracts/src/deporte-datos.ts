@@ -337,6 +337,19 @@ export interface PoblacionDeDeporte {
     /** Hasta esta edad algún niño puede dejar el deporte cada curso (con esta probabilidad) y otro ocupa su plaza. */
     edadMaxBaja: number;
     probabilidadBaja: number;
+    /**
+     * **El abandono por edad** (decisión del usuario, 07/11/2026; `CIUDAD_Y_LIGAS.md` §11): cada verano cada deportista decide si sigue. La probabilidad de dejarlo sube con la edad (sobre todo desde cadete) y
+     * pesan su interés por el deporte, su ambición, los minutos que tuvo (si fue titular), sus estudios (más en 4.º de la ESO y en bachillerato) y lo que hacen sus padres. Con él, sustituye a
+     * `edadMaxBaja` y `probabilidadBaja`. El personaje ve los mismos motivos, pero lo de seguir lo decide el jugador.
+     */
+    abandono?: {
+      /** Probabilidad base de dejarlo cada verano a cada edad; para las edades que no están se usa la de la mayor edad menor que ellas (la primera, para las menores). */
+      baseDeLaEdad: Readonly<Record<number, number>>;
+      /** Cuánto cambia la base cada motivo, de 0 a 1 (con peso 0,5, el motivo más fuerte la sube o la baja un 50 %). */
+      pesos: { interes: number; ambicion: number; minutos: number; estudios: number; padres: number };
+      /** La presión de los estudios a cada edad, de 0 a 1 (4.º de la ESO y bachillerato, las más altas); lo que no está, 0. */
+      estudiosPorEdad: Readonly<Record<number, number>>;
+    };
   };
   /** Los clubes y equipos de colegio que reclutan, con su plantilla. */
   equipos: readonly EquipoDeDeporte[];

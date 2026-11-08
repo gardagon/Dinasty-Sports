@@ -20,7 +20,8 @@ import { type Rendimientos } from './semana';
 
 import { EquipoGuardado, Npc, PoblacionGuardada, delColegio, edadDeJuego, edadNpc, hermanos, npcs, nuevoEntrenador, registroDe, entrenadoresDeClubes } from './index';
 import { colocarDesplazados, fichajesDeVerano, intentarEntrar } from './fichajes';
-import { cubrirGruposVacios, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { dejaElDeporte } from './abandono';
+import { acomodarSobrantes, cubrirGruposVacios, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { Valoracion, leGustaElGrupo, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** ¿Forma sus equipos el «draft»? Los deportes con equipos por categoría y puestos (el fútbol); el atletismo y los de prueba, no. */
@@ -73,10 +74,27 @@ export function draftDeEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba: b
     }
     pobsNuevas.push(pob);
     m.pobs = [...pobsNuevas, ...m.pobs.slice(pobsNuevas.length)];
+    fijarEquipos(m, pob);
     nuevos.push(...entrenadoresDeLosEquipos(m, pob, rng));
   }
   m.pobs = pobsNuevas;
+  sinSobrantes(m);
   return nuevos;
+}
+
+/**
+ * Tras el reparto en equipos, nadie queda en un club sin equipo (`acomodarSobrantes`): el entrenador le ofrece otro puesto donde quepa y, si no cabe, deja el club y busca otro como cualquier desplazado (al
+ * que cambia de club le pasa lo mismo en el nuevo, y así hasta tres rondas; en la última, el que no cabe queda apartado ese curso). Al acabar se fijan los equipos de la temporada.
+ */
+export function sinSobrantes(m: MercadoDeFichajes): void {
+  for (let ronda = 0; ronda < 3; ronda++) {
+    const fuera = m.pobs.flatMap((pob) => acomodarSobrantes(m, pob, ronda === 2));
+    if (fuera.length) colocarDesplazados(m, fuera);
+    for (const pob of m.pobs) {
+      for (const c of (pob.categorias ?? []).filter((x) => pob.equipos.some((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((u) => u.id === x.id)))) cubrirGruposVacios(m, pob, c.id, Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i));
+    }
+  }
+  for (const pob of m.pobs) fijarEquipos(m, pob);
 }
 
 
@@ -195,7 +213,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
   const ajustar = (e: EquipoGuardado): void => {
     const cx = categoriasDelEquipo(pob, e).find((c) => c.id === catId)!;
     for (let vuelta = 0; vuelta < 3; vuelta++) {
-      liberar(equiposDelClub(m.lista, pob, e, cx, m.dia, m.val).equipos.sobran);
+      liberar(equiposDelClub(m.lista, pob, e, cx, m.dia, m.val, [], true).equipos.sobran);
       // Con los que quedan, tantos equipos como lleguen al mínimo (con 14 basta).
       const montables = Math.max(1, Math.floor(miembros(e).length / minimoDe(e)));
       if (montables >= kDe(e)) break;
@@ -295,6 +313,7 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
     }
     pobsNuevas.push(pob);
     m.pobs = [...pobsNuevas, ...m.pobs.slice(pobsNuevas.length)];
+    fijarEquipos(m, pob);
     nuevos.push(...entrenadoresDeLosEquipos(m, pob, rng));
   }
   m.pobs = pobsNuevas;
@@ -304,6 +323,8 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
   for (const pob of m.pobs) {
     for (const c of (pob.categorias ?? []).filter((x) => pob.equipos.some((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((u) => u.id === x.id)))) cubrirGruposVacios(m, pob, c.id, Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i));
   }
+  // Nadie queda en un club sin equipo, y se fijan los equipos de la temporada con lo que queda (los ascensos y los que buscaron equipo ya están hechos).
+  sinSobrantes(m);
   return nuevos;
 }
 
@@ -530,15 +551,21 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // Los apartados del plazo anterior vuelven a la bolsa (su segunda oportunidad): si tampoco ahora los quiere ningún club, lo dejan para siempre.
   const segunda = new Set(npcs.filter((n) => n.apartado?.length).map((n) => n.id));
   let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
+  const titulares = new Map<string, Set<string>>();
   for (const pob of pobs) {
     const { edades, edadMaxBaja, probabilidadBaja } = pob.reclutamiento;
+    if (!titulares.has(pob.deporte)) titulares.set(pob.deporte, titularesDelCurso(lista, pob, dia));
     lista = lista.flatMap((n) => {
       if (n.deporte !== pob.deporte || !n.genetica) return [n];
+      const gen = n.genetica;
       const edad = edadNpc(n, dia) ?? 0;
       const retirado = edad > edades.max;
       // Quien juega un año por encima y ya no cabe en la categoría más alta, juega con los de su edad.
       if (!retirado && n.adelanto?.[pob.deporte] && edad + 1 > edades.max) n = { ...n, adelanto: undefined };
-      const baja = !retirado && edad <= edadMaxBaja && rng.chance(probabilidadBaja);
+      // El abandono por edad: cada verano cada deportista decide si sigue (la probabilidad sube con la edad y pesan el interés, la ambición, los minutos, los estudios y los padres); sin esos datos, lo de siempre.
+      const baja = !retirado && (pob.reclutamiento.abandono
+        ? dejaElDeporte(pob.reclutamiento.abandono, { edad, rasgos: n.rasgos, titular: titulares.get(pob.deporte)?.has(n.id), padres: gen.padres }, pob.deporte, gen.semilla ?? 0, n.id, curso)
+        : edad <= edadMaxBaja && rng.chance(probabilidadBaja));
       if (retirado || baja) return [sinDeporte(n, pob, baja)];
       // Una temporada más en su equipo: con ellas (y lo que vale en su puesto) se va formando su puesto favorito (`preferenciaDe`).
       const inicio = pob.puestos?.favoritos?.formacion.edadDeInicio ?? 8;
@@ -607,3 +634,20 @@ export function entrenadoresDeEquiposExtra(npcs: readonly Npc[], pob: PoblacionG
   return nuevos;
 }
 
+
+
+/** Los que fueron titulares el curso pasado (los minutos que tuvieron): en cada equipo (club, categoría del curso pasado y letra), los que más valen hasta los titulares de la formación (11 en el fútbol). */
+function titularesDelCurso(lista: readonly Npc[], pob: PoblacionGuardada, dia: number): Set<string> {
+  const titulares = Object.values(pob.puestos?.equipos?.titulares ?? {}).reduce((a, b) => a + b, 0) || 11;
+  const equipos = new Map<string, { id: string; valor: number }[]>();
+  for (const n of lista) {
+    if (n.deporte !== pob.deporte || !n.equipo || !n.letra?.[pob.deporte] || !n.genetica) continue;
+    const edad = (edadNpc(n, dia) ?? 0) - 1; // el curso pasado
+    const categoria = (pob.categorias ?? []).find((c) => edad + (n.adelanto?.[pob.deporte] ? 1 : 0) >= c.edadMin && edad + (n.adelanto?.[pob.deporte] ? 1 : 0) <= c.edadMax)?.id;
+    const clave = `${n.equipo}|${categoria}|${n.letra[pob.deporte]}`;
+    (equipos.get(clave) ?? equipos.set(clave, []).get(clave)!).push({ id: n.id, valor: n.vp?.[pob.deporte]?.valor ?? n.levels[pob.deporte] ?? 0 });
+  }
+  const dentro = new Set<string>();
+  for (const miembros of equipos.values()) for (const x of miembros.sort((a, b) => b.valor - a.valor || (a.id < b.id ? -1 : 1)).slice(0, titulares)) dentro.add(x.id);
+  return dentro;
+}

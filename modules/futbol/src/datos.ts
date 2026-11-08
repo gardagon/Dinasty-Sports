@@ -66,7 +66,17 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
   descripcionDeRival: 'Juega al fútbol.',
   capacidades: [GEN.velocidad, GEN.resistencia, GEN.agilidad, GEN.coordinacion, GEN.fuerza, GEN.inteligencia],
   aptitud: 0.15,
-  reclutamiento: { edades: { min: 8, max: 19 }, edadMaxBaja: 13, probabilidadBaja: 0.1 },
+  reclutamiento: {
+    edades: { min: 8, max: 19 },
+    edadMaxBaja: 13,
+    probabilidadBaja: 0.1,
+    // El abandono por edad (decisión del 07/11; a calibrar con `npm run equipos`): a los 13 o menos, lo de siempre (10 % por verano); desde cadete sube deprisa. Pesan el interés, la ambición, los minutos, los estudios (4.º de la ESO y bachillerato) y los padres.
+    abandono: {
+      baseDeLaEdad: { 8: 0.1, 13: 0.1, 14: 0.12, 15: 0.18, 16: 0.24, 17: 0.3, 18: 0.36 },
+      pesos: { interes: 0.4, ambicion: 0.25, minutos: 0.3, estudios: 0.3, padres: 0.15 },
+      estudiosPorEdad: { 15: 0.6, 16: 0.8, 17: 1, 18: 0.8 },
+    },
+  },
   // Los equipos de la zona (`CIUDAD_Y_LIGAS.md` §3): el del colegio es un club pequeño más y escoge a sus alumnos; los de fuera escogen entre todos los colegios por lo que vale cada
   // niño, los grandes primero. Un equipo por categoría (de benjamín a juvenil), de 14 a 18 jugadores (once titulares y suplentes): se recluta primero a los interesados hasta 18 y, si no
   // llegan a 14, se completa con niños sin interés hasta 14 (no se guarda ningún hueco al personaje: entra como cualquier niño, por la regla de plaza). Con la población de ahora (unos 120 niños por edad) salen llenos. Los filiales (el equipo B

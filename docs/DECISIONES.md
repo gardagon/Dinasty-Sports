@@ -16,6 +16,33 @@ Tras varios días con la base del mundo, el usuario aprueba un MVP para poder pr
 - **Puesto favorito:** a los 8 años, en torno al 60 % sin puesto definido, un 30 % con un puesto concreto y un 10 % con una zona («en categorías tan pequeñas todavía no saben dónde pueden ser mejores»); la preferencia se forma con los años según el tiempo que juegan en un puesto y lo bien que lo hacen. Sustituye al 60/40 del #98.
 - Las demás cifras del #98 se quedan: aceptan otro puesto fuera de lo suyo entre el 55 % y el 97 %, según su carácter; prueban en otro club el 15 % de cada equipo de club y el 6 % de cada uno de colegio.
 
+## 08/11/2026 — Hecho: el abandono por edad (`CIUDAD_Y_LIGAS.md` §11, punto 1)
+
+Cada verano cada deportista decide si sigue (`modules/npcs/src/abandono.ts`). La probabilidad de dejarlo es la **base de su edad** (dato del deporte, `reclutamiento.abandono`) subida o bajada por cinco motivos, cada uno de −1 a 1 con su peso (datos): su **interés** por el fútbol, su **ambición**, los **minutos** (si fue titular el curso pasado: de los de su equipo, los 11 que más valen), sus **estudios** (la presión sube en 4.º de la ESO y en bachillerato, y más en quien le interesa estudiar) y lo que hacen sus **padres**. Sorteo estable suyo por verano. Sin esos datos, lo de siempre (`edadMaxBaja`, `probabilidadBaja`).
+
+Datos del fútbol (a calibrar): base 10 % hasta los 13; 12 % a los 14; 18 %, 24 %, 30 % y 36 % de los 15 a los 18; pesos interés 0,4, ambición 0,25, minutos 0,3, estudios 0,3 y padres 0,15; presión de estudios 0,6 / 0,8 / 1 / 0,8 a los 15 / 16 / 17 / 18. **El personaje ve los mismos motivos** (`motivosDeAbandono`: texto y fuerza de cada uno) **pero lo de seguir lo decide el jugador**: la función está; la pantalla (y la decisión del verano) llegan con la pestaña del deporte de la F2. No se sube el tope de equipos en juvenil.
+
+Medida (`npm run equipos -- 3 3 grande`, ciudad grande, 3 semillas; equipos / futbolistas de toda la ciudad, tras el verano 3; entre paréntesis, sin abandono por edad):
+
+| | Benjamín | Alevín | Infantil | Cadete | Juvenil |
+|---|---|---|---|---|---|
+| Equipos | 32,7 (31,3) | 25,7 (24,3) | 25,3 (24,0) | 25,3 (27,0) | **25,3 (38,3)** |
+| Futbolistas | 507 (492) | 397 (374) | 396 (376) | 387 (435) | **406 (592)** |
+| Interesados sin equipo | 6,0 (13,7) | 10,7 (12,0) | 9,7 (3,3) | 3,7 (12,3) | **9,0 (66,0)** |
+
+Los equipos de juvenil bajan de 40 al crear a 25 (antes se quedaban en ~38 con ~65 juveniles interesados sin equipo: ahora 9), y el cadete baja de 30 a 25. Los que lo dejan para siempre por no conseguir equipo en dos plazos, acumulados en tres veranos, bajan de 216 a 83 (hay menos juveniles de sobra). Los colegios con equipo (de 25) tras el verano 3: 15,0 (18,3): los equipos de colegio de las categorías mayores son los que se quedan sin gente. Cuando por el abandono queden pocos equipos en una categoría, llegarán las ligas provinciales y nacionales (diseño pendiente, con la F2).
+
+## 08/11/2026 — Quien está en un club está en uno de sus equipos (decisión del usuario)
+
+Un 4 % de los futbolistas estaba en un club sin equipo (A–D): no cabían por los cupos de puestos. Eso no puede existir. Ahora, tras el reparto de verano (`sinSobrantes`, también al crear la partida y al añadir el deporte), **el entrenador le ofrece al que no cabe otro puesto donde quepa** (los de los grupos con sitio, de más a menos parecido al suyo; fuera de lo suyo acepta casi siempre y más si es su última opción) **y, si aun así no cabe en ningún equipo, deja el club y busca otro como cualquier desplazado** (hasta tres rondas; en la última queda apartado ese curso). Si al irse un club se queda con menos de 14 por equipo, cierra los que no llegan (y, si ninguno llega, sus jugadores buscan otro). Test (`tests/equipos-fijos.test.ts`): al crear la partida y tras cada verano, todo jugador de un club lleva su letra de equipo.
+
+Medida (ciudad grande, 3 semillas, 3 veranos): colegios con equipo tras el verano 3 (de 5): benjamín 4,3, alevín 4,3, infantil 3,0, cadete 3,3, juvenil 3,3; cierres de colegio 29 (antes 49–56); rechazos de puesto 4,2 %; equipos con algún grupo vacío, 0. Con 3 semillas la variación entre ejecuciones es grande (véase la entrada del #103).
+
+## 08/11/2026 — Los equipos se fijan para toda la temporada (decisión del usuario) y la bajada de los colegios era azar
+
+- **Equipos fijos:** el A, el B, el C y el D se calculaban cada semana con lo que vale cada jugador. Ahora, al acabar la reorganización de verano, cada jugador guarda la letra de su equipo (`Npc.letra`, `fijarEquipos`) y `equiposDelClub` devuelve esas letras durante el curso aunque cambie lo que vale cada uno. Se reorganizan en verano (con los ascensos ya decididos) y, durante el curso, solo cambiaría por un ascenso decidido (hoy los ascensos se deciden en verano). La reorganización de verano calcula de nuevo (`recalcular`). Quien no cabe en ningún equipo por los cupos de puestos no lleva letra (en torno al 4 %: sobran, como antes). Test (`tests/equipos-fijos.test.ts`): tras diez semanas de entrenamiento del mismo curso, con lo que vale cada uno cambiado en más de 100 jugadores, nadie cambia de equipo, y repartir de nuevo sin la letra sí movería a alguien. Así tampoco reaparecen grupos vacíos a mitad de temporada.
+- **Colegios, 10 semillas (3 veranos):** la bajada del #101 era azar. Colegios con equipo tras el verano 3 (de 5), antes del puesto favorito (#98) → después (#101): benjamín 4,0 → 4,1; alevín 3,7 → 3,5; infantil 2,1 → 2,0; cadete 2,9 → 2,8; juvenil 4,6 → 4,4. Cierres de colegio 130 → 138. Con 3 semillas el benjamín había salido de 4,7 a 3,3. Lo que sí cambia es el rechazo de puestos: del 10,9 % de las ofertas al 4,4 %. No se toca nada; se revisa con el resto de los colegios.
+
 ## 08/11/2026 — Hecho: refactor de la lógica de equipos, grupo vacío cubierto y puesto favorito que se forma con los años
 
 - **Refactor (sin cambiar nada):** la lógica de equipos salió de `modules/npcs/src/index.ts` (de ~2.800 a ~1.500 líneas) a `plaza.ts`, `plantillas.ts`, `fichajes.ts` y `draft.ts`. `npm run huella -- 120` idéntica antes y después. Como los bots no juegan al fútbol, la huella incluye ahora también el mundo de una partida con fútbol (ciudad de prueba, 2 semillas, tres veranos): también idéntica. Va en su propio commit.

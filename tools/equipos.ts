@@ -118,6 +118,10 @@ for (const k of FACTORES) {
   console.log(`| Momento | ${CATEGORIAS.join(' | ')} |`);
   console.log(`|---|${CATEGORIAS.map(() => '---').join('|')}|`);
   momentos.forEach((m, v) => console.log(`| ${v === 0 ? 'al crear' : `tras el verano ${v}`} | ${CATEGORIAS.map((c) => `${f(media(m.sinPorCategoria[c].futbol))} / ${f(media(m.sinPorCategoria[c].general))}`).join(' | ')} |`));
+  console.log('\nEquipos y futbolistas por categoría, en toda la ciudad (equipos = suma de los equipos de todos los clubes y colegios; media de las semillas):');
+  console.log(`| Momento | ${CATEGORIAS.map((c) => `${c}: equipos / futbolistas`).join(' | ')} |`);
+  console.log(`|---|${CATEGORIAS.map(() => '---').join('|')}|`);
+  momentos.forEach((m, v) => console.log(`| ${v === 0 ? 'al crear' : `tras el verano ${v}`} | ${CATEGORIAS.map((c) => `${f(Object.values(m.porClub).reduce((t, cats) => t + media(cats[c].k), 0))} / ${f(Object.values(m.porClub).reduce((t, cats) => t + media(cats[c].n), 0))}`).join(' | ')} |`));
   for (const v of [0, VERANOS]) {
     const m = momentos[v];
     console.log(`\nEquipos (k) · jugadores por club y categoría, ${v === 0 ? 'al crear' : `tras el verano ${v}`} (media de las semillas; k = 0 si no hay equipo):`);
