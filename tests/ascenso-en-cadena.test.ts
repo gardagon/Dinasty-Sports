@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { PAIS_CIUDAD_DE_PRUEBA, registrarPais } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
-import { DIAGNOSTICO, completarEquipos, edadDeJuego, edadNpc, fichajesDeVerano, sinDeporte, valoracionDe, type MercadoDeFichajes, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { DIAGNOSTICO, completarEquipos, cubrirGruposVacios, edadDeJuego, edadNpc, fichajesDeVerano, sinDeporte, valoracionDe, type MercadoDeFichajes, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 registrarPais(PAIS_CIUDAD_DE_PRUEBA);
@@ -73,7 +73,7 @@ describe('completar antes de cerrar: el ascenso en cadena', () => {
   const CLUB = 'club_mediano';
 
   /** Una estrella: vale 99 en todos los puestos (con el puesto que se le da). */
-  const estrella = (n: Npc, puesto: string): Npc => ({ ...n, puesto: { futbol: puesto }, puestoFavorito: { futbol: puesto }, vp: { futbol: { valor: 99, puestos: Object.fromEntries(pob().puestos!.puestos.map((p) => [p.id, 99])) } } });
+  const estrella = (n: Npc, puesto: string): Npc => ({ ...n, puesto: { futbol: puesto }, vp: { futbol: { valor: 99, puestos: Object.fromEntries(pob().puestos!.puestos.map((p) => [p.id, 99])) } } });
 
   /**
    * El club mediano con `infantiles` jugadores de infantil (el resto, a la bolsa, que no quiere jugar), un solo equipo, `alevines` de alevín (traídos de otros clubes si hace falta, de 14 a 18 sin estrellas)
@@ -95,6 +95,8 @@ describe('completar antes de cerrar: el ascenso en cadena', () => {
     // Nadie de la bolsa quiere jugar: así solo cuenta el ascenso.
     for (const [id, n] of lista) if (n.genetica && n.deporte === undefined) lista.set(id, { ...n, rasgos: n.rasgos && { ...n.rasgos, intereses: {} }, dejado: undefined, apartado: undefined });
     expect(alevinesDelClub()).toHaveLength(alevines);
+    // Hacen falta `estrellas` de segundo año: si el club tiene menos, algunos de primer año son un año mayores.
+    for (const n of alevinesDelClub().filter((x) => edadNpc(x, 0) === cat('alevin').edadMin).slice(0, Math.max(0, estrellas - alevinesDelClub().filter((x) => edadNpc(x, 0) === cat('alevin').edadMax).length))) lista.set(n.id, { ...n, nacimiento: (n.nacimiento ?? 0) - 365 });
     const segundoAnio = alevinesDelClub().filter((n) => edadNpc(n, 0) === cat('alevin').edadMax);
     const puestos = ['GK', 'CB', 'CM', 'ST', 'LB'];
     const ids = segundoAnio.slice(0, estrellas).map((n, i) => {
@@ -146,5 +148,26 @@ describe('completar antes de cerrar: el ascenso en cadena', () => {
     const n = m.lista.get(ids.find((id) => m.lista.get(id)!.adelanto)!)!;
     expect(edadDeJuego(n, 0)).toBe((edadNpc(n, 0) ?? 0) + 1);
     expect(edadDeJuego(n, 0)).toBe(cat('infantil').edadMin);
+  });
+});
+
+describe('un grupo de puestos vacío lo cubre el que mejor se adapte de los no titulares', () => {
+  it('un equipo sin portero: uno de los suplentes pasa a la portería (y el equipo sigue con sus jugadores)', () => {
+    const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const s = g.moduleState<NpcsState>('npcs') as NpcsState;
+    const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
+    const cat = pob.categorias!.find((c) => c.id === 'infantil')!;
+    const edades = [12, 13];
+    const lista = new Map(s.npcs.map((n) => [n.id, n]));
+    const del = () => [...lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === 'club_mediano' && (edadDeJuego(n, 0) ?? -1) >= cat.edadMin && (edadDeJuego(n, 0) ?? -1) <= cat.edadMax);
+    // Nadie del club juega de portero: los porteros pasan a central.
+    for (const n of del().filter((x) => x.puesto?.futbol === 'GK')) lista.set(n.id, { ...n, puesto: { futbol: 'CB' } });
+    const m: MercadoDeFichajes = { lista, pobs: [pob], dia: 0, val: valoracionDe(REND), reservas: new Map() };
+    const antes = del().length;
+    expect(del().some((n) => n.puesto?.futbol === 'GK')).toBe(false);
+    const cambios = cubrirGruposVacios(m, pob, 'infantil', edades);
+    expect(cambios).toBeGreaterThan(0);
+    expect(del().some((n) => n.puesto?.futbol === 'GK')).toBe(true);
+    expect(del()).toHaveLength(antes);
   });
 });

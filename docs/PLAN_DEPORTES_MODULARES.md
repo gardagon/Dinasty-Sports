@@ -145,7 +145,7 @@ Lo que se ha hecho para el fútbol (formar los equipos con el «draft», la regl
   - cómo vale cada jugador en cada puesto (una función del deporte sobre el lector de persona);
   - los clubes de la zona (con su tamaño y su atractivo) y las sesiones por semana;
   - las categorías y la temporada, como ya hacía.
-- **Pendiente:** el fichero principal de `modules/npcs` mezcla las personas con los clubes y las plantillas (unas 2.800 líneas). Hay que sacar la lógica de equipos a sus propios ficheros dentro de `modules/npcs` (por ejemplo, «draft», «plaza», «fichajes» y «plantillas»), con la huella idéntica antes y después. No hace falta un deporte de equipo de prueba: cuando llegue el segundo deporte de equipo, se comprobará con él.
+- **Hecho (08/11):** la lógica de equipos salió del fichero principal de `modules/npcs` a sus propios ficheros: `plaza.ts` (regla de plaza y valores por puesto), `plantillas.ts` (quién juega en cada equipo, reclutamiento y equipos A–D), `fichajes.ts` (fichajes de verano, desplazados y recolocación) y `draft.ts` (el «draft», completar o cerrar equipos y el cambio de curso). `index.ts` pasó de unas 2.800 a unas 1.500 líneas y los reexporta, así que la API del módulo no cambia. `npm run huella -- 120` idéntica antes y después, también la del mundo del fútbol (que se añadió a la huella porque los bots no juegan al fútbol). No hace falta un deporte de equipo de prueba: cuando llegue el segundo deporte de equipo, se comprobará con él.
 
 ## 8. Las fases
 

@@ -3,7 +3,7 @@ import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
-import { colegioDeNinoPublico as colegioDeNino, edadDeJuego, edadNpc, equiposDelClub, favoritoDe, ofertaAlCandidato, piernaDe, valoracionDe, valoresPorPuestoDe, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { colegioDeNinoPublico as colegioDeNino, edadDeJuego, edadNpc, equiposDelClub, ofertaAlCandidato, piernaDe, valoracionDe, valoresPorPuestoDe, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { repartirEnEquipos, suplentesDe, type MiembroDeClub } from '../modules/npcs/src/equipos';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
@@ -185,7 +185,8 @@ describe('los equipos de los clubes en la partida', () => {
       if (!c) continue;
       const valores = valoresPorPuestoDe(n, pob(), val, dia);
       if (!valores) continue;
-      const favorito = favoritoDe(n, pob(), val, dia);
+      // El entrenador ofrece el puesto en que mejor ve al niño (donde más vale).
+      const favorito = Object.entries(valores).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0][0];
       for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria && (x.categorias ?? [c.id]).includes(c.id) && (x.colegio === undefined || colegioDeNino(n) === x.colegio))) {
         const jugadores = equiposDelClub(lista, pob(), e, c, dia, val).miembros.map((x) => x.n);
         // Con una mala prueba (×0,75 de lo que vale) todavía pasaría: el azar del día no cuenta como hueco guardado.

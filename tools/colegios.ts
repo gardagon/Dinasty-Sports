@@ -10,13 +10,15 @@
 import { PAIS_CIUDAD_GRANDE, cuposPorGrupo, grupoDePuesto, registrarPais } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol } from '@ds/mod-futbol';
-import { DIAGNOSTICO, edadDeJuego, equiposDelClub, valoracionDe, type NpcsState } from '@ds/mod-npcs';
+import { futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
+import { DIAGNOSTICO, edadDeJuego, edadNpc, equiposDelClub, preferenciaDe, valoracionDe, type NpcsState } from '@ds/mod-npcs';
 
 const SEMILLAS = Number(process.argv[2] ?? 3);
 const VERANOS = Number(process.argv[3] ?? 3);
 const CATEGORIAS = ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
 registrarPais(PAIS_CIUDAD_GRANDE);
+/** Lo que vale cada niño en el fútbol y en cada puesto (lo mismo que usa el juego). */
+const REND = new Map([['futbol', Object.assign((p: Parameters<typeof rendimientoDeFutbol>[0]) => rendimientoDeFutbol(p), { puestos: rendimientoPorPuestos })]]);
 
 const f1 = (x: number): string => x.toFixed(1);
 const media = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
@@ -38,6 +40,8 @@ const cierres: { seed: number; verano: number; club: string; cat: string; jugado
 const siguiente: { cerrado: boolean; tamano: number; suben: number }[] = [];
 const descomp = { 'colegios · nuevos': nuevoDescomp(), 'colegios · heredados': nuevoDescomp(), 'clubes · nuevos': nuevoDescomp(), 'clubes · heredados': nuevoDescomp() };
 const probar = { intentos: 0, entran: 0, sinEquipoPorProbar: 0, porVerano: [] as number[][] };
+const ofertasPorCategoria: Record<string, { total: number; rechazadas: number }> = {};
+const preferencias: Record<number, { n: number; sin: number; zona: number; puesto: number }> = {};
 const ofertas = { total: 0, rechazadas: 0, suyas: 0, suyasRechazadas: 0, ultima: 0, ultimaRechazadas: 0 };
 const ascensos = { colegios: 0, clubes: 0 };
 const cambios = { colegio: { equipos: 0, voluntarios: 0 }, club: { equipos: 0, voluntarios: 0 } };
@@ -73,6 +77,9 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
     DIAGNOSTICO.alOfertar = (d) => {
       // Cada niño cuenta una vez por club (un mismo niño puede mirar varias veces el mismo club al buscar equipo).
       ofertas.total++;
+      const cat = catDe(previa.pob, previa.fichas.get(d.id)?.edad ?? -1) ?? 'otra';
+      (ofertasPorCategoria[cat] ??= { total: 0, rechazadas: 0 }).total++;
+      if (!d.aceptada) ofertasPorCategoria[cat].rechazadas++;
       if (!d.aceptada) ofertas.rechazadas++;
       if (d.esSuyo) { ofertas.suyas++; if (!d.aceptada) ofertas.suyasRechazadas++; }
       if (d.ultimaOpcion) { ofertas.ultima++; if (!d.aceptada) ofertas.ultimaRechazadas++; }
@@ -82,6 +89,18 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
     DIAGNOSTICO.alCerrar = DIAGNOSTICO.alProbar = DIAGNOSTICO.alDesplazar = DIAGNOSTICO.alOfertar = undefined;
     cierres.push(...cerrados);
     const ahora = tomar(v);
+    {
+      const val0 = valoracionDe(REND);
+      for (const n of ahora.s.npcs) {
+        if (n.deporte !== 'futbol' || !n.genetica) continue;
+        const edad = edadNpc(n, ahora.dia) ?? -1;
+        if (edad < 8 || edad > 18) continue;
+        const p = preferenciaDe(n, ahora.pob, val0, ahora.dia);
+        const t = (preferencias[edad] ??= { n: 0, sin: 0, zona: 0, puesto: 0 });
+        t.n++;
+        if (p.puesto) t.puesto++; else if (p.zona) t.zona++; else t.sin++;
+      }
+    }
     const catMin = (id: string): number => ahora.pob.categorias!.find((c) => c.id === id)!.edadMin;
     // Quién fue a probar y si se quedó sin equipo por ello (los que probaron, no los cogieron y no tienen equipo, sin que otro mejor les quitara la plaza ni cerrara su equipo).
     let intentos = 0, sin = 0;
@@ -137,7 +156,7 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
     // Equipos que se cierran: la categoría de arriba al verano siguiente (de los colegios).
     for (const d of cerrados.filter((x) => x.club.startsWith('colegio'))) pendientes.push({ seed, v, club: d.club, cat: d.cat });
     // Descompensados por puestos, equipo a equipo (A a D) con los equipos que reparte el juego y el cupo de cada uno; nuevos si el club no tenía ese equipo el curso pasado.
-    const val = valoracionDe(new Map());
+    const val = valoracionDe(REND);
     const porId = new Map(ahora.s.npcs.map((n) => [n.id, n]));
     for (const e of ahora.pob.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of CATEGORIAS) {
@@ -215,6 +234,10 @@ console.log(`Cambian de club por su cuenta (probaron y los cogieron), por equipo
 console.log(`Ascienden a la categoría de arriba (juegan un año por encima): ${ascensos.colegios} jugadores de colegio y ${ascensos.clubes} de clubes (en ${SEMILLAS} semillas y ${VERANOS} veranos).\n`);
 console.log('### Puestos rechazados\n');
 console.log(`Ofertas de puesto: ${ofertas.total}; rechazadas ${ofertas.rechazadas} (${f1((100 * ofertas.rechazadas) / Math.max(1, ofertas.total))} %). En su puesto o grupo: ${ofertas.suyas} (rechazadas ${ofertas.suyasRechazadas}). Como última opción (sin equipo): ${ofertas.ultima} (rechazadas ${ofertas.ultimaRechazadas}).\n`);
-console.log('### Descompensados por puestos, equipo a equipo (cupo del juego para el tamaño del equipo)\n');
+console.log('Rechazos de puesto por categoría (de las ofertas de cada niño al buscar equipo): '+Object.entries(ofertasPorCategoria).sort().map(([c, x]) => `${c} ${x.rechazadas} de ${x.total} (${f1((100 * x.rechazadas) / Math.max(1, x.total))} %)`).join(' · ')+'\n');
+console.log('Preferencia de puesto por edad (futbolistas con equipo; sin puesto definido / solo zona / puesto concreto):\n');
+console.log('| Edad | Futbolistas | Sin puesto definido | Con zona | Con puesto concreto |\n|---|---|---|---|---|');
+for (const [edad, t] of Object.entries(preferencias).sort((a, b) => Number(a[0]) - Number(b[0]))) console.log(`| ${edad} | ${t.n} | ${f1((100 * t.sin) / t.n)} % | ${f1((100 * t.zona) / t.n)} % | ${f1((100 * t.puesto) / t.n)} % |`);
+console.log('\n### Descompensados por puestos, equipo a equipo (cupo del juego para el tamaño del equipo)\n');
 console.log('| | Equipos | Todos los grupos en su cupo | Un grupo con ±1 | Con ±2 | Con ±3 o más | Con algún grupo vacío |\n|---|---|---|---|---|---|---|');
 for (const [n, d] of Object.entries(descomp)) console.log(`| ${n} | ${d.total} | ${d.ok} | ${d.mas1} | ${d.mas2} | ${d.mas3} | ${d.vacios} |`);

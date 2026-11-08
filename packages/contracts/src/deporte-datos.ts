@@ -244,11 +244,17 @@ export interface PuestosDeDeporte {
    */
   reparto: readonly { grupo: string; nombre: string; puestos: readonly string[]; jugadores: number }[];
   /**
-   * Los favoritos de los niños (decisión del usuario, 08/11/2026): unos tienen un **puesto favorito concreto** y otros un **grupo** (en el fútbol: portería, defensa, medio o ataque; las bandas, en el medio, y
-   * los extremos, en el ataque), elegido entre los puestos que mejor encajan con sus habilidades. Los de grupo aceptan cualquier puesto de su grupo. `proporcionDePuestoConcreto` es la parte de los niños
-   * con puesto concreto (el resto, con grupo). Sin él, todos tienen un puesto concreto.
+   * El puesto favorito de los niños (decisión del usuario, 08/11/2026): **se forma con los años**. A la edad de inicio, la mayoría no tiene puesto definido (acepta cualquiera), unos tienen un puesto
+   * concreto y otros una **zona** (en el fútbol: portería, defensa, medio o ataque; las bandas, en el medio, y los extremos, en el ataque). Después, según las temporadas que ha jugado y lo que vale en su
+   * puesto, quien no tenía preferencia pasa a preferir una zona y después un puesto. Los de zona aceptan cualquier puesto de su zona. Sin él, nadie tiene preferencia (todos aceptan cualquier puesto).
    */
-  favoritos?: { proporcionDePuestoConcreto: number; grupos: readonly { id: string; nombre: string; puestos: readonly string[] }[] };
+  favoritos?: {
+    grupos: readonly { id: string; nombre: string; puestos: readonly string[] }[];
+    /** A la edad de inicio: la parte sin puesto definido, con puesto concreto y con zona (suman 1). */
+    alEmpezar: { sinPuesto: number; concreto: number; zona: number };
+    /** El ritmo con que se forma: la edad de inicio, la probabilidad por temporada de pasar de sin puesto a zona y de zona a puesto concreto (a un valor de referencia en su puesto; más si vale más, menos si vale menos). */
+    formacion: { edadDeInicio: number; aZonaPorTemporada: number; aPuestoPorTemporada: number; valorDeReferencia: number };
+  };
 }
 
 /** Cuántos jugadores de cada grupo caben en una plantilla de `total` jugadores: el reparto del máximo, en proporción (los que sobran, a los restos mayores). */

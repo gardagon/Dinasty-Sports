@@ -103,7 +103,7 @@ describe('si hay 14 que pueden formar un equipo, se forma (aunque el reparto por
     // 20 alumnos del colegio, interesados y de lateral (el grupo de lateral cabe 3 por equipo de 18): todos sin equipo.
     const alumnos = [...lista.values()].filter((n) => n.genetica && n.deporte === undefined && n.colegio === undefined && n.tipos?.some((t) => t.tipo === 'alumno') && enCat(n) && !n.dejado?.includes('futbol')).slice(0, 20);
     expect(alumnos.length).toBe(20);
-    for (const n of alumnos) lista.set(n.id, { ...n, puestoFavorito: { futbol: 'LB' }, rasgos: n.rasgos && { ...n.rasgos, intereses: { futbol: 3 }, caracter: { ...n.rasgos.caracter, disciplina: -50, sacrificio: -50 } }, apartado: undefined });
+    for (const n of alumnos) lista.set(n.id, { ...n, vp: { futbol: { valor: 60, puestos: Object.fromEntries(PUESTOS.puestos.map((q) => [q.id, q.id === 'LB' ? 70 : 30])) } }, rasgos: n.rasgos && { ...n.rasgos, intereses: { futbol: 3 }, caracter: { ...n.rasgos.caracter, disciplina: -50, sacrificio: -50 } }, apartado: undefined });
     // Los demás interesados, fuera de la bolsa (no quieren jugar): solo cuentan estos 20.
     for (const [id, n] of lista) if (n.genetica && n.deporte === undefined && !alumnos.some((a) => a.id === id)) lista.set(id, { ...n, rasgos: n.rasgos && { ...n.rasgos, intereses: {} } });
     const m: MercadoDeFichajes = { lista, pobs: [pob], dia: 0, val: valoracionDe(REND), reservas: new Map() };
