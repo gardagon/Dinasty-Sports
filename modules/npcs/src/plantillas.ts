@@ -2,10 +2,10 @@
  * Las plantillas: quién juega en cada equipo, el reclutamiento y los equipos A a D.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
+import { grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
 import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
-import { ofertaDePuesto } from './puestos';
+import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
 import { type Rendimientos } from './semana';
 
 /**
@@ -424,3 +424,59 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
   };
 }
 
+
+
+/**
+ * **Un grupo de puestos vacío en un equipo** (por ejemplo, sin portero) **lo cubre el que mejor se adapte de los no titulares**, aunque no le guste (decisión del usuario, 08/11/2026): así no se debilitan dos puestos en
+ * vez de uno. Es una última opción para él: casi siempre acepta (`aceptaElPuesto` con `ultimaOpcion`); si no, se prueba con el siguiente. Solo cambia de puesto dentro de su equipo, y de un grupo en que quedan
+ * más de uno. Devuelve cuántos cambian de puesto. El personaje no se mueve (se le propone el cambio al recolocar).
+ */
+export function cubrirGruposVacios(m: MercadoDeFichajes, pob: PoblacionGuardada, catId: string, edades: readonly number[]): number {
+  const p = pob.puestos;
+  if (!p || !pob.equipos.some((e) => e.plantillaPorCategoria)) return 0;
+  let cambios = 0;
+  for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria && categoriasDelEquipo(pob, x).some((c) => c.id === catId))) {
+    for (let vuelta = 0; vuelta < 4; vuelta++) {
+      const { equipos, suplentes, miembros } = equiposDelClub(m.lista, pob, e, { id: catId, edades }, m.dia, m.val);
+      const porId = new Map(miembros.map((x) => [x.n.id, x]));
+      const noTitulares = new Set(suplentes);
+      let cambio = false;
+      for (const letra of ['A', 'B', 'C', 'D'] as const) {
+        const ids = equipos[letra];
+        if (!ids.length) continue;
+        const cupos = cuposPorGrupo(p, ids.length);
+        const cuenta: Record<string, number> = {};
+        for (const id of ids) {
+          const g = grupoDePuesto(p, porId.get(id)!.m.puesto) ?? '?';
+          cuenta[g] = (cuenta[g] ?? 0) + 1;
+        }
+        for (const g of p.reparto.filter((x) => (cupos[x.grupo] ?? 0) > 0 && (cuenta[x.grupo] ?? 0) === 0)) {
+          // Los candidatos: no titulares de este equipo, de un grupo con más de uno, por lo que valen en el mejor puesto del grupo vacío (el que mejor se adapte).
+          const candidatos = ids
+            .filter((id) => noTitulares.has(id) && !id.startsWith('personaje@') && (cuenta[grupoDePuesto(p, porId.get(id)!.m.puesto) ?? '?'] ?? 0) > 1)
+            .flatMap((id) => {
+              const n = porId.get(id)!.n;
+              const valores = valoresPorPuestoDe(n, pob, m.val, m.dia);
+              if (!valores) return [];
+              const puesto = puestoDondeMasVale(valores, g.puestos);
+              return puesto ? [{ n, puesto, valor: valores[puesto] }] : [];
+            })
+            .sort((a, b) => b.valor - a.valor || (a.n.id < b.n.id ? -1 : 1))
+            .slice(0, 3);
+          for (const c of candidatos) {
+            const favorito = favoritoDe(c.n, pob, m.val, m.dia);
+            if (!aceptaElPuesto(c.n, pob, e.club, favorito, { puesto: c.puesto, estado: 'libre', valor: c.valor, titular: true }, true)) continue;
+            m.lista.set(c.n.id, { ...c.n, puesto: { ...(c.n.puesto ?? {}), [pob.deporte]: c.puesto } });
+            cambios++;
+            cambio = true;
+            break;
+          }
+          if (cambio) break;
+        }
+        if (cambio) break;
+      }
+      if (!cambio) break;
+    }
+  }
+  return cambios;
+}

@@ -20,7 +20,7 @@ import { type Rendimientos } from './semana';
 
 import { EquipoGuardado, Npc, PoblacionGuardada, delColegio, edadDeJuego, edadNpc, hermanos, npcs, nuevoEntrenador, registroDe, entrenadoresDeClubes } from './index';
 import { colocarDesplazados, fichajesDeVerano, intentarEntrar } from './fichajes';
-import { Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { cubrirGruposVacios, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { Valoracion, favoritoDe, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** ¿Forma sus equipos el «draft»? Los deportes con equipos por categoría y puestos (el fútbol); el atletismo y los de prueba, no. */
@@ -67,7 +67,10 @@ export function draftDeEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba: b
     const pob: PoblacionGuardada = { ...pob0, equipos: pob0.equipos.map((e) => ({ ...e, ...(o.reiniciar && e.plantillaPorCategoria ? { equiposPorCategoria: undefined } : {}) })) };
     const categorias = new Map<string, CategoriaDef>();
     for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
-    for (const [catId, cat] of [...categorias].sort((a, b) => a[1].edadMin - b[1].edadMin)) draftDeUnaCategoria(m, pob, cat, catId, rng, o);
+    for (const [catId, cat] of [...categorias].sort((a, b) => a[1].edadMin - b[1].edadMin)) {
+      draftDeUnaCategoria(m, pob, cat, catId, rng, o);
+      cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i));
+    }
     pobsNuevas.push(pob);
     m.pobs = [...pobsNuevas, ...m.pobs.slice(pobsNuevas.length)];
     nuevos.push(...entrenadoresDeLosEquipos(m, pob, rng));
@@ -287,7 +290,10 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
     const categorias = new Map<string, CategoriaDef>();
     for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
     // De la categoría mayor a la menor: así, para salvar un equipo, el club puede subir de la categoría de abajo a quien sería titular arriba (que a su vez se completa después).
-    for (const [catId, cat] of [...categorias].sort((a, b) => b[1].edadMin - a[1].edadMin)) cerrados.push(...completarUnaCategoria(m, pob, cat, catId, o));
+    for (const [catId, cat] of [...categorias].sort((a, b) => b[1].edadMin - a[1].edadMin)) {
+      cerrados.push(...completarUnaCategoria(m, pob, cat, catId, o));
+      cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i));
+    }
     pobsNuevas.push(pob);
     m.pobs = [...pobsNuevas, ...m.pobs.slice(pobsNuevas.length)];
     nuevos.push(...entrenadoresDeLosEquipos(m, pob, rng));
@@ -295,6 +301,10 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
   m.pobs = pobsNuevas;
   // Los jugadores de un equipo que se cierra buscan otro equipo como cualquier desplazado.
   colocarDesplazados(m, cerrados);
+  // Los que buscan equipo cambian las plantillas: se vuelve a mirar que ningún equipo se quede con un grupo de puestos vacío.
+  for (const pob of m.pobs) {
+    for (const c of (pob.categorias ?? []).filter((x) => pob.equipos.some((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((u) => u.id === x.id)))) cubrirGruposVacios(m, pob, c.id, Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i));
+  }
   return nuevos;
 }
 
