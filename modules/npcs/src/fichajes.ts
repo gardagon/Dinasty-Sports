@@ -295,7 +295,7 @@ export function fichajesDeVerano(m: MercadoDeFichajes, semilla: number, curso: n
           .sort((a, b) => valorEn(a, pob, m) - valorEn(b, pob, m) || (a.id < b.id ? -1 : 1));
         if (!delEquipo.length) continue;
         const suplentes = conDraft(pob, m.val) && origen.plantillaPorCategoria && origen.colegio === undefined
-          ? new Set(equiposDelClub(m.lista, pob, origen, { id: u.id, edades: u.edades }, m.dia, m.val).suplentes)
+          ? new Set(equiposDelClub(m.lista, pob, origen, { id: u.id, edades: u.edades }, m.dia, m.val, [], true).suplentes)
           : new Set<string>();
         for (const [puesto, n0] of delEquipo.entries()) {
           // Cada uno decide por su cuenta (sorteo estable suyo): más fácil el ambicioso, el de padres deportistas y el que mejor juega en su equipo (el último de la lista, el que más vale).

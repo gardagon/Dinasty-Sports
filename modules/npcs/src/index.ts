@@ -65,6 +65,8 @@ export interface Npc {
   puesto?: Record<string, string>;
   /** Las temporadas que lleva jugando en un equipo de cada deporte (con ellas y lo que vale en su puesto se forma su puesto favorito: `preferenciaDe`). */
   temporadas?: Record<string, number>;
+  /** El equipo (A, B, C o D) de su club y su categoría **durante toda la temporada**, por deporte: se fija en verano (`fijarEquipos`) y no cambia en el curso (decisión del usuario, 08/11/2026). */
+  letra?: Record<string, 'A' | 'B' | 'C' | 'D'>;
   /** Los deportes en que juega **un año por encima de su edad** (el que sería titular en la categoría de arriba asciende: `completarUnaCategoria`). Un 1 por deporte. */
   adelanto?: Record<string, 1>;
   /**

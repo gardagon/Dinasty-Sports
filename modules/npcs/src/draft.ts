@@ -20,7 +20,7 @@ import { type Rendimientos } from './semana';
 
 import { EquipoGuardado, Npc, PoblacionGuardada, delColegio, edadDeJuego, edadNpc, hermanos, npcs, nuevoEntrenador, registroDe, entrenadoresDeClubes } from './index';
 import { colocarDesplazados, fichajesDeVerano, intentarEntrar } from './fichajes';
-import { cubrirGruposVacios, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { cubrirGruposVacios, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { Valoracion, leGustaElGrupo, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** ¿Forma sus equipos el «draft»? Los deportes con equipos por categoría y puestos (el fútbol); el atletismo y los de prueba, no. */
@@ -73,6 +73,7 @@ export function draftDeEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba: b
     }
     pobsNuevas.push(pob);
     m.pobs = [...pobsNuevas, ...m.pobs.slice(pobsNuevas.length)];
+    fijarEquipos(m, pob);
     nuevos.push(...entrenadoresDeLosEquipos(m, pob, rng));
   }
   m.pobs = pobsNuevas;
@@ -195,7 +196,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
   const ajustar = (e: EquipoGuardado): void => {
     const cx = categoriasDelEquipo(pob, e).find((c) => c.id === catId)!;
     for (let vuelta = 0; vuelta < 3; vuelta++) {
-      liberar(equiposDelClub(m.lista, pob, e, cx, m.dia, m.val).equipos.sobran);
+      liberar(equiposDelClub(m.lista, pob, e, cx, m.dia, m.val, [], true).equipos.sobran);
       // Con los que quedan, tantos equipos como lleguen al mínimo (con 14 basta).
       const montables = Math.max(1, Math.floor(miembros(e).length / minimoDe(e)));
       if (montables >= kDe(e)) break;
@@ -295,6 +296,7 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
     }
     pobsNuevas.push(pob);
     m.pobs = [...pobsNuevas, ...m.pobs.slice(pobsNuevas.length)];
+    fijarEquipos(m, pob);
     nuevos.push(...entrenadoresDeLosEquipos(m, pob, rng));
   }
   m.pobs = pobsNuevas;
@@ -304,6 +306,8 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
   for (const pob of m.pobs) {
     for (const c of (pob.categorias ?? []).filter((x) => pob.equipos.some((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((u) => u.id === x.id)))) cubrirGruposVacios(m, pob, c.id, Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i));
   }
+  // Y se fijan los equipos de la temporada con lo que queda (los ascensos y los que buscaron equipo ya están hechos).
+  for (const pob of m.pobs) fijarEquipos(m, pob);
   return nuevos;
 }
 
