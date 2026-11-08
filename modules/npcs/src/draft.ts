@@ -20,7 +20,7 @@ import { type Rendimientos } from './semana';
 
 import { EquipoGuardado, Npc, PoblacionGuardada, delColegio, edadDeJuego, edadNpc, hermanos, npcs, nuevoEntrenador, registroDe, entrenadoresDeClubes } from './index';
 import { colocarDesplazados, fichajesDeVerano, intentarEntrar } from './fichajes';
-import { cubrirGruposVacios, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { acomodarSobrantes, cubrirGruposVacios, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { Valoracion, leGustaElGrupo, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** ¿Forma sus equipos el «draft»? Los deportes con equipos por categoría y puestos (el fútbol); el atletismo y los de prueba, no. */
@@ -77,7 +77,23 @@ export function draftDeEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba: b
     nuevos.push(...entrenadoresDeLosEquipos(m, pob, rng));
   }
   m.pobs = pobsNuevas;
+  sinSobrantes(m);
   return nuevos;
+}
+
+/**
+ * Tras el reparto en equipos, nadie queda en un club sin equipo (`acomodarSobrantes`): el entrenador le ofrece otro puesto donde quepa y, si no cabe, deja el club y busca otro como cualquier desplazado (al
+ * que cambia de club le pasa lo mismo en el nuevo, y así hasta tres rondas; en la última, el que no cabe queda apartado ese curso). Al acabar se fijan los equipos de la temporada.
+ */
+export function sinSobrantes(m: MercadoDeFichajes): void {
+  for (let ronda = 0; ronda < 3; ronda++) {
+    const fuera = m.pobs.flatMap((pob) => acomodarSobrantes(m, pob, ronda === 2));
+    if (fuera.length) colocarDesplazados(m, fuera);
+    for (const pob of m.pobs) {
+      for (const c of (pob.categorias ?? []).filter((x) => pob.equipos.some((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((u) => u.id === x.id)))) cubrirGruposVacios(m, pob, c.id, Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i));
+    }
+  }
+  for (const pob of m.pobs) fijarEquipos(m, pob);
 }
 
 
@@ -306,8 +322,8 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
   for (const pob of m.pobs) {
     for (const c of (pob.categorias ?? []).filter((x) => pob.equipos.some((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((u) => u.id === x.id)))) cubrirGruposVacios(m, pob, c.id, Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i));
   }
-  // Y se fijan los equipos de la temporada con lo que queda (los ascensos y los que buscaron equipo ya están hechos).
-  for (const pob of m.pobs) fijarEquipos(m, pob);
+  // Nadie queda en un club sin equipo, y se fijan los equipos de la temporada con lo que queda (los ascensos y los que buscaron equipo ya están hechos).
+  sinSobrantes(m);
   return nuevos;
 }
 

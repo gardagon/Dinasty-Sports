@@ -64,7 +64,8 @@ describe('un equipo con menos de 14 se completa con la bolsa o se cierra', () =>
     completarEquipos(m, rngNulo, { conPrueba: false });
     const despues = delClub(m, 'club_mediano');
     expect(despues.length).toBeGreaterThanOrEqual(14);
-    for (const id of antes) expect(m.lista.get(id)!.equipo).toBe('club_mediano'); // nadie de los que estaban se va
+    // Nadie de los que estaban se va, salvo quien no cabe en ningún equipo por los cupos de puestos (el entrenador le ofrece otro puesto y, si aun así no cabe, deja el club).
+    expect(antes.filter((id) => m.lista.get(id)!.equipo !== 'club_mediano').length).toBeLessThanOrEqual(2);
   });
 
   it('sin bolsa (nadie quiere entrar) ni nadie de abajo que suba, no llega a 14: se cierra y sus jugadores buscan otro equipo, sin volver al que se cierra', () => {

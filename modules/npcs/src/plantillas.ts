@@ -2,7 +2,7 @@
  * Las plantillas: quién juega en cada equipo, el reclutamiento y los equipos A a D.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
+import { parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
 import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
@@ -506,4 +506,77 @@ export function cubrirGruposVacios(m: MercadoDeFichajes, pob: PoblacionGuardada,
     }
   }
   return cambios;
+}
+
+
+/**
+ * **Quien está en un club está en uno de sus equipos** (decisión del usuario, 08/11/2026): tras el reparto de verano no puede quedar nadie en un club sin equipo (por los cupos de puestos, un jugador puede no caber
+ * en ninguno de los equipos de su club y categoría). El entrenador le ofrece otro puesto donde quepa (los de los grupos con sitio, de más a menos parecido a su puesto; fuera de lo suyo casi siempre acepta, y
+ * más si es su última opción) y, si aun así no cabe en ningún equipo, **deja el club y busca otro como cualquier desplazado** (se devuelve). Con `definitivo` (la última ronda) el que no cabe queda apartado ese
+ * curso en vez de buscar. El personaje no se mueve.
+ */
+export function acomodarSobrantes(m: MercadoDeFichajes, pob: PoblacionGuardada, definitivo: boolean): { id: string; origen: string; no?: string }[] {
+  const p = pob.puestos;
+  const fuera: { id: string; origen: string; no?: string }[] = [];
+  if (!p) return fuera;
+  for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
+    for (const c of categoriasDelEquipo(pob, e)) {
+      const k = e.equiposPorCategoria?.[c.id] ?? 1;
+      const cupos = cuposPorGrupo(p, e.plantillaPorCategoria!.max);
+      for (let vuelta = 0; vuelta < 6; vuelta++) {
+        const r = equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true);
+        if (!r.equipos.sobran.length) break;
+        const cuenta: Record<string, number> = {};
+        for (const x of r.miembros) {
+          const g = grupoDePuesto(p, x.m.puesto) ?? '?';
+          cuenta[g] = (cuenta[g] ?? 0) + 1;
+        }
+        let cambio = false;
+        for (const x of r.miembros.filter((y) => r.equipos.sobran.includes(y.n.id) && !y.n.id.startsWith('personaje@')).sort((a, b) => b.m.valor - a.m.valor || (a.n.id < b.n.id ? -1 : 1))) {
+          const valores = valoresPorPuestoDe(x.n, pob, m.val, m.dia);
+          if (!valores) continue;
+          const ofertas = p.reparto
+            .filter((g) => (cuenta[g.grupo] ?? 0) < (cupos[g.grupo] ?? 0) * k)
+            .map((g) => puestoDondeMasVale(valores, g.puestos))
+            .filter((q) => !!q)
+            .sort((a, b) => parecidoDePuestos(p, x.m.puesto, b) - parecidoDePuestos(p, x.m.puesto, a) || valores[b] - valores[a] || (a < b ? -1 : 1));
+          for (const puesto of ofertas) {
+            if (!aceptaElPuesto(x.n, pob, e.club, m.val, m.dia, { puesto, estado: 'libre', valor: valores[puesto], titular: true }, true)) continue;
+            m.lista.set(x.n.id, { ...x.n, puesto: { ...(x.n.puesto ?? {}), [pob.deporte]: puesto } });
+            cambio = true;
+            break;
+          }
+          if (cambio) break;
+        }
+        if (!cambio) break;
+      }
+      // Los que siguen sin caber en ningún equipo dejan el club.
+      for (const id of equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true).equipos.sobran) {
+        const n = m.lista.get(id);
+        if (!n || id.startsWith('personaje@')) continue;
+        const libre = sinDeporte(n, pob, false);
+        m.lista.set(id, definitivo ? { ...libre, apartado: [...new Set([...(libre.apartado ?? []), pob.deporte])] } : libre);
+        if (!definitivo) fuera.push({ id, origen: pob.deporte, no: e.club });
+      }
+      // Con menos jugadores, el club puede quedarse con equipos de menos del mínimo: se cierran los que no llegan (y, si ni uno llega, el club no tiene equipo en la categoría y sus jugadores buscan otro).
+      const quedan = equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true).miembros;
+      const minimo = e.plantillaPorCategoria!.min;
+      if (quedan.length < minimo * k) {
+        const montables = Math.floor(quedan.length / minimo);
+        e.equiposPorCategoria = { ...e.equiposPorCategoria, [c.id]: Math.max(1, montables) };
+        if (montables <= 1) delete e.equiposPorCategoria[c.id];
+        if (montables < 1) {
+          for (const x of quedan.filter((y) => !y.n.id.startsWith('personaje@'))) {
+            const libre = sinDeporte(x.n, pob, false);
+            m.lista.set(x.n.id, definitivo ? { ...libre, apartado: [...new Set([...(libre.apartado ?? []), pob.deporte])] } : libre);
+            if (!definitivo) fuera.push({ id: x.n.id, origen: pob.deporte, no: e.club });
+          }
+        } else {
+          // Con un equipo menos, lo que no cabe en los que quedan sobra: se repite el reparto en la siguiente ronda de `sinSobrantes`.
+          fuera.push(...acomodarSobrantes({ ...m, pobs: [pob] }, pob, definitivo).filter((x) => !fuera.some((y) => y.id === x.id)));
+        }
+      }
+    }
+  }
+  return fuera;
 }
