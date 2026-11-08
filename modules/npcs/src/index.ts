@@ -1383,9 +1383,15 @@ function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: Po
     // El entrenador ofrece su puesto y, si no cabe, los parecidos de más a menos (un lateral, de central; un extremo, de delantero); cada oferta la acepta o no según su carácter, y se queda con
     // la primera que acepta. En un equipo nuevo todos serían titulares. Los descartes definitivos solo entran por un hueco: quitarle el sitio a otro solo lo cambia de sitio en la bolsa.
     const ofertas = ofertasAlCandidato(plantel.jugadores, plantel.max, pob, prueba?.valores ?? valores, favorito, m.val, m.dia, piernaDe(n, pob), forzado ?? prueba?.condiciones);
-    const oferta = ofertas.find((o) => !(soloHueco && o.estado === 'por_merito') && aceptaElPuesto(n, pob, e.club, favorito, equipoNuevo ? { ...o, titular: true } : o));
+    const oferta = ofertas.find((o) => {
+      if (soloHueco && o.estado === 'por_merito') return false;
+      const acepta = aceptaElPuesto(n, pob, e.club, favorito, equipoNuevo ? { ...o, titular: true } : o);
+      DIAGNOSTICO.alOfertar?.({ id: n.id, club: e.club, aceptada: acepta, ultimaOpcion: false, esSuyo: o.puesto === favorito });
+      return acepta;
+    });
     if (!oferta) return { entra: false };
     const desplazado = oferta.peor ? m.lista.get(oferta.peor.id) : undefined;
+    if (desplazado) DIAGNOSTICO.alDesplazar?.({ id: desplazado.id, desde: e.club, motivo: 'merito' });
     m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto, favorito));
     if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
     return { entra: true, desplazado };
@@ -1558,6 +1564,7 @@ export function recolocarPropios(m: MercadoDeFichajes): { id: string; origen: st
             sobra--;
             m.lista.set(n.id, sinDeporte(n, pob, false));
             desplazados.push({ id: n.id, origen: pob.deporte });
+            DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: e.club, motivo: 'sobra' });
           }
         }
       }
@@ -1591,6 +1598,7 @@ export function fichajesDeVerano(m: MercadoDeFichajes, semilla: number, curso: n
           const libre = sinDeporte(viejo, pob, false);
           m.lista.set(libre.id, libre);
           const res = intentarEntrar(m, libre, e, pob);
+          DIAGNOSTICO.alProbar?.({ id: viejo.id, desde: viejo.equipo!, hacia: e.club, sentido: 'sube', entra: res.entra });
           if (!res.entra) m.lista.set(viejo.id, viejo); // sin plaza: se queda donde estaba
           else if (res.desplazado) desplazados.push({ id: res.desplazado.id, origen: pob.deporte });
         }
@@ -1607,6 +1615,7 @@ export function fichajesDeVerano(m: MercadoDeFichajes, semilla: number, curso: n
               const libre = sinDeporte(viejo, pob, false);
               m.lista.set(libre.id, libre);
               const res = intentarEntrar(m, libre, e, pob);
+              DIAGNOSTICO.alProbar?.({ id: viejo.id, desde: viejo.equipo!, hacia: e.club, sentido: 'baja', entra: res.entra });
               if (!res.entra) m.lista.set(viejo.id, viejo);
               else if (res.desplazado) desplazados.push({ id: res.desplazado.id, origen: pob.deporte });
             }
@@ -1878,7 +1887,15 @@ function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: 
 }
 
 /** Para medir (`npm run colegios`): se avisa de cada equipo que se cierra por quedar bajo el mínimo, con cuántos jugadores se quedó. No cambia nada del juego. */
-export const DIAGNOSTICO: { alCerrar?: (d: { club: string; categoria: string; jugadores: number; equipos: number; montables: number }) => void } = {};
+export const DIAGNOSTICO: {
+  alCerrar?: (d: { club: string; categoria: string; jugadores: number; equipos: number; montables: number }) => void;
+  /** Un niño va a probar a otro club por su cuenta (`sube`: hacia un club mejor; `baja`: un suplente de un grande hacia uno menor) y si lo aceptan allí (si no, sigue en su equipo). */
+  alProbar?: (d: { id: string; desde: string; hacia: string; sentido: 'sube' | 'baja'; entra: boolean }) => void;
+  /** Un niño se queda sin equipo y tiene que buscar otro: `merito` (otro mejor le quita la plaza), `cierre` (cierra su equipo) o `sobra` (el equipo se pasa de su máximo al recolocar). */
+  alDesplazar?: (d: { id: string; desde: string; motivo: 'merito' | 'cierre' | 'sobra' }) => void;
+  /** Una oferta de puesto de un club a un niño: si la acepta, si era su última opción (sin equipo) y si el puesto era el suyo (su favorito o su grupo). */
+  alOfertar?: (d: { id: string; club: string; aceptada: boolean; ultimaOpcion: boolean; esSuyo: boolean }) => void;
+} = {};
 
 /**
  * **Los años siguientes no hay «draft»** (decisión del usuario, 05/11/2026): cada niño sigue en su club (pasa a la categoría que le toque dentro de él) y solo los que empiezan a jugar o se quedaron
@@ -2001,6 +2018,7 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
         for (const x of [...miembros(e)].filter((x) => !x.id.startsWith('personaje@')).sort((a, b) => valorEn(a, pob, m) - valorEn(b, pob, m) || (a.id < b.id ? -1 : 1)).slice(0, sobran)) {
           m.lista.set(x.id, sinDeporte(x, pob, false));
           cerrados.push({ id: x.id, origen: pob.deporte, no: e.club });
+          DIAGNOSTICO.alDesplazar?.({ id: x.id, desde: e.club, motivo: 'cierre' });
         }
       }
     } else {
@@ -2008,6 +2026,7 @@ function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat
         if (x.id.startsWith('personaje@')) continue;
         m.lista.set(x.id, sinDeporte(x, pob, false));
         cerrados.push({ id: x.id, origen: pob.deporte, no: e.club });
+        DIAGNOSTICO.alDesplazar?.({ id: x.id, desde: e.club, motivo: 'cierre' });
       }
       ponerK(e, 1);
     }
