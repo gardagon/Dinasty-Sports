@@ -2,19 +2,27 @@
 
 Segunda versión (31/10/2026), **con las decisiones del usuario del 31/10 en §0**. No se ha cambiado código. Sustituye al primer análisis del 29/10 (que quedó desfasado al hacerse las fases G a 7 del plan de deportes). Parte de dos documentos del usuario: **`addon_football_v2.json`** (versión 2.1 del addon) y **`desing_stats_personality_system.md`** (diseño de stats, perks y personalidad v0.2, del proyecto original en Godot). Se compara cada cosa con lo que hay en `main` y con `DECISIONES.md`.
 
-## Estado (03/11/2026)
+## Estado (08/11/2026)
 
 | Hecho | PR |
 |---|---|
 | F0: vocabulario común (resultado de equipo, `relaciones` con compañeros y rivales, secciones en la pestaña, liga en la temporada, equipos por categoría) | #56 |
 | F1: módulo de fútbol (29 habilidades, conocimiento, entreno por libre y club del colegio con el kit) | #57 |
-| Sobrecarga contando todas las sesiones de cualquier deporte; liga sin semifinal ni final | #59 |
-| Plantilla por equipo y categoría (de 14 a 18) y ejercicios elegidos por el entrenador; sin plaza reservada para el personaje | #60 |
-| Mismas reglas, P1: capacidades reales de los PNJ y fórmulas de progresión compartidas | #63 |
-| El personaje nace el mismo año que su clase (benjamín de primer año) | #67 |
-| Mismas reglas, P2a-1: habilidades y rutina de los PNJ que juegan, rendimiento sobre el lector de persona, ejercicios iguales para todo el equipo y la semilla en los sorteos de cada niño | #69 |
+| Sobrecarga de todos los deportes; plantillas por equipo; ejercicios del entrenador | #59, #60 |
+| Mismas reglas (P1 y P2): capacidades, habilidades, estado, lesiones, historial y rutina reales de los PNJ; el personaje nace con su clase | #63, #67, #69, #71, #72 |
+| El mundo del fútbol base (`CIUDAD_Y_LIGAS.md`): ciudad como dato (también la grande), clubes por tamaño y colegios con club, «draft» al crear y cada verano, equipos A–D por año, los 16 puestos con puesto favorito y pierna buena, regla de plaza, prueba de acceso, ascensos en cadena, plazo de fichajes y dos plazos, consejo del profesor de Educación Física, valores por puesto cada semana y lógica de equipos en sus ficheros | #74–#101 |
+| Clave de firma: los deportes se publican firmados | #97 |
 
-**Lo siguiente:** P2a-2 (estado de los jugadores e historial de atletismo), P2b (clubes de la zona) y P2c (medidas) de `MISMAS_REGLAS.md`. Después, la **F2** con el motor de `MOTOR_PARTIDOS.md` y las ligas de `CIUDAD_Y_LIGAS.md`. El fútbol todavía no está en `MODULOS` ni se puede instalar en la web: falta la clave de firma (§1).
+## El MVP del fútbol (decidido por el usuario el 08/11)
+
+**Qué es:** el personaje se apunta a un club, entrena y juega los sábados con su equipo (convocatoria, alineación, resultado y nota); la liga avanza con todos los equipos de todas las categorías; se ven la tabla, la plantilla y sus estadísticas; y el fútbol se instala como paquete firmado. Si hay que cambiar algo por el camino, se habla.
+
+**Orden:**
+1. **Cerrar la base con lo imprescindible:** los equipos fijos toda la temporada (sin ellos no hay convocatorias) y el abandono por edad (pequeño).
+2. **La F2, por partes:** (a) el motor de partido (`MOTOR_PARTIDOS.md`) con su banco de partidos; (b) convocatoria y alineación por el entrenador; (c) la liga a doble vuelta los sábados, **una sola división por categoría**, con todas las categorías jugándose; (d) estadísticas e historial de cada jugador, experiencia en cada puesto partido a partido, y la pestaña del deporte (plantilla, tabla y resultados).
+3. **Publicar el fútbol como paquete** (también los deportes que no van dentro del juego), con una pantalla de «creando el mundo» (la ciudad grande tarda unos 38 s), y **que lo pruebe el usuario**.
+
+**Después del MVP:** divisiones con ascensos, descensos y reglas del filial; la copa con penaltis; tarjetas, sanciones y lesiones durante el partido; elegir entre varios clubes; entrenamiento por equipo e instalaciones por club; los colegios en infantil y cadete; y las fases F3 a F7.
 
 Este documento conserva el análisis del 31/10. Donde algo cambió después, lo dicen `VISION.md`, `MISMAS_REGLAS.md`, `CIUDAD_Y_LIGAS.md` y `MOTOR_PARTIDOS.md`, que mandan sobre esto.
 

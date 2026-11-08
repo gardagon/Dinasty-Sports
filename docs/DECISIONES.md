@@ -5,6 +5,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 08/11/2026 — El MVP del fútbol (decisión del usuario)
+
+Tras varios días con la base del mundo, el usuario aprueba un MVP para poder probar el fútbol («vamos con eso y, si tenemos que cambiar algo, lo hablamos»). Está en `ANALISIS_FUTBOL.md` («El MVP del fútbol»): cerrar la base con los equipos fijos toda la temporada y el abandono por edad; la F2 por partes (motor con banco de partidos, convocatoria y alineación, liga de una sola división por categoría jugándose en todas, estadísticas, experiencia por puesto y pestaña); y publicarlo como paquete con una pantalla de «creando el mundo» para que lo pruebe. Quedan para después las divisiones con ascensos, la copa, tarjetas y lesiones en el partido, elegir entre clubes, entrenamiento por equipo e instalaciones.
+
 ## 08/11/2026 — Revisión del #98: los colegios en infantil y cadete se aceptan, el portero que falta y cuántos tienen puesto favorito (decisiones del usuario)
 
 - **Infantil y cadete de colegio:** tras tres veranos solo tienen equipo 1,7 y 2,7 de los 5 colegios con club, porque cada año les llegan unos 7–8 niños nuevos. **Se acepta como realista** para seguir avanzando; se revisará más adelante. Idea del usuario para entonces: niños apuntados al equipo del colegio aunque no les guste el fútbol (por sus padres), sobre todo en benjamín y alevín.
