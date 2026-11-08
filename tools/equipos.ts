@@ -8,7 +8,7 @@ import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
 import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
-import { edadNpc, type NpcsState } from '@ds/mod-npcs';
+import { edadDeJuego, edadNpc, type NpcsState } from '@ds/mod-npcs';
 
 const SEMILLAS = Number(process.argv[2] ?? 3);
 const VERANOS = Number(process.argv[3] ?? 3);
@@ -70,14 +70,14 @@ for (const k of FACTORES) {
       let clubes = 0, clubesT = 0, colegios = 0, colegiosT = 0, propio = 0;
       for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
         for (const c of pob.categorias!.filter((x) => CATEGORIAS.includes(x.id))) {
-          const n = s.npcs.filter((x) => x.deporte === 'futbol' && x.equipo === e.club && (edadNpc(x, dia) ?? -1) >= c.edadMin && (edadNpc(x, dia) ?? -1) <= c.edadMax).length;
+          const n = s.npcs.filter((x) => x.deporte === 'futbol' && x.equipo === e.club && (edadDeJuego(x, dia) ?? -1) >= c.edadMin && (edadDeJuego(x, dia) ?? -1) <= c.edadMax).length;
           const kk = e.equiposPorCategoria?.[c.id] ?? 1;
           if (e.colegio !== undefined) { colegiosT++; if (n >= 14) { colegios++; if (e.colegio === 'propio') propio++; } } else { clubesT++; if (n >= 14) clubes++; }
           if (n > 0) {
             conEquipo++;
             const cupos = cuposPorGrupo(pob.puestos!, (e.plantillaPorCategoria?.max ?? 18) * kk);
             const cuenta: Record<string, number> = {};
-            for (const x of s.npcs.filter((y) => y.deporte === 'futbol' && y.equipo === e.club && (edadNpc(y, dia) ?? -1) >= c.edadMin && (edadNpc(y, dia) ?? -1) <= c.edadMax)) { const gr = grupoDePuesto(pob.puestos!, x.puesto?.futbol ?? '') ?? '?'; cuenta[gr] = (cuenta[gr] ?? 0) + 1; }
+            for (const x of s.npcs.filter((y) => y.deporte === 'futbol' && y.equipo === e.club && (edadDeJuego(y, dia) ?? -1) >= c.edadMin && (edadDeJuego(y, dia) ?? -1) <= c.edadMax)) { const gr = grupoDePuesto(pob.puestos!, x.puesto?.futbol ?? '') ?? '?'; cuenta[gr] = (cuenta[gr] ?? 0) + 1; }
             if (pob.puestos!.reparto.some((r) => (cuenta[r.grupo] ?? 0) === 0 || (cuenta[r.grupo] ?? 0) > cupos[r.grupo])) descompensados++;
           }
           const celda = ((m.porClub[e.club] ??= {})[c.id] ??= { k: [], n: [] });

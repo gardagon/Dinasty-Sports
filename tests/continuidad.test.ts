@@ -67,8 +67,10 @@ describe('un equipo con menos de 14 se completa con la bolsa o se cierra', () =>
     for (const id of antes) expect(m.lista.get(id)!.equipo).toBe('club_mediano'); // nadie de los que estaban se va
   });
 
-  it('sin bolsa (nadie quiere entrar), no llega a 14: se cierra y sus jugadores buscan otro equipo, sin volver al que se cierra', () => {
+  it('sin bolsa (nadie quiere entrar) ni nadie de abajo que suba, no llega a 14: se cierra y sus jugadores buscan otro equipo, sin volver al que se cierra', () => {
     const { m, antes } = escenario(false);
+    // Nadie que ascender de la categoría de abajo (el club se queda sin alevines, y a la bolsa no le interesa jugar): así solo cuenta la bolsa.
+    for (const n of [...m.lista.values()]) if (n.deporte === 'futbol' && n.equipo === 'club_mediano' && (edadNpc(n, 0) ?? -1) <= 11) { const libre = sinDeporte(n, m.pobs[0], false); m.lista.set(n.id, { ...libre, rasgos: libre.rasgos && { ...libre.rasgos, intereses: {} } }); }
     completarEquipos(m, rngNulo, { conPrueba: false });
     expect(delClub(m, 'club_mediano')).toHaveLength(0);
     for (const id of antes) {

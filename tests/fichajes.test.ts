@@ -9,6 +9,7 @@ import {
   capacidadDe,
   claveDeEquipo,
   colocarDesplazados,
+  edadDeJuego,
   edadNpc,
   renovarDeportistas,
   reclutarEnTodos,
@@ -251,7 +252,7 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
     const pob = estado(g).poblaciones!.find((p) => p.deporte === 'futbol')!;
     for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of pob.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
-        const jugadores = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && (edadNpc(n, 52 * 7) ?? -1) >= c.edadMin && (edadNpc(n, 52 * 7) ?? -1) <= c.edadMax).length;
+        const jugadores = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && (edadDeJuego(n, 52 * 7) ?? -1) >= c.edadMin && (edadDeJuego(n, 52 * 7) ?? -1) <= c.edadMax).length;
         expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(capacidadDe(e, c.id)); // el máximo es un tope: nunca más que la capacidad (al subir de categoría, el entrenador recoloca y lo que sobra busca club)
       }
     }

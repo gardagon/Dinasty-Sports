@@ -3,7 +3,7 @@ import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
-import { colegioDeNinoPublico as colegioDeNino, edadNpc, equiposDelClub, favoritoDe, ofertaAlCandidato, piernaDe, valoracionDe, valoresPorPuestoDe, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { colegioDeNinoPublico as colegioDeNino, edadDeJuego, edadNpc, equiposDelClub, favoritoDe, ofertaAlCandidato, piernaDe, valoracionDe, valoresPorPuestoDe, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { repartirEnEquipos, suplentesDe, type MiembroDeClub } from '../modules/npcs/src/equipos';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
@@ -119,7 +119,7 @@ describe('los equipos de los clubes en la partida', () => {
     const mal: string[] = [];
     for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of categorias()) {
-        const n = estado().npcs.filter((x) => x.deporte === 'futbol' && x.equipo === e.club && c.edades.includes(edadNpc(x, dia) ?? -1)).length;
+        const n = estado().npcs.filter((x) => x.deporte === 'futbol' && x.equipo === e.club && c.edades.includes(edadDeJuego(x, dia) ?? -1)).length;
         const k = e.equiposPorCategoria?.[c.id] ?? 1;
         if (n > 0 && n < 14 * k) mal.push(`${e.club} ${c.id}: ${n} jugadores con ${k} equipos`);
       }
