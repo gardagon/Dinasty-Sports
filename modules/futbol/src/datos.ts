@@ -77,10 +77,10 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
       estudiosPorEdad: { 15: 0.6, 16: 0.8, 17: 1, 18: 0.8 },
     },
   },
-  // Los equipos de la zona (`CIUDAD_Y_LIGAS.md` §3): el del colegio es un club pequeño más y escoge a sus alumnos; los de fuera escogen entre todos los colegios por lo que vale cada
-  // niño, los grandes primero. Un equipo por categoría (de benjamín a juvenil), de 14 a 18 jugadores (once titulares y suplentes): se recluta primero a los interesados hasta 18 y, si no
-  // llegan a 14, se completa con niños sin interés hasta 14 (no se guarda ningún hueco al personaje: entra como cualquier niño, por la regla de plaza). Con la población de ahora (unos 120 niños por edad) salen llenos. Los filiales (el equipo B
-  // de los clubes grandes y medianos) llegan con la liga por divisiones (F2).
+  // Los equipos de la zona (`CIUDAD_Y_LIGAS.md` §3): el del colegio es un club pequeño más y escoge a sus alumnos; los de fuera, por su atractivo. Cada club tiene en cada categoría (de benjamín a juvenil) hasta cuatro
+  // equipos (A, B, C y D, por año) de 14 a 18 jugadores (once titulares y suplentes), que salen del «draft» al crear la partida y cada verano (`CIUDAD_Y_LIGAS.md` §5): cada club ve a un porcentaje de los niños (su
+  // atractivo), coge a los mejores por puesto y los equipos que faltan se sortean entre clubes y colegios; un equipo con menos de 14 se completa con la bolsa y el ascenso del que sería titular arriba y, si ni así
+  // llega, se cierra. Los equipos se fijan para toda la temporada. Todos los clubes de la zona (con sus tamaños y los colegios con club) salen de la ciudad (`personasPorClub`, `colegiosConClub`).
   equipos: [
     { club: 'club_grande', nombre: 'Real Ciudad C. F.', tamano: 'grande', categorias: CATEGORIAS_DE_LOS_CLUBES, plantillaPorCategoria: { min: 14, max: 18 } },
     { club: 'club_mediano', nombre: 'Unión Deportiva del Barrio', tamano: 'mediano', categorias: CATEGORIAS_DE_LOS_CLUBES, plantillaPorCategoria: { min: 14, max: 18 } },
