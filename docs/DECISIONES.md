@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 08/11/2026 — Continuidad de los equipos: probar fuera sin perder la plaza, el A del colegio hasta cadete, completar de arriba abajo y puestos por grupo (decisión del usuario)
+
+La medida del desarrollador (`npm run colegios`, ciudad grande) mostró que los colegios perdían equipos por la regla de cierre (27 de 79 cierres eran equipos a los que les faltaban de 1 a 3 jugadores, y el cierre se contagiaba hacia arriba), porque se iban demasiados a otros clubes (de 2 a 5 por equipo y verano) y porque la recolocación solo ofrecía un puesto. Decidido (`CIUDAD_Y_LIGAS.md` §5):
+
+- **Probar fuera no hace perder la plaza:** quien prueba en otro club la conserva hasta que lo acepten allí y acepte él. Así nadie se pierde por probar y no salir.
+- **El A del colegio existe siempre, de benjamín a cadete,** mientras haya alumnos interesados para completarlo. Pueden desaparecer el B, el C y el D, y en juvenil el A.
+- **Completar antes de cerrar, de arriba abajo:** al equipo corto, los mejores de segundo año de su categoría de abajo; la de abajo, con la bolsa y su propia categoría de abajo; benjamín, con los de primer año. Solo se cierra si ni así llega a 14.
+- **Se van menos de los colegios:** el porcentaje que cambia de club, en torno al 5–10 % por equipo y menos en los colegios.
+- **Puestos:** el entrenador ofrece el puesto en que mejor ve al jugador y, si no lo acepta, los parecidos de más a menos, también al recolocar. **El puesto favorito es un grupo** (portería, defensa, medio, ataque), entre los que mejor encajan con sus habilidades; dentro del grupo acepta siempre, fuera casi siempre. «Si un niño quiere jugar al fútbol, juega».
+
 ## 07/11/2026 — Draft de los de primer año cada verano, puestos parecidos, abandono por edad y la elección entre el grande y el mediano (decisiones del usuario)
 
 Tras medir la ciudad grande (#90): los colegios perdían sus equipos en tres veranos, sobraban 70–80 juveniles y el personaje del montón entraba en el C o el D del grande. Está en `CIUDAD_Y_LIGAS.md` §5 y §11.
