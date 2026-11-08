@@ -243,6 +243,12 @@ export interface PuestosDeDeporte {
    * delanteros». Un equipo de otro tamaño reparte lo mismo en proporción (`cuposPorGrupo`).
    */
   reparto: readonly { grupo: string; nombre: string; puestos: readonly string[]; jugadores: number }[];
+  /**
+   * Los favoritos de los niños (decisión del usuario, 08/11/2026): unos tienen un **puesto favorito concreto** y otros un **grupo** (en el fútbol: portería, defensa, medio o ataque; las bandas, en el medio, y
+   * los extremos, en el ataque), elegido entre los puestos que mejor encajan con sus habilidades. Los de grupo aceptan cualquier puesto de su grupo. `proporcionDePuestoConcreto` es la parte de los niños
+   * con puesto concreto (el resto, con grupo). Sin él, todos tienen un puesto concreto.
+   */
+  favoritos?: { proporcionDePuestoConcreto: number; grupos: readonly { id: string; nombre: string; puestos: readonly string[] }[] };
 }
 
 /** Cuántos jugadores de cada grupo caben en una plantilla de `total` jugadores: el reparto del máximo, en proporción (los que sobran, a los restos mayores). */

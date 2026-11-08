@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { cuposPorGrupo, grupoDePuesto, parecidoDePuestos } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
-import { edadNpc, ofertaAlCandidato, valoracionDe, valoresPorPuestoDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
-import { ofertaDePuesto, ofertasDePuesto, probabilidadDeAceptarPuesto, puestoDondeMasVale, type JugadorConPuesto } from '../modules/npcs/src/puestos';
+import { edadNpc, grupoFavoritoDe, ofertaAlCandidato, valoracionDe, valoresPorPuestoDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { esDeLoSuyo, ofertaDePuesto, ofertasDePuesto, probabilidadDeAceptarPuesto, puestoDondeMasVale, type JugadorConPuesto } from '../modules/npcs/src/puestos';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
@@ -83,6 +83,32 @@ describe('la regla de plaza por puesto', () => {
   });
 });
 
+describe('favoritos: puesto concreto o grupo, y la última opción', () => {
+  it('un niño con un grupo favorito (portería, defensa, medio o ataque) acepta cualquier puesto de su grupo; uno con puesto concreto, solo el suyo', () => {
+    // Las bandas están en el medio y los extremos, en el ataque.
+    const grupo = (puesto: string) => PUESTOS_DE_FUTBOL.favoritos!.grupos.find((g) => g.puestos.includes(puesto))!.id;
+    expect(grupo('LM')).toBe('medio');
+    expect(grupo('LW')).toBe('ataque');
+    expect(grupo('GK')).toBe('porteria');
+    expect(grupo('LB')).toBe('defensa');
+    expect(probabilidadDeAceptarPuesto(P, {}, 'CB', 'LB', false, { grupoFavorito: 'defensa' })).toBe(1);
+    expect(probabilidadDeAceptarPuesto(P, {}, 'CB', 'LB', false)).toBeLessThan(1);
+    expect(probabilidadDeAceptarPuesto(P, {}, 'CB', 'ST', false, { grupoFavorito: 'defensa' })).toBeLessThan(1);
+    // Cada puesto está en un solo grupo de favoritos y todos los puestos están en alguno.
+    for (const p of P.puestos) expect(PUESTOS_DE_FUTBOL.favoritos!.grupos.filter((g) => g.puestos.includes(p.id)).length, p.id).toBe(1);
+  });
+
+  it('fuera de lo suyo casi siempre aceptan, y si es su última opción, aún más', () => {
+    for (const c of [{} as Record<string, number>, { disciplina: -50, sacrificio: -50 }, { disciplina: 50, sacrificio: 50 }]) {
+      const normal = probabilidadDeAceptarPuesto(P, c, 'GK', 'ST', false);
+      expect(normal).toBeGreaterThanOrEqual(0.55);
+      expect(normal).toBeLessThanOrEqual(0.97);
+      expect(probabilidadDeAceptarPuesto(P, c, 'GK', 'ST', false, { ultimaOpcion: true })).toBeGreaterThan(normal);
+      expect(probabilidadDeAceptarPuesto(P, c, 'GK', 'ST', false, { ultimaOpcion: true })).toBeGreaterThanOrEqual(0.88);
+    }
+  });
+});
+
 describe('los niños del mundo con puestos', () => {
   let g: ReturnType<typeof nuevaPartida>;
   beforeAll(() => {
@@ -99,9 +125,14 @@ describe('los niños del mundo con puestos', () => {
     }
     const puestos = new Set(jugadores().map((n) => n.puesto!.futbol));
     for (const lado of ['LB', 'RB', 'LW', 'RW', 'LCR', 'RCR']) expect(puestos.has(lado), lado).toBe(true);
-    // Muchos juegan en su favorito (los que no, lo aceptaron por el club).
-    const enSuFavorito = jugadores().filter((n) => n.puesto!.futbol === n.puestoFavorito!.futbol).length;
-    expect(enSuFavorito / jugadores().length).toBeGreaterThan(0.5);
+    // Muchos juegan en lo suyo (su puesto favorito o, si tienen un grupo, un puesto de su grupo); los que no, lo aceptaron por el club (casi siempre aceptan).
+    const enLoSuyo = jugadores().filter((n) => esDeLoSuyo(P, n.puestoFavorito!.futbol, grupoFavoritoDe(n, pob(), n.puestoFavorito!.futbol), n.puesto!.futbol)).length;
+    // (El entrenador ofrece el puesto en que mejor los ve, que no siempre es el suyo: casi la mitad juega en lo suyo.)
+    expect(enLoSuyo / jugadores().length).toBeGreaterThan(0.4);
+    // Unos tienen un puesto concreto y otros, un grupo: en la proporción del dato.
+    const conGrupo = jugadores().filter((n) => grupoFavoritoDe(n, pob(), n.puestoFavorito!.futbol) !== undefined).length / jugadores().length;
+    expect(conGrupo).toBeGreaterThan(0.3);
+    expect(conGrupo).toBeLessThan(0.5);
   });
 
   it('ningún equipo queda descompensado por puestos: todos los grupos tienen jugadores y ninguno pasa de su cupo', () => {

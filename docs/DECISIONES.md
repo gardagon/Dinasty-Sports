@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 08/11/2026 — Hecho: continuidad de los equipos (medidas antes y después con `npm run colegios`)
+
+Implementa lo decidido el 08/11 (entrada de abajo). Ciudad grande, 3 semillas, 3 veranos; entre paréntesis, antes.
+
+- **Probar fuera:** quien prueba y no lo cogen sigue en su equipo. **Sin equipo por haber ido a probar: 0** (de unos 3.000 intentos). Cambian de club por su cuenta el 8,4 % de un equipo de club por verano y el 3,2 % de uno de colegio (antes 5,8 % y 0,9 %: casi todo lo que «se iba» de los colegios eran los jugadores de equipos que cerraban). Ahora prueba el 15 % de cada equipo de un club y el 6 % de uno de colegio (`PRUEBAN_FUERA`), con más probabilidad cuanto más ambicioso, de padres deportistas y mejor jugador del equipo.
+- **Completar antes de cerrar** (la bolsa con puestos aceptados como última opción, y el ascenso en cadena del que sería titular arriba, que juega un año por encima: `adelanto`): cierres de equipos de colegio **49 (antes 79)**, con 13 a 10 jugadores al cerrar en 21 casos (antes 38). Colegios con equipo (de 5) tras el verano 3: benjamín 4,7 (4,3), alevín 3,7 (1,3), infantil 1,7 (0,7), cadete 2,7 (1,7), juvenil 4,0 (3,7). Ascienden 328 jugadores en 3 semillas y 3 veranos (60 de colegios).
+- **Lo que no se arregla con la regla:** al cerrar, un equipo de colegio suele quedarse con 9 a 12 y la categoría de arriba al año siguiente tiene 4,0 jugadores y equipo en 6 de 26 casos (sin cierre abajo, 14,6 y 76 de 95). El infantil y el cadete de los colegios siguen siendo los eslabones débiles: la bolsa de esas edades está vacía y el que sube desde abajo casi nunca es titular de los mayores (son un año menores).
+- **Puestos rechazados:** 10,9 % de las ofertas (antes 29,6 %); como última opción, 79 de 2.617 (3 %). Los de grupo aceptan cualquier puesto de su grupo; fuera de lo suyo aceptan del 55 al 97 % (más si es su última opción).
+- **Descompensados por puestos (equipo a equipo, cupo del juego para su tamaño):** colegios heredados, 43 % en su cupo, 47 % con un grupo a ±1, 9 % a ±2, 0,6 % a ±3 o más y 6,7 % con un grupo vacío (antes 38 %, 49 %, 13 %, 0 % y 3,8 %); clubes heredados, 50 %, 37 %, 12,5 %, 0,6 % y 5,3 % (antes 50 %, 38 %, 11 %, 0,3 % y 4,1 %). Los equipos nuevos son pocos (16 en total) para sacar conclusiones. El entrenador ahora ofrece al recolocar los puestos que faltan de más a menos parecido (antes, uno solo): casi no cambia el reparto.
+- **La medida:** distingue equipos nuevos (el club abrió esa letra este verano) y heredados, y usa el cupo del tamaño real del equipo (antes comparaba con `máximo × equipos` y exageraba en los clubes).
+- Un niño juega a veces un año por encima (`adelanto`): su categoría y su año salen de `edadDeJuego`, no de su edad. Los favoritos (puesto concreto o grupo, 60 %/40 %) son un dato del deporte (`favoritos` de los puestos).
+
 ## 08/11/2026 — Continuidad de los equipos: probar fuera sin perder la plaza, el A del colegio hasta cadete, completar de arriba abajo y puestos por grupo (decisión del usuario)
 
 La medida del desarrollador (`npm run colegios`, ciudad grande) mostró que los colegios perdían equipos por la regla de cierre (27 de 79 cierres eran equipos a los que les faltaban de 1 a 3 jugadores, y el cierre se contagiaba hacia arriba), porque se iban demasiados a otros clubes (de 2 a 5 por equipo y verano) y porque la recolocación solo ofrecía un puesto. Decidido (`CIUDAD_Y_LIGAS.md` §5):

@@ -11,7 +11,7 @@ import { PAIS_CIUDAD_GRANDE, cuposPorGrupo, grupoDePuesto, registrarPais } from 
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
-import { DIAGNOSTICO, edadNpc, equiposDelClub, valoracionDe, type NpcsState } from '@ds/mod-npcs';
+import { DIAGNOSTICO, edadDeJuego, equiposDelClub, valoracionDe, type NpcsState } from '@ds/mod-npcs';
 
 const SEMILLAS = Number(process.argv[2] ?? 3);
 const VERANOS = Number(process.argv[3] ?? 3);
@@ -22,7 +22,7 @@ const f1 = (x: number): string => x.toFixed(1);
 const media = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 const suma = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
 
-interface Ficha { dep?: string; equipo?: string; edad: number; dejado: boolean; apartado: boolean }
+interface Ficha { dep?: string; equipo?: string; edad: number; dejado: boolean; apartado: boolean; adelanto: boolean }
 interface Fila {
   seed: number; verano: number; club: string; cat: string; colegio: boolean;
   antes: number; quedan: number; sube: number; otroClub: number; deja: number; apartado: number; retirado: number;
@@ -39,6 +39,7 @@ const siguiente: { cerrado: boolean; tamano: number; suben: number }[] = [];
 const descomp = { 'colegios · nuevos': nuevoDescomp(), 'colegios · heredados': nuevoDescomp(), 'clubes · nuevos': nuevoDescomp(), 'clubes · heredados': nuevoDescomp() };
 const probar = { intentos: 0, entran: 0, sinEquipoPorProbar: 0, porVerano: [] as number[][] };
 const ofertas = { total: 0, rechazadas: 0, suyas: 0, suyasRechazadas: 0, ultima: 0, ultimaRechazadas: 0 };
+const ascensos = { colegios: 0, clubes: 0 };
 const cambios = { colegio: { equipos: 0, voluntarios: 0 }, club: { equipos: 0, voluntarios: 0 } };
 
 for (let seed = 1; seed <= SEMILLAS; seed++) {
@@ -48,7 +49,7 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
     const dia = verano === 0 ? 0 : (g.time.week - g.time.schoolWeek) * 7;
     const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
     const fichas = new Map<string, Ficha>();
-    for (const n of s.npcs) if (n.genetica) fichas.set(n.id, { dep: n.deporte, equipo: n.equipo, edad: edadNpc(n, dia) ?? -1, dejado: !!n.dejado?.includes('futbol'), apartado: !!n.apartado?.includes('futbol') });
+    for (const n of s.npcs) if (n.genetica) fichas.set(n.id, { dep: n.deporte, equipo: n.equipo, edad: edadDeJuego(n, dia) ?? -1, dejado: !!n.dejado?.includes('futbol'), apartado: !!n.apartado?.includes('futbol'), adelanto: !!n.adelanto?.futbol });
     return { s, pob, fichas, dia };
   };
   const catDe = (pob: ReturnType<typeof tomar>['pob'], edad: number): string | undefined => pob.categorias!.find((c) => edad >= c.edadMin && edad <= c.edadMax)?.id;
@@ -58,13 +59,15 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
     const jugadores = [...t.fichas.values()].filter((x) => x.dep === 'futbol' && x.equipo === club && catDe(t.pob, x.edad) === cat).length;
     return Math.min(e.equiposPorCategoria?.[cat] ?? 1, Math.floor(jugadores / (e.plantillaPorCategoria?.min ?? 14)));
   };
+  const colegiosDe = new Set(tomar(0).pob.equipos.filter((e) => e.colegio !== undefined).map((e) => e.club));
   let previa = tomar(0);
   for (let v = 1; v <= VERANOS; v++) {
     const cerrados: typeof cierres = [];
     const probados = new Map<string, { entra: boolean; desde: string; hacia: string }>();
     const desplazados = new Map<string, string>();
     DIAGNOSTICO.alCerrar = (d) => cerrados.push({ seed, verano: v, club: d.club, cat: d.categoria, jugadores: d.jugadores, equipos: d.equipos, montables: d.montables });
-    DIAGNOSTICO.alProbar = (d) => probados.set(d.id, { entra: d.entra, desde: d.desde, hacia: d.hacia });
+    // Solo los de fútbol (el atletismo también tiene fichajes: no cuenta aquí).
+    DIAGNOSTICO.alProbar = (d) => { if (previa.fichas.get(d.id)?.dep === 'futbol') probados.set(d.id, { entra: d.entra, desde: d.desde, hacia: d.hacia }); };
     DIAGNOSTICO.alDesplazar = (d) => desplazados.set(d.id, d.motivo);
     const vistos = new Set<string>();
     DIAGNOSTICO.alOfertar = (d) => {
@@ -87,7 +90,7 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
       probar.intentos++;
       if (p.entra) probar.entran++;
       const x = ahora.fichas.get(id);
-      if (!p.entra && x && x.dep !== 'futbol' && !desplazados.has(id)) { sin++; probar.sinEquipoPorProbar++; }
+      if (!p.entra && x && x.dep === undefined && !desplazados.has(id)) { sin++; probar.sinEquipoPorProbar++; }
     }
     probar.porVerano.push([intentos, [...probados.values()].filter((p) => p.entra).length, sin]);
     const colegios = ahora.pob.equipos.filter((e) => e.plantillaPorCategoria && e.colegio !== undefined);
@@ -159,6 +162,8 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
         }
       }
     }
+    // Los que suben este verano a la categoría de arriba (juegan un año por encima).
+    for (const [id, x] of ahora.fichas) if (x.adelanto && x.dep === 'futbol' && !previa.fichas.get(id)?.adelanto) ascensos[colegiosDe.has(x.equipo ?? '') ? 'colegios' : 'clubes']++;
     previa = ahora;
   }
   for (const p of pendientes.filter((x) => x.seed === seed)) {
@@ -207,6 +212,7 @@ console.log(`Sin cierre abajo (${noc.length} casos): ${f1(media(noc.map((x) => x
 console.log('### Probar fuera y cambiar de club\n');
 console.log(`Fueron a probar a otro club ${probar.intentos} niños (por verano y semilla: ${probar.porVerano.map((p) => `${p[0]} probaron, ${p[1]} cogidos, ${p[2]} sin equipo por probar`).join(' · ')}). Cogidos: ${probar.entran}. **Se quedaron sin equipo por haber ido a probar: ${probar.sinEquipoPorProbar}** (debe ser 0).`);
 console.log(`Cambian de club por su cuenta (probaron y los cogieron), por equipo y verano: colegios ${f1((100 * cambios.colegio.voluntarios) / Math.max(1, cambios.colegio.equipos * 16))} % de un equipo de 16 (${cambios.colegio.voluntarios} en ${cambios.colegio.equipos} equipos), clubes ${f1((100 * cambios.club.voluntarios) / Math.max(1, cambios.club.equipos * 16))} % (${cambios.club.voluntarios} en ${cambios.club.equipos} equipos).\n`);
+console.log(`Ascienden a la categoría de arriba (juegan un año por encima): ${ascensos.colegios} jugadores de colegio y ${ascensos.clubes} de clubes (en ${SEMILLAS} semillas y ${VERANOS} veranos).\n`);
 console.log('### Puestos rechazados\n');
 console.log(`Ofertas de puesto: ${ofertas.total}; rechazadas ${ofertas.rechazadas} (${f1((100 * ofertas.rechazadas) / Math.max(1, ofertas.total))} %). En su puesto o grupo: ${ofertas.suyas} (rechazadas ${ofertas.suyasRechazadas}). Como última opción (sin equipo): ${ofertas.ultima} (rechazadas ${ofertas.ultimaRechazadas}).\n`);
 console.log('### Descompensados por puestos, equipo a equipo (cupo del juego para el tamaño del equipo)\n');
