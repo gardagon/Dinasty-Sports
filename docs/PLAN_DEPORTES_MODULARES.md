@@ -134,6 +134,19 @@ Detalle técnico en `ALMACENAMIENTO.md` §8.
 
 Las piezas que necesita cualquier deporte con club (apuntarse al club del colegio, prueba de acceso y plaza ofrecida, entrenar con el club y llegar tarde, no entrenar por libre durante la sesión, pedir consejo al entrenador, campamento y amigos en verano, verlo en la tele, subir y volver de categoría, sobrecarga, conocimiento del deporte y lo que traes de casa) salen del atletismo a un paquete común, `packages/kit-deporte` (`@ds/kit-deporte`), que cada deporte usa con sus datos. **Cambia la regla 1:** un módulo puede importar `@ds/contracts` y `@ds/kit-deporte`; el kit solo `@ds/contracts`. El kit va en el juego base y no tiene estado propio: trabaja con el estado del deporte que lo usa.
 
+## 7 bis. La lógica de los deportes de equipo, común y por datos (usuario, 08/11)
+
+Lo que se ha hecho para el fútbol (formar los equipos con el «draft», la regla de plaza por puesto, la prueba de acceso, subir y bajar de categoría, los equipos A–D, los fichajes y la recolocación por puestos) **no es del fútbol**: un baloncesto tendría los mismos problemas. Por eso:
+
+- **Vive en el juego base, no en el deporte.** Está en el módulo de personas (`modules/npcs`, que es el dueño de los PNJ y de sus equipos) y en el kit de deporte, sin ninguna referencia a un deporte concreto (comprobado el 08/11). El juego base pesa algo más, pero cada deporte instalado solo trae sus datos y su código propio, y llama a esas funciones.
+- **Cada deporte de equipo da sus datos** (`PoblacionDeDeporte` y sus datos por país):
+  - la plantilla de cada equipo (mínimo y máximo: en el fútbol 11, de 14 a 18);
+  - los puestos, su reparto en una plantilla, cuántos titulares hay de cada grupo y lo que se parecen entre sí;
+  - cómo vale cada jugador en cada puesto (una función del deporte sobre el lector de persona);
+  - los clubes de la zona (con su tamaño y su atractivo) y las sesiones por semana;
+  - las categorías y la temporada, como ya hacía.
+- **Pendiente:** el fichero principal de `modules/npcs` mezcla las personas con los clubes y las plantillas (unas 2.800 líneas). Hay que sacar la lógica de equipos a sus propios ficheros dentro de `modules/npcs` (por ejemplo, «draft», «plaza», «fichajes» y «plantillas»), con la huella idéntica antes y después. No hace falta un deporte de equipo de prueba: cuando llegue el segundo deporte de equipo, se comprobará con él.
+
 ## 8. Las fases
 
 Estamos en alfa: las partidas empezadas se descartan cuando cambie la forma del estado (se sube `SAVE_VERSION`). En las fases de reorganización **`npm run sim` debe dar exactamente lo mismo**: es la prueba de que no se rompe nada.
