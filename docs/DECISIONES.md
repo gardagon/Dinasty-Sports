@@ -1718,6 +1718,9 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 ## Pendiente e ideas
 
+- **Interfaz, pantalla de nueva partida (visto por el usuario el 08/11):** en «Deportes en la partida», la casilla de cada deporte sale suelta encima de su nombre en vez de a su izquierda. Arreglarlo cuando se toque esa pantalla (por ejemplo, al meter el fútbol como paquete).
+- **Publicar los deportes que no van dentro del juego:** `tools/publicar-deportes.ts` solo empaqueta los de `MODULOS` (hoy, el atletismo, que ya viene con el juego). Cuando el fútbol tenga su MVP, hay que publicarlo también como paquete instalable y probar el ciclo entero (buscar, instalar, crear partida, guardar y cargar).
+
 - **Revelación de los perks latentes** con mensajes: espera al motor de eventos (E18). Hoy se enseñan todos en pruebas.
 - **Dibujar al personaje por capas** a partir de la apariencia y la creación de personaje con los modos personalizado y heredado (E15.1, E4.2).
 - **Rasgos de los hijos del personaje y de los padres de los rivales** (ciclo de generaciones, E8).
