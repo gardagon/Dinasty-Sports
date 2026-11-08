@@ -10,10 +10,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 La medida del desarrollador (`npm run colegios`, ciudad grande) mostró que los colegios perdían equipos por la regla de cierre (27 de 79 cierres eran equipos a los que les faltaban de 1 a 3 jugadores, y el cierre se contagiaba hacia arriba), porque se iban demasiados a otros clubes (de 2 a 5 por equipo y verano) y porque la recolocación solo ofrecía un puesto. Decidido (`CIUDAD_Y_LIGAS.md` §5):
 
 - **Probar fuera no hace perder la plaza:** quien prueba en otro club la conserva hasta que lo acepten allí y acepte él. Así nadie se pierde por probar y no salir.
-- **El A del colegio existe siempre, de benjamín a cadete,** mientras haya alumnos interesados para completarlo. Pueden desaparecer el B, el C y el D, y en juvenil el A.
-- **Completar antes de cerrar, de arriba abajo:** al equipo corto, los mejores de segundo año de su categoría de abajo; la de abajo, con la bolsa y su propia categoría de abajo; benjamín, con los de primer año. Solo se cierra si ni así llega a 14.
+- **El A del colegio debería existir siempre, de benjamín a cadete, pero no es obligatorio:** el mínimo de 14 manda; si no hay niños, no se crea (corrección del usuario: «cuidado con cruzar dos obligaciones»). Pueden desaparecer el B, el C y el D, y en juvenil el A.
+- **Completar antes de cerrar:** un C o un D, primero con los descartes de la bolsa que acepten jugar (ante quedarse sin equipo, algunos aceptan un puesto que normalmente rechazarían); subir de categoría solo para un A o un B y solo a quien sea titular en el A o el B de su categoría de abajo, sin dejarlo por debajo de 14. Solo se cierra si ni así llega a 14.
 - **Se van menos de los colegios:** el porcentaje que cambia de club, en torno al 5–10 % por equipo y menos en los colegios.
-- **Puestos:** el entrenador ofrece el puesto en que mejor ve al jugador y, si no lo acepta, los parecidos de más a menos, también al recolocar. **El puesto favorito es un grupo** (portería, defensa, medio, ataque), entre los que mejor encajan con sus habilidades; dentro del grupo acepta siempre, fuera casi siempre. «Si un niño quiere jugar al fútbol, juega».
+- **Puestos:** el entrenador ofrece el puesto en que mejor ve al jugador y, si no lo acepta, los parecidos de más a menos, también al recolocar. **Unos niños tienen un puesto favorito concreto y otros, un grupo** (portería, defensa, medio, ataque), entre los que mejor encajan con sus habilidades; los de grupo aceptan cualquier puesto de él, y fuera de lo suyo casi siempre aceptan. «Si un niño quiere jugar al fútbol, juega».
 
 ## 07/11/2026 — Draft de los de primer año cada verano, puestos parecidos, abandono por edad y la elección entre el grande y el mediano (decisiones del usuario)
 
