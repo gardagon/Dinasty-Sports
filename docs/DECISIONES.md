@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 08/11/2026 — Revisión del #98: los colegios en infantil y cadete se aceptan, el portero que falta y cuántos tienen puesto favorito (decisiones del usuario)
+
+- **Infantil y cadete de colegio:** tras tres veranos solo tienen equipo 1,7 y 2,7 de los 5 colegios con club, porque cada año les llegan unos 7–8 niños nuevos. **Se acepta como realista** para seguir avanzando; se revisará más adelante. Idea del usuario para entonces: niños apuntados al equipo del colegio aunque no les guste el fútbol (por sus padres), sobre todo en benjamín y alevín.
+- **Un grupo de puestos vacío** (por ejemplo, sin portero) lo cubre el que mejor se adapte de los **no titulares**, «para no debilitar dos posiciones en vez de una».
+- **Puesto favorito:** a los 8 años, en torno al 60 % sin puesto definido, un 30 % con un puesto concreto y un 10 % con una zona («en categorías tan pequeñas todavía no saben dónde pueden ser mejores»); la preferencia se forma con los años según el tiempo que juegan en un puesto y lo bien que lo hacen. Sustituye al 60/40 del #98.
+- Las demás cifras del #98 se quedan: aceptan otro puesto fuera de lo suyo entre el 55 % y el 97 %, según su carácter; prueban en otro club el 15 % de cada equipo de club y el 6 % de cada uno de colegio.
+
 ## 08/11/2026 — Hecho: continuidad de los equipos (medidas antes y después con `npm run colegios`)
 
 Implementa lo decidido el 08/11 (entrada de abajo). Ciudad grande, 3 semillas, 3 veranos; entre paréntesis, antes.
@@ -1729,6 +1736,8 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 ---
 
 ## Pendiente e ideas
+
+- **Colegios en infantil y cadete** (aceptado de momento el 08/11): revisar más adelante. Idea del usuario: niños apuntados al equipo del colegio aunque no les guste el fútbol (por sus padres), sobre todo en benjamín y alevín.
 
 - **Interfaz, pantalla de nueva partida (visto por el usuario el 08/11):** en «Deportes en la partida», la casilla de cada deporte sale suelta encima de su nombre en vez de a su izquierda. Arreglarlo cuando se toque esa pantalla (por ejemplo, al meter el fútbol como paquete).
 - **Publicar los deportes que no van dentro del juego:** `tools/publicar-deportes.ts` solo empaqueta los de `MODULOS` (hoy, el atletismo, que ya viene con el juego). Cuando el fútbol tenga su MVP, hay que publicarlo también como paquete instalable y probar el ciclo entero (buscar, instalar, crear partida, guardar y cargar).
