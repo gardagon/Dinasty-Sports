@@ -131,6 +131,24 @@ export interface NpcDirectory {
    * habilidades y capacidades. Con ellos el entrenador convoca y alinea, y el motor de partido los juega. Lo mismo para todos (`VISION.md`).
    */
   plantillaDelEquipo?(deporte: string, club: string, categoria: string, letra: string): JugadorDeEquipoView[];
+  /**
+   * Los equipos que hay hoy en una categoría de un deporte de equipo (cada club con cada letra A a D que llega al mínimo de jugadores), con lo que vale cada uno y su nombre: con ellos se arma la liga. Vacío si el deporte no
+   * tiene equipos por categoría.
+   */
+  equiposDeLaCategoria?(deporte: string, categoria: string): EquipoDelMundoView[];
+}
+
+/** Un equipo de la liga tal como lo ve quien la organiza. */
+export interface EquipoDelMundoView {
+  /** Id único del equipo: `club|letra` (la plaza en la liga es del equipo del club, no de los niños). */
+  id: string;
+  club: string;
+  letra: string;
+  /** «Real Ciudad C. F. B». */
+  nombre: string;
+  /** Lo que vale (la media de sus once mejores en su puesto): con ello se reparten las divisiones al crear la partida. */
+  fuerza: number;
+  jugadores: number;
 }
 
 /** Un jugador de un equipo, tal como lo ve quien organiza un partido. */

@@ -17,7 +17,7 @@ import { historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Re
 
 import { añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
 import { colocarDesplazados } from './fichajes';
-import { plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { equiposDeUnaCategoria, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { categoriaDe, consejoDeUnProfesor, plazaEnElEquipo, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
 import { entrenadoresDeEquiposExtra, entrenadoresDeUnDeporte } from './draft';
 export * from './plaza';
@@ -1399,6 +1399,7 @@ export const npcs = defineModule<NpcsState>({
           const n = personaPorId(lista, id);
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
+        equiposDeLaCategoria: (deporte, categoria) => equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso),
         plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day)),
         nivelesDelEquipo: (deporte, club, categoria) => nivelesDelEquipoDe(lista, poblacionesGuardadas(ctx), deporte, club, categoria, ctx.time.week, inicioCurso),
         plaza: (deporte, club, nivel, puestos, prueba) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso, puestos, rendimientosDe(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', prueba),

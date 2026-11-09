@@ -2,7 +2,7 @@
  * Las plantillas: quién juega en cada equipo, el reclutamiento y los equipos A a D.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
+import { type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
 import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
@@ -637,4 +637,30 @@ function disciplinaDelEntrenadorDe(npcs: readonly Npc[], pob: PoblacionGuardada,
   const cubre = delClub.find((n) => n.edades && n.edades[0] <= cat.edadMin && n.edades[1] >= cat.edadMax) ?? delClub.find((n) => n.edades && n.edades[0] <= cat.edadMax && n.edades[1] >= cat.edadMin) ?? delClub[0];
   const entrenador = propio ?? cubre;
   return entrenador?.rasgos ? (entrenador.rasgos.caracter.disciplina + 50) / 100 : 0.5;
+}
+
+
+/** Los equipos que hay en una categoría de un deporte (club y letra, con al menos el mínimo de jugadores) con lo que vale cada uno (`NpcDirectory.equiposDeLaCategoria`). */
+export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, categoria: string, inicioCurso: number): EquipoDelMundoView[] {
+  const pob = pobs.find((p) => p.deporte === deporte);
+  const cat = pob?.categorias?.find((c) => c.id === categoria);
+  if (!pob || !cat) return [];
+  const porEquipo = new Map<string, Npc[]>();
+  for (const n of npcs) {
+    const letra = n.letra?.[deporte];
+    if (n.deporte !== deporte || !n.equipo || !letra) continue;
+    const edad = edadDeJuego(n, inicioCurso) ?? -1;
+    if (edad < cat.edadMin || edad > cat.edadMax) continue;
+    const clave = `${n.equipo}|${letra}`;
+    (porEquipo.get(clave) ?? porEquipo.set(clave, []).get(clave)!).push(n);
+  }
+  const res: EquipoDelMundoView[] = [];
+  for (const [id, miembros] of porEquipo) {
+    const [club, letra] = id.split('|');
+    const e = pob.equipos.find((x) => x.club === club);
+    if (miembros.length < (e?.plantillaPorCategoria?.min ?? 14)) continue;
+    const valores = miembros.map((n) => n.vp?.[deporte]?.puestos?.[n.puesto?.[deporte] ?? ''] ?? n.vp?.[deporte]?.valor ?? n.levels[deporte] ?? 0).sort((a, b) => b - a).slice(0, 11);
+    res.push({ id, club, letra, nombre: `${pob.nombresDeClub[club] ?? club} ${letra}`, fuerza: valores.reduce((t, v) => t + v, 0) / valores.length, jugadores: miembros.length });
+  }
+  return res.sort((a, b) => (a.id < b.id ? -1 : 1));
 }
