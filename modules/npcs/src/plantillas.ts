@@ -2,7 +2,7 @@
  * Las plantillas: quién juega en cada equipo, el reclutamiento y los equipos A a D.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
+import { ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
 import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
@@ -20,7 +20,7 @@ import { type Rendimientos } from './semana';
 
 import { EDAD_FIN_COLEGIO, EquipoGuardado, Npc, PoblacionGuardada, delColegio, descripcionDeOtroColegio, edadDeJuego, edadNpc, hermanos, npcs, persona } from './index';
 import { conDraft, draftDeEquipos } from './draft';
-import { Valoracion, aceptaElPuesto, categoriaDe, leGustaElGrupo, ofertaAlCandidato, piernaDe, puestoDeJugador, reglaDePlaza, valorEnSuPuesto, valorRealDe, valoracionDe, valoresPorPuestoDe } from './plaza';
+import { lectorDeUnNpc, Valoracion, aceptaElPuesto, categoriaDe, leGustaElGrupo, ofertaAlCandidato, piernaDe, puestoDeJugador, reglaDePlaza, valorEnSuPuesto, valorRealDe, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** Las edades en las que recluta un equipo: las del deporte, acotadas por las suyas (un equipo de colegio solo llega a la edad en que acaba el colegio). */
 export const edadesDe = (pob: PoblacionGuardada, e: EquipoGuardado): number[] => {
@@ -579,4 +579,35 @@ export function acomodarSobrantes(m: MercadoDeFichajes, pob: PoblacionGuardada, 
     }
   }
   return fuera;
+}
+
+
+/**
+ * Los jugadores de un equipo (club, categoría y letra A a D) para jugar un partido: su puesto, lo que valen en cada uno, su estado de hoy y su lector (`NpcDirectory.plantillaDelEquipo`). Son los mismos datos para todos:
+ * el personaje y los PNJ salen de las mismas reglas.
+ */
+export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, categoria: string, letra: string, inicioCurso: number): JugadorDeEquipoView[] {
+  const pob = pobs.find((p) => p.deporte === deporte);
+  const cat = pob?.categorias?.find((c) => c.id === categoria);
+  if (!pob || !cat) return [];
+  const resiliencia = CAPACIDADES_GENETICAS.indexOf('gen.resiliencia');
+  return npcs
+    .filter((n) => n.deporte === deporte && n.equipo === club && n.letra?.[deporte] === letra && (edadDeJuego(n, inicioCurso) ?? -1) >= cat.edadMin && (edadDeJuego(n, inicioCurso) ?? -1) <= cat.edadMax && !!n.puesto?.[deporte])
+    .flatMap((n) => {
+      const lector = lectorDeUnNpc(n, pob, inicioCurso);
+      if (!lector) return [];
+      const puesto = n.puesto![deporte];
+      return [{
+        id: n.id,
+        nombre: n.name,
+        puesto,
+        valores: n.vp?.[deporte]?.puestos ?? {},
+        valor: n.vp?.[deporte]?.puestos?.[puesto] ?? n.vp?.[deporte]?.valor ?? n.levels[deporte] ?? 0,
+        estado: n.estado ?? ESTADO_INICIAL,
+        resiliencia: (n.cap?.[resiliencia] ?? 50) / 100,
+        ambicion: ((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100,
+        lector,
+      }];
+    })
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
 }

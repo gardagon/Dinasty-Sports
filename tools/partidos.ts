@@ -6,8 +6,8 @@
  */
 import { PAIS_CIUDAD_GRANDE, registrarPais, PAIS_CIUDAD_DE_PRUEBA } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { PARAMETROS_DE_PARTIDO, PUESTOS_DE_FUTBOL, futbol, jugarPartido, valorEnPartido, POTENCIADOR_POR_CATEGORIA, type EquipoDePartido, type JugadorDePartido } from '@ds/mod-futbol';
-import { edadDeJuego, lectorDeUnNpc, type NpcsState } from '@ds/mod-npcs';
+import { PARAMETROS_DE_PARTIDO, futbol, jugarPartido, valorEnPartido, POTENCIADOR_POR_CATEGORIA, convocarYAlinear, equipoDePartido, type EquipoDePartido, type JugadorDePartido } from '@ds/mod-futbol';
+import { plantillaDeUnEquipo, type NpcsState } from '@ds/mod-npcs';
 
 const TEMPORADAS = Number(process.argv[2] ?? 30);
 const GRANDE = (process.argv[3] ?? 'prueba') === 'grande';
@@ -19,40 +19,22 @@ const media = (xs: number[]): number => (xs.length ? xs.reduce((a, b) => a + b, 
 const g = nuevaPartida({ seed: 31, ...(GRANDE ? { pais: PAIS_CIUDAD_GRANDE.id } : {}), deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
 const s = g.moduleState<NpcsState>('npcs') as NpcsState;
 const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
-const TITULARES = PUESTOS_DE_FUTBOL.equipos!.titulares;
 
 interface EquipoConFuerza { equipo: EquipoDePartido; fuerza: number }
-/** Los equipos de una categoría: cada club con cada letra, con sus 11 titulares por grupos de puestos y hasta 5 suplentes. */
+/** Los equipos de una categoría: cada club con cada letra; el entrenador convoca a 16 y alinea con la formación (`convocarYAlinear`) y los jugadores salen con su estado de hoy (`equipoDePartido`). */
 function equiposDe(cat: string): EquipoConFuerza[] {
-  const def = pob.categorias!.find((c) => c.id === cat)!;
-  const porEquipo = new Map<string, typeof s.npcs>();
-  for (const n of s.npcs) {
-    const edad = edadDeJuego(n, 0);
-    if (n.deporte !== 'futbol' || !n.equipo || !n.letra?.futbol || edad === undefined || edad < def.edadMin || edad > def.edadMax) continue;
-    const clave = `${n.equipo}|${n.letra.futbol}`;
-    (porEquipo.get(clave) ?? porEquipo.set(clave, []).get(clave)!).push(n);
-  }
+  const clubes = new Set(s.npcs.filter((n) => n.deporte === 'futbol' && n.equipo).map((n) => `${n.equipo}`));
   const res: EquipoConFuerza[] = [];
-  for (const [clave, miembros] of porEquipo) {
-    if (miembros.length < 14) continue;
-    const jugadores = miembros.flatMap((n) => {
-      const lector = lectorDeUnNpc(n, pob, 0);
-      const puesto = n.puesto?.futbol;
-      return lector && puesto ? [{ n, lector, puesto, valor: n.vp?.futbol?.puestos?.[puesto] ?? n.vp?.futbol?.valor ?? 0 }] : [];
-    });
-    const enCampo = new Set<string>();
-    const cuenta: Record<string, number> = {};
-    for (const j of [...jugadores].sort((a, b) => b.valor - a.valor)) {
-      const grupo = PUESTOS_DE_FUTBOL.reparto.find((r) => r.puestos.includes(j.puesto))!.grupo;
-      if ((cuenta[grupo] ?? 0) >= (TITULARES[grupo] ?? 0)) continue;
-      cuenta[grupo] = (cuenta[grupo] ?? 0) + 1;
-      enCampo.add(j.n.id);
+  for (const club of clubes) {
+    for (const letra of ['A', 'B', 'C', 'D']) {
+      const plantilla = plantillaDeUnEquipo(s.npcs, [pob], 'futbol', club, cat, letra, 0);
+      if (plantilla.length < 14) continue;
+      const c = convocarYAlinear(plantilla);
+      if (c.titulares.length < 11) continue;
+      const porId = new Map(plantilla.map((j) => [j.id, j]));
+      const fuerza = media(c.titulares.map((t) => porId.get(t.id)!.valores[t.puesto] ?? porId.get(t.id)!.valor));
+      res.push({ equipo: equipoDePartido(`${club}|${letra}`, `${club} ${letra}`, plantilla, c), fuerza });
     }
-    if (enCampo.size < 11) continue;
-    const suplentes = jugadores.filter((j) => !enCampo.has(j.n.id)).sort((a, b) => b.valor - a.valor).slice(0, 5);
-    const lista: JugadorDePartido[] = [...jugadores.filter((j) => enCampo.has(j.n.id)), ...suplentes].map((j) => ({ id: j.n.id, nombre: j.n.name, puesto: j.puesto, lector: j.lector, titular: enCampo.has(j.n.id) }));
-    const fuerza = media(jugadores.filter((j) => enCampo.has(j.n.id)).map((j) => j.valor));
-    res.push({ equipo: { id: clave, nombre: clave, jugadores: lista }, fuerza });
   }
   return res;
 }
