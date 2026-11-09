@@ -45,7 +45,26 @@ export const SHARED_EVENTS = {
   DEPORTE_ANADIDO: 'deporte.anadido',
   /** data: CompeticionDelMundoData — se ha disputado una competición entre PNJ (o con el personaje): cada jugador guarda su historial y su ánimo cambia. */
   COMPETICION_MUNDO: 'competicion.mundo',
+  /** data: PartidoDelMundoData — se ha jugado un partido de un deporte de equipo entre PNJ (o con el personaje): el estado de quienes jugaron cambia como tras una carrera. */
+  PARTIDO_MUNDO: 'partido.mundo',
 } as const;
+
+/** Lo que cada jugador de un partido deja en su estado: cuánto jugó y cómo le fue, de −1 (lo peor) a +1 (lo mejor), con lo que cambian su moral y su forma. */
+export interface JugadorDelPartido {
+  npcId: string;
+  minutos: number;
+  /** De −1 a +1: el resultado y su nota. Cambia la moral y la forma como el puesto en una carrera (`trasUnaCompeticion`). */
+  valoracion: number;
+}
+
+/** Un partido jugado (de la liga de cualquier categoría): los que jugaron, para que su condición, su moral y su forma cambien con las mismas reglas que tras una carrera. */
+export interface PartidoDelMundoData {
+  deporte: string;
+  semana: number;
+  curso?: number;
+  categoria: string;
+  jugadores: JugadorDelPartido[];
+}
 
 /** Una prueba disputada entre jugadores de la población (de cualquier categoría, con o sin el personaje): quién corrió y cómo le fue. */
 export interface PruebaDelMundo {

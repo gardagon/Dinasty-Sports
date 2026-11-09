@@ -79,6 +79,8 @@ export interface JugadorDePartido {
   lector: LectorDePersona;
   /** Energía con que llega (0 a 100); por defecto 100. Cuanta menos, más se cansa. */
   energia?: number;
+  /** Cuánto rinde el día del partido por su estado (forma y salud: `factorDeCompeticion` de su eficiencia; el mismo factor que en el atletismo); por defecto 1. */
+  rinde?: number;
   titular: boolean;
 }
 
@@ -125,6 +127,8 @@ export interface ResultadoDePartido {
   /** Tiros (ocasiones) de cada equipo. */
   tiros: [number, number];
   jugadores: Record<string, EstadisticasDeJugador>;
+  /** Los ids de los convocados de cada equipo ([local, visitante]). */
+  alineaciones: [string[], string[]];
   /** Los goles, en orden: tramo, equipo (0 local, 1 visitante), goleador y asistente. */
   jugadas: { tramo: number; equipo: 0 | 1; goleador: string; asistente?: string; tipo: 'juego' | 'balon_parado' }[];
 }
@@ -206,7 +210,8 @@ function prepararJugador(j: JugadorDePartido, potenciador: number): EnCampo {
   const v = new Map<string, number>();
   const val = (stat: string): number => v.get(stat) ?? (v.set(stat, valorEnPartido(j.lector, stat, potenciador)), v.get(stat)!);
   const zona = Object.fromEntries(ZONAS.map((z) => [z, media(HABILIDADES_DE_LA_ZONA[z].map(val))])) as Record<Zona, number>;
-  return { j, cansancio: 0, minutos: 0, zona, tiro: 0.6 * val('futbol.definicion') + 0.25 * val('futbol.disparo_lejano') + 0.15 * val('futbol.cabeza'), cabeza: val('futbol.cabeza'), lanzamiento: 0.6 * val('futbol.faltas') + 0.4 * val('futbol.corners'), pase: val('futbol.pase') };
+  const r = j.rinde ?? 1;
+  return { j, cansancio: 0, minutos: 0, zona: Object.fromEntries(ZONAS.map((z) => [z, zona[z] * r])) as Record<Zona, number>, tiro: r * (0.6 * val('futbol.definicion') + 0.25 * val('futbol.disparo_lejano') + 0.15 * val('futbol.cabeza')), cabeza: r * val('futbol.cabeza'), lanzamiento: r * (0.6 * val('futbol.faltas') + 0.4 * val('futbol.corners')), pase: r * val('futbol.pase') };
 }
 
 /** El valor de una zona del equipo en un tramo: la media de lo que valen los que están en el campo en esa zona, ponderada por lo que su puesto aporta a ella y por lo cansados que están. */
@@ -348,7 +353,7 @@ export function jugarPartido(local: EquipoDePartido, visitante: EquipoDePartido,
       void id;
     }
   }
-  return { goles, porTramo, tiros, jugadores: Object.fromEntries(lados.flatMap((l) => [...l.stats])), jugadas };
+  return { goles, porTramo, tiros, jugadores: Object.fromEntries(lados.flatMap((l) => [...l.stats])), alineaciones: [local.jugadores.map((j) => j.id), visitante.jugadores.map((j) => j.id)], jugadas };
 }
 
 /** Los cambios de una interrupción: los más cansados salen por un suplente del mismo grupo de puestos, hasta el máximo de la categoría (con cambios volantes, los que salieron pueden volver). */

@@ -235,7 +235,7 @@ export interface PuestosDeDeporte {
    * Cómo se forman los equipos de un club (`CIUDAD_Y_LIGAS.md` §5): los **titulares** de cada equipo por grupo de puestos (un equipo de 18 tiene 11 titulares y 7 suplentes: en el fútbol, 1 portero, 2
    * centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y el **listón** que un jugador de primer año necesita sobre uno de segundo para ser titular en el A de un club grande.
    */
-  equipos?: { titulares: Readonly<Record<string, number>>; listonDePrimerAno: number };
+  equipos?: { titulares: Readonly<Record<string, number>>; listonDePrimerAno: number; /** Los puestos de los titulares de cada grupo en la alineación (en el fútbol: 1 portero, 2 centrales, lateral izquierdo y derecho, tres de medio, extremos izquierdo y derecho y un delantero centro). */ formacion?: Readonly<Record<string, readonly string[]>> };
   /** La pierna buena: proporción de zurdos, lo que vale de base el lado de su pierna y lo que acelera la experiencia en él. Sin él, los valores por defecto. */
   pierna?: PiernaDeDeporte;
   /**

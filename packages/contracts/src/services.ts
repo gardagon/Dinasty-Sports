@@ -1,6 +1,8 @@
 import type { DatoPersonal } from './personas';
 import type { Practica } from './herencia';
 import type { PerfilDelPersonaje, RasgosDe } from './rasgos';
+import type { EstadoDeJugador } from './estado-de-jugador';
+import type { LectorDePersona } from './lector';
 /**
  * Servicios: la forma de que un módulo CONSULTE a otro sin importarlo.
  * El contrato (interfaz + clave) vive aquí; la implementación, en el módulo que lo publica.
@@ -124,6 +126,28 @@ export interface NpcDirectory {
    * de la sesión, **los mismos para todos los que entrenan juntos**, personaje incluido. `undefined` si el deporte no tiene jugadores con habilidades en ese equipo.
    */
   nivelesDelEquipo?(deporte: string, club: string, categoria: string): Readonly<Record<string, number>> | undefined;
+  /**
+   * Los jugadores de un equipo (club, categoría y letra A a D) para jugar un partido: cada uno con su puesto, lo que vale en cada puesto, su estado de hoy (condición física, forma, moral y salud) y su lector de
+   * habilidades y capacidades. Con ellos el entrenador convoca y alinea, y el motor de partido los juega. Lo mismo para todos (`VISION.md`).
+   */
+  plantillaDelEquipo?(deporte: string, club: string, categoria: string, letra: string): JugadorDeEquipoView[];
+}
+
+/** Un jugador de un equipo, tal como lo ve quien organiza un partido. */
+export interface JugadorDeEquipoView {
+  id: string;
+  nombre: string;
+  /** El puesto en que juega en su equipo. */
+  puesto: string;
+  /** Lo que vale en cada puesto (0 a 100); vacío si el deporte no tiene puestos. */
+  valores: Readonly<Record<string, number>>;
+  /** Lo que vale en su puesto. */
+  valor: number;
+  estado: EstadoDeJugador;
+  /** Su carácter, de 0 a 1: resiliencia (cuánto le afectan los resultados) y ambición. */
+  resiliencia: number;
+  ambicion: number;
+  lector: LectorDePersona;
 }
 
 // ---------- Estudios ----------
