@@ -2,7 +2,7 @@
  * La regla de plaza y los valores por puesto.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { categoriaDeEdad, type CategoriaDef, type PlazaEnEquipo, SERVICES, rngEstable, CAPACIDADES_GENETICAS, cuposPorGrupo, PROPORCION_DE_ZURDOS, type PruebaEnClub, type ConsejoDeDeporte, conLaPierna, type Pierna, type NpcDirectory, type IdentityService, aptitudDe, type ReadContext } from '@ds/contracts';
+import { type LectorDePersona, categoriaDeEdad, type CategoriaDef, type PlazaEnEquipo, SERVICES, rngEstable, CAPACIDADES_GENETICAS, cuposPorGrupo, PROPORCION_DE_ZURDOS, type PruebaEnClub, type ConsejoDeDeporte, conLaPierna, type Pierna, type NpcDirectory, type IdentityService, aptitudDe, type ReadContext } from '@ds/contracts';
 import { potencialEn } from './deportistas';
 import { valoresIniciales } from './capacidades';
 import { habilidadesIniciales, lectorDe, prepararTrabajo } from './rutina';
@@ -161,6 +161,17 @@ export function valorRealDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: 
   return valor;
 }
 
+
+/**
+ * El lector de un niño en un deporte: sus capacidades y habilidades de hoy (las que lleva si ya juega o las de partida si aún no), con el que el deporte lo valora (`valorRealDe`) y con el que el motor de
+ * partido lo juega (`jugarPartido`). `undefined` si no se puede calcular (sin genética o sin rutina del deporte).
+ */
+export function lectorDeUnNpc(n: Npc, pob: PoblacionGuardada, dia: number): LectorDePersona | undefined {
+  if (!pob.rutina || !n.genetica || !n.cap || !n.pico || n.nacimiento === undefined) return undefined;
+  const hab = n.hab?.[pob.deporte] ?? habilidadesIniciales(n.id, n.genetica, pob.deporte, pob.rutina, dia);
+  const t = prepararTrabajo({ id: n.id, genetica: n.genetica, nacimiento: n.nacimiento, cap: n.cap, pico: n.pico }, valoresIniciales(n.id, n.genetica), pob.deporte, pob.rutina, hab, n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), dia);
+  return lectorDe(t);
+}
 
 /** Lo que vale un niño en cada puesto del deporte (`undefined` si el deporte no tiene puestos o no se puede calcular). */
 export function valoresPorPuestoDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): Record<string, number> | undefined {
