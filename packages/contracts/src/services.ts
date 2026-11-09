@@ -147,6 +147,10 @@ export interface JugadorDeEquipoView {
   /** Su carácter, de 0 a 1: resiliencia (cuánto le afectan los resultados) y ambición. */
   resiliencia: number;
   ambicion: number;
+  /** Qué parte de las sesiones del club hizo en las dos últimas semanas (de 0 a 1): la misma para el personaje y los PNJ. */
+  asistencia: number;
+  /** Lo disciplinado que es su entrenador (de 0 a 1): con uno disciplinado, faltar cuesta más el puesto. */
+  disciplinaDelEntrenador: number;
   lector: LectorDePersona;
 }
 

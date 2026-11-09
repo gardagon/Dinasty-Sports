@@ -24,6 +24,11 @@ Tras varios días con la base del mundo, el usuario aprueba un MVP para poder pr
 - **Puesto favorito:** a los 8 años, en torno al 60 % sin puesto definido, un 30 % con un puesto concreto y un 10 % con una zona («en categorías tan pequeñas todavía no saben dónde pueden ser mejores»); la preferencia se forma con los años según el tiempo que juegan en un puesto y lo bien que lo hacen. Sustituye al 60/40 del #98.
 - Las demás cifras del #98 se quedan: aceptan otro puesto fuera de lo suyo entre el 55 % y el 97 %, según su carácter; prueban en otro club el 15 % de cada equipo de club y el 6 % de cada uno de colegio.
 
+## 09/11/2026 — La asistencia a los entrenamientos cuenta para todos (respuestas del usuario a la F2.2)
+
+- **Moral:** como en el atletismo, solo a través de la forma. **Banquillo:** en la F2.4, con las estadísticas. **Prioridad del entrenador:** las cifras valen (−20 % por faltar, ±5 % por la relación).
+- **La asistencia cuenta para todos, no solo para el personaje:** `NpcDirectory.plantillaDelEquipo` da de cada jugador qué parte de las sesiones del club hizo en las dos últimas semanas (`asistencia`, de 0 a 1, de las sesiones a las que va cada semana: `huecosQueHace`, las mismas con las que entrena) y lo disciplinado que es su entrenador (`disciplinaDelEntrenador`). `paraConvocar` aplica a cualquiera la misma penalización por faltar (hasta −20 %, más con un entrenador disciplinado). **La relación con el entrenador (±5 %) solo cuenta en el personaje**, que es quien la tiene guardada; en un PNJ es neutra. Test: un PNJ que falta a todo tiene la misma penalización que el personaje que falta a todo con una relación normal.
+
 ## 09/11/2026 — F2.2: convocatoria, alineación y estado de los jugadores en el partido
 
 Con las decisiones del usuario del 09/11 (sin añadir azar; el estado de cada jugador en el partido, igual para el personaje y los PNJ; cambios de momento 5 en 3 paradas; lo que aporta cada puesto a cada zona se afina en la F3).

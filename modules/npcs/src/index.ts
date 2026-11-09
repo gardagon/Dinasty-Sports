@@ -1399,7 +1399,7 @@ export const npcs = defineModule<NpcsState>({
           const n = personaPorId(lista, id);
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
-        plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso),
+        plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day)),
         nivelesDelEquipo: (deporte, club, categoria) => nivelesDelEquipoDe(lista, poblacionesGuardadas(ctx), deporte, club, categoria, ctx.time.week, inicioCurso),
         plaza: (deporte, club, nivel, puestos, prueba) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso, puestos, rendimientosDe(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', prueba),
         consejoDeportivo: () => consejoDeUnProfesor(ctx, lista, poblacionesGuardadas(ctx), rendimientosDe(ctx), inicioCurso),
