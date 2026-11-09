@@ -59,6 +59,8 @@ Cada club tiene un **tamaño**, que es un dato y decide cuántos equipos saca po
 2. **Un filial no sube a la división de su primer equipo:** si queda en puesto de ascenso, sube el siguiente.
 3. **Si el primer equipo baja a la división de su filial, el filial baja una más.** Si ya estaba en Tercera, se queda.
 
+**Con los equipos A–D y la ciudad grande (09/11, entra en el MVP):** las reglas del filial valen para todos los equipos de un club: **dos equipos de un mismo club no están en la misma división, salvo en la última** (y allí, en grupos distintos si los hay); **un equipo no sube a la división de otro mejor de su club** (sube el siguiente); y **si un equipo baja a la división de otro de su club que esté por debajo, ese baja una más**. Los grupos van de 8 a 12 equipos: si en la última división quedan menos de 8, se juntan con la de arriba en lugar de formar un grupo de pocos. Al crear la partida, las divisiones se reparten por lo que vale cada equipo.
+
 ## 5. Los equipos de cada club: A, B, C y D, por puestos (decisión del usuario, 03/11)
 
 Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F2). Va antes de la P2c.

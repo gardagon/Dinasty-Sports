@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 09/11/2026 — Revisión del motor de partido (#106): divisiones en el MVP, el estado de los jugadores en el partido y las preguntas del desarrollador (decisiones del usuario)
+
+- **Divisiones con ascensos y descensos, ya en el MVP** (antes, después): con la ciudad grande hay 25–32 equipos por categoría y una sola liga a doble vuelta no cabe en un curso (más de 50 jornadas para unos 30 sábados). Primera y Segunda de 10 y una Tercera con el resto (`CIUDAD_Y_LIGAS.md` §4), con las reglas del filial extendidas a los equipos A–D. Sustituye a «una sola división por categoría» del MVP.
+- **El mejor gana la liga demasiado (65–80 %):** no se añade azar. Se corrige con las divisiones (equipos parecidos en cada una) y con **el estado de cada jugador en el partido** (condición física como energía al empezar, forma y moral en su rendimiento, y el estado actualizado al acabar, como tras una carrera): la misma regla que el atletismo, para el personaje y para todos.
+- **Cambios:** 5 en 3 paradas de momento; los de cada categoría, con la convocatoria.
+- **Cuánto aporta cada puesto a cada zona:** sale de los pesos de cada puesto (no había tabla en el addon); es un dato que se afina en la F3.
+- **Goleadas en benjamín** (15 % de los partidos entre parecidos con 6 goles o más): se mira al calibrar.
+
 ## 08/11/2026 — El MVP del fútbol (decisión del usuario)
 
 Tras varios días con la base del mundo, el usuario aprueba un MVP para poder probar el fútbol («vamos con eso y, si tenemos que cambiar algo, lo hablamos»). Está en `ANALISIS_FUTBOL.md` («El MVP del fútbol»): cerrar la base con los equipos fijos toda la temporada y el abandono por edad; la F2 por partes (motor con banco de partidos, convocatoria y alineación, liga de una sola división por categoría jugándose en todas, estadísticas, experiencia por puesto y pestaña); y publicarlo como paquete con una pantalla de «creando el mundo» para que lo pruebe. Quedan para después las divisiones con ascensos, la copa, tarjetas y lesiones en el partido, elegir entre clubes, entrenamiento por equipo e instalaciones.
