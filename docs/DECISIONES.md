@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 09/11/2026 — La última división partida en grupos, con playoff (decisión del usuario)
+
+Con la ciudad grande, en juvenil (que abarca tres años) salían 10 + 10 + 14, y 14 no cabe en grupos de 8 a 12. Decidido (`CIUDAD_Y_LIGAS.md` §4):
+
+- **Primera y Segunda, siempre de 10**; la última, partida en dos grupos (o más) aunque sean pequeños, y en las ligas impares descansa uno cada jornada (todos lo mismo, nunca dos seguidas).
+- **Playoff al acabar la liga** con los 2 o 4 primeros de cada grupo, **incluidos los que no pueden subir** (variante elegida por el usuario frente a dejarlos fuera); el ganador es el campeón de la división.
+- **Suben los 2 finalistas;** si uno no puede por las reglas del filial, el ascenso pasa a los semifinalistas y luego a los cuartofinalistas, por puntos, diferencia de goles y sorteo.
+- **Ceder el ascenso:** si el que subiría es el C de un club y el que baja de Segunda es su B, el B se queda y el C también (un ascenso y un descenso menos).
+
 ## 09/11/2026 — Revisión del motor de partido (#106): divisiones en el MVP, el estado de los jugadores en el partido y las preguntas del desarrollador (decisiones del usuario)
 
 - **Divisiones con ascensos y descensos, ya en el MVP** (antes, después): con la ciudad grande hay 25–32 equipos por categoría y una sola liga a doble vuelta no cabe en un curso (más de 50 jornadas para unos 30 sábados). Primera y Segunda de 10 y una Tercera con el resto (`CIUDAD_Y_LIGAS.md` §4), con las reglas del filial extendidas a los equipos A–D. Sustituye a «una sola división por categoría» del MVP.

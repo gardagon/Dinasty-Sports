@@ -61,6 +61,13 @@ Cada club tiene un **tamaño**, que es un dato y decide cuántos equipos saca po
 
 **Con los equipos A–D y la ciudad grande (09/11, entra en el MVP):** las reglas del filial valen para todos los equipos de un club: **dos equipos de un mismo club no están en la misma división, salvo en la última** (y allí, en grupos distintos si los hay); **un equipo no sube a la división de otro mejor de su club** (sube el siguiente); y **si un equipo baja a la división de otro de su club que esté por debajo, ese baja una más**. Los grupos van de 8 a 12 equipos: si en la última división quedan menos de 8, se juntan con la de arriba en lugar de formar un grupo de pocos. Al crear la partida, las divisiones se reparten por lo que vale cada equipo.
 
+**La última división partida en grupos, con playoff (decisión del usuario, 09/11; sustituye a «los grupos van de 8 a 12»):**
+- **La Primera y la Segunda, siempre de 10.** Si lo que queda no da para otra división ni cabe en un solo grupo de 12, la última se parte en dos grupos (o más), aunque sean pequeños (por ejemplo, juvenil: 10 + 10 + 7 + 7).
+- **Ligas impares:** con un número impar de equipos, cada jornada descansa uno; todos descansan las mismas jornadas, nunca dos seguidas, y el descanso no cuenta como partido.
+- **Playoff al acabar la liga**, para compensar las jornadas: lo juegan los 2 o los 4 primeros de cada grupo (según las jornadas que falten hasta unas 18), **también los equipos que no pueden subir** (un filial con otro equipo de su club en Segunda). Con 2 por grupo, semifinales cruzadas (1.º de un grupo contra 2.º del otro) a ida y vuelta y final a partido único; con 4, además cuartos. **El ganador es el campeón de la división.**
+- **Suben los 2 finalistas.** Si uno no puede subir por las reglas del filial, el ascenso pasa a los semifinalistas y después a los cuartofinalistas, ordenados por puntos en la liga, después por diferencia de goles y, si siguen iguales, por sorteo.
+- **Un equipo de abajo cede su ascenso a uno de arriba de su club:** si el que subiría es, por ejemplo, el C de un club y el que baja de Segunda es el B de ese mismo club, no se cambian: el B mantiene su plaza en Segunda y el C se queda en la última (hay un ascenso y un descenso menos entre esas dos divisiones).
+
 ## 5. Los equipos de cada club: A, B, C y D, por puestos (decisión del usuario, 03/11)
 
 Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F2). Va antes de la P2c.
