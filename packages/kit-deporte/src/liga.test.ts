@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ascensosYDescensos, actualizarDivisiones, calendarioDobleVuelta, gruposDe, repartirEnDivisiones, tablaDeClasificacion, tamanosDeDivisiones, type EquipoDeLiga, type FilaDeTabla, type FormatoDeDivisiones } from './liga';
 
-const F: FormatoDeDivisiones = { tamano: 10, fijas: 2, grupo: { min: 8, max: 12 }, suben: 2, bajan: 2 };
+const F: FormatoDeDivisiones = { tamano: 10, fijas: 2, grupo: { max: 12 }, suben: 2, bajan: 2, playoff: { jornadasObjetivo: 18 } };
 /** `n` equipos de `clubes` clubes (el equipo `i` es del club `i % clubes`, letra por vueltas), el primero el más fuerte. */
 const equipos = (n: number, clubes: number): EquipoDeLiga[] => Array.from({ length: n }, (_, i) => ({ id: `c${i % clubes}${'ABCD'[Math.floor(i / clubes)]}`, club: `c${i % clubes}`, fuerza: 1000 - i }));
 const clubDe = (id: string): string => id.slice(0, -1);
@@ -10,16 +10,19 @@ const tabla = (ids: string[]): FilaDeTabla[] => ids.map((id, i) => ({ id, pj: 18
 const todos = (d: { grupos: string[][] }[]): string[] => d.flatMap((x) => x.grupos.flat());
 
 describe('el reparto en divisiones', () => {
-  it('Primera y Segunda de 10 y una Tercera con el resto (en grupos de 8 a 12); con menos de 8 para una última, se juntan con la de arriba', () => {
+  it('Primera y Segunda, siempre de 10, y una última con el resto: en un grupo si cabe en 12 y, si no, partida en dos grupos o más, aunque sean pequeños (10 + 10 + 7 + 7)', () => {
     expect(tamanosDeDivisiones(30, F)).toEqual([10, 10, 10]);
     expect(tamanosDeDivisiones(32, F)).toEqual([10, 10, 12]);
-    expect(tamanosDeDivisiones(27, F)).toEqual([10, 17]); // quedan 7: menos de 8, se juntan con la Segunda
+    expect(tamanosDeDivisiones(27, F)).toEqual([10, 10, 7]); // la última no tiene por qué llegar a 8: un grupo pequeño
+    expect(tamanosDeDivisiones(34, F)).toEqual([10, 10, 14]); // juvenil: la última no cabe en un grupo de 12
     expect(tamanosDeDivisiones(45, F)).toEqual([10, 10, 25]);
     expect(tamanosDeDivisiones(10, F)).toEqual([10]);
     expect(tamanosDeDivisiones(7, F)).toEqual([7]);
+    expect(tamanosDeDivisiones(22, F)).toEqual([10, 12]); // dos equipos solos no hacen una división: se juntan con la de arriba
     expect(gruposDe(25, F)).toBe(3);
-    expect(gruposDe(17, F)).toBe(2);
+    expect(gruposDe(14, F)).toBe(2);
     expect(gruposDe(12, F)).toBe(1);
+    expect(gruposDe(7, F)).toBe(1);
   });
 
   it('al crear la partida se reparten por lo que vale cada equipo: los mejores arriba', () => {
@@ -56,6 +59,17 @@ describe('el reparto en divisiones', () => {
     expect(d[0].grupos[0]).toHaveLength(6);
     expect(new Set(d[0].grupos[0].map(clubDe)).size).toBe(6);
     expect(todos(d)).toHaveLength(24);
+  });
+});
+
+describe('la última división partida en grupos', () => {
+  it('juvenil con 34 equipos: 10 + 10 + 7 + 7, y los equipos de un mismo club, en grupos distintos', () => {
+    const d = repartirEnDivisiones(equipos(34, 12), F);
+    expect(d.map((x) => x.grupos.map((g) => g.length))).toEqual([[10], [10], [7, 7]]);
+    for (const g of d[2].grupos) {
+      const cs = g.map(clubDe);
+      expect(Math.max(...Object.values(cs.reduce<Record<string, number>>((m, c) => ({ ...m, [c]: (m[c] ?? 0) + 1 }), {})))).toBeLessThanOrEqual(2);
+    }
   });
 });
 

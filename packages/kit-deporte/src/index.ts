@@ -12,3 +12,4 @@ export * from './categorias';
 export * from './comunes';
 export * from './tablas';
 export * from './liga';
+export * from './playoff';
