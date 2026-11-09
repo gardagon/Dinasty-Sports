@@ -6,7 +6,8 @@
  */
 import { PAIS_CIUDAD_GRANDE, registrarPais, PAIS_CIUDAD_DE_PRUEBA } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { PARAMETROS_DE_PARTIDO, futbol, jugarPartido, valorEnPartido, POTENCIADOR_POR_CATEGORIA, convocarYAlinear, equipoDePartido, type EquipoDePartido, type JugadorDePartido } from '@ds/mod-futbol';
+import { DATOS_FUTBOL, PARAMETROS_DE_PARTIDO, futbol, jugarPartido, valorEnPartido, POTENCIADOR_POR_CATEGORIA, convocarYAlinear, equipoDePartido, type EquipoDePartido, type JugadorDePartido } from '@ds/mod-futbol';
+import { calendarioDobleVuelta, repartirEnDivisiones, tablaDeClasificacion, type ResultadoDeLiga } from '@ds/kit-deporte';
 import { plantillaDeUnEquipo, type NpcsState } from '@ds/mod-npcs';
 
 const TEMPORADAS = Number(process.argv[2] ?? 30);
@@ -46,66 +47,73 @@ const jugar = (a: EquipoConFuerza, b: EquipoConFuerza, cat: string) => jugarPart
 const BASE = { ...PARAMETROS_DE_PARTIDO };
 /** Con un tercer argumento (un JSON con una lista de cambios en los parámetros del motor) el banco se repite con cada uno, para calibrar. */
 const VARIANTES: Record<string, unknown>[] = process.argv[4] ? JSON.parse(process.argv[4]) : [{}];
+const FORMATO = DATOS_FUTBOL.paises.espana.temporada.liga!.divisiones!;
+const clubDe = (id: string): string => id.split('|')[0];
 for (const variante of VARIANTES) {
 Object.assign(PARAMETROS_DE_PARTIDO, BASE, variante);
 if (Object.keys(variante).length) console.log(`\n=== Parámetros: ${JSON.stringify(variante)}`);
-console.log(`Banco de partidos (${GRANDE ? 'ciudad grande' : 'ciudad de prueba'}, ${TEMPORADAS} temporadas por categoría; ligas a doble vuelta de hasta 7 equipos de la ciudad)\n`);
-console.log('| Categoría | Equipos | Goles por partido | 0 a 0 | Goleadas (≥ 6 goles) entre parecidos | El mejor gana la liga | Nota media (de campo, titulares) | Nota del mejor cuartil | Nota del mejor 5 % | Minutos de los suplentes (% de los que juegan) |');
-console.log('|---|---|---|---|---|---|---|---|---|---|');
+console.log(`Banco de partidos (${GRANDE ? 'ciudad grande' : 'ciudad de prueba'}, ${TEMPORADAS} temporadas por categoría; los equipos repartidos en divisiones por lo que valen, cada grupo a doble vuelta)\n`);
+console.log('| Categoría | Equipos | Divisiones (grupos) | Goles por partido | 0 a 0 | Goleadas (≥ 6 goles) entre parecidos | Nota media (de campo, titulares) | Nota del mejor cuartil | Minutos de los suplentes (% de los que juegan) |');
+console.log('|---|---|---|---|---|---|---|---|---|');
 const detalle: string[] = [];
+const mejorPorDivision: string[] = ['\nEl mejor equipo de cada grupo gana su liga (por división; el objetivo es entre el 40 % y el 75 %):\n', '| Categoría | Primera | Segunda | Última (cada grupo) |', '|---|---|---|---|'];
 for (const cat of CATEGORIAS) {
   const equipos = equiposDe(cat);
   if (equipos.length < 4) { console.log(`| ${cat} | ${equipos.length} | (faltan equipos) |`); continue; }
+  const porId = new Map(equipos.map((e) => [e.equipo.id, e]));
+  const divisiones = repartirEnDivisiones(equipos.map((e) => ({ id: e.equipo.id, club: clubDe(e.equipo.id), fuerza: e.fuerza })), FORMATO);
   const goles: number[] = [];
-  let ceroACero = 0, partidos = 0, goleadas = 0, parecidos = 0, mejorGana = 0, ligas = 0;
+  let ceroACero = 0, partidos = 0, goleadas = 0, parecidos = 0;
   const notasTitulares: number[] = [];
   const notasMejores: number[] = [];
   const porDiferencia = new Map<number, { goles: number[]; dif: number[] }>();
   let suplentesQueJuegan = 0, suplentes = 0;
+  const mejorGana: { gana: number; ligas: number }[] = divisiones.map(() => ({ gana: 0, ligas: 0 }));
+  /** Lo lejos que están el mejor y el peor de un grupo (fuerza del mejor / fuerza del peor), por división. */
+  const dispersion = divisiones.map((d) => media(d.grupos.map((g) => Math.max(...g.map((id) => porId.get(id)!.fuerza)) / Math.min(...g.map((id) => porId.get(id)!.fuerza)))));
   for (let t = 0; t < TEMPORADAS; t++) {
-    // Siete equipos al azar de la categoría (estable por temporada).
-    const orden = [...equipos].sort((a, b) => (((a.equipo.id.length * 7919 + t * 104729 + a.fuerza * 1000) % 997) - ((b.equipo.id.length * 7919 + t * 104729 + b.fuerza * 1000) % 997)));
-    const liga = orden.slice(0, Math.min(7, equipos.length));
-    const puntos = new Map(liga.map((e) => [e, 0]));
-    for (const a of liga) for (const b of liga) {
-      if (a === b) continue;
-      const r = jugar(a, b, cat);
-      const [ga, gb] = r.goles;
-      goles.push(ga + gb);
-      partidos++;
-      if (ga + gb === 0) ceroACero++;
-      const ratio = Math.min(a.fuerza, b.fuerza) / Math.max(a.fuerza, b.fuerza);
-      if (ratio > 0.95) { parecidos++; if (ga + gb >= 6) goleadas++; }
-      const cubo = Math.round((1 - ratio) * 20) / 20;
-      const reg = porDiferencia.get(cubo) ?? porDiferencia.set(cubo, { goles: [], dif: [] }).get(cubo)!;
-      reg.goles.push(ga + gb);
-      reg.dif.push(Math.abs(ga - gb));
-      puntos.set(a, puntos.get(a)! + (ga > gb ? 3 : ga === gb ? 1 : 0));
-      puntos.set(b, puntos.get(b)! + (gb > ga ? 3 : ga === gb ? 1 : 0));
-      for (const [id, st] of Object.entries(r.jugadores)) {
-        const eq = [a, b].find((e) => e.equipo.jugadores.some((j) => j.id === id))!;
-        const j = eq.equipo.jugadores.find((x) => x.id === id)!;
-        if (!j.titular) { suplentes++; if (st.minutos > 0) suplentesQueJuegan++; }
-        if (st.minutos < 60 || j.puesto === 'GK') continue;
-        notasTitulares.push(st.nota);
+    divisiones.forEach((div, d) => div.grupos.forEach((grupo) => {
+      if (grupo.length < 4) return;
+      const resultados: ResultadoDeLiga[] = [];
+      for (const jornada of calendarioDobleVuelta(grupo)) for (const p of jornada) {
+        const a = porId.get(p.local)!;
+        const b = porId.get(p.visitante)!;
+        const r = jugar(a, b, cat);
+        const [ga, gb] = r.goles;
+        resultados.push({ local: p.local, visitante: p.visitante, golesLocal: ga, golesVisitante: gb });
+        goles.push(ga + gb);
+        partidos++;
+        if (ga + gb === 0) ceroACero++;
+        const ratio = Math.min(a.fuerza, b.fuerza) / Math.max(a.fuerza, b.fuerza);
+        if (ratio > 0.95) { parecidos++; if (ga + gb >= 6) goleadas++; }
+        const cubo = Math.round((1 - ratio) * 20) / 20;
+        const reg = porDiferencia.get(cubo) ?? porDiferencia.set(cubo, { goles: [], dif: [] }).get(cubo)!;
+        reg.goles.push(ga + gb);
+        reg.dif.push(Math.abs(ga - gb));
+        for (const [id, st] of Object.entries(r.jugadores)) {
+          const j = [a, b].flatMap((e) => e.equipo.jugadores).find((x) => x.id === id)!;
+          if (!j.titular) { suplentes++; if (st.minutos > 0) suplentesQueJuegan++; }
+          if (st.minutos < 60 || j.puesto === 'GK') continue;
+          notasTitulares.push(st.nota);
+        }
       }
-    }
-    const mejorFuerza = liga.reduce((m, e) => (e.fuerza > m.fuerza ? e : m), liga[0]);
-    const campeon = [...puntos].reduce((m, x) => (x[1] > m[1] ? x : m));
-    ligas++;
-    if (campeon[0] === mejorFuerza) mejorGana++;
+      const mejor = grupo.reduce((m, id) => (porId.get(id)!.fuerza > porId.get(m)!.fuerza ? id : m), grupo[0]);
+      mejorGana[d].ligas++;
+      if (tablaDeClasificacion(grupo, resultados)[0].id === mejor) mejorGana[d].gana++;
+    }));
   }
   const todasNotas = [...notasTitulares].sort((a, b) => a - b);
-  const mejor5 = todasNotas.slice(Math.floor(todasNotas.length * 0.95));
   for (const n of todasNotas.slice(Math.floor(todasNotas.length * 0.75))) notasMejores.push(n);
-  console.log(`| ${cat} | ${equipos.length} | ${f(media(goles), 2)} | ${f((100 * ceroACero) / partidos)} % | ${goleadas} de ${parecidos} (${f((100 * goleadas) / Math.max(1, parecidos))} %) | ${f((100 * mejorGana) / ligas, 0)} % | ${f(media(notasTitulares), 2)} | ${f(media(notasMejores), 2)} | ${f(media(mejor5), 2)} | ${f((100 * suplentesQueJuegan) / Math.max(1, suplentes), 0)} % |`);
+  console.log(`| ${cat} | ${equipos.length} | ${divisiones.map((d) => `${d.grupos.flat().length}${d.grupos.length > 1 ? ` (${d.grupos.length} grupos)` : ''}`).join(' + ')} | ${f(media(goles), 2)} | ${f((100 * ceroACero) / partidos)} % | ${goleadas} de ${parecidos} (${f((100 * goleadas) / Math.max(1, parecidos))} %) | ${f(media(notasTitulares), 2)} | ${f(media(notasMejores), 2)} | ${f((100 * suplentesQueJuegan) / Math.max(1, suplentes), 0)} % |`);
+  const pct = (x: { gana: number; ligas: number } | undefined, disp?: number): string => (x ? `${f((100 * x.gana) / Math.max(1, x.ligas), 0)} % (mejor/peor ×${f(disp ?? 0, 2)})` : '—');
+  mejorPorDivision.push(`| ${cat} | ${pct(mejorGana[0], dispersion[0])} | ${pct(mejorGana[1], dispersion[1])} | ${pct(mejorGana.length > 2 ? mejorGana[2] : undefined, dispersion[2])} |`);
   detalle.push(`\n${cat}: a más diferencia de nivel entre equipos (1 − menor/mayor fuerza), más goles y más diferencia en el marcador:\n| Diferencia | Partidos | Goles por partido | Diferencia de goles |\n|---|---|---|---|`);
   const grupos = [0, 0.05, 0.1, 0.2, 0.3].map((min, i, arr) => ({ min, max: arr[i + 1] ?? 1, g: [] as number[], d: [] as number[] }));
   for (const [cubo, r] of porDiferencia) { const gr = grupos.find((x) => cubo >= x.min && cubo < x.max)!; gr.g.push(...r.goles); gr.d.push(...r.dif); }
   for (const gr of grupos) if (gr.g.length) detalle.push(`| ${gr.min === 0 ? '< 5 %' : `${f(gr.min * 100, 0)} % o más`} | ${gr.g.length} | ${f(media(gr.g), 2)} | ${f(media(gr.d), 2)} |`);
 }
+console.log(mejorPorDivision.join('\n'));
 console.log(detalle.join('\n'));
-
 }
 Object.assign(PARAMETROS_DE_PARTIDO, BASE);
 

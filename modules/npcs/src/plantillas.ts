@@ -2,7 +2,7 @@
  * Las plantillas: quién juega en cada equipo, el reclutamiento y los equipos A a D.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
+import { type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
 import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
@@ -20,6 +20,8 @@ import { type Rendimientos } from './semana';
 
 import { EDAD_FIN_COLEGIO, EquipoGuardado, Npc, PoblacionGuardada, delColegio, descripcionDeOtroColegio, edadDeJuego, edadNpc, hermanos, npcs, persona } from './index';
 import { conDraft, draftDeEquipos } from './draft';
+import { idDeEntrenadorDeEquipo } from './draft';
+import { huecosQueHace } from './semana';
 import { lectorDeUnNpc, Valoracion, aceptaElPuesto, categoriaDe, leGustaElGrupo, ofertaAlCandidato, piernaDe, puestoDeJugador, reglaDePlaza, valorEnSuPuesto, valorRealDe, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** Las edades en las que recluta un equipo: las del deporte, acotadas por las suyas (un equipo de colegio solo llega a la edad en que acaba el colegio). */
@@ -586,11 +588,13 @@ export function acomodarSobrantes(m: MercadoDeFichajes, pob: PoblacionGuardada, 
  * Los jugadores de un equipo (club, categoría y letra A a D) para jugar un partido: su puesto, lo que valen en cada uno, su estado de hoy y su lector (`NpcDirectory.plantillaDelEquipo`). Son los mismos datos para todos:
  * el personaje y los PNJ salen de las mismas reglas.
  */
-export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, categoria: string, letra: string, inicioCurso: number): JugadorDeEquipoView[] {
+export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, categoria: string, letra: string, inicioCurso: number, semana = 0): JugadorDeEquipoView[] {
   const pob = pobs.find((p) => p.deporte === deporte);
   const cat = pob?.categorias?.find((c) => c.id === categoria);
   if (!pob || !cat) return [];
   const resiliencia = CAPACIDADES_GENETICAS.indexOf('gen.resiliencia');
+  const disciplinaDelEntrenador = disciplinaDelEntrenadorDe(npcs, pob, club, cat, letra);
+  const rutina = pob.rutina;
   return npcs
     .filter((n) => n.deporte === deporte && n.equipo === club && n.letra?.[deporte] === letra && (edadDeJuego(n, inicioCurso) ?? -1) >= cat.edadMin && (edadDeJuego(n, inicioCurso) ?? -1) <= cat.edadMax && !!n.puesto?.[deporte])
     .flatMap((n) => {
@@ -606,8 +610,31 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
         estado: n.estado ?? ESTADO_INICIAL,
         resiliencia: (n.cap?.[resiliencia] ?? 50) / 100,
         ambicion: ((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100,
+        asistencia: rutina ? asistenciaDeLasDosUltimasSemanas(n as Parameters<typeof huecosQueHace>[0], deporte, rutina, semana) : 1,
+        disciplinaDelEntrenador,
         lector,
       }];
     })
     .sort((a, b) => (a.id < b.id ? -1 : 1));
+}
+
+
+/**
+ * Qué parte de las sesiones del club hizo un jugador en las dos últimas semanas (la de esta semana, hasta hoy, y la anterior), de 0 a 1: son las sesiones a las que va cada semana (`huecosQueHace`), las mismas con las que entrena,
+ * así que la asistencia cuenta igual para el personaje y para cualquier PNJ.
+ */
+export function asistenciaDeLasDosUltimasSemanas(n: Parameters<typeof huecosQueHace>[0], deporte: string, r: RutinaDeDeporte, semana: number): number {
+  const porSemana = (n.equipo !== undefined ? r.sesionesPorSemana[n.equipo] : undefined) ?? r.sesionesPorDefecto;
+  if (porSemana <= 0) return 1;
+  return (huecosQueHace(n, deporte, r, semana).length + huecosQueHace(n, deporte, r, semana - 1).length) / (2 * porSemana);
+}
+
+/** Lo disciplinado que es el entrenador de un equipo (de 0 a 1): el del equipo si tiene uno propio (B, C o D) o el del club que lleva esa categoría (A). Sin entrenador, 0,5. */
+function disciplinaDelEntrenadorDe(npcs: readonly Npc[], pob: PoblacionGuardada, club: string, cat: CategoriaDef, letra: string): number {
+  const numero = ['A', 'B', 'C', 'D'].indexOf(letra) + 1;
+  const propio = numero >= 2 ? npcs.find((n) => n.id === idDeEntrenadorDeEquipo(club, cat.id, numero)) : undefined;
+  const delClub = npcs.filter((n) => n.role === 'entrenador' && n.deporte === pob.deporte && n.club !== undefined && n.tipos?.some((t) => t.tipo === 'entrenador' && t.club === club));
+  const cubre = delClub.find((n) => n.edades && n.edades[0] <= cat.edadMin && n.edades[1] >= cat.edadMax) ?? delClub.find((n) => n.edades && n.edades[0] <= cat.edadMax && n.edades[1] >= cat.edadMin) ?? delClub[0];
+  const entrenador = propio ?? cubre;
+  return entrenador?.rasgos ? (entrenador.rasgos.caracter.disciplina + 50) / 100 : 0.5;
 }

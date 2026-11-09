@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CARGA, ESTADO_INICIAL, GEN, valoracionDelPuesto, PAIS_CIUDAD_DE_PRUEBA, SERVICES, SHARED_EVENTS, defineModule, eficienciaDeEstado, factorDeCompeticion, registrarPais, trasUnaCompeticion, type JugadorDeEquipoView, type NpcDirectory } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { PARAMETROS_DE_CONVOCATORIA, estadoDelPersonaje, posicionEquivalente, PUESTOS_DE_FUTBOL, convocarYAlinear, equipoDePartido, futbol, jugarPartido, jugadoresDelPartido, prioridadDelEntrenador, type JugadorParaConvocar } from '@ds/mod-futbol';
-import { type NpcsState } from '@ds/mod-npcs';
+import { PARAMETROS_DE_CONVOCATORIA, paraConvocar, estadoDelPersonaje, posicionEquivalente, PUESTOS_DE_FUTBOL, convocarYAlinear, equipoDePartido, futbol, jugarPartido, jugadoresDelPartido, prioridadDelEntrenador, type JugadorParaConvocar } from '@ds/mod-futbol';
+import { asistenciaDeLasDosUltimasSemanas, plantillaDeUnEquipo, type NpcsState } from '@ds/mod-npcs';
 
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 registrarPais(PAIS_CIUDAD_DE_PRUEBA);
@@ -82,9 +82,60 @@ describe('el entrenador convoca y alinea', () => {
   });
 });
 
+describe('la asistencia a los entrenamientos cuenta para todos', () => {
+  const vista = (p: JugadorParaConvocar, asistencia: number, disciplina = 1): JugadorDeEquipoView => ({ id: p.id, nombre: p.id, puesto: p.puesto, valores: p.valores, valor: p.valor, estado: p.estado, resiliencia: 0.5, ambicion: 0.5, asistencia, disciplinaDelEntrenador: disciplina, lector: { stat: () => 30, norm: () => 0.5 } });
+
+  it('un PNJ que falta a todo tiene la misma penalización que el personaje que falta a todo (con una relación normal); la relación solo cuenta en el personaje', () => {
+    for (const disciplina of [0, 0.3, 0.7, 1]) {
+      const pnj = prioridadDelEntrenador({ asistencia: 0, disciplinaDelEntrenador: disciplina });
+      const personaje = prioridadDelEntrenador({ asistencia: 0, relacion: 50, disciplinaDelEntrenador: disciplina });
+      expect(pnj).toBeCloseTo(personaje, 10);
+      expect(pnj).toBeCloseTo(1 - PARAMETROS_DE_CONVOCATORIA.penalizacionPorFaltar * (0.5 + 0.5 * disciplina), 10);
+      // La relación (±5 %) solo la tiene el personaje: con buena relación pesa más que un PNJ igual.
+      expect(prioridadDelEntrenador({ asistencia: 0, relacion: 100, disciplinaDelEntrenador: disciplina })).toBeGreaterThan(pnj);
+    }
+    // Sin faltar, un PNJ no pierde nada.
+    expect(prioridadDelEntrenador({ asistencia: 1, disciplinaDelEntrenador: 1 })).toBe(1);
+  });
+
+  it('un PNJ que falta a los entrenamientos pierde el puesto ante uno casi igual que no falta', () => {
+    const p = PLANTILLA(18);
+    const rivales = p.filter((x) => x.puesto === 'ST').sort((a, b) => b.valor - a.valor);
+    const [mejor, segundo] = rivales;
+    const mejorCasiIgual = { ...mejor, valor: segundo.valor + 0.5, valores: { ...mejor.valores, ST: segundo.valor + 0.5 } };
+    const plantilla = (asistencia: number) => p.map((x) => (x.id === mejor.id ? paraConvocar(vista(mejorCasiIgual, asistencia)) : paraConvocar(vista(x, 1))));
+    expect(convocarYAlinear(plantilla(1)).titulares.find((t) => t.puesto === 'ST')!.id).toBe(mejor.id);
+    expect(convocarYAlinear(plantilla(0)).titulares.find((t) => t.puesto === 'ST')!.id).toBe(segundo.id);
+  });
+
+  it('en el mundo, la asistencia de cada jugador sale de las sesiones a las que va (`huecosQueHace`) en las dos últimas semanas, y su entrenador tiene una disciplina', () => {
+    const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const s = g.moduleState<NpcsState>('npcs') as NpcsState;
+    const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
+    const semana = 12;
+    const plantilla = plantillaDeUnEquipo(s.npcs, [pob], 'futbol', 'club_grande', 'infantil', 'A', 0, semana);
+    expect(plantilla.length).toBeGreaterThanOrEqual(14);
+    for (const j of plantilla) {
+      const n = s.npcs.find((x) => x.id === j.id)!;
+      expect(j.asistencia).toBeCloseTo(asistenciaDeLasDosUltimasSemanas(n as never, 'futbol', pob.rutina!, semana), 10);
+      expect(j.asistencia).toBeGreaterThanOrEqual(0);
+      expect(j.asistencia).toBeLessThanOrEqual(1);
+      expect(j.disciplinaDelEntrenador).toBeGreaterThanOrEqual(0);
+      expect(j.disciplinaDelEntrenador).toBeLessThanOrEqual(1);
+    }
+    expect(new Set(plantilla.map((j) => j.disciplinaDelEntrenador)).size).toBe(1); // el mismo entrenador
+    // Casi todos van a casi todo (la asistencia del niño es de un 55 % a un 100 %), pero no todos a todo.
+    expect(plantilla.reduce((t, j) => t + j.asistencia, 0) / plantilla.length).toBeGreaterThan(0.55);
+    expect(plantilla.some((j) => j.asistencia < 1)).toBe(true);
+    // Otra semana, otras faltas.
+    const otra = plantillaDeUnEquipo(s.npcs, [pob], 'futbol', 'club_grande', 'infantil', 'A', 0, semana + 5);
+    expect(otra.map((j) => j.asistencia)).not.toEqual(plantilla.map((j) => j.asistencia));
+  });
+});
+
 describe('el estado del jugador en el partido', () => {
   const lector = (v: number) => ({ stat: (id: string) => (id.startsWith('gen.') ? v : v), norm: () => 0.5 });
-  const vista = (p: JugadorParaConvocar, estado = p.estado): JugadorDeEquipoView => ({ id: p.id, nombre: p.id, puesto: p.puesto, valores: p.valores, valor: p.valor, estado, resiliencia: 0.5, ambicion: 0.5, lector: lector(p.valor) });
+  const vista = (p: JugadorParaConvocar, estado = p.estado): JugadorDeEquipoView => ({ id: p.id, nombre: p.id, puesto: p.puesto, valores: p.valores, valor: p.valor, estado, resiliencia: 0.5, ambicion: 0.5, asistencia: 1, disciplinaDelEntrenador: 0.5, lector: lector(p.valor) });
   const equipo = (id: string, estado: Partial<typeof ESTADO_INICIAL>) => {
     const plantilla = PLANTILLA(18).map((p) => jugador(`${id}${p.id}`, p.puesto, 30, { estado: { ...ESTADO_INICIAL, ...estado } }));
     return equipoDePartido(id, id, plantilla.map((p) => vista(p)), convocarYAlinear(plantilla));
@@ -157,8 +208,8 @@ describe('en el mundo, el estado de los PNJ cambia con el partido', () => {
           const lista = (club: string) => dir.plantillaDelEquipo!('futbol', club, 'infantil', 'A');
           const a = lista('club_grande');
           const b = lista('club_mediano');
-          const ea = equipoDePartido('a', 'A', a, convocarYAlinear(a.map((j) => ({ ...j }))));
-          const eb = equipoDePartido('b', 'B', b, convocarYAlinear(b.map((j) => ({ ...j }))));
+          const ea = equipoDePartido('a', 'A', a, convocarYAlinear(a.map((j) => paraConvocar(j))));
+          const eb = equipoDePartido('b', 'B', b, convocarYAlinear(b.map((j) => paraConvocar(j))));
           const r = jugarPartido(ea, eb, { id: 'prueba', semilla: 1, categoria: 'infantil' });
           const jugadores = [...jugadoresDelPartido(r, 0), ...jugadoresDelPartido(r, 1)];
           const todos = [...a, ...b];

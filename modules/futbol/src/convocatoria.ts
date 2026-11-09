@@ -94,15 +94,19 @@ export function convocarYAlinear(jugadores: readonly JugadorParaConvocar[], conv
 }
 
 /**
- * Lo que pesa la preferencia del entrenador por el personaje (de ×0,75 a ×1,05): su relación con él (de −5 % a +5 %) y su asistencia a los entrenamientos de las dos últimas semanas (de 0 a 1): quien falta pierde el puesto, y
- * más con un entrenador disciplinado (de 0 a 1). Para un PNJ, 1.
+ * Lo que pesa la preferencia del entrenador por un jugador (de ×0,75 a ×1,05): su asistencia a los entrenamientos de las dos últimas semanas (de 0 a 1) cuenta **para todos**, personaje y PNJ: quien falta pierde el puesto, y más
+ * con un entrenador disciplinado (de 0 a 1). La relación con el entrenador (de −5 % a +5 %) solo la tiene guardada el personaje: sin ella (PNJ) no cuenta.
  */
-export function prioridadDelEntrenador(o: { asistencia: number; relacion: number; disciplinaDelEntrenador: number }): number {
+export function prioridadDelEntrenador(o: { asistencia: number; relacion?: number; disciplinaDelEntrenador: number }): number {
   const P = PARAMETROS_DE_CONVOCATORIA;
-  const relacion = 1 + P.efectoDeLaRelacion * (2 * (Math.min(100, Math.max(0, o.relacion)) / 100) - 1);
+  // La relación con el entrenador la tiene guardada el personaje; los PNJ no (sin ella, neutra, como una relación de 50).
+  const relacion = 1 + P.efectoDeLaRelacion * (2 * (Math.min(100, Math.max(0, o.relacion ?? 50)) / 100) - 1);
   const falta = P.penalizacionPorFaltar * (1 - Math.min(1, Math.max(0, o.asistencia))) * (0.5 + 0.5 * Math.min(1, Math.max(0, o.disciplinaDelEntrenador)));
   return relacion * (1 - falta);
 }
+
+/** El jugador de una plantilla (`plantillaDelEquipo`) como lo mira el entrenador: con su preferencia por la asistencia de las dos últimas semanas y, solo en el personaje, su relación con el entrenador (0 a 100). */
+export const paraConvocar = (j: JugadorDeEquipoView, relacion?: number): JugadorParaConvocar => ({ id: j.id, puesto: j.puesto, valores: j.valores, valor: j.valor, estado: j.estado, prioridad: prioridadDelEntrenador({ asistencia: j.asistencia, relacion, disciplinaDelEntrenador: j.disciplinaDelEntrenador }) });
 
 /** El equipo listo para el motor: cada convocado con el puesto de su alineación, su condición física como energía al empezar y su forma y salud en su rendimiento (`factorDeCompeticion(eficienciaDeEstado(estado, false))`, como en el atletismo). */
 export function equipoDePartido(id: string, nombre: string, plantilla: readonly JugadorDeEquipoView[], c: Convocatoria, intensidad: Intensidad = 'normal'): EquipoDePartido {
