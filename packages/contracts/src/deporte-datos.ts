@@ -81,6 +81,23 @@ export interface FormatoDeLiga {
   vueltas: 1 | 2;
   /** Cuántos equipos tiene la liga de cada categoría (se sortea entre `min` y `max`). */
   equiposPorCategoria: { min: number; max: number };
+  /**
+   * Si la liga se juega **por divisiones** (decisión del usuario, 09/11/2026; `CIUDAD_Y_LIGAS.md` §4): cómo son. Con ellas, `equiposPorCategoria` no manda: juegan todos los equipos que hay en la categoría, repartidos en
+   * divisiones (Primera y Segunda de 10 y el resto en la última, en grupos de 8 a 12), con ascensos y descensos y las reglas del filial entre los equipos de un mismo club.
+   */
+  divisiones?: FormatoDeDivisiones;
+}
+
+/** Cómo son las divisiones: cuántos equipos tienen las fijas, cuántas son, cuánto puede medir un grupo de la última y cuántos suben y bajan. Dato del deporte por país. */
+export interface FormatoDeDivisiones {
+  /** Equipos de cada una de las divisiones fijas (Primera y Segunda: 10). */
+  tamano: number;
+  /** Cuántas divisiones fijas hay antes de la última, que recoge al resto (2: Primera y Segunda, y después la Tercera). */
+  fijas: number;
+  /** Tamaño de los grupos de la última división (de 8 a 12): si quedan menos del mínimo, se juntan con la división de arriba. */
+  grupo: { min: number; max: number };
+  suben: number;
+  bajan: number;
 }
 
 /** Cuántas jornadas tiene una liga de `equipos` equipos: cada uno juega con todos los demás `vueltas` veces (con un número impar, uno descansa cada jornada). */

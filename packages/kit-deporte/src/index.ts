@@ -11,3 +11,4 @@ export * from './ejercicios';
 export * from './categorias';
 export * from './comunes';
 export * from './tablas';
+export * from './liga';
