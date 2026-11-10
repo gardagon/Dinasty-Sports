@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, registrarPais, type ClubDirectory, type DeporteService, type DeporteView } from '@ds/contracts';
+import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, claveDeDeporte, registrarPais, type ClubDirectory, type DeporteService } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, type FutbolState } from '@ds/mod-futbol';
@@ -15,7 +15,7 @@ registrarPais(PAIS_CIUDAD_DE_PRUEBA);
 describe('el partido del personaje en la liga', () => {
   let g: ReturnType<typeof nuevaPartida>;
   const estado = () => g.moduleState<FutbolState>('futbol') as FutbolState;
-  const vista = () => (g.service<{ view(): DeporteView }>('deporte.futbol') ?? g.service<DeporteService>(SERVICES.deporte))!.view();
+  const vista = () => g.service<DeporteService>(claveDeDeporte('futbol'))!.view();
   beforeAll(() => {
     g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     advanceToWeek(g, 'gen.descansar', 1, 3, 15);
