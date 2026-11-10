@@ -344,3 +344,9 @@ h3:first-child { margin-top: 0; }
 .dia-plan[aria-pressed="true"] { background: var(--lane); border-color: var(--lane); color: #fff; }
 ul.planes { list-style: none; padding: 0; margin: 6px 0 12px; display: grid; gap: 8px; }
 ul.planes li { display: grid; gap: 6px; }
+
+/* La crónica del partido: lo que hace el personaje, resaltado. */
+ul.cronica { list-style: none; margin: 0 0 1rem; padding: 0; }
+ul.cronica li { padding: 0.15rem 0.4rem; }
+ul.cronica li.tramo { margin-top: 0.5rem; font-weight: 600; opacity: 0.8; }
+ul.cronica li.mia { background: rgba(255, 200, 60, 0.18); border-left: 3px solid #e0a800; }

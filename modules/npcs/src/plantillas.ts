@@ -664,3 +664,18 @@ export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly Pobla
   }
   return res.sort((a, b) => (a.id < b.id ? -1 : 1));
 }
+
+
+/**
+ * El equipo (A a D) en que juega el personaje: el reparto de su club en su categoría con él como un miembro más (el mismo que se hace en verano con todos, `repartirEnEquipos`) y la letra que le toca. `undefined` si su club no
+ * tiene equipos por categoría o no le cabe ninguno.
+ */
+export function equipoDelPersonajeEn(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, categoria: string, miembro: Omit<MiembroDeClub, 'anio'>, edad: number, dia: number, val: Valoracion): string | undefined {
+  const pob = pobs.find((p) => p.deporte === deporte);
+  const e = pob?.equipos.find((x) => x.club === club && x.plantillaPorCategoria);
+  const cat = pob && e ? categoriasDelEquipo(pob, e).find((c) => c.id === categoria) : undefined;
+  if (!pob || !e || !cat || !pob.puestos) return undefined;
+  const anio: 1 | 2 = edad === Math.min(...cat.edades) ? 1 : 2;
+  const { equipos } = equiposDelClub(new Map(npcs.map((n) => [n.id, n])), pob, e, cat, dia, val, [{ ...miembro, anio }], true);
+  return LETRAS.find((l) => equipos[l].includes(miembro.id));
+}

@@ -17,7 +17,7 @@ import { historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Re
 
 import { añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
 import { colocarDesplazados } from './fichajes';
-import { equiposDeUnaCategoria, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { equipoDelPersonajeEn, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { categoriaDe, consejoDeUnProfesor, plazaEnElEquipo, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
 import { entrenadoresDeEquiposExtra, entrenadoresDeUnDeporte } from './draft';
 export * from './plaza';
@@ -1401,6 +1401,18 @@ export const npcs = defineModule<NpcsState>({
         },
         equiposDeLaCategoria: (deporte, categoria) => equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso),
         plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day)),
+        equipoDelPersonaje: (deporte) => {
+          const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
+          const pob = poblacionesGuardadas(ctx).find((p) => p.deporte === deporte);
+          const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
+          const cat = pob ? categoriaDe(pob, edad) : undefined;
+          const rend = rendimientosDe(ctx);
+          const puesto = ctx.state<NpcsState>().puestoDelPersonaje?.[deporte];
+          const valores = pob ? puestosDelPersonaje(ctx, rend, pob) : undefined;
+          if (!club || !pob || !cat || !puesto || !valores) return undefined;
+          const letra = equipoDelPersonajeEn(lista, poblacionesGuardadas(ctx), deporte, club.id, cat.id, { id: idDelPersonaje(deporte), puesto, valor: valores[puesto] }, edad, inicioCurso, valoracionDe(rend));
+          return letra ? { club: club.id, categoria: cat.id, letra } : undefined;
+        },
         nivelesDelEquipo: (deporte, club, categoria) => nivelesDelEquipoDe(lista, poblacionesGuardadas(ctx), deporte, club, categoria, ctx.time.week, inicioCurso),
         plaza: (deporte, club, nivel, puestos, prueba) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso, puestos, rendimientosDe(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', prueba),
         consejoDeportivo: () => consejoDeUnProfesor(ctx, lista, poblacionesGuardadas(ctx), rendimientosDe(ctx), inicioCurso),

@@ -58,7 +58,7 @@ function vista(g: Game, d: DeporteView): string {
     : '<p class="note">Las clasificaciones aparecen cuando hayas competido.</p>';
   const pruebasNombre = t.nombreDePruebas ?? 'Carreras';
   const secciones = (d.secciones ?? [])
-    .map((x) => `<h3>${esc(x.titulo)}</h3>${x.texto ? `<p class="note">${esc(x.texto)}</p>` : ''}${x.tabla ? tabla(x.tabla) : ''}`)
+    .map((x) => `<h3>${esc(x.titulo)}</h3>${x.texto ? `<p class="note">${esc(x.texto)}</p>` : ''}${x.tabla ? tabla(x.tabla) : ''}${x.lineas ? `<ul class="cronica">${x.lineas.map((l) => `<li class="${l.titulo ? 'tramo' : ''}${l.destacada ? ' mia' : ''}">${l.destacada ? `<b>${esc(l.texto)}</b>` : esc(l.texto)}</li>`).join('')}</ul>` : ''}`)
     .join('');
   const anteriores = d.temporadasAnteriores.length
     ? `<h3>Cursos anteriores</h3>${tabla({ header: ['Curso', pruebasNombre, 'Mejor puesto', 'Mejor marca'], rows: d.temporadasAnteriores.map((a) => [a.etiqueta, String(a.pruebas), a.mejorPuesto, a.mejorMarca]), align: ['left', 'right', 'left', 'right'] })}`
