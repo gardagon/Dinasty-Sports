@@ -45,8 +45,45 @@ export interface PlayoffEnCurso {
   /** Goles de cada cruce de la ronda (por `a|b`): un [goles de a, goles de b] por partido jugado. */
   goles: Record<string, [number, number][]>;
   eliminados: { ronda: NombreDeRonda; ids: string[] }[];
+  /** Las rondas ya jugadas, con cada cruce (goles de cada partido y, si hubo empate, la tanda de penaltis): para el historial de la temporada. */
+  rondas: RondaArchivada[];
   campeon?: string;
   subcampeon?: string;
+}
+
+/** Una ronda del playoff ya jugada. */
+export interface RondaArchivada {
+  ronda: NombreDeRonda;
+  /** Cada cruce: los dos equipos (`a`, el mejor sembrado), los goles de `a` y de `b` en cada partido, la tanda de penaltis si hubo empate global (goles de `a` y de `b`) y quién pasó. */
+  cruces: { a: string; b: string; partidos: [number, number][]; tanda?: [number, number]; pasa: string }[];
+  /** Los que pasaron la ronda sin jugarla. */
+  pasan: string[];
+}
+
+/** Un grupo de una división ya cerrada: sus equipos, la clasificación final y los resultados, en formato compacto. */
+export interface GrupoArchivado {
+  equipos: string[];
+  /** La clasificación final, de primero a último: [índice del equipo en `equipos`, partidos, ganados, empatados, perdidos, goles a favor, goles en contra] (los puntos son 3 × ganados + empatados). */
+  tabla: number[][];
+  /** Cada partido de la liga, en el orden jugado: [índice del local, índice del visitante, goles del local, goles del visitante]. */
+  partidos: PartidoGuardado[];
+}
+
+export interface DivisionArchivada {
+  grupos: GrupoArchivado[];
+  playoff?: { plazas: number; clasificados: { id: string; grupo: number; puesto: number }[]; rondas: RondaArchivada[]; campeon: string; subcampeon: string };
+}
+
+export interface CategoriaArchivada {
+  divisiones: DivisionArchivada[];
+  /** Los ascensos y descensos: [equipo, división en que jugó (1 = Primera), división en que juega la temporada siguiente], solo de los que cambian. */
+  cambios: [string, number, number][];
+}
+
+/** Una temporada cerrada, entera: por categoría y división, las clasificaciones, el playoff, los ascensos y descensos y el resultado de cada partido. Las estadísticas por jugador van con la F2.4. */
+export interface TemporadaArchivada {
+  curso: number;
+  categorias: Record<string, CategoriaArchivada>;
 }
 
 export interface DivisionDeLiga {
@@ -73,6 +110,8 @@ export interface LigaDelMundo {
   siguiente?: Record<string, Divisiones>;
   /** Los campeones de las temporadas anteriores: curso, categoría y el campeón de cada división (la última, el del playoff). */
   campeones: { curso: number; categoria: string; divisiones: string[] }[];
+  /** El historial de las temporadas ya cerradas, completo (decisión del usuario, 10/11: se guarda todo lo que el mundo necesita; si pesa, se guarda mejor, no menos). */
+  historial?: TemporadaArchivada[];
 }
 
 /** Lo que devuelve jugar un partido: el marcador y a quiénes les cambia el estado. */
@@ -81,8 +120,13 @@ export interface PartidoJugado {
   /** Quienes jugaron, de los dos equipos, con su valoración (−1 a +1) para el estado tras el partido. */
   jugadores: { npcId: string; minutos: number; valoracion: number }[];
 }
-/** Juega un partido de una categoría: `id` es un texto único (curso, categoría, jornada y equipos) para que el azar sea siempre el mismo. */
-export type JugarPartido = (categoria: string, local: string, visitante: string, id: string) => PartidoJugado;
+/**
+ * Juega un partido de una categoría: `id` es un texto único (curso, categoría, jornada y equipos) para que el azar sea siempre el mismo. Con `tanda`, juega la tanda de penaltis de un cruce empatado del playoff (devuelve quién la
+ * gana: 0 = el primer equipo, 1 = el segundo, y los goles de cada uno); sin ella, el mejor sembrado.
+ */
+export type JugarPartido = ((categoria: string, local: string, visitante: string, id: string) => PartidoJugado) & {
+  tanda?: (categoria: string, a: string, b: string, id: string) => { ganador: 0 | 1; goles: [number, number] };
+};
 
 const clubDe = (id: string): string => id.split('|')[0];
 const tablaDelGrupo = (g: GrupoDeLiga): FilaDeTabla[] =>
@@ -112,14 +156,14 @@ export const categoriaAcabada = (liga: LigaDeCategoria): boolean => liga.divisio
  * Una liga nueva para el curso: los equipos de cada categoría repartidos en divisiones. Si hay divisiones de la temporada anterior (`previas`, tras los ascensos y descensos), se parte de ellas (los equipos que han desaparecido
  * salen y los nuevos empiezan en la última); si no (al crear la partida), por lo que vale cada equipo.
  */
-export function nuevaLiga(curso: number, semilla: number, equipos: Record<string, readonly EquipoDeLiga[]>, f: FormatoDeDivisiones, previas?: Record<string, Divisiones>, campeones: LigaDelMundo['campeones'] = []): LigaDelMundo {
+export function nuevaLiga(curso: number, semilla: number, equipos: Record<string, readonly EquipoDeLiga[]>, f: FormatoDeDivisiones, previas?: Record<string, Divisiones>, campeones: LigaDelMundo['campeones'] = [], historial?: TemporadaArchivada[]): LigaDelMundo {
   const categorias: Record<string, LigaDeCategoria> = {};
   for (const [cat, es] of Object.entries(equipos)) {
     if (es.length < 4) continue;
     const divisiones = previas?.[cat] ? actualizarDivisiones(previas[cat], es, f) : repartirEnDivisiones(es, f);
     categorias[cat] = { divisiones: aDivisionesDeLiga(divisiones), jornada: 0 };
   }
-  return { curso, semilla, categorias, campeones };
+  return { curso, semilla, categorias, campeones, ...(historial ? { historial } : {}) };
 }
 
 // ---------------------------------------------------------------------------------------------------- una semana de liga
@@ -162,7 +206,7 @@ function avanzarPlayoff(categoria: string, d: DivisionDeLiga, curso: number, f: 
   if (!d.playoff) {
     const plazas = plazasDePlayoff(jornadasDeLaDivision(d), f);
     const clasificados = clasificadosAlPlayoff(tablasDeLaDivision(d), plazas);
-    d.playoff = { plazas, clasificados, ronda: rondaDePlayoff(clasificados), vivos: clasificados.map((c) => c.id), partido: 0, goles: {}, eliminados: [] };
+    d.playoff = { plazas, clasificados, ronda: rondaDePlayoff(clasificados), vivos: clasificados.map((c) => c.id), partido: 0, goles: {}, eliminados: [], rondas: [] };
   }
   const p = d.playoff;
   const total = partidosDeLaRonda(p.ronda);
@@ -180,8 +224,17 @@ function avanzarPlayoff(categoria: string, d: DivisionDeLiga, curso: number, f: 
   }
   // La ronda ha acabado: pasan los ganadores de cada cruce (más los que pasaron sin jugar) y caen los demás.
   const por = new Map(p.clasificados.map((c) => [c.id, c]));
-  const ganadores = p.ronda.cruces.map((c) => ganadorDelCruce(por.get(c.a)!, por.get(c.b)!, p.goles[`${c.a}|${c.b}`]));
+  // Un cruce empatado (en el global de la ida y la vuelta, o la final) se decide por la tanda de penaltis; sin ella, por el mejor sembrado.
+  const tandas: Record<string, [number, number]> = {};
+  const ganadores = p.ronda.cruces.map((c) =>
+    ganadorDelCruce(por.get(c.a)!, por.get(c.b)!, p.goles[`${c.a}|${c.b}`], jugar.tanda ? () => {
+      const t = jugar.tanda!(categoria, c.a, c.b, `${curso}|${categoria}|PO-${p.ronda.nombre}-tanda|${c.a}|${c.b}`);
+      tandas[`${c.a}|${c.b}`] = t.goles;
+      return t.ganador === 0 ? 'a' : 'b';
+    } : undefined),
+  );
   const perdedores = p.ronda.cruces.map((c, i) => (ganadores[i].id === c.a ? c.b : c.a));
+  p.rondas.push({ ronda: p.ronda.nombre, pasan: [...p.ronda.pasan], cruces: p.ronda.cruces.map((c, i) => ({ a: c.a, b: c.b, partidos: p.goles[`${c.a}|${c.b}`], ...(tandas[`${c.a}|${c.b}`] ? { tanda: tandas[`${c.a}|${c.b}`] } : {}), pasa: ganadores[i].id })) });
   if (p.ronda.nombre === 'final') {
     p.campeon = ganadores[0].id;
     p.subcampeon = perdedores[0];
@@ -213,5 +266,28 @@ export function cerrarTemporada(liga: LigaDelMundo, f: FormatoDeDivisiones, semi
     siguiente[cat] = ascensosYDescensos(comoDivisiones(l), tablas, clubDe, f, orden);
     campeones.push({ curso: liga.curso, categoria: cat, divisiones: l.divisiones.map((d, i) => (i === l.divisiones.length - 1 && po?.campeon ? po.campeon : tablasDeLaDivision(d)[0]?.[0]?.id ?? '')) });
   }
-  return { ...liga, cerrada: true, siguiente, campeones: campeones.slice(-60) };
+  return { ...liga, cerrada: true, siguiente, campeones, historial: [...(liga.historial ?? []), archivarTemporada(liga, siguiente)] };
+}
+
+/**
+ * La temporada que se cierra, entera y en formato compacto (`TemporadaArchivada`): por categoría y división, la clasificación final de cada grupo, el playoff, los ascensos y descensos (los equipos que cambian de división) y el
+ * resultado de cada partido. Pesa unos 30 KB por temporada con la ciudad grande y no se tira nunca: es el historial de la ciudad.
+ */
+export function archivarTemporada(liga: LigaDelMundo, siguiente: Record<string, Divisiones>): TemporadaArchivada {
+  const categorias: Record<string, CategoriaArchivada> = {};
+  for (const [cat, l] of Object.entries(liga.categorias)) {
+    const divisiones: DivisionArchivada[] = l.divisiones.map((d) => {
+      const grupos = d.grupos.map((g): GrupoArchivado => ({
+        equipos: g.equipos,
+        tabla: tablaDelGrupo(g).map((f) => [g.equipos.indexOf(f.id), f.pj, f.g, f.e, f.p, f.gf, f.gc]),
+        partidos: g.resultados,
+      }));
+      const po = d.grupos.length > 1 ? d.playoff : undefined;
+      return { grupos, ...(po?.campeon && po.subcampeon ? { playoff: { plazas: po.plazas, clasificados: po.clasificados.map((c) => ({ id: c.id, grupo: c.grupo, puesto: c.puesto })), rondas: po.rondas, campeon: po.campeon, subcampeon: po.subcampeon } } : {}) };
+    });
+    const antes = new Map(l.divisiones.flatMap((d, i) => d.grupos.flatMap((g) => g.equipos.map((id): [string, number] => [id, i + 1]))));
+    const cambios: [string, number, number][] = (siguiente[cat] ?? []).flatMap((d, i) => d.grupos.flat().flatMap((id): [string, number, number][] => (antes.has(id) && antes.get(id) !== i + 1 ? [[id, antes.get(id)!, i + 1]] : [])));
+    categorias[cat] = { divisiones, cambios };
+  }
+  return { curso: liga.curso, categorias };
 }

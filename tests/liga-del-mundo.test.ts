@@ -66,6 +66,14 @@ describe('la liga del mundo', () => {
       const ids = c.divisiones.flatMap((d) => d.grupos.flatMap((gr) => gr.equipos));
       expect(new Set(ids).size).toBe(ids.length);
     }
+    // El historial guarda cada temporada cerrada entera: clasificaciones, playoff, ascensos y descensos y cada partido.
+    expect(l2.historial!.length).toBeGreaterThanOrEqual(1);
+    const h = l2.historial![0];
+    expect(Object.keys(h.categorias).sort()).toEqual(['alevin', 'benjamin', 'cadete', 'infantil', 'juvenil']);
+    for (const c of Object.values(h.categorias)) for (const d of c.divisiones) for (const gr of d.grupos) {
+      expect(gr.tabla).toHaveLength(gr.equipos.length);
+      expect(gr.partidos).toHaveLength(gr.equipos.length * (gr.equipos.length - 1));
+    }
     void categoriaAcabada;
     void tablasDeLaDivision;
   });

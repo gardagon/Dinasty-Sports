@@ -81,11 +81,15 @@ export function rondaDePlayoff(equipos: readonly Clasificado[]): RondaDePlayoff 
   return { nombre, pasan: pasan.map((c) => c.id), cruces: emparejar(juegan).map(([a, b]) => ({ a: a.id, b: b.id, idaYVuelta: nombre !== 'final' })) };
 }
 
-/** Quién pasa un cruce: el que más goles suma (en la ida y la vuelta) y, si empatan, el mejor sembrado (de momento no hay tanda de penaltis). `partidos` son los goles de cada partido como [goles de a, goles de b]. */
-export function ganadorDelCruce(a: Clasificado, b: Clasificado, partidos: readonly (readonly [number, number])[]): Clasificado {
+/**
+ * Quién pasa un cruce: el que más goles suma (en la ida y la vuelta) y, si empatan, el que gana la **tanda de penaltis** (`alEmpate`: quien juega el partido la lanza y dice si la gana `a` o `b`). Sin ella, el mejor sembrado.
+ * `partidos` son los goles de cada partido como [goles de a, goles de b].
+ */
+export function ganadorDelCruce(a: Clasificado, b: Clasificado, partidos: readonly (readonly [number, number])[], alEmpate?: () => 'a' | 'b'): Clasificado {
   const ga = partidos.reduce((t, p) => t + p[0], 0);
   const gb = partidos.reduce((t, p) => t + p[1], 0);
   if (ga !== gb) return ga > gb ? a : b;
+  if (alEmpate) return alEmpate() === 'a' ? a : b;
   return sembrar([a, b])[0];
 }
 

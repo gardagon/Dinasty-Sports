@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LectorDePersona } from '@ds/contracts';
-import { PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, cansancioDelTramo, jugarPartido, rendimientoPorCansancio, valorEnPartido, type EquipoDePartido, type JugadorDePartido } from './partido';
+import { PARAMETROS_DE_PENALTIS, tandaDePenaltis, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, cansancioDelTramo, jugarPartido, rendimientoPorCansancio, valorEnPartido, type EquipoDePartido, type JugadorDePartido } from './partido';
 
 /** Un jugador sintético: todas las habilidades en `valor` y todas las capacidades en `cap`; un 0,5 en lo normalizado (lo típico de su edad). */
 const lector = (valor: number, cap = valor, resistencia = 0.5): LectorDePersona => ({
@@ -170,5 +170,72 @@ describe('el motor de partido', () => {
     const r = partido(equipo('a', 45), equipo('b', 25), 200, 'infantil', false);
     const notas = (pref: string) => media(r.flatMap((x) => Object.entries(x.jugadores).filter(([id, s]) => id.startsWith(pref) && s.minutos > 0).map(([, s]) => s.nota)));
     expect(notas('a_')).toBeGreaterThan(notas('b_'));
+  });
+});
+
+describe('la tanda de penaltis', () => {
+  const tanda = (a: EquipoDePartido, b: EquipoDePartido, n: number, categoria = 'infantil') => Array.from({ length: n }, (_, i) => tandaDePenaltis(a, b, { id: `t${i}`, semilla: 5, categoria }));
+
+  it('es reproducible: las mismas entradas, la misma tanda; con otro id, otro azar', () => {
+    const a = equipo('a', 30);
+    const b = equipo('b', 30);
+    expect(tandaDePenaltis(a, b, { id: 'x', semilla: 1, categoria: 'infantil' })).toEqual(tandaDePenaltis(a, b, { id: 'x', semilla: 1, categoria: 'infantil' }));
+    expect(new Set(tanda(a, b, 30).map((t) => t.goles.join('-'))).size).toBeGreaterThan(3);
+  });
+
+  it('cinco por equipo (alternando, empieza el local) y después uno a uno; siempre hay un ganador y nunca acaba empatada', () => {
+    for (const t of tanda(equipo('a', 30), equipo('b', 30), 300)) {
+      expect(t.goles[0]).not.toBe(t.goles[1]);
+      expect(t.ganador).toBe(t.goles[0] > t.goles[1] ? 0 : 1);
+      // El primero en tirar es el local y se alterna.
+      t.lanzamientos.slice(0, 10).forEach((l, i) => expect(l.equipo).toBe(i % 2));
+      // Si pasa de diez lanzamientos es porque estaban empatados tras los cinco de cada uno, y de ahí en adelante van de dos en dos (local y visitante).
+      if (t.lanzamientos.length > 10) {
+        const marcados = [0, 1].map((e) => t.lanzamientos.slice(0, 10).filter((l) => l.equipo === e && l.gol).length);
+        expect(marcados[0]).toBe(marcados[1]);
+        expect(t.lanzamientos.length % 2).toBe(0);
+      }
+    }
+  });
+
+  it('se acaba antes si uno ya no puede alcanzar al otro', () => {
+    const t = tanda(equipo('a', 90, { portero: 5 }), equipo('b', 8, { portero: 90 }), 200);
+    expect(t.some((x) => x.lanzamientos.length < 10)).toBe(true);
+    for (const x of t.filter((y) => y.lanzamientos.length < 10)) {
+      // En el último lanzamiento la diferencia es imposible de remontar con los que quedaban.
+      const n0 = x.lanzamientos.filter((l) => l.equipo === 0).length;
+      const n1 = x.lanzamientos.filter((l) => l.equipo === 1).length;
+      const quedan0 = PARAMETROS_DE_PENALTIS.porEquipo - n0;
+      const quedan1 = PARAMETROS_DE_PENALTIS.porEquipo - n1;
+      expect(Math.abs(x.goles[0] - x.goles[1])).toBeGreaterThan(Math.min(x.goles[0] > x.goles[1] ? quedan1 : quedan0, 99) - 1);
+    }
+  });
+
+  it('un penalti se marca casi siempre (con tirador y portero iguales, en torno al 75 %); el mejor tirador marca más y el mejor portero para más', () => {
+    const marca = (a: EquipoDePartido, b: EquipoDePartido) => {
+      const ls = tanda(a, b, 400).flatMap((t) => t.lanzamientos.filter((l) => l.equipo === 0));
+      return ls.filter((l) => l.gol).length / ls.length;
+    };
+    const iguales = marca(equipo('a', 30), equipo('b', 30));
+    expect(iguales).toBeGreaterThan(0.68);
+    expect(iguales).toBeLessThan(0.82);
+    expect(marca(equipo('a', 60), equipo('b', 30))).toBeGreaterThan(iguales);
+    expect(marca(equipo('a', 30), equipo('b', 30, { portero: 70 }))).toBeLessThan(iguales);
+    expect(marca(equipo('a', 30), equipo('b', 30, { portero: 5 }))).toBeGreaterThan(iguales);
+  });
+
+  it('los mejores tiradores van primero y el portero, el último; el estado cuenta (forma y salud)', () => {
+    const base = equipo('a', 30);
+    // El delantero (último de la lista de titulares) es el mejor tirador.
+    const delantero = base.jugadores.find((j) => j.puesto === 'ST')!;
+    const e = { ...base, jugadores: base.jugadores.map((j) => (j === delantero ? { ...j, lector: lector(80) } : j)) };
+    const t = tandaDePenaltis(e, equipo('b', 30), { id: 'orden', semilla: 1, categoria: 'infantil' });
+    expect(t.lanzamientos.find((l) => l.equipo === 0)!.tirador).toBe(delantero.id);
+    const porteroId = e.jugadores.find((j) => j.puesto === 'GK' && j.titular)!.id;
+    expect(t.lanzamientos.filter((l) => l.equipo === 0).slice(0, 5).some((l) => l.tirador === porteroId)).toBe(false);
+    // Un equipo en baja forma marca menos que el mismo en forma.
+    const cansado = { ...base, jugadores: base.jugadores.map((j) => ({ ...j, rinde: 0.85 })) };
+    const marca = (a: EquipoDePartido) => { const ls = tanda(a, equipo('b', 30), 400).flatMap((x) => x.lanzamientos.filter((l) => l.equipo === 0)); return ls.filter((l) => l.gol).length / ls.length; };
+    expect(marca(cansado)).toBeLessThan(marca(base));
   });
 });
