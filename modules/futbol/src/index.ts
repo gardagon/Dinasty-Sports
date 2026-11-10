@@ -53,17 +53,17 @@ import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from '.
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, type JugarPartido, type LigaDelMundo } from './liga';
 import { convocarYAlinear, equipoDePartido, jugadoresDelPartido, paraConvocar } from './convocatoria';
-import { jugarPartido } from './partido';
+import { jugarPartido, tandaDePenaltis } from './partido';
 
 export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 export { HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 export { PUESTOS_DE_FUTBOL } from './puestos';
-export { jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
+export { tandaDePenaltis, PARAMETROS_DE_PENALTIS, jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
 export { PARAMETROS_DE_CONVOCATORIA, convocarYAlinear, equipoDePartido, estadoDelPersonaje, paraConvocar, jugadoresDelPartido, posicionEquivalente, prioridadDelEntrenador } from './convocatoria';
 export type { Convocatoria, JugadorParaConvocar } from './convocatoria';
-export { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, tablasDeLaDivision } from './liga';
-export type { LigaDelMundo, LigaDeCategoria } from './liga';
-export type { EquipoDePartido, EstadisticasDeJugador, Intensidad, JugadorDePartido, OpcionesDePartido, ReglaDeCambios, ResultadoDePartido, Zona } from './partido';
+export { archivarTemporada, cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, tablasDeLaDivision } from './liga';
+export type { LigaDelMundo, LigaDeCategoria, TemporadaArchivada, CategoriaArchivada, DivisionArchivada, GrupoArchivado, RondaArchivada } from './liga';
+export type { Lanzamiento, ResultadoDeTanda, EquipoDePartido, EstadisticasDeJugador, Intensidad, JugadorDePartido, OpcionesDePartido, ReglaDeCambios, ResultadoDePartido, Zona } from './partido';
 export { EJERCICIOS_DE_FUTBOL, sesgoDelEntrenador } from './ejercicios';
 
 /**
@@ -206,23 +206,32 @@ function ligaDelMundo(ctx: ActionContext, semana: number): void {
   if (t.period !== 'clase' || t.schoolWeek < semanasDeTemporada(ctx.pais.calendario, datos.temporada).primeraCompeticion) return;
   if (!liga || liga.curso !== t.schoolYear) {
     const equipos = Object.fromEntries(datos.categorias.map((c) => [c.id, dir.equiposDeLaCategoria!(DEPORTE, c.id)]).filter(([, es]) => (es as unknown[]).length));
-    liga = nuevaLiga(t.schoolYear, liga?.semilla ?? Math.floor(ctx.rng.next() * 2 ** 31), equipos as never, f, liga?.siguiente, liga?.campeones);
+    liga = nuevaLiga(t.schoolYear, liga?.semilla ?? Math.floor(ctx.rng.next() * 2 ** 31), equipos as never, f, liga?.siguiente, liga?.campeones, liga?.historial);
   }
   if (liga.cerrada) return;
-  const jugar: JugarPartido = (categoria, local, visitante, id) => {
-    const lado = (clave: string) => {
-      const [club, letra] = clave.split('|');
-      const plantilla = dir.plantillaDelEquipo!(DEPORTE, club, categoria, letra);
-      const c = convocarYAlinear(plantilla.map((j) => paraConvocar(j)));
-      return { plantilla, c };
-    };
-    const a = lado(local);
-    const b = lado(visitante);
-    // Un equipo que no puede alinear a once pierde el partido por 3 a 0 (no pasa con las plantillas de la ciudad: tienen al menos 14).
-    if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: a.c.titulares.length < 11 ? [0, 3] : [3, 0], jugadores: [] };
-    const r = jugarPartido(equipoDePartido(local, local, a.plantilla, a.c), equipoDePartido(visitante, visitante, b.plantilla, b.c), { id, semilla: liga!.semilla, categoria, cambios: CAMBIOS_DE_LIGA });
-    return { goles: r.goles, jugadores: [...jugadoresDelPartido(r, 0), ...jugadoresDelPartido(r, 1)] };
+  const lado = (clave: string, categoria: string) => {
+    const [club, letra] = clave.split('|');
+    const plantilla = dir.plantillaDelEquipo!(DEPORTE, club, categoria, letra);
+    const c = convocarYAlinear(plantilla.map((j) => paraConvocar(j)));
+    return { plantilla, c, equipo: equipoDePartido(clave, clave, plantilla, c) };
   };
+  const jugar: JugarPartido = Object.assign(
+    (categoria: string, local: string, visitante: string, id: string) => {
+      const a = lado(local, categoria);
+      const b = lado(visitante, categoria);
+      // Un equipo que no puede alinear a once pierde el partido por 3 a 0 (no pasa con las plantillas de la ciudad: tienen al menos 14).
+      if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: (a.c.titulares.length < 11 ? [0, 3] : [3, 0]) as [number, number], jugadores: [] };
+      const r = jugarPartido(a.equipo, b.equipo, { id, semilla: liga!.semilla, categoria, cambios: CAMBIOS_DE_LIGA });
+      return { goles: r.goles, jugadores: [...jugadoresDelPartido(r, 0), ...jugadoresDelPartido(r, 1)] };
+    },
+    {
+      // La tanda de penaltis de un cruce empatado del playoff: cinco por equipo y después uno a uno, cada penalti un duelo entre el que tira y el portero.
+      tanda: (categoria: string, a: string, b: string, id: string) => {
+        const r = tandaDePenaltis(lado(a, categoria).equipo, lado(b, categoria).equipo, { id, semilla: liga!.semilla, categoria });
+        return { ganador: r.ganador, goles: r.goles };
+      },
+    },
+  );
   const categorias = { ...liga.categorias };
   const empezo = performance.now();
   let partidos = 0;

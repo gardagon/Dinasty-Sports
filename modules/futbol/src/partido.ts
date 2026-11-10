@@ -374,3 +374,78 @@ function hacerCambios(l: Lado, regla: ReglaDeCambios): void {
     l.stats.get(entra.j.id)!.puesto = sale.j.puesto;
   }
 }
+
+// ---------------------------------------------------------------------------------------------------- la tanda de penaltis
+
+/** Los números de la tanda de penaltis, como datos. */
+export const PARAMETROS_DE_PENALTIS = {
+  /** Penaltis por equipo antes de pasar a uno a uno. */
+  porEquipo: 5,
+  /** Probabilidad de marcar con tirador y portero iguales (un penalti se marca casi siempre) y cuánto pesa la comparación entre los dos. */
+  golBase: 0.75,
+  potencia: 1.2,
+  /** Tope de lanzamientos (por si todos fallaran siempre): pasado él, gana el mejor sembrado... aquí, el que lanza primero. */
+  maximoDeRondas: 40,
+};
+
+export interface Lanzamiento {
+  /** 0 (local) o 1 (visitante). */
+  equipo: 0 | 1;
+  tirador: string;
+  portero: string;
+  gol: boolean;
+}
+
+export interface ResultadoDeTanda {
+  /** Goles de la tanda de cada equipo ([local, visitante]). */
+  goles: [number, number];
+  ganador: 0 | 1;
+  lanzamientos: Lanzamiento[];
+}
+
+/** Lo que vale un tirador de penaltis: el golpeo del penalti y la compostura (sangre fría), por su estado (forma y salud) y el potenciador de la categoría. */
+function valorDePenalti(j: JugadorDePartido, potenciador: number): number {
+  return (j.rinde ?? 1) * (0.6 * valorEnPartido(j.lector, 'futbol.penaltis', potenciador) + 0.4 * valorEnPartido(j.lector, 'futbol.sangre_fria', potenciador));
+}
+
+/**
+ * **La tanda de penaltis** (`MOTOR_PARTIDOS.md` §5, punto 9): cinco por equipo (empieza el local, sin prórroga antes) y, si siguen empatados, uno a uno hasta que uno marque y el otro no. Cada penalti es un duelo entre el que tira y el portero
+ * rival, con sus habilidades y su estado: marca con `golBase` si valen lo mismo, más si el tirador vale más que el portero. Tiran los titulares por orden de lo que valen en los penaltis (el portero, el último); si hay que repetir, vuelven a
+ * empezar por el primero. El azar es el de la tanda (`rngEstable`), reproducible con la misma semilla.
+ */
+export function tandaDePenaltis(local: EquipoDePartido, visitante: EquipoDePartido, o: { id: string; semilla: number; categoria: string }): ResultadoDeTanda {
+  const P = PARAMETROS_DE_PENALTIS;
+  const potenciador = POTENCIADOR_POR_CATEGORIA[o.categoria] ?? 1;
+  const rng = rngEstable('penaltis', o.semilla, o.id);
+  const equipos = [local, visitante] as const;
+  const portero = equipos.map((e) => e.jugadores.find((j) => j.titular && j.puesto === 'GK') ?? e.jugadores.find((j) => j.titular));
+  const tiradores = equipos.map((e) => {
+    const en = e.jugadores.filter((j) => j.titular);
+    const campo = en.filter((j) => j.puesto !== 'GK').sort((a, b) => valorDePenalti(b, potenciador) - valorDePenalti(a, potenciador) || (a.id < b.id ? -1 : 1));
+    return [...campo, ...en.filter((j) => j.puesto === 'GK')];
+  });
+  const goles: [number, number] = [0, 0];
+  const lanzamientos: Lanzamiento[] = [];
+  const lanza = (i: 0 | 1, n: number): void => {
+    const t = tiradores[i][n % tiradores[i].length];
+    const p = portero[1 - i];
+    const valorPortero = p ? (p.rinde ?? 1) * valorEnPartido(p.lector, 'futbol.reflejos', potenciador) : 1;
+    const gol = !!t && rng.chance(Math.min(0.95, P.golBase * 2 * mejorQue(valorDePenalti(t, potenciador), valorPortero, P.potencia)));
+    if (gol) goles[i]++;
+    lanzamientos.push({ equipo: i, tirador: t?.id ?? '', portero: p?.id ?? '', gol });
+  };
+  // Los cinco primeros de cada uno (alternando, empieza el local); se acaba antes si uno ya no puede alcanzar al otro.
+  for (let n = 0; n < P.porEquipo; n++) {
+    for (const i of [0, 1] as const) {
+      lanza(i, n);
+      const quedan = (k: 0 | 1): number => P.porEquipo - (n + (k <= i ? 1 : 0));
+      if (goles[0] + quedan(0) < goles[1] || goles[1] + quedan(1) < goles[0]) return { goles, ganador: goles[0] > goles[1] ? 0 : 1, lanzamientos };
+    }
+  }
+  // Uno a uno: cada ronda tira el local y el visitante; gana quien marca si el otro falla.
+  for (let n = P.porEquipo; n < P.porEquipo + P.maximoDeRondas && goles[0] === goles[1]; n++) {
+    lanza(0, n);
+    lanza(1, n);
+  }
+  return { goles, ganador: goles[0] === goles[1] ? 0 : goles[0] > goles[1] ? 0 : 1, lanzamientos };
+}

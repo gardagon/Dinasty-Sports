@@ -189,7 +189,7 @@ Una herramienta como el banco de notas (`npm run sim:partidos`): ligas de cada c
 
 | Fase | Qué del motor |
 |---|---|
-| F2 | **(F2.1 y F2.2 hechos el 09/11: motor y banco, convocatoria y alineación, y el estado de los jugadores en el partido; falta la liga y las estadísticas)** Valores con secundarias, conocimiento y potenciador; zonas por puesto con una formación por equipo; tramos, posesión, ocasiones, goles; cansancio e intensidad elegida antes; convocatoria; nota y crónica; banco de partidos |
+| F2 | **(F2.1 y F2.2 hechos el 09/11; la liga del mundo y la tanda de penaltis, el 10/11; falta el partido del personaje y las estadísticas)** Valores con secundarias, conocimiento y potenciador; zonas por puesto con una formación por equipo; tramos, posesión, ocasiones, goles; cansancio e intensidad elegida antes; convocatoria; nota y crónica; banco de partidos |
 | F3 | Experiencia en posición y rol con afinidades, roles en las zonas, formaciones distintas |
 | F4 | Ocultas (consistencia, dureza y tarjetas, partidos grandes, presión) y derivadas (agresividad, liderazgo, creatividad, comunicación y excentricidad del portero) |
 | F7 | Decisiones dentro del partido (con el motor de eventos): intensidad en cada tramo, opciones que abren o cierran los ejes |

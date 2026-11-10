@@ -41,4 +41,18 @@ const despues = tamano();
 const l = (g.moduleState<FutbolState>('futbol') as FutbolState).liga!;
 console.log(`\nGuardado (JSON): partida entera ${kb(antes.juego)} → ${kb(despues.juego)}; estado del fútbol ${kb(antes.futbol)} → ${kb(despues.futbol)} (la liga: ${kb(despues.liga)}; ${l.campeones.length} campeones guardados)`);
 console.log(`Lo que pesa la liga en su momento más lleno (una temporada entera: todos los resultados de todas las categorías y los campeones): ${kb(picoDeLiga)}; al empezar la temporada siguiente se tira lo jugado y solo quedan los campeones (unos ${f(l.campeones.length ? JSON.stringify(l.campeones).length / l.campeones.length : 0, 0)} bytes por categoría y temporada).`);
-console.log(`Crecimiento por temporada del guardado (lo que se queda: los campeones): ${kb(JSON.stringify(l.campeones).length / Math.max(1, TEMPORADAS))} por temporada`);
+const h = l.historial ?? [];
+console.log(`El historial de cada temporada (clasificaciones, playoff, ascensos y descensos y cada partido): ${h.length} temporadas guardadas, ${kb(JSON.stringify(h).length)} en total, ${kb(JSON.stringify(h).length / Math.max(1, h.length))} por temporada`);
+const t0 = h[0];
+if (t0) {
+  const partes = { partidos: 0, tablas: 0, equipos: 0, playoff: 0, cambios: 0 };
+  for (const c of Object.values(t0.categorias)) {
+    partes.cambios += JSON.stringify(c.cambios).length;
+    for (const d of c.divisiones) {
+      partes.playoff += JSON.stringify(d.playoff ?? null).length;
+      for (const g of d.grupos) { partes.partidos += JSON.stringify(g.partidos).length; partes.tablas += JSON.stringify(g.tabla).length; partes.equipos += JSON.stringify(g.equipos).length; }
+    }
+  }
+  console.log(`  Por temporada: partidos ${kb(partes.partidos)}, clasificaciones ${kb(partes.tablas)}, nombres de equipo ${kb(partes.equipos)}, playoff ${kb(partes.playoff)}, ascensos y descensos ${kb(partes.cambios)}`);
+  console.log(`  Con el historial, la partida entera crece ${kb(JSON.stringify(h).length / Math.max(1, h.length))} por temporada: en 70 años serían ${f((70 * JSON.stringify(h).length) / Math.max(1, h.length) / 1024 / 1024)} MB`);
+}

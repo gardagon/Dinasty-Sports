@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FormatoDeDivisiones } from '@ds/kit-deporte';
-import { categoriaAcabada, cerrarTemporada, jugarSabadoDeUnaCategoria, nuevaLiga, tablasDeLaDivision, type JugarPartido, type LigaDeCategoria } from './liga';
+import { archivarTemporada, categoriaAcabada, cerrarTemporada, jugarSabadoDeUnaCategoria, nuevaLiga, tablasDeLaDivision, type JugarPartido, type LigaDeCategoria } from './liga';
 
 const F: FormatoDeDivisiones = { tamano: 10, fijas: 2, grupo: { max: 12 }, suben: 2, bajan: 2, playoff: { jornadasObjetivo: 18 } };
 /** `n` equipos de `clubes` clubes (el id `c3|B`: club 3, letra B), el primero el más fuerte. */
@@ -119,5 +119,99 @@ describe('el final de la temporada y la siguiente', () => {
     const texto = JSON.stringify({ ...liga, categorias: { juvenil: acabada } });
     expect(JSON.parse(texto).categorias.juvenil.jornada).toBe(18);
     expect(texto.length).toBeLessThan(40000);
+  });
+});
+
+describe('la tanda de penaltis en el playoff', () => {
+  /** Todos los partidos del playoff acaban en empate: los cruces se deciden en la tanda (la gana siempre el segundo equipo del cruce, `b`, para ver que se usa). */
+  const empatadora: JugarPartido = Object.assign(
+    (cat: string, local: string, visitante: string, id: string) => ({ ...jugar(cat, local, visitante, id), goles: (id.includes('|PO-') ? [1, 1] : jugar(cat, local, visitante, id).goles) as [number, number] }),
+    { tanda: (_c: string, _a: string, _b: string, _id: string) => ({ ganador: 1 as const, goles: [3, 4] as [number, number] }) },
+  );
+
+  it('un cruce empatado en el global (y la final) se decide por la tanda, no por el mejor sembrado', () => {
+    let l = nuevaLiga(1, 7, { juvenil: equipos(34, 12) }, F).categorias.juvenil;
+    for (let i = 0; i < 60 && !categoriaAcabada(l); i++) l = jugarSabadoDeUnaCategoria('juvenil', l, 1, F, empatadora, 1).liga;
+    const po = l.divisiones[2].playoff!;
+    expect(po.campeon).toBeDefined();
+    expect(po.rondas.map((r) => r.ronda)).toEqual(['cuartos', 'semifinal', 'final']);
+    for (const r of po.rondas) for (const c of r.cruces) {
+      expect(c.tanda).toEqual([3, 4]);
+      expect(c.pasa).toBe(c.b); // la tanda la ganó b
+      expect(c.partidos.every((p) => p[0] === p[1])).toBe(true);
+    }
+    // El campeón es el que ganó la final en los penaltis.
+    expect(po.campeon).toBe(po.rondas[2].cruces[0].b);
+  });
+
+  it('sin empate no hay tanda', () => {
+    let l = nuevaLiga(1, 7, { juvenil: equipos(34, 12) }, F).categorias.juvenil;
+    const sinEmpates: JugarPartido = Object.assign((c: string, a: string, b: string, id: string) => ({ ...jugar(c, a, b, id), goles: (id.includes('|PO-') ? (a < b ? [2, 0] : [0, 2]) : jugar(c, a, b, id).goles) as [number, number] }), { tanda: () => { throw new Error('no debería haber tanda'); } });
+    for (let i = 0; i < 60 && !categoriaAcabada(l); i++) l = jugarSabadoDeUnaCategoria('juvenil', l, 1, F, sinEmpates, 1).liga;
+    expect(l.divisiones[2].playoff!.rondas.every((r) => r.cruces.every((c) => !c.tanda))).toBe(true);
+  });
+});
+
+describe('el historial de la temporada', () => {
+  const cerrar = () => {
+    const liga = nuevaLiga(3, 7, { juvenil: equipos(34, 12), alevin: equipos(30, 15) }, F);
+    const cats = Object.fromEntries(Object.entries(liga.categorias).map(([c, l]) => [c, jugarTemporada(l).liga]));
+    return { liga: { ...liga, categorias: cats }, cerrada: cerrarTemporada({ ...liga, categorias: cats }, F, 7) };
+  };
+
+  it('al cerrar se guarda la temporada entera: la clasificación de cada grupo, el playoff, los ascensos y descensos y cada partido', () => {
+    const { liga, cerrada } = cerrar();
+    expect(cerrada.historial).toHaveLength(1);
+    const h = cerrada.historial![0];
+    expect(h.curso).toBe(3);
+    expect(Object.keys(h.categorias).sort()).toEqual(['alevin', 'juvenil']);
+    const j = h.categorias.juvenil;
+    expect(j.divisiones.map((d) => d.grupos.map((g) => g.equipos.length))).toEqual([[10], [10], [7, 7]]);
+    // La clasificación: ordenada por puntos, con partidos, goles a favor y en contra que cuadran con los resultados.
+    for (const d of j.divisiones) for (const g of d.grupos) {
+      const puntos = g.tabla.map((f) => 3 * f[2] + f[3]);
+      expect(puntos).toEqual([...puntos].sort((a, b) => b - a));
+      for (const [i, pj, ga, e, pe, gf, gc] of g.tabla) {
+        expect(pj).toBe(ga + e + pe);
+        expect(pj).toBe(2 * (g.equipos.length - 1));
+        const suyos = g.partidos.filter((p) => p[0] === i || p[1] === i);
+        expect(suyos).toHaveLength(pj);
+        expect(suyos.reduce((t, p) => t + (p[0] === i ? p[2] : p[3]), 0)).toBe(gf);
+        expect(suyos.reduce((t, p) => t + (p[0] === i ? p[3] : p[2]), 0)).toBe(gc);
+      }
+      expect(g.partidos).toHaveLength(g.equipos.length * (g.equipos.length - 1));
+    }
+    // El playoff de la última división: sus rondas, el campeón y el subcampeón.
+    const po = j.divisiones[2].playoff!;
+    expect(po.rondas.map((r) => r.ronda)).toEqual(['cuartos', 'semifinal', 'final']);
+    expect(po.campeon).toBe(liga.categorias.juvenil.divisiones[2].playoff!.campeon);
+    expect(po.clasificados).toHaveLength(8);
+    expect(j.divisiones[0].playoff).toBeUndefined();
+    // Los ascensos y descensos: los que cambian de división, que cuadran con las divisiones de la temporada siguiente.
+    const sig = cerrada.siguiente!.juvenil;
+    for (const [id, de, a] of j.cambios) {
+      expect(de).not.toBe(a);
+      expect(sig[a - 1].grupos.flat()).toContain(id);
+    }
+    expect(j.cambios.length).toBeGreaterThanOrEqual(4);
+    // Con estos equipos los candidatos de la última (los C de los clubes que tienen su B en Segunda) ceden el ascenso a los B que bajarían: solo cambian los de Primera y Segunda.
+    expect(j.cambios.every(([, de, a]) => de !== 3 && a !== 3)).toBe(true);
+    expect(j.cambios.some(([, de, a]) => de === 1 && a === 2)).toBe(true); // bajan de Primera
+  });
+
+  it('las temporadas se acumulan: el historial crece una temporada cada vez y no se tira', () => {
+    const { cerrada } = cerrar();
+    const siguiente = nuevaLiga(4, cerrada.semilla, { juvenil: equipos(34, 12), alevin: equipos(30, 15) }, F, cerrada.siguiente, cerrada.campeones);
+    expect(siguiente.historial).toBeUndefined(); // nuevaLiga parte del historial que le dé quien la llama
+    const otra = cerrarTemporada({ ...siguiente, historial: cerrada.historial, categorias: Object.fromEntries(Object.entries(siguiente.categorias).map(([c, l]) => [c, jugarTemporada(l, 4).liga])) }, F, 7);
+    expect(otra.historial!.map((t) => t.curso)).toEqual([3, 4]);
+    expect(archivarTemporada(otra, otra.siguiente!).curso).toBe(4);
+  });
+
+  it('es compacto: una temporada de dos categorías pesa pocos KB', () => {
+    const { cerrada } = cerrar();
+    const kb = JSON.stringify(cerrada.historial![0]).length / 1024;
+    expect(kb).toBeLessThan(40);
+    expect(kb).toBeGreaterThan(5);
   });
 });
