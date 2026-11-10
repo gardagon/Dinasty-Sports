@@ -26,11 +26,9 @@ export type Divisiones = Division[];
 
 const porFuerza = (a: EquipoDeLiga, b: EquipoDeLiga): number => (b.fuerza ?? 0) - (a.fuerza ?? 0) || (a.id < b.id ? -1 : 1);
 
-/** Cuántos grupos tiene una división de `m` equipos: los mínimos para que ninguno pase del máximo, sin que ninguno quede por debajo del mínimo si se puede evitar (si no, uno solo). */
+/** Cuántos grupos tiene una división de `m` equipos: uno si cabe en un grupo (12) y, si no, los mínimos para que ninguno pase del máximo, aunque queden pequeños (14: 7 + 7). */
 export function gruposDe(m: number, f: FormatoDeDivisiones): number {
-  let k = Math.max(1, Math.ceil(m / f.grupo.max));
-  while (k > 1 && Math.floor(m / k) < f.grupo.min) k--;
-  return k;
+  return Math.max(1, Math.ceil(m / f.grupo.max));
 }
 
 /**
@@ -50,7 +48,10 @@ export function repartirEnGrupos(ids: readonly string[], club: (id: string) => s
   return grupos;
 }
 
-/** Cuántos equipos tiene cada división para `n` equipos: Primera y Segunda de `tamano` y el resto en la última (si quedan menos del mínimo de un grupo, se juntan con la de arriba). */
+/** Los equipos que mínimo tiene una división para existir: con menos, esos equipos se juntan con la división de arriba. */
+const MINIMO_DE_UNA_DIVISION = 4;
+
+/** Cuántos equipos tiene cada división para `n` equipos: Primera y Segunda, siempre de `tamano`, y el resto en la última (partida en grupos si no cabe en uno de 12). */
 export function tamanosDeDivisiones(n: number, f: FormatoDeDivisiones): number[] {
   const tamanos: number[] = [];
   let resto = n;
@@ -60,7 +61,7 @@ export function tamanosDeDivisiones(n: number, f: FormatoDeDivisiones): number[]
     resto -= t;
   }
   if (resto > 0) {
-    if (resto < f.grupo.min) tamanos[tamanos.length - 1] += resto;
+    if (resto < MINIMO_DE_UNA_DIVISION) tamanos[tamanos.length - 1] += resto;
     else tamanos.push(resto);
   }
   return tamanos;
@@ -196,10 +197,12 @@ function candidatosAAscender(tablas: readonly FilaDeTabla[][]): FilaDeTabla[] {
  * con las reglas del filial: un equipo no sube a una división en la que se queda otro de su club (sube el siguiente de su clasificación), y si un equipo baja a la división de otro de su club, ese baja una más (y entonces sube uno más de
  * la división de abajo para mantener los tamaños). La última división no tiene descensos y sus grupos se vuelven a repartir (los de un mismo club, en grupos distintos).
  */
-export function ascensosYDescensos(divisiones: Divisiones, tablas: readonly (readonly FilaDeTabla[])[][], club: (id: string) => string, f: FormatoDeDivisiones): Divisiones {
+export function ascensosYDescensos(divisiones: Divisiones, tablas: readonly (readonly FilaDeTabla[])[][], club: (id: string) => string, f: FormatoDeDivisiones, ordenDeAscensoDeLaUltima?: readonly string[]): Divisiones {
   const L = divisiones.length;
-  // La clasificación de cada división como una lista, de mejor a peor (en la última, con varios grupos, por rondas de puestos).
-  const orden: string[][] = divisiones.map((_, i) => (i === L - 1 ? candidatosAAscender(tablas[i].map((t) => [...t])) : tablas[i][0]).map((x) => x.id));
+  // La clasificación de cada división como una lista, de mejor a peor. En la última, con varios grupos, es el orden de ascenso del playoff (finalistas, semifinalistas...) o, sin él, los campeones y los mejores segundos.
+  const orden: string[][] = divisiones.map((_, i) => (i === L - 1 ? (ordenDeAscensoDeLaUltima ? [...ordenDeAscensoDeLaUltima] : candidatosAAscender(tablas[i].map((t) => [...t])).map((x) => x.id)) : tablas[i][0].map((x) => x.id)));
+  // De la última división (con varios grupos) hay más equipos que los del orden de ascenso: los demás van detrás, por si no hay quien suba.
+  if (L > 0 && ordenDeAscensoDeLaUltima) for (const t of tablas[L - 1]) for (const fila of t) if (!orden[L - 1].includes(fila.id)) orden[L - 1].push(fila.id);
   const resultado: string[][] = divisiones.map(() => []);
   /** Cuántos ha hecho bajar una más la regla del filial al pasar de una división a la siguiente: la de abajo pierde esos y sube uno más de la que tiene debajo. */
   const empujadosAqui: number[] = divisiones.map(() => 0);
@@ -211,14 +214,27 @@ export function ascensosYDescensos(divisiones: Divisiones, tablas: readonly (rea
       resultado[i] = [...pool, ...llegan[i]];
       break;
     }
-    const bajan = pool.slice(-f.bajan);
+    let bajan = pool.slice(-f.bajan);
     const propios = pool.filter((id) => !bajan.includes(id));
     // Suben los primeros de la división de abajo (de su clasificación) que no coincidan con un equipo de su club en ésta: los que se quedan, los que bajan hasta aquí desde arriba y los que suben con ellos.
+    // Si el que subiría es del mismo club que uno de los que bajan (el C que sube y el B que baja), no se cambian: el de arriba mantiene su plaza y el de abajo se queda (un ascenso y un descenso menos).
     const abajo = [...orden[i + 1]];
     const suben: string[] = [];
-    const hace = f.suben + (i > 0 ? (empujadosAqui[i] ?? 0) : 0);
-    for (const id of abajo) if (suben.length < hace && ![...propios, ...llegan[i], ...suben].some((x) => club(x) === club(id))) suben.push(id);
-    for (const id of abajo) if (suben.length < hace && !suben.includes(id)) suben.push(id);
+    let hace = f.suben + empujadosAqui[i];
+    for (const id of abajo) {
+      if (suben.length >= hace) break;
+      if ([...propios, ...llegan[i], ...suben].some((x) => club(x) === club(id))) continue;
+      const cede = bajan.find((b) => club(b) === club(id));
+      if (cede) {
+        bajan = bajan.filter((b) => b !== cede);
+        propios.push(cede);
+        hace--;
+        continue;
+      }
+      suben.push(id);
+    }
+    // Si no hay bastantes que puedan subir, se quedan en su plaza tantos de los que bajarían como falten (los mejor clasificados).
+    for (let falta = hace - suben.length; falta > 0 && bajan.length; falta--) propios.push(bajan.shift()!);
     resultado[i] = [...propios, ...llegan[i], ...suben];
     // Los que bajan van a la división de abajo; el que se quede allí con un equipo de su club entre los que bajan, baja una más (salvo que la de abajo sea la última: allí pueden coincidir).
     const restoAbajo = abajo.filter((id) => !suben.includes(id));
@@ -226,7 +242,7 @@ export function ascensosYDescensos(divisiones: Divisiones, tablas: readonly (rea
     empujadosAqui[i + 1] = empuja.length;
     if (empuja.length) llegan[i + 2].push(...empuja);
     llegan[i + 1].push(...bajan);
-    pool = abajo.filter((id) => !suben.includes(id) && !empuja.includes(id));
+    pool = restoAbajo.filter((id) => !empuja.includes(id));
   }
   return resultado.map((ids, i) => ({ grupos: i === L - 1 ? repartirEnGrupos(ids, club, gruposDe(ids.length, f)) : [ids] })).filter((d) => d.grupos.some((g) => g.length));
 }

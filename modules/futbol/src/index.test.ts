@@ -107,7 +107,7 @@ describe('datos del fútbol', () => {
   it('son válidos, de equipo y con fútbol 11 y liga a doble vuelta', () => {
     expect(validarDatosDeDeporte(DATOS_FUTBOL)).toEqual([]);
     const es = DATOS_FUTBOL.paises.espana;
-    expect(es.temporada.liga).toEqual({ vueltas: 2, equiposPorCategoria: { min: 6, max: 7 }, divisiones: { tamano: 10, fijas: 2, grupo: { min: 8, max: 12 }, suben: 2, bajan: 2 } });
+    expect(es.temporada.liga).toEqual({ vueltas: 2, equiposPorCategoria: { min: 6, max: 7 }, divisiones: { tamano: 10, fijas: 2, grupo: { max: 12 }, suben: 2, bajan: 2, playoff: { jornadasObjetivo: 18 } } });
     expect(es.categorias.map((c) => c.id)).toEqual(['prebenjamin', 'benjamin', 'alevin', 'infantil', 'cadete', 'juvenil', 'senior']);
     expect(es.competiciones.jornada.dias).toEqual([5]); // sábados
   });

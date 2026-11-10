@@ -10,6 +10,12 @@ import {
   defineModule,
   inHours,
   ligarALugares,
+  CORE_EVENTS,
+  MINUTES_PER_DAY,
+  SHARED_EVENTS,
+  semanasDeTemporada,
+  type ActionContext,
+  type PartidoDelMundoData,
   type DeporteView,
   type LectorDePersona,
   type NpcDirectory,
@@ -45,6 +51,9 @@ import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } fro
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 import { PUESTOS_DE_FUTBOL } from './puestos';
+import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, type JugarPartido, type LigaDelMundo } from './liga';
+import { convocarYAlinear, equipoDePartido, jugadoresDelPartido, paraConvocar } from './convocatoria';
+import { jugarPartido } from './partido';
 
 export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 export { HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
@@ -52,6 +61,8 @@ export { PUESTOS_DE_FUTBOL } from './puestos';
 export { jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
 export { PARAMETROS_DE_CONVOCATORIA, convocarYAlinear, equipoDePartido, estadoDelPersonaje, paraConvocar, jugadoresDelPartido, posicionEquivalente, prioridadDelEntrenador } from './convocatoria';
 export type { Convocatoria, JugadorParaConvocar } from './convocatoria';
+export { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, tablasDeLaDivision } from './liga';
+export type { LigaDelMundo, LigaDeCategoria } from './liga';
 export type { EquipoDePartido, EstadisticasDeJugador, Intensidad, JugadorDePartido, OpcionesDePartido, ReglaDeCambios, ResultadoDePartido, Zona } from './partido';
 export { EJERCICIOS_DE_FUTBOL, sesgoDelEntrenador } from './ejercicios';
 
@@ -61,8 +72,8 @@ export { EJERCICIOS_DE_FUTBOL, sesgoDelEntrenador } from './ejercicios';
  * Lo común a cualquier deporte con club (clubes, entrenador, verano, tele, sobrecarga, conocimiento) lo pone el kit de deporte.
  */
 
-/** Estado del fútbol: de momento, los campos comunes del kit. */
-export type FutbolState = EstadoBaseDeDeporte;
+/** Estado del fútbol: los campos comunes del kit y la liga del mundo (todos los equipos de todas las categorías). */
+export type FutbolState = EstadoBaseDeDeporte & { liga?: LigaDelMundo };
 
 const ENTRENOS_LIBRES = ['futbol.balon', 'futbol.tiro', 'futbol.fisico', 'futbol.porteria'];
 
@@ -167,6 +178,67 @@ function vistaDeFutbol(ctx: ReadContext): DeporteView {
 
 /** Lo que entrenan las sesiones, de menos a más: libre (técnica o físico), club y campamento. */
 const t = (stat: string, amount: number) => ({ stat, amount });
+
+/** Para medir (`npm run liga`): se avisa de cada sábado de liga con lo que ha tardado y cuántos partidos ha jugado. No cambia nada del juego. */
+export const DIAGNOSTICO_DE_LIGA: { alSabado?: (d: { ms: number; partidos: number; semana: number }) => void } = {};
+
+/** Los cambios de un partido de liga (dato por categoría y nivel; de momento 5 en 3 paradas, para todas: `MOTOR_PARTIDOS.md` §6). */
+const CAMBIOS_DE_LIGA = { maximo: 5, despuesDeTramos: [1, 3, 4] };
+
+/**
+ * **LA LIGA DEL MUNDO** (F2.3b): cada sábado de clase, desde que acaba la pretemporada, todos los equipos de todas las categorías juegan su jornada (o el playoff de la última división), esté o no el personaje: el motor
+ * con las plantillas de verdad (convocatoria del entrenador, estado de cada jugador), y a quienes juegan les cambia el estado como tras una carrera (`partido.mundo`). Al empezar un curso se arman las divisiones (al
+ * crear la partida, por lo que vale cada equipo; después, con los ascensos y descensos de la temporada anterior) y al acabar la temporada se cierran.
+ */
+function ligaDelMundo(ctx: ActionContext, semana: number): void {
+  const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
+  const datos = datosDeDeporte(ctx, DEPORTE);
+  const f = datos.temporada.liga?.divisiones;
+  if (!dir?.equiposDeLaCategoria || !dir.plantillaDelEquipo || !f) return;
+  const t = ctx.timeAt(semana * 7 * MINUTES_PER_DAY);
+  let liga = ctx.state<FutbolState>().liga;
+  const guardar = (l: LigaDelMundo): void => void ctx.updateState<FutbolState>((s) => ({ ...s, liga: l }));
+  // Un curso nuevo cierra la temporada anterior si no se había cerrado (una temporada cortada se decide por la clasificación).
+  if (liga && liga.curso !== t.schoolYear && !liga.cerrada) {
+    liga = cerrarTemporada(liga, f, liga.semilla);
+    guardar(liga);
+  }
+  if (t.period !== 'clase' || t.schoolWeek < semanasDeTemporada(ctx.pais.calendario, datos.temporada).primeraCompeticion) return;
+  if (!liga || liga.curso !== t.schoolYear) {
+    const equipos = Object.fromEntries(datos.categorias.map((c) => [c.id, dir.equiposDeLaCategoria!(DEPORTE, c.id)]).filter(([, es]) => (es as unknown[]).length));
+    liga = nuevaLiga(t.schoolYear, liga?.semilla ?? Math.floor(ctx.rng.next() * 2 ** 31), equipos as never, f, liga?.siguiente, liga?.campeones);
+  }
+  if (liga.cerrada) return;
+  const jugar: JugarPartido = (categoria, local, visitante, id) => {
+    const lado = (clave: string) => {
+      const [club, letra] = clave.split('|');
+      const plantilla = dir.plantillaDelEquipo!(DEPORTE, club, categoria, letra);
+      const c = convocarYAlinear(plantilla.map((j) => paraConvocar(j)));
+      return { plantilla, c };
+    };
+    const a = lado(local);
+    const b = lado(visitante);
+    // Un equipo que no puede alinear a once pierde el partido por 3 a 0 (no pasa con las plantillas de la ciudad: tienen al menos 14).
+    if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: a.c.titulares.length < 11 ? [0, 3] : [3, 0], jugadores: [] };
+    const r = jugarPartido(equipoDePartido(local, local, a.plantilla, a.c), equipoDePartido(visitante, visitante, b.plantilla, b.c), { id, semilla: liga!.semilla, categoria, cambios: CAMBIOS_DE_LIGA });
+    return { goles: r.goles, jugadores: [...jugadoresDelPartido(r, 0), ...jugadoresDelPartido(r, 1)] };
+  };
+  const categorias = { ...liga.categorias };
+  const empezo = performance.now();
+  let partidos = 0;
+  for (const [cat, l] of Object.entries(categorias)) {
+    if (categoriaAcabada(l)) continue;
+    const r = jugarSabadoDeUnaCategoria(cat, l, liga.curso, f, jugar, liga.semilla);
+    categorias[cat] = r.liga;
+    partidos += r.jugadores.length / 22;
+    if (r.jugadores.length) ctx.emit<PartidoDelMundoData>({ type: SHARED_EVENTS.PARTIDO_MUNDO, data: { deporte: DEPORTE, semana, curso: t.schoolYear, categoria: cat, jugadores: r.jugadores } });
+  }
+  liga = { ...liga, categorias };
+  // Si todas las categorías han acabado (liga y playoff), se cierra la temporada: ascensos y descensos para la siguiente.
+  if (Object.values(categorias).every(categoriaAcabada)) liga = cerrarTemporada(liga, f, liga.semilla);
+  guardar(liga);
+  DIAGNOSTICO_DE_LIGA.alSabado?.({ ms: performance.now() - empezo, partidos: Math.round(partidos), semana });
+}
 
 export const futbol = defineModule<FutbolState>({
   id: 'futbol',
@@ -293,8 +365,17 @@ export const futbol = defineModule<FutbolState>({
     modificadorDeSobrecarga(CONFIG),
   ],
 
-  // El primer día, el conocimiento que viene de casa; cada sesión, la cuenta de la sobrecarga (kit).
-  on: manejadoresDeDeporte(CONFIG),
+  // El primer día, el conocimiento que viene de casa; cada sesión, la cuenta de la sobrecarga (kit); y cada semana, la liga del mundo.
+  on: (() => {
+    const comunes = manejadoresDeDeporte(CONFIG);
+    return {
+      ...comunes,
+      [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
+        comunes[CORE_EVENTS.WEEK_END]?.(ctx, ev);
+        ligaDelMundo(ctx, (ev.data as { week: number }).week);
+      },
+    };
+  })(),
 });
 
 export default futbol;

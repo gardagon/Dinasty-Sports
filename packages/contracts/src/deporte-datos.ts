@@ -94,10 +94,17 @@ export interface FormatoDeDivisiones {
   tamano: number;
   /** Cuántas divisiones fijas hay antes de la última, que recoge al resto (2: Primera y Segunda, y después la Tercera). */
   fijas: number;
-  /** Tamaño de los grupos de la última división (de 8 a 12): si quedan menos del mínimo, se juntan con la división de arriba. */
-  grupo: { min: number; max: number };
+  /**
+   * Lo que cabe en un grupo de la última división (12): si lo que queda es más, la última se parte en dos grupos o más, aunque sean pequeños (juvenil: 10 + 10 + 7 + 7). Las divisiones fijas son siempre de `tamano`.
+   */
+  grupo: { max: number };
   suben: number;
   bajan: number;
+  /**
+   * El playoff de la última división cuando está partida en grupos (decisión del usuario, 09/11/2026): al acabar la liga juegan los 2 o los 4 primeros de cada grupo, según las jornadas que falten hasta `jornadasObjetivo` (unas 18):
+   * con 4 si la liga tiene 14 jornadas o menos (cuartos, semifinales a ida y vuelta, final a partido único), con 2 si tiene más. Los 2 finalistas suben.
+   */
+  playoff?: { jornadasObjetivo: number };
 }
 
 /** Cuántas jornadas tiene una liga de `equipos` equipos: cada uno juega con todos los demás `vueltas` veces (con un número impar, uno descansa cada jornada). */
