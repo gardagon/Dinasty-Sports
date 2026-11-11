@@ -17,7 +17,7 @@ import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, sem
 
 import { añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
 import { colocarDesplazados } from './fichajes';
-import { equipoDelPersonajeEn, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { entrenadorDelEquipo, equipoDelPersonajeEn, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { categoriaDe, consejoDeUnProfesor, plazaEnElEquipo, piernaDe, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
 import { entrenadoresDeEquiposExtra, entrenadoresDeUnDeporte } from './draft';
 export * from './plaza';
@@ -69,7 +69,7 @@ export interface Npc {
   est?: Record<string, EstadisticasDeTemporada>;
   /** Sus temporadas ya cerradas, en forma compacta (`TemporadaCerrada`): el historial del jugador; no se tira nunca. */
   estHist?: Record<string, TemporadaCerrada[]>;
-  /** Lo que ha perdido con su entrenador por llegar tarde a las convocatorias, por deporte: [afinidad, confianza] (de −100 a 0), solo si ha llegado tarde alguna vez a una convocatoria de su club de ahora; como la del personaje, lo negativo no se olvida con contacto (`relacionConElEntrenador`); si cambia de club en verano, empieza de cero. */
+  /** Lo que ha perdido con cada entrenador por llegar tarde a sus convocatorias: por id del entrenador, [afinidad, confianza] (de −100 a 0), solo en quien ha llegado tarde alguna vez. Como la relación del personaje con cada persona, es con el entrenador como persona (no con el club ni con el equipo): lo negativo no se olvida con contacto, y si un jugador vuelve a coincidir con un entrenador, lo anotado sigue ahí (`relacionConElEntrenador`). */
   afin?: Record<string, [number, number]>;
   /** Las semanas en que faltó a un partido al que estaba convocado, por deporte (solo las que aún pesan: `FALTA_A_PARTIDO`): su asistencia baja (`asistenciaConFaltas`). */
   faltas?: Record<string, number[]>;
@@ -1128,6 +1128,14 @@ function indiceDePresencia(lista: Npc[], clave: string, ubicar: (n: Npc) => { si
   };
 }
 
+
+/** El entrenador del equipo de un jugador (el de su club, categoría y letra de ahora): el que lo convoca. */
+function entrenadorDeUnJugador(lista: readonly Npc[], pob: PoblacionGuardada, j: Npc, inicioCurso: number): Npc | undefined {
+  const cat = j.equipo ? categoriaDe(pob, edadDeJuego(j, inicioCurso) ?? 0) : undefined;
+  const letra = j.letra?.[pob.deporte];
+  return cat && j.equipo && letra ? entrenadorDelEquipo(lista, pob, j.equipo, cat, letra) : undefined;
+}
+
 export const npcs = defineModule<NpcsState>({
   id: 'npcs',
   name: 'Personas',
@@ -1370,6 +1378,7 @@ export const npcs = defineModule<NpcsState>({
       const pob = poblacionesGuardadas(ctx).find((x) => x.deporte === p.deporte);
       const curso = p.curso ?? ctx.time.schoolYear;
       const por = new Map(p.jugadores.map((x) => [x.npcId, x]));
+      const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
       ctx.updateState<NpcsState>((s) => ({
         ...s,
         npcs: s.npcs.map((n) => {
@@ -1390,10 +1399,12 @@ export const npcs = defineModule<NpcsState>({
             ...(cerrada ? { estHist: { ...n.estHist, [p.deporte]: [...(n.estHist?.[p.deporte] ?? []), cerrada] } } : {}),
           };
           // El día de partido (las mismas reglas que el personaje): ver el partido anterior de su campo mientras espera le da conocimiento del deporte; y si llegó tarde a la convocatoria, pierde relación con su entrenador.
+          // Lo que pierde por llegar tarde se anota con el entrenador de su equipo de ahora, el mismo que lo convoca.
+          const coach = x.tarde && pob ? entrenadorDeUnJugador(s.npcs, pob, n, inicioCurso) : undefined;
           const conDia: Npc = {
             ...conEstadisticas,
             ...(x.conocimiento && x.conocimiento > 0 && pob?.rutina && n.genetica && n.cap && n.pico && n.nacimiento !== undefined ? { hab: { ...n.hab, [p.deporte]: conMasConocimiento(n as Parameters<typeof conMasConocimiento>[0], p.deporte, pob.rutina, ctx.time.day, x.conocimiento) } } : {}),
-            ...(x.tarde ? { afin: { ...n.afin, [p.deporte]: llegarTarde(n.afin?.[p.deporte]) } } : {}),
+            ...(coach ? { afin: { ...n.afin, [coach.id]: llegarTarde(n.afin?.[coach.id]) } } : {}),
           };
           // Convocado y sin jugar: baja su moral (más cuanto más ambicioso) y no cambia su forma.
           if (x.minutos <= 0) return { ...conDia, estado: trasElBanquillo(estado, ((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100) };

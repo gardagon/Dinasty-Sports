@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, SHARED_EVENTS, defineModule, registrarPais, type PartidoDeJugador, type PartidosService, type PresenciaService } from '@ds/contracts';
+import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, SHARED_EVENTS, defineModule, registrarPais, type NpcDirectory, type PartidoDeJugador, type PartidosService, type PresenciaService } from '@ds/contracts';
 import { advanceToWeek, advanceUntil } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { CONOCIMIENTO, DIA_DE_PARTIDO, futbol, type FutbolState } from '@ds/mod-futbol';
-import { conRelacionNuevaSiCambiaDeClub, type Npc, type NpcsState } from '@ds/mod-npcs';
+import { categoriaDe, edadDeJuego, entrenadorDelEquipo, type NpcsState } from '@ds/mod-npcs';
 import { hacer, llegarA, posible } from './ayudas';
 
 vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
@@ -144,9 +144,30 @@ describe('lo que dejan en los PNJ el conocimiento y llegar tarde (el mismo event
     expect(despues[2]).toBe(antes[2]);
     // Llegar tarde baja la relación con el entrenador (−3 de afinidad); quien llegó a tiempo no pierde nada.
     const todos = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs;
-    expect(todos.find((n) => n.id === ids[0])!.afin?.futbol).toEqual([-3, -1]);
-    expect(todos.find((n) => n.id === ids[1])!.afin?.futbol).toBeUndefined();
-    expect(todos.find((n) => n.id === ids[2])!.afin?.futbol).toBeUndefined();
+    const estado = g.moduleState<NpcsState>('npcs') as NpcsState;
+    const pob = estado.poblaciones!.find((q) => q.deporte === 'futbol')!;
+    const inicioCurso = (g.time.week - g.time.schoolWeek) * 7;
+    const deSuEquipo = (id: string) => {
+      const n = todos.find((x) => x.id === id)!;
+      return entrenadorDelEquipo(todos, pob, n.equipo!, categoriaDe(pob, edadDeJuego(n, inicioCurso)!)!, n.letra!.futbol)!;
+    };
+    const entrenador = deSuEquipo(ids[0]);
+    expect(todos.find((n) => n.id === ids[0])!.afin).toEqual({ [entrenador.id]: [-3, -1] });
+    expect(todos.find((n) => n.id === ids[1])!.afin).toBeUndefined();
+    expect(todos.find((n) => n.id === ids[2])!.afin).toBeUndefined();
+    // La relación es con ese entrenador como persona: en la plantilla de su equipo pesa, y si pasa a otro equipo con otro entrenador no se la lleva; si vuelve a coincidir con él, sigue ahí.
+    const n0 = todos.find((n) => n.id === ids[0])!;
+    const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
+    const relacion = (letra: string): number | undefined => dir.plantillaDelEquipo!('futbol', n0.equipo!, categoriaDe(pob, edadDeJuego(n0, inicioCurso)!)!.id, letra).find((j) => j.id === ids[0])?.relacionConElEntrenador;
+    const letra0 = n0.letra!.futbol;
+    expect(relacion(letra0)).toBeCloseTo(48.5, 5);
+    const otra = (['A', 'B', 'C', 'D'] as const).find((l) => l !== letra0 && entrenadorDelEquipo(todos, pob, n0.equipo!, categoriaDe(pob, edadDeJuego(n0, inicioCurso)!)!, l)?.id !== entrenador.id);
+    if (otra) {
+      n0.letra = { ...n0.letra, futbol: otra };
+      expect(relacion(otra)).toBeUndefined();
+      n0.letra = { ...n0.letra, futbol: letra0 };
+      expect(relacion(letra0)).toBeCloseTo(48.5, 5);
+    }
     // Quien estaba convocado y no se presentó recibe una falta: su asistencia baja 0,5 las dos semanas siguientes (la misma regla que el personaje) y no cambia su ánimo ni sus estadísticas; quien jugó o llegó tarde, no.
     expect(todos.find((n) => n.id === ids[3])!.faltas?.futbol).toEqual([20]);
     expect(todos.find((n) => n.id === ids[3])!.est?.futbol?.pj ?? 0).toBe(0);
@@ -180,17 +201,5 @@ describe('ver partidos de otros como espectador', () => {
     // El partido de su equipo no sale entre los que se pueden ver.
     const p = (g.moduleState<FutbolState>('futbol') as FutbolState).personaje!;
     expect(ver.some((a) => a.id.includes(`${p.categoria}.${p.club}_${p.letra}.`) || a.id.endsWith(`.${p.club}_${p.letra}`))).toBe(false);
-  });
-});
-
-describe('la relación con el entrenador de un PNJ al cambiar de club', () => {
-  it('quien cambia de club en verano empieza de cero con su nuevo entrenador; quien sigue en el suyo, no pierde lo anotado', () => {
-    const npc = (id: string, equipo: string): Npc => ({ id, equipo, afin: { futbol: [-6, -2] } }) as unknown as Npc;
-    const antes = [npc('a', 'club_grande'), npc('b', 'club_grande'), npc('c', 'club_mediano')];
-    const despues = [npc('a', 'club_grande'), npc('b', 'club_mediano'), { ...npc('c', 'club_mediano'), afin: undefined } as unknown as Npc, npc('nuevo', 'club_grande')];
-    const r = conRelacionNuevaSiCambiaDeClub(antes, despues);
-    expect(r.find((n) => n.id === 'a')!.afin).toEqual({ futbol: [-6, -2] });
-    expect(r.find((n) => n.id === 'b')!.afin).toBeUndefined();
-    expect(r.find((n) => n.id === 'nuevo')!.afin).toEqual({ futbol: [-6, -2] });
   });
 });
