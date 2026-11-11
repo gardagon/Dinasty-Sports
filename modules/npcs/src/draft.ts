@@ -569,7 +569,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
       if (retirado || baja) return [sinDeporte(n, pob, baja)];
       // Una temporada más en su equipo: con ellas (y lo que vale en su puesto) se va formando su puesto favorito (`preferenciaDe`).
       const inicio = pob.puestos?.favoritos?.formacion.edadDeInicio ?? 8;
-      return [{ ...n, temporadas: { ...n.temporadas, [pob.deporte]: (n.temporadas?.[pob.deporte] ?? Math.max(0, edad - inicio)) + 1 } }];
+      return [{ ...n, temporadas: { ...n.temporadas, [pob.deporte]: (n.temporadas?.[pob.deporte] ?? Math.max(0, edad - inicio)) + temporadaJugada(n, pob, curso - 1) } }];
     });
   }
   // Los fichajes de verano, dentro del plazo (el nuevo curso empieza antes de la primera competición): los clubes grandes miran a los mejores de los pequeños y los desplazados buscan
@@ -635,6 +635,17 @@ export function entrenadoresDeEquiposExtra(npcs: readonly Npc[], pob: PoblacionG
 }
 
 
+
+/**
+ * Lo que suma al puesto favorito la temporada que acaba (decisión del usuario, 11/11: la preferencia se forma con el **tiempo jugado**): con `minutosPorTemporada` en los datos, los minutos que jugó divididos entre los de una temporada completa de
+ * titular (hasta 1); quien no tiene estadísticas de esa temporada (un equipo sin liga) o un deporte sin ese dato, 1 como antes.
+ */
+export function temporadaJugada(n: Npc, pob: PoblacionGuardada, cursoQueAcaba: number): number {
+  const minutos = pob.puestos?.favoritos?.formacion.minutosPorTemporada;
+  const e = n.est?.[pob.deporte];
+  if (!minutos || !e) return 1;
+  return e.curso === cursoQueAcaba ? Math.min(1, e.min / minutos) : 0;
+}
 
 /** Los que fueron titulares el curso pasado (los minutos que tuvieron): en cada equipo (club, categoría del curso pasado y letra), los que más valen hasta los titulares de la formación (11 en el fútbol). */
 function titularesDelCurso(lista: readonly Npc[], pob: PoblacionGuardada, dia: number): Set<string> {

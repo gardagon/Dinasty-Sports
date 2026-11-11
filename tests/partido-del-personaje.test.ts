@@ -86,6 +86,27 @@ describe('el partido del personaje en la liga', () => {
     if (u.juega) expect(u.cronica[0].destacada).toBe(true);
   });
 
+  it('la pestaña enseña la tabla de su división, la plantilla de su equipo con las estadísticas y su temporada con la experiencia por puesto', () => {
+    const v = vista();
+    const titulos = v.secciones!.map((x) => x.titulo);
+    expect(titulos.some((t) => t.startsWith('Clasificación'))).toBe(true);
+    expect(titulos.some((t) => t.startsWith('Plantilla'))).toBe(true);
+    expect(titulos).toContain('Tu temporada');
+    const tabla = v.secciones!.find((x) => x.titulo.startsWith('Clasificación'))!.tabla!;
+    expect(tabla.header).toEqual(['Pos.', 'Equipo', 'PJ', 'G', 'E', 'P', 'GF', 'GC', 'DG', 'Pts']);
+    expect(tabla.highlight).toBeGreaterThanOrEqual(0);
+    // Ordenada por puntos.
+    const pts = tabla.rows.map((r) => Number(r[9]));
+    expect(pts).toEqual([...pts].sort((a, b) => b - a));
+    const plantilla = v.secciones!.find((x) => x.titulo.startsWith('Plantilla'))!.tabla!;
+    expect(plantilla.rows.length).toBeGreaterThanOrEqual(14);
+    expect(plantilla.rows[plantilla.highlight!][0]).toBe('Tú');
+    // Las estadísticas de los jugadores son de verdad: los minutos de los que jugaron suman.
+    expect(plantilla.rows.reduce((t, r) => t + Number(r[4]), 0)).toBeGreaterThan(0);
+    const mia = v.secciones!.find((x) => x.titulo === 'Tu temporada')!;
+    expect(mia.tabla!.rows[0][0]).toMatch(/este/);
+  });
+
   it('cada semana juega como mucho un partido suyo y los partidos del mundo no incluyen al personaje', () => {
     const semanas = estado().partidos!.map((p) => `${p.curso}-${p.semana}`);
     expect(new Set(semanas).size).toBe(semanas.length);
@@ -112,6 +133,7 @@ describe('jugar el partido en el campo, a su hora', () => {
     };
     let jugados = 0;
     let saltados = 0;
+    let jugadosAntes = 0;
     for (let w = 4; w <= 13 && (jugados < 1 || saltados < 1); w++) {
       advanceToWeek(g, 'gen.descansar', w, 5, 9);
       const o = g.preview('futbol.jugar_partido')!;
@@ -125,6 +147,14 @@ describe('jugar el partido en el campo, a su hora', () => {
         const u = estado().ultimoPartido!;
         expect(u.semana).toBe(w);
         expect(u.cronica.some((l) => l.titulo)).toBe(true);
+        // Sus estadísticas y su experiencia: si jugó, un partido más y experiencia en su puesto; si se quedó en el banquillo, convocado sin partido.
+        const e = estado().estadisticas!;
+        expect(e.pj).toBe(jugadosAntes + (u.juega ? 1 : 0));
+        if (u.juega) {
+          expect(e.min).toBeGreaterThan(0);
+          expect(estado().experiencia![u.puesto!]).toBeGreaterThan(0);
+        }
+        jugadosAntes = e.pj;
         expect(estado().partidoJugado?.semana).toBe(w);
         expect(g.preview('futbol.jugar_partido')!.available).toBe(false);
         const marcador = u.goles;

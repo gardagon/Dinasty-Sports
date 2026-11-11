@@ -159,7 +159,10 @@ describe('el estado del jugador en el partido', () => {
   it('al acabar, a los que jugaron les cambia el estado como tras una carrera: la valoración va de −1 a +1 por el resultado y la nota', () => {
     const r = jugarPartido(equipo('a', {}), equipo('b', {}), { id: 'x', semilla: 1, categoria: 'infantil', cambios: { maximo: 5, despuesDeTramos: [1, 3, 4] } });
     for (const lado of [0, 1] as const) {
-      const js = jugadoresDelPartido(r, lado);
+      const todos = jugadoresDelPartido(r, lado);
+      // Salen los convocados: los que no jugaron, con 0 minutos y sin cambiar su forma.
+      for (const x of todos.filter((y) => y.minutos === 0)) expect(x.valoracion).toBe(0);
+      const js = todos.filter((y) => y.minutos > 0);
       expect(js.length).toBeGreaterThanOrEqual(11);
       for (const x of js) {
         expect(x.minutos).toBeGreaterThan(0);
@@ -170,7 +173,7 @@ describe('el estado del jugador en el partido', () => {
     }
     // El que ganó con buena nota sube más que el que perdió con mala.
     const ganador = r.goles[0] === r.goles[1] ? undefined : r.goles[0] > r.goles[1] ? 0 : 1;
-    if (ganador !== undefined) expect(Math.max(...jugadoresDelPartido(r, ganador).map((x) => x.valoracion))).toBeGreaterThan(Math.min(...jugadoresDelPartido(r, (1 - ganador) as 0 | 1).map((x) => x.valoracion)));
+    if (ganador !== undefined) expect(Math.max(...jugadoresDelPartido(r, ganador).filter((x) => x.minutos > 0).map((x) => x.valoracion))).toBeGreaterThan(Math.min(...jugadoresDelPartido(r, (1 - ganador) as 0 | 1).filter((x) => x.minutos > 0).map((x) => x.valoracion)));
   });
 });
 
@@ -211,7 +214,7 @@ describe('en el mundo, el estado de los PNJ cambia con el partido', () => {
           const ea = equipoDePartido('a', 'A', a, convocarYAlinear(a.map((j) => paraConvocar(j))));
           const eb = equipoDePartido('b', 'B', b, convocarYAlinear(b.map((j) => paraConvocar(j))));
           const r = jugarPartido(ea, eb, { id: 'prueba', semilla: 1, categoria: 'infantil' });
-          const jugadores = [...jugadoresDelPartido(r, 0), ...jugadoresDelPartido(r, 1)];
+          const jugadores = [...jugadoresDelPartido(r, 0), ...jugadoresDelPartido(r, 1)].filter((x) => x.minutos > 0);
           const todos = [...a, ...b];
           datos = { jugaron: jugadores.map((x) => x.npcId), antes: Object.fromEntries(todos.map((j) => [j.id, j.estado])), valoraciones: Object.fromEntries(jugadores.map((x) => [x.npcId, x.valoracion])) };
           ctx.emit({ type: SHARED_EVENTS.PARTIDO_MUNDO, data: { deporte: 'futbol', semana: 1, categoria: 'infantil', jugadores } });

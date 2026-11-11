@@ -75,13 +75,15 @@ function pesosDe(id: string): Record<string, number> {
 export const PUESTOS_DE_FUTBOL: PuestosDeDeporte = {
   // La pierna buena (decisión del 04/11): en torno a un 20 % de zurdos; el lado de su pierna vale ±0,25 de base; y la experiencia en un puesto de su lado crecerá un 25 % más deprisa (a calibrar).
   pierna: { ventajaDelLado: 0.25, factorDeExperienciaDelLado: 1.25 },
+  // La experiencia en un puesto se gana partido a partido (decisión 4 del motor): (100 − experiencia) × 0,09 × minutos / 90 × aprendizaje.
+  experiencia: { ritmo: 0.09 },
   // Cómo se forman los equipos: 11 titulares (un 4-3-3: 1 portero, 2 centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y 7 suplentes; y el listón de los de primer año (+4 puntos: con las posiciones obligadas, aun así entran en el A unos 3 o 4 primeros años por club y categoría).
   equipos: { titulares: { portero: 1, central: 2, lateral: 2, medio: 3, banda: 2, delantero: 1 }, listonDePrimerAno: 7, formacion: { portero: ['GK'], central: ['CB', 'CB'], lateral: ['LB', 'RB'], medio: ['CDM', 'CM', 'CM'], banda: ['LW', 'RW'], delantero: ['ST'] } },
   puestos: NOMBRES.map(([id, nombre, linea]): PuestoDeDeporte => ({ id, nombre, linea, pesos: pesosDe(id), afinidades: AFINIDADES[id] ?? {} })),
   // El puesto favorito se forma con los años (decisión del 08/11): a los 8, en torno al 60 % sin puesto definido, un 30 % con puesto concreto y un 10 % con zona (portería, defensa, medio o ataque; las bandas, en el medio y los extremos, en el ataque); después, con las temporadas y lo que vale en su puesto, pasan a una zona y a un puesto (propuesta de ritmo a calibrar).
   favoritos: {
     alEmpezar: { sinPuesto: 0.6, concreto: 0.3, zona: 0.1 },
-    formacion: { edadDeInicio: 8, aZonaPorTemporada: 0.25, aPuestoPorTemporada: 0.2, valorDeReferencia: 60 },
+    formacion: { edadDeInicio: 8, aZonaPorTemporada: 0.25, aPuestoPorTemporada: 0.2, valorDeReferencia: 60, minutosPorTemporada: 1200 },
     grupos: [
       { id: 'porteria', nombre: 'Portería', puestos: ['GK'] },
       { id: 'defensa', nombre: 'Defensa', puestos: ['CB', 'LB', 'RB'] },

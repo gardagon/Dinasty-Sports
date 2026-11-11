@@ -109,6 +109,14 @@ export function trasUnaCompeticion(e: EstadoDeJugador, valoracion: number, resil
   };
 }
 
+/** Cuánto baja la moral de quien está convocado y no juega (en puntos), antes de pesar su ambición: un ambicioso lo lleva peor. */
+export const MORAL_DEL_BANQUILLO = -3;
+
+/** Lo que cambia en quien se queda en el banquillo todo el partido: baja su moral, más cuanto más ambicioso (`ambicion` de 0 a 1: ×0,5 el conformista, ×1,5 el más ambicioso). */
+export function trasElBanquillo(e: EstadoDeJugador, ambicion: number): EstadoDeJugador {
+  return { ...e, moral: clamp(e.moral + MORAL_DEL_BANQUILLO * (0.5 + clamp(ambicion, 0, 1)), 0, 100) };
+}
+
 /** Lo que necesita el paso de una semana. `animo` y `resiliencia` van de 0 a 1 (según su carácter); `constitucion`, de 0 a 100. */
 export interface EntradaDeSemana {
   sesiones: number;

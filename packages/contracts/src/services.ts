@@ -2,6 +2,7 @@ import type { DatoPersonal } from './personas';
 import type { Practica } from './herencia';
 import type { PerfilDelPersonaje, RasgosDe } from './rasgos';
 import type { EstadoDeJugador } from './estado-de-jugador';
+import type { EstadisticasDeTemporada } from './estadisticas';
 import type { LectorDePersona } from './lector';
 /**
  * Servicios: la forma de que un módulo CONSULTE a otro sin importarlo.
@@ -175,6 +176,10 @@ export interface JugadorDeEquipoView {
   /** Lo disciplinado que es su entrenador (de 0 a 1): con uno disciplinado, faltar cuesta más el puesto. */
   disciplinaDelEntrenador: number;
   lector: LectorDePersona;
+  /** Sus estadísticas de la temporada (partidos, titularidades, minutos, goles, asistencias y nota). */
+  estadisticas?: EstadisticasDeTemporada;
+  /** Su experiencia en cada puesto en que ha jugado (de 0 a 100). */
+  experiencia?: Readonly<Record<string, number>>;
 }
 
 // ---------- Estudios ----------

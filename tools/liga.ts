@@ -56,3 +56,14 @@ if (t0) {
   console.log(`  Por temporada: partidos ${kb(partes.partidos)}, clasificaciones ${kb(partes.tablas)}, nombres de equipo ${kb(partes.equipos)}, playoff ${kb(partes.playoff)}, ascensos y descensos ${kb(partes.cambios)}`);
   console.log(`  Con el historial, la partida entera crece ${kb(JSON.stringify(h).length / Math.max(1, h.length))} por temporada: en 70 años serían ${f((70 * JSON.stringify(h).length) / Math.max(1, h.length) / 1024 / 1024)} MB`);
 }
+
+// Lo que pesan las estadísticas y la experiencia de cada jugador (F2.4): la temporada en curso, el historial de temporadas cerradas y la experiencia por puesto, de todos los jugadores de fútbol.
+{
+  const npcs = ((g.moduleState('npcs') as { npcs: { deporte?: string; est?: Record<string, unknown>; estHist?: Record<string, unknown[]>; exp?: Record<string, unknown> }[] }).npcs).filter((n) => n.deporte === 'futbol');
+  const peso = (k: 'est' | 'estHist' | 'exp'): number => npcs.reduce((t, n) => t + (n[k] ? JSON.stringify(n[k]).length : 0), 0);
+  const conEst = npcs.filter((n) => n.est).length;
+  const cerradas = npcs.reduce((t, n) => t + (n.estHist?.futbol?.length ?? 0), 0);
+  console.log(`\nEstadísticas por jugador (${npcs.length} jugadores de fútbol, ${conEst} con estadísticas): temporada en curso ${kb(peso('est'))}, historial ${kb(peso('estHist'))} (${cerradas} temporadas cerradas en total), experiencia por puesto ${kb(peso('exp'))}`);
+  const porTemporada = (peso('estHist') / Math.max(1, cerradas)) * (cerradas / Math.max(1, TEMPORADAS - 1)) || 0;
+  console.log(`  Crece unos ${kb(peso('est') + peso('exp'))} la temporada en curso y ${kb(porTemporada)} de historial por temporada cerrada: en 70 años, unos ${f((70 * (porTemporada + peso('exp') / 70)) / 1024 / 1024)} MB`);
+}
