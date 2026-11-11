@@ -6,6 +6,7 @@ export * from './progresion';
 export * from './desarrollo-de-persona';
 export * from './lector';
 export * from './estado-de-jugador';
+export * from './estadisticas';
 export * from './ciudad';
 export * from './plazo-de-fichajes';
 export * from './time';

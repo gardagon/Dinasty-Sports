@@ -44,6 +44,39 @@ describe('la liga del mundo', () => {
     expect(new Set(conEstado.map((n) => Math.round(n.estado!.forma))).size).toBeGreaterThan(3);
   });
 
+  it('cada jugador guarda sus estadísticas de la temporada (cuadran con los resultados de la liga) y su experiencia en el puesto en que juega', () => {
+    const npcs = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs.filter((n) => n.deporte === 'futbol');
+    const con = npcs.filter((n) => n.est?.futbol);
+    expect(con.length).toBeGreaterThan(300);
+    for (const n of con) {
+      const e = n.est!.futbol;
+      expect(e.ti).toBeLessThanOrEqual(e.pj);
+      expect(e.min).toBeGreaterThanOrEqual(e.pj > 0 ? 15 : 0);
+      expect(e.min).toBeLessThanOrEqual(e.pj * 90);
+      if (e.pj) {
+        expect(e.nota / e.pj).toBeGreaterThanOrEqual(1);
+        expect(e.nota / e.pj).toBeLessThanOrEqual(10);
+      }
+    }
+    // Los goles de los jugadores son los de los marcadores (cada gol tiene su goleador y su equipo): un partido de la liga cuenta una vez.
+    const l = liga()!;
+    const golesDeLaLiga = Object.values(l.categorias).flatMap((c) => c.divisiones.flatMap((d) => d.grupos.flatMap((gr) => gr.resultados))).reduce((t, [, , a, b]) => t + a + b, 0);
+    const golesDeLosJugadores = con.filter((n) => n.est!.futbol.curso === l.curso).reduce((t, n) => t + n.est!.futbol.g, 0);
+    expect(golesDeLosJugadores).toBe(golesDeLaLiga);
+    // La experiencia: de 0 a 100, en los puestos en que ha jugado, y crece con los minutos.
+    const conExp = npcs.filter((n) => n.exp?.futbol);
+    expect(conExp.length).toBeGreaterThan(300);
+    for (const n of conExp) for (const v of Object.values(n.exp!.futbol)) {
+      expect(v).toBeGreaterThan(0);
+      expect(v).toBeLessThanOrEqual(100);
+    }
+    const media = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
+    const exp = (n: (typeof npcs)[number]) => Math.max(...Object.values(n.exp!.futbol));
+    const muchos = conExp.filter((n) => n.est!.futbol.min >= 300);
+    const pocos = conExp.filter((n) => n.est!.futbol.min > 0 && n.est!.futbol.min < 100);
+    if (muchos.length && pocos.length) expect(media(muchos.map(exp))).toBeGreaterThan(media(pocos.map(exp)));
+  });
+
   it('la temporada se cierra con los ascensos y descensos y el curso siguiente empieza con las divisiones nuevas', () => {
     advanceToWeek(g, 'gen.descansar', 52 + 4, 2, 15);
     const l = liga()!;

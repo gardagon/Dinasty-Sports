@@ -120,15 +120,19 @@ export function equipoDePartido(id: string, nombre: string, plantilla: readonly 
 }
 
 /**
- * Lo que deja el partido en el estado de quienes jugaron: de −1 (lo peor) a +1 (lo mejor), mitad por el resultado del equipo y mitad por su nota (de 1 a 10; el 6 es lo normal). Con ello cambian su moral y su forma como tras una carrera
- * (`trasUnaCompeticion`); quien no jugó no cambia.
+ * Lo que deja el partido en cada convocado: de −1 (lo peor) a +1 (lo mejor), mitad por el resultado del equipo y mitad por su nota (de 1 a 10; el 6 es lo normal): con ello cambian su moral y su forma como tras una carrera
+ * (`trasUnaCompeticion`). **Quien se queda en el banquillo todo el partido** sale también (con 0 minutos y valoración 0): su moral baja, más cuanto más ambicioso (`trasElBanquillo`), y no cambia su forma. Cada jugador lleva además
+ * lo que cuenta para sus estadísticas y su experiencia (de titular o no, puesto, goles, asistencias, nota) y, si se da, cuánto aprende jugando (`aprendizaje`, por id: lo calcula quien tiene sus habilidades).
  */
-export function jugadoresDelPartido(r: ResultadoDePartido, lado: 0 | 1): JugadorDelPartido[] {
+export function jugadoresDelPartido(r: ResultadoDePartido, lado: 0 | 1, aprendizaje?: (id: string) => number | undefined): JugadorDelPartido[] {
   const resultado = Math.sign(r.goles[lado] - r.goles[1 - lado]);
-  return Object.entries(r.jugadores)
-    .filter(([id]) => r.alineaciones[lado].includes(id))
-    .filter(([, s]) => s.minutos > 0)
-    .map(([npcId, s]) => ({ npcId, minutos: s.minutos, valoracion: Math.max(-1, Math.min(1, 0.5 * resultado + 0.5 * ((s.nota - 6) / 2))) }));
+  return r.alineaciones[lado].flatMap((npcId): JugadorDelPartido[] => {
+    const s = r.jugadores[npcId];
+    if (!s) return [];
+    if (s.minutos <= 0) return [{ npcId, minutos: 0, valoracion: 0, titular: false, puesto: s.puesto }];
+    const a = aprendizaje?.(npcId);
+    return [{ npcId, minutos: s.minutos, valoracion: Math.max(-1, Math.min(1, 0.5 * resultado + 0.5 * ((s.nota - 6) / 2))), titular: s.titular, puesto: s.puesto, goles: s.goles, asistencias: s.asistencias, nota: s.nota, ...(a !== undefined ? { aprendizaje: a } : {}) }];
+  });
 }
 
 /**

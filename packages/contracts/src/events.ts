@@ -53,8 +53,15 @@ export const SHARED_EVENTS = {
 export interface JugadorDelPartido {
   npcId: string;
   minutos: number;
-  /** De −1 a +1: el resultado y su nota. Cambia la moral y la forma como el puesto en una carrera (`trasUnaCompeticion`). */
+  /** De −1 a +1: el resultado y su nota. Cambia la moral y la forma como el puesto en una carrera (`trasUnaCompeticion`). Con 0 minutos (convocado que no jugó) no cambia la forma, pero su moral baja (`trasElBanquillo`). */
   valoracion: number;
+  /** Para sus estadísticas y su experiencia (F2.4): de titular o no, el puesto en que acabó, sus goles y asistencias, su nota (1 a 10) y cuánto aprende jugando (`aprendizajeDe`). */
+  titular?: boolean;
+  puesto?: string;
+  goles?: number;
+  asistencias?: number;
+  nota?: number;
+  aprendizaje?: number;
 }
 
 /** Un partido jugado (de la liga de cualquier categoría): los que jugaron, para que su condición, su moral y su forma cambien con las mismas reglas que tras una carrera. */

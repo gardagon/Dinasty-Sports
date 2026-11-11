@@ -16,6 +16,16 @@ import {
   semanasDeTemporada,
   type ActionContext,
   type ActionDef,
+  type EstadisticasDeTemporada,
+  type TemporadaCerrada,
+  type ProfileService,
+  MORAL_DEL_BANQUILLO,
+  aprendizajeDe,
+  cerrarTemporadaDeJugador,
+  experienciaTrasElPartido,
+  factorDeExperienciaDelPuesto,
+  notaMedia,
+  sumarPartido,
   type ActionDoneData,
   type CompetitionResultData,
   type JugadorDeEquipoView,
@@ -58,7 +68,7 @@ import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } fro
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 import { PUESTOS_DE_FUTBOL } from './puestos';
-import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, type JugarPartido, type LigaDelMundo } from './liga';
+import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { convocarYAlinear, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, posicionEquivalente, type Convocatoria } from './convocatoria';
 import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, nombreDeIntensidad, proximoPartido, situacionEnLaLiga, textoDeResultados, ultimosResultados, type LineaDeCronica } from './personaje';
 import { jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
@@ -98,6 +108,10 @@ export type FutbolState = EstadoBaseDeDeporte & {
   partidoJugado?: { semana: number; id: string; goles: [number, number]; jugadores: { npcId: string; minutos: number; valoracion: number }[] };
   /** Los partidos a los que estaba convocado y no fue, por semana (las últimas): rebajan su asistencia en la convocatoria. */
   faltas?: Record<string, number>;
+  /** Sus estadísticas de la temporada, su historial de temporadas cerradas y su experiencia en cada puesto (F2.4): las mismas que guarda cada PNJ. */
+  estadisticas?: EstadisticasDeTemporada;
+  historial?: TemporadaCerrada[];
+  experiencia?: Record<string, number>;
 };
 
 /** Un partido del personaje, en pocas cifras. */
@@ -250,6 +264,8 @@ function yoComoJugador(ctx: ReadContext, plantilla: readonly JugadorDeEquipoView
     asistencia: asistenciaDelPersonaje(ctx, semana, hastaDia),
     disciplinaDelEntrenador: plantilla[0]?.disciplinaDelEntrenador ?? 0.5,
     lector: ctx,
+    ...(ctx.state<FutbolState>().estadisticas ? { estadisticas: ctx.state<FutbolState>().estadisticas } : {}),
+    ...(ctx.state<FutbolState>().experiencia ? { experiencia: ctx.state<FutbolState>().experiencia } : {}),
   };
 }
 
@@ -380,6 +396,71 @@ function seccionesDelPartido(ctx: ReadContext): SeccionDeDeporte[] {
     const resumen = `${u.equipos[0]} ${u.goles[0]}–${u.goles[1]} ${u.equipos[1]}. ${u.juega ? `Jugaste ${u.minutos} minutos${u.titular ? ' de titular' : ' desde el banquillo'}${u.puesto ? ` como ${nombreDePuesto(u.puesto).toLowerCase()}` : ''}; tu nota: ${notaTexto(u.nota ?? 0)}.` : `${u.motivo}.`}`;
     secciones.push({ titulo: `Último partido · ${u.texto}`, texto: resumen, lineas: u.cronica });
   }
+  if (previa && liga && l) secciones.push(...seccionesDeLaTemporada(ctx, previa, liga, l, dir));
+  return secciones;
+}
+
+
+const decimal = (n: number, d = 1): string => n.toFixed(d).replace('.', ',');
+
+/**
+ * La temporada del personaje en la pestaña (F2.4): la **tabla de su división** (la clasificación de su grupo, con su equipo resaltado), la **plantilla de su equipo** con las estadísticas de cada jugador (partidos, titularidades,
+ * minutos, goles, asistencias y nota media: las de verdad, de todos) y **su temporada** (sus estadísticas, su experiencia en cada puesto y sus temporadas anteriores).
+ */
+function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelMundo, l: LigaDelMundo['categorias'][string], dir: NpcDirectory | undefined): SeccionDeDeporte[] {
+  const nombres = new Map((dir?.equiposDeLaCategoria?.(DEPORTE, previa.equipo.categoria) ?? []).map((e) => [e.id, e.nombre]));
+  const nombre = (id: string): string => nombres.get(id) ?? id.replace('|', ' ');
+  const clave = previa.equipo.clave;
+  const secciones: SeccionDeDeporte[] = [];
+  // La tabla de su grupo.
+  const di = l.divisiones.findIndex((d) => d.grupos.some((g) => g.equipos.includes(clave)));
+  if (di >= 0) {
+    const d = l.divisiones[di];
+    const gi = d.grupos.findIndex((g) => g.equipos.includes(clave));
+    const tabla = tablasDeLaDivision(d)[gi];
+    const etiqueta = di === 0 ? 'Primera' : di === l.divisiones.length - 1 ? 'última división' : `${di + 1}.ª división`;
+    secciones.push({
+      titulo: `Clasificación · ${etiqueta}${d.grupos.length > 1 ? ` (grupo ${gi + 1})` : ''}`,
+      tabla: {
+        header: ['Pos.', 'Equipo', 'PJ', 'G', 'E', 'P', 'GF', 'GC', 'DG', 'Pts'],
+        rows: tabla.map((f, i) => [`${i + 1}.º`, nombre(f.id), ...[f.pj, f.g, f.e, f.p, f.gf, f.gc, f.dg, f.puntos].map(String)]),
+        highlight: tabla.findIndex((f) => f.id === clave),
+        align: ['left', 'left', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right'],
+      },
+    });
+  }
+  // La plantilla con las estadísticas de la temporada de cada jugador.
+  const de = (j: JugadorDeEquipoView): EstadisticasDeTemporada | undefined => (j.estadisticas?.curso === liga.curso ? j.estadisticas : undefined);
+  const plantilla = [...previa.plantilla].sort((a, b) => (de(b)?.min ?? 0) - (de(a)?.min ?? 0) || (a.nombre < b.nombre ? -1 : 1));
+  secciones.push({
+    titulo: `Plantilla · ${nombre(clave)}`,
+    tabla: {
+      header: ['Jugador', 'Puesto', 'PJ', 'Tit.', 'Min.', 'G', 'A', 'Nota'],
+      rows: plantilla.map((j) => {
+        const e = de(j);
+        return [j.id === YO ? 'Tú' : j.nombre, nombreDePuesto(j.puesto), ...[e?.pj ?? 0, e?.ti ?? 0, e?.min ?? 0, e?.g ?? 0, e?.a ?? 0].map(String), e?.pj ? decimal(notaMedia(e)) : '—'];
+      }),
+      highlight: plantilla.findIndex((j) => j.id === YO),
+      align: ['left', 'left', 'right', 'right', 'right', 'right', 'right', 'right'],
+    },
+  });
+  // Su temporada: estadísticas, experiencia por puesto e historial.
+  const s = ctx.state<FutbolState>();
+  const e = s.estadisticas?.curso === liga.curso ? s.estadisticas : undefined;
+  const experiencia = Object.entries(s.experiencia ?? {}).filter(([, v]) => v >= 0.5).sort((a, b) => b[1] - a[1]);
+  secciones.push({
+    titulo: 'Tu temporada',
+    texto: experiencia.length ? `Experiencia en cada puesto: ${experiencia.map(([p, v]) => `${nombreDePuesto(p).toLowerCase()} ${Math.round(v)}`).join(' · ')}.` : 'Todavía no tienes experiencia en ningún puesto: se gana jugando.',
+    tabla: {
+      header: ['Curso', 'PJ', 'Tit.', 'Min.', 'G', 'A', 'Nota'],
+      rows: [
+        ...(e ? [[`${liga.curso + 1} (este)`, ...[e.pj, e.ti, e.min, e.g, e.a].map(String), e.pj ? decimal(notaMedia(e)) : '—']] : [[`${liga.curso + 1} (este)`, '0', '0', '0', '0', '0', '—']]),
+        ...[...(s.historial ?? [])].reverse().map((t) => [`${t[0] + 1}`, ...t.slice(1, 6).map(String), t[1] ? decimal(t[6] / 10) : '—']),
+      ],
+      highlight: 0,
+      align: ['left', 'right', 'right', 'right', 'right', 'right', 'right'],
+    },
+  });
   return secciones;
 }
 
@@ -462,6 +543,24 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
     curso: p.curso, semana: p.semana, categoria: previa.equipo.categoria, texto: p.texto, equipos, goles: r.goles, lado, resultado, juega,
     ...(juega ? { titular: yo.titular, puesto: yo.puesto, minutos: yo.minutos, nota: yo.nota, golesMios: yo.goles, asistencias: yo.asistencias } : { motivo }),
   };
+  // Sus estadísticas, su historial de temporadas y su experiencia en el puesto: las mismas reglas que las de cualquier jugador. Quien estaba convocado y no jugó (banquillo) baja su moral, más cuanto más ambicioso.
+  const banquillo = !juega && !p.ausente && (previa.papel === 'titular' || previa.papel === 'suplente');
+  const aprendizaje = aprendizajeDe([ctx.norm(GEN.inteligencia), ctx.norm(GEN.atencion), ctx.norm(CONOCIMIENTO)]);
+  const pierna = ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha';
+  const ambicion = ((ctx.service<ProfileService>(SERVICES.perfil)?.view().caracter?.ambicion ?? 0) + 50) / 100;
+  if (juega || banquillo) {
+    ctx.updateState<FutbolState>((s) => {
+      const anterior = s.estadisticas;
+      const cerrada = anterior && anterior.curso !== p.curso ? cerrarTemporadaDeJugador(anterior) : undefined;
+      return {
+        ...s,
+        estadisticas: sumarPartido(anterior, p.curso, juega ? { minutos: yo.minutos, titular: yo.titular, goles: yo.goles, asistencias: yo.asistencias, nota: yo.nota } : { minutos: 0 }),
+        ...(cerrada ? { historial: [...(s.historial ?? []), cerrada] } : {}),
+        ...(juega ? { experiencia: { ...s.experiencia, [yo.puesto]: experienciaTrasElPartido(s.experiencia?.[yo.puesto] ?? 0, { minutos: yo.minutos, aprendizaje, factorDelLado: factorDeExperienciaDelPuesto(PUESTOS_DE_FUTBOL, yo.puesto, pierna), ritmo: PUESTOS_DE_FUTBOL.experiencia?.ritmo }) } } : {}),
+      };
+    });
+  }
+  if (banquillo) ctx.addStat(GEN.motivacion, Math.round(MORAL_DEL_BANQUILLO * (0.5 + ambicion)));
   ctx.updateState<FutbolState>((s) => ({
     ...s,
     partidos: [...(s.partidos ?? []), resumen].slice(-PARAMETROS_DEL_PERSONAJE.partidosGuardados),
@@ -525,11 +624,17 @@ function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: n
   const b = ladoDelPartido(dir, previa, o.visitante, o.categoria, o.intensidad, o.sinMi);
   if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: (a.c.titulares.length < 11 ? [0, 3] : [3, 0]) as [number, number], jugadores: [], mio: a.mio || b.mio };
   const r = jugarPartido(a.equipo, b.equipo, { id: o.id, semilla, categoria: o.categoria, cambios: CAMBIOS_DE_LIGA });
+  // Cuánto aprende jugando cada uno (inteligencia, atención y conocimiento del fútbol, frente a lo típico de su edad).
+  const lectores = new Map([...a.plantilla, ...b.plantilla].map((j) => [j.id, j.lector]));
+  const aprender = (id: string): number | undefined => {
+    const l = lectores.get(id);
+    return l ? aprendizajeDe([l.norm(GEN.inteligencia), l.norm(GEN.atencion), l.norm(CONOCIMIENTO)]) : undefined;
+  };
   return {
     r,
     goles: r.goles,
     // Los del personaje no cuentan para el estado de los PNJ.
-    jugadores: [...jugadoresDelPartido(r, 0), ...jugadoresDelPartido(r, 1)].filter((j) => j.npcId !== YO),
+    jugadores: [...jugadoresDelPartido(r, 0, aprender), ...jugadoresDelPartido(r, 1, aprender)].filter((j) => j.npcId !== YO),
     mio: a.mio || b.mio,
     lado: (a.mio ? 0 : 1) as 0 | 1,
     nombres: Object.fromEntries([...a.plantilla, ...b.plantilla].map((j) => [j.id, j.nombre])),

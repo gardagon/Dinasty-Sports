@@ -613,6 +613,8 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
         asistencia: rutina ? asistenciaDeLasDosUltimasSemanas(n as Parameters<typeof huecosQueHace>[0], deporte, rutina, semana) : 1,
         disciplinaDelEntrenador,
         lector,
+        ...(n.est?.[deporte] ? { estadisticas: n.est[deporte] } : {}),
+        ...(n.exp?.[deporte] ? { experiencia: n.exp[deporte] } : {}),
       }];
     })
     .sort((a, b) => (a.id < b.id ? -1 : 1));

@@ -1,4 +1,4 @@
-import { APORTES, CORE_EVENTS, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
@@ -18,7 +18,7 @@ import { historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Re
 import { añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
 import { colocarDesplazados } from './fichajes';
 import { equipoDelPersonajeEn, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
-import { categoriaDe, consejoDeUnProfesor, plazaEnElEquipo, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
+import { categoriaDe, consejoDeUnProfesor, plazaEnElEquipo, piernaDe, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
 import { entrenadoresDeEquiposExtra, entrenadoresDeUnDeporte } from './draft';
 export * from './plaza';
 export * from './plantillas';
@@ -65,6 +65,12 @@ export interface Npc {
   puesto?: Record<string, string>;
   /** Las temporadas que lleva jugando en un equipo de cada deporte (con ellas y lo que vale en su puesto se forma su puesto favorito: `preferenciaDe`). */
   temporadas?: Record<string, number>;
+  /** Sus estadísticas de la temporada en cada deporte de equipo (F2.4): partidos, titularidades, minutos, goles, asistencias y nota. Las mismas que guarda el personaje. */
+  est?: Record<string, EstadisticasDeTemporada>;
+  /** Sus temporadas ya cerradas, en forma compacta (`TemporadaCerrada`): el historial del jugador; no se tira nunca. */
+  estHist?: Record<string, TemporadaCerrada[]>;
+  /** Su experiencia (0 a 100) en cada puesto en que ha jugado, por deporte: se gana partido a partido (`experienciaTrasElPartido`). */
+  exp?: Record<string, Record<string, number>>;
   /** El equipo (A, B, C o D) de su club y su categoría **durante toda la temporada**, por deporte: se fija en verano (`fijarEquipos`) y no cambia en el curso (decisión del usuario, 08/11/2026). */
   letra?: Record<string, 'A' | 'B' | 'C' | 'D'>;
   /** Los deportes en que juega **un año por encima de su edad** (el que sería titular en la categoría de arriba asciende: `completarUnaCategoria`). Un 1 por deporte. */
@@ -1298,15 +1304,32 @@ export const npcs = defineModule<NpcsState>({
     // Un partido de un deporte de equipo: a quienes jugaron les cambian la condición, la moral y la forma como tras una carrera (las mismas reglas para todos: `trasUnaCompeticion`).
     [SHARED_EVENTS.PARTIDO_MUNDO]: (ctx, ev) => {
       const p = ev.data as PartidoDelMundoData;
-      const por = new Map(p.jugadores.filter((x) => x.minutos > 0).map((x) => [x.npcId, x.valoracion]));
-      if (!por.size) return;
+      if (!p.jugadores.length) return;
+      const pob = poblacionesGuardadas(ctx).find((x) => x.deporte === p.deporte);
+      const curso = p.curso ?? ctx.time.schoolYear;
+      const por = new Map(p.jugadores.map((x) => [x.npcId, x]));
       ctx.updateState<NpcsState>((s) => ({
         ...s,
         npcs: s.npcs.map((n) => {
-          const valoracion = por.get(n.id);
-          if (valoracion === undefined) return n;
+          const x = por.get(n.id);
+          if (x === undefined) return n;
+          const estado = n.estado ?? ESTADO_INICIAL;
+          // La temporada anterior pasa al historial cuando llega el primer partido de la siguiente.
+          const anterior = n.est?.[p.deporte];
+          const cerrada = anterior && anterior.curso !== curso ? cerrarTemporadaDeJugador(anterior) : undefined;
+          const conEstadisticas = {
+            ...n,
+            est: { ...n.est, [p.deporte]: sumarPartido(anterior, curso, { minutos: x.minutos, titular: x.titular, goles: x.goles, asistencias: x.asistencias, nota: x.nota }) },
+            ...(cerrada ? { estHist: { ...n.estHist, [p.deporte]: [...(n.estHist?.[p.deporte] ?? []), cerrada] } } : {}),
+          };
+          // Convocado y sin jugar: baja su moral (más cuanto más ambicioso) y no cambia su forma.
+          if (x.minutos <= 0) return { ...conEstadisticas, estado: trasElBanquillo(estado, ((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100) };
           const resil = (n.cap?.[CAPACIDADES_GENETICAS.indexOf('gen.resiliencia')] ?? 50) / 100;
-          return { ...n, estado: trasUnaCompeticion(n.estado ?? ESTADO_INICIAL, valoracion, resil) };
+          // La experiencia en el puesto en que jugó: con rendimientos decrecientes y más deprisa en el lado de su pierna buena.
+          const exp = x.puesto && x.aprendizaje !== undefined && pob
+            ? { ...n.exp, [p.deporte]: { ...n.exp?.[p.deporte], [x.puesto]: experienciaTrasElPartido(n.exp?.[p.deporte]?.[x.puesto] ?? 0, { minutos: x.minutos, aprendizaje: x.aprendizaje, factorDelLado: factorDeExperienciaDelPuesto(pob.puestos, x.puesto, piernaDe(n, pob)), ritmo: pob.puestos?.experiencia?.ritmo }) } }
+            : n.exp;
+          return { ...conEstadisticas, ...(exp ? { exp } : {}), estado: trasUnaCompeticion(estado, x.valoracion, resil) };
         }),
       }));
     },

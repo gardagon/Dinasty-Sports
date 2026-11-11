@@ -262,6 +262,8 @@ export interface PuestosDeDeporte {
   equipos?: { titulares: Readonly<Record<string, number>>; listonDePrimerAno: number; /** Los puestos de los titulares de cada grupo en la alineación (en el fútbol: 1 portero, 2 centrales, lateral izquierdo y derecho, tres de medio, extremos izquierdo y derecho y un delantero centro). */ formacion?: Readonly<Record<string, readonly string[]>> };
   /** La pierna buena: proporción de zurdos, lo que vale de base el lado de su pierna y lo que acelera la experiencia en él. Sin él, los valores por defecto. */
   pierna?: PiernaDeDeporte;
+  /** La experiencia en un puesto, partido a partido (F2.4): cuánto se gana por partido de 90 minutos con lo que falta para 100 (por defecto, 0,09). */
+  experiencia?: { ritmo: number };
   /**
    * El reparto de una plantilla del máximo de jugadores (18 en el fútbol) por grupos de puestos: «2 porteros, 3 centrales, 3 laterales, 4 mediocentros, 3 de banda o extremos y 3
    * delanteros». Un equipo de otro tamaño reparte lo mismo en proporción (`cuposPorGrupo`).
@@ -277,7 +279,7 @@ export interface PuestosDeDeporte {
     /** A la edad de inicio: la parte sin puesto definido, con puesto concreto y con zona (suman 1). */
     alEmpezar: { sinPuesto: number; concreto: number; zona: number };
     /** El ritmo con que se forma: la edad de inicio, la probabilidad por temporada de pasar de sin puesto a zona y de zona a puesto concreto (a un valor de referencia en su puesto; más si vale más, menos si vale menos). */
-    formacion: { edadDeInicio: number; aZonaPorTemporada: number; aPuestoPorTemporada: number; valorDeReferencia: number };
+    formacion: { edadDeInicio: number; aZonaPorTemporada: number; aPuestoPorTemporada: number; valorDeReferencia: number; /** Los minutos de una temporada completa de titular: la preferencia se forma con el **tiempo jugado** (cada temporada suma minutos jugados / esto, hasta 1). Sin él, cada temporada en un equipo cuenta 1. */ minutosPorTemporada?: number };
   };
 }
 
