@@ -45,9 +45,19 @@ export const SHARED_EVENTS = {
   DEPORTE_ANADIDO: 'deporte.anadido',
   /** data: CompeticionDelMundoData — se ha disputado una competición entre PNJ (o con el personaje): cada jugador guarda su historial y su ánimo cambia. */
   COMPETICION_MUNDO: 'competicion.mundo',
+  /** data: IrAData (`lugares.ts`) — un módulo lleva al personaje a un sitio sin viaje (a una zona de `soloPorEvento`, como el vestuario de un campo): lo recoge `lugares`. */
+  IR_A: 'lugares.ir_a',
+  /** data: ClubImpuntualData — el personaje ha llegado tarde a una convocatoria de su equipo: su entrenador pierde relación con él. */
+  CLUB_IMPUNTUAL: 'club.impuntual',
   /** data: PartidoDelMundoData — se ha jugado un partido de un deporte de equipo entre PNJ (o con el personaje): el estado de quienes jugaron cambia como tras una carrera. */
   PARTIDO_MUNDO: 'partido.mundo',
 } as const;
+
+/** El personaje llegó tarde a la convocatoria de un partido (`minutos` después de la hora en que se convoca). */
+export interface ClubImpuntualData {
+  sport: string;
+  minutos: number;
+}
 
 /** Lo que cada jugador de un partido deja en su estado: cuánto jugó y cómo le fue, de −1 (lo peor) a +1 (lo mejor), con lo que cambian su moral y su forma. */
 export interface JugadorDelPartido {

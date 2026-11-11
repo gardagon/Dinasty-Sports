@@ -28,7 +28,9 @@ import {
   notaMedia,
   sumarPartido,
   type ActionDoneData,
+  type ClubImpuntualData,
   type CompetitionResultData,
+  type IrAData,
   type JugadorDeEquipoView,
   type LogTable,
   type RelationsService,
@@ -73,7 +75,7 @@ import { PUESTOS_DE_FUTBOL } from './puestos';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { convocarYAlinear, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, posicionEquivalente, type Convocatoria } from './convocatoria';
 import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, nombreDeIntensidad, proximoPartido, situacionEnLaLiga, textoDeResultados, ultimosResultados, type LineaDeCronica } from './personaje';
-import { jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
+import { PARAMETROS_DE_PARTIDO, jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
 
 export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 export { HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
@@ -115,6 +117,8 @@ export type FutbolState = EstadoBaseDeDeporte & {
   estadisticas?: EstadisticasDeTemporada;
   historial?: TemporadaCerrada[];
   experiencia?: Record<string, number>;
+  /** El día de partido del personaje esta semana: si se ha unido a los compañeros (con cuántos minutos de retraso sobre la hora de la convocatoria), si ha pasado al vestuario y si lo convoca el entrenador, tal como estaba por la mañana del día del partido (`papel`: al cerrar la semana el resto del mundo ya ha cambiado —recuperaciones de lesiones— y la convocatoria podría salir distinta). */
+  diaDePartido?: { semana: number; unido: boolean; tarde: number; vestuario?: boolean; papel?: 'titular' | 'suplente' | 'no_convocado' | 'lesionado' | 'sin_puesto' };
   /** Cuándo y dónde se juega cada partido de esta semana (id → [día de la semana, hora, campo]): se reparte el lunes con los partidos de la jornada (`repartirLosPartidos`). */
   calendario?: { curso: number; semana: number; partidos: Record<string, [number, number, string]>; sinSitio: number };
 };
@@ -289,7 +293,7 @@ interface Previa {
  * La convocatoria de su equipo con el personaje dentro, como la hará el entrenador el sábado (la misma regla que para cualquiera: sus entrenamientos y su relación con el entrenador pesan). Sirve para la pestaña y para saber
  * si puede elegir intensidad; el sábado se vuelve a hacer con lo que haya entonces.
  */
-function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hastaDia: number): Previa | undefined {
+function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hastaDia: number, vivoSiempre = false): Previa | undefined {
   const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
   const equipo = miEquipo(ctx, curso);
   if (!equipo || !dir?.plantillaDelEquipo) return undefined;
@@ -300,7 +304,10 @@ function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hasta
   const afinidad = entrenador ? ctx.service<RelationsService>(SERVICES.relaciones)?.get(entrenador.id)?.afinidad : undefined;
   const relacion = afinidad === undefined ? undefined : (afinidad + 100) / 2;
   const c = convocarYAlinear(plantilla.map((j) => paraConvocar(j, j.id === YO ? relacion : undefined)));
-  const papel: Papel = !yo ? 'sin_puesto' : (yo.estado.baja ?? 0) > 0 ? 'lesionado' : c.titulares.some((x) => x.id === YO) ? 'titular' : c.suplentes.some((x) => x.id === YO) ? 'suplente' : 'no_convocado';
+  const vivo: Papel = !yo ? 'sin_puesto' : (yo.estado.baja ?? 0) > 0 ? 'lesionado' : c.titulares.some((x) => x.id === YO) ? 'titular' : c.suplentes.some((x) => x.id === YO) ? 'suplente' : 'no_convocado';
+  // El día de su partido, por la mañana, se anota si lo convoca el entrenador (`fotoDelDiaDePartido`): todo el día (y el cierre de la semana) cuenta con esa convocatoria, no con la de cada momento.
+  const foto = ctx.state<FutbolState>().diaDePartido;
+  const papel: Papel = !vivoSiempre && foto?.semana === semana && foto.papel ? foto.papel : vivo;
   return { equipo, plantilla, c, papel };
 }
 
@@ -353,6 +360,13 @@ const ACCION_DE_JUGAR_EL_PARTIDO: ActionDef = {
   run: jugarElPartidoDelPersonaje,
 };
 
+/** Cuándo se convoca y qué hay que hacer el día del partido (para la pestaña): la convocatoria una hora antes, el vestuario a y media y el aviso de la falta. */
+function convocatoriaTexto(ctx: ReadContext, previa: Previa): string {
+  const h = suHoraYCampo(ctx, previa, ctx.time.week);
+  if (!h) return 'Ve al campo y elige «Jugar el partido»: si estás convocado y no vas, cuenta como una falta.';
+  return `El entrenador convoca a las ${horaTexto(h.hora - 1)}: ve al campo y «Unirte a los compañeros» (más de 10 minutos tarde, tu entrenador pierde relación contigo); el vestuario se abre a las ${enMinutos(h.hora * 60 - 30)}. Si llegas después de la hora del partido no juegas y cuenta como una falta.`;
+}
+
 /** Lo que ve el personaje del partido en la pestaña: el próximo (rival, puestos en la tabla, si lo convocan, su estado, intensidad y últimos resultados) y el último, con su crónica. */
 function seccionesDelPartido(ctx: ReadContext): SeccionDeDeporte[] {
   const s = ctx.state<FutbolState>();
@@ -382,7 +396,7 @@ function seccionesDelPartido(ctx: ReadContext): SeccionDeDeporte[] {
         header: ['', ''],
         rows: [
           ['Competición', `${sig.texto} · ${sig.local ? 'en casa' : 'fuera'}`],
-          ['Dónde y cuándo', `${suHoraYCampo(ctx, previa, ctx.time.week)?.texto ?? datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto}${juega ? '. Ve al campo y elige «Jugar el partido»: si estás convocado y no vas, cuenta como una falta.' : ''}`],
+          ['Dónde y cuándo', `${suHoraYCampo(ctx, previa, ctx.time.week)?.texto ?? datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto}${juega ? `. ${convocatoriaTexto(ctx, previa)}` : ''}`],
           ['Rival', `${nombre(sig.rival)} · ${situacion(sig.rival)}`],
           ['Tu equipo', `${nombre(previa.equipo.clave)} · ${situacion(previa.equipo.clave)}`],
           ['Tu papel (hoy)', papel],
@@ -533,14 +547,15 @@ const CAMBIOS_DE_LIGA = { maximo: 5, despuesDeTramos: [1, 3, 4] };
  * cansancio con que acabó), su motivación y su forma como tras una carrera (`competicion.resultado`); si no pudo jugar (lesionado o no convocado), solo ve el resultado y la crónica; y si estaba convocado y no fue (`ausente`),
  * su equipo juega sin él y el entrenador lo apunta como una falta (rebaja su asistencia las dos semanas siguientes).
  */
-function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePartido; lado: 0 | 1; nombres: Record<string, string>; local: string; visitante: string; previa: Previa; curso: number; semana: number; texto: string; nombreDeEquipo: (id: string) => string; ausente?: boolean }): void {
+function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePartido; lado: 0 | 1; nombres: Record<string, string>; local: string; visitante: string; previa: Previa; curso: number; semana: number; texto: string; nombreDeEquipo: (id: string) => string; ausente?: boolean; papel?: Papel }): void {
   const { r, lado, previa } = p;
+  const papel = p.papel ?? previa.papel;
   const equipos: [string, string] = [p.nombreDeEquipo(p.local), p.nombreDeEquipo(p.visitante)];
   const [propios, rival] = [r.goles[lado], r.goles[1 - lado]];
   const resultado = propios > rival ? 'victoria' : propios < rival ? 'derrota' : 'empate';
   const yo = r.jugadores[YO];
   const juega = !!yo && yo.minutos > 0;
-  const motivo = p.ausente ? 'No te presentas al partido: tu equipo juega sin ti' : previa.papel === 'titular' || previa.papel === 'suplente' ? 'Te quedas en el banquillo todo el partido' : MOTIVO_DE_NO_JUGAR[previa.papel];
+  const motivo = p.ausente ? 'No te presentas al partido: tu equipo juega sin ti' : papel === 'titular' || papel === 'suplente' ? 'Te quedas en el banquillo todo el partido' : MOTIVO_DE_NO_JUGAR[papel];
   const cronica: LineaDeCronica[] = [
     ...(juega ? [{ destacada: true, texto: yo.titular ? `Eres titular de ${nombreDePuesto(yo.puesto).toLowerCase()}.` : 'Empiezas en el banquillo.' }] : [{ texto: `${motivo}: sigues el partido desde fuera.` }]),
     ...cronicaDelPartido(r, { equipos, nombres: { ...p.nombres, [YO]: 'Tú' } }),
@@ -550,7 +565,7 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
     ...(juega ? { titular: yo.titular, puesto: yo.puesto, minutos: yo.minutos, nota: yo.nota, golesMios: yo.goles, asistencias: yo.asistencias } : { motivo }),
   };
   // Sus estadísticas, su historial de temporadas y su experiencia en el puesto: las mismas reglas que las de cualquier jugador. Quien estaba convocado y no jugó (banquillo) baja su moral, más cuanto más ambicioso.
-  const banquillo = !juega && !p.ausente && (previa.papel === 'titular' || previa.papel === 'suplente');
+  const banquillo = !juega && !p.ausente && (papel === 'titular' || papel === 'suplente');
   const aprendizaje = aprendizajeDe([ctx.norm(GEN.inteligencia), ctx.norm(GEN.atencion), ctx.norm(CONOCIMIENTO)]);
   const pierna = ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha';
   const ambicion = ((ctx.service<ProfileService>(SERVICES.perfil)?.view().caracter?.ambicion ?? 0) + 50) / 100;
@@ -702,6 +717,8 @@ function prepararElCalendario(ctx: ActionContext, liga: LigaDelMundo, semana: nu
   ctx.updateState<FutbolState>((s) => ({ ...s, calendario: { curso: liga.curso, semana, partidos: Object.fromEntries([...r.partidos].map(([id, h]) => [id, [h.dia, h.hora, h.campo]])), sinSitio: r.sinSitio.length } }));
 }
 
+/** El vestuario del campo (una zona del campo municipal que se abre media hora antes de cada partido). */
+const VESTUARIO = 'vestuario_campo_municipal';
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 const horaTexto = (h: number): string => `${h}:00`;
 
@@ -718,8 +735,8 @@ function suHoraYCampo(ctx: ReadContext, previa: Previa | undefined, semana: numb
   return { dia, hora, campo, texto: `${DIAS[dia][0].toUpperCase()}${DIAS[dia].slice(1)} a las ${horaTexto(hora)}, en ${donde}` };
 }
 
-/** ¿Puede el personaje jugar ahora el partido de su equipo? Solo en la hora y el campo de la jornada, si tiene partido esta semana, no lo ha jugado ya y el entrenador lo ha convocado. */
-function puedeJugarElPartido(ctx: ReadContext): true | string {
+/** Los datos del día de partido del personaje (su partido de esta semana, su hora de saque en minutos absolutos y su equipo), o el motivo por el que no tiene partido que jugar. */
+function datosDelDiaDePartido(ctx: ReadContext): { previa: Previa; h: { dia: number; hora: number; campo: string; texto: string }; saque: number } | string {
   if (!clubDelJugador(ctx)) return 'No juegas en ningún equipo de fútbol';
   if (ctx.stat(GEN.baja) > 0) return 'Estás de baja por una lesión: no puedes jugar';
   const t = ctx.time;
@@ -731,10 +748,129 @@ function puedeJugarElPartido(ctx: ReadContext): true | string {
   if (!l || !proximoPartido(l, previa.equipo.clave)) return 'Tu equipo no juega esta semana';
   if (s.partidoJugado?.semana === t.week) return 'Ya has jugado el partido de esta semana';
   if (previa.papel !== 'titular' && previa.papel !== 'suplente') return `${MOTIVO_DE_NO_JUGAR[previa.papel]}: no juegas`;
-  // Cada partido tiene su hora en punto: se juega en esa franja de dos horas (la convocatoria una hora antes y la puntualidad, con «Unirse a los compañeros»).
   const h = suHoraYCampo(ctx, previa, t.week);
   if (!h) return 'Todavía no se sabe a qué hora juega tu equipo';
-  if (t.weekday !== h.dia || !inHours(t, h.hora, h.hora + 2)) return `Tu partido es el ${h.texto.charAt(0).toLowerCase()}${h.texto.slice(1)}`;
+  // La hora de saque en minutos absolutos de la partida: el lunes de esta semana más el día y la hora de su partido.
+  const saque = (t.day - t.weekday + h.dia) * MINUTES_PER_DAY + h.hora * 60;
+  return { previa, h, saque };
+}
+
+const enMinutos = (m: number): string => `${Math.floor(m / 60)}:${String(Math.round(m % 60)).padStart(2, '0')}`;
+const horaDelDia = (minutoAbsoluto: number): string => enMinutos(minutoAbsoluto % MINUTES_PER_DAY);
+const minusculaInicial = (x: string): string => `${x.charAt(0).toLowerCase()}${x.slice(1)}`;
+const DIA_DE_PARTIDO = PARAMETROS_DEL_PERSONAJE.diaDePartido;
+
+/** El día de su partido, por la mañana, se anota si el entrenador lo convoca (con lo que valen todos ese día): la convocatoria no cambia después, al cerrar la semana. */
+function fotoDelDiaDePartido(ctx: ActionContext): void {
+  const t = ctx.time;
+  const previa = previaDelPartido(ctx, t.schoolYear, t.week, t.weekday, true);
+  const h = suHoraYCampo(ctx, previa, t.week);
+  if (!previa || !h || h.dia !== t.weekday || ctx.state<FutbolState>().diaDePartido?.semana === t.week) return;
+  ctx.updateState<FutbolState>((s) => ({ ...s, diaDePartido: { semana: t.week, unido: false, tarde: 0, papel: previa.papel } }));
+}
+
+/** ¿Está el personaje con sus compañeros esta semana (se ha unido)? */
+const estaUnido = (ctx: ReadContext): boolean => ctx.state<FutbolState>().diaDePartido?.semana === ctx.time.week && !!ctx.state<FutbolState>().diaDePartido?.unido;
+
+/**
+ * **¿Puede unirse a los compañeros?** Desde una hora antes del partido hasta su hora, en el campo, si el entrenador lo ha convocado (titular o suplente). Con la hora de saque a la vista, dice qué pasa si llega pronto, tarde o ya empezado.
+ */
+function puedeUnirseALosCompaneros(ctx: ReadContext): true | string {
+  const d = datosDelDiaDePartido(ctx);
+  if (typeof d === 'string') return d;
+  const t = ctx.time;
+  if (t.weekday !== d.h.dia) return `Tu partido es el ${minusculaInicial(d.h.texto)}`;
+  if (estaUnido(ctx)) return 'Ya estás con tus compañeros';
+  if (t.minute < d.saque - DIA_DE_PARTIDO.convocatoria) return `La convocatoria es una hora antes del partido (a las ${horaDelDia(d.saque - DIA_DE_PARTIDO.convocatoria)})`;
+  if (t.minute >= d.saque) return 'Tu equipo ya ha empezado el partido sin ti: has llegado tarde y no juegas (cuenta como una falta)';
+  return true;
+}
+
+/** El personaje se une a los compañeros (o entra en el vestuario): llega `tarde` minutos después de la hora de la convocatoria; con más de 10, su entrenador pierde relación con él por impuntual. */
+function unirse(ctx: ActionContext, d: { saque: number }): void {
+  const tarde = Math.max(0, ctx.time.minute - (d.saque - DIA_DE_PARTIDO.convocatoria));
+  ctx.updateState<FutbolState>((s) => ({ ...s, diaDePartido: { semana: ctx.time.week, unido: true, tarde, vestuario: s.diaDePartido?.semana === ctx.time.week ? s.diaDePartido.vestuario : undefined, ...(s.diaDePartido?.semana === ctx.time.week && s.diaDePartido.papel ? { papel: s.diaDePartido.papel } : {}) } }));
+  if (tarde > DIA_DE_PARTIDO.tolerancia) {
+    ctx.emit<ClubImpuntualData>({ type: SHARED_EVENTS.CLUB_IMPUNTUAL, data: { sport: DEPORTE, minutos: tarde } });
+    ctx.log(`Llegas ${Math.round(tarde)} minutos tarde a la convocatoria: tu entrenador lo nota y no le hace gracia.`, 'aviso');
+  }
+}
+
+/**
+ * **Unirse a los compañeros** (`MOTOR_PARTIDOS.md` §15): desde una hora antes del partido, en el campo, el personaje está con su equipo hasta que se abre el vestuario (media hora antes): habla con ellos y, si el suyo no es el primer
+ * partido del campo, **ve el partido anterior**, que le da conocimiento del fútbol (en proporción a lo que ve). Si se une más de 10 minutos tarde, el entrenador pierde relación con él por impuntual.
+ */
+const ACCION_DE_UNIRSE_A_LOS_COMPANEROS: ActionDef = {
+  id: 'futbol.unirse_companeros',
+  name: 'Unirte a los compañeros',
+  description: 'Una hora antes de tu partido, en el campo, tu entrenador convoca al equipo: te unes a tus compañeros, hablas con ellos y, si antes juega otro equipo en tu campo, ves su partido (aprendes algo de fútbol). Si te unes más de 10 minutos tarde, tu entrenador pierde relación contigo por impuntual; si llegas después de la hora del partido, no juegas y cuenta como una falta.',
+  tags: [TAGS.social, 'futbol'],
+  group: 'Competición',
+  duration: (ctx) => {
+    const d = datosDelDiaDePartido(ctx);
+    // Hasta que se abre el vestuario (media hora antes); si ya es más tarde, un rato corto.
+    return typeof d === 'string' ? 5 : Math.min(60, Math.max(5, d.saque - DIA_DE_PARTIDO.vestuario - ctx.time.minute));
+  },
+  available: puedeUnirseALosCompaneros,
+  run: (ctx) => {
+    const d = datosDelDiaDePartido(ctx);
+    if (typeof d === 'string') return;
+    unirse(ctx, d);
+    // El partido anterior en su campo: el que empieza en la franja anterior; ve lo que queda de él mientras espera (hasta que se abre el vestuario).
+    const cal = ctx.state<FutbolState>().calendario;
+    const anterior = cal ? Object.values(cal.partidos).filter(([dia, hora, campo]) => dia === d.h.dia && campo === d.h.campo && hora < d.h.hora).sort((a, b) => b[1] - a[1])[0] : undefined;
+    if (anterior) {
+      const desde = (ctx.time.day - ctx.time.weekday + d.h.dia) * MINUTES_PER_DAY + anterior[1] * 60;
+      const visto = Math.max(0, Math.min(desde + PARAMETROS_DE_PARTIDO.tramos * PARAMETROS_DE_PARTIDO.minutosPorTramo, d.saque - DIA_DE_PARTIDO.vestuario) - Math.max(desde, ctx.time.minute));
+      if (visto > 0) {
+        ctx.train(CONOCIMIENTO, DIA_DE_PARTIDO.conocimientoPorPartidoVisto * (visto / (PARAMETROS_DE_PARTIDO.tramos * PARAMETROS_DE_PARTIDO.minutosPorTramo)));
+        ctx.log('Mientras esperas ves el final del partido anterior en tu campo: aprendes cómo se mueve un equipo.', 'info');
+      }
+    }
+    ctx.log(`Te unes a tus compañeros (${horaDelDia(ctx.time.minute)}): el vestuario se abre a las ${horaDelDia(d.saque - DIA_DE_PARTIDO.vestuario)}.`, 'info');
+  },
+};
+
+/** ¿Puede entrar en el vestuario? Desde media hora antes del partido hasta su hora: estando con los compañeros pasa allí con ellos; si llega entonces, se une dentro. */
+function puedeIrAlVestuario(ctx: ReadContext): true | string {
+  const d = datosDelDiaDePartido(ctx);
+  if (typeof d === 'string') return d;
+  const t = ctx.time;
+  if (t.weekday !== d.h.dia) return `Tu partido es el ${minusculaInicial(d.h.texto)}`;
+  if (t.minute < d.saque - DIA_DE_PARTIDO.vestuario) return `El vestuario se abre media hora antes del partido (a las ${horaDelDia(d.saque - DIA_DE_PARTIDO.vestuario)})`;
+  if (t.minute >= d.saque) return 'Tu equipo ya ha empezado el partido sin ti: has llegado tarde y no juegas (cuenta como una falta)';
+  return true;
+}
+
+/** **Ir al vestuario**: la zona del campo que se abre media hora antes de cada partido. Con los compañeros, pasa allí con ellos; si llega entonces, se une dentro (con los minutos de retraso que lleve sobre la convocatoria). */
+const ACCION_DE_IR_AL_VESTUARIO: ActionDef = {
+  id: 'futbol.ir_vestuario',
+  name: 'Ir al vestuario',
+  description: 'El vestuario del campo se abre media hora antes de tu partido: pasas allí con tus compañeros a cambiarte. Si llegas ahora y no te habías unido a ellos, te unes dentro del vestuario (y llegas tarde a la convocatoria).',
+  tags: [TAGS.social, 'futbol'],
+  group: 'Competición',
+  duration: 2,
+  available: puedeIrAlVestuario,
+  run: (ctx) => {
+    const d = datosDelDiaDePartido(ctx);
+    if (typeof d === 'string') return;
+    if (!estaUnido(ctx)) unirse(ctx, d);
+    ctx.updateState<FutbolState>((s) => ({ ...s, diaDePartido: { ...s.diaDePartido!, vestuario: true } }));
+    ctx.emit<IrAData>({ type: SHARED_EVENTS.IR_A, data: { destino: VESTUARIO } });
+    ctx.log('Pasas al vestuario con tus compañeros: el entrenador da las últimas indicaciones.', 'info');
+  },
+};
+
+/** ¿Puede el personaje jugar ahora el partido de su equipo? Solo desde la hora del partido, con sus compañeros (se ha unido a ellos a tiempo: si llega después de la hora, no juega y cuenta como falta). */
+function puedeJugarElPartido(ctx: ReadContext): true | string {
+  const d = datosDelDiaDePartido(ctx);
+  if (typeof d === 'string') return d;
+  const t = ctx.time;
+  if (t.weekday !== d.h.dia) return `Tu partido es el ${minusculaInicial(d.h.texto)}`;
+  if (t.minute < d.saque - DIA_DE_PARTIDO.convocatoria) return `Todavía es pronto: la convocatoria es a las ${horaDelDia(d.saque - DIA_DE_PARTIDO.convocatoria)}, una hora antes del partido`;
+  if (!estaUnido(ctx)) return t.minute < d.saque ? 'Únete antes a tus compañeros (o pasa al vestuario): el entrenador convoca una hora antes' : 'Tu equipo ya ha empezado el partido sin ti: has llegado tarde y no juegas (cuenta como una falta)';
+  if (t.minute < d.saque) return `El partido empieza a las ${horaDelDia(d.saque)}`;
+  if (t.minute >= d.saque + 120) return 'El partido ya ha acabado';
   return true;
 }
 
@@ -753,6 +889,8 @@ function jugarElPartidoDelPersonaje(ctx: ActionContext): void {
   const o = partidoDeLiga(dir, previa, liga.semilla, { categoria: previa.equipo.categoria, local, visitante, id, intensidad: ctx.state<FutbolState>().intensidad ?? 'normal' });
   ctx.updateState<FutbolState>((s) => ({ ...s, partidoJugado: { semana: t.week, id, goles: o.goles, jugadores: o.jugadores } }));
   if (o.r && o.lado !== undefined) registrarPartidoDelPersonaje(ctx, { r: o.r, lado: o.lado, nombres: o.nombres, local, visitante, previa, curso: liga.curso, semana: t.week, texto: sig.texto, nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria) });
+  // Al acabar el partido aparece en el vestuario.
+  ctx.emit<IrAData>({ type: SHARED_EVENTS.IR_A, data: { destino: VESTUARIO } });
 }
 
 /**
@@ -775,15 +913,18 @@ function ligaDelMundo(ctx: ActionContext, semana: number): void {
   const intensidad = ctx.state<FutbolState>().intensidad ?? 'normal';
   const jugado = ctx.state<FutbolState>().partidoJugado;
   const yaJugado = jugado?.semana === semana ? jugado : undefined;
-  // Convocado y sin haber ido al campo: falta.
-  const ausente = !!previa && !yaJugado && (previa.papel === 'titular' || previa.papel === 'suplente');
+  // Si lo convoca el entrenador, como estaba el día del partido (la convocatoria no cambia por lo que pase al cerrar la semana). Convocado y sin haber ido al campo: falta; no convocado o lesionado: su equipo juega sin él, sin falta.
+  const papel = previa?.papel;
+  const convocado = papel === 'titular' || papel === 'suplente';
+  const ausente = !!previa && !yaJugado && convocado;
+  const fuera = !!previa && !yaJugado && !convocado;
   let delPersonaje: (ReturnType<typeof partidoDeLiga> & { local: string; visitante: string }) | undefined;
   const jugar: JugarPartido = Object.assign(
     (categoria: string, local: string, visitante: string, id: string) => {
       // El partido que el personaje ya jugó en el campo: el mismo resultado, sin volver a jugarlo.
       if (yaJugado && id === yaJugado.id) return { goles: yaJugado.goles, jugadores: yaJugado.jugadores };
       const esMio = !!previa && categoria === previa.equipo.categoria && (local === previa.equipo.clave || visitante === previa.equipo.clave);
-      const o = partidoDeLiga(dir, previa, liga!.semilla, { categoria, local, visitante, id, intensidad, sinMi: esMio && ausente });
+      const o = partidoDeLiga(dir, previa, liga!.semilla, { categoria, local, visitante, id, intensidad, sinMi: esMio && (ausente || fuera) });
       if (o.mio && o.r) delPersonaje = { ...o, local, visitante };
       return { goles: o.goles, jugadores: o.jugadores };
     },
@@ -807,7 +948,7 @@ function ligaDelMundo(ctx: ActionContext, semana: number): void {
   }
   // Su partido de esta semana, si no lo ha jugado él (no convocado, lesionado o ausente): se cuenta con el resultado y la crónica, y la falta si la hay.
   if (delPersonaje && delPersonaje.r && delPersonaje.lado !== undefined && previa) {
-    registrarPartidoDelPersonaje(ctx, { r: delPersonaje.r, lado: delPersonaje.lado, nombres: delPersonaje.nombres, local: delPersonaje.local, visitante: delPersonaje.visitante, previa, curso: t.schoolYear, semana, texto: sigDeMiEquipo?.texto ?? 'Liga', nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria), ausente });
+    registrarPartidoDelPersonaje(ctx, { r: delPersonaje.r, lado: delPersonaje.lado, nombres: delPersonaje.nombres, local: delPersonaje.local, visitante: delPersonaje.visitante, previa, curso: t.schoolYear, semana, texto: sigDeMiEquipo?.texto ?? 'Liga', nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria), ausente, ...(papel ? { papel } : {}) });
   }
   if (jugado) ctx.updateState<FutbolState>((s) => ({ ...s, partidoJugado: undefined }));
   liga = { ...liga, categorias };
@@ -917,7 +1058,7 @@ export const futbol = defineModule<FutbolState>({
       },
       verEnLaTele(CONFIG, 'Partidos y resúmenes de otros: aprendes cómo se mueve un equipo y por qué un pase abre la defensa.'),
       pedirConsejo(CONFIG, HABILIDADES_DE_CONSEJO),
-    ]), ...ACCIONES_DE_INTENSIDAD, ACCION_DE_JUGAR_EL_PARTIDO],
+    ]), ...ACCIONES_DE_INTENSIDAD, ACCION_DE_UNIRSE_A_LOS_COMPANEROS, ACCION_DE_IR_AL_VESTUARIO, ACCION_DE_JUGAR_EL_PARTIDO],
     {
       // El club del colegio entrena en el campo del colegio. Se puede entrenar por libre en el campo del colegio, el municipal y el parque.
       'futbol.club_sesion': sedeDelClub,
@@ -929,7 +1070,10 @@ export const futbol = defineModule<FutbolState>({
       'futbol.fisico': ['campo_colegio', 'campo_municipal', 'parque'],
       'futbol.porteria': ['campo_colegio', 'campo_municipal'],
       'futbol.ver_tele': ['casa'],
-      'futbol.jugar_partido': (ctx) => [datosDeDeporte(ctx, DEPORTE).competiciones.jornada.lugar],
+      'futbol.unirse_companeros': (ctx) => [datosDeDeporte(ctx, DEPORTE).competiciones.jornada.lugar],
+      'futbol.ir_vestuario': (ctx) => [datosDeDeporte(ctx, DEPORTE).competiciones.jornada.lugar],
+      // Se juega en el campo o desde el vestuario (donde puede estar esperando).
+      'futbol.jugar_partido': (ctx) => [datosDeDeporte(ctx, DEPORTE).competiciones.jornada.lugar, VESTUARIO],
       'futbol.pedir_consejo': sedeDelClub,
     },
   ),
@@ -951,7 +1095,7 @@ export const futbol = defineModule<FutbolState>({
       // La liga del curso existe desde el lunes de la primera semana de competición: el personaje puede jugar su partido el sábado, antes de que se cierre la semana.
       [CORE_EVENTS.DAY_START]: (ctx, ev) => {
         comunes[CORE_EVENTS.DAY_START]?.(ctx, ev);
-        prepararLiga(ctx, ctx.time);
+        if (prepararLiga(ctx, ctx.time)) fotoDelDiaDePartido(ctx);
       },
       // Cada sesión del club cuenta para su asistencia (de las dos últimas semanas): el entrenador la mira al convocar, igual que con cualquiera.
       [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {

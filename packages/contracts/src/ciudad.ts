@@ -47,7 +47,7 @@ export const CIUDAD_DE_PRUEBA: CiudadDef = { colegiosDeFuera: 2, aulasPorCurso: 
  * uno: no la ciudad de ahora multiplicada, que deja colegios de fuera de 17 alumnos por curso que nunca llegan a 14), unos 500 niños por año de nacimiento y unas 6.000 personas. Con ella, los clubes
  * salen en proporción (uno cada `PERSONAS_POR_CLUB` personas) y la mitad de los colegios de fuera tiene club.
  */
-export const CIUDAD_GRANDE: CiudadDef = { colegiosDeFuera: 9, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 8 };
+export const CIUDAD_GRANDE: CiudadDef = { colegiosDeFuera: 9, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10 };
 
 /** Los ids de los colegios de fuera de una ciudad: `colegio1`…`colegioN`. */
 export const idsDeColegiosDeFuera = (c: CiudadDef): string[] => Array.from({ length: c.colegiosDeFuera }, (_, i) => `colegio${i + 1}`);
