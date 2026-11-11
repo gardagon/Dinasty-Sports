@@ -5,6 +5,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 11/11/2026 — El complejo deportivo municipal de la ciudad grande tiene 10 campos (decisión del usuario)
+
+Con el calendario del día de partido (#120) medido con la ciudad grande (76 partidos por jornada: 29 en campos de clubes y 47 en el complejo, contando los que se desbordan de los campos de los clubes grandes y medianos), el cadete juega el sábado en 6 de 22 jornadas con 8 campos, en 18 con 9 y siempre con 10. El usuario prefería el cadete el sábado: **10 campos** (`CIUDAD_GRANDE`), y así el calendario es estable. La ciudad de ahora necesita 1.
+
 ## 12/11/2026 — El día de partido, 1.ª parte: el calendario con franjas y campos, y cuántos campos hacen falta (decisión del usuario del 11/11)
 
 - **Cada partido tiene su hora en punto y su campo** (`repartirLosPartidos`, kit de deporte: lógica de cualquier deporte de equipo con liga por categorías). **Franjas** (dato del deporte): 9:00, 11:00, 13:00, 16:00 y 18:00, un partido cada 2 horas en un mismo campo. **Días** (dato): sábado, benjamín, alevín e infantil (los pequeños, en las primeras franjas); domingo, juvenil; **cadete, el sábado si cabe** y, si no, el domingo (`siCabe`): cabe si, con cadete, todos los partidos de ese día tienen franja en el complejo y en los campos de los clubes.
