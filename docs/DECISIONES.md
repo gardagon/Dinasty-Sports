@@ -5,6 +5,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 11/11/2026 — Lo que cuesta llegar tarde a la convocatoria: −3 de afinidad y −1 de confianza, de forma provisional (decisión del usuario)
+
+Las cifras de la impuntualidad del día de partido (#122) las propuso el desarrollador: quien se une a sus compañeros **más de 10 minutos después de la convocatoria** pierde con su entrenador **3 de afinidad y 1 de confianza** (`IMPUNTUALIDAD`, `relaciones`; evento `club.impuntual`). Como referencia, dejar plantado a un club cuesta 15 y 10 con el entrenador. Con −3/−1 una impuntualidad suelta es casi un aviso y hacen falta varias para notarse. El usuario las acepta **de forma provisional**: se revisan si al probar el MVP hace falta ajustarlas. Valen igual para los PNJ cuando lleguen tarde (3.ª parte del día de partido).
+
 ## 11/11/2026 — El complejo deportivo municipal de la ciudad grande tiene 10 campos (decisión del usuario)
 
 Con el calendario del día de partido (#120) medido con la ciudad grande (76 partidos por jornada: 29 en campos de clubes y 47 en el complejo, contando los que se desbordan de los campos de los clubes grandes y medianos), el cadete juega el sábado en 6 de 22 jornadas con 8 campos, en 18 con 9 y siempre con 10. El usuario prefería el cadete el sábado: **10 campos** (`CIUDAD_GRANDE`), y así el calendario es estable. La ciudad de ahora necesita 1.
