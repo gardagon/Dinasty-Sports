@@ -17,8 +17,6 @@ export const PARAMETROS_DEL_PERSONAJE = {
   motivacion: { victoria: 4, empate: 1, derrota: -2 } as const,
   /** Lo que baja su asistencia (de 0 a 1) cada partido al que está convocado y no va, en las dos semanas siguientes: el entrenador le aplica la penalización por faltar. */
   faltaAPartido: 0.5,
-  /** El día de partido (`MOTOR_PARTIDOS.md` §15), en minutos: el entrenador convoca una hora antes; el vestuario se abre media hora antes; quien se une más de 10 minutos tarde a la convocatoria es impuntual; y ver el partido anterior en su campo da `conocimientoPorPartidoVisto` puntos de conocimiento si se ve entero. */
-  diaDePartido: { convocatoria: 60, vestuario: 30, tolerancia: 10, conocimientoPorPartidoVisto: 1.5 },
   /** Cuántos resultados recientes se enseñan de cada equipo. */
   ultimosResultados: 5,
   /** Cuántos partidos suyos se guardan (con el último, con su crónica; F2.4 guardará las estadísticas de todos). */

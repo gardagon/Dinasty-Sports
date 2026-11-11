@@ -151,6 +151,20 @@ Son personas del juego (ids `padre` y `madre`, rol `familia`, siempre conocidas)
 | libre | 9:00–24:00 | casa 85 %, fuera 15 % |
 | resto | | fuera (trabajo) |
 
+### El día de partido de los deportes con liga (el fútbol), nivel 4
+
+(`MOTOR_PARTIDOS.md` §15; decisión del usuario, 11/11/2026.) Los deportes de equipo con liga ponen el **día de partido** como un acontecimiento (nivel 4: manda sobre todo lo demás ese día), calculado cada semana con el calendario de partidos (el servicio `partidos`, no una agenda fija) y con **las mismas reglas que el personaje**:
+
+| Quién | Cuándo | Dónde |
+|---|---|---|
+| **Jugador convocado** (el entrenador convoca a 16 una hora antes) | Desde que llega (a la hora de la convocatoria más su retraso: **puntual, de 0 a 8 minutos; impuntual, de 11 a 30**; el 15 % de los de carácter medio es impuntual y el 2 % no se presenta) hasta media hora antes del partido | En el campo (se puede hablar con él) |
+| | De media hora antes a la hora del partido | En el vestuario del campo |
+| | Durante el partido (90 minutos) | En el campo, **ocupado** («jugando el partido»: se le ve, no se le puede hablar) |
+| | Media hora después | En el vestuario |
+| **Entrenador** de un equipo que juega | Los mismos tramos, sin retraso: en el campo desde la convocatoria | |
+
+Los convocados se calculan con la misma regla que el personaje (`convocarYAlinear`); quien no se presenta (más probable cuanto menos disciplinado) no se convoca y su equipo juega sin él. Mientras esperan en el campo ven el partido anterior de su campo y **ganan conocimiento del fútbol** como el personaje (hasta 1,5 si lo ven entero); quien llega tarde ve menos. Con más de 10 minutos de retraso, **pierde con su entrenador lo mismo que el personaje** (3 de afinidad, cifra provisional; se olvida un 20 % cada semana) y eso pesa en su prioridad de convocatoria (`ANEXO_RELACIONES.md`).
+
 ## 2 bis. Calles, lugares y zonas con horario
 
 **El mapa es un grafo** (`construirMapa`, `contracts/lugares.ts`): 4 **calles** donde no se hace nada, **lugares** que dan a una calle y **zonas** dentro de los lugares. Desde casa ya no se va al colegio de golpe: se **sale a la calle**, se ve lo que hay en ella o se va a otra calle y se **entra** en el lugar. «Viajar» enseña, por separado, lo que hay **dentro** del lugar (zonas) y **salir** (la calle); y el «Viaje rápido» (desplegable) salta a **lugares**, nunca a zonas ni a calles, con el mismo coste que el camino, y **solo se ofrece estando en una calle** (desde dentro de un lugar o de una zona hay que salir primero, 29/10).

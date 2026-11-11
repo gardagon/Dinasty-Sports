@@ -1,9 +1,9 @@
-import { APORTES, CORE_EVENTS, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, NIVEL_AGENDA, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { type HabilidadesDe } from './rutina';
-import { historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
+import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
 
 /**
  * MÓDULO NPCs (id `npcs`).
@@ -69,6 +69,8 @@ export interface Npc {
   est?: Record<string, EstadisticasDeTemporada>;
   /** Sus temporadas ya cerradas, en forma compacta (`TemporadaCerrada`): el historial del jugador; no se tira nunca. */
   estHist?: Record<string, TemporadaCerrada[]>;
+  /** Lo que ha perdido con su entrenador por llegar tarde a las convocatorias, por deporte: [afinidad (de −100 a 0), semana en que se anotó]; se va olvidando (`relacionConElEntrenador`). */
+  afin?: Record<string, [number, number]>;
   /** Su experiencia (0 a 100) en cada puesto en que ha jugado, por deporte: se gana partido a partido (`experienciaTrasElPartido`). */
   exp?: Record<string, Record<string, number>>;
   /** El equipo (A, B, C o D) de su club y su categoría **durante toda la temporada**, por deporte: se fija en verano (`fijarEquipos`) y no cambia en el curso (decisión del usuario, 08/11/2026). */
@@ -987,11 +989,69 @@ function agendaDePersona(n: Npc, datos: DatosDeAgenda, dia: number): TramoDeAgen
   return a;
 }
 
-/** Minutos del día en que algún tramo de alguna agenda empieza o acaba (en orden). Cambia solo cuando cambia la lista de personas. */
-const LIMITES = new WeakMap<Npc[], number[]>();
 
-function limitesDeTramos(lista: Npc[], agendaDe: (n: Npc) => TramoDeAgenda[]): number[] {
-  let l = LIMITES.get(lista);
+/** Las agendas con el día de partido ya puestas, por el partido de cada jugador o equipo (se recalculan solo cuando cambia el calendario). */
+const AGENDAS_CON_PARTIDO = new WeakMap<PartidoDeJugador, { base: TramoDeAgenda[]; con: TramoDeAgenda[] }>();
+
+/** Un tramo de un acontecimiento de un solo destino un día de la semana. */
+const tramoDePartido = (dia: number, desde: number, hasta: number, sitio: string, ocupado?: string): TramoDeAgenda => ({
+  tipo: 'club',
+  nivel: NIVEL_AGENDA.evento,
+  dias: [dia as 0 | 1 | 2 | 3 | 4 | 5 | 6],
+  desde,
+  hasta,
+  destinos: [[sitio, 1]],
+  ...(ocupado ? { ocupado: [[desde, hasta]] as const, motivoOcupado: ocupado } : {}),
+});
+
+/**
+ * El día de partido de una persona (las mismas reglas que el personaje): desde que llega a la convocatoria hasta que se abre el vestuario, en el campo con sus compañeros; media hora antes del partido, en el vestuario; durante el partido, en
+ * el campo (ocupado: jugando); y media hora después, otra vez en el vestuario. Estos tramos mandan sobre todo lo demás (un acontecimiento).
+ */
+function tramosDelPartido(p: PartidoDeJugador): TramoDeAgenda[] {
+  const delDia = (m: number): number => ((m % 1440) + 1440) % 1440;
+  return [
+    tramoDePartido(p.dia, delDia(p.llegada), delDia(p.saque - 30), p.campo),
+    tramoDePartido(p.dia, delDia(p.saque - 30), delDia(p.saque), p.vestuario),
+    tramoDePartido(p.dia, delDia(p.saque), delDia(p.saque + 90), p.campo, 'jugando el partido'),
+    tramoDePartido(p.dia, delDia(p.saque + 90), delDia(p.saque + 120), p.vestuario),
+  ];
+}
+
+/** Los entrenadores de un equipo: el de su número (`entrenador_<club>_<categoría>_<n>`, de los equipos B a D) o, para el A, el del club cuyas edades cubren la categoría. */
+function entrenadorDeEquipo(n: Npc, club: string, categoria: CategoriaDef | undefined, letra: string): boolean {
+  if (n.role !== 'entrenador' || !categoria || !n.tipos?.some((t) => t.tipo === 'entrenador' && t.club === club) || !n.edades) return false;
+  if (n.edades[0] > categoria.edadMax || n.edades[1] < categoria.edadMin) return false;
+  const numero = /_(\d)$/.exec(n.id)?.[1];
+  return numero ? 'ABCD'[Number(numero) - 1] === letra && n.id.includes(`_${categoria.id}_`) : letra === 'A';
+}
+
+function agendaConPartido(n: Npc, base: TramoDeAgenda[], partidos: PartidosService | undefined, categorias: readonly CategoriaDef[]): TramoDeAgenda[] {
+  if (!partidos) return base;
+  let p = n.role === 'entrenador' ? undefined : partidos.deJugador(n.id);
+  if (!p && n.role === 'entrenador') {
+    for (const e of partidos.deLaSemana()) {
+      for (const clave of [e.local, e.visitante]) {
+        const [club, letra] = clave.split('|');
+        // El entrenador de cada equipo de este partido (cada uno lleva su equipo).
+        if (entrenadorDeEquipo(n, club, categorias.find((c) => c.id === e.categoria), letra)) p = partidos.deEquipo(club, e.categoria, letra);
+      }
+    }
+  }
+  if (!p) return base;
+  const hecho = AGENDAS_CON_PARTIDO.get(p);
+  if (hecho?.base === base) return hecho.con;
+  const con = [...base, ...tramosDelPartido(p)];
+  AGENDAS_CON_PARTIDO.set(p, { base, con });
+  return con;
+}
+
+/** Minutos del día en que algún tramo de alguna agenda empieza o acaba (en orden). Cambia solo cuando cambia la lista de personas. */
+const LIMITES = new WeakMap<Npc[], { version: string; limites: number[] }>();
+
+function limitesDeTramos(lista: Npc[], agendaDe: (n: Npc) => TramoDeAgenda[], version = ''): number[] {
+  let l = LIMITES.get(lista)?.limites;
+  if (LIMITES.get(lista)?.version !== version) l = undefined;
   if (!l) {
     const set = new Set<number>();
     const vistas = new Set<TramoDeAgenda[]>();
@@ -1008,7 +1068,7 @@ function limitesDeTramos(lista: Npc[], agendaDe: (n: Npc) => TramoDeAgenda[]): n
         }
       }
     }
-    LIMITES.set(lista, (l = [...set].sort((a, b) => a - b)));
+    LIMITES.set(lista, { version, limites: (l = [...set].sort((a, b) => a - b)) });
   }
   return l;
 }
@@ -1322,14 +1382,20 @@ export const npcs = defineModule<NpcsState>({
             est: { ...n.est, [p.deporte]: sumarPartido(anterior, curso, { minutos: x.minutos, titular: x.titular, goles: x.goles, asistencias: x.asistencias, nota: x.nota }) },
             ...(cerrada ? { estHist: { ...n.estHist, [p.deporte]: [...(n.estHist?.[p.deporte] ?? []), cerrada] } } : {}),
           };
+          // El día de partido (las mismas reglas que el personaje): ver el partido anterior de su campo mientras espera le da conocimiento del deporte; y si llegó tarde a la convocatoria, pierde relación con su entrenador.
+          const conDia: Npc = {
+            ...conEstadisticas,
+            ...(x.conocimiento && x.conocimiento > 0 && pob?.rutina && n.genetica && n.cap && n.pico && n.nacimiento !== undefined ? { hab: { ...n.hab, [p.deporte]: conMasConocimiento(n as Parameters<typeof conMasConocimiento>[0], p.deporte, pob.rutina, ctx.time.day, x.conocimiento) } } : {}),
+            ...(x.tarde ? { afin: { ...n.afin, [p.deporte]: llegarTarde(n.afin?.[p.deporte], p.semana) } } : {}),
+          };
           // Convocado y sin jugar: baja su moral (más cuanto más ambicioso) y no cambia su forma.
-          if (x.minutos <= 0) return { ...conEstadisticas, estado: trasElBanquillo(estado, ((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100) };
+          if (x.minutos <= 0) return { ...conDia, estado: trasElBanquillo(estado, ((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100) };
           const resil = (n.cap?.[CAPACIDADES_GENETICAS.indexOf('gen.resiliencia')] ?? 50) / 100;
           // La experiencia en el puesto en que jugó: con rendimientos decrecientes y más deprisa en el lado de su pierna buena.
           const exp = x.puesto && x.aprendizaje !== undefined && pob
             ? { ...n.exp, [p.deporte]: { ...n.exp?.[p.deporte], [x.puesto]: experienciaTrasElPartido(n.exp?.[p.deporte]?.[x.puesto] ?? 0, { minutos: x.minutos, aprendizaje: x.aprendizaje, factorDelLado: factorDeExperienciaDelPuesto(pob.puestos, x.puesto, piernaDe(n, pob)), ritmo: pob.puestos?.experiencia?.ritmo }) } }
             : n.exp;
-          return { ...conEstadisticas, ...(exp ? { exp } : {}), estado: trasUnaCompeticion(estado, x.valoracion, resil) };
+          return { ...conDia, ...(exp ? { exp } : {}), estado: trasUnaCompeticion(estado, x.valoracion, resil) };
         }),
       }));
     },
@@ -1366,13 +1432,15 @@ export const npcs = defineModule<NpcsState>({
         jornada: (deporte) => datosDe(deporte)?.datos.competiciones.jornada,
       };
       const inicioCurso = (t.week - t.schoolWeek) * 7;
-      const agendaDe = (n: Npc): TramoDeAgenda[] => agendaDePersona(n, datos, t.day);
+      // El día de partido (`MOTOR_PARTIDOS.md` §15): los convocados de los equipos que juegan esta semana, y sus entrenadores, están en el campo desde su convocatoria, en el vestuario a su hora y vuelven a él al acabar.
+      const partidos = ctx.service<PartidosService>(SERVICES.partidos);
+      const agendaDe = (n: Npc): TramoDeAgenda[] => agendaConPartido(n, agendaDePersona(n, datos, t.day), partidos, datosDe(n.deporte)?.datos.categorias ?? []);
       /**
        * Dónde está cada persona entre dos cambios de tramo de cualquier agenda: mientras no cambie ninguno, la presencia no cambia
        * (nadie aparece ni desaparece), así que se calcula una vez por intervalo (unas 10 veces al día) y no cada pocos minutos.
        */
-      const intervalo = limitesDeTramos(lista, agendaDe).filter((m) => m <= t.minuteOfDay).length;
-      const indice = indiceDePresencia(lista, `${t.day}:${intervalo}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
+      const intervalo = limitesDeTramos(lista, agendaDe, partidos?.version).filter((m) => m <= t.minuteOfDay).length;
+      const indice = indiceDePresencia(lista, `${t.day}:${intervalo}:${partidos?.version ?? ''}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
       const servicio: PresenciaService = {
         version: indice.version,
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso, t.day)),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PuestosDeDeporte } from './deporte-datos';
 import { aprendizajeDe, cerrarTemporadaDeJugador, estadisticasVacias, experienciaTrasElPartido, factorDeExperienciaDelPuesto, notaMedia, sumarPartido } from './estadisticas';
-import { MORAL_DEL_BANQUILLO, trasElBanquillo } from './estado-de-jugador';
+import { IMPUNTUALIDAD_DE_JUGADOR, MORAL_DEL_BANQUILLO, llegarTarde, relacionConElEntrenador, trasElBanquillo } from './estado-de-jugador';
 
 /** Unos puestos mínimos: solo importa la pierna buena. */
 const PUESTOS_DE_FUTBOL_DE_PRUEBA = { puestos: [], reparto: [], pierna: { ventajaDelLado: 0.25, factorDeExperienciaDelLado: 1.25 } } as unknown as PuestosDeDeporte;
@@ -68,5 +68,21 @@ describe('la moral del banquillo', () => {
     expect(ambicioso.moral).toBeLessThan(conformista.moral);
     expect(ambicioso.forma).toBe(70);
     expect(trasElBanquillo({ ...e, moral: 1 }, 1).moral).toBe(0);
+  });
+});
+
+describe('la relación de un PNJ con su entrenador por llegar tarde', () => {
+  it('cada vez que llega tarde pierde 3 de afinidad (las mismas cifras que el personaje), se va olvidando semana a semana y se acumula', () => {
+    const una = llegarTarde(undefined, 10);
+    expect(una).toEqual([-IMPUNTUALIDAD_DE_JUGADOR.afinidad, 10]);
+    // En la escala de la convocatoria (0 a 100, neutra 50): −3 de afinidad son −1,5.
+    expect(relacionConElEntrenador(una, 10)).toBeCloseTo(48.5, 5);
+    // Se olvida un 20 % por semana.
+    expect(relacionConElEntrenador(una, 11)).toBeCloseTo((-3 * 0.8 + 100) / 2, 5);
+    expect(relacionConElEntrenador(una, 40)).toBeUndefined();
+    // Dos veces seguidas suman.
+    expect(llegarTarde(una, 10)[0]).toBe(-6);
+    // Sin nada guardado, neutra.
+    expect(relacionConElEntrenador(undefined, 3)).toBeUndefined();
   });
 });

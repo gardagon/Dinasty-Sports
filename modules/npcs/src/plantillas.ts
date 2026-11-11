@@ -2,7 +2,7 @@
  * Las plantillas: quién juega en cada equipo, el reclutamiento y los equipos A a D.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
+import { relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
 import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
@@ -613,6 +613,8 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
         asistencia: rutina ? asistenciaDeLasDosUltimasSemanas(n as Parameters<typeof huecosQueHace>[0], deporte, rutina, semana) : 1,
         disciplinaDelEntrenador,
         lector,
+        disciplina: ((n.rasgos?.caracter.disciplina ?? 0) + 50) / 100,
+        ...(relacionConElEntrenador(n.afin?.[deporte], semana) !== undefined ? { relacionConElEntrenador: relacionConElEntrenador(n.afin?.[deporte], semana) } : {}),
         ...(n.est?.[deporte] ? { estadisticas: n.est[deporte] } : {}),
         ...(n.exp?.[deporte] ? { experiencia: n.exp[deporte] } : {}),
       }];

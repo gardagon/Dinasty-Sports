@@ -105,8 +105,8 @@ export function prioridadDelEntrenador(o: { asistencia: number; relacion?: numbe
   return relacion * (1 - falta);
 }
 
-/** El jugador de una plantilla (`plantillaDelEquipo`) como lo mira el entrenador: con su preferencia por la asistencia de las dos últimas semanas y, solo en el personaje, su relación con el entrenador (0 a 100). */
-export const paraConvocar = (j: JugadorDeEquipoView, relacion?: number): JugadorParaConvocar => ({ id: j.id, puesto: j.puesto, valores: j.valores, valor: j.valor, estado: j.estado, prioridad: prioridadDelEntrenador({ asistencia: j.asistencia, relacion, disciplinaDelEntrenador: j.disciplinaDelEntrenador }) });
+/** El jugador de una plantilla (`plantillaDelEquipo`) como lo mira el entrenador: con su preferencia por la asistencia de las dos últimas semanas y su relación con el entrenador (0 a 100: la del personaje, o la de un PNJ que ha llegado tarde a una convocatoria; sin ella, neutra). */
+export const paraConvocar = (j: JugadorDeEquipoView, relacion: number | undefined = j.relacionConElEntrenador): JugadorParaConvocar => ({ id: j.id, puesto: j.puesto, valores: j.valores, valor: j.valor, estado: j.estado, prioridad: prioridadDelEntrenador({ asistencia: j.asistencia, relacion, disciplinaDelEntrenador: j.disciplinaDelEntrenador }) });
 
 /** El equipo listo para el motor: cada convocado con el puesto de su alineación, su condición física como energía al empezar y su forma y salud en su rendimiento (`factorDeCompeticion(eficienciaDeEstado(estado, false))`, como en el atletismo). */
 export function equipoDePartido(id: string, nombre: string, plantilla: readonly JugadorDeEquipoView[], c: Convocatoria, intensidad: Intensidad = 'normal'): EquipoDePartido {

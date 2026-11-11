@@ -147,3 +147,23 @@ export function pasoDeSemanaDelEstado(e: EstadoDeJugador, i: EntradaDeSemana): E
   }
   return { fisica, moral, forma, salud, ...(baja ? { baja } : {}) };
 }
+
+
+/**
+ * Lo que pierde con su entrenador quien llega tarde a la convocatoria de un partido (`MOTOR_PARTIDOS.md` §15), de afinidad (de −100 a 100), y lo que se olvida cada semana. **Las mismas cifras para el personaje** (`IMPUNTUALIDAD` en
+ * `relaciones`) **y para cualquier PNJ** (aceptadas por el usuario de forma provisional, 11/11/2026).
+ */
+export const IMPUNTUALIDAD_DE_JUGADOR = { afinidad: 3, olvidoPorSemana: 0.8 } as const;
+
+/** Lo que baja la relación de un PNJ con su entrenador una vez más por llegar tarde: se guarda `[afinidad, semana]` (de −100 a 0). */
+export function llegarTarde(guardada: readonly [number, number] | undefined, semana: number): [number, number] {
+  const actual = guardada ? guardada[0] * Math.pow(IMPUNTUALIDAD_DE_JUGADOR.olvidoPorSemana, Math.max(0, semana - guardada[1])) : 0;
+  return [Math.max(-100, actual - IMPUNTUALIDAD_DE_JUGADOR.afinidad), semana];
+}
+
+/** La relación con el entrenador de un PNJ en la escala de 0 a 100 que mira la convocatoria (50: neutra), con lo que ha olvidado; `undefined` si no tiene nada guardado. */
+export function relacionConElEntrenador(guardada: readonly [number, number] | undefined, semana: number): number | undefined {
+  if (!guardada) return undefined;
+  const afinidad = guardada[0] * Math.pow(IMPUNTUALIDAD_DE_JUGADOR.olvidoPorSemana, Math.max(0, semana - guardada[1]));
+  return Math.abs(afinidad) < 0.05 ? undefined : (afinidad + 100) / 2;
+}
