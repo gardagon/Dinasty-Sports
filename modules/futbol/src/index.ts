@@ -117,9 +117,9 @@ export type FutbolState = EstadoBaseDeDeporte & {
   estadisticas?: EstadisticasDeTemporada;
   historial?: TemporadaCerrada[];
   experiencia?: Record<string, number>;
+  /** El día de partido del personaje esta semana: si se ha unido a los compañeros (con cuántos minutos de retraso sobre la hora de la convocatoria), si ha pasado al vestuario y si lo convoca el entrenador, tal como estaba por la mañana del día del partido (`papel`: al cerrar la semana el resto del mundo ya ha cambiado —recuperaciones de lesiones— y la convocatoria podría salir distinta). */
+  diaDePartido?: { semana: number; unido: boolean; tarde: number; vestuario?: boolean; papel?: 'titular' | 'suplente' | 'no_convocado' | 'lesionado' | 'sin_puesto' };
   /** Cuándo y dónde se juega cada partido de esta semana (id → [día de la semana, hora, campo]): se reparte el lunes con los partidos de la jornada (`repartirLosPartidos`). */
-  /** El día de partido del personaje esta semana: si se ha unido a los compañeros (con cuántos minutos de retraso sobre la hora de la convocatoria) y si ha pasado al vestuario. */
-  diaDePartido?: { semana: number; unido: boolean; tarde: number; vestuario?: boolean; /** Si el entrenador lo convoca, tal como estaba el día del partido (por la mañana): al cerrar la semana el resto del mundo ya ha cambiado (lesiones, recuperaciones) y la convocatoria podría salir distinta. */ papel?: 'titular' | 'suplente' | 'no_convocado' | 'lesionado' | 'sin_puesto' };
   calendario?: { curso: number; semana: number; partidos: Record<string, [number, number, string]>; sinSitio: number };
 };
 
@@ -293,7 +293,7 @@ interface Previa {
  * La convocatoria de su equipo con el personaje dentro, como la hará el entrenador el sábado (la misma regla que para cualquiera: sus entrenamientos y su relación con el entrenador pesan). Sirve para la pestaña y para saber
  * si puede elegir intensidad; el sábado se vuelve a hacer con lo que haya entonces.
  */
-function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hastaDia: number): Previa | undefined {
+function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hastaDia: number, vivoSiempre = false): Previa | undefined {
   const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
   const equipo = miEquipo(ctx, curso);
   if (!equipo || !dir?.plantillaDelEquipo) return undefined;
@@ -304,7 +304,10 @@ function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hasta
   const afinidad = entrenador ? ctx.service<RelationsService>(SERVICES.relaciones)?.get(entrenador.id)?.afinidad : undefined;
   const relacion = afinidad === undefined ? undefined : (afinidad + 100) / 2;
   const c = convocarYAlinear(plantilla.map((j) => paraConvocar(j, j.id === YO ? relacion : undefined)));
-  const papel: Papel = !yo ? 'sin_puesto' : (yo.estado.baja ?? 0) > 0 ? 'lesionado' : c.titulares.some((x) => x.id === YO) ? 'titular' : c.suplentes.some((x) => x.id === YO) ? 'suplente' : 'no_convocado';
+  const vivo: Papel = !yo ? 'sin_puesto' : (yo.estado.baja ?? 0) > 0 ? 'lesionado' : c.titulares.some((x) => x.id === YO) ? 'titular' : c.suplentes.some((x) => x.id === YO) ? 'suplente' : 'no_convocado';
+  // El día de su partido, por la mañana, se anota si lo convoca el entrenador (`fotoDelDiaDePartido`): todo el día (y el cierre de la semana) cuenta con esa convocatoria, no con la de cada momento.
+  const foto = ctx.state<FutbolState>().diaDePartido;
+  const papel: Papel = !vivoSiempre && foto?.semana === semana && foto.papel ? foto.papel : vivo;
   return { equipo, plantilla, c, papel };
 }
 
@@ -760,7 +763,7 @@ const DIA_DE_PARTIDO = PARAMETROS_DEL_PERSONAJE.diaDePartido;
 /** El día de su partido, por la mañana, se anota si el entrenador lo convoca (con lo que valen todos ese día): la convocatoria no cambia después, al cerrar la semana. */
 function fotoDelDiaDePartido(ctx: ActionContext): void {
   const t = ctx.time;
-  const previa = previaDelPartido(ctx, t.schoolYear, t.week, t.weekday);
+  const previa = previaDelPartido(ctx, t.schoolYear, t.week, t.weekday, true);
   const h = suHoraYCampo(ctx, previa, t.week);
   if (!previa || !h || h.dia !== t.weekday || ctx.state<FutbolState>().diaDePartido?.semana === t.week) return;
   ctx.updateState<FutbolState>((s) => ({ ...s, diaDePartido: { semana: t.week, unido: false, tarde: 0, papel: previa.papel } }));
@@ -774,7 +777,6 @@ const estaUnido = (ctx: ReadContext): boolean => ctx.state<FutbolState>().diaDeP
  */
 function puedeUnirseALosCompaneros(ctx: ReadContext): true | string {
   const d = datosDelDiaDePartido(ctx);
-  if (process.env.DBG && typeof d !== 'string') console.error('UNIRSE', ctx.time.week, ctx.time.weekday, d.previa.papel, d.previa.plantilla.slice(0, 3).map((j) => j.asistencia), d.previa.plantilla.find((j) => j.id === YO)?.asistencia, d.previa.plantilla.find((j) => j.id === YO)?.estado);
   if (typeof d === 'string') return d;
   const t = ctx.time;
   if (t.weekday !== d.h.dia) return `Tu partido es el ${minusculaInicial(d.h.texto)}`;
@@ -912,8 +914,7 @@ function ligaDelMundo(ctx: ActionContext, semana: number): void {
   const jugado = ctx.state<FutbolState>().partidoJugado;
   const yaJugado = jugado?.semana === semana ? jugado : undefined;
   // Si lo convoca el entrenador, como estaba el día del partido (la convocatoria no cambia por lo que pase al cerrar la semana). Convocado y sin haber ido al campo: falta; no convocado o lesionado: su equipo juega sin él, sin falta.
-  const snapshot = ctx.state<FutbolState>().diaDePartido?.semana === semana ? ctx.state<FutbolState>().diaDePartido?.papel : undefined;
-  const papel = snapshot ?? previa?.papel;
+  const papel = previa?.papel;
   const convocado = papel === 'titular' || papel === 'suplente';
   const ausente = !!previa && !yaJugado && convocado;
   const fuera = !!previa && !yaJugado && !convocado;

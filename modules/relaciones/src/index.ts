@@ -143,9 +143,9 @@ function efectoDeCompania(n: NpcView, area: AreaDeAyuda, afinidad: number): numb
 /** Cuántos rivales conocidos ofrecen acciones a la vez (los de mayor afinidad, a favor o en contra). */
 const RIVALES_CON_ACCIONES = 5;
 
-/** Lo que empeora la relación con el entrenador y con cada miembro del equipo de un club al que dejas plantado (ver `docs/ANEXO_DEPORTE.md`). */
 /** Lo que pierde un entrenador de afinidad y de confianza con quien llega tarde (más de 10 minutos) a la convocatoria de un partido. */
 const IMPUNTUALIDAD = { afinidad: 3, confianza: 1 };
+/** Lo que empeora la relación con el entrenador y con cada miembro del equipo de un club al que dejas plantado (ver `docs/ANEXO_DEPORTE.md`). */
 const PLANTON = { entrenador: { afinidad: 15, confianza: 10 }, equipo: { afinidad: 6, confianza: 3 } };
 
 const dirDe = (ctx: ReadContext) => ctx.service<NpcDirectory>(SERVICES.npcs);

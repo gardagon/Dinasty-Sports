@@ -189,7 +189,7 @@ Una herramienta como el banco de notas (`npm run sim:partidos`): ligas de cada c
 
 | Fase | Qué del motor |
 |---|---|
-| F2 | **(F2.1 y F2.2 hechos el 09/11; la liga del mundo, la tanda de penaltis y el partido del personaje, el 10 y 11/11; las estadísticas, la experiencia por puesto y la moral del banquillo, el 12/11; falta aplicar la experiencia al valor en el partido: F3)** Valores con secundarias, conocimiento y potenciador; zonas por puesto con una formación por equipo; tramos, posesión, ocasiones, goles; cansancio e intensidad elegida antes; convocatoria; nota y crónica; banco de partidos |
+| F2 | **(F2.1 y F2.2 hechos el 09/11; la liga del mundo, la tanda de penaltis y el partido del personaje, el 10 y 11/11; las estadísticas, la experiencia por puesto y la moral del banquillo, el 11/11; falta aplicar la experiencia al valor en el partido: F3)** Valores con secundarias, conocimiento y potenciador; zonas por puesto con una formación por equipo; tramos, posesión, ocasiones, goles; cansancio e intensidad elegida antes; convocatoria; nota y crónica; banco de partidos |
 | F3 | Experiencia en posición y rol con afinidades, roles en las zonas, formaciones distintas |
 | F4 | Ocultas (consistencia, dureza y tarjetas, partidos grandes, presión) y derivadas (agresividad, liderazgo, creatividad, comunicación y excentricidad del portero) |
 | F7 | Decisiones dentro del partido (con el motor de eventos): intensidad en cada tramo, opciones que abren o cierran los ejes |
@@ -229,4 +229,4 @@ Sustituye a la franja abierta de «Jugar el partido» (sábados de 9 a 13, #116)
 - **Los demás también están:** los compañeros, los rivales y su entrenador están en el campo desde su convocatoria y en el vestuario a su hora (las agendas de los PNJ siguen el horario del partido), así que el personaje los puede encontrar.
 - **Ver partidos de otros:** cualquier sábado, en cualquier campo, puede **ver un partido** como espectador, lo que le da conocimiento del deporte (y, más adelante, información de los jugadores). Con el motor de eventos (E18) llegarán cosas como quedarse con un compañero después del partido para ver otro.
 
-**Hecho el 12/11 (1.ª parte):** el calendario con franjas, campos y días por categoría y la medida de los campos del complejo (ver `DECISIONES.md`, 12/11). Queda la convocatoria, el vestuario, las agendas y el espectador.
+**Hecho el 11/11 (1.ª parte):** el calendario con franjas, campos y días por categoría y la medida de los campos del complejo (ver `DECISIONES.md`, 11/11). Queda la convocatoria, el vestuario, las agendas y el espectador.
