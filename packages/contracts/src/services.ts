@@ -155,6 +155,8 @@ export interface EquipoDelMundoView {
   /** Lo que vale (la media de sus once mejores en su puesto): con ello se reparten las divisiones al crear la partida. */
   fuerza: number;
   jugadores: number;
+  /** ¿Juega en casa en las instalaciones de su club? (Los clubes grandes y medianos, sí; los pequeños y los colegios juegan en casa en el complejo municipal.) */
+  campoPropio?: boolean;
 }
 
 /** Un jugador de un equipo, tal como lo ve quien organiza un partido. */

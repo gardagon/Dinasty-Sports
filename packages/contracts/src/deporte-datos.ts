@@ -121,6 +121,21 @@ export interface JornadaDeCompeticion {
   lugar: LugarId;
   /** En palabras, para contarlo antes de apuntarse a un club (p. ej. «Carreras: los sábados de 9 a 13 en el estadio.»). */
   texto: string;
+  /** Si cada partido tiene su hora y su campo (los deportes de equipo con liga): las franjas y qué categorías juegan cada día. Sin él, es una franja abierta (`dias`, `desde`, `hasta`). */
+  calendario?: CalendarioDeJornada;
+}
+
+/**
+ * **El día de partido** (`MOTOR_PARTIDOS.md` §15): cada partido tiene su hora en punto y su campo. Un partido son 90 minutos más el descanso y el cambio de equipos, así que en un mismo campo empiezan cada 2 horas (`franjas`). Cada
+ * día juegan unas categorías (`dias`, en el orden en que ocupan las franjas: las primeras, por la mañana) y alguna puede jugar el primer día si cabe y, si no, otro (`siCabe`).
+ */
+export interface CalendarioDeJornada {
+  /** Las horas (en punto) en que empieza un partido en un campo (por ejemplo, 9, 11, 13, 16 y 18). */
+  franjas: readonly number[];
+  /** Qué categorías juegan cada día (0 = lunes), de las primeras franjas a las últimas. */
+  dias: readonly { dia: number; categorias: readonly string[] }[];
+  /** Categorías que juegan el día `dia` si caben (en el complejo y en los campos de los clubes) y, si no, el día `siNoCabe`. */
+  siCabe?: readonly { categoria: string; dia: number; siNoCabe: number }[];
 }
 
 /** Lo que organiza la federación (se puede usar `{pais}` para el nombre del país de la partida). */
@@ -574,6 +589,15 @@ export function validarDatosDeDeporte(x: unknown): string[] {
       const j = c.jornada;
       if (!esObjeto(j) || !Array.isArray(j.dias) || !j.dias.length || j.dias.some((x) => !Number.isInteger(x) || (x as number) < 0 || (x as number) > 6) || typeof j.desde !== 'number' || typeof j.hasta !== 'number' || j.hasta <= j.desde || typeof j.lugar !== 'string' || typeof j.texto !== 'string') {
         p.push(`${en}: la «jornada» de las competiciones tiene que traer dias (0 a 6), desde, hasta (horas), lugar y texto`);
+      } else if (j.calendario !== undefined) {
+        // El día de partido: franjas en punto y días de cada categoría (las de `siCabe` tienen un día y otro de reserva).
+        const cal = j.calendario;
+        const dia = (x: unknown): boolean => Number.isInteger(x) && (x as number) >= 0 && (x as number) <= 6;
+        if (!esObjeto(cal) || !Array.isArray(cal.franjas) || !cal.franjas.length || cal.franjas.some((h) => !Number.isInteger(h) || (h as number) < 0 || (h as number) > 23) || !Array.isArray(cal.dias) || !cal.dias.length
+          || cal.dias.some((x) => !esObjeto(x) || !dia(x.dia) || !Array.isArray(x.categorias) || !x.categorias.length)
+          || (cal.siCabe !== undefined && (!Array.isArray(cal.siCabe) || cal.siCabe.some((x) => !esObjeto(x) || typeof x.categoria !== 'string' || !dia(x.dia) || !dia(x.siNoCabe))))) {
+          p.push(`${en}: el «calendario» de la jornada tiene que traer franjas (horas en punto), dias con sus categorías y, si hay, siCabe con categoria, dia y siNoCabe`);
+        }
       }
     }
     const pob = d.poblacion;

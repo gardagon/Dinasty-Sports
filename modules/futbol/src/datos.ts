@@ -122,7 +122,20 @@ export const DATOS_FUTBOL: DatosDeDeporte = {
         federacion: 'Real Federación Española de Fútbol',
         campeonato: 'campeonato de {pais}',
         // Partidos de liga los sábados por la mañana (el día da igual de momento).
-        jornada: { dias: [5], desde: 9, hasta: 13, lugar: 'campo_municipal', texto: 'Partidos de liga: los sábados de 9 a 13 en el campo municipal.' },
+        // El día de partido (`MOTOR_PARTIDOS.md` §15): cada partido tiene su hora en punto y su campo; en un mismo campo, uno cada 2 horas. Sábado: benjamín, alevín e infantil (los pequeños, por la mañana); domingo: juvenil;
+        // cadete, el sábado si cabe y, si no, el domingo. Los clubes grandes y medianos juegan en sus instalaciones; los pequeños y los colegios, en el complejo municipal (varios campos: dato de la ciudad).
+        jornada: {
+          dias: [5, 6],
+          desde: 9,
+          hasta: 20,
+          lugar: 'campo_municipal',
+          texto: 'Partidos de liga: sábados y domingos, cada partido a su hora en punto (de 9:00 a 18:00), en el campo del equipo local.',
+          calendario: {
+            franjas: [9, 11, 13, 16, 18],
+            dias: [{ dia: 5, categorias: ['benjamin', 'alevin', 'infantil'] }, { dia: 6, categorias: ['juvenil'] }],
+            siCabe: [{ categoria: 'cadete', dia: 5, siNoCabe: 6 }],
+          },
+        },
       },
       sedes: { colegio: 'campo_colegio', fuera: 'campo_municipal' },
       clubes: CLUBES_ESPANA,

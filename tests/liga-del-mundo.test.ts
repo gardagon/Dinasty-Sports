@@ -36,6 +36,26 @@ describe('la liga del mundo', () => {
     for (const c of Object.values(l.categorias)) for (const d of c.divisiones) for (const gr of d.grupos) expect(gr.resultados.length).toBeGreaterThan(0);
   });
 
+  it('cada lunes se reparte el calendario de la semana: cada partido, a su hora en punto, en el campo del local, sábado o domingo según la categoría', () => {
+    const c = (g.moduleState<FutbolState>('futbol') as FutbolState).calendario!;
+    expect(c.semana).toBeGreaterThanOrEqual(8);
+    const ids = Object.keys(c.partidos);
+    // Todos los partidos de todas las categorías tienen sitio (la ciudad de prueba tiene campos de sobra) y se reparten en los días y franjas de los datos.
+    expect(ids.length).toBeGreaterThanOrEqual(5);
+    expect(c.sinSitio).toBe(0);
+    for (const [id, [dia, hora, campo]] of Object.entries(c.partidos)) {
+      expect([5, 6]).toContain(dia);
+      expect([9, 11, 13, 16, 18]).toContain(hora);
+      expect(campo).toMatch(/^(propio:\w+|complejo:\d+)$/);
+      const categoria = id.split('|')[1];
+      if (categoria === 'juvenil') expect(dia).toBe(6);
+      if (['benjamin', 'alevin', 'infantil'].includes(categoria)) expect(dia).toBe(5);
+    }
+    // Dos partidos nunca coinciden en el mismo campo a la misma hora.
+    const sitios = Object.values(c.partidos).map(([d, h, campo]) => `${d}|${h}|${campo}`);
+    expect(new Set(sitios).size).toBe(sitios.length);
+  });
+
   it('a quienes juegan les cambia el estado (condición, moral y forma), a los demás no', () => {
     const npcs = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs;
     const conEstado = npcs.filter((n) => n.deporte === 'futbol' && n.estado);

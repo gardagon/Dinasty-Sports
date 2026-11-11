@@ -26,6 +26,7 @@
     "colegios": "tsx tools/colegios.ts",
     "sim:partidos": "tsx tools/partidos.ts",
     "liga": "tsx tools/liga.ts",
+    "calendario": "tsx tools/calendario.ts",
     "sim:largo": "tsx sim/src/cli.ts --dias 1095 --semillas 3",
     "check": "npm run typecheck && npm run test && npm run sim:rapida",
     "nuevo-modulo": "tsx tools/nuevo-modulo.ts",

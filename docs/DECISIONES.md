@@ -5,6 +5,21 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 12/11/2026 — El día de partido, 1.ª parte: el calendario con franjas y campos, y cuántos campos hacen falta (decisión del usuario del 11/11)
+
+- **Cada partido tiene su hora en punto y su campo** (`repartirLosPartidos`, kit de deporte: lógica de cualquier deporte de equipo con liga por categorías). **Franjas** (dato del deporte): 9:00, 11:00, 13:00, 16:00 y 18:00, un partido cada 2 horas en un mismo campo. **Días** (dato): sábado, benjamín, alevín e infantil (los pequeños, en las primeras franjas); domingo, juvenil; **cadete, el sábado si cabe** y, si no, el domingo (`siCabe`): cabe si, con cadete, todos los partidos de ese día tienen franja en el complejo y en los campos de los clubes.
+- **Dónde**: los clubes grandes y medianos juegan en casa **en sus instalaciones** (un campo cada uno, un partido por franja); los pequeños y los colegios, en el **complejo municipal**, con varios campos (`CiudadDef.camposDelComplejo`, dato de la ciudad). *Añadido al medirlo:* un club con muchos equipos (el grande tiene A–D en cinco categorías) tiene más partidos en casa que franjas en su campo; **lo que no cabe en su campo se juega en el complejo**.
+- **Cuándo se reparte**: el lunes (`DAY_START`), con los partidos de la jornada de todas las categorías antes de jugarlos (`partidosDeLaSemana`, con los mismos ids que luego juega la liga); se guarda la semana (`FutbolState.calendario`: unos 3 KB). Para ello **la liga ya existía desde el lunes** (#116).
+- **«Jugar el partido»** pasa de la franja de 9 a 13 a **la hora de su partido** (la franja de dos horas de su calendario); fuera de ella dice cuándo y dónde es (`Sábado a las 11:00, en el campo 3 del complejo municipal`). La pestaña lo enseña. La convocatoria una hora antes, «Unirse a los compañeros», la puntualidad y el vestuario, en la siguiente parte.
+- **Medida** (`npm run calendario -- grande`, ciudad grande: 156 equipos, 76 partidos por jornada: 29 en campos propios y 47 en el complejo; 22 jornadas):
+
+  | Reparto | Campos del complejo para que todo quepa | Media por jornada |
+  |---|---|---|
+  | Cadete el sábado | **10** (jornada 3) | 7,8 |
+  | Cadete el domingo | **7** (jornada 3) | 5,6 |
+
+  Más que el cálculo orientativo (8 y 6) porque unos 6 partidos por jornada (hasta 13) se desbordan de los campos de los clubes grandes y medianos al complejo. Con los datos («cadete el sábado si cabe»), según los campos: con 7 todo cabe en las 22 jornadas pero cadete juega el domingo en 18; con 8, cadete el sábado en 6 jornadas; con 9, en 18; con 10, siempre el sábado. **`camposDelComplejo` de la ciudad grande queda en 8** (la cifra orientativa del usuario) a la espera de que decida entre 7 (menos campos, cadete casi siempre el domingo) y 9–10 (cadete casi siempre el sábado). La ciudad de ahora necesita 1 (por defecto, 2).
+
 ## 12/11/2026 — F2.4: estadísticas de cada jugador, experiencia por puesto, moral del banquillo y pestaña con la tabla y la plantilla (decisiones del usuario del 11/11)
 
 - **Estadísticas por temporada, para todos** (`EstadisticasDeTemporada`, `contracts/estadisticas.ts`): partidos, titularidades, minutos, goles, asistencias y nota media (se guarda la suma de las notas). Cada PNJ las lleva en `Npc.est` y el personaje en `FutbolState.estadisticas`, con las mismas reglas (`sumarPartido`). Al llegar el primer partido de la temporada siguiente, la anterior pasa al **historial** en forma compacta (`TemporadaCerrada`: curso, partidos, titularidades, minutos, goles, asistencias y nota media × 10; `Npc.estHist`, `FutbolState.historial`), que no se tira nunca. Los goles de los jugadores cuadran con los marcadores de la liga (test).

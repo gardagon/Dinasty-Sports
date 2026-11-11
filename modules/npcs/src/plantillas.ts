@@ -662,7 +662,7 @@ export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly Pobla
     const e = pob.equipos.find((x) => x.club === club);
     if (miembros.length < (e?.plantillaPorCategoria?.min ?? 14)) continue;
     const valores = miembros.map((n) => n.vp?.[deporte]?.puestos?.[n.puesto?.[deporte] ?? ''] ?? n.vp?.[deporte]?.valor ?? n.levels[deporte] ?? 0).sort((a, b) => b - a).slice(0, 11);
-    res.push({ id, club, letra, nombre: `${pob.nombresDeClub[club] ?? club} ${letra}`, fuerza: valores.reduce((t, v) => t + v, 0) / valores.length, jugadores: miembros.length });
+    res.push({ id, club, letra, nombre: `${pob.nombresDeClub[club] ?? club} ${letra}`, fuerza: valores.reduce((t, v) => t + v, 0) / valores.length, jugadores: miembros.length, campoPropio: !!e && !e.colegio && (e.tamano ?? (e.calidad >= 3 ? 'grande' : e.calidad === 2 ? 'mediano' : 'pequeno')) !== 'pequeno' });
   }
   return res.sort((a, b) => (a.id < b.id ? -1 : 1));
 }

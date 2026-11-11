@@ -200,14 +200,45 @@ export function jugarSabadoDeUnaCategoria(categoria: string, liga: LigaDeCategor
   return { liga: nueva, jugadores };
 }
 
+/** El playoff de la última división, armado con los clasificados de sus grupos (cuando acaba la liga). */
+function armarElPlayoff(d: DivisionDeLiga, f: FormatoDeDivisiones): PlayoffEnCurso {
+  const plazas = plazasDePlayoff(jornadasDeLaDivision(d), f);
+  const clasificados = clasificadosAlPlayoff(tablasDeLaDivision(d), plazas);
+  return { plazas, clasificados, ronda: rondaDePlayoff(clasificados), vivos: clasificados.map((c) => c.id), partido: 0, goles: {}, eliminados: [], rondas: [] };
+}
+
+/** Un partido de la semana: lo que sigue al curso y la categoría en su id (`J5|local|visitante` o `PO-semifinal-1|local|visitante`: el id que usa el partido al jugarse) y los dos equipos. */
+export interface PartidoDeLaSemana {
+  ref: string;
+  local: string;
+  visitante: string;
+}
+
+/**
+ * Los partidos que se juegan este sábado en una categoría, **antes de jugarlos**: la jornada siguiente de cada grupo que aún no ha acabado su liga y, en la última división (cuando ha acabado su liga), el siguiente partido del
+ * playoff. Es lo mismo que juega `jugarSabadoDeUnaCategoria`, con los mismos ids: con ello se reparten en horas y campos (`repartirLosPartidos`) y el personaje sabe cuándo y dónde juega.
+ */
+export function partidosDeLaSemana(liga: LigaDeCategoria, f: FormatoDeDivisiones): PartidoDeLaSemana[] {
+  const res: PartidoDeLaSemana[] = [];
+  liga.divisiones.forEach((d, i) => {
+    if (liga.jornada < jornadasDeLaDivision(d)) {
+      for (const g of d.grupos) for (const p of calendarioDobleVuelta(g.equipos)[liga.jornada] ?? []) res.push({ ref: `J${liga.jornada + 1}|${p.local}|${p.visitante}`, local: p.local, visitante: p.visitante });
+    } else if (conPlayoff(liga, i) && d.playoff?.campeon === undefined) {
+      const po = d.playoff ?? armarElPlayoff(d, f);
+      const dos = partidosDeLaRonda(po.ronda) === 2;
+      for (const c of po.ronda.cruces) {
+        const [local, visitante] = dos && po.partido === 0 ? [c.b, c.a] : [c.a, c.b];
+        res.push({ ref: `PO-${po.ronda.nombre}-${po.partido + 1}|${local}|${visitante}`, local, visitante });
+      }
+    }
+  });
+  return res;
+}
+
 /** Un paso del playoff: se arma si hace falta y se juega el siguiente partido de la ronda; al acabar la ronda pasan los ganadores. */
 function avanzarPlayoff(categoria: string, d: DivisionDeLiga, curso: number, f: FormatoDeDivisiones, jugar: JugarPartido, jornada: number, _semilla: number): PartidoJugado['jugadores'] {
   const jugadores: PartidoJugado['jugadores'] = [];
-  if (!d.playoff) {
-    const plazas = plazasDePlayoff(jornadasDeLaDivision(d), f);
-    const clasificados = clasificadosAlPlayoff(tablasDeLaDivision(d), plazas);
-    d.playoff = { plazas, clasificados, ronda: rondaDePlayoff(clasificados), vivos: clasificados.map((c) => c.id), partido: 0, goles: {}, eliminados: [], rondas: [] };
-  }
+  if (!d.playoff) d.playoff = armarElPlayoff(d, f);
   const p = d.playoff;
   const total = partidosDeLaRonda(p.ronda);
   for (const c of p.ronda.cruces) {
