@@ -15,6 +15,8 @@ export const PARAMETROS_DEL_PERSONAJE = {
   energiaPorCansancio: 0.6,
   /** Lo que le sube o baja la motivación el resultado del equipo (más o menos un punto por cada dos de nota sobre o bajo el 6). */
   motivacion: { victoria: 4, empate: 1, derrota: -2 } as const,
+  /** Lo que baja su asistencia (de 0 a 1) cada partido al que está convocado y no va, en las dos semanas siguientes: el entrenador le aplica la penalización por faltar. */
+  faltaAPartido: 0.5,
   /** Cuántos resultados recientes se enseñan de cada equipo. */
   ultimosResultados: 5,
   /** Cuántos partidos suyos se guardan (con el último, con su crónica; F2.4 guardará las estadísticas de todos). */
@@ -129,6 +131,8 @@ export interface ProximoPartido {
   local: boolean;
   /** «Jornada 5» o «Playoff · semifinal (ida)». */
   texto: string;
+  /** Lo que sigue al curso y la categoría en el id del partido (`J5|local|visitante` o `PO-semifinal-1|local|visitante`): con él el partido del personaje, jugado en su hora, es el mismo que luego cuenta la liga. */
+  ref: string;
 }
 
 /** El próximo partido de un equipo: el de su grupo en la siguiente jornada o, en la última división, el del playoff si sigue vivo. `undefined` si descansa o no le queda ninguno. */
@@ -139,7 +143,7 @@ export function proximoPartido(liga: LigaDeCategoria, id: string): ProximoPartid
     const jornada = calendarioDobleVuelta(g.equipos)[liga.jornada];
     if (jornada) {
       const p = jornada.find((x) => x.local === id || x.visitante === id);
-      return p ? { rival: p.local === id ? p.visitante : p.local, local: p.local === id, texto: `Jornada ${liga.jornada + 1}` } : undefined;
+      return p ? { rival: p.local === id ? p.visitante : p.local, local: p.local === id, texto: `Jornada ${liga.jornada + 1}`, ref: `J${liga.jornada + 1}|${p.local}|${p.visitante}` } : undefined;
     }
     const po = d.playoff;
     if (i === liga.divisiones.length - 1 && po && po.campeon === undefined) {
@@ -148,7 +152,8 @@ export function proximoPartido(liga: LigaDeCategoria, id: string): ProximoPartid
       const dos = !!c.idaYVuelta;
       // La ida es en el campo del peor sembrado (b); la vuelta y la final, en el del mejor (a).
       const local = dos && po.partido === 0 ? c.b : c.a;
-      return { rival: c.a === id ? c.b : c.a, local: local === id, texto: `Playoff · ${po.ronda.nombre}${dos ? (po.partido === 0 ? ' (ida)' : ' (vuelta)') : ''}` };
+      const visitante = local === c.a ? c.b : c.a;
+      return { rival: c.a === id ? c.b : c.a, local: local === id, texto: `Playoff · ${po.ronda.nombre}${dos ? (po.partido === 0 ? ' (ida)' : ' (vuelta)') : ''}`, ref: `PO-${po.ronda.nombre}-${po.partido + 1}|${local}|${visitante}` };
     }
   }
   return undefined;
