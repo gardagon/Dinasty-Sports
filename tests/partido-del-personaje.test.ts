@@ -91,3 +91,68 @@ describe('el partido del personaje en la liga', () => {
     expect(new Set(semanas).size).toBe(semanas.length);
   });
 });
+
+describe('jugar el partido en el campo, a su hora', () => {
+  let g: ReturnType<typeof nuevaPartida>;
+  const estado = () => g.moduleState<FutbolState>('futbol') as FutbolState;
+  beforeAll(() => {
+    g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    advanceToWeek(g, 'gen.descansar', 1, 3, 15);
+    if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');
+  });
+
+  it('el partido se juega en el campo a su hora: jugado, la liga cuenta el mismo resultado; convocado y sin ir, es una falta y su equipo juega sin él', () => {
+    const resultadoDeLaLiga = () => {
+      const p = estado().personaje!;
+      const clave = `${p.club}|${p.letra}`;
+      const gr = estado().liga!.categorias[p.categoria].divisiones.flatMap((d) => d.grupos).find((x) => x.equipos.includes(clave))!;
+      const k = gr.equipos.indexOf(clave);
+      const mio = gr.resultados.filter(([l, v]) => l === k || v === k).at(-1)!;
+      return [mio[2], mio[3]];
+    };
+    let jugados = 0;
+    let saltados = 0;
+    for (let w = 4; w <= 13 && (jugados < 1 || saltados < 1); w++) {
+      advanceToWeek(g, 'gen.descansar', w, 5, 9);
+      const o = g.preview('futbol.jugar_partido')!;
+      if (!o.available && !posible(g, 'futbol.jugar_partido')) {
+        expect(o.reason).toBeTruthy();
+        continue;
+      }
+      if (jugados <= saltados) {
+        // Va al campo y juega: ve el resultado y la crónica al acabar, y no puede volver a jugar esta semana.
+        expect(hacer(g, 'futbol.jugar_partido').ok).toBe(true);
+        const u = estado().ultimoPartido!;
+        expect(u.semana).toBe(w);
+        expect(u.cronica.some((l) => l.titulo)).toBe(true);
+        expect(estado().partidoJugado?.semana).toBe(w);
+        expect(g.preview('futbol.jugar_partido')!.available).toBe(false);
+        const marcador = u.goles;
+        advanceToWeek(g, 'gen.descansar', w + 1, 0, 9);
+        expect(estado().partidoJugado).toBeUndefined();
+        expect(resultadoDeLaLiga()).toEqual(marcador);
+        expect(estado().ultimoPartido!.goles).toEqual(marcador);
+        jugados++;
+      } else {
+        // No va: al cerrar la semana su equipo juega sin él y se le apunta una falta.
+        advanceToWeek(g, 'gen.descansar', w + 1, 0, 9);
+        const u = estado().ultimoPartido!;
+        expect(u.semana).toBe(w);
+        expect(u.juega).toBe(false);
+        expect(u.motivo).toMatch(/No te presentas/);
+        expect(estado().faltas![w]).toBe(1);
+        expect(resultadoDeLaLiga()).toEqual(u.goles);
+        saltados++;
+      }
+    }
+    expect(jugados).toBeGreaterThan(0);
+    expect(saltados).toBeGreaterThan(0);
+  });
+
+  it('fuera de la hora y del campo de la jornada no se puede jugar', () => {
+    advanceToWeek(g, 'gen.descansar', 6, 2, 15);
+    const o = g.preview('futbol.jugar_partido')!;
+    expect(o.available).toBe(false);
+    expect(o.reason).toMatch(/sábados de 9 a 13/);
+  });
+});
