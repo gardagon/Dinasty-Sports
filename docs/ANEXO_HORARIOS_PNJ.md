@@ -163,7 +163,7 @@ Son personas del juego (ids `padre` y `madre`, rol `familia`, siempre conocidas)
 | | Media hora después | En el vestuario |
 | **Entrenador** de un equipo que juega | Los mismos tramos, sin retraso: en el campo desde la convocatoria | |
 
-Los convocados se calculan con la misma regla que el personaje (`convocarYAlinear`); quien no se presenta (más probable cuanto menos disciplinado) no se convoca y su equipo juega sin él. Mientras esperan en el campo ven el partido anterior de su campo y **ganan conocimiento del fútbol** como el personaje (hasta 1,5 si lo ven entero); quien llega tarde ve menos. Con más de 10 minutos de retraso, **pierde con su entrenador lo mismo que el personaje** (3 de afinidad, cifra provisional; se olvida un 20 % cada semana) y eso pesa en su prioridad de convocatoria (`ANEXO_RELACIONES.md`).
+Los convocados se calculan con la misma regla que el personaje (`convocarYAlinear`); **el sorteo de quién no se presenta es solo a los convocados** (más probable cuanto menos disciplinado): su equipo juega sin él, con los que quedan de los citados, y **recibe una falta** (su asistencia baja 0,5 las dos semanas siguientes, como el personaje). Mientras esperan en el campo ven el partido anterior de su campo y **ganan conocimiento del fútbol** como el personaje (hasta 1,5 si lo ven entero); quien llega tarde ve menos. Con más de 10 minutos de retraso, **pierde con su entrenador lo mismo que el personaje** (−3 de afinidad y −1 de confianza, cifras provisionales; sin olvido semanal) y eso pesa en su prioridad de convocatoria (`ANEXO_RELACIONES.md`).
 
 ## 2 bis. Calles, lugares y zonas con horario
 

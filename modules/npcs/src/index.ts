@@ -1,4 +1,4 @@
-import { APORTES, CORE_EVENTS, NIVEL_AGENDA, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, NIVEL_AGENDA, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
@@ -69,8 +69,10 @@ export interface Npc {
   est?: Record<string, EstadisticasDeTemporada>;
   /** Sus temporadas ya cerradas, en forma compacta (`TemporadaCerrada`): el historial del jugador; no se tira nunca. */
   estHist?: Record<string, TemporadaCerrada[]>;
-  /** Lo que ha perdido con su entrenador por llegar tarde a las convocatorias, por deporte: [afinidad (de −100 a 0), semana en que se anotó]; se va olvidando (`relacionConElEntrenador`). */
+  /** Lo que ha perdido con su entrenador por llegar tarde a las convocatorias, por deporte: [afinidad, confianza] (de −100 a 0), solo si ha llegado tarde alguna vez a una convocatoria de su club de ahora; como la del personaje, lo negativo no se olvida con contacto (`relacionConElEntrenador`); si cambia de club en verano, empieza de cero. */
   afin?: Record<string, [number, number]>;
+  /** Las semanas en que faltó a un partido al que estaba convocado, por deporte (solo las que aún pesan: `FALTA_A_PARTIDO`): su asistencia baja (`asistenciaConFaltas`). */
+  faltas?: Record<string, number[]>;
   /** Su experiencia (0 a 100) en cada puesto en que ha jugado, por deporte: se gana partido a partido (`experienciaTrasElPartido`). */
   exp?: Record<string, Record<string, number>>;
   /** El equipo (A, B, C o D) de su club y su categoría **durante toda la temporada**, por deporte: se fija en verano (`fijarEquipos`) y no cambia en el curso (decisión del usuario, 08/11/2026). */
@@ -1373,7 +1375,12 @@ export const npcs = defineModule<NpcsState>({
         npcs: s.npcs.map((n) => {
           const x = por.get(n.id);
           if (x === undefined) return n;
+          // No se presentó (convocado y ausente): una falta, y nada más (no jugó ni se quedó en el banquillo).
+          if (x.falta) return { ...n, faltas: { ...n.faltas, [p.deporte]: anotarFalta(n.faltas?.[p.deporte], p.semana) } };
           const estado = n.estado ?? ESTADO_INICIAL;
+          // Las faltas que ya no pesan se tiran (solo se guarda lo que tiene efecto).
+          const vigentes = faltasVigentes(n.faltas?.[p.deporte], p.semana);
+          if (n.faltas?.[p.deporte] && vigentes.length !== n.faltas[p.deporte].length) n = { ...n, faltas: vigentes.length ? { ...n.faltas, [p.deporte]: vigentes } : undefined };
           // La temporada anterior pasa al historial cuando llega el primer partido de la siguiente.
           const anterior = n.est?.[p.deporte];
           const cerrada = anterior && anterior.curso !== curso ? cerrarTemporadaDeJugador(anterior) : undefined;
@@ -1386,7 +1393,7 @@ export const npcs = defineModule<NpcsState>({
           const conDia: Npc = {
             ...conEstadisticas,
             ...(x.conocimiento && x.conocimiento > 0 && pob?.rutina && n.genetica && n.cap && n.pico && n.nacimiento !== undefined ? { hab: { ...n.hab, [p.deporte]: conMasConocimiento(n as Parameters<typeof conMasConocimiento>[0], p.deporte, pob.rutina, ctx.time.day, x.conocimiento) } } : {}),
-            ...(x.tarde ? { afin: { ...n.afin, [p.deporte]: llegarTarde(n.afin?.[p.deporte], p.semana) } } : {}),
+            ...(x.tarde ? { afin: { ...n.afin, [p.deporte]: llegarTarde(n.afin?.[p.deporte]) } } : {}),
           };
           // Convocado y sin jugar: baja su moral (más cuanto más ambicioso) y no cambia su forma.
           if (x.minutos <= 0) return { ...conDia, estado: trasElBanquillo(estado, ((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100) };

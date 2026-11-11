@@ -21,6 +21,7 @@ import {
   type EstadisticasDeTemporada,
   type TemporadaCerrada,
   type ProfileService,
+  FALTA_A_PARTIDO,
   MORAL_DEL_BANQUILLO,
   aprendizajeDe,
   cerrarTemporadaDeJugador,
@@ -79,7 +80,7 @@ import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from '.
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
-import { convocarYAlinear, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, posicionEquivalente, type Convocatoria } from './convocatoria';
+import { convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, posicionEquivalente, type Convocatoria } from './convocatoria';
 import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, nombreDeIntensidad, proximoPartido, situacionEnLaLiga, textoDeResultados, ultimosResultados, type LineaDeCronica } from './personaje';
 import { PARAMETROS_DE_PARTIDO, jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
 
@@ -88,7 +89,7 @@ export { CONOCIMIENTO, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilida
 export { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 export { PUESTOS_DE_FUTBOL } from './puestos';
 export { tandaDePenaltis, PARAMETROS_DE_PENALTIS, jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
-export { PARAMETROS_DE_CONVOCATORIA, convocarYAlinear, equipoDePartido, estadoDelPersonaje, paraConvocar, jugadoresDelPartido, posicionEquivalente, prioridadDelEntrenador } from './convocatoria';
+export { PARAMETROS_DE_CONVOCATORIA, convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, paraConvocar, jugadoresDelPartido, posicionEquivalente, prioridadDelEntrenador } from './convocatoria';
 export type { Convocatoria, JugadorParaConvocar } from './convocatoria';
 export { archivarTemporada, cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision } from './liga';
 export type { PartidoDeLaSemana } from './liga';
@@ -242,7 +243,7 @@ function asistenciaDelPersonaje(ctx: ReadContext, semana: number, hastaDia: numb
   if (!esperadas) return 1;
   const { sesiones: hechas = {}, faltas = {} } = ctx.state<FutbolState>();
   const base = Math.min(1, ((hechas[semana] ?? 0) + (hechas[semana - 1] ?? 0)) / esperadas);
-  return Math.max(0, base - PARAMETROS_DEL_PERSONAJE.faltaAPartido * ((faltas[semana] ?? 0) + (faltas[semana - 1] ?? 0)));
+  return Math.max(0, base - FALTA_A_PARTIDO.asistencia * ((faltas[semana] ?? 0) + (faltas[semana - 1] ?? 0)));
 }
 
 interface EquipoDelPersonaje {
@@ -290,6 +291,8 @@ type Papel = 'titular' | 'suplente' | 'no_convocado' | 'lesionado' | 'sin_puesto
 
 interface Previa {
   equipo: EquipoDelPersonaje;
+  /** Los convocados del equipo que no se presentan (el sorteo, solo a los convocados): juegan sin ellos. */
+  ausentes: string[];
   /** La plantilla de su equipo con él dentro (si tiene puesto). */
   plantilla: JugadorDeEquipoView[];
   c: Convocatoria;
@@ -307,18 +310,20 @@ function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hasta
   const equipo = miEquipo(ctx, curso);
   if (!equipo || !dir?.plantillaDelEquipo) return undefined;
   const dia = ctx.state<FutbolState>().liga ? { semilla: ctx.state<FutbolState>().liga!.semilla, semana } : undefined;
-  const base = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra).filter((j) => !seAusenta(j, dia));
+  const base = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra);
   const yo = yoComoJugador(ctx, base, semana, hastaDia);
   const plantilla = yo ? [...base, yo] : base;
   const entrenador = entrenadorDelJugador(ctx);
   const afinidad = entrenador ? ctx.service<RelationsService>(SERVICES.relaciones)?.get(entrenador.id)?.afinidad : undefined;
   const relacion = afinidad === undefined ? undefined : (afinidad + 100) / 2;
-  const c = convocarYAlinear(plantilla.map((j) => paraConvocar(j, j.id === YO ? relacion : undefined)));
+  const porId = new Map(plantilla.map((j) => [j.id, j]));
+  // El entrenador convoca; de los convocados, algunos PNJ no se presentan (como el personaje, que decide él) y se alinea a los que quedan.
+  const { c, ausentes } = convocarYAlinearConAusencias(plantilla.map((j) => paraConvocar(j, j.id === YO ? relacion : undefined)), (id) => seAusenta(porId.get(id)!, dia));
   const vivo: Papel = !yo ? 'sin_puesto' : (yo.estado.baja ?? 0) > 0 ? 'lesionado' : c.titulares.some((x) => x.id === YO) ? 'titular' : c.suplentes.some((x) => x.id === YO) ? 'suplente' : 'no_convocado';
   // El día de su partido, por la mañana, se anota si lo convoca el entrenador (`fotoDelDiaDePartido`): todo el día (y el cierre de la semana) cuenta con esa convocatoria, no con la de cada momento.
   const foto = ctx.state<FutbolState>().diaDePartido;
   const papel: Papel = !vivoSiempre && foto?.semana === semana && foto.papel ? foto.papel : vivo;
-  return { equipo, plantilla, c, papel };
+  return { equipo, ausentes, plantilla, c, papel };
 }
 
 const MOTIVO_DE_NO_JUGAR: Record<Papel, string> = {
@@ -529,8 +534,9 @@ function elDiaDeLaSemana(ctx: ReadContext): DiaDeLaSemana {
     for (const clave of equipos) {
       const [club, letra] = clave.split('|');
       const mio = !!previa && previa.equipo.clave === clave && previa.equipo.categoria === categoria;
-      const plantilla = mio ? previa!.plantilla : dir.plantillaDelEquipo(DEPORTE, club, categoria, letra).filter((j) => !seAusenta(j, contexto));
-      const c = mio ? previa!.c : convocarYAlinear(plantilla.map((j) => paraConvocar(j)));
+      const plantilla = mio ? previa!.plantilla : dir.plantillaDelEquipo(DEPORTE, club, categoria, letra);
+      // Los citados son los de la convocatoria; de ellos, los que no se presentan no están y se alinea a los que quedan.
+      const c = mio ? previa!.c : convocarYAlinearConAusencias(plantilla.map((j) => paraConvocar(j)), (id) => seAusenta(plantilla.find((j) => j.id === id)!, contexto)).c;
       const base = { dia: h[0], saque, campo: campoMunicipal, vestuario: VESTUARIO };
       res.equipos.set(`${clave}|${categoria}`, { ...base, llegada: saque - DIA_DE_PARTIDO.convocatoria, tarde: 0, conocimiento: 0 });
       const convocados = new Set([...c.titulares.map((x) => x.id), ...c.suplentes.map((x) => x.id)]);
@@ -790,20 +796,22 @@ function ladoDelPartido(dir: NpcDirectory, previa: Previa | undefined, clave: st
   const [club, letra] = clave.split('|');
   if (previa && clave === previa.equipo.clave && categoria === previa.equipo.categoria) {
     const plantilla = sinMi ? previa.plantilla.filter((j) => j.id !== YO) : previa.plantilla;
-    const c = sinMi ? convocarYAlinear(plantilla.map((j) => paraConvocar(j))) : previa.c;
+    const { c, ausentes } = sinMi ? convocarYAlinearConAusencias(plantilla.map((j) => paraConvocar(j)), (id) => seAusenta(plantilla.find((j) => j.id === id)!, dia)) : { c: previa.c, ausentes: previa.ausentes };
     const base = equipoDePartido(clave, clave, plantilla, c);
-    return { plantilla, c, equipo: { ...base, jugadores: base.jugadores.map((j) => (j.id === YO ? { ...j, intensidad } : j)) }, mio: true };
+    return { plantilla, c, ausentes, equipo: { ...base, jugadores: base.jugadores.map((j) => (j.id === YO ? { ...j, intensidad } : j)) }, mio: true };
   }
-  const plantilla = dir.plantillaDelEquipo!(DEPORTE, club, categoria, letra).filter((j) => !seAusenta(j, dia));
-  const c = convocarYAlinear(plantilla.map((j) => paraConvocar(j)));
-  return { plantilla, c, equipo: equipoDePartido(clave, clave, plantilla, c), mio: false };
+  const plantilla = dir.plantillaDelEquipo!(DEPORTE, club, categoria, letra);
+  const { c, ausentes } = convocarYAlinearConAusencias(plantilla.map((j) => paraConvocar(j)), (id) => seAusenta(plantilla.find((j) => j.id === id)!, dia));
+  return { plantilla, c, ausentes, equipo: equipoDePartido(clave, clave, plantilla, c), mio: false };
 }
 
 /** Juega un partido de liga con el motor. Un equipo que no puede alinear a once pierde por 3 a 0 (no pasa con las plantillas de la ciudad: tienen al menos 14), sin crónica. */
 function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: number, o: { categoria: string; local: string; visitante: string; id: string; intensidad: Intensidad; sinMi?: boolean; dia?: ContextoDelDia }) {
   const a = ladoDelPartido(dir, previa, o.local, o.categoria, o.intensidad, o.sinMi, o.dia);
   const b = ladoDelPartido(dir, previa, o.visitante, o.categoria, o.intensidad, o.sinMi, o.dia);
-  if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: (a.c.titulares.length < 11 ? [0, 3] : [3, 0]) as [number, number], jugadores: [], mio: a.mio || b.mio };
+  // Quienes estaban convocados y no se presentaron: una falta (como para el personaje), sin jugar ni quedarse en el banquillo.
+  const faltas: JugadorDelPartido[] = [...a.ausentes, ...b.ausentes].map((npcId) => ({ npcId, minutos: 0, valoracion: 0, falta: true }));
+  if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: (a.c.titulares.length < 11 ? [0, 3] : [3, 0]) as [number, number], jugadores: faltas, mio: a.mio || b.mio };
   const r = jugarPartido(a.equipo, b.equipo, { id: o.id, semilla, categoria: o.categoria, cambios: CAMBIOS_DE_LIGA });
   // Cuánto aprende jugando cada uno (inteligencia, atención y conocimiento del fútbol, frente a lo típico de su edad).
   const jugadoresPorId = new Map([...a.plantilla, ...b.plantilla].map((j) => [j.id, j]));
@@ -822,7 +830,8 @@ function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: n
         const p = o.dia ? jugadoresPorId.get(j.npcId) : undefined;
         const d = p && o.dia ? elDiaDeUnJugador(p, o.dia) : undefined;
         return d ? { ...j, ...(d.tarde > DIA_DE_PARTIDO.tolerancia ? { tarde: d.tarde } : {}), ...(d.conocimiento > 0 ? { conocimiento: d.conocimiento } : {}) } : j;
-      }),
+      })
+      .concat(faltas),
     mio: a.mio || b.mio,
     lado: (a.mio ? 0 : 1) as 0 | 1,
     nombres: Object.fromEntries([...a.plantilla, ...b.plantilla].map((j) => [j.id, j.nombre])),

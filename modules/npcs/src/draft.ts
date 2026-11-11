@@ -597,7 +597,14 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   completarEquipos(final, rng, { conPrueba: true });
   resultado.dejanSinClub = apartarODejar(final, segunda);
   resultado.pobs = [...final.pobs];
-  return [...final.lista.values()];
+  // Quien ha cambiado de club en el verano empieza de cero con su nuevo entrenador: lo que había perdido con el anterior por llegar tarde a las convocatorias ya no cuenta.
+  return conRelacionNuevaSiCambiaDeClub(npcs, [...final.lista.values()]);
+}
+
+/** Quien ha cambiado de club (su `equipo` de antes y el de ahora son distintos) empieza de cero con su nuevo entrenador: se tira lo anotado por llegar tarde a las convocatorias (`Npc.afin`). */
+export function conRelacionNuevaSiCambiaDeClub(antes: readonly Npc[], despues: readonly Npc[]): Npc[] {
+  const club = new Map(antes.map((n) => [n.id, n.equipo]));
+  return despues.map((n) => (n.afin && club.has(n.id) && club.get(n.id) !== n.equipo ? { ...n, afin: undefined } : n));
 }
 
 

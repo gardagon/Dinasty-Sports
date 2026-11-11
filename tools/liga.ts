@@ -59,11 +59,20 @@ if (t0) {
 
 // Lo que pesan las estadísticas y la experiencia de cada jugador (F2.4): la temporada en curso, el historial de temporadas cerradas y la experiencia por puesto, de todos los jugadores de fútbol.
 {
-  const npcs = ((g.moduleState('npcs') as { npcs: { deporte?: string; est?: Record<string, unknown>; estHist?: Record<string, unknown[]>; exp?: Record<string, unknown> }[] }).npcs).filter((n) => n.deporte === 'futbol');
-  const peso = (k: 'est' | 'estHist' | 'exp'): number => npcs.reduce((t, n) => t + (n[k] ? JSON.stringify(n[k]).length : 0), 0);
+  const npcs = ((g.moduleState('npcs') as { npcs: { deporte?: string; est?: Record<string, unknown>; estHist?: Record<string, unknown[]>; exp?: Record<string, unknown>; afin?: Record<string, unknown>; faltas?: Record<string, unknown> }[] }).npcs).filter((n) => n.deporte === 'futbol');
+  const peso = (k: 'est' | 'estHist' | 'exp' | 'afin' | 'faltas'): number => npcs.reduce((t, n) => t + (n[k] ? JSON.stringify(n[k]).length : 0), 0);
   const conEst = npcs.filter((n) => n.est).length;
   const cerradas = npcs.reduce((t, n) => t + (n.estHist?.futbol?.length ?? 0), 0);
   console.log(`\nEstadísticas por jugador (${npcs.length} jugadores de fútbol, ${conEst} con estadísticas): temporada en curso ${kb(peso('est'))}, historial ${kb(peso('estHist'))} (${cerradas} temporadas cerradas en total), experiencia por puesto ${kb(peso('exp'))}`);
   const porTemporada = (peso('estHist') / Math.max(1, cerradas)) * (cerradas / Math.max(1, TEMPORADAS - 1)) || 0;
   console.log(`  Crece unos ${kb(peso('est') + peso('exp'))} la temporada en curso y ${kb(porTemporada)} de historial por temporada cerrada: en 70 años, unos ${f((70 * (porTemporada + peso('exp') / 70)) / 1024 / 1024)} MB`);
+}
+
+// El día de partido de los PNJ: quién ha llegado tarde a alguna convocatoria (relación con su entrenador) o ha faltado (asistencia) y lo que pesa guardarlo: solo lo llevan los PNJ que tienen algo anotado.
+{
+  const npcs = ((g.moduleState('npcs') as { npcs: { deporte?: string; afin?: Record<string, unknown>; faltas?: Record<string, unknown> }[] }).npcs).filter((n) => n.deporte === 'futbol');
+  const conAfin = npcs.filter((n) => n.afin).length;
+  const conFaltas = npcs.filter((n) => n.faltas).length;
+  const peso = (k: 'afin' | 'faltas'): number => npcs.reduce((t, n) => t + (n[k] ? JSON.stringify(n[k]).length : 0), 0);
+  console.log(`\nDía de partido de los PNJ tras ${TEMPORADAS} temporadas: ${conAfin} de ${npcs.length} jugadores con relación con su entrenador anotada por llegar tarde (${kb(peso('afin'))}); ${conFaltas} con faltas a partidos anotadas (${kb(peso('faltas'))})`);
 }

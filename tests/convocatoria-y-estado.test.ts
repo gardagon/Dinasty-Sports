@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CARGA, ESTADO_INICIAL, GEN, valoracionDelPuesto, PAIS_CIUDAD_DE_PRUEBA, SERVICES, SHARED_EVENTS, defineModule, eficienciaDeEstado, factorDeCompeticion, registrarPais, trasUnaCompeticion, type JugadorDeEquipoView, type NpcDirectory } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { PARAMETROS_DE_CONVOCATORIA, paraConvocar, estadoDelPersonaje, posicionEquivalente, PUESTOS_DE_FUTBOL, convocarYAlinear, equipoDePartido, futbol, jugarPartido, jugadoresDelPartido, prioridadDelEntrenador, type JugadorParaConvocar } from '@ds/mod-futbol';
+import { PARAMETROS_DE_CONVOCATORIA, paraConvocar, estadoDelPersonaje, posicionEquivalente, PUESTOS_DE_FUTBOL, convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, futbol, jugarPartido, jugadoresDelPartido, prioridadDelEntrenador, type JugadorParaConvocar } from '@ds/mod-futbol';
 import { asistenciaDeLasDosUltimasSemanas, plantillaDeUnEquipo, type NpcsState } from '@ds/mod-npcs';
 
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
@@ -79,6 +79,37 @@ describe('el entrenador convoca y alinea', () => {
     expect(prioridadDelEntrenador({ asistencia: 0, relacion: 50, disciplinaDelEntrenador: 0 })).toBeGreaterThan(prioridadDelEntrenador({ asistencia: 0, relacion: 50, disciplinaDelEntrenador: 1 }));
     // Con mejor relación, más.
     expect(prioridadDelEntrenador({ asistencia: 1, relacion: 90, disciplinaDelEntrenador: 0.5 })).toBeGreaterThan(prioridadDelEntrenador({ asistencia: 1, relacion: 10, disciplinaDelEntrenador: 0.5 }));
+  });
+});
+
+describe('quien no se presenta a la convocatoria (el sorteo es solo a los convocados)', () => {
+  it('el entrenador convoca a 16; de ellos faltan los que `ausente` dice y se alinea a los que quedan: nadie de los no convocados', () => {
+    const plantilla = PLANTILLA(18);
+    const original = convocarYAlinear(plantilla);
+    const citados = new Set([...original.titulares, ...original.suplentes].map((x) => x.id));
+    expect(citados.size).toBe(16);
+    // Falta un titular y un suplente citados y, además, un jugador que no estaba citado (el sorteo no le toca).
+    const titular = original.titulares[0].id;
+    const suplente = original.suplentes[0].id;
+    const fuera = original.noConvocados[0];
+    const sorteados: string[] = [];
+    const r = convocarYAlinearConAusencias(plantilla, (id) => {
+      sorteados.push(id);
+      return id === titular || id === suplente || id === fuera;
+    });
+    // Solo se sortea a los citados (nunca al que no lo estaba) y solo faltan los citados que dicen faltar.
+    expect(sorteados.sort()).toEqual([...citados].sort());
+    expect(sorteados).not.toContain(fuera);
+    expect(r.ausentes.sort()).toEqual([titular, suplente].sort());
+    // Se alinea con los que quedan de los citados: ni los ausentes ni nadie que no estuviera citado.
+    const finales = [...r.c.titulares, ...r.c.suplentes].map((x) => x.id);
+    expect(finales).not.toContain(titular);
+    expect(finales).not.toContain(suplente);
+    expect(finales.every((id) => citados.has(id))).toBe(true);
+    expect(finales).toHaveLength(14);
+    // Sin ausentes, es la convocatoria de siempre.
+    expect(convocarYAlinearConAusencias(plantilla, () => false).c).toEqual(original);
+    expect(convocarYAlinearConAusencias(plantilla, () => false).ausentes).toEqual([]);
   });
 });
 

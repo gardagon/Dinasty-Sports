@@ -15,8 +15,6 @@ export const PARAMETROS_DEL_PERSONAJE = {
   energiaPorCansancio: 0.6,
   /** Lo que le sube o baja la motivación el resultado del equipo (más o menos un punto por cada dos de nota sobre o bajo el 6). */
   motivacion: { victoria: 4, empate: 1, derrota: -2 } as const,
-  /** Lo que baja su asistencia (de 0 a 1) cada partido al que está convocado y no va, en las dos semanas siguientes: el entrenador le aplica la penalización por faltar. */
-  faltaAPartido: 0.5,
   /** Cuántos resultados recientes se enseñan de cada equipo. */
   ultimosResultados: 5,
   /** Cuántos partidos suyos se guardan (con el último, con su crónica; F2.4 guardará las estadísticas de todos). */

@@ -148,22 +148,37 @@ export function pasoDeSemanaDelEstado(e: EstadoDeJugador, i: EntradaDeSemana): E
   return { fisica, moral, forma, salud, ...(baja ? { baja } : {}) };
 }
 
+/**
+ * Lo que pierde con su entrenador quien llega tarde a la convocatoria de un partido (`MOTOR_PARTIDOS.md` §15): 3 de afinidad y 1 de confianza. **Las mismas cifras para el personaje** (`relaciones`) **y para cualquier PNJ** (aceptadas por el
+ * usuario de forma provisional, 11/11/2026). La relación se mueve como la del personaje (`ANEXO_RELACIONES.md`, sección 4): lo negativo no se olvida mientras haya contacto (con su entrenador lo tiene cada semana).
+ */
+export const IMPUNTUALIDAD_DE_JUGADOR = { afinidad: 3, confianza: 1 } as const;
 
 /**
- * Lo que pierde con su entrenador quien llega tarde a la convocatoria de un partido (`MOTOR_PARTIDOS.md` §15), de afinidad (de −100 a 100), y lo que se olvida cada semana. **Las mismas cifras para el personaje** (`IMPUNTUALIDAD` en
- * `relaciones`) **y para cualquier PNJ** (aceptadas por el usuario de forma provisional, 11/11/2026).
+ * Lo que baja la relación de un PNJ con su entrenador una vez más por llegar tarde: se guarda `[afinidad, confianza]` (de −100 a 0), solo en quien lo tiene anotado. Es la relación con el entrenador de su club: al cambiar de club
+ * en verano empieza de cero.
  */
-export const IMPUNTUALIDAD_DE_JUGADOR = { afinidad: 3, olvidoPorSemana: 0.8 } as const;
-
-/** Lo que baja la relación de un PNJ con su entrenador una vez más por llegar tarde: se guarda `[afinidad, semana]` (de −100 a 0). */
-export function llegarTarde(guardada: readonly [number, number] | undefined, semana: number): [number, number] {
-  const actual = guardada ? guardada[0] * Math.pow(IMPUNTUALIDAD_DE_JUGADOR.olvidoPorSemana, Math.max(0, semana - guardada[1])) : 0;
-  return [Math.max(-100, actual - IMPUNTUALIDAD_DE_JUGADOR.afinidad), semana];
+export function llegarTarde(guardada: readonly [number, number] | undefined): [number, number] {
+  return [Math.max(-100, (guardada?.[0] ?? 0) - IMPUNTUALIDAD_DE_JUGADOR.afinidad), Math.max(-100, (guardada?.[1] ?? 0) - IMPUNTUALIDAD_DE_JUGADOR.confianza)];
 }
 
-/** La relación con el entrenador de un PNJ en la escala de 0 a 100 que mira la convocatoria (50: neutra), con lo que ha olvidado; `undefined` si no tiene nada guardado. */
-export function relacionConElEntrenador(guardada: readonly [number, number] | undefined, semana: number): number | undefined {
-  if (!guardada) return undefined;
-  const afinidad = guardada[0] * Math.pow(IMPUNTUALIDAD_DE_JUGADOR.olvidoPorSemana, Math.max(0, semana - guardada[1]));
-  return Math.abs(afinidad) < 0.05 ? undefined : (afinidad + 100) / 2;
+/** La relación con el entrenador de un PNJ en la escala de 0 a 100 que mira la convocatoria, `(afinidad + 100) / 2` (50: neutra, como la del personaje); `undefined` si no tiene nada anotado. */
+export const relacionConElEntrenador = (guardada: readonly [number, number] | undefined): number | undefined => (guardada ? (guardada[0] + 100) / 2 : undefined);
+
+/**
+ * Lo que cuesta no presentarse a un partido al que se está convocado (`MOTOR_PARTIDOS.md` §15): su asistencia a los entrenamientos baja `asistencia` (0 a 1) durante las `semanas` siguientes, y ahí actúa la penalización por faltar
+ * de la convocatoria. **El mismo dato para el personaje y para cualquier PNJ.**
+ */
+export const FALTA_A_PARTIDO = { asistencia: 0.5, semanas: 2 } as const;
+
+/** La asistencia (de 0 a 1) menos lo que cuestan las faltas a partidos de las últimas semanas (`faltas`: las semanas en que faltó), sin bajar de 0. */
+export function asistenciaConFaltas(asistencia: number, faltas: readonly number[] | undefined, semana: number): number {
+  const recientes = (faltas ?? []).filter((w) => w >= semana - FALTA_A_PARTIDO.semanas + 1 && w <= semana).length;
+  return Math.max(0, Math.min(1, asistencia) - FALTA_A_PARTIDO.asistencia * recientes);
 }
+
+/** Las faltas que aún pesan en `semana` (las de las últimas semanas). */
+export const faltasVigentes = (faltas: readonly number[] | undefined, semana: number): number[] => (faltas ?? []).filter((w) => w >= semana - FALTA_A_PARTIDO.semanas + 1 && w <= semana);
+
+/** Anota una falta más (esta semana) y deja solo las que aún pesan. */
+export const anotarFalta = (faltas: readonly number[] | undefined, semana: number): number[] => [...(faltas ?? []).filter((w) => w >= semana - FALTA_A_PARTIDO.semanas + 1 && w < semana), semana];

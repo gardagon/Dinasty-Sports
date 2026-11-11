@@ -94,6 +94,19 @@ export function convocarYAlinear(jugadores: readonly JugadorParaConvocar[], conv
 }
 
 /**
+ * **El sorteo de quién no se presenta, solo a los convocados** (`MOTOR_PARTIDOS.md` §15, la regla del personaje): el entrenador convoca a la plantilla; de los convocados, los que `ausente` dice que no se presentan no juegan y el entrenador
+ * alinea a los que quedan de los convocados (nadie más: los demás no estaban citados). Devuelve la alineación final y quiénes faltaron (que cuentan como una falta, `FALTA_A_PARTIDO`).
+ */
+export function convocarYAlinearConAusencias(jugadores: readonly JugadorParaConvocar[], ausente: (id: string) => boolean, convocados: number = PARAMETROS_DE_CONVOCATORIA.convocados): { c: Convocatoria; ausentes: string[] } {
+  const c0 = convocarYAlinear(jugadores, convocados);
+  const citados = new Set([...c0.titulares, ...c0.suplentes].map((x) => x.id));
+  const ausentes = [...citados].filter(ausente);
+  if (!ausentes.length) return { c: c0, ausentes };
+  const faltan = new Set(ausentes);
+  return { c: convocarYAlinear(jugadores.filter((j) => citados.has(j.id) && !faltan.has(j.id)), convocados), ausentes };
+}
+
+/**
  * Lo que pesa la preferencia del entrenador por un jugador (de ×0,75 a ×1,05): su asistencia a los entrenamientos de las dos últimas semanas (de 0 a 1) cuenta **para todos**, personaje y PNJ: quien falta pierde el puesto, y más
  * con un entrenador disciplinado (de 0 a 1). La relación con el entrenador (de −5 % a +5 %) solo la tiene guardada el personaje: sin ella (PNJ) no cuenta.
  */

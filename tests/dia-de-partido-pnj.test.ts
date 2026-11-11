@@ -3,7 +3,7 @@ import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, SHARED_EVENTS, defineModule, registrar
 import { advanceToWeek, advanceUntil } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { CONOCIMIENTO, DIA_DE_PARTIDO, futbol, type FutbolState } from '@ds/mod-futbol';
-import { type NpcsState } from '@ds/mod-npcs';
+import { conRelacionNuevaSiCambiaDeClub, type Npc, type NpcsState } from '@ds/mod-npcs';
 import { hacer, llegarA, posible } from './ayudas';
 
 vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
@@ -120,6 +120,7 @@ describe('lo que dejan en los PNJ el conocimiento y llegar tarde (el mismo event
                 { npcId: ids[0], minutos: 90, valoracion: 0, titular: true, puesto: 'CM', goles: 0, asistencias: 0, nota: 6, aprendizaje: 1, conocimiento: 1.5, tarde: 20 },
                 { npcId: ids[1], minutos: 0, valoracion: 0, titular: false, puesto: 'CM', conocimiento: 1.5 },
                 { npcId: ids[2], minutos: 90, valoracion: 0, titular: true, puesto: 'CM', goles: 0, asistencias: 0, nota: 6, aprendizaje: 1 },
+                { npcId: ids[3], minutos: 0, valoracion: 0, falta: true },
               ],
             },
           });
@@ -128,7 +129,7 @@ describe('lo que dejan en los PNJ el conocimiento y llegar tarde (el mismo event
     });
     const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, modulo]);
     const jugadores = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs.filter((n) => n.deporte === 'futbol' && n.hab?.futbol && n.genetica);
-    ids = jugadores.slice(0, 3).map((n) => n.id);
+    ids = jugadores.slice(0, 4).map((n) => n.id);
     const conocimiento = (id: string): number => {
       const n = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs.find((x) => x.id === id)!;
       const poblacion = (g.moduleState<NpcsState>('npcs') as NpcsState).poblaciones!.find((p) => p.deporte === 'futbol')!;
@@ -143,9 +144,13 @@ describe('lo que dejan en los PNJ el conocimiento y llegar tarde (el mismo event
     expect(despues[2]).toBe(antes[2]);
     // Llegar tarde baja la relación con el entrenador (−3 de afinidad); quien llegó a tiempo no pierde nada.
     const todos = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs;
-    expect(todos.find((n) => n.id === ids[0])!.afin?.futbol).toEqual([-3, 20]);
+    expect(todos.find((n) => n.id === ids[0])!.afin?.futbol).toEqual([-3, -1]);
     expect(todos.find((n) => n.id === ids[1])!.afin?.futbol).toBeUndefined();
     expect(todos.find((n) => n.id === ids[2])!.afin?.futbol).toBeUndefined();
+    // Quien estaba convocado y no se presentó recibe una falta: su asistencia baja 0,5 las dos semanas siguientes (la misma regla que el personaje) y no cambia su ánimo ni sus estadísticas; quien jugó o llegó tarde, no.
+    expect(todos.find((n) => n.id === ids[3])!.faltas?.futbol).toEqual([20]);
+    expect(todos.find((n) => n.id === ids[3])!.est?.futbol?.pj ?? 0).toBe(0);
+    for (const i of [0, 1, 2]) expect(todos.find((n) => n.id === ids[i])!.faltas?.futbol).toBeUndefined();
     // El suplente que no jugó pierde moral por el banquillo (otra regla, la misma de siempre).
     expect(todos.find((n) => n.id === ids[1])!.estado!.moral).toBeLessThan(60);
   });
@@ -175,5 +180,17 @@ describe('ver partidos de otros como espectador', () => {
     // El partido de su equipo no sale entre los que se pueden ver.
     const p = (g.moduleState<FutbolState>('futbol') as FutbolState).personaje!;
     expect(ver.some((a) => a.id.includes(`${p.categoria}.${p.club}_${p.letra}.`) || a.id.endsWith(`.${p.club}_${p.letra}`))).toBe(false);
+  });
+});
+
+describe('la relación con el entrenador de un PNJ al cambiar de club', () => {
+  it('quien cambia de club en verano empieza de cero con su nuevo entrenador; quien sigue en el suyo, no pierde lo anotado', () => {
+    const npc = (id: string, equipo: string): Npc => ({ id, equipo, afin: { futbol: [-6, -2] } }) as unknown as Npc;
+    const antes = [npc('a', 'club_grande'), npc('b', 'club_grande'), npc('c', 'club_mediano')];
+    const despues = [npc('a', 'club_grande'), npc('b', 'club_mediano'), { ...npc('c', 'club_mediano'), afin: undefined } as unknown as Npc, npc('nuevo', 'club_grande')];
+    const r = conRelacionNuevaSiCambiaDeClub(antes, despues);
+    expect(r.find((n) => n.id === 'a')!.afin).toEqual({ futbol: [-6, -2] });
+    expect(r.find((n) => n.id === 'b')!.afin).toBeUndefined();
+    expect(r.find((n) => n.id === 'nuevo')!.afin).toEqual({ futbol: [-6, -2] });
   });
 });

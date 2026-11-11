@@ -75,6 +75,8 @@ export interface JugadorDelPartido {
   /** El día de partido (`MOTOR_PARTIDOS.md` §15): cuánto conocimiento del deporte ganó viendo el partido anterior de su campo mientras esperaba, y, solo si fue impuntual (más de 10 minutos tarde), cuántos llegó tarde a la convocatoria: su entrenador pierde relación con él. Las mismas reglas que el personaje. */
   conocimiento?: number;
   tarde?: number;
+  /** Estaba convocado y no se presentó (0 minutos): cuenta como una falta (`FALTA_A_PARTIDO`), como para el personaje; su equipo jugó sin él. */
+  falta?: boolean;
 }
 
 /** Un partido jugado (de la liga de cualquier categoría): los que jugaron, para que su condición, su moral y su forma cambien con las mismas reglas que tras una carrera. */
