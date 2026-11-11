@@ -228,3 +228,5 @@ Sustituye a la franja abierta de «Jugar el partido» (sábados de 9 a 13, #116)
 - **Al terminar el partido aparece en el vestuario.** Más adelante habrá acciones allí (ducharse y otras).
 - **Los demás también están:** los compañeros, los rivales y su entrenador están en el campo desde su convocatoria y en el vestuario a su hora (las agendas de los PNJ siguen el horario del partido), así que el personaje los puede encontrar.
 - **Ver partidos de otros:** cualquier sábado, en cualquier campo, puede **ver un partido** como espectador, lo que le da conocimiento del deporte (y, más adelante, información de los jugadores). Con el motor de eventos (E18) llegarán cosas como quedarse con un compañero después del partido para ver otro.
+
+**Hecho el 12/11 (1.ª parte):** el calendario con franjas, campos y días por categoría y la medida de los campos del complejo (ver `DECISIONES.md`, 12/11). Queda la convocatoria, el vestuario, las agendas y el espectador.

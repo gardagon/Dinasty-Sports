@@ -14,6 +14,7 @@ import {
   MINUTES_PER_DAY,
   SHARED_EVENTS,
   semanasDeTemporada,
+  CAMPOS_DEL_COMPLEJO,
   type ActionContext,
   type ActionDef,
   type EstadisticasDeTemporada,
@@ -40,6 +41,7 @@ import {
 } from '@ds/contracts';
 import {
   accionesDeClubes,
+  repartirLosPartidos,
   campamento,
   categoriaDelJugador as categoriaDelJugadorEn,
   clubDelJugador as clubDelJugadorEn,
@@ -68,7 +70,7 @@ import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } fro
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 import { PUESTOS_DE_FUTBOL } from './puestos';
-import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
+import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { convocarYAlinear, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, posicionEquivalente, type Convocatoria } from './convocatoria';
 import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, nombreDeIntensidad, proximoPartido, situacionEnLaLiga, textoDeResultados, ultimosResultados, type LineaDeCronica } from './personaje';
 import { jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
@@ -79,7 +81,8 @@ export { PUESTOS_DE_FUTBOL } from './puestos';
 export { tandaDePenaltis, PARAMETROS_DE_PENALTIS, jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
 export { PARAMETROS_DE_CONVOCATORIA, convocarYAlinear, equipoDePartido, estadoDelPersonaje, paraConvocar, jugadoresDelPartido, posicionEquivalente, prioridadDelEntrenador } from './convocatoria';
 export type { Convocatoria, JugadorParaConvocar } from './convocatoria';
-export { archivarTemporada, cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, tablasDeLaDivision } from './liga';
+export { archivarTemporada, cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision } from './liga';
+export type { PartidoDeLaSemana } from './liga';
 export type { LigaDelMundo, LigaDeCategoria, TemporadaArchivada, CategoriaArchivada, DivisionArchivada, GrupoArchivado, RondaArchivada } from './liga';
 export type { Lanzamiento, ResultadoDeTanda, EquipoDePartido, EstadisticasDeJugador, Intensidad, JugadorDePartido, OpcionesDePartido, ReglaDeCambios, ResultadoDePartido, Zona } from './partido';
 export { EJERCICIOS_DE_FUTBOL, sesgoDelEntrenador } from './ejercicios';
@@ -112,6 +115,8 @@ export type FutbolState = EstadoBaseDeDeporte & {
   estadisticas?: EstadisticasDeTemporada;
   historial?: TemporadaCerrada[];
   experiencia?: Record<string, number>;
+  /** Cuándo y dónde se juega cada partido de esta semana (id → [día de la semana, hora, campo]): se reparte el lunes con los partidos de la jornada (`repartirLosPartidos`). */
+  calendario?: { curso: number; semana: number; partidos: Record<string, [number, number, string]>; sinSitio: number };
 };
 
 /** Un partido del personaje, en pocas cifras. */
@@ -377,7 +382,7 @@ function seccionesDelPartido(ctx: ReadContext): SeccionDeDeporte[] {
         header: ['', ''],
         rows: [
           ['Competición', `${sig.texto} · ${sig.local ? 'en casa' : 'fuera'}`],
-          ['Dónde y cuándo', `${datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto}${juega ? ' Ve al campo y elige «Jugar el partido»: si estás convocado y no vas, cuenta como una falta.' : ''}`],
+          ['Dónde y cuándo', `${suHoraYCampo(ctx, previa, ctx.time.week)?.texto ?? datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto}${juega ? '. Ve al campo y elige «Jugar el partido»: si estás convocado y no vas, cuenta como una falta.' : ''}`],
           ['Rival', `${nombre(sig.rival)} · ${situacion(sig.rival)}`],
           ['Tu equipo', `${nombre(previa.equipo.clave)} · ${situacion(previa.equipo.clave)}`],
           ['Tu papel (hoy)', papel],
@@ -474,7 +479,8 @@ function textoDeProximoPartido(ctx: ReadContext): string {
   if (eq && l) {
     if (s.partidoJugado?.semana === ctx.time.week) return 'Ya has jugado el partido de esta semana: la crónica, más abajo.';
     const sig = proximoPartido(l, eq.clave);
-    return sig ? `El sábado: ${sig.texto.toLowerCase()}, ${sig.local ? 'en casa' : 'fuera'}. Más abajo, el rival y tu convocatoria; el partido se juega en el campo, con la acción «Jugar el partido».` : 'Tu equipo no juega esta semana.';
+    const h = suHoraYCampo(ctx, previaDelPartido(ctx, ctx.time.schoolYear, ctx.time.week, ctx.time.weekday), ctx.time.week);
+    return sig ? `${h ? `${h.texto}` : 'Este fin de semana'}: ${sig.texto.toLowerCase()}, ${sig.local ? 'en casa' : 'fuera'}. Más abajo, el rival y tu convocatoria; el partido se juega en el campo, con la acción «Jugar el partido».` : 'Tu equipo no juega esta semana.';
   }
   return datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto;
 }
@@ -651,7 +657,7 @@ const nombresDeEquipos = (dir: NpcDirectory, categoria: string): ((id: string) =
  * **La liga existe desde el lunes de la primera semana de competición** (y la temporada anterior se cierra al empezar el curso si no se había cerrado): así el personaje puede jugar su partido el sábado a su hora, antes de que
  * la semana se cierre. También fija el equipo del personaje, como el de todos, para toda la temporada. Devuelve la liga del curso, o `undefined` si aún es pretemporada, vacaciones o el deporte no tiene liga.
  */
-function prepararLiga(ctx: ActionContext, t: { schoolYear: number; period: string; schoolWeek: number }): LigaDelMundo | undefined {
+function prepararLiga(ctx: ActionContext, t: { schoolYear: number; period: string; schoolWeek: number; week: number }): LigaDelMundo | undefined {
   const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
   const datos = datosDeDeporte(ctx, DEPORTE);
   const f = datos.temporada.liga?.divisiones;
@@ -672,7 +678,44 @@ function prepararLiga(ctx: ActionContext, t: { schoolYear: number; period: strin
   const e = miEquipo(ctx, t.schoolYear);
   const g = ctx.state<FutbolState>().personaje;
   if (e && (!g || g.curso !== t.schoolYear || g.club !== e.club || g.categoria !== e.categoria || g.letra !== e.letra)) ctx.updateState<FutbolState>((s) => ({ ...s, personaje: { curso: t.schoolYear, club: e.club, categoria: e.categoria, letra: e.letra } }));
+  if (!liga.cerrada) prepararElCalendario(ctx, liga, t.week);
   return liga;
+}
+
+/**
+ * **El calendario de la semana** (`MOTOR_PARTIDOS.md` §15): reparte los partidos de la jornada de todas las categorías en días, horas en punto y campos (`repartirLosPartidos`): los clubes grandes y medianos juegan en casa en sus
+ * instalaciones y los pequeños y los colegios en el complejo municipal (con los campos que tenga la ciudad). Se hace una vez por semana, con la liga tal como está antes de jugar.
+ */
+function prepararElCalendario(ctx: ActionContext, liga: LigaDelMundo, semana: number): void {
+  const actual = ctx.state<FutbolState>().calendario;
+  if (actual && actual.curso === liga.curso && actual.semana === semana) return;
+  const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
+  const datos = datosDeDeporte(ctx, DEPORTE);
+  const f = datos.temporada.liga?.divisiones;
+  const cal = datos.competiciones.jornada.calendario;
+  if (!dir?.equiposDeLaCategoria || !f || !cal) return;
+  const porColocar = Object.entries(liga.categorias).flatMap(([cat, l]) => {
+    const equipos = new Map(dir.equiposDeLaCategoria!(DEPORTE, cat).map((e) => [e.id, e]));
+    return partidosDeLaSemana(l, f).map((p) => ({ id: `${liga.curso}|${cat}|${p.ref}`, categoria: cat, club: p.local.split('|')[0], campoPropio: !!equipos.get(p.local)?.campoPropio }));
+  });
+  const r = repartirLosPartidos(porColocar, cal, ctx.pais.ciudad?.camposDelComplejo ?? CAMPOS_DEL_COMPLEJO);
+  ctx.updateState<FutbolState>((s) => ({ ...s, calendario: { curso: liga.curso, semana, partidos: Object.fromEntries([...r.partidos].map(([id, h]) => [id, [h.dia, h.hora, h.campo]])), sinSitio: r.sinSitio.length } }));
+}
+
+const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+const horaTexto = (h: number): string => `${h}:00`;
+
+/** Cuándo y dónde juega el personaje su próximo partido (según el calendario de la semana), o `undefined` si no tiene partido o aún no se ha repartido. */
+function suHoraYCampo(ctx: ReadContext, previa: Previa | undefined, semana: number): { dia: number; hora: number; campo: string; texto: string } | undefined {
+  const s = ctx.state<FutbolState>();
+  const liga = s.liga && s.liga.curso === ctx.time.schoolYear ? s.liga : undefined;
+  const l = previa && liga ? liga.categorias[previa.equipo.categoria] : undefined;
+  const sig = previa && l ? proximoPartido(l, previa.equipo.clave) : undefined;
+  const h = sig && previa && s.calendario?.curso === ctx.time.schoolYear && s.calendario.semana === semana ? s.calendario.partidos[`${ctx.time.schoolYear}|${previa.equipo.categoria}|${sig.ref}`] : undefined;
+  if (!h) return undefined;
+  const [dia, hora, campo] = h;
+  const donde = campo.startsWith('complejo:') ? `el campo ${campo.slice(9)} del complejo municipal` : sig!.local ? 'las instalaciones de tu club' : 'las instalaciones del club local';
+  return { dia, hora, campo, texto: `${DIAS[dia][0].toUpperCase()}${DIAS[dia].slice(1)} a las ${horaTexto(hora)}, en ${donde}` };
 }
 
 /** ¿Puede el personaje jugar ahora el partido de su equipo? Solo en la hora y el campo de la jornada, si tiene partido esta semana, no lo ha jugado ya y el entrenador lo ha convocado. */
@@ -680,8 +723,6 @@ function puedeJugarElPartido(ctx: ReadContext): true | string {
   if (!clubDelJugador(ctx)) return 'No juegas en ningún equipo de fútbol';
   if (ctx.stat(GEN.baja) > 0) return 'Estás de baja por una lesión: no puedes jugar';
   const t = ctx.time;
-  const j = datosDeDeporte(ctx, DEPORTE).competiciones.jornada;
-  if (!j.dias.includes(t.weekday) || !inHours(t, j.desde, j.hasta)) return j.texto;
   const s = ctx.state<FutbolState>();
   const liga = s.liga && s.liga.curso === t.schoolYear && !s.liga.cerrada ? s.liga : undefined;
   const previa = previaDelPartido(ctx, t.schoolYear, t.week, t.weekday);
@@ -690,6 +731,10 @@ function puedeJugarElPartido(ctx: ReadContext): true | string {
   if (!l || !proximoPartido(l, previa.equipo.clave)) return 'Tu equipo no juega esta semana';
   if (s.partidoJugado?.semana === t.week) return 'Ya has jugado el partido de esta semana';
   if (previa.papel !== 'titular' && previa.papel !== 'suplente') return `${MOTIVO_DE_NO_JUGAR[previa.papel]}: no juegas`;
+  // Cada partido tiene su hora en punto: se juega en esa franja de dos horas (la convocatoria una hora antes y la puntualidad, con «Unirse a los compañeros»).
+  const h = suHoraYCampo(ctx, previa, t.week);
+  if (!h) return 'Todavía no se sabe a qué hora juega tu equipo';
+  if (t.weekday !== h.dia || !inHours(t, h.hora, h.hora + 2)) return `Tu partido es el ${h.texto.charAt(0).toLowerCase()}${h.texto.slice(1)}`;
   return true;
 }
 

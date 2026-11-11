@@ -12,4 +12,5 @@ export * from './categorias';
 export * from './comunes';
 export * from './tablas';
 export * from './liga';
+export * from './calendario-de-partidos';
 export * from './playoff';

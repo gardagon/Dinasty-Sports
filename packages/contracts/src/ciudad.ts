@@ -17,7 +17,12 @@ export interface CiudadDef {
   personasPorClub?: number;
   /** Cuántos de los colegios de fuera tienen club de deporte (con las mismas reglas que el del colegio del personaje: escogen primero entre sus alumnos, que entran con hueco y sin prueba). Sin él, la mitad. */
   colegiosConClub?: number;
+  /** Cuántos campos de fútbol tiene el complejo deportivo municipal, donde juegan en casa los clubes pequeños y los colegios (los grandes y medianos juegan en sus instalaciones). Sin él, `CAMPOS_DEL_COMPLEJO`. */
+  camposDelComplejo?: number;
 }
+
+/** Campos de fútbol del complejo municipal por defecto (la ciudad de ahora, con pocos equipos). */
+export const CAMPOS_DEL_COMPLEJO = 2;
 
 /** Personas por club de la zona, por defecto (`CIUDAD_Y_LIGAS.md` §3): con la ciudad de ahora (unas 1.450 personas), dos clubes; con cinco veces más, diez. */
 export const PERSONAS_POR_CLUB = 700;
@@ -42,7 +47,7 @@ export const CIUDAD_DE_PRUEBA: CiudadDef = { colegiosDeFuera: 2, aulasPorCurso: 
  * uno: no la ciudad de ahora multiplicada, que deja colegios de fuera de 17 alumnos por curso que nunca llegan a 14), unos 500 niños por año de nacimiento y unas 6.000 personas. Con ella, los clubes
  * salen en proporción (uno cada `PERSONAS_POR_CLUB` personas) y la mitad de los colegios de fuera tiene club.
  */
-export const CIUDAD_GRANDE: CiudadDef = { colegiosDeFuera: 9, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80 };
+export const CIUDAD_GRANDE: CiudadDef = { colegiosDeFuera: 9, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 8 };
 
 /** Los ids de los colegios de fuera de una ciudad: `colegio1`…`colegioN`. */
 export const idsDeColegiosDeFuera = (c: CiudadDef): string[] => Array.from({ length: c.colegiosDeFuera }, (_, i) => `colegio${i + 1}`);

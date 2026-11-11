@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, claveDeDeporte, registrarPais, type ClubDirectory, type DeporteService } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol, type FutbolState } from '@ds/mod-futbol';
+import { futbol, proximoPartido, type FutbolState } from '@ds/mod-futbol';
 import { hacer, posible } from './ayudas';
 
 vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
@@ -116,6 +116,15 @@ describe('el partido del personaje en la liga', () => {
 describe('jugar el partido en el campo, a su hora', () => {
   let g: ReturnType<typeof nuevaPartida>;
   const estado = () => g.moduleState<FutbolState>('futbol') as FutbolState;
+  /** Cuándo juega su equipo esta semana, según el calendario. */
+  const suSlot = (): { dia: number; hora: number; campo: string } | undefined => {
+    const p = estado().personaje;
+    const liga = estado().liga;
+    const l = p && liga ? liga.categorias[p.categoria] : undefined;
+    const sig = l ? proximoPartido(l, `${p!.club}|${p!.letra}`) : undefined;
+    const h = sig ? estado().calendario?.partidos[`${liga!.curso}|${p!.categoria}|${sig.ref}`] : undefined;
+    return h ? { dia: h[0], hora: h[1], campo: h[2] } : undefined;
+  };
   beforeAll(() => {
     g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     advanceToWeek(g, 'gen.descansar', 1, 3, 15);
@@ -135,7 +144,10 @@ describe('jugar el partido en el campo, a su hora', () => {
     let saltados = 0;
     let jugadosAntes = 0;
     for (let w = 4; w <= 13 && (jugados < 1 || saltados < 1); w++) {
-      advanceToWeek(g, 'gen.descansar', w, 5, 9);
+      // El lunes se reparte el calendario de la semana: cada partido tiene su hora en punto; el personaje va a la de su equipo.
+      advanceToWeek(g, 'gen.descansar', w, 0, 9);
+      const slot = suSlot();
+      if (slot) advanceToWeek(g, 'gen.descansar', w, slot.dia, slot.hora);
       const o = g.preview('futbol.jugar_partido')!;
       if (!o.available && !posible(g, 'futbol.jugar_partido')) {
         expect(o.reason).toBeTruthy();
@@ -181,8 +193,11 @@ describe('jugar el partido en el campo, a su hora', () => {
 
   it('fuera de la hora y del campo de la jornada no se puede jugar', () => {
     advanceToWeek(g, 'gen.descansar', 6, 2, 15);
+    const slot = suSlot()!;
+    expect(slot).toBeDefined();
     const o = g.preview('futbol.jugar_partido')!;
     expect(o.available).toBe(false);
-    expect(o.reason).toMatch(/sábados de 9 a 13/);
+    // Un miércoles a las 15:00 no es su hora: el motivo dice cuándo es su partido (o por qué no puede jugar).
+    expect(o.reason).toMatch(/Tu partido es el (sábado|domingo) a las \d+:00|no juegas|Tu equipo no juega/);
   });
 });

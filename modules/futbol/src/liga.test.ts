@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FormatoDeDivisiones } from '@ds/kit-deporte';
-import { archivarTemporada, categoriaAcabada, cerrarTemporada, jugarSabadoDeUnaCategoria, nuevaLiga, tablasDeLaDivision, type JugarPartido, type LigaDeCategoria } from './liga';
+import { archivarTemporada, categoriaAcabada, cerrarTemporada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDeCategoria } from './liga';
 
 const F: FormatoDeDivisiones = { tamano: 10, fijas: 2, grupo: { max: 12 }, suben: 2, bajan: 2, playoff: { jornadasObjetivo: 18 } };
 /** `n` equipos de `clubes` clubes (el id `c3|B`: club 3, letra B), el primero el más fuerte. */
@@ -213,5 +213,30 @@ describe('el historial de la temporada', () => {
     const kb = JSON.stringify(cerrada.historial![0]).length / 1024;
     expect(kb).toBeLessThan(40);
     expect(kb).toBeGreaterThan(5);
+  });
+});
+
+describe('los partidos de la semana, antes de jugarlos', () => {
+  it('son los mismos (con los mismos ids) que juega el sábado: en toda la temporada, liga y playoff', () => {
+    let l = nuevaLiga(1, 7, { juvenil: equipos(34, 12) }, F).categorias.juvenil;
+    let sabados = 0;
+    while (!categoriaAcabada(l) && sabados < 80) {
+      const previstos = partidosDeLaSemana(l, F).map((p) => `1|juvenil|${p.ref}`).sort();
+      const jugados: string[] = [];
+      const registra: JugarPartido = Object.assign((c: string, a: string, b: string, id: string) => { jugados.push(id); return jugar(c, a, b, id); }, { tanda: (_c: string, _a: string, _b: string, _id: string) => ({ ganador: 0 as const, goles: [1, 0] as [number, number] }) });
+      l = jugarSabadoDeUnaCategoria('juvenil', l, 1, F, registra, 1).liga;
+      expect(jugados.sort()).toEqual(previstos);
+      sabados++;
+    }
+    expect(categoriaAcabada(l)).toBe(true);
+    // Acabada la temporada no queda nada por jugar.
+    expect(partidosDeLaSemana(l, F)).toEqual([]);
+  });
+
+  it('no cambia la liga que recibe', () => {
+    const l = nuevaLiga(1, 7, { juvenil: equipos(34, 12) }, F).categorias.juvenil;
+    const copia = structuredClone(l);
+    partidosDeLaSemana(l, F);
+    expect(l).toEqual(copia);
   });
 });
