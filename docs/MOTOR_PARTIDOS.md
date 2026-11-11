@@ -212,7 +212,17 @@ Hecho desde la revisión del 01/11: los compañeros de equipo ya no cuentan como
 
 Sustituye a la franja abierta de «Jugar el partido» (sábados de 9 a 13, #116). Va después de la F2.4 y antes de publicar el fútbol para que el usuario lo pruebe (`ANALISIS_FUTBOL.md`, «El MVP del fútbol»).
 
-- **Cada partido tiene su hora.** Se juega en el campo del equipo local (los clubes, en sus instalaciones; los equipos sin campo propio, en el campo municipal), en franjas de cada campo (dato del deporte; por ejemplo, 9:00, 10:45, 12:30 y por la tarde, y el domingo si no cabe todo el sábado). La hora de un equipo cambia de una jornada a otra, salvo quizá la de los grandes y medianos en sus instalaciones.
+- **Cada partido tiene su hora, siempre en punto** (9:00, 11:00…; decisión del usuario, 11/11). Un partido son 90 minutos más el descanso y el cambio de equipos, así que en un mismo campo los partidos empiezan cada 2 horas (por ejemplo, 9:00, 11:00, 13:00, 16:00 y 18:00; las franjas, como dato del deporte). La hora de un equipo cambia de una jornada a otra, salvo quizá la de los grandes y medianos en sus instalaciones.
+- **Dónde:** los clubes grandes y medianos juegan en casa en sus instalaciones (un campo cada uno). Los clubes pequeños y los colegios juegan en casa en el **complejo deportivo municipal, que tiene varios campos de fútbol**.
+- **Sábado y domingo, repartidos por categorías** (dato del deporte): el **sábado**, benjamín, alevín e infantil (por la mañana los más pequeños); el **domingo**, juvenil. **Cadete, el sábado si cabe** (por la tarde) y, si no, el domingo.
+- **Cuántos campos hacen falta (cálculo orientativo, ciudad grande):** unos 77 partidos por fin de semana (de 15 a 17 por categoría). En los cuatro campos de los grandes y medianos caben sus partidos en casa (unos 8 por fin de semana cada uno). En el complejo municipal se juegan unos 46 (los de los pequeños y los colegios, unos 6 de cada 10):
+
+  | Reparto | Sábado en el complejo | Domingo en el complejo |
+  |---|---|---|
+  | Cadete el sábado | unos 37 partidos en 5 franjas: **8 campos** | unos 10 partidos: 2 campos (o 4 solo por la mañana) |
+  | Cadete el domingo | unos 28 partidos en 5 franjas: **6 campos** | unos 19 partidos: 4 campos (7 solo por la mañana) |
+
+  El número de campos del complejo es un dato de la ciudad. El calendario reparte los partidos en franjas y campos; si una categoría no cabe el sábado, pasa al domingo (la primera, cadete). Hay que medir el reparto real con los equipos de verdad.
 - **Convocatoria una hora antes.** Desde esa hora, en el campo, el personaje puede **«Unirse a los compañeros»**: estar con ellos, hablar con ellos y **ver el partido anterior** en ese campo, si el suyo no es el primero, lo que le da algo de conocimiento del deporte. Si se une **más de 10 minutos tarde**, sigue ganando relación y experiencia, pero **el entrenador pierde relación con él por impuntual**. Si llega después de la hora del partido, no juega y cuenta como falta (la regla del #116).
 - **El vestuario** es una zona del campo que se abre **media hora antes** del partido. Si ya se había unido a los compañeros, pasa al vestuario a esa hora; si llega entonces, se une dentro del vestuario. Los tiempos de cambiarse no son una cuenta cerrada: el vestuario está abierto un rato antes y después.
 - **Al terminar el partido aparece en el vestuario.** Más adelante habrá acciones allí (ducharse y otras).
