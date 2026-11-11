@@ -239,3 +239,35 @@ describe('la tanda de penaltis', () => {
     expect(marca(cansado)).toBeLessThan(marca(base));
   });
 });
+
+describe('la crónica y la intensidad de cada jugador', () => {
+  const a = equipo('a', 20);
+  const b = equipo('b', 20);
+  const o = { id: 'cronica-1', semilla: 5, categoria: 'infantil', cambios: { maximo: 5, despuesDeTramos: [1, 3, 4] } };
+
+  it('la crónica cuenta cada gol y cada cambio del partido y no cambia el azar', () => {
+    for (let i = 0; i < 20; i++) {
+      const r = jugarPartido(a, b, { ...o, id: `c${i}` });
+      expect(r.cronica.filter((m) => m.tipo === 'gol' && m.equipo === 0)).toHaveLength(r.goles[0]);
+      expect(r.cronica.filter((m) => m.tipo === 'gol' && m.equipo === 1)).toHaveLength(r.goles[1]);
+      expect(r.cronica.filter((m) => m.tipo === 'gol')).toHaveLength(r.jugadas.length);
+      // Los cambios: entra un suplente que luego tiene minutos y sale un titular.
+      for (const m of r.cronica.filter((x) => x.tipo === 'cambio')) {
+        expect(r.jugadores[m.jugador].titular).toBe(false);
+        expect(r.jugadores[m.otro!].titular).toBe(true);
+      }
+      // Los tramos van en orden.
+      expect(r.cronica.map((m) => m.tramo)).toEqual([...r.cronica.map((m) => m.tramo)].sort((x, y) => x - y));
+    }
+  });
+
+  it('un jugador a tope se cansa más que el mismo a normal y uno relajado, menos (los demás, a normal), y acaba con su cansancio guardado', () => {
+    const con = (intensidad?: 'relajado' | 'a_tope'): EquipoDePartido => ({ ...a, jugadores: a.jugadores.map((j) => (j.id === 'a_5' ? { ...j, intensidad } : j)) });
+    const cansancio = (e: EquipoDePartido) => media(Array.from({ length: 30 }, (_, i) => jugarPartido(e, b, { ...o, id: `i${i}`, cambios: undefined }).jugadores.a_5.cansancio!));
+    const normal = cansancio(con());
+    expect(cansancio(con('a_tope'))).toBeGreaterThan(normal * 1.25);
+    expect(cansancio(con('relajado'))).toBeLessThan(normal * 0.8);
+    // Quien no juega no tiene cansancio.
+    expect(jugarPartido(a, b, { ...o, cambios: undefined }).jugadores.a_15?.cansancio).toBeUndefined();
+  });
+});

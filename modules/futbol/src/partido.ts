@@ -82,6 +82,8 @@ export interface JugadorDePartido {
   /** Cuánto rinde el día del partido por su estado (forma y salud: `factorDeCompeticion` de su eficiencia; el mismo factor que en el atletismo); por defecto 1. */
   rinde?: number;
   titular: boolean;
+  /** La intensidad a la que juega este jugador (la elige el personaje antes del partido); sin ella, la de su equipo (normal). */
+  intensidad?: Intensidad;
 }
 
 export interface EquipoDePartido {
@@ -118,6 +120,28 @@ export interface EstadisticasDeJugador {
   nota: number;
   puesto: string;
   titular: boolean;
+  /** El cansancio con que acaba (0 a 100) si ha jugado: el personaje pierde de energía una parte de él. */
+  cansancio?: number;
+}
+
+/**
+ * Un momento del partido para la crónica (tramo a tramo): `gol`, `ocasion` (el tiro que paró el portero), `balon_parado` (falta o córner con gol o con parada), `cambio` y `tramo` (el resumen de cada tramo, al final de él).
+ * Solo cuentan lo que pasó: no cambian el azar del partido.
+ */
+export interface MomentoDeCronica {
+  /** 0 a 5. */
+  tramo: number;
+  tipo: 'gol' | 'ocasion' | 'balon_parado' | 'cambio';
+  /** 0 (local) o 1 (visitante): el equipo al que le pasa. */
+  equipo: 0 | 1;
+  /** Quien tira o marca (en un cambio, quien entra). */
+  jugador: string;
+  /** El que da el pase del gol (o, en un cambio, quien sale). */
+  otro?: string;
+  /** El portero que para (en un gol o una ocasión, el que defiende). */
+  portero?: string;
+  /** En un lanzamiento de balón parado, si fue gol. */
+  gol?: boolean;
 }
 
 export interface ResultadoDePartido {
@@ -131,6 +155,8 @@ export interface ResultadoDePartido {
   alineaciones: [string[], string[]];
   /** Los goles, en orden: tramo, equipo (0 local, 1 visitante), goleador y asistente. */
   jugadas: { tramo: number; equipo: 0 | 1; goleador: string; asistente?: string; tipo: 'juego' | 'balon_parado' }[];
+  /** Lo que pasó, en orden: goles, ocasiones, balón parado y cambios (la crónica del partido). */
+  cronica: MomentoDeCronica[];
 }
 
 // ---------------------------------------------------------------------------------------------------- lo que vale cada jugador en el partido
@@ -220,7 +246,7 @@ function valorDeLaZona(lado: Lado, zona: Zona, casa: number): number {
   let pesos = 0;
   for (const e of lado.campo) {
     const peso = PARTICIPACION_DEL_PUESTO[e.j.puesto]?.[zona] ?? 0;
-    suma += peso * e.zona[zona] * rendimientoPorCansancio(e.cansancio, lado.intensidad);
+    suma += peso * e.zona[zona] * rendimientoPorCansancio(e.cansancio, e.j.intensidad ?? lado.intensidad);
     pesos += peso;
   }
   return pesos > 0 ? (suma / pesos) * (1 + casa) : 0;
@@ -261,12 +287,13 @@ export function jugarPartido(local: EquipoDePartido, visitante: EquipoDePartido,
   const porTramo: ResultadoDePartido['porTramo'] = [];
   const jugadas: ResultadoDePartido['jugadas'] = [];
   const anotados: number[][] = [[], []];
+  const cronica: MomentoDeCronica[] = [];
 
   for (let tramo = 0; tramo < P.tramos; tramo++) {
     // Cambios antes del tramo (después del anterior): los más cansados salen por un suplente del mismo grupo de puestos.
-    if (tramo > 0 && o.cambios?.despuesDeTramos.includes(tramo)) for (const l of lados) hacerCambios(l, o.cambios);
+    if (tramo > 0 && o.cambios?.despuesDeTramos.includes(tramo)) for (const [i, l] of lados.entries()) hacerCambios(l, o.cambios, (entra, sale) => cronica.push({ tramo, tipo: 'cambio', equipo: i as 0 | 1, jugador: entra, otro: sale }));
     // Cansancio a mitad del tramo para valorar a cada uno (empieza con el que ya lleva y suma la mitad de lo de este tramo).
-    for (const l of lados) for (const e of l.campo) e.cansancio += cansancioDelTramo(e.j, l.intensidad) / 2;
+    for (const l of lados) for (const e of l.campo) e.cansancio += cansancioDelTramo(e.j, e.j.intensidad ?? l.intensidad) / 2;
     const zonas = lados.map((l, i) => Object.fromEntries(ZONAS.map((z) => [z, valorDeLaZona(l, z, i === 0 ? P.ventajaDeCasa : 0)])) as Record<Zona, number>);
     const posesionLocal = mejorQue(zonas[0].creacion, zonas[1].creacion, 2);
     const g0 = goles.slice() as [number, number];
@@ -287,33 +314,39 @@ export function jugarPartido(local: EquipoDePartido, visitante: EquipoDePartido,
         const ref = 40 / (40 + P.dificultadDeLaOcasion);
         if (!rng.chance(Math.min(0.95, P.ocasionBase * 2 * relativo * (absoluto / ref)))) continue;
         tiros[i]++;
-        const tirador = sortear(rng, atq.campo.filter((e) => e.j.puesto !== 'GK'), (e) => (PARTICIPACION_DEL_PUESTO[e.j.puesto]?.ataque ?? 0) * Math.pow(e.zona.ataque * rendimientoPorCansancio(e.cansancio, atq.intensidad), 1.5));
+        const tirador = sortear(rng, atq.campo.filter((e) => e.j.puesto !== 'GK'), (e) => (PARTICIPACION_DEL_PUESTO[e.j.puesto]?.ataque ?? 0) * Math.pow(e.zona.ataque * rendimientoPorCansancio(e.cansancio, e.j.intensidad ?? atq.intensidad), 1.5));
         if (!tirador) continue;
         atq.stats.get(tirador.j.id)!.tiros++;
-        const valorPortero = portero ? portero.zona.porteria * rendimientoPorCansancio(portero.cansancio, def.intensidad) : 1;
-        const valorTiro = tirador.tiro * rendimientoPorCansancio(tirador.cansancio, atq.intensidad);
+        const valorPortero = portero ? portero.zona.porteria * rendimientoPorCansancio(portero.cansancio, portero.j.intensidad ?? def.intensidad) : 1;
+        const valorTiro = tirador.tiro * rendimientoPorCansancio(tirador.cansancio, tirador.j.intensidad ?? atq.intensidad);
         if (rng.chance(Math.min(0.9, P.golBase * 2 * mejorQue(valorTiro, valorPortero, P.potenciaDelGol)))) {
           const asistente = rng.chance(0.65) ? sortear(rng, atq.campo.filter((e) => e !== tirador && e.j.puesto !== 'GK'), (e) => (PARTICIPACION_DEL_PUESTO[e.j.puesto]?.creacion ?? 0) * e.pase) : undefined;
           anotar(atq, def, tirador, asistente, i, tramo, 'juego');
-        } else if (portero) def.stats.get(portero.j.id)!.paradas++;
+        } else {
+          if (portero) def.stats.get(portero.j.id)!.paradas++;
+          cronica.push({ tramo, tipo: 'ocasion', equipo: i, jugador: tirador.j.id, ...(portero ? { portero: portero.j.id } : {}) });
+        }
       }
       // Balón parado (faltas y córners): los lanza el mejor lanzador y remata el mejor de cabeza, contra la portería.
       const nBP = rng.chance(P.balonParadoPorTramo - Math.floor(P.balonParadoPorTramo)) ? Math.ceil(P.balonParadoPorTramo) : Math.floor(P.balonParadoPorTramo);
       for (let k = 0; k < nBP; k++) {
         const lanzador = atq.campo.reduce((m, e) => (e.lanzamiento > m.lanzamiento ? e : m), atq.campo[0]);
-        const valorPortero = portero ? portero.zona.porteria * rendimientoPorCansancio(portero.cansancio, def.intensidad) : 1;
-        const valor = (0.5 * lanzador.lanzamiento + 0.5 * media(atq.campo.filter((e) => e.j.puesto !== 'GK').map((e) => e.cabeza))) * rendimientoPorCansancio(lanzador.cansancio, atq.intensidad);
+        const valorPortero = portero ? portero.zona.porteria * rendimientoPorCansancio(portero.cansancio, portero.j.intensidad ?? def.intensidad) : 1;
+        const valor = (0.5 * lanzador.lanzamiento + 0.5 * media(atq.campo.filter((e) => e.j.puesto !== 'GK').map((e) => e.cabeza))) * rendimientoPorCansancio(lanzador.cansancio, lanzador.j.intensidad ?? atq.intensidad);
         tiros[i]++;
         if (rng.chance(Math.min(0.5, P.golDeBalonParado * 2 * mejorQue(valor, valorPortero, P.potenciaDelGol)))) {
           const rematador = sortear(rng, atq.campo.filter((e) => e.j.puesto !== 'GK'), (e) => Math.pow(e.cabeza, 2)) ?? lanzador;
           anotar(atq, def, rematador, rematador === lanzador ? undefined : lanzador, i, tramo, 'balon_parado');
-        } else if (portero) def.stats.get(portero.j.id)!.paradas++;
+        } else {
+          if (portero) def.stats.get(portero.j.id)!.paradas++;
+          cronica.push({ tramo, tipo: 'balon_parado', equipo: i, jugador: lanzador.j.id, gol: false, ...(portero ? { portero: portero.j.id } : {}) });
+        }
       }
     }
     // El resto del cansancio del tramo y los minutos.
     for (const l of lados) {
       for (const e of l.campo) {
-        e.cansancio += cansancioDelTramo(e.j, l.intensidad) / 2;
+        e.cansancio += cansancioDelTramo(e.j, e.j.intensidad ?? l.intensidad) / 2;
         e.minutos += P.minutosPorTramo;
         l.stats.get(e.j.id)!.minutos += P.minutosPorTramo;
       }
@@ -328,7 +361,11 @@ export function jugarPartido(local: EquipoDePartido, visitante: EquipoDePartido,
     jugadas.push({ tramo, equipo: i, goleador: goleador.j.id, ...(asistente ? { asistente: asistente.j.id } : {}), tipo });
     for (const e of def.campo) def.stats.get(e.j.id)!.golesEncajados++;
     anotados[i].push(tramo);
+    const portero = def.campo.find((e) => e.j.puesto === 'GK');
+    cronica.push({ tramo, tipo: 'gol', equipo: i, jugador: goleador.j.id, ...(asistente ? { otro: asistente.j.id } : {}), ...(portero ? { portero: portero.j.id } : {}), ...(tipo === 'balon_parado' ? { gol: true } : {}) });
   }
+
+  for (const l of lados) for (const e of l.todos) if (e.minutos > 0) l.stats.get(e.j.id)!.cansancio = Math.round(e.cansancio);
 
   // Notas (de 1 a 10): parten de 6 y suben o bajan con lo que hace, el resultado y, en defensa y portería, los goles encajados y las paradas.
   for (const [i, l] of lados.entries()) {
@@ -353,11 +390,11 @@ export function jugarPartido(local: EquipoDePartido, visitante: EquipoDePartido,
       void id;
     }
   }
-  return { goles, porTramo, tiros, jugadores: Object.fromEntries(lados.flatMap((l) => [...l.stats])), alineaciones: [local.jugadores.map((j) => j.id), visitante.jugadores.map((j) => j.id)], jugadas };
+  return { goles, porTramo, tiros, jugadores: Object.fromEntries(lados.flatMap((l) => [...l.stats])), alineaciones: [local.jugadores.map((j) => j.id), visitante.jugadores.map((j) => j.id)], jugadas, cronica };
 }
 
 /** Los cambios de una interrupción: los más cansados salen por un suplente del mismo grupo de puestos, hasta el máximo de la categoría (con cambios volantes, los que salieron pueden volver). */
-function hacerCambios(l: Lado, regla: ReglaDeCambios): void {
+function hacerCambios(l: Lado, regla: ReglaDeCambios, avisar?: (entra: string, sale: string) => void): void {
   const quedan = (): number => regla.maximo - l.cambios;
   const candidatos = [...l.campo].filter((e) => e.j.puesto !== 'GK').sort((a, b) => b.cansancio - a.cansancio);
   for (const sale of candidatos) {
@@ -369,6 +406,7 @@ function hacerCambios(l: Lado, regla: ReglaDeCambios): void {
     l.campo = l.campo.map((e) => (e === sale ? entra : e));
     l.banquillo = l.banquillo.map((e) => (e === entra ? sale : e));
     l.cambios++;
+    avisar?.(entra.j.id, sale.j.id);
     // El que entra juega en el puesto del que sale.
     entra.j = { ...entra.j, puesto: sale.j.puesto };
     l.stats.get(entra.j.id)!.puesto = sale.j.puesto;

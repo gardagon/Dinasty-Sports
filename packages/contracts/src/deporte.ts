@@ -34,6 +34,8 @@ export interface SeccionDeDeporte {
   titulo: string;
   texto?: string;
   tabla?: LogTable;
+  /** Líneas de texto una debajo de otra (una crónica); las `destacada` se resaltan para encontrarlas de un vistazo (lo que hace el personaje). */
+  lineas?: { texto: string; destacada?: boolean; titulo?: boolean }[];
 }
 
 export interface ClasificacionDeTemporada {
