@@ -207,3 +207,14 @@ Hecho desde la revisión del 01/11: los compañeros de equipo ya no cuentan como
 3. **Balance de los entrenamientos.** Con los ejercicios del entrenador (dos por sesión), cada sesión entrena menos cosas a la vez. El bot de fútbol (`npm run sim:futbol`) ya entra en el equipo a tiempo (#69). Falta medirlo con el banco de partidos en la F2.
 4. **Ligas y copa de la ciudad grande** (`CIUDAD_Y_LIGAS.md`): Primera, Segunda y Tercera con ascensos, descensos y reglas del filial; reparto entre primer y segundo año; copa por eliminatorias con tanda de penaltis (§5, punto 9).
 5. **La experiencia por puesto se rellena partido a partido**, para todos los jugadores (las estructuras llegan con la P2).
+
+## 15. El día de partido: hora fija, convocatoria y vestuario (idea del usuario, 11/11)
+
+Sustituye a la franja abierta de «Jugar el partido» (sábados de 9 a 13, #116). Va después de la F2.4 y antes de publicar el fútbol para que el usuario lo pruebe (`ANALISIS_FUTBOL.md`, «El MVP del fútbol»).
+
+- **Cada partido tiene su hora.** Se juega en el campo del equipo local (los clubes, en sus instalaciones; los equipos sin campo propio, en el campo municipal), en franjas de cada campo (dato del deporte; por ejemplo, 9:00, 10:45, 12:30 y por la tarde, y el domingo si no cabe todo el sábado). La hora de un equipo cambia de una jornada a otra, salvo quizá la de los grandes y medianos en sus instalaciones.
+- **Convocatoria una hora antes.** Desde esa hora, en el campo, el personaje puede **«Unirse a los compañeros»**: estar con ellos, hablar con ellos y **ver el partido anterior** en ese campo, si el suyo no es el primero, lo que le da algo de conocimiento del deporte. Si se une **más de 10 minutos tarde**, sigue ganando relación y experiencia, pero **el entrenador pierde relación con él por impuntual**. Si llega después de la hora del partido, no juega y cuenta como falta (la regla del #116).
+- **El vestuario** es una zona del campo que se abre **media hora antes** del partido. Si ya se había unido a los compañeros, pasa al vestuario a esa hora; si llega entonces, se une dentro del vestuario. Los tiempos de cambiarse no son una cuenta cerrada: el vestuario está abierto un rato antes y después.
+- **Al terminar el partido aparece en el vestuario.** Más adelante habrá acciones allí (ducharse y otras).
+- **Los demás también están:** los compañeros, los rivales y su entrenador están en el campo desde su convocatoria y en el vestuario a su hora (las agendas de los PNJ siguen el horario del partido), así que el personaje los puede encontrar.
+- **Ver partidos de otros:** cualquier sábado, en cualquier campo, puede **ver un partido** como espectador, lo que le da conocimiento del deporte (y, más adelante, información de los jugadores). Con el motor de eventos (E18) llegarán cosas como quedarse con un compañero después del partido para ver otro.

@@ -20,7 +20,8 @@ Segunda versión (31/10/2026), **con las decisiones del usuario del 31/10 en §0
 **Orden:**
 1. **Cerrar la base con lo imprescindible:** los equipos fijos toda la temporada (sin ellos no hay convocatorias) y el abandono por edad (pequeño).
 2. **La F2, por partes:** (a) el motor de partido (`MOTOR_PARTIDOS.md`) con su banco de partidos; (b) convocatoria y alineación por el entrenador; (c) la liga a doble vuelta los sábados **con divisiones, ascensos y descensos** (`CIUDAD_Y_LIGAS.md` §4; decidido el 09/11: con la ciudad grande hay 25–32 equipos por categoría y una sola liga no cabe en un curso), con todas las categorías jugándose; (d) estadísticas e historial de cada jugador, experiencia en cada puesto partido a partido, y la pestaña del deporte (plantilla, tabla y resultados).
-3. **Publicar el fútbol como paquete** (también los deportes que no van dentro del juego), con una pantalla de «creando el mundo» (la ciudad grande tarda unos 38 s), y **que lo pruebe el usuario**.
+3. **El día de partido** (`MOTOR_PARTIDOS.md` §15, idea del usuario del 11/11): cada partido a su hora, convocatoria una hora antes con «Unirse a los compañeros» (ver el partido anterior, puntualidad), el vestuario media hora antes y ver partidos de otros.
+4. **Publicar el fútbol como paquete** (también los deportes que no van dentro del juego), con una pantalla de «creando el mundo» (la ciudad grande tarda unos 38 s), y **que lo pruebe el usuario**.
 
 **Después del MVP:** la copa con penaltis; tarjetas, sanciones y lesiones durante el partido; elegir entre varios clubes; entrenamiento por equipo e instalaciones por club; los colegios en infantil y cadete; y las fases F3 a F7.
 

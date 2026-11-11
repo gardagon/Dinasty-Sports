@@ -5,6 +5,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 11/11/2026 — El día de partido: hora fija, convocatoria, vestuario y ver partidos (idea del usuario)
+
+Sustituye a la franja abierta de los sábados de 9 a 13 para «Jugar el partido» (#116). Está en `MOTOR_PARTIDOS.md` §15 y va entre la F2.4 y la publicación del fútbol (el MVP pasa a tener cuatro pasos): cada partido a su hora en el campo del local; convocatoria una hora antes con «Unirse a los compañeros» (estar con ellos y ver el partido anterior, que da conocimiento); impuntual si llega más de 10 minutos tarde (el entrenador pierde relación); el vestuario se abre media hora antes y allí aparece al acabar; los PNJ siguen el mismo horario en sus agendas; y se pueden ver partidos de otros como espectador.
+
 ## 09/11/2026 — La última división partida en grupos, con playoff (decisión del usuario)
 
 Con la ciudad grande, en juvenil (que abarca tres años) salían 10 + 10 + 14, y 14 no cabe en grupos de 8 a 12. Decidido (`CIUDAD_Y_LIGAS.md` §4):
