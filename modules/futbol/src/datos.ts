@@ -166,6 +166,16 @@ export const LUGARES_FUTBOL: AporteDeLugares = {
       despuesDe: 'gimnasio',
     },
     {
+      // El vestuario del campo: una zona que se abre media hora antes de cada partido. No tiene «Ir a»: se entra con la acción «Ir al vestuario» (o al acabar el partido) y de dentro se sale como de cualquier zona.
+      id: 'vestuario_campo_municipal',
+      name: 'Vestuario del campo municipal',
+      descripcion: 'El vestuario del campo municipal: se abre media hora antes de cada partido. Aquí te cambias con tus compañeros y, al acabar, vuelves a él.',
+      grupo: 'Dentro del campo municipal',
+      dentroDe: 'campo_municipal',
+      soloPorEvento: 'se abre media hora antes de tu partido: se entra con «Ir al vestuario»',
+      despuesDe: 'campo_municipal',
+    },
+    {
       id: 'secretaria_futbol',
       name: 'Secretaría de los clubes de fútbol',
       descripcion: 'La secretaría de los clubes de fútbol de la zona, en el campo municipal: aquí te apuntas a un club de fútbol (si hay hueco en el equipo de tu categoría o eres mejor que el peor) dentro del plazo de fichajes.',

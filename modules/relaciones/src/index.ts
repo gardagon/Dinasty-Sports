@@ -18,6 +18,7 @@ import {
   type AreaDeAyuda,
   type ClubAbandonoData,
   type ClubDirectory,
+  type ClubImpuntualData,
   type CompetitionResultData,
   elPersonajeLeGana,
   fueUnExito,
@@ -143,6 +144,8 @@ function efectoDeCompania(n: NpcView, area: AreaDeAyuda, afinidad: number): numb
 const RIVALES_CON_ACCIONES = 5;
 
 /** Lo que empeora la relación con el entrenador y con cada miembro del equipo de un club al que dejas plantado (ver `docs/ANEXO_DEPORTE.md`). */
+/** Lo que pierde un entrenador de afinidad y de confianza con quien llega tarde (más de 10 minutos) a la convocatoria de un partido. */
+const IMPUNTUALIDAD = { afinidad: 3, confianza: 1 };
 const PLANTON = { entrenador: { afinidad: 15, confianza: 10 }, equipo: { afinidad: 6, confianza: 3 } };
 
 const dirDe = (ctx: ReadContext) => ctx.service<NpcDirectory>(SERVICES.npcs);
@@ -1188,6 +1191,23 @@ export const relaciones = defineModule<RelacionesState>({
         for (const n of afectados) {
           const castigo = n.role === 'entrenador' ? PLANTON.entrenador : PLANTON.equipo;
           vinculos[n.id] = conCambio(vinculoDe(ctx, s, n, dia), dia, -castigo.afinidad, -castigo.confianza);
+        }
+        return { ...s, vinculos };
+      });
+    },
+
+    // Llegar tarde a la convocatoria de un partido (más de 10 minutos después de la hora en que se convoca): el entrenador de ese deporte pierde relación con él, por impuntual.
+    [SHARED_EVENTS.CLUB_IMPUNTUAL]: (ctx, ev) => {
+      const dir = dirDe(ctx);
+      if (!dir) return;
+      const dia = ctx.time.day;
+      const { sport } = ev.data as ClubImpuntualData;
+      const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(sport);
+      ctx.updateState<RelacionesState>((s) => {
+        const vinculos = { ...s.vinculos };
+        for (const n of dir.list({ role: 'entrenador' })) {
+          if (n.club !== undefined && n.club !== (club?.id ?? 'colegio')) continue;
+          if (n.tags.includes(sport)) vinculos[n.id] = conCambio(vinculoDe(ctx, s, n, dia), dia, -IMPUNTUALIDAD.afinidad, -IMPUNTUALIDAD.confianza);
         }
         return { ...s, vinculos };
       });

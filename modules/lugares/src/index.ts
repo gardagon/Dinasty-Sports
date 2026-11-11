@@ -3,6 +3,7 @@ import {
   CIUDAD_INICIAL,
   ensamblarMapa,
   LUGARES_EVENTS,
+  SHARED_EVENTS,
   SERVICES,
   abiertoEn,
   defineModule,
@@ -13,6 +14,7 @@ import {
   tipoDeSitio,
   type ActionDef,
   type AporteDeLugares,
+  type IrAData,
   type LlegadaData,
   type LugarDef,
   type LugaresService,
@@ -115,6 +117,8 @@ function accionesDeIr(MAPA: MapaCiudad, lugar: (id: string) => LugarDef | undefi
       }
       // Salir (a la entrada del lugar o a su calle) nunca está cerrado: si se cierra con el personaje dentro, tiene que poder irse.
       if (aqui.dentroDe === destino.id || aqui.enCalle === destino.id) return true;
+      // Una zona que solo abre un módulo (el vestuario): no se entra con «Ir a», se dice cómo.
+      if (destino.soloPorEvento) return `${destino.name}: ${destino.soloPorEvento}`;
       // Cerrado a la hora a la que se llegaría: no desaparece, pero no se puede ir (y se dice cuándo abre).
       const llegada = ctx.timeAt(ctx.time.minute + minutos);
       const abre = lugarDe(ctx, destino.id) ?? destino;
@@ -135,6 +139,16 @@ export const lugares = defineModule<LugaresState>({
   description: 'Dónde estás y cuánto cuesta ir de un sitio a otro.',
   dependsOn: ['gen'],
   initState: () => ({ actual: CIUDAD_INICIAL.inicio }),
+  // Un módulo lleva al personaje a un sitio sin viaje (el vestuario, tras un partido).
+  on: {
+    [SHARED_EVENTS.IR_A]: (ctx, ev) => {
+      const { destino } = ev.data as IrAData;
+      const desde = dondeEsta(ctx).id;
+      if (desde === destino || !lugarDe(ctx, destino)) return;
+      ctx.setState<LugaresState>({ actual: destino });
+      ctx.emit<LlegadaData>({ type: LUGARES_EVENTS.LLEGADA, data: { desde, hasta: destino, minutos: 0 } });
+    },
+  },
   // Ir a cada sitio del mapa de la partida (el base y los de los deportes cargados).
   accionesSegunAportes: (aporte) => ciudadDe(aporte(APORTES.lugaresDeDeporte)).acciones,
 

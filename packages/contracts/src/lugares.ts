@@ -30,6 +30,11 @@ export interface LugarDef {
    * hacer nada que se haga allí).
    */
   horario?: HorarioDeLugar;
+  /**
+   * Solo se entra cuando alguien lo abre (la acción de un módulo que lleva al personaje allí con el evento compartido `SHARED_EVENTS.IR_A`): no tiene «Ir a» (sale en gris diciendo cómo se entra) pero de dentro se sale como de cualquier zona. Es el caso del
+   * vestuario de un campo, que se abre media hora antes de cada partido.
+   */
+  soloPorEvento?: string;
 }
 
 /** Tramo de apertura: días (`lectivo`: días de clase; `libre`: el resto; `todos`; o días de la semana, 0 = lunes) y minutos del día [desde, hasta). */
@@ -304,6 +309,11 @@ export const LUGARES_EVENTS = {
   /** data: LlegadaData */
   LLEGADA: 'lugares.llegada',
 } as const;
+
+/** Cambia al personaje de sitio sin viaje (lo abre un módulo: el vestuario al acabar un partido, por ejemplo); `lugares` lo recoge y emite la llegada. */
+export interface IrAData {
+  destino: LugarId;
+}
 
 export interface LlegadaData {
   desde: LugarId;
