@@ -109,6 +109,11 @@ describe('datos del fútbol', () => {
     const es = DATOS_FUTBOL.paises.espana;
     expect(es.temporada.liga).toEqual({ vueltas: 2, equiposPorCategoria: { min: 6, max: 7 }, divisiones: { tamano: 10, fijas: 2, grupo: { max: 12 }, suben: 2, bajan: 2, playoff: { jornadasObjetivo: 18 } } });
     expect(es.categorias.map((c) => c.id)).toEqual(['prebenjamin', 'benjamin', 'alevin', 'infantil', 'cadete', 'juvenil', 'senior']);
-    expect(es.competiciones.jornada.dias).toEqual([5]); // sábados
+    expect(es.competiciones.jornada.dias).toEqual([5, 6]); // sábados y domingos
+    expect(es.competiciones.jornada.calendario).toEqual({ franjas: [9, 11, 13, 16, 18], dias: [{ dia: 5, categorias: ['benjamin', 'alevin', 'infantil'] }, { dia: 6, categorias: ['juvenil'] }], siCabe: [{ categoria: 'cadete', dia: 5, siNoCabe: 6 }] });
+    // El validador rechaza un calendario mal hecho.
+    const mal = structuredClone(DATOS_FUTBOL);
+    mal.paises.espana.competiciones.jornada.calendario = { franjas: [9, 30], dias: [] } as never;
+    expect(validarDatosDeDeporte(mal).join(' ')).toMatch(/calendario/);
   });
 });

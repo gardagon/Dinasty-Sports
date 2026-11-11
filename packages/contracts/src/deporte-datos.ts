@@ -589,6 +589,15 @@ export function validarDatosDeDeporte(x: unknown): string[] {
       const j = c.jornada;
       if (!esObjeto(j) || !Array.isArray(j.dias) || !j.dias.length || j.dias.some((x) => !Number.isInteger(x) || (x as number) < 0 || (x as number) > 6) || typeof j.desde !== 'number' || typeof j.hasta !== 'number' || j.hasta <= j.desde || typeof j.lugar !== 'string' || typeof j.texto !== 'string') {
         p.push(`${en}: la «jornada» de las competiciones tiene que traer dias (0 a 6), desde, hasta (horas), lugar y texto`);
+      } else if (j.calendario !== undefined) {
+        // El día de partido: franjas en punto y días de cada categoría (las de `siCabe` tienen un día y otro de reserva).
+        const cal = j.calendario;
+        const dia = (x: unknown): boolean => Number.isInteger(x) && (x as number) >= 0 && (x as number) <= 6;
+        if (!esObjeto(cal) || !Array.isArray(cal.franjas) || !cal.franjas.length || cal.franjas.some((h) => !Number.isInteger(h) || (h as number) < 0 || (h as number) > 23) || !Array.isArray(cal.dias) || !cal.dias.length
+          || cal.dias.some((x) => !esObjeto(x) || !dia(x.dia) || !Array.isArray(x.categorias) || !x.categorias.length)
+          || (cal.siCabe !== undefined && (!Array.isArray(cal.siCabe) || cal.siCabe.some((x) => !esObjeto(x) || typeof x.categoria !== 'string' || !dia(x.dia) || !dia(x.siNoCabe))))) {
+          p.push(`${en}: el «calendario» de la jornada tiene que traer franjas (horas en punto), dias con sus categorías y, si hay, siCabe con categoria, dia y siNoCabe`);
+        }
       }
     }
     const pob = d.poblacion;
