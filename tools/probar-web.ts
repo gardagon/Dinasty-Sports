@@ -53,6 +53,11 @@ try {
   const pagina = await (await navegador.newContext({ viewport: { width: 480, height: 900 } })).newPage();
   const errores: string[] = [];
   pagina.on('pageerror', (e) => errores.push(e.message));
+  // Un aviso (alert) de la página es un fallo de la prueba: se anota y se acepta.
+  pagina.on('dialog', (d) => {
+    errores.push(`aviso de la página: ${d.message()}`);
+    void d.accept();
+  });
   pagina.on('console', (m) => m.type() === 'error' && errores.push(m.text()));
   await pagina.goto(`http://localhost:${puerto}/?depurar`);
   await pagina.waitForFunction(() => '__ds' in window);
@@ -107,7 +112,9 @@ try {
   comprobar(pasos.length >= 5, `la pantalla enseña ${pasos.length} pasos distintos mientras se crea (${pasos.slice(0, 3).map((p) => `«${p.texto.slice(0, 28)}…»`).join(', ')}…)`);
   comprobar(pasos.every((p, i) => i === 0 || p.fraccion >= pasos[i - 1].fraccion - 1e-9), 'el progreso solo avanza');
   console.log(`  crear la partida con la ciudad grande: ${f(segundos)} s (incluye abrirla y guardarla)`);
-  await pagina.waitForFunction(() => !!(window as unknown as { __ds: { game: unknown } }).__ds.game, undefined, { timeout: 60000 });
+  await pagina.waitForFunction(() => !!(window as unknown as { __ds: { game: unknown } }).__ds.game, undefined, { timeout: 60000 }).catch(() => {
+    throw new Error(`La partida no se abrió tras crearla. ${errores.join(' | ')}`);
+  });
   await pagina.screenshot({ path: join(capturas, '5-partida-creada.png') });
   comprobar(await pagina.evaluate(() => (window as unknown as { __ds: { game: { registry: { moduleIds: Set<string> } } } }).__ds.game.registry.moduleIds.has('futbol')), 'la partida lleva el fútbol (cargado del paquete instalado)');
 

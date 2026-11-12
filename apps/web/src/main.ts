@@ -1323,7 +1323,8 @@ async function crearPartidaNueva(): Promise<void> {
       }
     });
     if (trabajo) {
-      game = cargarPartida(JSON.parse(await trabajo) as GameState, modulosActuales, { copiar: false });
+      // El trabajador devuelve `serializarJSON()`: `{ state }`.
+      game = cargarPartida((JSON.parse(await trabajo) as { state: GameState }).state, modulosActuales, { copiar: false });
     } else {
       // Sin trabajadores: se deja pintar la pantalla y se crea aquí (la página se queda quieta mientras dura).
       await new Promise((r) => setTimeout(r, 50));
