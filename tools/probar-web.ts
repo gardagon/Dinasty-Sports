@@ -54,13 +54,13 @@ try {
   const errores: string[] = [];
   // tsx (esbuild) envuelve las funciones con nombre en `__name`: las que se mandan a la página lo necesitan allí.
   await pagina.addInitScript('window.__name = (f) => f;');
-  pagina.on('pageerror', (e) => errores.push(e.message));
+  pagina.on('pageerror', (e: { message: string }) => errores.push(e.message));
   // Un aviso (alert) de la página es un fallo de la prueba: se anota y se acepta.
-  pagina.on('dialog', (d) => {
+  pagina.on('dialog', (d: { message(): string; accept(): Promise<void> }) => {
     errores.push(`aviso de la página: ${d.message()}`);
     void d.accept();
   });
-  pagina.on('console', (m) => m.type() === 'error' && errores.push(m.text()));
+  pagina.on('console', (m: { type(): string; text(): string }) => m.type() === 'error' && errores.push(m.text()));
   await pagina.goto(`http://localhost:${puerto}/?depurar`);
   await pagina.waitForFunction(() => '__ds' in window);
 
@@ -79,7 +79,8 @@ try {
   await pagina.click('[data-act="ir-menu"]');
   await pagina.click('[data-act="ir-nueva"]');
   await pagina.waitForSelector('[data-deporte-incluido="futbol"]');
-  const casillas = await pagina.$$eval('.casilla', (ls) => ls.map((l) => {
+  type Casilla = { texto: string; casillaAlaIzquierda: boolean; ancho: number; marcada: boolean };
+  const casillas: Casilla[] = await pagina.$$eval('.casilla', (ls: Element[]) => ls.map((l: Element) => {
     const i = l.querySelector('input')!.getBoundingClientRect();
     const r = document.createRange();
     r.selectNodeContents(l.childNodes[1] ?? l);
@@ -90,7 +91,7 @@ try {
   comprobar(casillas.every((c) => c.casillaAlaIzquierda && c.ancho < 40), 'cada casilla sale a la izquierda de su nombre, sin ocupar todo el ancho');
   comprobar(casillas.every((c) => c.marcada), 'el fútbol recién instalado sale marcado como el atletismo');
   await pagina.selectOption('#pais', { label: 'España · ciudad grande (se tarda unos 40 s en crear)' });
-  await pagina.evaluate((s) => (window as unknown as { __ds: { fijarSemilla(n: number): void } }).__ds.fijarSemilla(s), semilla);
+  await pagina.evaluate((s: number) => (window as unknown as { __ds: { fijarSemilla(n: number): void } }).__ds.fijarSemilla(s), semilla);
   await pagina.screenshot({ path: join(capturas, '3-nueva-partida.png') });
 
   // 5. Crear la partida con la ciudad grande: la pantalla de «creando el mundo» con su progreso.
@@ -175,7 +176,7 @@ try {
   // 7. La pestaña del deporte lo enseña.
   await pagina.click('[data-tab="deporte"]');
   await pagina.waitForSelector('h3');
-  const titulos = await pagina.$$eval('h3', (hs) => hs.map((h) => h.textContent ?? ''));
+  const titulos: string[] = await pagina.$$eval('h3', (hs: Element[]) => hs.map((h: Element) => h.textContent ?? ''));
   for (const t of ['Último partido', 'Clasificación', 'Plantilla', 'Tu temporada']) comprobar(titulos.some((x) => x.startsWith(t)), `la pestaña del deporte enseña «${t}»`);
   comprobar((await pagina.locator('ul.cronica li.mia').count()) >= 0 && (await pagina.locator('ul.cronica li').count()) > 6, 'la crónica del partido se ve, con lo del personaje resaltado');
   await pagina.screenshot({ path: join(capturas, '6-pestana-del-deporte.png'), fullPage: true });
