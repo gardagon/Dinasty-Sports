@@ -62,3 +62,6 @@ export const idsImportados = (a: Almacenillo | null = navegador()): string[] => 
 
 /** Los países que se pueden elegir (de serie e importados), con su nombre. */
 export const paisesElegibles = (): readonly { id: string; nombre: string }[] => listarPaises().map((p) => ({ id: p.id, nombre: p.nombre }));
+
+/** Los textos de los paquetes de país que ha importado el jugador (para el trabajador que crea la partida, que no ve el navegador). */
+export const textosDePaises = (a: Almacenillo | null = navegador()): string[] => Object.values(leer(a));

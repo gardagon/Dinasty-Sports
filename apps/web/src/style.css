@@ -290,6 +290,17 @@ h3:first-child { margin-top: 0; }
 .copias { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 #aviso-guardado:empty { display: none; }
 .casilla { display: inline-flex; gap: 6px; align-items: center; margin-right: 12px; }
+/* En «Nueva partida» (donde `.start label` es de bloque y `.start input` ocupa todo el ancho) la casilla va a la izquierda de su nombre, una por línea. */
+.start .opciones.deportes { grid-template-columns: 1fr; gap: 6px; }
+.start .casilla { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 400; }
+.start .casilla input { width: auto; flex: none; margin: 0; padding: 0; }
+.start .casilla small { color: var(--ink-soft); }
+/* La pantalla de «creando el mundo». */
+.velo.creando .ventana { max-width: 460px; }
+.creando-texto { min-height: 2.6em; margin: 0 0 12px; }
+.barra { height: 14px; border-radius: 7px; background: var(--rule); overflow: hidden; }
+.barra-relleno { height: 100%; background: var(--ink); transition: width 0.2s linear; }
+.creando-porcentaje { text-align: right; margin: 4px 0 8px; }
 .velo { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
 .ventana { background: var(--sheet); color: inherit; border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; max-width: 420px; width: 100%; max-height: 100%; overflow: auto; }
 .ventana h2 { margin: 0 0 8px; }

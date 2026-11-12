@@ -1,4 +1,5 @@
 import './style.css';
+import './paises-propios';
 import {
   GEN,
   MINUTES_PER_DAY,
@@ -34,16 +35,21 @@ import {
   identidadDeJugador,
   paisPorId,
   idDePonerApodo,
+  faltaViajar,
+  rutaA,
+  tiempoEntre,
 } from '@ds/contracts';
 import type { GameModule } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { MODULOS, añadirDeporteALaPartida, cargarPartida, catalogoDeDeportes, deportesDeLaPartida, deportesQueFaltan, motivoParaNoQuitar, nuevaPartida, quitarDeporteDeLaPartida } from '@ds/game';
-import { cargarInstalados, consultarCatalogo, desinstalarDeporte, estadoDeDeportes, instalarDeporte } from './deportes-instalados';
+import { cargarInstalados, consultarCatalogo, desinstalarDeporte, estadoDeDeportes, instalarDeporte, textosInstalados } from './deportes-instalados';
+import { cancelarCreacion, crearEnSegundoPlano } from './creador';
+import { ID_DE_LA_CIUDAD_GRANDE } from './paises-propios';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
 import { reclamarPestana } from './pestana';
-import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles } from './paquetes';
+import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
 import {
   FRECUENCIAS,
   borrarRecuperacion,
@@ -100,8 +106,10 @@ let CATALOGO = catalogoDeDeportes(modulosActuales);
 async function actualizarModulos(): Promise<string[]> {
   const { modulos, avisos } = await cargarInstalados();
   modulosActuales = [...MODULOS, ...modulos.filter((m) => !MODULOS.some((b) => b.id === m.id))];
+  const antes = new Set(CATALOGO.map((d) => d.id));
   CATALOGO = catalogoDeDeportes(modulosActuales);
-  nueva.deportes = nueva.deportes.filter((id) => CATALOGO.some((d) => d.id === id));
+  // Un deporte recién instalado entra marcado en la nueva partida (se puede desmarcar); los que ya no están, salen.
+  nueva.deportes = [...nueva.deportes.filter((id) => CATALOGO.some((d) => d.id === id)), ...CATALOGO.map((d) => d.id).filter((id) => !antes.has(id) && !nueva.deportes.includes(id))];
   if (!nueva.deportes.length) nueva.deportes = CATALOGO.slice(0, 1).map((d) => d.id);
   return avisos;
 }
@@ -228,6 +236,8 @@ let preguntaDeSalida: 'menu' | 'salir' | null = null;
 let opcionesAbiertas = false;
 /** Lo que se está preparando ahora (añadir o quitar un deporte): mientras dura, una pantalla de espera tapa la partida. */
 let preparando: string | null = null;
+/** La partida que se está creando (la pantalla de «creando el mundo»): lo que se hace y cuánto se lleva, de 0 a 1. */
+let creando: { texto: string; fraccion: number } | null = null;
 
 /** Aviso en la pantalla inicial cuando se descarta una partida guardada que ya no sirve (alfa: sin compatibilidad entre versiones). */
 let avisoPartidaAntigua = false;
@@ -406,11 +416,12 @@ function viewNueva(): string {
     <h1>Nueva partida</h1>
     <label for="pais">País</label>
     <select id="pais">${paisesElegibles().map((p) => `<option value="${esc(p.id)}"${p.id === nueva.pais ? ' selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
+    ${nueva.pais === ID_DE_LA_CIUDAD_GRANDE ? '<p class="note">La ciudad grande: unas 6.000 personas, 9 clubes de la zona y unos 156 equipos de fútbol repartidos en divisiones. Crear la partida tarda unos 40 segundos.</p>' : ''}
     <label for="sexo">Sexo</label>
     <select id="sexo" disabled><option>Masculino</option></select>
     <p class="note">De momento solo hay personaje masculino. La gente (nombres, orígenes y aspecto) es del país que elijas; el calendario, el currículo, las categorías y los horarios de otros países son, por ahora, copia de los de España. Puedes importar más países desde Opciones.</p>
     <label>Deportes en la partida</label>
-    <div class="opciones">${CATALOGO.map((d) => {
+    <div class="opciones deportes">${CATALOGO.map((d) => {
       const marcado = nueva.deportes.includes(d.id);
       return `<label class="casilla"><input type="checkbox" data-deporte-incluido="${esc(d.id)}"${marcado ? ' checked' : ''}${marcado && nueva.deportes.length === 1 ? ' disabled' : ''}> ${esc(d.nombre)}<small> · ${esc(d.disciplina)}</small></label>`;
     }).join('')}</div>
@@ -483,6 +494,17 @@ function viewRecuperacion(): string {
 
 /** Ventanas encima de la partida: la pregunta al salir con cambios sin guardar y «Opciones». */
 function viewVentana(g: Game | null): string {
+  if (creando) {
+    const por = Math.round(creando.fraccion * 100);
+    return `<div class="velo creando" role="alertdialog" aria-modal="true" aria-busy="true" aria-labelledby="creando-titulo"><div class="ventana">
+      <h2 id="creando-titulo">Creando el mundo…</h2>
+      <p class="creando-texto">${esc(creando.texto)}</p>
+      <div class="barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${por}"><div class="barra-relleno" style="width:${por}%"></div></div>
+      <p class="note creando-porcentaje">${por} %</p>
+      <p class="note">Se están creando las personas, los clubes y su historia: con la ciudad grande tarda unos 40 segundos. No cierres la pestaña.</p>
+      <p class="botones"><button data-act="cancelar-creacion">Cancelar</button></p>
+    </div></div>`;
+  }
   if (preparando) {
     return `<div class="velo" role="alertdialog" aria-modal="true" aria-busy="true"><div class="ventana">
       <h2>Un momento…</h2>
@@ -1201,8 +1223,11 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
         return true;
       }
       if (game && !confirm('Empezar una partida nueva sustituye la guardada. ¿Seguir?')) return true;
-      game = nuevaPartida({ seed: nueva.seed, pais: nueva.pais, deportes: nueva.deportes, playerName: identidadDeJugador(nueva.seed, nueva.principal, paisPorId(nueva.pais)).completo }, modulosActuales);
-      empezarAJugar();
+      if (creando) return true;
+      void crearPartidaNueva();
+      return true;
+    case 'cancelar-creacion':
+      cancelarCreacion();
       return true;
     case 'borrar':
       if (!esPrincipal) {
@@ -1278,6 +1303,42 @@ async function descartarCambios(): Promise<void> {
   await load();
 }
 
+/**
+ * Crea la partida nueva **con la pantalla de «creando el mundo»**: en un trabajador (la página sigue viva y enseña lo que se hace y cuánto se lleva) y, si el navegador no tiene, en la propia página después de pintar la pantalla.
+ * Con la ciudad grande tarda unos 40 segundos.
+ */
+async function crearPartidaNueva(): Promise<void> {
+  const opciones = { seed: nueva.seed, pais: nueva.pais, deportes: [...nueva.deportes], playerName: identidadDeJugador(nueva.seed, nueva.principal, paisPorId(nueva.pais)).completo };
+  creando = { texto: 'Preparando la partida…', fraccion: 0 };
+  render();
+  let ultimaPintura = 0;
+  try {
+    const trabajo = crearEnSegundoPlano({ opciones, paises: textosDePaises(), deportes: await textosInstalados() }, (texto, fraccion) => {
+      creando = { texto, fraccion };
+      // Se repinta como mucho unas 10 veces por segundo.
+      const ahora = performance.now();
+      if (ahora - ultimaPintura > 100) {
+        ultimaPintura = ahora;
+        render();
+      }
+    });
+    if (trabajo) {
+      game = cargarPartida(JSON.parse(await trabajo) as GameState, modulosActuales, { copiar: false });
+    } else {
+      // Sin trabajadores: se deja pintar la pantalla y se crea aquí (la página se queda quieta mientras dura).
+      await new Promise((r) => setTimeout(r, 50));
+      game = nuevaPartida(opciones, modulosActuales);
+    }
+    creando = null;
+    empezarAJugar();
+  } catch (e) {
+    creando = null;
+    // Cancelar no es un error: se vuelve a la pantalla de nueva partida.
+    if (!(e instanceof Error && /cancel/i.test(e.message))) alert(e instanceof Error ? e.message : 'No se pudo crear la partida.');
+    render();
+  }
+}
+
 function empezarAJugar(agendaGuardada: AgendaItem[] = []): void {
   agenda = agendaGuardada;
   recuperacion = null;
@@ -1292,7 +1353,58 @@ function empezarAJugar(agendaGuardada: AgendaItem[] = []): void {
   render();
 }
 
+/**
+ * Con `?depurar` en la dirección, la página enseña un asa (`window.__ds`) para las pruebas de extremo a extremo (`npm run probar-web`): la partida en marcha y volver a pintar. Sin ese parámetro no existe.
+ */
+function asaDeDepuracion(): void {
+  if (!new URLSearchParams(location.search).has('depurar')) return;
+  (window as unknown as { __ds: unknown }).__ds = {
+    get game() {
+      return game;
+    },
+    get creando() {
+      return creando;
+    },
+    render,
+    deportesInstalados: () => estadoDeDeportes.instalados.map((d) => d.manifiesto.id),
+    /** La semilla de la partida que se va a crear (para que la prueba sea siempre la misma). */
+    fijarSemilla: (semilla: number) => {
+      nueva.seed = semilla;
+    },
+    /** Espera (de 5 en 5 minutos) hasta un minuto absoluto de la partida. */
+    hastaElMinuto: (minuto: number) => {
+      while (game && game.time.minute < minuto) if (!game.perform('gen.descansar').ok && !game.perform('gen.esperar').ok) break;
+    },
+    /** Hace una acción yendo antes al sitio donde se hace (por el camino que permite el mapa). */
+    hacer: (id: string) => {
+      if (!game) return { ok: false, reason: 'No hay partida' };
+      const o = game.preview(id);
+      const lugares = game.service<LugaresService>(SERVICES.lugares);
+      if (o && lugares && faltaViajar(o)) for (const parada of rutaA(lugares.mapa(), lugares.actual().id, o.lugar![0])) game.perform(`lugares.ir_${parada}`);
+      const r = game.perform(id);
+      return { ok: r.ok, reason: r.reason };
+    },
+    /** Espera y viaja de modo que se llegue a un sitio en un minuto absoluto (o en cuanto se pueda, si ya es tarde). */
+    llegarA: (lugar: string, minuto: number) => {
+      const lugares = game?.service<LugaresService>(SERVICES.lugares);
+      if (!game || !lugares) return;
+      const mapa = lugares.mapa();
+      let previo = lugares.actual().id;
+      let viaje = 0;
+      for (const parada of rutaA(mapa, previo, lugar)) {
+        viaje += tiempoEntre(mapa, previo, parada) ?? 0;
+        previo = parada;
+      }
+      while (game.time.minute + viaje < minuto && game.perform('gen.esperar').ok) {
+        /* esperar */
+      }
+      for (const parada of rutaA(mapa, lugares.actual().id, lugar)) game.perform(`lugares.ir_${parada}`);
+    },
+  };
+}
+
 async function iniciar(): Promise<void> {
+  asaDeDepuracion();
   app.innerHTML = '<main class="app"><p class="note">Cargando…</p></main>';
   almacen = await crearAlmacen();
   // Los paquetes de país que importó el jugador se vuelven a registrar antes de abrir la partida (puede ser de uno de ellos).

@@ -2,7 +2,7 @@
  * El «draft» de los equipos, completar o cerrar equipos y el cambio de curso de los deportistas.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { type CategoriaDef, rngEstable, cuposPorGrupo, ATRACTIVO_DE_TAMANO, type Rng, aptitudDe } from '@ds/contracts';
+import { avisarDelProgreso, type CategoriaDef, rngEstable, cuposPorGrupo, ATRACTIVO_DE_TAMANO, type Rng, aptitudDe } from '@ds/contracts';
 import { interesPor } from './deportistas';
 import { type MiembroDeClub } from './equipos';
 import { puestoDondeMasVale } from './puestos';
@@ -68,7 +68,9 @@ export function draftDeEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba: b
     const pob: PoblacionGuardada = { ...pob0, equipos: pob0.equipos.map((e) => ({ ...e, ...(o.reiniciar && e.plantillaPorCategoria ? { equiposPorCategoria: undefined } : {}) })) };
     const categorias = new Map<string, CategoriaDef>();
     for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
-    for (const [catId, cat] of [...categorias].sort((a, b) => a[1].edadMin - b[1].edadMin)) {
+    const ordenadas = [...categorias].sort((a, b) => a[1].edadMin - b[1].edadMin);
+    for (const [indice, [catId, cat]] of ordenadas.entries()) {
+      avisarDelProgreso(`Repartiendo a los jugadores entre los clubes y sus equipos (${cat.nombre.toLowerCase()})…`, 0.05 + 0.32 * (indice / ordenadas.length));
       draftDeUnaCategoria(m, pob, cat, catId, rng, o);
       cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i));
     }

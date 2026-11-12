@@ -1,5 +1,6 @@
 import { INTERFAZ_DE_DEPORTES, type GameModule } from '@ds/contracts';
-import { ANFITRION_DE_DEPORTES, CLAVE_PUBLICA_DE_DEPORTES } from '@ds/game';
+import { ANFITRION_DE_DEPORTES } from '@ds/game';
+import { CLAVE_PUBLICA } from './clave';
 import { Instalador, almacenEnMemoria, fuenteWeb, type AlmacenDePaquetes, type DeporteInstalado, type EntradaDeCatalogo } from '@ds/paquetes';
 
 /**
@@ -53,7 +54,8 @@ export function almacenDePaquetes(): AlmacenDePaquetes {
   };
 }
 
-export const instalador = new Instalador(almacenDePaquetes(), { clavePublica: CLAVE_PUBLICA_DE_DEPORTES, interfaz: INTERFAZ_DE_DEPORTES }, ANFITRION_DE_DEPORTES);
+const almacen = almacenDePaquetes();
+export const instalador = new Instalador(almacen, { clavePublica: CLAVE_PUBLICA, interfaz: INTERFAZ_DE_DEPORTES }, ANFITRION_DE_DEPORTES);
 
 /** La carpeta `deportes/` junto a la web del juego (relativa a la página: vale en GitHub Pages, en local y empaquetada). */
 export const fuenteDelJuego = () => fuenteWeb(new URL('deportes/', document.baseURI).href, 'Web del juego');
@@ -65,6 +67,16 @@ export interface EstadoDeDeportes {
   error: string;
   /** Qué se está haciendo («Descargando…»), o vacío. */
   ocupado: string;
+}
+
+/** Los textos de los paquetes instalados (id → paquete): se los pasa al trabajador que crea la partida, que no tiene acceso al almacén del navegador. */
+export async function textosInstalados(): Promise<Record<string, string>> {
+  const textos: Record<string, string> = {};
+  for (const id of await almacen.ids()) {
+    const t = await almacen.leer(id);
+    if (t) textos[id] = t;
+  }
+  return textos;
 }
 
 export const estadoDeDeportes: EstadoDeDeportes = { instalados: [], catalogo: [], error: '', ocupado: '' };
