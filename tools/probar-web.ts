@@ -52,6 +52,8 @@ const navegador = await chromium.launch();
 try {
   const pagina = await (await navegador.newContext({ viewport: { width: 480, height: 900 } })).newPage();
   const errores: string[] = [];
+  // tsx (esbuild) envuelve las funciones con nombre en `__name`: las que se mandan a la página lo necesitan allí.
+  await pagina.addInitScript('window.__name = (f) => f;');
   pagina.on('pageerror', (e) => errores.push(e.message));
   // Un aviso (alert) de la página es un fallo de la prueba: se anota y se acepta.
   pagina.on('dialog', (d) => {
