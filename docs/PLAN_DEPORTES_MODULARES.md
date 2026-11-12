@@ -164,7 +164,15 @@ Estamos en alfa: las partidas empezadas se descartan cuando cambie la forma del 
 | **6** ✅ | **Paquetes e instalador** (§3): cada deporte compilado aparte (sin su copia del kit ni de `contracts`), manifiesto con versión compatible, firma (clave privada como secreto de GitHub Actions), fuentes intercambiables con **GitHub Pages** y archivo local, caché sin conexión, Opciones → Deportes. **Hecha el 30/10** (falta generar la clave de firma: `npm run clave-deportes`) | Sin efecto |
 | **7** ✅ | **Validación:** dos deportes de prueba (solo en los tests) instalados con el atletismo; cambiar de uno a otro; quitar uno un año y volver; bots que cambian de deporte; medida con 4 instalados (tamaño, espera, coste por acción y día). **Hecha el 30/10** (tests; ver DECISIONES) | Chequeos nuevos |
 
-Después, **el fútbol**: debería tocar solo su módulo y sus datos.
+Después, **el fútbol**: debería tocar solo su módulo y sus datos. *(Hecho: el fútbol vive en `modules/futbol`, **no va dentro del juego** y se publica como paquete firmado; ver «Cómo probar el fútbol».)*
+
+### Cómo probar el fútbol (MVP, 12/11/2026)
+
+1. La web publicada (GitHub Pages) trae `deportes/catalogo.json` y los paquetes firmados del atletismo y del fútbol (hace falta el secreto `DS_CLAVE_PRIVADA` en GitHub Actions; la clave pública está en `packages/game/src/clave-publica.ts`).
+2. **Opciones → Deportes → «Buscar deportes» → «Instalar» el Fútbol** (se comprueban la firma y la versión; queda guardado para jugar sin conexión).
+3. **Nueva partida:** elige **«España · ciudad grande»** (la del fútbol de verdad: ~6.000 personas, ~156 equipos, 10 campos en el complejo) y deja el fútbol marcado. Aparece **«Creando el mundo…»** con su progreso (~30–40 s) y se puede cancelar.
+4. Apúntate al club de fútbol (en la administración del colegio, dentro del plazo de fichajes), ve a los entrenamientos (la asistencia pesa en la convocatoria) y, el día del partido: convocatoria una hora antes («Unirte a los compañeros»), vestuario media hora antes, «Jugar el partido» a su hora. La pestaña **Deporte** enseña el próximo partido, la crónica del último, la clasificación, la plantilla y tu temporada.
+5. Todo este camino lo recorre `npm run probar-web` en un Chromium de verdad (con una clave de firma de usar y tirar).
 
 **Más adelante, sin fecha** (el instalador queda preparado para ellas):
 

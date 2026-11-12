@@ -1,9 +1,10 @@
 {
   "name": "@ds/mod-futbol",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Fútbol (fútbol 11): habilidades, conocimiento, entreno por libre y club del colegio. Los partidos llegan en la F2.",
+  "description": "Fútbol (fútbol 11): habilidades, conocimiento, entreno, club, liga con divisiones, partidos, estadísticas y día de partido.",
+  "dsDeporte": true,
   "exports": {
     ".": "./src/index.ts"
   },

@@ -234,16 +234,36 @@ const nivelDe = (v: number): string => (v >= 80 ? 'excelente' : v >= 60 ? 'bien'
 const nombreDePuesto = (id: string): string => PUESTOS_DE_FUTBOL.puestos.find((x) => x.id === id)?.nombre ?? id;
 const notaTexto = (n: number): string => n.toFixed(1).replace('.', ',');
 
-/** Qué parte de las sesiones del club hizo el personaje en la semana anterior y la actual (hasta `hastaDia`, 0 = lunes): la misma cuenta que las de los PNJ. */
+/**
+ * La primera semana con entrenamientos de la temporada (la primera del curso de `semana`) si el personaje está en una categoría cuyos jugadores llegan nuevos al club (benjamín, `nuevosEnElClub`); si no, `undefined`: el club ya lo conoce
+ * y trae su asistencia. Hasta ese primer entrenamiento no cuenta su asistencia ni su relación con el entrenador, como la de los PNJ (`plantillaDeUnEquipo`).
+ */
+function nuevoEnElClubDesde(ctx: ReadContext, semana: number): number | undefined {
+  const equipo = miEquipo(ctx, ctx.time.schoolYear);
+  const cat = equipo && datosDeDeporte(ctx, DEPORTE).categorias.find((c) => c.id === equipo.categoria);
+  return cat?.nuevosEnElClub ? semana - (semana % ctx.pais.calendario.semanasPorCurso) : undefined;
+}
+
+/** Qué parte de las sesiones del club hizo el personaje en la semana anterior y la actual (hasta `hastaDia`, 0 = lunes): la misma cuenta que las de los PNJ (si llega nuevo al club, solo desde el primer entrenamiento de la temporada). */
 function asistenciaDelPersonaje(ctx: ReadContext, semana: number, hastaDia: number): number {
   const club = clubDelJugador(ctx);
   if (!club) return 1;
   const dias = club.sesiones.weekdays;
-  const esperadas = dias.length + dias.filter((d) => d <= hastaDia).length;
+  const desde = nuevoEnElClubDesde(ctx, semana);
+  const anterior = desde === undefined || semana - 1 >= desde;
+  const esperadas = (anterior ? dias.length : 0) + dias.filter((d) => d <= hastaDia).length;
   if (!esperadas) return 1;
   const { sesiones: hechas = {}, faltas = {} } = ctx.state<FutbolState>();
-  const base = Math.min(1, ((hechas[semana] ?? 0) + (hechas[semana - 1] ?? 0)) / esperadas);
+  const base = Math.min(1, ((hechas[semana] ?? 0) + (anterior ? hechas[semana - 1] ?? 0 : 0)) / esperadas);
   return Math.max(0, base - FALTA_A_PARTIDO.asistencia * ((faltas[semana] ?? 0) + (faltas[semana - 1] ?? 0)));
+}
+
+/** ¿Cuenta ya la relación del personaje con su entrenador? Sí, salvo si llega nuevo al club y aún no ha ido a ningún entrenamiento de la temporada. */
+function cuentaLaRelacion(ctx: ReadContext, semana: number): boolean {
+  const desde = nuevoEnElClubDesde(ctx, semana);
+  if (desde === undefined) return true;
+  const hechas = ctx.state<FutbolState>().sesiones ?? {};
+  return Object.entries(hechas).some(([w, n]) => Number(w) >= desde && Number(w) <= semana && n > 0);
 }
 
 interface EquipoDelPersonaje {
@@ -315,7 +335,7 @@ function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hasta
   const plantilla = yo ? [...base, yo] : base;
   const entrenador = entrenadorDelJugador(ctx);
   const afinidad = entrenador ? ctx.service<RelationsService>(SERVICES.relaciones)?.get(entrenador.id)?.afinidad : undefined;
-  const relacion = afinidad === undefined ? undefined : (afinidad + 100) / 2;
+  const relacion = afinidad === undefined || !cuentaLaRelacion(ctx, semana) ? undefined : (afinidad + 100) / 2;
   const porId = new Map(plantilla.map((j) => [j.id, j]));
   // El entrenador convoca; de los convocados, algunos PNJ no se presentan (como el personaje, que decide él) y se alinea a los que quedan.
   const { c, ausentes } = convocarYAlinearConAusencias(plantilla.map((j) => paraConvocar(j, j.id === YO ? relacion : undefined)), (id) => seAusenta(porId.get(id)!, dia));

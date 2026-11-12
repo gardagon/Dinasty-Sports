@@ -28,6 +28,7 @@
     "liga": "tsx tools/liga.ts",
     "calendario": "tsx tools/calendario.ts",
     "dia-de-partido": "tsx tools/dia-de-partido.ts",
+    "benjamin": "tsx tools/benjamin.ts",
     "sim:largo": "tsx sim/src/cli.ts --dias 1095 --semillas 3",
     "check": "npm run typecheck && npm run test && npm run sim:rapida",
     "nuevo-modulo": "tsx tools/nuevo-modulo.ts",
@@ -35,6 +36,7 @@
     "sim:notas": "tsx sim/src/notas.ts",
     "clave-deportes": "tsx tools/clave-deportes.ts",
     "publicar-deportes": "tsx tools/publicar-deportes.ts",
+    "probar-web": "tsx tools/probar-web.ts",
     "sim:futbol": "tsx sim/src/futbol.ts"
   },
   "engines": {

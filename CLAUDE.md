@@ -38,8 +38,10 @@ npm run sim:notas        # banco de notas: nota media por aptitud y rutina de es
 npm run huella -- 120     # huella exacta de las partidas de los bots: antes y después de una reorganización debe salir igual
 npm run rendimiento -- 60  # dónde se va el tiempo: crear, guardar, cargar, ms por acción y peso del estado por módulo y campo
 npm run clave-deportes   # genera el par de claves con que se firman los deportes (la privada, a un secreto DS_CLAVE_PRIVADA de GitHub)
-npm run publicar-deportes -- <carpeta>  # empaqueta y firma los deportes en <carpeta>/deportes (necesita DS_CLAVE_PRIVADA)
+npm run publicar-deportes -- <carpeta>  # empaqueta y firma TODOS los deportes (también los que no van dentro del juego, como el fútbol: `"dsDeporte": true` en su package.json) en <carpeta>/deportes (necesita DS_CLAVE_PRIVADA)
+npm run probar-web       # el camino entero en un Chromium de verdad: instalar el fútbol, crear una partida («creando el mundo») y jugar un día de partido (~2 min)
 npm run sim:futbol -- 365 3  # cuánto se aprende en un curso con el club: deportista de fútbol frente al de atletismo (mismo plan)
+npm run benjamin -- 31,33  # la regla de benjamín (todos nuevos en el club) con la ciudad grande: semanas hasta el primer partido y primera convocatoria
 npm run check            # tipos + tests + simulación rápida
 npm run nuevo-modulo -- <id> "<Nombre>"
 ```

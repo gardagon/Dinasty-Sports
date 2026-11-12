@@ -8,6 +8,8 @@ export interface CategoriaDef {
   /** Edades (en años cumplidos) que compiten en ella, ambas incluidas. */
   edadMin: number;
   edadMax: number;
+  /** Todos sus jugadores llegan nuevos al club (decisión del usuario, 12/11/2026: benjamín): su asistencia y su relación con el entrenador empiezan a contar en el primer entrenamiento de la temporada, no antes. */
+  nuevosEnElClub?: boolean;
 }
 
 /** Categoría que corresponde a una edad (la última si se pasa de todas). */
