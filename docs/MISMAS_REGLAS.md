@@ -55,6 +55,8 @@ Niños, jóvenes, hermanos y rivales:
 
 Los adultos (padres, profesores, entrenadores) se quedan como están hasta el futuro módulo de profesiones (decisión del 28/10: las habilidades de los entrenadores son parte de ese módulo). Están preparados para tener lo mismo.
 
+**Relación con el entrenador (pendiente, 12/11/2026).** Un PNJ tiene relación con cada entrenador como persona (`Npc.afin`, #124), con las mismas cifras y reglas que el personaje, pero de momento solo recoge sus impuntualidades en las convocatorias; la del personaje recoge todo su trato (`relaciones`). Cuando los PNJ tengan relaciones completas, será la misma y pesará igual en la convocatoria.
+
 ## 4. Cómo crece un PNJ: el mismo motor
 
 - **Las fórmulas del motor se comparten.** Las de progresión de `packages/core/src/progression.ts` (ganancia, techo, velocidad, caída, curva de edad, desarrollo natural y ritmo según el tope) son puras: pasan a `contracts` y las usan el motor (para el personaje) y `npcs` (para los PNJ). No hay dos copias que puedan separarse.
