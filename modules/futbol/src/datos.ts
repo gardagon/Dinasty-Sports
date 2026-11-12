@@ -11,7 +11,7 @@ import { GEN, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type 
 /** Categorías de la federación española de fútbol, por edad de competición. Desde los 19 se compite en categoría sénior. */
 export const CATEGORIAS_ESPANA: readonly CategoriaDef[] = [
   { id: 'prebenjamin', nombre: 'Prebenjamín', edadMin: 0, edadMax: 7 },
-  { id: 'benjamin', nombre: 'Benjamín', edadMin: 8, edadMax: 9 },
+  { id: 'benjamin', nombre: 'Benjamín', edadMin: 8, edadMax: 9, nuevosEnElClub: true },
   { id: 'alevin', nombre: 'Alevín', edadMin: 10, edadMax: 11 },
   { id: 'infantil', nombre: 'Infantil', edadMin: 12, edadMax: 13 },
   { id: 'cadete', nombre: 'Cadete', edadMin: 14, edadMax: 15 },

@@ -596,6 +596,9 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
   const entrenador = entrenadorDelEquipo(npcs, pob, club, cat, letra);
   const disciplinaDelEntrenador = entrenador?.rasgos ? (entrenador.rasgos.caracter.disciplina + 50) / 100 : 0.5;
   const rutina = pob.rutina;
+  // Categorías cuyos jugadores llegan nuevos al club (benjamín): la asistencia y la relación con el entrenador cuentan desde el primer entrenamiento de la temporada (la primera semana del curso).
+  const desde = cat.nuevosEnElClub ? Math.floor(inicioCurso / 7) : undefined;
+  const relacion = (n: Npc): number | undefined => (desde !== undefined && semana < desde ? undefined : relacionConElEntrenador(entrenador ? n.afin?.[entrenador.id] : undefined));
   return npcs
     .filter((n) => n.deporte === deporte && n.equipo === club && n.letra?.[deporte] === letra && (edadDeJuego(n, inicioCurso) ?? -1) >= cat.edadMin && (edadDeJuego(n, inicioCurso) ?? -1) <= cat.edadMax && !!n.puesto?.[deporte])
     .flatMap((n) => {
@@ -611,11 +614,11 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
         estado: n.estado ?? ESTADO_INICIAL,
         resiliencia: (n.cap?.[resiliencia] ?? 50) / 100,
         ambicion: ((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100,
-        asistencia: asistenciaConFaltas(rutina ? asistenciaDeLasDosUltimasSemanas(n as Parameters<typeof huecosQueHace>[0], deporte, rutina, semana) : 1, n.faltas?.[deporte], semana),
+        asistencia: asistenciaConFaltas(rutina ? asistenciaDeLasDosUltimasSemanas(n as Parameters<typeof huecosQueHace>[0], deporte, rutina, semana, desde) : 1, n.faltas?.[deporte], semana),
         disciplinaDelEntrenador,
         lector,
         disciplina: ((n.rasgos?.caracter.disciplina ?? 0) + 50) / 100,
-        ...(relacionConElEntrenador(entrenador ? n.afin?.[entrenador.id] : undefined) !== undefined ? { relacionConElEntrenador: relacionConElEntrenador(entrenador ? n.afin?.[entrenador.id] : undefined) } : {}),
+        ...(relacion(n) !== undefined ? { relacionConElEntrenador: relacion(n) } : {}),
         ...(n.est?.[deporte] ? { estadisticas: n.est[deporte] } : {}),
         ...(n.exp?.[deporte] ? { experiencia: n.exp[deporte] } : {}),
       }];
@@ -628,10 +631,13 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
  * Qué parte de las sesiones del club hizo un jugador en las dos últimas semanas (la de esta semana, hasta hoy, y la anterior), de 0 a 1: son las sesiones a las que va cada semana (`huecosQueHace`), las mismas con las que entrena,
  * así que la asistencia cuenta igual para el personaje y para cualquier PNJ.
  */
-export function asistenciaDeLasDosUltimasSemanas(n: Parameters<typeof huecosQueHace>[0], deporte: string, r: RutinaDeDeporte, semana: number): number {
+export function asistenciaDeLasDosUltimasSemanas(n: Parameters<typeof huecosQueHace>[0], deporte: string, r: RutinaDeDeporte, semana: number, desde?: number): number {
   const porSemana = (n.equipo !== undefined ? r.sesionesPorSemana[n.equipo] : undefined) ?? r.sesionesPorDefecto;
   if (porSemana <= 0) return 1;
-  return (huecosQueHace(n, deporte, r, semana).length + huecosQueHace(n, deporte, r, semana - 1).length) / (2 * porSemana);
+  // `desde`: la primera semana con entrenamientos (los que llegan nuevos al club): lo de antes no cuenta, ni en lo hecho ni en lo esperado; sin entrenamientos aún, nada que mirar.
+  const semanas = [semana, semana - 1].filter((w) => desde === undefined || w >= desde);
+  if (!semanas.length) return 1;
+  return semanas.reduce((t, w) => t + huecosQueHace(n, deporte, r, w).length, 0) / (semanas.length * porSemana);
 }
 
 /**
