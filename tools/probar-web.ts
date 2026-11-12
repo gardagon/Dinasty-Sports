@@ -138,13 +138,23 @@ try {
       const p = f.personaje;
       const l = p && f.liga ? f.liga.categorias[p.categoria] : undefined;
       if (!l) continue;
-      const h = Object.entries(f.calendario?.partidos ?? {}).find(([id]) => id.includes(`|${p.categoria}|`) && id.includes(`|${p.club}|${p.letra}|`)) as [string, [number, number, string]] | undefined;
-      if (!h) continue;
+      // El partido de su equipo esta semana: el id es `curso|categoría|jornada|club|letra|club|letra` (local y visitante).
+      const h = Object.entries(f.calendario?.partidos ?? {}).find(([id]) => {
+        const q = id.split('|');
+        return q[1] === p.categoria && [`${q[3]}|${q[4]}`, `${q[5]}|${q[6]}`].includes(`${p.club}|${p.letra}`);
+      }) as [string, [number, number, string]] | undefined;
+      if (!h) {
+        log.push(`semana ${semana}: su equipo no juega`);
+        continue;
+      }
       const saque = (semana * 7 + h[1][0]) * 1440 + h[1][1] * 60;
       ds.hastaElMinuto(saque - 150);
       ds.llegarA('campo_municipal', saque - 60 + 2);
       const unirse = g.preview('futbol.unirse_companeros');
-      if (!unirse?.available) continue; // no está convocado esta semana
+      if (!unirse?.available) {
+        log.push(`semana ${semana}: no puede unirse (${unirse?.reason})`);
+        continue;
+      }
       log.push(`semana ${semana}: convocado, partido a las ${h[1][1]}:00`);
       log.push(`unirse a los compañeros: ${ds.hacer('futbol.unirse_companeros').ok ? 'ok' : 'falló'}`);
       ds.hastaElMinuto(saque - 30);
