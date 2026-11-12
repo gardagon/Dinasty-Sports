@@ -1,4 +1,5 @@
 import type { DatoPersonal } from './personas';
+import type { LugarId } from './lugares';
 import type { Practica } from './herencia';
 import type { PerfilDelPersonaje, RasgosDe } from './rasgos';
 import type { EstadoDeJugador } from './estado-de-jugador';
@@ -20,6 +21,7 @@ export const SERVICES = {
   perfil: 'perfil',
   lugares: 'lugares',
   presencia: 'presencia',
+  partidos: 'partidos',
 } as const;
 
 // ---------- NPCs ----------
@@ -178,6 +180,10 @@ export interface JugadorDeEquipoView {
   /** Lo disciplinado que es su entrenador (de 0 a 1): con uno disciplinado, faltar cuesta más el puesto. */
   disciplinaDelEntrenador: number;
   lector: LectorDePersona;
+  /** Lo disciplinado que es, de 0 a 1 (cuánto llega a tiempo a las convocatorias). */
+  disciplina?: number;
+  /** Su relación con el entrenador, de 0 a 100 (50: neutra): baja si llega tarde a las convocatorias; solo la tiene guardada quien ha llegado tarde alguna vez. */
+  relacionConElEntrenador?: number;
   /** Sus estadísticas de la temporada (partidos, titularidades, minutos, goles, asistencias y nota). */
   estadisticas?: EstadisticasDeTemporada;
   /** Su experiencia en cada puesto en que ha jugado (de 0 a 100). */
@@ -340,4 +346,37 @@ export function edadAparente(n: Pick<NpcView, 'age' | 'role' | 'tags'>): number 
   if (n.tags.includes('progenitor')) return 42;
   if (n.role === 'companero' || n.role === 'amigo') return 8;
   return undefined;
+}
+
+
+/**
+ * **Lo que hace un jugador del mundo el día de su partido** (`MOTOR_PARTIDOS.md` §15), con las mismas reglas que el personaje: el entrenador lo convoca una hora antes; llega (puntual o tarde, según su carácter); espera con los
+ * compañeros en el campo (y ve el partido anterior de ese campo, que le da conocimiento); pasa al vestuario media hora antes; juega; y vuelve al vestuario. Lo da el deporte (el fútbol) y lo usa `npcs` para ponerlo en el mapa.
+ * Todos los tiempos son minutos absolutos de la partida.
+ */
+export interface PartidoDeJugador {
+  /** Día de la semana del partido (0 = lunes). */
+  dia: number;
+  /** Hora del partido. */
+  saque: number;
+  /** Cuándo llega al campo (la hora de la convocatoria más lo que se retrasa). */
+  llegada: number;
+  /** Minutos que llega tarde a la convocatoria. */
+  tarde: number;
+  /** Conocimiento del deporte que gana viendo el partido anterior de su campo mientras espera. */
+  conocimiento: number;
+  /** Dónde espera, juega y se cambia (lugares del mapa). */
+  campo: LugarId;
+  vestuario: LugarId;
+}
+
+export interface PartidosService {
+  /** Cambia cuando cambia el calendario de partidos (cada semana): quien guarda algo calculado con él sabe cuándo recalcularlo. */
+  readonly version: string;
+  /** El partido de esta semana de un jugador del mundo, si está convocado y se presenta; `undefined` si no. */
+  deJugador(npcId: string): PartidoDeJugador | undefined;
+  /** El partido de esta semana de un equipo (de su club, categoría y letra) para quien lo lleva —su entrenador—: está en el campo desde la convocatoria, a la hora (sin retraso). */
+  deEquipo(club: string, categoria: string, letra: string): PartidoDeJugador | undefined;
+  /** Los partidos de esta semana (de todas las categorías), con su hora, para quien quiera verlos: `saque` en minutos absolutos de la partida. */
+  deLaSemana(): { id: string; categoria: string; local: string; visitante: string; saque: number; campo: string; lugar: LugarId }[];
 }

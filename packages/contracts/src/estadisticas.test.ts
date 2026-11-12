@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PuestosDeDeporte } from './deporte-datos';
 import { aprendizajeDe, cerrarTemporadaDeJugador, estadisticasVacias, experienciaTrasElPartido, factorDeExperienciaDelPuesto, notaMedia, sumarPartido } from './estadisticas';
-import { MORAL_DEL_BANQUILLO, trasElBanquillo } from './estado-de-jugador';
+import { FALTA_A_PARTIDO, IMPUNTUALIDAD_DE_JUGADOR, MORAL_DEL_BANQUILLO, anotarFalta, asistenciaConFaltas, faltasVigentes, llegarTarde, relacionConElEntrenador, trasElBanquillo } from './estado-de-jugador';
 
 /** Unos puestos mínimos: solo importa la pierna buena. */
 const PUESTOS_DE_FUTBOL_DE_PRUEBA = { puestos: [], reparto: [], pierna: { ventajaDelLado: 0.25, factorDeExperienciaDelLado: 1.25 } } as unknown as PuestosDeDeporte;
@@ -68,5 +68,34 @@ describe('la moral del banquillo', () => {
     expect(ambicioso.moral).toBeLessThan(conformista.moral);
     expect(ambicioso.forma).toBe(70);
     expect(trasElBanquillo({ ...e, moral: 1 }, 1).moral).toBe(0);
+  });
+});
+
+describe('la relación de un PNJ con su entrenador por llegar tarde y las faltas a los partidos', () => {
+  it('cada vez que llega tarde pierde 3 de afinidad y 1 de confianza (las mismas cifras que el personaje), se acumula y no se olvida; en la convocatoria pesa (afinidad + 100) / 2', () => {
+    const una = llegarTarde(undefined);
+    expect(una).toEqual([-IMPUNTUALIDAD_DE_JUGADOR.afinidad, -IMPUNTUALIDAD_DE_JUGADOR.confianza]);
+    expect(una).toEqual([-3, -1]);
+    expect(relacionConElEntrenador(una)).toBeCloseTo(48.5, 5);
+    // Dos veces suman; sin límite de tiempo (lo negativo no se olvida con contacto) y sin pasar de −100.
+    expect(llegarTarde(una)).toEqual([-6, -2]);
+    expect(llegarTarde([-99, -99])).toEqual([-100, -100]);
+    // Sin nada anotado, neutra (la convocatoria no cambia).
+    expect(relacionConElEntrenador(undefined)).toBeUndefined();
+  });
+
+  it('faltar a un partido al que se está convocado baja la asistencia 0,5 (el mismo dato que el personaje) durante las dos semanas siguientes, sin bajar de 0', () => {
+    expect(FALTA_A_PARTIDO.asistencia).toBe(0.5);
+    const faltas = anotarFalta(undefined, 10);
+    expect(faltas).toEqual([10]);
+    expect(asistenciaConFaltas(1, faltas, 10)).toBe(0.5);
+    expect(asistenciaConFaltas(1, faltas, 11)).toBe(0.5);
+    expect(asistenciaConFaltas(1, faltas, 12)).toBe(1);
+    expect(asistenciaConFaltas(0.3, faltas, 10)).toBe(0);
+    // Dos faltas seguidas suman y lo que ya no pesa se tira.
+    expect(asistenciaConFaltas(1, anotarFalta(faltas, 11), 11)).toBe(0);
+    expect(anotarFalta([5, 10], 12)).toEqual([12]);
+    expect(asistenciaConFaltas(0.8, undefined, 3)).toBe(0.8);
+    expect(faltasVigentes([5, 10, 11], 11)).toEqual([10, 11]);
   });
 });

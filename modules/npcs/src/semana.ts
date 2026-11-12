@@ -257,3 +257,14 @@ export function historiaDeportiva(
   enElDia(t, dia);
   return resultado(t, rend);
 }
+
+
+/**
+ * Lo que gana de conocimiento del deporte un jugador por algo que no es entrenar (ver el partido anterior de su campo el día de partido): sube su habilidad de conocimiento como una práctica (con los rendimientos decrecientes de siempre).
+ * Devuelve sus habilidades nuevas.
+ */
+export function conMasConocimiento(n: NinoDeportista, deporte: string, r: RutinaDeDeporte, dia: number, cantidad: number): HabilidadesDe {
+  const t = prepararTrabajo(n, valoresIniciales(n.id, n.genetica), deporte, r, n.hab?.[deporte] ?? habilidadesIniciales(n.id, n.genetica, deporte, r, dia), n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), dia);
+  practicar(t, [{ stat: r.conocimiento, amount: cantidad }], 1);
+  return { v: t.hab.v.map(redondea), pico: t.hab.pico.map(redondea), ult: [...t.hab.ult] };
+}
