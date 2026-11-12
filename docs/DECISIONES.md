@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 12/11/2026 — Revisión del día de partido, 3.ª parte (#124): la impuntualidad y las faltas, iguales para el personaje y los PNJ, y la relación de cada PNJ por entrenador (decisiones del usuario)
+
+- **La impuntualidad cuesta lo mismo a todos**: el PNJ que llega más de 10 minutos tarde pierde con su entrenador −3 de afinidad y −1 de confianza, como el personaje (un único dato, `IMPUNTUALIDAD_DE_JUGADOR` en `contracts`, que usa también `relaciones`), y su relación se mueve con las reglas de la del personaje (`ANEXO_RELACIONES.md` §4: lo negativo no se olvida). Se descartó el olvido del 20 % semanal que proponía el desarrollador: era una regla que el personaje no tiene. Las cifras siguen siendo provisionales (entrada del 11/11).
+- **Faltar al partido, como el personaje**: el sorteo de quién no se presenta se hace solo a los convocados (el entrenador cita a 16 y alinea a los que quedan de ellos), y el PNJ que falta recibe una falta con el mismo dato (`FALTA_A_PARTIDO`: −0,5 de asistencia la semana de la falta y la siguiente).
+- **La relación de cada PNJ es con el entrenador como persona** (`Npc.afin`: por id del entrenador), no con el club: pasar del C al A cambia de entrenador y de relación, y lo anotado con un entrenador no se borra al cambiar de equipo o de club (vuelve a pesar si coinciden otra vez). Peso con la ciudad grande: 155 KB tras 3 temporadas, unos 50 KB más por temporada; si pesa, se acortan las claves con el guardado por partes (`ALMACENAMIENTO.md`), no se guarda menos.
+- **Cifras de llegada de los PNJ, provisionales** (elegidas por el desarrollador, aceptadas por el usuario para probar el MVP): con carácter medio, 15 % impuntuales (de 11 a 30 minutos) y 2 % ausentes, ×(1,5 − disciplina); los puntuales, de 0 a 8 minutos.
+- **Pendiente** (`MISMAS_REGLAS.md`): la relación de un PNJ con su entrenador solo recoge, de momento, las impuntualidades; la del personaje recoge todo su trato. Cuando los PNJ tengan relaciones completas, será la misma.
+
 ## 11/11/2026 — Lo que cuesta llegar tarde a la convocatoria: −3 de afinidad y −1 de confianza, de forma provisional (decisión del usuario)
 
 Las cifras de la impuntualidad del día de partido (#122) las propuso el desarrollador: quien se une a sus compañeros **más de 10 minutos después de la convocatoria** pierde con su entrenador **3 de afinidad y 1 de confianza** (`IMPUNTUALIDAD`, `relaciones`; evento `club.impuntual`). Como referencia, dejar plantado a un club cuesta 15 y 10 con el entrenador. Con −3/−1 una impuntualidad suelta es casi un aviso y hacen falta varias para notarse. El usuario las acepta **de forma provisional**: se revisan si al probar el MVP hace falta ajustarlas. Valen igual para los PNJ cuando lleguen tarde (3.ª parte del día de partido).
