@@ -258,12 +258,10 @@ function asistenciaDelPersonaje(ctx: ReadContext, semana: number, hastaDia: numb
   return Math.max(0, base - FALTA_A_PARTIDO.asistencia * ((faltas[semana] ?? 0) + (faltas[semana - 1] ?? 0)));
 }
 
-/** ¿Cuenta ya la relación del personaje con su entrenador? Sí, salvo si llega nuevo al club y aún no ha ido a ningún entrenamiento de la temporada. */
+/** ¿Cuenta ya la relación del personaje con su entrenador? Sí, salvo si llega nuevo al club y aún no ha empezado la temporada de entrenamientos: desde su primera semana, igual que la de los PNJ (`plantillaDeUnEquipo`). */
 function cuentaLaRelacion(ctx: ReadContext, semana: number): boolean {
   const desde = nuevoEnElClubDesde(ctx, semana);
-  if (desde === undefined) return true;
-  const hechas = ctx.state<FutbolState>().sesiones ?? {};
-  return Object.entries(hechas).some(([w, n]) => Number(w) >= desde && Number(w) <= semana && n > 0);
+  return desde === undefined || semana >= desde;
 }
 
 interface EquipoDelPersonaje {
