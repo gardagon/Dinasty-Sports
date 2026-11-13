@@ -44,7 +44,7 @@ Una foto por persona y cumpleaños: `hc = [edad de la primera foto, músculo, gr
 
 ## 6. Canas, calvicie y barba (`Apariencia`)
 
-Valores numéricos de la generación (no de la edad). El dibujo decidirá con ellas, la edad y la semilla.
+Valores numéricos de la generación (no de la edad). El dibujo decidirá con ellas, la edad y la semilla. Se sortean con un generador estable sembrado con el carácter, los intereses y los gustos de la persona, no con el de la partida, para no cambiar el resto del mundo de una semilla.
 
 | Campo | Qué es | Al azar (adultos del mundo) | Herencia |
 |---|---|---|---|

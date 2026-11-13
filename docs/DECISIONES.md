@@ -13,7 +13,7 @@ Desarrollo del plan `docs/PLAN_CUERPO_Y_APARIENCIA.md` (cifras en `docs/ANEXO_CU
 - **Edad y sexo en músculo y grasa**: tope por desarrollo físico, mujeres ×0,75 de músculo y +8 de grasa, sarcopenia desde los 40, metabolismo desde los 30.
 - **Músculo y grasa reales en todos los PNJ** (`Npc.cuerpo`, `Npc.actividad`), con hábitos por edad, las sesiones de club y la actividad propia de los adultos. **Calibrado** con `npm run sim:cuerpo`: las cifras del plan dejaban al 80 % de los niños «con sobrepeso», así que el juego libre de niños y jóvenes y la actividad de los adultos son distribuciones calibradas (ver el anexo §4 y las preguntas 4 y 5 del plan).
 - **Historial anual** (`hc`): una foto de músculo y grasa por cumpleaños, en enteros, para el personaje y todos los PNJ.
-- **Canas, calvicie y barba** en `Apariencia`, heredables, con tendencias por origen (la herencia usa el sexo del hijo para el tope de calvicie).
+- **Canas, calvicie y barba** en `Apariencia`, heredables, con tendencias por origen (la herencia usa el sexo del hijo para el tope de calvicie). Se sortean con un generador estable, no con el de la partida: el mundo de una semilla no cambia.
 - **Servicio de lectura** `CuerpoService` (`cuerpoPersonaje`, `cuerpoNpcs`) y `cuerpoDePersona(ctx, id)`. El padre y la madre ya eran PNJ con fecha de nacimiento y rasgos: los da `npcs`.
 - `SAVE_VERSION` 18.
 
@@ -26,7 +26,7 @@ Desarrollo del plan `docs/PLAN_CUERPO_Y_APARIENCIA.md` (cifras en `docs/ANEXO_CU
 | Actualizar los cuerpos de todos, por semana | — | 0,87 ms (límite 1 ms) |
 | Crear la partida | 730 ms | 857 ms (una sola medida cada una) |
 | `npm run sim` | solo ⚠️ Rendimiento | solo ⚠️ Rendimiento (2,64 → 2,44 ms por acción, límite 1,5: el aviso ya existía); el resto de chequeos ✅ y la tabla final casi igual (equilibrado 30,2 → 30,5; atleta 25,4 → 25,8; vago 20,6 → 20,8) |
-| `npm run huella` | e12e68df4723 (equilibrado, sem. 1) | c32b2a1cff3d: **cambia, como estaba previsto** (el personaje sigue reglas nuevas y los sorteos de la apariencia cambian el resto del azar) |
+| `npm run huella` | e12e68df4723 (equilibrado, sem. 1) | c32b2a1cff3d: **cambia, como estaba previsto** (el personaje sigue reglas nuevas) |
 | `npm run sim:vida` (Perfecto, 70 años) | siempre «atlético» con 20 de grasa; peso adulto constante (≈ 61 kg) | «atlético» hasta los 40; **normal a los 50, delgado a los 60** (el músculo baja de 41 a 18 por la sarcopenia); peso adulto 64 → 70 kg a los 50 y baja con la vejez; altura 174,9 cm hasta los 50 y 169,3 a los 78 |
 
 Proporciones de complexión de los PNJ: ver el anexo §8.

@@ -1,4 +1,4 @@
-import type { Rng } from './rng';
+import { rngEstable, type Rng } from './rng';
 import { TAGS } from './tags';
 
 /**
@@ -252,10 +252,17 @@ export function origenHeredado(padre: OrigenFamiliar, madre: OrigenFamiliar): Or
   return [...m].map(([id, peso]) => ({ id, peso }));
 }
 
-/** Apariencia de un adulto según su origen (si tiene dos, cada rasgo sale de uno de ellos al azar). */
-export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 'm'): Apariencia {
+/** Los rasgos de siempre de la apariencia (todo menos las tendencias de canas, calvicie y barba). */
+export type AparienciaBase = Omit<Apariencia, 'canas' | 'calvicie' | 'barba'>;
+/** Las tendencias heredables: canas, calvicie y barba. */
+export type Tendencias = Pick<Apariencia, 'canas' | 'calvicie' | 'barba'>;
+/** Para los sorteos que necesitan una `Apariencia` entera antes de tener las tendencias (los gustos solo miran los rasgos de siempre). */
+const SIN_TENDENCIAS: Tendencias = { canas: 0, calvicie: 0, barba: 0 };
+
+/** Apariencia de un adulto según su origen (si tiene dos, cada rasgo sale de uno de ellos al azar), sin las tendencias. */
+function aparienciaBaseAlAzar(rng: Rng, o: OrigenFamiliar): AparienciaBase {
   const de = () => origen(o[ponderado(o.map((x) => x.peso), rng)].id) ?? ORIGENES[1];
-  const base = {
+  return {
     peloColor: PELO_COLOR[ponderado(de().peloColor, rng)],
     peloTipo: PELO_TIPO[ponderado(de().peloTipo, rng)],
     ojos: OJOS[ponderado(de().ojos, rng)],
@@ -263,17 +270,30 @@ export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 
     cara: rng.pick(CARA),
     distintivos: DISTINTIVOS.filter(() => rng.chance(0.12)),
   };
-  // Canas, calvicie y barba: normales con la media y la desviación de `TENDENCIAS` (las del origen se suman a la media).
+}
+
+/** Canas, calvicie y barba de un adulto: normales con la media y la desviación de `TENDENCIAS` (las del origen se suman a la media). */
+export function tendenciasAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 'm'): Tendencias {
   const t = TENDENCIAS;
-  const orig = de();
+  const orig = origen(o[ponderado(o.map((x) => x.peso), rng)].id) ?? ORIGENES[1];
   const c = sexo === 'f' ? t.calvicie.mujer : t.calvicie.hombre;
   return {
-    ...base,
     canas: redondea(clamp(t.canas.media + (orig.canas ?? 0) + t.canas.sd * rng.normal(), t.canas.min, t.canas.max), 1),
     calvicie: redondea(clamp(c.media + c.sd * rng.normal(), 0, c.max), 2),
     barba: redondea(clamp(t.barba.media + (orig.barba ?? 0) + t.barba.sd * rng.normal(), 0, 1), 2),
   };
 }
+
+/** Apariencia de un adulto según su origen y su sexo, con las tendencias (todo del mismo generador). */
+export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 'm'): Apariencia {
+  return { ...aparienciaBaseAlAzar(rng, o), ...tendenciasAlAzar(rng, o, sexo) };
+}
+
+/**
+ * Generador propio de las tendencias de una persona del mundo: sale de lo que ya se le ha sorteado (su carácter, sus intereses y sus gustos, que son números propios de
+ * cada persona), no del generador de la partida. Así añadir las tendencias no cambia ningún sorteo posterior: el mundo de una semilla sigue siendo el mismo.
+ */
+const generadorDeTendencias = (sexo: 'f' | 'm', ...propios: unknown[]): Rng => rngEstable('tendencias', sexo, JSON.stringify(propios));
 
 /** Un rasgo con gradación heredado de uno de los padres; si difieren, a veces sale uno intermedio y rara vez un vecino. */
 function heredarGradual(catalogo: readonly string[], a: string, b: string, rng: Rng, mezcla = 0.35): string {
@@ -286,7 +306,7 @@ function heredarGradual(catalogo: readonly string[], a: string, b: string, rng: 
 }
 
 /** Apariencia del hijo: cada rasgo viene de un padre (con intermedios en lo que tiene gradación). El pelo rojo es recesivo. */
-export function aparienciaHeredada(padre: Apariencia, madre: Apariencia, rng: Rng, sexo: 'f' | 'm' = 'm'): Apariencia {
+function aparienciaBaseHeredada(padre: Apariencia, madre: Apariencia, rng: Rng): AparienciaBase {
   let peloColor: string;
   if (padre.peloColor === 'pelirrojo' || madre.peloColor === 'pelirrojo') {
     const los2 = padre.peloColor === madre.peloColor;
@@ -307,12 +327,24 @@ export function aparienciaHeredada(padre: Apariencia, madre: Apariencia, rng: Rn
     piel: heredarGradual(PIEL, padre.piel, madre.piel, rng, 0.6),
     cara: rng.chance(0.5) ? padre.cara : madre.cara,
     distintivos,
-    // Las tendencias se heredan al final (después de lo que ya se sorteaba): canas y barba, la media de los padres con un pequeño cambio; calvicie, más de la madre que del padre
-    // y con el tope del sexo del hijo.
-    canas: redondea(clamp((padre.canas + madre.canas) / 2 + rng.range(-TENDENCIAS.canas.herencia, TENDENCIAS.canas.herencia), TENDENCIAS.canas.min, TENDENCIAS.canas.max), 1),
-    calvicie: redondea(clamp(TENDENCIAS.calvicie.deLaMadre * madre.calvicie + (1 - TENDENCIAS.calvicie.deLaMadre) * padre.calvicie + rng.range(-TENDENCIAS.calvicie.herencia, TENDENCIAS.calvicie.herencia), 0, topeDeCalvicie(sexo)), 2),
-    barba: redondea(clamp((padre.barba + madre.barba) / 2 + rng.range(-TENDENCIAS.barba.herencia, TENDENCIAS.barba.herencia), 0, 1), 2),
   };
+}
+
+/**
+ * Canas y barba del hijo: la media de los padres con un pequeño cambio; calvicie: más de la madre que del padre, con un pequeño cambio y el tope del sexo del hijo.
+ */
+export function tendenciasHeredadas(padre: Tendencias, madre: Tendencias, rng: Rng, sexo: 'f' | 'm' = 'm'): Tendencias {
+  const t = TENDENCIAS;
+  return {
+    canas: redondea(clamp((padre.canas + madre.canas) / 2 + rng.range(-t.canas.herencia, t.canas.herencia), t.canas.min, t.canas.max), 1),
+    calvicie: redondea(clamp(t.calvicie.deLaMadre * madre.calvicie + (1 - t.calvicie.deLaMadre) * padre.calvicie + rng.range(-t.calvicie.herencia, t.calvicie.herencia), 0, topeDeCalvicie(sexo)), 2),
+    barba: redondea(clamp((padre.barba + madre.barba) / 2 + rng.range(-t.barba.herencia, t.barba.herencia), 0, 1), 2),
+  };
+}
+
+/** Apariencia del hijo con sus tendencias, todo del mismo generador. */
+export function aparienciaHeredada(padre: Apariencia, madre: Apariencia, rng: Rng, sexo: 'f' | 'm' = 'm'): Apariencia {
+  return { ...aparienciaBaseHeredada(padre, madre, rng), ...tendenciasHeredadas(padre, madre, rng, sexo) };
 }
 
 // ---------------------------------------------------------------------------------------------------- gustos
@@ -382,14 +414,12 @@ export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Reco
   // Con un origen dado (los padres, que salen de la semilla para que sus nombres lo sigan) se hace la tirada igualmente: así no cambia el resto del azar.
   const sorteado = origenAlAzar(rng, opciones.demografia);
   const o = opciones.origen ?? sorteado;
-  const apariencia = aparienciaAlAzar(rng, o, opciones.sexo);
-  return {
-    origen: o,
-    apariencia,
-    caracter: caracterAlAzar(rng, opciones.sesgoCaracter),
-    intereses: interesesAlAzar(rng, opciones.interesesPreferidos),
-    gustos: gustosAlAzar(rng, apariencia),
-  };
+  const base = aparienciaBaseAlAzar(rng, o);
+  const caracter = caracterAlAzar(rng, opciones.sesgoCaracter);
+  const intereses = interesesAlAzar(rng, opciones.interesesPreferidos);
+  const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
+  const sexo = opciones.sexo ?? 'm';
+  return { origen: o, apariencia: { ...base, ...tendenciasAlAzar(generadorDeTendencias(sexo, caracter, intereses, gustos), o, sexo) }, caracter, intereses, gustos };
 }
 
 /** Rasgos del personaje: heredados de sus padres (la opción de elegirlos a mano llegará con la creación de personaje). */
@@ -402,14 +432,11 @@ export interface PerfilDelPersonaje {
 }
 
 export function perfilHeredado(padre: RasgosDe, madre: RasgosDe, rng: Rng, sexo: 'f' | 'm' = 'm'): PerfilDelPersonaje {
-  const apariencia = aparienciaHeredada(padre.apariencia, madre.apariencia, rng, sexo);
-  return {
-    origen: origenHeredado(padre.origen, madre.origen),
-    apariencia,
-    caracter: caracterHeredado(padre.caracter, madre.caracter, rng),
-    intereses: interesesHeredados(padre.intereses, madre.intereses, rng),
-    gustos: gustosAlAzar(rng, apariencia),
-  };
+  const base = aparienciaBaseHeredada(padre.apariencia, madre.apariencia, rng);
+  const caracter = caracterHeredado(padre.caracter, madre.caracter, rng);
+  const intereses = interesesHeredados(padre.intereses, madre.intereses, rng);
+  const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
+  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo) }, caracter, intereses, gustos };
 }
 
 /**
@@ -418,7 +445,7 @@ export function perfilHeredado(padre: RasgosDe, madre: RasgosDe, rng: Rng, sexo:
  * si no llega a dos, se completan al azar.
  */
 export function rasgosHeredadosNpc(padre: RasgosDe, madre: RasgosDe, rng: Rng, sexo: 'f' | 'm' = 'm'): RasgosDe {
-  const apariencia = aparienciaHeredada(padre.apariencia, madre.apariencia, rng, sexo);
+  const base = aparienciaBaseHeredada(padre.apariencia, madre.apariencia, rng);
   const intereses: InteresesNpc = {};
   for (const id of new Set([...Object.keys(padre.intereses), ...Object.keys(madre.intereses)])) {
     if (!rng.chance(0.6)) continue;
@@ -426,13 +453,9 @@ export function rasgosHeredadosNpc(padre: RasgosDe, madre: RasgosDe, rng: Rng, s
     intereses[id] = clamp(intensidad, 1, 3);
   }
   while (Object.keys(intereses).length < 2) intereses[rng.pick(INTERESES).id] ??= rng.int(1, 3);
-  return {
-    origen: origenHeredado(padre.origen, madre.origen),
-    apariencia,
-    caracter: caracterHeredado(padre.caracter, madre.caracter, rng),
-    intereses,
-    gustos: gustosAlAzar(rng, apariencia),
-  };
+  const caracter = caracterHeredado(padre.caracter, madre.caracter, rng);
+  const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
+  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo) }, caracter, intereses, gustos };
 }
 
 // ---------------------------------------------------------------------------------------------------- compatibilidad
