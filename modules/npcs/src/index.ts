@@ -3,6 +3,7 @@ import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeN
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { type HabilidadesDe } from './rutina';
+import { conCuerpo, semanaDelCuerpo } from './cuerpo';
 import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
 
 /**
@@ -92,6 +93,10 @@ export interface Npc {
   nacimiento?: number;
   /** Años de adelanto (+) o retraso (−) en su desarrollo físico. */
   desfase?: number;
+  /** Su músculo y su grasa reales (0 a 100, con dos decimales): [músculo, grasa]. Los tienen todos los que tienen fecha de nacimiento y siguen las mismas reglas que el personaje (`cuerpo.ts`). */
+  cuerpo?: [number, number];
+  /** Adultos: su actividad física propia, estable y que cambia un poco cada cumpleaños: [minutos de actividad, minutos de fuerza] a la semana. */
+  actividad?: [number, number];
   /** ¿El personaje ya lo conoce? Los rivales se conocen al competir contra ellos. Ausente = sí. */
   known?: boolean;
   /** Club al que pertenece (los rivales). */
@@ -672,7 +677,7 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
  * capacidades y habilidades, y su rendimiento (`levels`) calculado con ellas. `fin` es el día en que acaba la semana. Los de un equipo con ejercicios elegidos por el
  * entrenador hacen todos los mismos, según lo que le falta al equipo.
  */
-export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number): void {
+export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number, sesionesPorId?: Map<string, number>): void {
   for (const pob of pobs) {
     const r = pob.rutina;
     const f = rend.get(pob.deporte);
@@ -699,6 +704,8 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
         animo: resil,
         constitucion: n.cap![CAPACIDADES_GENETICAS.indexOf('gen.constitucion')] ?? 50,
       });
+      // Las sesiones que ha hecho son los minutos de su cuerpo esta semana (si juega a más de un deporte con rutina, se suman).
+      if (sesionesPorId && res.sesiones > 0) sesionesPorId.set(n.id, (sesionesPorId.get(n.id) ?? 0) + res.sesiones);
       n.cap!.splice(0, n.cap!.length, ...res.cap);
       n.pico!.splice(0, n.pico!.length, ...res.pico);
       n.capUlt = res.capUlt;
@@ -768,7 +775,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   draftDeEquipos(mercado, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
   avisarDelProgreso('Dándole a cada uno su historia deportiva…', 0.37);
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
-  const resultado = { npcs: conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), pobs: [...mercado.pobs] };
+  const resultado = { npcs: conCuerpo(conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), 0, ctx.seed), pobs: [...mercado.pobs] };
   avisarDelProgreso('Dejando listo el mundo…', 0.98);
   return resultado;
 }
@@ -1215,9 +1222,12 @@ export const npcs = defineModule<NpcsState>({
       ctx.updateState<NpcsState>((s) => {
         const rend = rendimientosDe(ctx);
         const pobs = s.poblaciones ?? poblacionesDe(ctx, s.semilla ?? 0);
-        const npcs = conCapacidades(conHabilidades(s.npcs, pobs, rend, week * 7), week * 7);
+        const npcs = conCuerpo(conCapacidades(conHabilidades(s.npcs, pobs, rend, week * 7), week * 7), week * 7, s.semilla ?? 0);
         avanzarCapacidadesEnSitio(npcs, (week + 1) * 7);
-        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7);
+        const sesiones = new Map<string, number>();
+        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7, sesiones);
+        // El cuerpo de todos pasa la semana con los hábitos de cada uno (los que juegan, con sus sesiones).
+        semanaDelCuerpo(npcs, (week + 1) * 7, sesiones, s.semilla ?? 0);
         return { ...s, npcs };
       });
       // Si la semana que viene empieza un curso nuevo, se renueva la gente: los que acaban el colegio se van, entran niños nuevos y los equipos rellenan sus plazas.
@@ -1245,7 +1255,7 @@ export const npcs = defineModule<NpcsState>({
       ctx.updateState<NpcsState>((s) => {
         const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), proximo.day));
         const pobsNuevas = resultado.pobs ?? pobs;
-        return { ...s, poblaciones: pobsNuevas, npcs: conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
+        return { ...s, poblaciones: pobsNuevas, npcs: conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
       });
       // El entrenador le propone al personaje otro puesto si en el suyo sobran y en otro faltan (decide él: `club.cambio_de_puesto`).
       for (const p of resultado.propuestas) if (!resultado.sinPlaza.includes(p.deporte)) ctx.emit<PuestoPropuestoData>({ type: SHARED_EVENTS.PROPUESTA_DE_PUESTO, data: { sport: p.deporte, puesto: p.puesto } });

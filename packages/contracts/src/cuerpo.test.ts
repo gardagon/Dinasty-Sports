@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { vigoresPorEdad } from './desarrollo-de-persona';
 import { alturaDe } from './personas';
 import { alturaEn, complexion, objetivoDeCuerpo, pasoDeSemanaDelCuerpo, perdidaDeAltura, pesoDe } from './cuerpo';
 
@@ -61,6 +62,15 @@ describe('cuerpo: una sola regla para todas las personas', () => {
       expect(objetivoDeCuerpo(gym, hombre(20)).musculo).toBeGreaterThanOrEqual(60);
       // el adelanto del desarrollo sube el tope
       expect(objetivoDeCuerpo(gym, hombre(12, 1.5)).musculo).toBeGreaterThan(objetivoDeCuerpo(gym, hombre(12, -1.5)).musculo);
+    });
+
+    it('el tope sigue exactamente el vigor físico de vigoresPorEdad', () => {
+      for (const edad of [8, 11, 13, 17, 23, 24, 40, 70]) {
+        for (const madurez of [-1.5, 0, 1.5]) {
+          const tope = 15 + 0.75 * vigoresPorEdad(edad, madurez).fisico;
+          expect(objetivoDeCuerpo({ fuerza: 3000, activo: 0 }, hombre(edad, madurez)).musculo).toBeCloseTo(Math.min(90 - Math.max(0, edad - 40) * 0.5, tope), 9);
+        }
+      }
     });
 
     it('las mujeres tienen menos músculo objetivo y más grasa base', () => {

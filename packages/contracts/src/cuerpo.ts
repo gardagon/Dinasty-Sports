@@ -1,4 +1,4 @@
-import { vigoresPorEdad } from './desarrollo-de-persona';
+import { factorPorEdad } from './development';
 import type { BodyType } from './services';
 
 /**
@@ -114,7 +114,8 @@ export function objetivoDeCuerpo(h: HabitosDelCuerpo, q: QuienEs): { musculo: nu
   if (mujer) musculo *= CUERPO.mujerMusculo;
   musculo -= CUERPO.sarcopeniaPorAnio * Math.max(0, q.edad - CUERPO.sarcopeniaDesde);
   // Tope por desarrollo físico: un niño no se pone musculado por mucho gimnasio que haga; con la pubertad sí puede.
-  const tope = CUERPO.topeBase + (CUERPO.topePorFisico * vigoresPorEdad(q.edad, q.madurez).fisico) / 100;
+  // (El desarrollo físico es el de `vigoresPorEdad(edad, madurez).fisico`, sin calcular los demás vigores: esto se hace cada semana para todos.)
+  const tope = CUERPO.topeBase + CUERPO.topePorFisico * factorPorEdad('fisico', q.edad < 24 ? q.edad + q.madurez : q.edad);
   return { grasa, musculo: Math.max(5, Math.min(musculo, tope)) };
 }
 
