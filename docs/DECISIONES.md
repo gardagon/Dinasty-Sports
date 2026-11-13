@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 13/11/2026 — Visualizador de personas, fase 1: cuerpo y apariencia para todos (decisiones del usuario)
+
+- **Objetivo:** dibujar a cualquier persona desde los 8 años hasta la vejez con sus rasgos, su altura y su complexión. Antes del dibujo (fase 2) se cierran en el juego todos los datos que necesita, para no cambiar reglas a mitad: plan en `docs/PLAN_CUERPO_Y_APARIENCIA.md`.
+- **Músculo y grasa reales para todos los PNJ** («que sean a todos, no solo a los que importan»), con las mismas reglas que el personaje, y **historial anual para todos**. Medido el 13/11: 1.418 personas y 2,7 MB de estado; guardar el cuerpo cuesta ~+1 % y el historial ~8 KB por año de partida. El cálculo semanal es despreciable; lo que hay que diseñar son los hábitos de cada PNJ.
+- **Una sola regla del cuerpo en contracts** (altura, peso, músculo y grasa con la edad y el sexo); hoy el personaje y los PNJ usan curvas de altura distintas y los PNJ ignoran su `desfase`.
+- **Canas, calvicie y barba heredables**, con tendencias por origen. **Peinado y barba automáticos**, guardados para que el jugador pueda elegirlos más adelante (catálogo en la fase 2). **Retrato y cuerpo entero** a escala. El dibujo llega a los 95 años; la muerte es otra función.
+- **Reparto del trabajo:** una sesión de arquitectura diseña y otra desarrolla; las dudas van a «Preguntas abiertas» del plan.
+
 ## 12/11/2026 — Benjamín: todos los niños son nuevos en el club (decisión del usuario) y pendientes para después del MVP
 
 - **La regla**: en benjamín (`CategoriaDef.nuevosEnElClub`, dato de la categoría en `modules/futbol/src/datos.ts`) todos los niños llegan nuevos al club. Se asignan a su equipo al crear la partida, pero **no se «activan» hasta el primer entrenamiento de la temporada** (la primera semana del curso): su **asistencia** a los entrenamientos y su **relación con el entrenador** empiezan a contar desde ahí, **para todos, PNJ y personaje**. Antes no hay asistencia «heredada» de lo que hacían antes de la temporada (la plantilla sale con asistencia 1, sin penalización, y sin relación) y la primera semana solo cuenta lo de esa semana (`asistenciaDeLasDosUltimasSemanas(…, desde)`); desde la segunda, las dos últimas semanas como siempre. En el personaje (`asistenciaDelPersonaje`, `cuentaLaRelacion`) igual: no cuentan las sesiones de antes de la temporada y su relación con el entrenador no pesa hasta que ha ido a un entrenamiento de la temporada. **El resto de categorías siguen como antes** (el club ya conoce a sus jugadores y traen su asistencia).
