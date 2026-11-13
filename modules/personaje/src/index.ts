@@ -45,6 +45,7 @@ import {
 import {
   EDAD_INICIAL,
   NOMBRE_COMPLEXION,
+  SEXO_DEL_PERSONAJE,
   actualizarCuerpo,
   edadDecimal,
   initIdentidad,
@@ -76,7 +77,7 @@ export const personaje = defineModule<IdentidadState>({
     const efecto = efectosDe(perks.activos);
     for (const [stat, delta] of Object.entries(efecto.tope)) ctx.bonusDeTope(stat, delta);
     // Origen, apariencia, carácter e intereses salen de los padres (la opción de elegirlos a mano llegará con la creación de personaje).
-    const perfil = perfilHeredado(ctx.rasgosDePadres.padre, ctx.rasgosDePadres.madre, ctx.rng);
+    const perfil = perfilHeredado(ctx.rasgosDePadres.padre, ctx.rasgosDePadres.madre, ctx.rng, SEXO_DEL_PERSONAJE);
     return { ...initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, perfil, efecto.alturaCm), semilla: ctx.seed };
   },
   stats: [

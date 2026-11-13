@@ -233,7 +233,7 @@ export class Game {
     // Perks de los padres: se sortean al final para no alterar el resto de tiradas.
     lin.perks ??= { padre: perksDePadre(rng), madre: perksDePadre(rng) };
     // Su origen sale de la semilla (no del azar de la partida) para que sus nombres, que se piden aparte, sean coherentes con él.
-    lin.rasgos ??= { padre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'padre', paisPorId(state.pais)) }), madre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'madre', paisPorId(state.pais)) }) };
+    lin.rasgos ??= { padre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'padre', paisPorId(state.pais)), sexo: 'm' }), madre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'madre', paisPorId(state.pais)), sexo: 'f' }) };
   }
 
   /** Tope de las stats derivadas: media ponderada de los topes de las que apoyan, por la aptitud propia. */

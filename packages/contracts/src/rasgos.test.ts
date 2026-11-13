@@ -134,7 +134,7 @@ describe('apariencia, origen y herencia', () => {
     }
   });
 
-  const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron_oscuro', piel: 'media', cara: 'ovalada', distintivos: [] };
+  const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron_oscuro', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6 };
 
   it('los hijos se parecen a sus padres: cada rasgo viene de uno o es un intermedio', () => {
     const rng = rngDe(9);
@@ -183,7 +183,7 @@ describe('gustos, compatibilidad y perfil', () => {
   });
 
   it('quien coincide con los gustos atrae más', () => {
-    const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [] };
+    const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6 };
     const gustos = { fisicos: { peloColor: ['negro'], ojos: ['marron'], piel: ['media'], cara: ['ovalada'] }, caracter: { sociabilidad: 30 } };
     expect(atraccion(gustos, base, { sociabilidad: 30 })).toBeGreaterThan(atraccion(gustos, { ...base, peloColor: 'rubio', ojos: 'azul', piel: 'clara', cara: 'cuadrada' }, { sociabilidad: -30 }));
   });
@@ -263,5 +263,69 @@ describe('cómo se llama a alguien según su edad', () => {
     expect([m(70), m(95)]).toEqual(['Un anciano', 'Un anciano']);
     expect([f(70), f(95)]).toEqual(['Una anciana', 'Una anciana']);
     expect([m(undefined), f(undefined)]).toEqual(['Un chico', 'Una chica']);
+  });
+
+  describe('canas, calvicie y barba (heredables)', () => {
+    const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron_oscuro', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6 };
+    const media = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sd = (xs: number[]) => Math.sqrt(media(xs.map((x) => (x - media(xs)) ** 2)));
+
+    it('al azar: normales con la media y la desviación del plan, con el tope de calvicie de las mujeres', () => {
+      const rng = rngDe(21);
+      const centro = { id: 'espana_centro', peso: 1 };
+      const h = Array.from({ length: 4000 }, () => aparienciaAlAzar(rng, [centro], 'm'));
+      const m = Array.from({ length: 4000 }, () => aparienciaAlAzar(rng, [centro], 'f'));
+      expect(media(h.map((a) => a.canas))).toBeGreaterThan(33);
+      expect(media(h.map((a) => a.canas))).toBeLessThan(35);
+      expect(sd(h.map((a) => a.canas))).toBeGreaterThan(5);
+      expect(h.every((a) => a.canas >= 20 && a.canas <= 60)).toBe(true);
+      expect(media(h.map((a) => a.calvicie))).toBeGreaterThan(0.42);
+      expect(media(h.map((a) => a.calvicie))).toBeLessThan(0.52);
+      expect(media(m.map((a) => a.calvicie))).toBeLessThan(0.14);
+      expect(Math.max(...m.map((a) => a.calvicie))).toBeLessThanOrEqual(0.4);
+      expect(media(h.map((a) => a.barba))).toBeGreaterThan(0.56);
+      expect(media(h.map((a) => a.barba))).toBeLessThan(0.64);
+      expect([...h, ...m].every((a) => a.barba >= 0 && a.barba <= 1 && a.calvicie >= 0 && a.calvicie <= 1)).toBe(true);
+    });
+
+    it('tendencias por origen: Asia oriental, canas más tarde y menos barba; Europa del norte, canas antes; sur y Magreb, más barba; África subsahariana, canas más tarde', () => {
+      const rng = rngDe(22);
+      const de = (id: string) => Array.from({ length: 3000 }, () => aparienciaAlAzar(rng, [{ id, peso: 1 }], 'm'));
+      const centro = de('espana_centro');
+      const dif = (id: string, campo: 'canas' | 'barba') => media(de(id).map((a) => a[campo])) - media(centro.map((a) => a[campo]));
+      expect(dif('asia_oriental', 'canas')).toBeGreaterThan(3);
+      expect(dif('asia_oriental', 'barba')).toBeLessThan(-0.2);
+      expect(dif('europa_norte', 'canas')).toBeLessThan(-1);
+      expect(dif('espana_sur', 'barba')).toBeGreaterThan(0.05);
+      expect(dif('magreb', 'barba')).toBeGreaterThan(0.05);
+      expect(dif('africa_subsahariana', 'canas')).toBeGreaterThan(2);
+    });
+
+    it('herencia: canas y barba, la media de los padres ± poco; calvicie, más de la madre, con el tope del sexo del hijo', () => {
+      const rng = rngDe(23);
+      const padre = { ...base, canas: 30, calvicie: 0.9, barba: 0.9 };
+      const madre = { ...base, canas: 40, calvicie: 0.1, barba: 0.3 };
+      const hijos = Array.from({ length: 3000 }, () => aparienciaHeredada(padre, madre, rng, 'm'));
+      const hijas = Array.from({ length: 3000 }, () => aparienciaHeredada(padre, madre, rng, 'f'));
+      expect(hijos.every((h) => Math.abs(h.canas - 35) <= 3.05)).toBe(true);
+      expect(hijos.every((h) => Math.abs(h.barba - 0.6) <= 0.105)).toBe(true);
+      // 0,6 × 0,1 + 0,4 × 0,9 = 0,42
+      expect(media(hijos.map((h) => h.calvicie))).toBeGreaterThan(0.4);
+      expect(media(hijos.map((h) => h.calvicie))).toBeLessThan(0.44);
+      expect(Math.max(...hijas.map((h) => h.calvicie))).toBeLessThanOrEqual(0.4);
+    });
+
+    it('las personas del mundo y los hijos del juego las llevan', () => {
+      const rng = rngDe(24);
+      const padre = rasgosAlAzar(rng, { sexo: 'm' });
+      const madre = rasgosAlAzar(rng, { sexo: 'f' });
+      for (const r of [padre, madre, rasgosHeredadosNpc(padre, madre, rng, 'f'), perfilHeredado(padre, madre, rng, 'm')]) {
+        const a = 'apariencia' in r ? r.apariencia : r;
+        expect(typeof a.canas).toBe('number');
+        expect(typeof a.calvicie).toBe('number');
+        expect(typeof a.barba).toBe('number');
+      }
+      expect(madre.apariencia.calvicie).toBeLessThanOrEqual(0.4);
+    });
   });
 });

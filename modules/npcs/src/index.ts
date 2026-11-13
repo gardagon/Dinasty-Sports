@@ -333,7 +333,7 @@ const ASIGNATURAS_DE_PROFESORES = ['Lengua', 'Matemáticas', 'Inglés', 'Educaci
  */
 export function persona(rng: Rng, id: string, role: NpcRole, edad: number, dia: number, usados: RegistroDeNombres, tipos: TipoAsignado[], descripcion: (g: Gender) => string, tags: string[] = [], conGenetica = false): Npc {
   const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
-  const gustos = rasgosDeAqui(rng);
+  const gustos = rasgosDeAqui(rng, { sexo: gender });
   const nacimiento = primerDiaDelAnio(anioNatural(dia) - edad) + rng.int(0, 364);
   const nombre = nombreUnico(rng, gender, gustos.origen, edad, nacimiento, usados);
   const genetica = conGenetica ? geneticaDeNino(rng, id) : undefined;
@@ -490,7 +490,7 @@ export function hermanos(ctx: InitContext, usados: RegistroDeNombres): Npc[] {
     const genetica = geneticaDeHermano(rng, ctx.topesDePadres, ctx.perksDePadres, rngEstable('perks', ctx.seed, id), ctx.seed, id);
     const edad = EDAD_DE_INICIO + dif;
     const nacimiento = primerDiaDelAnio(anioNatural(0) - edad) + rng.int(0, 364);
-    const rasgos = rasgosHeredadosNpc(rasgosPadre, rasgosMadre, rng);
+    const rasgos = rasgosHeredadosNpc(rasgosPadre, rasgosMadre, rng, gender);
     // Su nombre sale del origen de sus padres y lleva el primer apellido de cada uno; puede llamarse como su padre o su madre (15 años de diferencia), no como otro niño.
     let identidad = identidadDeHijo(rng, gender, padres.padre.identidad, padres.madre.identidad, rasgos.origen, { edad, pais: PAIS_GENERANDO });
     for (let k = 0; k < 60 && !nombrePermitido(usados, nombreCompleto(identidad, gender), nacimiento); k++) identidad = identidadDeHijo(rng, gender, padres.padre.identidad, padres.madre.identidad, rasgos.origen, { edad, pais: PAIS_GENERANDO });
@@ -551,19 +551,19 @@ function generarReparto(ctx: InitContext, pob: PoblacionGuardada | undefined): N
   return [
     ...(pob ? [nuevoEntrenador(rng, pob, usados, { id: 'entrenador', club: 'colegio', edades: [0, 99], edad: [28, 55], descripcion: pob.entrenadores.descripcionDelColegio })] : []),
     npc('tutor', 'profesor', (g) => ({
-      rasgos: rasgosDeAqui(rng, { sesgoCaracter: { disciplina: 15, honestidad: 10 }, interesesPreferidos: ['estudio', 'lectura'] }),
+      rasgos: rasgosDeAqui(rng, { sesgoCaracter: { disciplina: 15, honestidad: 10 }, interesesPreferidos: ['estudio', 'lectura'], sexo: g }),
       tags: ['estudio', 'mentor'],
       description: `${o(g, 'Tu tutora', 'Tu tutor')}. Exigente pero ${o(g, 'justa', 'justo')}.`,
       tipos: [{ tipo: 'profesor' }],
     }), edadAdultaDe('tutor', 28, 60)),
     npc('companero_estudio', 'companero', (g) => ({
-      rasgos: rasgosDeAqui(rng, { sesgoCaracter: { disciplina: 15, sociabilidad: -5 }, interesesPreferidos: ['estudio', 'tecnologia'] }),
+      rasgos: rasgosDeAqui(rng, { sesgoCaracter: { disciplina: 15, sociabilidad: -5 }, interesesPreferidos: ['estudio', 'tecnologia'], sexo: g }),
       tags: ['estudio'],
       description: `${o(g, 'Compañera de clase aplicada', 'Compañero de clase aplicado')}.`,
       tipos: [{ tipo: 'alumno', tuClase: true }],
     }), EDAD_ALUMNO_MIN),
-    npc('companero_social', 'companero', () => ({
-      rasgos: rasgosDeAqui(rng, { sesgoCaracter: { sociabilidad: 20, optimismo: 8 }, interesesPreferidos: ['videojuegos', 'cine', 'musica'] }),
+    npc('companero_social', 'companero', (g) => ({
+      rasgos: rasgosDeAqui(rng, { sesgoCaracter: { sociabilidad: 20, optimismo: 8 }, interesesPreferidos: ['videojuegos', 'cine', 'musica'], sexo: g }),
       tags: ['social'],
       description: 'Conoce a todo el mundo en el colegio.',
       tipos: [{ tipo: 'alumno', tuClase: true }],
@@ -801,7 +801,7 @@ export function nuevoEntrenador(
   e: { id: string; club: string; edades: readonly [number, number]; edad: readonly [number, number]; descripcion?: string },
 ): Npc {
   const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
-  const rasgos = rasgosDeAqui(rng, { sesgoCaracter: pob.entrenadores.sesgoCaracter, interesesPreferidos: pob.entrenadores.interesesPreferidos });
+  const rasgos = rasgosDeAqui(rng, { sesgoCaracter: pob.entrenadores.sesgoCaracter, interesesPreferidos: pob.entrenadores.interesesPreferidos, sexo: gender });
   const edad = edadAdultaDe(e.id, e.edad[0], e.edad[1]);
   const nacimiento = nacimientoParaEdad(e.id, edad);
   const nombre = nombreUnico(rng, gender, rasgos.origen, edad, nacimiento, usados);
