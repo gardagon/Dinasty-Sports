@@ -22,6 +22,9 @@ export const SERVICES = {
   lugares: 'lugares',
   presencia: 'presencia',
   partidos: 'partidos',
+  /** Lectura del cuerpo de las personas para el visualizador (`CuerpoService`, ver `cuerpo.ts`): cada módulo dueño de personas da el suyo con el mismo contrato. */
+  cuerpoPersonaje: 'cuerpo.personaje',
+  cuerpoNpcs: 'cuerpo.npcs',
 } as const;
 
 // ---------- NPCs ----------

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { PAIS_CIUDAD_DE_PRUEBA, complexion, fotosDelHistorial, registrarPais } from '@ds/contracts';
+import { ID_DEL_PERSONAJE, PAIS_CIUDAD_DE_PRUEBA, SERVICES, alturaEn, complexion, cuerpoDePersona, fotosDelHistorial, registrarPais, type CuerpoService, type FamilyService } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
+import { familia } from '@ds/mod-familia';
 import { lugares } from '@ds/mod-lugares';
 import { atletismo } from '@ds/mod-atletismo';
 import { actividadDeAdulto, actividadTrasElCumple, conCuerpo, habitosDeNpc, semanaDelCuerpo } from './cuerpo';
@@ -82,5 +83,35 @@ describe('cuerpo de los PNJ', () => {
     const despues = lista();
     expect(despues.filter((n) => n.nacimiento !== undefined && !n.cuerpo)).toHaveLength(0);
     expect(despues.filter((n) => n.cuerpo && antes.get(n.id) !== n.cuerpo.join()).length).toBeGreaterThan(despues.length / 2);
+  });
+
+  it('el servicio de lectura da el cuerpo de cualquier persona igual: el personaje, el padre y la madre y los PNJ', () => {
+    const g = Game.create([personaje, familia, npcs, lugares, atletismo], { seed: 9 });
+    const ctx = { service: <T>(id: string) => g.service<T>(id) };
+    const yo = cuerpoDePersona(ctx, ID_DEL_PERSONAJE)!;
+    expect(yo.sexo).toBe('m');
+    expect(yo.nacimiento).toBeLessThan(0);
+    expect(typeof yo.apariencia.canas).toBe('number');
+    const padres = g.service<FamilyService>(SERVICES.familia)!.parents();
+    for (const p of padres) {
+      const c = cuerpoDePersona(ctx, p.id)!;
+      expect(c.sexo).toBe(p.gender);
+      expect(c.alturaAdulta).toBeCloseTo(p.alturaCm, 0);
+      expect(c.nacimiento).toBeLessThan(-35 * 365);
+      expect(c.musculo).toBeGreaterThan(0);
+      expect(alturaEn(c.alturaAdulta, p.edad, c.madurez)).toBeCloseTo(p.alturaCm, -1);
+    }
+    // todos los PNJ tienen todo lo que hace falta para dibujarlos y su semilla es estable
+    const dir = g.service<CuerpoService>(SERVICES.cuerpoNpcs)!;
+    const lista = g.moduleState<NpcsState>('npcs').npcs;
+    expect(dir.ids()).toHaveLength(lista.length);
+    for (const n of lista.slice(0, 200)) {
+      const c = dir.de(n.id)!;
+      expect(c.sexo).toBe(n.gender);
+      expect([c.apariencia.canas, c.apariencia.calvicie, c.apariencia.barba].every(Number.isFinite)).toBe(true);
+      expect(c.semilla).toBe(dir.de(n.id)!.semilla);
+    }
+    expect(new Set(lista.map((n) => dir.de(n.id)!.semilla)).size).toBeGreaterThan(lista.length * 0.99);
+    expect(cuerpoDePersona(ctx, 'nadie')).toBeUndefined();
   });
 });

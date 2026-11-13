@@ -1,5 +1,8 @@
 import { factorPorEdad } from './development';
-import type { BodyType } from './services';
+import { azarDe } from './agendas';
+import type { Apariencia } from './rasgos';
+import { SERVICES, type BodyType, type Gender } from './services';
+import type { ReadContext } from './context';
 
 /**
  * EL CUERPO DE UNA PERSONA, para todas: el personaje (`personaje`), los PNJ (`npcs`) y los padres (`familia`) siguen estas reglas, que son funciones puras
@@ -152,4 +155,54 @@ export function fotoDeEdad(hc: HistorialDeCuerpo | undefined, edad: number): { m
   if (!hc || n === 0) return undefined;
   const i = Math.min(n - 1, Math.max(0, Math.floor(edad) - hc[0]));
   return { musculo: hc[1 + 2 * i], grasa: hc[2 + 2 * i] };
+}
+
+// ------------------------------------------------------------------------------------------------------------ lectura para el visualizador
+
+/** El id del personaje en `CuerpoService` (los PNJ, incluidos el padre y la madre, tienen el suyo). */
+export const ID_DEL_PERSONAJE = 'personaje';
+
+/**
+ * Todo lo que necesita el visualizador para dibujar a una persona a cualquier edad, igual para todas (solo lectura). La altura y el peso de cada edad se calculan con
+ * `alturaEn` y `pesoDe` a partir de `alturaAdulta`, `madurez` y la foto del historial (`fotoDeEdad`).
+ */
+export interface CuerpoDePersona {
+  id: string;
+  sexo: Gender;
+  /** Día de nacimiento respecto al inicio de la partida (negativo si nació antes). */
+  nacimiento: number;
+  /** Altura adulta (cm), antes de la pérdida de la vejez. */
+  alturaAdulta: number;
+  /** Adelanto (+) o retraso (−) del desarrollo, en años (el `madurez` del personaje, el `desfase` de un PNJ; 0 si no tiene). */
+  madurez: number;
+  /** Músculo y grasa de hoy (0 a 100). */
+  musculo: number;
+  grasa: number;
+  /** Historial anual (`HistorialDeCuerpo`): vacío si aún no ha cumplido años en la partida. */
+  historial: number[];
+  /** Con `canas`, `calvicie` y `barba`. */
+  apariencia: Apariencia;
+  /** Estable por persona: lo que el dibujo genere al azar (qué canas, qué barba) sale de ella. */
+  semilla: number;
+}
+
+export interface CuerpoService {
+  /** El cuerpo de una persona, o `undefined` si este módulo no la conoce (o aún no tiene datos). */
+  de(id: string): CuerpoDePersona | undefined;
+  /** Los ids de las personas que este módulo da. */
+  ids(): string[];
+}
+
+/** La semilla estable de dibujo de una persona (entero sin signo de 32 bits) a partir de la semilla de la partida y su id. */
+export function semillaDeDibujo(semillaDeLaPartida: number, id: string): number {
+  return Math.floor(azarDe('dibujo', semillaDeLaPartida, id) * 4294967296);
+}
+
+/** Busca el cuerpo de cualquier persona entre los módulos que dan `CuerpoService`. */
+export function cuerpoDePersona(ctx: Pick<ReadContext, 'service'>, id: string): CuerpoDePersona | undefined {
+  for (const s of [SERVICES.cuerpoPersonaje, SERVICES.cuerpoNpcs]) {
+    const c = ctx.service<CuerpoService>(s)?.de(id);
+    if (c) return c;
+  }
+  return undefined;
 }

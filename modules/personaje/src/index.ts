@@ -1,6 +1,10 @@
 import {
   CORE_EVENTS,
+  ID_DEL_PERSONAJE,
   conFotoDelCumple,
+  semillaDeDibujo,
+  type CuerpoDePersona,
+  type CuerpoService,
   GEN,
   SERVICES,
   factorPorEdad,
@@ -47,6 +51,7 @@ import {
   NOMBRE_COMPLEXION,
   SEXO_DEL_PERSONAJE,
   actualizarCuerpo,
+  diaDeNacimiento,
   edadDecimal,
   initIdentidad,
   viewIdentidad,
@@ -426,6 +431,22 @@ export const personaje = defineModule<IdentidadState>({
   },
 
   services: {
+    [SERVICES.cuerpoPersonaje]: (ctx): CuerpoService => {
+      const s = ctx.state<IdentidadState>();
+      const cuerpo = (): CuerpoDePersona => ({
+        id: ID_DEL_PERSONAJE,
+        sexo: SEXO_DEL_PERSONAJE,
+        nacimiento: diaDeNacimiento(s),
+        alturaAdulta: s.alturaAdulta,
+        madurez: s.madurez,
+        musculo: Math.round(s.musculo * 100) / 100,
+        grasa: Math.round(s.grasa * 100) / 100,
+        historial: [...(s.hc ?? [])],
+        apariencia: s.perfil.apariencia,
+        semilla: semillaDeDibujo(s.semilla ?? 0, ID_DEL_PERSONAJE),
+      });
+      return { de: (id) => (id === ID_DEL_PERSONAJE ? cuerpo() : undefined), ids: () => [ID_DEL_PERSONAJE] };
+    },
     [SERVICES.perfil]: (ctx): ProfileService => ({ view: () => ctx.state<IdentidadState>().perfil }),
     [SERVICES.perks]: (ctx): PerksService => {
       const { perks } = ctx.state<IdentidadState>();
