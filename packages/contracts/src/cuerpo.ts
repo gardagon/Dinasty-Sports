@@ -1,3 +1,4 @@
+import { vigoresPorEdad } from './desarrollo-de-persona';
 import type { BodyType } from './services';
 
 /**
@@ -71,6 +72,13 @@ export interface HabitosDelCuerpo {
   activo: number;
 }
 
+/** Quién es: la edad (años con decimales), el adelanto o retraso del desarrollo y el sexo (`m` o `f`). */
+export interface QuienEs {
+  edad: number;
+  madurez: number;
+  sexo: 'f' | 'm';
+}
+
 /** Cifras del músculo y la grasa. Ajustables con la simulación. */
 export const CUERPO = {
   /** Ritmo semanal al que el cuerpo se acerca a su objetivo. */
@@ -81,18 +89,37 @@ export const CUERPO = {
   actividadBasica: 60,
   musculoBase: 12,
   musculoPorMinutoFuerza: 0.1,
+  /** El músculo no pasa de `topeBase + topePorFisico × fisico/100` (el desarrollo físico de su edad: `vigoresPorEdad`). */
+  topeBase: 15,
+  topePorFisico: 75,
+  /** Mujeres: su objetivo de músculo se multiplica por `mujerMusculo` y su base de grasa sube `mujerGrasa`. */
+  mujerMusculo: 0.75,
+  mujerGrasa: 8,
+  /** Desde esta edad el objetivo de músculo baja `sarcopeniaPorAnio` por año. */
+  sarcopeniaDesde: 40,
+  sarcopeniaPorAnio: 0.5,
+  /** Desde esta edad la base de grasa sube `metabolismoPorAnio` por año hasta un máximo de `metabolismoMax`. */
+  metabolismoDesde: 30,
+  metabolismoPorAnio: 0.3,
+  metabolismoMax: 12,
 };
 
-/** Hacia dónde tiende el cuerpo con unos hábitos semanales. */
-export function objetivoDeCuerpo(h: HabitosDelCuerpo): { musculo: number; grasa: number } {
-  return {
-    grasa: clamp(CUERPO.grasaBase - (h.activo + CUERPO.actividadBasica) * CUERPO.grasaPorMinutoActivo, 20, 80),
-    musculo: clamp(CUERPO.musculoBase + h.fuerza * CUERPO.musculoPorMinutoFuerza, 10, 90),
-  };
+/** Hacia dónde tiende el cuerpo con unos hábitos semanales, a su edad y siendo quien es. */
+export function objetivoDeCuerpo(h: HabitosDelCuerpo, q: QuienEs): { musculo: number; grasa: number } {
+  const mujer = q.sexo === 'f';
+  const metabolismo = clamp(CUERPO.metabolismoPorAnio * (q.edad - CUERPO.metabolismoDesde), 0, CUERPO.metabolismoMax);
+  const grasaBase = CUERPO.grasaBase + (mujer ? CUERPO.mujerGrasa : 0) + metabolismo;
+  const grasa = clamp(grasaBase - (h.activo + CUERPO.actividadBasica) * CUERPO.grasaPorMinutoActivo, 20, 80);
+  let musculo = clamp(CUERPO.musculoBase + h.fuerza * CUERPO.musculoPorMinutoFuerza, 10, 90);
+  if (mujer) musculo *= CUERPO.mujerMusculo;
+  musculo -= CUERPO.sarcopeniaPorAnio * Math.max(0, q.edad - CUERPO.sarcopeniaDesde);
+  // Tope por desarrollo físico: un niño no se pone musculado por mucho gimnasio que haga; con la pubertad sí puede.
+  const tope = CUERPO.topeBase + (CUERPO.topePorFisico * vigoresPorEdad(q.edad, q.madurez).fisico) / 100;
+  return { grasa, musculo: Math.max(5, Math.min(musculo, tope)) };
 }
 
 /** Paso semanal: el músculo y la grasa se acercan a su objetivo con la inercia de hoy (8 %). */
-export function pasoDeSemanaDelCuerpo(c: { musculo: number; grasa: number }, h: HabitosDelCuerpo): { musculo: number; grasa: number } {
-  const obj = objetivoDeCuerpo(h);
+export function pasoDeSemanaDelCuerpo(c: { musculo: number; grasa: number }, h: HabitosDelCuerpo, q: QuienEs): { musculo: number; grasa: number } {
+  const obj = objetivoDeCuerpo(h, q);
   return { musculo: c.musculo + (obj.musculo - c.musculo) * CUERPO.inercia, grasa: c.grasa + (obj.grasa - c.grasa) * CUERPO.inercia };
 }

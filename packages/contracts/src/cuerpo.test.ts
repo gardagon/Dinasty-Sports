@@ -43,9 +43,41 @@ describe('cuerpo: una sola regla para todas las personas', () => {
 
   it('el paso semanal se acerca al objetivo un 8 %', () => {
     const h = { fuerza: 300, activo: 400 };
-    const o = objetivoDeCuerpo(h);
-    const p = pasoDeSemanaDelCuerpo({ musculo: 20, grasa: 50 }, h);
+    const q = { edad: 25, madurez: 0, sexo: 'm' as const };
+    const o = objetivoDeCuerpo(h, q);
+    const p = pasoDeSemanaDelCuerpo({ musculo: 20, grasa: 50 }, h, q);
     expect(p.musculo).toBeCloseTo(20 + (o.musculo - 20) * 0.08, 9);
     expect(p.grasa).toBeCloseTo(50 + (o.grasa - 50) * 0.08, 9);
+  });
+
+  describe('músculo y grasa con la edad y el sexo', () => {
+    const gym = { fuerza: 900, activo: 600 };
+    const hombre = (edad: number, madurez = 0) => ({ edad, madurez, sexo: 'm' as const });
+    const mujer = (edad: number, madurez = 0) => ({ edad, madurez, sexo: 'f' as const });
+
+    it('un niño de 8 años no se pone musculado aunque haga mucha fuerza; con la pubertad sí puede', () => {
+      expect(complexion(objetivoDeCuerpo(gym, hombre(8)).musculo, 40)).not.toBe('musculado');
+      expect(objetivoDeCuerpo(gym, hombre(11)).musculo).toBeLessThan(60);
+      expect(objetivoDeCuerpo(gym, hombre(20)).musculo).toBeGreaterThanOrEqual(60);
+      // el adelanto del desarrollo sube el tope
+      expect(objetivoDeCuerpo(gym, hombre(12, 1.5)).musculo).toBeGreaterThan(objetivoDeCuerpo(gym, hombre(12, -1.5)).musculo);
+    });
+
+    it('las mujeres tienen menos músculo objetivo y más grasa base', () => {
+      const medio = { fuerza: 900, activo: 200 };
+      const h = objetivoDeCuerpo(medio, hombre(25));
+      const m = objetivoDeCuerpo(medio, mujer(25));
+      expect(m.musculo).toBeCloseTo(h.musculo * 0.75, 6);
+      expect(m.grasa).toBeCloseTo(h.grasa + 8, 6);
+    });
+
+    it('sarcopenia desde los 40 y metabolismo desde los 30 (máximo +12)', () => {
+      const poco = { fuerza: 300, activo: 300 };
+      const a = objetivoDeCuerpo(poco, hombre(40));
+      const b = objetivoDeCuerpo(poco, hombre(60));
+      expect(a.musculo - b.musculo).toBeCloseTo(10, 6);
+      expect(objetivoDeCuerpo(poco, hombre(40)).grasa - objetivoDeCuerpo(poco, hombre(30)).grasa).toBeCloseTo(3, 6);
+      expect(objetivoDeCuerpo(poco, hombre(90)).grasa - objetivoDeCuerpo(poco, hombre(70)).grasa).toBeCloseTo(0, 6);
+    });
   });
 });

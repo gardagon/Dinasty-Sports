@@ -374,7 +374,7 @@ export const personaje = defineModule<IdentidadState>({
         }
       }
       const sana = antes.semana.activo >= 120 && antes.semana.descanso >= 50 * 60 && ctx.stat(GEN.estres) < 60;
-      const despues = actualizarCuerpo(antes);
+      const despues = actualizarCuerpo(antes, ctx.time.day);
       ctx.setState<IdentidadState>(despues);
       // La constitución se forja con hábitos sostenidos, no entrenándola directamente.
       if (sana && despues.cuerpo !== 'con_sobrepeso') ctx.train(GEN.constitucion, 1);

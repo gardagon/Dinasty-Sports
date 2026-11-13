@@ -11,6 +11,9 @@ import { PROPORCION_DE_ZURDOS, SD_Z_HIJO, alturaEn as alturaDeCuerpo, anioNatura
  */
 export const EDAD_INICIAL = 8;
 
+/** Hoy el personaje es chico (el sexo entra en las reglas del cuerpo igual que en las de cualquier persona). */
+export const SEXO_DEL_PERSONAJE = 'm' as const;
+
 export interface HabitosSemana {
   /** Minutos de la semana en acciones de fuerza, aeróbicas y físicas en general, y de descanso/sueño. */
   fuerza: number;
@@ -96,8 +99,8 @@ export function viewIdentidad(s: IdentidadState, day: number, primerDiaDelCurso:
 }
 
 /** Fin de semana: el cuerpo se mueve despacio hacia lo que dicen los hábitos (`pasoDeSemanaDelCuerpo`, en contracts). */
-export function actualizarCuerpo(s: IdentidadState): IdentidadState {
-  const { musculo, grasa } = pasoDeSemanaDelCuerpo(s, s.semana);
+export function actualizarCuerpo(s: IdentidadState, day: number): IdentidadState {
+  const { musculo, grasa } = pasoDeSemanaDelCuerpo(s, s.semana, { edad: edadDecimal(s, day), madurez: s.madurez, sexo: SEXO_DEL_PERSONAJE });
   return { ...s, grasa, musculo, cuerpo: complexion(musculo, grasa), semana: { ...SIN_HABITOS } };
 }
 
