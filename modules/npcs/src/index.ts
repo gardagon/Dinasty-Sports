@@ -95,6 +95,8 @@ export interface Npc {
   desfase?: number;
   /** Su músculo y su grasa reales (0 a 100, con dos decimales): [músculo, grasa]. Los tienen todos los que tienen fecha de nacimiento y siguen las mismas reglas que el personaje (`cuerpo.ts`). */
   cuerpo?: [number, number];
+  /** Su historial anual: una foto por cumpleaños (`[edad de la primera foto, músculo, grasa, músculo, grasa, …]`, en enteros; ver `conFotoDelCumple`). Quien ya existía al empezar la partida no tiene fotos de antes de su primer cumpleaños. */
+  hc?: number[];
   /** Adultos: su actividad física propia, estable y que cambia un poco cada cumpleaños: [minutos de actividad, minutos de fuerza] a la semana. */
   actividad?: [number, number];
   /** ¿El personaje ya lo conoce? Los rivales se conocen al competir contra ellos. Ausente = sí. */

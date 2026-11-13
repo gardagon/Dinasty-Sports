@@ -62,6 +62,16 @@ describe('módulo personaje (gen)', () => {
       expect(g.log.some((l) => /Cumples 9 años/.test(l.text))).toBe(true);
     });
 
+    it('guarda una foto del cuerpo en cada cumpleaños, en enteros', () => {
+      const g = Game.create([personaje], { seed: 3 });
+      expect(g.moduleState<IdentidadState>('gen').hc).toBeUndefined();
+      pasarDias(g, 366 * 3);
+      const hc = g.moduleState<IdentidadState>('gen').hc!;
+      expect(hc[0]).toBe(9);
+      expect(hc).toHaveLength(1 + 2 * 3);
+      expect(hc.every(Number.isInteger)).toBe(true);
+    });
+
     it('cada partida tiene su propia altura adulta', () => {
       const alturas = [1, 2, 3, 4, 5, 6].map((seed) => vista(Game.create([personaje], { seed })).heightCm);
       expect(new Set(alturas).size).toBeGreaterThan(3);

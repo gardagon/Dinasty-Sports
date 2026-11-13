@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PAIS_CIUDAD_DE_PRUEBA, complexion, registrarPais } from '@ds/contracts';
+import { PAIS_CIUDAD_DE_PRUEBA, complexion, fotosDelHistorial, registrarPais } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { lugares } from '@ds/mod-lugares';
@@ -62,6 +62,15 @@ describe('cuerpo de los PNJ', () => {
     const lista = conCuerpo([persona('nino', 9)], 0, 1);
     for (let w = 1; w <= 80; w++) semanaDelCuerpo(lista, w * 7, new Map([['nino', 12]]), 1);
     expect(complexion(...lista[0].cuerpo!)).not.toBe('musculado');
+  });
+
+  it('en cada cumpleaños guarda una foto en enteros, una por año', () => {
+    const lista = conCuerpo([persona('a', 10.5)], 0, 1);
+    for (let w = 1; w <= 52 * 3; w++) semanaDelCuerpo(lista, w * 7, new Map(), 1);
+    const hc = lista[0].hc!;
+    expect(hc[0]).toBe(11);
+    expect(fotosDelHistorial(hc)).toBe(3);
+    expect(hc.every(Number.isInteger)).toBe(true);
   });
 
   it('en una partida, todos los que tienen fecha de nacimiento tienen cuerpo y se mueve con las semanas', () => {

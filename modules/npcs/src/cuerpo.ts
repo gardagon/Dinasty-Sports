@@ -1,4 +1,4 @@
-import { complexion, objetivoDeCuerpo, pasoDeSemanaDelCuerpo, rngEstable, type HabitosDelCuerpo } from '@ds/contracts';
+import { complexion, conFotoDelCumple, objetivoDeCuerpo, pasoDeSemanaDelCuerpo, rngEstable, type HabitosDelCuerpo } from '@ds/contracts';
 import type { Npc } from './index';
 
 /**
@@ -103,7 +103,7 @@ export function conCuerpo(npcs: Npc[], dia: number, semilla: number): Npc[] {
 
 /**
  * Una semana del cuerpo de todos, **en el sitio** (no cambia la lista de personas: ver `avanzarCapacidadesEnSitio`). `fin` es el día en que acaba la semana; `sesiones` dice
- * cuántas sesiones de club hizo cada jugador de un deporte con rutina esa semana. En cada cumpleaños de un adulto su actividad cambia un poco.
+ * cuántas sesiones de club hizo cada jugador de un deporte con rutina esa semana. En cada cumpleaños de un adulto su actividad cambia un poco, y de todos se guarda una foto del cuerpo.
  */
 export function semanaDelCuerpo(npcs: readonly Npc[], fin: number, sesiones: ReadonlyMap<string, number>, semilla: number): void {
   for (const n of npcs) {
@@ -116,6 +116,8 @@ export function semanaDelCuerpo(npcs: readonly Npc[], fin: number, sesiones: Rea
     }
     const { musculo, grasa } = pasoDeSemanaDelCuerpo({ musculo: n.cuerpo[0], grasa: n.cuerpo[1] }, habitosDeNpc(n, edad, semilla, sesiones.get(n.id) ?? 0), { edad, madurez: n.desfase ?? 0, sexo: n.gender });
     n.cuerpo = [redondea2(musculo), redondea2(grasa)];
+    // En cada cumpleaños, una foto del cuerpo para el historial (la primera que haya es la de su primer cumpleaños de la partida).
+    if (edadCumplida > Math.floor((fin - 7 - n.nacimiento) / 365)) n.hc = conFotoDelCumple(n.hc, edadCumplida, n.cuerpo[0], n.cuerpo[1]);
   }
 }
 

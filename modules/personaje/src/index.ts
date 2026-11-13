@@ -1,5 +1,6 @@
 import {
   CORE_EVENTS,
+  conFotoDelCumple,
   GEN,
   SERVICES,
   factorPorEdad,
@@ -387,7 +388,10 @@ export const personaje = defineModule<IdentidadState>({
       const { day } = ev.data as DayEventData;
       const s = ctx.state<IdentidadState>();
       const edad = Math.floor(edadDecimal(s, day + 1));
-      if (edad > Math.floor(edadDecimal(s, day))) ctx.log(`¡Cumples ${edad} años!`, 'logro');
+      if (edad > Math.floor(edadDecimal(s, day))) {
+        ctx.log(`¡Cumples ${edad} años!`, 'logro');
+        ctx.updateState<IdentidadState>((i) => ({ ...i, hc: conFotoDelCumple(i.hc, edad, i.musculo, i.grasa) }));
+      }
       // El desarrollo físico sigue a la edad (con el adelanto o retraso propio): es el techo de lo físico. Lo alcanzable por edad en cada categoría
       // (`vigoresPorEdad`, en contracts) es la misma regla que sigue cualquier PNJ.
       const v = vigoresPorEdad(edadDecimal(s, day + 1), s.madurez);

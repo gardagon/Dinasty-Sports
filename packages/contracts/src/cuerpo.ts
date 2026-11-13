@@ -124,3 +124,32 @@ export function pasoDeSemanaDelCuerpo(c: { musculo: number; grasa: number }, h: 
   const obj = objetivoDeCuerpo(h, q);
   return { musculo: c.musculo + (obj.musculo - c.musculo) * CUERPO.inercia, grasa: c.grasa + (obj.grasa - c.grasa) * CUERPO.inercia };
 }
+
+// ------------------------------------------------------------------------------------------------------------ historial anual
+
+/**
+ * El historial del cuerpo: una foto por cumpleaños, en una lista de enteros sin objetos por año: `[edad de la primera foto, músculo, grasa, músculo, grasa, …]`.
+ * La altura y el peso no se guardan: se recalculan con las reglas de este archivo a partir de la genética y de la foto. Antes de la primera foto (quien ya existía al
+ * empezar la partida) se usa la primera que haya.
+ */
+export type HistorialDeCuerpo = readonly number[];
+
+/** Cuántas fotos tiene un historial. */
+export const fotosDelHistorial = (hc: HistorialDeCuerpo | undefined): number => (hc && hc.length > 0 ? (hc.length - 1) >> 1 : 0);
+
+/** Añade la foto del cumpleaños número `edad` (años cumplidos) con el músculo y la grasa de ese momento. Si esa edad ya tiene foto, o no es la siguiente, no cambia nada. */
+export function conFotoDelCumple(hc: HistorialDeCuerpo | undefined, edad: number, musculo: number, grasa: number): number[] {
+  const m = Math.round(musculo);
+  const g = Math.round(grasa);
+  if (!hc || hc.length === 0) return [edad, m, g];
+  if (edad !== hc[0] + fotosDelHistorial(hc)) return [...hc];
+  return [...hc, m, g];
+}
+
+/** La foto de una edad (años cumplidos): la de esa edad si la hay; la primera si es anterior a ella; la última si es posterior. `undefined` si no hay ninguna. */
+export function fotoDeEdad(hc: HistorialDeCuerpo | undefined, edad: number): { musculo: number; grasa: number } | undefined {
+  const n = fotosDelHistorial(hc);
+  if (!hc || n === 0) return undefined;
+  const i = Math.min(n - 1, Math.max(0, Math.floor(edad) - hc[0]));
+  return { musculo: hc[1 + 2 * i], grasa: hc[2 + 2 * i] };
+}

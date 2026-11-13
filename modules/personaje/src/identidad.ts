@@ -44,6 +44,8 @@ export interface IdentidadState {
   /** 0..100. Sube con el sedentarismo sostenido y baja con la actividad. */
   grasa: number;
   cuerpo: BodyType;
+  /** Su historial anual: una foto por cumpleaños (`[edad de la primera foto, músculo, grasa, …]`, en enteros), como el de cualquier persona (`conFotoDelCumple`, en contracts). Ausente en partidas anteriores. */
+  hc?: number[];
   /** Hábitos acumulados en la semana en curso. */
   semana: HabitosSemana;
   /** Perks: los activos (como mucho 3, los que afectan) y el pool que pasa a los hijos. */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { vigoresPorEdad } from './desarrollo-de-persona';
 import { alturaDe } from './personas';
-import { alturaEn, complexion, objetivoDeCuerpo, pasoDeSemanaDelCuerpo, perdidaDeAltura, pesoDe } from './cuerpo';
+import { alturaEn, conFotoDelCumple, fotoDeEdad, fotosDelHistorial, complexion, objetivoDeCuerpo, pasoDeSemanaDelCuerpo, perdidaDeAltura, pesoDe } from './cuerpo';
 
 describe('cuerpo: una sola regla para todas las personas', () => {
   it('la altura crece hasta los 18, se mantiene y se pierde en la vejez', () => {
@@ -88,6 +88,28 @@ describe('cuerpo: una sola regla para todas las personas', () => {
       expect(a.musculo - b.musculo).toBeCloseTo(10, 6);
       expect(objetivoDeCuerpo(poco, hombre(40)).grasa - objetivoDeCuerpo(poco, hombre(30)).grasa).toBeCloseTo(3, 6);
       expect(objetivoDeCuerpo(poco, hombre(90)).grasa - objetivoDeCuerpo(poco, hombre(70)).grasa).toBeCloseTo(0, 6);
+    });
+  });
+
+  describe('historial anual', () => {
+    it('una foto por cumpleaños, en una lista de enteros', () => {
+      let hc = conFotoDelCumple(undefined, 9, 20.4, 40.6);
+      expect(hc).toEqual([9, 20, 41]);
+      hc = conFotoDelCumple(hc, 10, 22, 39);
+      hc = conFotoDelCumple(hc, 11, 25.5, 38);
+      expect(hc).toEqual([9, 20, 41, 22, 39, 26, 38]);
+      expect(fotosDelHistorial(hc)).toBe(3);
+      // repetir un año o saltarse uno no cambia nada
+      expect(conFotoDelCumple(hc, 11, 1, 1)).toEqual(hc);
+      expect(conFotoDelCumple(hc, 14, 1, 1)).toEqual(hc);
+    });
+
+    it('se lee la foto de una edad; antes de la primera vale la primera y después de la última, la última', () => {
+      const hc = [9, 20, 41, 22, 39];
+      expect(fotoDeEdad(undefined, 9)).toBeUndefined();
+      expect(fotoDeEdad(hc, 8)).toEqual({ musculo: 20, grasa: 41 });
+      expect(fotoDeEdad(hc, 10)).toEqual({ musculo: 22, grasa: 39 });
+      expect(fotoDeEdad(hc, 40)).toEqual({ musculo: 22, grasa: 39 });
     });
   });
 });
