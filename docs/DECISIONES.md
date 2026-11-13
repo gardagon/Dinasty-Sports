@@ -21,15 +21,15 @@ Desarrollo del plan `docs/PLAN_CUERPO_Y_APARIENCIA.md` (cifras en `docs/ANEXO_CU
 
 | Medida | Antes | Después |
 |---|---|---|
-| Estado al crear (1.418 / 1.419 personas) | 2.758 KB | 2.851 KB (**+3,4 %**, límite +5 %) |
-| ms por acción (bot equilibrado, 60 días) | 2,23 · 2,40 · 2,58 | 2,45 · 2,21 · 2,30 (el ruido entre pasadas, ±0,2, es mayor que la diferencia: sin cambio apreciable) |
+| Estado al crear (1.418 / 1.419 personas) | 2.758 KB | 2.849 KB (**+3,3 %**, límite +5 %) |
+| ms por acción (bot equilibrado, 60 días) | 2,23 · 2,40 · 2,58 | 2,45 · 2,21 · 2,30 · 2,62 (el ruido entre pasadas, ±0,2, es mayor que la diferencia: sin cambio apreciable) |
 | Actualizar los cuerpos de todos, por semana | — | 0,87 ms (límite 1 ms) |
 | Crear la partida | 730 ms | 857 ms (una sola medida cada una) |
-| `npm run sim` | solo ⚠️ Rendimiento | solo ⚠️ Rendimiento (2,64 → 2,44 ms por acción, límite 1,5: el aviso ya existía); el resto de chequeos ✅ y la tabla final casi igual (equilibrado 30,2 → 30,5; atleta 25,4 → 25,8; vago 20,6 → 20,8) |
-| `npm run huella` | e12e68df4723 (equilibrado, sem. 1) | c32b2a1cff3d: **cambia, como estaba previsto** (el personaje sigue reglas nuevas) |
+| `npm run sim` | solo ⚠️ Rendimiento | solo ⚠️ Rendimiento (2,64 → 2,46 ms por acción, límite 1,3 a 1,5 según la calibración de la pasada: el aviso ya existía); el resto de chequeos ✅ y la tabla final casi igual (equilibrado 30,2 → 30,2; atleta 25,4 → 25,5; vago 20,6 → 20,6) |
+| `npm run huella` | e12e68df4723 (equilibrado, sem. 1) | 0c1c3dab5120: **cambia, como estaba previsto** (el personaje sigue reglas nuevas); el resto del mundo no (p. ej. la del bot «empollón» es idéntica) |
 | `npm run sim:vida` (Perfecto, 70 años) | siempre «atlético» con 20 de grasa; peso adulto constante (≈ 61 kg) | «atlético» hasta los 40; **normal a los 50, delgado a los 60** (el músculo baja de 41 a 18 por la sarcopenia); peso adulto 64 → 70 kg a los 50 y baja con la vejez; altura 174,9 cm hasta los 50 y 169,3 a los 78 |
 
-Proporciones de complexión de los PNJ: ver el anexo §8.
+Proporciones de complexión de los PNJ: ver el anexo §8. Tests: `tsc` limpio y 984 de 984 en verde sobre el árbol final (la suite entera se pasó también al acabar el paso 1, 965 de 965).
 
 ## 13/11/2026 — Visualizador de personas, fase 1: cuerpo y apariencia para todos (decisiones del usuario)
 
