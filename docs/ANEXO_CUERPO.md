@@ -1,0 +1,73 @@
+# Anexo: el cuerpo y la apariencia heredable
+
+Cifras del cuerpo de **todas** las personas (personaje, padres, PNJ). Las reglas son funciones puras en `packages/contracts/src/cuerpo.ts`; los hábitos de los PNJ, en `modules/npcs/src/cuerpo.ts`; las tendencias de canas, calvicie y barba, en `packages/contracts/src/rasgos.ts`. Plan y decisiones: `docs/PLAN_CUERPO_Y_APARIENCIA.md`. Si cambias una cifra aquí, cambia el código (y al revés).
+
+## 1. Altura
+
+`alturaEn(alturaAdulta, edad, madurez)` = `alturaAdulta × fracción(edad + madurez) − pérdida(edad)`. `madurez` es el adelanto (+) o retraso (−) del desarrollo en años: el `madurez` del personaje, el `desfase` de un PNJ con genética (0 si no tiene).
+
+| Edad (+ madurez) | 0 | 2 | 4 | 6 | 8 | 10 | 12 | 14 | 16 | 18 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Fracción de la altura adulta | 0,30 | 0,50 | 0,58 | 0,66 | 0,73 | 0,80 | 0,87 | 0,94 | 0,98 | 1 |
+
+Interpolación lineal. **Pérdida en la vejez** (cm): 0 hasta los 50; −0,15 por año de 50 a 70 (−3 cm a los 70); −0,3 por año desde los 70 (−9 cm a los 90). *(El plan dice «unos −6 cm a los 90»: no coincide con sus propias cifras por año; ver «Preguntas abiertas».)*
+
+## 2. Peso
+
+`pesoDe(altura, edad, músculo, grasa)` = `(IMC de referencia(edad) + 0,04 × (músculo − 30) + 0,09 × (grasa − 40)) × altura²` (altura en metros).
+
+| Edad | 6 | 10 | 12 | 14 | 16 | 18 | 30 | 50 | 70 | 90 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| IMC de referencia | 15,2 | 16,2 | 17,4 | 18,8 | 20,2 | 21,5 | 23 | 24,5 | 24,5 | 23 |
+
+## 3. Músculo y grasa
+
+**Complexión** (sin cambios): `grasa ≥ 65` con sobrepeso; si no, `músculo ≥ 60` musculado; `músculo ≥ 35 y grasa ≤ 45` atlético; `grasa ≤ 25 y músculo ≤ 30` delgado; si no, normal.
+
+**Objetivo semanal** (`objetivoDeCuerpo(hábitos, {edad, madurez, sexo})`), con los minutos de la semana de fuerza y de actividad (la actividad incluye la fuerza, como en el personaje):
+
+- Grasa = `clamp(78 + 8 si es mujer + metabolismo − (actividad + 60) × 0,1, 20, 80)`. **Metabolismo**: `0,3 × (edad − 30)` entre 0 y 12.
+- Músculo = `clamp(12 + fuerza × 0,1, 10, 90)`; × 0,75 si es mujer; − `0,5 × (edad − 40)` desde los 40 (sarcopenia); **tope por desarrollo físico** `15 + 75 × físico/100` (el `fisico` de `vigoresPorEdad(edad, madurez)`: un niño de 8 años no pasa de 37,5; con 13 años y madurez normal ya puede llegar a 60); mínimo 5.
+- **Paso semanal**: el cuerpo se acerca al objetivo un **8 %** (`CUERPO.inercia`).
+
+## 4. Hábitos de los PNJ (minutos por semana)
+
+- **Niños y jóvenes (< 18)**: juego libre estable por persona `340 × azar^0,5` (media ≈ 227) + **40 por nivel de interés en el deporte** (0 a 3, es decir de 0 a 120). *(Calibrado: con solo 0–120 min extra el 80 % de los niños salía «con sobrepeso»; ver «Preguntas abiertas».)*
+- **Adultos (≥ 18)**: actividad propia estable, sacada de su semilla y de su interés en el deporte: actividad `1100 × azar^1,6 + 50 × interés`; fuerza `560 × otro azar^3` (como mucho su actividad). Se guarda en `Npc.actividad`. En cada cumpleaños cambia: desviación normal de 30 min en la actividad y 15 en la fuerza, y un 5 % de probabilidad de un salto de ±200 min (empezar o dejar el deporte).
+- **Si juega a un deporte con rutina**: a lo anterior se **suman** las sesiones de club de la semana: **90 min de actividad y 30 de fuerza por sesión** (`MINUTOS_DE_SESION`). Quien deja el deporte, o está de baja, se queda con la base.
+- **Estado inicial** de quien ya existe al crear la partida (o llega nuevo): el equilibrio de sus hábitos a su edad, más un ruido normal de ±2 de músculo y ±4 de grasa. A los que ya juegan en un club se les suponen 2 sesiones por semana.
+- Todos los azares son estables (`rngEstable`): por semilla de la partida, persona y (en los cumpleaños) edad.
+
+## 5. Historial anual
+
+Una foto por persona y cumpleaños: `hc = [edad de la primera foto, músculo, grasa, músculo, grasa, …]`, en enteros (`conFotoDelCumple`, `fotoDeEdad`). Quien ya existía al empezar la partida tiene su primera foto en su primer cumpleaños; antes de ella el dibujo usa la primera que haya. La altura y el peso no se guardan: se recalculan con §1 y §2. El personaje guarda el suyo en `IdentidadState.hc`; los PNJ, en `Npc.hc`.
+
+## 6. Canas, calvicie y barba (`Apariencia`)
+
+Valores numéricos de la generación (no de la edad). El dibujo decidirá con ellas, la edad y la semilla.
+
+| Campo | Qué es | Al azar (adultos del mundo) | Herencia |
+|---|---|---|---|
+| `canas` | edad (años) a la que empiezan | normal, media 34, sd 6, entre 20 y 60 | media de los padres ± 3 (uniforme) |
+| `calvicie` | tendencia a perder pelo, 0 a 1 | hombres: media 0,45, sd 0,25; mujeres: media 0,1, sd 0,1, máximo 0,4 | 0,6 × madre + 0,4 × padre ± 0,1, con el tope del sexo del hijo |
+| `barba` | densidad del vello facial, 0 a 1 | normal, media 0,6, sd 0,2 | media de los padres ± 0,1 |
+
+**Tendencias por origen** (se suman a la media al azar, en `ORIGENES`): Asia oriental, canas +4 y barba −0,3; Europa del norte, canas −2; España (sur) y Magreb, barba +0,1; África subsahariana, canas +3. En las mujeres la barba se guarda igual (se hereda) pero no se dibuja.
+
+## 7. Servicio de lectura
+
+`CuerpoService` (`SERVICES.cuerpoPersonaje` y `SERVICES.cuerpoNpcs`): `de(id)` devuelve un `CuerpoDePersona` (id, sexo, nacimiento, altura adulta, madurez, músculo y grasa de hoy, historial, apariencia y semilla de dibujo estable) y `ids()` lista las personas. `cuerpoDePersona(ctx, id)` pregunta a los dos. El padre y la madre son PNJ (`npcs`), así que los da el servicio de `npcs`.
+
+## 8. Calibración (`npm run sim:cuerpo`)
+
+Proporción con complexión «con sobrepeso» en el equilibrio de los hábitos (media de 10 semillas) y tras dos años de partida:
+
+| Grupo | Objetivo | Medido |
+|---|---|---|
+| Niños de 8 a 12 | 5–12 % | 7–11 % |
+| Jóvenes de 13 a 17 | 5–12 % | 8–11 % |
+| Adultos de 18 a 39 | 10–20 % | ≈ 16 % |
+| Adultos de 40 a 64 | 20–30 % | ≈ 28 % |
+| Niños y jóvenes que juegan con rutina | < 3 % | 0 % |
+
+Ningún menor de 12 años «musculado»; entre los adultos, «atlético» o «musculado» ≈ 13 % de los de 18 a 39 (los que hacen más de unas 4 horas de fuerza a la semana).
