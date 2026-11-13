@@ -1,4 +1,4 @@
-import { PROPORCION_DE_ZURDOS, SD_Z_HIJO, anioNatural, edadDeCompeticion, primerDiaDelAnio, type BodyType, type IdentityView, type PerfilDelPersonaje, type PerksDe, type Rng } from '@ds/contracts';
+import { PROPORCION_DE_ZURDOS, SD_Z_HIJO, alturaEn as alturaDeCuerpo, anioNatural, complexion, edadDeCompeticion, pasoDeSemanaDelCuerpo, pesoDe, primerDiaDelAnio, type BodyType, type IdentityView, type PerfilDelPersonaje, type PerksDe, type Rng } from '@ds/contracts';
 
 /**
  * Identidad del personaje: edad, altura, peso, dominancia lateral y complexión.
@@ -79,33 +79,10 @@ export const diaDeNacimiento = (s: IdentidadState): number => Math.round(-(s.eda
 /** Edad con decimales en un día de la partida. */
 export const edadDecimal = (s: IdentidadState, day: number): number => s.edadInicial + s.fraccionInicial + day / 365;
 
-/** Interpolación lineal sobre una tabla [edad, valor] ordenada por edad. */
-function curva(tabla: readonly (readonly [number, number])[], edad: number): number {
-  if (edad <= tabla[0][0]) return tabla[0][1];
-  for (let i = 1; i < tabla.length; i++) {
-    if (edad <= tabla[i][0]) {
-      const [x0, y0] = tabla[i - 1];
-      const [x1, y1] = tabla[i];
-      return y0 + ((y1 - y0) * (edad - x0)) / (x1 - x0);
-    }
-  }
-  return tabla[tabla.length - 1][1];
-}
+/** Altura y peso de hoy: las reglas del cuerpo son de contracts (`cuerpo.ts`), las mismas para todas las personas. */
+export const alturaEn = (s: IdentidadState, day: number): number => alturaDeCuerpo(s.alturaAdulta, edadDecimal(s, day), s.madurez);
 
-/** Fracción de la altura adulta a cada edad (media aproximada). */
-const CRECIMIENTO = [[6, 0.67], [8, 0.73], [10, 0.79], [12, 0.86], [14, 0.94], [16, 0.985], [18, 1]] as const;
-/** IMC de referencia sano a cada edad. */
-const IMC_SANO = [[6, 15.2], [10, 16.2], [12, 17.4], [14, 18.8], [16, 20.2], [18, 21.5]] as const;
-
-export function alturaEn(s: IdentidadState, day: number): number {
-  return s.alturaAdulta * curva(CRECIMIENTO, edadDecimal(s, day) + s.madurez);
-}
-
-export function pesoEn(s: IdentidadState, day: number): number {
-  const m = alturaEn(s, day) / 100;
-  const imc = curva(IMC_SANO, edadDecimal(s, day)) + 0.04 * (s.musculo - 30) + 0.09 * (s.grasa - 40);
-  return imc * m * m;
-}
+export const pesoEn = (s: IdentidadState, day: number): number => pesoDe(alturaEn(s, day), edadDecimal(s, day), s.musculo, s.grasa);
 
 export function viewIdentidad(s: IdentidadState, day: number, primerDiaDelCurso: number): IdentityView {
   return {
@@ -118,33 +95,9 @@ export function viewIdentidad(s: IdentidadState, day: number, primerDiaDelCurso:
   };
 }
 
-/** Complexión a partir de músculo y grasa. El orden importa: lo más marcado manda. */
-export function complexion(musculo: number, grasa: number): BodyType {
-  if (grasa >= 65) return 'con_sobrepeso';
-  if (musculo >= 60) return 'musculado';
-  if (musculo >= 35 && grasa <= 45) return 'atletico';
-  if (grasa <= 25 && musculo <= 30) return 'delgado';
-  return 'normal';
-}
-
-/** Minutos físicos semanales hacia los que tiende la grasa/músculo. Ajustable con la simulación. */
-export const CUERPO = {
-  /** Ritmo semanal al que el cuerpo se acerca a su objetivo. */
-  inercia: 0.08,
-  grasaBase: 78,
-  grasaPorMinutoActivo: 0.1,
-  /** Juego libre y recreos: actividad mínima semanal aunque el jugador no haga deporte. */
-  actividadBasica: 60,
-  musculoBase: 12,
-  musculoPorMinutoFuerza: 0.1,
-};
-
-/** Fin de semana: el cuerpo se mueve despacio hacia lo que dicen los hábitos. */
+/** Fin de semana: el cuerpo se mueve despacio hacia lo que dicen los hábitos (`pasoDeSemanaDelCuerpo`, en contracts). */
 export function actualizarCuerpo(s: IdentidadState): IdentidadState {
-  const grasaObj = clamp(CUERPO.grasaBase - (s.semana.activo + CUERPO.actividadBasica) * CUERPO.grasaPorMinutoActivo, 20, 80);
-  const musculoObj = clamp(CUERPO.musculoBase + s.semana.fuerza * CUERPO.musculoPorMinutoFuerza, 10, 90);
-  const grasa = s.grasa + (grasaObj - s.grasa) * CUERPO.inercia;
-  const musculo = s.musculo + (musculoObj - s.musculo) * CUERPO.inercia;
+  const { musculo, grasa } = pasoDeSemanaDelCuerpo(s, s.semana);
   return { ...s, grasa, musculo, cuerpo: complexion(musculo, grasa), semana: { ...SIN_HABITOS } };
 }
 

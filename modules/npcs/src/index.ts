@@ -888,7 +888,7 @@ function sabePorDefecto(n: Npc): DatoPersonal[] {
 /** Altura de hoy: padres y hermanos, de su herencia; el resto, de un hash de su id. */
 function alturaHoy(n: Npc, hoy: number): number | undefined {
   if (n.nacimiento === undefined) return undefined;
-  return alturaDe(n.gender, (hoy - n.nacimiento) / 365, n.estatura ?? estaturaZ(n.id));
+  return alturaDe(n.gender, (hoy - n.nacimiento) / 365, n.estatura ?? estaturaZ(n.id), n.desfase ?? 0);
 }
 
 /** La vista de cada persona se recuerda mientras no cambie la persona ni el día: se pide muchas veces (listas, presencia, acciones). */
