@@ -1,4 +1,4 @@
-import { GEN, TAGS } from '@ds/contracts';
+import { GEN, SERVICES, TAGS, type IdentityService } from '@ds/contracts';
 import { seededRng, checkInvariants, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 import { hacer, opcionesDelBot } from './pasos';
@@ -57,6 +57,8 @@ interface Fila {
   cat: Record<string, { nivel: number; tope: number }>;
   habilidades: { nivel: number; tope: number };
   conocimiento: number;
+  /** El cuerpo: músculo y grasa (0 a 100), complexión, altura (cm) y peso (kg). */
+  cuerpo: { musculo: number; grasa: number; tipo: string; altura: number; peso: number };
   alTope: number;
   total: number;
   /** Media del nivel/tope (%) de las 6 capacidades que más se acercan a su tope: las que el bot entrena de verdad. */
@@ -99,6 +101,11 @@ function fotografia(g: Game, edad: number): Fila {
     mejores: media(ratios.sort((a, b) => b - a).slice(0, 6)),
     notaMedia: est?.average() ?? null,
     salud: g.stat(GEN.salud),
+    cuerpo: (() => {
+      const v = g.service<IdentityService>(SERVICES.identidad)!.view();
+      const i = g.moduleState<{ musculo: number; grasa: number }>('gen');
+      return { musculo: i.musculo, grasa: i.grasa, tipo: v.bodyType, altura: v.heightCm, peso: v.weightKg };
+    })(),
   };
 }
 
@@ -155,10 +162,10 @@ if (process.argv[1]?.endsWith('vida.ts')) {
   const { filas, problemas, ms } = simular(bot, seed, anios);
   const mostrar = filas.filter((x) => [8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 35, 40, 50, 60, 70, 78].includes(x.edad) || x === filas[filas.length - 1]);
   const cols = (c: { nivel: number; tope: number }) => `${f(c.nivel)}/${f(c.tope)}`;
-  console.log('| Edad | Física (nivel/tope) | Mental | Social | Habilidades | Conocimiento | Capacidades al 95 % del tope | 6 mejores capacidades (% del tope) | Nota media | Salud |');
-  console.log('|---|---|---|---|---|---|---|---|---|---|');
+  console.log('| Edad | Física (nivel/tope) | Mental | Social | Habilidades | Conocimiento | Capacidades al 95 % del tope | 6 mejores capacidades (% del tope) | Nota media | Salud | Músculo | Grasa | Complexión | Altura | Peso |');
+  console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   for (const x of mostrar) {
-    console.log(`| ${x.edad} | ${cols(x.cat.fisico)} | ${cols(x.cat.mental)} | ${cols(x.cat.social)} | ${cols(x.habilidades)} | ${f(x.conocimiento)} | ${x.alTope}/${x.total} | ${f(x.mejores)} % | ${f(x.notaMedia ?? NaN, 1)} | ${f(x.salud)} |`);
+    console.log(`| ${x.edad} | ${cols(x.cat.fisico)} | ${cols(x.cat.mental)} | ${cols(x.cat.social)} | ${cols(x.habilidades)} | ${f(x.conocimiento)} | ${x.alTope}/${x.total} | ${f(x.mejores)} % | ${f(x.notaMedia ?? NaN, 1)} | ${f(x.salud)} | ${f(x.cuerpo.musculo)} | ${f(x.cuerpo.grasa)} | ${x.cuerpo.tipo} | ${f(x.cuerpo.altura, 1)} | ${f(x.cuerpo.peso, 1)} |`);
   }
   console.log(`\n${filas.length - 1} años simulados en ${(ms / 1000).toFixed(1)} s. Problemas: ${problemas.length ? '\n  - ' + problemas.join('\n  - ') : 'ninguno'}\n`);
 
