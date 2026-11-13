@@ -5,6 +5,32 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 13/11/2026 — Cuerpo y apariencia para todos: lo hecho en la fase 1 y lo medido
+
+Desarrollo del plan `docs/PLAN_CUERPO_Y_APARIENCIA.md` (cifras en `docs/ANEXO_CUERPO.md`; dudas en «Preguntas abiertas» del plan). Seis pasos, un commit por paso.
+
+- **Una regla del cuerpo en contracts** (`cuerpo.ts`): altura (una curva para todos, con el `desfase` de los PNJ y la pérdida de la vejez), peso (IMC de referencia también de adulto), objetivo y paso semanal de músculo y grasa, complexión. `personaje` ya no tiene reglas propias del cuerpo.
+- **Edad y sexo en músculo y grasa**: tope por desarrollo físico, mujeres ×0,75 de músculo y +8 de grasa, sarcopenia desde los 40, metabolismo desde los 30.
+- **Músculo y grasa reales en todos los PNJ** (`Npc.cuerpo`, `Npc.actividad`), con hábitos por edad, las sesiones de club y la actividad propia de los adultos. **Calibrado** con `npm run sim:cuerpo`: las cifras del plan dejaban al 80 % de los niños «con sobrepeso», así que el juego libre de niños y jóvenes y la actividad de los adultos son distribuciones calibradas (ver el anexo §4 y las preguntas 4 y 5 del plan).
+- **Historial anual** (`hc`): una foto de músculo y grasa por cumpleaños, en enteros, para el personaje y todos los PNJ.
+- **Canas, calvicie y barba** en `Apariencia`, heredables, con tendencias por origen (la herencia usa el sexo del hijo para el tope de calvicie).
+- **Servicio de lectura** `CuerpoService` (`cuerpoPersonaje`, `cuerpoNpcs`) y `cuerpoDePersona(ctx, id)`. El padre y la madre ya eran PNJ con fecha de nacimiento y rasgos: los da `npcs`.
+- `SAVE_VERSION` 18.
+
+**Mediciones (13/11, misma máquina; antes = commit del plan, después = final):**
+
+| Medida | Antes | Después |
+|---|---|---|
+| Estado al crear (1.418 / 1.419 personas) | 2.758 KB | 2.851 KB (**+3,4 %**, límite +5 %) |
+| ms por acción (bot equilibrado, 60 días) | 2,23 · 2,40 · 2,58 | 2,45 · 2,21 · 2,30 (el ruido entre pasadas, ±0,2, es mayor que la diferencia: sin cambio apreciable) |
+| Actualizar los cuerpos de todos, por semana | — | 0,87 ms (límite 1 ms) |
+| Crear la partida | 730 ms | 857 ms (una sola medida cada una) |
+| `npm run sim` | solo ⚠️ Rendimiento | solo ⚠️ Rendimiento (2,64 → 2,44 ms por acción, límite 1,5: el aviso ya existía); el resto de chequeos ✅ y la tabla final casi igual (equilibrado 30,2 → 30,5; atleta 25,4 → 25,8; vago 20,6 → 20,8) |
+| `npm run huella` | e12e68df4723 (equilibrado, sem. 1) | c32b2a1cff3d: **cambia, como estaba previsto** (el personaje sigue reglas nuevas y los sorteos de la apariencia cambian el resto del azar) |
+| `npm run sim:vida` (Perfecto, 70 años) | siempre «atlético» con 20 de grasa; peso adulto constante (≈ 61 kg) | «atlético» hasta los 40; **normal a los 50, delgado a los 60** (el músculo baja de 41 a 18 por la sarcopenia); peso adulto 64 → 70 kg a los 50 y baja con la vejez; altura 174,9 cm hasta los 50 y 169,3 a los 78 |
+
+Proporciones de complexión de los PNJ: ver el anexo §8.
+
 ## 13/11/2026 — Visualizador de personas, fase 1: cuerpo y apariencia para todos (decisiones del usuario)
 
 - **Objetivo:** dibujar a cualquier persona desde los 8 años hasta la vejez con sus rasgos, su altura y su complexión. Antes del dibujo (fase 2) se cierran en el juego todos los datos que necesita, para no cambiar reglas a mitad: plan en `docs/PLAN_CUERPO_Y_APARIENCIA.md`.
