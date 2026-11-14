@@ -2007,6 +2007,8 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 ## Pendiente e ideas
 
+- **Comida y cuerpo (pedido por el usuario el 14/11/2026):** cuando se diseñe la alimentación (E12), lo que se come entrará en las reglas del cuerpo (`packages/contracts/src/cuerpo.ts`) como una entrada propia, no como una constante. Cada comida concreta podrá tener varios efectos: energía para el día (la stat de energía, de otro sistema), grasa frente a una dieta corriente y un aumento de lo que se gana de músculo con los minutos de fuerza (p. ej. las comidas proteicas, que solo actúa si se hace ejercicio). Sin comer nada especial todo debe dar lo mismo que hoy, para que la calibración del cuerpo se mantenga. Diseño completo pendiente.
+
 - **Colegios en infantil y cadete** (aceptado de momento el 08/11): revisar más adelante. Idea del usuario: niños apuntados al equipo del colegio aunque no les guste el fútbol (por sus padres), sobre todo en benjamín y alevín.
 
 - **Interfaz, pantalla de nueva partida (visto por el usuario el 08/11):** en «Deportes en la partida», la casilla de cada deporte sale suelta encima de su nombre en vez de a su izquierda. Arreglarlo cuando se toque esa pantalla (por ejemplo, al meter el fútbol como paquete).
