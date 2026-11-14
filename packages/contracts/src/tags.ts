@@ -20,6 +20,8 @@ export const TAGS = {
    * esa etiqueta encarece las acciones con la salud baja y es la de los deportes y entrenamientos.
    */
   actividadLigera: 'actividad_ligera',
+  /** Actividad en la que se está en movimiento solo parte del tiempo (la clase de Educación física): `FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA` de sus minutos cuentan para el cuerpo. */
+  actividadALaMitad: 'actividad_a_la_mitad',
   /** Quedar con alguien: de los menores de 12 años, la mitad de sus minutos cuentan como actividad del cuerpo (a esa edad quedar es jugar); a partir de los 12, ninguno. */
   actividadDeNino: 'actividad_de_nino',
   /** Sesión de entrenamiento con un club (con entrenador y grupo). */

@@ -85,6 +85,9 @@ export interface QuienEs {
   musculatura?: number;
 }
 
+/** Qué parte de los minutos de una clase de Educación física se está en movimiento (decidido por el usuario el 14/11): la que cuenta como actividad del cuerpo, para el personaje y para los PNJ. */
+export const FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA = 0.5;
+
 /** Límite de las puntuaciones típicas de la genética del cuerpo. */
 export const Z_MAXIMO_DEL_CUERPO = 2.5;
 const limitaZ = (z: number | undefined) => clamp(z ?? 0, -Z_MAXIMO_DEL_CUERPO, Z_MAXIMO_DEL_CUERPO);
@@ -102,9 +105,11 @@ export const CUERPO = {
   /** El músculo no pasa de `topeBase + topePorFisico × fisico/100` (el desarrollo físico de su edad: `vigoresPorEdad`). */
   topeBase: 15,
   topePorFisico: 75,
-  /** Mujeres: su objetivo de músculo se multiplica por `mujerMusculo` y su base de grasa sube `mujerGrasa`. */
+  /** Mujeres: su objetivo de músculo se multiplica por `mujerMusculo` y su base de grasa sube `mujerGrasa`, que llega con la pubertad (nada hasta `mujerGrasaDesde` años, todo a los `mujerGrasaHasta`). */
   mujerMusculo: 0.75,
   mujerGrasa: 8,
+  mujerGrasaDesde: 13,
+  mujerGrasaHasta: 18,
   /** Desde esta edad el objetivo de músculo baja `sarcopeniaPorAnio` por año. */
   sarcopeniaDesde: 40,
   sarcopeniaPorAnio: 0.5,
@@ -122,7 +127,7 @@ export const CUERPO = {
 export function objetivoDeCuerpo(h: HabitosDelCuerpo, q: QuienEs): { musculo: number; grasa: number } {
   const mujer = q.sexo === 'f';
   const metabolismo = clamp(CUERPO.metabolismoPorAnio * (q.edad - CUERPO.metabolismoDesde), 0, CUERPO.metabolismoMax);
-  const grasaBase = CUERPO.grasaBase + (mujer ? CUERPO.mujerGrasa : 0) + metabolismo;
+  const grasaBase = CUERPO.grasaBase + (mujer ? CUERPO.mujerGrasa * clamp((q.edad - CUERPO.mujerGrasaDesde) / (CUERPO.mujerGrasaHasta - CUERPO.mujerGrasaDesde), 0, 1) : 0) + metabolismo;
   const grasa = clamp(grasaBase + CUERPO.grasaPorMetabolismo * limitaZ(q.metabolismo) - (h.activo + CUERPO.actividadBasica) * CUERPO.grasaPorMinutoActivo, 20, 80);
   const zm = limitaZ(q.musculatura);
   let musculo = clamp(CUERPO.musculoBase + h.fuerza * CUERPO.musculoPorMinutoFuerza * (1 + CUERPO.musculoPorMusculatura * zm), 10, 90);

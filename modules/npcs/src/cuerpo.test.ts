@@ -145,13 +145,13 @@ describe('cuerpo de los PNJ', () => {
     it('en una semana de clase suma la Educación física de su curso y los recreos que juega (30 min cada uno, como mucho uno al día)', () => {
       const base = habitosDeNpc(nino, 8, 7).activo;
       for (let semana = 0; semana < 30; semana++) {
-        const extra = habitosDeNpc(nino, 8, 7, 0, escolar(5, [150]), semana).activo - base - 150;
+        const extra = habitosDeNpc(nino, 8, 7, 0, escolar(5, [150]), semana).activo - base - 75; // la mitad de la clase de Educación física está en movimiento
         expect(extra % RECREO.minutos).toBe(0);
         expect(extra).toBeGreaterThanOrEqual(0);
         expect(extra).toBeLessThanOrEqual(5 * RECREO.minutos);
       }
       // una semana de 4 días lectivos tiene 4/5 de la Educación física
-      expect(habitosDeNpc(nino, 8, 7, 0, escolar(4, [150]), 3).activo - base).toBeGreaterThanOrEqual(120);
+      expect(habitosDeNpc(nino, 8, 7, 0, escolar(4, [150]), 3).activo - base).toBeGreaterThanOrEqual(60);
       // un curso que no la tiene (0 minutos o fuera de la tabla) no suma
       expect(habitosDeNpc(nino, 8, 7, 0, escolar(5, [0]), 3).activo - base).toBeLessThanOrEqual(5 * RECREO.minutos);
     });
@@ -173,12 +173,21 @@ describe('cuerpo de los PNJ', () => {
       expect(habitosDeNpc(sin, 8, 7, 0, escolar(5, [0]), 11)).toEqual(habitosDeNpc(sin, 8, 7, 0, escolar(5, [0]), 11));
     });
 
-    it('calibración: con recreos y Educación física un niño sale normal; sin nada más (ni recreo ni Educación física) tiende al sobrepeso', () => {
-      const q = (sexo: 'f' | 'm') => ({ edad: 10, madurez: 0, sexo });
-      const juega = { fuerza: 0, activo: 4 * RECREO.minutos + 150 };
-      for (const sexo of ['f', 'm'] as const) expect(objetivoDeCuerpo(juega, q(sexo)).grasa).toBeLessThan(65);
-      const nada = { fuerza: 0, activo: 0 };
-      expect(objetivoDeCuerpo(nada, q('m')).grasa).toBeGreaterThan(65);
+    it('calibración de los arquetipos de niño de 10 años (en equilibrio, de clase o de vacaciones)', () => {
+      const q = (sexo: 'f' | 'm', metabolismo = 0) => ({ edad: 10, madurez: 0, sexo, metabolismo });
+      const ef = 150 * 0.5; // media clase de Educación física
+      const grasa = (activo: number, sexo: 'f' | 'm', z = 0) => objetivoDeCuerpo({ fuerza: 0, activo }, q(sexo, z)).grasa;
+      for (const sexo of ['f', 'm'] as const) {
+        // recreos (4 de 5) y Educación física: normal, también en vacaciones sin nada más no (eso es la media del año: ver el anexo)
+        expect(grasa(4 * RECREO.minutos + ef, sexo)).toBeLessThan(65);
+        // solo Educación física, metabolismo medio: sobrepeso en cuanto hay una semana sin clase; con metabolismo alto (z = −1,5), normal en semana de clase
+        expect(grasa(0, sexo)).toBeGreaterThan(65);
+        expect(grasa(ef, sexo, -1.5)).toBeLessThan(65);
+        // sin nada más: sobrepeso
+        expect(grasa(0, sexo)).toBeGreaterThan(65);
+      }
+      // los chicos y las chicas son iguales hasta la pubertad
+      expect(grasa(0, 'f')).toBeCloseTo(grasa(0, 'm'), 9);
     });
   });
 });

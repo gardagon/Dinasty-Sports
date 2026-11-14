@@ -1,5 +1,6 @@
 import {
   CORE_EVENTS,
+  FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA,
   ID_DEL_PERSONAJE,
   conFotoDelCumple,
   semillaDeDibujo,
@@ -343,7 +344,7 @@ export const personaje = defineModule<IdentidadState>({
       const cardio = d.tags.includes(TAGS.cardio);
       const descanso = d.tags.includes(TAGS.descanso);
       // Actividad que solo cuenta para el cuerpo: el juego, la Educación física (minutos reales) y, de menor de 12 años, la mitad de lo que dura quedar con alguien.
-      const ligera = d.tags.includes(TAGS.actividadLigera) ? d.duration : 0;
+      const ligera = (d.tags.includes(TAGS.actividadLigera) ? d.duration : 0) + (d.tags.includes(TAGS.actividadALaMitad) ? d.duration * FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA : 0);
       const deNino = d.tags.includes(TAGS.actividadDeNino) && edadDecimal(ctx.state<IdentidadState>(), ctx.time.day) < EDAD_DE_QUEDAR_COMO_JUEGO ? d.duration / 2 : 0;
       if (!fisico && !fuerza && !cardio && !descanso && !ligera && !deNino) return;
       ctx.updateState<IdentidadState>((s) => ({

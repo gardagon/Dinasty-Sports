@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { JORNADA_ESCOLAR, SERVICES, type StudiesService } from '@ds/contracts';
+import { FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA, JORNADA_ESCOLAR, SERVICES, type StudiesService } from '@ds/contracts';
 import { advanceToWeek, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 import { conocer, hacer, llegarA } from './ayudas';
@@ -20,7 +20,7 @@ describe('la actividad física del personaje cuenta para el cuerpo', () => {
     expect(activo(g) - antes).toBe(10);
   });
 
-  it('la Educación física cuenta solo si va a la clase (y cuenta los minutos que asiste); las demás clases, no', () => {
+  it('la Educación física cuenta solo si va a la clase (y la mitad de los minutos que asiste); las demás clases, no', () => {
     const g = conocer(nuevaPartida({ seed: 31 }));
     const estudios = g.service<StudiesService>(SERVICES.estudios)!;
     const horario = [0, 1, 2, 3, 4].map((d) => estudios.timetable(d));
@@ -41,7 +41,7 @@ describe('la actividad física del personaje cuenta para el cuerpo', () => {
       const antes = activo(g);
       const minuto = ir(slot);
       expect(hacer(g, `estudios.clase_${slot + 1}`).ok).toBe(true);
-      expect(activo(g) - antes).toBe(slot === clase ? fin - Math.max(minuto, inicio) : 0);
+      expect(activo(g) - antes).toBe(slot === clase ? (fin - Math.max(minuto, inicio)) * FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA : 0);
     }
   });
 

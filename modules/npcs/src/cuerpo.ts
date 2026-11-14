@@ -1,4 +1,4 @@
-import { CUERPO, type QuienEs, metabolismoZ, musculaturaZ, complexion, conFotoDelCumple, objetivoDeCuerpo, rngEstable, type HabitosDelCuerpo } from '@ds/contracts';
+import { FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA, CUERPO, type QuienEs, metabolismoZ, musculaturaZ, complexion, conFotoDelCumple, objetivoDeCuerpo, rngEstable, type HabitosDelCuerpo } from '@ds/contracts';
 import type { Npc } from './index';
 
 /**
@@ -13,7 +13,7 @@ export const SESIONES_SUPUESTAS = 2;
 /** Minutos extra de actividad por nivel de interés en el deporte (0 a 3: de 0 a 120) de quien es niño o joven y no juega con rutina. */
 export const EXTRA_POR_NIVEL_DE_INTERES = 40;
 /** Juego libre de fuera del colegio de un niño o joven (tardes, fines de semana y vacaciones; minutos por semana, estable por persona): `max × azar^potencia`. Calibrado con `npm run sim:cuerpo`. */
-export const JUEGO_LIBRE = { max: 150, potencia: 0.5 };
+export const JUEGO_LIBRE = { max: 130, potencia: 0.5 };
 /**
  * El recreo: cada día de clase, un niño en edad escolar juega con una probabilidad estable por persona (de `desde` a `hasta`, según su interés en el deporte y su sociabilidad) y
  * suma `minutos` si juega (la misma decisión que toma el personaje con «Jugar con otros niños»).
@@ -125,7 +125,7 @@ export function habitosDeNpc(n: Npc, edad: number, semilla: number, sesiones = 0
       for (let d = 0; d < escolar.diasDeClase; d++) if (azarDeLaSemana(p.h, semana, d) < p.pRecreo) jugados++;
       activo += jugados * RECREO.minutos;
       const edadCurso = escolar.edadDeCurso(n);
-      if (edadCurso !== undefined) activo += ((escolar.efPorCurso[edadCurso - EDAD_DEL_CURSO_0] ?? 0) * escolar.diasDeClase) / 5;
+      if (edadCurso !== undefined) activo += ((escolar.efPorCurso[edadCurso - EDAD_DEL_CURSO_0] ?? 0) * escolar.diasDeClase * FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA) / 5;
     }
   } else {
     [activo, fuerza] = n.actividad ?? actividadDeAdulto(n, semilla);
@@ -159,7 +159,7 @@ export function conCuerpo(npcs: Npc[], dia: number, semilla: number, lectiva = 0
     const sesiones = n.equipo && n.deporte ? SESIONES_SUPUESTAS : 0;
     const base = habitosDeNpc(actividad ? { ...n, actividad } : n, edad, semilla, sesiones);
     const escolar = edad >= EDAD_DE_RECREO.desde && edad < EDAD_ADULTA_DE_HABITOS;
-    const deColegio = escolar ? lectiva * ESCOLAR_AL_EMPEZAR.peso * (5 * propioDe(n, semilla).pRecreo * RECREO.minutos + (edad >= EDAD_DEL_CURSO_0 ? ESCOLAR_AL_EMPEZAR.educacionFisica : 0)) : 0;
+    const deColegio = escolar ? lectiva * ESCOLAR_AL_EMPEZAR.peso * (5 * propioDe(n, semilla).pRecreo * RECREO.minutos + (edad >= EDAD_DEL_CURSO_0 ? ESCOLAR_AL_EMPEZAR.educacionFisica * FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA : 0)) : 0;
     const habitos = { ...base, activo: base.activo + deColegio };
     const obj = objetivoDeCuerpo(habitos, { edad, madurez: n.desfase ?? 0, sexo: n.gender, ...geneticaDelCuerpo(n) });
     const r = rngEstable('cuerpo', semilla, n.id);

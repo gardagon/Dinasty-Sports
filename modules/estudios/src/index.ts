@@ -550,8 +550,8 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
       id: `estudios.clase_${hora_ + 1}`,
       name: `Clase de ${asignatura(key).name.toLowerCase()} (${ORDINAL[hora_]} hora)`,
       description: `De ${hora(inicio)} a ${hora(fin)}, en tu aula (se abre 10 minutos antes). Si la clase ya ha empezado vas tarde: solo avanzas lo que asistes. Faltar del todo no tiene castigo, pero no avanzas en la asignatura y cuenta como falta.`,
-      // En Educación física los minutos que se asisten cuentan como actividad del cuerpo (solo si se va a la clase).
-      tags: [TAGS.estudio, TAGS.mental, TAGS.social, ...(key === 'educacion_fisica' ? [TAGS.actividadLigera] : [])],
+      // En Educación física la mitad de los minutos que se asisten cuentan como actividad del cuerpo (solo si se va a la clase).
+      tags: [TAGS.estudio, TAGS.mental, TAGS.social, ...(key === 'educacion_fisica' ? [TAGS.actividadALaMitad] : [])],
       group: 'Aula',
       duration: (ctx: ReadContext) => Math.max(1, fin - ctx.time.minuteOfDay),
       available: (ctx: ReadContext) => {
