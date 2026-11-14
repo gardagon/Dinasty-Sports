@@ -30,7 +30,7 @@ export function interpola(tabla: readonly (readonly [number, number])[], x: numb
 export const CRECIMIENTO: readonly (readonly [number, number])[] = [[0, 0.3], [2, 0.5], [4, 0.58], [6, 0.66], [8, 0.73], [10, 0.8], [12, 0.87], [14, 0.94], [16, 0.98], [18, 1]];
 
 /** Pérdida de estatura en la vejez (cm por año): nada hasta los 50, `hasta70` de 50 a 70 y `desde70` a partir de los 70. */
-export const PERDIDA_DE_ALTURA = { desde: 50, hasta70: 0.15, desde70: 0.3 } as const;
+export const PERDIDA_DE_ALTURA = { desde: 50, hasta70: 0.15, desde70: 0.2 } as const;
 
 /** Centímetros que se han perdido a una edad por la vejez (0 hasta los 50). */
 export function perdidaDeAltura(edad: number): number {

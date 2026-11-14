@@ -9,7 +9,7 @@ describe('cuerpo: una sola regla para todas las personas', () => {
     expect(alturaEn(180, 8)).toBeCloseTo(180 * 0.73, 6);
     expect(alturaEn(180, 50)).toBe(180);
     expect(perdidaDeAltura(70)).toBeCloseTo(3, 9);
-    expect(perdidaDeAltura(90)).toBeCloseTo(9, 9);
+    expect(perdidaDeAltura(90)).toBeCloseTo(7, 9);
     expect(alturaEn(180, 95)).toBeLessThan(alturaEn(180, 70));
   });
 

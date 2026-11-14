@@ -5,6 +5,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 14/11/2026 — Cuerpo y apariencia, segunda ronda (decisiones de arquitectura con el usuario)
+
+- **Altura en la vejez:** −0,15 cm/año de 50 a 70 y **−0,2 cm/año desde los 70** (−7 cm a los 90).
+- **Pendiente: minutos de fuerza por deporte.** Hoy cada sesión de club cuenta 90 min de actividad y 30 de fuerza (provisional, `MINUTOS_DE_SESION`). Lo correcto: que cada deporte declare los minutos de fuerza de sus ejercicios (dato del deporte).
+- **Pendiente: personaje chica.** El sexo del personaje es la constante `SEXO_DEL_PERSONAJE = 'm'` (`modules/personaje/src/identidad.ts`); cuando se pueda elegir, hay que guardarlo en `IdentidadState`.
+
 ## 13/11/2026 — Cuerpo y apariencia para todos: lo hecho en la fase 1 y lo medido
 
 Desarrollo del plan `docs/PLAN_CUERPO_Y_APARIENCIA.md` (cifras en `docs/ANEXO_CUERPO.md`; dudas en «Preguntas abiertas» del plan). Seis pasos, un commit por paso.

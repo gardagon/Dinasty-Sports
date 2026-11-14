@@ -10,7 +10,7 @@ Cifras del cuerpo de **todas** las personas (personaje, padres, PNJ). Las reglas
 |---|---|---|---|---|---|---|---|---|---|---|
 | Fracción de la altura adulta | 0,30 | 0,50 | 0,58 | 0,66 | 0,73 | 0,80 | 0,87 | 0,94 | 0,98 | 1 |
 
-Interpolación lineal. **Pérdida en la vejez** (cm): 0 hasta los 50; −0,15 por año de 50 a 70 (−3 cm a los 70); −0,3 por año desde los 70 (−9 cm a los 90). *(El plan dice «unos −6 cm a los 90»: no coincide con sus propias cifras por año; ver «Preguntas abiertas».)*
+Interpolación lineal. **Pérdida en la vejez** (cm): 0 hasta los 50; −0,15 por año de 50 a 70 (−3 cm a los 70); −0,2 por año desde los 70 (−7 cm a los 90; decidido por arquitectura el 14/11).
 
 ## 2. Peso
 
