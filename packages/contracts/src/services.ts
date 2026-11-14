@@ -23,6 +23,8 @@ export const SERVICES = {
   presencia: 'presencia',
   partidos: 'partidos',
   /** Lectura del cuerpo de las personas para el visualizador (`CuerpoService`, ver `cuerpo.ts`): cada módulo dueño de personas da el suyo con el mismo contrato. */
+  /** Minutos reales de Educación física a la semana de un curso (`EducacionFisicaService`): los PNJ en edad escolar los suman a su actividad. */
+  educacionFisica: 'estudios.educacion_fisica',
   cuerpoPersonaje: 'cuerpo.personaje',
   cuerpoNpcs: 'cuerpo.npcs',
 } as const;
@@ -213,6 +215,12 @@ export interface ExamInfo {
 
 /** Nivel con el que se ve una preparación (0..100 = nota esperada × 10): Mal, Regular, Bien, Muy bien o Excelente. */
 export type NivelDeAsignatura = 'Mal' | 'Regular' | 'Bien' | 'Muy bien' | 'Excelente';
+
+/** Educación física según el currículo y los horarios del país. */
+export interface EducacionFisicaService {
+  /** Minutos de clase de Educación física en una semana lectiva entera del curso (0 = el primero, 3.º de primaria; 0 si ese curso no la tiene o no existe). */
+  minutosPorSemana(curso: number): number;
+}
 
 export interface StudiesService {
   /** Nivel de una asignatura con texto (Mal < 4, Regular 4–5,9, Bien 6–7,4, Muy bien 7,5–9,2, Excelente 9,3–10), o null si no existe. */

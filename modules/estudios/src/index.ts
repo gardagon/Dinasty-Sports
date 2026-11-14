@@ -11,6 +11,7 @@ import {
   claseQueVaAEmpezar,
   SHARED_EVENTS,
   type ClassAttendedData,
+  type EducacionFisicaService,
   type FaltasExcesivasData,
   ligarALugares,
   isSchoolHours,
@@ -549,7 +550,8 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
       id: `estudios.clase_${hora_ + 1}`,
       name: `Clase de ${asignatura(key).name.toLowerCase()} (${ORDINAL[hora_]} hora)`,
       description: `De ${hora(inicio)} a ${hora(fin)}, en tu aula (se abre 10 minutos antes). Si la clase ya ha empezado vas tarde: solo avanzas lo que asistes. Faltar del todo no tiene castigo, pero no avanzas en la asignatura y cuenta como falta.`,
-      tags: [TAGS.estudio, TAGS.mental, TAGS.social],
+      // En Educación física los minutos que se asisten cuentan como actividad del cuerpo (solo si se va a la clase).
+      tags: [TAGS.estudio, TAGS.mental, TAGS.social, ...(key === 'educacion_fisica' ? [TAGS.actividadLigera] : [])],
       group: 'Aula',
       duration: (ctx: ReadContext) => Math.max(1, fin - ctx.time.minuteOfDay),
       available: (ctx: ReadContext) => {
@@ -811,6 +813,12 @@ export const estudios = defineModule<EstudiosState>({
   },
 
   services: {
+    [SERVICES.educacionFisica]: (ctx): EducacionFisicaService => {
+      const [inicio, fin] = JORNADA.clases[0];
+      return {
+        minutosPorSemana: (curso) => (curso < 0 || curso >= ctx.pais.cursos.length ? 0 : diasDe(ctx.pais.cursos, curso, undefined, 'educacion_fisica').length * (fin - inicio)),
+      };
+    },
     [SERVICES.estudios]: (ctx): StudiesService => {
       const s = ctx.state<EstudiosState>();
       const activas = activasKeys(ctx.pais.cursos, ctx.time.schoolYear, s.modalidad);

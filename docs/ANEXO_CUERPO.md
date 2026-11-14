@@ -31,13 +31,20 @@ Interpolación lineal. **Pérdida en la vejez** (cm): 0 hasta los 50; −0,15 po
 - **Genética del cuerpo** (`QuienEs.metabolismo` y `.musculatura`, puntuaciones típicas con media 0 y desviación 1, limitadas a ±2,5): `metabolismo`, la facilidad para engordar, suma `3 × z` a la grasa objetivo; `musculatura`, la facilidad para ganar músculo, multiplica por `1 + 0,15 × z` el músculo por minuto de fuerza y suma `5 × z` al tope. Igual para todos. El personaje las hereda con `ctx.herencia('metabolismo' | 'musculatura')` (con generador propio, `FAMILIAS_ESTABLES`, para no mover el mundo de la semilla); los padres, de su herencia; los hermanos, `0,45 × (padre + madre) + 0,6 × z propio` (como la estatura); el resto, estable por id (`metabolismoZ`, `musculaturaZ`).
 - **Paso semanal**: el cuerpo se acerca al objetivo un **8 %** (`CUERPO.inercia`).
 
-## 4. Hábitos de los PNJ (minutos por semana)
+## 4. Hábitos (minutos por semana)
 
-- **Niños y jóvenes (< 18)**: juego libre estable por persona `340 × azar^0,5` (media ≈ 227) + **40 por nivel de interés en el deporte** (0 a 3, es decir de 0 a 120). *(Calibrado: con solo 0–120 min extra el 80 % de los niños salía «con sobrepeso»; ver «Preguntas abiertas».)*
-- **Adultos (≥ 18)**: actividad propia estable, sacada de su semilla y de su interés en el deporte: actividad `1100 × azar^1,6 + 50 × interés`; fuerza `560 × otro azar^3` (como mucho su actividad). Se guarda en `Npc.actividad`. En cada cumpleaños cambia: desviación normal de 30 min en la actividad y 15 en la fuerza, y un 5 % de probabilidad de un salto de ±200 min (empezar o dejar el deporte).
-- **Si juega a un deporte con rutina**: a lo anterior se **suman** las sesiones de club de la semana: **90 min de actividad y 30 de fuerza por sesión** (`MINUTOS_DE_SESION`). Quien deja el deporte, o está de baja, se queda con la base.
-- **Estado inicial** de quien ya existe al crear la partida (o llega nuevo): el equilibrio de sus hábitos a su edad, más un ruido normal de ±2 de músculo y ±4 de grasa. A los que ya juegan en un club se les suponen 2 sesiones por semana.
-- Todos los azares son estables (`rngEstable`): por semilla de la partida, persona y (en los cumpleaños) edad.
+**La actividad física cuenta igual para el personaje y los PNJ** (segunda ronda, 14/11). La base de cualquier semana es la `actividadBasica` de 60 min (en `objetivoDeCuerpo`); encima se suma:
+
+- **Recreo** (menores de 18, solo en edad escolar, 3 a 17 años, y solo los días de clase): se juega de verdad o no cuenta.
+  - *Personaje*: «Jugar con otros niños» (`relaciones.jugar_con_otros`) y «Jugar con X» (sufijo `jugar`, 5 minutos) llevan la etiqueta `actividadLigera` y suman sus minutos reales. Son los de los hermanos pequeños también (usan `jugar`).
+  - *PNJ*: cada día de clase juegan con una probabilidad **estable por persona de 40 a 90 %** (`0,4 + 0,5 × (0,7 × interés en el deporte/3 + 0,3 × (sociabilidad + 50)/100)`) y suman **30 min** cada recreo que juegan (`RECREO`).
+- **Educación física**: los **minutos reales** de la asignatura según el currículo y los horarios del país (`EducacionFisicaService` de `estudios`: clases a la semana del curso × lo que dura una clase), solo en semanas con clase y en los cursos que la tienen. *Personaje*: la clase `estudios.clase_N` de Educación física lleva `actividadLigera` y suma lo que asiste (solo si va). *PNJ*: la suman según su curso (edad de competición − 8) y los días de clase de la semana.
+- **Quedar con alguien** (`quedar`, «Pasar la tarde con» y «Quedar con (plan acordado)»): llevan `actividadDeNino`; para menores de **12** años cuenta **la mitad** de la duración, a partir de los 12, nada.
+- **Juego libre de fuera del colegio** (tardes, fines de semana y vacaciones), solo PNJ (el personaje, con sus acciones): estable por persona `150 × azar^0,5` (media 100) + **40 por nivel de interés en el deporte** (0 a 3). Recalibrado a la baja al contar el recreo y la Educación física.
+- **Adultos (≥ 18)**: actividad propia estable, sacada de su semilla y de su interés en el deporte: actividad `800 × azar^1,3 + 50 × interés`; fuerza `560 × (0,3 × otro azar + 0,7 × actividad/800)^2,5` (como mucho su actividad: quien se mueve mucho suele hacer algo de fuerza). Se guarda en `Npc.actividad`. En cada cumpleaños cambia: desviación normal de 30 min en la actividad y 15 en la fuerza, y un 5 % de probabilidad de un salto de ±200 min.
+- **Si juega a un deporte con rutina**: se **suman** las sesiones de club de la semana: **90 min de actividad y 30 de fuerza por sesión** (`MINUTOS_DE_SESION`, provisional: pendiente de que cada deporte declare sus minutos de fuerza). Quien deja el deporte, o está de baja, se queda con la base.
+- **Estado inicial** de quien ya existe al crear la partida (o llega nuevo al empezar un curso): el equilibrio de sus hábitos de fuera del colegio más la mitad (`ESCOLAR_AL_EMPEZAR.peso`) de lo que darían el recreo y la Educación física (150 min, supuestos: aún no se sabe lo que da el país) en una semana media del curso: se acaba de salir de las vacaciones. Más un ruido normal de ±2 de músculo y ±4 de grasa. A los que ya juegan en un club se les suponen 2 sesiones por semana.
+- Todos los azares son estables: por semilla de la partida, persona y semana (recreo) o edad (cumpleaños).
 
 ## 5. Historial anual
 
@@ -61,14 +68,17 @@ Valores numéricos de la generación (no de la edad). El dibujo decidirá con el
 
 ## 8. Calibración (`npm run sim:cuerpo`)
 
-Proporción con complexión «con sobrepeso» en el equilibrio de los hábitos (media de 10 semillas) y tras dos años de partida:
+Proporción con complexión «con sobrepeso» (media de varias semillas, al empezar y tras dos o tres años de partida, que es justo después de las vacaciones):
 
 | Grupo | Objetivo | Medido |
 |---|---|---|
-| Niños de 8 a 12 | 5–12 % | 7–11 % |
-| Jóvenes de 13 a 17 | 5–12 % | 8–11 % |
-| Adultos de 18 a 39 | 10–20 % | ≈ 16 % |
+| Niños de 8 a 12 | 5–12 % | 6–11 % |
+| Jóvenes de 13 a 17 | 5–12 % | 6–11 % |
+| Adultos de 18 a 39 | 10–20 % | ≈ 15 % |
 | Adultos de 40 a 64 | 20–30 % | ≈ 28 % |
-| Niños y jóvenes que juegan con rutina | < 3 % | 0 % |
+| Niños y jóvenes que juegan con rutina | < 3 % | 0–2 % |
+| «Delgado» entre los adultos | 8–15 % | ≈ 12 % (18–39) y ≈ 10 % (40–64) |
 
-Ningún menor de 12 años «musculado»; entre los adultos, «atlético» o «musculado» ≈ 13 % de los de 18 a 39 (los que hacen más de unas 4 horas de fuerza a la semana).
+Ningún menor de 12 años «musculado»; entre los adultos de 18 a 39, «atlético» o «musculado» ≈ 16 %.
+
+Arquetipos de niño de 10 años (objetivo de grasa en equilibrio, límite del sobrepeso: 65): con recreos (4 de 5) y Educación física **normal** (chico 45, chica 53); sin recreo y solo con Educación física, 57 (chico) y 65 (chica); sin nada más (ni recreo ni Educación física ni juego libre), 72 (chico) y 80 (chica): sobrepeso.

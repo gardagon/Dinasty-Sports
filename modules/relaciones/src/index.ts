@@ -536,7 +536,7 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
       name: n.role === 'familia' ? `Pasar la tarde con ${yo}` : `Quedar con ${yo}`,
       description: 'Pasar la tarde juntos: lo que más acerca, pero lleva tiempo.',
       duration: 120,
-      tags: [TAGS.social, TAGS.ocio],
+      tags: [TAGS.social, TAGS.ocio, TAGS.actividadDeNino],
       ganancia: 5,
       confianza: 3,
       train: [
@@ -629,7 +629,7 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
       name: n.role === 'familia' ? `Pasar el rato con ${yo} (plan acordado)` : `Quedar con ${yo} (plan acordado)`,
       description: 'Pasar el rato juntos, como habéis quedado: lo que más acerca.',
       duration: PLANES.pasar_rato.duracion,
-      tags: [TAGS.social, TAGS.ocio],
+      tags: [TAGS.social, TAGS.ocio, TAGS.actividadDeNino],
       ganancia: 5,
       confianza: 3,
       train: [
@@ -648,7 +648,7 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
       description: 'Cinco minutos de juego en el recreo o en tu rato libre; se pueden juntar hasta seis al día con la misma persona.',
       charla: true,
       duration: 30,
-      tags: [TAGS.social, TAGS.ocio],
+      tags: [TAGS.social, TAGS.ocio, TAGS.actividadLigera],
       ganancia: 4,
       confianza: 2,
       train: [
@@ -1028,7 +1028,8 @@ export const relaciones = defineModule<RelacionesState>({
       id: 'relaciones.jugar_con_otros',
       name: 'Jugar con otros niños',
       description: 'Cinco minutos de juego con otros tres niños de tu edad, los conozcas o no. Lo que sube la relación se reparte entre los tres.',
-      tags: [TAGS.social, TAGS.ocio],
+      // Jugar de verdad es actividad del cuerpo (el recreo del personaje cuenta si juega).
+      tags: [TAGS.social, TAGS.ocio, TAGS.actividadLigera],
       group: 'Tiempo libre',
       duration: MINUTOS_DE_CHARLA,
       available: (ctx) => {

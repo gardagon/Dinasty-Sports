@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ID_DEL_PERSONAJE, PAIS_CIUDAD_DE_PRUEBA, SERVICES, alturaEn, complexion, cuerpoDePersona, fotosDelHistorial, registrarPais, type CuerpoService, type FamilyService } from '@ds/contracts';
+import { ID_DEL_PERSONAJE, objetivoDeCuerpo, PAIS_CIUDAD_DE_PRUEBA, SERVICES, alturaEn, complexion, cuerpoDePersona, fotosDelHistorial, registrarPais, type CuerpoService, type FamilyService } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { familia } from '@ds/mod-familia';
 import { lugares } from '@ds/mod-lugares';
 import { atletismo } from '@ds/mod-atletismo';
-import { geneticaDelCuerpo, actividadDeAdulto, actividadTrasElCumple, conCuerpo, habitosDeNpc, semanaDelCuerpo } from './cuerpo';
+import { RECREO, geneticaDelCuerpo, actividadDeAdulto, actividadTrasElCumple, conCuerpo, habitosDeNpc, semanaDelCuerpo } from './cuerpo';
 import { npcs, type Npc, type NpcsState } from './index';
 
 registrarPais(PAIS_CIUDAD_DE_PRUEBA);
@@ -127,5 +127,58 @@ describe('cuerpo de los PNJ', () => {
     const flaco = conCuerpo([{ ...igual, metabolismo: -2.5 }], 0, 1)[0];
     for (let w = 1; w <= 120; w++) { semanaDelCuerpo([gordo], w * 7, new Map(), 1); semanaDelCuerpo([flaco], w * 7, new Map(), 1); }
     expect(gordo.cuerpo![1]).toBeGreaterThan(flaco.cuerpo![1] + 10);
+  });
+
+  describe('el colegio: recreo y Educación física', () => {
+    const escolar = (diasDeClase: number, efPorCurso = [150, 150, 150]) => ({ diasDeClase, efPorCurso, edadDeCurso: (n: Npc) => Math.floor(-n.nacimiento! / 365) });
+    const nino = persona('n1', 8);
+
+    it('sin clase (vacaciones) o sin colegio no hay recreo ni Educación física', () => {
+      const base = habitosDeNpc(nino, 8, 7);
+      expect(habitosDeNpc(nino, 8, 7, 0, escolar(0), 5)).toEqual(base);
+      expect(habitosDeNpc(nino, 8, 7, 0, undefined, 5)).toEqual(base);
+      // un adulto no tiene recreo ni Educación física
+      const adulto = persona('a1', 40, { actividad: [200, 50] });
+      expect(habitosDeNpc(adulto, 40, 7, 0, escolar(5), 5)).toEqual({ activo: 200, fuerza: 50 });
+    });
+
+    it('en una semana de clase suma la Educación física de su curso y los recreos que juega (30 min cada uno, como mucho uno al día)', () => {
+      const base = habitosDeNpc(nino, 8, 7).activo;
+      for (let semana = 0; semana < 30; semana++) {
+        const extra = habitosDeNpc(nino, 8, 7, 0, escolar(5, [150]), semana).activo - base - 150;
+        expect(extra % RECREO.minutos).toBe(0);
+        expect(extra).toBeGreaterThanOrEqual(0);
+        expect(extra).toBeLessThanOrEqual(5 * RECREO.minutos);
+      }
+      // una semana de 4 días lectivos tiene 4/5 de la Educación física
+      expect(habitosDeNpc(nino, 8, 7, 0, escolar(4, [150]), 3).activo - base).toBeGreaterThanOrEqual(120);
+      // un curso que no la tiene (0 minutos o fuera de la tabla) no suma
+      expect(habitosDeNpc(nino, 8, 7, 0, escolar(5, [0]), 3).activo - base).toBeLessThanOrEqual(5 * RECREO.minutos);
+    });
+
+    it('juega en el recreo con una probabilidad estable de 40 a 90 %, más alta con más interés en el deporte', () => {
+      const frac = (n: Npc) => {
+        let jugados = 0;
+        const total = 400;
+        const base = habitosDeNpc(n, 8, 7).activo;
+        for (let semana = 0; semana < total; semana++) jugados += (habitosDeNpc(n, 8, 7, 0, escolar(5, [0]), semana).activo - base) / RECREO.minutos;
+        return jugados / (total * 5);
+      };
+      const sin = persona('s', 8, { rasgos: { intereses: {}, caracter: { sociabilidad: -50 } } as never });
+      const con = persona('c', 8, { rasgos: { intereses: { deporte: 3 }, caracter: { sociabilidad: 50 } } as never });
+      expect(frac(sin)).toBeGreaterThan(0.33);
+      expect(frac(sin)).toBeLessThan(0.47);
+      expect(frac(con)).toBeGreaterThan(0.83);
+      expect(frac(con)).toBeLessThan(0.97);
+      expect(habitosDeNpc(sin, 8, 7, 0, escolar(5, [0]), 11)).toEqual(habitosDeNpc(sin, 8, 7, 0, escolar(5, [0]), 11));
+    });
+
+    it('calibración: con recreos y Educación física un niño sale normal; sin nada más (ni recreo ni Educación física) tiende al sobrepeso', () => {
+      const q = (sexo: 'f' | 'm') => ({ edad: 10, madurez: 0, sexo });
+      const juega = { fuerza: 0, activo: 4 * RECREO.minutos + 150 };
+      for (const sexo of ['f', 'm'] as const) expect(objetivoDeCuerpo(juega, q(sexo)).grasa).toBeLessThan(65);
+      const nada = { fuerza: 0, activo: 0 };
+      expect(objetivoDeCuerpo(nada, q('m')).grasa).toBeGreaterThan(65);
+    });
   });
 });

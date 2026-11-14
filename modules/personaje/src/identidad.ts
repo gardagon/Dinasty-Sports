@@ -11,6 +11,9 @@ import { PROPORCION_DE_ZURDOS, SD_Z_HIJO, alturaEn as alturaDeCuerpo, anioNatura
  */
 export const EDAD_INICIAL = 8;
 
+/** Por debajo de esta edad (años), quedar con alguien cuenta la mitad de su duración como actividad del cuerpo (etiqueta `actividadDeNino`). */
+export const EDAD_DE_QUEDAR_COMO_JUEGO = 12;
+
 /** Hoy el personaje es chico (el sexo entra en las reglas del cuerpo igual que en las de cualquier persona). */
 export const SEXO_DEL_PERSONAJE = 'm' as const;
 

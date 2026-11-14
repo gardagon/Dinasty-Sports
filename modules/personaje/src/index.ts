@@ -47,6 +47,7 @@ import {
   type StatDef,
 } from '@ds/contracts';
 import {
+  EDAD_DE_QUEDAR_COMO_JUEGO,
   EDAD_INICIAL,
   NOMBRE_COMPLEXION,
   SEXO_DEL_PERSONAJE,
@@ -341,13 +342,16 @@ export const personaje = defineModule<IdentidadState>({
       const fuerza = d.tags.includes(TAGS.fuerza);
       const cardio = d.tags.includes(TAGS.cardio);
       const descanso = d.tags.includes(TAGS.descanso);
-      if (!fisico && !fuerza && !cardio && !descanso) return;
+      // Actividad que solo cuenta para el cuerpo: el juego, la Educación física (minutos reales) y, de menor de 12 años, la mitad de lo que dura quedar con alguien.
+      const ligera = d.tags.includes(TAGS.actividadLigera) ? d.duration : 0;
+      const deNino = d.tags.includes(TAGS.actividadDeNino) && edadDecimal(ctx.state<IdentidadState>(), ctx.time.day) < EDAD_DE_QUEDAR_COMO_JUEGO ? d.duration / 2 : 0;
+      if (!fisico && !fuerza && !cardio && !descanso && !ligera && !deNino) return;
       ctx.updateState<IdentidadState>((s) => ({
         ...s,
         semana: {
           fuerza: s.semana.fuerza + (fuerza ? d.duration : 0),
           cardio: s.semana.cardio + (cardio ? d.duration : 0),
-          activo: s.semana.activo + (fisico ? d.duration : 0),
+          activo: s.semana.activo + (fisico ? d.duration : 0) + ligera + deNino,
           descanso: s.semana.descanso + (descanso ? d.duration : 0),
         },
       }));
