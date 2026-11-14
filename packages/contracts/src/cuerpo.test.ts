@@ -73,12 +73,12 @@ describe('cuerpo: una sola regla para todas las personas', () => {
       }
     });
 
-    it('la grasa base extra de las mujeres llega con la pubertad (nada a los 12, todo a los 18)', () => {
+    it('la grasa base extra de las mujeres llega con la pubertad (nada hasta los 13, todo a los 18)', () => {
       const h = { fuerza: 0, activo: 200 };
       const dif = (edad: number) => objetivoDeCuerpo(h, mujer(edad)).grasa - objetivoDeCuerpo(h, hombre(edad)).grasa;
       expect(dif(10)).toBeCloseTo(0, 9);
-      expect(dif(12)).toBeCloseTo(0, 9);
-      expect(dif(15)).toBeCloseTo(4, 9);
+      expect(dif(13)).toBeCloseTo(0, 9);
+      expect(dif(15)).toBeCloseTo(3.2, 9);
       expect(dif(18)).toBeCloseTo(8, 9);
     });
 
