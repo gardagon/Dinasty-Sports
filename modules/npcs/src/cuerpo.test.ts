@@ -5,7 +5,7 @@ import { personaje } from '@ds/mod-personaje';
 import { familia } from '@ds/mod-familia';
 import { lugares } from '@ds/mod-lugares';
 import { atletismo } from '@ds/mod-atletismo';
-import { actividadDeAdulto, actividadTrasElCumple, conCuerpo, habitosDeNpc, semanaDelCuerpo } from './cuerpo';
+import { geneticaDelCuerpo, actividadDeAdulto, actividadTrasElCumple, conCuerpo, habitosDeNpc, semanaDelCuerpo } from './cuerpo';
 import { npcs, type Npc, type NpcsState } from './index';
 
 registrarPais(PAIS_CIUDAD_DE_PRUEBA);
@@ -99,6 +99,7 @@ describe('cuerpo de los PNJ', () => {
       expect(c.alturaAdulta).toBeCloseTo(p.alturaCm, 0);
       expect(c.nacimiento).toBeLessThan(-35 * 365);
       expect(c.musculo).toBeGreaterThan(0);
+      expect(Number.isFinite(c.metabolismo) && Number.isFinite(c.musculatura)).toBe(true);
       expect(alturaEn(c.alturaAdulta, p.edad, c.madurez)).toBeCloseTo(p.alturaCm, -1);
     }
     // todos los PNJ tienen todo lo que hace falta para dibujarlos y su semilla es estable
@@ -113,5 +114,18 @@ describe('cuerpo de los PNJ', () => {
     }
     expect(new Set(lista.map((n) => dir.de(n.id)!.semilla)).size).toBeGreaterThan(lista.length * 0.99);
     expect(cuerpoDePersona(ctx, 'nadie')).toBeUndefined();
+  });
+
+  it('la genética del cuerpo: heredada en los padres y hermanos, estable por id en el resto, y mueve el cuerpo', () => {
+    const g = Game.create([personaje, familia, npcs, lugares, atletismo], { seed: 9 });
+    const lista = g.moduleState<NpcsState>('npcs').npcs;
+    expect(lista.filter((n) => n.tags.includes('progenitor') || n.tags.includes('hermano')).every((n) => n.metabolismo !== undefined && n.musculatura !== undefined)).toBe(true);
+    const otro = lista.find((n) => n.metabolismo === undefined)!;
+    expect(geneticaDelCuerpo(otro)).toEqual(geneticaDelCuerpo({ ...otro }));
+    const igual = persona('x', 30, { actividad: [200, 0] });
+    const gordo = conCuerpo([{ ...igual, metabolismo: 2.5 }], 0, 1)[0];
+    const flaco = conCuerpo([{ ...igual, metabolismo: -2.5 }], 0, 1)[0];
+    for (let w = 1; w <= 120; w++) { semanaDelCuerpo([gordo], w * 7, new Map(), 1); semanaDelCuerpo([flaco], w * 7, new Map(), 1); }
+    expect(gordo.cuerpo![1]).toBeGreaterThan(flaco.cuerpo![1] + 10);
   });
 });

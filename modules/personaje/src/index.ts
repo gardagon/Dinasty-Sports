@@ -83,7 +83,7 @@ export const personaje = defineModule<IdentidadState>({
     for (const [stat, delta] of Object.entries(efecto.tope)) ctx.bonusDeTope(stat, delta);
     // Origen, apariencia, carácter e intereses salen de los padres (la opción de elegirlos a mano llegará con la creación de personaje).
     const perfil = perfilHeredado(ctx.rasgosDePadres.padre, ctx.rasgosDePadres.madre, ctx.rng, SEXO_DEL_PERSONAJE);
-    return { ...initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, perfil, efecto.alturaCm), semilla: ctx.seed };
+    return { ...initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, perfil, efecto.alturaCm, { metabolismo: ctx.herencia('metabolismo').hijo, musculatura: ctx.herencia('musculatura').hijo }), semilla: ctx.seed };
   },
   stats: [
     // Físicos
@@ -441,6 +441,8 @@ export const personaje = defineModule<IdentidadState>({
         madurez: s.madurez,
         musculo: Math.round(s.musculo * 100) / 100,
         grasa: Math.round(s.grasa * 100) / 100,
+        metabolismo: s.metabolismo ?? 0,
+        musculatura: s.musculatura ?? 0,
         historial: [...(s.hc ?? [])],
         apariencia: s.perfil.apariencia,
         semilla: semillaDeDibujo(s.semilla ?? 0, ID_DEL_PERSONAJE),

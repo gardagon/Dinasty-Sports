@@ -27,6 +27,8 @@ import {
   paisPorId,
   type PaisDef,
   rasgosAlAzar,
+  rngEstable,
+  FAMILIAS_ESTABLES,
   perfilDePadre,
   repartirHerencia,
   type ReadContext,
@@ -321,9 +323,11 @@ export class Game {
       },
       herencia: (familia) => {
         const lin = Game.lineage(state);
-        const padre = Game.zDeFamilia(lin.padre, familia, init);
-        const madre = Game.zDeFamilia(lin.madre, familia, init);
-        lin.hijo[familia] ??= mezclarZ(padre, madre, init);
+        // La genética del cuerpo (`FAMILIAS_ESTABLES`) se sortea con un generador propio de cada rasgo y cada uno (no con el de la partida): pedirla no cambia ningún sorteo posterior.
+        const r = (quien: string) => (FAMILIAS_ESTABLES.includes(familia) ? rngEstable('herencia', state.seed, familia, quien) : init);
+        const padre = Game.zDeFamilia(lin.padre, familia, r('padre'));
+        const madre = Game.zDeFamilia(lin.madre, familia, r('madre'));
+        lin.hijo[familia] ??= mezclarZ(padre, madre, r('hijo'));
         return { padre, madre, hijo: lin.hijo[familia] };
       },
     };

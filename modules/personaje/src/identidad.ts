@@ -37,6 +37,9 @@ export interface IdentidadState {
   alturaAdulta: number;
   /** Años de adelanto (+) o retraso (−) en el crecimiento. */
   madurez: number;
+  /** Genética del cuerpo en puntuación típica (de `ctx.herencia`): facilidad para engordar y para ganar músculo. Ausente en partidas anteriores (0). */
+  metabolismo?: number;
+  musculatura?: number;
   /** Su pierna buena (y su mano): zurdo o diestro. La misma proporción que los PNJ (`PROPORCION_DE_ZURDOS`, en torno a un 20 %: la del pie, no la de la mano, que era el 11 %). */
   zurdo: boolean;
   /** 0..100. Se forma con fuerza sostenida y se pierde sin ella. */
@@ -57,7 +60,7 @@ export interface IdentidadState {
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /** `zAltura`: genética de la estatura del personaje (puntuación típica del hijo de `ctx.herencia('estatura')`). */
-export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, perfil: PerfilDelPersonaje, alturaExtraCm = 0): IdentidadState {
+export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, perfil: PerfilDelPersonaje, alturaExtraCm = 0, genetica: { metabolismo?: number; musculatura?: number } = {}): IdentidadState {
   // Nace como los PNJ: un día al azar del año natural de su clase (los que cumplen EDAD_INICIAL años ese año). Así empieza con entre 7,7 y 8,7 años según el día en que cae el
   // inicio del curso, nunca un año mayor que sus compañeros (antes tenía entre 8,0 y 9,0, y en 3 de cada 10 partidas nacía un año antes que su clase).
   const nacimiento = primerDiaDelAnio(anioNatural(0) - EDAD_INICIAL) + rng.int(0, 364);
@@ -68,6 +71,8 @@ export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, perfil:
     fraccionInicial: anios - edadInicial,
     alturaAdulta: Math.round(clamp(171 + (zAltura / SD_Z_HIJO) * 8, 150, 195) * 10 + alturaExtraCm * 10) / 10,
     madurez: clamp(rng.normal() * 0.8, -1.5, 1.5),
+    ...(genetica.metabolismo !== undefined ? { metabolismo: genetica.metabolismo } : {}),
+    ...(genetica.musculatura !== undefined ? { musculatura: genetica.musculatura } : {}),
     zurdo: rng.chance(PROPORCION_DE_ZURDOS),
     musculo: rng.range(18, 30),
     grasa: rng.range(34, 44),
@@ -102,7 +107,7 @@ export function viewIdentidad(s: IdentidadState, day: number, primerDiaDelCurso:
 
 /** Fin de semana: el cuerpo se mueve despacio hacia lo que dicen los hábitos (`pasoDeSemanaDelCuerpo`, en contracts). */
 export function actualizarCuerpo(s: IdentidadState, day: number): IdentidadState {
-  const { musculo, grasa } = pasoDeSemanaDelCuerpo(s, s.semana, { edad: edadDecimal(s, day), madurez: s.madurez, sexo: SEXO_DEL_PERSONAJE });
+  const { musculo, grasa } = pasoDeSemanaDelCuerpo(s, s.semana, { edad: edadDecimal(s, day), madurez: s.madurez, sexo: SEXO_DEL_PERSONAJE, metabolismo: s.metabolismo, musculatura: s.musculatura });
   return { ...s, grasa, musculo, cuerpo: complexion(musculo, grasa), semana: { ...SIN_HABITOS } };
 }
 

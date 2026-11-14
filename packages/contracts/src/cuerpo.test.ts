@@ -112,4 +112,29 @@ describe('cuerpo: una sola regla para todas las personas', () => {
       expect(fotoDeEdad(hc, 40)).toEqual({ musculo: 22, grasa: 39 });
     });
   });
+
+  describe('genética del cuerpo', () => {
+    const q = (metabolismo: number, musculatura: number) => ({ edad: 30, madurez: 0, sexo: 'm' as const, metabolismo, musculatura });
+    const h = { fuerza: 300, activo: 150 };
+
+    it('metabolismo: grasa objetivo + 3 × z, con z limitado a ±2,5', () => {
+      const base = objetivoDeCuerpo(h, q(0, 0)).grasa;
+      expect(objetivoDeCuerpo(h, q(1, 0)).grasa).toBeCloseTo(base + 3, 6);
+      expect(objetivoDeCuerpo(h, q(-2, 0)).grasa).toBeCloseTo(base - 6, 6);
+      expect(objetivoDeCuerpo(h, q(9, 0)).grasa).toBeCloseTo(base + 7.5, 6);
+    });
+
+    it('musculatura: más músculo por minuto de fuerza y un tope 5 × z más alto', () => {
+      const base = objetivoDeCuerpo(h, q(0, 0)).musculo;
+      expect(objetivoDeCuerpo(h, q(0, 2)).musculo).toBeCloseTo(12 + 300 * 0.1 * 1.3, 6);
+      expect(objetivoDeCuerpo(h, q(0, -2)).musculo).toBeLessThan(base);
+      const mucho = { fuerza: 5000, activo: 0 };
+      const joven = (z: number) => objetivoDeCuerpo(mucho, { edad: 12, madurez: 0, sexo: 'm', musculatura: z }).musculo;
+      expect(joven(2) - joven(0)).toBeCloseTo(10, 6);
+    });
+
+    it('sin z (undefined) vale 0', () => {
+      expect(objetivoDeCuerpo(h, { edad: 30, madurez: 0, sexo: 'm' })).toEqual(objetivoDeCuerpo(h, q(0, 0)));
+    });
+  });
 });

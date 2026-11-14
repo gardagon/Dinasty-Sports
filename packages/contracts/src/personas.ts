@@ -144,12 +144,18 @@ export const alturaAdulta = (gender: 'f' | 'm', z: number): number => {
 /** Altura (cm, con un decimal) a una edad (años, con decimales) con esa puntuación típica de estatura y ese adelanto (+) o retraso (−) del desarrollo (`desfase`, 0 si no tiene). La curva es de `cuerpo.ts`. */
 export const alturaDe = (gender: 'f' | 'm', edad: number, z: number, madurez = 0): number => Math.round(alturaEn(alturaAdulta(gender, z), edad, madurez) * 10) / 10;
 
-/** Puntuación típica de estatura estable por persona (aproximadamente normal; para quien no la hereda de unos padres concretos). */
-export function estaturaZ(id: string): number {
-  const u1 = Math.max(1e-9, azarDe('estatura', id, 1));
-  const u2 = azarDe('estatura', id, 2);
+/** Puntuación típica estable por persona y rasgo (aproximadamente normal, entre −2,5 y 2,5), para quien no la hereda de unos padres concretos. */
+export function zEstable(rasgo: string, id: string): number {
+  const u1 = Math.max(1e-9, azarDe(rasgo, id, 1));
+  const u2 = azarDe(rasgo, id, 2);
   return Math.max(-2.5, Math.min(2.5, Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)));
 }
+
+/** Puntuación típica de estatura estable por persona (para quien no la hereda de unos padres concretos). */
+export const estaturaZ = (id: string): number => zEstable('estatura', id);
+/** Lo mismo para la genética del cuerpo: facilidad para engordar y para ganar músculo. */
+export const metabolismoZ = (id: string): number => zEstable('metabolismo', id);
+export const musculaturaZ = (id: string): number => zEstable('musculatura', id);
 
 // ------------------------------------------------------------------------------------------------------------ bandas respecto a ti
 

@@ -1,4 +1,4 @@
-import { complexion, conFotoDelCumple, objetivoDeCuerpo, pasoDeSemanaDelCuerpo, rngEstable, type HabitosDelCuerpo } from '@ds/contracts';
+import { metabolismoZ, musculaturaZ, complexion, conFotoDelCumple, objetivoDeCuerpo, pasoDeSemanaDelCuerpo, rngEstable, type HabitosDelCuerpo } from '@ds/contracts';
 import type { Npc } from './index';
 
 /**
@@ -77,6 +77,16 @@ export function habitosDeNpc(n: Npc, edad: number, semilla: number, sesiones = 0
   return { activo: activo + sesiones * MINUTOS_DE_SESION.activo, fuerza: fuerza + sesiones * MINUTOS_DE_SESION.fuerza };
 }
 
+/** Su genética del cuerpo (puntuaciones típicas): la heredada si la tiene guardada (padres y hermanos) y, si no, la estable por su id. */
+const ZS_ESTABLES = new Map<string, { metabolismo: number; musculatura: number }>();
+export function geneticaDelCuerpo(n: Pick<Npc, 'id' | 'metabolismo' | 'musculatura'>): { metabolismo: number; musculatura: number } {
+  if (n.metabolismo !== undefined && n.musculatura !== undefined) return { metabolismo: n.metabolismo, musculatura: n.musculatura };
+  // Dependen solo de su id: se guardan para no recalcular el hash cada semana.
+  let z = ZS_ESTABLES.get(n.id);
+  if (!z) ZS_ESTABLES.set(n.id, (z = { metabolismo: metabolismoZ(n.id), musculatura: musculaturaZ(n.id) }));
+  return { metabolismo: n.metabolismo ?? z.metabolismo, musculatura: n.musculatura ?? z.musculatura };
+}
+
 /** Si el PNJ puede tener cuerpo: hace falta su fecha de nacimiento (de ella salen su edad y su desarrollo). */
 const tieneCuerpo = (n: Npc) => n.nacimiento !== undefined;
 
@@ -93,7 +103,7 @@ export function conCuerpo(npcs: Npc[], dia: number, semilla: number): Npc[] {
     const actividad = edad >= EDAD_ADULTA_DE_HABITOS ? (n.actividad ?? actividadDeAdulto(n, semilla)) : undefined;
     const sesiones = n.equipo && n.deporte ? SESIONES_SUPUESTAS : 0;
     const habitos = habitosDeNpc(actividad ? { ...n, actividad } : n, edad, semilla, sesiones);
-    const obj = objetivoDeCuerpo(habitos, { edad, madurez: n.desfase ?? 0, sexo: n.gender });
+    const obj = objetivoDeCuerpo(habitos, { edad, madurez: n.desfase ?? 0, sexo: n.gender, ...geneticaDelCuerpo(n) });
     const r = rngEstable('cuerpo', semilla, n.id);
     const musculo = Math.max(5, obj.musculo + r.normal() * 2);
     const grasa = Math.min(80, Math.max(20, obj.grasa + r.normal() * 4));
@@ -114,7 +124,7 @@ export function semanaDelCuerpo(npcs: readonly Npc[], fin: number, sesiones: Rea
       if (!n.actividad) n.actividad = actividadDeAdulto(n, semilla);
       else if (edadCumplida > Math.floor((fin - 7 - n.nacimiento) / 365)) n.actividad = actividadTrasElCumple(n.actividad, n, semilla, edadCumplida);
     }
-    const { musculo, grasa } = pasoDeSemanaDelCuerpo({ musculo: n.cuerpo[0], grasa: n.cuerpo[1] }, habitosDeNpc(n, edad, semilla, sesiones.get(n.id) ?? 0), { edad, madurez: n.desfase ?? 0, sexo: n.gender });
+    const { musculo, grasa } = pasoDeSemanaDelCuerpo({ musculo: n.cuerpo[0], grasa: n.cuerpo[1] }, habitosDeNpc(n, edad, semilla, sesiones.get(n.id) ?? 0), { edad, madurez: n.desfase ?? 0, sexo: n.gender, ...geneticaDelCuerpo(n) });
     n.cuerpo = [redondea2(musculo), redondea2(grasa)];
     // En cada cumpleaños, una foto del cuerpo para el historial (la primera que haya es la de su primer cumpleaños de la partida).
     if (edadCumplida > Math.floor((fin - 7 - n.nacimiento) / 365)) n.hc = conFotoDelCumple(n.hc, edadCumplida, n.cuerpo[0], n.cuerpo[1]);

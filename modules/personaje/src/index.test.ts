@@ -72,6 +72,13 @@ describe('módulo personaje (gen)', () => {
       expect(hc.every(Number.isInteger)).toBe(true);
     });
 
+    it('hereda la genética del cuerpo (puntuaciones típicas) y distintas partidas la tienen distinta', () => {
+      const zs = [1, 2, 3, 4, 5, 6].map((seed) => g_(seed).metabolismo);
+      expect(zs.every((z) => typeof z === 'number' && Math.abs(z) < 4)).toBe(true);
+      expect(new Set(zs).size).toBeGreaterThan(3);
+      function g_(seed: number) { return Game.create([personaje], { seed }).moduleState<IdentidadState>('gen'); }
+    });
+
     it('cada partida tiene su propia altura adulta', () => {
       const alturas = [1, 2, 3, 4, 5, 6].map((seed) => vista(Game.create([personaje], { seed })).heightCm);
       expect(new Set(alturas).size).toBeGreaterThan(3);

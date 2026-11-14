@@ -80,7 +80,14 @@ export interface QuienEs {
   edad: number;
   madurez: number;
   sexo: 'f' | 'm';
+  /** Genética del cuerpo, en puntuación típica (media 0, desviación 1; 0 si no se sabe): `metabolismo`, la facilidad para engordar, y `musculatura`, la facilidad para ganar músculo. */
+  metabolismo?: number;
+  musculatura?: number;
 }
+
+/** Límite de las puntuaciones típicas de la genética del cuerpo. */
+export const Z_MAXIMO_DEL_CUERPO = 2.5;
+const limitaZ = (z: number | undefined) => clamp(z ?? 0, -Z_MAXIMO_DEL_CUERPO, Z_MAXIMO_DEL_CUERPO);
 
 /** Cifras del músculo y la grasa. Ajustables con la simulación. */
 export const CUERPO = {
@@ -105,6 +112,10 @@ export const CUERPO = {
   metabolismoDesde: 30,
   metabolismoPorAnio: 0.3,
   metabolismoMax: 12,
+  /** Genética: grasa objetivo `+ grasaPorMetabolismo × z`; el músculo sube `× (1 + musculoPorMusculatura × z)` por minuto de fuerza y su tope sube `topePorMusculatura × z`. */
+  grasaPorMetabolismo: 3,
+  musculoPorMusculatura: 0.15,
+  topePorMusculatura: 5,
 };
 
 /** Hacia dónde tiende el cuerpo con unos hábitos semanales, a su edad y siendo quien es. */
@@ -112,13 +123,14 @@ export function objetivoDeCuerpo(h: HabitosDelCuerpo, q: QuienEs): { musculo: nu
   const mujer = q.sexo === 'f';
   const metabolismo = clamp(CUERPO.metabolismoPorAnio * (q.edad - CUERPO.metabolismoDesde), 0, CUERPO.metabolismoMax);
   const grasaBase = CUERPO.grasaBase + (mujer ? CUERPO.mujerGrasa : 0) + metabolismo;
-  const grasa = clamp(grasaBase - (h.activo + CUERPO.actividadBasica) * CUERPO.grasaPorMinutoActivo, 20, 80);
-  let musculo = clamp(CUERPO.musculoBase + h.fuerza * CUERPO.musculoPorMinutoFuerza, 10, 90);
+  const grasa = clamp(grasaBase + CUERPO.grasaPorMetabolismo * limitaZ(q.metabolismo) - (h.activo + CUERPO.actividadBasica) * CUERPO.grasaPorMinutoActivo, 20, 80);
+  const zm = limitaZ(q.musculatura);
+  let musculo = clamp(CUERPO.musculoBase + h.fuerza * CUERPO.musculoPorMinutoFuerza * (1 + CUERPO.musculoPorMusculatura * zm), 10, 90);
   if (mujer) musculo *= CUERPO.mujerMusculo;
   musculo -= CUERPO.sarcopeniaPorAnio * Math.max(0, q.edad - CUERPO.sarcopeniaDesde);
   // Tope por desarrollo físico: un niño no se pone musculado por mucho gimnasio que haga; con la pubertad sí puede.
   // (El desarrollo físico es el de `vigoresPorEdad(edad, madurez).fisico`, sin calcular los demás vigores: esto se hace cada semana para todos.)
-  const tope = CUERPO.topeBase + CUERPO.topePorFisico * factorPorEdad('fisico', q.edad < 24 ? q.edad + q.madurez : q.edad);
+  const tope = CUERPO.topeBase + CUERPO.topePorFisico * factorPorEdad('fisico', q.edad < 24 ? q.edad + q.madurez : q.edad) + CUERPO.topePorMusculatura * zm;
   return { grasa, musculo: Math.max(5, Math.min(musculo, tope)) };
 }
 
@@ -178,6 +190,9 @@ export interface CuerpoDePersona {
   /** Músculo y grasa de hoy (0 a 100). */
   musculo: number;
   grasa: number;
+  /** Genética del cuerpo en puntuación típica: facilidad para engordar y para ganar músculo. */
+  metabolismo: number;
+  musculatura: number;
   /** Historial anual (`HistorialDeCuerpo`): vacío si aún no ha cumplido años en la partida. */
   historial: number[];
   /** Con `canas`, `calvicie` y `barba`. */

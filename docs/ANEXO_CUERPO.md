@@ -28,6 +28,7 @@ Interpolación lineal. **Pérdida en la vejez** (cm): 0 hasta los 50; −0,15 po
 
 - Grasa = `clamp(78 + 8 si es mujer + metabolismo − (actividad + 60) × 0,1, 20, 80)`. **Metabolismo**: `0,3 × (edad − 30)` entre 0 y 12.
 - Músculo = `clamp(12 + fuerza × 0,1, 10, 90)`; × 0,75 si es mujer; − `0,5 × (edad − 40)` desde los 40 (sarcopenia); **tope por desarrollo físico** `15 + 75 × físico/100` (el `fisico` de `vigoresPorEdad(edad, madurez)`: un niño de 8 años no pasa de 37,5; con 13 años y madurez normal ya puede llegar a 60); mínimo 5.
+- **Genética del cuerpo** (`QuienEs.metabolismo` y `.musculatura`, puntuaciones típicas con media 0 y desviación 1, limitadas a ±2,5): `metabolismo`, la facilidad para engordar, suma `3 × z` a la grasa objetivo; `musculatura`, la facilidad para ganar músculo, multiplica por `1 + 0,15 × z` el músculo por minuto de fuerza y suma `5 × z` al tope. Igual para todos. El personaje las hereda con `ctx.herencia('metabolismo' | 'musculatura')` (con generador propio, `FAMILIAS_ESTABLES`, para no mover el mundo de la semilla); los padres, de su herencia; los hermanos, `0,45 × (padre + madre) + 0,6 × z propio` (como la estatura); el resto, estable por id (`metabolismoZ`, `musculaturaZ`).
 - **Paso semanal**: el cuerpo se acerca al objetivo un **8 %** (`CUERPO.inercia`).
 
 ## 4. Hábitos de los PNJ (minutos por semana)
@@ -56,7 +57,7 @@ Valores numéricos de la generación (no de la edad). El dibujo decidirá con el
 
 ## 7. Servicio de lectura
 
-`CuerpoService` (`SERVICES.cuerpoPersonaje` y `SERVICES.cuerpoNpcs`): `de(id)` devuelve un `CuerpoDePersona` (id, sexo, nacimiento, altura adulta, madurez, músculo y grasa de hoy, historial, apariencia y semilla de dibujo estable) y `ids()` lista las personas. `cuerpoDePersona(ctx, id)` pregunta a los dos. El padre y la madre son PNJ (`npcs`), así que los da el servicio de `npcs`.
+`CuerpoService` (`SERVICES.cuerpoPersonaje` y `SERVICES.cuerpoNpcs`): `de(id)` devuelve un `CuerpoDePersona` (id, sexo, nacimiento, altura adulta, madurez, músculo y grasa de hoy, metabolismo y musculatura, historial, apariencia y semilla de dibujo estable) y `ids()` lista las personas. `cuerpoDePersona(ctx, id)` pregunta a los dos. El padre y la madre son PNJ (`npcs`), así que los da el servicio de `npcs`.
 
 ## 8. Calibración (`npm run sim:cuerpo`)
 

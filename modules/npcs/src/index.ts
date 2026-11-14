@@ -1,9 +1,9 @@
-import { APORTES, CORE_EVENTS, alturaAdulta, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { type HabilidadesDe } from './rutina';
-import { conCuerpo, semanaDelCuerpo } from './cuerpo';
+import { conCuerpo, geneticaDelCuerpo, semanaDelCuerpo } from './cuerpo';
 import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
 
 /**
@@ -107,6 +107,9 @@ export interface Npc {
   edades?: [number, number];
   /** Puntuación típica de estatura (hermanos y padres, que la heredan); el resto la saca de un hash de su id (`estaturaZ`). */
   estatura?: number;
+  /** Genética del cuerpo en puntuación típica (padres y hermanos, que la heredan); el resto la saca de un hash de su id (`metabolismoZ`, `musculaturaZ`). */
+  metabolismo?: number;
+  musculatura?: number;
   /** Perks (rasgos genéticos especiales) de rivales y hermanos: se les asignan al crearlos; no se enseñan (revelarlos es cosa de los eventos o de un personaje muy perspicaz). */
   perks?: PerksDe;
   /** Padres: índice de su profesión (`OFICIOS_DE_PADRES`), según la semilla de la partida. */
@@ -447,6 +450,8 @@ function progenitores(ctx: InitContext, usados: RegistroDeNombres): Npc[] {
       // Misma fecha de nacimiento y misma estatura que en el módulo `familia` (salen de la semilla y de la herencia).
       nacimiento: nacimientoDeProgenitor(ctx.seed, id),
       estatura: ctx.herencia('estatura')[id],
+      metabolismo: ctx.herencia('metabolismo')[id],
+      musculatura: ctx.herencia('musculatura')[id],
       rasgos: ctx.rasgosDePadres[id],
       tipos: [{ tipo: 'progenitor' as const }],
       oficio: oficioDeProgenitorAlAzar(ctx.seed, id),
@@ -513,6 +518,9 @@ export function hermanos(ctx: InitContext, usados: RegistroDeNombres): Npc[] {
       nacimiento,
       // Estatura: parecida a la de sus padres (media de los dos, algo atenuada) más una variación propia.
       estatura: (ctx.herencia('estatura').padre + ctx.herencia('estatura').madre) * 0.45 + estaturaZ(id) * 0.6,
+      // La genética del cuerpo se hereda como la estatura: la media de los padres, algo atenuada, más una variación propia.
+      metabolismo: (ctx.herencia('metabolismo').padre + ctx.herencia('metabolismo').madre) * 0.45 + metabolismoZ(id) * 0.6,
+      musculatura: (ctx.herencia('musculatura').padre + ctx.herencia('musculatura').madre) * 0.45 + musculaturaZ(id) * 0.6,
       desfase: genetica.desfase,
       rasgos,
       tipos: tiposDeHermano(edad, undefined),
@@ -1456,7 +1464,7 @@ export const npcs = defineModule<NpcsState>({
       const { npcs: lista, semilla } = ctx.state<NpcsState>();
       const de = (n: Npc): CuerpoDePersona | undefined =>
         n.cuerpo && n.nacimiento !== undefined && n.rasgos
-          ? { id: n.id, sexo: n.gender, nacimiento: n.nacimiento, alturaAdulta: alturaAdulta(n.gender, n.estatura ?? estaturaZ(n.id)), madurez: n.desfase ?? 0, musculo: n.cuerpo[0], grasa: n.cuerpo[1], historial: [...(n.hc ?? [])], apariencia: n.rasgos.apariencia, semilla: semillaDeDibujo(semilla ?? 0, n.id) }
+          ? { id: n.id, sexo: n.gender, nacimiento: n.nacimiento, alturaAdulta: alturaAdulta(n.gender, n.estatura ?? estaturaZ(n.id)), madurez: n.desfase ?? 0, musculo: n.cuerpo[0], grasa: n.cuerpo[1], ...geneticaDelCuerpo(n), historial: [...(n.hc ?? [])], apariencia: n.rasgos.apariencia, semilla: semillaDeDibujo(semilla ?? 0, n.id) }
           : undefined;
       return { de: (id) => { const n = lista.find((x) => x.id === id); return n ? de(n) : undefined; }, ids: () => lista.filter((n) => de(n)).map((n) => n.id) };
     },
