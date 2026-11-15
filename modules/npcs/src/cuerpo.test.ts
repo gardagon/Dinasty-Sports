@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ID_DEL_PERSONAJE, JORNADA_ESCOLAR, minutosDeEducacionFisica, objetivoDeCuerpo, PAIS_CIUDAD_DE_PRUEBA, SERVICES, alturaEn, complexion, cuerpoDePersona, fotosDelHistorial, registrarPais, type CuerpoService, type EducacionFisicaService, type FamilyService } from '@ds/contracts';
+import { RASGOS_DE_ROSTRO, rostroDe, ID_DEL_PERSONAJE, JORNADA_ESCOLAR, minutosDeEducacionFisica, objetivoDeCuerpo, PAIS_CIUDAD_DE_PRUEBA, SERVICES, alturaEn, complexion, cuerpoDePersona, fotosDelHistorial, registrarPais, type CuerpoService, type EducacionFisicaService, type FamilyService } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { estudios } from '@ds/mod-estudios';
@@ -222,5 +222,29 @@ describe('cuerpo de los PNJ', () => {
     const con = conCuerpo([nino], 0, 7, LECTIVA, { efPorCurso: delCuerpo.efPorCurso, edadDeCurso: () => 8 })[0].cuerpo![1];
     const sin = conCuerpo([nino], 0, 7, LECTIVA, { efPorCurso: delCuerpo.efPorCurso.map(() => 0), edadDeCurso: () => 8 })[0].cuerpo![1];
     expect(con).toBeLessThan(sin);
+  });
+
+  it('los rasgos de la cara se heredan: los hermanos y el personaje llevan en cada rasgo un valor de cada padre', () => {
+    for (const seed of [9, 10, 11]) {
+      const g = Game.create([personaje, familia, npcs, lugares, atletismo], { seed });
+      const lista = g.moduleState<NpcsState>('npcs').npcs;
+      const padre = lista.find((n) => n.id === 'padre')!.rasgos!.apariencia;
+      const madre = lista.find((n) => n.id === 'madre')!.rasgos!.apariencia;
+      expect(padre.rostro).toHaveLength(2 * RASGOS_DE_ROSTRO.length);
+      const deLosPadres = (a: { rostro: string }) => {
+        for (const k of RASGOS_DE_ROSTRO) {
+          const [e, l] = rostroDe(a)[k];
+          const p = rostroDe(padre)[k];
+          const m = rostroDe(madre)[k];
+          expect((p.includes(e) && m.includes(l)) || (m.includes(e) && p.includes(l)), `${k}`).toBe(true);
+        }
+      };
+      const hermanos = lista.filter((n) => n.tags.includes('hermano'));
+      for (const h of hermanos) deLosPadres(h.rasgos!.apariencia);
+      // el personaje, igual
+      deLosPadres((g.moduleState<{ perfil: { apariencia: { rostro: string } } }>('gen') as { perfil: { apariencia: { rostro: string } } }).perfil.apariencia);
+      // y todo el mundo lleva su rostro
+      expect(lista.every((n) => !n.rasgos || n.rasgos.apariencia.rostro.length === 2 * RASGOS_DE_ROSTRO.length)).toBe(true);
+    }
   });
 });

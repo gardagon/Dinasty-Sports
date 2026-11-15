@@ -150,6 +150,73 @@ export interface Apariencia {
   canas: number;
   calvicie: number;
   barba: number;
+  /**
+   * Los rasgos de la cara heredables (`RASGOS_DE_ROSTRO`): cada uno un número de 0 a 1 que va en un par [expresado, latente], como los perks (lo que se ve y lo que se lleva sin verse y puede
+   * saltarse una generación). Va **empaquetado en un texto** (dos caracteres por rasgo, 64 niveles cada valor) para que el estado no crezca: se lee con `rostroDe` y `rostroExpresado`.
+   */
+  rostro: string;
+}
+
+// ---------------------------------------------------------------------------------------------------- rasgos de la cara heredables
+
+/**
+ * Los rasgos de la cara que se heredan, cada uno un número de 0 a 1 (no catálogos de formas: no dependen del estilo de dibujo): forma y tamaño de los ojos, forma y tamaño de la nariz,
+ * grosor y anchura de la boca, grosor y forma de las cejas, tamaño y «despegadas» de las orejas, mentón y pómulos. Cifras y herencia en `docs/ANEXO_CUERPO.md`.
+ */
+export const RASGOS_DE_ROSTRO = ['ojosForma', 'ojosTamano', 'narizForma', 'narizTamano', 'bocaGrosor', 'bocaAnchura', 'cejasGrosor', 'cejasForma', 'orejasTamano', 'orejasDespegadas', 'menton', 'pomulos'] as const;
+export type RasgoDeRostro = (typeof RASGOS_DE_ROSTRO)[number];
+/** Un rasgo: [expresado, latente], de 0 a 1 cada uno. */
+export type ParDeRasgo = readonly [number, number];
+export type Rostro = Readonly<Record<RasgoDeRostro, ParDeRasgo>>;
+export type RostroExpresado = Readonly<Record<RasgoDeRostro, number>>;
+
+/** Niveles de cada valor al guardarlo (6 bits): 0, 1/63, ..., 1. */
+const NIVELES_DE_ROSTRO = 63;
+const ALFABETO_DE_ROSTRO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const nivelDe = (v: number) => clamp(Math.round(v * NIVELES_DE_ROSTRO), 0, NIVELES_DE_ROSTRO);
+
+/** Guarda un rostro en un texto de 24 caracteres (expresado y latente de cada rasgo, en el orden de `RASGOS_DE_ROSTRO`). */
+export function empaquetarRostro(r: Rostro): string {
+  return RASGOS_DE_ROSTRO.map((k) => ALFABETO_DE_ROSTRO[nivelDe(r[k][0])] + ALFABETO_DE_ROSTRO[nivelDe(r[k][1])]).join('');
+}
+
+/** Un rostro con todos los rasgos a la mitad (expresado y latente): para quien no tiene datos y para los tests. */
+export const ROSTRO_MEDIO: string = empaquetarRostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, [0.5, 0.5] as const])) as unknown as Rostro);
+
+/** Los pares [expresado, latente] de cada rasgo de la cara. */
+export function rostroDe(a: Pick<Apariencia, 'rostro'>): Rostro {
+  const texto = a.rostro && a.rostro.length === 2 * RASGOS_DE_ROSTRO.length ? a.rostro : ROSTRO_MEDIO;
+  const valor = (c: string) => ALFABETO_DE_ROSTRO.indexOf(c) / NIVELES_DE_ROSTRO;
+  return Object.fromEntries(RASGOS_DE_ROSTRO.map((k, i) => [k, [valor(texto[2 * i]), valor(texto[2 * i + 1])] as const])) as unknown as Rostro;
+}
+
+/** Los valores que se ven (los expresados) de cada rasgo de la cara: lo que lee el dibujo. */
+export function rostroExpresado(a: Pick<Apariencia, 'rostro'>): RostroExpresado {
+  const r = rostroDe(a);
+  return Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, r[k][0]])) as unknown as RostroExpresado;
+}
+
+/** Rostro de un adulto del mundo (primera generación): los dos valores de cada rasgo al azar, uniformes, sin tendencias por origen. */
+export function rostroAlAzar(rng: Rng): string {
+  const par = () => [rng.int(0, NIVELES_DE_ROSTRO) / NIVELES_DE_ROSTRO, rng.int(0, NIVELES_DE_ROSTRO) / NIVELES_DE_ROSTRO] as const;
+  return empaquetarRostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, par()])) as unknown as Rostro);
+}
+
+/**
+ * Rostro del hijo, como los perks: de cada padre recibe uno de los dos valores de cada rasgo (al azar) y uno de los dos que recibe se expresa (al azar, 50 %). Así el hijo saca cada rasgo de
+ * uno de sus padres y a veces de un abuelo (lo latente de un padre).
+ */
+export function rostroHeredado(padre: Pick<Apariencia, 'rostro'>, madre: Pick<Apariencia, 'rostro'>, rng: Rng): string {
+  const p = rostroDe(padre);
+  const m = rostroDe(madre);
+  const hijo = Object.fromEntries(
+    RASGOS_DE_ROSTRO.map((k) => {
+      const delPadre = p[k][rng.chance(0.5) ? 0 : 1];
+      const delaMadre = m[k][rng.chance(0.5) ? 0 : 1];
+      return [k, rng.chance(0.5) ? ([delPadre, delaMadre] as const) : ([delaMadre, delPadre] as const)];
+    }),
+  );
+  return empaquetarRostro(hijo as unknown as Rostro);
 }
 
 /** Las tendencias de canas, calvicie y barba: cómo se sortean al azar y cómo se heredan. */
@@ -253,11 +320,11 @@ export function origenHeredado(padre: OrigenFamiliar, madre: OrigenFamiliar): Or
 }
 
 /** Los rasgos de siempre de la apariencia (todo menos las tendencias de canas, calvicie y barba). */
-export type AparienciaBase = Omit<Apariencia, 'canas' | 'calvicie' | 'barba'>;
+export type AparienciaBase = Omit<Apariencia, 'canas' | 'calvicie' | 'barba' | 'rostro'>;
 /** Las tendencias heredables: canas, calvicie y barba. */
 export type Tendencias = Pick<Apariencia, 'canas' | 'calvicie' | 'barba'>;
 /** Para los sorteos que necesitan una `Apariencia` entera antes de tener las tendencias (los gustos solo miran los rasgos de siempre). */
-const SIN_TENDENCIAS: Tendencias = { canas: 0, calvicie: 0, barba: 0 };
+const SIN_TENDENCIAS: Tendencias & Pick<Apariencia, 'rostro'> = { canas: 0, calvicie: 0, barba: 0, rostro: ROSTRO_MEDIO };
 
 /** Apariencia de un adulto según su origen (si tiene dos, cada rasgo sale de uno de ellos al azar), sin las tendencias. */
 function aparienciaBaseAlAzar(rng: Rng, o: OrigenFamiliar): AparienciaBase {
@@ -286,7 +353,7 @@ export function tendenciasAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 
 
 /** Apariencia de un adulto según su origen y su sexo, con las tendencias (todo del mismo generador). */
 export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 'm'): Apariencia {
-  return { ...aparienciaBaseAlAzar(rng, o), ...tendenciasAlAzar(rng, o, sexo) };
+  return { ...aparienciaBaseAlAzar(rng, o), ...tendenciasAlAzar(rng, o, sexo), rostro: rostroAlAzar(rng) };
 }
 
 /**
@@ -294,6 +361,8 @@ export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 
  * cada persona), no del generador de la partida. Así añadir las tendencias no cambia ningún sorteo posterior: el mundo de una semilla sigue siendo el mismo.
  */
 const generadorDeTendencias = (sexo: 'f' | 'm', ...propios: unknown[]): Rng => rngEstable('tendencias', sexo, JSON.stringify(propios));
+/** Lo mismo para los rasgos de la cara (otro generador, también propio de cada persona). */
+const generadorDeRostro = (sexo: 'f' | 'm', ...propios: unknown[]): Rng => rngEstable('rostro', sexo, JSON.stringify(propios));
 
 /** Un rasgo con gradación heredado de uno de los padres; si difieren, a veces sale uno intermedio y rara vez un vecino. */
 function heredarGradual(catalogo: readonly string[], a: string, b: string, rng: Rng, mezcla = 0.35): string {
@@ -344,7 +413,7 @@ export function tendenciasHeredadas(padre: Tendencias, madre: Tendencias, rng: R
 
 /** Apariencia del hijo con sus tendencias, todo del mismo generador. */
 export function aparienciaHeredada(padre: Apariencia, madre: Apariencia, rng: Rng, sexo: 'f' | 'm' = 'm'): Apariencia {
-  return { ...aparienciaBaseHeredada(padre, madre, rng), ...tendenciasHeredadas(padre, madre, rng, sexo) };
+  return { ...aparienciaBaseHeredada(padre, madre, rng), ...tendenciasHeredadas(padre, madre, rng, sexo), rostro: rostroHeredado(padre, madre, rng) };
 }
 
 // ---------------------------------------------------------------------------------------------------- gustos
@@ -419,7 +488,7 @@ export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Reco
   const intereses = interesesAlAzar(rng, opciones.interesesPreferidos);
   const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
   const sexo = opciones.sexo ?? 'm';
-  return { origen: o, apariencia: { ...base, ...tendenciasAlAzar(generadorDeTendencias(sexo, caracter, intereses, gustos), o, sexo) }, caracter, intereses, gustos };
+  return { origen: o, apariencia: { ...base, ...tendenciasAlAzar(generadorDeTendencias(sexo, caracter, intereses, gustos), o, sexo), rostro: rostroAlAzar(generadorDeRostro(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 /** Rasgos del personaje: heredados de sus padres (la opción de elegirlos a mano llegará con la creación de personaje). */
@@ -436,7 +505,7 @@ export function perfilHeredado(padre: RasgosDe, madre: RasgosDe, rng: Rng, sexo:
   const caracter = caracterHeredado(padre.caracter, madre.caracter, rng);
   const intereses = interesesHeredados(padre.intereses, madre.intereses, rng);
   const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
-  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo) }, caracter, intereses, gustos };
+  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo), rostro: rostroHeredado(padre.apariencia, madre.apariencia, generadorDeRostro(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 /**
@@ -455,7 +524,7 @@ export function rasgosHeredadosNpc(padre: RasgosDe, madre: RasgosDe, rng: Rng, s
   while (Object.keys(intereses).length < 2) intereses[rng.pick(INTERESES).id] ??= rng.int(1, 3);
   const caracter = caracterHeredado(padre.caracter, madre.caracter, rng);
   const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
-  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo) }, caracter, intereses, gustos };
+  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo), rostro: rostroHeredado(padre.apariencia, madre.apariencia, generadorDeRostro(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 // ---------------------------------------------------------------------------------------------------- compatibilidad

@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 15/11/2026 — Rasgos de la cara heredables (usuario, 15/11)
+
+- **Qué:** `Apariencia.rostro` con 12 rasgos de la cara (ojos, nariz, boca, cejas, orejas, mentón y pómulos), cada uno un número de 0 a 1, heredado como los perks: un par `[expresado, latente]`; el hijo recibe un valor de cada padre y uno de los dos se expresa (50 %); los adultos del mundo, al azar y uniformes, sin tendencias por origen (anexo §7). `rostroDe`, `rostroExpresado`, `rostroAlAzar`, `rostroHeredado` y `ROSTRO_MEDIO` en `rasgos.ts`.
+- **Guardado compacto:** un texto de 24 caracteres (64 niveles por valor) en vez de 24 números por persona, para cumplir el límite de +2 % de estado: **2.850 → 2.900 KB (+1,75 %)**. Cuantizar a pasos de 1/63 no se nota en un dibujo. Si se prefieren números sueltos, el estado crecería un 6 % o más.
+- **Mundo de cada semilla intacto:** sorteados con un generador estable propio de cada persona (como las canas, la calvicie y la barba): los tests que dependen de la semilla siguen en verde. `SAVE_VERSION` 19.
+- **Sin mutación:** los valores de los hijos son siempre de sus padres; la variedad viene de la primera generación (pregunta 22 del plan).
+
 ## 14/11/2026 — Cuerpo y apariencia, segunda ronda (decisiones de arquitectura con el usuario)
 
 - **Altura en la vejez:** −0,15 cm/año de 50 a 70 y **−0,2 cm/año desde los 70** (−7 cm a los 90).

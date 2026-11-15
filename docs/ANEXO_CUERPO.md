@@ -62,11 +62,22 @@ Valores numéricos de la generación (no de la edad). El dibujo decidirá con el
 
 **Tendencias por origen** (se suman a la media al azar, en `ORIGENES`): Asia oriental, canas +4 y barba −0,3; Europa del norte, canas −2; España (sur) y Magreb, barba +0,1; África subsahariana, canas +3. En las mujeres la barba se guarda igual (se hereda) pero no se dibuja.
 
-## 7. Servicio de lectura
+## 7. Rasgos de la cara heredables (`Apariencia.rostro`)
+
+Para que los hijos se parezcan a sus padres (y a veces a un abuelo), la cara se hereda además de la forma, los colores y los distintivos. Son **12 rasgos, cada uno un número de 0 a 1** (no catálogos de formas: no dependen del estilo de dibujo): `ojosForma`, `ojosTamano`, `narizForma`, `narizTamano`, `bocaGrosor`, `bocaAnchura`, `cejasGrosor`, `cejasForma`, `orejasTamano`, `orejasDespegadas`, `menton`, `pomulos` (`RASGOS_DE_ROSTRO`).
+
+- **Herencia como los perks**: cada rasgo es un par `[expresado, latente]`. El hijo recibe **uno de los dos valores de cada padre** (al azar) y **uno de los dos que recibe se expresa** (al azar, 50 %). Así saca cada rasgo de uno de sus padres, y 1 de cada 4 veces lo que un padre llevaba latente: el rasgo de un abuelo (`rostroHeredado`).
+- **Adultos del mundo** (primera generación): los dos valores de cada rasgo al azar, uniformes en 0–1, **sin tendencias por origen** (`rostroAlAzar`). Hermanos, hijos y el personaje: la herencia anterior desde sus padres.
+- **Lo que lee el dibujo**: `rostroExpresado(apariencia)` da el valor expresado de cada rasgo; `rostroDe(apariencia)` da los pares completos. `CuerpoDePersona.apariencia` ya lo lleva.
+- **Cómo se guarda**: un texto de 24 caracteres (`Apariencia.rostro`: dos por rasgo, expresado y latente, con 64 niveles cada uno: pasos de 1/63), para que el estado no crezca más de un 2 % (en datos sueltos serían 24 números por persona). `empaquetarRostro` y `rostroDe` convierten. Las partidas sin ese dato (anteriores) se leen como todo a 0,5.
+- **Sin mover el mundo de cada semilla**: los sortea un generador estable propio de cada persona (sembrado con su carácter, sus intereses y sus gustos, como las canas, la calvicie y la barba), no el de la partida: los nombres, los equipos y todo lo que se sortea después no cambia.
+- **Sin mutación**: los valores de los hijos son siempre alguno de los de sus padres; la variedad de la población viene toda de la primera generación.
+
+## 8. Servicio de lectura
 
 `CuerpoService` (`SERVICES.cuerpoPersonaje` y `SERVICES.cuerpoNpcs`): `de(id)` devuelve un `CuerpoDePersona` (id, sexo, nacimiento, altura adulta, madurez, músculo y grasa de hoy, metabolismo y musculatura, historial, apariencia y semilla de dibujo estable) y `ids()` lista las personas. `cuerpoDePersona(ctx, id)` pregunta a los dos. El padre y la madre son PNJ (`npcs`), así que los da el servicio de `npcs`.
 
-## 8. Calibración (`npm run sim:cuerpo`)
+## 9. Calibración (`npm run sim:cuerpo`)
 
 Proporción con complexión «con sobrepeso» (media de varias semillas, al empezar y tras dos o tres años de partida, que es justo después de las vacaciones):
 
