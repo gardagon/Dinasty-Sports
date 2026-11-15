@@ -182,3 +182,33 @@ Anotadas por la sesión de desarrollo; se siguió adelante con lo que se indica.
 18. **Cifras recalibradas.** Juego libre de fuera del colegio `150 × azar^0,5` (antes `340 × …`); adultos: actividad `800 × azar^1,3` y fuerza ligada a la actividad (0,7 de mezcla) para dejar «delgado» en ≈ 12 % de los adultos.
 19. **Genética del cuerpo con generador propio.** `metabolismo` y `musculatura` se piden con `ctx.herencia` pero se sortean con un generador propio de cada rasgo (`FAMILIAS_ESTABLES` en `herencia.ts`), igual que las tendencias de la apariencia: no mueven ningún sorteo posterior. Los hermanos las heredan como la estatura (0,45 × (padre + madre) + 0,6 × propio) y el resto de PNJ las saca de su id.
 20. **Bots.** No se tocaron: solo ganan actividad (Educación física) respecto a antes. Ninguno juega en el recreo (`sim/src/bots.ts`); si se quiere medir ese efecto, hay que enseñarles a jugar.
+21. **Diagnóstico del coste de jugar en el recreo (15/11, medido; sin cambiar código del juego).** Herramienta: `npx tsx tools/perfil-recreo.ts [clics] [partidas]` (con `perfil` como tercer argumento, el desglose de CPU por función). Máquina de desarrollo, con `npm run sim` corriendo al lado (las cifras absolutas pueden ser un 20 % altas); medianas de 5 partidas, 6 clics seguidos de 5 minutos, ciudad grande.
+
+    **Lo que cuesta un clic** (preview + perform + volver a listar las acciones, que es lo que hace la interfaz tras cada clic):
+
+    | Acción | Primer clic | Siguientes | De ello, `listActions` |
+    |---|---|---|---|
+    | Patio, recreo: «Jugar con otros niños» | 15,7 ms | **7,4 ms** | 6,9 ms |
+    | Patio, recreo: «Jugar con X» | 3,9 | 3,5 | 3,0 |
+    | Patio, recreo: «Charlar un rato con X» | 2,1 | 2,6 | 2,2 |
+    | Patio, recreo: esperar 5 min | 7,6 | 2,1 | 2,0 |
+    | Parque, tarde: «Jugar con otros niños» | 13,7 | 5,1 | 4,9 |
+    | Parque, tarde: «Charlar un rato con X» | 2,8 | 2,4 | 2,2 |
+    | Parque, tarde: esperar 5 min | 10,3 | 2,5 | 2,4 |
+
+    (`perform` cuesta 0,2–0,5 ms en todas: el coste no está en la acción, sino en volver a listar las acciones tras ella.)
+
+    1. **«Jugar con otros niños» es de 3 a 4 veces más cara que «Charlar» o «Jugar con X» en el mismo sitio y hora**, y el momento importa poco: el patio en el recreo cuesta 7,4 y el parque por la tarde, 5,1 (≈ 30 % más en el patio, por haber más gente); «Charlar» cuesta lo mismo en el patio (2,6) que en el parque (2,4). El primer clic tras llegar a un sitio es caro en todas (esperar: 7,6–10,3 frente a 2,1–2,5 después): es la presencia en frío.
+    2. **Por qué:** cada vez que juega con tres niños que no conoce, **la acción crea de golpe sus vínculos y los da a conocer** (evento de presentación → la lista de personas de `npcs` se sustituye por una nueva). Medido en una partida: la lista de personas es nueva en 3 de 6 clics y la versión de la presencia cambia en 4 de 6 (con «esperar», en 1 de 6). Una lista nueva invalida la presencia por tramo (`indiceDePresencia`, `agendaDePersona`, `limitesDeTramos`) y `cercanosConClave` la recalcula (5,6 ms/clic inclusivo en el perfil); `ninosDeTuEdad` suma 2,7 ms; las acciones dinámicas de `relaciones` pasan de 1,1–2,2 ms a 5,3 ms por clic (se rehacen por cada persona conocida o con vínculo). Además **la lista de acciones crece con cada niño nuevo conocido** (≈ 10 acciones por persona: charlar, jugar, quedar, estudiar…): 175 → 244 acciones tras 4 clics (jugar con X: 169 sin cambios) y, tras 120 días jugando cada recreo, 486 frente a 243 (59 personas conocidas frente a 32), así que `evaluate` de cada acción cuesta el doble en todos los sitios donde estén esas personas.
+    3. **Qué se recalcula aunque ya esté guardado**, por clic: se pide el servicio `lugares` unas 230 veces, `presencia` unas 190 y `npcs` unas 70 (son consultas a servicios ya construidos, pero el servicio de presencia se reconstruye cuando cambia la lista de personas); las acciones dinámicas de `relaciones` se calculan 1,2 veces por clic con «jugar con otros» y 4,2 con «charlar» o «jugar con X» (porque `preview` y `perform` vuelven a buscar la acción entre las dinámicas, que se recalculan cada vez); la lista de cercanos se guarda por (versión de presencia, lugar) y se reutiliza si no cambian.
+    4. **Para un jugador real** son entre 2 y 8 ms por clic en esta máquina (15 ms el primero tras llegar al patio): no se nota. Lo que sube de verdad es el coste acumulado de las simulaciones de bots: jugar cada recreo añade ≈ 600 acciones al año y un bot pasa de 24,9 s (2,06 ms por acción) a 57,4 s (4,53 ms) por año simulado (medido con otro proceso en marcha), sobre todo por el primer clic en frío de cada día en el patio y por la lista de acciones que se duplica.
+
+    **Qué se podría optimizar** (nada hecho):
+
+    | Causa | Mejora | Ganancia aprox. | Riesgo |
+    |---|---|---|---|
+    | La presentación de los niños con los que se juega sustituye la lista de personas entera | Marcar `known` en el sitio, o que la presencia no dependa de `known` (clave de caché por versión de presencia y no por identidad de la lista) | 3–5 ms por clic de «Jugar con otros niños» (de 7,4 a ≈ 3,5) y casi todo el primer clic (15 → ≈ 8) | Medio-alto: toca el estado de `npcs` (regla 5) y las cachés de presencia |
+    | Acciones dinámicas de `relaciones` recalculadas en `listActions`, `preview` y `perform` | Memoizarlas por (versión de presencia, lugar, vínculos) | 2–4 ms por clic de «Jugar con otros niños»; 1–2 ms con las demás (las llaman 4 veces) | Medio: hay que invalidar bien cuando cambia un vínculo o la presencia |
+    | `ninosDeTuEdad` se recalcula en cada clic | Memoizarla con la clave de `cercanosConClave` y la edad | ≈ 1–3 ms por clic | Bajo |
+    | Pedir los servicios 200–300 veces por clic | Memoizar `ctx.service` por minuto y módulo dentro de un mismo `readCtx` | ≈ 1–2 ms por clic y algo más en los de varias personas | Bajo-medio |
+    | Una acción por persona conocida (≈ 10 cada una) evaluadas en cada listado | No generar las acciones de personas que no están presentes (o evaluarlas perezosamente) | Con 60 niños conocidos, mitad del coste de `evaluate` y de la lista que ve la interfaz | Medio-alto: cambia qué se ve en la interfaz |
