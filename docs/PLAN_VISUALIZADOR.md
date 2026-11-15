@@ -103,10 +103,21 @@ Siguiendo la receta: más variedad de peinados, barbas y bigotes, y prendas; los
 
 _(Las rellena quien desarrolla; las responde la sesión de arquitectura con el usuario.)_
 
-De la etapa 2a (muestras de estilo, `npm run retratos:muestras` → `docs/muestras/retratos.html`):
+De la etapa 2a (muestras de estilo, `npm run retratos:muestras`). **Respondidas por el usuario el 15/11/2026** (a través de la sesión de arquitectura):
 
-1. **El peinado cambia con la edad.** En las muestras el peinado por defecto sale de la semilla, el sexo, el tipo de pelo y la calvicie, pero también del tramo de edad (una niña con coleta puede llevar melena de adulta; un niño con flequillo, pelo corto de adulto). ¿Vale así para la base, o el peinado debe ser el mismo toda la vida mientras la calvicie lo permita?
-2. **La barba por defecto tapa rasgos heredados.** Con la semilla 31 al personaje le toca barba entera a los 30 y se le ven peor el mentón y la boca al compararlo con sus padres. ¿El estilo de barba por defecto se sortea entre todos (como ahora) o se prefiere afeitado o barba corta para que se vea más la cara?
-3. **Edades futuras.** Las muestras piden 8, 15, 30 y 70 años para los tres, y el personaje y la chica tienen 7 y 8: se dibujan con la altura de su curva y con el músculo y la grasa de hoy (no hay otro dato). En la base las edades futuras no se enseñan (§5.3), así que solo afecta a las muestras.
-4. **Tamaño de la cabeza.** Las variantes B, C y D agrandan la cabeza (6 %, 16 % y 3 %) y los ojos para diferenciarse; la A va con proporciones reales. Si se elige una de ellas, ¿se mantiene ese tamaño o se vuelve a lo real?
-5. **Qué se hace con las muestras.** El código de las muestras (`tools/retratos/`) y la página (`docs/muestras/retratos.html`, unos 2,5 MB) son provisionales: ¿se borran al empezar la 2b o se dejan como referencia?
+- **Estilo elegido: variante B · Tinta, con detalle alto.** Corrección: la línea de contorno no pasa por encima de la barba (ni del bigote, la perilla o el pelo): la rodea por fuera.
+- **Peinado y barba: estilo y largo** (sustituye a «automáticos, sacados de la persona»): cada PNJ tiene su estilo elegido de peinado y de vello facial y lo mantiene siempre; la barba es una elección dentro de lo que su genética permite; el dibujo recibe además el largo del pelo y de la barba; el catálogo (con lo que exige cada estilo, su largo recién hecho y si es «premium») y la función del estilo de un PNJ van en contracts. El personaje tendrá peluquería más adelante (otra sesión); mientras tanto, como un PNJ. Detalle en `docs/ANEXO_RETRATOS.md` §5.
+
+1. ~~¿El peinado cambia con la edad?~~ **Respondida:** el de un PNJ es el mismo toda la vida, con lo que imponga la genética (calvicie).
+2. ~~¿La barba por defecto tapa rasgos heredados?~~ **Respondida:** es una elección de cada PNJ dentro de lo que permite su genética, con proporciones realistas entre afeitados, bigote, perilla y barbas.
+3. ~~Edades futuras con el músculo y la grasa de hoy.~~ **Respondida:** de acuerdo; solo afectaba a las muestras.
+4. ~~Tamaño de la cabeza.~~ **Respondida:** como en B (+6 %).
+5. ~~Qué se hace con las muestras.~~ **Respondida:** se conserva el script y se quita la página generada al terminar la 2b (hecho).
+
+De la etapa 2b (la base), **sin responder**:
+
+6. **La evolución de quien no es de la familia enseña su edad y su altura.** El juego solo da con cifras la edad de quien se la has preguntado y la altura de la familia. En la ficha de una persona que no es de la familia he dejado la evolución **sin cifras** (ni años bajo las figuras, ni números en la regla, ni «N cm»; el deslizador dice «Antes» y «Hoy»), aunque el número de etapas sigue dejando ver más o menos su edad. ¿Vale así, se enseñan las cifras a todos, o la evolución solo se ofrece para el personaje y la familia?
+7. **El nieto de la cuadrícula es inventado.** En la partida no hay nietos: el de la cuadrícula se hace con `aparienciaHeredada` (la herencia de verdad) a partir del personaje y de una mujer de la partida.
+8. **Proporciones de la elección de estilo.** Los pesos de `PEINADOS` y `VELLOS` (quién elige qué) son míos: por ejemplo, el 52 % de los hombres que pueden llevar cualquier barba van afeitados y el 9 % de los hombres lleva degradado (premium). ¿Se ajustan?
+9. **Estilos «premium».** He marcado como premium el `degradado` y la `barba_perfilada`, para que el catálogo tenga ejemplos. ¿Son esos?
+10. **Largo crecido en los PNJ.** Un PNJ va siempre recién arreglado (su largo es el del estilo). Si se quiere que a algunos se les vea el pelo algo crecido entre cortes, haría falta decidir la regla.

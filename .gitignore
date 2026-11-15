@@ -6,3 +6,5 @@ sim/reports/
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+docs/retratos/cuadricula.html
+docs/muestras/

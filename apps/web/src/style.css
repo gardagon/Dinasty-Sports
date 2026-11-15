@@ -361,3 +361,17 @@ ul.cronica { list-style: none; margin: 0 0 1rem; padding: 0; }
 ul.cronica li { padding: 0.15rem 0.4rem; }
 ul.cronica li.tramo { margin-top: 0.5rem; font-weight: 600; opacity: 0.8; }
 ul.cronica li.mia { background: rgba(255, 200, 60, 0.18); border-left: 3px solid #e0a800; }
+
+/* Retrato y evolución de una persona (el dibujo lo da @ds/retrato; aquí solo el marco). */
+.retrato-caja { margin: 6px 0 12px; }
+.retrato-boton { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink-soft); font-size: 12px; cursor: pointer; }
+.retrato-boton svg { display: block; width: 132px; height: auto; background: var(--lane-soft); border-radius: 4px; }
+.retrato-boton[aria-expanded='true'] { border-color: var(--lane); }
+.evolucion { margin-top: 8px; padding: 8px; border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink); }
+.evolucion h3 { margin: 0 0 6px; }
+.evolucion-fila { overflow-x: auto; }
+.evolucion-fila svg { display: block; height: 240px; width: auto; max-width: none; }
+.evolucion-edad { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; font-family: var(--display); font-size: 18px; font-weight: 600; }
+.evolucion-edad span { min-width: 7.5em; }
+.evolucion-edad input { flex: 1; min-width: 0; accent-color: var(--lane); }
+.evolucion-figura svg { display: block; height: 340px; width: auto; max-width: 100%; margin: 0 auto; }

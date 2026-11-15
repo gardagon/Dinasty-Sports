@@ -69,7 +69,8 @@ export interface FiguraEnRegla {
  * Una o varias figuras enteras a escala junto a una regla en centímetros (la fila de la evolución, o una sola figura grande). Las líneas y los números usan
  * `currentColor`: toman el color del texto de donde se coloquen (tema claro u oscuro).
  */
-export function figurasSvg(figuras: readonly FiguraEnRegla[], opciones: { alturaMaxima?: number } = {}): string {
+export function figurasSvg(figuras: readonly FiguraEnRegla[], opciones: { alturaMaxima?: number; /** `false`: sin números (ni en la regla ni bajo las figuras). */ cifras?: boolean } = {}): string {
+  const cifras = opciones.cifras ?? true;
   const dibujos = figuras.map((f) => { const P = parametrosDe(f.cuerpo, edadDeDibujo(f.edad), f.opciones); return { f, P, d: dibujar(P, prefijoDe(P, 'f')) }; });
   const tope = Math.ceil((opciones.alturaMaxima ?? Math.max(100, ...dibujos.map((x) => x.d.altura + 8))) / 10) * 10;
   const o: string[] = [];
@@ -83,14 +84,14 @@ export function figurasSvg(figuras: readonly FiguraEnRegla[], opciones: { altura
   for (let cm = 0; cm <= tope; cm += 10) {
     const y = tope - cm, grande = cm % 50 === 0;
     o.push(`<line x1="${grande ? 10 : 14}" y1="${y}" x2="18" y2="${y}" stroke="currentColor" stroke-width="0.5" opacity="0.7"/>`);
-    if (grande) o.push(`<line x1="18" y1="${y}" x2="${n(ancho - 2)}" y2="${y}" stroke="currentColor" stroke-width="0.35" stroke-dasharray="2 2" opacity="0.25"/>`, texto(8.5, y + 1.9, String(cm), 'end'));
+    if (grande) o.push(`<line x1="18" y1="${y}" x2="${n(ancho - 2)}" y2="${y}" stroke="currentColor" stroke-width="0.35" stroke-dasharray="2 2" opacity="0.25"/>`, cifras ? texto(8.5, y + 1.9, String(cm), 'end') : '');
   }
-  o.push(`<line x1="18" y1="0" x2="18" y2="${tope}" stroke="currentColor" stroke-width="0.5" opacity="0.7"/>`, texto(8.5, -5, 'cm', 'end'));
+  o.push(`<line x1="18" y1="0" x2="18" y2="${tope}" stroke="currentColor" stroke-width="0.5" opacity="0.7"/>`, cifras ? texto(8.5, -5, 'cm', 'end') : '');
   dibujos.forEach(({ f, P, d }, i) => {
     defs.push(d.defs);
     o.push(`<g transform="translate(${n(centros[i])},${n(tope - d.altura)})">${d.cuerpo}</g>`);
     if (f.rotulo) o.push(texto(centros[i], tope + 9, f.rotulo, 'middle', 600));
-    if (!P.cuna) o.push(texto(centros[i], tope + (f.rotulo ? 16 : 9), `${Math.round(d.altura)} cm`));
+    if (!P.cuna && cifras) o.push(texto(centros[i], tope + (f.rotulo ? 16 : 9), `${Math.round(d.altura)} cm`));
   });
   return `<svg xmlns="http://www.w3.org/2000/svg" class="figuras" viewBox="-4 -14 ${n(ancho + 4)} ${n(tope + 34)}" role="img"><defs>${defs.join('')}</defs>${o.join('')}</svg>`;
 }
@@ -110,7 +111,7 @@ function recordado(clave: string, hacer: () => string): string {
   return v;
 }
 
-const claveDe = (vista: string, c: CuerpoDePersona, edad: number, o: Opciones): string => `${vista}|${c.id}|${c.semilla}|${edad}|${Math.round(o.musculo ?? c.musculo)}|${Math.round(o.grasa ?? c.grasa)}|${JSON.stringify(o.look ?? 0)}|${o.camiseta ?? ''}|${o.pantalon ?? ''}`;
+const claveDe = (vista: string, c: CuerpoDePersona, edad: number, o: Opciones): string => `${vista}|${c.id}|${c.semilla}|${c.sexo}|${c.alturaAdulta}|${c.madurez}|${edad}|${Math.round(o.musculo ?? c.musculo)}|${Math.round(o.grasa ?? c.grasa)}|${JSON.stringify(o.look ?? 0)}|${o.camiseta ?? ''}|${o.pantalon ?? ''}`;
 
 /**
  * Lo que piden las pantallas: el retrato de una persona a una edad (años), con el músculo y la grasa que tenía entonces (su historial) y guardado en memoria por

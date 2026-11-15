@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 15/11/2026 — Visualizador de personas, fase 2: estilo «tinta», look con estilo y largo, y el paquete `@ds/retrato` (decisiones del usuario)
+
+- **Estilo:** de las cuatro variantes de las muestras, el usuario eligió la **B · Tinta** (línea oscura de contorno, sombra plana de borde duro, detalle alto en la cara), con la cabeza un 6 % mayor que la real. La línea de contorno rodea la barba y el pelo por fuera, no pasa por encima.
+- **Peinado y vello facial: estilo y largo.** Cada PNJ tiene su estilo elegido y lo mantiene toda la vida (`estiloDePersona`, en contracts: pura y estable, sin guardar nada en el estado); la barba es una elección dentro de lo que su densidad permite; con calvicie se lleva el peinado que la admite. El dibujo recibe el largo del pelo (cm) y de la barba (mm). Catálogos `PEINADOS` y `VELLOS` en `packages/contracts/src/retrato.ts`, con lo que exige cada estilo, su largo recién hecho y si es «premium». El personaje tendrá peluquería más adelante (otra sesión); hoy se dibuja como un PNJ.
+- **Por debajo de los 3 años, una cuna** igual para todos; se dibuja de los 3 a los 95.
+- **Paquete `packages/retrato`** (solo importa contracts; solo lo importa la web): parámetros → dibujo → pantallas. Retrato y evolución en la ficha del personaje y en la de cada persona. Receta para ampliar los catálogos: `docs/ANEXO_RETRATOS.md`. Referencia visual: `npm run retratos:cuadricula`.
+- **Medido:** un retrato nuevo tarda ≈ 1,5 ms y pesa ≈ 40 KB; se guarda en memoria por persona, edad en años y vista. No se guarda nada nuevo en el estado de la partida.
+- **Pendiente de decidir** (preguntas 6 a 10 de `docs/PLAN_VISUALIZADOR.md`): si la evolución de quien no es de la familia enseña cifras, los pesos de la elección de estilo, qué estilos son premium y si los PNJ llevan el pelo algo crecido entre cortes.
+
 ## 15/11/2026 — Rasgos de la cara heredables (usuario, 15/11)
 
 - **Qué:** `Apariencia.rostro` con 12 rasgos de la cara (ojos, nariz, boca, cejas, orejas, mentón y pómulos), cada uno un número de 0 a 1, heredado como los perks: un par `[expresado, latente]`; el hijo recibe un valor de cada padre y uno de los dos se expresa (50 %); los adultos del mundo, al azar y uniformes, sin tendencias por origen (anexo §7). `rostroDe`, `rostroExpresado`, `rostroAlAzar`, `rostroHeredado` y `ROSTRO_MEDIO` en `rasgos.ts`.
