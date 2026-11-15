@@ -12,6 +12,7 @@ import {
   SHARED_EVENTS,
   type ClassAttendedData,
   type EducacionFisicaService,
+  minutosDeEducacionFisica,
   type FaltasExcesivasData,
   ligarALugares,
   isSchoolHours,
@@ -813,12 +814,8 @@ export const estudios = defineModule<EstudiosState>({
   },
 
   services: {
-    [SERVICES.educacionFisica]: (ctx): EducacionFisicaService => {
-      const [inicio, fin] = JORNADA.clases[0];
-      return {
-        minutosPorSemana: (curso) => (curso < 0 || curso >= ctx.pais.cursos.length ? 0 : diasDe(ctx.pais.cursos, curso, undefined, 'educacion_fisica').length * (fin - inicio)),
-      };
-    },
+    // Los minutos de Educación física los calcula contracts (`minutosDeEducacionFisica`): una sola fuente para el servicio y para el cuerpo de los PNJ.
+    [SERVICES.educacionFisica]: (ctx): EducacionFisicaService => ({ minutosPorSemana: (curso) => minutosDeEducacionFisica(ctx.pais, curso) }),
     [SERVICES.estudios]: (ctx): StudiesService => {
       const s = ctx.state<EstudiosState>();
       const activas = activasKeys(ctx.pais.cursos, ctx.time.schoolYear, s.modalidad);

@@ -24,11 +24,11 @@ export const EDAD_DE_RECREO = { desde: 3, hasta: 17 } as const;
 /** Curso 0 = 3.º de primaria = 8 años de edad de competición: el curso de un PNJ es su edad de competición menos esto. */
 export const EDAD_DEL_CURSO_0 = 8;
 /**
- * Al crear la partida (y cuando llega alguien nuevo al empezar un curso) se acaba de salir de las vacaciones: el cuerpo conserva parte de lo que ganó con el recreo y la Educación
- * física del curso. Se supone `peso` de lo que darían en una semana media del curso (la fracción `lectiva` de las semanas tiene clase), y de Educación física `educacionFisica`
- * minutos por semana lectiva (aún no se sabe lo que da la asignatura del país: la dan los estudios al jugar).
+ * Al crear la partida (y cuando llega alguien nuevo al empezar un curso) se acaba de salir de las vacaciones: el cuerpo conserva parte de lo que ganó con el recreo y la Educación física
+ * del curso. Se supone `peso` de lo que darían en una semana media del curso (la fracción `lectiva` de las semanas tiene clase), con los minutos de Educación física reales del país
+ * (los mismos que usa cada semana: `minutosDeEducacionFisica`, de contracts).
  */
-export const ESCOLAR_AL_EMPEZAR = { peso: 0.5, educacionFisica: 150 };
+export const ESCOLAR_AL_EMPEZAR = { peso: 0.5 };
 /** Hasta qué edad (sin llegar a ella) se es «niño o joven» a efectos de hábitos. */
 export const EDAD_ADULTA_DE_HABITOS = 18;
 
@@ -149,7 +149,7 @@ const tieneCuerpo = (n: Npc) => n.nacimiento !== undefined;
  * Da su cuerpo a quien aún no lo tiene (al crear la partida, al llegar alguien nuevo): el equilibrio de su regla de hábitos a su edad, como si llevara años así, con un
  * pequeño ruido propio. Los que ya jugaban a un deporte con club se suponen `SESIONES_SUPUESTAS` sesiones por semana.
  */
-export function conCuerpo(npcs: Npc[], dia: number, semilla: number, lectiva = 0.7): Npc[] {
+export function conCuerpo(npcs: Npc[], dia: number, semilla: number, lectiva: number, escolar: Pick<SemanaEscolar, 'efPorCurso' | 'edadDeCurso'>): Npc[] {
   // Si nadie lo necesita se devuelve la misma lista (cambiarla invalida las cachés de presencia y de consultas).
   if (!npcs.some((n) => tieneCuerpo(n) && !n.cuerpo)) return npcs;
   return npcs.map((n) => {
@@ -158,8 +158,10 @@ export function conCuerpo(npcs: Npc[], dia: number, semilla: number, lectiva = 0
     const actividad = edad >= EDAD_ADULTA_DE_HABITOS ? (n.actividad ?? actividadDeAdulto(n, semilla)) : undefined;
     const sesiones = n.equipo && n.deporte ? SESIONES_SUPUESTAS : 0;
     const base = habitosDeNpc(actividad ? { ...n, actividad } : n, edad, semilla, sesiones);
-    const escolar = edad >= EDAD_DE_RECREO.desde && edad < EDAD_ADULTA_DE_HABITOS;
-    const deColegio = escolar ? lectiva * ESCOLAR_AL_EMPEZAR.peso * (5 * propioDe(n, semilla).pRecreo * RECREO.minutos + (edad >= EDAD_DEL_CURSO_0 ? ESCOLAR_AL_EMPEZAR.educacionFisica * FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA : 0)) : 0;
+    const enColegio = edad >= EDAD_DE_RECREO.desde && edad < EDAD_ADULTA_DE_HABITOS;
+    const edadCurso = enColegio ? escolar.edadDeCurso(n) : undefined;
+    const ef = edadCurso === undefined ? 0 : (escolar.efPorCurso[edadCurso - EDAD_DEL_CURSO_0] ?? 0) * FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA;
+    const deColegio = enColegio ? lectiva * ESCOLAR_AL_EMPEZAR.peso * (5 * propioDe(n, semilla).pRecreo * RECREO.minutos + ef) : 0;
     const habitos = { ...base, activo: base.activo + deColegio };
     const obj = objetivoDeCuerpo(habitos, { edad, madurez: n.desfase ?? 0, sexo: n.gender, ...geneticaDelCuerpo(n) });
     const r = rngEstable('cuerpo', semilla, n.id);

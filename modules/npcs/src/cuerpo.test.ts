@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { ID_DEL_PERSONAJE, objetivoDeCuerpo, PAIS_CIUDAD_DE_PRUEBA, SERVICES, alturaEn, complexion, cuerpoDePersona, fotosDelHistorial, registrarPais, type CuerpoService, type FamilyService } from '@ds/contracts';
+import { ID_DEL_PERSONAJE, JORNADA_ESCOLAR, minutosDeEducacionFisica, objetivoDeCuerpo, PAIS_CIUDAD_DE_PRUEBA, SERVICES, alturaEn, complexion, cuerpoDePersona, fotosDelHistorial, registrarPais, type CuerpoService, type EducacionFisicaService, type FamilyService } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
+import { estudios } from '@ds/mod-estudios';
+import { asignaturasDelCurso, horarioSemanal } from '../../estudios/src/curriculo';
 import { familia } from '@ds/mod-familia';
 import { lugares } from '@ds/mod-lugares';
 import { atletismo } from '@ds/mod-atletismo';
 import { RECREO, geneticaDelCuerpo, actividadDeAdulto, actividadTrasElCumple, conCuerpo, habitosDeNpc, semanaDelCuerpo } from './cuerpo';
-import { npcs, type Npc, type NpcsState } from './index';
+import { escolarDelPais, npcs, type Npc, type NpcsState } from './index';
 
 registrarPais(PAIS_CIUDAD_DE_PRUEBA);
+
+/** Al crear: una fracción lectiva y los cursos del colegio (3.º de primaria a 2.º de bachillerato, con 150 min de Educación física por semana lectiva en todos menos el último). */
+const LECTIVA = 0.7;
+const DEL_COLEGIO = { efPorCurso: [150, 150, 150, 150, 150, 150, 150, 150, 150, 0], edadDeCurso: (n: Npc) => (n.nacimiento === undefined ? undefined : Math.floor(-n.nacimiento / 365)) };
 
 const persona = (id: string, edad: number, extra: Partial<Npc> = {}): Npc =>
   ({ id, name: id, role: 'vecino', gender: 'm', tags: [], levels: {}, potential: {}, nacimiento: -Math.round(edad * 365), ...extra }) as Npc;
@@ -16,13 +22,13 @@ const persona = (id: string, edad: number, extra: Partial<Npc> = {}): Npc =>
 describe('cuerpo de los PNJ', () => {
   it('quien tiene fecha de nacimiento recibe su cuerpo (estable, con la misma regla de hábitos) y quien no, no', () => {
     const lista = [persona('a', 10), persona('b', 40), persona('c', 30, { nacimiento: undefined })];
-    const con = conCuerpo(lista, 0, 7);
+    const con = conCuerpo(lista, 0, 7, LECTIVA, DEL_COLEGIO);
     expect(con[0].cuerpo).toBeDefined();
     expect(con[1].actividad).toBeDefined();
     expect(con[2].cuerpo).toBeUndefined();
-    expect(conCuerpo(lista, 0, 7)[0].cuerpo).toEqual(con[0].cuerpo);
+    expect(conCuerpo(lista, 0, 7, LECTIVA, DEL_COLEGIO)[0].cuerpo).toEqual(con[0].cuerpo);
     // sin nadie que lo necesite devuelve la misma lista (las cachés dependen de ello)
-    expect(conCuerpo(con, 0, 7)).toBe(con);
+    expect(conCuerpo(con, 0, 7, LECTIVA, DEL_COLEGIO)).toBe(con);
   });
 
   it('los hábitos: base por edad más las sesiones del club, que también son fuerza', () => {
@@ -51,7 +57,7 @@ describe('cuerpo de los PNJ', () => {
   });
 
   it('el cuerpo avanza cada semana hacia su objetivo, con los hábitos de cada uno', () => {
-    const lista = conCuerpo([persona('vago', 40, { actividad: [0, 0] }), persona('atleta', 40, { actividad: [900, 500] })], 0, 1);
+    const lista = conCuerpo([persona('vago', 40, { actividad: [0, 0] }), persona('atleta', 40, { actividad: [900, 500] })], 0, 1, LECTIVA, DEL_COLEGIO);
     lista[0].cuerpo = [20, 50];
     lista[1].cuerpo = [20, 50];
     for (let w = 1; w <= 60; w++) semanaDelCuerpo(lista, w * 7, new Map(), 1);
@@ -60,13 +66,13 @@ describe('cuerpo de los PNJ', () => {
   });
 
   it('un niño no se pone musculado aunque haga mucho deporte', () => {
-    const lista = conCuerpo([persona('nino', 9)], 0, 1);
+    const lista = conCuerpo([persona('nino', 9)], 0, 1, LECTIVA, DEL_COLEGIO);
     for (let w = 1; w <= 80; w++) semanaDelCuerpo(lista, w * 7, new Map([['nino', 12]]), 1);
     expect(complexion(...lista[0].cuerpo!)).not.toBe('musculado');
   });
 
   it('en cada cumpleaños guarda una foto en enteros, una por año', () => {
-    const lista = conCuerpo([persona('a', 10.5)], 0, 1);
+    const lista = conCuerpo([persona('a', 10.5)], 0, 1, LECTIVA, DEL_COLEGIO);
     for (let w = 1; w <= 52 * 3; w++) semanaDelCuerpo(lista, w * 7, new Map(), 1);
     const hc = lista[0].hc!;
     expect(hc[0]).toBe(11);
@@ -123,8 +129,8 @@ describe('cuerpo de los PNJ', () => {
     const otro = lista.find((n) => n.metabolismo === undefined)!;
     expect(geneticaDelCuerpo(otro)).toEqual(geneticaDelCuerpo({ ...otro }));
     const igual = persona('x', 30, { actividad: [200, 0] });
-    const gordo = conCuerpo([{ ...igual, metabolismo: 2.5 }], 0, 1)[0];
-    const flaco = conCuerpo([{ ...igual, metabolismo: -2.5 }], 0, 1)[0];
+    const gordo = conCuerpo([{ ...igual, metabolismo: 2.5 }], 0, 1, LECTIVA, DEL_COLEGIO)[0];
+    const flaco = conCuerpo([{ ...igual, metabolismo: -2.5 }], 0, 1, LECTIVA, DEL_COLEGIO)[0];
     for (let w = 1; w <= 120; w++) { semanaDelCuerpo([gordo], w * 7, new Map(), 1); semanaDelCuerpo([flaco], w * 7, new Map(), 1); }
     expect(gordo.cuerpo![1]).toBeGreaterThan(flaco.cuerpo![1] + 10);
   });
@@ -189,5 +195,32 @@ describe('cuerpo de los PNJ', () => {
       // los chicos y las chicas son iguales hasta la pubertad
       expect(grasa(0, 'f')).toBeCloseTo(grasa(0, 'm'), 9);
     });
+  });
+
+  it('Educación física tiene una sola fuente: para cada curso del país, el cuerpo al crear, el de cada semana, el servicio de estudios y su horario dan los mismos minutos', () => {
+    const g = Game.create([personaje, familia, npcs, lugares, atletismo, estudios], { seed: 9 });
+    const pais = g.pais;
+    const servicio = g.service<EducacionFisicaService>(SERVICES.educacionFisica)!;
+    const delCuerpo = escolarDelPais(pais, 0); // lo que usan la creación y la semana del cuerpo de los PNJ
+    const [inicio, fin] = JORNADA_ESCOLAR.clases[0];
+    expect(delCuerpo.efPorCurso).toHaveLength(pais.cursos.length);
+    pais.cursos.forEach((_, c) => {
+      const minutos = minutosDeEducacionFisica(pais, c);
+      expect(servicio.minutosPorSemana(c), `curso ${c}: servicio`).toBe(minutos);
+      expect(delCuerpo.efPorCurso[c], `curso ${c}: cuerpo`).toBe(minutos);
+      // y es lo que dice el horario real de estudios (los días de la semana con clase de Educación física × lo que dura una clase)
+      const dias = horarioSemanal(asignaturasDelCurso(c, 'ciencias', pais.cursos)).educacion_fisica ?? [];
+      expect(dias.length * (fin - inicio), `curso ${c}: horario`).toBe(minutos);
+    });
+    // el último curso (2.º de bachillerato) no tiene Educación física; el primero sí; fuera de los cursos, nada
+    expect(delCuerpo.efPorCurso.at(-1)).toBe(0);
+    expect(delCuerpo.efPorCurso[0]).toBeGreaterThan(0);
+    expect(servicio.minutosPorSemana(-1)).toBe(0);
+    expect(servicio.minutosPorSemana(pais.cursos.length)).toBe(0);
+    // el cuerpo al crear usa esos minutos: con Educación física un niño de 3.º de primaria sale con menos grasa que sin ella
+    const nino = persona('n_ef', 8, { rasgos: { intereses: {}, caracter: {} } as never });
+    const con = conCuerpo([nino], 0, 7, LECTIVA, { efPorCurso: delCuerpo.efPorCurso, edadDeCurso: () => 8 })[0].cuerpo![1];
+    const sin = conCuerpo([nino], 0, 7, LECTIVA, { efPorCurso: delCuerpo.efPorCurso.map(() => 0), edadDeCurso: () => 8 })[0].cuerpo![1];
+    expect(con).toBeLessThan(sin);
   });
 });
