@@ -126,8 +126,9 @@ export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}):
       continue;
     }
     mem.total[choice] = (mem.total[choice] ?? 0) + 1;
-    const opt = opts.find((o) => o.id === choice)!;
-    for (const t of opt.tags) minutesByTag[t] = (minutesByTag[t] ?? 0) + r.duration;
+    // Un bot puede elegir ir a un sitio (`lugares.ir_*`, que no se les ofrece): no tiene etiquetas.
+    const opt = opts.find((o) => o.id === choice);
+    for (const t of opt?.tags ?? []) minutesByTag[t] = (minutesByTag[t] ?? 0) + r.duration;
 
     const inv = checkInvariants(game);
     if (inv.length) {

@@ -1,4 +1,4 @@
-import { GEN, JORNADA_ESCOLAR, TAGS, type Rng } from '@ds/contracts';
+import { GEN, JORNADA_ESCOLAR, SERVICES, TAGS, azarDe, rutaA, type LugaresService, type Rng } from '@ds/contracts';
 import type { ActionOption, Game } from '@ds/core';
 
 /**
@@ -68,10 +68,18 @@ export const relacion = (o: ActionOption) => o.id.startsWith('relaciones.') && !
 export const conocer = (o: ActionOption) => /^relaciones\.presentarse\.(entrenador|tutor|companero_estudio|companero_social)$/.test(o.id);
 
 /** Reglas de supervivencia comunes: dormir de noche, ir a clase, competir, no reventar. */
+/** Cuántos ratos de 5 minutos juega en el recreo el que juega ese día (media hora, como un niño). */
+const RATOS_DE_RECREO = 6;
+
+/**
+ * `recreo` es la probabilidad (0 a 1) de que juegue en el recreo cada día de clase («Jugar con otros niños» o «Jugar con X»): su perfil (el vago, menos). Hace falta pasar `mem`
+ * para contar los ratos del día. Es cosa del bot, no del juego: el recreo cuenta como actividad del cuerpo del personaje.
+ */
 export function basicas(
   game: Game,
   opts: ActionOption[],
-  cfg: { horaDormir: number; clase: boolean; competir: boolean; energiaMin: number },
+  cfg: { horaDormir: number; clase: boolean; competir: boolean; energiaMin: number; recreo?: number },
+  mem?: BotMemory,
 ): string | undefined {
   const h = game.time.hour;
   const has = (x: string) => opts.some((o) => o.id === x);
@@ -81,6 +89,18 @@ export function basicas(
   if (cfg.clase && aClase) return aClase.id;
   // La academia de verano es obligatoria para quien suspende: los que van a clase también van a ella.
   if (cfg.clase && has('estudios.academia')) return 'estudios.academia';
+  const t = game.time;
+  if (cfg.recreo && mem && t.isSchoolDay && t.minuteOfDay >= JORNADA_ESCOLAR.recreo[0] && t.minuteOfDay < JORNADA_ESCOLAR.recreo[1] && (mem.hoy.recreo ?? 0) < RATOS_DE_RECREO && azarDe('recreo-bot', t.day, cfg.recreo) < cfg.recreo) {
+    // Se juega en el patio: si no está allí, va (el juego no se ofrece desde otro sitio: no hay niños con quienes jugar).
+    const lugares = game.service<LugaresService>(SERVICES.lugares);
+    const ruta = lugares ? rutaA(lugares.mapa(), lugares.actual().id, 'patio') : [];
+    if (ruta.length) return `lugares.ir_${ruta[0]}`;
+    const juego = opts.find(id('relaciones.jugar_con_otros')) ?? opts.find((o) => /^relaciones\.jugar\./.test(o.id));
+    if (juego) {
+      mem.hoy.recreo = (mem.hoy.recreo ?? 0) + 1;
+      return juego.id;
+    }
+  }
   if (cfg.competir) {
     const comp = opts.find(tag(TAGS.competicion));
     if (comp && game.stat(GEN.energia) >= 40) return comp.id;
@@ -124,7 +144,7 @@ export function deportistaDe(deporte: string): Bot {
     description: `Como el Atleta, pero en ${deporte}.`,
     choose(game, opts, _rng, mem) {
       return (
-        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
+        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, d('apuntarse_colegio')],
           ['campamento', 1, d('campamento')],
@@ -149,7 +169,7 @@ export const BOTS: Bot[] = [
     description: 'Va a clase, entrena 1-2 sesiones, estudia y cuida relaciones y descanso.',
     choose(game, opts, _rng, mem) {
       return (
-        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
+        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
           ['subir', 1, subirDeCategoria],
@@ -175,7 +195,7 @@ export const BOTS: Bot[] = [
     description: 'Todo para los estudios. No hace deporte.',
     choose(game, opts, _rng, mem) {
       return (
-        basicas(game, opts, { horaDormir: 23, clase: true, competir: false, energiaMin: 25 }) ??
+        basicas(game, opts, { horaDormir: 23, clase: true, competir: false, energiaMin: 25, recreo: 0.5 }, mem) ??
         seguirPlan(opts, mem, [
           // Hasta el más empollón necesita desconectar cuando el estrés aprieta.
           ['ocio', 3, (o) => game.stat(GEN.estres) > 35 && tag(TAGS.ocio)(o)],
@@ -192,7 +212,7 @@ export const BOTS: Bot[] = [
     description: 'Va a clase pero vive para el deporte: entrena con cabeza (sin sobrecarga).',
     choose(game, opts, _rng, mem) {
       return (
-        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25 }) ??
+        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
           ['subir', 1, subirDeCategoria],
@@ -217,7 +237,7 @@ export const BOTS: Bot[] = [
     description: 'Entrena todo lo que puede, duerme poco y no descansa.',
     choose(game, opts, _rng, mem) {
       return (
-        basicas(game, opts, { horaDormir: 24, clase: true, competir: true, energiaMin: 12 }) ??
+        basicas(game, opts, { horaDormir: 24, clase: true, competir: true, energiaMin: 12, recreo: 0.8 }, mem) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
           ['subir', 1, subirDeCategoria],
@@ -243,7 +263,7 @@ export const BOTS: Bot[] = [
         if (aClase) return aClase.id;
       }
       return (
-        basicas(game, opts, { horaDormir: 23, clase: false, competir: false, energiaMin: 30 }) ??
+        basicas(game, opts, { horaDormir: 23, clase: false, competir: false, energiaMin: 30, recreo: 0.2 }, mem) ??
         seguirPlan(opts, mem, [
           ['amigos', 1, conAmigos],
           ['quedar', 1, (o) => relacion(o) && o.tags.includes(TAGS.ocio)],
