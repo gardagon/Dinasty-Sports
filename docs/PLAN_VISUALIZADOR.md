@@ -23,7 +23,8 @@ Tres etapas:
 | Pantallas de la primera versión | **La ficha del personaje y la ficha de cada persona** (pestaña Gente). Las listas, plantillas y clasificaciones, más adelante (el diseño debe permitir tamaños pequeños, pero no se integran ahora). |
 | Evolución | **Las dos vistas**: una fila de figuras enteras por etapas junto a una regla (para ver la altura) y un deslizador de edad con una figura grande. |
 | Vistas | Retrato (cara y hombros) y figura entera a escala (decidido el 13/11). |
-| Edades | Hasta los 95 años. Los hermanos pequeños también existen: el dibujo debe valer desde los 3 años. |
+| Edades | Hasta los 95 años. Los hermanos pequeños también existen: el dibujo debe valer desde los 3 años. **Por debajo de los 3 años, algo genérico** (una cuna con una manta, sin rasgos de la persona) en vez de dibujarla (decidido por el usuario el 15/11). |
+| Parecido familiar | **Los rasgos de la cara (ojos, nariz, boca, cejas, orejas, mentón y pómulos) se heredan**, como los perks (decidido por el usuario el 15/11): el dibujo los lee del juego, no los saca al azar. |
 | Peinado, barba y bigote | **Automáticos**, sacados de la persona; más adelante el jugador podrá elegirlos (decidido el 13/11). |
 | Ropa | Neutra, con los colores como parámetro (para poner la equipación del club más adelante). |
 | Fuera de la primera versión | Expresiones y animación. |
@@ -32,7 +33,8 @@ Tres etapas:
 
 Todo sale del juego. La web los lee con `cuerpoDePersona(ctx, id)` (o el `CuerpoService` de `personaje` y de `npcs`, a través de `Game.service`), que devuelve un `CuerpoDePersona` (`packages/contracts/src/cuerpo.ts`):
 
-- **Sexo**, **nacimiento** (para la edad de cualquier día) y **semilla de dibujo** estable por persona: lo que el dibujo decida al azar (forma de la nariz, qué peinado, dónde salen las canas) sale **solo** de esa semilla, nunca de `Math.random`.
+- **Sexo**, **nacimiento** (para la edad de cualquier día) y **semilla de dibujo** estable por persona: lo poco que el dibujo decida al azar (qué peinado, dónde salen las canas, dónde caen las pecas) sale **solo** de esa semilla, nunca de `Math.random`.
+- **Rasgos de la cara heredados** (en la apariencia): forma y tamaño de los ojos, forma y tamaño de la nariz, grosor y anchura de la boca, grosor y forma de las cejas, tamaño de las orejas y si son despegadas, mentón y pómulos. **Cada uno es un número de 0 a 1** (no un catálogo de formas) y se hereda como los perks: un valor expresado y otro latente. **El dibujo usa el expresado** y decide cómo se ve cada valor en el estilo elegido; **todo el recorrido de 0 a 1 debe verse distinto y creíble**. Es lo que hace que los hijos se parezcan a sus padres (y a veces a un abuelo): la cara no se inventa con la semilla.
 - **Altura** a cualquier edad: `alturaEn(alturaAdulta, edad, madurez)` (crece con su adelanto o retraso y encoge en la vejez).
 - **Músculo y grasa** a cualquier edad: los de hoy y, para el pasado, `fotoDeEdad(historial, edad)` (antes de la primera foto, la primera). **Complexión**: `complexion(músculo, grasa)`. **Peso**: `pesoDe(...)`.
 - **Apariencia** (`packages/contracts/src/rasgos.ts`): color y tipo de pelo, ojos, piel, forma de la cara y distintivos (pecas, hoyuelos, lunares), cada uno con su catálogo cerrado (`PELO_COLOR`, `PELO_TIPO`, `OJOS`, `PIEL`, `CARA`, `DISTINTIVOS`): **cada valor de cada catálogo debe verse distinto**.
@@ -62,6 +64,7 @@ Si hace falta un dato que no está, **no se añade al juego**: se apunta en «Pr
   - **Una chica** de su clase.
   - **Un adulto** con canas tempranas y calvicie alta (por ejemplo, un padre o un profesor).
 - **Edades**: 8, 15, 30 y 70 para los tres (en el adulto se ve el pasado con el historial; antes de la primera foto, la primera).
+- **Parecido familiar**: en cada variante, además, el personaje a los 30 junto a su padre y su madre a los 30, para ver que se parece a ellos (los rasgos de la cara son heredados).
 - **De 3 a 4 variantes** de estilo vectorial con volumen, todas con **detalle alto** en las caras. Que se diferencien de verdad (por ejemplo, en el tipo de sombreado, el trazo, la proporción de la cabeza o el tratamiento del pelo), no en matices.
 - Para cada variante: el retrato de las tres personas a las cuatro edades y **una** figura entera a escala (las tres personas a los 30, junto a una regla). Así se ven también la altura y la complexión.
 - **Entrega:** una página HTML autónoma que se genera con un script (`npm run retratos:muestras`) a partir de la partida, con las variantes una al lado de otra, rotuladas, en tema claro y oscuro, y que se vea bien en un móvil. Súbela a la rama y avisa a la sesión de arquitectura, que se la enseñará al usuario.
@@ -75,9 +78,9 @@ Con el estilo y el detalle elegidos:
 2. **Retrato** (cara y hombros) y **figura entera a escala**: la altura real se nota al ponerlas juntas.
 3. **Evolución**, con las dos vistas: una **fila de figuras** por etapas (por ejemplo, 3, 8, 12, 15, 18, 30, 50, 70 y 90, solo las que ya ha vivido o vive) junto a una **regla** en centímetros, y un **deslizador de edad** con una figura grande. Las edades futuras no se enseñan: el historial solo llega hasta hoy.
 4. **Pantallas:** el retrato y el acceso a la evolución en la **ficha del personaje** (pestaña del personaje) y en la **ficha de cada persona** (`apps/web/src/gente.ts`). Nada en listas todavía.
-5. **Cuadrícula de capturas** (`npm run retratos:cuadricula`): con el Chromium del entorno (Playwright), una cuadrícula de varias personas × edades (3 a 95) × los dos sexos, que cubra **todos los valores de cada catálogo** de la apariencia y casos extremos (calvicie máxima, canas a los 20, barba 0 y 1, sobrepeso, musculado, muy alto, muy bajo), en tema claro y oscuro. **Úsala para revisarte a ti mismo** a lo largo del trabajo (mira las capturas y corrige), y déjala como referencia: quien amplíe los catálogos la regenera y la compara.
+5. **Cuadrícula de capturas** (`npm run retratos:cuadricula`): con el Chromium del entorno (Playwright), una cuadrícula de varias personas × edades (la cuna de menos de 3, y de 3 a 95) × los dos sexos, que cubra **todos los valores de cada catálogo** de la apariencia, los extremos de cada rasgo de la cara (0 y 1), **una familia** (padres, hijos y un nieto, para ver el parecido) y casos extremos (calvicie máxima, canas a los 20, barba 0 y 1, sobrepeso, musculado, muy alto, muy bajo), en tema claro y oscuro. **Úsala para revisarte a ti mismo** a lo largo del trabajo (mira las capturas y corrige), y déjala como referencia: quien amplíe los catálogos la regenera y la compara.
 6. **Receta** en `docs/ANEXO_RETRATOS.md`: cómo está montado el dibujo, qué no se toca (proporciones por edad, capas, estilo) y **cómo se añade un peinado, una barba o una prenda** paso a paso, con lo que hay que comprobar en la cuadrícula. Es lo que seguirá la etapa 2c.
-7. **Tests**: determinismo (misma persona y edad, mismo SVG), parámetros coherentes con la edad (crece hasta los 18, canas y calvicie no retroceden, la barba solo en hombres desde la pubertad), cada valor de los catálogos produce algo distinto, y la arquitectura.
+7. **Tests**: determinismo (misma persona y edad, mismo SVG), parámetros coherentes con la edad (crece hasta los 18, canas y calvicie no retroceden, la barba solo en hombres desde la pubertad), cada valor de los catálogos y los extremos de cada rasgo de la cara producen algo distinto, por debajo de los 3 años sale la cuna, y la arquitectura.
 
 **Criterios para darla por buena** (los revisa la sesión de arquitectura con el usuario, mirando la cuadrícula):
 
