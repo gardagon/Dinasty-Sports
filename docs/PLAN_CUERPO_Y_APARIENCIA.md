@@ -212,3 +212,27 @@ Anotadas por la sesión de desarrollo; se siguió adelante con lo que se indica.
     | `ninosDeTuEdad` se recalcula en cada clic | Memoizarla con la clave de `cercanosConClave` y la edad | ≈ 1–3 ms por clic | Bajo |
     | Pedir los servicios 200–300 veces por clic | Memoizar `ctx.service` por minuto y módulo dentro de un mismo `readCtx` | ≈ 1–2 ms por clic y algo más en los de varias personas | Bajo-medio |
     | Una acción por persona conocida (≈ 10 cada una) evaluadas en cada listado | No generar las acciones de personas que no están presentes (o evaluarlas perezosamente) | Con 60 niños conocidos, mitad del coste de `evaluate` y de la lista que ve la interfaz | Medio-alto: cambia qué se ve en la interfaz |
+
+    **Corrección (15/11, por la sesión de arquitectura y el usuario): el diagnóstico anterior medía la lista entera de acciones, no lo que pide la interfaz.** La pantalla principal descarta las acciones de cada persona antes de evaluarlas (`apps/web/src/main.ts`: `omitir` de `relaciones.*` salvo `al_azar` y `jugar_con_otros`) y las de una persona solo se evalúan al abrir su ficha (`apps/web/src/gente.ts`); los bots, en cambio, las evaluaban todas (`sim/src/pasos.ts`). Medido de nuevo con `tools/perfil-recreo.ts` reproduciendo la interfaz (preview + perform + lista de la pantalla) y con un personaje que conoce a 7 (como empieza), 32 y 60 personas (medianas de 3 partidas; máquina sin otras cargas; ms por clic, siguientes al primero):
+
+    | Acción | 7–13 conocidos | 32 | 60 |
+    |---|---|---|---|
+    | Patio, recreo: «Jugar con otros niños» | 3,4 (1.º 14,3) | 2,8 (1.º 8,6) | 1,8 (1.º 10,9) |
+    | Patio, recreo: «Jugar con X» | 1,7 | 2,1 | 2,2 |
+    | Patio, recreo: «Charlar un rato con X» | 1,6 | 1,8 | 2,2 |
+    | Patio, recreo: esperar | 1,3 | 1,0 | 1,1 |
+    | Parque, tarde: «Jugar con otros niños» | 2,2 (1.º 12,5) | 2,0 (1.º 7,5) | 2,1 (1.º 6,6) |
+    | Parque, tarde: «Jugar con X» / «Charlar» | 1,4 / 1,2 | 1,5 / 1,9 | 1,6 / 1,6 |
+    | Parque, tarde: esperar | 1,3 | 1,0 | 1,2 |
+    | Abrir la ficha de una persona (lista de `gente.ts`) | 0,3–0,4 | 0,3–0,6 | 0,3–0,5 |
+    | *Para comparar: lista entera de acciones (lo que evaluaban los bots)* | 133–224 acciones, 1,6–3,3 | 320–358 acciones, 3,2–8,6 | 459–610 acciones, 5,1–11,3 |
+
+    Con la lista de la pantalla (unas 69 acciones, siempre las mismas) un clic cuesta **entre 1 y 3,5 ms con 7, 32 o 60 conocidos, y no crece con ellos**; el primer clic tras llegar a un sitio (presencia en frío) cuesta de 6 a 14 ms. Abrir una ficha, 0,3–0,6 ms. Lo que crecía con los conocidos y ya no importa para la interfaz es la lista entera (de 133 a 610 acciones; hasta 11 ms): solo la pagaban los bots, y hacía parecer cara una acción que en la interfaz cuesta lo mismo que «Charlar».
+
+    **Arreglo de los bots (sin tocar el juego):** `opcionesDelBot` ofrece lo mismo que la pantalla principal (evaluado) y las acciones de relación con cada persona van aparte, sin evaluar (`RelacionesPerezosas` en `sim/src/pasos.ts`): cada bot elige por su rotación la menos usada que cumple lo que quiere su plan y evalúa por lotes solo las primeras por ese orden hasta encontrar una que se pueda hacer; la elegida se añade a sus opciones para poder viajar al sitio. Es la misma elección que evaluando todas (la menos usada de las que se pueden hacer; a igual uso, la primera del orden del juego), y el bot aleatorio sigue viendo todas (`todasLasAcciones`). **`npm run huella -- 120` sale idéntica antes y después en los 16 bots y semillas.**
+
+    | Medida | Antes del arreglo | Después |
+    |---|---|---|
+    | `npm run rendimiento -- 60` (bot equilibrado) | 4,3 ms por acción (4,3–5,3 con carga) | 2,0–2,1 ms por acción (antes de los bots del recreo: 2,2–2,6) |
+    | `sim/src/sim.test.ts` completo | 324 s (2.º test, 290 s; con más carga se pasaba de su plazo) | 135–139 s (1.º test 19 s, 2.º test 119 s) |
+    | Plazos de `sim.test.ts` | 60 s y 600 s (subidos) | **devueltos a los originales: 30 s y 300 s** |

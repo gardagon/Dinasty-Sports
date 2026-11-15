@@ -1,14 +1,18 @@
 /**
  * Dónde se va el tiempo al jugar en el recreo: por escenario (acción, lugar, hora), los ms por clic (preview, perform y la lista de acciones que se vuelve a pedir tras cada clic),
  * cuántas veces se recalculan servicios y acciones dinámicas por clic y el perfil de CPU por función. Solo mide: no cambia nada del juego.
- * `npx tsx tools/perfil-recreo.ts [repeticiones] [perfil]` (con `perfil` saca también el desglose por función de cada escenario).
+ * Reproduce lo que hace la interfaz en cada clic: `preview` + `perform` + la lista de la pantalla principal (con su `omitir`, `apps/web/src/main.ts`), y aparte lo que cuesta abrir la ficha de una
+ * persona (`apps/web/src/gente.ts`). También mide, para comparar, la lista entera (lo que evaluaban los bots antes). Con un personaje que conoce a `conocidos` personas (32 o 60).
+ * `npx tsx tools/perfil-recreo.ts [clics] [partidas|perfil] [conocidos]` (con `perfil` saca también el desglose por función de cada escenario).
  */
 import inspector from 'node:inspector';
 import { nuevaPartida } from '@ds/game';
 import { advanceToWeek, type Game } from '@ds/core';
+import { SERVICES, type PresenciaService } from '@ds/contracts';
 import { conocer, llegarA } from '../tests/ayudas';
 
 const reps = Number(process.argv[2] ?? 5);
+const conocidosPedidos = Number(process.argv[4] ?? 0); // 0 = como empieza la partida (7 conocidos)
 const conPerfil = process.argv[3] === 'perfil';
 /** Partidas distintas por escenario (la mediana de todas, para que un clic raro no pese): con el perfil, una sola. */
 const partidas = conPerfil ? 1 : Number(process.argv[3] ?? 5);
@@ -25,6 +29,23 @@ const ESCENARIOS: Escenario[] = [
   { nombre: 'parque, tarde: Charlar un rato con X', lugar: 'parque', hora: [17, 0], accion: (g) => primera(g, 'relaciones.charlar.') },
   { nombre: 'parque, tarde: esperar (5 min)', lugar: 'parque', hora: [17, 0], accion: () => 'gen.esperar' },
 ];
+
+/** Lo que pide la pantalla principal de la interfaz (`viewActions` de `apps/web/src/main.ts`): sin las acciones de cada persona, salvo charlar antes de clase y jugar con otros niños. */
+const omitirDeLaPantalla = (d: { id: string }) => d.id.startsWith('relaciones.') && d.id !== 'relaciones.al_azar' && d.id !== 'relaciones.jugar_con_otros';
+const listaDeLaPantalla = (g: Game) => g.listActions({ omitir: omitirDeLaPantalla }).filter((o) => o.module !== 'lugares');
+/** Lo que pide la ficha de una persona (`accionesCon` de `apps/web/src/gente.ts`). */
+const listaDeLaFicha = (g: Game, id: string) => g.listActions({ omitir: (d) => !(d.id.startsWith('relaciones.') && d.id.endsWith(`.${id}`)) }).filter((o) => o.id.startsWith('relaciones.') && o.id.endsWith(`.${id}`));
+
+/** Hace que el personaje conozca a `n` personas en total, empezando por las que están en el sitio (las que dan acciones al estar presentes) y siguiendo por las de su edad. */
+function conocerA(g: Game, n: number, lugar: string): void {
+  const pres = g.service<PresenciaService>(SERVICES.presencia)!;
+  const aqui = pres.en(lugar, 1e9 as never).map((p) => p.id);
+  const todos = (g.moduleState<{ npcs: { id: string; known?: boolean; role: string; nacimiento?: number }[] }>('npcs') as { npcs: { id: string; known?: boolean; role: string; nacimiento?: number }[] }).npcs;
+  const ya = todos.filter((x) => x.known !== false).length;
+  const edad = (x: { nacimiento?: number }) => Math.abs(Math.floor(-(x.nacimiento ?? 0) / 365) - 8);
+  const candidatos = [...todos.filter((x) => x.known === false && x.role !== 'profesor' && x.role !== 'entrenador')].sort((a, b) => Number(aqui.includes(b.id)) - Number(aqui.includes(a.id)) || edad(a) - edad(b));
+  conocer(g, ...candidatos.slice(0, Math.max(0, n - ya)).map((x) => x.id));
+}
 
 const ms = (x: number) => x.toFixed(1).padStart(6);
 const media = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
@@ -61,6 +82,7 @@ function medir(e: Escenario, semilla: number) {
   const g = conocer(nuevaPartida({ seed: semilla }));
   advanceToWeek(g, 'gen.descansar', 1, 1, 9);
   llegarA(g, e.lugar, e.hora[0], e.hora[1]);
+  if (conocidosPedidos) conocerA(g, conocidosPedidos, e.lugar);
   // Cuántas veces se recalcula cada cosa por clic: los servicios que se piden y las acciones dinámicas de cada módulo (se envuelven por dentro del motor, solo para contar).
   const servicios = new Map<string, number>();
   const interno = g as unknown as { readCtx: (m: string) => Record<string, unknown> };
@@ -94,7 +116,7 @@ function medir(e: Escenario, semilla: number) {
     sesion.post('Profiler.enable');
     sesion.post('Profiler.start');
   }
-  const previews: number[] = [], performs: number[] = [], listas: number[] = [];
+  const previews: number[] = [], performs: number[] = [], listas: number[] = [], completas: number[] = [];
   let id = '';
   for (let i = 0; i < reps; i++) {
     id = e.accion(g);
@@ -105,14 +127,22 @@ function medir(e: Escenario, semilla: number) {
     const r = g.perform(id);
     performs.push(performance.now() - t0);
     t0 = performance.now();
-    g.listActions(); // lo que la interfaz vuelve a pedir tras cada clic
+    listaDeLaPantalla(g); // lo que la interfaz vuelve a pedir tras cada clic
     listas.push(performance.now() - t0);
+    t0 = performance.now();
+    g.listActions(); // para comparar: la lista entera, que evaluaban los bots
+    completas.push(performance.now() - t0);
     if (!r.ok) console.log('   (la acción falló:', (r as { reason?: string }).reason, ')');
   }
   let perfil: ReturnType<typeof desglose> | undefined;
   if (conPerfil) sesion.post('Profiler.stop', (err, p) => { if (!err) perfil = desglose(p.profile as never); });
   const clic = previews.map((p, i) => p + performs[i] + listas[i]);
-  return { id, clic, previews, performs, listas, servicios, dinamicas, perfil, acciones: g.listActions().length };
+  // Abrir la ficha de una persona que está aquí (si la hay): lo que cuesta pedir sus acciones.
+  const pres = g.service<PresenciaService>(SERVICES.presencia)!;
+  const alguien = pres.en(e.lugar, 1e9 as never).find((p) => p.role !== 'familia')?.id ?? 'companero_estudio';
+  const fichas = alguien ? Array.from({ length: 5 }, () => { const t0 = performance.now(); listaDeLaFicha(g, alguien); return performance.now() - t0; }) : [];
+  const conocidos = (g.moduleState<{ npcs: { known?: boolean }[] }>('npcs') as { npcs: { known?: boolean }[] }).npcs.filter((x) => x.known !== false).length;
+  return { id, clic, previews, performs, listas, completas, fichas, conocidos, servicios, dinamicas, perfil, acciones: listaDeLaPantalla(g).length, accionesCompletas: g.listActions().length };
 }
 
 const mediana = (xs: number[]) => { const o = [...xs].sort((a, b) => a - b); return o.length ? o[Math.floor(o.length / 2)] : NaN; };
@@ -122,7 +152,8 @@ for (const e of ESCENARIOS) {
   const por = (f: (r: (typeof rs)[number]) => number[], desde: number) => mediana(rs.flatMap((r) => f(r).slice(desde)));
   console.log(`\n### ${e.nombre} (${r0.id}) — ${reps} clics en ${partidas} partida${partidas > 1 ? 's' : ''} (medianas)`);
   console.log(`  ms por clic (preview + perform + lista de acciones): primero ${ms(mediana(rs.map((r) => r.clic[0])))} · siguientes ${ms(por((r) => r.clic, 1))}`);
-  console.log(`  desglose, siguientes clics: preview ${ms(por((r) => r.previews, 1))} · perform ${ms(por((r) => r.performs, 1))} · listActions ${ms(por((r) => r.listas, 1))} · acciones listadas al final ${mediana(rs.map((r) => r.acciones))}`);
+  console.log(`  desglose, siguientes clics: preview ${ms(por((r) => r.previews, 1))} · perform ${ms(por((r) => r.performs, 1))} · lista de la pantalla ${ms(por((r) => r.listas, 1))} (${mediana(rs.map((r) => r.acciones))} acciones) · para comparar, lista entera ${ms(por((r) => r.completas, 1))} (${mediana(rs.map((r) => r.accionesCompletas))} acciones)`);
+  console.log(`  conocidos al final ${mediana(rs.map((r) => r.conocidos))} · abrir la ficha de una persona de aquí: ${ms(mediana(rs.flatMap((r) => r.fichas)))} ms`);
   console.log(`  por clic (1.ª partida): servicios pedidos ${[...r0.servicios].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, v]) => `${k} ${(v / reps).toFixed(0)}`).join(', ')}`);
   console.log(`  por clic (1.ª partida): acciones dinámicas ${[...r0.dinamicas].map(([k, v]) => `${k} ${(v.n / reps).toFixed(1)} veces, ${(v.ms / reps).toFixed(1)} ms`).join(' · ')}`);
   if (r0.perfil) {
