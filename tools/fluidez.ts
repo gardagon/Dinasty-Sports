@@ -64,7 +64,7 @@ for (const k of FACTORES) {
       mem.day = g.time.day;
       mem.hoy = {};
     }
-    const opts = opcionesDelBot(g);
+    const opts = opcionesDelBot(g, bot.todasLasAcciones);
     if (!opts.length) break;
     const [, ms] = t(() => hacer(g, opts, bot.choose(g, opts, rng, mem)));
     acciones.push(ms);

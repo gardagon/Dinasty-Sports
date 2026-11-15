@@ -1,5 +1,6 @@
 import { GEN, JORNADA_ESCOLAR, SERVICES, TAGS, azarDe, rutaA, type LugaresService, type Rng } from '@ds/contracts';
 import type { ActionOption, Game } from '@ds/core';
+import type { OpcionesDelBot } from './pasos';
 
 /**
  * Bots: jugadores automáticos con estrategias distintas. Eligen sobre todo por
@@ -19,7 +20,9 @@ export interface Bot {
   id: string;
   name: string;
   description: string;
-  choose(game: Game, opts: ActionOption[], rng: Rng, mem: BotMemory): string;
+  choose(game: Game, opts: OpcionesDelBot, rng: Rng, mem: BotMemory): string;
+  /** El bot que elige al azar entre todas las acciones necesita todas evaluadas (no solo lo que ofrece la interfaz). */
+  todasLasAcciones?: boolean;
 }
 
 type Pred = (o: ActionOption) => boolean;
@@ -29,12 +32,20 @@ export const tag = (t: string): Pred => (o) => o.tags.includes(t);
 export const all = (...ps: Pred[]): Pred => (o) => ps.every((p) => p(o));
 export const not = (p: Pred): Pred => (o) => !p(o);
 
-/** Entre las opciones que cumplen, la menos usada (reparte el entrenamiento). */
-function leastUsed(opts: ActionOption[], p: Pred, mem: BotMemory): ActionOption | undefined {
+/**
+ * Entre las opciones que cumplen, la menos usada (reparte el entrenamiento). Las acciones de relación con cada persona no vienen evaluadas (`OpcionesDelBot.relaciones`): se piden aquí, solo
+ * las primeras por uso, y la elegida se añade a las opciones (para poder viajar hasta su sitio). A igual uso gana la que está antes en el orden del juego, que es la de la lista.
+ */
+function leastUsed(opts: OpcionesDelBot, p: Pred, mem: BotMemory): ActionOption | undefined {
   let best: ActionOption | undefined;
   for (const o of opts) {
     if (!p(o)) continue;
     if (!best || (mem.total[o.id] ?? 0) < (mem.total[best.id] ?? 0)) best = o;
+  }
+  const rel = opts.relaciones?.menosUsada(p, mem.total);
+  if (rel && (!best || (mem.total[rel.id] ?? 0) < (mem.total[best.id] ?? 0))) {
+    if (!opts.includes(rel)) opts.push(rel);
+    best = rel;
   }
   return best;
 }
@@ -77,7 +88,7 @@ const RATOS_DE_RECREO = 6;
  */
 export function basicas(
   game: Game,
-  opts: ActionOption[],
+  opts: OpcionesDelBot,
   cfg: { horaDormir: number; clase: boolean; competir: boolean; energiaMin: number; recreo?: number },
   mem?: BotMemory,
 ): string | undefined {
@@ -95,7 +106,8 @@ export function basicas(
     const lugares = game.service<LugaresService>(SERVICES.lugares);
     const ruta = lugares ? rutaA(lugares.mapa(), lugares.actual().id, 'patio') : [];
     if (ruta.length) return `lugares.ir_${ruta[0]}`;
-    const juego = opts.find(id('relaciones.jugar_con_otros')) ?? opts.find((o) => /^relaciones\.jugar\./.test(o.id));
+    const juego = opts.find(id('relaciones.jugar_con_otros')) ?? opts.find((o) => /^relaciones\.jugar\./.test(o.id)) ?? opts.relaciones?.primera((o) => /^relaciones\.jugar\./.test(o.id));
+    if (juego && !opts.includes(juego)) opts.push(juego);
     if (juego) {
       mem.hoy.recreo = (mem.hoy.recreo ?? 0) + 1;
       return juego.id;
@@ -117,7 +129,7 @@ export function basicas(
 /** Lista de preferencias del día: [clave de cupo, máximo por día, predicado]. */
 type Plan = [string, number, Pred][];
 
-export function seguirPlan(opts: ActionOption[], mem: BotMemory, plan: Plan): string | undefined {
+export function seguirPlan(opts: OpcionesDelBot, mem: BotMemory, plan: Plan): string | undefined {
   for (const [clave, max, p] of plan) {
     if ((mem.hoy[clave] ?? 0) >= max) continue;
     const o = leastUsed(opts, p, mem);
@@ -287,6 +299,7 @@ export const BOTS: Bot[] = [
     id: 'aleatorio',
     name: 'Aleatorio',
     description: 'Elige al azar entre lo disponible. Busca combinaciones raras que rompan cosas.',
+    todasLasAcciones: true,
     choose(_game, opts, rng) {
       return rng.pick(opts).id;
     },

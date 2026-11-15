@@ -153,7 +153,7 @@ for (let seed = 1; seed <= SEMILLAS; seed++) {
           mem.day = g.time.day;
           mem.hoy = {};
         }
-        const opts = opcionesDelBot(g);
+        const opts = opcionesDelBot(g, bot.todasLasAcciones);
         if (!opts.length) break;
         hacer(g, opts, bot.choose(g, opts, rng, mem));
       }

@@ -123,7 +123,7 @@ export function simular(bot: Bot, seed: number, anios: number, alCumplir?: (game
       mem.day = game.time.day;
       mem.hoy = {};
     }
-    const opts = opcionesDelBot(game);
+    const opts = opcionesDelBot(game, bot.todasLasAcciones);
     if (!opts.length) {
       problemas.push(`Día ${game.time.day}: ninguna acción disponible`);
       break;

@@ -110,7 +110,7 @@ export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}):
       mem.day = game.time.day;
       mem.hoy = {};
     }
-    const opts = opcionesDelBot(game);
+    const opts = opcionesDelBot(game, bot.todasLasAcciones);
     if (!opts.length) {
       problems.push(`Día ${game.time.day} ${game.time.hour}h: ninguna acción disponible (bloqueo)`);
       break;
