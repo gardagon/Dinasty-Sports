@@ -33,3 +33,4 @@ export * from './culturas';
 export * from './paises';
 export * from './personas';
 export * from './cuerpo';
+export * from './retrato';

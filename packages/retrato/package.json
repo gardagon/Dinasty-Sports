@@ -1,0 +1,13 @@
+{
+  "name": "@ds/retrato",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "El dibujo de las personas (retrato y figura entera) en SVG a partir de sus datos. Solo depende de @ds/contracts; lo usa la web.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*"
+  }
+}

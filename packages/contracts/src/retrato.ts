@@ -1,0 +1,113 @@
+import { rngEstable } from './rng';
+import type { Apariencia } from './rasgos';
+
+/**
+ * EL LOOK DE UNA PERSONA: los catálogos de peinados y de vello facial (ids estables, para que un «cambiar de look» pueda guardarlos en el estado), lo que cada
+ * estilo exige de la genética y la elección por defecto de cada persona. El dibujo está en `@ds/retrato`; la receta, en `docs/ANEXO_RETRATOS.md`.
+ *
+ * - Un **PNJ** tiene su estilo elegido de peinado y de vello facial y lo mantiene siempre (va a la peluquería con regularidad): sale de forma estable de su semilla
+ *   de dibujo, su sexo, su tipo de pelo y su genética (`estiloDePersona`), sin guardar nada en el estado. La barba es una elección, no una consecuencia de la
+ *   herencia: solo puede elegir lo que su vello le permite.
+ * - Las **canas** y la **calvicie** llegan con la edad a todos (`fraccionDeCanas`, `gradoDeCalvicie`): con calvicie, el peinado se adapta a lo que queda (`peinadoPosible`).
+ * - El dibujo recibe el estilo y **el largo** del pelo (cm) y de la barba (mm): un corte que ha crecido se ve crecido. Recién hecho, el largo es el del estilo.
+ */
+
+export interface EstiloDePeinado {
+  id: string;
+  nombre: string;
+  /** Largo del pelo (cm) con que queda recién hecho. */
+  largo: number;
+  /** Grado de calvicie (0 a 1, `gradoDeCalvicie`) hasta el que se puede llevar; por encima se lleva `siNo` (otro estilo del catálogo). */
+  calvicieMaxima: number;
+  siNo?: string;
+  /** Tipos de pelo con los que se puede hacer (ausente: todos). */
+  tipos?: readonly string[];
+  /** Solo se puede hacer y arreglar en la peluquería. */
+  premium: boolean;
+  /** Cuánto lo eligen las mujeres y los hombres (pesos relativos; 0 = nunca por defecto). */
+  peso: { f: number; m: number };
+}
+
+export const PEINADOS: readonly EstiloDePeinado[] = [
+  { id: 'rapado', nombre: 'Rapado', largo: 0.6, calvicieMaxima: 1, premium: false, peso: { f: 0.01, m: 0.13 } },
+  { id: 'corto', nombre: 'Corto', largo: 4, calvicieMaxima: 0.55, siNo: 'rapado', premium: false, peso: { f: 0.06, m: 0.47 } },
+  { id: 'flequillo', nombre: 'Corto con flequillo', largo: 6, calvicieMaxima: 0.25, siNo: 'corto', premium: false, peso: { f: 0.05, m: 0.26 } },
+  { id: 'degradado', nombre: 'Degradado', largo: 5, calvicieMaxima: 0.4, siNo: 'rapado', premium: true, peso: { f: 0, m: 0.09 } },
+  { id: 'melena', nombre: 'Melena', largo: 24, calvicieMaxima: 0.6, siNo: 'corto', premium: false, peso: { f: 0.34, m: 0.04 } },
+  { id: 'largo', nombre: 'Largo', largo: 45, calvicieMaxima: 0.5, siNo: 'melena', premium: false, peso: { f: 0.37, m: 0.01 } },
+  { id: 'coleta', nombre: 'Coleta', largo: 35, calvicieMaxima: 0.5, siNo: 'corto', premium: false, peso: { f: 0.17, m: 0 } },
+];
+
+export interface EstiloDeVello {
+  id: string;
+  nombre: string;
+  /** Largo (mm) con que queda recién hecho (0: afeitado). */
+  largo: number;
+  /** Densidad de barba (`Apariencia.barba`, 0 a 1) mínima para poder llevarlo. */
+  densidadMinima: number;
+  /** Solo se puede hacer y arreglar en la barbería. */
+  premium: boolean;
+  /** Cuánto lo eligen los hombres que pueden llevarlo (peso relativo). */
+  peso: number;
+}
+
+export const VELLOS: readonly EstiloDeVello[] = [
+  { id: 'afeitado', nombre: 'Afeitado', largo: 0, densidadMinima: 0, premium: false, peso: 0.52 },
+  { id: 'bigote', nombre: 'Bigote', largo: 5, densidadMinima: 0.3, premium: false, peso: 0.06 },
+  { id: 'perilla', nombre: 'Perilla', largo: 6, densidadMinima: 0.3, premium: false, peso: 0.07 },
+  { id: 'barba_corta', nombre: 'Barba corta', largo: 6, densidadMinima: 0.45, premium: false, peso: 0.2 },
+  { id: 'barba_perfilada', nombre: 'Barba perfilada', largo: 5, densidadMinima: 0.5, premium: true, peso: 0.07 },
+  { id: 'barba_larga', nombre: 'Barba larga', largo: 30, densidadMinima: 0.6, premium: false, peso: 0.08 },
+];
+
+export const peinado = (id: string): EstiloDePeinado => PEINADOS.find((x) => x.id === id) ?? PEINADOS[1];
+export const vello = (id: string): EstiloDeVello => VELLOS.find((x) => x.id === id) ?? VELLOS[0];
+
+/** Edad (con el adelanto o retraso del desarrollo) desde la que hay vello facial: antes, nada; se completa a los 19. */
+export const EDAD_DEL_VELLO = 15;
+
+/** Cuánto pelo se ha perdido (0 a 1) con una tendencia (`Apariencia.calvicie`) y una edad: quien tiene mucha empieza en la juventud; quien tiene poca, tarde o nunca. No retrocede. */
+export function gradoDeCalvicie(tendencia: number, edad: number): number {
+  const inicio = 18 + 40 * (1 - tendencia);
+  return tendencia * Math.min(1, Math.max(0, (edad - inicio) / 30)) ** 0.7;
+}
+
+/** Qué parte del pelo es cana (0 a 1): empiezan a su edad (`Apariencia.canas`) y aumentan poco a poco durante unos 30 años. No retrocede. */
+export function fraccionDeCanas(desde: number, edad: number): number {
+  return Math.min(1, Math.max(0, (edad - desde) / 30)) ** 1.15;
+}
+
+/** El peinado que se puede llevar con un grado de calvicie: el pedido o, si ya no se puede, el que lo sustituye. */
+export function peinadoPosible(id: string, calvicie: number): string {
+  let e = peinado(id);
+  for (let i = 0; i < PEINADOS.length && calvicie > e.calvicieMaxima && e.siNo; i++) e = peinado(e.siNo);
+  return e.id;
+}
+
+/** ¿Puede llevar este vello facial con su densidad de barba? */
+export const velloPosible = (id: string, densidad: number): boolean => densidad >= vello(id).densidadMinima;
+
+/** El look de una persona: estilo y largo del pelo (cm) y del vello facial (mm). */
+export interface Look {
+  peinado: string;
+  largoDelPelo: number;
+  vello: string;
+  largoDelVello: number;
+}
+
+function sorteo<T>(u: number, items: readonly T[], peso: (x: T) => number): T {
+  const total = items.reduce((s, x) => s + peso(x), 0);
+  let r = u * total;
+  for (const x of items) { r -= peso(x); if (r < 0) return x; }
+  return items[items.length - 1];
+}
+
+/**
+ * El estilo que una persona elige y mantiene toda la vida (un PNJ; y el personaje mientras no tenga peluquería): sale solo de su semilla de dibujo, su sexo, su tipo
+ * de pelo y su densidad de barba. Las mujeres van siempre sin vello facial. Lo que la edad cambia (calvicie, pubertad) lo aplica quien dibuja (`peinadoPosible`, `EDAD_DEL_VELLO`).
+ */
+export function estiloDePersona(semilla: number, sexo: 'f' | 'm', a: Pick<Apariencia, 'peloTipo' | 'barba'>): Look {
+  const p = sorteo(rngEstable('look', semilla, 'peinado').next(), PEINADOS.filter((x) => !x.tipos || x.tipos.includes(a.peloTipo)), (x) => x.peso[sexo]);
+  const v = sexo === 'f' ? VELLOS[0] : sorteo(rngEstable('look', semilla, 'vello').next(), VELLOS.filter((x) => a.barba >= x.densidadMinima), (x) => x.peso);
+  return { peinado: p.id, largoDelPelo: p.largo, vello: v.id, largoDelVello: v.largo };
+}
