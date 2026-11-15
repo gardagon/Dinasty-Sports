@@ -102,3 +102,11 @@ Siguiendo la receta: más variedad de peinados, barbas y bigotes, y prendas; los
 ## Preguntas abiertas
 
 _(Las rellena quien desarrolla; las responde la sesión de arquitectura con el usuario.)_
+
+De la etapa 2a (muestras de estilo, `npm run retratos:muestras` → `docs/muestras/retratos.html`):
+
+1. **El peinado cambia con la edad.** En las muestras el peinado por defecto sale de la semilla, el sexo, el tipo de pelo y la calvicie, pero también del tramo de edad (una niña con coleta puede llevar melena de adulta; un niño con flequillo, pelo corto de adulto). ¿Vale así para la base, o el peinado debe ser el mismo toda la vida mientras la calvicie lo permita?
+2. **La barba por defecto tapa rasgos heredados.** Con la semilla 31 al personaje le toca barba entera a los 30 y se le ven peor el mentón y la boca al compararlo con sus padres. ¿El estilo de barba por defecto se sortea entre todos (como ahora) o se prefiere afeitado o barba corta para que se vea más la cara?
+3. **Edades futuras.** Las muestras piden 8, 15, 30 y 70 años para los tres, y el personaje y la chica tienen 7 y 8: se dibujan con la altura de su curva y con el músculo y la grasa de hoy (no hay otro dato). En la base las edades futuras no se enseñan (§5.3), así que solo afecta a las muestras.
+4. **Tamaño de la cabeza.** Las variantes B, C y D agrandan la cabeza (6 %, 16 % y 3 %) y los ojos para diferenciarse; la A va con proporciones reales. Si se elige una de ellas, ¿se mantiene ese tamaño o se vuelve a lo real?
+5. **Qué se hace con las muestras.** El código de las muestras (`tools/retratos/`) y la página (`docs/muestras/retratos.html`, unos 2,5 MB) son provisionales: ¿se borran al empezar la 2b o se dejan como referencia?

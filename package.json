@@ -38,7 +38,8 @@
     "publicar-deportes": "tsx tools/publicar-deportes.ts",
     "probar-web": "tsx tools/probar-web.ts",
     "sim:futbol": "tsx sim/src/futbol.ts",
-    "sim:cuerpo": "tsx tools/cuerpo.ts"
+    "sim:cuerpo": "tsx tools/cuerpo.ts",
+    "retratos:muestras": "tsx tools/retratos/muestras.ts"
   },
   "engines": {
     "node": ">=20"
