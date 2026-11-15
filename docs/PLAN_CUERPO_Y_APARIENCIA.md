@@ -235,4 +235,7 @@ Anotadas por la sesión de desarrollo; se siguió adelante con lo que se indica.
     |---|---|---|
     | `npm run rendimiento -- 60` (bot equilibrado) | 4,3 ms por acción (4,3–5,3 con carga) | 2,0–2,1 ms por acción (antes de los bots del recreo: 2,2–2,6) |
     | `sim/src/sim.test.ts` completo | 324 s (2.º test, 290 s; con más carga se pasaba de su plazo) | 135–139 s (1.º test 19 s, 2.º test 119 s) |
+    | `npm run sim`: chequeo de rendimiento | ⚠️ 4,85 ms por acción (límite 1,96), 57,8 s por año simulado | ✅ 1,97 ms por acción (límite 2,12), 23,5 s por año simulado |
+    | `npm run sim`: un año del bot equilibrado, semilla 1 (12.711 acciones) | 60,7 s | 21,1 s |
+    | `npm run sim`: tabla final y chequeos | — | **idénticos** (misma tabla y mismos niveles; el de rendimiento pasa de ⚠️ a ✅) |
     | Plazos de `sim.test.ts` | 60 s y 600 s (subidos) | **devueltos a los originales: 30 s y 300 s** |
