@@ -689,7 +689,7 @@ export default hilo({
 });
 ```
 
-**Los 22 perks latentes sin escribir 22 hilos a mano.** La mayoría de las revelaciones tienen la misma forma (una condición propia, un texto, `revelaPerk`). Como los archivos son TypeScript, una función de ayuda en contracts genera el evento a partir de una fila:
+**Los 18 perks latentes sin escribir 18 hilos a mano.** La mayoría de las revelaciones tienen la misma forma (una condición propia, un texto, `revelaPerk`). Como los archivos son TypeScript, una función de ayuda en contracts genera el evento a partir de una fila:
 
 ```ts
 export default revelaciones([
@@ -828,3 +828,193 @@ export default hilo({
 ```
 
 El `planton` que queda durante seis meses es lo que hace que ese amigo **no vuelva a invitarte** al año siguiente si no lo arreglaste (la condición `no: { marca: 'planton', de: 'cumple' }` de la invitación), y está disponible para cualquier otro evento: por ejemplo, que no quiera ayudarte a estudiar.
+
+---
+
+## 5. Rendimiento, tamaño del estado e interfaz
+
+### 5.1 Rendimiento
+
+Hoy una acción cuesta en torno a 1 ms en las simulaciones (`DECISIONES.md`, «Medir el rendimiento…»). El director no debe notarse. Cómo:
+
+- **Todo se indexa al arrancar** (como el registro del motor): eventos por señal que los dispara, eventos de `cada: 'dia'` y de `cada: 'semana'` en sus listas, condiciones precompiladas a funciones. En partida no se recorre el catálogo.
+- **Una señal sin eventos cuesta una consulta a un `Map`.** La gran mayoría de las señales (`accion.realizada` sobre todo) no disparan nada casi nunca. Los contadores declarados sobre `accion.realizada` se indexan por etiqueta.
+- **Las comprobaciones periódicas van una vez al día** (`dia.inicio`) y una vez a la semana (`semana.fin`), no en cada acción: umbrales, eventos de `cada`, programados que vencen (la cola está ordenada: se mira solo el primero) y caducidades de marcas y temporales.
+- **Las condiciones baratas van primero**: marcas, contadores, stats y calendario antes que reparto, presencia y relaciones. La herramienta ordena las condiciones de cada evento al compilar; el reparto solo se busca si todo lo demás ya se cumple.
+- **Los hechos se leen una vez por pasada**: en la pasada diaria, edad, sitio, nota media o faltas se piden al servicio una sola vez y se reutilizan para todos los eventos.
+- **Los modificadores temporales** se publican como un único modificador de `'*'` que mira una lista casi siempre vacía.
+
+**Objetivos, a medir con `npm run rendimiento`** (que ya desglosa ms por acción y peso del estado por módulo) con un catálogo de prueba de 500 eventos:
+
+| Qué | Objetivo |
+|---|---|
+| Coste añadido por acción (señales sin evento, contadores) | < 0,02 ms (menos del 2 % de una acción) |
+| Pasada diaria con 500 eventos en el catálogo | < 1 ms |
+| Arranque (validar e indexar 500 eventos) | < 50 ms |
+| `npm run sim` completa | No más de un 3 % más lenta con el catálogo real |
+
+Si los eventos de mundo (P6) entran, su coste se mide aparte: una pasada **semanal** sobre las personas que puedan tenerlos, con el mismo criterio que la rutina semanal de los PNJ (`MISMAS_REGLAS.md` §4: calcular por semanas no es recortar).
+
+### 5.2 Tamaño del estado
+
+Lo que crece con los años es la **historia**; lo demás (marcas, contadores, programados, pendientes) son decenas de entradas.
+
+- Una entrada de historia es una lista corta de números y, si hay reparto, ids de persona: `[412, 17, 2, "nino_231"]` son unos 25–30 bytes en JSON. Los ids de evento y de opción se guardan una vez en `indice` y la historia usa su posición.
+- Con un ritmo alto, **150 eventos al año**: unos 4,5 KB por año, **45 KB en diez años** y unos 300 KB en una vida de 70. La partida pesa hoy 0,4 MB con ~393 personas y unos 2,4 MB con la ciudad grande (`ALMACENAMIENTO.md`, `MISMAS_REGLAS.md` §8): la historia de diez años es menos del 2 %.
+- Las marcas sin caducidad se quedan para siempre (son pocas por diseño: la herramienta avisa si un evento repetible deja una marca permanente distinta cada vez). Las marcas por persona de alguien que sale del mundo se borran con él.
+- **Se guarda todo** (`VISION.md`, principio 4): la historia no se recorta. Si algún día pesa, se compacta mejor, como el resto.
+- No se guarda ningún texto. Si en una versión futura desaparece un evento del catálogo, sus entradas de historia se enseñan como «un recuerdo de hace tiempo» (en la alfa no hay compatibilidad de guardados, así que hoy no aplica).
+
+### 5.3 Cómo se presentan en la interfaz
+
+La interfaz solo habla con `@ds/game` y lee el servicio `eventos` (`pendientes()`, `recuerdos()`); no conoce ningún evento concreto.
+
+- **La ventana del evento.** Un evento con `urgencia: 'ahora'` sale en una ventana sobre el juego (el «velo» que ya existe para crear la partida y los avisos) **justo después del resultado de la acción** que lo provocó: título, texto, el **retrato de quien participa** (`@ds/retrato` ya dibuja a cualquier persona) y las opciones como botones. Una opción que no cumple sus requisitos sale en gris con el motivo. Al elegir, la ventana enseña el `resultado` y los cambios (como el resultado de cualquier acción) y se cierra.
+- **Qué se enseña de las consecuencias antes de elegir** es la pregunta P9. En la alfa, con el interruptor de pruebas, se pueden enseñar las cifras de cada opción, como hoy con la genética.
+- **Pendientes.** Los eventos con `urgencia: 'pendiente'` (la fiesta de esta tarde, una oferta con una semana para pensarla) no interrumpen: salen en una lista «Pendiente» con su plazo («hasta las 20:00», «te quedan 5 días»), visible desde la pantalla principal con un contador. Si la ventana de un evento urgente se cierra sin elegir, pasa a esa lista hasta que venza.
+- **Eventos sin opciones.** Un aviso con peso (la revelación de un perk) sale en la ventana con un solo botón; uno ligero (un comentario de un compañero) puede salir solo como una línea destacada en el resultado de la acción y en el Diario (`presentacion: 'ventana' | 'linea'`).
+- **Diario.** Cada evento resuelto deja su línea (`ctx.log`, tipo `aviso` o `logro`), como ahora.
+- **Recuerdos.** Una pantalla nueva (o una sección del Diario) con la historia: por año, qué pasó, con quién y qué elegiste, compuesta desde la memoria. En la ficha de una persona, «lo que habéis vivido» (los eventos en los que salió): es la base de los «recuerdos compartidos» pendientes de E20.
+- **Avance rápido** (E11.2, cuando exista): se para cuando aparece un evento con opciones.
+- **Móvil.** La ventana ocupa la pantalla y los botones van uno debajo de otro; ningún texto de opción debería pasar de dos líneas (la herramienta avisa si un texto es muy largo).
+
+---
+
+## 6. Preguntas para el usuario
+
+Cada una con opciones y una recomendación. **Ninguna está decidida.**
+
+### P1. En qué formato se escriben los eventos
+
+| Opción | A favor | En contra |
+|---|---|---|
+| **A. Archivos TypeScript de datos** (lo descrito en §3) | El editor autocompleta y marca errores al escribir; comentarios; funciones de ayuda para series (una revelación por perk); cero piezas nuevas | Hay que abrir un editor de código; un error de sintaxis rompe la compilación |
+| B. Archivos JSON o YAML | Los puede escribir alguien sin tocar código; se pueden importar como los paquetes de país | Sin autocompletado ni comentarios (JSON); los errores salen al validar, no al escribir; las series se copian a mano |
+| C. Un editor visual dentro de la web | Lo más parecido a «una herramienta»; se prueba al momento | Es un proyecto en sí (varias semanas) y hay que mantenerlo cada vez que crece el formato |
+
+**Recomendación: A ahora**, con el validador y el probador de §3. Como lo que se carga es JSON puro, B (eventos importables por el jugador) y C se pueden añadir después sin rehacer nada. Si quien va a escribir la mayoría de los eventos es Claude con el usuario revisando, A es además lo más rápido.
+
+### P2. Dónde vive el contenido
+
+- **A. Cada módulo aporta los suyos** (`familia` los de casa, `estudios` los del colegio, `relaciones` los de amigos, cada deporte los suyos dentro de su paquete). Un hilo que cruza dos mundos va en el módulo de quien lo protagoniza, con `requiere`.
+- B. Un solo módulo de contenido («historias») con todos, salvo los de los deportes instalables.
+
+**Recomendación: A.** Es como ya funcionan los deportes, un deporte instalado trae sus propios eventos, y quitar un módulo quita sus eventos sin dejar restos. B es más cómodo para buscar, pero eso lo resuelven `eventos:mapa` y un listado.
+
+### P3. ¿Un evento urgente bloquea el juego hasta que se decide?
+
+- **A. No bloquea nunca.** La ventana sale, pero se puede cerrar; el evento queda en «Pendiente» y, si vence el plazo, se aplica la opción por defecto.
+- B. Los urgentes bloquean: no se puede hacer nada más hasta elegir.
+- C. Se marca por evento (`bloquea: true` en los que lo pidan, p. ej. una conversación cara a cara).
+
+**Recomendación: A para empezar.** Es lo que pide «el juego debe poder jugarse sin eventos», no necesita tocar el motor y los bots siguen funcionando. Si al jugar resulta raro que se pueda dejar a la madre con la palabra en la boca, C se añade sin romper nada (un plazo de «ahora mismo» equivale a bloquear).
+
+### P4. ¿Elegir una opción gasta tiempo de juego?
+
+- **A. Sí: cada opción dura lo que diga** (1 minuto por defecto; una charla, 10; ir a una fiesta, 120).
+- B. No: las decisiones son instantáneas y solo los efectos cuentan.
+
+**Recomendación: A.** El tiempo es el recurso del juego («el tiempo que no llega para todo», `VISION.md`), y así una decisión es una acción más del mismo camino.
+
+### P5. Cuántos eventos «espontáneos» como máximo
+
+Los que salen por probabilidad (no los que son consecuencia de algo).
+
+- A. Sin límite: lo que den las probabilidades.
+- **B. Un cupo: como mucho 1 al día y 4 a la semana**, a ajustar con la simulación.
+- C. Un cupo que el jugador elige en «Opciones» (pocos, normal, muchos).
+
+**Recomendación: B**, y C más adelante si hay quejas en un sentido u otro. Sin cupo, cada evento nuevo que se añade hace el juego más ruidoso y obliga a rebajar las probabilidades de todos.
+
+### P6. ¿Los PNJ también viven eventos?
+
+- A. Solo el personaje. Los PNJ aparecen como participantes.
+- **B. El formato lo permite desde el primer día y se construye por fases**: primero el personaje; después, «eventos de mundo» para los PNJ, empezando por los que solo dependen de lo que un PNJ ya tiene (edad, perks, estado, club, carácter), con sus decisiones tomadas por su carácter y calculados una vez por semana.
+- C. Todo para todos desde el principio.
+
+**Recomendación: B.** A choca con el principio 2 de `VISION.md` en cuanto un evento dé ventajas de verdad (revelar un perk, una oferta de un club): un PNJ en la misma situación debe poder tenerlo. C no se puede: muchos eventos dependen de relaciones, dinero o estrés que los PNJ no tienen todavía. Con B queda una regla clara para escribir contenido: cada evento declara si es `para: 'personaje'` (depende de lo que solo él tiene) o `para: 'cualquiera'`.
+
+**Sub-pregunta:** cuando un evento de mundo le pasa a alguien cercano (tu hermano descubre un perk, un amigo ficha por otro club), ¿te enteras? Recomendación: sí, como una línea del Diario si tienes relación con esa persona.
+
+### P7. ¿Las decisiones cambian el carácter del personaje?
+
+Hoy los 8 ejes (disciplina, honestidad, ambición, sacrificio, sociabilidad, agresividad, prudencia, optimismo) se heredan y no se mueven (E4.3).
+
+- **A. Sí, poco a poco**: cada opción empuja 1–3 puntos (sobre una escala de −50 a +50) los ejes hacia los que tira.
+- B. Sí, y además el carácter **cierra opciones** (alguien muy honesto no tiene la opción de mentir).
+- C. No: el carácter es de nacimiento; las decisiones solo dejan marcas.
+
+**Recomendación: A**, y de B solo la mitad amable: el carácter puede **abrir** opciones o hacerlas más fáciles (una tirada con ventaja), pero no quitarle al jugador la posibilidad de elegir en contra de su personaje. Que «ningún extremo sea trampa» (E4.5) se vigila con bots de cada perfil.
+
+### P8. Castigos que impiden hacer cosas
+
+Para «castigado sin salir» hace falta que un módulo pueda **bloquear acciones por etiqueta** (§2.9: un campo nuevo en los modificadores del motor).
+
+- **A. Añadirlo**: un castigo bloquea de verdad las acciones con la etiqueta `ocio` (o la que diga el evento), con el motivo a la vista.
+- B. No tocar el motor: los castigos solo hacen que esas acciones rindan muy poco o cuesten más.
+
+**Recomendación: A.** Es genérico (no mete contenido en el motor), pequeño, y también servirá para las lesiones («de baja: no puedes entrenar») y las obligaciones del profesional (E10.4). Detalle a decidir: qué etiquetas existen para castigar; hoy `ocio` no distingue «salir con amigos» de «leer en casa».
+
+### P9. Qué se ve de las consecuencias antes de elegir
+
+- A. Todo, con números («Confianza −10, estrés +8»).
+- **B. Pistas en palabras** («Le va a sentar mal», «Arriesgado: depende de tu picardía»), y los números solo con el interruptor de pruebas de la alfa.
+- C. Nada: solo el texto de la opción.
+
+**Recomendación: B.** Es el principio 7 de `VISION.md` («el jugador siente los datos, no los gestiona») y lo que hace CK3 a su manera. Las pistas se generan solas a partir de los efectos (no hay que escribirlas), con la posibilidad de poner una a mano.
+
+### P10. Por dónde empezar el contenido
+
+El motor se prueba con contenido de verdad. Candidatos para el primer lote (unos 10–15 eventos):
+
+- **A. Lo que ya está esperando**: los padres y las faltas, la revelación de los 18 perks latentes, los cumpleaños, los comentarios sobre la edad y la altura (E18.7).
+- B. La vida social: saludos, encuentros en el camino, rivalidades, discusiones con consecuencias.
+- C. Las puertas del deporte: ojeadores, ofertas de clubes, selecciones (E18.5, E10).
+
+**Recomendación: A.** Cierra cuatro pendientes apuntados, usa todas las piezas del sistema (señales, umbrales, contadores, reparto, hilos, marcas) y no depende de nada que no exista. C necesita antes decisiones de E10 (está aparcada a propósito) y B crece mejor cuando haya eventos de mundo.
+
+### P11. Las decisiones dentro de una competición (E18.4)
+
+Las «lecturas tácticas en la carrera» son elecciones **durante** una acción (en mitad de una carrera o un partido), no entre acciones.
+
+- **A. Fuera de este plan**: las diseña cada deporte cuando toque, reutilizando el formato de opciones y tiradas si encaja.
+- B. Dentro: el director también presenta decisiones en mitad de una competición.
+
+**Recomendación: A.** B obliga a partir una acción en trozos, que es un cambio del motor de otro tamaño, y el motor de partidos (`MOTOR_PARTIDOS.md`) tiene sus propias reglas.
+
+### P12. Cómo se llaman en el código
+
+«Evento» ya es el aviso entre módulos (`GameEvent`, `SHARED_EVENTS`, `on`).
+
+- **A. En el código, lo nuevo se llama `Suceso`** (`SucesoDef`, `modules/sucesos`, `npm run sucesos:validar`); en la interfaz y al hablar se sigue diciendo «evento».
+- B. Lo nuevo se llama `Evento` y lo viejo se renombra a `Señal` (toca muchos archivos).
+- C. Lo nuevo se llama `Evento` y se convive con la ambigüedad (`EventoDef` frente a `GameEvent`).
+
+**Recomendación: A.** No toca nada de lo que hay y evita confusiones al leer el código. Este documento ha usado «evento» y los ejemplos `eventos:*`; con A cambiarían a `sucesos:*`.
+
+### P13. La fórmula de las tiradas
+
+Una opción con tirada necesita una regla de «qué probabilidad de éxito da tener 30 de picardía contra dificultad 45». Propuesta inicial: 50 % cuando la stat (medida «para su edad», como ya hace `norm`) iguala la dificultad, entre un 5 % y un 95 %, y cada 10 puntos de diferencia mueven unos 15 puntos de probabilidad. ¿Vale como punto de partida para calibrar con la simulación, o el usuario prefiere otra idea (por ejemplo, que nunca sea azar puro y el resultado dependa solo de umbrales)?
+
+**Recomendación:** tirada con azar estable, calibrada con la simulación; los umbrales fijos ya existen como `requiere`.
+
+---
+
+## 7. Plan de construcción por pasos
+
+Cada paso acaba con `npm run check` en verde, su entrada en `DECISIONES.md` y, si cambia cifras de relaciones, `ANEXO_RELACIONES.md`. Los pasos 1 a 4 no cambian ninguna partida (`npm run huella` igual antes y después): hasta que no hay contenido, el juego es el de hoy.
+
+| Paso | Qué | Cómo se sabe que está |
+|---|---|---|
+| **0** | Respuestas del usuario a §6. Este documento se corrige con lo decidido | — |
+| **1. El formato** | `packages/contracts/src/eventos.ts`: tipos, `evento()`, `hilo()`, `contador()`, validación pura del catálogo y composición de textos con género. Sin motor | Tests de contracts: la validación caza cada error de la tabla de §3.3 que no necesita partida; los textos concuerdan |
+| **2. El motor mínimo** | Ampliaciones de §2.9 en `packages/core` (con sus tests). Módulo del director con `npm run nuevo-modulo`: memoria, disparos por señal y programados, condiciones sobre stats, calendario y memoria, opciones como acciones, plazo y opción por defecto, efectos propios (estado, entrena, marca, recuerdo, programa, diario, fin) | Test que carga el director solo con `gen`; un hilo de prueba de tres eventos recorre todas sus ramas; el estado se guarda y se carga a mitad de hilo; `huella` igual |
+| **3. Hablar con los demás** | Señales nuevas en `SHARED_EVENTS` y sus manejadores en `relaciones`, `familia` y `gen` (carácter, perk revelado; el servicio `perks` dice cuáles lo están). Hechos de los servicios existentes y servicio `hechos.<módulo>`. Reparto (con `npcs`, `relaciones`, `presencia`). Modificadores y restricciones temporales | `tests/arquitectura.test.ts` en verde; tests de integración: un evento baja una relación, revela un perk, castiga; todo funciona también sin cada módulo opcional |
+| **4. La herramienta** | `eventos:nuevo`, `eventos:validar` (también como test), pruebas y escenarios como datos, `eventos:probar`, `eventos:mapa`. Disparos `cada` y `umbral`, contadores, cupo de ritmo, tiradas (con Suertudo y Gafe) | Un evento nuevo se añade creando un solo archivo; un evento roto a propósito de cada tipo falla con un mensaje claro |
+| **5. La interfaz** | Ventana del evento con retratos, lista «Pendiente», pistas de las opciones, forzar eventos y ver la memoria en la interfaz de pruebas | `npm run probar-web` ampliado: sale un evento, se elige, queda en el Diario |
+| **6. Bots y medidas** | Los bots deciden según el carácter de su estrategia. Chequeo de frecuencia en `sim/src/analysis.ts`, `sim:eventos`. `npm run rendimiento` con un catálogo de 500 eventos de prueba | Objetivos de §5.1 cumplidos y anotados; `npm run sim` antes y después sin chequeos nuevos en ⚠️ o ❌ (o explicados) |
+| **7. Primer contenido** | El lote que se decida en P10, cada hilo con sus escenarios. Aquí sí cambia la partida: `npm run sim` antes y después | Los pendientes correspondientes de `BACKLOG_STATS.md` y `DECISIONES.md`, cerrados; `ARQUITECTURA.md`, `BACKLOG_STATS.md` (E18) y `CLAUDE.md` (comandos nuevos) al día; un anexo `ANEXO_EVENTOS.md` con el formato para quien escriba eventos |
+| **8. Recuerdos** | Pantalla de recuerdos y «lo que habéis vivido» en la ficha de cada persona | — |
+| **9. Eventos de mundo** (si P6 = B) | Pasada semanal para los PNJ con los eventos `para: 'cualquiera'`; test de mismas reglas: un PNJ y el personaje en la misma situación reciben el mismo evento | Medido su coste; `tests/mismas-reglas*.test.ts` ampliado |
+
+Los pasos 1 a 4 son el sistema; 5 y 6 se pueden hacer en paralelo; el 7 es el primero que el usuario nota al jugar. Si hay que parar a mitad, cada paso deja el repositorio funcionando.
