@@ -56,6 +56,8 @@ export interface IdentidadState {
   semana: HabitosSemana;
   /** Perks: los activos (como mucho 3, los que afectan) y el pool que pasa a los hijos. */
   perks: PerksDe;
+  /** Perks latentes que el personaje ya ha descubierto (señal `perk.revelado`). Su efecto no depende de esto: cuenta desde que nació. */
+  perksRevelados?: string[];
   /** Origen, apariencia, carácter, intereses y gustos. Los intereses suben con lo que el personaje hace; el resto es fijo. */
   perfil: PerfilDelPersonaje;
 }

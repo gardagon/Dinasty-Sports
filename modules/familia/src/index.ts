@@ -1,4 +1,4 @@
-import { GEN, alturaAdulta, apellidosDeFamilia, nacimientoDeProgenitor, nombreDeProgenitor, PRACTICA_TEXTO, SERVICES, practicaSegunTope, defineModule, type FamilyService, type Gender, type InitContext,
+import { GEN, alturaAdulta, apellidosDeFamilia, nacimientoDeProgenitor, nombreDeProgenitor, PRACTICA_TEXTO, SERVICES, SHARED_EVENTS, practicaSegunTope, defineModule, type CambioDeFamiliaData, type FamilyService, type Gender, type InitContext,
   type NpcDirectory, type ParentView, type Practica, type RasgosDe, type ReadContext } from '@ds/contracts';
 
 /**
@@ -90,6 +90,16 @@ export const familia = defineModule<FamiliaState>({
       apellidos: apellidosDeFamilia(ctx.seed, 'm', ctx.pais),
       padres: [nuevoProgenitor('padre', ctx), nuevoProgenitor('madre', ctx)],
     };
+  },
+  on: {
+    // Algo que ha pasado (un suceso) cambia cómo vive un progenitor al personaje: su apoyo y sus expectativas, de 0 a 100.
+    [SHARED_EVENTS.CAMBIO_DE_FAMILIA]: (ctx, ev) => {
+      const d = ev.data as CambioDeFamiliaData;
+      ctx.updateState<FamiliaState>((s) => ({
+        ...s,
+        padres: s.padres.map((p) => (p.id === d.npcId ? { ...p, apoyo: clamp(p.apoyo + (d.apoyo ?? 0), 0, 100), expectativas: clamp(p.expectativas + (d.expectativas ?? 0), 0, 100) } : p)),
+      }));
+    },
   },
   services: {
     [SERVICES.familia]: (ctx: ReadContext): FamilyService => {

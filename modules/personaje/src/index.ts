@@ -32,6 +32,10 @@ import {
   isSchoolHours,
   minutesUntilHour,
   type ActionDoneData,
+  type CambioDeCaracterData,
+  type PerkReveladoData,
+  EJE_MIN,
+  EJE_MAX,
   type DayEventData,
   type DecayDef,
   type IdentityService,
@@ -321,6 +325,20 @@ export const personaje = defineModule<IdentidadState>({
   ],
 
   on: {
+    // Las decisiones mueven los ejes de carácter poco a poco (E4.3), dentro de su escala.
+    [SHARED_EVENTS.CAMBIO_DE_CARACTER]: (ctx, ev) => {
+      const { ejes } = ev.data as CambioDeCaracterData;
+      ctx.updateState<IdentidadState>((s) => {
+        const caracter = { ...s.perfil.caracter };
+        for (const [eje, d] of Object.entries(ejes)) if (eje in caracter) caracter[eje] = Math.min(EJE_MAX, Math.max(EJE_MIN, caracter[eje] + d));
+        return { ...s, perfil: { ...s.perfil, caracter } };
+      });
+    },
+    // El personaje descubre un perk latente que ya tenía (su efecto cuenta desde que nació): solo se apunta que ya lo sabe.
+    [SHARED_EVENTS.PERK_REVELADO]: (ctx, ev) => {
+      const { perk: id } = ev.data as PerkReveladoData;
+      ctx.updateState<IdentidadState>((s) => (!s.perks.activos.includes(id) || s.perksRevelados?.includes(id) ? s : { ...s, perksRevelados: [...(s.perksRevelados ?? []), id] }));
+    },
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
       const d = ev.data as ActionDoneData;
       // Lo que hace con su tiempo alimenta sus intereses (con rendimientos decrecientes hacia 100).
@@ -456,10 +474,10 @@ export const personaje = defineModule<IdentidadState>({
     },
     [SERVICES.perfil]: (ctx): ProfileService => ({ view: () => ctx.state<IdentidadState>().perfil }),
     [SERVICES.perks]: (ctx): PerksService => {
-      const { perks } = ctx.state<IdentidadState>();
+      const { perks, perksRevelados } = ctx.state<IdentidadState>();
       const ver = (id: string): PerkView => {
         const d = perk(id)!;
-        return { id, nombre: d.nombre, descripcion: d.descripcion, latente: d.latente };
+        return { id, nombre: d.nombre, descripcion: d.descripcion, latente: d.latente, ...(perksRevelados?.includes(id) ? { revelado: true } : {}) };
       };
       return { view: () => ({ activos: perks.activos.map(ver), pool: perks.pool.map(ver) }) };
     },

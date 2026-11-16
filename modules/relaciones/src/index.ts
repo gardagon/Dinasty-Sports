@@ -19,6 +19,7 @@ import {
   type ClubAbandonoData,
   type ClubDirectory,
   IMPUNTUALIDAD_DE_JUGADOR,
+  type CambioDeRelacionData,
   type ClubImpuntualData,
   type CompetitionResultData,
   elPersonajeLeGana,
@@ -1197,6 +1198,14 @@ export const relaciones = defineModule<RelacionesState>({
     },
 
     // Llegar tarde a la convocatoria de un partido (más de 10 minutos después de la hora en que se convoca): el entrenador de ese deporte pierde relación con él, por impuntual.
+    // Algo que ha pasado (un suceso) cambia el vínculo con alguien: los puntos vienen dados y se aplican con los topes del vínculo, como cualquier otro cambio.
+    [SHARED_EVENTS.CAMBIO_DE_RELACION]: (ctx, ev) => {
+      const d = ev.data as CambioDeRelacionData;
+      const n = dirDe(ctx)?.get(d.npcId);
+      if (!n) return;
+      const dia = ctx.time.day;
+      ctx.updateState<RelacionesState>((s) => ({ ...s, vinculos: { ...s.vinculos, [n.id]: conCambio(vinculoDe(ctx, s, n, dia), dia, d.afinidad ?? 0, d.confianza ?? 0) } }));
+    },
     [SHARED_EVENTS.CLUB_IMPUNTUAL]: (ctx, ev) => {
       const dir = dirDe(ctx);
       if (!dir) return;
