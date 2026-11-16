@@ -231,3 +231,35 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number, calibr
 
   return checks;
 }
+
+/** Umbrales del chequeo de los sucesos (eventos): por encima, el jugador recibiría demasiados. */
+export const FRECUENCIA_DE_SUCESOS = { maxPorSemana: 10, maxDeUnoPorAño: 30 } as const;
+
+/** Cuántas veces sale cada suceso por año, de media entre partidas, y cuántos salen en total por semana. */
+export function frecuenciaDeSucesos(results: readonly { days: number; sucesos: Record<string, number> }[]): { porAño: Record<string, number>; porSemana: number } {
+  const porAño: Record<string, number> = {};
+  let total = 0;
+  let dias = 0;
+  for (const r of results) {
+    dias += r.days;
+    for (const [id, n] of Object.entries(r.sucesos)) {
+      porAño[id] = (porAño[id] ?? 0) + n;
+      total += n;
+    }
+  }
+  for (const id of Object.keys(porAño)) porAño[id] = dias ? (porAño[id] * 365) / dias : 0;
+  return { porAño, porSemana: dias ? (total * 7) / dias : 0 };
+}
+
+/** Chequeo de ritmo: ni demasiados sucesos por semana ni uno que se repita sin parar. */
+export function chequeoDeSucesos(results: readonly { days: number; sucesos: Record<string, number> }[]): Check {
+  const f = frecuenciaDeSucesos(results);
+  const pesados = Object.entries(f.porAño).filter(([, n]) => n > FRECUENCIA_DE_SUCESOS.maxDeUnoPorAño);
+  const ok = f.porSemana <= FRECUENCIA_DE_SUCESOS.maxPorSemana && !pesados.length;
+  const distintos = Object.keys(f.porAño).length;
+  return {
+    level: ok ? 'ok' : 'aviso',
+    name: 'Ritmo de los eventos',
+    detail: `${f.porSemana.toFixed(1)} eventos por semana de media (máx. ${FRECUENCIA_DE_SUCESOS.maxPorSemana}), ${distintos} distintos${pesados.length ? `; se repiten demasiado: ${pesados.map(([id, n]) => `${id} (${n.toFixed(0)}/año)`).join(', ')}` : ''}. Detalle: npm run sim:eventos.`,
+  };
+}

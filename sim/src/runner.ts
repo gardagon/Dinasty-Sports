@@ -1,4 +1,4 @@
-import { SERVICES, type GameModule, type NpcDirectory, type StatDef, type StudiesService } from '@ds/contracts';
+import { APORTE_DE_SUCESOS, SERVICES, elegirPorCaracter, rngEstable, type AporteDeSucesos, type GameModule, type NpcDirectory, type OpcionDef, type ProfileService, type StatDef, type StudiesService, type SucesoDef, type SucesosService } from '@ds/contracts';
 import { checkInvariants, seededRng, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 import type { Bot, BotMemory } from './bots';
@@ -33,6 +33,8 @@ export interface RunResult {
   /** Datos de módulos interesantes para el informe (notas, carreras...). */
   extras: Record<string, number | null>;
   minutesByTag: Record<string, number>;
+  /** Cuántas veces ha salido cada suceso (evento) en la partida. */
+  sucesos: Record<string, number>;
 }
 
 /** Áreas automáticas: una por módulo con habilidades + grupos de genéricas + cada stat de estado. */
@@ -94,6 +96,37 @@ export interface Juego {
   deportes?: readonly string[];
 }
 
+/**
+ * Decide el primer suceso pendiente: entre las opciones que se pueden elegir, la que más va con el carácter del personaje (con un azar estable).
+ * Devuelve si ha decidido algo. Es la misma regla con la que decidirá un PNJ (`elegirPorCaracter`).
+ */
+export function decidirSucesos(game: Game, seed: number): boolean {
+  const svc = game.service<SucesosService>(SERVICES.sucesos);
+  const p = svc?.pendientes()[0];
+  if (!p) return false;
+  const caracter = game.service<ProfileService>(SERVICES.perfil)?.view().caracter ?? {};
+  const def = [...sucesosDeLaPartida(game)].find((x) => x.id === p.suceso);
+  const elegibles = p.opciones.filter((o) => o.elegible).map((o) => o.id);
+  const opciones = (def?.opciones ?? p.opciones.map((o) => ({ id: o.id, texto: o.texto }))) as OpcionDef[];
+  const elegida = elegirPorCaracter(opciones.filter((o) => elegibles.includes(o.id)), elegibles, (eje) => caracter[eje], rngEstable(seed, 'bot', p.suceso, p.id).next());
+  const accion = p.opciones.find((o) => o.id === elegida)?.accion;
+  return !!accion && game.perform(accion).ok;
+}
+
+/** Las definiciones de los sucesos de la partida (con las opciones de la variante que toque no hace falta: la inclinación de carácter va en las del suceso). */
+function* sucesosDeLaPartida(game: Game): Generator<SucesoDef> {
+  for (const a of game.aportes<AporteDeSucesos>(APORTE_DE_SUCESOS)) {
+    if (a.tipo === 'suceso') yield a;
+    else if (a.tipo === 'hilo') yield* a.sucesos;
+  }
+}
+
+function cuentaDeSucesos(game: Game): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const r of game.service<SucesosService>(SERVICES.sucesos)?.recuerdos() ?? []) out[r.suceso] = (out[r.suceso] ?? 0) + 1;
+  return out;
+}
+
 export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}): RunResult {
   const game = nuevaPartida({ seed, playerName: bot.name, ...(juego.deportes ? { deportes: juego.deportes } : {}) }, juego.modulos);
   const rng = seededRng(seed * 31 + 7);
@@ -110,6 +143,8 @@ export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}):
       mem.day = game.time.day;
       mem.hoy = {};
     }
+    // Si hay algo que decidir, el bot decide antes de seguir, como lo haría alguien con el carácter de su personaje.
+    if (decidirSucesos(game, seed)) continue;
     const opts = opcionesDelBot(game, bot.todasLasAcciones);
     if (!opts.length) {
       problems.push(`Día ${game.time.day} ${game.time.hour}h: ninguna acción disponible (bloqueo)`);
@@ -152,6 +187,7 @@ export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}):
     snapshots,
     final: snapshot(game, areas),
     extras: extras(game),
+    sucesos: cuentaDeSucesos(game),
     minutesByTag,
   };
 }

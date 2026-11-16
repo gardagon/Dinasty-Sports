@@ -52,6 +52,7 @@ npm run eventos:nuevo -- eventos.<área>.<nombre> "Título"  # crea un evento ba
 npm run eventos:validar  # todos los eventos: forma, referencias, textos, memoria, escenarios y todos los caminos (también dentro de npm test)
 npm run eventos:probar -- <hilo o suceso> [--elige a,b] [--masculino]  # enseña todos sus caminos con los textos que vería el jugador
 npm run eventos:mapa     # docs/eventos/MAPA.md: hilos, quién programa a quién y las marcas con que se hablan
+npm run sim:eventos -- 180 2  # cuántas veces sale cada evento por año con cada bot (para calibrar probabilidades y cupos)
 npm run check            # tipos + tests + simulación rápida
 npm run nuevo-modulo -- <id> "<Nombre>"
 ```

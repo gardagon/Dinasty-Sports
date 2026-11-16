@@ -41,6 +41,7 @@
     "sim:cuerpo": "tsx tools/cuerpo.ts",
     "retratos:muestras": "tsx tools/retratos/muestras.ts",
     "retratos:cuadricula": "tsx tools/retratos-cuadricula.ts",
+    "sim:eventos": "tsx tools/eventos-frecuencia.ts",
     "eventos:nuevo": "tsx tools/eventos.ts nuevo",
     "eventos:validar": "tsx tools/eventos.ts validar",
     "eventos:probar": "tsx tools/eventos.ts probar",
