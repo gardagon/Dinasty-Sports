@@ -19,6 +19,7 @@
     "@ds/mod-relaciones": "*",
     "@ds/mod-lugares": "*",
     "@ds/mod-sucesos": "*",
+    "@ds/mod-eventos": "*",
     "@ds/kit-deporte": "*"
   }
 }

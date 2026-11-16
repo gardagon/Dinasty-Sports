@@ -120,7 +120,7 @@ describe('opciones, tiradas y carácter', () => {
 
   it('la configuración es un dato que se cambia por partes', () => {
     const c = configDeSucesos([{ cupo: { menor: { alDia: 5 } } }, { presentacion: { fueraDeCaracter: 'ocultas' } }]);
-    expect(c.cupo).toEqual({ importante: { alDia: 1, aLaSemana: 4 }, menor: { alDia: 5, aLaSemana: 8 } });
+    expect(c.cupo).toEqual({ base: { alDia: 1, aLaSemana: 4 }, deporte: { alDia: 1, aLaSemana: 2 }, menor: { alDia: 5, aLaSemana: 8 } });
     expect(c.presentacion.fueraDeCaracter).toBe('ocultas');
     expect(c.pnj.clases).toEqual(['lesion']);
   });
@@ -131,6 +131,7 @@ describe('catálogo y validación', () => {
     id: 'familia.faltas.charla',
     titulo: 'Han llamado del colegio',
     disparo: { al: 'clase.faltas_excesivas' },
+    ejemploDeSeñal: { faltas: 12 },
     cuando: [{ lugar: 'casa' }, { presente: 'tutor' }],
     texto: '{tutor.Nombre}, seri{tutor:o|a}: «Llevas {señal.faltas} faltas».',
     plazo: { dias: 1, porDefecto: 'callar' },
@@ -182,6 +183,17 @@ describe('catálogo y validación', () => {
     expect(con({ opciones: [{ id: 'callar', texto: 'x', tirada: { con: 'gen.picardia', dificultad: 40 } }] })).toContainEqual(expect.stringMatching(/necesita «exito» y «fallo»/));
     expect(con({ disparo: { cada: 'dia', prob: 2 } })).toContainEqual(expect.stringMatching(/probabilidad/));
     expect(con({ opciones: [charla.opciones![1]] })).toContainEqual(expect.stringMatching(/«programado» pero ningún suceso lo programa/));
+  });
+
+  it('distingue los eventos base de los deportivos: un deporte aporta solo los suyos, marcados, y compiten por otro cupo', () => {
+    const gol: SucesoDef = { id: 'futbol.gol', titulo: 'Un gol', disparo: { cada: 'semana', prob: 0.1 }, texto: 'Marcas.' };
+    const entorno = { stats: new Map(), modulos: new Set(['futbol', 'familia']), deportes: new Set(['futbol']) };
+    expect(validarCatalogo([{ modulo: 'futbol', aportes: [suceso({ ...gol, deporte: 'futbol' })] }], entorno).errores).toEqual([]);
+    expect(validarCatalogo([{ modulo: 'futbol', aportes: [suceso(gol)] }], entorno).errores).toContainEqual(expect.stringMatching(/evento deportivo/));
+    expect(validarCatalogo([{ modulo: 'familia', aportes: [suceso({ ...gol, id: 'familia.gol', deporte: 'futbol' })] }], entorno).errores).toContainEqual(expect.stringMatching(/lo aporta «familia»/));
+    const cat = compilarCatalogo([suceso({ ...gol, deporte: 'futbol' }), suceso({ ...gol, id: 'x.a' }), suceso({ ...gol, id: 'x.b', categoria: 'menor', deporte: 'futbol' })]);
+    expect([...cat.sucesos.values()].map((x) => [x.origen, x.cupo, x.requiere])).toEqual([['deporte', 'deporte', ['futbol']], ['base', 'base', []], ['deporte', 'menor', ['futbol']]]);
+    expect(compilarCatalogo([suceso({ ...gol, deporte: 'futbol' })], (m) => m !== 'futbol').sucesos.size).toBe(0);
   });
 
   it('un papel opcional solo se puede nombrar donde es seguro que hay alguien', () => {

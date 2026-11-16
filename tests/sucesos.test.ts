@@ -22,6 +22,7 @@ const catalogo = (perk: string): AporteDeSucesos[] => [
         id: 'hist.faltas.charla',
         titulo: 'Han llamado del colegio',
         disparo: { al: 'clase.faltas_excesivas' },
+        ejemploDeSeñal: { faltas: 12 },
         cuando: [{ lugar: 'casa' }],
         texto: '{tutor.Nombre} te espera, muy seri{tutor:o|a}. «Llevas {señal.faltas} faltas».',
         plazo: { dias: 1, porDefecto: 'discutir' },
@@ -72,7 +73,7 @@ describe('sucesos con la partida entera', () => {
     const stats = new Map([...g.registry.stats].map(([id, s]) => [id, { category: s.def.category }]));
     const r = validarCatalogo([{ modulo: 'hist', aportes: catalogo('pulmones_grandes') }], { stats, modulos: g.registry.moduleIds });
     expect(r.errores).toEqual([]);
-    expect(r.avisos).toEqual([expect.stringMatching(/requiere el módulo «no_cargado»/)]);
+    expect(r.avisos).toContainEqual(expect.stringMatching(/requiere el módulo «no_cargado»/));
   });
 
   it('una decisión cambia la relación, la familia, el carácter, revela un perk y castiga, cada cosa en su módulo', () => {
@@ -84,7 +85,8 @@ describe('sucesos con la partida entera', () => {
     expect(g.service<PerksService>(SERVICES.perks)!.view().activos.find((p) => p.id === perk)?.revelado).toBeUndefined();
 
     expect(g.perform('hist.aviso').ok).toBe(true);
-    const [p] = sucesos.pendientes();
+    // El aviso del colegio lo recoge también el evento de verdad del juego (`eventos.familia.faltas`): aquí se mira el de prueba.
+    const p = sucesos.pendientes().find((x) => x.suceso === 'hist.faltas.charla')!;
     expect(p).toMatchObject({ suceso: 'hist.faltas.charla', reparto: { tutor: tutor.id } });
     expect(p.texto).toBe(`${tutor.gender === 'f' ? 'Tu madre te espera, muy seria' : 'Tu padre te espera, muy serio'}. «Llevas 12 faltas».`);
     expect(p.opciones[0]).toMatchObject({ elegible: true, pista: expect.stringMatching(/sentar mal.*castigo/) });

@@ -8,6 +8,7 @@ import {
   SHARED_EVENTS,
   SUCESOS_DE_PRUEBA,
   TIRADA,
+  alturaDe,
   compilarCatalogo,
   componerTexto,
   configDeSucesos,
@@ -28,6 +29,7 @@ import {
   type CambioDeRelacionData,
   type CambiosDeConfigDeSucesos,
   type CatalogoDeSucesos,
+  type CategoriaDeCupo,
   type ClubDirectory,
   type Condicion,
   type ConfigDeSucesos,
@@ -134,7 +136,7 @@ export interface SucesosState {
   umbrales: Record<string, true>;
   /** Sucesos espontáneos que han salido hoy y esta semana, por categoría. */
   cupo: { dia: number; semana: number; hoy: Record<string, number>; estaSemana: Record<string, number> };
-  /** `[día, suceso, opción (−1 si no tenía), ...personas]`, con los ids de suceso y de opción como posición en `indice`. */
+  /** `[día, suceso, opción (−1 si no tenía), ...personas]`, con los ids de suceso (`id` o `id~variante`) y de opción (`id#opción`) como posición en `indice`. */
   historia: (number | string)[][];
   indice: string[];
   siguiente: number;
@@ -208,6 +210,11 @@ function hechoComun(ctx: ReadContext, nombre: string): number | string | boolean
       return ctx.service<IdentityService>(SERVICES.identidad)?.view().age;
     case 'altura_cm':
       return ctx.service<IdentityService>(SERVICES.identidad)?.view().heightCm;
+    case 'altura_para_su_edad': {
+      // Centímetros por encima (o por debajo) de lo típico a su edad.
+      const v = ctx.service<IdentityService>(SERVICES.identidad)?.view();
+      return v && Math.round((v.heightCm - alturaDe('m', v.age, 0)) * 10) / 10;
+    }
     case 'nota_media':
       return ctx.service<StudiesService>(SERVICES.estudios)?.average() ?? undefined;
     case 'faltas':
@@ -358,8 +365,8 @@ function posicion(s: SucesosState, id: string): number {
   return i;
 }
 
-function apuntar(s: SucesosState, dia: number, suceso: string, opcion: string | undefined, reparto: Record<string, string>): void {
-  s.historia.push([dia, posicion(s, suceso), opcion === undefined ? -1 : posicion(s, `${suceso}#${opcion}`), ...new Set(Object.values(reparto))]);
+function apuntar(s: SucesosState, dia: number, suceso: string, opcion: string | undefined, reparto: Record<string, string>, variante?: string): void {
+  s.historia.push([dia, posicion(s, variante ? `${suceso}~${variante}` : suceso), opcion === undefined ? -1 : posicion(s, `${suceso}#${opcion}`), ...new Set(Object.values(reparto))]);
 }
 
 /** Un hilo sin nada programado ni pendiente ya no tiene por dónde seguir: se cierra. */
@@ -450,9 +457,9 @@ function aplicar(ctx: ActionContext, x: Situacion, efectos: readonly Efecto[] | 
 // ------------------------------------------------------------------ disparar un suceso
 
 /** La decisión que toca: el suceso con lo que redefina la primera variante que se cumple. */
-function decisionDe(def: SucesoCompilado['def'], c: ContextoDeCondicion): { d: DecisionDef & { efectos?: readonly Efecto[] }; variante?: string } | undefined {
+function decisionDe(def: SucesoCompilado['def'], c: ContextoDeCondicion, forzada?: string): { d: DecisionDef & { efectos?: readonly Efecto[] }; variante?: string } | undefined {
   if (!def.variantes?.length) return { d: def };
-  const v = def.variantes.find((x) => cumplenTodas(x.si, c));
+  const v = def.variantes.find((x) => (forzada ? x.id === forzada : cumplenTodas(x.si, c)));
   if (!v) return undefined;
   return { d: { titulo: v.titulo ?? def.titulo, texto: v.texto ?? def.texto, opciones: v.opciones ?? def.opciones, efectos: [...(def.efectos ?? []), ...(v.efectos ?? [])] }, variante: v.id };
 }
@@ -473,7 +480,7 @@ function puedeRepetir(ctx: ReadContext, s: SucesosState, x: SucesoCompilado, rep
 /**
  * Intenta que salga un suceso ahora. Devuelve si ha salido. Si es de un hilo y no viene de uno abierto (`hilo`), lo abre.
  */
-function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { hilo?: number; señal?: Record<string, unknown> } = {}): boolean {
+function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { hilo?: number; señal?: Record<string, unknown>; forzado?: boolean } = {}): boolean {
   const s = mut(ctx);
   const def = x.def;
   let hilo = origen.hilo === undefined ? undefined : s.hilos.find((h) => h.id === origen.hilo);
@@ -491,10 +498,12 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
     const abiertos = s.hilos.filter((h) => h.def === x.hilo!.id);
     if ((x.hilo.instancias ?? 'una') === 'una' ? abiertos.length : abiertos.some((h) => claveDeReparto(h.reparto) === claveDeReparto(reparto))) return false;
   }
-  if (!puedeRepetir(ctx, s, x, reparto)) return false;
+  // Solo un suceso forzado a mano puede saltarse sus condiciones (para recorrer todos los caminos); los demás siguen sus reglas.
+  const todoVale = !!origen.forzado && !!prueba(ctx)?.todoVale;
+  if (!todoVale && !puedeRepetir(ctx, s, x, reparto)) return false;
   const c = contextoDe(ctx, s, reparto, hilo, origen.señal);
-  if (!cumplenTodas(i.cuando.get(def.id), c)) return false;
-  const dec = decisionDe(def, c);
+  if (!todoVale && !cumplenTodas(i.cuando.get(def.id), c)) return false;
+  const dec = decisionDe(def, c, todoVale ? prueba(ctx)?.variante?.(def.id) : undefined);
   if (!dec) return false;
 
   const hoy = deDia(ctx);
@@ -512,7 +521,7 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
     const titulo = componerTexto(dec.d.titulo ?? def.titulo, datos);
     ctx.log(dec.d.texto ? `${titulo}. ${componerTexto(dec.d.texto, datos)}` : titulo, 'aviso');
     aplicar(ctx, sit, dec.d.efectos);
-    apuntar(s, hoy, def.id, undefined, reparto);
+    apuntar(s, hoy, def.id, undefined, reparto, dec.variante);
     cerrarSiAcabo(s, hilo?.id);
     return true;
   }
@@ -582,7 +591,7 @@ function elegir(ctx: ActionContext, i: Indice, r: PendienteResuelto, o: OpcionDe
   const datos = datosDeTexto(ctx, s, r.p.reparto, r.hilo, r.p.señal);
   const titulo = componerTexto(r.d.titulo ?? r.x.def.titulo, datos);
   ctx.log(rama.resultado ? `${titulo}. ${componerTexto(rama.resultado, datos)}` : `${titulo}: ${componerTexto(o.texto, datos)}.`, 'info');
-  apuntar(s, deDia(ctx), r.x.def.id, o.id, r.p.reparto);
+  apuntar(s, deDia(ctx), r.x.def.id, o.id, r.p.reparto, r.p.variante);
   cerrarSiAcabo(s, r.p.hilo);
 }
 
@@ -592,6 +601,7 @@ export const idDeElegir = (pendiente: number, opcion: string): string => `suceso
 const NOMBRE_DE_EJE: Record<string, string> = { disciplina: 'disciplina', honestidad: 'honestidad', ambicion: 'ambición', sacrificio: 'sacrificio', sociabilidad: 'sociabilidad', agresividad: 'agresividad', prudencia: 'prudencia', optimismo: 'optimismo' };
 
 function motivoDe(ctx: ReadContext, i: Indice, r: PendienteResuelto, o: OpcionDef): { visible: boolean; elegible: boolean; motivo?: string } {
+  if (prueba(ctx)?.todoVale) return { visible: true, elegible: true };
   const c = contextoDe(ctx, ctx.state<SucesosState>(), r.p.reparto, r.hilo, r.p.señal);
   const e = evaluarOpcion(o, c, i.config.presentacion);
   if (!e.elegible) return { visible: e.visible, elegible: false, motivo: e.motivo === 'caracter' ? `No va contigo (${NOMBRE_DE_EJE[e.ejeEnContra!] ?? e.ejeEnContra})` : 'No cumples lo que hace falta' };
@@ -599,9 +609,35 @@ function motivoDe(ctx: ReadContext, i: Indice, r: PendienteResuelto, o: OpcionDe
   return falta ? { visible: true, elegible: false, motivo: falta } : { visible: true, elegible: true };
 }
 
+/** Hace salir un suceso ahora, sin esperar a su disparo (sus condiciones y su reparto sí cuentan). Para probar: la herramienta y la interfaz de pruebas. */
+export const idDeForzar = (suceso: string): string => `sucesos.forzar.${suceso}`;
+
+function accionDeForzar(ctx: ReadContext, id: string): ActionDef | undefined {
+  if (!id.startsWith('sucesos.forzar.')) return undefined;
+  const i = indiceDe(ctx);
+  const x = i.cat.sucesos.get(id.slice('sucesos.forzar.'.length));
+  if (!x) return undefined;
+  return {
+    id,
+    name: `Forzar: ${x.def.titulo}`,
+    tags: ['prueba'],
+    duration: 1,
+    group: 'Pruebas',
+    run: (c) => {
+      const s = mut(c);
+      // Si es de un hilo que ya está abierto y este suceso es de los programados, sigue ese hilo.
+      const abierto = 'programado' in x.def.disparo ? s.hilos.find((h) => h.def === x.hilo?.id) : undefined;
+      const señal = prueba(c)?.señal?.() ?? ('al' in x.def.disparo ? (x.def.ejemploDeSeñal as Record<string, unknown> | undefined) : undefined);
+      if (abierto) s.programados = s.programados.filter((p) => !(p.suceso === x.def.id && p.hilo === abierto.id));
+      if (!intentar(c, i, x, { hilo: abierto?.id, señal, forzado: true })) c.log(`«${x.def.titulo}» no ha salido: no se cumplen sus condiciones o falta alguien en el reparto.`, 'aviso');
+      else if (abierto) cerrarSiAcabo(s, abierto.id);
+    },
+  };
+}
+
 function accionDeElegir(ctx: ReadContext, id: string): ActionDef | undefined {
   const m = ID_DE_ELEGIR.exec(id);
-  if (!m) return undefined;
+  if (!m) return accionDeForzar(ctx, id);
   const i = indiceDe(ctx);
   const r = resolver(ctx, i, Number(m[1]));
   const o = r?.d.opciones?.find((x) => x.id === m[2]);
@@ -686,7 +722,7 @@ function programados(ctx: ActionContext, i: Indice): void {
   }
 }
 
-function hayCupo(ctx: ReadContext, s: SucesosState, i: Indice, categoria: 'importante' | 'menor'): boolean {
+function hayCupo(ctx: ReadContext, s: SucesosState, i: Indice, categoria: CategoriaDeCupo): boolean {
   const t = ctx.time;
   if (s.cupo.dia !== t.day) (s.cupo.dia = t.day), (s.cupo.hoy = {});
   if (s.cupo.semana !== t.week) (s.cupo.semana = t.week), (s.cupo.estaSemana = {});
@@ -706,7 +742,7 @@ function espontaneos(ctx: ActionContext, i: Indice, lista: readonly SucesoCompil
   // El orden entre los que salen también es estable: más peso, antes.
   const orden = salen.map((x) => ({ x, r: rngEstable(s.semilla, 'orden', x.def.id, hoy).next() ** (1 / (x.def.peso ?? 1)) })).sort((a, b) => b.r - a.r);
   for (const { x } of orden) {
-    const categoria = x.def.categoria ?? 'importante';
+    const categoria = x.cupo;
     if (!hayCupo(ctx, s, i, categoria)) continue;
     if (intentar(ctx, i, x)) {
       s.cupo.hoy[categoria] = (s.cupo.hoy[categoria] ?? 0) + 1;
@@ -786,7 +822,7 @@ function pendientesDe(ctx: ReadContext): SucesoPendiente[] {
       const pista = pistaDe(o, modo, prob);
       return { id: o.id, accion: idDeElegir(p.id, o.id), texto: componerTexto(o.texto, datos), ...motivoDe(ctx, i, r, o), ...(pista ? { pista: componerTexto(pista, datos) } : {}), minutos: o.minutos ?? 1, ...(prob === undefined ? {} : { probabilidad: prob }) };
     });
-    out.push({ id: p.id, suceso: p.suceso, titulo: componerTexto(r.d.titulo ?? r.x.def.titulo, datos), texto: r.d.texto ? componerTexto(r.d.texto, datos) : '', urgencia: r.x.def.urgencia ?? 'ahora', categoria: r.x.def.categoria ?? 'importante', vence: p.vence, reparto: p.reparto, opciones });
+    out.push({ id: p.id, suceso: p.suceso, titulo: componerTexto(r.d.titulo ?? r.x.def.titulo, datos), texto: r.d.texto ? componerTexto(r.d.texto, datos) : '', urgencia: r.x.def.urgencia ?? 'ahora', categoria: r.x.def.categoria ?? 'importante', origen: r.x.origen, ...(r.x.deporte ? { deporte: r.x.deporte } : {}), vence: p.vence, reparto: p.reparto, opciones });
   }
   return out;
 }
@@ -797,9 +833,9 @@ function recuerdosDe(ctx: ReadContext, persona?: string): RecuerdoDeSuceso[] {
   const out: RecuerdoDeSuceso[] = [];
   for (const [dia, suceso, opcion, ...personas] of s.historia) {
     if (persona && !personas.includes(persona)) continue;
-    const id = s.indice[suceso as number];
+    const [id, variante] = s.indice[suceso as number].split('~');
     const o = (opcion as number) < 0 ? undefined : s.indice[opcion as number].split('#')[1];
-    out.push({ dia: dia as number, suceso: id, titulo: i.cat.sucesos.get(id)?.def.titulo ?? 'Un recuerdo de hace tiempo', ...(o ? { opcion: o } : {}), personas: personas as string[] });
+    out.push({ dia: dia as number, suceso: id, titulo: i.cat.sucesos.get(id)?.def.titulo ?? 'Un recuerdo de hace tiempo', ...(variante ? { variante } : {}), ...(o ? { opcion: o } : {}), personas: personas as string[] });
   }
   return out;
 }

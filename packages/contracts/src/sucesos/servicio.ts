@@ -1,6 +1,6 @@
 import type { LectorDeHechos } from './condiciones';
 import type { PersonaDeTexto } from './texto';
-import type { ConfigDeSucesos } from './tipos';
+import type { ConfigDeSucesos, OrigenDeSuceso } from './tipos';
 
 /** Una opción de un suceso pendiente, tal como se le presenta a quien decide. */
 export interface OpcionPendiente {
@@ -27,6 +27,9 @@ export interface SucesoPendiente {
   texto: string;
   urgencia: 'ahora' | 'pendiente';
   categoria: 'importante' | 'menor';
+  /** Evento base o deportivo (y de qué deporte), para que la interfaz los distinga. */
+  origen: OrigenDeSuceso;
+  deporte?: string;
   /** Minuto absoluto en que vence (se aplica la opción por defecto). */
   vence: number;
   /** Papel → id de persona, para dibujar a quien participa. */
@@ -39,6 +42,8 @@ export interface RecuerdoDeSuceso {
   dia: number;
   suceso: string;
   titulo: string;
+  /** Variante que salió, si el suceso tiene variantes. */
+  variante?: string;
   /** Opción elegida (o `undefined` si el suceso no tenía opciones). */
   opcion?: string;
   personas: readonly string[];
@@ -72,6 +77,12 @@ export interface SucesosDePruebaService {
   /** Quién hace un papel: un id, `null` (nadie) o `undefined` (lo decide la partida). */
   papel?(nombre: string): string | null | undefined;
   persona?(id: string): PersonaDeTexto | undefined;
+  /** Datos de la señal con los que sale un suceso forzado (`sucesos.forzar.<id>`). */
+  señal?(): Record<string, unknown> | undefined;
+  /** Recorrer todos los caminos: los sucesos salen y las opciones se pueden elegir aunque no se cumplan sus condiciones (el reparto sí hace falta). */
+  todoVale?: boolean;
+  /** Variante forzada de un suceso (solo con `todoVale`). */
+  variante?(suceso: string): string | undefined;
   /** Resultado forzado de una tirada. */
   tirada?(suceso: string, opcion: string): 'exito' | 'fallo' | undefined;
   /** Azar forzado (0 a 1) de los sucesos de probabilidad: 0 hace que salgan siempre. */

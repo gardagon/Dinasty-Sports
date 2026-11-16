@@ -2,7 +2,7 @@ import { CORE_EVENTS, SHARED_EVENTS } from '../events';
 import { PERKS } from '../perks';
 import { EJES } from '../rasgos';
 import { analizarTexto } from './texto';
-import { HECHOS_COMUNES, type AporteDeSucesos, type Condicion, type ContadorDef, type Efecto, type HiloDef, type OpcionDef, type PapelDef, type RamaDef, type SucesoDef } from './tipos';
+import { HECHOS_COMUNES, type AporteDeSucesos, type Condicion, type CategoriaDeCupo, type ContadorDef, type OrigenDeSuceso, type Efecto, type HiloDef, type OpcionDef, type PapelDef, type RamaDef, type SucesoDef } from './tipos';
 
 /** Un suceso listo para usar: con el reparto y los módulos de su hilo ya sumados. */
 export interface SucesoCompilado {
@@ -10,6 +10,11 @@ export interface SucesoCompilado {
   hilo?: HiloDef;
   reparto: Readonly<Record<string, PapelDef>>;
   requiere: readonly string[];
+  /** Evento base o deportivo, y de qué deporte. */
+  origen: OrigenDeSuceso;
+  deporte?: string;
+  /** Con qué cupo compite si es espontáneo. */
+  cupo: CategoriaDeCupo;
 }
 
 export interface CatalogoDeSucesos {
@@ -24,13 +29,17 @@ export function compilarCatalogo(aportes: readonly AporteDeSucesos[], hayModulo:
   const hilos = new Map<string, HiloDef>();
   const contadores: ContadorDef[] = [];
   const meter = (def: SucesoDef, h?: HiloDef) => {
-    const requiere = [...(h?.requiere ?? []), ...(def.requiere ?? [])];
-    if (requiere.every(hayModulo)) sucesos.set(def.id, { def, hilo: h, reparto: { ...(h?.reparto ?? {}), ...(def.reparto ?? {}) }, requiere });
+    const deporte = h?.deporte ?? def.deporte;
+    // Un evento deportivo necesita su deporte: al quitarlo de la partida, deja de existir.
+    const requiere = [...new Set([...(deporte ? [deporte] : []), ...(h?.requiere ?? []), ...(def.requiere ?? [])])];
+    const origen: OrigenDeSuceso = deporte ? 'deporte' : 'base';
+    if (requiere.every(hayModulo))
+      sucesos.set(def.id, { def, hilo: h, reparto: { ...(h?.reparto ?? {}), ...(def.reparto ?? {}) }, requiere, origen, ...(deporte ? { deporte } : {}), cupo: def.categoria === 'menor' ? 'menor' : origen });
   };
   for (const a of aportes) {
     if (a.tipo === 'contador') contadores.push(a);
     else if (a.tipo === 'suceso') meter(a);
-    else if ((a.requiere ?? []).every(hayModulo)) {
+    else if ([...(a.deporte ? [a.deporte] : []), ...(a.requiere ?? [])].every(hayModulo)) {
       hilos.set(a.id, a);
       contadores.push(...(a.contadores ?? []));
       for (const s of a.sucesos) meter(s, a);
@@ -110,6 +119,8 @@ export function* textosDeSuceso(s: SucesoDef): Generator<{ donde: string; texto:
 
 /** Lo que se sabe de la partida al validar. Sin él se comprueba solo lo que no depende de qué módulos hay. */
 export interface EntornoDeValidacion {
+  /** Módulos que son un deporte: lo que aportan tiene que ser evento deportivo suyo, y nadie más puede decir que lo es. */
+  deportes?: ReadonlySet<string>;
   /** Categoría de cada stat que existe. */
   stats: ReadonlyMap<string, { category: string }>;
   modulos: ReadonlySet<string>;
@@ -159,6 +170,18 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
         for (const c of a.contadores ?? []) id(c.id, modulo, 'Contador');
         if (!a.sucesos.length) errores.push(`Hilo «${a.id}»: no tiene sucesos`);
       }
+    }
+  }
+
+  // Eventos base y eventos deportivos: un deporte solo aporta los suyos y los marca; los demás módulos, ninguno.
+  for (const { modulo, aportes } of porModulo) {
+    const esDeporte = entorno?.deportes?.has(modulo);
+    for (const a of aportes) {
+      if (a.tipo === 'contador') continue;
+      const dice = a.tipo === 'hilo' ? [a.deporte, ...a.sucesos.map((x) => x.deporte)] : [a.deporte];
+      for (const d of dice) if (d !== undefined && d !== modulo) errores.push(`«${a.id}»: dice ser del deporte «${d}», pero lo aporta «${modulo}»`);
+      if (esDeporte && a.deporte !== modulo) errores.push(`«${a.id}»: lo aporta el deporte «${modulo}», así que debe llevar «deporte: '${modulo}'» (es un evento deportivo)`);
+      if (entorno?.deportes && !esDeporte && dice.some((d) => d !== undefined)) errores.push(`«${a.id}»: «${modulo}» no es un deporte, así que no puede aportar eventos deportivos`);
     }
   }
 
@@ -296,6 +319,7 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
       for (const l of llaves) {
         if (l.tipo === 'dato' && l.de === 'recuerdo' && !recuerdosDelHilo.has(l.clave)) err(`${donde}: usa el recuerdo «${l.clave}», que nadie guarda`);
         if (l.tipo === 'dato' && l.de === 'señal' && !('al' in s.disparo) && !h) err(`${donde}: usa un dato de la señal, pero el suceso no se dispara con una`);
+        if (l.tipo === 'dato' && l.de === 'señal' && 'al' in s.disparo && s.ejemploDeSeñal?.[l.clave] === undefined) err(`${donde}: usa «{señal.${l.clave}}»; pon un «ejemploDeSeñal» con ese dato para poder probarlo`);
         if ((l.tipo === 'campo' || l.tipo === 'genero') && l.quien !== 'yo') {
           if (!papeles.has(l.quien)) err(`${donde}: nombra el papel «${l.quien}», que no está en el reparto`);
           else if (reparto[l.quien].opcional && !seguros.has(l.quien)) err(`${donde}: usa el papel opcional «${l.quien}» sin una condición que asegure que hay alguien ({ papel: '${l.quien}' })`);

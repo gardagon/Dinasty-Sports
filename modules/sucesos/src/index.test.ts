@@ -34,6 +34,7 @@ const CATALOGO: AporteDeSucesos[] = [
         id: 't.faltas.charla',
         titulo: 'Han llamado del colegio',
         disparo: { al: 'clase.faltas_excesivas' },
+        ejemploDeSeñal: { faltas: 12 },
         cuando: [{ lugar: 'casa' }, { presente: 'tutor' }],
         aguanta: { dias: 3 },
         texto: '{tutor.Nombre}, muy seri{tutor:o|a}: «Llevas {señal.faltas} faltas».',

@@ -165,6 +165,11 @@ export interface SucesoDef extends DecisionDef {
   titulo: string;
   /** Los `menor` son detalles ligeros que hacen distinto un día de otro: tienen su propio cupo y no compiten con los importantes. */
   categoria?: 'importante' | 'menor';
+  /**
+   * Deporte que lo trae (el id de su módulo): lo hace un «evento deportivo», que llega al instalar el deporte y se va al quitarlo. Sin él es un
+   * «evento base» del juego. En un hilo se dice una vez, en el hilo.
+   */
+  deporte?: string;
   /** A quién puede pasarle: solo al personaje (depende de lo que solo él tiene) o a cualquier persona. */
   para?: 'personaje' | 'cualquiera';
   /** Clase de suceso (`lesion`…): con ella se activan o no los sucesos de los PNJ (`ConfigDeSucesos.pnj.clases`). */
@@ -190,6 +195,8 @@ export interface SucesoDef extends DecisionDef {
   plazo?: PlazoDef;
   /** Un suceso sin opciones puede salir como ventana o como una línea del resultado y del diario. */
   presentacion?: 'ventana' | 'linea';
+  /** Si se dispara con una señal: unos datos de ejemplo de esa señal, para probarlo y enseñarlo sin esperar a que pase (obligatorio si sus textos usan `{señal.…}`). */
+  ejemploDeSeñal?: Readonly<Record<string, unknown>>;
   /** Pruebas escritas como datos por quien lo diseña. */
   pruebas?: readonly PruebaDef[];
 }
@@ -203,6 +210,8 @@ export interface ContadorDef {
 export interface HiloDef {
   id: string;
   nombre: string;
+  /** Deporte que trae el hilo entero (ver `SucesoDef.deporte`). */
+  deporte?: string;
   requiere?: readonly string[];
   /** Reparto común a todos sus sucesos: se elige al abrirse el hilo y se guarda. */
   reparto?: Readonly<Record<string, PapelDef>>;
@@ -275,6 +284,10 @@ export const suceso = (d: SucesoDef): AporteDeSucesos => ({ tipo: 'suceso', ...d
 export const hilo = (d: HiloDef): AporteDeSucesos => ({ tipo: 'hilo', ...d });
 export const contador = (d: ContadorDef): AporteDeSucesos => ({ tipo: 'contador', ...d });
 
+/** `base`: eventos del juego base. `deporte`: los que trae un deporte. `menor`: detalles ligeros, de cualquiera de los dos. */
+export type CategoriaDeCupo = 'base' | 'deporte' | 'menor';
+export type OrigenDeSuceso = 'base' | 'deporte';
+
 export interface CupoDeSucesos {
   alDia: number;
   aLaSemana: number;
@@ -285,8 +298,11 @@ export interface CupoDeSucesos {
  * Es un dato (decisión del usuario del 16/11): los valores de partida están en `CONFIG_DE_SUCESOS` y se cambian con el aporte `sucesos.config`.
  */
 export interface ConfigDeSucesos {
-  /** Sucesos que salen por probabilidad (`cada`); los que son consecuencia de algo (una señal, uno programado) no gastan cupo. */
-  cupo: { importante: CupoDeSucesos; menor: CupoDeSucesos };
+  /**
+   * Sucesos que salen por probabilidad (`cada`); los que son consecuencia de algo (una señal, uno programado) no gastan cupo. Hay un cupo por
+   * categoría y no compiten entre sí: los eventos base importantes, los deportivos importantes y los detalles ligeros (`menor`, sean de donde sean).
+   */
+  cupo: Record<CategoriaDeCupo, CupoDeSucesos>;
   presentacion: {
     /** Qué se ve de las consecuencias antes de elegir. */
     consecuencias: 'pistas' | 'numeros' | 'nada';
@@ -307,7 +323,7 @@ export interface ConfigDeSucesos {
 }
 
 export const CONFIG_DE_SUCESOS: ConfigDeSucesos = {
-  cupo: { importante: { alDia: 1, aLaSemana: 4 }, menor: { alDia: 2, aLaSemana: 8 } },
+  cupo: { base: { alDia: 1, aLaSemana: 4 }, deporte: { alDia: 1, aLaSemana: 2 }, menor: { alDia: 2, aLaSemana: 8 } },
   presentacion: { consecuencias: 'pistas', fueraDeCaracter: 'normales', ejeMarcado: 25, inclinacionMinima: 2 },
   pnj: { clases: ['lesion'], diarioDeCercanos: false },
   caracterPorDecision: 1,
