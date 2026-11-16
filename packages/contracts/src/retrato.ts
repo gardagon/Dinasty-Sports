@@ -96,6 +96,25 @@ export function peinadoPosible(id: string, calvicie: number): string {
   return e.id;
 }
 
+/**
+ * Qué parte de los hombres cambia de peinado cuando su calvicie pasa de las entradas (`CALVICIE.entradas`): unos se afeitan la cabeza y otros se rapan al cero, y lo
+ * mantienen desde entonces. El resto sigue con su estilo mientras su calvicie lo admita (`peinadoPosible`).
+ */
+export const AL_QUEDARSE_CALVO = { afeitada: 0.2, alCero: 0.15 } as const;
+
+/**
+ * El peinado que lleva una persona con su estilo elegido y su grado de calvicie: el suyo, el que lo sustituye si ya no se puede o, en parte de los hombres (estable por
+ * persona, con su semilla de dibujo), la cabeza afeitada o el rapado al cero desde que su calvicie pasa de las entradas. Como la calvicie no retrocede, el cambio es para siempre.
+ */
+export function peinadoConCalvicie(semilla: number, sexo: 'f' | 'm', elegido: string, calvicie: number): string {
+  if (sexo === 'm' && calvicie > CALVICIE.entradas) {
+    const u = rngEstable('look', semilla, 'calvo').next();
+    if (u < AL_QUEDARSE_CALVO.afeitada) return 'afeitada';
+    if (u < AL_QUEDARSE_CALVO.afeitada + AL_QUEDARSE_CALVO.alCero) return 'al_cero';
+  }
+  return peinadoPosible(elegido, calvicie);
+}
+
 /** ¿Puede llevar este vello facial con su densidad de barba? */
 export const velloPosible = (id: string, densidad: number): boolean => densidad >= vello(id).densidadMinima;
 

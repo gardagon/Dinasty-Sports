@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CARA, DISTINTIVOS, empaquetarRostro, estiloDePersona, OJOS, PEINADOS, peinadoPosible, PELO_COLOR, PELO_TIPO, PIEL, RASGOS_DE_ROSTRO, VELLOS, velloPosible,
+  AL_QUEDARSE_CALVO, CALVICIE, CARA, DISTINTIVOS, empaquetarRostro, envejecimientoAlAzar, envejecimientoHeredado, estiloDePersona, peinadoConCalvicie, rngEstable, OJOS, PEINADOS, peinadoPosible, PELO_COLOR, PELO_TIPO, PIEL, RASGOS_DE_ROSTRO, VELLOS, velloPosible,
   type Apariencia, type CuerpoDePersona, type Rostro,
 } from '@ds/contracts';
-import { evolucionDe, etapasVividas, figuraDe, figurasSvg, parametrosDe, retratoDe, retratoSvg } from './index';
+import { arrugasA, evolucionDe, etapasVividas, figuraDe, figurasSvg, parametrosDe, retratoDe, retratoSvg } from './index';
 
 const rostro = (v: Partial<Record<(typeof RASGOS_DE_ROSTRO)[number], number>> = {}): string => empaquetarRostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, [v[k] ?? 0.5, 0.5]])) as unknown as Rostro);
-const BASE: Apariencia = { peloColor: 'castano', peloTipo: 'ondulado', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.6, barba: 0.8, rostro: rostro() };
+const BASE: Apariencia = { peloColor: 'castano', peloTipo: 'ondulado', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.6, barba: 0.8, rostro: rostro(), envejecimiento: 0.5 };
 const persona = (sexo: 'f' | 'm', a: Partial<Apariencia> = {}, c: Partial<CuerpoDePersona> = {}): CuerpoDePersona => ({
   id: 'p', sexo, nacimiento: 0, alturaAdulta: sexo === 'f' ? 163 : 176, madurez: 0, musculo: 30, grasa: 40, metabolismo: 0, musculatura: 0, historial: [], semilla: 77, ...c, apariencia: { ...BASE, ...a },
 });
@@ -137,13 +137,16 @@ describe('retrato: niños, grados al cero, entradas, tinte y comparación', () =
     expect(con(0)).not.toContain(natural);
     expect(con(3)).toContain(tinte);
     expect(con(3)).toContain(`stroke="${natural}"`);
+    // El paso es gradual: varias capas, de más tenue a opaca.
+    expect([...con(3).matchAll(new RegExp(`stroke="${natural}"`, 'g'))].length).toBeGreaterThanOrEqual(4);
     expect(con(24)).toBe(retratoSvg(c, 30, { look: { peinado: 'melena' } }));
     // Las raíces van junto al cuero cabelludo en todos los peinados y tipos de pelo: la línea desde la que se miden está en lo alto de la cabeza (por encima de los ojos).
     for (const tipo of PELO_TIPO) for (const p of PEINADOS.filter((x) => x.largo > 3)) {
       const svg = retratoSvg(persona('f', { peloColor: 'castano', peloTipo: tipo, calvicie: 0, canas: 90 }), 30, { look: { peinado: p.id, tinteDelPelo: tinte, crecidoDesdeElTinte: 2 } });
       const raices = [...svg.matchAll(new RegExp(`<path d="([^"]+)" fill="none" stroke="${natural}"`, 'g'))];
       expect(raices.length).toBeGreaterThan(0);
-      for (const r of raices) for (const par of r[1].matchAll(/(-?[\d.]+),(-?[\d.]+)/g)) expect(Number(par[2])).toBeLessThan(-0.3);
+      // (Las capas de la raíz son trazados absolutos; los mechones sueltos, relativos.)
+      for (const r of raices.filter((x) => !/[a-z]/.test(x[1]))) for (const par of r[1].matchAll(/(-?[\d.]+),(-?[\d.]+)/g)) expect(Number(par[2])).toBeLessThan(-0.3);
     }
     // La barba, por separado.
     const h = persona('m', { peloColor: 'castano', canas: 90, barba: 1 });
@@ -158,6 +161,52 @@ describe('retrato: niños, grados al cero, entradas, tinte y comparación', () =
     expect(svg).toContain(`${Math.round(parametrosDe(yo, 8).altura)} cm`);
     expect(svg).not.toContain('171 cm');
     expect(svg).not.toContain('>150<');
+  });
+});
+
+describe('retrato: envejecimiento de la piel y quien se queda calvo', () => {
+  it('las arrugas llegan antes y se marcan más cuanto peor envejece la piel; con 0,5, como siempre', () => {
+    for (const e of [20, 30, 40, 50, 60, 70, 90]) {
+      expect(arrugasA(e, 0.5)).toBeCloseTo(Math.min(1, Math.max(0, (e - 26) / 44)) ** 0.85, 10);
+      expect(arrugasA(e, 0)).toBeLessThanOrEqual(arrugasA(e, 0.5));
+      expect(arrugasA(e, 1)).toBeGreaterThanOrEqual(arrugasA(e, 0.5));
+    }
+    for (const v of [0, 0.25, 0.5, 0.75, 1]) for (let e = 3; e < 95; e++) expect(arrugasA(e + 1, v)).toBeGreaterThanOrEqual(arrugasA(e, v));
+    expect(arrugasA(30, 0)).toBe(0);
+    expect(arrugasA(30, 1)).toBeGreaterThan(0.2);
+    expect(arrugasA(95, 0)).toBeLessThanOrEqual(0.7);
+    expect(arrugasA(60, 1)).toBe(1);
+    // Y se ve en el dibujo.
+    const con = (v: number) => retratoSvg(persona('f', { envejecimiento: v }), 50);
+    expect(new Set([con(0), con(0.5), con(1)]).size).toBe(3);
+    // Las partidas sin el dato se dibujan como 0,5.
+    expect(parametrosDe(persona('f', { envejecimiento: undefined as never }), 50).arrugas).toBe(parametrosDe(persona('f'), 50).arrugas);
+  });
+  it('el envejecimiento se sortea entre 0 y 1 alrededor de 0,5 y los hijos sacan la media de sus padres con un pequeño cambio', () => {
+    const rng = rngEstable('test', 'envejecimiento');
+    const vs = Array.from({ length: 4000 }, () => envejecimientoAlAzar(rng));
+    expect(Math.min(...vs)).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...vs)).toBeLessThanOrEqual(1);
+    expect(vs.reduce((a, b) => a + b, 0) / vs.length).toBeCloseTo(0.5, 1);
+    for (let i = 0; i < 500; i++) { const h = envejecimientoHeredado({ envejecimiento: 0.2 }, { envejecimiento: 0.8 }, rng); expect(h).toBeGreaterThanOrEqual(0.4); expect(h).toBeLessThanOrEqual(0.6); }
+  });
+  it('parte de los hombres se afeita la cabeza o se rapa al cero al pasar de las entradas, y lo mantiene', () => {
+    let afeitada = 0, alCero = 0;
+    const N = 2000;
+    for (let semilla = 1; semilla <= N; semilla++) {
+      expect(peinadoConCalvicie(semilla, 'm', 'corto', CALVICIE.entradas)).toBe('corto');
+      expect(peinadoConCalvicie(semilla, 'f', 'melena', 0.4)).toBe('melena');
+      const a = peinadoConCalvicie(semilla, 'm', 'corto', 0.4), b = peinadoConCalvicie(semilla, 'm', 'corto', 0.9);
+      if (a === 'afeitada') afeitada++;
+      if (a === 'al_cero') alCero++;
+      if (a !== 'corto') expect(b).toBe(a);
+    }
+    expect(afeitada / N).toBeCloseTo(AL_QUEDARSE_CALVO.afeitada, 1);
+    expect(alCero / N).toBeCloseTo(AL_QUEDARSE_CALVO.alCero, 1);
+    // En el dibujo: sin look pedido puede cambiar; con look pedido (el personaje), no.
+    const calvo = Array.from({ length: 40 }, (_, i) => persona('m', { calvicie: 1 }, { semilla: 900 + i }));
+    expect(calvo.some((c) => ['afeitada', 'al_cero'].includes(parametrosDe(c, 60).peinado.estilo))).toBe(true);
+    for (const c of calvo) expect(parametrosDe(c, 60, { look: { peinado: 'corto' } }).peinado.estilo).toBe('rapado');
   });
 });
 

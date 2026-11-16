@@ -24,7 +24,7 @@ const edadHoy = (c: CuerpoDePersona) => (g.time.day - c.nacimiento) / 365;
 
 // ---- personas inventadas para cubrir los catálogos y los extremos (las de verdad salen de la partida)
 const rostro = (valores: Partial<Record<(typeof RASGOS_DE_ROSTRO)[number], number>> = {}): string => empaquetarRostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, [valores[k] ?? 0.5, 0.5]])) as unknown as Rostro);
-const BASE: Apariencia = { peloColor: 'castano', peloTipo: 'ondulado', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [], canas: 38, calvicie: 0.1, barba: 0.7, rostro: rostro() };
+const BASE: Apariencia = { peloColor: 'castano', peloTipo: 'ondulado', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [], canas: 38, calvicie: 0.1, barba: 0.7, rostro: rostro(), envejecimiento: 0.5 };
 let cuenta = 0;
 function inventada(sexo: 'f' | 'm', a: Partial<Apariencia> = {}, c: Partial<CuerpoDePersona> = {}): CuerpoDePersona {
   return { id: `inventada_${cuenta++}`, sexo, nacimiento: 0, alturaAdulta: sexo === 'f' ? 163 : 176, madurez: 0, musculo: 30, grasa: 40, metabolismo: 0, musculatura: 0, historial: [], semilla: 1000 + cuenta, ...c, apariencia: { ...BASE, ...a } };
@@ -96,6 +96,10 @@ secciones.push(seccion('5e. Tinte y raíces', 'Pelo teñido (rubio, rojo, negro,
 secciones.push(seccion('7a. Calvicie máxima y canas a los 20', 'Calvicie 1 (hombre) y 0,4 (mujer, el máximo) a los 20, 25, 30, 40, 55 y 75; canas desde los 20.',
   [(['m', 'f'] as const).map((s) => [20, 25, 30, 40, 55, 75].map((e) => ret(inventada(s, { calvicie: s === 'm' ? 1 : 0.4, peloColor: 'castano_oscuro' }, { semilla: 78 }), e, `calvicie · ${e}`, { peinado: s === 'm' ? 'corto' : 'melena' })).join('')).join(''),
     (['m', 'f'] as const).map((s) => [20, 25, 30, 40, 55, 75].map((e) => ret(inventada(s, { canas: 20, peloColor: 'negro' }, { semilla: 79 }), e, `canas · ${e}`, { vello: 'barba_corta' })).join('')).join('')].join(''), 'seis'));
+secciones.push(seccion('7a-bis. Envejecimiento de la piel (heredable)', 'La misma persona a los 30, 50 y 70 años con envejecimiento 0 (envejece muy bien), 0,5 (lo normal) y 1 (mal), en hombre y en mujer.',
+  (['m', 'f'] as const).map((s) => [0, 0.5, 1].map((v) => [30, 50, 70].map((e) => ret(inventada(s, { envejecimiento: v, canas: 45, calvicie: 0 }, { semilla: 77 }), e, `envejecimiento ${v} · ${e} años`, { peinado: s === 'm' ? 'corto' : 'coleta', vello: 'afeitado' })).join('')).join('')).join(''), 'nueve'));
+secciones.push(seccion('7a-ter. Quien se queda calvo y cambia de estilo', 'Doce hombres con calvicie 0,9 y su estilo de siempre (por su semilla), a los 30 y a los 60 años: parte de ellos se afeita la cabeza o se rapa al cero al pasar de las entradas; el resto lleva lo que le queda.',
+  [30, 60].map((e) => Array.from({ length: 12 }, (_, i) => ret(inventada('m', { calvicie: 0.9, peloColor: 'castano_oscuro', canas: 70 }, { semilla: 500 + i }), e, `n.º ${i + 1} · ${e} años`)).join('')).join(''), 'doce'));
 const tipos: [string, Partial<CuerpoDePersona>][] = [['delgado', { musculo: 18, grasa: 20 }], ['normal', {}], ['atlético', { musculo: 45, grasa: 35 }], ['musculado', { musculo: 85, grasa: 30 }], ['con sobrepeso', { musculo: 25, grasa: 80 }], ['muy alto', { alturaAdulta: 205 }], ['muy bajo', { alturaAdulta: 148 }]];
 secciones.push(`<section><h2>7b. Complexión y altura (figura entera a escala)</h2>${(['m', 'f'] as const).map((s) => figuras(tipos.map(([nombre, c]) => ({ cuerpo: inventada(s, {}, { semilla: 77, ...c }), edad: 30, opciones: { look: { peinado: s === 'm' ? 'corto' : 'melena', vello: 'afeitado' } }, rotulo: nombre })))).join('')}
 ${figuras(tipos.slice(0, 5).map(([nombre, c]) => ({ cuerpo: inventada('m', {}, { semilla: 77, ...c }), edad: 9, rotulo: `${nombre} · 9` })))}</section>`);
@@ -110,7 +114,7 @@ const css = `
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.4 system-ui,sans-serif}main{width:1280px;margin:0 auto;padding:14px}
 h1{font-size:1.3rem;margin:0 0 4px}h2{font-size:1rem;margin:0 0 4px}p{margin:0 0 6px;color:var(--ink-soft)}
 section{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:10px;margin:10px 0}
-.rejilla{display:grid;gap:5px}.diez{grid-template-columns:repeat(10,1fr)}.cuatro{grid-template-columns:repeat(4,1fr)!important;max-width:60%}.tres{grid-template-columns:repeat(3,1fr)}.regla.media svg{max-height:360px}.ocho{grid-template-columns:repeat(8,1fr)}.seis{grid-template-columns:repeat(6,1fr)}
+.rejilla{display:grid;gap:5px}.diez{grid-template-columns:repeat(10,1fr)}.cuatro{grid-template-columns:repeat(4,1fr)!important;max-width:60%}.tres{grid-template-columns:repeat(3,1fr)}.nueve{grid-template-columns:repeat(9,1fr)}.doce{grid-template-columns:repeat(12,1fr)}.regla.media svg{max-height:360px}.ocho{grid-template-columns:repeat(8,1fr)}.seis{grid-template-columns:repeat(6,1fr)}
 figure{margin:0}figure svg{display:block;width:100%;height:auto;background:var(--fondo);border-radius:5px}figcaption{font-size:.68rem;color:var(--ink-soft);text-align:center}
 .regla svg{display:block;width:100%;height:auto;max-height:520px}
 `;

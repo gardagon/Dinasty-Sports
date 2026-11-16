@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 16/11/2026 — Visualizador: envejecimiento heredable, calvos que cambian de estilo y raíces del tinte (decisiones del usuario)
+
+- **Envejecimiento de la piel (`Apariencia.envejecimiento`, 0 a 1):** hay quien envejece mejor que otros. Heredable como las canas (`TENDENCIAS.envejecimiento`: normal de media 0,5 y desviación 0,2 en los adultos del mundo; media de los padres ± 0,1 en los hijos), sin tendencias por origen y con generador estable propio (el mundo de cada semilla no cambia: la suite sigue en verde). El dibujo decide con él cuándo empiezan las arrugas y cuánto se marcan (`arrugasA`): con 0,5, como antes. `SAVE_VERSION` 20. **Estado: 2.900 → 2.930 KB (+1,0 %).**
+- **Quien se queda calvo:** al pasar de las entradas, el 20 % de los hombres se afeita la cabeza y el 15 % se rapa al cero, estable por persona y para siempre (`peinadoConCalvicie`, `AL_QUEDARSE_CALVO`). La proporción es de quien desarrolla.
+- **Raíces del tinte:** se miden desde donde nace el pelo (frente, raya o coronilla), con paso gradual al color teñido, siguiendo la textura del pelo y con la misma sombra que el resto.
+- **Aceptado por el usuario:** los pesos de elección de los estilos, la lista de premium, que los PNJ vayan siempre recién arreglados, que la comparación deje intuir la altura, y las arrugas de los 60 en adelante como están.
+- **Medido:** `npm run rendimiento -- 60`: 1,56 ms por acción (entre 1,36 y 1,76 en las pasadas de estos dos días: sin cambio apreciable).
+
 ## 16/11/2026 — Visualizador: ronda de corrección de la base (decisiones del usuario)
 
 - **Niños:** dejan de ser adultos en miniatura. La cabeza se agranda un 24 % más a los 3 años (cerca de una cuarta parte de la altura) y lo pierde hasta los 15; cara de niño (redonda, mofletes, ojos mayores y más bajos, nariz chata, mandíbula sin marcar) y cuerpo de niño (cuello, brazos y piernas más cortos, barriga, sin cintura).

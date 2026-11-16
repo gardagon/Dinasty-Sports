@@ -118,9 +118,15 @@ De la etapa 2b (la base). **Ronda de corrección aprobada por el usuario el 16/1
 
 6. ~~La evolución de quien no es de la familia enseña su edad y su altura.~~ **Respondida (16/11):** el criterio vale (del personaje y la familia, con cifras; del resto, sin años ni centímetros) y se usa también en la comparación. La evolución se queda como está de momento; más adelante quedará solo en la ficha del personaje.
 7. **El nieto de la cuadrícula es inventado.** En la partida no hay nietos: el de la cuadrícula se hace con `aparienciaHeredada` (la herencia de verdad) a partir del personaje y de una mujer de la partida. (Solo para saberlo.)
-8. **Pesos de la elección de estilo, sin revisar.** Los pesos de `PEINADOS` y `VELLOS` (tablas de `docs/ANEXO_RETRATOS.md` §5) son provisionales; el usuario los revisará. Con los de ahora: el 47 % de las mujeres lleva melena o largo, el 9 % de los hombres va con la cabeza afeitada o al cero, y la mitad de los hombres que pueden llevar cualquier barba va afeitada.
-9. **Estilos «premium», sin confirmar.** Son: degradado, tupé y dos trenzas (peinados); barba perfilada y candado (vello facial).
-10. **Largo crecido en los PNJ.** Un PNJ va siempre recién arreglado (su largo es el del estilo). Si se quiere que a algunos se les vea el pelo algo crecido entre cortes, haría falta decidir la regla.
-11. **La comparación deja ver más o menos la altura de quien no es de la familia**: no hay números, pero el personaje sí lleva los suyos y está a escala al lado. Es lo mismo que verlos juntos; si no se quiere, habría que quitar también la altura del personaje en esa vista.
-12. **Arrugas marcadas a partir de los 60.** Van como en la prueba aprobada; con muchas arrugas y barba o calvicie la cara queda cargada de líneas. Si se prefieren más leves, es un solo número (`arrugas` en `parametros.ts`).
-13. **Un PNJ calvo no cambia de estilo por decisión propia.** Con calvicie alta lleva el estilo que sustituye al suyo (casi siempre rapado, con los lados); no «decide» afeitarse la cabeza al quedarse calvo. Si se quiere esa regla, habría que decidirla.
+8. ~~Pesos de la elección de estilo.~~ **Respondida (16/11):** se aceptan los provisionales.
+9. ~~Estilos «premium».~~ **Respondida (16/11):** se aceptan (degradado, tupé y dos trenzas; barba perfilada y candado).
+10. ~~Largo crecido en los PNJ.~~ **Respondida (16/11):** los PNJ van siempre recién arreglados.
+11. ~~La comparación deja intuir la altura.~~ **Respondida (16/11):** se acepta (como ver a alguien en persona, sin cifras).
+12. ~~Arrugas marcadas a partir de los 60.~~ **Respondida (16/11):** se quedan como están, pero varían según la persona: nuevo rasgo heredable `envejecimiento` (hecho).
+13. ~~Un PNJ calvo no cambia de estilo.~~ **Respondida (16/11):** sí cambia una parte: al pasar de las entradas, el 20 % de los hombres se afeita la cabeza y el 15 % se rapa al cero, estable por persona (hecho; la proporción es de quien desarrolla).
+
+Última ronda (16/11), **sin responder**:
+
+14. **Proporción de quien se afeita o se rapa al quedarse calvo** (20 % y 15 %): es mía; está en `AL_QUEDARSE_CALVO` (contracts) y en la receta.
+15. **Cifras del envejecimiento**: al azar, normal de media 0,5 y desviación 0,2; los hijos, la media de los padres ± 0,1; quien envejece bien empieza a los 32 y no pasa de 0,7 de arrugas, quien envejece mal empieza a los 20 y llega al máximo hacia los 56. Son mías.
+16. **El estado crece un 1 %** por guardar `envejecimiento` en cada persona (ver `docs/DECISIONES.md`). Si no se quiere, se puede guardar con menos decimales o empaquetado con el rostro.

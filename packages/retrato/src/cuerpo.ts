@@ -26,8 +26,8 @@ export function dibujarCuerpo(P: Parametros, L: Lienzo, C: Cara): CuerpoDibujado
   const yC = H * (1 - piernas), yW = yS + mezcla(0.58, 0.52, P.fem) * (yC - yS), yH = yC - 0.03 * H, yK = yC + 0.47 * (H - yC), yA = H - 0.04 * H;
   // Medias anchuras (fracción de la altura: niño, hombre, mujer). El niño no tiene cintura y tiene barriga; el hombre, hombros; la mujer, cintura y caderas.
   const sw = H * val(0.112, 0.137, 0.113) * (1 + 0.2 * f + 0.07 * g + 0.06 * flaco);
-  const cw = H * val(0.085, 0.101, 0.087) * (1 + 0.26 * f + 0.26 * g + 0.14 * flaco);
-  const ww = H * val(0.084, 0.084, 0.066) * (1 + 0.05 * f + 0.75 * g + 0.32 * flaco + 0.08 * P.vejez + 0.07 * k);
+  const cw = H * val(0.085, 0.101, 0.087) * (1 + 0.26 * f + (0.26 + 0.14 * k) * g + 0.14 * flaco);
+  const ww = H * val(0.084, 0.084, 0.066) * (1 + 0.05 * f + 0.75 * (1 - 0.4 * k) * g + 0.32 * flaco + 0.08 * P.vejez + 0.07 * k);
   const hw = H * val(0.086, 0.089, 0.107) * (1 + 0.42 * g + 0.2 * flaco + 0.05 * f);
   // La barriga (grasa y niñez) y el bajo de la camiseta; la cadera del pantalón nunca es más estrecha que el bajo (sin bajo acampanado).
   const barriga = g * (1 - 0.3 * P.fem) + 0.25 * k;

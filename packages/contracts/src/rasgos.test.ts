@@ -134,7 +134,7 @@ describe('apariencia, origen y herencia', () => {
     }
   });
 
-  const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron_oscuro', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6, rostro: ROSTRO_MEDIO };
+  const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron_oscuro', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6, rostro: ROSTRO_MEDIO, envejecimiento: 0.5 };
 
   it('los hijos se parecen a sus padres: cada rasgo viene de uno o es un intermedio', () => {
     const rng = rngDe(9);
@@ -183,7 +183,7 @@ describe('gustos, compatibilidad y perfil', () => {
   });
 
   it('quien coincide con los gustos atrae más', () => {
-    const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6, rostro: ROSTRO_MEDIO };
+    const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6, rostro: ROSTRO_MEDIO, envejecimiento: 0.5 };
     const gustos = { fisicos: { peloColor: ['negro'], ojos: ['marron'], piel: ['media'], cara: ['ovalada'] }, caracter: { sociabilidad: 30 } };
     expect(atraccion(gustos, base, { sociabilidad: 30 })).toBeGreaterThan(atraccion(gustos, { ...base, peloColor: 'rubio', ojos: 'azul', piel: 'clara', cara: 'cuadrada' }, { sociabilidad: -30 }));
   });
@@ -266,7 +266,7 @@ describe('cómo se llama a alguien según su edad', () => {
   });
 
   describe('canas, calvicie y barba (heredables)', () => {
-    const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron_oscuro', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6, rostro: ROSTRO_MEDIO };
+    const base: Apariencia = { peloColor: 'negro', peloTipo: 'liso', ojos: 'marron_oscuro', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6, rostro: ROSTRO_MEDIO, envejecimiento: 0.5 };
     const media = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
     const sd = (xs: number[]) => Math.sqrt(media(xs.map((x) => (x - media(xs)) ** 2)));
 
@@ -330,7 +330,7 @@ describe('cómo se llama a alguien según su edad', () => {
   });
 
   describe('rasgos de la cara heredables (pares expresado/latente, como los perks)', () => {
-    const cara = (r: string): Apariencia => ({ peloColor: 'negro', peloTipo: 'liso', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6, rostro: r });
+    const cara = (r: string): Apariencia => ({ peloColor: 'negro', peloTipo: 'liso', ojos: 'marron', piel: 'media', cara: 'ovalada', distintivos: [], canas: 34, calvicie: 0.4, barba: 0.6, rostro: r, envejecimiento: 0.5 });
     const par = (r: string, k: (typeof RASGOS_DE_ROSTRO)[number]) => rostroDe({ rostro: r })[k];
 
     it('empaquetado: 24 caracteres, ida y vuelta exacta y lo expresado es el primero de cada par', () => {

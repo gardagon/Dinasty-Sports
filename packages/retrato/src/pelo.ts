@@ -6,7 +6,7 @@
 import { CALVICIE, rngEstable, type Rng } from '@ds/contracts';
 import type { Cara } from './cara';
 import { TINTA, TIPO_DE_PELO } from './catalogos';
-import { curva, espejo, n, p, tramo, type Borde, type Pt } from './geometria';
+import { curva, espejo, n, p, repartir, tramo, type Borde, type Pt } from './geometria';
 import type { Lienzo } from './lienzo';
 import type { Parametros } from './parametros';
 
@@ -171,15 +171,29 @@ export function dibujarPelo(P: Parametros, L: Lienzo, C: Cara, hombros: number):
 
   // ---- relleno, sombra, mechones y contorno
   const caja: [number, number, number, number] = [-(wc + 0.75), -1.7, wc + 0.75, Math.max(1.3, hombros + 1.1)];
-  // Las raíces de un pelo teñido: el color natural (con sus canas) junto al cuero cabelludo (alrededor de la línea por donde nace el pelo), tan anchas como haya crecido.
+  // Las raíces de un pelo teñido: el color natural (con sus canas) alrededor de la línea por donde nace el pelo, tan anchas como haya crecido. El paso al color teñido
+  // es gradual (capas cada vez más anchas y más tenues) y sigue la textura del pelo (mechones del color natural que se meten en el teñido); la sombra del pelo va encima.
   const raiz = h.tinte && h.raiz > 0 ? clamp(h.raiz / u, 0.035, 1.2) : 0;
-  const nacimiento = curva(nace, false, 1);
+  let raices = '';
+  if (raiz > 0) {
+    const d = curva(nace, false, 1);
+    const capa = (ancho: number, opacidad: number) => `<path d="${d}" fill="none" stroke="${h.natural}" stroke-width="${n(raiz * 2 * ancho)}" stroke-linecap="round" stroke-linejoin="round"${opacidad < 1 ? ` opacity="${opacidad}"` : ''}/>`;
+    const azar = rngEstable('retrato', P.semilla, 'raices');
+    const linea = repartir(nace, 0.04);
+    const sueltos: string[] = [];
+    const cuantos = Math.round((14 + 70 * raiz) * (h.tipo === 'muy_rizado' ? 2 : h.tipo === 'rizado' ? 1.5 : 1));
+    for (let i = 0; i < cuantos; i++) {
+      const [x0, y0] = linea[azar.int(0, linea.length - 1)];
+      const g = azar.range(0, 6.283), dist = raiz * azar.range(0.45, 1.5);
+      sueltos.push(mecha(h.tipo, azar, x0 + Math.cos(g) * dist, y0 + Math.sin(g) * dist, lado * 0.16 * wc));
+    }
+    raices = capa(1.35, 0.25) + capa(1, 0.4) + capa(0.68, 0.6) + capa(0.38, 1) + `<path d="${sueltos.join('')}" fill="none" stroke="${h.natural}" stroke-width="${n(h.tipo === 'liso' || h.tipo === 'ondulado' ? 0.034 : 0.026)}" stroke-linecap="round" opacity="0.85"/>`;
+  }
   const pintar = (d: string, detras: boolean): string => {
     // Rapado al cero: solo la sombra de donde crece el pelo, sin línea.
     if (sombra) return detras ? '' : `<path d="${d}" fill="${P.pelo}" opacity="${n(0.16 + 0.5 * (h.largo / LARGO_DE_SOMBRA))}"/>`;
     const rec = L.recorte(d);
-    const raices = raiz > 0 && !detras ? `<path d="${nacimiento}" fill="none" stroke="${h.natural}" stroke-width="${n(raiz * 2)}" stroke-linecap="round" stroke-linejoin="round"/>` : '';
-    const dentro = raices + L.sombra(`M${n(wc * 0.55)},-1.8C${n(wc * 0.9)},-0.9 ${n(wc * 0.85)},0 ${n(wc * 0.7)},3.2L${n(wc + 0.9)},3.2L${n(wc + 0.9)},-1.8Z`, P.peloSombra, 0.85) + mechones(P, L, az, caja, lado * 0.16 * wc);
+    const dentro = (detras ? '' : raices) + L.sombra(`M${n(wc * 0.55)},-1.8C${n(wc * 0.9)},-0.9 ${n(wc * 0.85)},0 ${n(wc * 0.7)},3.2L${n(wc + 0.9)},3.2L${n(wc + 0.9)},-1.8Z`, P.peloSombra, 0.85) + mechones(P, L, az, caja, lado * 0.16 * wc);
     return L.relleno(d, detras ? P.peloSombra : P.pelo) + `<g clip-path="url(#${rec})">${dentro}</g>` + L.contorno(d);
   };
   return { atras: atras.map((d) => pintar(d, true)).join(''), delante: formas.map((d) => pintar(d, false)).join('') + (sombra ? '' : extras.join('')) };
@@ -194,18 +208,22 @@ function mechones(P: Parametros, L: Lienzo, az: Rng, caja: readonly [number, num
   const canas = P.peinado.canas;
   for (let i = 0; i < cuantos; i++) {
     const x = az.range(caja[0], caja[2]), y = az.range(caja[1], caja[3]);
-    // Dirección: desde la coronilla hacia fuera por arriba; hacia abajo en lo que cuelga.
-    let dx = x - rayaX, dy = y + 1.0;
-    if (y > -0.25) { dx = dx * 0.12; dy = 1; }
-    const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
-    const nx = -dy, ny = dx;
-    let d: string;
-    if (tipo === 'liso') { const len = az.range(0.25, 0.5), c = az.range(-0.04, 0.04); d = `M${n(x)},${n(y)}q${n(dx * len * 0.5 + nx * c)},${n(dy * len * 0.5 + ny * c)} ${n(dx * len)},${n(dy * len)}`; }
-    else if (tipo === 'ondulado') { const len = az.range(0.28, 0.46), c = 0.055; d = `M${n(x)},${n(y)}c${n(dx * len * 0.33 + nx * c)},${n(dy * len * 0.33 + ny * c)} ${n(dx * len * 0.66 - nx * c)},${n(dy * len * 0.66 - ny * c)} ${n(dx * len)},${n(dy * len)}`; }
-    else { const r = tipo === 'rizado' ? az.range(0.045, 0.075) : az.range(0.022, 0.04), g = az.range(0, 6.28); d = `M${n(x)},${n(y)}a${n(r)},${n(r)} 0 1 ${az.chance(0.5) ? 1 : 0} ${n(Math.cos(g) * r * 1.5)},${n(Math.sin(g) * r * 1.5)}`; }
+    const d = mecha(tipo, az, x, y, rayaX);
     // Las canas salen antes en las sienes.
     const sien = Math.abs(x) > 0.5 && y > -0.6 ? 1.6 : 1;
     (!P.peinado.tinte && canas > 0.02 && canas < 0.85 && az.next() < canas * sien * 0.8 ? canosos : oscuros).push(d);
   }
   return (oscuros.length ? L.trazo(oscuros.join(''), 0.0136, 0.55, TINTA) : '') + (canosos.length ? L.trazo(canosos.join(''), 0.0136, 0.9, '#efeeea') : '');
+}
+
+/** Un mechón en un punto: una raya (pelo liso), una onda (ondulado) o un rizo, con la dirección del pelo (desde la coronilla hacia fuera por arriba; hacia abajo en lo que cuelga). */
+function mecha(tipo: string, az: Rng, x: number, y: number, rayaX: number): string {
+  let dx = x - rayaX, dy = y + 1.0;
+  if (y > -0.25) { dx = dx * 0.12; dy = 1; }
+  const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+  const nx = -dy, ny = dx;
+  if (tipo === 'liso') { const len = az.range(0.25, 0.5), c = az.range(-0.04, 0.04); return `M${n(x)},${n(y)}q${n(dx * len * 0.5 + nx * c)},${n(dy * len * 0.5 + ny * c)} ${n(dx * len)},${n(dy * len)}`; }
+  if (tipo === 'ondulado') { const len = az.range(0.28, 0.46), c = 0.055; return `M${n(x)},${n(y)}c${n(dx * len * 0.33 + nx * c)},${n(dy * len * 0.33 + ny * c)} ${n(dx * len * 0.66 - nx * c)},${n(dy * len * 0.66 - ny * c)} ${n(dx * len)},${n(dy * len)}`; }
+  const r = tipo === 'rizado' ? az.range(0.045, 0.075) : az.range(0.022, 0.04), g = az.range(0, 6.28);
+  return `M${n(x)},${n(y)}a${n(r)},${n(r)} 0 1 ${az.chance(0.5) ? 1 : 0} ${n(Math.cos(g) * r * 1.5)},${n(Math.sin(g) * r * 1.5)}`;
 }

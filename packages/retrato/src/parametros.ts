@@ -3,7 +3,7 @@
  * arrugas, anchuras por complexión). Función pura: lo poco que se decide al azar sale solo de la semilla de dibujo de la persona.
  */
 import {
-  alturaEn, EDAD_DEL_VELLO, estiloDePersona, fotoDeEdad, fraccionDeCanas, gradoDeCalvicie, interpola, peinado, peinadoPosible, rngEstable, rostroExpresado, vello, velloPosible,
+  alturaEn, EDAD_DEL_VELLO, estiloDePersona, fotoDeEdad, fraccionDeCanas, gradoDeCalvicie, interpola, peinado, peinadoConCalvicie, peinadoPosible, rngEstable, rostroExpresado, vello, velloPosible,
   type CuerpoDePersona, type Look, type RostroExpresado,
 } from '@ds/contracts';
 import { COLOR_DE_CANA, COLOR_DE_OJOS, COLOR_DE_PELO, COLOR_DE_PIEL, ROPA } from './catalogos';
@@ -77,6 +77,15 @@ export interface Opciones {
   pantalon?: string;
 }
 
+/**
+ * Las arrugas (0 a 1) a una edad, según cómo envejece la piel de la persona (`Apariencia.envejecimiento`, 0 a 1; 0,5 es lo normal: empiezan a los 26 y llegan a 1 a los 70).
+ * Quien envejece bien (0) empieza a los 32 y no pasa de 0,7; quien envejece mal (1) empieza a los 20 y llega a 1 hacia los 56. No retroceden.
+ */
+export function arrugasA(edad: number, envejecimiento: number): number {
+  const e = clamp(envejecimiento);
+  return Math.min(1, clamp((edad - (26 + 12 * (0.5 - e))) / 44) ** 0.85 * (0.7 + 0.6 * e));
+}
+
 /** Altura de la cabeza (cm, del mentón a la coronilla) a cada edad, para una persona de 170 cm de adulta. */
 const CABEZA: readonly (readonly [number, number])[] = [[3, 18.6], [8, 20.6], [12, 21.6], [15, 22.4], [18, 23]];
 
@@ -110,8 +119,8 @@ export function parametrosDe(c: CuerpoDePersona, edad: number, o: Opciones = {})
   const natural = COLOR_DE_PELO[a.peloColor] ?? COLOR_DE_PELO.castano;
   const peloNatural = mix(natural, COLOR_DE_CANA, canas * 0.92);
   const elegido = estiloDePersona(c.semilla, sexo, a);
-  const pedido = o.look?.peinado ?? elegido.peinado;
-  const estilo = peinadoPosible(pedido, calvicie);
+  // Con un look pedido (el personaje, cuando tenga peluquería) se lleva ese mientras la calvicie lo admita; sin él, el de la persona, que al quedarse calva puede afeitarse la cabeza o raparse al cero.
+  const estilo = o.look?.peinado ? peinadoPosible(o.look.peinado, calvicie) : peinadoConCalvicie(c.semilla, sexo, elegido.peinado, calvicie);
   const fresco = (id: string) => peinado(id).largo;
   const largo = o.look?.largoDelPelo ?? fresco(estilo);
   // Tinte: el pelo se ve del color teñido salvo la raíz que ha crecido desde entonces (si ya ha crecido todo el largo, no queda tinte).
@@ -144,7 +153,7 @@ export function parametrosDe(c: CuerpoDePersona, edad: number, o: Opciones = {})
     camiseta: o.camiseta ?? ROPA.camiseta, pantalon: o.pantalon ?? ROPA.pantalon, zapato: ROPA.zapato,
     peinado: { estilo, tipo: a.peloTipo, lado: rngEstable('retrato', c.semilla, 'lado').chance(0.5) ? 1 : -1, largo, crecido: Math.max(0, largo - fresco(estilo)), calvicie, canas, natural: peloNatural, tinte: tenido, raiz: tenido ? raiz : 0 },
     vello: { estilo: estiloV, largo: largoV, densidad: a.barba * salido, color: colorDelVello },
-    arrugas: clamp((edad - 26) / 44) ** 0.85,
+    arrugas: arrugasA(edad, a.envejecimiento ?? 0.5),
     nino,
     distintivos: a.distintivos,
   };
