@@ -138,6 +138,13 @@ describe('retrato: niños, grados al cero, entradas, tinte y comparación', () =
     expect(con(3)).toContain(tinte);
     expect(con(3)).toContain(`stroke="${natural}"`);
     expect(con(24)).toBe(retratoSvg(c, 30, { look: { peinado: 'melena' } }));
+    // Las raíces van junto al cuero cabelludo en todos los peinados y tipos de pelo: la línea desde la que se miden está en lo alto de la cabeza (por encima de los ojos).
+    for (const tipo of PELO_TIPO) for (const p of PEINADOS.filter((x) => x.largo > 3)) {
+      const svg = retratoSvg(persona('f', { peloColor: 'castano', peloTipo: tipo, calvicie: 0, canas: 90 }), 30, { look: { peinado: p.id, tinteDelPelo: tinte, crecidoDesdeElTinte: 2 } });
+      const raices = [...svg.matchAll(new RegExp(`<path d="([^"]+)" fill="none" stroke="${natural}"`, 'g'))];
+      expect(raices.length).toBeGreaterThan(0);
+      for (const r of raices) for (const par of r[1].matchAll(/(-?[\d.]+),(-?[\d.]+)/g)) expect(Number(par[2])).toBeLessThan(-0.3);
+    }
     // La barba, por separado.
     const h = persona('m', { peloColor: 'castano', canas: 90, barba: 1 });
     const barba = (mm: number) => parametrosDe(h, 30, { look: { vello: 'barba_corta', tinteDelVello: '#101010', crecidoDelVelloDesdeElTinte: mm } }).vello.color;

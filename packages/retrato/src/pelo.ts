@@ -56,6 +56,12 @@ export function dibujarPelo(P: Parametros, L: Lienzo, C: Cara, hombros: number):
   const casco = (a: number, b: number): Pt[] => { const m: Pt[] = [[wc + a, -0.3], [0.9 * wc + a, -0.72 - 0.5 * b], [0.53 * wc + 0.6 * a, -0.965 - 0.9 * b], [0, -1.005 - b]]; return [...m.map(([x, y]): Pt => [-x, y]), ...m.slice(0, -1).reverse()]; };
   const atras: string[] = [];
   const formas: string[] = [];
+  /**
+   * Por dónde nace a la vista el pelo: la línea junto al cuero cabelludo desde la que se miden las raíces de un tinte. Peinado hacia atrás o hacia arriba, es la línea
+   * del pelo en la frente; con raya, la raya; con flequillo, la coronilla (el flequillo que cae sobre la frente son puntas). Lo que queda lejos de ella son puntas.
+   */
+  const coronilla: Pt[] = [[-wc * 0.45, -0.9], [0, -0.985], [wc * 0.45, -0.9]];
+  let nace: Pt[] = [[-wc * 0.87, -0.4], [-wc * 0.6, yh + 0.04], [-wc * 0.3, yh], [0, yh], [wc * 0.3, yh], [wc * 0.6, yh + 0.04], [wc * 0.87, -0.4]];
   const extras: string[] = [];
 
   /** Los lados que quedan con la calvicie alta. */
@@ -97,6 +103,8 @@ export function dibujarPelo(P: Parametros, L: Lienzo, C: Cara, hombros: number):
         const otra = espejo(mitad).slice(1).map(([x, y], i): Pt => [x, i > 0 && i < 4 ? y + cae * (az.next() - 0.5) : y]);
         dentro = [...mitad, ...otra];
       }
+      if (flequillo) nace = coronilla;
+      else nace = nace.map(([x, y]): Pt => [x, y - (yh - yc) * (1 - Math.abs(x) / wc)]);
       formas.push(`M${p(fuera[0])}${tr(fuera)}L${p(dentro[0])}${flequillo ? tr(dentro) : tramo(dentro, 'liso', 0.2)}Z`);
     } else lados(ysb);
     if (recogido && calvo < CALVICIE.soloLados) {
@@ -152,21 +160,25 @@ export function dibujarPelo(P: Parametros, L: Lienzo, C: Cara, hombros: number):
         // Con flequillo recto: en vez de la raya, el pelo cruza la frente por encima de las cejas (y baja al crecer).
         const fy = Math.min(C.ey - C.eh - 0.02, -0.34 + Math.min(0.3, h.crecido * 0.035));
         const frente: Pt[] = [...der.slice(0, -2), [wc * 0.84, fy - 0.02], [wc * 0.4, fy + 0.02 * az.next()], [0, fy + 0.015], [-wc * 0.4, fy + 0.02 * az.next()], [-wc * 0.84, fy - 0.02], ...izq.slice(2)];
+        nace = coronilla;
         formas.push(`M${p(exterior[0])}${tr(exterior)}L${p(frente[0])}${tramo(frente, 'liso', 0.2)}Z`);
-      } else formas.push(`M${p(exterior[0])}${tr(exterior)}L${p(der[0])}${tramo(der, 'liso', 0.2)}L${p(izq[0])}${tramo(izq, 'liso', 0.2)}Z`);
+      } else {
+        nace = [[px, yRaya + 0.03], [px * 0.85, -0.8], [px * 0.5, -1.0]];
+        formas.push(`M${p(exterior[0])}${tr(exterior)}L${p(der[0])}${tramo(der, 'liso', 0.2)}L${p(izq[0])}${tramo(izq, 'liso', 0.2)}Z`);
+      }
     } else lados(0.1);
   }
 
   // ---- relleno, sombra, mechones y contorno
   const caja: [number, number, number, number] = [-(wc + 0.75), -1.7, wc + 0.75, Math.max(1.3, hombros + 1.1)];
-  // Las raíces de un pelo teñido: el color natural (con sus canas) junto al cuero cabelludo, tan anchas como haya crecido.
+  // Las raíces de un pelo teñido: el color natural (con sus canas) junto al cuero cabelludo (alrededor de la línea por donde nace el pelo), tan anchas como haya crecido.
   const raiz = h.tinte && h.raiz > 0 ? clamp(h.raiz / u, 0.035, 1.2) : 0;
-  const craneo = curva(casco(0, 0), false, 1);
+  const nacimiento = curva(nace, false, 1);
   const pintar = (d: string, detras: boolean): string => {
     // Rapado al cero: solo la sombra de donde crece el pelo, sin línea.
     if (sombra) return detras ? '' : `<path d="${d}" fill="${P.pelo}" opacity="${n(0.16 + 0.5 * (h.largo / LARGO_DE_SOMBRA))}"/>`;
     const rec = L.recorte(d);
-    const raices = raiz > 0 && !detras ? `<path d="${craneo}" fill="none" stroke="${h.natural}" stroke-width="${n(raiz * 2)}" stroke-linecap="round"/>` : '';
+    const raices = raiz > 0 && !detras ? `<path d="${nacimiento}" fill="none" stroke="${h.natural}" stroke-width="${n(raiz * 2)}" stroke-linecap="round" stroke-linejoin="round"/>` : '';
     const dentro = raices + L.sombra(`M${n(wc * 0.55)},-1.8C${n(wc * 0.9)},-0.9 ${n(wc * 0.85)},0 ${n(wc * 0.7)},3.2L${n(wc + 0.9)},3.2L${n(wc + 0.9)},-1.8Z`, P.peloSombra, 0.85) + mechones(P, L, az, caja, lado * 0.16 * wc);
     return L.relleno(d, detras ? P.peloSombra : P.pelo) + `<g clip-path="url(#${rec})">${dentro}</g>` + L.contorno(d);
   };

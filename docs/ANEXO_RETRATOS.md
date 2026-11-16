@@ -97,6 +97,7 @@ Los pesos son provisionales (el usuario los revisará): con ellos, el 47 % de la
 El `Look` admite `tinteDelPelo` y `tinteDelVello` (colores `#rrggbb`, por separado) y cuánto han crecido desde el tinte (`crecidoDesdeElTinte`, cm; `crecidoDelVelloDesdeElTinte`, mm). Solo es dibujo: la mecánica la pondrá la peluquería.
 
 - **Pelo**: se ve del color teñido, sin canas; al crecer se ven **las raíces** del color natural (con sus canas) junto al cuero cabelludo, tan anchas como lo crecido. Cuando lo crecido alcanza el largo, ya no queda tinte.
+- **Dónde están las raíces** (`nace` en `pelo.ts`): se miden desde la línea por donde el pelo nace a la vista, nunca desde el borde de fuera (que son las puntas): la **línea del pelo en la frente** si va peinado hacia atrás o hacia arriba (corto, rapado, tupé, degradado, coleta, moño, trenzas); **la raya** si cuelga con raya (melena, largo); **la coronilla** si lleva flequillo (el flequillo que cae sobre la frente son puntas). Un peinado nuevo debe decir cuál es la suya. La cola de la coleta, el moño y las trenzas son puntas: van del color teñido.
 - **Barba**: como es corta, se ve de un color entre el teñido y el natural según la parte que ha crecido.
 - Las cejas no se tiñen.
 
