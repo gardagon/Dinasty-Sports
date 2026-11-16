@@ -5,6 +5,33 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 16/11/2026 — Visualizador: envejecimiento heredable, calvos que cambian de estilo y raíces del tinte (decisiones del usuario)
+
+- **Envejecimiento de la piel (`Apariencia.envejecimiento`, 0 a 1):** hay quien envejece mejor que otros. Heredable como las canas (`TENDENCIAS.envejecimiento`: normal de media 0,5 y desviación 0,2 en los adultos del mundo; media de los padres ± 0,1 en los hijos), sin tendencias por origen y con generador estable propio (el mundo de cada semilla no cambia: la suite sigue en verde). El dibujo decide con él cuándo empiezan las arrugas y cuánto se marcan (`arrugasA`): con 0,5, como antes. `SAVE_VERSION` 20. **Estado: 2.900 → 2.930 KB (+1,0 %).**
+- **Quien se queda calvo:** al pasar de las entradas, el 20 % de los hombres se afeita la cabeza y el 15 % se rapa al cero, estable por persona y para siempre (`peinadoConCalvicie`, `AL_QUEDARSE_CALVO`). La proporción es de quien desarrolla.
+- **Raíces del tinte:** se miden desde donde nace el pelo (frente, raya o coronilla), con paso gradual al color teñido, siguiendo la textura del pelo y con la misma sombra que el resto.
+- **Aceptado por el usuario:** los pesos de elección de los estilos, la lista de premium, que los PNJ vayan siempre recién arreglados, que la comparación deje intuir la altura, y las arrugas de los 60 en adelante como están.
+- **Medido:** `npm run rendimiento -- 60`: 1,56 ms por acción (entre 1,36 y 1,76 en las pasadas de estos dos días: sin cambio apreciable).
+
+## 16/11/2026 — Visualizador: ronda de corrección de la base (decisiones del usuario)
+
+- **Niños:** dejan de ser adultos en miniatura. La cabeza se agranda un 24 % más a los 3 años (cerca de una cuarta parte de la altura) y lo pierde hasta los 15; cara de niño (redonda, mofletes, ojos mayores y más bajos, nariz chata, mandíbula sin marcar) y cuerpo de niño (cuello, brazos y piernas más cortos, barriga, sin cintura).
+- **Arrugas:** empiezan a los 26 y cada una aparece a su tiempo y se marca poco a poco (a los 30 ya asoman).
+- **Cuerpos:** más diferencia entre hombre y mujer (hombros, cintura, caderas, pecho) y entre complexiones (pectorales, barriga, brazos); manos con dedos.
+- **Comparar contigo:** desde la ficha de cualquier persona, tu personaje a su lado, de cuerpo entero, a escala y como son hoy. De quien no es de la familia, sin años ni centímetros.
+- **Peinados:** tres grados al cero (cabeza afeitada, rapado al cero como sombra que respeta la calvicie, y rapado), que salen del largo; la calvicie de los hombres empieza por las **entradas** (`CALVICIE` en contracts: hasta 0,3 solo entradas; hasta 0,55 clarea por arriba; después, solo los lados); peinados nuevos (media melena con flequillo, moño, dos trenzas, tupé) y más premium (tupé, trenzas, candado). Los pesos de elección son provisionales.
+- **Tinte (solo dibujo):** el look admite el color teñido del pelo y de la barba y cuánto han crecido desde el tinte; se ven las raíces del color natural con sus canas.
+- Se probó antes con una página de las dos versiones lado a lado (ya quitada). Receta: `docs/ANEXO_RETRATOS.md`; preguntas pendientes 8 a 13 en `docs/PLAN_VISUALIZADOR.md`.
+
+## 15/11/2026 — Visualizador de personas, fase 2: estilo «tinta», look con estilo y largo, y el paquete `@ds/retrato` (decisiones del usuario)
+
+- **Estilo:** de las cuatro variantes de las muestras, el usuario eligió la **B · Tinta** (línea oscura de contorno, sombra plana de borde duro, detalle alto en la cara), con la cabeza un 6 % mayor que la real. La línea de contorno rodea la barba y el pelo por fuera, no pasa por encima.
+- **Peinado y vello facial: estilo y largo.** Cada PNJ tiene su estilo elegido y lo mantiene toda la vida (`estiloDePersona`, en contracts: pura y estable, sin guardar nada en el estado); la barba es una elección dentro de lo que su densidad permite; con calvicie se lleva el peinado que la admite. El dibujo recibe el largo del pelo (cm) y de la barba (mm). Catálogos `PEINADOS` y `VELLOS` en `packages/contracts/src/retrato.ts`, con lo que exige cada estilo, su largo recién hecho y si es «premium». El personaje tendrá peluquería más adelante (otra sesión); hoy se dibuja como un PNJ.
+- **Por debajo de los 3 años, una cuna** igual para todos; se dibuja de los 3 a los 95.
+- **Paquete `packages/retrato`** (solo importa contracts; solo lo importa la web): parámetros → dibujo → pantallas. Retrato y evolución en la ficha del personaje y en la de cada persona. Receta para ampliar los catálogos: `docs/ANEXO_RETRATOS.md`. Referencia visual: `npm run retratos:cuadricula`.
+- **Medido:** un retrato nuevo tarda ≈ 1,5 ms y pesa ≈ 40 KB; se guarda en memoria por persona, edad en años y vista. No se guarda nada nuevo en el estado de la partida. `npm run rendimiento -- 60` no empeora: estado 2.900 KB (igual), 1,76 ms por acción (bot equilibrado, 60 días); la suite entera en verde (1.022 tests).
+- **Pendiente de decidir** (preguntas 6 a 10 de `docs/PLAN_VISUALIZADOR.md`): si la evolución de quien no es de la familia enseña cifras, los pesos de la elección de estilo, qué estilos son premium y si los PNJ llevan el pelo algo crecido entre cortes.
+
 ## 15/11/2026 — Rasgos de la cara heredables (usuario, 15/11)
 
 - **Qué:** `Apariencia.rostro` con 12 rasgos de la cara (ojos, nariz, boca, cejas, orejas, mentón y pómulos), cada uno un número de 0 a 1, heredado como los perks: un par `[expresado, latente]`; el hijo recibe un valor de cada padre y uno de los dos se expresa (50 %); los adultos del mundo, al azar y uniformes, sin tendencias por origen (anexo §7). `rostroDe`, `rostroExpresado`, `rostroAlAzar`, `rostroHeredado` y `ROSTRO_MEDIO` en `rasgos.ts`.
@@ -2022,6 +2049,9 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 ---
 
 ## Pendiente e ideas
+
+- **Eventos y decisiones (E18), requisitos del usuario (16/11/2026):** candidato a la próxima sesión de Fable, junto con un visualizador de los partidos de fútbol. Añadir eventos tiene que ser **muy fácil**, casi una herramienta para definirlos como datos sin tocar el motor, y tiene que permitir **hilos**: un evento deja consecuencias que pueden disparar otros más adelante (semanas, meses o años). Empezar por una propuesta de diseño que decida el usuario.
+- **Visualizador, para la etapa 2c (Sonnet):** la raíz del tinte en los peinados con raya o flequillo se ve como un destello «estrellado» en la coronilla (correcto pero raro, visto por el usuario el 16/11); el tupé se distingue poco del corto. Mejorarlos con la receta (`docs/ANEXO_RETRATOS.md`).
 
 - **Acciones dinámicas del motor (aplazado por el usuario el 15/11/2026, revisar si hace falta):** para enseñar cualquier lista o encontrar la acción que se va a hacer, el motor genera las acciones de todas las personas conocidas y descarta las que no necesita (`allActions` y `findAction` en `packages/core/src/game.ts`). Generarlas es más barato que evaluarlas y la pantalla ya evalúa solo lo que enseña (medido el 15/11: 1–3 ms por clic, sin crecer con los conocidos), pero la generación sí crece con cada persona conocida. Si en partidas largas se nota: generar solo las acciones de la persona que se mira y buscar por id con los `resolvers`. Junto con esto, conocer a alguien crea una lista de personas nueva y recalcula la presencia (`known` dentro de la lista de `npcs`). Cifras en la pregunta 21 de `docs/PLAN_CUERPO_Y_APARIENCIA.md`.
 

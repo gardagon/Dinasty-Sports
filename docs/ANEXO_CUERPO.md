@@ -59,8 +59,9 @@ Valores numéricos de la generación (no de la edad). El dibujo decidirá con el
 | `canas` | edad (años) a la que empiezan | normal, media 34, sd 6, entre 20 y 60 | media de los padres ± 3 (uniforme) |
 | `calvicie` | tendencia a perder pelo, 0 a 1 | hombres: media 0,45, sd 0,25; mujeres: media 0,1, sd 0,1, máximo 0,4 | 0,6 × madre + 0,4 × padre ± 0,1, con el tope del sexo del hijo |
 | `barba` | densidad del vello facial, 0 a 1 | normal, media 0,6, sd 0,2 | media de los padres ± 0,1 |
+| `envejecimiento` | cómo envejece la piel, de 0 (muy bien) a 1 (mal); 0,5 es lo normal | normal, media 0,5, sd 0,2, entre 0 y 1 | media de los padres ± 0,1 |
 
-**Tendencias por origen** (se suman a la media al azar, en `ORIGENES`): Asia oriental, canas +4 y barba −0,3; Europa del norte, canas −2; España (sur) y Magreb, barba +0,1; África subsahariana, canas +3. En las mujeres la barba se guarda igual (se hereda) pero no se dibuja.
+**Tendencias por origen** (se suman a la media al azar, en `ORIGENES`): Asia oriental, canas +4 y barba −0,3; Europa del norte, canas −2; España (sur) y Magreb, barba +0,1; África subsahariana, canas +3. En las mujeres la barba se guarda igual (se hereda) pero no se dibuja. El `envejecimiento` no tiene tendencias por origen y se sortea con su propio generador estable (añadirlo no movió el mundo de ninguna semilla; `SAVE_VERSION` 20); el dibujo decide con él y la edad cuándo empiezan las arrugas y cuánto se marcan (`arrugasA`, en `docs/ANEXO_RETRATOS.md` §4). Una partida sin el dato se dibuja como 0,5.
 
 ## 7. Rasgos de la cara heredables (`Apariencia.rostro`)
 

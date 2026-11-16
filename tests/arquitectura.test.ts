@@ -27,6 +27,7 @@ const reglas: { carpeta: string; permitidos: RegExp; motivo: string }[] = [
   { carpeta: 'packages/contracts/src', permitidos: /^\.\.?\//, motivo: 'contracts no depende de nada' },
   { carpeta: 'packages/core/src', permitidos: /^(\.\.?\/|@ds\/contracts$)/, motivo: 'core solo conoce contracts' },
   { carpeta: 'packages/kit-deporte/src', permitidos: /^(\.\.?\/|@ds\/contracts$)/, motivo: 'el kit de deporte solo conoce contracts' },
+  { carpeta: 'packages/retrato/src', permitidos: /^(\.\.?\/|@ds\/contracts$)/, motivo: 'el dibujo de las personas solo conoce contracts' },
   ...readdirSync(join(ROOT, 'modules')).map((m) => ({
     carpeta: `modules/${m}/src`,
     permitidos: /^(\.\.?\/|@ds\/contracts$|@ds\/kit-deporte$)/,
@@ -35,6 +36,13 @@ const reglas: { carpeta: string; permitidos: RegExp; motivo: string }[] = [
 ];
 
 describe('arquitectura', () => {
+  it('nadie más que la web y las herramientas importa @ds/retrato (ni los módulos ni el núcleo)', () => {
+    const violaciones = ['packages/contracts/src', 'packages/core/src', 'packages/game/src', 'packages/kit-deporte/src', 'packages/paquetes/src', 'sim/src', ...readdirSync(join(ROOT, 'modules')).map((m) => `modules/${m}/src`)]
+      .flatMap((c) => archivos(join(ROOT, c)))
+      .filter((f) => imports(f).includes('@ds/retrato'))
+      .map((f) => relative(ROOT, f));
+    expect(violaciones).toEqual([]);
+  });
   for (const r of reglas) {
     it(`${r.carpeta}: ${r.motivo}`, () => {
       const violaciones: string[] = [];

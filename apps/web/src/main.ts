@@ -38,6 +38,7 @@ import {
   faltaViajar,
   rutaA,
   tiempoEntre,
+  ID_DEL_PERSONAJE,
 } from '@ds/contracts';
 import type { GameModule } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
@@ -47,6 +48,7 @@ import { cancelarCreacion, crearEnSegundoPlano } from './creador';
 import { ID_DE_LA_CIUDAD_GRANDE } from './paises-propios';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
+import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
 import { reclamarPestana } from './pestana';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
@@ -806,6 +808,7 @@ function viewIdentity(g: Game): string {
   if (!id) return '';
   const fmt = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   return `<section class="sheet"><h2>${esc(g.playerName)}</h2>
+    ${viewRetrato(g, ID_DEL_PERSONAJE)}
     <dl class="identity">
       <div><dt>Edad</dt><dd>${id.age} años</dd></div>
       <div><dt>Altura</dt><dd>${fmt(id.heightCm)} cm</dd></div>
@@ -1000,6 +1003,7 @@ function render(): void {
 // El cuadro del apodo: el botón lleva el id de la acción con lo escrito (sin redibujar, para no perder el foco).
 app.addEventListener('input', (e) => {
   const el = e.target as HTMLInputElement;
+  if (game && entradaEnRetrato(game, el, app)) return;
   if (el.dataset?.gente !== 'apodo-campo') return;
   const boton = app.querySelector<HTMLElement>('#apodo-boton');
   if (boton) boton.dataset.do = idDePonerApodo(el.dataset.npc ?? '', el.value);
@@ -1032,7 +1036,7 @@ app.addEventListener('change', (e) => {
 });
 
 app.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-tab],[data-act],[data-gente],[data-deporte]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-tab],[data-act],[data-gente],[data-deporte],[data-retrato]');
   if (el?.dataset.act === 'importar') {
     importarPartida();
     return;
@@ -1050,6 +1054,10 @@ app.addEventListener('click', (e) => {
   }
   if (el.dataset.gente) {
     if (clicEnGente(el)) render();
+    return;
+  }
+  if (el.dataset.retrato) {
+    if (clicEnRetrato(el)) render();
     return;
   }
   if (el.dataset.tab) {

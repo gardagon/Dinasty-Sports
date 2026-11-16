@@ -21,6 +21,7 @@ import {
 } from '@ds/contracts';
 import type { Game } from '@ds/core';
 import { ajustarEleccion, hhmm, viewFormularioDePlan, type EleccionDePlan } from './planes';
+import { reiniciarRetrato, viewRetrato } from './retrato';
 
 /**
  * Panel «Gente»: las personas del juego con filtros, tarjetas paginadas y una ficha. Quien no conoces sale sin nombre y con la
@@ -245,6 +246,7 @@ function ficha(g: Game, n: NpcView): string {
     <button data-gente="volver">← Volver</button>
     <h2>${nombre} <small>${esc(rol(n))}</small></h2>
     <nav class="tabs">${pestanas.map(([id, label]) => `<button class="tab" aria-selected="${pestana === id}" data-gente="pestana" data-id="${id}">${label}</button>`).join('')}</nav>
+    ${viewRetrato(g, n.id, { cifras: n.role === 'familia', nombre: conocida(n) ? n.nombreCorto : '???' })}
     ${aviso}
     ${cuerpo}
     ${acciones}
@@ -285,6 +287,7 @@ export function clicEnGente(el: HTMLElement): boolean {
       pagina = Math.max(0, pagina + Number(id));
       return true;
     case 'ver':
+      reiniciarRetrato();
       seleccionada = id;
       pestana = 'resumen';
       return true;
@@ -325,4 +328,5 @@ export function reiniciarGente(): void {
   pestana = 'resumen';
   planAbierto = false;
   eleccionesDePlan.clear();
+  reiniciarRetrato();
 }

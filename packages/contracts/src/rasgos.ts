@@ -155,6 +155,11 @@ export interface Apariencia {
    * saltarse una generación). Va **empaquetado en un texto** (dos caracteres por rasgo, 64 niveles cada valor) para que el estado no crezca: se lee con `rostroDe` y `rostroExpresado`.
    */
   rostro: string;
+  /**
+   * Cómo envejece su piel, de 0 (muy bien: las arrugas llegan tarde y se marcan poco) a 1 (mal: llegan pronto y se marcan mucho); 0,5 es lo normal. Heredable como las canas
+   * (`TENDENCIAS.envejecimiento`). El dibujo decide con ella y la edad cuándo empiezan las arrugas y cuánto se marcan. Cifras en `docs/ANEXO_CUERPO.md`.
+   */
+  envejecimiento: number;
 }
 
 // ---------------------------------------------------------------------------------------------------- rasgos de la cara heredables
@@ -224,6 +229,7 @@ export const TENDENCIAS = {
   canas: { media: 34, sd: 6, min: 20, max: 60, herencia: 3 },
   calvicie: { hombre: { media: 0.45, sd: 0.25, max: 1 }, mujer: { media: 0.1, sd: 0.1, max: 0.4 }, deLaMadre: 0.6, herencia: 0.1 },
   barba: { media: 0.6, sd: 0.2, herencia: 0.1 },
+  envejecimiento: { media: 0.5, sd: 0.2, herencia: 0.1 },
 } as const;
 
 /** El tope de calvicie de cada sexo. */
@@ -320,11 +326,11 @@ export function origenHeredado(padre: OrigenFamiliar, madre: OrigenFamiliar): Or
 }
 
 /** Los rasgos de siempre de la apariencia (todo menos las tendencias de canas, calvicie y barba). */
-export type AparienciaBase = Omit<Apariencia, 'canas' | 'calvicie' | 'barba' | 'rostro'>;
+export type AparienciaBase = Omit<Apariencia, 'canas' | 'calvicie' | 'barba' | 'rostro' | 'envejecimiento'>;
 /** Las tendencias heredables: canas, calvicie y barba. */
 export type Tendencias = Pick<Apariencia, 'canas' | 'calvicie' | 'barba'>;
 /** Para los sorteos que necesitan una `Apariencia` entera antes de tener las tendencias (los gustos solo miran los rasgos de siempre). */
-const SIN_TENDENCIAS: Tendencias & Pick<Apariencia, 'rostro'> = { canas: 0, calvicie: 0, barba: 0, rostro: ROSTRO_MEDIO };
+const SIN_TENDENCIAS: Tendencias & Pick<Apariencia, 'rostro' | 'envejecimiento'> = { canas: 0, calvicie: 0, barba: 0, rostro: ROSTRO_MEDIO, envejecimiento: 0.5 };
 
 /** Apariencia de un adulto según su origen (si tiene dos, cada rasgo sale de uno de ellos al azar), sin las tendencias. */
 function aparienciaBaseAlAzar(rng: Rng, o: OrigenFamiliar): AparienciaBase {
@@ -351,9 +357,21 @@ export function tendenciasAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 
   };
 }
 
+/** Envejecimiento de la piel de un adulto del mundo: normal con la media y la desviación de `TENDENCIAS`, entre 0 y 1, sin tendencias por origen. */
+export function envejecimientoAlAzar(rng: Rng): number {
+  const t = TENDENCIAS.envejecimiento;
+  return redondea(clamp(t.media + t.sd * rng.normal(), 0, 1), 2);
+}
+
+/** Envejecimiento de la piel del hijo: la media de los padres con un pequeño cambio (como las canas). */
+export function envejecimientoHeredado(padre: Pick<Apariencia, 'envejecimiento'>, madre: Pick<Apariencia, 'envejecimiento'>, rng: Rng): number {
+  const h = TENDENCIAS.envejecimiento.herencia;
+  return redondea(clamp(((padre.envejecimiento ?? 0.5) + (madre.envejecimiento ?? 0.5)) / 2 + rng.range(-h, h), 0, 1), 2);
+}
+
 /** Apariencia de un adulto según su origen y su sexo, con las tendencias (todo del mismo generador). */
 export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 'm'): Apariencia {
-  return { ...aparienciaBaseAlAzar(rng, o), ...tendenciasAlAzar(rng, o, sexo), rostro: rostroAlAzar(rng) };
+  return { ...aparienciaBaseAlAzar(rng, o), ...tendenciasAlAzar(rng, o, sexo), rostro: rostroAlAzar(rng), envejecimiento: envejecimientoAlAzar(rng) };
 }
 
 /**
@@ -363,6 +381,8 @@ export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 
 const generadorDeTendencias = (sexo: 'f' | 'm', ...propios: unknown[]): Rng => rngEstable('tendencias', sexo, JSON.stringify(propios));
 /** Lo mismo para los rasgos de la cara (otro generador, también propio de cada persona). */
 const generadorDeRostro = (sexo: 'f' | 'm', ...propios: unknown[]): Rng => rngEstable('rostro', sexo, JSON.stringify(propios));
+/** Y para el envejecimiento de la piel (otro generador propio: añadirlo no cambia ningún otro sorteo). */
+const generadorDeEnvejecimiento = (sexo: 'f' | 'm', ...propios: unknown[]): Rng => rngEstable('envejecimiento', sexo, JSON.stringify(propios));
 
 /** Un rasgo con gradación heredado de uno de los padres; si difieren, a veces sale uno intermedio y rara vez un vecino. */
 function heredarGradual(catalogo: readonly string[], a: string, b: string, rng: Rng, mezcla = 0.35): string {
@@ -413,7 +433,7 @@ export function tendenciasHeredadas(padre: Tendencias, madre: Tendencias, rng: R
 
 /** Apariencia del hijo con sus tendencias, todo del mismo generador. */
 export function aparienciaHeredada(padre: Apariencia, madre: Apariencia, rng: Rng, sexo: 'f' | 'm' = 'm'): Apariencia {
-  return { ...aparienciaBaseHeredada(padre, madre, rng), ...tendenciasHeredadas(padre, madre, rng, sexo), rostro: rostroHeredado(padre, madre, rng) };
+  return { ...aparienciaBaseHeredada(padre, madre, rng), ...tendenciasHeredadas(padre, madre, rng, sexo), rostro: rostroHeredado(padre, madre, rng), envejecimiento: envejecimientoHeredado(padre, madre, rng) };
 }
 
 // ---------------------------------------------------------------------------------------------------- gustos
@@ -488,7 +508,7 @@ export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Reco
   const intereses = interesesAlAzar(rng, opciones.interesesPreferidos);
   const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
   const sexo = opciones.sexo ?? 'm';
-  return { origen: o, apariencia: { ...base, ...tendenciasAlAzar(generadorDeTendencias(sexo, caracter, intereses, gustos), o, sexo), rostro: rostroAlAzar(generadorDeRostro(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
+  return { origen: o, apariencia: { ...base, ...tendenciasAlAzar(generadorDeTendencias(sexo, caracter, intereses, gustos), o, sexo), rostro: rostroAlAzar(generadorDeRostro(sexo, caracter, intereses, gustos)), envejecimiento: envejecimientoAlAzar(generadorDeEnvejecimiento(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 /** Rasgos del personaje: heredados de sus padres (la opción de elegirlos a mano llegará con la creación de personaje). */
@@ -505,7 +525,7 @@ export function perfilHeredado(padre: RasgosDe, madre: RasgosDe, rng: Rng, sexo:
   const caracter = caracterHeredado(padre.caracter, madre.caracter, rng);
   const intereses = interesesHeredados(padre.intereses, madre.intereses, rng);
   const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
-  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo), rostro: rostroHeredado(padre.apariencia, madre.apariencia, generadorDeRostro(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
+  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo), rostro: rostroHeredado(padre.apariencia, madre.apariencia, generadorDeRostro(sexo, caracter, intereses, gustos)), envejecimiento: envejecimientoHeredado(padre.apariencia, madre.apariencia, generadorDeEnvejecimiento(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 /**
@@ -524,7 +544,7 @@ export function rasgosHeredadosNpc(padre: RasgosDe, madre: RasgosDe, rng: Rng, s
   while (Object.keys(intereses).length < 2) intereses[rng.pick(INTERESES).id] ??= rng.int(1, 3);
   const caracter = caracterHeredado(padre.caracter, madre.caracter, rng);
   const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
-  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo), rostro: rostroHeredado(padre.apariencia, madre.apariencia, generadorDeRostro(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
+  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo), rostro: rostroHeredado(padre.apariencia, madre.apariencia, generadorDeRostro(sexo, caracter, intereses, gustos)), envejecimiento: envejecimientoHeredado(padre.apariencia, madre.apariencia, generadorDeEnvejecimiento(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 // ---------------------------------------------------------------------------------------------------- compatibilidad

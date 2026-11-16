@@ -102,3 +102,31 @@ Siguiendo la receta: más variedad de peinados, barbas y bigotes, y prendas; los
 ## Preguntas abiertas
 
 _(Las rellena quien desarrolla; las responde la sesión de arquitectura con el usuario.)_
+
+De la etapa 2a (muestras de estilo, `npm run retratos:muestras`). **Respondidas por el usuario el 15/11/2026** (a través de la sesión de arquitectura):
+
+- **Estilo elegido: variante B · Tinta, con detalle alto.** Corrección: la línea de contorno no pasa por encima de la barba (ni del bigote, la perilla o el pelo): la rodea por fuera.
+- **Peinado y barba: estilo y largo** (sustituye a «automáticos, sacados de la persona»): cada PNJ tiene su estilo elegido de peinado y de vello facial y lo mantiene siempre; la barba es una elección dentro de lo que su genética permite; el dibujo recibe además el largo del pelo y de la barba; el catálogo (con lo que exige cada estilo, su largo recién hecho y si es «premium») y la función del estilo de un PNJ van en contracts. El personaje tendrá peluquería más adelante (otra sesión); mientras tanto, como un PNJ. Detalle en `docs/ANEXO_RETRATOS.md` §5.
+
+1. ~~¿El peinado cambia con la edad?~~ **Respondida:** el de un PNJ es el mismo toda la vida, con lo que imponga la genética (calvicie).
+2. ~~¿La barba por defecto tapa rasgos heredados?~~ **Respondida:** es una elección de cada PNJ dentro de lo que permite su genética, con proporciones realistas entre afeitados, bigote, perilla y barbas.
+3. ~~Edades futuras con el músculo y la grasa de hoy.~~ **Respondida:** de acuerdo; solo afectaba a las muestras.
+4. ~~Tamaño de la cabeza.~~ **Respondida:** como en B (+6 %).
+5. ~~Qué se hace con las muestras.~~ **Respondida:** se conserva el script y se quita la página generada al terminar la 2b (hecho).
+
+De la etapa 2b (la base). **Ronda de corrección aprobada por el usuario el 16/11/2026** (hecha): los niños dejan de ser adultos en miniatura (cabeza de cerca de una cuarta parte de la altura a los 3 años, cara y cuerpo de niño), arrugas progresivas desde los 30, cuerpos con más diferencia entre hombre y mujer y entre complexiones y manos con dedos; «Comparar contigo» en la ficha de cada persona; tres grados al cero, entradas, más peinados de mujer y más estilos premium; y el dibujo preparado para el tinte con raíces. Detalle en `docs/ANEXO_RETRATOS.md`.
+
+6. ~~La evolución de quien no es de la familia enseña su edad y su altura.~~ **Respondida (16/11):** el criterio vale (del personaje y la familia, con cifras; del resto, sin años ni centímetros) y se usa también en la comparación. La evolución se queda como está de momento; más adelante quedará solo en la ficha del personaje.
+7. **El nieto de la cuadrícula es inventado.** En la partida no hay nietos: el de la cuadrícula se hace con `aparienciaHeredada` (la herencia de verdad) a partir del personaje y de una mujer de la partida. (Solo para saberlo.)
+8. ~~Pesos de la elección de estilo.~~ **Respondida (16/11):** se aceptan los provisionales.
+9. ~~Estilos «premium».~~ **Respondida (16/11):** se aceptan (degradado, tupé y dos trenzas; barba perfilada y candado).
+10. ~~Largo crecido en los PNJ.~~ **Respondida (16/11):** los PNJ van siempre recién arreglados.
+11. ~~La comparación deja intuir la altura.~~ **Respondida (16/11):** se acepta (como ver a alguien en persona, sin cifras).
+12. ~~Arrugas marcadas a partir de los 60.~~ **Respondida (16/11):** se quedan como están, pero varían según la persona: nuevo rasgo heredable `envejecimiento` (hecho).
+13. ~~Un PNJ calvo no cambia de estilo.~~ **Respondida (16/11):** sí cambia una parte: al pasar de las entradas, el 20 % de los hombres se afeita la cabeza y el 15 % se rapa al cero, estable por persona (hecho; la proporción es de quien desarrolla).
+
+Última ronda (16/11), **sin responder**:
+
+14. **Proporción de quien se afeita o se rapa al quedarse calvo** (20 % y 15 %): es mía; está en `AL_QUEDARSE_CALVO` (contracts) y en la receta.
+15. **Cifras del envejecimiento**: al azar, normal de media 0,5 y desviación 0,2; los hijos, la media de los padres ± 0,1; quien envejece bien empieza a los 32 y no pasa de 0,7 de arrugas, quien envejece mal empieza a los 20 y llega al máximo hacia los 56. Son mías.
+16. **El estado crece un 1 %** por guardar `envejecimiento` en cada persona (ver `docs/DECISIONES.md`). Si no se quiere, se puede guardar con menos decimales o empaquetado con el rostro.

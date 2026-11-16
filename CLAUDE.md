@@ -6,6 +6,7 @@ Los horarios de las personas (dónde está cada una a cada hora) y la población
 Las cifras de las relaciones (cuánto sube cada acción, habilidades y gustos que influyen, estados) están en `docs/ANEXO_RELACIONES.md`: si cambias una, actualiza el anexo.
 Los nombres, apellidos y orígenes de las personas (listas por cultura, reglas de mezcla, homónimos) están en `docs/ANEXO_NOMBRES.md`, y lo que cambia de un país a otro (paquetes de país: calendario, currículo, horarios, gente; las categorías, la temporada y las competiciones de cada deporte son datos del deporte, por país: `docs/PAQUETES_DE_PAIS.md` y `docs/PLAN_DEPORTES_MODULARES.md` §4) en `docs/PAQUETES_DE_PAIS.md`: si cambias una regla o un dato, actualiza el anexo.
 El cuerpo de las personas (altura, peso, músculo y grasa con la edad y el sexo, hábitos de los PNJ, historial anual, canas, calvicie, barba y rasgos de la cara heredables, servicio de lectura para el visualizador) está en `docs/ANEXO_CUERPO.md` (plan: `docs/PLAN_CUERPO_Y_APARIENCIA.md`): si cambias una cifra, actualiza el anexo y `packages/contracts/src/cuerpo.ts`.
+El dibujo de las personas (paquete `@ds/retrato`: estilo, capas, catálogos de peinados y de vello facial con su largo, y cómo se añade un peinado, una barba o una prenda) está en `docs/ANEXO_RETRATOS.md`: si cambias el dibujo o un catálogo, regenera la cuadrícula (`npm run retratos:cuadricula`), mírala y actualiza el anexo y `packages/contracts/src/retrato.ts`.
 La pestaña del deporte y las reglas de las clasificaciones (puntos por puesto, qué se guarda) están en `docs/ANEXO_DEPORTE.md`.
 El mundo del fútbol base (ciudad grande, colegios, clubes, filiales, divisiones, liga y copa) está en `docs/CIUDAD_Y_LIGAS.md`.
 Cuando tomes una decisión de diseño o de balance, añade una entrada en `docs/DECISIONES.md`.
@@ -44,6 +45,8 @@ npm run probar-web       # el camino entero en un Chromium de verdad: instalar e
 npm run sim:cuerpo -- 2 31,32  # el cuerpo de la población: proporción por complexión y grupo de edad frente a los objetivos del plan del cuerpo
 npm run sim:futbol -- 365 3  # cuánto se aprende en un curso con el club: deportista de fútbol frente al de atletismo (mismo plan)
 npm run benjamin -- 31,33  # la regla de benjamín (todos nuevos en el club) con la ciudad grande: semanas hasta el primer partido y primera convocatoria
+npm run retratos:cuadricula  # la cuadrícula de capturas del dibujo de las personas (docs/retratos): catálogos, rasgos, familia, peinados, barbas y extremos, en claro y oscuro
+npm run retratos:muestras    # las muestras de las cuatro variantes de estilo que vio el usuario (provisional)
 npm run check            # tipos + tests + simulación rápida
 npm run nuevo-modulo -- <id> "<Nombre>"
 ```
