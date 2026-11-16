@@ -40,7 +40,8 @@
     "sim:futbol": "tsx sim/src/futbol.ts",
     "sim:cuerpo": "tsx tools/cuerpo.ts",
     "retratos:muestras": "tsx tools/retratos/muestras.ts",
-    "retratos:cuadricula": "tsx tools/retratos-cuadricula.ts"
+    "retratos:cuadricula": "tsx tools/retratos-cuadricula.ts",
+    "retratos:prueba": "tsx tools/retratos/prueba.ts"
   },
   "engines": {
     "node": ">=20"
