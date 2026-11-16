@@ -589,6 +589,8 @@ export class Game {
       efficiency *= res.efficiency ?? 1;
       costMult *= res.cost ?? 1;
       durationMult *= res.duration ?? 1;
+      // Un modificador puede impedir la acción (un castigo, una baja); si ya no estaba disponible, manda su propio motivo.
+      if (res.bloquea && !reason) reason = res.bloquea;
       applied.push({ id: m.def.id, module: m.module, result: res });
     }
 
@@ -698,6 +700,10 @@ export class Game {
       }
       if (ev.type === CORE_EVENTS.DAY_END) this.applyDecay();
       for (const h of this.registry.handlers.get(ev.type) ?? []) {
+        h.fn(this.actionCtx(h.module, 1), ev);
+      }
+      // Quienes escuchan todos los eventos (`CUALQUIER_EVENTO`) van después de quienes escuchan este por su nombre.
+      for (const h of this.registry.wildcardHandlers) {
         h.fn(this.actionCtx(h.module, 1), ev);
       }
     }

@@ -747,3 +747,31 @@ describe('aportes', () => {
     expect(o.description).toMatch(/^Con \d+/);
   });
 });
+
+describe('ampliaciones genéricas para los sucesos', () => {
+  it('un módulo puede escuchar todos los eventos con «*», después de quien escucha por nombre', () => {
+    const oyente = defineModule<{ vistos: string[] }>({
+      id: 'o',
+      name: 'Oyente',
+      initState: () => ({ vistos: [] }),
+      on: {
+        'accion.realizada': (ctx) => ctx.updateState<{ vistos: string[] }>((s) => ({ vistos: [...s.vistos, 'por nombre'] })),
+        '*': (ctx, ev) => ctx.updateState<{ vistos: string[] }>((s) => ({ vistos: [...s.vistos, ev.type] })),
+      },
+    });
+    const g = Game.create([base, oyente], { seed: 1 });
+    g.perform('b.dormir');
+    expect(g.moduleState<{ vistos: string[] }>('o').vistos).toEqual(['por nombre', 'accion.realizada']);
+  });
+
+  it('un modificador puede impedir acciones por etiqueta, con su motivo', () => {
+    const castigo = defineModule({
+      id: 'c',
+      name: 'Castigo',
+      modifiers: [{ id: 'c.castigo', tags: ['descanso'], apply: () => ({ bloquea: 'Estás castigado' }) }],
+    });
+    const g = Game.create([base, castigo], { seed: 1 });
+    expect(g.preview('b.dormir')).toMatchObject({ available: false, reason: 'Estás castigado' });
+    expect(g.perform('b.dormir')).toMatchObject({ ok: false, reason: 'Estás castigado' });
+  });
+});
