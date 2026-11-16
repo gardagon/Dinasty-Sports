@@ -15,6 +15,8 @@ export interface SucesoCompilado {
   deporte?: string;
   /** Con qué cupo compite si es espontáneo. */
   cupo: CategoriaDeCupo;
+  /** ¿Tiene papeles que repartir? (sin ellos, sus condiciones se pueden mirar sin buscar a nadie). */
+  tienePapeles: boolean;
 }
 
 export interface CatalogoDeSucesos {
@@ -34,7 +36,7 @@ export function compilarCatalogo(aportes: readonly AporteDeSucesos[], hayModulo:
     const requiere = [...new Set([...(deporte ? [deporte] : []), ...(h?.requiere ?? []), ...(def.requiere ?? [])])];
     const origen: OrigenDeSuceso = deporte ? 'deporte' : 'base';
     if (requiere.every(hayModulo))
-      sucesos.set(def.id, { def, hilo: h, reparto: { ...(h?.reparto ?? {}), ...(def.reparto ?? {}) }, requiere, origen, ...(deporte ? { deporte } : {}), cupo: def.categoria === 'menor' ? 'menor' : origen });
+      sucesos.set(def.id, { def, hilo: h, reparto: { ...(h?.reparto ?? {}), ...(def.reparto ?? {}) }, requiere, origen, ...(deporte ? { deporte } : {}), cupo: def.categoria === 'menor' ? 'menor' : origen, tienePapeles: Object.keys({ ...(h?.reparto ?? {}), ...(def.reparto ?? {}) }).length > 0 });
   };
   for (const a of aportes) {
     if (a.tipo === 'contador') contadores.push(a);

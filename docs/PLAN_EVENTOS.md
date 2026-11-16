@@ -1048,9 +1048,38 @@ Los pasos 1 a 4 son el sistema; 5 y 6 se pueden hacer en paralelo; el 7 es el pr
 | 3. Hablar con los demás | ✅ | Señales `relacion.cambio`, `familia.cambio`, `perfil.caracter`, `perk.revelado` recogidas por `relaciones`, `familia` y `gen`; servicio `hechos.<módulo>`; reparto; modificadores y restricciones temporales |
 | 4. La herramienta | ✅ | `npm run eventos:nuevo`, `eventos:validar` (también `tests/eventos.test.ts`), `eventos:probar`, `eventos:mapa`, `eventos:indice` |
 | 5. La interfaz | ✅ lo básico | `apps/web/src/main.ts`: ventana del evento (retratos de quien participa, texto, opciones con su pista o el motivo por el que no se pueden elegir, plazo y «Decidir luego»), lista «Pendiente» en la pestaña principal y, en la interfaz de pruebas (pestaña Diario), una lista para **forzar** cualquier evento y ver lo último que ha pasado. Probado a mano en Chromium. Falta: los eventos sin opciones siguen saliendo solo como línea del resultado y del Diario (sin ventana), cambiar la presentación desde «Opciones» y añadirlo a `npm run probar-web` |
-| 6. Bots y medidas | ✅ en parte | Los bots deciden cada evento como alguien con el carácter de su personaje (`decidirSucesos`, la misma regla que usará un PNJ). Chequeo «Ritmo de los eventos» en `npm run sim` y tabla por evento con `npm run sim:eventos`. **Medido (150 días, 1 semilla por bot): 0,0–0,1 eventos por semana**; salen las faltas (bots vago y aleatorio, con su revisión) y los cumpleaños; los comentarios de altura y las revelaciones no salieron en esas partidas. El primer lote es escaso para «que un día no sea igual que otro»: hace falta más contenido ligero. `npm run sim:rapida` con y sin el lote: mismos chequeos. Falta medir con un catálogo de 500 sucesos |
+| 6. Bots y medidas | ✅ en parte | Los bots deciden cada evento como alguien con el carácter de su personaje (`decidirSucesos`, la misma regla que usará un PNJ). Chequeo «Ritmo de los eventos» en `npm run sim` y tabla por evento con `npm run sim:eventos`. **Medido (150 días, 1 semilla por bot): 0,0–0,1 eventos por semana**; salen las faltas (bots vago y aleatorio, con su revisión) y los cumpleaños; los comentarios de altura y las revelaciones no salieron en esas partidas. El primer lote es escaso para «que un día no sea igual que otro»: hace falta más contenido ligero. `npm run sim:rapida` con y sin el lote: mismos chequeos. Medido con 500 sucesos: abajo |
 | 7. Primer contenido | ✅ (por calibrar) | `modules/eventos`: faltas, 18 perks latentes, cumpleaños y altura. Cifras de partida |
 | 8. Recuerdos | ⏸ pendiente | La historia se guarda ya (con variante, opción y personas) |
-| 9. Sucesos de los PNJ | ⏸ pendiente | Preparado en el formato (`para`, `clase`, `ConfigDeSucesos.pnj`, `LectorDeHechos`, `elegirPorCaracter`); falta la pasada semanal de los PNJ, los sucesos de lesión y la herramienta para medir su coste |
+| 9. Sucesos de los PNJ | ✅ solo la clase `lesion` | Un suceso `para: 'cualquiera'` con `clase` puede pasarle a un PNJ: lector de hechos del PNJ, decide él por su carácter, sus marcas son suyas y sus efectos pasan por `estadoDeJugador` (que `npcs` aplica con la señal `persona.estado`). `npcs` avisa de cada lesión nueva (`persona.lesion`) y `eventos.salud.lesion` le da consecuencias (moral, y recuperarse bien o forzar). La pasada semanal de los PNJ para sucesos espontáneos existe y está sin uso (ninguna otra clase activada). Medidas abajo |
+
+### Medidas (`npm run eventos:rendimiento`, 16/11/2026, contenedor de desarrollo)
+
+Las cifras bailan entre pasadas (hasta ±50 % en las más pequeñas): valen como orden de magnitud.
+
+**Catálogo grande: 500 sucesos generados** (30 % diarios, 20 % semanales, 30 % al hacer una acción, 10 % al competir, 10 % por umbral; 10 contadores), frente a los objetivos de §5.1:
+
+| Qué | Medido | Objetivo | |
+|---|---|---|---|
+| Arranque (compilar e indexar) | 3–45 ms | < 50 ms | ✅ |
+| Coste añadido por acción | **0,07–0,12 ms** | < 0,02 ms | ❌ No se cumple: es un 5–8 % de una acción (~1,4 ms). Antes de indexar por el dato de la señal eran 0,84 ms |
+| Coste añadido por día de juego (24 acciones y la pasada diaria) | 1,5 ms | pasada diaria < 1 ms | ✅ Casi todo es el coste por acción; la pasada diaria apenas se nota |
+| Memoria del director tras 28 días | 0,9 KB | — | |
+
+Lo que cuesta por acción son los sucesos que se disparan «al hacer una acción»: con 150 en el catálogo, en cada acción se miran los ~25 que piden una etiqueta que la acción tiene. Si el contenido real llega a tener muchos de ese tipo, la mejora siguiente es mirar primero sus marcas y contadores sin crear nada (hoy cada intento prepara su contexto).
+
+**Sucesos de los PNJ**: tiempo de la acción que cierra la semana (la rutina semanal de todo el mundo, donde va la pasada de los PNJ), con todo desactivado, con lo decidido y con una clase más de sucesos espontáneos generados (probabilidad semanal del 1 % cada uno, con condiciones de edad y carácter, una decisión y efectos sobre el estado).
+
+| | 1.417 personas (ciudad del juego) | 307 personas (ciudad de prueba con fútbol) |
+|---|---|---|
+| Todo desactivado | 10,7 ms | 13,6 ms |
+| **Solo lesiones (lo decidido)** | 14,1 ms (+3,4) | 13,6 ms (+0,0) |
+| Todas las clases, 20 sucesos de vida | 21,2 ms (+10,5) | 16,0 ms (+2,4) |
+| Todas las clases, 100 sucesos de vida | 22,9 ms (+12,2) | 20,3 ms (+6,7) |
+
+- **Solo lesiones no cuesta nada medible**: no hay pasada (las lesiones llegan por señal, una o dos por semana) y la diferencia está dentro del ruido.
+- **Activar una clase con sucesos espontáneos** añade unos 10–12 ms **por semana de juego** con 1.417 personas y 2–7 ms con 307. Una semana de juego son más de 150 acciones (unos 250 ms), así que es menos de un 5 %. Crece con las personas y con los sucesos que salen (cada uno que sale deja marcas y cambia el estado de alguien), no tanto con cuántos hay en el catálogo.
+- Lo que crecería es la **memoria**: con 100 sucesos de vida quedan unas 500 marcas de personas vivas a la vez (unos 20 KB). Sin medir: la ciudad grande de verdad (tarda 40 s en crearse) y el diario de cercanos.
+- **Para el usuario:** con estas cifras, activar más clases para los PNJ es barato en tiempo. Lo que falta para activarlas no es rendimiento sino contenido que valga para cualquiera (hoy casi todo depende de relaciones, dinero o estrés, que los PNJ no tienen).
 
 **Diferencias con la propuesta** (manda `ANEXO_EVENTOS.md`): los sucesos de un hilo van en `sucesos:` (no `eventos:`); los hechos con nombre se leen con `{ hecho: 'faltas' }` y «lo que ha cambiado desde entonces» con `sobreRecuerdo`; un suceso que se dispara con una señal y usa sus datos en un texto lleva `ejemploDeSeñal`; un hilo solo programa sucesos suyos; la historia guarda también la variante; `altura_para_su_edad` va en centímetros sobre lo típico de la edad.

@@ -110,6 +110,7 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
 
 | Efecto | Ejemplo | Quién lo aplica |
 |---|---|---|
+| Estado de juego | `{ estadoDeJugador: { moral: -6 } }`, `{ estadoDeJugador: { baja: -1 }, de: 'amigo' }` | El personaje (sus stats) o `npcs` (señal `persona.estado`) |
 | Estado | `{ estado: 'gen.estres', mas: 8 }`, `{ estado: 'gen.dinero', mas: -10 }` | El director (`addStat`, solo stats de estado) |
 | Entrenar | `{ entrena: 'gen.picardia', cantidad: 2 }` | El director (`train`: pasa por la progresión) |
 | Relación | `{ relacion: 'tutor', afinidad: -6, confianza: -4 }` | `relaciones` (señal `relacion.cambio`) |
@@ -136,6 +137,16 @@ Un `hilo({ id, nombre, reparto, sucesos, instancias, escenarios })` es un conjun
 Los hilos **no se programan entre sí**: se hablan con **marcas** (de toda la partida, con caducidad opcional y, si se quiere, de una persona) y con el estado del mundo (la relación que bajó, el perk que se reveló). La tabla de marcas de `MAPA.md` enseña quién pone y quién lee cada una.
 
 Los **contadores** se declaran como dato: `contador({ id, cuenta: { accion: { tags: ['cardio'], minutosMin: 30 } } })` o `{ señal: 'competicion.resultado' }`. Los comunes están en `modules/eventos/src/contadores.ts`.
+
+### Sucesos que le pasan a cualquiera (PNJ)
+
+Por defecto un suceso es del personaje. Con `para: 'cualquiera'` y una `clase` puede pasarle también a un PNJ, si esa clase está en `ConfigDeSucesos.pnj.clases` (hoy solo `lesion`).
+
+- **Quién lo vive** es el papel `sujeto`: `{sujeto.nombre}`, `{ marca: 'x', de: 'sujeto' }`. Si lo dispara una señal, `sujeto: { deLaSeñal: 'npcId' }` dice qué dato de la señal trae su id. Los espontáneos (`cada`) se tiran una vez por semana y persona.
+- **Solo efectos que valen para todos**: `estadoDeJugador: { moral, forma, fisica, salud, baja }` (para un PNJ lo aplica `npcs`; para el personaje son motivación, forma, energía, salud y baja), marcas (sin `de`, son de quien lo vive), `programa`, `relacion` con alguien del reparto, `si`, `fin`. La validación rechaza `estado`, `entrena`, `caracter`, `revelaPerk`, `modificador`, `restriccion`, `familia` y `presenta`.
+- **Las condiciones** leen lo que se sabe de cualquier persona: `edad`, `altura_cm`, `de_baja`, calendario, perks, carácter, club y marcas. Lo demás (stats, sitio, relaciones) no se sabe de un PNJ y hace falsa la condición.
+- **Decide él**, en el momento, por su carácter (la inclinación `caracter` de cada opción); nada queda pendiente ni se le enseña al jugador. Con `textoDeCercano` y `pnj.diarioDeCercanos`, el personaje se entera por el diario si tiene relación con esa persona.
+- Ejemplo: `modules/eventos/src/salud/lesion.ts`. Lo que cuesta activar más clases: `npm run eventos:rendimiento`.
 
 ## 4. Lo que se puede ajustar sin tocar código
 

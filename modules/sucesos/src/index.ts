@@ -167,7 +167,8 @@ const estadoInicial = (semilla: number, nombre: string): SucesosState => ({
 
 interface Indice {
   cat: CatalogoDeSucesos;
-  porSeñal: Map<string, SucesoCompilado[]>;
+  /** Por señal. Los que exigen un valor concreto en un dato de la señal (`{ señal: 'tags', incluye: 'cardio' }`) van aparte, por ese valor: solo se miran cuando la señal lo trae. */
+  porSeñal: Map<string, { siempre: SucesoCompilado[]; campos: Map<string, Map<string | number | boolean, SucesoCompilado[]>> }>;
   cadaDia: SucesoCompilado[];
   cadaSemana: SucesoCompilado[];
   umbrales: SucesoCompilado[];
@@ -190,7 +191,18 @@ function indiceDe(ctx: ReadContext): Indice {
   i = { cat, porSeñal: new Map(), cadaDia: [], cadaSemana: [], umbrales: [], contadoresPorSeñal: new Map(), contadoresDeAccion: [], config: configDeSucesos(ctx.aportes<CambiosDeConfigDeSucesos>(APORTE_DE_CONFIG_DE_SUCESOS)), cuando: new Map() };
   for (const s of cat.sucesos.values()) {
     const d = s.def.disparo;
-    if ('al' in d) i.porSeñal.set(d.al, [...(i.porSeñal.get(d.al) ?? []), s]);
+    if ('al' in d) {
+      const grupo = i.porSeñal.get(d.al) ?? { siempre: [] as SucesoCompilado[], campos: new Map<string, Map<string | number | boolean, SucesoCompilado[]>>() };
+      i.porSeñal.set(d.al, grupo);
+      const llave = (s.def.cuando ?? []).find((c): c is Extract<Condicion, { señal: string }> => 'señal' in c && (c.incluye !== undefined || c.es !== undefined));
+      if (!llave) grupo.siempre.push(s);
+      else {
+        const porValor = grupo.campos.get(llave.señal) ?? new Map<string | number | boolean, SucesoCompilado[]>();
+        grupo.campos.set(llave.señal, porValor);
+        const valor = (llave.incluye ?? llave.es)!;
+        porValor.set(valor, [...(porValor.get(valor) ?? []), s]);
+      }
+    }
     else if ('cada' in d) (d.cada === 'dia' ? i.cadaDia : i.cadaSemana).push(s);
     else if ('umbral' in d) i.umbrales.push(s);
     i.cuando.set(s.def.id, ordenarCondiciones(s.def.cuando ?? []));
@@ -239,7 +251,15 @@ function hechoComun(ctx: ReadContext, nombre: string): number | string | boolean
 }
 
 /** El lector de hechos del personaje: los servicios de la partida, con lo que diga el servicio de pruebas por delante. */
+const lectores = new WeakMap<ReadContext, LectorDeHechos>();
 function lectorDe(ctx: ReadContext): LectorDeHechos {
+  // Uno por contexto (una señal, una evaluación): lee la partida en vivo, así que no hay nada que se quede viejo.
+  let l = lectores.get(ctx);
+  if (!l) lectores.set(ctx, (l = nuevoLector(ctx)));
+  return l;
+}
+
+function nuevoLector(ctx: ReadContext): LectorDeHechos {
   const p = prueba(ctx)?.hechos ?? {};
   const o = <T>(v: T | undefined, si: () => T): T => (v === undefined ? si() : v);
   return {
@@ -535,6 +555,8 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
   const sujeto = hilo?.sujeto ?? origen.sujeto;
   if (sujeto && !activoParaPnj(i, x)) return false;
 
+  // Lo más barato primero: si ya salió hace poco y no tiene papeles que repartir, no hay nada más que mirar.
+  if (!origen.forzado && !x.tienePapeles && !puedeRepetir(ctx, s, x, hilo?.reparto ?? {})) return false;
   // Reparto: el del hilo abierto vale; lo que falte se busca ahora.
   const reparto: Record<string, string> = { ...(hilo?.reparto ?? {}), ...(sujeto ? { sujeto } : {}) };
   for (const [papel, p] of Object.entries(x.reparto)) {
@@ -896,11 +918,20 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
     pasadaDePnj(ctx, i);
   }
 
-  const porSeñal = i.porSeñal.get(ev.type);
-  if (porSeñal) {
+  const grupo = i.porSeñal.get(ev.type);
+  if (grupo) {
     const señal = (ev.data ?? {}) as Record<string, unknown>;
     const hoy = deDia(ctx);
-    for (const x of porSeñal) {
+    // Los que piden un valor concreto en un dato de la señal solo se miran si la señal lo trae.
+    let candidatos: readonly SucesoCompilado[] = grupo.siempre;
+    for (const [campo, porValor] of grupo.campos) {
+      const v = señal[campo];
+      for (const valor of Array.isArray(v) ? v : [v]) {
+        const lista = porValor.get(valor as string);
+        if (lista) candidatos = candidatos === grupo.siempre ? [...candidatos, ...lista] : (candidatos as SucesoCompilado[]).concat(lista);
+      }
+    }
+    for (const x of candidatos) {
       if (x.def.sujeto) {
         // Lo vive la persona que dice la señal (un PNJ): solo si esa clase de suceso está activada para ellos.
         const sujeto = señal[x.def.sujeto.deLaSeñal];
