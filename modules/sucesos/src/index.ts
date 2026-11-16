@@ -880,6 +880,7 @@ export const sucesos = defineModule<SucesosState>({
       contador: (id) => ctx.state<SucesosState>().contadores[id] ?? 0,
       recuerdos: (persona) => recuerdosDe(ctx, persona),
       config: () => indiceDe(ctx).config,
+      catalogo: () => [...indiceDe(ctx).cat.sucesos.values()].map((x) => ({ id: x.def.id, titulo: x.def.titulo.replace(/\{[^}]*\}/g, '…'), origen: x.origen, ...(x.deporte ? { deporte: x.deporte } : {}), ...(x.hilo ? { hilo: x.hilo.id } : {}) })),
     }),
   },
 });

@@ -379,3 +379,10 @@ ul.cronica li.mia { background: rgba(255, 200, 60, 0.18); border-left: 3px solid
 .retrato-comparar { padding: 8px 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink); cursor: pointer; }
 .retrato-comparar[aria-expanded='true'] { border-color: var(--lane); }
 .comparacion-figuras svg { display: block; height: 320px; width: auto; max-width: 100%; margin: 0 auto; }
+
+/* Sucesos: la ventana de un evento que pide una decisión y la lista de pendientes. */
+.ventana.suceso { max-width: 520px; }
+.suceso-personas { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 8px; }
+.suceso-opciones { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.suceso-opciones .action { width: 100%; text-align: left; }
+.pendientes .pendiente + .pendiente { border-top: 1px solid var(--rule); margin-top: 8px; padding-top: 8px; }

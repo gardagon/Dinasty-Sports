@@ -57,6 +57,8 @@ export interface SucesosService {
   /** Lo vivido, del más antiguo al más reciente (con `persona`, solo aquello en lo que salió). */
   recuerdos(persona?: string): RecuerdoDeSuceso[];
   config(): ConfigDeSucesos;
+  /** Los sucesos que existen en esta partida (para las herramientas y la interfaz de pruebas). */
+  catalogo(): { id: string; titulo: string; origen: OrigenDeSuceso; deporte?: string; hilo?: string }[];
 }
 
 /**
