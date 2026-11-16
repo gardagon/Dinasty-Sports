@@ -1,6 +1,6 @@
 # Plan de eventos y decisiones (E18)
 
-Propuesta de diseño del 16/11/2026, **sin aprobar**. No hay código todavía: lo que sigue es lo que se propone construir y las decisiones que le tocan al usuario (§8). Nada de §8 está decidido.
+Propuesta de diseño del 16/11/2026, **sin aprobar**. No hay código todavía: lo que sigue es lo que se propone construir y las decisiones que le tocan al usuario (§6). Nada de §6 está decidido.
 
 Requisitos del usuario (16/11/2026, `DECISIONES.md`, «Pendiente e ideas»):
 
@@ -23,16 +23,16 @@ Cómo se llaman en el código es la pregunta P12.
 |---|---|---|
 | **Motor de eventos y decisiones** (condiciones, probabilidad, una vez o con espera, programados, por umbral, ligados a PNJ; opciones con requisitos, costes y consecuencias; «puertas») | `BACKLOG_STATS.md` E18.1 y E18.2 | Todo este plan |
 | **Las decisiones mueven los ejes de carácter y abren o cierran opciones** | E4.3 (bloquea E4.4 y E4.5) | Efecto «carácter» en las opciones; condiciones sobre los ejes |
-| **Revelación de los perks latentes** | E5.3; `DECISIONES.md` 24/10 («Perks») y «Pendiente e ideas»; `ARQUITECTURA.md` («Perks») | Efecto «revelar perk»; condiciones sobre perks y sobre lo que se ha entrenado. Hilo de ejemplo §5.2 |
+| **Revelación de los perks latentes** | E5.3; `DECISIONES.md` 24/10 («Perks») y «Pendiente e ideas»; `ARQUITECTURA.md` («Perks») | Efecto «revelar perk»; condiciones sobre perks y sobre lo que se ha entrenado. Hilo de ejemplo §4.2 |
 | **Suertudo y Gafe** (segunda oportunidad, algo sale mal) | E5.6 | Las tiradas de las opciones consultan estos perks (§2.6) |
 | **Autoridad y picardía no tienen de dónde subir** | E18.3; `DECISIONES.md` 17/10 («Sin fuente de subida todavía») | Opciones que las entrenan (`ctx.train`) y que las piden como requisito |
-| **Aviso de los padres por las faltas** (la señal `clase.faltas_excesivas` ya existe; falta quien la recoja) | `DECISIONES.md` 28/10 y «Pendiente e ideas»; `events.ts` | Disparo por señal; reparto con un progenitor. Hilo de ejemplo §5.1 |
+| **Aviso de los padres por las faltas** (la señal `clase.faltas_excesivas` ya existe; falta quien la recoja) | `DECISIONES.md` 28/10 y «Pendiente e ideas»; `events.ts` | Disparo por señal; reparto con un progenitor. Hilo de ejemplo §4.1 |
 | **Apoyo, expectativas y tiempo en casa de los padres** («no hacen nada aún; los moverán los eventos») | E13.1; `DECISIONES.md` 23/10 («Familia y genética») | Efecto «familia»; condiciones sobre esos valores |
 | **Colegio, familia y rivalidades como fuente de eventos**; **la rivalidad nace de eventos** | E18.6; E20 (decisión 3 del diseño de relaciones) | Marcas por persona; efecto «relación» |
 | **Pareja, hijos, rupturas, declararse** | E20.6, E20.7; `DECISIONES.md` 23/10 («Nueva épica E20») | Hilos largos ligados a una persona |
 | **Efectos de las relaciones: un contacto que abre una puerta**; **consecuencias de discutir** y **recuerdos compartidos** | E20.9; «Pendiente e ideas» (E20) | La memoria de los hilos (§2.7) es la base de los recuerdos |
 | **Que los demás reaccionen a tu edad y tu altura** | E18.7; `DECISIONES.md` 28/10 | Condiciones sobre edad y altura relativas; reparto con quien esté presente |
-| **Cumpleaños** como acontecimientos (felicitar, regalos) y **regalos con coste** | `DECISIONES.md` 27/10 («Datos de las personas») y 28/10 («Pendientes ya anotados») | Reparto por fecha; coste en dinero. Hilo de ejemplo §5.3 |
+| **Cumpleaños** como acontecimientos (felicitar, regalos) y **regalos con coste** | `DECISIONES.md` 27/10 («Datos de las personas») y 28/10 («Pendientes ya anotados») | Reparto por fecha; coste en dinero. Hilo de ejemplo §4.3 |
 | **Hermanos**: se van de casa a los 18, su vida afecta a la del personaje, entrenar juntos | `DECISIONES.md` 28/10 («Herencia de casa…») y «Pendiente e ideas» | Disparo por edad de un PNJ; eventos «de mundo» (P6) |
 | **Saludos y llamadas**: que los demás te hablen a ti | `DECISIONES.md` 26/10 («Sin teléfono no hay contacto…») | Eventos ligeros iniciados por un PNJ presente |
 | **Encuentros en el camino** | `DECISIONES.md` 25/10 («Lugares y desplazamientos»: «solo movimiento hasta que haya eventos») | Disparo por la señal `lugares.llegada` |
@@ -65,7 +65,7 @@ modules/<cualquiera>/eventos/*.ts   El contenido: cada módulo aporta sus evento
 packages/core                       Dos ampliaciones genéricas y pequeñas (§2.9). Ningún contenido.
 tools/eventos-*.ts                  La herramienta (§3): validar, crear, probar un hilo, dibujar el mapa.
 sim/                                Los bots deciden; chequeo de frecuencia de eventos.
-apps/web                            La ventana del evento, la lista de pendientes y los recuerdos (§6).
+apps/web                            La ventana del evento, la lista de pendientes y los recuerdos (§5).
 ```
 
 Cómo encaja con las reglas:
@@ -230,7 +230,7 @@ opciones: [
 - **Requisitos** (`requiere`): condiciones como las de §2.3. La opción que no los cumple se ve en gris con el motivo (igual que una acción no disponible) o no se ve (`oculta: true`).
 - **Costes**: un efecto negativo sobre un recurso (dinero, energía) bloquea la opción si no alcanza, como en las acciones.
 - **Tirada**: una prueba contra una stat. La probabilidad de éxito sale de la stat frente a la dificultad con una fórmula única para todo el juego (a fijar en la construcción, con su entrada en `DECISIONES.md`). El azar es estable (`rngEstable` con la semilla, el evento y el día). **Suertudo** repite una tirada fallada de vez en cuando y **Gafe** estropea una acertada (E5.6): se hace una vez, en el director, y vale para todos los eventos.
-- **`caracter`**: cada opción puede declarar hacia qué ejes tira (`{ disciplina: 2, sinceridad: -1 }`). Ese único dato sirve para tres cosas:
+- **`caracter`**: cada opción puede declarar hacia qué ejes tira (`{ disciplina: 2, honestidad: -1 }`). Ese único dato sirve para tres cosas:
   1. elegirla **mueve los ejes del personaje** (E4.3), si el usuario lo quiere así (P7);
   2. un **PNJ** elige entre las opciones según su carácter, con tirada estable (la idea de los «roles derivados de los ejes» del 28/10);
   3. un **bot** de la simulación decide igual, con el carácter de su estrategia.
@@ -283,7 +283,7 @@ interface EventosState {
   pendientes:  { id: number; evento: string; hilo?: number; reparto: Record<string, string>; vence: number; señal?: unknown }[];
   temporales:  { tags: string[]; eficiencia?: number; coste?: number; bloquea?: boolean; motivo: string; hasta: number }[];
   ultimaVez:   Record<string, number>;      // día en que salió cada evento con espera
-  historia:    [dia: number, evento: number, opcion: number, ...reparto: string[]][];   // compacta, §6.2
+  historia:    [dia: number, evento: number, opcion: number, ...reparto: string[]][];   // compacta, §5.2
   indice:      string[];                    // ids de evento y de opción usados en `historia`
   siguiente:   number;
 }
@@ -313,3 +313,518 @@ Cuánto de esto entra en la primera versión es la pregunta P6. Lo que no admite
 Nada más: las opciones son acciones (`resolverAccion` ya existe), el contenido llega por aportes (ya existe), la memoria es estado del módulo, la interfaz lee el servicio `eventos`.
 
 `SAVE_VERSION` sube una vez (estado nuevo de `eventos`, perks revelados en `gen`).
+
+---
+
+## 3. La herramienta para definir eventos
+
+### 3.1 Cómo se escribe un evento
+
+Un evento es **un objeto de datos en un archivo `.ts`** dentro de la carpeta `eventos/` del módulo al que pertenece. No hay funciones dentro: solo textos, números y listas. Se usa TypeScript (y no JSON suelto) por tres razones: el editor **autocompleta y subraya los errores mientras se escribe** (un efecto mal escrito, una opción sin texto), se pueden poner comentarios, y varios eventos parecidos se generan con una función de ayuda (§4.2: una revelación por perk). Lo que sale de esos archivos es JSON puro, y eso es lo que valida y carga el juego; por eso más adelante se puede añadir un editor visual o paquetes de eventos importables sin cambiar nada (P1).
+
+El camino completo para añadir un evento:
+
+```bash
+npm run eventos:nuevo -- familia.cena "Una cena tensa"    # crea modules/familia/eventos/cena.ts con una plantilla comentada
+# … se escribe el evento …
+npm run eventos:validar                                    # lo comprueba todo (§3.3); también corre dentro de npm test
+npm run eventos:probar -- familia.cena                     # lo enseña y lo juega en la terminal (§3.5)
+```
+
+No se toca nada más: `eventos:nuevo` deja el archivo donde el módulo ya recoge todos los de su carpeta (un `index.ts` generado que los junta en `aportes['eventos.catalogo']`). **Ni el motor, ni el director, ni el código del módulo cambian.**
+
+Para un evento suelto no hace falta un hilo: se escribe `evento({...})` solo. Un hilo es un archivo con varios.
+
+### 3.2 La plantilla
+
+Lo que crea `eventos:nuevo` (todo lo opcional viene comentado, con una línea de explicación):
+
+```ts
+import { evento } from '@ds/contracts';
+
+export default evento({
+  id: 'familia.cena',
+  titulo: 'Una cena tensa',
+
+  disparo: { cada: 'dia', prob: 0.05 },          // { al: 'señal' } · { cada: 'dia'|'semana', prob } · { umbral: [...] } · { programado: true }
+  cuando: [{ lugar: 'casa' }, { hora: { desde: 20 * 60 } }],
+  repite: { espera: { dias: 30 } },              // 'nunca' · 'una_vez_por_curso' · { espera } · 'siempre'
+  // reparto: { quien: { tipo: 'progenitor' } },
+  // requiere: ['estudios'],                     // módulos sin los que este evento no existe
+
+  texto: 'Escribe aquí lo que pasa. Usa {quien.nombre} y {quien:o|a} para concordar.',
+
+  opciones: [
+    { id: 'a', texto: 'Primera opción', efectos: [{ estado: 'gen.estres', mas: -2 }], resultado: 'Lo que pasa después.' },
+    { id: 'b', texto: 'Segunda opción', efectos: [] },
+  ],
+  plazo: { dias: 1, porDefecto: 'b' },
+
+  // pruebas: [{ nombre: '…', dado: { … }, elige: 'a', espero: { … } }],   // §3.4
+});
+```
+
+### 3.3 Validación: los tests automáticos de cada evento
+
+`npm run eventos:validar` (y un test dentro de `npm test`, así que también corre en la CI) revisa **todos** los eventos del catálogo sin que quien los escribe tenga que hacer un test. Si algo falla, el mensaje dice el evento, el campo y qué se esperaba.
+
+| Comprobación | Ejemplo de lo que caza |
+|---|---|
+| **Forma** | Un efecto que no existe, una opción sin `texto`, `prob` fuera de 0–1, un evento con opciones sin `plazo` |
+| **Ids** | Prefijo que no es el del módulo que lo aporta; dos eventos o dos opciones con el mismo id |
+| **Referencias** | Una stat que no existe; una señal que nadie emite; un perk o un eje de carácter mal escritos; un evento programado que no está en el catálogo; `porDefecto` que no es una opción |
+| **Regla 4** | `estado:` sobre una stat que no es de estado (hay que usar `entrena:`); `emite:` con una señal que no es compartida |
+| **Módulos** | Se usa un hecho de `estudios` sin `requiere: ['estudios']` |
+| **Textos** | Una llave sin cerrar; un papel que no está en el reparto; un papel opcional usado sin variante. Cada texto se compone **con cada papel en masculino y en femenino** y no puede quedar ninguna llave |
+| **Memoria** | Una marca, un contador o un recuerdo que se **lee y nadie escribe** (error), o que se escribe y nadie lee (aviso: quizá es para un evento futuro) |
+| **Hilos** | Un evento `programado` que nadie programa; un hilo que no puede terminar; un evento inalcanzable desde el primero del hilo |
+| **Cada opción funciona** | En una partida mínima (solo `gen` y el director, con los hechos de otros módulos simulados) se fuerza el evento, se elige **cada opción** (y cada rama de cada tirada) y se comprueba que no lanza errores, que ninguna stat se sale de rango y que el estado sigue siendo JSON |
+| **Sin el módulo** | El catálogo carga y la partida funciona con cada módulo de `requiere` ausente (el evento simplemente no existe) |
+| **Ritmo** (aviso) | Una probabilidad diaria que, con sus condiciones siempre ciertas, daría más de un evento por semana |
+
+Además, la simulación (`npm run sim`) gana un chequeo de **frecuencia**: cuántas veces sale cada evento por año y por estrategia de bot, con aviso si alguno no sale nunca en ninguna semilla o si sale demasiado (`npm run sim:eventos` para verlo solo).
+
+### 3.4 Pruebas escritas por quien diseña: los escenarios
+
+Lo de arriba comprueba que un evento **no está roto**. Para comprobar que **hace lo que se quería**, el propio archivo puede llevar pruebas como datos. No hay que saber programar tests:
+
+```ts
+pruebas: [
+  {
+    nombre: 'Con mucha picardía se puede mentir',
+    dado: { stats: { 'gen.picardia': 30 }, lugar: 'casa', presente: ['tutor'] },
+    espero: { opcionDisponible: 'mentir' },
+  },
+  {
+    nombre: 'Prometer deja la promesa y programa la revisión',
+    dado: { lugar: 'casa', presente: ['tutor'] },
+    elige: 'prometer',
+    espero: { marca: 'prometio_no_faltar', programado: { evento: 'familia.faltas.revision', en: { dias: 21 } } },
+  },
+]
+```
+
+Y para un **hilo entero**, un escenario es una pequeña historia: lo que hay al principio, lo que se elige y cuánto tiempo pasa entre medias.
+
+```ts
+escenarios: [
+  {
+    nombre: 'Promete y cumple',
+    pasos: [
+      { señal: 'clase.faltas_excesivas', datos: { faltas: 12, curso: 0, trimestre: 1 }, dado: { lugar: 'casa', presente: ['tutor'], faltas: 12 } },
+      { sale: 'familia.faltas.charla', elige: 'prometer' },
+      { pasan: { dias: 21 }, dado: { faltas: 12, lugar: 'casa', presente: ['tutor'] } },
+      { sale: 'familia.faltas.revision', variante: 'cumplio' },
+      { espero: { relacion: { tutor: { confianza: { sube: true } } }, hiloCerrado: true } },
+    ],
+  },
+]
+```
+
+Los escenarios corren con `npm test`. `dado` fija los **hechos** (dónde estás, quién hay, cuántas faltas llevas) sin necesidad de jugar una partida hasta llegar ahí: el director lee los hechos a través de una sola pieza, y en las pruebas esa pieza devuelve lo que diga `dado`.
+
+### 3.5 Probar un hilo a mano
+
+```bash
+npm run eventos:probar -- familia.faltas                      # modo interactivo en la terminal
+npm run eventos:probar -- familia.faltas --elige prometer     # recorre un camino y enseña la línea de tiempo
+npm run eventos:probar -- familia.faltas --todos              # todos los caminos posibles, uno por uno
+npm run eventos:mapa -- familia.faltas                        # el dibujo del hilo (para docs/eventos/)
+```
+
+`eventos:probar` enseña, para cada paso, el texto tal como lo vería el jugador (en masculino y en femenino si el papel puede ser de los dos), las opciones con sus requisitos, y tras elegir: los efectos aplicados, las marcas y recuerdos que quedan, y **qué queda programado y para cuándo**. Luego salta al siguiente evento del hilo sin esperar los días. Con `--todos` saca la tabla de caminos (qué combinación de elecciones lleva a qué final), que es la forma rápida de ver si un hilo tiene una rama muerta o un final al que no se llega.
+
+`eventos:mapa` genera un diagrama (Mermaid, en un `.md`) con los eventos como cajas, las opciones como flechas y las marcas que cada uno deja o pide. Sirve para revisar un hilo largo de un vistazo y para ver qué hilos se tocan entre sí por las marcas.
+
+**En el juego**, la interfaz de pruebas (la que hoy enseña la genética con `MOSTRAR_GENETICA`) tendría una lista «Eventos» para **forzar** cualquiera del catálogo en la partida real y ver la memoria del director (marcas, contadores, programados). Es la manera de probar un evento con una partida de verdad.
+
+---
+
+## 4. Tres hilos de ejemplo
+
+Están escritos en el formato propuesto, completos. Las cifras son de ejemplo: las de verdad se fijan al construir cada hilo, con su entrada en `DECISIONES.md` y, si tocan relaciones, en `ANEXO_RELACIONES.md`.
+
+### 4.1 Las faltas llegan a casa
+
+Recoge la señal `clase.faltas_excesivas` que `estudios` ya emite a las 12 faltas del trimestre. Esa misma tarde, en casa, uno de los padres saca el tema. Tres semanas después, lo comprueba. Y si mentiste, la mentira se queda guardada para otros hilos.
+
+```ts
+import { hilo, evento } from '@ds/contracts';
+
+const charla = evento({
+  id: 'familia.faltas.charla',
+  titulo: 'Han llamado del colegio',
+  disparo: { al: 'clase.faltas_excesivas' },
+  cuando: [{ lugar: 'casa' }, { presente: 'tutor' }],
+  aguanta: { dias: 3 },
+  repite: 'una_vez_por_curso',
+  texto:
+    '{tutor.Nombre} te espera en el salón, muy seri{tutor:o|a}. «Han llamado del colegio. ' +
+    'Dicen que llevas {señal.faltas} faltas este trimestre. ¿Me lo explicas?»',
+  urgencia: 'ahora',
+  plazo: { dias: 1, porDefecto: 'callar' },
+  opciones: [
+    {
+      id: 'prometer',
+      texto: 'Reconocerlo y prometer que no volverás a faltar',
+      caracter: { honestidad: 2, disciplina: 1 },
+      minutos: 10,
+      efectos: [
+        { relacion: 'tutor', confianza: 2 },
+        { estado: 'gen.estres', mas: 4 },
+        { marca: 'prometio_no_faltar', dura: { dias: 30 } },
+        { recuerda: { faltas_al_prometer: { faltas: 'total' } } },
+        { programa: 'familia.faltas.revision', en: { dias: 21 } },
+      ],
+      resultado: '{tutor.Nombre} suspira. «Está bien. Pero voy a estar pendiente».',
+    },
+    {
+      id: 'mentir',
+      texto: 'Decir que es un error del colegio',
+      requiere: [{ stat: 'gen.picardia', min: 12 }],
+      caracter: { honestidad: -3 },
+      minutos: 5,
+      tirada: { con: 'gen.picardia', dificultad: 45 },
+      exito: {
+        efectos: [
+          { entrena: 'gen.picardia', cantidad: 2 },
+          { marca: 'mintio_a_sus_padres' },
+          { programa: 'familia.faltas.descubierto', en: { dias: [20, 45] } },
+        ],
+        resultado: '{tutor.Nombre} duda, pero te cree. «Llamaré mañana para aclararlo».',
+      },
+      fallo: {
+        efectos: [
+          { entrena: 'gen.picardia', cantidad: 1 },
+          { relacion: 'tutor', afinidad: -6, confianza: -10 },
+          { familia: 'tutor', apoyo: -3 },
+          { estado: 'gen.estres', mas: 10 },
+          { restriccion: { tags: ['ocio'], dias: 7, motivo: 'Estás castigad{yo:o|a} sin salir' } },
+          { diario: 'Te han pillado mintiendo sobre las faltas: una semana de castigo.', tipo: 'aviso' },
+          { fin: true },
+        ],
+        resultado: '«¿Me tomas por tont{tutor:o|a}? He hablado con tu tutor». Una semana sin salir.',
+      },
+    },
+    {
+      id: 'discutir',
+      texto: 'Contestar que es tu vida',
+      caracter: { disciplina: -2, agresividad: 2 },
+      minutos: 10,
+      efectos: [
+        { relacion: 'tutor', afinidad: -8 },
+        { familia: 'tutor', apoyo: -2 },
+        { entrena: 'gen.autoridad', cantidad: 1 },
+        { estado: 'gen.estres', mas: 8 },
+        { restriccion: { tags: ['ocio'], dias: 7, motivo: 'Estás castigad{yo:o|a} sin salir' } },
+        { programa: 'familia.faltas.revision', en: { dias: 21 } },
+        { recuerda: { faltas_al_prometer: { faltas: 'total' } } },
+      ],
+      resultado: 'La discusión acaba a gritos. Una semana sin salir.',
+    },
+    {
+      id: 'callar',
+      texto: 'Aguantar el chaparrón sin decir nada',
+      minutos: 10,
+      efectos: [
+        { relacion: 'tutor', afinidad: -2 },
+        { estado: 'gen.motivacion', mas: -3 },
+        { recuerda: { faltas_al_prometer: { faltas: 'total' } } },
+        { programa: 'familia.faltas.revision', en: { dias: 21 } },
+      ],
+      resultado: '{tutor.Nombre} habla un buen rato. Tú miras al suelo.',
+    },
+  ],
+});
+
+const revision = evento({
+  id: 'familia.faltas.revision',
+  titulo: 'Tres semanas después',
+  disparo: { programado: true },
+  cuando: [{ lugar: 'casa' }, { presente: 'tutor' }],
+  aguanta: { dias: 5 },
+  variantes: [
+    {
+      id: 'cumplio',
+      si: [{ faltas: 'total', comoMuchoSobreRecuerdo: { faltas_al_prometer: 1 } }],
+      texto: '{tutor.Nombre} deja el móvil. «He hablado con tu tutor: no has vuelto a faltar. Así sí».',
+      efectos: [
+        { relacion: 'tutor', afinidad: 4, confianza: 5 },
+        { familia: 'tutor', apoyo: 2 },
+        { estado: 'gen.motivacion', mas: 4 },
+        { si: [{ marca: 'prometio_no_faltar' }], entonces: [{ caracter: { disciplina: 1 } }] },
+        { fin: true },
+      ],
+    },
+    {
+      id: 'no_cumplio',
+      si: [],
+      texto: '«Has vuelto a faltar». {tutor.Nombre} no levanta la voz, y casi es peor.',
+      efectos: [
+        { relacion: 'tutor', afinidad: -5, confianza: -8 },
+        { familia: 'tutor', apoyo: -3, expectativas: -2 },
+        { restriccion: { tags: ['ocio'], dias: 14, motivo: 'Estás castigad{yo:o|a} sin salir' } },
+        { si: [{ marca: 'prometio_no_faltar' }], entonces: [{ marca: 'rompio_una_promesa_en_casa' }] },
+        { fin: true },
+      ],
+    },
+  ],
+});
+
+const descubierto = evento({
+  id: 'familia.faltas.descubierto',
+  titulo: 'La mentira sale a la luz',
+  disparo: { programado: true },
+  cuando: [{ lugar: 'casa' }, { presente: 'tutor' }],
+  aguanta: { dias: 10 },
+  texto: '{tutor.Nombre} ha estado en la reunión de padres. «No era un error del colegio. Me mentiste a la cara».',
+  efectos: [
+    { relacion: 'tutor', afinidad: -10, confianza: -20 },
+    { familia: 'tutor', apoyo: -5 },
+    { restriccion: { tags: ['ocio'], dias: 14, motivo: 'Estás castigad{yo:o|a} sin salir' } },
+    { marca: 'lo_pillaron_mintiendo_en_casa' },
+    { fin: true },
+  ],
+});
+
+export default hilo({
+  id: 'familia.faltas',
+  nombre: 'Las faltas llegan a casa',
+  requiere: ['estudios'],
+  reparto: { tutor: { tipo: 'progenitor', prefiere: 'mas_expectativas' } },
+  eventos: [charla, revision, descubierto],
+  escenarios: [ /* el de §3.4 y uno por cada rama */ ],
+});
+```
+
+**A años vista.** `mintio_a_sus_padres` y `lo_pillaron_mintiendo_en_casa` no caducan. El evento de «pedir permiso para el campamento de verano» (E9.10), escrito en otro archivo, puede llevar una variante `si: [{ marca: 'lo_pillaron_mintiendo_en_casa' }]` en la que cuesta más que digan que sí. Ninguno de los dos archivos conoce al otro: se hablan por la marca, y `eventos:mapa` lo dibuja.
+
+### 4.2 Un perk latente se revela: «Pulmones grandes»
+
+El perk cuenta desde que naces (`perks.ts`); lo que falta es **enterarse**. Su descripción dice «se nota tras semanas de entrenamiento de fondo»: se cuenta el trabajo de fondo y, cuando hay bastante, alguna semana alguien se da cuenta.
+
+```ts
+import { hilo, evento, contador } from '@ds/contracts';
+
+export const sesionesDeFondo = contador({
+  id: 'gen.sesiones_de_fondo',
+  cuenta: { accion: { tags: ['cardio'], minutosMin: 30 } },   // cada acción de 30 min o más con la etiqueta `cardio`
+});
+
+const revelacion = evento({
+  id: 'gen.pulmones.revelacion',
+  titulo: 'No te cansas como los demás',
+  disparo: { cada: 'semana', prob: 0.25 },
+  cuando: [
+    { perk: 'pulmones_grandes', revelado: false },
+    { contador: 'gen.sesiones_de_fondo', min: 20 },
+  ],
+  repite: 'nunca',
+  reparto: { entrenador: { rol: 'entrenador', delDeportePrincipal: true, opcional: true } },
+  variantes: [
+    {
+      id: 'con_entrenador',
+      si: [{ papel: 'entrenador' }],
+      texto:
+        'Al acabar la sesión, {entrenador.nombre} te para. «Llevo semanas fijándome: los demás llegan ahogados y tú ' +
+        'ni resoplas. Eso no se entrena, eso se trae de casa».',
+      efectos: [
+        { revelaPerk: 'pulmones_grandes' },
+        { relacion: 'entrenador', afinidad: 3 },
+        { estado: 'gen.motivacion', mas: 6 },
+        { diario: 'Has descubierto algo de ti: Pulmones grandes.', tipo: 'logro' },
+        { programa: 'gen.pulmones.propuesta', en: { dias: [14, 42] } },
+      ],
+    },
+    {
+      id: 'sin_entrenador',
+      si: [],
+      texto: 'Hoy te has dado cuenta: cuando los demás ya no pueden, a ti todavía te queda aire. Siempre ha sido así.',
+      efectos: [
+        { revelaPerk: 'pulmones_grandes' },
+        { estado: 'gen.motivacion', mas: 4 },
+        { diario: 'Has descubierto algo de ti: Pulmones grandes.', tipo: 'logro' },
+        { fin: true },
+      ],
+    },
+  ],
+});
+
+const propuesta = evento({
+  id: 'gen.pulmones.propuesta',
+  titulo: 'Una propuesta de tu entrenador',
+  disparo: { programado: true },
+  cuando: [{ presente: 'entrenador' }],
+  aguanta: { dias: 14 },
+  texto: '{entrenador.Nombre} lo ha estado pensando. «Con ese fuelle, quiero que hagas más fondo que el resto. Va a doler».',
+  urgencia: 'ahora',
+  plazo: { dias: 2, porDefecto: 'pensarlo' },
+  opciones: [
+    {
+      id: 'aceptar',
+      texto: 'Aceptar el trabajo extra',
+      caracter: { sacrificio: 2, ambicion: 1 },
+      efectos: [
+        { modificador: { tags: ['cardio'], eficiencia: 1.15, coste: 1.1, dias: 56, motivo: 'Plan de fondo de tu entrenador' } },
+        { relacion: 'entrenador', afinidad: 4 },
+        { fin: true },
+      ],
+      resultado: '«Eso quería oír». Las próximas ocho semanas, el fondo te cunde más… y te cansa más.',
+    },
+    {
+      id: 'pensarlo',
+      texto: 'Decir que prefieres seguir como hasta ahora',
+      caracter: { sacrificio: -1 },
+      efectos: [{ relacion: 'entrenador', afinidad: -1 }, { fin: true }],
+      resultado: '{entrenador.Nombre} se encoge de hombros. «Tú verás».',
+    },
+  ],
+});
+
+export default hilo({
+  id: 'gen.pulmones',
+  nombre: 'Pulmones grandes',
+  eventos: [revelacion, propuesta],
+  contadores: [sesionesDeFondo],
+});
+```
+
+**Los 22 perks latentes sin escribir 22 hilos a mano.** La mayoría de las revelaciones tienen la misma forma (una condición propia, un texto, `revelaPerk`). Como los archivos son TypeScript, una función de ayuda en contracts genera el evento a partir de una fila:
+
+```ts
+export default revelaciones([
+  { perk: 'asmatico', disparo: { al: 'accion.realizada' }, cuando: [{ señal: 'tags', incluye: 'entrenamiento' }, { stat: 'gen.energia', max: 25 }],
+    texto: 'A mitad del ejercicio te falta el aire de una forma que no es normal. El médico lo confirma: asma.' },
+  { perk: 'gigante', disparo: { cada: 'semana', prob: 0.1 }, cuando: [{ edad: { min: 10, max: 16 } }, { alturaParaSuEdad: { min: 1.2 } }],
+    texto: 'Otra vez te quedan cortos los pantalones. El pediatra mira la curva: «Vas a ser muy alt{yo:o|a}».' },
+  // … una fila por perk
+]);
+```
+
+Lo que genera es el mismo dato que si se escribiera a mano, y pasa las mismas comprobaciones.
+
+### 4.3 El cumpleaños de un amigo
+
+Tres días antes del cumpleaños de alguien con quien te llevas bien, te invita. Puedes decir que sí y llevar regalo (cuesta dinero), decir que sí sin más, o que no. Si dices que sí y el día de la fiesta no apareces, queda un **plantón con esa persona**, que meses después otros eventos pueden leer. El hilo se abre **una vez por amigo**.
+
+```ts
+import { hilo, evento } from '@ds/contracts';
+
+const invitacion = evento({
+  id: 'relaciones.cumple.invitacion',
+  titulo: 'Una invitación',
+  disparo: { cada: 'dia', prob: 1 },
+  cuando: [{ presente: 'cumple' }, { no: { marca: 'planton', de: 'cumple' } }],
+  repite: { espera: { dias: 300 }, porReparto: true },
+  texto: '{cumple.Nombre} se te acerca. «El {cumple.diaDelCumple} es mi cumple. Hago una fiesta en casa por la tarde. ¿Te vienes?»',
+  urgencia: 'ahora',
+  plazo: { dias: 1, porDefecto: 'no_ir' },
+  opciones: [
+    {
+      id: 'ir_con_regalo',
+      texto: 'Decir que sí y comprarle algo (10 €)',
+      caracter: { sociabilidad: 2 },
+      efectos: [
+        { estado: 'gen.dinero', mas: -10 },
+        { relacion: 'cumple', afinidad: 2 },
+        { marca: 'lleva_regalo', de: 'cumple', dura: { dias: 5 } },
+        { programa: 'relaciones.cumple.fiesta', en: { elCumpleDe: 'cumple' } },
+      ],
+      resultado: '«¡Genial!»',
+    },
+    {
+      id: 'ir',
+      texto: 'Decir que sí',
+      caracter: { sociabilidad: 1 },
+      efectos: [{ relacion: 'cumple', afinidad: 1 }, { programa: 'relaciones.cumple.fiesta', en: { elCumpleDe: 'cumple' } }],
+      resultado: '«¡Genial!»',
+    },
+    {
+      id: 'no_ir',
+      texto: 'Decir que ese día no puedes',
+      caracter: { sociabilidad: -1 },
+      efectos: [{ relacion: 'cumple', afinidad: -2 }, { fin: true }],
+      resultado: '«Ah… vale». Se le nota la decepción.',
+    },
+  ],
+});
+
+const fiesta = evento({
+  id: 'relaciones.cumple.fiesta',
+  titulo: 'La fiesta de {cumple.nombre}',
+  disparo: { programado: true },
+  cuando: [{ hora: { desde: 17 * 60, hasta: 20 * 60 } }],
+  aguanta: { dias: 0 },                       // es ese día por la tarde o no es
+  siSePierde: 'plantar',
+  texto: 'Son más de las cinco: la fiesta de {cumple.nombre} ya ha empezado.',
+  urgencia: 'pendiente',                      // queda en la lista hasta las 20:00; no interrumpe lo que estés haciendo
+  plazo: { hasta: { hora: 20 * 60 }, porDefecto: 'plantar' },
+  opciones: [
+    {
+      id: 'ir',
+      texto: 'Ir a la fiesta (2 horas)',
+      minutos: 120,
+      caracter: { sociabilidad: 1 },
+      efectos: [
+        { relacion: 'cumple', afinidad: 6, confianza: 3 },
+        { si: [{ marca: 'lleva_regalo', de: 'cumple' }], entonces: [{ relacion: 'cumple', afinidad: 4 }] },
+        { estado: 'gen.estres', mas: -8 },
+        { estado: 'gen.motivacion', mas: 3 },
+        { fin: true },
+      ],
+      resultado: 'Tarta, música y un rato largo de risas. {cumple.Nombre} no para de darte las gracias por venir.',
+    },
+    {
+      id: 'plantar',
+      texto: 'No ir',
+      caracter: { sociabilidad: -2, honestidad: -1 },
+      efectos: [
+        { relacion: 'cumple', afinidad: -10, confianza: -8 },
+        { marca: 'planton', de: 'cumple', dura: { dias: 180 } },
+        { programa: 'relaciones.cumple.reproche', en: { dias: [2, 6] } },
+      ],
+      resultado: 'No has ido. No has avisado.',
+    },
+  ],
+});
+
+const reproche = evento({
+  id: 'relaciones.cumple.reproche',
+  titulo: 'Te lo echa en cara',
+  disparo: { programado: true },
+  cuando: [{ presente: 'cumple' }],
+  aguanta: { dias: 14 },
+  texto: '{cumple.Nombre} te ve y se le cambia la cara. «Te estuve esperando. Dijiste que venías».',
+  urgencia: 'ahora',
+  plazo: { dias: 1, porDefecto: 'nada' },
+  opciones: [
+    {
+      id: 'disculparse',
+      texto: 'Pedirle perdón de verdad',
+      caracter: { honestidad: 2 },
+      tirada: { con: 'gen.empatia', dificultad: 35 },
+      exito: { efectos: [{ relacion: 'cumple', afinidad: 5 }, { quitaMarca: 'planton', de: 'cumple' }, { fin: true }], resultado: 'Tarda, pero acaba sonriendo. «Que no se repita».' },
+      fallo: { efectos: [{ relacion: 'cumple', afinidad: 1 }, { fin: true }], resultado: '«Ya». No suena convencid{cumple:o|a}.' },
+    },
+    {
+      id: 'excusa',
+      texto: 'Inventarte una excusa',
+      requiere: [{ stat: 'gen.picardia', min: 10 }],
+      caracter: { honestidad: -2 },
+      efectos: [{ entrena: 'gen.picardia', cantidad: 1 }, { relacion: 'cumple', afinidad: 2 }, { fin: true }],
+      resultado: 'Te cree a medias.',
+    },
+    { id: 'nada', texto: 'Encogerte de hombros', efectos: [{ relacion: 'cumple', afinidad: -4 }, { fin: true }], resultado: 'Se da la vuelta y se va.' },
+  ],
+});
+
+export default hilo({
+  id: 'relaciones.cumple',
+  nombre: 'El cumpleaños de un amigo',
+  instancias: 'una_por_reparto',
+  reparto: { cumple: { relacion: { afinidad: { min: 20 } }, cumpleEn: { dias: 3 }, edad: { max: 18 } } },
+  eventos: [invitacion, fiesta, reproche],
+});
+```
+
+El `planton` que queda durante seis meses es lo que hace que ese amigo **no vuelva a invitarte** al año siguiente si no lo arreglaste (la condición `no: { marca: 'planton', de: 'cumple' }` de la invitación), y está disponible para cualquier otro evento: por ejemplo, que no quiera ayudarte a estudiar.
