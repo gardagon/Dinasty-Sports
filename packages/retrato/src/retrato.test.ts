@@ -3,6 +3,9 @@ import {
   AL_QUEDARSE_CALVO, CALVICIE, CARA, DISTINTIVOS, empaquetarRostro, envejecimientoAlAzar, envejecimientoHeredado, estiloDePersona, peinadoConCalvicie, rngEstable, OJOS, PEINADOS, peinadoPosible, PELO_COLOR, PELO_TIPO, PIEL, RASGOS_DE_ROSTRO, VELLOS, velloPosible,
   type Apariencia, type CuerpoDePersona, type Rostro,
 } from '@ds/contracts';
+import { medidasDeCara } from './cara';
+import { dibujarCuerpo } from './cuerpo';
+import { Lienzo } from './lienzo';
 import { arrugasA, evolucionDe, etapasVividas, figuraDe, figurasSvg, parametrosDe, retratoDe, retratoSvg } from './index';
 
 const rostro = (v: Partial<Record<(typeof RASGOS_DE_ROSTRO)[number], number>> = {}): string => empaquetarRostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, [v[k] ?? 0.5, 0.5]])) as unknown as Rostro);
@@ -95,6 +98,14 @@ describe('retrato: cada dato se ve', () => {
     distintos(VELLOS.map((v) => retratoSvg(persona('m', { barba: 1 }), 30, { look: { vello: v.id } })));
     distintos([4, 8, 14, 30, 50].map((l) => retratoSvg(persona('m', { calvicie: 0 }), 30, { look: { peinado: 'corto', largoDelPelo: l } })));
     distintos([0, 1, 4, 12, 40].map((l) => retratoSvg(persona('m', { barba: 1 }), 30, { look: { vello: 'afeitado', largoDelVello: l } })));
+  });
+  it('las manos se ven siempre enteras: los brazos cuelgan por fuera del tronco en todas las complexiones, sexos y edades', () => {
+    for (const s of ['f', 'm'] as const) for (const [m, g] of [[0, 0], [18, 20], [30, 40], [45, 35], [85, 30], [100, 60], [25, 80], [0, 100], [100, 100]]) for (const e of [3, 5, 8, 12, 15, 18, 30, 50, 70, 95]) for (const h of [145, 170, 205]) {
+      const P = parametrosDe(persona(s, {}, { musculo: m, grasa: g, alturaAdulta: h }), e);
+      const c = dibujarCuerpo(P, new Lienzo('t').enEscala(P.cabeza / 2), medidasDeCara(P));
+      expect(c.holguraDeLasManos, `${s} ${e} años, músculo ${m}, grasa ${g}, ${h} cm`).toBeGreaterThan(0);
+      expect(c.medioAncho).toBeGreaterThan(0);
+    }
   });
   it('la complexión y la altura cambian la figura', () => {
     distintos([[18, 20], [30, 40], [85, 30], [25, 80]].map(([m, g]) => figuraDe(persona('m', {}, { musculo: m, grasa: g }), 30, 30)));

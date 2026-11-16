@@ -11,7 +11,13 @@ import type { Parametros } from './parametros';
 const mezcla = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 
-export interface CuerpoDibujado { svg: string; hombros: number; medioAncho: number }
+export interface CuerpoDibujado {
+  svg: string;
+  hombros: number;
+  medioAncho: number;
+  /** Cuánto queda (cm) entre el borde de dentro de la mano (el pulgar) y lo más ancho del tronco a su altura: positivo si la mano se ve entera. */
+  holguraDeLasManos: number;
+}
 
 export function dibujarCuerpo(P: Parametros, L: Lienzo, C: Cara): CuerpoDibujado {
   const hh = P.cabeza, u = hh / 2;
@@ -52,7 +58,11 @@ export function dibujarCuerpo(P: Parametros, L: Lienzo, C: Cara): CuerpoDibujado
   const au = H * val(0.052, 0.061, 0.05) * (1 + 0.75 * f + 0.45 * g + 0.45 * flaco + 0.1 * k), af = au * 0.82, wr = H * 0.029 * (1 + 0.1 * g + 0.1 * f);
   const largoBrazo = mezcla(0.88, 1, m) * (1 - 0.1 * k);
   const lu = 0.172 * H * largoBrazo, lf = 0.148 * H * largoBrazo, hl = 0.098 * H * mezcla(0.9, 1, m);
-  const abre = 0.1 + 0.1 * g + 0.06 * fp;
+  // Los brazos cuelgan por fuera del tronco: se abren lo que haga falta para que la mano (con el pulgar hacia dentro) quede fuera de la barriga, la cadera y el bajo de la camiseta.
+  const tronco = Math.max(bajo, cadera, ww * (1.07 + 0.1 * barriga), hw * 1.03);
+  const pulgar = 1.42 * hl * 0.25;
+  const hombro = sw - au * 0.5;
+  const abre = Math.max(0.1 + 0.1 * g + 0.06 * fp, (tronco + pulgar + 0.008 * H - hombro) / (lu + 0.5 * lf));
   let fuera = sw;
   for (const s of [-1, 1]) {
     const S: Pt = [sw - au * 0.5, yS + au * 0.5], Ec: Pt = [S[0] + abre * lu, S[1] + lu], W: Pt = [Ec[0] + abre * 0.5 * lf, Ec[1] + lf];
@@ -104,5 +114,5 @@ export function dibujarCuerpo(P: Parametros, L: Lienzo, C: Cara): CuerpoDibujado
   // La barriga: una sombra curva por debajo.
   if (barriga > 0.3) pliegues.push(L.sombra(`M${n(-ww * 0.85)},${n(mezcla(yW, yBajo, 0.6))}Q0,${n(yBajo + 0.012 * H)} ${n(ww * 0.9)},${n(mezcla(yW, yBajo, 0.6))}Q0,${n(yBajo - 0.012 * H)} ${n(-ww * 0.85)},${n(mezcla(yW, yBajo, 0.6))}Z`, tela, 0.4 * clamp(barriga)));
   o.push(`<g clip-path="url(#${L.recorte(dCamiseta)})">${pliegues.join('')}</g>`);
-  return { svg: o.join(''), hombros: yS, medioAncho: fuera };
+  return { svg: o.join(''), hombros: yS, medioAncho: fuera, holguraDeLasManos: hombro + abre * (lu + 0.5 * lf) - pulgar - tronco };
 }
