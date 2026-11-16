@@ -1,4 +1,5 @@
 import type { LogEntry } from '../context';
+import type { CambioDeEstadoDeJugador } from '../events';
 import type { EstadoVinculo } from '../relaciones';
 
 /**
@@ -58,6 +59,8 @@ export type Cuando = { dias: Dias } | { proximo: PeriodoDelCurso } | { elCumpleD
 /** Lo que deja un suceso. Unos efectos los aplica el director (memoria, estado, entrenar) y otros los pide al módulo dueño con una señal compartida. */
 export type Efecto =
   | { estado: string; mas: number }
+  /** El estado de juego (moral, forma, condición, salud, baja) de quien vive el suceso o, con `de`, de alguien del reparto. Vale para el personaje y para cualquier persona. */
+  | { estadoDeJugador: CambioDeEstadoDeJugador; de?: string }
   | { entrena: string; cantidad: number }
   | { relacion: string; afinidad?: number; confianza?: number }
   | { familia: string; apoyo?: number; expectativas?: number }
@@ -170,8 +173,15 @@ export interface SucesoDef extends DecisionDef {
    * «evento base» del juego. En un hilo se dice una vez, en el hilo.
    */
   deporte?: string;
-  /** A quién puede pasarle: solo al personaje (depende de lo que solo él tiene) o a cualquier persona. */
+  /**
+   * A quién puede pasarle: solo al personaje (depende de lo que solo él tiene) o a cualquier persona. Los de `cualquiera` solo usan efectos que valen
+   * para todos (estado de juego, marcas, programar…) y, cuando le pasan a un PNJ, este decide solo, por su carácter. Su protagonista es el papel `sujeto`.
+   */
   para?: 'personaje' | 'cualquiera';
+  /** Quién lo vive cuando lo dispara una señal: el id de persona que viene en ese dato de la señal (`{ deLaSeñal: 'npcId' }`). Sin él, el personaje. */
+  sujeto?: { deLaSeñal: string };
+  /** Lo que se entera el personaje cuando le pasa a alguien con quien tiene relación (una línea del diario; `{sujeto.nombre}` es a quien le pasa). */
+  textoDeCercano?: string;
   /** Clase de suceso (`lesion`…): con ella se activan o no los sucesos de los PNJ (`ConfigDeSucesos.pnj.clases`). */
   clase?: string;
   disparo: Disparo;

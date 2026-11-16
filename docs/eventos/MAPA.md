@@ -58,11 +58,13 @@ flowchart LR
 | `eventos.perks.gafe` | Qué mala pata | cada semana, 4 % | importante |
 | `eventos.perks.gigante` | Otra vez te quedan cortos los pantalones | cada semana, 10 % | importante |
 | `eventos.perks.enano` | Los demás han pegado el estirón | cada semana, 10 % | importante |
+| `eventos.salud.lesion` | Una lesión | al: `persona.lesion` | importante |
 
 ## Marcas
 
 | Marca | La pone | La lee |
 |---|---|---|
+| `lesionado_hace_poco` | `eventos.salud.lesion` | — (todavía nadie) |
 | `lleva_regalo` | `eventos.relaciones.cumple.invitacion` | `eventos.relaciones.cumple.fiesta` |
 | `lo_pillaron_mintiendo_en_casa` | `eventos.familia.faltas.charla`, `eventos.familia.faltas.descubierto` | — (todavía nadie) |
 | `mintio_a_sus_padres` | `eventos.familia.faltas.charla` | — (todavía nadie) |

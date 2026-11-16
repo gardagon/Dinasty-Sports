@@ -95,6 +95,7 @@ export function* textosDeSuceso(s: SucesoDef): Generator<{ donde: string; texto:
     const en = variante ? `variante «${variante}»` : 'suceso';
     if (d.titulo) yield { donde: `${en}, título`, texto: d.titulo, variante };
     if (d.texto) yield { donde: `${en}, texto`, texto: d.texto, variante };
+    if (d === s && s.textoDeCercano) yield { donde: 'suceso, texto para los cercanos', texto: s.textoDeCercano, variante };
     for (const e of efectosEn(d.efectos)) {
       if ('diario' in e) yield { donde: `${en}, diario`, texto: e.diario, variante };
       if ('restriccion' in e) yield { donde: `${en}, restricción`, texto: e.restriccion.motivo, variante };
@@ -202,6 +203,9 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
   for (const { def: s, hilo: h, reparto, requiere } of cat.sucesos.values()) {
     const err = (t: string) => errores.push(`Suceso «${s.id}»: ${t}`);
     const papeles = new Set(Object.keys(reparto));
+    const deCualquiera = s.para === 'cualquiera';
+    // En un suceso que puede pasarle a cualquiera, el protagonista es el papel `sujeto` (lo pone el director).
+    if (deCualquiera) papeles.add('sujeto');
     const recuerdosDelHilo = new Set<string>();
     for (const x of h?.sucesos ?? [s]) for (const e of efectosDeSuceso(x)) if ('recuerda' in e) for (const k of Object.keys(e.recuerda)) recuerdosDelHilo.add(k);
 
@@ -275,8 +279,17 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
       }
     }
 
+    if (deCualquiera && !s.clase) err('puede pasarle a cualquiera («para»), así que necesita una «clase» (con ella se activa o no para los PNJ)');
+    if (s.sujeto && !('al' in s.disparo)) err('«sujeto» solo vale en un suceso que se dispara con una señal');
+    if (s.sujeto && !deCualquiera) err('«sujeto» solo vale con «para: \'cualquiera\'»');
+    if (s.textoDeCercano && !deCualquiera) err('«textoDeCercano» solo vale con «para: \'cualquiera\'»');
+
     // Efectos
     for (const e of efectosDeSuceso(s)) {
+      // Lo que solo tiene el personaje no puede estar en un suceso que le pasa a cualquiera.
+      const soloPersonaje = (['estado', 'entrena', 'caracter', 'revelaPerk', 'modificador', 'restriccion', 'familia', 'presenta'] as const).find((k) => k in e);
+      if (deCualquiera && soloPersonaje) err(`el efecto «${soloPersonaje}» solo vale para el personaje y este suceso puede pasarle a cualquiera (usa «estadoDeJugador» o marcas)`);
+      if ('estadoDeJugador' in e && e.de) papel(e.de, 'un efecto');
       if ('estado' in e && entorno) {
         const st = entorno.stats.get(e.estado);
         if (!st) err(`un efecto cambia «${e.estado}», que no existe`);
@@ -322,7 +335,7 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
         if (l.tipo === 'dato' && l.de === 'señal' && 'al' in s.disparo && s.ejemploDeSeñal?.[l.clave] === undefined) err(`${donde}: usa «{señal.${l.clave}}»; pon un «ejemploDeSeñal» con ese dato para poder probarlo`);
         if ((l.tipo === 'campo' || l.tipo === 'genero') && l.quien !== 'yo') {
           if (!papeles.has(l.quien)) err(`${donde}: nombra el papel «${l.quien}», que no está en el reparto`);
-          else if (reparto[l.quien].opcional && !seguros.has(l.quien)) err(`${donde}: usa el papel opcional «${l.quien}» sin una condición que asegure que hay alguien ({ papel: '${l.quien}' })`);
+          else if (reparto[l.quien]?.opcional && !seguros.has(l.quien)) err(`${donde}: usa el papel opcional «${l.quien}» sin una condición que asegure que hay alguien ({ papel: '${l.quien}' })`);
         }
       }
     }

@@ -39,6 +39,8 @@ import {
   type DatosDeTexto,
   type DecisionDef,
   type Efecto,
+  type EstadoDePersonaData,
+  elegirPorCaracter,
   type FamilyService,
   type GameEvent,
   type HechosService,
@@ -87,6 +89,8 @@ interface HiloAbierto {
   reparto: Record<string, string>;
   recuerdos: Record<string, number | string>;
   desde: number;
+  /** Si el hilo es de un PNJ (un suceso que puede pasarle a cualquiera): quién lo vive. */
+  sujeto?: string;
 }
 
 interface Programado {
@@ -272,15 +276,38 @@ function lectorDe(ctx: ReadContext): LectorDeHechos {
   };
 }
 
+/**
+ * El lector de hechos de un PNJ: lo que se sabe de cualquier persona (edad, perks, carácter, club, si está de baja). Lo que solo tiene el
+ * personaje (dinero, estrés, sus relaciones) no se sabe y hace falsa la condición: por eso esos sucesos son `para: 'personaje'`.
+ */
+function lectorDeNpc(ctx: ReadContext, id: string): LectorDeHechos {
+  const n = ctx.service<NpcDirectory>(SERVICES.npcs)?.get(id);
+  return {
+    stat: () => undefined,
+    hecho: (nombre) => (nombre === 'edad' ? (n?.edadExacta ?? n?.age) : nombre === 'altura_cm' ? n?.alturaCm : nombre === 'de_baja' ? !!n?.estadoDeJuego?.baja : nombre === 'trimestre' ? ctx.time.term : nombre === 'curso' ? ctx.time.schoolYear : nombre === 'dia' ? ctx.time.day : undefined),
+    periodo: () => ctx.time.period,
+    diaDeLaSemana: () => ctx.time.weekday,
+    minutoDelDia: () => ctx.time.minuteOfDay,
+    lugar: () => undefined,
+    presente: () => false,
+    relacion: () => undefined,
+    familia: () => undefined,
+    perk: (perk) => (n?.perks?.activos.includes(perk) ? 'latente' : 'no'),
+    caracter: (eje) => n?.rasgos?.caracter[eje],
+    enClub: () => !!n?.club,
+  };
+}
+
 const claveDeMarca = (marca: string, persona?: string): string => (persona ? `${marca}@${persona}` : marca);
 
-function contextoDe(ctx: ReadContext, s: SucesosState, reparto: Record<string, string>, hilo?: HiloAbierto, señal?: Record<string, unknown>): ContextoDeCondicion {
+function contextoDe(ctx: ReadContext, s: SucesosState, reparto: Record<string, string>, hilo?: HiloAbierto, señal?: Record<string, unknown>, sujeto?: string): ContextoDeCondicion {
   const dia = deDia(ctx);
   return {
-    hechos: lectorDe(ctx),
+    hechos: sujeto ? lectorDeNpc(ctx, sujeto) : lectorDe(ctx),
     reparto,
+    // Las marcas sin persona de un suceso que vive un PNJ son las suyas.
     marca: (m, persona) => {
-      const x = s.marcas[claveDeMarca(m, persona)];
+      const x = s.marcas[claveDeMarca(m, persona ?? sujeto)];
       return !!x && (x.hasta === undefined || x.hasta > dia);
     },
     contador: (id) => s.contadores[id] ?? 0,
@@ -306,7 +333,8 @@ function personaDeTexto(ctx: ReadContext, id: string): PersonaDeTexto {
 function datosDeTexto(ctx: ReadContext, s: SucesosState, reparto: Record<string, string>, hilo?: HiloAbierto, señal?: Record<string, unknown>): DatosDeTexto {
   const papeles: Record<string, PersonaDeTexto> = {};
   for (const [papel, id] of Object.entries(reparto)) papeles[papel] = personaDeTexto(ctx, id);
-  return { yo: { nombre: s.nombre, gender: 'm' }, papeles, señal, recuerdo: hilo?.recuerdos, pais: ctx.pais.nombre };
+  // Quien vive el suceso: el personaje o, si le pasa a un PNJ, ese PNJ (el papel `sujeto`).
+  return { yo: reparto.sujeto ? papeles.sujeto : { nombre: s.nombre, gender: 'm' }, papeles, señal, recuerdo: hilo?.recuerdos, pais: ctx.pais.nombre };
 }
 
 const enRango = (v: number | undefined, r?: { min?: number; max?: number }): boolean => !r || (v !== undefined && (r.min === undefined || v >= r.min) && (r.max === undefined || v <= r.max));
@@ -411,14 +439,29 @@ interface Situacion {
   reparto: Record<string, string>;
   hilo?: HiloAbierto;
   señal?: Record<string, unknown>;
+  /** El PNJ que vive el suceso, si no es el personaje. */
+  sujeto?: string;
 }
+
+/** Qué stat del personaje hace el papel de cada campo del estado de juego de una persona (`estado-de-jugador.ts`). */
+const ESTADO_DEL_PERSONAJE = { moral: 'gen.motivacion', forma: 'gen.forma', fisica: 'gen.energia', salud: 'gen.salud', baja: 'gen.baja' } as const;
 
 function aplicar(ctx: ActionContext, x: Situacion, efectos: readonly Efecto[] | undefined): void {
   const { s, reparto } = x;
   const hoy = deDia(ctx);
   const texto = (t: string) => componerTexto(t, datosDeTexto(ctx, s, reparto, x.hilo, x.señal));
   for (const e of efectos ?? []) {
-    if ('estado' in e) ctx.addStat(e.estado, e.mas);
+    if ('estadoDeJugador' in e) {
+      // El estado de juego de quien vive el suceso (o de alguien del reparto): si es un PNJ lo aplica quien lo guarda; si es el personaje, sus stats.
+      const quien = e.de ? reparto[e.de] : x.sujeto;
+      if (quien) ctx.emit<EstadoDePersonaData>({ type: SHARED_EVENTS.ESTADO_DE_PERSONA, data: { npcId: quien, ...e.estadoDeJugador } });
+      else if (!e.de) for (const [campo, d] of Object.entries(e.estadoDeJugador)) {
+        const stat = ESTADO_DEL_PERSONAJE[campo as keyof typeof ESTADO_DEL_PERSONAJE];
+        if (d && ctx.hasStat(stat)) ctx.addStat(stat, d);
+      }
+    } else if (x.sujeto && ('estado' in e || 'entrena' in e || 'caracter' in e || 'revelaPerk' in e || 'modificador' in e || 'restriccion' in e || 'familia' in e || 'presenta' in e)) {
+      // Lo que solo tiene el personaje no se le aplica a un PNJ (la validación ya lo impide en los sucesos «para cualquiera»).
+    } else if ('estado' in e) ctx.addStat(e.estado, e.mas);
     else if ('entrena' in e) ctx.train(e.entrena, e.cantidad);
     else if ('relacion' in e) {
       if (reparto[e.relacion]) ctx.emit<CambioDeRelacionData>({ type: SHARED_EVENTS.CAMBIO_DE_RELACION, data: { npcId: reparto[e.relacion], afinidad: e.afinidad, confianza: e.confianza, motivo: x.suceso.def.id } });
@@ -431,11 +474,11 @@ function aplicar(ctx: ActionContext, x: Situacion, efectos: readonly Efecto[] | 
     } else if ('emite' in e) ctx.emit({ type: e.emite, data: e.datos });
     else if ('diario' in e) ctx.log(texto(e.diario), e.tipo ?? 'info');
     else if ('marca' in e) {
-      if (!e.de || reparto[e.de]) s.marcas[claveDeMarca(e.marca, e.de && reparto[e.de])] = { ...(e.dura ? { hasta: hoy + e.dura.dias } : {}), ...(e.valor === undefined ? {} : { valor: e.valor }) };
-    } else if ('quitaMarca' in e) delete s.marcas[claveDeMarca(e.quitaMarca, e.de && reparto[e.de])];
+      if (!e.de || reparto[e.de]) s.marcas[claveDeMarca(e.marca, e.de ? reparto[e.de] : x.sujeto)] = { ...(e.dura ? { hasta: hoy + e.dura.dias } : {}), ...(e.valor === undefined ? {} : { valor: e.valor }) };
+    } else if ('quitaMarca' in e) delete s.marcas[claveDeMarca(e.quitaMarca, e.de ? reparto[e.de] : x.sujeto)];
     else if ('recuerda' in e) {
       if (x.hilo) for (const [k, v] of Object.entries(e.recuerda)) {
-        const valor = typeof v === 'number' ? v : lectorDe(ctx).hecho(v);
+        const valor = typeof v === 'number' ? v : (x.sujeto ? lectorDeNpc(ctx, x.sujeto) : lectorDe(ctx)).hecho(v);
         if (typeof valor === 'number' || typeof valor === 'string') x.hilo.recuerdos[k] = valor;
       }
     } else if ('programa' in e) {
@@ -449,7 +492,7 @@ function aplicar(ctx: ActionContext, x: Situacion, efectos: readonly Efecto[] | 
       const m = e.modificador;
       s.temporales.push({ tags: [...m.tags], eficiencia: m.eficiencia, coste: m.coste, duracion: m.duracion, motivo: texto(m.motivo), hasta: hoy + m.dias });
     } else if ('restriccion' in e) s.temporales.push({ tags: [...e.restriccion.tags], bloquea: true, motivo: texto(e.restriccion.motivo), hasta: hoy + e.restriccion.dias });
-    else if ('si' in e) aplicar(ctx, x, cumplenTodas(e.si, contextoDe(ctx, s, reparto, x.hilo, x.señal)) ? e.entonces : e.sino);
+    else if ('si' in e) aplicar(ctx, x, cumplenTodas(e.si, contextoDe(ctx, s, reparto, x.hilo, x.señal, x.sujeto)) ? e.entonces : e.sino);
     else if ('fin' in e) cerrarHilo(s, x.hilo?.id);
   }
 }
@@ -480,14 +523,20 @@ function puedeRepetir(ctx: ReadContext, s: SucesosState, x: SucesoCompilado, rep
 /**
  * Intenta que salga un suceso ahora. Devuelve si ha salido. Si es de un hilo y no viene de uno abierto (`hilo`), lo abre.
  */
-function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { hilo?: number; señal?: Record<string, unknown>; forzado?: boolean } = {}): boolean {
+/** ¿Pueden los PNJ vivir este suceso? Solo los que valen para cualquiera y son de una clase activada (`ConfigDeSucesos.pnj.clases`). */
+const activoParaPnj = (i: Indice, x: SucesoCompilado): boolean => x.def.para === 'cualquiera' && !!x.def.clase && i.config.pnj.clases.includes(x.def.clase);
+
+function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { hilo?: number; señal?: Record<string, unknown>; forzado?: boolean; sujeto?: string } = {}): boolean {
   const s = mut(ctx);
   const def = x.def;
   let hilo = origen.hilo === undefined ? undefined : s.hilos.find((h) => h.id === origen.hilo);
   if (origen.hilo !== undefined && !hilo) return false;
+  // Quién lo vive: el personaje o un PNJ (el de su hilo abierto o el que diga quien lo dispara).
+  const sujeto = hilo?.sujeto ?? origen.sujeto;
+  if (sujeto && !activoParaPnj(i, x)) return false;
 
   // Reparto: el del hilo abierto vale; lo que falte se busca ahora.
-  const reparto: Record<string, string> = { ...(hilo?.reparto ?? {}) };
+  const reparto: Record<string, string> = { ...(hilo?.reparto ?? {}), ...(sujeto ? { sujeto } : {}) };
   for (const [papel, p] of Object.entries(x.reparto)) {
     if (reparto[papel]) continue;
     const quien = repartir(ctx, s, def.id, papel, p, origen.señal);
@@ -496,24 +545,44 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
   }
   if (x.hilo && !hilo) {
     const abiertos = s.hilos.filter((h) => h.def === x.hilo!.id);
-    if ((x.hilo.instancias ?? 'una') === 'una' ? abiertos.length : abiertos.some((h) => claveDeReparto(h.reparto) === claveDeReparto(reparto))) return false;
+    if ((x.hilo.instancias ?? 'una') === 'una' && !sujeto ? abiertos.length : abiertos.some((h) => claveDeReparto(h.reparto) === claveDeReparto(reparto))) return false;
   }
   // Solo un suceso forzado a mano puede saltarse sus condiciones (para recorrer todos los caminos); los demás siguen sus reglas.
   const todoVale = !!origen.forzado && !!prueba(ctx)?.todoVale;
   if (!todoVale && !puedeRepetir(ctx, s, x, reparto)) return false;
-  const c = contextoDe(ctx, s, reparto, hilo, origen.señal);
+  const c = contextoDe(ctx, s, reparto, hilo, origen.señal, sujeto);
   if (!todoVale && !cumplenTodas(i.cuando.get(def.id), c)) return false;
   const dec = decisionDe(def, c, todoVale ? prueba(ctx)?.variante?.(def.id) : undefined);
   if (!dec) return false;
 
   const hoy = deDia(ctx);
   if (x.hilo && !hilo) {
-    hilo = { id: s.siguiente++, def: x.hilo.id, reparto: { ...reparto }, recuerdos: {}, desde: hoy };
+    hilo = { id: s.siguiente++, def: x.hilo.id, reparto: { ...reparto }, recuerdos: {}, desde: hoy, ...(sujeto ? { sujeto } : {}) };
     s.hilos.push(hilo);
   }
   s.ultimaVez[def.id] = hoy;
   if (typeof def.repite === 'object' && def.repite.porReparto) s.ultimaVez[`${def.id}@${claveDeReparto(reparto)}`] = hoy;
-  const sit: Situacion = { s, i, suceso: x, reparto, hilo, señal: origen.señal };
+  const sit: Situacion = { s, i, suceso: x, reparto, hilo, señal: origen.señal, sujeto };
+  if (sujeto) {
+    // Le pasa a un PNJ: no hay nada que enseñar ni que esperar. Se aplica lo que deja y, si hay que decidir, decide él por su carácter.
+    aplicar(ctx, sit, dec.d.efectos);
+    const lector = lectorDeNpc(ctx, sujeto);
+    const elegibles = (dec.d.opciones ?? []).filter((o) => cumplenTodas(o.requiere, c)).map((o) => o.id);
+    const elegida = elegirPorCaracter(dec.d.opciones ?? [], elegibles, (eje) => lector.caracter(eje), rngEstable(s.semilla, 'pnj', def.id, sujeto, hoy).next());
+    const o = dec.d.opciones?.find((y) => y.id === elegida);
+    if (o) {
+      const exito = !o.tirada || rngEstable(s.semilla, 'tirada', def.id, o.id, sujeto, hoy).chance(probabilidadDeExito(lector.stat(o.tirada.con) ?? 50, o.tirada.dificultad));
+      if (o.tirada) aplicar(ctx, sit, o.efectos);
+      aplicar(ctx, sit, (o.tirada ? (exito ? o.exito : o.fallo) : o)?.efectos);
+    }
+    // Si el personaje tiene relación con esa persona, se entera (y queda entre lo vivido con ella), si está activado.
+    if (def.textoDeCercano && i.config.pnj.diarioDeCercanos && ctx.service<RelationsService>(SERVICES.relaciones)?.get(sujeto)) {
+      ctx.log(componerTexto(def.textoDeCercano, datosDeTexto(ctx, s, reparto, hilo, origen.señal)), 'info');
+      apuntar(s, hoy, def.id, o?.id, reparto, dec.variante);
+    }
+    cerrarSiAcabo(s, hilo?.id);
+    return true;
+  }
   const datos = datosDeTexto(ctx, s, reparto, hilo, origen.señal);
 
   if (!dec.d.opciones?.length) {
@@ -751,6 +820,40 @@ function espontaneos(ctx: ActionContext, i: Indice, lista: readonly SucesoCompil
   }
 }
 
+/** Mezcla de enteros (murmur3) a un número en [0, 1): el azar de «este suceso, esta persona, esta semana» sin crear un generador por cada uno. */
+function azarDe(a: number, b: number, c: number): number {
+  let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35) ^ Math.imul(c + 0x165667b1, 0x27d4eb2f);
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+const huella = (t: string): number => {
+  let h = 0x811c9dc5;
+  for (let k = 0; k < t.length; k++) h = Math.imul(h ^ t.charCodeAt(k), 0x01000193);
+  return h | 0;
+};
+
+/**
+ * La pasada semanal de los PNJ: los sucesos espontáneos que pueden pasarle a cualquiera y son de una clase activada se tiran una vez por
+ * semana y persona (calcular por semanas no es recortar). Cada tirada es propia del suceso, la persona y la semana. Sin clases activadas con
+ * sucesos espontáneos no cuesta nada. Lo que cuesta activarlas se mide con `npm run eventos:rendimiento`.
+ */
+function pasadaDePnj(ctx: ActionContext, i: Indice): void {
+  const lista = [...i.cadaSemana, ...i.cadaDia].filter((x) => activoParaPnj(i, x));
+  if (!lista.length) return;
+  const npcs = ctx.service<NpcDirectory>(SERVICES.npcs)?.list() ?? [];
+  const s = mut(ctx);
+  const semana = ctx.time.week;
+  const sales = lista.map((x) => ({ x, sal: huella(x.def.id) ^ s.semilla, prob: (x.def.disparo as { prob: number }).prob }));
+  for (const n of npcs) {
+    const h = huella(n.id);
+    for (const { x, sal, prob } of sales) if (azarDe(sal, h, semana) < prob) intentar(ctx, i, x, { sujeto: n.id });
+  }
+}
+
 function umbrales(ctx: ActionContext, i: Indice): void {
   const s = mut(ctx);
   for (const x of i.umbrales) {
@@ -790,6 +893,7 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
     espontaneos(ctx, i, i.cadaDia, 'dia');
   } else if (ev.type === CORE_EVENTS.WEEK_END) {
     espontaneos(ctx, i, i.cadaSemana, 'semana');
+    pasadaDePnj(ctx, i);
   }
 
   const porSeñal = i.porSeñal.get(ev.type);
@@ -797,6 +901,12 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
     const señal = (ev.data ?? {}) as Record<string, unknown>;
     const hoy = deDia(ctx);
     for (const x of porSeñal) {
+      if (x.def.sujeto) {
+        // Lo vive la persona que dice la señal (un PNJ): solo si esa clase de suceso está activada para ellos.
+        const sujeto = señal[x.def.sujeto.deLaSeñal];
+        if (typeof sujeto === 'string' && activoParaPnj(i, x)) intentar(ctx, i, x, { señal, sujeto });
+        continue;
+      }
       if (intentar(ctx, i, x, { señal })) continue;
       // No era el momento: si aguanta, se queda esperando como un programado más (sin hilo todavía).
       if (x.def.aguanta && !x.hilo && !s.programados.some((p) => p.suceso === x.def.id)) s.programados.push({ dia: hoy, hasta: hoy + x.def.aguanta.dias, suceso: x.def.id, señal });

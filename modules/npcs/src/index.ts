@@ -1,4 +1,4 @@
-import { APORTES, CORE_EVENTS, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
@@ -687,7 +687,7 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
  * capacidades y habilidades, y su rendimiento (`levels`) calculado con ellas. `fin` es el día en que acaba la semana. Los de un equipo con ejercicios elegidos por el
  * entrenador hacen todos los mismos, según lo que le falta al equipo.
  */
-export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number, sesionesPorId?: Map<string, number>): void {
+export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number, sesionesPorId?: Map<string, number>, lesionados?: LesionDePersonaData[]): void {
   for (const pob of pobs) {
     const r = pob.rutina;
     const f = rend.get(pob.deporte);
@@ -714,6 +714,8 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
         animo: resil,
         constitucion: n.cap![CAPACIDADES_GENETICAS.indexOf('gen.constitucion')] ?? 50,
       });
+      // Una lesión nueva de esta semana se apunta para avisar de ella (`persona.lesion`).
+      if (lesionados && n.estado.baja && !estado.baja) lesionados.push({ npcId: n.id, semanas: n.estado.baja, deporte: pob.deporte });
       // Las sesiones que ha hecho son los minutos de su cuerpo esta semana (si juega a más de un deporte con rutina, se suman).
       if (sesionesPorId && res.sesiones > 0) sesionesPorId.set(n.id, (sesionesPorId.get(n.id) ?? 0) + res.sesiones);
       n.cap!.splice(0, n.cap!.length, ...res.cap);
@@ -1247,8 +1249,25 @@ export const npcs = defineModule<NpcsState>({
       }));
     },
 
+    // Algo que ha pasado (un suceso) cambia el estado de juego de alguien: dentro de sus límites, sin lesionar a un sano ni curar del todo a un lesionado.
+    [SHARED_EVENTS.ESTADO_DE_PERSONA]: (ctx, ev) => {
+      const d = ev.data as EstadoDePersonaData;
+      const de0a100 = (v: number) => Math.min(100, Math.max(0, v));
+      ctx.updateState<NpcsState>((s) => {
+        const k = s.npcs.findIndex((n) => n.id === d.npcId);
+        const e = k < 0 ? undefined : s.npcs[k].estado;
+        if (!e) return s;
+        const baja = e.baja && d.baja ? Math.max(1, e.baja + d.baja) : e.baja;
+        const estado = { fisica: de0a100(e.fisica + (d.fisica ?? 0)), moral: de0a100(e.moral + (d.moral ?? 0)), forma: de0a100(e.forma + (d.forma ?? 0)), salud: de0a100(e.salud + (d.salud ?? 0)), ...(baja ? { baja } : {}) };
+        const npcs = s.npcs.slice();
+        npcs[k] = { ...npcs[k], estado };
+        return { ...s, npcs };
+      });
+    },
+
     [CORE_EVENTS.WEEK_END]: (ctx, ev) => {
       const { week } = ev.data as { week: number };
+      const lesionados: LesionDePersonaData[] = [];
       // Cada semana, las capacidades de los niños se desarrollan y caen (las mismas reglas que las del personaje).
       ctx.updateState<NpcsState>((s) => {
         const rend = rendimientosDe(ctx);
@@ -1256,11 +1275,13 @@ export const npcs = defineModule<NpcsState>({
         const npcs = conCuerpo(conCapacidades(conHabilidades(s.npcs, pobs, rend, week * 7), week * 7), week * 7, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, (ctx.time.week - ctx.time.schoolWeek) * 7));
         avanzarCapacidadesEnSitio(npcs, (week + 1) * 7);
         const sesiones = new Map<string, number>();
-        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7, sesiones);
+        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7, sesiones, lesionados);
         // El cuerpo de todos pasa la semana con los hábitos de cada uno (los que juegan, con sus sesiones).
         semanaDelCuerpo(npcs, (week + 1) * 7, sesiones, s.semilla ?? 0, escolarDeLaSemana(ctx, week));
         return { ...s, npcs };
       });
+      // Las lesiones de la semana se avisan (quien quiera contarlas o darles consecuencias las recoge: los sucesos).
+      for (const l of lesionados) ctx.emit<LesionDePersonaData>({ type: SHARED_EVENTS.LESION_DE_PERSONA, data: l });
       // Si la semana que viene empieza un curso nuevo, se renueva la gente: los que acaban el colegio se van, entran niños nuevos y los equipos rellenan sus plazas.
       const proximo = ctx.timeAt((week + 1) * 7 * MINUTES_PER_DAY);
       if (proximo.schoolWeek !== 0) return;

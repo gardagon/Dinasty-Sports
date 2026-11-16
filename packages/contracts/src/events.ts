@@ -59,7 +59,32 @@ export const SHARED_EVENTS = {
   CAMBIO_DE_CARACTER: 'perfil.caracter',
   /** data: PerkReveladoData — el personaje descubre un perk latente que tenía: lo apunta quien guarda sus perks. */
   PERK_REVELADO: 'perk.revelado',
+  /** data: LesionDePersonaData — una persona del mundo se ha lesionado esta semana (su baja ya está en su estado): quien quiera contarlo o darle consecuencias lo recoge. */
+  LESION_DE_PERSONA: 'persona.lesion',
+  /** data: EstadoDePersonaData — algo que ha pasado cambia el estado de juego de una persona del mundo (moral, forma, condición, salud, semanas de baja): lo aplica quien la guarda. */
+  ESTADO_DE_PERSONA: 'persona.estado',
 } as const;
+
+export interface LesionDePersonaData {
+  npcId: string;
+  /** Semanas de baja. */
+  semanas: number;
+  deporte: string;
+}
+
+/** Cambios (se suman) en el estado de juego de una persona: los mismos campos que `EstadoDeJugador`. */
+export interface CambioDeEstadoDeJugador {
+  moral?: number;
+  forma?: number;
+  fisica?: number;
+  salud?: number;
+  /** Semanas de baja de más o de menos (nunca deja a un lesionado con menos de una, ni lesiona a quien está sano). */
+  baja?: number;
+}
+
+export interface EstadoDePersonaData extends CambioDeEstadoDeJugador {
+  npcId: string;
+}
 
 export interface CambioDeRelacionData {
   npcId: string;
