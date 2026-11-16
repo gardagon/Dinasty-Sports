@@ -5,6 +5,21 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 16/11/2026 — Eventos y decisiones (E18): decisiones del usuario sobre el plan
+
+Respuestas del usuario a las 13 preguntas de `docs/PLAN_EVENTOS.md` §6 (la tabla completa está allí):
+
+- **Formato:** archivos TypeScript de datos. **Nombre en el código:** `Suceso` (el «evento» del motor sigue siendo el aviso entre módulos).
+- **Nunca bloquean** el juego: plazo y opción por defecto. **Elegir gasta tiempo**, el que diga cada opción.
+- **Cupo editable** (dato, no constante), de partida 1 al día y 4 a la semana, y una categoría de **sucesos menores** con cupo propio para que un día no sea igual que otro.
+- **PNJ:** todo preparado desde el principio, pero solo activos los de tipo lesión hasta medir el coste (con una herramienta para medirlo).
+- **El carácter** se mueve poco a poco con las decisiones y abre opciones. Las opciones que no encajan con el carácter se presentan sombreadas u ocultas, **configurable** para decidir viéndolo; lo que se ve de las consecuencias (pistas o números), también configurable.
+- **Castigos que bloquean acciones por etiqueta:** sí (campo nuevo en los modificadores del motor).
+- **Primer lote:** faltas, perks latentes, cumpleaños, edad y altura.
+- **Decisiones dentro de una competición:** fuera del plan, pero el formato de una decisión es una pieza suelta que un deporte podrá usar.
+- **Tiradas:** azar estable, calibradas con la simulación.
+- **Pendiente:** dónde vive el contenido (el usuario prefiere un módulo propio subdividido por áreas; por confirmar).
+
 ## 16/11/2026 — Visualizador: envejecimiento heredable, calvos que cambian de estilo y raíces del tinte (decisiones del usuario)
 
 - **Envejecimiento de la piel (`Apariencia.envejecimiento`, 0 a 1):** hay quien envejece mejor que otros. Heredable como las canas (`TENDENCIAS.envejecimiento`: normal de media 0,5 y desviación 0,2 en los adultos del mundo; media de los padres ± 0,1 en los hijos), sin tendencias por origen y con generador estable propio (el mundo de cada semilla no cambia: la suite sigue en verde). El dibujo decide con él cuándo empiezan las arrugas y cuánto se marcan (`arrugasA`): con 0,5, como antes. `SAVE_VERSION` 20. **Estado: 2.900 → 2.930 KB (+1,0 %).**
@@ -2050,7 +2065,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 ## Pendiente e ideas
 
-- **Eventos y decisiones (E18), requisitos del usuario (16/11/2026):** candidato a la próxima sesión de Fable, junto con un visualizador de los partidos de fútbol. Añadir eventos tiene que ser **muy fácil**, casi una herramienta para definirlos como datos sin tocar el motor, y tiene que permitir **hilos**: un evento deja consecuencias que pueden disparar otros más adelante (semanas, meses o años). Empezar por una propuesta de diseño que decida el usuario. **Propuesta escrita el 16/11: `docs/PLAN_EVENTOS.md`, sin aprobar; sus 13 preguntas (§6) esperan al usuario.**
+- **Eventos y decisiones (E18), requisitos del usuario (16/11/2026):** candidato a la próxima sesión de Fable, junto con un visualizador de los partidos de fútbol. Añadir eventos tiene que ser **muy fácil**, casi una herramienta para definirlos como datos sin tocar el motor, y tiene que permitir **hilos**: un evento deja consecuencias que pueden disparar otros más adelante (semanas, meses o años). Empezar por una propuesta de diseño que decida el usuario. **Propuesta en `docs/PLAN_EVENTOS.md`; decisiones del usuario del 16/11 arriba; en construcción.**
 - **Visualizador, para la etapa 2c (Sonnet):** la raíz del tinte en los peinados con raya o flequillo se ve como un destello «estrellado» en la coronilla (correcto pero raro, visto por el usuario el 16/11); el tupé se distingue poco del corto. Mejorarlos con la receta (`docs/ANEXO_RETRATOS.md`).
 
 - **Acciones dinámicas del motor (aplazado por el usuario el 15/11/2026, revisar si hace falta):** para enseñar cualquier lista o encontrar la acción que se va a hacer, el motor genera las acciones de todas las personas conocidas y descarta las que no necesita (`allActions` y `findAction` en `packages/core/src/game.ts`). Generarlas es más barato que evaluarlas y la pantalla ya evalúa solo lo que enseña (medido el 15/11: 1–3 ms por clic, sin crecer con los conocidos), pero la generación sí crece con cada persona conocida. Si en partidas largas se nota: generar solo las acciones de la persona que se mira y buscar por id con los `resolvers`. Junto con esto, conocer a alguien crea una lista de personas nueva y recalcula la presencia (`known` dentro de la lista de `npcs`). Cifras en la pregunta 21 de `docs/PLAN_CUERPO_Y_APARIENCIA.md`.

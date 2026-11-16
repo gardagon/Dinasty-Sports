@@ -1,6 +1,6 @@
 # Plan de eventos y decisiones (E18)
 
-Propuesta de diseño del 16/11/2026, **sin aprobar**. No hay código todavía: lo que sigue es lo que se propone construir y las decisiones que le tocan al usuario (§6). Nada de §6 está decidido.
+Propuesta de diseño del 16/11/2026. **El usuario respondió a las preguntas de §6 el mismo día** (tabla al principio de §6; P2 pendiente de confirmar) y la construcción ha empezado por los pasos de §7 que no dependen de P2.
 
 Requisitos del usuario (16/11/2026, `DECISIONES.md`, «Pendiente e ideas»):
 
@@ -882,7 +882,25 @@ La interfaz solo habla con `@ds/game` y lee el servicio `eventos` (`pendientes()
 
 ## 6. Preguntas para el usuario
 
-Cada una con opciones y una recomendación. **Ninguna está decidida.**
+Cada una con opciones y una recomendación. **Respondidas por el usuario el 16/11/2026** (salvo P2, pendiente de confirmar). Lo decidido manda sobre el texto de cada pregunta y sobre el resto del documento:
+
+| | Decisión del usuario (16/11/2026) |
+|---|---|
+| **P1** | TypeScript de datos |
+| **P2** | **Pendiente de confirmar.** El usuario prefiere un módulo de sucesos propio, subdividido por áreas, para tenerlos todos en un sitio (y los de cada deporte dentro de su paquete, para que se instalen y se quiten con él). Hasta que se confirme no se construye nada que dependa de esto |
+| **P3** | Nunca bloquea: plazo y opción por defecto |
+| **P4** | Elegir gasta el tiempo que diga cada opción |
+| **P5** | El cupo es **un dato editable** (no una constante enterrada), con 1 al día y 4 a la semana de partida. Además, una categoría de **sucesos menores** (detalles ligeros que hacen distinto un día de otro) con **su propio cupo editable**, que no compite con los importantes |
+| **P6** | Formato y motor **preparados desde el principio** para los PNJ, pero **solo activos los sucesos de tipo lesión**; el resto, desactivado hasta medir lo que cuesta. Hay que poder **medir el coste** de activar sucesos para PNJ (`npm run rendimiento` o una herramienta propia). Enterarse por el Diario de lo que le pasa a alguien cercano: preparado, sujeto a la misma medición |
+| **P7** | Sí: el carácter se mueve poco a poco y abre opciones |
+| **P8** | Sí: castigos que bloquean acciones por etiqueta |
+| **P9** | **Configurable** para revisarlo jugando: pistas en palabras o números (más adelante podría depender de la inteligencia, E3.4). Además, las **opciones que no encajan con el carácter** del personaje se podrán presentar **sombreadas** (se ven, no se pueden elegir y se dice por qué) u **ocultas**: un modo de presentación configurable, para decidir viéndolo |
+| **P10** | Faltas, perks latentes, cumpleaños, y edad y altura |
+| **P11** | Fuera del plan, pero el diseño debe permitir añadir decisiones dentro de una competición **sin coste**: el formato de una decisión (opciones, requisitos, tiradas, presentación) es una pieza suelta que un deporte puede usar |
+| **P12** | `Suceso`, de momento. En el código: `SucesoDef`, módulo `sucesos`, `npm run sucesos:*`, aportes `sucesos.catalogo`. Este documento sigue diciendo «evento» y sus ejemplos `eventos:*` se leen como `sucesos:*` |
+| **P13** | Tirada con azar estable, calibrada con la simulación |
+
+Lo que sigue son las preguntas tal como se plantearon.
 
 ### P1. En qué formato se escriben los eventos
 
