@@ -44,13 +44,26 @@ export interface RecuerdoDeSuceso {
   titulo: string;
   /** Variante que salió, si el suceso tiene variantes. */
   variante?: string;
-  /** Opción elegida (o `undefined` si el suceso no tenía opciones). */
+  /** Opción elegida (o `undefined` si el suceso no tenía opciones) y su texto, para enseñarlo. */
   opcion?: string;
+  opcionTexto?: string;
   personas: readonly string[];
+}
+
+/** Un suceso sin opciones que acaba de pasar y merece una ventana (no solo una línea): se enseña una vez. */
+export interface AvisoDeSuceso {
+  id: number;
+  suceso: string;
+  titulo: string;
+  texto: string;
+  dia: number;
+  reparto: Readonly<Record<string, string>>;
 }
 
 export interface SucesosService {
   pendientes(): SucesoPendiente[];
+  /** Los sucesos sin opciones de hoy y de ayer que se presentan en una ventana, del más antiguo al más reciente. */
+  avisos(): AvisoDeSuceso[];
   /** ¿Está puesta esta marca (de una persona, si se dice)? Para las puertas que otro módulo quiera abrir o cerrar. */
   tiene(marca: string, persona?: string): boolean;
   contador(id: string): number;

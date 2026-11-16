@@ -24,6 +24,7 @@ import {
   type ActionDef,
   type ActionDoneData,
   type AporteDeSucesos,
+  type AvisoDeSuceso,
   type CambioDeCaracterData,
   type CambioDeFamiliaData,
   type CambioDeRelacionData,
@@ -141,6 +142,8 @@ export interface SucesosState {
   /** Sucesos espontáneos que han salido hoy y esta semana, por categoría. */
   cupo: { dia: number; semana: number; hoy: Record<string, number>; estaSemana: Record<string, number> };
   /** `[día, suceso, opción (−1 si no tenía), ...personas]`, con los ids de suceso (`id` o `id~variante`) y de opción (`id#opción`) como posición en `indice`. */
+  /** Sucesos sin opciones de hoy y de ayer que se enseñan en una ventana (con su texto ya compuesto): se borran solos. */
+  avisos: AvisoDeSuceso[];
   historia: (number | string)[][];
   indice: string[];
   siguiente: number;
@@ -158,6 +161,7 @@ const estadoInicial = (semilla: number, nombre: string): SucesosState => ({
   ultimaVez: {},
   umbrales: {},
   cupo: { dia: -1, semana: -1, hoy: {}, estaSemana: {} },
+  avisos: [],
   historia: [],
   indice: [],
   siguiente: 1,
@@ -610,7 +614,10 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
   if (!dec.d.opciones?.length) {
     // Sin opciones: un aviso con sus efectos.
     const titulo = componerTexto(dec.d.titulo ?? def.titulo, datos);
-    ctx.log(dec.d.texto ? `${titulo}. ${componerTexto(dec.d.texto, datos)}` : titulo, 'aviso');
+    const texto = dec.d.texto ? componerTexto(dec.d.texto, datos) : '';
+    ctx.log(texto ? `${titulo}. ${texto}` : titulo, 'aviso');
+    // Los importantes se enseñan además en una ventana; los detalles ligeros, solo como una línea (salvo que el suceso diga otra cosa).
+    if ((def.presentacion ?? (def.categoria === 'menor' ? 'linea' : 'ventana')) === 'ventana') s.avisos = [...s.avisos.slice(-9), { id: s.siguiente++, suceso: def.id, titulo, texto, dia: hoy, reparto }];
     aplicar(ctx, sit, dec.d.efectos);
     apuntar(s, hoy, def.id, undefined, reparto, dec.variante);
     cerrarSiAcabo(s, hilo?.id);
@@ -889,6 +896,7 @@ function umbrales(ctx: ActionContext, i: Indice): void {
 function caducar(ctx: ReadContext, s: SucesosState): void {
   const hoy = deDia(ctx);
   if (s.temporales.length) s.temporales = s.temporales.filter((t) => t.hasta > hoy);
+  if (s.avisos.length) s.avisos = s.avisos.filter((a) => a.dia >= hoy - 1);
   for (const [k, m] of Object.entries(s.marcas)) if (m.hasta !== undefined && m.hasta <= hoy) delete s.marcas[k];
 }
 
@@ -976,7 +984,9 @@ function recuerdosDe(ctx: ReadContext, persona?: string): RecuerdoDeSuceso[] {
     if (persona && !personas.includes(persona)) continue;
     const [id, variante] = s.indice[suceso as number].split('~');
     const o = (opcion as number) < 0 ? undefined : s.indice[opcion as number].split('#')[1];
-    out.push({ dia: dia as number, suceso: id, titulo: i.cat.sucesos.get(id)?.def.titulo ?? 'Un recuerdo de hace tiempo', ...(variante ? { variante } : {}), ...(o ? { opcion: o } : {}), personas: personas as string[] });
+    const def = i.cat.sucesos.get(id)?.def;
+    const opcionDef = o ? [...(def?.opciones ?? []), ...(def?.variantes ?? []).flatMap((v) => v.opciones ?? [])].find((x) => x.id === o) : undefined;
+    out.push({ dia: dia as number, suceso: id, titulo: (def?.titulo ?? 'Un recuerdo de hace tiempo').replace(/\{[^}]*\}/g, '…'), ...(variante ? { variante } : {}), ...(o ? { opcion: o, opcionTexto: (opcionDef?.texto ?? o).replace(/\{[^}]*\}/g, '…') } : {}), personas: personas as string[] });
   }
   return out;
 }
@@ -1017,6 +1027,7 @@ export const sucesos = defineModule<SucesosState>({
   services: {
     [SERVICES.sucesos]: (ctx): SucesosService => ({
       pendientes: () => pendientesDe(ctx),
+      avisos: () => ctx.state<SucesosState>().avisos,
       tiene: (marca, persona) => contextoDe(ctx, ctx.state<SucesosState>(), {}).marca(marca, persona),
       contador: (id) => ctx.state<SucesosState>().contadores[id] ?? 0,
       recuerdos: (persona) => recuerdosDe(ctx, persona),

@@ -18,6 +18,8 @@ import {
   type PresenciaService,
   type RelationsService,
   type RelationView,
+  type SucesosService,
+  fechaDelDia,
 } from '@ds/contracts';
 import type { Game } from '@ds/core';
 import { ajustarEleccion, hhmm, viewFormularioDePlan, type EleccionDePlan } from './planes';
@@ -220,6 +222,13 @@ function datosDeEstudios(n: NpcView): string {
   return filas.length ? `<dl class="identity">${filas.join('')}</dl>` : '';
 }
 
+/** Lo que el personaje ha vivido con esta persona (los sucesos en los que salió), del más reciente al más antiguo. */
+function vividoCon(g: Game, n: NpcView): string {
+  const lista = g.service<SucesosService>(SERVICES.sucesos)?.recuerdos(n.id) ?? [];
+  if (!lista.length) return '';
+  return `<h3>Lo que habéis vivido</h3><ul>${[...lista].reverse().slice(0, 12).map((r) => `<li>${esc(fechaDelDia(r.dia).texto)}: ${esc(r.titulo)}${r.opcionTexto ? ` <span class="note">(${esc(r.opcionTexto)})</span>` : ''}</li>`).join('')}</ul>`;
+}
+
 function ficha(g: Game, n: NpcView): string {
   const rel = g.service<RelationsService>(SERVICES.relaciones)?.get(n.id);
   const nombre = conocida(n) ? esc(n.name) : '???';
@@ -250,6 +259,7 @@ function ficha(g: Game, n: NpcView): string {
     ${aviso}
     ${cuerpo}
     ${acciones}
+    ${pestana === 'resumen' && conocida(n) ? vividoCon(g, n) : ''}
   </section>`;
 }
 

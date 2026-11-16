@@ -14,6 +14,7 @@ import {
   PRACTICA_TEXTO,
   type LogTable,
   type NpcDirectory,
+  type NpcView,
   fechaDelDia,
   type PerksService,
   type ProfileService,
@@ -96,6 +97,8 @@ let lastResult: { name: string; result: ActionResult; fresh: boolean } | null = 
 let showUnavailable = false;
 /** Sucesos pendientes cuya ventana se ha cerrado con «Decidir luego»: siguen en la lista «Pendiente» hasta que venza su plazo. */
 const sucesosAplazados = new Set<number>();
+/** Avisos de sucesos sin opciones que ya se han visto en esta sesión (y los que había al cargar la partida: no se repiten). */
+const avisosVistos = new Set<number>();
 
 /** Pantallas de antes de jugar: el menú, crear una partida y las opciones. Con una partida guardada también se empieza en el menú («Continuar»). */
 type Pantalla = 'menu' | 'nueva' | 'opciones';
@@ -521,6 +524,17 @@ const botonesDeSuceso = (p: SucesoPendiente): string =>
 
 /** La ventana de un suceso que pide una decisión ahora: quién participa, lo que pasa y las opciones. Se puede dejar para luego: nunca bloquea. */
 function viewSuceso(g: Game): string {
+  // Primero lo que acaba de pasar sin que haya nada que decidir (una revelación, una noticia): se lee y se cierra.
+  const aviso = g.service<SucesosService>(SERVICES.sucesos)?.avisos().find((a) => !avisosVistos.has(a.id));
+  if (aviso) {
+    const quienes = [...new Set(Object.values(aviso.reparto))].map((id) => viewRetrato(g, id)).join('');
+    return `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="suceso-titulo"><div class="ventana suceso">
+      <h2 id="suceso-titulo">${esc(aviso.titulo)}</h2>
+      ${quienes ? `<div class="suceso-personas">${quienes}</div>` : ''}
+      <p>${esc(aviso.texto)}</p>
+      <p class="botones"><button class="primary" data-act="aviso-visto" data-suceso="${aviso.id}">Seguir</button></p>
+    </div></div>`;
+  }
   const p = pendientesDe(g).find((x) => x.urgencia === 'ahora' && !sucesosAplazados.has(x.id));
   if (!p) return '';
   const personas = [...new Set(Object.values(p.reparto))].map((id) => viewRetrato(g, id)).join('');
@@ -540,6 +554,27 @@ function viewPendientes(g: Game): string {
   return `<section class="sheet pendientes"><h3>Pendiente (${lista.length})</h3>${lista
     .map((p) => `<div class="pendiente"><p><b>${esc(p.titulo)}</b> <span class="note">${esc(plazoDe(g, p))}</span></p><p>${esc(p.texto)}</p><div class="suceso-opciones">${botonesDeSuceso(p)}</div></div>`)
     .join('')}</section>`;
+}
+
+/** Con quién fue un recuerdo: los nombres de las personas que salieron (las que el personaje conoce). */
+function conQuien(g: Game, personas: readonly string[]): string {
+  const npcs = g.service<NpcDirectory>(SERVICES.npcs);
+  const nombres = personas.map((id) => npcs?.get(id)).filter((n): n is NpcView => !!n && n.known !== false).map((n) => (n.tags.includes('progenitor') ? (n.gender === 'f' ? 'tu madre' : 'tu padre') : n.nombreCorto));
+  return nombres.length ? ` · con ${nombres.join(' y ')}` : '';
+}
+
+/** Los recuerdos: lo que ha pasado (los sucesos), por curso, del más reciente al más antiguo, con lo que elegiste. */
+function viewRecuerdos(g: Game): string {
+  const lista = g.service<SucesosService>(SERVICES.sucesos)?.recuerdos() ?? [];
+  if (!lista.length) return '';
+  const porCurso = new Map<number, string[]>();
+  for (const r of [...lista].reverse()) {
+    const curso = timeView(r.dia * MINUTES_PER_DAY, g.pais.calendario).schoolYear;
+    const linea = `<li><time>${esc(fechaDeJuego(r.dia))}</time><span><b>${esc(r.titulo)}</b>${esc(conQuien(g, r.personas))}${r.opcionTexto ? `<br><span class="note">Elegiste: ${esc(r.opcionTexto)}</span>` : ''}</span></li>`;
+    porCurso.set(curso, [...(porCurso.get(curso) ?? []), linea]);
+  }
+  const cursos = [...porCurso].map(([curso, lineas], k) => `<details${k === 0 ? ' open' : ''}><summary>Curso ${curso + 1} (${lineas.length})</summary><ul class="log">${lineas.join('')}</ul></details>`).join('');
+  return `<section class="sheet"><h2>Recuerdos</h2>${cursos}</section>`;
 }
 
 /** Solo en la fase de pruebas: hacer salir ahora cualquier evento del catálogo (sus condiciones cuentan) y ver la memoria del director. */
@@ -1020,7 +1055,7 @@ function viewGame(g: Game): string {
   else if (tab === 'deporte') main = viewDeporte(g);
   else if (tab === 'gente') main = viewResult() + viewPanelGente(g);
   else if (tab === 'relaciones') main = viewPeople(g);
-  else main = viewLog(g) + viewEventosDePrueba(g);
+  else main = viewRecuerdos(g) + viewLog(g) + viewEventosDePrueba(g);
 
   return `<main class="app">
     ${viewDay(g)}
@@ -1133,6 +1168,11 @@ app.addEventListener('click', (e) => {
   }
   if (el.dataset.act === 'exportar') {
     exportarPartida();
+    return;
+  }
+  if (el.dataset.act === 'aviso-visto') {
+    avisosVistos.add(Number(el.dataset.suceso));
+    render();
     return;
   }
   if (el.dataset.act === 'suceso-luego') {
