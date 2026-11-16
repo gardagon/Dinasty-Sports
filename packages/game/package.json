@@ -18,6 +18,7 @@
     "@ds/mod-familia": "*",
     "@ds/mod-relaciones": "*",
     "@ds/mod-lugares": "*",
+    "@ds/mod-sucesos": "*",
     "@ds/kit-deporte": "*"
   }
 }

@@ -27,6 +27,8 @@ export const SERVICES = {
   educacionFisica: 'estudios.educacion_fisica',
   cuerpoPersonaje: 'cuerpo.personaje',
   cuerpoNpcs: 'cuerpo.npcs',
+  /** Sucesos pendientes de decidir, marcas y recuerdos (`SucesosService`, ver `sucesos/servicio.ts`). */
+  sucesos: 'sucesos',
 } as const;
 
 // ---------- NPCs ----------
@@ -274,6 +276,8 @@ export interface PerkView {
   descripcion: string;
   /** Se expresa solo cuando un evento lo revela (en la fase de pruebas se enseñan todos). */
   latente: boolean;
+  /** Un perk latente que el personaje ya ha descubierto (`perk.revelado`). */
+  revelado?: boolean;
 }
 
 /** Origen, apariencia, carácter, intereses y gustos del personaje (hoy solo para pruebas y para la compatibilidad con los demás). */

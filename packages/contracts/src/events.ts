@@ -51,7 +51,40 @@ export const SHARED_EVENTS = {
   CLUB_IMPUNTUAL: 'club.impuntual',
   /** data: PartidoDelMundoData — se ha jugado un partido de un deporte de equipo entre PNJ (o con el personaje): el estado de quienes jugaron cambia como tras una carrera. */
   PARTIDO_MUNDO: 'partido.mundo',
+  /** data: CambioDeRelacionData — algo que ha pasado (un suceso) cambia el vínculo del personaje con alguien: lo aplica `relaciones` con sus reglas. */
+  CAMBIO_DE_RELACION: 'relacion.cambio',
+  /** data: CambioDeFamiliaData — algo que ha pasado cambia el apoyo o las expectativas de un progenitor: lo aplica `familia`. */
+  CAMBIO_DE_FAMILIA: 'familia.cambio',
+  /** data: CambioDeCaracterData — una decisión mueve los ejes de carácter del personaje: lo aplica quien guarda su perfil. */
+  CAMBIO_DE_CARACTER: 'perfil.caracter',
+  /** data: PerkReveladoData — el personaje descubre un perk latente que tenía: lo apunta quien guarda sus perks. */
+  PERK_REVELADO: 'perk.revelado',
 } as const;
+
+export interface CambioDeRelacionData {
+  npcId: string;
+  /** Puntos de afinidad y de confianza que se suman (pueden ser negativos). */
+  afinidad?: number;
+  confianza?: number;
+  /** Qué lo ha causado (el id del suceso), para el registro. */
+  motivo?: string;
+}
+
+export interface CambioDeFamiliaData {
+  /** Id de la persona (el progenitor). */
+  npcId: string;
+  apoyo?: number;
+  expectativas?: number;
+}
+
+export interface CambioDeCaracterData {
+  /** Puntos que se mueve cada eje (de −50 a 50). */
+  ejes: Readonly<Record<string, number>>;
+}
+
+export interface PerkReveladoData {
+  perk: string;
+}
 
 /** El personaje llegó tarde a la convocatoria de un partido (`minutos` después de la hora en que se convoca). */
 export interface ClubImpuntualData {

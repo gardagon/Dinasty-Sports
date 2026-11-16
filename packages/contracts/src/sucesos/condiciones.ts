@@ -106,7 +106,8 @@ export const ordenarCondiciones = (cs: readonly Condicion[]): Condicion[] => [..
  * Probabilidad de acertar una tirada: 50 % cuando el nivel (0 a 100, «para su edad») iguala la dificultad, 15 puntos más o menos por cada
  * 10 de diferencia, siempre entre el 5 % y el 95 %. Provisional: se calibra con la simulación (`docs/PLAN_EVENTOS.md`, P13).
  */
-export const TIRADA = { porCada10: 0.15, min: 0.05, max: 0.95 } as const;
+/** `suertudo`: probabilidad de repetir una tirada fallada. `gafe`: probabilidad de que una acertada se tuerza (E5.6). */
+export const TIRADA = { porCada10: 0.15, min: 0.05, max: 0.95, suertudo: 0.25, gafe: 0.15 } as const;
 export const probabilidadDeExito = (nivel: number, dificultad: number): number =>
   Math.min(TIRADA.max, Math.max(TIRADA.min, 0.5 + ((nivel - dificultad) / 10) * TIRADA.porCada10));
 
