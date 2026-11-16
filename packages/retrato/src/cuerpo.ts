@@ -58,30 +58,35 @@ export function dibujarCuerpo(P: Parametros, L: Lienzo, C: Cara): CuerpoDibujado
   const au = H * val(0.052, 0.061, 0.05) * (1 + 0.75 * f + 0.45 * g + 0.45 * flaco + 0.1 * k), af = au * 0.82, wr = H * 0.029 * (1 + 0.1 * g + 0.1 * f);
   const largoBrazo = mezcla(0.88, 1, m) * (1 - 0.1 * k);
   const lu = 0.172 * H * largoBrazo, lf = 0.148 * H * largoBrazo, hl = 0.098 * H * mezcla(0.9, 1, m);
-  // Los brazos cuelgan por fuera del tronco: se abren lo que haga falta para que la mano (con el pulgar hacia dentro) quede fuera de la barriga, la cadera y el bajo de la camiseta.
+  // Los brazos cuelgan por fuera del tronco. El brazo, la mano y la manga se dibujan colgando rectos desde la articulación del hombro y **giran juntos** alrededor de ella
+  // lo que haga falta para que la mano (con el pulgar hacia dentro) quede fuera de la barriga, la cadera y el bajo de la camiseta: hombro, manga y brazo son una pieza.
   const tronco = Math.max(bajo, cadera, ww * (1.07 + 0.1 * barriga), hw * 1.03);
-  const pulgar = 1.42 * hl * 0.25;
-  const hombro = sw - au * 0.5;
-  const abre = Math.max(0.1 + 0.1 * g + 0.06 * fp, (tronco + pulgar + 0.008 * H - hombro) / (lu + 0.5 * lf));
+  const a = hl * 0.25, largo = lu + lf;
+  const S: Pt = [sw - au * 0.5, yS + au * 0.5];
+  // En local: x hacia fuera del cuerpo, y hacia abajo desde la articulación.
+  const brazo: Pt[] = [[au * (0.55 + 0.08 * fp), -au * 0.15], [au * (0.52 + 0.1 * fp), lu * 0.4], [af * 0.5, lu], [af * (0.54 + 0.05 * fp), lu + lf * 0.28], [wr * 0.5, largo], [wr * 0.5, largo + hl * 0.08],
+    [-wr * 0.5, largo + hl * 0.08], [-wr * 0.5, largo], [-af * 0.46, lu + lf * 0.3], [-af * 0.46, lu], [-au * 0.48, lu * 0.45], [-au * 0.5, au * 0.3]];
+  const h = (x: number, y: number): Pt => [x * a, largo + y * hl];
+  const mano: Pt[] = [h(0.72, 0), h(1.02, 0.24), h(1.0, 0.5), h(0.96, 0.7), h(0.8, 0.8), h(0.6, 0.74), h(0.5, 0.9), h(0.3, 0.96), h(0.14, 0.84), h(0.0, 0.98), h(-0.22, 1.01), h(-0.36, 0.86), h(-0.5, 0.9), h(-0.72, 0.88), h(-0.84, 0.66), h(-0.86, 0.5), h(-1.12, 0.62), h(-1.4, 0.6), h(-1.42, 0.42), h(-1.05, 0.2), h(-0.72, 0)];
+  // La manga: un casquete redondo sobre la articulación (gire lo que gire, sigue unido al hombro de la camiseta) y el tubo hasta algo más de medio brazo.
+  const manga: Pt[] = [[-au * 0.66, -au * 0.2], [-au * 0.45, -au * 0.62], [au * 0.1, -au * 0.72], [au * (0.6 + 0.08 * fp), -au * 0.3], [au * (0.62 + 0.09 * fp), lu * 0.3], [au * (0.62 + 0.08 * fp), lu * 0.58], [-au * 0.56, lu * 0.58 + au * 0.1], [-au * 0.62, lu * 0.25]];
+  const girar = (seno: number) => { const c = Math.sqrt(1 - seno * seno); return ([x, y]: Pt): Pt => [S[0] + x * c + y * seno, S[1] - x * seno + y * c]; };
+  const holgura = (seno: number) => Math.min(...mano.map(girar(seno)).map((q) => q[0])) - tronco;
+  // El giro: el de siempre (algo más con grasa o músculo) o el que haga falta para que la mano quede fuera, buscado paso a paso.
+  let seno = Math.min(0.75, 0.1 + 0.1 * g + 0.06 * fp);
+  while (seno < 0.75 && holgura(seno) < 0.008 * H) seno += 0.01;
+  const g0 = girar(seno);
   let fuera = sw;
   for (const s of [-1, 1]) {
-    const S: Pt = [sw - au * 0.5, yS + au * 0.5], Ec: Pt = [S[0] + abre * lu, S[1] + lu], W: Pt = [Ec[0] + abre * 0.5 * lf, Ec[1] + lf];
-    fuera = Math.max(fuera, W[0] + wr * 1.6);
-    const q = (x: number, y: number): Pt => [s * x, y];
-    // El brazo, con el hombro y el bíceps marcados si hay músculo y el antebrazo más ancho bajo el codo.
-    const brazo = [q(S[0] + au * (0.5 + 0.08 * fp), S[1] - au * 0.2), q(mezcla(S[0], Ec[0], 0.4) + au * (0.52 + 0.1 * fp), mezcla(S[1], Ec[1], 0.4)), q(Ec[0] + af * 0.5, Ec[1]), q(Ec[0] + abre * 0.15 * lf + af * (0.54 + 0.05 * fp), Ec[1] + lf * 0.28), q(W[0] + wr * 0.5, W[1]), q(W[0] + wr * 0.5, W[1] + hl * 0.08),
-      q(W[0] - wr * 0.5, W[1] + hl * 0.08), q(W[0] - wr * 0.5, W[1]), q(Ec[0] + abre * 0.15 * lf - af * 0.46, Ec[1] + lf * 0.3), q(Ec[0] - af * 0.46, Ec[1]), q(mezcla(S[0], Ec[0], 0.45) - au * 0.48, mezcla(S[1], Ec[1], 0.45)), q(S[0] - au * 0.5, S[1] + au * 0.3)];
-    o.push(parte(curva(s > 0 ? brazo : [...brazo].reverse(), true, 1), P.piel, 0.01 * H));
-    // La mano, relajada, con el pulgar hacia el cuerpo: palma, cuatro dedos de distinto largo y el pulgar.
-    const a = hl * 0.25;
-    const h = (x: number, y: number): Pt => [s * (W[0] + x * a), W[1] + y * hl];
-    const mano = [h(0.72, 0), h(1.02, 0.24), h(1.0, 0.5), h(0.96, 0.7), h(0.8, 0.8), h(0.6, 0.74), h(0.5, 0.9), h(0.3, 0.96), h(0.14, 0.84), h(0.0, 0.98), h(-0.22, 1.01), h(-0.36, 0.86), h(-0.5, 0.9), h(-0.72, 0.88), h(-0.84, 0.66), h(-0.86, 0.5), h(-1.12, 0.62), h(-1.4, 0.6), h(-1.42, 0.42), h(-1.05, 0.2), h(-0.72, 0)];
-    o.push(parte(curva(s > 0 ? mano : [...mano].reverse(), true, 0.9), P.piel, 0.006 * H));
-    // Separación de los dedos y nudillos.
-    const dedos = [[0.6, 0.74, 0.66, 0.5], [0.14, 0.84, 0.2, 0.52], [-0.36, 0.86, -0.3, 0.54]].map(([x0, y0, x1, y1]) => `M${p(h(x0, y0))}L${p(h(x1, y1))}`).join('');
-    o.push(L.trazo(dedos, 0.011, 0.75), L.trazo(`M${p(h(-0.86, 0.5))}Q${p(h(-0.6, 0.4))} ${p(h(-0.5, 0.22))}`, 0.01, 0.55));
-    const manga = [q(sw * 0.72, yS - 0.012 * H), q(S[0] + au * 0.3, S[1] - au * 0.5), q(S[0] + au * (0.6 + 0.08 * fp), S[1] + au * 0.1), q(mezcla(S[0], Ec[0], 0.58) + au * (0.62 + 0.08 * fp), mezcla(S[1], Ec[1], 0.58)), q(mezcla(S[0], Ec[0], 0.58) - au * 0.56, mezcla(S[1], Ec[1], 0.58) + au * 0.12), q(cw * 0.98, yS + 0.08 * H)];
-    o.push(parte(curva(s > 0 ? manga : [...manga].reverse(), true, t), P.camiseta, 0.012 * H));
+    const q = (pt: Pt): Pt => { const r = g0(pt); return [s * r[0], r[1]]; };
+    const puntos = (pts: Pt[]) => (s > 0 ? pts.map(q) : pts.map(q).reverse());
+    fuera = Math.max(fuera, ...mano.map(g0).map((r) => r[0]));
+    o.push(parte(curva(puntos(brazo), true, 1), P.piel, 0.01 * H));
+    o.push(parte(curva(puntos(mano), true, 0.9), P.piel, 0.006 * H));
+    // Separación de los dedos y pliegue del pulgar.
+    const dedos = [[0.6, 0.74, 0.66, 0.5], [0.14, 0.84, 0.2, 0.52], [-0.36, 0.86, -0.3, 0.54]].map(([x0, y0, x1, y1]) => `M${p(q(h(x0, y0)))}L${p(q(h(x1, y1)))}`).join('');
+    o.push(L.trazo(dedos, 0.011, 0.75), L.trazo(`M${p(q(h(-0.86, 0.5)))}Q${p(q(h(-0.6, 0.4)))} ${p(q(h(-0.5, 0.22)))}`, 0.01, 0.55));
+    o.push(parte(curva(puntos(manga), true, t), P.camiseta, 0.012 * H));
   }
 
   // ---- cuello, con la sombra del mentón y, con la edad, sus arrugas
@@ -114,5 +119,5 @@ export function dibujarCuerpo(P: Parametros, L: Lienzo, C: Cara): CuerpoDibujado
   // La barriga: una sombra curva por debajo.
   if (barriga > 0.3) pliegues.push(L.sombra(`M${n(-ww * 0.85)},${n(mezcla(yW, yBajo, 0.6))}Q0,${n(yBajo + 0.012 * H)} ${n(ww * 0.9)},${n(mezcla(yW, yBajo, 0.6))}Q0,${n(yBajo - 0.012 * H)} ${n(-ww * 0.85)},${n(mezcla(yW, yBajo, 0.6))}Z`, tela, 0.4 * clamp(barriga)));
   o.push(`<g clip-path="url(#${L.recorte(dCamiseta)})">${pliegues.join('')}</g>`);
-  return { svg: o.join(''), hombros: yS, medioAncho: fuera, holguraDeLasManos: hombro + abre * (lu + 0.5 * lf) - pulgar - tronco };
+  return { svg: o.join(''), hombros: yS, medioAncho: fuera, holguraDeLasManos: holgura(seno) };
 }
