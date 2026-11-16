@@ -18,7 +18,16 @@ Respuestas del usuario a las 13 preguntas de `docs/PLAN_EVENTOS.md` §6 (la tabl
 - **Primer lote:** faltas, perks latentes, cumpleaños, edad y altura.
 - **Decisiones dentro de una competición:** fuera del plan, pero el formato de una decisión es una pieza suelta que un deporte podrá usar.
 - **Tiradas:** azar estable, calibradas con la simulación.
-- **Pendiente:** dónde vive el contenido (el usuario prefiere un módulo propio subdividido por áreas; por confirmar).
+- **Dónde vive el contenido (decidido el mismo día):** un módulo `eventos` con los **eventos base** en carpetas por área; los **eventos deportivos**, dentro del paquete de cada deporte (`deporte: '<id>'`), con el mismo formato. Un solo director para los dos y un **cupo por categoría** (base 1/día y 4/semana, deporte 1/día y 2/semana, detalles ligeros 2/día y 8/semana: valores de partida, por revisar).
+
+**Construido el 16/11** (pasos 1 a 4 y 7 del plan; estado en `PLAN_EVENTOS.md` §7 bis, formato en `ANEXO_EVENTOS.md`):
+
+- **Motor:** un módulo puede escuchar todos los eventos (`on: { '*': … }`) y un modificador puede impedir acciones por etiqueta (`ModifierResult.bloquea`).
+- **Formato** en `contracts/src/sucesos/`, **director** en `modules/sucesos` (sin contenido; sin catálogo la huella de las partidas es idéntica) y **contenido** en `modules/eventos`.
+- **Señales compartidas nuevas:** `relacion.cambio` (la aplica `relaciones` con `conCambio`, los puntos vienen dados), `familia.cambio` (apoyo y expectativas, de 0 a 100), `perfil.caracter` (ejes, de −50 a 50) y `perk.revelado` (`IdentidadState.perksRevelados`, `PerkView.revelado`).
+- **Cifras de partida, propuestas por el desarrollador y por calibrar:** la tirada (50 % con la stat «para su edad» igual a la dificultad, 15 puntos por cada 10 de diferencia, entre 5 % y 95 %; Suertudo repite una fallada el 25 % de las veces y Gafe estropea una acertada el 15 %); una opción «no encaja» si tira 2 o más en contra de un eje que el personaje tiene a 25 o más; cada punto de inclinación de la opción elegida mueve 1 punto el eje; y todas las cifras del primer lote (afinidad, confianza, apoyo, días de castigo, probabilidades de revelación).
+- **Primer lote:** las faltas llegan a casa (cierra «Evento de los padres por faltas»), revelación de los 18 perks latentes (cierra E5.3; en la interfaz de pruebas se siguen enseñando todos), cumpleaños con regalo de 10 € y comentarios sobre la altura (parte de E18.7).
+- **Sin hacer:** la ventana de los eventos en la interfaz (hoy salen como líneas del Diario y vale la opción por defecto), que los bots decidan, el chequeo de frecuencia, la pantalla de recuerdos y los sucesos de los PNJ (lesiones) con su medición.
 
 ## 16/11/2026 — Visualizador: envejecimiento heredable, calvos que cambian de estilo y raíces del tinte (decisiones del usuario)
 
@@ -2077,7 +2086,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Interfaz, pantalla de nueva partida (visto por el usuario el 08/11):** en «Deportes en la partida», la casilla de cada deporte sale suelta encima de su nombre en vez de a su izquierda. Arreglarlo cuando se toque esa pantalla (por ejemplo, al meter el fútbol como paquete).
 - **Publicar los deportes que no van dentro del juego:** `tools/publicar-deportes.ts` solo empaqueta los de `MODULOS` (hoy, el atletismo, que ya viene con el juego). Cuando el fútbol tenga su MVP, hay que publicarlo también como paquete instalable y probar el ciclo entero (buscar, instalar, crear partida, guardar y cargar).
 
-- **Revelación de los perks latentes** con mensajes: espera al motor de eventos (E18). Hoy se enseñan todos en pruebas.
+- ~~**Revelación de los perks latentes**~~ **Hecha el 16/11** (`modules/eventos/src/perks`); en la interfaz de pruebas se siguen enseñando todos.
 - **Dibujar al personaje por capas** a partir de la apariencia y la creación de personaje con los modos personalizado y heredado (E15.1, E4.2).
 - **Rasgos de los hijos del personaje y de los padres de los rivales** (ciclo de generaciones, E8).
 - **Antes de la beta:** poner `MOSTRAR_GENETICA` y `MOSTRAR_RELACIONES` a `false` en `apps/web/src/main.ts` (genética, perks, sesgo y calidad de los padres, apariencia, carácter, intereses y cifras de relaciones).
@@ -2104,7 +2113,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Beca deportiva:** usar el servicio `estudios` (nota media) desde un deporte.
 - **App nativa en el móvil:** la PWA ya se instala desde el navegador; Capacitor solo si hace falta tienda de aplicaciones.
 - ~~Educación Física y Artística~~ **Hecho el 28/10** (por capacidades; ver su entrada). Diseño original del usuario: la nota de Educación Física saldría de las capacidades físicas «para su edad» (no de la media de clase), ir a clase subiría esas capacidades y «Estudiar educación física» desaparecería; Artística dependería de la creatividad, con alguna acción en casa que la suba. Se ve igual en «Estudios» (Mal, Regular, Bien…). Falta decidir y calibrar con `sim:notas`.
-- **Evento de los padres por faltas:** el aviso y el evento `clase.faltas_excesivas` ya existen (a las 12 faltas del trimestre); falta el evento que lo recoja (conversación, castigo...), que espera al motor de eventos.
+- ~~**Evento de los padres por faltas**~~ **Hecho el 16/11** (`modules/eventos/src/familia/faltas.ts`).
 - **Planes de estudiar:** la hora sigue fija a las 17:00; se puede elegir casa o biblioteca.
 - **Hermanos:** quedan para eventos que se vayan de casa a los 18, que su vida afecte a la del personaje, otros deportes, entrenar juntos y comer y dormir con ellos (ver la entrada del 28/10). Perks y ventaja de crianza, hechos.
 - **Azar de los rivales:** hecho (progreso y marcas con generador propio). La elección de carrera se sustituyó (28/10) por la asistencia según nivel y último puesto. Queda la tabla de roles por ejes de carácter (ver «Siguientes pasos»).

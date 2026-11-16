@@ -1,6 +1,6 @@
 # Plan de eventos y decisiones (E18)
 
-Propuesta de diseño del 16/11/2026. **El usuario respondió a las preguntas de §6 el mismo día** (tabla al principio de §6; P2 pendiente de confirmar) y la construcción ha empezado por los pasos de §7 que no dependen de P2.
+Propuesta de diseño del 16/11/2026. **El usuario respondió a las preguntas de §6 el mismo día** (tabla al principio de §6). **Estado de la construcción: §7 bis.** Quien vaya a escribir eventos, que lea [`ANEXO_EVENTOS.md`](ANEXO_EVENTOS.md): es el formato tal como ha quedado construido (este documento es la propuesta y difiere en detalles).
 
 Requisitos del usuario (16/11/2026, `DECISIONES.md`, «Pendiente e ideas»):
 
@@ -882,12 +882,12 @@ La interfaz solo habla con `@ds/game` y lee el servicio `eventos` (`pendientes()
 
 ## 6. Preguntas para el usuario
 
-Cada una con opciones y una recomendación. **Respondidas por el usuario el 16/11/2026** (salvo P2, pendiente de confirmar). Lo decidido manda sobre el texto de cada pregunta y sobre el resto del documento:
+Cada una con opciones y una recomendación. **Respondidas por el usuario el 16/11/2026.** Lo decidido manda sobre el texto de cada pregunta y sobre el resto del documento:
 
 | | Decisión del usuario (16/11/2026) |
 |---|---|
 | **P1** | TypeScript de datos |
-| **P2** | **Pendiente de confirmar.** El usuario prefiere un módulo de sucesos propio, subdividido por áreas, para tenerlos todos en un sitio (y los de cada deporte dentro de su paquete, para que se instalen y se quiten con él). Hasta que se confirme no se construye nada que dependa de esto |
+| **P2** | **Un módulo `eventos` propio para los eventos del juego base, subdividido en carpetas por área** (familia, perks, relaciones, cuerpo…): los «eventos base». **Los de cada deporte, dentro de su paquete**, con el mismo formato (`deporte: '<id>'`): los «eventos deportivos», que llegan al instalar el deporte y se van al quitarlo. Las dos clases se distinguen en los datos, en el validador, en el mapa y en la interfaz. **Un solo director** decide las dos en los mismos momentos. **Cupo por categoría**, todos editables: base 1 al día y 4 a la semana, deporte 1 al día y 2 a la semana, detalles ligeros 2 al día y 8 a la semana (valores de partida, a revisar por el usuario; no compiten entre sí) |
 | **P3** | Nunca bloquea: plazo y opción por defecto |
 | **P4** | Elegir gasta el tiempo que diga cada opción |
 | **P5** | El cupo es **un dato editable** (no una constante enterrada), con 1 al día y 4 a la semana de partida. Además, una categoría de **sucesos menores** (detalles ligeros que hacen distinto un día de otro) con **su propio cupo editable**, que no compite con los importantes |
@@ -1036,3 +1036,21 @@ Cada paso acaba con `npm run check` en verde, su entrada en `DECISIONES.md` y, s
 | **9. Eventos de mundo** (si P6 = B) | Pasada semanal para los PNJ con los eventos `para: 'cualquiera'`; test de mismas reglas: un PNJ y el personaje en la misma situación reciben el mismo evento | Medido su coste; `tests/mismas-reglas*.test.ts` ampliado |
 
 Los pasos 1 a 4 son el sistema; 5 y 6 se pueden hacer en paralelo; el 7 es el primero que el usuario nota al jugar. Si hay que parar a mitad, cada paso deja el repositorio funcionando.
+
+---
+
+## 7 bis. Estado de la construcción (16/11/2026)
+
+| Paso | Estado | Dónde |
+|---|---|---|
+| 1. El formato | ✅ | `packages/contracts/src/sucesos/` (tipos, textos, condiciones, tiradas, carácter, configuración, catálogo y validación) |
+| 2. El motor mínimo | ✅ | `packages/core` (escuchar `'*'`, `ModifierResult.bloquea`) y `modules/sucesos` (el director) |
+| 3. Hablar con los demás | ✅ | Señales `relacion.cambio`, `familia.cambio`, `perfil.caracter`, `perk.revelado` recogidas por `relaciones`, `familia` y `gen`; servicio `hechos.<módulo>`; reparto; modificadores y restricciones temporales |
+| 4. La herramienta | ✅ | `npm run eventos:nuevo`, `eventos:validar` (también `tests/eventos.test.ts`), `eventos:probar`, `eventos:mapa`, `eventos:indice` |
+| 5. La interfaz | ⏸ pendiente | El servicio `sucesos` ya da lo que necesita (`pendientes()` con textos, opciones, pistas y origen; `recuerdos()`); falta la ventana, la lista «Pendiente» y forzar sucesos en la interfaz de pruebas. **Hoy los eventos solo se ven como líneas del Diario y, si nadie elige, vence el plazo y se aplica la opción por defecto** |
+| 6. Bots y medidas | ⏸ pendiente | Los bots no deciden (vale la opción por defecto). Falta el chequeo de frecuencia en la simulación y medir con un catálogo de 500 sucesos |
+| 7. Primer contenido | ✅ (por calibrar) | `modules/eventos`: faltas, 18 perks latentes, cumpleaños y altura. Cifras de partida |
+| 8. Recuerdos | ⏸ pendiente | La historia se guarda ya (con variante, opción y personas) |
+| 9. Sucesos de los PNJ | ⏸ pendiente | Preparado en el formato (`para`, `clase`, `ConfigDeSucesos.pnj`, `LectorDeHechos`, `elegirPorCaracter`); falta la pasada semanal de los PNJ, los sucesos de lesión y la herramienta para medir su coste |
+
+**Diferencias con la propuesta** (manda `ANEXO_EVENTOS.md`): los sucesos de un hilo van en `sucesos:` (no `eventos:`); los hechos con nombre se leen con `{ hecho: 'faltas' }` y «lo que ha cambiado desde entonces» con `sobreRecuerdo`; un suceso que se dispara con una señal y usa sus datos en un texto lleva `ejemploDeSeñal`; un hilo solo programa sucesos suyos; la historia guarda también la variante; `altura_para_su_edad` va en centímetros sobre lo típico de la edad.

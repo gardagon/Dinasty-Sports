@@ -9,6 +9,7 @@ El cuerpo de las personas (altura, peso, músculo y grasa con la edad y el sexo,
 El dibujo de las personas (paquete `@ds/retrato`: estilo, capas, catálogos de peinados y de vello facial con su largo, y cómo se añade un peinado, una barba o una prenda) está en `docs/ANEXO_RETRATOS.md`: si cambias el dibujo o un catálogo, regenera la cuadrícula (`npm run retratos:cuadricula`), mírala y actualiza el anexo y `packages/contracts/src/retrato.ts`.
 La pestaña del deporte y las reglas de las clasificaciones (puntos por puesto, qué se guarda) están en `docs/ANEXO_DEPORTE.md`.
 El mundo del fútbol base (ciudad grande, colegios, clubes, filiales, divisiones, liga y copa) está en `docs/CIUDAD_Y_LIGAS.md`.
+Los eventos y decisiones (en el código, «sucesos»: el formato, el director `modules/sucesos`, los eventos base de `modules/eventos` por áreas y los de cada deporte en su paquete, cupos y presentación editables, y cómo se prueba) están en `docs/ANEXO_EVENTOS.md` (plan y decisiones: `docs/PLAN_EVENTOS.md`): un evento nuevo es un archivo de datos, sin tocar el motor ni otros módulos; si cambias el formato o una cifra, actualiza el anexo, y tras añadir o cambiar eventos pasa `npm run eventos:validar` y `npm run eventos:mapa`.
 Cuando tomes una decisión de diseño o de balance, añade una entrada en `docs/DECISIONES.md`.
 
 ## Reglas que no se rompen
@@ -47,6 +48,10 @@ npm run sim:futbol -- 365 3  # cuánto se aprende en un curso con el club: depor
 npm run benjamin -- 31,33  # la regla de benjamín (todos nuevos en el club) con la ciudad grande: semanas hasta el primer partido y primera convocatoria
 npm run retratos:cuadricula  # la cuadrícula de capturas del dibujo de las personas (docs/retratos): catálogos, rasgos, familia, peinados, barbas y extremos, en claro y oscuro
 npm run retratos:muestras    # las muestras de las cuatro variantes de estilo que vio el usuario (provisional)
+npm run eventos:nuevo -- eventos.<área>.<nombre> "Título"  # crea un evento base con la plantilla comentada y lo apunta en el índice
+npm run eventos:validar  # todos los eventos: forma, referencias, textos, memoria, escenarios y todos los caminos (también dentro de npm test)
+npm run eventos:probar -- <hilo o suceso> [--elige a,b] [--masculino]  # enseña todos sus caminos con los textos que vería el jugador
+npm run eventos:mapa     # docs/eventos/MAPA.md: hilos, quién programa a quién y las marcas con que se hablan
 npm run check            # tipos + tests + simulación rápida
 npm run nuevo-modulo -- <id> "<Nombre>"
 ```

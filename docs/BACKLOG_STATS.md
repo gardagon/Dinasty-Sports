@@ -316,7 +316,9 @@ Solo si se quiere: cuotas, material, viajes y, en la fase profesional, sueldo y 
 
 ~~Generador de azar propio para los rivales~~ (hecho el 28/10: progreso y marcas); migración de partidas guardadas; rendimiento con diez años simulados; Capacitor si se quiere app de tienda. **Migración de guardados al salir de la alfa** (hoy `SAVE_VERSION` se sube y se descartan; ver `DECISIONES.md` del 24/10).
 
-## E18 · Eventos y decisiones — 🟢 el motor, ⏸ el contenido
+## E18 · Eventos y decisiones — 🟡 motor, herramienta y primer lote hechos (16/11); interfaz, bots y PNJ pendientes
+
+Plan, decisiones y estado: `PLAN_EVENTOS.md` (§7 bis). Formato para escribir eventos: `ANEXO_EVENTOS.md`. E18.1 y E18.2, hechos; E5.3 (revelación de latentes), hecho; E18.7, empezado (altura).
 
 | ID | Tarea | Notas |
 |---|---|---|
