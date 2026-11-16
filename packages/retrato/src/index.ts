@@ -34,7 +34,7 @@ export function dibujar(P: Parametros, prefijo: string): Dibujo {
   const pelo = dibujarPelo(P, L, C, (cuerpo.hombros - u) / u);
   const cabeza = (contenido: string) => `<g transform="translate(0,${n(u)}) scale(${n(u)})">${contenido}</g>`;
   const todo = cabeza(pelo.atras) + cuerpo.svg + cabeza(dibujarCara(P, L, C) + pelo.delante);
-  return { defs: L.defs.join(''), cuerpo: todo, retrato: [-0.9 * hh, -0.4 * hh, 1.8 * hh, 1.84 * hh], altura: P.altura, medioAncho: cuerpo.medioAncho };
+  return { defs: L.defs.join(''), cuerpo: todo, retrato: [-0.9 * hh, -0.5 * hh, 1.8 * hh, 1.94 * hh], altura: P.altura, medioAncho: cuerpo.medioAncho };
 }
 
 /** La edad con la que se dibuja: años enteros, hasta los 95. */
@@ -63,6 +63,8 @@ export interface FiguraEnRegla {
   opciones?: Opciones;
   /** Texto bajo la figura (por ejemplo, la edad). */
   rotulo?: string;
+  /** `false`: sin su altura en centímetros bajo la figura (por defecto, lo que digan las opciones de la regla). */
+  cifras?: boolean;
 }
 
 /**
@@ -91,7 +93,7 @@ export function figurasSvg(figuras: readonly FiguraEnRegla[], opciones: { altura
     defs.push(d.defs);
     o.push(`<g transform="translate(${n(centros[i])},${n(tope - d.altura)})">${d.cuerpo}</g>`);
     if (f.rotulo) o.push(texto(centros[i], tope + 9, f.rotulo, 'middle', 600));
-    if (!P.cuna && cifras) o.push(texto(centros[i], tope + (f.rotulo ? 16 : 9), `${Math.round(d.altura)} cm`));
+    if (!P.cuna && (f.cifras ?? cifras)) o.push(texto(centros[i], tope + (f.rotulo ? 16 : 9), `${Math.round(d.altura)} cm`));
   });
   return `<svg xmlns="http://www.w3.org/2000/svg" class="figuras" viewBox="-4 -14 ${n(ancho + 4)} ${n(tope + 34)}" role="img"><defs>${defs.join('')}</defs>${o.join('')}</svg>`;
 }

@@ -9,6 +9,7 @@ import type { Apariencia } from './rasgos';
  *   de dibujo, su sexo, su tipo de pelo y su genética (`estiloDePersona`), sin guardar nada en el estado. La barba es una elección, no una consecuencia de la
  *   herencia: solo puede elegir lo que su vello le permite.
  * - Las **canas** y la **calvicie** llegan con la edad a todos (`fraccionDeCanas`, `gradoDeCalvicie`): con calvicie, el peinado se adapta a lo que queda (`peinadoPosible`).
+ *   En los hombres la calvicie empieza por las **entradas** (hasta `CALVICIE.entradas`), luego clarea por arriba y, desde `CALVICIE.soloLados`, solo quedan los lados.
  * - El dibujo recibe el estilo y **el largo** del pelo (cm) y de la barba (mm): un corte que ha crecido se ve crecido. Recién hecho, el largo es el del estilo.
  */
 
@@ -29,13 +30,20 @@ export interface EstiloDePeinado {
 }
 
 export const PEINADOS: readonly EstiloDePeinado[] = [
-  { id: 'rapado', nombre: 'Rapado', largo: 0.6, calvicieMaxima: 1, premium: false, peso: { f: 0.01, m: 0.13 } },
-  { id: 'corto', nombre: 'Corto', largo: 4, calvicieMaxima: 0.55, siNo: 'rapado', premium: false, peso: { f: 0.06, m: 0.47 } },
-  { id: 'flequillo', nombre: 'Corto con flequillo', largo: 6, calvicieMaxima: 0.25, siNo: 'corto', premium: false, peso: { f: 0.05, m: 0.26 } },
-  { id: 'degradado', nombre: 'Degradado', largo: 5, calvicieMaxima: 0.4, siNo: 'rapado', premium: true, peso: { f: 0, m: 0.09 } },
-  { id: 'melena', nombre: 'Melena', largo: 24, calvicieMaxima: 0.6, siNo: 'corto', premium: false, peso: { f: 0.34, m: 0.04 } },
-  { id: 'largo', nombre: 'Largo', largo: 45, calvicieMaxima: 0.5, siNo: 'melena', premium: false, peso: { f: 0.37, m: 0.01 } },
-  { id: 'coleta', nombre: 'Coleta', largo: 35, calvicieMaxima: 0.5, siNo: 'corto', premium: false, peso: { f: 0.17, m: 0 } },
+  // Los tres grados al cero: sin pelo en ningún sitio, la sombra de donde crece (respeta la calvicie) y el rapado.
+  { id: 'afeitada', nombre: 'Cabeza afeitada', largo: 0, calvicieMaxima: 1, premium: false, peso: { f: 0, m: 0.04 } },
+  { id: 'al_cero', nombre: 'Rapado al cero', largo: 0.15, calvicieMaxima: 1, premium: false, peso: { f: 0, m: 0.05 } },
+  { id: 'rapado', nombre: 'Rapado', largo: 0.6, calvicieMaxima: 1, premium: false, peso: { f: 0.01, m: 0.1 } },
+  { id: 'corto', nombre: 'Corto', largo: 4, calvicieMaxima: 0.55, siNo: 'rapado', premium: false, peso: { f: 0.05, m: 0.4 } },
+  { id: 'flequillo', nombre: 'Corto con flequillo', largo: 6, calvicieMaxima: 0.2, siNo: 'corto', premium: false, peso: { f: 0.03, m: 0.22 } },
+  { id: 'degradado', nombre: 'Degradado', largo: 5, calvicieMaxima: 0.4, siNo: 'rapado', premium: true, peso: { f: 0, m: 0.08 } },
+  { id: 'tupe', nombre: 'Tupé', largo: 9, calvicieMaxima: 0.25, siNo: 'corto', premium: true, peso: { f: 0, m: 0.05 } },
+  { id: 'bob', nombre: 'Media melena con flequillo', largo: 15, calvicieMaxima: 0.3, siNo: 'melena', premium: false, peso: { f: 0.13, m: 0 } },
+  { id: 'melena', nombre: 'Melena', largo: 24, calvicieMaxima: 0.6, siNo: 'corto', premium: false, peso: { f: 0.22, m: 0.04 } },
+  { id: 'largo', nombre: 'Largo', largo: 45, calvicieMaxima: 0.5, siNo: 'melena', premium: false, peso: { f: 0.25, m: 0.01 } },
+  { id: 'coleta', nombre: 'Coleta', largo: 35, calvicieMaxima: 0.5, siNo: 'corto', premium: false, peso: { f: 0.13, m: 0 } },
+  { id: 'mono', nombre: 'Moño', largo: 35, calvicieMaxima: 0.5, siNo: 'corto', premium: false, peso: { f: 0.1, m: 0.01 } },
+  { id: 'trenzas', nombre: 'Dos trenzas', largo: 40, calvicieMaxima: 0.4, siNo: 'coleta', premium: true, peso: { f: 0.08, m: 0 } },
 ];
 
 export interface EstiloDeVello {
@@ -52,19 +60,23 @@ export interface EstiloDeVello {
 }
 
 export const VELLOS: readonly EstiloDeVello[] = [
-  { id: 'afeitado', nombre: 'Afeitado', largo: 0, densidadMinima: 0, premium: false, peso: 0.52 },
+  { id: 'afeitado', nombre: 'Afeitado', largo: 0, densidadMinima: 0, premium: false, peso: 0.5 },
   { id: 'bigote', nombre: 'Bigote', largo: 5, densidadMinima: 0.3, premium: false, peso: 0.06 },
-  { id: 'perilla', nombre: 'Perilla', largo: 6, densidadMinima: 0.3, premium: false, peso: 0.07 },
-  { id: 'barba_corta', nombre: 'Barba corta', largo: 6, densidadMinima: 0.45, premium: false, peso: 0.2 },
+  { id: 'perilla', nombre: 'Perilla', largo: 6, densidadMinima: 0.3, premium: false, peso: 0.06 },
+  { id: 'candado', nombre: 'Candado', largo: 6, densidadMinima: 0.4, premium: true, peso: 0.05 },
+  { id: 'barba_corta', nombre: 'Barba corta', largo: 6, densidadMinima: 0.45, premium: false, peso: 0.19 },
   { id: 'barba_perfilada', nombre: 'Barba perfilada', largo: 5, densidadMinima: 0.5, premium: true, peso: 0.07 },
-  { id: 'barba_larga', nombre: 'Barba larga', largo: 30, densidadMinima: 0.6, premium: false, peso: 0.08 },
+  { id: 'barba_larga', nombre: 'Barba larga', largo: 30, densidadMinima: 0.6, premium: false, peso: 0.07 },
 ];
 
-export const peinado = (id: string): EstiloDePeinado => PEINADOS.find((x) => x.id === id) ?? PEINADOS[1];
+export const peinado = (id: string): EstiloDePeinado => PEINADOS.find((x) => x.id === id) ?? PEINADOS.find((x) => x.id === 'corto')!;
 export const vello = (id: string): EstiloDeVello => VELLOS.find((x) => x.id === id) ?? VELLOS[0];
 
 /** Edad (con el adelanto o retraso del desarrollo) desde la que hay vello facial: antes, nada; se completa a los 19. */
 export const EDAD_DEL_VELLO = 15;
+
+/** Los grados de la calvicie de un hombre: hasta `entradas` solo retrocede la línea del pelo en las sienes; hasta `soloLados` clarea además por arriba; después solo quedan los lados. */
+export const CALVICIE = { entradas: 0.3, soloLados: 0.55 } as const;
 
 /** Cuánto pelo se ha perdido (0 a 1) con una tendencia (`Apariencia.calvicie`) y una edad: quien tiene mucha empieza en la juventud; quien tiene poca, tarde o nunca. No retrocede. */
 export function gradoDeCalvicie(tendencia: number, edad: number): number {
@@ -93,6 +105,14 @@ export interface Look {
   largoDelPelo: number;
   vello: string;
   largoDelVello: number;
+  /**
+   * El tinte (lo pondrá la peluquería; hoy nadie lo lleva): el color teñido del pelo y el de la barba, por separado (`#rrggbb`), y cuánto han crecido desde el tinte
+   * (cm el pelo, mm la barba): al crecer se ven las raíces del color natural, con sus canas.
+   */
+  tinteDelPelo?: string;
+  crecidoDesdeElTinte?: number;
+  tinteDelVello?: string;
+  crecidoDelVelloDesdeElTinte?: number;
 }
 
 function sorteo<T>(u: number, items: readonly T[], peso: (x: T) => number): T {

@@ -78,6 +78,16 @@ secciones.push(seccion('6b. La barba que crece', 'Sin afeitarse (0, 1, 3, 8, 20 
   [...['afeitado', 'perilla', 'bigote'].map((e) => [0, 1, 3, 8, 20, 50].map((mm) => ret(inventada('m', { barba: 0.8, peloColor: 'negro', piel: 'clara' }, { semilla: 77 }), 35, `${e} ${mm} mm`, { vello: e, largoDelVello: mm, peinado: 'corto' })).join('')),
     [0, 1].map((d) => [14, 16, 18].map((e) => ret(inventada('m', { barba: d, peloColor: 'negro' }, { semilla: 77 }), e, `barba ${d} · ${e} años`, { vello: 'barba_corta', peinado: 'corto' })).join('')).join('')].join(''), 'seis'));
 
+// ---- 5c–5e. Los tres grados al cero, las entradas y el tinte
+secciones.push(seccion('5c. Cabeza afeitada, rapado al cero (sombra) y rapado', 'Sin calvicie y con calvicie 0,3 (entradas), 0,5 y 1, a los 45 años: la sombra respeta la calvicie; la cabeza afeitada no tiene pelo en ningún sitio.',
+  ['afeitada', 'al_cero', 'rapado'].map((e) => [0, 0.3, 0.5, 1].map((t) => ret(inventada('m', { calvicie: t, peloColor: 'negro', piel: 'clara' }, { semilla: 77 }), 60, `${PEINADOS.find((x) => x.id === e)!.nombre} · calvicie ${t}`, { peinado: e, vello: 'afeitado' })).join('')).join(''), 'ocho cuatro'));
+secciones.push(seccion('5d. Entradas: la calvicie de los hombres por tendencia y edad', 'Tendencias 0,15 · 0,3 · 0,5 · 0,75 · 1 (filas) a los 25, 35, 45, 55, 65 y 80 años, con pelo corto: quien tiene poca se queda en entradas; quien tiene mucha sigue hasta la calvicie.',
+  [0.15, 0.3, 0.5, 0.75, 1].map((t) => [25, 35, 45, 55, 65, 80].map((e) => ret(inventada('m', { calvicie: t, peloColor: 'castano_oscuro', peloTipo: 'liso', canas: 70 }, { semilla: 77 }), e, `tendencia ${t} · ${e} años`, { peinado: 'corto', vello: 'afeitado' })).join('')).join(''), 'seis'));
+secciones.push(seccion('5e. Tinte y raíces', 'Pelo teñido (rubio, rojo, negro, azul) recién hecho y con 2 y 6 cm de raíz; abajo, una mujer de 60 con canas teñida de castaño (0, 2, 6 cm) y una barba teñida (0, 3 y 6 mm crecidos de 6).',
+  [...[['#d9b25f', 'rubio'], ['#a3271f', 'rojo'], ['#1c1718', 'negro'], ['#3b6fb5', 'azul']].map(([color, nombre]) => [0, 2, 6].map((cm) => ret(inventada('f', { peloColor: 'castano', peloTipo: 'liso' }, { semilla: 77 }), 30, `${nombre} · raíz ${cm} cm`, { peinado: 'melena', tinteDelPelo: color, crecidoDesdeElTinte: cm })).join('')),
+    [0, 2, 6].map((cm) => ret(inventada('f', { peloColor: 'castano_oscuro', canas: 30 }, { semilla: 77 }), 60, `canas teñidas · raíz ${cm} cm`, { peinado: 'bob', tinteDelPelo: '#6f4a31', crecidoDesdeElTinte: cm })).join(''),
+    [0, 3, 6].map((mm) => ret(inventada('m', { peloColor: 'castano', canas: 25, barba: 0.9 }, { semilla: 77 }), 55, `barba teñida · ${mm} mm crecidos`, { peinado: 'corto', vello: 'barba_corta', tinteDelVello: '#2a2020', crecidoDelVelloDesdeElTinte: mm, tinteDelPelo: '#2a2020', crecidoDesdeElTinte: mm / 5 })).join('')].join(''), 'seis'));
+
 // ---- 7. Casos extremos
 secciones.push(seccion('7a. Calvicie máxima y canas a los 20', 'Calvicie 1 (hombre) y 0,4 (mujer, el máximo) a los 20, 25, 30, 40, 55 y 75; canas desde los 20.',
   [(['m', 'f'] as const).map((s) => [20, 25, 30, 40, 55, 75].map((e) => ret(inventada(s, { calvicie: s === 'm' ? 1 : 0.4, peloColor: 'castano_oscuro' }, { semilla: 78 }), e, `calvicie · ${e}`, { peinado: s === 'm' ? 'corto' : 'melena' })).join('')).join(''),
@@ -85,6 +95,9 @@ secciones.push(seccion('7a. Calvicie máxima y canas a los 20', 'Calvicie 1 (hom
 const tipos: [string, Partial<CuerpoDePersona>][] = [['delgado', { musculo: 18, grasa: 20 }], ['normal', {}], ['atlético', { musculo: 45, grasa: 35 }], ['musculado', { musculo: 85, grasa: 30 }], ['con sobrepeso', { musculo: 25, grasa: 80 }], ['muy alto', { alturaAdulta: 205 }], ['muy bajo', { alturaAdulta: 148 }]];
 secciones.push(`<section><h2>7b. Complexión y altura (figura entera a escala)</h2>${(['m', 'f'] as const).map((s) => figuras(tipos.map(([nombre, c]) => ({ cuerpo: inventada(s, {}, { semilla: 77, ...c }), edad: 30, opciones: { look: { peinado: s === 'm' ? 'corto' : 'melena', vello: 'afeitado' } }, rotulo: nombre })))).join('')}
 ${figuras(tipos.slice(0, 5).map(([nombre, c]) => ({ cuerpo: inventada('m', {}, { semilla: 77, ...c }), edad: 9, rotulo: `${nombre} · 9` })))}</section>`);
+// ---- 7d. La comparación: el personaje al lado de otra persona, los dos como son hoy
+const comparar = (otro: CuerpoDePersona, nombre: string, cifras: boolean) => `<div class="regla media">${figurasSvg([{ cuerpo: yo, edad: edadHoy(yo), rotulo: 'Tú', cifras: true }, { cuerpo: otro, edad: edadHoy(otro), rotulo: nombre, cifras }], { cifras })}</div>`;
+secciones.push(`<section><h2>7d. Comparar a tu personaje con otra persona (los dos como son hoy)</h2><p>Con su padre (familia: con cifras), con una compañera de clase y con un adulto (sin cifras: ni años ni centímetros).</p><div class="rejilla tres">${comparar(padre, 'Padre', true)}${comparar(cuerpo(chica.id), chica.name.split(' ')[0], false)}${comparar(cuerpo(hombre.id), hombre.name.split(' ')[0], false)}</div></section>`);
 secciones.push(`<section><h2>7c. La evolución: de la cuna a los 95 (figura entera a escala)</h2>${reales.slice(0, 3).map(([, c]) => figuras([1, 3, 8, 12, 15, 18, 30, 50, 70, 95].map((e) => ({ cuerpo: c, edad: e, rotulo: `${e}` })))).join('')}</section>`);
 
 const css = `
@@ -93,7 +106,7 @@ const css = `
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.4 system-ui,sans-serif}main{width:1280px;margin:0 auto;padding:14px}
 h1{font-size:1.3rem;margin:0 0 4px}h2{font-size:1rem;margin:0 0 4px}p{margin:0 0 6px;color:var(--ink-soft)}
 section{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:10px;margin:10px 0}
-.rejilla{display:grid;gap:5px}.diez{grid-template-columns:repeat(10,1fr)}.ocho{grid-template-columns:repeat(8,1fr)}.seis{grid-template-columns:repeat(6,1fr)}
+.rejilla{display:grid;gap:5px}.diez{grid-template-columns:repeat(10,1fr)}.cuatro{grid-template-columns:repeat(4,1fr)!important;max-width:60%}.tres{grid-template-columns:repeat(3,1fr)}.regla.media svg{max-height:360px}.ocho{grid-template-columns:repeat(8,1fr)}.seis{grid-template-columns:repeat(6,1fr)}
 figure{margin:0}figure svg{display:block;width:100%;height:auto;background:var(--fondo);border-radius:5px}figcaption{font-size:.68rem;color:var(--ink-soft);text-align:center}
 .regla svg{display:block;width:100%;height:auto;max-height:520px}
 `;

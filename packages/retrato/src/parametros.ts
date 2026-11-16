@@ -16,6 +16,8 @@ export const EDAD_MINIMA_DEL_DIBUJO = 3;
 export const EDAD_MAXIMA_DEL_DIBUJO = 95;
 /** La cabeza se dibuja un 6 % mayor que la real (el estilo elegido: variante B de las muestras). */
 export const ESCALA_DE_LA_CABEZA = 1.06;
+/** Y la de un niño, más todavía (decisión del usuario del 16/11): a los 3 años ocupa cerca de una cuarta parte de la altura; el extra se pierde con la pubertad (`nino`). */
+export const CABEZA_DE_NINO = 0.24;
 
 export interface Parametros {
   semilla: number;
@@ -46,6 +48,8 @@ export interface Parametros {
     largo: number; crecido: number;
     /** 0 a 1: cuánto pelo se ha perdido y qué parte es cana. */
     calvicie: number; canas: number;
+    /** El color natural (con sus canas); si va teñido, `tinte` es `true`, `pelo` es el color teñido y `raiz` son los cm de raíz natural que se ven. */
+    natural: string; tinte: boolean; raiz: number;
   };
   vello: {
     estilo: string;
@@ -53,10 +57,13 @@ export interface Parametros {
     largo: number;
     /** Densidad que se ve (0 a 1): la suya por lo que le ha salido ya a su edad. */
     densidad: number;
+    /** El color con que se ve: el natural con sus canas o el teñido (mezclado con el natural según lo que ha crecido desde el tinte). */
     color: string;
   };
   /** Arrugas de 0 a 1. */
   arrugas: number;
+  /** Cuánto de niño tiene (1 a los 3 años, 0 a los 15, con su adelanto o retraso): lo que se pierde con la pubertad. */
+  nino: number;
   distintivos: string[];
 }
 
@@ -87,6 +94,7 @@ export function parametrosDe(c: CuerpoDePersona, edad: number, o: Opciones = {})
   const vejez = clamp((edad - 40) / 45);
   const masc = sexo === 'm' ? clamp((edadFisica - 12) / 7) : 0;
   const fem = sexo === 'f' ? clamp((edadFisica - 11) / 6) : 0;
+  const nino = ((k: number) => k * k * (3 - 2 * k))(clamp(1 - (edadFisica - 3) / 12));
   const musculo = o.musculo ?? c.musculo;
   const grasa = o.grasa ?? c.grasa;
 
@@ -100,12 +108,16 @@ export function parametrosDe(c: CuerpoDePersona, edad: number, o: Opciones = {})
   const canas = fraccionDeCanas(a.canas, edad);
   const calvicie = gradoDeCalvicie(a.calvicie, edad);
   const natural = COLOR_DE_PELO[a.peloColor] ?? COLOR_DE_PELO.castano;
-  const pelo = mix(natural, COLOR_DE_CANA, canas * 0.92);
+  const peloNatural = mix(natural, COLOR_DE_CANA, canas * 0.92);
   const elegido = estiloDePersona(c.semilla, sexo, a);
   const pedido = o.look?.peinado ?? elegido.peinado;
   const estilo = peinadoPosible(pedido, calvicie);
   const fresco = (id: string) => peinado(id).largo;
   const largo = o.look?.largoDelPelo ?? fresco(estilo);
+  // Tinte: el pelo se ve del color teñido salvo la raíz que ha crecido desde entonces (si ya ha crecido todo el largo, no queda tinte).
+  const raiz = Math.max(0, o.look?.crecidoDesdeElTinte ?? 0);
+  const tenido = /^#[0-9a-f]{6}$/i.test(o.look?.tinteDelPelo ?? '') && raiz < largo;
+  const pelo = tenido ? o.look!.tinteDelPelo! : peloNatural;
 
   // Vello facial: solo en hombres y desde la pubertad; el estilo pedido, si su densidad lo permite.
   const salido = sexo === 'm' ? clamp((edadFisica - EDAD_DEL_VELLO) / 4) : 0;
@@ -113,6 +125,10 @@ export function parametrosDe(c: CuerpoDePersona, edad: number, o: Opciones = {})
   const estiloV = salido > 0 && velloPosible(pedidoV, a.barba) ? pedidoV : 'afeitado';
   const largoV = salido > 0 ? (o.look?.largoDelVello ?? (estiloV === elegido.vello ? elegido.largoDelVello : vello(estiloV).largo)) * (salido < 1 ? Math.min(1, 0.3 + salido) : 1) : 0;
 
+  // La barba encanece algo antes que el pelo. Teñida, se ve del color del tinte menos la parte que ha crecido desde entonces.
+  const velloNatural = mix(natural, COLOR_DE_CANA, clamp(canas * 1.25) * 0.92);
+  const tinteV = o.look?.tinteDelVello;
+  const colorDelVello = tinteV && /^#[0-9a-f]{6}$/i.test(tinteV) && largoV > 0 ? mix(tinteV, velloNatural, clamp((o.look?.crecidoDelVelloDesdeElTinte ?? 0) / largoV)) : velloNatural;
   return {
     semilla: c.semilla, edad, sexo, cuna: edad < EDAD_MINIMA_DEL_DIBUJO, madura, vejez, masc, fem,
     gordo: clamp((grasa - 40) / 40, -0.5, 1),
@@ -120,16 +136,16 @@ export function parametrosDe(c: CuerpoDePersona, edad: number, o: Opciones = {})
     rostro: rostroExpresado(a),
     forma: a.cara,
     altura: alturaEn(c.alturaAdulta, edad, c.madurez),
-    cabeza: interpola(CABEZA, edadFisica) * (c.alturaAdulta / 170) ** 0.4 * (sexo === 'f' ? 0.985 : 1) * ESCALA_DE_LA_CABEZA,
+    cabeza: interpola(CABEZA, edadFisica) * (c.alturaAdulta / 170) ** 0.4 * (sexo === 'f' ? 0.985 : 1) * ESCALA_DE_LA_CABEZA * (1 + CABEZA_DE_NINO * nino),
     piel, pielSombra, labios,
     pelo, peloSombra: mix(pelo, '#120d10', 0.45),
     ceja: mix(mix(natural, '#1c1513', 0.25), COLOR_DE_CANA, clamp(canas * 0.8 - 0.1) * 0.8),
     iris: COLOR_DE_OJOS[a.ojos] ?? COLOR_DE_OJOS.marron,
     camiseta: o.camiseta ?? ROPA.camiseta, pantalon: o.pantalon ?? ROPA.pantalon, zapato: ROPA.zapato,
-    peinado: { estilo, tipo: a.peloTipo, lado: rngEstable('retrato', c.semilla, 'lado').chance(0.5) ? 1 : -1, largo, crecido: Math.max(0, largo - fresco(estilo)), calvicie, canas },
-    // La barba encanece algo antes que el pelo.
-    vello: { estilo: estiloV, largo: largoV, densidad: a.barba * salido, color: mix(natural, COLOR_DE_CANA, clamp(canas * 1.25) * 0.92) },
-    arrugas: clamp((edad - 32) / 45) ** 1.3,
+    peinado: { estilo, tipo: a.peloTipo, lado: rngEstable('retrato', c.semilla, 'lado').chance(0.5) ? 1 : -1, largo, crecido: Math.max(0, largo - fresco(estilo)), calvicie, canas, natural: peloNatural, tinte: tenido, raiz: tenido ? raiz : 0 },
+    vello: { estilo: estiloV, largo: largoV, densidad: a.barba * salido, color: colorDelVello },
+    arrugas: clamp((edad - 26) / 44) ** 0.85,
+    nino,
     distintivos: a.distintivos,
   };
 }

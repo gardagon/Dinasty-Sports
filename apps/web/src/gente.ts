@@ -246,7 +246,7 @@ function ficha(g: Game, n: NpcView): string {
     <button data-gente="volver">← Volver</button>
     <h2>${nombre} <small>${esc(rol(n))}</small></h2>
     <nav class="tabs">${pestanas.map(([id, label]) => `<button class="tab" aria-selected="${pestana === id}" data-gente="pestana" data-id="${id}">${label}</button>`).join('')}</nav>
-    ${viewRetrato(g, n.id, { cifras: n.role === 'familia' })}
+    ${viewRetrato(g, n.id, { cifras: n.role === 'familia', nombre: conocida(n) ? n.nombreCorto : '???' })}
     ${aviso}
     ${cuerpo}
     ${acciones}

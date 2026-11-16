@@ -26,29 +26,29 @@ export interface Cara {
 
 /** Las medidas de la cara, en unidades de cabeza (y = −1 la coronilla, y = 1 el mentón): de aquí salen todas las piezas. */
 export function medidasDeCara(P: Parametros): Cara {
-  const r = P.rostro, m = P.madura, v = P.vejez, g = Math.max(0, P.gordo);
+  const r = P.rostro, m = P.madura, v = P.vejez, g = Math.max(0, P.gordo), k = P.nino;
   const F = FORMA_DE_CARA[P.forma] ?? FORMA_DE_CARA.ovalada;
   const hombre = P.sexo === 'm';
-  const w = mezcla(0.765, 0.7, m) + F[0] + 0.05 * g;
+  const w = mezcla(0.765, 0.7, m) + F[0] * (1 - 0.5 * k) + 0.05 * g + 0.035 * k;
   const wc = w * (P.forma === 'corazon' ? 1.01 : 0.985);
   const wz = w * (0.895 + 0.115 * r.pomulos + (P.forma === 'corazon' ? 0.02 : 0));
-  const wj = w * (mezcla(0.8, hombre ? 0.8 + 0.05 * P.masc : 0.74, m) + F[1] + 0.1 * g + 0.04 * v);
-  const wm = w * (mezcla(0.3, hombre ? 0.37 : 0.29, m) + F[2] + (r.menton - 0.5) * 0.25 + 0.05 * g);
+  const wj = w * (mezcla(0.8, hombre ? 0.8 + 0.05 * P.masc : 0.74, m) + F[1] * (1 - 0.5 * k) + 0.1 * g + 0.04 * v + 0.07 * k);
+  const wm = w * (mezcla(0.3, hombre ? 0.37 : 0.29, m) + F[2] + (r.menton - 0.5) * 0.25 * (1 - 0.4 * k) + 0.05 * g + 0.05 * k);
   const yj = F[3] + 0.03 * g + 0.03 * v;
-  const mitad: Pt[] = [[0, -1], [0.5 * wc, -0.955], [0.875 * wc, -0.73], [wc, -0.32], [wz, 0.1], [wj, yj], [(wj + wm) / 2 + w * (0.05 + 0.05 * (1 - m) + 0.05 * g + F[4]), (yj + 0.9) / 2 + 0.03], [wm, 0.9 + 0.04 * (r.menton - 0.5)], [0, 1]];
+  const mitad: Pt[] = [[0, -1], [0.5 * wc, -0.955], [0.875 * wc, -0.73], [wc, -0.32], [wz, 0.1], [wj, yj], [(wj + wm) / 2 + w * (0.05 + 0.05 * (1 - m) + 0.05 * g + F[4] + 0.07 * k), (yj + 0.9) / 2 + 0.03], [wm, 0.9 + 0.04 * (r.menton - 0.5)], [0, 1]];
   const contorno = [...mitad, ...espejo(mitad).slice(1, -1)];
   const borde = (y: number): number => {
     for (let i = 1; i < mitad.length; i++) if (y <= mitad[i][1]) { const a = mitad[i - 1], b = mitad[i]; return a[0] + ((b[0] - a[0]) * (y - a[1])) / (b[1] - a[1] || 1); }
     return 0;
   };
-  const ey = mezcla(0.13, 0, m);
-  const ew = 0.4 * w * (0.86 + 0.26 * r.ojosTamano) * mezcla(1.14, 1, m) * 1.05;
-  const eh = ew * (0.31 + 0.19 * r.ojosForma) * (1 - 0.18 * v) * mezcla(1.08, 1, m);
+  const ey = mezcla(0.13, 0, m) + 0.08 * k;
+  const ew = 0.4 * w * (0.86 + 0.26 * r.ojosTamano) * mezcla(1.14, 1, m) * 1.05 * (1 + 0.16 * k);
+  const eh = ew * (0.31 + 0.19 * r.ojosForma) * (1 - 0.18 * v) * mezcla(1.08, 1, m) * (1 + 0.1 * k);
   const sube = (ew / 2) * (0.04 + 0.22 * (1 - r.ojosForma) - 0.1 * v);
-  const yn = ey + mezcla(0.3, 0.4, m) + 0.14 * (r.narizTamano - 0.5) * mezcla(0.6, 1, m) + 0.03 * v;
-  const na = w * (0.155 + 0.1 * r.narizForma) * (0.82 + 0.36 * r.narizTamano) * mezcla(0.85, 1, m) * (1 + 0.08 * v + 0.04 * P.masc);
+  const yn = ey + mezcla(0.3, 0.4, m) - 0.045 * k + 0.14 * (r.narizTamano - 0.5) * mezcla(0.6, 1, m) + 0.03 * v;
+  const na = w * (0.155 + 0.1 * r.narizForma) * (0.82 + 0.36 * r.narizTamano) * mezcla(0.85, 1, m) * (1 + 0.08 * v + 0.04 * P.masc) * (1 - 0.16 * k);
   const ym = Math.min(0.72, yn + mezcla(0.17, 0.215, m) - (r.menton - 0.5) * 0.05);
-  const mw = w * (0.25 + 0.13 * r.bocaAnchura) * mezcla(0.86, 1, m);
+  const mw = w * (0.25 + 0.13 * r.bocaAnchura) * mezcla(0.86, 1, m) * (1 - 0.1 * k);
   const lu = (0.03 + 0.05 * r.bocaGrosor) * (1 - 0.3 * v) * (1 - 0.12 * P.masc);
   const ll = (0.045 + 0.065 * r.bocaGrosor) * (1 - 0.25 * v) * (1 - 0.1 * P.masc);
   return { w, wc, wz, wj, wm, yj, borde, contorno, ey, ex: 0.41 * w, ew, eh, sube, yn, na, ym, mw, lu, ll, yh: -0.6 };
@@ -81,10 +81,12 @@ export function dibujarCara(P: Parametros, L: Lienzo, C: Cara): string {
   const w = C.w;
   s.push(L.sombra(L.forma([[0.42 * C.wc, -1.1], [0.72 * C.wc, -0.62], [0.78 * C.wz, 0.02], [0.8 * C.wj, C.yj - 0.08], [0.55 * C.wm + 0.12, 0.9], [0.1, 1.1], [w + 0.3, 1.1], [w + 0.3, -1.1]]), sombra, 0.55));
   // Bajo el pómulo: más marcado con pómulos altos, menos con grasa.
-  const hueco = clamp(0.25 + 0.6 * r.pomulos - 0.5 * g) * mezcla(0.5, 1, P.madura);
+  const hueco = clamp(0.25 + 0.6 * r.pomulos - 0.5 * g) * mezcla(0.5, 1, P.madura) * (1 - P.nino);
   for (const lado of [-1, 1]) s.push(L.sombra(L.forma([[lado * C.wz * 0.98, 0.2], [lado * C.wz * 0.6, 0.3], [lado * (C.mw + 0.1), C.ym + 0.02], [lado * C.wj * 0.72, C.yj + 0.12], [lado * C.wj * 1.0, C.yj - 0.05]]), sombra, hueco * (lado > 0 ? 0.5 : 0.36)));
   // Cuencas de los ojos.
   for (const lado of [-1, 1]) s.push(L.sombra(L.forma([[lado * (C.ex - C.ew * 0.62), C.ey - C.eh * 0.2], [lado * C.ex, C.ey - C.eh * 0.95 - 0.03], [lado * (C.ex + C.ew * 0.62), C.ey - C.eh * 0.3], [lado * (C.ex + C.ew * 0.5), C.ey + C.eh * 0.5], [lado * (C.ex - C.ew * 0.5), C.ey + C.eh * 0.55]]), sombra, 0.22 + 0.2 * v));
+  // Mofletes de niño: un rubor plano en las mejillas.
+  if (P.nino > 0.05) for (const lado of [-1, 1]) s.push(`<ellipse cx="${n(lado * C.wz * 0.66)}" cy="${n(C.yn - 0.02)}" rx="0.17" ry="0.11" fill="#e0705f" opacity="${n(0.26 * P.nino)}"/>`);
   // Papada.
   if (g > 0.15) s.push(L.sombra(L.forma([[-C.wj * 0.8, C.yj + 0.2], [0, 0.9], [C.wj * 0.8, C.yj + 0.2], [C.wm, 1.02], [-C.wm, 1.02]]), sombra, 0.5 * g));
   o.push(`<g clip-path="url(#${recorte})">${s.join('')}</g>`);
@@ -96,12 +98,12 @@ export function dibujarCara(P: Parametros, L: Lienzo, C: Cara): string {
   // ---- nariz
   const { yn, na } = C;
   const puente = 0.035 + 0.03 * (1 - r.narizForma);
-  o.push(L.sombra(L.forma([[puente, C.ey - 0.1], [puente + 0.02, C.ey + 0.12], [na * 0.62, yn - 0.2], [na * 1.02, yn - 0.06], [na * 0.9, yn + 0.03], [na * 0.3, yn + 0.05], [0.05, yn - 0.03], [0.015, yn - 0.2]]), sombra, 0.55 * mezcla(0.5, 1, P.madura)));
+  o.push(L.sombra(L.forma([[puente, C.ey - 0.1], [puente + 0.02, C.ey + 0.12], [na * 0.62, yn - 0.2], [na * 1.02, yn - 0.06], [na * 0.9, yn + 0.03], [na * 0.3, yn + 0.05], [0.05, yn - 0.03], [0.015, yn - 0.2]]), sombra, 0.55 * mezcla(0.5, 1, P.madura) * (1 - 0.85 * P.nino)));
   o.push(L.sombra(L.forma([[-na * 0.6, yn + 0.02], [na * 0.95, yn + 0.01], [na * 0.75, yn + 0.085], [0.02, yn + 0.1], [-na * 0.35, yn + 0.06]]), sombra, 0.5));
-  const redonda = 0.9 + 0.35 * r.narizForma;
+  const redonda = 0.9 + 0.35 * mezcla(r.narizForma, 1, 0.6 * P.nino);
   for (const lado of [-1, 1]) {
     const q = (x: number, y: number): Pt => [lado * x, yn + y];
-    o.push(L.trazo(`M${p(q(na * 0.62, -0.16))}C${p(q(na * (0.98 * redonda), -0.15))} ${p(q(na * 1.06 * redonda, -0.02))} ${p(q(na * 0.78, 0.008))}`, 0.016, lado > 0 ? 0.7 : 0.35));
+    o.push(L.trazo(`M${p(q(na * 0.62, -0.16))}C${p(q(na * (0.98 * redonda), -0.15))} ${p(q(na * 1.06 * redonda, -0.02))} ${p(q(na * 0.78, 0.008))}`, 0.016, (lado > 0 ? 0.7 : 0.35) * (1 - 0.45 * P.nino)));
     o.push(`<ellipse cx="${n(lado * na * 0.5)}" cy="${n(yn - 0.003)}" rx="${n(na * (0.2 + 0.07 * r.narizForma))}" ry="${n(0.013 + 0.009 * r.narizForma)}" transform="rotate(${lado * -14} ${n(lado * na * 0.5)} ${n(yn)})" fill="${mix(sombra, '#1c0d0c', 0.55)}" opacity="0.85"/>`);
   }
   o.push(L.trazo(`M${n(-na * 0.3)},${n(yn + 0.022)}Q0,${n(yn + 0.055)} ${n(na * 0.3)},${n(yn + 0.022)}`, 0.016, 0.7));
@@ -126,20 +128,32 @@ export function dibujarCara(P: Parametros, L: Lienzo, C: Cara): string {
   // ---- ojos y cejas
   o.push(dibujarOjos(P, L, C));
 
-  // ---- arrugas
-  if (a > 0.03) {
-    const t = (d: string, fuerza: number, ancho = 0.012) => o.push(L.trazo(d, ancho, clamp(a * fuerza)));
+  // ---- arrugas: cada una aparece a partir de un punto y se alarga y se marca poco a poco; a los 30 ya asoman el surco de la nariz a la boca y las patas de gallo.
+  if (a > 0.02) {
+    /** Cuánto se ve una arruga que empieza cuando las arrugas van por `desde` (0 a 1). */
+    const ve = (desde: number) => clamp((a - desde) / (1 - desde));
+    const t = (d: string, desde: number, ancho = 0.013) => { const x = ve(desde); if (x > 0) o.push(L.trazo(d, ancho * (0.8 + 0.5 * x), 0.3 + 0.6 * x)); };
     for (const lado of [-1, 1]) {
-      // Surco nasolabial, patas de gallo, bolsas, comisuras y mandíbula.
-      t(`M${n(lado * na * 1.12)},${n(yn - 0.07)}Q${n(lado * (mw + 0.1))},${n(yn + 0.06)} ${n(lado * (mw + 0.07))},${n(ym + 0.03)}`, 1.3, 0.014);
+      // Surco nasolabial: se alarga hacia la boca.
+      const nl = ve(0.02);
+      if (nl > 0) o.push(L.trazo(`M${n(lado * na * 1.12)},${n(yn - 0.07)}Q${n(lado * (mw + 0.1) * mezcla(0.85, 1, nl))},${n(yn + 0.06)} ${n(lado * mezcla(na * 1.3, mw + 0.08, nl))},${n(mezcla(yn + 0.06, ym + 0.05, nl))}`, 0.012 + 0.008 * nl, 0.3 + 0.6 * nl));
+      // Patas de gallo: primero una, luego tres.
       const xo = lado * (C.ex + C.ew * 0.58);
-      for (const k of [-1, 0, 1]) t(`M${n(xo)},${n(C.ey - C.sube + k * 0.025)}l${n(lado * 0.075)},${n(k * 0.035 - 0.005)}`, 0.9 - Math.abs(k) * 0.15, 0.01);
-      t(`M${n(lado * (C.ex - C.ew * 0.42))},${n(C.ey + C.eh * 0.55 + 0.03)}Q${n(lado * C.ex)},${n(C.ey + C.eh * 0.55 + 0.085)} ${n(lado * (C.ex + C.ew * 0.45))},${n(C.ey + C.eh * 0.5 + 0.02)}`, 1.1, 0.012);
-      if (!vello.tapaElMenton) t(`M${n(lado * (mw + 0.02))},${n(ym + 0.02)}q${n(lado * 0.03)},0.06 ${n(lado * 0.01)},0.13`, 0.9);
-      if (a > 0.5 && !vello.tapaElMenton) t(`M${n(lado * C.wj * 0.8)},${n(C.yj + 0.05)}Q${n(lado * C.wj * 0.72)},${n(C.yj + 0.22)} ${n(lado * C.wm * 1.25)},${n(0.9)}`, 0.7);
+      t(`M${n(xo)},${n(C.ey - C.sube)}l${n(lado * 0.08)},-0.006`, 0.08, 0.011);
+      t(`M${n(xo)},${n(C.ey - C.sube - 0.028)}l${n(lado * 0.075)},-0.042`, 0.3, 0.011);
+      t(`M${n(xo)},${n(C.ey - C.sube + 0.028)}l${n(lado * 0.075)},0.034`, 0.3, 0.011);
+      // Bolsas bajo los ojos.
+      t(`M${n(lado * (C.ex - C.ew * 0.42))},${n(C.ey + C.eh * 0.55 + 0.03)}Q${n(lado * C.ex)},${n(C.ey + C.eh * 0.55 + 0.09)} ${n(lado * (C.ex + C.ew * 0.45))},${n(C.ey + C.eh * 0.5 + 0.02)}`, 0.25, 0.012);
+      t(`M${n(lado * (C.ex - C.ew * 0.3))},${n(C.ey + C.eh * 0.55 + 0.085)}Q${n(lado * C.ex)},${n(C.ey + C.eh * 0.55 + 0.13)} ${n(lado * (C.ex + C.ew * 0.4))},${n(C.ey + C.eh * 0.5 + 0.07)}`, 0.7, 0.01);
+      // Comisuras, mejilla y mandíbula caída.
+      if (!vello.tapaElMenton) t(`M${n(lado * (mw + 0.02))},${n(ym + 0.02)}q${n(lado * 0.03)},0.06 ${n(lado * 0.01)},0.13`, 0.4);
+      t(`M${n(lado * C.wz * 0.78)},${n(C.yn - 0.12)}Q${n(lado * C.wz * 0.86)},${n(C.yn + 0.05)} ${n(lado * C.wz * 0.74)},${n(C.ym + 0.02)}`, 0.62, 0.011);
+      if (!vello.tapaElMenton) t(`M${n(lado * C.wj * 0.8)},${n(C.yj + 0.05)}Q${n(lado * C.wj * 0.72)},${n(C.yj + 0.22)} ${n(lado * C.wm * 1.25)},${n(0.9)}`, 0.6);
+      // Entrecejo.
+      t(`M${n(lado * 0.045)},${n(C.ey - C.eh - 0.17)}l${n(lado * 0.008)},0.08`, 0.35);
     }
-    for (let k = 0; k < 3; k++) { const y = -0.5 + k * 0.085; t(`M${n(-0.36 + k * 0.03)},${n(y)}Q0,${n(y - 0.025)} ${n(0.36 - k * 0.03)},${n(y)}`, 0.85 - k * 0.1); }
-    for (const lado of [-1, 1]) t(`M${n(lado * 0.045)},${n(C.ey - C.eh - 0.16)}l${n(lado * 0.008)},0.07`, 0.8);
+    // Frente: una línea, luego tres.
+    [0.22, 0.4, 0.6].forEach((desde, i) => { const y = -0.42 - i * 0.085; t(`M${n(-0.36 + i * 0.03)},${n(y)}Q0,${n(y - 0.028)} ${n(0.36 - i * 0.03)},${n(y)}`, desde); });
   }
 
   // ---- distintivos
@@ -186,12 +200,12 @@ function dibujarOjos(P: Parametros, L: Lienzo, C: Cara): string {
     o.push(`<path d="M${p(dentro)}${sup}${mujer ? `l${n(s * 0.03)},${n(-0.022)}` : ''}" fill="none" stroke="${pestana}" stroke-width="${n(grosor)}" stroke-linecap="round" stroke-linejoin="round"/>`);
     if (mujer) for (const k of [0.55, 0.8]) o.push(`<path d="M${p(q(a * k, -hu * (1.05 - (k - 0.55) * 1.2) - sube * k))}l${n(s * 0.028)},${n(-0.03)}" fill="none" stroke="${pestana}" stroke-width="0.014" stroke-linecap="round"/>`);
     const alto = hu * 0.55 + 0.035 - 0.012 * P.vejez;
-    o.push(L.trazo(`M${p(q(-a * 0.78, -hu * 0.55 - alto))}Q${p(q(-a * 0.05, -hu * 1.45 - alto))} ${p(q(a * 0.95, -sube - alto * 0.55))}`, 0.014, 0.6 + 0.3 * P.vejez));
+    o.push(L.trazo(`M${p(q(-a * 0.78, -hu * 0.55 - alto))}Q${p(q(-a * 0.05, -hu * 1.45 - alto))} ${p(q(a * 0.95, -sube - alto * 0.55))}`, 0.014, (0.6 + 0.3 * P.vejez) * (1 - 0.75 * P.nino)));
     o.push(L.trazo(`M${p(fuera)}${inf}`, 0.011, 0.45));
 
     // Ceja.
     const y0 = ey - hu - 0.085 - 0.03 * (1 - 0.6 * P.masc) - eh * 0.12;
-    const th0 = (0.03 + 0.055 * r.cejasGrosor) * (1 + 0.25 * P.masc) * mezcla(0.75, 1, P.madura) * (1 - 0.25 * P.vejez);
+    const th0 = (0.03 + 0.055 * r.cejasGrosor) * (1 + 0.25 * P.masc) * mezcla(0.75, 1, P.madura) * (1 - 0.25 * P.vejez) * (1 - 0.25 * P.nino);
     const arco = 0.008 + 0.115 * r.cejasForma;
     const x0 = Math.max(0.045, C.ex - ew * 0.56), largo = ew * 1.16;
     const ts = [0, 0.14, 0.36, 0.6, 0.82, 1];

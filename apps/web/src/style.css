@@ -375,3 +375,7 @@ ul.cronica li.mia { background: rgba(255, 200, 60, 0.18); border-left: 3px solid
 .evolucion-edad span { min-width: 7.5em; }
 .evolucion-edad input { flex: 1; min-width: 0; accent-color: var(--lane); }
 .evolucion-figura svg { display: block; height: 340px; width: auto; max-width: 100%; margin: 0 auto; }
+.retrato-botones { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.retrato-comparar { padding: 8px 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink); cursor: pointer; }
+.retrato-comparar[aria-expanded='true'] { border-color: var(--lane); }
+.comparacion-figuras svg { display: block; height: 320px; width: auto; max-width: 100%; margin: 0 auto; }

@@ -1,4 +1,4 @@
-import { cuerpoDePersona, type CuerpoDePersona } from '@ds/contracts';
+import { cuerpoDePersona, ID_DEL_PERSONAJE, type CuerpoDePersona } from '@ds/contracts';
 import type { Game } from '@ds/core';
 import { edadDeDibujo, evolucionDe, figuraDe, figurasSvg, cuerpoALaEdad, etapasVividas, retratoDe } from '@ds/retrato';
 
@@ -11,6 +11,8 @@ import { edadDeDibujo, evolucionDe, figuraDe, figurasSvg, cuerpoALaEdad, etapasV
 /** De quién está desplegada la evolución y qué edad marca el deslizador (por defecto, la de hoy). */
 let abierta: string | null = null;
 let edadElegida: number | null = null;
+/** Con quién se está comparando el personaje (los dos de cuerpo entero, a escala, tal como son hoy). */
+let comparada: string | null = null;
 
 const edadHoyDe = (g: Game, c: CuerpoDePersona): number => (g.time.day - c.nacimiento) / 365;
 const textoDeEdad = (edad: number): string => (edad < 1 ? 'Menos de 1 año' : edad === 1 ? '1 año' : `${edad} años`);
@@ -24,7 +26,7 @@ function filaSinCifras(c: CuerpoDePersona, edadHoy: number): string {
  * El retrato de una persona con el acceso a su evolución. `cifras`: si se enseñan su edad y su altura con números (el personaje y la familia; del resto solo
  * se ve la figura a escala, como en el resto de la ficha).
  */
-export function viewRetrato(g: Game, id: string, opciones: { cifras?: boolean } = {}): string {
+export function viewRetrato(g: Game, id: string, opciones: { cifras?: boolean; /** Cómo se llama en el rótulo de la comparación (sin él, no se ofrece comparar). */ nombre?: string } = {}): string {
   const c = cuerpoDePersona(g, id);
   if (!c) return '';
   const cifras = opciones.cifras ?? true;
@@ -42,8 +44,23 @@ export function viewRetrato(g: Game, id: string, opciones: { cifras?: boolean } 
       <div class="evolucion-figura" id="evolucion-figura">${figura(c, edad, edadHoy, cifras)}</div>
     </div>`;
   }
+  // La comparación: tu personaje a su lado, los dos como son hoy. De quien no es de la familia no se dan cifras (ni las de la regla).
+  let comparacion = '';
+  const yo = opciones.nombre !== undefined && id !== ID_DEL_PERSONAJE ? cuerpoDePersona(g, ID_DEL_PERSONAJE) : undefined;
+  if (yo && comparada === id) {
+    const miEdad = edadHoyDe(g, yo);
+    const svg = figurasSvg([
+      { cuerpo: yo, edad: miEdad, opciones: cuerpoALaEdad(yo, edadDeDibujo(miEdad), miEdad), rotulo: 'Tú', cifras: true },
+      { cuerpo: c, edad: edadHoy, opciones: cuerpoALaEdad(c, hoy, edadHoy), rotulo: opciones.nombre, cifras },
+    ], { cifras });
+    comparacion = `<div class="evolucion comparacion"><h3>A tu lado</h3><div class="comparacion-figuras">${svg}</div></div>`;
+  }
   return `<div class="retrato-caja">
-    <button class="retrato-boton" data-retrato="evolucion" data-id="${id}" aria-expanded="${desplegada}" title="Ver su evolución">${retratoDe(c, hoy, edadHoy)}<span>${desplegada ? 'Ocultar evolución' : 'Ver evolución'}</span></button>
+    <div class="retrato-botones">
+      <button class="retrato-boton" data-retrato="evolucion" data-id="${id}" aria-expanded="${desplegada}" title="Ver su evolución">${retratoDe(c, hoy, edadHoy)}<span>${desplegada ? 'Ocultar evolución' : 'Ver evolución'}</span></button>
+      ${yo ? `<button class="retrato-comparar" data-retrato="comparar" data-id="${id}" aria-expanded="${comparada === id}">${comparada === id ? 'Ocultar comparación' : 'Comparar contigo'}</button>` : ''}
+    </div>
+    ${comparacion}
     ${evolucion}
   </div>`;
 }
@@ -53,6 +70,10 @@ const figura = (c: CuerpoDePersona, edad: number, edadHoy: number, cifras: boole
 
 /** Atiende los clics del retrato. `true` si hay que volver a dibujar. */
 export function clicEnRetrato(el: HTMLElement): boolean {
+  if (el.dataset.retrato === 'comparar') {
+    comparada = comparada === el.dataset.id ? null : (el.dataset.id ?? null);
+    return true;
+  }
   if (el.dataset.retrato !== 'evolucion') return false;
   abierta = abierta === el.dataset.id ? null : (el.dataset.id ?? null);
   edadElegida = null;
@@ -78,4 +99,5 @@ export function entradaEnRetrato(g: Game, el: HTMLElement, raiz: HTMLElement): b
 export function reiniciarRetrato(): void {
   abierta = null;
   edadElegida = null;
+  comparada = null;
 }

@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 16/11/2026 — Visualizador: ronda de corrección de la base (decisiones del usuario)
+
+- **Niños:** dejan de ser adultos en miniatura. La cabeza se agranda un 24 % más a los 3 años (cerca de una cuarta parte de la altura) y lo pierde hasta los 15; cara de niño (redonda, mofletes, ojos mayores y más bajos, nariz chata, mandíbula sin marcar) y cuerpo de niño (cuello, brazos y piernas más cortos, barriga, sin cintura).
+- **Arrugas:** empiezan a los 26 y cada una aparece a su tiempo y se marca poco a poco (a los 30 ya asoman).
+- **Cuerpos:** más diferencia entre hombre y mujer (hombros, cintura, caderas, pecho) y entre complexiones (pectorales, barriga, brazos); manos con dedos.
+- **Comparar contigo:** desde la ficha de cualquier persona, tu personaje a su lado, de cuerpo entero, a escala y como son hoy. De quien no es de la familia, sin años ni centímetros.
+- **Peinados:** tres grados al cero (cabeza afeitada, rapado al cero como sombra que respeta la calvicie, y rapado), que salen del largo; la calvicie de los hombres empieza por las **entradas** (`CALVICIE` en contracts: hasta 0,3 solo entradas; hasta 0,55 clarea por arriba; después, solo los lados); peinados nuevos (media melena con flequillo, moño, dos trenzas, tupé) y más premium (tupé, trenzas, candado). Los pesos de elección son provisionales.
+- **Tinte (solo dibujo):** el look admite el color teñido del pelo y de la barba y cuánto han crecido desde el tinte; se ven las raíces del color natural con sus canas.
+- Se probó antes con una página de las dos versiones lado a lado (ya quitada). Receta: `docs/ANEXO_RETRATOS.md`; preguntas pendientes 8 a 13 en `docs/PLAN_VISUALIZADOR.md`.
+
 ## 15/11/2026 — Visualizador de personas, fase 2: estilo «tinta», look con estilo y largo, y el paquete `@ds/retrato` (decisiones del usuario)
 
 - **Estilo:** de las cuatro variantes de las muestras, el usuario eligió la **B · Tinta** (línea oscura de contorno, sombra plana de borde duro, detalle alto en la cara), con la cabeza un 6 % mayor que la real. La línea de contorno rodea la barba y el pelo por fuera, no pasa por encima.

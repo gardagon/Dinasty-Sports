@@ -18,7 +18,7 @@ export interface VelloDibujado {
 }
 
 /** Qué zonas cubre cada estilo: toda la barba (con la línea de la mejilla natural o perfilada), solo el bigote o bigote y mentón. */
-const ZONA: Record<string, 'barba' | 'perfilada' | 'bigote' | 'perilla'> = { afeitado: 'barba', barba_corta: 'barba', barba_larga: 'barba', barba_perfilada: 'perfilada', bigote: 'bigote', perilla: 'perilla' };
+const ZONA: Record<string, 'barba' | 'perfilada' | 'bigote' | 'perilla' | 'candado'> = { afeitado: 'barba', barba_corta: 'barba', barba_larga: 'barba', barba_perfilada: 'perfilada', bigote: 'bigote', perilla: 'perilla', candado: 'candado' };
 
 /** Largo (mm) desde el que el vello es una mancha tupida con su línea; por debajo es una sombra. */
 const TUPIDO = 3;
@@ -65,6 +65,14 @@ export function dibujarVello(P: Parametros, L: Lienzo, C: Cara, recorteCara: str
     o.push(`<g clip-path="url(#${recorte})"><path d="${dBarba}" fill="${v.color}" opacity="${n(fuerza)}"/></g>`);
     if (tupido) o.push(`<g clip-path="url(#${recorteCara})">${L.contorno(lineaMejilla, 0.55)}</g>`);
     o.push(pelos(70, -C.wj, C.wj, 0.3, 1.05 + baja, L.recorte(dBarba), recorte));
+    return { svg: o.join(''), tapaElMenton: tupido, tapaElBigote: tupido };
+  }
+
+  if (zona === 'candado') {
+    // Bigote y mentón unidos alrededor de la boca, en una sola pieza.
+    const m: Pt[] = [[0, yn + 0.06], [na * 0.9, yn + 0.05], [mw + 0.1, ym - 0.05], [mw + 0.13, ym + 0.1], [mw * 0.95, 0.88], [C.wm * 0.75 + baja * 0.1, 1.0 + baja * 0.5], [0, 1.03 + baja]];
+    const d = curva([...m, ...espejo(m).slice(1, -1)], true, 1);
+    o.push(tupido ? L.relleno(d, v.color) + L.contorno(d, 0.55) : `<path d="${d}" fill="${v.color}" opacity="${n(fuerza)}"/>`, pelos(26, -mw, mw, yn + 0.06, 1 + baja, L.recorte(d)));
     return { svg: o.join(''), tapaElMenton: tupido, tapaElBigote: tupido };
   }
 
