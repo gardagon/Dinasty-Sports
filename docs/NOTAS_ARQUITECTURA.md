@@ -33,15 +33,14 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
 1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
-2. **Un niño sin equipo en toda la temporada.** Con la semilla 33, un personaje de nivel 9 no entra en ningún equipo de fútbol: el del colegio está completo y todos valen más, y en los 9 clubes de fuera no llega o no hay hueco. Solo le queda entrenar por su cuenta y esperar al verano. ¿Se quiere otra puerta? Por ejemplo, un equipo B o un equipo sin nivel mínimo en algún club, o que el colegio amplíe la plantilla. **Recomendación:** que el equipo del colegio admita a cualquier alumno hasta un tope más alto (en el fútbol base escolar se juega por participar), y que la regla de plaza quede para los clubes. Es decisión de diseño de calado: mejor verlo con `CIUDAD_Y_LIGAS.md`.
-3. **Chequeo de Rendimiento de la simulación:** sale ⚠️ o ✅ según lo cargada que esté la máquina (la calibración varía entre 8,7 y 11,7 ms). **Recomendación:** estabilizarlo (varias mediciones y la mediana, o un margen). Es una tarea técnica corta.
+2. **Un niño sin equipo en toda la temporada** (17/11: el usuario no quiere sobrecargar el equipo del colegio, porque habría más rotación y desencanto en las convocatorias; pregunta cuántos niños se quedan fuera, si darían para otro equipo y qué significa «no llega». Encargado medirlo a `session_01M4vXXNJQUReSzr3J1beLT5`; recomendación antigua, descartada:) Con la semilla 33, un personaje de nivel 9 no entra en ningún equipo de fútbol: el del colegio está completo y todos valen más, y en los 9 clubes de fuera no llega o no hay hueco. Solo le queda entrenar por su cuenta y esperar al verano. ¿Se quiere otra puerta? Por ejemplo, un equipo B o un equipo sin nivel mínimo en algún club, o que el colegio amplíe la plantilla. **Recomendación:** que el equipo del colegio admita a cualquier alumno hasta un tope más alto (en el fútbol base escolar se juega por participar), y que la regla de plaza quede para los clubes. Es decisión de diseño de calado: mejor verlo con `CIUDAD_Y_LIGAS.md`.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXNy9srpg9oYKpsTsi8` | `claude/entrenar-y-un-deporte` | «Entrenar…» con desplegable por deporte; un solo deporte de competición (personaje y PNJ) |
 | `session_01M4vXXR2tusR8NPz4qqh5Rw` | `claude/pnj-2` | Horarios de los niños de otros colegios (colegio y clubes); salida que enlaza con los entrenamientos de la tarde; padres que recogen; niños del barrio que pasan a amigos; charlar con vecinos adultos y con todos los rivales; «Club: colegio» con el nombre |
-| `session_01M4vXXMfsH6XTt1U1mmKQ1m` | `claude/futbol-2` | Prueba de acceso con los 2 puestos que más necesita; el primer entrenamiento cuenta para las 4 semanas; calendario de la liga en la pestaña y en boca del entrenador; modo números completo; «Entrenar…» con desplegable por deporte |
 | `session_01M4vXXRd8gevhzsj2di6xSy` | `claude/demografia-origenes` | % de PNJ de origen extranjero frente a los datos oficiales (INE, Educación): análisis y propuesta, sin cambiar cifras sin el usuario. Sospecha: un 25 % por adulto, con los padres sorteados por separado, da ~44 % de niños con un padre extranjero |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
@@ -50,7 +49,9 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
-0 bis. **Encargo listo, para cuando se una `claude/futbol-2`** (las dos tocan `packages/kit-deporte/src/club.ts`): **un solo deporte de competición** para el personaje (DECISIONES, 17/11). No poder entrar en el club ni en el equipo de otro deporte mientras se está en uno, con el motivo («Ya compites en <deporte>: déjalo antes»), y revisar que los PNJ siguen con uno. Comprobar sim, bots y `benjamin`, por si algún bot se apunta a dos.
+0 ter. **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
+
+0 bis. **Encargado el 17/11 a `claude/entrenar-y-un-deporte`** (con «Entrenar…» agrupado): **un solo deporte de competición** para el personaje (DECISIONES, 17/11). No poder entrar en el club ni en el equipo de otro deporte mientras se está en uno, con el motivo («Ya compites en <deporte>: déjalo antes»), y revisar que los PNJ siguen con uno. Comprobar sim, bots y `benjamin`, por si algún bot se apunta a dos.
 
 
 1. ~~**Comprobación final de los eventos**~~ **Hecha el 17/11** (también los fallos de `benjamin` y `probar-web`). (`docs/PLAN_EVENTOS.md` §7 ter, punto 4): `npm run sim` completa antes y después (explicar cualquier chequeo que cambie) y añadir los eventos a `npm run probar-web`. Sesión corta de Sonnet.
@@ -77,3 +78,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXNN21uMbP1HxxowM28` | Sonnet | Fallos de PNJ, 1 (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXRXvf6BQ1H7kanWL2W` | Sonnet | Pedir puesto y prueba de acceso (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXNJQUReSzr3J1beLT5` | Sonnet | Comprobación final de los eventos y fallos de benjamin y probar-web (17/11, esta sesión de arquitectura) |
+| `session_01M4vXXMfsH6XTt1U1mmKQ1m` | Sonnet | Fútbol 2: prueba con los puestos que más necesita, calendario de la liga, modo números (17/11, esta sesión de arquitectura) |

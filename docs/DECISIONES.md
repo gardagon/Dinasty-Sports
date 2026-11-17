@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Fútbol 2 unido; revisión de rendimiento pedida
+
+- **Prueba de acceso** (rama `claude/futbol-2`, detalle en `docs/relevo/futbol-2.md`): la necesidad se mide por grupo de puestos (cupo menos jugadores; servicio `NpcDirectory.huecosPorGrupo`). Si faltan jugadores en 1 o 2 grupos, el entrenador los nombra; si son más de 2, dice «varios». Se elige entre todos los puestos.
+- El cambio de puesto del primer entrenamiento cuenta para las 4 semanas (señal `club.peticion_de_puesto`).
+- **Calendario:** línea «Temporada: Pretemporada. La liga empieza el sábado 13 de octubre» en la pestaña del deporte (fútbol y atletismo; dato del deporte en contracts); el entrenador lo dice en el primer entrenamiento, y el diario lo apunta al publicarse el calendario.
+- **Modo números:** enseña también el estado del jugador, la familia, el carácter y el dinero con «€».
+- **Revisión de rendimiento** (el usuario): se están metiendo muchas cosas nuevas sin medirlas como se debería. Queda la primera en lo pendiente de las notas de arquitectura, cuando se unan las sesiones en curso. Incluye estabilizar el chequeo de Rendimiento de la simulación.
+- **Niños sin equipo:** el usuario no quiere ampliar el equipo del colegio sin más (las convocatorias dejarían a muchos fuera: más rotación y desencanto). Se mide cuántos se quedan fuera y si darían para otro equipo antes de decidir.
+
 ## 17/11/2026 — Comprobación final de los eventos (rama `claude/comprobacion-final`)
 
 Detalle: `docs/relevo/comprobacion-final.md`.
