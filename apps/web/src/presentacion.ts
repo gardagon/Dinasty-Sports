@@ -8,6 +8,21 @@ export type Presentacion = Pick<ConfigDeSucesos['presentacion'], 'consecuencias'
 
 export const PRESENTACION_POR_DEFECTO: Presentacion = { consecuencias: 'pistas', fueraDeCaracter: 'normales' };
 
+/**
+ * Lo que se guarda en el navegador: lo que llega al motor (`Presentacion`) y lo que solo es de la interfaz.
+ * `avisoFueraDeCaracter`: en modo «normales», una opción que no va con el carácter lleva una nota «no va contigo». Activado por defecto.
+ */
+export interface Preferencias extends Presentacion {
+  avisoFueraDeCaracter: boolean;
+}
+
+export const PREFERENCIAS_POR_DEFECTO: Preferencias = { ...PRESENTACION_POR_DEFECTO, avisoFueraDeCaracter: true };
+
+/** La nota que lleva una opción elegible que choca con el carácter, o `undefined` si no toca avisar. */
+export function avisoDeCaracter(p: Preferencias, ejeEnContra: string | undefined): string | undefined {
+  return p.fueraDeCaracter === 'normales' && p.avisoFueraDeCaracter && ejeEnContra ? `No va contigo (${ejeEnContra})` : undefined;
+}
+
 export const MODOS_DE_CONSECUENCIAS: readonly { id: Presentacion['consecuencias']; nombre: string }[] = [
   { id: 'pistas', nombre: 'Pistas en palabras' },
   { id: 'numeros', nombre: 'Números' },
@@ -25,19 +40,20 @@ const CLAVE = 'dinasty-sports.presentacion';
 const es = <T extends string>(lista: readonly { id: T }[], x: unknown): x is T => lista.some((m) => m.id === x);
 
 /** Lo guardado, saneado: lo que falta o no vale se queda en el valor por defecto. */
-export function leerPresentacion(almacenLocal: Pick<Storage, 'getItem'> | undefined = guardadoLocal()): Presentacion {
+export function leerPresentacion(almacenLocal: Pick<Storage, 'getItem'> | undefined = guardadoLocal()): Preferencias {
   try {
-    const x = JSON.parse(almacenLocal?.getItem(CLAVE) ?? 'null') as Partial<Presentacion> | null;
+    const x = JSON.parse(almacenLocal?.getItem(CLAVE) ?? 'null') as Partial<Preferencias> | null;
     return {
       consecuencias: es(MODOS_DE_CONSECUENCIAS, x?.consecuencias) ? x.consecuencias : PRESENTACION_POR_DEFECTO.consecuencias,
       fueraDeCaracter: es(MODOS_FUERA_DE_CARACTER, x?.fueraDeCaracter) ? x.fueraDeCaracter : PRESENTACION_POR_DEFECTO.fueraDeCaracter,
+      avisoFueraDeCaracter: typeof x?.avisoFueraDeCaracter === 'boolean' ? x.avisoFueraDeCaracter : PREFERENCIAS_POR_DEFECTO.avisoFueraDeCaracter,
     };
   } catch {
-    return { ...PRESENTACION_POR_DEFECTO };
+    return { ...PREFERENCIAS_POR_DEFECTO };
   }
 }
 
-export function escribirPresentacion(p: Presentacion, almacenLocal: Pick<Storage, 'setItem'> | undefined = guardadoLocal()): void {
+export function escribirPresentacion(p: Preferencias, almacenLocal: Pick<Storage, 'setItem'> | undefined = guardadoLocal()): void {
   try {
     almacenLocal?.setItem(CLAVE, JSON.stringify(p));
   } catch {
@@ -56,7 +72,7 @@ function guardadoLocal(): Storage | undefined {
 /** El módulo que lleva la elección al motor: solo un aporte, sin estado. Los valores por defecto no aportan nada. */
 export function moduloDePresentacion(p: Presentacion): GameModule<Record<string, never>> {
   const cambios: CambiosDeConfigDeSucesos[] =
-    p.consecuencias === PRESENTACION_POR_DEFECTO.consecuencias && p.fueraDeCaracter === PRESENTACION_POR_DEFECTO.fueraDeCaracter ? [] : [{ presentacion: { ...p } }];
+    p.consecuencias === PRESENTACION_POR_DEFECTO.consecuencias && p.fueraDeCaracter === PRESENTACION_POR_DEFECTO.fueraDeCaracter ? [] : [{ presentacion: { consecuencias: p.consecuencias, fueraDeCaracter: p.fueraDeCaracter } }];
   return defineModule<Record<string, never>>({
     id: 'presentacion',
     name: 'Presentación (preferencias de la web)',

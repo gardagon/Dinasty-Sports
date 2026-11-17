@@ -54,7 +54,7 @@ import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } fr
 import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
 import { reclamarPestana } from './pestana';
-import { MODOS_DE_CONSECUENCIAS, MODOS_FUERA_DE_CARACTER, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Presentacion } from './presentacion';
+import { MODOS_DE_CONSECUENCIAS, MODOS_FUERA_DE_CARACTER, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
 import {
   FRECUENCIAS,
@@ -109,7 +109,7 @@ const sortearSemilla = (): number => 1 + Math.floor(Math.random() * 0x7ffffffe);
 /** La partida que se está creando: la semilla decide el nombre, los apellidos y los padres; «volver a sortear» es otra semilla. */
 /** Los deportes que trae el juego (cada módulo de deporte aporta su ficha). */
 /** Los módulos de esta sesión: los del juego más los deportes que se hayan instalado en este dispositivo (ver `deportes-instalados.ts`). */
-let presentacion: Presentacion = leerPresentacion();
+let presentacion: Preferencias = leerPresentacion();
 let modulosActuales: readonly GameModule<any>[] = [...MODULOS, moduloDePresentacion(presentacion)];
 let CATALOGO = catalogoDeDeportes(modulosActuales);
 
@@ -484,7 +484,8 @@ function viewPresentacion(): string {
   const lista = (id: string, modos: readonly { id: string; nombre: string }[], actual: string) =>
     `<select id="${id}">${modos.map((m) => `<option value="${m.id}"${m.id === actual ? ' selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select>`;
   return `<p><label>Consecuencias antes de elegir ${lista('pres-consecuencias', MODOS_DE_CONSECUENCIAS, presentacion.consecuencias)}</label></p>
-    <p><label>Opciones que no van con tu carácter ${lista('pres-fuera-de-caracter', MODOS_FUERA_DE_CARACTER, presentacion.fueraDeCaracter)}</label></p>`;
+    <p><label>Opciones que no van con tu carácter ${lista('pres-fuera-de-caracter', MODOS_FUERA_DE_CARACTER, presentacion.fueraDeCaracter)}</label></p>
+    <p><label><input type="checkbox" id="pres-aviso"${presentacion.avisoFueraDeCaracter ? ' checked' : ''}${presentacion.fueraDeCaracter === 'normales' ? '' : ' disabled'}> Avisar «no va contigo» en las opciones normales</label></p>`;
 }
 
 function viewOpciones(): string {
@@ -529,6 +530,7 @@ const botonesDeSuceso = (p: SucesoPendiente): string =>
         <span class="action-name">${esc(o.texto)}</span>
         ${o.minutos > 1 ? `<span class="action-time">${fmtDur(o.minutos)}</span>` : ''}
         ${!o.elegible && o.motivo ? `<span class="action-why">${esc(o.motivo)}</span>` : o.pista ? `<span class="action-why">${esc(o.pista)}</span>` : ''}
+        ${o.elegible && avisoDeCaracter(presentacion, o.ejeEnContra) ? `<span class="action-why fuera-de-caracter">${esc(avisoDeCaracter(presentacion, o.ejeEnContra)!)}</span>` : ''}
       </button>`,
     )
     .join('');
@@ -1142,6 +1144,13 @@ app.addEventListener('change', (e) => {
   }
   if (el instanceof HTMLSelectElement && (el.id === 'pres-consecuencias' || el.id === 'pres-fuera-de-caracter')) {
     cambiarPresentacion(el.id === 'pres-consecuencias' ? { consecuencias: el.value as Presentacion['consecuencias'] } : { fueraDeCaracter: el.value as Presentacion['fueraDeCaracter'] });
+    return;
+  }
+  if (el instanceof HTMLInputElement && el.id === 'pres-aviso') {
+    // Solo cambia cómo se enseña: no hace falta rehacer la partida.
+    presentacion = { ...presentacion, avisoFueraDeCaracter: el.checked };
+    escribirPresentacion(presentacion);
+    render();
     return;
   }
   if (el instanceof HTMLSelectElement && game && cambioEnGente(el)) render();

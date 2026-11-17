@@ -712,13 +712,15 @@ export const idDeElegir = (pendiente: number, opcion: string): string => `suceso
 
 const NOMBRE_DE_EJE: Record<string, string> = { disciplina: 'disciplina', honestidad: 'honestidad', ambicion: 'ambición', sacrificio: 'sacrificio', sociabilidad: 'sociabilidad', agresividad: 'agresividad', prudencia: 'prudencia', optimismo: 'optimismo' };
 
-function motivoDe(ctx: ReadContext, i: Indice, r: PendienteResuelto, o: OpcionDef): { visible: boolean; elegible: boolean; motivo?: string } {
+function motivoDe(ctx: ReadContext, i: Indice, r: PendienteResuelto, o: OpcionDef): { visible: boolean; elegible: boolean; motivo?: string; ejeEnContra?: string } {
   if (prueba(ctx)?.todoVale) return { visible: true, elegible: true };
   const c = contextoDe(ctx, ctx.state<SucesosState>(), r.p.reparto, r.hilo, r.p.señal);
   const e = evaluarOpcion(o, c, i.config.presentacion);
   if (!e.elegible) return { visible: e.visible, elegible: false, motivo: e.motivo === 'caracter' ? `No va contigo (${NOMBRE_DE_EJE[e.ejeEnContra!] ?? e.ejeEnContra})` : 'No cumples lo que hace falta' };
   const falta = faltaRecurso(ctx, o);
-  return falta ? { visible: true, elegible: false, motivo: falta } : { visible: true, elegible: true };
+  if (falta) return { visible: true, elegible: false, motivo: falta };
+  // En modo «normales» se puede elegir, pero se dice con qué choca (la interfaz decide si lo avisa).
+  return { visible: true, elegible: true, ...(e.ejeEnContra ? { ejeEnContra: NOMBRE_DE_EJE[e.ejeEnContra] ?? e.ejeEnContra } : {}) };
 }
 
 /** Hace salir un suceso ahora, sin esperar a su disparo (sus condiciones y su reparto sí cuentan). Para probar: la herramienta y la interfaz de pruebas. */
@@ -775,16 +777,19 @@ function accionDeElegir(ctx: ReadContext, id: string): ActionDef | undefined {
 }
 
 /** Pista en palabras de lo que puede pasar al elegir, compuesta con los efectos (si la opción no trae una a mano). */
-function pistaDe(o: OpcionDef, modo: ConfigDeSucesos['presentacion']['consecuencias'], prob?: number): string | undefined {
+function pistaDe(ctx: ReadContext, o: OpcionDef, modo: ConfigDeSucesos['presentacion']['consecuencias'], datos: DatosDeTexto, prob?: number): string | undefined {
   if (modo === 'nada') return undefined;
   if (o.pista && modo === 'pistas') return o.pista;
   const efectos = [...(o.efectos ?? []), ...(o.exito?.efectos ?? [])];
   const partes: string[] = [];
   if (modo === 'numeros') {
+    // Nunca el id interno: cada stat sale con su nombre del juego y cada papel con el nombre de la persona.
+    const nombreDeStat = (id: string) => ctx.statDef(id)?.name ?? id;
+    const con = (n: number) => `${n > 0 ? '+' : '−'}${Math.abs(n)}`;
     for (const e of efectos) {
-      if ('estado' in e) partes.push(`${e.estado} ${e.mas > 0 ? '+' : ''}${e.mas}`);
-      else if ('relacion' in e) partes.push(`relación con ${e.relacion}: ${[e.afinidad && `afinidad ${e.afinidad > 0 ? '+' : ''}${e.afinidad}`, e.confianza && `confianza ${e.confianza > 0 ? '+' : ''}${e.confianza}`].filter(Boolean).join(', ')}`);
-      else if ('entrena' in e) partes.push(`entrena ${e.entrena}`);
+      if ('estado' in e) partes.push(`${nombreDeStat(e.estado)} ${con(e.mas)}`);
+      else if ('relacion' in e) partes.push(`relación con ${datos.papeles[e.relacion]?.nombre ?? e.relacion}: ${[e.afinidad && `afinidad ${con(e.afinidad)}`, e.confianza && `confianza ${con(e.confianza)}`].filter(Boolean).join(', ')}`);
+      else if ('entrena' in e) partes.push(`entrena ${nombreDeStat(e.entrena)}`);
       else if ('restriccion' in e) partes.push(`castigo de ${e.restriccion.dias} días`);
     }
     if (prob !== undefined) partes.unshift(`${Math.round(prob * 100)} % de que salga bien`);
@@ -1003,7 +1008,7 @@ function pendientesDe(ctx: ReadContext): SucesoPendiente[] {
     const modo = i.config.presentacion.consecuencias;
     const opciones: OpcionPendiente[] = (r.d.opciones ?? []).map((o) => {
       const prob = o.tirada && modo === 'numeros' ? probabilidadDeExito(ctx.hasStat(o.tirada.con) ? ctx.norm(o.tirada.con) * 100 : 0, o.tirada.dificultad) : undefined;
-      const pista = pistaDe(o, modo, prob);
+      const pista = pistaDe(ctx, o, modo, datos, prob);
       return { id: o.id, accion: idDeElegir(p.id, o.id), texto: componerTexto(o.texto, datos), ...motivoDe(ctx, i, r, o), ...(pista ? { pista: componerTexto(pista, datos) } : {}), minutos: o.minutos ?? 1, ...(prob === undefined ? {} : { probabilidad: prob }) };
     });
     out.push({ id: p.id, suceso: p.suceso, titulo: componerTexto(r.d.titulo ?? r.x.def.titulo, datos), texto: r.d.texto ? componerTexto(r.d.texto, datos) : '', urgencia: r.x.def.urgencia ?? 'ahora', categoria: r.x.def.categoria ?? 'importante', origen: r.x.origen, ...(r.x.deporte ? { deporte: r.x.deporte } : {}), vence: p.vence, reparto: p.reparto, opciones });

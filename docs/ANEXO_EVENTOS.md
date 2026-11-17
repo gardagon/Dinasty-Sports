@@ -159,8 +159,9 @@ Por defecto un suceso es del personaje. Con `para: 'cualquiera'` y una `clase` p
 | `cupo.base` | 1 al día, 4 a la semana | Eventos base espontáneos importantes |
 | `cupo.deporte` | 1 al día, 2 a la semana | Eventos deportivos espontáneos importantes |
 | `cupo.menor` | 2 al día, 8 a la semana | Detalles ligeros, sean base o deportivos |
-| `presentacion.consecuencias` | `pistas` | Qué se ve antes de elegir: `pistas` (en palabras), `numeros` o `nada` |
-| `presentacion.fueraDeCaracter` | `normales` | Las opciones que no van con el carácter: `normales`, `sombreadas` (se ven, no se eligen, se dice por qué) u `ocultas` |
+| `presentacion.consecuencias` | `pistas` | Qué se ve antes de elegir: `pistas` (en palabras), `numeros` o `nada`. Con `numeros` cada estadística sale con su nombre del juego («Estrés −1», «entrena Cooperación») y cada relación con el nombre de la persona, nunca con ids internos (`gen.estres`) |
+| `presentacion.fueraDeCaracter` | `normales` | Las opciones que no van con el carácter: `normales`, `sombreadas` (se ven, no se eligen, se dice por qué) u `ocultas`. En `normales` cada opción lleva `ejeEnContra` (p. ej. «sociabilidad») y la web la avisa con una nota discreta «No va contigo (sociabilidad)»; sigue pudiéndose elegir y mueve el carácter igual |
+| Aviso «no va contigo» (web) | activado | Preferencia del navegador (Opciones → casilla), no del motor: solo cuenta con `fueraDeCaracter: 'normales'`; en `sombreadas` y `ocultas` no cambia nada |
 | `presentacion.ejeMarcado`, `inclinacionMinima` | 25, 2 | Una opción no encaja si tira al menos 2 en contra de un eje que el personaje tiene a 25 o más |
 | `pnj.clases` | `['lesion']` | Clases de suceso (`clase:`) que viven también los PNJ |
 | `pnj.diarioDeCercanos` | `false` | Si lo que le pasa a alguien cercano sale en el diario |
