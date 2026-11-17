@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { SERVICES, type NpcDirectory, type PresenciaService, type TramoDeAgenda } from '@ds/contracts';
+import { RECOGIDA_DE_NINOS, SERVICES, type NpcDirectory, type PresenciaService, type TramoDeAgenda } from '@ds/contracts';
 import { advanceToWeek, type Game } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
-import { delColegio, type Npc, type NpcsState } from '@ds/mod-npcs';
+import { delColegio, edadNpc, type Npc, type NpcsState } from '@ds/mod-npcs';
 import { conocer } from './ayudas';
 
 vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
@@ -13,6 +13,7 @@ describe('la gente del colegio y del barrio', () => {
   let g: Game;
   const npcs = (): Npc[] => (g.moduleState<NpcsState>('npcs') as NpcsState).npcs;
   const presencia = () => g.service<PresenciaService>(SERVICES.presencia)!;
+  const edadDe = (n: Npc): number => edadNpc(n, g.time.day) ?? 0;
   const hasta = (hora: number, minuto = 0): void => { while (g.time.minuteOfDay < hora * 60 + minuto) expect(g.perform('gen.esperar').ok).toBe(true); };
 
   beforeAll(() => {
@@ -58,11 +59,13 @@ describe('la gente del colegio y del barrio', () => {
     for (const n of equipo) expect(presencia().donde(n.id), `${n.id} a las 14:50`).toBe('campo_colegio');
   });
 
-  it('los vecinos adultos que recogen son el 15 % más o menos, están en la entrada a las 14:00 y ya no a las 14:31', () => {
+  it('los vecinos adultos (de 25 años o más) que recogen son el 15 % más o menos, están en la entrada a las 14:00 el 80 % de los días y ya no a las 14:31', () => {
     advanceToWeek(g, 'gen.descansar', 2, 2, 12);
     const adultos = npcs().filter((n) => n.role === 'vecino' && /^vecino_\d+$/.test(n.id) && !n.colegio?.startsWith('colegio') && n.tipos?.some((t) => t.tipo === 'vecino') && !n.tags.includes('bibliotecario'));
     const quienes = adultos.filter((n) => n.tipos!.some((t) => t.recoge));
-    const mayores = adultos.filter((n) => !n.tipos!.some((t) => t.escolar));
+    const mayores = adultos.filter((n) => !n.tipos!.some((t) => t.escolar) && edadDe(n) >= RECOGIDA_DE_NINOS.edadMinima);
+    // Nadie por debajo de la edad mínima recoge.
+    expect(quienes.every((n) => edadDe(n) >= RECOGIDA_DE_NINOS.edadMinima)).toBe(true);
     // Con ~60 adultos, el 15 % sorteado tiene una desviación de ±4,6 puntos: se admite ±3 desviaciones (cambia con la semilla y la demografía).
     expect(quienes.length / mayores.length).toBeGreaterThan(0.05);
     expect(quienes.length / mayores.length).toBeLessThan(0.29);
@@ -73,7 +76,8 @@ describe('la gente del colegio y del barrio', () => {
     expect(enLaEntrada().size).toBe(0);
     hasta(14, 0);
     const alasCatorce = enLaEntrada();
-    for (const n of quienes) expect(alasCatorce.has(n.id), `${n.id} a las 14:00`).toBe(true);
+    // Van el 80 % de los días: hoy, la mayoría de ellos (y todos los que han ido siguen en la entrada a las 14:00).
+    expect(quienes.filter((n) => alasCatorce.has(n.id)).length / quienes.length).toBeGreaterThan(0.45);
     // Solo los que recogen: ningún otro vecino va a la entrada del colegio a esa hora.
     expect([...alasCatorce].filter((id) => !quienes.some((n) => n.id === id))).toEqual([]);
     hasta(14, 31);
