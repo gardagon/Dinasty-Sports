@@ -1109,7 +1109,7 @@ Pendiente de decidir: que la dificultad de pedir el cambio dependa de la relaci�
 
 | Dónde | Cuándo sale | Disculparse | Excusa (tirada con picardía) | No decir nada | Otra |
 |---|---|---|---|---|---|
-| Clase (`eventos.estudios.tarde_a_clase`) | 5 minutos tarde o más; como mucho cada 4 días | Afinidad con el profesor −1 | Dificultad 40. Cuela: nada. No cuela: afinidad −3, estrés +3 | Afinidad −2 | Una broma (carisma 15 o más; tirada con carisma, dificultad 45): estrés −2 o afinidad −3 |
+| Clase (`eventos.estudios.tarde_a_clase`) | 5 minutos tarde o más; como mucho cada 10 días | Afinidad con el profesor −1 | Dificultad 40. Cuela: nada. No cuela: afinidad −3, estrés +3 | Afinidad −2 | Una broma (carisma 15 o más; tirada con carisma, dificultad 45): estrés −2 o afinidad −3 |
 | Entrenamiento (`futbol.tarde_al_entrenamiento`) | Más de 10 minutos tarde (señal nueva `club.sesion_tarde`); como mucho cada 6 días | Afinidad con el entrenador −1 | Dificultad 40. Cuela: nada. No cuela: afinidad −3, confianza −1 | Afinidad −2 | |
 | Convocatoria (`futbol.tarde_a_la_convocatoria`) | Siempre que ya contaba como impuntual (más de 10 minutos) | Afinidad +1 (recupera parte del −3) | Dificultad 50. Cuela: afinidad +1. No cuela: afinidad −2, confianza −1 más | Nada más | |
 
@@ -1128,6 +1128,6 @@ El atletismo no tiene todavía su evento de llegar tarde al entrenamiento (la se
 | Un pique | 12 % al llegar al patio | 25 días | Motivación +4 o −2; energía −3; afinidad +1 o +2 |
 | Un rato al sol (una línea) | 4 % al llegar al patio | 20 días | Estrés −2 |
 
-Con cuatro clases al día, tres eventos al 6 % y uno al 2 % dan en torno a uno cada día y medio de clase antes del cupo y de las esperas; con las esperas quedan bastante menos. Lo que salga de verdad se mide con `npm run sim:eventos`.
+Con cuatro clases al día, tres eventos al 6 % y uno al 2 % dan en torno a uno cada día y medio de clase antes del cupo y de las esperas; con las esperas quedan bastante menos. **Medido con los bots** (`npm run sim:eventos -- 120 1`, 17/11): **entre 1,2 y 2,3 eventos por semana** según la estrategia (antes del segundo lote, 0,0–0,1). Por año: los detalles del aula, de 8 a 14 veces cada uno; los del patio, de 1 a 7 (los bots que no pisan el patio, ninguno); el primer día de Educación física, una vez. Llegar tarde a clase salía 67 veces al año a los bots que llegan tarde casi siempre (con la espera de 4 días), y por eso la espera se ha subido a 10 días.
 
 **Diferencias con la propuesta** (manda `ANEXO_EVENTOS.md`): los sucesos de un hilo van en `sucesos:` (no `eventos:`); los hechos con nombre se leen con `{ hecho: 'faltas' }` y «lo que ha cambiado desde entonces» con `sobreRecuerdo`; un suceso que se dispara con una señal y usa sus datos en un texto lleva `ejemploDeSeñal`; un hilo solo programa sucesos suyos; la historia guarda también la variante; `altura_para_su_edad` va en centímetros sobre lo típico de la edad.

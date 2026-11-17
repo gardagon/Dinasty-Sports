@@ -2,7 +2,7 @@ import { suceso } from '@ds/contracts';
 
 /**
  * Llegar tarde a clase. La mecánica ya existe y no cambia (solo se aprovecha la parte de clase a la que se asiste); este suceso cuenta lo que pasa al
- * entrar con la clase empezada y deja decir algo. Como mucho una vez cada cuatro días, para no repetirse. Cifras de partida, por calibrar.
+ * entrar con la clase empezada y deja decir algo. Como mucho una vez cada diez días, para no repetirse (un bot que llega tarde casi siempre lo veía 67 veces al año con cuatro días). Cifras de partida, por calibrar.
  */
 export default suceso({
   id: 'eventos.estudios.tarde_a_clase',
@@ -11,7 +11,7 @@ export default suceso({
   disparo: { al: 'clase.asistida' },
   ejemploDeSeñal: { asignatura: 'estudios.lengua', tarde: 12 },
   cuando: [{ señal: 'tarde', min: 5 }],
-  repite: { espera: { dias: 4 } },
+  repite: { espera: { dias: 10 } },
   reparto: { profesor: { asignaturaDeLaSeñal: 'asignatura' } },
   texto: 'Abres la puerta con la clase empezada, {señal.tarde} minutos tarde. Todos se giran. {profesor.Nombre} deja de escribir en la pizarra y espera.',
   urgencia: 'ahora',
