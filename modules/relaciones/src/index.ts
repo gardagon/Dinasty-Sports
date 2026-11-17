@@ -865,6 +865,9 @@ const preguntasPendientes = (n: NpcView): DatoPersonal[] => {
 /** Con quién se acuerdan planes: compañeros, amigos y hermanos (no los padres). Las propuestas solo se ofrecen a quien tienes delante. */
 const aceptaPlanes = (n: NpcView) => n.role === 'companero' || n.role === 'amigo' || (n.tags.includes('hermano') && (n.age ?? 8) >= 6);
 
+/** Desde esta edad una persona ya no es «un niño» para charlar con un vecino sin más trato. */
+const EDAD_ADULTA = 18;
+
 function accionesDe(n: NpcView): ActionDef[] {
   const clave = `${n.id}|${n.role}|${n.name}|${n.gender}|${n.role === 'familia' && (n.age ?? 8) < 6 ? 'pequeño' : ''}`;
   let lista = memoAcciones.get(clave);
@@ -878,6 +881,8 @@ function accionesDe(n: NpcView): ActionDef[] {
     }
     else if (esAutoridad(n)) lista = [hablarConAutoridad(n), discutir(n)];
     else if (n.role === 'rival') lista = [saludarRival(n), discutir(n)];
+    // Un niño del barrio que has conocido (en el parque, jugando...) no es compañero ni rival, pero se puede charlar con él (solo eso, de momento: ver ANEXO_RELACIONES §2).
+    else if (n.role === 'vecino' && n.age !== undefined && n.age < EDAD_ADULTA) lista = accionesDeAmistad(n).filter((a) => a.id.startsWith('relaciones.charlar.'));
     else lista = [];
     memoAcciones.set(clave, lista);
   }

@@ -52,7 +52,7 @@ import { ID_DE_LA_CIUDAD_GRANDE } from './paises-propios';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
-import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
+import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, textoDeNiveles, viewPanelGente } from './gente';
 import { reclamarPestana } from './pestana';
 import { MODOS_DE_CONSECUENCIAS, MODOS_FUERA_DE_CARACTER, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
@@ -1021,7 +1021,7 @@ function viewPeople(g: Game): string {
       const v = rel?.get(n.id);
       const yo = g.service<ProfileService>(SERVICES.perfil)?.view();
       const compat = n.rasgos && yo ? compatibilidad(n.rasgos, yo) : undefined;
-      const lvl = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
+      const lvl = textoDeNiveles(g, n.levels);
       return `<div class="npc">
         <div class="npc-head"><b>${esc(n.name)}</b><span>${n.tags.includes('progenitor') ? (n.gender === 'f' ? 'Madre' : 'Padre') : n.tags.includes('hermano') ? (n.gender === 'f' ? 'Hermana' : 'Hermano') : (ROL[n.role]?.[n.gender === 'f' ? 0 : 1] ?? n.role)}</span></div>
         ${v ? `<div class="note"><b>${nombreEstado(v.estado, n.gender)}</b>${MOSTRAR_RELACIONES ? ` · afinidad ${Math.round(v.afinidad)}, confianza ${Math.round(v.confianza)} (solo pruebas)` : ''}${lvl ? ` · nivel ${esc(lvl)}` : ''}</div>` : ''}

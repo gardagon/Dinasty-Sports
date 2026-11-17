@@ -48,6 +48,7 @@ Minutos y días como en el calendario escolar: **lectivo** = día de clase (no f
 | lectivo | 7:30–7:50 | colegio (la entrada, fuera de las aulas), llegando (se les puede hablar) |
 | lectivo | 7:50–10:40 y 11:10–14:00 | **en su aula**: los demás alumnos están en sus aulas (fuera del mapa: **ocupados**). **Tus compañeros de clase** (`tuClase`: los 24 de tu clase y los del reparto inicial) están en **tu aula** (`aula`): libres de 7:50 a 8:00 (el aula ya está abierta) y los 5 minutos al acabar cada clase (9:15–9:20, 10:35–10:40, 12:35–12:40, 13:55–14:00); en clase siguen en el aula, a la vista, con el estado **«atendiendo en clase»** (ocupados, sin poder hablarles) |
 | lectivo | 10:40–11:10 | **patio** (zona del colegio): el recreo (se les puede hablar) |
+| lectivo | 14:00–14:30 | **la salida** (17/11, cifras provisionales: `SALIDA_DEL_COLEGIO`, `agendas.ts`): al acabar las clases salen a la entrada (`colegio`, 70 %) o al patio (30 %), donde se les puede hablar, y **se van repartidos en 30 minutos** (pasos de 5: el 86 % sigue a las 14:00–14:05, el 71 % a las 14:05–14:10… el 14 % a las 14:25–14:30; a las 14:30 no queda nadie). Cada uno tiene su hora de salida fija ese día (el mismo azar en todos los pasos: quien se va no vuelve, y quien se queda se queda donde estaba). Vale también para los hermanos en edad escolar |
 | lectivo | 15:00–19:00 | fuera 55 %, parque 22 %, supermercado 8 %, gimnasio 5 %, **biblioteca 10 %** |
 | libre | 10:00–14:00 | fuera 45 %, parque 37 %, supermercado 10 %, **biblioteca 8 %** |
 | domingo | 10:00–14:00 | fuera 50 %, parque 40 %, supermercado 10 % (la biblioteca cierra los domingos: este tramo manda sobre el anterior porque, a igualdad de nivel, gana el último) |
@@ -135,7 +136,7 @@ Viven en casa (los únicos, con los padres, que tienen `casa` en su agenda). Una
 | Días | Horas | Dónde | Nivel |
 |---|---|---|---|
 | todos | todo el día | casa | 1,5 (entre la base y el rol: manda sobre «fuera» y cede ante lo demás) |
-| lectivo, si tiene de 3 a 17 años (`escolar`) | 7:30–14:00 | colegio como un alumno: llegando en la entrada del colegio y en el recreo en el patio; **en clase (7:50–10:40 y 11:10–14:00), ocupado** (fuera) | 2 |
+| lectivo, si tiene de 3 a 17 años (`escolar`) | 7:30–14:30 (la salida se reparte de 14:00 a 14:30, como la de un alumno) | colegio como un alumno: llegando en la entrada del colegio y en el recreo en el patio; **en clase (7:50–10:40 y 11:10–14:00), ocupado** (fuera) | 2 |
 | todos los días, si tiene menos de 8 años (`duerme`) | 23:00–7:00 | casa, **durmiendo**: se le ve en casa pero no se le puede hablar (`motivoOcupado`) | 2,25 |
 | sábado, si practica atletismo (`deporte`) | 8:45–13:15 | estadio; va el 40 %, como los rivales; ocupado de 9:00 a 13:00 | 3 |
 
