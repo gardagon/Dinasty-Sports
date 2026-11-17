@@ -32,7 +32,11 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **Cifras provisionales del cambio de puesto:** las propondrá la sesión `claude/futbol-pedir-puesto`. Llevárselas al usuario al unir.
+1. **Pedir puesto, lo que dejó abierto `claude/futbol-pedir-puesto`** (cifras en DECISIONES, 17/11):
+   - a) ¿Valen las **cifras provisionales** de la dificultad y el −3 de afinidad por preguntar antes de 4 semanas?
+   - b) El **cambio de puesto del primer entrenamiento** se ha dejado, con las mismas cifras, pero no cuenta para las 4 semanas. ¿Se quita, se cuenta o se queda así? **Recomendación:** que cuente.
+   - c) En la prueba, el suceso enseña **los 16 puestos** aunque solo haya huecos en algunos (7 en el club mediano). ¿Agruparlos por zonas o marcar los huecos? **Recomendación:** marcar cuáles son huecos; agrupar exige formato nuevo.
+   - d) En la ficha del entrenador sale «Club: colegio» con el identificador en vez del nombre. Es un fallo pequeño de presentación.
 2. **Unir a la principal:** decidido esperar a cerrarlo todo (ver DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
 3. **Modo «números», lo que aún no se muestra:** hoy solo se ven con números el estado, la relación, lo que se entrena y los castigos. ¿Se muestran también las consecuencias para la forma y la moral (`estadoDeJugador`), la familia y el carácter? ¿Y el dinero con «€»? (17/11: al usuario no le quedó claro a qué números se refería; se le explicó con la captura `docs/relevo/suceso-presentacion2-numeros-normales-aviso.png`.) **Recomendación:** sí a todo. El modo números es para quien quiere verlo todo. Sería una tarea corta para Sonnet (`docs/relevo/sucesos-presentacion-2.md`).
 4. **PNJ, lo que dejó abierto `claude/pnj-fallos-1`** (`docs/relevo/pnj-fallos-1.md`):
@@ -47,13 +51,15 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXRXvf6BQ1H7kanWL2W` | `claude/futbol-pedir-puesto` | «Pedir jugar…» pasa a la conversación, como una acción con desplegable (kit de deporte y web); **rediseñado el 17/11**: prueba como acción y evento, y pregunta al entrenador en la conversación (ver DECISIONES) |
+| — | — | Ninguna |
 
-**Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio; sus dudas, en §3.4).
+**Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio; sus dudas, en §3.4).
 
 
 
 ## 4. Pendiente (por orden de prioridad propuesto)
+
+0. **Fallo:** `npm run benjamin -- 31,33` (la semilla 33 da «el personaje juega en undefined») y `npm run probar-web` («tu entrenador no te convoca esta semana») fallan ya en la rama de trabajo antes del fútbol (lo comprobó la sesión `claude/futbol-pedir-puesto`). Arreglarlo antes de unir a la principal; va bien con la comprobación final (punto 1).
 
 1. **Comprobación final de los eventos** (`docs/PLAN_EVENTOS.md` §7 ter, punto 4): `npm run sim` completa antes y después (explicar cualquier chequeo que cambie) y añadir los eventos a `npm run probar-web`. Sesión corta de Sonnet.
 2. **Más contenido de sucesos**, por lotes y áreas, con la herramienta y el estilo del lote 1 (`docs/relevo/sucesos-contenido-1.md`). Ojo: los bots no pasan por la calle del colegio antes de las 8:10 ni están en casa de noche, así que esos sucesos no salen en la simulación (se cubren con `pruebas`).
@@ -77,3 +83,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXQBUogyjnaCrXngzHj` | Sonnet | Contenido de sucesos, lote 1 |
 | `session_01M4vXXMyMkGiof9ZYc5bGtg` | Sonnet | Presentación de los sucesos, 2.ª parte (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXNN21uMbP1HxxowM28` | Sonnet | Fallos de PNJ, 1 (17/11, esta sesión de arquitectura) |
+| `session_01M4vXXRXvf6BQ1H7kanWL2W` | Sonnet | Pedir puesto y prueba de acceso (17/11, esta sesión de arquitectura) |

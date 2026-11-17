@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Pedir puesto y prueba de acceso, hechos (rama `claude/futbol-pedir-puesto`)
+
+Detalle y tablas: `docs/relevo/futbol-pedir-puesto.md`.
+- **Formato de los sucesos (general):** una tirada admite `ajustes: [{ si: [condiciones], mas: N }]`, que suman a la dificultad (total entre 0 y 100), y hay un efecto `{ tirada, exito, fallo }` para tirar dentro de un suceso sin opciones. Documentado en ANEXO_EVENTOS.
+- **Dificultad de pedir puesto** (cifras provisionales, base 55, entre 25 y 80; `ajustesDePedirPuesto` en el kit):
+  - relación con el entrenador: antipatía, enemigo o antagonista, +10; afinidad ≥ 20, −5; ≥ 40, otros −5; ≥ 75, otros −5;
+  - lo que vale en el puesto pedido frente al actual: ≥ 3 más, −5; ≥ 10, otros −5; ≥ 20, otros −5; ≤ 3 menos, +8; ≤ 10 menos, otros +7.
+  Ejemplos (relación baja / media / alta; vale más / igual / menos): 55/65/73, 40/50/58 y 35/45/53. Lo usan el primer entrenamiento y la ficha.
+- **Prueba de acceso** (clubes con puestos, en el kit): «Pedir hacer una prueba» (te dicen cuándo entrena) → «Unirte al entrenamiento de prueba» → suceso `<deporte>.prueba_de_acceso` (el entrenador se presenta; con 2 huecos o más pregunta dónde quieres jugar) → «Entrenar a prueba con el equipo» (145 min), que mide la plaza en el puesto en que te probaron y dice qué tal ha ido. Se quitan `elegir_puesto.*`. El atletismo, sin puestos, no cambia.
+- **Ficha del entrenador:** servicio común `ConversacionService` (contracts). «Pedir jugar…» con desplegable de puestos (sugiere el que más vale), solo con el entrenador presente; 5 minutos; suceso `<deporte>.pedir_puesto`. Preguntar antes de 28 días (dato editable) baja la afinidad −3 (provisional, igual que llegar tarde a una convocatoria), además de la tirada.
+
 ## 17/11/2026 — Fallos de PNJ arreglados (rama `claude/pnj-fallos-1`)
 
 - **Un PNJ no puede estar en dos deportes** (`Npc.deporte` es único; nadie decidió lo contrario). Lo que se veía era un fallo de texto: al dejar un deporte se quitaba el club, pero no la frase «Del equipo de X del colegio.» de la descripción. Arreglado. Las partidas ya empezadas conservan la frase vieja hasta que esa persona cambie de equipo. El personaje sí puede hacer dos deportes; si se iguala, queda pendiente del usuario.
