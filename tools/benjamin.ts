@@ -2,7 +2,7 @@
  * La regla de benjamín (los niños llegan nuevos al club: asistencia y relación empiezan en el primer entrenamiento de la temporada) con la ciudad grande: cuántas semanas hay entre el primer entrenamiento
  * y el primer partido de benjamín, y cómo queda la primera convocatoria (quién sale, y si el personaje que va a los entrenamientos entra en igualdad). `npm run benjamin -- [semillas]`.
  */
-import { PAIS_CIUDAD_GRANDE, SERVICES, claveDeDeporte, registrarPais, type DeporteService, type NpcDirectory, type PartidosService } from '@ds/contracts';
+import { PAIS_CIUDAD_GRANDE, SERVICES, claveDeDeporte, registrarPais, type ClubDirectory, type DeporteService, type NpcDirectory, type PartidosService } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, paraConvocar, convocarYAlinear, type FutbolState } from '@ds/mod-futbol';
@@ -14,7 +14,9 @@ const f = (x: number, d = 2): string => x.toFixed(d);
 for (const seed of semillas) {
   const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   advanceToWeek(g, 'gen.descansar', 0, 2, 9);
-  if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');
+  const apuntado = posible(g, 'futbol.apuntarse_colegio');
+  const motivoSinPlaza = apuntado ? undefined : g.preview('futbol.apuntarse_colegio')?.reason;
+  if (apuntado) hacer(g, 'futbol.apuntarse_colegio');
   const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
   const partidos = () => g.service<PartidosService>(SERVICES.partidos)!;
   // La primera semana con partido de benjamín.
@@ -24,8 +26,12 @@ for (const seed of semillas) {
     if (partidos().deLaSemana().some((p) => p.categoria === 'benjamin')) primera = w;
   }
   const estado = () => g.moduleState<FutbolState>('futbol') as FutbolState;
-  const e = estado().personaje;
-  console.log(`\nSemilla ${seed}: el personaje juega en ${e?.club} ${e?.categoria} ${e?.letra}; primer partido de benjamín en la semana ${primera} (entrenamientos desde la semana 0 → ${primera} semanas)`);
+  // Con algunas semillas (la 33) el equipo del colegio ya está completo y todos juegan mejor que el personaje: el juego no le da plaza (regla de plaza, `motivoSinPlaza`), y eso no es un fallo. Entonces se mide lo mismo
+  // con el equipo benjamín del colegio sin el personaje, y las líneas del personaje se saltan.
+  const juega = estado().personaje;
+  const colegio = g.service<ClubDirectory>(SERVICES.clubes)!.list('futbol').find((c) => c.esColegio);
+  const e = juega ?? (colegio ? { club: colegio.id, categoria: 'benjamin', letra: 'A' } : undefined);
+  console.log(`\nSemilla ${seed}: ${juega ? `el personaje juega en ${e?.club} ${e?.categoria} ${e?.letra}` : `el personaje NO tiene plaza (${motivoSinPlaza ?? 'sin motivo'}); se mide el equipo ${e?.club} ${e?.categoria} ${e?.letra} sin él`}; primer partido de benjamín en la semana ${primera} (entrenamientos desde la semana 0 → ${primera} semanas)`);
   if (!e) continue;
   // El sábado de esa semana por la mañana: la plantilla del equipo del personaje con las mismas reglas.
   advanceToWeek(g, 'gen.descansar', primera, 5, 8);
@@ -36,6 +42,7 @@ for (const seed of semillas) {
   const citados = new Set([...c.titulares, ...c.suplentes].map((x) => x.id));
   const fuera = plantilla.filter((j) => !citados.has(j.id));
   console.log(`  Sin el personaje salen ${citados.size} convocados; de los ${fuera.length} que no, asistencia media ${fuera.length ? f(fuera.reduce((a, j) => a + j.asistencia, 0) / fuera.length) : '-'}; valor medio convocados ${f([...citados].reduce((a, id) => a + plantilla.find((j) => j.id === id)!.valor, 0) / citados.size, 1)}, no convocados ${fuera.length ? f(fuera.reduce((a, j) => a + j.valor, 0) / fuera.length, 1) : '-'}`);
+  if (!juega) continue;
   // El personaje: si va a todos los entrenamientos y si no va a ninguno (la misma foto, con las sesiones de FutbolState cambiadas).
   const papel = (): string => String(g.service<DeporteService>(claveDeDeporte('futbol'))!.view().secciones!.find((s) => s.titulo === 'Próximo partido')?.tabla?.rows.find(([k]) => k === 'Tu papel (hoy)')?.[1]);
   const s = estado();
