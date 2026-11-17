@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Equipos: menos clubes de colegio y niños que se quedan en el de su colegio
+
+El equipo del colegio se quedaba vacío porque en el reparto los 14 clubes (9 de fuera y 5 de colegio) llenan sus A y B con unos 500 niños por categoría, y el colegio va el último. Decidido por el usuario:
+- **Clubes de colegio: 4 en total** (el del personaje y 3 de los 9 de fuera). Los 6 colegios sin club nutren a los clubes de fuera.
+- **Un niño con club en su colegio se queda en él, salvo que vaya a probar fuera.** Probabilidad de ir a probar a un club de fuera, según la edad: benjamín 15 %, alevín 25 %, infantil 35 %, cadete 45 % y juvenil 55 %. Sube con la ambición y el nivel y baja si tiene amigos en el equipo (cifras de partida, por revisar). Los que no prueban entran en el equipo de su colegio, que se forma antes que los de fuera. Los que prueban y no entran vuelven a su colegio. Cada verano, igual con los de primer año. Es aceptable que en juvenil no haya equipos de colegio, y casi tampoco en cadete.
+- **Convencer a un amigo para que el equipo no se deshaga:** como alternativa puntual, no como regla general.
+- **Plazas de más, en lo último de todo:** si al final un niño se queda sin equipo, un equipo puede pasar de su máximo, 1 o 2 plazas como mucho, solo para no dejarlo fuera. Ese niño corre el riesgo de no jugar si no da el nivel.
+
 ## 17/11/2026 — Respuestas del usuario: recogida, fichas de quien no está, plazo de fichajes y listas agrupadas
 
 - **Un padre que se va con su hijo:** cuando haya familias de PNJ.
