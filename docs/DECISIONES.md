@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Demografía de orígenes más cerca de la realidad
+
+Informe: `docs/relevo/demografia-origenes.md`. Había un 25 % de adultos de origen extranjero y, al sortearse los dos padres por separado, el 46 % de los personajes tenía un padre extranjero (y casi todos salían mestizos). Datos oficiales de referencia: nacidos fuera, 20,2 %; nacionalidad extranjera, 14,6 % (INE, 2026); alumnado extranjero, 13,5 %; nacimientos con algún progenitor extranjero, ~25–32 %. El usuario aprueba (se busca acercarse a la realidad sin copiarla, así que no hace falta afinar con las tablas del INE):
+- **A. Emparejar por tipos:** 75 % de parejas de dos de aquí, 13 % de dos extranjeros (el 70 % del mismo origen) y 12 % mixtas.
+- **B. Demografía adulta de España, del 25 % al 19 %:** Latinoamérica 6, Magreb 4, Europa del este 3,5, África subsahariana 1,7, Asia oriental 1,8, Europa del norte 2.
+- **C. Los niños del mundo se sortean como hijos de una pareja,** con las mismas reglas que el personaje.
+Resultado esperado: el 25 % de los hijos con algún padre extranjero y el 12 % mestizos. Encargado a la sesión `claude/demografia-origenes`.
+
 ## 17/11/2026 — Fútbol 2 unido; revisión de rendimiento pedida
 
 - **Prueba de acceso** (rama `claude/futbol-2`, detalle en `docs/relevo/futbol-2.md`): la necesidad se mide por grupo de puestos (cupo menos jugadores; servicio `NpcDirectory.huecosPorGrupo`). Si faltan jugadores en 1 o 2 grupos, el entrenador los nombra; si son más de 2, dice «varios». Se elige entre todos los puestos.
