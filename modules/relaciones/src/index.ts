@@ -142,9 +142,6 @@ function efectoDeCompania(n: NpcView, area: AreaDeAyuda, afinidad: number): numb
   const ayuda = AYUDA_MAXIMA * limitar((aptitud - APTITUD_TIPICA) / APTITUD_TIPICA, 0, 1) * limitar(afinidad / AFINIDAD_AYUDA_COMPLETA, 0, 1);
   return ayuda - estorboDe(aptitud);
 }
-/** Cuántos rivales conocidos ofrecen acciones a la vez (los de mayor afinidad, a favor o en contra). */
-const RIVALES_CON_ACCIONES = 5;
-
 /** Lo que empeora la relación con el entrenador y con cada miembro del equipo de un club al que dejas plantado (ver `docs/ANEXO_DEPORTE.md`). */
 const PLANTON = { entrenador: { afinidad: 15, confianza: 10 }, equipo: { afinidad: 6, confianza: 3 } };
 
@@ -488,7 +485,7 @@ function resolverAccionDeRelaciones(ctx: ReadContext, id: string): ActionDef | u
   const partes = id.split('.');
   if (partes[0] !== 'relaciones') return undefined;
   const n = dirDe(ctx)?.get(partes[2] ?? '');
-  if (!n || !conocida(n) || !aceptaPlanes(n)) return undefined;
+  if (!n || !conocida(n) || !aceptaPlanes(n, esAmigoDeNino(ctx.state<RelacionesState>(), n))) return undefined;
   if (partes[1] === 'proponer' && partes.length === 7) {
     const [, , , actividad, lugar, cuando, minuto] = partes;
     if (!(actividad in PLANES) || (cuando !== 'hoy' && cuando !== 'manana') || !Number.isInteger(Number(minuto))) return undefined;
@@ -500,7 +497,7 @@ function resolverAccionDeRelaciones(ctx: ReadContext, id: string): ActionDef | u
 
 /** Lo que se puede elegir al proponerle un plan a esta persona (los desplegables del formulario): actividades, sitios y, para cada día, las horas que dejan el horario del sitio y la antelación. */
 function formularioDePlan(ctx: ReadContext, n: NpcView | undefined): FormularioDePlan {
-  if (!n || !conocida(n) || !aceptaPlanes(n)) return { motivo: 'Con esta persona no se acuerdan planes', actividades: [] };
+  if (!n || !conocida(n) || !aceptaPlanes(n, esAmigoDeNino(ctx.state<RelacionesState>(), n))) return { motivo: 'Con esta persona no se acuerdan planes', actividades: [] };
   const lugares = ctx.service<LugaresService>(SERVICES.lugares);
   const ahora = ctx.time.minuteOfDay;
   return {
@@ -863,13 +860,16 @@ const preguntasPendientes = (n: NpcView): DatoPersonal[] => {
 };
 
 /** Con quién se acuerdan planes: compañeros, amigos y hermanos (no los padres). Las propuestas solo se ofrecen a quien tienes delante. */
-const aceptaPlanes = (n: NpcView) => n.role === 'companero' || n.role === 'amigo' || (n.tags.includes('hermano') && (n.age ?? 8) >= 6);
+const aceptaPlanes = (n: NpcView, amigoDeNino = false) => n.role === 'companero' || n.role === 'amigo' || amigoDeNino || (n.tags.includes('hermano') && (n.age ?? 8) >= 6);
+
+/** Un niño del barrio (vecino menor de 18) con quien el vínculo ya es de amistad (afinidad ≥ 40, confianza ≥ 30 y trato reciente: lo mismo que cuando un compañero pasa a ser amigo): tiene todo el catálogo de la amistad. */
+const esAmigoDeNino = (s: RelacionesState, n: NpcView): boolean => n.role === 'vecino' && n.age !== undefined && n.age < EDAD_ADULTA && NIVEL_ESTADO[s.vinculos[n.id]?.estado ?? 'conocido'] >= NIVEL_ESTADO.amigo;
 
 /** Desde esta edad una persona ya no es «un niño» para charlar con un vecino sin más trato. */
 const EDAD_ADULTA = 18;
 
-function accionesDe(n: NpcView): ActionDef[] {
-  const clave = `${n.id}|${n.role}|${n.name}|${n.gender}|${n.role === 'familia' && (n.age ?? 8) < 6 ? 'pequeño' : ''}`;
+function accionesDe(n: NpcView, amigoDeNino = false): ActionDef[] {
+  const clave = `${n.id}|${n.role}|${n.name}|${n.gender}|${n.role === 'familia' && (n.age ?? 8) < 6 ? 'pequeño' : ''}|${amigoDeNino ? 'amigo' : ''}`;
   let lista = memoAcciones.get(clave);
   if (!lista) {
     if (n.role === 'companero' || n.role === 'amigo') lista = [...accionesDeAmistad(n), discutir(n)];
@@ -881,8 +881,8 @@ function accionesDe(n: NpcView): ActionDef[] {
     }
     else if (esAutoridad(n)) lista = [hablarConAutoridad(n), discutir(n)];
     else if (n.role === 'rival') lista = [saludarRival(n), discutir(n)];
-    // Un niño del barrio que has conocido (en el parque, jugando...) no es compañero ni rival, pero se puede charlar con él (solo eso, de momento: ver ANEXO_RELACIONES §2).
-    else if (n.role === 'vecino' && n.age !== undefined && n.age < EDAD_ADULTA) lista = accionesDeAmistad(n).filter((a) => a.id.startsWith('relaciones.charlar.'));
+    // Un vecino que has conocido (en el parque, jugando, en el colegio...): se puede charlar con él. Si es un niño del barrio y con el trato ya es amigo, tiene todo el catálogo de la amistad (ANEXO_RELACIONES §2).
+    else if (n.role === 'vecino') lista = amigoDeNino ? [...accionesDeAmistad(n), discutir(n)] : accionesDeAmistad(n).filter((a) => a.id.startsWith('relaciones.charlar.'));
     else lista = [];
     memoAcciones.set(clave, lista);
   }
@@ -1075,7 +1075,6 @@ export const relaciones = defineModule<RelacionesState>({
     if (!dir) return [];
     const lista: ActionDef[] = [];
     const s = ctx.state<RelacionesState>();
-    const rivales: NpcView[] = [];
     // Hacer las paces solo se ofrece cuando hay algo que arreglar (un vínculo negativo) o se acaba de intentar y falló.
     const conPaces = (n: NpcView) => {
       const v = s.vinculos[n.id];
@@ -1084,15 +1083,10 @@ export const relaciones = defineModule<RelacionesState>({
     const cerca = cercanosConClave(ctx);
     for (const n of dir.list({ known: true })) {
       if (!conocida(n)) continue;
-      if (n.role === 'rival') rivales.push(n);
-      else {
-        lista.push(...accionesDe(n));
-        if (conPaces(n)) lista.push(pacesDe(n));
-      }
+      // Los rivales conocidos, todos (17/11: antes solo los 5 más marcados): saludarlos, charlar con ellos, encararse y hacer las paces.
+      lista.push(...accionesDe(n, esAmigoDeNino(s, n)));
+      if (conPaces(n)) lista.push(pacesDe(n));
     }
-    // De los rivales conocidos solo se ofrecen los que más han marcado la relación (los demás son un nombre en una clasificación).
-    rivales.sort((a, b) => Math.abs(s.vinculos[b.id]?.afinidad ?? 0) - Math.abs(s.vinculos[a.id]?.afinidad ?? 0));
-    for (const n of rivales.slice(0, RIVALES_CON_ACCIONES)) lista.push(...accionesDe(n), ...(conPaces(n) ? [pacesDe(n)] : []));
     // A quien conoces y tienes delante le puedes preguntar lo que no sepas de él o de ella.
     if (cerca) for (const n of cerca.lista) if (conocida(n) && n.role !== 'familia') lista.push(...preguntasPendientes(n).map((d) => preguntarDe(n, d)));
     // A quien no conoces y tienes cerca le puedes preguntar el nombre.

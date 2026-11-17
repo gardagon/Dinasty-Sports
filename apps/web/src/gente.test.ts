@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Game } from '@ds/core';
-import { ordenarAcciones, ordenarPorRelacion, textoDeNiveles } from './gente';
+import { nombreDeClub, ordenarAcciones, ordenarPorRelacion, textoDeNiveles } from './gente';
 
 type V = { nivel: number; afinidad: number; confianza: number };
 const gente = (...xs: [string, V | undefined][]) => ({
@@ -53,5 +53,24 @@ describe('niveles de una persona en su ficha', () => {
   });
   it('un deporte que no se conoce sale con su identificador en vez de romper', () => {
     expect(textoDeNiveles(juego, { padel: 7 })).toBe('padel 7');
+  });
+});
+
+describe('el club de una persona en su ficha', () => {
+  const clubes = [
+    { id: 'colegio', nombre: 'Club deportivo del colegio' },
+    { id: 'club_grande', nombre: 'Real Ciudad C. F.' },
+  ];
+  const juego = {
+    registry: { moduleNames: new Map([['futbol', 'Fútbol'], ['atletismo', 'Atletismo'], ['clubes', 'Clubes']]) },
+    service: () => ({ list: (deporte: string) => (deporte === 'futbol' ? clubes : []) }),
+  } as unknown as Game;
+  it('enseña el nombre del club cuando la persona lleva su identificador (los entrenadores), para cualquier club', () => {
+    expect(nombreDeClub(juego, 'colegio')).toBe('Club deportivo del colegio');
+    expect(nombreDeClub(juego, 'club_grande')).toBe('Real Ciudad C. F.');
+  });
+  it('si ya es un nombre (los jugadores) o no se conoce, se deja tal cual', () => {
+    expect(nombreDeClub(juego, 'Real Ciudad C. F.')).toBe('Real Ciudad C. F.');
+    expect(nombreDeClub(juego, 'club7')).toBe('club7');
   });
 });
