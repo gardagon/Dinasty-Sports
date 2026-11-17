@@ -65,3 +65,21 @@ No he tocado la versión de guardado. `escolar` y `recoge` se ponen **al crear l
 5. **Rendimiento** de los rivales sin tope (arriba).
 6. **El estado «amigo» de los niños del barrio no cambia su agenda** (no se les asigna el tipo `amigo`, que de todas formas hoy no se asigna a nadie, ni a los compañeros amigos).
 7. Los **planes** (proponer quedar) con un niño del barrio amigo usan las mismas reglas que con un compañero; los he dejado habilitados pero solo está probado que las acciones existen.
+
+## Segunda vuelta: el coste de los rivales ya no crece (petición de la arquitectura, 17/11)
+
+`dynamicActions` (`modules/relaciones`) solo calcula las acciones de los rivales y vecinos conocidos **que tienes cerca** (los de `cercanosConClave`) y las de los niños del barrio que ya son amigos. Las de los demás siguen existiendo por su id: `resolverAccion` devuelve «Charlar», «Discutir/Encararse» y «Paces» de cualquier rival o vecino conocido, así que `g.preview` y `g.perform` valen igual y dicen por qué no se puede (a distancia no se puede charlar: ya exigía presencia).
+
+**Lo único que cambia para el jugador:** la ficha de un rival o un vecino que no tienes cerca ya no enseña, en «Lo que no se puede ahora», sus acciones en gris con el motivo (la ficha usa `listActions`, que no las incluye). Nada que se pudiera hacer deja de poderse. Si se quiere conservar ese listado en gris para la persona de la ficha abierta, hace falta que la ficha le diga al motor a quién mira (hoy no lo hace); no lo he hecho.
+
+Medido (mismo script, ms por `availableActions` + esperar, media de 20), antes del cambio de rivales / con tope solo cercanos:
+
+| personas conocidas | sin tope (antes de esta vuelta) | solo cercanos |
+|---|---|---|
+| ninguna | 4,2 | 4,0 |
+| 30 rivales | 3,1 | 2,4 |
+| 413 rivales | 16,3 | 2,7 |
+| 491 vecinos | 9,6 | 4,0 |
+| 901 rivales y vecinos | 19,2 | 2,6 |
+
+`npm run rendimiento -- 60`: estado 2940 KB, 1,86 ms por acción (antes de todo, 1,80). Test: `tests/pnj-2.test.ts` (los 40 rivales conocidos no salen en la lista, se pueden consultar y no están disponibles a distancia).

@@ -126,4 +126,17 @@ describe('qué se puede hacer con cada persona', () => {
     conocer(g, ...rivales.map((r) => r.id));
     for (const r of rivales) expect(g.preview(`relaciones.charlar.${r.id}`), `charlar con ${r.id}`).toBeDefined();
   });
+
+  it('las acciones de los rivales que no tienes cerca no entran en la lista (el coste no crece con los conocidos), pero se pueden consultar y dicen por qué no', () => {
+    const rivales = dir().list({ role: 'rival' }).slice(0, 40);
+    conocer(g, ...rivales.map((r) => r.id));
+    const enLista = new Set(g.listActions().map((a) => a.id));
+    for (const r of rivales) {
+      expect(enLista.has(`relaciones.charlar.${r.id}`), `${r.id} en la lista`).toBe(false);
+      const p = g.preview(`relaciones.charlar.${r.id}`);
+      expect(p, r.id).toBeDefined();
+      expect(p!.available).toBe(false);
+      expect(g.preview(`relaciones.discutir.${r.id}`)).toBeDefined();
+    }
+  });
 });

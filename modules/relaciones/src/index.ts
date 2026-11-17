@@ -485,6 +485,12 @@ function resolverAccionDeRelaciones(ctx: ReadContext, id: string): ActionDef | u
   const partes = id.split('.');
   if (partes[0] !== 'relaciones') return undefined;
   const n = dirDe(ctx)?.get(partes[2] ?? '');
+  // Las acciones de un rival o un vecino conocido que no está cerca (no salen en `dynamicActions`).
+  if (n && conocida(n) && (n.role === 'rival' || n.role === 'vecino') && partes.length === 3) {
+    if (partes[1] === 'paces') return pacesDe(n);
+    const propia = accionesDe(n, esAmigoDeNino(ctx.state<RelacionesState>(), n)).find((a) => a.id === id);
+    if (propia) return propia;
+  }
   if (!n || !conocida(n) || !aceptaPlanes(n, esAmigoDeNino(ctx.state<RelacionesState>(), n))) return undefined;
   if (partes[1] === 'proponer' && partes.length === 7) {
     const [, , , actividad, lugar, cuando, minuto] = partes;
@@ -1083,8 +1089,11 @@ export const relaciones = defineModule<RelacionesState>({
     const cerca = cercanosConClave(ctx);
     for (const n of dir.list({ known: true })) {
       if (!conocida(n)) continue;
-      // Los rivales conocidos, todos (17/11: antes solo los 5 más marcados): saludarlos, charlar con ellos, encararse y hacer las paces.
-      lista.push(...accionesDe(n, esAmigoDeNino(s, n)));
+      // Rivales y vecinos conocidos (los que se tratan de pasada): todos tienen acciones, pero solo se calculan las de quien tienes cerca, para que el coste no crezca con los que has conocido. Las de los demás
+      // siguen existiendo por su id (`resolverAccion`: `preview`/`perform` valen igual, y dicen por qué no se puede hacer a distancia); solo faltan en las listas de «qué puedes hacer ahora».
+      const amigo = esAmigoDeNino(s, n);
+      if ((n.role === 'rival' || n.role === 'vecino') && !amigo && !cerca?.ids.has(n.id)) continue;
+      lista.push(...accionesDe(n, amigo));
       if (conPaces(n)) lista.push(pacesDe(n));
     }
     // A quien conoces y tienes delante le puedes preguntar lo que no sepas de él o de ella.
