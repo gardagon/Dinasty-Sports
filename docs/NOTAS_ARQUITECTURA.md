@@ -51,7 +51,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| — | — | Ninguna |
+| `session_01M4vXXNJQUReSzr3J1beLT5` | `claude/comprobacion-final` | Fallos de `benjamin` y `probar-web`; `npm run sim` antes y después de los sucesos; sucesos y prueba de acceso en `probar-web` (§4, puntos 0 y 1) |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio; sus dudas, en §3.4).
 
