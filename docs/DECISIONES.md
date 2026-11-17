@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Comprobación final de los eventos (rama `claude/comprobacion-final`)
+
+Detalle: `docs/relevo/comprobacion-final.md`.
+- **Los fallos de `benjamin` y `probar-web` eran de los bots de las herramientas, no del juego.** En `benjamin` (semilla 33), el equipo del colegio está completo y todos valen más que el personaje (regla de plaza), y la herramienta no lo miraba: ahora lo dice con el motivo y mide el equipo sin él. En `probar-web`, el bot nunca iba a entrenar y la asistencia pesa en la convocatoria: ahora va a las sesiones de su club.
+- **`probar-web`** pasa ahora por la prueba de acceso nueva y por un suceso: ventana, elegir con un clic, que se resuelve y que el diario lo cuenta.
+- **`npm run sim` completa,** antes del director de sucesos (`ea716d6`) y ahora: los 13 chequeos de balance siguen igual. El nuevo «Ritmo de los eventos» da ✅ (2,0 por semana, 31 distintos). El de Rendimiento sale ⚠️ en las dos versiones con la máquina cargada: el coste es el mismo (1,97 → 1,99 ms por acción) y lo que varía es la calibración del chequeo.
+
 ## 17/11/2026 — Tiradas, PNJ que compiten en un deporte y entrenamientos agrupados
 
 - **Las tiradas se quedan como están** (el usuario lo había entendido al revés; se prueba con estas dificultades y se adaptan si hace falta): la dificultad es el número que hay que superar (como la clase de dificultad de los juegos de rol), así que más alta es más difícil. La probabilidad de éxito es del 50 % con la habilidad igual a la dificultad, ±15 puntos por cada 10 de diferencia, entre el 5 % y el 95 % (`TIRADA` en contracts). Las tablas de los anexos se dan también en «% de éxito».
