@@ -33,7 +33,8 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
 1. **¿Unir la rama de trabajo a la principal?** El usuario quiere arreglar antes los fallos que encontró jugando (en curso, ver §3 bis). Datos que ya se le dieron: unir publica el juego en GitHub Pages (`pages.yml`, al subir a `main`). La principal guarda en la versión 17 y la rama en la 21, así que la partida guardada no carga: la web la descarta con un aviso (`descartarPartida` en `apps/web/src/main.ts`) y hay que empezar partida nueva. Propuesta: unir cuando estén unidas las tres sesiones de §3 bis y haya pasado la comprobación final de los eventos (§4.1).
-2. **Cifras provisionales del cambio de puesto** en el primer entrenamiento: las propondrá la sesión `claude/futbol-pedir-puesto`. Llevárselas al usuario al unir.
+2. **«Pedir jugar…»: con quién se habla.** Antes de la prueba no se conoce a ningún entrenador del club de fuera (`known: false` hasta fichar). Opciones: (1) el entrenador del club, cuando se le tiene delante en su sede a la hora de la sesión y la prueba es posible; (2) el entrenador actual; (3) el profesor de Educación Física. **Recomendación:** la 1. Ya se puede «Preguntar el nombre» a un desconocido que se tiene delante (`relaciones.presentarse`), y «Pedir jugar…» saldría en su ficha sin exigir conocerlo, solo tenerlo delante cuando la prueba es posible. La interfaz lo dibuja con un servicio común de acciones de conversación con desplegable. La sesión `claude/futbol-pedir-puesto` tiene esa parte parada.
+3. **Cifras provisionales del cambio de puesto** en el primer entrenamiento: las propondrá la sesión `claude/futbol-pedir-puesto`. Llevárselas al usuario al unir.
 
 ## 3 bis. Sesiones en curso
 
