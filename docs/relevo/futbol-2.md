@@ -62,3 +62,7 @@ Todavía no hay calendario de partidos: se publica al empezar la liga.» (Chromi
 3. **Fecha de inicio de la liga:** es el día más temprano de la jornada (sábado) aunque el juvenil juegue el domingo; con el calendario de partidos publicado, la línea del diario ya da el día y la hora exactos del equipo del personaje.
 4. **Efectos de `si/entonces` y tiradas** siguen sin enseñarse en modo números (a propósito).
 5. `benjamin` y `probar-web` fallaban ya en la rama base (ver `futbol-pedir-puesto.md`): no los he tocado ni comprobado.
+
+## Comprobado (puntos 1 a 4)
+
+`npm run typecheck`, `npm run eventos:validar` (59 sucesos, 434 caminos) y `npm test` (94 archivos, 1115 tests) en verde.
