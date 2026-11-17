@@ -39,10 +39,25 @@ flowchart LR
 
 | Suceso | Título | Disparo | Categoría |
 |---|---|---|---|
+| `eventos.barrio.perro_suelto` | Un perro suelto | al: `lugares.llegada` | menor |
+| `eventos.barrio.musico_en_la_avenida` | Música en la avenida | al: `lugares.llegada` | menor |
+| `eventos.barrio.moneda_en_la_acera` | Una moneda en la acera | al: `lugares.llegada` | menor |
+| `eventos.camino.companero_de_camino` | Vais juntos al colegio | al: `lugares.llegada` | menor |
+| `eventos.camino.se_hace_tarde` | Se hace tarde | al: `lugares.llegada` | menor |
+| `eventos.casa.ayudar_con_la_cena` | Hay que poner la mesa | al: `lugares.llegada` | menor |
+| `eventos.casa.cena_favorita` | Tu plato favorito | al: `lugares.llegada` | menor |
+| `eventos.casa.hermano_quiere_jugar` | Quiere jugar contigo | al: `lugares.llegada` | menor |
+| `eventos.casa.noche_sin_sueno` | No te duermes | cada dia, 4 % | menor |
 | `eventos.colegio.pregunta_del_profesor` | Te preguntan a ti | al: `clase.asistida` | menor |
 | `eventos.colegio.companero_pide_ayuda` | Te piden ayuda | al: `clase.asistida` | menor |
 | `eventos.colegio.nota_por_la_clase` | Una nota que pasa de mesa en mesa | al: `clase.asistida` | menor |
 | `eventos.colegio.dia_de_lluvia` | Llueve a mares | al: `clase.asistida` | menor |
+| `eventos.colegio.cabeceo_en_clase` | Los ojos se te cierran | al: `clase.asistida` | menor |
+| `eventos.colegio.profesor_se_equivoca` | El profesor se equivoca | al: `clase.asistida` | menor |
+| `eventos.colegio.trabajo_en_grupo` | Un trabajo en grupo | al: `clase.asistida` | menor |
+| `eventos.colegio.cambio_de_cromos` | Cambio de cromos | al: `lugares.llegada` | menor |
+| `eventos.colegio.solo_en_el_patio` | Alguien está solo | al: `lugares.llegada` | menor |
+| `eventos.colegio.merienda_del_recreo` | La merienda del recreo | al: `lugares.llegada` | menor |
 | `eventos.colegio.balon_perdido` | Un balón que viene hacia ti | al: `lugares.llegada` | menor |
 | `eventos.colegio.juego_nuevo` | Un juego nuevo en el patio | al: `lugares.llegada` | menor |
 | `eventos.colegio.pique_en_el_patio` | Un pique | al: `lugares.llegada` | menor |
@@ -76,6 +91,7 @@ flowchart LR
 
 | Suceso | Título | Disparo | Categoría |
 |---|---|---|---|
+| `atletismo.tarde_al_entrenamiento` | Llegas tarde al entrenamiento | al: `club.sesion_tarde` | importante |
 | `futbol.primer_entrenamiento` | Tu primer entrenamiento | al: `accion.realizada` | importante |
 | `futbol.tarde_al_entrenamiento` | Llegas tarde al entrenamiento | al: `club.sesion_tarde` | importante |
 | `futbol.tarde_a_la_convocatoria` | Llegas tarde a la convocatoria | al: `club.impuntual` | importante |
