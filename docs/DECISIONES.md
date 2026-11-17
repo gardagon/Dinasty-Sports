@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Respuestas del usuario a la sesión de arquitectura (Opciones, cambio de puesto, ritmo) y fallos que encontró jugando
+
+- **Modo «números» de los sucesos:** las consecuencias salen con el nombre del juego de cada estadística («Estrés −1»), nunca con su identificador interno («gen.estres −1»). Era un fallo de presentación.
+- **Modo «normal»: aviso de lo que no va con el carácter.** Una opción que no encaja con el carácter del personaje lleva una nota discreta («no va contigo»), aunque se pueda elegir y aunque su pista sea buena. Elegirla sigue moviendo el carácter como hasta ahora. El aviso se puede desactivar en Opciones (preferencia del navegador, como el resto de la presentación).
+- **Pedir otro puesto en el primer entrenamiento de fútbol:** la dificultad de la tirada (hoy comunicación contra 55 fija) depende también de la relación con el entrenador (mejor relación, más fácil) y de cuánto más vale el jugador en el puesto que pide que en el que tiene (si vale claramente más, más fácil; si vale menos, más difícil). Cifras provisionales de la sesión que lo haga, para revisarlas con el usuario.
+- **Ritmo de los sucesos:** se deja como está (unos 2 por semana con los bots; cupos en `docs/PLAN_EVENTOS.md` §7 bis). Se ajustará cuando haya más contenido.
+- **Unir a la rama principal:** pendiente. Antes se arreglan los fallos de abajo y se hace la comprobación final de los eventos. Unir publica el juego en GitHub Pages; las partidas guardadas de la versión publicada (guardado v17) no cargan en la nueva (v21): al abrirla se descartan con un aviso y hay que empezar partida nueva.
+- **Fallos que encontró el usuario jugando (17/11):**
+  1. Las acciones «Pedir jugar de <puesto> en las pruebas» (`packages/kit-deporte/src/club.ts`) salen siempre en la lista de acciones, una por puesto. Deben ir en la conversación (la ficha de la persona con quien se habla), como una sola acción «Pedir jugar…» con un desplegable de puestos, igual que «Proponer quedar para…».
+  2. Un PNJ puede salir a la vez en el equipo de atletismo del colegio y en un club de fútbol (ficha de Alexandra Nistor). Hay que ver si es un fallo o se permite; en esa misma ficha, «Nivel: futbol 15» enseña el identificador del deporte en vez de su nombre.
+  3. En el parque se puede conocer a niños, pero luego no se puede charlar con ellos.
+
 ## 17/11/2026 — Eventos y decisiones: rendimiento, presentación desde Opciones y primer lote de Sonnet
 
 - **Rendimiento del director** (`modules/sucesos`): las condiciones ligeras de cada suceso (marcas, contadores, datos de la señal) se comprueban antes de preparar su contexto. Con 500 sucesos, el coste por acción baja de ~0,08 ms a ~0,009 ms (objetivo < 0,02 ✅). Huella de los bots idéntica. Notas: `docs/relevo/sucesos-rendimiento.md`.
