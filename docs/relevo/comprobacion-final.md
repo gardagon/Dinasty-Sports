@@ -9,7 +9,7 @@ Rama `claude/comprobacion-final` (sale de `claude/youthful-clarke-vs0kye`). Sin 
 ### `npm run benjamin -- 31,33` («el personaje juega en undefined»)
 
 - **Causa:** con la semilla 33 el personaje no puede apuntarse al club del colegio: `futbol.apuntarse_colegio` sale no disponible con «El equipo de tu categoría está completo y todos juegan mejor que tú (el peor, Leo Cruz Urbano, tiene nivel 10 y tú 9)». Es la regla de plaza (`motivoSinPlaza`, `packages/kit-deporte/src/club.ts`), que existe desde antes de los sucesos (14/11, commit `8dcbc45` en adelante). La herramienta hacía `if (posible(...)) hacer(...)` sin mirar el resultado y seguía como si el personaje tuviera equipo (`personaje` vacío → «undefined»). La semilla 31 sí entra, por eso solo fallaba la 33.
-- **Comprobado que no es cosa de la prueba de acceso:** probé a que el bot pida la prueba en los 9 clubes de fuera (con el flujo nuevo, pedir → unirse → decidir → entrenar a prueba): ninguno lo coge (no llega al nivel o el equipo está completo en ese puesto), y pasadas las primeras semanas el plazo de fichajes se cierra. Con la semilla 33 el personaje no entra en ningún equipo, y es el juego.
+- **Colegio sí, clubes de fuera: ver §6.** (Corrección del 17/11: aquí escribí que ningún club de fuera lo coge. Era un error mío: probé los clubes tarde, con el plazo de fichajes ya cerrado. En la semana 3, con el plazo abierto, entra en 3 de los 9 clubes de fuera; el detalle está en la §6.2.)
 - **Arreglo (`tools/benjamin.ts`):** si no hay plaza, dice por qué («el personaje NO tiene plaza (motivo del juego)»), y mide lo mismo (semanas hasta el primer partido, convocatoria, asistencia) con el equipo benjamín A del colegio **sin el personaje**; se saltan solo las dos líneas del papel del personaje. Con la 31 la salida es la de siempre. No se usa la prueba de acceso (no cambia nada).
 
 ### `npm run probar-web` («tu entrenador no te convoca esta semana»)
@@ -108,5 +108,72 @@ Informes completos: `sim/reports/ultimo/informe.html` (esta rama; no se sube).
 `npm run typecheck` ✅ · `npm test` ✅ (92 archivos, 1098 tests, 703 s) · `npm run eventos:validar` ✅ (59 sucesos, 368 caminos, 6 avisos que ya había) · `npm run benjamin -- 31,33` ✅ (la 33 ya no falla) · `npm run probar-web` ✅.
 
 ## 5. Dudas para la arquitectura
-1. ¿Quiere el usuario que un personaje que no entra en ningún equipo (semilla 33) tenga otra puerta? (observación de arriba).
+1. ¿Quiere el usuario que un personaje que se queda sin equipo (semilla 33, pasado el plazo) tenga otra puerta? (observación de arriba y §6).
 2. El chequeo de Rendimiento de la simulación es inestable por su calibración; propongo estabilizarlo (promedio de varias medidas o una banda más ancha) en una sesión aparte.
+
+## 6. Niños sin equipo (medición del 17/11, sin cambiar el juego)
+
+Rama de trabajo con la prueba de acceso nueva (unida `claude/futbol-2`). Herramienta nueva, solo de lectura: `npm run ninos-sin-equipo -- [semillas] [veranos]` (§6.1), `-- clubes <semilla>` (§6.2) y `-- convocatorias [semillas]` (§6.3). Ciudad grande.
+
+### 6.1 En el colegio del personaje, por categoría
+
+Alumnos del colegio del personaje (los que van a su colegio, de la edad de cada categoría; una categoría abarca dos o tres años de edad). Media de **6 semillas (31, 33, 35, 36, 37, 38)**. «Sin equipo» = sin deporte (no juega en ningún club ni en el colegio) y con interés por el fútbol; «solo deporte» = sin interés por el fútbol pero con interés por el deporte en general; «sin interés» = ninguno de los dos. Máximo de plantilla 18, mínimo 14.
+
+**Al crear la partida**
+
+| Categoría | Alumnos | En el equipo del colegio | En un club de fuera | Sin equipo, con interés por el fútbol | Sin equipo, solo interés por el deporte | Sin interés | ¿Daría para otro equipo? |
+|---|---|---|---|---|---|---|---|
+| Benjamín | 97,3 | 18,0 | 33,7 | 0,7 | 1,2 | 43,8 | No (0 de 6 semillas) |
+| Alevín | 100,5 | 14,7 | 37,7 | 1,0 | 1,8 | 45,3 | No (0 de 6) |
+| Infantil | 100,2 | 16,7 | 32,2 | 1,2 | 2,0 | 48,2 | No (0 de 6) |
+| Cadete | 100,2 | 17,7 | 35,7 | 1,0 | 3,2 | 42,7 | No (0 de 6) |
+| Juvenil | 100,0 | 23,0 | 22,0 | 2,2 | 3,7 | 49,2 | No (0 de 6) |
+
+**Tras el verano 1**
+
+| Categoría | Alumnos | En el equipo del colegio | En un club de fuera | Sin equipo, con interés por el fútbol | Sin equipo, solo interés por el deporte | Sin interés | ¿Daría para otro equipo? |
+|---|---|---|---|---|---|---|---|
+| Benjamín | 97,3 | 15,2 | 37,2 | 2,0 | 2,7 | 40,3 | No (0 de 6) |
+| Alevín | 100,5 | 12,2 | 31,5 | 3,7 | 5,7 | 47,5 | No (0 de 6) |
+| Infantil | 100,2 | 13,2 | 32,5 | 3,7 | 4,5 | 46,3 | No (0 de 6) |
+| Cadete | 100,3 | 13,0 | 30,5 | 5,3 | 5,7 | 45,8 | No (0 de 6) |
+| Juvenil | 100,0 | 10,8 | 25,7 | 7,3 | 10,2 | 46,0 | No con interés por el fútbol; con los de interés general, en 4 de 6 semillas |
+
+Qué dice:
+- **Casi nadie con interés se queda sin jugar**: 0,7 a 2,2 por categoría al crear, 2 a 7 tras un verano. Los demás alumnos o están en el equipo del colegio (12–23), o ya juegan en un club de fuera (22–38), o no tienen interés por el fútbol (40–49, casi la mitad del colegio).
+- **Un segundo equipo del colegio no se llenaría** con los que quedan: haría falta 14 y no pasan de 7 con interés por el fútbol (de 6 solo en juvenil). Solo en juvenil, tras un verano, sumando los que solo tienen interés por el deporte, algunas semillas llegarían.
+- **Más preocupante que sobrar es que el equipo del colegio no llegue a 14**: tras un verano el equipo del colegio baja de ~18 a 11–15 de media, y a veces desaparece (semilla 33 alevín: **0** ya al crear; semilla 38 benjamín tras el verano 1: **0**). Entonces sus alumnos no tienen equipo del colegio, y es lo que le pasa al personaje de la semilla 33 en alevín. (Es el cierre de equipos que no llegan al mínimo, ya documentado en `CIUDAD_Y_LIGAS.md` §3.)
+- Por semilla (alumnos / en el equipo / en club / sin equipo con interés), al crear: 31 benjamín 97/18/34/0, alevín 101/18/37/0; 33 benjamín 97/18/35/1, alevín 100/**0**/40/0; 35 benjamín 97/18/31/0, alevín 100/18/33/3; 36 98/18/34/1 y 101/18/47/0; 37 97/18/38/1 y 100/16/31/1; 38 98/18/30/1 y 101/18/38/2.
+
+### 6.2 «No llega» en los clubes de fuera, semilla 33
+
+Personaje de la semilla 33 en la semana 3 (plazo de fichajes abierto): **nivel 9,5** (el club del colegio dice 9); su mejor puesto es central (CB) con **9,6**; en el resto de puestos vale 8–9. Ningún club tiene nivel mínimo (todos «sin mínimo»): lo que cuenta es la regla de plaza, por puesto. La tabla usa lo que vale él hoy; la prueba real suma un azar del día (de ahí que alguna casilla cambie).
+
+| Club | Su plaza hoy (con lo que vale) | Peor del equipo en su puesto (valor) | Él en ese puesto | Huecos en el equipo | **Resultado de la prueba real (semana 3)** | Por qué, en palabras sencillas |
+|---|---|---|---|---|---|---|
+| club_grande (Real Ciudad) | completo | Aurora Castro, 11,4 | 10 | CDM, LCR, RCR, CM | **No pasa** («no llegas») | De central el equipo está lleno y hasta el peor central vale 11,4 frente a sus 10. Los huecos son de centrocampista, donde vale 9: tampoco llega. |
+| club_mediano (UD del Barrio) | por mérito | Matías Aguirre, 9,5 | 10 | ninguno | **Pasa**, de central | Está lleno, pero el peor central vale 9,5 y él 10: le quita el puesto por muy poco. |
+| club_mediano2 | no llega | Gala Álvarez, 11,8 | 10 | CB, LM, RM, CAM, LW, RW, ST, LST, RST | **No pasa** («no llegas») | Hay hueco de central, pero en la prueba se mide con el suplente que mejor cubriría ese hueco, y las centrales del club valen ~11,8: no llega. |
+| club_mediano3 | completo | Álvaro Dorado, 10,4 | 10 | ninguno | **No pasa** («completo, juegan mejor») | Equipo lleno y el peor central vale 10,4: por una décima. |
+| club_pequeno (Los Pinos) | por mérito | Enzo Parra, 9,4 | 10 | ninguno | **Pasa**, de central | Lleno, pero el peor central vale 9,4 y él 10. |
+| club_pequeno2 | no llega | Irene Cortés, 11,4 | 10 | CB, LB, RB | **No pasa** («no llegas») | Hay hueco de central y de lateral, pero se mide con el suplente que lo cubriría (vale ~11): no llega. |
+| club_pequeno3 | completo | Aroa Fernandes, 10,1 | 10 | CDM, LCR, RCR, CM | **No pasa** («no llegas») | Lleno de centrales (peor 10,1, por una décima); los huecos son de centrocampista y ahí vale 9. |
+| club_pequeno4 | no llega | Claudia Sierra, 10,5 | 10 | 11 puestos (CB, LB, RB, CDM, LCR, RCR, CM, CAM, ST, LST, RST) | **No pasa** («no llegas») | Equipo muy corto de jugadores (11 huecos) pero el suplente que cubriría el hueco de central vale más que él (10,5 frente a 10): no llega. |
+| club_pequeno5 | completo | Nabil Slimani, 9,7 | 10 | ninguno | **Pasa**, de central | Lleno, pero el peor central vale 9,7 y él 10. |
+
+Resumen: **con el plazo abierto entra en 3 de los 9 clubes** (los tres, por mérito de 0,3 a 0,6 puntos sobre el peor central; es una moneda al aire según el día de la prueba). En los otros 6 no: «equipo completo y todos valen más» (2) o «hay hueco, pero el suplente que lo cubriría vale más» (4; el mensaje del juego dice «no llegas a lo que pide el club en ese puesto»). **No hay hueco en un puesto que no sea el suyo que le sirva**: donde hay huecos (centrocampistas, laterales) vale 9 como mucho y no supera a los suplentes. El nivel mínimo del club no interviene. Con el plazo cerrado (pasadas las primeras semanas), ya solo entran los clubes con hueco y sin sacar a nadie, y ahí entra muy poco.
+
+### 6.3 Convocatorias con la plantilla actual (14–18)
+
+El entrenador convoca como mucho **16** (11 titulares y 5 suplentes: `PARAMETROS_DE_CONVOCATORIA.convocados`); con 16 o menos disponibles convoca a todos (menos los lesionados). Medido en los **450 equipos** de la ciudad (semillas 31, 33, 35; sábado de la semana 6):
+
+| Plantilla | Equipos | Convocados (media) | Se quedan fuera (media) |
+|---|---|---|---|
+| 14 | 10 | 13,8 | 0,2 |
+| 15 | 15 | 14,6 | 0,4 |
+| 16 | 29 | 15,5 | 0,5 |
+| 17 | 46 | 15,9 | 1,1 |
+| 18 | 350 | 16,0 | 2,0 |
+| **Todos** | 450 | 15,9 (plantilla media 17,6) | **1,7 (un 10 % de la plantilla)**; lesionados ese sábado: 0,4 por equipo |
+
+Casi todos los equipos (350 de 450, el 78 %) están en el máximo de 18: se quedan fuera **2 por partido** y los demás juegan, aunque sea de suplentes. Los que no se presentan (sorteo de ausencias) reducen aún los que juegan, pero no los citados. Es decir, **ampliar el equipo no haría falta por convocatorias: el que queda sin equipo es un niño que no entró en la plantilla, no uno del banquillo**.
