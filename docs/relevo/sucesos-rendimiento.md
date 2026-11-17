@@ -24,3 +24,11 @@ Arranque y pasada diaria no cambian de orden (arranque 9 ms o menos; ruido ±).
 ## Comprobaciones
 
 - `npm run huella -- 120`: salida idéntica antes y después.
+- `npm test`: 89 archivos, 1076 tests en verde (incluye eventos y arquitectura). `npm run eventos:validar`: todo en orden.
+- `npm run sim:rapida` antes y después: salida idéntica salvo la hora de la cabecera (mismos chequeos: 2 ⚠️ en ambos, 0 ❌).
+
+## Lo que no he bajado / pendiente
+
+- Todo el objetivo por acción está cumplido (~0,009 ms). Lo que queda de coste es el recorrido de los candidatos que coinciden en la etiqueta (~25 con 150 sucesos de ese tipo): una lista por candidato y una evaluación de marcas/contadores. Se podría bajar más indexando por marca, pero no hace falta.
+- Las condiciones ligeras solo se aplican al personaje. Los sucesos de PNJ (`sujeto`) siguen por `intentar` (no hay ninguno por señal con volumen).
+- No se tocó `npm run sim` completa (la rápida es idéntica y el cambio no altera resultados).
