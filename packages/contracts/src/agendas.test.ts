@@ -217,24 +217,28 @@ describe('agendas de las personas', () => {
     const u = (dia: number, hora: number, min: number, quien: string) => ubicacionEn(construirAgenda(padre, datos), en(dia, hora, min), quien).sitio;
     const personas = Array.from({ length: 400 }, (_, i) => `p${i}`);
 
-    it('llegan a la entrada entre las 13:45 y las 14:00 y se van entre las 14:05 y las 14:30', () => {
-      for (const p of personas) {
-        // A las 14:00 todos están ya, y a las 14:30 no queda ninguno.
-        expect(u(0, 14, 0, p), p).toBe('colegio');
+    /** Los que van ese día (a las 14:00 están en la entrada); los demás no pisan la entrada en toda la franja. */
+    const van = (dia: number) => personas.filter((p) => u(dia, 14, 0, p) === 'colegio');
+
+    it('llegan a la entrada entre las 13:45 y las 14:00 y se van entre las 14:05 y las 14:30 (los días que van)', () => {
+      const dentro = van(0);
+      for (const p of dentro) {
         expect(u(0, 14, 2, p), p).toBe('colegio');
         expect(u(0, 14, 30, p), p).not.toBe('colegio');
         // Antes de las 13:45 no están; una vez que llegan se quedan hasta que se van (sin entrar y salir).
         expect(u(0, 13, 44, p) === 'colegio', p).toBe(false);
-        let dentro = false;
+        let aqui0 = false;
         let salio = false;
         for (let m = 13 * 60 + 45; m < 14 * 60 + 30; m += 5) {
           const aqui = u(0, 0, m, p) === 'colegio';
           if (aqui) expect(salio, `${p} vuelve a las ${m}`).toBe(false);
-          if (dentro && !aqui) salio = true;
-          if (aqui) dentro = true;
+          if (aqui0 && !aqui) salio = true;
+          if (aqui) aqui0 = true;
         }
       }
-      const en = (hora: number, min: number) => personas.filter((p) => u(0, hora, min, p) === 'colegio').length / personas.length;
+      // Quien no va ese día no aparece en ningún momento de la franja.
+      for (const p of personas.filter((x) => !dentro.includes(x))) for (let m = 13 * 60 + 40; m < 14 * 60 + 35; m += 5) expect(u(0, 0, m, p), `${p} a las ${m}`).not.toBe('colegio');
+      const en = (hora: number, min: number) => dentro.filter((p) => u(0, hora, min, p) === 'colegio').length / dentro.length;
       expect(en(13, 45)).toBeGreaterThan(0.2); // un tercio ya ha llegado
       expect(en(13, 45)).toBeLessThan(0.5);
       expect(en(13, 55)).toBe(1);
@@ -242,6 +246,21 @@ describe('agendas de las personas', () => {
       expect(en(14, 5)).toBeLessThan(0.95);
       expect(en(14, 25)).toBeGreaterThan(0.05);
       expect(en(14, 25)).toBeLessThan(0.3);
+    });
+
+    it('van el 80 % de los días de clase (sorteo estable por persona y día) y no siempre los mismos', () => {
+      const dias = Array.from({ length: 20 }, (_, i) => i).filter((d) => en(d, 14).isSchoolDay);
+      expect(dias.length).toBeGreaterThan(10);
+      let total = 0;
+      for (const d of dias) total += van(d).length;
+      const proporcion = total / (dias.length * personas.length);
+      expect(proporcion).toBeGreaterThan(0.77);
+      expect(proporcion).toBeLessThan(0.83);
+      // Estable: el mismo día da el mismo resultado; y cada persona falta algún día (no son siempre los mismos).
+      expect(van(dias[0])).toEqual(van(dias[0]));
+      const siempre = personas.filter((p) => dias.every((d) => u(d, 14, 0, p) === 'colegio'));
+      expect(siempre.length / personas.length).toBeLessThan(0.1);
+      expect(personas.filter((p) => dias.every((d) => u(d, 14, 0, p) !== 'colegio')).length).toBe(0);
     });
 
     it('solo los días de colegio', () => {

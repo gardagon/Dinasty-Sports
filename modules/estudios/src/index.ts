@@ -271,6 +271,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   name: `Estudiar ${a.name.toLowerCase()}`,
   tags: [TAGS.estudio, TAGS.mental],
   group: 'Estudiar',
+  desplegable: { id: 'estudios.estudiar', nombre: 'Estudiar…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: a.name },
   duration: 90,
   available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
@@ -306,6 +307,7 @@ const tutoria = (a: Asignatura): ActionDef => ({
   description: 'Vas a la sala de profesores y le pides al profesor de la asignatura que te explique lo que no entiendes. Treinta minutos; solo vale si hay un profesor de esa asignatura en la sala y una vez al día por asignatura.',
   tags: [TAGS.estudio, TAGS.mental, TAGS.social],
   group: 'Estudiar',
+  desplegable: { id: 'estudios.tutoria', nombre: 'Pedir tutoría…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: a.name },
   duration: 30,
   available: (ctx) => {
     if (!seCursa(ctx, a.key)) return 'No cursas esta asignatura este curso';
@@ -696,6 +698,7 @@ export const estudios = defineModule<EstudiosState>({
       name: 'Repaso general',
       tags: [TAGS.estudio, TAGS.mental],
       group: 'Estudiar',
+      desplegable: { id: 'estudios.estudiar', nombre: 'Estudiar…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: 'Repaso general (todas las del curso)' },
       duration: 120,
       available: tiempoDeEstudio,
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },

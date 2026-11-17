@@ -128,6 +128,17 @@ export function nombreDeClub(g: Game, club: string): string {
   return club;
 }
 
+/**
+ * ¿Está a tu lado? Entre la gente que tienes cerca, o aquí pero ocupada (atendiendo en clase, durmiendo: se la ve y se dice por qué no se
+ * puede hablar con ella). Es lo mismo que mira el motor para hablar con alguien. Sin servicios de lugares y presencia no se restringe nada.
+ */
+export function aTuLado(g: Game, n: NpcView): boolean {
+  const lugar = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
+  const presencia = g.service<PresenciaService>(SERVICES.presencia);
+  if (!lugar || !presencia) return true;
+  return presencia.en(lugar, aforoCercano(lugar, presencia.version)).some((x) => x.id === n.id) || presencia.ocupadosEn(lugar).some((o) => o.persona.id === n.id);
+}
+
 export function genteAqui(g: Game): number {
   return personasDe(g, 'aqui').length;
 }
@@ -221,14 +232,14 @@ function bloqueDeApodo(n: NpcView): string {
 }
 
 /** Los planes que tienes con esta persona (con su botón de cancelar) y el formulario para proponerle otro: actividad, sitio, día y hora. */
-function bloqueDePlanes(g: Game, n: NpcView): string {
+function bloqueDePlanes(g: Game, n: NpcView, soloAcordados = false): string {
   const rel = g.service<RelationsService>(SERVICES.relaciones);
   if (!rel) return '';
   const lugares = g.service<LugaresService>(SERVICES.lugares);
   const cuando = (d: number) => (d === g.time.day ? 'hoy' : d === g.time.day + 1 ? 'mañana' : `dentro de ${d - g.time.day} días`);
   const pendientes = rel.planes().filter((p) => p.npcId === n.id);
   const f = rel.formularioDePlan(n.id);
-  if (!pendientes.length && !f.actividades.length) return '';
+  if (!pendientes.length && (soloAcordados || !f.actividades.length)) return '';
   const nombre = n.nombreCorto;
   const lista = pendientes
     .map((p) => `<li>${esc(p.nombre)} ${cuando(p.dia)} a las ${hhmm(p.minuto)} (${esc(lugares?.lugar(p.lugar)?.name.toLowerCase() ?? p.lugar)}) <button class="action" data-do="${esc(p.cancelar)}"><span class="action-name">Cancelar plan</span><span class="action-time">5 min</span></button></li>`)
@@ -236,7 +247,7 @@ function bloqueDePlanes(g: Game, n: NpcView): string {
   const eleccion = ajustarEleccion(f, eleccionesDePlan.get(n.id));
   return `<h3>Quedar con ${esc(nombre)}</h3>
     ${lista ? `<ul class="planes">${lista}</ul>` : ''}
-    ${f.actividades.length ? `<button class="action" data-gente="plan-abrir"><span class="action-name">Proponer quedar para…</span><span class="action-time">${planAbierto ? '▲' : '▼'}</span></button>${planAbierto ? viewFormularioDePlan(n.id, f, eleccion, nombre) : ''}` : ''}`;
+    ${!soloAcordados && f.actividades.length ? `<button class="action" data-gente="plan-abrir"><span class="action-name">Proponer quedar para…</span><span class="action-time">${planAbierto ? '▲' : '▼'}</span></button>${planAbierto ? viewFormularioDePlan(n.id, f, eleccion, nombre) : ''}` : ''}`;
 }
 
 /** Edad, cumpleaños y altura: lo que sabes (la familia, o lo que has preguntado) con cifras; lo demás, a simple vista respecto a ti. */
@@ -287,10 +298,12 @@ function ficha(g: Game, n: NpcView): string {
     cuerpo = `<p>${esc(aspecto(n))}.</p>${n.rasgos ? `<p class="note">Cara ${esc(NOMBRE_RASGO[n.rasgos.apariencia.cara])}.</p>` : ''}${datosDeCuerpo(g, n)}`;
   } else if (!conocida(n)) {
     // Preguntar el nombre solo se puede a quien tienes cerca (el motor lo dice en la disponibilidad de la acción).
-    const pregunta = g.preview(`relaciones.presentarse.${n.id}`);
-    const boton = pregunta?.available
-      ? `<button class="action" data-do="${esc(pregunta.id)}"><span class="action-name">Preguntar su nombre</span><span class="action-time">${pregunta.duration} min</span></button>`
-      : `<p class="note">${pregunta ? esc(pregunta.reason ?? '') : 'No la tienes cerca: para preguntarle el nombre tienes que coincidir con ella.'}</p>`;
+    // Si no está a tu lado no se enseña nada que hacer con ella: se entiende que es imposible, no que falte algo.
+    const pregunta = aTuLado(g, n) ? g.preview(`relaciones.presentarse.${n.id}`) : undefined;
+    const boton = !pregunta ? ''
+      : pregunta.available
+        ? `<button class="action" data-do="${esc(pregunta.id)}"><span class="action-name">Preguntar su nombre</span><span class="action-time">${pregunta.duration} min</span></button>`
+        : `<p class="note">${esc(pregunta.reason ?? '')}</p>`;
     cuerpo = `<p>${esc(aspecto(n))}.</p><p class="note">Todavía no sabes cómo se llama. ${n.description ? esc(n.description) : ''}</p>${barra('Amistad', 0, 'amistad')}${barra('Confianza', 0, 'confianza')}${boton}`;
   } else {
     const nivel = textoDeNiveles(g, n.levels);
@@ -298,7 +311,11 @@ function ficha(g: Game, n: NpcView): string {
   }
   const motivo = ocupadosAqui(g).get(n.id);
   const aviso = motivo && pestana === 'resumen' ? `<p class="note ocupado">${esc(ocupadaTexto(motivo))}: ahora no puedes hablar con ${n.gender === 'f' ? 'ella' : 'él'}.</p>` : '';
-  const acciones = pestana === 'resumen' && conocida(n) ? bloqueDePlanes(g, n) + bloqueDePeticiones(g, n) + accionesCon(g, n) + bloqueDeApodo(n) : '';
+  // Quien no está a tu lado: nada de lo que se podría hacer con esa persona (ni en gris). Se quedan los planes ya acordados (para poder cancelarlos) y el apodo, que no es hablar con nadie.
+  const cerca = aTuLado(g, n);
+  const acciones = pestana === 'resumen' && conocida(n)
+    ? (cerca ? bloqueDePlanes(g, n) + bloqueDePeticiones(g, n) + accionesCon(g, n) : bloqueDePlanes(g, n, true)) + bloqueDeApodo(n)
+    : '';
   return `<section class="sheet ficha-gente">
     <button data-gente="volver">← Volver</button>
     <h2>${nombre} <small>${esc(rol(n))}</small></h2>

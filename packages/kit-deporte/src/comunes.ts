@@ -35,11 +35,16 @@ export const EFECTO_CONOCIMIENTO = { min: 0.9, rango: 0.25 };
 const estado = (ctx: ReadContext) => ctx.state<EstadoBaseDeDeporte>();
 const caminoDeVerano = (ctx: ReadContext) => ctx.service<StudiesService>(SERVICES.estudios)?.summerPath() ?? null;
 
+/** El nombre del deporte para una lista («Atletismo»): en `cfg.nombre` va en minúscula, para las frases. */
+const nombreConMayuscula = (cfg: ConfigDeporte): string => cfg.nombre.charAt(0).toUpperCase() + cfg.nombre.slice(1);
+
 /** Campamento del deporte en verano (`<deporte>.campamento`), para quien saca buenas notas: una jornada completa con entrenadores. */
 export function campamento(cfg: ConfigDeporte, def: { tags: string[]; delta: Record<StatId, number>; train: Entreno }): ActionDef {
   return {
     id: `${cfg.id}.campamento`,
     name: `Campamento de ${cfg.nombre}`,
+    // Con dos deportes, un solo «Campamento…» (con uno solo, un botón normal).
+    desplegable: { id: 'verano.campamento', nombre: 'Campamento…', etiqueta: 'Deporte', boton: '{nombre}', opcion: nombreConMayuscula(cfg) },
     description: 'Con buenas notas, tus padres te dejan ir a un campamento del deporte que practicas: una jornada completa de entrenamiento con entrenadores. Mejoras más que de ninguna otra forma.',
     tags: def.tags,
     group: 'Verano',
@@ -62,6 +67,8 @@ export function conLosAmigos(cfg: ConfigDeporte, def: { description: string; tag
   return {
     id: `${cfg.id}.amigos`,
     name: 'Practicar con los amigos',
+    // Con dos deportes, un solo «Practicar con los amigos…» (los dos botones se llamaban igual).
+    desplegable: { id: 'verano.amigos', nombre: 'Practicar con los amigos…', etiqueta: 'Deporte', boton: 'Practicar con los amigos: {opcion}', opcion: nombreConMayuscula(cfg) },
     description: def.description,
     tags: def.tags,
     group: 'Verano',
@@ -83,6 +90,8 @@ export function verEnLaTele(cfg: ConfigDeporte, description: string): ActionDef 
   return {
     id: `${cfg.id}.ver_tele`,
     name: `Ver ${cfg.nombre} en la tele`,
+    // Con dos deportes, un solo «Ver en la tele…».
+    desplegable: { id: 'tiempo_libre.tele', nombre: 'Ver un deporte en la tele…', etiqueta: 'Deporte', boton: '{nombre}', opcion: nombreConMayuscula(cfg) },
     description,
     tags: [TAGS.mental],
     group: 'Tiempo libre',

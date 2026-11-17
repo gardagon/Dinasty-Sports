@@ -16,11 +16,17 @@ export function reiniciarDesplegables(): void {
 /** Las opciones de la lista en el orden en que salen, con las agrupadas juntas en el sitio de la primera. */
 export type Entrada = { opcion: ActionOption } | { clave: string; opciones: ActionOption[] };
 
-export function agruparEnDesplegables(lista: readonly ActionOption[]): Entrada[] {
+/**
+ * `todas` son todas las acciones que hay (disponibles o no): si de un desplegable solo existe una acción, no hay nada que elegir y se dibuja como un botón normal (el atletismo solo:
+ * «Practicar con los amigos» a secas). Sin `todas`, se agrupa siempre.
+ */
+export function agruparEnDesplegables(lista: readonly ActionOption[], todas: readonly ActionOption[] = lista): Entrada[] {
   const salida: Entrada[] = [];
   const grupos = new Map<string, ActionOption[]>();
+  const cuantas = new Map<string, number>();
+  for (const o of todas) if (o.desplegable) cuantas.set(clave(o.group, o.desplegable.id), (cuantas.get(clave(o.group, o.desplegable.id)) ?? 0) + 1);
   for (const o of lista) {
-    if (!o.desplegable) {
+    if (!o.desplegable || cuantas.get(clave(o.group, o.desplegable.id)) === 1) {
       salida.push({ opcion: o });
       continue;
     }
@@ -41,12 +47,13 @@ export function viewDesplegable(k: string, opciones: readonly ActionOption[], es
   const d = opciones[0].desplegable!;
   const abierto = abiertos.has(k);
   const elegida = opciones.find((o) => o.id === elegidas.get(k)) ?? opciones.find((o) => o.available) ?? opciones[0];
-  const select = opciones.map((o) => `<option value="${esc(o.id)}"${o.id === elegida.id ? ' selected' : ''}>${esc(`${o.name} · ${duracion(o.duration)}${o.available ? '' : ' (no disponible)'}`)}</option>`).join('');
+  const etiquetaDe = (o: ActionOption): string => o.desplegable?.opcion ?? o.name;
+  const select = opciones.map((o) => `<option value="${esc(o.id)}"${o.id === elegida.id ? ' selected' : ''}>${esc(`${etiquetaDe(o)} · ${duracion(o.duration)}${o.available ? '' : ' (no disponible)'}`)}</option>`).join('');
   return `<button class="action" data-desplegable="${esc(k)}"><span class="action-name">${esc(d.nombre)}</span><span class="action-time">${abierto ? '▲' : '▼'}</span></button>
     ${abierto ? `<div class="formulario-plan">
       <label class="campo-plan"><span>${esc(d.etiqueta)}</span><select data-desplegable-campo="${esc(k)}">${select}</select></label>
       ${elegida.description ? `<p class="note">${esc(elegida.description)}</p>` : ''}
-      ${boton(elegida, d.boton.replace('{opcion}', elegida.name.toLowerCase()))}
+      ${boton(elegida, d.boton.replace('{opcion}', etiquetaDe(elegida).toLowerCase()).replace('{nombre}', elegida.name))}
     </div>` : ''}`;
 }
 

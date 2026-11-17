@@ -617,7 +617,7 @@ const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: numb
 
 /**
  * Los tipos de agenda de los vecinos que dependen de la edad y de la semilla, al crear la partida y cada curso (y así también en las partidas anteriores): los niños que van a un colegio de fuera llevan `escolar` (su
- * horario escolar, fuera del mapa; lo pierden al acabar el colegio) y una parte de los vecinos adultos (`RECOGIDA_DE_NINOS.proporcion`, sorteada por su id y la semilla, sin gastar números del azar de la partida) `recoge`.
+ * horario escolar, fuera del mapa; lo pierden al acabar el colegio) y una parte de los vecinos adultos (de `RECOGIDA_DE_NINOS.edadMinima` años o más, `RECOGIDA_DE_NINOS.proporcion`, sorteada por su id y la semilla, sin gastar números del azar de la partida) `recoge`.
  * Devuelve la misma lista si no cambia nada (cambiarla invalida las cachés de presencia).
  */
 export function ajustarVecinos(npcs: Npc[], semilla: number, dia: number): Npc[] {
@@ -628,7 +628,7 @@ export function ajustarVecinos(npcs: Npc[], semilla: number, dia: number): Npc[]
     const t = n.tipos![i];
     const edad = edadNpc(n, dia) ?? 0;
     const escolar = !!n.colegio && n.colegio !== 'ninguno' && edad < EDAD_FIN_COLEGIO;
-    const recoge = /^vecino_\d+$/.test(n.id) && edad >= EDAD_FIN_COLEGIO && azarDe('recoge', semilla, n.id) < RECOGIDA_DE_NINOS.proporcion;
+    const recoge = /^vecino_\d+$/.test(n.id) && edad >= RECOGIDA_DE_NINOS.edadMinima && azarDe('recoge', semilla, n.id) < RECOGIDA_DE_NINOS.proporcion;
     if (!!t.escolar === escolar && !!t.recoge === recoge) continue;
     const { escolar: _e, recoge: _r, ...resto } = t;
     nuevos.set(n.id, n.tipos!.map((x, j) => (j === i ? { ...resto, ...(escolar ? { escolar: true } : {}), ...(recoge ? { recoge: true } : {}) } : x)));

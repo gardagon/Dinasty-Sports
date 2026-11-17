@@ -825,7 +825,7 @@ function viewActions(g: Game): string {
   }
   const hidden = opts.filter((o) => !o.available).length;
   const html = [...groups]
-    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${agruparEnDesplegables(list).map((e) => ('opcion' in e ? actionButton(e.opcion) : viewDesplegable(e.clave, e.opciones, esc, actionButton, fmtDur))).join('')}</div>`)
+    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${agruparEnDesplegables(list, opts).map((e) => ('opcion' in e ? actionButton(e.opcion) : viewDesplegable(e.clave, e.opciones, esc, actionButton, fmtDur))).join('')}</div>`)
     .join('');
   return `<section class="sheet">
     ${html || '<p class="note">Ahora mismo no puedes hacer nada. Pasa el rato para que avance el tiempo.</p>'}

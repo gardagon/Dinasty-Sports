@@ -7,6 +7,7 @@ import {
   conLugar,
   fichasDeDeporte,
   datosDeDeporte,
+  diaConFecha,
   inHours,
   plazoDeFichajesAbierto,
   proximaAperturaDelPlazo,
@@ -146,12 +147,15 @@ export function unirseA(ctx: ActionContext, cfg: ConfigDeporte, clubId: string, 
  */
 export function motivoSinFichaje(ctx: ReadContext, cfg: ConfigDeporte, club: string, conPrueba = false): string | undefined {
   const t = ctx.time;
+  /** Cuándo se abren las pruebas y los fichajes: el primer día de la próxima semana con el plazo abierto (el verano), con su fecha. Genérico: lo dicen el calendario del país y la temporada del deporte. */
+  const apertura = (desdeSemana: number): string => diaConFecha(proximaAperturaDelPlazo(ctx.pais.calendario, datosDeDeporte(ctx, cfg.id).temporada, desdeSemana) * 7);
   // Con prueba de acceso, que haya plaza o no lo decide la prueba (su resultado), no lo que vale el personaje de media.
   if (plazoDeFichajesAbierto(ctx.pais.calendario, datosDeDeporte(ctx, cfg.id).temporada, t.schoolWeek)) return conPrueba ? undefined : motivoSinPlaza(ctx, cfg, club);
-  if (clubDelJugador(ctx, cfg.id)) return 'El plazo de fichajes está cerrado hasta el verano: mientras estés en un club no puedes cambiarte';
-  if ((estado(ctx).sinFichajesHasta ?? -1) > t.week) return `Dejaste tu club fuera de plazo: no puedes entrar en otro club de ${cfg.nombre} hasta el siguiente plazo de fichajes (el verano)`;
+  if (clubDelJugador(ctx, cfg.id)) return `El plazo de fichajes está cerrado hasta el verano: mientras estés en un club no puedes cambiarte. Las pruebas de acceso se abren ${apertura(t.week)}`;
+  const sinFichajesHasta = estado(ctx).sinFichajesHasta ?? -1;
+  if (sinFichajesHasta > t.week) return `Dejaste tu club fuera de plazo: no puedes entrar en otro club de ${cfg.nombre} hasta el siguiente plazo de fichajes (el verano). Las pruebas de acceso se abren ${apertura(t.week)}`;
   const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx), cfg.puestos?.(ctx));
-  return plaza && plaza.estado !== 'libre' ? 'El plazo de fichajes está cerrado hasta el verano: ya solo se entra en un club con hueco, sin sacar a nadie, y el equipo de tu categoría está completo' : undefined;
+  return plaza && plaza.estado !== 'libre' ? `El plazo de fichajes está cerrado hasta el verano: ya solo se entra en un club con hueco, sin sacar a nadie, y el equipo de tu categoría está completo. Las pruebas de acceso se abren ${apertura(t.week)}` : undefined;
 }
 
 /**
