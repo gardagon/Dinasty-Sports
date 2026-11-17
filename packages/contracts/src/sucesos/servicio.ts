@@ -12,6 +12,8 @@ export interface OpcionPendiente {
   elegible: boolean;
   /** Por qué no se puede elegir, en palabras. */
   motivo?: string;
+  /** Con qué eje del carácter choca (su nombre, p. ej. «sociabilidad») aunque se pueda elegir: pasa con `fueraDeCaracter: 'normales'`. La interfaz puede avisarlo. */
+  ejeEnContra?: string;
   /** Lo que se ve de las consecuencias antes de elegir, según la configuración (`presentacion.consecuencias`). */
   pista?: string;
   minutos: number;

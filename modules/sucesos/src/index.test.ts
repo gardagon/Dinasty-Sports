@@ -219,6 +219,30 @@ describe('el director de los sucesos', () => {
     expect(ver('ocultas')).toEqual([false, false, false]);
   });
 
+  it('con números, cada consecuencia sale con el nombre del juego y nunca con su identificador', () => {
+    const g = nueva(CATALOGO, [{ presentacion: { consecuencias: 'numeros' } }]);
+    g.perform('t.aviso_del_colegio');
+    const [p] = svc(g).pendientes();
+    const nombre = (id: string) => g.registry.stats.get(id)!.def.name;
+    expect(p.opciones[0].pista).toContain(`${nombre('gen.estres')} +4`);
+    expect(p.opciones[1].pista).toContain(`entrena ${nombre('gen.picardia')}`);
+    for (const o of p.opciones) expect(o.pista ?? '').not.toMatch(/\bgen\.|\bt\.|\btutor\b/);
+    expect(p.opciones[0].pista).toContain('relación con tu madre: confianza +2');
+    expect(p.opciones[2].pista).toMatch(/afinidad −2/);
+  });
+
+  it('una opción elegible que no va con el carácter dice con qué choca solo en modo normales; la pista no cambia', () => {
+    const ver = (modo: string) => {
+      const g = nueva(CATALOGO, [{ presentacion: { fueraDeCaracter: modo } }]);
+      dado.honestidad = 40;
+      g.perform('t.aviso_del_colegio');
+      const [p] = svc(g).pendientes();
+      return [p.opciones[0].ejeEnContra, p.opciones[1].ejeEnContra, p.opciones[1].elegible, p.opciones[1].pista];
+    };
+    expect(ver('normales')).toEqual([undefined, 'honestidad', true, 'Arriesgado: puede salir mal']);
+    expect(ver('sombreadas')).toEqual([undefined, undefined, false, 'Arriesgado: puede salir mal']);
+  });
+
   it('los sucesos espontáneos respetan el cupo de su categoría, que es un dato editable', () => {
     const g = nueva();
     dado.azar = 0;
