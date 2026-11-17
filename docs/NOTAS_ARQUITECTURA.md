@@ -33,17 +33,14 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
 1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
-2. **Equipos del colegio que se quedan vacíos.** El usuario rechaza las opciones A–E y pide entender cómo se forman los equipos. Explicación que se le dio (17/11), a partir de `modules/npcs/src/draft.ts` y `CIUDAD_Y_LIGAS.md` §5:
-   - en la primera ronda, cada club de fuera, por orden de atractivo, invita a probar a un 40–60 % **de toda la bolsa de la ciudad** que queda (no de su zona) y monta su A y su B con los mejores por puesto;
-   - con unos 20 clubes y unos 500 niños por categoría, entre todos se llevan casi a todos (los A y B de todos los clubes suman más plazas que niños);
-   - el colegio va el último y solo recibe a sus alumnos que han sobrado; en verano se repite con los de primer año.
-   Propuesta: que cada niño pruebe en pocos clubes (1–2, según su ambición) y que los demás se queden en el club de su colegio (amigos, cercanía), y/o que el colegio elija primero entre sus alumnos (la tabla de §3 dice «el club de un colegio, antes entre sus propios alumnos»). Idea del usuario para más adelante: convencer a un amigo para que el equipo no se deshaga. **Datos de la ciudad grande:** todos los niños van a uno de los 10 colegios (el del personaje y 9 de fuera); solo 5 tienen club (el del personaje y la mitad de los de fuera, `colegiosConClub`, por defecto 4); hay 9 clubes de fuera (6.080 personas / 700). **Propuesta del usuario (17/11):** quitar algún club de colegio y que a un niño con club en su colegio le sea difícil irse a uno de fuera en los primeros años, cada vez menos con la edad. Concretado como propuesta en el chat; pendiente de confirmar.
+2. ~~**Equipos del colegio que se quedan vacíos**~~ **Decidido el 17/11** (DECISIONES, «Equipos: menos clubes de colegio…») y encargado a `claude/reparto-equipos`.
 3. **Nombres más nacionales** (17/11): el usuario no baja aún el 25 %; prueba si con nombres y apellidos más corrientes le resulta más normal. Encargado como propuesta con muestras a `claude/nombres-nacionales`.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXNt52eARrGJ6e6Uscp` | `claude/reparto-equipos` | 4 clubes de colegio; los niños con club en su colegio solo prueban fuera con un % por edad (15–55 %); el colegio forma antes; 1–2 plazas de más al final para no dejar a nadie colgado. Medir antes y después |
 | `session_01M4vXXP3ckZSBmGvQnUnAxe` | `claude/nombres-nacionales` | Opciones para que los nombres suenen más corrientes sin bajar el 25 %: reparto como en Madrid, nombres de la segunda generación, orden de los apellidos. Muestras de 20 compañeros |
 | `session_01M4vXXRtH1musiDi91d3e3n` | `claude/fichas-y-listas` | Fichas sin nada de quien no está; recogida el 80 % de los días y desde 25 años; prueba fuera de plazo dice cuándo se abre; análisis de listas y desplegables para Estudiar y tutorías (las del club, solo propuesta) |
 
