@@ -11,7 +11,7 @@ Informe: `docs/relevo/demografia-origenes.md`. Había un 25 % de adultos de orig
 - **A. Emparejar por tipos:** 75 % de parejas de dos de aquí, 13 % de dos extranjeros (el 70 % del mismo origen) y 12 % mixtas.
 - **B. Demografía adulta de España, del 25 % al 19 %:** Latinoamérica 6, Magreb 4, Europa del este 3,5, África subsahariana 1,7, Asia oriental 1,8, Europa del norte 2.
 - **C. Los niños del mundo se sortean como hijos de una pareja,** con las mismas reglas que el personaje.
-Resultado esperado: el 25 % de los hijos con algún padre extranjero y el 12 % mestizos. Encargado a la sesión `claude/demografia-origenes`.
+Resultado esperado: el 25 % de los hijos con algún padre extranjero y el 12 % mestizos. **Estas cifras son de una ciudad como Madrid:** la demografía tendrá que ajustarse a cada ciudad (va en la ciudad grande si la estructura lo permite; si no, queda pendiente en `PAQUETES_DE_PAIS.md`). Encargado a la sesión `claude/demografia-origenes`.
 
 ## 17/11/2026 — Fútbol 2 unido; revisión de rendimiento pedida
 
