@@ -2,7 +2,7 @@
  * La regla de plaza y los valores por puesto.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { type LectorDePersona, categoriaDeEdad, type CategoriaDef, type PlazaEnEquipo, SERVICES, rngEstable, CAPACIDADES_GENETICAS, cuposPorGrupo, PROPORCION_DE_ZURDOS, type PruebaEnClub, type ConsejoDeDeporte, conLaPierna, type Pierna, type NpcDirectory, type IdentityService, aptitudDe, type ReadContext } from '@ds/contracts';
+import { type LectorDePersona, categoriaDeEdad, type CategoriaDef, type PlazaEnEquipo, SERVICES, rngEstable, CAPACIDADES_GENETICAS, cuposPorGrupo, PROPORCION_DE_ZURDOS, type PruebaEnClub, type ConsejoDeDeporte, conLaPierna, type Pierna, type NpcDirectory, type IdentityService, aptitudDe, type ReadContext, type HuecoDeGrupo } from '@ds/contracts';
 import { potencialEn } from './deportistas';
 import { valoresIniciales } from './capacidades';
 import { habilidadesIniciales, lectorDe, prepararTrabajo } from './rutina';
@@ -62,6 +62,27 @@ export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGu
   return reglaDePlaza(delEquipo.map((n) => ({ id: n.id, nombre: n.name, valor: n.levels[deporte] ?? 0 })), max, nivel);
 }
 
+
+/**
+ * Los grupos de puestos en que al equipo del club (en la categoría de esa edad) le faltan jugadores: cupo del grupo (`cuposPorGrupo` del máximo) menos los que hay. Con el equipo completo no hay huecos
+ * (el máximo es un tope, como en `ofertasDePuesto`). Vacío si el deporte no tiene puestos ni equipos por categoría.
+ */
+export function huecosPorGrupoEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, edad: number, dia: number, rend: Rendimientos = new Map()): HuecoDeGrupo[] {
+  const pob = pobs.find((p) => p.deporte === deporte);
+  const equipo = pob?.equipos.find((e) => e.club === club);
+  const cat = pob && equipo?.plantillaPorCategoria ? categoriaDe(pob, edad) : undefined;
+  if (!pob?.puestos || !equipo || !cat) return [];
+  const delEquipo = jugadoresDelEquipo(npcs, pob, club, cat, dia);
+  const cupos = cuposPorGrupo(pob.puestos, capacidadDe(equipo, cat.id));
+  if (delEquipo.length >= Object.values(cupos).reduce((a, b) => a + b, 0)) return [];
+  const val = valoracionDe(rend);
+  const puestosDeLosQueHay = delEquipo.map((j) => puestoDeJugador(j, pob, val, dia));
+  return pob.puestos.reparto.flatMap((g) => {
+    const cupo = cupos[g.grupo] ?? 0;
+    const huecos = cupo - puestosDeLosQueHay.filter((p) => p !== undefined && g.puestos.includes(p)).length;
+    return huecos > 0 ? [{ grupo: g.grupo, nombre: g.nombre, puestos: g.puestos, huecos, cupo }] : [];
+  });
+}
 
 /**
  * Lo que ve un profesor de Educación Física en el personaje (`NpcDirectory.consejoDeportivo`): los deportes en que rinde al menos como los niños de su edad que ya juegan (o en los que aún

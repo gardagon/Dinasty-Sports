@@ -93,7 +93,7 @@ En juvenil, que tiene tres años, «segundo año» es segundo y tercero.
 - Cada plantilla tiene un **reparto por puestos** (dato del deporte; propuesta para 18: 2 porteros, 3 centrales, 3 laterales, 4 mediocentros, 3 de banda o extremos y 3 delanteros).
 - **La regla de plaza va por puesto:** un club mira al candidato en todos los puestos y le ofrece aquel en el que entraría (con hueco en ese puesto o valiendo más que el peor de ese puesto).
 - **Cada uno tiene un puesto favorito.** Si el club le ofrece otro, un PNJ lo acepta o no según su carácter (propuesta: más fácil cuanto más disciplinado y sacrificado sea, cuanto más se parezca el puesto al suyo y si en él sería titular). Si acepta, se queda en el equipo en ese puesto; si no, busca sitio en otro club.
-- **El personaje igual, decidiendo él:** hace la prueba en el puesto que elige, pero el entrenador le puede proponer otro en la prueba, y él decide si acepta.
+- **El personaje igual, decidiendo él:** hace la prueba en el puesto que elige, pero el entrenador le puede proponer otro en la prueba, y él decide si acepta. **El entrenador dice lo que más necesita** (17/11): los 2 grupos de puestos en que más le faltan jugadores o «varios» si faltan en más de 2; el jugador elige entre todos los puestos y, si no es un hueco, le dice que no es ninguno de esos y le prueba donde decida él (`ANEXO_DEPORTE.md`).
 
 **Cómo se forman los equipos: un «draft» por rondas** (decisión del usuario, 05/11; sustituye al reparto por orden de tamaño y a los equipos según la demanda). Cada club solo ve a los niños que van a probar con él, no a todos: así hay niños muy buenos en clubes modestos y los equipos quedan más compensados. La idea es hacer las plantillas de 2, 3 o 4 equipos por club y después ajustarlas. Ejemplo con 1.000 interesados en una categoría, cuatro clubes y un colegio:
 
@@ -169,6 +169,8 @@ En juvenil, que tiene tres años, «segundo año» es segundo y tercero.
 - **A partido único, en el campo del equipo de división más baja** (si son de la misma, el del sorteo). La final, en el estadio.
 - **Si hay empate, penaltis directamente,** sin prórroga, como en muchas copas de fútbol base. Al motor de partidos le hace falta una **tanda de penaltis** (`MOTOR_PARTIDOS.md`): cada penalti es un duelo entre el que tira y el portero, con sus habilidades y su estado.
 - El formato es un dato del deporte por país: `TemporadaDeDeporte` admite una liga por divisiones y, detrás, una copa por eliminatorias (campos opcionales, sin romper el atletismo).
+
+**El jugador lo sabe** (17/11/2026): la pestaña del deporte dice en qué tramo está (pretemporada, liga, parada por vacaciones, terminada o verano) y cuándo empieza el siguiente («Pretemporada. La liga empieza el sábado 13 de octubre.»; `ANEXO_DEPORTE.md` §3 ter). El calendario de partidos (rival, día, hora y campo) se publica el lunes de la primera semana de competición, cuando se crea la liga: ese día el diario lo cuenta con el entrenador; antes, la pestaña dice que todavía no hay calendario, y el entrenador avisa de la fecha de inicio en el primer entrenamiento. La copa aún no existe en el código: cuando exista será otro tramo entre la liga y el verano.
 
 Sobran semanas: 18 jornadas más 5 rondas de copa son 23 sábados de los ~30 que tiene un curso.
 

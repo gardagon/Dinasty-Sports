@@ -14,6 +14,9 @@ import {
   MINUTES_PER_DAY,
   SHARED_EVENTS,
   semanasDeTemporada,
+  situacionDelDeporte,
+  diaConFecha,
+  type SituacionDeTemporada,
   CAMPOS_DEL_COMPLEJO,
   conLugar,
   type ActionContext,
@@ -115,6 +118,8 @@ export type { LineaDeCronica, ProximoPartido, SituacionEnLaLiga } from './person
 /** Estado del fútbol: los campos comunes del kit y la liga del mundo (todos los equipos de todas las categorías). */
 export type FutbolState = EstadoBaseDeDeporte & {
   liga?: LigaDelMundo;
+  /** El curso de la última liga cuyo calendario se avisó al personaje (una línea en el diario al publicarse). */
+  calendarioAvisado?: number;
   /** La intensidad con que el personaje sale a jugar (se queda elegida de un partido al siguiente; por defecto, normal). */
   intensidad?: Intensidad;
   /** El equipo del personaje esta temporada (club, categoría y letra A a D): se fija al empezar la liga, como el de todos. */
@@ -361,13 +366,22 @@ const MOTIVO_DE_NO_JUGAR: Record<Papel, string> = {
   sin_puesto: 'Todavía no tienes puesto en el equipo',
 };
 
+/** Por qué todavía no hay partido: la liga no ha empezado (y cuándo empieza) o ya ha terminado. */
+function razonDeNoHayPartidos(ctx: ReadContext): string {
+  const sit = situacionDeFutbol(ctx);
+  if (sit.tramo === 'pretemporada' || sit.tramo === 'verano') return `Todavía no hay partidos: la liga empieza ${sit.empieza}`;
+  if (sit.tramo === 'parada') return `No hay partidos en vacaciones: la liga se reanuda ${sit.empieza}`;
+  if (sit.tramo === 'terminada') return 'La liga ha terminado';
+  return 'Todavía no hay partidos de liga esta semana';
+}
+
 /** ¿Puede el personaje elegir ahora la intensidad (`id`)? Solo si tiene partido esta semana y juega (convocado, titular o suplente). */
 function puedeElegirIntensidad(ctx: ReadContext, id: Intensidad): true | string {
   if (!clubDelJugador(ctx)) return 'No juegas en ningún equipo de fútbol';
   const s = ctx.state<FutbolState>();
   const liga = s.liga && s.liga.curso === ctx.time.schoolYear && !s.liga.cerrada ? s.liga : undefined;
   const previa = previaDelPartido(ctx, ctx.time.schoolYear, ctx.time.week, ctx.time.weekday);
-  if (!liga || !previa) return 'Todavía no hay partidos: la liga empieza tras la pretemporada';
+  if (!liga || !previa) return razonDeNoHayPartidos(ctx);
   const l = liga.categorias[previa.equipo.categoria];
   if (!l || !proximoPartido(l, previa.equipo.clave)) return 'Tu equipo no juega esta semana';
   if (s.partidoJugado?.semana === ctx.time.week) return 'Ya has jugado el partido de esta semana';
@@ -647,6 +661,12 @@ function accionesDeEspectador(ctx: ReadContext): ActionDef[] {
     });
 }
 
+/** En qué tramo de la temporada está el fútbol y cuándo empieza el siguiente (pretemporada, liga, parada, terminada o verano). */
+function situacionDeFutbol(ctx: ReadContext): SituacionDeTemporada {
+  const liga = ctx.state<FutbolState>().liga;
+  return situacionDelDeporte(ctx, DEPORTE, { nombre: 'liga', articulo: 'la' }, liga?.curso === ctx.time.schoolYear && !!liga.cerrada);
+}
+
 /** El texto de «próxima prueba» de la pestaña. */
 function textoDeProximoPartido(ctx: ReadContext): string {
   const s = ctx.state<FutbolState>();
@@ -660,7 +680,10 @@ function textoDeProximoPartido(ctx: ReadContext): string {
     const h = suHoraYCampo(ctx, previaDelPartido(ctx, ctx.time.schoolYear, ctx.time.week, ctx.time.weekday), ctx.time.week);
     return sig ? `${h ? `${h.texto}` : 'Este fin de semana'}: ${sig.texto.toLowerCase()}, ${sig.local ? 'en casa' : 'fuera'}. Más abajo, el rival y tu convocatoria; el partido se juega en el campo, con la acción «Jugar el partido».` : 'Tu equipo no juega esta semana.';
   }
-  return datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto;
+  // Sin liga (pretemporada o verano) o sin equipo: aún no hay calendario de partidos. La liga se crea el lunes de la primera semana de competición y entonces se publica.
+  const sit = situacionDeFutbol(ctx);
+  const sinCalendario = sit.tramo === 'pretemporada' || sit.tramo === 'verano' ? 'Todavía no hay calendario de partidos: se publica al empezar la liga.' : undefined;
+  return sinCalendario ?? datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto;
 }
 
 /** La pestaña del fútbol: las habilidades, los datos del club, el próximo partido y el último con su crónica. */
@@ -686,6 +709,7 @@ function vistaDeFutbol(ctx: ReadContext): DeporteView {
     habilidades: [...HABILIDADES_DE_FUTBOL, CONOCIMIENTO],
     temporada: {
       etiqueta: `Curso ${t.schoolYear + 1}`,
+      situacion: situacionDeFutbol(ctx).texto,
       proxima: textoDeProximoPartido(ctx),
       pruebas: [],
       nombreDePruebas: 'Partidos',
@@ -897,7 +921,43 @@ function prepararLiga(ctx: ActionContext, t: { schoolYear: number; period: strin
   const g = ctx.state<FutbolState>().personaje;
   if (e && (!g || g.curso !== t.schoolYear || g.club !== e.club || g.categoria !== e.categoria || g.letra !== e.letra)) ctx.updateState<FutbolState>((s) => ({ ...s, personaje: { curso: t.schoolYear, club: e.club, categoria: e.categoria, letra: e.letra } }));
   if (!liga.cerrada) prepararElCalendario(ctx, liga, t.week);
+  // El calendario se publica la primera semana de competición (con la liga sin jornadas jugadas): una vez por curso.
+  if (!liga.cerrada && ctx.state<FutbolState>().calendarioAvisado !== liga.curso) {
+    ctx.updateState<FutbolState>((s) => ({ ...s, calendarioAvisado: liga!.curso }));
+    if (Object.values(liga.categorias).every((c) => c.jornada === 0)) avisarDelCalendario(ctx, liga, t.week);
+  }
   return liga;
+}
+
+/** Lo que dice el entrenador de cuándo es la liga (hecho `futbol.calendario`, un fragmento en minúscula para una frase suya): cuándo empieza y si ya hay calendario de partidos. */
+function lineaDelCalendario(ctx: ReadContext): string {
+  const sit = situacionDeFutbol(ctx);
+  switch (sit.tramo) {
+    case 'pretemporada':
+    case 'verano':
+      return `la liga empieza ${sit.empieza}; el calendario de partidos se publica ese día, cuando empiece`;
+    case 'parada':
+      return `ahora hay vacaciones y la liga se reanuda ${sit.empieza}`;
+    case 'terminada':
+      return 'la liga ya ha terminado esta temporada';
+    default:
+      return 'la liga ya está en marcha: los partidos y el calendario de tu equipo los tienes en la pestaña del fútbol';
+  }
+}
+
+/**
+ * **Se publica el calendario de la liga** (el lunes de la primera semana de competición): una línea en el diario, con lo que dice el entrenador, si el personaje juega en un equipo: cuándo es la primera jornada y contra quién.
+ * Quien aún no había empezado en el club lo oyó en su primer entrenamiento (`futbol.calendario`); quien ya estaba, lo oye aquí.
+ */
+function avisarDelCalendario(ctx: ActionContext, liga: LigaDelMundo, semana: number): void {
+  const eq = clubDelJugador(ctx) ? miEquipo(ctx, liga.curso) : undefined;
+  const l = eq ? liga.categorias[eq.categoria] : undefined;
+  const sig = eq && l ? proximoPartido(l, eq.clave) : undefined;
+  if (!eq || !sig) return;
+  const h = ctx.state<FutbolState>().calendario?.partidos[`${liga.curso}|${eq.categoria}|${sig.ref}`];
+  const cuando = h ? `${diaConFecha(semana * 7 + h[0])} a las ${horaTexto(h[1])}` : situacionDeFutbol(ctx).primeraJornada.texto;
+  const entrenador = entrenadorDelJugador(ctx);
+  ctx.log(`Se ha publicado el calendario de la liga${entrenador ? `: ${entrenador.nombreCorto} te lo cuenta` : ''}. La primera jornada es ${cuando}: ${sig.texto.toLowerCase()}, ${sig.local ? 'en casa' : 'fuera'}.`, 'info');
 }
 
 /**
@@ -946,7 +1006,7 @@ function datosDelDiaDePartido(ctx: ReadContext): { previa: Previa; h: { dia: num
   const s = ctx.state<FutbolState>();
   const liga = s.liga && s.liga.curso === t.schoolYear && !s.liga.cerrada ? s.liga : undefined;
   const previa = previaDelPartido(ctx, t.schoolYear, t.week, t.weekday);
-  if (!liga || !previa) return 'Todavía no hay partidos: la liga empieza tras la pretemporada';
+  if (!liga || !previa) return razonDeNoHayPartidos(ctx);
   const l = liga.categorias[previa.equipo.categoria];
   if (!l || !proximoPartido(l, previa.equipo.clave)) return 'Tu equipo no juega esta semana';
   if (s.partidoJugado?.semana === t.week) return 'Ya has jugado el partido de esta semana';
@@ -1172,6 +1232,7 @@ export const futbol = defineModule<FutbolState>({
     // Hechos para los sucesos del fútbol: dónde juega el personaje y dónde vale más (lo mismo que mira su entrenador).
     [servicioDeHechos(DEPORTE)]: (ctx): HechosService => ({
       valor: (nombre) => {
+        if (nombre === 'calendario') return lineaDelCalendario(ctx);
         const puesto = ctx.state<FutbolState>().puesto;
         const valores = CONFIG.puestos?.(ctx);
         if (!puesto || !valores) return undefined;

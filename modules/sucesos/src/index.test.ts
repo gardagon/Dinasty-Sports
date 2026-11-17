@@ -231,6 +231,39 @@ describe('el director de los sucesos', () => {
     expect(p.opciones[2].pista).toMatch(/afinidad −2/);
   });
 
+  it('con números también salen el estado de juego, la familia, el carácter y el dinero con «€», siempre con nombres legibles', () => {
+    const catalogo: AporteDeSucesos[] = [
+      suceso({
+        id: 't.numeros',
+        titulo: 'Una decisión',
+        disparo: { al: 'clase.faltas_excesivas' },
+        ejemploDeSeñal: { faltas: 12 },
+        reparto: { tutor: { tipo: 'progenitor' } },
+        cuando: [{ lugar: 'casa' }, { presente: 'tutor' }],
+        texto: 'Hay que decidir.',
+        plazo: { dias: 1, porDefecto: 'a' },
+        opciones: [
+          { id: 'a', texto: 'A', efectos: [{ estadoDeJugador: { moral: 3, forma: -2, fisica: -4, salud: 1 } }, { familia: 'tutor', apoyo: 2, expectativas: -1 }, { caracter: { honestidad: -3 } }, { estado: 'gen.dinero', mas: -5 }] },
+          { id: 'b', texto: 'B', efectos: [{ estado: 'gen.dinero', mas: 10 }, { estadoDeJugador: { baja: 1 }, de: 'tutor' }] },
+        ],
+      }),
+    ];
+    const g = nueva(catalogo, [{ presentacion: { consecuencias: 'numeros' } }]);
+    g.perform('t.aviso_del_colegio');
+    const [p] = svc(g).pendientes();
+    const nombre = (id: string) => g.registry.stats.get(id)!.def.name;
+    expect(p.opciones[0].pista).toContain(`${nombre('gen.motivacion')} +3`);
+    expect(p.opciones[0].pista).toContain(`${nombre('gen.forma')} −2`);
+    expect(p.opciones[0].pista).toContain(`${nombre('gen.energia')} −4`);
+    expect(p.opciones[0].pista).toContain(`${nombre('gen.salud')} +1`);
+    expect(p.opciones[0].pista).toContain('familia (tu madre): apoyo +2, expectativas −1');
+    expect(p.opciones[0].pista).toContain('honestidad −3');
+    expect(p.opciones[0].pista).toContain('Dinero −5 €');
+    expect(p.opciones[1].pista).toContain('Dinero +10 €');
+    expect(p.opciones[1].pista).toContain('de tu madre');
+    for (const o of p.opciones) expect(o.pista ?? '').not.toMatch(/\bgen\.|\bt\.|\btutor\b|estadoDeJugador|undefined/);
+  });
+
   it('una opción elegible que no va con el carácter dice con qué choca solo en modo normales; la pista no cambia', () => {
     const ver = (modo: string) => {
       const g = nueva(CATALOGO, [{ presentacion: { fueraDeCaracter: modo } }]);

@@ -35,6 +35,8 @@ export const SHARED_EVENTS = {
   PRUEBA_EMPIEZA: 'club.prueba_empieza',
   /** data: PruebaPuestoData — el puesto en que le van a probar (el que eligió entre los huecos o, sin él, el que decida el entrenador): lo apunta el deporte para medir la plaza. */
   PRUEBA_PUESTO: 'club.prueba_puesto',
+  /** data: PuestoPropuestoData (solo `sport`) — el personaje le ha pedido a su entrenador jugar en otro puesto por un camino que no es la ficha (p. ej. en el primer entrenamiento): cuenta para el plazo de la ficha (`PEDIR_PUESTO`). */
+  PETICION_DE_PUESTO: 'club.peticion_de_puesto',
   /** data: PidePuestoData — el personaje le pide a su entrenador jugar en otro puesto (desde su ficha): un suceso decide con una tirada. */
   PIDE_PUESTO: 'club.pide_puesto',
   /** El personaje acepta el cambio de puesto que le propuso su entrenador: el equipo cuenta con él en el nuevo. */
@@ -195,12 +197,17 @@ export interface PuestoPropuestoData {
   puesto: string;
 }
 
-/** `PRUEBA_EMPIEZA`: `huecos` son los puestos donde al equipo le faltan jugadores; `participants`, el entrenador que le atiende. */
+/**
+ * `PRUEBA_EMPIEZA`: `huecos` son los puestos donde al equipo le faltan jugadores; `participants`, el entrenador que le atiende. `nGrupos` es en cuántos grupos de puestos (porteros, centrales…) falta gente
+ * y `necesita`, lo que el entrenador dice que necesita: los dos grupos en que más le faltan («centrales y laterales»), o vacío si faltan en más de dos (dice «varios»).
+ */
 export interface PruebaEmpiezaData {
   sport: string;
   club: string;
   huecos: string[];
   nHuecos: number;
+  nGrupos: number;
+  necesita: string;
   participants: { npcId: string }[];
 }
 
