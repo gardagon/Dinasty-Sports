@@ -2,7 +2,7 @@
 
 Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo lee lo primero** y lo mantiene al día: cuando una pregunta se responde, se quita de aquí y se apunta como decisión en `docs/DECISIONES.md` (y en el plan o anexo que corresponda); cuando algo pendiente se hace, se quita o se marca.
 
-Última actualización: 17/11/2026, al pasar la coordinación a una sesión nueva de Opus.
+Última actualización: 17/11/2026, tras las respuestas del usuario a las preguntas 1–4 y lanzar tres sesiones de Sonnet.
 
 ---
 
@@ -32,11 +32,18 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **Opciones, modo «números»: nombres legibles.** En la presentación de los sucesos con números, las consecuencias salen con el identificador interno de la estadística («gen.estres −1») en vez del nombre («Estrés −1»). Es un fallo de presentación. **Recomendación:** que salgan los nombres legibles. Se lo encargaría a una sesión corta de Sonnet (la de Opciones fue `session_01M4vXXPgRajgq1mHN3r1gSz`, rama `claude/sucesos-opciones`; mejor una nueva con este encargo).
-2. **Opciones, modo «normal»: avisar de lo que no encaja con el carácter.** En el modo por defecto, una opción que no va con el carácter del personaje se puede elegir y puede mostrar una pista buena («Le va a gustar») sin avisar de que no encaja con él. **Pregunta:** ¿se avisa también en ese modo (por ejemplo, una nota «no va contigo»)? Los modos «sombreadas» (visible, no elegible, con el porqué) y «ocultas» ya existen y se eligen en Opciones.
-3. **Cambio de puesto en el primer entrenamiento de fútbol.** Hoy, pedir jugar en otro puesto es una tirada con dificultad fija (comunicación contra 55). **Pregunta:** ¿que dependa también de la relación con el entrenador y de cuánto más vale el jugador en el puesto que pide? **Recomendación:** sí; es contenido del paquete del fútbol (`modules/futbol/src/eventos`), para una sesión de Sonnet.
-4. **Ritmo de los sucesos.** Con el primer lote de Sonnet salen unos 2 por semana de media con los bots (antes 1,2–2,3). Cupos actuales (editables): base 1/día y 4/semana; deportivos 1/día y 2/semana; detalles ligeros 2/día y 8/semana. **Pregunta:** ¿le parece bien el ritmo o se ajusta? Las cifras de cada suceso, provisionales, están en `docs/PLAN_EVENTOS.md` §7 bis y en `docs/relevo/sucesos-contenido-1.md`.
-5. **¿Unir la rama de trabajo a la principal?** Todo lo de §2 está en `claude/youthful-clarke-vs0kye`. Decidir si se abre un pull request a la rama principal y cuándo.
+1. **¿Unir la rama de trabajo a la principal?** El usuario quiere arreglar antes los fallos que encontró jugando (en curso, ver §3 bis). Datos que ya se le dieron: unir publica el juego en GitHub Pages (`pages.yml`, al subir a `main`). La principal guarda en la versión 17 y la rama en la 21, así que la partida guardada no carga: la web la descarta con un aviso (`descartarPartida` en `apps/web/src/main.ts`) y hay que empezar partida nueva. Propuesta: unir cuando estén unidas las tres sesiones de §3 bis y haya pasado la comprobación final de los eventos (§4.1).
+2. **Cifras provisionales del cambio de puesto** en el primer entrenamiento: las propondrá la sesión `claude/futbol-pedir-puesto`. Llevárselas al usuario al unir.
+
+## 3 bis. Sesiones en curso
+
+| Sesión | Rama | Encargo |
+|---|---|---|
+| `session_01M4vXXMyMkGiof9ZYc5bGtg` | `claude/sucesos-presentacion-2` | Nombres del juego en el modo «números»; aviso «no va contigo» en el modo normal, desactivable en Opciones |
+| `session_01M4vXXRXvf6BQ1H7kanWL2W` | `claude/futbol-pedir-puesto` | «Pedir jugar…» pasa a la conversación, como una acción con desplegable (kit de deporte y web); dificultad del cambio de puesto según la relación y el valor en el puesto |
+| `session_01M4vXXNN21uMbP1HxxowM28` | `claude/pnj-fallos-1` | PNJ en atletismo del colegio y club de fútbol a la vez (¿fallo o permitido?); «Nivel: futbol 15» con el nombre del deporte; charlar con los niños que se conocen en el parque |
+
+Las tres tocan `apps/web` (poco cada una): al unir, revisar los conflictos en `main.ts`.
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
