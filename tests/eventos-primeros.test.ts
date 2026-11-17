@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, registrarPais, type RelationsService, type SucesoPendiente, type SucesosService } from '@ds/contracts';
+import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, dificultadDeTirada, registrarPais, type RelationsService, type SucesoPendiente, type SucesosService } from '@ds/contracts';
 import type { Game } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, type FutbolState } from '@ds/mod-futbol';
+import primerEntrenamiento from '../modules/futbol/src/eventos/primer_entrenamiento';
 import { Banco } from '../tools/eventos/banco';
 import { hacer, posible } from './ayudas';
 
@@ -103,5 +104,36 @@ describe('los primeros eventos, en una partida de verdad', () => {
     no.forzar('futbol.primer_entrenamiento');
     no.elegir('futbol.primer_entrenamiento', 'pedir_cambio', 'fallo');
     expect(no.game.moduleState<FutbolState>('futbol').puesto).toBeUndefined();
+  });
+});
+
+describe('la dificultad de pedirle al entrenador otro puesto (cifras provisionales: docs/relevo/futbol-pedir-puesto.md)', () => {
+  const tirada = (primerEntrenamiento as unknown as { variantes: { id: string; opciones: { id: string; tirada?: Parameters<typeof dificultadDeTirada>[0] }[] }[] }).variantes.find((v) => v.id === 'en_otro_sitio')!.opciones.find((o) => o.id === 'pedir_cambio')!.tirada!;
+  const dificultad = (afinidad: number | undefined, estado: 'antipatia' | 'conocido' | 'amigo', ventaja: number): number =>
+    dificultadDeTirada(tirada, {
+      hechos: {
+        relacion: () => (afinidad === undefined ? undefined : { afinidad, confianza: 30, estado }),
+        hecho: (n: string) => (n === 'futbol.ventaja_del_mejor_puesto' ? ventaja : undefined),
+      } as never,
+      reparto: { entrenador: 'e1' },
+      marca: () => false,
+      contador: () => 0,
+      recuerdo: () => undefined,
+    });
+
+  it('tabla de ejemplos: relación (baja, media, alta) × lo que vale en el puesto que pide (más, igual, menos)', () => {
+    const MAS = 15, IGUAL = 0, MENOS = -6;
+    expect([MAS, IGUAL, MENOS].map((v) => dificultad(-20, 'antipatia', v))).toEqual([55, 65, 73]);
+    expect([MAS, IGUAL, MENOS].map((v) => dificultad(25, 'conocido', v))).toEqual([40, 50, 58]);
+    expect([MAS, IGUAL, MENOS].map((v) => dificultad(50, 'amigo', v))).toEqual([35, 45, 53]);
+  });
+
+  it('mejor relación, más fácil; valer más en el puesto pedido, más fácil; los extremos no se salen de la escala', () => {
+    expect(dificultad(50, 'amigo', 6)).toBeLessThan(dificultad(10, 'conocido', 6));
+    expect(dificultad(10, 'conocido', 25)).toBeLessThan(dificultad(10, 'conocido', 6));
+    expect(dificultad(10, 'conocido', -12)).toBeGreaterThan(dificultad(10, 'conocido', 0));
+    expect(dificultad(90, 'amigo', 30)).toBe(55 - 15 - 15);
+    expect(dificultad(-60, 'antipatia', -15)).toBe(55 + 10 + 15);
+    expect(dificultad(undefined, 'conocido', 0)).toBe(55); // sin vínculo, solo cuenta lo que vale
   });
 });

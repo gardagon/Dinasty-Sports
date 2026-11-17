@@ -98,6 +98,9 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
   caracter: { honestidad: -3 },                      // hacia qué ejes tira: mueve los del personaje y es con lo que decide un PNJ o un bot
   minutos: 5,                                        // tiempo de juego que gasta (1 por defecto)
   tirada: { con: 'gen.picardia', dificultad: 45 },   // 50 % con la stat (para su edad) igual a la dificultad; ±15 puntos por cada 10; entre 5 % y 95 %
+  // Opcional: la dificultad también depende de la situación. Cada ajuste lleva condiciones (las de siempre: relacion, hecho, stat, caracter...) y suma o resta puntos si se cumplen TODAS;
+  // los que se cumplen se suman y el total se queda entre 0 y 100 (`dificultadDeTirada`). Lo normal son escalones acumulados:
+  // tirada: { con: 'gen.comunicacion', dificultad: 55, ajustes: [{ si: [{ relacion: 'entrenador', afinidad: { min: 20 } }], mas: -5 }, { si: [{ relacion: 'entrenador', afinidad: { min: 40 } }], mas: -5 }] },
   exito: { efectos: [...], resultado: '…' },
   fallo: { efectos: [...], resultado: '…' },
 }
@@ -209,5 +212,8 @@ escenarios: [{
 | Un evento base | `modules/eventos/src/<área>/<archivo>.ts` |
 | Cupos, presentación, PNJ | `CONFIG_DE_SUCESOS` (`contracts/src/sucesos/tipos.ts`) o un aporte a `sucesos.config` |
 | Fórmula de la tirada, Suertudo y Gafe | `TIRADA`, `probabilidadDeExito` (`contracts/src/sucesos/condiciones.ts`) |
+| Que una tirada sea más fácil o difícil según la relación con alguien o un hecho de un módulo | `ajustes` de la tirada (`AjusteDeTirada`, `dificultadDeTirada`); ejemplo: `modules/futbol/src/eventos/primer_entrenamiento.ts`. Se aplica igual a la tirada del personaje, a la de un PNJ y a la probabilidad que enseña el modo «números» |
+| Una tirada en un suceso sin opciones (el jugador ya eligió en otro sitio, como en la ficha de una persona) | El efecto `{ tirada, exito: [efectos], fallo: [efectos] }` (mismas `ajustes` que la tirada de una opción; los textos del resultado, con `diario` en cada rama). Ejemplos: los sucesos del kit de deporte `<deporte>.pedir_puesto` (`packages/kit-deporte/src/puestos.ts`) |
+| Un suceso que construye el kit de deporte para todo deporte con puestos | `sucesoDePruebaDeAcceso(cfg, textos)` y `sucesoDePedirPuesto(cfg, textos)`: las reglas (huecos, tirada) son comunes y los textos los pone el paquete del deporte. Disparan con las señales compartidas `club.prueba_empieza` y `club.pide_puesto`, y llevan al entrenador en `participants: [{ npcId }]` (papel `{ deLaSeñal: 'participants' }`) |
 | Un hecho nuevo de un módulo | Ese módulo publica el servicio `hechos.<id>` (`HechosService`). Hoy: `estudios.consejo_deportivo`; `futbol.puesto`, `futbol.mejor_puesto`, `futbol.mejor_puesto_id`, `futbol.juega_donde_mas_vale`, `futbol.ventaja_del_mejor_puesto` |
 | Un efecto nuevo | `Efecto` (`tipos.ts`), su validación (`catalogo.ts`) y `aplicar` (`modules/sucesos/src/index.ts`); si cambia algo de otro módulo, con una señal compartida que recoja su dueño |

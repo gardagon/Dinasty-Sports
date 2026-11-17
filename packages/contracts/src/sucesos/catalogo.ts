@@ -61,6 +61,10 @@ function* efectosEn(lista: readonly Efecto[] | undefined): Generator<Efecto> {
       yield* efectosEn(e.entonces);
       yield* efectosEn(e.sino);
     }
+    if ('tirada' in e) {
+      yield* efectosEn(e.exito);
+      yield* efectosEn(e.fallo);
+    }
   }
 }
 
@@ -86,8 +90,14 @@ export function* condicionesDeSuceso(s: SucesoDef): Generator<Condicion> {
   yield* condicionesEn(s.cuando);
   if ('umbral' in s.disparo) yield* condicionesEn(s.disparo.umbral);
   for (const v of s.variantes ?? []) yield* condicionesEn(v.si);
-  for (const d of [s, ...(s.variantes ?? [])]) for (const o of d.opciones ?? []) yield* condicionesEn(o.requiere);
-  for (const e of efectosDeSuceso(s)) if ('si' in e) yield* condicionesEn(e.si);
+  for (const d of [s, ...(s.variantes ?? [])]) for (const o of d.opciones ?? []) {
+    yield* condicionesEn(o.requiere);
+    for (const a of o.tirada?.ajustes ?? []) yield* condicionesEn(a.si);
+  }
+  for (const e of efectosDeSuceso(s)) {
+    if ('si' in e) yield* condicionesEn(e.si);
+    if ('tirada' in e) for (const a of e.tirada.ajustes ?? []) yield* condicionesEn(a.si);
+  }
 }
 
 /** Todos los textos de un suceso, con dónde están y la variante a la que pertenecen (para saber qué papeles tienen a alguien seguro). */
@@ -243,6 +253,10 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
         if (o.tirada && (!o.exito || !o.fallo)) err(`la opción «${o.id}» tiene tirada: necesita «exito» y «fallo»`);
         if (!o.tirada && (o.exito || o.fallo)) err(`la opción «${o.id}» tiene «exito» o «fallo» sin tirada`);
         if (o.tirada && !(o.tirada.dificultad >= 0 && o.tirada.dificultad <= 100)) err(`la opción «${o.id}»: la dificultad va de 0 a 100`);
+        for (const a of o.tirada?.ajustes ?? []) {
+          if (!Number.isFinite(a.mas)) err(`la opción «${o.id}»: un ajuste de la tirada necesita «mas» (un número)`);
+          if (!a.si?.length) err(`la opción «${o.id}»: un ajuste de la tirada necesita al menos una condición en «si»`);
+        }
         if (o.tirada && entorno && !entorno.stats.has(o.tirada.con)) err(`la opción «${o.id}» tira con «${o.tirada.con}», que no existe`);
         if (o.minutos !== undefined && !(o.minutos >= 1)) err(`la opción «${o.id}»: los minutos deben ser 1 o más`);
         for (const eje of Object.keys(o.caracter ?? {})) if (!EJE_IDS.has(eje)) err(`la opción «${o.id}» tira hacia «${eje}», que no es un eje de carácter`);
@@ -301,6 +315,11 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
         const st = entorno.stats.get(e.entrena);
         if (!st) err(`un efecto entrena «${e.entrena}», que no existe`);
         else if (st.category === 'estado') err(`«${e.entrena}» es de estado: no se entrena, usa «estado»`);
+      }
+      if ('tirada' in e) {
+        if (!(e.tirada.dificultad >= 0 && e.tirada.dificultad <= 100)) err('un efecto con tirada: la dificultad va de 0 a 100');
+        if (entorno && !entorno.stats.has(e.tirada.con)) err(`un efecto tira con «${e.tirada.con}», que no existe`);
+        for (const a of e.tirada.ajustes ?? []) if (!Number.isFinite(a.mas) || !a.si?.length) err('un ajuste de la tirada necesita «mas» (un número) y al menos una condición en «si»');
       }
       if ('relacion' in e) papel(e.relacion, 'un efecto');
       if ('familia' in e) papel(e.familia, 'un efecto');

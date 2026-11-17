@@ -73,12 +73,17 @@ import {
   verEnLaTele,
   type ConfigDeporte,
   type EstadoBaseDeDeporte,
+  resolverPedirPuesto,
+  servicioDePedirPuesto,
+  sucesoDePedirPuesto,
+  sucesoDePruebaDeAcceso,
 } from '@ds/kit-deporte';
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { EVENTOS_DE_FUTBOL } from './eventos';
+import { TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
 import { APORTE_DE_SUCESOS, servicioDeHechos, type HechosService } from '@ds/contracts';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
@@ -1158,7 +1163,7 @@ export const futbol = defineModule<FutbolState>({
   name: 'Fútbol',
   description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
   dependsOn: ['gen'],
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTE_DE_SUCESOS]: EVENTOS_DE_FUTBOL },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO)] },
   stats: [...STATS_DE_FUTBOL],
 
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),
@@ -1187,12 +1192,17 @@ export const futbol = defineModule<FutbolState>({
       },
     }),
     [claveDeDeporte(DEPORTE)]: (ctx) => ({ view: () => vistaDeFutbol(ctx) }),
+    // En la ficha del entrenador: «Pedir jugar…» con un desplegable de puestos (kit).
+    [servicioDePedirPuesto(CONFIG)[0]]: servicioDePedirPuesto(CONFIG)[1],
     // Lo que hacen los jugadores del mundo el día de su partido (convocatoria, llegada, vestuario): las mismas reglas que el personaje; `npcs` lo pone en el mapa.
     [SERVICES.partidos]: (ctx): PartidosService => {
       const d = elDiaDeLaSemana(ctx);
       return { version: d.version, deJugador: (id) => d.jugadores.get(id), deEquipo: (club, categoria, letra) => d.equipos.get(`${club}|${letra}|${categoria}`), deLaSemana: () => d.partidos };
     },
   },
+
+  // Pedirle a tu entrenador jugar en un puesto (no se lista: lo lanza el desplegable de su ficha).
+  resolverAccion: resolverPedirPuesto(CONFIG),
 
   // Apuntarse al club del colegio (kit).
   dynamicActions: (() => {

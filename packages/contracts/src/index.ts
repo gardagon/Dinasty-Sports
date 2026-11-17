@@ -26,6 +26,7 @@ export * from './rasgos';
 export * from './lugares';
 export * from './agendas';
 export * from './deporte';
+export * from './conversacion';
 export * from './deporte-datos';
 export * from './hermanos';
 export * from './nombres';

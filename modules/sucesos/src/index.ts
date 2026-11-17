@@ -18,6 +18,7 @@ import {
   fechaDelDia,
   ordenarCondiciones,
   probabilidadDeExito,
+  dificultadDeTirada,
   rngEstable,
   servicioDeHechos,
   type ActionContext,
@@ -51,6 +52,7 @@ import {
   type NpcDirectory,
   type NpcView,
   type OpcionDef,
+  type TiradaDef,
   type OpcionPendiente,
   type PapelDef,
   type PerkReveladoData,
@@ -531,6 +533,7 @@ function aplicar(ctx: ActionContext, x: Situacion, efectos: readonly Efecto[] | 
       s.temporales.push({ tags: [...m.tags], eficiencia: m.eficiencia, coste: m.coste, duracion: m.duracion, motivo: texto(m.motivo), hasta: hoy + m.dias });
     } else if ('restriccion' in e) s.temporales.push({ tags: [...e.restriccion.tags], bloquea: true, motivo: texto(e.restriccion.motivo), hasta: hoy + e.restriccion.dias });
     else if ('si' in e) aplicar(ctx, x, cumplenTodas(e.si, contextoDe(ctx, s, reparto, x.hilo, x.señal, x.sujeto)) ? e.entonces : e.sino);
+    else if ('tirada' in e) aplicar(ctx, x, tirarCon(ctx, s, x.suceso.def.id, 'aviso', e.tirada, contextoDe(ctx, s, reparto, x.hilo, x.señal, x.sujeto)) ? e.exito : e.fallo);
     else if ('fin' in e) cerrarHilo(s, x.hilo?.id);
   }
 }
@@ -611,7 +614,7 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
     const elegida = elegirPorCaracter(dec.d.opciones ?? [], elegibles, (eje) => lector.caracter(eje), rngEstable(s.semilla, 'pnj', def.id, sujeto, hoy).next());
     const o = dec.d.opciones?.find((y) => y.id === elegida);
     if (o) {
-      const exito = !o.tirada || rngEstable(s.semilla, 'tirada', def.id, o.id, sujeto, hoy).chance(probabilidadDeExito(lector.stat(o.tirada.con) ?? 50, o.tirada.dificultad));
+      const exito = !o.tirada || rngEstable(s.semilla, 'tirada', def.id, o.id, sujeto, hoy).chance(probabilidadDeExito(lector.stat(o.tirada.con) ?? 50, dificultadDeTirada(o.tirada, c)));
       if (o.tirada) aplicar(ctx, sit, o.efectos);
       aplicar(ctx, sit, (o.tirada ? (exito ? o.exito : o.fallo) : o)?.efectos);
     }
@@ -673,12 +676,16 @@ function faltaRecurso(ctx: ReadContext, o: OpcionDef): string | undefined {
   return undefined;
 }
 
-function tirar(ctx: ActionContext, s: SucesosState, suceso: string, o: OpcionDef): boolean {
-  const forzada = prueba(ctx)?.tirada?.(suceso, o.id);
+function tirar(ctx: ActionContext, s: SucesosState, suceso: string, o: OpcionDef, c: ContextoDeCondicion): boolean {
+  return tirarCon(ctx, s, suceso, o.id, o.tirada!, c);
+}
+
+/** Una tirada del personaje (la de una opción, o la de un efecto `tirada` de un aviso, con la clave `aviso`). */
+function tirarCon(ctx: ActionContext, s: SucesosState, suceso: string, clave: string, t: TiradaDef, c: ContextoDeCondicion): boolean {
+  const forzada = prueba(ctx)?.tirada?.(suceso, clave);
   if (forzada) return forzada === 'exito';
-  const t = o.tirada!;
-  const rng = rngEstable(s.semilla, 'tirada', suceso, o.id, ctx.time.minute);
-  const p = probabilidadDeExito(ctx.hasStat(t.con) ? ctx.norm(t.con) * 100 : 0, t.dificultad);
+  const rng = rngEstable(s.semilla, 'tirada', suceso, clave, ctx.time.minute);
+  const p = probabilidadDeExito(ctx.hasStat(t.con) ? ctx.norm(t.con) * 100 : 0, dificultadDeTirada(t, c));
   let exito = rng.chance(p);
   const h = lectorDe(ctx);
   // Suertudo repite a veces una tirada fallada; Gafe estropea a veces una acertada (E5.6).
@@ -691,7 +698,7 @@ function elegir(ctx: ActionContext, i: Indice, r: PendienteResuelto, o: OpcionDe
   const s = mut(ctx);
   s.pendientes = s.pendientes.filter((q) => q.id !== r.p.id);
   const sit: Situacion = { s, i, suceso: r.x, reparto: r.p.reparto, hilo: r.hilo, señal: r.p.señal };
-  const rama: RamaDef = o.tirada ? ((tirar(ctx, s, r.x.def.id, o) ? o.exito : o.fallo) ?? o) : o;
+  const rama: RamaDef = o.tirada ? ((tirar(ctx, s, r.x.def.id, o, contextoDe(ctx, s, r.p.reparto, r.hilo, r.p.señal)) ? o.exito : o.fallo) ?? o) : o;
   if (o.tirada) aplicar(ctx, sit, o.efectos);
   aplicar(ctx, sit, rama.efectos);
   // Las decisiones mueven el carácter poco a poco (E4.3).
@@ -1006,8 +1013,9 @@ function pendientesDe(ctx: ReadContext): SucesoPendiente[] {
     if (!r) continue;
     const datos = datosDeTexto(ctx, s, p.reparto, r.hilo, p.señal);
     const modo = i.config.presentacion.consecuencias;
+    const cond = contextoDe(ctx, s, p.reparto, r.hilo, p.señal);
     const opciones: OpcionPendiente[] = (r.d.opciones ?? []).map((o) => {
-      const prob = o.tirada && modo === 'numeros' ? probabilidadDeExito(ctx.hasStat(o.tirada.con) ? ctx.norm(o.tirada.con) * 100 : 0, o.tirada.dificultad) : undefined;
+      const prob = o.tirada && modo === 'numeros' ? probabilidadDeExito(ctx.hasStat(o.tirada.con) ? ctx.norm(o.tirada.con) * 100 : 0, dificultadDeTirada(o.tirada, cond)) : undefined;
       const pista = pistaDe(ctx, o, modo, datos, prob);
       return { id: o.id, accion: idDeElegir(p.id, o.id), texto: componerTexto(o.texto, datos), ...motivoDe(ctx, i, r, o), ...(pista ? { pista: componerTexto(pista, datos) } : {}), minutos: o.minutos ?? 1, ...(prob === undefined ? {} : { probabilidad: prob }) };
     });
