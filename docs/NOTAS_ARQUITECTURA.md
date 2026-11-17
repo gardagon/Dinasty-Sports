@@ -32,28 +32,19 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **Pedir puesto, lo que dejó abierto `claude/futbol-pedir-puesto`** (cifras en DECISIONES, 17/11):
-   - a) ¿Valen las **cifras provisionales** de la dificultad y el −3 de afinidad por preguntar antes de 4 semanas?
-   - b) El **cambio de puesto del primer entrenamiento** se ha dejado, con las mismas cifras, pero no cuenta para las 4 semanas. ¿Se quita, se cuenta o se queda así? **Recomendación:** que cuente.
-   - c) En la prueba, el suceso enseña **los 16 puestos** aunque solo haya huecos en algunos (7 en el club mediano). ¿Agruparlos por zonas o marcar los huecos? **Recomendación:** marcar cuáles son huecos; agrupar exige formato nuevo.
-   - d) En la ficha del entrenador sale «Club: colegio» con el identificador en vez del nombre. Es un fallo pequeño de presentación.
-2. **Unir a la principal:** decidido esperar a cerrarlo todo (ver DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
-3. **Modo «números», lo que aún no se muestra:** hoy solo se ven con números el estado, la relación, lo que se entrena y los castigos. ¿Se muestran también las consecuencias para la forma y la moral (`estadoDeJugador`), la familia y el carácter? ¿Y el dinero con «€»? (17/11: al usuario no le quedó claro a qué números se refería; se le explicó con la captura `docs/relevo/suceso-presentacion2-numeros-normales-aviso.png`.) **Recomendación:** sí a todo. El modo números es para quien quiere verlo todo. Sería una tarea corta para Sonnet (`docs/relevo/sucesos-presentacion-2.md`).
-4. **PNJ, lo que dejó abierto `claude/pnj-fallos-1`** (`docs/relevo/pnj-fallos-1.md`):
-   - a) **Padres que recogen a sus hijos:** hoy solo existen los padres del personaje. Propuesta: un ~15 % de los vecinos adultos «recogen» (llegan entre 13:45 y 14:00 y se van entre 14:05 y 14:30). Cambia la generación y la huella.
-   - b) **Niños del barrio:** ¿qué más se hace con ellos, además de charlar? Propuesta: que pasen a amigos al llegar a cierto trato y entonces tengan todo el catálogo.
-   - c) ¿Charlar con los **vecinos adultos** conocidos? Hoy no tienen acciones.
-   - d) **Rivales:** solo los 5 con la relación más marcada tienen acciones; un rival conocido con poco trato se queda sin «charlar».
-   - e) **Dos deportes:** el personaje puede hacer dos a la vez y los PNJ no. ¿Se iguala?
-   - f) **Fallo:** los niños de otros colegios usan la agenda de un vecino adulto, así que en día lectivo pueden estar en el parque a las 11:00. Propuesta: darles un tramo escolar propio, fuera del mapa.
+1. **«Invertir» la dificultad de pedir puesto.** El usuario quiere que «cuanto más cerca de 100, más positivo». Las cifras (35–73) son la dificultad de la tirada: el jugador no las ve, y todas las tiradas del juego usan la dificultad (más alta, más difícil). Lo que mide la suerte es la probabilidad de éxito, del 58 % (relación alta, vale más) al 5 % (relación baja, vale menos) con comunicación media. **Recomendación:** dejar la dificultad como está, por coherencia con el resto, y dar las tablas de los anexos también en «% de éxito», que sí sube con lo bueno. Si el usuario prefiere otra cosa, cambiarlo.
+2. **PNJ y deportes:** el usuario dijo «los otros PNJ deben poder hacer cualquier deporte, pero no estar en club o equipo de cada deporte». Concretar: ¿un PNJ puede hacer varios deportes, pero en cada uno con un solo club o equipo (como el personaje)? ¿O puede hacer deporte sin estar en ningún club? ¿O un tope de clubes a la vez?
+3. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXR2tusR8NPz4qqh5Rw` | `claude/pnj-2` | Horarios de los niños de otros colegios (colegio y clubes); salida que enlaza con los entrenamientos de la tarde; padres que recogen; niños del barrio que pasan a amigos; charlar con vecinos adultos y con todos los rivales; «Club: colegio» con el nombre |
+| `session_01M4vXXMfsH6XTt1U1mmKQ1m` | `claude/futbol-2` | Prueba de acceso con los 2 puestos que más necesita; el primer entrenamiento cuenta para las 4 semanas; calendario de la liga en la pestaña y en boca del entrenador; modo números completo |
 | `session_01M4vXXNJQUReSzr3J1beLT5` | `claude/comprobacion-final` | Fallos de `benjamin` y `probar-web`; `npm run sim` antes y después de los sucesos; sucesos y prueba de acceso en `probar-web` (§4, puntos 0 y 1) |
 
-**Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio; sus dudas, en §3.4).
+**Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
 
 
