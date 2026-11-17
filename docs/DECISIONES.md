@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Eventos y decisiones: rendimiento, presentación desde Opciones y primer lote de Sonnet
+
+- **Rendimiento del director** (`modules/sucesos`): las condiciones ligeras de cada suceso (marcas, contadores, datos de la señal) se comprueban antes de preparar su contexto. Con 500 sucesos, el coste por acción baja de ~0,08 ms a ~0,009 ms (objetivo < 0,02 ✅). Huella de los bots idéntica. Notas: `docs/relevo/sucesos-rendimiento.md`.
+- **Presentación desde Opciones** (web): pistas, números o nada, y opciones fuera de carácter normales, sombreadas u ocultas. Es una preferencia del navegador (todas las partidas), como la frecuencia de guardado; al cambiarla la partida se rehace por dentro con el estado idéntico. Pendiente del usuario: nombres legibles en modo números (hoy «gen.estres −1») y avisar en modo normal cuando una opción no encaja con el carácter. Notas: `docs/relevo/sucesos-opciones.md`.
+- **Contenido, lote 1 de Sonnet:** llegar tarde al entrenamiento del atletismo (espera de 21 días) y 15 detalles ligeros (aula, patio, casa, barrio, camino). 57 sucesos en total; con los bots, ~2 por semana de media (límite alto de lo anterior). Cifras provisionales en `docs/relevo/sucesos-contenido-1.md`.
+- **Pendiente del usuario:** que pedir el cambio de puesto dependa de la relación con el entrenador y de lo que se vale en cada puesto.
+
 ## 17/11/2026 — Eventos, segundo lote: Educación física, el puesto en el fútbol, llegar tarde y detalles del colegio (pedido por el usuario)
 
 Los primeros eventos que verá el jugador, apoyados en mecánicas que ya existían (no se duplican). Cifras provisionales en `PLAN_EVENTOS.md` §7 bis.
