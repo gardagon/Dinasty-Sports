@@ -10,6 +10,7 @@ export const TEXTOS_DE_PRUEBA_DE_ACCESO: TextosDePruebaDeAcceso = {
     'Llegas al campo y un hombre o una mujer con un chándal del club se acerca. «Yo soy {entrenador.nombre}, el entrenador. Hoy vas a entrenar con nosotros». Mira la lista. «Nos faltan jugadores en varios puestos. ¿Dónde te ves tú?».',
   opcionDeHueco: 'Decirle que de {puesto}',
   resultadoDeHueco: '{entrenador.Nombre} asiente. «De {puesto}, pues. A ver qué tal».',
+  resultadoSinHueco: '{entrenador.Nombre} niega con la cabeza. «De {puesto} no me hace falta nadie. Pero quédate, entrena con nosotros y veamos qué tal. Te pondré donde yo vea».',
   opcionQueDecida: 'Decirle que donde él vea',
   resultadoQueDecida: '«Eso me gusta. Ya te pondré donde mejor te vea».',
   presentacion: 'Llegas al campo y {entrenador.nombre}, el entrenador, se presenta. «Hoy entrenas con nosotros. Te pondré donde mejor te vea».',

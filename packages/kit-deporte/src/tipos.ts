@@ -35,7 +35,7 @@ export interface ConfigDePedirPuesto {
 }
 
 /** Valores de partida de `ConfigDePedirPuesto` (PROVISIONALES: a revisar con el usuario). */
-export const PEDIR_PUESTO = { esperaDias: 0, enfadoSiPocoTiempo: { dias: 14, afinidad: -3 } } as const;
+export const PEDIR_PUESTO = { esperaDias: 0, enfadoSiPocoTiempo: { dias: 28, afinidad: -3 } } as const;
 
 /** Lo que entrena una acción (el mismo formato que `ActionDef.train`). */
 export type Entreno = NonNullable<ActionDef['train']>;

@@ -135,6 +135,19 @@ describe('con el juego entero: la prueba del personaje, su puesto y el consejo d
     if (pendiente) expect(g.service<NpcDirectory>('npcs')!.list({ role: 'entrenador', known: true }).length).toBeGreaterThan(0);
   });
 
+  it('pedir un puesto sin hueco: el entrenador dice que no pero te prueba donde decida él', () => {
+    const g = partida();
+    hacer(g, 'futbol.pedir_prueba.club_mediano');
+    hacer(g, 'futbol.prueba.club_mediano');
+    const pendiente = g.service<SucesosService>('sucesos')!.pendientes().find((p) => p.suceso === 'futbol.prueba_de_acceso');
+    const sinHueco = pendiente?.opciones.find((o) => o.elegible && o.id.startsWith('sin_'));
+    if (!pendiente || !sinHueco) return; // el club no tiene huecos en varios puestos con esta semilla
+    expect(g.perform(sinHueco.accion).ok).toBe(true);
+    expect(g.log.map((l) => l.text).some((t) => /Pero quédate/.test(t))).toBe(true);
+    expect(g.moduleState<{ pruebaEnCurso?: { puesto?: string } }>('futbol').pruebaEnCurso?.puesto).toBeUndefined();
+    expect(hacer(g, 'futbol.prueba_entrenar.club_mediano').ok).toBe(true);
+  });
+
   it('el profesor de Educación Física nombra varios puestos (sin cifras) y el deporte; el consejo es el mismo para el mismo día', () => {
     const g = partida();
     const dir = g.service<NpcDirectory>('npcs')!;

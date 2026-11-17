@@ -61,7 +61,7 @@ describe('pedirle a tu entrenador jugar en otro puesto', () => {
     if (estado().puesto !== antes) expect(estado().puesto).toBe(pedido);
   });
 
-  it('pedirlo otra vez enseguida le sienta mal al entrenador (mal rato configurable: 14 días, −3 de afinidad)', () => {
+  it('pedirlo otra vez enseguida le sienta mal al entrenador (mal rato configurable: 28 días, −3 de afinidad)', () => {
     const { g, entrenador } = conEntrenador();
     const afinidad = () => g.service<RelationsService>(SERVICES.relaciones)!.get(entrenador)!.afinidad;
     const pedidos = g.service<ConversacionService>(servicioDeConversacion('futbol'))!.peticiones(entrenador)[0].opciones.map((o) => o.valor);

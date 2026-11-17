@@ -130,6 +130,8 @@ export interface TextosDePruebaDeAcceso {
   /** Una opción por hueco (`{puesto}`). */
   opcionDeHueco: string;
   resultadoDeHueco: string;
+  /** Pedir un puesto en que no faltan jugadores: dice que no, pero que te quedes a probar donde él decida (`{puesto}`). */
+  resultadoSinHueco: string;
   /** Dejar que decida él. */
   opcionQueDecida: string;
   resultadoQueDecida: string;
@@ -170,6 +172,15 @@ export function sucesoDePruebaDeAcceso(cfg: ConfigDeporte, t: TextosDePruebaDeAc
             minutos: 5,
             efectos: sin(p.id),
             resultado: t.resultadoDeHueco.replaceAll('{puesto}', nombreDe2(p.id)),
+          })),
+          ...puestos.map((p) => ({
+            id: `sin_${p.id.toLowerCase()}`,
+            texto: t.opcionDeHueco.replaceAll('{puesto}', nombreDe2(p.id)),
+            requiere: [{ no: { señal: 'huecos', incluye: p.id } }] as Condicion[],
+            oculta: true,
+            minutos: 5,
+            efectos: sin(),
+            resultado: t.resultadoSinHueco.replaceAll('{puesto}', nombreDe2(p.id)),
           })),
           { id: 'que_decida', texto: t.opcionQueDecida, minutos: 5, efectos: sin(), resultado: t.resultadoQueDecida },
         ],
