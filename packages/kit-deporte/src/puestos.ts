@@ -16,7 +16,7 @@ import {
   type ReadContext,
   type Rango,
 } from '@ds/contracts';
-import { entrenadorDelJugador, idDeSucesoDePrueba, sedeDelClub } from './club';
+import { GRUPOS_QUE_NOMBRA_EL_ENTRENADOR, entrenadorDelJugador, idDeSucesoDePrueba, sedeDelClub } from './club';
 import { PEDIR_PUESTO, type ConfigDeporte, type EstadoBaseDeDeporte } from './tipos';
 
 /**
@@ -122,69 +122,72 @@ export function servicioDePedirPuesto(cfg: ConfigDeporte): [string, (ctx: ReadCo
   ];
 }
 
-/** Los textos de la prueba de acceso (los pone el deporte; las llaves son las de siempre: `{entrenador.nombre}`, `{señal.nHuecos}`). `{puesto}` se cambia por el nombre de cada puesto. */
+/** Los textos de la prueba de acceso (los pone el deporte; las llaves son las de siempre: `{entrenador.nombre}`, `{señal.necesita}`). `{puesto}` se cambia por el nombre de cada puesto. */
 export interface TextosDePruebaDeAcceso {
   titulo: string;
-  /** Con huecos en varios puestos: lo que dice el entrenador y pregunta. */
+  /** Faltan jugadores en más de 2 grupos de puestos: el entrenador dice que necesita en varios y pregunta. */
   pregunta: string;
-  /** Una opción por hueco (`{puesto}`). */
-  opcionDeHueco: string;
+  /** Faltan en 1 o 2 grupos: dice cuáles (`{señal.necesita}`: «centrales y laterales») y pregunta. */
+  preguntaConNecesidad: string;
+  /** Una opción por puesto (`{puesto}`). */
+  opcionDePuesto: string;
+  /** Eliges un puesto en que le faltan jugadores (lo dijera o no). */
   resultadoDeHueco: string;
-  /** Pedir un puesto en que no faltan jugadores: dice que no, pero que te quedes a probar donde él decida (`{puesto}`). */
+  /** Con «varios»: pides un puesto en que no faltan jugadores: dice que no, pero que te quedes a probar donde él decida (`{puesto}`). */
   resultadoSinHueco: string;
+  /** Con dos puestos dichos: pides uno que no es ninguno de esos (`{puesto}`, `{señal.necesita}`): dice que no es ninguno y te prueba donde decida él. */
+  resultadoSinHuecoDicho: string;
   /** Dejar que decida él. */
   opcionQueDecida: string;
   resultadoQueDecida: string;
-  /** Sin varios huecos: solo se presenta y le prueba donde decida. */
+  /** Sin huecos: solo se presenta y le prueba donde decida. */
   presentacion: string;
 }
 
 /**
- * El suceso de la prueba de acceso (`<deporte>.prueba_de_acceso`): al unirte al entrenamiento de prueba, el entrenador se presenta (pasa a ser conocido) y, si al equipo le faltan jugadores en varios
- * puestos, te pregunta dónde quieres jugar (solo se ofrecen los huecos). Elegir uno es que te prueben ahí; si no, te prueba donde decida él. El puesto lo apunta el deporte (`PRUEBA_PUESTO`).
+ * El suceso de la prueba de acceso (`<deporte>.prueba_de_acceso`): al unirte al entrenamiento de prueba, el entrenador se presenta (pasa a ser conocido) y dice lo que más necesita: los dos grupos de
+ * puestos en que más le faltan jugadores o, si faltan en más de dos, «varios» (`necesidadesDelEquipo`). Tú eliges entre **todos** los puestos: si en el que eliges le faltan jugadores (lo dijera o no), te prueba ahí;
+ * si no, te dice que no es ninguno de esos y te prueba donde decida él. Sin huecos, solo se presenta. El puesto lo apunta el deporte (`PRUEBA_PUESTO`).
  */
 export function sucesoDePruebaDeAcceso(cfg: ConfigDeporte, t: TextosDePruebaDeAcceso): AporteDeSucesos {
   const puestos = cfg.puestosDelDeporte ?? [];
   const sin = (puesto?: string): readonly [{ presenta: string }, { emite: string; datos: unknown }] => [{ presenta: 'entrenador' }, { emite: SHARED_EVENTS.PRUEBA_PUESTO, datos: { sport: cfg.id, ...(puesto ? { puesto } : {}) } }];
   const nombreDe2 = (id: string) => puestos.find((p) => p.id === id)!.nombre.toLowerCase();
+  const opciones = (resultadoSinHueco: string) => [
+    ...puestos.map((p) => ({
+      id: `en_${p.id.toLowerCase()}`,
+      texto: t.opcionDePuesto.replaceAll('{puesto}', nombreDe2(p.id)),
+      requiere: [{ señal: 'huecos', incluye: p.id }] as Condicion[],
+      oculta: true,
+      minutos: 5,
+      efectos: sin(p.id),
+      resultado: t.resultadoDeHueco.replaceAll('{puesto}', nombreDe2(p.id)),
+    })),
+    ...puestos.map((p) => ({
+      id: `sin_${p.id.toLowerCase()}`,
+      texto: t.opcionDePuesto.replaceAll('{puesto}', nombreDe2(p.id)),
+      requiere: [{ no: { señal: 'huecos', incluye: p.id } }] as Condicion[],
+      oculta: true,
+      minutos: 5,
+      efectos: sin(),
+      resultado: resultadoSinHueco.replaceAll('{puesto}', nombreDe2(p.id)),
+    })),
+    { id: 'que_decida', texto: t.opcionQueDecida, minutos: 5, efectos: sin(), resultado: t.resultadoQueDecida },
+  ];
   return suceso({
     id: idDeSucesoDePrueba(cfg.id),
     titulo: t.titulo,
     deporte: cfg.id,
     disparo: { al: SHARED_EVENTS.PRUEBA_EMPIEZA },
-    ejemploDeSeñal: { sport: cfg.id, club: 'club', huecos: puestos.slice(0, 3).map((p) => p.id), nHuecos: Math.min(3, puestos.length), participants: [{ npcId: 'entrenador' }] },
+    ejemploDeSeñal: { sport: cfg.id, club: 'club', huecos: puestos.slice(0, 2).map((p) => p.id), nHuecos: Math.min(2, puestos.length), nGrupos: 2, necesita: 'centrales y laterales', participants: [{ npcId: 'entrenador' }] },
     cuando: [{ señal: 'sport', es: cfg.id }],
     repite: 'siempre',
     reparto: { entrenador: { rol: 'entrenador', deLaSeñal: 'participants', conocido: false } },
     urgencia: 'ahora',
     plazo: { dias: 1, porDefecto: 'que_decida' },
     variantes: [
-      {
-        id: 'con_huecos',
-        si: [{ señal: 'nHuecos', min: 2 }],
-        texto: t.pregunta,
-        opciones: [
-          ...puestos.map((p) => ({
-            id: `en_${p.id.toLowerCase()}`,
-            texto: t.opcionDeHueco.replaceAll('{puesto}', nombreDe2(p.id)),
-            requiere: [{ señal: 'huecos', incluye: p.id }] as Condicion[],
-            oculta: true,
-            minutos: 5,
-            efectos: sin(p.id),
-            resultado: t.resultadoDeHueco.replaceAll('{puesto}', nombreDe2(p.id)),
-          })),
-          ...puestos.map((p) => ({
-            id: `sin_${p.id.toLowerCase()}`,
-            texto: t.opcionDeHueco.replaceAll('{puesto}', nombreDe2(p.id)),
-            requiere: [{ no: { señal: 'huecos', incluye: p.id } }] as Condicion[],
-            oculta: true,
-            minutos: 5,
-            efectos: sin(),
-            resultado: t.resultadoSinHueco.replaceAll('{puesto}', nombreDe2(p.id)),
-          })),
-          { id: 'que_decida', texto: t.opcionQueDecida, minutos: 5, efectos: sin(), resultado: t.resultadoQueDecida },
-        ],
-      },
+      { id: 'varios', si: [{ señal: 'nGrupos', min: GRUPOS_QUE_NOMBRA_EL_ENTRENADOR + 1 }], texto: t.pregunta, opciones: opciones(t.resultadoSinHueco) },
+      { id: 'con_necesidad', si: [{ señal: 'nGrupos', min: 1 }], texto: t.preguntaConNecesidad, opciones: opciones(t.resultadoSinHuecoDicho) },
       { id: 'sin_huecos', si: [], texto: t.presentacion, efectos: sin() },
     ],
   });

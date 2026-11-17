@@ -66,6 +66,7 @@ function vista(g: Game, d: DeporteView): string {
   return `<section class="sheet deporte">
     <h2>${esc(d.nombre)} <small>${esc(d.disciplina)}</small></h2>
     <dl class="identity">${d.resumen.map((r) => `<div><dt>${esc(r.etiqueta)}</dt><dd>${esc(r.valor)}</dd></div>`).join('')}</dl>
+    ${t.situacion ? `<p class="note"><b>Temporada:</b> ${esc(t.situacion)}</p>` : ''}
     <p class="note"><b>Próxima prueba:</b> ${esc(t.proxima)}</p>
     <h3>Habilidades de ${esc(d.nombre.toLowerCase())}</h3>
     ${d.habilidades.map((id) => barra(g, id)).join('')}

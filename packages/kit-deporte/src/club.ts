@@ -474,6 +474,19 @@ export function huecosDelEquipo(ctx: ReadContext, cfg: ConfigDeporte, club: stri
   return cfg.puestosDelDeporte.filter((p) => npcs.plaza(cfg.id, club, 100, { ...ceros, [p.id]: 100 }, { puesto: p.id }).estado === 'libre').map((p) => p.id);
 }
 
+/** Hasta cuántos grupos de puestos nombra el entrenador en la prueba: con más grupos con hueco dice que necesita «varios». */
+export const GRUPOS_QUE_NOMBRA_EL_ENTRENADOR = 2;
+
+/**
+ * Lo que el entrenador dice que más necesita en la prueba de acceso (`NpcDirectory.huecosPorGrupo`): los grupos de puestos con más jugadores que le faltan (cupo − los que hay), y a igualdad, aquel en que
+ * falta mayor parte del cupo. Con **a lo sumo 2 grupos** con hueco los nombra («centrales y laterales»); con más, `necesita` queda vacío (dice que necesita en varios). `nGrupos` cuenta todos los que tienen hueco.
+ */
+export function necesidadesDelEquipo(ctx: ReadContext, deporte: string, club: string, huecos: readonly string[]): { nGrupos: number; necesita: string } {
+  const grupos = (ctx.service<NpcDirectory>(SERVICES.npcs)?.huecosPorGrupo?.(deporte, club) ?? []).filter((g) => g.puestos.some((p) => huecos.includes(p)));
+  const orden = [...grupos].sort((a, b) => b.huecos - a.huecos || b.huecos / b.cupo - a.huecos / a.cupo);
+  return { nGrupos: grupos.length, necesita: grupos.length <= GRUPOS_QUE_NOMBRA_EL_ENTRENADOR ? orden.map((g) => g.nombre.toLowerCase()).join(' y ') : '' };
+}
+
 /** El entrenador de un club que lleva la edad del personaje (los clubes tienen varios): conocido o no. */
 export function entrenadorDeClub(ctx: ReadContext, club: string): NpcView | undefined {
   const edad = edadDelJugadorDeTemporada(ctx);
@@ -483,7 +496,7 @@ export function entrenadorDeClub(ctx: ReadContext, club: string): NpcView | unde
 /**
  * La prueba de acceso de un club con puestos, en tres pasos (el entrenador pregunta dónde quiere jugar en medio, con un suceso: `sucesoDePruebaDeAcceso`):
  *  1. **Pedir hacer una prueba** (en los trámites del club, en sus horas): te dicen cuándo entrena el equipo que te toca.
- *  2. **Unirte al entrenamiento de prueba** (en su sede, en esas horas): sale el suceso, el entrenador se presenta y, si faltan jugadores en varios puestos, te deja elegir uno de esos huecos.
+ *  2. **Unirte al entrenamiento de prueba** (en su sede, en esas horas): sale el suceso, el entrenador se presenta, dice qué puestos necesita (los 2 en que más le faltan, o «varios») y te deja elegir puesto: si es un hueco, te prueba ahí; si no, te prueba donde decida él.
  *  3. **Entrenar a prueba con el equipo**: al acabar te dicen qué tal ha ido y la plaza se mide en el puesto en que te han probado (`pruebaPorPuestos`).
  * Solo salen los pasos que tocan (el 2 y el 3 del club que has pedido) para no llenar la lista.
  */
@@ -517,7 +530,7 @@ function pruebaPorPuestosEnPasos(
   const unirte = conLugar(tramitesDe(c), {
     id: `${deporte}.prueba.${c.id}`,
     name: `Unirte al entrenamiento de prueba de ${c.nombre}`,
-    description: 'Llegas al entrenamiento: el entrenador se presenta y, si al equipo le faltan jugadores en varios puestos, te pregunta dónde quieres jugar. Después entrenas con ellos y, al acabar, te dicen qué tal ha ido.',
+    description: 'Llegas al entrenamiento: el entrenador se presenta, dice qué puestos necesita y te pregunta dónde quieres jugar. Después entrenas con ellos y, al acabar, te dicen qué tal ha ido.',
     tags: [TAGS.fisico, deporte],
     group: 'Club',
     duration: 5,
@@ -530,7 +543,7 @@ function pruebaPorPuestosEnPasos(
       const huecos = huecosDelEquipo(c2, cfg, c.id);
       const entrenador = entrenadorDeClub(c2, c.id);
       c2.updateState<EstadoBaseDeDeporte>((st) => ({ ...st, pruebaEnCurso: { club: c.id } }));
-      c2.emit<PruebaEmpiezaData>({ type: SHARED_EVENTS.PRUEBA_EMPIEZA, data: { sport: deporte, club: c.id, huecos, nHuecos: huecos.length, participants: entrenador ? [{ npcId: entrenador.id }] : [] } });
+      c2.emit<PruebaEmpiezaData>({ type: SHARED_EVENTS.PRUEBA_EMPIEZA, data: { sport: deporte, club: c.id, huecos, nHuecos: huecos.length, ...necesidadesDelEquipo(c2, deporte, c.id, huecos), participants: entrenador ? [{ npcId: entrenador.id }] : [] } });
     },
   });
   const entrenar = conLugar(tramitesDe(c), {

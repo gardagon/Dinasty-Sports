@@ -110,6 +110,17 @@ export interface PruebaEnClub {
   yaPasada?: boolean;
 }
 
+/** Los jugadores que le faltan a un equipo en un grupo de puestos (`NpcDirectory.huecosPorGrupo`). */
+export interface HuecoDeGrupo {
+  grupo: string;
+  /** «centrales», «porteros»… */
+  nombre: string;
+  puestos: readonly string[];
+  /** Cuántos jugadores le faltan (cupo del grupo menos los que hay). */
+  huecos: number;
+  cupo: number;
+}
+
 /** El consejo del profesor de Educación Física: un deporte y, si tiene puestos, varios en los que podría funcionar. */
 export interface ConsejoDeDeporte {
   deporte: string;
@@ -126,6 +137,11 @@ export interface NpcDirectory {
    * (`EquipoDeDeporte.plantillaPorCategoria`); en el resto siempre hay sitio. En los deportes con puestos, `puestos` es lo que vale el candidato en cada uno y la plaza se mide por puesto.
    */
   plaza(deporte: string, club: string, nivel: number, puestos?: Readonly<Record<string, number>>, prueba?: PruebaEnClub): PlazaEnEquipo;
+  /**
+   * Dónde le faltan jugadores al equipo de la categoría del personaje en un club con puestos: un elemento por grupo de puestos (portero, centrales, laterales…) con menos jugadores que su cupo, con cuántos le faltan
+   * (`huecos` = cupo − jugadores del grupo). Es la medida de «lo que más necesita» el entrenador. Vacío si el equipo no tiene huecos, está completo o el deporte no tiene puestos.
+   */
+  huecosPorGrupo?(deporte: string, club: string): HuecoDeGrupo[];
   /**
    * Lo que un profesor de Educación Física ve en el personaje: los deportes que le irían bien y, en los que tienen puestos, **varios puestos** donde podría funcionar (lo que percibe, sin cifras:
    * `VISION.md`, principio 7). Vacío si no ve nada claro.

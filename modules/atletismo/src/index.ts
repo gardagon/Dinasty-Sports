@@ -15,6 +15,7 @@ import {
   type TimeView,
   datosDeDeporte,
   semanasDeTemporada,
+  situacionDelDeporte,
   textoConPais,
   categoriaSuperior,
   defineModule,
@@ -667,6 +668,7 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
     habilidades: ['atletismo.tecnica', 'atletismo.ritmo', 'atletismo.salida', CONOCIMIENTO],
     temporada: {
       etiqueta: `Curso ${t.schoolYear + 1}`,
+      situacion: situacionDelDeporte(ctx, DEPORTE, { nombre: 'carreras', articulo: 'las', plural: true }).texto,
       proxima: proximaPrueba(ctx, s),
       pruebas: deEsteCurso
         .slice()

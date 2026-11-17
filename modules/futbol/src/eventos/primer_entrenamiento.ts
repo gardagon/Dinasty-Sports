@@ -12,7 +12,7 @@ export default suceso({
   deporte: 'futbol',
   disparo: { al: 'accion.realizada' },
   ejemploDeSeñal: { actionId: 'futbol.club_sesion', module: 'futbol', tags: ['futbol', 'club'], duration: 90, efficiency: 1 },
-  ejemploDeHechos: { 'futbol.puesto': 'lateral derecho', 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW', 'futbol.juega_donde_mas_vale': false, 'futbol.ventaja_del_mejor_puesto': 6 },
+  ejemploDeHechos: { 'futbol.puesto': 'lateral derecho', 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW', 'futbol.juega_donde_mas_vale': false, 'futbol.ventaja_del_mejor_puesto': 6, 'futbol.calendario': 'la liga empieza el sábado 13 de octubre; el calendario de partidos se publica ese día, cuando empiece' },
   cuando: [{ señal: 'actionId', es: 'futbol.club_sesion' }, { hecho: 'futbol.puesto' }],
   repite: 'nunca',
   reparto: { entrenador: { rol: 'entrenador', delDeportePrincipal: true } },
@@ -22,7 +22,7 @@ export default suceso({
     {
       id: 'donde_mas_vale',
       si: [{ hecho: 'futbol.juega_donde_mas_vale', es: true }],
-      texto: 'Al acabar, {entrenador.nombre} te llama aparte. «Te he estado mirando. De inicio vas a jugar de {hecho.futbol.puesto}: es donde mejor te veo».',
+      texto: 'Al acabar, {entrenador.nombre} te llama aparte. «Te he estado mirando. De inicio vas a jugar de {hecho.futbol.puesto}: es donde mejor te veo. Una cosa más: {hecho.futbol.calendario}».',
       opciones: [
         { id: 'aceptar', texto: 'Decir que ahí estarás a gusto', caracter: { disciplina: 1 }, efectos: [{ relacion: 'entrenador', afinidad: 2 }, { estado: 'gen.motivacion', mas: 3 }], resultado: '«Pues a trabajar».' },
         {
@@ -39,7 +39,7 @@ export default suceso({
       id: 'en_otro_sitio',
       si: [],
       texto:
-        'Al acabar, {entrenador.nombre} te llama aparte. «De inicio vas a jugar de {hecho.futbol.puesto}. Ya sé que a lo mejor te ves más de {hecho.futbol.mejor_puesto}, pero ahora mismo te necesito ahí».',
+        'Al acabar, {entrenador.nombre} te llama aparte. «De inicio vas a jugar de {hecho.futbol.puesto}. Ya sé que a lo mejor te ves más de {hecho.futbol.mejor_puesto}, pero ahora mismo te necesito ahí. Una cosa más: {hecho.futbol.calendario}».',
       opciones: [
         { id: 'aceptar', texto: 'Aceptarlo: donde haga falta', caracter: { disciplina: 2 }, efectos: [{ relacion: 'entrenador', afinidad: 3 }], resultado: '«Así me gusta. Ya habrá tiempo de moverte».' },
         {
@@ -55,10 +55,10 @@ export default suceso({
             ajustes: ajustesDePedirPuesto((r) => ({ hecho: 'futbol.ventaja_del_mejor_puesto', ...r })),
           },
           exito: {
-            efectos: [{ emite: 'club.cambio_de_puesto', datos: { sport: 'futbol', puesto: '{hecho.futbol.mejor_puesto_id}' } }, { estado: 'gen.motivacion', mas: 4 }],
+            efectos: [{ emite: 'club.peticion_de_puesto', datos: { sport: 'futbol' } }, { emite: 'club.cambio_de_puesto', datos: { sport: 'futbol', puesto: '{hecho.futbol.mejor_puesto_id}' } }, { estado: 'gen.motivacion', mas: 4 }],
             resultado: '{entrenador.Nombre} se lo piensa. «Vale. Te pruebo ahí. Pero si no funciona, vuelves donde yo diga».',
           },
-          fallo: { efectos: [{ relacion: 'entrenador', afinidad: -2 }], resultado: '«Aquí las posiciones las pongo yo». No ha sentado bien.' },
+          fallo: { efectos: [{ emite: 'club.peticion_de_puesto', datos: { sport: 'futbol' } }, { relacion: 'entrenador', afinidad: -2 }], resultado: '«Aquí las posiciones las pongo yo». No ha sentado bien.' },
         },
         {
           id: 'preguntar',

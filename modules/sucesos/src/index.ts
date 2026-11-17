@@ -793,8 +793,18 @@ function pistaDe(ctx: ReadContext, o: OpcionDef, modo: ConfigDeSucesos['presenta
     // Nunca el id interno: cada stat sale con su nombre del juego y cada papel con el nombre de la persona.
     const nombreDeStat = (id: string) => ctx.statDef(id)?.name ?? id;
     const con = (n: number) => `${n > 0 ? '+' : '−'}${Math.abs(n)}`;
+    // El dinero lleva su unidad: «Dinero −5 €».
+    const esDinero = (id: string) => id === 'gen.dinero' || id.endsWith('.dinero');
     for (const e of efectos) {
-      if ('estado' in e) partes.push(`${nombreDeStat(e.estado)} ${con(e.mas)}`);
+      if ('estado' in e) partes.push(`${nombreDeStat(e.estado)} ${con(e.mas)}${esDinero(e.estado) ? ' €' : ''}`);
+      else if ('estadoDeJugador' in e) {
+        // Moral, forma, condición, salud y baja con el nombre de la stat del personaje que las hace (`ESTADO_DEL_PERSONAJE`); si es de otra persona del reparto, se dice de quién.
+        const deQuien = e.de ? ` (de ${datos.papeles[e.de]?.nombre ?? e.de})` : '';
+        for (const [campo, d] of Object.entries(e.estadoDeJugador)) if (d) partes.push(`${nombreDeStat(ESTADO_DEL_PERSONAJE[campo as keyof typeof ESTADO_DEL_PERSONAJE] ?? campo)} ${con(d)}${deQuien}`);
+      } else if ('familia' in e) partes.push(`familia (${datos.papeles[e.familia]?.nombre ?? e.familia}): ${[e.apoyo && `apoyo ${con(e.apoyo)}`, e.expectativas && `expectativas ${con(e.expectativas)}`].filter(Boolean).join(', ')}`);
+      else if ('caracter' in e) {
+        for (const [eje, d] of Object.entries(e.caracter)) if (d) partes.push(`${NOMBRE_DE_EJE[eje] ?? eje} ${con(d)}`);
+      }
       else if ('relacion' in e) partes.push(`relación con ${datos.papeles[e.relacion]?.nombre ?? e.relacion}: ${[e.afinidad && `afinidad ${con(e.afinidad)}`, e.confianza && `confianza ${con(e.confianza)}`].filter(Boolean).join(', ')}`);
       else if ('entrena' in e) partes.push(`entrena ${nombreDeStat(e.entrena)}`);
       else if ('restriccion' in e) partes.push(`castigo de ${e.restriccion.dias} días`);

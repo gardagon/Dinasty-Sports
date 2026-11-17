@@ -191,6 +191,11 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
       const { puesto: _antes, ...resto } = en;
       ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, pruebaEnCurso: d.puesto && cfg.puestosDelDeporte?.some((p) => p.id === d.puesto) ? { ...resto, puesto: d.puesto } : resto }));
     },
+    // Una petición de puesto hecha fuera de la ficha (p. ej. en el primer entrenamiento): cuenta para las 4 semanas antes de que el entrenador se lo tome mal.
+    [SHARED_EVENTS.PETICION_DE_PUESTO]: (ctx, ev) => {
+      if ((ev.data as { sport?: string }).sport !== cfg.id) return;
+      ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimaPeticionDePuesto: ctx.time.day }));
+    },
     // El cambio de puesto (aceptado con su acción, o concedido por el entrenador en un suceso): el deporte apunta dónde juega ahora.
     [SHARED_EVENTS.CAMBIO_DE_PUESTO]: (ctx, ev) => {
       const d = ev.data as PuestoPropuestoData;
