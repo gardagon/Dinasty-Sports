@@ -4,6 +4,7 @@ import {
   LONGITUD_MAXIMA_DE_APODO,
   PREFIJO_DE_CONVERSACION,
   SERVICES,
+  type ClubDirectory,
   descripcionDeDesconocido,
   edadAparente,
   edadRelativa,
@@ -115,6 +116,16 @@ export function ordenarAcciones<T extends { id: string; name: string; duration: 
 /** Los niveles de una persona con el nombre del juego de cada deporte («Fútbol 15»), no su identificador interno. */
 export function textoDeNiveles(g: Game, levels: Readonly<Record<string, number>>): string {
   return Object.entries(levels).map(([k, v]) => `${g.registry.moduleNames.get(k) ?? k} ${Math.round(v)}`).join(', ');
+}
+
+/** El nombre de un club para enseñarlo («Club deportivo del colegio»): el entrenador lleva el identificador del club (`colegio`, `club_grande`); los jugadores, ya su nombre. */
+export function nombreDeClub(g: Game, club: string): string {
+  const clubes = g.service<ClubDirectory>(SERVICES.clubes);
+  if (clubes) for (const deporte of g.registry.moduleNames.keys()) {
+    const c = clubes.list(deporte).find((x) => x.id === club);
+    if (c) return c.nombre;
+  }
+  return club;
 }
 
 export function genteAqui(g: Game): number {
@@ -283,7 +294,7 @@ function ficha(g: Game, n: NpcView): string {
     cuerpo = `<p>${esc(aspecto(n))}.</p><p class="note">Todavía no sabes cómo se llama. ${n.description ? esc(n.description) : ''}</p>${barra('Amistad', 0, 'amistad')}${barra('Confianza', 0, 'confianza')}${boton}`;
   } else {
     const nivel = textoDeNiveles(g, n.levels);
-    cuerpo = `<p>${esc(n.description ?? '')}</p>${rel ? `<p class="note"><b>${esc(nombreEstado(rel.estado, n.gender))}</b></p>` : ''}${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}${nivel ? `<p class="note">Nivel: ${esc(nivel)}</p>` : ''}${n.club ? `<p class="note">Club: ${esc(n.club)}</p>` : ''}${datosDeEstudios(n)}`;
+    cuerpo = `<p>${esc(n.description ?? '')}</p>${rel ? `<p class="note"><b>${esc(nombreEstado(rel.estado, n.gender))}</b></p>` : ''}${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}${nivel ? `<p class="note">Nivel: ${esc(nivel)}</p>` : ''}${n.club ? `<p class="note">Club: ${esc(nombreDeClub(g, n.club))}</p>` : ''}${datosDeEstudios(n)}`;
   }
   const motivo = ocupadosAqui(g).get(n.id);
   const aviso = motivo && pestana === 'resumen' ? `<p class="note ocupado">${esc(ocupadaTexto(motivo))}: ahora no puedes hablar con ${n.gender === 'f' ? 'ella' : 'él'}.</p>` : '';

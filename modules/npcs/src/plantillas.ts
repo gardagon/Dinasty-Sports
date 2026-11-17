@@ -450,7 +450,7 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
     ritmo,
     // Un niño de otro colegio que deja de jugar vuelve a ser un niño del barrio.
     ...(n.role === 'rival'
-      ? { role: 'vecino' as NpcRole, tipos: [{ tipo: 'vecino' as const }], description: descripcionDeOtroColegio(n.gender) }
+      ? { role: 'vecino' as NpcRole, tipos: [{ tipo: 'vecino' as const, ...(n.colegio && n.colegio !== 'ninguno' ? { escolar: true } : {}) }], description: descripcionDeOtroColegio(n.gender) }
       : { tipos: n.tipos?.filter((t) => !(t.tipo === 'club' && t.deporte === pob.deporte)).map((t) => (t.tipo === 'hermano' ? { ...t, deporte: undefined } : t)) }),
     ...(dejado ? { dejado: [...(n.dejado ?? []), pob.deporte] } : {}),
   };

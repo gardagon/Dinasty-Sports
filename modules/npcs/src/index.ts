@@ -1,4 +1,4 @@
-import { APORTES, CORE_EVENTS, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
@@ -379,7 +379,7 @@ function poblarElColegio(rng: Rng, usados: RegistroDeNombres, existentes: number
     const id = `vecino_${i + 1}`;
     // Los niños del barrio van a un colegio de fuera: también pueden ser reclutados por un club.
     const nino = edad < EDAD_FIN_COLEGIO;
-    const vecino = persona(rng, id, 'vecino', edad, 0, usados, [{ tipo: 'vecino' }], (g) => o(g, 'Vecina del barrio.', 'Vecino del barrio.'), [], nino);
+    const vecino = persona(rng, id, 'vecino', edad, 0, usados, [{ tipo: 'vecino', ...(nino ? { escolar: true } : {}) }], (g) => o(g, 'Vecina del barrio.', 'Vecino del barrio.'), [], nino);
     return nino ? { ...vecino, colegio: colegioDeFuera(id, ciudad().colegiosDeFuera) } : vecino;
   });
   return [...tuClase, ...otraClase, ...otrosCursos, ...profesores, ...vecinos, ...ninosDeOtrosColegios(rng, usados, 0, 1)];
@@ -392,7 +392,7 @@ function poblarElColegio(rng: Rng, usados: RegistroDeNombres, existentes: number
 function ninosDeOtrosColegios(rng: Rng, usados: RegistroDeNombres, dia: number, desde: number, soloEntrantes = false): Npc[] {
   const lista: Npc[] = [];
   const nino = (colegio: string, edad: number): void => {
-    lista.push({ ...persona(rng, `nino_${desde + lista.length}`, 'vecino', edad, dia, usados, [{ tipo: 'vecino' }], descripcionDeOtroColegio, [], true), colegio });
+    lista.push({ ...persona(rng, `nino_${desde + lista.length}`, 'vecino', edad, dia, usados, [{ tipo: 'vecino', ...(colegio === 'ninguno' ? {} : { escolar: true }) }], descripcionDeOtroColegio, [], true), colegio });
   };
   for (const colegio of idsDeColegiosDeFuera(ciudad())) {
     for (let edad = EDAD_ALUMNO_MIN; edad < (soloEntrantes ? EDAD_ALUMNO_MIN + 1 : EDAD_FIN_COLEGIO); edad++) {
@@ -610,6 +610,27 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
 /** Lo que han pedido los deportes de la partida (en el orden de sus fichas). */
 const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: number): PoblacionGuardada[] => fichasDeDeporte(ctx).map((f, i) => poblacionDe(ctx, f, i === 0, semilla));
 
+/**
+ * Los tipos de agenda de los vecinos que dependen de la edad y de la semilla, al crear la partida y cada curso (y así también en las partidas anteriores): los niños que van a un colegio de fuera llevan `escolar` (su
+ * horario escolar, fuera del mapa; lo pierden al acabar el colegio) y una parte de los vecinos adultos (`RECOGIDA_DE_NINOS.proporcion`, sorteada por su id y la semilla, sin gastar números del azar de la partida) `recoge`.
+ * Devuelve la misma lista si no cambia nada (cambiarla invalida las cachés de presencia).
+ */
+export function ajustarVecinos(npcs: Npc[], semilla: number, dia: number): Npc[] {
+  const nuevos = new Map<string, TipoAsignado[]>();
+  for (const n of npcs) {
+    const i = n.tipos?.findIndex((t) => t.tipo === 'vecino') ?? -1;
+    if (i < 0 || n.role !== 'vecino' || n.nacimiento === undefined) continue;
+    const t = n.tipos![i];
+    const edad = edadNpc(n, dia) ?? 0;
+    const escolar = !!n.colegio && n.colegio !== 'ninguno' && edad < EDAD_FIN_COLEGIO;
+    const recoge = /^vecino_\d+$/.test(n.id) && edad >= EDAD_FIN_COLEGIO && azarDe('recoge', semilla, n.id) < RECOGIDA_DE_NINOS.proporcion;
+    if (!!t.escolar === escolar && !!t.recoge === recoge) continue;
+    const { escolar: _e, recoge: _r, ...resto } = t;
+    nuevos.set(n.id, n.tipos!.map((x, j) => (j === i ? { ...resto, ...(escolar ? { escolar: true } : {}), ...(recoge ? { recoge: true } : {}) } : x)));
+  }
+  return nuevos.size ? npcs.map((n) => (nuevos.has(n.id) ? { ...n, tipos: nuevos.get(n.id) } : n)) : npcs;
+}
+
 /** Marca a los niños con la semilla de la partida: sus sorteos estables (talento, aptitud, valor inicial, asistencia...) salen de su id y de ella, para que el mismo `nino_5` no sea igual en todas las partidas. */
 export function conSemilla(npcs: Npc[], semilla: number): Npc[] {
   if (!npcs.some((n) => n.genetica && n.genetica.semilla === undefined)) return npcs;
@@ -794,7 +815,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   const base = generarReparto(ctx, pobs[0]);
   const usados = registroDe(base);
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
-  const sin = conSemilla([...base, ...colegio, ...bibliotecarios(ctx.rng, usados)], ctx.seed);
+  const sin = ajustarVecinos(conSemilla([...base, ...colegio, ...bibliotecarios(ctx.rng, usados)], ctx.seed), ctx.seed, 0);
   avisarDelProgreso('Contratando a los entrenadores de cada club…', 0.03);
   const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng), ...entrenadoresDeEquiposExtra(lista, pob, ctx.rng)], sin);
   // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
@@ -998,6 +1019,18 @@ function sesionDeClub(clubes: ClubDirectory | undefined, deporte: string | undef
   const c = deporte ? clubes?.list(deporte).find((x) => x.id === club || x.nombre === club) : undefined;
   if (c) return { weekdays: c.sesiones.weekdays, desde: c.sesiones.desde, hasta: c.sesiones.hasta, sede: c.sede };
   return { ...PATRONES_DE_SESION[Math.floor(azarDe('sesion', club) * PATRONES_DE_SESION.length)], sede: sedeDeFuera };
+}
+
+/**
+ * El equipo del colegio de otro colegio (`Club deportivo del colegio 2`, solo para sus alumnos) entrena como el del colegio del personaje (mismos días y horas), pero en su colegio, que no está en el mapa
+ * (`sede: null`): sus jugadores van a entrenar allí y no se les ve. `undefined` si el club no es uno de esos.
+ */
+function sesionDelEquipoDeOtroColegio(clubes: ClubDirectory | undefined, poblaciones: readonly PoblacionGuardada[] | undefined, deporte: string | undefined, club: string): SesionDeClub | undefined {
+  const pob = poblaciones?.find((p) => p.deporte === deporte);
+  if (!pob || !pob.equipos.some((e) => e.colegio !== undefined && e.colegio !== 'propio' && (e.nombre === club || e.club === club))) return undefined;
+  const propio = pob.equipos.find((e) => e.colegio === 'propio');
+  const c = propio && deporte ? clubes?.list(deporte).find((x) => x.id === propio.club) : undefined;
+  return c ? { weekdays: c.sesiones.weekdays, desde: c.sesiones.desde, hasta: c.sesiones.hasta, sede: null } : undefined;
 }
 
 /** Qué tipo de persona sale antes en una lista de «Gente aquí» a igualdad de nivel. */
@@ -1305,7 +1338,7 @@ export const npcs = defineModule<NpcsState>({
       }
       const resultado = { sinPlaza: [] as string[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined, propuestas: [] as { deporte: string; puesto: string }[] };
       ctx.updateState<NpcsState>((s) => {
-        const npcs = conPais(ctx.pais, () => actualizarHermanos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), proximo.day));
+        const npcs = conPais(ctx.pais, () => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day));
         const pobsNuevas = resultado.pobs ?? pobs;
         return { ...s, poblaciones: pobsNuevas, npcs: conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
       });
@@ -1526,7 +1559,7 @@ export const npcs = defineModule<NpcsState>({
       const datos: DatosDeAgenda = {
         sesionDeClub: (club, deporte) => {
           const d = datosDe(deporte);
-          return sesionDeClub(clubes, d?.id, d?.datos.sedes.fuera ?? null, club);
+          return sesionDelEquipoDeOtroColegio(clubes, ctx.state<NpcsState>().poblaciones, d?.id, club) ?? sesionDeClub(clubes, d?.id, d?.datos.sedes.fuera ?? null, club);
         },
         jornada: (deporte) => datosDe(deporte)?.datos.competiciones.jornada,
       };

@@ -37,11 +37,11 @@ describe('niños que se conocen en el parque', () => {
     for (const n of nuevos) expect(g.preview(`relaciones.charlar.${n.id}`)?.available, `charlar con ${n.id} (${n.role})`).toBe(true);
   });
 
-  it('con un vecino adulto no hay acciones de charla todavía (decisión de diseño pendiente)', () => {
+  it('con un vecino adulto que se conoce también se puede charlar (decidido el 17/11)', () => {
     const g = nuevaPartida({ seed: 31 });
     const adulto = g.service<NpcDirectory>(SERVICES.npcs)!.list({ role: 'vecino' }).find((n) => n.age !== undefined && n.age >= 25)!;
     conocer(g, adulto.id);
-    expect(g.preview(`relaciones.charlar.${adulto.id}`)).toBeUndefined();
+    expect(g.preview(`relaciones.charlar.${adulto.id}`)).toBeDefined();
   });
 });
 

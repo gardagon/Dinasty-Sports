@@ -32,6 +32,10 @@ describe('las agendas respetan los horarios', () => {
     [{ tipo: 'hermano', escolar: true, deporte: true }],
     [{ tipo: 'progenitor' }],
     [{ tipo: 'vecino' }],
+    [{ tipo: 'vecino', escolar: true }],
+    [{ tipo: 'vecino', recoge: true }],
+    [{ tipo: 'alumno' }, { tipo: 'club', club: 'colegio' }],
+    [{ tipo: 'hermano', escolar: true }, { tipo: 'club', club: 'colegio' }],
     [{ tipo: 'bibliotecario', turno: 'manana' }],
     [{ tipo: 'bibliotecario', turno: 'tarde' }],
   ];
