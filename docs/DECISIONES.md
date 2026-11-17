@@ -5,6 +5,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — «Entrenar…» agrupado y un solo deporte de competición, hechos (rama `claude/entrenar-y-un-deporte`)
+
+Detalle: `docs/relevo/entrenar-y-un-deporte.md`.
+- **Acciones agrupadas:** campo de datos `ActionDef.desplegable` (contracts → `ActionOption` en core), que la web dibuja como un botón con desplegable (`apps/web/src/desplegables.ts`). Los entrenamientos libres de cada deporte salen como una sola «Entrenar…»; cada opción lleva su duración y su motivo. Los ids no cambian.
+- **Un solo deporte de competición:** `motivoDeCompetirEnOtroDeporte` en el kit. Apuntarse, pedir prueba, unirse, hacer la prueba y aceptar plaza en otro deporte salen no disponibles con «Ya compites en <deporte>: déjalo antes». Entrenar por libre sigue permitido. Los PNJ ya tenían uno solo. Las partidas ya empezadas con dos clubes los conservan (sin migración). `sim:rapida`, igual.
+
 ## 17/11/2026 — PNJ 2 unido (rama `claude/pnj-2`)
 
 Detalle: `docs/relevo/pnj-2.md`.

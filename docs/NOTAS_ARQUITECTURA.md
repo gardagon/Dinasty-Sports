@@ -39,12 +39,12 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
    - b) ¿**Recogen todos los días** de clase? **Recomendación:** el 80 % de los días.
    - c) **Edad mínima** de los padres que recogen (hoy, 18). **Recomendación:** 25.
    - d) La **ficha de un rival o vecino que no tienes cerca** ya no enseña sus acciones en gris con el motivo (efecto del arreglo de rendimiento). Volver a enseñarlas exige que la ficha le diga al motor a quién mira. **Recomendación:** sí, por coherencia con el resto de fichas; es barato.
+4. **¿Agrupar también «Estudiar…» y las tutorías?** En «Casa» hay unos 30 botones. Basta con poner el desplegable a esas acciones. También se podría hacer con las acciones del club, que salen casi todas en gris (prueba y plaza en cada club). **Recomendación:** sí, a las dos, con el mismo mecanismo; es una tarea corta.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXNy9srpg9oYKpsTsi8` | `claude/entrenar-y-un-deporte` | «Entrenar…» con desplegable por deporte; un solo deporte de competición (personaje y PNJ) |
 | `session_01M4vXXRd8gevhzsj2di6xSy` | `claude/demografia-origenes` | **Aplicando la propuesta aprobada (A, B y C; ver DECISIONES).** Antes: % de PNJ de origen extranjero frente a los datos oficiales (INE, Educación): análisis y propuesta, sin cambiar cifras sin el usuario. Sospecha: un 25 % por adulto, con los padres sorteados por separado, da ~44 % de niños con un padre extranjero |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
@@ -55,7 +55,6 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 0 ter. **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
 
-0 bis. **Encargado el 17/11 a `claude/entrenar-y-un-deporte`** (con «Entrenar…» agrupado): **un solo deporte de competición** para el personaje (DECISIONES, 17/11). No poder entrar en el club ni en el equipo de otro deporte mientras se está en uno, con el motivo («Ya compites en <deporte>: déjalo antes»), y revisar que los PNJ siguen con uno. Comprobar sim, bots y `benjamin`, por si algún bot se apunta a dos.
 
 
 1. ~~**Comprobación final de los eventos**~~ **Hecha el 17/11** (también los fallos de `benjamin` y `probar-web`). (`docs/PLAN_EVENTOS.md` §7 ter, punto 4): `npm run sim` completa antes y después (explicar cualquier chequeo que cambie) y añadir los eventos a `npm run probar-web`. Sesión corta de Sonnet.
@@ -84,3 +83,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXNJQUReSzr3J1beLT5` | Sonnet | Comprobación final de los eventos y fallos de benjamin y probar-web (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXMfsH6XTt1U1mmKQ1m` | Sonnet | Fútbol 2: prueba con los puestos que más necesita, calendario de la liga, modo números (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXR2tusR8NPz4qqh5Rw` | Sonnet | PNJ 2: horarios, recogida, amistad, charlar y rendimiento de los rivales (17/11, esta sesión de arquitectura) |
+| `session_01M4vXXNy9srpg9oYKpsTsi8` | Sonnet | «Entrenar…» agrupado y un solo deporte de competición (17/11, esta sesión de arquitectura) |
