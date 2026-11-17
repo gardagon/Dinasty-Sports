@@ -57,6 +57,7 @@ import {
   recorte,
   sedeDelClub as sedeDelClubEn,
   sesionDeClub,
+  entrenosAgrupados,
   sinEntrenarPorLibreEnSesion,
   textoDeSesiones,
   tramitesDe,
@@ -712,7 +713,7 @@ export const atletismo = defineModule<AtletismoState>({
   // Apuntarse al club del colegio, pruebas de acceso a los de fuera y aceptar la plaza ganada (kit).
   dynamicActions: accionesDeClubes(CONFIG),
 
-  actions: ligarALugares(sinEntrenarPorLibreEnSesion(CONFIG, [
+  actions: ligarALugares(entrenosAgrupados(CONFIG, sinEntrenarPorLibreEnSesion(CONFIG, [
     sesionDeClub(CONFIG, {
       description: 'Sesión completa con el entrenador y el grupo del club: técnica, ritmo, salida y táctica. Rinde más que entrenar por tu cuenta, y más aún en los clubes de fuera del colegio.',
       tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, TAGS.club, 'atletismo'],
@@ -845,7 +846,7 @@ export const atletismo = defineModule<AtletismoState>({
       ],
       run: (ctx) => disputar(ctx, 'regular'),
     },
-  ]), {
+  ])), {
     // El club del colegio entrena en la pista del colegio; los de fuera, en el estadio. La pista del colegio, el parque y el estadio valen para entrenar solo.
     'atletismo.club_sesion': sedeDelClub,
     'atletismo.dejar_club': (ctx) => tramitesDe(clubDelJugador(ctx)),

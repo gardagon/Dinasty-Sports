@@ -5,6 +5,7 @@ import {
   SHARED_EVENTS,
   TAGS,
   conLugar,
+  fichasDeDeporte,
   datosDeDeporte,
   inHours,
   plazoDeFichajesAbierto,
@@ -87,6 +88,32 @@ export const sinEntrenarPorLibreEnSesion = (cfg: ConfigDeporte, acciones: readon
           },
         }
       : a,
+  );
+
+/**
+ * **Se compite en un solo deporte** (y en un solo club o equipo): quien está en el club o el equipo de otro deporte no puede apuntarse, pedir prueba, unirse a la prueba ni aceptar plaza
+ * en este (antes tiene que dejar el otro). Entrenar por su cuenta otros deportes sigue valiendo. Se mira con la pertenencia a clubes (`ClubDirectory`) y las fichas de los deportes de
+ * la partida: ningún deporte conoce a otro. Devuelve el motivo o `undefined`.
+ */
+export function motivoDeCompetirEnOtroDeporte(ctx: ReadContext, deporte: string): string | undefined {
+  const otro = fichasDeDeporte(ctx).find((f) => f.id !== deporte && !!clubDelJugador(ctx, f.id));
+  return otro ? `Ya compites en ${otro.nombre.toLowerCase()}: déjalo antes` : undefined;
+}
+
+/** Las acciones para entrar a competir en este deporte (apuntarse, pedir o hacer la prueba, aceptar plaza) salen no disponibles si ya compite en otro. */
+const soloSiNoCompiteEnOtro = (deporte: string, acciones: readonly ActionDef[]): ActionDef[] =>
+  acciones.map((a) => ({
+    ...a,
+    available: (ctx: ReadContext) => motivoDeCompetirEnOtroDeporte(ctx, deporte) ?? a.available?.(ctx) ?? true,
+  }));
+
+/**
+ * Los entrenamientos por libre del deporte (`cfg.entrenosLibres`) salen en la lista como una sola acción «Entrenar…» con un desplegable (ver `ActionDef.desplegable`). Las acciones
+ * conservan sus ids. Cualquier otra lista larga puede agruparse igual poniendo `desplegable` a sus acciones.
+ */
+export const entrenosAgrupados = (cfg: ConfigDeporte, acciones: readonly ActionDef[]): ActionDef[] =>
+  acciones.map((a) =>
+    cfg.entrenosLibres.includes(a.id) ? { ...a, desplegable: { id: `${cfg.id}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}' } } : a,
   );
 
 /**
@@ -175,7 +202,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
             }),
           )
       : [];
-    return [...apuntarse, ...deLaZona, ...cambioDePuesto, ...clubes
+    const entrar = [...apuntarse, ...deLaZona, ...clubes
       .list(deporte)
       .filter((c) => !c.esColegio && c.id !== actual?.id && (c.acceso?.[deporte] || conPuestos))
       .flatMap((c): ActionDef[] => {
@@ -253,6 +280,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
         });
         return [prueba, aceptar];
       })];
+    return [...soloSiNoCompiteEnOtro(deporte, entrar), ...cambioDePuesto];
   };
 }
 

@@ -69,6 +69,7 @@ import {
   sedeDelClub as sedeDelClubEn,
   semillaDeSesionDeEquipo,
   sesionDeClubConEjercicios,
+  entrenosAgrupados,
   sinEntrenarPorLibreEnSesion,
   textoDeSesiones,
   tramitesDe,
@@ -1272,7 +1273,7 @@ export const futbol = defineModule<FutbolState>({
   })(),
 
   actions: ligarALugares(
-    [...sinEntrenarPorLibreEnSesion(CONFIG, [
+    [...entrenosAgrupados(CONFIG, sinEntrenarPorLibreEnSesion(CONFIG, [
       // El entrenador elige dos ejercicios de tipos distintos; la sesión sube solo lo que entrenan (más lo de `SIEMPRE`).
       sesionDeClubConEjercicios(CONFIG, {
         description: 'Entrenamiento con el entrenador y el equipo: él elige dos ejercicios (lo que más te falta, según su criterio) y trabajáis solo eso. Rinde más que entrenar por tu cuenta.',
@@ -1354,7 +1355,7 @@ export const futbol = defineModule<FutbolState>({
       },
       verEnLaTele(CONFIG, 'Partidos y resúmenes de otros: aprendes cómo se mueve un equipo y por qué un pase abre la defensa.'),
       pedirConsejo(CONFIG, HABILIDADES_DE_CONSEJO),
-    ]), ...ACCIONES_DE_INTENSIDAD, ACCION_DE_UNIRSE_A_LOS_COMPANEROS, ACCION_DE_IR_AL_VESTUARIO, ACCION_DE_JUGAR_EL_PARTIDO],
+    ])), ...ACCIONES_DE_INTENSIDAD, ACCION_DE_UNIRSE_A_LOS_COMPANEROS, ACCION_DE_IR_AL_VESTUARIO, ACCION_DE_JUGAR_EL_PARTIDO],
     {
       // El club del colegio entrena en el campo del colegio. Se puede entrenar por libre en el campo del colegio, el municipal y el parque.
       'futbol.club_sesion': sedeDelClub,

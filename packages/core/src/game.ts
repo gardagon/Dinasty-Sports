@@ -41,6 +41,7 @@ import {
   evolucionDiaria,
   potentialSpeed,
   plasticidadPorEdad,
+  type DesplegableDeAcciones,
   type IdentityService,
   type StatId,
   type TimeView,
@@ -72,6 +73,8 @@ export interface ActionOption {
   train: readonly { stat: StatId; amount: number }[];
   /** Lugares donde se puede hacer (el primero es el destino por defecto), si la acción está ligada a un sitio. */
   lugar?: readonly string[];
+  /** Si la acción se dibuja agrupada con otras en un botón con desplegable (ver `ActionDef.desplegable`). */
+  desplegable?: DesplegableDeAcciones;
 }
 
 export interface ActionResult {
@@ -623,6 +626,7 @@ export class Game {
       delta,
       train: def.train ?? [],
       lugar: typeof def.lugar === 'function' ? def.lugar(ctx) : def.lugar,
+      desplegable: def.desplegable,
     };
   }
 
