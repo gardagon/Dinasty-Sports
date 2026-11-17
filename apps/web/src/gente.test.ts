@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ordenarAcciones, ordenarPorRelacion } from './gente';
+import type { Game } from '@ds/core';
+import { ordenarAcciones, ordenarPorRelacion, textoDeNiveles } from './gente';
 
 type V = { nivel: number; afinidad: number; confianza: number };
 const gente = (...xs: [string, V | undefined][]) => ({
@@ -42,5 +43,15 @@ describe('orden de las acciones con una persona', () => {
     const xs = [a('quedar', 120), a('charlar', 5)];
     ordenarAcciones(xs);
     expect(xs.map((x) => x.duration)).toEqual([120, 5]);
+  });
+});
+
+describe('niveles de una persona en su ficha', () => {
+  const juego = { registry: { moduleNames: new Map([['futbol', 'Fútbol'], ['atletismo', 'Atletismo']]) } } as unknown as Game;
+  it('enseñan el nombre del deporte, no su identificador', () => {
+    expect(textoDeNiveles(juego, { futbol: 15.4, atletismo: 30 })).toBe('Fútbol 15, Atletismo 30');
+  });
+  it('un deporte que no se conoce sale con su identificador en vez de romper', () => {
+    expect(textoDeNiveles(juego, { padel: 7 })).toBe('padel 7');
   });
 });

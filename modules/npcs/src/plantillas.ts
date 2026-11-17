@@ -442,6 +442,8 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
     deporte: undefined,
     equipo: undefined,
     club: undefined,
+    // Ya no es «del equipo del colegio»: sin esto, la ficha seguía diciéndolo aunque hubiera fichado por un club de otro deporte.
+    ...(n.description?.endsWith(pob.descripcionDelEquipo) ? { description: n.description.slice(0, -pob.descripcionDelEquipo.length).replace(/\s+$/, '') } : {}),
     tags: n.tags.filter((t) => t !== pob.etiqueta && t !== 'equipo'),
     levels,
     potential,

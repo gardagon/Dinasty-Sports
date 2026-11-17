@@ -105,6 +105,11 @@ export function ordenarAcciones<T extends { id: string; name: string; duration: 
 }
 
 /** Cuánta gente tienes cerca ahora (la de «Aquí»): es el número que lleva la pestaña. */
+/** Los niveles de una persona con el nombre del juego de cada deporte («Fútbol 15»), no su identificador interno. */
+export function textoDeNiveles(g: Game, levels: Readonly<Record<string, number>>): string {
+  return Object.entries(levels).map(([k, v]) => `${g.registry.moduleNames.get(k) ?? k} ${Math.round(v)}`).join(', ');
+}
+
 export function genteAqui(g: Game): number {
   return personasDe(g, 'aqui').length;
 }
@@ -245,7 +250,7 @@ function ficha(g: Game, n: NpcView): string {
       : `<p class="note">${pregunta ? esc(pregunta.reason ?? '') : 'No la tienes cerca: para preguntarle el nombre tienes que coincidir con ella.'}</p>`;
     cuerpo = `<p>${esc(aspecto(n))}.</p><p class="note">Todavía no sabes cómo se llama. ${n.description ? esc(n.description) : ''}</p>${barra('Amistad', 0, 'amistad')}${barra('Confianza', 0, 'confianza')}${boton}`;
   } else {
-    const nivel = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
+    const nivel = textoDeNiveles(g, n.levels);
     cuerpo = `<p>${esc(n.description ?? '')}</p>${rel ? `<p class="note"><b>${esc(nombreEstado(rel.estado, n.gender))}</b></p>` : ''}${barra('Amistad', rel ? Math.max(0, rel.afinidad) : 0, 'amistad')}${barra('Confianza', rel ? rel.confianza : 0, 'confianza')}${nivel ? `<p class="note">Nivel: ${esc(nivel)}</p>` : ''}${n.club ? `<p class="note">Club: ${esc(n.club)}</p>` : ''}${datosDeEstudios(n)}`;
   }
   const motivo = ocupadosAqui(g).get(n.id);
