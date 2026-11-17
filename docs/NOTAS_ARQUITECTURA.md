@@ -35,17 +35,23 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 1. **Cifras provisionales del cambio de puesto:** las propondrá la sesión `claude/futbol-pedir-puesto`. Llevárselas al usuario al unir.
 2. **Unir a la principal:** decidido esperar a cerrarlo todo (ver DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
 3. **Modo «números», lo que aún no se muestra:** hoy solo se ven con números el estado, la relación, lo que se entrena y los castigos. ¿Se muestran también las consecuencias para la forma y la moral (`estadoDeJugador`), la familia y el carácter? ¿Y el dinero con «€»? (17/11: al usuario no le quedó claro a qué números se refería; se le explicó con la captura `docs/relevo/suceso-presentacion2-numeros-normales-aviso.png`.) **Recomendación:** sí a todo. El modo números es para quien quiere verlo todo. Sería una tarea corta para Sonnet (`docs/relevo/sucesos-presentacion-2.md`).
+4. **PNJ, lo que dejó abierto `claude/pnj-fallos-1`** (`docs/relevo/pnj-fallos-1.md`):
+   - a) **Padres que recogen a sus hijos:** hoy solo existen los padres del personaje. Propuesta: un ~15 % de los vecinos adultos «recogen» (llegan entre 13:45 y 14:00 y se van entre 14:05 y 14:30). Cambia la generación y la huella.
+   - b) **Niños del barrio:** ¿qué más se hace con ellos, además de charlar? Propuesta: que pasen a amigos al llegar a cierto trato y entonces tengan todo el catálogo.
+   - c) ¿Charlar con los **vecinos adultos** conocidos? Hoy no tienen acciones.
+   - d) **Rivales:** solo los 5 con la relación más marcada tienen acciones; un rival conocido con poco trato se queda sin «charlar».
+   - e) **Dos deportes:** el personaje puede hacer dos a la vez y los PNJ no. ¿Se iguala?
+   - f) **Fallo:** los niños de otros colegios usan la agenda de un vecino adulto, así que en día lectivo pueden estar en el parque a las 11:00. Propuesta: darles un tramo escolar propio, fuera del mapa.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
 | `session_01M4vXXRXvf6BQ1H7kanWL2W` | `claude/futbol-pedir-puesto` | «Pedir jugar…» pasa a la conversación, como una acción con desplegable (kit de deporte y web); **rediseñado el 17/11**: prueba como acción y evento, y pregunta al entrenador en la conversación (ver DECISIONES) |
-| `session_01M4vXXNN21uMbP1HxxowM28` | `claude/pnj-fallos-1` | PNJ en atletismo del colegio y club de fútbol a la vez (¿fallo o permitido?); «Nivel: futbol 15» con el nombre del deporte; charlar con los niños que se conocen en el parque; salida del colegio a las 14:00 instantánea |
 
-**Unida el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»). Sus dudas, en §3.4.
+**Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio; sus dudas, en §3.4).
 
-Las dos que quedan tocan `apps/web` (poco cada una): al unir, revisar los conflictos en `main.ts`.
+
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
@@ -69,3 +75,5 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXRVbGM9S6V9ZhjdaRk` | Sonnet | Rendimiento de los sucesos |
 | `session_01M4vXXPgRajgq1mHN3r1gSz` | Sonnet | Presentación de los sucesos desde Opciones |
 | `session_01M4vXXQBUogyjnaCrXngzHj` | Sonnet | Contenido de sucesos, lote 1 |
+| `session_01M4vXXMyMkGiof9ZYc5bGtg` | Sonnet | Presentación de los sucesos, 2.ª parte (17/11, esta sesión de arquitectura) |
+| `session_01M4vXXNN21uMbP1HxxowM28` | Sonnet | Fallos de PNJ, 1 (17/11, esta sesión de arquitectura) |

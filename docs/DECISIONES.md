@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Fallos de PNJ arreglados (rama `claude/pnj-fallos-1`)
+
+- **Un PNJ no puede estar en dos deportes** (`Npc.deporte` es único; nadie decidió lo contrario). Lo que se veía era un fallo de texto: al dejar un deporte se quitaba el club, pero no la frase «Del equipo de X del colegio.» de la descripción. Arreglado. Las partidas ya empezadas conservan la frase vieja hasta que esa persona cambie de equipo. El personaje sí puede hacer dos deportes; si se iguala, queda pendiente del usuario.
+- **Los niveles de la ficha y de Relaciones** salen con el nombre del deporte («Fútbol 15»).
+- **Los niños del barrio que se conocen** (papel `vecino`, menores de 18) tienen «Charlar un rato», con las cifras de un compañero (ANEXO_RELACIONES). Lo demás, pendiente del usuario.
+- **Salida del colegio** (cifras provisionales, `SALIDA_DEL_COLEGIO` en `agendas.ts`): de 14:00 a 14:30, en pasos de 5 minutos. Mientras no se va, cada alumno está en la entrada (70 %) o en el patio (30 %). El motor de agendas gana `grupoDeAzar`, para que quien se va no vuelva. Rendimiento igual (1,75 → 1,76 ms por acción).
+
 ## 17/11/2026 — Pedir puesto: prueba como evento y pregunta al entrenador; no unir a la principal hasta cerrar
 
 - **La prueba de acceso a un club deja de tener «pedir puesto» como acciones sueltas.** Pasa a ser una acción y un evento:
