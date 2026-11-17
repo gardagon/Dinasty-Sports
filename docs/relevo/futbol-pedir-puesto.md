@@ -38,8 +38,8 @@ Probabilidad de éxito con una comunicación «para su edad» típica (40) y con
 
 | Dificultad | 35 | 40 | 45 | 50 | 53 | 55 | 58 | 65 | 73 |
 |---|---|---|---|---|---|---|---|---|---|
-| comunicación 40 | 57 % | 50 % | 43 % | 35 % | 31 % | 27 % | 23 % | 12 % | 5 % |
-| comunicación 60 | 87 % | 80 % | 73 % | 65 % | 60 % | 57 % | 53 % | 40 % | 31 % |
+| comunicación 40 | 58 % | 50 % | 43 % | 35 % | 31 % | 28 % | 23 % | 13 % | 5 % |
+| comunicación 60 | 88 % | 80 % | 73 % | 65 % | 60 % | 58 % | 53 % | 43 % | 31 % |
 
 Nota de diseño a revisar: el evento solo ofrece pedir el MEJOR puesto, así que `ventaja_del_mejor_puesto` es siempre ≥ 0 hoy y la columna «vale menos» no se alcanza (solo
 saldría si un evento futuro pide un puesto concreto que no es el mejor). Las filas negativas ya funcionan (están probadas) para cuando haya un evento así.
