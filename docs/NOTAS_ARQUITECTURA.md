@@ -32,10 +32,9 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **Preguntar al entrenador por otro puesto, ¿con tiempo de espera o sin él?** Sin tiempo de espera, si se le pregunta otra vez muy pronto se lo toma mal y baja la relación. **Recomendación:** sin tiempo de espera, con la bajada de relación. Es más natural, vale igual para el personaje y los PNJ y no pone un muro artificial. Faltaría decidir cuánto es «muy pronto» (propuesta: menos de 3 semanas) y cuánto baja.
-2. **Cifras provisionales del cambio de puesto:** las propondrá la sesión `claude/futbol-pedir-puesto`. Llevárselas al usuario al unir.
-3. **Unir a la principal:** decidido esperar a cerrarlo todo (ver DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
-4. **Modo «números», lo que aún no se muestra:** hoy solo se ven con números el estado, la relación, lo que se entrena y los castigos. ¿Se muestran también las consecuencias para la forma y la moral (`estadoDeJugador`), la familia y el carácter? ¿Y el dinero con «€»? **Recomendación:** sí a todo. El modo números es para quien quiere verlo todo. Sería una tarea corta para Sonnet (`docs/relevo/sucesos-presentacion-2.md`).
+1. **Cifras provisionales del cambio de puesto:** las propondrá la sesión `claude/futbol-pedir-puesto`. Llevárselas al usuario al unir.
+2. **Unir a la principal:** decidido esperar a cerrarlo todo (ver DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
+3. **Modo «números», lo que aún no se muestra:** hoy solo se ven con números el estado, la relación, lo que se entrena y los castigos. ¿Se muestran también las consecuencias para la forma y la moral (`estadoDeJugador`), la familia y el carácter? ¿Y el dinero con «€»? (17/11: al usuario no le quedó claro a qué números se refería; se le explicó con la captura `docs/relevo/suceso-presentacion2-numeros-normales-aviso.png`.) **Recomendación:** sí a todo. El modo números es para quien quiere verlo todo. Sería una tarea corta para Sonnet (`docs/relevo/sucesos-presentacion-2.md`).
 
 ## 3 bis. Sesiones en curso
 
