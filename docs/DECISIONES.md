@@ -5,6 +5,16 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — PNJ 2 unido (rama `claude/pnj-2`)
+
+Detalle: `docs/relevo/pnj-2.md`.
+- **Niños de otros colegios:** los días lectivos, de 7:30 a 14:30 en su colegio (fuera del mapa). Los del equipo de su colegio entrenan con el horario del equipo, en su colegio.
+- **Espera tras las clases** (general): quien tiene un tramo ocupado que empieza 60 minutos o menos después de las clases (`SALIDA_DEL_COLEGIO.espera`) se queda en el colegio y está en su sitio 10 minutos antes (fútbol: a las 14:50 en el campo). El motor de agendas gana `soloLectivo`.
+- **Padres que recogen:** el 15 % de los vecinos adultos (sorteo propio, sin gastar el azar de la partida): llegan entre las 13:45 y las 14:00 y se van entre las 14:05 y las 14:30 (`RECOGIDA_DE_NINOS`).
+- **Niños del barrio amigos** (mismo umbral que un compañero: afinidad 40, confianza 30 y 3 contactos en 14 días): todo el catálogo de amistad y planes. **Vecinos adultos:** charlar. **Rivales:** todos los conocidos, sin tope.
+- **Rendimiento:** las acciones de rivales y vecinos conocidos solo se calculan para los que están cerca; los demás se resuelven por id. Con 413 rivales conocidos, 16,3 → 2,7 ms; `rendimiento -- 60`, 1,80 → 1,86 ms por acción.
+- **Ficha:** el club sale con su nombre.
+
 ## 17/11/2026 — Demografía de orígenes más cerca de la realidad
 
 Informe: `docs/relevo/demografia-origenes.md`. Había un 25 % de adultos de origen extranjero y, al sortearse los dos padres por separado, el 46 % de los personajes tenía un padre extranjero (y casi todos salían mestizos). Datos oficiales de referencia: nacidos fuera, 20,2 %; nacionalidad extranjera, 14,6 % (INE, 2026); alumnado extranjero, 13,5 %; nacimientos con algún progenitor extranjero, ~25–32 %. El usuario aprueba (se busca acercarse a la realidad sin copiarla, así que no hace falta afinar con las tablas del INE):

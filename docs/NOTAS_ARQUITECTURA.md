@@ -34,13 +34,17 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
 2. **Un niño sin equipo en toda la temporada** (17/11: el usuario no quiere sobrecargar el equipo del colegio, porque habría más rotación y desencanto en las convocatorias; pregunta cuántos niños se quedan fuera, si darían para otro equipo y qué significa «no llega». Encargado medirlo a `session_01M4vXXNJQUReSzr3J1beLT5`; recomendación antigua, descartada:) Con la semilla 33, un personaje de nivel 9 no entra en ningún equipo de fútbol: el del colegio está completo y todos valen más, y en los 9 clubes de fuera no llega o no hay hueco. Solo le queda entrenar por su cuenta y esperar al verano. ¿Se quiere otra puerta? Por ejemplo, un equipo B o un equipo sin nivel mínimo en algún club, o que el colegio amplíe la plantilla. **Recomendación:** que el equipo del colegio admita a cualquier alumno hasta un tope más alto (en el fútbol base escolar se juega por participar), y que la regla de plaza quede para los clubes. Es decisión de diseño de calado: mejor verlo con `CIUDAD_Y_LIGAS.md`.
+3. **Dudas de PNJ 2** (`docs/relevo/pnj-2.md`):
+   - a) **Un padre que se va con su hijo:** no existe esa relación entre PNJ. **Recomendación:** dejarlo para cuando haya familias de PNJ (encaja con el ciclo de generaciones).
+   - b) ¿**Recogen todos los días** de clase? **Recomendación:** el 80 % de los días.
+   - c) **Edad mínima** de los padres que recogen (hoy, 18). **Recomendación:** 25.
+   - d) La **ficha de un rival o vecino que no tienes cerca** ya no enseña sus acciones en gris con el motivo (efecto del arreglo de rendimiento). Volver a enseñarlas exige que la ficha le diga al motor a quién mira. **Recomendación:** sí, por coherencia con el resto de fichas; es barato.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
 | `session_01M4vXXNy9srpg9oYKpsTsi8` | `claude/entrenar-y-un-deporte` | «Entrenar…» con desplegable por deporte; un solo deporte de competición (personaje y PNJ) |
-| `session_01M4vXXR2tusR8NPz4qqh5Rw` | `claude/pnj-2` | Horarios de los niños de otros colegios (colegio y clubes); salida que enlaza con los entrenamientos de la tarde; padres que recogen; niños del barrio que pasan a amigos; charlar con vecinos adultos y con todos los rivales; «Club: colegio» con el nombre. **Hecho; antes de unir, arreglando el coste de los rivales sin tope** (de ~3 a ~16 ms por acción con 413 rivales conocidos) |
 | `session_01M4vXXRd8gevhzsj2di6xSy` | `claude/demografia-origenes` | **Aplicando la propuesta aprobada (A, B y C; ver DECISIONES).** Antes: % de PNJ de origen extranjero frente a los datos oficiales (INE, Educación): análisis y propuesta, sin cambiar cifras sin el usuario. Sospecha: un 25 % por adulto, con los padres sorteados por separado, da ~44 % de niños con un padre extranjero |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
@@ -79,3 +83,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXRXvf6BQ1H7kanWL2W` | Sonnet | Pedir puesto y prueba de acceso (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXNJQUReSzr3J1beLT5` | Sonnet | Comprobación final de los eventos y fallos de benjamin y probar-web (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXMfsH6XTt1U1mmKQ1m` | Sonnet | Fútbol 2: prueba con los puestos que más necesita, calendario de la liga, modo números (17/11, esta sesión de arquitectura) |
+| `session_01M4vXXR2tusR8NPz4qqh5Rw` | Sonnet | PNJ 2: horarios, recogida, amistad, charlar y rendimiento de los rivales (17/11, esta sesión de arquitectura) |
