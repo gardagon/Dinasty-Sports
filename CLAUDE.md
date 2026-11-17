@@ -1,6 +1,7 @@
 # Dinasty Sports — guía para trabajar en este repositorio
 
 RPG de decisiones (deporte + vida escolar) en TypeScript, monorepo con npm workspaces.
+Si coordinas el proyecto (sesión de arquitectura), lee antes `docs/NOTAS_ARQUITECTURA.md`: cómo se trabaja, el estado y los recordatorios pendientes.
 Lee `docs/VISION.md` (qué juego es y sus principios: datos de verdad para todos, las mismas reglas para el personaje y los PNJ, el mundo avanza solo), `docs/ARQUITECTURA.md` antes de cambios grandes y `docs/DECISIONES.md` para el contexto y lo pendiente.
 Los horarios de las personas (dónde está cada una a cada hora) y la población prevista de PNJs están en `docs/ANEXO_HORARIOS_PNJ.md`: si cambias un horario, cambia el anexo y `packages/contracts/src/agendas.ts`.
 Las cifras de las relaciones (cuánto sube cada acción, habilidades y gustos que influyen, estados) están en `docs/ANEXO_RELACIONES.md`: si cambias una, actualiza el anexo.
