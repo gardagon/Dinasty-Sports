@@ -63,8 +63,9 @@ describe('la gente del colegio y del barrio', () => {
     const adultos = npcs().filter((n) => n.role === 'vecino' && /^vecino_\d+$/.test(n.id) && !n.colegio?.startsWith('colegio') && n.tipos?.some((t) => t.tipo === 'vecino') && !n.tags.includes('bibliotecario'));
     const quienes = adultos.filter((n) => n.tipos!.some((t) => t.recoge));
     const mayores = adultos.filter((n) => !n.tipos!.some((t) => t.escolar));
-    expect(quienes.length / mayores.length).toBeGreaterThan(0.1);
-    expect(quienes.length / mayores.length).toBeLessThan(0.2);
+    // Con ~60 adultos, el 15 % sorteado tiene una desviación de ±4,6 puntos: se admite ±3 desviaciones (cambia con la semilla y la demografía).
+    expect(quienes.length / mayores.length).toBeGreaterThan(0.05);
+    expect(quienes.length / mayores.length).toBeLessThan(0.29);
     // Ningún niño ni nadie más lo lleva.
     expect(npcs().filter((n) => n.tipos?.some((t) => t.recoge) && (n.colegio !== undefined && n.colegio !== 'ninguno' && !n.id.startsWith('vecino_'))).length).toBe(0);
     hasta(13, 40);
