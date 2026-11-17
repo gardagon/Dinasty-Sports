@@ -85,11 +85,23 @@ export interface RamaDef {
   resultado?: string;
 }
 
+/**
+ * Un ajuste de la dificultad de una tirada: si se cumplen TODAS las condiciones, la dificultad sube (`mas` > 0) o baja (`mas` < 0) esos puntos.
+ * Valen las mismas condiciones de siempre (`relacion`, `hecho`, `stat`, `caracter`...). Los ajustes que se cumplen se suman, así que lo normal es
+ * escribirlos como escalones acumulados («afinidad ≥ 20: −5», «afinidad ≥ 40: −5 más»).
+ */
+export interface AjusteDeTirada {
+  si: readonly Condicion[];
+  mas: number;
+}
+
 export interface TiradaDef {
   /** Stat con la que se tira (se mide «para su edad», como `norm`). */
   con: string;
   /** 0 a 100: con la stat a ese nivel hay un 50 % de éxito (`probabilidadDeExito`). */
   dificultad: number;
+  /** Lo que sube o baja la dificultad según la situación (`dificultadDeTirada`): la relación con alguien, un hecho de un módulo... */
+  ajustes?: readonly AjusteDeTirada[];
 }
 
 export interface OpcionDef extends RamaDef {

@@ -1,5 +1,5 @@
 import type { EstadoVinculo } from '../relaciones';
-import type { Comparacion, Condicion, ConfigDeSucesos, OpcionDef, PeriodoDelCurso, Rango } from './tipos';
+import type { Comparacion, Condicion, ConfigDeSucesos, OpcionDef, PeriodoDelCurso, Rango, TiradaDef } from './tipos';
 
 /**
  * De dónde salen los hechos que miran las condiciones. El director lo monta sobre los servicios de la partida; las pruebas, sobre lo que
@@ -110,6 +110,10 @@ export const ordenarCondiciones = (cs: readonly Condicion[]): Condicion[] => [..
 export const TIRADA = { porCada10: 0.15, min: 0.05, max: 0.95, suertudo: 0.25, gafe: 0.15 } as const;
 export const probabilidadDeExito = (nivel: number, dificultad: number): number =>
   Math.min(TIRADA.max, Math.max(TIRADA.min, 0.5 + ((nivel - dificultad) / 10) * TIRADA.porCada10));
+
+/** La dificultad de una tirada en esta situación: la base más los ajustes que se cumplen, siempre entre 0 y 100. */
+export const dificultadDeTirada = (t: TiradaDef, ctx: ContextoDeCondicion): number =>
+  Math.min(100, Math.max(0, t.dificultad + (t.ajustes ?? []).reduce((suma, a) => (cumplenTodas(a.si, ctx) ? suma + a.mas : suma), 0)));
 
 /** ¿Encaja esta opción con el carácter de quien decide? No encaja si tira con fuerza en contra de un eje que tiene muy marcado. */
 export function encajaConCaracter(

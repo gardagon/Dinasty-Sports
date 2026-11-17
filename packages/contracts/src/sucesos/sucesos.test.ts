@@ -6,6 +6,7 @@ import {
   componerTexto,
   configDeSucesos,
   cumple,
+  dificultadDeTirada,
   elegirPorCaracter,
   encajaConCaracter,
   evaluarOpcion,
@@ -94,6 +95,17 @@ describe('opciones, tiradas y carácter', () => {
     expect(probabilidadDeExito(55, 45)).toBeCloseTo(0.65);
     expect(probabilidadDeExito(0, 100)).toBe(0.05);
     expect(probabilidadDeExito(100, 0)).toBe(0.95);
+  });
+
+  it('los ajustes suben o bajan la dificultad si se cumplen sus condiciones, se suman y no se salen de 0 a 100', () => {
+    const c = (afinidad: number, valor: number): ContextoDeCondicion => ctx({ reparto: { jefe: 'x' }, hechos: lector({ relacion: () => ({ afinidad, confianza: 0, estado: 'conocido' }), hecho: () => valor }) });
+    const t = { con: 'gen.comunicacion', dificultad: 50, ajustes: [{ si: [{ relacion: 'jefe', afinidad: { min: 20 } }], mas: -5 }, { si: [{ hecho: 'h', max: -3 }], mas: 8 }] };
+    expect(dificultadDeTirada(t, c(0, 0))).toBe(50);
+    expect(dificultadDeTirada(t, c(25, 0))).toBe(45);
+    expect(dificultadDeTirada(t, c(25, -5))).toBe(53);
+    expect(dificultadDeTirada({ ...t, dificultad: 98 }, c(0, -5))).toBe(100);
+    expect(dificultadDeTirada({ con: 'x', dificultad: 3, ajustes: [{ si: [{ marca: 'm' }], mas: -9 }] }, ctx({ marca: () => true }))).toBe(0);
+    expect(dificultadDeTirada({ con: 'x', dificultad: 40 }, c(0, 0))).toBe(40);
   });
 
   const mentir = { id: 'mentir', texto: 'Mentir', caracter: { honestidad: -3 }, requiere: [{ stat: 'gen.picardia', min: 12 }] };

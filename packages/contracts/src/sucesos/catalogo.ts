@@ -86,7 +86,10 @@ export function* condicionesDeSuceso(s: SucesoDef): Generator<Condicion> {
   yield* condicionesEn(s.cuando);
   if ('umbral' in s.disparo) yield* condicionesEn(s.disparo.umbral);
   for (const v of s.variantes ?? []) yield* condicionesEn(v.si);
-  for (const d of [s, ...(s.variantes ?? [])]) for (const o of d.opciones ?? []) yield* condicionesEn(o.requiere);
+  for (const d of [s, ...(s.variantes ?? [])]) for (const o of d.opciones ?? []) {
+    yield* condicionesEn(o.requiere);
+    for (const a of o.tirada?.ajustes ?? []) yield* condicionesEn(a.si);
+  }
   for (const e of efectosDeSuceso(s)) if ('si' in e) yield* condicionesEn(e.si);
 }
 
@@ -243,6 +246,10 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
         if (o.tirada && (!o.exito || !o.fallo)) err(`la opción «${o.id}» tiene tirada: necesita «exito» y «fallo»`);
         if (!o.tirada && (o.exito || o.fallo)) err(`la opción «${o.id}» tiene «exito» o «fallo» sin tirada`);
         if (o.tirada && !(o.tirada.dificultad >= 0 && o.tirada.dificultad <= 100)) err(`la opción «${o.id}»: la dificultad va de 0 a 100`);
+        for (const a of o.tirada?.ajustes ?? []) {
+          if (!Number.isFinite(a.mas)) err(`la opción «${o.id}»: un ajuste de la tirada necesita «mas» (un número)`);
+          if (!a.si?.length) err(`la opción «${o.id}»: un ajuste de la tirada necesita al menos una condición en «si»`);
+        }
         if (o.tirada && entorno && !entorno.stats.has(o.tirada.con)) err(`la opción «${o.id}» tira con «${o.tirada.con}», que no existe`);
         if (o.minutos !== undefined && !(o.minutos >= 1)) err(`la opción «${o.id}»: los minutos deben ser 1 o más`);
         for (const eje of Object.keys(o.caracter ?? {})) if (!EJE_IDS.has(eje)) err(`la opción «${o.id}» tira hacia «${eje}», que no es un eje de carácter`);
