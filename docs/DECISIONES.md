@@ -5,6 +5,20 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Respuestas del usuario: PNJ, prueba de acceso, modo números y calendario de la liga
+
+- **Modo «números»:** de momento enseña también la forma y la moral, la familia, el carácter y el dinero con «€». **Desaparecerá en el futuro:** enseñar cómo va el motor provoca metagaming.
+- **Niños de otros colegios:** horario escolar propio (en su colegio, fuera del mapa del personaje) y el de sus clubes si están apuntados, también el equipo de su colegio.
+- **Salida del colegio y actividades de la tarde:** quien tiene entrenamiento poco después (el fútbol a las 15:00) no desaparece entre las 14:30 y las 15:00: sigue en el colegio y está en el campo 10 minutos antes de empezar.
+- **Padres que recogen:** aprobado (~15 % de los vecinos adultos; llegan entre 13:45 y 14:00 y se van entre 14:05 y 14:30).
+- **Niños del barrio:** con suficiente trato pasan a ser amigos, con todo el catálogo de acciones.
+- **Vecinos adultos conocidos:** se puede charlar con ellos.
+- **Rivales:** todos los conocidos se pueden saludar y charlar, no solo los 5 con más trato.
+- **PNJ y deportes:** «los otros PNJ deben poder hacer cualquier deporte, pero no estar en club o equipo de cada deporte» (por concretar con el usuario).
+- **Pedir puesto:** el cambio de puesto del primer entrenamiento cuenta para las 4 semanas. Lo de «invertir» la escala de la dificultad, por concretar.
+- **Prueba de acceso:** el entrenador dice los 2 puestos que más necesita, o «varios» si hay más de 2 huecos. Eliges entre todos los puestos: si es un hueco (dicho o no), te prueba ahí; si no, te dice que no es ninguno de esos y te prueba donde decide él.
+- **Calendario de la liga:** el juego debe decir cuándo empieza la liga o, si aún no hay fecha, que todavía no hay calendario. El usuario llevaba 2 semanas de pretemporada sin saber si se había saltado algo.
+
 ## 17/11/2026 — Pedir puesto y prueba de acceso, hechos (rama `claude/futbol-pedir-puesto`)
 
 Detalle y tablas: `docs/relevo/futbol-pedir-puesto.md`.
