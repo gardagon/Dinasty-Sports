@@ -30,11 +30,12 @@ describe('módulo NPCs', () => {
     // Los rivales son niños de otros colegios que reclutaron los clubes: no hay un número fijo, sino las plantillas de los clubes.
     const rivales = dir.list({ role: 'rival' });
     expect(rivales.length).toBeGreaterThan(60);
-    expect(rivales.every((r) => r.id.startsWith('nino_'))).toBe(true);
+    // (también un niño del barrio —`vecino_N`— que reclute un club pasa a rival: según la semilla, hay alguno o no.)
+    expect(rivales.every((r) => /^(nino|vecino)_/.test(r.id))).toBe(true);
     // Todos los niños de otros colegios existen, jueguen o no: solo los que reclutan los clubes son rivales.
     const ninos = lista.filter((n) => n.id.startsWith('nino_'));
     expect(ninos.length).toBeGreaterThan(600);
-    expect(ninos.filter((n) => n.role === 'vecino').length).toBe(ninos.length - rivales.length);
+    expect(ninos.filter((n) => n.role === 'vecino').length).toBe(ninos.length - rivales.filter((r) => r.id.startsWith('nino_')).length);
     expect(atletas(g)).toHaveLength(objetivos(g)); // todos los equipos completan su plantilla
   });
 
@@ -275,7 +276,7 @@ describe('módulo NPCs', () => {
       expect(colegio.objetivo).toBeLessThanOrEqual(14);
       expect(equipo.every((n) => n.tipos?.some((t) => t.tipo === 'alumno' || t.tipo === 'hermano'))).toBe(true);
       expect(de(g, (n) => n.role === 'profesor').length).toBe(12);
-      expect(de(g, (n) => n.role === 'vecino' && !n.tags.includes('bibliotecario') && !n.id.startsWith('nino_')).length).toBe(80);
+      expect(de(g, (n) => n.id.startsWith('vecino_')).length).toBe(80);
       expect(de(g, (n) => n.tags.includes('bibliotecario')).map((n) => n.id)).toEqual(['bibliotecario_1', 'bibliotecario_2']);
       const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
       for (const id of ['bibliotecario_1', 'bibliotecario_2']) expect(dir.get(id)).toMatchObject({ profesion: expect.stringMatching(/^Bibliotecari[oa]$/), trabajo: 'Biblioteca municipal' });

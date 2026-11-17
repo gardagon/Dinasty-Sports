@@ -15,6 +15,8 @@ export const PAIS_ESPANA: PaisDef = {
   demografia: Object.fromEntries(ORIGENES.map((o) => [o.id, o.frecuencia])),
   origenesLocales: ['espana_norte', 'espana_centro', 'espana_sur'],
   apellidosDeLosNacidosAqui: 2,
+  // Parejas por tipo (`ANEXO_NOMBRES.md` §7): 13 % de dos extranjeros (el 70 % del mismo origen), 12 % mixtas y el resto de aquí.
+  parejas: { ambosExtranjeros: 0.13, mixtas: 0.12, mismoOrigen: 0.7 },
 };
 
 /**
@@ -23,5 +25,6 @@ export const PAIS_ESPANA: PaisDef = {
  */
 export function copiaDeEspana(id: string, nombre: string, cambios: Partial<Omit<PaisDef, 'id' | 'nombre'>> = {}): PaisDef {
   const copia = structuredClone({ ...PAIS_ESPANA, id, nombre }) as PaisDef;
-  return { ...copia, calendario: { ...copia.calendario, id, nombre }, ...cambios };
+  // Las parejas por tipo son de España: un paquete copiado sortea a los padres por separado (como antes) mientras no traiga las suyas.
+  return { ...copia, calendario: { ...copia.calendario, id, nombre }, parejas: undefined, ...cambios };
 }

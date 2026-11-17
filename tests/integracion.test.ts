@@ -533,7 +533,8 @@ describe('integración de módulos', () => {
     const conFraccion = (fraccion: number) => {
       const g = nuevaPartida({ seed: 61 });
       const guardado = g.serialize();
-      (guardado.modules.gen as { fraccionInicial: number }).fraccionInicial = fraccion;
+      // La edad inicial depende de la semilla (el día de nacimiento es un sorteo): se fija también para no depender de la semilla 61.
+      Object.assign(guardado.modules.gen as { edadInicial: number; fraccionInicial: number }, { edadInicial: 8, fraccionInicial: fraccion });
       return cargarPartida(guardado);
     };
     const vista = (g: Game) => g.service<IdentityService>(SERVICES.identidad)!.view();

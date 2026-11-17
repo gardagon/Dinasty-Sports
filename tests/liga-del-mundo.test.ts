@@ -16,7 +16,7 @@ describe('la liga del mundo', () => {
   let g: ReturnType<typeof nuevaPartida>;
   const liga = () => (g.moduleState<FutbolState>('futbol') as FutbolState).liga;
   beforeAll(() => {
-    g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    g = nuevaPartida({ seed: 40, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   });
 
   it('en la pretemporada no se juega; después, cada sábado de clase se juega una jornada en cada categoría', () => {
@@ -132,13 +132,13 @@ describe('la liga del mundo', () => {
   });
 
   it('la partida con la liga sigue siendo reproducible: la misma semilla, las mismas clasificaciones', () => {
-    const h = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const h = nuevaPartida({ seed: 40, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     advanceToWeek(h, 'gen.descansar', 14, 2, 15);
     const a = JSON.stringify((h.moduleState<FutbolState>('futbol') as FutbolState).liga);
     const b = JSON.stringify((g.moduleState<FutbolState>('futbol') as FutbolState).liga?.campeones.length);
     expect(a.length).toBeGreaterThan(1000);
     void b;
-    const h2 = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const h2 = nuevaPartida({ seed: 40, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     advanceToWeek(h2, 'gen.descansar', 14, 2, 15);
     expect(JSON.stringify((h2.moduleState<FutbolState>('futbol') as FutbolState).liga)).toBe(a);
   });

@@ -270,15 +270,15 @@ export interface OrigenDef {
 
 /** Orígenes familiares como dato (otro país tendría otra tabla). Las distribuciones son aproximadas y solo sesgan a la generación 0. */
 export const ORIGENES: OrigenDef[] = [
-  { id: 'espana_norte', reserva: 'espana', nombre: 'España (norte)', frecuencia: 0.15, peloColor: [0.12, 0.3, 0.3, 0.14, 0.08, 0.06], peloTipo: [0.4, 0.4, 0.17, 0.03], ojos: [0.15, 0.3, 0.22, 0.13, 0.05, 0.15], piel: [0.08, 0.5, 0.32, 0.1, 0, 0] },
-  { id: 'espana_centro', reserva: 'espana', nombre: 'España (centro)', frecuencia: 0.3, peloColor: [0.28, 0.4, 0.22, 0.07, 0.02, 0.01], peloTipo: [0.38, 0.4, 0.19, 0.03], ojos: [0.3, 0.35, 0.2, 0.08, 0.03, 0.04], piel: [0.04, 0.35, 0.4, 0.18, 0.03, 0] },
-  { id: 'espana_sur', reserva: 'espana', nombre: 'España (sur)', frecuencia: 0.3, peloColor: [0.4, 0.38, 0.15, 0.05, 0.01, 0.01], peloTipo: [0.3, 0.42, 0.24, 0.04], ojos: [0.4, 0.35, 0.15, 0.05, 0.02, 0.03], piel: [0.02, 0.2, 0.38, 0.28, 0.12, 0], barba: 0.1 },
-  { id: 'latinoamerica', reserva: 'latinoamerica', nombre: 'Latinoamérica', frecuencia: 0.08, peloColor: [0.45, 0.35, 0.12, 0.05, 0.02, 0.01], peloTipo: [0.35, 0.35, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.04, 0.02, 0.02], piel: [0.02, 0.12, 0.3, 0.28, 0.24, 0.04] },
-  { id: 'magreb', reserva: 'magreb', nombre: 'Magreb', frecuencia: 0.05, peloColor: [0.5, 0.35, 0.1, 0.03, 0.01, 0.01], peloTipo: [0.3, 0.4, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.05, 0.02, 0.01], piel: [0.01, 0.1, 0.3, 0.32, 0.22, 0.05], barba: 0.1 },
-  { id: 'africa_subsahariana', reserva: 'africa_subsahariana', nombre: 'África subsahariana', frecuencia: 0.03, peloColor: [0.9, 0.09, 0.01, 0, 0, 0], peloTipo: [0.02, 0.08, 0.3, 0.6], ojos: [0.85, 0.13, 0.02, 0, 0, 0], piel: [0, 0, 0.02, 0.06, 0.32, 0.6], canas: 3 },
-  { id: 'europa_este', reserva: 'europa_este', nombre: 'Europa del este', frecuencia: 0.04, peloColor: [0.15, 0.3, 0.3, 0.15, 0.08, 0.02], peloTipo: [0.45, 0.38, 0.15, 0.02], ojos: [0.1, 0.25, 0.22, 0.12, 0.1, 0.21], piel: [0.1, 0.5, 0.32, 0.08, 0, 0] },
+  { id: 'espana_norte', reserva: 'espana', nombre: 'España (norte)', frecuencia: 0.162, peloColor: [0.12, 0.3, 0.3, 0.14, 0.08, 0.06], peloTipo: [0.4, 0.4, 0.17, 0.03], ojos: [0.15, 0.3, 0.22, 0.13, 0.05, 0.15], piel: [0.08, 0.5, 0.32, 0.1, 0, 0] },
+  { id: 'espana_centro', reserva: 'espana', nombre: 'España (centro)', frecuencia: 0.324, peloColor: [0.28, 0.4, 0.22, 0.07, 0.02, 0.01], peloTipo: [0.38, 0.4, 0.19, 0.03], ojos: [0.3, 0.35, 0.2, 0.08, 0.03, 0.04], piel: [0.04, 0.35, 0.4, 0.18, 0.03, 0] },
+  { id: 'espana_sur', reserva: 'espana', nombre: 'España (sur)', frecuencia: 0.324, peloColor: [0.4, 0.38, 0.15, 0.05, 0.01, 0.01], peloTipo: [0.3, 0.42, 0.24, 0.04], ojos: [0.4, 0.35, 0.15, 0.05, 0.02, 0.03], piel: [0.02, 0.2, 0.38, 0.28, 0.12, 0], barba: 0.1 },
+  { id: 'latinoamerica', reserva: 'latinoamerica', nombre: 'Latinoamérica', frecuencia: 0.06, peloColor: [0.45, 0.35, 0.12, 0.05, 0.02, 0.01], peloTipo: [0.35, 0.35, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.04, 0.02, 0.02], piel: [0.02, 0.12, 0.3, 0.28, 0.24, 0.04] },
+  { id: 'magreb', reserva: 'magreb', nombre: 'Magreb', frecuencia: 0.04, peloColor: [0.5, 0.35, 0.1, 0.03, 0.01, 0.01], peloTipo: [0.3, 0.4, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.05, 0.02, 0.01], piel: [0.01, 0.1, 0.3, 0.32, 0.22, 0.05], barba: 0.1 },
+  { id: 'africa_subsahariana', reserva: 'africa_subsahariana', nombre: 'África subsahariana', frecuencia: 0.017, peloColor: [0.9, 0.09, 0.01, 0, 0, 0], peloTipo: [0.02, 0.08, 0.3, 0.6], ojos: [0.85, 0.13, 0.02, 0, 0, 0], piel: [0, 0, 0.02, 0.06, 0.32, 0.6], canas: 3 },
+  { id: 'europa_este', reserva: 'europa_este', nombre: 'Europa del este', frecuencia: 0.035, peloColor: [0.15, 0.3, 0.3, 0.15, 0.08, 0.02], peloTipo: [0.45, 0.38, 0.15, 0.02], ojos: [0.1, 0.25, 0.22, 0.12, 0.1, 0.21], piel: [0.1, 0.5, 0.32, 0.08, 0, 0] },
   { id: 'europa_norte', reserva: 'europa_norte', nombre: 'Europa del norte', frecuencia: 0.02, peloColor: [0.05, 0.18, 0.3, 0.22, 0.22, 0.03], peloTipo: [0.5, 0.35, 0.13, 0.02], ojos: [0.04, 0.12, 0.15, 0.12, 0.12, 0.45], piel: [0.15, 0.6, 0.22, 0.03, 0, 0], canas: -2 },
-  { id: 'asia_oriental', reserva: 'asia_oriental', nombre: 'Asia oriental', frecuencia: 0.03, peloColor: [0.85, 0.12, 0.03, 0, 0, 0], peloTipo: [0.75, 0.2, 0.04, 0.01], ojos: [0.8, 0.18, 0.02, 0, 0, 0], piel: [0.05, 0.3, 0.4, 0.2, 0.05, 0], canas: 4, barba: -0.3 },
+  { id: 'asia_oriental', reserva: 'asia_oriental', nombre: 'Asia oriental', frecuencia: 0.018, peloColor: [0.85, 0.12, 0.03, 0, 0, 0], peloTipo: [0.75, 0.2, 0.04, 0.01], ojos: [0.8, 0.18, 0.02, 0, 0, 0], piel: [0.05, 0.3, 0.4, 0.2, 0.05, 0], canas: 4, barba: -0.3 },
 ];
 
 export const origen = (id: string): OrigenDef | undefined => ORIGENES.find((o) => o.id === id);
@@ -315,6 +315,38 @@ export function origenAlAzar(rng: Rng, demografia?: Readonly<Record<string, numb
   if (!rng.chance(0.1)) return [{ id: a, peso: 1 }];
   const b = uno();
   return a === b ? [{ id: a, peso: 1 }] : [{ id: a, peso: 0.5 }, { id: b, peso: 0.5 }];
+}
+
+/**
+ * Cómo se emparejan los padres (dato del país o de la ciudad; sin él, los dos se sortean por separado con la demografía). Se sortea primero el **tipo de pareja** y luego los orígenes:
+ * dos de fuera (`ambosExtranjeros`), una mixta (`mixtas`: uno de fuera y otro de aquí) o las dos de aquí (el resto). «De fuera» = origen que no es de `origenesLocales`.
+ */
+export interface ParejasDef {
+  /** Proporción de parejas en que los dos son de fuera (0 a 1). */
+  ambosExtranjeros: number;
+  /** Proporción de parejas mixtas (0 a 1); `ambosExtranjeros + mixtas` ≤ 1. */
+  mixtas: number;
+  /** En las de dos de fuera, probabilidad de que los dos sean del mismo origen (0 a 1). */
+  mismoOrigen: number;
+}
+
+/** Los padres de una persona según el reparto de parejas del lugar: el tipo de pareja y, de él, los orígenes de cada uno (el orden de la mixta es al azar). */
+export function origenesDePareja(rng: Rng, demografia: Readonly<Record<string, number>>, locales: readonly string[], parejas: ParejasDef): [OrigenFamiliar, OrigenFamiliar] {
+  const sub = (aqui: boolean): Readonly<Record<string, number>> => {
+    const parte = Object.fromEntries(Object.entries(demografia).filter(([id, peso]) => peso > 0 && locales.includes(id) === aqui));
+    return Object.keys(parte).length ? parte : demografia; // sin orígenes de ese tipo, la demografía entera
+  };
+  const u = rng.next();
+  if (u < parejas.ambosExtranjeros) {
+    const a = origenAlAzar(rng, sub(false));
+    return [a, rng.chance(parejas.mismoOrigen) ? a : origenAlAzar(rng, sub(false))];
+  }
+  if (u < parejas.ambosExtranjeros + parejas.mixtas) {
+    const fuera = origenAlAzar(rng, sub(false));
+    const aqui = origenAlAzar(rng, sub(true));
+    return rng.chance(0.5) ? [fuera, aqui] : [aqui, fuera];
+  }
+  return [origenAlAzar(rng, sub(true)), origenAlAzar(rng, sub(true))];
 }
 
 /** Origen del hijo: la mezcla a partes iguales de los de sus padres. */
@@ -499,10 +531,12 @@ export interface RasgosDe {
 }
 
 /** Rasgos de una persona del mundo (un NPC o un padre de la generación 0). */
-export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Record<string, number>>; interesesPreferidos?: readonly string[]; origen?: OrigenFamiliar; demografia?: Readonly<Record<string, number>>; sexo?: 'f' | 'm' } = {}): RasgosDe {
+export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Record<string, number>>; interesesPreferidos?: readonly string[]; origen?: OrigenFamiliar; demografia?: Readonly<Record<string, number>>; sexo?: 'f' | 'm'; hijoDePareja?: { parejas: ParejasDef; locales: readonly string[] } } = {}): RasgosDe {
   // Con un origen dado (los padres, que salen de la semilla para que sus nombres lo sigan) se hace la tirada igualmente: así no cambia el resto del azar.
   const sorteado = origenAlAzar(rng, opciones.demografia);
-  const o = opciones.origen ?? sorteado;
+  // Un niño del mundo (`hijoDePareja`) sale de una pareja sorteada por tipo, no de un adulto: así el origen y el emparejamiento siguen las mismas reglas que el personaje.
+  const deLaPareja = opciones.hijoDePareja && !opciones.origen ? origenHeredado(...origenesDePareja(rng, opciones.demografia ?? {}, opciones.hijoDePareja.locales, opciones.hijoDePareja.parejas)) : undefined;
+  const o = opciones.origen ?? deLaPareja ?? sorteado;
   const base = aparienciaBaseAlAzar(rng, o);
   const caracter = caracterAlAzar(rng, opciones.sesgoCaracter);
   const intereses = interesesAlAzar(rng, opciones.interesesPreferidos);

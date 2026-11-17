@@ -17,7 +17,7 @@ describe('el partido del personaje en la liga', () => {
   const estado = () => g.moduleState<FutbolState>('futbol') as FutbolState;
   const vista = () => g.service<DeporteService>(claveDeDeporte('futbol'))!.view();
   beforeAll(() => {
-    g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    g = nuevaPartida({ seed: 40, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     advanceToWeek(g, 'gen.descansar', 1, 3, 15);
     if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');
   });
@@ -126,7 +126,7 @@ describe('jugar el partido en el campo, a su hora', () => {
     return h ? { dia: h[0], hora: h[1], campo: h[2] } : undefined;
   };
   beforeAll(() => {
-    g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    g = nuevaPartida({ seed: 40, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     advanceToWeek(g, 'gen.descansar', 1, 3, 15);
     if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');
   });

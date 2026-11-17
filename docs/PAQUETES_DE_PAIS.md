@@ -11,6 +11,7 @@ Un **paquete de país** (`PaisDef`, en `packages/contracts/src/paises/`) reúne 
 | `cursos`, `cursoDeModalidad` | Cursos desde los 8 años (nombre, etapa, asignaturas por curso, modalidades) | módulo `estudios` |
 | `horarios` | Horarios de apertura por id de lugar (colegio, biblioteca, supermercado…) | módulo `lugares` (servicio `lugares`) |
 | `demografia` | Peso de cada origen familiar entre la gente del país | generación de personas (`origenAlAzar`) |
+| `parejas` (opcional) | Cómo se emparejan los padres: % de parejas de dos de fuera, mixtas y probabilidad de mismo origen (`ANEXO_NOMBRES.md` §7). Sin él, los dos padres se sortean por separado | `nombres.ts` (padres del personaje), `npcs` (niños del mundo) |
 | `origenesLocales` | Orígenes «de aquí» (de ellos sale el nombre local de las mezclas) | `nombres.ts` |
 | `apellidosDeLosNacidosAqui` | 1 o 2 apellidos (España 2; Argentina e Inglaterra 1) | `nombres.ts` |
 | `origenes` (opcional) | Orígenes nuevos del catálogo, con su aspecto y su reserva de nombres | `rasgos.ts` |
@@ -45,6 +46,8 @@ Forma de los datos (no su contenido de juego): `id` y `nombre`; calendario con t
 - **Festivos y fechas** (el calendario no tiene fechas absolutas), **moneda**, **textos** (siguen en español) y los **deportes** distintos del atletismo.
 - **Mapa:** la ciudad es la misma (calles y lugares); solo cambian los horarios de apertura.
 - Los paquetes importados se guardan en el navegador (no dentro de las copias de seguridad de la partida).
+
+- **Demografía y parejas por ciudad:** `PaisDef.ciudad.demografia` y `ciudad.parejas` (opcionales) sustituyen a los del país en esa ciudad; la ciudad grande los trae (cifras de una ciudad como Madrid, hoy iguales que las de España). **Pendiente:** ajustarlos a cada ciudad real y ponerles datos propios (Barcelona, Valencia, un pueblo...): basta con rellenar esos dos campos de su `CiudadDef`; una ciudad que no los trae hereda los del país. La demografía de las ciudades más allá de España (Argentina, Inglaterra) sigue siendo la del país.
 
 ## 6. Dónde cambiar cada cosa
 

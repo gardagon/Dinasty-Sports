@@ -1,6 +1,7 @@
 import { apodosDe, culturaPorId, reservaDeNombres, type Cultura } from './culturas';
 import { PAIS_ESPANA, type PaisDeNombres } from './paises';
-import { origen, origenAlAzar, origenHeredado, type OrigenFamiliar } from './rasgos';
+import { demografiaDelLugar, parejasDelLugar } from './ciudad';
+import { origen, origenAlAzar, origenHeredado, origenesDePareja, type OrigenFamiliar } from './rasgos';
 import { rngEstable, type Rng } from './rng';
 
 /**
@@ -190,8 +191,16 @@ export interface PadreDeSemilla {
 }
 
 /** El origen del padre o de la madre de una semilla: siempre el mismo (así lo usan el motor y el módulo de personas sin depender uno del otro). */
-export const origenDePadre = (seed: number, lado: 'padre' | 'madre', pais: PaisDeNombres = PAIS_ESPANA): OrigenFamiliar =>
-  origenAlAzar(rngEstable('origen', seed, lado), pais.demografia);
+export function origenDePadre(seed: number, lado: 'padre' | 'madre', pais: PaisDeNombres = PAIS_ESPANA): OrigenFamiliar {
+  const demografia = demografiaDelLugar(pais);
+  const parejas = parejasDelLugar(pais);
+  // Con reparto de parejas, los dos salen de una misma tirada (el tipo de pareja); sin él, cada uno por separado (como siempre).
+  if (parejas) {
+    const [padre, madre] = origenesDePareja(rngEstable('origen', seed, 'pareja'), demografia, pais.origenesLocales, parejas);
+    return lado === 'padre' ? padre : madre;
+  }
+  return origenAlAzar(rngEstable('origen', seed, lado), demografia);
+}
 
 const EDAD_DE_REFERENCIA_DE_PADRES = 45;
 let ULTIMOS: { clave: string; padres: { padre: PadreDeSemilla; madre: PadreDeSemilla } } | undefined;
