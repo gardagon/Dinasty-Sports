@@ -54,6 +54,7 @@ import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } fr
 import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
 import { reclamarPestana } from './pestana';
+import { MODOS_DE_CONSECUENCIAS, MODOS_FUERA_DE_CARACTER, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
 import {
   FRECUENCIAS,
@@ -108,13 +109,14 @@ const sortearSemilla = (): number => 1 + Math.floor(Math.random() * 0x7ffffffe);
 /** La partida que se está creando: la semilla decide el nombre, los apellidos y los padres; «volver a sortear» es otra semilla. */
 /** Los deportes que trae el juego (cada módulo de deporte aporta su ficha). */
 /** Los módulos de esta sesión: los del juego más los deportes que se hayan instalado en este dispositivo (ver `deportes-instalados.ts`). */
-let modulosActuales: readonly GameModule<any>[] = MODULOS;
+let presentacion: Presentacion = leerPresentacion();
+let modulosActuales: readonly GameModule<any>[] = [...MODULOS, moduloDePresentacion(presentacion)];
 let CATALOGO = catalogoDeDeportes(modulosActuales);
 
 /** Vuelve a leer los deportes instalados y rehace la lista de módulos y el catálogo. Devuelve los avisos de los paquetes que no se pudieron cargar. */
 async function actualizarModulos(): Promise<string[]> {
   const { modulos, avisos } = await cargarInstalados();
-  modulosActuales = [...MODULOS, ...modulos.filter((m) => !MODULOS.some((b) => b.id === m.id))];
+  modulosActuales = [...MODULOS, ...modulos.filter((m) => !MODULOS.some((b) => b.id === m.id)), moduloDePresentacion(presentacion)];
   const antes = new Set(CATALOGO.map((d) => d.id));
   CATALOGO = catalogoDeDeportes(modulosActuales);
   // Un deporte recién instalado entra marcado en la nueva partida (se puede desmarcar); los que ya no están, salen.
@@ -477,11 +479,20 @@ function viewInstaladorDeDeportes(): string {
     <p class="note">Los deportes se comprueban antes de instalarse (firma y versión) y quedan guardados en este dispositivo para jugar sin conexión.</p>`;
 }
 
+/** Los dos selectores de cómo se presentan los sucesos (en «Opciones», con o sin partida). */
+function viewPresentacion(): string {
+  const lista = (id: string, modos: readonly { id: string; nombre: string }[], actual: string) =>
+    `<select id="${id}">${modos.map((m) => `<option value="${m.id}"${m.id === actual ? ' selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select>`;
+  return `<p><label>Consecuencias antes de elegir ${lista('pres-consecuencias', MODOS_DE_CONSECUENCIAS, presentacion.consecuencias)}</label></p>
+    <p><label>Opciones que no van con tu carácter ${lista('pres-fuera-de-caracter', MODOS_FUERA_DE_CARACTER, presentacion.fueraDeCaracter)}</label></p>`;
+}
+
 function viewOpciones(): string {
   return `<main class="app"><section class="start">
     <h1>Opciones</h1>
     <p>Aún no hay muchas: el juego está en fase alfa.</p>
     <p class="note">Países disponibles: ${paisesElegibles().map((p) => esc(p.nombre) + (idsImportados().includes(p.id) ? ' (importado)' : '')).join(', ')}.</p>
+    ${viewPresentacion()}
     <div class="menu">
       <button class="menu-boton" data-act="importar-pais">Importar un paquete de país (.json)</button>
       <button class="menu-boton" data-act="exportar"${game ? '' : ' disabled'}>Descargar una copia de seguridad</button>
@@ -623,6 +634,7 @@ function viewVentana(g: Game | null): string {
     <p><button data-act="guardar">Guardar partida</button></p>
     <p class="note" id="ultimo-guardado">${ultimoGuardado ? `Último guardado: ${esc(fechaDeJuego(ultimoGuardado.dia))}, ${hhmm(ultimoGuardado.minuto % MINUTES_PER_DAY)}.` : 'Aún no se ha guardado en esta sesión.'}${sinGuardar ? ' Hay cambios sin guardar.' : ''}</p>
     <p><label>Guardado automático <select id="frecuencia">${opciones}</select></label></p>
+    ${viewPresentacion()}
     ${msDeGuardado === undefined ? '<p class="note">Cuando se haya guardado una vez, aquí verás cuánto tarda y qué frecuencia te recomendamos.</p>' : `<p class="note">${esc(textoDeRecomendacion(msDeGuardado))}</p>`}
     <p class="botones"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="importar-pais">Importar un país</button></p>
     ${viewDeportesDeLaPartida(g)}
@@ -1128,8 +1140,30 @@ app.addEventListener('change', (e) => {
     render();
     return;
   }
+  if (el instanceof HTMLSelectElement && (el.id === 'pres-consecuencias' || el.id === 'pres-fuera-de-caracter')) {
+    cambiarPresentacion(el.id === 'pres-consecuencias' ? { consecuencias: el.value as Presentacion['consecuencias'] } : { fueraDeCaracter: el.value as Presentacion['fueraDeCaracter'] });
+    return;
+  }
   if (el instanceof HTMLSelectElement && game && cambioEnGente(el)) render();
 });
+
+/** Cambia cómo se presentan los sucesos: se recuerda en el navegador y se rehace la partida en marcha con la nueva configuración (el estado no cambia). */
+function cambiarPresentacion(cambio: Partial<Presentacion>): void {
+  const nueva = { ...presentacion, ...cambio };
+  if (nueva.consecuencias === presentacion.consecuencias && nueva.fueraDeCaracter === presentacion.fueraDeCaracter) return;
+  presentacion = nueva;
+  escribirPresentacion(presentacion);
+  const propio = moduloDePresentacion(presentacion);
+  modulosActuales = [...modulosActuales.filter((m) => m.id !== propio.id), propio];
+  if (game) {
+    try {
+      game = cargarPartida(game.serialize(), modulosActuales, { copiar: false });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo aplicar el cambio.');
+    }
+  }
+  render();
+}
 
 app.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-tab],[data-act],[data-gente],[data-deporte],[data-retrato]');
