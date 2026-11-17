@@ -68,3 +68,26 @@ describe('quien deja el equipo del colegio ya no es «del equipo»', () => {
     }
   });
 });
+
+describe('la salida del colegio no es instantánea', () => {
+  it('a las 14:00 los alumnos se van repartidos en 30 minutos, y quien se va no vuelve', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 1, 1, 13); // martes
+    const alumnos = (): Set<string> => { const pres = g.service<PresenciaService>(SERVICES.presencia)!; return new Set(['colegio', 'patio', 'aula'].flatMap((l) => [...pres.en(l, 5000), ...pres.ocupadosEn(l).map((o) => o.persona)]).filter((n) => n.role === 'companero').map((n) => n.id)); };
+    const esperarHasta = (hora: number, minuto: number): void => { while (g.time.minuteOfDay < hora * 60 + minuto) expect(g.perform('gen.esperar').ok).toBe(true); };
+    esperarHasta(13, 50);
+    expect(alumnos().size).toBeLessThan(40); // en clase solo se ve a tu clase; las demás están en sus aulas
+    const serie: Set<string>[] = [];
+    for (const [hh, mm] of [[14, 2], [14, 12], [14, 22], [14, 31]] as const) { esperarHasta(hh, mm); serie.push(alumnos()); }
+    const [a, b, c, d] = serie;
+    // Al sonar el timbre salen todos a la entrada y al patio, y de 14:00 a 14:30 se van repartidos hasta que no queda nadie.
+    expect(a.size).toBeGreaterThan(300);
+    expect(a.size).toBeGreaterThan(b.size);
+    expect(b.size).toBeGreaterThan(c.size);
+    expect(c.size).toBeGreaterThan(d.size);
+    expect(d.size).toBe(0);
+    // Monótona: nadie que se ha ido vuelve.
+    for (const x of c) expect(b.has(x)).toBe(true);
+    for (const x of b) expect(a.has(x)).toBe(true);
+  });
+});
