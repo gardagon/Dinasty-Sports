@@ -181,7 +181,12 @@ interface Indice {
   config: ConfigDeSucesos;
   /** `cuando` de cada suceso con las condiciones baratas delante. */
   cuando: Map<string, Condicion[]>;
+  /** De `cuando`, solo las que se miran sin crear nada (marcas del personaje, contadores y datos de la señal): si una falla, el suceso no sale y no hace falta preparar su contexto. */
+  ligeras: Map<string, Condicion[]>;
 }
+
+const esMarcaSola = (c: Condicion): boolean => 'marca' in c && c.de === undefined;
+const esLigera = (c: Condicion): boolean => esMarcaSola(c) || 'contador' in c || 'señal' in c || ('no' in c && esMarcaSola(c.no));
 
 const VACIO: readonly AporteDeSucesos[] = [];
 const indices = new WeakMap<object, Indice>();
@@ -192,7 +197,7 @@ function indiceDe(ctx: ReadContext): Indice {
   let i = indices.get(clave);
   if (i) return i;
   const cat = compilarCatalogo(aportes, (m) => ctx.hasModule(m));
-  i = { cat, porSeñal: new Map(), cadaDia: [], cadaSemana: [], umbrales: [], contadoresPorSeñal: new Map(), contadoresDeAccion: [], config: configDeSucesos(ctx.aportes<CambiosDeConfigDeSucesos>(APORTE_DE_CONFIG_DE_SUCESOS)), cuando: new Map() };
+  i = { cat, porSeñal: new Map(), cadaDia: [], cadaSemana: [], umbrales: [], contadoresPorSeñal: new Map(), contadoresDeAccion: [], config: configDeSucesos(ctx.aportes<CambiosDeConfigDeSucesos>(APORTE_DE_CONFIG_DE_SUCESOS)), cuando: new Map(), ligeras: new Map() };
   for (const s of cat.sucesos.values()) {
     const d = s.def.disparo;
     if ('al' in d) {
@@ -209,7 +214,10 @@ function indiceDe(ctx: ReadContext): Indice {
     }
     else if ('cada' in d) (d.cada === 'dia' ? i.cadaDia : i.cadaSemana).push(s);
     else if ('umbral' in d) i.umbrales.push(s);
-    i.cuando.set(s.def.id, ordenarCondiciones(s.def.cuando ?? []));
+    const ordenadas = ordenarCondiciones(s.def.cuando ?? []);
+    i.cuando.set(s.def.id, ordenadas);
+    const ligeras = ordenadas.filter(esLigera);
+    if (ligeras.length) i.ligeras.set(s.def.id, ligeras);
   }
   for (const c of cat.contadores) {
     if ('señal' in c.cuenta) i.contadoresPorSeñal.set(c.cuenta.señal, [...(i.contadoresPorSeñal.get(c.cuenta.señal) ?? []), c]);
@@ -945,6 +953,14 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
         if (lista) candidatos = candidatos === grupo.siempre ? [...candidatos, ...lista] : (candidatos as SucesoCompilado[]).concat(lista);
       }
     }
+    // Un contexto mínimo, el mismo para todos los candidatos: solo sirve para las condiciones ligeras (no lee hechos ni reparto).
+    let ligero: ContextoDeCondicion | undefined;
+    const noPasa = (x: SucesoCompilado): boolean => {
+      const l = i.ligeras.get(x.def.id);
+      if (!l) return false;
+      ligero ??= { ...contextoDe(ctx, s, {}, undefined, señal), hechos: undefined as unknown as LectorDeHechos };
+      return !cumplenTodas(l, ligero);
+    };
     for (const x of candidatos) {
       if (x.def.sujeto) {
         // Lo vive la persona que dice la señal (un PNJ): solo si esa clase de suceso está activada para ellos.
@@ -953,7 +969,9 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
         continue;
       }
       const prob = (x.def.disparo as { prob?: number }).prob;
+      const noSale = noPasa(x);
       if (prob !== undefined) {
+        if (noSale) continue;
         // Espontáneo ligado a un momento (entrar en clase, llegar al patio): sale algunas veces y gasta el cupo de su categoría.
         const azar = prueba(ctx)?.azar?.(x.def.id) ?? rngEstable(s.semilla, 'suceso', x.def.id, 'al', ctx.time.minute).next();
         if (azar >= prob || !hayCupo(ctx, s, i, x.cupo)) continue;
@@ -963,7 +981,7 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
         }
         continue;
       }
-      if (intentar(ctx, i, x, { señal })) continue;
+      if (!noSale && intentar(ctx, i, x, { señal })) continue;
       // No era el momento: si aguanta, se queda esperando como un programado más (sin hilo todavía).
       if (x.def.aguanta && !x.hilo && !s.programados.some((p) => p.suceso === x.def.id)) s.programados.push({ dia: hoy, hasta: hoy + x.def.aguanta.dias, suceso: x.def.id, señal });
       else if (x.def.aguanta && x.hilo && !s.programados.some((p) => p.suceso === x.def.id && p.hilo === undefined)) s.programados.push({ dia: hoy, hasta: hoy + x.def.aguanta.dias, suceso: x.def.id, señal });
