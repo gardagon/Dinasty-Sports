@@ -38,6 +38,23 @@ export interface ActionDef {
    * debe además exigirlo en `available` (ver `conLugar`, en contracts). Sin esto, la acción vale en cualquier parte.
    */
   lugar?: readonly string[] | ((ctx: ReadContext) => readonly string[]);
+  /**
+   * Agrupación en la lista: las acciones del mismo `group` con el mismo `desplegable.id` salen como UN solo botón (`nombre`, «Entrenar…») que abre un desplegable con ellas
+   * (cada una, con su nombre, su duración y, si no está disponible, su motivo). Las acciones siguen existiendo con su id: solo cambia cómo las dibuja la interfaz.
+   */
+  desplegable?: DesplegableDeAcciones;
+}
+
+/** Cómo se agrupan varias acciones en un solo botón con desplegable (dato; la interfaz no sabe de qué trata). */
+export interface DesplegableDeAcciones {
+  /** Identifica el grupo (único dentro del `group` de la acción), p. ej. `atletismo.entrenar`. */
+  id: string;
+  /** El texto del botón que lo abre: «Entrenar…». */
+  nombre: string;
+  /** Lo que se elige en el desplegable («Entrenamiento»). */
+  etiqueta: string;
+  /** El texto del botón que lanza la elegida (con el nombre de lo elegido: `{opcion}`). */
+  boton: string;
 }
 
 /** Lo que el motor sabe de una acción cuando evalúa modificadores. */

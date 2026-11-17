@@ -53,6 +53,7 @@ import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
 import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, textoDeNiveles, viewPanelGente } from './gente';
+import { agruparEnDesplegables, cambioEnDesplegable, clicEnDesplegable, viewDesplegable } from './desplegables';
 import { reclamarPestana } from './pestana';
 import { MODOS_DE_CONSECUENCIAS, MODOS_FUERA_DE_CARACTER, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
@@ -727,7 +728,7 @@ function viewResult(): string {
   </section>`;
 }
 
-function actionButton(o: ActionOption): string {
+function actionButton(o: ActionOption, nombre: string = o.name): string {
   const why: string[] = [];
   if (!o.available) why.push(esc(o.reason ?? 'No disponible'));
   else {
@@ -739,7 +740,7 @@ function actionButton(o: ActionOption): string {
     }
   }
   return `<button class="action" data-do="${esc(o.id)}" ${o.available ? '' : 'disabled'}>
-    <span class="action-name">${esc(o.name)}</span>
+    <span class="action-name">${esc(nombre)}</span>
     <span class="action-time">${fmtDur(o.duration)}</span>
     ${why.length ? `<span class="action-why">${why.join(' · ')}</span>` : ''}
   </button>`;
@@ -824,7 +825,7 @@ function viewActions(g: Game): string {
   }
   const hidden = opts.filter((o) => !o.available).length;
   const html = [...groups]
-    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${list.map(actionButton).join('')}</div>`)
+    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${agruparEnDesplegables(list).map((e) => ('opcion' in e ? actionButton(e.opcion) : viewDesplegable(e.clave, e.opciones, esc, actionButton, fmtDur))).join('')}</div>`)
     .join('');
   return `<section class="sheet">
     ${html || '<p class="note">Ahora mismo no puedes hacer nada. Pasa el rato para que avance el tiempo.</p>'}
@@ -1122,6 +1123,10 @@ app.addEventListener('input', (e) => {
 // Los desplegables del formulario de «Proponer quedar para…» (cada cambio redibuja la ficha).
 app.addEventListener('change', (e) => {
   const el = e.target as HTMLElement;
+  if (el instanceof HTMLSelectElement && el.dataset.desplegableCampo) {
+    if (cambioEnDesplegable(el)) render();
+    return;
+  }
   // El país de la nueva partida: cambia los padres (orígenes, nombres y apellidos) que salen de la semilla.
   if (el instanceof HTMLSelectElement && el.id === 'pais') {
     nueva.pais = el.value;
@@ -1175,7 +1180,7 @@ function cambiarPresentacion(cambio: Partial<Presentacion>): void {
 }
 
 app.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-tab],[data-act],[data-gente],[data-deporte],[data-retrato]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-desplegable],[data-tab],[data-act],[data-gente],[data-deporte],[data-retrato]');
   if (el?.dataset.act === 'importar') {
     importarPartida();
     return;
@@ -1185,6 +1190,10 @@ app.addEventListener('click', (e) => {
   if (el.dataset.tabscroll) {
     const nav = app.querySelector<HTMLElement>('.tabs');
     nav?.scrollBy({ left: Number(el.dataset.tabscroll) * nav.clientWidth * 0.6, behavior: 'smooth' });
+    return;
+  }
+  if (el.dataset.desplegable) {
+    if (clicEnDesplegable(el)) render();
     return;
   }
   if (el.dataset.deporte) {
