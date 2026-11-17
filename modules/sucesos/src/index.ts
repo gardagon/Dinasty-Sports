@@ -52,6 +52,7 @@ import {
   type NpcDirectory,
   type NpcView,
   type OpcionDef,
+  type TiradaDef,
   type OpcionPendiente,
   type PapelDef,
   type PerkReveladoData,
@@ -532,6 +533,7 @@ function aplicar(ctx: ActionContext, x: Situacion, efectos: readonly Efecto[] | 
       s.temporales.push({ tags: [...m.tags], eficiencia: m.eficiencia, coste: m.coste, duracion: m.duracion, motivo: texto(m.motivo), hasta: hoy + m.dias });
     } else if ('restriccion' in e) s.temporales.push({ tags: [...e.restriccion.tags], bloquea: true, motivo: texto(e.restriccion.motivo), hasta: hoy + e.restriccion.dias });
     else if ('si' in e) aplicar(ctx, x, cumplenTodas(e.si, contextoDe(ctx, s, reparto, x.hilo, x.señal, x.sujeto)) ? e.entonces : e.sino);
+    else if ('tirada' in e) aplicar(ctx, x, tirarCon(ctx, s, x.suceso.def.id, 'aviso', e.tirada, contextoDe(ctx, s, reparto, x.hilo, x.señal, x.sujeto)) ? e.exito : e.fallo);
     else if ('fin' in e) cerrarHilo(s, x.hilo?.id);
   }
 }
@@ -675,10 +677,14 @@ function faltaRecurso(ctx: ReadContext, o: OpcionDef): string | undefined {
 }
 
 function tirar(ctx: ActionContext, s: SucesosState, suceso: string, o: OpcionDef, c: ContextoDeCondicion): boolean {
-  const forzada = prueba(ctx)?.tirada?.(suceso, o.id);
+  return tirarCon(ctx, s, suceso, o.id, o.tirada!, c);
+}
+
+/** Una tirada del personaje (la de una opción, o la de un efecto `tirada` de un aviso, con la clave `aviso`). */
+function tirarCon(ctx: ActionContext, s: SucesosState, suceso: string, clave: string, t: TiradaDef, c: ContextoDeCondicion): boolean {
+  const forzada = prueba(ctx)?.tirada?.(suceso, clave);
   if (forzada) return forzada === 'exito';
-  const t = o.tirada!;
-  const rng = rngEstable(s.semilla, 'tirada', suceso, o.id, ctx.time.minute);
+  const rng = rngEstable(s.semilla, 'tirada', suceso, clave, ctx.time.minute);
   const p = probabilidadDeExito(ctx.hasStat(t.con) ? ctx.norm(t.con) * 100 : 0, dificultadDeTirada(t, c));
   let exito = rng.chance(p);
   const h = lectorDe(ctx);

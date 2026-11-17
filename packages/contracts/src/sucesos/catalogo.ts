@@ -61,6 +61,10 @@ function* efectosEn(lista: readonly Efecto[] | undefined): Generator<Efecto> {
       yield* efectosEn(e.entonces);
       yield* efectosEn(e.sino);
     }
+    if ('tirada' in e) {
+      yield* efectosEn(e.exito);
+      yield* efectosEn(e.fallo);
+    }
   }
 }
 
@@ -90,7 +94,10 @@ export function* condicionesDeSuceso(s: SucesoDef): Generator<Condicion> {
     yield* condicionesEn(o.requiere);
     for (const a of o.tirada?.ajustes ?? []) yield* condicionesEn(a.si);
   }
-  for (const e of efectosDeSuceso(s)) if ('si' in e) yield* condicionesEn(e.si);
+  for (const e of efectosDeSuceso(s)) {
+    if ('si' in e) yield* condicionesEn(e.si);
+    if ('tirada' in e) for (const a of e.tirada.ajustes ?? []) yield* condicionesEn(a.si);
+  }
 }
 
 /** Todos los textos de un suceso, con dónde están y la variante a la que pertenecen (para saber qué papeles tienen a alguien seguro). */
@@ -308,6 +315,11 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
         const st = entorno.stats.get(e.entrena);
         if (!st) err(`un efecto entrena «${e.entrena}», que no existe`);
         else if (st.category === 'estado') err(`«${e.entrena}» es de estado: no se entrena, usa «estado»`);
+      }
+      if ('tirada' in e) {
+        if (!(e.tirada.dificultad >= 0 && e.tirada.dificultad <= 100)) err('un efecto con tirada: la dificultad va de 0 a 100');
+        if (entorno && !entorno.stats.has(e.tirada.con)) err(`un efecto tira con «${e.tirada.con}», que no existe`);
+        for (const a of e.tirada.ajustes ?? []) if (!Number.isFinite(a.mas) || !a.si?.length) err('un ajuste de la tirada necesita «mas» (un número) y al menos una condición en «si»');
       }
       if ('relacion' in e) papel(e.relacion, 'un efecto');
       if ('familia' in e) papel(e.familia, 'un efecto');

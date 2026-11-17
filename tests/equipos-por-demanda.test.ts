@@ -15,7 +15,7 @@ import {
   type NpcsState,
   type PoblacionGuardada,
 } from '@ds/mod-npcs';
-import { hacer, posible } from './ayudas';
+import { hacer, hacerPruebaDeAcceso, posible } from './ayudas';
 import { ID_TRES_CLUBES } from './ciudades';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
@@ -156,7 +156,7 @@ describe('el personaje del montón encuentra equipo en su categoría dentro del 
       const j = nuevaPartida({ seed, pais: ID_TRES_CLUBES, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
       advanceToWeek(j, 'gen.descansar', 1, 2, 17);
       // Un miércoles a las 17:00 el club mediano hace sus pruebas; después, el del colegio (sin prueba) como segunda opción.
-      if (posible(j, 'futbol.prueba.club_mediano')) hacer(j, 'futbol.prueba.club_mediano');
+      if (posible(j, 'futbol.pedir_prueba.club_mediano')) hacerPruebaDeAcceso(j, 'club_mediano');
       const club = () => j.service<{ membership(d: string): unknown }>('clubes')!.membership('futbol');
       // Si la prueba no sale, al día siguiente, a la hora de siempre, el club del colegio (sin prueba) como segunda opción.
       if (!club()) advanceToWeek(j, 'gen.descansar', 1, 3, 15);

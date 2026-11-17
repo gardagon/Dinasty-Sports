@@ -11,6 +11,7 @@ import {
   type ActionDoneData,
   type PlazaPerdidaData,
   type PuestoPropuestoData,
+  type PruebaPuestoData,
   type EventHandler,
   type FamilyService,
   type ModifierDef,
@@ -181,6 +182,14 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
       ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, propuestaDePuesto: d.puesto }));
       const nombre = cfg.puestosDelDeporte?.find((p) => p.id === d.puesto)?.nombre.toLowerCase() ?? d.puesto;
       ctx.log(`Tu entrenador de ${cfg.nombre} te propone jugar este curso de ${nombre}: en tu puesto sobran jugadores y en ese faltan. Tú decides si lo aceptas.`, 'info');
+    },
+    // La prueba de acceso: el puesto en que le van a probar (elegido entre los huecos o, sin él, el que decida el entrenador).
+    [SHARED_EVENTS.PRUEBA_PUESTO]: (ctx, ev) => {
+      const d = ev.data as PruebaPuestoData;
+      const en = estado(ctx).pruebaEnCurso;
+      if (d.sport !== cfg.id || !en) return;
+      const { puesto: _antes, ...resto } = en;
+      ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, pruebaEnCurso: d.puesto && cfg.puestosDelDeporte?.some((p) => p.id === d.puesto) ? { ...resto, puesto: d.puesto } : resto }));
     },
     // El cambio de puesto (aceptado con su acción, o concedido por el entrenador en un suceso): el deporte apunta dónde juega ahora.
     [SHARED_EVENTS.CAMBIO_DE_PUESTO]: (ctx, ev) => {

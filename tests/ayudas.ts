@@ -1,4 +1,4 @@
-import { SERVICES, faltaViajar, rutaA, tiempoEntre, type LugaresService } from '@ds/contracts';
+import { SERVICES, faltaViajar, rutaA, tiempoEntre, type LugaresService, type SucesosService } from '@ds/contracts';
 import type { ActionResult, Game } from '@ds/core';
 
 /** Va a un sitio por el camino que permite el mapa (una zona, desde la entrada de su lugar). */
@@ -47,4 +47,21 @@ export function llegarA(game: Game, lugar: string, hora: number, minuto = 0): vo
     /* esperar */
   }
   viajarA(game, lugar);
+}
+
+/**
+ * La prueba de acceso de un club con puestos, de principio a fin: pedirla, unirse al entrenamiento, decidir lo que pregunte el entrenador (con `elige`: la opción; si no, la primera que se pueda) y entrenar a prueba.
+ * Devuelve el resultado de la última acción hecha (la de entrenar, o la que falló).
+ */
+export function hacerPruebaDeAcceso(game: Game, club: string, elige?: string): ActionResult {
+  const pendientes = () => game.service<SucesosService>(SERVICES.sucesos)!.pendientes().filter((p) => p.suceso.endsWith('.prueba_de_acceso'));
+  for (const paso of [`futbol.pedir_prueba.${club}`, `futbol.prueba.${club}`]) {
+    const r = hacer(game, paso);
+    if (!r.ok) return r;
+  }
+  for (const p of pendientes()) {
+    const o = (elige ? p.opciones.find((x) => x.id === elige) : undefined) ?? p.opciones.find((x) => x.elegible);
+    if (o) game.perform(o.accion);
+  }
+  return hacer(game, `futbol.prueba_entrenar.${club}`);
 }

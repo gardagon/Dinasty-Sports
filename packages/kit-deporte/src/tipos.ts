@@ -15,11 +15,27 @@ export interface ConfigDeporte {
   puestos?: (ctx: ReadContext) => Record<string, number>;
   /** Los puestos del deporte (id y nombre): el personaje elige en cuál quiere jugar al hacer una prueba de acceso. */
   puestosDelDeporte?: readonly { id: string; nombre: string }[];
+  /** Pedirle a tu entrenador jugar en otro puesto (desde su ficha): lo que se puede editar. Sin él, los valores de `PEDIR_PUESTO`. */
+  pedirPuesto?: ConfigDePedirPuesto;
   /** Acciones de entrenar por libre: rinden menos y no se pueden hacer durante la sesión del club. */
   entrenosLibres: readonly string[];
   /** Lo que sube una semana de juego informal («practicar con los amigos»): el primer día se aplica tantas semanas como diga el interés del personaje por el deporte. */
   juegoInformal?: readonly Entreno[number][];
 }
+
+/**
+ * Cómo se lleva pedir puesto al entrenador. Hay dos formas de no preguntar todo el rato, y se pueden combinar: una **espera** (no se puede volver a pedir hasta pasados `esperaDias`)
+ * y un **mal rato** (si se pide pasados menos de `enfadoSiPocoTiempo.dias`, el entrenador se lo toma mal y baja la relación `afinidad` puntos, además de la tirada).
+ */
+export interface ConfigDePedirPuesto {
+  /** Días de espera entre dos peticiones (0 = sin espera). */
+  esperaDias?: number;
+  /** `false` para no poner mal rato. */
+  enfadoSiPocoTiempo?: false | { dias: number; afinidad: number };
+}
+
+/** Valores de partida de `ConfigDePedirPuesto` (PROVISIONALES: a revisar con el usuario). */
+export const PEDIR_PUESTO = { esperaDias: 0, enfadoSiPocoTiempo: { dias: 14, afinidad: -3 } } as const;
 
 /** Lo que entrena una acción (el mismo formato que `ActionDef.train`). */
 export type Entreno = NonNullable<ActionDef['train']>;
@@ -55,8 +71,12 @@ export interface EstadoBaseDeDeporte {
   ofertas?: Record<string, number>;
   /** En los deportes con puestos, el puesto y lo que valió la prueba de cada plaza ofrecida (con ello se entra al aceptarla). Si el entrenador propuso otro puesto, es el propuesto. */
   plazasOfrecidas?: Record<string, { puesto: string; valores: Record<string, number> }>;
-  /** El puesto en que el personaje pide jugar en las pruebas de acceso (sin él, el que más vale). */
-  puestoElegido?: string;
+  /** Pruebas de acceso pedidas (club → semana en que se pidieron): con ello se puede unir al entrenamiento de prueba. */
+  pruebaPedida?: Record<string, number>;
+  /** La prueba de acceso en marcha: el club y el puesto en que le prueban (el que eligió entre los huecos; sin él, el que decida el entrenador). */
+  pruebaEnCurso?: { club: string; puesto?: string };
+  /** Último día que le pidió a su entrenador jugar en otro puesto (`pedirPuesto`). */
+  ultimaPeticionDePuesto?: number;
   /** El puesto que su entrenador le propone al empezar el curso (sobran en el suyo y faltan en otro): decide él (`aceptar_cambio_de_puesto`). */
   propuestaDePuesto?: string;
   /** El puesto del personaje en su equipo (el que le ofreció el club al entrar), en los deportes con puestos. */

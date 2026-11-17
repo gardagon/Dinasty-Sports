@@ -108,7 +108,7 @@ describe('los primeros eventos, en una partida de verdad', () => {
 });
 
 describe('la dificultad de pedirle al entrenador otro puesto (cifras provisionales: docs/relevo/futbol-pedir-puesto.md)', () => {
-  const tirada = (primerEntrenamiento as { variantes: { id: string; opciones: { id: string; tirada?: Parameters<typeof dificultadDeTirada>[0] }[] }[] }).variantes.find((v) => v.id === 'en_otro_sitio')!.opciones.find((o) => o.id === 'pedir_cambio')!.tirada!;
+  const tirada = (primerEntrenamiento as unknown as { variantes: { id: string; opciones: { id: string; tirada?: Parameters<typeof dificultadDeTirada>[0] }[] }[] }).variantes.find((v) => v.id === 'en_otro_sitio')!.opciones.find((o) => o.id === 'pedir_cambio')!.tirada!;
   const dificultad = (afinidad: number | undefined, estado: 'antipatia' | 'conocido' | 'amigo', ventaja: number): number =>
     dificultadDeTirada(tirada, {
       hechos: {

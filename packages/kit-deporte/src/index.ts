@@ -14,3 +14,4 @@ export * from './tablas';
 export * from './liga';
 export * from './calendario-de-partidos';
 export * from './playoff';
+export * from './puestos';

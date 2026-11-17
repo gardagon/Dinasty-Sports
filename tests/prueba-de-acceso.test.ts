@@ -5,6 +5,7 @@ import { MODULOS, nuevaPartida } from '@ds/game';
 import { advanceToWeek } from '@ds/core';
 import { ofertaDePuesto, type JugadorConPuesto } from '../modules/npcs/src/puestos';
 import { hacer, posible } from './ayudas';
+import type { SucesosService } from '@ds/contracts';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
@@ -98,27 +99,40 @@ describe('con el juego entero: la prueba del personaje, su puesto y el consejo d
 
   it('a los clubes de la zona se entra con una prueba de acceso (ya no con «Apuntarte a…»), y el del colegio sigue sin prueba', () => {
     const g = partida();
-    const ids = g.preview('futbol.prueba.club_mediano');
-    expect(ids).toBeDefined();
+    expect(g.preview('futbol.pedir_prueba.club_mediano')).toBeDefined();
+    expect(g.preview('futbol.prueba.club_mediano')).toBeUndefined(); // hasta pedirla no sale el paso de unirse
     expect(g.preview('futbol.apuntarse.club_grande')).toBeUndefined();
-    expect(g.preview('futbol.prueba.colegio')).toBeUndefined();
+    expect(g.preview('futbol.pedir_prueba.colegio')).toBeUndefined();
     expect(g.preview('futbol.apuntarse_colegio')).toBeDefined();
+    // Ya no hay acciones de elegir puesto en la lista general.
+    expect(g.listActions().filter((a) => a.id.includes('elegir_puesto'))).toEqual([]);
   });
 
-  it('elige el puesto en que quiere probar; al hacer la prueba, o entra en un puesto de la prueba o se queda sin plaza con el motivo', () => {
+  it('la prueba son tres pasos y un suceso: el entrenador se presenta, pregunta por los huecos y se mide la plaza en el puesto en que te prueban', () => {
     const g = partida();
-    expect(hacer(g, 'futbol.elegir_puesto.CB').ok).toBe(true);
-    expect(g.preview('futbol.elegir_puesto.CB')!.reason).toMatch(/Ya está elegido/);
-    expect(posible(g, 'futbol.prueba.club_mediano')).toBe(true);
-    const r = hacer(g, 'futbol.prueba.club_mediano');
-    expect(r.ok).toBe(true);
-    const estado = g.moduleState<{ puesto?: string; puestoElegido?: string; pruebas?: Record<string, number>; plazasOfrecidas?: Record<string, { puesto: string }> }>('futbol');
-    expect(estado.pruebas?.club_mediano).toBeDefined();
-    expect(estado.puestoElegido).toBe('CB');
+    expect(hacer(g, 'futbol.pedir_prueba.club_mediano').ok).toBe(true);
+    expect(g.preview('futbol.pedir_prueba.club_mediano')!.reason).toMatch(/Ya has pedido/);
+    expect(hacer(g, 'futbol.prueba.club_mediano').ok).toBe(true);
+    // Sin decidir lo del entrenador no se puede entrenar a prueba (o no había nada que decidir).
+    const pendiente = g.service<SucesosService>('sucesos')!.pendientes().find((p) => p.suceso === 'futbol.prueba_de_acceso');
+    const estado = () => g.moduleState<{ puesto?: string; pruebaEnCurso?: { club: string; puesto?: string }; pruebas?: Record<string, number> }>('futbol');
+    if (pendiente) {
+      expect(g.preview('futbol.prueba_entrenar.club_mediano')!.reason).toMatch(/decide dónde/);
+      const hueco = pendiente.opciones.find((o) => o.elegible && o.id.startsWith('en_'));
+      // Solo se ofrecen los huecos del equipo (más «donde él vea»).
+      expect(pendiente.opciones.filter((o) => o.id !== 'que_decida').length).toBeGreaterThanOrEqual(2);
+      expect(g.perform((hueco ?? pendiente.opciones.find((o) => o.id === 'que_decida')!).accion).ok).toBe(true);
+      if (hueco) expect(estado().pruebaEnCurso?.puesto).toBe(hueco.id.slice(3).toUpperCase());
+    }
+    expect(hacer(g, 'futbol.prueba_entrenar.club_mediano').ok).toBe(true);
+    expect(estado().pruebas?.club_mediano).toBeDefined();
+    expect(estado().pruebaEnCurso).toBeUndefined();
     const miembro = g.service<{ membership(d: string): { id: string } | undefined }>('clubes')!.membership('futbol');
-    // Entra (y entonces tiene puesto, el pedido o el que le propone el entrenador) o no entra y no tiene puesto.
-    if (miembro) expect(estado.puesto).toBeDefined();
-    else expect(estado.puesto).toBeUndefined();
+    // Entra (y entonces tiene puesto, el elegido o el que le propone el entrenador) o no entra y no tiene puesto.
+    if (miembro) expect(estado().puesto).toBeDefined();
+    else expect(estado().puesto).toBeUndefined();
+    // El entrenador del club se ha presentado (pasa a ser conocido).
+    if (pendiente) expect(g.service<NpcDirectory>('npcs')!.list({ role: 'entrenador', known: true }).length).toBeGreaterThan(0);
   });
 
   it('el profesor de Educación Física nombra varios puestos (sin cifras) y el deporte; el consejo es el mismo para el mismo día', () => {

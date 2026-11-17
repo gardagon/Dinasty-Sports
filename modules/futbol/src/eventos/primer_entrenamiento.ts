@@ -1,4 +1,5 @@
 import { suceso } from '@ds/contracts';
+import { ajustesDePedirPuesto } from '@ds/kit-deporte';
 
 /**
  * El primer entrenamiento con el equipo: el entrenador le dice dónde le va a poner de inicio. El puesto ya lo tiene (el que pidió o le dieron al
@@ -51,17 +52,7 @@ export default suceso({
           tirada: {
             con: 'gen.comunicacion',
             dificultad: 55,
-            ajustes: [
-              { si: [{ relacion: 'entrenador', estado: ['antipatia', 'enemigo', 'antagonista'] }], mas: 10 },
-              { si: [{ relacion: 'entrenador', afinidad: { min: 20 } }], mas: -5 },
-              { si: [{ relacion: 'entrenador', afinidad: { min: 40 } }], mas: -5 },
-              { si: [{ relacion: 'entrenador', afinidad: { min: 75 } }], mas: -5 },
-              { si: [{ hecho: 'futbol.ventaja_del_mejor_puesto', min: 3 }], mas: -5 },
-              { si: [{ hecho: 'futbol.ventaja_del_mejor_puesto', min: 10 }], mas: -5 },
-              { si: [{ hecho: 'futbol.ventaja_del_mejor_puesto', min: 20 }], mas: -5 },
-              { si: [{ hecho: 'futbol.ventaja_del_mejor_puesto', max: -3 }], mas: 8 },
-              { si: [{ hecho: 'futbol.ventaja_del_mejor_puesto', max: -10 }], mas: 7 },
-            ],
+            ajustes: ajustesDePedirPuesto((r) => ({ hecho: 'futbol.ventaja_del_mejor_puesto', ...r })),
           },
           exito: {
             efectos: [{ emite: 'club.cambio_de_puesto', datos: { sport: 'futbol', puesto: '{hecho.futbol.mejor_puesto_id}' } }, { estado: 'gen.motivacion', mas: 4 }],

@@ -151,7 +151,7 @@ En juvenil, que tiene tres años, «segundo año» es segundo y tercero.
 
 **El puesto del personaje y el consejo del profesor de Educación Física:**
 - El personaje puede **preguntar a su profesor de Educación Física** qué deporte y qué puesto le irían bien (el puesto, si el deporte lo tiene). El profesor le nombra **varios puestos** en los que podría funcionar, según lo que ve de él (lo que percibe, no los números exactos: `VISION.md`, principio 7).
-- **Al apuntarse o al pedir una prueba, el personaje elige dónde quiere jugar**, y la regla de plaza se mide en ese puesto. El entrenador le puede proponer otro puesto en la prueba y él decide si lo acepta (hecho). Los roles y la experiencia en cada puesto, en la F3.
+- **El puesto se habla con el entrenador (decisión del usuario, 17/11; sustituye a las acciones «Pedir jugar de <puesto> en las pruebas»):** (1) *en la prueba de acceso* lo pregunta el entrenador, si al equipo le faltan jugadores en varios puestos (solo se ofrecen esos huecos, o «donde tú veas»); la plaza se mide en el puesto en que te prueban; (2) *ya en el equipo*, se le pide en su ficha, «Pedir jugar…» con un desplegable de puestos, y decide una tirada de comunicación (cuesta menos con buena relación con él y valiendo más en el puesto pedido que en el actual). Cifras provisionales y notas: `docs/relevo/futbol-pedir-puesto.md`. Los roles y la experiencia en cada puesto, en la F3.
 - El puesto favorito de un niño del mundo es, al empezar, aquel en el que más vale.
 
 ## 6. La temporada: liga y después copa

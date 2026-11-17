@@ -31,6 +31,12 @@ export const SHARED_EVENTS = {
   PLAZA_PERDIDA: 'club.plaza_perdida',
   /** Al empezar el curso, el entrenador le propone al personaje jugar en otro puesto (sobran en el suyo y faltan en otro): decide él. */
   PROPUESTA_DE_PUESTO: 'club.propuesta_de_puesto',
+  /** data: PruebaEmpiezaData — el personaje se presenta a la prueba de acceso de un club con puestos: el entrenador se presenta y, si faltan jugadores en varios puestos, le pregunta dónde quiere jugar. */
+  PRUEBA_EMPIEZA: 'club.prueba_empieza',
+  /** data: PruebaPuestoData — el puesto en que le van a probar (el que eligió entre los huecos o, sin él, el que decida el entrenador): lo apunta el deporte para medir la plaza. */
+  PRUEBA_PUESTO: 'club.prueba_puesto',
+  /** data: PidePuestoData — el personaje le pide a su entrenador jugar en otro puesto (desde su ficha): un suceso decide con una tirada. */
+  PIDE_PUESTO: 'club.pide_puesto',
   /** El personaje acepta el cambio de puesto que le propuso su entrenador: el equipo cuenta con él en el nuevo. */
   CAMBIO_DE_PUESTO: 'club.cambio_de_puesto',
   /** data: ClassAttendedData — el personaje ha ido a una clase (el profesor de esa asignatura se presenta si no lo conoce). */
@@ -187,6 +193,31 @@ export interface PlazaPerdidaData {
 export interface PuestoPropuestoData {
   sport: string;
   puesto: string;
+}
+
+/** `PRUEBA_EMPIEZA`: `huecos` son los puestos donde al equipo le faltan jugadores; `participants`, el entrenador que le atiende. */
+export interface PruebaEmpiezaData {
+  sport: string;
+  club: string;
+  huecos: string[];
+  nHuecos: number;
+  participants: { npcId: string }[];
+}
+
+/** `PRUEBA_PUESTO`: sin `puesto`, decide el entrenador (el que más vale, prefiriendo un hueco). */
+export interface PruebaPuestoData {
+  sport: string;
+  puesto?: string;
+}
+
+/** `PIDE_PUESTO`: `ventaja` es lo que vale más (o menos, si es negativa) en el puesto que pide que en el suyo; `diasDesdeLaUltima`, los días desde que se lo pidió por última vez (o 999). */
+export interface PidePuestoData {
+  sport: string;
+  puesto: string;
+  puestoNombre: string;
+  ventaja: number;
+  diasDesdeLaUltima: number;
+  participants: { npcId: string }[];
 }
 
 export interface ClubJoinData {

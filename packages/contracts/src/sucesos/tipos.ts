@@ -76,6 +76,8 @@ export type Efecto =
   | { modificador: { tags: readonly string[]; eficiencia?: number; coste?: number; duracion?: number; dias: number; motivo: string } }
   | { restriccion: { tags: readonly string[]; dias: number; motivo: string } }
   | { si: readonly Condicion[]; entonces: readonly Efecto[]; sino?: readonly Efecto[] }
+  /** Una tirada sin que nadie elija (un aviso sin opciones): con la misma fórmula que la de una opción (`ajustes` incluidos), aplica los efectos de `exito` o de `fallo`. */
+  | { tirada: TiradaDef; exito: readonly Efecto[]; fallo: readonly Efecto[] }
   | { fin: true };
 
 /** Lo que pasa al elegir una opción (o en cada rama de su tirada). */

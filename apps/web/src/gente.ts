@@ -2,6 +2,7 @@ import {
   aforoCercano,
   idDePonerApodo,
   LONGITUD_MAXIMA_DE_APODO,
+  PREFIJO_DE_CONVERSACION,
   SERVICES,
   descripcionDeDesconocido,
   edadAparente,
@@ -11,7 +12,9 @@ import {
   nombreSegunEdad,
   NOMBRE_RASGO,
   nombreEstado,
+  type ConversacionService,
   type LugaresService,
+  type PeticionDeConversacion,
   type NpcDirectory,
   type NpcRole,
   type NpcView,
@@ -61,6 +64,10 @@ let pestana: Pestana = 'resumen';
 /** «Proponer quedar para…»: si está desplegado y lo que se ha ido eligiendo con cada persona. */
 let planAbierto = false;
 const eleccionesDePlan = new Map<string, Partial<EleccionDePlan>>();
+/** Las peticiones de la conversación («Pedir jugar…»): cuál está desplegada y lo que se ha elegido en cada desplegable (por persona y petición). */
+let peticionAbierta: string | null = null;
+const eleccionesDePeticion = new Map<string, string>();
+const claveDePeticion = (npcId: string, id: string): string => `${npcId}|${id}`;
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const rol = (n: NpcView) =>
@@ -161,6 +168,31 @@ function accionesCon(g: Game, n: NpcView): string {
     ${luego.length ? `<details class="viaje-rapido"><summary>Lo que no se puede ahora (${luego.length})</summary><div class="actions">${luego.map(boton).join('')}</div></details>` : ''}`;
 }
 
+/**
+ * Lo que se le puede pedir a esta persona con un desplegable («Pedir jugar…» a tu entrenador): lo publican los módulos como servicios `conversacion.<id>` y aquí se dibuja sin saber de qué trata.
+ * Cada petición es un botón que despliega su desplegable y el botón que la lanza (con el id de la acción: prefijo + lo elegido).
+ */
+function bloqueDePeticiones(g: Game, n: NpcView): string {
+  const todas: PeticionDeConversacion[] = [...g.registry.services.keys()]
+    .filter((k) => k.startsWith(PREFIJO_DE_CONVERSACION))
+    .flatMap((k) => g.service<ConversacionService>(k)?.peticiones(n.id) ?? []);
+  if (!todas.length) return '';
+  return `<h3>Hablar con ${esc(n.nombreCorto)}</h3>${todas.map((p) => {
+    const clave = claveDePeticion(n.id, p.id);
+    const abierta = peticionAbierta === clave;
+    const elegida = p.opciones.find((o) => o.valor === eleccionesDePeticion.get(clave))?.valor ?? p.sugerida ?? p.opciones[0]?.valor;
+    const texto = p.opciones.find((o) => o.valor === elegida)?.texto.toLowerCase() ?? '';
+    const opciones = p.opciones.map((o) => `<option value="${esc(o.valor)}"${o.valor === elegida ? ' selected' : ''}>${esc(o.texto)}</option>`).join('');
+    return `<button class="action" data-gente="peticion-abrir" data-id="${esc(clave)}"><span class="action-name">${esc(p.nombre)}</span><span class="action-time">${abierta ? '▲' : '▼'}</span></button>
+      ${abierta ? `<div class="formulario-plan">
+        ${p.descripcion ? `<p class="note">${esc(p.descripcion)}</p>` : ''}
+        <label class="campo-plan"><span>${esc(p.etiqueta)}</span><select data-gente="peticion-campo" data-id="${esc(clave)}">${opciones}</select></label>
+        ${p.motivo ? `<p class="note">${esc(p.motivo)}</p>` : ''}
+        <button class="action" data-do="${esc(p.prefijoDeAccion + (elegida ?? ''))}"${p.motivo || !elegida ? ' disabled' : ''}><span class="action-name">${esc(p.boton.replace('{opcion}', texto))}</span><span class="action-time">${p.minutos} min</span></button>
+      </div>` : ''}`;
+  }).join('')}`;
+}
+
 /** Cómo le llamas: el apodo (puesto por ti o con el que ya viene) y un cuadro para cambiarlo. El botón lleva el id de la acción (lo actualiza `main.ts` al escribir). */
 function bloqueDeApodo(n: NpcView): string {
   return `<div class="apodo-gente">
@@ -250,7 +282,7 @@ function ficha(g: Game, n: NpcView): string {
   }
   const motivo = ocupadosAqui(g).get(n.id);
   const aviso = motivo && pestana === 'resumen' ? `<p class="note ocupado">${esc(ocupadaTexto(motivo))}: ahora no puedes hablar con ${n.gender === 'f' ? 'ella' : 'él'}.</p>` : '';
-  const acciones = pestana === 'resumen' && conocida(n) ? bloqueDePlanes(g, n) + accionesCon(g, n) + bloqueDeApodo(n) : '';
+  const acciones = pestana === 'resumen' && conocida(n) ? bloqueDePlanes(g, n) + bloqueDePeticiones(g, n) + accionesCon(g, n) + bloqueDeApodo(n) : '';
   return `<section class="sheet ficha-gente">
     <button data-gente="volver">← Volver</button>
     <h2>${nombre} <small>${esc(rol(n))}</small></h2>
@@ -310,6 +342,9 @@ export function clicEnGente(el: HTMLElement): boolean {
     case 'plan-abrir':
       planAbierto = !planAbierto;
       return true;
+    case 'peticion-abrir':
+      peticionAbierta = peticionAbierta === id ? null : id;
+      return true;
     case 'plan-dia':
       if (seleccionada) eleccionesDePlan.set(seleccionada, { ...eleccionesDePlan.get(seleccionada), cuando: id as EleccionDePlan['cuando'], minuto: undefined });
       return true;
@@ -320,6 +355,10 @@ export function clicEnGente(el: HTMLElement): boolean {
 
 /** Cambia un desplegable del formulario de proponer un plan (actividad, sitio u hora). `true` si hay que volver a dibujar. */
 export function cambioEnGente(el: HTMLSelectElement): boolean {
+  if (el.dataset.gente === 'peticion-campo' && el.dataset.id) {
+    eleccionesDePeticion.set(el.dataset.id, el.value);
+    return true;
+  }
   if (el.dataset.gente !== 'plan-campo' || !seleccionada) return false;
   const campo = el.dataset.campo;
   const previo = eleccionesDePlan.get(seleccionada) ?? {};
