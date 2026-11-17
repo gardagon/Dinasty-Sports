@@ -24,6 +24,8 @@ import {
   type PresenciaService,
   type ReadContext,
   type StatId,
+  TOLERANCIA_DE_SESION,
+  type ClubImpuntualData,
 } from '@ds/contracts';
 import { idDeConocimiento } from './habilidades';
 import type { ConfigDeporte, Entreno, EstadoBaseDeDeporte, HabilidadDeConsejo } from './tipos';
@@ -274,7 +276,12 @@ export function sesionDeClub(cfg: ConfigDeporte, def: { description: string; tag
     },
     delta: def.delta,
     train: def.train,
-    run: (ctx) => ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimaSesionClub: ctx.time.day })),
+    run: (ctx) => {
+      ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimaSesionClub: ctx.time.day }));
+      // Incorporarse tarde ya cuesta la parte de sesión perdida; además se avisa, por si alguien quiere contarlo (los sucesos).
+      const tarde = ctx.time.minuteOfDay - (clubDelJugador(ctx, deporte)?.sesiones.desde ?? 24) * 60;
+      if (tarde > TOLERANCIA_DE_SESION) ctx.emit<ClubImpuntualData>({ type: SHARED_EVENTS.SESION_TARDE, data: { sport: deporte, minutos: tarde } });
+    },
   };
 }
 

@@ -120,7 +120,8 @@ export interface DecisionDef {
 }
 
 export type Disparo =
-  | { al: string }
+  /** Al pasar una señal. Con `prob` es espontáneo: sale solo algunas veces (azar propio del suceso y del momento) y gasta el cupo de su categoría. */
+  | { al: string; prob?: number }
   | { cada: 'dia' | 'semana'; prob: number }
   | { umbral: readonly Condicion[] }
   | { programado: true };
@@ -137,6 +138,9 @@ export interface PapelDef {
   conocido?: boolean;
   edad?: Rango;
   delDeportePrincipal?: boolean;
+  /** Quien da esta asignatura (el id de su stat, `estudios.educacion_fisica`) o la que viene en ese dato de la señal. */
+  asignatura?: string;
+  asignaturaDeLaSeñal?: string;
   /** Cumple años dentro de estos días exactos. */
   cumpleEn?: { dias: number };
   /** Alguien de la lista `participants` (o la que se diga) de la señal que disparó el suceso. */
@@ -207,6 +211,8 @@ export interface SucesoDef extends DecisionDef {
   presentacion?: 'ventana' | 'linea';
   /** Si se dispara con una señal: unos datos de ejemplo de esa señal, para probarlo y enseñarlo sin esperar a que pase (obligatorio si sus textos usan `{señal.…}`). */
   ejemploDeSeñal?: Readonly<Record<string, unknown>>;
+  /** Si sus textos usan hechos de un módulo (`{hecho.futbol.puesto}`): unos valores de ejemplo, para enseñarlo y recorrer sus caminos sin tener que llegar a esa situación. */
+  ejemploDeHechos?: Readonly<Record<string, number | string | boolean>>;
   /** Pruebas escritas como datos por quien lo diseña. */
   pruebas?: readonly PruebaDef[];
 }

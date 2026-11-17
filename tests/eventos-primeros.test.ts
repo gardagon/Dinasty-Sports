@@ -1,0 +1,107 @@
+import { describe, expect, it, vi } from 'vitest';
+import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, registrarPais, type RelationsService, type SucesoPendiente, type SucesosService } from '@ds/contracts';
+import type { Game } from '@ds/core';
+import { MODULOS, nuevaPartida } from '@ds/game';
+import { futbol, type FutbolState } from '@ds/mod-futbol';
+import { Banco } from '../tools/eventos/banco';
+import { hacer, posible } from './ayudas';
+
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
+
+/**
+ * Los primeros eventos que ve el jugador, jugados en una partida de verdad (sin forzar nada): salen cuando toca y se apoyan en las mecánicas que ya
+ * existían (el consejo del profesor de Educación Física, el puesto en el equipo, llegar tarde).
+ */
+const pendiente = (g: Game, suceso: string): SucesoPendiente | undefined => g.service<SucesosService>(SERVICES.sucesos)!.pendientes().find((p) => p.suceso === suceso);
+const CLASES = [1, 2, 3, 4].map((k) => `estudios.clase_${k}`);
+const esperar = (g: Game): void => {
+  if (!g.perform('gen.esperar').ok) throw new Error('No se puede esperar');
+};
+/** Decide lo que haya pendiente con la opción por defecto del test (la primera elegible), para que no se acumule. */
+const despejar = (g: Game): void => {
+  for (const p of g.service<SucesosService>(SERVICES.sucesos)!.pendientes()) g.perform(p.opciones.find((o) => o.elegible)!.accion);
+};
+
+describe('los primeros eventos, en una partida de verdad', () => {
+  it('la primera clase de Educación física trae el consejo del profesor, y no se repite', () => {
+    const g = nuevaPartida({ seed: 11 });
+    const id = 'eventos.estudios.primer_dia_de_educacion_fisica';
+    for (let k = 0; k < 6000 && !pendiente(g, id); k++) {
+      const clase = CLASES.find((c) => posible(g, c));
+      if (clase) hacer(g, clase);
+      else esperar(g);
+      if (!pendiente(g, id)) despejar(g);
+    }
+    const p = pendiente(g, id)!;
+    expect(p).toBeDefined();
+    expect(p.texto).toMatch(/^Al acabar la clase, .+ te para/);
+    expect(p.texto).not.toMatch(/[{}]/);
+    const profesor = p.reparto.profesor;
+    const antes = g.service<RelationsService>(SERVICES.relaciones)!.get(profesor)?.afinidad ?? 0;
+    expect(g.perform(p.opciones[0].accion).ok).toBe(true);
+    expect(g.service<RelationsService>(SERVICES.relaciones)!.get(profesor)!.afinidad).toBeGreaterThan(antes);
+    // Una vez en la vida.
+    for (let k = 0; k < 3000; k++) {
+      const clase = CLASES.find((c) => posible(g, c));
+      if (clase) hacer(g, clase);
+      else esperar(g);
+      expect(pendiente(g, id)).toBeUndefined();
+      despejar(g);
+      if (g.time.day > 9) break;
+    }
+  });
+
+  it('entrar con la clase empezada tiene su momento, con los minutos de retraso', () => {
+    const g = nuevaPartida({ seed: 12 });
+    const id = 'eventos.estudios.tarde_a_clase';
+    for (let k = 0; k < 4000 && !pendiente(g, id); k++) {
+      const clase = CLASES.find((c) => posible(g, c));
+      if (!clase) {
+        esperar(g);
+        continue;
+      }
+      // Se espera a que la clase lleve un rato empezada (la acción dura menos cuando ya ha empezado).
+      const entera = g.preview(clase)!.duration;
+      for (let m = 0; m < 12 && posible(g, clase) && g.preview(clase)!.duration > entera - 20; m++) esperar(g);
+      if (posible(g, clase)) hacer(g, clase);
+      if (!pendiente(g, id)) despejar(g);
+    }
+    const p = pendiente(g, id)!;
+    expect(p).toBeDefined();
+    expect(p.texto).toMatch(/\d+ minutos tarde/);
+    expect(p.opciones.map((o) => o.id)).toEqual(['disculparse', 'excusa', 'gracia', 'nada']);
+  });
+
+  it('el primer entrenamiento de fútbol: el entrenador dice dónde va a jugar, con su puesto de verdad', () => {
+    registrarPais(PAIS_CIUDAD_DE_PRUEBA);
+    const g = nuevaPartida({ seed: 31, pais: PAIS_CIUDAD_DE_PRUEBA.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const id = 'futbol.primer_entrenamiento';
+    for (let k = 0; k < 6000 && !pendiente(g, id); k++) {
+      if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');
+      else if (posible(g, 'futbol.club_sesion')) hacer(g, 'futbol.club_sesion');
+      else if (!g.perform('gen.descansar').ok) esperar(g);
+      if (!pendiente(g, id)) despejar(g);
+    }
+    const p = pendiente(g, id)!;
+    expect(p).toBeDefined();
+    expect(p).toMatchObject({ origen: 'deporte', deporte: 'futbol' });
+    expect(g.moduleState<FutbolState>('futbol').puesto).toBeDefined();
+    expect(p.texto).toMatch(/De inicio vas a jugar de [a-záéíóúñ ]+/);
+    expect(p.texto).not.toMatch(/[{}]/);
+    expect(p.opciones.map((o) => o.id)).toContain('preguntar');
+  });
+
+  it('si el entrenador concede el cambio de puesto, el fútbol y el equipo lo apuntan (la misma señal de siempre)', () => {
+    const s = new Banco().sesion({ hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } });
+    expect(s.forzar('futbol.primer_entrenamiento')).toBe(true);
+    expect(s.pendiente('futbol.primer_entrenamiento')!.opciones.find((o) => o.id === 'pedir_cambio')!.texto).toBe('Pedirle jugar de extremo derecho');
+    s.elegir('futbol.primer_entrenamiento', 'pedir_cambio', 'exito');
+    expect(s.game.moduleState<FutbolState>('futbol').puesto).toBe('RW');
+    expect(s.game.moduleState<{ puestoDelPersonaje?: Record<string, string> }>('npcs').puestoDelPersonaje?.futbol).toBe('RW');
+
+    const no = new Banco().sesion({ hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } });
+    no.forzar('futbol.primer_entrenamiento');
+    no.elegir('futbol.primer_entrenamiento', 'pedir_cambio', 'fallo');
+    expect(no.game.moduleState<FutbolState>('futbol').puesto).toBeUndefined();
+  });
+});

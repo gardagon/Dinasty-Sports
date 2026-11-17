@@ -214,7 +214,7 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
     // Forma
     if (!s.titulo) err('falta el título');
     if (!s.texto && !s.variantes?.length) err('no tiene texto ni variantes');
-    if ('cada' in s.disparo && !(s.disparo.prob > 0 && s.disparo.prob <= 1)) err('la probabilidad debe estar entre 0 (sin incluir) y 1');
+    if (('cada' in s.disparo || ('al' in s.disparo && s.disparo.prob !== undefined)) && !(s.disparo.prob! > 0 && s.disparo.prob! <= 1)) err('la probabilidad debe estar entre 0 (sin incluir) y 1');
     if ('programado' in s.disparo && !programados.has(s.id)) err('es «programado» pero ningún suceso lo programa');
     if ('al' in s.disparo && entorno && !SEÑALES_COMPARTIDAS.has(s.disparo.al) && !SEÑALES_DEL_MOTOR.has(s.disparo.al) && !entorno.modulos.has(s.disparo.al.split('.')[0]))
       err(`se dispara con la señal «${s.disparo.al}», que no es del motor, ni compartida, ni de un módulo cargado`);
@@ -335,6 +335,12 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
         if (l.tipo === 'dato' && l.de === 'recuerdo' && !recuerdosDelHilo.has(l.clave)) err(`${donde}: usa el recuerdo «${l.clave}», que nadie guarda`);
         if (l.tipo === 'dato' && l.de === 'señal' && !('al' in s.disparo) && !h) err(`${donde}: usa un dato de la señal, pero el suceso no se dispara con una`);
         if (l.tipo === 'dato' && l.de === 'señal' && 'al' in s.disparo && s.ejemploDeSeñal?.[l.clave] === undefined) err(`${donde}: usa «{señal.${l.clave}}»; pon un «ejemploDeSeñal» con ese dato para poder probarlo`);
+        if (l.tipo === 'hecho' && !COMUNES.has(l.nombre)) {
+          const m = l.nombre.split('.')[0];
+          if (!l.nombre.includes('.')) err(`${donde}: el hecho «${l.nombre}» no es de los comunes ni de un módulo`);
+          else if (!requiere.includes(m)) err(`${donde}: usa el hecho «${l.nombre}» sin declarar «requiere: ['${m}']»`);
+          else if (s.ejemploDeHechos?.[l.nombre] === undefined) err(`${donde}: usa «{hecho.${l.nombre}}»; pon un «ejemploDeHechos» con ese hecho para poder probarlo`);
+        }
         if ((l.tipo === 'campo' || l.tipo === 'genero') && l.quien !== 'yo') {
           if (!papeles.has(l.quien)) err(`${donde}: nombra el papel «${l.quien}», que no está en el reparto`);
           else if (reparto[l.quien]?.opcional && !seguros.has(l.quien)) err(`${donde}: usa el papel opcional «${l.quien}» sin una condición que asegure que hay alguien ({ papel: '${l.quien}' })`);

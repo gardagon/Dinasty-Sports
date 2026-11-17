@@ -1049,7 +1049,7 @@ Los pasos 1 a 4 son el sistema; 5 y 6 se pueden hacer en paralelo; el 7 es el pr
 | 4. La herramienta | ✅ | `npm run eventos:nuevo`, `eventos:validar` (también `tests/eventos.test.ts`), `eventos:probar`, `eventos:mapa`, `eventos:indice` |
 | 5. La interfaz | ✅ | `apps/web/src/main.ts`: ventana del evento (retratos de quien participa, texto, opciones con su pista o el motivo por el que no se pueden elegir, plazo y «Decidir luego»), **ventana de los eventos sin opciones** (los importantes; los detalles ligeros salen como una línea; `presentacion` lo cambia en cada suceso), lista «Pendiente» en la pestaña principal y, en la interfaz de pruebas (pestaña Diario), una lista para **forzar** cualquier evento. Probado a mano en Chromium. Falta: cambiar la presentación desde «Opciones» y añadirlo a `npm run probar-web` |
 | 6. Bots y medidas | ✅ en parte | Los bots deciden cada evento como alguien con el carácter de su personaje (`decidirSucesos`, la misma regla que usará un PNJ). Chequeo «Ritmo de los eventos» en `npm run sim` y tabla por evento con `npm run sim:eventos`. **Medido (150 días, 1 semilla por bot): 0,0–0,1 eventos por semana**; salen las faltas (bots vago y aleatorio, con su revisión) y los cumpleaños; los comentarios de altura y las revelaciones no salieron en esas partidas. El primer lote es escaso para «que un día no sea igual que otro»: hace falta más contenido ligero. `npm run sim:rapida` con y sin el lote: mismos chequeos. Medido con 500 sucesos: abajo |
-| 7. Primer contenido | ✅ (por calibrar) | `modules/eventos`: faltas, 18 perks latentes, cumpleaños y altura. Cifras de partida |
+| 7. Primer contenido | ✅ (por calibrar) | `modules/eventos` (38 eventos base): faltas, 18 perks latentes, cumpleaños, altura, lesión, **primer día de Educación física**, **llegar tarde a clase** y **ocho detalles del aula y del patio**. `modules/futbol/src/eventos` (3 eventos deportivos): **primer entrenamiento** (dónde va a jugar; puede pedir otro puesto) y **llegar tarde** al entrenamiento y a la convocatoria. Cifras de partida: tabla abajo |
 | 8. Recuerdos | ✅ | Sección «Recuerdos» en la pestaña Diario (por curso: qué pasó, con quién y qué elegiste) y «Lo que habéis vivido» en la ficha de cada persona. Se componen desde la historia guardada (suceso, variante, opción y personas) |
 | 9. Sucesos de los PNJ | ✅ solo la clase `lesion` | Un suceso `para: 'cualquiera'` con `clase` puede pasarle a un PNJ: lector de hechos del PNJ, decide él por su carácter, sus marcas son suyas y sus efectos pasan por `estadoDeJugador` (que `npcs` aplica con la señal `persona.estado`). `npcs` avisa de cada lesión nueva (`persona.lesion`) y `eventos.salud.lesion` le da consecuencias (moral, y recuperarse bien o forzar). La pasada semanal de los PNJ para sucesos espontáneos existe y está sin uso (ninguna otra clase activada). Medidas abajo |
 
@@ -1081,5 +1081,53 @@ Lo que cuesta por acción son los sucesos que se disparan «al hacer una acción
 - **Activar una clase con sucesos espontáneos** añade unos 10–12 ms **por semana de juego** con 1.417 personas y 2–7 ms con 307. Una semana de juego son más de 150 acciones (unos 250 ms), así que es menos de un 5 %. Crece con las personas y con los sucesos que salen (cada uno que sale deja marcas y cambia el estado de alguien), no tanto con cuántos hay en el catálogo.
 - Lo que crecería es la **memoria**: con 100 sucesos de vida quedan unas 500 marcas de personas vivas a la vez (unos 20 KB). Sin medir: la ciudad grande de verdad (tarda 40 s en crearse) y el diario de cercanos.
 - **Para el usuario:** con estas cifras, activar más clases para los PNJ es barato en tiempo. Lo que falta para activarlas no es rendimiento sino contenido que valga para cualquiera (hoy casi todo depende de relaciones, dinero o estrés, que los PNJ no tienen).
+
+### Cifras provisionales del segundo lote (17/11/2026), para que el usuario las revise
+
+Todas son de partida, propuestas por el desarrollador. «Afinidad» y «confianza» son puntos del vínculo con esa persona (−100 a 100 y 0 a 100).
+
+**Primer día de Educación física** (`eventos.estudios.primer_dia_de_educacion_fisica`). Sale una vez, al ir por primera vez a su clase. El texto es el consejo que ya daba el profesor en la sala de profesores (misma lógica: `consejoDeportivo`).
+
+| Opción | Efecto |
+|---|---|
+| Decir que te gustaría probar | Afinidad con el profesor +3, motivación +5 |
+| Preguntarle en qué se ha fijado (5 min) | Afinidad +4, confianza +2, motivación +3, entrena comunicación (0,5) |
+| Encogerte de hombros | Nada |
+| Si no le ve claro en nada: decir que seguirás moviéndote | Afinidad +2, motivación +2 |
+
+**Primer entrenamiento de fútbol** (`futbol.primer_entrenamiento`). Sale una vez, tras la primera sesión con el club, si tiene puesto en el equipo. El puesto es el que ya tenía; «donde más vale» lo calcula el fútbol con lo que vale en cada puesto.
+
+| Opción | Efecto |
+|---|---|
+| Aceptar | Afinidad con el entrenador +3 (+2 y motivación +3 si ya juega donde más vale) |
+| Pedir jugar donde más vale (5 min) | Tirada con comunicación, dificultad 55. Si sale: **cambia de puesto** (la señal `club.cambio_de_puesto` de siempre) y motivación +4. Si no: afinidad −2 |
+| Preguntar qué tiene que mejorar (5 min) | Afinidad +2 (+3 si ya juega donde más vale), confianza +1, entrena conocimiento de fútbol (1) |
+
+Pendiente de decidir: que la dificultad de pedir el cambio dependa de la relación con el entrenador y de cuánto más vale en el otro puesto (hoy es fija).
+
+**Llegar tarde.** La mecánica de antes no cambia: en clase y en el entrenamiento se aprovecha solo la parte a la que se asiste; en la convocatoria, además, −3 de afinidad y −1 de confianza con el entrenador. Los eventos añaden esto:
+
+| Dónde | Cuándo sale | Disculparse | Excusa (tirada con picardía) | No decir nada | Otra |
+|---|---|---|---|---|---|
+| Clase (`eventos.estudios.tarde_a_clase`) | 5 minutos tarde o más; como mucho cada 4 días | Afinidad con el profesor −1 | Dificultad 40. Cuela: nada. No cuela: afinidad −3, estrés +3 | Afinidad −2 | Una broma (carisma 15 o más; tirada con carisma, dificultad 45): estrés −2 o afinidad −3 |
+| Entrenamiento (`futbol.tarde_al_entrenamiento`) | Más de 10 minutos tarde (señal nueva `club.sesion_tarde`); como mucho cada 6 días | Afinidad con el entrenador −1 | Dificultad 40. Cuela: nada. No cuela: afinidad −3, confianza −1 | Afinidad −2 | |
+| Convocatoria (`futbol.tarde_a_la_convocatoria`) | Siempre que ya contaba como impuntual (más de 10 minutos) | Afinidad +1 (recupera parte del −3) | Dificultad 50. Cuela: afinidad +1. No cuela: afinidad −2, confianza −1 más | Nada más | |
+
+El atletismo no tiene todavía su evento de llegar tarde al entrenamiento (la señal sí se emite para cualquier deporte).
+
+**Detalles del aula y del patio** (categoría `menor`: cupo de 2 al día y 8 a la semana). Los del aula se tiran al entrar en cada clase; los del patio, al llegar al patio entre las 10:30 y las 11:15.
+
+| Evento | Probabilidad | No se repite en | Lo que puede dejar |
+|---|---|---|---|
+| Te preguntan a ti | 6 % por clase | 20 días | Afinidad con el profesor +2 o −1, motivación +3, estrés +1 a +2 |
+| Un compañero te pide ayuda | 6 % por clase | 20 días | Afinidad con él +3, +2 o −1; entrena empatía y comunicación |
+| Una nota que pasa de mesa en mesa | 6 % por clase | 30 días | Afinidad +1 o −2; estrés −1 o +3; entrena picardía |
+| Llueve a mares (una línea) | 2 % por clase | 25 días | Estrés −1 |
+| Un balón que viene hacia ti | 12 % al llegar al patio | 15 días | Motivación +3, +1 o −1; entrena coordinación |
+| Un juego nuevo | 12 % al llegar al patio | 20 días | Afinidad +3; estrés −3; 15 minutos; entrena cooperación o autoridad |
+| Un pique | 12 % al llegar al patio | 25 días | Motivación +4 o −2; energía −3; afinidad +1 o +2 |
+| Un rato al sol (una línea) | 4 % al llegar al patio | 20 días | Estrés −2 |
+
+Con cuatro clases al día, tres eventos al 6 % y uno al 2 % dan en torno a uno cada día y medio de clase antes del cupo y de las esperas; con las esperas quedan bastante menos. Lo que salga de verdad se mide con `npm run sim:eventos`.
 
 **Diferencias con la propuesta** (manda `ANEXO_EVENTOS.md`): los sucesos de un hilo van en `sucesos:` (no `eventos:`); los hechos con nombre se leen con `{ hecho: 'faltas' }` y «lo que ha cambiado desde entonces» con `sobreRecuerdo`; un suceso que se dispara con una señal y usa sus datos en un texto lleva `ejemploDeSeñal`; un hilo solo programa sucesos suyos; la historia guarda también la variante; `altura_para_su_edad` va en centímetros sobre lo típico de la edad.

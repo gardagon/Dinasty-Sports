@@ -35,6 +35,8 @@ import {
   type StudiesService,
   type SummerPath,
   type WeekEventData,
+  servicioDeHechos,
+  type HechosService,
 } from '@ds/contracts';
 import {
   ASIGNATURAS,
@@ -344,15 +346,24 @@ const consejoDeEducacionFisica: ActionDef = {
     ctx.updateState<EstudiosState>((st) => ({ ...st, ultimoConsejoDeDeporte: ctx.time.day }));
     const profe = profesorEnLaSala(ctx, 'educacion_fisica');
     const quien = profe ? profe.nombreCorto : 'Tu profesor de Educación Física';
-    const consejos = ctx.service<NpcDirectory>(SERVICES.npcs)?.consejoDeportivo?.() ?? [];
-    if (!consejos.length) {
+    const frase = fraseDelConsejoDeportivo(ctx);
+    if (!frase) {
       ctx.log(`${quien} te mira un momento: «Todavía no te veo claro en ningún deporte; sigue moviéndote y pregúntame más adelante».`, 'info');
       return;
     }
-    const frases = consejos.map((c) => (c.puestos.length ? `en ${c.nombre} te veo bien de ${listaDePuestos(c.puestos.map((p) => p.nombre.toLowerCase()))}` : `te veo bien en ${c.nombre}`));
-    ctx.log(`${quien} te dice: «${frases.join('; ')}». Al hacer una prueba puedes pedir el puesto que quieras.`, 'info');
+    ctx.log(`${quien} te dice: «${frase}». Al hacer una prueba puedes pedir el puesto que quieras.`, 'info');
   },
 };
+
+/**
+ * Lo que el profesor de Educación Física ve en el personaje, en una frase («en fútbol te veo bien de lateral o extremo; te veo bien en atletismo»), o
+ * `undefined` si no ve nada claro. La usan la acción de preguntarle y el suceso del primer día de clase (hecho `estudios.consejo_deportivo`).
+ */
+function fraseDelConsejoDeportivo(ctx: ReadContext): string | undefined {
+  const consejos = ctx.service<NpcDirectory>(SERVICES.npcs)?.consejoDeportivo?.() ?? [];
+  if (!consejos.length) return undefined;
+  return consejos.map((c) => (c.puestos.length ? `en ${c.nombre} te veo bien de ${listaDePuestos(c.puestos.map((p) => p.nombre.toLowerCase()))}` : `te veo bien en ${c.nombre}`)).join('; ');
+}
 
 /** «a, b y c». */
 const listaDePuestos = (xs: readonly string[]): string => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} o ${xs[xs.length - 1]}` : (xs[0] ?? ''));
@@ -577,7 +588,7 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
         // Las clases llevan hasta el nivel natural: si ya lo pasas, aportan poco. (Las de capacidades no suben la asignatura: suben las capacidades.)
         if (!asignatura(key).porCapacidades) ctx.train(statId(key), RENDIMIENTO_CLASE * factorDeAptitud(ctx, key) * pesoDeClase(activas, key) * tironDeClase(ctx, key));
         // El profesor de la asignatura se presenta si todavía no lo conoces.
-        ctx.emit<ClassAttendedData>({ type: SHARED_EVENTS.CLASS_ATTENDED, data: { asignatura: statId(key) } });
+        ctx.emit<ClassAttendedData>({ type: SHARED_EVENTS.CLASS_ATTENDED, data: { asignatura: statId(key), tarde: Math.max(0, ctx.time.minuteOfDay - inicio) } });
       },
     });
     CLASES_CACHE.set(id, def);
@@ -814,6 +825,8 @@ export const estudios = defineModule<EstudiosState>({
   },
 
   services: {
+    // Hechos para los sucesos: lo que el profesor de Educación Física le diría hoy al personaje.
+    [servicioDeHechos('estudios')]: (ctx): HechosService => ({ valor: (nombre) => (nombre === 'consejo_deportivo' ? fraseDelConsejoDeportivo(ctx) : undefined) }),
     // Los minutos de Educación física los calcula contracts (`minutosDeEducacionFisica`): una sola fuente para el servicio y para el cuerpo de los PNJ.
     [SERVICES.educacionFisica]: (ctx): EducacionFisicaService => ({ minutosPorSemana: (curso) => minutosDeEducacionFisica(ctx.pais, curso) }),
     [SERVICES.estudios]: (ctx): StudiesService => {

@@ -25,7 +25,7 @@ npm run eventos:probar -- eventos.familia.cena                   # lo enseña po
 npm run eventos:mapa                                             # actualiza docs/eventos/MAPA.md
 ```
 
-No se toca nada más: ni el motor, ni el director, ni otro módulo. Un archivo exporta por defecto un `suceso({...})`, un `hilo({...})` o una lista de ellos. Los archivos que empiezan por `_` son ayudas (no se cargan). Ejemplos completos: `modules/eventos/src/familia/faltas.ts` (un hilo con tirada, castigo y escenarios), `perks/pulmones.ts` (variantes y papel opcional), `perks/revelaciones.ts` (una tabla que genera 17 sucesos), `relaciones/cumple.ts` (un hilo por persona, coste en dinero, plazo con hora), `cuerpo/altura.ts` (detalles ligeros).
+No se toca nada más: ni el motor, ni el director, ni otro módulo. Un archivo exporta por defecto un `suceso({...})`, un `hilo({...})` o una lista de ellos. Los archivos que empiezan por `_` son ayudas (no se cargan). Los eventos de un deporte se escriben igual, en una carpeta de su módulo (`modules/futbol/src/eventos/`), con `deporte: '<id>'`, y los aporta el propio deporte. Ejemplos completos: `modules/eventos/src/colegio/aula.ts` y `patio.ts` (detalles ligeros: el estilo a seguir), `estudios/educacion_fisica.ts` y `modules/futbol/src/eventos/primer_entrenamiento.ts` (reutilizan una mecánica que ya existía por medio de un hecho), `modules/eventos/src/familia/faltas.ts` (un hilo con tirada, castigo y escenarios), `perks/pulmones.ts` (variantes y papel opcional), `perks/revelaciones.ts` (una tabla que genera 17 sucesos), `relaciones/cumple.ts` (un hilo por persona, coste en dinero, plazo con hora), `cuerpo/altura.ts` (detalles ligeros).
 
 ## 3. El formato
 
@@ -33,7 +33,7 @@ No se toca nada más: ni el motor, ni el director, ni otro módulo. Un archivo e
 
 | `disparo` | |
 |---|---|
-| `{ al: 'una.señal' }` | Al pasar esa señal (del motor: `accion.realizada`, `dia.inicio`, `semana.fin`; compartidas: `competicion.resultado`, `clase.faltas_excesivas`…; o de un módulo). Si sus textos usan `{señal.x}`, hay que dar un `ejemploDeSeñal` |
+| `{ al: 'una.señal', prob? }` | Con `prob`, espontáneo ligado a un momento (al entrar en clase, al llegar al patio): sale algunas veces y gasta cupo. Sin ella: al pasar esa señal (del motor: `accion.realizada`, `dia.inicio`, `semana.fin`; compartidas: `competicion.resultado`, `clase.faltas_excesivas`…; o de un módulo). Si sus textos usan `{señal.x}`, hay que dar un `ejemploDeSeñal` |
 | `{ cada: 'dia' \| 'semana', prob }` | Espontáneo: se tira cada día (o semana) y, si sale, compite por el **cupo** |
 | `{ umbral: [condiciones] }` | Una vez, cuando las condiciones pasan de no cumplirse a cumplirse (se miran al empezar el día) |
 | `{ programado: true }` | Solo si otro suceso de su hilo lo programa |
@@ -70,6 +70,7 @@ reparto: {
   entrenador: { rol: 'entrenador', delDeportePrincipal: true, opcional: true },
   cumple:     { relacion: { afinidad: { min: 20 } }, cumpleEn: { dias: 3 }, edad: { max: 18 } },
   rival:      { deLaSeñal: 'participants', donde: { bando: 'rival' } },
+  profesor:   { asignatura: 'estudios.educacion_fisica' },      // o { asignaturaDeLaSeñal: 'asignatura' }
 }
 ```
 
@@ -84,6 +85,7 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
 | `{tutor:o\|a}`, `{tutor:él\|ella}` | La forma que toque por su género |
 | `{yo:o\|a}`, `{yo.nombre}` | Lo mismo para quien vive el suceso |
 | `{señal.faltas}`, `{recuerdo.x}`, `{pais}` | Datos de la señal, de la memoria del hilo y el país |
+| `{hecho.futbol.puesto}`, `{hecho.edad}` | Un hecho con nombre, tal como está ahora (si es de un módulo, con `requiere` y un `ejemploDeHechos` para poder probarlo) |
 
 `variantes: [{ id, si: [...], texto?, opciones?, efectos? }]`: gana la primera cuyas condiciones se cumplen (`si: []` siempre); lo que no redefine lo hereda del suceso.
 
@@ -118,7 +120,7 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
 | Carácter | `{ caracter: { disciplina: 1 } }` | `gen` (señal `perfil.caracter`; de −50 a 50) |
 | Revelar un perk | `{ revelaPerk: 'pulmones_grandes' }` | `gen` (señal `perk.revelado`) |
 | Conocer a alguien | `{ presenta: 'amigo' }` | señal `persona.presentarse` |
-| Otra señal compartida | `{ emite: 'club.salir', datos: {...} }` | Su dueño |
+| Otra señal compartida | `{ emite: 'club.cambio_de_puesto', datos: { sport: 'futbol', puesto: '{hecho.futbol.mejor_puesto_id}' } }` (los textos de los datos admiten llaves) | Su dueño |
 | Diario | `{ diario: 'Texto', tipo: 'logro' }` | El director |
 | Marca | `{ marca: 'planton', de: 'amigo', dura: { dias: 180 } }`, `{ quitaMarca: 'planton', de: 'amigo' }` | Memoria de toda la partida |
 | Recuerdo | `{ recuerda: { faltas_al_hablar: 'faltas' } }` | Memoria del hilo (el valor del hecho ahora) |
@@ -206,5 +208,5 @@ escenarios: [{
 | Un evento base | `modules/eventos/src/<área>/<archivo>.ts` |
 | Cupos, presentación, PNJ | `CONFIG_DE_SUCESOS` (`contracts/src/sucesos/tipos.ts`) o un aporte a `sucesos.config` |
 | Fórmula de la tirada, Suertudo y Gafe | `TIRADA`, `probabilidadDeExito` (`contracts/src/sucesos/condiciones.ts`) |
-| Un hecho nuevo de un módulo | Ese módulo publica el servicio `hechos.<id>` (`HechosService`) |
+| Un hecho nuevo de un módulo | Ese módulo publica el servicio `hechos.<id>` (`HechosService`). Hoy: `estudios.consejo_deportivo`; `futbol.puesto`, `futbol.mejor_puesto`, `futbol.mejor_puesto_id`, `futbol.juega_donde_mas_vale`, `futbol.ventaja_del_mejor_puesto` |
 | Un efecto nuevo | `Efecto` (`tipos.ts`), su validación (`catalogo.ts`) y `aplicar` (`modules/sucesos/src/index.ts`); si cambia algo de otro módulo, con una señal compartida que recoja su dueño |

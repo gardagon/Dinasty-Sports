@@ -59,6 +59,8 @@ export const SHARED_EVENTS = {
   CAMBIO_DE_CARACTER: 'perfil.caracter',
   /** data: PerkReveladoData — el personaje descubre un perk latente que tenía: lo apunta quien guarda sus perks. */
   PERK_REVELADO: 'perk.revelado',
+  /** data: ClubImpuntualData — el personaje se ha incorporado tarde a una sesión de entrenamiento de su club (más de `TOLERANCIA_DE_SESION` minutos). No cambia nada por sí sola: quien quiera contarlo lo recoge. */
+  SESION_TARDE: 'club.sesion_tarde',
   /** data: LesionDePersonaData — una persona del mundo se ha lesionado esta semana (su baja ya está en su estado): quien quiera contarlo o darle consecuencias lo recoge. */
   LESION_DE_PERSONA: 'persona.lesion',
   /** data: EstadoDePersonaData — algo que ha pasado cambia el estado de juego de una persona del mundo (moral, forma, condición, salud, semanas de baja): lo aplica quien la guarda. */
@@ -110,6 +112,9 @@ export interface CambioDeCaracterData {
 export interface PerkReveladoData {
   perk: string;
 }
+
+/** Minutos de retraso que no cuentan al incorporarse a una sesión del club. */
+export const TOLERANCIA_DE_SESION = 10;
 
 /** El personaje llegó tarde a la convocatoria de un partido (`minutos` después de la hora en que se convoca). */
 export interface ClubImpuntualData {
@@ -212,6 +217,8 @@ export interface FaltasExcesivasData {
 export interface ClassAttendedData {
   /** Id de la asignatura (la stat), p. ej. `estudios.lengua`. */
   asignatura: string;
+  /** Minutos que llegó tarde (0 si entró a su hora). */
+  tarde?: number;
 }
 
 export interface ClubAbandonoData {

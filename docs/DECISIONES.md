@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Eventos, segundo lote: Educación física, el puesto en el fútbol, llegar tarde y detalles del colegio (pedido por el usuario)
+
+Los primeros eventos que verá el jugador, apoyados en mecánicas que ya existían (no se duplican). Cifras provisionales en `PLAN_EVENTOS.md` §7 bis.
+
+- **Primer día de Educación física:** el consejo del profesor llega solo la primera vez que se va a su clase. La frase es la misma que daba la acción de preguntarle (`fraseDelConsejoDeportivo`, hecho `estudios.consejo_deportivo`); la acción sigue existiendo.
+- **Primer entrenamiento de fútbol** (evento deportivo, dentro del módulo del fútbol): el entrenador dice dónde va a jugar de inicio (su puesto de verdad) y se puede aceptar, pedir el puesto donde más vale (tirada: el entrenador decide) o preguntar qué mejorar. Si lo concede, es la señal `club.cambio_de_puesto` de siempre; el kit de deporte la recoge ahora también para apuntar el puesto (antes solo lo hacía la acción de aceptar una propuesta).
+- **Llegar tarde:** a clase (evento base), al entrenamiento y a la convocatoria (deportivos del fútbol). La mecánica no cambia; `clase.asistida` lleva ahora los minutos de retraso y hay una señal nueva `club.sesion_tarde` (más de `TOLERANCIA_DE_SESION` = 10 minutos), que por sí sola no cambia nada.
+- **Detalles del aula y del patio:** ocho sucesos ligeros como muestra de estilo. Para ellos, un disparo por señal puede llevar probabilidad (`{ al, prob }`): es espontáneo, ligado a un momento, y gasta el cupo de su categoría.
+- **Formato:** `{hecho.<nombre>}` en los textos (con `ejemploDeHechos` para probarlos), llaves en los datos de `emite`, y papeles por asignatura (`asignatura`, `asignaturaDeLaSeñal`).
+- El test de la convocatoria de benjamín cuenta ahora a los disponibles: con las lesiones de los PNJ pasando por su suceso, un jugador que fuerza su vuelta puede recaer y el equipo tener a alguien más de baja.
+
 ## 16/11/2026 — Eventos y decisiones (E18): decisiones del usuario sobre el plan
 
 Respuestas del usuario a las 13 preguntas de `docs/PLAN_EVENTOS.md` §6 (la tabla completa está allí):

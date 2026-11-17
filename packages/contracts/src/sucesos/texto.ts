@@ -6,6 +6,7 @@ import type { Gender } from '../services';
  *   {tutor:o|a}                       «o» si es él, «a» si es ella (vale cualquier par: {tutor:él|ella})
  *   {yo:o|a}, {yo.nombre}             lo mismo para quien vive el suceso
  *   {señal.faltas}, {recuerdo.x}      datos de la señal que lo disparó y de la memoria del hilo
+ *   {hecho.futbol.puesto}             un hecho con nombre (los comunes o los de un módulo), tal como está ahora
  *   {pais}                            nombre del país de la partida
  */
 
@@ -23,6 +24,8 @@ export interface DatosDeTexto {
   papeles: Readonly<Record<string, PersonaDeTexto | undefined>>;
   señal?: Readonly<Record<string, unknown>>;
   recuerdo?: Readonly<Record<string, string | number>>;
+  /** Lee un hecho con nombre (`LectorDeHechos.hecho`). */
+  hecho?: (nombre: string) => number | string | boolean | undefined;
   pais?: string;
 }
 
@@ -30,6 +33,7 @@ export type LlaveDeTexto =
   | { tipo: 'campo'; quien: string; campo: string; mayuscula: boolean }
   | { tipo: 'genero'; quien: string; m: string; f: string }
   | { tipo: 'dato'; de: 'señal' | 'recuerdo'; clave: string }
+  | { tipo: 'hecho'; nombre: string }
   | { tipo: 'pais' };
 
 const LLAVE = /\{([^{}]*)\}/g;
@@ -48,6 +52,7 @@ function leerLlave(dentro: string): LlaveDeTexto | string {
   if (punto < 0) return `«{${dentro}}»: se esperaba {papel.campo}, {papel:m|f}, {señal.dato}, {recuerdo.dato} o {pais}`;
   const quien = dentro.slice(0, punto);
   const campo = dentro.slice(punto + 1);
+  if (quien === 'hecho') return campo.split('.').every((x) => NOMBRE.test(x)) ? { tipo: 'hecho', nombre: campo } : `«{${dentro}}»: nombre de hecho no válido`;
   if (!NOMBRE.test(quien) || !NOMBRE.test(campo)) return `«{${dentro}}»: nombre no válido`;
   if (quien === 'señal' || quien === 'recuerdo') return { tipo: 'dato', de: quien, clave: campo };
   const minuscula = campo[0].toLowerCase() + campo.slice(1);
@@ -75,6 +80,11 @@ export function componerTexto(plantilla: string, datos: DatosDeTexto): string {
     const l = leerLlave(dentro);
     if (typeof l === 'string') throw new Error(`Texto de suceso: ${l}`);
     if (l.tipo === 'pais') return datos.pais ?? '';
+    if (l.tipo === 'hecho') {
+      const v = datos.hecho?.(l.nombre);
+      if (v === undefined) throw new Error(`Texto de suceso: no se sabe el hecho {${dentro}}`);
+      return String(v);
+    }
     if (l.tipo === 'dato') {
       const v = (l.de === 'señal' ? datos.señal : datos.recuerdo)?.[l.clave];
       if (v === undefined) throw new Error(`Texto de suceso: falta el dato {${dentro}}`);

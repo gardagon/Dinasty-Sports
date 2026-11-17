@@ -358,7 +358,7 @@ function datosDeTexto(ctx: ReadContext, s: SucesosState, reparto: Record<string,
   const papeles: Record<string, PersonaDeTexto> = {};
   for (const [papel, id] of Object.entries(reparto)) papeles[papel] = personaDeTexto(ctx, id);
   // Quien vive el suceso: el personaje o, si le pasa a un PNJ, ese PNJ (el papel `sujeto`).
-  return { yo: reparto.sujeto ? papeles.sujeto : { nombre: s.nombre, gender: 'm' }, papeles, señal, recuerdo: hilo?.recuerdos, pais: ctx.pais.nombre };
+  return { yo: reparto.sujeto ? papeles.sujeto : { nombre: s.nombre, gender: 'm' }, papeles, señal, recuerdo: hilo?.recuerdos, hecho: (n) => (reparto.sujeto ? lectorDeNpc(ctx, reparto.sujeto) : lectorDe(ctx)).hecho(n), pais: ctx.pais.nombre };
 }
 
 const enRango = (v: number | undefined, r?: { min?: number; max?: number }): boolean => !r || (v !== undefined && (r.min === undefined || v >= r.min) && (r.max === undefined || v <= r.max));
@@ -391,6 +391,8 @@ function repartir(ctx: ReadContext, s: SucesosState, suceso: string, papel: stri
     if (def.rol && n.role !== def.rol) return false;
     if (def.edad && !enRango(n.edadExacta ?? n.age, def.edad)) return false;
     if (principal && !(n.club && principal.includes(n.club))) return false;
+    if (def.asignatura && !n.asignaturas?.includes(def.asignatura)) return false;
+    if (def.asignaturaDeLaSeñal && !n.asignaturas?.includes(String(señal?.[def.asignaturaDeLaSeñal]))) return false;
     if (def.cumpleEn && !(n.nacimiento !== undefined && diasHastaElCumple(n.nacimiento, hoy) === def.cumpleEn.dias)) return false;
     if (def.relacion) {
       const r = h.relacion(n.id);
@@ -495,7 +497,11 @@ function aplicar(ctx: ActionContext, x: Situacion, efectos: readonly Efecto[] | 
     else if ('revelaPerk' in e) ctx.emit<PerkReveladoData>({ type: SHARED_EVENTS.PERK_REVELADO, data: { perk: e.revelaPerk } });
     else if ('presenta' in e) {
       if (reparto[e.presenta]) ctx.emit<PresentacionData>({ type: SHARED_EVENTS.PRESENTACION, data: { npcId: reparto[e.presenta] } });
-    } else if ('emite' in e) ctx.emit({ type: e.emite, data: e.datos });
+    } else if ('emite' in e) {
+      // Los textos de los datos pueden llevar llaves (`'{hecho.futbol.mejor_puesto_id}'`): se componen como cualquier texto.
+      const datos = e.datos && typeof e.datos === 'object' ? Object.fromEntries(Object.entries(e.datos as Record<string, unknown>).map(([k, v]) => [k, typeof v === 'string' && v.includes('{') ? texto(v) : v])) : e.datos;
+      ctx.emit({ type: e.emite, data: datos });
+    }
     else if ('diario' in e) ctx.log(texto(e.diario), e.tipo ?? 'info');
     else if ('marca' in e) {
       if (!e.de || reparto[e.de]) s.marcas[claveDeMarca(e.marca, e.de ? reparto[e.de] : x.sujeto)] = { ...(e.dura ? { hasta: hoy + e.dura.dias } : {}), ...(e.valor === undefined ? {} : { valor: e.valor }) };
@@ -944,6 +950,17 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
         // Lo vive la persona que dice la señal (un PNJ): solo si esa clase de suceso está activada para ellos.
         const sujeto = señal[x.def.sujeto.deLaSeñal];
         if (typeof sujeto === 'string' && activoParaPnj(i, x)) intentar(ctx, i, x, { señal, sujeto });
+        continue;
+      }
+      const prob = (x.def.disparo as { prob?: number }).prob;
+      if (prob !== undefined) {
+        // Espontáneo ligado a un momento (entrar en clase, llegar al patio): sale algunas veces y gasta el cupo de su categoría.
+        const azar = prueba(ctx)?.azar?.(x.def.id) ?? rngEstable(s.semilla, 'suceso', x.def.id, 'al', ctx.time.minute).next();
+        if (azar >= prob || !hayCupo(ctx, s, i, x.cupo)) continue;
+        if (intentar(ctx, i, x, { señal })) {
+          s.cupo.hoy[x.cupo] = (s.cupo.hoy[x.cupo] ?? 0) + 1;
+          s.cupo.estaSemana[x.cupo] = (s.cupo.estaSemana[x.cupo] ?? 0) + 1;
+        }
         continue;
       }
       if (intentar(ctx, i, x, { señal })) continue;

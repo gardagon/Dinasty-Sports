@@ -182,6 +182,12 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
       const nombre = cfg.puestosDelDeporte?.find((p) => p.id === d.puesto)?.nombre.toLowerCase() ?? d.puesto;
       ctx.log(`Tu entrenador de ${cfg.nombre} te propone jugar este curso de ${nombre}: en tu puesto sobran jugadores y en ese faltan. Tú decides si lo aceptas.`, 'info');
     },
+    // El cambio de puesto (aceptado con su acción, o concedido por el entrenador en un suceso): el deporte apunta dónde juega ahora.
+    [SHARED_EVENTS.CAMBIO_DE_PUESTO]: (ctx, ev) => {
+      const d = ev.data as PuestoPropuestoData;
+      if (d.sport !== cfg.id || !cfg.puestosDelDeporte?.some((p) => p.id === d.puesto)) return;
+      if (estado(ctx).puesto !== d.puesto) ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, puesto: d.puesto }));
+    },
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
       const d = ev.data as ActionDoneData;
       if (!d.tags.includes(TAGS.entrenamiento)) return;

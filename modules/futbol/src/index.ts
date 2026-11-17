@@ -78,6 +78,8 @@ import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } fro
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 import { PUESTOS_DE_FUTBOL } from './puestos';
+import { EVENTOS_DE_FUTBOL } from './eventos';
+import { APORTE_DE_SUCESOS, servicioDeHechos, type HechosService } from '@ds/contracts';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 import { convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, posicionEquivalente, type Convocatoria } from './convocatoria';
@@ -1156,12 +1158,34 @@ export const futbol = defineModule<FutbolState>({
   name: 'Fútbol',
   description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
   dependsOn: ['gen'],
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }] },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTE_DE_SUCESOS]: EVENTOS_DE_FUTBOL },
   stats: [...STATS_DE_FUTBOL],
 
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),
 
   services: {
+    // Hechos para los sucesos del fútbol: dónde juega el personaje y dónde vale más (lo mismo que mira su entrenador).
+    [servicioDeHechos(DEPORTE)]: (ctx): HechosService => ({
+      valor: (nombre) => {
+        const puesto = ctx.state<FutbolState>().puesto;
+        const valores = CONFIG.puestos?.(ctx);
+        if (!puesto || !valores) return undefined;
+        const mejor = Object.keys(valores).reduce((a, b) => (valores[b] > valores[a] ? b : a));
+        switch (nombre) {
+          case 'puesto':
+            return nombreDePuesto(puesto).toLowerCase();
+          case 'mejor_puesto':
+            return nombreDePuesto(mejor).toLowerCase();
+          case 'mejor_puesto_id':
+            return mejor;
+          case 'juega_donde_mas_vale':
+            return mejor === puesto;
+          case 'ventaja_del_mejor_puesto':
+            return Math.round(((valores[mejor] ?? 0) - (valores[puesto] ?? 0)) * 10) / 10;
+        }
+        return undefined;
+      },
+    }),
     [claveDeDeporte(DEPORTE)]: (ctx) => ({ view: () => vistaDeFutbol(ctx) }),
     // Lo que hacen los jugadores del mundo el día de su partido (convocatoria, llegada, vestuario): las mismas reglas que el personaje; `npcs` lo pone en el mapa.
     [SERVICES.partidos]: (ctx): PartidosService => {

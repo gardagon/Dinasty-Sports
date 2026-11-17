@@ -5,6 +5,8 @@
  */
 import {
   APORTE_DE_SUCESOS,
+  PAIS_CIUDAD_DE_PRUEBA,
+  registrarPais,
   SERVICES,
   SHARED_EVENTS,
   SUCESOS_DE_PRUEBA,
@@ -28,6 +30,7 @@ import {
 } from '@ds/contracts';
 import { Game, type GameState } from '@ds/core';
 import { MODULOS } from '@ds/game';
+import { futbol } from '@ds/mod-futbol';
 import { idDeForzar, type SucesosState } from '@ds/mod-sucesos';
 
 /** Lo que el módulo de prueba le dice al director. Es un objeto vivo: se cambia entre acciones. */
@@ -111,14 +114,16 @@ export class Banco {
   readonly catalogo: CatalogoDeSucesos;
   private base?: GameState;
 
-  constructor(modulos: readonly GameModule<any>[] = MODULOS) {
+  /** Por defecto, el juego con todos sus deportes (también los que se instalan aparte, como el fútbol), en la ciudad de prueba (pequeña y rápida de crear). */
+  constructor(modulos: readonly GameModule<any>[] = [...MODULOS, futbol]) {
     this.modulos = modulos;
     this.catalogo = compilarCatalogo(aportesPorModulo(modulos).flatMap((x) => x.aportes), (id) => modulos.some((m) => m.id === id));
   }
 
   /** El estado de una partida recién creada (se crea una vez; cada sesión parte de una copia). */
   private estadoBase(): GameState {
-    return (this.base ??= Game.create([...this.modulos, moduloDePrueba({ dado: {}, todoVale: false }, 'f')], { seed: 11 }).serialize());
+    registrarPais(PAIS_CIUDAD_DE_PRUEBA);
+    return (this.base ??= Game.create([...this.modulos, moduloDePrueba({ dado: {}, todoVale: false }, 'f')], { seed: 11, pais: PAIS_CIUDAD_DE_PRUEBA.id }).serialize());
   }
 
   /** Validación sin jugar: forma, ids, referencias, textos, memoria e hilos, con las stats y los módulos de verdad. */
@@ -304,7 +309,9 @@ export function recorrer(banco: Banco, raiz: string, genero: 'f' | 'm' = 'f', ma
   const errores: string[] = [];
   const hilo = banco.catalogo.hilos.get(raiz);
   const entradas = hilo ? hilo.sucesos.filter((x) => !('programado' in x.disparo)).map((x) => x.id) : [raiz];
-  const dado: HechosDePrueba = { stats: { 'gen.dinero': 1000 } };
+  // Los hechos de ejemplo de sus sucesos (lo que dirían los módulos en esa situación), para que los textos que los usan se puedan componer.
+  const sucesosDeLaRaiz = hilo ? hilo.sucesos : [banco.catalogo.sucesos.get(raiz)?.def].filter((x) => !!x);
+  const dado: HechosDePrueba = { stats: { 'gen.dinero': 1000 }, hechos: Object.assign({}, ...sucesosDeLaRaiz.map((x) => x!.ejemploDeHechos ?? {})) };
 
   const seguir = (desde: GameState, suceso: string, pasos: string[], textos: string[]): void => {
     if (caminos.length >= maximo) return;
