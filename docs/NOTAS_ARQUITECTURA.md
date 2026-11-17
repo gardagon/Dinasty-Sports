@@ -40,7 +40,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 | Sesión | Rama | Encargo |
 |---|---|---|
 | `session_01M4vXXR2tusR8NPz4qqh5Rw` | `claude/pnj-2` | Horarios de los niños de otros colegios (colegio y clubes); salida que enlaza con los entrenamientos de la tarde; padres que recogen; niños del barrio que pasan a amigos; charlar con vecinos adultos y con todos los rivales; «Club: colegio» con el nombre |
-| `session_01M4vXXMfsH6XTt1U1mmKQ1m` | `claude/futbol-2` | Prueba de acceso con los 2 puestos que más necesita; el primer entrenamiento cuenta para las 4 semanas; calendario de la liga en la pestaña y en boca del entrenador; modo números completo |
+| `session_01M4vXXMfsH6XTt1U1mmKQ1m` | `claude/futbol-2` | Prueba de acceso con los 2 puestos que más necesita; el primer entrenamiento cuenta para las 4 semanas; calendario de la liga en la pestaña y en boca del entrenador; modo números completo; «Entrenar…» con desplegable por deporte |
 | `session_01M4vXXNJQUReSzr3J1beLT5` | `claude/comprobacion-final` | Fallos de `benjamin` y `probar-web`; `npm run sim` antes y después de los sucesos; sucesos y prueba de acceso en `probar-web` (§4, puntos 0 y 1) |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
