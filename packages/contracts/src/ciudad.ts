@@ -3,6 +3,8 @@
  * paquete de país (`PaisDef.ciudad`) y no números fijos en el código: así otro país o una ciudad distinta trae los suyos, y los tests pueden crear una ciudad **pequeña** que sale
  * mucho más barata que la de verdad. Lo que no traiga un paquete lo pone `CIUDAD_ACTUAL`.
  */
+import type { ParejasDef } from './rasgos';
+
 export interface CiudadDef {
   /** Cuántos colegios de fuera hay además del del personaje (sus ids son `colegio1`…`colegioN`). */
   colegiosDeFuera: number;
@@ -19,7 +21,15 @@ export interface CiudadDef {
   colegiosConClub?: number;
   /** Cuántos campos de fútbol tiene el complejo deportivo municipal, donde juegan en casa los clubes pequeños y los colegios (los grandes y medianos juegan en sus instalaciones). Sin él, `CAMPOS_DEL_COMPLEJO`. */
   camposDelComplejo?: number;
+  /** Demografía de la ciudad (id de origen → peso) y reparto de parejas: sustituyen a los del país. Sin ellos, los del país (`demografiaDelLugar`, `parejasDelLugar`). */
+  demografia?: Readonly<Record<string, number>>;
+  parejas?: ParejasDef;
 }
+
+/** La demografía que manda en un lugar: la de su ciudad, si la trae, y si no la del país. */
+export const demografiaDelLugar = (p: { demografia: Readonly<Record<string, number>>; ciudad?: Pick<CiudadDef, 'demografia'> }): Readonly<Record<string, number>> => p.ciudad?.demografia ?? p.demografia;
+/** El reparto de parejas que manda en un lugar: el de su ciudad, si lo trae, y si no el del país (sin ninguno, los padres se sortean por separado). */
+export const parejasDelLugar = (p: { parejas?: ParejasDef; ciudad?: Pick<CiudadDef, 'parejas'> }): ParejasDef | undefined => p.ciudad?.parejas ?? p.parejas;
 
 /** Campos de fútbol del complejo municipal por defecto (la ciudad de ahora, con pocos equipos). */
 export const CAMPOS_DEL_COMPLEJO = 2;
@@ -47,7 +57,12 @@ export const CIUDAD_DE_PRUEBA: CiudadDef = { colegiosDeFuera: 2, aulasPorCurso: 
  * uno: no la ciudad de ahora multiplicada, que deja colegios de fuera de 17 alumnos por curso que nunca llegan a 14), unos 500 niños por año de nacimiento y unas 6.000 personas. Con ella, los clubes
  * salen en proporción (uno cada `PERSONAS_POR_CLUB` personas) y la mitad de los colegios de fuera tiene club.
  */
-export const CIUDAD_GRANDE: CiudadDef = { colegiosDeFuera: 9, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10 };
+export const CIUDAD_GRANDE: CiudadDef = {
+  colegiosDeFuera: 9, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10,
+  // Demografía de una ciudad como Madrid (por ahora igual que la de España; se ajustará a cada ciudad): ~19 % de origen extranjero, y las parejas por tipo (`ANEXO_NOMBRES.md` §7).
+  demografia: { espana_norte: 0.162, espana_centro: 0.324, espana_sur: 0.324, latinoamerica: 0.06, magreb: 0.04, africa_subsahariana: 0.017, europa_este: 0.035, europa_norte: 0.02, asia_oriental: 0.018 },
+  parejas: { ambosExtranjeros: 0.13, mixtas: 0.12, mismoOrigen: 0.7 },
+};
 
 /** Los ids de los colegios de fuera de una ciudad: `colegio1`…`colegioN`. */
 export const idsDeColegiosDeFuera = (c: CiudadDef): string[] => Array.from({ length: c.colegiosDeFuera }, (_, i) => `colegio${i + 1}`);

@@ -4,7 +4,7 @@
  * - Con la población real de una partida (compañeros, niños de otros colegios, adultos, hermanos, padres, personaje).
  * - Con la generación por separado (miles de padres y de hijos) para ver el emparejamiento y las mezclas con precisión.
  */
-import { PAIS_CIUDAD_GRANDE, ORIGENES, origenAlAzar, origenHeredado, origenDeJugador, padresDeSemilla, registrarPais, paisPorId, rngEstable, type OrigenFamiliar } from '@ds/contracts';
+import { PAIS_CIUDAD_GRANDE, demografiaDelLugar, ORIGENES, origenAlAzar, origenHeredado, origenDeJugador, padresDeSemilla, registrarPais, paisPorId, rngEstable, type OrigenFamiliar } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { edadNpc, type NpcsState } from '@ds/mod-npcs';
 
@@ -94,7 +94,7 @@ console.log(`De 20 compañeros de 8-9 años: media ${media.toFixed(1)} con orige
 
 // ------------------------------------------------------------------------------------- generación aislada (muestra grande)
 const N = 200000;
-const demografia = paisPorId(PAIS).demografia;
+const demografia = demografiaDelLugar(paisPorId(PAIS));
 const rng = rngEstable('muestra-grande', 1);
 const ext = (o: OrigenFamiliar): boolean => o.some((x) => !esLocal(x.id));
 const adultos = nuevo();

@@ -1,6 +1,8 @@
 # Demografía de orígenes: ¿salen demasiados extranjeros?
 
-Análisis con propuesta (rama `claude/demografia-origenes`). **No se ha cambiado ninguna cifra del juego.** Solo se añade el script de medida `tools/demografia-origenes.ts` (`npm run demografia -- [semillas] [pais]`; la propuesta se calcula dentro del script con variables de entorno `AMBOS_EXT`, `MIXTA`, `MISMO`).
+> **Actualización 17/11/2026: el usuario aprobó la propuesta completa (A, B y C) y está aplicada en esta rama; ver §6.** Lo de abajo (§0-§5) es el análisis original, con las cifras de «hoy» = antes del cambio.
+
+Análisis con propuesta (rama `claude/demografia-origenes`). En el análisis original no se cambió ninguna cifra del juego; solo se añadió el script de medida `tools/demografia-origenes.ts` (`npm run demografia -- [semillas] [pais]`; la propuesta se calcula dentro del script con variables de entorno `AMBOS_EXT`, `MIXTA`, `MISMO`).
 
 ## 0. Resumen
 
@@ -115,3 +117,40 @@ Nota sobre el tipo de pareja: el 13/12 es un supuesto razonable (nacimientos ≥
 2. ¿Aplicar B (demografía 25 → 19 %)? Cambia toda la población del mundo; `ANEXO_NOMBRES.md` y `PAQUETES_DE_PAIS.md` (demografía de España) habría que actualizarlos. Argentina e Inglaterra tienen su propia tabla y no se tocan.
 3. ¿Sortear los niños del mundo como hijos de una pareja? Es el único cambio que toca el módulo `npcs` (y su `persona()`); quedan los compañeros como hijos de padres «virtuales» sin crearlos.
 4. Antes de aplicar, abrir INEbase (tablas citadas en §2) con una red que permita `ine.es` y afinar los porcentajes por continente y por tipo de pareja.
+
+## 6. Aplicado (A + B + C)
+
+**Qué se ha cambiado**
+- **B, demografía:** `ORIGENES.frecuencia` (`rasgos.ts`) con la tabla de §4 (suma 1; 19 % de fuera). `PAIS_ESPANA.demografia` sale de ahí.
+- **A, parejas por tipo:** dato `parejas` (`ParejasDef`: `ambosExtranjeros` 0,13, `mixtas` 0,12, `mismoOrigen` 0,7) en `PaisDef` y regla `origenesDePareja` (`rasgos.ts`). `origenDePadre` (`nombres.ts`) saca los dos padres de una sola tirada de la semilla cuando el lugar tiene `parejas`.
+- **C, niños del mundo:** `persona(..., conGenetica)` (`modules/npcs`, solo esa línea más el helper `comoHijo`) sortea al niño como hijo de una pareja (`rasgosAlAzar({ hijoDePareja })`). Los adultos siguen sueltos.
+- **Por ciudad:** `CiudadDef.demografia` y `CiudadDef.parejas` (opcionales) mandan sobre los del país (`demografiaDelLugar`, `parejasDelLugar`). `CIUDAD_GRANDE` los trae explícitos (hoy los mismos que España: «una ciudad como Madrid»); una ciudad sin ellos hereda los del país. Es barato y está hecho; lo que falta es **ponerles datos reales a otras ciudades** (pendiente apuntado en `PAQUETES_DE_PAIS.md`).
+- **Argentina e Inglaterra:** `copiaDeEspana` ya no hereda `parejas` (queda `undefined`), así que sus padres se siguen sorteando por separado con su demografía y **su resultado no cambia** (lo comprueba `packages/contracts/src/parejas.test.ts` comparando contra el sorteo antiguo para 20 semillas). Cifras neutras = sin `parejas`.
+- Validación (`validarPais`) de `parejas` y `ciudad.demografia`/`ciudad.parejas`; docs `ANEXO_NOMBRES.md` §7 y `PAQUETES_DE_PAIS.md`.
+
+**Resultado medido** (`npm run demografia -- 20`, ciudad grande; mismos grupos que §1)
+
+| Grupo | Antes: extranjero propio | Después | Antes: ≥1 padre ext. / mestizo | Después |
+|---|---:|---:|---:|---:|
+| Adultos (vecinos, profesores, entrenadores) | 25,6 % | **20,6 %** | – | – |
+| Alumnos del colegio (8-17) | 27,4 % | **24,7 %** | – | – |
+| Compañeros de la edad del personaje | 28,9 % | **26,3 %** | – | – |
+| Niños de otros colegios | 26,8 % | **25,0 %** | – | – |
+| Padres del personaje | 26,5 % | **18,9 %** | – | – |
+| **Personaje** (20 000 semillas) | 45,7 % | **25,0 %** | 45,7 % / 38,5 % | **25,0 % / 12,0 %** |
+| Parejas de dos de fuera del mismo origen | 15 % | **70 %** | – | – |
+| 20 compañeros de 8-9 años: media con origen de fuera | 5,8 | **5,2** | – | – |
+
+Por origen, niños de otros colegios (antes → después): Latinoamérica 8,7 → 9,3; Magreb 5,4 → 6,3; Europa del este 4,4 → 5,7; Europa del norte 2,2 → 3,2; Asia oriental 3,3 → 2,9; África subsahariana 3,4 → 2,7. **Ojo:** el niño con «algún origen de fuera» (25 %) es el del hijo de pareja (13 % de dos de fuera + 12 % mixtas); los que eran «5,8 de 20» pasan a «5,2 de 20» porque el 25 % de los hijos tiene algún padre de fuera aunque el 19 % de los adultos lo sea: no baja más sin tocar la regla de las parejas. Si el usuario quiere menos, hay que bajar `ambosExtranjeros`/`mixtas`, no la demografía. Las mezclas totales (~63-67 %) cuentan también las de norte/centro/sur de España; «mezclas con un origen de fuera» pasan de 44,6 % a 16,0 % en el personaje.
+
+**Tests y semillas**
+- Nuevo `parejas.test.ts` (6 tests). Cambian las semillas de España, como se esperaba, y con ellas hay 5 tests que dependían de la suerte de una semilla concreta; no son fallos del juego:
+  - `integracion.test.ts` («categoría por año de nacimiento», 2 tests): fijaban solo la fracción del año de la semilla 61 y daba por hecho `edadInicial` = 8; ahora se fija también la edad inicial.
+  - `modules/npcs/src/index.test.ts` (2 tests): un niño del barrio (`vecino_N`) que reclutaba un club pasaba a rival y descuadraba «todos los rivales son `nino_N`» y «80 vecinos»; ahora se cuenta por id (el diseño ya decía que los niños del barrio pueden ser reclutados).
+  - `partido-del-personaje.test.ts` y `liga-del-mundo.test.ts` (semilla 31 → 40): con la semilla 31 el personaje ya no tenía «Próximo partido» ni convocatoria en la ciudad de prueba (depende de qué compañeros le tocan); la 40 cumple todo lo que piden los dos archivos.
+- `npm run huella -- 60`: cambian **todas** las huellas (partidas de bots en `espana`; esperado: otro mundo para cada semilla). Las acciones por bot varían ±1-3 % (p. ej. equilibrado 2417 → 2413, vago 1296 → 1385) por los distintos compañeros. Sin cambios en la forma de los resultados.
+- `npm run rendimiento -- 60`: mismo nº de personas (1418). Estado 2931 → 2959 KB (+1 %): `rasgos` 885 → 913 KB, porque hay más niños mestizos con dos orígenes guardados. Tiempos medidos de nuevo en reposo, antes → después: crear la partida 864 → 930 ms, bot equilibrado 1,89 → 2,05 ms/acción (≈ +8 %, dentro del ruido de la máquina, que varía ±10 % entre tandas; la primera medición «después» salió peor porque corría a la vez la suite de tests). No hay cambio de algoritmo: el sorteo del tipo de pareja añade un par de tiradas por niño. Cargar, copiar y servicios, sin cambios apreciables.
+- `npm run probar-web`: **verde** («Todo el camino funciona en el navegador», sin errores de consola).
+- `npm run benjamin -- 31,33`: sigue funcionando; semilla 31 «el personaje juega en colegio benjamin A» (plantilla 15 en vez de 17), semilla 33 «sin plaza» como antes; primer partido en la semana 4 en las dos.
+
+**Verificación final:** `npm run typecheck` verde; `npm test` 1120 de 1121 en verde en la última pasada completa, y el que falló (`npcs` «genera un reparto…») se corrigió después y pasa suelto junto con todo su archivo (32/32). Los 5 tests de semilla se tocaron antes de esa pasada y pasan.
