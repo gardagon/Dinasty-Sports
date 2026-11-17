@@ -32,19 +32,21 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **¿Unir la rama de trabajo a la principal?** El usuario quiere arreglar antes los fallos que encontró jugando (en curso, ver §3 bis). Datos que ya se le dieron: unir publica el juego en GitHub Pages (`pages.yml`, al subir a `main`). La principal guarda en la versión 17 y la rama en la 21, así que la partida guardada no carga: la web la descarta con un aviso (`descartarPartida` en `apps/web/src/main.ts`) y hay que empezar partida nueva. Propuesta: unir cuando estén unidas las tres sesiones de §3 bis y haya pasado la comprobación final de los eventos (§4.1).
-2. **«Pedir jugar…»: con quién se habla.** Antes de la prueba no se conoce a ningún entrenador del club de fuera (`known: false` hasta fichar). Opciones: (1) el entrenador del club, cuando se le tiene delante en su sede a la hora de la sesión y la prueba es posible; (2) el entrenador actual; (3) el profesor de Educación Física. **Recomendación:** la 1. Ya se puede «Preguntar el nombre» a un desconocido que se tiene delante (`relaciones.presentarse`), y «Pedir jugar…» saldría en su ficha sin exigir conocerlo, solo tenerlo delante cuando la prueba es posible. La interfaz lo dibuja con un servicio común de acciones de conversación con desplegable. La sesión `claude/futbol-pedir-puesto` tiene esa parte parada.
-3. **Cifras provisionales del cambio de puesto** en el primer entrenamiento: las propondrá la sesión `claude/futbol-pedir-puesto`. Llevárselas al usuario al unir.
+1. **Preguntar al entrenador por otro puesto, ¿con tiempo de espera o sin él?** Sin tiempo de espera, si se le pregunta otra vez muy pronto se lo toma mal y baja la relación. **Recomendación:** sin tiempo de espera, con la bajada de relación. Es más natural, vale igual para el personaje y los PNJ y no pone un muro artificial. Faltaría decidir cuánto es «muy pronto» (propuesta: menos de 3 semanas) y cuánto baja.
+2. **Cifras provisionales del cambio de puesto:** las propondrá la sesión `claude/futbol-pedir-puesto`. Llevárselas al usuario al unir.
+3. **Unir a la principal:** decidido esperar a cerrarlo todo (ver DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
+4. **Modo «números», lo que aún no se muestra:** hoy solo se ven con números el estado, la relación, lo que se entrena y los castigos. ¿Se muestran también las consecuencias para la forma y la moral (`estadoDeJugador`), la familia y el carácter? ¿Y el dinero con «€»? **Recomendación:** sí a todo. El modo números es para quien quiere verlo todo. Sería una tarea corta para Sonnet (`docs/relevo/sucesos-presentacion-2.md`).
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXMyMkGiof9ZYc5bGtg` | `claude/sucesos-presentacion-2` | Nombres del juego en el modo «números»; aviso «no va contigo» en el modo normal, desactivable en Opciones |
-| `session_01M4vXXRXvf6BQ1H7kanWL2W` | `claude/futbol-pedir-puesto` | «Pedir jugar…» pasa a la conversación, como una acción con desplegable (kit de deporte y web); dificultad del cambio de puesto según la relación y el valor en el puesto |
-| `session_01M4vXXNN21uMbP1HxxowM28` | `claude/pnj-fallos-1` | PNJ en atletismo del colegio y club de fútbol a la vez (¿fallo o permitido?); «Nivel: futbol 15» con el nombre del deporte; charlar con los niños que se conocen en el parque |
+| `session_01M4vXXRXvf6BQ1H7kanWL2W` | `claude/futbol-pedir-puesto` | «Pedir jugar…» pasa a la conversación, como una acción con desplegable (kit de deporte y web); **rediseñado el 17/11**: prueba como acción y evento, y pregunta al entrenador en la conversación (ver DECISIONES) |
+| `session_01M4vXXNN21uMbP1HxxowM28` | `claude/pnj-fallos-1` | PNJ en atletismo del colegio y club de fútbol a la vez (¿fallo o permitido?); «Nivel: futbol 15» con el nombre del deporte; charlar con los niños que se conocen en el parque; salida del colegio a las 14:00 instantánea |
 
-Las tres tocan `apps/web` (poco cada una): al unir, revisar los conflictos en `main.ts`.
+**Unida el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»). Sus dudas, en §3.4.
+
+Las dos que quedan tocan `apps/web` (poco cada una): al unir, revisar los conflictos en `main.ts`.
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 

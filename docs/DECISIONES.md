@@ -5,6 +5,18 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Pedir puesto: prueba como evento y pregunta al entrenador; no unir a la principal hasta cerrar
+
+- **La prueba de acceso a un club deja de tener «pedir puesto» como acciones sueltas.** Pasa a ser una acción y un evento:
+  - acción «Pedir hacer una prueba» en un club: te dicen cuándo entrena el equipo que te toca;
+  - te presentas a esa hora y te unes: evento en que el entrenador se presenta (pasa a ser conocido). Si el equipo tiene varios huecos, te pregunta dónde quieres jugar: si eliges un hueco, te prueba ahí; si no, te dice que no, pero que te quedes igualmente a ver qué tal;
+  - al final del entrenamiento te dicen qué tal ha ido la prueba.
+  Desaparecen «Pedir jugar de <puesto> en las pruebas» y «Dejar que el club decida…». Sustituye a la entrada anterior de este día sobre el fallo 1.
+- **Ya en el equipo (club o colegio), pedir otro puesto es una pregunta al entrenador en la conversación:** «Pedir jugar…» con un desplegable de puestos en su ficha. La tirada depende de la relación con el entrenador y de lo que vale el jugador en el puesto pedido frente al actual (la decisión anterior del cambio de puesto pasa aquí). Pendiente del usuario: tiempo de espera entre preguntas o, sin él, que el entrenador se lo tome mal y baje la relación si se le pregunta otra vez muy pronto.
+- **Acciones de conversación con desplegable:** servicio común en contracts que rellenan los módulos y la ficha dibuja como «Proponer quedar para…». La interfaz no sabe de qué deporte se trata.
+- **No unir a la rama principal hasta dejarlo todo lo más cerrado posible:** terminar lo que está en curso, arreglar los fallos encontrados y pasar la comprobación final de los eventos.
+- **Fallo (17/11):** a las 14:00 todos los niños y sus padres ya se han ido del colegio; la salida no puede durar menos de 5 minutos. Encargado a la sesión de PNJ.
+
 ## 17/11/2026 — Respuestas del usuario a la sesión de arquitectura (Opciones, cambio de puesto, ritmo) y fallos que encontró jugando
 
 - **Modo «números» de los sucesos:** las consecuencias salen con el nombre del juego de cada estadística («Estrés −1»), nunca con su identificador interno («gen.estres −1»). Era un fallo de presentación.
@@ -2107,6 +2119,8 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 ---
 
 ## Pendiente e ideas
+
+- **Deberes (idea del usuario, 17/11):** acción «Hacer deberes» de 30 minutos. A futuro, algunas clases mandan deberes que hay que entregar en la siguiente clase de esa asignatura, con eventos alrededor (olvidarlos, copiarlos, que el profesor los pida…).
 
 - **Eventos y decisiones (E18), requisitos del usuario (16/11/2026):** candidato a la próxima sesión de Fable, junto con un visualizador de los partidos de fútbol. Añadir eventos tiene que ser **muy fácil**, casi una herramienta para definirlos como datos sin tocar el motor, y tiene que permitir **hilos**: un evento deja consecuencias que pueden disparar otros más adelante (semanas, meses o años). Empezar por una propuesta de diseño que decida el usuario. **Propuesta en `docs/PLAN_EVENTOS.md`; decisiones del usuario del 16/11 arriba; en construcción.**
 - **Visualizador, para la etapa 2c (Sonnet):** la raíz del tinte en los peinados con raya o flequillo se ve como un destello «estrellado» en la coronilla (correcto pero raro, visto por el usuario el 16/11); el tupé se distingue poco del corto. Mejorarlos con la receta (`docs/ANEXO_RETRATOS.md`).
