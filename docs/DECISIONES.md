@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 17/11/2026 — Respuestas del usuario: recogida, fichas de quien no está, plazo de fichajes y listas agrupadas
+
+- **Un padre que se va con su hijo:** cuando haya familias de PNJ.
+- **Los que recogen van el 80 % de los días de clase.** Edad mínima, 25 de momento, **pendiente de revisar**: a veces pueden ser algo más jóvenes, y habría que mezclar padres y abuelos.
+- **Ficha de alguien que no está a tu lado:** no se enseña nada de lo que se podría hacer con esa persona, ni siquiera en gris. Así se entiende que no se puede hacer nada porque es imposible, no por carácter ni por otra condición. Vale para todas las fichas.
+- **La regla de plaza se queda como está;** se arregla el equipo del colegio que se queda vacío (preocupa al usuario; ver la entrada siguiente). **Si se pide una prueba fuera de plazo, te dicen cuándo se abren las pruebas.**
+- **Agrupar más listas en desplegables:** aprobado para «Estudiar…», las tutorías y lo que encaje, tras analizar todas las listas. Las acciones del club, por ver: hay que analizarlas antes.
+- **Equipos del colegio que se quedan vacíos:** las opciones A–E no le encajan al usuario. Pide que se le explique cómo se forman los equipos, porque cree que el problema está ahí. Los niños de un equipo deshecho que se van a otro siguen en ese equipo, lo cual es lógico. Idea para la opción D: en las categorías inferiores, el personaje puede convencer a un amigo (quizá uno que fue rechazado) para que el equipo no se deshaga.
+
 ## 17/11/2026 — «Entrenar…» agrupado y un solo deporte de competición, hechos (rama `claude/entrenar-y-un-deporte`)
 
 Detalle: `docs/relevo/entrenar-y-un-deporte.md`.
