@@ -33,18 +33,18 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
 1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
-2. **Niños sin equipo y equipos del colegio que se cierran** (`docs/relevo/comprobacion-final.md` §6 y §7, `npm run ninos-sin-equipo`). Con interés y sin equipo quedan pocos (0,7–2,2 por categoría; 2–7 tras un verano): no llegan para un segundo equipo. El entrenador convoca a 16 y deja fuera ~2. Con el plazo de fichajes abierto, el personaje de la semilla 33 entra en 3 de los 9 clubes. **El problema real son los equipos del colegio que se cierran:** al crear la partida es raro (1 de 60), pero tras los veranos se acumula (juvenil sin equipo en 4 de 12 semillas tras el verano 1 y en 9 de 12 tras el 2; cadete, 3 y 6). Causa: en el reparto, los clubes de fuera eligen antes que el colegio; el mínimo de 14 es duro (decisión del 08/11); y los jugadores de un equipo cerrado se van a clubes y no vuelven. Opciones: A) el colegio tiene prioridad con sus propios alumnos hasta su mínimo; B) mínimo menor para el colegio (11–12); C) equipo mixto de edades; D) contar también a los que solo tienen interés por el deporte en general; E) dejarlo. **Recomendación:** A, con B como red. Además, que la prueba fuera de plazo diga cuándo se abre el plazo de fichajes.
-3. **Dudas de PNJ 2** (`docs/relevo/pnj-2.md`):
-   - a) **Un padre que se va con su hijo:** no existe esa relación entre PNJ. **Recomendación:** dejarlo para cuando haya familias de PNJ (encaja con el ciclo de generaciones).
-   - b) ¿**Recogen todos los días** de clase? **Recomendación:** el 80 % de los días.
-   - c) **Edad mínima** de los padres que recogen (hoy, 18). **Recomendación:** 25.
-   - d) La **ficha de un rival o vecino que no tienes cerca** ya no enseña sus acciones en gris con el motivo (efecto del arreglo de rendimiento). Volver a enseñarlas exige que la ficha le diga al motor a quién mira. **Recomendación:** sí, por coherencia con el resto de fichas; es barato.
-4. **¿Agrupar también «Estudiar…» y las tutorías?** En «Casa» hay unos 30 botones. Basta con poner el desplegable a esas acciones. También se podría hacer con las acciones del club, que salen casi todas en gris (prueba y plaza en cada club). **Recomendación:** sí, a las dos, con el mismo mecanismo; es una tarea corta.
+2. **Equipos del colegio que se quedan vacíos.** El usuario rechaza las opciones A–E y pide entender cómo se forman los equipos. Explicación que se le dio (17/11), a partir de `modules/npcs/src/draft.ts` y `CIUDAD_Y_LIGAS.md` §5:
+   - en la primera ronda, cada club de fuera, por orden de atractivo, invita a probar a un 40–60 % **de toda la bolsa de la ciudad** que queda (no de su zona) y monta su A y su B con los mejores por puesto;
+   - con unos 20 clubes y unos 500 niños por categoría, entre todos se llevan casi a todos (los A y B de todos los clubes suman más plazas que niños);
+   - el colegio va el último y solo recibe a sus alumnos que han sobrado; en verano se repite con los de primer año.
+   Propuesta: que cada niño pruebe en pocos clubes (1–2, según su ambición) y que los demás se queden en el club de su colegio (amigos, cercanía), y/o que el colegio elija primero entre sus alumnos (la tabla de §3 dice «el club de un colegio, antes entre sus propios alumnos»). Pendiente de respuesta. Idea del usuario para más adelante: convencer a un amigo para que el equipo no se deshaga.
+3. **Demografía de los niños** (~25–26 % frente a «menos del 20 %»). El 19 % es de los adultos. En los niños sale el 25 % porque se cuenta a quien tiene algún padre extranjero (13 % de parejas de dos extranjeros + 12 % mixtas), es decir, también los nacidos aquí con nacionalidad española; el dato oficial comparable son los nacimientos con algún progenitor extranjero (~25–32 %). Con nacionalidad extranjera, el alumnado es el 13,5 %. Si se quiere que los niños se queden en torno al 20 %, se bajan las parejas (por ejemplo, 10 % + 10 %). Pendiente de respuesta.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXRtH1musiDi91d3e3n` | `claude/fichas-y-listas` | Fichas sin nada de quien no está; recogida el 80 % de los días y desde 25 años; prueba fuera de plazo dice cuándo se abre; análisis de listas y desplegables para Estudiar y tutorías (las del club, solo propuesta) |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
