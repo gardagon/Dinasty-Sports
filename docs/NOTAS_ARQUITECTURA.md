@@ -32,8 +32,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **Competir en un solo deporte, ¿también el personaje?** El usuario decidió que un PNJ practica varios deportes por su cuenta, pero compite en uno y en un solo club, «como el personaje». Hoy el personaje puede estar en clubes de dos deportes a la vez (no hay ninguna regla que lo impida en el kit). ¿Se limita también al personaje (igualdad de reglas), o se le deja?
-2. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
+1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
 
 ## 3 bis. Sesiones en curso
 
@@ -48,6 +47,8 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 
 ## 4. Pendiente (por orden de prioridad propuesto)
+
+0 bis. **Encargo listo, para cuando se una `claude/futbol-2`** (las dos tocan `packages/kit-deporte/src/club.ts`): **un solo deporte de competición** para el personaje (DECISIONES, 17/11). No poder entrar en el club ni en el equipo de otro deporte mientras se está en uno, con el motivo («Ya compites en <deporte>: déjalo antes»), y revisar que los PNJ siguen con uno. Comprobar sim, bots y `benjamin`, por si algún bot se apunta a dos.
 
 0. **Fallo:** `npm run benjamin -- 31,33` (la semilla 33 da «el personaje juega en undefined») y `npm run probar-web` («tu entrenador no te convoca esta semana») fallan ya en la rama de trabajo antes del fútbol (lo comprobó la sesión `claude/futbol-pedir-puesto`). Arreglarlo antes de unir a la principal; va bien con la comprobación final (punto 1).
 

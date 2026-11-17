@@ -7,8 +7,8 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ## 17/11/2026 — Tiradas, PNJ que compiten en un deporte y entrenamientos agrupados
 
-- **Las tiradas se quedan como están:** la dificultad es el número que hay que superar (como la clase de dificultad de los juegos de rol), así que más alta es más difícil. La probabilidad de éxito es del 50 % con la habilidad igual a la dificultad, ±15 puntos por cada 10 de diferencia, entre el 5 % y el 95 % (`TIRADA` en contracts). Las tablas de los anexos se dan también en «% de éxito».
-- **PNJ y deportes:** un PNJ puede practicar varios deportes por su cuenta, pero solo compite en uno y en un solo club, «como el personaje». Hoy el personaje sí puede estar en clubes de dos deportes a la vez: por concretar con el usuario si la regla vale también para él.
+- **Las tiradas se quedan como están** (el usuario lo había entendido al revés; se prueba con estas dificultades y se adaptan si hace falta): la dificultad es el número que hay que superar (como la clase de dificultad de los juegos de rol), así que más alta es más difícil. La probabilidad de éxito es del 50 % con la habilidad igual a la dificultad, ±15 puntos por cada 10 de diferencia, entre el 5 % y el 95 % (`TIRADA` en contracts). Las tablas de los anexos se dan también en «% de éxito».
+- **Se compite en un solo deporte y en un solo club, el personaje y los PNJ:** se pueden practicar varios deportes por su cuenta, pero no tiene sentido que un niño compita en dos deportes (la carga deportiva sería muy grande). Hoy el personaje sí podía estar en clubes de dos deportes: deja de poder (para entrar en el club o el equipo de otro deporte, antes hay que dejar el actual). Se podrá abrir en el futuro, cuando haya más deportes.
 - **Entrenamientos agrupados:** en la lista principal, en vez de una acción por tipo de entrenamiento, una sola «Entrenar…» por deporte con un desplegable. Las acciones siguen existiendo por dentro. Encargado a `claude/futbol-2`.
 
 ## 17/11/2026 — Respuestas del usuario: PNJ, prueba de acceso, modo números y calendario de la liga
