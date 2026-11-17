@@ -32,9 +32,8 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **«Invertir» la dificultad de pedir puesto.** El usuario quiere que «cuanto más cerca de 100, más positivo». Las cifras (35–73) son la dificultad de la tirada: el jugador no las ve, y todas las tiradas del juego usan la dificultad (más alta, más difícil). Lo que mide la suerte es la probabilidad de éxito, del 58 % (relación alta, vale más) al 5 % (relación baja, vale menos) con comunicación media. **Recomendación:** dejar la dificultad como está, por coherencia con el resto, y dar las tablas de los anexos también en «% de éxito», que sí sube con lo bueno. Si el usuario prefiere otra cosa, cambiarlo.
-2. **PNJ y deportes:** el usuario dijo «los otros PNJ deben poder hacer cualquier deporte, pero no estar en club o equipo de cada deporte». Concretar: ¿un PNJ puede hacer varios deportes, pero en cada uno con un solo club o equipo (como el personaje)? ¿O puede hacer deporte sin estar en ningún club? ¿O un tope de clubes a la vez?
-3. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
+1. **Competir en un solo deporte, ¿también el personaje?** El usuario decidió que un PNJ practica varios deportes por su cuenta, pero compite en uno y en un solo club, «como el personaje». Hoy el personaje puede estar en clubes de dos deportes a la vez (no hay ninguna regla que lo impida en el kit). ¿Se limita también al personaje (igualdad de reglas), o se le deja?
+2. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
 
 ## 3 bis. Sesiones en curso
 
