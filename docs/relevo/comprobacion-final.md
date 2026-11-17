@@ -177,3 +177,45 @@ El entrenador convoca como mucho **16** (11 titulares y 5 suplentes: `PARAMETROS
 | **Todos** | 450 | 15,9 (plantilla media 17,6) | **1,7 (un 10 % de la plantilla)**; lesionados ese sábado: 0,4 por equipo |
 
 Casi todos los equipos (350 de 450, el 78 %) están en el máximo de 18: se quedan fuera **2 por partido** y los demás juegan, aunque sea de suplentes. Los que no se presentan (sorteo de ausencias) reducen aún los que juegan, pero no los citados. Es decir, **ampliar el equipo no haría falta por convocatorias: el que queda sin equipo es un niño que no entró en la plantilla, no uno del banquillo**.
+
+## 7. Por qué el equipo del colegio sale vacío o casi vacío (diagnóstico del 17/11, sin cambiar el juego)
+
+Herramientas: `npm run ninos-sin-equipo -- colegio <semillas> <veranos>` (caso por caso: de dónde salen y adónde van los alumnos, y los cierres del verano con `DIAGNOSTICO.alCerrar`) y la tabla de §6.1 ahora con **12 semillas y 2 veranos**, que cuenta en cuántas el colegio se queda sin equipo.
+
+### Con qué frecuencia (12 semillas; colegio con menos de 14 en la categoría = sin equipo)
+
+| Categoría | Al crear | Tras el verano 1 | Tras el verano 2 | Jugadores del equipo del colegio (media, al crear → verano 1 → verano 2) |
+|---|---|---|---|---|
+| Benjamín | 0 de 12 | 1 de 12 | 2 de 12 | 17,9 → 16,4 → 14,8 |
+| Alevín | 1 de 12 | 3 de 12 | 3 de 12 | 16,2 → 14,7 → 13,3 |
+| Infantil | 0 de 12 | 3 de 12 | 3 de 12 | 17,2 → 14,9 → 12,9 |
+| Cadete | 0 de 12 | 3 de 12 | 6 de 12 | 17,8 → 14,1 → 10,9 |
+| Juvenil | 0 de 12 | 4 de 12 | 9 de 12 | 24,3 → 10,6 → 3,7 |
+
+Al crear la partida es raro (1 caso de 60). Con los veranos empeora y se acumula en las categorías mayores. Los que se quedan fuera tampoco darían para otro equipo (nunca llegan a 14 con interés por el fútbol salvo en juvenil, verano 2).
+
+### Los casos
+
+- **Semilla 33, alevín, al crear (0 jugadores):** el colegio tiene 41 alumnos de la categoría con interés por el fútbol o el deporte (bolsa de los clubes: 21 de primer año y 20 de segundo) y **los 41 acaban en clubes de fuera** (20 + 20; 1 sin equipo). No es una cuestión de que falten niños: es que ninguno queda para el colegio. Con las otras categorías de esa semilla no pasa (benjamín 18).
+- **Semilla 38, benjamín, al crear → verano 1:** al crear tiene 18; en el verano el director avisa de que **el equipo se queda con 12 jugadores (montables 0) y se cierra**. Tras el verano, de los 47 alumnos con interés (23 de primer año y 24 de segundo), **46 juegan en clubes de fuera** y ninguno en el colegio. Los 7 de 8 años que había en el equipo pasan a otro club y 4 quedan sin equipo.
+- **Semilla 33, verano 1:** cierran a la vez alevín (se queda con 9), infantil (8) y juvenil (10): equipos que ya iban justos o vacíos. Los 9 que jugaban en el colegio con 9 años pasan a un club de fuera y 1 se queda sin equipo.
+- **Semilla 31, verano 1:** el colegio solo cierra por debajo del mínimo en juvenil (queda con 21 con 2 equipos y baja a 1): es lo normal.
+
+### Causa (no es un defecto del código; es cómo está diseñado)
+
+1. **Los clubes de fuera eligen antes que el colegio.** En el «draft» (`draftDeUnaCategoria`, `docs/CIUDAD_Y_LIGAS.md` §3) cada club de fuera ve entre el 40 y el 60 % de toda la ciudad (por atractivo) y se queda con los mejores por puesto para su A y su B; **después** el colegio recibe solo «sus alumnos que siguen en la bolsa». El colegio es el menos atractivo, por diseño. Cada club monta A y B (hasta 36) y luego C y D con lo que sobra, así que absorben casi todo: al crear, de los ~55 alumnos con interés de una categoría, ~34 juegan en un club de fuera y ~18 en el colegio (de 0 a 20 según la semilla).
+2. **El mínimo de 14 es duro** (decisión del usuario del 08/11: «el A del colegio debería existir siempre hasta cadete, pero no es obligatorio; el mínimo de 14 manda»). Si al colegio le quedan 13, no hay equipo, y los 13 se van a otros clubes o se quedan sin equipo (cierre).
+3. **El verano lo agrava.** Cada categoría abarca 2–3 años: los de segundo año suben a la categoría siguiente (donde el colegio puede no tener equipo) y los de primer año entran por el mismo «draft» con los clubes primero. «Completar antes de cerrar» (bolsa y ascenso en cadena) rescata a algunos, pero si la bolsa del colegio está vacía no hay con qué. Una vez que un colegio pierde un curso, **sus jugadores se reparten por clubes y no vuelven**: por eso el efecto se acumula (juvenil, 9 de 12 semillas sin equipo al segundo verano).
+4. **No es un fallo de reclutamiento ni de bajas sin reponer:** no hay niños que «deberían estar» y no se rellenen; los niños existen y están jugando, en otro club. Tampoco he visto bajas del verano sin reponer (los 12 semillas × 2 veranos muestran pocos «han dejado el fútbol»).
+
+### Opciones (decide el usuario; no he tocado nada)
+
+| Opción | Qué cambia | Efecto esperado | Coste / riesgo |
+|---|---|---|---|
+| A. **Prioridad al colegio con sus alumnos** | Que el colegio reciba antes (o a la vez) a sus alumnos con interés, hasta su mínimo de 14, y los clubes cojan del resto | El colegio del personaje siempre tiene equipo de benjamín a cadete; los clubes pierden alumnos de ese colegio | Rompe «cada club ve a niños que van a probar con él»; los clubes quedan peor surtidos; hay que volver a medir `equipos` y `colegios` |
+| B. **Mínimo menor para el colegio** (p. ej. 11) | Un equipo de colegio de 11–13 sigue existiendo | Casi todos los casos de §6 (12, 11, 9–10) se salvan; equipos más justos (sin suplentes) | Partidos de 11 sin banquillo; convocatoria sin rotación; decisión de diseño de plantillas |
+| C. **Equipo mixto por edades** | El colegio junta dos categorías vecinas si no llega en ninguna | El personaje siempre juega | Rompe las categorías por edad y las ligas |
+| D. **Incluir a los de «solo deporte»** con prioridad en el colegio | Rellenar con alumnos de interés general (hoy 2–7 por categoría, sin equipo) | Salva 1–3 casos | Pocos casos; juega gente sin interés por el fútbol |
+| E. **Dejarlo como está** | Nada | El personaje que se queda sin colegio prueba en un club (con el plazo abierto entra en ~3 de 9 clubes, §6.2) y se acepta que lo difícil sea entrar | El colegio de las categorías mayores desaparece en pocos veranos (juvenil, 9 de 12 al verano 2) |
+
+Recomendación: **A**, quizá con **B** como red (mínimo 12 para el colegio): el personaje empieza en el colegio y ese equipo no puede desaparecer por el reparto, que es lo que el usuario espera del club del colegio. Pero cambia el reparto de toda la ciudad, así que hay que medir antes y después.
