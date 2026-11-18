@@ -47,6 +47,7 @@ Forma de los datos (no su contenido de juego): `id` y `nombre`; calendario con t
 - **Mapa:** la ciudad es la misma (calles y lugares); solo cambian los horarios de apertura.
 - Los paquetes importados se guardan en el navegador (no dentro de las copias de seguridad de la partida).
 
+- **Clubes de colegio y probar fuera:** `ciudad.colegiosConClub` (cuántos colegios de fuera tienen club; la ciudad grande, 3: con el del personaje, 4) es dato de la ciudad; la probabilidad de que un alumno de un colegio con club vaya a probar a un club de fuera es dato de la categoría de cada deporte y país (`CategoriaDef.probarFuera`; el fútbol de España: 15, 25, 35, 45 y 55 % de benjamín a juvenil), y cuánto pesan la ambición, el nivel y los amigos, una constante (`PESOS_DE_PROBAR_FUERA`). Detalle en `CIUDAD_Y_LIGAS.md` §3 y §5.
 - **Demografía y parejas por ciudad:** `PaisDef.ciudad.demografia` y `ciudad.parejas` (opcionales) sustituyen a los del país en esa ciudad; la ciudad grande los trae (cifras de una ciudad como Madrid, hoy iguales que las de España). **Pendiente:** ajustarlos a cada ciudad real y ponerles datos propios (Barcelona, Valencia, un pueblo...): basta con rellenar esos dos campos de su `CiudadDef`; una ciudad que no los trae hereda los del país. La demografía de las ciudades más allá de España (Argentina, Inglaterra) sigue siendo la del país.
 
 ## 6. Dónde cambiar cada cosa
@@ -58,7 +59,7 @@ Forma de los datos (no su contenido de juego): `id` y `nombre`; calendario con t
 | Validación e importación | `paises/index.ts` (`validarPais`, `registrarPais`, `importarPais`) |
 | Nombres, apellidos, apodos por cultura | `packages/contracts/src/culturas/` |
 | Currículo de España | `paises/curriculo.ts` (`CURSOS_ESPANA`) |
-| La ciudad (colegios de fuera, clases por curso, alumnos y vecinos) y su versión pequeña de prueba | `packages/contracts/src/ciudad.ts` (`CiudadDef`, `CIUDAD_ACTUAL`, `CIUDAD_DE_PRUEBA`); en el paquete, `PaisDef.ciudad`; `conCiudadDePrueba(pais)` en `paises/index.ts` |
+| La ciudad (colegios de fuera, cuántos con club —`colegiosConClub`: 3 en la ciudad grande—, clases por curso, alumnos y vecinos) y su versión pequeña de prueba | `packages/contracts/src/ciudad.ts` (`CiudadDef`, `CIUDAD_ACTUAL`, `CIUDAD_DE_PRUEBA`); en el paquete, `PaisDef.ciudad`; `conCiudadDePrueba(pais)` en `paises/index.ts` |
 | Datos del atletismo por país (categorías, temporada, competiciones) | `modules/atletismo/src/datos.ts` (`DATOS_ATLETISMO`); forma y validación en `contracts/deporte-datos.ts` |
 | Horarios de España (los lugares de la ciudad base; los de los deportes los trae el deporte) | `lugares.ts` (`HORARIOS_DE_ESPANA`) |
 | Interfaz (selector, importar) | `apps/web/src/main.ts`, `apps/web/src/paquetes.ts` |

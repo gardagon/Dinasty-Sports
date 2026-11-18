@@ -7,6 +7,7 @@ import { interesPor } from './deportistas';
 import { type MiembroDeClub } from './equipos';
 import { puestoDondeMasVale } from './puestos';
 import { type Rendimientos } from './semana';
+import { losQueSeQuedan } from './probar-fuera';
 
 /**
  * MÓDULO NPCs (id `npcs`).
@@ -81,6 +82,7 @@ export function draftDeEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba: b
   }
   m.pobs = pobsNuevas;
   sinSobrantes(m);
+  plazasDeMas(m);
   return nuevos;
 }
 
@@ -141,12 +143,17 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       if (n && n.deporte === pob.deporte && !id.startsWith('personaje@')) m.lista.set(id, sinDeporte(n, pob, false));
     }
   };
+  // **Los que se quedan en el club de su colegio** (decisión del usuario, 17/11/2026): de los alumnos de un colegio con club solo va a probar a los clubes de fuera un porcentaje según la edad; los demás
+  // no los ven los clubes de fuera hasta que el colegio ha escogido (después, los que sobran del colegio ya son descartes como los demás). Los que prueban y no entran siguen en la bolsa de su colegio.
+  const quedan = losQueSeQuedan(bolsa(), new Set(clubes.flatMap((e) => (e.colegio === undefined ? [] : [e.colegio]))), cat, m.dia);
+  let protegerAlColegio = true;
+  const visiblePara = (e: EquipoGuardado, xs: Aspirante[]): Aspirante[] => (e.colegio === undefined && protegerAlColegio ? xs.filter((a) => !quedan.has(a.npc.id)) : xs);
   /** Una ronda de un club: va a probar un grupo de la bolsa, el club coge a los mejores por puesto; si no llega al mínimo de todos sus equipos, no se monta y vuelven a la bolsa. */
   const ronda = (e: EquipoGuardado, k: number, porcentaje: number | null): boolean => {
     const kAntes = kDe(e);
     const antes = new Set(miembros(e).map((n) => n.id));
     ponerK(e, Math.max(k, kAntes));
-    const toda = bolsa();
+    const toda = visiblePara(e, bolsa());
     const elegibles = toda.filter((a) => e.colegio === undefined || a.colegio === e.colegio);
     let van: Aspirante[];
     if (porcentaje === null) van = elegibles;
@@ -254,6 +261,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
     const suyos = bolsa().filter((a) => a.colegio === e.colegio);
     if (suyos.length >= minimoDe(e) && kDe(e) < MAX_EQUIPOS_POR_CATEGORIA) ronda(e, kDe(e) + 1, null);
   }
+  protegerAlColegio = false;
   // Si con los descartes salen equipos de un mínimo, se montan en los clubes con menos equipos (el más pequeño primero).
   for (let vuelta = 0; vuelta < 8 && bolsa().length >= minimo; vuelta++) {
     const e = [...fuera].filter((x) => kDe(x) < MAX_EQUIPOS_POR_CATEGORIA).sort((a, b) => kDe(a) - kDe(b) || atractivoDe(a) - atractivoDe(b) || (a.club < b.club ? -1 : 1))[0];
@@ -286,6 +294,8 @@ export const DIAGNOSTICO: {
   alDesplazar?: (d: { id: string; desde: string; motivo: 'merito' | 'cierre' | 'sobra' }) => void;
   /** Una oferta de puesto de un club a un niño: si la acepta, si era su última opción (sin equipo) y si el puesto era el suyo (su favorito o su grupo). */
   alOfertar?: (d: { id: string; club: string; aceptada: boolean; ultimaOpcion: boolean; esSuyo: boolean }) => void;
+  /** Un niño sin equipo entra en uno pasándose del máximo (plaza de más): su club, la categoría y si es un equipo de colegio. */
+  alPlazaDeMas?: (d: { id: string; club: string; categoria: string; delColegio: boolean }) => void;
 } = {};
 
 
@@ -327,6 +337,8 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
   }
   // Nadie queda en un club sin equipo, y se fijan los equipos de la temporada con lo que queda (los ascensos y los que buscaron equipo ya están hechos).
   sinSobrantes(m);
+  // Y, en lo último de todo, las plazas de más para el que con interés se queda sin equipo.
+  plazasDeMas(m);
   return nuevos;
 }
 
@@ -343,7 +355,11 @@ export function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuarda
   const miembros = (e: EquipoGuardado): Npc[] => (m.lista instanceof ListaDeTrabajo ? m.lista.deEquipo(pob.deporte, e.club) : [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club)).filter((n) => edades.includes(edadDeJuego(n, m.dia) ?? -1));
   const bolsa = (): Aspirante[] => edades.flatMap((edad) => aspirantesDeEdad([...m.lista.values()], pob, edad, m.dia, m.val)).filter((a) => a.interes > 0);
   const valorDe = (a: Aspirante): number => a.valor;
-  const elegibles = (e: EquipoGuardado): Aspirante[] => bolsa().filter((a) => e.colegio === undefined || a.colegio === e.colegio);
+  // **Cada verano, los de cualquier año de un colegio con club deciden de nuevo si van a probar fuera** (decisión del usuario, 17/11/2026): los que se quedan no los ven los clubes de fuera hasta que
+  // el colegio ha recibido a los suyos (los que prueban y no entran vuelven a su bolsa); después son descartes como los demás.
+  const quedan = losQueSeQuedan(bolsa(), new Set(clubes.flatMap((x) => (x.colegio === undefined ? [] : [x.colegio]))), cat, m.dia);
+  let protegerAlColegio = true;
+  const elegibles = (e: EquipoGuardado): Aspirante[] => bolsa().filter((a) => (e.colegio === undefined ? !(protegerAlColegio && quedan.has(a.npc.id)) : a.colegio === e.colegio));
   const entrar = (e: EquipoGuardado, a: Aspirante, conPrueba: boolean, nuevo = false, ultimaOpcion = false): boolean => {
     const n = m.lista.get(a.npc.id);
     return !!n && n.deporte === undefined && intentarEntrar(m, n, e, pob, { sinPrueba: !conPrueba, soloHueco: true, equipoNuevo: nuevo, ultimaOpcion }).entra;
@@ -416,7 +432,7 @@ export function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuarda
     const delPrimero = miembros(e).filter((n) => edadDeJuego(n, m.dia) === cat.edadMin).length;
     const falta = Math.min(e.plantillaPorCategoria!.max - delPrimero, capacidadDe(e, catId) - miembros(e).length);
     if (falta <= 0) continue;
-    const primeros = bolsa().filter(esPrimero);
+    const primeros = bolsa().filter((a) => esPrimero(a) && !quedan.has(a.npc.id));
     const clave = clavePrueba(e);
     const van = [...primeros].sort((x, y) => clave(y) - clave(x) || (x.npc.id < y.npc.id ? -1 : 1)).slice(0, Math.round(atractivoDe(e) * primeros.length));
     let cogidos = 0;
@@ -509,6 +525,7 @@ export function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuarda
       ponerK(e, kDe(e) - 1);
     }
   }
+  protegerAlColegio = false;
   // 4. Lo que queda en la bolsa (los de segundo año y más que no han entrado en ningún sitio) completa los huecos que queden en los clubes, por su atractivo, ya sin quitarle nada a los colegios.
   for (const e of fuera) {
     if (miembros(e).length === 0) continue;
@@ -518,6 +535,64 @@ export function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuarda
     }
   }
   return cerrados;
+}
+
+
+/** Plazas de más que un equipo puede abrir como mucho (por equipo) para no dejar a un niño sin equipo. */
+export const PLAZAS_DE_MAS = 2;
+
+/**
+ * **Plazas de más, en lo último de todo** (decisión del usuario, 17/11/2026): tras el reparto y los descartes definitivos, el niño con interés que se queda sin equipo entra en un equipo de su colegio
+ * (si lo tiene) o, si no, en el club con el equipo más cercano a su nivel, aunque se pase del máximo en 1 o 2 plazas por equipo (`plazasDeMas`). Solo para no dejarlo fuera: **no cambia las
+ * convocatorias**: si no da el nivel, corre el riesgo de no jugar. Devuelve cuántos entran.
+ */
+export function plazasDeMas(m: MercadoDeFichajes): number {
+  let entran = 0;
+  for (const pob of m.pobs) {
+    if (!conDraft(pob, m.val)) continue;
+    const sinApartar = (n: Npc): Npc => (n.apartado?.includes(pob.deporte) ? { ...n, apartado: n.apartado.filter((d) => d !== pob.deporte) } : n);
+    for (const cat of pob.categorias ?? []) {
+      const clubes = pob.equipos.filter((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((c) => c.id === cat.id));
+      if (!clubes.length) continue;
+      const edades = Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i);
+      const miembros = (e: EquipoGuardado): Npc[] => (m.lista instanceof ListaDeTrabajo ? m.lista.deEquipo(pob.deporte, e.club) : [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club)).filter((n) => edades.includes(edadDeJuego(n, m.dia) ?? -1));
+      const sinEquipo = edades.flatMap((edad) => aspirantesDeEdad([...m.lista.values()].map(sinApartar), pob, edad, m.dia, m.val)).filter((a) => a.interes > 0).sort((x, y) => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1));
+      if (!sinEquipo.length) continue;
+      const nivelDe = new Map(clubes.map((e) => { const ms = miembros(e); return [e.club, ms.length ? ms.reduce((t, n) => t + valorEn(n, pob, m), 0) / ms.length : 0] as const; }));
+      for (const a of sinEquipo) {
+        const candidatos = [
+          ...clubes.filter((e) => e.colegio !== undefined && e.colegio === a.colegio),
+          ...clubes.filter((e) => e.colegio === undefined).sort((x, y) => Math.abs((nivelDe.get(x.club) ?? 0) - a.valor) - Math.abs((nivelDe.get(y.club) ?? 0) - a.valor) || (x.club < y.club ? -1 : 1)),
+        ];
+        for (const e of candidatos) {
+          const k = e.equiposPorCategoria?.[cat.id] ?? 1;
+          const ya = miembros(e).length;
+          // Un equipo que no existe (menos del mínimo) no se abre por esto; y no se pasa de las plazas de más.
+          const maxNormal = e.plantillaPorCategoria!.max * k;
+          if (ya < minimoDe(e) || Math.max(0, ya - maxNormal) >= PLAZAS_DE_MAS * k) continue;
+          const previo = e.plazasDeMas;
+          e.plazasDeMas = { ...previo, [cat.id]: Math.min(PLAZAS_DE_MAS, Math.ceil((Math.max(0, ya - maxNormal) + 1) / k)) };
+          const n = m.lista.get(a.npc.id);
+          const antes = n && n.deporte === undefined ? n : undefined;
+          if (antes && intentarEntrar(m, sinApartar(antes), e, pob, { sinPrueba: true, soloHueco: true, relajado: true, ultimaOpcion: true }).entra) {
+            const dentro = m.lista.get(a.npc.id)!;
+            // Si el reparto en equipos no le encuentra sitio (por puestos), no vale: se deshace.
+            const cx = categoriasDelEquipo(pob, e).find((c) => c.id === cat.id)!;
+            if (!equiposDelClub(m.lista, pob, e, cx, m.dia, m.val, [], true).equipos.sobran.includes(a.npc.id)) {
+              m.lista.set(a.npc.id, sinApartar(dentro));
+              DIAGNOSTICO.alPlazaDeMas?.({ id: a.npc.id, club: e.club, categoria: cat.id, delColegio: e.colegio !== undefined });
+              entran++;
+              break;
+            }
+            m.lista.set(a.npc.id, antes);
+          }
+          e.plazasDeMas = previo;
+        }
+      }
+    }
+    fijarEquipos(m, pob);
+  }
+  return entran;
 }
 
 

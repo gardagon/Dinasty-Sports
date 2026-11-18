@@ -55,10 +55,10 @@ export const CIUDAD_DE_PRUEBA: CiudadDef = { colegiosDeFuera: 2, aulasPorCurso: 
 /**
  * La **ciudad grande del diseño** (`CIUDAD_Y_LIGAS.md` §2): el colegio del personaje, igual (2 clases de 25 por curso), y **9 colegios de fuera de 2 clases de 25 por curso** (50 alumnos por curso cada
  * uno: no la ciudad de ahora multiplicada, que deja colegios de fuera de 17 alumnos por curso que nunca llegan a 14), unos 500 niños por año de nacimiento y unas 6.000 personas. Con ella, los clubes
- * salen en proporción (uno cada `PERSONAS_POR_CLUB` personas) y la mitad de los colegios de fuera tiene club.
+ * salen en proporción (uno cada `PERSONAS_POR_CLUB` personas) y 3 de los colegios de fuera tienen club (4 con el del personaje: decisión del usuario, 17/11/2026).
  */
 export const CIUDAD_GRANDE: CiudadDef = {
-  colegiosDeFuera: 9, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10,
+  colegiosDeFuera: 9, colegiosConClub: 3, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10,
   // Demografía de una ciudad como Madrid (por ahora igual que la de España; se ajustará a cada ciudad): ~19 % de origen extranjero, y las parejas por tipo (`ANEXO_NOMBRES.md` §7).
   demografia: { espana_norte: 0.162, espana_centro: 0.324, espana_sur: 0.324, latinoamerica: 0.06, magreb: 0.04, africa_subsahariana: 0.017, europa_este: 0.035, europa_norte: 0.02, asia_oriental: 0.018 },
   parejas: { ambosExtranjeros: 0.13, mixtas: 0.12, mismoOrigen: 0.7 },

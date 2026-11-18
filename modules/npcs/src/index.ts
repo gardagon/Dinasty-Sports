@@ -137,6 +137,11 @@ export interface EquipoGuardado extends EquipoDeDeporte {
    * (el «draft», `draftDeEquipos`) y los cierra si no llega al mínimo de jugadores. La plantilla del club en esa categoría es el máximo de un equipo por el número de equipos.
    */
   equiposPorCategoria?: Record<string, number>;
+  /**
+   * Plazas de más por equipo en cada categoría (1 o 2; ausente = 0): lo último del reparto deja pasar del máximo a un equipo solo para no dejar a un niño con interés sin equipo (decisión del usuario, 17/11/2026).
+   * Suben el máximo de cada equipo del club en esa categoría (`maximoPorEquipo`); el reparto de cada curso lo recalcula con lo que haga falta.
+   */
+  plazasDeMas?: Record<string, number>;
 }
 
 /**

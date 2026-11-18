@@ -184,7 +184,9 @@ export function categoriasDelEquipo(pob: PoblacionGuardada, e: EquipoGuardado): 
 
 
 /** Cuántos jugadores caben en el club en una categoría: el máximo de un equipo por los equipos que el club tiene abiertos en ella. */
-export const capacidadDe = (e: EquipoGuardado, categoria: string): number => (e.plantillaPorCategoria?.max ?? 0) * (e.equiposPorCategoria?.[categoria] ?? 1);
+/** El máximo de jugadores de un equipo del club en una categoría: el de su plantilla más las plazas de más que haya abierto (`plazasDeMas`). */
+export const maximoPorEquipo = (e: EquipoGuardado, categoria: string): number => (e.plantillaPorCategoria?.max ?? 0) + (e.plazasDeMas?.[categoria] ?? 0);
+export const capacidadDe = (e: EquipoGuardado, categoria: string): number => maximoPorEquipo(e, categoria) * (e.equiposPorCategoria?.[categoria] ?? 1);
 
 
 /** Clave de un equipo por categoría (club y categoría) en el mapa de reservas del personaje. */
@@ -374,7 +376,7 @@ export function equiposDelClub(lista: ReadonlyMap<string, Npc>, pob: PoblacionGu
   const fijos = !recalcular && !extra.length && miembros.some((x) => !!x.n.letra?.[pob.deporte]);
   const equipos: EquiposDelClub = fijos
     ? { A: [], B: [], C: [], D: [], sobran: miembros.filter((x) => !x.n.letra?.[pob.deporte]).map((x) => x.n.id), ...Object.fromEntries(LETRAS.map((l) => [l, miembros.filter((x) => x.n.letra?.[pob.deporte] === l).map((x) => x.n.id)])) }
-    : repartirEnEquipos(todos, pob.puestos!, k, e.plantillaPorCategoria!.max, true, pob.puestos!.equipos?.listonDePrimerAno ?? 0, e.plantillaPorCategoria!.min);
+    : repartirEnEquipos(todos, pob.puestos!, k, maximoPorEquipo(e, categoria.id), true, pob.puestos!.equipos?.listonDePrimerAno ?? 0, e.plantillaPorCategoria!.min);
   const titulares = pob.puestos!.equipos?.titulares ?? {};
   const suplentes = LETRAS.flatMap((l) => suplentesDe(todos.filter((m) => equipos[l].includes(m.id)), pob.puestos!, titulares));
   return { equipos, suplentes, miembros };
@@ -526,7 +528,7 @@ export function acomodarSobrantes(m: MercadoDeFichajes, pob: PoblacionGuardada, 
   for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
     for (const c of categoriasDelEquipo(pob, e)) {
       const k = e.equiposPorCategoria?.[c.id] ?? 1;
-      const cupos = cuposPorGrupo(p, e.plantillaPorCategoria!.max);
+      const cupos = cuposPorGrupo(p, maximoPorEquipo(e, c.id));
       for (let vuelta = 0; vuelta < 6; vuelta++) {
         const r = equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true);
         if (!r.equipos.sobran.length) break;
