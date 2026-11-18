@@ -1346,7 +1346,7 @@ export const npcs = defineModule<NpcsState>({
         const valoresDelPersonaje = puestosDelPersonaje(ctx, rend, pob);
         if (f) personaje.push({ deporte: pob.deporte, club: club.id, categoria: cat.id, valor: puestoDelPersonaje && valoresDelPersonaje ? valoresDelPersonaje[puestoDelPersonaje] : f(ctx), edad: edadProxima, pierna: ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', ...(puestoDelPersonaje ? { puesto: puestoDelPersonaje } : {}), ...(valoresDelPersonaje ? { valores: valoresDelPersonaje } : {}) });
       }
-      const resultado = { sinPlaza: [] as string[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined, propuestas: [] as { deporte: string; puesto: string }[] };
+      const resultado = { sinPlaza: [] as string[], plazaExtra: [] as string[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined, propuestas: [] as { deporte: string; puesto: string }[] };
       ctx.updateState<NpcsState>((s) => {
         const npcs = conPais(ctx.pais, () => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day));
         const pobsNuevas = resultado.pobs ?? pobs;
@@ -1354,6 +1354,8 @@ export const npcs = defineModule<NpcsState>({
       });
       // El entrenador le propone al personaje otro puesto si en el suyo sobran y en otro faltan (decide él: `club.cambio_de_puesto`).
       for (const p of resultado.propuestas) if (!resultado.sinPlaza.includes(p.deporte)) ctx.emit<PuestoPropuestoData>({ type: SHARED_EVENTS.PROPUESTA_DE_PUESTO, data: { sport: p.deporte, puesto: p.puesto } });
+      // Con una plaza de más sigue en el equipo, y el entrenador le avisa de que contará menos con él (suceso `<deporte>.plaza_extra`).
+      for (const deporte of resultado.plazaExtra) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_EXTRA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
       for (const deporte of resultado.sinPlaza) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
     },
 

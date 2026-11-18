@@ -316,6 +316,7 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
       continue;
     }
     const pob: PoblacionGuardada = { ...pob0, equipos: pob0.equipos.map((e) => ({ ...e })) };
+    ajustarPlazasDeMas(m, pob);
     const categorias = new Map<string, CategoriaDef>();
     for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
     // De la categoría mayor a la menor: así, para salvar un equipo, el club puede subir de la categoría de abajo a quien sería titular arriba (que a su vez se completa después).
@@ -542,6 +543,25 @@ export function completarUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuarda
 export const PLAZAS_DE_MAS = 2;
 
 /**
+ * Cada curso las plazas de más se recalculan: un equipo conserva solo las que necesitan los que ya tiene (y el personaje, que tiene su plaza reservada en `reservas`), hasta `PLAZAS_DE_MAS`; con las demás
+ * vuelve a su máximo de siempre, y nadie más entra en ellas salvo por el último paso (`plazasDeMas`).
+ */
+export function ajustarPlazasDeMas(m: MercadoDeFichajes, pob: PoblacionGuardada): void {
+  for (const e of pob.equipos) {
+    if (!e.plazasDeMas || !e.plantillaPorCategoria) continue;
+    const nuevas: Record<string, number> = {};
+    for (const cat of categoriasDelEquipo(pob, e)) {
+      const edades = cat.edades;
+      const k = e.equiposPorCategoria?.[cat.id] ?? 1;
+      const jugadores = (m.lista instanceof ListaDeTrabajo ? m.lista.deEquipo(pob.deporte, e.club) : [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club)).filter((n) => edades.includes(edadDeJuego(n, m.dia) ?? -1)).length + (m.reservas.get(claveDeEquipo(e.club, cat.id)) ?? 0);
+      const necesita = Math.min(PLAZAS_DE_MAS, Math.ceil(Math.max(0, jugadores - e.plantillaPorCategoria.max * k) / k));
+      if (necesita > 0) nuevas[cat.id] = necesita;
+    }
+    e.plazasDeMas = Object.keys(nuevas).length ? nuevas : undefined;
+  }
+}
+
+/**
  * **Plazas de más, en lo último de todo** (decisión del usuario, 17/11/2026): tras el reparto y los descartes definitivos, el niño con interés que se queda sin equipo entra en un equipo de su colegio
  * (si lo tiene) o, si no, en el club con el equipo más cercano a su nivel, aunque se pase del máximo en 1 o 2 plazas por equipo (`plazasDeMas`). Solo para no dejarlo fuera: **no cambia las
  * convocatorias**: si no da el nivel, corre el riesgo de no jugar. Devuelve cuántos entran.
@@ -623,7 +643,7 @@ export function apartarODejar(m: MercadoDeFichajes, segunda: ReadonlySet<string>
  * rellenan las plazas libres con otros niños que encajan. Los niños de otros colegios que se van desaparecen (los que lo dejaron no se vuelven a reclutar);
  * los compañeros, los hermanos y los niños del barrio siguen siendo quienes son, solo que sin deporte.
  */
-export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; dejanSinClub?: number; pobs?: PoblacionGuardada[]; propuestas?: { deporte: string; puesto: string }[] } = { sinPlaza: [] }): Npc[] {
+export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; plazaExtra?: string[]; dejanSinClub?: number; pobs?: PoblacionGuardada[]; propuestas?: { deporte: string; puesto: string }[] } = { sinPlaza: [] }): Npc[] {
   // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
   // Los apartados del plazo anterior vuelven a la bolsa (su segunda oportunidad): si tampoco ahora los quiere ningún club, lo dejan para siempre.
   const segunda = new Set(npcs.filter((n) => n.apartado?.length).map((n) => n.id));
@@ -661,8 +681,16 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
     const dentro = mercado.lista.get(idDelPersonaje(j.deporte))?.deporte !== undefined;
     mercado.lista.delete(idDelPersonaje(j.deporte));
     if (!dentro) {
-      resultado.sinPlaza.push(j.deporte);
-      reservasQueQuedan.delete(claveDeEquipo(j.club, j.categoria));
+      // Plaza de más (decisión del usuario, 18/11/2026): en vez de salir del club, se queda con una plaza de más (1–2 por equipo) y el entrenador le avisa de que contará menos con él; si ya no caben
+      // más plazas de más en su equipo, sale como siempre.
+      const ampliado = conUnaPlazaDeMas(mercado.pobs, j);
+      if (ampliado) {
+        mercado.pobs = ampliado;
+        (resultado.plazaExtra ??= []).push(j.deporte);
+      } else {
+        resultado.sinPlaza.push(j.deporte);
+        reservasQueQuedan.delete(claveDeEquipo(j.club, j.categoria));
+      }
     }
   }
   // Los equipos se rellenan con los interesados y, después, la regla de los equipos según la demanda: cierran los que no llegan al mínimo y abren los que hacen falta para que los
@@ -675,6 +703,15 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   resultado.dejanSinClub = apartarODejar(final, segunda);
   resultado.pobs = [...final.pobs];
   return [...final.lista.values()];
+}
+
+
+/** Las poblaciones con una plaza de más en el equipo del personaje (club y categoría), o `undefined` si ese equipo ya tiene las que puede abrir (`PLAZAS_DE_MAS`) o no tiene equipos por categoría. */
+function conUnaPlazaDeMas(pobs: readonly PoblacionGuardada[], j: JugadorEnClub): PoblacionGuardada[] | undefined {
+  const pob = pobs.find((p) => p.deporte === j.deporte);
+  const e = pob?.equipos.find((x) => x.club === j.club && x.plantillaPorCategoria);
+  if (!pob || !e || (e.plazasDeMas?.[j.categoria] ?? 0) >= PLAZAS_DE_MAS) return undefined;
+  return pobs.map((p) => (p === pob ? { ...p, equipos: p.equipos.map((x) => (x === e ? { ...x, plazasDeMas: { ...x.plazasDeMas, [j.categoria]: (x.plazasDeMas?.[j.categoria] ?? 0) + 1 } } : x)) } : p));
 }
 
 

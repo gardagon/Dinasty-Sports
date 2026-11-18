@@ -17,6 +17,7 @@ import {
   type Rango,
 } from '@ds/contracts';
 import { GRUPOS_QUE_NOMBRA_EL_ENTRENADOR, entrenadorDelJugador, idDeSucesoDePrueba, sedeDelClub } from './club';
+import { idDeConocimiento } from './habilidades';
 import { PEDIR_PUESTO, type ConfigDeporte, type EstadoBaseDeDeporte } from './tipos';
 
 /**
@@ -229,6 +230,52 @@ export function sucesoDePedirPuesto(cfg: ConfigDeporte, t: TextosDePedirPuesto):
         exito: [{ emite: SHARED_EVENTS.CAMBIO_DE_PUESTO, datos: { sport: cfg.id, puesto: '{señal.puesto}' } }, { diario: t.concede }],
         fallo: [{ diario: t.niega }],
       },
+    ],
+  });
+}
+
+
+/** Los textos del aviso de la plaza de más (`{entrenador.nombre}`; el género del personaje, `{yo:o|a}`). */
+export interface TextosDePlazaExtra {
+  titulo: string;
+  /** El entrenador le dice que ha llegado alguien que vale más y que contará menos con él, pero que se queda en el equipo. */
+  texto: string;
+  /** Opción por defecto: quedarse en el equipo con la plaza de más. */
+  opcionQuedarse: string;
+  resultadoQuedarse: string;
+  /** Decirle que va a probar en otros clubes (la plaza sigue siendo suya hasta que otro club lo coja). */
+  opcionProbar: string;
+  resultadoProbar: string;
+  /** Preguntar qué tiene que mejorar. */
+  opcionMejorar: string;
+  resultadoMejorar: string;
+}
+
+/**
+ * El suceso de la plaza de más (`<deporte>.plaza_extra`, decisión del usuario, 18/11/2026): en los fichajes de verano otro jugador que vale más le habría quitado la plaza al personaje, pero el
+ * equipo abre una plaza de más (`plazasDeMas`) y se queda: el entrenador le avisa de que contará menos con él. **No cambia la convocatoria**: si no da el nivel, ya juega menos. Por defecto se queda;
+ * también puede decir que va a probar en otros clubes (la plaza es suya hasta que otro lo coja) o preguntar qué mejorar. Dispara con `club.plaza_extra`.
+ */
+export function sucesoDePlazaExtra(cfg: ConfigDeporte, t: TextosDePlazaExtra): AporteDeSucesos {
+  return suceso({
+    id: `${cfg.id}.plaza_extra`,
+    titulo: t.titulo,
+    deporte: cfg.id,
+    disparo: { al: SHARED_EVENTS.PLAZA_EXTRA },
+    ejemploDeSeñal: { sport: cfg.id, clubId: 'club' },
+    cuando: [{ señal: 'sport', es: cfg.id }],
+    repite: 'siempre',
+    reparto: { entrenador: { rol: 'entrenador', delDeportePrincipal: true } },
+    urgencia: 'ahora',
+    plazo: { dias: 3, porDefecto: 'quedarse' },
+    texto: t.texto,
+    opciones: [
+      { id: 'quedarse', texto: t.opcionQuedarse, caracter: { disciplina: 2, ambicion: -1 }, efectos: [{ relacion: 'entrenador', afinidad: 2 }, { estado: GEN.motivacion, mas: -2 }], resultado: t.resultadoQuedarse },
+      { id: 'probar_fuera', texto: t.opcionProbar, caracter: { ambicion: 2 }, minutos: 5, efectos: [{ estado: GEN.motivacion, mas: 2 }, { relacion: 'entrenador', afinidad: -1 }], resultado: t.resultadoProbar },
+      { id: 'mejorar', texto: t.opcionMejorar, caracter: { ambicion: 1, disciplina: 1 }, minutos: 5, efectos: [{ relacion: 'entrenador', afinidad: 2, confianza: 1 }, { entrena: idDeConocimiento(cfg.id), cantidad: 1 }], resultado: t.resultadoMejorar },
+    ],
+    pruebas: [
+      { nombre: 'Al perder la plaza en verano sale el aviso y no pasa nada si no contesta', dado: {}, espero: { sale: true } },
     ],
   });
 }

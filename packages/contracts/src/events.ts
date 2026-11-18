@@ -29,6 +29,8 @@ export const SHARED_EVENTS = {
   CLUB_ABANDONO: 'club.abandono',
   /** data: PlazaPerdidaData — un jugador del mundo con mejor nivel ha ocupado la plaza del personaje en su equipo: sale del club, como cualquier niño, y decide él qué hace. */
   PLAZA_PERDIDA: 'club.plaza_perdida',
+  /** data: PlazaPerdidaData — el personaje habría perdido su plaza en los fichajes de verano pero sigue en el equipo con una plaza de más (se pasa 1–2 del máximo): el entrenador le avisa de que contará menos con él (suceso `<deporte>.plaza_extra`). Sigue siendo del club; puede ir a probar a otros. */
+  PLAZA_EXTRA: 'club.plaza_extra',
   /** Al empezar el curso, el entrenador le propone al personaje jugar en otro puesto (sobran en el suyo y faltan en otro): decide él. */
   PROPUESTA_DE_PUESTO: 'club.propuesta_de_puesto',
   /** data: PruebaEmpiezaData — el personaje se presenta a la prueba de acceso de un club con puestos: el entrenador se presenta y, si faltan jugadores en varios puestos, le pregunta dónde quiere jugar. */

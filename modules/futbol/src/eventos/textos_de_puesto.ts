@@ -1,4 +1,4 @@
-import type { TextosDePedirPuesto, TextosDePruebaDeAcceso } from '@ds/kit-deporte';
+import type { TextosDePedirPuesto, TextosDePlazaExtra, TextosDePruebaDeAcceso } from '@ds/kit-deporte';
 
 /**
  * Los textos de la prueba de acceso y de pedirle al entrenador otro puesto. Las reglas (huecos, tirada, dificultad) son comunes a todo deporte con puestos y viven en el kit
@@ -25,4 +25,16 @@ export const TEXTOS_DE_PEDIR_PUESTO: TextosDePedirPuesto = {
   concede: '{entrenador.Nombre} se lo piensa. «Vale. Te pruebo de {señal.puestoNombre}. Pero si no funciona, vuelves donde yo diga».',
   niega: '«Aquí las posiciones las pongo yo». {entrenador.Nombre} no cambia de idea.',
   pocoTiempo: 'Hace muy poco que le pedías algo parecido y a {entrenador.nombre} no le ha hecho gracia.',
+};
+
+export const TEXTOS_DE_PLAZA_EXTRA: TextosDePlazaExtra = {
+  titulo: 'Una plaza de más en el equipo',
+  texto:
+    'Antes de empezar el curso, {entrenador.nombre} te llama aparte. «Han llegado jugadores que valen más que tú en tu puesto y el equipo está completo. No quiero dejarte fuera, así que te hago una plaza de más. Pero te lo digo claro: voy a contar menos contigo, y si no das el nivel, jugarás poco».',
+  opcionQuedarse: 'Quedarte en el equipo de todos modos',
+  resultadoQuedarse: '«Me alegra que te quedes. Entrena fuerte y ya veremos». {entrenador.Nombre} te da una palmada en el hombro.',
+  opcionProbar: 'Decirle que vas a probar en otros clubes',
+  resultadoProbar: '{entrenador.Nombre} asiente. «Estás en tu derecho. Tu plaza sigue aquí hasta que otro club te coja, y si no te cogen, sigues con nosotros».',
+  opcionMejorar: 'Preguntarle qué tienes que mejorar para volver a contar',
+  resultadoMejorar: '{entrenador.Nombre} te explica con calma qué echa en falta. «Enséñamelo en los entrenamientos y volveré a contar contigo».',
 };

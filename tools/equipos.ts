@@ -8,7 +8,7 @@ import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
 import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
-import { edadDeJuego, edadNpc, type NpcsState } from '@ds/mod-npcs';
+import { edadDeJuego, edadNpc, maximoPorEquipo, type NpcsState } from '@ds/mod-npcs';
 
 const SEMILLAS = Number(process.argv[2] ?? 3);
 const VERANOS = Number(process.argv[3] ?? 3);
@@ -42,12 +42,15 @@ interface Momento {
   /** Club-categorías (con equipo) con algún grupo de puestos sin jugadores o pasado de su cupo, y las que hay. */
   descompensados: number[];
   conEquipo: number[];
+  /** Jugadores que pasan del máximo de su equipo (plazas de más) y equipos que pasan, en toda la ciudad. */
+  extras: number[];
+  equiposConExtras: number[];
   /** Interesados sin equipo por categoría: con interés por el fútbol y solo por el deporte en general. */
   sinPorCategoria: Record<string, { futbol: number[]; general: number[] }>;
   /** Equipos (k) y jugadores por club y categoría. */
   porClub: Record<string, Record<string, { k: number[]; n: number[] }>>;
 }
-const vacio = (): Momento => ({ clubesConEquipo: [], clubesTotal: [], colegiosConEquipo: [], colegiosTotal: [], propioConEquipo: [], equiposPorEquipoMin: [], jugadoresPorEquipo: [], sinEquipo: [], dejados: [], apartados: [], futbolistas: [], cambioDeCurso: [], descompensados: [], conEquipo: [], sinPorCategoria: Object.fromEntries(CATEGORIAS.map((c) => [c, { futbol: [], general: [] }])), porClub: {} });
+const vacio = (): Momento => ({ clubesConEquipo: [], clubesTotal: [], colegiosConEquipo: [], colegiosTotal: [], propioConEquipo: [], equiposPorEquipoMin: [], jugadoresPorEquipo: [], sinEquipo: [], dejados: [], apartados: [], futbolistas: [], cambioDeCurso: [], descompensados: [], conEquipo: [], extras: [], equiposConExtras: [], sinPorCategoria: Object.fromEntries(CATEGORIAS.map((c) => [c, { futbol: [], general: [] }])), porClub: {} });
 
 for (const k of FACTORES) {
   const pais = paisPor(k);
@@ -66,16 +69,18 @@ for (const k of FACTORES) {
       const dia = v === 0 ? 0 : (g.time.week - g.time.schoolWeek) * 7;
       const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
       const m = momentos[v];
-      let descompensados = 0, conEquipo = 0;
+      let descompensados = 0, conEquipo = 0, extras = 0, equiposConExtras = 0;
       let clubes = 0, clubesT = 0, colegios = 0, colegiosT = 0, propio = 0;
       for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
         for (const c of pob.categorias!.filter((x) => CATEGORIAS.includes(x.id))) {
           const n = s.npcs.filter((x) => x.deporte === 'futbol' && x.equipo === e.club && (edadDeJuego(x, dia) ?? -1) >= c.edadMin && (edadDeJuego(x, dia) ?? -1) <= c.edadMax).length;
           const kk = e.equiposPorCategoria?.[c.id] ?? 1;
+          const sobreElMaximo = n - (e.plantillaPorCategoria?.max ?? 18) * kk;
+          if (n > 0 && sobreElMaximo > 0) { extras += sobreElMaximo; equiposConExtras++; }
           if (e.colegio !== undefined) { colegiosT++; if (n >= 14) { colegios++; if (e.colegio === 'propio') propio++; } } else { clubesT++; if (n >= 14) clubes++; }
           if (n > 0) {
             conEquipo++;
-            const cupos = cuposPorGrupo(pob.puestos!, (e.plantillaPorCategoria?.max ?? 18) * kk);
+            const cupos = cuposPorGrupo(pob.puestos!, (e.plantillaPorCategoria ? maximoPorEquipo(e, c.id) : 18) * kk);
             const cuenta: Record<string, number> = {};
             for (const x of s.npcs.filter((y) => y.deporte === 'futbol' && y.equipo === e.club && (edadDeJuego(y, dia) ?? -1) >= c.edadMin && (edadDeJuego(y, dia) ?? -1) <= c.edadMax)) { const gr = grupoDePuesto(pob.puestos!, x.puesto?.futbol ?? '') ?? '?'; cuenta[gr] = (cuenta[gr] ?? 0) + 1; }
             if (pob.puestos!.reparto.some((r) => (cuenta[r.grupo] ?? 0) === 0 || (cuenta[r.grupo] ?? 0) > cupos[r.grupo])) descompensados++;
@@ -86,7 +91,7 @@ for (const k of FACTORES) {
           if (n > 0) { m.equiposPorEquipoMin.push(n / kk); m.jugadoresPorEquipo.push(n / kk); }
         }
       }
-      m.descompensados.push(descompensados); m.conEquipo.push(conEquipo);
+      m.descompensados.push(descompensados); m.conEquipo.push(conEquipo); m.extras.push(extras); m.equiposConExtras.push(equiposConExtras);
       m.clubesConEquipo.push(clubes); m.clubesTotal.push(clubesT); m.colegiosConEquipo.push(colegios); m.colegiosTotal.push(colegiosT); m.propioConEquipo.push(propio);
       const interesados = (x: { rasgos?: { intereses: Record<string, number> } }) => Math.max(x.rasgos?.intereses.futbol ?? 0, x.rasgos?.intereses.deporte ?? 0) > 0;
       const enCategorias = (x: { nacimiento?: number } & Parameters<typeof edadNpc>[0]) => CATEGORIAS.some((cat) => { const c = pob.categorias!.find((y) => y.id === cat)!; const ed = edadNpc(x, dia) ?? -1; return ed >= c.edadMin && ed <= c.edadMax; });
@@ -114,6 +119,8 @@ for (const k of FACTORES) {
   });
   console.log('\nEquipos descompensados por puestos (algún grupo sin jugadores o pasado de su cupo), de los club-categorías con equipo:');
   momentos.forEach((m, v) => console.log(`- ${v === 0 ? 'al crear' : `tras el verano ${v}`}: ${f(media(m.descompensados))} de ${f(media(m.conEquipo))}`));
+  console.log('\nPlazas de más (jugadores por encima del máximo de su equipo, y club-categorías con alguno):');
+  momentos.forEach((m, v) => console.log(`- ${v === 0 ? 'al crear' : `tras el verano ${v}`}: ${f(media(m.extras))} jugadores en ${f(media(m.equiposConExtras))} club-categorías`));
   console.log('\nInteresados sin equipo por categoría (con interés por el fútbol / solo por el deporte en general):');
   console.log(`| Momento | ${CATEGORIAS.join(' | ')} |`);
   console.log(`|---|${CATEGORIAS.map(() => '---').join('|')}|`);

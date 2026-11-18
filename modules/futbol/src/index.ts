@@ -80,6 +80,7 @@ import {
   resolverPedirPuesto,
   servicioDePedirPuesto,
   sucesoDePedirPuesto,
+  sucesoDePlazaExtra,
   sucesoDePruebaDeAcceso,
 } from '@ds/kit-deporte';
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
@@ -87,7 +88,7 @@ import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { EVENTOS_DE_FUTBOL } from './eventos';
-import { TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
+import { TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
 import { APORTE_DE_SUCESOS, servicioDeHechos, type HechosService } from '@ds/contracts';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
@@ -1224,7 +1225,7 @@ export const futbol = defineModule<FutbolState>({
   name: 'Fútbol',
   description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
   dependsOn: ['gen'],
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO)] },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO), sucesoDePlazaExtra(CONFIG, TEXTOS_DE_PLAZA_EXTRA)] },
   stats: [...STATS_DE_FUTBOL],
 
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),
