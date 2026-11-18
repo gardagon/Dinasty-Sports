@@ -217,6 +217,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
           description: `Pasaste la prueba y te ofrecen entrar. Si todavía eres de otro club y no lo has dejado antes, lo dejas plantado: empeora tu relación con su entrenador y su equipo y te estresa. La plaza vale ${SEMANAS_DE_OFERTA} semanas.`,
           tags: [deporte],
           group: 'Club',
+          desplegable: { id: `${deporte}.aceptar_plaza`, nombre: 'Aceptar plaza…', etiqueta: 'Club', boton: '{nombre}', opcion: c.nombre },
           duration: 15,
           available: (c2) => {
             const semana = estado(c2).ofertas?.[c.id];
@@ -261,6 +262,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
             : `El ${c.nombre} hace pruebas a quien quiere entrar, solo en sus horas de entrenamiento. ${infoDeClub(ctx, cfg, c)} Exige edad (${acceso!.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
           tags: [TAGS.fisico, deporte],
           group: 'Club',
+          desplegable: { id: `${deporte}.prueba`, nombre: 'Prueba de acceso…', etiqueta: 'Club', boton: '{nombre}', opcion: c.nombre },
           duration: 150,
           available: (c2) => noPuedeProbar(c2) ?? enHorasDelClub(c2) ?? true,
           delta: { [GEN.energia]: -25, [GEN.estres]: 6 },
@@ -540,6 +542,8 @@ function pruebaPorPuestosEnPasos(
   enHorasDelClub: (c2: ReadContext) => string | undefined,
 ): ActionDef[] {
   const deporte = cfg.id;
+  /** Los tres pasos de la prueba salen en el mismo desplegable «Prueba de acceso…» que la de los demás clubes. */
+  const desplegableDePrueba = (opcion: string): NonNullable<ActionDef['desplegable']> => ({ id: `${deporte}.prueba`, nombre: 'Prueba de acceso…', etiqueta: 'Club', boton: '{nombre}', opcion });
   const pedida = estado(ctx).pruebaPedida?.[c.id];
   const enCurso = estado(ctx).pruebaEnCurso;
   const sucesoPendiente = (c2: ReadContext): boolean => !!c2.service<SucesosService>(SERVICES.sucesos)?.pendientes().some((p) => p.suceso === idDeSucesoDePrueba(deporte));
@@ -549,6 +553,7 @@ function pruebaPorPuestosEnPasos(
     description: `Pides probar con el equipo que te toca por edad. Te dicen cuándo entrena (${textoDeSesiones(c.sesiones)}): te presentas a esa hora y te unes al entrenamiento. ${infoDeClub(ctx, cfg, c)} Si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
     tags: [TAGS.social, deporte],
     group: 'Club',
+    desplegable: desplegableDePrueba(c.nombre),
     duration: 10,
     available: (c2) => noPuedeProbar(c2) ?? enHorasDelClub(c2) ?? (estado(c2).pruebaPedida?.[c.id] === c2.time.week ? 'Ya has pedido la prueba: presentarte al entrenamiento' : true),
     run: (c2) => {
@@ -565,6 +570,7 @@ function pruebaPorPuestosEnPasos(
     description: 'Llegas al entrenamiento: el entrenador se presenta, dice qué puestos necesita y te pregunta dónde quieres jugar. Después entrenas con ellos y, al acabar, te dicen qué tal ha ido.',
     tags: [TAGS.fisico, deporte],
     group: 'Club',
+    desplegable: desplegableDePrueba(`${c.nombre} · entrenamiento de prueba`),
     duration: 5,
     available: (c2) => {
       if (estado(c2).pruebaPedida?.[c.id] === undefined) return `Primero pide hacer una prueba en ${c.nombre}`;
@@ -584,6 +590,7 @@ function pruebaPorPuestosEnPasos(
     description: 'El resto del entrenamiento de la prueba: cuenta lo que vales ese día en el puesto en que te han probado. Al acabar te dicen qué tal ha ido y, si pasas, entras en el equipo.',
     tags: [TAGS.fisico, deporte],
     group: 'Club',
+    desplegable: desplegableDePrueba(`${c.nombre} · entrenar a prueba`),
     duration: 145,
     available: (c2) => {
       if (estado(c2).pruebaEnCurso?.club !== c.id) return 'Primero únete al entrenamiento de prueba';
