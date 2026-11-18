@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 18/11/2026 — Fichas y listas, hecho (rama `claude/fichas-y-listas`)
+
+Detalle: `docs/relevo/fichas-y-listas.md` (con el análisis de todas las listas, `npm run listas`).
+- **La ficha de quien no está a tu lado** no enseña ninguna acción. Se quedan el apodo y «Cancelar plan» (avisar de que no vas). Quien está aquí pero ocupado conserva el listado en gris con el motivo.
+- **Los que recogen** van el 80 % de los días (campo de tramo `delDia`, sorteo estable); edad mínima 25, pendiente de revisar.
+- **Prueba fuera de plazo:** el motivo añade «Las pruebas de acceso se abren el lunes …».
+- **Desplegables:** «Estudiar…», «Pedir tutoría…» y, con dos deportes, «Campamento…», «Practicar con los amigos…» y «Ver un deporte en la tele…». Las acciones del club, solo como propuesta (decide el usuario).
+
 ## 17/11/2026 — Equipos: menos clubes de colegio y niños que se quedan en el de su colegio
 
 El equipo del colegio se quedaba vacío porque en el reparto los 14 clubes (9 de fuera y 5 de colegio) llenan sus A y B con unos 500 niños por categoría, y el colegio va el último. Decidido por el usuario:
