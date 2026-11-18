@@ -594,7 +594,9 @@ export function plazasDeMas(m: MercadoDeFichajes): number {
           e.plazasDeMas = { ...previo, [cat.id]: Math.min(PLAZAS_DE_MAS, Math.ceil((Math.max(0, ya - maxNormal) + 1) / k)) };
           const n = m.lista.get(a.npc.id);
           const antes = n && n.deporte === undefined ? n : undefined;
-          if (antes && intentarEntrar(m, sinApartar(antes), e, pob, { sinPrueba: true, soloHueco: true, relajado: true, ultimaOpcion: true }).entra) {
+          // Primero respetando el reparto por puestos (con las plazas de más abiertas) y, solo si así no cabe, en su puesto favorito aunque su grupo esté lleno.
+          const entra = !!antes && (intentarEntrar(m, sinApartar(antes), e, pob, { sinPrueba: true, soloHueco: true, ultimaOpcion: true }).entra || intentarEntrar(m, sinApartar(antes), e, pob, { sinPrueba: true, soloHueco: true, relajado: true, ultimaOpcion: true }).entra);
+          if (antes && entra) {
             const dentro = m.lista.get(a.npc.id)!;
             // Si el reparto en equipos no le encuentra sitio (por puestos), no vale: se deshace.
             const cx = categoriasDelEquipo(pob, e).find((c) => c.id === cat.id)!;
