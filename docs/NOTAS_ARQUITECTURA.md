@@ -12,6 +12,7 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 - **Ninguna decisión de diseño sin autorización del usuario**, salvo arreglar un error que obligue a deshacer trabajo (y se le cuenta). La arquitectura propone con su recomendación; el usuario decide.
 - **Las dudas** de quien desarrolla van a «Preguntas abiertas» del plan correspondiente (o a sus notas de relevo); la arquitectura se las lleva al usuario.
 - **Sesiones cortas y enfocadas**, una por bloque de trabajo que comparta código, con un encargo cerrado y notas de relevo. Una sesión muy larga se encarece en cada paso: Fable gastó un bloque entero de 5 horas solo en recargar unos 700.000 tokens de contexto.
+- **Sesiones paradas por el límite de uso:** cuando una sesión se para por el límite de 5 horas, no se reanuda sola (solo si el ordenador del usuario está encendido). Revisar con `list_sessions` (`children`) las que salen `failed` y reactivarlas con `send_message` cuando pase el límite.
 - **Sesiones en paralelo** solo si tocan archivos distintos. Para no chocar en la documentación, cada una escribe sus notas en `docs/relevo/<rama>.md` y la arquitectura las junta en `DECISIONES.md` y en los planes al unir.
 - **Modelos.** Sonnet 5.5 para el desarrollo normal; Fable 5.2 solo para lo de más calado (diseño de sistemas, motor fino, calidad visual), en sesiones nuevas con notas de relevo. **Fable dejó de estar incluido en el plan del usuario el 16/11**: ahora requiere créditos de uso, así que no lanzarlo sin preguntar.
 - **Al unir ramas:** comprobar tipos (`npm run typecheck`, tras `npm install` si hay paquetes nuevos) y tests; si una rama arrastra un archivo grande en su historia, unirla como un solo commit (`git merge --squash`).
@@ -40,7 +41,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXNt52eARrGJ6e6Uscp` | `claude/reparto-equipos` | 4 clubes de colegio; los niños con club en su colegio solo prueban fuera con un % por edad (15–55 %); el colegio forma antes; 1–2 plazas de más al final para no dejar a nadie colgado. Medir antes y después |
+| `session_01M4vXXNt52eARrGJ6e6Uscp` | `claude/reparto-equipos` | 4 clubes de colegio; los niños con club en su colegio solo prueban fuera con un % por edad (15–55 %), cada verano también los de cualquier año; los de fuera siguen formando antes; 1–2 plazas de más al final para no dejar a nadie colgado. Medir antes y después |
 | `session_01M4vXXP3ckZSBmGvQnUnAxe` | `claude/nombres-nacionales` | Opciones para que los nombres suenen más corrientes sin bajar el 25 %: reparto como en Madrid, nombres de la segunda generación, orden de los apellidos. Muestras de 20 compañeros |
 | `session_01M4vXXRtH1musiDi91d3e3n` | `claude/fichas-y-listas` | Fichas sin nada de quien no está; recogida el 80 % de los días y desde 25 años; prueba fuera de plazo dice cuándo se abre; análisis de listas y desplegables para Estudiar y tutorías (las del club, solo propuesta) |
 
