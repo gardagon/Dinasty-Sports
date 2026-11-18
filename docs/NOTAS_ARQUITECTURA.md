@@ -35,15 +35,14 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
 2. ~~**Equipos del colegio que se quedan vacíos**~~ **Decidido el 17/11** (DECISIONES, «Equipos: menos clubes de colegio…») y encargado a `claude/reparto-equipos`.
-4. **Acciones del club en desplegables** (18/11: el usuario dijo «vamos a dejarlo así para probarlo»; se entiende que no se agrupan de momento, por confirmar) (propuesta con captura: `docs/relevo/listas-club-propuesta.png`). «Prueba de acceso…» y «Aceptar plaza…», cada una con un desplegable de clubes; sueltos, «Entrenamiento con el club», «Dejar el club» y «Apuntarte al club del colegio». Con fútbol, la lista pasa de 14 botones a 8. **Recomendación:** sí. Duda menor: «Salir a jugar» (3 botones) sigue suelto.
-3. **Nombres más nacionales** (`docs/relevo/nombres-nacionales.md`, `npm run nombres-nacionales`). Hoy suenan extranjeros 3,6 de cada 20 compañeros (2,6 a primera vista); los latinoamericanos ya llevan nombres hispanos. Recomendación de la sesión: (a) repartir el 19 % como en Madrid (Latinoamérica 9,9, Europa del este 3,0, Europa del norte 2,4, Asia 1,9, Magreb 1,2, África subsahariana 0,6; solo datos de la ciudad grande) y (b) nombre de pila español en el 35 % de la segunda generación. Juntas, 2,6 de cada 20 (1,6 a primera vista). No forzar el apellido español primero (empeora). Pendiente de que el usuario lo apruebe.
-5. **Plazas de más para el personaje que se queda sin equipo** (pregunta de `claude/reparto-equipos`): (A) se le coloca solo en el equipo de su colegio o en el club de nivel más cercano; (B) se le ofrece una acción puntual «Entrar en el equipo del colegio (plaza extra)» solo si de verdad se ha quedado sin equipo. **Recomendación:** B, porque las decisiones son suyas. La sesión deja al personaje sin tocar hasta la respuesta.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXNt52eARrGJ6e6Uscp` | `claude/reparto-equipos` | 4 clubes de colegio; los niños con club en su colegio solo prueban fuera con un % por edad (15–55 %), cada verano también los de cualquier año; los de fuera siguen formando antes; 1–2 plazas de más al final para no dejar a nadie colgado. Medir antes y después |
+| `session_01M4vXXNH5rEeQu14t4bGSsU` | `claude/club-desplegables` | «Prueba de acceso…» y «Aceptar plaza…» con desplegable de clubes |
+| `session_01M4vXXP3ckZSBmGvQnUnAxe` | `claude/nombres-nacionales` | Aplicar el reparto tipo Madrid y el 20 % de nombres españoles en la segunda generación |
+| `session_01M4vXXNt52eARrGJ6e6Uscp` | `claude/reparto-equipos` | 4 clubes de colegio; los niños con club en su colegio solo prueban fuera con un % por edad (15–55 %), cada verano también los de cualquier año; los de fuera siguen formando antes; 1–2 plazas de más al final para no dejar a nadie colgado; suceso del entrenador que «contará menos» con el personaje que pierde la plaza. Medir antes y después |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 

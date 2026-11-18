@@ -5,6 +5,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 18/11/2026 — Nombres más corrientes, acciones del club en desplegables y el personaje que se queda sin equipo
+
+- **Nombres** (informe: `docs/relevo/nombres-nacionales.md`): (a) en la ciudad grande, el 19 % de origen extranjero se reparte como en Madrid (Latinoamérica 9,9, Europa del este 3,0, Europa del norte 2,4, Asia oriental 1,9, Magreb 1,2, África subsahariana 0,6); (b) el **20 %** de los hijos de extranjeros nacidos aquí llevan nombre de pila español (dato editable por país y ciudad). El orden de los apellidos no se toca.
+- **Acciones del club:** «Prueba de acceso…» y «Aceptar plaza…» pasan a un desplegable con un club por opción, para probarlo. «Entrenamiento con el club», «Dejar el club» y «Apuntarte al club del colegio» siguen sueltos.
+- **El personaje que se queda sin equipo** (pierde la plaza, por ejemplo en verano): un suceso en el que el entrenador le dice que va a contar menos con él. Por defecto mantiene la plaza extra (el equipo se pasa 1 o 2 del máximo), pero puede ir a probar a otros sitios sabiéndolo.
+
 ## 18/11/2026 — Fichas y listas, hecho (rama `claude/fichas-y-listas`)
 
 Detalle: `docs/relevo/fichas-y-listas.md` (con el análisis de todas las listas, `npm run listas`).
