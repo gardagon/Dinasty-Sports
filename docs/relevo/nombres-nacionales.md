@@ -164,7 +164,7 @@ Manuel Santos Carrasco; Marina Oliva Morales; Enzo Iglesias Ibáñez; Domingo Ma
 - `npm run huella -- 60` y `npm run rendimiento -- 60` **salen idénticos antes y después**: los dos usan España (y la ciudad de prueba), que no llevan los datos nuevos. Los otros caminos (ciudad grande) cambian de gente, como se esperaba: los mismos números de semilla dan otros compañeros, nombres y orígenes. Rendimiento antes/después: crear la partida 744 / 730 ms; estado 2968 / 2968 KB; bot equilibrado 1,49 / 1,58 ms por acción (ruido de la máquina); mismas 1418 personas.
 - `npm run benjamin -- 31,33`: igual que antes (semilla 31 con plaza y primer partido en la semana 4; semilla 33 sin plaza).
 - `npm run typecheck` en verde; `npm test`: 99 archivos y 1158 tests en verde.
-- `npm run probar-web`: ver el aviso final.
+- `npm run probar-web`: **verde** (23 comprobaciones, sin errores de consola), tras un arreglo del script. Con la gente nueva de la semilla 35 (ciudad grande), al avanzar semanas de golpe salió un suceso aleatorio de la vida («Se hace tarde») cuyo cuadro tapaba la pestaña del deporte y el clic agotaba el tiempo; con la rama base pasaba. No era un fallo del juego sino del script, que no contemplaba sucesos ajenos: ahora cierra los sucesos pendientes (la primera opción, o «visto») antes de pulsar la pestaña (`tools/probar-web.ts`). No se ha relajado ninguna comprobación.
 
 ## Anexo: muestras (24 compañeros de clase por semilla; `npm run nombres-nacionales`)
 
