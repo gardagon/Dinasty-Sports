@@ -41,7 +41,6 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 | Sesión | Rama | Encargo |
 |---|---|---|
 | `session_01M4vXXNH5rEeQu14t4bGSsU` | `claude/club-desplegables` | «Prueba de acceso…» y «Aceptar plaza…» con desplegable de clubes |
-| `session_01M4vXXP3ckZSBmGvQnUnAxe` | `claude/nombres-nacionales` | Aplicar el reparto tipo Madrid y el 20 % de nombres españoles en la segunda generación |
 | `session_01M4vXXNt52eARrGJ6e6Uscp` | `claude/reparto-equipos` | 4 clubes de colegio; los niños con club en su colegio solo prueban fuera con un % por edad (15–55 %), cada verano también los de cualquier año; los de fuera siguen formando antes; 1–2 plazas de más al final para no dejar a nadie colgado; suceso del entrenador que «contará menos» con el personaje que pierde la plaza. Medir antes y después |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
