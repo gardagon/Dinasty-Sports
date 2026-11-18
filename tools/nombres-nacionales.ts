@@ -52,7 +52,8 @@ export interface Cfg {
   pCompartido: number;
 }
 const HOY: Cfg = { nombre: 'Hoy', pLocalSolo: 0, pLocalMezcla: 0.12, pLocalEnMixta: 0.5, pCompartido: 0 };
-const DEMOGRAFIA_HOY = { ...CIUDAD_GRANDE.demografia! } as Record<string, number>;
+/** La demografía de la ciudad grande ANTES del cambio del 18/11 (la de España); la actual es `CIUDAD_GRANDE.demografia`. */
+const DEMOGRAFIA_HOY: Record<string, number> = { espana_norte: 0.162, espana_centro: 0.324, espana_sur: 0.324, latinoamerica: 0.06, magreb: 0.04, africa_subsahariana: 0.017, europa_este: 0.035, europa_norte: 0.02, asia_oriental: 0.018 };
 /** (a) Madrid: ~19 % de fuera, repartido por continente como la Comunidad de Madrid (informe §2). */
 const DEMOGRAFIA_MADRID: Record<string, number> = { espana_norte: 0.162, espana_centro: 0.324, espana_sur: 0.324, latinoamerica: 0.099, europa_este: 0.030, europa_norte: 0.024, magreb: 0.012, africa_subsahariana: 0.006, asia_oriental: 0.019 };
 export const OPCIONES: Cfg[] = [
@@ -64,6 +65,8 @@ export const OPCIONES: Cfg[] = [
   { ...HOY, nombre: 'a+b', demografia: DEMOGRAFIA_MADRID, pLocalSolo: 0.35, pLocalMezcla: 0.35, pLocalEnMixta: 0.65 },
   { ...HOY, nombre: 'b+c', pLocalSolo: 0.35, pLocalMezcla: 0.35, pLocalEnMixta: 0.65, espanolPrimero: 0.7 },
   { ...HOY, nombre: 'a+b+c', demografia: DEMOGRAFIA_MADRID, pLocalSolo: 0.35, pLocalMezcla: 0.35, pLocalEnMixta: 0.65, espanolPrimero: 0.7 },
+  /** Lo aplicado el 18/11: (a) + nombre español el 20 % en nacidos aquí de padres de fuera (solo un origen y mezclas sin origen local; la mixta con uno de aquí, como antes). */
+  { ...HOY, nombre: 'final', demografia: DEMOGRAFIA_MADRID, pLocalSolo: 0.2, pLocalMezcla: 0.2, pLocalEnMixta: 0.5 },
   { ...HOY, nombre: 'a+b+c+d', demografia: DEMOGRAFIA_MADRID, pLocalSolo: 0.35, pLocalMezcla: 0.35, pLocalEnMixta: 0.65, espanolPrimero: 0.7, pCompartido: 0.3 },
 ];
 const cfgDe = (nombre: string): Cfg => OPCIONES.find((o) => o.nombre === nombre)!;
@@ -151,7 +154,10 @@ export function nombreDeNino(rng: Rng, g: 'f' | 'm', o: OrigenFamiliar, cfg: Cfg
 const SEMILLAS = Number(process.argv[2] ?? 5);
 const N_MC = Number(process.argv[3] ?? 40000);
 const ID_MADRID = "espana_madrid_reparto";
+/** La ciudad grande tal como era antes de aplicar (a)+(b): para comparar con los nombres reales del juego de ahora. */
+const ID_HOY = "espana_ciudad_grande_antes";
 registrarPais(PAIS_CIUDAD_GRANDE);
+registrarPais({ ...PAIS_CIUDAD_GRANDE, id: ID_HOY, ciudad: { ...CIUDAD_GRANDE, demografia: DEMOGRAFIA_HOY, nombreLocalDeLosNacidosAqui: undefined } });
 registrarPais({ ...PAIS_CIUDAD_GRANDE, id: ID_MADRID, ciudad: { ...CIUDAD_GRANDE, demografia: DEMOGRAFIA_MADRID } });
 
 interface Companero { id: string; genero: 'f' | 'm'; nombre: string; pila: string; origen: OrigenFamiliar }
@@ -180,13 +186,12 @@ const SALIDA: string[] = [];
 const out = (s = ''): void => void SALIDA.push(s);
 const pct = (n: number, d: number): string => `${((100 * n) / d).toFixed(1)} %`;
 
-function listar(titulo: string, cfgNombre: string, pais: string, conPadres: boolean): number[] {
+function listar(titulo: string, cfgNombre: string, pais: string, conPadres: boolean, real = cfgNombre === 'Hoy'): number[] {
   const cfg = cfgDe(cfgNombre);
   const cuentas: number[] = [];
   out(`#### ${titulo}\n`);
   for (let seed = 1; seed <= SEMILLAS; seed++) {
     const { clase, jugador } = companeros(seed, pais);
-    const real = cfgNombre === 'Hoy';
     const filas = clase.map((c) => {
       const nombre = real ? { pila: c.pila, apellidos: c.nombre.slice(c.pila.length).trim(), completo: c.nombre, extranjero: suenaExtranjero(c.pila, c.nombre.slice(c.pila.length).trim()), vista: sueneAPrimeraVista(c.pila, c.nombre.slice(c.pila.length).trim()) } : nombreDeNino(rngEstable('nombres-nacionales', seed, c.id, cfgNombre), c.genero, c.origen, cfg);
       return { c, nombre };
@@ -265,31 +270,55 @@ function tabla(): void {
 
 // ------------------------------------------------------------------------------------------------ comprobación de la copia
 function comprobarCopia(): void {
-  // Con los parámetros de hoy, la copia da la misma proporción que los nombres reales del juego (mismo origen).
-  let real = 0, copia = 0, n = 0;
-  for (let seed = 1; seed <= 20; seed++) {
-    const { clase } = companeros(seed, PAIS_CIUDAD_GRANDE.id);
-    for (const c of clase) {
-      n++;
-      if (suenaExtranjero(c.pila, c.nombre.slice(c.pila.length).trim())) real++;
-      if (nombreDeNino(rngEstable('copia', seed, c.id), c.genero, c.origen, HOY).extranjero) copia++;
+  // Con los mismos orígenes, la copia (con los parámetros de cada caso) da la misma proporción que los nombres reales del juego.
+  for (const [titulo, pais, cfg] of [['antes', ID_HOY, HOY], ['ahora', PAIS_CIUDAD_GRANDE.id, { ...HOY, nombre: 'final', pLocalSolo: 0.2, pLocalMezcla: 0.2, pLocalEnMixta: 0.5 }]] as const) {
+    let real = 0, copia = 0, n = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const { clase } = companeros(seed, pais);
+      for (const c of clase) {
+        n++;
+        if (suenaExtranjero(c.pila, c.nombre.slice(c.pila.length).trim())) real++;
+        if (nombreDeNino(rngEstable('copia', seed, c.id), c.genero, c.origen, cfg).extranjero) copia++;
+      }
     }
+    out(`Comprobación de la copia (${titulo}): con los mismos orígenes (20 semillas, ${n} compañeros), el juego da ${pct(real, n)} que suenan extranjeros y la copia, ${pct(copia, n)}.\n`);
   }
-  out(`Comprobación de la copia: con los mismos orígenes (20 semillas, ${n} compañeros), el juego da ${pct(real, n)} que suenan extranjeros y la copia con los parámetros de hoy, ${pct(copia, n)}.\n`);
 }
 
-out('## 1. Muestras de hoy (nombres reales del juego)\n');
-const hoy = listar('Hoy: compañeros de clase del personaje (24), con origen y padres', 'Hoy', PAIS_CIUDAD_GRANDE.id, true);
-out(`Suenan extranjeros por semilla: ${hoy.join(', ')} (media ${(hoy.reduce((a, b) => a + b, 0) / hoy.length).toFixed(1)} de 24).\n`);
-out('## 2. Muestras de las opciones (mismos compañeros, con las reglas de cada opción)\n');
-for (const nombre of ['a', 'b', 'c', 'd', 'a+b', 'a+b+c', 'a+b+c+d']) {
-  const cfg = cfgDe(nombre);
-  const pais = cfg.demografia ? ID_MADRID : PAIS_CIUDAD_GRANDE.id;
-  const r = listar(`Opción ${nombre}`, nombre, pais, false);
-  out(`Suenan extranjeros por semilla: ${r.join(', ')} (media ${(r.reduce((x, y) => x + y, 0) / r.length).toFixed(1)} de 24).\n`);
+/** Con los nombres reales del juego (sin la copia): cuántos suenan extranjeros con la ciudad grande de antes y con la de ahora (misma medida por las listas). */
+function realFrente(semillas: number): void {
+  const medida = (pais: string): { n: number; ext: number; vista: number; nombre: number; deFuera: number } => {
+    let n = 0, ext = 0, vista = 0, nombre = 0, deFuera = 0;
+    for (let seed = 1; seed <= semillas; seed++) {
+      const { clase } = companeros(seed, pais);
+      for (const c of clase) {
+        const ap = c.nombre.slice(c.pila.length).trim();
+        n++;
+        if (suenaExtranjero(c.pila, ap)) ext++;
+        if (sueneAPrimeraVista(c.pila, ap)) vista++;
+        if (!pilaHispana(c.pila)) nombre++;
+        if (c.origen.some((x) => !esLocal(x.id) && x.id !== 'latinoamerica')) deFuera++;
+      }
+    }
+    return { n, ext, vista, nombre, deFuera };
+  };
+  const antes = medida(ID_HOY), ahora = medida(PAIS_CIUDAD_GRANDE.id);
+  out(`### Nombres reales del juego, antes y después (${semillas} semillas × 24 compañeros)\n`);
+  out('| | Suenan extranjeros | de cada 20 | A primera vista | de cada 20 | Nombre de pila de fuera | de cada 20 | Con origen no hispano |');
+  out('|---|--:|--:|--:|--:|--:|--:|--:|');
+  for (const [t, m] of [['Antes', antes], ['Ahora', ahora]] as const) out(`| ${t} | ${pct(m.ext, m.n)} | ${((m.ext * 20) / m.n).toFixed(1)} | ${pct(m.vista, m.n)} | ${((m.vista * 20) / m.n).toFixed(1)} | ${pct(m.nombre, m.n)} | ${((m.nombre * 20) / m.n).toFixed(1)} | ${pct(m.deFuera, m.n)} |`);
+  out();
 }
-out('## 3. Tabla\n');
+
+out('## 1. Muestras de hoy (nombres reales del juego, ciudad grande de antes)\n');
+const hoy = listar('Hoy: compañeros de clase del personaje (24), con origen y padres', 'Hoy', ID_HOY, true);
+out(`Suenan extranjeros por semilla: ${hoy.join(', ')} (media ${(hoy.reduce((a, b) => a + b, 0) / hoy.length).toFixed(1)} de 24).\n`);
+out('## 2. Muestras de ahora (nombres reales del juego, ciudad grande con (a) + (b) al 20 %)\n');
+const ahora = listar('Ahora: compañeros de clase del personaje (24), con origen y padres', 'final', PAIS_CIUDAD_GRANDE.id, true, true);
+out(`Suenan extranjeros por semilla: ${ahora.join(', ')} (media ${(ahora.reduce((a, b) => a + b, 0) / ahora.length).toFixed(1)} de 24).\n`);
+out('## 3. Tabla (copia de las reglas, 40 000 niños por opción) y nombres reales\n');
 tabla();
+realFrente(Number(process.argv[4] ?? 40));
 comprobarCopia();
 void ORIGENES;
 console.log(SALIDA.join('\n'));

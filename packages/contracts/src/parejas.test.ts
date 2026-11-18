@@ -14,6 +14,18 @@ describe('parejas por tipo (demografía de orígenes)', () => {
     expect(ORIGENES.filter((o) => !o.id.startsWith('espana_')).reduce((a, o) => a + o.frecuencia, 0)).toBeCloseTo(0.19, 6);
   });
 
+  it('la ciudad grande, como Madrid: 19 % de fuera repartido por continente (más de la mitad de América), distinto del de España', () => {
+    const d = CIUDAD_GRANDE.demografia!;
+    const total = Object.values(d).reduce((a, b) => a + b, 0);
+    const fuera = Object.entries(d).filter(([k]) => !k.startsWith('espana_')).reduce((a, [, v]) => a + v, 0);
+    expect(total).toBeCloseTo(1, 6);
+    expect(fuera).toBeCloseTo(0.19, 6);
+    expect(d.latinoamerica / fuera).toBeGreaterThan(0.5);
+    expect(demografiaDelLugar(PAIS_CIUDAD_GRANDE)).toBe(d);
+    expect(demografiaDelLugar(PAIS_ESPANA)).toBe(PAIS_ESPANA.demografia);
+    expect(PAIS_ESPANA.demografia.latinoamerica).toBe(0.06);
+  });
+
   it('España y su ciudad grande traen parejas; Argentina e Inglaterra, no (sortean a los padres por separado, como antes)', () => {
     expect(parejasDelLugar(PAIS_ESPANA)).toEqual({ ambosExtranjeros: 0.13, mixtas: 0.12, mismoOrigen: 0.7 });
     expect(parejasDelLugar(PAIS_CIUDAD_GRANDE)).toEqual(CIUDAD_GRANDE.parejas);
