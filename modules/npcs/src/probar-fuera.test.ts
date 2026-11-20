@@ -37,9 +37,10 @@ describe('quién va a probar fuera (losQueSeQuedan)', () => {
 });
 
 describe('probabilidades', () => {
-  it('el nivel y la ambición suben la probabilidad; los amigos la bajan; hay techo', () => {
-    expect(probabilidadBase(0.35, 1, 1)).toBeGreaterThan(probabilidadBase(0.35, 0, 0));
-    expect(probabilidadBase(0.35, -1, -1)).toBeLessThan(probabilidadBase(0.35, 0, 0));
+  it('la ambición sube la probabilidad y el nivel no la cambia; los amigos la bajan; hay techo', () => {
+    expect(probabilidadBase(0.35, 1, 0)).toBeGreaterThan(probabilidadBase(0.35, 0, 0));
+    expect(probabilidadBase(0.35, -1, 0)).toBeLessThan(probabilidadBase(0.35, 0, 0));
+    expect(probabilidadBase(0.35, 0, 1)).toBe(probabilidadBase(0.35, 0, -1));
     expect(probabilidadBase(0.9, 1, 1)).toBeLessThanOrEqual(PESOS_DE_PROBAR_FUERA.techo);
     expect(probabilidadConAmigos(0.35, 0.35, 1)).toBeLessThan(probabilidadConAmigos(0.35, 0.35, 0.2));
     expect(probabilidadConAmigos(0.35, 0.35, 0.65)).toBeCloseTo(0.35, 5);

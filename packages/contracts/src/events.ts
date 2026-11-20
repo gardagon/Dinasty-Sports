@@ -31,6 +31,8 @@ export const SHARED_EVENTS = {
   PLAZA_PERDIDA: 'club.plaza_perdida',
   /** data: PlazaPerdidaData — el personaje habría perdido su plaza en los fichajes de verano pero sigue en el equipo con una plaza de más (se pasa 1–2 del máximo): el entrenador le avisa de que contará menos con él (suceso `<deporte>.plaza_extra`). Sigue siendo del club; puede ir a probar a otros. */
   PLAZA_EXTRA: 'club.plaza_extra',
+  /** data: EquipoSinNinosData — al empezar el curso, el equipo del personaje no existe este año: su club no tiene niños suficientes en su categoría (el equipo se cierra) o no tiene equipo en la categoría a la que sube. Sale del club como cualquier niño y tiene que buscarse equipo (suceso `<deporte>.equipo_sin_ninos`). */
+  EQUIPO_SIN_NINOS: 'club.equipo_sin_ninos',
   /** Al empezar el curso, el entrenador le propone al personaje jugar en otro puesto (sobran en el suyo y faltan en otro): decide él. */
   PROPUESTA_DE_PUESTO: 'club.propuesta_de_puesto',
   /** data: PruebaEmpiezaData — el personaje se presenta a la prueba de acceso de un club con puestos: el entrenador se presenta y, si faltan jugadores en varios puestos, le pregunta dónde quiere jugar. */
@@ -191,6 +193,18 @@ export interface PresentacionData {
 export interface PlazaPerdidaData {
   sport: string;
   clubId: string;
+}
+
+/** Por qué el equipo del personaje no sigue (`EQUIPO_SIN_NINOS`): `pocos` (el club no reúne el mínimo de niños en su categoría: el equipo se cierra) o `sin_categoria` (el club no tiene equipos en la categoría a la que sube). */
+export type MotivoDeEquipoSinNinos = 'pocos' | 'sin_categoria';
+
+export interface EquipoSinNinosData {
+  sport: string;
+  clubId: string;
+  motivo: MotivoDeEquipoSinNinos;
+  /** Con `pocos`: cuántos niños (con él) quedaban en la categoría y cuántos pide un equipo. */
+  jugadores?: number;
+  minimo?: number;
 }
 
 /** La propuesta de puesto del entrenador al personaje (`PROPUESTA_DE_PUESTO`) o el puesto al que cambia (`CAMBIO_DE_PUESTO`). */

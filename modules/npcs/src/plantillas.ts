@@ -2,7 +2,7 @@
  * Las plantillas: quién juega en cada equipo, el reclutamiento y los equipos A a D.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { asistenciaConFaltas, relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
+import { asistenciaConFaltas, relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, type PrevisionDelClubView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
 import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
@@ -704,4 +704,38 @@ export function equipoDelPersonajeEn(npcs: readonly Npc[], pobs: readonly Poblac
   const anio: 1 | 2 = edad === Math.min(...cat.edades) ? 1 : 2;
   const { equipos } = equiposDelClub(new Map(npcs.map((n) => [n.id, n])), pob, e, cat, dia, val, [{ ...miembro, anio }], true);
   return LETRAS.find((l) => equipos[l].includes(miembro.id));
+}
+
+
+/**
+ * Cómo queda el club del personaje en su categoría al acabar la temporada (`NpcDirectory.previsionDelClub`): quiénes de los que están ahora cambian de categoría (los que cumplen el año de nacimiento que los
+ * pasa al curso siguiente), cuántos siguen, cuántos llegan de la categoría de abajo del club y cuántos habrá el curso que viene frente al mínimo que pide un equipo. Solo cuenta a quienes ya son del club
+ * (los que se apunten o se vayan en verano no se saben) y usa lo que vería un niño: quiénes son, su año de nacimiento y su categoría, nunca lo que valen.
+ */
+export function previsionDelClubDe(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, edad: number, dia: number): PrevisionDelClubView | undefined {
+  const pob = pobs.find((p) => p.deporte === deporte);
+  const e = pob?.equipos.find((x) => x.club === club && x.plantillaPorCategoria);
+  const categorias = pob?.categorias;
+  if (!pob || !e || !categorias) return undefined;
+  const actual = categoriaDe(pob, edad);
+  const siguienteDef = categoriaDe(pob, edad + 1);
+  if (!actual || !siguienteDef) return undefined;
+  const delClub = categoriasDelEquipo(pob, e);
+  const nombre = (id: string): string => categorias.find((c) => c.id === id)?.nombre ?? id;
+  const categoriaDeEdad = (x: number): string | undefined => delClub.find((c) => c.edades.includes(x))?.id;
+  const miembros = npcs.filter((n) => n.deporte === deporte && n.equipo === club && n.id !== idDelPersonaje(deporte));
+  const edadDe = (n: Npc): number => edadDeJuego(n, dia) ?? -1;
+  const deSuCategoria = miembros.filter((n) => categoriaDeEdad(edadDe(n)) === actual.id);
+  const suben: PrevisionDelClubView['suben'] = [];
+  let siguen = 0;
+  for (const n of deSuCategoria) {
+    const cuando = categoriaDeEdad(edadDe(n) + 1);
+    if (cuando === actual.id) siguen++;
+    else suben.push({ id: n.id, nombre: n.name, ...(cuando ? { a: nombre(cuando) } : {}) });
+  }
+  suben.sort((a, b) => (a.nombre < b.nombre ? -1 : 1));
+  const hayEquipo = delClub.some((c) => c.id === siguienteDef.id);
+  const llegan = miembros.filter((n) => categoriaDeEdad(edadDe(n)) !== siguienteDef.id && categoriaDeEdad(edadDe(n) + 1) === siguienteDef.id).length;
+  const quedan = 1 + miembros.filter((n) => categoriaDeEdad(edadDe(n) + 1) === siguienteDef.id).length;
+  return { categoria: { id: actual.id, nombre: actual.nombre }, siguiente: { id: siguienteDef.id, nombre: siguienteDef.nombre }, hayEquipo, ahora: deSuCategoria.length + 1, minimo: e.plantillaPorCategoria!.min, suben, siguen, llegan, quedan };
 }

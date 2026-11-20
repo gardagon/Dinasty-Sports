@@ -40,6 +40,7 @@ import {
   type CompetitionResultData,
   type IrAData,
   type JugadorDeEquipoView,
+  type PrevisionDelClubView,
   type LogTable,
   type RelationsService,
   type SeccionDeDeporte,
@@ -81,6 +82,7 @@ import {
   servicioDePedirPuesto,
   sucesoDePedirPuesto,
   sucesoDePlazaExtra,
+  sucesoDeEquipoSinNinos,
   sucesoDePruebaDeAcceso,
 } from '@ds/kit-deporte';
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
@@ -88,7 +90,7 @@ import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { EVENTOS_DE_FUTBOL } from './eventos';
-import { TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
+import { TEXTOS_DE_EQUIPO_SIN_NINOS, TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
 import { APORTE_DE_SUCESOS, servicioDeHechos, type HechosService } from '@ds/contracts';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
@@ -521,6 +523,9 @@ function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelM
       align: ['left', 'left', 'right', 'right', 'right', 'right', 'right', 'right'],
     },
   });
+  // Cómo queda su club el curso que viene: cuántos son frente al mínimo, quién cambia de categoría y si el equipo corre peligro.
+  const prevision = dir?.previsionDelClub?.(DEPORTE);
+  if (prevision) secciones.push(seccionDePrevision(prevision));
   // Su temporada: estadísticas, experiencia por puesto e historial.
   const s = ctx.state<FutbolState>();
   const e = s.estadisticas?.curso === liga.curso ? s.estadisticas : undefined;
@@ -539,6 +544,29 @@ function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelM
     },
   });
   return secciones;
+}
+
+/**
+ * **El equipo el curso que viene** (decisión del usuario, 20/11/2026): para que el jugador vea antes del cierre si su equipo corre peligro. Solo lo que vería un niño: cuántos son del club en su categoría frente a los que pide un
+ * equipo, quién cambia de categoría al acabar la temporada, cuántos seguirían y quién llega; nada de lo que vale cada uno. No cuenta a los que se apunten o se vayan en verano (no se saben).
+ */
+export function seccionDePrevision(p: PrevisionDelClubView): SeccionDeDeporte {
+  const faltan = p.minimo - p.quedan;
+  const nombres = (xs: readonly string[]): string => (xs.length <= 6 ? xs.join(', ') : `${xs.slice(0, 6).join(', ')} y ${xs.length - 6} más`);
+  const mismaCategoria = p.siguiente.id === p.categoria.id;
+  const rows: string[][] = [
+    ['Niños de tu club en ' + p.categoria.nombre, `${p.ahora} (tú incluido); para un equipo hacen falta ${p.minimo}`],
+    ['Cambian de categoría al acabar la temporada', p.suben.length ? `${p.suben.length}: ${nombres(p.suben.map((x) => (x.a ? `${x.nombre} (a ${x.a})` : `${x.nombre} (ya no tiene categoría)`)))}` : 'Ninguno'],
+    ['Siguen en ' + p.categoria.nombre, String(p.siguen)],
+    [mismaCategoria ? `Llegan de la categoría de abajo` : `Suben a ${p.siguiente.nombre} con los de tu año`, String(p.llegan)],
+    [`Seguros el curso que viene en ${p.siguiente.nombre}`, p.hayEquipo ? `${p.quedan} (tú incluido); hacen falta ${p.minimo}` : 'Tu club no tiene equipo en esa categoría'],
+  ];
+  const texto = !p.hayEquipo
+    ? `Tu club no tiene equipo en ${p.siguiente.nombre}: al empezar el curso tendrás que buscarte otro.`
+    : faltan > 0
+      ? `Tu equipo corre peligro: con los que ya son del club faltarían ${faltan} ${faltan === 1 ? 'niño' : 'niños'} para formar un equipo en ${p.siguiente.nombre}. En verano pueden apuntarse otros, pero no es seguro; si no llegan, no habrá equipo y tendrás que buscarte uno.`
+      : `Tu equipo no corre peligro: con los que ya son del club se llega a los ${p.minimo} que pide un equipo en ${p.siguiente.nombre}${p.quedan - p.minimo <= 2 ? ', aunque por poco' : ''}. No cuenta a quien se apunte o se vaya en verano.`;
+  return { titulo: `El curso que viene · ${p.siguiente.nombre}`, texto, tabla: { header: ['', ''], rows, align: ['left', 'left'] } };
 }
 
 /** El día de partido de todos los equipos de la semana (se calcula una vez por calendario: la alineación de cada equipo no cambia entre semana). */
@@ -1225,7 +1253,7 @@ export const futbol = defineModule<FutbolState>({
   name: 'Fútbol',
   description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
   dependsOn: ['gen'],
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO), sucesoDePlazaExtra(CONFIG, TEXTOS_DE_PLAZA_EXTRA)] },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO), sucesoDePlazaExtra(CONFIG, TEXTOS_DE_PLAZA_EXTRA), sucesoDeEquipoSinNinos(CONFIG, TEXTOS_DE_EQUIPO_SIN_NINOS)] },
   stats: [...STATS_DE_FUTBOL],
 
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),

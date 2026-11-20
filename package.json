@@ -32,6 +32,7 @@
     "dia-de-partido": "tsx tools/dia-de-partido.ts",
     "benjamin": "tsx tools/benjamin.ts",
     "listas": "tsx tools/listas-de-acciones.ts",
+    "equipos-por-anio": "tsx tools/equipos-por-anio.ts",
     "ninos-sin-equipo": "tsx tools/ninos-sin-equipo.ts",
     "sim:largo": "tsx sim/src/cli.ts --dias 1095 --semillas 3",
     "check": "npm run typecheck && npm run test && npm run sim:rapida",

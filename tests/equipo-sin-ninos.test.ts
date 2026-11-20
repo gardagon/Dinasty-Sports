@@ -1,0 +1,98 @@
+import { describe, expect, it, vi } from 'vitest';
+import { SERVICES, SHARED_EVENTS, defineModule, type ClubDirectory, type NpcDirectory, type SucesosService } from '@ds/contracts';
+import { advanceToWeek } from '@ds/core';
+import { MODULOS, nuevaPartida } from '@ds/game';
+import { futbol, rendimiento as rendimientoDeFutbol, seccionDePrevision } from '@ds/mod-futbol';
+import { equipoSinNinos, jugadorComoNpc, ListaDeTrabajo, minimoDe, sinDeporte, valoracionDe, type MercadoDeFichajes, type NpcsState } from '@ds/mod-npcs';
+import { hacer } from './ayudas';
+
+vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
+
+/**
+ * El equipo que no sigue (decisión del usuario, 20/11/2026): al empezar el curso el club del personaje no reúne el mínimo de niños en su categoría o no tiene equipos en ella; se le avisa con un suceso y sale del club.
+ * Y la previsión del equipo en la pestaña del deporte: cuántos son frente al mínimo, quién sube y cuántos quedarían.
+ */
+const REND = new Map([['futbol', rendimientoDeFutbol]]);
+const nueva = () => nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+
+describe('equipoSinNinos', () => {
+  const g = nueva();
+  const s = g.moduleState<NpcsState>('npcs') as NpcsState;
+  const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
+  const colegio = pob.equipos.find((e) => e.colegio !== undefined && e.plantillaPorCategoria && e.club === 'colegio')!;
+  const mercado = (npcs: NpcsState['npcs'], pobs = [pob]): MercadoDeFichajes => ({ lista: new ListaDeTrabajo(npcs.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(REND), reservas: new Map() });
+  const yo = { deporte: 'futbol', club: 'colegio', categoria: 'benjamin', valor: 10, edad: 8 };
+
+  it('con el equipo lleno no avisa; con menos niños que el mínimo, avisa («pocos»)', () => {
+    const delColegio = s.npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && (n.nacimiento ?? 0) < 0);
+    const enBenjamin = (n: (typeof delColegio)[number]) => { const e = Math.floor(-(n.nacimiento ?? 0) / 365); return e >= 7 && e <= 10; };
+    const benjamines = delColegio.filter(enBenjamin);
+    expect(benjamines.length).toBeGreaterThanOrEqual(minimoDe(colegio));
+    expect(equipoSinNinos(mercado(s.npcs), yo)).toBeUndefined();
+    // Todos menos 5 se van del equipo: contando al personaje, quedan 6 (menos de 14).
+    const sinEllos = new Set(benjamines.slice(5).map((n) => n.id));
+    const pocos = s.npcs.map((n) => (sinEllos.has(n.id) ? sinDeporte(n, pob, false) : n));
+    const r = equipoSinNinos(mercado(pocos), yo);
+    expect(r?.motivo).toBe('pocos');
+    expect(r?.minimo).toBe(minimoDe(colegio));
+    expect(r!.jugadores!).toBeLessThan(r!.minimo!);
+    expect(jugadorComoNpc(yo, 0).deporte).toBe('futbol');
+  });
+
+  it('si su club no tiene equipos en la categoría a la que sube, avisa («sin_categoria»)', () => {
+    const sinBenjamin: typeof pob = { ...pob, equipos: pob.equipos.map((e) => (e.club === 'colegio' ? { ...e, categorias: ['alevin', 'infantil'] } : e)) };
+    expect(equipoSinNinos(mercado(s.npcs, [sinBenjamin]), yo)?.motivo).toBe('sin_categoria');
+  });
+});
+
+describe('el aviso al personaje', () => {
+  const avisa = (data: Record<string, unknown>) =>
+    defineModule<Record<string, never>>({
+      id: 'avisa',
+      name: 'Aviso',
+      dependsOn: ['gen'],
+      initState: () => ({}),
+      actions: [{ id: 'avisa.sin_ninos', name: 'Equipo sin niños', tags: [], duration: 1, run: (ctx) => ctx.emit({ type: SHARED_EVENTS.EQUIPO_SIN_NINOS, data }) }],
+    });
+
+  for (const [motivo, texto] of [['pocos', /solo quedan 12 niños contándote a ti, y para formar un equipo hacen falta 14/], ['sin_categoria', /tu club no tiene equipo en la categoría a la que subes/]] as const) {
+    it(`con «${motivo}»: sale del club y le llega el suceso, que le dice que tiene que buscarse equipo`, () => {
+      const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, avisa({ sport: 'futbol', clubId: 'colegio', motivo, jugadores: 12, minimo: 14 })]);
+      advanceToWeek(g, 'gen.descansar', 1, 2, 15);
+      expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+      expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeDefined();
+      expect(g.perform('avisa.sin_ninos').ok).toBe(true);
+      expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol'), 'sale del club como cualquier niño sin equipo').toBeUndefined();
+      const p = g.service<SucesosService>(SERVICES.sucesos)!.pendientes().find((x) => x.suceso === 'futbol.equipo_sin_ninos');
+      expect(p, 'le llega el suceso').toBeDefined();
+      expect(p!.texto).toMatch(texto);
+      expect(p!.texto).toMatch(/buscarte (uno|otro)/);
+    });
+  }
+});
+
+describe('la previsión del equipo (pestaña del deporte)', () => {
+  it('cuenta lo que vería un niño y no enseña lo que valen los jugadores', () => {
+    const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
+    expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+    const p = g.service<NpcDirectory>(SERVICES.npcs)!.previsionDelClub!('futbol')!;
+    expect(p.categoria.id).toBe('benjamin');
+    expect(p.minimo).toBe(14);
+    expect(p.ahora).toBeGreaterThan(0);
+    // Los que quedan el curso que viene son: él, los que siguen y los que llegan a su categoría.
+    expect(p.quedan).toBeGreaterThanOrEqual(1);
+    expect(p.suben.length + p.siguen + 1).toBe(p.ahora);
+    const s = seccionDePrevision(p);
+    expect(JSON.stringify(s)).not.toMatch(/valor|nivel|\d+,\d/i);
+  });
+
+  it('avisa del peligro cuando no se llega al mínimo, y de si el club no tiene equipo en la categoría', () => {
+    const base = { categoria: { id: 'benjamin', nombre: 'Benjamín' }, siguiente: { id: 'alevin', nombre: 'Alevín' }, hayEquipo: true, ahora: 18, minimo: 14, suben: [{ id: 'a', nombre: 'Ana', a: 'Alevín' }], siguen: 8, llegan: 0, quedan: 9 };
+    expect(seccionDePrevision(base).texto).toMatch(/corre peligro.*faltarían 5 niños/);
+    expect(seccionDePrevision({ ...base, quedan: 15 }).texto).toMatch(/no corre peligro.*aunque por poco/);
+    expect(seccionDePrevision({ ...base, quedan: 20 }).texto).not.toMatch(/por poco/);
+    expect(seccionDePrevision({ ...base, hayEquipo: false }).texto).toMatch(/no tiene equipo en Alevín/);
+    expect(seccionDePrevision({ ...base, quedan: 13 }).texto).toMatch(/faltarían 1 niño /);
+  });
+});

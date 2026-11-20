@@ -95,6 +95,10 @@ flowchart LR
 | `futbol.primer_entrenamiento` | Tu primer entrenamiento | al: `accion.realizada` | importante |
 | `futbol.tarde_al_entrenamiento` | Llegas tarde al entrenamiento | al: `club.sesion_tarde` | importante |
 | `futbol.tarde_a_la_convocatoria` | Llegas tarde a la convocatoria | al: `club.impuntual` | importante |
+| `futbol.prueba_de_acceso` | La prueba en el club | al: `club.prueba_empieza` | importante |
+| `futbol.pedir_puesto` | Pedirle a {entrenador.nombre} jugar de {señal.puestoNombre} | al: `club.pide_puesto` | importante |
+| `futbol.plaza_extra` | Una plaza de más en el equipo | al: `club.plaza_extra` | importante |
+| `futbol.equipo_sin_ninos` | Tu equipo no sale este año | al: `club.equipo_sin_ninos` | importante |
 
 ## Marcas
 
