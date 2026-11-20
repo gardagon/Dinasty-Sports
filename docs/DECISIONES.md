@@ -12,6 +12,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Página del equipo:** ver la plantilla (ya hay una sección «Plantilla» en la pestaña del deporte) y poder ver antes del cierre si el equipo corre peligro de quedarse sin niños suficientes.
 - **Si al subir de categoría y repartirse los niños el equipo del personaje no tiene niños suficientes,** le llega un suceso que se lo dice: tiene que buscarse equipo, como el resto. Más adelante puede dar pie a una misión para convencer a niños de jugar en el equipo.
 - **Ir a probar fuera:** pesa sobre todo la ambición. El nivel no hace que un niño quiera irse (no tiene por qué querer crecer); servirá para que lo vea un ojeador, más adelante.
+- **Hecho el 20/11** (`docs/relevo/reparto-equipos-2.md`):
+  - El colegio ya aplicaba las normas por año (mismo código; `npm run equipos-por-anio`). Se arreglan dos fallos: el personaje entraba en los fichajes de verano con un año de más (`seasonAge + 1` en `npcs`), y un segundo año que no cabía en el A se quedaba en el club sin equipo (ahora, plaza de más o sale).
+  - Pesos: ambición 1, nivel 0, amigos 0,6.
+  - Cierres de los clubes de fuera: 56 → 54. No es por los porcentajes (con un 90 % en todas las categorías siguen cerrando 49): son clubes con varios equipos que pierden uno, y los futbolistas bajan un 16 % en dos veranos. No se tocan los porcentajes.
+  - Suceso `futbol.equipo_sin_ninos`: el club no reúne 14 en la categoría o no tiene equipo en la que sube. El personaje sale del club como cualquier niño sin equipo.
+  - Página del equipo: sección «El curso que viene», con cuántos son, quién cambia de categoría, cuántos quedan y si corre peligro.
 
 ## 18/11/2026 — Nombres más corrientes, acciones del club en desplegables y el personaje que se queda sin equipo
 
