@@ -167,6 +167,35 @@ export interface NpcDirectory {
    * no es de un club con equipos por categoría o su club no tiene equipos en esa categoría. Quien llama lo guarda al empezar la temporada: los equipos no cambian durante el curso.
    */
   equipoDelPersonaje?(deporte: string): { club: string; categoria: string; letra: string } | undefined;
+  /**
+   * Cómo queda el club del personaje en su categoría al acabar la temporada, con datos que un niño vería (quiénes son del club y en qué año de nacimiento, sin lo que valen): cuántos son ahora, quién cambia de categoría,
+   * cuántos siguen y cuántos llegan de la categoría de abajo del club, frente al mínimo de niños que pide un equipo. No cuenta a los que se apuntarán o se irán en verano (no se saben). `undefined` si no es de un club
+   * con equipos por categoría.
+   */
+  previsionDelClub?(deporte: string): PrevisionDelClubView | undefined;
+}
+
+/** Cómo queda el club del personaje en su categoría el curso que viene (`NpcDirectory.previsionDelClub`). */
+export interface PrevisionDelClubView {
+  /** Su categoría ahora y la del curso que viene (la misma si no sube). */
+  categoria: { id: string; nombre: string };
+  siguiente: { id: string; nombre: string };
+  /** Si su club tendrá equipos en la categoría del curso que viene (los clubes de colegio acaban en cadete o juvenil). */
+  hayEquipo: boolean;
+  /** Niños de su club en su categoría ahora, él incluido. */
+  ahora: number;
+  /** Los que hacen falta para que exista un equipo. */
+  minimo: number;
+  /** Los equipos que tiene su club en la categoría del curso que viene (cada uno necesita el mínimo). */
+  equipos: number;
+  /** Los de su categoría que al acabar la temporada pasan a otra, con el nombre de la categoría (`a` falta si ya no tienen categoría a la que subir), por orden alfabético. */
+  suben: { id: string; nombre: string; a?: string }[];
+  /** Los que siguen en su categoría el curso que viene. */
+  siguen: number;
+  /** Los del club que hoy no están en la categoría del curso que viene y pasan a ella (de la categoría de abajo si él se queda; los compañeros que suben con él si sube). */
+  llegan: number;
+  /** Los que habrá el curso que viene en la categoría del curso que viene, contando solo a quienes ya son del club (él incluido). */
+  quedan: number;
 }
 
 /** Un equipo de la liga tal como lo ve quien la organiza. */

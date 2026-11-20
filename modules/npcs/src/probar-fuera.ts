@@ -1,6 +1,6 @@
 /**
  * **Quién va a probar a un club de fuera** (decisión del usuario, 17/11/2026): de los alumnos de un colegio con club, solo un porcentaje según la edad (`CategoriaDef.probarFuera`) va a probar
- * con los clubes de fuera; los demás se quedan para el equipo de su colegio. El porcentaje sube con la ambición y el nivel y baja con los amigos (`PESOS_DE_PROBAR_FUERA`). Cada niño sortea
+ * con los clubes de fuera; los demás se quedan para el equipo de su colegio. El porcentaje sube con la ambición y baja con los amigos (`PESOS_DE_PROBAR_FUERA`); el nivel no pesa (peso 0: servirá para los ojeadores, no para que el niño quiera irse). Cada niño sortea
  * cada temporada con un azar estable suyo (`rngEstable`): no gasta el azar de la partida y sale lo mismo si se repite.
  *
  * **Amigos:** las personas del mundo aún no tienen amistades entre sí, así que se toma como sustituto la parte de los compañeros de su colegio y de su año que se quedan en el equipo del colegio

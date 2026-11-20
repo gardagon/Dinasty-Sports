@@ -279,3 +279,48 @@ export function sucesoDePlazaExtra(cfg: ConfigDeporte, t: TextosDePlazaExtra): A
     ],
   });
 }
+
+
+/** Los textos del aviso de que el equipo del personaje no sigue este curso (`{señal.jugadores}` y `{señal.minimo}` en el de pocos niños; el género del personaje, `{yo:o|a}`). */
+export interface TextosDeEquipoSinNinos {
+  titulo: string;
+  /** El club no reúne el mínimo de niños en su categoría: el equipo se cierra. */
+  pocos: string;
+  /** El club no tiene equipos en la categoría a la que sube. */
+  sinCategoria: string;
+  opcionBuscar: string;
+  resultadoBuscar: string;
+  opcionEsperar: string;
+  resultadoEsperar: string;
+}
+
+/**
+ * El suceso del equipo que no sigue (`<deporte>.equipo_sin_ninos`, decisión del usuario, 20/11/2026): al empezar el curso, el equipo del personaje se queda sin niños suficientes (menos del mínimo de una plantilla,
+ * así que se cierra) o su club no tiene equipos en la categoría a la que sube. **Sale del club como cualquier niño** (lo hace el módulo de clubes con la señal `club.equipo_sin_ninos`) y tiene que buscarse equipo en
+ * el plazo de fichajes, como el resto. Sin reparto: avisa el club o el colegio, no una persona (al llegar la señal ya no es de ese club). Más adelante puede dar pie a una misión para convencer a otros niños de jugar en el equipo.
+ */
+export function sucesoDeEquipoSinNinos(cfg: ConfigDeporte, t: TextosDeEquipoSinNinos): AporteDeSucesos {
+  return suceso({
+    id: `${cfg.id}.equipo_sin_ninos`,
+    titulo: t.titulo,
+    deporte: cfg.id,
+    disparo: { al: SHARED_EVENTS.EQUIPO_SIN_NINOS },
+    ejemploDeSeñal: { sport: cfg.id, clubId: 'club', motivo: 'pocos', jugadores: 12, minimo: 14 },
+    cuando: [{ señal: 'sport', es: cfg.id }],
+    repite: 'siempre',
+    urgencia: 'ahora',
+    plazo: { dias: 3, porDefecto: 'esperar' },
+    texto: t.pocos,
+    variantes: [
+      { id: 'sin_categoria', si: [{ señal: 'motivo', es: 'sin_categoria' }], texto: t.sinCategoria },
+      { id: 'pocos', si: [], texto: t.pocos },
+    ],
+    opciones: [
+      { id: 'buscar', texto: t.opcionBuscar, caracter: { ambicion: 1, disciplina: 1 }, minutos: 5, efectos: [{ estado: GEN.motivacion, mas: 2 }], resultado: t.resultadoBuscar },
+      { id: 'esperar', texto: t.opcionEsperar, caracter: { ambicion: -1 }, efectos: [{ estado: GEN.motivacion, mas: -2 }], resultado: t.resultadoEsperar },
+    ],
+    pruebas: [
+      { nombre: 'Al cerrarse el equipo por falta de niños sale el aviso y no pasa nada si no contesta', dado: {}, espero: { sale: true } },
+    ],
+  });
+}

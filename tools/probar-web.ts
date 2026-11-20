@@ -246,7 +246,7 @@ try {
   await pagina.click('[data-tab="deporte"]');
   await pagina.waitForSelector('h3');
   const titulos: string[] = await pagina.$$eval('h3', (hs: Element[]) => hs.map((h: Element) => h.textContent ?? ''));
-  for (const t of ['Último partido', 'Clasificación', 'Plantilla', 'Tu temporada']) comprobar(titulos.some((x) => x.startsWith(t)), `la pestaña del deporte enseña «${t}»`);
+  for (const t of ['Último partido', 'Clasificación', 'Plantilla', 'El curso que viene', 'Tu temporada']) comprobar(titulos.some((x) => x.startsWith(t)), `la pestaña del deporte enseña «${t}»`);
   comprobar((await pagina.locator('ul.cronica li.mia').count()) >= 0 && (await pagina.locator('ul.cronica li').count()) > 6, 'la crónica del partido se ve, con lo del personaje resaltado');
   await pagina.screenshot({ path: join(capturas, '6-pestana-del-deporte.png'), fullPage: true });
   comprobar(errores.length === 0, `sin errores en la consola${errores.length ? `: ${errores.slice(0, 3).join(' | ')}` : ''}`);

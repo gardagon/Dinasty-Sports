@@ -1,4 +1,4 @@
-import type { TextosDePedirPuesto, TextosDePlazaExtra, TextosDePruebaDeAcceso } from '@ds/kit-deporte';
+import type { TextosDeEquipoSinNinos, TextosDePedirPuesto, TextosDePlazaExtra, TextosDePruebaDeAcceso } from '@ds/kit-deporte';
 
 /**
  * Los textos de la prueba de acceso y de pedirle al entrenador otro puesto. Las reglas (huecos, tirada, dificultad) son comunes a todo deporte con puestos y viven en el kit
@@ -37,4 +37,16 @@ export const TEXTOS_DE_PLAZA_EXTRA: TextosDePlazaExtra = {
   resultadoProbar: '{entrenador.Nombre} asiente. «Estás en tu derecho. Tu plaza sigue aquí hasta que otro club te coja, y si no te cogen, sigues con nosotros».',
   opcionMejorar: 'Preguntarle qué tienes que mejorar para volver a contar',
   resultadoMejorar: '{entrenador.Nombre} te explica con calma qué echa en falta. «Enséñamelo en los entrenamientos y volveré a contar contigo».',
+};
+
+export const TEXTOS_DE_EQUIPO_SIN_NINOS: TextosDeEquipoSinNinos = {
+  titulo: 'Tu equipo no sale este año',
+  pocos:
+    'Antes de empezar el curso te llega la noticia: con los que han subido de categoría y los que se han ido a probar a otros clubes, en tu categoría solo quedan {señal.jugadores} niños contándote a ti, y para formar un equipo hacen falta {señal.minimo}. Este año no habrá equipo. Si quieres seguir jugando, tendrás que buscarte uno, como todos los demás.',
+  sinCategoria:
+    'Antes de empezar el curso te llega la noticia: tu club no tiene equipo en la categoría a la que subes este año. Si quieres seguir jugando, tendrás que buscarte uno, como todos los demás.',
+  opcionBuscar: 'Moverte ya para buscar otro equipo',
+  resultadoBuscar: 'No te lo piensas mucho: pides pruebas en otros clubes mientras el plazo está abierto.',
+  opcionEsperar: 'Esperar a ver qué pasa',
+  resultadoEsperar: 'Te quedas dándole vueltas. El plazo de fichajes sigue abierto, pero no vas a esperar mucho más.',
 };

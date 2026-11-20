@@ -13,6 +13,7 @@ import {
   type ClubJoinData,
   type ClubLeaveData,
   type PlazaPerdidaData,
+  type EquipoSinNinosData,
   type ClubView,
   type PaisDef,
   type ReadContext,
@@ -137,6 +138,16 @@ export const clubes = defineModule<ClubesState>({
     // Otro jugador que vale más le ocupa la plaza al personaje en los fichajes de verano: sale del club, como cualquier niño (no es dejarlo plantado ni cierra el plazo).
     [SHARED_EVENTS.PLAZA_PERDIDA]: (ctx, ev) => {
       const { sport, clubId } = ev.data as PlazaPerdidaData;
+      const actual = ctx.state<ClubesState>().membresias[sport];
+      if (!actual || actual.clubId !== clubId) return;
+      ctx.updateState<ClubesState>((s) => {
+        const { [sport]: _fuera, ...resto } = s.membresias;
+        return { membresias: resto };
+      });
+    },
+    // Su equipo no sigue este curso (el club no reúne el mínimo de niños en su categoría o no tiene equipos en ella): sale del club como cualquier niño sin equipo y tiene que buscarse otro.
+    [SHARED_EVENTS.EQUIPO_SIN_NINOS]: (ctx, ev) => {
+      const { sport, clubId } = ev.data as EquipoSinNinosData;
       const actual = ctx.state<ClubesState>().membresias[sport];
       if (!actual || actual.clubId !== clubId) return;
       ctx.updateState<ClubesState>((s) => {

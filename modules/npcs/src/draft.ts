@@ -2,7 +2,7 @@
  * El «draft» de los equipos, completar o cerrar equipos y el cambio de curso de los deportistas.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { avisarDelProgreso, type CategoriaDef, rngEstable, cuposPorGrupo, ATRACTIVO_DE_TAMANO, type Rng, aptitudDe } from '@ds/contracts';
+import { avisarDelProgreso, type CategoriaDef, rngEstable, cuposPorGrupo, ATRACTIVO_DE_TAMANO, type Rng, aptitudDe, type MotivoDeEquipoSinNinos } from '@ds/contracts';
 import { interesPor } from './deportistas';
 import { type MiembroDeClub } from './equipos';
 import { puestoDondeMasVale } from './puestos';
@@ -22,7 +22,7 @@ import { losQueSeQuedan } from './probar-fuera';
 import { EquipoGuardado, Npc, PoblacionGuardada, delColegio, edadDeJuego, edadNpc, hermanos, npcs, nuevoEntrenador, registroDe, entrenadoresDeClubes } from './index';
 import { colocarDesplazados, fichajesDeVerano, intentarEntrar } from './fichajes';
 import { dejaElDeporte } from './abandono';
-import { acomodarSobrantes, cubrirGruposVacios, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { acomodarSobrantes, cubrirGruposVacios, equipoDelPersonajeEn, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { Valoracion, leGustaElGrupo, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** ¿Forma sus equipos el «draft»? Los deportes con equipos por categoría y puestos (el fútbol); el atletismo y los de prueba, no. */
@@ -648,7 +648,7 @@ export function apartarODejar(m: MercadoDeFichajes, segunda: ReadonlySet<string>
  * rellenan las plazas libres con otros niños que encajan. Los niños de otros colegios que se van desaparecen (los que lo dejaron no se vuelven a reclutar);
  * los compañeros, los hermanos y los niños del barrio siguen siendo quienes son, solo que sin deporte.
  */
-export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; plazaExtra?: string[]; dejanSinClub?: number; pobs?: PoblacionGuardada[]; propuestas?: { deporte: string; puesto: string }[] } = { sinPlaza: [] }): Npc[] {
+export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; plazaExtra?: string[]; sinNinos?: { deporte: string; motivo: MotivoDeEquipoSinNinos; jugadores?: number; minimo?: number }[]; dejanSinClub?: number; pobs?: PoblacionGuardada[]; propuestas?: { deporte: string; puesto: string }[] } = { sinPlaza: [] }): Npc[] {
   // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
   // Los apartados del plazo anterior vuelven a la bolsa (su segunda oportunidad): si tampoco ahora los quiere ningún club, lo dejan para siempre.
   const segunda = new Set(npcs.filter((n) => n.apartado?.length).map((n) => n.id));
@@ -705,9 +705,46 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // No hay «draft» los años siguientes: cada uno sigue en su club; la bolsa (los que empiezan y los que se quedaron sin equipo) completa los equipos con su prueba, los que se quedan con menos de 14 se
   // completan o se cierran, y quien no consigue equipo en dos plazos seguidos lo deja para siempre.
   completarEquipos(final, rng, { conPrueba: true });
+  // El personaje cuyo equipo no sigue (su club no reúne el mínimo de niños en su categoría o no tiene equipos en ella) no se queda con una plaza de más ni la pierde por mérito: se le avisa de que tiene que buscarse equipo.
+  for (const j of personaje) {
+    const falta = equipoSinNinos(final, j);
+    if (!falta) continue;
+    (resultado.sinNinos ??= []).push({ deporte: j.deporte, ...falta });
+    resultado.plazaExtra = resultado.plazaExtra?.filter((d) => d !== j.deporte);
+    resultado.sinPlaza = resultado.sinPlaza.filter((d) => d !== j.deporte);
+  }
+  // **El equipo que le toca por las normas por año** (decisión del usuario, 20/11/2026): el personaje que sigue en su club pero no cabe en ningún equipo (el A es de los de segundo año y se ha llenado con otros que
+  // valen más; el B, de los de primer año) se trata como quien pierde su plaza: primero una plaza de más (1–2 por equipo; el entrenador le avisa de que contará menos con él) y, si ni así cabe, sale del club.
+  for (const j of personaje) {
+    if (!j.puesto || resultado.sinPlaza.includes(j.deporte) || resultado.plazaExtra?.includes(j.deporte) || resultado.sinNinos?.some((x) => x.deporte === j.deporte)) continue;
+    const tieneEquipo = (pobs: readonly PoblacionGuardada[]): boolean => !!equipoDelPersonajeEn([...final.lista.values()], pobs, j.deporte, j.club, j.categoria, { id: idDelPersonaje(j.deporte), puesto: j.puesto!, valor: j.valores?.[j.puesto!] ?? j.valor }, j.edad, dia, final.val);
+    if (tieneEquipo(final.pobs)) continue;
+    let pobs: readonly PoblacionGuardada[] | undefined = final.pobs;
+    for (let i = 0; i < PLAZAS_DE_MAS && pobs && !tieneEquipo(pobs); i++) pobs = conUnaPlazaDeMas(pobs, j);
+    if (pobs && tieneEquipo(pobs)) {
+      final.pobs = pobs;
+      (resultado.plazaExtra ??= []).push(j.deporte);
+    } else resultado.sinPlaza.push(j.deporte);
+  }
   resultado.dejanSinClub = apartarODejar(final, segunda);
   resultado.pobs = [...final.pobs];
   return [...final.lista.values()];
+}
+
+
+/**
+ * ¿El equipo del personaje no sigue este curso? `sin_categoria` si su club no tiene equipos en la categoría a la que sube; `pocos` si, contándolo a él, el club no reúne en ella el mínimo de niños de una plantilla (14:
+ * el equipo se cierra). Se mira al final de los fichajes y el reparto de verano, cuando ya se han hecho todos los ascensos y los intentos de completar el equipo. `undefined` si su equipo sigue.
+ */
+export function equipoSinNinos(m: MercadoDeFichajes, j: JugadorEnClub): { motivo: MotivoDeEquipoSinNinos; jugadores?: number; minimo?: number } | undefined {
+  const pob = m.pobs.find((p) => p.deporte === j.deporte);
+  const e = pob?.equipos.find((x) => x.club === j.club && x.plantillaPorCategoria);
+  if (!pob || !e) return undefined;
+  const cx = categoriasDelEquipo(pob, e).find((c) => c.id === j.categoria);
+  if (!cx) return { motivo: 'sin_categoria' };
+  const jugadores = 1 + [...m.lista.values()].filter((n) => n.deporte === j.deporte && n.equipo === e.club && cx.edades.includes(edadDeJuego(n, m.dia) ?? -1)).length;
+  const minimo = minimoDe(e);
+  return jugadores < minimo ? { motivo: 'pocos', jugadores, minimo } : undefined;
 }
 
 
