@@ -591,16 +591,19 @@ export function plazasDeMas(m: MercadoDeFichajes): number {
           const maxNormal = e.plantillaPorCategoria!.max * k;
           if (ya < minimoDe(e) || Math.max(0, ya - maxNormal) >= PLAZAS_DE_MAS * k) continue;
           const previo = e.plazasDeMas;
+          const cxAntes = categoriasDelEquipo(pob, e).find((c) => c.id === cat.id)!;
+          const sobranAntes = equiposDelClub(m.lista, pob, e, cxAntes, m.dia, m.val, [], true).equipos.sobran.length;
           e.plazasDeMas = { ...previo, [cat.id]: Math.min(PLAZAS_DE_MAS, Math.ceil((Math.max(0, ya - maxNormal) + 1) / k)) };
           const n = m.lista.get(a.npc.id);
           const antes = n && n.deporte === undefined ? n : undefined;
           // Primero respetando el reparto por puestos (con las plazas de más abiertas) y, solo si así no cabe, en su puesto favorito aunque su grupo esté lleno.
-          const entra = !!antes && (intentarEntrar(m, sinApartar(antes), e, pob, { sinPrueba: true, soloHueco: true, ultimaOpcion: true }).entra || intentarEntrar(m, sinApartar(antes), e, pob, { sinPrueba: true, soloHueco: true, relajado: true, ultimaOpcion: true }).entra);
+          const entra = !!antes && (intentarEntrar(m, sinApartar(antes), e, pob, { sinPrueba: true, soloHueco: true, ultimaOpcion: true, plazasDeMas: true }).entra || intentarEntrar(m, sinApartar(antes), e, pob, { sinPrueba: true, soloHueco: true, relajado: true, ultimaOpcion: true, plazasDeMas: true }).entra);
           if (antes && entra) {
             const dentro = m.lista.get(a.npc.id)!;
             // Si el reparto en equipos no le encuentra sitio (por puestos), no vale: se deshace.
             const cx = categoriasDelEquipo(pob, e).find((c) => c.id === cat.id)!;
-            if (!equiposDelClub(m.lista, pob, e, cx, m.dia, m.val, [], true).equipos.sobran.includes(a.npc.id)) {
+            const sobran = equiposDelClub(m.lista, pob, e, cx, m.dia, m.val, [], true).equipos.sobran;
+            if (!sobran.includes(a.npc.id) && sobran.length <= sobranAntes) {
               m.lista.set(a.npc.id, sinApartar(dentro));
               DIAGNOSTICO.alPlazaDeMas?.({ id: a.npc.id, club: e.club, categoria: cat.id, delColegio: e.colegio !== undefined });
               entran++;

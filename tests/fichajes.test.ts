@@ -6,6 +6,7 @@ import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
 import { futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
 import {
   apartarODejar,
+  capacidadConPlazasDeMas,
   capacidadDe,
   claveDeEquipo,
   colocarDesplazados,
@@ -22,7 +23,7 @@ import {
   type PoblacionGuardada,
 } from '@ds/mod-npcs';
 import { rendimiento as rendimientoDeAtletismo } from '@ds/mod-atletismo';
-import { hacer, posible } from './ayudas';
+import { colegioConUnEquipoDeBenjamin, hacer, posible } from './ayudas';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
@@ -69,6 +70,7 @@ describe('el personaje y el plazo', () => {
 
   it('dentro de plazo, con el equipo lleno y mejor que el peor, entra; fuera de plazo, no', () => {
     const lleno = (g: ReturnType<typeof nueva>) => {
+      colegioConUnEquipoDeBenjamin(g);
       const s = g.moduleState<NpcsState>('npcs') as { -readonly [K in keyof NpcsState]: NpcsState[K] };
       const base = s.npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! <= 9);
       const libres = s.npcs.filter((n) => n.genetica && n.deporte === undefined && n.colegio === undefined && edadNpc(n, 0)! <= 9 && n.tipos?.some((t) => t.tipo === 'alumno')).slice(0, 18 - base.length);
@@ -171,7 +173,7 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
       .sort((x, y) => valorRealDe(x, fut, valB, 0)! - valorRealDe(y, fut, valB, 0)! || (x.id < y.id ? -1 : 1))[0];
     const enInfantil = base0.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! >= 12 && edadNpc(n, 0)! <= 13).length;
     // El fútbol: solo el equipo del colegio, que con él fuera queda completo (y él es el peor de todos). El atletismo: solo el equipo del colegio, con un hueco.
-    const futbolCompleto: PoblacionGuardada = { ...fut, equipos: fut.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, plantillaPorCategoria: { min: 1, max: enInfantil - 1 } })) };
+    const futbolCompleto: PoblacionGuardada = { ...fut, equipos: fut.equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, plantillaPorCategoria: { min: 1, max: enInfantil - 1 }, equiposPorCategoria: undefined })) };
     const atletismoColegio: PoblacionGuardada = { ...atl, equipos: atl.equipos.filter((e) => e.club === 'colegio') };
     const m = mercadoDe(
       base0.map((n) =>
@@ -253,7 +255,7 @@ describe('los fichajes pasan dentro del plazo y fuera de él nadie se cambia', (
     for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of pob.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
         const jugadores = estado(g).npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && (edadDeJuego(n, 52 * 7) ?? -1) >= c.edadMin && (edadDeJuego(n, 52 * 7) ?? -1) <= c.edadMax).length;
-        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(capacidadDe(e, c.id)); // el máximo es un tope: nunca más que la capacidad (al subir de categoría, el entrenador recoloca y lo que sobra busca club)
+        expect(jugadores, `${e.club} ${c.id}`).toBeLessThanOrEqual(capacidadConPlazasDeMas(e, c.id)); // el máximo es un tope: nunca más que la capacidad (al subir de categoría, el entrenador recoloca y lo que sobra busca club)
       }
     }
   });
@@ -270,12 +272,20 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
     // El personaje (que vale casi nada) es del club mediano en infantil. Con la ambición de los demás, en alguna semilla un jugador de un club más pequeño ficha por el mediano.
     let perdio = 0;
     for (let semilla = 1; semilla <= 60 && !perdio; semilla++) {
-      const resultado = { sinPlaza: [] as string[] };
+      const resultado = { sinPlaza: [] as string[], plazaExtra: [] as string[] };
       const reservas = new Map([[claveDeEquipo('club_mediano', 'infantil'), 1]]);
       renovarDeportistas([...npcs], [fut], 0, rng, reservas, REND, semilla, 1, [{ deporte: 'futbol', club: 'club_mediano', categoria: 'infantil', valor: 1, edad: 12 }], resultado);
-      if (resultado.sinPlaza.includes('futbol')) perdio = semilla;
+      // Con plazas de más sin abrir, en vez de salir del club se queda con una plaza de más (y el entrenador le avisa).
+      if (resultado.plazaExtra.includes('futbol')) perdio = semilla;
+      expect(resultado.sinPlaza, 'con una plaza de más por abrir no sale del club').toEqual([]);
     }
     expect(perdio, 'ninguna semilla de fichajes le quitó el sitio al personaje').toBeGreaterThan(0);
+    // Si el equipo ya no puede abrir más plazas de más, sale del club como antes.
+    const llena: PoblacionGuardada = { ...fut, equipos: fut.equipos.map((e) => (e.club === 'club_mediano' ? { ...e, plazasDeMas: { infantil: 2 } } : e)) };
+    const resultado = { sinPlaza: [] as string[], plazaExtra: [] as string[] };
+    renovarDeportistas([...npcs], [llena], 0, rng, new Map([[claveDeEquipo('club_mediano', 'infantil'), 1]]), REND, perdio, 1, [{ deporte: 'futbol', club: 'club_mediano', categoria: 'infantil', valor: 1, edad: 12 }], resultado);
+    expect(resultado.plazaExtra).toEqual([]);
+    expect(resultado.sinPlaza).toContain('futbol');
   });
 
   it('al perder la plaza sale del club (sin que cuente como dejarlo plantado ni cierre el plazo) y se le explica qué ha pasado y qué puede hacer', () => {

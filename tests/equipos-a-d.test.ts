@@ -3,7 +3,7 @@ import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
-import { colegioDeNinoPublico as colegioDeNino, edadDeJuego, edadNpc, equiposDelClub, ofertaAlCandidato, piernaDe, valoracionDe, valoresPorPuestoDe, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { capacidadConPlazasDeMas, colegioDeNinoPublico as colegioDeNino, edadDeJuego, edadNpc, equiposDelClub, ofertaAlCandidato, piernaDe, valoracionDe, valoresPorPuestoDe, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { repartirEnEquipos, suplentesDe, type MiembroDeClub } from '../modules/npcs/src/equipos';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
@@ -163,7 +163,7 @@ describe('los equipos de los clubes en la partida', () => {
     for (const e of pob().equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of categorias()) {
         const r = equiposDelClub(lista, pob(), e, c, 0, val);
-        expect(r.miembros.length, `${e.club} ${c.id}`).toBeLessThanOrEqual((e.equiposPorCategoria?.[c.id] ?? 1) * e.plantillaPorCategoria!.max);
+        expect(r.miembros.length, `${e.club} ${c.id}`).toBeLessThanOrEqual(capacidadConPlazasDeMas(e, c.id)); // con las plazas de más de lo último del reparto
       }
     }
   });

@@ -186,7 +186,10 @@ export function categoriasDelEquipo(pob: PoblacionGuardada, e: EquipoGuardado): 
 /** Cuántos jugadores caben en el club en una categoría: el máximo de un equipo por los equipos que el club tiene abiertos en ella. */
 /** El máximo de jugadores de un equipo del club en una categoría: el de su plantilla más las plazas de más que haya abierto (`plazasDeMas`). */
 export const maximoPorEquipo = (e: EquipoGuardado, categoria: string): number => (e.plantillaPorCategoria?.max ?? 0) + (e.plazasDeMas?.[categoria] ?? 0);
-export const capacidadDe = (e: EquipoGuardado, categoria: string): number => maximoPorEquipo(e, categoria) * (e.equiposPorCategoria?.[categoria] ?? 1);
+/** Cuántos caben en el club en una categoría con sus equipos, **sin** las plazas de más (para cualquiera que entre por la regla de plaza). */
+export const capacidadDe = (e: EquipoGuardado, categoria: string): number => (e.plantillaPorCategoria?.max ?? 0) * (e.equiposPorCategoria?.[categoria] ?? 1);
+/** Lo mismo con las plazas de más abiertas: solo lo usa el último paso del reparto (`plazasDeMas`). */
+export const capacidadConPlazasDeMas = (e: EquipoGuardado, categoria: string): number => maximoPorEquipo(e, categoria) * (e.equiposPorCategoria?.[categoria] ?? 1);
 
 
 /** Clave de un equipo por categoría (club y categoría) en el mapa de reservas del personaje. */
@@ -292,14 +295,14 @@ export function reclutarEquiposPorCategoria(npcs: Npc[], pob: PoblacionGuardada,
 
 
 /** Quiénes juegan hoy en el equipo de un club para niños de esta edad y cuántos caben (menos la plaza del personaje, si es de ese equipo); `undefined` si el club no tiene equipo para esa edad. */
-export function plantelDe(lista: ReadonlyMap<string, Npc>, pob: PoblacionGuardada, e: EquipoGuardado, edad: number, dia: number, reservas: ReadonlyMap<string, number>): { jugadores: Npc[]; max: number } | undefined {
+export function plantelDe(lista: ReadonlyMap<string, Npc>, pob: PoblacionGuardada, e: EquipoGuardado, edad: number, dia: number, reservas: ReadonlyMap<string, number>, conPlazasDeMas = false): { jugadores: Npc[]; max: number } | undefined {
   if (!edadesDe(pob, e).includes(edad)) return undefined;
   const delClub = lista instanceof ListaDeTrabajo ? lista.deEquipo(pob.deporte, e.club) : [...lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club);
   if (!e.plantillaPorCategoria) return { jugadores: delClub, max: e.objetivo };
   const cat = categoriaDe(pob, edad);
   if (!cat || (e.categorias && !e.categorias.includes(cat.id))) return undefined;
   const jugadores = delClub.filter((n) => (edadDeJuego(n, dia) ?? -1) >= cat.edadMin && (edadDeJuego(n, dia) ?? -1) <= cat.edadMax);
-  return { jugadores, max: capacidadDe(e, cat.id) - (reservas.get(claveDeEquipo(e.club, cat.id)) ?? 0) };
+  return { jugadores, max: (conPlazasDeMas ? capacidadConPlazasDeMas(e, cat.id) : capacidadDe(e, cat.id)) - (reservas.get(claveDeEquipo(e.club, cat.id)) ?? 0) };
 }
 
 

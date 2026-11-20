@@ -1,5 +1,8 @@
 import { SERVICES, faltaViajar, rutaA, tiempoEntre, type LugaresService, type SucesosService } from '@ds/contracts';
 import type { ActionResult, Game } from '@ds/core';
+import { cargarPartida } from '@ds/game';
+import { edadNpc, sinDeporte, type NpcsState } from '@ds/mod-npcs';
+import type { GameModule } from '@ds/contracts';
 
 /** Va a un sitio por el camino que permite el mapa (una zona, desde la entrada de su lugar). */
 export function viajarA(game: Game, lugar: string): void {
@@ -64,4 +67,33 @@ export function hacerPruebaDeAcceso(game: Game, club: string, elige?: string): A
     if (o) game.perform(o.accion);
   }
   return hacer(game, `futbol.prueba_entrenar.${club}`);
+}
+
+
+/**
+ * La misma partida con el personaje fuerte en el fútbol (velocidad, resistencia y todas las habilidades de fútbol al `nivel`): con los equipos de los colegios llenos (el reparto de 17/11/2026) un
+ * personaje del montón puede quedarse fuera de las convocatorias, y los tests que necesitan que juegue (convocatoria, día de partido) no deben depender de ese azar.
+ */
+export function conFutbolFuerte(game: Game, modulos: readonly GameModule<any>[], nivel = 75): Game {
+  const guardado = JSON.parse(JSON.stringify(game.serialize()));
+  for (const id of Object.keys(guardado.stats)) {
+    if (/^(gen\.(velocidad|resistencia)|futbol\.)/.test(id)) {
+      guardado.stats[id] = nivel;
+      guardado.peaks[id] = nivel;
+    }
+  }
+  return cargarPartida(guardado, modulos);
+}
+
+
+/**
+ * El colegio con **un solo equipo de benjamín** (como antes del reparto de 17/11/2026, en que los alumnos de un colegio con club se quedan en él y el colegio saca varios equipos): los demás jugadores
+ * de benjamín del colegio dejan el equipo. Para los tests que llenan «el equipo del colegio» a mano hasta su máximo de 18.
+ */
+export function colegioConUnEquipoDeBenjamin(game: Game): void {
+  const s = game.moduleState<NpcsState>('npcs') as { -readonly [K in keyof NpcsState]: NpcsState[K] };
+  const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
+  const colegio = pob.equipos.find((e) => e.club === 'colegio')!;
+  if (colegio.equiposPorCategoria) colegio.equiposPorCategoria = Object.fromEntries(Object.entries(colegio.equiposPorCategoria).filter(([c]) => c !== 'benjamin'));
+  s.npcs = s.npcs.map((n) => (n.deporte === 'futbol' && n.equipo === 'colegio' && edadNpc(n, 0)! <= 9 ? sinDeporte(n, pob, false) : n));
 }

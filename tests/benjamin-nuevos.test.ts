@@ -4,7 +4,7 @@ import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, paraConvocar, convocarYAlinear, type FutbolState } from '@ds/mod-futbol';
 import { asistenciaDeLasDosUltimasSemanas, entrenadorDelEquipo, plantillaDeUnEquipo, type NpcsState } from '@ds/mod-npcs';
-import { hacer, posible } from './ayudas';
+import { conFutbolFuerte, hacer, posible } from './ayudas';
 
 vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
 
@@ -13,7 +13,7 @@ vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
  * de la temporada, para todos (PNJ y personaje). Antes no hay asistencia «heredada» de lo que hacían antes de la temporada ni relación. En el resto de categorías el club ya conoce a sus jugadores y traen su asistencia.
  */
 describe('benjamín: todos nuevos en el club', () => {
-  const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  const g = conFutbolFuerte(nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]), [...MODULOS, futbol]);
   const s = g.moduleState<NpcsState>('npcs') as NpcsState;
   const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
   const cat = (id: string) => pob.categorias!.find((c) => c.id === id)!;

@@ -36,15 +36,17 @@ export interface OpcionesDeEntrada {
   relajado?: boolean;
   equipoNuevo?: boolean;
   ultimaOpcion?: boolean;
+  /** Cuenta las plazas de más del equipo (solo el último paso del reparto). */
+  plazasDeMas?: boolean;
 }
 
 
 export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: PoblacionGuardada, o: OpcionesDeEntrada = {}): Entrada {
-  const { sinPrueba = false, puestoForzado, soloHueco = false, relajado = false, equipoNuevo = false, ultimaOpcion = false } = o;
+  const { sinPrueba = false, puestoForzado, soloHueco = false, relajado = false, equipoNuevo = false, ultimaOpcion = false, plazasDeMas = false } = o;
   if (!n.genetica || n.nacimiento === undefined) return { entra: false };
   const edad = edadNpc(n, m.dia);
   if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
-  const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas);
+  const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas, plazasDeMas);
   if (!plantel) return { entra: false };
   const potencial = potencialEn(n.id, n.genetica, pob);
   const aspirante = { npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor: valorEn(n, pob, m) };

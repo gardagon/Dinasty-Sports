@@ -200,6 +200,7 @@ describe('ver partidos de otros como espectador', () => {
     expect(g.stat(CONOCIMIENTO)).toBeGreaterThan(antes);
     // El partido de su equipo no sale entre los que se pueden ver.
     const p = (g.moduleState<FutbolState>('futbol') as FutbolState).personaje!;
-    expect(ver.some((a) => a.id.includes(`${p.categoria}.${p.club}_${p.letra}.`) || a.id.endsWith(`.${p.club}_${p.letra}`))).toBe(false);
+    // (solo en su categoría: el equipo B del colegio de otra categoría sí se puede ver)
+    expect(ver.some((a) => a.id.startsWith(`futbol.ver_partido.${p.categoria}.`) && (a.id.includes(`.${p.club}_${p.letra}.`) || a.id.endsWith(`.${p.club}_${p.letra}`)))).toBe(false);
   });
 });

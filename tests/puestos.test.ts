@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { cuposPorGrupo, grupoDePuesto, parecidoDePuestos } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
-import { edadNpc, ofertaAlCandidato, preferenciaDe, valoracionDe, valoresPorPuestoDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { capacidadConPlazasDeMas, edadNpc, ofertaAlCandidato, preferenciaDe, valoracionDe, valoresPorPuestoDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
 import { ofertaDePuesto, ofertasDePuesto, probabilidadDeAceptarPuesto, puestoDondeMasVale, type JugadorConPuesto } from '../modules/npcs/src/puestos';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
@@ -175,7 +175,7 @@ describe('los niños del mundo con puestos', () => {
     for (const e of p.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const c of p.categorias!.filter((x) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(x.id))) {
         const del = jugadores().filter((n) => n.equipo === e.club && (edadNpc(n, 0) ?? -1) >= c.edadMin && (edadNpc(n, 0) ?? -1) <= c.edadMax);
-        const cupos = cuposPorGrupo(P, e.plantillaPorCategoria!.max * (e.equiposPorCategoria?.[c.id] ?? 1));
+        const cupos = cuposPorGrupo(P, capacidadConPlazasDeMas(e, c.id));
         const cuenta: Record<string, number> = {};
         for (const n of del) cuenta[grupoDePuesto(P, n.puesto!.futbol)!] = (cuenta[grupoDePuesto(P, n.puesto!.futbol)!] ?? 0) + 1;
         for (const r of P.reparto) {
