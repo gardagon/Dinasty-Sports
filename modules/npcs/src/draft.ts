@@ -22,7 +22,7 @@ import { losQueSeQuedan } from './probar-fuera';
 import { EquipoGuardado, Npc, PoblacionGuardada, delColegio, edadDeJuego, edadNpc, hermanos, npcs, nuevoEntrenador, registroDe, entrenadoresDeClubes } from './index';
 import { colocarDesplazados, fichajesDeVerano, intentarEntrar } from './fichajes';
 import { dejaElDeporte } from './abandono';
-import { acomodarSobrantes, cubrirGruposVacios, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { acomodarSobrantes, cubrirGruposVacios, equipoDelPersonajeEn, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { Valoracion, leGustaElGrupo, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** ¿Forma sus equipos el «draft»? Los deportes con equipos por categoría y puestos (el fútbol); el atletismo y los de prueba, no. */
@@ -712,6 +712,19 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
     (resultado.sinNinos ??= []).push({ deporte: j.deporte, ...falta });
     resultado.plazaExtra = resultado.plazaExtra?.filter((d) => d !== j.deporte);
     resultado.sinPlaza = resultado.sinPlaza.filter((d) => d !== j.deporte);
+  }
+  // **El equipo que le toca por las normas por año** (decisión del usuario, 20/11/2026): el personaje que sigue en su club pero no cabe en ningún equipo (el A es de los de segundo año y se ha llenado con otros que
+  // valen más; el B, de los de primer año) se trata como quien pierde su plaza: primero una plaza de más (1–2 por equipo; el entrenador le avisa de que contará menos con él) y, si ni así cabe, sale del club.
+  for (const j of personaje) {
+    if (!j.puesto || resultado.sinPlaza.includes(j.deporte) || resultado.plazaExtra?.includes(j.deporte) || resultado.sinNinos?.some((x) => x.deporte === j.deporte)) continue;
+    const tieneEquipo = (pobs: readonly PoblacionGuardada[]): boolean => !!equipoDelPersonajeEn([...final.lista.values()], pobs, j.deporte, j.club, j.categoria, { id: idDelPersonaje(j.deporte), puesto: j.puesto!, valor: j.valores?.[j.puesto!] ?? j.valor }, j.edad, dia, final.val);
+    if (tieneEquipo(final.pobs)) continue;
+    let pobs: readonly PoblacionGuardada[] | undefined = final.pobs;
+    for (let i = 0; i < PLAZAS_DE_MAS && pobs && !tieneEquipo(pobs); i++) pobs = conUnaPlazaDeMas(pobs, j);
+    if (pobs && tieneEquipo(pobs)) {
+      final.pobs = pobs;
+      (resultado.plazaExtra ??= []).push(j.deporte);
+    } else resultado.sinPlaza.push(j.deporte);
   }
   resultado.dejanSinClub = apartarODejar(final, segunda);
   resultado.pobs = [...final.pobs];
