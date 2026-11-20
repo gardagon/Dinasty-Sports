@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 20/11/2026 — Reparto de equipos, segunda vuelta (respuestas del usuario)
+
+- **Los equipos del colegio siguen las mismas normas que los de cualquier club:** con un solo equipo, niños de los dos años mezclados; con dos, el A con los de segundo año (y algún primer año muy bueno que sería titular en el A) y el B con los de primer año; con tres, A y B igual y el C con niños de los dos años. El personaje entra en el equipo que le toca según esas normas.
+- **Los clubes de fuera cierran más equipos (22 → 68):** hay que vigilarlo. Probablemente haya que tocar los porcentajes de los niños que van a probar fuera.
+- **Página del equipo:** ver la plantilla (ya hay una sección «Plantilla» en la pestaña del deporte) y poder ver antes del cierre si el equipo corre peligro de quedarse sin niños suficientes.
+- **Si al subir de categoría y repartirse los niños el equipo del personaje no tiene niños suficientes,** le llega un suceso que se lo dice: tiene que buscarse equipo, como el resto. Más adelante puede dar pie a una misión para convencer a niños de jugar en el equipo.
+- **Ir a probar fuera:** pesa sobre todo la ambición. El nivel no hace que un niño quiera irse (no tiene por qué querer crecer); servirá para que lo vea un ojeador, más adelante.
+
 ## 18/11/2026 — Nombres más corrientes, acciones del club en desplegables y el personaje que se queda sin equipo
 
 - **Nombres** (informe: `docs/relevo/nombres-nacionales.md`): (a) en la ciudad grande, el 19 % de origen extranjero se reparte como en Madrid (Latinoamérica 9,9, Europa del este 3,0, Europa del norte 2,4, Asia oriental 1,9, Magreb 1,2, África subsahariana 0,6); (b) el **20 %** de los hijos de extranjeros nacidos aquí llevan nombre de pila español (dato editable por país y ciudad). El orden de los apellidos no se toca. **Hecho el 18/11** (`nombreLocalDeLosNacidosAqui` en `PaisDef` y `CiudadDef`; la ciudad grande lo trae a 0,2): de cada 20 compañeros suenan extranjeros 2,4 (antes 3,4), y 1,7 a primera vista (antes 2,6). España, Argentina, Inglaterra y la ciudad de prueba no cambian. `probar-web` cierra ahora los sucesos ajenos al fútbol antes de pulsar la pestaña del deporte.
