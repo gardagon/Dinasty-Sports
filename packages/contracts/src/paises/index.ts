@@ -74,6 +74,9 @@ export function validarPais(x: unknown): string[] {
   };
   if (x.parejas !== undefined) parejasMal(x.parejas, 'parejas');
   if (esObjeto(x.ciudad) && x.ciudad.parejas !== undefined) parejasMal(x.ciudad.parejas, 'ciudad.parejas');
+  const nombreLocalMal = (q: unknown, donde: string): void => { if (typeof q !== 'number' || q < 0 || q > 1) p.push(`«${donde}» tiene que ser un número entre 0 y 1`); };
+  if (x.nombreLocalDeLosNacidosAqui !== undefined) nombreLocalMal(x.nombreLocalDeLosNacidosAqui, 'nombreLocalDeLosNacidosAqui');
+  if (esObjeto(x.ciudad) && x.ciudad.nombreLocalDeLosNacidosAqui !== undefined) nombreLocalMal(x.ciudad.nombreLocalDeLosNacidosAqui, 'ciudad.nombreLocalDeLosNacidosAqui');
   if (esObjeto(x.ciudad) && x.ciudad.demografia !== undefined && (!esObjeto(x.ciudad.demografia) || !Object.keys(x.ciudad.demografia).length || Object.values(x.ciudad.demografia).some((v) => typeof v !== 'number' || v < 0))) p.push('«ciudad.demografia» tiene que ser id de origen → peso positivo');
   // Calendario
   const cal = x.calendario;

@@ -24,12 +24,17 @@ export interface CiudadDef {
   /** Demografía de la ciudad (id de origen → peso) y reparto de parejas: sustituyen a los del país. Sin ellos, los del país (`demografiaDelLugar`, `parejasDelLugar`). */
   demografia?: Readonly<Record<string, number>>;
   parejas?: ParejasDef;
+  /** Probabilidad de que un nacido aquí (menos de 25 años) de padres de fuera lleve un nombre de pila del país (0 a 1); sustituye a la del país (`nombreLocalDelLugar`). */
+  nombreLocalDeLosNacidosAqui?: number;
 }
 
 /** La demografía que manda en un lugar: la de su ciudad, si la trae, y si no la del país. */
 export const demografiaDelLugar = (p: { demografia: Readonly<Record<string, number>>; ciudad?: Pick<CiudadDef, 'demografia'> }): Readonly<Record<string, number>> => p.ciudad?.demografia ?? p.demografia;
 /** El reparto de parejas que manda en un lugar: el de su ciudad, si lo trae, y si no el del país (sin ninguno, los padres se sortean por separado). */
 export const parejasDelLugar = (p: { parejas?: ParejasDef; ciudad?: Pick<CiudadDef, 'parejas'> }): ParejasDef | undefined => p.ciudad?.parejas ?? p.parejas;
+
+/** La probabilidad de nombre de pila del país para los jóvenes de origen de fuera que manda en un lugar: la de su ciudad, si la trae, y si no la del país. Sin ninguna, `undefined` (la regla de siempre: ninguno con un solo origen y `PROBABILIDAD_DE_NOMBRE_LOCAL` en las mezclas sin origen local). */
+export const nombreLocalDelLugar = (p: { nombreLocalDeLosNacidosAqui?: number; ciudad?: Pick<CiudadDef, 'nombreLocalDeLosNacidosAqui'> }): number | undefined => p.ciudad?.nombreLocalDeLosNacidosAqui ?? p.nombreLocalDeLosNacidosAqui;
 
 /** Campos de fútbol del complejo municipal por defecto (la ciudad de ahora, con pocos equipos). */
 export const CAMPOS_DEL_COMPLEJO = 2;
@@ -59,9 +64,11 @@ export const CIUDAD_DE_PRUEBA: CiudadDef = { colegiosDeFuera: 2, aulasPorCurso: 
  */
 export const CIUDAD_GRANDE: CiudadDef = {
   colegiosDeFuera: 9, colegiosConClub: 3, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10,
-  // Demografía de una ciudad como Madrid (por ahora igual que la de España; se ajustará a cada ciudad): ~19 % de origen extranjero, y las parejas por tipo (`ANEXO_NOMBRES.md` §7).
-  demografia: { espana_norte: 0.162, espana_centro: 0.324, espana_sur: 0.324, latinoamerica: 0.06, magreb: 0.04, africa_subsahariana: 0.017, europa_este: 0.035, europa_norte: 0.02, asia_oriental: 0.018 },
+  // Demografía de una ciudad como Madrid: ~19 % de origen extranjero, repartido por continente como la Comunidad de Madrid (más de la mitad, de América: nombres y apellidos hispanos) (`docs/relevo/nombres-nacionales.md` §2),
+  // y las parejas por tipo (`ANEXO_NOMBRES.md` §7). Los nacidos aquí de padres de fuera llevan nombre de pila español el 20 % de las veces.
+  demografia: { espana_norte: 0.162, espana_centro: 0.324, espana_sur: 0.324, latinoamerica: 0.099, magreb: 0.012, africa_subsahariana: 0.006, europa_este: 0.03, europa_norte: 0.024, asia_oriental: 0.019 },
   parejas: { ambosExtranjeros: 0.13, mixtas: 0.12, mismoOrigen: 0.7 },
+  nombreLocalDeLosNacidosAqui: 0.2,
 };
 
 /** Los ids de los colegios de fuera de una ciudad: `colegio1`…`colegioN`. */

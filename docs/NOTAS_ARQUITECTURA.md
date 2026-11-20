@@ -35,15 +35,12 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
 2. ~~**Equipos del colegio que se quedan vacíos**~~ **Decidido el 17/11** (DECISIONES, «Equipos: menos clubes de colegio…») y encargado a `claude/reparto-equipos`.
-4. **Acciones del club en desplegables** (propuesta con captura: `docs/relevo/listas-club-propuesta.png`). «Prueba de acceso…» y «Aceptar plaza…», cada una con un desplegable de clubes; sueltos, «Entrenamiento con el club», «Dejar el club» y «Apuntarte al club del colegio». Con fútbol, la lista pasa de 14 botones a 8. **Recomendación:** sí. Duda menor: «Salir a jugar» (3 botones) sigue suelto.
-3. **Nombres más nacionales** (17/11): el usuario no baja aún el 25 %; prueba si con nombres y apellidos más corrientes le resulta más normal. Encargado como propuesta con muestras a `claude/nombres-nacionales`.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXNt52eARrGJ6e6Uscp` | `claude/reparto-equipos` | 4 clubes de colegio; los niños con club en su colegio solo prueban fuera con un % por edad (15–55 %), cada verano también los de cualquier año; los de fuera siguen formando antes; 1–2 plazas de más al final para no dejar a nadie colgado. Medir antes y después |
-| `session_01M4vXXP3ckZSBmGvQnUnAxe` | `claude/nombres-nacionales` | Opciones para que los nombres suenen más corrientes sin bajar el 25 %: reparto como en Madrid, nombres de la segunda generación, orden de los apellidos. Muestras de 20 compañeros |
+| `session_01M4vXXNt52eARrGJ6e6Uscp` | `claude/reparto-equipos` | 4 clubes de colegio; los niños con club en su colegio solo prueban fuera con un % por edad (15–55 %), cada verano también los de cualquier año; los de fuera siguen formando antes; 1–2 plazas de más al final para no dejar a nadie colgado; suceso del entrenador que «contará menos» con el personaje que pierde la plaza. Medir antes y después |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
@@ -84,3 +81,5 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXNy9srpg9oYKpsTsi8` | Sonnet | «Entrenar…» agrupado y un solo deporte de competición (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXRd8gevhzsj2di6xSy` | Sonnet | Demografía de orígenes: análisis y aplicación (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXRtH1musiDi91d3e3n` | Sonnet | Fichas, recogida, plazo de pruebas y listas agrupadas (17/11, esta sesión de arquitectura) |
+| `session_01M4vXXP3ckZSBmGvQnUnAxe` | Sonnet | Nombres más nacionales: opciones con muestras (17–18/11, esta sesión de arquitectura) |
+| `session_01M4vXXNH5rEeQu14t4bGSsU` | Sonnet | Acciones del club en desplegables (18/11, esta sesión de arquitectura) |

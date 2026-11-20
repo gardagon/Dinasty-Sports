@@ -17,7 +17,8 @@ import {
   registrarNombre,
   type RegistroDeNombres,
 } from './nombres';
-import { PAIS_ESPANA } from './paises';
+import { CIUDAD_GRANDE, nombreLocalDelLugar } from './ciudad';
+import { PAIS_CIUDAD_GRANDE, PAIS_ESPANA, validarPais } from './paises';
 import { ORIGENES, origen, origenAlAzar } from './rasgos';
 import { rngEstable } from './rng';
 
@@ -190,6 +191,34 @@ describe('identidad según el origen', () => {
   it('un origen único extranjero nunca cambia de origen: el nombre es siempre de su cultura (ni un 12 % de nombres locales)', () => {
     const magreb = pilasDe(culturasDe('magreb')[0]);
     for (const i of sorteos('magreb', 'f', 10, 600)) expect(magreb.has(i.pila), i.pila).toBe(true);
+  });
+
+  it('con `nombreLocalDeLosNacidosAqui`, los jóvenes de un solo origen de fuera llevan a veces (≈20 %) un nombre del país; los adultos y los lugares sin el dato, nunca', () => {
+    const pais = { ...PAIS_ESPANA, nombreLocalDeLosNacidosAqui: 0.2 };
+    const magreb = pilasDe(culturasDe('magreb')[0]);
+    const espana = pilasDe(culturasDe('espana_centro')[0]);
+    const soloLocales = (pila: string): boolean => espana.has(pila) && !magreb.has(pila);
+    const contar = (edad: number, p: typeof pais | typeof PAIS_ESPANA): number => {
+      let k = 0;
+      for (let i = 0; i < 4000; i++) if (soloLocales(identidadAlAzar(rngEstable('nl', i, edad), 'm', [{ id: 'magreb', peso: 1 }], { edad, pais: p }).pila)) k++;
+      return k / 4000;
+    };
+    expect(contar(10, pais)).toBeGreaterThan(0.16);
+    expect(contar(10, pais)).toBeLessThan(0.24);
+    expect(contar(40, pais)).toBe(0);
+    expect(contar(10, PAIS_ESPANA)).toBe(0);
+    // La ciudad manda sobre el país, y sin ninguno de los dos no hay dato.
+    expect(nombreLocalDelLugar(PAIS_ESPANA)).toBeUndefined();
+    expect(nombreLocalDelLugar({ nombreLocalDeLosNacidosAqui: 0.5, ciudad: { nombreLocalDeLosNacidosAqui: 0.1 } })).toBe(0.1);
+    expect(nombreLocalDelLugar({ nombreLocalDeLosNacidosAqui: 0.5, ciudad: {} })).toBe(0.5);
+    expect(nombreLocalDelLugar(PAIS_CIUDAD_GRANDE)).toBe(CIUDAD_GRANDE.nombreLocalDeLosNacidosAqui);
+    expect(CIUDAD_GRANDE.nombreLocalDeLosNacidosAqui).toBe(0.2);
+  });
+
+  it('valida `nombreLocalDeLosNacidosAqui` (del país y de la ciudad): un número entre 0 y 1', () => {
+    expect(validarPais({ ...PAIS_ESPANA, nombreLocalDeLosNacidosAqui: 1.5 }).join()).toMatch(/entre 0 y 1/);
+    expect(validarPais({ ...PAIS_CIUDAD_GRANDE, ciudad: { ...CIUDAD_GRANDE, nombreLocalDeLosNacidosAqui: -0.1 } }).join()).toMatch(/ciudad\.nombreLocalDeLosNacidosAqui/);
+    expect(validarPais({ ...PAIS_ESPANA, nombreLocalDeLosNacidosAqui: 0.2 })).toEqual([]);
   });
 
   it('los hijos llevan el primer apellido del padre y el de la madre (con su forma) y el nombre del origen de los dos', () => {

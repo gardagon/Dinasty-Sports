@@ -234,6 +234,14 @@ try {
   comprobar(resultado.jugado, 'se juega una semana con partido: convocatoria, vestuario y «Jugar el partido»');
   comprobar((resultado as { tras?: string }).tras === 'vestuario_campo_municipal', 'al acabar el partido el personaje está en el vestuario');
 
+  // Al avanzar semanas de golpe puede haber salido algún suceso de la vida (ajeno al fútbol, y distinto según la semilla y la gente del mundo) cuyo cuadro tapa la pantalla: se cierra
+  // como lo haría el jugador (la primera opción, o «visto» si es un aviso) para llegar a la pestaña.
+  for (let i = 0; i < 10 && (await pagina.locator('.ventana.suceso').count()) > 0; i++) {
+    const opcion = pagina.locator('.ventana.suceso .suceso-opciones button:not([disabled])').first();
+    if (await opcion.count()) await opcion.click();
+    else await pagina.click('.ventana.suceso [data-act="aviso-visto"]');
+    await pagina.waitForTimeout(300);
+  }
   // 8. La pestaña del deporte lo enseña.
   await pagina.click('[data-tab="deporte"]');
   await pagina.waitForSelector('h3');
