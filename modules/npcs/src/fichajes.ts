@@ -18,7 +18,7 @@ import { puestoDondeMasVale, type CondicionesDePrueba } from './puestos';
 
 import { EquipoGuardado, Npc, PoblacionGuardada, clamp, edadDeJuego, edadNpc } from './index';
 import { DIAGNOSTICO, apartarODejar, atractivoDe, conDraft, minimoDe } from './draft';
-import { ListaDeTrabajo, MercadoDeFichajes, capacidadDe, categoriasDelEquipo, colegioDeNino, edadesDe, equiposDelClub, plantelDe, reclutarA, sinDeporte } from './plantillas';
+import { ListaDeTrabajo, MercadoDeFichajes, capacidadConPlazasDeMas, categoriasDelEquipo, colegioDeNino, edadesDe, equiposDelClub, plantelDe, reclutarA, sinDeporte } from './plantillas';
 import { aceptaElPuesto, favoritoDe, ofertasAlCandidato, piernaDe, puestoDeJugador, reglaDePlaza, valorEn, valorEnSuPuesto, valoresPorPuestoDe } from './plaza';
 
 export type Entrada = { entra: false } | { entra: true; desplazado?: Npc };
@@ -190,7 +190,8 @@ export function recolocarPropios(m: MercadoDeFichajes): { id: string; origen: st
     const p = pob.puestos;
     for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const u of categoriasDelEquipo(pob, e)) {
-        const max = capacidadDe(e, u.id);
+        // Con las plazas de más que ya tiene abiertas (los que entraron con ellas no salen al empezar el curso: `ajustarPlazasDeMas` las recalcula después).
+        const max = capacidadConPlazasDeMas(e, u.id);
         const cupos = cuposPorGrupo(p, max);
         const miembros = (): Npc[] => [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club && u.edades.includes(edadDeJuego(n, m.dia) ?? -1));
         const grupoDe = (n: Npc): string => grupoDePuesto(p, puestoDeJugador(n, pob, m.val, m.dia) ?? '') ?? '';
