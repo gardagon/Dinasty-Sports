@@ -737,5 +737,5 @@ export function previsionDelClubDe(npcs: readonly Npc[], pobs: readonly Poblacio
   const hayEquipo = delClub.some((c) => c.id === siguienteDef.id);
   const llegan = miembros.filter((n) => categoriaDeEdad(edadDe(n)) !== siguienteDef.id && categoriaDeEdad(edadDe(n) + 1) === siguienteDef.id).length;
   const quedan = 1 + miembros.filter((n) => categoriaDeEdad(edadDe(n) + 1) === siguienteDef.id).length;
-  return { categoria: { id: actual.id, nombre: actual.nombre }, siguiente: { id: siguienteDef.id, nombre: siguienteDef.nombre }, hayEquipo, ahora: deSuCategoria.length + 1, minimo: e.plantillaPorCategoria!.min, suben, siguen, llegan, quedan };
+  return { categoria: { id: actual.id, nombre: actual.nombre }, siguiente: { id: siguienteDef.id, nombre: siguienteDef.nombre }, hayEquipo, ahora: deSuCategoria.length + 1, minimo: e.plantillaPorCategoria!.min, equipos: Math.max(1, e.equiposPorCategoria?.[siguienteDef.id] ?? 1), suben, siguen, llegan, quedan };
 }

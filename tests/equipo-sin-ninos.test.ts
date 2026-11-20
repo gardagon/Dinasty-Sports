@@ -87,12 +87,32 @@ describe('la previsión del equipo (pestaña del deporte)', () => {
     expect(JSON.stringify(s)).not.toMatch(/valor|nivel|\d+,\d/i);
   });
 
-  it('avisa del peligro cuando no se llega al mínimo, y de si el club no tiene equipo en la categoría', () => {
-    const base = { categoria: { id: 'benjamin', nombre: 'Benjamín' }, siguiente: { id: 'alevin', nombre: 'Alevín' }, hayEquipo: true, ahora: 18, minimo: 14, suben: [{ id: 'a', nombre: 'Ana', a: 'Alevín' }], siguen: 8, llegan: 0, quedan: 9 };
+  it('avisa del peligro cuando no se llega al mínimo, de los equipos que cerrarían y de si el club no tiene equipo en la categoría', () => {
+    const base = { categoria: { id: 'benjamin', nombre: 'Benjamín' }, siguiente: { id: 'alevin', nombre: 'Alevín' }, hayEquipo: true, ahora: 18, minimo: 14, equipos: 1, suben: [{ id: 'a', nombre: 'Ana', a: 'Alevín' }], siguen: 8, llegan: 0, quedan: 9 };
     expect(seccionDePrevision(base).texto).toMatch(/corre peligro.*faltarían 5 niños/);
     expect(seccionDePrevision({ ...base, quedan: 15 }).texto).toMatch(/no corre peligro.*aunque por poco/);
     expect(seccionDePrevision({ ...base, quedan: 20 }).texto).not.toMatch(/por poco/);
     expect(seccionDePrevision({ ...base, hayEquipo: false }).texto).toMatch(/no tiene equipo en Alevín/);
     expect(seccionDePrevision({ ...base, quedan: 13 }).texto).toMatch(/faltarían 1 niño /);
+    // Con varios equipos, no llegar a lo que piden todos es que alguno cerraría (el suyo podría serlo).
+    const tres = { ...base, equipos: 3, quedan: 30 };
+    expect(seccionDePrevision(tres).texto).toMatch(/seguros para 2 de sus 3 equipos.*cerrará 1/);
+    expect(JSON.stringify(seccionDePrevision(tres).tabla!.rows)).toMatch(/para los 3 equipos harían falta 42/);
+    expect(seccionDePrevision({ ...tres, quedan: 45 }).texto).toMatch(/no corre peligro/);
+  });
+});
+
+describe('el personaje en el reparto de verano', () => {
+  it('con la edad de su curso nuevo (sin un año de más): tras el verano sigue en su categoría y en el equipo que le toca por su año, o sale del club', () => {
+    const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 0, 2, 9);
+    expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+    expect(g.service<NpcDirectory>(SERVICES.npcs)!.equipoDelPersonaje!('futbol')).toMatchObject({ club: 'colegio', categoria: 'benjamin', letra: 'B' }); // 8 años: primer año, el B
+    advanceToWeek(g, 'gen.descansar', 54, 2, 15);
+    const club = g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol');
+    const equipo = g.service<NpcDirectory>(SERVICES.npcs)!.equipoDelPersonaje!('futbol');
+    // A los 9 años sigue en benjamín (segundo año): si sigue en el club, tiene equipo (el A, el de los de segundo año; con una plaza de más si en él ya no cabe) y nunca se queda en el club sin equipo.
+    if (club) expect(equipo, 'si sigue en el club, tiene equipo').toMatchObject({ club: 'colegio', categoria: 'benjamin', letra: 'A' });
+    else expect(equipo).toBeUndefined();
   });
 });

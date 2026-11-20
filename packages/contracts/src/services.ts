@@ -186,6 +186,8 @@ export interface PrevisionDelClubView {
   ahora: number;
   /** Los que hacen falta para que exista un equipo. */
   minimo: number;
+  /** Los equipos que tiene su club en la categoría del curso que viene (cada uno necesita el mínimo). */
+  equipos: number;
   /** Los de su categoría que al acabar la temporada pasan a otra, con el nombre de la categoría (`a` falta si ya no tienen categoría a la que subir), por orden alfabético. */
   suben: { id: string; nombre: string; a?: string }[];
   /** Los que siguen en su categoría el curso que viene. */

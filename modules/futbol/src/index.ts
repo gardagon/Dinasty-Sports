@@ -552,20 +552,24 @@ function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelM
  */
 export function seccionDePrevision(p: PrevisionDelClubView): SeccionDeDeporte {
   const faltan = p.minimo - p.quedan;
+  const hacenFalta = p.minimo * p.equipos;
   const nombres = (xs: readonly string[]): string => (xs.length <= 6 ? xs.join(', ') : `${xs.slice(0, 6).join(', ')} y ${xs.length - 6} más`);
   const mismaCategoria = p.siguiente.id === p.categoria.id;
   const rows: string[][] = [
-    ['Niños de tu club en ' + p.categoria.nombre, `${p.ahora} (tú incluido); para un equipo hacen falta ${p.minimo}`],
+    ['Niños de tu club en ' + p.categoria.nombre, `${p.ahora} (tú incluido)`],
     ['Cambian de categoría al acabar la temporada', p.suben.length ? `${p.suben.length}: ${nombres(p.suben.map((x) => (x.a ? `${x.nombre} (a ${x.a})` : `${x.nombre} (ya no tiene categoría)`)))}` : 'Ninguno'],
     ['Siguen en ' + p.categoria.nombre, String(p.siguen)],
     [mismaCategoria ? `Llegan de la categoría de abajo` : `Suben a ${p.siguiente.nombre} con los de tu año`, String(p.llegan)],
-    [`Seguros el curso que viene en ${p.siguiente.nombre}`, p.hayEquipo ? `${p.quedan} (tú incluido); hacen falta ${p.minimo}` : 'Tu club no tiene equipo en esa categoría'],
+    [`Equipos de tu club en ${p.siguiente.nombre}`, p.hayEquipo ? `${p.equipos} (cada uno necesita ${p.minimo} niños)` : 'Ninguno'],
+    [`Seguros el curso que viene en ${p.siguiente.nombre}`, p.hayEquipo ? `${p.quedan} (tú incluido)${p.equipos > 1 ? `; para los ${p.equipos} equipos harían falta ${hacenFalta}` : `; hacen falta ${p.minimo}`}` : '—'],
   ];
   const texto = !p.hayEquipo
     ? `Tu club no tiene equipo en ${p.siguiente.nombre}: al empezar el curso tendrás que buscarte otro.`
     : faltan > 0
       ? `Tu equipo corre peligro: con los que ya son del club faltarían ${faltan} ${faltan === 1 ? 'niño' : 'niños'} para formar un equipo en ${p.siguiente.nombre}. En verano pueden apuntarse otros, pero no es seguro; si no llegan, no habrá equipo y tendrás que buscarte uno.`
-      : `Tu equipo no corre peligro: con los que ya son del club se llega a los ${p.minimo} que pide un equipo en ${p.siguiente.nombre}${p.quedan - p.minimo <= 2 ? ', aunque por poco' : ''}. No cuenta a quien se apunte o se vaya en verano.`;
+      : p.quedan < hacenFalta
+        ? `Tu club tiene niños seguros para ${Math.floor(p.quedan / p.minimo)} de sus ${p.equipos} equipos de ${p.siguiente.nombre}. Si en verano no se apuntan más, cerrará ${p.equipos - Math.floor(p.quedan / p.minimo)}, y el tuyo podría ser uno de ellos (los equipos se reparten otra vez cada verano).`
+        : `Tu equipo no corre peligro: con los que ya son del club se llega a lo que piden los equipos de ${p.siguiente.nombre}${p.quedan - hacenFalta <= 2 ? ', aunque por poco' : ''}. No cuenta a quien se apunte o se vaya en verano.`;
   return { titulo: `El curso que viene · ${p.siguiente.nombre}`, texto, tabla: { header: ['', ''], rows, align: ['left', 'left'] } };
 }
 
