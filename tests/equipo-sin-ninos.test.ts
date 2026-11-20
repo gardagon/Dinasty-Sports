@@ -96,7 +96,7 @@ describe('la previsión del equipo (pestaña del deporte)', () => {
     expect(seccionDePrevision({ ...base, quedan: 13 }).texto).toMatch(/faltarían 1 niño /);
     // Con varios equipos, no llegar a lo que piden todos es que alguno cerraría (el suyo podría serlo).
     const tres = { ...base, equipos: 3, quedan: 30 };
-    expect(seccionDePrevision(tres).texto).toMatch(/seguros para 2 de sus 3 equipos.*cerrará 1/);
+    expect(seccionDePrevision(tres).texto).toMatch(/niños para 2 de los 3 equipos.*cerrarían 1/);
     expect(JSON.stringify(seccionDePrevision(tres).tabla!.rows)).toMatch(/para los 3 equipos harían falta 42/);
     expect(seccionDePrevision({ ...tres, quedan: 45 }).texto).toMatch(/no corre peligro/);
   });

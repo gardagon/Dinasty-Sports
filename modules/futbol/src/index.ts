@@ -568,7 +568,7 @@ export function seccionDePrevision(p: PrevisionDelClubView): SeccionDeDeporte {
     : faltan > 0
       ? `Tu equipo corre peligro: con los que ya son del club faltarían ${faltan} ${faltan === 1 ? 'niño' : 'niños'} para formar un equipo en ${p.siguiente.nombre}. En verano pueden apuntarse otros, pero no es seguro; si no llegan, no habrá equipo y tendrás que buscarte uno.`
       : p.quedan < hacenFalta
-        ? `Tu club tiene niños seguros para ${Math.floor(p.quedan / p.minimo)} de sus ${p.equipos} equipos de ${p.siguiente.nombre}. Si en verano no se apuntan más, cerrará ${p.equipos - Math.floor(p.quedan / p.minimo)}, y el tuyo podría ser uno de ellos (los equipos se reparten otra vez cada verano).`
+        ? `Con los que ya son del club hay niños para ${Math.floor(p.quedan / p.minimo)} de los ${p.equipos} equipos de ${p.siguiente.nombre}. Cada verano se apuntan niños nuevos, pero no se sabe cuántos: si no llegan, cerrarían ${p.equipos - Math.floor(p.quedan / p.minimo)}, y el tuyo podría ser uno de ellos (los equipos se reparten otra vez cada verano).`
         : `Tu equipo no corre peligro: con los que ya son del club se llega a lo que piden los equipos de ${p.siguiente.nombre}${p.quedan - hacenFalta <= 2 ? ', aunque por poco' : ''}. No cuenta a quien se apunte o se vaya en verano.`;
   return { titulo: `El curso que viene · ${p.siguiente.nombre}`, texto, tabla: { header: ['', ''], rows, align: ['left', 'left'] } };
 }
