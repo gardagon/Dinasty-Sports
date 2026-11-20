@@ -50,13 +50,19 @@ Plazas de más: 19,8 jugadores en 6,8 club-categorías al crear; 66,8 en 17,8 tr
 
 ### Primeros años en el A de un grande (`npm run fichajes`)
 
-FICHAJES_PENDIENTE
+**Vigilado y en regla:** primeros años que le quitan el sitio a uno de segundo año del mismo puesto en el A de un club grande: media 0,0, máximo 0, 60 de 60 club-categorías con 2 o menos (igual que antes).
+
+Con el mismo `npm run fichajes` (12 semillas, 3 cursos), un efecto que conviene saber del colegio más lleno: el bot del montón que prueba en el colegio **llega al equipo A del colegio** en el curso 1 en 9 de 12 semillas antes y en 0 ahora (curso 2: 3 → 10; una semilla nunca), porque ahora el colegio saca varios equipos y el A lo ocupan los de segundo año; en cambio llega al A de un grande o mediano antes (curso 1: 0 → 1 y 0 → 2). Entrar en el equipo del colegio sigue siendo fácil (curso 1: 11 → 10 de 12). Cosa de diseño, no un fallo: el A del colegio ya no se regala.
 
 ### Simulación, huella y rendimiento
 
-- `npm run sim:rapida`: ✅ salvo dos ⚠️ que no vienen de esto: «Rendimiento» (1,70 ms por acción frente a un límite de 1,26 ms; ya se sabía inestable, §5 de `comprobacion-final.md`; salió con otras cuatro mediciones corriendo a la vez) y «El esfuerzo hace progresar» (atletismo +5,1 frente a +7; no depende del fútbol: la huella de los bots de atletismo es idéntica).
+- `npm run sim:rapida`: ✅ salvo dos ⚠️ que no vienen de esto: «Rendimiento» (1,70 ms por acción frente a un límite de 1,26 ms; ya se sabía inestable, §5 de `comprobacion-final.md`; salió con otras cuatro mediciones corriendo a la vez) y «El esfuerzo hace progresar» (atletismo +5,1 frente a +7): **sale igual en la rama de partida** (`sim:rapida` medido antes de mi cambio: atletismo +5,1 y también ⚠️ en Rendimiento, 1,51 ms por acción), y la huella de los bots de atletismo es idéntica; no viene de este cambio.
 - `npm run huella -- 60`: las huellas de los bots de atletismo (`abandono`, `aleatorio`) son **idénticas**; solo cambian las del fútbol (semillas 31 y 32), como se espera de un reparto distinto.
 - `npm run rendimiento -- 60`: igual (crear 664 → 669 ms, 2968 KB, 1,65 → 1,65 ms por acción): esa medida no usa el fútbol ni la ciudad grande.
+
+### Tests
+
+Al cambiar el reparto fallaron 18 tests cuyas premisas eran las de antes; no por fallos del juego. Cambios en tests (todos explicados en su sitio): topes de plantilla «máximo del equipo» → `capacidadConPlazasDeMas` (las plazas de más pueden pasar del máximo); el colegio saca varios equipos de benjamín, así que los tests que lo llenan a mano usan `colegioConUnEquipoDeBenjamin` (`tests/ayudas.ts`) y los de convocatoria y día de partido usan `conFutbolFuerte` (con los colegios llenos un personaje del montón puede quedarse fuera de la convocatoria: es el «corre el riesgo de no jugar» de las plazas de más y del equipo lleno, no un fallo); el test del personaje desplazado espera ahora la plaza de más (y la salida del club cuando el equipo ya no puede abrir más); `club_mediano` con 1 categoría de dos equipos en vez de 2; y el test de ver partidos de otros mira solo la categoría del personaje (el colegio tiene ahora un B en otra categoría). `capacidadDe` (para quien entra por la regla de plaza) **no** cuenta las plazas de más: solo el último paso del reparto y el reparto en equipos las cuentan (`capacidadConPlazasDeMas`, `plazasDeMas` en `OpcionesDeEntrada`).
 
 ## 3. Cosas que quedan para decidir o ver
 
