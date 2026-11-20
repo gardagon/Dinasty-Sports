@@ -118,6 +118,8 @@ En juvenil, que tiene tres años, «segundo año» es segundo y tercero.
 4. **Última revisión de los descartes definitivos:** con ellos se monta un equipo en su colegio, si lo tiene, o en un club, según dónde estudie cada uno. Los que siguen sin equipo se quedan apartados ese curso (§7, dos plazos).
 5. **Plazas de más, en lo último de todo** (decisión del usuario, 17/11; al crear la partida y cada verano, después de todo lo anterior y de que los desplazados busquen club): al niño **con interés** que se queda sin equipo se le busca sitio en **un equipo de su colegio** (si tiene) o, si no, en **el club con el equipo más cercano a su nivel**, aunque el equipo pase de su máximo **1 o 2 plazas como mucho por equipo** (`EquipoGuardado.plazasDeMas`, `PLAZAS_DE_MAS`; el máximo de cada equipo del club en la categoría sube en lo que se haya abierto: `maximoPorEquipo`). Solo para no dejarlo fuera: **las convocatorias no cambian**, y si no da el nivel corre el riesgo de no jugar. No se abre así un equipo que no existe (menos del mínimo).
 
+**Los equipos del colegio siguen las mismas normas por año que los de cualquier club** (decisión del usuario, 20/11/2026; medido con `npm run equipos-por-anio`, y es el mismo código, `repartirEnEquipos`, para colegios y clubes): con un solo equipo, niños de los dos años mezclados; con dos, el A con los de segundo año (y algún primer año que sería titular en el A) y el B con los de primer año; con tres, A y B igual y el C con niños de los dos años. **El personaje entra en el equipo que le toca por su año** (un primer año, en el B si hay dos equipos; un segundo año, en el A) y, **si ese equipo está lleno con otros que valen más y en el otro no le toca, se trata como quien pierde la plaza**: una plaza de más (el entrenador le avisa de que contará menos con él) y, si ni así cabe, sale del club (`club.plaza_perdida`).
+
 **El personaje no entra en los porcentajes:** decide él a qué clubes va a probar, y su prueba sigue la regla de plaza (abajo). Al crear la partida el «draft» se hace sin él; después prueba dentro del plazo.
 
 **Los años siguientes:** un porcentaje pequeño, según su carácter, prueba en otro club (el suplente del grande que prueba en el mediano para ser titular, o el titular del mediano que prueba en el grande). Los ojeadores y los fichajes, más adelante.
@@ -198,6 +200,8 @@ Cada verano, en este orden y para todos los clubes (todo dentro del plazo):
 4. Los ascensos y descensos de la temporada pasada ya están aplicados.
 
 El personaje sigue las mismas reglas, sin plaza reservada. Puede pedir su prueba en un club (F5) o quedarse en el de su colegio.
+
+**Si su equipo no sigue (decisión del usuario, 20/11/2026):** al empezar el curso, tras el reparto de verano, si el club del personaje **no reúne en su categoría los niños de un equipo** (14 contándolo a él: el equipo se cierra) o **no tiene equipos en la categoría a la que sube**, le llega el suceso `futbol.equipo_sin_ninos` (`club.equipo_sin_ninos`): se lo dice y **sale del club como cualquier niño sin equipo**; tiene que buscarse equipo en el plazo, como el resto. Con sus textos en los datos del deporte (`ANEXO_DEPORTE.md`, `ANEXO_EVENTOS.md`). Para que lo vea venir, la pestaña del deporte enseña «El curso que viene» con cuántos son, quién sube de categoría y cuántos quedarían (`ANEXO_DEPORTE.md`). Más adelante, una misión para convencer a otros niños de jugar en el equipo (`docs/relevo/reparto-equipos-2.md` §4); no está hecha.
 
 ## 8. Coste y requisitos
 

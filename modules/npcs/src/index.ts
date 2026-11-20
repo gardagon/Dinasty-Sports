@@ -1331,7 +1331,9 @@ export const npcs = defineModule<NpcsState>({
       const pobs = poblacionesGuardadas(ctx);
       // Si el personaje ya es miembro de un equipo por categoría, su plaza cuenta: el equipo se queda en el máximo menos uno (el curso que viene tendrá un año más).
       // Si aún no es miembro no se le guarda ningún hueco: entra como cualquier niño (hay hueco, o está completo y es mejor que alguno).
-      const edadProxima = (ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8) + 1;
+      // Este aviso llega cuando el reloj ya está en el curso nuevo (`proximo` es ahora: `schoolWeek` 0), así que la edad de competición del personaje ya es la del curso que empieza: no se le suma otro año (con el +1 de antes se
+      // le trataba como a un año mayor: en los fichajes de verano y en la categoría de su plaza reservada, una por encima de la suya).
+      const edadProxima = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
       const reservas = new Map<string, number>();
       const personaje: JugadorEnClub[] = [];
       const rend = rendimientosDe(ctx);

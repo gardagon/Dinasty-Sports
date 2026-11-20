@@ -23,7 +23,6 @@ for (const seed of SEMILLAS) {
   const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   advanceToWeek(g, 'gen.descansar', 0, 2, 9);
   if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');
-  const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
   for (let v = 0; v <= VERANOS; v++) {
     if (v > 0) advanceToWeek(g, 'gen.descansar', 52 * v + 2, 2, 15);
     const s = g.moduleState<NpcsState>('npcs') as NpcsState;
@@ -44,6 +43,7 @@ for (const seed of SEMILLAS) {
         (contados.get(clave) ?? contados.set(clave, new Set()).get(clave)!).add(`${seed}|${v}|${e.club}|${cx.id}`);
       }
     }
+    const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
     const yo = dir.equipoDelPersonaje?.('futbol');
     const cuando = v === 0 ? 'al crear' : `verano ${v}`;
     if (yo) {
