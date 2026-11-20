@@ -34,13 +34,16 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
 1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
-2. ~~**Equipos del colegio que se quedan vacíos**~~ **Decidido el 17/11** (DECISIONES, «Equipos: menos clubes de colegio…») y encargado a `claude/reparto-equipos`.
+2. **Reparto de equipos, lo que dejó abierto `claude/reparto-equipos`** (`docs/relevo/reparto-equipos.md` §3):
+   - a) **El personaje que entra en el colegio, lleno, es el 17.º de 16 convocables** y no lo convocan aunque vaya a todos los entrenamientos (`benjamin -- 31,33`). Opciones: dejarlo; que en benjamín se convoque a toda la plantilla (hasta 18); que el personaje que entra por el colegio vaya al equipo del colegio con menos jugadores. **Recomendación:** la última (como un colegio de verdad con varios equipos), sin tocar las convocatorias.
+   - b) **Los clubes de fuera cierran más equipos** (22 → 68; casi siempre pierden uno de varios). **Recomendación:** aceptarlo y vigilarlo.
+   - c) **Otros casos en que el personaje se queda colgado:** su club no tiene equipo en la categoría a la que sube, o lo echan fuera de plazo. **Recomendación:** el mismo suceso del entrenador, con esos disparos.
+   - d) **Pesos de ir a probar fuera** (ambición 0,5, nivel 0,5, amigos 0,6), por revisar.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXNt52eARrGJ6e6Uscp` | `claude/reparto-equipos` | 4 clubes de colegio; los niños con club en su colegio solo prueban fuera con un % por edad (15–55 %), cada verano también los de cualquier año; los de fuera siguen formando antes; 1–2 plazas de más al final para no dejar a nadie colgado; suceso del entrenador que «contará menos» con el personaje que pierde la plaza. Medir antes y después |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
@@ -83,3 +86,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXRtH1musiDi91d3e3n` | Sonnet | Fichas, recogida, plazo de pruebas y listas agrupadas (17/11, esta sesión de arquitectura) |
 | `session_01M4vXXP3ckZSBmGvQnUnAxe` | Sonnet | Nombres más nacionales: opciones con muestras (17–18/11, esta sesión de arquitectura) |
 | `session_01M4vXXNH5rEeQu14t4bGSsU` | Sonnet | Acciones del club en desplegables (18/11, esta sesión de arquitectura) |
+| `session_01M4vXXNt52eARrGJ6e6Uscp` | Sonnet | Reparto de equipos: colegios, probar fuera por edad y plazas de más (17–20/11, esta sesión de arquitectura) |
