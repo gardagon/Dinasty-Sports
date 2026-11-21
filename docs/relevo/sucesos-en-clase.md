@@ -50,3 +50,7 @@ Sin opciones (no afectan): los avisos y detalles en línea.
 2. **Qué hace «pasar el momento»**: aplica la opción por defecto del `plazo`. Para varios sucesos esa opción es la más pasiva («callar»), lo razonable. Los bots y la simulación resuelven siempre con `decidirSucesos` antes de otra acción, así que no cambian.
 3. **El motor no bloquea**: la regla solo impide aplazar (web) y pierde el momento si pasas a otra acción; no hay acciones «bloqueadas» mientras hay una pregunta abierta. Si se quisiera bloquear en el motor, es un `available` en las acciones de fuera.
 4. `ReadContext.actionCount` es nuevo en contracts/core (pequeño); aviso porque no era de `modules/sucesos`.
+
+## Resultado final
+
+- `npm run typecheck` ✅ · `npm test` ✅ (105 archivos, 1196 tests) · `npm run benjamin -- 31,33` ✅ (sin cambios: semilla 31 primer partido en la semana 4; ambas semillas con convocatorias y minutos normales) · `npm run probar-web` ✅ (camino entero en Chromium, sin errores en la consola).
