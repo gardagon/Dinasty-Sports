@@ -43,7 +43,6 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 | Sesión | Rama | Encargo |
 |---|---|---|
 | `session_01M4vXXPBodQ2WC6McapR2v8` | `claude/caras-por-origen` | Tendencias por origen en la forma de la cara y ojo con pliegue del párpado en el dibujo (la arquitectura revisa las capturas) |
-| `session_01M4vXXPDhEajtkKpPVfbKQS` | `claude/deberes-y-acciones-cortas` | «Hacer deberes…» de 30 min; una acción que pisa una obligación consume solo los minutos que faltan |
 | `session_01M4vXXR9ZzuDodhbLuCsMSu` | `claude/moverse-con-el-grupo` | «Todos se van al patio, ¿les acompañas?» y demás cambios de sitio en bloque |
 | `session_01M4vXXPQUdYEGsR1Fs7XmG5` | `claude/futbol-mas-barato` | Pasada semanal y creación del fútbol más baratas; equipos que se forman desde el 2.º día de clase; `rngEstable` más barato |
 
@@ -101,3 +100,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXNStiDzD4AGKEshkud` | Sonnet | Guardar sin congelar y vigilar el peso (21/11, esta sesión de arquitectura) |
 | `session_01M4vXXMHztRUvbt7XbZW3ft` | Sonnet | Puestos, entrenamientos y pistas: análisis (21/11, esta sesión de arquitectura) |
 | `session_01M4vXXMaAyvvsxH4QeZu3rA` | Sonnet | Sucesos en clase sin tiempo ni «mañana» (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXPDhEajtkKpPVfbKQS` | Sonnet | Hacer deberes y acciones que pisan otra (21/11, esta sesión de arquitectura) |
