@@ -58,7 +58,8 @@
     "eventos:probar": "tsx tools/eventos.ts probar",
     "eventos:mapa": "tsx tools/eventos.ts mapa",
     "eventos:indice": "tsx tools/eventos.ts indice",
-    "entrenamientos:tabla": "tsx tools/entrenamientos-futbol.ts"
+    "entrenamientos:tabla": "tsx tools/entrenamientos-futbol.ts",
+    "sim:futbol-habilidades": "tsx sim/src/futbol-por-habilidad.ts"
   },
   "engines": {
     "node": ">=20"
