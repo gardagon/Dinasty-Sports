@@ -566,7 +566,7 @@ const botonesDeSuceso = (p: SucesoPendiente): string =>
     )
     .join('');
 
-/** La ventana de un suceso que pide una decisión ahora: quién participa, lo que pasa y las opciones. Se puede dejar para luego: nunca bloquea. */
+/** La ventana de un suceso que pide una decisión ahora: quién participa, lo que pasa y las opciones. Solo lo que puede esperar (`aplazable`) se puede dejar para luego; lo que pasa en el momento se responde. */
 function viewSuceso(g: Game): string {
   // Primero lo que acaba de pasar sin que haya nada que decidir (una revelación, una noticia): se lee y se cierra.
   const aviso = g.service<SucesosService>(SERVICES.sucesos)?.avisos().find((a) => !avisosVistos.has(a.id));
@@ -579,7 +579,7 @@ function viewSuceso(g: Game): string {
       <p class="botones"><button class="primary" data-act="aviso-visto" data-suceso="${aviso.id}">Seguir</button></p>
     </div></div>`;
   }
-  const p = pendientesDe(g).find((x) => x.urgencia === 'ahora' && !sucesosAplazados.has(x.id));
+  const p = pendientesDe(g).find((x) => x.urgencia !== 'pendiente' && !sucesosAplazados.has(x.id));
   if (!p) return '';
   const personas = [...new Set(Object.values(p.reparto))].map((id) => viewRetrato(g, id)).join('');
   return `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="suceso-titulo"><div class="ventana suceso">
@@ -587,7 +587,7 @@ function viewSuceso(g: Game): string {
     ${personas ? `<div class="suceso-personas">${personas}</div>` : ''}
     <p>${esc(p.texto)}</p>
     <div class="suceso-opciones">${botonesDeSuceso(p)}</div>
-    <p class="note">${p.deporte ? 'Evento deportivo · ' : ''}Si no decides, ${esc(plazoDe(g, p))}. <button data-act="suceso-luego" data-suceso="${p.id}">Decidir luego</button></p>
+    <p class="note">${p.deporte ? 'Evento deportivo · ' : ''}${p.aplazable ? `Si no decides, ${esc(plazoDe(g, p))}. <button data-act="suceso-luego" data-suceso="${p.id}">Decidir luego</button>` : 'Hay que responder ahora: si pasas a otra cosa, se queda como si no hubieras dicho nada.'}</p>
   </div></div>`;
 }
 
@@ -1267,7 +1267,7 @@ app.addEventListener('click', (e) => {
     const opt = game.preview(id);
     const start = game.time.minute;
     const result = realizar(game, id);
-    if (result.ok && opt) agenda.push({ start, duration: result.duration, name: opt.name, rest: opt.tags.includes('descanso') });
+    if (result.ok && opt && result.duration > 0) agenda.push({ start, duration: result.duration, name: opt.name, rest: opt.tags.includes('descanso') });
     lastResult = { name: opt?.name ?? id, result, fresh: true };
     save();
     render();

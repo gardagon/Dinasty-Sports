@@ -106,10 +106,34 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
 }
 ```
 
-- Un suceso con opciones necesita `plazo: { dias, porDefecto }` (o `{ hasta: { hora }, porDefecto }`): **nunca bloquea** el juego; si vence, se aplica la opción por defecto.
+- Un suceso con opciones necesita `plazo: { dias, porDefecto }` (o `{ hasta: { hora }, porDefecto }`): **nunca bloquea** el motor (las acciones siguen disponibles); si vence, o si era de los que no se aplazan y pasas a otra cosa, se aplica la opción por defecto.
 - Un efecto negativo sobre un recurso (dinero, energía) es un coste: si no alcanza, la opción no se puede elegir.
-- `urgencia: 'ahora'` (ventana) o `'pendiente'` (a la lista). Sin opciones, `presentacion: 'ventana' | 'linea'`.
+- `urgencia`: cuánto espera lo que se pregunta (ver «Durante una actividad y aplazar» más abajo). Sin opciones, `presentacion: 'ventana' | 'linea'`.
 - Suertudo repite a veces una tirada fallada (25 %) y Gafe estropea a veces una acertada (15 %): `TIRADA` en `contracts/src/sucesos/condiciones.ts`.
+
+### Durante una actividad y aplazar
+
+Dos reglas del formato, para no tener que acordarse suceso a suceso:
+
+**1. Lo que pasa durante una actividad no gasta tiempo.** Una pregunta en clase, la recomendación de puesto del profesor de Educación física o el «llegas tarde» del entrenador se responden en el momento, dentro de la clase o del entrenamiento: las opciones valen **0 minutos**.
+
+- `durante` (en el suceso) lo dice. Por defecto lo es el que se dispara con una señal de `ConfigDeSucesos.durante` (hoy `clase.asistida`, `club.sesion_tarde`, `club.impuntual`, `club.prueba_empieza`); `sucesoEsDurante` en `contracts/src/sucesos/tipos.ts`. Si sale con otra señal pero pasa dentro de una actividad, `durante: true` (`futbol.primer_entrenamiento`: sale con `accion.realizada`).
+- Un suceso `durante` **no escribe `minutos`** en sus opciones (la validación lo rechaza). Si es otra cosa (quedarse a hablar después, ir a algún sitio), `durante: false` y gasta los minutos que digan.
+- Los demás (el patio, el camino, la casa, las ofertas del club) son actividades aparte: sus opciones siguen gastando `minutos` (1 por defecto).
+- Una acción de 0 minutos es posible solo si lo declara (`duration: 0`); el motor nunca baja de 1 minuto lo demás.
+
+**2. Lo que se pregunta en el momento no se puede dejar para luego.** Hay tres `urgencia`:
+
+| `urgencia` | Qué es | Ventana | «Decidir luego» |
+|---|---|---|---|
+| `ahora` (por defecto) | Se responde en el momento: pasa en presencia de alguien o dentro de lo que haces | Sí; no se puede cerrar sin responder | No |
+| `aplazable` | Sale en una ventana, pero puede esperar: un aviso del club, algo que decidir en casa | Sí | Sí: queda en «Pendiente» hasta que venza su plazo |
+| `pendiente` | Va directo a la lista, con su plazo | No | (ya está en la lista) |
+
+- **Lo que no se aplaza se pierde.** Si haces otra acción sin responder (no vale decidir otra cosa), «el momento pasó» y se aplica la opción por defecto del `plazo` como si no hubieras dicho nada (`pasarElMomento`, en el director). Lo que `aplazable`/`pendiente` conserva hasta que venza el plazo, como antes.
+- La validación impide `aplazable`/`pendiente` en lo que es `durante`, en un reparto con `presente: true` o con una condición `presente` en `cuando`: eso se responde ahora.
+- La interfaz (`SucesoPendiente.aplazable`) solo ofrece «Decidir luego» si es aplazable; si no, dice que hay que responder.
+- Qué cambió suceso a suceso, y con qué cifras: `docs/relevo/sucesos-en-clase.md`.
 
 ### Efectos
 
@@ -166,6 +190,7 @@ Por defecto un suceso es del personaje. Con `para: 'cualquiera'` y una `clase` p
 | `presentacion.fueraDeCaracter` | `normales` | Las opciones que no van con el carácter: `normales`, `sombreadas` (se ven, no se eligen, se dice por qué) u `ocultas`. En `normales` cada opción lleva `ejeEnContra` (p. ej. «sociabilidad») y la web la avisa con una nota discreta «No va contigo (sociabilidad)»; sigue pudiéndose elegir y mueve el carácter igual |
 | Aviso «no va contigo» (web) | activado | Preferencia del navegador (Opciones → casilla), no del motor: solo cuenta con `fueraDeCaracter: 'normales'`; en `sombreadas` y `ocultas` no cambia nada |
 | `presentacion.ejeMarcado`, `inclinacionMinima` | 25, 2 | Una opción no encaja si tira al menos 2 en contra de un eje que el personaje tiene a 25 o más |
+| `durante` | `clase.asistida`, `club.sesion_tarde`, `club.impuntual`, `club.prueba_empieza` | Señales que pasan dentro de una actividad: el suceso que sale con una es «durante» (0 minutos, sin aplazar) salvo que diga `durante: false` |
 | `pnj.clases` | `['lesion']` | Clases de suceso (`clase:`) que viven también los PNJ |
 | `pnj.diarioDeCercanos` | `false` | Si lo que le pasa a alguien cercano sale en el diario |
 | `caracterPorDecision` | 1 | Puntos de eje por punto de inclinación de la opción elegida |

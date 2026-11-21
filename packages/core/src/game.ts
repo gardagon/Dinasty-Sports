@@ -503,6 +503,8 @@ export class Game {
 
     const before = { ...this.s.stats };
     this.pendingLog = [];
+    // Cuenta ya antes de empezar: todo lo que salga de esta acción (su `run`, las señales, el paso de los días) es de la acción número `actionCount`.
+    this.s.actionCount++;
 
     // 1. Coste / cambios directos
     for (const [stat, d] of Object.entries(option.delta)) this.rawAdd(stat, d);
@@ -511,7 +513,6 @@ export class Game {
     const ctx = this.actionCtx(action.module, option.efficiency);
     for (const t of action.def.train ?? []) ctx.train(t.stat, t.amount);
     action.def.run?.(ctx);
-    this.s.actionCount++;
 
     // 3. Tiempo y eventos
     this.advance(option.duration);
@@ -606,7 +607,8 @@ export class Game {
     }
 
     const base = typeof def.duration === 'function' ? def.duration(ctx) : def.duration;
-    const duration = Math.max(1, Math.round(base * durationMult));
+    // Una acción dura 1 minuto como mínimo, salvo la que declara 0: pasa dentro de otra cosa (responder a un suceso en clase) y no gasta tiempo.
+    const duration = base <= 0 ? 0 : Math.max(1, Math.round(base * durationMult));
 
     const delta: Record<StatId, number> = {};
     for (const [stat, d] of Object.entries(def.delta ?? {})) {
@@ -783,6 +785,9 @@ export class Game {
         // Las condiciones consultan la hora muchas veces por decisión: la vista se calcula una vez por minuto de juego.
         if (vista.minute !== s.minute) vista = timeView(s.minute, calendario());
         return vista;
+      },
+      get actionCount() {
+        return s.actionCount;
       },
       get pais() {
         return paisPorId(s.pais);

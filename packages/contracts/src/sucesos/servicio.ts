@@ -27,7 +27,9 @@ export interface SucesoPendiente {
   suceso: string;
   titulo: string;
   texto: string;
-  urgencia: 'ahora' | 'pendiente';
+  urgencia: 'ahora' | 'aplazable' | 'pendiente';
+  /** ¿Se puede dejar para luego? Si no, la interfaz no ofrece cerrarlo sin responder. */
+  aplazable: boolean;
   categoria: 'importante' | 'menor';
   /** Evento base o deportivo (y de qué deporte), para que la interfaz los distinga. */
   origen: OrigenDeSuceso;

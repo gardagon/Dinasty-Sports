@@ -34,7 +34,6 @@ export default suceso({
           id: 'preguntar',
           texto: 'Preguntarle en qué te ha fijado',
           caracter: { prudencia: 1 },
-          minutos: 5,
           efectos: [{ relacion: 'profesor', afinidad: 4, confianza: 2 }, { entrena: 'gen.comunicacion', cantidad: 0.5 }, { estado: 'gen.motivacion', mas: 3 }, { marca: 'le_recomendaron_un_deporte' }],
           resultado: '{profesor.Nombre} te lo explica con calma: cómo te mueves, qué se te da mejor. «Eso no lo tiene todo el mundo. Aprovéchalo».',
         },
