@@ -1,3 +1,4 @@
+import { ENTRENAMIENTOS_DE_FUTBOL } from '../modules/futbol/src/entrenamientos';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type PistasDePuestos,
@@ -210,13 +211,14 @@ describe('el entrenador recomienda entrenamientos con los datos de lo que sube c
     expect(utilidadDeUnEntreno(nuevo, ['futbol.mano_a_mano', 'futbol.dominio_area'])).toBeCloseTo(3 + 0.75, 6);
   });
 
-  it('con los entrenamientos de hoy del fútbol: portería sube lo del portero y la preparación física, lo físico', () => {
-    const hoy = (futbol.actions ?? []).filter((a) => /^futbol\.(balon|tiro|fisico|porteria)$/.test(a.id)).map((a) => ({ id: a.id, nombre: String(a.name), entrena: a.train! }));
-    expect(hoy).toHaveLength(4);
-    expect(elegirEntrenamiento(hoy, ['futbol.reflejos', 'futbol.blocaje'])?.id).toBe('futbol.porteria');
-    expect(elegirEntrenamiento(hoy, ['gen.resistencia', 'futbol.arrancada'])?.id).toBe('futbol.fisico');
-    expect(elegirEntrenamiento(hoy, ['futbol.regate'])?.id).toBe('futbol.balon');
-    expect(elegirEntrenamiento(hoy, ['futbol.definicion'])?.id).toBe('futbol.tiro');
+  it('con los entrenamientos de hoy del fútbol: portería sube lo del portero y la velocidad, lo físico', () => {
+    // Solo los que se hacen por tu cuenta (los de compañía son de la sesión del club).
+    const hoy = (futbol.actions ?? []).filter((a) => /^futbol\.entrena_/.test(a.id) && a.train).map((a) => ({ id: a.id, nombre: String(a.name), entrena: a.train! }));
+    expect(hoy).toHaveLength(22);
+    expect(elegirEntrenamiento(hoy, ['futbol.reflejos', 'futbol.blocaje'])?.id).toBe('futbol.entrena_reflejos');
+    expect(elegirEntrenamiento(hoy, ['futbol.arrancada'])?.id).toBe('futbol.entrena_velocidad');
+    expect(elegirEntrenamiento(hoy, ['futbol.regate'])?.id).toBe('futbol.entrena_regate');
+    expect(elegirEntrenamiento(hoy, ['futbol.definicion'])?.id).toBe('futbol.entrena_tiro_a_puerta');
   });
 });
 
@@ -280,7 +282,7 @@ describe('con tu entrenador delante', () => {
     expect(hacer(g, 'futbol.pedir_consejo').ok).toBe(true);
     const texto = g.log.map((l) => l.text).find((t) => /te dice: «|te da un consejo/.test(t))!;
     expect(texto).toBeDefined();
-    const nombres = ['Trabajo con balón', 'Tiro y remate', 'Preparación física', 'Entrenar de portero'];
+    const nombres = ENTRENAMIENTOS_DE_FUTBOL.map((e) => e.nombre);
     expect(nombres.some((n) => texto.includes(`«${n}»`)) || /Vas bien|Eso se gana jugando|te da un consejo/.test(texto)).toBe(true);
   });
 });
