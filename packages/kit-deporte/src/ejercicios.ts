@@ -1,4 +1,4 @@
-import { rngEstable, type ActionDef, type EjercicioDeClub, type ReadContext, type StatId } from '@ds/contracts';
+import { prefijoEstable, rngEstableDesde1, type ActionDef, type EjercicioDeClub, type ReadContext, type StatId } from '@ds/contracts';
 import { sesionDeClub } from './club';
 import type { ConfigDeporte, Entreno } from './tipos';
 
@@ -38,11 +38,12 @@ const FALTA_MINIMA = 0.05;
  * y por un azar estable. Es una función pura: mismos datos, misma elección.
  */
 export function elegirEjercicios(catalogo: readonly Ejercicio[], c: ContextoDeEleccion): Ejercicio[] {
+  const prefijo = prefijoEstable('ejercicio', ...c.semilla); // lo constante del azar, mezclado una vez (el mismo resultado que `rngEstable('ejercicio', ...semilla, id)`)
   const puntuados = catalogo
     .filter((e) => !e.soloPuesto || e.soloPuesto === c.puesto)
     .map((e) => {
       const falta = e.entrena.reduce((t, x) => t + x.amount * (c.importancia?.(x.stat) ?? 1) * Math.max(FALTA_MINIMA, 1 - c.nivel(x.stat) / 100), 0);
-      const azar = 1 - VARIACION_AL_AZAR + 2 * VARIACION_AL_AZAR * rngEstable('ejercicio', ...c.semilla, e.id).next();
+      const azar = 1 - VARIACION_AL_AZAR + 2 * VARIACION_AL_AZAR * rngEstableDesde1(prefijo, e.id).next();
       return { e, puntos: falta * (c.sesgo?.[e.foco] ?? 1) * azar };
     })
     .sort((a, b) => b.puntos - a.puntos || (a.e.id < b.e.id ? -1 : 1));

@@ -1,10 +1,10 @@
-import { APORTES, CORE_EVENTS, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, type Entrenamiento, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { type HabilidadesDe } from './rutina';
 import { conCuerpo, geneticaDelCuerpo, semanaDelCuerpo, type SemanaEscolar } from './cuerpo';
-import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
+import { SEMANAS_DE_LOS_LEJANOS, conMasConocimiento, historiaDeportiva, huecosDelBloque, listaDeSesion, semanaDeNino, semanaQueAcaba, sesionesQueHace, type Resultado, type Rendimientos } from './semana';
 
 /**
  * MÓDULO NPCs (id `npcs`).
@@ -18,7 +18,7 @@ import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, sem
 
 import { añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
 import { colocarDesplazados } from './fichajes';
-import { entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { conApuntados, entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { categoriaDe, consejoDeUnProfesor, huecosPorGrupoEnElEquipo, plazaEnElEquipo, piernaDe, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
 import { entrenadoresDeEquiposExtra, entrenadoresDeUnDeporte } from './draft';
 export * from './plaza';
@@ -46,6 +46,8 @@ export interface Npc {
   colegio?: string;
   /** Equipo o club de su deporte en el que juega (id del club) y deportes que ha dejado (para que no lo vuelvan a reclutar). */
   equipo?: string;
+  /** El día (de la partida) en que se apunta a su equipo este curso: hasta entonces no aparece en la plantilla ni cuenta para formar el equipo que se enseña (`conApuntados`). Ausente: ya está apuntado. */
+  apuntado?: number;
   dejado?: string[];
   /** Deportes de los que lo han echado del equipo (por entrar el personaje en su plaza): no se le vuelve a reclutar hasta el curso siguiente. */
   apartado?: string[];
@@ -718,7 +720,7 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
  * capacidades y habilidades, y su rendimiento (`levels`) calculado con ellas. `fin` es el día en que acaba la semana. Los de un equipo con ejercicios elegidos por el
  * entrenador hacen todos los mismos, según lo que le falta al equipo.
  */
-export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number, sesionesPorId?: Map<string, number>, lesionados?: LesionDePersonaData[]): void {
+export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number, sesionesPorId?: Map<string, number>, lesionados?: LesionDePersonaData[], bloques?: BloquesDeLaSemana): void {
   for (const pob of pobs) {
     const r = pob.rutina;
     const f = rend.get(pob.deporte);
@@ -726,20 +728,46 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
     const jugadores = npcs.filter((n) => n.hab?.[pob.deporte] && n.genetica && n.nacimiento !== undefined && n.cap && n.pico);
     // Lo que le falta a cada equipo (club y categoría): la media de sus jugadores en cada habilidad. Los ejercicios de la sesión son los mismos para todos.
     const medias = r.ejercicios ? mediasDeLosEquipos(jugadores, pob, inicioCurso) : new Map<string, Record<string, number>>();
+    // La sesión de cada equipo es la misma para todos sus jugadores (misma semilla, misma media): se elige una vez por equipo, semana y número de sesión.
+    const sesionesDeEquipo = new Map<string, readonly Entrenamiento[]>();
+    const fasesDeEquipo = new Map<string, number>();
+    const semanaAbs = semanaQueAcaba(fin);
     for (const n of jugadores) {
       const clave = claveDeEquipoCategoria(pob, n, inicioCurso);
       const media = clave ? medias.get(clave) : undefined;
       const estado = n.estado ?? ESTADO_INICIAL;
-      const res = semanaDeNino(n as never, pob.deporte, r, f, fin, (semana, hueco, lector) =>
-        listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), clave ? semillaDeSesionDeEquipo(pob.deporte, clave.split('|')[0], clave.split('|')[1], semana, hueco) : [pob.deporte, n.id, semana, hueco]),
-        { baja: !!estado.baja, eficiencia: eficienciaDeEstado(estado) },
-      );
+      // Quién se calcula esta semana: los que están cerca del personaje (su club) cada semana; el resto, en bloques de `SEMANAS_DE_LOS_LEJANOS` semanas, con las fórmulas cerradas de la historia, cada
+      // equipo en su semana (para que los de un mismo equipo se muevan juntos). Las sesiones y el estado (cansancio, lesiones) sí pasan cada semana para todos.
+      let semanas = 1;
+      if (bloques && !(n.equipo !== undefined && bloques.clubesActivos.has(n.equipo))) {
+        const faseClave = clave ?? n.id;
+        let fase = fasesDeEquipo.get(faseClave);
+        if (fase === undefined) fasesDeEquipo.set(faseClave, (fase = rngEstable('fase-del-bloque', faseClave).int(0, SEMANAS_DE_LOS_LEJANOS - 1)));
+        semanas = (bloques.semanaDelCurso + fase) % SEMANAS_DE_LOS_LEJANOS === SEMANAS_DE_LOS_LEJANOS - 1 ? Math.min(SEMANAS_DE_LOS_LEJANOS, bloques.semanaDelCurso + 1) : 0;
+      }
+      // Quien acaba de cambiar de club (sin lo que vale guardado) se calcula esta semana, para que su valor sea el de verdad y no el provisional del fichaje.
+      if (semanas === 0 && !n.vp?.[pob.deporte]) semanas = 1;
+      const baja = !!estado.baja;
+      const hechas = n.deporte === pob.deporte && n.equipo !== undefined && !baja ? sesionesQueHace(n as never, pob.deporte, r, semanaAbs) : 0;
+      let res: Resultado | undefined;
+      if (semanas > 0) {
+        const lista = (semana: number, hueco: number, lector: LectorDePersona): readonly Entrenamiento[] => {
+          if (!clave) return listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), [pob.deporte, n.id, semana, hueco]);
+          const k = `${clave}|${semana}|${hueco}`;
+          let l = sesionesDeEquipo.get(k);
+          if (!l) {
+            const [club, categoria] = clave.split('|');
+            sesionesDeEquipo.set(k, (l = listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), semillaDeSesionDeEquipo(pob.deporte, club, categoria, semana, hueco))));
+          }
+          return l;
+        };
+        res = semanaDeNino(n as never, pob.deporte, r, f, fin, lista, { baja, eficiencia: eficienciaDeEstado(estado) }, semanas === 1 ? undefined : huecosDelBloque(n as never, pob.deporte, r, fin, semanas, estado.baja ?? 0));
+      }
       // Su estado pasa la semana: las sesiones lo cansan, descansa, se anima o se desanima y puede lesionarse (sus azares son solo suyos).
-      const semanaAbs = semanaQueAcaba(fin);
       const semilla = n.genetica!.semilla ?? 0;
       const resil = (n.cap![CAPACIDADES_GENETICAS.indexOf('gen.resiliencia')] ?? 50) / 100;
       n.estado = pasoDeSemanaDelEstado(estado, {
-        sesiones: res.sesiones,
+        sesiones: hechas,
         azarDeLesion: rngEstable('lesion', semilla, n.id, semanaAbs).next(),
         azarDeGravedad: rngEstable('gravedad', semilla, n.id, semanaAbs).next(),
         animo: resil,
@@ -748,7 +776,8 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
       // Una lesión nueva de esta semana se apunta para avisar de ella (`persona.lesion`).
       if (lesionados && n.estado.baja && !estado.baja) lesionados.push({ npcId: n.id, semanas: n.estado.baja, deporte: pob.deporte });
       // Las sesiones que ha hecho son los minutos de su cuerpo esta semana (si juega a más de un deporte con rutina, se suman).
-      if (sesionesPorId && res.sesiones > 0) sesionesPorId.set(n.id, (sesionesPorId.get(n.id) ?? 0) + res.sesiones);
+      if (sesionesPorId && hechas > 0) sesionesPorId.set(n.id, (sesionesPorId.get(n.id) ?? 0) + hechas);
+      if (!res) continue;
       n.cap!.splice(0, n.cap!.length, ...res.cap);
       n.pico!.splice(0, n.pico!.length, ...res.pico);
       n.capUlt = res.capUlt;
@@ -757,6 +786,12 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
       n.vp = { ...n.vp, [pob.deporte]: valoresGuardados(n, pob, res.nivel, res.puestos) };
     }
   }
+}
+
+/** Qué niños se calculan cada semana y cuáles en bloques (ver `semanaDeportiva`): los de estos clubes (el del personaje) cada semana, y `semanaDelCurso` es la semana del curso que acaba. */
+export interface BloquesDeLaSemana {
+  clubesActivos: ReadonlySet<string>;
+  semanaDelCurso: number;
 }
 
 /** Qué fracción de las semanas del curso tienen clase en el país (de 0 a 1). */
@@ -839,7 +874,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   draftDeEquipos(mercado, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
   avisarDelProgreso('Dándole a cada uno su historia deportiva…', 0.37);
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
-  const resultado = { npcs: conCuerpo(conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), 0, ctx.seed, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, 0)), pobs: [...mercado.pobs] };
+  const resultado = { npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), 0, ctx.seed, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, 0)), mercado.pobs, 0, ctx.seed), pobs: [...mercado.pobs] };
   avisarDelProgreso('Dejando listo el mundo…', 0.98);
   return resultado;
 }
@@ -1318,7 +1353,13 @@ export const npcs = defineModule<NpcsState>({
         const npcs = conCuerpo(conCapacidades(conHabilidades(s.npcs, pobs, rend, week * 7), week * 7), week * 7, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, (ctx.time.week - ctx.time.schoolWeek) * 7));
         avanzarCapacidadesEnSitio(npcs, (week + 1) * 7);
         const sesiones = new Map<string, number>();
-        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7, sesiones, lesionados);
+        // Cerca del personaje: su club y el equipo de su colegio (sus compañeros), aunque no esté apuntado.
+        const clubesActivos = new Set<string>(['colegio']);
+        for (const pob of pobs) {
+          const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(pob.deporte);
+          if (club) clubesActivos.add(club.id);
+        }
+        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7, sesiones, lesionados, { clubesActivos, semanaDelCurso: ctx.timeAt(week * 7 * MINUTES_PER_DAY).schoolWeek });
         // El cuerpo de todos pasa la semana con los hábitos de cada uno (los que juegan, con sus sesiones).
         semanaDelCuerpo(npcs, (week + 1) * 7, sesiones, s.semilla ?? 0, escolarDeLaSemana(ctx, week));
         return { ...s, npcs };
@@ -1352,7 +1393,7 @@ export const npcs = defineModule<NpcsState>({
       ctx.updateState<NpcsState>((s) => {
         const npcs = conPais(ctx.pais, () => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day));
         const pobsNuevas = resultado.pobs ?? pobs;
-        return { ...s, poblaciones: pobsNuevas, npcs: conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
+        return { ...s, poblaciones: pobsNuevas, npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), pobsNuevas, proximo.day, s.semilla ?? 0), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
       });
       // El entrenador le propone al personaje otro puesto si en el suyo sobran y en otro faltan (decide él: `club.cambio_de_puesto`).
       for (const p of resultado.propuestas) if (!resultado.sinPlaza.includes(p.deporte)) ctx.emit<PuestoPropuestoData>({ type: SHARED_EVENTS.PROPUESTA_DE_PUESTO, data: { sport: p.deporte, puesto: p.puesto } });
@@ -1639,8 +1680,8 @@ export const npcs = defineModule<NpcsState>({
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
         rotaElEquipo: (deporte, club, categoria) => rotaElEquipo(poblacionesGuardadas(ctx), deporte, club, categoria),
-        equiposDeLaCategoria: (deporte, categoria) => equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso),
-        plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day)),
+        equiposDeLaCategoria: (deporte, categoria) => equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day),
+        plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day), ctx.time.day),
         equipoDelPersonaje: (deporte) => {
           const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
           const pob = poblacionesGuardadas(ctx).find((p) => p.deporte === deporte);

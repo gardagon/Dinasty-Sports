@@ -9,13 +9,15 @@ import { GEN, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type 
  */
 
 /** Categorías de la federación española de fútbol, por edad de competición. Desde los 19 se compite en categoría sénior. */
+/** Los días del curso en que se apuntan los niños a sus equipos (cifra provisional, decisión del usuario del 21/11/2026: desde el segundo día de clase, y antes de que acabe la primera semana). */
+const APUNTARSE: readonly [number, number] = [1, 6];
 export const CATEGORIAS_ESPANA: readonly CategoriaDef[] = [
-  { id: 'prebenjamin', nombre: 'Prebenjamín', edadMin: 0, edadMax: 7 },
-  { id: 'benjamin', nombre: 'Benjamín', edadMin: 8, edadMax: 9, nuevosEnElClub: true, rotacionEn: ['colegio'], probarFuera: 0.15 },
-  { id: 'alevin', nombre: 'Alevín', edadMin: 10, edadMax: 11, rotacionEn: ['colegio'], probarFuera: 0.25 },
-  { id: 'infantil', nombre: 'Infantil', edadMin: 12, edadMax: 13, probarFuera: 0.35 },
-  { id: 'cadete', nombre: 'Cadete', edadMin: 14, edadMax: 15, probarFuera: 0.45 },
-  { id: 'juvenil', nombre: 'Juvenil', edadMin: 16, edadMax: 18, probarFuera: 0.55 },
+  { id: 'prebenjamin', nombre: 'Prebenjamín', edadMin: 0, edadMax: 7, apuntarseEnLosDias: APUNTARSE },
+  { id: 'benjamin', nombre: 'Benjamín', edadMin: 8, edadMax: 9, nuevosEnElClub: true, rotacionEn: ['colegio'], probarFuera: 0.15, apuntarseEnLosDias: APUNTARSE },
+  { id: 'alevin', nombre: 'Alevín', edadMin: 10, edadMax: 11, rotacionEn: ['colegio'], probarFuera: 0.25, apuntarseEnLosDias: APUNTARSE },
+  { id: 'infantil', nombre: 'Infantil', edadMin: 12, edadMax: 13, probarFuera: 0.35, apuntarseEnLosDias: APUNTARSE },
+  { id: 'cadete', nombre: 'Cadete', edadMin: 14, edadMax: 15, probarFuera: 0.45, apuntarseEnLosDias: APUNTARSE },
+  { id: 'juvenil', nombre: 'Juvenil', edadMin: 16, edadMax: 18, probarFuera: 0.55, apuntarseEnLosDias: APUNTARSE },
   { id: 'senior', nombre: 'Sénior', edadMin: 19, edadMax: 200 },
 ];
 

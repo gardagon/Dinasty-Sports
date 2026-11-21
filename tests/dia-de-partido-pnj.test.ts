@@ -128,6 +128,7 @@ describe('lo que dejan en los PNJ el conocimiento y llegar tarde (el mismo event
       }],
     });
     const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, modulo]);
+    advanceToWeek(g, 'gen.descansar', 1, 0, 9); // los niños se apuntan a su equipo en los primeros días del curso
     const jugadores = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs.filter((n) => n.deporte === 'futbol' && n.hab?.futbol && n.genetica && (edadDeJuego(n, 0) ?? 0) >= 10); // no de benjamín: al empezar la partida (antes del primer entrenamiento) su relación con el entrenador aún no cuenta
     ids = jugadores.slice(0, 4).map((n) => n.id);
     const conocimiento = (id: string): number => {

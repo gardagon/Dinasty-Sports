@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CARGA, ESTADO_INICIAL, GEN, valoracionDelPuesto, PAIS_CIUDAD_DE_PRUEBA, SERVICES, SHARED_EVENTS, defineModule, eficienciaDeEstado, factorDeCompeticion, registrarPais, trasUnaCompeticion, type JugadorDeEquipoView, type NpcDirectory } from '@ds/contracts';
+import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PARAMETROS_DE_CONVOCATORIA, paraConvocar, estadoDelPersonaje, posicionEquivalente, PUESTOS_DE_FUTBOL, convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, futbol, jugarPartido, jugadoresDelPartido, prioridadDelEntrenador, type JugadorParaConvocar } from '@ds/mod-futbol';
 import { asistenciaDeLasDosUltimasSemanas, plantillaDeUnEquipo, type NpcsState } from '@ds/mod-npcs';
@@ -253,6 +254,7 @@ describe('en el mundo, el estado de los PNJ cambia con el partido', () => {
       }],
     });
     const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, partido]);
+    advanceToWeek(g, 'gen.descansar', 1, 0, 9); // los niños se apuntan a su equipo en los primeros días del curso
     expect(g.perform('partidoprueba.jugar').ok).toBe(true);
     const npcs = (g.moduleState<NpcsState>('npcs') as NpcsState).npcs;
     expect(datos!.jugaron.length).toBeGreaterThanOrEqual(22);

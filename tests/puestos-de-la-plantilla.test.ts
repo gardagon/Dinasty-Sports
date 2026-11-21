@@ -43,6 +43,7 @@ describe('los dos lados valen lo mismo salvo por la pierna buena', () => {
 
 describe('las plantillas y los onces de la ciudad', () => {
   const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  advanceToWeek(g, 'gen.descansar', 1, 0, 9); // los niños se apuntan a su equipo en los primeros días del curso
   const s = g.moduleState<NpcsState>('npcs') as NpcsState;
   const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
   const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
