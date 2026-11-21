@@ -130,7 +130,7 @@ export const familiasDePuestosDeLosDeportes = (pobs: readonly PoblacionGuardada[
 export function lecturaDeUnPuesto(ctx: ReadContext, lista: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, dia: number, deporte: string, familia: string): LecturaDePuesto | undefined {
   const pob = pobs.find((p) => p.deporte === deporte);
   const f = rend.get(deporte);
-  const fam = pob?.puestos ? familiasDePuestos(pob.puestos).find((x) => x.id === familia) : undefined;
+  const fam = pob?.puestos ? familiasDePuestos(pob.puestos).find((x) => x.id === familia || x.puestos.includes(familia)) : undefined;
   const crudos = f?.puestos?.(ctx);
   if (!pob?.puestos || !fam || !crudos) return undefined;
   const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;

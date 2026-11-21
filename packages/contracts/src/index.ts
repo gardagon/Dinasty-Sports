@@ -28,6 +28,7 @@ export * from './agendas';
 export * from './deporte';
 export * from './conversacion';
 export * from './deporte-datos';
+export * from './pistas-de-puestos';
 export * from './calendario-de-temporada';
 export * from './hermanos';
 export * from './nombres';

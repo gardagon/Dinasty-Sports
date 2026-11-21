@@ -170,7 +170,7 @@ export interface NpcDirectory {
   consejoDeportivo?(): ConsejoDeDeporte[];
   /** Los puestos sin lado de cada deporte con puestos (para elegir por cuál preguntar). */
   familiasDePuestos?(): { deporte: string; nombre: string; familias: { id: string; nombre: string }[] }[];
-  /** Cómo va el personaje para un puesto sin lado de un deporte (`LecturaDePuesto`), comparado con los de su edad y consigo mismo. `undefined` si el deporte no tiene puestos o no se puede medir. */
+  /** Cómo va el personaje para un puesto sin lado de un deporte (`familia` es el id de la familia o el de un puesto, que se lleva a su familia) (`LecturaDePuesto`), comparado con los de su edad y consigo mismo. `undefined` si el deporte no tiene puestos o no se puede medir. */
   lecturaDePuesto?(deporte: string, familia: string): LecturaDePuesto | undefined;
   /**
    * Lo que vale el equipo de un club en una categoría en cada habilidad del deporte (la media de sus jugadores, con valores reales): con ello el entrenador elige los ejercicios
