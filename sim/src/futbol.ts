@@ -17,6 +17,8 @@ const semillas = Number(process.argv[3] ?? 5);
 /** Habilidades del deporte (sin el conocimiento) y su conocimiento. */
 const habilidades = (r: RunResult, deporte: string) => Object.keys(r.final.stats).filter((id) => id.startsWith(`${deporte}.`) && id !== `${deporte}.conocimiento`);
 const sube = (r: RunResult, ids: string[]) => ids.reduce((t, id) => t + (r.final.stats[id] - r.snapshots[0].stats[id]), 0);
+/** Las capacidades del cuerpo que entrenan los deportes (no son habilidades del deporte, pero los entrenamientos físicos suben sobre todo estas). */
+const CAPACIDADES = ['gen.velocidad', 'gen.resistencia', 'gen.fuerza', 'gen.agilidad', 'gen.coordinacion'];
 
 const filas: string[][] = [];
 for (const [deporte, juego] of [
@@ -35,11 +37,12 @@ for (const [deporte, juego] of [
     media((r) => r.actions).toFixed(0),
     media((r) => sube(r, ids)).toFixed(0),
     (media((r) => sube(r, ids)) / ids.length).toFixed(1),
+    media((r) => sube(r, CAPACIDADES)).toFixed(1),
     media((r) => r.final.stats[`${deporte}.conocimiento`]).toFixed(0),
     sesiones.toFixed(0),
     String(resultados.reduce((t, r) => t + r.problems.length, 0)),
   ]);
 }
-const cab = ['deporte', 'habilidades', 'acciones', 'puntos que suben (suma)', 'por habilidad', 'conocimiento', 'sesiones de club (aprox.)', 'problemas'];
+const cab = ['deporte', 'habilidades', 'acciones', 'puntos que suben (suma)', 'por habilidad', 'capacidades (suma)', 'conocimiento', 'sesiones de club (aprox.)', 'problemas'];
 console.log(`Curso de ${dias} días, ${semillas} semillas, un solo deporte, el mismo plan de deportista\n`);
 console.log([cab, ...filas].map((f) => f.map((c, i) => c.padEnd(i === 0 ? 10 : 24)).join('')).join('\n'));

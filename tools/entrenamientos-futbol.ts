@@ -7,7 +7,7 @@ import { QUEDADAS_DE_FUTBOL } from '../modules/futbol/src/quedadas';
  *   npm run entrenamientos:tabla
  */
 const NOMBRES: Record<string, string> = { 'futbol.conocimiento': 'conocimiento', 'gen.coordinacion': 'coordinación', 'gen.agilidad': 'agilidad', 'gen.velocidad': 'velocidad', 'gen.resistencia': 'resistencia', 'gen.fuerza': 'fuerza', 'gen.concentracion': 'concentración', 'gen.comunicacion': 'comunicación' };
-const nombre = (s: string) => NOMBRES[s] ?? s.replace(/^futbol\./, '').replaceAll('_', ' ');
+const nombre = (s: string) => NOMBRES[s] ?? s.replace(/^(futbol|gen)\./, '').replaceAll('_', ' ');
 const num = (x: number) => x.toFixed(2).replace(/0$/, '').replace(/\.0$/, '').replace('.', ',');
 const hab = (xs: readonly { stat: string; amount: number }[]) => xs.filter((x) => x.stat.startsWith('futbol.') && x.stat !== 'futbol.conocimiento').reduce((t, x) => t + x.amount, 0);
 

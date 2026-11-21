@@ -48,10 +48,11 @@ export const GRUPOS_DE_ENTRENAMIENTO: Readonly<Record<GrupoDeEntrenamiento, stri
 export const PUESTO_DE_PORTERO = 'GK';
 
 /**
- * Lleva las cifras del informe (pensadas con ~6,5 puntos de habilidad por hora) a las del juego. Con 1, un entrenamiento por libre rinde unos 5,5 puntos por hora y el club, más de 6:
- * el doble de lo que rendía el club antes, así que el curso salía por encima del de antes (`npm run sim:futbol`). Calibrada para que el progreso por curso quede parecido al de antes (ver el anexo).
+ * Lleva las cifras del informe (pensadas con ~6,5 puntos de habilidad por hora) a las del juego. Se midió con `npm run sim:futbol -- 365 3` (un deportista de campo, un curso): con 0,55 el curso salía en
+ * 80 puntos de habilidad, con 0,9 en 104, con 1,2 en 119 y con 1,4 en 127, frente a los 154 de antes, **de los que ~43 eran habilidades de portería que un jugador de campo subía con «Entrenar de
+ * portero»**; sin ellos, el curso de antes era ~111. Con 1 el curso sale en ~108 (el 97 %) y las capacidades del cuerpo, como antes (35). La subida se frena sola (el tope por edad): el doble de escala no da el doble.
  */
-export const ESCALA_DE_ENTRENAMIENTO = Number(process.env.DS_ESCALA ?? 0.55);
+export const ESCALA_DE_ENTRENAMIENTO = 1;
 
 /** Lo que sube el conocimiento en un entrenamiento por tu cuenta (de 0,5 a 0,8 en técnica y portería; 0,3 en el físico) y el que hay siempre. */
 const CONOC = 'futbol.conocimiento';
