@@ -1,5 +1,6 @@
 import { SAVE_VERSION, type Game, type GameState } from '@ds/core';
 import { MINUTES_PER_DAY, fechaDelDia } from '@ds/contracts';
+import { serializarPorTrozos } from './serializar';
 
 /**
  * Dónde se guardan las partidas. La interfaz solo habla con `Almacen`; la implementación real es IndexedDB y hay otra en memoria para los
@@ -29,6 +30,14 @@ export interface PartidaEnTexto {
   version: number;
 }
 
+/** Lo mismo, pero como `Blob` (lo que sale de guardar por trozos): IndexedDB lo guarda sin bloquear la página. `bytes` es lo que pesa. */
+export interface PartidaEnBlob {
+  blob: Blob;
+  nombre: string;
+  version: number;
+  bytes: number;
+}
+
 export interface ResumenDePartida {
   id: string;
   nombre: string;
@@ -42,7 +51,7 @@ export interface Almacen {
   readonly tipo: 'indexeddb' | 'memoria';
   /** El texto JSON de la partida, o `null` si no existe. */
   cargar(id?: string): Promise<string | null>;
-  guardar(partida: PartidaEnTexto, id?: string): Promise<void>;
+  guardar(partida: PartidaEnTexto | PartidaEnBlob, id?: string): Promise<void>;
   borrar(id?: string): Promise<void>;
   /** Partidas guardadas, la más reciente primero (para tener varias más adelante). No lee los datos. */
   listar(): Promise<ResumenDePartida[]>;
@@ -53,6 +62,30 @@ export function serializarPartida(game: Game, agenda: readonly AgendaItem[]): Pa
   const version = SAVE_VERSION;
   const texto = game.serializarJSON({ formato: FORMATO, version, nombre: game.playerName, guardadoEn: new Date().toISOString(), agenda });
   return { texto, nombre: game.playerName, version };
+}
+
+/**
+ * Lo mismo que `serializarPartida`, pero **sin congelar la página**: el texto se hace por trozos con pausas y se vuelca a un `Blob` (`serializar.ts`). El texto es
+ * el mismo, byte a byte. Quien cambie la partida mientras se hace tiene que llamar antes a `alCambiarElEstado()`; si se descarta por eso, devuelve `null` y hay que repetirlo. `msDeTrabajo` es lo que cuesta de
+ * verdad (sin las pausas) y `msMaximoSeguido` lo más que se bloqueó la página de una vez.
+ */
+export async function serializarPartidaPorTrozos(
+  game: Game,
+  agenda: readonly AgendaItem[],
+): Promise<(PartidaEnBlob & { msDeTrabajo: number; msMaximoSeguido: number }) | null> {
+  const version = SAVE_VERSION;
+  const extras = { formato: FORMATO, version, nombre: game.playerName, guardadoEn: new Date().toISOString(), agenda: [...agenda] };
+  // El estado vivo (`Game` no lo enseña: solo da texto o una copia, que cuesta tanto como el texto). Si algún día cambia, se cae al texto de golpe.
+  const vivo = (game as unknown as { s?: unknown }).s;
+  if (vivo === undefined || typeof Blob === 'undefined') {
+    const p = serializarPartida(game, agenda);
+    return { blob: new Blob([p.texto]), nombre: p.nombre, version, bytes: p.texto.length, msDeTrabajo: 0, msMaximoSeguido: 0 };
+  }
+  const hecho = await serializarPorTrozos({ ...extras, state: vivo }, { comoBlob: true });
+  if (hecho === null) return null;
+  const { datos, msDeTrabajo, msMaximoSeguido } = hecho;
+  const blob = datos as Blob;
+  return { blob, nombre: game.playerName, version, bytes: blob.size, msDeTrabajo, msMaximoSeguido };
 }
 
 /** Lee el texto de una partida o de una copia de seguridad. Lanza un error con el motivo si no lo es. La versión del juego la valida `Game.load`. */
@@ -76,8 +109,8 @@ export class AlmacenEnMemoria implements Almacen {
     return this.partidas.get(id)?.texto ?? null;
   }
 
-  async guardar(p: PartidaEnTexto, id = PARTIDA_ACTUAL): Promise<void> {
-    this.partidas.set(id, { id, nombre: p.nombre, guardadoEn: Date.now(), texto: p.texto });
+  async guardar(p: PartidaEnTexto | PartidaEnBlob, id = PARTIDA_ACTUAL): Promise<void> {
+    this.partidas.set(id, { id, nombre: p.nombre, guardadoEn: Date.now(), texto: 'blob' in p ? await p.blob.text() : p.texto });
   }
 
   async borrar(id = PARTIDA_ACTUAL): Promise<void> {
@@ -131,16 +164,28 @@ export class AlmacenIndexedDB implements Almacen {
   }
 
   async cargar(id = PARTIDA_ACTUAL): Promise<string | null> {
-    return (await this.transaccion<string | undefined>('readonly', [DATOS], (t) => t[DATOS].get(id))) ?? null;
+    // Lo guardado es texto (partidas antiguas) o un `Blob` (guardado por trozos): el `Blob` se lee fuera del hilo de la página.
+    const dato = await this.transaccion<string | Blob | undefined>('readonly', [DATOS], (t) => t[DATOS].get(id));
+    if (dato === undefined) return null;
+    return typeof dato === 'string' ? dato : dato.text();
   }
 
-  async guardar(p: PartidaEnTexto, id = PARTIDA_ACTUAL): Promise<void> {
+  async guardar(p: PartidaEnTexto | PartidaEnBlob, id = PARTIDA_ACTUAL): Promise<void> {
     const resumen: ResumenDePartida & { version: number } = { id, nombre: p.nombre, guardadoEn: Date.now(), version: p.version };
     // Las dos tablas en la misma transacción: o se guarda todo o nada.
-    await this.transaccion('readwrite', [RESUMEN, DATOS], (t) => {
-      t[RESUMEN].put(resumen);
-      return t[DATOS].put(p.texto, id);
-    });
+    const escribir = (dato: string | Blob): Promise<void> =>
+      this.transaccion('readwrite', [RESUMEN, DATOS], (t) => {
+        t[RESUMEN].put(resumen);
+        return t[DATOS].put(dato, id);
+      }).then(() => undefined);
+    if (!('blob' in p)) return escribir(p.texto);
+    try {
+      await escribir(p.blob);
+    } catch (e) {
+      // Algún navegador no deja guardar `Blob`s en IndexedDB (p. ej. en modos privados): se guarda el texto, que siempre se puede.
+      console.warn('IndexedDB no guarda el Blob: se guarda como texto', e);
+      await escribir(await p.blob.text());
+    }
   }
 
   async borrar(id = PARTIDA_ACTUAL): Promise<void> {
@@ -208,18 +253,31 @@ export function tocaGuardar(frecuencia: FrecuenciaDeGuardado, ultimoDia: number 
   return ultimoDia === undefined || periodoDe(frecuencia, ultimoDia) !== periodoDe(frecuencia, dia);
 }
 
-/** La frecuencia que se recomienda según lo que tarda en guardarse la partida (ms): cuanto más tarda, más espaciado. */
+/**
+ * La frecuencia que se recomienda según lo que cuesta guardar la partida (ms de trabajo del navegador, sin contar las pausas): cuanto más cuesta, más espaciado.
+ * Desde que se guarda por trozos sin congelar la página (`serializar.ts`) ya no hay tirones, así que los límites son más holgados que antes (80 / 250 / 1000 ms):
+ * lo que queda es el gasto de batería y de CPU de guardar 16 MB tras cada acción, que sigue sin compensar en la ciudad grande.
+ */
 export function recomendarFrecuencia(ms: number): FrecuenciaDeGuardado {
-  if (ms < 80) return 'accion';
-  if (ms < 250) return 'dia';
-  if (ms < 1000) return 'semana';
+  if (ms < 150) return 'accion';
+  if (ms < 600) return 'dia';
+  if (ms < 2500) return 'semana';
   return 'mes';
 }
 
 export function textoDeRecomendacion(ms: number): string {
   const f = recomendarFrecuencia(ms);
   const tarda = ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toLocaleString('es-ES', { maximumFractionDigits: 1 })} s`;
-  return `Tu partida tarda ${tarda} en guardarse: te recomendamos «${FRECUENCIAS.find((x) => x.id === f)!.nombre.toLowerCase()}».`;
+  return `Guardar tu partida cuesta ${tarda} de trabajo (sin congelar la pantalla): te recomendamos «${FRECUENCIAS.find((x) => x.id === f)!.nombre.toLowerCase()}».`;
+}
+
+/** Lo que pesa la partida guardada y lo más que se bloqueó la pantalla al guardarla, para enseñarlo en Opciones. */
+export function textoDePeso(caracteres: number | undefined, bloqueoMs: number | undefined): string {
+  if (caracteres === undefined) return '';
+  const mb = caracteres / 1024 / 1024;
+  const peso = mb >= 1 ? `${mb.toLocaleString('es-ES', { maximumFractionDigits: 1 })} MB` : `${Math.max(1, Math.round(caracteres / 1024))} KB`;
+  const bloqueo = bloqueoMs === undefined ? '' : ` La pantalla no se detiene más de ${Math.max(1, Math.round(bloqueoMs))} ms de una vez.`;
+  return `La partida guardada pesa ${peso}.${bloqueo}`;
 }
 
 const CLAVE_FRECUENCIA = 'dinasty-sports.guardado.';

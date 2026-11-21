@@ -70,13 +70,16 @@ import {
   leerRecuperacion,
   pedirAlmacenamientoPersistente,
   serializarPartida,
+  serializarPartidaPorTrozos,
   textoDeRecomendacion,
+  textoDePeso,
   tocaGuardar,
   type AgendaItem,
   type Almacen,
   type FrecuenciaDeGuardado,
   type Recuperacion,
 } from './almacen';
+import { alCambiarElEstado, terminarSerializacionEnCurso } from './serializar';
 
 /**
  * Interfaz web mínima. Solo habla con el motor (@ds/game / @ds/core): no conoce
@@ -155,7 +158,16 @@ let frecuencia: FrecuenciaDeGuardado = leerFrecuencia();
 /** Día del juego del último guardado, lo que tardó (ms) y si hay una copia de recuperación escrita. */
 let ultimoGuardado: { dia: number; minuto: number } | undefined;
 let msDeGuardado: number | undefined;
+/** Lo que pesa la partida guardada (bytes) y lo más que se bloqueó la página de una vez al guardarla. */
+let pesoGuardado: number | undefined;
+let bloqueoDeGuardado: number | undefined;
 let recuperacionEscrita = false;
+
+/** Hace una acción de la partida. Es la única puerta por la que la página cambia el estado: antes descarta (o acaba) el guardado si estaba a medias (`serializar.ts`). */
+function realizar(g: Game, id: string): ActionResult {
+  alCambiarElEstado();
+  return g.perform(id);
+}
 
 /** Se llama tras cada cambio. Guarda según la frecuencia elegida; `forzar` guarda ya sea cual sea (partida nueva, importada, «Guardar partida»). */
 function save(forzar = false): void {
@@ -186,15 +198,31 @@ async function escribirPartida(): Promise<void> {
     while (hayCambios && game) {
       hayCambios = false;
       sinGuardar = false;
-      const t0 = performance.now();
-      const marca = { dia: game.time.day, minuto: game.time.minute };
+      const juego = game;
+      const marca = { dia: juego.time.day, minuto: juego.time.minute };
       try {
-        await a.guardar(serializarPartida(game, agenda.slice(-60)));
+        // Por trozos y con pausas: la página no se congela (`serializar.ts`). Si el jugador hace algo mientras, `realizar` descarta el texto a medias antes de cambiar nada.
+        const partida = await serializarPartidaPorTrozos(juego, agenda.slice(-60));
+        if (partida === null) {
+          // El jugador hizo algo a mitad: se descartó el texto a medias (el clic no espera) y se repite cuando la pantalla se quede quieta.
+          sinGuardar = true;
+          hayCambios = true;
+          guardadoPendiente ??= setTimeout(() => void guardarYa(), 500);
+          break;
+        }
+        // Si mientras tanto se cargó, creó o borró otra partida, este texto ya no es de la que está en pantalla: no se escribe (la nueva se guarda sola).
+        if (game !== juego) {
+          hayCambios = game !== null;
+          continue;
+        }
+        await a.guardar(partida);
+        msDeGuardado = partida.msDeTrabajo;
+        bloqueoDeGuardado = partida.msMaximoSeguido;
+        pesoGuardado = partida.bytes;
       } catch (e) {
         sinGuardar = true;
         throw e;
       }
-      msDeGuardado = performance.now() - t0;
       ultimoGuardado = marca;
       errorDeGuardado = null;
     }
@@ -227,6 +255,8 @@ function alOcultar(): void {
   if (!sinGuardar || !game || !almacen || !esPrincipal) return;
   if (frecuencia === 'accion') {
     void guardarYa();
+    // Al cerrar la pestaña no hay tiempo para pausas: se acaba el texto ya, para que la escritura salga antes de que la página desaparezca.
+    terminarSerializacionEnCurso();
     return;
   }
   recuperacionEscrita = true;
@@ -638,7 +668,7 @@ function viewVentana(g: Game | null): string {
     <p class="note" id="ultimo-guardado">${ultimoGuardado ? `Último guardado: ${esc(fechaDeJuego(ultimoGuardado.dia))}, ${hhmm(ultimoGuardado.minuto % MINUTES_PER_DAY)}.` : 'Aún no se ha guardado en esta sesión.'}${sinGuardar ? ' Hay cambios sin guardar.' : ''}</p>
     <p><label>Guardado automático <select id="frecuencia">${opciones}</select></label></p>
     ${viewPresentacion()}
-    ${msDeGuardado === undefined ? '<p class="note">Cuando se haya guardado una vez, aquí verás cuánto tarda y qué frecuencia te recomendamos.</p>' : `<p class="note">${esc(textoDeRecomendacion(msDeGuardado))}</p>`}
+    ${msDeGuardado === undefined ? '<p class="note">Cuando se haya guardado una vez, aquí verás cuánto cuesta y qué frecuencia te recomendamos.</p>' : `<p class="note" id="peso-guardado">${esc(textoDeRecomendacion(msDeGuardado))} ${esc(textoDePeso(pesoGuardado, bloqueoDeGuardado))}</p>`}
     <p class="botones"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="importar-pais">Importar un país</button></p>
     ${viewDeportesDeLaPartida(g)}
     ${viewInstaladorDeDeportes()}
@@ -1236,7 +1266,7 @@ app.addEventListener('click', (e) => {
   if (id) {
     const opt = game.preview(id);
     const start = game.time.minute;
-    const result = game.perform(id);
+    const result = realizar(game, id);
     if (result.ok && opt) agenda.push({ start, duration: result.duration, name: opt.name, rest: opt.tags.includes('descanso') });
     lastResult = { name: opt?.name ?? id, result, fresh: true };
     save();
@@ -1533,6 +1563,13 @@ function asaDeDepuracion(): void {
       return creando;
     },
     render,
+    /** Guarda ahora, de verdad (por trozos, con las pausas, hasta IndexedDB), y devuelve lo que costó. */
+    guardarAhora: async () => {
+      sinGuardar = true;
+      hayCambios = true;
+      await guardarYa();
+      return { msDeTrabajo: msDeGuardado, bloqueo: bloqueoDeGuardado, peso: pesoGuardado, error: errorDeGuardado };
+    },
     deportesInstalados: () => estadoDeDeportes.instalados.map((d) => d.manifiesto.id),
     /** La semilla de la partida que se va a crear (para que la prueba sea siempre la misma). */
     fijarSemilla: (semilla: number) => {
@@ -1540,15 +1577,15 @@ function asaDeDepuracion(): void {
     },
     /** Espera (de 5 en 5 minutos) hasta un minuto absoluto de la partida. */
     hastaElMinuto: (minuto: number) => {
-      while (game && game.time.minute < minuto) if (!game.perform('gen.descansar').ok && !game.perform('gen.esperar').ok) break;
+      while (game && game.time.minute < minuto) if (!realizar(game, 'gen.descansar').ok && !realizar(game, 'gen.esperar').ok) break;
     },
     /** Hace una acción yendo antes al sitio donde se hace (por el camino que permite el mapa). */
     hacer: (id: string) => {
       if (!game) return { ok: false, reason: 'No hay partida' };
       const o = game.preview(id);
       const lugares = game.service<LugaresService>(SERVICES.lugares);
-      if (o && lugares && faltaViajar(o)) for (const parada of rutaA(lugares.mapa(), lugares.actual().id, o.lugar![0])) game.perform(`lugares.ir_${parada}`);
-      const r = game.perform(id);
+      if (o && lugares && faltaViajar(o)) for (const parada of rutaA(lugares.mapa(), lugares.actual().id, o.lugar![0])) realizar(game, `lugares.ir_${parada}`);
+      const r = realizar(game, id);
       return { ok: r.ok, reason: r.reason };
     },
     /** Espera y viaja de modo que se llegue a un sitio en un minuto absoluto (o en cuanto se pueda, si ya es tarde). */
@@ -1562,10 +1599,10 @@ function asaDeDepuracion(): void {
         viaje += tiempoEntre(mapa, previo, parada) ?? 0;
         previo = parada;
       }
-      while (game.time.minute + viaje < minuto && game.perform('gen.esperar').ok) {
+      while (game.time.minute + viaje < minuto && realizar(game, 'gen.esperar').ok) {
         /* esperar */
       }
-      for (const parada of rutaA(mapa, lugares.actual().id, lugar)) game.perform(`lugares.ir_${parada}`);
+      for (const parada of rutaA(mapa, lugares.actual().id, lugar)) realizar(game, `lugares.ir_${parada}`);
     },
   };
 }

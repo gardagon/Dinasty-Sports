@@ -118,6 +118,49 @@ try {
         return { texto: b - a, idb: performance.now() - b, kb: texto.length / 1024 };
       }));
     }
+    // Guardar de verdad (por trozos, con pausas, hasta IndexedDB) frente al guardado de golpe de antes: lo más que se detiene la página (tareas largas) y,
+    // con un clic en mitad del guardado, lo que tarda en responder.
+    // La parada se mide con un reloj que no para: un mensaje que se reenvía a sí mismo sin descanso; el hueco más largo entre dos vueltas es lo más que ha estado bloqueada la página.
+    const vigilar = `(() => { const c = new MessageChannel(); let ultimo = performance.now(); window.__hueco = 0; c.port1.onmessage = () => { const t = performance.now(); window.__hueco = Math.max(window.__hueco, t - ultimo); ultimo = t; c.port2.postMessage(0); }; c.port2.postMessage(0); })()`;
+    await pagina.evaluate(vigilar);
+    const largaMax = (): Promise<number> => pagina.evaluate(() => (window as any).__hueco as number);
+    const reiniciarLargas = (): Promise<void> => pagina.evaluate(() => { (window as any).__hueco = 0; });
+    await reiniciarLargas();
+    // «Antes»: texto de golpe + IndexedDB, en el hilo de la página.
+    const deGolpe = await pagina.evaluate(async () => {
+      const g = (window as any).__ds.game;
+      const t = performance.now();
+      const texto: string = g.serializarJSON({ formato: 'x', version: 1, agenda: [] });
+      const db: IDBDatabase = await new Promise((res, rej) => { const q = indexedDB.open('ds-medida', 1); q.onupgradeneeded = () => q.result.createObjectStore('p'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+      const sinc0 = performance.now();
+      await new Promise<void>((res, rej) => { const tx = db.transaction('p', 'readwrite'); const rq = tx.objectStore('p').put(texto, 'actual'); const sinc = performance.now() - sinc0; (window as any).__putSinc = sinc; tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
+      return { total: performance.now() - t, putSincMs: (window as any).__putSinc as number };
+    });
+    await pagina.waitForTimeout(300);
+    const largaDeGolpe = await largaMax();
+    // «Ahora»: el guardado del juego (3 veces).
+    const porTrozos: { total: number; largaMax: number; trabajo: number; bloqueo: number }[] = [];
+    for (let i = 0; i < 3; i++) {
+      await reiniciarLargas();
+      const r = await pagina.evaluate(async () => { const t = performance.now(); const x = await (window as any).__ds.guardarAhora(); return { total: performance.now() - t, ...x }; });
+      await pagina.waitForTimeout(200);
+      porTrozos.push({ total: r.total, largaMax: await largaMax(), trabajo: r.msDeTrabajo, bloqueo: r.bloqueo });
+    }
+    // Un clic en mitad de un guardado: lo que tarda la página en responder y volver a pintar.
+    const clicsDuranteGuardado: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      await pagina.evaluate(() => { (window as any).__guardando = (window as any).__ds.guardarAhora(); });
+      await pagina.waitForTimeout(60 + i * 50);
+      const botones = pagina.locator('button.action:not([disabled])');
+      if (!(await botones.count())) break;
+      clicsDuranteGuardado.push(await botones.nth(Math.floor(azar() * (await botones.count()))).evaluate(async (el: HTMLElement) => {
+        const t = performance.now();
+        el.click();
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        return performance.now() - t;
+      }));
+      await pagina.evaluate(() => (window as any).__guardando);
+    }
     // El botón «Guardar partida» de verdad, de punta a punta.
     const abrirOpciones = pagina.locator('[data-act="ir-opciones"]');
     if (await abrirOpciones.count()) await abrirOpciones.first().click();
@@ -133,10 +176,16 @@ try {
 
     salida[perfil] = {
       arranqueMs: arranque, crearS: crear, accionMedianaMs: mediana(msAcciones), accionP90Ms: p90(msAcciones), accionMaxMs: Math.max(...msAcciones), acciones: msAcciones.length, sucesos, dia,
+      guardarDeGolpeTotalMs: deGolpe.total, guardarDeGolpeLargaMs: largaDeGolpe, guardarPutSincMs: deGolpe.putSincMs,
+      guardarTrozosTotalMs: mediana(porTrozos.map((g) => g.total)), guardarTrozosLargaMs: Math.max(...porTrozos.map((g) => g.largaMax)), guardarTrozosTrabajoMs: mediana(porTrozos.map((g) => g.trabajo)),
+      clicDuranteGuardadoMedianaMs: clicsDuranteGuardado.length ? mediana(clicsDuranteGuardado) : -1, clicDuranteGuardadoMaxMs: clicsDuranteGuardado.length ? Math.max(...clicsDuranteGuardado) : -1,
       guardarTextoMs: mediana(guardados.map((g) => g.texto)), guardarIdbMs: mediana(guardados.map((g) => g.idb)), estadoKB: guardados[0].kb, abrirMs: abierta ? abrir : -1,
     };
     console.log(`[${perfil}] ${msAcciones.length} acciones (día ${dia}, ${sucesos} sucesos): mediana ${f(mediana(msAcciones))} ms · p90 ${f(p90(msAcciones))} ms · máx ${f(Math.max(...msAcciones))} ms`);
     console.log(`[${perfil}] guardar: a texto ${f(salida[perfil].guardarTextoMs)} ms + IndexedDB ${f(salida[perfil].guardarIdbMs)} ms (${f(guardados[0].kb, 0)} KB) · abrir de nuevo: ${abierta ? `${abrir} ms` : 'no se abrió'}`);
+    console.log(`[${perfil}] guardar DE GOLPE (antes): ${f(deGolpe.total)} ms en total, la página se detiene como máximo ${f(largaDeGolpe)} ms (de ellos, el put de IndexedDB bloquea ${f(deGolpe.putSincMs)} ms)`);
+    console.log(`[${perfil}] guardar POR TROZOS (ahora): ${f(salida[perfil].guardarTrozosTotalMs)} ms en total (${f(salida[perfil].guardarTrozosTrabajoMs)} ms de trabajo, trozo más largo ${f(Math.max(...porTrozos.map((g) => g.bloqueo)))} ms), la página se detiene como máximo ${f(salida[perfil].guardarTrozosLargaMs)} ms`);
+    console.log(`[${perfil}] clic durante el guardado (${clicsDuranteGuardado.length}): mediana ${f(salida[perfil].clicDuranteGuardadoMedianaMs)} ms · máx ${f(salida[perfil].clicDuranteGuardadoMaxMs)} ms`);
     await contexto.close();
   }
   if (args.includes('--json')) console.log('JSON ' + JSON.stringify(salida));
