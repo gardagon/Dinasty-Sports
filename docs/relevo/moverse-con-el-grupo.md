@@ -4,7 +4,7 @@ Encargo de la sesión de arquitectura (decidido por el usuario, DECISIONES 21/11
 
 ## Qué se hizo
 
-- **La señal** `presencia.grupo_se_va` (`SHARED_EVENTS.GRUPO_SE_VA`, `GrupoSeVaData`, contracts). La emite **`npcs`** (dueño de la presencia) en un handler de `accion.realizada` (`modules/npcs/src/index.ts` + `modules/npcs/src/grupo.ts`). Compara la presencia al empezar y al acabar la acción **solo si ha cambiado el intervalo entre dos cambios de tramo** (si no, vuelve sin hacer nada). Las reglas y cifras están en `docs/ANEXO_HORARIOS_PNJ.md` («Moverse con el grupo») y en `MOVERSE_CON_EL_GRUPO` (`contracts/src/agendas.ts`): sigues donde estabas, se ha ido al menos la mitad de los 34–46 que tenías cerca, y un mismo sitio del mapa recibe a 2 o más y a la mitad o más de los que se pueden seguir.
+- **La señal** `presencia.grupo_se_va` (`SHARED_EVENTS.GRUPO_SE_VA`, `GrupoSeVaData`, contracts). La emite **`npcs`** (dueño de la presencia) en un handler de `accion.realizada` (`modules/npcs/src/index.ts` + `modules/npcs/src/grupo.ts`). Compara la presencia al empezar y al acabar la acción **solo si ha cambiado el intervalo entre dos cambios de tramo** (si no, vuelve sin hacer nada). Las reglas y cifras están en `docs/ANEXO_HORARIOS_PNJ.md` («Moverse con el grupo») y en `MOVERSE_CON_EL_GRUPO` (`contracts/src/agendas.ts`): sigues donde estabas, se ha ido al menos la mitad de los 34–46 que tenías cerca, y un mismo sitio del mapa recibe a 3 o más y a la mitad o más de los que se pueden seguir.
 - **El suceso** `eventos.grupo.se_van` (`modules/eventos/src/grupo/se_van.ts`): `urgencia: 'ahora'` (sin aplazar; si haces otra cosa sin responder, te quedas), opciones «Ir con ellos» y «Quedarte aquí». «Ir con ellos» emite `lugares.ir_a` con el destino de la señal y gasta los `minutos` de la señal (el viaje rápido del mapa). No hay sitios ni horas en el código: sale igual en el recreo, a la salida de clase, en el entrenamiento y en lo que ponga un deporte.
 - **Formato de sucesos**: `OpcionDef.minutos` admite `{ deLaSeñal: 'dato' }` (los minutos que traiga la señal que disparó el suceso; 1 si no hay dato; la validación pide un suceso con `al`). `minutosDe` en `modules/sucesos`. Documentado en `ANEXO_EVENTOS.md` («Opciones» y «Moverse con el grupo»).
 - **Cómo se dice el sitio**: `haciaLugar(nombre)` y `deLugar(nombre)` (contracts, `lugares.ts`) ponen el artículo por una regla de la lengua («al patio», «a la biblioteca», «a tu aula»); si estás en una zona y van a la entrada de su lugar sale «a la entrada del colegio».
@@ -14,13 +14,20 @@ Encargo de la sesión de arquitectura (decidido por el usuario, DECISIONES 21/11
 
 1. **Quien sale del mapa no se acompaña.** La gente que se va «fuera» (casa, su aula de otro curso) no es un destino: no se sabe a dónde va. Por eso la salida de las 14:30 a casa no se pregunta; lo que sí se pregunta es **la salida del aula a la entrada a las 14:00**, que es cuando el grupo se va de verdad en bloque (el reparto de 14:00 a 14:30 es un goteo que no es un «todos se van»).
 2. **«Los que tienes cerca» = la gente que ves** (`aforoCercano`, los conocidos primero), no toda la población del sitio: en el patio hay unos 500 y la mayoría son desconocidos de otras clases. Los que desaparecen del mapa cuentan como que se han ido, pero el grupo se mide entre los que se pueden seguir. Consecuencia buscada: los primeros días, sin conocer a nadie, al acabar el recreo no sale nada (nadie con quien ir); con 2 o más compañeros conocidos sí.
-3. **Mínimo 2 personas** en el mismo sitio (con 3 los primeros días casi no salía: el jugador conoce a 2 compañeros de clase).
+3. **Mínimo 3 personas** en el mismo sitio. Probé con 2: sale mucho más (ver cifras) porque cualquier par de conocidos que cambia de sitio dispara el aviso. Consecuencia: con solo 2 compañeros conocidos no sale al acabar el recreo; hace falta conocer a 3 o más.
 4. **Una pregunta por cambio de sitio del grupo**, sin enfriamiento: si te quedas en el aula, cada día vuelve a salir al recreo y a la salida de clase (son dos al día, solo si estás con ellos en ese momento). Si parece mucho, el botón está en `MOVERSE_CON_EL_GRUPO` y, si hace falta, un enfriamiento con una marca (`repite: { espera }` por destino) es trivial.
 5. **«Decidir luego» no existe aquí** (es `ahora`), y «Quedarte aquí» cuesta 1 minuto como cualquier decisión de `ahora`.
 
 ## Cifras (`npm run sim:eventos -- 180 2`)
 
-(Se rellenan al final, ver abajo.)
+Media de 2 semillas × 180 días, eventos por semana (antes de este cambio: 2,6 de media):
+
+| Mínimo | `grupo.se_van` por año (media de bots) | Eventos por semana (total) |
+|---|---|---|
+| 3 (el que queda) | 223 (≈ 4,3 por semana; equilibra 422 ≈ 8 por semana, el bot siempre está en el aula en cada cambio) | 7,0 |
+| 2 | 592 (≈ 11 por semana) | 14,1 |
+
+Sigue siendo mucho más que el resto de eventos: **decisión pendiente de la arquitectura** (dejarlo, o poner un enfriamiento / limitarlo al recreo y a la salida).
 
 ## Para quien toque lo de al lado
 

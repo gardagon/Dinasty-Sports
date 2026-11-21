@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SERVICES, deLugar, haciaLugar, type LugaresService, type SucesoPendiente, type SucesosService } from '@ds/contracts';
+import { SERVICES, deLugar, haciaLugar, type LugaresService, type PresenciaService, type SucesoPendiente, type SucesosService } from '@ds/contracts';
 import type { Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
-import { conocer, llegarA } from './ayudas';
+import { conocer, llegarA, viajarA } from './ayudas';
 
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
@@ -82,9 +82,12 @@ describe('en una partida de verdad', () => {
   });
 
   it('al acabar el recreo, los compañeros que conoces vuelven al aula y se te pregunta; los desconocidos que se van a sus aulas de fuera no cuentan', () => {
-    const g = conocer(nuevaPartida({ seed: 21 }));
+    const g = nuevaPartida({ seed: 21 });
     while (!g.time.isSchoolDay) for (let k = 0; k < 300; k++) esperar(g);
-    llegarA(g, 'patio', 10, 41);
+    // Conoce a unos cuantos compañeros de su clase (los que están dando clase en el aula).
+    llegarA(g, 'aula', 10, 30);
+    conocer(g, ...g.service<PresenciaService>(SERVICES.presencia)!.ocupadosEn('aula').slice(0, 8).map((o) => o.persona.id));
+    viajarA(g, 'patio');
     expect(donde(g)).toBe('patio');
     for (let k = 0; k < 24 && !pregunta(g); k++) esperar(g);
     const p = pregunta(g)!;
