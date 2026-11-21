@@ -75,13 +75,7 @@ export async function serializarPartidaPorTrozos(
 ): Promise<(PartidaEnBlob & { msDeTrabajo: number; msMaximoSeguido: number }) | null> {
   const version = SAVE_VERSION;
   const extras = { formato: FORMATO, version, nombre: game.playerName, guardadoEn: new Date().toISOString(), agenda: [...agenda] };
-  // El estado vivo (`Game` no lo enseña: solo da texto o una copia, que cuesta tanto como el texto). Si algún día cambia, se cae al texto de golpe.
-  const vivo = (game as unknown as { s?: unknown }).s;
-  if (vivo === undefined || typeof Blob === 'undefined') {
-    const p = serializarPartida(game, agenda);
-    return { blob: new Blob([p.texto]), nombre: p.nombre, version, bytes: p.texto.length, msDeTrabajo: 0, msMaximoSeguido: 0 };
-  }
-  const hecho = await serializarPorTrozos({ ...extras, state: vivo }, { comoBlob: true });
+  const hecho = await serializarPorTrozos({ ...extras, state: game.estadoParaGuardar }, { comoBlob: true });
   if (hecho === null) return null;
   const { datos, msDeTrabajo, msMaximoSeguido } = hecho;
   const blob = datos as Blob;

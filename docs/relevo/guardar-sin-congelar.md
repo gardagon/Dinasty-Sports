@@ -39,7 +39,7 @@ El estado vive en la página. Un trabajador necesita **una copia**: `postMessage
 
 Cómo se trocea (`apps/web/src/serializar.ts`): un generador que va dando las piezas de texto en el orden de `JSON.stringify`; los contenedores grandes (listas de más de 64 objetos, como las personas, y lo que las contiene) se recorren elemento a elemento y el resto se convierte de una vez. Cada ~8 ms se cierra un trozo y se cede con un mensaje (`MessageChannel`, sin el mínimo de 4 ms de `setTimeout`; no con `scheduler.yield`, cuya continuación adelanta a las demás tareas y dejaría sin turno a los temporizadores del juego). El texto es idéntico al de `serializarJSON` (test con listas grandes, `undefined`, funciones y una partida de verdad).
 
-`Game` no enseña su estado vivo (solo `serialize()`, que copia, y `serializarJSON()`), así que se lee `game.s` con un cast (`serializarPartidaPorTrozos`); si algún día `s` no existe, cae al guardado de golpe. **Para la arquitectura**: un getter de solo lectura en `Game` (p. ej. `estadoVivo()`) lo dejaría limpio; no lo he tocado porque no es `apps/web`.
+`Game` enseña ahora su estado vivo con un getter de solo lectura, `Game.estadoParaGuardar` (`Readonly<GameState>`, sin copia; en `packages/core/src/game.ts`, sin contenido de juego). Ya no hay cast ni guardado de golpe de reserva (`Blob` existe en todo navegador y en Node ≥ 18).
 
 Sobre el `Blob`: se crea trozo a trozo según sale el texto y al final se unen (`new Blob(blobs)` no copia). Crear de golpe un `Blob` de 16 MB costaba 100–130 ms (escritorio) y ~400–500 (×4), por eso no se hace al final. Si un navegador no deja guardar `Blob`s en IndexedDB (algún modo privado), se guarda el texto (`console.warn`). `cargar` acepta las dos formas (partidas guardadas como texto antes de este cambio siguen abriendo), así que **no hace falta migrar nada**.
 
@@ -81,6 +81,7 @@ Mejora gratis por el `Blob` (§0.2): la lectura del `Blob` (`blob.text()`) va fu
 
 | | |
 |---|---|
+| `packages/core/src/game.ts` | Getter `estadoParaGuardar` (solo lectura). |
 | `apps/web/src/serializar.ts` (nuevo) | La conversión a texto por trozos (`SerializacionPorTrozos`, `serializarPorTrozos`, `ceder`), `alCambiarElEstado`, `terminarSerializacionEnCurso`. |
 | `apps/web/src/almacen.ts` | `PartidaEnBlob`, `serializarPartidaPorTrozos`; `Almacen.guardar` acepta texto o `Blob`; IndexedDB lee y guarda `Blob` (con vuelta al texto si el navegador no puede); `recomendarFrecuencia`/`textoDeRecomendacion` retocadas; `textoDePeso`. |
 | `apps/web/src/main.ts` | `escribirPartida` por trozos con descarte y reintento; `realizar()` (puerta única de las acciones); cierre de pestaña; peso y parada máxima en Opciones; `guardarAhora` en el asa de depuración. |
@@ -90,7 +91,6 @@ Mejora gratis por el `Blob` (§0.2): la lectura del `Blob` (`blob.text()`) va fu
 
 ## 8. Pendiente / para la arquitectura
 
-- Un getter de solo lectura del estado vivo en `Game` (hoy se lee `game.s` con un cast).
 - Móvil real: el ×4 de CPU es una emulación; la parada máxima real dependerá del teléfono (el trozo es de 8 ms de CPU del propio aparato, así que debería quedar en el mismo orden). Sin medir en un teléfono.
 - El `Blob` en IndexedDB funciona en Chromium (medido). Firefox y Safari lo admiten desde hace años; hay vuelta al texto si fallara, pero no está probado en ellos.
 - Crear la partida y la pasada semanal siguen como en `revision-rendimiento.md` (propuestas 1 y 2: cambian la huella).
