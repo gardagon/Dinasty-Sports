@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Moverse con el grupo: preferencia y «Me voy»
+
+- **Preferencia en Opciones:** «Cuando se va el grupo: preguntar / ir siempre con ellos / quedarme» (por defecto, preguntar).
+- **Solo dentro del mismo lugar** (colegio, estadio, club…). Si se van a casa, de momento no sale nada.
+- **El aviso no cuenta como suceso** (ni cupos ni ritmo).
+- **«Me voy»:** cuando alguien que conoces y tienes al lado se va, dice «Me voy» o «Me voy a…».
+
 ## 21/11/2026 — Puestos, entrenamientos, pistas, caras según el origen y tiempo de los sucesos
 
 - **Puestos** (informe `docs/relevo/futbol-puestos-entrenos.md`, `docs/ANEXO_PUESTOS.md`):
