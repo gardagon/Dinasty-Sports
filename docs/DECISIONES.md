@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — «Mi equipo» para el niño
+
+- **En la pestaña del deporte, una subpestaña «Mi equipo»** (no en la del personaje).
+- **Se ve en qué equipo estás** (A, B, C…).
+- **De los compañeros que no conoces, la misma descripción que en Gente** (por su aspecto), sin el nombre.
+- **Compararte, con lo que se ve:** después de los entrenamientos, en la ficha de cada niño, «crees que eres mejor / peor / parecido a él», y su puesto. Si no le has visto jugar, no sabes dónde juega: esa información se desbloquea al entrenar y jugar con él.
+- **Las habilidades del fútbol, agrupadas** en portería, físico, mental y técnico.
+- La página del entrenador, más detallada, queda para más adelante.
+
 ## 21/11/2026 — Detalles al jugar: sucesos en clase, habilidades por grupos, tu equipo, entrenamientos y puestos
 
 Observado por el usuario jugando la versión publicada:
