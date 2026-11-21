@@ -11,6 +11,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Solo dentro del mismo lugar** (colegio, estadio, club…). Si se van a casa, de momento no sale nada.
 - **El aviso no cuenta como suceso** (ni cupos ni ritmo).
 - **«Me voy»:** cuando alguien que conoces y tienes al lado se va, dice «Me voy» o «Me voy a…».
+- **Hecho el 21/11** (`docs/relevo/moverse-con-el-grupo.md`): señal `presencia.grupo_se_va` (la emite `npcs`) y suceso `eventos.grupo.se_van` («Ir con ellos» gasta el viaje); preferencia en Opciones; solo dentro del mismo lugar (por `dentroDe`); `SucesoDef.fueraDelRitmo` (el ritmo queda en 2,7 por semana). «Me voy», una línea corta en el resultado de la acción (como mucho 2, en acciones de 30 minutos o menos). Con las acciones cortas, `npcs` declara como obligación la marcha del grupo: la acción dura hasta ese minuto y luego sale el aviso. Coste: 1,19 → 1,36 ms por acción con el bot (+14 %).
 
 ## 21/11/2026 — Puestos, entrenamientos, pistas, caras según el origen y tiempo de los sucesos
 
