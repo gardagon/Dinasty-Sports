@@ -42,6 +42,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXPwp3Qjr84KzsiTdwA` | `claude/dorsales` | Dorsales (porteros 1, 13 o desde el 16), crónica con dorsal para los desconocidos, columnas de dorsal y comparación en «Mi equipo» |
 | `session_01M4vXXNVXxbCc2nznHngV8k` | `claude/puestos-y-pistas` | Consejo comparado con la edad, «Interior» y «Medio de banda», recomendaciones sin lado, pistas (porqué, «Preguntar por un puesto», el entrenador recomienda entrenamientos) |
 | `session_01M4vXXPDBij8YJjM9AZGWFY` | `claude/entrenamientos` | Catálogo de 22, «quedar a jugar al fútbol» todo el año, campamentos de jugadores y porteros, balance medido |
 
