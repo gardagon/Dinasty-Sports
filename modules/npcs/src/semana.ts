@@ -188,11 +188,12 @@ export function pasoDeSemanas(
  * Los días que se espera que cae una habilidad en una semana si la entrena esa semana con probabilidad `p` (y tarda `gracia` días en empezar a caer): `k` semanas sin entrenar (probabilidad `p·(1−p)^k`) son `7k + 2` días desde su
  * último día entrenado, y cada semana cae los que pasan de `gracia`, hasta 7.
  */
-function diasDeCaidaPorSemana(p: number, gracia: number): number {
+function diasDeCaidaPorSemana(p: number, gracia: number, capacidad = false): number {
   let esperados = 0;
   let prob = p;
   for (let k = 0; k < 8; k++) {
-    esperados += prob * clamp(7 * k + DIAS_DESDE_LA_SESION - gracia, 0, 7);
+    // La caída de una capacidad en la semana a semana cuenta los días desde el inicio de la semana (`pasoDeSemanas`): aunque la entrene cada semana, cae lo que pasa de la gracia en 7 días.
+    esperados += prob * (capacidad ? clamp(Math.max(0, 7 * k + DIAS_DESDE_LA_SESION - 7) + 7 - gracia, 0, 7) : clamp(7 * k + DIAS_DESDE_LA_SESION - gracia, 0, 7));
     prob *= 1 - p;
   }
   return esperados + prob * 7;
@@ -248,7 +249,7 @@ function pasoGrueso(
   enElDia(t, fin, fin - 3.5 * semanas);
   // La caída: en la semana a semana, una habilidad cae los días que lleva sin entrenarse por encima de su plazo de gracia. Aquí no se sabe en qué semanas toca cada una: se usa lo que se espera de ella, con la
   // probabilidad de entrenarla una semana (`1 − e^(−veces por semana)`) y lo que cae en cada hueco entre sesiones (`diasDeCaidaPorSemana`). Lo que no se entrena en todo el bloque cae desde su último día entrenado.
-  const diasDeCaida = (stat: string, gracia: number, ultimo: number): number => {
+  const diasDeCaida = (stat: string, gracia: number, ultimo: number, capacidad = false): number => {
     if (porSemanas) {
       // Semana a semana, solo la aritmética: cuántos días de la semana pasan del plazo de gracia desde la última vez que se entrenó.
       let ult = ultimo;
@@ -256,13 +257,13 @@ function pasoGrueso(
       for (let w = 0; w < semanas; w++) {
         const finSemana = fin - 7 * (semanas - 1 - w);
         if (porSemanas[w].has(stat)) ult = finSemana - DIAS_DESDE_LA_SESION;
-        total += clamp(finSemana - ult - gracia, 0, 7);
+        total += capacidad ? clamp(Math.max(0, finSemana - 7 - ult) + 7 - gracia, 0, 7) : clamp(finSemana - ult - gracia, 0, 7);
       }
       return total;
     }
     const n = veces.get(stat);
     if (!n) return clamp(fin - ultimo - gracia, 0, 7 * semanas);
-    return semanas * diasDeCaidaPorSemana(1 - Math.exp(-n / semanas), gracia);
+    return semanas * diasDeCaidaPorSemana(1 - Math.exp(-n / semanas), gracia, capacidad);
   };
   for (let i = 0; i < t.rutina.stats.length; i++) if (veces.has(t.rutina.stats[i].id)) ultHab[i] = fin - DIAS_DESDE_LA_SESION;
   for (let i = 0; i < CAPACIDADES_GENETICAS.length; i++) if (veces.has(CAPACIDADES_GENETICAS[i])) ultCap[i] = fin - DIAS_DESDE_LA_SESION;
@@ -280,7 +281,7 @@ function pasoGrueso(
     // `evolucionSemanal` mide los días sin entrenar al empezar el bloque y cuenta `7·semanas + días − gracia` de caída: se le da el que da la caída esperada.
     const gracia = REGLAS[i].decay?.graceDays ?? 0;
     const antes = capUltAntes[i];
-    const caida = diasDeCaida(id, gracia, antes <= NUNCA / 2 ? -1e6 : antes);
+    const caida = diasDeCaida(id, gracia, antes <= NUNCA / 2 ? -1e6 : antes, true);
     const diasSin = caida <= 0 ? -1e6 : caida - 7 * semanas + gracia;
     const v = evolucionSemanal(REGLAS[i], { valor: t.cap[i], pico: t.capPico[i], base: base[i], diasSinEntrenar: diasSin, techo, envejece: false }, semanas);
     t.cap[i] = v;
