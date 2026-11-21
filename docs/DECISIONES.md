@@ -10,6 +10,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **La crónica de los partidos no enseña el nombre de quien no conoces:** se le nombra por su dorsal.
 - **Dorsales:** cada jugador tiene el número de su camiseta, al azar dentro de lo normal. Los porteros llevan el 1, el 13 o, si no están libres, a partir del 16 el primero que quede después de que hayan escogido los jugadores de campo.
 - **En la tabla de «Mi equipo», dos columnas más:** el dorsal y la comparación («mejor / peor / parecido»), cuando ya se ha desbloqueado. **La descripción de los desconocidos se queda entera:** el dorsal es un dato más, para poder asociarlo si luego te cruzas con esa persona fuera del campo.
+- **Hecho el 21/11** (`docs/relevo/dorsales.md`): `PuestosDeDeporte.dorsales` y `asignarDorsales` (contracts); de campo, del 2 al 25, con la costumbre por puesto el 55 % de las veces; el número se conserva mientras siga en el club. Crónica: «el 7 del Rayo», «vuestra 4». En «Mi equipo», el dorsal delante de la descripción entera y «Frente a ti: mejor / peor / parecido» debajo. Las partidas guardadas antes no tienen dorsales.
 
 ## 21/11/2026 — Moverse con el grupo: preferencia y «Me voy»
 
