@@ -20,7 +20,7 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 
 ## 2. Estado (17/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido, subido y la suite entera en verde (1.079 tests). **No está unida a la rama principal**: hacerlo es decisión del usuario.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127; 1.187 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
@@ -33,7 +33,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **Unir a la principal: aprobado por el usuario el 21/11** («para testear como jugador y después ver rendimientos, y trabajar en paralelo»). Pull request https://github.com/gardagon/Dinasty-Sports/pull/127, que se une cuando la integración continua dé verde. Después, la revisión de rendimiento (§4).
+1. ~~**Unir a la principal**~~ **Unida el 21/11** (gardagon/Dinasty-Sports#127, integración continua en verde): publicada en GitHub Pages. La rama de trabajo sigue siendo `claude/youthful-clarke-vs0kye`, al día con `main`.
 2. ~~**Reparto de equipos 2, lo que queda**~~ Respondido el 21/11 (DECISIONES, «Rotación en el fútbol de colegio…») y encargado a `claude/rotacion-y-puestos`.
 
 ## 3 bis. Sesiones en curso
