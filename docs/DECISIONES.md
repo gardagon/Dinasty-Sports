@@ -5,6 +5,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Se une la rama de trabajo a la principal
+
+El usuario aprueba unir `claude/youthful-clarke-vs0kye` a `main`, para probarlo como jugador, ver el rendimiento después y seguir trabajando en paralelo. Pull request gardagon/Dinasty-Sports#127. La versión de guardado pasa de 17 a 21: las partidas de la versión publicada se descartan con un aviso. La revisión de rendimiento queda para justo después.
+
 ## 21/11/2026 — Rotación en el fútbol de colegio, «El curso que viene» y puestos
 
 - **Convocatorias:** siguen igual, pero en los equipos de colegio de benjamín y alevín hay rotación para que todos jueguen algo a lo largo de la liga. Igual para el personaje y los PNJ.

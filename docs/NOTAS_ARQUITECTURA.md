@@ -33,7 +33,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
+1. **Unir a la principal: aprobado por el usuario el 21/11** («para testear como jugador y después ver rendimientos, y trabajar en paralelo»). Pull request https://github.com/gardagon/Dinasty-Sports/pull/127, que se une cuando la integración continua dé verde. Después, la revisión de rendimiento (§4).
 2. ~~**Reparto de equipos 2, lo que queda**~~ Respondido el 21/11 (DECISIONES, «Rotación en el fútbol de colegio…») y encargado a `claude/rotacion-y-puestos`.
 
 ## 3 bis. Sesiones en curso
