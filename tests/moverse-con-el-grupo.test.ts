@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { SERVICES, deLugar, haciaLugar, type LugaresService, type SucesoPendiente, type SucesosService } from '@ds/contracts';
 import type { Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
-import { llegarA } from './ayudas';
+import { conocer, llegarA } from './ayudas';
 
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
@@ -79,6 +79,30 @@ describe('en una partida de verdad', () => {
     esperar(g);
     expect(pregunta(g)).toBeUndefined();
     expect(donde(g)).toBe('aula');
+  });
+
+  it('al acabar el recreo, los compañeros que conoces vuelven al aula y se te pregunta; los desconocidos que se van a sus aulas de fuera no cuentan', () => {
+    const g = conocer(nuevaPartida({ seed: 21 }));
+    while (!g.time.isSchoolDay) for (let k = 0; k < 300; k++) esperar(g);
+    llegarA(g, 'patio', 10, 41);
+    expect(donde(g)).toBe('patio');
+    for (let k = 0; k < 24 && !pregunta(g); k++) esperar(g);
+    const p = pregunta(g)!;
+    expect(p.texto).toBe('Todos se van a tu aula. ¿Les acompañas?');
+    expect(g.perform(p.opciones[0].accion).ok).toBe(true);
+    expect(donde(g)).toBe('aula');
+  });
+
+  it('al acabar la clase, los de tu clase salen a la entrada: se dice «a la entrada del colegio»', () => {
+    const g = alRecreo(11);
+    // Se queda en el aula pasando el recreo y la última clase: se va el grupo a las 14:00.
+    for (let k = 0; k < 400 && !(g.time.minuteOfDay > 13 * 60 + 40); k++) {
+      const p = pregunta(g);
+      if (p) g.perform(p.opciones[1].accion);
+      else esperar(g);
+    }
+    const p = hastaQueSeVan(g)!;
+    expect(p.texto).toBe('Todos se van a la entrada del colegio. ¿Les acompañas?');
   });
 
   it('no sale si el grupo se va y tú también (te desplazas tú) ni si no hay nadie contigo', () => {

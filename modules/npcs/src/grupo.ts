@@ -8,8 +8,11 @@ import { MOVERSE_CON_EL_GRUPO, type Ubicacion } from '@ds/contracts';
  *
  * - Los que están **ocupados pero a la vista** en otro sitio (el equipo que entrena en la pista) cuentan como que van allí. Quien sigue contigo, aunque ahora esté ocupado
  *   (los de tu clase al empezar la clase), no se ha ido.
- * - Los que salen **del mapa** (a casa, a su aula de otra clase) no cuentan como destino: no se sabe a dónde van ni se les puede seguir. Cuentan en el total, así que
- *   si la mayoría de los que tienes cerca desaparece del mapa no hay grupo al que acompañar.
+ * - Los que salen **del mapa** (a casa, a su aula de otra clase) no son un destino: no se sabe a dónde van ni se les puede seguir. Cuentan como gente que se ha ido (que se vacíe el
+ *   sitio es lo que hace falta), pero el grupo al que se acompaña se mide entre los que se pueden seguir (los que siguen aquí y los que van a un sitio del mapa): así, al acabar el
+ *   recreo, los pocos compañeros que conoces entre cientos de niños que vuelven a sus aulas sí son «todos los que se van al aula».
+ *
+ * Se avisa si (A) se ha ido al menos `proporcion` de los cercanos y (B) el sitio al que van más personas tiene `minimo` o más y al menos `proporcion` de los que se pueden seguir.
  */
 export interface GrupoQueSeVa {
   hacia: string;
@@ -25,17 +28,27 @@ export function grupoQueSeVa<T extends { id: string }>(cercanos: readonly T[], a
   const total = cercanos.length;
   if (total < reglas.minimo) return undefined;
   const destinos = new Map<string, T[]>();
+  let sePuedeSeguir = 0;
+  let seVan = 0;
   for (const n of cercanos) {
     const u = despues(n);
     const sitio = u.atendiendo?.sitio ?? u.sitio;
-    // Sigue contigo (aunque esté ocupado a la vista) o se ha ido del mapa: no es un destino.
-    if (sitio === null || sitio === aqui) continue;
+    // Sigue contigo (aunque esté ocupado a la vista).
+    if (sitio === aqui) {
+      sePuedeSeguir++;
+      continue;
+    }
+    seVan++;
+    // Se ha ido del mapa: no es un destino.
+    if (sitio === null) continue;
+    sePuedeSeguir++;
     const l = destinos.get(sitio);
     if (l) l.push(n);
     else destinos.set(sitio, [n]);
   }
+  if (seVan < reglas.proporcion * total) return undefined;
   let mejor: [string, T[]] | undefined;
   for (const par of destinos) if (!mejor || par[1].length > mejor[1].length) mejor = par;
-  if (!mejor || mejor[1].length < reglas.minimo || mejor[1].length < reglas.proporcion * total) return undefined;
+  if (!mejor || mejor[1].length < reglas.minimo || mejor[1].length < reglas.proporcion * sePuedeSeguir) return undefined;
   return { hacia: mejor[0], cuantos: mejor[1].length, total, muestra: mejor[1].slice(0, reglas.muestra).map((n) => n.id) };
 }

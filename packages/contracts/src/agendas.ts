@@ -194,7 +194,7 @@ export const RECOGIDA_DE_NINOS = { proporcion: 0.15, llegada: 15, paso: 5, edadM
  *   o se va aparte: no se les puede seguir.
  * - `muestra`: cuántas personas se nombran en la señal.
  */
-export const MOVERSE_CON_EL_GRUPO = { minimo: 3, proporcion: 0.5, muestra: 3 };
+export const MOVERSE_CON_EL_GRUPO = { minimo: 2, proporcion: 0.5, muestra: 3 };
 /** Lo que se dice de quien está en el aula durante una clase: está, pero no se le puede hablar. */
 const EN_CLASE_ATENDIENDO = 'atendiendo en clase';
 /** Las clases una a una. */

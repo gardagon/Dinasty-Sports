@@ -1,0 +1,29 @@
+# Relevo: moverse con el grupo (rama `claude/moverse-con-el-grupo`)
+
+Encargo de la sesión de arquitectura (decidido por el usuario, DECISIONES 21/11 «Deberes, acciones que pisan otra y moverse con el grupo»): si estás con gente y se va en bloque, que salga «Todos se van al patio, ¿les acompañas?»; si dices que sí, vas con ellos como un viaje rápido que consume esos minutos. No se ha tocado `DECISIONES.md`.
+
+## Qué se hizo
+
+- **La señal** `presencia.grupo_se_va` (`SHARED_EVENTS.GRUPO_SE_VA`, `GrupoSeVaData`, contracts). La emite **`npcs`** (dueño de la presencia) en un handler de `accion.realizada` (`modules/npcs/src/index.ts` + `modules/npcs/src/grupo.ts`). Compara la presencia al empezar y al acabar la acción **solo si ha cambiado el intervalo entre dos cambios de tramo** (si no, vuelve sin hacer nada). Las reglas y cifras están en `docs/ANEXO_HORARIOS_PNJ.md` («Moverse con el grupo») y en `MOVERSE_CON_EL_GRUPO` (`contracts/src/agendas.ts`): sigues donde estabas, se ha ido al menos la mitad de los 34–46 que tenías cerca, y un mismo sitio del mapa recibe a 2 o más y a la mitad o más de los que se pueden seguir.
+- **El suceso** `eventos.grupo.se_van` (`modules/eventos/src/grupo/se_van.ts`): `urgencia: 'ahora'` (sin aplazar; si haces otra cosa sin responder, te quedas), opciones «Ir con ellos» y «Quedarte aquí». «Ir con ellos» emite `lugares.ir_a` con el destino de la señal y gasta los `minutos` de la señal (el viaje rápido del mapa). No hay sitios ni horas en el código: sale igual en el recreo, a la salida de clase, en el entrenamiento y en lo que ponga un deporte.
+- **Formato de sucesos**: `OpcionDef.minutos` admite `{ deLaSeñal: 'dato' }` (los minutos que traiga la señal que disparó el suceso; 1 si no hay dato; la validación pide un suceso con `al`). `minutosDe` en `modules/sucesos`. Documentado en `ANEXO_EVENTOS.md` («Opciones» y «Moverse con el grupo»).
+- **Cómo se dice el sitio**: `haciaLugar(nombre)` y `deLugar(nombre)` (contracts, `lugares.ts`) ponen el artículo por una regla de la lengua («al patio», «a la biblioteca», «a tu aula»); si estás en una zona y van a la entrada de su lugar sale «a la entrada del colegio».
+- Refactor pequeño en `npcs`: `agendasDePresencia(ctx, t)` (lo que antes estaba dentro del servicio de presencia, ahora reutilizable para mirar cualquier momento) y `compararCercania` (el orden de a quién se ve primero, que antes estaba suelto en `indiceDePresencia`). El servicio `presencia` se comporta igual.
+
+## Decisiones de diseño que tomé (para que la arquitectura las confirme o cambie)
+
+1. **Quien sale del mapa no se acompaña.** La gente que se va «fuera» (casa, su aula de otro curso) no es un destino: no se sabe a dónde va. Por eso la salida de las 14:30 a casa no se pregunta; lo que sí se pregunta es **la salida del aula a la entrada a las 14:00**, que es cuando el grupo se va de verdad en bloque (el reparto de 14:00 a 14:30 es un goteo que no es un «todos se van»).
+2. **«Los que tienes cerca» = la gente que ves** (`aforoCercano`, los conocidos primero), no toda la población del sitio: en el patio hay unos 500 y la mayoría son desconocidos de otras clases. Los que desaparecen del mapa cuentan como que se han ido, pero el grupo se mide entre los que se pueden seguir. Consecuencia buscada: los primeros días, sin conocer a nadie, al acabar el recreo no sale nada (nadie con quien ir); con 2 o más compañeros conocidos sí.
+3. **Mínimo 2 personas** en el mismo sitio (con 3 los primeros días casi no salía: el jugador conoce a 2 compañeros de clase).
+4. **Una pregunta por cambio de sitio del grupo**, sin enfriamiento: si te quedas en el aula, cada día vuelve a salir al recreo y a la salida de clase (son dos al día, solo si estás con ellos en ese momento). Si parece mucho, el botón está en `MOVERSE_CON_EL_GRUPO` y, si hace falta, un enfriamiento con una marca (`repite: { espera }` por destino) es trivial.
+5. **«Decidir luego» no existe aquí** (es `ahora`), y «Quedarte aquí» cuesta 1 minuto como cualquier decisión de `ahora`.
+
+## Cifras (`npm run sim:eventos -- 180 2`)
+
+(Se rellenan al final, ver abajo.)
+
+## Para quien toque lo de al lado
+
+- **Sesión `claude/deberes-y-acciones-cortas` (la acción que pisa otra consume solo los minutos que faltan):** mi detección compara el momento en que empieza la acción con el momento en que acaba y mira si ha cambiado el intervalo de presencia, así que funciona igual si la acción se recorta: si la acción acaba **en el minuto en que se va el grupo o después**, el aviso sale al terminarla (si acaba un minuto antes, sale con la siguiente acción que cruce el cambio). El camino hasta el grupo (los `minutos` de la señal, p. ej. 4 de aula a patio) se consume porque es la duración de la decisión «Ir con ellos». Al subir esa rama no hace falta tocar nada de esto salvo que cambie el tag `desplazamiento` / `decision` (los miro para no preguntar dos veces seguidas).
+- **Sesiones de fútbol y PNJ (`modules/npcs`, `packages/kit-deporte`):** `modules/npcs/src/index.ts` tiene dos cambios pequeños que pueden dar conflicto al fusionar: el handler `on[CORE_EVENTS.ACTION_DONE]` al principio de `on:` y `agendasDePresencia`/`compararCercania` (movidos, no cambiados). El resto va en `grupo.ts` y `grupo.test.ts`. Los equipos que van del campo al vestuario o del vestuario al campo en el día de partido pueden disparar el aviso («Todos se van al campo de fútbol…»): es lo pedido; si no se quiere mientras el personaje tiene su propio flujo de partido, bastaría una condición en `cuando` del suceso (p. ej. que no sea día de partido del personaje).
+- Los bots deciden la pregunta con `decidirSucesos` según su carácter (sociabilidad): unos irán con el grupo y otros no. **Las huellas de los bots cambian** (`npm run huella`) porque ahora hay una decisión más y viajes que antes no había.

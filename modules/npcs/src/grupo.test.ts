@@ -23,8 +23,10 @@ describe('grupoQueSeVa (las cuentas, sin partida)', () => {
     const cerca = gente(10);
     expect(grupoQueSeVa(cerca, 'aula', () => u(null, { ocupado: true, atendiendo: { sitio: 'aula', motivo: 'atendiendo en clase' } }))).toBeUndefined();
     expect(grupoQueSeVa(cerca, 'aula', () => u(null))).toBeUndefined();
-    // Mitad a casa, mitad al patio: no hay mayoría para el patio.
-    expect(grupoQueSeVa(cerca, 'aula', (n) => (Number(n.id.slice(1)) < 4 ? u('patio') : u(null)))).toBeUndefined();
+    // Los que desaparecen del mapa no impiden que haya grupo entre los que se pueden seguir (al acabar el recreo, los conocidos al aula y cientos a sus aulas de fuera)...
+    expect(grupoQueSeVa(cerca, 'patio', (n) => (Number(n.id.slice(1)) < 4 ? u('aula') : u(null)))).toMatchObject({ hacia: 'aula', cuantos: 4, total: 10 });
+    // ...pero si los que van al patio son menos que los que se quedan contigo (más de la mitad de los seguibles), no.
+    expect(grupoQueSeVa(cerca, 'aula', (n) => { const i = Number(n.id.slice(1)); return i < 3 ? u('patio') : i < 7 ? u('aula') : u(null); })).toBeUndefined();
   });
 
   it('quien está ocupado a la vista en otro sitio (el equipo en la pista) cuenta como que va allí', () => {
