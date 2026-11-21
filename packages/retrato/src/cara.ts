@@ -31,7 +31,7 @@ export function medidasDeCara(P: Parametros): Cara {
   const hombre = P.sexo === 'm';
   const w = mezcla(0.765, 0.7, m) + F[0] * (1 - 0.5 * k) + 0.05 * g + 0.035 * k;
   const wc = w * (P.forma === 'corazon' ? 1.01 : 0.985);
-  const wz = w * (0.895 + 0.115 * r.pomulos + (P.forma === 'corazon' ? 0.02 : 0));
+  const wz = w * (0.88 + 0.15 * r.pomulos + (P.forma === 'corazon' ? 0.02 : 0));
   const wj = w * (mezcla(0.8, hombre ? 0.8 + 0.05 * P.masc : 0.74, m) + F[1] * (1 - 0.5 * k) + 0.1 * g + 0.04 * v + 0.07 * k);
   const wm = w * (mezcla(0.3, hombre ? 0.37 : 0.29, m) + F[2] + (r.menton - 0.5) * 0.25 * (1 - 0.4 * k) + 0.05 * g + 0.05 * k);
   const yj = F[3] + 0.03 * g + 0.03 * v;
@@ -43,9 +43,10 @@ export function medidasDeCara(P: Parametros): Cara {
   };
   const ey = mezcla(0.13, 0, m) + 0.08 * k;
   const ew = 0.4 * w * (0.86 + 0.26 * r.ojosTamano) * mezcla(1.14, 1, m) * 1.05 * (1 + 0.16 * k);
-  // Sin pliegue visible el párpado cae algo más sobre el ojo: se abre hasta un 10 % menos (nada a partir de 0,62, lo habitual).
-  const eh = ew * (0.31 + 0.19 * r.ojosForma) * (1 - 0.18 * v) * mezcla(1.08, 1, m) * (1 + 0.1 * k) * (0.9 + 0.1 * clamp(r.parpado / 0.62));
-  const sube = (ew / 2) * (0.04 + 0.22 * (1 - r.ojosForma) - 0.1 * v);
+  // Sin pliegue visible el párpado cae sobre el ojo: se abre hasta un 23 % menos (nada a partir de 0,7, lo habitual) y el rabillo de fuera sube algo más que la esquina de dentro.
+  const lisa = clamp(1 - r.parpado / 0.7);
+  const eh = ew * (0.31 + 0.19 * r.ojosForma) * (1 - 0.18 * v) * mezcla(1.08, 1, m) * (1 + 0.1 * k) * (1 - 0.23 * lisa ** 0.8);
+  const sube = (ew / 2) * (0.04 + 0.22 * (1 - r.ojosForma) + 0.12 * lisa - 0.1 * v);
   const yn = ey + mezcla(0.3, 0.4, m) - 0.045 * k + 0.14 * (r.narizTamano - 0.5) * mezcla(0.6, 1, m) + 0.03 * v;
   const na = w * (0.155 + 0.1 * r.narizForma) * (0.82 + 0.36 * r.narizTamano) * mezcla(0.85, 1, m) * (1 + 0.08 * v + 0.04 * P.masc) * (1 - 0.16 * k);
   const ym = Math.min(0.72, yn + mezcla(0.17, 0.215, m) - (r.menton - 0.5) * 0.05);
@@ -185,8 +186,9 @@ function dibujarOjos(P: Parametros, L: Lienzo, C: Cara): string {
     const q = (x: number, y: number): Pt => [s * (C.ex + x), ey + y];
     // Pliegue del párpado (rasgo `parpado`, de 0 a 1, continuo): con pliegue marcado hay una línea alta y clara sobre el ojo; al bajar se acerca al borde y se desvanece; sin pliegue
     // visible (cerca de 0) no hay línea y aparece el epicanto, un pliegue de piel que cubre la esquina de dentro del ojo (más marcado en los niños, que casi todos lo tienen un poco).
-    const epi = clamp(clamp((0.5 - r.parpado) / 0.5) * (1 - 0.35 * P.nino) + 0.45 * P.nino * clamp((0.9 - r.parpado) / 0.9));
-    const dentro = q(-a * (1 + 0.1 * epi), eh * (0.1 + 0.3 * epi)), fuera = q(a, -sube);
+    const lisa = clamp(1 - r.parpado / 0.7);
+    const epi = clamp(clamp((0.62 - r.parpado) / 0.55) * (1 - 0.35 * P.nino) + 0.5 * P.nino * clamp((0.9 - r.parpado) / 0.9));
+    const dentro = q(-a * (1 + 0.14 * epi), eh * (0.1 + 0.42 * epi)), fuera = q(a, -sube);
     const sup = `C${p(q(-a * 0.5, -hu * 1.32))} ${p(q(a * 0.3, -hu * 1.36 - sube * 0.5))} ${p(fuera)}`;
     const inf = `C${p(q(a * 0.5, hl * 1.22 - sube * 0.3))} ${p(q(-a * 0.35, hl * 1.3))} ${p(dentro)}`;
     const dOjo = `M${p(dentro)}${sup}${inf}Z`;
@@ -197,10 +199,12 @@ function dibujarOjos(P: Parametros, L: Lienzo, C: Cara): string {
     g.push(`<path d="M${n(ix - ri * 0.8)},${n(iy + ri * 0.2)}A${n(ri * 0.85)},${n(ri * 0.85)} 0 0 0 ${n(ix + ri * 0.8)},${n(iy + ri * 0.2)}Z" fill="${mix(P.iris, '#fff', 0.35)}" opacity="0.4"/>`);
     g.push(`<circle cx="${n(ix)}" cy="${n(iy)}" r="${n(ri * 0.44)}" fill="#0d0b0e"/>`);
     g.push(`<path d="M${p(dentro)}${sup}" fill="none" stroke="#2c1d22" stroke-width="${n(eh * 0.42)}" opacity="0.26"/>`);
+    // Párpado que cae (sin pliegue visible): una franja de piel por encima del iris, que tapa algo de él y deja ver menos blanco.
+    if (lisa > 0.02) g.push(`<path d="M${p(dentro)}${sup}" fill="none" stroke="${mix(P.piel, P.pielSombra, 0.3)}" stroke-width="${n(eh * 0.62 * lisa)}" opacity="0.96"/>`);
     g.push(`<circle cx="${n(ix - ri * 0.32)}" cy="${n(iy - ri * 0.36)}" r="${n(ri * 0.2)}" fill="#fff" opacity="0.95"/>`);
     o.push(`<g clip-path="url(#${L.recorte(dOjo)})">${g.join('')}</g>`);
     // Párpado de arriba (línea de pestañas), pliegue y párpado de abajo.
-    const grosor = (mujer ? 0.039 : 0.028) * mezcla(0.8, 1, P.madura);
+    const grosor = (mujer ? 0.039 : 0.028) * mezcla(0.8, 1, P.madura) * (1 + 0.4 * lisa);
     o.push(`<path d="M${p(dentro)}${sup}${mujer ? `l${n(s * 0.03)},${n(-0.022)}` : ''}" fill="none" stroke="${pestana}" stroke-width="${n(grosor)}" stroke-linecap="round" stroke-linejoin="round"/>`);
     if (mujer) for (const k of [0.55, 0.8]) o.push(`<path d="M${p(q(a * k, -hu * (1.05 - (k - 0.55) * 1.2) - sube * k))}l${n(s * 0.028)},${n(-0.03)}" fill="none" stroke="${pestana}" stroke-width="0.014" stroke-linecap="round"/>`);
     const alto = (hu * 0.55 + 0.035 - 0.012 * P.vejez) * mezcla(0.5, 1.12, clamp(r.parpado));
@@ -214,8 +218,8 @@ function dibujarOjos(P: Parametros, L: Lienzo, C: Cara): string {
     if (epi > 0.04) {
       const fx = -a * 1.04;
       const dPiel = `M${p(q(fx - a * 0.05, -hu * 0.9 * epi))}C${p(q(-a * 1.02, -hu * 0.5))} ${p(q(fx - a * 0.12, hl * 0.2))} ${p(dentro)}C${p(q(-a * 0.94, -hu * 0.1))} ${p(q(-a * 0.9, -hu * 0.55))} ${p(q(fx - a * 0.05, -hu * 0.9 * epi))}Z`;
-      o.push(L.relleno(dPiel, mix(P.piel, P.pielSombra, 0.25), ` opacity="${n(0.9 * epi)}"`));
-      o.push(L.trazo(`M${p(q(-a * 0.5, -hu * 1.12))}Q${p(q(-a * 1.12, -hu * 1.0))} ${p(q(-a * (1 + 0.08 * epi), eh * (0.02 + 0.3 * epi)))}`, 0.011, 0.38 * epi));
+      o.push(L.relleno(dPiel, mix(P.piel, P.pielSombra, 0.3), ` opacity="${n(0.95 * epi)}"`));
+      o.push(L.trazo(`M${p(q(-a * 0.5, -hu * 1.12))}Q${p(q(-a * 1.12, -hu * 1.0))} ${p(q(-a * (1 + 0.08 * epi), eh * (0.02 + 0.3 * epi)))}`, 0.012, 0.55 * epi));
     }
     o.push(L.trazo(`M${p(fuera)}${inf}`, 0.011, 0.45));
 

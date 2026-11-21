@@ -381,13 +381,13 @@ describe('cómo se llama a alguien según su edad', () => {
       // suaves: en Asia oriental, ojos más rasgados (media baja) pero una buena parte de la gente los tiene como cualquiera
       const ojos = mediaDe('asia_oriental', 'ojosForma');
       expect(ojos.media).toBeLessThan(0.45);
-      expect(ojos.v.filter((x) => x > 0.5).length / ojos.v.length).toBeGreaterThan(0.3);
+      expect(ojos.v.filter((x) => x > 0.5).length / ojos.v.length).toBeGreaterThan(0.25);
       // y el pliegue del párpado: poco en Asia oriental, lo habitual en el resto, pero con variación en los dos
       const asia = mediaDe('asia_oriental', 'parpado');
       const esp = mediaDe('espana_centro', 'parpado');
       expect(asia.media).toBeLessThan(0.4);
       expect(esp.media).toBeGreaterThan(0.58);
-      expect(asia.v.filter((x) => x > 0.6).length / asia.v.length).toBeGreaterThan(0.2);
+      expect(asia.v.filter((x) => x > 0.6).length / asia.v.length).toBeGreaterThan(0.15);
       expect(esp.v.filter((x) => x < 0.3).length / esp.v.length).toBeGreaterThan(0.1);
     });
 

@@ -70,14 +70,14 @@ Para que los hijos se parezcan a sus padres (y a veces a un abuelo), la cara se 
 - **Herencia como los perks**: cada rasgo es un par `[expresado, latente]`. El hijo recibe **uno de los dos valores de cada padre** (al azar) y **uno de los dos que recibe se expresa** (al azar, 50 %). Así saca cada rasgo de uno de sus padres, y 1 de cada 4 veces lo que un padre llevaba latente: el rasgo de un abuelo (`rostroHeredado`).
 - **Adultos del mundo** (primera generación, `rostroAlAzar(rng, origen)`): los dos valores de cada rasgo al azar con la **media desplazada por las tendencias de su origen**; hermanos, hijos y el personaje: la herencia anterior desde sus padres, así que las mezclas salen solas (sin mutación).
   - **Cómo se sortea**: cada valor es `u^e` con `u` uniforme en 0–1 y `e = 1/media − 1`; la media es `0,5 + tendencia del origen` (la base del pliegue es 0,62, porque la mayoría de la gente lo tiene visible). Sin tendencia (media 0,5) sigue siendo uniforme; con tendencia, toda la gama sigue saliendo (la gente de cada origen se parece más a su media, pero cualquier cara cabe en cualquiera). Con dos orígenes, cada uno de los dos valores (alelos) sale de uno de ellos, ponderado.
-  - **Tendencias** (`OrigenDef.rostro`, desplazamiento de la media; ausente = 0; ajustables, suaves a propósito):
+  - **Tendencias** (`OrigenDef.rostro`, desplazamiento de la media; ausente = 0; ajustables, suaves una a una, pero visibles en conjunto: la cara de una persona de Asia oriental «media» se distingue de la de una «media» de España a tamaño de retrato, y una mezcla queda a medio camino):
 
 | Origen | Tendencias |
 |---|---|
-| Asia oriental | `parpado` −0,28 (media 0,34: muchos sin pliegue visible, otros con él), `ojosForma` −0,12, `ojosTamano` −0,06, `narizTamano` −0,06, `narizForma` +0,04, `pomulos` +0,12, `cejasForma` −0,10, `cejasGrosor` −0,03, `menton` −0,05, `bocaAnchura` −0,03 |
-| África subsahariana | `narizForma` +0,12, `bocaGrosor` +0,12, `narizTamano` +0,04, `bocaAnchura` +0,04, `ojosTamano` +0,05, `pomulos` +0,03 |
-| Europa del norte | `narizForma` −0,07, `bocaGrosor` −0,08, `cejasGrosor` −0,05, `menton` +0,05, `narizTamano` +0,03, `ojosTamano` −0,03 |
-| Magreb | `cejasGrosor` +0,08, `narizTamano` +0,05, `ojosTamano` +0,04, `bocaGrosor` +0,02 |
+| Asia oriental | `parpado` −0,34 (media 0,28: la mayoría sin pliegue visible, una parte con él), `ojosForma` −0,16, `ojosTamano` −0,06, `narizTamano` −0,06, `narizForma` +0,12 (puente más bajo y aletas más anchas), `pomulos` +0,20 (cara y pómulos más anchos), `cejasForma` −0,18 (más rectas), `cejasGrosor` −0,03, `menton` −0,05, `bocaAnchura` −0,03 |
+| África subsahariana | `narizForma` +0,16, `bocaGrosor` +0,18, `narizTamano` +0,06, `bocaAnchura` +0,06, `ojosTamano` +0,05, `pomulos` +0,04 |
+| Europa del norte | `narizForma` −0,10, `bocaGrosor` −0,10, `cejasGrosor` −0,06, `menton` +0,08, `narizTamano` +0,03, `ojosTamano` −0,03 |
+| Magreb | `cejasGrosor` +0,10, `narizTamano` +0,08, `narizForma` −0,03, `ojosTamano` +0,04, `bocaGrosor` +0,02 |
 | Latinoamérica | `pomulos` +0,04, `narizForma` +0,03, `ojosForma` −0,03, `parpado` −0,04 |
 | Europa del este | `pomulos` +0,04, `narizForma` −0,03 |
 | España (sur) | `cejasGrosor` +0,03 |
