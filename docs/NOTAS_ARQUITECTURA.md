@@ -42,6 +42,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXQFX9Ng9KHWSoLso2U` | `claude/coste-por-accion` | El coste por acción ha subido (un test de npcs supera su límite de 30 s): medir por commits, encontrar y arreglar sin cambiar el juego ni subir límites |
 | `session_01M4vXXPwp3Qjr84KzsiTdwA` | `claude/dorsales` | Dorsales (porteros 1, 13 o desde el 16), crónica con dorsal para los desconocidos, columnas de dorsal y comparación en «Mi equipo» |
 | `session_01M4vXXPDBij8YJjM9AZGWFY` | `claude/entrenamientos` | Catálogo de 22, «quedar a jugar al fútbol» todo el año, campamentos de jugadores y porteros, balance medido |
 
