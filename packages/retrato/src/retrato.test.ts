@@ -15,6 +15,19 @@ const persona = (sexo: 'f' | 'm', a: Partial<Apariencia> = {}, c: Partial<Cuerpo
 });
 const EDADES = Array.from({ length: 93 }, (_, i) => i + 3);
 
+describe('retrato: el pliegue del párpado', () => {
+  it('cambia de forma continua con el rasgo: cada paso da un dibujo distinto y ninguna medida de la cara salta', () => {
+    for (const s of ['f', 'm'] as const) for (const e of [4, 10, 30, 70]) {
+      const pasos = Array.from({ length: 21 }, (_, i) => retratoSvg(persona(s, { rostro: rostro({ parpado: i / 20 }) }), e));
+      expect(new Set(pasos).size).toBe(21);
+      pasos.forEach((svg) => expect(svg).not.toMatch(/NaN|undefined|Infinity/));
+    }
+    const eh = (v: number) => medidasDeCara(parametrosDe(persona('f', { rostro: rostro({ parpado: v }) }), 30)).eh;
+    for (let i = 0; i < 20; i++) expect(Math.abs(eh((i + 1) / 20) - eh(i / 20))).toBeLessThan(0.01);
+    expect(eh(0)).toBeLessThan(eh(1));
+  });
+});
+
 describe('retrato: el dibujo es determinista y no se rompe', () => {
   it('la misma persona a la misma edad da el mismo SVG', () => {
     for (const s of ['f', 'm'] as const) for (const e of [3, 8, 15, 30, 70, 95]) expect(retratoSvg(persona(s), e)).toBe(retratoSvg(persona(s), e));

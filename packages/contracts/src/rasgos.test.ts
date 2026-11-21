@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CARA, DISTINTIVOS, EJES, INTERESES, OJOS, ORIGENES, PELO_COLOR, PELO_TIPO, PIEL,
   aparienciaAlAzar, aparienciaHeredada, atraccion, nombreSegunEdad, caracterAlAzar, caracterHeredado, compatibilidad, describirApariencia, describirCaracter,
-  describirOrigen, factorDeCompatibilidad, gustosAlAzar, interesesAlAzar, interesesDe, interesesHeredados, origenAlAzar, origenHeredado,
+  describirOrigen, factorDeCompatibilidad, gustosAlAzar, interesesAlAzar, interesesDe, interesesHeredados, origenAlAzar, origenHeredado, origen,
   perfilHeredado, rasgosAlAzar,
   rasgosHeredadosNpc, type Apariencia, ROSTRO_MEDIO, RASGOS_DE_ROSTRO, rostroDe, rostroExpresado, rostroAlAzar, rostroHeredado, empaquetarRostro, type Rostro,
 } from './rasgos';
@@ -349,20 +349,72 @@ describe('cómo se llama a alguien según su edad', () => {
       expect(rostroDe({ rostro: ROSTRO_MEDIO }).menton[0]).toBeCloseTo(0.5, 1);
     });
 
-    it('adultos del mundo: los dos valores al azar, uniformes, sin tendencias por origen', () => {
-      const rng = rngDe(32);
-      const valores = (id: string) => Array.from({ length: 3000 }, () => rostroDe(aparienciaAlAzar(rng, [{ id, peso: 1 }], 'm')).narizTamano).flat();
-      for (const id of ['espana_centro', 'asia_oriental', 'africa_subsahariana']) {
-        const v = valores(id);
-        const media = v.reduce((a, b) => a + b, 0) / v.length;
-        expect(media).toBeGreaterThan(0.47);
-        expect(media).toBeLessThan(0.53);
-        expect(v.filter((x) => x < 0.25).length / v.length).toBeGreaterThan(0.21);
-        expect(v.filter((x) => x > 0.75).length / v.length).toBeGreaterThan(0.21);
-      }
+    const mediaDe = (id: string | { id: string; peso: number }[], k: (typeof RASGOS_DE_ROSTRO)[number], n = 4000, sem = 32) => {
+      const rng = rngDe(sem);
+      const o = typeof id === 'string' ? [{ id, peso: 1 }] : id;
+      const v = Array.from({ length: n }, () => rostroDe(aparienciaAlAzar(rng, o, 'm'))[k]).flat();
+      return { media: v.reduce((x, y) => x + y, 0) / v.length, v };
+    };
+
+    it('adultos del mundo: valores repartidos por todo el rango; sin tendencia de origen son uniformes (media 0,5)', () => {
+      const { media, v } = mediaDe('espana_centro', 'narizTamano');
+      expect(media).toBeGreaterThan(0.47);
+      expect(media).toBeLessThan(0.53);
+      expect(v.filter((x) => x < 0.25).length / v.length).toBeGreaterThan(0.21);
+      expect(v.filter((x) => x > 0.75).length / v.length).toBeGreaterThan(0.21);
       // el expresado y el latente de un adulto son independientes
+      const rng = rngDe(33);
       const r = Array.from({ length: 2000 }, () => rostroDe(aparienciaAlAzar(rng, [{ id: 'espana_centro', peso: 1 }], 'm')).bocaGrosor);
       expect(r.filter(([e, l]) => e === l).length).toBeLessThan(100);
+    });
+
+    it('tendencias por origen: la media de cada rasgo se desplaza lo que dice `ORIGENES`, con mucha gente en el otro lado', () => {
+      for (const id of ['asia_oriental', 'africa_subsahariana', 'europa_norte', 'magreb']) {
+        for (const [k, d] of Object.entries(origen(id)!.rostro!) as [(typeof RASGOS_DE_ROSTRO)[number], number][]) {
+          if (Math.abs(d) < 0.06) continue;
+          const base = k === 'parpado' ? 0.62 : 0.5;
+          const { media } = mediaDe(id, k, 3000);
+          expect((media - base) / d).toBeGreaterThan(0.6);
+          expect((media - base) / d).toBeLessThan(1.4);
+        }
+      }
+      // suaves: en Asia oriental, ojos más rasgados (media baja) pero una buena parte de la gente los tiene como cualquiera
+      const ojos = mediaDe('asia_oriental', 'ojosForma');
+      expect(ojos.media).toBeLessThan(0.45);
+      expect(ojos.v.filter((x) => x > 0.5).length / ojos.v.length).toBeGreaterThan(0.25);
+      // y el pliegue del párpado: poco en Asia oriental, lo habitual en el resto, pero con variación en los dos
+      const asia = mediaDe('asia_oriental', 'parpado');
+      const esp = mediaDe('espana_centro', 'parpado');
+      expect(asia.media).toBeLessThan(0.4);
+      expect(esp.media).toBeGreaterThan(0.58);
+      expect(asia.v.filter((x) => x > 0.6).length / asia.v.length).toBeGreaterThan(0.15);
+      expect(esp.v.filter((x) => x < 0.3).length / esp.v.length).toBeGreaterThan(0.1);
+    });
+
+    it('mezclas: una persona de dos orígenes queda entre los dos, y sus hijos heredan las tendencias de sus padres', () => {
+      const mixto = mediaDe([{ id: 'asia_oriental', peso: 0.5 }, { id: 'espana_centro', peso: 0.5 }], 'parpado').media;
+      const asia = mediaDe('asia_oriental', 'parpado').media;
+      const esp = mediaDe('espana_centro', 'parpado').media;
+      expect(mixto).toBeGreaterThan(asia + 0.05);
+      expect(mixto).toBeLessThan(esp - 0.05);
+      // padres de Asia oriental → hijos con la media de Asia oriental; un padre de cada → en medio
+      const rng = rngDe(34);
+      const de = (id: string) => aparienciaAlAzar(rng, [{ id, peso: 1 }], 'm');
+      const hijos = (a: string, b: string) => { const v: number[] = []; for (let i = 0; i < 1500; i++) v.push(rostroExpresado(aparienciaHeredada(de(a), de(b), rng, 'f')).parpado); return v.reduce((x, y) => x + y, 0) / v.length; };
+      const aa = hijos('asia_oriental', 'asia_oriental'), ae = hijos('asia_oriental', 'espana_centro'), ee = hijos('espana_centro', 'espana_centro');
+      expect(aa).toBeLessThan(ae - 0.04);
+      expect(ae).toBeLessThan(ee - 0.04);
+    });
+
+    it('partidas anteriores al pliegue (24 caracteres): se leen con el párpado a la mitad y lo demás igual', () => {
+      const r = rostroAlAzar(rngDe(35), [{ id: 'espana_centro', peso: 1 }]);
+      const antiguo = r.slice(0, 24);
+      expect(rostroDe({ rostro: antiguo }).ojosForma).toEqual(rostroDe({ rostro: r }).ojosForma);
+      expect(rostroDe({ rostro: antiguo }).parpado[0]).toBeCloseTo(0.5, 1);
+    });
+
+    it('el rostro al azar no depende de nada más que del generador: mismo generador y origen, mismo rostro', () => {
+      expect(rostroAlAzar(rngDe(36), [{ id: 'asia_oriental', peso: 1 }])).toBe(rostroAlAzar(rngDe(36), [{ id: 'asia_oriental', peso: 1 }]));
     });
 
     it('herencia: el hijo lleva en su par un valor de cada padre y se expresa uno de los dos (50 %)', () => {
@@ -420,8 +472,8 @@ describe('cómo se llama a alguien según su edad', () => {
       const hermanos = new Set(Array.from({ length: 30 }, () => rasgosHeredadosNpc(padre, madre, rng, 'm').apariencia.rostro));
       expect(hermanos.size).toBeGreaterThan(25);
       // y el personaje y los padres del mundo también lo llevan
-      expect(perfilHeredado(padre, madre, rngDe(39), 'm').apariencia.rostro).toHaveLength(24);
-      expect(padre.apariencia.rostro).toHaveLength(24);
+      expect(perfilHeredado(padre, madre, rngDe(39), 'm').apariencia.rostro).toHaveLength(26);
+      expect(padre.apariencia.rostro).toHaveLength(26);
     });
   });
 });

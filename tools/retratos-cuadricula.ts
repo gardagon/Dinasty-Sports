@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  aparienciaHeredada, CARA, cuerpoDePersona, DISTINTIVOS, empaquetarRostro, ID_DEL_PERSONAJE, NOMBRE_RASGO, OJOS, PEINADOS, PELO_COLOR, PELO_TIPO, PIEL, RASGOS_DE_ROSTRO, rngEstable,
+  aparienciaHeredada, CARA, cuerpoDePersona, DISTINTIVOS, empaquetarRostro, ID_DEL_PERSONAJE, NOMBRE_RASGO, OJOS, origen, PEINADOS, PELO_COLOR, PELO_TIPO, PIEL, RASGOS_DE_ROSTRO, rngEstable,
   SERVICES, VELLOS, type Apariencia, type CuerpoDePersona, type Look, type NpcDirectory, type Rostro,
 } from '@ds/contracts';
 import { nuevaPartida } from '@ds/game';
@@ -66,6 +66,27 @@ catalogo('3f. Distintivos', 'distintivos', DISTINTIVOS, { piel: 'clara' });
 // ---- 4. Los extremos de cada rasgo de la cara (0 y 1; el resto a 0,5)
 secciones.push(seccion('4. Rasgos de la cara: 0 y 1', 'Cada pareja es el mismo rasgo a 0 y a 1, en una mujer y en un hombre.',
   RASGOS_DE_ROSTRO.map((k) => (['f', 'm'] as const).map((s) => [0, 1].map((v) => ret(inventada(s, { rostro: rostro({ [k]: v }) }, { semilla: 77 }), 30, `${k} ${v}`, { peinado: s === 'f' ? 'coleta' : 'corto', vello: 'afeitado' })).join('')).join('')).join(''), 'ocho'));
+
+// ---- 4b. El origen y el pliegue del párpado: la media de cada origen, una mezcla y el rasgo de 0 a 1
+const delOrigen = (id: string, k: number): Partial<Apariencia> => {
+  const o = origen(id)!;
+  const sesgo = (r: (typeof RASGOS_DE_ROSTRO)[number]) => o.rostro?.[r] ?? 0;
+  const rasgos = Object.fromEntries(RASGOS_DE_ROSTRO.map((r) => [r, Math.min(1, Math.max(0, (r === 'parpado' ? 0.62 : 0.5) + sesgo(r) + (k - 0.5) * 0.5))]));
+  return { rostro: rostro(rasgos), piel: PIEL[o.piel.indexOf(Math.max(...o.piel))], ojos: OJOS[o.ojos.indexOf(Math.max(...o.ojos))], peloColor: PELO_COLOR[o.peloColor.indexOf(Math.max(...o.peloColor))], peloTipo: PELO_TIPO[o.peloTipo.indexOf(Math.max(...o.peloTipo))] };
+};
+const ORIGENES_A_VER = ['asia_oriental', 'espana_centro', 'africa_subsahariana', 'europa_norte', 'magreb'];
+secciones.push(seccion('4b. El origen en la cara y el pliegue del párpado', 'Primera fila: el pliegue del párpado de 0 a 1 (0, 0,15, 0,3, 0,5, 0,75, 1) en una mujer y un hombre. Después, por origen (la media del origen, con la variación de −0,125, 0 y +0,125 en cada trío): Asia oriental, España (centro), África subsahariana, Europa del norte y Magreb, adultos (30), y la mezcla Asia oriental × España; después, solo la cara (mismo pelo, piel y ojos en todos) de adultos y niños de 8 años por origen y mezcla; al final, niños de 8 años con y sin pliegue.',
+  [(['f', 'm'] as const).map((s) => [0, 0.15, 0.3, 0.5, 0.75, 1].map((v) => ret(inventada(s, { peloColor: 'negro', ojos: 'marron_oscuro', rostro: rostro({ parpado: v, ojosForma: 0.4 }) }, { semilla: 77 }), 30, `${s === 'f' ? 'mujer' : 'hombre'} · párpado ${v}`, { peinado: s === 'f' ? 'melena' : 'corto', vello: 'afeitado' })).join('')).join(''),
+    ...(['f', 'm'] as const).map((s) => [...ORIGENES_A_VER, 'mezcla'].map((id) => [0.25, 0.5, 0.75].map((k) => {
+      const base = id === 'mezcla' ? { ...delOrigen('asia_oriental', k), rostro: rostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((r) => [r, ((origen('asia_oriental')!.rostro?.[r] ?? 0) + (origen('espana_centro')!.rostro?.[r] ?? 0)) / 2 + (r === 'parpado' ? 0.62 : 0.5) + (k - 0.5) * 0.5]))), piel: 'media' as const } : delOrigen(id, k);
+      return ret(inventada(s, base, { semilla: 77 }), 30, `${id === 'mezcla' ? 'asia × españa' : origen(id)!.nombre} · ${k === 0.5 ? 'media' : k < 0.5 ? '−' : '+'}`, { peinado: s === 'f' ? 'melena' : 'corto', vello: 'afeitado' });
+    }).join('')).join('')),
+    // Solo la cara: el mismo pelo, piel y ojos en todos, para ver qué pone cada origen en la forma de la cara (media de cada origen y la mezcla); adultos y niños de 8 años.
+    ...([30, 8] as const).flatMap((e) => (['f', 'm'] as const).map((s) => [...ORIGENES_A_VER, 'mezcla'].map((id) => {
+      const d = id === 'mezcla' ? { rostro: rostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((r) => [r, ((origen('asia_oriental')!.rostro?.[r] ?? 0) + (origen('espana_centro')!.rostro?.[r] ?? 0)) / 2 + (r === 'parpado' ? 0.62 : 0.5)]))) } : { rostro: delOrigen(id, 0.5).rostro };
+      return ret(inventada(s, { ...d, peloColor: 'castano_oscuro', peloTipo: 'liso', ojos: 'marron_oscuro', piel: 'media' }, { semilla: 77 }), e, `solo cara · ${id === 'mezcla' ? 'asia × españa' : origen(id)!.nombre} · ${e}`, { peinado: s === 'f' ? 'melena' : 'corto', vello: 'afeitado' });
+    }).join(''))),
+    ...(['f', 'm'] as const).map((s) => [0, 0.3, 0.7, 1].map((v) => ret(inventada(s, { peloColor: 'negro', ojos: 'marron_oscuro', rostro: rostro({ parpado: v, ojosForma: 0.4 }) }, { semilla: 78 }), 8, `${s === 'f' ? 'niña' : 'niño'} · 8 años · párpado ${v}`)).join(''))].join(''), 'seis'));
 
 // ---- 5. Peinados: cada estilo con cada tipo de pelo, y el pelo que crece
 secciones.push(seccion('5a. Peinados × tipo de pelo (recién hechos)', '', (['f', 'm'] as const).map((s) => PEINADOS.map((e) => PELO_TIPO.map((t) => ret(inventada(s, { peloTipo: t }, { semilla: 77 }), 30, `${e.nombre} · ${NOMBRE_RASGO[t]}`, { peinado: e.id, largoDelPelo: e.largo, vello: 'afeitado' })).join('')).join('')).join(''), 'ocho'));
