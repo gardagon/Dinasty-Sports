@@ -55,3 +55,8 @@ Valen para cualquier deporte con puestos: la regla está en `npcs` y el kit; sol
 
 ## Cómo se prueba
 `tests/puestos-y-pistas.test.ts` (familias y nombres; consejo relativo con niños inventados —un puesto en que vale más que los de su edad sube aunque en absoluto valga menos, y sin compañeros cuenta frente a sí mismo—; lectura de un puesto; textos y género; elección de entrenamientos con un catálogo inventado y con los de hoy; con el juego entero y con el entrenador delante). `npm run puestos -- pistas <semilla> [familia…]` enseña los textos.
+
+## Comprobaciones (21/11)
+- `npm run typecheck`, `npm run eventos:validar` (61 sucesos, todo en orden), `npm run benjamin -- 31,33` y `npm run probar-web` (todo el camino en el navegador, sin errores en la consola): bien.
+- `npm test`: 1242 de 1243 pasaron a la primera; el que falló (`tests/futbol.test.ts`, «fútbol empaquetado») fue porque cambié un texto de `pistas-de-puestos.ts` mientras corría la suite (compara el módulo compilado aparte con el integrado). Repetido solo, junto a `paquetes-de-deporte`, pasa.
+- `npm run huella -- 120`: las 14 huellas de los bots salen **idénticas** a las de antes. Las dos de la partida con fútbol (ciudad de prueba, tres veranos) **cambian a propósito**: la población guardada lleva ahora `familias` y `pistas` y los nombres nuevos de los puestos. No se sube `SAVE_VERSION`: los dos campos son opcionales y una partida anterior los lee como «cada puesto es su familia» y «sin pistas con palabras» (el consejo y las pistas hablan entonces con el nombre de cada puesto o no dan porqué).
