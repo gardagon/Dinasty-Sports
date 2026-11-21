@@ -55,7 +55,7 @@ En la lista de acciones no salen sueltos los entrenamientos por libre de un depo
 | Escala 0,55 | 80 | — | 11 |
 | Escala 0,9 | 104 | 34,0 | 11 |
 | Escala 1,4 | 127 | 36,0 | 11 |
-| **Escala 1 (elegida)** | **RESULTADO_FUTBOL** | RESULTADO_CAP | 11 |
+| **Escala 1 (elegida)** | **110** (el 99 % de los ~111 de campo de antes) | 34,5 | 11 |
 
 Se eligió 1 porque deja el curso de campo parecido al de antes sin la portería de más (~111) y porque el club rinde **al menos como entrenar por libre por hora** (cada entrenamiento que se hace solo y con el club rinde ×1/0,85 en el club: lo comprueba `entrenamientos.test.ts`). Consecuencia a vigilar: **una sesión del club sube unos 13 puntos de habilidad (dos ejercicios de una hora) en vez de ~6**; el club era la rama que menos rendía por hora. La subida se frena sola con el tope por edad, así que no se dobla el nivel de los niños (ver el relevo para lo que se midió).
 

@@ -161,17 +161,26 @@ describe('los ejercicios son los mismos para todo el equipo', { timeout: 90000 }
     advanceToWeek(g, 'gen.descansar', 3, 0, 8);
     const habilidades = HABILIDADES_DE_FUTBOL;
     const subieron = new Set<string>();
+    const porteros = new Set<string>();
     let con = 0;
     for (const n of equipo(g)) {
       const a = antes.get(n.id);
       if (!a) continue;
+      // Los porteros entrenan lo suyo (ejercicios de portería y los físicos o mentales de todos): se miran aparte.
+      if (n.puesto?.futbol === 'GK') {
+        n.hab!.futbol.v.forEach((v, i) => v - a[i] > 1e-6 && porteros.add(HABILIDADES_DE_FUTBOL[i] ?? `stat${i}`));
+        continue;
+      }
       const cambios = n.hab!.futbol.v.map((v, i) => v - a[i]);
       if (cambios.some((c) => c > 1e-6)) con++;
       cambios.forEach((c, i) => c > 1e-6 && subieron.add(habilidades[i] ?? `stat${i}`));
     }
     expect(con).toBeGreaterThan(3);
     // Dos sesiones de dos ejercicios de 3 o 4 habilidades cada uno, más lo que se suma siempre y el juego colectivo: unas 12 a lo sumo. Con ejercicios propios de cada uno saldrían casi todas (29).
+    // (Los ejercicios son de 4 o 5 habilidades: hasta unas 14 entre las dos sesiones.)
     expect(subieron.size).toBeLessThanOrEqual(14);
+    // Los porteros del equipo no hacen los de campo técnicos: nada de regate ni de tiro entre lo que suben.
+    for (const hab of ['futbol.regate', 'futbol.definicion', 'futbol.marcaje', 'futbol.centros']) expect(porteros.has(hab), hab).toBe(false);
   });
 
   it('el personaje entrena lo que entrena su equipo: los ejercicios de su sesión salen de lo que le falta al equipo, con la misma semilla', () => {
