@@ -43,7 +43,8 @@ export function medidasDeCara(P: Parametros): Cara {
   };
   const ey = mezcla(0.13, 0, m) + 0.08 * k;
   const ew = 0.4 * w * (0.86 + 0.26 * r.ojosTamano) * mezcla(1.14, 1, m) * 1.05 * (1 + 0.16 * k);
-  const eh = ew * (0.31 + 0.19 * r.ojosForma) * (1 - 0.18 * v) * mezcla(1.08, 1, m) * (1 + 0.1 * k);
+  // Sin pliegue visible el párpado cae algo más sobre el ojo: se abre hasta un 10 % menos (nada a partir de 0,62, lo habitual).
+  const eh = ew * (0.31 + 0.19 * r.ojosForma) * (1 - 0.18 * v) * mezcla(1.08, 1, m) * (1 + 0.1 * k) * (0.9 + 0.1 * clamp(r.parpado / 0.62));
   const sube = (ew / 2) * (0.04 + 0.22 * (1 - r.ojosForma) - 0.1 * v);
   const yn = ey + mezcla(0.3, 0.4, m) - 0.045 * k + 0.14 * (r.narizTamano - 0.5) * mezcla(0.6, 1, m) + 0.03 * v;
   const na = w * (0.155 + 0.1 * r.narizForma) * (0.82 + 0.36 * r.narizTamano) * mezcla(0.85, 1, m) * (1 + 0.08 * v + 0.04 * P.masc) * (1 - 0.16 * k);
@@ -182,7 +183,10 @@ function dibujarOjos(P: Parametros, L: Lienzo, C: Cara): string {
   const ri = Math.min(a * 0.5, eh * 0.62);
   for (const s of [-1, 1]) {
     const q = (x: number, y: number): Pt => [s * (C.ex + x), ey + y];
-    const dentro = q(-a, eh * 0.1), fuera = q(a, -sube);
+    // Pliegue del párpado (rasgo `parpado`, de 0 a 1, continuo): con pliegue marcado hay una línea alta y clara sobre el ojo; al bajar se acerca al borde y se desvanece; sin pliegue
+    // visible (cerca de 0) no hay línea y aparece el epicanto, un pliegue de piel que cubre la esquina de dentro del ojo (más marcado en los niños, que casi todos lo tienen un poco).
+    const epi = clamp(clamp((0.5 - r.parpado) / 0.5) * (1 - 0.35 * P.nino) + 0.45 * P.nino * clamp((0.9 - r.parpado) / 0.9));
+    const dentro = q(-a * (1 + 0.1 * epi), eh * (0.1 + 0.3 * epi)), fuera = q(a, -sube);
     const sup = `C${p(q(-a * 0.5, -hu * 1.32))} ${p(q(a * 0.3, -hu * 1.36 - sube * 0.5))} ${p(fuera)}`;
     const inf = `C${p(q(a * 0.5, hl * 1.22 - sube * 0.3))} ${p(q(-a * 0.35, hl * 1.3))} ${p(dentro)}`;
     const dOjo = `M${p(dentro)}${sup}${inf}Z`;
@@ -199,8 +203,20 @@ function dibujarOjos(P: Parametros, L: Lienzo, C: Cara): string {
     const grosor = (mujer ? 0.039 : 0.028) * mezcla(0.8, 1, P.madura);
     o.push(`<path d="M${p(dentro)}${sup}${mujer ? `l${n(s * 0.03)},${n(-0.022)}` : ''}" fill="none" stroke="${pestana}" stroke-width="${n(grosor)}" stroke-linecap="round" stroke-linejoin="round"/>`);
     if (mujer) for (const k of [0.55, 0.8]) o.push(`<path d="M${p(q(a * k, -hu * (1.05 - (k - 0.55) * 1.2) - sube * k))}l${n(s * 0.028)},${n(-0.03)}" fill="none" stroke="${pestana}" stroke-width="0.014" stroke-linecap="round"/>`);
-    const alto = hu * 0.55 + 0.035 - 0.012 * P.vejez;
-    o.push(L.trazo(`M${p(q(-a * 0.78, -hu * 0.55 - alto))}Q${p(q(-a * 0.05, -hu * 1.45 - alto))} ${p(q(a * 0.95, -sube - alto * 0.55))}`, 0.014, (0.6 + 0.3 * P.vejez) * (1 - 0.75 * P.nino)));
+    const alto = (hu * 0.55 + 0.035 - 0.012 * P.vejez) * mezcla(0.5, 1.12, clamp(r.parpado));
+    const visible = clamp((r.parpado - 0.08) / 0.5);
+    if (visible > 0) {
+      // Con el pliegue bajo (párpado «de capucha») la línea nace pegada al ojo, a media altura, y se abre al alejarse; con el pliegue alto sale desde la esquina de dentro.
+      const nace = clamp((r.parpado - 0.1) / 0.6);
+      o.push(L.trazo(`M${p(q(-a * mezcla(0.28, 0.78, nace), -hu * 0.55 - alto * mezcla(0.35, 1, nace)))}Q${p(q(-a * 0.05, -hu * 1.45 - alto))} ${p(q(a * 0.95, -sube - alto * 0.55))}`, 0.014, (0.6 + 0.3 * P.vejez) * (1 - 0.75 * P.nino) * visible));
+    }
+    // Epicanto: la piel del lado de la nariz baja sobre la esquina de dentro. Un pliegue fino y la esquina en punta, sin la carúncula a la vista.
+    if (epi > 0.04) {
+      const fx = -a * 1.04;
+      const dPiel = `M${p(q(fx - a * 0.05, -hu * 0.9 * epi))}C${p(q(-a * 1.02, -hu * 0.5))} ${p(q(fx - a * 0.12, hl * 0.2))} ${p(dentro)}C${p(q(-a * 0.94, -hu * 0.1))} ${p(q(-a * 0.9, -hu * 0.55))} ${p(q(fx - a * 0.05, -hu * 0.9 * epi))}Z`;
+      o.push(L.relleno(dPiel, mix(P.piel, P.pielSombra, 0.25), ` opacity="${n(0.9 * epi)}"`));
+      o.push(L.trazo(`M${p(q(-a * 0.5, -hu * 1.12))}Q${p(q(-a * 1.12, -hu * 1.0))} ${p(q(-a * (1 + 0.08 * epi), eh * (0.02 + 0.3 * epi)))}`, 0.011, 0.38 * epi));
+    }
     o.push(L.trazo(`M${p(fuera)}${inf}`, 0.011, 0.45));
 
     // Ceja.
