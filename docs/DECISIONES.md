@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Detalles al jugar: sucesos en clase, habilidades por grupos, tu equipo, entrenamientos y puestos
+
+Observado por el usuario jugando la versión publicada:
+- **Los sucesos ocasionales** (una pregunta en clase, la recomendación de puesto del profesor de Educación Física) consumen minutos fuera de las clases. No deberían consumir tiempo. Tampoco debe ofrecerse dejar la respuesta para el día siguiente cuando no tiene sentido: si la profesora te pregunta en clase, no le dices «te lo digo mañana».
+- **Las habilidades del fútbol se agrupan visualmente** en portería, físico, mental y técnico; hoy cuesta saber a qué tipo pertenece cada una.
+- **Tu equipo:** al entrar no se sabe en qué equipo estás (A, B, C…). Hace falta más información de los compañeros, sin enseñar el nombre de quien todavía no conoces, y una forma de compararte con el resto del equipo. Para el niño, quizá en una pestaña propia de la página del personaje. Para la labor de entrenador, más adelante, una página más detallada.
+- **Más entrenamientos, a corto plazo:** hay pocos, y alguno sube habilidades que no encajan.
+- **Qué valora el motor en cada puesto:** el usuario quiere ver la fórmula. Ejemplo: el profesor le recomendó portero o carrilero; con las mismas habilidades, Football Manager le daba portero (tipo líbero) o mediocentro defensivo. Le gusta la información que se da («destacas en cómo te mueves»), pero hay que ayudar más, aunque sea con pistas.
+
 ## 21/11/2026 — Rendimiento: guardar sin congelar, fútbol más barato y equipos que se forman al empezar el curso
 
 - **Guardar fuera del hilo de la página:** aprobado.
