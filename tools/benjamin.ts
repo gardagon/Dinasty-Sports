@@ -3,10 +3,10 @@
  * y el primer partido de benjamín, y cómo queda la primera convocatoria (quién sale, y si el personaje que va a los entrenamientos entra en igualdad). `npm run benjamin -- [semillas]`.
  */
 import { PAIS_CIUDAD_GRANDE, SERVICES, claveDeDeporte, registrarPais, type ClubDirectory, type DeporteService, type NpcDirectory, type PartidosService } from '@ds/contracts';
-import { advanceToWeek } from '@ds/core';
+import { advanceToWeek, advanceUntil } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol, paraConvocar, convocarYAlinear, type FutbolState } from '@ds/mod-futbol';
-import { hacer, posible } from '../tests/ayudas';
+import { futbol, paraConvocar, convocarYAlinear, proximoPartido, type FutbolState } from '@ds/mod-futbol';
+import { hacer, llegarA, posible } from '../tests/ayudas';
 
 registrarPais(PAIS_CIUDAD_GRANDE);
 const semillas = (process.argv[2] ?? '31,32,33').split(',').map(Number);
@@ -51,4 +51,48 @@ for (const seed of semillas) {
   s.sesiones = Object.fromEntries(Array.from({ length: primera + 1 }, (_, w) => [w, 2]));
   console.log(`  Personaje que ha ido a todos (2 por semana): ${papel()}`);
   s.sesiones = original;
+}
+
+// La liga entera con el personaje yendo a todos los entrenamientos y a todos los partidos a los que lo convocan (la rotación de los equipos de colegio, `CategoriaDef.rotacionEn`): cuántas semanas lo convocan, cuántas
+// juega de titular y de suplente y cuántos minutos suma. Es una partida nueva por semilla (no toca la de arriba).
+console.log('\nLa liga entera yendo a todos los entrenamientos y partidos:');
+for (const seed of semillas) {
+  const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  advanceToWeek(g, 'gen.descansar', 0, 2, 9);
+  if (!posible(g, 'futbol.apuntarse_colegio')) { console.log(`Semilla ${seed}: el personaje no tiene plaza (${g.preview('futbol.apuntarse_colegio')?.reason})`); continue; }
+  hacer(g, 'futbol.apuntarse_colegio');
+  const estado = () => g.moduleState<FutbolState>('futbol') as FutbolState;
+  const suSlot = (): { dia: number; hora: number } | undefined => {
+    const p = estado().personaje;
+    const liga = estado().liga;
+    const l = p && liga ? liga.categorias[p.categoria] : undefined;
+    const sig = l ? proximoPartido(l, `${p!.club}|${p!.letra}`) : undefined;
+    const h = sig ? estado().calendario?.partidos[`${liga!.curso}|${p!.categoria}|${sig.ref}`] : undefined;
+    return h ? { dia: h[0], hora: h[1] } : undefined;
+  };
+  const hasta = (minuto: number): void => advanceUntil(g, 'gen.descansar', (t) => t.minute >= minuto);
+  const semanas: string[] = [];
+  let convocado = 0, titular = 0, suplente = 0, ninguno = 0;
+  for (let w = 1; w <= 30; w++) {
+    advanceToWeek(g, 'gen.descansar', w, 0, 9);
+    // Va a todos los entrenamientos de la semana y de la anterior (el club del colegio entrena dos días).
+    const s = estado();
+    s.sesiones = { ...(s.sesiones ?? {}), [w - 1]: 2, [w]: 2 };
+    const slot = suSlot();
+    if (!slot) continue;
+    const saque = (g.time.day - g.time.weekday + slot.dia) * 1440 + slot.hora * 60;
+    hasta(saque - 150);
+    llegarA(g, 'campo_municipal', Math.floor(((saque - 58) % 1440) / 60), (saque - 58) % 60);
+    if (!posible(g, 'futbol.unirse_companeros')) { ninguno++; semanas.push('·'); continue; }
+    hacer(g, 'futbol.unirse_companeros');
+    hasta(saque - 30);
+    hacer(g, 'futbol.ir_vestuario');
+    hasta(saque);
+    hacer(g, 'futbol.jugar_partido');
+    const u = estado().ultimoPartido!;
+    convocado++;
+    if (u.juega && u.titular) { titular++; semanas.push('T'); } else if (u.juega) { suplente++; semanas.push('s'); } else semanas.push('b');
+  }
+  const e = estado().estadisticas;
+  console.log(`Semilla ${seed} (${estado().personaje?.club} ${estado().personaje?.categoria} ${estado().personaje?.letra}): convocado ${convocado} semanas (titular ${titular}, suplente que juega ${suplente}, convocado sin jugar ${convocado - titular - suplente}), no convocado ${ninguno}; PJ ${e?.pj ?? 0}, ${e?.min ?? 0} minutos. Semana a semana (T titular, s suplente, b banquillo sin jugar, · no convocado): ${semanas.join('')}`);
 }

@@ -2,6 +2,9 @@
  * Categorías por edad de una competición. Son DATO por país y deporte (cada federación tiene las suyas):
  * el atletismo español usa sub-10, sub-12... y el fútbol tendrá las suyas.
  */
+/** El tipo de un club a efectos de las reglas de la categoría: el de un colegio o uno de fuera. */
+export type TipoDeClub = 'colegio' | 'club';
+
 export interface CategoriaDef {
   id: string;
   nombre: string;
@@ -10,6 +13,11 @@ export interface CategoriaDef {
   edadMax: number;
   /** Todos sus jugadores llegan nuevos al club (decisión del usuario, 12/11/2026: benjamín): su asistencia y su relación con el entrenador empiezan a contar en el primer entrenamiento de la temporada, no antes. */
   nuevosEnElClub?: boolean;
+  /**
+   * En qué tipos de club el entrenador **rota** a la plantilla en esta categoría para que todos jueguen algo a lo largo de la liga (decisión del usuario, 21/11/2026: los colegios, en benjamín y alevín): el que menos ha
+   * jugado o más lleva sin jugar entra antes en la convocatoria y en el once (`PARAMETROS_DE_CONVOCATORIA.rotacion`). Es lo mismo para el personaje y los PNJ. Sin él, el entrenador no rota.
+   */
+  rotacionEn?: readonly TipoDeClub[];
   /**
    * Probabilidad base (0 a 1) de que un niño con club en su colegio vaya a probar a un club de fuera en lugar de quedarse en el de su colegio (decisión del usuario, 17/11/2026: cuanto más mayor, más prueba fuera).
    * Sube con la ambición y baja con los amigos (`PESOS_DE_PROBAR_FUERA`; el nivel no pesa). Sin él, `PROBAR_FUERA_POR_DEFECTO`.

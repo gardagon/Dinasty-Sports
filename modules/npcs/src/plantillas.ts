@@ -592,6 +592,17 @@ export function acomodarSobrantes(m: MercadoDeFichajes, pob: PoblacionGuardada, 
 
 
 /**
+ * ¿Rota el entrenador a la plantilla de este equipo? Es un dato: la categoría dice en qué tipos de club (`rotacionEn`: el de un colegio o uno de fuera) y el club es de un colegio si su equipo lleva `colegio`
+ * (el del personaje o uno de los de fuera). El mismo dato vale para el personaje y los PNJ.
+ */
+export function rotaElEquipo(pobs: readonly PoblacionGuardada[], deporte: string, club: string, categoria: string): boolean {
+  const pob = pobs.find((p) => p.deporte === deporte);
+  const cat = pob?.categorias?.find((c) => c.id === categoria);
+  const equipo = pob?.equipos.find((e) => e.club === club || e.nombre === club);
+  return !!cat?.rotacionEn && !!equipo && cat.rotacionEn.includes(equipo.colegio !== undefined ? 'colegio' : 'club');
+}
+
+/**
  * Los jugadores de un equipo (club, categoría y letra A a D) para jugar un partido: su puesto, lo que valen en cada uno, su estado de hoy y su lector (`NpcDirectory.plantillaDelEquipo`). Son los mismos datos para todos:
  * el personaje y los PNJ salen de las mismas reglas.
  */
