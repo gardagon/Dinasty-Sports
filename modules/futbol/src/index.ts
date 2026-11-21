@@ -75,6 +75,7 @@ import {
   modificadorDeSobrecarga,
   modificadorPorTuCuenta,
   pedirConsejo,
+  preguntarPorUnPuesto,
   nombreDeCategoria,
   sedeDelClub as sedeDelClubEn,
   semillaDeSesionDeEquipo,
@@ -199,6 +200,8 @@ const CONFIG: ConfigDeporte = {
   puestos: (ctx) => conLaPierna(rendimientoPorPuestos(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', PUESTOS_DE_FUTBOL.pierna?.ventajaDelLado ?? 0.25),
   puestosDelDeporte: PUESTOS_DE_FUTBOL.puestos.map((p) => ({ id: p.id, nombre: p.nombre })),
   entrenosLibres: ENTRENOS_LIBRES,
+  // Los entrenamientos que recomienda el entrenador se leen de las acciones de entrenar por libre (`futbol.actions`): lo que sube cada una es lo que cuenta, no un desplegable fijo.
+  catalogoDeEntrenos: (ctx) => (futbol.actions ?? []).filter((a) => ENTRENOS_LIBRES.includes(a.id) && a.train).map((a) => ({ id: a.id, nombre: typeof a.name === 'string' ? a.name : a.name(ctx), entrena: a.train! })),
   juegoInformal: JUEGO_INFORMAL,
 };
 
@@ -1415,7 +1418,8 @@ export const futbol = defineModule<FutbolState>({
   // Apuntarse al club del colegio (kit).
   dynamicActions: (() => {
     const deClubes = accionesDeClubes(CONFIG);
-    return (ctx: ReadContext) => [...deClubes(ctx), ...accionesDeEspectador(ctx)];
+    const preguntas = preguntarPorUnPuesto(CONFIG);
+    return (ctx: ReadContext) => [...deClubes(ctx), ...accionesDeEspectador(ctx), ...preguntas(ctx)];
   })(),
 
   actions: ligarALugares(

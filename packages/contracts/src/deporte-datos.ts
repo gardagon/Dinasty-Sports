@@ -267,9 +267,49 @@ export function conLaPierna(valores: Readonly<Record<string, number>>, pierna: P
   return Object.fromEntries(Object.entries(valores).map(([p, v]) => [p, ladoDePuesto(p) === undefined ? v : v + (ladoDePuesto(p) === pierna ? ventaja : -ventaja)]));
 }
 
+/**
+ * Un **puesto sin lado** (decisión del usuario, 21/11/2026): «lateral» agrupa el izquierdo y el derecho, «extremo» los dos extremos… Las recomendaciones (el consejo del profesor, las pistas del entrenador,
+ * «Preguntar por un puesto») hablan de familias, no de lados; donde el lado importa (la plantilla, el puesto que se juega, la pierna) se siguen usando los puestos.
+ */
+export interface FamiliaDePuestos {
+  id: string;
+  /** «Lateral», «Extremo»… (mayúscula inicial; en los textos se baja con `toLowerCase`). */
+  nombre: string;
+  /** Los puestos de la familia (los dos lados, o uno solo si no tiene lado). */
+  puestos: readonly string[];
+}
+
+/** Cómo se dice, de una habilidad o capacidad, que alguien la tiene bien y que le falta. Sin cifras (`VISION.md`, principio 7). Género: `{yo:o|a}` para el personaje. */
+export interface CualidadDePuesto {
+  /** «reaccionas muy rápido», «arrancas muy bien»: una cláusula que sigue a «eres…» o «de portero…». */
+  tiene: string;
+  /** «cuando se plantan solos delante, dudas», «aún te cuesta aguantar un partido entero». */
+  falta: string;
+}
+
+/**
+ * Los textos de las pistas sobre los puestos, **como dato del deporte**: el motor (el kit y `npcs`) decide qué cualidades destacan y cuáles frenan; aquí solo se lee. Llaves: `{señal.puesto}`
+ * (el puesto, en minúscula), `{señal.tiene}` y `{señal.falta}` (las cualidades, ya unidas: «a y b»), `{señal.entreno}` (el nombre del entrenamiento) y el género con `{yo:o|a}` y `{quien:o|a}`
+ * (quien habla: el profesor o el entrenador).
+ */
+export interface PistasDePuestos {
+  /** Por stat (habilidad `futbol.reflejos` o capacidad `gen.velocidad`). Lo que no esté, no se nombra. */
+  cualidades: Readonly<Record<string, CualidadDePuesto>>;
+  /** Por qué te ve en esos puestos (el consejo del profesor): se añade tras los puestos. `{señal.tiene}`. Sin cualidades, `sinMotivo`. */
+  porque: { conMotivo: string; sinMotivo: string };
+  /** «Preguntar por un puesto»: según lo cerca que estás. `ya`: ya vales para él; `cerca`; `lejos`; `sinDatos`: sin nadie con quien compararte. */
+  lectura: { ya: string; cerca: string; lejos: string; sinDatos: string };
+  /** El entrenador recomienda un entrenamiento por su nombre (`{señal.entreno}`) según lo que frena tu puesto (`{señal.falta}`); `yaEntrenas` si nada te frena. */
+  entrenamiento: { recomienda: string; /** Algo te frena pero ningún entrenamiento lo sube. */ sinEntreno: string; yaEntrenas: string };
+}
+
 /** Los puestos de un deporte y cómo se reparte una plantilla entre ellos. */
 export interface PuestosDeDeporte {
   puestos: readonly PuestoDeDeporte[];
+  /** Los puestos sin lado (`FamiliaDePuestos`): con ellos hablan el consejo y las pistas. Sin ellos (partidas anteriores), cada puesto es su propia familia. */
+  familias?: readonly FamiliaDePuestos[];
+  /** Los textos de las pistas sobre los puestos (`PistasDePuestos`). Sin ellos, el deporte no da pistas con palabras. */
+  pistas?: PistasDePuestos;
   /**
    * Cómo se forman los equipos de un club (`CIUDAD_Y_LIGAS.md` §5): los **titulares** de cada equipo por grupo de puestos (un equipo de 18 tiene 11 titulares y 7 suplentes: en el fútbol, 1 portero, 2
    * centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y el **listón** que un jugador de primer año necesita sobre uno de segundo para ser titular en el A de un club grande.
@@ -297,6 +337,33 @@ export interface PuestosDeDeporte {
     formacion: { edadDeInicio: number; aZonaPorTemporada: number; aPuestoPorTemporada: number; valorDeReferencia: number; /** Los minutos de una temporada completa de titular: la preferencia se forma con el **tiempo jugado** (cada temporada suma minutos jugados / esto, hasta 1). Sin él, cada temporada en un equipo cuenta 1. */ minutosPorTemporada?: number };
   };
 }
+
+/** Las familias de puestos de un deporte: las suyas o, sin ellas, un puesto por familia. */
+export const familiasDePuestos = (p: PuestosDeDeporte): readonly FamiliaDePuestos[] => p.familias ?? p.puestos.map((q) => ({ id: q.id, nombre: q.nombre, puestos: [q.id] }));
+
+/** La familia de un puesto (o `undefined` si no está). */
+export const familiaDePuesto = (p: PuestosDeDeporte, puesto: string): FamiliaDePuestos | undefined => familiasDePuestos(p).find((f) => f.puestos.includes(puesto));
+
+/** Lo que vale alguien en cada familia: la media de los valores de sus puestos (sin la pierna, que se anula entre los dos lados). */
+export function valoresPorFamilia(p: PuestosDeDeporte, valores: Readonly<Record<string, number>>): Record<string, number> {
+  return Object.fromEntries(
+    familiasDePuestos(p).flatMap((f) => {
+      const vs = f.puestos.flatMap((id) => (valores[id] === undefined ? [] : [valores[id]]));
+      return vs.length ? [[f.id, vs.reduce((a, b) => a + b, 0) / vs.length] as const] : [];
+    }),
+  );
+}
+
+/** El peso de cada stat en una familia: la media de los pesos de sus puestos. */
+export function pesosDeFamilia(p: PuestosDeDeporte, f: FamiliaDePuestos): Record<string, number> {
+  const t: Record<string, number> = {};
+  const puestos = f.puestos.map((id) => p.puestos.find((q) => q.id === id)).filter((q): q is PuestoDeDeporte => !!q);
+  for (const q of puestos) for (const [k, v] of Object.entries(q.pesos)) t[k] = (t[k] ?? 0) + v / puestos.length;
+  return t;
+}
+
+/** «a, b y c». */
+export const listaConY = (xs: readonly string[]): string => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}` : (xs[0] ?? ''));
 
 /** Cuántos jugadores de cada grupo caben en una plantilla de `total` jugadores: el reparto del máximo, en proporción (los que sobran, a los restos mayores). */
 export function cuposPorGrupo(p: PuestosDeDeporte, total: number): Record<string, number> {

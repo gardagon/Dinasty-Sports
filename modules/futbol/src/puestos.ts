@@ -1,4 +1,5 @@
 import type { PuestoDeDeporte, PuestosDeDeporte } from '@ds/contracts';
+import { FAMILIAS_DE_PUESTOS_DE_FUTBOL, PISTAS_DE_PUESTOS_DE_FUTBOL } from './pistas-de-puestos';
 
 /**
  * Los 16 puestos del fútbol (los del addon 2.1, `docs/diseno/addon_futbol_v2.1.json`), con las habilidades que pesan en cada uno y su parecido con los demás. **Adelanto de la F3**
@@ -52,11 +53,11 @@ const NOMBRES: readonly [string, string, number][] = [
   ['LB', 'Lateral izquierdo', 1],
   ['RB', 'Lateral derecho', 1],
   ['CDM', 'Pivote', 2],
-  ['LCR', 'Carrilero izquierdo', 2],
-  ['RCR', 'Carrilero derecho', 2],
+  ['LCR', 'Interior izquierdo', 2],
+  ['RCR', 'Interior derecho', 2],
   ['CM', 'Mediocentro', 3],
-  ['LM', 'Interior izquierdo', 3],
-  ['RM', 'Interior derecho', 3],
+  ['LM', 'Medio de banda izquierdo', 3],
+  ['RM', 'Medio de banda derecho', 3],
   ['CAM', 'Mediapunta', 4],
   ['LW', 'Extremo izquierdo', 4],
   ['RW', 'Extremo derecho', 4],
@@ -79,6 +80,9 @@ export const PUESTOS_DE_FUTBOL: PuestosDeDeporte = {
   experiencia: { ritmo: 0.09 },
   // Cómo se forman los equipos: 11 titulares (un 4-3-3: 1 portero, 2 centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y 7 suplentes; y el listón de los de primer año (+4 puntos: con las posiciones obligadas, aun así entran en el A unos 3 o 4 primeros años por club y categoría).
   equipos: { titulares: { portero: 1, central: 2, lateral: 2, medio: 3, banda: 2, delantero: 1 }, listonDePrimerAno: 7, formacion: { portero: ['GK'], central: ['CB', 'CB'], lateral: ['LB', 'RB'], medio: ['CDM', 'CM', 'CM'], banda: ['LW', 'RW'], delantero: ['ST'] } },
+  // Los puestos sin lado y las pistas con palabras (`pistas-de-puestos.ts`): con ellos hablan el consejo, «Preguntar por un puesto» y el entrenador.
+  familias: FAMILIAS_DE_PUESTOS_DE_FUTBOL,
+  pistas: PISTAS_DE_PUESTOS_DE_FUTBOL,
   puestos: NOMBRES.map(([id, nombre, linea]): PuestoDeDeporte => ({ id, nombre, linea, pesos: pesosDe(id), afinidades: AFINIDADES[id] ?? {} })),
   // El puesto favorito se forma con los años (decisión del 08/11): a los 8, en torno al 60 % sin puesto definido, un 30 % con puesto concreto y un 10 % con zona (portería, defensa, medio o ataque; las bandas, en el medio y los extremos, en el ataque); después, con las temporadas y lo que vale en su puesto, pasan a una zona y a un puesto (propuesta de ritmo a calibrar).
   favoritos: {

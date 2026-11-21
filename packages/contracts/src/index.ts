@@ -29,6 +29,7 @@ export * from './deporte';
 export * from './conversacion';
 export * from './comparacion';
 export * from './deporte-datos';
+export * from './pistas-de-puestos';
 export * from './calendario-de-temporada';
 export * from './hermanos';
 export * from './nombres';
