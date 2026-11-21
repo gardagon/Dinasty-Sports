@@ -5,6 +5,7 @@ import type { CategoriaDef } from './categories';
 import type { ReadContext } from './context';
 import type { LugarId } from './lugares';
 import type { StatDef } from './stats';
+import type { ReglaDeDorsales } from './dorsales';
 
 /**
  * FICHA Y DATOS DE UN DEPORTE. Cada módulo de deporte los aporta con `GameModule.aportes` (claves en `APORTES`), así que el juego puede
@@ -275,6 +276,8 @@ export interface PuestosDeDeporte {
    * centrales, 2 laterales, 3 mediocentros, 2 de banda y 1 delantero) y el **listón** que un jugador de primer año necesita sobre uno de segundo para ser titular en el A de un club grande.
    */
   equipos?: { titulares: Readonly<Record<string, number>>; listonDePrimerAno: number; /** Los puestos de los titulares de cada grupo en la alineación (en el fútbol: 1 portero, 2 centrales, lateral izquierdo y derecho, tres de medio, extremos izquierdo y derecho y un delantero centro). */ formacion?: Readonly<Record<string, readonly string[]>> };
+  /** Los dorsales (el número de la camiseta): rango de los de campo, costumbre por puesto y números de los porteros (`asignarDorsales`). Sin él, los jugadores no llevan número. */
+  dorsales?: ReglaDeDorsales;
   /** La pierna buena: proporción de zurdos, lo que vale de base el lado de su pierna y lo que acelera la experiencia en él. Sin él, los valores por defecto. */
   pierna?: PiernaDeDeporte;
   /** La experiencia en un puesto, partido a partido (F2.4): cuánto se gana por partido de 90 minutos con lo que falta para 100 (por defecto, 0,09). */

@@ -49,6 +49,7 @@ import {
   type CompaneroDeEquipo,
   type ComparacionService,
   aspectoDe,
+  aspectoCortoDe,
   servicioDeComparacion,
   type PartidoDelMundoData,
   type DeporteView,
@@ -101,6 +102,7 @@ import { juicioDe, recordarSoloLosUltimos, textoDelJuicio, verDeNuevo, type Impr
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { EVENTOS_DE_FUTBOL } from './eventos';
 import { TEXTOS_DE_EQUIPO_SIN_NINOS, TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
+import { dorsalDeCampo, dorsalDePortero } from '@ds/contracts';
 import { APORTE_DE_SUCESOS, servicioDeHechos, type HechosService } from '@ds/contracts';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
@@ -140,6 +142,8 @@ export type FutbolState = EstadoBaseDeDeporte & {
   intensidad?: Intensidad;
   /** El equipo del personaje esta temporada (club, categoría y letra A a D): se fija al empezar la liga, como el de todos. */
   personaje?: { curso: number; club: string; categoria: string; letra: string };
+  /** El dorsal del personaje: [club, número]. Se asigna al entrar en el club (entre los que sus compañeros no llevan) y se conserva mientras siga en él. */
+  dorsal?: [string, number];
   /** Lo que ha visto de cada compañero (entrenando o jugando con él): puesto, si cree que es mejor o peor que él, veces y semana (`mi-equipo.ts`). */
   companeros?: Record<string, Impresion>;
   /** Las sesiones del club que ha hecho cada semana (las últimas): su asistencia pesa en la convocatoria como la de cualquiera. */
@@ -314,6 +318,29 @@ function miEquipo(ctx: ReadContext, curso: number): EquipoDelPersonaje | undefin
   return e ? { club: e.club, categoria: e.categoria, letra: e.letra, clave: `${e.club}|${e.letra}` } : undefined;
 }
 
+/**
+ * El dorsal del personaje en su equipo: el guardado si sigue en el mismo club y nadie de su equipo lo lleva; si no, uno nuevo con las mismas reglas que a cualquiera (escoge entre los que sus compañeros no llevan; si es portero,
+ * después de los de campo). `guardar` lo anota cuando hace falta (solo en un contexto que pueda escribir).
+ */
+function dorsalDelPersonaje(ctx: ReadContext, plantilla: readonly JugadorDeEquipoView[], puesto: string): [string, number] | undefined {
+  const regla = PUESTOS_DE_FUTBOL.dorsales;
+  const equipo = miEquipo(ctx, ctx.time.schoolYear);
+  if (!regla || !equipo) return undefined;
+  const ocupados = new Set(plantilla.flatMap((j) => (j.id !== YO && j.dorsal !== undefined ? [j.dorsal] : [])));
+  const guardado = ctx.state<FutbolState>().dorsal;
+  if (guardado && guardado[0] === equipo.club && !ocupados.has(guardado[1])) return guardado;
+  const clave = `${DEPORTE}|${equipo.club}|${equipo.categoria}|${equipo.letra}`;
+  return [equipo.club, regla.porteros.puestos.includes(puesto) ? dorsalDePortero(YO, regla, clave, ocupados) : dorsalDeCampo(YO, puesto, regla, clave, ocupados)];
+}
+
+/** Anota el dorsal del personaje si aún no lo tiene guardado (o ya no vale). */
+function guardarMiDorsal(ctx: ActionContext, plantilla: readonly JugadorDeEquipoView[]): void {
+  const puesto = ctx.state<FutbolState>().puesto;
+  const d = puesto ? dorsalDelPersonaje(ctx, plantilla, puesto) : undefined;
+  const g = ctx.state<FutbolState>().dorsal;
+  if (d && (!g || g[0] !== d[0] || g[1] !== d[1])) ctx.updateState<FutbolState>((s) => ({ ...s, dorsal: d }));
+}
+
 /** El personaje como un jugador más de la plantilla de su equipo: con lo que vale en cada puesto (con su pierna buena), su estado y su asistencia a los entrenamientos. */
 function yoComoJugador(ctx: ReadContext, plantilla: readonly JugadorDeEquipoView[], semana: number, hastaDia: number): JugadorDeEquipoView | undefined {
   const puesto = ctx.state<FutbolState>().puesto;
@@ -331,6 +358,7 @@ function yoComoJugador(ctx: ReadContext, plantilla: readonly JugadorDeEquipoView
     asistencia: asistenciaDelPersonaje(ctx, semana, hastaDia),
     disciplinaDelEntrenador: plantilla[0]?.disciplinaDelEntrenador ?? 0.5,
     lector: ctx,
+    ...(dorsalDelPersonaje(ctx, plantilla, puesto) ? { dorsal: dorsalDelPersonaje(ctx, plantilla, puesto)![1] } : {}),
     ...(ctx.state<FutbolState>().estadisticas ? { estadisticas: ctx.state<FutbolState>().estadisticas } : {}),
     ...(ctx.state<FutbolState>().experiencia ? { experiencia: ctx.state<FutbolState>().experiencia } : {}),
   };
@@ -772,6 +800,7 @@ function verElEntrenamiento(ctx: ActionContext): void {
   const base = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra);
   const yo = yoComoJugador(ctx, base, ctx.time.week, ctx.time.weekday);
   if (!yo) return;
+  guardarMiDorsal(ctx, base);
   verACompaneros(ctx, base.filter((j) => (j.estado.baja ?? 0) <= 0).map((j) => ({ id: j.id, puesto: j.puesto, valor: j.valor })), yo.valor);
 }
 
@@ -783,22 +812,27 @@ function miEquipoDeFutbol(ctx: ReadContext): MiEquipoView | undefined {
   if (!club || !equipo || !dir?.plantillaDelEquipo) return undefined;
   const vistos = ctx.state<FutbolState>().companeros ?? {};
   const cat = datosDeDeporte(ctx, DEPORTE).categorias.find((c) => c.id === equipo.categoria);
-  const companeros: CompaneroDeEquipo[] = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra).map((j) => {
+  const plantilla = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra);
+  const puestoMio = ctx.state<FutbolState>().puesto;
+  const miDorsal = puestoMio ? dorsalDelPersonaje(ctx, plantilla, puestoMio)?.[1] : undefined;
+  const companeros: CompaneroDeEquipo[] = plantilla.map((j) => {
     const n = dir.get(j.id);
     const visto = vistos[j.id];
     return {
       id: j.id,
       aspecto: n ? aspectoDe(n) : 'Un compañero',
+      ...(n ? { aspectoCorto: aspectoCortoDe(n) } : {}),
       ...(n && n.known !== false ? { nombre: n.name } : {}),
-      ...(visto ? { puesto: nombreDePuesto(visto[0]) } : {}),
+      ...(j.dorsal !== undefined ? { dorsal: j.dorsal } : {}),
+      ...(visto ? { puesto: nombreDePuesto(visto[0]), comparacion: juicioDe(visto) } : {}),
     };
   });
   const orden = (c: CompaneroDeEquipo): string => (c.nombre ? `0${c.nombre}` : `1${c.aspecto}`);
   companeros.sort((a, b) => (orden(a) < orden(b) ? -1 : orden(a) > orden(b) ? 1 : 0));
   return {
     titulo: `Equipo ${equipo.letra} · ${club.nombre}`,
-    texto: `${cat ? `Categoría ${cat.nombre.toLowerCase()}. ` : ''}De quien aún no conoces solo sabes cómo es; su puesto lo ves cuando entrenas o juegas con él.`,
-    companeros: [{ id: YO, nombre: 'Tú', aspecto: '', ...(ctx.state<FutbolState>().puesto ? { puesto: nombreDePuesto(ctx.state<FutbolState>().puesto!) } : {}), yo: true }, ...companeros],
+    texto: `${cat ? `Categoría ${cat.nombre.toLowerCase()}. ` : ''}De quien aún no conoces solo sabes cómo es (su ficha, en «Gente», cuando lo tengas cerca); su puesto, y si es mejor o peor que tú, lo ves cuando entrenas o juegas con él.`,
+    companeros: [{ id: YO, nombre: 'Tú', aspecto: '', ...(miDorsal !== undefined ? { dorsal: miDorsal } : {}), ...(ctx.state<FutbolState>().puesto ? { puesto: nombreDePuesto(ctx.state<FutbolState>().puesto!) } : {}), yo: true }, ...companeros],
   };
 }
 
@@ -862,8 +896,9 @@ const CAMBIOS_DE_LIGA = { maximo: 5, despuesDeTramos: [1, 3, 4] };
  * cansancio con que acabó), su motivación y su forma como tras una carrera (`competicion.resultado`); si no pudo jugar (lesionado o no convocado), solo ve el resultado y la crónica; y si estaba convocado y no fue (`ausente`),
  * su equipo juega sin él y el entrenador lo apunta como una falta (rebaja su asistencia las dos semanas siguientes).
  */
-function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePartido; lado: 0 | 1; nombres: Record<string, string>; local: string; visitante: string; previa: Previa; curso: number; semana: number; texto: string; nombreDeEquipo: (id: string) => string; ausente?: boolean; papel?: Papel }): void {
+function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePartido; lado: 0 | 1; nombres: Record<string, string>; dorsales?: Record<string, number>; local: string; visitante: string; previa: Previa; curso: number; semana: number; texto: string; nombreDeEquipo: (id: string) => string; ausente?: boolean; papel?: Papel }): void {
   const { r, lado, previa } = p;
+  guardarMiDorsal(ctx, previa.plantilla);
   const papel = p.papel ?? previa.papel;
   const equipos: [string, string] = [p.nombreDeEquipo(p.local), p.nombreDeEquipo(p.visitante)];
   const [propios, rival] = [r.goles[lado], r.goles[1 - lado]];
@@ -873,7 +908,7 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
   const motivo = p.ausente ? 'No te presentas al partido: tu equipo juega sin ti' : papel === 'titular' || papel === 'suplente' ? 'Te quedas en el banquillo todo el partido' : MOTIVO_DE_NO_JUGAR[papel];
   const cronica: LineaDeCronica[] = [
     ...(juega ? [{ destacada: true, texto: yo.titular ? `Eres titular de ${nombreDePuesto(yo.puesto).toLowerCase()}.` : 'Empiezas en el banquillo.' }] : [{ texto: `${motivo}: sigues el partido desde fuera.` }]),
-    ...cronicaDelPartido(r, { equipos, nombres: { ...p.nombres, [YO]: 'Tú' } }),
+    ...cronicaDelPartido(r, { equipos, nombres: nombresQueConoce(ctx, r, p.nombres), dorsales: p.dorsales ?? {}, generos: generosDe(ctx, r), lado }),
   ];
   const resumen: ResumenDePartido = {
     curso: p.curso, semana: p.semana, categoria: previa.equipo.categoria, texto: p.texto, equipos, goles: r.goles, lado, resultado, juega,
@@ -974,6 +1009,20 @@ function elDiaDeUnJugador(j: JugadorDeEquipoView, c: ContextoDelDia): { tarde: n
 /** Las opciones de rotación del entrenador de un equipo (`CategoriaDef.rotacionEn`: los colegios en benjamín y alevín): vacías si no rota. */
 const rotacionDe = (dir: NpcDirectory, club: string, categoria: string, curso: number): { rotar?: { curso: number } } => (dir.rotaElEquipo?.(DEPORTE, club, categoria) ? { rotar: { curso } } : {});
 
+/** Los nombres de quienes juegan un partido que el personaje **ya conoce** (el resto, en la crónica, se nombra por su dorsal). */
+function nombresQueConoce(ctx: ReadContext, r: ResultadoDePartido, nombres: Readonly<Record<string, string>>): Record<string, string> {
+  const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
+  const ids = [...r.alineaciones[0], ...r.alineaciones[1]].filter((id) => id !== YO);
+  return Object.fromEntries(ids.filter((id) => nombres[id] && dir?.get(id)?.known !== false).map((id) => [id, nombres[id]]));
+}
+
+/** El género de cada jugador de un partido (para la concordancia de la crónica). */
+function generosDe(ctx: ReadContext, r: ResultadoDePartido): Record<string, 'f' | 'm'> {
+  const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
+  const ids = [...r.alineaciones[0], ...r.alineaciones[1]].filter((id) => id !== YO);
+  return Object.fromEntries(ids.flatMap((id) => { const g = dir?.get(id)?.gender; return g ? [[id, g] as const] : []; }));
+}
+
 /**
  * Un lado de un partido de liga: la plantilla del equipo, la convocatoria del entrenador y el equipo listo para el motor. En el equipo del personaje, la plantilla lleva al personaje (a la intensidad que eligió) o, si estaba
  * convocado y no va (`sinMi`), no lo lleva: el entrenador convoca a los demás. **Lo usan igual el partido del personaje en su hora y la liga del mundo al cerrar la semana**, para que den el mismo resultado.
@@ -1021,6 +1070,7 @@ function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: n
     mio: a.mio || b.mio,
     lado: (a.mio ? 0 : 1) as 0 | 1,
     nombres: Object.fromEntries([...a.plantilla, ...b.plantilla].map((j) => [j.id, j.nombre])),
+    dorsales: Object.fromEntries([...a.plantilla, ...b.plantilla].flatMap((j) => (j.dorsal !== undefined ? [[j.id, j.dorsal] as const] : []))) as Record<string, number>,
   };
 }
 
@@ -1294,7 +1344,7 @@ function jugarElPartidoDelPersonaje(ctx: ActionContext): void {
   const id = `${liga.curso}|${previa.equipo.categoria}|${sig.ref}`;
   const o = partidoDeLiga(dir, previa, liga.semilla, { categoria: previa.equipo.categoria, local, visitante, id, intensidad: ctx.state<FutbolState>().intensidad ?? 'normal', curso: liga.curso, dia: contextoDelDia(ctx, t.week, id) });
   ctx.updateState<FutbolState>((s) => ({ ...s, partidoJugado: { semana: t.week, id, goles: o.goles, jugadores: o.jugadores } }));
-  if (o.r && o.lado !== undefined) registrarPartidoDelPersonaje(ctx, { r: o.r, lado: o.lado, nombres: o.nombres, local, visitante, previa, curso: liga.curso, semana: t.week, texto: sig.texto, nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria) });
+  if (o.r && o.lado !== undefined) registrarPartidoDelPersonaje(ctx, { r: o.r, lado: o.lado, nombres: o.nombres, dorsales: o.dorsales, local, visitante, previa, curso: liga.curso, semana: t.week, texto: sig.texto, nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria) });
   // Al acabar el partido aparece en el vestuario.
   ctx.emit<IrAData>({ type: SHARED_EVENTS.IR_A, data: { destino: VESTUARIO } });
 }
@@ -1354,7 +1404,7 @@ function ligaDelMundo(ctx: ActionContext, semana: number): void {
   }
   // Su partido de esta semana, si no lo ha jugado él (no convocado, lesionado o ausente): se cuenta con el resultado y la crónica, y la falta si la hay.
   if (delPersonaje && delPersonaje.r && delPersonaje.lado !== undefined && previa) {
-    registrarPartidoDelPersonaje(ctx, { r: delPersonaje.r, lado: delPersonaje.lado, nombres: delPersonaje.nombres, local: delPersonaje.local, visitante: delPersonaje.visitante, previa, curso: t.schoolYear, semana, texto: sigDeMiEquipo?.texto ?? 'Liga', nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria), ausente, ...(papel ? { papel } : {}) });
+    registrarPartidoDelPersonaje(ctx, { r: delPersonaje.r, lado: delPersonaje.lado, nombres: delPersonaje.nombres, dorsales: delPersonaje.dorsales, local: delPersonaje.local, visitante: delPersonaje.visitante, previa, curso: t.schoolYear, semana, texto: sigDeMiEquipo?.texto ?? 'Liga', nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria), ausente, ...(papel ? { papel } : {}) });
   }
   if (jugado) ctx.updateState<FutbolState>((s) => ({ ...s, partidoJugado: undefined }));
   liga = { ...liga, categorias };

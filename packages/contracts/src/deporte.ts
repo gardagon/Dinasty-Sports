@@ -66,8 +66,14 @@ export interface CompaneroDeEquipo {
   nombre?: string;
   /** Su aspecto («un niño alto, de pelo corto…»): sale siempre, y es lo único que se sabe de quien no se conoce. */
   aspecto: string;
+  /** Su descripción corta («Niña, pelo castaño rizado») para tablas estrechas; el resto, en su ficha. */
+  aspectoCorto?: string;
   /** Su puesto, solo si le has visto jugar. */
   puesto?: string;
+  /** El número de su camiseta (se ve siempre: va en la espalda). */
+  dorsal?: number;
+  /** Cómo te ves frente a él (lo mismo que dice su ficha), solo si le has visto jugar y el deporte lo ha desbloqueado. */
+  comparacion?: 'mejor' | 'peor' | 'parecido';
   /** Es el propio personaje. */
   yo?: boolean;
 }

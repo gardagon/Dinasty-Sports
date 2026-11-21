@@ -53,12 +53,13 @@ export function habilidadesAgrupadas(g: Game, d: Pick<DeporteView, 'habilidades'
 
 /** «Mi equipo»: en qué equipo estás y tus compañeros. Quien no conoces sale sin nombre (su aspecto) y el puesto solo si le has visto jugar. */
 export function viewMiEquipo(m: MiEquipoView): string {
-  const filas = m.companeros.map((c) => [c.yo ? 'Tú' : c.nombre ?? `${c.aspecto} (aún no sabes cómo se llama)`, c.puesto ?? '—']);
+  const juicio = { mejor: 'Mejor', peor: 'Peor', parecido: 'Parecido' } as const;
+  const filas = m.companeros.map((c) => [c.dorsal !== undefined ? String(c.dorsal) : '—', c.yo ? 'Tú' : c.nombre ?? c.aspectoCorto ?? c.aspecto, c.puesto ?? '—', c.yo ? '' : c.comparacion ? juicio[c.comparacion] : '—']);
   return `<section class="sheet deporte mi-equipo">
     <h2>${esc(m.titulo)}</h2>
     ${m.texto ? `<p class="note">${esc(m.texto)}</p>` : ''}
-    ${tabla({ header: ['Compañero', 'Puesto'], rows: filas, align: ['left', 'left'], highlight: m.companeros.findIndex((c) => c.yo) })}
-    <p class="note">«—» es que todavía no le has visto jugar. Entrena y juega con el equipo para saber dónde juega cada uno; en su ficha, en «Gente», verás cómo te comparas con él.</p>
+    ${tabla({ header: ['Nº', 'Compañero', 'Puesto', 'Frente a ti'], rows: filas, align: ['right', 'left', 'left', 'left'], highlight: m.companeros.findIndex((c) => c.yo) })}
+    <p class="note">«—» es que todavía no le has visto jugar. Entrena y juega con el equipo para saber dónde juega cada uno y cómo te comparas con él (la descripción de quien no conoces, entera, en su ficha).</p>
   </section>`;
 }
 

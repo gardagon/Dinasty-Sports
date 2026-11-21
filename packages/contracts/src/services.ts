@@ -1,7 +1,7 @@
 import type { DatoPersonal } from './personas';
 import type { LugarId } from './lugares';
 import type { Practica } from './herencia';
-import { descripcionDeDesconocido, nombreSegunEdad, type PerfilDelPersonaje, type RasgosDe } from './rasgos';
+import { descripcionCortaDeDesconocido, descripcionDeDesconocido, nombreSegunEdad, type PerfilDelPersonaje, type RasgosDe } from './rasgos';
 import type { EstadoDeJugador } from './estado-de-jugador';
 import type { EstadisticasDeTemporada } from './estadisticas';
 import type { LectorDePersona } from './lector';
@@ -234,6 +234,8 @@ export interface JugadorDeEquipoView {
   /** Lo disciplinado que es su entrenador (de 0 a 1): con uno disciplinado, faltar cuesta más el puesto. */
   disciplinaDelEntrenador: number;
   lector: LectorDePersona;
+  /** El número de su camiseta en su equipo (`asignarDorsales`); sin él, el deporte no tiene dorsales. */
+  dorsal?: number;
   /** Lo disciplinado que es, de 0 a 1 (cuánto llega a tiempo a las convocatorias). */
   disciplina?: number;
   /** Su relación con el entrenador, de 0 a 100 (50: neutra): baja si llega tarde a las convocatorias; solo la tiene guardada quien ha llegado tarde alguna vez. */
@@ -401,6 +403,12 @@ export interface ClubDirectory {
 /** Cómo se describe a una persona por su aspecto, sin su nombre («un niño alto, de pelo corto…»): lo que se ve de quien aún no se conoce. */
 export function aspectoDe(n: Pick<NpcView, 'age' | 'role' | 'tags' | 'rasgos' | 'gender'>): string {
   return n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, edadAparente(n)) : nombreSegunEdad(n.gender, edadAparente(n));
+}
+
+/** La descripción corta por aspecto («Niña, pelo castaño rizado»), para una tabla estrecha. */
+export function aspectoCortoDe(n: Pick<NpcView, 'age' | 'role' | 'tags' | 'rasgos' | 'gender'>): string {
+  const edad = edadAparente(n);
+  return n.rasgos ? descripcionCortaDeDesconocido(n.rasgos.apariencia, n.gender, edad) : nombreSegunEdad(n.gender, edad).replace(/^(Un|Una) /, '').replace(/^./, (c) => c.toUpperCase());
 }
 
 /**
