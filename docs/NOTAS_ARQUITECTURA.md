@@ -36,11 +36,14 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 1. ~~**Unir a la principal**~~ **Unida el 21/11** (gardagon/Dinasty-Sports#127, integración continua en verde): publicada en GitHub Pages. La rama de trabajo sigue siendo `claude/youthful-clarke-vs0kye`, al día con `main`.
 2. ~~**Reparto de equipos 2, lo que queda**~~ Respondido el 21/11 (DECISIONES, «Rotación en el fútbol de colegio…») y encargado a `claude/rotacion-y-puestos`.
 2. ~~**Rendimiento con la ciudad grande y el fútbol**~~ Respondido el 21/11 (DECISIONES, «Rendimiento: guardar sin congelar…») y encargado a `claude/guardar-sin-congelar` y `claude/futbol-mas-barato`.
+3. **Tu equipo, para el niño** (observado por el usuario, 21/11): saber en qué equipo estás (A, B, C…), más información de los compañeros sin el nombre de quien no conoces y compararte con ellos, quizá en una pestaña propia de la página del personaje. Pendiente de que el usuario elija qué se ve. La página del entrenador, más adelante.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXMaAyvvsxH4QeZu3rA` | `claude/sucesos-en-clase` | Los sucesos que pasan durante otra actividad no gastan minutos; no ofrecer «mañana» cuando hay que responder en el momento |
+| `session_01M4vXXMHztRUvbt7XbZW3ft` | `claude/futbol-puestos-entrenos` | Análisis y propuesta: fórmula de cada puesto (`ANEXO_PUESTOS.md`, con el caso del usuario), catálogo ampliado de entrenamientos, pistas del profesor y el entrenador |
 | `session_01M4vXXNStiDzD4AGKEshkud` | `claude/guardar-sin-congelar` | Guardar (y abrir) sin congelar la página; aviso del peso del guardado |
 | `session_01M4vXXPQUdYEGsR1Fs7XmG5` | `claude/futbol-mas-barato` | Pasada semanal y creación del fútbol más baratas; equipos que se forman desde el 2.º día de clase; `rngEstable` más barato |
 
