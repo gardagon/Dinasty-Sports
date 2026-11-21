@@ -84,6 +84,8 @@ export interface Npc {
   exp?: Record<string, Record<string, number>>;
   /** El equipo (A, B, C o D) de su club y su categoría **durante toda la temporada**, por deporte: se fija en verano (`fijarEquipos`) y no cambia en el curso (decisión del usuario, 08/11/2026). */
   letra?: Record<string, 'A' | 'B' | 'C' | 'D'>;
+  /** El número de su camiseta en el equipo de cada deporte (`asignarDorsales`): se asigna al entrar en el equipo y se conserva mientras siga en el club (cambie de letra o de categoría). Se pierde al dejar el deporte. */
+  dorsal?: Record<string, number>;
   /** Los deportes en que juega **un año por encima de su edad** (el que sería titular en la categoría de arriba asciende: `completarUnaCategoria`). Un 1 por deporte. */
   adelanto?: Record<string, 1>;
   /**

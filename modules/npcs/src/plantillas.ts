@@ -2,7 +2,7 @@
  * Las plantillas: quién juega en cada equipo, el reclutamiento y los equipos A a D.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { asistenciaConFaltas, relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, type PrevisionDelClubView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
+import { asistenciaConFaltas, relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, type PrevisionDelClubView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, asignarDorsales, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
 import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
@@ -404,6 +404,36 @@ export function fijarEquipos(m: MercadoDeFichajes, pob: PoblacionGuardada): void
       }
     }
   }
+  repartirDorsales(m, pob);
+}
+
+/**
+ * **Reparte los dorsales** de todos los equipos del deporte (tras fijar los equipos): quien ya lleva uno en el mismo club lo conserva (aunque cambie de letra o de categoría) y a quien no lleva se le asigna.
+ * Solo se guarda lo que cambia (un número por jugador).
+ */
+export function repartirDorsales(m: MercadoDeFichajes, pob: PoblacionGuardada): void {
+  const regla = pob.puestos?.dorsales;
+  if (!regla) return;
+  // Un solo recorrido, sin valorar a nadie: el equipo es club, categoría (por la edad de juego) y letra.
+  const categorias = new Map(pob.equipos.filter((e) => e.plantillaPorCategoria).map((e) => [e.club, categoriasDelEquipo(pob, e)]));
+  const equipos = new Map<string, Npc[]>();
+  for (const n of m.lista.values()) {
+    const letra = n.letra?.[pob.deporte];
+    if (n.deporte !== pob.deporte || !n.equipo || !letra || !n.puesto?.[pob.deporte] || n.id.startsWith('personaje@')) continue;
+    const edad = edadDeJuego(n, m.dia);
+    const cat = categorias.get(n.equipo)?.find((c) => edad !== undefined && c.edades.includes(edad));
+    if (!cat) continue;
+    const clave = `${n.equipo}|${cat.id}|${letra}`;
+    (equipos.get(clave) ?? equipos.set(clave, []).get(clave)!).push(n);
+  }
+  for (const [clave, miembros] of equipos) {
+    const reparto = asignarDorsales(miembros.map((n) => ({ id: n.id, puesto: n.puesto![pob.deporte], dorsal: n.dorsal?.[pob.deporte] })), regla, `${pob.deporte}|${clave}`);
+    for (const n of miembros) {
+      const d = reparto.get(n.id);
+      if (d === undefined || n.dorsal?.[pob.deporte] === d) continue;
+      m.lista.set(n.id, { ...n, dorsal: { ...n.dorsal, [pob.deporte]: d } });
+    }
+  }
 }
 
 
@@ -435,11 +465,13 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
   const temporadas = n.temporadas ? Object.fromEntries(Object.entries(n.temporadas).filter(([k]) => k !== pob.deporte)) : undefined;
   const letra = n.letra ? Object.fromEntries(Object.entries(n.letra).filter(([k]) => k !== pob.deporte)) : undefined;
   const adelanto = n.adelanto ? Object.fromEntries(Object.entries(n.adelanto).filter(([k]) => k !== pob.deporte)) : undefined;
+  const dorsal = n.dorsal ? Object.fromEntries(Object.entries(n.dorsal).filter(([k]) => k !== pob.deporte)) : undefined;
   // Lo que valía jugando ya no vale: si vuelve a jugar, se calcula de nuevo (y la semana lo guarda).
   const vp = n.vp ? Object.fromEntries(Object.entries(n.vp).filter(([k]) => k !== pob.deporte)) : undefined;
   return {
     ...n,
     puesto,
+    dorsal: dorsal && Object.keys(dorsal).length ? dorsal : undefined,
     letra: letra && Object.keys(letra).length ? (letra as Record<string, 'A' | 'B' | 'C' | 'D'>) : undefined,
     temporadas: temporadas && Object.keys(temporadas).length ? temporadas : undefined,
     adelanto: adelanto && Object.keys(adelanto).length ? (adelanto as Record<string, 1>) : undefined,
@@ -667,7 +699,7 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
   // Categorías cuyos jugadores llegan nuevos al club (benjamín): la asistencia y la relación con el entrenador cuentan desde el primer entrenamiento de la temporada (la primera semana del curso).
   const desde = cat.nuevosEnElClub ? Math.floor(inicioCurso / 7) : undefined;
   const relacion = (n: Npc): number | undefined => (desde !== undefined && semana < desde ? undefined : relacionConElEntrenador(entrenador ? n.afin?.[entrenador.id] : undefined));
-  return (indiceDe(npcs).equipos.get(`${deporte}|${club}|${letra}`) ?? [])
+  const miembros = (indiceDe(npcs).equipos.get(`${deporte}|${club}|${letra}`) ?? [])
     .filter((n) => n.deporte === deporte && n.equipo === club && n.letra?.[deporte] === letra && ya(n, dia) && (edadDeJuego(n, inicioCurso) ?? -1) >= cat.edadMin && (edadDeJuego(n, inicioCurso) ?? -1) <= cat.edadMax && !!n.puesto?.[deporte])
     .flatMap((n) => {
       const lector = lectorDeUnNpc(n, pob, inicioCurso);
@@ -692,6 +724,12 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
       }];
     })
     .sort((a, b) => (a.id < b.id ? -1 : 1));
+  // Los dorsales (el equipo es club, categoría y letra: los que están en esta plantilla): los guardados se conservan y a quien aún no lleva (llegó después de repartirlos) se le asigna con el mismo reparto, sin guardarlo.
+  const regla = pob.puestos?.dorsales;
+  if (!regla) return miembros;
+  const porId = indiceDe(npcs).porId;
+  const dorsales = asignarDorsales(miembros.map((j) => ({ id: j.id, puesto: j.puesto, dorsal: porId.get(j.id)?.dorsal?.[deporte] })), regla, `${deporte}|${club}|${cat.id}|${letra}`);
+  return miembros.map((j) => ({ ...j, dorsal: dorsales.get(j.id) }));
 }
 
 

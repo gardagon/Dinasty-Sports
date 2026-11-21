@@ -1,4 +1,4 @@
-import { PREFIJO_DE_DEPORTE, SERVICES, deportePrincipal, type ClubDirectory, type DeporteService, type DeporteView, type LogTable, type MiEquipoView } from '@ds/contracts';
+import { PREFIJO_DE_DEPORTE, SERVICES, deportePrincipal, type ClubDirectory, type DeporteService, type DeporteView, type LogTable, type MiEquipoView, type CompaneroDeEquipo } from '@ds/contracts';
 import type { Game } from '@ds/core';
 
 /**
@@ -53,12 +53,19 @@ export function habilidadesAgrupadas(g: Game, d: Pick<DeporteView, 'habilidades'
 
 /** «Mi equipo»: en qué equipo estás y tus compañeros. Quien no conoces sale sin nombre (su aspecto) y el puesto solo si le has visto jugar. */
 export function viewMiEquipo(m: MiEquipoView): string {
-  const filas = m.companeros.map((c) => [c.yo ? 'Tú' : c.nombre ?? `${c.aspecto} (aún no sabes cómo se llama)`, c.puesto ?? '—']);
+  // Una sola columna para la persona, con el dorsal delante de su nombre o de su descripción entera («7 · Una niña de pelo…») y, debajo y en pequeño, cómo te comparas con ella; así en el móvil no se pierde nada.
+  const juicio = { mejor: 'mejor', peor: 'peor', parecido: 'parecido' } as const;
+  const fila = (c: CompaneroDeEquipo): string => {
+    const quien = c.yo ? 'Tú' : c.nombre ?? `${c.aspecto} (aún no sabes cómo se llama)`;
+    const dorsal = c.dorsal !== undefined ? `<b class="dorsal">${c.dorsal}</b> · ` : '';
+    const frente = c.yo ? '' : `<small class="frente-a-ti">Frente a ti: ${c.comparacion ? juicio[c.comparacion] : '—'}</small>`;
+    return `<tr${c.yo ? ' class="me"' : ''}><td>${dorsal}${esc(quien)}${frente}</td><td>${esc(c.puesto ?? '—')}</td></tr>`;
+  };
   return `<section class="sheet deporte mi-equipo">
     <h2>${esc(m.titulo)}</h2>
     ${m.texto ? `<p class="note">${esc(m.texto)}</p>` : ''}
-    ${tabla({ header: ['Compañero', 'Puesto'], rows: filas, align: ['left', 'left'], highlight: m.companeros.findIndex((c) => c.yo) })}
-    <p class="note">«—» es que todavía no le has visto jugar. Entrena y juega con el equipo para saber dónde juega cada uno; en su ficha, en «Gente», verás cómo te comparas con él.</p>
+    <div class="table"><table><thead><tr><th>Nº · Compañero</th><th>Puesto</th></tr></thead><tbody>${m.companeros.map(fila).join('')}</tbody></table></div>
+    <p class="note">«—» es que todavía no le has visto jugar. Entrena y juega con el equipo para saber dónde juega cada uno y cómo te comparas con él: «Frente a ti» sale cuando le has visto jugar.</p>
   </section>`;
 }
 

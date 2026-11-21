@@ -68,6 +68,10 @@ export interface CompaneroDeEquipo {
   aspecto: string;
   /** Su puesto, solo si le has visto jugar. */
   puesto?: string;
+  /** El número de su camiseta (se ve siempre: va en la espalda). */
+  dorsal?: number;
+  /** Cómo te ves frente a él (lo mismo que dice su ficha), solo si le has visto jugar y el deporte lo ha desbloqueado. */
+  comparacion?: 'mejor' | 'peor' | 'parecido';
   /** Es el propio personaje. */
   yo?: boolean;
 }
