@@ -64,7 +64,6 @@ describe('Mi equipo', () => {
       else expect(j.dorsal! >= 2).toBe(true);
     }
     expect(m.companeros.filter((c) => !c.yo).every((c) => c.comparacion === undefined)).toBe(true);
-    expect(m.companeros.filter((c) => !c.nombre && !c.yo).every((c) => c.aspectoCorto && c.aspectoCorto.length < 40)).toBe(true);
     // Lo guardado es ligero: un número por jugador.
     expect(JSON.stringify(estado().dorsal ?? []).length).toBeLessThan(60);
   });

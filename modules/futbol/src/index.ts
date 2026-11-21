@@ -49,7 +49,6 @@ import {
   type CompaneroDeEquipo,
   type ComparacionService,
   aspectoDe,
-  aspectoCortoDe,
   servicioDeComparacion,
   type PartidoDelMundoData,
   type DeporteView,
@@ -821,7 +820,6 @@ function miEquipoDeFutbol(ctx: ReadContext): MiEquipoView | undefined {
     return {
       id: j.id,
       aspecto: n ? aspectoDe(n) : 'Un compañero',
-      ...(n ? { aspectoCorto: aspectoCortoDe(n) } : {}),
       ...(n && n.known !== false ? { nombre: n.name } : {}),
       ...(j.dorsal !== undefined ? { dorsal: j.dorsal } : {}),
       ...(visto ? { puesto: nombreDePuesto(visto[0]), comparacion: juicioDe(visto) } : {}),

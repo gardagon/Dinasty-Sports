@@ -1,7 +1,7 @@
 import type { DatoPersonal } from './personas';
 import type { LugarId } from './lugares';
 import type { Practica } from './herencia';
-import { descripcionCortaDeDesconocido, descripcionDeDesconocido, nombreSegunEdad, type PerfilDelPersonaje, type RasgosDe } from './rasgos';
+import { descripcionDeDesconocido, nombreSegunEdad, type PerfilDelPersonaje, type RasgosDe } from './rasgos';
 import type { EstadoDeJugador } from './estado-de-jugador';
 import type { EstadisticasDeTemporada } from './estadisticas';
 import type { LectorDePersona } from './lector';
@@ -403,12 +403,6 @@ export interface ClubDirectory {
 /** Cómo se describe a una persona por su aspecto, sin su nombre («un niño alto, de pelo corto…»): lo que se ve de quien aún no se conoce. */
 export function aspectoDe(n: Pick<NpcView, 'age' | 'role' | 'tags' | 'rasgos' | 'gender'>): string {
   return n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, edadAparente(n)) : nombreSegunEdad(n.gender, edadAparente(n));
-}
-
-/** La descripción corta por aspecto («Niña, pelo castaño rizado»), para una tabla estrecha. */
-export function aspectoCortoDe(n: Pick<NpcView, 'age' | 'role' | 'tags' | 'rasgos' | 'gender'>): string {
-  const edad = edadAparente(n);
-  return n.rasgos ? descripcionCortaDeDesconocido(n.rasgos.apariencia, n.gender, edad) : nombreSegunEdad(n.gender, edad).replace(/^(Un|Una) /, '').replace(/^./, (c) => c.toUpperCase());
 }
 
 /**

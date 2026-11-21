@@ -8,10 +8,11 @@ Encargo del usuario (21/11/2026, `DECISIONES.md` «Dorsales, crónica sin nombre
 - **PNJ** (`modules/npcs`): `Npc.dorsal` (`Record<deporte, número>`), `repartirDorsales` (se llama al final de `fijarEquipos`), `plantillaDeUnEquipo` devuelve `JugadorDeEquipoView.dorsal` (guardado, o asignado al vuelo a quien llegó después) y `sinDeporte` lo borra.
 - **Personaje** (`modules/futbol`): `FutbolState.dorsal: [club, número]`; `dorsalDelPersonaje` (escoge entre los que sus compañeros no llevan; portero, después de los de campo) y `guardarMiDorsal` (al entrenar con el club y al registrar un partido). Hasta entonces sale el mismo número calculado al vuelo.
 - **Crónica** (`modules/futbol/src/personaje.ts`): `cronicaDelPartido` nombra por dorsal a quien no se conoce (`dorsales`, `generos`, `lado`); `registrarPartidoDelPersonaje` filtra los nombres a los conocidos (`nombresQueConoce`) y saca los géneros del directorio (`generosDe`).
-- **«Mi equipo»**: columnas Nº y «Frente a ti» (`CompaneroDeEquipo.dorsal/comparacion/aspectoCorto`, `viewMiEquipo` en `apps/web/src/deporte.ts`); `aspectoCortoDe` y `descripcionCortaDeDesconocido` en contracts.
+- **«Mi equipo»** (`CompaneroDeEquipo.dorsal/comparacion`, `viewMiEquipo` en `apps/web/src/deporte.ts`): tras la corrección del usuario (vía la arquitectura), la **descripción de los desconocidos va entera**; el dorsal va delante del nombre o la descripción («7 · Una niña de pelo…») y «Frente a ti: mejor/peor/parecido/—» debajo, en pequeño. (Quité la descripción corta que había hecho antes.)
 
 ## 2. Decisiones de diseño que he tomado (no estaban en el encargo; a revisar)
 
+0. **Mi equipo:** una sola columna para la persona (dorsal + descripción entera + comparación en pequeño debajo) y otra de puesto; no hay columnas aparte porque en 390 px no cabían sin acortar.
 1. **«Se conserva mientras siga en el equipo» = mientras siga en el club.** Si cambia de letra o de categoría dentro del club, conserva el número (si nadie lo ha cogido); si cambia de club (`sinDeporte` + `reclutarA`), pierde el suyo y recibe uno nuevo.
 2. **Costumbre por puesto: 55 %** de los de campo (cifra provisional). El 1 para el portero con un 65 % frente al 13.
 3. **Quien se conoce con el partido ya en marcha:** la crónica usa lo que sabías **al registrar** el partido. Los rivales y compañeros pasan a «conocidos» al competir (`competicion.resultado`), así que la crónica de ese partido sigue por dorsal y la del siguiente ya trae sus nombres. Ver la captura (todos salen con dorsal salvo los tres que marqué como conocidos).

@@ -664,12 +664,6 @@ export function nombreSegunEdad(gender: 'f' | 'm', edad?: number): string {
   return f ? 'Una anciana' : 'Un anciano';
 }
 
-/** La descripción más corta de quien no conoces, para una tabla estrecha: «Niña, pelo castaño rizado» (el resto, en su ficha). */
-export function descripcionCortaDeDesconocido(a: Apariencia, gender: 'f' | 'm', edad?: number): string {
-  const persona = nombreSegunEdad(gender, edad).replace(/^(Un|Una) /, '');
-  return `${persona[0].toUpperCase()}${persona.slice(1)}, pelo ${NOMBRE_RASGO[a.peloColor]} ${NOMBRE_RASGO[a.peloTipo]}`;
-}
-
 /**
  * Lo que se ve de alguien a quien no conoces (sin nombre): una frase corta con su aspecto, concordada con su género y edad.
  * «Una chica de pelo castaño ondulado, ojos verdes y piel clara.»
