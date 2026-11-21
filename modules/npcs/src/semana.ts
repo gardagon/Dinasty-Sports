@@ -50,7 +50,7 @@ const DIAS_DESDE_LA_SESION = 2;
  * parten los PNJ, sigue yendo en bloques de `SEMANAS_POR_BLOQUE` semanas con la caída y el desarrollo natural semana a semana.
  */
 export const SEMANAS_RECIENTES = 13;
-export const SEMANAS_POR_BLOQUE_LEJANO = 26;
+export const SEMANAS_POR_BLOQUE_LEJANO = 13;
 export const MUESTRA_DE_SESIONES_LEJANAS = 3;
 /** Antes de esta edad no se cuenta nada del deporte: el prebenjamín es lo más pronto. */
 const EDAD_MINIMA = 6;
