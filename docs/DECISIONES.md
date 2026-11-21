@@ -45,6 +45,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Compararte, con lo que se ve:** después de los entrenamientos, en la ficha de cada niño, «crees que eres mejor / peor / parecido a él», y su puesto. Si no le has visto jugar, no sabes dónde juega: esa información se desbloquea al entrenar y jugar con él.
 - **Las habilidades del fútbol, agrupadas** en portería, físico, mental y técnico.
 - La página del entrenador, más detallada, queda para más adelante.
+- **Hecho el 21/11** (`docs/relevo/mi-equipo.md`): la comparación sale de la diferencia de valor en su puesto frente al tuyo, más un error que baja con el conocimiento (desviación 8 sin conocimiento, 3 con todo), con la media de hasta 8 vistazos; «parecido» si la diferencia es de menos de 5 puntos. Lo visto se guarda en `FutbolState.companeros` (menos de 2 KB). Contratos genéricos: `miEquipo`, `gruposDeHabilidades`, `ComparacionService`, `aspectoDe`. La tabla «Plantilla» también oculta nombres y puestos de quien no conoces.
 
 ## 21/11/2026 — Detalles al jugar: sucesos en clase, habilidades por grupos, tu equipo, entrenamientos y puestos
 
