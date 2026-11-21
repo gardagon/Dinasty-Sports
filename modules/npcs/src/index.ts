@@ -1,7 +1,8 @@
-import { APORTES, CORE_EVENTS, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, aforoCercano, deLugar, haciaLugar, type ActionDoneData, type GrupoSeVaData, type LugaresService, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
+import { grupoQueSeVa } from './grupo';
 import { type HabilidadesDe } from './rutina';
 import { conCuerpo, geneticaDelCuerpo, semanaDelCuerpo, type SemanaEscolar } from './cuerpo';
 import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
@@ -1176,6 +1177,10 @@ interface EnLugar {
   azar?: number;
 }
 
+/** A quién se ve primero en un lugar: a quien conoces, después el nivel, lo que es y, por último, un orden estable al azar (`azar`, ya calculado). */
+const compararCercania = (a: EnLugar, b: EnLugar): number =>
+  Number(b.n.known !== false) - Number(a.n.known !== false) || b.nivel - a.nivel || (RELEVANCIA[b.tipo] ?? 0) - (RELEVANCIA[a.tipo] ?? 0) || a.azar! - b.azar!;
+
 /** Número de índices de presencia construidos: `PresenciaService.version`. */
 let versionDeIndices = 0;
 
@@ -1211,10 +1216,7 @@ function indiceDePresencia(lista: Npc[], clave: string, ubicar: (n: Npc) => { si
       if (!actual.ordenados.has(lugar)) {
         actual.ordenados.add(lugar);
         for (const e of l) e.azar = azarDe(e.n.id, dia, 'orden');
-        l.sort(
-          (a, b) =>
-            Number(b.n.known !== false) - Number(a.n.known !== false) || b.nivel - a.nivel || (RELEVANCIA[b.tipo] ?? 0) - (RELEVANCIA[a.tipo] ?? 0) || a.azar! - b.azar!,
-        );
+        l.sort(compararCercania);
       }
       return l;
     },
@@ -1227,6 +1229,38 @@ function entrenadorDeUnJugador(lista: readonly Npc[], pob: PoblacionGuardada, j:
   const cat = j.equipo ? categoriaDe(pob, edadDeJuego(j, inicioCurso) ?? 0) : undefined;
   const letra = j.letra?.[pob.deporte];
   return cat && j.equipo && letra ? entrenadorDelEquipo(lista, pob, j.equipo, cat, letra) : undefined;
+}
+
+/**
+ * Las agendas de la gente en un momento: quién sigue qué horario (con los clubes y los partidos de esa semana) y en qué intervalo entre cambios de tramo estamos.
+ * Lo usan el servicio de presencia (ahora) y `moverse con el grupo` (también para mirar cómo estaba todo al empezar una acción).
+ */
+function agendasDePresencia(ctx: ReadContext, t: ReadContext['time']) {
+  const lista = ctx.state<NpcsState>().npcs;
+  const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
+  // Cada persona sigue la jornada y los clubes de su deporte (el primero de la partida si no dice cuál); si el deporte ya no está cargado, no hay nada que seguir.
+  const cargados = fichasDeDeporte(ctx).map((f) => f.id);
+  const datosDe = (deporte: string | undefined) => {
+    const id = deporte ?? cargados[0];
+    return id !== undefined && cargados.includes(id) ? { id, datos: datosDeDeporte(ctx, id) } : undefined;
+  };
+  const datos: DatosDeAgenda = {
+    sesionDeClub: (club, deporte) => {
+      const d = datosDe(deporte);
+      return sesionDelEquipoDeOtroColegio(clubes, ctx.state<NpcsState>().poblaciones, d?.id, club) ?? sesionDeClub(clubes, d?.id, d?.datos.sedes.fuera ?? null, club);
+    },
+    jornada: (deporte) => datosDe(deporte)?.datos.competiciones.jornada,
+  };
+  const inicioCurso = (t.week - t.schoolWeek) * 7;
+  // El día de partido (`MOTOR_PARTIDOS.md` §15): los convocados de los equipos que juegan esta semana, y sus entrenadores, están en el campo desde su convocatoria, en el vestuario a su hora y vuelven a él al acabar.
+  const partidos = ctx.service<PartidosService>(SERVICES.partidos);
+  const agendaDe = (n: Npc): TramoDeAgenda[] => agendaConPartido(n, agendaDePersona(n, datos, t.day), partidos, datosDe(n.deporte)?.datos.categorias ?? []);
+  /**
+   * Dónde está cada persona entre dos cambios de tramo de cualquier agenda: mientras no cambie ninguno, la presencia no cambia
+   * (nadie aparece ni desaparece), así que se calcula una vez por intervalo (unas 10 veces al día) y no cada pocos minutos.
+   */
+  const intervalo = limitesDeTramos(lista, agendaDe, partidos?.version).filter((m) => m <= t.minuteOfDay).length;
+  return { agendaDe, inicioCurso, partidos, intervalo, lista };
 }
 
 export const npcs = defineModule<NpcsState>({
@@ -1266,6 +1300,42 @@ export const npcs = defineModule<NpcsState>({
   },
 
   on: {
+    // Moverse con el grupo: si en esta acción la mayoría de la gente que tenías cerca se ha ido a un mismo sitio y tú sigues donde estabas, se avisa (`grupo.ts`).
+    [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
+      const d = ev.data as ActionDoneData;
+      // Ir a otro sitio, decidir un suceso (su tiempo ya es el del viaje) y lo que no gasta tiempo no se miran: no hay «sigues donde estabas».
+      if (d.duration < 1 || d.tags.includes('desplazamiento') || d.tags.includes('decision')) return;
+      const lugares = ctx.service<LugaresService>(SERVICES.lugares);
+      if (!lugares) return;
+      const t1 = ctx.time;
+      const t0 = ctx.timeAt(t1.minute - d.duration);
+      if (t0.day !== t1.day) return;
+      const antes = agendasDePresencia(ctx, t0);
+      const ahora = agendasDePresencia(ctx, t1);
+      // La presencia solo cambia al cambiar de intervalo entre dos cambios de tramo: si no ha cambiado, nadie se ha ido.
+      if (antes.intervalo === ahora.intervalo) return;
+      const aqui = lugares.actual().id;
+      const alEmpezar: EnLugar[] = [];
+      for (const n of antes.lista) {
+        const u = ubicacionEn(antes.agendaDe(n), t0, n.id);
+        if (u.sitio === aqui) alEmpezar.push({ n, nivel: u.nivel, tipo: u.tipo, azar: azarDe(n.id, t0.day, 'orden') });
+      }
+      if (!alEmpezar.length) return;
+      alEmpezar.sort(compararCercania);
+      const cercanos = alEmpezar.slice(0, aforoCercano(aqui, `${t0.day}:${antes.intervalo}`)).map((e) => e.n);
+      const g = grupoQueSeVa(cercanos, aqui, (n) => ubicacionEn(ahora.agendaDe(n), t1, n.id));
+      const destino = g && lugares.lugar(g.hacia);
+      const minutos = g && lugares.minutosA(g.hacia);
+      if (!g || !destino || minutos === undefined) return;
+      const conocidos = new Set(cercanos.filter((n) => n.known !== false).map((n) => n.id));
+      // Si estás en una zona y van a la entrada de su lugar (del aula a la entrada del colegio), se dice así: el lugar se llama como el edificio.
+      const haciaTexto = lugares.lugar(aqui)?.dentroDe === g.hacia ? `a la entrada ${deLugar(destino.name)}` : haciaLugar(destino.name);
+      ctx.emit<GrupoSeVaData>({
+        type: SHARED_EVENTS.GRUPO_SE_VA,
+        data: { desde: aqui, hacia: g.hacia, haciaTexto, minutos, cuantos: g.cuantos, total: g.total, muestra: g.muestra.filter((id) => conocidos.has(id)).map((npcId) => ({ npcId })) },
+      });
+    },
+
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as { day: number };
       ctx.updateState<NpcsState>((s) => ({
@@ -1565,29 +1635,7 @@ export const npcs = defineModule<NpcsState>({
       // Se pide muchas veces seguidas (en cada acción de relación): dentro del mismo minuto es el mismo servicio.
       const hecho = SERVICIOS_DE_PRESENCIA.get(lista);
       if (hecho?.minuto === t.minute) return hecho.servicio;
-      const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
-      // Cada persona sigue la jornada y los clubes de su deporte (el primero de la partida si no dice cuál); si el deporte ya no está cargado, no hay nada que seguir.
-      const cargados = fichasDeDeporte(ctx).map((f) => f.id);
-      const datosDe = (deporte: string | undefined) => {
-        const id = deporte ?? cargados[0];
-        return id !== undefined && cargados.includes(id) ? { id, datos: datosDeDeporte(ctx, id) } : undefined;
-      };
-      const datos: DatosDeAgenda = {
-        sesionDeClub: (club, deporte) => {
-          const d = datosDe(deporte);
-          return sesionDelEquipoDeOtroColegio(clubes, ctx.state<NpcsState>().poblaciones, d?.id, club) ?? sesionDeClub(clubes, d?.id, d?.datos.sedes.fuera ?? null, club);
-        },
-        jornada: (deporte) => datosDe(deporte)?.datos.competiciones.jornada,
-      };
-      const inicioCurso = (t.week - t.schoolWeek) * 7;
-      // El día de partido (`MOTOR_PARTIDOS.md` §15): los convocados de los equipos que juegan esta semana, y sus entrenadores, están en el campo desde su convocatoria, en el vestuario a su hora y vuelven a él al acabar.
-      const partidos = ctx.service<PartidosService>(SERVICES.partidos);
-      const agendaDe = (n: Npc): TramoDeAgenda[] => agendaConPartido(n, agendaDePersona(n, datos, t.day), partidos, datosDe(n.deporte)?.datos.categorias ?? []);
-      /**
-       * Dónde está cada persona entre dos cambios de tramo de cualquier agenda: mientras no cambie ninguno, la presencia no cambia
-       * (nadie aparece ni desaparece), así que se calcula una vez por intervalo (unas 10 veces al día) y no cada pocos minutos.
-       */
-      const intervalo = limitesDeTramos(lista, agendaDe, partidos?.version).filter((m) => m <= t.minuteOfDay).length;
+      const { agendaDe, inicioCurso, partidos, intervalo } = agendasDePresencia(ctx, t);
       const indice = indiceDePresencia(lista, `${t.day}:${intervalo}:${partidos?.version ?? ''}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
       const servicio: PresenciaService = {
         version: indice.version,

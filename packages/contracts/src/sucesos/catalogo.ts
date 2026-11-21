@@ -258,7 +258,10 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
           if (!a.si?.length) err(`la opción «${o.id}»: un ajuste de la tirada necesita al menos una condición en «si»`);
         }
         if (o.tirada && entorno && !entorno.stats.has(o.tirada.con)) err(`la opción «${o.id}» tira con «${o.tirada.con}», que no existe`);
-        if (o.minutos !== undefined && !(o.minutos >= 1)) err(`la opción «${o.id}»: los minutos deben ser 1 o más`);
+        if (typeof o.minutos === 'object') {
+          if (!o.minutos.deLaSeñal) err(`la opción «${o.id}»: «minutos» con «deLaSeñal» necesita el nombre del dato`);
+          else if (!('al' in s.disparo)) err(`la opción «${o.id}»: «minutos: { deLaSeñal }» solo vale en un suceso que sale con una señal`);
+        } else if (o.minutos !== undefined && !(o.minutos >= 1)) err(`la opción «${o.id}»: los minutos deben ser 1 o más`);
         if (o.minutos !== undefined && sucesoEsDurante(s)) err(`la opción «${o.id}» gasta minutos, pero el suceso pasa durante una actividad (no gasta tiempo propio): quita «minutos» o, si es algo aparte, pon «durante: false»`);
         for (const eje of Object.keys(o.caracter ?? {})) if (!EJE_IDS.has(eje)) err(`la opción «${o.id}» tira hacia «${eje}», que no es un eje de carácter`);
       }
