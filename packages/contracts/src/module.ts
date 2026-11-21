@@ -1,4 +1,4 @@
-import type { ActionDef } from './actions';
+import type { ActionDef, Obligacion } from './actions';
 import type { ActionContext, GameEvent, InitContext, ReadContext } from './context';
 import type { ModifierDef } from './modifiers';
 import type { StatDef } from './stats';
@@ -37,6 +37,12 @@ export interface GameModule<S = unknown> {
    */
   resolverAccion?: (ctx: ReadContext, id: string) => ActionDef | undefined;
   modifiers?: ModifierDef[];
+  /**
+   * Las obligaciones que tiene ahora el personaje (clase, sesión del club, convocatoria, plan acordado) y que empiezan más tarde: el motor
+   * junta las de todos los módulos y corta las acciones `cortable` para que no las pisen (ver `ActionDef.cortable`). Devuelve solo las de hoy
+   * que aún no han empezado (o ya cuentan como hechas); el módulo resta lo que cuesta llegar.
+   */
+  obligaciones?: (ctx: ReadContext) => Obligacion[];
   /**
    * Escucha de eventos: `{ 'dia.fin': (ctx, ev) => ... }`. Con la clave `'*'` (`CUALQUIER_EVENTO`) se escuchan todos, después de quienes
    * escuchan ese evento por su nombre: es para módulos que no saben al compilar qué eventos les importan (les llegan como datos).

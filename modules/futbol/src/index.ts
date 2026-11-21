@@ -50,6 +50,8 @@ import {
   type LectorDePersona,
   type NpcDirectory,
   type ReadContext,
+  minutosParaLlegar,
+  type Obligacion,
 } from '@ds/contracts';
 import {
   accionesDeClubes,
@@ -64,6 +66,7 @@ import {
   modificadorDeCampamento,
   modificadorDeConocimiento,
   modificadorDeLlegadaTarde,
+  obligacionDeSesionDeClub,
   modificadorDeSobrecarga,
   modificadorPorTuCuenta,
   pedirConsejo,
@@ -1062,6 +1065,17 @@ const enMinutos = (m: number): string => `${Math.floor(m / 60)}:${String(Math.ro
 const horaDelDia = (minutoAbsoluto: number): string => enMinutos(minutoAbsoluto % MINUTES_PER_DAY);
 const minusculaInicial = (x: string): string => `${x.charAt(0).toLowerCase()}${x.slice(1)}`;
 
+/** La convocatoria del partido (una hora antes) como obligación (`GameModule.obligaciones`): el día del partido, hasta que se une a sus compañeros, las acciones cortables no la pisan. */
+function obligacionDeLaConvocatoria(ctx: ReadContext): Obligacion[] {
+  const t = ctx.time;
+  const d = datosDelDiaDePartido(ctx);
+  if (typeof d === 'string' || t.weekday !== d.h.dia || estaUnido(ctx)) return [];
+  const convocatoria = d.saque - DIA_DE_PARTIDO.convocatoria;
+  if (t.minute >= convocatoria) return [];
+  const viaje = minutosParaLlegar(ctx, datosDeDeporte(ctx, DEPORTE).competiciones.jornada.lugar);
+  return [{ hasta: convocatoria - viaje, texto: viaje ? `para llegar a la convocatoria de las ${horaDelDia(convocatoria)}` : `te unes a tus compañeros a las ${horaDelDia(convocatoria)}` }];
+}
+
 /** El día de su partido, por la mañana, se anota si el entrenador lo convoca (con lo que valen todos ese día): la convocatoria no cambia después, al cerrar la semana. */
 function fotoDelDiaDePartido(ctx: ActionContext): void {
   const t = ctx.time;
@@ -1413,6 +1427,9 @@ export const futbol = defineModule<FutbolState>({
       'futbol.pedir_consejo': sedeDelClub,
     },
   ),
+
+  // La sesión del club es una obligación: las acciones cortables no la pisan (kit).
+  obligaciones: (ctx) => [...obligacionDeSesionDeClub(CONFIG)(ctx), ...obligacionDeLaConvocatoria(ctx)],
 
   // Llegar tarde a la sesión, campamento, entrenar por tu cuenta, conocimiento y sobrecarga (kit), en este orden.
   modifiers: [

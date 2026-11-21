@@ -32,6 +32,9 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 - **«Hacer deberes», 30 minutos:** sin efecto todavía en los deberes, pero sube la asignatura que se elija. Sirve para esperar al entrenamiento de fútbol: habrá quien prefiera ir a casa y volver, quedarse estudiando o jugar en el parque. Sustituye a la idea de «Pendiente e ideas»; los deberes que se mandan y se entregan siguen pendientes.
 - **Una acción que pisa otra consume solo los minutos que faltan:** si charlar con alguien son 5 minutos y faltan 2 para entrar a clase, se charla 2 minutos (sube o gasta lo proporcional) y se entra a tiempo. Hoy se llega siempre 3 minutos tarde.
+- **Hecho el 21/11** (`docs/relevo/deberes-y-acciones-cortas.md`):
+  - «Hacer deberes…» rinde 30/90 de estudiar × 0,9 (`EFICIENCIA_DE_DEBERES`, por calibrar). Se hace en casa, la biblioteca, el colegio fuera de clase, el parque, el estadio y los campos.
+  - Acciones cortables: `GameModule.obligaciones(ctx)` (la clase, la sesión del club, la convocatoria y el plan acordado) y `ActionDef.cortable`. El botón dice «2 min (entras a clase a las 9:00)». Se cortan estudiar, deberes, charlar, jugar, quedar, ocio, descanso y entrenar por libre; no se cortan viajes, clases, partidos, exámenes, pruebas, tutoría ni dormir. Los PNJ siguen su agenda (no ejecutan acciones). Se arregla el bot, que salía tarde.
 - **Moverse con el grupo:** si estás hablando con compañeros en el descanso y todos se van al patio, hoy desaparecen en un abrir y cerrar de ojos. Debe salir «Todos se van al patio, ¿les acompañas?»; si dices que sí, vas con ellos como un viaje rápido (consume esos minutos). Lo mismo a la salida del colegio.
 
 ## 21/11/2026 — «Mi equipo» para el niño

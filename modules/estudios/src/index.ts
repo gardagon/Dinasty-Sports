@@ -24,6 +24,9 @@ import {
   type ActionContext,
   type ActionDef,
   type DayEventData,
+  type LugaresService,
+  minutosParaLlegar,
+  type Obligacion,
   type IdentityService,
   type NpcDirectory,
   type PresenciaService,
@@ -273,6 +276,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   group: 'Estudiar',
   desplegable: { id: 'estudios.estudiar', nombre: 'Estudiar…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: a.name },
   duration: 90,
+  cortable: true,
   available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
   train: [
@@ -283,6 +287,43 @@ const estudiar = (a: Asignatura): ActionDef => ({
   run: (ctx) => ctx.train(statId(a.key), RENDIMIENTO_ESTUDIO * factorDeAptitud(ctx, a.key)),
 });
 
+/**
+ * «Hacer deberes…» (30 minutos): todavía no hay deberes que entregar, pero el rato sube la asignatura elegida como estudiar en proporción a su
+ * duración (30 de los 90 minutos de «Estudiar»), por `EFICIENCIA_DE_DEBERES`: estudiar en ratos cortos rinde algo menos que una sesión larga (cuesta
+ * ponerse y centrarse), así que 3 ratos de deberes dan el 90 % de una sesión de estudio. Es el dato para equilibrarlo.
+ */
+export const MINUTOS_DE_DEBERES = 30;
+export const EFICIENCIA_DE_DEBERES = 0.9;
+const PARTE_DE_DEBERES = (MINUTOS_DE_DEBERES / 90) * EFICIENCIA_DE_DEBERES;
+/**
+ * Dónde se hacen: en casa y en la biblioteca, como estudiar, y además en el colegio (fuera de clase, con el horario que tenga), en el parque y en el campo (el estadio y los campos de fútbol),
+ * que es donde se espera al entrenamiento sin irse a casa y volver. El primero es el destino por defecto.
+ */
+const SITIOS_DE_DEBERES = ['casa', 'biblioteca', 'colegio', 'parque', 'estadio', 'campo_colegio', 'campo_municipal'] as const;
+/** Solo los sitios que existen en la ciudad de la partida (los campos de fútbol salen con el fútbol). */
+export const LUGARES_DE_DEBERES = (ctx: ReadContext): readonly string[] => {
+  const lugares = ctx.service<LugaresService>(SERVICES.lugares);
+  return lugares ? SITIOS_DE_DEBERES.filter((id) => lugares.lugar(id)) : SITIOS_DE_DEBERES;
+};
+
+const deberes = (a: Asignatura): ActionDef => ({
+  id: `estudios.deberes_${a.key}`,
+  name: `Hacer deberes de ${a.name.toLowerCase()}`,
+  description: 'Media hora de deberes: aún no hay deberes que entregar, pero el rato cuenta como estudio de la asignatura (algo menos que en una sesión larga). Vale para esperar al entrenamiento.',
+  tags: [TAGS.estudio, TAGS.mental],
+  group: 'Estudiar',
+  desplegable: { id: 'estudios.deberes', nombre: 'Hacer deberes…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: a.name },
+  duration: MINUTOS_DE_DEBERES,
+  cortable: true,
+  available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
+  delta: { [GEN.energia]: -10 * PARTE_DE_DEBERES, [GEN.estres]: 6 * PARTE_DE_DEBERES },
+  train: [
+    { stat: GEN.inteligencia, amount: 0.4 * PARTE_DE_DEBERES },
+    { stat: GEN.concentracion, amount: 0.4 * PARTE_DE_DEBERES },
+    ...(a.entrena ? [{ ...a.entrena, amount: a.entrena.amount * PARTE_DE_DEBERES }] : []),
+  ],
+  run: (ctx) => ctx.train(statId(a.key), RENDIMIENTO_ESTUDIO * PARTE_DE_DEBERES * factorDeAptitud(ctx, a.key)),
+});
 
 /** Una tutoría (30 minutos) rinde la mitad de lo que rinde una sesión de estudio de hora y media. */
 const RENDIMIENTO_TUTORIA = RENDIMIENTO_ESTUDIO * 0.5;
@@ -667,6 +708,19 @@ export const estudios = defineModule<EstudiosState>({
 
   dynamicActions: (ctx) => clasesDeHoyAcciones(ctx),
 
+  // La próxima clase del día a la que aún no se ha ido (las acciones cortables no la pisan: hay que salir con tiempo para llegar al aula).
+  obligaciones: (ctx) => {
+    const t = ctx.time;
+    if (!t.isSchoolDay) return [];
+    const hoy = asignaturasDeHoy(ctx.pais.cursos, t.schoolYear, ctx.state<EstudiosState>().modalidad, t.weekday);
+    const idas = clasesDeHoy(ctx);
+    const h = hoy.findIndex((_, i) => !idas.includes(i) && t.minuteOfDay < JORNADA.clases[i][0]);
+    if (h < 0) return [];
+    const inicio = t.minute - t.minuteOfDay + JORNADA.clases[h][0];
+    const viaje = minutosParaLlegar(ctx, 'aula');
+    return [{ hasta: inicio - viaje, texto: viaje ? `para llegar a clase a las ${hora(JORNADA.clases[h][0])}` : `entras a clase a las ${hora(JORNADA.clases[h][0])}` }] satisfies Obligacion[];
+  },
+
   modifiers: [
     {
       // Llegar tarde a clase: solo sube la parte proporcional al tiempo asistido (el resto de la clase ya se ha perdido).
@@ -691,6 +745,7 @@ export const estudios = defineModule<EstudiosState>({
   actions: ligarALugares([
     // Las asignaturas de capacidades (Educación física, Artística, Música) no se estudian ni tienen tutoría: se mejoran entrenando las capacidades.
     ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(estudiar),
+    ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(deberes),
     ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(tutoria),
     consejoDeEducacionFisica,
     {
@@ -700,6 +755,7 @@ export const estudios = defineModule<EstudiosState>({
       group: 'Estudiar',
       desplegable: { id: 'estudios.estudiar', nombre: 'Estudiar…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: 'Repaso general (todas las del curso)' },
       duration: 120,
+      cortable: true,
       available: tiempoDeEstudio,
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
       train: [{ stat: GEN.determinacion, amount: 0.3 }],
@@ -748,6 +804,7 @@ export const estudios = defineModule<EstudiosState>({
     'estudios.repaso': ['casa', 'biblioteca'],
     'estudios.academia': ['colegio'],
     ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'biblioteca']])),
+    ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.deberes_${a.key}`, LUGARES_DE_DEBERES])),
     // La tutoría se pide en la sala de profesores.
     ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.tutoria_${a.key}`, [SALA_DE_PROFESORES]])),
     'estudios.consejo_educacion_fisica': [SALA_DE_PROFESORES],

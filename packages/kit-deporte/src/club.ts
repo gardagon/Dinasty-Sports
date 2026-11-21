@@ -25,6 +25,8 @@ import {
   type NpcView,
   type PresenciaService,
   type ReadContext,
+  type Obligacion,
+  minutosParaLlegar,
   type StatId,
   TOLERANCIA_DE_SESION,
   type ClubImpuntualData,
@@ -114,7 +116,7 @@ const soloSiNoCompiteEnOtro = (deporte: string, acciones: readonly ActionDef[]):
  */
 export const entrenosAgrupados = (cfg: ConfigDeporte, acciones: readonly ActionDef[]): ActionDef[] =>
   acciones.map((a) =>
-    cfg.entrenosLibres.includes(a.id) ? { ...a, desplegable: { id: `${cfg.id}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}' } } : a,
+    cfg.entrenosLibres.includes(a.id) ? { ...a, cortable: true, desplegable: { id: `${cfg.id}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}' } } : a,
   );
 
 /**
@@ -346,6 +348,23 @@ export function dejarClub(cfg: ConfigDeporte): ActionDef {
     },
   };
 }
+
+/**
+ * La sesión del club como obligación (`GameModule.obligaciones`): hasta que empieza, las acciones cortables (entrenar por libre, charlar, estudiar...) no la pisan; se resta lo que cuesta llegar a la sede.
+ * Solo cuenta si hoy hay sesión, aún no ha empezado, no se ha entrenado ya con el club y no se está de baja.
+ */
+export const obligacionDeSesionDeClub =
+  (cfg: ConfigDeporte) =>
+  (ctx: ReadContext): Obligacion[] => {
+    const club = clubDelJugador(ctx, cfg.id);
+    const t = ctx.time;
+    if (!club || !club.sesiones.weekdays.includes(t.weekday) || estado(ctx).ultimaSesionClub === t.day || ctx.stat(GEN.baja) > 0) return [];
+    const desde = club.sesiones.desde * 60;
+    if (t.minuteOfDay >= desde) return [];
+    const viaje = minutosParaLlegar(ctx, club.sede);
+    const hh = `${club.sesiones.desde}:00`;
+    return [{ hasta: t.minute - t.minuteOfDay + desde - viaje, texto: viaje ? `para llegar al entrenamiento de las ${hh}` : `entrenas con el club a las ${hh}` }];
+  };
 
 /** Incorporarse tarde a la sesión del club: solo se entrena la parte de sesión que queda. */
 export function modificadorDeLlegadaTarde(cfg: ConfigDeporte): ModifierDef {

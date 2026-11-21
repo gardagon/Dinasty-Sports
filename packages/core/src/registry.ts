@@ -5,6 +5,7 @@ import type {
   EventHandler,
   GameModule,
   ModifierDef,
+  Obligacion,
   ReadContext,
   StatDef,
 } from '@ds/contracts';
@@ -51,6 +52,7 @@ export interface Registry {
   actionList: readonly CompiledAction[];
   dynamicActions: readonly { module: string; fn: (ctx: ReadContext) => ActionDef[] }[];
   resolvers: readonly { module: string; fn: (ctx: ReadContext, id: string) => ActionDef | undefined }[];
+  obligaciones: readonly { module: string; fn: (ctx: ReadContext) => Obligacion[] }[];
   modifiersByTag: ReadonlyMap<string, readonly CompiledModifier[]>;
   wildcardModifiers: readonly CompiledModifier[];
   handlers: ReadonlyMap<string, readonly CompiledHandler[]>;
@@ -87,6 +89,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
   const wildcardHandlers: CompiledHandler[] = [];
   const services = new Map<string, { module: string; fn: (ctx: ReadContext) => unknown }>();
   const dynamicActions: { module: string; fn: (ctx: ReadContext) => ActionDef[] }[] = [];
+  const obligaciones: { module: string; fn: (ctx: ReadContext) => Obligacion[] }[] = [];
   const aportes = new Map<string, unknown[]>();
   const resolvers: { module: string; fn: (ctx: ReadContext, id: string) => ActionDef | undefined }[] = [];
 
@@ -128,6 +131,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
     }
 
     if (m.dynamicActions) dynamicActions.push({ module: m.id, fn: m.dynamicActions });
+    if (m.obligaciones) obligaciones.push({ module: m.id, fn: m.obligaciones });
     if (m.resolverAccion) resolvers.push({ module: m.id, fn: m.resolverAccion });
 
     for (const def of m.modifiers ?? []) {
@@ -185,6 +189,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
     actionList: [...actions.values()],
     dynamicActions,
     resolvers,
+    obligaciones,
     modifiersByTag,
     wildcardModifiers,
     handlers,

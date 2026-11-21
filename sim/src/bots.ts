@@ -1,4 +1,4 @@
-import { GEN, JORNADA_ESCOLAR, SERVICES, TAGS, azarDe, rutaA, type LugaresService, type Rng } from '@ds/contracts';
+import { GEN, JORNADA_ESCOLAR, SERVICES, TAGS, azarDe, rutaA, tiempoEntre, MINUTOS_ANTES_DE_CLASE, type LugaresService, type Rng } from '@ds/contracts';
 import type { ActionOption, Game } from '@ds/core';
 import type { OpcionesDelBot } from './pasos';
 
@@ -71,7 +71,9 @@ export function flojoEnLaSuperior(game: Game): boolean {
 export const apuntarseAlClub = id('atletismo.apuntarse_colegio');
 /** Las clases del colegio (una acción por hora del horario). */
 export const clase: Pred = (o) => /^estudios\.clase_\d$/.test(o.id);
-export const estudio = all(tag(TAGS.estudio), not(clase), not(tag(TAGS.social)));
+/** Los deberes (30 minutos) son para esperar al entrenamiento de quien juega al fútbol: los bots estudian en sesiones largas, como siempre. */
+export const deberes: Pred = (o) => o.id.startsWith('estudios.deberes_');
+export const estudio = all(tag(TAGS.estudio), not(clase), not(tag(TAGS.social)), not(deberes));
 /** Acciones de relación constructivas (quedar, charlar, ayudar...): los bots nunca discuten. */
 export const relacion = (o: ActionOption) => o.id.startsWith('relaciones.') && !/^relaciones\.(discutir|paces|presentarse)\./.test(o.id);
 
@@ -118,6 +120,21 @@ export function basicas(
     if (comp && game.stat(GEN.energia) >= 40) return comp.id;
   }
   if (game.stat(GEN.energia) < cfg.energiaMin) return has('gen.dormir') ? 'gen.dormir' : 'gen.descansar';
+  // Quien va a clase sale con tiempo para estar en el aula cuando se abre (10 minutos antes): el viaje es por tramos (calle, colegio, aula) y se suma lo que cuesta desde donde esté.
+  if (cfg.clase && t.isSchoolDay) {
+    const lugares = game.service<LugaresService>(SERVICES.lugares);
+    const inicio = JORNADA_ESCOLAR.clases.map(([i]) => i).find((i) => i - MINUTOS_ANTES_DE_CLASE > t.minuteOfDay);
+    const ruta = lugares && inicio !== undefined ? rutaA(lugares.mapa(), lugares.actual().id, 'aula') : [];
+    if (lugares && inicio !== undefined && ruta.length) {
+      let previo = lugares.actual().id;
+      let viaje = 0;
+      for (const parada of ruta) {
+        viaje += tiempoEntre(lugares.mapa(), previo, parada) ?? 0;
+        previo = parada;
+      }
+      if (inicio - MINUTOS_ANTES_DE_CLASE - t.minuteOfDay <= viaje && inicio - t.minuteOfDay <= 60) return `lugares.ir_${ruta[0]}`;
+    }
+  }
   // Solo se entra a clase 10 minutos antes: si falta menos de una hora para la próxima, se espera en vez de empezar algo largo.
   if (cfg.clase && game.time.isSchoolDay && has('gen.esperar')) {
     const falta = JORNADA_ESCOLAR.clases.map(([inicio]) => inicio - game.time.minuteOfDay).find((m) => m > 0);

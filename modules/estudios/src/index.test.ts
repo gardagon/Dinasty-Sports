@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SERVICES, SHARED_EVENTS, defineModule, type StudiesService } from '@ds/contracts';
 import { Game, advanceTo, advanceToWeek, advanceUntil, type ActionResult } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
-import { estudios, nivelDeAsignatura, notaExamen, notaFinal, type EstudiosState } from './index';
+import { EFICIENCIA_DE_DEBERES, estudios, nivelDeAsignatura, notaExamen, notaFinal, type EstudiosState } from './index';
 import { ASIGNATURAS, CURSOS_ESPANA, asignaturasDelCurso, clasesPorSemana, diaDeExamen, elegirModalidad, horarioDeClases, horarioSemanal, pesoDeClase } from './curriculo';
 
 /** Días de la semana en que se da una asignatura del primer curso. */
@@ -585,5 +585,64 @@ describe('asignaturas de capacidades (Educación física, Artística y Música)'
       baja.perform('gen.descansar');
     }
     expect(baja.stat('gen.creatividad')).toBeGreaterThan(antes);
+  });
+});
+
+describe('hacer deberes y acciones que pisan la clase', () => {
+  const asignatura = asignaturasDelCurso(0).find((k) => !ASIGNATURAS.find((a) => a.key === k)!.porCapacidades)!;
+  const clave = (a: string) => a.replace('estudios.', '');
+
+  it('«Hacer deberes» dura 30 minutos, sube la asignatura en proporción a estudiar (por el dato de eficiencia) y solo vale fuera de clase', () => {
+    const g = nueva();
+    advanceTo(g, 'gen.descansar', 6, 10); // sábado
+    const d = g.preview(`estudios.deberes_${clave(asignatura)}`)!;
+    expect(d.duration).toBe(30);
+    expect(d.available).toBe(true);
+    expect(d.desplegable).toMatchObject({ id: 'estudios.deberes', nombre: 'Hacer deberes…' });
+    expect(d.lugar).toEqual(expect.arrayContaining(['casa', 'biblioteca', 'colegio', 'parque'])); // el primero, casa, es el destino por defecto
+    expect(d.lugar![0]).toBe('casa');
+    const e = g.preview(`estudios.estudiar_${clave(asignatura)}`)!;
+    expect(e.duration).toBe(90);
+    // En la previsión: lo que gasta y entrena es la parte de media hora de estudiar, por EFICIENCIA_DE_DEBERES.
+    expect(d.delta['gen.energia']).toBeCloseTo(e.delta['gen.energia'] * (30 / 90) * EFICIENCIA_DE_DEBERES);
+    const antes = g.stat(`estudios.${clave(asignatura)}`);
+    const h = nueva();
+    advanceTo(h, 'gen.descansar', 6, 10);
+    const antesH = h.stat(`estudios.${clave(asignatura)}`);
+    g.perform(`estudios.deberes_${clave(asignatura)}`);
+    h.perform(`estudios.estudiar_${clave(asignatura)}`);
+    const subeDeberes = g.stat(`estudios.${clave(asignatura)}`) - antes;
+    const subeEstudiar = h.stat(`estudios.${clave(asignatura)}`) - antesH;
+    expect(subeDeberes).toBeGreaterThan(0);
+    expect(subeDeberes / subeEstudiar).toBeCloseTo((30 / 90) * EFICIENCIA_DE_DEBERES, 1);
+    // En horario de clase no.
+    const c = nueva();
+    advanceTo(c, 'gen.descansar', 1, 9);
+    expect(c.preview(`estudios.deberes_${clave(asignatura)}`)!.available).toBe(false);
+    expect(c.preview(`estudios.deberes_${clave(asignatura)}`)!.reason).toMatch(/horario de clase/);
+  });
+
+  it('estudiar a las 7:55 dura 5 minutos (hasta las 8:00) y se entra a clase a tiempo', () => {
+    const g = nueva();
+    advanceTo(g, 'gen.descansar', 1, 7);
+    esperarHasta(g, 7 * 60 + 55);
+    const p = g.preview(`estudios.estudiar_${clave(asignatura)}`)!;
+    expect(p.duration).toBe(5);
+    expect(p.corte).toMatchObject({ deMinutos: 90, minutos: 5, texto: 'entras a clase a las 8:00' });
+    expect(p.efficiency).toBeCloseTo(5 / 90, 3);
+    expect(g.perform(`estudios.estudiar_${clave(asignatura)}`).duration).toBe(5);
+    expect(g.time.minuteOfDay).toBe(8 * 60);
+    const clase = g.preview('estudios.clase_1')!;
+    expect(clase.available).toBe(true);
+    expect(clase.efficiency).toBe(1); // a las 8:00 en punto no se llega tarde
+    // Un examen o una clase no se cortan: la clase dura lo que dura.
+    expect(clase.corte).toBeUndefined();
+  });
+
+  it('con la próxima clase ya empezada, estudiar vuelve a durar entero', () => {
+    const g = nueva();
+    advanceTo(g, 'gen.descansar', 5, 10); // sábado: sin clase
+    expect(g.preview(`estudios.estudiar_${clave(asignatura)}`)!.corte).toBeUndefined();
+    expect(g.preview(`estudios.estudiar_${clave(asignatura)}`)!.duration).toBe(90);
   });
 });
