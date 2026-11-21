@@ -312,3 +312,94 @@ describe('el director de los sucesos', () => {
     expect(JSON.parse(a).modules.sucesos.historia.length).toBeGreaterThan(2);
   });
 });
+
+describe('lo que pasa durante una actividad y lo que no se puede aplazar', () => {
+  const opciones = (extra: object = {}) => [
+    { id: 'responder', texto: 'Responder', efectos: [{ estado: 'gen.estres', mas: 1 }], ...extra },
+    { id: 'callar', texto: 'Callar', efectos: [] },
+  ];
+  const en = (id: string, def: object) =>
+    suceso({ id, titulo: id, disparo: { al: 'u.clase' }, repite: 'siempre', texto: 'Algo pasa.', plazo: { dias: 1, porDefecto: 'callar' }, opciones: opciones(), ...def } as Parameters<typeof suceso>[0]);
+  /** Un módulo con una «clase» (la señal `u.clase`, que la config da por actividad) y otra acción cualquiera. */
+  const clase = defineModule({
+    id: 'u',
+    name: 'Clase',
+    initState: () => ({}),
+    actions: [
+      { id: 'u.clase', name: 'Clase', tags: ['clase'], duration: 50, run: (ctx) => ctx.emit({ type: 'u.clase', data: {} }) },
+      { id: 'u.otra', name: 'Otra cosa', tags: [], duration: 5 },
+    ],
+  });
+  const partida = (catalogo: AporteDeSucesos[]) => {
+    const g = Game.create([personaje, sucesos, prueba(catalogo, [{ durante: ['u.clase'] }]), clase], { seed: 7 });
+    dado.azar = 1;
+    return g;
+  };
+  const elegida = (g: Game, id: string) => svc(g).recuerdos().find((r) => r.suceso === id)?.opcion;
+
+  it('un suceso que sale durante una actividad no gasta minutos propios, ni sus opciones con «minutos» antiguos', () => {
+    const g = partida([en('t.en_clase', {})]);
+    expect(g.perform('u.clase').ok).toBe(true);
+    const [p] = svc(g).pendientes();
+    expect(p.opciones.map((o) => o.minutos)).toEqual([0, 0]);
+    expect(g.preview(p.opciones[0].accion)).toMatchObject({ duration: 0 });
+    const antes = g.time.minute;
+    expect(g.perform(p.opciones[0].accion)).toMatchObject({ ok: true, duration: 0 });
+    expect(g.time.minute).toBe(antes);
+  });
+
+  it('con `durante: false` es otra cosa (quedarse a hablar después): sus opciones gastan los minutos que digan', () => {
+    const g = partida([en('t.despues', { durante: false, opciones: opciones({ minutos: 5 }) })]);
+    g.perform('u.clase');
+    const [p] = svc(g).pendientes();
+    expect(p.opciones[0].minutos).toBe(5);
+    expect(g.perform(p.opciones[0].accion)).toMatchObject({ ok: true, duration: 5 });
+  });
+
+  it('lo que no es durante una actividad sigue gastando los minutos de su opción', () => {
+    const g = nueva();
+    g.perform('t.aviso_del_colegio');
+    expect(svc(g).pendientes()[0].opciones[0].minutos).toBe(10);
+  });
+
+  it('lo que se pregunta en el momento no se puede aplazar: si haces otra cosa sin responder, se aplica la opción por defecto', () => {
+    const g = partida([en('t.pregunta', {})]);
+    g.perform('u.clase');
+    expect(svc(g).pendientes()[0]).toMatchObject({ urgencia: 'ahora', aplazable: false });
+    g.perform('u.otra');
+    expect(svc(g).pendientes()).toEqual([]);
+    expect(elegida(g, 't.pregunta')).toBe('callar');
+  });
+
+  it('responder no hace perder otra pregunta que esperaba, y lo recién abierto en la misma acción sigue ahí', () => {
+    const g = partida([en('t.una', {}), en('t.dos', {})]);
+    g.perform('u.clase');
+    expect(svc(g).pendientes()).toHaveLength(2);
+    g.perform(svc(g).pendientes()[0].opciones[0].accion);
+    expect(svc(g).pendientes()).toHaveLength(1);
+    g.perform(svc(g).pendientes()[0].opciones[0].accion);
+    expect(svc(g).pendientes()).toEqual([]);
+    expect(svc(g).recuerdos().filter((r) => r.opcion === 'responder')).toHaveLength(2);
+  });
+
+  it('lo que puede esperar (aplazable o pendiente) sigue ahí tras otras acciones, hasta que vence su plazo', () => {
+    const g = partida([suceso({ id: 't.aviso', titulo: 'Un aviso', disparo: { al: 'u.clase' }, repite: 'siempre', texto: 'Te escriben.', urgencia: 'aplazable', durante: false, plazo: { dias: 1, porDefecto: 'callar' }, opciones: opciones() })]);
+    g.perform('u.clase');
+    expect(svc(g).pendientes()[0]).toMatchObject({ urgencia: 'aplazable', aplazable: true });
+    g.perform('u.otra');
+    g.perform('u.otra');
+    expect(svc(g).pendientes()).toHaveLength(1);
+    pasarDias(g, 2);
+    expect(svc(g).pendientes()).toEqual([]);
+    expect(elegida(g, 't.aviso')).toBe('callar');
+  });
+
+  it('un suceso durante una actividad nunca es aplazable, aunque diga `aplazable`: la validación lo rechaza', () => {
+    const errores = (s: AporteDeSucesos[]) => validarCatalogo([{ modulo: 't', aportes: s }]).errores.join(' | ');
+    const base = { titulo: 'x', disparo: { al: 'clase.asistida' }, ejemploDeSeñal: { asignatura: 'a', tarde: 0 }, texto: 'x', plazo: { dias: 1, porDefecto: 'a' } } as const;
+    expect(errores([suceso({ ...base, id: 't.a', urgencia: 'aplazable', opciones: [{ id: 'a', texto: 'A' }] })])).toMatch(/durante una actividad/);
+    expect(errores([suceso({ ...base, id: 't.b', opciones: [{ id: 'a', texto: 'A', minutos: 5 }] })])).toMatch(/gasta minutos/);
+    expect(errores([suceso({ ...base, id: 't.c', durante: false, opciones: [{ id: 'a', texto: 'A', minutos: 5 }] })])).toBe('');
+    expect(errores([suceso({ ...base, id: 't.d', disparo: { al: 'u.x' }, urgencia: 'pendiente', reparto: { quien: { rol: 'companero', presente: true } }, opciones: [{ id: 'a', texto: 'A' }] })])).toMatch(/está presente/);
+  });
+});

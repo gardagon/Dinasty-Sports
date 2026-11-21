@@ -18,6 +18,8 @@ import {
   fechaDelDia,
   ordenarCondiciones,
   probabilidadDeExito,
+  sucesoEsAplazable,
+  sucesoEsDurante,
   dificultadDeTirada,
   rngEstable,
   servicioDeHechos,
@@ -113,6 +115,8 @@ interface Pendiente {
   reparto: Record<string, string>;
   /** Minuto absoluto en que vence. */
   vence: number;
+  /** En qué acción de la partida se abrió (`actionCount`): lo que no se puede aplazar se pierde con la siguiente acción que no sea decidir. */
+  desde?: number;
   señal?: Record<string, unknown>;
 }
 
@@ -643,7 +647,7 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
   aplicar(ctx, sit, dec.d.efectos);
   const plazo = def.plazo!;
   const vence = plazo.hasta ? hoy * MINUTES_PER_DAY + plazo.hasta.hora : ctx.time.minute + (plazo.dias ?? 1) * MINUTES_PER_DAY;
-  s.pendientes.push({ id: s.siguiente++, suceso: def.id, ...(dec.variante ? { variante: dec.variante } : {}), ...(hilo ? { hilo: hilo.id } : {}), reparto, vence, ...(origen.señal ? { señal: origen.señal } : {}) });
+  s.pendientes.push({ id: s.siguiente++, suceso: def.id, ...(dec.variante ? { variante: dec.variante } : {}), ...(hilo ? { hilo: hilo.id } : {}), reparto, vence, desde: ctx.actionCount, ...(origen.señal ? { señal: origen.señal } : {}) });
   ctx.log(`${componerTexto(dec.d.titulo ?? def.titulo, datos)}: tienes algo que decidir.`, 'aviso');
   return true;
 }
@@ -768,7 +772,8 @@ function accionDeElegir(ctx: ReadContext, id: string): ActionDef | undefined {
     id,
     name: (c) => componerTexto(o.texto, datosDeTexto(c, c.state<SucesosState>(), r.p.reparto, r.hilo, r.p.señal)),
     tags: ['decision'],
-    duration: o.minutos ?? 1,
+    // Lo que pasa durante una actividad se responde sin salir de ella: no gasta minutos propios.
+    duration: durante(i, r.x) ? 0 : (o.minutos ?? 1),
     group: 'Decisiones',
     available: (c) => {
       const ahora = resolver(c, i, pendiente);
@@ -823,6 +828,28 @@ function pistaDe(ctx: ReadContext, o: OpcionDef, modo: ConfigDeSucesos['presenta
 }
 
 // ------------------------------------------------------------------ el paso del tiempo
+
+/** ¿Pasa dentro de una actividad? (sin minutos propios y sin aplazar). */
+const durante = (i: Indice, x: SucesoCompilado): boolean => sucesoEsDurante(x.def, i.config.durante);
+/** ¿Se puede dejar para luego? Lo que se responde en el momento (`ahora`, o durante una actividad) no. */
+const aplazable = (i: Indice, x: SucesoCompilado): boolean => sucesoEsAplazable(x.def, i.config.durante);
+
+/**
+ * Lo que no se puede aplazar (se pregunta en el momento: en clase, con alguien delante) no espera a que vuelvas: si haces otra cosa sin responder, el momento
+ * pasó y se aplica la opción por defecto. Decidir no cuenta (puede haber otro esperando) y lo que acaba de abrirse con esta misma acción sigue ahí.
+ */
+function pasarElMomento(ctx: ActionContext, i: Indice, decision: boolean): void {
+  const s = mut(ctx);
+  if (decision) return;
+  const hechas = ctx.actionCount;
+  for (const p of s.pendientes.filter((q) => (q.desde ?? hechas) < hechas)) {
+    const r = resolver(ctx, i, p.id);
+    if (!r || aplazable(i, r.x)) continue;
+    const o = r.d.opciones?.find((x) => x.id === r.x.def.plazo?.porDefecto);
+    if (o) elegir(ctx, i, r, o);
+    else s.pendientes = s.pendientes.filter((q) => q.id !== p.id);
+  }
+}
 
 function vencer(ctx: ActionContext, i: Indice): void {
   const s = mut(ctx);
@@ -949,7 +976,10 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
       if (a.duration >= (q.minutosMin ?? 0) && q.tags.every((t) => a.tags.includes(t))) s.contadores[c.id] = (s.contadores[c.id] ?? 0) + 1;
     }
     // Tras cada acción: lo que vence y lo programado que esperaba su momento (has llegado a casa, ya está tu madre).
-    if (s.pendientes.length) vencer(ctx, i);
+    if (s.pendientes.length) {
+      pasarElMomento(ctx, i, a.tags.includes('decision'));
+      vencer(ctx, i);
+    }
     programados(ctx, i);
   } else if (ev.type === CORE_EVENTS.DAY_START) {
     caducar(ctx, s);
@@ -1027,9 +1057,9 @@ function pendientesDe(ctx: ReadContext): SucesoPendiente[] {
     const opciones: OpcionPendiente[] = (r.d.opciones ?? []).map((o) => {
       const prob = o.tirada && modo === 'numeros' ? probabilidadDeExito(ctx.hasStat(o.tirada.con) ? ctx.norm(o.tirada.con) * 100 : 0, dificultadDeTirada(o.tirada, cond)) : undefined;
       const pista = pistaDe(ctx, o, modo, datos, prob);
-      return { id: o.id, accion: idDeElegir(p.id, o.id), texto: componerTexto(o.texto, datos), ...motivoDe(ctx, i, r, o), ...(pista ? { pista: componerTexto(pista, datos) } : {}), minutos: o.minutos ?? 1, ...(prob === undefined ? {} : { probabilidad: prob }) };
+      return { id: o.id, accion: idDeElegir(p.id, o.id), texto: componerTexto(o.texto, datos), ...motivoDe(ctx, i, r, o), ...(pista ? { pista: componerTexto(pista, datos) } : {}), minutos: durante(i, r.x) ? 0 : (o.minutos ?? 1), ...(prob === undefined ? {} : { probabilidad: prob }) };
     });
-    out.push({ id: p.id, suceso: p.suceso, titulo: componerTexto(r.d.titulo ?? r.x.def.titulo, datos), texto: r.d.texto ? componerTexto(r.d.texto, datos) : '', urgencia: r.x.def.urgencia ?? 'ahora', categoria: r.x.def.categoria ?? 'importante', origen: r.x.origen, ...(r.x.deporte ? { deporte: r.x.deporte } : {}), vence: p.vence, reparto: p.reparto, opciones });
+    out.push({ id: p.id, suceso: p.suceso, titulo: componerTexto(r.d.titulo ?? r.x.def.titulo, datos), texto: r.d.texto ? componerTexto(r.d.texto, datos) : '', urgencia: aplazable(i, r.x) ? (r.x.def.urgencia as 'aplazable' | 'pendiente') : 'ahora', aplazable: aplazable(i, r.x), categoria: r.x.def.categoria ?? 'importante', origen: r.x.origen, ...(r.x.deporte ? { deporte: r.x.deporte } : {}), vence: p.vence, reparto: p.reparto, opciones });
   }
   return out;
 }

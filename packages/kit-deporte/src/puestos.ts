@@ -160,7 +160,6 @@ export function sucesoDePruebaDeAcceso(cfg: ConfigDeporte, t: TextosDePruebaDeAc
       texto: t.opcionDePuesto.replaceAll('{puesto}', nombreDe2(p.id)),
       requiere: [{ señal: 'huecos', incluye: p.id }] as Condicion[],
       oculta: true,
-      minutos: 5,
       efectos: sin(p.id),
       resultado: t.resultadoDeHueco.replaceAll('{puesto}', nombreDe2(p.id)),
     })),
@@ -169,11 +168,10 @@ export function sucesoDePruebaDeAcceso(cfg: ConfigDeporte, t: TextosDePruebaDeAc
       texto: t.opcionDePuesto.replaceAll('{puesto}', nombreDe2(p.id)),
       requiere: [{ no: { señal: 'huecos', incluye: p.id } }] as Condicion[],
       oculta: true,
-      minutos: 5,
       efectos: sin(),
       resultado: resultadoSinHueco.replaceAll('{puesto}', nombreDe2(p.id)),
     })),
-    { id: 'que_decida', texto: t.opcionQueDecida, minutos: 5, efectos: sin(), resultado: t.resultadoQueDecida },
+    { id: 'que_decida', texto: t.opcionQueDecida, efectos: sin(), resultado: t.resultadoQueDecida },
   ];
   return suceso({
     id: idDeSucesoDePrueba(cfg.id),
@@ -266,7 +264,8 @@ export function sucesoDePlazaExtra(cfg: ConfigDeporte, t: TextosDePlazaExtra): A
     cuando: [{ señal: 'sport', es: cfg.id }],
     repite: 'siempre',
     reparto: { entrenador: { rol: 'entrenador', delDeportePrincipal: true } },
-    urgencia: 'ahora',
+    // Un aviso del club al cambiar de temporada: se puede pensar unos días.
+    urgencia: 'aplazable',
     plazo: { dias: 3, porDefecto: 'quedarse' },
     texto: t.texto,
     opciones: [
@@ -308,7 +307,8 @@ export function sucesoDeEquipoSinNinos(cfg: ConfigDeporte, t: TextosDeEquipoSinN
     ejemploDeSeñal: { sport: cfg.id, clubId: 'club', motivo: 'pocos', jugadores: 12, minimo: 14 },
     cuando: [{ señal: 'sport', es: cfg.id }],
     repite: 'siempre',
-    urgencia: 'ahora',
+    // Un aviso del club o del colegio al cambiar de categoría: se puede pensar unos días.
+    urgencia: 'aplazable',
     plazo: { dias: 3, porDefecto: 'esperar' },
     texto: t.pocos,
     variantes: [

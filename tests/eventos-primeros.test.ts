@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, dificultadDeTirada, registrarPais, type RelationsService, type SucesoPendiente, type SucesosService } from '@ds/contracts';
+import { CONFIG_DE_SUCESOS, PAIS_CIUDAD_DE_PRUEBA, SERVICES, dificultadDeTirada, sucesoEsAplazable, sucesoEsDurante, registrarPais, type RelationsService, type SucesoPendiente, type SucesosService } from '@ds/contracts';
 import type { Game } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, type FutbolState } from '@ds/mod-futbol';
@@ -37,6 +37,9 @@ describe('los primeros eventos, en una partida de verdad', () => {
     expect(p).toBeDefined();
     expect(p.texto).toMatch(/^Al acabar la clase, .+ te para/);
     expect(p.texto).not.toMatch(/[{}]/);
+    // Pasa dentro de la clase: no gasta minutos y se responde en el momento (no se puede dejar para luego).
+    expect(p.opciones.every((o) => o.minutos === 0)).toBe(true);
+    expect(p).toMatchObject({ urgencia: 'ahora', aplazable: false });
     const profesor = p.reparto.profesor;
     const antes = g.service<RelationsService>(SERVICES.relaciones)!.get(profesor)?.afinidad ?? 0;
     expect(g.perform(p.opciones[0].accion).ok).toBe(true);
@@ -135,5 +138,24 @@ describe('la dificultad de pedirle al entrenador otro puesto (cifras provisional
     expect(dificultad(90, 'amigo', 30)).toBe(55 - 15 - 15);
     expect(dificultad(-60, 'antipatia', -15)).toBe(55 + 10 + 15);
     expect(dificultad(undefined, 'conocido', 0)).toBe(55); // sin vínculo, solo cuenta lo que vale
+  });
+});
+
+describe('qué sucesos pasan durante una actividad y cuáles se pueden aplazar (todo el catálogo)', () => {
+  const defs = [...new Banco().catalogo.sucesos.values()].map((x) => x.def).filter((d) => d.opciones?.length || d.variantes?.some((v) => v.opciones?.length));
+
+  it('lo que pasa en clase, en un entrenamiento o en una prueba de acceso no gasta minutos propios ni se puede aplazar', () => {
+    const durante = defs.filter((d) => sucesoEsDurante(d));
+    // Preguntas en clase, llegar tarde (a clase, al entrenamiento, a la convocatoria), el profesor de Educación física, el primer entrenamiento y la prueba de acceso.
+    expect(durante.map((d) => d.id)).toEqual(expect.arrayContaining(['eventos.colegio.pregunta_del_profesor', 'eventos.estudios.primer_dia_de_educacion_fisica', 'eventos.estudios.tarde_a_clase', 'futbol.primer_entrenamiento', 'futbol.tarde_al_entrenamiento', 'futbol.tarde_a_la_convocatoria', 'futbol.prueba_de_acceso']));
+    for (const d of durante) {
+      const opciones = [...(d.opciones ?? []), ...(d.variantes ?? []).flatMap((v) => v.opciones ?? [])];
+      expect(opciones.filter((o) => o.minutos !== undefined).map((o) => `${d.id}.${o.id}`), `${d.id} gasta minutos`).toEqual([]);
+      expect(sucesoEsAplazable(d), `${d.id} se puede aplazar`).toBe(false);
+    }
+  });
+
+  it('solo se pueden aplazar los avisos que de verdad pueden esperar (hoy, los del club al cambiar de temporada y la fiesta de un cumpleaños)', () => {
+    expect(defs.filter((d) => sucesoEsAplazable(d, CONFIG_DE_SUCESOS.durante)).map((d) => d.id).sort()).toEqual(['eventos.relaciones.cumple.fiesta', 'futbol.equipo_sin_ninos', 'futbol.plaza_extra']);
   });
 });
