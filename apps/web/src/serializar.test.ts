@@ -78,4 +78,11 @@ describe('serializar por trozos', () => {
     expect(await a.cargar()).toBe(texto);
     expect(por_trozos.bytes).toBe(new TextEncoder().encode(texto).length);
   });
+
+  it('varias acciones seguidas en una misma tarea no hacen fallar: lo descartado no se vuelve a acabar de golpe', async () => {
+    const v = grande() as { gente: { nombre: string }[] };
+    const trabajo = serializarPorTrozos(v, { ms: 0 });
+    for (let i = 0; i < ABORTOS_SEGUIDOS + 3; i++) expect(() => alCambiarElEstado()).not.toThrow();
+    expect(await trabajo).toBeNull();
+  });
 });
