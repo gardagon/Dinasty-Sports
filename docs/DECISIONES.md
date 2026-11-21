@@ -5,6 +5,22 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Puestos, entrenamientos, pistas, caras según el origen y tiempo de los sucesos
+
+- **Puestos** (informe `docs/relevo/futbol-puestos-entrenos.md`, `docs/ANEXO_PUESTOS.md`):
+  - el consejo compara con los niños de su edad y con uno mismo, no en valor absoluto (A);
+  - no hace falta quitar azar al consejo (B, descartado de momento);
+  - renombrar: «carrilero» (LCR/RCR) pasa a «Interior» y LM/RM a «Medio de banda» (C);
+  - **las recomendaciones van por puesto sin lado:** «te veo como portero, defensa central o lateral», no carrilero izquierdo y carrilero derecho como puestos distintos.
+- **Entrenamientos:** vale el catálogo de 22 (cifras provisionales, que se miden antes de activar). «Con amigos» no es un entrenamiento como tal: es **quedar a jugar al fútbol**, y vale para todo el año. **Campamentos de jugadores y de porteros, por separado** (como ahora), con entrenamientos comunes (físicos y mentales) y propios de cada uno.
+- **Pistas:** aprobadas, en este orden: el porqué del consejo, «Preguntar por un puesto» y el entrenador que recomienda entrenamientos.
+- **Especializaciones (roles, como el portero líbero de Football Manager):** no se descartan; se plantean más adelante, después de probar lo de ahora.
+- **Caras según el origen:** el origen influye en la forma de la cara (tendencias en los rasgos, como ya las hay en los colores). En el dibujo, el ojo con pliegue del párpado lo hace Sonnet, y la arquitectura revisa el diseño y lo corrige hasta que quede como se espera.
+- **Tiempo de los sucesos:**
+  - un suceso fortuito (al llegar al patio, por ejemplo) consume tiempo si decides hacer lo que propone;
+  - uno que pasa dentro de una acción (la clase de lengua) no lo consume;
+  - **ejemplo del grupo:** si los niños están en el patio, faltan 2 minutos para subir y haces una acción de 5, se hacen 2 minutos de la acción (con su parte proporcional); luego se ofrece subir al aula con ellos y se consume el camino (unos 4 minutos), porque es lo que tardan los demás.
+
 ## 21/11/2026 — Deberes, acciones que pisan otra y moverse con el grupo
 
 - **«Hacer deberes», 30 minutos:** sin efecto todavía en los deberes, pero sube la asignatura que se elija. Sirve para esperar al entrenamiento de fútbol: habrá quien prefiera ir a casa y volver, quedarse estudiando o jugar en el parque. Sustituye a la idea de «Pendiente e ideas»; los deberes que se mandan y se entregan siguen pendientes.
