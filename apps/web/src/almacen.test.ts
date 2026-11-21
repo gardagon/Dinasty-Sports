@@ -16,6 +16,7 @@ import {
   recomendarFrecuencia,
   serializarPartida,
   textoDeRecomendacion,
+  textoDePeso,
   tocaGuardar,
   type Almacen,
 } from './almacen';
@@ -158,10 +159,17 @@ describe('guardado automático elegible', () => {
 
   it('recomienda más espaciado cuanto más tarda en guardar', () => {
     expect(recomendarFrecuencia(10)).toBe('accion');
-    expect(recomendarFrecuencia(150)).toBe('dia');
-    expect(recomendarFrecuencia(400)).toBe('semana');
+    expect(recomendarFrecuencia(140)).toBe('accion');
+    expect(recomendarFrecuencia(400)).toBe('dia');
+    expect(recomendarFrecuencia(1800)).toBe('semana');
     expect(recomendarFrecuencia(3000)).toBe('mes');
-    expect(textoDeRecomendacion(400)).toBe('Tu partida tarda 400 ms en guardarse: te recomendamos «cada semana de juego».');
+    expect(textoDeRecomendacion(400)).toBe('Guardar tu partida cuesta 400 ms de trabajo (sin congelar la pantalla): te recomendamos «cada día de juego».');
+  });
+
+  it('enseña el peso de la partida guardada', () => {
+    expect(textoDePeso(undefined, undefined)).toBe('');
+    expect(textoDePeso(3000 * 1024, 9)).toBe('La partida guardada pesa 2,9 MB. La pantalla no se detiene más de 9 ms de una vez.');
+    expect(textoDePeso(500 * 1024, undefined)).toBe('La partida guardada pesa 500 KB.');
   });
 
   it('recuerda la frecuencia elegida y ignora valores raros o un almacenamiento que falla', () => {

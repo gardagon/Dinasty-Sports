@@ -461,6 +461,14 @@ export class Game {
   }
 
   /**
+   * El estado vivo, **solo para leer** (no es una copia): lo usa la interfaz para convertirlo a texto por trozos sin congelar la página (guardar).
+   * Quien lo lea a ratos tiene que acabar antes de que la partida cambie (hacer una acción); si no, verá un estado a medias.
+   */
+  get estadoParaGuardar(): Readonly<GameState> {
+    return this.s;
+  }
+
+  /**
    * El estado en texto JSON, con los campos extra que se le pidan al lado (`{ ...extras, state }`). Es la forma barata de guardar: convertir a
    * texto cuesta una quinta parte que copiar el objeto, y el texto ya es una copia (no cambia aunque la partida siga).
    */
