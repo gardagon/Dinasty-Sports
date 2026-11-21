@@ -1236,8 +1236,22 @@ function entrenadorDeUnJugador(lista: readonly Npc[], pob: PoblacionGuardada, j:
  * Las agendas de la gente en un momento: quién sigue qué horario (con los clubes y los partidos de esa semana) y en qué intervalo entre cambios de tramo estamos.
  * Lo usan el servicio de presencia (ahora) y `moverse con el grupo` (también para mirar cómo estaba todo al empezar una acción).
  */
+const AGENDAS_DE_PRESENCIA = new WeakMap<Npc[], Map<number, ReturnType<typeof construirAgendasDePresencia>>>();
+
 function agendasDePresencia(ctx: ReadContext, t: ReadContext['time']) {
   const lista = ctx.state<NpcsState>().npcs;
+  // Se pide en cada acción (para ver si se va el grupo) y varias veces por minuto: se recuerda por lista de personas y minuto, como el servicio de presencia (que ya lo hace por minuto).
+  let porMinuto = AGENDAS_DE_PRESENCIA.get(lista);
+  if (!porMinuto) AGENDAS_DE_PRESENCIA.set(lista, (porMinuto = new Map()));
+  const hecho = porMinuto.get(t.minute);
+  if (hecho) return hecho;
+  if (porMinuto.size >= 12) porMinuto.clear();
+  const r = construirAgendasDePresencia(ctx, t, lista);
+  porMinuto.set(t.minute, r);
+  return r;
+}
+
+function construirAgendasDePresencia(ctx: ReadContext, t: ReadContext['time'], lista: Npc[]) {
   const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
   // Cada persona sigue la jornada y los clubes de su deporte (el primero de la partida si no dice cuál); si el deporte ya no está cargado, no hay nada que seguir.
   const cargados = fichasDeDeporte(ctx).map((f) => f.id);
@@ -1360,13 +1374,22 @@ export const npcs = defineModule<NpcsState>({
       // La presencia solo cambia al cambiar de intervalo entre dos cambios de tramo: si no ha cambiado, nadie se ha ido.
       if (antes.intervalo === ahora.intervalo) return;
       const aqui = lugares.actual().id;
-      const alEmpezar: EnLugar[] = [];
-      for (const n of antes.lista) {
-        const u = ubicacionEn(antes.agendaDe(n), t0, n.id);
-        if (u.sitio === aqui) alEmpezar.push({ n, nivel: u.nivel, tipo: u.tipo, azar: azarDe(n.id, t0.day, 'orden') });
+      // Quién había contigo al empezar: si el índice de presencia que hay guardado es el de ese momento (casi siempre: nadie ha pedido aún la presencia del nuevo intervalo), se usa tal cual; si no, se calcula.
+      const claveAntes = `${t0.day}:${antes.intervalo}:${antes.partidos?.version ?? ''}`;
+      const guardado = INDICES.get(antes.lista);
+      let alEmpezar: EnLugar[];
+      if (guardado?.clave === claveAntes) alEmpezar = guardado.lugares.get(aqui) ?? [];
+      else {
+        alEmpezar = [];
+        for (const n of antes.lista) {
+          const u = ubicacionEn(antes.agendaDe(n), t0, n.id);
+          if (u.sitio === aqui) alEmpezar.push({ n, nivel: u.nivel, tipo: u.tipo, azar: azarDe(n.id, t0.day, 'orden') });
+        }
       }
       if (!alEmpezar.length) return;
-      alEmpezar.sort(compararCercania);
+      // El mismo orden en que se ve la gente (los que conoces primero): se ordena una vez por lugar (`azar` ya puesto si el índice la ordenó).
+      for (const e of alEmpezar) e.azar ??= azarDe(e.n.id, t0.day, 'orden');
+      alEmpezar = [...alEmpezar].sort(compararCercania);
       const cercanos = alEmpezar.slice(0, aforoCercano(aqui, `${t0.day}:${antes.intervalo}`)).map((e) => e.n);
       const { despues, g } = elGrupoSeVa(lugares, cercanos, aqui, ahora, t1);
       const destino = g && lugares.lugar(g.hacia);
