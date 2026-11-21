@@ -5,6 +5,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Dorsales, crónica sin nombres de desconocidos y comparación en «Mi equipo»
+
+- **La crónica de los partidos no enseña el nombre de quien no conoces:** se le nombra por su dorsal.
+- **Dorsales:** cada jugador tiene el número de su camiseta, al azar dentro de lo normal. Los porteros llevan el 1, el 13 o, si no están libres, a partir del 16 el primero que quede después de que hayan escogido los jugadores de campo.
+- **En la tabla de «Mi equipo», dos columnas más:** el dorsal y la comparación («mejor / peor / parecido»), cuando ya se ha desbloqueado.
+
 ## 21/11/2026 — Moverse con el grupo: preferencia y «Me voy»
 
 - **Preferencia en Opciones:** «Cuando se va el grupo: preguntar / ir siempre con ellos / quedarme» (por defecto, preguntar).
