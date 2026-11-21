@@ -45,6 +45,7 @@
     "publicar-deportes": "tsx tools/publicar-deportes.ts",
     "probar-web": "tsx tools/probar-web.ts",
     "rendimiento:web": "tsx tools/rendimiento-web.ts",
+    "presupuesto": "tsx tools/presupuesto.ts",
     "sim:futbol": "tsx sim/src/futbol.ts",
     "sim:cuerpo": "tsx tools/cuerpo.ts",
     "retratos:muestras": "tsx tools/retratos/muestras.ts",
