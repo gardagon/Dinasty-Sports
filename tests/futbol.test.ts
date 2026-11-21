@@ -68,9 +68,9 @@ describe('fútbol en una partida completa', () => {
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
     hacer(g, 'futbol.apuntarse_colegio');
     advanceToWeek(g, 'gen.descansar', 1, 3, 15);
-    expect(g.preview('futbol.balon')!.available).toBe(false);
+    expect(g.preview('futbol.entrena_toques_y_pared')!.available).toBe(false);
     advanceToWeek(g, 'gen.descansar', 1, 5, 11);
-    expect(posible(g, 'futbol.balon')).toBe(true);
+    expect(posible(g, 'futbol.entrena_toques_y_pared')).toBe(true);
   });
 
   it('se guarda y se carga sin perder nada', () => {
@@ -108,10 +108,10 @@ describe('sobrecarga entre deportes', () => {
     const sobrecarga = (id: string) => g.preview(id)!.modifiers.some((m) => m.id.endsWith('.sobrecarga'));
     expect(sobrecarga('atletismo.tecnica')).toBe(false);
     expect(hacer(g, 'atletismo.tecnica').ok).toBe(true);
-    expect(sobrecarga('futbol.balon')).toBe(false);
-    expect(hacer(g, 'futbol.balon').ok).toBe(true);
+    expect(sobrecarga('futbol.entrena_toques_y_pared')).toBe(false);
+    expect(hacer(g, 'futbol.entrena_toques_y_pared').ok).toBe(true);
     // Dos sesiones (una de cada deporte): la siguiente, de cualquiera de los dos, ya sufre sobrecarga.
-    expect(sobrecarga('futbol.tiro')).toBe(true);
+    expect(sobrecarga('futbol.entrena_tiro_a_puerta')).toBe(true);
     expect(sobrecarga('atletismo.series')).toBe(true);
   });
 
@@ -129,7 +129,7 @@ describe('sobrecarga entre deportes', () => {
     advanceToWeek(g, 'gen.descansar', 2, 5, 10);
     for (let i = 0; i < 3; i++) expect(hacer(g, 'gen.gimnasio').ok).toBe(true);
     expect(g.moduleState<{ sesionesHoy: { n: number } }>('futbol').sesionesHoy.n).toBe(0);
-    expect(g.preview('futbol.balon')!.modifiers.some((m) => m.id === 'futbol.sobrecarga')).toBe(false);
+    expect(g.preview('futbol.entrena_toques_y_pared')!.modifiers.some((m) => m.id === 'futbol.sobrecarga')).toBe(false);
   });
 });
 

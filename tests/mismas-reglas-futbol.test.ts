@@ -26,7 +26,7 @@ const CAMPO = EJERCICIOS_DE_FUTBOL.filter((e) => !e.soloPuesto);
  * La sesión número `k`: durante las ocho primeras semanas (16 sesiones) el equipo trabaja unos ejercicios (balón y finalización) y durante las ocho siguientes otros
  * (defensa y físico): las habilidades de los primeros llevan semanas sin entrenarse y tienen que caer, mientras otras suben.
  */
-const EJERCICIOS_POR_FASE = [['rondos', 'finalizacion'], ['defensa', 'fisico']];
+const EJERCICIOS_POR_FASE = [['toques_y_pared', 'tiro_a_puerta'], ['uno_contra_uno', 'velocidad']];
 const sesion = (k: number): Entrenamiento[] => {
   const ids = EJERCICIOS_POR_FASE[k < 16 ? 0 : 1];
   return [...ids.flatMap((id) => CAMPO.find((e) => e.id === id)!.entrena), ...SIEMPRE];

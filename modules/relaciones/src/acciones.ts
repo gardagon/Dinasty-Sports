@@ -1,4 +1,4 @@
-import { EDAD_ATRACCION_FISICA, EDAD_MAXIMA_ENTRE_IGUALES, GEN, INTERESES, agradoPorCaracter, atraccion, type InteresesJugador, type NpcRole, type PerfilDelPersonaje, type RasgosDe } from '@ds/contracts';
+import { EDAD_ATRACCION_FISICA, EDAD_MAXIMA_ENTRE_IGUALES, GEN, INTERESES, agradoPorCaracter, atraccion, type InteresesJugador, type NpcRole, type QuedadaDeDeporte, type PerfilDelPersonaje, type RasgosDe } from '@ds/contracts';
 
 /**
  * Reglas puras de las acciones de relación (sin motor): cuánto duele una discusión, qué probabilidad hay de hacer las
@@ -203,9 +203,22 @@ export const PLANES = {
   /** Pasar un rato juntos: en casa o en el parque (2 horas). Entrenar juntos llegará con las actividades de deporte. */
   pasar_rato: { nombre: 'pasar el rato', titulo: 'Pasar el rato', duracion: 120, lugares: { casa: 'en tu casa', parque: 'en el parque' } as Readonly<Record<string, string>> },
 } as const;
+/** Lo que hace falta saber de una actividad que se acuerda con antelación: lo mismo en las de siempre (`PLANES`) que en las que ofrecen los deportes (`QuedadaDeDeporte`: «Jugar al fútbol: partidillo»). */
+export interface PlanDeActividad {
+  nombre: string;
+  titulo: string;
+  duracion: number;
+  lugares: Readonly<Record<string, string>>;
+}
 /** El texto «en tu casa» / «en la biblioteca» del sitio acordado para un plan. */
-export const textoDeLugarDePlan = (actividad: keyof typeof PLANES, lugar: string): string => PLANES[actividad].lugares[lugar] ?? `en ${lugar}`;
-export type ActividadDePlan = keyof typeof PLANES;
+export const textoDeLugarDePlan = (cfg: Pick<PlanDeActividad, 'lugares'> | undefined, lugar: string): string => cfg?.lugares[lugar] ?? `en ${lugar}`;
+/** Id de la actividad de un plan: `estudiar`, `pasar_rato` o la de una quedada de deporte (`futbol_partidillo`, sin puntos: va en el id de la acción). */
+export type ActividadDePlan = string;
+/** La actividad por su id: las de siempre y las que ofrecen los deportes de la partida. */
+export const planDeActividad = (quedadas: readonly QuedadaDeDeporte[], id: string): PlanDeActividad | undefined =>
+  (PLANES as Readonly<Record<string, PlanDeActividad>>)[id] ?? quedadas.find((q) => q.id === id);
+/** Todas las actividades que se pueden acordar, con su id, en orden: las de siempre y luego las de los deportes. */
+export const actividadesDePlan = (quedadas: readonly QuedadaDeDeporte[]): [string, PlanDeActividad][] => [...Object.entries(PLANES as Readonly<Record<string, PlanDeActividad>>), ...quedadas.map((q): [string, PlanDeActividad] => [q.id, q])];
 
 /**
  * Cómo responde alguien cuando le propones un plan para un día y una hora. Las cifras están en `docs/ANEXO_RELACIONES.md`:

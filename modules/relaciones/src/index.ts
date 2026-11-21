@@ -12,7 +12,9 @@ import {
   enHuecoEntreClases,
   type PerfilDelPersonaje,
   type IdentityService,
+  APORTES,
   NIVEL_ESTADO,
+  type QuedadaDeDeporte,
   type ActionContext,
   type ActionDef,
   type AreaDeAyuda,
@@ -66,6 +68,9 @@ import {
   horasDeInicio,
   PLAN,
   PLANES,
+  actividadesDePlan,
+  planDeActividad,
+  type PlanDeActividad,
   textoDeLugarDePlan,
   responderAPlan,
   type ActividadDePlan,
@@ -117,6 +122,10 @@ export interface PlanAcordado extends Omit<PlanView, 'cancelar' | 'nombre'> {
   actividad: ActividadDePlan;
   resuelto?: boolean;
 }
+
+/** Las quedadas que ofrecen los deportes de la partida («Jugar al fútbol: partidillo»): una actividad más de «Proponer quedar para…». El módulo no sabe de ningún deporte: las leen de sus aportes. */
+const quedadasDe = (ctx: Pick<ReadContext, 'aportes'>): readonly QuedadaDeDeporte[] => ctx.aportes<QuedadaDeDeporte>(APORTES.quedadaDeDeporte);
+const planDe = (ctx: Pick<ReadContext, 'aportes'>, actividad: string): PlanDeActividad | undefined => planDeActividad(quedadasDe(ctx), actividad);
 
 /** Las charlas son de 5 minutos y se pueden acumular hasta 6 al día con la misma persona (30 minutos en total). */
 const MINUTOS_DE_CHARLA = 5;
@@ -302,6 +311,8 @@ function interaccion(
     sinPresencia?: boolean;
     /** Sitio donde se hace (un plan se hace en el sitio acordado). */
     lugar?: readonly string[] | ((ctx: ReadContext) => readonly string[]);
+    /** El área de la compañía (lo que sabe hacer la otra persona en eso): por defecto, la de su sufijo (`AREA_DE_ACCION`). */
+    area?: AreaDeAyuda;
     /** Una charla: dura 5 minutos y vale una sexta parte de lo indicado (que es lo que daría media hora); hasta 6 al día. */
     charla?: boolean;
   },
@@ -327,7 +338,7 @@ function interaccion(
         ...(cfg.charla ? { charlas: { ...s.charlas, [n.id]: { dia, n: (s.charlas?.[n.id]?.dia === dia ? s.charlas[n.id].n : 0) + 1 } } } : { grandes: { ...s.grandes, [n.id]: dia } }),
       }));
       // Lo que ha pasado al hacerlo juntos: si ayuda o estorba (ya está en la eficiencia), se cuenta con una frase según la persona y lo que hacéis.
-      const area = AREA_DE_ACCION[cfg.suffix];
+      const area = cfg.area ?? AREA_DE_ACCION[cfg.suffix];
       if (area) {
         const actual = dirDe(ctx)?.get(n.id) ?? n; // las acciones se guardan por persona: se lee la persona de ahora, como hace el modificador
         const efecto = efectoDeCompania(actual, area, vinculoDe(ctx, ctx.state<RelacionesState>(), actual, dia).afinidad);
@@ -402,12 +413,11 @@ function motivoDePresencia(ctx: ReadContext, n: NpcView): string | undefined {
  * teléfono). Que el personaje pueda ir es cosa del jugador: si tiene otra cosa a esa hora, tendrá que elegir cuando llegue. No se lista (hay demasiadas
  * combinaciones): el formulario de «Proponer quedar para…» las construye y `resolverAccion` las encuentra.
  */
-function proponerPlan(n: NpcView, actividad: ActividadDePlan, lugar: string, cuando: CuandoDePlan, minuto: number): ActionDef {
-  const cfg = PLANES[actividad];
+function proponerPlan(n: NpcView, actividad: ActividadDePlan, cfg: PlanDeActividad, lugar: string, cuando: CuandoDePlan, minuto: number): ActionDef {
   const dias = DIAS_DE[cuando];
   return {
     id: idDeProponerPlan(n.id, actividad, lugar, cuando, minuto),
-    name: `Proponer a ${nombreCorto(n)}: ${cfg.nombre} ${textoDeDia(0, dias)} a las ${hhmm(minuto)} ${textoDeLugarDePlan(actividad, lugar)}`,
+    name: `Proponer a ${nombreCorto(n)}: ${cfg.nombre} ${textoDeDia(0, dias)} a las ${hhmm(minuto)} ${textoDeLugarDePlan(cfg, lugar)}`,
     description: `Acepta según lo que tenga que hacer a esa hora, lo bien que os llevéis y lo que confíe en ti: entre un plan y otro hace falta un día de margen, salvo que seáis muy amigos.`,
     tags: [TAGS.social],
     group: grupoDe(n),
@@ -449,7 +459,7 @@ function proponerPlan(n: NpcView, actividad: ActividadDePlan, lugar: string, cua
         planes: [...(st.planes ?? []), { npcId: n.id, actividad, dia, minuto, lugar }],
         vinculos: { ...st.vinculos, [n.id]: conCambio(vinculoDe(ctx, st, n, ctx.time.day), ctx.time.day, 1) },
       }));
-      ctx.log(`${nombreCorto(n)} acepta: ${cfg.nombre} ${textoDeDia(ctx.time.day, dia)} a las ${hhmm(minuto)} ${textoDeLugarDePlan(actividad, lugar)}. Se espera que llegues a tiempo.`, 'logro');
+      ctx.log(`${nombreCorto(n)} acepta: ${cfg.nombre} ${textoDeDia(ctx.time.day, dia)} a las ${hhmm(minuto)} ${textoDeLugarDePlan(cfg, lugar)}. Se espera que llegues a tiempo.`, 'logro');
     },
   };
 }
@@ -478,7 +488,7 @@ function cancelarPlan(n: NpcView, dia: number): ActionDef {
         planes: (s.planes ?? []).filter((x) => x !== undefined && !(x.npcId === n.id && x.dia === dia && !x.resuelto)),
         vinculos: { ...s.vinculos, [n.id]: conCambio(vinculoDe(ctx, s, n, ctx.time.day), ctx.time.day, -coste.afinidad, -coste.confianza) },
       }));
-      ctx.log(`Cancelas el plan con ${nombreCorto(n)} (${PLANES[p.actividad].nombre} ${textoDeDia(ctx.time.day, p.dia)} a las ${hhmm(p.minuto)}).`, 'info');
+      ctx.log(`Cancelas el plan con ${nombreCorto(n)} (${planDe(ctx, p.actividad)?.nombre ?? p.actividad} ${textoDeDia(ctx.time.day, p.dia)} a las ${hhmm(p.minuto)}).`, 'info');
     },
   };
 }
@@ -491,14 +501,15 @@ function resolverAccionDeRelaciones(ctx: ReadContext, id: string): ActionDef | u
   // Las acciones de un rival o un vecino conocido que no está cerca (no salen en `dynamicActions`).
   if (n && conocida(n) && (n.role === 'rival' || n.role === 'vecino') && partes.length === 3) {
     if (partes[1] === 'paces') return pacesDe(n);
-    const propia = accionesDe(n, esAmigoDeNino(ctx.state<RelacionesState>(), n)).find((a) => a.id === id);
+    const propia = accionesDe(n, esAmigoDeNino(ctx.state<RelacionesState>(), n), quedadasDe(ctx)).find((a) => a.id === id);
     if (propia) return propia;
   }
   if (!n || !conocida(n) || !aceptaPlanes(n, esAmigoDeNino(ctx.state<RelacionesState>(), n))) return undefined;
   if (partes[1] === 'proponer' && partes.length === 7) {
     const [, , , actividad, lugar, cuando, minuto] = partes;
-    if (!(actividad in PLANES) || (cuando !== 'hoy' && cuando !== 'manana') || !Number.isInteger(Number(minuto))) return undefined;
-    return proponerPlan(n, actividad as ActividadDePlan, lugar, cuando, Number(minuto));
+    const cfg = planDe(ctx, actividad);
+    if (!cfg || (cuando !== 'hoy' && cuando !== 'manana') || !Number.isInteger(Number(minuto))) return undefined;
+    return proponerPlan(n, actividad, cfg, lugar, cuando, Number(minuto));
   }
   if (partes[1] === 'cancelar' && partes.length === 4 && Number.isInteger(Number(partes[3]))) return cancelarPlan(n, Number(partes[3]));
   return undefined;
@@ -511,8 +522,7 @@ function formularioDePlan(ctx: ReadContext, n: NpcView | undefined): FormularioD
   const ahora = ctx.time.minuteOfDay;
   return {
     motivo: motivoDePresencia(ctx, n),
-    actividades: (Object.keys(PLANES) as ActividadDePlan[]).map((id) => {
-      const cfg = PLANES[id];
+    actividades: actividadesDePlan(quedadasDe(ctx)).map(([id, cfg]) => {
       return {
         id,
         nombre: cfg.titulo,
@@ -535,7 +545,7 @@ function formularioDePlan(ctx: ReadContext, n: NpcView | undefined): FormularioD
 }
 
 /** Las acciones propias de un compañero o un amigo (la vida de todos los días). */
-function accionesDeAmistad(n: NpcView): ActionDef[] {
+function accionesDeAmistad(n: NpcView, quedadas: readonly QuedadaDeDeporte[] = []): ActionDef[] {
   const yo = nombreCorto(n);
   return [
     interaccion(n, {
@@ -649,6 +659,25 @@ function accionesDeAmistad(n: NpcView): ActionDef[] {
       lugar: (ctx) => [planDeAhora(ctx, n.id, 'pasar_rato')?.lugar ?? 'casa'],
       alTerminar: (ctx) => cerrarPlan(ctx, n.id, 'pasar_rato'),
     }),
+    // Las quedadas de los deportes («Jugar al fútbol: partidillo»): se acuerdan igual que pasar el rato y se hacen a la hora y en el sitio acordados. Lo que suben lo dice el deporte.
+    ...quedadas.map((q) =>
+      interaccion(n, {
+        suffix: q.id,
+        name: `${q.titulo.charAt(0).toUpperCase()}${q.titulo.slice(1)} con ${yo} (plan acordado)`,
+        description: `${q.descripcion} Como habéis quedado.`,
+        duration: q.duracion,
+        tags: [...q.tags],
+        ganancia: 5,
+        confianza: 3,
+        area: 'deporte',
+        train: [...q.entrena],
+        delta: { ...q.delta },
+        horario: (ctx) => (planDeAhora(ctx, n.id, q.id) ? true : 'Primero hay que quedar: propónselo para hoy o mañana'),
+        sinPresencia: true,
+        lugar: (ctx) => [planDeAhora(ctx, n.id, q.id)?.lugar ?? Object.keys(q.lugares)[0]],
+        alTerminar: (ctx) => cerrarPlan(ctx, n.id, q.id),
+      }),
+    ),
     interaccion(n, {
       suffix: 'jugar',
       name: `Jugar con ${yo}`,
@@ -877,21 +906,21 @@ const esAmigoDeNino = (s: RelacionesState, n: NpcView): boolean => n.role === 'v
 /** Desde esta edad una persona ya no es «un niño» para charlar con un vecino sin más trato. */
 const EDAD_ADULTA = 18;
 
-function accionesDe(n: NpcView, amigoDeNino = false): ActionDef[] {
-  const clave = `${n.id}|${n.role}|${n.name}|${n.gender}|${n.role === 'familia' && (n.age ?? 8) < 6 ? 'pequeño' : ''}|${amigoDeNino ? 'amigo' : ''}`;
+function accionesDe(n: NpcView, amigoDeNino = false, quedadas: readonly QuedadaDeDeporte[] = []): ActionDef[] {
+  const clave = `${n.id}|${n.role}|${n.name}|${n.gender}|${n.role === 'familia' && (n.age ?? 8) < 6 ? 'pequeño' : ''}|${amigoDeNino ? 'amigo' : ''}|${quedadas.map((q) => q.id).join(',')}`;
   let lista = memoAcciones.get(clave);
   if (!lista) {
-    if (n.role === 'companero' || n.role === 'amigo') lista = [...accionesDeAmistad(n), discutir(n)];
+    if (n.role === 'companero' || n.role === 'amigo') lista = [...accionesDeAmistad(n, quedadas), discutir(n)];
     // Un hermano pequeño (menos de 6 años) solo da para jugar con él y tener un detalle; con los demás hay todo el catálogo.
     else if (n.role === 'familia') {
-      const todas = accionesDeAmistad(n);
+      const todas = accionesDeAmistad(n, quedadas);
       // Con los padres no se queda para estudiar (de momento: acordar planes es con hermanos, compañeros y amigos).
-      lista = n.tags.includes('progenitor') ? [...todas.filter((a) => !/\.(estudiar|pasar_rato)\./.test(a.id)), discutir(n)] : (n.age ?? 8) < 6 ? [todas[0], todas[4]] : [...todas, discutir(n)];
+      lista = n.tags.includes('progenitor') ? [...todas.filter((a) => !/\.(estudiar|pasar_rato)\./.test(a.id) && !quedadas.some((q) => a.id.startsWith(`relaciones.${q.id}.`))), discutir(n)] : (n.age ?? 8) < 6 ? [todas[0], todas[4]] : [...todas, discutir(n)];
     }
     else if (esAutoridad(n)) lista = [hablarConAutoridad(n), discutir(n)];
     else if (n.role === 'rival') lista = [saludarRival(n), discutir(n)];
     // Un vecino que has conocido (en el parque, jugando, en el colegio...): se puede charlar con él. Si es un niño del barrio y con el trato ya es amigo, tiene todo el catálogo de la amistad (ANEXO_RELACIONES §2).
-    else if (n.role === 'vecino') lista = amigoDeNino ? [...accionesDeAmistad(n), discutir(n)] : accionesDeAmistad(n).filter((a) => a.id.startsWith('relaciones.charlar.'));
+    else if (n.role === 'vecino') lista = amigoDeNino ? [...accionesDeAmistad(n, quedadas), discutir(n)] : accionesDeAmistad(n).filter((a) => a.id.startsWith('relaciones.charlar.'));
     else lista = [];
     memoAcciones.set(clave, lista);
   }
@@ -1100,13 +1129,14 @@ export const relaciones = defineModule<RelacionesState>({
       return v !== undefined && (NIVEL_ESTADO[v.estado] < 0 || (s.espera?.[`paces.${n.id}`] ?? -1) > ctx.time.day);
     };
     const cerca = cercanosConClave(ctx);
+    const quedadas = quedadasDe(ctx);
     for (const n of dir.list({ known: true })) {
       if (!conocida(n)) continue;
       // Rivales y vecinos conocidos (los que se tratan de pasada): todos tienen acciones, pero solo se calculan las de quien tienes cerca, para que el coste no crezca con los que has conocido. Las de los demás
       // siguen existiendo por su id (`resolverAccion`: `preview`/`perform` valen igual, y dicen por qué no se puede hacer a distancia); solo faltan en las listas de «qué puedes hacer ahora».
       const amigo = esAmigoDeNino(s, n);
       if ((n.role === 'rival' || n.role === 'vecino') && !amigo && !cerca?.ids.has(n.id)) continue;
-      lista.push(...accionesDe(n, amigo));
+      lista.push(...accionesDe(n, amigo, quedadas));
       if (conPaces(n)) lista.push(pacesDe(n));
     }
     // A quien conoces y tienes delante le puedes preguntar lo que no sepas de él o de ella.
@@ -1190,7 +1220,7 @@ export const relaciones = defineModule<RelacionesState>({
             const n = dir?.get(p.npcId);
             if (n) {
               vinculos[n.id] = conCambio(vinculoDe(ctx, { ...s, vinculos }, n, day), day, -PLAN.planton.afinidad, -PLAN.planton.confianza);
-              ctx.log(`Dejaste plantado a ${nombreCorto(n)}: ${PLANES[p.actividad].nombre} ${textoDeLugarDePlan(p.actividad, p.lugar)} a las ${hhmm(p.minuto)}.`, 'aviso');
+              ctx.log(`Dejaste plantado a ${nombreCorto(n)}: ${planDe(ctx, p.actividad)?.nombre ?? p.actividad} ${textoDeLugarDePlan(planDe(ctx, p.actividad), p.lugar)} a las ${hhmm(p.minuto)}.`, 'aviso');
             }
             planes.push({ ...p, resuelto: true });
           } else if (p.dia >= day - 2) planes.push(p);
@@ -1276,7 +1306,7 @@ export const relaciones = defineModule<RelacionesState>({
       const dir = dirDe(ctx);
       const dia = ctx.time.day;
       return {
-        planes: () => (s.planes ?? []).filter((p) => !p.resuelto && p.dia >= dia).map(({ npcId, actividad, dia: d, minuto, lugar }) => ({ npcId, actividad, dia: d, minuto, lugar, nombre: PLANES[actividad].nombre, cancelar: `relaciones.cancelar.${npcId}.${d}` })),
+        planes: () => (s.planes ?? []).filter((p) => !p.resuelto && p.dia >= dia).map(({ npcId, actividad, dia: d, minuto, lugar }) => ({ npcId, actividad, dia: d, minuto, lugar, nombre: planDe(ctx, actividad)?.nombre ?? actividad, cancelar: `relaciones.cancelar.${npcId}.${d}` })),
         formularioDePlan: (npcId) => formularioDePlan(ctx, dir?.get(npcId)),
         get: (npcId) => {
           const guardado = s.vinculos[npcId];

@@ -710,7 +710,7 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
     if (!pob || !n.genetica || n.nacimiento === undefined || n.hab?.[pob.deporte]) return n;
     // Al crear la partida es lo que más tarda: se avisa de cuánto se lleva (cada 150 personas).
     if (i % 150 === 0) avisarDelProgreso(`Dándole a cada uno su historia deportiva… (${i.toLocaleString('es-ES')} de ${total.toLocaleString('es-ES')})`, 0.37 + 0.6 * (i / total));
-    const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco]));
+    const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco], n.puesto?.[pob.deporte]));
     return { ...n, cap: h.cap, pico: h.pico, capUlt: h.capUlt, hab: { ...n.hab, [pob.deporte]: h.hab }, levels: { ...n.levels, [pob.deporte]: h.nivel }, vp: { ...n.vp, [pob.deporte]: valoresGuardados(n, pob, h.nivel, h.puestos) } };
   });
 }
@@ -752,12 +752,13 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
       let res: Resultado | undefined;
       if (semanas > 0) {
         const lista = (semana: number, hueco: number, lector: LectorDePersona): readonly Entrenamiento[] => {
-          if (!clave) return listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), [pob.deporte, n.id, semana, hueco]);
-          const k = `${clave}|${semana}|${hueco}`;
+          const puesto = n.puesto?.[pob.deporte];
+          if (!clave) return listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), [pob.deporte, n.id, semana, hueco], puesto);
+          const k = `${clave}|${semana}|${hueco}|${puesto ?? ''}`;
           let l = sesionesDeEquipo.get(k);
           if (!l) {
             const [club, categoria] = clave.split('|');
-            sesionesDeEquipo.set(k, (l = listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), semillaDeSesionDeEquipo(pob.deporte, club, categoria, semana, hueco))));
+            sesionesDeEquipo.set(k, (l = listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), semillaDeSesionDeEquipo(pob.deporte, club, categoria, semana, hueco), puesto)));
           }
           return l;
         };

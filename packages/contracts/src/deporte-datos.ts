@@ -25,6 +25,8 @@ export const APORTES = {
   lugaresDeDeporte: 'lugares.mapa',
   /** Un `RendimientoDeDeporte` por deporte: cómo vale a una persona (el personaje o cualquier PNJ) en ese deporte. */
   rendimientoDeDeporte: 'deportes.rendimiento',
+  /** Las quedadas que ofrece el deporte («Jugar al fútbol»: lo que se juega con los amigos): `QuedadaDeDeporte`. Las ofrece «Proponer quedar para…» (el módulo de relaciones no sabe de ningún deporte). */
+  quedadaDeDeporte: 'deportes.quedadas',
 } as const;
 
 /** Lo que el juego sabe de un deporte sin cargar su partida: para listarlo al crear la partida. */
@@ -333,8 +335,37 @@ export interface EjercicioDeClub {
   /** Tipo de ejercicio: en una sesión no se repite, y el carácter del entrenador inclina hacia unos u otros. */
   foco: string;
   entrena: readonly Entrenamiento[];
-  /** Solo para quien juega en este puesto (p. ej. `portero`). */
+  /** Solo para quien juega en este puesto (el id del puesto, p. ej. `GK`). */
   soloPuesto?: string;
+  /** No lo hace quien juega en este puesto (el id del puesto): un ejercicio de campo no lo hace el portero, que tiene los suyos. */
+  noPara?: string;
+}
+
+/**
+ * Una quedada que ofrece un deporte («Jugar al fútbol: partidillo»): una actividad más de «Proponer quedar para…». Lo que sube al jugar sale de lo que se juegue
+ * (cada forma de jugar es una quedada con lo suyo). Se acuerda con un compañero o un amigo igual que estudiar o pasar el rato y se hace a la hora y en el sitio acordados.
+ */
+export interface QuedadaDeDeporte {
+  /** Id de la actividad (sin puntos: va dentro del id de la acción), con el prefijo del deporte: `futbol_partidillo`. */
+  id: string;
+  /** Id del deporte que la ofrece. */
+  deporte: string;
+  /** Cómo se llama en la lista de actividades de «Proponer quedar para…» («Jugar al fútbol: partidillo»). */
+  titulo: string;
+  /** Cómo se dice en la frase («jugar al fútbol: partidillo»). */
+  nombre: string;
+  /** Lo que dura (minutos). */
+  duracion: number;
+  /** Dónde se puede quedar (id del lugar → «en el parque»). */
+  lugares: Readonly<Record<string, string>>;
+  /** Lo que sube a quien juega. */
+  entrena: readonly Entrenamiento[];
+  /** Energía y estrés que cuesta o quita (como `ActionDef.delta`). */
+  delta: Readonly<Record<string, number>>;
+  /** Lo que se cuenta en la descripción de la acción. */
+  descripcion: string;
+  /** Etiquetas de la acción (incluye el id del deporte: así le valen sus modificadores). */
+  tags: readonly string[];
 }
 
 /**

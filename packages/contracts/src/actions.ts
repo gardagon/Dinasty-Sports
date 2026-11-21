@@ -87,6 +87,8 @@ export interface DesplegableDeAcciones {
   boton: string;
   /** Cómo se llama esta acción dentro del desplegable («Lengua», «Fútbol»), si el nombre de la acción es largo o repite lo que ya dice el botón. Por defecto, su nombre. */
   opcion?: string;
+  /** El apartado del desplegable en que sale esta opción («Portería», «Físico»): las opciones con el mismo apartado van juntas, en el orden en que aparecen. Sin él, van sin apartado. */
+  grupoDeOpcion?: string;
 }
 
 /** Lo que el motor sabe de una acción cuando evalúa modificadores. */

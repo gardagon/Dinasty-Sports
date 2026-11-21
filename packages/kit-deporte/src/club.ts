@@ -116,7 +116,14 @@ const soloSiNoCompiteEnOtro = (deporte: string, acciones: readonly ActionDef[]):
  */
 export const entrenosAgrupados = (cfg: ConfigDeporte, acciones: readonly ActionDef[]): ActionDef[] =>
   acciones.map((a) =>
-    cfg.entrenosLibres.includes(a.id) ? { ...a, cortable: true, desplegable: { id: `${cfg.id}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}' } } : a,
+    cfg.entrenosLibres.includes(a.id)
+      ? {
+          ...a,
+          cortable: true,
+          // La opción y su apartado («Portería», «Físico»…) los pone cada acción; el resto es común.
+          desplegable: { id: `${cfg.id}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}', ...(a.desplegable?.opcion ? { opcion: a.desplegable.opcion } : {}), ...(a.desplegable?.grupoDeOpcion ? { grupoDeOpcion: a.desplegable.grupoDeOpcion } : {}) },
+        }
+      : a,
   );
 
 /**
@@ -404,8 +411,9 @@ export function entrenadorDelJugador(ctx: ReadContext, deporte: string): NpcView
  * Pedir consejo a tu entrenador (`<deporte>.pedir_consejo`): una vez al día y cuando está en su sede, libre (antes o después
  * de la sesión). Sube el conocimiento y un poco una habilidad, cada día otra (por turnos).
  */
-export function pedirConsejo(cfg: ConfigDeporte, habilidades: readonly HabilidadDeConsejo[]): ActionDef {
+export function pedirConsejo(cfg: ConfigDeporte, habilidadesDe: readonly HabilidadDeConsejo[] | ((ctx: ReadContext) => readonly HabilidadDeConsejo[])): ActionDef {
   const { id: deporte, nombre } = cfg;
+  const habilidadesDeHoy = (ctx: ReadContext) => (typeof habilidadesDe === 'function' ? habilidadesDe(ctx) : habilidadesDe);
   return {
     id: `${deporte}.pedir_consejo`,
     name: 'Pedir consejo a tu entrenador',
@@ -430,6 +438,7 @@ export function pedirConsejo(cfg: ConfigDeporte, habilidades: readonly Habilidad
     ],
     run: (ctx) => {
       // Además, un poco de una habilidad del deporte (cada día, otra).
+      const habilidades = habilidadesDeHoy(ctx);
       const habilidad = habilidades[ctx.time.day % habilidades.length];
       ctx.train(habilidad.stat, HABILIDAD_POR_CONSEJO * ctx.efficiency);
       ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimoConsejo: ctx.time.day }));
