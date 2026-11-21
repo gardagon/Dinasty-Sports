@@ -146,3 +146,8 @@ Cada corredor suma los puntos de **todas las pruebas de su categoría en las que
 - Gráfica de la evolución de las marcas a lo largo de los cursos.
 - Fútbol (F1, 1/11): `modules/futbol` con las 29 habilidades, el conocimiento, el entreno por libre y el club del colegio; sin partidos todavía (la pestaña enseña habilidades y datos del club, con «Partidos» vacío). Ver `ANALISIS_FUTBOL.md` §7.
 - Deportes de equipo: partidos, tablas de liga y plantillas. **El contrato ya lo admite (fútbol F0, 1/11):** `DeporteView.secciones` (bloques libres con título, texto y tabla), `PruebaDeTemporada.resultado` (texto como «Ganado 3-1» en lugar de «Xº de Y»), `temporada.nombreDePruebas` («Partidos» en vez de «Carreras») y `TemporadaDeDeporte.liga` (vueltas y equipos por categoría; `jornadasDeLiga`). Atletismo no usa nada de esto.
+
+
+### Pistas sobre los puestos (decidido el 21/11/2026; `docs/ANEXO_PUESTOS.md` §6 y §7, `docs/relevo/puestos-y-pistas.md`)
+
+Para cualquier deporte con puestos (kit y `npcs`), con los textos en los datos del deporte (`PuestosDeDeporte.familias` y `.pistas`): el consejo del profesor de Educación Física nombra **puestos sin lado** y dice **por qué** en cualidades; la acción **«Preguntar por un puesto…»** (desplegable, profesor en la sala de profesores y entrenador en su sede) dice qué te falta para él; y el **entrenador recomienda entrenamientos por su nombre** según lo que frena a tu puesto, leyendo lo que sube cada entrenamiento (`ConfigDeporte.catalogoDeEntrenos`). Los puestos de LCR/RCR se llaman ahora «Interior» y los de LM/RM, «Medio de banda».
