@@ -83,6 +83,8 @@ export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): 
     return jugadorPorSuDorsal(d, equipoSinLetra(o.equipos[l]), o.lado === l, o.generos?.[id]);
   };
   const nomIni = (id: string): string => (id === YO ? 'Tú' : nom(id).replace(/^./, (c) => c.toUpperCase()));
+  /** Quien se conoce, con su equipo entre paréntesis; quien se nombra por su dorsal ya lo lleva dicho («el 7 del Rayo», «vuestro 4»). */
+  const conEquipo = (id: string, equipo: string): string => (o.nombres[id] ? `${nomIni(id)} (${equipo})` : nomIni(id));
   const linea = (m: MomentoDeCronica): LineaDeCronica => {
     const equipo = o.equipos[m.equipo];
     const rival = o.equipos[1 - m.equipo];
@@ -97,8 +99,8 @@ export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): 
       }
       case 'ocasion':
         if (m.jugador === YO) return { destacada: true, texto: `Tiras a puerta y ${nom(m.portero)} te la para.` };
-        if (m.portero === YO) return { destacada: true, texto: `${nomIni(m.jugador)} (${equipo}) dispara y lo paras tú.` };
-        return { texto: `${nomIni(m.jugador)} (${equipo}) dispara y ${nom(m.portero)} se lo para.` };
+        if (m.portero === YO) return { destacada: true, texto: `${conEquipo(m.jugador, equipo)} dispara y lo paras tú.` };
+        return { texto: `${conEquipo(m.jugador, equipo)} dispara y ${nom(m.portero)} se lo para.` };
       case 'balon_parado':
         if (m.jugador === YO) return { destacada: true, texto: `Lanzas a balón parado y ${nom(m.portero)} lo despeja.` };
         if (m.portero === YO) return { destacada: true, texto: `${nomIni(m.jugador)} lanza a balón parado para ${equipo} y lo despejas tú.` };

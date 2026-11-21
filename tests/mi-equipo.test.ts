@@ -52,6 +52,23 @@ describe('Mi equipo', () => {
     expect(g.service<ComparacionService>(servicioDeComparacion('futbol'))!.sobre(otros[0].id)).toBeUndefined();
   });
 
+  it('cada jugador lleva su dorsal (el personaje también), sin repetir; los porteros, el 1, el 13 o desde el 16; y la comparación sale «—» hasta que le has visto jugar', () => {
+    const m = vista().miEquipo!;
+    const dorsales = m.companeros.map((c) => c.dorsal);
+    expect(dorsales.every((d) => d !== undefined)).toBe(true);
+    expect(new Set(dorsales).size).toBe(m.companeros.length);
+    const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
+    const plantilla = dir.plantillaDelEquipo!('futbol', estado().personaje?.club ?? dir.equipoDelPersonaje!('futbol')!.club, dir.equipoDelPersonaje!('futbol')!.categoria, dir.equipoDelPersonaje!('futbol')!.letra);
+    for (const j of plantilla) {
+      if (j.puesto === 'GK') expect([1, 13].includes(j.dorsal!) || j.dorsal! >= 16).toBe(true);
+      else expect(j.dorsal! >= 2).toBe(true);
+    }
+    expect(m.companeros.filter((c) => !c.yo).every((c) => c.comparacion === undefined)).toBe(true);
+    expect(m.companeros.filter((c) => !c.nombre && !c.yo).every((c) => c.aspectoCorto && c.aspectoCorto.length < 40)).toBe(true);
+    // Lo guardado es ligero: un número por jugador.
+    expect(JSON.stringify(estado().dorsal ?? []).length).toBeLessThan(60);
+  });
+
   it('tras entrenar con el club se desbloquea el puesto de los compañeros y la comparación (sin números); lo guardado es pequeño', () => {
     advanceToWeek(g, 'gen.descansar', 3, 3, 15);
     expect(hacer(g, 'futbol.club_sesion').ok).toBe(true);
@@ -66,6 +83,9 @@ describe('Mi equipo', () => {
     expect(c.texto).toMatch(/^Crees que (eres (mejor|peor) que (él|ella)|jugáis más o menos igual de bien)\.$/);
     expect(c.texto).not.toMatch(/\d/);
     expect(JSON.stringify(estado().companeros).length).toBeLessThan(4000);
+    const antes = new Map(m.companeros.map((x) => [x.id, x.dorsal]));
+    for (const x of m.companeros.filter((y) => !y.yo && vistos[y.id])) expect(x.comparacion).toMatch(/^(mejor|peor|parecido)$/);
+    expect(vista().miEquipo!.companeros.every((x) => x.dorsal === antes.get(x.id))).toBe(true);
   });
 
   it('tras varias semanas de partidos la plantilla de la pestaña enseña el puesto solo de quien se ha visto, y el nombre solo de quien se conoce', () => {
