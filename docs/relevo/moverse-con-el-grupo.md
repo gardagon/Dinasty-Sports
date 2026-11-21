@@ -50,3 +50,10 @@ Con la rama `deberes-y-acciones-cortas` ya unida (`GameModule.obligaciones`, `Ac
 - **«Me voy» solo en acciones de hasta 30 minutos** (`despedidaHasta`): una acción larga (descansar, estudiar en casa) llenaba el registro de «Hermano: Me voy» cada mañana y desplazaba líneas que un test de calendario busca (`Parcial 1: nota media`); además, en una acción larga no estás pendiente de quién se va.
 - Test: `tests/moverse-con-el-grupo.test.ts` («con la rama de acciones cortas…»: una acción larga se corta a las 11:10 con el texto de la obligación y luego sale «Todos se van a tu aula»).
 - Cifras de la segunda tanda (`sim:eventos -- 180 2`, antes de unir acciones cortas): **2,7 eventos por semana de media** (el aviso del grupo no cuenta: `fueraDelRitmo`; antes 7,0). `eventos:validar`, `benjamin` y `probar-web` en verde; `npm test` 1223/1224 (el fallo era el del registro lleno de «Me voy», arreglado).
+
+## Resultado final y rendimiento
+
+- **Verde, con todo unido (incluida la rama de acciones cortas):** `typecheck`, `eventos:validar` (452 caminos), `benjamin -- 31,33` (sin cambios), `probar-web`, `npm test` **109 archivos, 1234 tests**.
+- **Ritmo:** `sim:eventos -- 180 2` = **2,7 eventos por semana** de media (antes de este trabajo, 2,6; el aviso del grupo no cuenta, `fueraDelRitmo`).
+- **Coste (`npm run rendimiento -- 60`, bot equilibrado):** sin el grupo 1,19 ms por acción; con él, primero 1,86 y tras optimizar **1,36** (+14 %). Dos tests de `npcs` (`index.test.ts`: el cambio de curso y los hermanos) se pasaban de tiempo con la primera versión; ahora pasan. Optimizaciones: `agendasDePresencia` se recuerda por lista y minuto, y el aviso reutiliza el índice de presencia ya calculado en lugar de recorrer toda la población. Si hiciera falta más: la obligación (`obligaciones`) se recalcula en cada previsión de una acción cortable (la caché del núcleo ya la limita por minuto y estado).
+- Las huellas de los bots cambian (hay una decisión más y viajes nuevos).
