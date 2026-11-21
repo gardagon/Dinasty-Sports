@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SERVICES, type SucesosService } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { PRESENTACION_POR_DEFECTO, PREFERENCIAS_POR_DEFECTO, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion } from './presentacion';
+import { respuestaAlGrupo, PRESENTACION_POR_DEFECTO, PREFERENCIAS_POR_DEFECTO, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion } from './presentacion';
 
 const memoria = () => {
   const mem = new Map<string, string>();
@@ -12,14 +12,14 @@ describe('presentación de los sucesos (Opciones)', () => {
   it('por defecto no cambia nada y lo guardado se lee de vuelta', () => {
     const { local } = memoria();
     expect(leerPresentacion(local)).toEqual(PREFERENCIAS_POR_DEFECTO);
-    escribirPresentacion({ consecuencias: 'numeros', fueraDeCaracter: 'sombreadas', avisoFueraDeCaracter: false }, local);
-    expect(leerPresentacion(local)).toEqual({ consecuencias: 'numeros', fueraDeCaracter: 'sombreadas', avisoFueraDeCaracter: false });
+    escribirPresentacion({ consecuencias: 'numeros', fueraDeCaracter: 'sombreadas', avisoFueraDeCaracter: false, cuandoSeVaElGrupo: 'ir' }, local);
+    expect(leerPresentacion(local)).toEqual({ consecuencias: 'numeros', fueraDeCaracter: 'sombreadas', avisoFueraDeCaracter: false, cuandoSeVaElGrupo: 'ir' });
   });
 
   it('un valor roto o un almacenamiento bloqueado vuelven al de partida', () => {
     const { mem, local } = memoria();
     mem.set('dinasty-sports.presentacion', '{"consecuencias":"todo","fueraDeCaracter":"ocultas"}');
-    expect(leerPresentacion(local)).toEqual({ consecuencias: 'pistas', fueraDeCaracter: 'ocultas', avisoFueraDeCaracter: true });
+    expect(leerPresentacion(local)).toEqual({ consecuencias: 'pistas', fueraDeCaracter: 'ocultas', avisoFueraDeCaracter: true, cuandoSeVaElGrupo: 'preguntar' });
     mem.set('dinasty-sports.presentacion', 'no es json');
     expect(leerPresentacion(local)).toEqual(PREFERENCIAS_POR_DEFECTO);
     const roto = { getItem: () => { throw new Error('bloqueado'); }, setItem: () => { throw new Error('bloqueado'); } };
@@ -50,5 +50,18 @@ describe('presentación de los sucesos (Opciones)', () => {
     const a = nuevaPartida({ seed: 7, playerName: 'Alex' }, [...MODULOS, moduloDePresentacion(sinAviso)]);
     const b = nuevaPartida({ seed: 7, playerName: 'Alex' }, [...MODULOS, moduloDePresentacion(PREFERENCIAS_POR_DEFECTO)]);
     expect(a.serialize().modules).toEqual(b.serialize().modules);
+  });
+});
+
+describe('cuando se va el grupo (Opciones)', () => {
+  const aviso = { suceso: 'eventos.grupo.se_van', opciones: [{ id: 'acompanar', accion: 'sucesos.elegir.1.acompanar', elegible: true }, { id: 'quedarte', accion: 'sucesos.elegir.1.quedarte', elegible: true }] };
+  it('por defecto pregunta; «ir siempre» responde ir con ellos sin enseñar el aviso; «quedarme» solo lo oculta', () => {
+    expect(PREFERENCIAS_POR_DEFECTO.cuandoSeVaElGrupo).toBe('preguntar');
+    expect(respuestaAlGrupo({ cuandoSeVaElGrupo: 'preguntar' }, [aviso])).toBeUndefined();
+    expect(respuestaAlGrupo({ cuandoSeVaElGrupo: 'ir' }, [aviso])).toEqual({ accion: 'sucesos.elegir.1.acompanar', ocultar: true });
+    expect(respuestaAlGrupo({ cuandoSeVaElGrupo: 'quedarme' }, [aviso])).toEqual({ ocultar: true });
+    // Otros sucesos no se tocan, ni sin aviso.
+    expect(respuestaAlGrupo({ cuandoSeVaElGrupo: 'ir' }, [{ ...aviso, suceso: 'eventos.colegio.balon_perdido' }])).toBeUndefined();
+    expect(respuestaAlGrupo({ cuandoSeVaElGrupo: 'ir' }, [])).toBeUndefined();
   });
 });

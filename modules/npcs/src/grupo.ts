@@ -24,7 +24,14 @@ export interface GrupoQueSeVa {
 }
 
 /** `cercanos`: la gente que tenías cerca al empezar, en el orden en que se ve (los primeros, los más cercanos). `despues`: dónde está cada uno al acabar. */
-export function grupoQueSeVa<T extends { id: string }>(cercanos: readonly T[], aqui: string, despues: (n: T) => Ubicacion, reglas = MOVERSE_CON_EL_GRUPO): GrupoQueSeVa | undefined {
+export function grupoQueSeVa<T extends { id: string }>(
+  cercanos: readonly T[],
+  aqui: string,
+  despues: (n: T) => Ubicacion,
+  /** ¿Se puede ir con ellos hasta ese sitio? (el mismo lugar: de momento no se sigue a nadie fuera del colegio, del estadio, del club...). Lo demás cuenta como salir del mapa. */
+  sePuedeIr: (sitio: string) => boolean = () => true,
+  reglas = MOVERSE_CON_EL_GRUPO,
+): GrupoQueSeVa | undefined {
   const total = cercanos.length;
   if (total < reglas.minimo) return undefined;
   const destinos = new Map<string, T[]>();
@@ -32,7 +39,8 @@ export function grupoQueSeVa<T extends { id: string }>(cercanos: readonly T[], a
   let seVan = 0;
   for (const n of cercanos) {
     const u = despues(n);
-    const sitio = u.atendiendo?.sitio ?? u.sitio;
+    const destino = u.atendiendo?.sitio ?? u.sitio;
+    const sitio = destino !== null && destino !== aqui && !sePuedeIr(destino) ? null : destino;
     // Sigue contigo (aunque esté ocupado a la vista).
     if (sitio === aqui) {
       sePuedeSeguir++;
@@ -51,4 +59,22 @@ export function grupoQueSeVa<T extends { id: string }>(cercanos: readonly T[], a
   for (const par of destinos) if (!mejor || par[1].length > mejor[1].length) mejor = par;
   if (!mejor || mejor[1].length < reglas.minimo || mejor[1].length < reglas.proporcion * sePuedeSeguir) return undefined;
   return { hacia: mejor[0], cuantos: mejor[1].length, total, muestra: mejor[1].slice(0, reglas.muestra).map((n) => n.id) };
+}
+
+/**
+ * «Me voy»: de la gente que conoces y tienes al lado, quién se ha ido sin que sea un grupo (o aparte del grupo), y a dónde si se sabe (`hacia`: un sitio del mapa; `null`: fuera del mapa, no se sabe).
+ * `cercanos` en el orden en que se ven; solo se miran los conocidos. Como mucho `max`, para no ensuciar.
+ */
+export function seVanSolos<T extends { id: string; known?: boolean }>(cercanos: readonly T[], aqui: string, despues: (n: T) => Ubicacion, delGrupo: string | undefined, max = 2): { persona: T; hacia: string | null }[] {
+  const out: { persona: T; hacia: string | null }[] = [];
+  for (const n of cercanos) {
+    if (out.length >= max) break;
+    if (n.known === false) continue;
+    const u = despues(n);
+    const sitio = u.atendiendo?.sitio ?? u.sitio;
+    if (sitio === aqui) continue;
+    if (sitio !== null && sitio === delGrupo) continue;
+    out.push({ persona: n, hacia: sitio });
+  }
+  return out;
 }

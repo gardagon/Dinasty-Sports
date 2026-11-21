@@ -232,6 +232,11 @@ export interface SucesoDef extends DecisionDef {
    * dice que, aunque salga con esa señal, es otra cosa (quedarse a hablar después, ir a algún sitio) y gasta los minutos de sus opciones.
    */
   durante?: boolean;
+  /**
+   * Es un aviso del mundo, no un suceso del ritmo del juego (p. ej. «todos se van, ¿les acompañas?»): no cuenta en las medidas de cuántos eventos salen por semana
+   * (`npm run sim:eventos`, el chequeo de ritmo de la simulación). Como sale con una señal, tampoco gasta cupo.
+   */
+  fueraDelRitmo?: boolean;
   plazo?: PlazoDef;
   /** Un suceso sin opciones puede salir como ventana o como una línea del resultado y del diario. */
   presentacion?: 'ventana' | 'linea';

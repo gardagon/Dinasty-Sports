@@ -14,6 +14,8 @@ export default suceso({
   requiere: ['lugares'],
   disparo: { al: SHARED_EVENTS.GRUPO_SE_VA },
   repite: 'siempre',
+  // Un aviso del mundo: no cuenta en el ritmo de los eventos (y, al salir con una señal, no gasta cupo).
+  fueraDelRitmo: true,
   // Para probarlo sin esperar a que pase: del aula al patio, al empezar el recreo.
   ejemploDeSeñal: { desde: 'aula', hacia: 'patio', haciaTexto: 'al patio', minutos: 4, cuantos: 20, total: 34, muestra: [] },
   // Si conoces a alguien del grupo, ir con él te acerca un poco (si no conoces a ninguno, no hay a quién).

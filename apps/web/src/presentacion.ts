@@ -14,9 +14,34 @@ export const PRESENTACION_POR_DEFECTO: Presentacion = { consecuencias: 'pistas',
  */
 export interface Preferencias extends Presentacion {
   avisoFueraDeCaracter: boolean;
+  /** Qué hacer cuando se va el grupo con el que estás (el suceso `eventos.grupo.se_van`): preguntar, ir siempre con ellos o quedarme. Solo de la interfaz: el motor sigue ofreciendo las dos opciones. */
+  cuandoSeVaElGrupo: CuandoSeVaElGrupo;
 }
 
-export const PREFERENCIAS_POR_DEFECTO: Preferencias = { ...PRESENTACION_POR_DEFECTO, avisoFueraDeCaracter: true };
+export type CuandoSeVaElGrupo = 'preguntar' | 'ir' | 'quedarme';
+
+export const PREFERENCIAS_POR_DEFECTO: Preferencias = { ...PRESENTACION_POR_DEFECTO, avisoFueraDeCaracter: true, cuandoSeVaElGrupo: 'preguntar' };
+
+export const MODOS_DEL_GRUPO: readonly { id: CuandoSeVaElGrupo; nombre: string }[] = [
+  { id: 'preguntar', nombre: 'Preguntarme' },
+  { id: 'ir', nombre: 'Ir siempre con ellos' },
+  { id: 'quedarme', nombre: 'Quedarme' },
+];
+
+/** El suceso del motor que avisa de que se va el grupo, y las opciones con que se responde sin preguntar. */
+export const SUCESO_DEL_GRUPO = 'eventos.grupo.se_van';
+
+/**
+ * Qué hace la web con el aviso del grupo según la preferencia: `ir` lo responde ya «ir con ellos» (la acción que hay que hacer, que gasta los minutos del camino), `quedarme` no enseña
+ * nada (si haces otra cosa, el momento pasa y te quedas, sin gastar tiempo) y `preguntar` lo enseña como cualquier suceso.
+ */
+export function respuestaAlGrupo(p: Pick<Preferencias, 'cuandoSeVaElGrupo'>, pendientes: readonly { suceso: string; opciones: readonly { id: string; accion: string; elegible: boolean }[] }[]): { accion?: string; ocultar: boolean } | undefined {
+  const aviso = pendientes.find((x) => x.suceso === SUCESO_DEL_GRUPO);
+  if (!aviso || p.cuandoSeVaElGrupo === 'preguntar') return undefined;
+  if (p.cuandoSeVaElGrupo === 'quedarme') return { ocultar: true };
+  const ir = aviso.opciones.find((o) => o.id === 'acompanar' && o.elegible);
+  return ir ? { accion: ir.accion, ocultar: true } : undefined;
+}
 
 /** La nota que lleva una opción elegible que choca con el carácter, o `undefined` si no toca avisar. */
 export function avisoDeCaracter(p: Preferencias, ejeEnContra: string | undefined): string | undefined {
@@ -47,6 +72,7 @@ export function leerPresentacion(almacenLocal: Pick<Storage, 'getItem'> | undefi
       consecuencias: es(MODOS_DE_CONSECUENCIAS, x?.consecuencias) ? x.consecuencias : PRESENTACION_POR_DEFECTO.consecuencias,
       fueraDeCaracter: es(MODOS_FUERA_DE_CARACTER, x?.fueraDeCaracter) ? x.fueraDeCaracter : PRESENTACION_POR_DEFECTO.fueraDeCaracter,
       avisoFueraDeCaracter: typeof x?.avisoFueraDeCaracter === 'boolean' ? x.avisoFueraDeCaracter : PREFERENCIAS_POR_DEFECTO.avisoFueraDeCaracter,
+      cuandoSeVaElGrupo: es(MODOS_DEL_GRUPO, x?.cuandoSeVaElGrupo) ? x.cuandoSeVaElGrupo : PREFERENCIAS_POR_DEFECTO.cuandoSeVaElGrupo,
     };
   } catch {
     return { ...PREFERENCIAS_POR_DEFECTO };

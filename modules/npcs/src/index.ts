@@ -2,7 +2,7 @@ import { APORTES, CORE_EVENTS, aforoCercano, deLugar, haciaLugar, type ActionDon
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
-import { grupoQueSeVa } from './grupo';
+import { grupoQueSeVa, seVanSolos } from './grupo';
 import { type HabilidadesDe } from './rutina';
 import { conCuerpo, geneticaDelCuerpo, semanaDelCuerpo, type SemanaEscolar } from './cuerpo';
 import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
@@ -1323,17 +1323,30 @@ export const npcs = defineModule<NpcsState>({
       if (!alEmpezar.length) return;
       alEmpezar.sort(compararCercania);
       const cercanos = alEmpezar.slice(0, aforoCercano(aqui, `${t0.day}:${antes.intervalo}`)).map((e) => e.n);
-      const g = grupoQueSeVa(cercanos, aqui, (n) => ubicacionEn(ahora.agendaDe(n), t1, n.id));
+      const despues = (n: Npc) => ubicacionEn(ahora.agendaDe(n), t1, n.id);
+      // Solo se acompaña dentro del mismo lugar (el colegio y sus zonas, el estadio, un club...): el sitio raíz del que cuelga cada uno.
+      const raiz = (id: string): string => {
+        let l = lugares.lugar(id);
+        for (let i = 0; l?.dentroDe && i < 4; i++) l = lugares.lugar(l.dentroDe);
+        return l?.id ?? id;
+      };
+      const g = grupoQueSeVa(cercanos, aqui, despues, (sitio) => raiz(sitio) === raiz(aqui));
       const destino = g && lugares.lugar(g.hacia);
       const minutos = g && lugares.minutosA(g.hacia);
-      if (!g || !destino || minutos === undefined) return;
-      const conocidos = new Set(cercanos.filter((n) => n.known !== false).map((n) => n.id));
-      // Si estás en una zona y van a la entrada de su lugar (del aula a la entrada del colegio), se dice así: el lugar se llama como el edificio.
-      const haciaTexto = lugares.lugar(aqui)?.dentroDe === g.hacia ? `a la entrada ${deLugar(destino.name)}` : haciaLugar(destino.name);
-      ctx.emit<GrupoSeVaData>({
-        type: SHARED_EVENTS.GRUPO_SE_VA,
-        data: { desde: aqui, hacia: g.hacia, haciaTexto, minutos, cuantos: g.cuantos, total: g.total, muestra: g.muestra.filter((id) => conocidos.has(id)).map((npcId) => ({ npcId })) },
-      });
+      if (g && destino && minutos !== undefined) {
+        // Si estás en una zona y van a la entrada de su lugar (del aula a la entrada del colegio), se dice así: el lugar se llama como el edificio.
+        const haciaTexto = lugares.lugar(aqui)?.dentroDe === g.hacia ? `a la entrada ${deLugar(destino.name)}` : haciaLugar(destino.name);
+        const conocidos = new Set(cercanos.filter((n) => n.known !== false).map((n) => n.id));
+        ctx.emit<GrupoSeVaData>({
+          type: SHARED_EVENTS.GRUPO_SE_VA,
+          data: { desde: aqui, hacia: g.hacia, haciaTexto, minutos, cuantos: g.cuantos, total: g.total, muestra: g.muestra.filter((id) => conocidos.has(id)).map((npcId) => ({ npcId })) },
+        });
+      }
+      // «Me voy»: lo que dice alguien que conoces y tienes al lado cuando se va solo (una línea discreta en lo que pasa; no pregunta nada ni va al diario).
+      for (const { persona, hacia } of seVanSolos(cercanos, aqui, despues, g?.hacia)) {
+        const sitio = hacia && lugares.lugar(hacia);
+        ctx.log(`${persona.apodo ?? persona.nombrePila ?? persona.name.split(' ')[0]}: «Me voy${sitio ? ` ${haciaLugar(sitio.name)}` : ''}.»`, 'info');
+      }
     },
 
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {

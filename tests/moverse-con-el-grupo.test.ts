@@ -96,6 +96,21 @@ describe('en una partida de verdad', () => {
     expect(donde(g)).toBe('aula');
   });
 
+  it('«Me voy»: quien conoces y tienes al lado y se va aparte dice una línea corta, sin preguntar nada ni ensuciar', () => {
+    const g = conocer(nuevaPartida({ seed: 21 }));
+    while (!g.time.isSchoolDay) for (let k = 0; k < 300; k++) esperar(g);
+    llegarA(g, 'patio', 10, 41);
+    const lineas: string[] = [];
+    for (let k = 0; k < 24; k++) {
+      const r = g.perform('gen.esperar');
+      lineas.push(...r.log.map((l) => l.text).filter((t) => t.includes('«Me voy')));
+    }
+    // Los compañeros que conoces (dos: no hacen grupo) se van al aula al acabar el recreo y lo dicen; quien sale del mapa dice solo «Me voy».
+    expect(lineas.length).toBeGreaterThan(0);
+    expect(lineas.length).toBeLessThanOrEqual(2);
+    expect(lineas[0]).toMatch(/^.+: «Me voy( a tu aula)?\.»$/);
+  });
+
   it('al acabar la clase, los de tu clase salen a la entrada: se dice «a la entrada del colegio»', () => {
     const g = alRecreo(11);
     // Se queda en el aula pasando el recreo y la última clase: se va el grupo a las 14:00.

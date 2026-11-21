@@ -143,7 +143,11 @@ Cuando la gente con la que estás se va en bloque a otro sitio y tú sigues all�
 - **`urgencia: 'ahora'`**, sin aplazar: si haces otra cosa sin responder, te quedas (se aplica `quedarte`). No es `durante` (el viaje gasta tiempo), y las opciones son «Ir con ellos» y «Quedarte aquí».
 - **Ir con ellos** = `minutos: { deLaSeñal: 'minutos' }` (lo que cuesta ir) y el efecto `emite: 'lugares.ir_a'` con `destino: '{señal.hacia}'` (`lugares` te lleva y emite la llegada; allí están ya, por sus agendas). Sube un poco la relación con un conocido del grupo y baja un poco el estrés.
 - Es general: el recreo que empieza (aula → patio), el que acaba (patio → aula), la clase que acaba (aula → entrada del colegio), el entrenamiento (entrada → pista)... y lo que ponga un deporte o un país nuevo, sin tocar nada.
-- **Ritmo**: ver las cifras en `docs/relevo/moverse-con-el-grupo.md`. Se ajusta con `MOVERSE_CON_EL_GRUPO` (`contracts/src/agendas.ts`).
+- **Solo dentro del mismo lugar**: se acompaña al colegio (aula, patio, entrada, pista…), al estadio o al complejo deportivo, al club; si se van a casa o a otro lugar, no sale nada.
+- **No cuenta como evento**: `fueraDelRitmo: true` en el suceso lo deja fuera de las medidas de ritmo (`sim:eventos`, el chequeo de la simulación); como sale con una señal, no gasta cupo.
+- **Preferencia de la web** (Opciones → «Cuando se va el grupo con el que estás»): *Preguntarme* (por defecto), *Ir siempre con ellos* (la web responde «Ir con ellos» sin enseñar el aviso, gastando los minutos del camino) o *Quedarme* (no se enseña nada; si haces otra cosa, el momento pasa). Es del navegador (`apps/web/src/presentacion.ts`, `respuestaAlGrupo`); el motor sigue ofreciendo las dos opciones.
+- **«Me voy»**: cuando alguien que conoces y tienes al lado se va aparte (no con el grupo), sale una línea corta suya en lo que pasa («Lucía: «Me voy al patio.»»; «Me voy.» si sale del mapa y no se sabe a dónde), como mucho 2 por acción. Va en la línea del resultado, no en el diario ni en una ventana, para no ensuciar. La emite `npcs` junto a la señal del grupo (`seVanSolos`).
+- Cifras y medidas: `docs/relevo/moverse-con-el-grupo.md`. Se ajustan con `MOVERSE_CON_EL_GRUPO` (`contracts/src/agendas.ts`).
 
 ### Efectos
 

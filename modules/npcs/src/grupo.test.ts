@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MOVERSE_CON_EL_GRUPO, type Ubicacion } from '@ds/contracts';
-import { grupoQueSeVa } from './grupo';
+import { grupoQueSeVa, seVanSolos } from './grupo';
 
 const u = (sitio: string | null, extra: Partial<Ubicacion> = {}): Ubicacion => ({ sitio, nivel: 2, tipo: 'alumno', ...extra });
 const gente = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}` }));
@@ -36,5 +36,26 @@ describe('grupoQueSeVa (las cuentas, sin partida)', () => {
 
   it('pocas personas no son un grupo', () => {
     expect(grupoQueSeVa(gente(MOVERSE_CON_EL_GRUPO.minimo - 1), 'aula', () => u('patio'))).toBeUndefined();
+  });
+});
+
+describe('solo dentro del mismo lugar', () => {
+  it('quien se va a otro lugar (fuera del colegio, por ejemplo) cuenta como que sale del mapa: no se le acompaña', () => {
+    const cerca = gente(10);
+    const mismoLugar = (sitio: string) => sitio !== 'parque';
+    expect(grupoQueSeVa(cerca, 'patio', () => u('aula'), mismoLugar)).toMatchObject({ hacia: 'aula', cuantos: 10 });
+    expect(grupoQueSeVa(cerca, 'patio', () => u('parque'), mismoLugar)).toBeUndefined();
+  });
+});
+
+describe('seVanSolos («Me voy»)', () => {
+  const cercanos = [{ id: 'a', known: true }, { id: 'b', known: false }, { id: 'c' }, { id: 'd', known: true }, { id: 'e', known: true }];
+  it('solo los que conoces, a dónde si se sabe, como mucho 2', () => {
+    const r = seVanSolos(cercanos, 'aula', (n) => (n.id === 'a' ? u('patio') : u(null)), undefined);
+    expect(r.map((x) => [x.persona.id, x.hacia])).toEqual([['a', 'patio'], ['c', null]]);
+  });
+  it('quien se queda no dice nada, ni quien va con el grupo', () => {
+    expect(seVanSolos(cercanos, 'aula', () => u('aula'), undefined)).toEqual([]);
+    expect(seVanSolos(cercanos, 'aula', () => u('patio'), 'patio')).toEqual([]);
   });
 });

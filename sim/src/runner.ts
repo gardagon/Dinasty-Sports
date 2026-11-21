@@ -125,7 +125,9 @@ function* sucesosDeLaPartida(game: Game): Generator<SucesoDef> {
 
 function cuentaDeSucesos(game: Game): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const r of game.service<SucesosService>(SERVICES.sucesos)?.recuerdos() ?? []) out[r.suceso] = (out[r.suceso] ?? 0) + 1;
+  // Los avisos del mundo (`fueraDelRitmo`, p. ej. el grupo que se va) no son parte del ritmo de los eventos.
+  const fuera = new Set([...sucesosDeLaPartida(game)].filter((d) => d.fueraDelRitmo).map((d) => d.id));
+  for (const r of game.service<SucesosService>(SERVICES.sucesos)?.recuerdos() ?? []) if (!fuera.has(r.suceso)) out[r.suceso] = (out[r.suceso] ?? 0) + 1;
   return out;
 }
 
