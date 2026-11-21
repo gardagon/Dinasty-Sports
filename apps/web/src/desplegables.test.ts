@@ -53,4 +53,15 @@ describe('desplegables de acciones', () => {
     // La lista visible solo trae la disponible, pero existen las dos: se agrupa.
     expect(agruparEnDesplegables([dos[0]], dos).some((x) => 'clave' in x)).toBe(true);
   });
+  it('las opciones con apartado (`grupoDeOpcion`) salen juntas bajo su título, en el orden en que aparece cada apartado', () => {
+    const e = (opcion: string, grupoDeOpcion?: string) => ({ ...d, id: 'x.entrenar', opcion, ...(grupoDeOpcion ? { grupoDeOpcion } : {}) });
+    const ops = [op('a', { desplegable: e('Reflejos', 'Portería') }), op('b', { desplegable: e('Velocidad', 'Físico') }), op('c', { desplegable: e('Pies', 'Portería') }), op('d', { desplegable: e('Suelto') })];
+    clicEnDesplegable({ dataset: { desplegable: 'G|x.apartados' } } as unknown as HTMLElement);
+    const html = viewDesplegable('G|x.apartados', ops, esc, (o, t) => `<BOTON ${o.id} ${t}>`, (m) => `${m}min`);
+    clicEnDesplegable({ dataset: { desplegable: 'G|x.apartados' } } as unknown as HTMLElement);
+    expect(html).toContain('<optgroup label="Portería"><option value="a" selected>Reflejos · 60min</option><option value="c">Pies · 60min</option></optgroup>');
+    expect(html.indexOf('label="Portería"')).toBeLessThan(html.indexOf('label="Físico"'));
+    // Sin apartado, la opción va suelta (fuera de los `optgroup`).
+    expect(html).toContain('</optgroup><option value="d">Suelto · 60min</option>');
+  });
 });

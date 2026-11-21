@@ -167,6 +167,10 @@ export const descansarOEsperar = (opts: ActionOption[]) =>
  */
 export function deportistaDe(deporte: string): Bot {
   const d = (x: string) => id(`${deporte}.${x}`);
+  // El campamento: el único del deporte, o el de jugadores si tiene dos (el de porteros es para quien juega de portero: este bot juega en el campo).
+  const campamentoDelDeporte: Pred = (o) => o.id === `${deporte}.campamento` || o.id === `${deporte}.campamento_jugadores`;
+  // Entrenar por libre con cabeza: el de portería es de quien juega de portero (este bot juega en el campo), así que no lo elige.
+  const entrenoDeCampo: Pred = (o) => entrenoDeporte(o) && !/^futbol\.entrena_(reflejos|balones_aereos|mano_a_mano|pies_de_portero|mando_del_area)$/.test(o.id);
   return {
     id: `deportista_${deporte}`,
     name: `Deportista de ${deporte}`,
@@ -176,9 +180,9 @@ export function deportistaDe(deporte: string): Bot {
         basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, d('apuntarse_colegio')],
-          ['campamento', 1, d('campamento')],
+          ['campamento', 1, campamentoDelDeporte],
           ['club', 1, sesionDeClub],
-          ['deporte', 2, (o) => entrenoDeporte(o) && (mem.hoy.club ?? 0) + (mem.hoy.deporte ?? 0) < 2],
+          ['deporte', 2, (o) => entrenoDeCampo(o) && (mem.hoy.club ?? 0) + (mem.hoy.deporte ?? 0) < 2],
           ['entrenador', 1, (o) => relacion(o) && /entrenador/.test(o.name)],
           ['tele', 1, d('ver_tele')],
           ['gym', 1, id('gen.gimnasio')],

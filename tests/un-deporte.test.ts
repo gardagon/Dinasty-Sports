@@ -45,8 +45,8 @@ describe('se compite en un solo deporte', () => {
   it('entrenar por su cuenta otros deportes sigue permitido', () => {
     const g = partida();
     expect(hacer(g, 'atletismo.apuntarse_colegio').ok).toBe(true);
-    const libres = g.listActions().filter((a) => /^futbol\.(balon|tiro|fisico|porteria)$/.test(a.id));
-    expect(libres).toHaveLength(4);
+    const libres = g.listActions().filter((a) => /^futbol\.entrena_/.test(a.id));
+    expect(libres).toHaveLength(22);
     for (const a of libres) expect(a.reason ?? '').not.toMatch(/Ya compites/);
   });
 
@@ -68,11 +68,11 @@ describe('entrenamientos agrupados', () => {
   it('los entrenamientos por libre de cada deporte llevan el mismo desplegable y siguen existiendo con sus ids', () => {
     const g = partida();
     const lista = g.listActions();
-    for (const [dep, ids] of [['atletismo', ['series', 'rodaje', 'tecnica']], ['futbol', ['balon', 'tiro', 'fisico', 'porteria']]] as const) {
+    for (const [dep, ids] of [['atletismo', ['series', 'rodaje', 'tecnica']], ['futbol', ['entrena_toques_y_pared', 'entrena_tiro_a_puerta', 'entrena_velocidad', 'entrena_reflejos']]] as const) {
       const ops = ids.map((i) => lista.find((a) => a.id === `${dep}.${i}`)!);
       for (const o of ops) {
         expect(o, `${dep}.${o?.id}`).toBeDefined();
-        expect(o.desplegable).toEqual({ id: `${dep}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}' });
+        expect(o.desplegable).toMatchObject({ id: `${dep}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}' });
       }
     }
     // Lo que no es un entrenamiento por libre no se agrupa.

@@ -113,14 +113,18 @@ describe('las listas largas van en desplegables (ActionDef.desplegable)', () => 
     expect(lista.find((o) => o.id === 'estudios.consejo_educacion_fisica')?.desplegable).toBeUndefined();
   });
 
-  it('con dos deportes, «Practicar con los amigos», «Campamento» y «Ver en la tele» llevan un desplegable por deporte', async () => {
+  it('con dos deportes, «Campamento» y «Ver en la tele» llevan un desplegable por deporte; el fútbol tiene dos campamentos y no tiene «Practicar con los amigos» (quedar a jugar es una actividad de «Proponer quedar para…»)', async () => {
     const { futbol } = await import('@ds/mod-futbol');
     const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     const lista = g.listActions();
-    for (const [id, sufijo] of [['verano.amigos', 'amigos'], ['verano.campamento', 'campamento'], ['tiempo_libre.tele', 'ver_tele']] as const) {
-      const ops = lista.filter((o) => o.desplegable?.id === id);
-      expect(ops.map((o) => o.id).sort(), id).toEqual([`atletismo.${sufijo}`, `futbol.${sufijo}`]);
-      expect(ops.map((o) => o.desplegable!.opcion).sort(), id).toEqual(['Atletismo', 'Fútbol']);
-    }
+    // Con un solo deporte que lo ofrezca, «Practicar con los amigos» se dibuja como un botón normal.
+    expect(lista.filter((o) => o.desplegable?.id === 'verano.amigos').map((o) => o.id)).toEqual(['atletismo.amigos']);
+    expect(lista.some((o) => o.id === 'futbol.amigos')).toBe(false);
+    const campamentos = lista.filter((o) => o.desplegable?.id === 'verano.campamento');
+    expect(campamentos.map((o) => o.id).sort()).toEqual(['atletismo.campamento', 'futbol.campamento_jugadores', 'futbol.campamento_porteros']);
+    expect(campamentos.map((o) => o.desplegable!.opcion).sort()).toEqual(['Atletismo', 'Fútbol: jugadores', 'Fútbol: porteros']);
+    const tele = lista.filter((o) => o.desplegable?.id === 'tiempo_libre.tele');
+    expect(tele.map((o) => o.id).sort()).toEqual(['atletismo.ver_tele', 'futbol.ver_tele']);
+    expect(tele.map((o) => o.desplegable!.opcion).sort()).toEqual(['Atletismo', 'Fútbol']);
   });
 });

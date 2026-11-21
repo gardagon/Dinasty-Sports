@@ -101,10 +101,10 @@ export function huecosQueHace(n: Pick<NinoDeportista, 'id' | 'genetica' | 'equip
 export const sesionesQueHace = (n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo'>, deporte: string, r: RutinaDeDeporte, semana: number): number => huecosQueHace(n, deporte, r, semana).length;
 
 /** Lo que sube una sesión del club ese día: la lista fija del deporte o los ejercicios que elige el entrenador (con lo que le falta a quien se mira). */
-export function listaDeSesion(r: RutinaDeDeporte, nivel: (stat: string) => number, semilla: readonly (string | number)[]): readonly Entrenamiento[] {
+export function listaDeSesion(r: RutinaDeDeporte, nivel: (stat: string) => number, semilla: readonly (string | number)[], puesto?: string): readonly Entrenamiento[] {
   if (r.sesionFija) return r.sesionFija;
   if (!r.ejercicios) return [];
-  const elegidos = elegirEjercicios(r.ejercicios, { nivel, semilla, cuantos: r.ejerciciosPorSesion ?? 2 });
+  const elegidos = elegirEjercicios(r.ejercicios, { nivel, semilla, cuantos: r.ejerciciosPorSesion ?? 2, ...(puesto ? { puesto } : {}) });
   return [...elegidos.flatMap((e) => e.entrena), ...(r.siempre ?? [])];
 }
 
