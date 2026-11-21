@@ -1,7 +1,7 @@
 import type { DatoPersonal } from './personas';
 import type { LugarId } from './lugares';
 import type { Practica } from './herencia';
-import type { PerfilDelPersonaje, RasgosDe } from './rasgos';
+import { descripcionDeDesconocido, nombreSegunEdad, type PerfilDelPersonaje, type RasgosDe } from './rasgos';
 import type { EstadoDeJugador } from './estado-de-jugador';
 import type { EstadisticasDeTemporada } from './estadisticas';
 import type { LectorDePersona } from './lector';
@@ -396,6 +396,11 @@ export interface ClubDirectory {
   list(sport: string): ClubView[];
   /** Club al que pertenece el personaje en ese deporte, si pertenece a alguno. */
   membership(sport: string): ClubView | undefined;
+}
+
+/** Cómo se describe a una persona por su aspecto, sin su nombre («un niño alto, de pelo corto…»): lo que se ve de quien aún no se conoce. */
+export function aspectoDe(n: Pick<NpcView, 'age' | 'role' | 'tags' | 'rasgos' | 'gender'>): string {
+  return n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, edadAparente(n)) : nombreSegunEdad(n.gender, edadAparente(n));
 }
 
 /**

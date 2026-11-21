@@ -1212,7 +1212,7 @@ function cambiarPresentacion(cambio: Partial<Presentacion>): void {
 }
 
 app.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-desplegable],[data-tab],[data-act],[data-gente],[data-deporte],[data-retrato]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-desplegable],[data-tab],[data-act],[data-gente],[data-deporte],[data-subdeporte],[data-retrato]');
   if (el?.dataset.act === 'importar') {
     importarPartida();
     return;
@@ -1228,7 +1228,7 @@ app.addEventListener('click', (e) => {
     if (clicEnDesplegable(el)) render();
     return;
   }
-  if (el.dataset.deporte) {
+  if (el.dataset.deporte || el.dataset.subdeporte) {
     if (clicEnDeporte(el)) render();
     return;
   }

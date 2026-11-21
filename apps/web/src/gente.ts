@@ -2,7 +2,9 @@ import {
   aforoCercano,
   idDePonerApodo,
   LONGITUD_MAXIMA_DE_APODO,
+  PREFIJO_DE_COMPARACION,
   PREFIJO_DE_CONVERSACION,
+  type ComparacionService,
   SERVICES,
   type ClubDirectory,
   descripcionDeDesconocido,
@@ -220,6 +222,15 @@ function bloqueDePeticiones(g: Game, n: NpcView): string {
   }).join('')}`;
 }
 
+/** Cómo te comparas con esta persona, con lo que le has visto (entrenando o jugando): lo publican los deportes como servicios `comparacion.<id>`; aquí se dibuja sin saber de qué deporte es. */
+function bloqueDeComparacion(g: Game, n: NpcView): string {
+  const todas = [...g.registry.services.keys()]
+    .filter((k) => k.startsWith(PREFIJO_DE_COMPARACION))
+    .map((k) => g.service<ComparacionService>(k)?.sobre(n.id))
+    .filter((c): c is NonNullable<typeof c> => !!c);
+  return todas.map((c) => `<div class="comparacion-gente"><h3>${esc(c.titulo)}</h3><p>${esc(c.texto)}</p></div>`).join('');
+}
+
 /** Cómo le llamas: el apodo (puesto por ti o con el que ya viene) y un cuadro para cambiarlo. El botón lleva el id de la acción (lo actualiza `main.ts` al escribir). */
 function bloqueDeApodo(n: NpcView): string {
   return `<div class="apodo-gente">
@@ -323,6 +334,7 @@ function ficha(g: Game, n: NpcView): string {
     ${viewRetrato(g, n.id, { cifras: n.role === 'familia', nombre: conocida(n) ? n.nombreCorto : '???' })}
     ${aviso}
     ${cuerpo}
+    ${pestana === 'resumen' ? bloqueDeComparacion(g, n) : ''}
     ${acciones}
     ${pestana === 'resumen' && conocida(n) ? vividoCon(g, n) : ''}
   </section>`;
