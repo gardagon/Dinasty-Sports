@@ -26,3 +26,9 @@ Encargo del usuario (21/11/2026, `DECISIONES.md` «Dorsales, crónica sin nombre
 - Capturas (Playwright, Chromium, deviceScaleFactor 1, ciudad grande, semilla 35; `tools/capturas-dorsales.ts`) en `docs/relevo/dorsales/antes` y `docs/relevo/dorsales/despues`: `mi-equipo-{movil,escritorio}.png` (390 y 1280 px) y `cronica-{movil,escritorio}.png`. Tres compañeros marcados como conocidos para ver nombres y dorsales juntos.
 - Peso: `npm run presupuesto -- --peso` 2971 KB (tope 3300; referencia anotada 2968).
 - Resultados de `typecheck`, `npm test`, `npm run benjamin -- 31,33` y `npm run probar-web`: ver §4.
+
+## 4. Estado al entregar
+
+- `npm run typecheck`: verde. `npm run benjamin -- 31,33`: sin cambios de convocatoria ni reparto. `npm run probar-web`: todo el camino, sin errores de consola. `npm run presupuesto -- --peso`: 2971 KB (tope 3300).
+- `npm test` (115 archivos, 1268 tests): en la última pasada completa solo falló `modules/npcs/src/index.test.ts` «los hermanos no se retiran con los cursos» por **tiempo agotado (30 s)**. **No es mío:** en la rama de partida (`b941593`) el mismo test tarda ~26 s y con mi rama ~25 s (aislado pasa en las dos); con la máquina cargada se pasa del límite. Conviene subirle el límite. Tras ello cambié solo `repartirDorsales` (un recorrido) y pasaron los archivos de fútbol, plantillas, web y `tests/mi-equipo.test.ts`.
+- Capturas: `docs/relevo/dorsales/antes` y `despues` (móvil 390 y escritorio 1280; `tools/capturas-dorsales.ts`).
