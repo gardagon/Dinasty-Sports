@@ -16,6 +16,9 @@ import {
 import { PUESTOS_DE_FUTBOL, futbol } from '@ds/mod-futbol';
 import { elegirEntrenamiento, utilidadDeUnEntreno, type EntrenoRecomendable } from '@ds/kit-deporte';
 import { MODULOS, nuevaPartida } from '@ds/game';
+import { PAIS_CIUDAD_DE_PRUEBA, registrarPais } from '@ds/contracts';
+import type { Game } from '@ds/core';
+import { hacer, posible } from './ayudas';
 import { advanceToWeek } from '@ds/core';
 import { AZAR_DEL_CONSEJO, consejoDeUnProfesor, lecturaDeUnPuesto, type Npc, type PoblacionGuardada } from '@ds/mod-npcs';
 
@@ -243,5 +246,41 @@ describe('con el juego entero', () => {
     expect(lectura?.familia.nombre).toBe('Portero');
     expect(dir.lecturaDePuesto?.('futbol', 'no_existe')).toBeUndefined();
     expect(dir.lecturaDePuesto?.('atletismo', 'portero')).toBeUndefined();
+  });
+});
+
+describe('con tu entrenador delante', () => {
+  const esperar = (g: Game): void => {
+    if (!g.perform('gen.esperar').ok) throw new Error('No se puede esperar');
+  };
+  /** El personaje ya en el club del colegio y su entrenador en su sede, fuera de la sesión (como en `pedir-puesto.test.ts`). */
+  function conEntrenador(): Game {
+    registrarPais(PAIS_CIUDAD_DE_PRUEBA);
+    const g = nuevaPartida({ seed: 31, pais: PAIS_CIUDAD_DE_PRUEBA.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    for (let k = 0; k < 6000 && !posible(g, 'futbol.pedir_consejo'); k++) {
+      if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');
+      else if (!g.perform('gen.descansar').ok) esperar(g);
+    }
+    return g;
+  }
+
+  it('«Preguntar por un puesto»: te contesta en palabras, sin cifras, una vez al día', () => {
+    const g = conEntrenador();
+    const id = 'futbol.preguntar_puesto.portero';
+    expect(g.preview(id)).toMatchObject({ available: true, duration: 15 });
+    expect(hacer(g, id).ok).toBe(true);
+    const texto = g.log.map((l) => l.text).find((t) => /te contesta|se encoge de hombros/.test(t))!;
+    expect(texto).toBeDefined();
+    expect(texto.replace(/\d+:\d+/g, '')).not.toMatch(/\d/);
+    expect(g.preview('futbol.preguntar_puesto.central')!.reason).toMatch(/Ya le has preguntado/);
+  });
+
+  it('pedirle consejo: nombra por su nombre un entrenamiento de los del deporte (o dice que vas bien) y sube lo que te frena', () => {
+    const g = conEntrenador();
+    expect(hacer(g, 'futbol.pedir_consejo').ok).toBe(true);
+    const texto = g.log.map((l) => l.text).find((t) => /te dice: «|te da un consejo/.test(t))!;
+    expect(texto).toBeDefined();
+    const nombres = ['Trabajo con balón', 'Tiro y remate', 'Preparación física', 'Entrenar de portero'];
+    expect(nombres.some((n) => texto.includes(`«${n}»`)) || /Vas bien|Eso se gana jugando|te da un consejo/.test(texto)).toBe(true);
   });
 });
