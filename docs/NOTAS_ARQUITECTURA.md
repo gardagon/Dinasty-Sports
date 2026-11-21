@@ -43,7 +43,6 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 | Sesión | Rama | Encargo |
 |---|---|---|
 | `session_01M4vXXPwp3Qjr84KzsiTdwA` | `claude/dorsales` | Dorsales (porteros 1, 13 o desde el 16), crónica con dorsal para los desconocidos, columnas de dorsal y comparación en «Mi equipo» |
-| `session_01M4vXXNVXxbCc2nznHngV8k` | `claude/puestos-y-pistas` | Consejo comparado con la edad, «Interior» y «Medio de banda», recomendaciones sin lado, pistas (porqué, «Preguntar por un puesto», el entrenador recomienda entrenamientos) |
 | `session_01M4vXXPDBij8YJjM9AZGWFY` | `claude/entrenamientos` | Catálogo de 22, «quedar a jugar al fútbol» todo el año, campamentos de jugadores y porteros, balance medido |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
@@ -99,3 +98,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXPQUdYEGsR1Fs7XmG5` | Sonnet | Fútbol más barato y equipos que se forman al empezar el curso (21/11, esta sesión de arquitectura) |
 | `session_01M4vXXPpi9riogRRYhFwJud` | Sonnet | Mi equipo y habilidades agrupadas (21/11, esta sesión de arquitectura) |
 | `session_01M4vXXR9ZzuDodhbLuCsMSu` | Sonnet | Moverse con el grupo (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXNVXxbCc2nznHngV8k` | Sonnet | Puestos y pistas (21/11, esta sesión de arquitectura) |
