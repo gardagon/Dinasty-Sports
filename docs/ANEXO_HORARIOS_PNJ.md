@@ -39,6 +39,16 @@ Estado: **horarios cerrados y población aprobada** (27/10/2026). La población 
 - Se guarda por persona **solo la lista de tipos**. La agenda se calcula y se recuerda en memoria.
 - Los desconocidos se ven por su **descripción física** («Una chica de pelo negro liso, ojos marrones oscuros y piel clara») hasta que se habla con ellos.
 
+### Moverse con el grupo (21/11/2026, cifras provisionales)
+
+Las agendas no se enteran de que el personaje está ahí: si estás hablando con los de tu clase y a las 10:40 todos se van al patio, ya no están. Para que no desaparezcan sin más, al **acabar una acción** `npcs` mira la presencia al empezarla y al acabarla (`modules/npcs/src/grupo.ts`; solo si ha cambiado el intervalo entre dos cambios de tramo, así que casi siempre no cuesta nada) y avisa (`presencia.grupo_se_va`, que recoge el suceso `eventos.grupo.se_van`) si:
+
+- el personaje **sigue donde estaba** (las acciones de ir a otro sitio y las decisiones de un suceso no se miran);
+- de la gente que tenía **cerca** (los 34–46 que se ven, `aforoCercano`: primero los que conoces) **se ha ido al menos la mitad** (`MOVERSE_CON_EL_GRUPO.proporcion`, 0,5);
+- los que se pueden seguir (los que siguen aquí y los que van a un sitio del mapa) se reparten así: **un mismo sitio recibe al menos 3 personas** (`minimo`) **y la mitad o más de ellos**. Quien está ocupado pero a la vista en otro sitio (el equipo en su pista) cuenta como que va allí; quien sigue contigo aunque ahora esté ocupado (los de tu clase al empezar la clase) no se ha ido. Solo se sigue **dentro del mismo lugar** (el colegio y sus zonas, el estadio o el complejo, el club): quien se va a otro lugar cuenta como quien **sale del mapa** (casa, su aula de otro curso): cuenta como que se ha ido, pero no es un destino: no se sabe a dónde va ni se le puede seguir. Por eso, de desconocidos que vuelven a sus aulas de fuera no hay grupo: el aviso sale cuando hay conocidos (o de tu clase) que van a un sitio del mapa.
+
+Lo que se ve en un día de clase si te quedas hablando con los de tu clase: **10:40** del aula al patio, **11:10** del patio al aula (si conoces a compañeros), **14:00** del aula a la entrada del colegio (o al patio: sale el sitio con más gente), y **14:50** de la entrada a la pista (el entrenamiento). Aparte del grupo, **«Me voy»**: si quien conoces y tienes al lado se va solo, dice una línea corta (a dónde, si es un sitio del mapa). La salida de 14:00 a 14:30 que se reparte de cinco en cinco minutos se pregunta una vez, cuando el aula se vacía.
+
 ## 2. Horarios por tipo
 
 Minutos y días como en el calendario escolar: **lectivo** = día de clase (no fin de semana ni vacaciones), **libre** = el resto. «Fuera» = fuera del mapa. Los porcentajes son el peso de cada destino (se elige uno por persona y día).

@@ -77,6 +77,8 @@ export const SHARED_EVENTS = {
   LESION_DE_PERSONA: 'persona.lesion',
   /** data: EstadoDePersonaData — algo que ha pasado cambia el estado de juego de una persona del mundo (moral, forma, condición, salud, semanas de baja): lo aplica quien la guarda. */
   ESTADO_DE_PERSONA: 'persona.estado',
+  /** data: GrupoSeVaData — la mayoría de la gente con la que estaba el personaje se ha ido a otro sitio (o ha salido) a la vez, y él sigue allí: lo emite `npcs` (dueño de la presencia). */
+  GRUPO_SE_VA: 'presencia.grupo_se_va',
 } as const;
 
 export interface LesionDePersonaData {
@@ -339,6 +341,26 @@ export interface DayEventData {
 
 export interface WeekEventData {
   week: number;
+}
+
+/**
+ * El grupo con el que estabas se va (`SHARED_EVENTS.GRUPO_SE_VA`): lo emite quien conoce las agendas (`npcs`) cuando, al acabar una acción, la mayoría de las personas que
+ * había contigo se ha ido a un mismo sitio y tú sigues donde estabas. Un suceso decide si te vas con ellos.
+ */
+export interface GrupoSeVaData {
+  /** Dónde estás (y de donde se van). */
+  desde: string;
+  /** A dónde van: un lugar del mapa (los que salen del mapa, a casa o a otro colegio, no se cuentan: no se sabe a dónde van ni se les puede seguir). */
+  hacia: string;
+  /** Cómo se dice en una frase: «al patio», «a la biblioteca» (`haciaLugar`). */
+  haciaTexto: string;
+  /** Minutos que cuesta ir de `desde` a `hacia` (el viaje rápido del mapa). */
+  minutos: number;
+  /** Cuántos de los que tenías cerca (los que se ven y se les puede hablar) van a `hacia`, y cuántos eran antes de que se fueran. */
+  cuantos: number;
+  total: number;
+  /** Unos pocos de los que se van (ids), para nombrar a alguien: `{ npcId }`. Los conocidos primero. */
+  muestra: { npcId: string }[];
 }
 
 export interface ActionDoneData {

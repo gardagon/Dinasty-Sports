@@ -96,7 +96,7 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
   id: 'mentir', texto: 'Decir que es un error del colegio',
   requiere: [{ stat: 'gen.picardia', min: 12 }],     // si no se cumple, sale en gris (u oculta: true)
   caracter: { honestidad: -3 },                      // hacia qué ejes tira: mueve los del personaje y es con lo que decide un PNJ o un bot
-  minutos: 5,                                        // tiempo de juego que gasta (1 por defecto)
+  minutos: 5,                                        // tiempo de juego que gasta (1 por defecto); o { deLaSeñal: 'minutos' }: los que traiga ese dato de la señal que lo disparó (un viaje cuya duración depende de dónde estés; solo en sucesos con `al`; 1 si no hay dato)
   tirada: { con: 'gen.picardia', dificultad: 45 },   // 50 % con la stat (para su edad) igual a la dificultad; ±15 puntos por cada 10; entre 5 % y 95 %
   // Opcional: la dificultad también depende de la situación. Cada ajuste lleva condiciones (las de siempre: relacion, hecho, stat, caracter...) y suma o resta puntos si se cumplen TODAS;
   // los que se cumplen se suman y el total se queda entre 0 y 100 (`dificultadDeTirada`). Lo normal son escalones acumulados:
@@ -134,6 +134,21 @@ Dos reglas del formato, para no tener que acordarse suceso a suceso:
 - La validación impide `aplazable`/`pendiente` en lo que es `durante`, en un reparto con `presente: true` o con una condición `presente` en `cuando`: eso se responde ahora.
 - La interfaz (`SucesoPendiente.aplazable`) solo ofrece «Decidir luego» si es aplazable; si no, dice que hay que responder.
 - Qué cambió suceso a suceso, y con qué cifras: `docs/relevo/sucesos-en-clase.md`.
+
+### Moverse con el grupo
+
+Cuando la gente con la que estás se va en bloque a otro sitio y tú sigues allí, sale «Todos se van al patio. ¿Les acompañas?» (`eventos.grupo.se_van`, `modules/eventos/src/grupo/se_van.ts`). Es un suceso normal, sin sitios ni horas escritos:
+
+- **La señal** `presencia.grupo_se_va` (`SHARED_EVENTS.GRUPO_SE_VA`, `GrupoSeVaData`) la emite `npcs`, dueño de la presencia, al acabar una acción (`modules/npcs/src/grupo.ts`; las reglas, en `docs/ANEXO_HORARIOS_PNJ.md` «Moverse con el grupo»). Trae `desde`, `hacia`, `haciaTexto` («al patio», «a la entrada del colegio»), `minutos` (el viaje rápido del mapa), `cuantos`, `total` y `muestra` (hasta 3 conocidos).
+- **`urgencia: 'ahora'`**, sin aplazar: si haces otra cosa sin responder, te quedas (se aplica `quedarte`). No es `durante` (el viaje gasta tiempo), y las opciones son «Ir con ellos» y «Quedarte aquí».
+- **Ir con ellos** = `minutos: { deLaSeñal: 'minutos' }` (lo que cuesta ir) y el efecto `emite: 'lugares.ir_a'` con `destino: '{señal.hacia}'` (`lugares` te lleva y emite la llegada; allí están ya, por sus agendas). Sube un poco la relación con un conocido del grupo y baja un poco el estrés.
+- Es general: el recreo que empieza (aula → patio), el que acaba (patio → aula), la clase que acaba (aula → entrada del colegio), el entrenamiento (entrada → pista)... y lo que ponga un deporte o un país nuevo, sin tocar nada.
+- **Corta las acciones antes de que se vaya**: `npcs` declara el momento en que se va el grupo como una obligación (`GameModule.obligaciones`), así que las acciones cortables duran solo hasta entonces y luego sale el aviso («2 min (se va el grupo al patio a las 10:40)»).
+- **Solo dentro del mismo lugar**: se acompaña al colegio (aula, patio, entrada, pista…), al estadio o al complejo deportivo, al club; si se van a casa o a otro lugar, no sale nada.
+- **No cuenta como evento**: `fueraDelRitmo: true` en el suceso lo deja fuera de las medidas de ritmo (`sim:eventos`, el chequeo de la simulación); como sale con una señal, no gasta cupo.
+- **Preferencia de la web** (Opciones → «Cuando se va el grupo con el que estás»): *Preguntarme* (por defecto), *Ir siempre con ellos* (la web responde «Ir con ellos» sin enseñar el aviso, gastando los minutos del camino) o *Quedarme* (no se enseña nada; si haces otra cosa, el momento pasa). Es del navegador (`apps/web/src/presentacion.ts`, `respuestaAlGrupo`); el motor sigue ofreciendo las dos opciones.
+- **«Me voy»**: cuando alguien que conoces y tienes al lado se va aparte (no con el grupo), sale una línea corta suya en lo que pasa («Lucía: «Me voy al patio.»»; «Me voy.» si sale del mapa y no se sabe a dónde), como mucho 2 por acción. Va en la línea del resultado, no en el diario ni en una ventana, para no ensuciar. La emite `npcs` junto a la señal del grupo (`seVanSolos`).
+- Cifras y medidas: `docs/relevo/moverse-con-el-grupo.md`. Se ajustan con `MOVERSE_CON_EL_GRUPO` (`contracts/src/agendas.ts`).
 
 ### Efectos
 

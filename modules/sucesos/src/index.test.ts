@@ -403,3 +403,42 @@ describe('lo que pasa durante una actividad y lo que no se puede aplazar', () =>
     expect(errores([suceso({ ...base, id: 't.d', disparo: { al: 'u.x' }, urgencia: 'pendiente', reparto: { quien: { rol: 'companero', presente: true } }, opciones: [{ id: 'a', texto: 'A' }] })])).toMatch(/está presente/);
   });
 });
+
+describe('minutos que trae la señal', () => {
+  const viaje = defineModule({
+    id: 'v',
+    name: 'Viaje',
+    initState: () => ({}),
+    actions: [{ id: 'v.sale', name: 'Sale el grupo', tags: [], duration: 5, run: (ctx) => ctx.emit({ type: 'v.grupo', data: { minutos: 7 } }) }, { id: 'v.sin_dato', name: 'Sale sin dato', tags: [], duration: 5, run: (ctx) => ctx.emit({ type: 'v.otro', data: {} }) }],
+  });
+  const def = (id: string, al: string) =>
+    suceso({ id, titulo: id, disparo: { al }, repite: 'siempre', texto: 'Se van.', urgencia: 'ahora', plazo: { dias: 1, porDefecto: 'quedarte' }, opciones: [{ id: 'ir', texto: 'Ir con ellos', minutos: { deLaSeñal: 'minutos' } }, { id: 'quedarte', texto: 'Quedarte' }] });
+  const partida = (catalogo: AporteDeSucesos[]) => {
+    const g = Game.create([personaje, sucesos, prueba(catalogo), viaje], { seed: 7 });
+    dado.azar = 1;
+    return g;
+  };
+
+  it('la opción gasta los minutos que trae la señal que disparó el suceso', () => {
+    const g = partida([def('t.grupo', 'v.grupo')]);
+    g.perform('v.sale');
+    const [p] = svc(g).pendientes();
+    expect(p.opciones.map((o) => o.minutos)).toEqual([7, 1]);
+    const antes = g.time.minute;
+    expect(g.perform(p.opciones[0].accion)).toMatchObject({ ok: true, duration: 7 });
+    expect(g.time.minute - antes).toBe(7);
+  });
+
+  it('si la señal no trae el dato, gasta 1 minuto (nunca 0 ni NaN)', () => {
+    const g = partida([def('t.otro', 'v.otro')]);
+    g.perform('v.sin_dato');
+    expect(svc(g).pendientes()[0].opciones[0].minutos).toBe(1);
+  });
+
+  it('la validación pide una señal y un nombre de dato', () => {
+    const errores = (s: AporteDeSucesos[]) => validarCatalogo([{ modulo: 't', aportes: s }]).errores.join(' | ');
+    expect(errores([def('t.a', 'v.grupo')])).toBe('');
+    expect(errores([suceso({ id: 't.b', titulo: 'b', disparo: { cada: 'dia', prob: 0.1 }, texto: 'x', plazo: { dias: 1, porDefecto: 'a' }, opciones: [{ id: 'a', texto: 'A', minutos: { deLaSeñal: 'minutos' } }] })])).toMatch(/solo vale en un suceso que sale con una señal/);
+    expect(errores([suceso({ id: 't.c', titulo: 'c', disparo: { al: 'v.grupo' }, texto: 'x', plazo: { dias: 1, porDefecto: 'a' }, opciones: [{ id: 'a', texto: 'A', minutos: { deLaSeñal: '' } }] })])).toMatch(/necesita el nombre del dato/);
+  });
+});

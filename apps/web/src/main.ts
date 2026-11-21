@@ -55,7 +55,7 @@ import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, textoDeNiveles, viewPanelGente } from './gente';
 import { agruparEnDesplegables, cambioEnDesplegable, clicEnDesplegable, viewDesplegable } from './desplegables';
 import { reclamarPestana } from './pestana';
-import { MODOS_DE_CONSECUENCIAS, MODOS_FUERA_DE_CARACTER, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
+import { MODOS_DE_CONSECUENCIAS, MODOS_DEL_GRUPO, MODOS_FUERA_DE_CARACTER, SUCESO_DEL_GRUPO, respuestaAlGrupo, type CuandoSeVaElGrupo, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
 import {
   FRECUENCIAS,
@@ -166,7 +166,11 @@ let recuperacionEscrita = false;
 /** Hace una acción de la partida. Es la única puerta por la que la página cambia el estado: antes descarta (o acaba) el guardado si estaba a medias (`serializar.ts`). */
 function realizar(g: Game, id: string): ActionResult {
   alCambiarElEstado();
-  return g.perform(id);
+  const r = g.perform(id);
+  // Cuando se va el grupo con el que estás y has elegido «ir siempre con ellos», vas sin preguntar (gastando los minutos del camino).
+  const ir = r.ok ? respuestaAlGrupo(presentacion, pendientesDe(g))?.accion : undefined;
+  if (ir) g.perform(ir);
+  return r;
 }
 
 /** Se llama tras cada cambio. Guarda según la frecuencia elegida; `forzar` guarda ya sea cual sea (partida nueva, importada, «Guardar partida»). */
@@ -518,6 +522,7 @@ function viewPresentacion(): string {
     `<select id="${id}">${modos.map((m) => `<option value="${m.id}"${m.id === actual ? ' selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select>`;
   return `<p><label>Consecuencias antes de elegir ${lista('pres-consecuencias', MODOS_DE_CONSECUENCIAS, presentacion.consecuencias)}</label></p>
     <p><label>Opciones que no van con tu carácter ${lista('pres-fuera-de-caracter', MODOS_FUERA_DE_CARACTER, presentacion.fueraDeCaracter)}</label></p>
+    <p><label>Cuando se va el grupo con el que estás ${lista('pres-grupo', MODOS_DEL_GRUPO, presentacion.cuandoSeVaElGrupo)}</label></p>
     <p><label><input type="checkbox" id="pres-aviso"${presentacion.avisoFueraDeCaracter ? ' checked' : ''}${presentacion.fueraDeCaracter === 'normales' ? '' : ' disabled'}> Avisar «no va contigo» en las opciones normales</label></p>`;
 }
 
@@ -581,7 +586,9 @@ function viewSuceso(g: Game): string {
       <p class="botones"><button class="primary" data-act="aviso-visto" data-suceso="${aviso.id}">Seguir</button></p>
     </div></div>`;
   }
-  const p = pendientesDe(g).find((x) => x.urgencia !== 'pendiente' && !sucesosAplazados.has(x.id));
+  // El aviso de que se va el grupo no se enseña si la preferencia es ir siempre o quedarme (ver `respuestaAlGrupo`).
+  const sinPreguntar = respuestaAlGrupo(presentacion, pendientesDe(g))?.ocultar;
+  const p = pendientesDe(g).find((x) => x.urgencia !== 'pendiente' && !sucesosAplazados.has(x.id) && !(sinPreguntar && x.suceso === SUCESO_DEL_GRUPO));
   if (!p) return '';
   const personas = [...new Set(Object.values(p.reparto))].map((id) => viewRetrato(g, id)).join('');
   return `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="suceso-titulo"><div class="ventana suceso">
@@ -1181,6 +1188,13 @@ app.addEventListener('change', (e) => {
   }
   if (el instanceof HTMLSelectElement && (el.id === 'pres-consecuencias' || el.id === 'pres-fuera-de-caracter')) {
     cambiarPresentacion(el.id === 'pres-consecuencias' ? { consecuencias: el.value as Presentacion['consecuencias'] } : { fueraDeCaracter: el.value as Presentacion['fueraDeCaracter'] });
+    return;
+  }
+  if (el instanceof HTMLSelectElement && el.id === 'pres-grupo') {
+    // Solo cambia cómo se responde en la web: no hace falta rehacer la partida.
+    presentacion = { ...presentacion, cuandoSeVaElGrupo: el.value as CuandoSeVaElGrupo };
+    escribirPresentacion(presentacion);
+    render();
     return;
   }
   if (el instanceof HTMLInputElement && el.id === 'pres-aviso') {
