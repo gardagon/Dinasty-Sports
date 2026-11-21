@@ -49,6 +49,7 @@ import {
   modificadorDeCampamento,
   modificadorDeConocimiento,
   modificadorDeLlegadaTarde,
+  obligacionDeSesionDeClub,
   modificadorDeSobrecarga,
   modificadorPorTuCuenta,
   nombreDeCategoria as nombreDeCategoriaEn,
@@ -864,6 +865,9 @@ export const atletismo = defineModule<AtletismoState>({
     // Tu entrenador está en la sede de tu club antes y después de las sesiones.
     'atletismo.pedir_consejo': sedeDelClub,
   }),
+
+  // La sesión del club es una obligación: las acciones cortables no la pisan (kit).
+  obligaciones: obligacionDeSesionDeClub(CONFIG),
 
   // Llegar tarde a la sesión, campamento, entrenar por tu cuenta, conocimiento y sobrecarga (kit), en este orden.
   modifiers: [

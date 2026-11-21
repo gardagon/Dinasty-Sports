@@ -351,6 +351,24 @@ function cierraAlLlegar(ctx: ReadContext, svc: LugaresService, lugar: LugarDef):
   return padre && !abiertoEn(padre, dentro ? en(lugar) : en(padre)) ? padre : undefined;
 }
 
+/**
+ * Minutos que cuesta llegar desde donde se está hasta un sitio (0 si ya se está allí o si no hay servicio de lugares o camino). Lo usan los módulos que declaran
+ * obligaciones (`GameModule.obligaciones`) para restar el viaje al momento hasta el que se puede dedicar el tiempo a otra cosa.
+ */
+export function minutosParaLlegar(ctx: ReadContext, lugar: LugarId): number {
+  const svc = ctx.service<LugaresService>('lugares');
+  if (!svc || svc.actual().id === lugar) return 0;
+  // Por el camino que se recorre de verdad (parada a parada: de casa al aula se pasa por las calles y la entrada del colegio): la suma de los tramos, no el tiempo directo entre los dos sitios.
+  const mapa = svc.mapa();
+  let previo = svc.actual().id;
+  let minutos = 0;
+  for (const parada of rutaA(mapa, previo, lugar)) {
+    minutos += tiempoEntre(mapa, previo, parada) ?? 0;
+    previo = parada;
+  }
+  return minutos;
+}
+
 /** Principio del motivo que devuelve `enLugar` cuando el personaje no está donde hace falta (los bots y la interfaz lo reconocen). */
 export const MOTIVO_LUGAR = 'Tienes que estar en';
 

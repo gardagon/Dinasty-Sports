@@ -157,6 +157,7 @@ export const personaje = defineModule<IdentidadState>({
       tags: [TAGS.descanso],
       group: 'Descanso',
       duration: 60,
+      cortable: true,
       delta: { [GEN.energia]: 8, [GEN.estres]: -2 },
     },
     {
@@ -166,6 +167,7 @@ export const personaje = defineModule<IdentidadState>({
       tags: [TAGS.descanso],
       group: 'Descanso',
       duration: 5,
+      cortable: true,
     },
     {
       id: 'gen.gimnasio',
@@ -174,6 +176,7 @@ export const personaje = defineModule<IdentidadState>({
       tags: [TAGS.fisico, TAGS.fuerza, TAGS.entrenamiento],
       group: 'Entrenamiento general',
       duration: 90,
+      cortable: true,
       available: (ctx) => (inHours(ctx.time, 7, 22) && !isSchoolHours(ctx.time) ? true : 'Abierto de 7 a 22 (fuera de clase)'),
       delta: { [GEN.energia]: -20, [GEN.estres]: -3 },
       train: [
@@ -187,6 +190,7 @@ export const personaje = defineModule<IdentidadState>({
       tags: [TAGS.mental, TAGS.ocio],
       group: 'Tiempo libre',
       duration: 60,
+      cortable: true,
       available: (ctx) => (!isSchoolHours(ctx.time) ? true : 'Estás en horario de clase'),
       delta: { [GEN.energia]: -5, [GEN.estres]: -2 },
       train: [
@@ -200,6 +204,7 @@ export const personaje = defineModule<IdentidadState>({
       tags: [TAGS.ocio],
       group: 'Tiempo libre',
       duration: 120,
+      cortable: true,
       available: (ctx) => (!isSchoolHours(ctx.time) ? true : 'Estás en horario de clase'),
       delta: { [GEN.energia]: -3, [GEN.estres]: -10, [GEN.motivacion]: 4 },
     },
@@ -210,6 +215,7 @@ export const personaje = defineModule<IdentidadState>({
       tags: [TAGS.mental, TAGS.ocio, 'arte'],
       group: 'Tiempo libre',
       duration: 60,
+      cortable: true,
       available: (ctx) => (!isSchoolHours(ctx.time) ? true : 'Estás en horario de clase'),
       delta: { [GEN.energia]: -3, [GEN.estres]: -4 },
       train: [
@@ -224,6 +230,7 @@ export const personaje = defineModule<IdentidadState>({
       tags: [TAGS.ocio, TAGS.social],
       group: 'Tiempo libre',
       duration: 60,
+      cortable: true,
       available: (ctx) => (inHours(ctx.time, 8, 22) && !isSchoolHours(ctx.time) ? true : 'De 8 a 22, fuera de clase'),
       delta: { [GEN.energia]: -4, [GEN.estres]: -5 },
       train: [{ stat: GEN.carisma, amount: 0.5 }],

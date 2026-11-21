@@ -775,3 +775,69 @@ describe('ampliaciones genéricas para los sucesos', () => {
     expect(g.perform('b.dormir')).toMatchObject({ ok: false, reason: 'Estás castigado' });
   });
 });
+
+describe('acciones que pisan una obligación', () => {
+  // Una obligación a las 9:00 del primer día (la partida empieza a las 7:00 del lunes).
+  const OBLIGACION = 9 * 60;
+  const con = (cortable: boolean | undefined, obligacion = true) =>
+    defineModule({
+      id: 'o',
+      name: 'Obligaciones',
+      dependsOn: ['b', 'd'],
+      obligaciones: () => (obligacion ? [{ hasta: OBLIGACION, texto: 'entras a clase a las 9:00' }] : []),
+      actions: [
+        { id: 'o.charla', name: 'Charla', tags: ['social'], duration: 30, cortable, delta: { 'b.energia': -10, 'b.estres': 6 }, train: [{ stat: 'd.tecnica', amount: 5 }] },
+        { id: 'o.viaje', name: 'Viaje', tags: ['desplazamiento'], duration: 30, delta: { 'b.energia': -10 } },
+        { id: 'o.paso', name: 'Paso', tags: ['desplazamiento'], duration: 5 },
+      ],
+    });
+  /** Una partida que llega a las 8:50 (faltan 10 minutos para la obligación). */
+  const a_las_850 = (m: GameModule<any>) => {
+    const g = Game.create([base, deporte, m], { seed: 42 });
+    while (g.time.minute < OBLIGACION - 10) g.perform('o.paso');
+    return g;
+  };
+
+  it('dura solo los minutos que faltan y reduce lo que sube y gasta en proporción', () => {
+    const lejos = Game.create([base, deporte, con(true)], { seed: 42 });
+    // A las 7:00 faltan 120 minutos y la charla dura 30: no se corta.
+    const entera = lejos.preview('o.charla')!;
+    expect(entera.duration).toBe(30);
+    expect(entera.corte).toBeUndefined();
+
+    const g = a_las_850(con(true));
+    const p = g.preview('o.charla')!;
+    expect(p.duration).toBe(10);
+    expect(p.corte).toMatchObject({ deMinutos: 30, minutos: 10, texto: 'entras a clase a las 9:00' });
+    expect(p.corte!.parte).toBeCloseTo(1 / 3);
+    expect(p.efficiency).toBeCloseTo(entera.efficiency / 3);
+    expect(p.delta['b.energia']).toBeCloseTo(-10 / 3);
+    expect(p.delta['b.estres']).toBeCloseTo(2);
+
+    const t0 = g.stat('d.tecnica');
+    const r = g.perform('o.charla');
+    expect(r.ok).toBe(true);
+    expect(r.duration).toBe(10);
+    expect(g.time.minute).toBe(OBLIGACION); // se llega justo a la obligación, no tarde
+    expect(g.stat('d.tecnica')).toBeGreaterThan(t0);
+    // Entera, la misma charla sube unas 3 veces más (en lo que se entrena, que no depende del estado).
+    const h = Game.create([base, deporte, con(true)], { seed: 42 });
+    const u0 = h.stat('d.tecnica');
+    h.perform('o.charla');
+    expect(g.stat('d.tecnica') - t0).toBeCloseTo((h.stat('d.tecnica') - u0) / 3, 5);
+    // Con la obligación ya empezada, la acción vuelve a durar entera.
+    expect(g.preview('o.charla')!.duration).toBe(30);
+  });
+
+  it('no corta lo que no es cortable ni cuando no hay obligación', () => {
+    for (const g of [a_las_850(con(undefined)), a_las_850(con(true, false))]) {
+      expect(g.preview('o.charla')!.duration).toBe(30);
+      expect(g.preview('o.charla')!.corte).toBeUndefined();
+    }
+    expect(a_las_850(con(true)).preview('o.viaje')!.duration).toBe(30); // un viaje no se corta
+  });
+
+  it('el corte es el mismo en la lista y en la previsión', () => {
+    expect(a_las_850(con(true)).listActions().find((o) => o.id === 'o.charla')!.corte?.minutos).toBe(10);
+  });
+});
