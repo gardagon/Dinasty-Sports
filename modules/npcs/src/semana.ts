@@ -5,7 +5,9 @@ import {
   SEMANAS_DE_JUEGO_INFORMAL,
   caidaDeCapacidad,
   evolucionSemanal,
+  prefijoEstable,
   rngEstable,
+  rngEstableDesde1,
   type Entrenamiento,
   type LectorDePersona,
   type RutinaDeDeporte,
@@ -80,7 +82,8 @@ export function huecosQueHace(n: Pick<NinoDeportista, 'id' | 'genetica' | 'equip
   const porSemana = (n.equipo !== undefined ? r.sesionesPorSemana[n.equipo] : undefined) ?? r.sesionesPorDefecto;
   const p = asistencia(n.ritmo?.[deporte] ?? ritmoEn(n.id, n.genetica, deporte));
   const hechas: number[] = [];
-  for (let s = 0; s < porSemana; s++) if (rngEstable('asiste', n.genetica.semilla ?? 0, n.id, deporte, semana, s).chance(p)) hechas.push(s);
+  const prefijo = prefijoEstable('asiste', n.genetica.semilla ?? 0, n.id, deporte, semana);
+  for (let s = 0; s < porSemana; s++) if (rngEstableDesde1(prefijo, s).chance(p)) hechas.push(s);
   return hechas;
 }
 
