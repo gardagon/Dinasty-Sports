@@ -50,3 +50,8 @@ Encargo: entrada «Deberes, acciones que pisan otra y moverse con el grupo» (lo
 - `packages/core/src/game.test.ts`: corte proporcional (duración, eficiencia, `delta`, llegada exacta), lo no cortable, lista = previsión.
 - `modules/estudios/src/index.test.ts`: deberes (30 min, proporción frente a estudiar, solo fuera de clase, sitios) y estudiar a las 7:55 dura 5 minutos y se entra a tiempo.
 - `tests/acciones-cortas.test.ts` (partida entera): resta el viaje al aula, sitios de los deberes, y la sesión del club como obligación.
+
+## Enganche para «moverse con el grupo» (`claude/moverse-con-el-grupo`)
+
+Precisión del usuario: si faltan 2 minutos para subir al aula y se hace una acción de 5, se hacen 2 (con su parte proporcional); después se ofrece ir con el grupo y ese camino (unos 4 minutos) sí se consume.
+Lo que deja esta rama: la acción cortada termina exactamente en `Obligacion.hasta` (el momento en que empieza la obligación o sale el grupo, restando el viaje que declare el módulo). Esa sesión puede engancharse ahí: declarar una obligación con `hasta` = hora de salida del grupo (`GameModule.obligaciones`) y ofrecer el aviso «¿les acompañas?» cuando `ActionResult` deje el reloj en ese minuto. El viaje con el grupo no debe ser `cortable` (es un viaje).
