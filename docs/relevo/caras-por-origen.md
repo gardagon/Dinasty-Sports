@@ -36,3 +36,8 @@ Rama `claude/caras-por-origen` (sale de `claude/youthful-clarke-vs0kye`). Sin pu
 - A tamaño de cuadrícula el pliegue se aprecia poco (el ojo mide unos 6 píxeles); en el retrato grande y en los recortes de ojos se ve bien. Es una limitación del tamaño de las celdas, no del dibujo.
 - Un detalle no resuelto: en la figura entera el ojo es tan pequeño que el epicanto no se distingue; solo se aprecia la apertura menor.
 - La cuadrícula (`cuadricula-claro.png` y `cuadricula-oscuro.png`) se ha regenerado una sola vez, al final.
+
+## Resultado final
+
+- `npm run typecheck`: sin errores. `npm test`: 106 archivos, 1207 tests en verde. `npm run probar-web`: todo el camino funciona en el navegador, sin errores de consola.
+- Recortes `origenes-claro.png` y `origenes-oscuro.png`: la sección 4b de la cuadrícula ya regenerada (la cuadrícula se regeneró y se subió una sola vez, al final).
