@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Revisión de rendimiento (rama `claude/revision-rendimiento`)
+
+Informe: `docs/relevo/revision-rendimiento.md`.
+- **Sin regresión** frente a `main` antes del 21/11 (`b7e5032`). Ciudad de prueba: 1,49–1,62 → 1,31–1,36 ms por acción; estado +7 % (los rasgos del cuerpo y el aspecto). Ciudad grande con fútbol: 9,3–9,6 → 7,5–8,4 ms por acción; estado 15,2 → 16,1 MB.
+- **El problema es la ciudad grande con fútbol, y ya estaba antes:** crear ~30 s; cruce de semana 370–875 ms (en un móvil, unas 4 veces más); guardar 0,46 s en escritorio y 1,8 s en móvil emulado, bloqueando la página; estado de 16 MB (genética y rasgos, 56 %). El fútbol es el ~94 % de ese coste.
+- **Hecho:** chequeo de Rendimiento de la simulación estable (calibración al principio, a mitad y al final con mediana; límite relativo 0,17–0,20 → 0,22); herramientas `npm run presupuesto`, `npm run rendimiento:web`, `tools/rendimiento-semana.ts` y `rendimiento --ciudad`.
+- Propuestas sin hacer, ordenadas: guardar fuera del hilo de la página; medir los sucesos de PNJ con la ciudad grande y crear en un móvil real; pasada semanal y creación del fútbol más baratas (cambian los números de los PNJ); estado más pequeño; `rngEstable` más barato; `listActions` del fútbol.
+
 ## 21/11/2026 — Se une la rama de trabajo a la principal
 
 El usuario aprueba unir `claude/youthful-clarke-vs0kye` a `main`, para probarlo como jugador, ver el rendimiento después y seguir trabajando en paralelo. Pull request gardagon/Dinasty-Sports#127. La versión de guardado pasa de 17 a 21: las partidas de la versión publicada se descartan con un aviso. La revisión de rendimiento queda para justo después.

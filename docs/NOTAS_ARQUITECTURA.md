@@ -35,12 +35,17 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 1. ~~**Unir a la principal**~~ **Unida el 21/11** (gardagon/Dinasty-Sports#127, integración continua en verde): publicada en GitHub Pages. La rama de trabajo sigue siendo `claude/youthful-clarke-vs0kye`, al día con `main`.
 2. ~~**Reparto de equipos 2, lo que queda**~~ Respondido el 21/11 (DECISIONES, «Rotación en el fútbol de colegio…») y encargado a `claude/rotacion-y-puestos`.
+2. **Rendimiento con la ciudad grande y el fútbol** (`docs/relevo/revision-rendimiento.md` §6 y §7). Crear ~30 s; cruce de semana 0,4–0,9 s (unas 4 veces más en el móvil); guardar bloquea la página 0,5 s (1,8 s en el móvil). **Recomendación, por orden:**
+   - (1) guardar fuera del hilo de la página: barato y no cambia la partida;
+   - (2) medir los sucesos de PNJ con la ciudad grande y crear la partida en un móvil real;
+   - (3) aceptar que la pasada semanal y la creación del fútbol se hagan por equipo o en bloques para los niños que no están activos (cambia los números de los PNJ, pero no las reglas);
+   - (4) vigilar en `npm test` un tope de estado (3.300 KB en la ciudad de prueba y 18.000 KB en la grande) y aceptar el límite relativo de 0,22 del chequeo.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXRfGRcayUhG8WXyDCj` | `claude/revision-rendimiento` | Revisión de rendimiento: antes y después, ciudad grande y fútbol, navegador y móvil emulado, puntos calientes, chequeo estable y presupuesto |
+| — | — | Ninguna |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
@@ -48,7 +53,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
-0 ter. **Encargada el 21/11 a `claude/revision-rendimiento`.** **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
+0 ter. **Hecha el 21/11** (`docs/relevo/revision-rendimiento.md`; decisiones en §3). **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
 
 
 
@@ -86,3 +91,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXNt52eARrGJ6e6Uscp` | Sonnet | Reparto de equipos: colegios, probar fuera por edad y plazas de más (17–20/11, esta sesión de arquitectura) |
 | `session_01M4vXXPf2zMF2zD3iHE79x3` | Sonnet | Reparto de equipos 2 (20/11, esta sesión de arquitectura) |
 | `session_01M4vXXS22qpRwXGa4JE7VBv` | Sonnet | Rotación, «El curso que viene» y puestos (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXRfGRcayUhG8WXyDCj` | Sonnet | Revisión de rendimiento (21/11, esta sesión de arquitectura) |
