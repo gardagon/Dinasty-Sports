@@ -5,7 +5,8 @@
  *   npm run puestos -- partida <semilla>          un personaje nuevo (ciudad grande, semana 3): sus habilidades y lo que vale en cada puesto, con la cuenta hecha
  *   npm run puestos -- guardado <archivo.json>    lo mismo con una partida guardada (la copia que da el botón «Exportar» del juego, o el JSON de `game.serialize()`)
  *   npm run puestos -- ruido <semilla>            con qué frecuencia sale cada puesto entre los tres del profesor (su azar de ±2)
- *   npm run puestos -- buscar <desde> <hasta>     recorre semillas y enseña las del personaje al que le salen portero y carrilero entre sus tres mejores puestos (el caso del usuario)
+ *   npm run puestos -- buscar <desde> <hasta>     recorre semillas y enseña las del personaje al que le salen portero e interior entre sus tres mejores puestos (el caso del usuario)
+ *   npm run puestos -- pistas <semilla> [familia…] el consejo del profesor (puestos sin lado y porqué), lo que dice al preguntarle por cada puesto y qué entrenamiento recomendaría el entrenador (los textos que ve el jugador)
  *
  * Añade `--zurdo` para contar la pierna izquierda y `--hab futbol.reflejos=30,gen.coordinacion=70` para cambiar valores a mano.
  */
@@ -14,6 +15,8 @@ import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { conLaPierna } from '@ds/contracts';
 import { futbol, PUESTOS_DE_FUTBOL, rendimientoPorPuestos } from '@ds/mod-futbol';
+import { fraseDeEntrenamiento, fraseDeLectura, fraseDelPorque, familiasDePuestos, type NpcDirectory } from '@ds/contracts';
+import { elegirEntrenamiento } from '@ds/kit-deporte';
 
 registrarPais(PAIS_CIUDAD_GRANDE);
 const [modo = 'tabla', ...resto] = process.argv.slice(2).filter((a) => !a.startsWith('--') || a === '--zurdo' || a === '--hab');
@@ -84,8 +87,26 @@ if (modo === 'tabla') {
     const stats = personaje(seed);
     const top = Object.entries(valoresDe(stats)).sort((a, b) => b[1] - a[1]).slice(0, 3);
     const ids = top.map(([id]) => id);
-    const esCaso = ids.includes('GK') && ids.some((i) => i === 'LCR' || i === 'RCR');
+    const esCaso = ids.includes('GK') && ids.some((i) => i === 'LCR' || i === 'RCR') /* interior */;
     console.log(`${esCaso ? '★' : ' '} semilla ${seed}: ${top.map(([id, x]) => `${id} ${f(x)}`).join(', ')}`);
+  }
+} else if (modo === 'pistas') {
+  const seed = Number(resto[0] ?? 31);
+  const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  advanceToWeek(g, 'gen.descansar', 3, 1, 9);
+  const dir = g.service<NpcDirectory>('npcs')!;
+  const consejo = dir.consejoDeportivo?.().find((c) => c.deporte === 'futbol');
+  console.log(`Semilla ${seed}\n`);
+  if (!consejo) console.log('El profesor no ve nada claro en fútbol.');
+  else console.log(`Profesor: «en ${consejo.nombre} te veo bien de ${consejo.puestos.map((p) => p.nombre.toLowerCase()).join(', ')}. ${fraseDelPorque(consejo) ?? ''}»\n`);
+  const catalogo = futbol.actions!.filter((a) => a.id.match(/^futbol\.(balon|tiro|fisico|porteria)$/)).map((a) => ({ id: a.id, nombre: String(a.name), entrena: a.train! }));
+  const pedidas = resto.slice(1);
+  for (const f of familiasDePuestos(PUESTOS_DE_FUTBOL).filter((x) => !pedidas.length || pedidas.includes(x.id))) {
+    const l = dir.lecturaDePuesto?.('futbol', f.id);
+    if (!l) continue;
+    const e = elegirEntrenamiento(catalogo, l.frenan);
+    console.log(`Preguntar por ${f.nombre.toLowerCase()} [${l.nivel}]: «${fraseDeLectura(l) ?? '—'}»`);
+    console.log(`  El entrenador: «${fraseDeEntrenamiento(l.pistas!, f.nombre, l.falta, e?.nombre)}»\n`);
   }
 } else if (modo === 'ruido') {
   // Con qué frecuencia sale cada puesto entre los tres que nombra el profesor (valor + azar de ±2, como `consejoDeUnProfesor`), para ver cuánto es perfil y cuánto es azar.
@@ -100,5 +121,5 @@ if (modo === 'tabla') {
   console.log(`Semilla ${resto[0] ?? 31}: % de días en que cada puesto sale entre los tres del profesor (azar ±2):`);
   for (const [id, n] of Object.entries(veces).sort((a, b) => b[1] - a[1])) console.log(`  ${id.padEnd(3)} ${nombre(id).padEnd(20)} valor ${f(v[id])}  sale ${f((100 * n) / N, 0)} %`);
 } else {
-  console.log('Modos: tabla | partida <semilla> | guardado <archivo> | buscar <desde> <hasta> | ruido <semilla>');
+  console.log('Modos: tabla | partida <semilla> | guardado <archivo> | buscar <desde> <hasta> | ruido <semilla> | pistas <semilla> [familia…]');
 }

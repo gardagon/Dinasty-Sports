@@ -485,7 +485,7 @@ export function recomendarEntrenamiento(ctx: ReadContext, cfg: ConfigDeporte): {
   const entrenador = entrenadorDelJugador(ctx, cfg.id);
   const quien = entrenador ? { nombre: entrenador.nombreCorto, gender: entrenador.gender } : undefined;
   const entreno = elegirEntrenamiento(catalogo, lectura.frenan);
-  if (!entreno) return { frase: fraseDeEntrenamiento(lectura.pistas, lectura.familia.nombre, [], undefined, quien) };
+  if (!entreno) return { frase: fraseDeEntrenamiento(lectura.pistas, lectura.familia.nombre, lectura.falta, undefined, quien) };
   const stat = lectura.frenan.find((s) => entreno.entrena.some((x) => x.stat === s));
   return { frase: fraseDeEntrenamiento(lectura.pistas, lectura.familia.nombre, lectura.falta, entreno.nombre, quien), ...(stat ? { stat } : {}) };
 }

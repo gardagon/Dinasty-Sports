@@ -23,6 +23,7 @@ import { consejoDeUnProfesor, familiasDePuestosDeLosDeportes, lecturaDeUnPuesto 
 import { categoriaDe, huecosPorGrupoEnElEquipo, plazaEnElEquipo, piernaDe, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
 import { entrenadoresDeEquiposExtra, entrenadoresDeUnDeporte } from './draft';
 export * from './plaza';
+export * from './consejo';
 export * from './plantillas';
 export * from './fichajes';
 export * from './draft';

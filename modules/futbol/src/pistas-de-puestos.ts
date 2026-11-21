@@ -58,11 +58,12 @@ export const PISTAS_DE_PUESTOS_DE_FUTBOL: PistasDePuestos = {
   lectura: {
     ya: 'Para ese puesto, {señal.tiene}. Ya estás para jugar de {señal.puesto}: lo que te falta es jugar, y lo de ahí fuera se aprende en partidos.',
     cerca: 'De {señal.puesto} {señal.tiene}, pero {señal.falta}.',
-    lejos: 'Para jugar de {señal.puesto} {señal.falta}, y eso se trabaja con paciencia, no en un mes. Si quieres, empezamos por ahí.',
+    lejos: 'Para jugar de {señal.puesto}: {señal.falta}. Eso se trabaja con paciencia, no en un mes. Si quieres, empezamos por ahí.',
     sinDatos: 'De {señal.puesto} aún no sé qué decirte: juega unos partidos y lo hablamos.',
   },
   entrenamiento: {
-    recomienda: 'Para {señal.puesto}, esta semana hazte con «{señal.entreno}»: {señal.falta}.',
+    recomienda: 'Para {señal.puesto}, lo que más te frena: {señal.falta}. Esta semana, «{señal.entreno}» por tu cuenta.',
+    sinEntreno: 'Para {señal.puesto}, lo que más te frena: {señal.falta}. Eso se gana jugando partidos y con paciencia.',
     yaEntrenas: 'Vas bien: sigue con lo del club y, si puedes, un rato por tu cuenta de lo que más te guste.',
   },
 };

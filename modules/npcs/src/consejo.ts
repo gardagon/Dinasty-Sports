@@ -31,7 +31,7 @@ export const AZAR_DEL_CONSEJO = 2;
 /** A partir de qué parte de los de su edad (percentil) se dice que «ya estás para ese puesto» y cuál es «cerca»; por debajo, «lejos». */
 export const UMBRALES_DE_LECTURA = { ya: 0.6, cerca: 0.25 } as const;
 /** Cuántas cualidades se nombran como máximo, a favor y en contra. */
-const CUALIDADES_QUE_SE_NOMBRAN = 3;
+const CUALIDADES_QUE_SE_NOMBRAN = 2;
 
 const mediana = (xs: readonly number[]): number => {
   const o = [...xs].sort((a, b) => a - b);

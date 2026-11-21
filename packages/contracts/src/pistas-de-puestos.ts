@@ -42,7 +42,11 @@ export function fraseDeLectura(l: LecturaDePuesto, quien?: QuienHabla): string |
   return componer(p.lectura[nivel], quien, { puesto: l.familia.nombre.toLowerCase(), tiene: listaConY(l.tiene), falta: listaConY(l.falta) });
 }
 
-/** La recomendación de un entrenamiento por su nombre para lo que más frena tu puesto; `entreno` vacío = no te frena nada (`yaEntrenas`). */
+/**
+ * La recomendación de un entrenamiento por su nombre para lo que más frena tu puesto (`falta`, ya escrito). Sin nada que te frene, `yaEntrenas`; si algo te frena pero ningún entrenamiento lo sube
+ * (`entreno` vacío), `sinEntreno`.
+ */
 export function fraseDeEntrenamiento(p: PistasDePuestos, puesto: string, falta: readonly string[], entreno: string | undefined, quien?: QuienHabla): string {
-  return componer(entreno ? p.entrenamiento.recomienda : p.entrenamiento.yaEntrenas, quien, { puesto: puesto.toLowerCase(), falta: listaConY(falta), entreno: entreno ?? '' });
+  const plantilla = !falta.length ? p.entrenamiento.yaEntrenas : entreno ? p.entrenamiento.recomienda : p.entrenamiento.sinEntreno;
+  return componer(plantilla, quien, { puesto: puesto.toLowerCase(), falta: listaConY(falta), entreno: entreno ?? '' });
 }
