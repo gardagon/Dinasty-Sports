@@ -10,6 +10,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Convocatorias:** siguen igual, pero en los equipos de colegio de benjamín y alevín hay rotación para que todos jueguen algo a lo largo de la liga. Igual para el personaje y los PNJ.
 - **Página del equipo:** la sección «El curso que viene» enseña los nombres de los que cambian de categoría y que hacen falta 14 niños por equipo, pero solo aparece cuando termina la temporada, para no ocupar sitio durante el curso.
 - **Puestos de la plantilla:** si lo que se enseña es el mejor puesto de cada niño y en los partidos juegan también en otros por falta de jugadores, está bien así. Si el reparto está sesgado (casi todos del lado derecho en una captura), es un fallo y se arregla.
+- **Hecho el 21/11** (`docs/relevo/rotacion-y-puestos.md`):
+  - Rotación: dato `CategoriaDef.rotacionEn: ['colegio']` en benjamín y alevín; en la convocatoria, los minutos del curso frente a la media de la plantilla pesan 0,6. En los colegios, nadie se queda a 0 minutos (antes un 2–3 %) y el que menos juega pasa de 0 a 270. Los clubes de fuera y las demás categorías no cambian.
+  - «El curso que viene» solo con la temporada terminada (desde el final de la liga o la copa hasta el reparto del verano).
+  - Puestos: no era un fallo. La columna es el puesto de plantilla, y el 79 % de lado derecho viene de la pierna buena (el 80 % de los niños son diestros). Los once titulares siempre tienen sus dos laterales y sus dos extremos. Se cambia el título a «Puesto en la plantilla». Idea sin hacer: plantillas equilibradas por lado.
 
 ## 20/11/2026 — Reparto de equipos, segunda vuelta (respuestas del usuario)
 
