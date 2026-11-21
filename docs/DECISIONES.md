@@ -25,7 +25,7 @@ Observado por el usuario jugando la versión publicada:
 
 ## 21/11/2026 — Rendimiento: guardar sin congelar, fútbol más barato y equipos que se forman al empezar el curso
 
-- **Guardar fuera del hilo de la página:** aprobado.
+- **Guardar fuera del hilo de la página:** aprobado. **Hecho el 21/11** (`docs/relevo/guardar-sin-congelar.md`): serialización a trozos de ~8 ms con pausas, que se vuelca a un Blob en IndexedDB (las partidas antiguas guardadas como texto siguen abriendo). La parada máxima al guardar pasa de 310 a 34 ms en escritorio y de 1.617 a 40 ms en el móvil emulado; abrir en el móvil, de ~3,5 s a ~1,4 s. `recomendarFrecuencia`, más holgada. Opciones enseña el peso del guardado. `npm run presupuesto` avisa sin fallar si el estado pasa del tope. Core gana `Game.estadoParaGuardar`, un getter de solo lectura.
 - **Medidas del usuario:** crear la partida tarda menos de 30 s en su PC y unos 3 s en su móvil (no hace falta medirlo más).
 - **Pasada semanal y creación del fútbol más baratas** (por equipo, o en bloques para los niños no activos): aprobado. Las reglas no cambian; apenas se debería notar diferencia, porque las subidas por entrenar son muy pequeñas.
 - **Los equipos se forman al empezar el curso:** no tiene sentido que el primer día de clase ya haya niños de 7–8 años en el equipo de fútbol. Los niños se apuntan a partir del segundo día, o al menos aparecen apuntados así. Los equipos no tienen por qué montarse al crear la partida: pueden irse formando en las primeras semanas.

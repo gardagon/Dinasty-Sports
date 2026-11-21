@@ -44,7 +44,6 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 |---|---|---|
 | `session_01M4vXXMaAyvvsxH4QeZu3rA` | `claude/sucesos-en-clase` | Los sucesos que pasan durante otra actividad no gastan minutos; no ofrecer «mañana» cuando hay que responder en el momento |
 | `session_01M4vXXMHztRUvbt7XbZW3ft` | `claude/futbol-puestos-entrenos` | Análisis y propuesta: fórmula de cada puesto (`ANEXO_PUESTOS.md`, con el caso del usuario), catálogo ampliado de entrenamientos, pistas del profesor y el entrenador |
-| `session_01M4vXXNStiDzD4AGKEshkud` | `claude/guardar-sin-congelar` | Guardar (y abrir) sin congelar la página; aviso del peso del guardado |
 | `session_01M4vXXPQUdYEGsR1Fs7XmG5` | `claude/futbol-mas-barato` | Pasada semanal y creación del fútbol más baratas; equipos que se forman desde el 2.º día de clase; `rngEstable` más barato |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
@@ -92,3 +91,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXPf2zMF2zD3iHE79x3` | Sonnet | Reparto de equipos 2 (20/11, esta sesión de arquitectura) |
 | `session_01M4vXXS22qpRwXGa4JE7VBv` | Sonnet | Rotación, «El curso que viene» y puestos (21/11, esta sesión de arquitectura) |
 | `session_01M4vXXRfGRcayUhG8WXyDCj` | Sonnet | Revisión de rendimiento (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXNStiDzD4AGKEshkud` | Sonnet | Guardar sin congelar y vigilar el peso (21/11, esta sesión de arquitectura) |
