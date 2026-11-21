@@ -87,9 +87,11 @@ Los puestos de los dos lados pesan igual; con las mismas habilidades el diestro 
 
 Si se prefiere que las plantillas lleguen **equilibradas por lado** (que cada club, al formarlas, busque al menos un lateral izquierdo y un extremo izquierdo aunque cueste valer algo menos), sería cambiar el reparto por grupos (`reparto`, `cuposPorGrupo`) para que algún cupo sea por lado. Hoy no hace falta para que el once salga bien (el efecto de jugar en el lado «malo» es de ±0,5), pero sí haría que la columna se vea más equilibrada y que la experiencia en cada puesto (que se gana jugando) se reparta entre lados. No la he tomado.
 
-## 4. Verificación (todo en verde, salvo lo que se dice)
+## 4. Verificación
 
-Ver §6 del final de esta nota: los resultados de `typecheck`, `npm test`, `eventos:validar`, `benjamin`, `probar-web`, `sim:rapida` y `huella -- 60` se rellenan al terminar.
+- `npm run typecheck` ✅. `npm test`: 105 archivos, 1.187 tests ✅ (incluye los tres archivos nuevos). `npm run eventos:validar` ✅ (61 sucesos, 448 caminos). `npm run benjamin -- 31,33` ✅ (§1.3). `npm run probar-web` ✅ (con la comprobación nueva de que «El curso que viene» no sale a mitad de liga).
+- `npm run sim:rapida`: las mismas dos ⚠️ que en la rama de partida (medida en una copia limpia): «Rendimiento» (1,44 → 1,32 ms por acción, inestable con otras cosas corriendo) y «El esfuerzo hace progresar» (atletismo +5,1 en las dos). Nada cambia por mí.
+- `npm run huella -- 60`: **idénticas** las de los bots de atletismo; cambian solo las del fútbol (semillas 31 y 32: `9afe5450f55b`→`7f3c1d058412` y `b19caa6c5038`→`57c6c24e456a`), como se espera de una rotación que cambia convocatorias y minutos.
 
 ## 5. Para quien tome las decisiones (no he escrito en `DECISIONES.md`)
 
