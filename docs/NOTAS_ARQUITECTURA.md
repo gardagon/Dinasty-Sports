@@ -37,17 +37,12 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 2. ~~**Reparto de equipos 2, lo que queda**~~ Respondido el 21/11 (DECISIONES, «Rotación en el fútbol de colegio…») y encargado a `claude/rotacion-y-puestos`.
 2. ~~**Rendimiento con la ciudad grande y el fútbol**~~ Respondido el 21/11 (DECISIONES, «Rendimiento: guardar sin congelar…») y encargado a `claude/guardar-sin-congelar` y `claude/futbol-mas-barato`.
 3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
-4. **Puestos, entrenamientos y pistas** (`docs/relevo/futbol-puestos-entrenos.md`, `docs/ANEXO_PUESTOS.md`, `npm run puestos`):
-   - a) Puestos: A (comparar con los de su edad y consigo mismo), B (menos azar en el consejo, ±0,5), C (renombrar LCR/RCR a «Interior» y LM/RM a «Medio de banda»). **Recomendación:** A, B y C ya. D (portero con pase y anticipación), E (peso al balón parado), F y G, tras medir.
-   - b) Catálogo de 22 entrenamientos (portería 5, físico 5, mental 4, técnico 8), con cifras provisionales que hay que medir con `sim:futbol`. ¿«Con amigos» solo en verano o también con quedadas? ¿El campamento repartido por grupos?
-   - c) Pistas, en este orden: el porqué del consejo, «Preguntar por un puesto», el entrenador que recomienda entrenamientos.
-5. **Rasgos de la cara según el origen** (pregunta del usuario, 21/11, viendo a Dong Gao). Hoy los 12 rasgos de la cara de los adultos del mundo se sortean sin tendencias por origen (`rostroAlAzar`, `ANEXO_CUERPO.md`), así que alguien de Asia oriental tiene ojos al azar. El dibujo solo varía la altura y la inclinación del ojo (`ojosForma`); no hay pliegue del párpado. **Propuesta:** (1) tendencias por origen en los rasgos de la cara (ojos, nariz, pómulos, boca), como ya las hay en el color del pelo, los ojos y la piel; (2) en el dibujo, una variante de ojo con pliegue del párpado (epicanto, párpado sin pliegue), con su cuadrícula de comprobación. Lo primero, Sonnet; lo segundo es calidad visual (Sonnet con el anexo de retratos, o Fable si el usuario lo autoriza).
-6. **Sucesos «durante», lo que queda** (`docs/relevo/sucesos-en-clase.md`): ¿los detalles del patio, de casa y del camino cuentan como «durante» (sin gastar minutos)? Hoy no, y sus opciones sin minutos valen 1. **Recomendación:** el camino sí (pasa mientras vas), el patio y casa no (son tu tiempo libre y hablar lleva tiempo).
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXPBodQ2WC6McapR2v8` | `claude/caras-por-origen` | Tendencias por origen en la forma de la cara y ojo con pliegue del párpado en el dibujo (la arquitectura revisa las capturas) |
 | `session_01M4vXXPDhEajtkKpPVfbKQS` | `claude/deberes-y-acciones-cortas` | «Hacer deberes…» de 30 min; una acción que pisa una obligación consume solo los minutos que faltan |
 | `session_01M4vXXR9ZzuDodhbLuCsMSu` | `claude/moverse-con-el-grupo` | «Todos se van al patio, ¿les acompañas?» y demás cambios de sitio en bloque |
 | `session_01M4vXXPQUdYEGsR1Fs7XmG5` | `claude/futbol-mas-barato` | Pasada semanal y creación del fútbol más baratas; equipos que se forman desde el 2.º día de clase; `rngEstable` más barato |
@@ -57,6 +52,11 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 
 ## 4. Pendiente (por orden de prioridad propuesto)
+
+0 quinquies. **Encargos listos para cuando se una `claude/futbol-mas-barato`** (tocan el fútbol, el kit y la plantilla):
+   - **«Mi equipo»** (DECISIONES, «“Mi equipo” para el niño»): subpestaña, compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
+   - **Puestos y pistas** (DECISIONES, «Puestos, entrenamientos, pistas…»): comparar con los de su edad, renombrar (Interior, Medio de banda), recomendaciones por puesto sin lado, y las pistas en su orden.
+   - **Entrenamientos:** el catálogo de 22, «quedar a jugar al fútbol» todo el año, y campamentos de jugadores y de porteros con partes comunes y propias. Medir el balance con `sim:futbol` antes de activar.
 
 
 0 ter. **Hecha el 21/11** (`docs/relevo/revision-rendimiento.md`; decisiones en §3). **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
