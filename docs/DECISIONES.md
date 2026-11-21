@@ -5,6 +5,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Deberes, acciones que pisan otra y moverse con el grupo
+
+- **«Hacer deberes», 30 minutos:** sin efecto todavía en los deberes, pero sube la asignatura que se elija. Sirve para esperar al entrenamiento de fútbol: habrá quien prefiera ir a casa y volver, quedarse estudiando o jugar en el parque. Sustituye a la idea de «Pendiente e ideas»; los deberes que se mandan y se entregan siguen pendientes.
+- **Una acción que pisa otra consume solo los minutos que faltan:** si charlar con alguien son 5 minutos y faltan 2 para entrar a clase, se charla 2 minutos (sube o gasta lo proporcional) y se entra a tiempo. Hoy se llega siempre 3 minutos tarde.
+- **Moverse con el grupo:** si estás hablando con compañeros en el descanso y todos se van al patio, hoy desaparecen en un abrir y cerrar de ojos. Debe salir «Todos se van al patio, ¿les acompañas?»; si dices que sí, vas con ellos como un viaje rápido (consume esos minutos). Lo mismo a la salida del colegio.
+
 ## 21/11/2026 — «Mi equipo» para el niño
 
 - **En la pestaña del deporte, una subpestaña «Mi equipo»** (no en la del personaje).
@@ -2293,7 +2299,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 ## Pendiente e ideas
 
-- **Deberes (idea del usuario, 17/11):** acción «Hacer deberes» de 30 minutos. A futuro, algunas clases mandan deberes que hay que entregar en la siguiente clase de esa asignatura, con eventos alrededor (olvidarlos, copiarlos, que el profesor los pida…).
+- **Deberes (idea del usuario, 17/11; la acción de 30 minutos, decidida el 21/11):** A futuro, algunas clases mandan deberes que hay que entregar en la siguiente clase de esa asignatura, con eventos alrededor (olvidarlos, copiarlos, que el profesor los pida…).
 
 - **Eventos y decisiones (E18), requisitos del usuario (16/11/2026):** candidato a la próxima sesión de Fable, junto con un visualizador de los partidos de fútbol. Añadir eventos tiene que ser **muy fácil**, casi una herramienta para definirlos como datos sin tocar el motor, y tiene que permitir **hilos**: un evento deja consecuencias que pueden disparar otros más adelante (semanas, meses o años). Empezar por una propuesta de diseño que decida el usuario. **Propuesta en `docs/PLAN_EVENTOS.md`; decisiones del usuario del 16/11 arriba; en construcción.**
 - **Visualizador, para la etapa 2c (Sonnet):** la raíz del tinte en los peinados con raya o flequillo se ve como un destello «estrellado» en la coronilla (correcto pero raro, visto por el usuario el 16/11); el tupé se distingue poco del corto. Mejorarlos con la receta (`docs/ANEXO_RETRATOS.md`).
