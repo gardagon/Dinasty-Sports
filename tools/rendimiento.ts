@@ -55,7 +55,7 @@ for (let p = 0; p < pasadas; p++) {
     console.log(`Estado: ${kb(estadoBytes)}. Por módulo:`, partes.map(([mod, n]) => `${mod} ${kb(n)}`).join(' · '));
     const npcs = (estado.modules.npcs as { npcs: Record<string, unknown>[] }).npcs;
     const campos = new Map<string, number>();
-    for (const n of npcs) for (const [k, v] of Object.entries(n)) campos.set(k, (campos.get(k) ?? 0) + JSON.stringify(v).length);
+    for (const n of npcs) for (const [k, v] of Object.entries(n)) campos.set(k, (campos.get(k) ?? 0) + (JSON.stringify(v)?.length ?? 0));
     console.log(`Personas: ${npcs.length}; por campo:`, [...campos].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, n]) => `${k} ${kb(n)}`).join(' · '));
   }
   const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
