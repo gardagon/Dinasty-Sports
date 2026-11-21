@@ -1,5 +1,5 @@
 import { nuevaPartida } from '@ds/game';
-import { calibrar, chequeoDeSucesos, runChecks, summarize, type BotSummary, type Check } from './analysis';
+import { calibrar, chequeoDeSucesos, mediana, runChecks, summarize, type BotSummary, type Check } from './analysis';
 import { BOTS, type Bot } from './bots';
 import { areasFor, runBot, type Area, type RunResult } from './runner';
 
@@ -27,17 +27,20 @@ export interface SimulationOutput {
 export function simulate(opts: SimulationOptions): SimulationOutput {
   const bots: Bot[] = opts.bots?.length ? BOTS.filter((b) => opts.bots!.includes(b.id)) : BOTS;
   const areas = areasFor(nuevaPartida({ seed: 1 }));
-  const calibracionAntes = calibrar();
+  // La máquina va más o menos rápida durante la simulación: se calibra al principio, a la mitad y al final y se usa la mediana.
+  const calibraciones = [calibrar()];
+  const mitad = Math.floor((bots.length * opts.seeds) / 2);
   const results: RunResult[] = [];
   for (const bot of bots) {
     for (let s = 1; s <= opts.seeds; s++) {
       const r = runBot(bot, s * 1000 + 17, opts.days);
       results.push(r);
+      if (results.length === mitad) calibraciones.push(calibrar());
       opts.onProgress?.(`${bot.name.padEnd(20)} semilla ${s}: ${r.actions} acciones en ${r.ms.toFixed(0)} ms${r.problems.length ? ` · ${r.problems.length} problemas` : ''}`);
     }
   }
   const summary = summarize(results, areas);
-  // La máquina puede ir más o menos rápida durante la simulación: se calibra antes y después y se usa la media.
-  const calibracion = (calibracionAntes + calibrar()) / 2;
+  calibraciones.push(calibrar());
+  const calibracion = mediana(calibraciones);
   return { results, summary, checks: [...runChecks(summary, areas, opts.days, calibracion), chequeoDeSucesos(results)], areas };
 }

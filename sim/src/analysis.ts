@@ -99,8 +99,16 @@ export function calibrar(): number {
  * Límite del coste por acción, en veces la calibración: más de esto es que el motor se ha vuelto más lento (no la máquina).
  * Subió de 0,12 a 0,15 el 28/10/2026 (el mundo tiene ~400 personas con acciones propias y cada decisión evalúa mucho más) y a 0,18 el mismo día,
  * cuando el chequeo pasó a ser un aviso: en el móvil no se nota retardo (ver `docs/DECISIONES.md`).
+ * Sube a 0,22 en la revisión de rendimiento (`docs/relevo/revision-rendimiento.md`, §6): la razón medida (ms por acción ÷ calibración) vale 0,17–0,20 en `main`
+ * y en la rama con las mismas cargas, así que 0,18 caía en medio del ruido y el chequeo daba ⚠️ o ✅ al azar. Con 0,22 solo salta con una pérdida real de ~20–30 %.
  */
-export const LIMITE_RELATIVO = 0.18;
+export const LIMITE_RELATIVO = 0.22;
+
+/** Mediana de una lista de números (la mitad de las medidas por encima y la mitad por debajo: una pasada lenta suelta no la mueve). */
+export function mediana(xs: readonly number[]): number {
+  const o = [...xs].sort((a, b) => a - b);
+  return o.length ? (o.length % 2 ? o[(o.length - 1) / 2] : (o[o.length / 2 - 1] + o[o.length / 2]) / 2) : NaN;
+}
 
 export function runChecks(sum: BotSummary[], areas: Area[], days: number, calibracion?: number): Check[] {
   const checks: Check[] = [];
@@ -121,7 +129,8 @@ export function runChecks(sum: BotSummary[], areas: Area[], days: number, calibr
   const msPorAnio = (totalMs / runs) * (365 / days);
   // El límite es por acción: cuantas más decisiones tiene un año (clases por horas, viajes), más tarda un año sin que el motor sea más lento.
   // Y es relativo a la máquina: se compara con una carga fija (`calibrar`), no con milisegundos absolutos.
-  const msPorAccion = totalMs / totalActions;
+  // Mediana de las estrategias (no el total): una estrategia que cae justo en una pasada con la máquina ocupada no decide el chequeo.
+  const msPorAccion = mediana(sum.filter((s) => s.actions > 0).map((s) => s.ms / s.actions));
   const limite = calibracion === undefined ? 0.8 : LIMITE_RELATIVO * calibracion;
   add(
     msPorAccion < limite,
