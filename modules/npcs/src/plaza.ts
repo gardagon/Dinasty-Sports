@@ -141,6 +141,13 @@ export interface Valoracion {
   valores: Map<string, number>;
   /** Lo que vale cada niño en cada puesto del deporte (si lo tiene), por niño y deporte. */
   puestos: Map<string, Record<string, number>>;
+  /**
+   * La preferencia de puesto de cada niño (`preferenciaDe`) en este reclutamiento, por niño (el objeto: al cambiar algo suyo se crea otro) y por deporte y día. El «draft» la pregunta varias veces por niño y
+   * es lo que más cuesta de crear la partida con la ciudad grande.
+   */
+  preferencias?: Map<Npc, Map<string, Preferencia>>;
+  /** Lo mismo que `valores` y `puestos`, por deporte y por el objeto del niño (más rápido de leer: sin construir claves de texto). Lo llena `valorRealDe`. */
+  rapido?: Map<string, WeakMap<Npc, { valor: number; puestos?: Record<string, number> }>>;
 }
 
 export const valoracionDe = (rend: Rendimientos = new Map()): Valoracion => ({ rend, valores: new Map(), puestos: new Map() });
@@ -159,6 +166,22 @@ export function valoresGuardados(n: Npc, pob: PoblacionGuardada, valor: number, 
  * deporte (los deportes de prueba) o sin capacidades, `undefined`: entonces se usa su potencial.
  */
 export function valorRealDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): number | undefined {
+  return entradaDeValor(n, pob, v, dia)?.valor;
+}
+
+function entradaDeValor(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): { valor: number; puestos?: Record<string, number> } | undefined {
+  const rapido = (v.rapido ??= new Map());
+  let porNpc = rapido.get(pob.deporte);
+  if (!porNpc) rapido.set(pob.deporte, (porNpc = new WeakMap()));
+  let e = porNpc.get(n);
+  if (e) return e;
+  const valor = calcularValor(n, pob, v, dia);
+  if (valor === undefined) return undefined;
+  porNpc.set(n, (e = { valor, puestos: v.puestos.get(`${n.id}|${pob.deporte}`) }));
+  return e;
+}
+
+function calcularValor(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): number | undefined {
   const f = v.rend.get(pob.deporte);
   if (!f) return undefined;
   const clave = `${n.id}|${pob.deporte}`;
@@ -196,8 +219,8 @@ export function lectorDeUnNpc(n: Npc, pob: PoblacionGuardada, dia: number): Lect
 
 /** Lo que vale un niño en cada puesto del deporte (`undefined` si el deporte no tiene puestos o no se puede calcular). */
 export function valoresPorPuestoDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): Record<string, number> | undefined {
-  if (!pob.puestos || valorRealDe(n, pob, v, dia) === undefined) return undefined;
-  return v.puestos.get(`${n.id}|${pob.deporte}`);
+  if (!pob.puestos) return undefined;
+  return entradaDeValor(n, pob, v, dia)?.puestos;
 }
 
 
@@ -238,6 +261,16 @@ const temporadaDelPaso = (u: number, p: number): number => Math.ceil(Math.log(1 
 export function preferenciaDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): Preferencia {
   const f = pob.puestos?.favoritos;
   if (!f) return {};
+  const memo = (v.preferencias ??= new Map());
+  let porDeporte = memo.get(n);
+  if (!porDeporte) memo.set(n, (porDeporte = new Map()));
+  const clave = `${pob.deporte}|${dia}`;
+  let p = porDeporte.get(clave);
+  if (!p) porDeporte.set(clave, (p = calcularPreferencia(n, pob, v, dia, f)));
+  return p;
+}
+
+function calcularPreferencia(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number, f: NonNullable<NonNullable<PoblacionGuardada['puestos']>['favoritos']>): Preferencia {
   const valores = valoresPorPuestoDe(n, pob, v, dia);
   if (!valores) return {};
   const semilla = n.genetica?.semilla ?? 0;

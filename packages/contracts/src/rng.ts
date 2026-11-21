@@ -18,7 +18,20 @@ export interface Rng {
  * Es mulberry32, el mismo algoritmo que el del motor.
  */
 export function rngEstable(...partes: (string | number)[]): Rng {
-  return new GeneradorEstable(cierraElHash(mezclaPartes(0x811c9dc5, partes)));
+  // El mismo cálculo que `mezclaPartes` + `cierraElHash`, escrito en el sitio: se llama millones de veces.
+  let h = 0x811c9dc5;
+  for (let k = 0; k < partes.length; k++) {
+    const p = partes[k];
+    const t = typeof p === 'number' ? String(p) : p;
+    for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 0x01000193);
+    h = Math.imul(h ^ 0x2f, 0x01000193);
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return new GeneradorEstable(h | 0);
 }
 
 const FNV = 0x01000193;

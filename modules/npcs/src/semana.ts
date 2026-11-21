@@ -40,8 +40,18 @@ export const semanaQueAcaba = (fin: number): number => Math.floor((fin - 1) / 7)
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 /** Semanas que se calculan de golpe al hacer la historia de un niño. */
 export const SEMANAS_POR_BLOQUE = 4;
+/** Los niños que no están cerca del personaje (no son de su club) se calculan cada tantas semanas, de golpe (cifra provisional: ver `semanaDeportiva`). */
+export const SEMANAS_DE_LOS_LEJANOS = 8;
 /** Las sesiones del club caen unos días antes del fin de semana (para saber desde cuándo no entrena). */
 const DIAS_DESDE_LA_SESION = 2;
+/**
+ * La historia lejana (todo lo anterior al último trimestre antes de la fecha) se calcula en bloques de `SEMANAS_POR_BLOQUE_LEJANO` semanas **de una sola vez** (`grueso` de `pasoDeSemanas`, con los ejercicios de
+ * `MUESTRA_DE_SESIONES_LEJANAS` sesiones por bloque): es lo que cuesta crear la partida con la ciudad grande (cifras provisionales, `docs/CIUDAD_Y_LIGAS.md` §8). Lo reciente, que es lo que se ve y de lo que
+ * parten los PNJ, sigue yendo en bloques de `SEMANAS_POR_BLOQUE` semanas con la caída y el desarrollo natural semana a semana.
+ */
+export const SEMANAS_RECIENTES = 13;
+export const SEMANAS_POR_BLOQUE_LEJANO = 26;
+export const MUESTRA_DE_SESIONES_LEJANAS = 3;
 /** Antes de esta edad no se cuenta nada del deporte: el prebenjamín es lo más pronto. */
 const EDAD_MINIMA = 6;
 /** «Nunca» ha entrenado una capacidad con su rutina. */
@@ -108,8 +118,20 @@ export function pasoDeSemanas(
   t: Trabajo,
   fin: number,
   semanas: number,
-  opciones: { porSemana: readonly (readonly number[])[]; informales: number; /** Cuánto rinde por su estado (cansancio, ánimo, salud y forma); 1 = normal. */ eficiencia?: number; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] },
+  opciones: {
+    porSemana: readonly (readonly number[])[];
+    informales: number;
+    /** Cuánto rinde por su estado (cansancio, ánimo, salud y forma); 1 = normal. */
+    eficiencia?: number;
+    lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[];
+    /**
+     * Todo el bloque de una vez, también la caída y el desarrollo natural (`evolucionSemanal` con todas las semanas, contando solo lo que pasa desde el último día entrenado): es lo que se hace con quien no se mira semana a semana
+     * y con la historia lejana. Con `muestra`, de las sesiones del bloque solo se eligen los ejercicios de esa cantidad (repartidas por el bloque) y lo que suben se cuenta por todas.
+     */
+    grueso?: boolean | { muestra: number };
+  },
 ): void {
+  if (opciones.grueso) return pasoGrueso(t, fin, semanas, opciones, typeof opciones.grueso === 'object' ? opciones.grueso.muestra : Infinity);
   const ultAntes = [...t.hab.ult];
   const capUltAntes = [...t.capUlt];
   // El entrenamiento de todo el bloque junto. Lo que permite la edad se mide a mitad del periodo.
@@ -162,6 +184,112 @@ export function pasoDeSemanas(
   for (let i = 0; i < ultCap.length; i++) t.capUlt[i] = ultCap[i];
 }
 
+/**
+ * Los días que se espera que cae una habilidad en una semana si la entrena esa semana con probabilidad `p` (y tarda `gracia` días en empezar a caer): `k` semanas sin entrenar (probabilidad `p·(1−p)^k`) son `7k + 2` días desde su
+ * último día entrenado, y cada semana cae los que pasan de `gracia`, hasta 7.
+ */
+function diasDeCaidaPorSemana(p: number, gracia: number): number {
+  let esperados = 0;
+  let prob = p;
+  for (let k = 0; k < 8; k++) {
+    esperados += prob * clamp(7 * k + DIAS_DESDE_LA_SESION - gracia, 0, 7);
+    prob *= 1 - p;
+  }
+  return esperados + prob * 7;
+}
+
+/** El bloque de `pasoDeSemanas` con `grueso`: ver allí. */
+function pasoGrueso(
+  t: Trabajo,
+  fin: number,
+  semanas: number,
+  opciones: { porSemana: readonly (readonly number[])[]; informales: number; eficiencia?: number; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] },
+  muestra: number,
+): void {
+  const ultAntes = [...t.hab.ult];
+  const capUltAntes = [...t.capUlt];
+  enElDia(t, fin - DIAS_DESDE_LA_SESION, fin - 3.5 * semanas);
+  const lector = lectorDe(t);
+  if (opciones.informales > 0) practicar(t, acumular(Array.from({ length: opciones.informales }, () => t.rutina.informal)), 1);
+  const huecos: { semana: number; hueco: number }[] = [];
+  opciones.porSemana.forEach((hs, w) => {
+    for (const h of hs) huecos.push({ semana: semanaQueAcaba(fin - 7 * (semanas - 1 - w)), hueco: h });
+  });
+  // Si se eligen los ejercicios de todas las sesiones (sin `muestra`) se sabe en qué semanas se entrena cada stat y la caída se cuenta como en la semana a semana.
+  const porSemanas: Set<string>[] | undefined = muestra === Infinity ? Array.from({ length: semanas }, (_, w) => new Set<string>(opciones.informales > 0 && w < opciones.informales ? t.rutina.informal.map((e) => e.stat) : [])) : undefined;
+  // Cuántas veces se entrena cada stat en el bloque (las sesiones de todas las semanas; con `muestra`, las de las elegidas escaladas a todas).
+  const veces = new Map<string, number>();
+  if (opciones.informales > 0) for (const e of t.rutina.informal) veces.set(e.stat, (veces.get(e.stat) ?? 0) + opciones.informales);
+  if (huecos.length) {
+    // Con muestra: solo se eligen los ejercicios de unas pocas sesiones repartidas por el bloque; cada stat se cuenta tantas veces como la que más sesiones habría tenido (proporcional).
+    const paso = huecos.length > muestra ? huecos.length / muestra : 1;
+    const elegidas: (readonly Entrenamiento[])[] = [];
+    for (let i = 0; i < huecos.length; i += paso) {
+      const h = huecos[Math.floor(i)];
+      elegidas.push(opciones.lista(h.semana, h.hueco, lector));
+    }
+    if (porSemanas) {
+      let k = 0;
+      opciones.porSemana.forEach((hs, w) => {
+        for (let j = 0; j < hs.length; j++) for (const e of elegidas[k++]) porSemanas[w].add(e.stat);
+      });
+    }
+    const lote = acumular(elegidas);
+    const escala = huecos.length / elegidas.length;
+    for (const e of lote) {
+      if (escala !== 1) e.veces = (e.veces ?? 1) * escala;
+      veces.set(e.stat, (veces.get(e.stat) ?? 0) + (e.veces ?? 1));
+    }
+    sesionDeClub(t, lote, opciones.eficiencia ?? 1);
+  }
+  const base = t.capBase;
+  const ultHab = [...ultAntes];
+  const ultCap = [...t.capUlt];
+  enElDia(t, fin, fin - 3.5 * semanas);
+  // La caída: en la semana a semana, una habilidad cae los días que lleva sin entrenarse por encima de su plazo de gracia. Aquí no se sabe en qué semanas toca cada una: se usa lo que se espera de ella, con la
+  // probabilidad de entrenarla una semana (`1 − e^(−veces por semana)`) y lo que cae en cada hueco entre sesiones (`diasDeCaidaPorSemana`). Lo que no se entrena en todo el bloque cae desde su último día entrenado.
+  const diasDeCaida = (stat: string, gracia: number, ultimo: number): number => {
+    if (porSemanas) {
+      // Semana a semana, solo la aritmética: cuántos días de la semana pasan del plazo de gracia desde la última vez que se entrenó.
+      let ult = ultimo;
+      let total = 0;
+      for (let w = 0; w < semanas; w++) {
+        const finSemana = fin - 7 * (semanas - 1 - w);
+        if (porSemanas[w].has(stat)) ult = finSemana - DIAS_DESDE_LA_SESION;
+        total += clamp(finSemana - ult - gracia, 0, 7);
+      }
+      return total;
+    }
+    const n = veces.get(stat);
+    if (!n) return clamp(fin - ultimo - gracia, 0, 7 * semanas);
+    return semanas * diasDeCaidaPorSemana(1 - Math.exp(-n / semanas), gracia);
+  };
+  for (let i = 0; i < t.rutina.stats.length; i++) if (veces.has(t.rutina.stats[i].id)) ultHab[i] = fin - DIAS_DESDE_LA_SESION;
+  for (let i = 0; i < CAPACIDADES_GENETICAS.length; i++) if (veces.has(CAPACIDADES_GENETICAS[i])) ultCap[i] = fin - DIAS_DESDE_LA_SESION;
+  for (let i = 0; i < t.rutina.stats.length; i++) {
+    const def = t.rutina.stats[i];
+    if (!def.decay) continue;
+    const dias = diasDeCaida(def.id, def.decay.graceDays, ultAntes[i]);
+    if (dias <= 0) continue;
+    const suelo = Math.max(t.fijos.inicial[i], t.hab.pico[i] * def.decay.floorRatio);
+    if (t.hab.v[i] > suelo) t.hab.v[i] = suelo + (t.hab.v[i] - suelo) * (1 - def.decay.ratePerDay) ** dias;
+  }
+  for (let i = 0; i < CAPACIDADES_GENETICAS.length; i++) {
+    const id = CAPACIDADES_GENETICAS[i];
+    const techo = (topeEfectivo(t.genetica, id) * t.vigores[GRUPOS[i]]) / 100;
+    // `evolucionSemanal` mide los días sin entrenar al empezar el bloque y cuenta `7·semanas + días − gracia` de caída: se le da el que da la caída esperada.
+    const gracia = REGLAS[i].decay?.graceDays ?? 0;
+    const antes = capUltAntes[i];
+    const caida = diasDeCaida(id, gracia, antes <= NUNCA / 2 ? -1e6 : antes);
+    const diasSin = caida <= 0 ? -1e6 : caida - 7 * semanas + gracia;
+    const v = evolucionSemanal(REGLAS[i], { valor: t.cap[i], pico: t.capPico[i], base: base[i], diasSinEntrenar: diasSin, techo, envejece: false }, semanas);
+    t.cap[i] = v;
+    if (v > t.capPico[i]) t.capPico[i] = v;
+  }
+  for (let i = 0; i < ultHab.length; i++) t.hab.ult[i] = Math.max(ultHab[i], ultAntes[i]);
+  for (let i = 0; i < ultCap.length; i++) t.capUlt[i] = ultCap[i];
+}
+
 /** Una semana: ver `pasoDeSemanas`. */
 export const pasoDeSemana = (t: Trabajo, fin: number, o: { huecos: readonly number[]; informal: boolean; eficiencia?: number; lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[] }): void =>
   pasoDeSemanas(t, fin, 1, { porSemana: [o.huecos], informales: o.informal ? 1 : 0, eficiencia: o.eficiencia, lista: o.lista });
@@ -185,18 +313,33 @@ export interface Resultado {
 const puestosDe = (rend: (p: LectorDePersona) => number, t: Trabajo): Record<string, number> | undefined => (rend as { puestos?: (p: LectorDePersona) => Record<string, number> }).puestos?.(lectorDe(t));
 
 function resultado(t: Trabajo, rend: (p: LectorDePersona) => number, sesiones = 0): Resultado {
+  const lector = lectorDe(t); // un solo lector para el nivel y los puestos
+  const puestos = (rend as { puestos?: (p: LectorDePersona) => Record<string, number> }).puestos?.(lector);
   return {
     sesiones,
     cap: t.cap.map(redondea),
     pico: t.capPico.map(redondea),
     capUlt: t.capUlt,
     hab: { v: t.hab.v.map(redondea), pico: t.hab.pico.map(redondea), ult: [...t.hab.ult] },
-    nivel: rend(lectorDe(t)),
-    ...(puestosDe(rend, t) ? { puestos: puestosDe(rend, t) } : {}),
+    nivel: rend(lector),
+    ...(puestos ? { puestos } : {}),
   };
 }
 
-/** Una semana de un niño que ya tiene sus habilidades: `fin` es el día en que acaba. `lista` es la sesión de esa semana (la misma para todo su equipo). */
+/**
+ * Las sesiones del club de un bloque de `semanas` semanas (acaba en `fin`), una lista por semana (la más antigua primero): cada una, las que hace por su asistencia. Un bloque no sabe en qué
+ * semana se lesionó: si está de baja (le quedan `bajaRestante` semanas), se cuentan como perdidas las últimas semanas del bloque, tantas como le quedan de baja.
+ */
+export function huecosDelBloque(n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo' | 'deporte'>, deporte: string, r: RutinaDeDeporte, fin: number, semanas: number, bajaRestante = 0): number[][] {
+  if (n.deporte !== deporte || n.equipo === undefined) return Array.from({ length: semanas }, () => []);
+  const sanas = semanas - Math.min(semanas, bajaRestante);
+  return Array.from({ length: semanas }, (_, w) => (w < sanas ? huecosQueHace(n, deporte, r, semanaQueAcaba(fin - 7 * (semanas - 1 - w))) : []));
+}
+
+/**
+ * Una semana de un niño que ya tiene sus habilidades: `fin` es el día en que acaba. `lista` es la sesión de esa semana (la misma para todo su equipo). Con `bloque` (las sesiones de cada
+ * una de las últimas semanas, ver `huecosDelBloque`) avanza varias semanas de golpe, con las fórmulas cerradas de la historia: es lo que se hace con los niños que no se miran cada semana.
+ */
 export function semanaDeNino(
   n: NinoDeportista,
   deporte: string,
@@ -206,8 +349,14 @@ export function semanaDeNino(
   lista: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[],
   /** Su estado: de baja no va a las sesiones, y con él rinde más o menos en ellas. */
   estado?: { baja: boolean; eficiencia: number },
+  bloque?: readonly (readonly number[])[],
 ): Resultado {
-  const t = prepararTrabajo(n, valoresIniciales(n.id, n.genetica), deporte, r, n.hab![deporte], n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), fin - 7);
+  const semanas = bloque?.length ?? 1;
+  const t = prepararTrabajo(n, valoresIniciales(n.id, n.genetica), deporte, r, n.hab![deporte], n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), fin - 7 * semanas);
+  if (bloque) {
+    pasoDeSemanas(t, fin, semanas, { porSemana: bloque, informales: 0, eficiencia: estado?.eficiencia, lista, grueso: true });
+    return resultado(t, rend, bloque[semanas - 1].length);
+  }
   const enClub = n.deporte === deporte && n.equipo !== undefined && !estado?.baja;
   const huecos = enClub ? huecosQueHace(n, deporte, r, semanaQueAcaba(fin)) : [];
   pasoDeSemana(t, fin, { huecos, informal: false, eficiencia: estado?.eficiencia, lista });
@@ -227,6 +376,8 @@ export function historiaDeportiva(
   dia: number,
   listaDe: (semana: number, hueco: number, lector: LectorDePersona) => readonly Entrenamiento[],
   bloque = SEMANAS_POR_BLOQUE,
+  /** Con `false`, también la historia lejana va en bloques de `bloque` semanas con la caída semana a semana (para comprobar que la de una sola vez se parece). */
+  conGruesos = true,
 ): Resultado {
   const interes = clamp(Math.round(interesDe(n, deporte)), 0, 3);
   const edadAhora = (dia - n.nacimiento) / DIAS_POR_ANIO;
@@ -252,10 +403,13 @@ export function historiaDeportiva(
     const hastaElClub = Math.floor((diaClub - fin) / 7);
     const informal = hastaElClub > 0;
     // El juego informal se hace semana a semana (son pocas y así es exactamente lo que hace el personaje); la rutina del club, por bloques.
-    const semanas = informal ? 1 : Math.min(bloque, faltan);
+    // Lejos de la fecha, el bloque es largo y de una sola vez; sin pasarse hacia lo reciente ni hacia la entrada en el club.
+    const hastaLoReciente = Math.floor((dia - 7 * SEMANAS_RECIENTES - fin) / 7);
+    const lejos = conGruesos && !informal && hastaLoReciente >= SEMANAS_POR_BLOQUE_LEJANO;
+    const semanas = informal ? 1 : lejos ? SEMANAS_POR_BLOQUE_LEJANO : Math.min(bloque, faltan);
     fin += 7 * semanas;
     const porSemana = Array.from({ length: semanas }, (_, w) => (informal ? [] : huecosQueHace(n, deporte, r, semanaQueAcaba(fin - 7 * (semanas - 1 - w)))));
-    pasoDeSemanas(t, fin, semanas, { porSemana, informales: informal ? semanas : 0, lista: listaDe });
+    pasoDeSemanas(t, fin, semanas, { porSemana, informales: informal ? semanas : 0, lista: listaDe, ...(lejos ? { grueso: { muestra: MUESTRA_DE_SESIONES_LEJANAS } } : {}) });
   }
   enElDia(t, dia);
   return resultado(t, rend);
