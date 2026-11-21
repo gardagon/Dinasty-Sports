@@ -414,22 +414,24 @@ export function fijarEquipos(m: MercadoDeFichajes, pob: PoblacionGuardada): void
 export function repartirDorsales(m: MercadoDeFichajes, pob: PoblacionGuardada): void {
   const regla = pob.puestos?.dorsales;
   if (!regla) return;
-  for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
-    for (const c of categoriasDelEquipo(pob, e)) {
-      const equipos = new Map<string, Npc[]>();
-      for (const { n } of miembrosDelClub(m.lista, pob, e, c.edades, m.dia, m.val)) {
-        const letra = n.letra?.[pob.deporte];
-        if (!letra || !n.puesto?.[pob.deporte] || n.id.startsWith('personaje@')) continue;
-        (equipos.get(letra) ?? equipos.set(letra, []).get(letra)!).push(n);
-      }
-      for (const [letra, miembros] of equipos) {
-        const reparto = asignarDorsales(miembros.map((n) => ({ id: n.id, puesto: n.puesto![pob.deporte], dorsal: n.dorsal?.[pob.deporte] })), regla, `${pob.deporte}|${e.club}|${c.id}|${letra}`);
-        for (const n of miembros) {
-          const d = reparto.get(n.id);
-          if (d === undefined || n.dorsal?.[pob.deporte] === d) continue;
-          m.lista.set(n.id, { ...n, dorsal: { ...n.dorsal, [pob.deporte]: d } });
-        }
-      }
+  // Un solo recorrido, sin valorar a nadie: el equipo es club, categoría (por la edad de juego) y letra.
+  const categorias = new Map(pob.equipos.filter((e) => e.plantillaPorCategoria).map((e) => [e.club, categoriasDelEquipo(pob, e)]));
+  const equipos = new Map<string, Npc[]>();
+  for (const n of m.lista.values()) {
+    const letra = n.letra?.[pob.deporte];
+    if (n.deporte !== pob.deporte || !n.equipo || !letra || !n.puesto?.[pob.deporte] || n.id.startsWith('personaje@')) continue;
+    const edad = edadDeJuego(n, m.dia);
+    const cat = categorias.get(n.equipo)?.find((c) => edad !== undefined && c.edades.includes(edad));
+    if (!cat) continue;
+    const clave = `${n.equipo}|${cat.id}|${letra}`;
+    (equipos.get(clave) ?? equipos.set(clave, []).get(clave)!).push(n);
+  }
+  for (const [clave, miembros] of equipos) {
+    const reparto = asignarDorsales(miembros.map((n) => ({ id: n.id, puesto: n.puesto![pob.deporte], dorsal: n.dorsal?.[pob.deporte] })), regla, `${pob.deporte}|${clave}`);
+    for (const n of miembros) {
+      const d = reparto.get(n.id);
+      if (d === undefined || n.dorsal?.[pob.deporte] === d) continue;
+      m.lista.set(n.id, { ...n, dorsal: { ...n.dorsal, [pob.deporte]: d } });
     }
   }
 }
