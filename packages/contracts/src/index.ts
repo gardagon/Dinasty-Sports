@@ -27,6 +27,7 @@ export * from './lugares';
 export * from './agendas';
 export * from './deporte';
 export * from './conversacion';
+export * from './comparacion';
 export * from './deporte-datos';
 export * from './calendario-de-temporada';
 export * from './hermanos';

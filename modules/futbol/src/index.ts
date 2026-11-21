@@ -45,6 +45,11 @@ import {
   type LogTable,
   type RelationsService,
   type SeccionDeDeporte,
+  type MiEquipoView,
+  type CompaneroDeEquipo,
+  type ComparacionService,
+  aspectoDe,
+  servicioDeComparacion,
   type PartidoDelMundoData,
   type DeporteView,
   type LectorDePersona,
@@ -91,7 +96,8 @@ import {
 } from '@ds/kit-deporte';
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
-import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
+import { CONOCIMIENTO, DEPORTE, GRUPOS_DE_HABILIDADES, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
+import { juicioDe, recordarSoloLosUltimos, textoDelJuicio, verDeNuevo, type Impresion } from './mi-equipo';
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { EVENTOS_DE_FUTBOL } from './eventos';
 import { TEXTOS_DE_EQUIPO_SIN_NINOS, TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
@@ -103,7 +109,9 @@ import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, nombreDe
 import { PARAMETROS_DE_PARTIDO, jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
 
 export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
-export { CONOCIMIENTO, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
+export { CONOCIMIENTO, GRUPOS_DE_HABILIDADES, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
+export { PARAMETROS_DE_PERCEPCION, juicioDe, recordarSoloLosUltimos, ruidoDeLaVista, textoDelJuicio, verDeNuevo } from './mi-equipo';
+export type { Impresion, Juicio } from './mi-equipo';
 export { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 export { PUESTOS_DE_FUTBOL } from './puestos';
 export { tandaDePenaltis, PARAMETROS_DE_PENALTIS, jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
@@ -132,6 +140,8 @@ export type FutbolState = EstadoBaseDeDeporte & {
   intensidad?: Intensidad;
   /** El equipo del personaje esta temporada (club, categoría y letra A a D): se fija al empezar la liga, como el de todos. */
   personaje?: { curso: number; club: string; categoria: string; letra: string };
+  /** Lo que ha visto de cada compañero (entrenando o jugando con él): puesto, si cree que es mejor o peor que él, veces y semana (`mi-equipo.ts`). */
+  companeros?: Record<string, Impresion>;
   /** Las sesiones del club que ha hecho cada semana (las últimas): su asistencia pesa en la convocatoria como la de cualquiera. */
   sesiones?: Record<string, number>;
   /** Sus últimos partidos (sin la crónica) y el último entero, con la crónica. */
@@ -513,6 +523,7 @@ function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelM
     });
   }
   // La plantilla con las estadísticas de la temporada de cada jugador.
+  const s0 = ctx.state<FutbolState>();
   const de = (j: JugadorDeEquipoView): EstadisticasDeTemporada | undefined => (j.estadisticas?.curso === liga.curso ? j.estadisticas : undefined);
   const plantilla = [...previa.plantilla].sort((a, b) => (de(b)?.min ?? 0) - (de(a)?.min ?? 0) || (a.nombre < b.nombre ? -1 : 1));
   secciones.push({
@@ -522,7 +533,8 @@ function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelM
       header: ['Jugador', 'Puesto en la plantilla', 'PJ', 'Tit.', 'Min.', 'G', 'A', 'Nota'],
       rows: plantilla.map((j) => {
         const e = de(j);
-        return [j.id === YO ? 'Tú' : j.nombre, nombreDePuesto(j.puesto), ...[e?.pj ?? 0, e?.ti ?? 0, e?.min ?? 0, e?.g ?? 0, e?.a ?? 0].map(String), e?.pj ? decimal(notaMedia(e)) : '—'];
+        // Lo que ve un niño: el nombre solo de quien conoce (de los demás, su aspecto) y el puesto solo de quien ha visto jugar.
+        return [j.id === YO ? 'Tú' : nombreParaElPersonaje(dir, j.id, j.nombre), j.id === YO || s0.companeros?.[j.id] ? nombreDePuesto(j.id === YO ? j.puesto : s0.companeros![j.id][0]) : '—', ...[e?.pj ?? 0, e?.ti ?? 0, e?.min ?? 0, e?.g ?? 0, e?.a ?? 0].map(String), e?.pj ? decimal(notaMedia(e)) : '—'];
       }),
       highlight: plantilla.findIndex((j) => j.id === YO),
       align: ['left', 'left', 'right', 'right', 'right', 'right', 'right', 'right'],
@@ -726,6 +738,79 @@ function textoDeProximoPartido(ctx: ReadContext): string {
   return sinCalendario ?? datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto;
 }
 
+
+// ---------------------------------------------------------------------------------------------------- «Mi equipo»: lo que el personaje ha visto de sus compañeros
+
+/** El nombre de un compañero tal como lo ve el personaje: el suyo si ya lo conoce y, si no, la descripción de su aspecto (la misma que en Gente). */
+function nombreParaElPersonaje(dir: NpcDirectory | undefined, id: string, nombre: string): string {
+  const n = dir?.get(id);
+  return !n ? nombre : n.known === false ? aspectoDe(n) : n.name;
+}
+
+/** Cuánto sabe de fútbol el personaje (de 0 a 1): afina lo que ve de los demás. */
+const conocimientoDelPersonaje = (ctx: ReadContext): number => ctx.norm(CONOCIMIENTO);
+
+/**
+ * El personaje ve a estos compañeros jugar (en un entrenamiento del club o en un partido): desbloquea su puesto y afina su impresión de si es mejor o peor que ellos (`mi-equipo.ts`).
+ * `mio` es lo que vale él en su puesto; cada uno trae el puesto en que lo ve y lo que vale.
+ */
+function verACompaneros(ctx: ActionContext, vistos: readonly { id: string; puesto: string; valor: number }[], mio: number): void {
+  if (!vistos.length) return;
+  const conocimiento = conocimientoDelPersonaje(ctx);
+  ctx.updateState<FutbolState>((s) => {
+    const nuevas = { ...s.companeros };
+    for (const v of vistos) nuevas[v.id] = verDeNuevo(nuevas[v.id], { id: v.id, puesto: v.puesto, mio, suyo: v.valor, conocimiento, dia: ctx.time.day, semana: ctx.time.week });
+    return { ...s, companeros: recordarSoloLosUltimos(nuevas) };
+  });
+}
+
+/** Un entrenamiento del club: ve entrenar a los compañeros de su equipo que pueden entrenar (no los lesionados), cada uno en el puesto que ocupa en la plantilla. */
+function verElEntrenamiento(ctx: ActionContext): void {
+  const equipo = miEquipo(ctx, ctx.time.schoolYear);
+  const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
+  if (!equipo || !dir?.plantillaDelEquipo) return;
+  const base = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra);
+  const yo = yoComoJugador(ctx, base, ctx.time.week, ctx.time.weekday);
+  if (!yo) return;
+  verACompaneros(ctx, base.filter((j) => (j.estado.baja ?? 0) <= 0).map((j) => ({ id: j.id, puesto: j.puesto, valor: j.valor })), yo.valor);
+}
+
+/** La subpestaña «Mi equipo»: en qué equipo está (letra y club) y quiénes son sus compañeros, sin el nombre de quien no conoce y con el puesto solo de quien ha visto jugar. */
+function miEquipoDeFutbol(ctx: ReadContext): MiEquipoView | undefined {
+  const club = clubDelJugador(ctx);
+  const equipo = club ? miEquipo(ctx, ctx.time.schoolYear) : undefined;
+  const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
+  if (!club || !equipo || !dir?.plantillaDelEquipo) return undefined;
+  const vistos = ctx.state<FutbolState>().companeros ?? {};
+  const cat = datosDeDeporte(ctx, DEPORTE).categorias.find((c) => c.id === equipo.categoria);
+  const companeros: CompaneroDeEquipo[] = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra).map((j) => {
+    const n = dir.get(j.id);
+    const visto = vistos[j.id];
+    return {
+      id: j.id,
+      aspecto: n ? aspectoDe(n) : 'Un compañero',
+      ...(n && n.known !== false ? { nombre: n.name } : {}),
+      ...(visto ? { puesto: nombreDePuesto(visto[0]) } : {}),
+    };
+  });
+  const orden = (c: CompaneroDeEquipo): string => (c.nombre ? `0${c.nombre}` : `1${c.aspecto}`);
+  companeros.sort((a, b) => (orden(a) < orden(b) ? -1 : orden(a) > orden(b) ? 1 : 0));
+  return {
+    titulo: `Equipo ${equipo.letra} · ${club.nombre}`,
+    texto: `${cat ? `Categoría ${cat.nombre.toLowerCase()}. ` : ''}De quien aún no conoces solo sabes cómo es; su puesto lo ves cuando entrenas o juegas con él.`,
+    companeros: [{ id: YO, nombre: 'Tú', aspecto: '', ...(ctx.state<FutbolState>().puesto ? { puesto: nombreDePuesto(ctx.state<FutbolState>().puesto!) } : {}), yo: true }, ...companeros],
+  };
+}
+
+/** Lo que cree el personaje de sí mismo frente a un compañero al que ha visto jugar (para la ficha de Gente). */
+const comparacionDeFutbol = (ctx: ReadContext): ComparacionService => ({
+  sobre: (npcId) => {
+    const visto = ctx.state<FutbolState>().companeros?.[npcId];
+    const n = ctx.service<NpcDirectory>(SERVICES.npcs)?.get(npcId);
+    return visto && n ? { titulo: 'Comparado contigo', texto: textoDelJuicio(juicioDe(visto), n.gender) } : undefined;
+  },
+});
+
 /** La pestaña del fútbol: las habilidades, los datos del club, el próximo partido y el último con su crónica. */
 function vistaDeFutbol(ctx: ReadContext): DeporteView {
   const t = ctx.time;
@@ -747,6 +832,8 @@ function vistaDeFutbol(ctx: ReadContext): DeporteView {
       { etiqueta: 'Partidos', valor: datos.competiciones.jornada.texto },
     ],
     habilidades: [...HABILIDADES_DE_FUTBOL, CONOCIMIENTO],
+    gruposDeHabilidades: GRUPOS_DE_HABILIDADES.map((g) => ({ titulo: g.titulo, habilidades: [...g.habilidades] })),
+    miEquipo: miEquipoDeFutbol(ctx),
     temporada: {
       etiqueta: `Curso ${t.schoolYear + 1}`,
       situacion: situacionDeFutbol(ctx).texto,
@@ -808,6 +895,11 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
         ...(juega ? { experiencia: { ...s.experiencia, [yo.puesto]: experienciaTrasElPartido(s.experiencia?.[yo.puesto] ?? 0, { minutos: yo.minutos, aprendizaje, factorDelLado: factorDeExperienciaDelPuesto(PUESTOS_DE_FUTBOL, yo.puesto, pierna), ritmo: PUESTOS_DE_FUTBOL.experiencia?.ritmo }) } } : {}),
       };
     });
+  }
+  // Si estaba en la convocatoria (jugó o vio el partido desde el banquillo), ve jugar a los compañeros que salieron al campo, en el puesto en que jugaron.
+  if (juega || banquillo) {
+    const mio = previa.plantilla.find((j) => j.id === YO)?.valor;
+    if (mio !== undefined) verACompaneros(ctx, r.alineaciones[lado].filter((id) => id !== YO && (r.jugadores[id]?.minutos ?? 0) > 0).map((id) => ({ id, puesto: r.jugadores[id].puesto, valor: previa.plantilla.find((j) => j.id === id)?.valor ?? 0 })), mio);
   }
   if (banquillo) ctx.addStat(GEN.motivacion, Math.round(MORAL_DEL_BANQUILLO * (0.5 + ambicion)));
   ctx.updateState<FutbolState>((s) => ({
@@ -1283,6 +1375,7 @@ export const futbol = defineModule<FutbolState>({
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),
 
   services: {
+    [servicioDeComparacion(DEPORTE)]: comparacionDeFutbol,
     // Hechos para los sucesos del fútbol: dónde juega el personaje y dónde vale más (lo mismo que mira su entrenador).
     [servicioDeHechos(DEPORTE)]: (ctx): HechosService => ({
       valor: (nombre) => {
@@ -1454,6 +1547,7 @@ export const futbol = defineModule<FutbolState>({
       [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
         comunes[CORE_EVENTS.ACTION_DONE]?.(ctx, ev);
         if ((ev.data as ActionDoneData).actionId !== `${DEPORTE}.club_sesion`) return;
+        verElEntrenamiento(ctx);
         const w = ctx.time.week;
         ctx.updateState<FutbolState>((s) => {
           const recientes = Object.fromEntries(Object.entries(s.sesiones ?? {}).filter(([k]) => Number(k) >= w - 2));
