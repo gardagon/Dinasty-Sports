@@ -58,7 +58,7 @@ Habilidades del personaje: pase 12, control 13, regate 11, definición 11, técn
 
 Con capacidades normales (10) el portero y el carrilero derecho salen en el segundo y tercer puesto, a 0,1–0,2 del primero: coincide con lo que dijo el profesor (portero o carrilero). El portero **no depende de las capacidades** (10,2 siempre); el carrilero, sí (resistencia y velocidad pesan un 21 %). Por eso, si el usuario tiene buena resistencia, el carrilero pasa a primero.
 
-**Por qué portero:** reflejos 13, mano a mano 13, blocaje 12 y alcance aéreo 14 (el 63 % del peso del portero) son altos para sus demás habilidades; los malos (dominio del área 5, despeje 6) pesan solo un 22 %. **Por qué carrilero:** pase 12, control 13, juego colectivo 13 y posicionamiento 13 son sus habilidades más altas de «campo» y los pesos del carrilero cargan ahí (el 52 %); lo que le falta (entrada 8, arrancada 7) pesa menos.
+**Por qué portero:** reflejos 13, mano a mano 13, blocaje 12 y alcance aéreo 14 (el 63 % del peso del portero) son altos para sus demás habilidades; los malos (dominio del área 5, despeje 6) pesan solo un 22 %. **Por qué carrilero:** pase 12, control 13, juego colectivo 13 y posicionamiento 13 son sus habilidades más altas de «campo» y los pesos del carrilero cargan ahí (el 50 %); lo que le falta (entrada 8, arrancada 7) pesa menos.
 
 **Por qué el pivote queda de 6.º a 10.º:** marcaje 13 y posicionamiento 13 son buenos, pero entrada 8, anticipación 8, visión 9 y decisiones 8 suman el 45 % del pivote y lo hunden. FM lo ve de otra forma porque pondera pocas claves del rol (marcaje, posicionamiento, trabajo en equipo, sangre fría) y no penaliza tanto lo demás; aquí un 45 % del pivote cuelga de mentales flojas.
 
@@ -66,7 +66,7 @@ Con capacidades normales (10) el portero y el carrilero derecho salen en el segu
 1. **Portero líbero.** Lo que FM premia (pase 12, control 13, técnica 14, sangre fría 14: sus puntos fuertes de «jugar con los pies» y calma) **aquí no pesa en el portero** (pase, control, técnica y sangre fría: 0 %). El portero de este juego solo ve reflejos, blocaje, mano a mano, alcance, dominio, despeje, posicionamiento, decisiones y salto. Es el caso más claro de lo que propone D: sin eso, este niño es un portero «normal» aquí y un líbero en FM. El rol líbero no existe todavía.
 2. **Mediocentro defensivo.** FM suma su marcaje 13, posicionamiento 13, juego colectivo 13, sangre fría 14, pase 12; aquí el pivote pide también entrada, anticipación, visión y decisiones (todas por debajo de 9) y no mira la sangre fría.
 3. **Carrilero.** Aquí es medio de banda (resistencia, pase, juego colectivo): sale por pase, control y juego colectivo. En FM el carrilero necesita centros 7, arrancada 7 y velocidad: **no lo daría**. Ahí el profesor y FM no hablan de lo mismo (ver nombres).
-4. **Conocimiento 0:** baja ×0,85 sus mentales (visión, decisiones, anticipación, posicionamiento, juego colectivo), que cuentan en medio y pivote, y no toca la portería (×0,955) ni lo físico: **empuja al portero por encima del pivote**. Con el conocimiento de un niño con curso (30–40), el pivote subiría ~0,3–0,4 puntos.
+4. **Conocimiento 0:** baja ×0,85 sus mentales (visión, decisiones, anticipación, posicionamiento, juego colectivo), que cuentan en medio y pivote, y no toca la portería (×0,955) ni lo físico: **empuja al portero por encima del pivote**. Con más conocimiento el pivote subiría (no lo he medido).
 
 Saque de esquina 15 y penaltis 11 no cuentan en ningún puesto: su mejor habilidad no vale nada para el consejo (hallazgo 1.2.4).
 
