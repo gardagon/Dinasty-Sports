@@ -5,6 +5,7 @@ import type { PerfilDelPersonaje, RasgosDe } from './rasgos';
 import type { EstadoDeJugador } from './estado-de-jugador';
 import type { EstadisticasDeTemporada } from './estadisticas';
 import type { LectorDePersona } from './lector';
+import type { PistasDePuestos } from './deporte-datos';
 /**
  * Servicios: la forma de que un módulo CONSULTE a otro sin importarlo.
  * El contrato (interfaz + clave) vive aquí; la implementación, en el módulo que lo publica.
@@ -125,7 +126,27 @@ export interface HuecoDeGrupo {
 export interface ConsejoDeDeporte {
   deporte: string;
   nombre: string;
+  /** Los puestos **sin lado** (`FamiliaDePuestos`): «lateral», no «lateral izquierdo» y «lateral derecho». `id` es el de la familia. */
   puestos: { id: string; nombre: string }[];
+  /** El porqué, en cualidades ya escritas (`CualidadDePuesto.tiene`): lo que más te sube en esos puestos frente a los niños de tu edad. Vacío si no destacas en nada concreto. Sin cifras. */
+  tiene?: string[];
+  /** Los textos del deporte (`PuestosDeDeporte.pistas`) para componer el porqué. */
+  pistas?: PistasDePuestos;
+}
+
+/** Cómo va el personaje para un puesto (sin lado): lo que te dice el profesor o el entrenador si le preguntas por él (`NpcDirectory.lecturaDePuesto`). Sin cifras. */
+export interface LecturaDePuesto {
+  deporte: string;
+  familia: { id: string; nombre: string };
+  /** `ya`: vales ya para ese puesto; `cerca`; `lejos`; `sinDatos`: nadie de tu edad con quien compararte. */
+  nivel: 'ya' | 'cerca' | 'lejos' | 'sinDatos';
+  /** Lo que ya tienes para él (cualidades escritas, de la que más suma a la que menos). */
+  tiene: string[];
+  /** Lo que te falta para él (cualidades escritas, lo que más te frena primero). */
+  falta: string[];
+  /** Las stats que más te frenan (ids, las que más pesan en el puesto y más lejos están de los de tu edad): con ellas el entrenador elige entrenamientos. */
+  frenan: string[];
+  pistas?: PistasDePuestos;
 }
 
 export interface NpcDirectory {
@@ -147,6 +168,10 @@ export interface NpcDirectory {
    * `VISION.md`, principio 7). Vacío si no ve nada claro.
    */
   consejoDeportivo?(): ConsejoDeDeporte[];
+  /** Los puestos sin lado de cada deporte con puestos (para elegir por cuál preguntar). */
+  familiasDePuestos?(): { deporte: string; nombre: string; familias: { id: string; nombre: string }[] }[];
+  /** Cómo va el personaje para un puesto sin lado de un deporte (`LecturaDePuesto`), comparado con los de su edad y consigo mismo. `undefined` si el deporte no tiene puestos o no se puede medir. */
+  lecturaDePuesto?(deporte: string, familia: string): LecturaDePuesto | undefined;
   /**
    * Lo que vale el equipo de un club en una categoría en cada habilidad del deporte (la media de sus jugadores, con valores reales): con ello el entrenador elige los ejercicios
    * de la sesión, **los mismos para todos los que entrenan juntos**, personaje incluido. `undefined` si el deporte no tiene jugadores con habilidades en ese equipo.
