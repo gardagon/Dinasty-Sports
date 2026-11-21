@@ -42,4 +42,8 @@ Encargo del usuario (21/11/2026, `DECISIONES.md` «“Mi equipo” para el niño
 
 ## 5. Estado al entregar
 
-(Se rellena al acabar las comprobaciones.)
+Todo en verde: `npm run typecheck`; `npm test` (112 archivos, 1236 tests); `npm run benjamin -- 31,33` (sin cambios: no toca convocatoria ni reparto); `npm run probar-web` (todo el camino, sin errores de consola); `npm run presupuesto -- --peso` (2971 KB, tope 3300; al crear aún no hay compañeros vistos, luego < 2 KB).
+
+**Arreglo fuera del encargo (pequeño):** `apps/web/src/serializar.ts`, `alCambiarElEstado()` llamaba a `terminar()` sobre una conversión ya descartada y lanzaba «La conversión a texto se descartó» si se hacían 4 acciones seguidas en una misma tarea (se vio con `__ds.hacer` en un bucle justo tras crear la partida; jugando con clics no pasa). Ahora no toca una conversión ya descartada; con test.
+
+**Mejoras posibles:** enlace de cada fila de «Mi equipo» a la ficha; filtrar nombres en la crónica (§3.4); cuando haya página del entrenador, reutilizar `MiEquipoView`.
