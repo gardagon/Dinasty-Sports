@@ -57,7 +57,8 @@
     "eventos:validar": "tsx tools/eventos.ts validar",
     "eventos:probar": "tsx tools/eventos.ts probar",
     "eventos:mapa": "tsx tools/eventos.ts mapa",
-    "eventos:indice": "tsx tools/eventos.ts indice"
+    "eventos:indice": "tsx tools/eventos.ts indice",
+    "entrenamientos:tabla": "tsx tools/entrenamientos-futbol.ts"
   },
   "engines": {
     "node": ">=20"

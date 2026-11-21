@@ -297,7 +297,7 @@ const bloquesDeCampamento = (ids: readonly string[]): Entreno =>
     const e = entrenamientoPorId(id)!;
     return aEscala(e.entrena.filter(([stat]) => stat !== CONOCIMIENTO), 50 / e.minutos);
   });
-const CAMPAMENTOS = [
+export const CAMPAMENTOS_DE_FUTBOL = [
   campamento(CONFIG, {
     tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'futbol', 'campamento'],
     delta: { [GEN.energia]: -35 },
@@ -1411,7 +1411,7 @@ export const futbol = defineModule<FutbolState>({
         },
       }),
       dejarClub(CONFIG),
-      ...CAMPAMENTOS,
+      ...CAMPAMENTOS_DE_FUTBOL,
       ...ENTRENAMIENTOS_DE_FUTBOL.map(accionDeEntreno),
       verEnLaTele(CONFIG, 'Partidos y resúmenes de otros: aprendes cómo se mueve un equipo y por qué un pase abre la defensa.'),
       pedirConsejo(CONFIG, (ctx) => (ctx.state<FutbolState>().puesto === PUESTO_DE_PORTERO ? HABILIDADES_DE_CONSEJO_DE_PORTERO : HABILIDADES_DE_CONSEJO)),

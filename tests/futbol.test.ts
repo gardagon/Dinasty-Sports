@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { SERVICES, validarDatosDeDeporte, type ClubDirectory, type DeporteService, type NpcDirectory } from '@ds/contracts';
+import { SERVICES, idDeProponerPlan, validarDatosDeDeporte, type ClubDirectory, type DeporteService, type NpcDirectory, type RelationsService } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
-import { DATOS_FUTBOL, EJERCICIOS_DE_FUTBOL, HABILIDADES_DE_FUTBOL, futbol } from '@ds/mod-futbol';
+import { CAMPAMENTOS_DE_FUTBOL, DATOS_FUTBOL, EJERCICIOS_DE_FUTBOL, HABILIDADES_DE_FUTBOL, futbol } from '@ds/mod-futbol';
 import { elegirEjercicios, semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import * as contracts from '@ds/contracts';
 import { ID_PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA, registrarPais } from '@ds/contracts';
@@ -10,7 +10,7 @@ import * as kit from '@ds/kit-deporte';
 import { cargarModulo, generarClaves } from '@ds/paquetes';
 import { empaquetarDeporte } from '../tools/empaquetar';
 import { edadNpc, sinDeporte, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
-import { hacer, posible } from './ayudas';
+import { conocer, hacer, posible } from './ayudas';
 
 /**
  * Estos tests miran lo que hace el fútbol en una partida, no cuánta gente hay: crean la partida con la **ciudad pequeña de prueba** (unas 220 personas), que sale mucho más barata que la de verdad
@@ -187,3 +187,48 @@ describe('los ejercicios son los mismos para todo el equipo', { timeout: 90000 }
     for (const nombre of esperados) expect(hoy).toContain(nombre);
   });
 });
+
+describe('entrenar, quedar a jugar y campamentos del fútbol', () => {
+  it('«Entrenar…» ofrece los 22 entrenamientos, agrupados en portería, físico, mental y técnico, con los que necesitan compañía no disponibles', () => {
+    const g = nueva();
+    advanceToWeek(g, 'gen.descansar', 1, 5, 10); // sábado: los campos abren
+    const opciones = g.listActions().filter((o) => o.desplegable?.id === 'futbol.entrenar');
+    expect(opciones).toHaveLength(22);
+    expect([...new Set(opciones.map((o) => o.desplegable!.grupoDeOpcion))]).toEqual(['Portería', 'Físico', 'Mental', 'Técnico']);
+    // Los de compañía (reflejos de centros, juegos reducidos…) existen pero hay que hacerlos con el club; los de por libre se pueden hacer.
+    expect(g.preview('futbol.entrena_balones_aereos')!.available).toBe(false);
+    expect(g.preview('futbol.entrena_balones_aereos')!.reason).toMatch(/compañía/);
+    expect(posible(g, 'futbol.entrena_reflejos')).toBe(true);
+    expect(posible(g, 'futbol.entrena_toques_y_pared')).toBe(true);
+    // «Tiro a puerta» ya no mete el balón parado: este tiene el suyo.
+    expect(g.preview('futbol.entrena_tiro_a_puerta')!.modifiers.some((m) => m.id === 'futbol.por_tu_cuenta')).toBe(true);
+  });
+
+  it('«Con amigos» ya no es un entrenamiento de verano: es quedar a jugar al fútbol, una actividad más de «Proponer quedar para…» (todo el año)', () => {
+    const g = conocer(nueva());
+    expect(g.preview('futbol.amigos')).toBeUndefined();
+    for (const semana of [2]) {
+      advanceToWeek(g, 'gen.descansar', 1, semana, 16);
+      const f = g.service<RelationsService>(SERVICES.relaciones)!.formularioDePlan('companero_social');
+      const quedadas = f.actividades.filter((a) => a.id.startsWith('futbol_'));
+      expect(quedadas.map((a) => a.id), `semana ${semana}`).toEqual(['futbol_partidillo', 'futbol_reducidos', 'futbol_tiros_y_paradas', 'futbol_balon_parado']);
+      expect(quedadas[0].nombre).toBe('Jugar al fútbol: partidillo');
+      expect(g.preview(idDeProponerPlan('companero_social', 'futbol_partidillo', 'parque', 'manana', 17 * 60))).toBeDefined();
+      expect(g.preview('relaciones.futbol_partidillo.companero_social')).toBeDefined();
+    }
+  });
+
+  it('hay dos campamentos, de jugadores y de porteros: con los mismos bloques de físico y mente y cada uno con lo suyo (el de jugadores no es solo ataque)', () => {
+    const g = nueva();
+    expect(g.preview('futbol.campamento_jugadores')).toBeDefined();
+    expect(g.preview('futbol.campamento_porteros')).toBeDefined();
+    expect(g.preview('futbol.campamento')).toBeUndefined();
+    const [jugadores, porteros] = CAMPAMENTOS_DE_FUTBOL.map((a) => new Set((a.train ?? []).map((t) => t.stat)));
+    for (const comun of ['futbol.posicionamiento', 'futbol.anticipacion', 'futbol.arrancada', 'gen.agilidad', 'gen.coordinacion', 'futbol.conocimiento']) {
+      expect(jugadores.has(comun) && porteros.has(comun), comun).toBe(true);
+    }
+    for (const propia of ['futbol.tecnica', 'futbol.juego_colectivo', 'futbol.marcaje', 'futbol.entrada', 'futbol.definicion']) expect(jugadores.has(propia) && !porteros.has(propia), propia).toBe(true);
+    for (const propia of ['futbol.reflejos', 'futbol.blocaje', 'futbol.mano_a_mano', 'futbol.alcance_aereo', 'futbol.despeje']) expect(porteros.has(propia) && !jugadores.has(propia), propia).toBe(true);
+  });
+});
+
