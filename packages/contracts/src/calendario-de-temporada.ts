@@ -64,15 +64,23 @@ export function situacionDeTemporada(cal: CalendarioPais, temporada: TemporadaDe
   }
   const primera = jornada(inicioDelCurso, sem.primeraCompeticion);
   if (t.period === 'clase' && t.schoolWeek < sem.primeraCompeticion) return { tramo: 'pretemporada', primeraJornada: primera, empieza: primera.texto, texto: `Pretemporada. ${empiezan} ${primera.texto}.` };
+  // La competición ya ha acabado (la liga cerrada) aunque caiga en unas vacaciones (Semana Santa): no es una parada, es el final de la temporada.
+  if (o.terminada) return { tramo: 'terminada', primeraJornada: primera, texto: `${nombreDelTramo} terminada. El verano empieza ${finDeCurso()}.` };
   if (t.period !== 'clase') {
     // Vacaciones de Navidad o de Semana Santa en plena temporada: no hay competición hasta la primera semana de clase que viene.
     const reanuda = [...Array(cal.semanasPorCurso).keys()].find((w) => w > t.schoolWeek && tramoDeSemana(cal, w).periodo === 'clase');
     const vuelve = reanuda !== undefined ? jornada(inicioDelCurso, reanuda) : primera;
     return { tramo: 'parada', primeraJornada: primera, empieza: vuelve.texto, texto: `${nombreDelTramo}, parada por las vacaciones. Se reanuda ${vuelve.texto}.` };
   }
-  if (o.terminada) return { tramo: 'terminada', primeraJornada: primera, texto: `${nombreDelTramo} terminada. El verano empieza ${finDeCurso()}.` };
   return { tramo: 'competicion', primeraJornada: primera, texto: `${nombreDelTramo}. El verano empieza ${finDeCurso()}.` };
 }
+
+/**
+ * **¿Ha terminado la temporada?** (decisión del usuario, 21/11/2026) Desde que acaba la competición del deporte hasta que empieza el curso que viene (y con él el reparto del verano): los tramos `terminada` (la liga cerrada, con
+ * clase todavía) y `verano` (las vacaciones, que vienen del calendario del país: `CalendarioPais.tramos`). Durante la liga, la pretemporada o las paradas por vacaciones en plena temporada, no. Cuando un deporte tenga copa,
+ * `terminada` será el tramo que sigue a la última competición, la copa, y esta función no cambia. Sirve para lo que solo tiene sentido al cerrar el curso (p. ej. la previsión del equipo del curso que viene).
+ */
+export const temporadaTerminada = (s: Pick<SituacionDeTemporada, 'tramo'>): boolean => s.tramo === 'terminada' || s.tramo === 'verano';
 
 /**
  * `situacionDeTemporada` de un deporte por su id, con sus datos en el país de la partida: la temporada y el día de la primera jornada (el más temprano de los de `competiciones.jornada.dias`).

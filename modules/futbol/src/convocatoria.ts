@@ -18,6 +18,12 @@ export const PARAMETROS_DE_CONVOCATORIA = {
   penalizacionPorFaltar: 0.2,
   /** La relación con el entrenador (0 a 100) suma de −5 % a +5 % a su preferencia. */
   efectoDeLaRelacion: 0.05,
+  /**
+   * La rotación de los equipos que la tienen (`CategoriaDef.rotacionEn`: hoy los colegios en benjamín y alevín; decisión del usuario, 21/11/2026): el entrenador reparte los minutos para que todos jueguen algo a lo largo de
+   * la liga. La preferencia por cada jugador sube hasta `peso` (×1,6 con 0,6) cuanto menos ha jugado esta temporada frente a la media de su plantilla: con la mitad de los minutos de la media, +30 %; sin haber jugado nada, +60 %.
+   * Quien ha jugado la media o más no gana nada. La misma cuenta, con los mismos minutos, para el personaje y para los PNJ; quien lleva muchas semanas sin ser convocado es quien menos ha jugado, así que entra antes.
+   */
+  rotacion: { peso: 0.6 },
 };
 
 const GRUPOS = PUESTOS_DE_FUTBOL.reparto;
@@ -116,6 +122,22 @@ export function prioridadDelEntrenador(o: { asistencia: number; relacion?: numbe
   const relacion = 1 + P.efectoDeLaRelacion * (2 * (Math.min(100, Math.max(0, o.relacion ?? 50)) / 100) - 1);
   const falta = P.penalizacionPorFaltar * (1 - Math.min(1, Math.max(0, o.asistencia))) * (0.5 + 0.5 * Math.min(1, Math.max(0, o.disciplinaDelEntrenador)));
   return relacion * (1 - falta);
+}
+
+/** Cuánto sube la preferencia del entrenador por un jugador que ha jugado `minutos` esta temporada cuando la media de su plantilla es `media` (sin minutos de la plantilla, o con los de la media o más, nada). */
+export const factorDeRotacion = (minutos: number, media: number): number => (media > 0 ? 1 + PARAMETROS_DE_CONVOCATORIA.rotacion.peso * Math.min(1, Math.max(0, 1 - minutos / media)) : 1);
+
+/**
+ * La plantilla de un equipo como la mira el entrenador (`paraConvocar` de cada uno). Con `rotar` (el equipo rota: `NpcDirectory.rotaElEquipo`) pesa además lo poco que ha jugado cada uno **este curso** frente a la media de
+ * la plantilla (`factorDeRotacion`; las estadísticas de otro curso no cuentan). `relacion` da la relación con el entrenador del que la tiene guardada (el personaje); sin ella, la de cada ficha.
+ */
+export function paraConvocarElEquipo(plantilla: readonly JugadorDeEquipoView[], o: { rotar?: { curso: number }; relacion?: (j: JugadorDeEquipoView) => number | undefined } = {}): JugadorParaConvocar[] {
+  const minutosDe = (j: JugadorDeEquipoView): number => (o.rotar && j.estadisticas?.curso === o.rotar.curso ? j.estadisticas.min : 0);
+  const media = o.rotar && plantilla.length ? plantilla.reduce((a, j) => a + minutosDe(j), 0) / plantilla.length : 0;
+  return plantilla.map((j) => {
+    const p = paraConvocar(j, o.relacion?.(j));
+    return o.rotar ? { ...p, prioridad: (p.prioridad ?? 1) * factorDeRotacion(minutosDe(j), media) } : p;
+  });
 }
 
 /** El jugador de una plantilla (`plantillaDelEquipo`) como lo mira el entrenador: con su preferencia por la asistencia de las dos últimas semanas y su relación con el entrenador (0 a 100: la del personaje, o la de un PNJ que ha llegado tarde a una convocatoria; sin ella, neutra). */

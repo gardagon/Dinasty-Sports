@@ -157,6 +157,8 @@ export interface NpcDirectory {
    * habilidades y capacidades. Con ellos el entrenador convoca y alinea, y el motor de partido los juega. Lo mismo para todos (`VISION.md`).
    */
   plantillaDelEquipo?(deporte: string, club: string, categoria: string, letra: string): JugadorDeEquipoView[];
+  /** ¿Rota el entrenador a la plantilla de este equipo para que todos jueguen? Lo dicen los datos del deporte: el tipo de club (colegio o de fuera) y la categoría (`CategoriaDef.rotacionEn`). */
+  rotaElEquipo?(deporte: string, club: string, categoria: string): boolean;
   /**
    * Los equipos que hay hoy en una categoría de un deporte de equipo (cada club con cada letra A a D que llega al mínimo de jugadores), con lo que vale cada uno y su nombre: con ellos se arma la liga. Vacío si el deporte no
    * tiene equipos por categoría.
