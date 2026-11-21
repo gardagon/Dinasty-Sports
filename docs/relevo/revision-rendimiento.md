@@ -210,4 +210,4 @@ Cómo repetir: `npm run rendimiento -- 60 --pasadas 5 --ciudad --json`, `npx tsx
 - `npm run typecheck`: sin errores.
 - `npm run huella -- 60`: idéntica a la de la rama antes de los cambios (`8102f8c`; no se toca el juego).
 - `npm run benjamin -- 31,33` y `npm run probar-web`: funcionan («todo el camino funciona en el navegador»).
-- `npm test`: ver el resultado al final de esta sesión (en la nota del commit).
+- `npm test`: 105 archivos, 1.187 tests en verde (790 s).
