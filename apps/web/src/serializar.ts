@@ -209,7 +209,8 @@ export async function serializarPorTrozos(valor: unknown, opciones: { ms?: numbe
  * si ya se descartó `ABORTOS_SEGUIDOS` veces seguidas, lo acaba de golpe para que guardar avance. Sin conversión en marcha no cuesta nada.
  */
 export function alCambiarElEstado(): void {
-  if (!enMarcha) return;
+  // Una conversión ya descartada (su bucle aún no ha cedido el paso) no se vuelve a tocar: varias acciones seguidas en una misma tarea (una prueba, `__ds.hacer` en un bucle) harían fallar `terminar`.
+  if (!enMarcha || enMarcha.cancelada) return;
   if (abortosSeguidos < ABORTOS_SEGUIDOS) {
     abortosSeguidos++;
     enMarcha.cancelar();

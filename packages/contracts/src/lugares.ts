@@ -57,6 +57,20 @@ const vale = (dias: TramoDeApertura['dias'], t: TimeView): boolean =>
 export const abiertoEn = (lugar: Pick<LugarDef, 'horario'>, t: TimeView): boolean =>
   !lugar.horario || lugar.horario.tramos.some((x) => vale(x.dias, t) && t.minuteOfDay >= x.desde && t.minuteOfDay < x.hasta);
 
+/**
+ * «Al patio», «a la biblioteca», «a tu aula»: cómo se dice ir a un lugar a partir de su nombre (el primer sustantivo: femenino si acaba en -a, -ión, -dad, -tad o es una calle).
+ * Es una regla de la lengua, no una lista de lugares: vale para los sitios que pongan los deportes.
+ */
+export function haciaLugar(nombre: string): string {
+  const n = nombre.trim().toLowerCase();
+  if (/^(tu|su|mi)\s/.test(n)) return `a ${n}`;
+  const primera = n.split(/\s+/)[0];
+  return /(a|ión|dad|tad)$/.test(primera) || primera === 'calle' ? `a la ${n}` : `al ${n}`;
+}
+
+/** «Del patio», «de la biblioteca», «de tu aula» (la misma regla que `haciaLugar`). */
+export const deLugar = (nombre: string): string => haciaLugar(nombre).replace(/^a la /, 'de la ').replace(/^al /, 'del ').replace(/^a /, 'de ');
+
 /** Minutos que cuesta pasar de un lugar a una zona suya (o de una zona a su lugar). */
 export const MINUTOS_ENTRE_ZONAS = 2;
 

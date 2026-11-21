@@ -114,8 +114,8 @@ export interface OpcionDef extends RamaDef {
   oculta?: boolean;
   /** Hacia qué ejes de carácter tira esta opción: mueve los del personaje al elegirla, y es con lo que deciden un PNJ o un bot. */
   caracter?: Readonly<Record<string, number>>;
-  /** Minutos de juego que gasta elegirla (por defecto, 1). */
-  minutos?: number;
+  /** Minutos de juego que gasta elegirla (por defecto, 1). Con `{ deLaSeñal: 'minutos' }`, los que traiga ese dato de la señal que disparó el suceso (un viaje cuya duración depende de dónde estés). */
+  minutos?: number | { deLaSeñal: string };
   /** Pista a mano de lo que puede pasar (si falta, se compone sola con los efectos). */
   pista?: string;
   tirada?: TiradaDef;
@@ -232,6 +232,11 @@ export interface SucesoDef extends DecisionDef {
    * dice que, aunque salga con esa señal, es otra cosa (quedarse a hablar después, ir a algún sitio) y gasta los minutos de sus opciones.
    */
   durante?: boolean;
+  /**
+   * Es un aviso del mundo, no un suceso del ritmo del juego (p. ej. «todos se van, ¿les acompañas?»): no cuenta en las medidas de cuántos eventos salen por semana
+   * (`npm run sim:eventos`, el chequeo de ritmo de la simulación). Como sale con una señal, tampoco gasta cupo.
+   */
+  fueraDelRitmo?: boolean;
   plazo?: PlazoDef;
   /** Un suceso sin opciones puede salir como ventana o como una línea del resultado y del diario. */
   presentacion?: 'ventana' | 'linea';

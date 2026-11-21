@@ -2,7 +2,7 @@
  * La regla de plaza y los valores por puesto.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { type LectorDePersona, categoriaDeEdad, type CategoriaDef, type PlazaEnEquipo, SERVICES, rngEstable, CAPACIDADES_GENETICAS, cuposPorGrupo, PROPORCION_DE_ZURDOS, type PruebaEnClub, type ConsejoDeDeporte, conLaPierna, type Pierna, type NpcDirectory, type IdentityService, aptitudDe, type ReadContext, type HuecoDeGrupo } from '@ds/contracts';
+import { type LectorDePersona, categoriaDeEdad, type CategoriaDef, type PlazaEnEquipo, SERVICES, rngEstable, CAPACIDADES_GENETICAS, cuposPorGrupo, PROPORCION_DE_ZURDOS, type PruebaEnClub, conLaPierna, type Pierna, type NpcDirectory, type IdentityService, aptitudDe, type ReadContext, type HuecoDeGrupo } from '@ds/contracts';
 import { potencialEn } from './deportistas';
 import { valoresIniciales } from './capacidades';
 import { habilidadesIniciales, lectorDe, prepararTrabajo } from './rutina';
@@ -83,34 +83,6 @@ export function huecosPorGrupoEnElEquipo(npcs: readonly Npc[], pobs: readonly Po
     return huecos > 0 ? [{ grupo: g.grupo, nombre: g.nombre, puestos: g.puestos, huecos, cupo }] : [];
   });
 }
-
-/**
- * Lo que ve un profesor de Educación Física en el personaje (`NpcDirectory.consejoDeportivo`): los deportes en que rinde al menos como los niños de su edad que ya juegan (o en los que aún
- * no juega nadie) y, en los que tienen puestos, **tres puestos** en los que más vale **según lo que percibe**, no según los números: se desvía hasta ±2 puntos (azar estable de ese día).
- */
-export function consejoDeUnProfesor(ctx: ReadContext, lista: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, dia: number): ConsejoDeDeporte[] {
-  const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
-  const zurdo = !!ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded;
-  const consejos: ConsejoDeDeporte[] = [];
-  for (const pob of pobs) {
-    const f = rend.get(pob.deporte);
-    if (!f) continue;
-    const suyos = lista.filter((n) => n.deporte === pob.deporte && edadNpc(n, dia) === edad).map((n) => n.levels[pob.deporte] ?? 0).sort((a, b) => a - b);
-    const mediana = suyos.length ? suyos[Math.floor((suyos.length - 1) / 2)] : 0;
-    if (f(ctx) < 0.9 * mediana) continue;
-    const crudos = f.puestos?.(ctx);
-    const puestos = crudos && pob.puestos
-      ? Object.entries(conLaPierna(crudos, zurdo ? 'izquierda' : 'derecha', ventajaDelLado(pob)))
-          .map(([id, v]) => ({ id, percibido: v + 2 * (2 * rngEstable('consejo', ctx.time.day, pob.deporte, id).next() - 1) }))
-          .sort((a, b) => b.percibido - a.percibido || (a.id < b.id ? -1 : 1))
-          .slice(0, 3)
-          .map((p) => ({ id: p.id, nombre: pob.puestos!.puestos.find((q) => q.id === p.id)?.nombre ?? p.id }))
-      : [];
-    consejos.push({ deporte: pob.deporte, nombre: pob.nombre, puestos });
-  }
-  return consejos;
-}
-
 
 /** Un jugador de un equipo, con lo que vale de verdad (su rendimiento en el deporte). */
 export interface JugadorDeEquipo {

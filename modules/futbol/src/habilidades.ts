@@ -153,3 +153,16 @@ export const STATS_DE_FUTBOL: readonly StatDef[] = [
 
 /** Ids de las 29 habilidades entrenables (sin el conocimiento). */
 export const HABILIDADES_DE_FUTBOL: readonly string[] = [...DEFINICIONES_DEL_ADDON, JUEGO_COLECTIVO].map((d) => `${DEPORTE}.${d.key}`);
+
+/**
+ * Las habilidades agrupadas para enseñarlas (decidido el 21/11/2026): portería, físico, mental y técnico, con el título de cada grupo; y el conocimiento aparte.
+ * El grupo de cada una es un dato del deporte (el `grupo` de su definición): la interfaz solo recorre esta lista.
+ */
+const TITULO_DE_GRUPO: Readonly<Record<Def['grupo'], string>> = { portería: 'Portería', física: 'Físico', mental: 'Mental', técnica: 'Técnico' };
+export const GRUPOS_DE_HABILIDADES: readonly { titulo: string; habilidades: string[] }[] = [
+  ...(['portería', 'física', 'mental', 'técnica'] as const).map((grupo) => ({
+    titulo: TITULO_DE_GRUPO[grupo],
+    habilidades: [...DEFINICIONES_DEL_ADDON, JUEGO_COLECTIVO].filter((d) => d.grupo === grupo).map((d) => `${DEPORTE}.${d.key}`),
+  })),
+  { titulo: 'Conocimiento', habilidades: [CONOCIMIENTO] },
+];

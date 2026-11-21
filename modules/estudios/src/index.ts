@@ -29,6 +29,9 @@ import {
   type Obligacion,
   type IdentityService,
   type NpcDirectory,
+  type NpcView,
+  fraseDeLectura,
+  fraseDelPorque,
   type PresenciaService,
   type ExamInfo,
   type NivelDeAsignatura,
@@ -94,6 +97,8 @@ export interface EstudiosState {
   ultimaTutoria?: Record<string, number>;
   /** Último día que preguntó a su profesor de Educación Física qué deporte y puesto le irían bien (uno al día). */
   ultimoConsejoDeDeporte?: number;
+  /** Último día que le preguntó al profesor de Educación Física por un puesto (una vez al día). */
+  ultimaPreguntaDePuesto?: number;
   /** Clases a las que ha ido hoy (0 = primera hora): faltar a una no tiene castigo, solo no sube lo que tocaba, pero se cuenta. */
   asistencia: { day: number; clases: number[] };
 }
@@ -394,9 +399,55 @@ const consejoDeEducacionFisica: ActionDef = {
       ctx.log(`${quien} te mira un momento: «Todavía no te veo claro en ningún deporte; sigue moviéndote y pregúntame más adelante».`, 'info');
       return;
     }
-    ctx.log(`${quien} te dice: «${frase}». Al hacer una prueba puedes pedir el puesto que quieras.`, 'info');
+    const porque = elPorqueDelConsejo(ctx, profe);
+    ctx.log(`${quien} te dice: «${frase}.${porque ? ` ${porque}` : ''}». Al hacer una prueba puedes pedir el puesto que quieras.`, 'info');
   },
 };
+
+/** Los deportes con puestos y sus puestos sin lado (para el desplegable de «Preguntar por un puesto»). */
+const familiasPreguntables = (ctx: ReadContext) => ctx.service<NpcDirectory>(SERVICES.npcs)?.familiasDePuestos?.() ?? [];
+
+/**
+ * «Preguntar por un puesto» al profesor de Educación Física (decisión del usuario, 21/11/2026): en la sala de profesores, eliges un puesto sin lado de un deporte y te dice, en palabras y sin cifras,
+ * qué tienes y qué te falta para él, comparado con los niños de tu edad y contigo mismo (`NpcDirectory.lecturaDePuesto`, textos del deporte). Una vez al día.
+ */
+function preguntasPorPuestos(ctx: ReadContext): ActionDef[] {
+  if (!seCursa(ctx, 'educacion_fisica')) return [];
+  return familiasPreguntables(ctx).flatMap((d) =>
+    d.familias.map((f): ActionDef => ({
+      id: `estudios.preguntar_puesto.${d.deporte}.${f.id}`,
+      name: `Preguntar a tu profesor de Educación Física por el puesto de ${f.nombre.toLowerCase()} en ${d.nombre}`,
+      description: 'Le preguntas en la sala de profesores qué te falta para ese puesto. Te lo explica con palabras, comparándote con los de tu edad. Una vez al día.',
+      tags: [TAGS.social],
+      group: 'Estudiar',
+      duration: 15,
+      lugar: [SALA_DE_PROFESORES],
+      desplegable: { id: 'estudios.preguntar_puesto', nombre: 'Preguntar por un puesto…', etiqueta: 'Puesto', opcion: `${f.nombre} (${d.nombre})`, boton: 'Preguntar por: {opcion}' },
+      available: (c) => {
+        if ((c.state<EstudiosState>().ultimaPreguntaDePuesto ?? -1) === c.time.day) return 'Ya le has preguntado por un puesto hoy';
+        if (!profesoresDe(c, 'educacion_fisica').length) return 'Todavía no conoces a tu profesor de Educación Física: ve a su clase';
+        return profesorEnLaSala(c, 'educacion_fisica') ? true : 'Ahora no hay ningún profesor de Educación Física en la sala de profesores';
+      },
+      delta: { [GEN.energia]: -1 },
+      run: (c) => {
+        c.updateState<EstudiosState>((st) => ({ ...st, ultimaPreguntaDePuesto: c.time.day }));
+        const profe = profesorEnLaSala(c, 'educacion_fisica');
+        const quien = profe ? profe.nombreCorto : 'Tu profesor de Educación Física';
+        const lectura = c.service<NpcDirectory>(SERVICES.npcs)?.lecturaDePuesto?.(d.deporte, f.id);
+        const frase = lectura ? fraseDeLectura(lectura, profe ? { nombre: profe.nombreCorto, gender: profe.gender } : undefined) : undefined;
+        c.log(frase ? `${quien} te contesta: «${frase}»` : `${quien} se encoge de hombros: «De ese puesto todavía no sé qué decirte».`, 'info');
+      },
+    })),
+  );
+}
+
+/** El porqué del consejo en una frase («Me fijo en esto: eres de los más rápidos de tu edad y arrancas muy bien»), o `undefined` si el deporte no da pistas con palabras. */
+function elPorqueDelConsejo(ctx: ReadContext, profe?: NpcView): string | undefined {
+  const quien = profe ? { nombre: profe.nombreCorto, gender: profe.gender } : undefined;
+  const consejos = ctx.service<NpcDirectory>(SERVICES.npcs)?.consejoDeportivo?.() ?? [];
+  const frases = consejos.filter((c) => c.puestos.length).map((c) => fraseDelPorque(c, quien)).filter((x): x is string => !!x);
+  return frases.length ? frases.join(' ') : undefined;
+}
 
 /**
  * Lo que el profesor de Educación Física ve en el personaje, en una frase («en fútbol te veo bien de lateral o extremo; te veo bien en atletismo»), o
@@ -706,7 +757,7 @@ export const estudios = defineModule<EstudiosState>({
     asistencia: { day: -1, clases: [] },
   }),
 
-  dynamicActions: (ctx) => clasesDeHoyAcciones(ctx),
+  dynamicActions: (ctx) => [...clasesDeHoyAcciones(ctx), ...preguntasPorPuestos(ctx)],
 
   // La próxima clase del día a la que aún no se ha ido (las acciones cortables no la pisan: hay que salir con tiempo para llegar al aula).
   obligaciones: (ctx) => {
@@ -886,7 +937,7 @@ export const estudios = defineModule<EstudiosState>({
 
   services: {
     // Hechos para los sucesos: lo que el profesor de Educación Física le diría hoy al personaje.
-    [servicioDeHechos('estudios')]: (ctx): HechosService => ({ valor: (nombre) => (nombre === 'consejo_deportivo' ? fraseDelConsejoDeportivo(ctx) : undefined) }),
+    [servicioDeHechos('estudios')]: (ctx): HechosService => ({ valor: (nombre) => (nombre === 'consejo_deportivo' ? fraseDelConsejoDeportivo(ctx) : nombre === 'consejo_porque' ? (elPorqueDelConsejo(ctx, profesoresDe(ctx, 'educacion_fisica')[0]) ?? 'Cómo te mueves, qué se te da mejor: eso no lo tiene todo el mundo.') : undefined) }),
     // Los minutos de Educación física los calcula contracts (`minutosDeEducacionFisica`): una sola fuente para el servicio y para el cuerpo de los PNJ.
     [SERVICES.educacionFisica]: (ctx): EducacionFisicaService => ({ minutosPorSemana: (curso) => minutosDeEducacionFisica(ctx.pais, curso) }),
     [SERVICES.estudios]: (ctx): StudiesService => {

@@ -19,6 +19,11 @@ export interface ConfigDeporte {
   pedirPuesto?: ConfigDePedirPuesto;
   /** Acciones de entrenar por libre: rinden menos y no se pueden hacer durante la sesión del club. */
   entrenosLibres: readonly string[];
+  /**
+   * Los entrenamientos que el entrenador puede recomendar por su nombre (`recomendarEntrenamiento`): cada uno con lo que sube. Se leen de los **datos** de los entrenamientos (las acciones del deporte, no de un
+   * desplegable fijo), así que un entrenamiento nuevo entra en la recomendación en cuanto está en la lista. Sin él, el entrenador no recomienda por nombre.
+   */
+  catalogoDeEntrenos?: (ctx: ReadContext) => readonly EntrenoRecomendable[];
   /** Lo que sube una semana de juego informal («practicar con los amigos»): el primer día se aplica tantas semanas como diga el interés del personaje por el deporte. */
   juegoInformal?: readonly Entreno[number][];
 }
@@ -40,6 +45,13 @@ export const PEDIR_PUESTO = { esperaDias: 0, enfadoSiPocoTiempo: { dias: 28, afi
 /** Lo que entrena una acción (el mismo formato que `ActionDef.train`). */
 export type Entreno = NonNullable<ActionDef['train']>;
 
+/** Un entrenamiento que el entrenador puede recomendar: cómo se llama y lo que sube (el mismo formato que `ActionDef.train`). */
+export interface EntrenoRecomendable {
+  id: string;
+  nombre: string;
+  entrena: Entreno;
+}
+
 /** Una habilidad que sube un poco con un consejo del entrenador y cómo se nombra en el texto («tu técnica»). */
 export interface HabilidadDeConsejo {
   stat: StatId;
@@ -59,6 +71,8 @@ export interface EstadoBaseDeDeporte {
   herenciaAplicada?: boolean;
   /** Último día que pidió consejo a su entrenador (una vez al día). */
   ultimoConsejo?: number;
+  /** Último día que le preguntó a su entrenador por un puesto (una vez al día). */
+  ultimaPreguntaDePuesto?: number;
   /** ¿Compite en la categoría superior a la que le toca por edad? */
   categoriaSuperior?: boolean;
   /** Categoría que le tocaba por edad la última vez (para saber cuándo cambia). */

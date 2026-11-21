@@ -5,12 +5,19 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Dorsales, crónica sin nombres de desconocidos y comparación en «Mi equipo»
+
+- **La crónica de los partidos no enseña el nombre de quien no conoces:** se le nombra por su dorsal.
+- **Dorsales:** cada jugador tiene el número de su camiseta, al azar dentro de lo normal. Los porteros llevan el 1, el 13 o, si no están libres, a partir del 16 el primero que quede después de que hayan escogido los jugadores de campo.
+- **En la tabla de «Mi equipo», dos columnas más:** el dorsal y la comparación («mejor / peor / parecido»), cuando ya se ha desbloqueado. **La descripción de los desconocidos se queda entera:** el dorsal es un dato más, para poder asociarlo si luego te cruzas con esa persona fuera del campo.
+
 ## 21/11/2026 — Moverse con el grupo: preferencia y «Me voy»
 
 - **Preferencia en Opciones:** «Cuando se va el grupo: preguntar / ir siempre con ellos / quedarme» (por defecto, preguntar).
 - **Solo dentro del mismo lugar** (colegio, estadio, club…). Si se van a casa, de momento no sale nada.
 - **El aviso no cuenta como suceso** (ni cupos ni ritmo).
 - **«Me voy»:** cuando alguien que conoces y tienes al lado se va, dice «Me voy» o «Me voy a…».
+- **Hecho el 21/11** (`docs/relevo/moverse-con-el-grupo.md`): señal `presencia.grupo_se_va` (la emite `npcs`) y suceso `eventos.grupo.se_van` («Ir con ellos» gasta el viaje); preferencia en Opciones; solo dentro del mismo lugar (por `dentroDe`); `SucesoDef.fueraDelRitmo` (el ritmo queda en 2,7 por semana). «Me voy», una línea corta en el resultado de la acción (como mucho 2, en acciones de 30 minutos o menos). Con las acciones cortas, `npcs` declara como obligación la marcha del grupo: la acción dura hasta ese minuto y luego sale el aviso. Coste: 1,19 → 1,36 ms por acción con el bot (+14 %).
 
 ## 21/11/2026 — Puestos, entrenamientos, pistas, caras según el origen y tiempo de los sucesos
 
@@ -21,6 +28,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
   - **las recomendaciones van por puesto sin lado:** «te veo como portero, defensa central o lateral», no carrilero izquierdo y carrilero derecho como puestos distintos.
 - **Entrenamientos:** vale el catálogo de 22 (cifras provisionales, que se miden antes de activar). «Con amigos» no es un entrenamiento como tal: es **quedar a jugar al fútbol**, y vale para todo el año. **Campamentos de jugadores y de porteros, por separado** (como ahora), con entrenamientos comunes (físicos y mentales) y propios de cada uno.
 - **Pistas:** aprobadas, en este orden: el porqué del consejo, «Preguntar por un puesto» y el entrenador que recomienda entrenamientos.
+- **Puestos y pistas, hecho el 21/11** (`docs/relevo/puestos-y-pistas.md`, con ejemplos de textos): consejo comparado con los de su edad que ya juegan (`modules/npcs/src/consejo.ts`), con el azar de ±2; «Interior» y «Medio de banda»; 11 familias de puestos sin lado (`PuestosDeDeporte.familias`; la de LST/RST, «Delantero de banda»); el porqué en cualidades (como mucho 2 a favor y 2 en contra); «Preguntar por un puesto…» al profesor y al entrenador, una vez al día (percentil 60 = ya estás; 25 = cerca); el entrenador recomienda entrenamientos por su nombre leyendo lo que sube cada uno (`ConfigDeporte.catalogoDeEntrenos`). Textos en `modules/futbol/src/pistas-de-puestos.ts`.
 - **Especializaciones (roles, como el portero líbero de Football Manager):** no se descartan; se plantean más adelante, después de probar lo de ahora.
 - **Caras según el origen:** el origen influye en la forma de la cara (tendencias en los rasgos, como ya las hay en los colores). En el dibujo, el ojo con pliegue del párpado lo hace Sonnet, y la arquitectura revisa el diseño y lo corrige hasta que quede como se espera. **Hecho el 21/11** (`docs/relevo/caras-por-origen.md`, tras una corrección de la arquitectura porque a tamaño de retrato no se distinguía): rasgo heredable nuevo `parpado` (el 13.º; las partidas antiguas lo leen a 0,5, sin subir `SAVE_VERSION`); tendencias en `ORIGENES[].rostro` (Asia oriental: párpado −0,34, ojos más rasgados, nariz más ancha y baja, pómulos +0,20, cejas más rectas; África subsahariana, Europa del norte y Magreb, también); ojo sin pliegue con apertura hasta un 23 % menor, rabillo exterior más alto y epicanto; los pómulos ensanchan algo más la cara. Huella de los bots idéntica.
 - **Tiempo de los sucesos:**
@@ -45,6 +53,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Compararte, con lo que se ve:** después de los entrenamientos, en la ficha de cada niño, «crees que eres mejor / peor / parecido a él», y su puesto. Si no le has visto jugar, no sabes dónde juega: esa información se desbloquea al entrenar y jugar con él.
 - **Las habilidades del fútbol, agrupadas** en portería, físico, mental y técnico.
 - La página del entrenador, más detallada, queda para más adelante.
+- **Hecho el 21/11** (`docs/relevo/mi-equipo.md`): la comparación sale de la diferencia de valor en su puesto frente al tuyo, más un error que baja con el conocimiento (desviación 8 sin conocimiento, 3 con todo), con la media de hasta 8 vistazos; «parecido» si la diferencia es de menos de 5 puntos. Lo visto se guarda en `FutbolState.companeros` (menos de 2 KB). Contratos genéricos: `miEquipo`, `gruposDeHabilidades`, `ComparacionService`, `aspectoDe`. La tabla «Plantilla» también oculta nombres y puestos de quien no conoces.
 
 ## 21/11/2026 — Detalles al jugar: sucesos en clase, habilidades por grupos, tu equipo, entrenamientos y puestos
 

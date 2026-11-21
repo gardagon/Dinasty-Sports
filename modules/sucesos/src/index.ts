@@ -760,6 +760,12 @@ function accionDeForzar(ctx: ReadContext, id: string): ActionDef | undefined {
   };
 }
 
+/** Minutos que gasta una opción: los suyos (1 por defecto) o los que trae la señal (`{ deLaSeñal }`), con un mínimo de 1. */
+function minutosDe(o: OpcionDef, señal?: Record<string, unknown>): number {
+  if (typeof o.minutos === 'object') return Math.max(1, Math.round(Number(señal?.[o.minutos.deLaSeñal]) || 1));
+  return o.minutos ?? 1;
+}
+
 function accionDeElegir(ctx: ReadContext, id: string): ActionDef | undefined {
   const m = ID_DE_ELEGIR.exec(id);
   if (!m) return accionDeForzar(ctx, id);
@@ -773,7 +779,7 @@ function accionDeElegir(ctx: ReadContext, id: string): ActionDef | undefined {
     name: (c) => componerTexto(o.texto, datosDeTexto(c, c.state<SucesosState>(), r.p.reparto, r.hilo, r.p.señal)),
     tags: ['decision'],
     // Lo que pasa durante una actividad se responde sin salir de ella: no gasta minutos propios.
-    duration: durante(i, r.x) ? 0 : (o.minutos ?? 1),
+    duration: durante(i, r.x) ? 0 : minutosDe(o, r.p.señal),
     group: 'Decisiones',
     available: (c) => {
       const ahora = resolver(c, i, pendiente);
@@ -1057,7 +1063,7 @@ function pendientesDe(ctx: ReadContext): SucesoPendiente[] {
     const opciones: OpcionPendiente[] = (r.d.opciones ?? []).map((o) => {
       const prob = o.tirada && modo === 'numeros' ? probabilidadDeExito(ctx.hasStat(o.tirada.con) ? ctx.norm(o.tirada.con) * 100 : 0, dificultadDeTirada(o.tirada, cond)) : undefined;
       const pista = pistaDe(ctx, o, modo, datos, prob);
-      return { id: o.id, accion: idDeElegir(p.id, o.id), texto: componerTexto(o.texto, datos), ...motivoDe(ctx, i, r, o), ...(pista ? { pista: componerTexto(pista, datos) } : {}), minutos: durante(i, r.x) ? 0 : (o.minutos ?? 1), ...(prob === undefined ? {} : { probabilidad: prob }) };
+      return { id: o.id, accion: idDeElegir(p.id, o.id), texto: componerTexto(o.texto, datos), ...motivoDe(ctx, i, r, o), ...(pista ? { pista: componerTexto(pista, datos) } : {}), minutos: durante(i, r.x) ? 0 : minutosDe(o, p.señal), ...(prob === undefined ? {} : { probabilidad: prob }) };
     });
     out.push({ id: p.id, suceso: p.suceso, titulo: componerTexto(r.d.titulo ?? r.x.def.titulo, datos), texto: r.d.texto ? componerTexto(r.d.texto, datos) : '', urgencia: aplazable(i, r.x) ? (r.x.def.urgencia as 'aplazable' | 'pendiente') : 'ahora', aplazable: aplazable(i, r.x), categoria: r.x.def.categoria ?? 'importante', origen: r.x.origen, ...(r.x.deporte ? { deporte: r.x.deporte } : {}), vence: p.vence, reparto: p.reparto, opciones });
   }
