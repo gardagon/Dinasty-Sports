@@ -27,6 +27,8 @@ import {
   paisPorId,
   type PaisDef,
   rasgosAlAzar,
+  rngEstable,
+  FAMILIAS_ESTABLES,
   perfilDePadre,
   repartirHerencia,
   type ReadContext,
@@ -39,6 +41,7 @@ import {
   evolucionDiaria,
   potentialSpeed,
   plasticidadPorEdad,
+  type DesplegableDeAcciones,
   type IdentityService,
   type StatId,
   type TimeView,
@@ -70,6 +73,8 @@ export interface ActionOption {
   train: readonly { stat: StatId; amount: number }[];
   /** Lugares donde se puede hacer (el primero es el destino por defecto), si la acción está ligada a un sitio. */
   lugar?: readonly string[];
+  /** Si la acción se dibuja agrupada con otras en un botón con desplegable (ver `ActionDef.desplegable`). */
+  desplegable?: DesplegableDeAcciones;
 }
 
 export interface ActionResult {
@@ -233,7 +238,7 @@ export class Game {
     // Perks de los padres: se sortean al final para no alterar el resto de tiradas.
     lin.perks ??= { padre: perksDePadre(rng), madre: perksDePadre(rng) };
     // Su origen sale de la semilla (no del azar de la partida) para que sus nombres, que se piden aparte, sean coherentes con él.
-    lin.rasgos ??= { padre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'padre', paisPorId(state.pais)) }), madre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'madre', paisPorId(state.pais)) }) };
+    lin.rasgos ??= { padre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'padre', paisPorId(state.pais)), sexo: 'm' }), madre: rasgosAlAzar(rng, { origen: origenDePadre(state.seed, 'madre', paisPorId(state.pais)), sexo: 'f' }) };
   }
 
   /** Tope de las stats derivadas: media ponderada de los topes de las que apoyan, por la aptitud propia. */
@@ -321,9 +326,11 @@ export class Game {
       },
       herencia: (familia) => {
         const lin = Game.lineage(state);
-        const padre = Game.zDeFamilia(lin.padre, familia, init);
-        const madre = Game.zDeFamilia(lin.madre, familia, init);
-        lin.hijo[familia] ??= mezclarZ(padre, madre, init);
+        // La genética del cuerpo (`FAMILIAS_ESTABLES`) se sortea con un generador propio de cada rasgo y cada uno (no con el de la partida): pedirla no cambia ningún sorteo posterior.
+        const r = (quien: string) => (FAMILIAS_ESTABLES.includes(familia) ? rngEstable('herencia', state.seed, familia, quien) : init);
+        const padre = Game.zDeFamilia(lin.padre, familia, r('padre'));
+        const madre = Game.zDeFamilia(lin.madre, familia, r('madre'));
+        lin.hijo[familia] ??= mezclarZ(padre, madre, r('hijo'));
         return { padre, madre, hijo: lin.hijo[familia] };
       },
     };
@@ -585,6 +592,8 @@ export class Game {
       efficiency *= res.efficiency ?? 1;
       costMult *= res.cost ?? 1;
       durationMult *= res.duration ?? 1;
+      // Un modificador puede impedir la acción (un castigo, una baja); si ya no estaba disponible, manda su propio motivo.
+      if (res.bloquea && !reason) reason = res.bloquea;
       applied.push({ id: m.def.id, module: m.module, result: res });
     }
 
@@ -617,6 +626,7 @@ export class Game {
       delta,
       train: def.train ?? [],
       lugar: typeof def.lugar === 'function' ? def.lugar(ctx) : def.lugar,
+      desplegable: def.desplegable,
     };
   }
 
@@ -694,6 +704,10 @@ export class Game {
       }
       if (ev.type === CORE_EVENTS.DAY_END) this.applyDecay();
       for (const h of this.registry.handlers.get(ev.type) ?? []) {
+        h.fn(this.actionCtx(h.module, 1), ev);
+      }
+      // Quienes escuchan todos los eventos (`CUALQUIER_EVENTO`) van después de quienes escuchan este por su nombre.
+      for (const h of this.registry.wildcardHandlers) {
         h.fn(this.actionCtx(h.module, 1), ev);
       }
     }

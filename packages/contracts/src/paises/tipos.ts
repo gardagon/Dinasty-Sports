@@ -2,7 +2,7 @@ import type { CalendarioPais } from '../calendar';
 import type { CiudadDef } from '../ciudad';
 import type { Cultura } from '../culturas/tipos';
 import type { HorarioDeLugar } from '../lugares';
-import type { OrigenDef } from '../rasgos';
+import type { OrigenDef, ParejasDef } from '../rasgos';
 import type { CursoDef } from './curriculo';
 
 /**
@@ -30,6 +30,10 @@ export interface PaisDef {
   ciudad?: CiudadDef;
   /** Peso de cada origen familiar entre la gente del país (id de origen → peso). */
   demografia: Readonly<Record<string, number>>;
+  /** Cómo se emparejan los padres (tipos de pareja). Sin él, los dos padres se sortean por separado con la `demografia` (lo que hacen Argentina e Inglaterra). La ciudad puede traer el suyo. */
+  parejas?: ParejasDef;
+  /** Probabilidad (0 a 1) de que un nacido aquí (menos de 25 años) de padres de fuera lleve un nombre de pila del país: con un solo origen y en las mezclas sin origen local. Sin él, como siempre (ninguno con un solo origen; `PROBABILIDAD_DE_NOMBRE_LOCAL` en las mezclas). La ciudad puede traer el suyo. */
+  nombreLocalDeLosNacidosAqui?: number;
   /** Orígenes que son «de aquí»: de ellos sale el nombre «local» de las mezclas sin origen local. */
   origenesLocales: readonly string[];
   /** Apellidos de los nacidos aquí: dos (el del padre y el de la madre) o uno. */
@@ -41,4 +45,4 @@ export interface PaisDef {
 }
 
 /** Lo que las reglas de nombres necesitan de un país. */
-export type PaisDeNombres = Pick<PaisDef, 'id' | 'nombre' | 'origenesLocales' | 'apellidosDeLosNacidosAqui' | 'demografia'>;
+export type PaisDeNombres = Pick<PaisDef, 'id' | 'nombre' | 'origenesLocales' | 'apellidosDeLosNacidosAqui' | 'demografia' | 'parejas' | 'nombreLocalDeLosNacidosAqui' | 'ciudad'>;

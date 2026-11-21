@@ -5,7 +5,9 @@ import {
   SHARED_EVENTS,
   TAGS,
   conLugar,
+  fichasDeDeporte,
   datosDeDeporte,
+  diaConFecha,
   inHours,
   plazoDeFichajesAbierto,
   proximaAperturaDelPlazo,
@@ -24,6 +26,10 @@ import {
   type PresenciaService,
   type ReadContext,
   type StatId,
+  TOLERANCIA_DE_SESION,
+  type ClubImpuntualData,
+  type PruebaEmpiezaData,
+  type SucesosService,
 } from '@ds/contracts';
 import { idDeConocimiento } from './habilidades';
 import type { ConfigDeporte, Entreno, EstadoBaseDeDeporte, HabilidadDeConsejo } from './tipos';
@@ -86,6 +92,32 @@ export const sinEntrenarPorLibreEnSesion = (cfg: ConfigDeporte, acciones: readon
   );
 
 /**
+ * **Se compite en un solo deporte** (y en un solo club o equipo): quien está en el club o el equipo de otro deporte no puede apuntarse, pedir prueba, unirse a la prueba ni aceptar plaza
+ * en este (antes tiene que dejar el otro). Entrenar por su cuenta otros deportes sigue valiendo. Se mira con la pertenencia a clubes (`ClubDirectory`) y las fichas de los deportes de
+ * la partida: ningún deporte conoce a otro. Devuelve el motivo o `undefined`.
+ */
+export function motivoDeCompetirEnOtroDeporte(ctx: ReadContext, deporte: string): string | undefined {
+  const otro = fichasDeDeporte(ctx).find((f) => f.id !== deporte && !!clubDelJugador(ctx, f.id));
+  return otro ? `Ya compites en ${otro.nombre.toLowerCase()}: déjalo antes` : undefined;
+}
+
+/** Las acciones para entrar a competir en este deporte (apuntarse, pedir o hacer la prueba, aceptar plaza) salen no disponibles si ya compite en otro. */
+const soloSiNoCompiteEnOtro = (deporte: string, acciones: readonly ActionDef[]): ActionDef[] =>
+  acciones.map((a) => ({
+    ...a,
+    available: (ctx: ReadContext) => motivoDeCompetirEnOtroDeporte(ctx, deporte) ?? a.available?.(ctx) ?? true,
+  }));
+
+/**
+ * Los entrenamientos por libre del deporte (`cfg.entrenosLibres`) salen en la lista como una sola acción «Entrenar…» con un desplegable (ver `ActionDef.desplegable`). Las acciones
+ * conservan sus ids. Cualquier otra lista larga puede agruparse igual poniendo `desplegable` a sus acciones.
+ */
+export const entrenosAgrupados = (cfg: ConfigDeporte, acciones: readonly ActionDef[]): ActionDef[] =>
+  acciones.map((a) =>
+    cfg.entrenosLibres.includes(a.id) ? { ...a, desplegable: { id: `${cfg.id}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}' } } : a,
+  );
+
+/**
  * Por qué el personaje no entra en el equipo de su categoría de un club: si está completo y todos los que juegan son mejores que él. Si es mejor que alguno,
  * entra y el peor pierde su plaza (lo hace `npcs` al recibir `club.unirse`). `undefined` si puede entrar.
  */
@@ -115,12 +147,15 @@ export function unirseA(ctx: ActionContext, cfg: ConfigDeporte, clubId: string, 
  */
 export function motivoSinFichaje(ctx: ReadContext, cfg: ConfigDeporte, club: string, conPrueba = false): string | undefined {
   const t = ctx.time;
+  /** Cuándo se abren las pruebas y los fichajes: el primer día de la próxima semana con el plazo abierto (el verano), con su fecha. Genérico: lo dicen el calendario del país y la temporada del deporte. */
+  const apertura = (desdeSemana: number): string => diaConFecha(proximaAperturaDelPlazo(ctx.pais.calendario, datosDeDeporte(ctx, cfg.id).temporada, desdeSemana) * 7);
   // Con prueba de acceso, que haya plaza o no lo decide la prueba (su resultado), no lo que vale el personaje de media.
   if (plazoDeFichajesAbierto(ctx.pais.calendario, datosDeDeporte(ctx, cfg.id).temporada, t.schoolWeek)) return conPrueba ? undefined : motivoSinPlaza(ctx, cfg, club);
-  if (clubDelJugador(ctx, cfg.id)) return 'El plazo de fichajes está cerrado hasta el verano: mientras estés en un club no puedes cambiarte';
-  if ((estado(ctx).sinFichajesHasta ?? -1) > t.week) return `Dejaste tu club fuera de plazo: no puedes entrar en otro club de ${cfg.nombre} hasta el siguiente plazo de fichajes (el verano)`;
+  if (clubDelJugador(ctx, cfg.id)) return `El plazo de fichajes está cerrado hasta el verano: mientras estés en un club no puedes cambiarte. Las pruebas de acceso se abren ${apertura(t.week)}`;
+  const sinFichajesHasta = estado(ctx).sinFichajesHasta ?? -1;
+  if (sinFichajesHasta > t.week) return `Dejaste tu club fuera de plazo: no puedes entrar en otro club de ${cfg.nombre} hasta el siguiente plazo de fichajes (el verano). Las pruebas de acceso se abren ${apertura(t.week)}`;
   const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx), cfg.puestos?.(ctx));
-  return plaza && plaza.estado !== 'libre' ? 'El plazo de fichajes está cerrado hasta el verano: ya solo se entra en un club con hueco, sin sacar a nadie, y el equipo de tu categoría está completo' : undefined;
+  return plaza && plaza.estado !== 'libre' ? `El plazo de fichajes está cerrado hasta el verano: ya solo se entra en un club con hueco, sin sacar a nadie, y el equipo de tu categoría está completo. Las pruebas de acceso se abren ${apertura(t.week)}` : undefined;
 }
 
 /**
@@ -152,7 +187,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
         : [];
     // Con puestos (el fútbol), a todos los clubes de la zona se entra con una prueba de acceso (`prueba.<club>`), también a los que no exigen nivel: solo el club del colegio se salta la prueba.
     const conPuestos = !!cfg.puestos;
-    const elegirPuesto: ActionDef[] = conPuestos && cfg.puestosDelDeporte?.length ? accionesDeElegirPuesto(cfg) : [];
+    const cambioDePuesto: ActionDef[] = conPuestos && cfg.puestosDelDeporte?.length ? accionesDeCambioDePuesto(cfg) : [];
     // Los clubes de la zona sin prueba de acceso (deportes sin puestos): cualquiera puede apuntarse con la regla de plaza (hueco, o mejor que el peor del equipo de su categoría), dentro del plazo de fichajes.
     const deLaZona: ActionDef[] = !actual && !conPuestos
       ? clubes
@@ -171,7 +206,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
             }),
           )
       : [];
-    return [...apuntarse, ...deLaZona, ...elegirPuesto, ...clubes
+    const entrar = [...apuntarse, ...deLaZona, ...clubes
       .list(deporte)
       .filter((c) => !c.esColegio && c.id !== actual?.id && (c.acceso?.[deporte] || conPuestos))
       .flatMap((c): ActionDef[] => {
@@ -182,6 +217,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
           description: `Pasaste la prueba y te ofrecen entrar. Si todavía eres de otro club y no lo has dejado antes, lo dejas plantado: empeora tu relación con su entrenador y su equipo y te estresa. La plaza vale ${SEMANAS_DE_OFERTA} semanas.`,
           tags: [deporte],
           group: 'Club',
+          desplegable: { id: `${deporte}.aceptar_plaza`, nombre: 'Aceptar plaza…', etiqueta: 'Club', boton: '{nombre}', opcion: c.nombre },
           duration: 15,
           available: (c2) => {
             const semana = estado(c2).ofertas?.[c.id];
@@ -204,6 +240,20 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
             unirseA(c2, cfg, c.id, tras);
           },
         });
+        /** Lo que impide hacer la prueba de un club, salvo la hora (baja, plazo, edad, espera desde la última). */
+        const noPuedeProbar = (c2: ReadContext): string | undefined => {
+          const t = c2.time;
+          if (c2.stat(GEN.baja) > 0) return 'Estás de baja por una lesión';
+          const sinFichaje = motivoSinFichaje(c2, cfg, c.id, conPuestos);
+          if (sinFichaje) return sinFichaje;
+          if (acceso && edadDelJugador(c2) < acceso.edadMin) return `Hay que tener ${acceso.edadMin} años para probar en el ${c.nombre}`;
+          const ultima = estado(c2).pruebas?.[c.id];
+          if (ultima !== undefined && t.week - ultima < SEMANAS_ENTRE_PRUEBAS) return 'Hiciste la prueba hace poco: espera unas semanas';
+          return undefined;
+        };
+        /** Las pruebas se hacen en las sesiones de entrenamiento del club. */
+        const enHorasDelClub = (c2: ReadContext): string | undefined => (c.sesiones.weekdays.includes(c2.time.weekday) && inHours(c2.time, c.sesiones.desde, c.sesiones.hasta - 1) ? undefined : `Las pruebas se hacen en los entrenamientos: ${textoDeSesiones(c.sesiones)}`);
+        if (conPuestos) return [...pruebaPorPuestosEnPasos(cfg, c, ctx, noPuedeProbar, enHorasDelClub), aceptar];
         const prueba = conLugar(tramitesDe(c), {
           id: `${deporte}.prueba.${c.id}`,
           name: `Prueba de acceso: ${c.nombre}`,
@@ -212,18 +262,9 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
             : `El ${c.nombre} hace pruebas a quien quiere entrar, solo en sus horas de entrenamiento. ${infoDeClub(ctx, cfg, c)} Exige edad (${acceso!.edadMin}+) y nivel; si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
           tags: [TAGS.fisico, deporte],
           group: 'Club',
+          desplegable: { id: `${deporte}.prueba`, nombre: 'Prueba de acceso…', etiqueta: 'Club', boton: '{nombre}', opcion: c.nombre },
           duration: 150,
-          available: (c2) => {
-            const t = c2.time;
-            if (c2.stat(GEN.baja) > 0) return 'Estás de baja por una lesión';
-            const sinFichaje = motivoSinFichaje(c2, cfg, c.id, conPuestos);
-            if (sinFichaje) return sinFichaje;
-            if (acceso && edadDelJugador(c2) < acceso.edadMin) return `Hay que tener ${acceso.edadMin} años para probar en el ${c.nombre}`;
-            const ultima = estado(c2).pruebas?.[c.id];
-            if (ultima !== undefined && t.week - ultima < SEMANAS_ENTRE_PRUEBAS) return 'Hiciste la prueba hace poco: espera unas semanas';
-            // Las pruebas se hacen en las sesiones de entrenamiento del club.
-            return c.sesiones.weekdays.includes(t.weekday) && inHours(t, c.sesiones.desde, c.sesiones.hasta - 1) ? true : `Las pruebas se hacen en los entrenamientos: ${textoDeSesiones(c.sesiones)}`;
-          },
+          available: (c2) => noPuedeProbar(c2) ?? enHorasDelClub(c2) ?? true,
           delta: { [GEN.energia]: -25, [GEN.estres]: 6 },
           run: (c2) => {
             const t = c2.time;
@@ -245,6 +286,7 @@ export function accionesDeClubes(cfg: ConfigDeporte): (ctx: ReadContext) => Acti
         });
         return [prueba, aceptar];
       })];
+    return [...soloSiNoCompiteEnOtro(deporte, entrar), ...cambioDePuesto];
   };
 }
 
@@ -274,7 +316,12 @@ export function sesionDeClub(cfg: ConfigDeporte, def: { description: string; tag
     },
     delta: def.delta,
     train: def.train,
-    run: (ctx) => ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimaSesionClub: ctx.time.day })),
+    run: (ctx) => {
+      ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimaSesionClub: ctx.time.day }));
+      // Incorporarse tarde ya cuesta la parte de sesión perdida; además se avisa, por si alguien quiere contarlo (los sucesos).
+      const tarde = ctx.time.minuteOfDay - (clubDelJugador(ctx, deporte)?.sesiones.desde ?? 24) * 60;
+      if (tarde > TOLERANCIA_DE_SESION) ctx.emit<ClubImpuntualData>({ type: SHARED_EVENTS.SESION_TARDE, data: { sport: deporte, minutos: tarde } });
+    },
   };
 }
 
@@ -376,23 +423,9 @@ export function pedirConsejo(cfg: ConfigDeporte, habilidades: readonly Habilidad
 /** El nombre de un puesto del deporte («lateral izquierdo»), o su id. */
 const nombreDePuesto = (cfg: ConfigDeporte, id: string): string => cfg.puestosDelDeporte?.find((p) => p.id === id)?.nombre ?? id;
 
-/** Pedir jugar en un puesto en las pruebas de acceso (una acción por puesto) o dejarlo a lo que más vale. La regla de plaza se mide en el puesto pedido. */
-function accionesDeElegirPuesto(cfg: ConfigDeporte): ActionDef[] {
+/** La propuesta del entrenador al empezar el curso: aceptarla o dejarla. (Pedir jugar en un puesto ya no es una acción de la lista: en la prueba lo pregunta el entrenador y, ya en el equipo, se le pide desde su ficha: `pedirPuesto`.) */
+function accionesDeCambioDePuesto(cfg: ConfigDeporte): ActionDef[] {
   const { id: deporte } = cfg;
-  const elegir = (id: string | undefined, nombre: string): ActionDef => ({
-    id: `${deporte}.elegir_puesto.${id ?? 'ninguno'}`,
-    name: id ? `Pedir jugar de ${nombre} en las pruebas` : 'Dejar que el club decida tu puesto en las pruebas',
-    description: id ? `En las pruebas de acceso y al apuntarte, la plaza se mide en este puesto: ${nombre}. El entrenador te puede proponer otro y tú decides si lo aceptas.` : 'Sin puesto pedido, la prueba se mide en aquel en que más vales.',
-    tags: [deporte],
-    group: 'Puesto',
-    duration: 1,
-    available: (ctx) => ((ctx.state<EstadoBaseDeDeporte>().puestoElegido ?? undefined) === id ? 'Ya está elegido' : true),
-    run: (ctx) =>
-      ctx.updateState<EstadoBaseDeDeporte>((s) => {
-        const { puestoElegido: _antes, ...resto } = s;
-        return id ? { ...resto, puestoElegido: id } : resto;
-      }),
-  });
   // La propuesta del entrenador al empezar el curso: aceptarla (el equipo cuenta con él en el nuevo puesto) o dejarla.
   const propuesta = (aceptar: boolean): ActionDef => ({
     id: `${deporte}.${aceptar ? 'aceptar' : 'rechazar'}_cambio_de_puesto`,
@@ -414,7 +447,7 @@ function accionesDeElegirPuesto(cfg: ConfigDeporte): ActionDef[] {
       }
     },
   });
-  return [...(cfg.puestosDelDeporte ?? []).map((p) => elegir(p.id, p.nombre.toLowerCase())), elegir(undefined, ''), propuesta(true), propuesta(false)];
+  return [propuesta(true), propuesta(false)];
 }
 
 /**
@@ -427,7 +460,7 @@ function pruebaPorPuestos(ctx: ActionContext, cfg: ConfigDeporte, c: ClubView): 
   const z = ctx.rng.normal();
   const valores = Object.fromEntries(Object.entries(cfg.puestos!(ctx)).map(([p, v]) => [p, valorDeLaPrueba(v, ctx.efficiency, z)]));
   const nivel = valorDeLaPrueba(cfg.rendimiento(ctx), ctx.efficiency, z);
-  const elegido = estado(ctx).puestoElegido;
+  const elegido = estado(ctx).pruebaEnCurso?.puesto;
   const pedido = elegido && valores[elegido] !== undefined ? elegido : undefined;
   const entra = (p?: { estado: string }): boolean => p?.estado === 'libre' || p?.estado === 'por_merito';
   let plaza = npcs?.plaza?.(deporte, c.id, nivel, valores, { puesto: pedido });
@@ -439,7 +472,11 @@ function pruebaPorPuestos(ctx: ActionContext, cfg: ConfigDeporte, c: ClubView): 
       propuesto = true;
     }
   }
-  ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, pruebas: { ...(s.pruebas ?? {}), [c.id]: ctx.time.week } }));
+  ctx.updateState<EstadoBaseDeDeporte>((s) => {
+    const { pruebaEnCurso: _en, pruebaPedida: pedidas, ...resto } = s;
+    const { [c.id]: _pedida, ...restoPedidas } = pedidas ?? {};
+    return { ...resto, pruebas: { ...(s.pruebas ?? {}), [c.id]: ctx.time.week }, ...(Object.keys(restoPedidas).length ? { pruebaPedida: restoPedidas } : {}) };
+  });
   if (!plaza || !entra(plaza) || !plaza.puesto) {
     const motivo = plaza?.estado === 'no_llega' ? 'no llegas a lo que pide el club en ese puesto' : 'el equipo de tu categoría está completo en ese puesto y juegan mejor que tú';
     ctx.log(`Prueba en ${c.nombre}: ${motivo}. Sigue entrenando y vuelve a intentarlo (otro puesto, otro club o más adelante).`, 'aviso');
@@ -462,3 +499,109 @@ function pruebaPorPuestos(ctx: ActionContext, cfg: ConfigDeporte, c: ClubView): 
   unirseA(ctx, cfg, c.id, tras);
   ctx.log(`Has pasado la prueba de ${c.nombre}: entras en el equipo de tu categoría, de ${nombre}.`, 'logro');
 }
+
+/** Los puestos donde a un equipo le faltan jugadores: aquellos en que un candidato que valiera 100 entraría «por hueco» (no por superar al peor). */
+export function huecosDelEquipo(ctx: ReadContext, cfg: ConfigDeporte, club: string): string[] {
+  const npcs = ctx.service<NpcDirectory>(SERVICES.npcs);
+  if (!npcs?.plaza || !cfg.puestosDelDeporte) return [];
+  const ceros = Object.fromEntries(cfg.puestosDelDeporte.map((p) => [p.id, 0]));
+  return cfg.puestosDelDeporte.filter((p) => npcs.plaza(cfg.id, club, 100, { ...ceros, [p.id]: 100 }, { puesto: p.id }).estado === 'libre').map((p) => p.id);
+}
+
+/** Hasta cuántos grupos de puestos nombra el entrenador en la prueba: con más grupos con hueco dice que necesita «varios». */
+export const GRUPOS_QUE_NOMBRA_EL_ENTRENADOR = 2;
+
+/**
+ * Lo que el entrenador dice que más necesita en la prueba de acceso (`NpcDirectory.huecosPorGrupo`): los grupos de puestos con más jugadores que le faltan (cupo − los que hay), y a igualdad, aquel en que
+ * falta mayor parte del cupo. Con **a lo sumo 2 grupos** con hueco los nombra («centrales y laterales»); con más, `necesita` queda vacío (dice que necesita en varios). `nGrupos` cuenta todos los que tienen hueco.
+ */
+export function necesidadesDelEquipo(ctx: ReadContext, deporte: string, club: string, huecos: readonly string[]): { nGrupos: number; necesita: string } {
+  const grupos = (ctx.service<NpcDirectory>(SERVICES.npcs)?.huecosPorGrupo?.(deporte, club) ?? []).filter((g) => g.puestos.some((p) => huecos.includes(p)));
+  const orden = [...grupos].sort((a, b) => b.huecos - a.huecos || b.huecos / b.cupo - a.huecos / a.cupo);
+  return { nGrupos: grupos.length, necesita: grupos.length <= GRUPOS_QUE_NOMBRA_EL_ENTRENADOR ? orden.map((g) => g.nombre.toLowerCase()).join(' y ') : '' };
+}
+
+/** El entrenador de un club que lleva la edad del personaje (los clubes tienen varios): conocido o no. */
+export function entrenadorDeClub(ctx: ReadContext, club: string): NpcView | undefined {
+  const edad = edadDelJugadorDeTemporada(ctx);
+  return ctx.service<NpcDirectory>(SERVICES.npcs)?.list({ role: 'entrenador' }).find((n) => n.club === club && (!n.edades || (edad >= n.edades[0] && edad <= n.edades[1])));
+}
+
+/**
+ * La prueba de acceso de un club con puestos, en tres pasos (el entrenador pregunta dónde quiere jugar en medio, con un suceso: `sucesoDePruebaDeAcceso`):
+ *  1. **Pedir hacer una prueba** (en los trámites del club, en sus horas): te dicen cuándo entrena el equipo que te toca.
+ *  2. **Unirte al entrenamiento de prueba** (en su sede, en esas horas): sale el suceso, el entrenador se presenta, dice qué puestos necesita (los 2 en que más le faltan, o «varios») y te deja elegir puesto: si es un hueco, te prueba ahí; si no, te prueba donde decida él.
+ *  3. **Entrenar a prueba con el equipo**: al acabar te dicen qué tal ha ido y la plaza se mide en el puesto en que te han probado (`pruebaPorPuestos`).
+ * Solo salen los pasos que tocan (el 2 y el 3 del club que has pedido) para no llenar la lista.
+ */
+function pruebaPorPuestosEnPasos(
+  cfg: ConfigDeporte,
+  c: ClubView,
+  ctx: ReadContext,
+  noPuedeProbar: (c2: ReadContext) => string | undefined,
+  enHorasDelClub: (c2: ReadContext) => string | undefined,
+): ActionDef[] {
+  const deporte = cfg.id;
+  /** Los tres pasos de la prueba salen en el mismo desplegable «Prueba de acceso…» que la de los demás clubes. */
+  const desplegableDePrueba = (opcion: string): NonNullable<ActionDef['desplegable']> => ({ id: `${deporte}.prueba`, nombre: 'Prueba de acceso…', etiqueta: 'Club', boton: '{nombre}', opcion });
+  const pedida = estado(ctx).pruebaPedida?.[c.id];
+  const enCurso = estado(ctx).pruebaEnCurso;
+  const sucesoPendiente = (c2: ReadContext): boolean => !!c2.service<SucesosService>(SERVICES.sucesos)?.pendientes().some((p) => p.suceso === idDeSucesoDePrueba(deporte));
+  const pedir = conLugar(tramitesDe(c), {
+    id: `${deporte}.pedir_prueba.${c.id}`,
+    name: `Pedir hacer una prueba en ${c.nombre}`,
+    description: `Pides probar con el equipo que te toca por edad. Te dicen cuándo entrena (${textoDeSesiones(c.sesiones)}): te presentas a esa hora y te unes al entrenamiento. ${infoDeClub(ctx, cfg, c)} Si no pasas, puedes repetirla pasadas ${SEMANAS_ENTRE_PRUEBAS} semanas.`,
+    tags: [TAGS.social, deporte],
+    group: 'Club',
+    desplegable: desplegableDePrueba(c.nombre),
+    duration: 10,
+    available: (c2) => noPuedeProbar(c2) ?? enHorasDelClub(c2) ?? (estado(c2).pruebaPedida?.[c.id] === c2.time.week ? 'Ya has pedido la prueba: presentarte al entrenamiento' : true),
+    run: (c2) => {
+      c2.updateState<EstadoBaseDeDeporte>((st) => {
+        const { pruebaEnCurso: _abandonada, ...resto } = st;
+        return { ...resto, pruebaPedida: { ...(st.pruebaPedida ?? {}), [c.id]: c2.time.week } };
+      });
+      c2.log(`Has pedido hacer una prueba en ${c.nombre}: el equipo que te toca entrena ${textoDeSesiones(c.sesiones)}. Preséntate a esa hora y únete al entrenamiento.`, 'info');
+    },
+  });
+  const unirte = conLugar(tramitesDe(c), {
+    id: `${deporte}.prueba.${c.id}`,
+    name: `Unirte al entrenamiento de prueba de ${c.nombre}`,
+    description: 'Llegas al entrenamiento: el entrenador se presenta, dice qué puestos necesita y te pregunta dónde quieres jugar. Después entrenas con ellos y, al acabar, te dicen qué tal ha ido.',
+    tags: [TAGS.fisico, deporte],
+    group: 'Club',
+    desplegable: desplegableDePrueba(`${c.nombre} · entrenamiento de prueba`),
+    duration: 5,
+    available: (c2) => {
+      if (estado(c2).pruebaPedida?.[c.id] === undefined) return `Primero pide hacer una prueba en ${c.nombre}`;
+      if (estado(c2).pruebaEnCurso) return 'Ya estás en una prueba: entrena con el equipo';
+      return noPuedeProbar(c2) ?? enHorasDelClub(c2) ?? true;
+    },
+    run: (c2) => {
+      const huecos = huecosDelEquipo(c2, cfg, c.id);
+      const entrenador = entrenadorDeClub(c2, c.id);
+      c2.updateState<EstadoBaseDeDeporte>((st) => ({ ...st, pruebaEnCurso: { club: c.id } }));
+      c2.emit<PruebaEmpiezaData>({ type: SHARED_EVENTS.PRUEBA_EMPIEZA, data: { sport: deporte, club: c.id, huecos, nHuecos: huecos.length, ...necesidadesDelEquipo(c2, deporte, c.id, huecos), participants: entrenador ? [{ npcId: entrenador.id }] : [] } });
+    },
+  });
+  const entrenar = conLugar(tramitesDe(c), {
+    id: `${deporte}.prueba_entrenar.${c.id}`,
+    name: `Entrenar a prueba con el equipo de ${c.nombre}`,
+    description: 'El resto del entrenamiento de la prueba: cuenta lo que vales ese día en el puesto en que te han probado. Al acabar te dicen qué tal ha ido y, si pasas, entras en el equipo.',
+    tags: [TAGS.fisico, deporte],
+    group: 'Club',
+    desplegable: desplegableDePrueba(`${c.nombre} · entrenar a prueba`),
+    duration: 145,
+    available: (c2) => {
+      if (estado(c2).pruebaEnCurso?.club !== c.id) return 'Primero únete al entrenamiento de prueba';
+      if (sucesoPendiente(c2)) return 'El entrenador te está esperando: decide dónde quieres jugar';
+      return noPuedeProbar(c2) ?? enHorasDelClub(c2) ?? true;
+    },
+    delta: { [GEN.energia]: -25, [GEN.estres]: 6 },
+    run: (c2) => pruebaPorPuestos(c2, cfg, c),
+  });
+  return [pedir, ...(pedida !== undefined && !enCurso ? [unirte] : []), ...(enCurso?.club === c.id ? [entrenar] : [])];
+}
+
+/** El id del suceso de la prueba de acceso de un deporte (lo construye `sucesoDePruebaDeAcceso`). */
+export const idDeSucesoDePrueba = (deporte: string): string => `${deporte}.prueba_de_acceso`;

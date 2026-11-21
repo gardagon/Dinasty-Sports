@@ -18,7 +18,7 @@ import { puestoDondeMasVale, type CondicionesDePrueba } from './puestos';
 
 import { EquipoGuardado, Npc, PoblacionGuardada, clamp, edadDeJuego, edadNpc } from './index';
 import { DIAGNOSTICO, apartarODejar, atractivoDe, conDraft, minimoDe } from './draft';
-import { ListaDeTrabajo, MercadoDeFichajes, capacidadDe, categoriasDelEquipo, colegioDeNino, edadesDe, equiposDelClub, plantelDe, reclutarA, sinDeporte } from './plantillas';
+import { ListaDeTrabajo, MercadoDeFichajes, capacidadConPlazasDeMas, categoriasDelEquipo, colegioDeNino, edadesDe, equiposDelClub, plantelDe, reclutarA, sinDeporte } from './plantillas';
 import { aceptaElPuesto, favoritoDe, ofertasAlCandidato, piernaDe, puestoDeJugador, reglaDePlaza, valorEn, valorEnSuPuesto, valoresPorPuestoDe } from './plaza';
 
 export type Entrada = { entra: false } | { entra: true; desplazado?: Npc };
@@ -36,15 +36,17 @@ export interface OpcionesDeEntrada {
   relajado?: boolean;
   equipoNuevo?: boolean;
   ultimaOpcion?: boolean;
+  /** Cuenta las plazas de más del equipo (solo el último paso del reparto). */
+  plazasDeMas?: boolean;
 }
 
 
 export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: PoblacionGuardada, o: OpcionesDeEntrada = {}): Entrada {
-  const { sinPrueba = false, puestoForzado, soloHueco = false, relajado = false, equipoNuevo = false, ultimaOpcion = false } = o;
+  const { sinPrueba = false, puestoForzado, soloHueco = false, relajado = false, equipoNuevo = false, ultimaOpcion = false, plazasDeMas = false } = o;
   if (!n.genetica || n.nacimiento === undefined) return { entra: false };
   const edad = edadNpc(n, m.dia);
   if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
-  const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas);
+  const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas, plazasDeMas);
   if (!plantel) return { entra: false };
   const potencial = potencialEn(n.id, n.genetica, pob);
   const aspirante = { npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor: valorEn(n, pob, m) };
@@ -188,7 +190,8 @@ export function recolocarPropios(m: MercadoDeFichajes): { id: string; origen: st
     const p = pob.puestos;
     for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria)) {
       for (const u of categoriasDelEquipo(pob, e)) {
-        const max = capacidadDe(e, u.id);
+        // Con las plazas de más que ya tiene abiertas (los que entraron con ellas no salen al empezar el curso: `ajustarPlazasDeMas` las recalcula después).
+        const max = capacidadConPlazasDeMas(e, u.id);
         const cupos = cuposPorGrupo(p, max);
         const miembros = (): Npc[] => [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club && u.edades.includes(edadDeJuego(n, m.dia) ?? -1));
         const grupoDe = (n: Npc): string => grupoDePuesto(p, puestoDeJugador(n, pob, m.val, m.dia) ?? '') ?? '';

@@ -1,0 +1,17 @@
+{
+  "name": "@ds/mod-eventos",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Los eventos base del juego (sucesos como datos), por áreas. Los de cada deporte van en su paquete.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*"
+  },
+  "devDependencies": {
+    "@ds/core": "*",
+    "@ds/mod-personaje": "*"
+  }
+}

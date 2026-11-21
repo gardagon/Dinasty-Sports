@@ -29,8 +29,20 @@ export const SHARED_EVENTS = {
   CLUB_ABANDONO: 'club.abandono',
   /** data: PlazaPerdidaData — un jugador del mundo con mejor nivel ha ocupado la plaza del personaje en su equipo: sale del club, como cualquier niño, y decide él qué hace. */
   PLAZA_PERDIDA: 'club.plaza_perdida',
+  /** data: PlazaPerdidaData — el personaje habría perdido su plaza en los fichajes de verano pero sigue en el equipo con una plaza de más (se pasa 1–2 del máximo): el entrenador le avisa de que contará menos con él (suceso `<deporte>.plaza_extra`). Sigue siendo del club; puede ir a probar a otros. */
+  PLAZA_EXTRA: 'club.plaza_extra',
+  /** data: EquipoSinNinosData — al empezar el curso, el equipo del personaje no existe este año: su club no tiene niños suficientes en su categoría (el equipo se cierra) o no tiene equipo en la categoría a la que sube. Sale del club como cualquier niño y tiene que buscarse equipo (suceso `<deporte>.equipo_sin_ninos`). */
+  EQUIPO_SIN_NINOS: 'club.equipo_sin_ninos',
   /** Al empezar el curso, el entrenador le propone al personaje jugar en otro puesto (sobran en el suyo y faltan en otro): decide él. */
   PROPUESTA_DE_PUESTO: 'club.propuesta_de_puesto',
+  /** data: PruebaEmpiezaData — el personaje se presenta a la prueba de acceso de un club con puestos: el entrenador se presenta y, si faltan jugadores en varios puestos, le pregunta dónde quiere jugar. */
+  PRUEBA_EMPIEZA: 'club.prueba_empieza',
+  /** data: PruebaPuestoData — el puesto en que le van a probar (el que eligió entre los huecos o, sin él, el que decida el entrenador): lo apunta el deporte para medir la plaza. */
+  PRUEBA_PUESTO: 'club.prueba_puesto',
+  /** data: PuestoPropuestoData (solo `sport`) — el personaje le ha pedido a su entrenador jugar en otro puesto por un camino que no es la ficha (p. ej. en el primer entrenamiento): cuenta para el plazo de la ficha (`PEDIR_PUESTO`). */
+  PETICION_DE_PUESTO: 'club.peticion_de_puesto',
+  /** data: PidePuestoData — el personaje le pide a su entrenador jugar en otro puesto (desde su ficha): un suceso decide con una tirada. */
+  PIDE_PUESTO: 'club.pide_puesto',
   /** El personaje acepta el cambio de puesto que le propuso su entrenador: el equipo cuenta con él en el nuevo. */
   CAMBIO_DE_PUESTO: 'club.cambio_de_puesto',
   /** data: ClassAttendedData — el personaje ha ido a una clase (el profesor de esa asignatura se presenta si no lo conoce). */
@@ -51,7 +63,70 @@ export const SHARED_EVENTS = {
   CLUB_IMPUNTUAL: 'club.impuntual',
   /** data: PartidoDelMundoData — se ha jugado un partido de un deporte de equipo entre PNJ (o con el personaje): el estado de quienes jugaron cambia como tras una carrera. */
   PARTIDO_MUNDO: 'partido.mundo',
+  /** data: CambioDeRelacionData — algo que ha pasado (un suceso) cambia el vínculo del personaje con alguien: lo aplica `relaciones` con sus reglas. */
+  CAMBIO_DE_RELACION: 'relacion.cambio',
+  /** data: CambioDeFamiliaData — algo que ha pasado cambia el apoyo o las expectativas de un progenitor: lo aplica `familia`. */
+  CAMBIO_DE_FAMILIA: 'familia.cambio',
+  /** data: CambioDeCaracterData — una decisión mueve los ejes de carácter del personaje: lo aplica quien guarda su perfil. */
+  CAMBIO_DE_CARACTER: 'perfil.caracter',
+  /** data: PerkReveladoData — el personaje descubre un perk latente que tenía: lo apunta quien guarda sus perks. */
+  PERK_REVELADO: 'perk.revelado',
+  /** data: ClubImpuntualData — el personaje se ha incorporado tarde a una sesión de entrenamiento de su club (más de `TOLERANCIA_DE_SESION` minutos). No cambia nada por sí sola: quien quiera contarlo lo recoge. */
+  SESION_TARDE: 'club.sesion_tarde',
+  /** data: LesionDePersonaData — una persona del mundo se ha lesionado esta semana (su baja ya está en su estado): quien quiera contarlo o darle consecuencias lo recoge. */
+  LESION_DE_PERSONA: 'persona.lesion',
+  /** data: EstadoDePersonaData — algo que ha pasado cambia el estado de juego de una persona del mundo (moral, forma, condición, salud, semanas de baja): lo aplica quien la guarda. */
+  ESTADO_DE_PERSONA: 'persona.estado',
 } as const;
+
+export interface LesionDePersonaData {
+  npcId: string;
+  /** Semanas de baja. */
+  semanas: number;
+  deporte: string;
+}
+
+/** Cambios (se suman) en el estado de juego de una persona: los mismos campos que `EstadoDeJugador`. */
+export interface CambioDeEstadoDeJugador {
+  moral?: number;
+  forma?: number;
+  fisica?: number;
+  salud?: number;
+  /** Semanas de baja de más o de menos (nunca deja a un lesionado con menos de una, ni lesiona a quien está sano). */
+  baja?: number;
+}
+
+export interface EstadoDePersonaData extends CambioDeEstadoDeJugador {
+  npcId: string;
+}
+
+export interface CambioDeRelacionData {
+  npcId: string;
+  /** Puntos de afinidad y de confianza que se suman (pueden ser negativos). */
+  afinidad?: number;
+  confianza?: number;
+  /** Qué lo ha causado (el id del suceso), para el registro. */
+  motivo?: string;
+}
+
+export interface CambioDeFamiliaData {
+  /** Id de la persona (el progenitor). */
+  npcId: string;
+  apoyo?: number;
+  expectativas?: number;
+}
+
+export interface CambioDeCaracterData {
+  /** Puntos que se mueve cada eje (de −50 a 50). */
+  ejes: Readonly<Record<string, number>>;
+}
+
+export interface PerkReveladoData {
+  perk: string;
+}
+
+/** Minutos de retraso que no cuentan al incorporarse a una sesión del club. */
+export const TOLERANCIA_DE_SESION = 10;
 
 /** El personaje llegó tarde a la convocatoria de un partido (`minutos` después de la hora en que se convoca). */
 export interface ClubImpuntualData {
@@ -120,10 +195,52 @@ export interface PlazaPerdidaData {
   clubId: string;
 }
 
+/** Por qué el equipo del personaje no sigue (`EQUIPO_SIN_NINOS`): `pocos` (el club no reúne el mínimo de niños en su categoría: el equipo se cierra) o `sin_categoria` (el club no tiene equipos en la categoría a la que sube). */
+export type MotivoDeEquipoSinNinos = 'pocos' | 'sin_categoria';
+
+export interface EquipoSinNinosData {
+  sport: string;
+  clubId: string;
+  motivo: MotivoDeEquipoSinNinos;
+  /** Con `pocos`: cuántos niños (con él) quedaban en la categoría y cuántos pide un equipo. */
+  jugadores?: number;
+  minimo?: number;
+}
+
 /** La propuesta de puesto del entrenador al personaje (`PROPUESTA_DE_PUESTO`) o el puesto al que cambia (`CAMBIO_DE_PUESTO`). */
 export interface PuestoPropuestoData {
   sport: string;
   puesto: string;
+}
+
+/**
+ * `PRUEBA_EMPIEZA`: `huecos` son los puestos donde al equipo le faltan jugadores; `participants`, el entrenador que le atiende. `nGrupos` es en cuántos grupos de puestos (porteros, centrales…) falta gente
+ * y `necesita`, lo que el entrenador dice que necesita: los dos grupos en que más le faltan («centrales y laterales»), o vacío si faltan en más de dos (dice «varios»).
+ */
+export interface PruebaEmpiezaData {
+  sport: string;
+  club: string;
+  huecos: string[];
+  nHuecos: number;
+  nGrupos: number;
+  necesita: string;
+  participants: { npcId: string }[];
+}
+
+/** `PRUEBA_PUESTO`: sin `puesto`, decide el entrenador (el que más vale, prefiriendo un hueco). */
+export interface PruebaPuestoData {
+  sport: string;
+  puesto?: string;
+}
+
+/** `PIDE_PUESTO`: `ventaja` es lo que vale más (o menos, si es negativa) en el puesto que pide que en el suyo; `diasDesdeLaUltima`, los días desde que se lo pidió por última vez (o 999). */
+export interface PidePuestoData {
+  sport: string;
+  puesto: string;
+  puestoNombre: string;
+  ventaja: number;
+  diasDesdeLaUltima: number;
+  participants: { npcId: string }[];
 }
 
 export interface ClubJoinData {
@@ -154,6 +271,8 @@ export interface FaltasExcesivasData {
 export interface ClassAttendedData {
   /** Id de la asignatura (la stat), p. ej. `estudios.lengua`. */
   asignatura: string;
+  /** Minutos que llegó tarde (0 si entró a su hora). */
+  tarde?: number;
 }
 
 export interface ClubAbandonoData {

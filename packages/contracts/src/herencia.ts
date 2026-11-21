@@ -22,6 +22,9 @@ export const HERENCIA = {
   nivelInicial: { factorMin: 0.7, factorMax: 0.9, variacion: 0.3, bajo: 22, alto: 80 },
 } as const;
 
+/** Familias de herencia (`ctx.herencia`) que se sortean con un generador propio y no con el de la partida: la genética del cuerpo (puntuaciones típicas, como la estatura). */
+export const FAMILIAS_ESTABLES: readonly string[] = ['metabolismo', 'musculatura'];
+
 export type Dificultad = 'facil' | 'normal' | 'dificil';
 
 /** Cuatro bandas fijas en todas las dificultades; la dificultad solo cambia cuántas capacidades caen en cada una. */

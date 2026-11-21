@@ -5,6 +5,9 @@ import type { StatDef } from './stats';
 
 export type EventHandler<T = any> = (ctx: ActionContext, event: GameEvent<T>) => void;
 
+/** Clave de `GameModule.on` para escuchar todos los eventos. */
+export const CUALQUIER_EVENTO = '*';
+
 /**
  * EL CONTRATO. Un módulo es un objeto declarativo: dice qué características aporta,
  * qué se puede hacer, cómo influye en los demás (por etiquetas) y qué eventos escucha.
@@ -34,7 +37,10 @@ export interface GameModule<S = unknown> {
    */
   resolverAccion?: (ctx: ReadContext, id: string) => ActionDef | undefined;
   modifiers?: ModifierDef[];
-  /** Escucha de eventos: `{ 'dia.fin': (ctx, ev) => ... }`. */
+  /**
+   * Escucha de eventos: `{ 'dia.fin': (ctx, ev) => ... }`. Con la clave `'*'` (`CUALQUIER_EVENTO`) se escuchan todos, después de quienes
+   * escuchan ese evento por su nombre: es para módulos que no saben al compilar qué eventos les importan (les llegan como datos).
+   */
   on?: Record<string, EventHandler>;
   /** Servicios que publica (ver services.ts). */
   services?: Record<string, (ctx: ReadContext) => unknown>;

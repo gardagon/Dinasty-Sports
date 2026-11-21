@@ -224,6 +224,12 @@ const deColegio = cierres.filter((x) => x.club.startsWith('colegio'));
 for (const c of deColegio) tam.set(c.jugadores, (tam.get(c.jugadores) ?? 0) + 1);
 console.log(`Cierres de colegio: ${deColegio.length} (de ${cierres.length} cierres en total, ${cierres.length - deColegio.length} de clubes). Con N jugadores: ${[...tam].sort((a, b) => b[0] - a[0]).map(([n, c]) => `${n}: ${c}`).join(' · ')}`);
 console.log(`Al cerrar: ${deColegio.filter((c) => c.montables === 0).length} se cierran enteros (menos de 14), ${deColegio.filter((c) => c.montables > 0).length} pierden solo un equipo de varios.\n`);
+// Los clubes de fuera (su cierre es lo que preocupa al cambiar el reparto: llegan menos alumnos de los colegios con club): por categoría, cuántos y con cuántos jugadores se quedaron.
+const deFuera = cierres.filter((x) => !x.club.startsWith('colegio'));
+const fuera = new Map<number, number>();
+for (const c of deFuera) fuera.set(c.jugadores, (fuera.get(c.jugadores) ?? 0) + 1);
+console.log(`Cierres de clubes de fuera: ${deFuera.length}. Por categoría: ${CATEGORIAS.map((c) => `${c} ${deFuera.filter((x) => x.cat === c).length}`).join(' · ')}. Por verano: ${Array.from({ length: VERANOS }, (_, v) => `${v + 1}: ${deFuera.filter((x) => x.verano === v + 1).length}`).join(' · ')}. Con N jugadores: ${[...fuera].sort((a, b) => b[0] - a[0]).map(([n, c]) => `${n}: ${c}`).join(' · ')}`);
+console.log(`Al cerrar (clubes de fuera): ${deFuera.filter((c) => c.montables === 0).length} se cierran enteros (menos de 14), ${deFuera.filter((c) => c.montables > 0).length} pierden solo un equipo de varios (media de equipos antes del cierre: ${f1(media(deFuera.map((c) => c.equipos)))}).\n`);
 console.log('### La categoría de arriba al año siguiente de un equipo que se cerró (colegios)\n');
 const cer = siguiente.filter((x) => x.cerrado), noc = siguiente.filter((x) => !x.cerrado);
 console.log(`Tras un cierre (${cer.length} casos): la categoría de arriba tiene ${f1(media(cer.map((x) => x.tamano)))} jugadores, de los que ${f1(media(cer.map((x) => x.suben)))} suben de abajo, y hay equipo (14+) en ${cer.filter((x) => x.tamano >= 14).length} de ${cer.length}.`);

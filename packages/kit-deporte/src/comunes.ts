@@ -11,6 +11,7 @@ import {
   type ActionDoneData,
   type PlazaPerdidaData,
   type PuestoPropuestoData,
+  type PruebaPuestoData,
   type EventHandler,
   type FamilyService,
   type ModifierDef,
@@ -34,11 +35,16 @@ export const EFECTO_CONOCIMIENTO = { min: 0.9, rango: 0.25 };
 const estado = (ctx: ReadContext) => ctx.state<EstadoBaseDeDeporte>();
 const caminoDeVerano = (ctx: ReadContext) => ctx.service<StudiesService>(SERVICES.estudios)?.summerPath() ?? null;
 
+/** El nombre del deporte para una lista («Atletismo»): en `cfg.nombre` va en minúscula, para las frases. */
+const nombreConMayuscula = (cfg: ConfigDeporte): string => cfg.nombre.charAt(0).toUpperCase() + cfg.nombre.slice(1);
+
 /** Campamento del deporte en verano (`<deporte>.campamento`), para quien saca buenas notas: una jornada completa con entrenadores. */
 export function campamento(cfg: ConfigDeporte, def: { tags: string[]; delta: Record<StatId, number>; train: Entreno }): ActionDef {
   return {
     id: `${cfg.id}.campamento`,
     name: `Campamento de ${cfg.nombre}`,
+    // Con dos deportes, un solo «Campamento…» (con uno solo, un botón normal).
+    desplegable: { id: 'verano.campamento', nombre: 'Campamento…', etiqueta: 'Deporte', boton: '{nombre}', opcion: nombreConMayuscula(cfg) },
     description: 'Con buenas notas, tus padres te dejan ir a un campamento del deporte que practicas: una jornada completa de entrenamiento con entrenadores. Mejoras más que de ninguna otra forma.',
     tags: def.tags,
     group: 'Verano',
@@ -61,6 +67,8 @@ export function conLosAmigos(cfg: ConfigDeporte, def: { description: string; tag
   return {
     id: `${cfg.id}.amigos`,
     name: 'Practicar con los amigos',
+    // Con dos deportes, un solo «Practicar con los amigos…» (los dos botones se llamaban igual).
+    desplegable: { id: 'verano.amigos', nombre: 'Practicar con los amigos…', etiqueta: 'Deporte', boton: 'Practicar con los amigos: {opcion}', opcion: nombreConMayuscula(cfg) },
     description: def.description,
     tags: def.tags,
     group: 'Verano',
@@ -82,6 +90,8 @@ export function verEnLaTele(cfg: ConfigDeporte, description: string): ActionDef 
   return {
     id: `${cfg.id}.ver_tele`,
     name: `Ver ${cfg.nombre} en la tele`,
+    // Con dos deportes, un solo «Ver en la tele…».
+    desplegable: { id: 'tiempo_libre.tele', nombre: 'Ver un deporte en la tele…', etiqueta: 'Deporte', boton: '{nombre}', opcion: nombreConMayuscula(cfg) },
     description,
     tags: [TAGS.mental],
     group: 'Tiempo libre',
@@ -181,6 +191,25 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
       ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, propuestaDePuesto: d.puesto }));
       const nombre = cfg.puestosDelDeporte?.find((p) => p.id === d.puesto)?.nombre.toLowerCase() ?? d.puesto;
       ctx.log(`Tu entrenador de ${cfg.nombre} te propone jugar este curso de ${nombre}: en tu puesto sobran jugadores y en ese faltan. Tú decides si lo aceptas.`, 'info');
+    },
+    // La prueba de acceso: el puesto en que le van a probar (elegido entre los huecos o, sin él, el que decida el entrenador).
+    [SHARED_EVENTS.PRUEBA_PUESTO]: (ctx, ev) => {
+      const d = ev.data as PruebaPuestoData;
+      const en = estado(ctx).pruebaEnCurso;
+      if (d.sport !== cfg.id || !en) return;
+      const { puesto: _antes, ...resto } = en;
+      ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, pruebaEnCurso: d.puesto && cfg.puestosDelDeporte?.some((p) => p.id === d.puesto) ? { ...resto, puesto: d.puesto } : resto }));
+    },
+    // Una petición de puesto hecha fuera de la ficha (p. ej. en el primer entrenamiento): cuenta para las 4 semanas antes de que el entrenador se lo tome mal.
+    [SHARED_EVENTS.PETICION_DE_PUESTO]: (ctx, ev) => {
+      if ((ev.data as { sport?: string }).sport !== cfg.id) return;
+      ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimaPeticionDePuesto: ctx.time.day }));
+    },
+    // El cambio de puesto (aceptado con su acción, o concedido por el entrenador en un suceso): el deporte apunta dónde juega ahora.
+    [SHARED_EVENTS.CAMBIO_DE_PUESTO]: (ctx, ev) => {
+      const d = ev.data as PuestoPropuestoData;
+      if (d.sport !== cfg.id || !cfg.puestosDelDeporte?.some((p) => p.id === d.puesto)) return;
+      if (estado(ctx).puesto !== d.puesto) ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, puesto: d.puesto }));
     },
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
       const d = ev.data as ActionDoneData;

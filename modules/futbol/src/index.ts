@@ -14,6 +14,10 @@ import {
   MINUTES_PER_DAY,
   SHARED_EVENTS,
   semanasDeTemporada,
+  situacionDelDeporte,
+  temporadaTerminada,
+  diaConFecha,
+  type SituacionDeTemporada,
   CAMPOS_DEL_COMPLEJO,
   conLugar,
   type ActionContext,
@@ -37,6 +41,7 @@ import {
   type CompetitionResultData,
   type IrAData,
   type JugadorDeEquipoView,
+  type PrevisionDelClubView,
   type LogTable,
   type RelationsService,
   type SeccionDeDeporte,
@@ -66,6 +71,7 @@ import {
   sedeDelClub as sedeDelClubEn,
   semillaDeSesionDeEquipo,
   sesionDeClubConEjercicios,
+  entrenosAgrupados,
   sinEntrenarPorLibreEnSesion,
   textoDeSesiones,
   tramitesDe,
@@ -73,14 +79,23 @@ import {
   verEnLaTele,
   type ConfigDeporte,
   type EstadoBaseDeDeporte,
+  resolverPedirPuesto,
+  servicioDePedirPuesto,
+  sucesoDePedirPuesto,
+  sucesoDePlazaExtra,
+  sucesoDeEquipoSinNinos,
+  sucesoDePruebaDeAcceso,
 } from '@ds/kit-deporte';
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 import { PUESTOS_DE_FUTBOL } from './puestos';
+import { EVENTOS_DE_FUTBOL } from './eventos';
+import { TEXTOS_DE_EQUIPO_SIN_NINOS, TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
+import { APORTE_DE_SUCESOS, servicioDeHechos, type HechosService } from '@ds/contracts';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
-import { convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, posicionEquivalente, type Convocatoria } from './convocatoria';
+import { convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, paraConvocarElEquipo, posicionEquivalente, type Convocatoria } from './convocatoria';
 import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, nombreDeIntensidad, proximoPartido, situacionEnLaLiga, textoDeResultados, ultimosResultados, type LineaDeCronica } from './personaje';
 import { PARAMETROS_DE_PARTIDO, jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
 
@@ -89,7 +104,7 @@ export { CONOCIMIENTO, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilida
 export { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 export { PUESTOS_DE_FUTBOL } from './puestos';
 export { tandaDePenaltis, PARAMETROS_DE_PENALTIS, jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
-export { PARAMETROS_DE_CONVOCATORIA, convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, paraConvocar, jugadoresDelPartido, posicionEquivalente, prioridadDelEntrenador } from './convocatoria';
+export { PARAMETROS_DE_CONVOCATORIA, convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, paraConvocar, paraConvocarElEquipo, factorDeRotacion, jugadoresDelPartido, posicionEquivalente, prioridadDelEntrenador } from './convocatoria';
 export type { Convocatoria, JugadorParaConvocar } from './convocatoria';
 export { archivarTemporada, cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision } from './liga';
 export type { PartidoDeLaSemana } from './liga';
@@ -108,6 +123,8 @@ export type { LineaDeCronica, ProximoPartido, SituacionEnLaLiga } from './person
 /** Estado del fútbol: los campos comunes del kit y la liga del mundo (todos los equipos de todas las categorías). */
 export type FutbolState = EstadoBaseDeDeporte & {
   liga?: LigaDelMundo;
+  /** El curso de la última liga cuyo calendario se avisó al personaje (una línea en el diario al publicarse). */
+  calendarioAvisado?: number;
   /** La intensidad con que el personaje sale a jugar (se queda elegida de un partido al siguiente; por defecto, normal). */
   intensidad?: Intensidad;
   /** El equipo del personaje esta temporada (club, categoría y letra A a D): se fija al empezar la liga, como el de todos. */
@@ -338,7 +355,7 @@ function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hasta
   const relacion = afinidad === undefined || !cuentaLaRelacion(ctx, semana) ? undefined : (afinidad + 100) / 2;
   const porId = new Map(plantilla.map((j) => [j.id, j]));
   // El entrenador convoca; de los convocados, algunos PNJ no se presentan (como el personaje, que decide él) y se alinea a los que quedan.
-  const { c, ausentes } = convocarYAlinearConAusencias(plantilla.map((j) => paraConvocar(j, j.id === YO ? relacion : undefined)), (id) => seAusenta(porId.get(id)!, dia));
+  const { c, ausentes } = convocarYAlinearConAusencias(paraConvocarElEquipo(plantilla, { ...(dir.rotaElEquipo?.(DEPORTE, equipo.club, equipo.categoria) ? { rotar: { curso } } : {}), relacion: (j) => (j.id === YO ? relacion : undefined) }), (id) => seAusenta(porId.get(id)!, dia));
   const vivo: Papel = !yo ? 'sin_puesto' : (yo.estado.baja ?? 0) > 0 ? 'lesionado' : c.titulares.some((x) => x.id === YO) ? 'titular' : c.suplentes.some((x) => x.id === YO) ? 'suplente' : 'no_convocado';
   // El día de su partido, por la mañana, se anota si lo convoca el entrenador (`fotoDelDiaDePartido`): todo el día (y el cierre de la semana) cuenta con esa convocatoria, no con la de cada momento.
   const foto = ctx.state<FutbolState>().diaDePartido;
@@ -354,13 +371,22 @@ const MOTIVO_DE_NO_JUGAR: Record<Papel, string> = {
   sin_puesto: 'Todavía no tienes puesto en el equipo',
 };
 
+/** Por qué todavía no hay partido: la liga no ha empezado (y cuándo empieza) o ya ha terminado. */
+function razonDeNoHayPartidos(ctx: ReadContext): string {
+  const sit = situacionDeFutbol(ctx);
+  if (sit.tramo === 'pretemporada' || sit.tramo === 'verano') return `Todavía no hay partidos: la liga empieza ${sit.empieza}`;
+  if (sit.tramo === 'parada') return `No hay partidos en vacaciones: la liga se reanuda ${sit.empieza}`;
+  if (sit.tramo === 'terminada') return 'La liga ha terminado';
+  return 'Todavía no hay partidos de liga esta semana';
+}
+
 /** ¿Puede el personaje elegir ahora la intensidad (`id`)? Solo si tiene partido esta semana y juega (convocado, titular o suplente). */
 function puedeElegirIntensidad(ctx: ReadContext, id: Intensidad): true | string {
   if (!clubDelJugador(ctx)) return 'No juegas en ningún equipo de fútbol';
   const s = ctx.state<FutbolState>();
   const liga = s.liga && s.liga.curso === ctx.time.schoolYear && !s.liga.cerrada ? s.liga : undefined;
   const previa = previaDelPartido(ctx, ctx.time.schoolYear, ctx.time.week, ctx.time.weekday);
-  if (!liga || !previa) return 'Todavía no hay partidos: la liga empieza tras la pretemporada';
+  if (!liga || !previa) return razonDeNoHayPartidos(ctx);
   const l = liga.categorias[previa.equipo.categoria];
   if (!l || !proximoPartido(l, previa.equipo.clave)) return 'Tu equipo no juega esta semana';
   if (s.partidoJugado?.semana === ctx.time.week) return 'Ya has jugado el partido de esta semana';
@@ -488,8 +514,9 @@ function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelM
   const plantilla = [...previa.plantilla].sort((a, b) => (de(b)?.min ?? 0) - (de(a)?.min ?? 0) || (a.nombre < b.nombre ? -1 : 1));
   secciones.push({
     titulo: `Plantilla · ${nombre(clave)}`,
+    texto: 'El puesto es el que ocupa cada uno en la plantilla (donde más vale de los que necesitaba el club), no donde juega cada sábado: el entrenador alinea con la formación del equipo y cada uno juega donde hace falta. Un equipo con casi todos los puestos del lado derecho, por ejemplo, alinea igualmente a sus laterales y extremos de los dos lados.',
     tabla: {
-      header: ['Jugador', 'Puesto', 'PJ', 'Tit.', 'Min.', 'G', 'A', 'Nota'],
+      header: ['Jugador', 'Puesto en la plantilla', 'PJ', 'Tit.', 'Min.', 'G', 'A', 'Nota'],
       rows: plantilla.map((j) => {
         const e = de(j);
         return [j.id === YO ? 'Tú' : j.nombre, nombreDePuesto(j.puesto), ...[e?.pj ?? 0, e?.ti ?? 0, e?.min ?? 0, e?.g ?? 0, e?.a ?? 0].map(String), e?.pj ? decimal(notaMedia(e)) : '—'];
@@ -498,6 +525,10 @@ function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelM
       align: ['left', 'left', 'right', 'right', 'right', 'right', 'right', 'right'],
     },
   });
+  // Cómo queda su club el curso que viene: cuántos son frente al mínimo, quién cambia de categoría y si el equipo corre peligro. **Solo cuando termina la temporada** (la liga cerrada o las vacaciones, hasta el reparto del
+  // verano: `temporadaTerminada`, del calendario del deporte), para no ocupar sitio durante el curso.
+  const prevision = temporadaTerminada(situacionDeFutbol(ctx)) ? dir?.previsionDelClub?.(DEPORTE) : undefined;
+  if (prevision) secciones.push(seccionDePrevision(prevision));
   // Su temporada: estadísticas, experiencia por puesto e historial.
   const s = ctx.state<FutbolState>();
   const e = s.estadisticas?.curso === liga.curso ? s.estadisticas : undefined;
@@ -516,6 +547,33 @@ function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelM
     },
   });
   return secciones;
+}
+
+/**
+ * **El equipo el curso que viene** (decisión del usuario, 20/11/2026): para que el jugador vea antes del cierre si su equipo corre peligro. Solo lo que vería un niño: cuántos son del club en su categoría frente a los que pide un
+ * equipo, quién cambia de categoría al acabar la temporada, cuántos seguirían y quién llega; nada de lo que vale cada uno. No cuenta a los que se apunten o se vayan en verano (no se saben).
+ */
+export function seccionDePrevision(p: PrevisionDelClubView): SeccionDeDeporte {
+  const faltan = p.minimo - p.quedan;
+  const hacenFalta = p.minimo * p.equipos;
+  const nombres = (xs: readonly string[]): string => (xs.length <= 6 ? xs.join(', ') : `${xs.slice(0, 6).join(', ')} y ${xs.length - 6} más`);
+  const mismaCategoria = p.siguiente.id === p.categoria.id;
+  const rows: string[][] = [
+    ['Niños de tu club en ' + p.categoria.nombre, `${p.ahora} (tú incluido)`],
+    ['Cambian de categoría al acabar la temporada', p.suben.length ? `${p.suben.length}: ${nombres(p.suben.map((x) => (x.a ? `${x.nombre} (a ${x.a})` : `${x.nombre} (ya no tiene categoría)`)))}` : 'Ninguno'],
+    ['Siguen en ' + p.categoria.nombre, String(p.siguen)],
+    [mismaCategoria ? `Llegan de la categoría de abajo` : `Suben a ${p.siguiente.nombre} con los de tu año`, String(p.llegan)],
+    [`Equipos de tu club en ${p.siguiente.nombre}`, p.hayEquipo ? `${p.equipos} (cada uno necesita ${p.minimo} niños)` : 'Ninguno'],
+    [`Seguros el curso que viene en ${p.siguiente.nombre}`, p.hayEquipo ? `${p.quedan} (tú incluido)${p.equipos > 1 ? `; para los ${p.equipos} equipos harían falta ${hacenFalta}` : `; hacen falta ${p.minimo}`}` : '—'],
+  ];
+  const texto = !p.hayEquipo
+    ? `Tu club no tiene equipo en ${p.siguiente.nombre}: al empezar el curso tendrás que buscarte otro.`
+    : faltan > 0
+      ? `Tu equipo corre peligro: con los que ya son del club faltarían ${faltan} ${faltan === 1 ? 'niño' : 'niños'} para formar un equipo en ${p.siguiente.nombre}. En verano pueden apuntarse otros, pero no es seguro; si no llegan, no habrá equipo y tendrás que buscarte uno.`
+      : p.quedan < hacenFalta
+        ? `Con los que ya son del club hay niños para ${Math.floor(p.quedan / p.minimo)} de los ${p.equipos} equipos de ${p.siguiente.nombre}. Cada verano se apuntan niños nuevos, pero no se sabe cuántos: si no llegan, cerrarían ${p.equipos - Math.floor(p.quedan / p.minimo)}, y el tuyo podría ser uno de ellos (los equipos se reparten otra vez cada verano).`
+        : `Tu equipo no corre peligro: con los que ya son del club se llega a lo que piden los equipos de ${p.siguiente.nombre}${p.quedan - hacenFalta <= 2 ? ', aunque por poco' : ''}. No cuenta a quien se apunte o se vaya en verano.`;
+  return { titulo: `El curso que viene · ${p.siguiente.nombre}`, texto, tabla: { header: ['', ''], rows, align: ['left', 'left'] } };
 }
 
 /** El día de partido de todos los equipos de la semana (se calcula una vez por calendario: la alineación de cada equipo no cambia entre semana). */
@@ -556,7 +614,7 @@ function elDiaDeLaSemana(ctx: ReadContext): DiaDeLaSemana {
       const mio = !!previa && previa.equipo.clave === clave && previa.equipo.categoria === categoria;
       const plantilla = mio ? previa!.plantilla : dir.plantillaDelEquipo(DEPORTE, club, categoria, letra);
       // Los citados son los de la convocatoria; de ellos, los que no se presentan no están y se alinea a los que quedan.
-      const c = mio ? previa!.c : convocarYAlinearConAusencias(plantilla.map((j) => paraConvocar(j)), (id) => seAusenta(plantilla.find((j) => j.id === id)!, contexto)).c;
+      const c = mio ? previa!.c : convocarYAlinearConAusencias(paraConvocarElEquipo(plantilla, rotacionDe(dir, club, categoria, s.liga.curso)), (id) => seAusenta(plantilla.find((j) => j.id === id)!, contexto)).c;
       const base = { dia: h[0], saque, campo: campoMunicipal, vestuario: VESTUARIO };
       res.equipos.set(`${clave}|${categoria}`, { ...base, llegada: saque - DIA_DE_PARTIDO.convocatoria, tarde: 0, conocimiento: 0 });
       const convocados = new Set([...c.titulares.map((x) => x.id), ...c.suplentes.map((x) => x.id)]);
@@ -640,6 +698,12 @@ function accionesDeEspectador(ctx: ReadContext): ActionDef[] {
     });
 }
 
+/** En qué tramo de la temporada está el fútbol y cuándo empieza el siguiente (pretemporada, liga, parada, terminada o verano). */
+function situacionDeFutbol(ctx: ReadContext): SituacionDeTemporada {
+  const liga = ctx.state<FutbolState>().liga;
+  return situacionDelDeporte(ctx, DEPORTE, { nombre: 'liga', articulo: 'la' }, liga?.curso === ctx.time.schoolYear && !!liga.cerrada);
+}
+
 /** El texto de «próxima prueba» de la pestaña. */
 function textoDeProximoPartido(ctx: ReadContext): string {
   const s = ctx.state<FutbolState>();
@@ -653,7 +717,10 @@ function textoDeProximoPartido(ctx: ReadContext): string {
     const h = suHoraYCampo(ctx, previaDelPartido(ctx, ctx.time.schoolYear, ctx.time.week, ctx.time.weekday), ctx.time.week);
     return sig ? `${h ? `${h.texto}` : 'Este fin de semana'}: ${sig.texto.toLowerCase()}, ${sig.local ? 'en casa' : 'fuera'}. Más abajo, el rival y tu convocatoria; el partido se juega en el campo, con la acción «Jugar el partido».` : 'Tu equipo no juega esta semana.';
   }
-  return datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto;
+  // Sin liga (pretemporada o verano) o sin equipo: aún no hay calendario de partidos. La liga se crea el lunes de la primera semana de competición y entonces se publica.
+  const sit = situacionDeFutbol(ctx);
+  const sinCalendario = sit.tramo === 'pretemporada' || sit.tramo === 'verano' ? 'Todavía no hay calendario de partidos: se publica al empezar la liga.' : undefined;
+  return sinCalendario ?? datosDeDeporte(ctx, DEPORTE).competiciones.jornada.texto;
 }
 
 /** La pestaña del fútbol: las habilidades, los datos del club, el próximo partido y el último con su crónica. */
@@ -679,6 +746,7 @@ function vistaDeFutbol(ctx: ReadContext): DeporteView {
     habilidades: [...HABILIDADES_DE_FUTBOL, CONOCIMIENTO],
     temporada: {
       etiqueta: `Curso ${t.schoolYear + 1}`,
+      situacion: situacionDeFutbol(ctx).texto,
       proxima: textoDeProximoPartido(ctx),
       pruebas: [],
       nombreDePruebas: 'Partidos',
@@ -808,27 +876,30 @@ function elDiaDeUnJugador(j: JugadorDeEquipoView, c: ContextoDelDia): { tarde: n
   return { tarde, conocimiento: anterior === undefined ? 0 : conocimientoPorVer({ anteriorDesde: anterior, ahora: c.saque - DIA_DE_PARTIDO.convocatoria + tarde, saque: c.saque }) };
 }
 
+/** Las opciones de rotación del entrenador de un equipo (`CategoriaDef.rotacionEn`: los colegios en benjamín y alevín): vacías si no rota. */
+const rotacionDe = (dir: NpcDirectory, club: string, categoria: string, curso: number): { rotar?: { curso: number } } => (dir.rotaElEquipo?.(DEPORTE, club, categoria) ? { rotar: { curso } } : {});
+
 /**
  * Un lado de un partido de liga: la plantilla del equipo, la convocatoria del entrenador y el equipo listo para el motor. En el equipo del personaje, la plantilla lleva al personaje (a la intensidad que eligió) o, si estaba
  * convocado y no va (`sinMi`), no lo lleva: el entrenador convoca a los demás. **Lo usan igual el partido del personaje en su hora y la liga del mundo al cerrar la semana**, para que den el mismo resultado.
  */
-function ladoDelPartido(dir: NpcDirectory, previa: Previa | undefined, clave: string, categoria: string, intensidad: Intensidad, sinMi = false, dia?: ContextoDelDia) {
+function ladoDelPartido(dir: NpcDirectory, previa: Previa | undefined, clave: string, categoria: string, intensidad: Intensidad, curso: number, sinMi = false, dia?: ContextoDelDia) {
   const [club, letra] = clave.split('|');
   if (previa && clave === previa.equipo.clave && categoria === previa.equipo.categoria) {
     const plantilla = sinMi ? previa.plantilla.filter((j) => j.id !== YO) : previa.plantilla;
-    const { c, ausentes } = sinMi ? convocarYAlinearConAusencias(plantilla.map((j) => paraConvocar(j)), (id) => seAusenta(plantilla.find((j) => j.id === id)!, dia)) : { c: previa.c, ausentes: previa.ausentes };
+    const { c, ausentes } = sinMi ? convocarYAlinearConAusencias(paraConvocarElEquipo(plantilla, rotacionDe(dir, club, categoria, curso)), (id) => seAusenta(plantilla.find((j) => j.id === id)!, dia)) : { c: previa.c, ausentes: previa.ausentes };
     const base = equipoDePartido(clave, clave, plantilla, c);
     return { plantilla, c, ausentes, equipo: { ...base, jugadores: base.jugadores.map((j) => (j.id === YO ? { ...j, intensidad } : j)) }, mio: true };
   }
   const plantilla = dir.plantillaDelEquipo!(DEPORTE, club, categoria, letra);
-  const { c, ausentes } = convocarYAlinearConAusencias(plantilla.map((j) => paraConvocar(j)), (id) => seAusenta(plantilla.find((j) => j.id === id)!, dia));
+  const { c, ausentes } = convocarYAlinearConAusencias(paraConvocarElEquipo(plantilla, rotacionDe(dir, club, categoria, curso)), (id) => seAusenta(plantilla.find((j) => j.id === id)!, dia));
   return { plantilla, c, ausentes, equipo: equipoDePartido(clave, clave, plantilla, c), mio: false };
 }
 
 /** Juega un partido de liga con el motor. Un equipo que no puede alinear a once pierde por 3 a 0 (no pasa con las plantillas de la ciudad: tienen al menos 14), sin crónica. */
-function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: number, o: { categoria: string; local: string; visitante: string; id: string; intensidad: Intensidad; sinMi?: boolean; dia?: ContextoDelDia }) {
-  const a = ladoDelPartido(dir, previa, o.local, o.categoria, o.intensidad, o.sinMi, o.dia);
-  const b = ladoDelPartido(dir, previa, o.visitante, o.categoria, o.intensidad, o.sinMi, o.dia);
+function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: number, o: { categoria: string; local: string; visitante: string; id: string; intensidad: Intensidad; curso: number; sinMi?: boolean; dia?: ContextoDelDia }) {
+  const a = ladoDelPartido(dir, previa, o.local, o.categoria, o.intensidad, o.curso, o.sinMi, o.dia);
+  const b = ladoDelPartido(dir, previa, o.visitante, o.categoria, o.intensidad, o.curso, o.sinMi, o.dia);
   // Quienes estaban convocados y no se presentaron: una falta (como para el personaje), sin jugar ni quedarse en el banquillo.
   const faltas: JugadorDelPartido[] = [...a.ausentes, ...b.ausentes].map((npcId) => ({ npcId, minutos: 0, valoracion: 0, falta: true }));
   if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: (a.c.titulares.length < 11 ? [0, 3] : [3, 0]) as [number, number], jugadores: faltas, mio: a.mio || b.mio };
@@ -890,7 +961,43 @@ function prepararLiga(ctx: ActionContext, t: { schoolYear: number; period: strin
   const g = ctx.state<FutbolState>().personaje;
   if (e && (!g || g.curso !== t.schoolYear || g.club !== e.club || g.categoria !== e.categoria || g.letra !== e.letra)) ctx.updateState<FutbolState>((s) => ({ ...s, personaje: { curso: t.schoolYear, club: e.club, categoria: e.categoria, letra: e.letra } }));
   if (!liga.cerrada) prepararElCalendario(ctx, liga, t.week);
+  // El calendario se publica la primera semana de competición (con la liga sin jornadas jugadas): una vez por curso.
+  if (!liga.cerrada && ctx.state<FutbolState>().calendarioAvisado !== liga.curso) {
+    ctx.updateState<FutbolState>((s) => ({ ...s, calendarioAvisado: liga!.curso }));
+    if (Object.values(liga.categorias).every((c) => c.jornada === 0)) avisarDelCalendario(ctx, liga, t.week);
+  }
   return liga;
+}
+
+/** Lo que dice el entrenador de cuándo es la liga (hecho `futbol.calendario`, un fragmento en minúscula para una frase suya): cuándo empieza y si ya hay calendario de partidos. */
+function lineaDelCalendario(ctx: ReadContext): string {
+  const sit = situacionDeFutbol(ctx);
+  switch (sit.tramo) {
+    case 'pretemporada':
+    case 'verano':
+      return `la liga empieza ${sit.empieza}; el calendario de partidos se publica ese día, cuando empiece`;
+    case 'parada':
+      return `ahora hay vacaciones y la liga se reanuda ${sit.empieza}`;
+    case 'terminada':
+      return 'la liga ya ha terminado esta temporada';
+    default:
+      return 'la liga ya está en marcha: los partidos y el calendario de tu equipo los tienes en la pestaña del fútbol';
+  }
+}
+
+/**
+ * **Se publica el calendario de la liga** (el lunes de la primera semana de competición): una línea en el diario, con lo que dice el entrenador, si el personaje juega en un equipo: cuándo es la primera jornada y contra quién.
+ * Quien aún no había empezado en el club lo oyó en su primer entrenamiento (`futbol.calendario`); quien ya estaba, lo oye aquí.
+ */
+function avisarDelCalendario(ctx: ActionContext, liga: LigaDelMundo, semana: number): void {
+  const eq = clubDelJugador(ctx) ? miEquipo(ctx, liga.curso) : undefined;
+  const l = eq ? liga.categorias[eq.categoria] : undefined;
+  const sig = eq && l ? proximoPartido(l, eq.clave) : undefined;
+  if (!eq || !sig) return;
+  const h = ctx.state<FutbolState>().calendario?.partidos[`${liga.curso}|${eq.categoria}|${sig.ref}`];
+  const cuando = h ? `${diaConFecha(semana * 7 + h[0])} a las ${horaTexto(h[1])}` : situacionDeFutbol(ctx).primeraJornada.texto;
+  const entrenador = entrenadorDelJugador(ctx);
+  ctx.log(`Se ha publicado el calendario de la liga${entrenador ? `: ${entrenador.nombreCorto} te lo cuenta` : ''}. La primera jornada es ${cuando}: ${sig.texto.toLowerCase()}, ${sig.local ? 'en casa' : 'fuera'}.`, 'info');
 }
 
 /**
@@ -939,7 +1046,7 @@ function datosDelDiaDePartido(ctx: ReadContext): { previa: Previa; h: { dia: num
   const s = ctx.state<FutbolState>();
   const liga = s.liga && s.liga.curso === t.schoolYear && !s.liga.cerrada ? s.liga : undefined;
   const previa = previaDelPartido(ctx, t.schoolYear, t.week, t.weekday);
-  if (!liga || !previa) return 'Todavía no hay partidos: la liga empieza tras la pretemporada';
+  if (!liga || !previa) return razonDeNoHayPartidos(ctx);
   const l = liga.categorias[previa.equipo.categoria];
   if (!l || !proximoPartido(l, previa.equipo.clave)) return 'Tu equipo no juega esta semana';
   if (s.partidoJugado?.semana === t.week) return 'Ya has jugado el partido de esta semana';
@@ -1079,7 +1186,7 @@ function jugarElPartidoDelPersonaje(ctx: ActionContext): void {
   const sig = proximoPartido(liga.categorias[previa.equipo.categoria], previa.equipo.clave)!;
   const [local, visitante] = sig.local ? [previa.equipo.clave, sig.rival] : [sig.rival, previa.equipo.clave];
   const id = `${liga.curso}|${previa.equipo.categoria}|${sig.ref}`;
-  const o = partidoDeLiga(dir, previa, liga.semilla, { categoria: previa.equipo.categoria, local, visitante, id, intensidad: ctx.state<FutbolState>().intensidad ?? 'normal', dia: contextoDelDia(ctx, t.week, id) });
+  const o = partidoDeLiga(dir, previa, liga.semilla, { categoria: previa.equipo.categoria, local, visitante, id, intensidad: ctx.state<FutbolState>().intensidad ?? 'normal', curso: liga.curso, dia: contextoDelDia(ctx, t.week, id) });
   ctx.updateState<FutbolState>((s) => ({ ...s, partidoJugado: { semana: t.week, id, goles: o.goles, jugadores: o.jugadores } }));
   if (o.r && o.lado !== undefined) registrarPartidoDelPersonaje(ctx, { r: o.r, lado: o.lado, nombres: o.nombres, local, visitante, previa, curso: liga.curso, semana: t.week, texto: sig.texto, nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria) });
   // Al acabar el partido aparece en el vestuario.
@@ -1117,14 +1224,14 @@ function ligaDelMundo(ctx: ActionContext, semana: number): void {
       // El partido que el personaje ya jugó en el campo: el mismo resultado, sin volver a jugarlo.
       if (yaJugado && id === yaJugado.id) return { goles: yaJugado.goles, jugadores: yaJugado.jugadores };
       const esMio = !!previa && categoria === previa.equipo.categoria && (local === previa.equipo.clave || visitante === previa.equipo.clave);
-      const o = partidoDeLiga(dir, previa, liga!.semilla, { categoria, local, visitante, id, intensidad, sinMi: esMio && (ausente || fuera), dia: contextoDelDia(ctx, semana, id) });
+      const o = partidoDeLiga(dir, previa, liga!.semilla, { categoria, local, visitante, id, intensidad, curso: liga!.curso, sinMi: esMio && (ausente || fuera), dia: contextoDelDia(ctx, semana, id) });
       if (o.mio && o.r) delPersonaje = { ...o, local, visitante };
       return { goles: o.goles, jugadores: o.jugadores };
     },
     {
       // La tanda de penaltis de un cruce empatado del playoff: cinco por equipo y después uno a uno, cada penalti un duelo entre el que tira y el portero.
       tanda: (categoria: string, a: string, b: string, id: string) => {
-        const r = tandaDePenaltis(ladoDelPartido(dir, previa, a, categoria, intensidad).equipo, ladoDelPartido(dir, previa, b, categoria, intensidad).equipo, { id, semilla: liga!.semilla, categoria });
+        const r = tandaDePenaltis(ladoDelPartido(dir, previa, a, categoria, intensidad, liga!.curso).equipo, ladoDelPartido(dir, previa, b, categoria, intensidad, liga!.curso).equipo, { id, semilla: liga!.semilla, categoria });
         return { ganador: r.ganador, goles: r.goles };
       },
     },
@@ -1156,19 +1263,47 @@ export const futbol = defineModule<FutbolState>({
   name: 'Fútbol',
   description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
   dependsOn: ['gen'],
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }] },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO), sucesoDePlazaExtra(CONFIG, TEXTOS_DE_PLAZA_EXTRA), sucesoDeEquipoSinNinos(CONFIG, TEXTOS_DE_EQUIPO_SIN_NINOS)] },
   stats: [...STATS_DE_FUTBOL],
 
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),
 
   services: {
+    // Hechos para los sucesos del fútbol: dónde juega el personaje y dónde vale más (lo mismo que mira su entrenador).
+    [servicioDeHechos(DEPORTE)]: (ctx): HechosService => ({
+      valor: (nombre) => {
+        if (nombre === 'calendario') return lineaDelCalendario(ctx);
+        const puesto = ctx.state<FutbolState>().puesto;
+        const valores = CONFIG.puestos?.(ctx);
+        if (!puesto || !valores) return undefined;
+        const mejor = Object.keys(valores).reduce((a, b) => (valores[b] > valores[a] ? b : a));
+        switch (nombre) {
+          case 'puesto':
+            return nombreDePuesto(puesto).toLowerCase();
+          case 'mejor_puesto':
+            return nombreDePuesto(mejor).toLowerCase();
+          case 'mejor_puesto_id':
+            return mejor;
+          case 'juega_donde_mas_vale':
+            return mejor === puesto;
+          case 'ventaja_del_mejor_puesto':
+            return Math.round(((valores[mejor] ?? 0) - (valores[puesto] ?? 0)) * 10) / 10;
+        }
+        return undefined;
+      },
+    }),
     [claveDeDeporte(DEPORTE)]: (ctx) => ({ view: () => vistaDeFutbol(ctx) }),
+    // En la ficha del entrenador: «Pedir jugar…» con un desplegable de puestos (kit).
+    [servicioDePedirPuesto(CONFIG)[0]]: servicioDePedirPuesto(CONFIG)[1],
     // Lo que hacen los jugadores del mundo el día de su partido (convocatoria, llegada, vestuario): las mismas reglas que el personaje; `npcs` lo pone en el mapa.
     [SERVICES.partidos]: (ctx): PartidosService => {
       const d = elDiaDeLaSemana(ctx);
       return { version: d.version, deJugador: (id) => d.jugadores.get(id), deEquipo: (club, categoria, letra) => d.equipos.get(`${club}|${letra}|${categoria}`), deLaSemana: () => d.partidos };
     },
   },
+
+  // Pedirle a tu entrenador jugar en un puesto (no se lista: lo lanza el desplegable de su ficha).
+  resolverAccion: resolverPedirPuesto(CONFIG),
 
   // Apuntarse al club del colegio (kit).
   dynamicActions: (() => {
@@ -1177,7 +1312,7 @@ export const futbol = defineModule<FutbolState>({
   })(),
 
   actions: ligarALugares(
-    [...sinEntrenarPorLibreEnSesion(CONFIG, [
+    [...entrenosAgrupados(CONFIG, sinEntrenarPorLibreEnSesion(CONFIG, [
       // El entrenador elige dos ejercicios de tipos distintos; la sesión sube solo lo que entrenan (más lo de `SIEMPRE`).
       sesionDeClubConEjercicios(CONFIG, {
         description: 'Entrenamiento con el entrenador y el equipo: él elige dos ejercicios (lo que más te falta, según su criterio) y trabajáis solo eso. Rinde más que entrenar por tu cuenta.',
@@ -1259,7 +1394,7 @@ export const futbol = defineModule<FutbolState>({
       },
       verEnLaTele(CONFIG, 'Partidos y resúmenes de otros: aprendes cómo se mueve un equipo y por qué un pase abre la defensa.'),
       pedirConsejo(CONFIG, HABILIDADES_DE_CONSEJO),
-    ]), ...ACCIONES_DE_INTENSIDAD, ACCION_DE_UNIRSE_A_LOS_COMPANEROS, ACCION_DE_IR_AL_VESTUARIO, ACCION_DE_JUGAR_EL_PARTIDO],
+    ])), ...ACCIONES_DE_INTENSIDAD, ACCION_DE_UNIRSE_A_LOS_COMPANEROS, ACCION_DE_IR_AL_VESTUARIO, ACCION_DE_JUGAR_EL_PARTIDO],
     {
       // El club del colegio entrena en el campo del colegio. Se puede entrenar por libre en el campo del colegio, el municipal y el parque.
       'futbol.club_sesion': sedeDelClub,

@@ -4,7 +4,7 @@ import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
 import {
   MAX_EQUIPOS_POR_CATEGORIA,
-  capacidadDe,
+  capacidadConPlazasDeMas,
   edadNpc,
   draftDeEquipos,
   valorRealDe,
@@ -15,7 +15,7 @@ import {
   type NpcsState,
   type PoblacionGuardada,
 } from '@ds/mod-npcs';
-import { hacer, posible } from './ayudas';
+import { hacer, hacerPruebaDeAcceso, posible } from './ayudas';
 import { ID_TRES_CLUBES } from './ciudades';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
@@ -59,7 +59,7 @@ describe('al crear la partida (dentro del plazo) los interesados tienen equipo',
         for (let n = 2; n <= k; n++) expect(entrenadores.has(`entrenador_${e.club}_${cat}_${n}`), `${e.club} ${cat} equipo ${n}`).toBe(true);
         const c = pob.categorias!.find((x) => x.id === cat)!;
         const jugadores = estado().npcs.filter((n) => n.deporte === 'futbol' && n.equipo === e.club && (edadNpc(n, 0) ?? -1) >= c.edadMin && (edadNpc(n, 0) ?? -1) <= c.edadMax).length;
-        expect(jugadores, `${e.club} ${cat}`).toBeLessThanOrEqual(capacidadDe(e, cat));
+        expect(jugadores, `${e.club} ${cat}`).toBeLessThanOrEqual(capacidadConPlazasDeMas(e, cat));
         expect(jugadores, `${e.club} ${cat}`).toBeGreaterThan((k - 1) * e.plantillaPorCategoria!.max); // el último equipo llega al mínimo de jugadores
       }
     }
@@ -92,12 +92,12 @@ describe('el «draft» por rondas (sustituye a los equipos según la demanda)', 
         const jugadores = delClub(m, e.club, cat).length;
         const k = e.equiposPorCategoria?.[cat.id] ?? 1;
         expect(jugadores, `${e.club} ${cat.id}`).toBeGreaterThanOrEqual(14 * k);
-        expect(jugadores, `${e.club} ${cat.id}`).toBeLessThanOrEqual(capacidadDe(e, cat.id));
+        expect(jugadores, `${e.club} ${cat.id}`).toBeLessThanOrEqual(capacidadConPlazasDeMas(e, cat.id));
         expect(k).toBeLessThanOrEqual(MAX_EQUIPOS_POR_CATEGORIA);
       }
       // Casi todos tienen A y B: un club solo se queda con un equipo en una categoría si los que fueron a probar no daban para más.
       const conDos = pob.categorias!.filter((c) => (e.equiposPorCategoria?.[c.id] ?? 1) >= 2).length;
-      expect(conDos, e.club).toBeGreaterThanOrEqual(2);
+      expect(conDos, e.club).toBeGreaterThanOrEqual(1); // (con los alumnos de los colegios con club quedándose en ellos, a los de fuera les llegan menos)
     }
   });
 
@@ -120,7 +120,7 @@ describe('el «draft» por rondas (sustituye a los equipos según la demanda)', 
     const colegio = pob.equipos.find((e) => e.club === 'colegio')!;
     const delColegio = [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio');
     expect(delColegio.every((n) => n.colegio === undefined || n.colegio === 'propio')).toBe(true);
-    for (const cat of pob.categorias!.filter((c) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(c.id))) expect(delClub(m, 'colegio', cat).length).toBeLessThanOrEqual(capacidadDe(colegio, cat.id));
+    for (const cat of pob.categorias!.filter((c) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(c.id))) expect(delClub(m, 'colegio', cat).length).toBeLessThanOrEqual(capacidadConPlazasDeMas(colegio, cat.id));
     const ids = [...m.lista.values()].filter((n) => n.deporte === 'futbol').map((n) => n.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
@@ -156,7 +156,7 @@ describe('el personaje del montón encuentra equipo en su categoría dentro del 
       const j = nuevaPartida({ seed, pais: ID_TRES_CLUBES, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
       advanceToWeek(j, 'gen.descansar', 1, 2, 17);
       // Un miércoles a las 17:00 el club mediano hace sus pruebas; después, el del colegio (sin prueba) como segunda opción.
-      if (posible(j, 'futbol.prueba.club_mediano')) hacer(j, 'futbol.prueba.club_mediano');
+      if (posible(j, 'futbol.pedir_prueba.club_mediano')) hacerPruebaDeAcceso(j, 'club_mediano');
       const club = () => j.service<{ membership(d: string): unknown }>('clubes')!.membership('futbol');
       // Si la prueba no sale, al día siguiente, a la hora de siempre, el club del colegio (sin prueba) como segunda opción.
       if (!club()) advanceToWeek(j, 'gen.descansar', 1, 3, 15);

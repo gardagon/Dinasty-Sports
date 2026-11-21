@@ -1,12 +1,16 @@
 # Dinasty Sports — guía para trabajar en este repositorio
 
 RPG de decisiones (deporte + vida escolar) en TypeScript, monorepo con npm workspaces.
+Si coordinas el proyecto (sesión de arquitectura), lee antes `docs/NOTAS_ARQUITECTURA.md`: cómo se trabaja, el estado y los recordatorios pendientes.
 Lee `docs/VISION.md` (qué juego es y sus principios: datos de verdad para todos, las mismas reglas para el personaje y los PNJ, el mundo avanza solo), `docs/ARQUITECTURA.md` antes de cambios grandes y `docs/DECISIONES.md` para el contexto y lo pendiente.
 Los horarios de las personas (dónde está cada una a cada hora) y la población prevista de PNJs están en `docs/ANEXO_HORARIOS_PNJ.md`: si cambias un horario, cambia el anexo y `packages/contracts/src/agendas.ts`.
 Las cifras de las relaciones (cuánto sube cada acción, habilidades y gustos que influyen, estados) están en `docs/ANEXO_RELACIONES.md`: si cambias una, actualiza el anexo.
 Los nombres, apellidos y orígenes de las personas (listas por cultura, reglas de mezcla, homónimos) están en `docs/ANEXO_NOMBRES.md`, y lo que cambia de un país a otro (paquetes de país: calendario, currículo, horarios, gente; las categorías, la temporada y las competiciones de cada deporte son datos del deporte, por país: `docs/PAQUETES_DE_PAIS.md` y `docs/PLAN_DEPORTES_MODULARES.md` §4) en `docs/PAQUETES_DE_PAIS.md`: si cambias una regla o un dato, actualiza el anexo.
+El cuerpo de las personas (altura, peso, músculo y grasa con la edad y el sexo, hábitos de los PNJ, historial anual, canas, calvicie, barba y rasgos de la cara heredables, servicio de lectura para el visualizador) está en `docs/ANEXO_CUERPO.md` (plan: `docs/PLAN_CUERPO_Y_APARIENCIA.md`): si cambias una cifra, actualiza el anexo y `packages/contracts/src/cuerpo.ts`.
+El dibujo de las personas (paquete `@ds/retrato`: estilo, capas, catálogos de peinados y de vello facial con su largo, y cómo se añade un peinado, una barba o una prenda) está en `docs/ANEXO_RETRATOS.md`: si cambias el dibujo o un catálogo, regenera la cuadrícula (`npm run retratos:cuadricula`), mírala y actualiza el anexo y `packages/contracts/src/retrato.ts`.
 La pestaña del deporte y las reglas de las clasificaciones (puntos por puesto, qué se guarda) están en `docs/ANEXO_DEPORTE.md`.
 El mundo del fútbol base (ciudad grande, colegios, clubes, filiales, divisiones, liga y copa) está en `docs/CIUDAD_Y_LIGAS.md`.
+Los eventos y decisiones (en el código, «sucesos»: el formato, el director `modules/sucesos`, los eventos base de `modules/eventos` por áreas y los de cada deporte en su paquete, cupos y presentación editables, y cómo se prueba) están en `docs/ANEXO_EVENTOS.md` (plan y decisiones: `docs/PLAN_EVENTOS.md`): un evento nuevo es un archivo de datos, sin tocar el motor ni otros módulos; si cambias el formato o una cifra, actualiza el anexo, y tras añadir o cambiar eventos pasa `npm run eventos:validar` y `npm run eventos:mapa`.
 Cuando tomes una decisión de diseño o de balance, añade una entrada en `docs/DECISIONES.md`.
 
 ## Reglas que no se rompen
@@ -40,8 +44,17 @@ npm run rendimiento -- 60  # dónde se va el tiempo: crear, guardar, cargar, ms 
 npm run clave-deportes   # genera el par de claves con que se firman los deportes (la privada, a un secreto DS_CLAVE_PRIVADA de GitHub)
 npm run publicar-deportes -- <carpeta>  # empaqueta y firma TODOS los deportes (también los que no van dentro del juego, como el fútbol: `"dsDeporte": true` en su package.json) en <carpeta>/deportes (necesita DS_CLAVE_PRIVADA)
 npm run probar-web       # el camino entero en un Chromium de verdad: instalar el fútbol, crear una partida («creando el mundo») y jugar un día de partido (~2 min)
+npm run sim:cuerpo -- 2 31,32  # el cuerpo de la población: proporción por complexión y grupo de edad frente a los objetivos del plan del cuerpo
 npm run sim:futbol -- 365 3  # cuánto se aprende en un curso con el club: deportista de fútbol frente al de atletismo (mismo plan)
 npm run benjamin -- 31,33  # la regla de benjamín (todos nuevos en el club) con la ciudad grande: semanas hasta el primer partido y primera convocatoria
+npm run retratos:cuadricula  # la cuadrícula de capturas del dibujo de las personas (docs/retratos): catálogos, rasgos, familia, peinados, barbas y extremos, en claro y oscuro
+npm run retratos:muestras    # las muestras de las cuatro variantes de estilo que vio el usuario (provisional)
+npm run eventos:nuevo -- eventos.<área>.<nombre> "Título"  # crea un evento base con la plantilla comentada y lo apunta en el índice
+npm run eventos:validar  # todos los eventos: forma, referencias, textos, memoria, escenarios y todos los caminos (también dentro de npm test)
+npm run eventos:probar -- <hilo o suceso> [--elige a,b] [--masculino]  # enseña todos sus caminos con los textos que vería el jugador
+npm run eventos:mapa     # docs/eventos/MAPA.md: hilos, quién programa a quién y las marcas con que se hablan
+npm run eventos:rendimiento  # lo que cuestan los sucesos: con 500 generados (arranque, por acción, por día) y con las clases de los PNJ activadas o no
+npm run sim:eventos -- 180 2  # cuántas veces sale cada evento por año con cada bot (para calibrar probabilidades y cupos)
 npm run check            # tipos + tests + simulación rápida
 npm run nuevo-modulo -- <id> "<Nombre>"
 ```

@@ -1,4 +1,4 @@
-import type { Rng } from './rng';
+import { rngEstable, type Rng } from './rng';
 import { TAGS } from './tags';
 
 /**
@@ -142,7 +142,99 @@ export interface Apariencia {
   piel: string;
   cara: string;
   distintivos: string[];
+  /**
+   * Tendencias heredables (valores numéricos, no catálogos) que el dibujo combina con la edad y una semilla para decidir qué enseña la persona: son de la generación, no de la
+   * edad. `canas`: edad (años) a la que empiezan las canas. `calvicie`: tendencia a perder pelo, de 0 a 1. `barba`: densidad del vello facial, de 0 a 1 (en las mujeres se
+   * guarda igual, porque se hereda a los hijos, pero no se dibuja). Cifras en `docs/ANEXO_CUERPO.md`.
+   */
+  canas: number;
+  calvicie: number;
+  barba: number;
+  /**
+   * Los rasgos de la cara heredables (`RASGOS_DE_ROSTRO`): cada uno un número de 0 a 1 que va en un par [expresado, latente], como los perks (lo que se ve y lo que se lleva sin verse y puede
+   * saltarse una generación). Va **empaquetado en un texto** (dos caracteres por rasgo, 64 niveles cada valor) para que el estado no crezca: se lee con `rostroDe` y `rostroExpresado`.
+   */
+  rostro: string;
+  /**
+   * Cómo envejece su piel, de 0 (muy bien: las arrugas llegan tarde y se marcan poco) a 1 (mal: llegan pronto y se marcan mucho); 0,5 es lo normal. Heredable como las canas
+   * (`TENDENCIAS.envejecimiento`). El dibujo decide con ella y la edad cuándo empiezan las arrugas y cuánto se marcan. Cifras en `docs/ANEXO_CUERPO.md`.
+   */
+  envejecimiento: number;
 }
+
+// ---------------------------------------------------------------------------------------------------- rasgos de la cara heredables
+
+/**
+ * Los rasgos de la cara que se heredan, cada uno un número de 0 a 1 (no catálogos de formas: no dependen del estilo de dibujo): forma y tamaño de los ojos, forma y tamaño de la nariz,
+ * grosor y anchura de la boca, grosor y forma de las cejas, tamaño y «despegadas» de las orejas, mentón y pómulos. Cifras y herencia en `docs/ANEXO_CUERPO.md`.
+ */
+export const RASGOS_DE_ROSTRO = ['ojosForma', 'ojosTamano', 'narizForma', 'narizTamano', 'bocaGrosor', 'bocaAnchura', 'cejasGrosor', 'cejasForma', 'orejasTamano', 'orejasDespegadas', 'menton', 'pomulos'] as const;
+export type RasgoDeRostro = (typeof RASGOS_DE_ROSTRO)[number];
+/** Un rasgo: [expresado, latente], de 0 a 1 cada uno. */
+export type ParDeRasgo = readonly [number, number];
+export type Rostro = Readonly<Record<RasgoDeRostro, ParDeRasgo>>;
+export type RostroExpresado = Readonly<Record<RasgoDeRostro, number>>;
+
+/** Niveles de cada valor al guardarlo (6 bits): 0, 1/63, ..., 1. */
+const NIVELES_DE_ROSTRO = 63;
+const ALFABETO_DE_ROSTRO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const nivelDe = (v: number) => clamp(Math.round(v * NIVELES_DE_ROSTRO), 0, NIVELES_DE_ROSTRO);
+
+/** Guarda un rostro en un texto de 24 caracteres (expresado y latente de cada rasgo, en el orden de `RASGOS_DE_ROSTRO`). */
+export function empaquetarRostro(r: Rostro): string {
+  return RASGOS_DE_ROSTRO.map((k) => ALFABETO_DE_ROSTRO[nivelDe(r[k][0])] + ALFABETO_DE_ROSTRO[nivelDe(r[k][1])]).join('');
+}
+
+/** Un rostro con todos los rasgos a la mitad (expresado y latente): para quien no tiene datos y para los tests. */
+export const ROSTRO_MEDIO: string = empaquetarRostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, [0.5, 0.5] as const])) as unknown as Rostro);
+
+/** Los pares [expresado, latente] de cada rasgo de la cara. */
+export function rostroDe(a: Pick<Apariencia, 'rostro'>): Rostro {
+  const texto = a.rostro && a.rostro.length === 2 * RASGOS_DE_ROSTRO.length ? a.rostro : ROSTRO_MEDIO;
+  const valor = (c: string) => ALFABETO_DE_ROSTRO.indexOf(c) / NIVELES_DE_ROSTRO;
+  return Object.fromEntries(RASGOS_DE_ROSTRO.map((k, i) => [k, [valor(texto[2 * i]), valor(texto[2 * i + 1])] as const])) as unknown as Rostro;
+}
+
+/** Los valores que se ven (los expresados) de cada rasgo de la cara: lo que lee el dibujo. */
+export function rostroExpresado(a: Pick<Apariencia, 'rostro'>): RostroExpresado {
+  const r = rostroDe(a);
+  return Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, r[k][0]])) as unknown as RostroExpresado;
+}
+
+/** Rostro de un adulto del mundo (primera generación): los dos valores de cada rasgo al azar, uniformes, sin tendencias por origen. */
+export function rostroAlAzar(rng: Rng): string {
+  const par = () => [rng.int(0, NIVELES_DE_ROSTRO) / NIVELES_DE_ROSTRO, rng.int(0, NIVELES_DE_ROSTRO) / NIVELES_DE_ROSTRO] as const;
+  return empaquetarRostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, par()])) as unknown as Rostro);
+}
+
+/**
+ * Rostro del hijo, como los perks: de cada padre recibe uno de los dos valores de cada rasgo (al azar) y uno de los dos que recibe se expresa (al azar, 50 %). Así el hijo saca cada rasgo de
+ * uno de sus padres y a veces de un abuelo (lo latente de un padre).
+ */
+export function rostroHeredado(padre: Pick<Apariencia, 'rostro'>, madre: Pick<Apariencia, 'rostro'>, rng: Rng): string {
+  const p = rostroDe(padre);
+  const m = rostroDe(madre);
+  const hijo = Object.fromEntries(
+    RASGOS_DE_ROSTRO.map((k) => {
+      const delPadre = p[k][rng.chance(0.5) ? 0 : 1];
+      const delaMadre = m[k][rng.chance(0.5) ? 0 : 1];
+      return [k, rng.chance(0.5) ? ([delPadre, delaMadre] as const) : ([delaMadre, delPadre] as const)];
+    }),
+  );
+  return empaquetarRostro(hijo as unknown as Rostro);
+}
+
+/** Las tendencias de canas, calvicie y barba: cómo se sortean al azar y cómo se heredan. */
+export const TENDENCIAS = {
+  canas: { media: 34, sd: 6, min: 20, max: 60, herencia: 3 },
+  calvicie: { hombre: { media: 0.45, sd: 0.25, max: 1 }, mujer: { media: 0.1, sd: 0.1, max: 0.4 }, deLaMadre: 0.6, herencia: 0.1 },
+  barba: { media: 0.6, sd: 0.2, herencia: 0.1 },
+  envejecimiento: { media: 0.5, sd: 0.2, herencia: 0.1 },
+} as const;
+
+/** El tope de calvicie de cada sexo. */
+const topeDeCalvicie = (sexo: 'f' | 'm'): number => (sexo === 'f' ? TENDENCIAS.calvicie.mujer.max : TENDENCIAS.calvicie.hombre.max);
+const redondea = (v: number, decimales: number): number => Math.round(v * 10 ** decimales) / 10 ** decimales;
 
 /** Nombres para los textos. */
 export const NOMBRE_RASGO: Record<string, string> = {
@@ -171,19 +263,22 @@ export interface OrigenDef {
   peloTipo: readonly number[];
   ojos: readonly number[];
   piel: readonly number[];
+  /** Tendencias del origen que se suman a la media al azar: años de canas y densidad de barba (ausente = 0). */
+  canas?: number;
+  barba?: number;
 }
 
 /** Orígenes familiares como dato (otro país tendría otra tabla). Las distribuciones son aproximadas y solo sesgan a la generación 0. */
 export const ORIGENES: OrigenDef[] = [
-  { id: 'espana_norte', reserva: 'espana', nombre: 'España (norte)', frecuencia: 0.15, peloColor: [0.12, 0.3, 0.3, 0.14, 0.08, 0.06], peloTipo: [0.4, 0.4, 0.17, 0.03], ojos: [0.15, 0.3, 0.22, 0.13, 0.05, 0.15], piel: [0.08, 0.5, 0.32, 0.1, 0, 0] },
-  { id: 'espana_centro', reserva: 'espana', nombre: 'España (centro)', frecuencia: 0.3, peloColor: [0.28, 0.4, 0.22, 0.07, 0.02, 0.01], peloTipo: [0.38, 0.4, 0.19, 0.03], ojos: [0.3, 0.35, 0.2, 0.08, 0.03, 0.04], piel: [0.04, 0.35, 0.4, 0.18, 0.03, 0] },
-  { id: 'espana_sur', reserva: 'espana', nombre: 'España (sur)', frecuencia: 0.3, peloColor: [0.4, 0.38, 0.15, 0.05, 0.01, 0.01], peloTipo: [0.3, 0.42, 0.24, 0.04], ojos: [0.4, 0.35, 0.15, 0.05, 0.02, 0.03], piel: [0.02, 0.2, 0.38, 0.28, 0.12, 0] },
-  { id: 'latinoamerica', reserva: 'latinoamerica', nombre: 'Latinoamérica', frecuencia: 0.08, peloColor: [0.45, 0.35, 0.12, 0.05, 0.02, 0.01], peloTipo: [0.35, 0.35, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.04, 0.02, 0.02], piel: [0.02, 0.12, 0.3, 0.28, 0.24, 0.04] },
-  { id: 'magreb', reserva: 'magreb', nombre: 'Magreb', frecuencia: 0.05, peloColor: [0.5, 0.35, 0.1, 0.03, 0.01, 0.01], peloTipo: [0.3, 0.4, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.05, 0.02, 0.01], piel: [0.01, 0.1, 0.3, 0.32, 0.22, 0.05] },
-  { id: 'africa_subsahariana', reserva: 'africa_subsahariana', nombre: 'África subsahariana', frecuencia: 0.03, peloColor: [0.9, 0.09, 0.01, 0, 0, 0], peloTipo: [0.02, 0.08, 0.3, 0.6], ojos: [0.85, 0.13, 0.02, 0, 0, 0], piel: [0, 0, 0.02, 0.06, 0.32, 0.6] },
-  { id: 'europa_este', reserva: 'europa_este', nombre: 'Europa del este', frecuencia: 0.04, peloColor: [0.15, 0.3, 0.3, 0.15, 0.08, 0.02], peloTipo: [0.45, 0.38, 0.15, 0.02], ojos: [0.1, 0.25, 0.22, 0.12, 0.1, 0.21], piel: [0.1, 0.5, 0.32, 0.08, 0, 0] },
-  { id: 'europa_norte', reserva: 'europa_norte', nombre: 'Europa del norte', frecuencia: 0.02, peloColor: [0.05, 0.18, 0.3, 0.22, 0.22, 0.03], peloTipo: [0.5, 0.35, 0.13, 0.02], ojos: [0.04, 0.12, 0.15, 0.12, 0.12, 0.45], piel: [0.15, 0.6, 0.22, 0.03, 0, 0] },
-  { id: 'asia_oriental', reserva: 'asia_oriental', nombre: 'Asia oriental', frecuencia: 0.03, peloColor: [0.85, 0.12, 0.03, 0, 0, 0], peloTipo: [0.75, 0.2, 0.04, 0.01], ojos: [0.8, 0.18, 0.02, 0, 0, 0], piel: [0.05, 0.3, 0.4, 0.2, 0.05, 0] },
+  { id: 'espana_norte', reserva: 'espana', nombre: 'España (norte)', frecuencia: 0.162, peloColor: [0.12, 0.3, 0.3, 0.14, 0.08, 0.06], peloTipo: [0.4, 0.4, 0.17, 0.03], ojos: [0.15, 0.3, 0.22, 0.13, 0.05, 0.15], piel: [0.08, 0.5, 0.32, 0.1, 0, 0] },
+  { id: 'espana_centro', reserva: 'espana', nombre: 'España (centro)', frecuencia: 0.324, peloColor: [0.28, 0.4, 0.22, 0.07, 0.02, 0.01], peloTipo: [0.38, 0.4, 0.19, 0.03], ojos: [0.3, 0.35, 0.2, 0.08, 0.03, 0.04], piel: [0.04, 0.35, 0.4, 0.18, 0.03, 0] },
+  { id: 'espana_sur', reserva: 'espana', nombre: 'España (sur)', frecuencia: 0.324, peloColor: [0.4, 0.38, 0.15, 0.05, 0.01, 0.01], peloTipo: [0.3, 0.42, 0.24, 0.04], ojos: [0.4, 0.35, 0.15, 0.05, 0.02, 0.03], piel: [0.02, 0.2, 0.38, 0.28, 0.12, 0], barba: 0.1 },
+  { id: 'latinoamerica', reserva: 'latinoamerica', nombre: 'Latinoamérica', frecuencia: 0.06, peloColor: [0.45, 0.35, 0.12, 0.05, 0.02, 0.01], peloTipo: [0.35, 0.35, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.04, 0.02, 0.02], piel: [0.02, 0.12, 0.3, 0.28, 0.24, 0.04] },
+  { id: 'magreb', reserva: 'magreb', nombre: 'Magreb', frecuencia: 0.04, peloColor: [0.5, 0.35, 0.1, 0.03, 0.01, 0.01], peloTipo: [0.3, 0.4, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.05, 0.02, 0.01], piel: [0.01, 0.1, 0.3, 0.32, 0.22, 0.05], barba: 0.1 },
+  { id: 'africa_subsahariana', reserva: 'africa_subsahariana', nombre: 'África subsahariana', frecuencia: 0.017, peloColor: [0.9, 0.09, 0.01, 0, 0, 0], peloTipo: [0.02, 0.08, 0.3, 0.6], ojos: [0.85, 0.13, 0.02, 0, 0, 0], piel: [0, 0, 0.02, 0.06, 0.32, 0.6], canas: 3 },
+  { id: 'europa_este', reserva: 'europa_este', nombre: 'Europa del este', frecuencia: 0.035, peloColor: [0.15, 0.3, 0.3, 0.15, 0.08, 0.02], peloTipo: [0.45, 0.38, 0.15, 0.02], ojos: [0.1, 0.25, 0.22, 0.12, 0.1, 0.21], piel: [0.1, 0.5, 0.32, 0.08, 0, 0] },
+  { id: 'europa_norte', reserva: 'europa_norte', nombre: 'Europa del norte', frecuencia: 0.02, peloColor: [0.05, 0.18, 0.3, 0.22, 0.22, 0.03], peloTipo: [0.5, 0.35, 0.13, 0.02], ojos: [0.04, 0.12, 0.15, 0.12, 0.12, 0.45], piel: [0.15, 0.6, 0.22, 0.03, 0, 0], canas: -2 },
+  { id: 'asia_oriental', reserva: 'asia_oriental', nombre: 'Asia oriental', frecuencia: 0.018, peloColor: [0.85, 0.12, 0.03, 0, 0, 0], peloTipo: [0.75, 0.2, 0.04, 0.01], ojos: [0.8, 0.18, 0.02, 0, 0, 0], piel: [0.05, 0.3, 0.4, 0.2, 0.05, 0], canas: 4, barba: -0.3 },
 ];
 
 export const origen = (id: string): OrigenDef | undefined => ORIGENES.find((o) => o.id === id);
@@ -222,6 +317,38 @@ export function origenAlAzar(rng: Rng, demografia?: Readonly<Record<string, numb
   return a === b ? [{ id: a, peso: 1 }] : [{ id: a, peso: 0.5 }, { id: b, peso: 0.5 }];
 }
 
+/**
+ * Cómo se emparejan los padres (dato del país o de la ciudad; sin él, los dos se sortean por separado con la demografía). Se sortea primero el **tipo de pareja** y luego los orígenes:
+ * dos de fuera (`ambosExtranjeros`), una mixta (`mixtas`: uno de fuera y otro de aquí) o las dos de aquí (el resto). «De fuera» = origen que no es de `origenesLocales`.
+ */
+export interface ParejasDef {
+  /** Proporción de parejas en que los dos son de fuera (0 a 1). */
+  ambosExtranjeros: number;
+  /** Proporción de parejas mixtas (0 a 1); `ambosExtranjeros + mixtas` ≤ 1. */
+  mixtas: number;
+  /** En las de dos de fuera, probabilidad de que los dos sean del mismo origen (0 a 1). */
+  mismoOrigen: number;
+}
+
+/** Los padres de una persona según el reparto de parejas del lugar: el tipo de pareja y, de él, los orígenes de cada uno (el orden de la mixta es al azar). */
+export function origenesDePareja(rng: Rng, demografia: Readonly<Record<string, number>>, locales: readonly string[], parejas: ParejasDef): [OrigenFamiliar, OrigenFamiliar] {
+  const sub = (aqui: boolean): Readonly<Record<string, number>> => {
+    const parte = Object.fromEntries(Object.entries(demografia).filter(([id, peso]) => peso > 0 && locales.includes(id) === aqui));
+    return Object.keys(parte).length ? parte : demografia; // sin orígenes de ese tipo, la demografía entera
+  };
+  const u = rng.next();
+  if (u < parejas.ambosExtranjeros) {
+    const a = origenAlAzar(rng, sub(false));
+    return [a, rng.chance(parejas.mismoOrigen) ? a : origenAlAzar(rng, sub(false))];
+  }
+  if (u < parejas.ambosExtranjeros + parejas.mixtas) {
+    const fuera = origenAlAzar(rng, sub(false));
+    const aqui = origenAlAzar(rng, sub(true));
+    return rng.chance(0.5) ? [fuera, aqui] : [aqui, fuera];
+  }
+  return [origenAlAzar(rng, sub(true)), origenAlAzar(rng, sub(true))];
+}
+
 /** Origen del hijo: la mezcla a partes iguales de los de sus padres. */
 export function origenHeredado(padre: OrigenFamiliar, madre: OrigenFamiliar): OrigenFamiliar {
   const m = new Map<string, number>();
@@ -230,8 +357,15 @@ export function origenHeredado(padre: OrigenFamiliar, madre: OrigenFamiliar): Or
   return [...m].map(([id, peso]) => ({ id, peso }));
 }
 
-/** Apariencia de un adulto según su origen (si tiene dos, cada rasgo sale de uno de ellos al azar). */
-export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar): Apariencia {
+/** Los rasgos de siempre de la apariencia (todo menos las tendencias de canas, calvicie y barba). */
+export type AparienciaBase = Omit<Apariencia, 'canas' | 'calvicie' | 'barba' | 'rostro' | 'envejecimiento'>;
+/** Las tendencias heredables: canas, calvicie y barba. */
+export type Tendencias = Pick<Apariencia, 'canas' | 'calvicie' | 'barba'>;
+/** Para los sorteos que necesitan una `Apariencia` entera antes de tener las tendencias (los gustos solo miran los rasgos de siempre). */
+const SIN_TENDENCIAS: Tendencias & Pick<Apariencia, 'rostro' | 'envejecimiento'> = { canas: 0, calvicie: 0, barba: 0, rostro: ROSTRO_MEDIO, envejecimiento: 0.5 };
+
+/** Apariencia de un adulto según su origen (si tiene dos, cada rasgo sale de uno de ellos al azar), sin las tendencias. */
+function aparienciaBaseAlAzar(rng: Rng, o: OrigenFamiliar): AparienciaBase {
   const de = () => origen(o[ponderado(o.map((x) => x.peso), rng)].id) ?? ORIGENES[1];
   return {
     peloColor: PELO_COLOR[ponderado(de().peloColor, rng)],
@@ -242,6 +376,45 @@ export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar): Apariencia {
     distintivos: DISTINTIVOS.filter(() => rng.chance(0.12)),
   };
 }
+
+/** Canas, calvicie y barba de un adulto: normales con la media y la desviación de `TENDENCIAS` (las del origen se suman a la media). */
+export function tendenciasAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 'm'): Tendencias {
+  const t = TENDENCIAS;
+  const orig = origen(o[ponderado(o.map((x) => x.peso), rng)].id) ?? ORIGENES[1];
+  const c = sexo === 'f' ? t.calvicie.mujer : t.calvicie.hombre;
+  return {
+    canas: redondea(clamp(t.canas.media + (orig.canas ?? 0) + t.canas.sd * rng.normal(), t.canas.min, t.canas.max), 1),
+    calvicie: redondea(clamp(c.media + c.sd * rng.normal(), 0, c.max), 2),
+    barba: redondea(clamp(t.barba.media + (orig.barba ?? 0) + t.barba.sd * rng.normal(), 0, 1), 2),
+  };
+}
+
+/** Envejecimiento de la piel de un adulto del mundo: normal con la media y la desviación de `TENDENCIAS`, entre 0 y 1, sin tendencias por origen. */
+export function envejecimientoAlAzar(rng: Rng): number {
+  const t = TENDENCIAS.envejecimiento;
+  return redondea(clamp(t.media + t.sd * rng.normal(), 0, 1), 2);
+}
+
+/** Envejecimiento de la piel del hijo: la media de los padres con un pequeño cambio (como las canas). */
+export function envejecimientoHeredado(padre: Pick<Apariencia, 'envejecimiento'>, madre: Pick<Apariencia, 'envejecimiento'>, rng: Rng): number {
+  const h = TENDENCIAS.envejecimiento.herencia;
+  return redondea(clamp(((padre.envejecimiento ?? 0.5) + (madre.envejecimiento ?? 0.5)) / 2 + rng.range(-h, h), 0, 1), 2);
+}
+
+/** Apariencia de un adulto según su origen y su sexo, con las tendencias (todo del mismo generador). */
+export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 'm'): Apariencia {
+  return { ...aparienciaBaseAlAzar(rng, o), ...tendenciasAlAzar(rng, o, sexo), rostro: rostroAlAzar(rng), envejecimiento: envejecimientoAlAzar(rng) };
+}
+
+/**
+ * Generador propio de las tendencias de una persona del mundo: sale de lo que ya se le ha sorteado (su carácter, sus intereses y sus gustos, que son números propios de
+ * cada persona), no del generador de la partida. Así añadir las tendencias no cambia ningún sorteo posterior: el mundo de una semilla sigue siendo el mismo.
+ */
+const generadorDeTendencias = (sexo: 'f' | 'm', ...propios: unknown[]): Rng => rngEstable('tendencias', sexo, JSON.stringify(propios));
+/** Lo mismo para los rasgos de la cara (otro generador, también propio de cada persona). */
+const generadorDeRostro = (sexo: 'f' | 'm', ...propios: unknown[]): Rng => rngEstable('rostro', sexo, JSON.stringify(propios));
+/** Y para el envejecimiento de la piel (otro generador propio: añadirlo no cambia ningún otro sorteo). */
+const generadorDeEnvejecimiento = (sexo: 'f' | 'm', ...propios: unknown[]): Rng => rngEstable('envejecimiento', sexo, JSON.stringify(propios));
 
 /** Un rasgo con gradación heredado de uno de los padres; si difieren, a veces sale uno intermedio y rara vez un vecino. */
 function heredarGradual(catalogo: readonly string[], a: string, b: string, rng: Rng, mezcla = 0.35): string {
@@ -254,7 +427,7 @@ function heredarGradual(catalogo: readonly string[], a: string, b: string, rng: 
 }
 
 /** Apariencia del hijo: cada rasgo viene de un padre (con intermedios en lo que tiene gradación). El pelo rojo es recesivo. */
-export function aparienciaHeredada(padre: Apariencia, madre: Apariencia, rng: Rng): Apariencia {
+function aparienciaBaseHeredada(padre: Apariencia, madre: Apariencia, rng: Rng): AparienciaBase {
   let peloColor: string;
   if (padre.peloColor === 'pelirrojo' || madre.peloColor === 'pelirrojo') {
     const los2 = padre.peloColor === madre.peloColor;
@@ -276,6 +449,23 @@ export function aparienciaHeredada(padre: Apariencia, madre: Apariencia, rng: Rn
     cara: rng.chance(0.5) ? padre.cara : madre.cara,
     distintivos,
   };
+}
+
+/**
+ * Canas y barba del hijo: la media de los padres con un pequeño cambio; calvicie: más de la madre que del padre, con un pequeño cambio y el tope del sexo del hijo.
+ */
+export function tendenciasHeredadas(padre: Tendencias, madre: Tendencias, rng: Rng, sexo: 'f' | 'm' = 'm'): Tendencias {
+  const t = TENDENCIAS;
+  return {
+    canas: redondea(clamp((padre.canas + madre.canas) / 2 + rng.range(-t.canas.herencia, t.canas.herencia), t.canas.min, t.canas.max), 1),
+    calvicie: redondea(clamp(t.calvicie.deLaMadre * madre.calvicie + (1 - t.calvicie.deLaMadre) * padre.calvicie + rng.range(-t.calvicie.herencia, t.calvicie.herencia), 0, topeDeCalvicie(sexo)), 2),
+    barba: redondea(clamp((padre.barba + madre.barba) / 2 + rng.range(-t.barba.herencia, t.barba.herencia), 0, 1), 2),
+  };
+}
+
+/** Apariencia del hijo con sus tendencias, todo del mismo generador. */
+export function aparienciaHeredada(padre: Apariencia, madre: Apariencia, rng: Rng, sexo: 'f' | 'm' = 'm'): Apariencia {
+  return { ...aparienciaBaseHeredada(padre, madre, rng), ...tendenciasHeredadas(padre, madre, rng, sexo), rostro: rostroHeredado(padre, madre, rng), envejecimiento: envejecimientoHeredado(padre, madre, rng) };
 }
 
 // ---------------------------------------------------------------------------------------------------- gustos
@@ -341,18 +531,18 @@ export interface RasgosDe {
 }
 
 /** Rasgos de una persona del mundo (un NPC o un padre de la generación 0). */
-export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Record<string, number>>; interesesPreferidos?: readonly string[]; origen?: OrigenFamiliar; demografia?: Readonly<Record<string, number>> } = {}): RasgosDe {
+export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Record<string, number>>; interesesPreferidos?: readonly string[]; origen?: OrigenFamiliar; demografia?: Readonly<Record<string, number>>; sexo?: 'f' | 'm'; hijoDePareja?: { parejas: ParejasDef; locales: readonly string[] } } = {}): RasgosDe {
   // Con un origen dado (los padres, que salen de la semilla para que sus nombres lo sigan) se hace la tirada igualmente: así no cambia el resto del azar.
   const sorteado = origenAlAzar(rng, opciones.demografia);
-  const o = opciones.origen ?? sorteado;
-  const apariencia = aparienciaAlAzar(rng, o);
-  return {
-    origen: o,
-    apariencia,
-    caracter: caracterAlAzar(rng, opciones.sesgoCaracter),
-    intereses: interesesAlAzar(rng, opciones.interesesPreferidos),
-    gustos: gustosAlAzar(rng, apariencia),
-  };
+  // Un niño del mundo (`hijoDePareja`) sale de una pareja sorteada por tipo, no de un adulto: así el origen y el emparejamiento siguen las mismas reglas que el personaje.
+  const deLaPareja = opciones.hijoDePareja && !opciones.origen ? origenHeredado(...origenesDePareja(rng, opciones.demografia ?? {}, opciones.hijoDePareja.locales, opciones.hijoDePareja.parejas)) : undefined;
+  const o = opciones.origen ?? deLaPareja ?? sorteado;
+  const base = aparienciaBaseAlAzar(rng, o);
+  const caracter = caracterAlAzar(rng, opciones.sesgoCaracter);
+  const intereses = interesesAlAzar(rng, opciones.interesesPreferidos);
+  const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
+  const sexo = opciones.sexo ?? 'm';
+  return { origen: o, apariencia: { ...base, ...tendenciasAlAzar(generadorDeTendencias(sexo, caracter, intereses, gustos), o, sexo), rostro: rostroAlAzar(generadorDeRostro(sexo, caracter, intereses, gustos)), envejecimiento: envejecimientoAlAzar(generadorDeEnvejecimiento(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 /** Rasgos del personaje: heredados de sus padres (la opción de elegirlos a mano llegará con la creación de personaje). */
@@ -364,15 +554,12 @@ export interface PerfilDelPersonaje {
   gustos: Gustos;
 }
 
-export function perfilHeredado(padre: RasgosDe, madre: RasgosDe, rng: Rng): PerfilDelPersonaje {
-  const apariencia = aparienciaHeredada(padre.apariencia, madre.apariencia, rng);
-  return {
-    origen: origenHeredado(padre.origen, madre.origen),
-    apariencia,
-    caracter: caracterHeredado(padre.caracter, madre.caracter, rng),
-    intereses: interesesHeredados(padre.intereses, madre.intereses, rng),
-    gustos: gustosAlAzar(rng, apariencia),
-  };
+export function perfilHeredado(padre: RasgosDe, madre: RasgosDe, rng: Rng, sexo: 'f' | 'm' = 'm'): PerfilDelPersonaje {
+  const base = aparienciaBaseHeredada(padre.apariencia, madre.apariencia, rng);
+  const caracter = caracterHeredado(padre.caracter, madre.caracter, rng);
+  const intereses = interesesHeredados(padre.intereses, madre.intereses, rng);
+  const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
+  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo), rostro: rostroHeredado(padre.apariencia, madre.apariencia, generadorDeRostro(sexo, caracter, intereses, gustos)), envejecimiento: envejecimientoHeredado(padre.apariencia, madre.apariencia, generadorDeEnvejecimiento(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 /**
@@ -380,8 +567,8 @@ export function perfilHeredado(padre: RasgosDe, madre: RasgosDe, rng: Rng): Perf
  * dos padres, pero con sus propias tiradas. Cada interés de los padres pasa con un 60 % (y puede salir una intensidad menos);
  * si no llega a dos, se completan al azar.
  */
-export function rasgosHeredadosNpc(padre: RasgosDe, madre: RasgosDe, rng: Rng): RasgosDe {
-  const apariencia = aparienciaHeredada(padre.apariencia, madre.apariencia, rng);
+export function rasgosHeredadosNpc(padre: RasgosDe, madre: RasgosDe, rng: Rng, sexo: 'f' | 'm' = 'm'): RasgosDe {
+  const base = aparienciaBaseHeredada(padre.apariencia, madre.apariencia, rng);
   const intereses: InteresesNpc = {};
   for (const id of new Set([...Object.keys(padre.intereses), ...Object.keys(madre.intereses)])) {
     if (!rng.chance(0.6)) continue;
@@ -389,13 +576,9 @@ export function rasgosHeredadosNpc(padre: RasgosDe, madre: RasgosDe, rng: Rng): 
     intereses[id] = clamp(intensidad, 1, 3);
   }
   while (Object.keys(intereses).length < 2) intereses[rng.pick(INTERESES).id] ??= rng.int(1, 3);
-  return {
-    origen: origenHeredado(padre.origen, madre.origen),
-    apariencia,
-    caracter: caracterHeredado(padre.caracter, madre.caracter, rng),
-    intereses,
-    gustos: gustosAlAzar(rng, apariencia),
-  };
+  const caracter = caracterHeredado(padre.caracter, madre.caracter, rng);
+  const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
+  return { origen: origenHeredado(padre.origen, madre.origen), apariencia: { ...base, ...tendenciasHeredadas(padre.apariencia, madre.apariencia, generadorDeTendencias(sexo, caracter, intereses, gustos), sexo), rostro: rostroHeredado(padre.apariencia, madre.apariencia, generadorDeRostro(sexo, caracter, intereses, gustos)), envejecimiento: envejecimientoHeredado(padre.apariencia, madre.apariencia, generadorDeEnvejecimiento(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 // ---------------------------------------------------------------------------------------------------- compatibilidad

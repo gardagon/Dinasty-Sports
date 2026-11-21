@@ -3,7 +3,7 @@ import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, claveDeDeporte, registrarPais, type Cl
 import { advanceToWeek, advanceUntil } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, proximoPartido, type FutbolState } from '@ds/mod-futbol';
-import { hacer, llegarA, posible } from './ayudas';
+import { conFutbolFuerte, hacer, llegarA, posible } from './ayudas';
 
 vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
 registrarPais(PAIS_CIUDAD_DE_PRUEBA);
@@ -17,7 +17,7 @@ describe('el partido del personaje en la liga', () => {
   const estado = () => g.moduleState<FutbolState>('futbol') as FutbolState;
   const vista = () => g.service<DeporteService>(claveDeDeporte('futbol'))!.view();
   beforeAll(() => {
-    g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    g = conFutbolFuerte(nuevaPartida({ seed: 40, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]), [...MODULOS, futbol]);
     advanceToWeek(g, 'gen.descansar', 1, 3, 15);
     if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');
   });
@@ -126,7 +126,7 @@ describe('jugar el partido en el campo, a su hora', () => {
     return h ? { dia: h[0], hora: h[1], campo: h[2] } : undefined;
   };
   beforeAll(() => {
-    g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    g = conFutbolFuerte(nuevaPartida({ seed: 40, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]), [...MODULOS, futbol]);
     advanceToWeek(g, 'gen.descansar', 1, 3, 15);
     if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');
   });

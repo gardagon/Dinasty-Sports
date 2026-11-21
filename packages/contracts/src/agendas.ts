@@ -55,8 +55,13 @@ export interface TipoAsignado {
   nivel?: number;
   /** `alumno`: es de tu clase (tus compañeros): está en tu aula desde 10 minutos antes de cada clase y se les puede hablar allí fuera de clase; los demás alumnos están en sus aulas (ocupados). */
   tuClase?: boolean;
-  /** `hermano`: está en edad de colegio (va a clase como un alumno). */
+  /**
+   * `hermano`: está en edad de colegio (va a clase como un alumno). `vecino`: es un niño que va a un colegio de fuera (no es el del personaje, no sale en el mapa): de 7:30 a 14:30 los días lectivos
+   * está en su colegio (fuera del mapa) y el resto del día sigue la agenda de un vecino.
+   */
   escolar?: boolean;
+  /** `vecino` adulto: recoge a un hijo a la salida del colegio los días lectivos (`RECOGIDA_DE_NINOS`): espera en la entrada del colegio (llega entre las 13:45 y las 14:00 y se va entre las 14:05 y las 14:30). Todavía no hay una relación con un hijo concreto: no se va con él. */
+  recoge?: boolean;
   /** `hermano`: es pequeño (menos de 8 años) y duerme de 23:00 a 7:00 (se le ve en casa, pero no se le puede hablar). */
   duerme?: boolean;
   /**
@@ -94,6 +99,18 @@ export interface TramoDeAgenda {
    * destino): se le ve allí, con ese estado, pero no se puede hablar con él. Sin esto, ocupado es estar fuera del mapa.
    */
   motivoOcupado?: string;
+  /**
+   * Varios tramos seguidos con el mismo grupo comparten el azar de cada persona (si va y a qué sitio): quien «sale» en uno ya no está en los siguientes, y quien se queda
+   * se queda donde estaba. Así una salida se reparte en un rato: cada tramo con una `asistencia` menor que el anterior (ver `SALIDA_DEL_COLEGIO`).
+   */
+  grupoDeAzar?: string;
+  /**
+   * Cuántos días (de los que valdría el tramo) lo tiene la persona: sorteo estable por persona y día (`azarDe(persona, día, clave)`, sin gastar el azar de la partida), independiente del de `asistencia`.
+   * Los tramos con la misma `clave` comparten el sorteo: o están todos ese día o no está ninguno (los padres que recogen van el 80 % de los días de clase). Si no lo tiene, vale el tramo siguiente en nivel.
+   */
+  delDia?: { clave: string; probabilidad: number };
+  /** Solo vale los días lectivos (además de los `dias`): lo usa la espera en el colegio de quien tiene una actividad poco después de las clases, que solo se da si ese día hay colegio. */
+  soloLectivo?: boolean;
   /** De qué tipo viene (para enseñarlo y depurarlo); `base` es estar fuera. */
   tipo: TipoDeAgenda | 'base';
 }
@@ -122,7 +139,7 @@ const SABADO: readonly Weekday[] = [5];
 /** Lo que hace cualquiera que no esté en ningún otro tramo: estar fuera. */
 const BASE: TramoDeAgenda = { dias: 'todos', desde: 0, hasta: 1440, destinos: [[FUERA, 1]], nivel: NIVEL_AGENDA.base, tipo: 'base' };
 
-const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: number, hasta: number, destinos: Destinos, asistencia?: number, ocupado?: TramoDeAgenda['ocupado'], motivoOcupado?: string): TramoDeAgenda => ({
+const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: number, hasta: number, destinos: Destinos, asistencia?: number, ocupado?: TramoDeAgenda['ocupado'], motivoOcupado?: string, grupoDeAzar?: string, delDia?: TramoDeAgenda['delDia']): TramoDeAgenda => ({
   tipo,
   nivel,
   dias,
@@ -132,6 +149,8 @@ const tramo = (tipo: TipoDeAgenda, nivel: number, dias: DiasDeTramo, desde: numb
   ...(asistencia === undefined ? {} : { asistencia }),
   ...(ocupado ? { ocupado } : {}),
   ...(motivoOcupado ? { motivoOcupado } : {}),
+  ...(grupoDeAzar ? { grupoDeAzar } : {}),
+  ...(delDia ? { delDia } : {}),
 });
 
 /** Minutos antes de empezar y después de acabar una sesión o una carrera en los que se está en el sitio sin estar ocupado. */
@@ -146,6 +165,27 @@ const PRIMERA_CLASE = JORNADA_ESCOLAR.clases[0][0];
 const FIN_DE_CLASES = JORNADA_ESCOLAR.clases[JORNADA_ESCOLAR.clases.length - 1][1] + HUECO_ENTRE_CLASES;
 /** Minutos antes de cada clase en que los alumnos dejan el patio y se van a sus aulas (a las 7:50 la entrada se vacía; también a las 11:10 al volver del recreo). */
 const ENTRADA_A_AULA = MINUTOS_ANTES_DE_CLASE;
+/**
+ * La salida del colegio no es instantánea (cifras provisionales, 17/11): al acabar las clases (14:00) los alumnos salen **repartidos en `minutos` minutos**, en pasos de `paso`: cada uno se va a su hora
+ * (unos nada más sonar el timbre y otros 30 minutos después) y mientras no se va está en la entrada del colegio (`colegio`, 70 %) o en el patio (30 %), donde se le puede hablar.
+ */
+export const SALIDA_DEL_COLEGIO = {
+  minutos: 30,
+  paso: 5,
+  entrada: 70,
+  patio: 30,
+  /**
+   * Quien tiene un entrenamiento o una actividad que empieza como mucho `espera` minutos después de acabar las clases (el fútbol de las 15:00 empieza, con los 10 minutos de margen, a las 14:50) no se va
+   * a casa: sigue en el colegio (en la entrada o en el patio) hasta ese momento y entonces va a su sitio.
+   */
+  espera: 60,
+};
+/**
+ * Los padres que recogen a un hijo a la salida del colegio (17/11, cifras provisionales): `proporcion` de los vecinos adultos. Llegan a la entrada del colegio entre `llegada` minutos antes de las clases
+ * (13:45) y el final de las clases (14:00), en pasos de `paso`, y se van entre 5 minutos y 30 minutos después de acabar las clases (de 14:05 a 14:30), también en pasos. Van `diasDeClase` (el 80 %) de los días lectivos
+ * (sorteo estable por persona y día: unos días van y otros no). Solo los vecinos de `edadMinima` años o más: 25 de momento, **pendiente de revisar** (a veces pueden ser algo más jóvenes, y se quiere mezclar padres y abuelos).
+ */
+export const RECOGIDA_DE_NINOS = { proporcion: 0.15, llegada: 15, paso: 5, edadMinima: 25, diasDeClase: 0.8 };
 /** Lo que se dice de quien está en el aula durante una clase: está, pero no se le puede hablar. */
 const EN_CLASE_ATENDIENDO = 'atendiendo en clase';
 /** Las clases una a una. */
@@ -160,6 +200,11 @@ const EN_CLASE = [[PRIMERA_CLASE - ENTRADA_A_AULA, RECREO_DESDE], [RECREO_HASTA 
 const colegio = (tipo: TipoDeAgenda, nivel: number, tuClase = false): TramoDeAgenda[] => {
   const [clase1, clase2, clase3, clase4] = CLASES;
   const llegada = PRIMERA_CLASE - LLEGADA_AL_COLEGIO;
+  // Tras la última clase, cada alumno se queda un rato distinto (el azar es el mismo en todos los pasos: quien se va no vuelve).
+  const pasos = Math.round(SALIDA_DEL_COLEGIO.minutos / SALIDA_DEL_COLEGIO.paso);
+  const salida = Array.from({ length: pasos }, (_, k) =>
+    tramo(tipo, nivel, 'lectivo', FIN_DE_CLASES + k * SALIDA_DEL_COLEGIO.paso, FIN_DE_CLASES + (k + 1) * SALIDA_DEL_COLEGIO.paso, [['colegio', SALIDA_DEL_COLEGIO.entrada], ['patio', SALIDA_DEL_COLEGIO.patio]], (pasos - k) / (pasos + 1), undefined, undefined, `salida|${tipo}|${tuClase ? 'tu' : 'otra'}`),
+  );
   if (!tuClase) {
     // Los de otras clases: en la entrada al llegar y en el patio en el recreo; el resto del tiempo están en sus aulas (ocupados, fuera del mapa).
     return [
@@ -167,6 +212,7 @@ const colegio = (tipo: TipoDeAgenda, nivel: number, tuClase = false): TramoDeAge
       tramo(tipo, nivel, 'lectivo', EN_CLASE[0][0], RECREO_DESDE, [['colegio', 1]], undefined, [[EN_CLASE[0][0], RECREO_DESDE]]),
       tramo(tipo, nivel, 'lectivo', RECREO_DESDE, EN_CLASE[1][0], [['patio', 1]]),
       tramo(tipo, nivel, 'lectivo', EN_CLASE[1][0], FIN_DE_CLASES, [['colegio', 1]], undefined, [[EN_CLASE[1][0], FIN_DE_CLASES]]),
+      ...salida,
     ];
   }
   return [
@@ -174,6 +220,7 @@ const colegio = (tipo: TipoDeAgenda, nivel: number, tuClase = false): TramoDeAge
     tramo(tipo, nivel, 'lectivo', EN_CLASE[0][0], RECREO_DESDE, [['aula', 1]], undefined, [clase1, clase2], EN_CLASE_ATENDIENDO),
     tramo(tipo, nivel, 'lectivo', RECREO_DESDE, EN_CLASE[1][0], [['patio', 1]]),
     tramo(tipo, nivel, 'lectivo', EN_CLASE[1][0], FIN_DE_CLASES, [['aula', 1]], undefined, [clase3, clase4], EN_CLASE_ATENDIENDO),
+    ...salida,
   ];
 };
 
@@ -209,9 +256,9 @@ const VISITAS_DE_VECINOS: readonly { sitio: string; peso: number; dias: readonly
  * Lo que hace un vecino entre las 9:00 y las 21:00: se queda fuera (50) o va al parque, al supermercado, al restaurante o a la biblioteca solo
  * cuando están abiertos. Los tramos se parten donde empieza o acaba una visita (distintos de lunes a viernes, sábado y domingo).
  */
-function vecino(nivel: number): TramoDeAgenda[] {
+function vecino(nivel: number, escolar = false, recoge = false): TramoDeAgenda[] {
   const grupos: readonly (readonly Weekday[])[] = [[0, 1, 2, 3, 4], [5], [6]];
-  return grupos.flatMap((dias) => {
+  const delBarrio = grupos.flatMap((dias) => {
     const visitas = VISITAS_DE_VECINOS.filter((v) => v.dias.includes(dias[0]));
     const cortes = [...new Set([h(9), h(21), ...visitas.flatMap((v) => [v.desde, v.hasta])])].sort((a, b) => a - b);
     return cortes.slice(0, -1).map((desde, i): TramoDeAgenda => {
@@ -220,6 +267,26 @@ function vecino(nivel: number): TramoDeAgenda[] {
       return tramo('vecino', nivel, dias, desde, hasta, [[FUERA, 50], ...abiertas.map((v): [string, number] => [v.sitio, v.peso])]);
     });
   });
+  // Los niños que van a un colegio de fuera: en clase (fuera del mapa) de 7:30 a la salida, que acaba a las 14:30. Va después de lo del barrio: a igualdad de nivel gana el último.
+  const colegioDeFuera = escolar ? [tramo('vecino', nivel, 'lectivo', PRIMERA_CLASE - LLEGADA_AL_COLEGIO, FIN_DE_CLASES + SALIDA_DEL_COLEGIO.minutos, [[FUERA, 1]])] : [];
+  return [...delBarrio, ...colegioDeFuera, ...(recoge ? recogerANinos(nivel) : [])];
+}
+
+/**
+ * Un padre o una madre que recoge a su hijo: llega a la entrada del colegio entre las 13:45 y las 14:00 (cada uno a su hora, fija ese día) y se va entre las 14:05 y las 14:30. Como la salida de los alumnos,
+ * se hace con tramos de 5 minutos que comparten el azar de la persona (`grupoDeAzar`): quien ha llegado se queda hasta su hora de irse y quien se ha ido no vuelve.
+ */
+function recogerANinos(nivel: number): TramoDeAgenda[] {
+  const { llegada, paso } = RECOGIDA_DE_NINOS;
+  const llegadas = Math.round(llegada / paso);
+  const salidas = Math.round(SALIDA_DEL_COLEGIO.minutos / paso);
+  const delDia = { clave: 'recoge|dia', probabilidad: RECOGIDA_DE_NINOS.diasDeClase };
+  return [
+    // Llegada: a las 13:45 está el primer tercio, a las 13:50 dos tercios y a las 13:55 todos (el azar de la llegada es independiente del de la salida).
+    ...Array.from({ length: llegadas }, (_, k) => tramo('vecino', nivel, 'lectivo', FIN_DE_CLASES - llegada + k * paso, FIN_DE_CLASES - llegada + (k + 1) * paso, [['colegio', 1]], (k + 1) / llegadas, undefined, undefined, 'recoge|llegada', delDia)),
+    // Espera y salida: a las 14:00 siguen todos; a las 14:05 se ha ido 1/6, y así hasta las 14:30, en que ya no queda nadie.
+    ...Array.from({ length: salidas }, (_, k) => tramo('vecino', nivel, 'lectivo', FIN_DE_CLASES + k * paso, FIN_DE_CLASES + (k + 1) * paso, [['colegio', 1]], (salidas - k) / salidas, undefined, undefined, 'recoge|salida', delDia)),
+  ];
 }
 
 /**
@@ -291,7 +358,7 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
         tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'libre', h(9), h(24), [['casa', 85], [FUERA, 15]]),
       ];
     case 'vecino':
-      return vecino(nivel(NIVEL_AGENDA.rol));
+      return vecino(nivel(NIVEL_AGENDA.rol), t.escolar, t.recoge);
     case 'bibliotecario': {
       // Turno de mañana: de lunes a viernes hasta las 14:30 y los sábados; turno de tarde: de lunes a viernes de 14:30 a 20:00.
       const n = nivel(NIVEL_AGENDA.rol);
@@ -306,7 +373,38 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
 /** La agenda de una persona: la base más los tramos de sus tipos que siguen valiendo el día `dia`. */
 export function construirAgenda(tipos: readonly TipoAsignado[], datos: DatosDeAgenda, dia = 0): TramoDeAgenda[] {
   const vigentes = tipos.filter((t) => t.hasta === undefined || t.hasta >= dia);
-  return [BASE, ...vigentes.flatMap((t) => tramosDe(t, datos))];
+  return conEsperaTrasElColegio([BASE, ...vigentes.flatMap((t) => tramosDe(t, datos))]);
+}
+
+/**
+ * Quien va al colegio del personaje y tiene un entrenamiento o una actividad (un tramo con `ocupado`, de más nivel que el colegio) que empieza como mucho `SALIDA_DEL_COLEGIO.espera` minutos después de las clases
+ * no se va a casa entre una cosa y otra: se queda en el colegio (en la entrada o en el patio) hasta que empieza su tramo (10 minutos antes de la sesión), y entonces va a su sitio. Solo vale los días lectivos y
+ * los días y la asistencia del tramo: si ese día no va a la actividad, se va como los demás.
+ */
+function conEsperaTrasElColegio(agenda: TramoDeAgenda[]): TramoDeAgenda[] {
+  const salida = agenda.find((x) => x.grupoDeAzar?.startsWith('salida|'));
+  if (!salida) return agenda;
+  const resultado = [...agenda];
+  const esperas: TramoDeAgenda[] = [];
+  agenda.forEach((x, i) => {
+    if (!x.ocupado || x.nivel <= salida.nivel || x.dias === 'libre' || x.desde < FIN_DE_CLASES || x.desde > FIN_DE_CLASES + SALIDA_DEL_COLEGIO.espera) return;
+    // Si no va siempre, el tramo y la espera comparten el azar de la persona: va a las dos cosas o a ninguna.
+    const grupo = x.asistencia === undefined ? undefined : (x.grupoDeAzar ?? `espera|${i}`);
+    if (grupo !== undefined) resultado[i] = { ...x, grupoDeAzar: grupo };
+    esperas.push({
+      tipo: salida.tipo,
+      nivel: salida.nivel,
+      dias: x.dias,
+      soloLectivo: true,
+      desde: FIN_DE_CLASES,
+      hasta: x.desde,
+      destinos: [['colegio', SALIDA_DEL_COLEGIO.entrada], ['patio', SALIDA_DEL_COLEGIO.patio]],
+      ...(x.asistencia === undefined ? {} : { asistencia: x.asistencia }),
+      ...(grupo === undefined ? {} : { grupoDeAzar: grupo }),
+    });
+  });
+  // Al final: a igualdad de nivel gana el último, y la espera manda sobre la salida.
+  return [...resultado, ...esperas];
 }
 
 /** Número entre 0 y 1 que sale de las partes dadas y siempre es el mismo para ellas (FNV-1a). Es el azar de las agendas. */
@@ -350,7 +448,7 @@ function tramosVigentes(agenda: readonly TramoDeAgenda[], t: TimeView): number[]
   const indices: number[] = [];
   for (let i = 0; i < agenda.length; i++) {
     const x = agenda[i];
-    if (t.minuteOfDay >= x.desde && t.minuteOfDay < x.hasta && vale(x.dias, t)) indices.push(i);
+    if (t.minuteOfDay >= x.desde && t.minuteOfDay < x.hasta && vale(x.dias, t) && (!x.soloLectivo || t.isSchoolDay)) indices.push(i);
   }
   VIGENTES.set(agenda, { clave, indices });
   return indices;
@@ -361,7 +459,8 @@ export function ubicacionEn(agenda: readonly TramoDeAgenda[], t: TimeView, perso
   let mejor = -1;
   for (const i of tramosVigentes(agenda, t)) {
     const x = agenda[i];
-    if (x.asistencia !== undefined && azarDe(persona, t.day, i, 'va') >= x.asistencia) continue;
+    if (x.asistencia !== undefined && azarDe(persona, t.day, x.grupoDeAzar ?? i, 'va') >= x.asistencia) continue;
+    if (x.delDia && azarDe(persona, t.day, x.delDia.clave, 'dia') >= x.delDia.probabilidad) continue;
     if (mejor < 0 || x.nivel >= agenda[mejor].nivel) mejor = i;
   }
   const x = agenda[mejor];
@@ -371,7 +470,7 @@ export function ubicacionEn(agenda: readonly TramoDeAgenda[], t: TimeView, perso
   }
   if (x.destinos.length === 1) return { sitio: x.destinos[0][0], nivel: x.nivel, tipo: x.tipo };
   const total = x.destinos.reduce((s, [, peso]) => s + peso, 0);
-  let tirada = azarDe(persona, t.day, mejor, 'donde') * total;
+  let tirada = azarDe(persona, t.day, x.grupoDeAzar ?? mejor, 'donde') * total;
   for (const [sitio, peso] of x.destinos) {
     tirada -= peso;
     if (tirada < 0) return { sitio, nivel: x.nivel, tipo: x.tipo };

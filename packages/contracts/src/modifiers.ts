@@ -11,6 +11,11 @@ export interface ModifierResult {
   duration?: number;
   /** Texto corto para explicar al jugador por qué rinde más o menos. */
   reason?: string;
+  /**
+   * Impide la acción: el motivo que verá el jugador («Estás castigado sin salir»). Así un módulo puede prohibir acciones por etiquetas sin
+   * conocerlas (un castigo, una baja). Los requisitos propios de la acción mandan: si ya no estaba disponible, se enseña su motivo.
+   */
+  bloquea?: string;
 }
 
 /**

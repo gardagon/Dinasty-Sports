@@ -5,6 +5,298 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Se une la rama de trabajo a la principal
+
+El usuario aprueba unir `claude/youthful-clarke-vs0kye` a `main`, para probarlo como jugador, ver el rendimiento después y seguir trabajando en paralelo. Pull request gardagon/Dinasty-Sports#127. La versión de guardado pasa de 17 a 21: las partidas de la versión publicada se descartan con un aviso. La revisión de rendimiento queda para justo después.
+
+## 21/11/2026 — Rotación en el fútbol de colegio, «El curso que viene» y puestos
+
+- **Convocatorias:** siguen igual, pero en los equipos de colegio de benjamín y alevín hay rotación para que todos jueguen algo a lo largo de la liga. Igual para el personaje y los PNJ.
+- **Página del equipo:** la sección «El curso que viene» enseña los nombres de los que cambian de categoría y que hacen falta 14 niños por equipo, pero solo aparece cuando termina la temporada, para no ocupar sitio durante el curso.
+- **Puestos de la plantilla:** si lo que se enseña es el mejor puesto de cada niño y en los partidos juegan también en otros por falta de jugadores, está bien así. Si el reparto está sesgado (casi todos del lado derecho en una captura), es un fallo y se arregla.
+- **Hecho el 21/11** (`docs/relevo/rotacion-y-puestos.md`):
+  - Rotación: dato `CategoriaDef.rotacionEn: ['colegio']` en benjamín y alevín; en la convocatoria, los minutos del curso frente a la media de la plantilla pesan 0,6. En los colegios, nadie se queda a 0 minutos (antes un 2–3 %) y el que menos juega pasa de 0 a 270. Los clubes de fuera y las demás categorías no cambian.
+  - «El curso que viene» solo con la temporada terminada (desde el final de la liga o la copa hasta el reparto del verano).
+  - Puestos: no era un fallo. La columna es el puesto de plantilla, y el 79 % de lado derecho viene de la pierna buena (el 80 % de los niños son diestros). Los once titulares siempre tienen sus dos laterales y sus dos extremos. Se cambia el título a «Puesto en la plantilla». Idea sin hacer: plantillas equilibradas por lado.
+
+## 20/11/2026 — Reparto de equipos, segunda vuelta (respuestas del usuario)
+
+- **Los equipos del colegio siguen las mismas normas que los de cualquier club:** con un solo equipo, niños de los dos años mezclados; con dos, el A con los de segundo año (y algún primer año muy bueno que sería titular en el A) y el B con los de primer año; con tres, A y B igual y el C con niños de los dos años. El personaje entra en el equipo que le toca según esas normas.
+- **Los clubes de fuera cierran más equipos (22 → 68):** hay que vigilarlo. Probablemente haya que tocar los porcentajes de los niños que van a probar fuera.
+- **Página del equipo:** ver la plantilla (ya hay una sección «Plantilla» en la pestaña del deporte) y poder ver antes del cierre si el equipo corre peligro de quedarse sin niños suficientes.
+- **Si al subir de categoría y repartirse los niños el equipo del personaje no tiene niños suficientes,** le llega un suceso que se lo dice: tiene que buscarse equipo, como el resto. Más adelante puede dar pie a una misión para convencer a niños de jugar en el equipo.
+- **Ir a probar fuera:** pesa sobre todo la ambición. El nivel no hace que un niño quiera irse (no tiene por qué querer crecer); servirá para que lo vea un ojeador, más adelante.
+- **Hecho el 20/11** (`docs/relevo/reparto-equipos-2.md`):
+  - El colegio ya aplicaba las normas por año (mismo código; `npm run equipos-por-anio`). Se arreglan dos fallos: el personaje entraba en los fichajes de verano con un año de más (`seasonAge + 1` en `npcs`), y un segundo año que no cabía en el A se quedaba en el club sin equipo (ahora, plaza de más o sale).
+  - Pesos: ambición 1, nivel 0, amigos 0,6.
+  - Cierres de los clubes de fuera: 56 → 54. No es por los porcentajes (con un 90 % en todas las categorías siguen cerrando 49): son clubes con varios equipos que pierden uno, y los futbolistas bajan un 16 % en dos veranos. No se tocan los porcentajes.
+  - Suceso `futbol.equipo_sin_ninos`: el club no reúne 14 en la categoría o no tiene equipo en la que sube. El personaje sale del club como cualquier niño sin equipo.
+  - Página del equipo: sección «El curso que viene», con cuántos son, quién cambia de categoría, cuántos quedan y si corre peligro.
+
+## 18/11/2026 — Nombres más corrientes, acciones del club en desplegables y el personaje que se queda sin equipo
+
+- **Nombres** (informe: `docs/relevo/nombres-nacionales.md`): (a) en la ciudad grande, el 19 % de origen extranjero se reparte como en Madrid (Latinoamérica 9,9, Europa del este 3,0, Europa del norte 2,4, Asia oriental 1,9, Magreb 1,2, África subsahariana 0,6); (b) el **20 %** de los hijos de extranjeros nacidos aquí llevan nombre de pila español (dato editable por país y ciudad). El orden de los apellidos no se toca. **Hecho el 18/11** (`nombreLocalDeLosNacidosAqui` en `PaisDef` y `CiudadDef`; la ciudad grande lo trae a 0,2): de cada 20 compañeros suenan extranjeros 2,4 (antes 3,4), y 1,7 a primera vista (antes 2,6). España, Argentina, Inglaterra y la ciudad de prueba no cambian. `probar-web` cierra ahora los sucesos ajenos al fútbol antes de pulsar la pestaña del deporte.
+- **Acciones del club:** «Prueba de acceso…» y «Aceptar plaza…» pasan a un desplegable con un club por opción, para probarlo. «Entrenamiento con el club», «Dejar el club» y «Apuntarte al club del colegio» siguen sueltos. **Hecho el 18/11** (`docs/relevo/club-desplegables.md`): en fútbol, «Prueba de acceso…» reúne los tres pasos (pedir, unirse, entrenar a prueba). Con atletismo, la lista pasa de 7 a 5 botones; con atletismo y fútbol, de 25 a 10. Con dos deportes salen dos de cada (uno por deporte).
+- **El personaje que se queda sin equipo** (pierde la plaza, por ejemplo en verano): un suceso en el que el entrenador le dice que va a contar menos con él. Por defecto mantiene la plaza extra (el equipo se pasa 1 o 2 del máximo), pero puede ir a probar a otros sitios sabiéndolo.
+
+## 18/11/2026 — Fichas y listas, hecho (rama `claude/fichas-y-listas`)
+
+Detalle: `docs/relevo/fichas-y-listas.md` (con el análisis de todas las listas, `npm run listas`).
+- **La ficha de quien no está a tu lado** no enseña ninguna acción. Se quedan el apodo y «Cancelar plan» (avisar de que no vas). Quien está aquí pero ocupado conserva el listado en gris con el motivo.
+- **Los que recogen** van el 80 % de los días (campo de tramo `delDia`, sorteo estable); edad mínima 25, pendiente de revisar.
+- **Prueba fuera de plazo:** el motivo añade «Las pruebas de acceso se abren el lunes …».
+- **Desplegables:** «Estudiar…», «Pedir tutoría…» y, con dos deportes, «Campamento…», «Practicar con los amigos…» y «Ver un deporte en la tele…». Las acciones del club, solo como propuesta (decide el usuario).
+
+## 17/11/2026 — Equipos: menos clubes de colegio y niños que se quedan en el de su colegio
+
+El equipo del colegio se quedaba vacío porque en el reparto los 14 clubes (9 de fuera y 5 de colegio) llenan sus A y B con unos 500 niños por categoría, y el colegio va el último. Decidido por el usuario:
+- **Clubes de colegio: 4 en total** (el del personaje y 3 de los 9 de fuera). Los 6 colegios sin club nutren a los clubes de fuera.
+- **Un niño con club en su colegio se queda en él, salvo que vaya a probar fuera.** El orden del reparto no cambia: los clubes de fuera siguen formando sus equipos antes. Lo que cambia es quién va a probar con ellos: de los alumnos de un colegio con club, solo un porcentaje según la edad (benjamín 15 %, alevín 25 %, infantil 35 %, cadete 45 %, juvenil 55 %; sube con la ambición y el nivel, baja si tiene amigos en el equipo; cifras de partida, por revisar). Los demás quedan para el equipo de su colegio, y los que prueban y no entran vuelven a él. **Cada verano, lo mismo con los de cualquier año**, no solo con los de primer año. Es aceptable que en juvenil no haya equipos de colegio, y casi tampoco en cadete. (Corrección del usuario, 18/11: no dijo que el colegio forme antes; los porcentajes existen precisamente porque los de fuera forman antes.)
+- **Convencer a un amigo para que el equipo no se deshaga:** como alternativa puntual, no como regla general.
+- **Hecho el 20/11** (`docs/relevo/reparto-equipos.md`): `colegiosConClub: 3`; `CategoriaDef.probarFuera` y `PESOS_DE_PROBAR_FUERA` (ambición 0,5, nivel 0,5, amigos 0,6: cifras de la sesión, por revisar; «amigos» es un sustituto hasta que haya amistades entre PNJ); `plazasDeMas`; suceso `futbol.plaza_extra`. Resultados con 12 semillas: el colegio del personaje tiene equipo casi siempre (juvenil tras el verano 2: sin equipo en 4 de 12, antes 11 de 12); niños con interés sin equipo, 142 → 13 tras el verano 1; primeros años en el A de un grande, 0. Los clubes de fuera cierran más equipos (22 → 68, casi todos pierden uno de varios), porque les llegan menos alumnos de los colegios con club. En benjamín el colegio pasa a tener 2–3 equipos.
+- **Plazas de más, en lo último de todo:** si al final un niño se queda sin equipo, un equipo puede pasar de su máximo, 1 o 2 plazas como mucho, solo para no dejarlo fuera. Ese niño corre el riesgo de no jugar si no da el nivel.
+
+## 17/11/2026 — Respuestas del usuario: recogida, fichas de quien no está, plazo de fichajes y listas agrupadas
+
+- **Un padre que se va con su hijo:** cuando haya familias de PNJ.
+- **Los que recogen van el 80 % de los días de clase.** Edad mínima, 25 de momento, **pendiente de revisar**: a veces pueden ser algo más jóvenes, y habría que mezclar padres y abuelos.
+- **Ficha de alguien que no está a tu lado:** no se enseña nada de lo que se podría hacer con esa persona, ni siquiera en gris. Así se entiende que no se puede hacer nada porque es imposible, no por carácter ni por otra condición. Vale para todas las fichas.
+- **La regla de plaza se queda como está;** se arregla el equipo del colegio que se queda vacío (preocupa al usuario; ver la entrada siguiente). **Si se pide una prueba fuera de plazo, te dicen cuándo se abren las pruebas.**
+- **Agrupar más listas en desplegables:** aprobado para «Estudiar…», las tutorías y lo que encaje, tras analizar todas las listas. Las acciones del club, por ver: hay que analizarlas antes.
+- **Nombres:** antes de bajar el 25 % de niños con algún padre extranjero, se prueba con nombres y apellidos más corrientes (propuesta con muestras encargada).
+- **Equipos del colegio que se quedan vacíos:** las opciones A–E no le encajan al usuario. Pide que se le explique cómo se forman los equipos, porque cree que el problema está ahí. Los niños de un equipo deshecho que se van a otro siguen en ese equipo, lo cual es lógico. Idea para la opción D: en las categorías inferiores, el personaje puede convencer a un amigo (quizá uno que fue rechazado) para que el equipo no se deshaga.
+
+## 17/11/2026 — «Entrenar…» agrupado y un solo deporte de competición, hechos (rama `claude/entrenar-y-un-deporte`)
+
+Detalle: `docs/relevo/entrenar-y-un-deporte.md`.
+- **Acciones agrupadas:** campo de datos `ActionDef.desplegable` (contracts → `ActionOption` en core), que la web dibuja como un botón con desplegable (`apps/web/src/desplegables.ts`). Los entrenamientos libres de cada deporte salen como una sola «Entrenar…»; cada opción lleva su duración y su motivo. Los ids no cambian.
+- **Un solo deporte de competición:** `motivoDeCompetirEnOtroDeporte` en el kit. Apuntarse, pedir prueba, unirse, hacer la prueba y aceptar plaza en otro deporte salen no disponibles con «Ya compites en <deporte>: déjalo antes». Entrenar por libre sigue permitido. Los PNJ ya tenían uno solo. Las partidas ya empezadas con dos clubes los conservan (sin migración). `sim:rapida`, igual.
+
+## 17/11/2026 — PNJ 2 unido (rama `claude/pnj-2`)
+
+Detalle: `docs/relevo/pnj-2.md`.
+- **Niños de otros colegios:** los días lectivos, de 7:30 a 14:30 en su colegio (fuera del mapa). Los del equipo de su colegio entrenan con el horario del equipo, en su colegio.
+- **Espera tras las clases** (general): quien tiene un tramo ocupado que empieza 60 minutos o menos después de las clases (`SALIDA_DEL_COLEGIO.espera`) se queda en el colegio y está en su sitio 10 minutos antes (fútbol: a las 14:50 en el campo). El motor de agendas gana `soloLectivo`.
+- **Padres que recogen:** el 15 % de los vecinos adultos (sorteo propio, sin gastar el azar de la partida): llegan entre las 13:45 y las 14:00 y se van entre las 14:05 y las 14:30 (`RECOGIDA_DE_NINOS`).
+- **Niños del barrio amigos** (mismo umbral que un compañero: afinidad 40, confianza 30 y 3 contactos en 14 días): todo el catálogo de amistad y planes. **Vecinos adultos:** charlar. **Rivales:** todos los conocidos, sin tope.
+- **Rendimiento:** las acciones de rivales y vecinos conocidos solo se calculan para los que están cerca; los demás se resuelven por id. Con 413 rivales conocidos, 16,3 → 2,7 ms; `rendimiento -- 60`, 1,80 → 1,86 ms por acción.
+- **Ficha:** el club sale con su nombre.
+
+## 17/11/2026 — Demografía de orígenes más cerca de la realidad
+
+Informe: `docs/relevo/demografia-origenes.md`. Había un 25 % de adultos de origen extranjero y, al sortearse los dos padres por separado, el 46 % de los personajes tenía un padre extranjero (y casi todos salían mestizos). Datos oficiales de referencia: nacidos fuera, 20,2 %; nacionalidad extranjera, 14,6 % (INE, 2026); alumnado extranjero, 13,5 %; nacimientos con algún progenitor extranjero, ~25–32 %. El usuario aprueba (se busca acercarse a la realidad sin copiarla, así que no hace falta afinar con las tablas del INE):
+- **A. Emparejar por tipos:** 75 % de parejas de dos de aquí, 13 % de dos extranjeros (el 70 % del mismo origen) y 12 % mixtas.
+- **B. Demografía adulta de España, del 25 % al 19 %:** Latinoamérica 6, Magreb 4, Europa del este 3,5, África subsahariana 1,7, Asia oriental 1,8, Europa del norte 2.
+- **C. Los niños del mundo se sortean como hijos de una pareja,** con las mismas reglas que el personaje.
+**Hecho el 17/11** (`docs/relevo/demografia-origenes.md` §6): `PaisDef.parejas`, `origenesDePareja`; los padres del personaje salen de una sola tirada de la semilla; los niños del mundo, como hijos de pareja (`persona()`); la ciudad puede llevar su propia `demografia` y `parejas` (la ciudad grande las trae explícitas, hoy iguales que las de España; las demás heredan las del país). Argentina e Inglaterra no cambian. Medido (antes → después): adultos 25,6 → 20,6 %; compañeros de la edad del personaje 28,9 → 26,3 %; personaje con algún padre extranjero 45,7 → 25,0 %; personaje mestizo 38,5 → 12,0 %; parejas de dos extranjeros del mismo origen 15 → 70 %. Los niños quedan en ~25 % (13 + 12 de las parejas): si aún se ven demasiados, hay que bajar `ambosExtranjeros` y `mixtas`, no la demografía. Las semillas de España cambian (otros padres y nombres); las partidas guardadas conservan su gente. Rendimiento: 1,89 → 2,05 ms por acción (dentro del ruido; se mirará en la revisión de rendimiento). Resultado esperado: el 25 % de los hijos con algún padre extranjero y el 12 % mestizos. **Estas cifras son de una ciudad como Madrid:** la demografía tendrá que ajustarse a cada ciudad (va en la ciudad grande si la estructura lo permite; si no, queda pendiente en `PAQUETES_DE_PAIS.md`). Encargado a la sesión `claude/demografia-origenes`.
+
+## 17/11/2026 — Fútbol 2 unido; revisión de rendimiento pedida
+
+- **Prueba de acceso** (rama `claude/futbol-2`, detalle en `docs/relevo/futbol-2.md`): la necesidad se mide por grupo de puestos (cupo menos jugadores; servicio `NpcDirectory.huecosPorGrupo`). Si faltan jugadores en 1 o 2 grupos, el entrenador los nombra; si son más de 2, dice «varios». Se elige entre todos los puestos.
+- El cambio de puesto del primer entrenamiento cuenta para las 4 semanas (señal `club.peticion_de_puesto`).
+- **Calendario:** línea «Temporada: Pretemporada. La liga empieza el sábado 13 de octubre» en la pestaña del deporte (fútbol y atletismo; dato del deporte en contracts); el entrenador lo dice en el primer entrenamiento, y el diario lo apunta al publicarse el calendario.
+- **Modo números:** enseña también el estado del jugador, la familia, el carácter y el dinero con «€».
+- **Revisión de rendimiento** (el usuario): se están metiendo muchas cosas nuevas sin medirlas como se debería. Queda la primera en lo pendiente de las notas de arquitectura, cuando se unan las sesiones en curso. Incluye estabilizar el chequeo de Rendimiento de la simulación.
+- **Niños sin equipo:** el usuario no quiere ampliar el equipo del colegio sin más (las convocatorias dejarían a muchos fuera: más rotación y desencanto). Se mide cuántos se quedan fuera y si darían para otro equipo antes de decidir.
+
+## 17/11/2026 — Comprobación final de los eventos (rama `claude/comprobacion-final`)
+
+Detalle: `docs/relevo/comprobacion-final.md`.
+- **Los fallos de `benjamin` y `probar-web` eran de los bots de las herramientas, no del juego.** En `benjamin` (semilla 33), el equipo del colegio está completo y todos valen más que el personaje (regla de plaza), y la herramienta no lo miraba: ahora lo dice con el motivo y mide el equipo sin él. En `probar-web`, el bot nunca iba a entrenar y la asistencia pesa en la convocatoria: ahora va a las sesiones de su club.
+- **`probar-web`** pasa ahora por la prueba de acceso nueva y por un suceso: ventana, elegir con un clic, que se resuelve y que el diario lo cuenta.
+- **`npm run sim` completa,** antes del director de sucesos (`ea716d6`) y ahora: los 13 chequeos de balance siguen igual. El nuevo «Ritmo de los eventos» da ✅ (2,0 por semana, 31 distintos). El de Rendimiento sale ⚠️ en las dos versiones con la máquina cargada: el coste es el mismo (1,97 → 1,99 ms por acción) y lo que varía es la calibración del chequeo.
+
+## 17/11/2026 — Tiradas, PNJ que compiten en un deporte y entrenamientos agrupados
+
+- **Las tiradas se quedan como están** (el usuario lo había entendido al revés; se prueba con estas dificultades y se adaptan si hace falta): la dificultad es el número que hay que superar (como la clase de dificultad de los juegos de rol), así que más alta es más difícil. La probabilidad de éxito es del 50 % con la habilidad igual a la dificultad, ±15 puntos por cada 10 de diferencia, entre el 5 % y el 95 % (`TIRADA` en contracts). Las tablas de los anexos se dan también en «% de éxito».
+- **Se compite en un solo deporte y en un solo club, el personaje y los PNJ:** se pueden practicar varios deportes por su cuenta, pero no tiene sentido que un niño compita en dos deportes (la carga deportiva sería muy grande). Hoy el personaje sí podía estar en clubes de dos deportes: deja de poder (para entrar en el club o el equipo de otro deporte, antes hay que dejar el actual). Se podrá abrir en el futuro, cuando haya más deportes.
+- **Entrenamientos agrupados:** en la lista principal, en vez de una acción por tipo de entrenamiento, una sola «Entrenar…» por deporte con un desplegable. Las acciones siguen existiendo por dentro. Encargado a `claude/futbol-2`.
+
+## 17/11/2026 — Respuestas del usuario: PNJ, prueba de acceso, modo números y calendario de la liga
+
+- **Modo «números»:** de momento enseña también la forma y la moral, la familia, el carácter y el dinero con «€». **Desaparecerá en el futuro:** enseñar cómo va el motor provoca metagaming.
+- **Niños de otros colegios:** horario escolar propio (en su colegio, fuera del mapa del personaje) y el de sus clubes si están apuntados, también el equipo de su colegio.
+- **Salida del colegio y actividades de la tarde:** quien tiene entrenamiento poco después (el fútbol a las 15:00) no desaparece entre las 14:30 y las 15:00: sigue en el colegio y está en el campo 10 minutos antes de empezar.
+- **Padres que recogen:** aprobado (~15 % de los vecinos adultos; llegan entre 13:45 y 14:00 y se van entre 14:05 y 14:30).
+- **Niños del barrio:** con suficiente trato pasan a ser amigos, con todo el catálogo de acciones.
+- **Vecinos adultos conocidos:** se puede charlar con ellos.
+- **Rivales:** todos los conocidos se pueden saludar y charlar, no solo los 5 con más trato.
+- **PNJ y deportes:** «los otros PNJ deben poder hacer cualquier deporte, pero no estar en club o equipo de cada deporte» (por concretar con el usuario).
+- **Pedir puesto:** el cambio de puesto del primer entrenamiento cuenta para las 4 semanas. Lo de «invertir» la escala de la dificultad, por concretar.
+- **Prueba de acceso:** el entrenador dice los 2 puestos que más necesita, o «varios» si hay más de 2 huecos. Eliges entre todos los puestos: si es un hueco (dicho o no), te prueba ahí; si no, te dice que no es ninguno de esos y te prueba donde decide él.
+- **Calendario de la liga:** el juego debe decir cuándo empieza la liga o, si aún no hay fecha, que todavía no hay calendario. El usuario llevaba 2 semanas de pretemporada sin saber si se había saltado algo.
+
+## 17/11/2026 — Pedir puesto y prueba de acceso, hechos (rama `claude/futbol-pedir-puesto`)
+
+Detalle y tablas: `docs/relevo/futbol-pedir-puesto.md`.
+- **Formato de los sucesos (general):** una tirada admite `ajustes: [{ si: [condiciones], mas: N }]`, que suman a la dificultad (total entre 0 y 100), y hay un efecto `{ tirada, exito, fallo }` para tirar dentro de un suceso sin opciones. Documentado en ANEXO_EVENTOS.
+- **Dificultad de pedir puesto** (cifras provisionales, base 55, entre 25 y 80; `ajustesDePedirPuesto` en el kit):
+  - relación con el entrenador: antipatía, enemigo o antagonista, +10; afinidad ≥ 20, −5; ≥ 40, otros −5; ≥ 75, otros −5;
+  - lo que vale en el puesto pedido frente al actual: ≥ 3 más, −5; ≥ 10, otros −5; ≥ 20, otros −5; ≤ 3 menos, +8; ≤ 10 menos, otros +7.
+  Ejemplos (relación baja / media / alta; vale más / igual / menos): 55/65/73, 40/50/58 y 35/45/53. Lo usan el primer entrenamiento y la ficha.
+- **Prueba de acceso** (clubes con puestos, en el kit): «Pedir hacer una prueba» (te dicen cuándo entrena) → «Unirte al entrenamiento de prueba» → suceso `<deporte>.prueba_de_acceso` (el entrenador se presenta; con 2 huecos o más pregunta dónde quieres jugar) → «Entrenar a prueba con el equipo» (145 min), que mide la plaza en el puesto en que te probaron y dice qué tal ha ido. Se quitan `elegir_puesto.*`. El atletismo, sin puestos, no cambia.
+- **Ficha del entrenador:** servicio común `ConversacionService` (contracts). «Pedir jugar…» con desplegable de puestos (sugiere el que más vale), solo con el entrenador presente; 5 minutos; suceso `<deporte>.pedir_puesto`. Preguntar antes de 28 días (dato editable) baja la afinidad −3 (provisional, igual que llegar tarde a una convocatoria), además de la tirada.
+
+## 17/11/2026 — Fallos de PNJ arreglados (rama `claude/pnj-fallos-1`)
+
+- **Un PNJ no puede estar en dos deportes** (`Npc.deporte` es único; nadie decidió lo contrario). Lo que se veía era un fallo de texto: al dejar un deporte se quitaba el club, pero no la frase «Del equipo de X del colegio.» de la descripción. Arreglado. Las partidas ya empezadas conservan la frase vieja hasta que esa persona cambie de equipo. El personaje sí puede hacer dos deportes; si se iguala, queda pendiente del usuario.
+- **Los niveles de la ficha y de Relaciones** salen con el nombre del deporte («Fútbol 15»).
+- **Los niños del barrio que se conocen** (papel `vecino`, menores de 18) tienen «Charlar un rato», con las cifras de un compañero (ANEXO_RELACIONES). Lo demás, pendiente del usuario.
+- **Salida del colegio** (cifras provisionales, `SALIDA_DEL_COLEGIO` en `agendas.ts`): de 14:00 a 14:30, en pasos de 5 minutos. Mientras no se va, cada alumno está en la entrada (70 %) o en el patio (30 %). El motor de agendas gana `grupoDeAzar`, para que quien se va no vuelva. Rendimiento igual (1,75 → 1,76 ms por acción).
+
+## 17/11/2026 — Pedir puesto: prueba como evento y pregunta al entrenador; no unir a la principal hasta cerrar
+
+- **La prueba de acceso a un club deja de tener «pedir puesto» como acciones sueltas.** Pasa a ser una acción y un evento:
+  - acción «Pedir hacer una prueba» en un club: te dicen cuándo entrena el equipo que te toca;
+  - te presentas a esa hora y te unes: evento en que el entrenador se presenta (pasa a ser conocido). Si el equipo tiene varios huecos, te pregunta dónde quieres jugar: si eliges un hueco, te prueba ahí; si no, te dice que no, pero que te quedes igualmente a ver qué tal, y te prueba en el puesto que decide él;
+  - al final del entrenamiento te dicen qué tal ha ido la prueba.
+  Desaparecen «Pedir jugar de <puesto> en las pruebas» y «Dejar que el club decida…». Sustituye a la entrada anterior de este día sobre el fallo 1.
+- **Ya en el equipo (club o colegio), pedir otro puesto es una pregunta al entrenador en la conversación:** «Pedir jugar…» con un desplegable de puestos en su ficha. La tirada depende de la relación con el entrenador y de lo que vale el jugador en el puesto pedido frente al actual (la decisión anterior del cambio de puesto pasa aquí). Se puede preguntar siempre, pero si han pasado menos de 4 semanas desde la última vez el entrenador se lo toma mal y baja la relación (plazo editable; la bajada, cifra provisional de la sesión).
+- **Acciones de conversación con desplegable:** servicio común en contracts que rellenan los módulos y la ficha dibuja como «Proponer quedar para…». La interfaz no sabe de qué deporte se trata.
+- **No unir a la rama principal hasta dejarlo todo lo más cerrado posible:** terminar lo que está en curso, arreglar los fallos encontrados y pasar la comprobación final de los eventos.
+- **Fallo (17/11):** a las 14:00 todos los niños y sus padres ya se han ido del colegio; la salida no puede durar menos de 5 minutos. Encargado a la sesión de PNJ.
+
+## 17/11/2026 — Respuestas del usuario a la sesión de arquitectura (Opciones, cambio de puesto, ritmo) y fallos que encontró jugando
+
+- **Modo «números» de los sucesos:** las consecuencias salen con el nombre del juego de cada estadística («Estrés −1»), nunca con su identificador interno («gen.estres −1»). Era un fallo de presentación.
+- **Modo «normal»: aviso de lo que no va con el carácter.** Una opción que no encaja con el carácter del personaje lleva una nota discreta («no va contigo»), aunque se pueda elegir y aunque su pista sea buena. Elegirla sigue moviendo el carácter como hasta ahora. El aviso se puede desactivar en Opciones (preferencia del navegador, como el resto de la presentación).
+- **Pedir otro puesto en el primer entrenamiento de fútbol:** la dificultad de la tirada (hoy comunicación contra 55 fija) depende también de la relación con el entrenador (mejor relación, más fácil) y de cuánto más vale el jugador en el puesto que pide que en el que tiene (si vale claramente más, más fácil; si vale menos, más difícil). Cifras provisionales de la sesión que lo haga, para revisarlas con el usuario.
+- **Ritmo de los sucesos:** se deja como está (unos 2 por semana con los bots; cupos en `docs/PLAN_EVENTOS.md` §7 bis). Se ajustará cuando haya más contenido.
+- **Unir a la rama principal:** pendiente. Antes se arreglan los fallos de abajo y se hace la comprobación final de los eventos. Unir publica el juego en GitHub Pages; las partidas guardadas de la versión publicada (guardado v17) no cargan en la nueva (v21): al abrirla se descartan con un aviso y hay que empezar partida nueva.
+- **Fallos que encontró el usuario jugando (17/11):**
+  1. Las acciones «Pedir jugar de <puesto> en las pruebas» (`packages/kit-deporte/src/club.ts`) salen siempre en la lista de acciones, una por puesto. Deben ir en la conversación (la ficha de la persona con quien se habla), como una sola acción «Pedir jugar…» con un desplegable de puestos, igual que «Proponer quedar para…».
+  2. Un PNJ puede salir a la vez en el equipo de atletismo del colegio y en un club de fútbol (ficha de Alexandra Nistor). Hay que ver si es un fallo o se permite; en esa misma ficha, «Nivel: futbol 15» enseña el identificador del deporte en vez de su nombre.
+  3. En el parque se puede conocer a niños, pero luego no se puede charlar con ellos.
+
+## 17/11/2026 — Eventos y decisiones: rendimiento, presentación desde Opciones y primer lote de Sonnet
+
+- **Rendimiento del director** (`modules/sucesos`): las condiciones ligeras de cada suceso (marcas, contadores, datos de la señal) se comprueban antes de preparar su contexto. Con 500 sucesos, el coste por acción baja de ~0,08 ms a ~0,009 ms (objetivo < 0,02 ✅). Huella de los bots idéntica. Notas: `docs/relevo/sucesos-rendimiento.md`.
+- **Presentación desde Opciones** (web): pistas, números o nada, y opciones fuera de carácter normales, sombreadas u ocultas. Es una preferencia del navegador (todas las partidas), como la frecuencia de guardado; al cambiarla la partida se rehace por dentro con el estado idéntico. Pendiente del usuario: nombres legibles en modo números (hoy «gen.estres −1») y avisar en modo normal cuando una opción no encaja con el carácter. Notas: `docs/relevo/sucesos-opciones.md`.
+- **Contenido, lote 1 de Sonnet:** llegar tarde al entrenamiento del atletismo (espera de 21 días) y 15 detalles ligeros (aula, patio, casa, barrio, camino). 57 sucesos en total; con los bots, ~2 por semana de media (límite alto de lo anterior). Cifras provisionales en `docs/relevo/sucesos-contenido-1.md`.
+- **Pendiente del usuario:** que pedir el cambio de puesto dependa de la relación con el entrenador y de lo que se vale en cada puesto.
+
+## 17/11/2026 — Eventos, segundo lote: Educación física, el puesto en el fútbol, llegar tarde y detalles del colegio (pedido por el usuario)
+
+Los primeros eventos que verá el jugador, apoyados en mecánicas que ya existían (no se duplican). Cifras provisionales en `PLAN_EVENTOS.md` §7 bis.
+
+- **Primer día de Educación física:** el consejo del profesor llega solo la primera vez que se va a su clase. La frase es la misma que daba la acción de preguntarle (`fraseDelConsejoDeportivo`, hecho `estudios.consejo_deportivo`); la acción sigue existiendo.
+- **Primer entrenamiento de fútbol** (evento deportivo, dentro del módulo del fútbol): el entrenador dice dónde va a jugar de inicio (su puesto de verdad) y se puede aceptar, pedir el puesto donde más vale (tirada: el entrenador decide) o preguntar qué mejorar. Si lo concede, es la señal `club.cambio_de_puesto` de siempre; el kit de deporte la recoge ahora también para apuntar el puesto (antes solo lo hacía la acción de aceptar una propuesta).
+- **Llegar tarde:** a clase (evento base), al entrenamiento y a la convocatoria (deportivos del fútbol). La mecánica no cambia; `clase.asistida` lleva ahora los minutos de retraso y hay una señal nueva `club.sesion_tarde` (más de `TOLERANCIA_DE_SESION` = 10 minutos), que por sí sola no cambia nada.
+- **Detalles del aula y del patio:** ocho sucesos ligeros como muestra de estilo. Para ellos, un disparo por señal puede llevar probabilidad (`{ al, prob }`): es espontáneo, ligado a un momento, y gasta el cupo de su categoría.
+- **Formato:** `{hecho.<nombre>}` en los textos (con `ejemploDeHechos` para probarlos), llaves en los datos de `emite`, y papeles por asignatura (`asignatura`, `asignaturaDeLaSeñal`).
+- El test de la convocatoria de benjamín cuenta ahora a los disponibles: con las lesiones de los PNJ pasando por su suceso, un jugador que fuerza su vuelta puede recaer y el equipo tener a alguien más de baja.
+
+## 16/11/2026 — Eventos y decisiones (E18): decisiones del usuario sobre el plan
+
+Respuestas del usuario a las 13 preguntas de `docs/PLAN_EVENTOS.md` §6 (la tabla completa está allí):
+
+- **Formato:** archivos TypeScript de datos. **Nombre en el código:** `Suceso` (el «evento» del motor sigue siendo el aviso entre módulos).
+- **Nunca bloquean** el juego: plazo y opción por defecto. **Elegir gasta tiempo**, el que diga cada opción.
+- **Cupo editable** (dato, no constante), de partida 1 al día y 4 a la semana, y una categoría de **sucesos menores** con cupo propio para que un día no sea igual que otro.
+- **PNJ:** todo preparado desde el principio, pero solo activos los de tipo lesión hasta medir el coste (con una herramienta para medirlo).
+- **El carácter** se mueve poco a poco con las decisiones y abre opciones. Las opciones que no encajan con el carácter se presentan sombreadas u ocultas, **configurable** para decidir viéndolo; lo que se ve de las consecuencias (pistas o números), también configurable.
+- **Castigos que bloquean acciones por etiqueta:** sí (campo nuevo en los modificadores del motor).
+- **Primer lote:** faltas, perks latentes, cumpleaños, edad y altura.
+- **Decisiones dentro de una competición:** fuera del plan, pero el formato de una decisión es una pieza suelta que un deporte podrá usar.
+- **Tiradas:** azar estable, calibradas con la simulación.
+- **Dónde vive el contenido (decidido el mismo día):** un módulo `eventos` con los **eventos base** en carpetas por área; los **eventos deportivos**, dentro del paquete de cada deporte (`deporte: '<id>'`), con el mismo formato. Un solo director para los dos y un **cupo por categoría** (base 1/día y 4/semana, deporte 1/día y 2/semana, detalles ligeros 2/día y 8/semana: valores de partida, por revisar).
+
+**Construido el 16/11** (pasos 1 a 4 y 7 del plan; estado en `PLAN_EVENTOS.md` §7 bis, formato en `ANEXO_EVENTOS.md`):
+
+- **Motor:** un módulo puede escuchar todos los eventos (`on: { '*': … }`) y un modificador puede impedir acciones por etiqueta (`ModifierResult.bloquea`).
+- **Formato** en `contracts/src/sucesos/`, **director** en `modules/sucesos` (sin contenido; sin catálogo la huella de las partidas es idéntica) y **contenido** en `modules/eventos`.
+- **Señales compartidas nuevas:** `relacion.cambio` (la aplica `relaciones` con `conCambio`, los puntos vienen dados), `familia.cambio` (apoyo y expectativas, de 0 a 100), `perfil.caracter` (ejes, de −50 a 50) y `perk.revelado` (`IdentidadState.perksRevelados`, `PerkView.revelado`).
+- **Cifras de partida, propuestas por el desarrollador y por calibrar:** la tirada (50 % con la stat «para su edad» igual a la dificultad, 15 puntos por cada 10 de diferencia, entre 5 % y 95 %; Suertudo repite una fallada el 25 % de las veces y Gafe estropea una acertada el 15 %); una opción «no encaja» si tira 2 o más en contra de un eje que el personaje tiene a 25 o más; cada punto de inclinación de la opción elegida mueve 1 punto el eje; y todas las cifras del primer lote (afinidad, confianza, apoyo, días de castigo, probabilidades de revelación).
+- **Primer lote:** las faltas llegan a casa (cierra «Evento de los padres por faltas»), revelación de los 18 perks latentes (cierra E5.3; en la interfaz de pruebas se siguen enseñando todos), cumpleaños con regalo de 10 € y comentarios sobre la altura (parte de E18.7).
+- **Interfaz y bots (mismo día):** ventana del evento con retratos y «Decidir luego», lista «Pendiente» y forzar eventos en la interfaz de pruebas; los bots deciden por el carácter de su personaje; chequeo «Ritmo de los eventos» (aviso con más de 10 por semana o un evento más de 30 veces al año: `FRECUENCIA_DE_SUCESOS`) y `npm run sim:eventos`. Medido: 0,0–0,1 eventos por semana con el primer lote (escaso: falta contenido ligero).
+- **Sucesos de los PNJ (mismo día, lo aprobado en P6):** un suceso `para: 'cualquiera'` con `clase` puede pasarle a un PNJ; solo la clase `lesion` está activa. `npcs` avisa de cada lesión nueva (`persona.lesion`; la lesión sigue saliendo de `estado-de-jugador`, no se duplica) y aplica los cambios de estado que le piden (`persona.estado`: no lesiona a un sano ni deja a un lesionado con menos de una semana). `eventos.salud.lesion` (cifras de partida): moral −6 y una decisión por carácter entre recuperarse bien (salud +5) o forzar (una semana menos de baja, salud −8, moral +2). `SAVE_VERSION` 21.
+- **Medido** (`npm run eventos:rendimiento`, tabla en `PLAN_EVENTOS.md` §7 bis): con 500 sucesos el arranque y la pasada diaria cumplen, pero el coste por acción es de 0,07–0,12 ms frente al objetivo de 0,02 (un 5–8 % de una acción). Solo lesiones para los PNJ no cuesta nada medible; una clase más con sucesos espontáneos, unos 10–12 ms por semana de juego con 1.417 personas.
+- **Interfaz, segunda parte:** los eventos importantes sin opciones salen en una ventana (los ligeros, como una línea), sección «Recuerdos» en el Diario y «Lo que habéis vivido» en la ficha de cada persona.
+- **Sin hacer:** cambiar la presentación desde «Opciones», los eventos en `npm run probar-web`, contenido deportivo y más contenido ligero.
+
+## 16/11/2026 — Visualizador: envejecimiento heredable, calvos que cambian de estilo y raíces del tinte (decisiones del usuario)
+
+- **Envejecimiento de la piel (`Apariencia.envejecimiento`, 0 a 1):** hay quien envejece mejor que otros. Heredable como las canas (`TENDENCIAS.envejecimiento`: normal de media 0,5 y desviación 0,2 en los adultos del mundo; media de los padres ± 0,1 en los hijos), sin tendencias por origen y con generador estable propio (el mundo de cada semilla no cambia: la suite sigue en verde). El dibujo decide con él cuándo empiezan las arrugas y cuánto se marcan (`arrugasA`): con 0,5, como antes. `SAVE_VERSION` 20. **Estado: 2.900 → 2.930 KB (+1,0 %).**
+- **Quien se queda calvo:** al pasar de las entradas, el 20 % de los hombres se afeita la cabeza y el 15 % se rapa al cero, estable por persona y para siempre (`peinadoConCalvicie`, `AL_QUEDARSE_CALVO`). La proporción es de quien desarrolla.
+- **Raíces del tinte:** se miden desde donde nace el pelo (frente, raya o coronilla), con paso gradual al color teñido, siguiendo la textura del pelo y con la misma sombra que el resto.
+- **Aceptado por el usuario:** los pesos de elección de los estilos, la lista de premium, que los PNJ vayan siempre recién arreglados, que la comparación deje intuir la altura, y las arrugas de los 60 en adelante como están.
+- **Medido:** `npm run rendimiento -- 60`: 1,56 ms por acción (entre 1,36 y 1,76 en las pasadas de estos dos días: sin cambio apreciable).
+
+## 16/11/2026 — Visualizador: ronda de corrección de la base (decisiones del usuario)
+
+- **Niños:** dejan de ser adultos en miniatura. La cabeza se agranda un 24 % más a los 3 años (cerca de una cuarta parte de la altura) y lo pierde hasta los 15; cara de niño (redonda, mofletes, ojos mayores y más bajos, nariz chata, mandíbula sin marcar) y cuerpo de niño (cuello, brazos y piernas más cortos, barriga, sin cintura).
+- **Arrugas:** empiezan a los 26 y cada una aparece a su tiempo y se marca poco a poco (a los 30 ya asoman).
+- **Cuerpos:** más diferencia entre hombre y mujer (hombros, cintura, caderas, pecho) y entre complexiones (pectorales, barriga, brazos); manos con dedos.
+- **Comparar contigo:** desde la ficha de cualquier persona, tu personaje a su lado, de cuerpo entero, a escala y como son hoy. De quien no es de la familia, sin años ni centímetros.
+- **Peinados:** tres grados al cero (cabeza afeitada, rapado al cero como sombra que respeta la calvicie, y rapado), que salen del largo; la calvicie de los hombres empieza por las **entradas** (`CALVICIE` en contracts: hasta 0,3 solo entradas; hasta 0,55 clarea por arriba; después, solo los lados); peinados nuevos (media melena con flequillo, moño, dos trenzas, tupé) y más premium (tupé, trenzas, candado). Los pesos de elección son provisionales.
+- **Tinte (solo dibujo):** el look admite el color teñido del pelo y de la barba y cuánto han crecido desde el tinte; se ven las raíces del color natural con sus canas.
+- Se probó antes con una página de las dos versiones lado a lado (ya quitada). Receta: `docs/ANEXO_RETRATOS.md`; preguntas pendientes 8 a 13 en `docs/PLAN_VISUALIZADOR.md`.
+
+## 15/11/2026 — Visualizador de personas, fase 2: estilo «tinta», look con estilo y largo, y el paquete `@ds/retrato` (decisiones del usuario)
+
+- **Estilo:** de las cuatro variantes de las muestras, el usuario eligió la **B · Tinta** (línea oscura de contorno, sombra plana de borde duro, detalle alto en la cara), con la cabeza un 6 % mayor que la real. La línea de contorno rodea la barba y el pelo por fuera, no pasa por encima.
+- **Peinado y vello facial: estilo y largo.** Cada PNJ tiene su estilo elegido y lo mantiene toda la vida (`estiloDePersona`, en contracts: pura y estable, sin guardar nada en el estado); la barba es una elección dentro de lo que su densidad permite; con calvicie se lleva el peinado que la admite. El dibujo recibe el largo del pelo (cm) y de la barba (mm). Catálogos `PEINADOS` y `VELLOS` en `packages/contracts/src/retrato.ts`, con lo que exige cada estilo, su largo recién hecho y si es «premium». El personaje tendrá peluquería más adelante (otra sesión); hoy se dibuja como un PNJ.
+- **Por debajo de los 3 años, una cuna** igual para todos; se dibuja de los 3 a los 95.
+- **Paquete `packages/retrato`** (solo importa contracts; solo lo importa la web): parámetros → dibujo → pantallas. Retrato y evolución en la ficha del personaje y en la de cada persona. Receta para ampliar los catálogos: `docs/ANEXO_RETRATOS.md`. Referencia visual: `npm run retratos:cuadricula`.
+- **Medido:** un retrato nuevo tarda ≈ 1,5 ms y pesa ≈ 40 KB; se guarda en memoria por persona, edad en años y vista. No se guarda nada nuevo en el estado de la partida. `npm run rendimiento -- 60` no empeora: estado 2.900 KB (igual), 1,76 ms por acción (bot equilibrado, 60 días); la suite entera en verde (1.022 tests).
+- **Pendiente de decidir** (preguntas 6 a 10 de `docs/PLAN_VISUALIZADOR.md`): si la evolución de quien no es de la familia enseña cifras, los pesos de la elección de estilo, qué estilos son premium y si los PNJ llevan el pelo algo crecido entre cortes.
+
+## 15/11/2026 — Rasgos de la cara heredables (usuario, 15/11)
+
+- **Qué:** `Apariencia.rostro` con 12 rasgos de la cara (ojos, nariz, boca, cejas, orejas, mentón y pómulos), cada uno un número de 0 a 1, heredado como los perks: un par `[expresado, latente]`; el hijo recibe un valor de cada padre y uno de los dos se expresa (50 %); los adultos del mundo, al azar y uniformes, sin tendencias por origen (anexo §7). `rostroDe`, `rostroExpresado`, `rostroAlAzar`, `rostroHeredado` y `ROSTRO_MEDIO` en `rasgos.ts`.
+- **Guardado compacto:** un texto de 24 caracteres (64 niveles por valor) en vez de 24 números por persona, para cumplir el límite de +2 % de estado: **2.850 → 2.900 KB (+1,75 %)**. Cuantizar a pasos de 1/63 no se nota en un dibujo. Si se prefieren números sueltos, el estado crecería un 6 % o más.
+- **Mundo de cada semilla intacto:** sorteados con un generador estable propio de cada persona (como las canas, la calvicie y la barba): los tests que dependen de la semilla siguen en verde. `SAVE_VERSION` 19.
+- **Sin mutación:** los valores de los hijos son siempre de sus padres; la variedad viene de la primera generación (pregunta 22 del plan).
+
+## 14/11/2026 — Cuerpo y apariencia, segunda ronda (decisiones de arquitectura con el usuario)
+
+- **Altura en la vejez:** −0,15 cm/año de 50 a 70 y **−0,2 cm/año desde los 70** (−7 cm a los 90).
+- **Genética del cuerpo (bloque B):** `metabolismo` (grasa objetivo + 3 × z) y `musculatura` (× (1 + 0,15 × z) los minutos de fuerza y tope + 5 × z), puntuaciones típicas heredables como la estatura; el personaje las hereda con `ctx.herencia` y los PNJ las llevan guardadas (padres, hermanos) o estables por id.
+- **La misma actividad para todos los menores (bloque A):** la base vuelve a ser la `actividadBasica` de 60 min; el recreo cuenta solo si se juega de verdad y solo los días de clase (personaje: «Jugar con otros niños» y «Jugar con X»; PNJ: probabilidad estable del 40 al 90 % × 30 min), la Educación física cuenta con los minutos reales del currículo y los horarios del país **al 50 %** (decidido por el usuario) y solo si se va a clase, y quedar con alguien («Quedar con», «Pasar la tarde con» y «Quedar con (plan acordado)») cuenta la mitad en los menores de 12. Etiquetas nuevas `actividadLigera`, `actividadALaMitad` y `actividadDeNino` en vez de `fisico` (que encarece las acciones con la salud baja). Juego libre de fuera del colegio de los PNJ recalibrado a `130 × azar^0,5`.
+- **El extra de grasa de las mujeres llega con la pubertad** (aprobado por el usuario el 14/11): 0 hasta los 13 años, pleno (+8) a los 18. Con la Educación física al 50 % un único ajuste de la grasa de base de los menores no servía para chicos y chicas a la vez (ellas llevaban +8 desde siempre); así, hasta la pubertad chico y chica son iguales. Arquetipos de niño de 10 años (anexo §8): solo Educación física con metabolismo medio, sobrepeso; con metabolismo alto (z = −1,5), normal; recreos y Educación física, normal.
+- **Sobrepeso de 13 a 17 años: 9–14 %, aceptado tal cual** (usuario, 14/11): sin más calibración (el objetivo era 5–12 %).
+**Mediciones de la segunda ronda (14/11; antes = la primera ronda, después = final):** estado al crear 2.849 → 2.850 KB (+3,3 % sobre el 13/11, límite +5 %); ms por acción 2,36 · 2,37 · 2,61 frente a 2,23–2,58 el 13/11 (la calibración de la máquina de este día es 11,5 ms frente a 8,2: hoy va más lenta y aun así sale igual, sin regresión); actualizar los cuerpos de todos, 0,6–0,8 ms por semana (límite 1 ms); `npm run sim`: solo ⚠️ Rendimiento, que ya estaba (2,51 ms por acción), el resto ✅ y la tabla final igual (equilibrado 30,2; atleta 25,4 → 25,5; vago 20,6 → 20,7); `sim:vida` (Perfecto): atlético hasta los 50, normal a los 60 y delgado a los 70 (músculo 37 → 32 → 26), peso adulto de 63 a 70 kg, altura 174,9 cm hasta los 50 y 170,2 a los 78; suite entera 998 de 998. Proporciones por grupo de edad y arquetipos de niño: anexo §8.
+
+- **Educación física, una sola fuente (usuario, 15/11):** no se acepta una cifra supuesta de Educación física para el cuerpo inicial de los PNJ. El cálculo de los minutos por curso (`HORAS_DE_ASIGNATURA`, `clasesPorSemana` y `minutosDeEducacionFisica(pais, curso)`) pasó de `estudios` a `packages/contracts/src/paises/curriculo.ts`: lo usan el `EducacionFisicaService` de `estudios` y los PNJ (al crear la partida y cada semana); el 50 % en movimiento (`FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA`) está solo en `cuerpo.ts`. Sin cambio de diseño: `estudios` tiene los mismos horarios que antes.
+- **Bots que juegan en el recreo (usuario, 15/11):** los bots de la simulación (`sim/src/bots.ts`) juegan en el recreo la mayoría de los días de clase según su perfil («Jugar con otros niños» o «Jugar con X», 30 min como los PNJ): 0,8 el equilibrado, el atleta, el sobreentrenado, el que abandona y el «perfecto» de `sim:vida`; 0,5 el empollón; 0,2 el vago. No se tocó el juego. Efecto en la complexión al año (3 semillas): igual en todos los bots salvo un caso de «aleatorio» (delgado → normal); el empollón pasa de 56–60 a 61–64 de grasa (su reparto de acciones de relación hace ahora menos «quedar con la familia», que cuenta como actividad de niño). Chequeos de `npm run sim`: solo ⚠️ Rendimiento, que ya estaba, pero ahora a 4,85 ms por acción (antes 2,64) porque cada recreo añade ≈ 5 acciones de 5 minutos y la lista de acciones se duplica (diagnóstico en la pregunta 21 del plan); tabla final casi igual (equilibrado 30,2 → 30,3; empollón 28,1 → 27,9; atleta 25,4 → 25,7; vago 20,6 → 20,7).
+- **Coste de jugar en el recreo medido como la interfaz, y bots arreglados (usuario, 15/11):** el primer diagnóstico midió la lista entera de acciones, que la interfaz no pide (la pantalla principal descarta las acciones de cada persona y las de una persona solo se evalúan al abrir su ficha). Medido como la interfaz, un clic cuesta de 1 a 3,5 ms con 7, 32 o 60 conocidos (no crece con ellos; abrir una ficha, 0,3–0,6 ms); la lista entera crecía de 133 a 610 acciones (hasta 11 ms) y solo la pagaban los bots. Arreglo en los bots, sin tocar el juego: `opcionesDelBot` ofrece lo de la pantalla principal y las acciones de relación con cada persona se evalúan por lotes y solo las que hacen falta (`RelacionesPerezosas`), con la misma elección (`npm run huella` idéntica en los 16 bots y semillas; el aleatorio sigue viendo todas). Resultado: `npm run sim` con tabla final idéntica a la de los bots del recreo sin arreglo, el chequeo de rendimiento vuelve a ✅, `rendimiento -- 60` pasa de 4,3 a 2,0–2,1 ms por acción, un año del bot equilibrado de 60,7 a 21,1 s y `sim.test.ts` de 324 s a 135–139 s: **los plazos de ese test vuelven a 30 s y 300 s.** Pendiente aparte (tarea del motor, no hecha): generar solo las acciones de la persona que se mira y que la lista de personas no se rehaga al conocer a alguien.
+- **Pendiente: minutos de fuerza por deporte.** Hoy cada sesión de club cuenta 90 min de actividad y 30 de fuerza (provisional, `MINUTOS_DE_SESION`). Lo correcto: que cada deporte declare los minutos de fuerza de sus ejercicios (dato del deporte).
+- **Pendiente: personaje chica.** El sexo del personaje es la constante `SEXO_DEL_PERSONAJE = 'm'` (`modules/personaje/src/identidad.ts`); cuando se pueda elegir, hay que guardarlo en `IdentidadState`.
+
+## 13/11/2026 — Cuerpo y apariencia para todos: lo hecho en la fase 1 y lo medido
+
+Desarrollo del plan `docs/PLAN_CUERPO_Y_APARIENCIA.md` (cifras en `docs/ANEXO_CUERPO.md`; dudas en «Preguntas abiertas» del plan). Seis pasos, un commit por paso.
+
+- **Una regla del cuerpo en contracts** (`cuerpo.ts`): altura (una curva para todos, con el `desfase` de los PNJ y la pérdida de la vejez), peso (IMC de referencia también de adulto), objetivo y paso semanal de músculo y grasa, complexión. `personaje` ya no tiene reglas propias del cuerpo.
+- **Edad y sexo en músculo y grasa**: tope por desarrollo físico, mujeres ×0,75 de músculo y +8 de grasa, sarcopenia desde los 40, metabolismo desde los 30.
+- **Músculo y grasa reales en todos los PNJ** (`Npc.cuerpo`, `Npc.actividad`), con hábitos por edad, las sesiones de club y la actividad propia de los adultos. **Calibrado** con `npm run sim:cuerpo`: las cifras del plan dejaban al 80 % de los niños «con sobrepeso», así que el juego libre de niños y jóvenes y la actividad de los adultos son distribuciones calibradas (ver el anexo §4 y las preguntas 4 y 5 del plan).
+- **Historial anual** (`hc`): una foto de músculo y grasa por cumpleaños, en enteros, para el personaje y todos los PNJ.
+- **Canas, calvicie y barba** en `Apariencia`, heredables, con tendencias por origen (la herencia usa el sexo del hijo para el tope de calvicie). Se sortean con un generador estable, no con el de la partida: el mundo de una semilla no cambia.
+- **Servicio de lectura** `CuerpoService` (`cuerpoPersonaje`, `cuerpoNpcs`) y `cuerpoDePersona(ctx, id)`. El padre y la madre ya eran PNJ con fecha de nacimiento y rasgos: los da `npcs`.
+- `SAVE_VERSION` 18.
+
+**Mediciones (13/11, misma máquina; antes = commit del plan, después = final):**
+
+| Medida | Antes | Después |
+|---|---|---|
+| Estado al crear (1.418 / 1.419 personas) | 2.758 KB | 2.849 KB (**+3,3 %**, límite +5 %) |
+| ms por acción (bot equilibrado, 60 días) | 2,23 · 2,40 · 2,58 | 2,45 · 2,21 · 2,30 · 2,62 (el ruido entre pasadas, ±0,2, es mayor que la diferencia: sin cambio apreciable) |
+| Actualizar los cuerpos de todos, por semana | — | 0,87 ms (límite 1 ms) |
+| Crear la partida | 730 ms | 857 ms (una sola medida cada una) |
+| `npm run sim` | solo ⚠️ Rendimiento | solo ⚠️ Rendimiento (2,64 → 2,46 ms por acción, límite 1,3 a 1,5 según la calibración de la pasada: el aviso ya existía); el resto de chequeos ✅ y la tabla final casi igual (equilibrado 30,2 → 30,2; atleta 25,4 → 25,5; vago 20,6 → 20,6) |
+| `npm run huella` | e12e68df4723 (equilibrado, sem. 1) | 0c1c3dab5120: **cambia, como estaba previsto** (el personaje sigue reglas nuevas); el resto del mundo no (p. ej. la del bot «empollón» es idéntica) |
+| `npm run sim:vida` (Perfecto, 70 años) | siempre «atlético» con 20 de grasa; peso adulto constante (≈ 61 kg) | «atlético» hasta los 40; **normal a los 50, delgado a los 60** (el músculo baja de 41 a 18 por la sarcopenia); peso adulto 64 → 70 kg a los 50 y baja con la vejez; altura 174,9 cm hasta los 50 y 169,3 a los 78 |
+
+Proporciones de complexión de los PNJ: ver el anexo §8. Tests: `tsc` limpio y 984 de 984 en verde sobre el árbol final (la suite entera se pasó también al acabar el paso 1, 965 de 965).
+
+## 13/11/2026 — Visualizador de personas, fase 1: cuerpo y apariencia para todos (decisiones del usuario)
+
+- **Objetivo:** dibujar a cualquier persona desde los 8 años hasta la vejez con sus rasgos, su altura y su complexión. Antes del dibujo (fase 2) se cierran en el juego todos los datos que necesita, para no cambiar reglas a mitad: plan en `docs/PLAN_CUERPO_Y_APARIENCIA.md`.
+- **Músculo y grasa reales para todos los PNJ** («que sean a todos, no solo a los que importan»), con las mismas reglas que el personaje, y **historial anual para todos**. Medido el 13/11: 1.418 personas y 2,7 MB de estado; guardar el cuerpo cuesta ~+1 % y el historial ~8 KB por año de partida. El cálculo semanal es despreciable; lo que hay que diseñar son los hábitos de cada PNJ.
+- **Una sola regla del cuerpo en contracts** (altura, peso, músculo y grasa con la edad y el sexo); hoy el personaje y los PNJ usan curvas de altura distintas y los PNJ ignoran su `desfase`.
+- **Canas, calvicie y barba heredables**, con tendencias por origen. **Peinado y barba automáticos**, guardados para que el jugador pueda elegirlos más adelante (catálogo en la fase 2). **Retrato y cuerpo entero** a escala. El dibujo llega a los 95 años; la muerte es otra función.
+- **Reparto del trabajo:** una sesión de arquitectura diseña y otra desarrolla; las dudas van a «Preguntas abiertas» del plan.
+
 ## 12/11/2026 — Benjamín: todos los niños son nuevos en el club (decisión del usuario) y pendientes para después del MVP
 
 - **La regla**: en benjamín (`CategoriaDef.nuevosEnElClub`, dato de la categoría en `modules/futbol/src/datos.ts`) todos los niños llegan nuevos al club. Se asignan a su equipo al crear la partida, pero **no se «activan» hasta el primer entrenamiento de la temporada** (la primera semana del curso): su **asistencia** a los entrenamientos y su **relación con el entrenador** empiezan a contar desde ahí, **para todos, PNJ y personaje**. Antes no hay asistencia «heredada» de lo que hacían antes de la temporada (la plantilla sale con asistencia 1, sin penalización, y sin relación) y la primera semana solo cuenta lo de esa semana (`asistenciaDeLasDosUltimasSemanas(…, desde)`); desde la segunda, las dos últimas semanas como siempre. En el personaje (`asistenciaDelPersonaje`, `cuentaLaRelacion`) igual: no cuentan las sesiones de antes de la temporada y su relación con el entrenador no pesa hasta que ha ido a un entrenamiento de la temporada. **El resto de categorías siguen como antes** (el club ya conoce a sus jugadores y traen su asistencia).
@@ -1967,12 +2259,21 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 ## Pendiente e ideas
 
+- **Deberes (idea del usuario, 17/11):** acción «Hacer deberes» de 30 minutos. A futuro, algunas clases mandan deberes que hay que entregar en la siguiente clase de esa asignatura, con eventos alrededor (olvidarlos, copiarlos, que el profesor los pida…).
+
+- **Eventos y decisiones (E18), requisitos del usuario (16/11/2026):** candidato a la próxima sesión de Fable, junto con un visualizador de los partidos de fútbol. Añadir eventos tiene que ser **muy fácil**, casi una herramienta para definirlos como datos sin tocar el motor, y tiene que permitir **hilos**: un evento deja consecuencias que pueden disparar otros más adelante (semanas, meses o años). Empezar por una propuesta de diseño que decida el usuario. **Propuesta en `docs/PLAN_EVENTOS.md`; decisiones del usuario del 16/11 arriba; en construcción.**
+- **Visualizador, para la etapa 2c (Sonnet):** la raíz del tinte en los peinados con raya o flequillo se ve como un destello «estrellado» en la coronilla (correcto pero raro, visto por el usuario el 16/11); el tupé se distingue poco del corto. Mejorarlos con la receta (`docs/ANEXO_RETRATOS.md`).
+
+- **Acciones dinámicas del motor (aplazado por el usuario el 15/11/2026, revisar si hace falta):** para enseñar cualquier lista o encontrar la acción que se va a hacer, el motor genera las acciones de todas las personas conocidas y descarta las que no necesita (`allActions` y `findAction` en `packages/core/src/game.ts`). Generarlas es más barato que evaluarlas y la pantalla ya evalúa solo lo que enseña (medido el 15/11: 1–3 ms por clic, sin crecer con los conocidos), pero la generación sí crece con cada persona conocida. Si en partidas largas se nota: generar solo las acciones de la persona que se mira y buscar por id con los `resolvers`. Junto con esto, conocer a alguien crea una lista de personas nueva y recalcula la presencia (`known` dentro de la lista de `npcs`). Cifras en la pregunta 21 de `docs/PLAN_CUERPO_Y_APARIENCIA.md`.
+
+- **Comida y cuerpo (pedido por el usuario el 14/11/2026):** cuando se diseñe la alimentación (E12), lo que se come entrará en las reglas del cuerpo (`packages/contracts/src/cuerpo.ts`) como una entrada propia, no como una constante. Cada comida concreta podrá tener varios efectos: energía para el día (la stat de energía, de otro sistema), grasa frente a una dieta corriente y un aumento de lo que se gana de músculo con los minutos de fuerza (p. ej. las comidas proteicas, que solo actúa si se hace ejercicio). Sin comer nada especial todo debe dar lo mismo que hoy, para que la calibración del cuerpo se mantenga. Diseño completo pendiente.
+
 - **Colegios en infantil y cadete** (aceptado de momento el 08/11): revisar más adelante. Idea del usuario: niños apuntados al equipo del colegio aunque no les guste el fútbol (por sus padres), sobre todo en benjamín y alevín.
 
 - **Interfaz, pantalla de nueva partida (visto por el usuario el 08/11):** en «Deportes en la partida», la casilla de cada deporte sale suelta encima de su nombre en vez de a su izquierda. Arreglarlo cuando se toque esa pantalla (por ejemplo, al meter el fútbol como paquete).
 - **Publicar los deportes que no van dentro del juego:** `tools/publicar-deportes.ts` solo empaqueta los de `MODULOS` (hoy, el atletismo, que ya viene con el juego). Cuando el fútbol tenga su MVP, hay que publicarlo también como paquete instalable y probar el ciclo entero (buscar, instalar, crear partida, guardar y cargar).
 
-- **Revelación de los perks latentes** con mensajes: espera al motor de eventos (E18). Hoy se enseñan todos en pruebas.
+- ~~**Revelación de los perks latentes**~~ **Hecha el 16/11** (`modules/eventos/src/perks`); en la interfaz de pruebas se siguen enseñando todos.
 - **Dibujar al personaje por capas** a partir de la apariencia y la creación de personaje con los modos personalizado y heredado (E15.1, E4.2).
 - **Rasgos de los hijos del personaje y de los padres de los rivales** (ciclo de generaciones, E8).
 - **Antes de la beta:** poner `MOSTRAR_GENETICA` y `MOSTRAR_RELACIONES` a `false` en `apps/web/src/main.ts` (genética, perks, sesgo y calidad de los padres, apariencia, carácter, intereses y cifras de relaciones).
@@ -1999,7 +2300,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Beca deportiva:** usar el servicio `estudios` (nota media) desde un deporte.
 - **App nativa en el móvil:** la PWA ya se instala desde el navegador; Capacitor solo si hace falta tienda de aplicaciones.
 - ~~Educación Física y Artística~~ **Hecho el 28/10** (por capacidades; ver su entrada). Diseño original del usuario: la nota de Educación Física saldría de las capacidades físicas «para su edad» (no de la media de clase), ir a clase subiría esas capacidades y «Estudiar educación física» desaparecería; Artística dependería de la creatividad, con alguna acción en casa que la suba. Se ve igual en «Estudios» (Mal, Regular, Bien…). Falta decidir y calibrar con `sim:notas`.
-- **Evento de los padres por faltas:** el aviso y el evento `clase.faltas_excesivas` ya existen (a las 12 faltas del trimestre); falta el evento que lo recoja (conversación, castigo...), que espera al motor de eventos.
+- ~~**Evento de los padres por faltas**~~ **Hecho el 16/11** (`modules/eventos/src/familia/faltas.ts`).
 - **Planes de estudiar:** la hora sigue fija a las 17:00; se puede elegir casa o biblioteca.
 - **Hermanos:** quedan para eventos que se vayan de casa a los 18, que su vida afecte a la del personaje, otros deportes, entrenar juntos y comer y dormir con ellos (ver la entrada del 28/10). Perks y ventaja de crianza, hechos.
 - **Azar de los rivales:** hecho (progreso y marcas con generador propio). La elección de carrera se sustituyó (28/10) por la asistencia según nivel y último puesto. Queda la tabla de roles por ejes de carácter (ver «Siguientes pasos»).

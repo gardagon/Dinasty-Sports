@@ -1,5 +1,11 @@
 import {
   CORE_EVENTS,
+  FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA,
+  ID_DEL_PERSONAJE,
+  conFotoDelCumple,
+  semillaDeDibujo,
+  type CuerpoDePersona,
+  type CuerpoService,
   GEN,
   SERVICES,
   factorPorEdad,
@@ -26,6 +32,10 @@ import {
   isSchoolHours,
   minutesUntilHour,
   type ActionDoneData,
+  type CambioDeCaracterData,
+  type PerkReveladoData,
+  EJE_MIN,
+  EJE_MAX,
   type DayEventData,
   type DecayDef,
   type IdentityService,
@@ -42,9 +52,12 @@ import {
   type StatDef,
 } from '@ds/contracts';
 import {
+  EDAD_DE_QUEDAR_COMO_JUEGO,
   EDAD_INICIAL,
   NOMBRE_COMPLEXION,
+  SEXO_DEL_PERSONAJE,
   actualizarCuerpo,
+  diaDeNacimiento,
   edadDecimal,
   initIdentidad,
   viewIdentidad,
@@ -75,8 +88,8 @@ export const personaje = defineModule<IdentidadState>({
     const efecto = efectosDe(perks.activos);
     for (const [stat, delta] of Object.entries(efecto.tope)) ctx.bonusDeTope(stat, delta);
     // Origen, apariencia, carácter e intereses salen de los padres (la opción de elegirlos a mano llegará con la creación de personaje).
-    const perfil = perfilHeredado(ctx.rasgosDePadres.padre, ctx.rasgosDePadres.madre, ctx.rng);
-    return { ...initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, perfil, efecto.alturaCm), semilla: ctx.seed };
+    const perfil = perfilHeredado(ctx.rasgosDePadres.padre, ctx.rasgosDePadres.madre, ctx.rng, SEXO_DEL_PERSONAJE);
+    return { ...initIdentidad(ctx.rng, ctx.herencia('estatura').hijo, perks, perfil, efecto.alturaCm, { metabolismo: ctx.herencia('metabolismo').hijo, musculatura: ctx.herencia('musculatura').hijo }), semilla: ctx.seed };
   },
   stats: [
     // Físicos
@@ -312,6 +325,20 @@ export const personaje = defineModule<IdentidadState>({
   ],
 
   on: {
+    // Las decisiones mueven los ejes de carácter poco a poco (E4.3), dentro de su escala.
+    [SHARED_EVENTS.CAMBIO_DE_CARACTER]: (ctx, ev) => {
+      const { ejes } = ev.data as CambioDeCaracterData;
+      ctx.updateState<IdentidadState>((s) => {
+        const caracter = { ...s.perfil.caracter };
+        for (const [eje, d] of Object.entries(ejes)) if (eje in caracter) caracter[eje] = Math.min(EJE_MAX, Math.max(EJE_MIN, caracter[eje] + d));
+        return { ...s, perfil: { ...s.perfil, caracter } };
+      });
+    },
+    // El personaje descubre un perk latente que ya tenía (su efecto cuenta desde que nació): solo se apunta que ya lo sabe.
+    [SHARED_EVENTS.PERK_REVELADO]: (ctx, ev) => {
+      const { perk: id } = ev.data as PerkReveladoData;
+      ctx.updateState<IdentidadState>((s) => (!s.perks.activos.includes(id) || s.perksRevelados?.includes(id) ? s : { ...s, perksRevelados: [...(s.perksRevelados ?? []), id] }));
+    },
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
       const d = ev.data as ActionDoneData;
       // Lo que hace con su tiempo alimenta sus intereses (con rendimientos decrecientes hacia 100).
@@ -334,13 +361,16 @@ export const personaje = defineModule<IdentidadState>({
       const fuerza = d.tags.includes(TAGS.fuerza);
       const cardio = d.tags.includes(TAGS.cardio);
       const descanso = d.tags.includes(TAGS.descanso);
-      if (!fisico && !fuerza && !cardio && !descanso) return;
+      // Actividad que solo cuenta para el cuerpo: el juego, la Educación física (minutos reales) y, de menor de 12 años, la mitad de lo que dura quedar con alguien.
+      const ligera = (d.tags.includes(TAGS.actividadLigera) ? d.duration : 0) + (d.tags.includes(TAGS.actividadALaMitad) ? d.duration * FRACCION_EN_MOVIMIENTO_DE_EDUCACION_FISICA : 0);
+      const deNino = d.tags.includes(TAGS.actividadDeNino) && edadDecimal(ctx.state<IdentidadState>(), ctx.time.day) < EDAD_DE_QUEDAR_COMO_JUEGO ? d.duration / 2 : 0;
+      if (!fisico && !fuerza && !cardio && !descanso && !ligera && !deNino) return;
       ctx.updateState<IdentidadState>((s) => ({
         ...s,
         semana: {
           fuerza: s.semana.fuerza + (fuerza ? d.duration : 0),
           cardio: s.semana.cardio + (cardio ? d.duration : 0),
-          activo: s.semana.activo + (fisico ? d.duration : 0),
+          activo: s.semana.activo + (fisico ? d.duration : 0) + ligera + deNino,
           descanso: s.semana.descanso + (descanso ? d.duration : 0),
         },
       }));
@@ -374,7 +404,7 @@ export const personaje = defineModule<IdentidadState>({
         }
       }
       const sana = antes.semana.activo >= 120 && antes.semana.descanso >= 50 * 60 && ctx.stat(GEN.estres) < 60;
-      const despues = actualizarCuerpo(antes);
+      const despues = actualizarCuerpo(antes, ctx.time.day);
       ctx.setState<IdentidadState>(despues);
       // La constitución se forja con hábitos sostenidos, no entrenándola directamente.
       if (sana && despues.cuerpo !== 'con_sobrepeso') ctx.train(GEN.constitucion, 1);
@@ -387,7 +417,10 @@ export const personaje = defineModule<IdentidadState>({
       const { day } = ev.data as DayEventData;
       const s = ctx.state<IdentidadState>();
       const edad = Math.floor(edadDecimal(s, day + 1));
-      if (edad > Math.floor(edadDecimal(s, day))) ctx.log(`¡Cumples ${edad} años!`, 'logro');
+      if (edad > Math.floor(edadDecimal(s, day))) {
+        ctx.log(`¡Cumples ${edad} años!`, 'logro');
+        ctx.updateState<IdentidadState>((i) => ({ ...i, hc: conFotoDelCumple(i.hc, edad, i.musculo, i.grasa) }));
+      }
       // El desarrollo físico sigue a la edad (con el adelanto o retraso propio): es el techo de lo físico. Lo alcanzable por edad en cada categoría
       // (`vigoresPorEdad`, en contracts) es la misma regla que sigue cualquier PNJ.
       const v = vigoresPorEdad(edadDecimal(s, day + 1), s.madurez);
@@ -421,12 +454,30 @@ export const personaje = defineModule<IdentidadState>({
   },
 
   services: {
+    [SERVICES.cuerpoPersonaje]: (ctx): CuerpoService => {
+      const s = ctx.state<IdentidadState>();
+      const cuerpo = (): CuerpoDePersona => ({
+        id: ID_DEL_PERSONAJE,
+        sexo: SEXO_DEL_PERSONAJE,
+        nacimiento: diaDeNacimiento(s),
+        alturaAdulta: s.alturaAdulta,
+        madurez: s.madurez,
+        musculo: Math.round(s.musculo * 100) / 100,
+        grasa: Math.round(s.grasa * 100) / 100,
+        metabolismo: s.metabolismo ?? 0,
+        musculatura: s.musculatura ?? 0,
+        historial: [...(s.hc ?? [])],
+        apariencia: s.perfil.apariencia,
+        semilla: semillaDeDibujo(s.semilla ?? 0, ID_DEL_PERSONAJE),
+      });
+      return { de: (id) => (id === ID_DEL_PERSONAJE ? cuerpo() : undefined), ids: () => [ID_DEL_PERSONAJE] };
+    },
     [SERVICES.perfil]: (ctx): ProfileService => ({ view: () => ctx.state<IdentidadState>().perfil }),
     [SERVICES.perks]: (ctx): PerksService => {
-      const { perks } = ctx.state<IdentidadState>();
+      const { perks, perksRevelados } = ctx.state<IdentidadState>();
       const ver = (id: string): PerkView => {
         const d = perk(id)!;
-        return { id, nombre: d.nombre, descripcion: d.descripcion, latente: d.latente };
+        return { id, nombre: d.nombre, descripcion: d.descripcion, latente: d.latente, ...(perksRevelados?.includes(id) ? { revelado: true } : {}) };
       };
       return { view: () => ({ activos: perks.activos.map(ver), pool: perks.pool.map(ver) }) };
     },

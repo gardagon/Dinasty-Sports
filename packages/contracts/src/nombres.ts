@@ -1,6 +1,7 @@
 import { apodosDe, culturaPorId, reservaDeNombres, type Cultura } from './culturas';
 import { PAIS_ESPANA, type PaisDeNombres } from './paises';
-import { origen, origenAlAzar, origenHeredado, type OrigenFamiliar } from './rasgos';
+import { demografiaDelLugar, nombreLocalDelLugar, parejasDelLugar } from './ciudad';
+import { origen, origenAlAzar, origenHeredado, origenesDePareja, type OrigenFamiliar } from './rasgos';
 import { rngEstable, type Rng } from './rng';
 
 /**
@@ -129,10 +130,12 @@ export function apodoDeId(texto: string): string | undefined {
 export const nombreCortoDe = (p: { name: string; nombrePila?: string; apodo?: string }): string => p.apodo || p.nombrePila || p.name.split(' ')[0];
 
 /** De qué origen sale el nombre de pila: el único, el de la mezcla según su peso o, a veces, el del país de juego. */
-function origenDelNombre(rng: Rng, o: OrigenFamiliar, pais: PaisDeNombres): string {
-  if (o.length === 1) return o[0].id;
+function origenDelNombre(rng: Rng, o: OrigenFamiliar, pais: PaisDeNombres, edad: number): string {
+  // Los nacidos aquí (menos de `EDAD_DE_NOMBRES_JOVENES`) de padres de fuera llevan a veces un nombre del país, si el lugar lo dice (`nombreLocalDelLugar`); sin el dato, como siempre.
+  const deAqui = edad < EDAD_DE_NOMBRES_JOVENES ? nombreLocalDelLugar(pais) : undefined;
   const local = o.some((x) => pais.origenesLocales.includes(x.id));
-  if (!local && rng.chance(PROBABILIDAD_DE_NOMBRE_LOCAL)) return pais.origenesLocales[0];
+  if (o.length === 1) return !local && deAqui !== undefined && rng.chance(deAqui) ? pais.origenesLocales[0] : o[0].id;
+  if (!local && rng.chance(deAqui ?? PROBABILIDAD_DE_NOMBRE_LOCAL)) return pais.origenesLocales[0];
   return porPeso(o, (x) => x.peso, rng).id;
 }
 
@@ -149,7 +152,7 @@ export interface OpcionesDeNombre {
 export function identidadAlAzar(rng: Rng, genero: 'f' | 'm', o: OrigenFamiliar, { edad, pais = PAIS_ESPANA }: OpcionesDeNombre): Identidad {
   const culturas = new Map<string, Cultura>();
   const de = (id: string) => culturas.get(id) ?? culturas.set(id, culturaDeOrigen(rng, id)).get(id)!;
-  const origenNombre = origenDelNombre(rng, o, pais);
+  const origenNombre = origenDelNombre(rng, o, pais, edad);
   const cultNombre = de(origenNombre);
   const pila = pilaDe(rng, cultNombre, genero, edad);
   // De qué origen sale cada apellido: el único, o uno de cada origen de la mezcla (el primero, el del nombre).
@@ -177,7 +180,7 @@ export function identidadAlAzar(rng: Rng, genero: 'f' | 'm', o: OrigenFamiliar, 
 export function identidadDeHijo(rng: Rng, genero: 'f' | 'm', padre: Identidad, madre: Identidad, origenDelHijo: OrigenFamiliar, { edad, pais = PAIS_ESPANA }: OpcionesDeNombre): Identidad {
   const culturas = new Map<string, Cultura>();
   const de = (id: string) => culturas.get(id) ?? culturas.set(id, culturaDeOrigen(rng, id)).get(id)!;
-  const pila = pilaDe(rng, de(origenDelNombre(rng, origenDelHijo, pais)), genero, edad);
+  const pila = pilaDe(rng, de(origenDelNombre(rng, origenDelHijo, pais, edad)), genero, edad);
   const apellidos = pais.apellidosDeLosNacidosAqui === 1 ? [padre.apellidos[0]] : [padre.apellidos[0], madre.apellidos[0]];
   return { pila, apellidos };
 }
@@ -190,8 +193,16 @@ export interface PadreDeSemilla {
 }
 
 /** El origen del padre o de la madre de una semilla: siempre el mismo (así lo usan el motor y el módulo de personas sin depender uno del otro). */
-export const origenDePadre = (seed: number, lado: 'padre' | 'madre', pais: PaisDeNombres = PAIS_ESPANA): OrigenFamiliar =>
-  origenAlAzar(rngEstable('origen', seed, lado), pais.demografia);
+export function origenDePadre(seed: number, lado: 'padre' | 'madre', pais: PaisDeNombres = PAIS_ESPANA): OrigenFamiliar {
+  const demografia = demografiaDelLugar(pais);
+  const parejas = parejasDelLugar(pais);
+  // Con reparto de parejas, los dos salen de una misma tirada (el tipo de pareja); sin él, cada uno por separado (como siempre).
+  if (parejas) {
+    const [padre, madre] = origenesDePareja(rngEstable('origen', seed, 'pareja'), demografia, pais.origenesLocales, parejas);
+    return lado === 'padre' ? padre : madre;
+  }
+  return origenAlAzar(rngEstable('origen', seed, lado), demografia);
+}
 
 const EDAD_DE_REFERENCIA_DE_PADRES = 45;
 let ULTIMOS: { clave: string; padres: { padre: PadreDeSemilla; madre: PadreDeSemilla } } | undefined;

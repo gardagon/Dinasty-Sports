@@ -1,4 +1,4 @@
-import { CURSOS_ESPANA, GEN, type CursoDef, type Modalidad } from '@ds/contracts';
+import { CLASES_POR_DIA, CURSOS_ESPANA, DIAS_LECTIVOS, GEN, HORAS_DE_ASIGNATURA, clasesPorSemana, type CursoDef, type Modalidad } from '@ds/contracts';
 
 /**
  * Currículo escolar de España como DATO: las asignaturas de cada curso, desde 3.º de primaria (8 años) hasta
@@ -37,28 +37,28 @@ const apoyo = (stat: string, weight: number) => ({ stat, weight });
 
 export const ASIGNATURAS: readonly Asignatura[] = [
   // Troncales de todas las etapas
-  { key: 'lengua', horas: 4, name: 'Lengua', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.3 } },
-  { key: 'matematicas', horas: 4, name: 'Matemáticas', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)] },
-  { key: 'ingles', horas: 3, name: 'Inglés', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.2 } },
-  { key: 'educacion_fisica', porCapacidades: true, entrenoDeClase: 0.6, notaMinima: 5, horas: 2, name: 'Educación física', apoyos: [apoyo(GEN.coordinacion, 0.25), apoyo(GEN.agilidad, 0.25), apoyo(GEN.resistencia, 0.25), apoyo(GEN.velocidad, 0.15), apoyo(GEN.fuerza, 0.1)] },
+  { key: 'lengua', horas: HORAS_DE_ASIGNATURA.lengua, name: 'Lengua', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.3 } },
+  { key: 'matematicas', horas: HORAS_DE_ASIGNATURA.matematicas, name: 'Matemáticas', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)] },
+  { key: 'ingles', horas: HORAS_DE_ASIGNATURA.ingles, name: 'Inglés', apoyos: [apoyo(GEN.inteligencia, 0.3), apoyo(GEN.comunicacion, 0.3), apoyo(GEN.concentracion, 0.25), apoyo(GEN.carisma, 0.15)], entrena: { stat: GEN.comunicacion, amount: 0.2 } },
+  { key: 'educacion_fisica', porCapacidades: true, entrenoDeClase: 0.6, notaMinima: 5, horas: HORAS_DE_ASIGNATURA.educacion_fisica, name: 'Educación física', apoyos: [apoyo(GEN.coordinacion, 0.25), apoyo(GEN.agilidad, 0.25), apoyo(GEN.resistencia, 0.25), apoyo(GEN.velocidad, 0.15), apoyo(GEN.fuerza, 0.1)] },
   // Primaria
-  { key: 'naturales', horas: 2, name: 'Ciencias naturales', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], entrena: { stat: GEN.creatividad, amount: 0.3 } },
-  { key: 'sociales', horas: 2, name: 'Ciencias sociales', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.atencion, 0.25), apoyo(GEN.empatia, 0.15)] },
-  { key: 'artistica', porCapacidades: true, entrenoDeClase: 0.25, horas: 1, name: 'Educación artística', apoyos: [apoyo(GEN.creatividad, 0.6), apoyo(GEN.coordinacion, 0.2), apoyo(GEN.atencion, 0.2)] },
+  { key: 'naturales', horas: HORAS_DE_ASIGNATURA.naturales, name: 'Ciencias naturales', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], entrena: { stat: GEN.creatividad, amount: 0.3 } },
+  { key: 'sociales', horas: HORAS_DE_ASIGNATURA.sociales, name: 'Ciencias sociales', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.atencion, 0.25), apoyo(GEN.empatia, 0.15)] },
+  { key: 'artistica', porCapacidades: true, entrenoDeClase: 0.25, horas: HORAS_DE_ASIGNATURA.artistica, name: 'Educación artística', apoyos: [apoyo(GEN.creatividad, 0.6), apoyo(GEN.coordinacion, 0.2), apoyo(GEN.atencion, 0.2)] },
   // ESO
-  { key: 'biologia', horas: 3, name: 'Biología y geología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], hereda: 'naturales' },
-  { key: 'historia', horas: 3, name: 'Geografía e historia', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.concentracion, 0.25), apoyo(GEN.empatia, 0.15)], hereda: 'sociales' },
-  { key: 'tecnologia', practica: 0.3, horas: 2, name: 'Tecnología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.creatividad, 0.3), apoyo(GEN.coordinacion, 0.3)] },
-  { key: 'musica', porCapacidades: true, entrenoDeClase: 0.25, horas: 2, name: 'Música', apoyos: [apoyo(GEN.creatividad, 0.6), apoyo(GEN.coordinacion, 0.2), apoyo(GEN.atencion, 0.2)] },
-  { key: 'fisica_quimica', horas: 3, name: 'Física y química', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'naturales' },
+  { key: 'biologia', horas: HORAS_DE_ASIGNATURA.biologia, name: 'Biología y geología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.atencion, 0.3), apoyo(GEN.creatividad, 0.3)], hereda: 'naturales' },
+  { key: 'historia', horas: HORAS_DE_ASIGNATURA.historia, name: 'Geografía e historia', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.concentracion, 0.25), apoyo(GEN.empatia, 0.15)], hereda: 'sociales' },
+  { key: 'tecnologia', practica: 0.3, horas: HORAS_DE_ASIGNATURA.tecnologia, name: 'Tecnología', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.creatividad, 0.3), apoyo(GEN.coordinacion, 0.3)] },
+  { key: 'musica', porCapacidades: true, entrenoDeClase: 0.25, horas: HORAS_DE_ASIGNATURA.musica, name: 'Música', apoyos: [apoyo(GEN.creatividad, 0.6), apoyo(GEN.coordinacion, 0.2), apoyo(GEN.atencion, 0.2)] },
+  { key: 'fisica_quimica', horas: HORAS_DE_ASIGNATURA.fisica_quimica, name: 'Física y química', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'naturales' },
   // Bachillerato
-  { key: 'filosofia', horas: 2, name: 'Filosofía', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.creatividad, 0.2), apoyo(GEN.empatia, 0.15)] },
-  { key: 'historia_espana', horas: 3, name: 'Historia de España', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.concentracion, 0.25), apoyo(GEN.empatia, 0.15)], hereda: 'historia' },
-  { key: 'fisica', horas: 3, name: 'Física', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'fisica_quimica' },
-  { key: 'quimica', horas: 3, name: 'Química', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'fisica_quimica' },
-  { key: 'latin', horas: 3, name: 'Latín', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.concentracion, 0.25), apoyo(GEN.comunicacion, 0.2), apoyo(GEN.determinacion, 0.2)], hereda: 'lengua' },
-  { key: 'historia_arte', horas: 3, name: 'Historia del arte', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.creatividad, 0.3), apoyo(GEN.atencion, 0.3)], hereda: 'historia' },
-  { key: 'economia', horas: 3, name: 'Economía', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.concentracion, 0.25), apoyo(GEN.comunicacion, 0.15), apoyo(GEN.picardia, 0.2)] },
+  { key: 'filosofia', horas: HORAS_DE_ASIGNATURA.filosofia, name: 'Filosofía', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.creatividad, 0.2), apoyo(GEN.empatia, 0.15)] },
+  { key: 'historia_espana', horas: HORAS_DE_ASIGNATURA.historia_espana, name: 'Historia de España', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.comunicacion, 0.25), apoyo(GEN.concentracion, 0.25), apoyo(GEN.empatia, 0.15)], hereda: 'historia' },
+  { key: 'fisica', horas: HORAS_DE_ASIGNATURA.fisica, name: 'Física', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'fisica_quimica' },
+  { key: 'quimica', horas: HORAS_DE_ASIGNATURA.quimica, name: 'Química', apoyos: [apoyo(GEN.inteligencia, 0.45), apoyo(GEN.concentracion, 0.35), apoyo(GEN.determinacion, 0.2)], hereda: 'fisica_quimica' },
+  { key: 'latin', horas: HORAS_DE_ASIGNATURA.latin, name: 'Latín', apoyos: [apoyo(GEN.inteligencia, 0.35), apoyo(GEN.concentracion, 0.25), apoyo(GEN.comunicacion, 0.2), apoyo(GEN.determinacion, 0.2)], hereda: 'lengua' },
+  { key: 'historia_arte', horas: HORAS_DE_ASIGNATURA.historia_arte, name: 'Historia del arte', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.creatividad, 0.3), apoyo(GEN.atencion, 0.3)], hereda: 'historia' },
+  { key: 'economia', horas: HORAS_DE_ASIGNATURA.economia, name: 'Economía', apoyos: [apoyo(GEN.inteligencia, 0.4), apoyo(GEN.concentracion, 0.25), apoyo(GEN.comunicacion, 0.15), apoyo(GEN.picardia, 0.2)] },
 ];
 
 export const asignatura = (key: string): Asignatura => ASIGNATURAS.find((a) => a.key === key)!;
@@ -93,50 +93,16 @@ export function elegirModalidad(nivel: (key: string) => number): Modalidad {
 }
 
 
-/** Clases al día y días lectivos a la semana: 20 huecos en los que caben todas las asignaturas del curso. */
-export const CLASES_POR_DIA = 4;
-export const DIAS_LECTIVOS = 5;
-const HUECOS = CLASES_POR_DIA * DIAS_LECTIVOS;
-
-/**
- * Clases a la semana de cada asignatura ajustadas a los 20 huecos del horario: se reparten en proporción a sus horas
- * (`Asignatura.horas`), con al menos una cada una y como mucho una por día (5). Si el currículo pide más horas de las que caben
- * (ESO: 23 a 26), todas se comprimen; si pide menos (primaria: 18), las asignaturas con más horas ganan alguna.
- */
-export function clasesPorSemana(asignaturas: readonly string[]): Record<string, number> {
-  return memo(CLASES, asignaturas, () => calcularClases(asignaturas));
-}
+/** Clases al día y días lectivos a la semana, y las clases a la semana de cada asignatura (el cálculo es de contracts, porque lo usa también el cuerpo de los PNJ). */
+export { CLASES_POR_DIA, DIAS_LECTIVOS, clasesPorSemana };
 
 /** El horario depende solo de las asignaturas y se consulta muchas veces al día: se calcula una vez por combinación. */
-const CLASES = new Map<string, Record<string, number>>();
 const HORARIOS = new Map<string, string[][]>();
 function memo<T>(cache: Map<string, T>, asignaturas: readonly string[], calcular: () => T): T {
   const clave = asignaturas.join(',');
   let v = cache.get(clave);
   if (!v) cache.set(clave, (v = calcular()));
   return v;
-}
-
-function calcularClases(asignaturas: readonly string[]): Record<string, number> {
-  const horas = asignaturas.map((k) => asignatura(k).horas);
-  const total = horas.reduce((a, b) => a + b, 0);
-  const exacto = horas.map((h) => (h * HUECOS) / total);
-  const clases = exacto.map((x) => Math.min(DIAS_LECTIVOS, Math.max(1, Math.floor(x))));
-  // Reparte lo que falta (o quita lo que sobra) por orden de resto, sin salirse de 1..5.
-  const resto = (i: number) => exacto[i] - clases[i];
-  let suma = clases.reduce((a, b) => a + b, 0);
-  const indices = asignaturas.map((_, i) => i);
-  while (suma < HUECOS) {
-    const i = indices.filter((j) => clases[j] < DIAS_LECTIVOS).sort((x, y) => resto(y) - resto(x))[0];
-    clases[i]++;
-    suma++;
-  }
-  while (suma > HUECOS) {
-    const i = indices.filter((j) => clases[j] > 1).sort((x, y) => resto(x) - resto(y))[0];
-    clases[i]--;
-    suma--;
-  }
-  return Object.fromEntries(asignaturas.map((k, i) => [k, clases[i]]));
 }
 
 /**

@@ -4,7 +4,7 @@ import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, paraConvocar, convocarYAlinear, type FutbolState } from '@ds/mod-futbol';
 import { asistenciaDeLasDosUltimasSemanas, entrenadorDelEquipo, plantillaDeUnEquipo, type NpcsState } from '@ds/mod-npcs';
-import { hacer, posible } from './ayudas';
+import { conFutbolFuerte, hacer, posible } from './ayudas';
 
 vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
 
@@ -13,7 +13,7 @@ vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
  * de la temporada, para todos (PNJ y personaje). Antes no hay asistencia «heredada» de lo que hacían antes de la temporada ni relación. En el resto de categorías el club ya conoce a sus jugadores y traen su asistencia.
  */
 describe('benjamín: todos nuevos en el club', () => {
-  const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  const g = conFutbolFuerte(nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]), [...MODULOS, futbol]);
   const s = g.moduleState<NpcsState>('npcs') as NpcsState;
   const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
   const cat = (id: string) => pob.categorias!.find((c) => c.id === id)!;
@@ -70,7 +70,8 @@ describe('benjamín: todos nuevos en el club', () => {
     expect(jugadores.every((j) => j.relacionConElEntrenador === undefined)).toBe(true);
     const c = convocarYAlinear(jugadores.map((j) => paraConvocar(j)));
     const citados = new Set([...c.titulares, ...c.suplentes].map((x) => x.id));
-    expect(citados.size).toBe(Math.min(16, jugadores.length));
+    // Los que están de baja por una lesión no se convocan (las lesiones de la semana pasan por su suceso y cambian de una partida a otra).
+    expect(citados.size).toBe(Math.min(16, jugadores.filter((j) => !j.estado.baja).length));
     // Con la misma asistencia, el que vale más es el que sale: el entrenador no tiene aún a nadie «de su cuerda».
     const mediaValor = (ids: Iterable<string>) => [...ids].reduce((t, id) => t + jugadores.find((j) => j.id === id)!.valor, 0) / [...ids].length;
     const fuera = jugadores.filter((j) => !citados.has(j.id)).map((j) => j.id);

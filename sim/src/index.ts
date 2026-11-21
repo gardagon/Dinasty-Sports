@@ -1,11 +1,12 @@
 import { nuevaPartida } from '@ds/game';
-import { calibrar, runChecks, summarize, type BotSummary, type Check } from './analysis';
+import { calibrar, chequeoDeSucesos, runChecks, summarize, type BotSummary, type Check } from './analysis';
 import { BOTS, type Bot } from './bots';
 import { areasFor, runBot, type Area, type RunResult } from './runner';
 
 export { BOTS, type Bot } from './bots';
 export { runBot, areasFor } from './runner';
-export { summarize, runChecks, globalScore } from './analysis';
+export { summarize, runChecks, globalScore, frecuenciaDeSucesos, chequeoDeSucesos } from './analysis';
+export { decidirSucesos } from './runner';
 export { markdownReport, htmlReport } from './report';
 
 export interface SimulationOptions {
@@ -38,5 +39,5 @@ export function simulate(opts: SimulationOptions): SimulationOutput {
   const summary = summarize(results, areas);
   // La máquina puede ir más o menos rápida durante la simulación: se calibra antes y después y se usa la media.
   const calibracion = (calibracionAntes + calibrar()) / 2;
-  return { results, summary, checks: runChecks(summary, areas, opts.days, calibracion), areas };
+  return { results, summary, checks: [...runChecks(summary, areas, opts.days, calibracion), chequeoDeSucesos(results)], areas };
 }

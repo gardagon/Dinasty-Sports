@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { cuposPorGrupo, grupoDePuesto } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimientoPorPuestos, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
-import { capacidadDe, edadNpc, recolocarPropios, valoracionDe, type MercadoDeFichajes, type NpcsState } from '@ds/mod-npcs';
+import { capacidadConPlazasDeMas, edadNpc, recolocarPropios, valoracionDe, type MercadoDeFichajes, type NpcsState } from '@ds/mod-npcs';
 
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
@@ -24,7 +24,7 @@ describe('el entrenador recoloca a los suyos al empezar el curso', () => {
     const pob = estado().poblaciones!.find((p) => p.deporte === 'futbol')!;
     const e = pob.equipos.find((x) => x.club === 'club_mediano')!;
     const cat = pob.categorias!.find((c) => c.id === 'infantil')!;
-    const max = capacidadDe(e, cat.id);
+    const max = capacidadConPlazasDeMas(e, cat.id);
     const cupos = cuposPorGrupo(P, max);
     const delEquipo = estado().npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'club_mediano' && (edadNpc(n, 0) ?? -1) >= cat.edadMin && (edadNpc(n, 0) ?? -1) <= cat.edadMax);
     expect(delEquipo.length).toBeGreaterThan(8);

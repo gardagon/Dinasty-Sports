@@ -4,6 +4,7 @@ import {
   SHARED_EVENTS,
   TAGS,
   APORTES,
+  APORTE_DE_SUCESOS,
   CORE_EVENTS,
   MINUTES_PER_DAY,
   factorDeCompeticion,
@@ -14,6 +15,7 @@ import {
   type TimeView,
   datosDeDeporte,
   semanasDeTemporada,
+  situacionDelDeporte,
   textoConPais,
   categoriaSuperior,
   defineModule,
@@ -55,6 +57,7 @@ import {
   recorte,
   sedeDelClub as sedeDelClubEn,
   sesionDeClub,
+  entrenosAgrupados,
   sinEntrenarPorLibreEnSesion,
   textoDeSesiones,
   tramitesDe,
@@ -84,6 +87,7 @@ import {
   type UltimoPuesto,
 } from './temporada';
 import { DATOS_ATLETISMO, FICHA_ATLETISMO, LUGARES_ATLETISMO } from './datos';
+import { EVENTOS_DE_ATLETISMO } from './eventos';
 import { CONOCIMIENTO, DEPORTE, JUEGO_INFORMAL, SESION_DE_CLUB, STATS_DE_ATLETISMO } from './habilidades';
 
 export { CATEGORIAS_ESPANA, DATOS_ATLETISMO, LUGARES_ATLETISMO } from './datos';
@@ -665,6 +669,7 @@ function vistaDeAtletismo(ctx: ReadContext): DeporteView {
     habilidades: ['atletismo.tecnica', 'atletismo.ritmo', 'atletismo.salida', CONOCIMIENTO],
     temporada: {
       etiqueta: `Curso ${t.schoolYear + 1}`,
+      situacion: situacionDelDeporte(ctx, DEPORTE, { nombre: 'carreras', articulo: 'las', plural: true }).texto,
       proxima: proximaPrueba(ctx, s),
       pruebas: deEsteCurso
         .slice()
@@ -690,7 +695,7 @@ export const atletismo = defineModule<AtletismoState>({
   description: '400 metros lisos. Entrena por la tarde y compite los sábados.',
   dependsOn: ['gen'],
   // La ficha (para listarlo al crear la partida), sus datos por país (categorías, temporada, competiciones, clubes) y lo que pone en el mapa de la ciudad.
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_ATLETISMO], [APORTES.datosDeDeporte]: [DATOS_ATLETISMO], [APORTES.lugaresDeDeporte]: [LUGARES_ATLETISMO], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento }] },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_ATLETISMO], [APORTES.datosDeDeporte]: [DATOS_ATLETISMO], [APORTES.lugaresDeDeporte]: [LUGARES_ATLETISMO], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento }], [APORTE_DE_SUCESOS]: EVENTOS_DE_ATLETISMO },
   stats: [...STATS_DE_ATLETISMO],
 
   initState: () => ({
@@ -708,7 +713,7 @@ export const atletismo = defineModule<AtletismoState>({
   // Apuntarse al club del colegio, pruebas de acceso a los de fuera y aceptar la plaza ganada (kit).
   dynamicActions: accionesDeClubes(CONFIG),
 
-  actions: ligarALugares(sinEntrenarPorLibreEnSesion(CONFIG, [
+  actions: ligarALugares(entrenosAgrupados(CONFIG, sinEntrenarPorLibreEnSesion(CONFIG, [
     sesionDeClub(CONFIG, {
       description: 'Sesión completa con el entrenador y el grupo del club: técnica, ritmo, salida y táctica. Rinde más que entrenar por tu cuenta, y más aún en los clubes de fuera del colegio.',
       tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, TAGS.club, 'atletismo'],
@@ -841,7 +846,7 @@ export const atletismo = defineModule<AtletismoState>({
       ],
       run: (ctx) => disputar(ctx, 'regular'),
     },
-  ]), {
+  ])), {
     // El club del colegio entrena en la pista del colegio; los de fuera, en el estadio. La pista del colegio, el parque y el estadio valen para entrenar solo.
     'atletismo.club_sesion': sedeDelClub,
     'atletismo.dejar_club': (ctx) => tramitesDe(clubDelJugador(ctx)),

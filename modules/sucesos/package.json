@@ -1,0 +1,17 @@
+{
+  "name": "@ds/mod-sucesos",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "El director de los sucesos: memoria, disparos, decisiones y efectos. No trae contenido.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ds/contracts": "*"
+  },
+  "devDependencies": {
+    "@ds/core": "*",
+    "@ds/mod-personaje": "*"
+  }
+}

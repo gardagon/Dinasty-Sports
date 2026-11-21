@@ -11,6 +11,8 @@ import {
   claseQueVaAEmpezar,
   SHARED_EVENTS,
   type ClassAttendedData,
+  type EducacionFisicaService,
+  minutosDeEducacionFisica,
   type FaltasExcesivasData,
   ligarALugares,
   isSchoolHours,
@@ -33,6 +35,8 @@ import {
   type StudiesService,
   type SummerPath,
   type WeekEventData,
+  servicioDeHechos,
+  type HechosService,
 } from '@ds/contracts';
 import {
   ASIGNATURAS,
@@ -267,6 +271,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   name: `Estudiar ${a.name.toLowerCase()}`,
   tags: [TAGS.estudio, TAGS.mental],
   group: 'Estudiar',
+  desplegable: { id: 'estudios.estudiar', nombre: 'Estudiar…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: a.name },
   duration: 90,
   available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
@@ -302,6 +307,7 @@ const tutoria = (a: Asignatura): ActionDef => ({
   description: 'Vas a la sala de profesores y le pides al profesor de la asignatura que te explique lo que no entiendes. Treinta minutos; solo vale si hay un profesor de esa asignatura en la sala y una vez al día por asignatura.',
   tags: [TAGS.estudio, TAGS.mental, TAGS.social],
   group: 'Estudiar',
+  desplegable: { id: 'estudios.tutoria', nombre: 'Pedir tutoría…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: a.name },
   duration: 30,
   available: (ctx) => {
     if (!seCursa(ctx, a.key)) return 'No cursas esta asignatura este curso';
@@ -342,15 +348,24 @@ const consejoDeEducacionFisica: ActionDef = {
     ctx.updateState<EstudiosState>((st) => ({ ...st, ultimoConsejoDeDeporte: ctx.time.day }));
     const profe = profesorEnLaSala(ctx, 'educacion_fisica');
     const quien = profe ? profe.nombreCorto : 'Tu profesor de Educación Física';
-    const consejos = ctx.service<NpcDirectory>(SERVICES.npcs)?.consejoDeportivo?.() ?? [];
-    if (!consejos.length) {
+    const frase = fraseDelConsejoDeportivo(ctx);
+    if (!frase) {
       ctx.log(`${quien} te mira un momento: «Todavía no te veo claro en ningún deporte; sigue moviéndote y pregúntame más adelante».`, 'info');
       return;
     }
-    const frases = consejos.map((c) => (c.puestos.length ? `en ${c.nombre} te veo bien de ${listaDePuestos(c.puestos.map((p) => p.nombre.toLowerCase()))}` : `te veo bien en ${c.nombre}`));
-    ctx.log(`${quien} te dice: «${frases.join('; ')}». Al hacer una prueba puedes pedir el puesto que quieras.`, 'info');
+    ctx.log(`${quien} te dice: «${frase}». Al hacer una prueba puedes pedir el puesto que quieras.`, 'info');
   },
 };
+
+/**
+ * Lo que el profesor de Educación Física ve en el personaje, en una frase («en fútbol te veo bien de lateral o extremo; te veo bien en atletismo»), o
+ * `undefined` si no ve nada claro. La usan la acción de preguntarle y el suceso del primer día de clase (hecho `estudios.consejo_deportivo`).
+ */
+function fraseDelConsejoDeportivo(ctx: ReadContext): string | undefined {
+  const consejos = ctx.service<NpcDirectory>(SERVICES.npcs)?.consejoDeportivo?.() ?? [];
+  if (!consejos.length) return undefined;
+  return consejos.map((c) => (c.puestos.length ? `en ${c.nombre} te veo bien de ${listaDePuestos(c.puestos.map((p) => p.nombre.toLowerCase()))}` : `te veo bien en ${c.nombre}`)).join('; ');
+}
 
 /** «a, b y c». */
 const listaDePuestos = (xs: readonly string[]): string => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} o ${xs[xs.length - 1]}` : (xs[0] ?? ''));
@@ -549,7 +564,8 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
       id: `estudios.clase_${hora_ + 1}`,
       name: `Clase de ${asignatura(key).name.toLowerCase()} (${ORDINAL[hora_]} hora)`,
       description: `De ${hora(inicio)} a ${hora(fin)}, en tu aula (se abre 10 minutos antes). Si la clase ya ha empezado vas tarde: solo avanzas lo que asistes. Faltar del todo no tiene castigo, pero no avanzas en la asignatura y cuenta como falta.`,
-      tags: [TAGS.estudio, TAGS.mental, TAGS.social],
+      // En Educación física la mitad de los minutos que se asisten cuentan como actividad del cuerpo (solo si se va a la clase).
+      tags: [TAGS.estudio, TAGS.mental, TAGS.social, ...(key === 'educacion_fisica' ? [TAGS.actividadALaMitad] : [])],
       group: 'Aula',
       duration: (ctx: ReadContext) => Math.max(1, fin - ctx.time.minuteOfDay),
       available: (ctx: ReadContext) => {
@@ -574,7 +590,7 @@ const accionDeClase = (hora_: number, key: string): ActionDef => {
         // Las clases llevan hasta el nivel natural: si ya lo pasas, aportan poco. (Las de capacidades no suben la asignatura: suben las capacidades.)
         if (!asignatura(key).porCapacidades) ctx.train(statId(key), RENDIMIENTO_CLASE * factorDeAptitud(ctx, key) * pesoDeClase(activas, key) * tironDeClase(ctx, key));
         // El profesor de la asignatura se presenta si todavía no lo conoces.
-        ctx.emit<ClassAttendedData>({ type: SHARED_EVENTS.CLASS_ATTENDED, data: { asignatura: statId(key) } });
+        ctx.emit<ClassAttendedData>({ type: SHARED_EVENTS.CLASS_ATTENDED, data: { asignatura: statId(key), tarde: Math.max(0, ctx.time.minuteOfDay - inicio) } });
       },
     });
     CLASES_CACHE.set(id, def);
@@ -682,6 +698,7 @@ export const estudios = defineModule<EstudiosState>({
       name: 'Repaso general',
       tags: [TAGS.estudio, TAGS.mental],
       group: 'Estudiar',
+      desplegable: { id: 'estudios.estudiar', nombre: 'Estudiar…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: 'Repaso general (todas las del curso)' },
       duration: 120,
       available: tiempoDeEstudio,
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
@@ -811,6 +828,10 @@ export const estudios = defineModule<EstudiosState>({
   },
 
   services: {
+    // Hechos para los sucesos: lo que el profesor de Educación Física le diría hoy al personaje.
+    [servicioDeHechos('estudios')]: (ctx): HechosService => ({ valor: (nombre) => (nombre === 'consejo_deportivo' ? fraseDelConsejoDeportivo(ctx) : undefined) }),
+    // Los minutos de Educación física los calcula contracts (`minutosDeEducacionFisica`): una sola fuente para el servicio y para el cuerpo de los PNJ.
+    [SERVICES.educacionFisica]: (ctx): EducacionFisicaService => ({ minutosPorSemana: (curso) => minutosDeEducacionFisica(ctx.pais, curso) }),
     [SERVICES.estudios]: (ctx): StudiesService => {
       const s = ctx.state<EstudiosState>();
       const activas = activasKeys(ctx.pais.cursos, ctx.time.schoolYear, s.modalidad);

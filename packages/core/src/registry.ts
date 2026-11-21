@@ -1,3 +1,4 @@
+import { CUALQUIER_EVENTO } from '@ds/contracts';
 import type {
   ActionDef,
   ActionView,
@@ -53,6 +54,8 @@ export interface Registry {
   modifiersByTag: ReadonlyMap<string, readonly CompiledModifier[]>;
   wildcardModifiers: readonly CompiledModifier[];
   handlers: ReadonlyMap<string, readonly CompiledHandler[]>;
+  /** Los que escuchan todos los eventos (`on: { '*': ... }`). */
+  wildcardHandlers: readonly CompiledHandler[];
   services: ReadonlyMap<string, { module: string; fn: (ctx: ReadContext) => unknown }>;
   decayStats: readonly CompiledStat[];
   /** Lo que aporta cada módulo a cada punto de extensión (clave → aportes, en el orden de los módulos). */
@@ -81,6 +84,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
   const wildcardModifiers: CompiledModifier[] = [];
   const modifierIds = new Set<string>();
   const handlers = new Map<string, CompiledHandler[]>();
+  const wildcardHandlers: CompiledHandler[] = [];
   const services = new Map<string, { module: string; fn: (ctx: ReadContext) => unknown }>();
   const dynamicActions: { module: string; fn: (ctx: ReadContext) => ActionDef[] }[] = [];
   const aportes = new Map<string, unknown[]>();
@@ -142,6 +146,10 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
     }
 
     for (const [type, fn] of Object.entries(m.on ?? {})) {
+      if (type === CUALQUIER_EVENTO) {
+        wildcardHandlers.push({ module: m.id, fn });
+        continue;
+      }
       const list = handlers.get(type) ?? [];
       list.push({ module: m.id, fn });
       handlers.set(type, list);
@@ -180,6 +188,7 @@ export function buildRegistry(modules: readonly GameModule<any>[]): Registry {
     modifiersByTag,
     wildcardModifiers,
     handlers,
+    wildcardHandlers,
     services,
     decayStats: statList.filter((s) => s.def.decay && s.def.category !== 'estado'),
     aportes,

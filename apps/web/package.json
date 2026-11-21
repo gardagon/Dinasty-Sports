@@ -12,6 +12,7 @@
   "dependencies": {
     "@ds/contracts": "*",
     "@ds/core": "*",
-    "@ds/game": "*"
+    "@ds/game": "*",
+    "@ds/retrato": "*"
   }
 }

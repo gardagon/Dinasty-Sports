@@ -14,6 +14,7 @@ import {
   PRACTICA_TEXTO,
   type LogTable,
   type NpcDirectory,
+  type NpcView,
   fechaDelDia,
   type PerksService,
   type ProfileService,
@@ -38,6 +39,9 @@ import {
   faltaViajar,
   rutaA,
   tiempoEntre,
+  ID_DEL_PERSONAJE,
+  type SucesoPendiente,
+  type SucesosService,
 } from '@ds/contracts';
 import type { GameModule } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
@@ -47,8 +51,11 @@ import { cancelarCreacion, crearEnSegundoPlano } from './creador';
 import { ID_DE_LA_CIUDAD_GRANDE } from './paises-propios';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
-import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, viewPanelGente } from './gente';
+import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
+import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, textoDeNiveles, viewPanelGente } from './gente';
+import { agruparEnDesplegables, cambioEnDesplegable, clicEnDesplegable, viewDesplegable } from './desplegables';
 import { reclamarPestana } from './pestana';
+import { MODOS_DE_CONSECUENCIAS, MODOS_FUERA_DE_CARACTER, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
 import {
   FRECUENCIAS,
@@ -90,6 +97,10 @@ let agenda: AgendaItem[] = [];
 let tab: Tab = 'hacer';
 let lastResult: { name: string; result: ActionResult; fresh: boolean } | null = null;
 let showUnavailable = false;
+/** Sucesos pendientes cuya ventana se ha cerrado con «Decidir luego»: siguen en la lista «Pendiente» hasta que venza su plazo. */
+const sucesosAplazados = new Set<number>();
+/** Avisos de sucesos sin opciones que ya se han visto en esta sesión (y los que había al cargar la partida: no se repiten). */
+const avisosVistos = new Set<number>();
 
 /** Pantallas de antes de jugar: el menú, crear una partida y las opciones. Con una partida guardada también se empieza en el menú («Continuar»). */
 type Pantalla = 'menu' | 'nueva' | 'opciones';
@@ -99,13 +110,14 @@ const sortearSemilla = (): number => 1 + Math.floor(Math.random() * 0x7ffffffe);
 /** La partida que se está creando: la semilla decide el nombre, los apellidos y los padres; «volver a sortear» es otra semilla. */
 /** Los deportes que trae el juego (cada módulo de deporte aporta su ficha). */
 /** Los módulos de esta sesión: los del juego más los deportes que se hayan instalado en este dispositivo (ver `deportes-instalados.ts`). */
-let modulosActuales: readonly GameModule<any>[] = MODULOS;
+let presentacion: Preferencias = leerPresentacion();
+let modulosActuales: readonly GameModule<any>[] = [...MODULOS, moduloDePresentacion(presentacion)];
 let CATALOGO = catalogoDeDeportes(modulosActuales);
 
 /** Vuelve a leer los deportes instalados y rehace la lista de módulos y el catálogo. Devuelve los avisos de los paquetes que no se pudieron cargar. */
 async function actualizarModulos(): Promise<string[]> {
   const { modulos, avisos } = await cargarInstalados();
-  modulosActuales = [...MODULOS, ...modulos.filter((m) => !MODULOS.some((b) => b.id === m.id))];
+  modulosActuales = [...MODULOS, ...modulos.filter((m) => !MODULOS.some((b) => b.id === m.id)), moduloDePresentacion(presentacion)];
   const antes = new Set(CATALOGO.map((d) => d.id));
   CATALOGO = catalogoDeDeportes(modulosActuales);
   // Un deporte recién instalado entra marcado en la nueva partida (se puede desmarcar); los que ya no están, salen.
@@ -468,11 +480,21 @@ function viewInstaladorDeDeportes(): string {
     <p class="note">Los deportes se comprueban antes de instalarse (firma y versión) y quedan guardados en este dispositivo para jugar sin conexión.</p>`;
 }
 
+/** Los dos selectores de cómo se presentan los sucesos (en «Opciones», con o sin partida). */
+function viewPresentacion(): string {
+  const lista = (id: string, modos: readonly { id: string; nombre: string }[], actual: string) =>
+    `<select id="${id}">${modos.map((m) => `<option value="${m.id}"${m.id === actual ? ' selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select>`;
+  return `<p><label>Consecuencias antes de elegir ${lista('pres-consecuencias', MODOS_DE_CONSECUENCIAS, presentacion.consecuencias)}</label></p>
+    <p><label>Opciones que no van con tu carácter ${lista('pres-fuera-de-caracter', MODOS_FUERA_DE_CARACTER, presentacion.fueraDeCaracter)}</label></p>
+    <p><label><input type="checkbox" id="pres-aviso"${presentacion.avisoFueraDeCaracter ? ' checked' : ''}${presentacion.fueraDeCaracter === 'normales' ? '' : ' disabled'}> Avisar «no va contigo» en las opciones normales</label></p>`;
+}
+
 function viewOpciones(): string {
   return `<main class="app"><section class="start">
     <h1>Opciones</h1>
     <p>Aún no hay muchas: el juego está en fase alfa.</p>
     <p class="note">Países disponibles: ${paisesElegibles().map((p) => esc(p.nombre) + (idsImportados().includes(p.id) ? ' (importado)' : '')).join(', ')}.</p>
+    ${viewPresentacion()}
     <div class="menu">
       <button class="menu-boton" data-act="importar-pais">Importar un paquete de país (.json)</button>
       <button class="menu-boton" data-act="exportar"${game ? '' : ' disabled'}>Descargar una copia de seguridad</button>
@@ -490,6 +512,95 @@ function viewRecuperacion(): string {
   const cuando = r.guardadoEn ? new Date(r.guardadoEn).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' }) : '';
   return `<div class="note loss recuperacion"><p>Hay una partida sin guardar más reciente de <b>${esc(r.nombre)}</b> (${esc(fechaDeJuego(r.dia))}${cuando ? `; la pestaña se cerró el ${esc(cuando)}` : ''}). ¿Recuperarla?</p>
     <p><button data-act="recuperar">Recuperar</button> <button data-act="descartar-recuperacion">Descartar</button></p></div>`;
+}
+
+const pendientesDe = (g: Game): SucesoPendiente[] => g.service<SucesosService>(SERVICES.sucesos)?.pendientes() ?? [];
+
+/** Cuánto queda para que venza un suceso pendiente: «hasta las 20:00» si es hoy, o los días que quedan. */
+function plazoDe(g: Game, p: SucesoPendiente): string {
+  const dias = Math.floor(p.vence / MINUTES_PER_DAY) - g.time.day;
+  const hora = hhmm(p.vence % MINUTES_PER_DAY);
+  return dias <= 0 ? `hasta las ${hora}` : dias === 1 ? `hasta mañana a las ${hora}` : `te quedan ${dias} días`;
+}
+
+const botonesDeSuceso = (p: SucesoPendiente): string =>
+  p.opciones
+    .filter((o) => o.visible)
+    .map(
+      (o) => `<button class="action" data-do="${esc(o.accion)}" ${o.elegible ? '' : 'disabled'}>
+        <span class="action-name">${esc(o.texto)}</span>
+        ${o.minutos > 1 ? `<span class="action-time">${fmtDur(o.minutos)}</span>` : ''}
+        ${!o.elegible && o.motivo ? `<span class="action-why">${esc(o.motivo)}</span>` : o.pista ? `<span class="action-why">${esc(o.pista)}</span>` : ''}
+        ${o.elegible && avisoDeCaracter(presentacion, o.ejeEnContra) ? `<span class="action-why fuera-de-caracter">${esc(avisoDeCaracter(presentacion, o.ejeEnContra)!)}</span>` : ''}
+      </button>`,
+    )
+    .join('');
+
+/** La ventana de un suceso que pide una decisión ahora: quién participa, lo que pasa y las opciones. Se puede dejar para luego: nunca bloquea. */
+function viewSuceso(g: Game): string {
+  // Primero lo que acaba de pasar sin que haya nada que decidir (una revelación, una noticia): se lee y se cierra.
+  const aviso = g.service<SucesosService>(SERVICES.sucesos)?.avisos().find((a) => !avisosVistos.has(a.id));
+  if (aviso) {
+    const quienes = [...new Set(Object.values(aviso.reparto))].map((id) => viewRetrato(g, id)).join('');
+    return `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="suceso-titulo"><div class="ventana suceso">
+      <h2 id="suceso-titulo">${esc(aviso.titulo)}</h2>
+      ${quienes ? `<div class="suceso-personas">${quienes}</div>` : ''}
+      <p>${esc(aviso.texto)}</p>
+      <p class="botones"><button class="primary" data-act="aviso-visto" data-suceso="${aviso.id}">Seguir</button></p>
+    </div></div>`;
+  }
+  const p = pendientesDe(g).find((x) => x.urgencia === 'ahora' && !sucesosAplazados.has(x.id));
+  if (!p) return '';
+  const personas = [...new Set(Object.values(p.reparto))].map((id) => viewRetrato(g, id)).join('');
+  return `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="suceso-titulo"><div class="ventana suceso">
+    <h2 id="suceso-titulo">${esc(p.titulo)}</h2>
+    ${personas ? `<div class="suceso-personas">${personas}</div>` : ''}
+    <p>${esc(p.texto)}</p>
+    <div class="suceso-opciones">${botonesDeSuceso(p)}</div>
+    <p class="note">${p.deporte ? 'Evento deportivo · ' : ''}Si no decides, ${esc(plazoDe(g, p))}. <button data-act="suceso-luego" data-suceso="${p.id}">Decidir luego</button></p>
+  </div></div>`;
+}
+
+/** Lo que espera una decisión (los sucesos sin prisa y los que se han dejado para luego), con su plazo. */
+function viewPendientes(g: Game): string {
+  const lista = pendientesDe(g).filter((p) => p.urgencia === 'pendiente' || sucesosAplazados.has(p.id));
+  if (!lista.length) return '';
+  return `<section class="sheet pendientes"><h3>Pendiente (${lista.length})</h3>${lista
+    .map((p) => `<div class="pendiente"><p><b>${esc(p.titulo)}</b> <span class="note">${esc(plazoDe(g, p))}</span></p><p>${esc(p.texto)}</p><div class="suceso-opciones">${botonesDeSuceso(p)}</div></div>`)
+    .join('')}</section>`;
+}
+
+/** Con quién fue un recuerdo: los nombres de las personas que salieron (las que el personaje conoce). */
+function conQuien(g: Game, personas: readonly string[]): string {
+  const npcs = g.service<NpcDirectory>(SERVICES.npcs);
+  const nombres = personas.map((id) => npcs?.get(id)).filter((n): n is NpcView => !!n && n.known !== false).map((n) => (n.tags.includes('progenitor') ? (n.gender === 'f' ? 'tu madre' : 'tu padre') : n.nombreCorto));
+  return nombres.length ? ` · con ${nombres.join(' y ')}` : '';
+}
+
+/** Los recuerdos: lo que ha pasado (los sucesos), por curso, del más reciente al más antiguo, con lo que elegiste. */
+function viewRecuerdos(g: Game): string {
+  const lista = g.service<SucesosService>(SERVICES.sucesos)?.recuerdos() ?? [];
+  if (!lista.length) return '';
+  const porCurso = new Map<number, string[]>();
+  for (const r of [...lista].reverse()) {
+    const curso = timeView(r.dia * MINUTES_PER_DAY, g.pais.calendario).schoolYear;
+    const linea = `<li><time>${esc(fechaDeJuego(r.dia))}</time><span><b>${esc(r.titulo)}</b>${esc(conQuien(g, r.personas))}${r.opcionTexto ? `<br><span class="note">Elegiste: ${esc(r.opcionTexto)}</span>` : ''}</span></li>`;
+    porCurso.set(curso, [...(porCurso.get(curso) ?? []), linea]);
+  }
+  const cursos = [...porCurso].map(([curso, lineas], k) => `<details${k === 0 ? ' open' : ''}><summary>Curso ${curso + 1} (${lineas.length})</summary><ul class="log">${lineas.join('')}</ul></details>`).join('');
+  return `<section class="sheet"><h2>Recuerdos</h2>${cursos}</section>`;
+}
+
+/** Solo en la fase de pruebas: hacer salir ahora cualquier evento del catálogo (sus condiciones cuentan) y ver la memoria del director. */
+function viewEventosDePrueba(g: Game): string {
+  const svc = g.service<SucesosService>(SERVICES.sucesos);
+  if (!MOSTRAR_GENETICA || !svc) return '';
+  const botones = svc
+    .catalogo()
+    .map((x) => `<button class="action" data-do="sucesos.forzar.${esc(x.id)}"><span class="action-name">${esc(x.titulo)}</span><span class="action-why">${esc(x.id)}${x.deporte ? ` · ${esc(x.deporte)}` : ''}</span></button>`)
+    .join('');
+  const recuerdos = svc.recuerdos().slice(-12).reverse().map((r) => `<li>${esc(fechaDeJuego(r.dia))}: ${esc(r.titulo)}${r.opcion ? ` → ${esc(r.opcion)}` : ''}</li>`).join('');
+  return `<section class="sheet"><details><summary><b>Eventos (pruebas)</b>: forzar uno ahora</summary><p class="note">Sale si se cumplen sus condiciones y hay alguien para cada papel. En la beta esto no se enseña.</p><div class="suceso-opciones">${botones}</div>${recuerdos ? `<h3>Lo último que ha pasado</h3><ul>${recuerdos}</ul>` : ''}</details></section>`;
 }
 
 /** Ventanas encima de la partida: la pregunta al salir con cambios sin guardar y «Opciones». */
@@ -518,6 +629,7 @@ function viewVentana(g: Game | null): string {
       <p class="botones"><button data-act="salida-guardar">Guardar y salir</button><button data-act="salida-sin-guardar">Salir sin guardar</button><button data-act="salida-cancelar">Cancelar</button></p>
     </div></div>`;
   }
+  if (!opcionesAbiertas && g && !enMenu) return viewSuceso(g);
   if (!opcionesAbiertas || !g || enMenu) return '';
   const opciones = FRECUENCIAS.map((f) => `<option value="${f.id}"${f.id === frecuencia ? ' selected' : ''}>${esc(f.nombre)}</option>`).join('');
   return `<div class="velo" role="dialog" aria-modal="true"><div class="ventana">
@@ -525,6 +637,7 @@ function viewVentana(g: Game | null): string {
     <p><button data-act="guardar">Guardar partida</button></p>
     <p class="note" id="ultimo-guardado">${ultimoGuardado ? `Último guardado: ${esc(fechaDeJuego(ultimoGuardado.dia))}, ${hhmm(ultimoGuardado.minuto % MINUTES_PER_DAY)}.` : 'Aún no se ha guardado en esta sesión.'}${sinGuardar ? ' Hay cambios sin guardar.' : ''}</p>
     <p><label>Guardado automático <select id="frecuencia">${opciones}</select></label></p>
+    ${viewPresentacion()}
     ${msDeGuardado === undefined ? '<p class="note">Cuando se haya guardado una vez, aquí verás cuánto tarda y qué frecuencia te recomendamos.</p>' : `<p class="note">${esc(textoDeRecomendacion(msDeGuardado))}</p>`}
     <p class="botones"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="importar-pais">Importar un país</button></p>
     ${viewDeportesDeLaPartida(g)}
@@ -615,7 +728,7 @@ function viewResult(): string {
   </section>`;
 }
 
-function actionButton(o: ActionOption): string {
+function actionButton(o: ActionOption, nombre: string = o.name): string {
   const why: string[] = [];
   if (!o.available) why.push(esc(o.reason ?? 'No disponible'));
   else {
@@ -627,7 +740,7 @@ function actionButton(o: ActionOption): string {
     }
   }
   return `<button class="action" data-do="${esc(o.id)}" ${o.available ? '' : 'disabled'}>
-    <span class="action-name">${esc(o.name)}</span>
+    <span class="action-name">${esc(nombre)}</span>
     <span class="action-time">${fmtDur(o.duration)}</span>
     ${why.length ? `<span class="action-why">${why.join(' · ')}</span>` : ''}
   </button>`;
@@ -712,7 +825,7 @@ function viewActions(g: Game): string {
   }
   const hidden = opts.filter((o) => !o.available).length;
   const html = [...groups]
-    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${list.map(actionButton).join('')}</div>`)
+    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${agruparEnDesplegables(list, opts).map((e) => ('opcion' in e ? actionButton(e.opcion) : viewDesplegable(e.clave, e.opciones, esc, actionButton, fmtDur))).join('')}</div>`)
     .join('');
   return `<section class="sheet">
     ${html || '<p class="note">Ahora mismo no puedes hacer nada. Pasa el rato para que avance el tiempo.</p>'}
@@ -806,6 +919,7 @@ function viewIdentity(g: Game): string {
   if (!id) return '';
   const fmt = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   return `<section class="sheet"><h2>${esc(g.playerName)}</h2>
+    ${viewRetrato(g, ID_DEL_PERSONAJE)}
     <dl class="identity">
       <div><dt>Edad</dt><dd>${id.age} años</dd></div>
       <div><dt>Altura</dt><dd>${fmt(id.heightCm)} cm</dd></div>
@@ -908,7 +1022,7 @@ function viewPeople(g: Game): string {
       const v = rel?.get(n.id);
       const yo = g.service<ProfileService>(SERVICES.perfil)?.view();
       const compat = n.rasgos && yo ? compatibilidad(n.rasgos, yo) : undefined;
-      const lvl = Object.entries(n.levels).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
+      const lvl = textoDeNiveles(g, n.levels);
       return `<div class="npc">
         <div class="npc-head"><b>${esc(n.name)}</b><span>${n.tags.includes('progenitor') ? (n.gender === 'f' ? 'Madre' : 'Padre') : n.tags.includes('hermano') ? (n.gender === 'f' ? 'Hermana' : 'Hermano') : (ROL[n.role]?.[n.gender === 'f' ? 0 : 1] ?? n.role)}</span></div>
         ${v ? `<div class="note"><b>${nombreEstado(v.estado, n.gender)}</b>${MOSTRAR_RELACIONES ? ` · afinidad ${Math.round(v.afinidad)}, confianza ${Math.round(v.confianza)} (solo pruebas)` : ''}${lvl ? ` · nivel ${esc(lvl)}` : ''}</div>` : ''}
@@ -948,7 +1062,7 @@ function viewGame(g: Game): string {
   let main = '';
   let side = '';
   if (tab === 'hacer') {
-    main = viewLugar(g) + viewResult() + viewActions(g);
+    main = viewLugar(g) + viewResult() + viewPendientes(g) + viewActions(g);
     side = viewViaje(g) + viewPlanes(g);
   } else if (tab === 'personaje') {
     main = viewIdentity(g) + viewCharacter(g);
@@ -956,7 +1070,7 @@ function viewGame(g: Game): string {
   else if (tab === 'deporte') main = viewDeporte(g);
   else if (tab === 'gente') main = viewResult() + viewPanelGente(g);
   else if (tab === 'relaciones') main = viewPeople(g);
-  else main = viewLog(g);
+  else main = viewRecuerdos(g) + viewLog(g) + viewEventosDePrueba(g);
 
   return `<main class="app">
     ${viewDay(g)}
@@ -1000,6 +1114,7 @@ function render(): void {
 // El cuadro del apodo: el botón lleva el id de la acción con lo escrito (sin redibujar, para no perder el foco).
 app.addEventListener('input', (e) => {
   const el = e.target as HTMLInputElement;
+  if (game && entradaEnRetrato(game, el, app)) return;
   if (el.dataset?.gente !== 'apodo-campo') return;
   const boton = app.querySelector<HTMLElement>('#apodo-boton');
   if (boton) boton.dataset.do = idDePonerApodo(el.dataset.npc ?? '', el.value);
@@ -1008,6 +1123,10 @@ app.addEventListener('input', (e) => {
 // Los desplegables del formulario de «Proponer quedar para…» (cada cambio redibuja la ficha).
 app.addEventListener('change', (e) => {
   const el = e.target as HTMLElement;
+  if (el instanceof HTMLSelectElement && el.dataset.desplegableCampo) {
+    if (cambioEnDesplegable(el)) render();
+    return;
+  }
   // El país de la nueva partida: cambia los padres (orígenes, nombres y apellidos) que salen de la semilla.
   if (el instanceof HTMLSelectElement && el.id === 'pais') {
     nueva.pais = el.value;
@@ -1028,11 +1147,40 @@ app.addEventListener('change', (e) => {
     render();
     return;
   }
+  if (el instanceof HTMLSelectElement && (el.id === 'pres-consecuencias' || el.id === 'pres-fuera-de-caracter')) {
+    cambiarPresentacion(el.id === 'pres-consecuencias' ? { consecuencias: el.value as Presentacion['consecuencias'] } : { fueraDeCaracter: el.value as Presentacion['fueraDeCaracter'] });
+    return;
+  }
+  if (el instanceof HTMLInputElement && el.id === 'pres-aviso') {
+    // Solo cambia cómo se enseña: no hace falta rehacer la partida.
+    presentacion = { ...presentacion, avisoFueraDeCaracter: el.checked };
+    escribirPresentacion(presentacion);
+    render();
+    return;
+  }
   if (el instanceof HTMLSelectElement && game && cambioEnGente(el)) render();
 });
 
+/** Cambia cómo se presentan los sucesos: se recuerda en el navegador y se rehace la partida en marcha con la nueva configuración (el estado no cambia). */
+function cambiarPresentacion(cambio: Partial<Presentacion>): void {
+  const nueva = { ...presentacion, ...cambio };
+  if (nueva.consecuencias === presentacion.consecuencias && nueva.fueraDeCaracter === presentacion.fueraDeCaracter) return;
+  presentacion = nueva;
+  escribirPresentacion(presentacion);
+  const propio = moduloDePresentacion(presentacion);
+  modulosActuales = [...modulosActuales.filter((m) => m.id !== propio.id), propio];
+  if (game) {
+    try {
+      game = cargarPartida(game.serialize(), modulosActuales, { copiar: false });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo aplicar el cambio.');
+    }
+  }
+  render();
+}
+
 app.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-tab],[data-act],[data-gente],[data-deporte]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-desplegable],[data-tab],[data-act],[data-gente],[data-deporte],[data-retrato]');
   if (el?.dataset.act === 'importar') {
     importarPartida();
     return;
@@ -1044,12 +1192,20 @@ app.addEventListener('click', (e) => {
     nav?.scrollBy({ left: Number(el.dataset.tabscroll) * nav.clientWidth * 0.6, behavior: 'smooth' });
     return;
   }
+  if (el.dataset.desplegable) {
+    if (clicEnDesplegable(el)) render();
+    return;
+  }
   if (el.dataset.deporte) {
     if (clicEnDeporte(el)) render();
     return;
   }
   if (el.dataset.gente) {
     if (clicEnGente(el)) render();
+    return;
+  }
+  if (el.dataset.retrato) {
+    if (clicEnRetrato(el)) render();
     return;
   }
   if (el.dataset.tab) {
@@ -1064,6 +1220,16 @@ app.addEventListener('click', (e) => {
   }
   if (el.dataset.act === 'exportar') {
     exportarPartida();
+    return;
+  }
+  if (el.dataset.act === 'aviso-visto') {
+    avisosVistos.add(Number(el.dataset.suceso));
+    render();
+    return;
+  }
+  if (el.dataset.act === 'suceso-luego') {
+    sucesosAplazados.add(Number(el.dataset.suceso));
+    render();
     return;
   }
   const id = el.dataset.do;

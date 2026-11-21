@@ -1,7 +1,8 @@
 /**
  * La prueba del camino entero **en un navegador de verdad** (Chromium con Playwright): construye la web con una clave de firma de usar y tirar, publica los deportes con ella (incluido el fútbol, que no va dentro del juego), la sirve y recorre
  * lo que hará el usuario: instalar el fútbol desde el paquete (Opciones), la pantalla de nueva partida (casillas de los deportes), crear una partida con la ciudad grande viendo «creando el mundo», y jugar con el fútbol una semana con partido
- * (convocatoria, vestuario y partido), comprobando que la pestaña del deporte lo enseña. Guarda capturas en la carpeta que se indique. `npm run probar-web -- [carpeta de capturas] [semilla]` (tarda unos minutos).
+ * (convocatoria, vestuario y partido), comprobando que la pestaña del deporte lo enseña. Antes del partido pasa por la prueba de acceso a un club (que lanza un suceso: se elige una opción en su ventana y se comprueba
+ * que se resuelve y que el Diario lo cuenta); el bot va a los entrenamientos de su club (sin ellos el entrenador no lo convoca: eso es el juego, no un fallo). Guarda capturas en la carpeta que se indique. `npm run probar-web -- [carpeta de capturas] [semilla]` (tarda unos minutos).
  */
 import { execFileSync } from 'node:child_process';
 import { createReadStream, existsSync, mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs';
@@ -121,20 +122,80 @@ try {
   await pagina.screenshot({ path: join(capturas, '5-partida-creada.png') });
   comprobar(await pagina.evaluate(() => (window as unknown as { __ds: { game: { registry: { moduleIds: Set<string> } } } }).__ds.game.registry.moduleIds.has('futbol')), 'la partida lleva el fútbol (cargado del paquete instalado)');
 
-  // 6. Jugar con el fútbol: apuntarse al club del colegio y vivir un día de partido (convocatoria, vestuario y partido).
-  const resultado = await pagina.evaluate(async () => {
+  // 6. La prueba de acceso a un club: pedirla y unirse al entrenamiento hace salir el suceso del entrenador (ventana de la web). Se elige una opción con un clic, se comprueba que se resuelve y que el Diario lo cuenta.
+  const prueba = await pagina.evaluate(async () => {
+    const ds = (window as unknown as { __ds: Record<string, any> }).__ds;
+    const g = ds.game;
+    const log: string[] = [];
+    for (const c of g.service('clubes').list('futbol').filter((x: { esColegio: boolean }) => !x.esColegio)) {
+      // Hasta el primer momento de entrenamiento del club que aún no ha pasado.
+      let dia = g.time.day;
+      while (!c.sesiones.weekdays.includes((dia % 7 + 7) % 7) || dia * 1440 + Math.ceil(c.sesiones.desde) * 60 < g.time.minute) dia++;
+      ds.hastaElMinuto(dia * 1440 + Math.ceil(c.sesiones.desde) * 60);
+      const pedida = ds.hacer(`futbol.pedir_prueba.${c.id}`);
+      if (!pedida.ok) {
+        log.push(`${c.id}: no se puede pedir (${pedida.reason})`);
+        continue;
+      }
+      const unida = ds.hacer(`futbol.prueba.${c.id}`);
+      log.push(`${c.id}: pedir la prueba ok; unirse al entrenamiento de prueba: ${unida.ok ? 'ok' : unida.reason}`);
+      if (!unida.ok) continue;
+      ds.render();
+      return { club: c.id as string, log };
+    }
+    return { club: undefined as string | undefined, log };
+  });
+  for (const linea of prueba.log) console.log(`  ${linea}`);
+  comprobar(!!prueba.club, 'se pide una prueba de acceso a un club y se une uno al entrenamiento de prueba');
+  const pendientesDeLaPrueba = (): Promise<number> => pagina.evaluate(() => (window as unknown as { __ds: Record<string, any> }).__ds.game.service('sucesos').pendientes().filter((p: { suceso: string }) => p.suceso.endsWith('.prueba_de_acceso')).length);
+  // El suceso sale en una ventana: con opciones (el entrenador pregunta dónde quieres jugar) o como aviso (si al equipo no le faltan jugadores en varios puestos).
+  await pagina.waitForSelector('.ventana.suceso', { timeout: 10000 });
+  const tituloDelSuceso: string = await pagina.locator('.ventana.suceso h2').innerText();
+  await pagina.screenshot({ path: join(capturas, '6a-suceso-prueba-de-acceso.png') });
+  const eligible = pagina.locator('.ventana.suceso .suceso-opciones button:not([disabled])');
+  const conOpciones = (await eligible.count()) > 0;
+  const elegida = conOpciones ? (await eligible.first().locator('.action-name').innerText()).trim() : undefined;
+  comprobar(true, `sale un suceso en su ventana: «${tituloDelSuceso}»${conOpciones ? `; ${await eligible.count()} opciones elegibles` : ' (un aviso, sin opciones)'}`);
+  if (conOpciones) await eligible.first().click();
+  else await pagina.click('.ventana.suceso [data-act="aviso-visto"]');
+  await pagina.waitForSelector('.ventana.suceso', { state: 'detached', timeout: 10000 });
+  comprobar((await pendientesDeLaPrueba()) === 0, `el suceso se resuelve${elegida ? ` al elegir «${elegida}»` : ''}: la ventana se cierra y ya no queda pendiente`);
+  // El Diario lo cuenta (los recuerdos: lo vivido, con lo que elegiste).
+  await pagina.click('[data-tab="diario"]');
+  await pagina.waitForSelector('section.sheet h2');
+  const recuerdos: string = await pagina.locator('section.sheet', { has: pagina.locator('h2', { hasText: 'Recuerdos' }) }).innerText();
+  comprobar(recuerdos.includes(tituloDelSuceso), `el Diario cuenta el suceso en «Recuerdos» (${tituloDelSuceso})`);
+  if (elegida) comprobar(recuerdos.includes(`Elegiste: ${elegida}`), `y dice lo que elegiste («Elegiste: ${elegida}»)`);
+  await pagina.screenshot({ path: join(capturas, '6b-diario-recuerdos.png'), fullPage: true });
+  await pagina.click('[data-tab="hacer"]');
+
+  // 7. Jugar con el fútbol: terminar la prueba (si pasa, entra en ese club; si no, se apunta al club del colegio) y vivir un día de partido (convocatoria, vestuario y partido), yendo a los entrenamientos del club.
+  const resultado = await pagina.evaluate(async (clubDePrueba: string) => {
     const ds = (window as unknown as { __ds: Record<string, any> }).__ds;
     const g = ds.game;
     const log: string[] = [];
     const hasta = (semana: number, dia: number, hora: number) => {
+      if (((semana * 7 + dia) * 24 + hora) * 60 < g.time.minute) return;
       while (!(g.time.week === semana && g.time.weekday === dia && g.time.hour === hora)) if (!g.perform('gen.descansar').ok && !g.perform('gen.esperar').ok) break;
     };
-    hasta(1, 3, 15);
-    const apuntado = ds.hacer('futbol.apuntarse_colegio');
-    log.push(`apuntarse al club del colegio: ${apuntado.ok ? 'ok' : apuntado.reason}`);
-    if (!apuntado.ok) return { log, jugado: false };
-    for (let semana = 4; semana <= 17; semana++) {
+    const entrenar = ds.hacer(`futbol.prueba_entrenar.${clubDePrueba}`);
+    log.push(`entrenar a prueba con el equipo: ${entrenar.ok ? 'ok' : entrenar.reason}`);
+    let club = g.service('clubes').membership('futbol');
+    log.push(club ? `la prueba sale bien: entra en ${club.nombre}` : 'la prueba no da plaza (es el juego): se apunta al club del colegio');
+    if (!club) {
+      hasta(g.time.week + (g.time.weekday >= 3 ? 1 : 0), 3, 15);
+      const apuntado = ds.hacer('futbol.apuntarse_colegio');
+      log.push(`apuntarse al club del colegio: ${apuntado.ok ? 'ok' : apuntado.reason}`);
+      if (!apuntado.ok) return { log, jugado: false };
+      club = g.service('clubes').membership('futbol');
+    }
+    for (let semana = g.time.week + 1; semana <= 17; semana++) {
       hasta(semana, 0, 9);
+      // Los entrenamientos de su club (sin ellos el entrenador no lo convoca: la asistencia pesa en la convocatoria).
+      for (const dia of club.sesiones.weekdays) {
+        hasta(semana, dia, Math.ceil(club.sesiones.desde));
+        ds.hacer('futbol.club_sesion');
+      }
       const f = g.moduleState('futbol');
       const p = f.personaje;
       const l = p && f.liga ? f.liga.categorias[p.categoria] : undefined;
@@ -168,16 +229,26 @@ try {
       return { log, jugado: true, ultimo: g.moduleState('futbol').ultimoPartido?.texto, tras: g.service('lugares').actual().id };
     }
     return { log, jugado: false };
-  });
+  }, prueba.club!);
   for (const linea of resultado.log) console.log(`  ${linea}`);
   comprobar(resultado.jugado, 'se juega una semana con partido: convocatoria, vestuario y «Jugar el partido»');
   comprobar((resultado as { tras?: string }).tras === 'vestuario_campo_municipal', 'al acabar el partido el personaje está en el vestuario');
 
-  // 7. La pestaña del deporte lo enseña.
+  // Al avanzar semanas de golpe puede haber salido algún suceso de la vida (ajeno al fútbol, y distinto según la semilla y la gente del mundo) cuyo cuadro tapa la pantalla: se cierra
+  // como lo haría el jugador (la primera opción, o «visto» si es un aviso) para llegar a la pestaña.
+  for (let i = 0; i < 10 && (await pagina.locator('.ventana.suceso').count()) > 0; i++) {
+    const opcion = pagina.locator('.ventana.suceso .suceso-opciones button:not([disabled])').first();
+    if (await opcion.count()) await opcion.click();
+    else await pagina.click('.ventana.suceso [data-act="aviso-visto"]');
+    await pagina.waitForTimeout(300);
+  }
+  // 8. La pestaña del deporte lo enseña.
   await pagina.click('[data-tab="deporte"]');
   await pagina.waitForSelector('h3');
   const titulos: string[] = await pagina.$$eval('h3', (hs: Element[]) => hs.map((h: Element) => h.textContent ?? ''));
   for (const t of ['Último partido', 'Clasificación', 'Plantilla', 'Tu temporada']) comprobar(titulos.some((x) => x.startsWith(t)), `la pestaña del deporte enseña «${t}»`);
+  // «El curso que viene» solo sale cuando termina la temporada (la liga cerrada o el verano, hasta el reparto): con la liga en marcha no ocupa sitio.
+  comprobar(!titulos.some((x) => x.startsWith('El curso que viene')), 'con la liga en marcha la pestaña no enseña «El curso que viene»');
   comprobar((await pagina.locator('ul.cronica li.mia').count()) >= 0 && (await pagina.locator('ul.cronica li').count()) > 6, 'la crónica del partido se ve, con lo del personaje resaltado');
   await pagina.screenshot({ path: join(capturas, '6-pestana-del-deporte.png'), fullPage: true });
   comprobar(errores.length === 0, `sin errores en la consola${errores.length ? `: ${errores.slice(0, 3).join(' | ')}` : ''}`);

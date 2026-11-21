@@ -3,8 +3,8 @@ import { SERVICES, cuposPorGrupo, type NpcDirectory } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol, rendimiento as rendimientoDeFutbol } from '@ds/mod-futbol';
-import { capacidadDe, claveDeEquipo, edadNpc, reclutarDeportistas, reclutarEnTodos, reglaDePlaza, sinDeporte, valorRealDe, valoracionDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
-import { hacer, posible } from './ayudas';
+import { capacidadConPlazasDeMas, capacidadDe, claveDeEquipo, edadNpc, reclutarDeportistas, reclutarEnTodos, reglaDePlaza, sinDeporte, valorRealDe, valoracionDe, type Npc, type NpcsState, type PoblacionGuardada } from '@ds/mod-npcs';
+import { colegioConUnEquipoDeBenjamin, hacer, posible } from './ayudas';
 import { ID_TRES_CLUBES } from './ciudades';
 
 // Estos tests crean partidas con fútbol (la ciudad de verdad cuesta varios segundos cada una): un plazo para todo el fichero, no test a test.
@@ -39,7 +39,7 @@ describe('cada club de la zona tiene su equipo por categoría', () => {
           // Los clubes de fuera, de 14 a 18 por equipo (con 14 basta); el del colegio va el último del «draft» y se queda con los alumnos que sobran.
           // El mínimo de 14 vale para todos los equipos, también para el del colegio: si no llega en una categoría, ese curso no saca equipo en ella.
           expect(jugadores.length === 0 || jugadores.length >= 14 * k, `${club} ${cat} (semilla ${seed}): ${jugadores.length} jugadores con ${k} equipos`).toBe(true);
-          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeLessThanOrEqual(capacidadDe(e, cat));
+          expect(jugadores.length, `${club} ${cat} (semilla ${seed})`).toBeLessThanOrEqual(capacidadConPlazasDeMas(e, cat));
         }
       }
       // El equipo del colegio solo tiene alumnos del colegio; ningún equipo tiene jugadores de otra categoría.
@@ -74,7 +74,8 @@ describe('reclutamiento por equipo: interesados hasta el máximo, el resto solo 
   /** El mundo de una partida con todos los niños sin deporte y sin ningún interés, salvo los `interesados` (ids) a quienes les gusta el fútbol. */
   const sinNadie = (interesados: Set<string>, g = nueva()) => {
     // Se aísla el equipo del colegio (los demás clubes escogerían antes a los mejores): aquí se prueba la plantilla de un equipo.
-    const pob = { ...pobDeFutbol(g), equipos: pobDeFutbol(g).equipos.filter((e) => e.club === 'colegio') };
+    // (con un solo equipo por categoría: lo que se prueba es la plantilla de un equipo; el reparto de la partida le da al colegio varios)
+    const pob = { ...pobDeFutbol(g), equipos: pobDeFutbol(g).equipos.filter((e) => e.club === 'colegio').map((e) => ({ ...e, equiposPorCategoria: undefined })) };
     const npcs = estado(g).npcs.map((n) => {
       if (!n.genetica) return n;
       const libre = n.deporte === 'futbol' ? sinDeporte(n, pobDeFutbol(g), false) : n;
@@ -132,6 +133,7 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
    */
   const llenar = (g: ReturnType<typeof nueva>, nivel: number, peorNivel?: number) => {
     const s = estado(g);
+    colegioConUnEquipoDeBenjamin(g); // el colegio saca varios equipos de benjamín en el reparto de la partida: aquí se prueba uno solo, de 18
     const base = benjamin(g);
     const libres = s.npcs.filter((n) => n.genetica && n.deporte === undefined && n.colegio === undefined && edadNpc(n, 0)! <= 9 && n.tipos?.some((t) => t.tipo === 'alumno')).slice(0, 18 - base.length);
     const cupos = cuposPorGrupo(PUESTOS_DE_FUTBOL, 18);
@@ -152,7 +154,7 @@ describe('el personaje entra en el equipo de su colegio como cualquier niño', (
     for (const seed of [31, 32, 33]) {
       const g = nueva(seed);
       const equipo = benjamin(g);
-      expect(equipo.length).toBeLessThanOrEqual(18);
+      expect(equipo.length).toBeLessThanOrEqual(capacidadConPlazasDeMas(pobDeFutbol(g).equipos.find((e) => e.club === 'colegio')!, 'benjamin')); // con varios equipos (el colegio guarda a los suyos) y plazas de más
       expect(equipo.some((n) => n.id.startsWith('personaje@'))).toBe(false);
       // Los clubes de fuera sí salen con sus equipos (de 14 a 18 por equipo) en benjamín.
       const s = estado(g);

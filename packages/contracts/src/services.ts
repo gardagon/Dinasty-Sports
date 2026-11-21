@@ -22,6 +22,13 @@ export const SERVICES = {
   lugares: 'lugares',
   presencia: 'presencia',
   partidos: 'partidos',
+  /** Lectura del cuerpo de las personas para el visualizador (`CuerpoService`, ver `cuerpo.ts`): cada módulo dueño de personas da el suyo con el mismo contrato. */
+  /** Minutos reales de Educación física a la semana de un curso (`EducacionFisicaService`): los PNJ en edad escolar los suman a su actividad. */
+  educacionFisica: 'estudios.educacion_fisica',
+  cuerpoPersonaje: 'cuerpo.personaje',
+  cuerpoNpcs: 'cuerpo.npcs',
+  /** Sucesos pendientes de decidir, marcas y recuerdos (`SucesosService`, ver `sucesos/servicio.ts`). */
+  sucesos: 'sucesos',
 } as const;
 
 // ---------- NPCs ----------
@@ -103,6 +110,17 @@ export interface PruebaEnClub {
   yaPasada?: boolean;
 }
 
+/** Los jugadores que le faltan a un equipo en un grupo de puestos (`NpcDirectory.huecosPorGrupo`). */
+export interface HuecoDeGrupo {
+  grupo: string;
+  /** «centrales», «porteros»… */
+  nombre: string;
+  puestos: readonly string[];
+  /** Cuántos jugadores le faltan (cupo del grupo menos los que hay). */
+  huecos: number;
+  cupo: number;
+}
+
 /** El consejo del profesor de Educación Física: un deporte y, si tiene puestos, varios en los que podría funcionar. */
 export interface ConsejoDeDeporte {
   deporte: string;
@@ -120,6 +138,11 @@ export interface NpcDirectory {
    */
   plaza(deporte: string, club: string, nivel: number, puestos?: Readonly<Record<string, number>>, prueba?: PruebaEnClub): PlazaEnEquipo;
   /**
+   * Dónde le faltan jugadores al equipo de la categoría del personaje en un club con puestos: un elemento por grupo de puestos (portero, centrales, laterales…) con menos jugadores que su cupo, con cuántos le faltan
+   * (`huecos` = cupo − jugadores del grupo). Es la medida de «lo que más necesita» el entrenador. Vacío si el equipo no tiene huecos, está completo o el deporte no tiene puestos.
+   */
+  huecosPorGrupo?(deporte: string, club: string): HuecoDeGrupo[];
+  /**
    * Lo que un profesor de Educación Física ve en el personaje: los deportes que le irían bien y, en los que tienen puestos, **varios puestos** donde podría funcionar (lo que percibe, sin cifras:
    * `VISION.md`, principio 7). Vacío si no ve nada claro.
    */
@@ -134,6 +157,8 @@ export interface NpcDirectory {
    * habilidades y capacidades. Con ellos el entrenador convoca y alinea, y el motor de partido los juega. Lo mismo para todos (`VISION.md`).
    */
   plantillaDelEquipo?(deporte: string, club: string, categoria: string, letra: string): JugadorDeEquipoView[];
+  /** ¿Rota el entrenador a la plantilla de este equipo para que todos jueguen? Lo dicen los datos del deporte: el tipo de club (colegio o de fuera) y la categoría (`CategoriaDef.rotacionEn`). */
+  rotaElEquipo?(deporte: string, club: string, categoria: string): boolean;
   /**
    * Los equipos que hay hoy en una categoría de un deporte de equipo (cada club con cada letra A a D que llega al mínimo de jugadores), con lo que vale cada uno y su nombre: con ellos se arma la liga. Vacío si el deporte no
    * tiene equipos por categoría.
@@ -144,6 +169,35 @@ export interface NpcDirectory {
    * no es de un club con equipos por categoría o su club no tiene equipos en esa categoría. Quien llama lo guarda al empezar la temporada: los equipos no cambian durante el curso.
    */
   equipoDelPersonaje?(deporte: string): { club: string; categoria: string; letra: string } | undefined;
+  /**
+   * Cómo queda el club del personaje en su categoría al acabar la temporada, con datos que un niño vería (quiénes son del club y en qué año de nacimiento, sin lo que valen): cuántos son ahora, quién cambia de categoría,
+   * cuántos siguen y cuántos llegan de la categoría de abajo del club, frente al mínimo de niños que pide un equipo. No cuenta a los que se apuntarán o se irán en verano (no se saben). `undefined` si no es de un club
+   * con equipos por categoría.
+   */
+  previsionDelClub?(deporte: string): PrevisionDelClubView | undefined;
+}
+
+/** Cómo queda el club del personaje en su categoría el curso que viene (`NpcDirectory.previsionDelClub`). */
+export interface PrevisionDelClubView {
+  /** Su categoría ahora y la del curso que viene (la misma si no sube). */
+  categoria: { id: string; nombre: string };
+  siguiente: { id: string; nombre: string };
+  /** Si su club tendrá equipos en la categoría del curso que viene (los clubes de colegio acaban en cadete o juvenil). */
+  hayEquipo: boolean;
+  /** Niños de su club en su categoría ahora, él incluido. */
+  ahora: number;
+  /** Los que hacen falta para que exista un equipo. */
+  minimo: number;
+  /** Los equipos que tiene su club en la categoría del curso que viene (cada uno necesita el mínimo). */
+  equipos: number;
+  /** Los de su categoría que al acabar la temporada pasan a otra, con el nombre de la categoría (`a` falta si ya no tienen categoría a la que subir), por orden alfabético. */
+  suben: { id: string; nombre: string; a?: string }[];
+  /** Los que siguen en su categoría el curso que viene. */
+  siguen: number;
+  /** Los del club que hoy no están en la categoría del curso que viene y pasan a ella (de la categoría de abajo si él se queda; los compañeros que suben con él si sube). */
+  llegan: number;
+  /** Los que habrá el curso que viene en la categoría del curso que viene, contando solo a quienes ya son del club (él incluido). */
+  quedan: number;
 }
 
 /** Un equipo de la liga tal como lo ve quien la organiza. */
@@ -211,6 +265,12 @@ export interface ExamInfo {
 /** Nivel con el que se ve una preparación (0..100 = nota esperada × 10): Mal, Regular, Bien, Muy bien o Excelente. */
 export type NivelDeAsignatura = 'Mal' | 'Regular' | 'Bien' | 'Muy bien' | 'Excelente';
 
+/** Educación física según el currículo y los horarios del país. */
+export interface EducacionFisicaService {
+  /** Minutos de clase de Educación física en una semana lectiva entera del curso (0 = el primero, 3.º de primaria; 0 si ese curso no la tiene o no existe). */
+  minutosPorSemana(curso: number): number;
+}
+
 export interface StudiesService {
   /** Nivel de una asignatura con texto (Mal < 4, Regular 4–5,9, Bien 6–7,4, Muy bien 7,5–9,2, Excelente 9,3–10), o null si no existe. */
   levelText(subject: string): NivelDeAsignatura | null;
@@ -263,6 +323,8 @@ export interface PerkView {
   descripcion: string;
   /** Se expresa solo cuando un evento lo revela (en la fase de pruebas se enseñan todos). */
   latente: boolean;
+  /** Un perk latente que el personaje ya ha descubierto (`perk.revelado`). */
+  revelado?: boolean;
 }
 
 /** Origen, apariencia, carácter, intereses y gustos del personaje (hoy solo para pruebas y para la compatibilidad con los demás). */

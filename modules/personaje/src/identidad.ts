@@ -1,4 +1,4 @@
-import { PROPORCION_DE_ZURDOS, SD_Z_HIJO, anioNatural, edadDeCompeticion, primerDiaDelAnio, type BodyType, type IdentityView, type PerfilDelPersonaje, type PerksDe, type Rng } from '@ds/contracts';
+import { PROPORCION_DE_ZURDOS, SD_Z_HIJO, alturaEn as alturaDeCuerpo, anioNatural, complexion, edadDeCompeticion, pasoDeSemanaDelCuerpo, pesoDe, primerDiaDelAnio, type BodyType, type IdentityView, type PerfilDelPersonaje, type PerksDe, type Rng } from '@ds/contracts';
 
 /**
  * Identidad del personaje: edad, altura, peso, dominancia lateral y complexión.
@@ -10,6 +10,12 @@ import { PROPORCION_DE_ZURDOS, SD_Z_HIJO, anioNatural, edadDeCompeticion, primer
  * valores de partida, y de ella sale su año de nacimiento: ver `initIdentidad`. Cámbialo aquí para empezar en otro curso.
  */
 export const EDAD_INICIAL = 8;
+
+/** Por debajo de esta edad (años), quedar con alguien cuenta la mitad de su duración como actividad del cuerpo (etiqueta `actividadDeNino`). */
+export const EDAD_DE_QUEDAR_COMO_JUEGO = 12;
+
+/** Hoy el personaje es chico (el sexo entra en las reglas del cuerpo igual que en las de cualquier persona). */
+export const SEXO_DEL_PERSONAJE = 'm' as const;
 
 export interface HabitosSemana {
   /** Minutos de la semana en acciones de fuerza, aeróbicas y físicas en general, y de descanso/sueño. */
@@ -34,6 +40,9 @@ export interface IdentidadState {
   alturaAdulta: number;
   /** Años de adelanto (+) o retraso (−) en el crecimiento. */
   madurez: number;
+  /** Genética del cuerpo en puntuación típica (de `ctx.herencia`): facilidad para engordar y para ganar músculo. Ausente en partidas anteriores (0). */
+  metabolismo?: number;
+  musculatura?: number;
   /** Su pierna buena (y su mano): zurdo o diestro. La misma proporción que los PNJ (`PROPORCION_DE_ZURDOS`, en torno a un 20 %: la del pie, no la de la mano, que era el 11 %). */
   zurdo: boolean;
   /** 0..100. Se forma con fuerza sostenida y se pierde sin ella. */
@@ -41,10 +50,14 @@ export interface IdentidadState {
   /** 0..100. Sube con el sedentarismo sostenido y baja con la actividad. */
   grasa: number;
   cuerpo: BodyType;
+  /** Su historial anual: una foto por cumpleaños (`[edad de la primera foto, músculo, grasa, …]`, en enteros), como el de cualquier persona (`conFotoDelCumple`, en contracts). Ausente en partidas anteriores. */
+  hc?: number[];
   /** Hábitos acumulados en la semana en curso. */
   semana: HabitosSemana;
   /** Perks: los activos (como mucho 3, los que afectan) y el pool que pasa a los hijos. */
   perks: PerksDe;
+  /** Perks latentes que el personaje ya ha descubierto (señal `perk.revelado`). Su efecto no depende de esto: cuenta desde que nació. */
+  perksRevelados?: string[];
   /** Origen, apariencia, carácter, intereses y gustos. Los intereses suben con lo que el personaje hace; el resto es fijo. */
   perfil: PerfilDelPersonaje;
 }
@@ -52,7 +65,7 @@ export interface IdentidadState {
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /** `zAltura`: genética de la estatura del personaje (puntuación típica del hijo de `ctx.herencia('estatura')`). */
-export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, perfil: PerfilDelPersonaje, alturaExtraCm = 0): IdentidadState {
+export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, perfil: PerfilDelPersonaje, alturaExtraCm = 0, genetica: { metabolismo?: number; musculatura?: number } = {}): IdentidadState {
   // Nace como los PNJ: un día al azar del año natural de su clase (los que cumplen EDAD_INICIAL años ese año). Así empieza con entre 7,7 y 8,7 años según el día en que cae el
   // inicio del curso, nunca un año mayor que sus compañeros (antes tenía entre 8,0 y 9,0, y en 3 de cada 10 partidas nacía un año antes que su clase).
   const nacimiento = primerDiaDelAnio(anioNatural(0) - EDAD_INICIAL) + rng.int(0, 364);
@@ -63,6 +76,8 @@ export function initIdentidad(rng: Rng, zAltura: number, perks: PerksDe, perfil:
     fraccionInicial: anios - edadInicial,
     alturaAdulta: Math.round(clamp(171 + (zAltura / SD_Z_HIJO) * 8, 150, 195) * 10 + alturaExtraCm * 10) / 10,
     madurez: clamp(rng.normal() * 0.8, -1.5, 1.5),
+    ...(genetica.metabolismo !== undefined ? { metabolismo: genetica.metabolismo } : {}),
+    ...(genetica.musculatura !== undefined ? { musculatura: genetica.musculatura } : {}),
     zurdo: rng.chance(PROPORCION_DE_ZURDOS),
     musculo: rng.range(18, 30),
     grasa: rng.range(34, 44),
@@ -79,33 +94,10 @@ export const diaDeNacimiento = (s: IdentidadState): number => Math.round(-(s.eda
 /** Edad con decimales en un día de la partida. */
 export const edadDecimal = (s: IdentidadState, day: number): number => s.edadInicial + s.fraccionInicial + day / 365;
 
-/** Interpolación lineal sobre una tabla [edad, valor] ordenada por edad. */
-function curva(tabla: readonly (readonly [number, number])[], edad: number): number {
-  if (edad <= tabla[0][0]) return tabla[0][1];
-  for (let i = 1; i < tabla.length; i++) {
-    if (edad <= tabla[i][0]) {
-      const [x0, y0] = tabla[i - 1];
-      const [x1, y1] = tabla[i];
-      return y0 + ((y1 - y0) * (edad - x0)) / (x1 - x0);
-    }
-  }
-  return tabla[tabla.length - 1][1];
-}
+/** Altura y peso de hoy: las reglas del cuerpo son de contracts (`cuerpo.ts`), las mismas para todas las personas. */
+export const alturaEn = (s: IdentidadState, day: number): number => alturaDeCuerpo(s.alturaAdulta, edadDecimal(s, day), s.madurez);
 
-/** Fracción de la altura adulta a cada edad (media aproximada). */
-const CRECIMIENTO = [[6, 0.67], [8, 0.73], [10, 0.79], [12, 0.86], [14, 0.94], [16, 0.985], [18, 1]] as const;
-/** IMC de referencia sano a cada edad. */
-const IMC_SANO = [[6, 15.2], [10, 16.2], [12, 17.4], [14, 18.8], [16, 20.2], [18, 21.5]] as const;
-
-export function alturaEn(s: IdentidadState, day: number): number {
-  return s.alturaAdulta * curva(CRECIMIENTO, edadDecimal(s, day) + s.madurez);
-}
-
-export function pesoEn(s: IdentidadState, day: number): number {
-  const m = alturaEn(s, day) / 100;
-  const imc = curva(IMC_SANO, edadDecimal(s, day)) + 0.04 * (s.musculo - 30) + 0.09 * (s.grasa - 40);
-  return imc * m * m;
-}
+export const pesoEn = (s: IdentidadState, day: number): number => pesoDe(alturaEn(s, day), edadDecimal(s, day), s.musculo, s.grasa);
 
 export function viewIdentidad(s: IdentidadState, day: number, primerDiaDelCurso: number): IdentityView {
   return {
@@ -118,33 +110,9 @@ export function viewIdentidad(s: IdentidadState, day: number, primerDiaDelCurso:
   };
 }
 
-/** Complexión a partir de músculo y grasa. El orden importa: lo más marcado manda. */
-export function complexion(musculo: number, grasa: number): BodyType {
-  if (grasa >= 65) return 'con_sobrepeso';
-  if (musculo >= 60) return 'musculado';
-  if (musculo >= 35 && grasa <= 45) return 'atletico';
-  if (grasa <= 25 && musculo <= 30) return 'delgado';
-  return 'normal';
-}
-
-/** Minutos físicos semanales hacia los que tiende la grasa/músculo. Ajustable con la simulación. */
-export const CUERPO = {
-  /** Ritmo semanal al que el cuerpo se acerca a su objetivo. */
-  inercia: 0.08,
-  grasaBase: 78,
-  grasaPorMinutoActivo: 0.1,
-  /** Juego libre y recreos: actividad mínima semanal aunque el jugador no haga deporte. */
-  actividadBasica: 60,
-  musculoBase: 12,
-  musculoPorMinutoFuerza: 0.1,
-};
-
-/** Fin de semana: el cuerpo se mueve despacio hacia lo que dicen los hábitos. */
-export function actualizarCuerpo(s: IdentidadState): IdentidadState {
-  const grasaObj = clamp(CUERPO.grasaBase - (s.semana.activo + CUERPO.actividadBasica) * CUERPO.grasaPorMinutoActivo, 20, 80);
-  const musculoObj = clamp(CUERPO.musculoBase + s.semana.fuerza * CUERPO.musculoPorMinutoFuerza, 10, 90);
-  const grasa = s.grasa + (grasaObj - s.grasa) * CUERPO.inercia;
-  const musculo = s.musculo + (musculoObj - s.musculo) * CUERPO.inercia;
+/** Fin de semana: el cuerpo se mueve despacio hacia lo que dicen los hábitos (`pasoDeSemanaDelCuerpo`, en contracts). */
+export function actualizarCuerpo(s: IdentidadState, day: number): IdentidadState {
+  const { musculo, grasa } = pasoDeSemanaDelCuerpo(s, s.semana, { edad: edadDecimal(s, day), madurez: s.madurez, sexo: SEXO_DEL_PERSONAJE, metabolismo: s.metabolismo, musculatura: s.musculatura });
   return { ...s, grasa, musculo, cuerpo: complexion(musculo, grasa), semana: { ...SIN_HABITOS } };
 }
 

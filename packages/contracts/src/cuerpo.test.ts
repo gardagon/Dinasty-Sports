@@ -1,0 +1,149 @@
+import { describe, expect, it } from 'vitest';
+import { vigoresPorEdad } from './desarrollo-de-persona';
+import { alturaDe } from './personas';
+import { alturaEn, conFotoDelCumple, fotoDeEdad, fotosDelHistorial, complexion, objetivoDeCuerpo, pasoDeSemanaDelCuerpo, perdidaDeAltura, pesoDe } from './cuerpo';
+
+describe('cuerpo: una sola regla para todas las personas', () => {
+  it('la altura crece hasta los 18, se mantiene y se pierde en la vejez', () => {
+    expect(alturaEn(180, 18)).toBe(180);
+    expect(alturaEn(180, 8)).toBeCloseTo(180 * 0.73, 6);
+    expect(alturaEn(180, 50)).toBe(180);
+    expect(perdidaDeAltura(70)).toBeCloseTo(3, 9);
+    expect(perdidaDeAltura(90)).toBeCloseTo(7, 9);
+    expect(alturaEn(180, 95)).toBeLessThan(alturaEn(180, 70));
+  });
+
+  it('el desfase adelanta o retrasa el crecimiento y no cambia la altura adulta', () => {
+    expect(alturaEn(180, 12, 1)).toBeGreaterThan(alturaEn(180, 12, 0));
+    expect(alturaEn(180, 12, -1)).toBeLessThan(alturaEn(180, 12, 0));
+    expect(alturaEn(180, 30, 1.5)).toBe(alturaEn(180, 30, -1.5));
+    // la altura de los PNJ (alturaDe) usa la misma curva y admite el desfase
+    expect(alturaDe('m', 12, 0, 1)).toBeGreaterThan(alturaDe('m', 12, 0));
+    expect(alturaDe('m', 12, 0, 0)).toBe(alturaDe('m', 12, 0));
+  });
+
+  it('el IMC de referencia también existe de adulto', () => {
+    const imc = (edad: number) => pesoDe(100, edad, 30, 40) / 1;
+    expect(imc(18)).toBeCloseTo(21.5, 6);
+    expect(imc(30)).toBeCloseTo(23, 6);
+    expect(imc(50)).toBeCloseTo(24.5, 6);
+    expect(imc(70)).toBeCloseTo(24.5, 6);
+    expect(imc(90)).toBeCloseTo(23, 6);
+    // 0,04 por punto de músculo y 0,09 por punto de grasa sobre 30 y 40
+    expect(pesoDe(100, 30, 40, 40)).toBeCloseTo(23.4, 6);
+    expect(pesoDe(100, 30, 30, 50)).toBeCloseTo(23.9, 6);
+  });
+
+  it('la complexión no ha cambiado', () => {
+    expect(complexion(20, 70)).toBe('con_sobrepeso');
+    expect(complexion(65, 40)).toBe('musculado');
+    expect(complexion(40, 40)).toBe('atletico');
+    expect(complexion(20, 20)).toBe('delgado');
+    expect(complexion(30, 40)).toBe('normal');
+  });
+
+  it('el paso semanal se acerca al objetivo un 8 %', () => {
+    const h = { fuerza: 300, activo: 400 };
+    const q = { edad: 25, madurez: 0, sexo: 'm' as const };
+    const o = objetivoDeCuerpo(h, q);
+    const p = pasoDeSemanaDelCuerpo({ musculo: 20, grasa: 50 }, h, q);
+    expect(p.musculo).toBeCloseTo(20 + (o.musculo - 20) * 0.08, 9);
+    expect(p.grasa).toBeCloseTo(50 + (o.grasa - 50) * 0.08, 9);
+  });
+
+  describe('músculo y grasa con la edad y el sexo', () => {
+    const gym = { fuerza: 900, activo: 600 };
+    const hombre = (edad: number, madurez = 0) => ({ edad, madurez, sexo: 'm' as const });
+    const mujer = (edad: number, madurez = 0) => ({ edad, madurez, sexo: 'f' as const });
+
+    it('un niño de 8 años no se pone musculado aunque haga mucha fuerza; con la pubertad sí puede', () => {
+      expect(complexion(objetivoDeCuerpo(gym, hombre(8)).musculo, 40)).not.toBe('musculado');
+      expect(objetivoDeCuerpo(gym, hombre(11)).musculo).toBeLessThan(60);
+      expect(objetivoDeCuerpo(gym, hombre(20)).musculo).toBeGreaterThanOrEqual(60);
+      // el adelanto del desarrollo sube el tope
+      expect(objetivoDeCuerpo(gym, hombre(12, 1.5)).musculo).toBeGreaterThan(objetivoDeCuerpo(gym, hombre(12, -1.5)).musculo);
+    });
+
+    it('el tope sigue exactamente el vigor físico de vigoresPorEdad', () => {
+      for (const edad of [8, 11, 13, 17, 23, 24, 40, 70]) {
+        for (const madurez of [-1.5, 0, 1.5]) {
+          const tope = 15 + 0.75 * vigoresPorEdad(edad, madurez).fisico;
+          expect(objetivoDeCuerpo({ fuerza: 3000, activo: 0 }, hombre(edad, madurez)).musculo).toBeCloseTo(Math.min(90 - Math.max(0, edad - 40) * 0.5, tope), 9);
+        }
+      }
+    });
+
+    it('la grasa base extra de las mujeres llega con la pubertad (nada hasta los 13, todo a los 18)', () => {
+      const h = { fuerza: 0, activo: 200 };
+      const dif = (edad: number) => objetivoDeCuerpo(h, mujer(edad)).grasa - objetivoDeCuerpo(h, hombre(edad)).grasa;
+      expect(dif(10)).toBeCloseTo(0, 9);
+      expect(dif(13)).toBeCloseTo(0, 9);
+      expect(dif(15)).toBeCloseTo(3.2, 9);
+      expect(dif(18)).toBeCloseTo(8, 9);
+    });
+
+    it('las mujeres tienen menos músculo objetivo y más grasa base', () => {
+      const medio = { fuerza: 900, activo: 200 };
+      const h = objetivoDeCuerpo(medio, hombre(25));
+      const m = objetivoDeCuerpo(medio, mujer(25));
+      expect(m.musculo).toBeCloseTo(h.musculo * 0.75, 6);
+      expect(m.grasa).toBeCloseTo(h.grasa + 8, 6);
+    });
+
+    it('sarcopenia desde los 40 y metabolismo desde los 30 (máximo +12)', () => {
+      const poco = { fuerza: 300, activo: 300 };
+      const a = objetivoDeCuerpo(poco, hombre(40));
+      const b = objetivoDeCuerpo(poco, hombre(60));
+      expect(a.musculo - b.musculo).toBeCloseTo(10, 6);
+      expect(objetivoDeCuerpo(poco, hombre(40)).grasa - objetivoDeCuerpo(poco, hombre(30)).grasa).toBeCloseTo(3, 6);
+      expect(objetivoDeCuerpo(poco, hombre(90)).grasa - objetivoDeCuerpo(poco, hombre(70)).grasa).toBeCloseTo(0, 6);
+    });
+  });
+
+  describe('historial anual', () => {
+    it('una foto por cumpleaños, en una lista de enteros', () => {
+      let hc = conFotoDelCumple(undefined, 9, 20.4, 40.6);
+      expect(hc).toEqual([9, 20, 41]);
+      hc = conFotoDelCumple(hc, 10, 22, 39);
+      hc = conFotoDelCumple(hc, 11, 25.5, 38);
+      expect(hc).toEqual([9, 20, 41, 22, 39, 26, 38]);
+      expect(fotosDelHistorial(hc)).toBe(3);
+      // repetir un año o saltarse uno no cambia nada
+      expect(conFotoDelCumple(hc, 11, 1, 1)).toEqual(hc);
+      expect(conFotoDelCumple(hc, 14, 1, 1)).toEqual(hc);
+    });
+
+    it('se lee la foto de una edad; antes de la primera vale la primera y después de la última, la última', () => {
+      const hc = [9, 20, 41, 22, 39];
+      expect(fotoDeEdad(undefined, 9)).toBeUndefined();
+      expect(fotoDeEdad(hc, 8)).toEqual({ musculo: 20, grasa: 41 });
+      expect(fotoDeEdad(hc, 10)).toEqual({ musculo: 22, grasa: 39 });
+      expect(fotoDeEdad(hc, 40)).toEqual({ musculo: 22, grasa: 39 });
+    });
+  });
+
+  describe('genética del cuerpo', () => {
+    const q = (metabolismo: number, musculatura: number) => ({ edad: 30, madurez: 0, sexo: 'm' as const, metabolismo, musculatura });
+    const h = { fuerza: 300, activo: 150 };
+
+    it('metabolismo: grasa objetivo + 3 × z, con z limitado a ±2,5', () => {
+      const base = objetivoDeCuerpo(h, q(0, 0)).grasa;
+      expect(objetivoDeCuerpo(h, q(1, 0)).grasa).toBeCloseTo(base + 3, 6);
+      expect(objetivoDeCuerpo(h, q(-2, 0)).grasa).toBeCloseTo(base - 6, 6);
+      expect(objetivoDeCuerpo(h, q(9, 0)).grasa).toBeCloseTo(base + 7.5, 6);
+    });
+
+    it('musculatura: más músculo por minuto de fuerza y un tope 5 × z más alto', () => {
+      const base = objetivoDeCuerpo(h, q(0, 0)).musculo;
+      expect(objetivoDeCuerpo(h, q(0, 2)).musculo).toBeCloseTo(12 + 300 * 0.1 * 1.3, 6);
+      expect(objetivoDeCuerpo(h, q(0, -2)).musculo).toBeLessThan(base);
+      const mucho = { fuerza: 5000, activo: 0 };
+      const joven = (z: number) => objetivoDeCuerpo(mucho, { edad: 12, madurez: 0, sexo: 'm', musculatura: z }).musculo;
+      expect(joven(2) - joven(0)).toBeCloseTo(10, 6);
+    });
+
+    it('sin z (undefined) vale 0', () => {
+      expect(objetivoDeCuerpo(h, { edad: 30, madurez: 0, sexo: 'm' })).toEqual(objetivoDeCuerpo(h, q(0, 0)));
+    });
+  });
+});

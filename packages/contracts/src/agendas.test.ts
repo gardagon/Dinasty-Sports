@@ -162,4 +162,109 @@ describe('agendas de las personas', () => {
     expect(u(otro, 8)).toMatchObject({ sitio: null, ocupado: true });
     expect(u(otro, 8).atendiendo).toBeUndefined();
   });
+
+  describe('niños de otros colegios (17/11)', () => {
+    const nino: TipoAsignado[] = [{ tipo: 'vecino', escolar: true }];
+    const adulto: TipoAsignado[] = [{ tipo: 'vecino' }];
+    const u = (tipos: TipoAsignado[], dia: number, hora: number, min = 0, quien = 'x') => ubicacionEn(construirAgenda(tipos, datos), en(dia, hora, min), quien);
+
+    it('un día lectivo, de 7:30 a 14:30 están en su colegio (fuera del mapa): nunca en el parque a las 11:00', () => {
+      for (let i = 0; i < 300; i++) {
+        for (const [hora, min] of [[9, 0], [10, 0], [11, 0], [12, 30], [13, 59], [14, 29]] as const) expect(u(nino, 0, hora, min, `n${i}`).sitio, `n${i} a las ${hora}:${min}`).toBeNull();
+      }
+      // El mismo niño sin horario escolar (la agenda de siempre de un vecino) sí aparece por el barrio a esas horas.
+      expect(Array.from({ length: 300 }, (_, i) => u(adulto, 0, 11, 0, `n${i}`).sitio).filter((x) => x !== null).length).toBeGreaterThan(50);
+    });
+
+    it('sin colegio (sábado) y por la tarde sigue la vida de un vecino', () => {
+      expect(Array.from({ length: 300 }, (_, i) => u(nino, 5, 11, 0, `n${i}`).sitio).filter((x) => x === 'parque').length).toBeGreaterThan(50);
+      expect(Array.from({ length: 300 }, (_, i) => u(nino, 0, 17, 0, `n${i}`).sitio).filter((x) => x === 'parque').length).toBeGreaterThan(50);
+    });
+  });
+
+  describe('quien tiene una actividad poco después de las clases no se va a casa (17/11)', () => {
+    // Un compañero del equipo del colegio (sesión de 15:00 a 17:00 los lunes y miércoles, en el colegio).
+    const jugador: TipoAsignado[] = [{ tipo: 'alumno' }, { tipo: 'club', club: 'colegio' }];
+    const alumno: TipoAsignado[] = [{ tipo: 'alumno' }];
+    const u = (tipos: TipoAsignado[], dia: number, hora: number, min = 0, quien = 'x') => ubicacionEn(construirAgenda(tipos, datos), en(dia, hora, min), quien);
+
+    it('sigue en el colegio entre las 14:00 y las 14:50 y 10 minutos antes de empezar está en su sitio', () => {
+      for (let i = 0; i < 100; i++) {
+        for (const [hora, min] of [[14, 0], [14, 20], [14, 31], [14, 49]] as const) expect(['colegio', 'patio'], `j${i} ${hora}:${min}`).toContain(u(jugador, 0, hora, min, `j${i}`).sitio);
+        expect(u(jugador, 0, 14, 50, `j${i}`).sitio).toBe('colegio'); // la sede del club
+        expect(u(jugador, 0, 14, 50, `j${i}`).tipo).toBe('club');
+      }
+      // El mismo alumno sin esa actividad se va como los demás: a las 14:31 ya no queda nadie.
+      for (let i = 0; i < 100; i++) expect(u(alumno, 0, 14, 31, `j${i}`).sitio).toBeNull();
+      // Y quien se queda se queda donde estaba (el mismo sitio de las 14:00 a las 14:50).
+      for (let i = 0; i < 50; i++) expect(u(jugador, 0, 14, 40, `j${i}`).sitio).toBe(u(jugador, 0, 14, 5, `j${i}`).sitio);
+    });
+
+    it('solo los días que tiene la actividad y que hay colegio', () => {
+      for (let i = 0; i < 50; i++) expect(u(jugador, 1, 14, 40, `j${i}`).sitio).toBeNull(); // martes: no hay sesión
+      // El sábado, en el colegio no hay nadie a esa hora.
+      expect(u(jugador, 5, 14, 40).sitio).toBeNull();
+    });
+
+    it('un hermano en edad escolar con su club hace lo mismo', () => {
+      const h: TipoAsignado[] = [{ tipo: 'hermano', escolar: true }, { tipo: 'club', club: 'colegio' }];
+      expect(['colegio', 'patio']).toContain(u(h, 0, 14, 40).sitio);
+    });
+  });
+
+  describe('padres que recogen a su hijo (17/11)', () => {
+    const padre: TipoAsignado[] = [{ tipo: 'vecino', recoge: true }];
+    const u = (dia: number, hora: number, min: number, quien: string) => ubicacionEn(construirAgenda(padre, datos), en(dia, hora, min), quien).sitio;
+    const personas = Array.from({ length: 400 }, (_, i) => `p${i}`);
+
+    /** Los que van ese día (a las 14:00 están en la entrada); los demás no pisan la entrada en toda la franja. */
+    const van = (dia: number) => personas.filter((p) => u(dia, 14, 0, p) === 'colegio');
+
+    it('llegan a la entrada entre las 13:45 y las 14:00 y se van entre las 14:05 y las 14:30 (los días que van)', () => {
+      const dentro = van(0);
+      for (const p of dentro) {
+        expect(u(0, 14, 2, p), p).toBe('colegio');
+        expect(u(0, 14, 30, p), p).not.toBe('colegio');
+        // Antes de las 13:45 no están; una vez que llegan se quedan hasta que se van (sin entrar y salir).
+        expect(u(0, 13, 44, p) === 'colegio', p).toBe(false);
+        let aqui0 = false;
+        let salio = false;
+        for (let m = 13 * 60 + 45; m < 14 * 60 + 30; m += 5) {
+          const aqui = u(0, 0, m, p) === 'colegio';
+          if (aqui) expect(salio, `${p} vuelve a las ${m}`).toBe(false);
+          if (aqui0 && !aqui) salio = true;
+          if (aqui) aqui0 = true;
+        }
+      }
+      // Quien no va ese día no aparece en ningún momento de la franja.
+      for (const p of personas.filter((x) => !dentro.includes(x))) for (let m = 13 * 60 + 40; m < 14 * 60 + 35; m += 5) expect(u(0, 0, m, p), `${p} a las ${m}`).not.toBe('colegio');
+      const en = (hora: number, min: number) => dentro.filter((p) => u(0, hora, min, p) === 'colegio').length / dentro.length;
+      expect(en(13, 45)).toBeGreaterThan(0.2); // un tercio ya ha llegado
+      expect(en(13, 45)).toBeLessThan(0.5);
+      expect(en(13, 55)).toBe(1);
+      expect(en(14, 5)).toBeGreaterThan(0.7);
+      expect(en(14, 5)).toBeLessThan(0.95);
+      expect(en(14, 25)).toBeGreaterThan(0.05);
+      expect(en(14, 25)).toBeLessThan(0.3);
+    });
+
+    it('van el 80 % de los días de clase (sorteo estable por persona y día) y no siempre los mismos', () => {
+      const dias = Array.from({ length: 20 }, (_, i) => i).filter((d) => en(d, 14).isSchoolDay);
+      expect(dias.length).toBeGreaterThan(10);
+      let total = 0;
+      for (const d of dias) total += van(d).length;
+      const proporcion = total / (dias.length * personas.length);
+      expect(proporcion).toBeGreaterThan(0.77);
+      expect(proporcion).toBeLessThan(0.83);
+      // Estable: el mismo día da el mismo resultado; y cada persona falta algún día (no son siempre los mismos).
+      expect(van(dias[0])).toEqual(van(dias[0]));
+      const siempre = personas.filter((p) => dias.every((d) => u(d, 14, 0, p) === 'colegio'));
+      expect(siempre.length / personas.length).toBeLessThan(0.1);
+      expect(personas.filter((p) => dias.every((d) => u(d, 14, 0, p) !== 'colegio')).length).toBe(0);
+    });
+
+    it('solo los días de colegio', () => {
+      for (const p of personas.slice(0, 50)) expect(u(5, 14, 0, p)).not.toBe('colegio');
+    });
+  });
 });

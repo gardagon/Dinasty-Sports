@@ -66,6 +66,18 @@ export function validarPais(x: unknown): string[] {
     if (esObjeto(c) && c.colegiosConClub !== undefined && (!Number.isInteger(c.colegiosConClub) || (c.colegiosConClub as number) < 0)) p.push('«ciudad.colegiosConClub» tiene que ser un entero de 0 o más');
     if (esObjeto(c) && c.personasPorClub !== undefined && (typeof c.personasPorClub !== 'number' || c.personasPorClub < 50)) p.push('«ciudad.personasPorClub» tiene que ser un número de 50 o más');
   }
+  // Parejas (opcional; también dentro de la ciudad) y demografía de la ciudad
+  const parejasMal = (q: unknown, donde: string): void => {
+    if (!esObjeto(q)) { p.push(`«${donde}» no es un objeto`); return; }
+    for (const k of ['ambosExtranjeros', 'mixtas', 'mismoOrigen']) if (typeof q[k] !== 'number' || (q[k] as number) < 0 || (q[k] as number) > 1) p.push(`«${donde}.${k}» tiene que ser un número entre 0 y 1`);
+    if (typeof q.ambosExtranjeros === 'number' && typeof q.mixtas === 'number' && q.ambosExtranjeros + q.mixtas > 1) p.push(`«${donde}»: ambosExtranjeros + mixtas no puede pasar de 1`);
+  };
+  if (x.parejas !== undefined) parejasMal(x.parejas, 'parejas');
+  if (esObjeto(x.ciudad) && x.ciudad.parejas !== undefined) parejasMal(x.ciudad.parejas, 'ciudad.parejas');
+  const nombreLocalMal = (q: unknown, donde: string): void => { if (typeof q !== 'number' || q < 0 || q > 1) p.push(`«${donde}» tiene que ser un número entre 0 y 1`); };
+  if (x.nombreLocalDeLosNacidosAqui !== undefined) nombreLocalMal(x.nombreLocalDeLosNacidosAqui, 'nombreLocalDeLosNacidosAqui');
+  if (esObjeto(x.ciudad) && x.ciudad.nombreLocalDeLosNacidosAqui !== undefined) nombreLocalMal(x.ciudad.nombreLocalDeLosNacidosAqui, 'ciudad.nombreLocalDeLosNacidosAqui');
+  if (esObjeto(x.ciudad) && x.ciudad.demografia !== undefined && (!esObjeto(x.ciudad.demografia) || !Object.keys(x.ciudad.demografia).length || Object.values(x.ciudad.demografia).some((v) => typeof v !== 'number' || v < 0))) p.push('«ciudad.demografia» tiene que ser id de origen → peso positivo');
   // Calendario
   const cal = x.calendario;
   if (!esObjeto(cal)) p.push('Falta el «calendario»');

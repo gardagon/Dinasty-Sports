@@ -62,6 +62,8 @@ export interface DeporteView {
   habilidades: StatId[];
   temporada: {
     etiqueta: string;
+    /** En qué tramo de la temporada está el deporte y cuándo empieza el siguiente (`situacionDeTemporada`): «Pretemporada. La liga empieza el sábado 13 de octubre.» */
+    situacion?: string;
     /** Cuándo es la próxima prueba (texto para el jugador). */
     proxima: string;
     pruebas: PruebaDeTemporada[];
