@@ -34,16 +34,13 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
 1. **Unir a la principal:** decidido esperar a cerrarlo todo (DECISIONES, 17/11). Unir publica en GitHub Pages; la partida guardada de la versión publicada (v17) no carga en la nueva (v21) y se descarta con un aviso.
-2. **Reparto de equipos 2, lo que queda** (`docs/relevo/reparto-equipos-2.md`):
-   - a) **Convocatoria del personaje en un benjamín de 17–18:** sigue sin ser convocado (es de los que menos valen; se convoca a 16). Opciones: dejarlo; convocar a toda la plantilla en benjamín (y quizá alevín); minutos garantizados al que lleva pocas semanas. **Recomendación:** convocar a toda la plantilla en las categorías pequeñas, como piden muchas federaciones en el fútbol base.
-   - b) **Página del equipo:** ¿se ven los nombres de los que suben de categoría y el mínimo de 14? **Recomendación:** sí, porque un niño sabe quién es mayor en su equipo y el entrenador dice cuántos hacen falta.
-   - c) **Posible fallo:** en la captura de la plantilla (`docs/relevo/reparto-equipos-2/pestana-despues.png`) casi todos los puestos son del lado derecho (carrileros, laterales, interiores y delanteros derechos; un solo lateral izquierdo). Hay que investigarlo.
-   - d) Que el personaje salga del club cuando su equipo no reúne niños es lo que dijo el usuario («tiene que buscarse equipo, como el resto»); se le cuenta.
+2. ~~**Reparto de equipos 2, lo que queda**~~ Respondido el 21/11 (DECISIONES, «Rotación en el fútbol de colegio…») y encargado a `claude/rotacion-y-puestos`.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXS22qpRwXGa4JE7VBv` | `claude/rotacion-y-puestos` | Rotación en los equipos de colegio de benjamín y alevín; «El curso que viene» solo al acabar la temporada; ¿puestos de la plantilla sesgados a la derecha? |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 

@@ -5,6 +5,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Rotación en el fútbol de colegio, «El curso que viene» y puestos
+
+- **Convocatorias:** siguen igual, pero en los equipos de colegio de benjamín y alevín hay rotación para que todos jueguen algo a lo largo de la liga. Igual para el personaje y los PNJ.
+- **Página del equipo:** la sección «El curso que viene» enseña los nombres de los que cambian de categoría y que hacen falta 14 niños por equipo, pero solo aparece cuando termina la temporada, para no ocupar sitio durante el curso.
+- **Puestos de la plantilla:** si lo que se enseña es el mejor puesto de cada niño y en los partidos juegan también en otros por falta de jugadores, está bien así. Si el reparto está sesgado (casi todos del lado derecho en una captura), es un fallo y se arregla.
+
 ## 20/11/2026 — Reparto de equipos, segunda vuelta (respuestas del usuario)
 
 - **Los equipos del colegio siguen las mismas normas que los de cualquier club:** con un solo equipo, niños de los dos años mezclados; con dos, el A con los de segundo año (y algún primer año muy bueno que sería titular en el A) y el B con los de primer año; con tres, A y B igual y el C con niños de los dos años. El personaje entra en el equipo que le toca según esas normas.
