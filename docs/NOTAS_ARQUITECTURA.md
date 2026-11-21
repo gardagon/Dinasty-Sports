@@ -35,17 +35,14 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 1. ~~**Unir a la principal**~~ **Unida el 21/11** (gardagon/Dinasty-Sports#127, integración continua en verde): publicada en GitHub Pages. La rama de trabajo sigue siendo `claude/youthful-clarke-vs0kye`, al día con `main`.
 2. ~~**Reparto de equipos 2, lo que queda**~~ Respondido el 21/11 (DECISIONES, «Rotación en el fútbol de colegio…») y encargado a `claude/rotacion-y-puestos`.
-2. **Rendimiento con la ciudad grande y el fútbol** (`docs/relevo/revision-rendimiento.md` §6 y §7). Crear ~30 s; cruce de semana 0,4–0,9 s (unas 4 veces más en el móvil); guardar bloquea la página 0,5 s (1,8 s en el móvil). **Recomendación, por orden:**
-   - (1) guardar fuera del hilo de la página: barato y no cambia la partida;
-   - (2) medir los sucesos de PNJ con la ciudad grande y crear la partida en un móvil real;
-   - (3) aceptar que la pasada semanal y la creación del fútbol se hagan por equipo o en bloques para los niños que no están activos (cambia los números de los PNJ, pero no las reglas);
-   - (4) vigilar en `npm test` un tope de estado (3.300 KB en la ciudad de prueba y 18.000 KB en la grande) y aceptar el límite relativo de 0,22 del chequeo.
+2. ~~**Rendimiento con la ciudad grande y el fútbol**~~ Respondido el 21/11 (DECISIONES, «Rendimiento: guardar sin congelar…») y encargado a `claude/guardar-sin-congelar` y `claude/futbol-mas-barato`.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| — | — | Ninguna |
+| `session_01M4vXXNStiDzD4AGKEshkud` | `claude/guardar-sin-congelar` | Guardar (y abrir) sin congelar la página; aviso del peso del guardado |
+| `session_01M4vXXPQUdYEGsR1Fs7XmG5` | `claude/futbol-mas-barato` | Pasada semanal y creación del fútbol más baratas; equipos que se forman desde el 2.º día de clase; `rngEstable` más barato |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 

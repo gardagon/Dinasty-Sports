@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 21/11/2026 — Rendimiento: guardar sin congelar, fútbol más barato y equipos que se forman al empezar el curso
+
+- **Guardar fuera del hilo de la página:** aprobado.
+- **Medidas del usuario:** crear la partida tarda menos de 30 s en su PC y unos 3 s en su móvil (no hace falta medirlo más).
+- **Pasada semanal y creación del fútbol más baratas** (por equipo, o en bloques para los niños no activos): aprobado. Las reglas no cambian; apenas se debería notar diferencia, porque las subidas por entrenar son muy pequeñas.
+- **Los equipos se forman al empezar el curso:** no tiene sentido que el primer día de clase ya haya niños de 7–8 años en el equipo de fútbol. Los niños se apuntan a partir del segundo día, o al menos aparecen apuntados así. Los equipos no tienen por qué montarse al crear la partida: pueden irse formando en las primeras semanas.
+- **Peso de la partida guardada:** se quiere saber, pero 16–18 MB no es peligroso (se guarda en IndexedDB). Se vigila con un aviso, no con un fallo.
+
 ## 21/11/2026 — Revisión de rendimiento (rama `claude/revision-rendimiento`)
 
 Informe: `docs/relevo/revision-rendimiento.md`.
