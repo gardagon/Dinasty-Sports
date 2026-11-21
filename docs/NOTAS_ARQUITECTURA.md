@@ -41,6 +41,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
    - a) Puestos: A (comparar con los de su edad y consigo mismo), B (menos azar en el consejo, ±0,5), C (renombrar LCR/RCR a «Interior» y LM/RM a «Medio de banda»). **Recomendación:** A, B y C ya. D (portero con pase y anticipación), E (peso al balón parado), F y G, tras medir.
    - b) Catálogo de 22 entrenamientos (portería 5, físico 5, mental 4, técnico 8), con cifras provisionales que hay que medir con `sim:futbol`. ¿«Con amigos» solo en verano o también con quedadas? ¿El campamento repartido por grupos?
    - c) Pistas, en este orden: el porqué del consejo, «Preguntar por un puesto», el entrenador que recomienda entrenamientos.
+5. **Rasgos de la cara según el origen** (pregunta del usuario, 21/11, viendo a Dong Gao). Hoy los 12 rasgos de la cara de los adultos del mundo se sortean sin tendencias por origen (`rostroAlAzar`, `ANEXO_CUERPO.md`), así que alguien de Asia oriental tiene ojos al azar. El dibujo solo varía la altura y la inclinación del ojo (`ojosForma`); no hay pliegue del párpado. **Propuesta:** (1) tendencias por origen en los rasgos de la cara (ojos, nariz, pómulos, boca), como ya las hay en el color del pelo, los ojos y la piel; (2) en el dibujo, una variante de ojo con pliegue del párpado (epicanto, párpado sin pliegue), con su cuadrícula de comprobación. Lo primero, Sonnet; lo segundo es calidad visual (Sonnet con el anexo de retratos, o Fable si el usuario lo autoriza).
 
 ## 3 bis. Sesiones en curso
 
