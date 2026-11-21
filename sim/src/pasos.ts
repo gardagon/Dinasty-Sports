@@ -78,6 +78,8 @@ export function opcionesDelBot(game: Game, completa = false): OpcionesDelBot {
   // Los desplazamientos y las presentaciones (hasta 40 acciones por lugar) no se les ofrecen: ni siquiera se evalúan.
   const aparte: ActionDef[] = [];
   const omitir = (d: ActionDef) => {
+    // Los deberes (30 minutos) son para esperar al entrenamiento: los bots estudian en sesiones largas y no los piden.
+    if (!completa && d.id.startsWith('estudios.deberes_')) return true;
     if (d.id.startsWith('lugares.') || (d.id.startsWith('relaciones.presentarse.') && !PRESENTACIONES_DEL_REPARTO.test(d.id))) return true;
     if (completa || !esDeRelacion(d.id) || SIEMPRE_OFRECIDAS.test(d.id) || PRESENTACIONES_DEL_REPARTO.test(d.id)) return false;
     aparte.push(d);

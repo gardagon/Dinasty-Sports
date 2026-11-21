@@ -44,6 +44,35 @@ export interface ActionDef {
    * acción con ese desplegable (un deporte instalado, no dos), se dibuja como un botón normal.
    */
   desplegable?: DesplegableDeAcciones;
+  /**
+   * ¿Se puede cortar si pisa una obligación? (clase, entrenamiento, partido, plan acordado: lo que declaran los módulos con `GameModule.obligaciones`).
+   * Si faltan menos minutos para la próxima obligación que lo que dura la acción, dura solo los que faltan y todo lo que sube o gasta se
+   * reduce en proporción (el motor lo hace: `corte` en la previsión). Sí: charlar, estudiar, entrenar por libre, ocio. No: viajes, partidos, exámenes,
+   * pruebas, dormir y lo que no tiene sentido a medias (una tutoría, tener un detalle, aceptar plaza). Por defecto, no.
+   */
+  cortable?: boolean;
+}
+
+/**
+ * Algo a lo que hay que llegar a tiempo (clase, sesión del club, convocatoria de un partido, plan acordado). Lo declara cada módulo que lleva
+ * obligaciones (`GameModule.obligaciones`) y el motor solo sabe que existen: una acción `cortable` no se pasa de `hasta`.
+ */
+export interface Obligacion {
+  /** Minuto absoluto de la partida hasta el que se puede dedicar el tiempo a otra cosa: el inicio de la obligación menos lo que cuesta llegar hasta ella desde donde se está. */
+  hasta: number;
+  /** Cómo se lo cuenta el jugador, completando «(…)» junto a la duración: «entras a clase a las 9:00». */
+  texto: string;
+}
+
+/** Cuando una acción se ha cortado porque pisaba una obligación (lo que ve el jugador antes de hacerla). */
+export interface CorteDeAccion {
+  /** Lo que habría durado entera. */
+  deMinutos: number;
+  /** Lo que durará: los minutos que faltan. */
+  minutos: number;
+  /** Qué parte del efecto se aplica (minutos / deMinutos). */
+  parte: number;
+  texto: string;
 }
 
 /** Cómo se agrupan varias acciones en un solo botón con desplegable (dato; la interfaz no sabe de qué trata). */

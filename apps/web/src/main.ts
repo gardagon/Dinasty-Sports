@@ -412,6 +412,8 @@ const fmtDur = (m: number) => {
   const r = m % 60;
   return h ? (r ? `${h} h ${r} min` : `${h} h`) : `${r} min`;
 };
+/** La duración de una acción; si pisaba una obligación y se ha cortado, con el motivo: «2 min (entras a clase a las 9:00)». */
+const duracionDe = (minutos: number, o?: { corte?: { texto: string } }): string => `${fmtDur(minutos)}${o?.corte ? ` (${o.corte.texto})` : ''}`;
 const statName = (id: string) => game?.registry.stats.get(id)?.def.name ?? id;
 const pct = (v: number) => `${Math.round(v * 100)} %`;
 
@@ -771,7 +773,7 @@ function actionButton(o: ActionOption, nombre: string = o.name): string {
   }
   return `<button class="action" data-do="${esc(o.id)}" ${o.available ? '' : 'disabled'}>
     <span class="action-name">${esc(nombre)}</span>
-    <span class="action-time">${fmtDur(o.duration)}</span>
+    <span class="action-time">${esc(duracionDe(o.duration, o))}</span>
     ${why.length ? `<span class="action-why">${why.join(' · ')}</span>` : ''}
   </button>`;
 }
@@ -855,7 +857,7 @@ function viewActions(g: Game): string {
   }
   const hidden = opts.filter((o) => !o.available).length;
   const html = [...groups]
-    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${agruparEnDesplegables(list, opts).map((e) => ('opcion' in e ? actionButton(e.opcion) : viewDesplegable(e.clave, e.opciones, esc, actionButton, fmtDur))).join('')}</div>`)
+    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${agruparEnDesplegables(list, opts).map((e) => ('opcion' in e ? actionButton(e.opcion) : viewDesplegable(e.clave, e.opciones, esc, actionButton, duracionDe))).join('')}</div>`)
     .join('');
   return `<section class="sheet">
     ${html || '<p class="note">Ahora mismo no puedes hacer nada. Pasa el rato para que avance el tiempo.</p>'}

@@ -35,6 +35,7 @@ import {
   type PresentacionData,
   NIVEL_AGENDA,
   MINUTOS_ANTES_DE_CLASE,
+  minutosParaLlegar,
   claseQueVaAEmpezar,
   LLEGADA_AL_COLEGIO,
   JORNADA_ESCOLAR,
@@ -312,6 +313,8 @@ function interaccion(
     tags: cfg.tags,
     group: grupoDe(n),
     duration: cfg.charla ? MINUTOS_DE_CHARLA : cfg.duration,
+    // Quedar, charlar, ayudar, hacer planes y jugar se pueden cortar si pisan una obligación; un detalle, un plan acordado o una discusión, no.
+    cortable: ['quedar', 'charlar', 'ayudar', 'planes', 'jugar'].includes(cfg.suffix),
     available: disponible(n, cfg.horario, cfg.extra, cfg.sinPresencia, cfg.charla),
     delta: escalar(cfg.delta ?? (cfg.tags.includes(TAGS.ocio) ? { [GEN.energia]: -6, [GEN.estres]: -6 } : { [GEN.energia]: -3 }), cfg.charla ? PARTE_DE_CHARLA : 1),
     train: cfg.charla ? cfg.train.map((t) => ({ ...t, amount: t.amount * PARTE_DE_CHARLA })) : cfg.train,
@@ -999,6 +1002,15 @@ export const relaciones = defineModule<RelacionesState>({
 
   initState: () => ({ vinculos: {} }),
 
+  // Un plan acordado para hoy que aún no ha empezado es una obligación: las acciones cortables no lo pisan (se resta el viaje al sitio acordado).
+  obligaciones: (ctx) => {
+    const t = ctx.time;
+    const plan = (ctx.state<RelacionesState>().planes ?? []).filter((p) => !p.resuelto && p.dia === t.day && p.minuto > t.minuteOfDay).sort((a, b) => a.minuto - b.minuto)[0];
+    if (!plan) return [];
+    const viaje = minutosParaLlegar(ctx, plan.lugar);
+    return [{ hasta: t.minute - t.minuteOfDay + plan.minuto - viaje, texto: viaje ? `para llegar al plan de las ${hhmm(plan.minuto)}` : `empieza tu plan a las ${hhmm(plan.minuto)}` }];
+  },
+
   actions: [
     // Los 10 minutos antes de clase se pueden gastar hablando con alguien de los que hay por allí (al azar: ves con quién te toca).
     // Si ya has entrado a clase no hay tiempo; es un extra de relación.
@@ -1044,6 +1056,7 @@ export const relaciones = defineModule<RelacionesState>({
       tags: [TAGS.social, TAGS.ocio, TAGS.actividadLigera],
       group: 'Tiempo libre',
       duration: MINUTOS_DE_CHARLA,
+      cortable: true,
       available: (ctx) => {
         const h = HORARIO_DE_JUEGO(ctx);
         if (h !== true) return h;
