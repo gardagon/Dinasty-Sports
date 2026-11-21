@@ -18,7 +18,7 @@ La fórmula y las 16 tablas están en `docs/ANEXO_PUESTOS.md`. En una frase: el 
 
 ### 1.1 El caso del usuario
 
-No tengo su partida. Dos formas de usarla: en el juego, «Exportar» y `npm run puestos -- guardado copia.json`; o mirar su ficha de habilidades y pasarlas con `--hab`.
+(Lo primero que escribí, sin su partida; el caso real está en 1.1 bis.) Dos formas de usarla: en el juego, «Exportar» y `npm run puestos -- guardado copia.json`; o mirar su ficha de habilidades y pasarlas con `--hab`.
 
 Lo que sí he podido hacer es **reproducir un niño parecido** (portero primero y carrilero/lateral después). Semilla 3 de un personaje nuevo, con unas pocas habilidades subidas (reflejos 16, blocaje 13, resistencia 16, juego colectivo 14, pase 13, anticipación 15, entrada 12):
 
@@ -43,6 +43,32 @@ Con la semilla 3 sin tocar sale: portero 11,8; extremo derecho 10,6; lateral der
 - *Portero líbero*: en FM pesan pase, anticipación, concentración, serenidad, agilidad. Aquí el portero **no mira** pase, control, sangre fría ni anticipación. Un niño con buena cabeza y pocos reflejos nunca sale «portero líbero» aquí; FM sí lo ve. No hay roles todavía.
 - *Mediocentro defensivo*: el Pivote (CDM) coincide casi del todo con los atributos de FM (entrada, marcaje, posicionamiento, anticipación, pase, trabajo en equipo, aguante, decisiones). Faltan fuerza y concentración. En la reproducción sale 5.º (11,6), a 1,7 del portero: el juego «lo ve», pero no lo nombra porque solo da tres puestos y suma azar.
 - *Carrilero*: **el nombre engaña.** En FM el carrilero (wing-back) es un lateral que sube: centros, regate, aguante, velocidad. Aquí el equivalente es el **Lateral** (LB/RB). Los `LCR/RCR` («Carrilero izquierdo/derecho») son, por sus pesos, **mediocentros de banda** (box-to-box). Y los `LM/RM` se llaman «Interior» pero son medios de banda con centros y arrancada. En fútbol español, «interior» es el medio centro que juega por dentro a cada lado. Es probable que el usuario lea «carrilero» como FM y se lleve una impresión equivocada.
+
+### 1.1 bis. Con las habilidades reales del usuario (pasadas por arquitectura el 21/11)
+
+Habilidades del personaje: pase 12, control 13, regate 11, definición 11, técnica 14, centros 7, cabeza 8, marcaje 13, entrada 8, disparo lejano 6, falta 10, penaltis 11, córners 15, saque de banda 6, visión 9, posicionamiento 13, desmarque 5, anticipación 8, decisiones 8, sangre fría 14, arrancada 7, salto 7, reflejos 13, mano a mano 13, blocaje 12, despeje 6, alcance aéreo 14, dominio del área 5, juego colectivo 13, conocimiento 0.
+
+**El valor en el puesto usa tres capacidades que no tengo:** velocidad, resistencia y fuerza (`gen.*`). Supuesto: las tres iguales, en 6, 10 y 14, pierna derecha, conocimiento 0:
+
+| Capacidades | Ranking de los puestos |
+|---|---|
+| 6 | Portero 10,2 · Mediocentro 9,9 · Mediapunta 9,5 · Carrilero der. 9,3 · Delantero der. 9,2 · **Pivote 9,1** · … Lateral izq. 8,3 · Extremo izq. 8,2 |
+| 10 | Mediocentro 10,3 · **Portero 10,2** · **Carrilero der. 10,1** · Lateral der. 9,7 · Carrilero izq. 9,6 · … **Pivote 9,4** (9.º) |
+| 14 | **Carrilero der. 11,0** · Mediocentro 10,6 · Lateral der. 10,6 · Carrilero izq. 10,5 · **Portero 10,2** · … Pivote 9,8 (10.º) |
+
+Con capacidades normales (10) el portero y el carrilero derecho salen en el segundo y tercer puesto, a 0,1–0,2 del primero: coincide con lo que dijo el profesor (portero o carrilero). El portero **no depende de las capacidades** (10,2 siempre); el carrilero, sí (resistencia y velocidad pesan un 21 %). Por eso, si el usuario tiene buena resistencia, el carrilero pasa a primero.
+
+**Por qué portero:** reflejos 13, mano a mano 13, blocaje 12 y alcance aéreo 14 (el 63 % del peso del portero) son altos para sus demás habilidades; los malos (dominio del área 5, despeje 6) pesan solo un 22 %. **Por qué carrilero:** pase 12, control 13, juego colectivo 13 y posicionamiento 13 son sus habilidades más altas de «campo» y los pesos del carrilero cargan ahí (el 50 %); lo que le falta (entrada 8, arrancada 7) pesa menos.
+
+**Por qué el pivote queda de 6.º a 10.º:** marcaje 13 y posicionamiento 13 son buenos, pero entrada 8, anticipación 8, visión 9 y decisiones 8 suman el 45 % del pivote y lo hunden. FM lo ve de otra forma porque pondera pocas claves del rol (marcaje, posicionamiento, trabajo en equipo, sangre fría) y no penaliza tanto lo demás; aquí un 45 % del pivote cuelga de mentales flojas.
+
+**Diferencia con FM, en este caso:**
+1. **Portero líbero.** Lo que FM premia (pase 12, control 13, técnica 14, sangre fría 14: sus puntos fuertes de «jugar con los pies» y calma) **aquí no pesa en el portero** (pase, control, técnica y sangre fría: 0 %). El portero de este juego solo ve reflejos, blocaje, mano a mano, alcance, dominio, despeje, posicionamiento, decisiones y salto. Es el caso más claro de lo que propone D: sin eso, este niño es un portero «normal» aquí y un líbero en FM. El rol líbero no existe todavía.
+2. **Mediocentro defensivo.** FM suma su marcaje 13, posicionamiento 13, juego colectivo 13, sangre fría 14, pase 12; aquí el pivote pide también entrada, anticipación, visión y decisiones (todas por debajo de 9) y no mira la sangre fría.
+3. **Carrilero.** Aquí es medio de banda (resistencia, pase, juego colectivo): sale por pase, control y juego colectivo. En FM el carrilero necesita centros 7, arrancada 7 y velocidad: **no lo daría**. Ahí el profesor y FM no hablan de lo mismo (ver nombres).
+4. **Conocimiento 0:** baja ×0,85 sus mentales (visión, decisiones, anticipación, posicionamiento, juego colectivo), que cuentan en medio y pivote, y no toca la portería (×0,955) ni lo físico: **empuja al portero por encima del pivote**. Con más conocimiento el pivote subiría (no lo he medido).
+
+Saque de esquina 15 y penaltis 11 no cuentan en ningún puesto: su mejor habilidad no vale nada para el consejo (hallazgo 1.2.4).
 
 ### 1.2 Hallazgos: pesos y reglas que parecen raros
 
@@ -233,7 +259,7 @@ La elección sale de la misma regla: `faltas` del puesto que el niño juega (o p
 
 ## Limitaciones
 
-- No he tenido la partida del usuario: el caso es una reproducción. `npm run puestos -- guardado copia.json` lo calcula exacto.
+- Faltan las capacidades del usuario (velocidad, resistencia, fuerza): en 1.1 bis se prueba con 6, 10 y 14. `npm run puestos -- guardado copia.json` lo calcula exacto con una copia «Exportar».
 - Los atributos de FM y sus nombres en español están escritos de memoria, sin contrastar con el juego ni con una fuente; conviene que el usuario compruebe la tabla de la sección 1.1 y del anexo (§5).
 - Las cifras del catálogo son provisionales; el balance real (curvas de crecimiento) no está medido.
 - Se miraron unas 30 semillas (`npm run puestos -- buscar 1 37`, ~30 s por semilla); ninguna daba a la vez portero y carrilero entre los tres primeros, por eso el caso es una reproducción con habilidades ajustadas.
