@@ -37,7 +37,7 @@ La tabla final de cifras y las reglas están en **`docs/ANEXO_DEPORTE.md`** («L
 **Lo que hay que vigilar (decisión de la arquitectura):** como los PNJ entrenan con las mismas reglas, la sesión de club de los niños de los equipos más que se dobla. **Medido** (ciudad de prueba, semilla 31, nivel medio de los futbolistas por edad, antes → ahora): al crear, 8 años 11,3 → 11,3; 10 años 14,3 → 14,5; 12 años 16,6 → 16,9; 14 años 19,9 → 20,7; 16 años 21,4 → 22,1; 18 años 25,4 → 26,7; y tras dos años la diferencia sigue en ≤ 1,3 puntos (≈ 3–5 %). **Es poco: el tope por edad lo frena**, y no he recalibrado nada más. Lo que sí cambia es el reparto fino: el test del reparto de verano (`tests/equipo-sin-ninos.test.ts`) esperaba el equipo B para el personaje de 8 años y ahora le toca el C con esa semilla; lo he aflojado a «no el A». Si se quiere que los niños suban exactamente como antes, se baja la escala del club (no la del libre) y el club deja de estar por encima del libre: una constante más y una decisión de diseño.
 
 - `npm run sim:rapida`: **idéntico al de antes** (el atletismo no cambia; los dos ⚠️ — rendimiento y «el esfuerzo hace progresar» — ya estaban).
-- `npm run sim:vida`: RESULTADO_VIDA
+- `npm run sim:vida`: **idéntico al de antes** fila a fila (70 años; el bot «Perfecto» juega atletismo, que no cambia).
 - `npm run huella -- 60`: **los 14 bots (atletismo) idénticos** (mismos hashes); cambian solo las dos líneas `futbol` (el mundo con fútbol, también al crear la partida: la historia de los niños usa la rutina del club), a propósito.
 
 ## Bots
