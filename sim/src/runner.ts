@@ -94,6 +94,8 @@ function extras(game: Game): Record<string, number | null> {
 export interface Juego {
   modulos?: readonly GameModule<any>[];
   deportes?: readonly string[];
+  /** Id del país (y ciudad) de la partida; por defecto el de `nuevaPartida`. Hay que registrarlo antes (`registrarPais`). */
+  pais?: string;
 }
 
 /**
@@ -128,7 +130,7 @@ function cuentaDeSucesos(game: Game): Record<string, number> {
 }
 
 export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}): RunResult {
-  const game = nuevaPartida({ seed, playerName: bot.name, ...(juego.deportes ? { deportes: juego.deportes } : {}) }, juego.modulos);
+  const game = nuevaPartida({ seed, playerName: bot.name, ...(juego.deportes ? { deportes: juego.deportes } : {}), ...(juego.pais ? { pais: juego.pais } : {}) }, juego.modulos);
   const rng = seededRng(seed * 31 + 7);
   const areas = areasFor(game);
   const mem: BotMemory = { day: -1, hoy: {}, total: {} };
