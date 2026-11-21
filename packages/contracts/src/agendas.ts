@@ -193,9 +193,10 @@ export const RECOGIDA_DE_NINOS = { proporcion: 0.15, llegada: 15, paso: 5, edadM
  * - `proporcion`: parte de la gente que tenía cerca (la que se ve, `aforoCercano`) que tiene que ir al mismo sitio: la mayoría. Los que salen del mapa cuentan como gente que se queda
  *   o se va aparte: no se les puede seguir.
  * - `muestra`: cuántas personas se nombran en la señal.
+ * - `mirarMinutos`: hasta cuántos minutos por delante se mira si se va el grupo para cortar una acción antes de que se vaya (`GameModule.obligaciones`).
  * - `despedidaHasta`: «Me voy» solo si la acción dura hasta tantos minutos: en una acción larga (descansar, estudiar) no estás pendiente de quien se va, y llenaría el registro.
  */
-export const MOVERSE_CON_EL_GRUPO = { minimo: 3, proporcion: 0.5, muestra: 3, despedidaHasta: 30 };
+export const MOVERSE_CON_EL_GRUPO = { minimo: 3, proporcion: 0.5, muestra: 3, despedidaHasta: 30, mirarMinutos: 120 };
 /** Lo que se dice de quien está en el aula durante una clase: está, pero no se le puede hablar. */
 const EN_CLASE_ATENDIENDO = 'atendiendo en clase';
 /** Las clases una a una. */

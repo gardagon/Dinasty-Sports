@@ -96,6 +96,24 @@ describe('en una partida de verdad', () => {
     expect(donde(g)).toBe('aula');
   });
 
+  it('con la rama de acciones cortas: una acción larga se corta justo cuando se va el grupo y luego sale el aviso', () => {
+    const g = nuevaPartida({ seed: 21 });
+    while (!g.time.isSchoolDay) for (let k = 0; k < 300; k++) esperar(g);
+    llegarA(g, 'aula', 10, 30);
+    conocer(g, ...g.service<PresenciaService>(SERVICES.presencia)!.ocupadosEn('aula').slice(0, 8).map((o) => o.persona.id));
+    viajarA(g, 'patio');
+    while (g.time.minuteOfDay < 10 * 60 + 45) esperar(g);
+    expect(pregunta(g)).toBeUndefined();
+    // Alguna acción disponible dura más de lo que falta para que acabe el recreo (11:10): se corta ahí, y lo dice.
+    const larga = g.availableActions().find((o) => o.corte?.texto === 'se va el grupo a tu aula a las 11:10');
+    expect(larga).toBeDefined();
+    expect(larga!.duration).toBe(11 * 60 + 10 - g.time.minuteOfDay);
+    const r = g.perform(larga!.id);
+    expect(r.ok, (r as { reason?: string }).reason).toBe(true);
+    expect(g.time.minuteOfDay).toBe(11 * 60 + 10);
+    expect(pregunta(g)?.texto).toBe('Todos se van a tu aula. ¿Les acompañas?');
+  });
+
   it('«Me voy»: quien conoces y tienes al lado y se va aparte dice una línea corta, sin preguntar nada ni ensuciar', () => {
     const g = conocer(nuevaPartida({ seed: 21 }));
     while (!g.time.isSchoolDay) for (let k = 0; k < 300; k++) esperar(g);

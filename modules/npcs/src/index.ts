@@ -27,6 +27,7 @@ export * from './plantillas';
 export * from './fichajes';
 export * from './draft';
 
+const hhmmDe = (m: number): string => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
 const mediaDe = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
 export interface Npc {
   id: string;
@@ -1263,6 +1264,27 @@ function agendasDePresencia(ctx: ReadContext, t: ReadContext['time']) {
   return { agendaDe, inicioCurso, partidos, intervalo, lista };
 }
 
+/**
+ * ¿Se va el grupo? Con los que tienes cerca (`cercanos`, en el orden en que se ven) y las agendas de un momento (`ahora`, `t`): `grupoQueSeVa` solo dentro del mismo lugar (el colegio y sus zonas,
+ * el estadio, un club...: el sitio raíz del que cuelga cada uno). Lo usan el aviso al acabar la acción y la obligación que corta las acciones antes de que se vaya.
+ */
+function elGrupoSeVa(lugares: LugaresService, cercanos: readonly Npc[], aqui: string, ahora: ReturnType<typeof agendasDePresencia>, t: ReadContext['time']) {
+  const despues = (n: Npc) => ubicacionEn(ahora.agendaDe(n), t, n.id);
+  const raiz = (id: string): string => {
+    let l = lugares.lugar(id);
+    for (let i = 0; l?.dentroDe && i < 4; i++) l = lugares.lugar(l.dentroDe);
+    return l?.id ?? id;
+  };
+  return { despues, g: grupoQueSeVa(cercanos, aqui, despues, (sitio) => raiz(sitio) === raiz(aqui)) };
+}
+
+/** Cómo se dice a dónde va el grupo (a la entrada del lugar si estás en una zona suya y van a él). */
+function haciaTextoDe(lugares: LugaresService, aqui: string, hacia: string): string | undefined {
+  const destino = lugares.lugar(hacia);
+  if (!destino) return undefined;
+  return lugares.lugar(aqui)?.dentroDe === hacia ? `a la entrada ${deLugar(destino.name)}` : haciaLugar(destino.name);
+}
+
 export const npcs = defineModule<NpcsState>({
   id: 'npcs',
   name: 'Personas',
@@ -1299,6 +1321,29 @@ export const npcs = defineModule<NpcsState>({
     };
   },
 
+  // Que el grupo se vaya cuenta como una obligación: las acciones cortables (charlar, esperar...) no pasan del momento en que se van los que tienes cerca, así que se hace solo ese rato de la
+  // acción y luego sale el aviso «Todos se van…» (`GRUPO_SE_VA`). Se mira con los mismos cercanos que el aviso, en los próximos cambios de tramo.
+  obligaciones: (ctx) => {
+    const lugares = ctx.service<LugaresService>(SERVICES.lugares);
+    const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
+    if (!lugares || !presencia) return [];
+    const t = ctx.time;
+    const aqui = lugares.actual().id;
+    const ahora = agendasDePresencia(ctx, t);
+    const lista = ahora.lista;
+    const cercanos = presencia.en(aqui, aforoCercano(aqui, `${t.day}:${ahora.intervalo}`)).map((v) => personaPorId(lista, v.id)).filter((n): n is Npc => !!n);
+    if (cercanos.length < MOVERSE_CON_EL_GRUPO.minimo) return [];
+    const inicioDelDia = t.minute - t.minuteOfDay;
+    const proximos = limitesDeTramos(lista, ahora.agendaDe, ahora.partidos?.version).filter((m) => m > t.minuteOfDay && m <= t.minuteOfDay + MOVERSE_CON_EL_GRUPO.mirarMinutos);
+    for (const m of proximos) {
+      const tB = ctx.timeAt(inicioDelDia + m);
+      const { g } = elGrupoSeVa(lugares, cercanos, aqui, agendasDePresencia(ctx, tB), tB);
+      const hacia = g && haciaTextoDe(lugares, aqui, g.hacia);
+      if (hacia) return [{ hasta: inicioDelDia + m, texto: `se va el grupo ${hacia} a las ${hhmmDe(m)}` }];
+    }
+    return [];
+  },
+
   on: {
     // Moverse con el grupo: si en esta acción la mayoría de la gente que tenías cerca se ha ido a un mismo sitio y tú sigues donde estabas, se avisa (`grupo.ts`).
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
@@ -1323,19 +1368,11 @@ export const npcs = defineModule<NpcsState>({
       if (!alEmpezar.length) return;
       alEmpezar.sort(compararCercania);
       const cercanos = alEmpezar.slice(0, aforoCercano(aqui, `${t0.day}:${antes.intervalo}`)).map((e) => e.n);
-      const despues = (n: Npc) => ubicacionEn(ahora.agendaDe(n), t1, n.id);
-      // Solo se acompaña dentro del mismo lugar (el colegio y sus zonas, el estadio, un club...): el sitio raíz del que cuelga cada uno.
-      const raiz = (id: string): string => {
-        let l = lugares.lugar(id);
-        for (let i = 0; l?.dentroDe && i < 4; i++) l = lugares.lugar(l.dentroDe);
-        return l?.id ?? id;
-      };
-      const g = grupoQueSeVa(cercanos, aqui, despues, (sitio) => raiz(sitio) === raiz(aqui));
+      const { despues, g } = elGrupoSeVa(lugares, cercanos, aqui, ahora, t1);
       const destino = g && lugares.lugar(g.hacia);
       const minutos = g && lugares.minutosA(g.hacia);
       if (g && destino && minutos !== undefined) {
-        // Si estás en una zona y van a la entrada de su lugar (del aula a la entrada del colegio), se dice así: el lugar se llama como el edificio.
-        const haciaTexto = lugares.lugar(aqui)?.dentroDe === g.hacia ? `a la entrada ${deLugar(destino.name)}` : haciaLugar(destino.name);
+        const haciaTexto = haciaTextoDe(lugares, aqui, g.hacia)!;
         const conocidos = new Set(cercanos.filter((n) => n.known !== false).map((n) => n.id));
         ctx.emit<GrupoSeVaData>({
           type: SHARED_EVENTS.GRUPO_SE_VA,
