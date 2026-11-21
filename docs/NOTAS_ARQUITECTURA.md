@@ -46,6 +46,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXPDhEajtkKpPVfbKQS` | `claude/deberes-y-acciones-cortas` | «Hacer deberes…» de 30 min; una acción que pisa una obligación consume solo los minutos que faltan |
 | `session_01M4vXXMaAyvvsxH4QeZu3rA` | `claude/sucesos-en-clase` | Los sucesos que pasan durante otra actividad no gastan minutos; no ofrecer «mañana» cuando hay que responder en el momento |
 | `session_01M4vXXPQUdYEGsR1Fs7XmG5` | `claude/futbol-mas-barato` | Pasada semanal y creación del fútbol más baratas; equipos que se forman desde el 2.º día de clase; `rngEstable` más barato |
 
@@ -54,6 +55,8 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 
 ## 4. Pendiente (por orden de prioridad propuesto)
+
+0 quater. **Encargo listo para cuando se una `claude/sucesos-en-clase`** (las dos tocan los sucesos): **moverse con el grupo** (DECISIONES, 21/11). Cuando la gente con la que estás se va en bloque (al patio en el recreo, a la salida del colegio), sale «Todos se van al patio, ¿les acompañas?»; si dices que sí, vas con ellos como un viaje rápido.
 
 0 ter. **Hecha el 21/11** (`docs/relevo/revision-rendimiento.md`; decisiones en §3). **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
 
