@@ -5,6 +5,28 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — Sucesos, lote 2: decisiones sobre la propuesta (`docs/relevo/sucesos-lote-2.md`)
+
+Respuestas del usuario a las dudas de la propuesta:
+
+1. **Ritmo objetivo:** unos 6 sucesos por semana de media (entre 4 y 9), la mitad en una línea; como mucho un tercio (≤ 35 %) de los días de clase sin ninguno.
+2. **Primero una sesión de motor y después el contenido.** La sesión incluye:
+   - variantes y textos al azar (E1);
+   - señales de exámenes y boletín de `estudios` (E2);
+   - saber cuándo es el cumpleaños propio (E4);
+   - rotación por familia de sucesos, «como una baraja» (E5);
+   - medir por franja, lugar, día y persona (E8);
+   - un bot que madruga y trasnocha;
+   - la marca de contenido duro (punto 4).
+3. **Lote 3, pendiente:** la mudanza de un amigo (E6, que un PNJ salga del mundo), tu cumpleaños con fiesta y un amigo que viene a casa (E7, amigos en tu casa; E3, «quedar con X»).
+4. **Contenido duro, con una marca y una opción.** Los sucesos «duros» llevan una marca: la bronca entre los padres, un apodo feo (que recibes o que pones), las peleas. Si en Opciones no se aceptan, no salen. Así se pueden escribir con más profundidad. Las historias tienen caminos que dependen de lo que elija el jugador. Pendiente de decidir: el valor por defecto y si la opción es una sola o va por categorías.
+5. **Dinero entre niños (préstamo, paga con tareas):** sí. `gen.dinero` existe y lo usan algunos sucesos, pero no hay ingresos ni cosas que comprar. **Deuda técnica: la economía del personaje** (paga, ingresos, gastos, qué comprar).
+6. **Profesores:** «el profesor de Lengua o de Matemáticas», sin tutor fijo.
+7. **Pelea entre dos amigos:** se aproxima con dos amigos tuyos y no cambia la relación entre ellos. **Pendiente: relaciones entre PNJ**, para que se puedan volver enemigos entre ellos (con el personaje ya existe el estado «enemigo», afinidad ≤ −45).
+8. **Orden de escritura:** el motor; casa y fin de semana; los hilos del compañero nuevo, el tutor, el secreto y el préstamo; los detalles de colegio y amigos; y por último el examen, el boletín, el apodo, la pelea, los padres y el ahorro.
+
+Además: **gente por la calle.** Hay que poner vecinos y gente parecida en las calles, el parque y la avenida, para poder sembrar sucesos allí. En el lote 1 se vio que los vecinos adultos no están en la calle cuando llega el personaje. Primero un análisis con propuesta.
+
 ## 22/11/2026 — Mejorar el diseño de la web para PC
 
 El usuario pide mejorar el diseño en el ordenador: se aprovecha muy poco la pantalla. Ahora la página tiene un ancho máximo de 1080 px, pestañas que enseñan una sola cosa cada vez y dos columnas solo en «Qué hacer». En el móvil se queda como está. Con tantos datos, ver varias cosas a la vez ayudaría a jugar y haría el juego más atractivo. **Condición: sin deshacer código.** Cada pestaña ya se dibuja con funciones independientes (`viewLugar`, `viewActions`, `viewDeporte`, `viewPeople`, `viewLog`…), así que la vista de escritorio sería otra forma de colocar esas mismas piezas, más CSS para pantallas anchas. Se decide primero con un análisis y prototipos con capturas, que aprueba el usuario (propuesta en `docs/NOTAS_ARQUITECTURA.md` §4).
