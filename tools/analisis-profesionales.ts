@@ -31,6 +31,8 @@ interface Fila {
   club?: string; tamano?: string; colegio?: boolean; letra?: string;
   valor?: number; capF?: number[]; habF?: number[]; capPob?: number[];
   min: number; pj: number; ti: number;
+  /** Cómo está sin jugar: lo dejó (`dejado`), lo apartaron del reparto (`apartado`) o no hay equipo; y su papel en el mundo (los compañeros del personaje salen a los 18). */
+  dejado?: boolean; apartado?: boolean; rol?: string;
 }
 interface Nino { id: string; potencial?: number; topeCap: number; topeFis: number; interes: number; club0?: string; tamano0?: string; colegio0?: boolean; letra0?: string; filas: Fila[] }
 
@@ -71,7 +73,7 @@ for (const seed of semillas) {
         ni = { id: n.id, potencial: n.potential?.futbol, topeCap: r3(caps.reduce((a, b) => a + b, 0) / caps.length), topeFis: r3(fis.reduce((a: number, b: number) => a + b, 0) / fis.length), interes: interesPor(n.rasgos, 'futbol'), filas: [] };
         ninos.set(n.id, ni);
       }
-      const f: Fila = { id: n.id, k, edad: edadDe(n, dia), juega, min: 0, pj: 0, ti: 0 };
+      const f: Fila = { id: n.id, k, edad: edadDe(n, dia), juega, min: 0, pj: 0, ti: 0, dejado: !!n.dejado?.includes('futbol'), apartado: !!n.apartado?.includes('futbol'), rol: n.role };
       const hist = (n.estHist?.futbol ?? []) as number[][];
       const e = n.est?.futbol;
       f.pj = hist.reduce((t, h) => t + h[1], 0) + (e?.pj ?? 0);

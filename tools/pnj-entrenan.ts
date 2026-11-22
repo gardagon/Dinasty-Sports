@@ -84,7 +84,7 @@ if (modo === 'pnj') {
     fraccion: r3(suma(habs.map((h) => g.stat(h) / g.hiddenPotential(h)!)) / habs.length),
     capFraccion: r3(suma(CAPACIDADES_GENETICAS.map((c) => g.stat(c) / g.hiddenPotential(c)!)) / CAPACIDADES_GENETICAS.length),
     valor: r3(rendimiento(lector())),
-    horasSem: Object.fromEntries(Object.entries(min).map(([t, m]) => [t, r3(m / 60 / semanas)])),
+    horasSem: Object.fromEntries(Object.entries(min).map(([t, m]) => [t, r3(t.endsWith('#') ? m / semanas : m / 60 / semanas)])),
   });
   const filas: any[] = [foto(0, {}, 1)];
   let min: Record<string, number> = {};
@@ -107,8 +107,9 @@ if (modo === 'pnj') {
     if (paso.result.ok) {
       mem.total[eleccion] = (mem.total[eleccion] ?? 0) + 1;
       const o = opts.find((x) => x.id === eleccion);
-      for (const t of o?.tags ?? []) if (['club', TAGS.entrenamiento, 'social', 'campamento'].includes(t) || t === 'futbol') min[t] = (min[t] ?? 0) + paso.result.duration;
-      if (o && /quedar|amigos|partidillo|reducidos|tiros/.test(o.id + o.name)) min.quedada = (min.quedada ?? 0) + paso.result.duration;
+      // Por clase de actividad: el tiempo (minutos) y cuántas veces.
+      const clase = !o ? undefined : /club_sesion/.test(o.id) ? 'club' : /^futbol\.entrena_/.test(o.id) ? 'propio' : o.id === 'gen.gimnasio' ? 'gimnasio' : /campamento/.test(o.id) ? 'campamento' : /quedar|amigos|partidillo|reducidos|tiros|jugar_con_otros/.test(o.id) ? 'quedada' : undefined;
+      if (clase) { min[clase] = (min[clase] ?? 0) + paso.result.duration; min[clase + '#'] = (min[clase + '#'] ?? 0) + 1; }
     }
     const k = Math.floor(g.time.day / 365);
     if (k > ultimo) {
