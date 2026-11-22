@@ -12,6 +12,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Abandono de los mejores:** revisarlo con calma. No todos los mejores triunfan, por mentalidad o por temas personales.
 - **Entrenamiento de los PNJ:** revisar por qué entrenan tan por debajo del personaje. Habrá quien dedique mucho tiempo fuera a jugar al fútbol y mejore.
 - **El personaje que perdería su plaza al cambiar de año:** en benjamín y alevín, los de primer año no desplazan a uno de segundo que ya tenía plaza en el club (solo suben al A si hay sitio), para todos. Desde infantil sí se puede salir, y entonces la salida es un suceso con opciones, no una línea del diario.
+- **Hecho el 22/11** (`docs/relevo/plaza-al-cambiar-de-anio.md`): `CategoriaDef.primerAnioNoDesplazaEn` (benjamín y alevín); suceso `futbol.plaza_perdida` (buscar otro club, con los clubes que hacen pruebas y la fecha; entrenar por su cuenta, por defecto; preguntar qué mejorar). Se arreglan dos fallos: al apuntarse, el personaje debe caber en un equipo por el cupo de su puesto (otro puesto, plazas de más o la acción no disponible con el motivo), y al acabar las categorías del club le llega «se acaba el fútbol base en tu club…» y sale.
 
 ## 22/11/2026 — Antes de publicar: partidas guardadas y crónica
 

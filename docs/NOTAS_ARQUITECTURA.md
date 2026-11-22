@@ -45,7 +45,6 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 | Sesión | Rama | Encargo |
 |---|---|---|
 | `session_01M4vXXMSfXmoS68SCSee9NG` | `claude/retrato-movil` | Fallo: en el móvil y en modo oscuro (versión publicada), el retrato y la evolución salen desvaídos, sin pelo, y «Deporte» en gris tras crear la partida |
-| `session_01M4vXXMq6uyW8dV12rHW48q` | `claude/plaza-al-cambiar-de-anio` | En benjamín y alevín, los de primer año no desplazan a un segundo año con plaza; desde infantil, salir del club es un suceso con opciones |
 | `session_01M4vXXMp7cyuMpYVVwYDEFo` | `claude/pnj-entrenan-y-abandono` | Análisis con propuesta (desactivada): PNJ que entrenan por su cuenta o quedan a jugar; abandono de los mejores |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
@@ -107,3 +106,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXQFX9Ng9KHWSoLso2U` | Sonnet | Coste por acción (21–22/11, esta sesión de arquitectura) |
 | `session_01M4vXXPS1A9ScC8LHqc2qXa` | Sonnet | Análisis de profesionales a los 18 (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXP9yVZBSgVR7Bp2jZa` | Sonnet | Compatibilidad con main, crónica sin nombres e investigación del personaje sin equipo (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXMq6uyW8dV12rHW48q` | Sonnet | Plaza al cambiar de año (22/11, esta sesión de arquitectura) |
