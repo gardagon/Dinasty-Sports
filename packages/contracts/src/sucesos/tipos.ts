@@ -1,6 +1,7 @@
 import type { LogEntry } from '../context';
 import type { CambioDeEstadoDeJugador } from '../events';
 import type { EstadoVinculo } from '../relaciones';
+import { CONTENIDO_DURO_POR_DEFECTO, type CategoriaDura, type ConfigDeContenidoDuro } from './duro';
 
 /**
  * SUCESOS: lo que le pasa a una persona y lo que decide (el «evento» que ve el jugador; en el código se llama suceso porque «evento» ya es
@@ -49,7 +50,13 @@ export type Condicion =
   | { todas: readonly Condicion[] };
 
 /** Hechos con nombre que el juego ofrece sin que nadie los publique (el director los lee de los servicios de contracts). */
-export const HECHOS_COMUNES = ['edad', 'altura_cm', 'altura_para_su_edad', 'nota_media', 'faltas', 'faltas_del_trimestre', 'trimestre', 'curso', 'dia'] as const;
+export const HECHOS_COMUNES = [
+  'edad', 'altura_cm', 'altura_para_su_edad', 'nota_media', 'faltas', 'faltas_del_trimestre', 'trimestre', 'curso', 'dia',
+  /** Días que faltan para el cumpleaños del personaje (0 = hoy). `{ hecho: 'cumple_en_dias', es: 3 }` = «tu cumpleaños es dentro de 3 días». */
+  'cumple_en_dias',
+  /** `true` el día del cumpleaños del personaje. `{ hecho: 'es_tu_cumple', es: true }`. */
+  'es_tu_cumple',
+] as const;
 
 export type Dias = number | readonly [number, number];
 
@@ -85,6 +92,11 @@ export interface RamaDef {
   efectos?: readonly Efecto[];
   /** Lo que se lee después de elegir. */
   resultado?: string;
+  /**
+   * Varios resultados posibles en lugar de uno (se escribe `resultado` o `resultados`, no los dos): sale uno al azar propio del suceso
+   * (`rngEstable` con la semilla, el suceso, la opción y el día; nunca el generador de la partida). Cada uno se valida y se prueba.
+   */
+  resultados?: readonly string[];
 }
 
 /**
@@ -121,6 +133,8 @@ export interface OpcionDef extends RamaDef {
   tirada?: TiradaDef;
   exito?: RamaDef;
   fallo?: RamaDef;
+  /** Contenido duro (`CategoriaDura`): con esa categoría desactivada por el jugador, la opción no sale (los PNJ no se ven afectados). No puede ser la opción por defecto del plazo. */
+  duro?: readonly CategoriaDura[];
 }
 
 /**
@@ -130,6 +144,11 @@ export interface OpcionDef extends RamaDef {
 export interface DecisionDef {
   titulo?: string;
   texto?: string;
+  /**
+   * Varios textos de entrada posibles en lugar de uno (se escribe `texto` o `textos`, no los dos): sale uno al azar propio del suceso
+   * (`rngEstable` con la semilla, el suceso y el día; nunca el generador de la partida) y se queda fijo mientras se decide. Cada uno se valida y se prueba.
+   */
+  textos?: readonly string[];
   opciones?: readonly OpcionDef[];
 }
 
@@ -167,8 +186,15 @@ export interface PapelDef {
 
 export interface VarianteDef extends DecisionDef {
   id: string;
-  /** Gana la primera variante cuyas condiciones se cumplen (una lista vacía se cumple siempre). */
+  /**
+   * Gana la primera variante cuyas condiciones se cumplen (una lista vacía se cumple siempre). Con `peso`, en cambio, entra en un sorteo: si la primera que
+   * se cumple lleva `peso`, sale una al azar entre TODAS las que se cumplen y llevan `peso` (más peso, más probable; `rngEstable` con la semilla, el suceso y el día).
+   * Una variante sin `peso` que se cumpla antes gana siempre, como hasta ahora.
+   */
   si: readonly Condicion[];
+  peso?: number;
+  /** Contenido duro: con esa categoría desactivada por el jugador no sale esta variante (los PNJ no se ven afectados). */
+  duro?: readonly CategoriaDura[];
   efectos?: readonly Efecto[];
 }
 
@@ -212,6 +238,14 @@ export interface SucesoDef extends DecisionDef {
   repite?: Repite;
   /** Peso frente a otros sucesos que compiten por el cupo (1 por defecto). */
   peso?: number;
+  /**
+   * Familia de rotación (`patio`, `cena`…): dentro de una familia no se repite un suceso hasta que hayan salido los demás, como una baraja. Tras salir, la
+   * probabilidad de un suceso baja (`ConfigDeSucesos.rotacion.factorTrasSalir`) y se recupera cuando ha salido toda la familia (o pasan `maxDias`).
+   * Vale con cualquier disparo con probabilidad (`cada`, `al` con `prob`) y también cuenta al ordenar los que compiten por el cupo.
+   */
+  familia?: string;
+  /** Contenido duro: con esa categoría desactivada por el jugador (Opciones) el director no elige este suceso. Los PNJ no se ven afectados. */
+  duro?: readonly CategoriaDura[];
   reparto?: Readonly<Record<string, PapelDef>>;
   /** Módulos sin los que este suceso no existe. */
   requiere?: readonly string[];
@@ -358,6 +392,15 @@ export interface ConfigDeSucesos {
     /** Una opción no encaja si tira al menos `inclinacionMinima` en contra de un eje que el personaje tiene marcado al menos `ejeMarcado` (de −50 a 50). */
     ejeMarcado: number;
     inclinacionMinima: number;
+    /** Preferencia del jugador sobre el contenido duro (interruptor general y categorías). Valor de partida: `CONTENIDO_DURO_POR_DEFECTO`. */
+    duro: ConfigDeContenidoDuro;
+  };
+  /** Rotación por familia (`SucesoDef.familia`). */
+  rotacion: {
+    /** Por cuánto se multiplica la probabilidad de un suceso de la familia que ya ha salido en esta ronda. */
+    factorTrasSalir: number;
+    /** Días tras los que la ronda empieza de nuevo aunque no hayan salido todos (los que no pueden salir no bloquean la baraja). */
+    maxDias: number;
   };
   pnj: {
     /** Clases de suceso que viven también los PNJ. El resto, solo el personaje hasta medir lo que cuesta. */
@@ -376,7 +419,8 @@ export interface ConfigDeSucesos {
 
 export const CONFIG_DE_SUCESOS: ConfigDeSucesos = {
   cupo: { base: { alDia: 1, aLaSemana: 4 }, deporte: { alDia: 1, aLaSemana: 2 }, menor: { alDia: 2, aLaSemana: 8 } },
-  presentacion: { consecuencias: 'pistas', fueraDeCaracter: 'normales', ejeMarcado: 25, inclinacionMinima: 2 },
+  presentacion: { consecuencias: 'pistas', fueraDeCaracter: 'normales', ejeMarcado: 25, inclinacionMinima: 2, duro: CONTENIDO_DURO_POR_DEFECTO },
+  rotacion: { factorTrasSalir: 0.2, maxDias: 120 },
   pnj: { clases: ['lesion'], diarioDeCercanos: false },
   caracterPorDecision: 1,
   durante: ['clase.asistida', 'club.sesion_tarde', 'club.impuntual', 'club.prueba_empieza'],

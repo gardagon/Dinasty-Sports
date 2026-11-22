@@ -102,6 +102,10 @@ export interface SucesosDePruebaService {
   todoVale?: boolean;
   /** Variante forzada de un suceso (solo con `todoVale`). */
   variante?(suceso: string): string | undefined;
+  /** Cuál de los `textos` de entrada sale de un suceso o variante (solo con `todoVale`, para recorrer todas las versiones). */
+  texto?(suceso: string): number | undefined;
+  /** Cuál de los `resultados` de una rama de una opción sale (para recorrer todas las versiones). */
+  resultado?(suceso: string, opcion: string): number | undefined;
   /** Resultado forzado de una tirada. */
   tirada?(suceso: string, opcion: string): 'exito' | 'fallo' | undefined;
   /** Azar forzado (0 a 1) de los sucesos de probabilidad: 0 hace que salgan siempre. */
