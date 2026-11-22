@@ -20,7 +20,7 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 
 ## 2. Estado (17/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127; 1.187 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127) y el 22/11 (#128; 1.335 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
@@ -38,7 +38,6 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 2. ~~**Rendimiento con la ciudad grande y el fútbol**~~ Respondido el 21/11 (DECISIONES, «Rendimiento: guardar sin congelar…») y encargado a `claude/guardar-sin-congelar` y `claude/futbol-mas-barato`.
 3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
 5. **Balance de los entrenamientos nuevos** (`docs/relevo/entrenamientos.md`): para que el club rinda más que entrenar por libre (como dice su descripción), una sesión del club sube ~13 puntos de habilidad en vez de ~6. Por curso, el jugador sube igual que antes en lo que pesa en su puesto (antes ~43 puntos eran portería que subía un jugador de campo). Los PNJ salen un 3–5 % más altos por edad (los frena el tope por edad). Opciones: aceptarlo; bajar solo la escala del club (entonces el club ya no supera al libre); o subir el libre a la par y bajar los dos. **Recomendación:** aceptarlo y vigilar los niveles por edad, porque el progreso por curso del jugador no cambia.
-6. **Llevar a la versión publicada** lo unido desde el 21/11 (#127): guardado sin congelar, fútbol más barato y equipos que se forman desde el día 1–6, sucesos en clase, deberes y acciones cortas, moverse con el grupo, caras según el origen, «Mi equipo», dorsales, puestos y pistas, entrenamientos y el coste por acción. Aprobado el 22/11. Partidas guardadas: confirmado que cargan. Balance: aceptado. Falta el arreglo de la plaza al cambiar de año (`claude/plaza-al-cambiar-de-anio`); con él, abrir el pull request.
 
 ## 3 bis. Sesiones en curso
 
