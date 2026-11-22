@@ -7,7 +7,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ## 22/11/2026 — El entrenador dice el puesto en el primer entrenamiento
 
-En el primer entrenamiento con el equipo, el entrenador dice en un suceso «Vas a jugar de [puesto]» y, si el jugador encaja en otro, «pero a lo mejor más adelante te pongo de [puesto]». Así no hace falta ir a la página del equipo para saberlo.
+En el primer entrenamiento con el equipo, el entrenador dice en un suceso «Vas a jugar de [puesto]» y, si el jugador encaja en otro, «pero a lo mejor más adelante te pongo de [puesto]». Así no hace falta ir a la página del equipo para saberlo. **Hecho el 22/11** (`docs/relevo/primer-entrenamiento-puesto.md`): «De inicio vas a jugar de interior», con «…, pero a lo mejor más adelante te pongo de lateral» si otra familia está a menos de 4 puntos (`MARGEN_DE_OTRO_PUESTO`, provisional) y «Me dijiste portero en la prueba…» si pidió otro. El kit guarda el puesto pedido en la prueba (`puestoPedido`). Se conservan pedir otro puesto, preguntar y aceptar.
 
 ## 22/11/2026 — Versión visible y actualización de la app
 
