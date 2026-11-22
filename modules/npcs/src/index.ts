@@ -1226,41 +1226,104 @@ const compararCercania = (a: EnLugar, b: EnLugar): number =>
 let versionDeIndices = 0;
 
 /**
- * Quién está en cada lugar entre dos cambios de tramo: se calcula una vez para toda la población y se reutiliza mientras no
- * cambie el intervalo ni la lista de personas. Cada lugar guarda sus personas ya ordenadas (a quien conoces primero, después el nivel, lo
- * que son y, por último, un orden estable al azar).
+ * Qué sitios pueden pisar alguna vez las personas de una agenda (los destinos de todos sus tramos): quien nunca va a un lugar no hace falta mirarlo para saber quién hay allí.
+ * Se recuerda por agenda (las personas con los mismos tipos comparten el mismo objeto).
  */
-const INDICES = new WeakMap<Npc[], { clave: string; version: number; lugares: Map<string, EnLugar[]>; ocupados: Map<string, { n: Npc; motivo: string }[]>; ordenados: Set<string> }>();
+const SITIOS_DE_AGENDA = new WeakMap<readonly TramoDeAgenda[], string[]>();
+function sitiosDeAgenda(a: readonly TramoDeAgenda[]): string[] {
+  let r = SITIOS_DE_AGENDA.get(a);
+  if (!r) {
+    const set = new Set<string>();
+    for (const x of a) for (const [sitio] of x.destinos) if (sitio !== null) set.add(sitio);
+    SITIOS_DE_AGENDA.set(a, (r = [...set]));
+  }
+  return r;
+}
 
-function indiceDePresencia(lista: Npc[], clave: string, ubicar: (n: Npc) => { sitio: string | null; nivel: number; tipo: string; atendiendo?: { sitio: string; motivo: string } }, dia: number) {
+/** Las personas que pueden estar en cada lugar (en el orden de la lista) según sus agendas de ese día: se monta una vez por lista de personas, día y calendario de partidos. */
+const CANDIDATOS = new WeakMap<Npc[], { clave: string; porLugar: Map<string, Npc[]> }>();
+
+function candidatosEn(ahora: Pick<ReturnType<typeof agendasDePresencia>, 'lista' | 'agendaDe' | 'partidos'>, dia: number): (lugar: string) => readonly Npc[] {
+  const clave = `${dia}:${ahora.partidos?.version ?? ''}`;
+  let c = CANDIDATOS.get(ahora.lista);
+  if (c?.clave !== clave) {
+    const porLugar = new Map<string, Npc[]>();
+    for (const n of ahora.lista) {
+      for (const sitio of sitiosDeAgenda(ahora.agendaDe(n))) {
+        const l = porLugar.get(sitio);
+        if (l) l.push(n);
+        else porLugar.set(sitio, [n]);
+      }
+    }
+    CANDIDATOS.set(ahora.lista, (c = { clave, porLugar }));
+  }
+  const { porLugar } = c;
+  return (lugar) => porLugar.get(lugar) ?? [];
+}
+
+type UbicarPersona = (n: Npc) => { sitio: string | null; nivel: number; tipo: string; atendiendo?: { sitio: string; motivo: string } };
+
+/**
+ * Quién está en cada lugar entre dos cambios de tramo: se calcula al pedirlo, lugar a lugar y solo entre las personas que pueden estar allí (`candidatos`), y se reutiliza mientras no
+ * cambie el intervalo ni la lista de personas. Cada lugar guarda sus personas ya ordenadas (a quien conoces primero, después el nivel, lo que son y, por último, un orden estable al azar).
+ */
+const INDICES = new WeakMap<
+  Npc[],
+  {
+    clave: string;
+    version: number;
+    ubicar: UbicarPersona;
+    dia: number;
+    candidatos: (lugar: string) => readonly Npc[];
+    lugares: Map<string, EnLugar[]>;
+    ocupados: Map<string, { n: Npc; motivo: string }[]>;
+    calculados: Set<string>;
+    ordenados: Set<string>;
+  }
+>();
+type IndiceGuardado = NonNullable<ReturnType<typeof INDICES.get>>;
+
+/** Quién hay en un lugar (calculado la primera vez que se pide) y quién se ve en él ocupado. */
+function calcularLugar(idx: IndiceGuardado, lugar: string): void {
+  if (idx.calculados.has(lugar)) return;
+  idx.calculados.add(lugar);
+  const aqui: EnLugar[] = [];
+  const ocupados: { n: Npc; motivo: string }[] = [];
+  for (const n of idx.candidatos(lugar)) {
+    const u = idx.ubicar(n);
+    // Ocupado pero a la vista (en clase, durmiendo): no está «aquí» para hablar, pero se ve en el sitio con su estado.
+    if (u.atendiendo?.sitio === lugar) ocupados.push({ n, motivo: u.atendiendo.motivo });
+    if (u.sitio === lugar) aqui.push({ n, nivel: u.nivel, tipo: u.tipo });
+  }
+  idx.lugares.set(lugar, aqui);
+  idx.ocupados.set(lugar, ocupados);
+}
+
+/** Las personas de un lugar de un índice, ordenadas por cercanía (se ordenan la primera vez). */
+function enDelIndice(idx: IndiceGuardado, lugar: string): EnLugar[] {
+  calcularLugar(idx, lugar);
+  const l = idx.lugares.get(lugar)!;
+  if (!idx.ordenados.has(lugar)) {
+    idx.ordenados.add(lugar);
+    for (const e of l) e.azar = azarDe(e.n.id, idx.dia, 'orden');
+    l.sort(compararCercania);
+  }
+  return l;
+}
+
+function indiceDePresencia(lista: Npc[], clave: string, ubicar: UbicarPersona, dia: number, candidatos: (lugar: string) => readonly Npc[]) {
   let idx = INDICES.get(lista);
   if (!idx || idx.clave !== clave) {
-    const lugares = new Map<string, EnLugar[]>();
-    const ocupados = new Map<string, { n: Npc; motivo: string }[]>();
-    for (const n of lista) {
-      const u = ubicar(n);
-      // Ocupado pero a la vista (en clase, durmiendo): no está «aquí» para hablar, pero se ve en el sitio con su estado.
-      if (u.atendiendo) ocupados.set(u.atendiendo.sitio, [...(ocupados.get(u.atendiendo.sitio) ?? []), { n, motivo: u.atendiendo.motivo }]);
-      if (u.sitio === null) continue;
-      let l = lugares.get(u.sitio);
-      if (!l) lugares.set(u.sitio, (l = []));
-      l.push({ n, nivel: u.nivel, tipo: u.tipo });
-    }
-    INDICES.set(lista, (idx = { clave, version: ++versionDeIndices, lugares, ocupados, ordenados: new Set() }));
+    INDICES.set(lista, (idx = { clave, version: ++versionDeIndices, ubicar, dia, candidatos, lugares: new Map(), ocupados: new Map(), calculados: new Set(), ordenados: new Set() }));
   }
   const actual = idx;
   return {
     version: actual.version,
-    ocupadosEn: (lugar: string): { n: Npc; motivo: string }[] => actual.ocupados.get(lugar) ?? [],
-    en(lugar: string): EnLugar[] {
-      const l = actual.lugares.get(lugar) ?? [];
-      if (!actual.ordenados.has(lugar)) {
-        actual.ordenados.add(lugar);
-        for (const e of l) e.azar = azarDe(e.n.id, dia, 'orden');
-        l.sort(compararCercania);
-      }
-      return l;
+    ocupadosEn: (lugar: string): { n: Npc; motivo: string }[] => {
+      calcularLugar(actual, lugar);
+      return actual.ocupados.get(lugar)!;
     },
+    en: (lugar: string): EnLugar[] => enDelIndice(actual, lugar),
   };
 }
 
@@ -1418,10 +1481,10 @@ export const npcs = defineModule<NpcsState>({
       const claveAntes = `${t0.day}:${antes.intervalo}:${antes.partidos?.version ?? ''}`;
       const guardado = INDICES.get(antes.lista);
       let alEmpezar: EnLugar[];
-      if (guardado?.clave === claveAntes) alEmpezar = guardado.lugares.get(aqui) ?? [];
+      if (guardado?.clave === claveAntes) alEmpezar = enDelIndice(guardado, aqui);
       else {
         alEmpezar = [];
-        for (const n of antes.lista) {
+        for (const n of candidatosEn(antes, t0.day)(aqui)) {
           const u = ubicacionEn(antes.agendaDe(n), t0, n.id);
           if (u.sitio === aqui) alEmpezar.push({ n, nivel: u.nivel, tipo: u.tipo, azar: azarDe(n.id, t0.day, 'orden') });
         }
@@ -1755,7 +1818,7 @@ export const npcs = defineModule<NpcsState>({
       const hecho = SERVICIOS_DE_PRESENCIA.get(lista);
       if (hecho?.minuto === t.minute) return hecho.servicio;
       const { agendaDe, inicioCurso, partidos, intervalo } = agendasDePresencia(ctx, t);
-      const indice = indiceDePresencia(lista, `${t.day}:${intervalo}:${partidos?.version ?? ''}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
+      const indice = indiceDePresencia(lista, `${t.day}:${intervalo}:${partidos?.version ?? ''}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day, candidatosEn({ lista, agendaDe, partidos }, t.day));
       const servicio: PresenciaService = {
         version: indice.version,
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso, t.day)),
