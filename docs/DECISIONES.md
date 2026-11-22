@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — Retrato en el móvil y niños calvos
+
+Detalle: `docs/relevo/retrato-movil.md`.
+- **Retrato desvaído en Samsung Internet** (en la web y en la app instalada; en Chrome del mismo móvil se ve bien): causa probable, el modo oscuro forzado del navegador, porque la página no declaraba su esquema de color. Se añade `<meta name="color-scheme" content="light dark">`, y los SVG del retrato fijan `color-scheme`, `forced-color-adjust`, `opacity` y `filter`. No se puede emular aquí: queda que el usuario lo confirme en su móvil.
+- **Niños calvos:** «Cabeza afeitada» y «Rapado al cero» se sorteaban para toda la vida, también para los niños. Ahora, antes de la pubertad, llevan «rapado».
+- **La app instalada no mezcla versiones:** red primero al navegar y archivos con hash; se actualiza en la siguiente apertura con conexión.
+
 ## 22/11/2026 — Profesionales, balance de entrenamientos, abandono, entrenamiento de los PNJ y el personaje sin plaza
 
 - **Listón de «profesional»:** nivel ≥ 45 a los 17–18 años; «élite juvenil», ≥ 40 (`docs/relevo/analisis-profesionales.md`). Se recalculará al pasar a la siguiente fase de la vida, si hace falta.
