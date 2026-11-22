@@ -4,7 +4,7 @@ import { build, type Plugin } from 'esbuild';
 import { INTERFAZ_DE_DEPORTES } from '@ds/contracts';
 import * as contracts from '@ds/contracts';
 import * as kit from '@ds/kit-deporte';
-import { crearPaquete, type EntradaDeCatalogo, type PaqueteDeDeporte } from '@ds/paquetes';
+import { crearPaquete, huellaDelCodigo, manifiestoDe, type EntradaDeCatalogo, type PaqueteDeDeporte } from '@ds/paquetes';
 
 /**
  * Empaqueta un deporte: compila su módulo aparte SIN su copia de `@ds/contracts` ni del kit (las toma del juego instalado, que se las presta como
@@ -55,6 +55,6 @@ export async function empaquetarDeporte(raiz: string, id: string, nombre: string
 }
 
 export const entradaDeCatalogo = (paquete: PaqueteDeDeporte, ruta: string): EntradaDeCatalogo => {
-  const m = JSON.parse(paquete.manifiesto) as { id: string; nombre: string; version: string; interfaz: number; paises: string[] };
-  return { id: m.id, nombre: m.nombre, version: m.version, interfaz: m.interfaz, paises: m.paises, bytes: JSON.stringify(paquete).length, ruta };
+  const m = manifiestoDe(paquete);
+  return { id: m.id, nombre: m.nombre, version: m.version, interfaz: m.interfaz, paises: m.paises, bytes: JSON.stringify(paquete).length, ruta, huella: huellaDelCodigo(m) };
 };
