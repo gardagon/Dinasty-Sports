@@ -34,7 +34,7 @@ Detalle: `docs/relevo/retrato-movil.md`.
 
 ## 22/11/2026 — Profesionales, balance de entrenamientos, abandono, entrenamiento de los PNJ y el personaje sin plaza
 
-- **Listón de «profesional»:** nivel ≥ 45 a los 17–18 años; «élite juvenil», ≥ 40 (`docs/relevo/analisis-profesionales.md`). Se recalculará al pasar a la siguiente fase de la vida, si hace falta.
+- **Listón de «profesional»:** ~~nivel ≥ 45 a los 17–18 años; «élite juvenil», ≥ 40~~ **corregido el 22/11:** profesional, nivel ≥ 40 a los 17–18; «élite juvenil», ≥ 35 (con la medición corregida salen ~1,5 y ~9 por curso; nadie llegaba a 45). Se revisará en la fase 2 (la vida adulta) si no encaja.
 - **Balance de los entrenamientos:** se acepta de momento (`ESCALA_DE_ENTRENAMIENTO` = 1).
 - **Abandono de los mejores:** revisarlo con calma. No todos los mejores triunfan, por mentalidad o por temas personales.
 - **Entrenamiento de los PNJ:** revisar por qué entrenan tan por debajo del personaje. Habrá quien dedique mucho tiempo fuera a jugar al fútbol y mejore.

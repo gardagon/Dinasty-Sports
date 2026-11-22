@@ -40,7 +40,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
 5. **Balance de los entrenamientos nuevos** (`docs/relevo/entrenamientos.md`): para que el club rinda más que entrenar por libre (como dice su descripción), una sesión del club sube ~13 puntos de habilidad en vez de ~6. Por curso, el jugador sube igual que antes en lo que pesa en su puesto (antes ~43 puntos eran portería que subía un jugador de campo). Los PNJ salen un 3–5 % más altos por edad (los frena el tope por edad). Opciones: aceptarlo; bajar solo la escala del club (entonces el club ya no supera al libre); o subir el libre a la par y bajar los dos. **Recomendación:** aceptarlo y vigilar los niveles por edad, porque el progreso por curso del jugador no cambia.
 1. ~~**Publicar el versionado**~~ Unido el 22/11 (gardagon/Dinasty-Sports#129).
-2. **Listón de profesional** (tras `claude/pnj-entrenan-2`): a los 17–18, por curso, 9 pasan de 35, 4,5 de 38, 1,5 de 40 y ninguno de 45. **Recomendación:** profesional ≥ 40 y élite juvenil ≥ 35 (1–2 y ~9 por curso, del orden de la realidad escalada). Pendiente del usuario.
+2. ~~**Listón de profesional**~~ Decidido el 22/11: profesional ≥ 40 y élite juvenil ≥ 35 a los 17–18 (DECISIONES); se revisa en la fase 2.
 
 ## 3 bis. Sesiones en curso
 
