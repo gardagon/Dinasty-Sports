@@ -9,6 +9,8 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 - **En Opciones se ve qué versión del juego se usa** (commit y fecha de compilación), y en pequeño en la pantalla de inicio. Para saber si un fallo es de la versión.
 - La app avisa cuando hay una versión nueva publicada y se actualiza sin perder la partida.
+- **Hecho el 22/11** (`docs/relevo/version-visible.md`): commit, fecha, rama y pull request en Opciones y en el menú (`define` de Vite y `version.json`); aviso «Hay una versión nueva — Actualizar» al abrir, cada 30 minutos y al volver a la pestaña; botón «Buscar actualización». **Causa de que el usuario no viera lo nuevo del fútbol:** el fútbol es un paquete instalado en IndexedDB que solo se ofrecía actualizar si cambiaba su número de versión, y llevaba mucho tiempo en 0.2.0. Ahora el catálogo lleva la huella del código y se detecta el código nuevo. El service worker (v2) va a la red primero para todo lo que no es `assets/` y sin la caché HTTP de Pages. Herramienta `npm run probar-actualizacion`.
+- **Retrato en Samsung Internet con modo oscuro:** su modo oscuro oscurece también los dibujos y las imágenes, y según Samsung la web no puede evitarlo (solo con la opción «Adaptive Force Dark» de `internet://flags`). Página de prueba `?prueba-retrato` con 10 formas de pintar el retrato, para que el usuario diga cuáles se libran (`docs/relevo/retrato-samsung.md`).
 
 ## 22/11/2026 — Retrato en el móvil y niños calvos
 
