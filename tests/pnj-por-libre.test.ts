@@ -89,10 +89,10 @@ describe('quien más interés tiene lo deja menos, y jugar sube el interés', ()
     expect(conInteresTrasJugar(r, 'futbol', 0, INTERES_AL_JUGAR)).toBe(r);
     let x = r;
     const pasos: number[] = [];
-    for (let s = 0; s < 400; s++) { const y = conInteresTrasJugar(x, 'futbol', 3, INTERES_AL_JUGAR); pasos.push(y.intereses.futbol - x.intereses.futbol); x = y; }
+    for (let s = 0; s < 1500; s++) { const y = conInteresTrasJugar(x, 'futbol', 3, INTERES_AL_JUGAR); pasos.push(y.intereses.futbol - x.intereses.futbol); x = y; }
     expect(x.intereses.futbol).toBeLessThanOrEqual(3);
     expect(x.intereses.futbol).toBeGreaterThan(2.9);
-    expect(pasos[0]).toBeGreaterThan(pasos[100]);
+    expect(pasos[0]).toBeGreaterThan(pasos[300]);
     // quien más juega sube más
     expect(conInteresTrasJugar(r, 'futbol', 4, INTERES_AL_JUGAR).intereses.futbol).toBeGreaterThan(conInteresTrasJugar(r, 'futbol', 1, INTERES_AL_JUGAR).intereses.futbol);
     // si el interés le viene del deporte en general, el del fútbol parte de ese

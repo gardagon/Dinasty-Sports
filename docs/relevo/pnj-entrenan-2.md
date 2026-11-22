@@ -16,7 +16,7 @@ Rama `claude/pnj-entrenan-2` (sale de `claude/youthful-clarke-vs0kye`). Sin pull
 |---|---|
 | Datos (cifras provisionales, explicadas) | `modules/futbol/src/datos.ts`: `PNJ_POR_LIBRE` (fuerte), `INTERES_AL_JUGAR`, `ABANDONO_PROPUESTO` (nivel 0,6, interés 0,6, suelo 0,04; se usa como dato del abandono de `POBLACION_ESPANA`); `RutinaDeDeporte.interesAlJugar` en `packages/contracts/src/deporte-datos.ts` |
 | Interés que sube al jugar | `conInteresTrasJugar` (`modules/npcs/src/deportistas.ts`); se llama en `semanaDeportiva` con las sesiones de la semana de cada PNJ |
-| Compañeros hasta los 20 | `renovarAlumnos` y `aGraduado` (`modules/npcs/src/index.ts`); `renovarDeportistas` (`draft.ts`) deja libre a quien acaba el colegio y estaba en el equipo del colegio; `esAutoridad`/amistad en `relaciones` (`esAmigoDeNino`) |
+| Compañeros hasta los 20 | `renovarAlumnos` y `aGraduado` (`modules/npcs/src/index.ts`); `renovarDeportistas` (`draft.ts`) deja libre a quien acaba el colegio y estaba en el equipo del colegio; `esAmigoDeNino` en `relaciones` |
 | Valor real al fichar | `valorRealAlFichar` en `conHabilidades` (`modules/npcs/src/index.ts`) |
 | Herramientas | `tools/pnj-entrenan-informe.ts` (≥ 35, ≥ 38 y el interés por edad y quién lo deja), `tools/analisis-profesionales.ts` (guarda el interés de cada año) |
 | Tests | `tests/pnj-por-libre.test.ts` (activado, interés más alto → menos abandono, el interés sube con rendimientos decrecientes, sin dato no cambia), `modules/npcs/src/index.test.ts` (excompañeros), `tests/futbol.test.ts` y `tests/equipos-por-demanda.test.ts` (mundo creado sin `porLibre`: miran el reparto del equipo y del «draft», no el entrenar por su cuenta) |
@@ -48,7 +48,7 @@ Antes: `rasgos.intereses` era fijo para los PNJ (1–3 al nacer). Medido en la c
 
 ## 4. El valor provisional del primer día de curso
 
-**Se veía.** `reclutarA` pone `levels` = el nivel de su potencial a esa edad (`nivelEn`) y `sinDeporte` borra `vp`; todo lo que valora (`valorEn`/`valorRealDe` lee `vp`, y si no hay lo calcula con sus habilidades, bien) estaba bien, pero **`levels` quedaba provisional hasta la pasada semanal** (semana siguiente): lo leían la herramienta y cualquier lectura de `levels.futbol` (listados de PNJ). **Arreglo:** al empezar el curso, antes de guardar, `conHabilidades` fija `levels` y `vp` de quien tiene habilidades y no `vp` con su valor real de hoy (`valorRealAlFichar`). La pasada semanal lo vuelve a calcular con la semana de entreno. Comprobado con `npm run analisis` en la semana 52·k.
+**Se veía.** `reclutarA` pone `levels` = el nivel de su potencial a esa edad (`nivelEn`) y `sinDeporte` borra `vp`; todo lo que valora (`valorEn`/`valorRealDe` lee `vp`, y si no hay lo calcula con sus habilidades, bien) estaba bien, pero **`levels` quedaba provisional hasta la pasada semanal** (semana siguiente): lo leían la herramienta y cualquier lectura de `levels.futbol` (listados de PNJ). **Arreglo:** al empezar el curso, antes de guardar, `conHabilidades` fija `levels` y `vp` de quien tiene habilidades y no `vp` con su valor real de hoy (`valorRealAlFichar`). La pasada semanal lo vuelve a calcular con la semana de entreno. (La medición de la cohorte ya iba a la semana 52·k + 1; no he repetido la foto del día 52·k para comprobar a mano que ya no queda ningún valor provisional: queda por comprobar.)
 
 ## 5. Medidas (con la medición corregida, 4 semillas: 31–34)
 
@@ -156,7 +156,7 @@ Desaparecen del mundo entre los 17 y los 18: 0 por semilla (0.0 % de la cohorte 
 | base | 31,0 / 505 | 27,0 / 437 | 25,3 / 415 | 23,3 / 388 | 23,0 / 381 |
 | ahora | 29,8 / 509 | 27,0 / 432 | 25,3 / 412 | 22,5 / 385 | 26,5 / 446 |
 
-Cadete y juvenil **se siguen llenando** (el juvenil, mejor que antes: había 23 equipos y 381 jugadores). `npm run colegios`: colegios con equipo (de 5 por semilla) tras el verano 3: 4,0 / 4,0 / 4,0 / 3,7 / 3,7 (benjamín a juvenil); cierres de colegio 37 (4 enteros, 33 pierden uno de varios); tras un cierre hay equipo (14+) en la categoría de arriba en 15 de 16 casos. `npm run ninos-sin-equipo`: sin equipo con interés por el fútbol, al crear 0,8–1,8 por categoría y 2,0–11,7 tras el verano 1 (juvenil el mayor; daría para otro equipo en 1 de 6 semillas) , lo mismo que en el ciclo anterior (sin cambios de comportamiento: quien no cabe se aparta y vuelve a intentarlo).
+Cadete y juvenil **se siguen llenando** (el juvenil, mejor que antes: había 23 equipos y 381 jugadores). `npm run colegios`: colegios con equipo (de 5 por semilla) tras el verano 3: 4,0 / 4,0 / 4,0 / 3,7 / 3,7 (benjamín a juvenil); cierres de colegio 37 (4 enteros, 33 pierden uno de varios); tras un cierre hay equipo (14+) en la categoría de arriba en 15 de 16 casos. `npm run ninos-sin-equipo`: sin equipo con interés por el fútbol, al crear 0,8–1,8 por categoría y 2,0–11,7 tras el verano 1 (juvenil el mayor; daría para otro equipo en 1 de 6 semillas) . No he medido este número en el commit base, así que no hay comparación.
 
 ## 6. Coste de la semana (`tools/rendimiento-semana.ts --ciudad`)
 
