@@ -7,7 +7,7 @@ Encargo del usuario (22/11/2026, `DECISIONES.md` «el personaje que perdería su
 1. **En benjamín y alevín, los de primer año no desplazan a uno de segundo del club** (§1). Es un dato de la categoría: `CategoriaDef.primerAnioNoDesplazaEn` (`['colegio', 'club']` en benjamín y alevín del fútbol), igual que `rotacionEn`.
 2. **La salida por perder la plaza es un suceso con opciones**, `futbol.plaza_perdida` (§2). Antes, una línea del diario.
 3. **Otros caminos por los que sale del club sin suceso** (§3): casi no hay; uno revisado en el código y sin probar.
-4. **Medidas** (§4): la semilla 31 ya no pierde la plaza, la 35 tampoco; **pero la semilla 33 «al crear» pasa a no tener equipo** (§4.2, hay una decisión para el usuario).
+4. **Medidas** (§4): la semilla 31 ya no pierde la plaza, la 35 tampoco; la 33 «al crear» quedó sin equipo (§4.2) y se arregló en la segunda ronda (§5 bis).
 
 ## 1. Los de primer año no desplazan
 
@@ -68,8 +68,13 @@ Semilla 31: B con 17 en la plantilla, no convocado sin el personaje 1 de 17, igu
 
 `tests/plaza-al-cambiar-de-anio.test.ts`: el reparto (sin la regla, el primer año estrella desplaza al segundo flojo; con ella, no; con sitio libre siguen subiendo), el dato (solo benjamín y alevín), el suceso (sale del club, texto con la fecha, opciones, ya no hay línea del diario) y la semilla 31 de la ciudad grande (sigue en el club). Actualizados `tests/fichajes.test.ts` (el aviso ahora es el suceso) y `tests/eventos-primeros.test.ts` (nuevo aplazable). `npm test`: 120 archivos, 1327 tests ✅.
 
+## 5 bis. Segunda ronda (a petición de la arquitectura)
+
+1. **Apuntarse con sitio en un equipo** (`plazaEnElEquipo`, `plaza.ts`): con hueco en el club, ahora se comprueba con `equipoDelPersonajeEn` que cabe **en un equipo por el cupo de su puesto** (el cupo es del equipo del año, no del club entero). Si no cabe: (a) el club le ofrece **otro puesto** en que sí quepa (de los que mejor se le dan); (b) si no, se abren **plazas de más** (1–2; `PlazaEnEquipo.plazasDeMas`, que `npcs` aplica al apuntarse en `CLUB_JOIN`); (c) si ni así, `PlazaEnEquipo.sinCupo` y la acción no está disponible con el motivo «En el equipo de tu categoría no queda sitio para un jugador de tu puesto, ni siquiera con una plaza de más…» (`motivoSinPlaza`, kit). **`benjamin -- 31,33`: la 33 vuelve a dar equipo (B)**, la 31 sigue en B.
+2. **Última categoría:** `npcs` avisa con `club.equipo_sin_ninos` y motivo nuevo `fin_de_categorias` al personaje que sigue en un club y a su edad ya no hay categoría; sale del club (lo hace `clubes`) y le llega `futbol.equipo_sin_ninos` con la variante «se acaba el fútbol base en tu club…» (`TEXTOS_DE_EQUIPO_SIN_NINOS.finDeCategorias`). **Test a nivel de señal** (`tests/plaza-al-cambiar-de-anio.test.ts`): llevar a un personaje a esa edad por simulación cuesta años de partida; la emisión en `npcs` (`finDeCategorias`) no tiene test propio, solo typecheck y lectura.
+3. **«Buscar otro club»:** la señal `club.plaza_perdida` lleva ahora `clubes` (los clubes de fuera con equipo en su categoría, en una frase) y la respuesta dice «Hacen pruebas X, hasta <último día del plazo>… pide hacer una prueba: la tienes en «Prueba de acceso…», «Pedir hacer una prueba…»». La acción ya estaba en su lista (desplegable «Prueba de acceso…», con «Pedir hacer una prueba en <club>»): el test comprueba que existe. No hizo falta nada más.
+
 ## 6. Para decidir
 
-1. **El personaje sin equipo al crear (§4.2)**: comprobar el cupo al apuntarse y dar plaza de más.
-2. **Personaje que acaba la última categoría (§3)**: sigue en el club sin equipo y sin aviso.
-3. **«Buscar otro club» (§2)**: ¿que haga algo más que subir la motivación?
+1. **Personaje que acaba la última categoría**: la emisión no tiene test propio (§5 bis.2).
+2. **«Buscar otro club»**: sigue siendo una respuesta con información, no una misión.
