@@ -46,12 +46,12 @@ Ninguna abierta (el contenido duro se decidió el 22/11: desactivado por defecto
 
 | Sesión | Rama | Para qué | Estado |
 |---|---|---|---|
-| `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medir sin cambiar el juego: sucesos de los PNJ con la ciudad grande, crear y jugar en un móvil emulado (también el trabajador), desglose de jornada de liga, reparto e historia; propuestas para abaratar | Lanzada el 22/11 |
+| `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medidas (`docs/relevo/medir-rendimiento-2.md`) | ✅ Terminada y unida (solo `tools/` y `docs/`). Propuestas M1, M2 y C1 pendientes del usuario |
 | `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Fase 1 hecha y unida (`docs/relevo/sucesos-lote-2.md`); el usuario la aprobó (DECISIONES 22/11). **Espera**: cuando se una la sesión de motor, reactivarla para escribir el contenido en el orden decidido | En espera |
 | `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor para el lote 2: variantes al azar, señales de exámenes y boletín, cumpleaños propio, rotación por familia, medida por franja/lugar/persona, bot madrugador, marca de contenido duro | Lanzada el 22/11 |
 | `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Análisis con propuesta: desplegable de «Dormir» (hasta la hora de levantarse, recuperar, horas que tocan), deuda de sueño, malus y PNJ. Para y espera al usuario | Lanzada el 22/11 |
 | `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Análisis con propuesta: quién hay por la calle a cada hora, quién debería haber y su coste. Para y espera al usuario | Lanzada el 22/11 |
-| `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño para PC: diagnóstico con capturas y 2–3 prototipos detrás de la opción «Diseño» (por defecto, como ahora), en archivos nuevos (`escritorio.ts`/`.css`) para no chocar con los arreglos. Para y espera que el usuario elija | Lanzada el 22/11 |
+| `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Prototipos A, B y C (`docs/relevo/diseno-escritorio.md`) | ✅ Unida detrás de la opción «Diseño» (por defecto, como antes). Espera a que el usuario elija para aplicarlo |
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
