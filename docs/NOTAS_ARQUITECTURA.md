@@ -44,6 +44,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXMSfXmoS68SCSee9NG` | `claude/retrato-movil` | Fallo: en el móvil y en modo oscuro (versión publicada), el retrato y la evolución salen desvaídos, sin pelo, y «Deporte» en gris tras crear la partida |
 | `session_01M4vXXMq6uyW8dV12rHW48q` | `claude/plaza-al-cambiar-de-anio` | En benjamín y alevín, los de primer año no desplazan a un segundo año con plaza; desde infantil, salir del club es un suceso con opciones |
 | `session_01M4vXXMp7cyuMpYVVwYDEFo` | `claude/pnj-entrenan-y-abandono` | Análisis con propuesta (desactivada): PNJ que entrenan por su cuenta o quedan a jugar; abandono de los mejores |
 
