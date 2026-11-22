@@ -66,6 +66,7 @@ flowchart LR
 | `eventos.cuerpo.alto` | Un comentario sobre tu altura | cada dia, 8 % | menor |
 | `eventos.estudios.primer_dia_de_educacion_fisica` | Tu primera clase de Educación física | al: `clase.asistida` | importante |
 | `eventos.estudios.tarde_a_clase` | Llegas tarde a clase | al: `clase.asistida` | importante |
+| `eventos.grupo.se_van` | Se van en grupo | al: `presencia.grupo_se_va` | importante |
 | `eventos.perks.asmatico` | Te falta el aire | al: `accion.realizada` | importante |
 | `eventos.perks.vision_periferica` | Lo ves todo | cada semana, 15 % | importante |
 | `eventos.perks.miope` | La pizarra, borrosa | cada semana, 15 % | importante |
@@ -99,6 +100,7 @@ flowchart LR
 | `futbol.pedir_puesto` | Pedirle a {entrenador.nombre} jugar de {señal.puestoNombre} | al: `club.pide_puesto` | importante |
 | `futbol.plaza_extra` | Una plaza de más en el equipo | al: `club.plaza_extra` | importante |
 | `futbol.equipo_sin_ninos` | Tu equipo no sale este año | al: `club.equipo_sin_ninos` | importante |
+| `futbol.plaza_perdida` | Te quedas sin plaza en el equipo | al: `club.plaza_perdida` | importante |
 
 ## Marcas
 
