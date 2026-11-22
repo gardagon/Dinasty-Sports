@@ -4,7 +4,11 @@
  * lanza señales y deja forzar un suceso. Así un hilo de semanas se prueba en milisegundos y sin jugar hasta llegar a él.
  */
 import {
+  APORTE_DE_CONFIG_DE_SUCESOS,
   APORTE_DE_SUCESOS,
+  duroSinFiltro,
+  sinContenidoDuro,
+  type ConfigDeContenidoDuro,
   PAIS_CIUDAD_DE_PRUEBA,
   registrarPais,
   SERVICES,
@@ -40,6 +44,9 @@ interface Mando {
   tirada?: 'exito' | 'fallo';
   todoVale: boolean;
   variante?: string;
+  /** Cuál de los `textos` de entrada / de los `resultados` sale (para ver todas las versiones). */
+  texto?: number;
+  resultado?: number;
 }
 
 const SHARED: ReadonlySet<string> = new Set(Object.values(SHARED_EVENTS));
@@ -50,10 +57,12 @@ const NOMBRES: readonly PersonaDeTexto[] = [
   { nombre: 'Marcos', nombreCompleto: 'Marcos Gil Soto', gender: 'm', campos: { diaDelCumple: '3 de mayo' } },
 ];
 
-function moduloDePrueba(mando: Mando, genero: 'f' | 'm'): GameModule {
+function moduloDePrueba(mando: Mando, genero: 'f' | 'm', duro?: ConfigDeContenidoDuro): GameModule {
   return defineModule({
     id: 'banco',
     name: 'Banco de pruebas',
+    // La preferencia del jugador sobre el contenido duro (como la lleva la web: un aporte `sucesos.config`).
+    ...(duro ? { aportes: { [APORTE_DE_CONFIG_DE_SUCESOS]: [{ presentacion: { duro } }] } } : {}),
     actions: [
       {
         id: 'banco.senal',
@@ -71,6 +80,8 @@ function moduloDePrueba(mando: Mando, genero: 'f' | 'm'): GameModule {
         return {
           todoVale: mando.todoVale,
           variante: () => mando.variante,
+          texto: () => mando.texto,
+          resultado: () => mando.resultado,
           tirada: () => mando.tirada,
           señal: () => mando.señal?.datos as Record<string, unknown> | undefined,
           papel: (n) => (d.sinPapel?.includes(n) ? null : personaDePrueba(n)),
@@ -115,7 +126,7 @@ export class Banco {
   private base?: GameState;
 
   /** Por defecto, el juego con todos sus deportes (también los que se instalan aparte, como el fútbol), en la ciudad de prueba (pequeña y rápida de crear). */
-  constructor(modulos: readonly GameModule<any>[] = [...MODULOS, futbol]) {
+  constructor(modulos: readonly GameModule<any>[] = [...MODULOS, futbol], readonly opciones: { duro?: ConfigDeContenidoDuro } = {}) {
     this.modulos = modulos;
     this.catalogo = compilarCatalogo(aportesPorModulo(modulos).flatMap((x) => x.aportes), (id) => modulos.some((m) => m.id === id));
   }
@@ -143,7 +154,7 @@ export class Banco {
     const s = estado.modules.sucesos as SucesosState;
     for (const m of dado.marcas ?? []) s.marcas[m] = {};
     Object.assign(s.contadores, dado.contadores ?? {});
-    return new Sesion(Game.load([...this.modulos, moduloDePrueba(mando, opciones.genero ?? 'f')], estado, { copiar: false }), mando, this);
+    return new Sesion(Game.load([...this.modulos, moduloDePrueba(mando, opciones.genero ?? 'f', this.opciones.duro)], estado, { copiar: false }), mando, this);
   }
 }
 
@@ -177,11 +188,13 @@ export class Sesion {
   }
 
   /** Hace salir un suceso ahora (sus condiciones cuentan, salvo en una sesión `todoVale`). Devuelve si ha salido. */
-  forzar(suceso: string, variante?: string): boolean {
+  forzar(suceso: string, variante?: string, texto?: number): boolean {
     const antes = this.estado.historia.length + this.estado.pendientes.length;
     this.mando.variante = variante;
+    this.mando.texto = texto;
     const r = this.game.perform(idDeForzar(suceso));
     this.mando.variante = undefined;
+    this.mando.texto = undefined;
     if (!r.ok) throw new Error(`No se puede forzar «${suceso}»: ${r.reason}`);
     return this.estado.historia.length + this.estado.pendientes.length > antes;
   }
@@ -190,13 +203,15 @@ export class Sesion {
     return this.servicio.pendientes().find((p) => !suceso || p.suceso === suceso);
   }
 
-  elegir(suceso: string, opcion: string, tirada?: 'exito' | 'fallo'): void {
+  elegir(suceso: string, opcion: string, tirada?: 'exito' | 'fallo', resultado?: number): void {
     const p = this.pendiente(suceso);
     const o = p?.opciones.find((x) => x.id === opcion);
     if (!p || !o) throw new Error(`«${suceso}» no está pendiente o no tiene la opción «${opcion}»`);
     this.mando.tirada = tirada;
+    this.mando.resultado = resultado;
     const r = this.game.perform(o.accion);
     this.mando.tirada = undefined;
+    this.mando.resultado = undefined;
     if (!r.ok) throw new Error(`No se puede elegir «${opcion}» en «${suceso}»: ${r.reason}`);
   }
 
@@ -289,7 +304,7 @@ export function correrTodo(banco: Banco): { de: string; nombre: string; problema
 // ------------------------------------------------------------------ recorrer todos los caminos
 
 export interface Camino {
-  /** `suceso[variante] → opción (éxito|fallo)` de cada paso. */
+  /** `suceso[variante] → opción (éxito|fallo)` de cada paso, con `[versión 2/3]` si el texto o el resultado tienen varias versiones. */
   pasos: string[];
   /** Textos tal como los vería el jugador. */
   textos: string[];
@@ -301,13 +316,17 @@ export interface Camino {
 
 /**
  * Recorre todos los caminos de un hilo (o un suceso suelto): cada variante, cada opción y cada rama de cada tirada, saltándose las
- * condiciones y sin esperar los días. Si algún camino lanza un error (un texto al que le falta un dato, un efecto imposible), lo dice.
+ * condiciones y sin esperar los días. Si hay varias versiones de un texto de entrada (`textos`) o de un resultado (`resultados`), se enseña
+ * cada una (no el producto de todas: cada versión sale al menos una vez en cada camino, y se sigue el hilo solo con la primera, para no multiplicar).
+ * Con un banco que tenga una preferencia de contenido duro (`new Banco(modulos, { duro })`) se recorre lo que quedaría con ella.
+ * Si algún camino lanza un error (un texto al que le falta un dato, un efecto imposible), lo dice.
  * Con `genero` se eligen las personas de mentira, para leer los textos concordados de las dos formas.
  */
-export function recorrer(banco: Banco, raiz: string, genero: 'f' | 'm' = 'f', maximo = 400): { caminos: Camino[]; errores: string[] } {
+export function recorrer(banco: Banco, raiz: string, genero: 'f' | 'm' = 'f', maximo = 1500): { caminos: Camino[]; errores: string[] } {
   const caminos: Camino[] = [];
   const errores: string[] = [];
   const hilo = banco.catalogo.hilos.get(raiz);
+  const duro = banco.opciones.duro && !duroSinFiltro(banco.opciones.duro) ? banco.opciones.duro : undefined;
   const entradas = hilo ? hilo.sucesos.filter((x) => !('programado' in x.disparo)).map((x) => x.id) : [raiz];
   // Los hechos de ejemplo de sus sucesos (lo que dirían los módulos en esa situación), para que los textos que los usan se puedan componer.
   const sucesosDeLaRaiz = hilo ? hilo.sucesos : [banco.catalogo.sucesos.get(raiz)?.def].filter((x) => !!x);
@@ -317,30 +336,44 @@ export function recorrer(banco: Banco, raiz: string, genero: 'f' | 'm' = 'f', ma
     if (caminos.length >= maximo) return;
     const x = banco.catalogo.sucesos.get(suceso);
     if (!x) return void errores.push(`«${suceso}» no está en el catálogo`);
-    const variantes: (string | undefined)[] = x.def.variantes?.length ? x.def.variantes.map((v) => v.id) : [undefined];
+    // Con una preferencia de contenido duro, el suceso tal como lo vería el jugador (si no puede salir, no hay camino que recorrer).
+    const def = duro ? sinContenidoDuro(x.def, duro) : x.def;
+    if (!def) return;
+    const variantes: (string | undefined)[] = def.variantes?.length ? def.variantes.map((v) => v.id) : [undefined];
     for (const variante of variantes) {
       const nombre = variante ? `${suceso}[${variante}]` : suceso;
-      type Rama = [string | undefined, 'exito' | 'fallo' | undefined];
-      const ramas = (d: { opciones?: readonly OpcionDef[] }): Rama[] =>
-        d.opciones?.length ? d.opciones.flatMap((o): Rama[] => (o.tirada ? [[o.id, 'exito'], [o.id, 'fallo']] : [[o.id, undefined]])) : [[undefined, undefined]];
-      const v = x.def.variantes?.find((y) => y.id === variante);
-      for (const [opcion, tirada] of ramas(v?.opciones ? v : x.def)) {
-        const paso = opcion ? `${nombre} → ${opcion}${tirada ? ` (${tirada === 'exito' ? 'sale bien' : 'sale mal'})` : ''}` : nombre;
-        try {
-          const s = banco.sesion(dado, { genero, todoVale: true, desde });
-          const log0 = s.game.log.length;
-          if (!s.forzar(suceso, variante)) throw new Error('no sale ni saltándose las condiciones (¿falta alguien en el reparto?)');
-          const p = s.pendiente(suceso);
-          const leido = p ? [`${p.titulo}. ${p.texto}`] : [];
-          if (opcion) s.elegir(suceso, opcion, tirada);
-          const nuevos = [...textos, ...leido, ...s.game.log.slice(log0 - s.game.log.length || undefined).map((l) => l.text).filter((t) => !t.endsWith('tienes algo que decidir.'))];
-          const siguientes = s.estado.programados.map((q) => q.suceso);
-          if (!siguientes.length) {
-            const st = s.estado;
-            caminos.push({ pasos: [...pasos, paso], textos: nuevos, marcas: Object.keys(st.marcas), programados: [], hiloCerrado: !hilo || !st.hilos.some((h) => h.def === hilo.id) });
-          } else for (const sig of [...new Set(siguientes)]) seguir(s.copia(), sig, [...pasos, paso], nuevos);
-        } catch (err) {
-          errores.push(`${[...pasos, paso].join(' ⇒ ')}: ${(err as Error).message}`);
+      type Rama = [string | undefined, 'exito' | 'fallo' | undefined, number];
+      const v = def.variantes?.find((y) => y.id === variante);
+      const d = v?.opciones ? v : def;
+      // Cuántas versiones tiene el texto de entrada y cada rama de resultado.
+      const origen = v && (v.texto !== undefined || v.textos !== undefined) ? v : def;
+      const nTextos = origen.textos?.length ?? 1;
+      const n = (r?: { resultados?: readonly string[] }) => r?.resultados?.length ?? 1;
+      const ramas: Rama[] = d.opciones?.length
+        ? d.opciones.flatMap((o): Rama[] => (o.tirada ? [[o.id, 'exito', n(o.exito)], [o.id, 'fallo', n(o.fallo)]] : [[o.id, undefined, n(o)]]))
+        : [[undefined, undefined, 1]];
+      for (const [opcion, tirada, nResultados] of ramas) {
+        const versiones = Math.max(nTextos, nResultados);
+        for (let k = 0; k < versiones; k++) {
+          const etiqueta = versiones > 1 ? ` [versión ${k + 1}/${versiones}]` : '';
+          const paso = (opcion ? `${nombre} → ${opcion}${tirada ? ` (${tirada === 'exito' ? 'sale bien' : 'sale mal'})` : ''}` : nombre) + etiqueta;
+          try {
+            const s = banco.sesion(dado, { genero, todoVale: true, desde });
+            const log0 = s.game.log.length;
+            if (!s.forzar(suceso, variante, nTextos > 1 ? k % nTextos : undefined)) throw new Error('no sale ni saltándose las condiciones (¿falta alguien en el reparto?)');
+            const p = s.pendiente(suceso);
+            const leido = p ? [`${p.titulo}. ${p.texto}`] : [];
+            if (opcion) s.elegir(suceso, opcion, tirada, nResultados > 1 ? k % nResultados : undefined);
+            const nuevos = [...textos, ...leido, ...s.game.log.slice(log0 - s.game.log.length || undefined).map((l) => l.text).filter((t) => !t.endsWith('tienes algo que decidir.'))];
+            const siguientes = s.estado.programados.map((q) => q.suceso);
+            // Cada versión acaba su camino; el hilo solo sigue con la primera (las demás solo cambian el texto).
+            if (!siguientes.length || k > 0) {
+              const st = s.estado;
+              caminos.push({ pasos: [...pasos, paso], textos: nuevos, marcas: Object.keys(st.marcas), programados: [...new Set(siguientes)], hiloCerrado: !hilo || !st.hilos.some((h) => h.def === hilo.id) });
+            } else for (const sig of [...new Set(siguientes)]) seguir(s.copia(), sig, [...pasos, paso], nuevos);
+          } catch (err) {
+            errores.push(`${[...pasos, paso].join(' ⇒ ')}: ${(err as Error).message}`);
+          }
         }
       }
     }
