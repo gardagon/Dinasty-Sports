@@ -63,6 +63,21 @@ for (const { et, datos } of versiones) {
     const sin = base.length - sig - fuera - deja;
     w(`| ${8 + k} → ${9 + k} | ${(base.length / S).toFixed(0)} | ${pc(sig, base.length)} | ${pc(fuera, base.length)} | ${pc(deja, base.length)} | ${pc(sin, base.length)} |`);
   }
+  // Quién lo deja según lo bueno que es frente a los de su edad (el 10 % de arriba, hasta la mitad y la mitad de abajo), de los 14 a los 17 años (año k → k+1): cuántos siguen, lo dejan o salen del mundo.
+  const tramos: Record<string, { n: number; sigue: number; deja: number; fuera: number }> = { 'mejores 10 %': { n: 0, sigue: 0, deja: 0, fuera: 0 }, 'del 10 al 50 %': { n: 0, sigue: 0, deja: 0, fuera: 0 }, 'mitad de abajo': { n: 0, sigue: 0, deja: 0, fuera: 0 } };
+  for (const d of Object.values(datos)) for (let k = 6; k < K; k++) {
+    const jug = d.ninos.filter((n) => en(n, k)?.juega).sort((a, b) => en(b, k)!.valor! - en(a, k)!.valor!);
+    jug.forEach((n, i) => {
+      const t = tramos[i < jug.length * 0.1 ? 'mejores 10 %' : i < jug.length * 0.5 ? 'del 10 al 50 %' : 'mitad de abajo'];
+      const b = en(n, k + 1);
+      t.n++;
+      if (!b) t.fuera++; else if (b.juega) t.sigue++; else t.deja++;
+    });
+  }
+  w('\n**De los 14 a los 18 años, por lo bueno que es cada uno frente a los de su edad (cada año k → k+1):**\n');
+  w('| tramo | casos | siguen | lo dejan | salen del mundo | prob. de seguir 4 años (si la tasa fuera constante) |');
+  w('|---|---|---|---|---|---|');
+  for (const [a, t] of Object.entries(tramos)) w(`| ${a} | ${t.n} | ${pc(t.sigue, t.n)} | ${pc(t.deja, t.n)} | ${pc(t.fuera, t.n)} | ${pc(Math.round(1000 * (t.sigue / t.n) ** 4), 1000)} |`);
   const desaparecen = ninos.filter((n) => !en(n, K) && en(n, K - 1));
   const roles = new Map<string, number>();
   for (const n of desaparecen) roles.set(en(n, K - 1)!.rol ?? '?', (roles.get(en(n, K - 1)!.rol ?? '?') ?? 0) + 1);
