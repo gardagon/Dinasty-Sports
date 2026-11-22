@@ -1,0 +1,12 @@
+crear (ciudad grande + fútbol), mediana de 3 pasadas (semillas 32,33,31): total 7814 ms (7599–7849)
+1 generarReparto (familias, vecinos)                  1 ms (1–1)  0.0 %
+2 poblarElColegio                                   497 ms (464–563)  6.4 %
+3 conSemilla+ajustarVecinos+bibliotecarios            6 ms (6–7)  0.1 %
+4 entrenadores                                        7 ms (5–8)  0.1 %
+5a conCapacidades(0)                                446 ms (443–448)  5.7 %
+5b reclutarEnTodos                                   94 ms (87–106)  1.2 %
+6 draftDeEquipos (reparto de equipos)              2572 ms (2483–2656)  32.9 %
+7a conHabilidades (historia deportiva)             4078 ms (4044–4155)  52.2 %
+7b conCapacidades                                     1 ms (1–1)  0.0 %
+7c conCuerpo                                         20 ms (18–22)  0.3 %
+7d conApuntados                                       3 ms (3–4)  0.0 %
