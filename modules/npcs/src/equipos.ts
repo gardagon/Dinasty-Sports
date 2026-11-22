@@ -28,14 +28,21 @@ export interface EquiposDelClub {
   sobran: string[];
 }
 
-/** Llena un equipo de `max` jugadores recorriendo `candidatos` en orden: entra el siguiente de cada grupo de puestos mientras haya cupo en él. */
-function llenar(candidatos: readonly MiembroDeClub[], p: PuestosDeDeporte, max: number): string[] {
+/**
+ * Llena un equipo de `max` jugadores recorriendo `candidatos` en orden: entra el siguiente de cada grupo de puestos mientras haya cupo en él. Con `ya`, jugadores que ya están en el equipo (cuentan en sus grupos y en el
+ * total, que no pasa de `max`).
+ */
+function llenar(candidatos: readonly MiembroDeClub[], p: PuestosDeDeporte, max: number, ya: readonly MiembroDeClub[] = []): string[] {
   const cupos = cuposPorGrupo(p, max);
   const cuenta: Record<string, number> = {};
+  for (const y of ya) {
+    const g = grupoDePuesto(p, y.puesto);
+    if (g) cuenta[g] = (cuenta[g] ?? 0) + 1;
+  }
   const dentro: string[] = [];
   for (const c of candidatos) {
     const g = grupoDePuesto(p, c.puesto);
-    if (!g || (cuenta[g] ?? 0) >= (cupos[g] ?? 0)) continue;
+    if (!g || (cuenta[g] ?? 0) >= (cupos[g] ?? 0) || ya.length + dentro.length >= max) continue;
     cuenta[g] = (cuenta[g] ?? 0) + 1;
     dentro.push(c.id);
   }
@@ -48,9 +55,9 @@ const porValor = (a: Pick<MiembroDeClub, 'id' | 'valor'>, b: Pick<MiembroDeClub,
  * Reparte a los miembros de un club en una categoría en sus equipos A a D, **todos los clubes por año** (decisión del usuario, 05/11/2026): A, los de segundo año y los de primer año que destacan
  * (con el `liston`); B, los de primer año; con tres equipos, el C es una mezcla de los dos años; con cuatro, el C son los de segundo año (completado con los de primer año si no llegan al mínimo)
  * y el D los de primer año. `nEquipos` es cuántos tiene abiertos (de 1 a 4), `max` los jugadores de cada uno y `minimo` los que necesita un equipo para existir: **un jugador no sube al equipo de
- * arriba si deja a su equipo con menos del mínimo ni si el de arriba está completo**. Con `porAnio` en falso (compatibilidad), por nivel.
+ * arriba si deja a su equipo con menos del mínimo ni si el de arriba está completo**. Con `segundosPrimero`, los de primer año no le quitan el sitio en el A a uno de segundo. Con `porAnio` en falso (compatibilidad), por nivel.
  */
-export function repartirEnEquipos(miembros: readonly MiembroDeClub[], p: PuestosDeDeporte, nEquipos: number, max: number, porAnio: boolean, liston = 0, minimo = 14): EquiposDelClub {
+export function repartirEnEquipos(miembros: readonly MiembroDeClub[], p: PuestosDeDeporte, nEquipos: number, max: number, porAnio: boolean, liston = 0, minimo = 14, segundosPrimero = false): EquiposDelClub {
   const equipos: EquiposDelClub = { A: [], B: [], C: [], D: [], sobran: [] };
   const usados = new Set<string>();
   const poner = (letra: LetraDeEquipo, candidatos: readonly MiembroDeClub[], hasta = Infinity): void => {
@@ -67,8 +74,21 @@ export function repartirEnEquipos(miembros: readonly MiembroDeClub[], p: Puestos
     // Los de primer año que pueden subir al A: los que destacan, sin dejar al B con menos del mínimo (con un solo equipo no hay B al que dejar).
     const puedenSubir = nEquipos >= 2 ? Math.max(0, primeros.length - minimo) : primeros.length;
     const suben = [...primeros].sort((a, b) => ajustado(b) - ajustado(a) || (a.id < b.id ? -1 : 1)).slice(0, puedenSubir);
-    const paraElA = [...segundos, ...suben].sort((a, b) => ajustado(b) - ajustado(a) || (a.id < b.id ? -1 : 1));
-    if (nEquipos >= 1) poner('A', paraElA);
+    // Con `segundosPrimero` (benjamín y alevín: `CategoriaDef.primerAnioNoDesplazaEn`), los de segundo año ocupan el A antes que nadie y los de primer año solo entran en el sitio que quede libre.
+    const porAjustado = (a: MiembroDeClub, b: MiembroDeClub): number => ajustado(b) - ajustado(a) || (a.id < b.id ? -1 : 1);
+    const paraElA = segundosPrimero ? [...[...segundos].sort(porAjustado), ...[...suben].sort(porAjustado)] : [...segundos, ...suben].sort(porAjustado);
+    if (nEquipos >= 1 && segundosPrimero) {
+      // Los de segundo año primero, por puestos y, si su grupo está lleno, en el sitio que quede (ya tenían plaza en el club); los de primer año, solo con el sitio libre que quede, respetando los puestos.
+      const delSegundo = [...segundos].sort(porAjustado);
+      const enSuPuesto = new Set(llenar(delSegundo, p, max));
+      const sitio = delSegundo.filter((m) => !enSuPuesto.has(m.id)).slice(0, Math.max(0, max - enSuPuesto.size)).map((m) => m.id);
+      const dentro = [...delSegundo.filter((m) => enSuPuesto.has(m.id)), ...delSegundo.filter((m) => sitio.includes(m.id))];
+      const arriba = [...dentro.map((m) => m.id), ...llenar([...suben].sort(porAjustado), p, max, dentro)];
+      for (const id of arriba) {
+        equipos.A.push(id);
+        usados.add(id);
+      }
+    } else if (nEquipos >= 1) poner('A', paraElA);
     if (nEquipos >= 2) poner('B', [...primeros].sort(porValor));
     if (nEquipos === 3) poner('C', [...miembros].sort(porValor));
     if (nEquipos >= 4) {

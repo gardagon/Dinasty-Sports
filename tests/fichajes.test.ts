@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { CALENDARIO_ESPANA, GEN, SERVICES, SHARED_EVENTS, defineModule, plazoDeFichajesAbierto, proximaAperturaDelPlazo, type ClubDirectory } from '@ds/contracts';
+import { CALENDARIO_ESPANA, GEN, SERVICES, SHARED_EVENTS, defineModule, plazoDeFichajesAbierto, proximaAperturaDelPlazo, type ClubDirectory, type SucesosService } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { DATOS_ATLETISMO } from '@ds/mod-atletismo';
@@ -294,7 +294,7 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
       name: 'Aviso',
       dependsOn: ['gen'],
       initState: () => ({}),
-      actions: [{ id: 'avisa.perdida', name: 'Perder la plaza', tags: [], duration: 1, run: (ctx) => ctx.emit({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: 'futbol', clubId: 'colegio' } }) }],
+      actions: [{ id: 'avisa.perdida', name: 'Perder la plaza', tags: [], duration: 1, run: (ctx) => ctx.emit({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: 'futbol', clubId: 'colegio', participants: [{ npcId: 'entrenador' }], plazoHasta: 'el lunes 14 de septiembre' } }) }],
     });
     const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, avisa]);
     advanceToWeek(g, 'gen.descansar', 1, 2, 15);
@@ -304,8 +304,10 @@ describe('el personaje desplazado sale del club, como cualquier niño, y decide 
     expect(g.perform('avisa.perdida').ok).toBe(true);
     // Sale del club como cualquier niño desplazado…
     expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeUndefined();
-    // …se le explica qué ha pasado y qué puede hacer (otro club con la regla de plaza, otro deporte o esperar al siguiente plazo)…
-    expect(g.log.some((l) => /Un jugador que vale más ha ocupado tu plaza en el equipo de fútbol y sales del club\. Puedes probar en otro club, en otro deporte o esperar al siguiente plazo de fichajes\./.test(l.text))).toBe(true);
+    // …su entrenador se lo cuenta con un suceso con opciones (otro club con la fecha de las pruebas, entrenar por su cuenta…), no con una línea del diario…
+    const aviso = g.service<SucesosService>(SERVICES.sucesos)!.pendientes().find((x) => x.suceso === 'futbol.plaza_perdida');
+    expect(aviso, 'le llega el suceso de la salida').toBeDefined();
+    expect(aviso!.texto).toMatch(/hasta el lunes 14 de septiembre/);
     // …no lo ha dejado él (ni plantón ni plazo cerrado) y decide: puede volver a probar en un club en cuanto haya plaza.
     expect(g.stat(GEN.estres)).toBeLessThanOrEqual(estres + 0.5);
     expect(g.preview('futbol.apuntarse_colegio')!.reason ?? '').not.toMatch(/fuera de plazo|plazo de fichajes está cerrado/);

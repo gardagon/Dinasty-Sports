@@ -280,6 +280,52 @@ export function sucesoDePlazaExtra(cfg: ConfigDeporte, t: TextosDePlazaExtra): A
 }
 
 
+/** Los textos de la salida del club por perder la plaza (`{entrenador.nombre}`, `{señal.plazoHasta}`; el género del personaje, `{yo:o|a}`). */
+export interface TextosDePlazaPerdida {
+  titulo: string;
+  texto: string;
+  /** Buscar otro club mientras las pruebas están abiertas. */
+  opcionBuscar: string;
+  resultadoBuscar: string;
+  /** Quedarse entrenando por su cuenta hasta el siguiente plazo. */
+  opcionPorMiCuenta: string;
+  resultadoPorMiCuenta: string;
+  /** Preguntarle qué tiene que mejorar. */
+  opcionMejorar: string;
+  resultadoMejorar: string;
+}
+
+/**
+ * El suceso de la salida del club (`<deporte>.plaza_perdida`, decisión del usuario, 22/11/2026): al empezar el curso otro jugador que vale más le ocupa la plaza al personaje y ni con una plaza de más cabe, así que **sale del club**
+ * (lo hace el módulo de clubes con `club.plaza_perdida`). Su entrenador se lo dice y le da opciones: buscar otro club (con hasta cuándo siguen abiertas las pruebas, `{señal.plazoHasta}`), entrenar por su cuenta o preguntar qué mejorar.
+ * Antes era una línea del diario. El entrenador y la fecha vienen en la señal (al llegar ya no es de ese club). Dispara con `club.plaza_perdida`.
+ */
+export function sucesoDePlazaPerdida(cfg: ConfigDeporte, t: TextosDePlazaPerdida): AporteDeSucesos {
+  return suceso({
+    id: `${cfg.id}.plaza_perdida`,
+    titulo: t.titulo,
+    deporte: cfg.id,
+    disparo: { al: SHARED_EVENTS.PLAZA_PERDIDA },
+    ejemploDeSeñal: { sport: cfg.id, clubId: 'club', participants: [{ npcId: 'entrenador' }], plazoHasta: 'el lunes 14 de septiembre' },
+    cuando: [{ señal: 'sport', es: cfg.id }],
+    repite: 'siempre',
+    reparto: { entrenador: { rol: 'entrenador', deLaSeñal: 'participants', conocido: false } },
+    // Un aviso al cambiar de temporada: se puede pensar unos días (el plazo de fichajes sigue abierto).
+    urgencia: 'aplazable',
+    plazo: { dias: 3, porDefecto: 'por_mi_cuenta' },
+    texto: t.texto,
+    opciones: [
+      { id: 'buscar_club', texto: t.opcionBuscar, caracter: { ambicion: 2 }, minutos: 5, efectos: [{ estado: GEN.motivacion, mas: 2 }, { relacion: 'entrenador', afinidad: 1 }], resultado: t.resultadoBuscar },
+      { id: 'por_mi_cuenta', texto: t.opcionPorMiCuenta, caracter: { disciplina: 2, ambicion: -1 }, efectos: [{ estado: GEN.motivacion, mas: -1 }], resultado: t.resultadoPorMiCuenta },
+      { id: 'mejorar', texto: t.opcionMejorar, caracter: { ambicion: 1, disciplina: 1 }, minutos: 5, efectos: [{ relacion: 'entrenador', afinidad: 2, confianza: 1 }, { entrena: idDeConocimiento(cfg.id), cantidad: 1 }], resultado: t.resultadoMejorar },
+    ],
+    pruebas: [
+      { nombre: 'Al perder la plaza en verano sale el aviso de su entrenador y no pasa nada si no contesta', dado: {}, espero: { sale: true } },
+    ],
+  });
+}
+
+
 /** Los textos del aviso de que el equipo del personaje no sigue este curso (`{señal.jugadores}` y `{señal.minimo}` en el de pocos niños; el género del personaje, `{yo:o|a}`). */
 export interface TextosDeEquipoSinNinos {
   titulo: string;

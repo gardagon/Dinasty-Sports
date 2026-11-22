@@ -379,7 +379,7 @@ export function equiposDelClub(lista: ReadonlyMap<string, Npc>, pob: PoblacionGu
   const fijos = !recalcular && !extra.length && miembros.some((x) => !!x.n.letra?.[pob.deporte]);
   const equipos: EquiposDelClub = fijos
     ? { A: [], B: [], C: [], D: [], sobran: miembros.filter((x) => !x.n.letra?.[pob.deporte]).map((x) => x.n.id), ...Object.fromEntries(LETRAS.map((l) => [l, miembros.filter((x) => x.n.letra?.[pob.deporte] === l).map((x) => x.n.id)])) }
-    : repartirEnEquipos(todos, pob.puestos!, k, maximoPorEquipo(e, categoria.id), true, pob.puestos!.equipos?.listonDePrimerAno ?? 0, e.plantillaPorCategoria!.min);
+    : repartirEnEquipos(todos, pob.puestos!, k, maximoPorEquipo(e, categoria.id), true, pob.puestos!.equipos?.listonDePrimerAno ?? 0, e.plantillaPorCategoria!.min, !!pob.categorias?.find((c) => c.id === categoria.id)?.primerAnioNoDesplazaEn?.includes(e.colegio !== undefined ? 'colegio' : 'club'));
   const titulares = pob.puestos!.equipos?.titulares ?? {};
   const suplentes = LETRAS.flatMap((l) => suplentesDe(todos.filter((m) => equipos[l].includes(m.id)), pob.puestos!, titulares));
   return { equipos, suplentes, miembros };

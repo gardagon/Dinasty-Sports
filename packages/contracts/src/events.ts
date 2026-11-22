@@ -195,6 +195,9 @@ export interface PresentacionData {
 export interface PlazaPerdidaData {
   sport: string;
   clubId: string;
+  /** Con `PLAZA_PERDIDA`: el entrenador de su equipo (`[{ npcId }]`; al llegar la señal el personaje ya no es de ese club, así que el suceso lo toma de aquí) y el último día en que sigue abierto el plazo de fichajes («el lunes 14 de septiembre»). */
+  participants?: { npcId: string }[];
+  plazoHasta?: string;
 }
 
 /** Por qué el equipo del personaje no sigue (`EQUIPO_SIN_NINOS`): `pocos` (el club no reúne el mínimo de niños en su categoría: el equipo se cierra) o `sin_categoria` (el club no tiene equipos en la categoría a la que sube). */

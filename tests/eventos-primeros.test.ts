@@ -156,6 +156,6 @@ describe('qué sucesos pasan durante una actividad y cuáles se pueden aplazar (
   });
 
   it('solo se pueden aplazar los avisos que de verdad pueden esperar (hoy, los del club al cambiar de temporada y la fiesta de un cumpleaños)', () => {
-    expect(defs.filter((d) => sucesoEsAplazable(d, CONFIG_DE_SUCESOS.durante)).map((d) => d.id).sort()).toEqual(['eventos.relaciones.cumple.fiesta', 'futbol.equipo_sin_ninos', 'futbol.plaza_extra']);
+    expect(defs.filter((d) => sucesoEsAplazable(d, CONFIG_DE_SUCESOS.durante)).map((d) => d.id).sort()).toEqual(['eventos.relaciones.cumple.fiesta', 'futbol.equipo_sin_ninos', 'futbol.plaza_extra', 'futbol.plaza_perdida']);
   });
 });

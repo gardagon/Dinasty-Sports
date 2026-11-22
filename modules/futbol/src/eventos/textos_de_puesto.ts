@@ -1,4 +1,4 @@
-import type { TextosDeEquipoSinNinos, TextosDePedirPuesto, TextosDePlazaExtra, TextosDePruebaDeAcceso } from '@ds/kit-deporte';
+import type { TextosDePlazaPerdida, TextosDeEquipoSinNinos, TextosDePedirPuesto, TextosDePlazaExtra, TextosDePruebaDeAcceso } from '@ds/kit-deporte';
 
 /**
  * Los textos de la prueba de acceso y de pedirle al entrenador otro puesto. Las reglas (huecos, tirada, dificultad) son comunes a todo deporte con puestos y viven en el kit
@@ -49,4 +49,16 @@ export const TEXTOS_DE_EQUIPO_SIN_NINOS: TextosDeEquipoSinNinos = {
   resultadoBuscar: 'No te lo piensas mucho: pides pruebas en otros clubes mientras el plazo está abierto.',
   opcionEsperar: 'Esperar a ver qué pasa',
   resultadoEsperar: 'Te quedas dándole vueltas. El plazo de fichajes sigue abierto, pero no vas a esperar mucho más.',
+};
+
+export const TEXTOS_DE_PLAZA_PERDIDA: TextosDePlazaPerdida = {
+  titulo: 'Te quedas sin plaza en el equipo',
+  texto:
+    'Antes de empezar el curso, {entrenador.nombre} te para al salir del campo. «Tengo que decirte algo que no me gusta. Han llegado jugadores que valen más que tú en tu puesto y el equipo no da para más: este año no hay sitio para ti». Se pasa la mano por la nuca. «Estás fuera de la plantilla. Las pruebas de otros clubes siguen abiertas hasta {señal.plazoHasta}. Si te mueves ahora, aún estás a tiempo. O, si prefieres, sigue entrenando por tu cuenta y vuelve a intentarlo en el siguiente plazo».',
+  opcionBuscar: 'Buscar otro club mientras las pruebas siguen abiertas',
+  resultadoBuscar: '«Eso es. Llama a los clubes esta misma semana». {entrenador.Nombre} te da la mano. «Y si te falta algo, ya sabes dónde estoy».',
+  opcionPorMiCuenta: 'Quedarte entrenando por tu cuenta y volver a intentarlo el año que viene',
+  resultadoPorMiCuenta: '{entrenador.Nombre} asiente despacio. «Es un camino más largo, pero también vale. Trabaja duro y verás cómo cambian las cosas».',
+  opcionMejorar: 'Preguntarle qué tienes que mejorar para volver',
+  resultadoMejorar: '{entrenador.Nombre} te explica con calma qué ha pesado en la decisión. «Hazlo bien y cuando haya un hueco, tú eres el primero al que llamo».',
 };
