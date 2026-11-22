@@ -136,4 +136,19 @@ describe('el personaje que se apunta tiene equipo, y el que acaba la última cat
     const p = g.service<SucesosService>(SERVICES.sucesos)!.pendientes().find((x) => x.suceso === 'futbol.equipo_sin_ninos');
     expect(p!.texto).toMatch(/se acaba el fútbol base en tu club/);
   });
+
+  it('el personaje cuenta para el mínimo de su equipo: un B con 13 niños del mundo más él existe en la liga y juega (semilla 33)', async () => {
+    const { PAIS_CIUDAD_GRANDE, registrarPais } = await import('@ds/contracts');
+    registrarPais(PAIS_CIUDAD_GRANDE);
+    const g = nuevaPartida({ seed: 33, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    advanceToWeek(g, 'gen.descansar', 0, 2, 9);
+    expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+    advanceToWeek(g, 'gen.descansar', 6, 0, 9);
+    const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
+    const yo = dir.equipoDelPersonaje!('futbol')!;
+    const equipos = dir.equiposDeLaCategoria!('futbol', yo.categoria);
+    const suyo = equipos.find((e) => e.id === `${yo.club}|${yo.letra}`);
+    expect(suyo, 'su equipo está en la liga').toBeDefined();
+    expect(suyo!.jugadores).toBeGreaterThanOrEqual(14);
+  });
 });
