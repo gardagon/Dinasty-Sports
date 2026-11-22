@@ -12,6 +12,7 @@ Informe: `docs/relevo/pnj-entrenan-y-abandono.md`.
 - **Abandono:** pesa el nivel (los mejores lo dejan menos, sin llegar a cero) y también el interés por ese deporte. Se mira si a los PNJ les sube el interés al jugar; si no, que suba, para «agarrar» más a los que más juegan.
 - **Listón de profesional:** se espera a ver cómo queda con los entrenamientos y estos cambios (bien medido, sin el valor provisional de los fichajes).
 - **Los compañeros de clase** siguen en el mundo hasta los 20 años, como los de otros colegios (antes desaparecían a los 18).
+- **Hecho el 22/11** (`docs/relevo/pnj-entrenan-2.md`): `PNJ_POR_LIBRE` en «fuerte»; abandono con nivel (0,6, suelo del 4 %) e interés (0,6); el interés de los PNJ sube al jugar con la regla del personaje (escala 0,015); los compañeros pasan a `vecino` con la etiqueta `excompanero` y salen a los 20; el valor real se calcula al fichar (antes, el primer día de curso se veía el provisional). Medido con 4 semillas, a los 18: nivel medio 27,5 (antes 24,3), mejor 41,2; por curso, a los 17–18, 9 pasan de 35, 4,5 de 38, 1,5 de 40 y ninguno de 45. Siguen jugando a los 18 79 (antes 48); de los que juegan a los 14, el 51 % lo deja antes de los 18 (antes 69 %). Cadete y juvenil se llenan más. Coste de la semana, igual.
 
 ## 22/11/2026 — El entrenador dice el puesto en el primer entrenamiento
 

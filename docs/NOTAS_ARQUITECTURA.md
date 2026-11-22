@@ -40,13 +40,13 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
 5. **Balance de los entrenamientos nuevos** (`docs/relevo/entrenamientos.md`): para que el club rinda más que entrenar por libre (como dice su descripción), una sesión del club sube ~13 puntos de habilidad en vez de ~6. Por curso, el jugador sube igual que antes en lo que pesa en su puesto (antes ~43 puntos eran portería que subía un jugador de campo). Los PNJ salen un 3–5 % más altos por edad (los frena el tope por edad). Opciones: aceptarlo; bajar solo la escala del club (entonces el club ya no supera al libre); o subir el libre a la par y bajar los dos. **Recomendación:** aceptarlo y vigilar los niveles por edad, porque el progreso por curso del jugador no cambia.
 1. ~~**Publicar el versionado**~~ Unido el 22/11 (gardagon/Dinasty-Sports#129).
-2. ~~**PNJ que entrenan y abandono**~~ Respondido el 22/11 (DECISIONES) y encargado a `claude/pnj-entrenan-2`. Pendiente: el listón de profesional, tras medir.
+2. **Listón de profesional** (tras `claude/pnj-entrenan-2`): a los 17–18, por curso, 9 pasan de 35, 4,5 de 38, 1,5 de 40 y ninguno de 45. **Recomendación:** profesional ≥ 40 y élite juvenil ≥ 35 (1–2 y ~9 por curso, del orden de la realidad escalada). Pendiente del usuario.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXR2Hh7LzUU4PJqCjP4` | `claude/pnj-entrenan-2` | PNJ por su cuenta («fuerte»); abandono por nivel e interés (y que el interés suba al jugar); compañeros hasta los 20; fallo del valor provisional del fichaje; medir profesionales |
+| — | — | Ninguna |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
@@ -115,3 +115,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXMPTosoA18y2ft67tu` | Sonnet | Retrato en Samsung Internet: investigación y página de prueba (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXPnzU1Gedkvetov9Rr` | Sonnet | Primer entrenamiento: «vas a jugar de…» (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXMp7cyuMpYVVwYDEFo` | Sonnet | PNJ que entrenan por su cuenta y abandono: análisis (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXR2Hh7LzUU4PJqCjP4` | Sonnet | PNJ por su cuenta, abandono por nivel e interés, compañeros hasta los 20 (22/11, esta sesión de arquitectura) |
