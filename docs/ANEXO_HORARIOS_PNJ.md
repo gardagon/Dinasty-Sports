@@ -292,3 +292,5 @@ Medido con la población clonada hasta cada tamaño (sin hacer nada más, en est
 - ~~Pestaña del deporte~~ **Hecha** (ver `ANEXO_DEPORTE.md`).
 - ~~Horarios de apertura~~ **Hechos** (sección 3): colegio, supermercado, restaurante, gimnasio, estadio y biblioteca; el parque no tiene horario. Pendiente: acciones en los comercios.
 - **Eventos y decisiones:** pendientes de todo lo demás.
+
+**Compañeros hasta los 20 (22/11/2026):** los compañeros de colegio que acaban a los 18 ya no se borran: pasan a ser jóvenes del barrio sin colegio (id `alumno_N`/`clase_N`/`curso_N`, rol `vecino`, etiqueta `excompanero`) hasta los 20, como los `nino_N` de otros colegios (18–19 años: `jovenesPorEdad`), y entran niños de 8 años en el colegio como siempre. La población total sube en dos cursos de jóvenes (≈ +100 con la ciudad grande y el colegio de 50 por curso).

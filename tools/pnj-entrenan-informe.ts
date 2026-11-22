@@ -5,7 +5,7 @@
  */
 import { readFileSync } from 'node:fs';
 
-interface Fila { k: number; edad: number; juega: boolean; valor?: number; habF?: number[]; capPob?: number[]; dejado?: boolean; apartado?: boolean; rol?: string; tamano?: string }
+interface Fila { interes?: number; k: number; edad: number; juega: boolean; valor?: number; habF?: number[]; capPob?: number[]; dejado?: boolean; apartado?: boolean; rol?: string; tamano?: string }
 interface Nino { id: string; interes: number; filas: Fila[] }
 type Datos = Record<string, { ninos: Nino[] }>;
 
@@ -41,8 +41,20 @@ for (const { et, datos } of versiones) {
   const ultimo = (n: Nino) => [...n.filas].reverse().find((f) => f.k >= K - 1 && f.juega);
   const finales = Object.entries(datos).map(([s, d]) => ({ s, f: d.ninos.map(ultimo).filter((f): f is Fila => !!f) }));
   const cuenta = (u: number) => finales.map((x) => x.f.filter((f) => f.valor! >= u).length);
-  w(`\n**A los 17–18 (último año jugando):** juegan ${(finales.reduce((t, x) => t + x.f.length, 0) / S).toFixed(0)} por semilla. Nivel ≥ 45 (profesional) por curso: ${(cuenta(45).reduce((a, b) => a + b, 0) / S).toFixed(2)} (por semilla: ${cuenta(45).join('/')}); ≥ 40 (élite): ${(cuenta(40).reduce((a, b) => a + b, 0) / S).toFixed(2)} (${cuenta(40).join('/')}); ≥ 50: ${(cuenta(50).reduce((a, b) => a + b, 0) / S).toFixed(2)}. Cursos ≥ 40: ${f1(mean(finales.map((x) => x.f.length ? 100 * x.f.filter((f) => f.valor! >= 40).length / x.f.length : NaN)))} % de los que juegan.`);
+  w(`\n**A los 17–18 (último año jugando):** juegan ${(finales.reduce((t, x) => t + x.f.length, 0) / S).toFixed(0)} por semilla. Por curso: nivel ≥ 35: ${(cuenta(35).reduce((a, b) => a + b, 0) / S).toFixed(2)}; ≥ 38: ${(cuenta(38).reduce((a, b) => a + b, 0) / S).toFixed(2)}. Nivel ≥ 45 (profesional) por curso: ${(cuenta(45).reduce((a, b) => a + b, 0) / S).toFixed(2)} (por semilla: ${cuenta(45).join('/')}); ≥ 40 (élite): ${(cuenta(40).reduce((a, b) => a + b, 0) / S).toFixed(2)} (${cuenta(40).join('/')}); ≥ 50: ${(cuenta(50).reduce((a, b) => a + b, 0) / S).toFixed(2)}. Cursos ≥ 40: ${f1(mean(finales.map((x) => x.f.length ? 100 * x.f.filter((f) => f.valor! >= 40).length / x.f.length : NaN)))} % de los que juegan.`);
   w(`Los 10 mejores de cada semilla: nivel medio ${f1(mean(finales.flatMap((x) => x.f.map((f) => f.valor!).sort((a, b) => b - a).slice(0, 10))))}.`);
+  // Interés por el fútbol de los que juegan, por edad: media y reparto (0 a 3; sube al jugar).
+  w('\n### Interés por el fútbol de los que juegan (0 a 3)\n');
+  w('| edad | media | < 1,5 | 1,5–2,5 | ≥ 2,5 | de ellos, dejan el fútbol ese verano: interés < 1,5 / 1,5–2,5 / ≥ 2,5 |');
+  w('|---|---|---|---|---|---|');
+  for (let k = 0; k < K; k++) {
+    const jug = ninos.map((n) => ({ n, a: en(n, k) })).filter((x) => x.a?.juega && x.a.interes !== undefined);
+    if (!jug.length) continue;
+    const t = (f: (i: number) => boolean) => jug.filter((x) => f(x.a!.interes!));
+    const deja = (xs: typeof jug) => pc(xs.filter((x) => { const b = en(x.n, k + 1); return b && !b.juega && b.dejado; }).length, xs.length);
+    const bajo = t((i) => i < 1.5), medio = t((i) => i >= 1.5 && i < 2.5), alto = t((i) => i >= 2.5);
+    w(`| ${8 + k} | ${f1(mean(jug.map((x) => x.a!.interes!)))} | ${pc(bajo.length, jug.length)} | ${pc(medio.length, jug.length)} | ${pc(alto.length, jug.length)} | ${deja(bajo)} / ${deja(medio)} / ${deja(alto)} |`);
+  }
   // Embudo.
   const interesados = ninos.filter((n) => n.interes > 0).length;
   const jug = (k: number) => ninos.filter((n) => en(n, k)?.juega).length;

@@ -32,6 +32,8 @@ interface Fila {
   dejado?: boolean; apartado?: boolean; rol?: string;
   /** Probabilidad de dejar el fútbol ese verano (la del juego, con los datos de ese año) y sus motivos (fuerza de cada uno). */
   pAb?: number; mot?: Record<string, number>;
+  /** Su interés por el fútbol ese año (0 a 3; sube al jugar). */
+  interes?: number;
 }
 interface Nino { id: string; potencial?: number; topeCap: number; topeFis: number; interes: number; club0?: string; tamano0?: string; colegio0?: boolean; letra0?: string; filas: Fila[] }
 
@@ -79,7 +81,7 @@ for (const seed of semillas) {
         ni = { id: n.id, potencial: n.potential?.futbol, topeCap: r3(caps.reduce((a, b) => a + b, 0) / caps.length), topeFis: r3(fis.reduce((a: number, b: number) => a + b, 0) / fis.length), interes: interesPor(n.rasgos, 'futbol'), filas: [] };
         ninos.set(n.id, ni);
       }
-      const f: Fila = { id: n.id, k, edad: edadDe(n, dia), juega, min: 0, pj: 0, ti: 0, dejado: !!n.dejado?.includes('futbol'), apartado: !!n.apartado?.includes('futbol'), rol: n.role };
+      const f: Fila = { interes: r3(interesPor(n.rasgos, 'futbol')), id: n.id, k, edad: edadDe(n, dia), juega, min: 0, pj: 0, ti: 0, dejado: !!n.dejado?.includes('futbol'), apartado: !!n.apartado?.includes('futbol'), rol: n.role };
       const hist = (n.estHist?.futbol ?? []) as number[][];
       const e = n.est?.futbol;
       f.pj = hist.reduce((t, h) => t + h[1], 0) + (e?.pj ?? 0);
@@ -104,7 +106,8 @@ for (const seed of semillas) {
   };
   foto(0);
   for (let k = 1; k <= anios; k++) {
-    // Una semana después del cambio de curso: el primer día los que cambian de club llevan el nivel provisional del fichaje (hasta 53 frente a 40) y la pasada semanal aún no lo ha calculado.
+    // Una semana después del cambio de curso. (Hasta el 22/11 el primer día de curso los que cambiaban de club llevaban el valor provisional del fichaje, hasta 13 puntos de más; ya se calcula al fichar, pero medir
+    // siempre fuera de ese día es la regla de estas herramientas.)
     advanceToWeek(g, 'gen.descansar', 52 * k + 1, 2, 15);
     foto(k);
     console.log(`semilla ${seed}: año ${k} (${((performance.now() - t0) / 1000).toFixed(0)} s)`);

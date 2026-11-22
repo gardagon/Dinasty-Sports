@@ -66,10 +66,11 @@ export const PNJ_POR_LIBRE: PorLibreDeDeporte = {
 
 /**
  * Jugar engancha (22/11): cada sesión de la semana (del club o por su cuenta) cuenta como 1,5 horas jugando y sube el interés por el fútbol con la regla del personaje (`SUBIDA_DE_INTERES_POR_HORA`: 0,6 puntos por hora sobre
- * 100, con rendimientos decrecientes), multiplicada por 0,08 (**provisional**: a 1 sería igual que el personaje, que juega hasta 13 sesiones a la semana y llega a «le gusta mucho» en pocas semanas; con 0,08, un niño que
- * entrena con el club y algo por su cuenta pasa de 1,5 a 3 en unos 2 años y uno que solo va al club, en 3 o 4).
+ * 100, con rendimientos decrecientes), multiplicada por 0,015 (**provisional**: a 1 sería igual que el personaje, que juega hasta 13 sesiones a la semana y llega a «le gusta mucho» en pocas semanas). Medido con la ciudad
+ * grande (4 semillas): con 0,08 todos los que juegan estaban en 3 a los 11 años y el interés dejaba de distinguir; con 0,025, a los 15; con 0,015 el interés medio de quien juega pasa de 2,2 a los 8 años a 2,8 a los 14 y 2,9 a los 17
+ * (quien tiene menos de 1,5 casi no queda a los 14), así que sigue habiendo reparto de los 8 a los 16 años.
  */
-export const INTERES_AL_JUGAR = { horasPorSesion: 1.5, escala: 0.08 } as const;
+export const INTERES_AL_JUGAR = { horasPorSesion: 1.5, escala: 0.015 } as const;
 
 /**
  * Cuánto pesan el nivel y el interés en el abandono (22/11; `docs/relevo/pnj-entrenan-2.md`, **cifras provisionales**): los mejores de su edad lo dejan menos (peso 0,6 del nivel frente a los de su edad: el mejor baja la
