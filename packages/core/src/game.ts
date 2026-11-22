@@ -340,6 +340,7 @@ export class Game {
     };
     for (const m of registry.modules) {
       if (m.initState && !(m.id in state.modules)) state.modules[m.id] = m.initState(ictx);
+      else if (m.alCargar && m.id in state.modules) state.modules[m.id] = m.alCargar(state.modules[m.id], ictx);
     }
     // Si algún módulo ha subido o bajado topes (perks), lo que se deriva de ellos se recalcula (con tope máximo 100).
     if (bonos) Game.recalcularDerivados(registry, state, 100);

@@ -19,6 +19,7 @@
     "sim": "tsx sim/src/cli.ts",
     "sim:rapida": "tsx sim/src/cli.ts --dias 84 --semillas 2",
     "huella": "tsx tools/huella.ts",
+    "compat": "tsx tools/compat-guardado.ts",
     "demografia": "tsx tools/demografia-origenes.ts",
     "nombres-nacionales": "tsx tools/nombres-nacionales.ts",
     "rendimiento": "tsx tools/rendimiento.ts",

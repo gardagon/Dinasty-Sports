@@ -44,6 +44,8 @@ export interface OpcionesDeCronica {
   nombres: Readonly<Record<string, string>>;
   /** El dorsal de cada jugador, por id. Quien no tiene nombre ni dorsal sale como «un jugador». */
   dorsales?: Readonly<Record<string, number>>;
+  /** Cómo es cada jugador que no se conoce por su nombre (su aspecto): la primera vez que sale en la crónica se dice junto a su dorsal («el 7 del Rayo (un niño de pelo…)»). */
+  descripciones?: Readonly<Record<string, string>>;
   /** El género de cada jugador (para la concordancia: «la 7 del Rayo», «vuestra 4»); sin él, masculino. */
   generos?: Readonly<Record<string, 'f' | 'm'>>;
   /** El lado del personaje (0 local, 1 visitante): los de su lado son «vuestro N» y los del otro, «el N del <equipo>». Sin él, todos «el N del <equipo>». */
@@ -73,6 +75,7 @@ const equipoSinLetra = (nombre: string): string => nombre.replace(/ [A-D]$/, '')
  */
 export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): LineaDeCronica[] {
   const lado = new Map<string, 0 | 1>(r.alineaciones.flatMap((ids, i) => ids.map((id) => [id, i as 0 | 1] as const)));
+  const descritos = new Set<string>();
   const nom = (id: string | undefined): string => {
     if (id === YO) return 'tú';
     if (!id) return 'un jugador';
@@ -80,7 +83,12 @@ export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): 
     const d = o.dorsales?.[id];
     const l = lado.get(id);
     if (d === undefined || l === undefined) return 'un jugador';
-    return jugadorPorSuDorsal(d, equipoSinLetra(o.equipos[l]), o.lado === l, o.generos?.[id]);
+    const dicho = jugadorPorSuDorsal(d, equipoSinLetra(o.equipos[l]), o.lado === l, o.generos?.[id]);
+    // La primera vez que sale, además de su número se dice cómo es (así se le reconoce); después, solo el número.
+    const como = o.descripciones?.[id];
+    if (!como || descritos.has(id)) return dicho;
+    descritos.add(id);
+    return `${dicho} (${como.charAt(0).toLowerCase()}${como.slice(1)})`;
   };
   const nomIni = (id: string): string => (id === YO ? 'Tú' : nom(id).replace(/^./, (c) => c.toUpperCase()));
   /** Quien se conoce, con su equipo entre paréntesis; quien se nombra por su dorsal ya lo lleva dicho («el 7 del Rayo», «vuestro 4»). */

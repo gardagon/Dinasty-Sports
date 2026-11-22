@@ -839,3 +839,28 @@ export function previsionDelClubDe(npcs: readonly Npc[], pobs: readonly Poblacio
   const quedan = 1 + miembros.filter((n) => categoriaDeEdad(edadDe(n) + 1) === siguienteDef.id).length;
   return { categoria: { id: actual.id, nombre: actual.nombre }, siguiente: { id: siguienteDef.id, nombre: siguienteDef.nombre }, hayEquipo, ahora: deSuCategoria.length + 1, minimo: e.plantillaPorCategoria!.min, equipos: Math.max(1, e.equiposPorCategoria?.[siguienteDef.id] ?? 1), suben, siguen, llegan, quedan };
 }
+
+/**
+ * Migración suave de las poblaciones guardadas (`NpcsState.poblaciones`): cada una lleva una copia de lo que pidió su deporte, y la de una partida guardada por una versión anterior no tiene lo que se añadió después
+ * (`puestos.familias`, `puestos.pistas`, `puestos.dorsales`, `CategoriaDef.apuntarseEnLosDias`). Se rellena **solo lo que falta**, con lo que pide ahora el deporte (`frescas`); lo guardado no se toca. Devuelve la misma lista si
+ * no hay nada que completar. Un deporte que ya no está cargado se queda como estaba.
+ */
+export function completarPoblaciones(guardadas: PoblacionGuardada[], frescas: readonly PoblacionGuardada[]): PoblacionGuardada[] {
+  let cambio = false;
+  const resultado = guardadas.map((pob) => {
+    const nueva = frescas.find((f) => f.deporte === pob.deporte);
+    if (!nueva) return pob;
+    let p = pob;
+    if (p.puestos && nueva.puestos) {
+      const falta = (['familias', 'pistas', 'dorsales'] as const).filter((k) => p.puestos![k] === undefined && nueva.puestos![k] !== undefined);
+      if (falta.length) p = { ...p, puestos: { ...p.puestos, ...Object.fromEntries(falta.map((k) => [k, nueva.puestos![k]])) } };
+    }
+    if (p.categorias && nueva.categorias) {
+      const sinHorquilla = p.categorias.some((c) => c.apuntarseEnLosDias === undefined && nueva.categorias!.find((x) => x.id === c.id)?.apuntarseEnLosDias !== undefined);
+      if (sinHorquilla) p = { ...p, categorias: p.categorias.map((c) => (c.apuntarseEnLosDias === undefined ? { ...c, ...(nueva.categorias!.find((x) => x.id === c.id)?.apuntarseEnLosDias ? { apuntarseEnLosDias: nueva.categorias!.find((x) => x.id === c.id)!.apuntarseEnLosDias } : {}) } : c)) };
+    }
+    if (p !== pob) cambio = true;
+    return p;
+  });
+  return cambio ? resultado : guardadas;
+}
