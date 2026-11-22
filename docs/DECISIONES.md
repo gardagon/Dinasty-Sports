@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — Profesionales, balance de entrenamientos, abandono, entrenamiento de los PNJ y el personaje sin plaza
+
+- **Listón de «profesional»:** nivel ≥ 45 a los 17–18 años; «élite juvenil», ≥ 40 (`docs/relevo/analisis-profesionales.md`). Se recalculará al pasar a la siguiente fase de la vida, si hace falta.
+- **Balance de los entrenamientos:** se acepta de momento (`ESCALA_DE_ENTRENAMIENTO` = 1).
+- **Abandono de los mejores:** revisarlo con calma. No todos los mejores triunfan, por mentalidad o por temas personales.
+- **Entrenamiento de los PNJ:** revisar por qué entrenan tan por debajo del personaje. Habrá quien dedique mucho tiempo fuera a jugar al fútbol y mejore.
+- **El personaje que perdería su plaza al cambiar de año:** en benjamín y alevín, los de primer año no desplazan a uno de segundo que ya tenía plaza en el club (solo suben al A si hay sitio), para todos. Desde infantil sí se puede salir, y entonces la salida es un suceso con opciones, no una línea del diario.
+
 ## 22/11/2026 — Antes de publicar: partidas guardadas y crónica
 
 - **Llevar a la versión publicada lo unido desde el 21/11:** aprobado, después de confirmar si hace falta partida nueva, cerrar el balance de los entrenamientos y los arreglos que pida el usuario.
