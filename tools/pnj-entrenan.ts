@@ -10,7 +10,8 @@ import { writeFileSync } from 'node:fs';
 import { CAPACIDADES_GENETICAS, NIVEL_TIPICO_DE_REFERENCIA, PAIS_CIUDAD_GRANDE, TAGS, nivelTipicoPorEdad, registrarPais, type LectorDePersona } from '@ds/contracts';
 import { advanceToWeek, seededRng } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { DATOS_FUTBOL, PNJ_POR_LIBRE, futbol, rendimiento } from '@ds/mod-futbol';
+import { aplicarPropuestas } from './propuestas-pnj';
+import { futbol, rendimiento } from '@ds/mod-futbol';
 import { fijosDeNino } from '../modules/npcs/src/rutina';
 import { sesionesQueHace, semanaQueAcaba } from '../modules/npcs/src/semana';
 import { PERFECTO } from '../sim/src/vida';
@@ -19,18 +20,7 @@ import { decidirSucesos } from '../sim/src/runner';
 import { hacer, opcionesDelBot } from '../sim/src/pasos';
 
 registrarPais(PAIS_CIUDAD_GRANDE);
-// PNJ_LIBRE=1 activa la propuesta de que los PNJ entrenen por su cuenta; PNJ_LIBRE='{"propension":{...}}' cambia sus cifras (solo para medir: sin ella el juego va como siempre).
-if (process.env.PNJ_LIBRE) {
-  const extra = process.env.PNJ_LIBRE.startsWith('{') ? JSON.parse(process.env.PNJ_LIBRE) : {};
-  const l = { ...PNJ_POR_LIBRE, ...extra, propension: { ...PNJ_POR_LIBRE.propension, ...(extra.propension ?? {}) } };
-  (DATOS_FUTBOL as any).paises.espana.poblacion.rutina.porLibre = l;
-}
-// PNJ_ABANDONO='{"pesos":{"nivel":0.6},"suelo":0.04}' mezcla esas cifras con las del abandono (la propuesta, para medirla).
-if (process.env.PNJ_ABANDONO) {
-  const rec = (DATOS_FUTBOL as any).paises.espana.poblacion.reclutamiento;
-  const extra = JSON.parse(process.env.PNJ_ABANDONO);
-  rec.abandono = { ...rec.abandono, ...extra, pesos: { ...rec.abandono.pesos, ...(extra.pesos ?? {}) } };
-}
+aplicarPropuestas();
 const [modo, salida] = [process.argv[2], process.argv[3]];
 const r3 = (x: number) => Math.round(x * 1000) / 1000;
 const suma = (a: number[]) => a.reduce((x, y) => x + y, 0);
