@@ -84,6 +84,8 @@ export interface Npc {
   exp?: Record<string, Record<string, number>>;
   /** El equipo (A, B, C o D) de su club y su categoría **durante toda la temporada**, por deporte: se fija en verano (`fijarEquipos`) y no cambia en el curso (decisión del usuario, 08/11/2026). */
   letra?: Record<string, 'A' | 'B' | 'C' | 'D'>;
+  /** El número de su camiseta en el equipo de cada deporte (`asignarDorsales`): se asigna al entrar en el equipo y se conserva mientras siga en el club (cambie de letra o de categoría). Se pierde al dejar el deporte. */
+  dorsal?: Record<string, number>;
   /** Los deportes en que juega **un año por encima de su edad** (el que sería titular en la categoría de arriba asciende: `completarUnaCategoria`). Un 1 por deporte. */
   adelanto?: Record<string, 1>;
   /**
@@ -714,7 +716,7 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
     if (!pob || !n.genetica || n.nacimiento === undefined || n.hab?.[pob.deporte]) return n;
     // Al crear la partida es lo que más tarda: se avisa de cuánto se lleva (cada 150 personas).
     if (i % 150 === 0) avisarDelProgreso(`Dándole a cada uno su historia deportiva… (${i.toLocaleString('es-ES')} de ${total.toLocaleString('es-ES')})`, 0.37 + 0.6 * (i / total));
-    const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco]));
+    const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco], n.puesto?.[pob.deporte]));
     return { ...n, cap: h.cap, pico: h.pico, capUlt: h.capUlt, hab: { ...n.hab, [pob.deporte]: h.hab }, levels: { ...n.levels, [pob.deporte]: h.nivel }, vp: { ...n.vp, [pob.deporte]: valoresGuardados(n, pob, h.nivel, h.puestos) } };
   });
 }
@@ -756,12 +758,13 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
       let res: Resultado | undefined;
       if (semanas > 0) {
         const lista = (semana: number, hueco: number, lector: LectorDePersona): readonly Entrenamiento[] => {
-          if (!clave) return listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), [pob.deporte, n.id, semana, hueco]);
-          const k = `${clave}|${semana}|${hueco}`;
+          const puesto = n.puesto?.[pob.deporte];
+          if (!clave) return listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), [pob.deporte, n.id, semana, hueco], puesto);
+          const k = `${clave}|${semana}|${hueco}|${puesto ?? ''}`;
           let l = sesionesDeEquipo.get(k);
           if (!l) {
             const [club, categoria] = clave.split('|');
-            sesionesDeEquipo.set(k, (l = listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), semillaDeSesionDeEquipo(pob.deporte, club, categoria, semana, hueco))));
+            sesionesDeEquipo.set(k, (l = listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), semillaDeSesionDeEquipo(pob.deporte, club, categoria, semana, hueco), puesto)));
           }
           return l;
         };

@@ -64,7 +64,6 @@ import {
   campamento,
   categoriaDelJugador as categoriaDelJugadorEn,
   clubDelJugador as clubDelJugadorEn,
-  conLosAmigos,
   dejarClub,
   entrenadorDelJugador as entrenadorDelJugadorEn,
   manejadoresDeDeporte,
@@ -87,6 +86,7 @@ import {
   valorEfectivo,
   verEnLaTele,
   type ConfigDeporte,
+  type Entreno,
   type EstadoBaseDeDeporte,
   resolverPedirPuesto,
   servicioDePedirPuesto,
@@ -96,12 +96,15 @@ import {
   sucesoDePruebaDeAcceso,
 } from '@ds/kit-deporte';
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
+import { ENTRENAMIENTOS_DE_FUTBOL, GRUPOS_DE_ENTRENAMIENTO, PUESTO_DE_PORTERO, aEscala, entrenamientoPorId, entrenaPorLibre, type EntrenamientoDeFutbol } from './entrenamientos';
+import { QUEDADAS_DE_FUTBOL } from './quedadas';
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, GRUPOS_DE_HABILIDADES, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 import { juicioDe, recordarSoloLosUltimos, textoDelJuicio, verDeNuevo, type Impresion } from './mi-equipo';
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { EVENTOS_DE_FUTBOL } from './eventos';
 import { TEXTOS_DE_EQUIPO_SIN_NINOS, TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
+import { dorsalDeCampo, dorsalDePortero } from '@ds/contracts';
 import { APORTE_DE_SUCESOS, servicioDeHechos, type HechosService } from '@ds/contracts';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
@@ -141,6 +144,8 @@ export type FutbolState = EstadoBaseDeDeporte & {
   intensidad?: Intensidad;
   /** El equipo del personaje esta temporada (club, categoría y letra A a D): se fija al empezar la liga, como el de todos. */
   personaje?: { curso: number; club: string; categoria: string; letra: string };
+  /** El dorsal del personaje: [club, número]. Se asigna al entrar en el club (entre los que sus compañeros no llevan) y se conserva mientras siga en él. */
+  dorsal?: [string, number];
   /** Lo que ha visto de cada compañero (entrenando o jugando con él): puesto, si cree que es mejor o peor que él, veces y semana (`mi-equipo.ts`). */
   companeros?: Record<string, Impresion>;
   /** Las sesiones del club que ha hecho cada semana (las últimas): su asistencia pesa en la convocatoria como la de cualquiera. */
@@ -189,7 +194,9 @@ export interface PartidoDelPersonaje extends ResumenDePartido {
   cronica: LineaDeCronica[];
 }
 
-const ENTRENOS_LIBRES = ['futbol.balon', 'futbol.tiro', 'futbol.fisico', 'futbol.porteria'];
+/** Los entrenamientos por tu cuenta: los 22 del catálogo salen en «Entrenar…» (los que no se pueden hacer solos, no disponibles). Su id de acción: `futbol.entrena_<id>`. */
+const idDeEntreno = (e: EntrenamientoDeFutbol): string => `futbol.entrena_${e.id}`;
+const ENTRENOS_LIBRES = ENTRENAMIENTOS_DE_FUTBOL.map(idDeEntreno);
 
 /** Lo que el kit de deporte necesita saber del fútbol. */
 const CONFIG: ConfigDeporte = {
@@ -200,8 +207,8 @@ const CONFIG: ConfigDeporte = {
   puestos: (ctx) => conLaPierna(rendimientoPorPuestos(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', PUESTOS_DE_FUTBOL.pierna?.ventajaDelLado ?? 0.25),
   puestosDelDeporte: PUESTOS_DE_FUTBOL.puestos.map((p) => ({ id: p.id, nombre: p.nombre })),
   entrenosLibres: ENTRENOS_LIBRES,
-  // Los entrenamientos que recomienda el entrenador se leen de las acciones de entrenar por libre (`futbol.actions`): lo que sube cada una es lo que cuenta, no un desplegable fijo.
-  catalogoDeEntrenos: (ctx) => (futbol.actions ?? []).filter((a) => ENTRENOS_LIBRES.includes(a.id) && a.train).map((a) => ({ id: a.id, nombre: typeof a.name === 'string' ? a.name : a.name(ctx), entrena: a.train! })),
+  // Los entrenamientos que recomienda el entrenador se leen de las acciones de entrenar por libre (`futbol.actions`): lo que sube cada una es lo que cuenta, no un desplegable fijo. Solo los que se pueden hacer por tu cuenta (los de compañía son de la sesión del club).
+  catalogoDeEntrenos: (ctx) => (futbol.actions ?? []).filter((a) => ENTRENOS_LIBRES.includes(a.id) && a.train && ENTRENAMIENTOS_DE_FUTBOL.some((e) => idDeEntreno(e) === a.id && e.quien.includes('solo'))).map((a) => ({ id: a.id, nombre: typeof a.name === 'string' ? a.name : a.name(ctx), entrena: a.train! })),
   juegoInformal: JUEGO_INFORMAL,
 };
 
@@ -258,6 +265,67 @@ const HABILIDADES_DE_CONSEJO = [
   { stat: 'futbol.pase', nombre: 'pase' },
   { stat: 'futbol.juego_colectivo', nombre: 'juego colectivo' },
   { stat: 'futbol.posicionamiento', nombre: 'posicionamiento' },
+];
+
+/** Lo que dice el entrenador a quien juega de portero: lo suyo, no «mejora tu técnica». */
+const HABILIDADES_DE_CONSEJO_DE_PORTERO = [
+  { stat: 'futbol.reflejos', nombre: 'reacción' },
+  { stat: 'futbol.blocaje', nombre: 'blocaje' },
+  { stat: 'futbol.mano_a_mano', nombre: 'mano a mano' },
+  { stat: 'futbol.dominio_area', nombre: 'dominio del área' },
+  { stat: 'futbol.posicionamiento', nombre: 'posicionamiento' },
+];
+
+// ---------------------------------------------------------------------------------------------------- los entrenamientos por tu cuenta y los campamentos
+
+const NOMBRE_DE_LUGAR: Readonly<Record<string, string>> = { campo_colegio: 'el campo del colegio', campo_municipal: 'el campo municipal', parque: 'el parque', gimnasio: 'el gimnasio', casa: 'casa', biblioteca: 'la biblioteca' };
+const cuantoCansa = (energia: number): string => (energia <= 10 ? 'poco' : energia <= 16 ? 'algo' : 'mucho');
+const lista = (xs: readonly string[]): string => (xs.length < 2 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} o ${xs[xs.length - 1]}`);
+
+/** Lo que cuenta cada entrenamiento al elegirlo: dónde, con quién, cuánto dura y cuánto cansa. */
+const quedaPorDecir = (e: EntrenamientoDeFutbol): string =>
+  `${e.descripcion} Dónde: ${lista(e.lugares.map((l) => NOMBRE_DE_LUGAR[l] ?? l))}. Con quién: ${e.quien.includes('solo') ? 'por tu cuenta' : 'hace falta compañía'}${e.quien.includes('club') ? ' y en la sesión del club' : ''}. ${e.minutos} minutos; cansa ${cuantoCansa(e.energia)}.`;
+
+/** Una acción de «Entrenar…» (el kit la agrupa con las demás y le pone el ×0,85 de entrenar sin entrenador). Los que necesitan compañía salen no disponibles, con el motivo. */
+function accionDeEntreno(e: EntrenamientoDeFutbol): ActionDef {
+  const porLibre = e.quien.includes('solo');
+  return {
+    id: idDeEntreno(e),
+    name: e.nombre,
+    description: quedaPorDecir(e),
+    tags: [TAGS.fisico, ...(e.grupo === 'fisico' ? [TAGS.cardio] : []), TAGS.entrenamiento, 'futbol'],
+    group: 'Entrenar fútbol',
+    duration: e.minutos,
+    available: (ctx) => (porLibre ? horarioEntreno(ctx) : 'Hace falta compañía: se trabaja con el entrenador en la sesión del club'),
+    delta: { [GEN.energia]: -e.energia, ...(e.estres ? { [GEN.estres]: e.estres } : {}) },
+    train: entrenaPorLibre(e),
+    desplegable: { id: 'futbol.entrenar', nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}', opcion: e.nombre, grupoDeOpcion: GRUPOS_DE_ENTRENAMIENTO[e.grupo] },
+  };
+}
+
+/**
+ * Los campamentos de verano, **de jugadores y de porteros por separado**: cinco horas con seis bloques de 50 minutos. Los dos comparten los bloques de todos (físico y mental: agilidad y
+ * posicionamiento) y cada uno trae los suyos: el de jugadores, un poco de técnica, defensa, pase y tiro (no solo ataque); el de porteros, reflejos, balones aéreos, mano a mano y pies.
+ */
+const BLOQUES_COMUNES = ['agilidad', 'posicionamiento_y_anticipacion'];
+const bloquesDeCampamento = (ids: readonly string[]): Entreno =>
+  ids.flatMap((id) => {
+    const e = entrenamientoPorId(id)!;
+    return aEscala(e.entrena.filter(([stat]) => stat !== CONOCIMIENTO), 50 / e.minutos);
+  });
+export const CAMPAMENTOS_DE_FUTBOL = [
+  campamento(CONFIG, {
+    tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'futbol', 'campamento'],
+    delta: { [GEN.energia]: -35 },
+    train: [...bloquesDeCampamento([...BLOQUES_COMUNES, 'toques_y_pared', 'uno_contra_uno', 'rondos_y_pase', 'tiro_a_puerta']), { stat: GEN.cooperacion, amount: 0.6 }, { stat: CONOCIMIENTO, amount: 3 }],
+    variante: { sufijo: 'jugadores', nombre: 'Campamento de jugadores de fútbol', opcion: 'Fútbol: jugadores', descripcion: 'Con buenas notas, tus padres te dejan ir al campamento de fútbol para jugadores: cinco horas con entrenadores, con físico y mente y también técnica, defensa, pase y tiro. Mejoras más que de ninguna otra forma.' },
+  }),
+  campamento(CONFIG, {
+    tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'futbol', 'campamento'],
+    delta: { [GEN.energia]: -35 },
+    train: [...bloquesDeCampamento([...BLOQUES_COMUNES, 'reflejos', 'balones_aereos', 'mano_a_mano', 'pies_de_portero']), { stat: GEN.cooperacion, amount: 0.6 }, { stat: CONOCIMIENTO, amount: 3 }],
+    variante: { sufijo: 'porteros', nombre: 'Campamento de porteros de fútbol', opcion: 'Fútbol: porteros', descripcion: 'Con buenas notas, tus padres te dejan ir al campamento de fútbol para porteros: cinco horas con entrenadores de porteros, con físico y mente y también reflejos, balones aéreos, mano a mano y juego con los pies. Mejoras más que de ninguna otra forma.' },
+  }),
 ];
 
 
@@ -317,6 +385,29 @@ function miEquipo(ctx: ReadContext, curso: number): EquipoDelPersonaje | undefin
   return e ? { club: e.club, categoria: e.categoria, letra: e.letra, clave: `${e.club}|${e.letra}` } : undefined;
 }
 
+/**
+ * El dorsal del personaje en su equipo: el guardado si sigue en el mismo club y nadie de su equipo lo lleva; si no, uno nuevo con las mismas reglas que a cualquiera (escoge entre los que sus compañeros no llevan; si es portero,
+ * después de los de campo). `guardar` lo anota cuando hace falta (solo en un contexto que pueda escribir).
+ */
+function dorsalDelPersonaje(ctx: ReadContext, plantilla: readonly JugadorDeEquipoView[], puesto: string): [string, number] | undefined {
+  const regla = PUESTOS_DE_FUTBOL.dorsales;
+  const equipo = miEquipo(ctx, ctx.time.schoolYear);
+  if (!regla || !equipo) return undefined;
+  const ocupados = new Set(plantilla.flatMap((j) => (j.id !== YO && j.dorsal !== undefined ? [j.dorsal] : [])));
+  const guardado = ctx.state<FutbolState>().dorsal;
+  if (guardado && guardado[0] === equipo.club && !ocupados.has(guardado[1])) return guardado;
+  const clave = `${DEPORTE}|${equipo.club}|${equipo.categoria}|${equipo.letra}`;
+  return [equipo.club, regla.porteros.puestos.includes(puesto) ? dorsalDePortero(YO, regla, clave, ocupados) : dorsalDeCampo(YO, puesto, regla, clave, ocupados)];
+}
+
+/** Anota el dorsal del personaje si aún no lo tiene guardado (o ya no vale). */
+function guardarMiDorsal(ctx: ActionContext, plantilla: readonly JugadorDeEquipoView[]): void {
+  const puesto = ctx.state<FutbolState>().puesto;
+  const d = puesto ? dorsalDelPersonaje(ctx, plantilla, puesto) : undefined;
+  const g = ctx.state<FutbolState>().dorsal;
+  if (d && (!g || g[0] !== d[0] || g[1] !== d[1])) ctx.updateState<FutbolState>((s) => ({ ...s, dorsal: d }));
+}
+
 /** El personaje como un jugador más de la plantilla de su equipo: con lo que vale en cada puesto (con su pierna buena), su estado y su asistencia a los entrenamientos. */
 function yoComoJugador(ctx: ReadContext, plantilla: readonly JugadorDeEquipoView[], semana: number, hastaDia: number): JugadorDeEquipoView | undefined {
   const puesto = ctx.state<FutbolState>().puesto;
@@ -334,6 +425,7 @@ function yoComoJugador(ctx: ReadContext, plantilla: readonly JugadorDeEquipoView
     asistencia: asistenciaDelPersonaje(ctx, semana, hastaDia),
     disciplinaDelEntrenador: plantilla[0]?.disciplinaDelEntrenador ?? 0.5,
     lector: ctx,
+    ...(dorsalDelPersonaje(ctx, plantilla, puesto) ? { dorsal: dorsalDelPersonaje(ctx, plantilla, puesto)![1] } : {}),
     ...(ctx.state<FutbolState>().estadisticas ? { estadisticas: ctx.state<FutbolState>().estadisticas } : {}),
     ...(ctx.state<FutbolState>().experiencia ? { experiencia: ctx.state<FutbolState>().experiencia } : {}),
   };
@@ -775,6 +867,7 @@ function verElEntrenamiento(ctx: ActionContext): void {
   const base = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra);
   const yo = yoComoJugador(ctx, base, ctx.time.week, ctx.time.weekday);
   if (!yo) return;
+  guardarMiDorsal(ctx, base);
   verACompaneros(ctx, base.filter((j) => (j.estado.baja ?? 0) <= 0).map((j) => ({ id: j.id, puesto: j.puesto, valor: j.valor })), yo.valor);
 }
 
@@ -786,22 +879,26 @@ function miEquipoDeFutbol(ctx: ReadContext): MiEquipoView | undefined {
   if (!club || !equipo || !dir?.plantillaDelEquipo) return undefined;
   const vistos = ctx.state<FutbolState>().companeros ?? {};
   const cat = datosDeDeporte(ctx, DEPORTE).categorias.find((c) => c.id === equipo.categoria);
-  const companeros: CompaneroDeEquipo[] = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra).map((j) => {
+  const plantilla = dir.plantillaDelEquipo(DEPORTE, equipo.club, equipo.categoria, equipo.letra);
+  const puestoMio = ctx.state<FutbolState>().puesto;
+  const miDorsal = puestoMio ? dorsalDelPersonaje(ctx, plantilla, puestoMio)?.[1] : undefined;
+  const companeros: CompaneroDeEquipo[] = plantilla.map((j) => {
     const n = dir.get(j.id);
     const visto = vistos[j.id];
     return {
       id: j.id,
       aspecto: n ? aspectoDe(n) : 'Un compañero',
       ...(n && n.known !== false ? { nombre: n.name } : {}),
-      ...(visto ? { puesto: nombreDePuesto(visto[0]) } : {}),
+      ...(j.dorsal !== undefined ? { dorsal: j.dorsal } : {}),
+      ...(visto ? { puesto: nombreDePuesto(visto[0]), comparacion: juicioDe(visto) } : {}),
     };
   });
   const orden = (c: CompaneroDeEquipo): string => (c.nombre ? `0${c.nombre}` : `1${c.aspecto}`);
   companeros.sort((a, b) => (orden(a) < orden(b) ? -1 : orden(a) > orden(b) ? 1 : 0));
   return {
     titulo: `Equipo ${equipo.letra} · ${club.nombre}`,
-    texto: `${cat ? `Categoría ${cat.nombre.toLowerCase()}. ` : ''}De quien aún no conoces solo sabes cómo es; su puesto lo ves cuando entrenas o juegas con él.`,
-    companeros: [{ id: YO, nombre: 'Tú', aspecto: '', ...(ctx.state<FutbolState>().puesto ? { puesto: nombreDePuesto(ctx.state<FutbolState>().puesto!) } : {}), yo: true }, ...companeros],
+    texto: `${cat ? `Categoría ${cat.nombre.toLowerCase()}. ` : ''}De quien aún no conoces solo sabes cómo es (su ficha, en «Gente», cuando lo tengas cerca); su puesto, y si es mejor o peor que tú, lo ves cuando entrenas o juegas con él.`,
+    companeros: [{ id: YO, nombre: 'Tú', aspecto: '', ...(miDorsal !== undefined ? { dorsal: miDorsal } : {}), ...(ctx.state<FutbolState>().puesto ? { puesto: nombreDePuesto(ctx.state<FutbolState>().puesto!) } : {}), yo: true }, ...companeros],
   };
 }
 
@@ -865,8 +962,9 @@ const CAMBIOS_DE_LIGA = { maximo: 5, despuesDeTramos: [1, 3, 4] };
  * cansancio con que acabó), su motivación y su forma como tras una carrera (`competicion.resultado`); si no pudo jugar (lesionado o no convocado), solo ve el resultado y la crónica; y si estaba convocado y no fue (`ausente`),
  * su equipo juega sin él y el entrenador lo apunta como una falta (rebaja su asistencia las dos semanas siguientes).
  */
-function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePartido; lado: 0 | 1; nombres: Record<string, string>; local: string; visitante: string; previa: Previa; curso: number; semana: number; texto: string; nombreDeEquipo: (id: string) => string; ausente?: boolean; papel?: Papel }): void {
+function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePartido; lado: 0 | 1; nombres: Record<string, string>; dorsales?: Record<string, number>; local: string; visitante: string; previa: Previa; curso: number; semana: number; texto: string; nombreDeEquipo: (id: string) => string; ausente?: boolean; papel?: Papel }): void {
   const { r, lado, previa } = p;
+  guardarMiDorsal(ctx, previa.plantilla);
   const papel = p.papel ?? previa.papel;
   const equipos: [string, string] = [p.nombreDeEquipo(p.local), p.nombreDeEquipo(p.visitante)];
   const [propios, rival] = [r.goles[lado], r.goles[1 - lado]];
@@ -876,7 +974,7 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
   const motivo = p.ausente ? 'No te presentas al partido: tu equipo juega sin ti' : papel === 'titular' || papel === 'suplente' ? 'Te quedas en el banquillo todo el partido' : MOTIVO_DE_NO_JUGAR[papel];
   const cronica: LineaDeCronica[] = [
     ...(juega ? [{ destacada: true, texto: yo.titular ? `Eres titular de ${nombreDePuesto(yo.puesto).toLowerCase()}.` : 'Empiezas en el banquillo.' }] : [{ texto: `${motivo}: sigues el partido desde fuera.` }]),
-    ...cronicaDelPartido(r, { equipos, nombres: { ...p.nombres, [YO]: 'Tú' } }),
+    ...cronicaDelPartido(r, { equipos, nombres: nombresQueConoce(ctx, r, p.nombres), dorsales: p.dorsales ?? {}, generos: generosDe(ctx, r), lado }),
   ];
   const resumen: ResumenDePartido = {
     curso: p.curso, semana: p.semana, categoria: previa.equipo.categoria, texto: p.texto, equipos, goles: r.goles, lado, resultado, juega,
@@ -977,6 +1075,20 @@ function elDiaDeUnJugador(j: JugadorDeEquipoView, c: ContextoDelDia): { tarde: n
 /** Las opciones de rotación del entrenador de un equipo (`CategoriaDef.rotacionEn`: los colegios en benjamín y alevín): vacías si no rota. */
 const rotacionDe = (dir: NpcDirectory, club: string, categoria: string, curso: number): { rotar?: { curso: number } } => (dir.rotaElEquipo?.(DEPORTE, club, categoria) ? { rotar: { curso } } : {});
 
+/** Los nombres de quienes juegan un partido que el personaje **ya conoce** (el resto, en la crónica, se nombra por su dorsal). */
+function nombresQueConoce(ctx: ReadContext, r: ResultadoDePartido, nombres: Readonly<Record<string, string>>): Record<string, string> {
+  const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
+  const ids = [...r.alineaciones[0], ...r.alineaciones[1]].filter((id) => id !== YO);
+  return Object.fromEntries(ids.filter((id) => nombres[id] && dir?.get(id)?.known !== false).map((id) => [id, nombres[id]]));
+}
+
+/** El género de cada jugador de un partido (para la concordancia de la crónica). */
+function generosDe(ctx: ReadContext, r: ResultadoDePartido): Record<string, 'f' | 'm'> {
+  const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
+  const ids = [...r.alineaciones[0], ...r.alineaciones[1]].filter((id) => id !== YO);
+  return Object.fromEntries(ids.flatMap((id) => { const g = dir?.get(id)?.gender; return g ? [[id, g] as const] : []; }));
+}
+
 /**
  * Un lado de un partido de liga: la plantilla del equipo, la convocatoria del entrenador y el equipo listo para el motor. En el equipo del personaje, la plantilla lleva al personaje (a la intensidad que eligió) o, si estaba
  * convocado y no va (`sinMi`), no lo lleva: el entrenador convoca a los demás. **Lo usan igual el partido del personaje en su hora y la liga del mundo al cerrar la semana**, para que den el mismo resultado.
@@ -1024,6 +1136,7 @@ function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: n
     mio: a.mio || b.mio,
     lado: (a.mio ? 0 : 1) as 0 | 1,
     nombres: Object.fromEntries([...a.plantilla, ...b.plantilla].map((j) => [j.id, j.nombre])),
+    dorsales: Object.fromEntries([...a.plantilla, ...b.plantilla].flatMap((j) => (j.dorsal !== undefined ? [[j.id, j.dorsal] as const] : []))) as Record<string, number>,
   };
 }
 
@@ -1297,7 +1410,7 @@ function jugarElPartidoDelPersonaje(ctx: ActionContext): void {
   const id = `${liga.curso}|${previa.equipo.categoria}|${sig.ref}`;
   const o = partidoDeLiga(dir, previa, liga.semilla, { categoria: previa.equipo.categoria, local, visitante, id, intensidad: ctx.state<FutbolState>().intensidad ?? 'normal', curso: liga.curso, dia: contextoDelDia(ctx, t.week, id) });
   ctx.updateState<FutbolState>((s) => ({ ...s, partidoJugado: { semana: t.week, id, goles: o.goles, jugadores: o.jugadores } }));
-  if (o.r && o.lado !== undefined) registrarPartidoDelPersonaje(ctx, { r: o.r, lado: o.lado, nombres: o.nombres, local, visitante, previa, curso: liga.curso, semana: t.week, texto: sig.texto, nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria) });
+  if (o.r && o.lado !== undefined) registrarPartidoDelPersonaje(ctx, { r: o.r, lado: o.lado, nombres: o.nombres, dorsales: o.dorsales, local, visitante, previa, curso: liga.curso, semana: t.week, texto: sig.texto, nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria) });
   // Al acabar el partido aparece en el vestuario.
   ctx.emit<IrAData>({ type: SHARED_EVENTS.IR_A, data: { destino: VESTUARIO } });
 }
@@ -1357,7 +1470,7 @@ function ligaDelMundo(ctx: ActionContext, semana: number): void {
   }
   // Su partido de esta semana, si no lo ha jugado él (no convocado, lesionado o ausente): se cuenta con el resultado y la crónica, y la falta si la hay.
   if (delPersonaje && delPersonaje.r && delPersonaje.lado !== undefined && previa) {
-    registrarPartidoDelPersonaje(ctx, { r: delPersonaje.r, lado: delPersonaje.lado, nombres: delPersonaje.nombres, local: delPersonaje.local, visitante: delPersonaje.visitante, previa, curso: t.schoolYear, semana, texto: sigDeMiEquipo?.texto ?? 'Liga', nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria), ausente, ...(papel ? { papel } : {}) });
+    registrarPartidoDelPersonaje(ctx, { r: delPersonaje.r, lado: delPersonaje.lado, nombres: delPersonaje.nombres, dorsales: delPersonaje.dorsales, local: delPersonaje.local, visitante: delPersonaje.visitante, previa, curso: t.schoolYear, semana, texto: sigDeMiEquipo?.texto ?? 'Liga', nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria), ausente, ...(papel ? { papel } : {}) });
   }
   if (jugado) ctx.updateState<FutbolState>((s) => ({ ...s, partidoJugado: undefined }));
   liga = { ...liga, categorias };
@@ -1372,7 +1485,7 @@ export const futbol = defineModule<FutbolState>({
   name: 'Fútbol',
   description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
   dependsOn: ['gen'],
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO), sucesoDePlazaExtra(CONFIG, TEXTOS_DE_PLAZA_EXTRA), sucesoDeEquipoSinNinos(CONFIG, TEXTOS_DE_EQUIPO_SIN_NINOS)] },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTES.quedadaDeDeporte]: QUEDADAS_DE_FUTBOL, [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO), sucesoDePlazaExtra(CONFIG, TEXTOS_DE_PLAZA_EXTRA), sucesoDeEquipoSinNinos(CONFIG, TEXTOS_DE_EQUIPO_SIN_NINOS)] },
   stats: [...STATS_DE_FUTBOL],
 
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),
@@ -1435,7 +1548,7 @@ export const futbol = defineModule<FutbolState>({
         // equipo, con la misma semilla (club, categoría, semana y número de sesión de la semana), y el personaje.
         contexto: (ctx) => {
           const niveles = ctx.service<NpcDirectory>(SERVICES.npcs)?.nivelesDelEquipo?.(DEPORTE, clubDelJugador(ctx)?.id ?? '', categoriaDelJugador(ctx).competida.id);
-          return { nivel: (stat) => niveles?.[stat] ?? ctx.stat(stat), sesgo: sesgoDelEntrenador(entrenadorDelJugador(ctx)?.rasgos?.caracter) };
+          return { nivel: (stat) => niveles?.[stat] ?? ctx.stat(stat), sesgo: sesgoDelEntrenador(entrenadorDelJugador(ctx)?.rasgos?.caracter), puesto: ctx.state<FutbolState>().puesto };
         },
         semilla: (ctx) => {
           const club = clubDelJugador(ctx);
@@ -1443,79 +1556,18 @@ export const futbol = defineModule<FutbolState>({
         },
       }),
       dejarClub(CONFIG),
-      campamento(CONFIG, {
-        tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'futbol', 'campamento'],
-        delta: { [GEN.energia]: -35 },
-        train: [
-          t('futbol.control', 2), t('futbol.pase', 2), t('futbol.regate', 1.5), t('futbol.tecnica', 2), t('futbol.definicion', 1.5), t('futbol.vision', 1.5),
-          t('futbol.posicionamiento', 1.5), t('futbol.juego_colectivo', 2.5), t('futbol.arrancada', 1),
-          t(GEN.velocidad, 1), t(GEN.resistencia, 1), t(GEN.cooperacion, 0.6), t(CONOCIMIENTO, 3),
-        ],
-      }),
-      conLosAmigos(CONFIG, {
-        description: 'Con notas aceptables, el verano se pasa jugando al fútbol con los amigos: sienta bien, pero no se mejora igual que entrenando.',
-        tags: [TAGS.fisico, TAGS.social, 'futbol'],
-        delta: { [GEN.energia]: -12, [GEN.estres]: -6 },
-        train: [...JUEGO_INFORMAL],
-      }),
-
-      {
-        id: 'futbol.balon',
-        name: 'Trabajo con balón',
-        description: 'Controles, pases contra la pared, conducciones y regates por tu cuenta.',
-        tags: [TAGS.fisico, TAGS.entrenamiento, 'futbol'],
-        group: 'Entrenar fútbol',
-        duration: 60,
-        available: horarioEntreno,
-        delta: { [GEN.energia]: -14 },
-        train: [t('futbol.control', 2), t('futbol.pase', 1.5), t('futbol.regate', 1.5), t('futbol.tecnica', 2), t(GEN.coordinacion, 0.5), t(CONOCIMIENTO, 0.8)],
-      },
-      {
-        id: 'futbol.tiro',
-        name: 'Tiro y remate',
-        description: 'Tiros a puerta desde dentro y fuera del área, faltas, penaltis y córners.',
-        tags: [TAGS.fisico, TAGS.entrenamiento, 'futbol'],
-        group: 'Entrenar fútbol',
-        duration: 60,
-        available: horarioEntreno,
-        delta: { [GEN.energia]: -14 },
-        train: [t('futbol.definicion', 2), t('futbol.disparo_lejano', 1.5), t('futbol.penaltis', 1), t('futbol.faltas', 1), t('futbol.corners', 0.6), t('futbol.cabeza', 0.6), t(GEN.fuerza, 0.4), t(CONOCIMIENTO, 0.8)],
-      },
-      {
-        id: 'futbol.fisico',
-        name: 'Preparación física',
-        description: 'Carreras, cambios de ritmo, saltos y resistencia para aguantar un partido.',
-        tags: [TAGS.fisico, TAGS.cardio, TAGS.entrenamiento, 'futbol'],
-        group: 'Entrenar fútbol',
-        duration: 75,
-        available: horarioEntreno,
-        delta: { [GEN.energia]: -22, [GEN.estres]: -2 },
-        train: [t('futbol.arrancada', 2.5), t('futbol.salto', 1.5), t(GEN.velocidad, 1), t(GEN.resistencia, 1.2), t(GEN.agilidad, 0.5), t(CONOCIMIENTO, 0.5)],
-      },
-      {
-        id: 'futbol.porteria',
-        name: 'Entrenar de portero',
-        description: 'Paradas, blocajes, salidas y despejes bajo palos.',
-        tags: [TAGS.fisico, TAGS.entrenamiento, 'futbol'],
-        group: 'Entrenar fútbol',
-        duration: 60,
-        available: horarioEntreno,
-        delta: { [GEN.energia]: -14 },
-        train: [t('futbol.reflejos', 2), t('futbol.mano_a_mano', 1.2), t('futbol.blocaje', 1.5), t('futbol.despeje', 1), t('futbol.alcance_aereo', 1), t('futbol.dominio_area', 1), t(GEN.coordinacion, 0.5), t(CONOCIMIENTO, 0.8)],
-      },
+      ...CAMPAMENTOS_DE_FUTBOL,
+      ...ENTRENAMIENTOS_DE_FUTBOL.map(accionDeEntreno),
       verEnLaTele(CONFIG, 'Partidos y resúmenes de otros: aprendes cómo se mueve un equipo y por qué un pase abre la defensa.'),
-      pedirConsejo(CONFIG, HABILIDADES_DE_CONSEJO),
+      pedirConsejo(CONFIG, (ctx) => (ctx.state<FutbolState>().puesto === PUESTO_DE_PORTERO ? HABILIDADES_DE_CONSEJO_DE_PORTERO : HABILIDADES_DE_CONSEJO)),
     ])), ...ACCIONES_DE_INTENSIDAD, ACCION_DE_UNIRSE_A_LOS_COMPANEROS, ACCION_DE_IR_AL_VESTUARIO, ACCION_DE_JUGAR_EL_PARTIDO],
     {
       // El club del colegio entrena en el campo del colegio. Se puede entrenar por libre en el campo del colegio, el municipal y el parque.
       'futbol.club_sesion': sedeDelClub,
       'futbol.dejar_club': (ctx) => tramitesDe(clubDelJugador(ctx)),
-      'futbol.campamento': ['campo_municipal'],
-      'futbol.amigos': ['parque'],
-      'futbol.balon': ['campo_colegio', 'campo_municipal', 'parque'],
-      'futbol.tiro': ['campo_colegio', 'campo_municipal'],
-      'futbol.fisico': ['campo_colegio', 'campo_municipal', 'parque'],
-      'futbol.porteria': ['campo_colegio', 'campo_municipal'],
+      'futbol.campamento_jugadores': ['campo_municipal'],
+      'futbol.campamento_porteros': ['campo_municipal'],
+      ...Object.fromEntries(ENTRENAMIENTOS_DE_FUTBOL.map((e) => [idDeEntreno(e), e.lugares])),
       'futbol.ver_tele': ['casa'],
       'futbol.unirse_companeros': (ctx) => [datosDeDeporte(ctx, DEPORTE).competiciones.jornada.lugar],
       'futbol.ir_vestuario': (ctx) => [datosDeDeporte(ctx, DEPORTE).competiciones.jornada.lugar],

@@ -259,6 +259,8 @@ export interface JugadorDeEquipoView {
   /** Lo disciplinado que es su entrenador (de 0 a 1): con uno disciplinado, faltar cuesta más el puesto. */
   disciplinaDelEntrenador: number;
   lector: LectorDePersona;
+  /** El número de su camiseta en su equipo (`asignarDorsales`); sin él, el deporte no tiene dorsales. */
+  dorsal?: number;
   /** Lo disciplinado que es, de 0 a 1 (cuánto llega a tiempo a las convocatorias). */
   disciplina?: number;
   /** Su relación con el entrenador, de 0 a 100 (50: neutra): baja si llega tarde a las convocatorias; solo la tiene guardada quien ha llegado tarde alguna vez. */

@@ -32,9 +32,84 @@ El personaje y los PNJ pueden practicar varios deportes por su cuenta, pero **co
 
 ### Entrenamientos agrupados en la lista (decidido el 17/11/2026)
 
-En la lista de acciones no salen sueltos los entrenamientos por libre de un deporte: sale **una sola acción «Entrenar…» por deporte**, bajo «Entrenar <deporte>», con un desplegable «Entrenamiento» (cada opción con su duración, y «(no disponible)» si no se puede) y, debajo, el botón que lanza la elegida (nombre, duración y el motivo si no está disponible). Las acciones siguen existiendo con sus ids (`atletismo.series`, `futbol.balon`…): sim, bots y tests no cambian. Es un **dato** (`ActionDef.desplegable: { id, nombre, etiqueta, boton }`, contracts → `ActionOption.desplegable` en core): las acciones del mismo `group` y `desplegable.id` se agrupan, y sirve para cualquier otra lista larga. El kit lo pone a los `entrenosLibres` del deporte (`entrenosAgrupados`); la interfaz (`apps/web/src/desplegables.ts`) no sabe de qué deporte se trata. La sesión del club y el resto no se agrupan.
+En la lista de acciones no salen sueltos los entrenamientos por libre de un deporte: sale **una sola acción «Entrenar…» por deporte**, bajo «Entrenar <deporte>», con un desplegable «Entrenamiento» (cada opción con su duración, y «(no disponible)» si no se puede) y, debajo, el botón que lanza la elegida (nombre, duración y el motivo si no está disponible). Las acciones siguen existiendo con sus ids (`atletismo.series`, `futbol.entrena_toques_y_pared`…): sim, bots y tests no cambian. Es un **dato** (`ActionDef.desplegable: { id, nombre, etiqueta, boton }`, contracts → `ActionOption.desplegable` en core): las acciones del mismo `group` y `desplegable.id` se agrupan, y sirve para cualquier otra lista larga. El kit lo pone a los `entrenosLibres` del deporte (`entrenosAgrupados`); la interfaz (`apps/web/src/desplegables.ts`) no sabe de qué deporte se trata. La sesión del club y el resto no se agrupan.
 
-**Más listas agrupadas (17/11, `docs/relevo/fichas-y-listas.md`):** «Estudiar…» (cada asignatura del curso y el repaso general; botón «Estudiar lengua»), «Pedir tutoría…» (cada asignatura), y, cuando hay **dos deportes**, un solo «Campamento…», «Practicar con los amigos…» y «Ver un deporte en la tele…» (la opción es el deporte; antes salían dos botones con el mismo nombre). El desplegable gana `opcion` (cómo se llama cada acción dentro de la lista: «Lengua», «Fútbol») y el texto del botón admite `{nombre}` (el nombre completo de la acción) además de `{opcion}`. **Si de un desplegable solo existe una acción** (un deporte instalado), se dibuja como un botón normal. **Acciones del club** (`accionesDeClubes`, `docs/relevo/club-desplegables.md`): «Prueba de acceso…» (desplegable «Club», un club por opción: `<deporte>.prueba.<club>` o, con puestos, los tres pasos `pedir_prueba`, `prueba` y `prueba_entrenar`) y «Aceptar plaza…» (`<deporte>.aceptar_plaza.<club>`) van agrupadas; «Entrenamiento con el club», «Dejar el club» y «Apuntarte al club del colegio» siguen sueltas. Los ids no cambian. El análisis de todas las listas, con `npm run listas` (`tools/listas-de-acciones.ts`).
+**Más listas agrupadas (17/11, `docs/relevo/fichas-y-listas.md`):** «Estudiar…» (cada asignatura del curso y el repaso general; botón «Estudiar lengua»), «Pedir tutoría…» (cada asignatura), y, cuando hay **dos deportes**, un solo «Campamento…» y «Ver un deporte en la tele…» (y «Practicar con los amigos…» en el atletismo; en el fútbol ya no existe: ver «Quedar a jugar al fútbol») (la opción es el deporte; antes salían dos botones con el mismo nombre). El desplegable gana `opcion` (cómo se llama cada acción dentro de la lista: «Lengua», «Fútbol») y el texto del botón admite `{nombre}` (el nombre completo de la acción) además de `{opcion}`. **Si de un desplegable solo existe una acción** (un deporte instalado), se dibuja como un botón normal. **Acciones del club** (`accionesDeClubes`, `docs/relevo/club-desplegables.md`): «Prueba de acceso…» (desplegable «Club», un club por opción: `<deporte>.prueba.<club>` o, con puestos, los tres pasos `pedir_prueba`, `prueba` y `prueba_entrenar`) y «Aceptar plaza…» (`<deporte>.aceptar_plaza.<club>`) van agrupadas; «Entrenamiento con el club», «Dejar el club» y «Apuntarte al club del colegio» siguen sueltas. Los ids no cambian. El análisis de todas las listas, con `npm run listas` (`tools/listas-de-acciones.ts`).
+
+### Los 22 entrenamientos del fútbol, quedar a jugar y los campamentos (decidido el 21/11/2026; `docs/relevo/entrenamientos.md`)
+
+**Un catálogo de datos** (`modules/futbol/src/entrenamientos.ts`, 22 entradas: portería 5, físico 5, mental 4, técnico 8) del que salen las tres formas de entrenar. Cada entrada dice **qué sube, dónde se hace, con quién, cuánto dura y cuánto cansa**. La tabla de abajo sale de `npm run entrenamientos:tabla`.
+
+- **Por tu cuenta (desplegable «Entrenar…»).** Salen **los 22**, agrupados por apartados (Portería, Físico, Mental, Técnico: `desplegable.grupoDeOpcion`, un campo nuevo del contrato que la interfaz dibuja como `optgroup`). Los que se pueden hacer solos (`solo`) están disponibles en su horario; los que necesitan compañía salen **no disponibles** con el motivo «Hace falta compañía: se trabaja con el entrenador en la sesión del club». Rinden **×0,85** (entrenar sin entrenador). Ids: `futbol.entrena_<id>`. Portería está **abierta a todos** (quien quiera probar de portero puede).
+- **Con el club.** Los que llevan `club` son **ejercicios de la sesión del entrenador** (19 de los 22), con las mismas cifras llevadas a una hora de trabajo y **sin el ×0,85**; el conocimiento y el juego colectivo suben siempre (`SIEMPRE`). Los de portería (`soloPuesto: 'GK'`) **solo los hace quien juega de portero**, y los de campo técnicos (`noPara: 'GK'`) **no** los hace el portero: su sesión es un ejercicio de portería más uno físico o mental. Los PNJ eligen con la misma regla (`listaDeSesion` recibe su puesto). **Arregla un fallo de antes:** el ejercicio de porteros era `soloPuesto: 'portero'`, pero el puesto es `GK` y nadie pasaba el puesto: no salía nunca, para nadie.
+- **«Tiro a puerta» ya no es casi todo balón parado:** definición 3,5, disparo lejano 2 y sangre fría 1. Faltas, penaltis, córners y saque de banda tienen su entrenamiento propio (T7, «Balón parado»).
+- **Pedir consejo al entrenador:** a quien juega de portero le habla de lo suyo (reacción, blocaje, mano a mano, dominio del área, posicionamiento), no de «mejora tu técnica». Es una lista por puesto en el fútbol (`pedirConsejo` del kit admite una función); la **recomendación de entrenamientos** por lo que te falta (pista 3) queda para la sesión de puestos y pistas, que leerá este catálogo.
+- **Con amigos ya no es un entrenamiento: es quedar a jugar al fútbol, todo el año.** Es una actividad más de «Proponer quedar para…» (`docs/ANEXO_RELACIONES.md`, «Planes»): el deporte la **aporta** (`APORTES.quedadaDeDeporte`, `QuedadaDeDeporte` en contracts; `modules/futbol/src/quedadas.ts`) y relaciones la lee sin saber de fútbol. Hay una por **forma de jugar** y **lo que sube sale de lo que se juegue**: partidillo (lo del juego informal de siempre), 3 contra 3 (decisiones, visión, juego colectivo), tiros y paradas (tiro y un poco de portería) y a ver quién la mete (balón parado). 120 minutos, en el parque o los campos, −12 de energía y −6 de estrés; sube unas 2 habilidades por rato (frente a las ~11 de una hora de entrenamiento: sienta bien, no se mejora igual). Sin etiqueta `entrenamiento`: no cuenta para la sobrecarga ni sube el conocimiento. El verano ya no tiene «Practicar con los amigos» de fútbol (el atletismo lo conserva).
+- **Campamentos de jugadores y de porteros, por separado** (`futbol.campamento_jugadores`, `futbol.campamento_porteros`, en «Campamento…» con las opciones «Fútbol: jugadores» y «Fútbol: porteros»): 5 horas, seis bloques de 50 minutos, ×1,2. Los dos comparten los **bloques de todos** (agilidad y coordinación, posicionamiento y anticipación); el de jugadores añade toques y pared, defensa uno contra uno, rondos y pase y tiro a puerta (**no es solo ataque**: hay defensa, pase y mente); el de porteros, reflejos, balones aéreos, mano a mano y pies de portero. Un solo campamento por día (comparten `ultimoVerano`).
+
+**Balance (`ESCALA_DE_ENTRENAMIENTO` = 1, en `entrenamientos.ts`).** Las cifras de la tabla son las del informe, con una escala única. Medido con `npm run sim:futbol -- 365 3` (un deportista de campo, un curso, tres semillas):
+
+| | puntos de habilidad / curso | capacidades | sesiones de club |
+|---|---|---|---|
+| Antes | 154 (de ellos ~43 de portería que subía un jugador de campo) | 35,4 | 11 |
+| Escala 0,55 | 80 | — | 11 |
+| Escala 0,9 | 104 | 34,0 | 11 |
+| Escala 1,4 | 127 | 36,0 | 11 |
+| **Escala 1 (elegida)** | **110** (el 99 % de los ~111 de campo de antes) | 34,5 | 11 |
+
+Se eligió 1 porque deja el curso de campo parecido al de antes sin la portería de más (~111) y porque el club rinde **al menos como entrenar por libre por hora** (cada entrenamiento que se hace solo y con el club rinde ×1/0,85 en el club: lo comprueba `entrenamientos.test.ts`). Consecuencia a vigilar: **una sesión del club sube unos 13 puntos de habilidad (dos ejercicios de una hora) en vez de ~6**; el club era la rama que menos rendía por hora. La subida se frena sola con el tope por edad, así que no se dobla el nivel de los niños (ver el relevo para lo que se midió).
+
+**Portería**
+
+| # | Nombre | Sube (por libre, antes de ×0,85) | Dónde | Con quién | Min | Cansa | Hab./h solo | Hab./h club |
+|---|---|---|---|---|---|---|---|---|
+| P1 | Reflejos y paradas | reflejos 3,5, blocaje 2, mano a mano 1, coordinación 0,5, conocimiento 0,7 | campo_colegio, campo_municipal | solo, club | 60 | −14 | 5,53 | 6,5 |
+| P2 | Centros y balones aéreos | alcance aereo 2,5, dominio area 2, blocaje 1,5, salto 0,5, conocimiento 0,7 | campo_colegio, campo_municipal | club | 60 | −14 | — | 6,5 |
+| P3 | Mano a mano y salidas | mano a mano 3, dominio area 1,5, anticipacion 1, sangre fria 1, conocimiento 0,7 | campo_colegio, campo_municipal | club | 45 | −12 | — | 8,67 |
+| P4 | Pies de portero | despeje 3, pase 1,5, control 1, vision 1, conocimiento 0,6 | campo_colegio, campo_municipal, parque | solo, club | 60 | −10 | 5,53 | 6,5 |
+| P5 | Mando del área | dominio area 2,5, posicionamiento 2, decisiones 1, juego colectivo 1, comunicación 0,3, conocimiento 0,7 | campo_municipal | club | 60 | −8 | — | 6,5 |
+
+**Físico**
+
+| # | Nombre | Sube (por libre, antes de ×0,85) | Dónde | Con quién | Min | Cansa | Hab./h solo | Hab./h club |
+|---|---|---|---|---|---|---|---|---|
+| F1 | Velocidad y arrancadas | arrancada 3,5, velocidad 1,2, agilidad 0,4, conocimiento 0,3 | campo_colegio, campo_municipal, parque | solo, club | 45 | −18 | 3,97 | 4,67 |
+| F2 | Carrera continua | resistencia 2,5, conocimiento 0,3 | parque, campo_colegio | solo | 60 | −16 (estrés -4) | 0 | — |
+| F3 | Fuerza y saltos | salto 2, entrada 0,5, fuerza 1,5, conocimiento 0,3 | gimnasio | solo, club | 60 | −18 | 2,13 | 2,5 |
+| F4 | Agilidad y coordinación | arrancada 1,5, control 0,5, agilidad 1,2, coordinación 1,2, conocimiento 0,3 | campo_colegio, parque | solo, club | 45 | −10 | 2,27 | 2,67 |
+| F5 | Saltos y cabeceo | salto 2,5, cabeza 2, fuerza 0,3, conocimiento 0,3 | campo_colegio, campo_municipal | club | 45 | −14 | — | 6 |
+
+**Mental**
+
+| # | Nombre | Sube (por libre, antes de ×0,85) | Dónde | Con quién | Min | Cansa | Hab./h solo | Hab./h club |
+|---|---|---|---|---|---|---|---|---|
+| M1 | Pizarra y vídeo de jugadas | vision 2, decisiones 1,5, posicionamiento 1,5, conocimiento 1 | casa, biblioteca | solo | 45 | −3 (estrés +2) | 5,67 | — |
+| M2 | Posicionamiento y anticipación | posicionamiento 2,5, anticipacion 2,5, desmarque 1, conocimiento 0,6 | campo_colegio, campo_municipal | club | 60 | −14 | — | 6 |
+| M3 | Juegos reducidos (3 contra 3) | decisiones 2,5, vision 1,5, juego colectivo 1,5, sangre fria 0,5, conocimiento 0,6 | campo_colegio, campo_municipal, parque | club | 60 | −16 | — | 6 |
+| M4 | Bajo presión (marcador, penaltis) | sangre fria 3, penaltis 1, concentración 0,5, conocimiento 0,6 | campo_colegio, campo_municipal | club | 45 | −10 | — | 5,33 |
+
+**Técnico**
+
+| # | Nombre | Sube (por libre, antes de ×0,85) | Dónde | Con quién | Min | Cansa | Hab./h solo | Hab./h club |
+|---|---|---|---|---|---|---|---|---|
+| T1 | Toques y pared | control 3, pase 2, tecnica 1,5, conocimiento 0,8 | campo_colegio, campo_municipal, parque | solo, club | 60 | −14 | 5,53 | 6,5 |
+| T2 | Regate y conducción | regate 3,5, control 1,5, tecnica 1,5, conocimiento 0,8 | campo_colegio, campo_municipal, parque | solo, club | 60 | −14 | 5,53 | 6,5 |
+| T3 | Rondos y pase | pase 3, juego colectivo 1,5, vision 1, control 1, conocimiento 0,8 | campo_colegio, campo_municipal, parque | club | 60 | −14 | — | 6,5 |
+| T4 | Tiro a puerta | definicion 3,5, disparo lejano 2, sangre fria 1, fuerza 0,3, conocimiento 0,8 | campo_colegio, campo_municipal | solo, club | 60 | −14 | 5,53 | 6,5 |
+| T5 | Centros y remates | centros 3, cabeza 2, desmarque 1,5, conocimiento 0,8 | campo_colegio, campo_municipal | club | 60 | −14 | — | 6,5 |
+| T6 | Defensa uno contra uno | marcaje 2,5, entrada 2,5, anticipacion 1, posicionamiento 0,5, conocimiento 0,8 | campo_colegio, campo_municipal | club | 60 | −16 | — | 6,5 |
+| T7 | Balón parado | faltas 2, penaltis 2, corners 1,5, saque banda 1, conocimiento 0,6 | campo_colegio, campo_municipal | solo, club | 60 | −8 | 5,53 | 6,5 |
+| T8 | Malabares y técnica individual | tecnica 3,5, control 2, coordinación 0,5, conocimiento 0,6 | casa, parque | solo | 45 | −8 | 6,23 | — |
+
+**Quedadas**
+
+| Quedada | Sube | Dónde | Min |
+|---|---|---|---|
+| Jugar al fútbol: partidillo | control 0,3, regate 0,4, definicion 0,3, juego colectivo 0,4, carisma 0,4, cooperacion 0,4 | parque, campo_colegio, campo_municipal | 120 |
+| Jugar al fútbol: 3 contra 3 | decisiones 0,5, vision 0,3, juego colectivo 0,5, regate 0,3, control 0,3, carisma 0,3, cooperacion 0,3 | parque, campo_colegio, campo_municipal | 120 |
+| Jugar al fútbol: tiros y paradas | definicion 0,4, disparo lejano 0,3, reflejos 0,3, blocaje 0,2, mano a mano 0,2, carisma 0,3, cooperacion 0,3 | campo_colegio, campo_municipal | 120 |
+| Jugar al fútbol: a ver quién la mete | faltas 0,4, penaltis 0,4, corners 0,3, saque banda 0,2, sangre fria 0,2, carisma 0,3, cooperacion 0,3 | campo_colegio, campo_municipal | 120 |
+
 
 ### Deportes con puestos (el fútbol): prueba de acceso y pedir puesto (decidido el 17/11/2026)
 
@@ -58,6 +133,17 @@ Todo es genérico (contratos `DeporteView.miEquipo`, `DeporteView.gruposDeHabili
 - **Tamaño del guardado:** cuatro datos por compañero (≈ 30 bytes) y un máximo de 60 compañeros (`guardados`: se olvidan los vistos hace más): < 2 KB.
 - **La plantilla de la sección «Plantilla · equipo»** (la tabla con minutos, goles y nota) sigue la misma regla: el nombre solo de quien conoces (de los demás, su aspecto) y el puesto solo de quien has visto jugar.
 - **Habilidades por grupos:** el deporte las publica en `gruposDeHabilidades` (título y habilidades de cada grupo) y la web pone un título por grupo. Fútbol: **Portería, Físico, Mental, Técnico** y, aparte, **Conocimiento** (el grupo de cada habilidad es el `grupo` de su definición en `habilidades.ts`). Sin `gruposDeHabilidades`, se enseñan seguidas (atletismo).
+
+### Dorsales, crónica sin nombres de desconocidos y comparación en «Mi equipo» (decidido el 21/11/2026; `docs/relevo/dorsales.md`)
+
+- **Dorsales** (`packages/contracts/src/dorsales.ts`, dato del deporte `PuestosDeDeporte.dorsales`: `ReglaDeDorsales`; fútbol: `DORSALES_DE_FUTBOL` en `modules/futbol/src/puestos.ts`). Cada jugador de cada equipo lleva el número de su camiseta, también el personaje.
+  - **Los de campo:** al azar del 2 al 25; el 55 % de las veces (`pesoDeLaCostumbre`) va por la **costumbre de su puesto** si alguno de sus números sigue libre (lateral derecho 2, izquierdo 3, centrales 4 o 5, pivote 6, medios 8 o 6, bandas 7 u 11, mediapunta 10, extremos 11 y 7, delanteros 9, 11 o 10); si no, cualquier libre. Con más de 24 de campo, el primero libre desde el 26.
+  - **Los porteros:** el 1 o el 13 (el 1, con un 65 %) y, si están cogidos, el primero libre desde el 16. **Escogen después de los de campo** (un de campo puede haber cogido el 13).
+  - **Estable y sin gastar el azar de la partida:** `rngEstable('dorsal', equipo, id)`. Se asigna al entrar en el equipo y se conserva **mientras siga en el club** (aunque cambie de letra o de categoría); `asignarDorsales` respeta lo guardado y solo da número a quien no lo tiene (si dos repiten, el segundo se reasigna). Se pierde al dejar el deporte (`sinDeporte`).
+  - **Guardado ligero:** PNJ, `Npc.dorsal: Record<deporte, número>` (`repartirDorsales`, al fijar los equipos en verano y al crear la partida; `plantillaDeUnEquipo` da número, sin guardarlo, a quien llegó después); personaje, `FutbolState.dorsal: [club, número]` (lo escoge entre los que sus compañeros no llevan). Coste: ≈ +3 KB en el estado de una partida nueva (`npm run presupuesto -- --peso`). Las partidas guardadas sin la regla no tienen dorsales.
+  - `JugadorDeEquipoView.dorsal` lo publican los directorios; el motor de partido no lo usa.
+- **La crónica del partido** (`cronicaDelPartido`, `OpcionesDeCronica`): **el nombre solo de quien el personaje ya conoce** (`known`, mirado al registrar el partido; quien se presenta al competir se conoce después, así que la crónica de ese partido sigue por dorsal); de quien no, **el dorsal con concordancia**: los de tu lado, «vuestro 4» / «vuestra 4»; los rivales, «el 7 del Rayo» / «la 7 del Rayo» (el equipo sin su letra; «de La Salle», «de la Escuela…» con su artículo: `jugadorPorSuDorsal`). Con un nombre se pone su equipo entre paréntesis («Carla (Rayo A) dispara…»); con un dorsal no hace falta. El personaje, siempre «tú». Sin nombre ni dorsal, «un jugador». Los textos son de los de siempre: lo único que cambia es cómo se nombra a cada uno.
+- **«Mi equipo», dorsal y comparación** (corrección del usuario, 21/11): **la descripción de quien no conoces se queda entera** (la de Gente, `aspectoDe`); el dorsal y la comparación se añaden como datos más. Dos columnas, «Nº · Compañero» y «Puesto»: en la primera, **el dorsal delante del nombre o de la descripción** («7 · Una niña de pelo castaño…», siempre visible: va en la espalda, y sirve para reconocerle fuera del campo) y, **debajo y en pequeño, «Frente a ti: mejor / peor / parecido»** (la misma comparación de la ficha de Gente, `CompaneroDeEquipo.comparacion`; «—» hasta que le has visto jugar; tu fila, sin ella). Cabe en el móvil sin quitar información.
 
 ### Los niños se apuntan a su equipo en los primeros días del curso (decidido el 21/11/2026; `docs/relevo/futbol-mas-barato.md`)
 

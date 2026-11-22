@@ -1,4 +1,4 @@
-import type { PuestoDeDeporte, PuestosDeDeporte } from '@ds/contracts';
+import type { PuestoDeDeporte, PuestosDeDeporte, ReglaDeDorsales } from '@ds/contracts';
 import { FAMILIAS_DE_PUESTOS_DE_FUTBOL, PISTAS_DE_PUESTOS_DE_FUTBOL } from './pistas-de-puestos';
 
 /**
@@ -73,7 +73,19 @@ function pesosDe(id: string): Record<string, number> {
   return Object.fromEntries(Object.entries(en).map(([k, v]) => [k.startsWith('gen.') ? k : `futbol.${k}`, v / total]));
 }
 
+/**
+ * Los dorsales del fútbol (decidido el 21/11/2026): los de campo, al azar del 2 al 25 con algo de costumbre por puesto (laterales 2 y 3, centrales 4 y 5, delanteros 9…) que se sigue la mayoría de las veces pero no siempre;
+ * los porteros, el 1 o el 13 y, si están cogidos, el primero libre desde el 16 (escogen después de los de campo).
+ */
+export const DORSALES_DE_FUTBOL: ReglaDeDorsales = {
+  campo: { desde: 2, hasta: 25 },
+  costumbres: { CB: [4, 5], RB: [2], LB: [3], CDM: [6], CM: [8, 6], LCR: [8, 6], RCR: [8, 6], LM: [7, 11], RM: [7, 11], CAM: [10], LW: [11], RW: [7], ST: [9], LST: [9, 11], RST: [9, 10] },
+  pesoDeLaCostumbre: 0.55,
+  porteros: { puestos: ['GK'], preferidos: [1, 13], desde: 16 },
+};
+
 export const PUESTOS_DE_FUTBOL: PuestosDeDeporte = {
+  dorsales: DORSALES_DE_FUTBOL,
   // La pierna buena (decisión del 04/11): en torno a un 20 % de zurdos; el lado de su pierna vale ±0,25 de base; y la experiencia en un puesto de su lado crecerá un 25 % más deprisa (a calibrar).
   pierna: { ventajaDelLado: 0.25, factorDeExperienciaDelLado: 1.25 },
   // La experiencia en un puesto se gana partido a partido (decisión 4 del motor): (100 − experiencia) × 0,09 × minutos / 90 × aprendizaje.

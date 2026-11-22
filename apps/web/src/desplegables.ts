@@ -48,7 +48,11 @@ export function viewDesplegable(k: string, opciones: readonly ActionOption[], es
   const abierto = abiertos.has(k);
   const elegida = opciones.find((o) => o.id === elegidas.get(k)) ?? opciones.find((o) => o.available) ?? opciones[0];
   const etiquetaDe = (o: ActionOption): string => o.desplegable?.opcion ?? o.name;
-  const select = opciones.map((o) => `<option value="${esc(o.id)}"${o.id === elegida.id ? ' selected' : ''}>${esc(`${etiquetaDe(o)} · ${duracion(o.duration, o)}${o.available ? '' : ' (no disponible)'}`)}</option>`).join('');
+  const opcion = (o: ActionOption) => `<option value="${esc(o.id)}"${o.id === elegida.id ? ' selected' : ''}>${esc(`${etiquetaDe(o)} · ${duracion(o.duration, o)}${o.available ? '' : ' (no disponible)'}`)}</option>`;
+  // Las opciones con apartado (`grupoDeOpcion`: «Portería», «Físico»…) van juntas bajo su título, en el orden en que aparece cada apartado.
+  const apartados = new Map<string, ActionOption[]>();
+  for (const o of opciones) apartados.set(o.desplegable?.grupoDeOpcion ?? '', [...(apartados.get(o.desplegable?.grupoDeOpcion ?? '') ?? []), o]);
+  const select = [...apartados].map(([titulo, os]) => (titulo ? `<optgroup label="${esc(titulo)}">${os.map(opcion).join('')}</optgroup>` : os.map(opcion).join(''))).join('');
   return `<button class="action" data-desplegable="${esc(k)}"><span class="action-name">${esc(d.nombre)}</span><span class="action-time">${abierto ? '▲' : '▼'}</span></button>
     ${abierto ? `<div class="formulario-plan">
       <label class="campo-plan"><span>${esc(d.etiqueta)}</span><select data-desplegable-campo="${esc(k)}">${select}</select></label>

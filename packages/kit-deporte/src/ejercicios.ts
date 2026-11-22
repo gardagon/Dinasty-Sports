@@ -19,7 +19,7 @@ export interface ContextoDeEleccion {
   importancia?: (stat: StatId) => number;
   /** Cuánto le gusta cada tipo de ejercicio a este entrenador (por defecto, 1): sale de su carácter. */
   sesgo?: Readonly<Record<string, number>>;
-  /** El puesto del jugador, para los ejercicios de `soloPuesto`. */
+  /** El puesto del jugador (su id), para los ejercicios de `soloPuesto` y `noPara`. */
   puesto?: string;
   /** Claves del azar estable de la sesión (p. ej. el club y el día): la misma sesión elige siempre lo mismo, y otro día, otra cosa. */
   semilla: readonly (string | number)[];
@@ -40,7 +40,7 @@ const FALTA_MINIMA = 0.05;
 export function elegirEjercicios(catalogo: readonly Ejercicio[], c: ContextoDeEleccion): Ejercicio[] {
   const prefijo = prefijoEstable('ejercicio', ...c.semilla); // lo constante del azar, mezclado una vez (el mismo resultado que `rngEstable('ejercicio', ...semilla, id)`)
   const puntuados = catalogo
-    .filter((e) => !e.soloPuesto || e.soloPuesto === c.puesto)
+    .filter((e) => (!e.soloPuesto || e.soloPuesto === c.puesto) && (!e.noPara || e.noPara !== c.puesto))
     .map((e) => {
       const falta = e.entrena.reduce((t, x) => t + x.amount * (c.importancia?.(x.stat) ?? 1) * Math.max(FALTA_MINIMA, 1 - c.nivel(x.stat) / 100), 0);
       const azar = 1 - VARIACION_AL_AZAR + 2 * VARIACION_AL_AZAR * rngEstableDesde1(prefijo, e.id).next();
