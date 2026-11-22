@@ -13,6 +13,7 @@ import { MODULOS, nuevaPartida } from '@ds/game';
 import { DATOS_FUTBOL, PNJ_POR_LIBRE, futbol } from '@ds/mod-futbol';
 import { fijosDeNino, topeEfectivo } from '../modules/npcs/src/rutina';
 import { interesPor } from '../modules/npcs/src/deportistas';
+import { probabilidadDeAbandonar, motivosDeAbandono } from '../modules/npcs/src/abandono';
 
 registrarPais(PAIS_CIUDAD_GRANDE);
 // PNJ_LIBRE=1 activa la propuesta de que los PNJ entrenen por su cuenta; PNJ_LIBRE='{"propension":{...}}' cambia sus cifras (solo para medir: sin ella el juego va como siempre).
@@ -20,6 +21,12 @@ if (process.env.PNJ_LIBRE) {
   const extra = process.env.PNJ_LIBRE.startsWith('{') ? JSON.parse(process.env.PNJ_LIBRE) : {};
   const l = { ...PNJ_POR_LIBRE, ...extra, propension: { ...PNJ_POR_LIBRE.propension, ...(extra.propension ?? {}) } };
   (DATOS_FUTBOL as any).paises.espana.poblacion.rutina.porLibre = l;
+}
+// PNJ_ABANDONO='{"pesos":{"nivel":0.6},"suelo":0.04}' mezcla esas cifras con las del abandono (la propuesta, para medirla).
+if (process.env.PNJ_ABANDONO) {
+  const rec = (DATOS_FUTBOL as any).paises.espana.poblacion.reclutamiento;
+  const extra = JSON.parse(process.env.PNJ_ABANDONO);
+  rec.abandono = { ...rec.abandono, ...extra, pesos: { ...rec.abandono.pesos, ...(extra.pesos ?? {}) } };
 }
 const salida = process.argv[2] ?? 'analisis-profesionales.json';
 const semillas = (process.argv[3] ?? '31,32,33').split(',').map(Number);
@@ -33,6 +40,8 @@ interface Fila {
   min: number; pj: number; ti: number;
   /** Cómo está sin jugar: lo dejó (`dejado`), lo apartaron del reparto (`apartado`) o no hay equipo; y su papel en el mundo (los compañeros del personaje salen a los 18). */
   dejado?: boolean; apartado?: boolean; rol?: string;
+  /** Probabilidad de dejar el fútbol ese verano (la del juego, con los datos de ese año) y sus motivos (fuerza de cada uno). */
+  pAb?: number; mot?: Record<string, number>;
 }
 interface Nino { id: string; potencial?: number; topeCap: number; topeFis: number; interes: number; club0?: string; tamano0?: string; colegio0?: boolean; letra0?: string; filas: Fila[] }
 
@@ -51,6 +60,13 @@ for (const seed of semillas) {
   const tamanoDe = (club?: string) => pob.equipos.find((e: any) => e.club === club);
   const foto = (k: number) => {
     const st = g.moduleState('npcs') as any;
+    // Los titulares como en `titularesDelCurso` (los 11 que más valen de cada equipo y letra).
+    const titulares = new Set<string>();
+    {
+      const eq = new Map<string, any[]>();
+      for (const n of st.npcs) if (n.deporte === 'futbol' && n.equipo && n.letra?.futbol && n.genetica) (eq.get(`${n.equipo}|${n.letra.futbol}|${edadDe(n, g.time.day)}`) ?? eq.set(`${n.equipo}|${n.letra.futbol}|${edadDe(n, g.time.day)}`, []).get(`${n.equipo}|${n.letra.futbol}|${edadDe(n, g.time.day)}`)!).push(n);
+      for (const m of eq.values()) for (const n of m.sort((a: any, b: any) => (b.vp?.futbol?.valor ?? b.levels.futbol ?? 0) - (a.vp?.futbol?.valor ?? a.levels.futbol ?? 0)).slice(0, 11)) titulares.add(n.id);
+    }
     const dia = g.time.day;
     const clave = String(k);
     ref[clave] = {};
@@ -82,6 +98,11 @@ for (const seed of semillas) {
       if (juega) {
         f.club = n.equipo; f.tamano = club?.tamano; f.colegio = club?.colegio !== undefined; f.letra = n.letra?.futbol;
         f.valor = r3(n.vp?.futbol?.valor ?? n.levels.futbol);
+        if (pob.reclutamiento.abandono) {
+          const d = { edad: edadDe(n, dia) + 1, rasgos: n.rasgos, titular: titulares.has(n.id), padres: n.genetica.padres };
+          f.pAb = r3(probabilidadDeAbandonar(pob.reclutamiento.abandono, d, 'futbol'));
+          f.mot = Object.fromEntries(motivosDeAbandono(pob.reclutamiento.abandono, d, 'futbol').map((m) => [m.id, r3(m.fuerza)]));
+        }
         f.capF = CAPACIDADES_GENETICAS.map((c, i) => r3(n.cap[i] / topeEfectivo(n.genetica, c)));
         f.capPob = pob.capacidades.map((c: string) => r3(n.cap[CAPACIDADES_GENETICAS.indexOf(c)] / topeEfectivo(n.genetica, c)));
         const fijos = fijosDeNino(n.id, n.genetica, 'futbol', pob.rutina);

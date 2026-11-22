@@ -25,6 +25,12 @@ if (process.env.PNJ_LIBRE) {
   const l = { ...PNJ_POR_LIBRE, ...extra, propension: { ...PNJ_POR_LIBRE.propension, ...(extra.propension ?? {}) } };
   (DATOS_FUTBOL as any).paises.espana.poblacion.rutina.porLibre = l;
 }
+// PNJ_ABANDONO='{"pesos":{"nivel":0.6},"suelo":0.04}' mezcla esas cifras con las del abandono (la propuesta, para medirla).
+if (process.env.PNJ_ABANDONO) {
+  const rec = (DATOS_FUTBOL as any).paises.espana.poblacion.reclutamiento;
+  const extra = JSON.parse(process.env.PNJ_ABANDONO);
+  rec.abandono = { ...rec.abandono, ...extra, pesos: { ...rec.abandono.pesos, ...(extra.pesos ?? {}) } };
+}
 const [modo, salida] = [process.argv[2], process.argv[3]];
 const r3 = (x: number) => Math.round(x * 1000) / 1000;
 const suma = (a: number[]) => a.reduce((x, y) => x + y, 0);

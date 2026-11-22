@@ -63,6 +63,12 @@ export const PNJ_POR_LIBRE: PorLibreDeDeporte = {
   factorPorEdad: { 15: 0.9, 16: 0.75, 17: 0.6, 18: 0.7 },
 };
 
+/**
+ * **Propuesta, desactivada:** que los mejores de su edad abandonen menos, pero no cero (`docs/relevo/pnj-entrenan-y-abandono.md` §2). Se mezcla con `abandono` de `POBLACION_ESPANA` (`pesos.nivel`: lo bueno que es frente a los de
+ * su edad; `suelo`: la probabilidad mínima de dejarlo cada verano). Sin ella, el abandono no mira el nivel.
+ */
+export const ABANDONO_PROPUESTO = { pesos: { nivel: 0.6 }, suelo: 0.04 } as const;
+
 const POBLACION_ESPANA: PoblacionDeDeporte = {
   // Los 16 puestos y el reparto de una plantilla de 18 por puestos (adelanto de la F3): los clubes reparten la plantilla y deciden las plazas por puesto.
   puestos: PUESTOS_DE_FUTBOL,

@@ -509,7 +509,9 @@ export interface PoblacionDeDeporte {
       /** Probabilidad base de dejarlo cada verano a cada edad; para las edades que no están se usa la de la mayor edad menor que ellas (la primera, para las menores). */
       baseDeLaEdad: Readonly<Record<number, number>>;
       /** Cuánto cambia la base cada motivo, de 0 a 1 (con peso 0,5, el motivo más fuerte la sube o la baja un 50 %). */
-      pesos: { interes: number; ambicion: number; minutos: number; estudios: number; padres: number };
+      pesos: { interes: number; ambicion: number; minutos: number; estudios: number; padres: number; /** Propuesta (`docs/relevo/pnj-entrenan-y-abandono.md`): cuánto pesa lo bueno que es frente a los de su edad (sin él, el nivel no cuenta). */ nivel?: number };
+      /** Propuesta: la probabilidad mínima de dejarlo cada verano aunque todo le anime a seguir («no todos los mejores triunfan, por mentalidad o por temas personales»). Sin él, puede llegar a 0. */
+      suelo?: number;
       /** La presión de los estudios a cada edad, de 0 a 1 (4.º de la ESO y bachillerato, las más altas); lo que no está, 0. */
       estudiosPorEdad: Readonly<Record<number, number>>;
     };
