@@ -51,6 +51,7 @@ import { cancelarCreacion, crearEnSegundoPlano } from './creador';
 import { ID_DE_LA_CIUDAD_GRANDE } from './paises-propios';
 import { hayEstudios, viewEstudios } from './estudios';
 import { clicEnDeporte, habilidadesDeDeporte, pestanaDeDeporte, viewDeporte } from './deporte';
+import { paginaDePrueba, pidenPruebaRetrato } from './prueba-retrato';
 import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, textoDeNiveles, viewPanelGente } from './gente';
 import { agruparEnDesplegables, cambioEnDesplegable, clicEnDesplegable, viewDesplegable } from './desplegables';
@@ -1624,6 +1625,8 @@ function asaDeDepuracion(): void {
 }
 
 async function iniciar(): Promise<void> {
+  // Página de prueba del retrato (sin enlace desde el menú): no toca la partida ni el guardado.
+  if (pidenPruebaRetrato()) { await paginaDePrueba(app); return; }
   asaDeDepuracion();
   app.innerHTML = '<main class="app"><p class="note">Cargando…</p></main>';
   almacen = await crearAlmacen();
