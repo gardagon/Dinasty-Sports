@@ -45,6 +45,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXPnzU1Gedkvetov9Rr` | `claude/primer-entrenamiento-puesto` | En el primer entrenamiento, el entrenador dice «Vas a jugar de…» y, si encaja, «pero a lo mejor más adelante te pongo de…» |
 | `session_01M4vXXMp7cyuMpYVVwYDEFo` | `claude/pnj-entrenan-y-abandono` | Análisis con propuesta (desactivada): PNJ que entrenan por su cuenta o quedan a jugar; abandono de los mejores |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.

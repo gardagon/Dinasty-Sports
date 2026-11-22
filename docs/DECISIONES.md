@@ -5,6 +5,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — El entrenador dice el puesto en el primer entrenamiento
+
+En el primer entrenamiento con el equipo, el entrenador dice en un suceso «Vas a jugar de [puesto]» y, si el jugador encaja en otro, «pero a lo mejor más adelante te pongo de [puesto]». Así no hace falta ir a la página del equipo para saberlo.
+
 ## 22/11/2026 — Versión visible y actualización de la app
 
 - **En Opciones se ve qué versión del juego se usa** (commit y fecha de compilación), y en pequeño en la pantalla de inicio. Para saber si un fallo es de la versión.
