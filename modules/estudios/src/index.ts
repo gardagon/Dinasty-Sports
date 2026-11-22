@@ -10,6 +10,9 @@ import {
   MINUTOS_ANTES_DE_CLASE,
   claseQueVaAEmpezar,
   SHARED_EVENTS,
+  type BoletinData,
+  type ExamenAvisoData,
+  type ExamenHechoData,
   type ClassAttendedData,
   type EducacionFisicaService,
   minutosDeEducacionFisica,
@@ -547,6 +550,7 @@ function evaluarTrimestre(ctx: ActionContext, curso: number, trimestre: number):
     align: ['left', 'right', 'right', 'right', 'right'],
   });
   const aprobado = media >= 5;
+  ctx.emit<BoletinData>({ type: SHARED_EVENTS.BOLETIN, data: { curso, trimestre, media: Math.round(media * 10) / 10, aprobado } });
   ctx.log(
     `Evaluación del ${trimestre}.º trimestre: nota media ${media.toFixed(1)}. ${aprobado ? 'Apruebas.' : 'Suspendes.'}`,
     aprobado ? 'logro' : 'aviso',
@@ -595,7 +599,7 @@ const tipoDeSemana = (t: { isEvaluationWeek: boolean; parcial: 0 | 1 | 2 }): Tip
 const NOMBRE_DE_EXAMEN: Record<TipoDeExamen, string> = { parcial1: 'Parcial 1', parcial2: 'Parcial 2', global: 'Global' };
 
 /** Exámenes de hoy: la nota sale de la preparación de ahora; quien falta a clase se queda con un 0. */
-function examinar(ctx: ActionContext, keys: string[], tipo: TipoDeExamen, estuvo: (key: string) => boolean): void {
+function examinar(ctx: ActionContext, keys: string[], tipo: TipoDeExamen, estuvo: (key: string) => boolean, curso: number, trimestre: number): void {
   const filas: string[][] = [];
   const nuevas: Record<string, number> = {};
   for (const k of keys) {
@@ -605,6 +609,7 @@ function examinar(ctx: ActionContext, keys: string[], tipo: TipoDeExamen, estuvo
     const nota = presente ? Math.max(asignatura(k).notaMinima ?? 0, bruta) : 0;
     nuevas[`${k}:${tipo}`] = nota;
     filas.push([asignatura(k).name, presente ? nota.toFixed(1) : 'No presentado']);
+    ctx.emit<ExamenHechoData>({ type: SHARED_EVENTS.EXAMEN_HECHO, data: { asignatura: statId(k), nombre: asignatura(k).name, tipo, nota, presentado: presente, curso, trimestre } });
   }
   ctx.updateState<EstudiosState>((st) => ({ ...st, examenes: { ...st.examenes, ...nuevas } }));
   const m = Object.values(nuevas).reduce((x, n) => x + n, 0) / keys.length;
@@ -875,6 +880,17 @@ export const estudios = defineModule<EstudiosState>({
       }
     },
 
+    // El día antes de un examen (por la mañana) se emite la señal compartida `estudios.examen_aviso`, una por examen, para los sucesos.
+    [CORE_EVENTS.DAY_START]: (ctx) => {
+      const manana = ctx.timeAt((ctx.time.day + 1) * MINUTES_PER_DAY);
+      if (!manana.isSchoolDay) return;
+      const s = ctx.state<EstudiosState>();
+      const examenes = calendarioDeExamenes(ctx, manana.week, s.modalidad).filter((e) => e.weekday === manana.weekday && s.examenes?.[`${e.key}:${e.tipo}`] === undefined);
+      for (const e of examenes) {
+        ctx.emit<ExamenAvisoData>({ type: SHARED_EVENTS.EXAMEN_AVISO, data: { asignatura: statId(e.key), nombre: asignatura(e.key).name, tipo: e.tipo, curso: manana.schoolYear, trimestre: manana.term, totalMañana: examenes.length } });
+      }
+    },
+
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as DayEventData;
       // La primera vez se fija lo aprendido de base de cada asignatura a partir de la aptitud de arranque.
@@ -927,7 +943,7 @@ export const estudios = defineModule<EstudiosState>({
         const hoyToca = activas.filter((k) => diaDeExamen(hoy.schoolYear, hoy.term, k, tipo, diasDe(ctx.pais.cursos, hoy.schoolYear, s.modalidad, k)) === weekday && hechos[`${k}:${tipo}`] === undefined);
         // Se examina quien fue a la clase de esa asignatura de hoy.
         const dia = asignaturasDeHoy(ctx.pais.cursos, hoy.schoolYear, s.modalidad, weekday);
-        if (hoyToca.length) examinar(ctx, hoyToca, tipo, (k) => fue.includes(dia.indexOf(k)));
+        if (hoyToca.length) examinar(ctx, hoyToca, tipo, (k) => fue.includes(dia.indexOf(k)), hoy.schoolYear, hoy.term);
         if (weekday === 4 && tipo === 'global') evaluarTrimestre(ctx, hoy.schoolYear, hoy.term);
       }
       // Olvido diario: cada asignatura pierde un poco, más si las capacidades que la apoyan son flojas.
