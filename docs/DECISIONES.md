@@ -5,6 +5,11 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — Antes de publicar: partidas guardadas y crónica
+
+- **Llevar a la versión publicada lo unido desde el 21/11:** aprobado, después de confirmar si hace falta partida nueva, cerrar el balance de los entrenamientos y los arreglos que pida el usuario.
+- **En los partidos, de todos se ve su descripción y su dorsal, de tu equipo y del rival.** Jugar contra alguien no te da su nombre (hoy los rivales pasan a «conocidos» al competir): el nombre se sabe como en el resto del juego.
+
 ## 22/11/2026 — Coste por acción: el índice de presencia, por lugar
 
 Detalle: `docs/relevo/coste-por-accion.md`. Un test de `npcs` superaba su límite de 30 s. La causa era «moverse con el grupo»: la obligación de `npcs` pedía la presencia de toda la población en cada acción cortable, aunque estuvieras en casa. Arreglo: el índice se calcula lugar a lugar y solo entre quienes pueden estar allí (resultado idéntico; huella igual). Ciudad de prueba: 1,60 → 1,24 ms por acción y 61,8 → 48,0 ms por día; ciudad grande con fútbol: 6,6 → 4,0 ms por acción; el test, de 18–20 s a 3–4 s, sin subir ningún límite. Herramienta `tools/rendimiento-hermanos.ts`.
