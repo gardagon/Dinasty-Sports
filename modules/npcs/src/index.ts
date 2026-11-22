@@ -19,7 +19,7 @@ import { SEMANAS_DE_LOS_LEJANOS, conMasConocimiento, historiaDeportiva, huecosDe
 
 import { añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
 import { colocarDesplazados } from './fichajes';
-import { conApuntados, entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { conApuntados, entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, completarPoblaciones, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { consejoDeUnProfesor, familiasDePuestosDeLosDeportes, lecturaDeUnPuesto } from './consejo';
 import { categoriaDe, huecosPorGrupoEnElEquipo, plazaEnElEquipo, piernaDe, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
 import { entrenadoresDeEquiposExtra, entrenadoresDeUnDeporte } from './draft';
@@ -1414,6 +1414,9 @@ export const npcs = defineModule<NpcsState>({
     const { npcs, pobs } = conPais(ctx.pais, () => generarTodos(ctx, poblaciones));
     return { npcs, poblaciones: pobs, semilla: ctx.seed };
   },
+
+  // Una partida de una versión anterior no guarda lo que pidieron después los deportes (dorsales, familias de puestos, pistas, días de apuntarse): se completa al cargar (sin tocar lo guardado).
+  alCargar: (estado, ctx) => (estado.poblaciones ? { ...estado, poblaciones: completarPoblaciones(estado.poblaciones, poblacionesDe(ctx, estado.semilla ?? ctx.seed)) } : estado),
 
   // Ponerle (o quitarle) un apodo a alguien que conoces: el texto va en el id de la acción (`idDePonerApodo`).
   resolverAccion: (ctx, id) => {

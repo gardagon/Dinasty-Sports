@@ -58,6 +58,11 @@ export interface GameModule<S = unknown> {
   aportes?: Record<string, readonly unknown[]>;
   /** Estado propio inicial del módulo (debe ser JSON serializable). */
   initState?: (ctx: InitContext) => S;
+  /**
+   * Migración suave: al **cargar** una partida guardada por una versión anterior, completa lo que le falta al estado de este módulo (campos que la versión nueva espera y la antigua no guardaba)
+   * sin subir `SAVE_VERSION`. Devuelve el estado completado (o el mismo). Solo se llama con un estado ya existente (no al crear la partida) y debe ser idempotente: con un estado al día no cambia nada.
+   */
+  alCargar?(estado: S, ctx: InitContext): S;
 }
 
 /** Ayuda de tipado para declarar módulos. */
