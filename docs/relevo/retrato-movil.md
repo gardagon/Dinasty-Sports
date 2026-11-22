@@ -29,3 +29,19 @@ La pestaña se desactiva mientras ningún deporte tenga club (el personaje no en
 ## Para la revisión
 
 Si el usuario sigue viéndolo, pedirle: navegador (Chrome/Samsung), si tiene activado «Oscurecer páginas web» (`chrome://flags/#enable-force-dark`) o el modo oscuro de Samsung, y una captura con el menú del navegador abierto.
+
+## Segunda ronda (datos nuevos del usuario)
+
+**Dato:** juega con la PWA instalada en Android y con **Samsung Internet** (en Chrome del mismo móvil el retrato se ve bien); además, el niño de 8 años sale **calvo** también en Chrome.
+
+### 1. Samsung Internet (modo oscuro forzado)
+- Samsung Internet es Chromium con su propio «Usar modo oscuro en las páginas web», que reajusta los colores de las webs que no declaran modo oscuro. No se puede emular aquí: `--force-dark-mode`/`WebContentsForceDark` no hacen nada en el Chromium de escritorio y el override de CDP (`setAutoDarkModeOverride`) oscurece la página pero deja el SVG intacto (y no respeta el meta, porque es un override).
+- Lo que hacemos (ya en la rama): `<meta name="color-scheme" content="light dark">` (declarar los dos temas es lo que hace que Chromium/Samsung no apliquen el suyo), `color-scheme` ya está en `:root` para los dos temas, y los SVG del dibujo llevan `color-scheme: light; forced-color-adjust: none; opacity: 1; filter: none`. **Sin probar en un Samsung real**: pedir al usuario que confirme tras actualizar la app.
+- Si siguiera igual: es su ajuste global (Ajustes → Aspecto → «Usar modo oscuro en las páginas web» / «Modo oscuro de la página»); desactivarlo, o usar Chrome, lo confirma.
+
+### 2. La PWA y su caché (comprobado, no es la causa)
+`apps/web/public/sw.js`: navegación **red primero** (la copia es solo respaldo sin conexión), el resto con copia primero y refresco en segundo plano. Los JS y CSS de Vite llevan hash en el nombre, así que un `index.html` nuevo apunta a archivos nuevos: no se mezcla un dibujo viejo con estilos nuevos. `skipWaiting` + `clients.claim` activan el worker nuevo al instante. Sin conexión se sirve lo guardado. El manifiesto (`standalone`, `theme_color` oscuro) no toca el dibujo. Conclusión: la app se actualiza en la siguiente apertura con conexión; el `meta` nuevo llegará con ella.
+
+### 3. El niño calvo (causa encontrada y arreglada)
+Es un fallo real, del catálogo de peinados: los hombres tienen un 4 % de «Cabeza afeitada» (largo 0) y un 5 % de «Rapado al cero» (0,15 cm), y el estilo es fijo de por vida, así que **algún niño sale calvo** (con menos de 0,05 cm no se dibuja pelo; con menos de 0,4 solo una sombra). No es del pliegue del párpado ni de las caras por origen.
+**Arreglo** (`packages/retrato/src/parametros.ts`): hasta la pubertad (`edadFisica < EDAD_DEL_VELLO`) quien tendría un largo < 0,4 cm lleva «rapado» (0,6 cm); desde ahí vuelve su estilo. Test nuevo en `retrato.test.ts` (1 500 semillas × sexo × 3, 8 y 12 años: largo ≥ 0,5; y de adultos sigue habiendo cabezas al cero). No hay que regenerar la cuadrícula (sus niños llevan peinado pedido o no caen en esos dos estilos; no se ha cambiado ninguna otra hoja).

@@ -266,3 +266,15 @@ describe('retrato: no depende del tema ni hereda nada', () => {
     }
   });
 });
+
+describe('retrato: los niños no salen calvos', () => {
+  it('hasta la pubertad, ningún niño ni niña va afeitado ni rapado al cero; de mayores vuelve su estilo', () => {
+    let mayoresAlCero = 0;
+    for (let semilla = 1; semilla <= 1500; semilla++) for (const s of ['f', 'm'] as const) {
+      const c = persona(s, { calvicie: 0 }, { semilla });
+      for (const e of [3, 8, 12]) expect(parametrosDe(c, e).peinado.largo).toBeGreaterThanOrEqual(0.5);
+      if (parametrosDe(c, 30).peinado.largo < 0.4) mayoresAlCero++;
+    }
+    expect(mayoresAlCero).toBeGreaterThan(0);
+  });
+});
