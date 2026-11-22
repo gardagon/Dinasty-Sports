@@ -44,7 +44,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXMSfXmoS68SCSee9NG` | `claude/retrato-movil` | Fallo: en el móvil y en modo oscuro (versión publicada), el retrato y la evolución salen desvaídos, sin pelo, y «Deporte» en gris tras crear la partida |
+| `session_01M4vXXMSfXmoS68SCSee9NG` | `claude/retrato-movil` | Fallos del retrato: (1) en Samsung Internet (web y app instalada), desvaído; en Chrome del mismo móvil, bien (probable modo oscuro forzado del navegador); (2) un niño de 8 años sale calvo, también en Chrome. «Deporte» en gris al empezar es lo esperado |
 | `session_01M4vXXMp7cyuMpYVVwYDEFo` | `claude/pnj-entrenan-y-abandono` | Análisis con propuesta (desactivada): PNJ que entrenan por su cuenta o quedan a jugar; abandono de los mejores |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
