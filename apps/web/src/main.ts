@@ -46,7 +46,9 @@ import {
 import type { GameModule } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { MODULOS, añadirDeporteALaPartida, cargarPartida, catalogoDeDeportes, deportesDeLaPartida, deportesQueFaltan, motivoParaNoQuitar, nuevaPartida, quitarDeporteDeLaPartida } from '@ds/game';
-import { cargarInstalados, consultarCatalogo, desinstalarDeporte, estadoDeDeportes, instalarDeporte, textosInstalados } from './deportes-instalados';
+import { actualizarDeportesInstalados, cargarInstalados, consultarCatalogo, desinstalarDeporte, deportesConActualizacion, esActualizacionDeInstalado, estadoDeDeportes, instalarDeporte, textosInstalados } from './deportes-instalados';
+import { aplicarActualizacion, buscarActualizacion, dependenciasReales, estadoDeActualizacion, vigilarActualizaciones } from './actualizacion';
+import { textoCorto, textoDeVersion, versionActual } from './version';
 import { cancelarCreacion, crearEnSegundoPlano } from './creador';
 import { ID_DE_LA_CIUDAD_GRANDE } from './paises-propios';
 import { hayEstudios, viewEstudios } from './estudios';
@@ -453,6 +455,7 @@ function viewMenu(): string {
     </div>
     ${avisoDeSalir ? '<p class="note">Ya puedes cerrar la pestaña: tu partida está guardada.</p>' : ''}
     <p class="note loss" id="aviso-guardado">${esc(textoDeAvisoDeGuardado())}</p>
+    <p class="version-pie" title="${esc(textoDeVersion(versionActual()))}">${esc(textoCorto(versionActual()))}</p>
   </section></main>`;
 }
 
@@ -504,7 +507,7 @@ function viewInstaladorDeDeportes(): string {
   }).join('');
   const disponibles = e.catalogo
     .map((c, i) => ({ c, i }))
-    .filter(({ c }) => !integrados.has(c.id) && !e.instalados.some((d) => d.manifiesto.id === c.id && d.manifiesto.version === c.version))
+    .filter(({ c }) => !integrados.has(c.id) && (!e.instalados.some((d) => d.manifiesto.id === c.id) || esActualizacionDeInstalado(c)))
     .map(({ c, i }) => `<p class="botones"><span>${esc(c.nombre)}<small> · versión ${esc(c.version)} · ${Math.max(1, Math.round(c.bytes / 1024))} KB</small></span><button data-act="instalar-deporte" data-entrada="${i}">${e.instalados.some((d) => d.manifiesto.id === c.id) ? 'Actualizar' : 'Instalar'}</button></p>`)
     .join('');
   return `<h3>Deportes</h3>
@@ -532,6 +535,7 @@ function viewOpciones(): string {
     <p>Aún no hay muchas: el juego está en fase alfa.</p>
     <p class="note">Países disponibles: ${paisesElegibles().map((p) => esc(p.nombre) + (idsImportados().includes(p.id) ? ' (importado)' : '')).join(', ')}.</p>
     ${viewPresentacion()}
+    ${viewVersion()}
     <div class="menu">
       <button class="menu-boton" data-act="importar-pais">Importar un paquete de país (.json)</button>
       <button class="menu-boton" data-act="exportar"${game ? '' : ' disabled'}>Descargar una copia de seguridad</button>
@@ -540,6 +544,24 @@ function viewOpciones(): string {
     ${viewInstaladorDeDeportes()}
     <p class="note"><button type="button" data-act="ir-menu">‹ Volver al menú</button></p>
   </section></main>`;
+}
+
+/** En Opciones: qué versión es esta (commit, fecha, rama y PR), el botón «Buscar actualización» y lo que haya salido de buscarla. */
+function viewVersion(): string {
+  const a = estadoDeActualizacion;
+  return `<h3>Versión</h3>
+    <p class="note" id="version-texto">${esc(textoDeVersion(versionActual()))}</p>
+    <p class="botones"><button data-act="${a.hay ? 'actualizar' : 'buscar-actualizacion'}"${a.ocupado ? ' disabled' : ''}>${a.hay ? 'Actualizar' : 'Buscar actualización'}</button></p>
+    ${a.hay ? `<p class="note loss">Hay ${esc(a.queHay)}.</p>` : ''}
+    ${a.ocupado ? `<p class="note" aria-busy="true">${esc(a.ocupado)}</p>` : ''}
+    ${a.mensaje ? `<p class="note">${esc(a.mensaje)}</p>` : ''}`;
+}
+
+/** El aviso «Hay una versión nueva — Actualizar», encima de cualquier pantalla (también durante la partida). */
+function viewAvisoDeActualizacion(): string {
+  const a = estadoDeActualizacion;
+  if (!a.hay) return '';
+  return `<div class="aviso-actualizacion" role="status"><span>Hay ${esc(a.queHay)}.</span><button data-act="actualizar"${a.ocupado ? ' disabled' : ''}>${a.ocupado ? 'Actualizando…' : 'Actualizar'}</button></div>`;
 }
 
 /** «Hay una partida sin guardar más reciente…»: la copia de recuperación que dejó una pestaña cerrada con cambios. */
@@ -681,6 +703,7 @@ function viewVentana(g: Game | null): string {
     <p class="botones"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="importar-pais">Importar un país</button></p>
     ${viewDeportesDeLaPartida(g)}
     ${viewInstaladorDeDeportes()}
+    ${viewVersion()}
     <p class="botones"><button data-act="cerrar-opciones">Cerrar</button></p>
   </div></div>`;
 }
@@ -1138,7 +1161,7 @@ window.addEventListener('resize', marcarDesbordePestañas);
 function render(): void {
   // Al redibujar se conserva el desplazamiento de las pestañas y se asegura que la elegida se vea.
   const antes = app.querySelector<HTMLElement>('.tabs')?.scrollLeft ?? 0;
-  app.innerHTML = (game && !enMenu ? viewGame(game) : viewInicio()) + viewVentana(game);
+  app.innerHTML = (game && !enMenu ? viewGame(game) : viewInicio()) + viewVentana(game) + viewAvisoDeActualizacion();
   const nav = app.querySelector<HTMLElement>('.tabs');
   if (nav) {
     nav.scrollLeft = antes;
@@ -1290,6 +1313,20 @@ app.addEventListener('click', (e) => {
   }
 });
 
+/** Para actualizar: guarda lo pendiente de la partida. Devuelve si quedó todo guardado (si no, no se recarga). */
+async function guardarAntesDeActualizar(): Promise<boolean> {
+  if (game && esPrincipal && almacen && (sinGuardar || hayCambios)) {
+    hayCambios = true;
+    await guardarYa();
+  }
+  return !sinGuardar && !errorDeGuardado;
+}
+
+const enganchePorActualizacion = {
+  deps: dependenciasReales(async () => (await deportesConActualizacion()).map((e) => e.nombre)),
+  pintar: () => render(),
+};
+
 /** Acciones de las pantallas de antes de jugar (y «Menú» desde la partida). Devuelve si ha tratado el clic. */
 function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
   switch (act) {
@@ -1394,6 +1431,12 @@ function accionDeMenu(act: string | undefined, el?: HTMLElement): boolean {
       return true;
     case 'importar-pais':
       importarPaqueteDeArchivo();
+      return true;
+    case 'buscar-actualizacion':
+      void buscarActualizacion(enganchePorActualizacion, true);
+      return true;
+    case 'actualizar':
+      void aplicarActualizacion({ guardar: guardarAntesDeActualizar, instalarDeportes: async () => void (await actualizarDeportesInstalados()), recargar: () => location.reload(), pintar: render });
       return true;
     case 'consultar-deportes':
       void trabajarConDeportes('Buscando deportes…', () => consultarCatalogo());
@@ -1587,6 +1630,10 @@ function asaDeDepuracion(): void {
       return { msDeTrabajo: msDeGuardado, bloqueo: bloqueoDeGuardado, peso: pesoGuardado, error: errorDeGuardado };
     },
     deportesInstalados: () => estadoDeDeportes.instalados.map((d) => d.manifiesto.id),
+    /** Versión de esta compilación, estado del aviso de actualización y comprobar ahora. */
+    version: () => versionActual(),
+    actualizacion: () => ({ ...estadoDeActualizacion }),
+    buscarActualizacion: () => buscarActualizacion(enganchePorActualizacion, true),
     /** La semilla de la partida que se va a crear (para que la prueba sea siempre la misma). */
     fijarSemilla: (semilla: number) => {
       nueva.seed = semilla;
@@ -1643,7 +1690,7 @@ async function iniciar(): Promise<void> {
     render();
   }
 }
-void iniciar();
+void iniciar().then(() => vigilarActualizaciones(enganchePorActualizacion));
 
 // ------------------------------------------------------------------ PWA (instalable y sin conexión)
 

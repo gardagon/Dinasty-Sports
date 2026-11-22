@@ -15,7 +15,7 @@ export interface FuenteDeInstalacion {
 export type Descargar = (url: string) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
 
 /** Una carpeta de la web del juego: `<base>/catalogo.json` y los paquetes en las rutas que diga el catálogo. */
-export function fuenteWeb(base: string, nombre = 'Web del juego', descargar: Descargar = (u) => fetch(u)): FuenteDeInstalacion {
+export function fuenteWeb(base: string, nombre = 'Web del juego', descargar: Descargar = (u) => fetch(u, { cache: 'no-cache' })): FuenteDeInstalacion {
   const url = (ruta: string) => `${base.replace(/\/$/, '')}/${ruta.replace(/^\//, '')}`;
   const leer = async (ruta: string): Promise<string> => {
     let r;
