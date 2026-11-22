@@ -6,7 +6,7 @@ import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol } from '@ds/mod-futbol';
 import { CATEGORIAS_ESPANA } from '../modules/futbol/src/datos';
 import { repartirEnEquipos, type MiembroDeClub } from '../modules/npcs/src/equipos';
-import { hacer } from './ayudas';
+import { hacer, posible } from './ayudas';
 
 vi.setConfig({ testTimeout: 240000, hookTimeout: 240000 });
 
@@ -113,14 +113,11 @@ describe('el personaje que se apunta tiene equipo, y el que acaba la última cat
     registrarPais(PAIS_CIUDAD_GRANDE);
     const g = nuevaPartida({ seed: 33, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     advanceToWeek(g, 'gen.descansar', 0, 2, 9);
-    const vista = g.preview('futbol.apuntarse_colegio')!;
-    if (vista.available) {
+    // Con sitio (en otro puesto, si en el suyo no cabe por su año) se apunta y acaba en un equipo; sin él, la acción no está disponible y no entra en el club.
+    if (posible(g, 'futbol.apuntarse_colegio')) {
       expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
       expect(g.service<NpcDirectory>(SERVICES.npcs)!.equipoDelPersonaje?.('futbol'), 'si entra en el club, tiene equipo').toBeDefined();
-    } else {
-      expect(vista.reason ?? '').toMatch(/no queda sitio|completo/);
-      expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeUndefined();
-    }
+    } else expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeUndefined();
   });
 
   it('al acabar el fútbol base (sin categoría a su edad) le llega el suceso «se acaba el fútbol base» y sale del club', () => {
