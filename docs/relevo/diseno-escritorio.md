@@ -92,7 +92,11 @@ Capturas: `c-1920-claro-hacer.png`, `c-1920-oscuro-hacer.png`, `c-1366-claro-hac
 - Pruebas: `probar-web` con el modo escritorio (ahora solo comprueba la ruta de móvil) y un test pequeño de `escritorio.ts` (la lógica de «dos pestañas distintas» del B, si se queda).
 - **Coordinar con las sesiones que arreglan la interfaz:** si añaden pestañas o cambian una `view*`, solo hay que tocar el objeto `Vistas` y, si cambian la estructura HTML de una pieza, los selectores de `escritorio.css` (los de `.esc-personaje-pag`, `.esc-deporte-pag` y `.esc-relaciones-pag` dependen de cómo salgan las `<section class="sheet">`).
 
-## 6. Cómo repetir las capturas
+## 6. Verificación
+
+`npm run typecheck` sin errores; `npm test`: 126 archivos, 1367 tests, todos en verde (552 s); `npm run probar-web`: el camino entero en Chromium, sin errores en la consola (con la opción por defecto). Los prototipos se comprobaron con las capturas (§3), no con pruebas automáticas.
+
+## 7. Cómo repetir las capturas
 
 ```bash
 # una vez (unos 3 min): construye, instala el fútbol, crea la partida, juega 9 semanas y la exporta
@@ -103,7 +107,7 @@ DS_TRABAJO=/tmp/ds-escritorio npx tsx tools/capturar-escritorio.ts capturar <car
 
 `movil` es el diseño de ahora; `a`, `b` y `c`, los prototipos. A 390 px los prototipos caen al diseño de móvil.
 
-## 7. Dudas para el usuario
+## 8. Dudas para el usuario
 
 1. ¿Cuál de los tres (o qué mezcla)? Mi propuesta: A ahora y el Panel de C como inicio de A.
 2. ¿Quieres que «Qué hacer» siga siendo la pantalla principal, o un panel con todo a la vez (C)?
