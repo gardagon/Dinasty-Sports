@@ -5,6 +5,7 @@
  *
  * - Sin `--bloques`, da las `--top` funciones por tiempo propio y por tiempo inclusivo (sin contar dos veces la recursión).
  * - Con `--bloques`, da el inclusivo y las llamadas de cada nombre (suma de todas las funciones con ese nombre), para repartir una pasada entre sus partes.
+ * - Con `--bajo nombre`, solo se cuentan las llamadas que cuelgan de esa función (para ver el desglose de una parte: `--bajo draftDeEquipos`).
  * - Solo se cuentan las funciones del proyecto (url con `/modules/`, `/packages/`, `/sim/`, `/tools/`, `/apps/`) en las tablas de «propio»; el resto (motor de JavaScript, GC) va aparte.
  * Es solo una herramienta de medida: no toca el juego.
  */
@@ -27,6 +28,7 @@ if (!archivo) throw new Error('Uso: perfil-resumen.ts <archivo.cpuprofile> [--to
 const valor = (n: string): string | undefined => (args.includes(n) ? args[args.indexOf(n) + 1] : undefined);
 const top = Number(valor('--top') ?? 25);
 const bloques = valor('--bloques')?.split(',') ?? [];
+const bajo = valor('--bajo');
 
 const perfil = JSON.parse(readFileSync(archivo, 'utf8')) as Perfil;
 const porId = new Map(perfil.nodes.map((n) => [n.id, n]));
@@ -65,10 +67,15 @@ function recorrer(): void {
     inclusivoDe.set(n.id, (propio.get(n.id) ?? 0) + (n.children ?? []).reduce((t, h) => t + (inclusivoDe.get(h) ?? 0), 0));
   }
   // Inclusivo por función sin doble cuenta: se baja por el árbol llevando las funciones ya abiertas en la cadena.
-  const marcha: { id: number; abiertas: Set<string> }[] = [{ id: raiz.id, abiertas: new Set() }];
+  const marcha: { id: number; abiertas: Set<string>; dentro: boolean }[] = [{ id: raiz.id, abiertas: new Set(), dentro: !bajo }];
   while (marcha.length) {
-    const { id, abiertas } = marcha.pop()!;
+    const { id, abiertas, dentro: yaDentro } = marcha.pop()!;
     const n = porId.get(id)!;
+    const dentro = yaDentro || n.callFrame.functionName === bajo;
+    if (!dentro) {
+      for (const h of n.children ?? []) marcha.push({ id: h, abiertas, dentro });
+      continue;
+    }
     const clave = nombre(n);
     const solo = n.callFrame.functionName || '(anónima)';
     const sigue = new Set(abiertas);
@@ -83,7 +90,7 @@ function recorrer(): void {
     porNombreLlamadas.set(solo, (porNombreLlamadas.get(solo) ?? 0) + 1);
     sPropio.set(clave, (sPropio.get(clave) ?? 0) + (propio.get(id) ?? 0));
     llamadas.set(clave, (llamadas.get(clave) ?? 0) + 1);
-    for (const h of n.children ?? []) marcha.push({ id: h, abiertas: sigue });
+    for (const h of n.children ?? []) marcha.push({ id: h, abiertas: sigue, dentro });
   }
 }
 recorrer();
