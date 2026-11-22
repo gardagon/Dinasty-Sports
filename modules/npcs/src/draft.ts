@@ -657,6 +657,8 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   for (const pob of pobs) {
     const { edades, edadMaxBaja, probabilidadBaja } = pob.reclutamiento;
     if (!titulares.has(pob.deporte)) titulares.set(pob.deporte, titularesDelCurso(lista, pob, dia));
+    // Lo bueno que es cada uno frente a los de su edad (solo si el deporte da peso al nivel en el abandono).
+    const pares = pob.reclutamiento.abandono?.pesos.nivel ? nivelesPorEdad(lista, pob, dia) : undefined;
     lista = lista.flatMap((n) => {
       if (n.deporte !== pob.deporte || !n.genetica) return [n];
       const gen = n.genetica;
@@ -666,7 +668,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
       if (!retirado && n.adelanto?.[pob.deporte] && edad + 1 > edades.max) n = { ...n, adelanto: undefined };
       // El abandono por edad: cada verano cada deportista decide si sigue (la probabilidad sube con la edad y pesan el interés, la ambición, los minutos, los estudios y los padres); sin esos datos, lo de siempre.
       const baja = !retirado && (pob.reclutamiento.abandono
-        ? dejaElDeporte(pob.reclutamiento.abandono, { edad, rasgos: n.rasgos, titular: titulares.get(pob.deporte)?.has(n.id), padres: gen.padres }, pob.deporte, gen.semilla ?? 0, n.id, curso)
+        ? dejaElDeporte(pob.reclutamiento.abandono, { edad, rasgos: n.rasgos, titular: titulares.get(pob.deporte)?.has(n.id), padres: gen.padres, ...(pares ? { nivel: pares(n) } : {}) }, pob.deporte, gen.semilla ?? 0, n.id, curso)
         : edad <= edadMaxBaja && rng.chance(probabilidadBaja));
       if (retirado || baja) return [sinDeporte(n, pob, baja)];
       // Una temporada más en su equipo: con ellas (y lo que vale en su puesto) se va formando su puesto favorito (`preferenciaDe`).
@@ -801,6 +803,15 @@ export function temporadaJugada(n: Npc, pob: PoblacionGuardada, cursoQueAcaba: n
   const e = n.est?.[pob.deporte];
   if (!minutos || !e) return 1;
   return e.curso === cursoQueAcaba ? Math.min(1, e.min / minutos) : 0;
+}
+
+/** La puntuación típica de cada jugador frente a los de su edad que juegan (lo que vale, media y desviación por edad). */
+function nivelesPorEdad(lista: readonly Npc[], pob: PoblacionGuardada, dia: number): (n: Npc) => number | undefined {
+  const valor = (n: Npc): number => n.vp?.[pob.deporte]?.valor ?? n.levels[pob.deporte] ?? 0;
+  const porEdad = new Map<number, number[]>();
+  for (const n of lista) if (n.deporte === pob.deporte) (porEdad.get(edadNpc(n, dia) ?? 0) ?? porEdad.set(edadNpc(n, dia) ?? 0, []).get(edadNpc(n, dia) ?? 0)!).push(valor(n));
+  const estadistica = new Map([...porEdad].map(([e, v]) => { const m = v.reduce((a, b) => a + b, 0) / v.length; return [e, { m, sd: Math.max(1, Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length)) }] as const; }));
+  return (n) => { const s = estadistica.get(edadNpc(n, dia) ?? 0); return s ? (valor(n) - s.m) / s.sd : undefined; };
 }
 
 /** Los que fueron titulares el curso pasado (los minutos que tuvieron): en cada equipo (club, categoría del curso pasado y letra), los que más valen hasta los titulares de la formación (11 en el fútbol). */

@@ -1,7 +1,9 @@
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE } from './ejercicios';
 import { PUESTOS_DE_FUTBOL } from './puestos';
+import { ENTRENAMIENTOS_DE_FUTBOL, entrenaPorLibre } from './entrenamientos';
+import { QUEDADAS_DE_FUTBOL } from './quedadas';
 import { CONOCIMIENTO, STATS_DE_FUTBOL } from './habilidades';
-import { GEN, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type DatosDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte } from '@ds/contracts';
+import { GEN, type PorLibreDeDeporte, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type DatosDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte } from '@ds/contracts';
 
 /**
  * Lo que el fútbol trae de cada país (datos puros, ver `DatosDeDeporte`). Hoy solo España; los demás países usan estos datos hasta que el deporte
@@ -47,6 +49,25 @@ const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
  */
 /** Las categorías en que los clubes de la zona tienen equipo (benjamín a juvenil: los de fuera siguen en el sénior, que llega con la liga). */
 const CATEGORIAS_DE_LOS_CLUBES = ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
+
+/**
+ * **Propuesta, desactivada:** que una parte de los PNJ entrene por su cuenta y quede a jugar con las mismas listas que el personaje (`docs/relevo/pnj-entrenan-y-abandono.md`). Para activarla, se añade a la rutina de
+ * `POBLACION_ESPANA` (`porLibre: PNJ_POR_LIBRE`); sin ella los PNJ solo entrenan con su club y la huella de los bots no cambia.
+ */
+export const PNJ_POR_LIBRE: PorLibreDeDeporte = {
+  entrenamientos: ENTRENAMIENTOS_DE_FUTBOL.filter((e) => e.quien.includes('solo')).map((e) => ({ id: e.id, entrena: entrenaPorLibre(e), ...(e.soloPuesto ? { soloPuesto: e.soloPuesto } : {}), ...(e.noPara ? { noPara: e.noPara } : {}) })),
+  quedadas: QUEDADAS_DE_FUTBOL.map((q) => ({ id: q.id, entrena: q.entrena })),
+  eficiencia: 0.85,
+  maximoPorSemana: 3,
+  propension: { base: 0.2, interes: 0.1, ambicion: 0.1, sacrificio: 0.05, disciplina: 0.03, dispersion: 0.1 },
+  factorPorEdad: { 15: 0.9, 16: 0.75, 17: 0.6, 18: 0.7 },
+};
+
+/**
+ * **Propuesta, desactivada:** que los mejores de su edad abandonen menos, pero no cero (`docs/relevo/pnj-entrenan-y-abandono.md` §2). Se mezcla con `abandono` de `POBLACION_ESPANA` (`pesos.nivel`: lo bueno que es frente a los de
+ * su edad; `suelo`: la probabilidad mínima de dejarlo cada verano). Sin ella, el abandono no mira el nivel.
+ */
+export const ABANDONO_PROPUESTO = { pesos: { nivel: 0.6 }, suelo: 0.04 } as const;
 
 const POBLACION_ESPANA: PoblacionDeDeporte = {
   // Los 16 puestos y el reparto de una plantilla de 18 por puestos (adelanto de la F3): los clubes reparten la plantilla y deciden las plazas por puesto.

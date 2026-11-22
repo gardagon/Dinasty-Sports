@@ -73,7 +73,7 @@ export interface NinoDeportista {
   ritmo?: Record<string, number>;
   equipo?: string;
   deporte?: string;
-  rasgos?: { intereses: Record<string, number> };
+  rasgos?: { intereses: Record<string, number>; caracter?: Record<string, number> };
 }
 
 /** El rendimiento de un deporte (de 0 a 100) y, si tiene puestos, lo que vale la persona en cada uno. */
@@ -97,8 +97,73 @@ export function huecosQueHace(n: Pick<NinoDeportista, 'id' | 'genetica' | 'equip
   return hechas;
 }
 
-/** Cuántas sesiones del club hace un niño una semana. */
-export const sesionesQueHace = (n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo'>, deporte: string, r: RutinaDeDeporte, semana: number): number => huecosQueHace(n, deporte, r, semana).length;
+/** Desde este número, los huecos de una semana no son sesiones del club sino sesiones por su cuenta o quedadas (`RutinaDeDeporte.porLibre`). */
+export const HUECO_LIBRE = 100;
+
+/**
+ * Las sesiones de la semana que hace un niño **por su cuenta** (entrenar solo o quedar a jugar), si el deporte lo trae (`RutinaDeDeporte.porLibre`): cada uno de los `maximoPorSemana` huecos se llena con la probabilidad
+ * que le da su propensión (interés, ambición, sacrificio y disciplina, su edad y un azar estable suyo cada curso). Devuelve el número de cada hueco (a partir de `HUECO_LIBRE`). Sin el dato, ninguna.
+ */
+export function huecosPorLibre(n: Pick<NinoDeportista, 'id' | 'genetica' | 'nacimiento' | 'rasgos' | 'deporte'>, deporte: string, r: RutinaDeDeporte, semana: number): number[] {
+  const l = r.porLibre;
+  if (!l || n.deporte !== deporte) return [];
+  const z = propensionPorLibre(n, deporte, l, semana);
+  if (z <= 0) return [];
+  const hechos: number[] = [];
+  const prefijo = prefijoEstable('libre', n.genetica.semilla ?? 0, n.id, deporte, semana);
+  for (let j = 0; j < l.maximoPorSemana; j++) if (rngEstableDesde1(prefijo, j).chance(z)) hechos.push(HUECO_LIBRE + j);
+  return hechos;
+}
+
+/** La probabilidad (0 a 1) de cada hueco por su cuenta de un niño esa semana (ver `huecosPorLibre`). */
+export function propensionPorLibre(n: Pick<NinoDeportista, 'id' | 'genetica' | 'nacimiento' | 'rasgos'>, deporte: string, l: NonNullable<RutinaDeDeporte['porLibre']>, semana: number): number {
+  const p = l.propension;
+  const c = n.rasgos?.caracter ?? {};
+  const x = (e: string) => clamp((c[e] ?? 0) / 50, -1, 1);
+  const interes = (clamp(interesDe(n, deporte), 0, 3) - 1.5) / 1.5;
+  const curso = Math.floor((semana * 7 - n.nacimiento) / DIAS_POR_ANIO);
+  // El azar es de cada curso (dos semanas del mismo curso comparten el suyo): hay cursos de mucha afición y cursos de poca.
+  const azar = rngEstable('libre-curso', n.genetica.semilla ?? 0, n.id, deporte, curso).normal();
+  const z = p.base + p.interes * interes + p.ambicion * x('ambicion') + p.sacrificio * x('sacrificio') + p.disciplina * x('disciplina') + p.dispersion * azar;
+  return clamp(z * (l.factorPorEdad?.[curso] ?? 1), 0, 1);
+}
+
+/** Lo que sube una sesión por su cuenta (hueco ≥ `HUECO_LIBRE`): entrenar solo lo que le falta (cada uno con el ×`eficiencia` del personaje) o quedar a jugar, según su ambición. */
+export function listaPorLibre(
+  n: Pick<NinoDeportista, 'id' | 'genetica' | 'rasgos'>,
+  deporte: string,
+  r: RutinaDeDeporte,
+  nivel: (stat: string) => number,
+  semana: number,
+  hueco: number,
+  puesto?: string,
+): readonly Entrenamiento[] {
+  const l = r.porLibre!;
+  const rng = rngEstable('libre-tipo', n.genetica.semilla ?? 0, n.id, deporte, semana, hueco);
+  const ambicion = clamp((n.rasgos?.caracter?.ambicion ?? 0) / 50, -1, 1);
+  const candidatos = l.entrenamientos.filter((e) => (e.soloPuesto === undefined || e.soloPuesto === puesto) && (e.noPara === undefined || e.noPara !== puesto));
+  const entrena = candidatos.length > 0 && rng.chance(clamp(0.35 + 0.4 * ambicion, 0.1, 0.9));
+  if (!entrena) {
+    const q = l.quedadas.length ? l.quedadas[rng.int(0, l.quedadas.length - 1)] : undefined;
+    return q ? q.entrena : [];
+  }
+  // Elige entre tres al azar el que más le falta (lo que suma por lo lejos que está de 100 en cada cosa).
+  let mejor: (typeof candidatos)[number] | undefined;
+  let puntos = -1;
+  for (let i = 0; i < 3; i++) {
+    const e = candidatos[rng.int(0, candidatos.length - 1)];
+    const falta = e.entrena.reduce((t, x) => t + x.amount * (100 - nivel(x.stat)), 0);
+    if (falta > puntos) {
+      puntos = falta;
+      mejor = e;
+    }
+  }
+  return mejor!.entrena.map((x) => ({ stat: x.stat, amount: x.amount * l.eficiencia }));
+}
+
+/** Cuántas sesiones hace un niño una semana: las del club y las que hace por su cuenta. */
+export const sesionesQueHace = (n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo' | 'nacimiento' | 'rasgos' | 'deporte'>, deporte: string, r: RutinaDeDeporte, semana: number): number =>
+  (n.equipo !== undefined ? huecosQueHace(n, deporte, r, semana).length : 0) + huecosPorLibre(n, deporte, r, semana).length;
 
 /** Lo que sube una sesión del club ese día: la lista fija del deporte o los ejercicios que elige el entrenador (con lo que le falta a quien se mira). */
 export function listaDeSesion(r: RutinaDeDeporte, nivel: (stat: string) => number, semilla: readonly (string | number)[], puesto?: string): readonly Entrenamiento[] {
@@ -327,14 +392,20 @@ function resultado(t: Trabajo, rend: (p: LectorDePersona) => number, sesiones = 
   };
 }
 
+/** Los huecos de entrenamiento de un niño una semana: las sesiones del club (si está en un equipo) y las que hace por su cuenta. */
+const huecosDeLaSemana = (n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo' | 'deporte' | 'nacimiento' | 'rasgos'>, deporte: string, r: RutinaDeDeporte, semana: number): number[] => [
+  ...(n.equipo !== undefined ? huecosQueHace(n, deporte, r, semana) : []),
+  ...huecosPorLibre(n, deporte, r, semana),
+];
+
 /**
  * Las sesiones del club de un bloque de `semanas` semanas (acaba en `fin`), una lista por semana (la más antigua primero): cada una, las que hace por su asistencia. Un bloque no sabe en qué
  * semana se lesionó: si está de baja (le quedan `bajaRestante` semanas), se cuentan como perdidas las últimas semanas del bloque, tantas como le quedan de baja.
  */
-export function huecosDelBloque(n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo' | 'deporte'>, deporte: string, r: RutinaDeDeporte, fin: number, semanas: number, bajaRestante = 0): number[][] {
-  if (n.deporte !== deporte || n.equipo === undefined) return Array.from({ length: semanas }, () => []);
+export function huecosDelBloque(n: Pick<NinoDeportista, 'id' | 'genetica' | 'equipo' | 'ritmo' | 'deporte' | 'nacimiento' | 'rasgos'>, deporte: string, r: RutinaDeDeporte, fin: number, semanas: number, bajaRestante = 0): number[][] {
+  if (n.deporte !== deporte || (n.equipo === undefined && !r.porLibre)) return Array.from({ length: semanas }, () => []);
   const sanas = semanas - Math.min(semanas, bajaRestante);
-  return Array.from({ length: semanas }, (_, w) => (w < sanas ? huecosQueHace(n, deporte, r, semanaQueAcaba(fin - 7 * (semanas - 1 - w))) : []));
+  return Array.from({ length: semanas }, (_, w) => (w < sanas ? huecosDeLaSemana(n, deporte, r, semanaQueAcaba(fin - 7 * (semanas - 1 - w))) : []));
 }
 
 /**
@@ -358,8 +429,8 @@ export function semanaDeNino(
     pasoDeSemanas(t, fin, semanas, { porSemana: bloque, informales: 0, eficiencia: estado?.eficiencia, lista, grueso: true });
     return resultado(t, rend, bloque[semanas - 1].length);
   }
-  const enClub = n.deporte === deporte && n.equipo !== undefined && !estado?.baja;
-  const huecos = enClub ? huecosQueHace(n, deporte, r, semanaQueAcaba(fin)) : [];
+  const entrena = n.deporte === deporte && (n.equipo !== undefined || !!r.porLibre) && !estado?.baja;
+  const huecos = entrena ? huecosDeLaSemana(n, deporte, r, semanaQueAcaba(fin)) : [];
   pasoDeSemana(t, fin, { huecos, informal: false, eficiencia: estado?.eficiencia, lista });
   return resultado(t, rend, huecos.length);
 }
@@ -409,7 +480,7 @@ export function historiaDeportiva(
     const lejos = conGruesos && !informal && hastaLoReciente >= SEMANAS_POR_BLOQUE_LEJANO;
     const semanas = informal ? 1 : lejos ? SEMANAS_POR_BLOQUE_LEJANO : Math.min(bloque, faltan);
     fin += 7 * semanas;
-    const porSemana = Array.from({ length: semanas }, (_, w) => (informal ? [] : huecosQueHace(n, deporte, r, semanaQueAcaba(fin - 7 * (semanas - 1 - w)))));
+    const porSemana = Array.from({ length: semanas }, (_, w) => (informal ? [] : (() => { const sem = semanaQueAcaba(fin - 7 * (semanas - 1 - w)); return [...huecosQueHace(n, deporte, r, sem), ...huecosPorLibre({ ...n, deporte: n.deporte ?? deporte }, deporte, r, sem)]; })()));
     pasoDeSemanas(t, fin, semanas, { porSemana, informales: informal ? semanas : 0, lista: listaDe, ...(lejos ? { grueso: { muestra: MUESTRA_DE_SESIONES_LEJANAS } } : {}) });
   }
   enElDia(t, dia);

@@ -5,6 +5,7 @@
 import { PAIS_CIUDAD_GRANDE, registrarPais } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
+import { aplicarPropuestas } from './propuestas-pnj';
 
 const args = process.argv.slice(2);
 const ciudad = args.includes('--ciudad');
@@ -13,6 +14,7 @@ const conFutbol = !args.includes('--sin-futbol');
 const solo = args.includes('--solo') ? args[args.indexOf('--solo') + 1] : undefined;
 const t = <T>(f: () => T): [T, number] => { const t0 = performance.now(); const r = f(); return [r, performance.now() - t0]; };
 if (ciudad) registrarPais(PAIS_CIUDAD_GRANDE);
+aplicarPropuestas();
 const [g, crear] = t(() => nuevaPartida({ seed: 31, ...(ciudad ? { pais: PAIS_CIUDAD_GRANDE.id, deportes: conFutbol ? ['atletismo', 'futbol'] : ['atletismo'] } : {}) }, ciudad && conFutbol ? [...MODULOS, futbol] : MODULOS));
 console.log(`crear: ${crear.toFixed(0)} ms`);
 if (solo === 'crear') process.exit(0);

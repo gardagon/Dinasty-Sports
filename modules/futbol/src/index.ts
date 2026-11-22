@@ -113,7 +113,7 @@ import { convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estado
 import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, jugadorPorSuDorsal, nombreDeIntensidad, proximoPartido, situacionEnLaLiga, textoDeResultados, ultimosResultados, type LineaDeCronica } from './personaje';
 import { PARAMETROS_DE_PARTIDO, jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
 
-export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
+export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL, PNJ_POR_LIBRE, ABANDONO_PROPUESTO } from './datos';
 export { CONOCIMIENTO, GRUPOS_DE_HABILIDADES, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
 export { PARAMETROS_DE_PERCEPCION, juicioDe, recordarRivales, recordarSoloLosUltimos, ruidoDeLaVista, textoDelJuicio, verDeNuevo } from './mi-equipo';
 export type { Impresion, Juicio, RivalVisto } from './mi-equipo';
