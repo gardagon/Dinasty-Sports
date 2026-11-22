@@ -15,13 +15,13 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 - **Sesiones paradas por el límite de uso:** cuando una sesión se para por el límite de 5 horas, no se reanuda sola (solo si el ordenador del usuario está encendido). Revisar con `list_sessions` (`children`) las que salen `failed` y reactivarlas con `send_message` cuando pase el límite.
 - **Sesiones en paralelo** solo si tocan archivos distintos. Para no chocar en la documentación, cada una escribe sus notas en `docs/relevo/<rama>.md` y la arquitectura las junta en `DECISIONES.md` y en los planes al unir.
 - **Modelos.** Sonnet 5.5 para el desarrollo normal; Fable 5.2 solo para lo de más calado (diseño de sistemas, motor fino, calidad visual), en sesiones nuevas con notas de relevo. **Fable dejó de estar incluido en el plan del usuario el 16/11**: ahora requiere créditos de uso, así que no lanzarlo sin preguntar.
-- **Tras unir a `main`, comprobar que se ha publicado:** el flujo «Publicar web (GitHub Pages)» puede fallar por un error de GitHub (el 22/11 falló dos veces al desplegar: `deploy-pages` no encontraba el artefacto subido en el mismo trabajo; se relanzó, y en la rama de trabajo el flujo ya va en dos trabajos, construir y publicar, como la plantilla oficial; entra en `main` con el próximo pull request). Si falla por un error de GitHub, relanzarlo una vez; si no, buscar la causa.
+- **Tras unir a `main`, comprobar que se ha publicado:** el flujo «Publicar web (GitHub Pages)» puede fallar por un error de GitHub (el 22/11 falló dos veces al desplegar: `deploy-pages` no encontraba el artefacto subido en el mismo trabajo; se relanzó, y desde #130 el flujo va en dos trabajos, construir y publicar, como la plantilla oficial; publicó bien a la primera). Si falla por un error de GitHub, relanzarlo una vez; si no, buscar la causa.
 - **Al unir ramas:** comprobar tipos (`npm run typecheck`, tras `npm install` si hay paquetes nuevos) y tests; si una rama arrastra un archivo grande en su historia, unirla como un solo commit (`git merge --squash`).
 - **Imágenes para el usuario:** se le envían con `SendUserFile`. Para revisar capturas grandes, recortarlas antes de mirarlas.
 
 ## 2. Estado (17/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127) y el 22/11 (#128 y #129; 1.348 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127) y el 22/11 (#128, #129 y #130; 1.348 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
