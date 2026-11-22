@@ -9,6 +9,9 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 - **Llevar a la versión publicada lo unido desde el 21/11:** aprobado, después de confirmar si hace falta partida nueva, cerrar el balance de los entrenamientos y los arreglos que pida el usuario.
 - **En los partidos, de todos se ve su descripción y su dorsal, de tu equipo y del rival.** Jugar contra alguien no te da su nombre (hoy los rivales pasan a «conocidos» al competir): el nombre se sabe como en el resto del juego.
+- **Hecho el 22/11** (`docs/relevo/compatibilidad-y-cronica.md`):
+  - Las partidas de `main` (v21) cargan sin subir la versión. Gancho nuevo `GameModule.alCargar` (contracts y core), que `npcs` usa para completar las poblaciones guardadas (dorsales, familias de puestos y pistas). Test con partidas de `main`.
+  - Los partidos ya no dan el nombre (las carreras de atletismo, sí). `FutbolState.rivales` guarda equipo y dorsal de los rivales vistos. La crónica da el dorsal, y la descripción en la primera mención. La ficha dice «Jugaste contra él: el 7 del Rayo». Los rivales no salen en Relaciones ni en Gente hasta que se presentan.
 
 ## 22/11/2026 — Coste por acción: el índice de presencia, por lugar
 
