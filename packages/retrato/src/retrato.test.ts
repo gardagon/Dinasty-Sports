@@ -256,3 +256,13 @@ describe('look: el estilo elegido de cada persona (contracts)', () => {
     expect(peinadoPosible('afeitada', 1)).toBe('afeitada');
   });
 });
+
+describe('retrato: no depende del tema ni hereda nada', () => {
+  it('la raíz del SVG no lleva opacidad, filtro ni estilo, y los colores del dibujo son fijos (nada de variables ni currentColor)', () => {
+    for (const s of ['f', 'm'] as const) for (const e of [8, 30, 70]) {
+      const svg = retratoSvg(persona(s), e) + evolucionDe(persona(s), e) + figuraDe(persona(s), e, e);
+      for (const raiz of svg.match(/<svg[^>]*>/g) ?? []) expect(raiz).not.toMatch(/opacity|filter|style|mix-blend/);
+      expect(retratoSvg(persona(s), e)).not.toMatch(/var\(--|currentColor|<filter|<style/);
+    }
+  });
+});

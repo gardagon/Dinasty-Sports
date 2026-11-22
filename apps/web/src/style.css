@@ -365,7 +365,8 @@ ul.cronica li { padding: 0.15rem 0.4rem; }
 ul.cronica li.tramo { margin-top: 0.5rem; font-weight: 600; opacity: 0.8; }
 ul.cronica li.mia { background: rgba(255, 200, 60, 0.18); border-left: 3px solid #e0a800; }
 
-/* Retrato y evolución de una persona (el dibujo lo da @ds/retrato; aquí solo el marco). */
+/* Retrato y evolución de una persona (el dibujo lo da @ds/retrato; aquí solo el marco). Los colores del dibujo son los suyos en los dos temas: nada de opacidad ni filtros heredados, y que el navegador no los reajuste. */
+.retrato-caja svg, .retrato-boton svg, .evolucion svg, .comparar svg { opacity: 1; filter: none; mix-blend-mode: normal; forced-color-adjust: none; color-scheme: light; }
 .retrato-caja { margin: 6px 0 12px; }
 .retrato-boton { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink-soft); font-size: 12px; cursor: pointer; }
 .retrato-boton svg { display: block; width: 132px; height: auto; background: var(--lane-soft); border-radius: 4px; }
