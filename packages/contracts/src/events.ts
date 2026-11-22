@@ -77,6 +77,8 @@ export const SHARED_EVENTS = {
   LESION_DE_PERSONA: 'persona.lesion',
   /** data: EstadoDePersonaData — algo que ha pasado cambia el estado de juego de una persona del mundo (moral, forma, condición, salud, semanas de baja): lo aplica quien la guarda. */
   ESTADO_DE_PERSONA: 'persona.estado',
+  /** data: GrupoSeVaData — la mayoría de la gente con la que estaba el personaje se ha ido a otro sitio (o ha salido) a la vez, y él sigue allí: lo emite `npcs` (dueño de la presencia). */
+  GRUPO_SE_VA: 'presencia.grupo_se_va',
 } as const;
 
 export interface LesionDePersonaData {
@@ -193,10 +195,15 @@ export interface PresentacionData {
 export interface PlazaPerdidaData {
   sport: string;
   clubId: string;
+  /** Con `PLAZA_PERDIDA`: el entrenador de su equipo (`[{ npcId }]`; al llegar la señal el personaje ya no es de ese club, así que el suceso lo toma de aquí) y el último día en que sigue abierto el plazo de fichajes («el lunes 14 de septiembre»). */
+  participants?: { npcId: string }[];
+  plazoHasta?: string;
+  /** Los clubes de fuera que tienen equipo en su categoría y a los que puede pedir una prueba, en una frase («Real Ciudad C. F., Unión Deportiva del Barrio y Escuela de Fútbol Los Pinos»). */
+  clubes?: string;
 }
 
-/** Por qué el equipo del personaje no sigue (`EQUIPO_SIN_NINOS`): `pocos` (el club no reúne el mínimo de niños en su categoría: el equipo se cierra) o `sin_categoria` (el club no tiene equipos en la categoría a la que sube). */
-export type MotivoDeEquipoSinNinos = 'pocos' | 'sin_categoria';
+/** Por qué el equipo del personaje no sigue (`EQUIPO_SIN_NINOS`): `pocos` (el club no reúne el mínimo de niños en su categoría: el equipo se cierra) o `sin_categoria` (el club no tiene equipos en la categoría a la que sube) o `fin_de_categorias` (a su edad el deporte ya no tiene categoría: se acaba el deporte base). */
+export type MotivoDeEquipoSinNinos = 'pocos' | 'sin_categoria' | 'fin_de_categorias';
 
 export interface EquipoSinNinosData {
   sport: string;
@@ -339,6 +346,26 @@ export interface DayEventData {
 
 export interface WeekEventData {
   week: number;
+}
+
+/**
+ * El grupo con el que estabas se va (`SHARED_EVENTS.GRUPO_SE_VA`): lo emite quien conoce las agendas (`npcs`) cuando, al acabar una acción, la mayoría de las personas que
+ * había contigo se ha ido a un mismo sitio y tú sigues donde estabas. Un suceso decide si te vas con ellos.
+ */
+export interface GrupoSeVaData {
+  /** Dónde estás (y de donde se van). */
+  desde: string;
+  /** A dónde van: un lugar del mapa (los que salen del mapa, a casa o a otro colegio, no se cuentan: no se sabe a dónde van ni se les puede seguir). */
+  hacia: string;
+  /** Cómo se dice en una frase: «al patio», «a la biblioteca» (`haciaLugar`). */
+  haciaTexto: string;
+  /** Minutos que cuesta ir de `desde` a `hacia` (el viaje rápido del mapa). */
+  minutos: number;
+  /** Cuántos de los que tenías cerca (los que se ven y se les puede hablar) van a `hacia`, y cuántos eran antes de que se fueran. */
+  cuantos: number;
+  total: number;
+  /** Unos pocos de los que se van (ids), para nombrar a alguien: `{ npcId }`. Los conocidos primero. */
+  muestra: { npcId: string }[];
 }
 
 export interface ActionDoneData {

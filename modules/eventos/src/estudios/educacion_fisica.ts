@@ -11,7 +11,10 @@ export default suceso({
   requiere: ['estudios'],
   disparo: { al: 'clase.asistida' },
   ejemploDeSeñal: { asignatura: 'estudios.educacion_fisica', tarde: 0 },
-  ejemploDeHechos: { 'estudios.consejo_deportivo': 'en fútbol te veo bien de lateral derecho o extremo derecho; te veo bien en atletismo' },
+  ejemploDeHechos: {
+    'estudios.consejo_deportivo': 'en fútbol te veo bien de lateral, extremo o central; te veo bien en atletismo',
+    'estudios.consejo_porque': 'Me fijo en esto: eres de los más rápidos de tu edad y arrancas muy bien.',
+  },
   cuando: [{ señal: 'asignatura', es: 'estudios.educacion_fisica' }],
   repite: 'nunca',
   reparto: { profesor: { asignatura: 'estudios.educacion_fisica' } },
@@ -34,9 +37,8 @@ export default suceso({
           id: 'preguntar',
           texto: 'Preguntarle en qué te ha fijado',
           caracter: { prudencia: 1 },
-          minutos: 5,
           efectos: [{ relacion: 'profesor', afinidad: 4, confianza: 2 }, { entrena: 'gen.comunicacion', cantidad: 0.5 }, { estado: 'gen.motivacion', mas: 3 }, { marca: 'le_recomendaron_un_deporte' }],
-          resultado: '{profesor.Nombre} te lo explica con calma: cómo te mueves, qué se te da mejor. «Eso no lo tiene todo el mundo. Aprovéchalo».',
+          resultado: '{profesor.Nombre} te lo explica con calma. «{hecho.estudios.consejo_porque} Eso no lo tiene todo el mundo. Aprovéchalo».',
         },
         { id: 'nada', texto: 'Encogerte de hombros', caracter: { ambicion: -1 }, efectos: [{ marca: 'le_recomendaron_un_deporte' }], resultado: '«Bueno, piénsatelo». Y te deja ir.' },
       ],
@@ -52,7 +54,7 @@ export default suceso({
     },
   ],
   pruebas: [
-    { nombre: 'Si el profesor le ve en algo, se lo dice y puede preguntarle más', dado: { hechos: { 'estudios.consejo_deportivo': 'en fútbol te veo bien de lateral o extremo' } }, elige: 'preguntar', espero: { marca: 'le_recomendaron_un_deporte' } },
+    { nombre: 'Si el profesor le ve en algo, se lo dice y puede preguntarle más', dado: { hechos: { 'estudios.consejo_deportivo': 'en fútbol te veo bien de lateral o extremo', 'estudios.consejo_porque': 'Me fijo en esto: arrancas muy bien.' } }, elige: 'preguntar', espero: { marca: 'le_recomendaron_un_deporte' } },
     { nombre: 'Si no le ve claro, se lo dice igual', dado: { hechos: {} }, espero: { opcionDisponible: 'interesarse', sinMarca: 'le_recomendaron_un_deporte' } },
   ],
 });

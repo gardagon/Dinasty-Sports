@@ -749,7 +749,7 @@ export function equipoSinNinos(m: MercadoDeFichajes, j: JugadorEnClub): { motivo
 
 
 /** Las poblaciones con una plaza de más en el equipo del personaje (club y categoría), o `undefined` si ese equipo ya tiene las que puede abrir (`PLAZAS_DE_MAS`) o no tiene equipos por categoría. */
-function conUnaPlazaDeMas(pobs: readonly PoblacionGuardada[], j: JugadorEnClub): PoblacionGuardada[] | undefined {
+export function conUnaPlazaDeMas(pobs: readonly PoblacionGuardada[], j: Pick<JugadorEnClub, 'deporte' | 'club' | 'categoria'>): PoblacionGuardada[] | undefined {
   const pob = pobs.find((p) => p.deporte === j.deporte);
   const e = pob?.equipos.find((x) => x.club === j.club && x.plantillaPorCategoria);
   if (!pob || !e || (e.plazasDeMas?.[j.categoria] ?? 0) >= PLAZAS_DE_MAS) return undefined;

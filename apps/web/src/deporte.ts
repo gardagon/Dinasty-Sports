@@ -1,4 +1,4 @@
-import { PREFIJO_DE_DEPORTE, SERVICES, deportePrincipal, type ClubDirectory, type DeporteService, type DeporteView, type LogTable } from '@ds/contracts';
+import { PREFIJO_DE_DEPORTE, SERVICES, deportePrincipal, type ClubDirectory, type DeporteService, type DeporteView, type LogTable, type MiEquipoView, type CompaneroDeEquipo } from '@ds/contracts';
 import type { Game } from '@ds/core';
 
 /**
@@ -7,6 +7,8 @@ import type { Game } from '@ds/core';
  */
 
 let elegido: string | null = null;
+/** La subpestaña de los deportes de equipo: la temporada (por defecto) o «Mi equipo». */
+let subpestana: 'deporte' | 'equipo' = 'deporte';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
@@ -43,6 +45,30 @@ function barra(g: Game, id: string): string {
   </div>`;
 }
 
+/** Las habilidades del deporte: por grupos con su título si el deporte las agrupa (dato suyo), seguidas si no. */
+export function habilidadesAgrupadas(g: Game, d: Pick<DeporteView, 'habilidades' | 'gruposDeHabilidades'>): string {
+  if (!d.gruposDeHabilidades?.length) return d.habilidades.map((id) => barra(g, id)).join('');
+  return d.gruposDeHabilidades.map((x) => `<h4 class="grupo-de-habilidades">${esc(x.titulo)}</h4>${x.habilidades.map((id) => barra(g, id)).join('')}`).join('');
+}
+
+/** «Mi equipo»: en qué equipo estás y tus compañeros. Quien no conoces sale sin nombre (su aspecto) y el puesto solo si le has visto jugar. */
+export function viewMiEquipo(m: MiEquipoView): string {
+  // Una sola columna para la persona, con el dorsal delante de su nombre o de su descripción entera («7 · Una niña de pelo…») y, debajo y en pequeño, cómo te comparas con ella; así en el móvil no se pierde nada.
+  const juicio = { mejor: 'mejor', peor: 'peor', parecido: 'parecido' } as const;
+  const fila = (c: CompaneroDeEquipo): string => {
+    const quien = c.yo ? 'Tú' : c.nombre ?? `${c.aspecto} (aún no sabes cómo se llama)`;
+    const dorsal = c.dorsal !== undefined ? `<b class="dorsal">${c.dorsal}</b> · ` : '';
+    const frente = c.yo ? '' : `<small class="frente-a-ti">Frente a ti: ${c.comparacion ? juicio[c.comparacion] : '—'}</small>`;
+    return `<tr${c.yo ? ' class="me"' : ''}><td>${dorsal}${esc(quien)}${frente}</td><td>${esc(c.puesto ?? '—')}</td></tr>`;
+  };
+  return `<section class="sheet deporte mi-equipo">
+    <h2>${esc(m.titulo)}</h2>
+    ${m.texto ? `<p class="note">${esc(m.texto)}</p>` : ''}
+    <div class="table"><table><thead><tr><th>Nº · Compañero</th><th>Puesto</th></tr></thead><tbody>${m.companeros.map(fila).join('')}</tbody></table></div>
+    <p class="note">«—» es que todavía no le has visto jugar. Entrena y juega con el equipo para saber dónde juega cada uno y cómo te comparas con él: «Frente a ti» sale cuando le has visto jugar.</p>
+  </section>`;
+}
+
 function vista(g: Game, d: DeporteView): string {
   const t = d.temporada;
   const pruebas = t.pruebas.length
@@ -69,7 +95,7 @@ function vista(g: Game, d: DeporteView): string {
     ${t.situacion ? `<p class="note"><b>Temporada:</b> ${esc(t.situacion)}</p>` : ''}
     <p class="note"><b>Próxima prueba:</b> ${esc(t.proxima)}</p>
     <h3>Habilidades de ${esc(d.nombre.toLowerCase())}</h3>
-    ${d.habilidades.map((id) => barra(g, id)).join('')}
+    ${habilidadesAgrupadas(g, d)}
     <p class="note">La marca gris es tu techo actual: sube con la edad y con las características que lo apoyan (las ves en la pestaña del personaje).</p>
   </section>
   <section class="sheet deporte">
@@ -91,7 +117,11 @@ export function viewDeporte(g: Game): string {
     todos.length > 1
       ? `<nav class="filtros-gente">${todos.map((d) => `<button class="tab" aria-selected="${d.id === actual.id}" data-deporte="${esc(d.id)}">${esc(d.nombre)}${d.id === principal ? ' ★' : ''}</button>`).join('')}</nav>`
       : '';
-  return selector + vista(g, actual);
+  // Los deportes de equipo con puestos tienen una subpestaña «Mi equipo» al lado de la temporada.
+  const sub = actual.miEquipo
+    ? `<nav class="filtros-gente subpestanas">${([['deporte', actual.nombre], ['equipo', 'Mi equipo']] as const).map(([id, t]) => `<button class="tab" aria-selected="${subpestana === id}" data-subdeporte="${id}">${esc(t)}</button>`).join('')}</nav>`
+    : '';
+  return selector + sub + (actual.miEquipo && subpestana === 'equipo' ? viewMiEquipo(actual.miEquipo) : vista(g, actual));
 }
 
 /**
@@ -101,10 +131,14 @@ export function viewDeporte(g: Game): string {
 export function pestanaDeDeporte(g: Game): { etiqueta: string; inactivo?: string } | null {
   const todos = deportesDe(g);
   if (!todos.length) return null;
-  return todos.some((d) => !d.inactivo) ? { etiqueta: 'Deporte' } : { etiqueta: 'Deporte', inactivo: todos[0].inactivo };
+  return todos.some((d) => !d.inactivo) ? { etiqueta: 'Deporte' } : { etiqueta: 'Deporte', inactivo: [...new Set(todos.map((d) => d.inactivo))].join(' · ') };
 }
 
 export function clicEnDeporte(el: HTMLElement): boolean {
+  if (el.dataset.subdeporte) {
+    subpestana = el.dataset.subdeporte === 'equipo' ? 'equipo' : 'deporte';
+    return true;
+  }
   if (!el.dataset.deporte) return false;
   elegido = el.dataset.deporte;
   return true;

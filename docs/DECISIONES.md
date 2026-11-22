@@ -5,6 +5,111 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — Retrato en el móvil y niños calvos
+
+Detalle: `docs/relevo/retrato-movil.md`.
+- **Retrato desvaído en Samsung Internet** (en la web y en la app instalada; en Chrome del mismo móvil se ve bien): causa probable, el modo oscuro forzado del navegador, porque la página no declaraba su esquema de color. Se añade `<meta name="color-scheme" content="light dark">`, y los SVG del retrato fijan `color-scheme`, `forced-color-adjust`, `opacity` y `filter`. No se puede emular aquí: queda que el usuario lo confirme en su móvil.
+- **Niños calvos:** «Cabeza afeitada» y «Rapado al cero» se sorteaban para toda la vida, también para los niños. Ahora, antes de la pubertad, llevan «rapado».
+- **La app instalada no mezcla versiones:** red primero al navegar y archivos con hash; se actualiza en la siguiente apertura con conexión.
+
+## 22/11/2026 — Profesionales, balance de entrenamientos, abandono, entrenamiento de los PNJ y el personaje sin plaza
+
+- **Listón de «profesional»:** nivel ≥ 45 a los 17–18 años; «élite juvenil», ≥ 40 (`docs/relevo/analisis-profesionales.md`). Se recalculará al pasar a la siguiente fase de la vida, si hace falta.
+- **Balance de los entrenamientos:** se acepta de momento (`ESCALA_DE_ENTRENAMIENTO` = 1).
+- **Abandono de los mejores:** revisarlo con calma. No todos los mejores triunfan, por mentalidad o por temas personales.
+- **Entrenamiento de los PNJ:** revisar por qué entrenan tan por debajo del personaje. Habrá quien dedique mucho tiempo fuera a jugar al fútbol y mejore.
+- **El personaje que perdería su plaza al cambiar de año:** en benjamín y alevín, los de primer año no desplazan a uno de segundo que ya tenía plaza en el club (solo suben al A si hay sitio), para todos. Desde infantil sí se puede salir, y entonces la salida es un suceso con opciones, no una línea del diario.
+- **Hecho el 22/11** (`docs/relevo/plaza-al-cambiar-de-anio.md`): `CategoriaDef.primerAnioNoDesplazaEn` (benjamín y alevín); suceso `futbol.plaza_perdida` (buscar otro club, con los clubes que hacen pruebas y la fecha; entrenar por su cuenta, por defecto; preguntar qué mejorar). Se arreglan dos fallos: al apuntarse, el personaje debe caber en un equipo por el cupo de su puesto (otro puesto, plazas de más o la acción no disponible con el motivo), y al acabar las categorías del club le llega «se acaba el fútbol base en tu club…» y sale. Y un tercero: el personaje no contaba para el mínimo de 14 de la liga, así que un equipo de 13 más él no jugaba; ahora cuenta, como ya hacía `equipoSinNinos`.
+
+## 22/11/2026 — Antes de publicar: partidas guardadas y crónica
+
+- **Llevar a la versión publicada lo unido desde el 21/11:** aprobado, después de confirmar si hace falta partida nueva, cerrar el balance de los entrenamientos y los arreglos que pida el usuario.
+- **En los partidos, de todos se ve su descripción y su dorsal, de tu equipo y del rival.** Jugar contra alguien no te da su nombre (hoy los rivales pasan a «conocidos» al competir): el nombre se sabe como en el resto del juego.
+- **Hecho el 22/11** (`docs/relevo/compatibilidad-y-cronica.md`):
+  - Las partidas de `main` (v21) cargan sin subir la versión. Gancho nuevo `GameModule.alCargar` (contracts y core), que `npcs` usa para completar las poblaciones guardadas (dorsales, familias de puestos y pistas). Test con partidas de `main`.
+  - Los partidos ya no dan el nombre (las carreras de atletismo, sí). `FutbolState.rivales` guarda equipo y dorsal de los rivales vistos. La crónica da el dorsal, y la descripción en la primera mención. La ficha dice «Jugaste contra él: el 7 del Rayo». Los rivales no salen en Relaciones ni en Gente hasta que se presentan.
+
+## 22/11/2026 — Coste por acción: el índice de presencia, por lugar
+
+Detalle: `docs/relevo/coste-por-accion.md`. Un test de `npcs` superaba su límite de 30 s. La causa era «moverse con el grupo»: la obligación de `npcs` pedía la presencia de toda la población en cada acción cortable, aunque estuvieras en casa. Arreglo: el índice se calcula lugar a lugar y solo entre quienes pueden estar allí (resultado idéntico; huella igual). Ciudad de prueba: 1,60 → 1,24 ms por acción y 61,8 → 48,0 ms por día; ciudad grande con fútbol: 6,6 → 4,0 ms por acción; el test, de 18–20 s a 3–4 s, sin subir ningún límite. Herramienta `tools/rendimiento-hermanos.ts`.
+
+## 21/11/2026 — Dorsales, crónica sin nombres de desconocidos y comparación en «Mi equipo»
+
+- **La crónica de los partidos no enseña el nombre de quien no conoces:** se le nombra por su dorsal.
+- **Dorsales:** cada jugador tiene el número de su camiseta, al azar dentro de lo normal. Los porteros llevan el 1, el 13 o, si no están libres, a partir del 16 el primero que quede después de que hayan escogido los jugadores de campo.
+- **En la tabla de «Mi equipo», dos columnas más:** el dorsal y la comparación («mejor / peor / parecido»), cuando ya se ha desbloqueado. **La descripción de los desconocidos se queda entera:** el dorsal es un dato más, para poder asociarlo si luego te cruzas con esa persona fuera del campo.
+- **Hecho el 21/11** (`docs/relevo/dorsales.md`): `PuestosDeDeporte.dorsales` y `asignarDorsales` (contracts); de campo, del 2 al 25, con la costumbre por puesto el 55 % de las veces; el número se conserva mientras siga en el club. Crónica: «el 7 del Rayo», «vuestra 4». En «Mi equipo», el dorsal delante de la descripción entera y «Frente a ti: mejor / peor / parecido» debajo. Las partidas guardadas antes no tienen dorsales.
+
+## 21/11/2026 — Moverse con el grupo: preferencia y «Me voy»
+
+- **Preferencia en Opciones:** «Cuando se va el grupo: preguntar / ir siempre con ellos / quedarme» (por defecto, preguntar).
+- **Solo dentro del mismo lugar** (colegio, estadio, club…). Si se van a casa, de momento no sale nada.
+- **El aviso no cuenta como suceso** (ni cupos ni ritmo).
+- **«Me voy»:** cuando alguien que conoces y tienes al lado se va, dice «Me voy» o «Me voy a…».
+- **Hecho el 21/11** (`docs/relevo/moverse-con-el-grupo.md`): señal `presencia.grupo_se_va` (la emite `npcs`) y suceso `eventos.grupo.se_van` («Ir con ellos» gasta el viaje); preferencia en Opciones; solo dentro del mismo lugar (por `dentroDe`); `SucesoDef.fueraDelRitmo` (el ritmo queda en 2,7 por semana). «Me voy», una línea corta en el resultado de la acción (como mucho 2, en acciones de 30 minutos o menos). Con las acciones cortas, `npcs` declara como obligación la marcha del grupo: la acción dura hasta ese minuto y luego sale el aviso. Coste: 1,19 → 1,36 ms por acción con el bot (+14 %).
+
+## 21/11/2026 — Puestos, entrenamientos, pistas, caras según el origen y tiempo de los sucesos
+
+- **Puestos** (informe `docs/relevo/futbol-puestos-entrenos.md`, `docs/ANEXO_PUESTOS.md`):
+  - el consejo compara con los niños de su edad y con uno mismo, no en valor absoluto (A);
+  - no hace falta quitar azar al consejo (B, descartado de momento);
+  - renombrar: «carrilero» (LCR/RCR) pasa a «Interior» y LM/RM a «Medio de banda» (C);
+  - **las recomendaciones van por puesto sin lado:** «te veo como portero, defensa central o lateral», no carrilero izquierdo y carrilero derecho como puestos distintos.
+- **Entrenamientos:** vale el catálogo de 22 (cifras provisionales, que se miden antes de activar). «Con amigos» no es un entrenamiento como tal: es **quedar a jugar al fútbol**, y vale para todo el año. **Campamentos de jugadores y de porteros, por separado** (como ahora), con entrenamientos comunes (físicos y mentales) y propios de cada uno.
+- **Entrenamientos, hecho el 21/11** (`docs/relevo/entrenamientos.md`, tabla en `ANEXO_DEPORTE.md`): catálogo de 22 en `modules/futbol/src/entrenamientos.ts`, del que salen «Entrenar…» (agrupado), los ejercicios del club y los bloques de los campamentos (`campamento_jugadores`, `campamento_porteros`). Se corrigen «Tiro» (ya no es balón parado), el consejo al portero y el ejercicio de porteros del club, que no salía nunca. «Quedar a jugar al fútbol» es una actividad de las quedadas (`APORTES.quedadaDeDeporte`), con cuatro formas de jugar. El entrenador recomienda entre los 22; los que solo se hacen en el club, como «Pídele a tu entrenador «X» en la sesión del club». Balance (`ESCALA_DE_ENTRENAMIENTO` = 1): el club rinde por hora más que entrenar por libre; una sesión del club, ~13 puntos (antes ~6); por curso, 110 puntos de habilidad (antes 154, de ellos ~43 de portería para un jugador de campo); los PNJ, un 3–5 % más altos por edad. Pendiente del usuario: si se acepta ese balance.
+- **Pistas:** aprobadas, en este orden: el porqué del consejo, «Preguntar por un puesto» y el entrenador que recomienda entrenamientos.
+- **Puestos y pistas, hecho el 21/11** (`docs/relevo/puestos-y-pistas.md`, con ejemplos de textos): consejo comparado con los de su edad que ya juegan (`modules/npcs/src/consejo.ts`), con el azar de ±2; «Interior» y «Medio de banda»; 11 familias de puestos sin lado (`PuestosDeDeporte.familias`; la de LST/RST, «Delantero de banda»); el porqué en cualidades (como mucho 2 a favor y 2 en contra); «Preguntar por un puesto…» al profesor y al entrenador, una vez al día (percentil 60 = ya estás; 25 = cerca); el entrenador recomienda entrenamientos por su nombre leyendo lo que sube cada uno (`ConfigDeporte.catalogoDeEntrenos`). Textos en `modules/futbol/src/pistas-de-puestos.ts`.
+- **Especializaciones (roles, como el portero líbero de Football Manager):** no se descartan; se plantean más adelante, después de probar lo de ahora.
+- **Caras según el origen:** el origen influye en la forma de la cara (tendencias en los rasgos, como ya las hay en los colores). En el dibujo, el ojo con pliegue del párpado lo hace Sonnet, y la arquitectura revisa el diseño y lo corrige hasta que quede como se espera. **Hecho el 21/11** (`docs/relevo/caras-por-origen.md`, tras una corrección de la arquitectura porque a tamaño de retrato no se distinguía): rasgo heredable nuevo `parpado` (el 13.º; las partidas antiguas lo leen a 0,5, sin subir `SAVE_VERSION`); tendencias en `ORIGENES[].rostro` (Asia oriental: párpado −0,34, ojos más rasgados, nariz más ancha y baja, pómulos +0,20, cejas más rectas; África subsahariana, Europa del norte y Magreb, también); ojo sin pliegue con apertura hasta un 23 % menor, rabillo exterior más alto y epicanto; los pómulos ensanchan algo más la cara. Huella de los bots idéntica.
+- **Tiempo de los sucesos:**
+  - un suceso fortuito (al llegar al patio, por ejemplo) consume tiempo si decides hacer lo que propone;
+  - uno que pasa dentro de una acción (la clase de lengua) no lo consume;
+  - **ejemplo del grupo:** si los niños están en el patio, faltan 2 minutos para subir y haces una acción de 5, se hacen 2 minutos de la acción (con su parte proporcional); luego se ofrece subir al aula con ellos y se consume el camino (unos 4 minutos), porque es lo que tardan los demás.
+
+## 21/11/2026 — Deberes, acciones que pisan otra y moverse con el grupo
+
+- **«Hacer deberes», 30 minutos:** sin efecto todavía en los deberes, pero sube la asignatura que se elija. Sirve para esperar al entrenamiento de fútbol: habrá quien prefiera ir a casa y volver, quedarse estudiando o jugar en el parque. Sustituye a la idea de «Pendiente e ideas»; los deberes que se mandan y se entregan siguen pendientes.
+- **Una acción que pisa otra consume solo los minutos que faltan:** si charlar con alguien son 5 minutos y faltan 2 para entrar a clase, se charla 2 minutos (sube o gasta lo proporcional) y se entra a tiempo. Hoy se llega siempre 3 minutos tarde.
+- **Hecho el 21/11** (`docs/relevo/deberes-y-acciones-cortas.md`):
+  - «Hacer deberes…» rinde 30/90 de estudiar × 0,9 (`EFICIENCIA_DE_DEBERES`, por calibrar). Se hace en casa, la biblioteca, el colegio fuera de clase, el parque, el estadio y los campos.
+  - Acciones cortables: `GameModule.obligaciones(ctx)` (la clase, la sesión del club, la convocatoria y el plan acordado) y `ActionDef.cortable`. El botón dice «2 min (entras a clase a las 9:00)». Se cortan estudiar, deberes, charlar, jugar, quedar, ocio, descanso y entrenar por libre; no se cortan viajes, clases, partidos, exámenes, pruebas, tutoría ni dormir. Los PNJ siguen su agenda (no ejecutan acciones). Se arregla el bot, que salía tarde.
+- **Moverse con el grupo:** si estás hablando con compañeros en el descanso y todos se van al patio, hoy desaparecen en un abrir y cerrar de ojos. Debe salir «Todos se van al patio, ¿les acompañas?»; si dices que sí, vas con ellos como un viaje rápido (consume esos minutos). Lo mismo a la salida del colegio.
+
+## 21/11/2026 — «Mi equipo» para el niño
+
+- **En la pestaña del deporte, una subpestaña «Mi equipo»** (no en la del personaje).
+- **Se ve en qué equipo estás** (A, B, C…).
+- **De los compañeros que no conoces, la misma descripción que en Gente** (por su aspecto), sin el nombre.
+- **Compararte, con lo que se ve:** después de los entrenamientos, en la ficha de cada niño, «crees que eres mejor / peor / parecido a él», y su puesto. Si no le has visto jugar, no sabes dónde juega: esa información se desbloquea al entrenar y jugar con él.
+- **Las habilidades del fútbol, agrupadas** en portería, físico, mental y técnico.
+- La página del entrenador, más detallada, queda para más adelante.
+- **Hecho el 21/11** (`docs/relevo/mi-equipo.md`): la comparación sale de la diferencia de valor en su puesto frente al tuyo, más un error que baja con el conocimiento (desviación 8 sin conocimiento, 3 con todo), con la media de hasta 8 vistazos; «parecido» si la diferencia es de menos de 5 puntos. Lo visto se guarda en `FutbolState.companeros` (menos de 2 KB). Contratos genéricos: `miEquipo`, `gruposDeHabilidades`, `ComparacionService`, `aspectoDe`. La tabla «Plantilla» también oculta nombres y puestos de quien no conoces.
+
+## 21/11/2026 — Detalles al jugar: sucesos en clase, habilidades por grupos, tu equipo, entrenamientos y puestos
+
+Observado por el usuario jugando la versión publicada:
+- **Los sucesos ocasionales** (una pregunta en clase, la recomendación de puesto del profesor de Educación Física) consumen minutos fuera de las clases. No deberían consumir tiempo. Tampoco debe ofrecerse dejar la respuesta para el día siguiente cuando no tiene sentido: si la profesora te pregunta en clase, no le dices «te lo digo mañana». **Hecho el 21/11** (`docs/relevo/sucesos-en-clase.md`): campo `durante` y `ConfigDeSucesos.durante` con las señales de actividad (clase, sesión del club, prueba). Esos sucesos van a 0 minutos (escribirles `minutos` es un error de validación). Urgencia `ahora` (por defecto, no se aplaza; si haces otra cosa se aplica la opción por defecto), `aplazable` (ventana con «Decidir luego») o `pendiente`. Solo pasan a aplazables `futbol.plaza_extra` y `futbol.equipo_sin_ninos`. Ritmo, 2,5 → 2,6 sucesos por semana.
+- **Las habilidades del fútbol se agrupan visualmente** en portería, físico, mental y técnico; hoy cuesta saber a qué tipo pertenece cada una.
+- **Tu equipo:** al entrar no se sabe en qué equipo estás (A, B, C…). Hace falta más información de los compañeros, sin enseñar el nombre de quien todavía no conoces, y una forma de compararte con el resto del equipo. Para el niño, quizá en una pestaña propia de la página del personaje. Para la labor de entrenador, más adelante, una página más detallada.
+- **Más entrenamientos, a corto plazo:** hay pocos, y alguno sube habilidades que no encajan.
+- **Qué valora el motor en cada puesto:** el usuario quiere ver la fórmula. Ejemplo: el profesor le recomendó portero o carrilero; con las mismas habilidades, Football Manager le daba portero (tipo líbero) o mediocentro defensivo. Le gusta la información que se da («destacas en cómo te mueves»), pero hay que ayudar más, aunque sea con pistas.
+
+## 21/11/2026 — Rendimiento: guardar sin congelar, fútbol más barato y equipos que se forman al empezar el curso
+
+- **Guardar fuera del hilo de la página:** aprobado. **Hecho el 21/11** (`docs/relevo/guardar-sin-congelar.md`): serialización a trozos de ~8 ms con pausas, que se vuelca a un Blob en IndexedDB (las partidas antiguas guardadas como texto siguen abriendo). La parada máxima al guardar pasa de 310 a 34 ms en escritorio y de 1.617 a 40 ms en el móvil emulado; abrir en el móvil, de ~3,5 s a ~1,4 s. `recomendarFrecuencia`, más holgada. Opciones enseña el peso del guardado. `npm run presupuesto` avisa sin fallar si el estado pasa del tope. Core gana `Game.estadoParaGuardar`, un getter de solo lectura.
+- **Medidas del usuario:** crear la partida tarda menos de 30 s en su PC y unos 3 s en su móvil (no hace falta medirlo más).
+- **Pasada semanal y creación del fútbol más baratas** (por equipo, o en bloques para los niños no activos): aprobado. Las reglas no cambian; apenas se debería notar diferencia, porque las subidas por entrenar son muy pequeñas. **Hecho el 21/11** (`docs/relevo/futbol-mas-barato.md`): `rngEstable` con prefijo precalculado (mismo resultado); historia lejana en bloques de 13 semanas; sesión elegida una vez por equipo; los niños del club del personaje y del equipo del colegio, cada semana, y el resto en bloques de 8 con la caída de las capacidades contada como en la pasada semanal. Ciudad grande con fútbol: crear 27–32 s → ~10 s; semana sin jornada 0,35–0,5 s → 0,1–0,15 s; con jornada de liga 0,6–1 s → 0,26–0,36 s. Distribuciones de nivel: sin tendencia acumulada; queda un desfase fijo de ~−0,3 al crear (la historia, ~1,5 % más baja). Pendientes de abaratar: la jornada de liga (~75 partidos) y el reparto.
+- **Los equipos se forman al empezar el curso:** no tiene sentido que el primer día de clase ya haya niños de 7–8 años en el equipo de fútbol. Los niños se apuntan a partir del segundo día, o al menos aparecen apuntados así. Los equipos no tienen por qué montarse al crear la partida: pueden irse formando en las primeras semanas. **Hecho el 21/11:** el reparto se calcula al crear y cada niño aparece apuntado en su día, entre el 1 y el 6 del curso (`CategoriaDef.apuntarseEnLosDias`, `Npc.apuntado`).
+- **Peso de la partida guardada:** se quiere saber, pero 16–18 MB no es peligroso (se guarda en IndexedDB). Se vigila con un aviso, no con un fallo.
+
+## 21/11/2026 — Revisión de rendimiento (rama `claude/revision-rendimiento`)
+
+Informe: `docs/relevo/revision-rendimiento.md`.
+- **Sin regresión** frente a `main` antes del 21/11 (`b7e5032`). Ciudad de prueba: 1,49–1,62 → 1,31–1,36 ms por acción; estado +7 % (los rasgos del cuerpo y el aspecto). Ciudad grande con fútbol: 9,3–9,6 → 7,5–8,4 ms por acción; estado 15,2 → 16,1 MB.
+- **El problema es la ciudad grande con fútbol, y ya estaba antes:** crear ~30 s; cruce de semana 370–875 ms (en un móvil, unas 4 veces más); guardar 0,46 s en escritorio y 1,8 s en móvil emulado, bloqueando la página; estado de 16 MB (genética y rasgos, 56 %). El fútbol es el ~94 % de ese coste.
+- **Hecho:** chequeo de Rendimiento de la simulación estable (calibración al principio, a mitad y al final con mediana; límite relativo 0,17–0,20 → 0,22); herramientas `npm run presupuesto`, `npm run rendimiento:web`, `tools/rendimiento-semana.ts` y `rendimiento --ciudad`.
+- Propuestas sin hacer, ordenadas: guardar fuera del hilo de la página; medir los sucesos de PNJ con la ciudad grande y crear en un móvil real; pasada semanal y creación del fútbol más baratas (cambian los números de los PNJ); estado más pequeño; `rngEstable` más barato; `listActions` del fútbol.
+
 ## 21/11/2026 — Se une la rama de trabajo a la principal
 
 El usuario aprueba unir `claude/youthful-clarke-vs0kye` a `main`, para probarlo como jugador, ver el rendimiento después y seguir trabajando en paralelo. Pull request gardagon/Dinasty-Sports#127. La versión de guardado pasa de 17 a 21: las partidas de la versión publicada se descartan con un aviso. La revisión de rendimiento queda para justo después.
@@ -2259,7 +2364,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 ## Pendiente e ideas
 
-- **Deberes (idea del usuario, 17/11):** acción «Hacer deberes» de 30 minutos. A futuro, algunas clases mandan deberes que hay que entregar en la siguiente clase de esa asignatura, con eventos alrededor (olvidarlos, copiarlos, que el profesor los pida…).
+- **Deberes (idea del usuario, 17/11; la acción de 30 minutos, decidida el 21/11):** A futuro, algunas clases mandan deberes que hay que entregar en la siguiente clase de esa asignatura, con eventos alrededor (olvidarlos, copiarlos, que el profesor los pida…).
 
 - **Eventos y decisiones (E18), requisitos del usuario (16/11/2026):** candidato a la próxima sesión de Fable, junto con un visualizador de los partidos de fútbol. Añadir eventos tiene que ser **muy fácil**, casi una herramienta para definirlos como datos sin tocar el motor, y tiene que permitir **hilos**: un evento deja consecuencias que pueden disparar otros más adelante (semanas, meses o años). Empezar por una propuesta de diseño que decida el usuario. **Propuesta en `docs/PLAN_EVENTOS.md`; decisiones del usuario del 16/11 arriba; en construcción.**
 - **Visualizador, para la etapa 2c (Sonnet):** la raíz del tinte en los peinados con raya o flequillo se ve como un destello «estrellado» en la coronilla (correcto pero raro, visto por el usuario el 16/11); el tupé se distingue poco del corto. Mejorarlos con la receta (`docs/ANEXO_RETRATOS.md`).

@@ -61,7 +61,7 @@ describe('módulo fútbol, solo con gen', () => {
     const g = nueva();
     expect(g.stat('futbol.conocimiento')).toBe(0);
     advanceTo(g, 'gen.descansar', 5, 15);
-    expect(g.preview('futbol.balon')!.modifiers.some((m) => m.id === 'futbol.conocimiento')).toBe(true);
+    expect(g.preview('futbol.entrena_toques_y_pared')!.modifiers.some((m) => m.id === 'futbol.conocimiento')).toBe(true);
     expect(g.perform('futbol.ver_tele').ok).toBe(true);
     expect(g.stat('futbol.conocimiento')).toBeGreaterThan(0);
     expect(g.preview('futbol.ver_tele')!.available).toBe(false);
@@ -70,14 +70,14 @@ describe('módulo fútbol, solo con gen', () => {
   it('entrenar por libre sube las habilidades de cada entreno, rinde menos que el club y solo en horario', () => {
     const g = nueva();
     advanceTo(g, 'gen.descansar', 0, 10);
-    expect(g.preview('futbol.balon')!.available).toBe(false); // lunes en clase
+    expect(g.preview('futbol.entrena_toques_y_pared')!.available).toBe(false); // lunes en clase
     advanceTo(g, 'gen.descansar', 5, 10);
     const antes = { control: g.stat('futbol.control'), tiro: g.stat('futbol.definicion'), arrancada: g.stat('futbol.arrancada'), reflejos: g.stat('futbol.reflejos') };
-    expect(g.preview('futbol.balon')!.modifiers.some((m) => m.id === 'futbol.por_tu_cuenta')).toBe(true);
-    expect(g.perform('futbol.balon').ok).toBe(true);
-    expect(g.perform('futbol.tiro').ok).toBe(true);
-    expect(g.perform('futbol.fisico').ok).toBe(true);
-    expect(g.perform('futbol.porteria').ok).toBe(true);
+    expect(g.preview('futbol.entrena_toques_y_pared')!.modifiers.some((m) => m.id === 'futbol.por_tu_cuenta')).toBe(true);
+    expect(g.perform('futbol.entrena_toques_y_pared').ok).toBe(true);
+    expect(g.perform('futbol.entrena_tiro_a_puerta').ok).toBe(true);
+    expect(g.perform('futbol.entrena_velocidad').ok).toBe(true);
+    expect(g.perform('futbol.entrena_reflejos').ok).toBe(true);
     expect(g.stat('futbol.control')).toBeGreaterThan(antes.control);
     expect(g.stat('futbol.definicion')).toBeGreaterThan(antes.tiro);
     expect(g.stat('futbol.arrancada')).toBeGreaterThan(antes.arrancada);
@@ -87,9 +87,9 @@ describe('módulo fútbol, solo con gen', () => {
   it('la tercera sesión del día sufre sobrecarga', () => {
     const g = nueva();
     advanceTo(g, 'gen.descansar', 5, 8);
-    g.perform('futbol.balon');
-    g.perform('futbol.balon');
-    expect(g.preview('futbol.balon')!.modifiers.some((m) => m.id === 'futbol.sobrecarga')).toBe(true);
+    g.perform('futbol.entrena_toques_y_pared');
+    g.perform('futbol.entrena_toques_y_pared');
+    expect(g.preview('futbol.entrena_toques_y_pared')!.modifiers.some((m) => m.id === 'futbol.sobrecarga')).toBe(true);
   });
 
   it('sin club no hay sesión del club ni dejarlo; la pestaña está desactivada', () => {

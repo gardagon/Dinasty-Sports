@@ -94,6 +94,8 @@ function extras(game: Game): Record<string, number | null> {
 export interface Juego {
   modulos?: readonly GameModule<any>[];
   deportes?: readonly string[];
+  /** Id del país (y ciudad) de la partida; por defecto el de `nuevaPartida`. Hay que registrarlo antes (`registrarPais`). */
+  pais?: string;
 }
 
 /**
@@ -123,12 +125,14 @@ function* sucesosDeLaPartida(game: Game): Generator<SucesoDef> {
 
 function cuentaDeSucesos(game: Game): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const r of game.service<SucesosService>(SERVICES.sucesos)?.recuerdos() ?? []) out[r.suceso] = (out[r.suceso] ?? 0) + 1;
+  // Los avisos del mundo (`fueraDelRitmo`, p. ej. el grupo que se va) no son parte del ritmo de los eventos.
+  const fuera = new Set([...sucesosDeLaPartida(game)].filter((d) => d.fueraDelRitmo).map((d) => d.id));
+  for (const r of game.service<SucesosService>(SERVICES.sucesos)?.recuerdos() ?? []) if (!fuera.has(r.suceso)) out[r.suceso] = (out[r.suceso] ?? 0) + 1;
   return out;
 }
 
 export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}): RunResult {
-  const game = nuevaPartida({ seed, playerName: bot.name, ...(juego.deportes ? { deportes: juego.deportes } : {}) }, juego.modulos);
+  const game = nuevaPartida({ seed, playerName: bot.name, ...(juego.deportes ? { deportes: juego.deportes } : {}), ...(juego.pais ? { pais: juego.pais } : {}) }, juego.modulos);
   const rng = seededRng(seed * 31 + 7);
   const areas = areasFor(game);
   const mem: BotMemory = { day: -1, hoy: {}, total: {} };

@@ -18,19 +18,66 @@ export interface Rng {
  * Es mulberry32, el mismo algoritmo que el del motor.
  */
 export function rngEstable(...partes: (string | number)[]): Rng {
+  // El mismo cálculo que `mezclaPartes` + `cierraElHash`, escrito en el sitio: se llama millones de veces.
   let h = 0x811c9dc5;
-  for (const p of partes) {
+  for (let k = 0; k < partes.length; k++) {
+    const p = partes[k];
     const t = typeof p === 'number' ? String(p) : p;
     for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 0x01000193);
-    h = Math.imul(h ^ 0x2f, 0x01000193); // separa las partes: («ab», «c») no es («a», «bc»)
+    h = Math.imul(h ^ 0x2f, 0x01000193);
   }
-  // Mezcla final (murmur3): sin ella, dos textos que solo cambian en el último carácter dan sorteos parecidos.
   h ^= h >>> 16;
   h = Math.imul(h, 0x85ebca6b);
   h ^= h >>> 13;
   h = Math.imul(h, 0xc2b2ae35);
   h ^= h >>> 16;
   return new GeneradorEstable(h | 0);
+}
+
+const FNV = 0x01000193;
+
+/** Mezcla partes en el hash FNV-1a (cada parte seguida de su separador) a partir de un estado dado. */
+function mezclaPartes(h: number, partes: readonly (string | number)[]): number {
+  for (let k = 0; k < partes.length; k++) {
+    const p = partes[k];
+    const t = typeof p === 'number' ? String(p) : p;
+    for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), FNV);
+    h = Math.imul(h ^ 0x2f, FNV); // separa las partes: («ab», «c») no es («a», «bc»)
+  }
+  return h;
+}
+
+/** Mezcla final (murmur3): sin ella, dos textos que solo cambian en el último carácter dan sorteos parecidos. */
+function cierraElHash(h: number): number {
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return h | 0;
+}
+
+/**
+ * El hash de las partes constantes de un sorteo, para no repetirlo millones de veces: `rngEstableDesde(prefijoEstable(a, b), c, d)` da exactamente lo mismo que
+ * `rngEstable(a, b, c, d)` (el FNV-1a se calcula parte a parte, así que el estado tras `a` y `b` se puede guardar).
+ */
+export const prefijoEstable = (...partes: (string | number)[]): number => mezclaPartes(0x811c9dc5, partes);
+
+/** Añade más partes a un prefijo ya calculado. */
+export const prefijoEstableDesde = (prefijo: number, ...resto: (string | number)[]): number => mezclaPartes(prefijo, resto);
+
+/** Un `rngEstable` cuyas primeras partes ya están mezcladas en `prefijo` (ver `prefijoEstable`). */
+export function rngEstableDesde(prefijo: number, ...resto: (string | number)[]): Rng {
+  return new GeneradorEstable(cierraElHash(mezclaPartes(prefijo, resto)));
+}
+
+/** Lo mismo que `rngEstableDesde` con una sola parte variable (sin crear la lista de «resto»). */
+export function rngEstableDesde1(prefijo: number, parte: string | number): Rng {
+  let h = prefijo;
+  const t = typeof parte === 'number' ? String(parte) : parte;
+  for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), FNV);
+  h = Math.imul(h ^ 0x2f, FNV);
+  return new GeneradorEstable(cierraElHash(h));
 }
 
 /**

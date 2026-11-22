@@ -160,7 +160,6 @@ export function sucesoDePruebaDeAcceso(cfg: ConfigDeporte, t: TextosDePruebaDeAc
       texto: t.opcionDePuesto.replaceAll('{puesto}', nombreDe2(p.id)),
       requiere: [{ señal: 'huecos', incluye: p.id }] as Condicion[],
       oculta: true,
-      minutos: 5,
       efectos: sin(p.id),
       resultado: t.resultadoDeHueco.replaceAll('{puesto}', nombreDe2(p.id)),
     })),
@@ -169,11 +168,10 @@ export function sucesoDePruebaDeAcceso(cfg: ConfigDeporte, t: TextosDePruebaDeAc
       texto: t.opcionDePuesto.replaceAll('{puesto}', nombreDe2(p.id)),
       requiere: [{ no: { señal: 'huecos', incluye: p.id } }] as Condicion[],
       oculta: true,
-      minutos: 5,
       efectos: sin(),
       resultado: resultadoSinHueco.replaceAll('{puesto}', nombreDe2(p.id)),
     })),
-    { id: 'que_decida', texto: t.opcionQueDecida, minutos: 5, efectos: sin(), resultado: t.resultadoQueDecida },
+    { id: 'que_decida', texto: t.opcionQueDecida, efectos: sin(), resultado: t.resultadoQueDecida },
   ];
   return suceso({
     id: idDeSucesoDePrueba(cfg.id),
@@ -266,7 +264,8 @@ export function sucesoDePlazaExtra(cfg: ConfigDeporte, t: TextosDePlazaExtra): A
     cuando: [{ señal: 'sport', es: cfg.id }],
     repite: 'siempre',
     reparto: { entrenador: { rol: 'entrenador', delDeportePrincipal: true } },
-    urgencia: 'ahora',
+    // Un aviso del club al cambiar de temporada: se puede pensar unos días.
+    urgencia: 'aplazable',
     plazo: { dias: 3, porDefecto: 'quedarse' },
     texto: t.texto,
     opciones: [
@@ -281,6 +280,52 @@ export function sucesoDePlazaExtra(cfg: ConfigDeporte, t: TextosDePlazaExtra): A
 }
 
 
+/** Los textos de la salida del club por perder la plaza (`{entrenador.nombre}`, `{señal.plazoHasta}`; el género del personaje, `{yo:o|a}`). */
+export interface TextosDePlazaPerdida {
+  titulo: string;
+  texto: string;
+  /** Buscar otro club mientras las pruebas están abiertas. */
+  opcionBuscar: string;
+  resultadoBuscar: string;
+  /** Quedarse entrenando por su cuenta hasta el siguiente plazo. */
+  opcionPorMiCuenta: string;
+  resultadoPorMiCuenta: string;
+  /** Preguntarle qué tiene que mejorar. */
+  opcionMejorar: string;
+  resultadoMejorar: string;
+}
+
+/**
+ * El suceso de la salida del club (`<deporte>.plaza_perdida`, decisión del usuario, 22/11/2026): al empezar el curso otro jugador que vale más le ocupa la plaza al personaje y ni con una plaza de más cabe, así que **sale del club**
+ * (lo hace el módulo de clubes con `club.plaza_perdida`). Su entrenador se lo dice y le da opciones: buscar otro club (con qué clubes hacen pruebas, `{señal.clubes}`, y hasta cuándo siguen abiertas, `{señal.plazoHasta}`, y la acción «Pedir hacer una prueba…» a mano en el desplegable «Prueba de acceso…»), entrenar por su cuenta o preguntar qué mejorar.
+ * Antes era una línea del diario. El entrenador y la fecha vienen en la señal (al llegar ya no es de ese club). Dispara con `club.plaza_perdida`.
+ */
+export function sucesoDePlazaPerdida(cfg: ConfigDeporte, t: TextosDePlazaPerdida): AporteDeSucesos {
+  return suceso({
+    id: `${cfg.id}.plaza_perdida`,
+    titulo: t.titulo,
+    deporte: cfg.id,
+    disparo: { al: SHARED_EVENTS.PLAZA_PERDIDA },
+    ejemploDeSeñal: { sport: cfg.id, clubId: 'club', participants: [{ npcId: 'entrenador' }], plazoHasta: 'el lunes 14 de septiembre', clubes: 'Real Ciudad C. F. y Unión Deportiva del Barrio' },
+    cuando: [{ señal: 'sport', es: cfg.id }],
+    repite: 'siempre',
+    reparto: { entrenador: { rol: 'entrenador', deLaSeñal: 'participants', conocido: false } },
+    // Un aviso al cambiar de temporada: se puede pensar unos días (el plazo de fichajes sigue abierto).
+    urgencia: 'aplazable',
+    plazo: { dias: 3, porDefecto: 'por_mi_cuenta' },
+    texto: t.texto,
+    opciones: [
+      { id: 'buscar_club', texto: t.opcionBuscar, caracter: { ambicion: 2 }, minutos: 5, efectos: [{ estado: GEN.motivacion, mas: 2 }, { relacion: 'entrenador', afinidad: 1 }], resultado: t.resultadoBuscar },
+      { id: 'por_mi_cuenta', texto: t.opcionPorMiCuenta, caracter: { disciplina: 2, ambicion: -1 }, efectos: [{ estado: GEN.motivacion, mas: -1 }], resultado: t.resultadoPorMiCuenta },
+      { id: 'mejorar', texto: t.opcionMejorar, caracter: { ambicion: 1, disciplina: 1 }, minutos: 5, efectos: [{ relacion: 'entrenador', afinidad: 2, confianza: 1 }, { entrena: idDeConocimiento(cfg.id), cantidad: 1 }], resultado: t.resultadoMejorar },
+    ],
+    pruebas: [
+      { nombre: 'Al perder la plaza en verano sale el aviso de su entrenador y no pasa nada si no contesta', dado: {}, espero: { sale: true } },
+    ],
+  });
+}
+
+
 /** Los textos del aviso de que el equipo del personaje no sigue este curso (`{señal.jugadores}` y `{señal.minimo}` en el de pocos niños; el género del personaje, `{yo:o|a}`). */
 export interface TextosDeEquipoSinNinos {
   titulo: string;
@@ -288,6 +333,8 @@ export interface TextosDeEquipoSinNinos {
   pocos: string;
   /** El club no tiene equipos en la categoría a la que sube. */
   sinCategoria: string;
+  /** A su edad el deporte ya no tiene categoría: se acaba el deporte base en el club. */
+  finDeCategorias: string;
   opcionBuscar: string;
   resultadoBuscar: string;
   opcionEsperar: string;
@@ -308,10 +355,12 @@ export function sucesoDeEquipoSinNinos(cfg: ConfigDeporte, t: TextosDeEquipoSinN
     ejemploDeSeñal: { sport: cfg.id, clubId: 'club', motivo: 'pocos', jugadores: 12, minimo: 14 },
     cuando: [{ señal: 'sport', es: cfg.id }],
     repite: 'siempre',
-    urgencia: 'ahora',
+    // Un aviso del club o del colegio al cambiar de categoría: se puede pensar unos días.
+    urgencia: 'aplazable',
     plazo: { dias: 3, porDefecto: 'esperar' },
     texto: t.pocos,
     variantes: [
+      { id: 'fin_de_categorias', si: [{ señal: 'motivo', es: 'fin_de_categorias' }], texto: t.finDeCategorias },
       { id: 'sin_categoria', si: [{ señal: 'motivo', es: 'sin_categoria' }], texto: t.sinCategoria },
       { id: 'pocos', si: [], texto: t.pocos },
     ],

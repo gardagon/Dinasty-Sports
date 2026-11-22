@@ -36,6 +36,8 @@ export interface GameEvent<T = unknown> {
  */
 export interface ReadContext {
   readonly time: TimeView;
+  /** Acciones que se han hecho en la partida (la que está en marcha ya cuenta): sirve para saber si dos cosas pasaron en la misma acción. */
+  readonly actionCount: number;
   /** El país de la partida (su calendario, currículo, categorías, horarios y gente): un paquete de datos, ver `paises/`. */
   readonly pais: PaisDef;
   /** La vista de un minuto cualquiera de la partida con el calendario del país (úsala en vez de `timeView` para mirar otros días: así vale en todos los países). */

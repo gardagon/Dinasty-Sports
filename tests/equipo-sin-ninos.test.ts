@@ -107,7 +107,10 @@ describe('el personaje en el reparto de verano', () => {
     const g = nueva();
     advanceToWeek(g, 'gen.descansar', 0, 2, 9);
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
-    expect(g.service<NpcDirectory>(SERVICES.npcs)!.equipoDelPersonaje!('futbol')).toMatchObject({ club: 'colegio', categoria: 'benjamin', letra: 'B' }); // 8 años: primer año, el B
+    // 8 años: primer año, así que no el A (el de segundo año): el B, o el C si hay más equipos de primero y su nivel es de los de abajo (el reparto depende de lo que han entrenado los niños del colegio).
+    const primero = g.service<NpcDirectory>(SERVICES.npcs)!.equipoDelPersonaje!('futbol');
+    expect(primero).toMatchObject({ club: 'colegio', categoria: 'benjamin' });
+    expect(primero?.letra).not.toBe('A');
     advanceToWeek(g, 'gen.descansar', 54, 2, 15);
     const club = g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol');
     const equipo = g.service<NpcDirectory>(SERVICES.npcs)!.equipoDelPersonaje!('futbol');

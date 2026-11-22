@@ -96,7 +96,7 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
   id: 'mentir', texto: 'Decir que es un error del colegio',
   requiere: [{ stat: 'gen.picardia', min: 12 }],     // si no se cumple, sale en gris (u oculta: true)
   caracter: { honestidad: -3 },                      // hacia qué ejes tira: mueve los del personaje y es con lo que decide un PNJ o un bot
-  minutos: 5,                                        // tiempo de juego que gasta (1 por defecto)
+  minutos: 5,                                        // tiempo de juego que gasta (1 por defecto); o { deLaSeñal: 'minutos' }: los que traiga ese dato de la señal que lo disparó (un viaje cuya duración depende de dónde estés; solo en sucesos con `al`; 1 si no hay dato)
   tirada: { con: 'gen.picardia', dificultad: 45 },   // 50 % con la stat (para su edad) igual a la dificultad; ±15 puntos por cada 10; entre 5 % y 95 %
   // Opcional: la dificultad también depende de la situación. Cada ajuste lleva condiciones (las de siempre: relacion, hecho, stat, caracter...) y suma o resta puntos si se cumplen TODAS;
   // los que se cumplen se suman y el total se queda entre 0 y 100 (`dificultadDeTirada`). Lo normal son escalones acumulados:
@@ -106,10 +106,49 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
 }
 ```
 
-- Un suceso con opciones necesita `plazo: { dias, porDefecto }` (o `{ hasta: { hora }, porDefecto }`): **nunca bloquea** el juego; si vence, se aplica la opción por defecto.
+- Un suceso con opciones necesita `plazo: { dias, porDefecto }` (o `{ hasta: { hora }, porDefecto }`): **nunca bloquea** el motor (las acciones siguen disponibles); si vence, o si era de los que no se aplazan y pasas a otra cosa, se aplica la opción por defecto.
 - Un efecto negativo sobre un recurso (dinero, energía) es un coste: si no alcanza, la opción no se puede elegir.
-- `urgencia: 'ahora'` (ventana) o `'pendiente'` (a la lista). Sin opciones, `presentacion: 'ventana' | 'linea'`.
+- `urgencia`: cuánto espera lo que se pregunta (ver «Durante una actividad y aplazar» más abajo). Sin opciones, `presentacion: 'ventana' | 'linea'`.
 - Suertudo repite a veces una tirada fallada (25 %) y Gafe estropea a veces una acertada (15 %): `TIRADA` en `contracts/src/sucesos/condiciones.ts`.
+
+### Durante una actividad y aplazar
+
+Dos reglas del formato, para no tener que acordarse suceso a suceso:
+
+**1. Lo que pasa durante una actividad no gasta tiempo.** Una pregunta en clase, la recomendación de puesto del profesor de Educación física o el «llegas tarde» del entrenador se responden en el momento, dentro de la clase o del entrenamiento: las opciones valen **0 minutos**.
+
+- `durante` (en el suceso) lo dice. Por defecto lo es el que se dispara con una señal de `ConfigDeSucesos.durante` (hoy `clase.asistida`, `club.sesion_tarde`, `club.impuntual`, `club.prueba_empieza`); `sucesoEsDurante` en `contracts/src/sucesos/tipos.ts`. Si sale con otra señal pero pasa dentro de una actividad, `durante: true` (`futbol.primer_entrenamiento`: sale con `accion.realizada`).
+- Un suceso `durante` **no escribe `minutos`** en sus opciones (la validación lo rechaza). Si es otra cosa (quedarse a hablar después, ir a algún sitio), `durante: false` y gasta los minutos que digan.
+- Los demás (el patio, el camino, la casa, las ofertas del club) son actividades aparte: sus opciones siguen gastando `minutos` (1 por defecto).
+- Una acción de 0 minutos es posible solo si lo declara (`duration: 0`); el motor nunca baja de 1 minuto lo demás.
+
+**2. Lo que se pregunta en el momento no se puede dejar para luego.** Hay tres `urgencia`:
+
+| `urgencia` | Qué es | Ventana | «Decidir luego» |
+|---|---|---|---|
+| `ahora` (por defecto) | Se responde en el momento: pasa en presencia de alguien o dentro de lo que haces | Sí; no se puede cerrar sin responder | No |
+| `aplazable` | Sale en una ventana, pero puede esperar: un aviso del club, algo que decidir en casa | Sí | Sí: queda en «Pendiente» hasta que venza su plazo |
+| `pendiente` | Va directo a la lista, con su plazo | No | (ya está en la lista) |
+
+- **Lo que no se aplaza se pierde.** Si haces otra acción sin responder (no vale decidir otra cosa), «el momento pasó» y se aplica la opción por defecto del `plazo` como si no hubieras dicho nada (`pasarElMomento`, en el director). Lo que `aplazable`/`pendiente` conserva hasta que venza el plazo, como antes.
+- La validación impide `aplazable`/`pendiente` en lo que es `durante`, en un reparto con `presente: true` o con una condición `presente` en `cuando`: eso se responde ahora.
+- La interfaz (`SucesoPendiente.aplazable`) solo ofrece «Decidir luego» si es aplazable; si no, dice que hay que responder.
+- Qué cambió suceso a suceso, y con qué cifras: `docs/relevo/sucesos-en-clase.md`.
+
+### Moverse con el grupo
+
+Cuando la gente con la que estás se va en bloque a otro sitio y tú sigues allí, sale «Todos se van al patio. ¿Les acompañas?» (`eventos.grupo.se_van`, `modules/eventos/src/grupo/se_van.ts`). Es un suceso normal, sin sitios ni horas escritos:
+
+- **La señal** `presencia.grupo_se_va` (`SHARED_EVENTS.GRUPO_SE_VA`, `GrupoSeVaData`) la emite `npcs`, dueño de la presencia, al acabar una acción (`modules/npcs/src/grupo.ts`; las reglas, en `docs/ANEXO_HORARIOS_PNJ.md` «Moverse con el grupo»). Trae `desde`, `hacia`, `haciaTexto` («al patio», «a la entrada del colegio»), `minutos` (el viaje rápido del mapa), `cuantos`, `total` y `muestra` (hasta 3 conocidos).
+- **`urgencia: 'ahora'`**, sin aplazar: si haces otra cosa sin responder, te quedas (se aplica `quedarte`). No es `durante` (el viaje gasta tiempo), y las opciones son «Ir con ellos» y «Quedarte aquí».
+- **Ir con ellos** = `minutos: { deLaSeñal: 'minutos' }` (lo que cuesta ir) y el efecto `emite: 'lugares.ir_a'` con `destino: '{señal.hacia}'` (`lugares` te lleva y emite la llegada; allí están ya, por sus agendas). Sube un poco la relación con un conocido del grupo y baja un poco el estrés.
+- Es general: el recreo que empieza (aula → patio), el que acaba (patio → aula), la clase que acaba (aula → entrada del colegio), el entrenamiento (entrada → pista)... y lo que ponga un deporte o un país nuevo, sin tocar nada.
+- **Corta las acciones antes de que se vaya**: `npcs` declara el momento en que se va el grupo como una obligación (`GameModule.obligaciones`), así que las acciones cortables duran solo hasta entonces y luego sale el aviso («2 min (se va el grupo al patio a las 10:40)»).
+- **Solo dentro del mismo lugar**: se acompaña al colegio (aula, patio, entrada, pista…), al estadio o al complejo deportivo, al club; si se van a casa o a otro lugar, no sale nada.
+- **No cuenta como evento**: `fueraDelRitmo: true` en el suceso lo deja fuera de las medidas de ritmo (`sim:eventos`, el chequeo de la simulación); como sale con una señal, no gasta cupo.
+- **Preferencia de la web** (Opciones → «Cuando se va el grupo con el que estás»): *Preguntarme* (por defecto), *Ir siempre con ellos* (la web responde «Ir con ellos» sin enseñar el aviso, gastando los minutos del camino) o *Quedarme* (no se enseña nada; si haces otra cosa, el momento pasa). Es del navegador (`apps/web/src/presentacion.ts`, `respuestaAlGrupo`); el motor sigue ofreciendo las dos opciones.
+- **«Me voy»**: cuando alguien que conoces y tienes al lado se va aparte (no con el grupo), sale una línea corta suya en lo que pasa («Lucía: «Me voy al patio.»»; «Me voy.» si sale del mapa y no se sabe a dónde), como mucho 2 por acción. Va en la línea del resultado, no en el diario ni en una ventana, para no ensuciar. La emite `npcs` junto a la señal del grupo (`seVanSolos`).
+- Cifras y medidas: `docs/relevo/moverse-con-el-grupo.md`. Se ajustan con `MOVERSE_CON_EL_GRUPO` (`contracts/src/agendas.ts`).
 
 ### Efectos
 
@@ -166,6 +205,7 @@ Por defecto un suceso es del personaje. Con `para: 'cualquiera'` y una `clase` p
 | `presentacion.fueraDeCaracter` | `normales` | Las opciones que no van con el carácter: `normales`, `sombreadas` (se ven, no se eligen, se dice por qué) u `ocultas`. En `normales` cada opción lleva `ejeEnContra` (p. ej. «sociabilidad») y la web la avisa con una nota discreta «No va contigo (sociabilidad)»; sigue pudiéndose elegir y mueve el carácter igual |
 | Aviso «no va contigo» (web) | activado | Preferencia del navegador (Opciones → casilla), no del motor: solo cuenta con `fueraDeCaracter: 'normales'`; en `sombreadas` y `ocultas` no cambia nada |
 | `presentacion.ejeMarcado`, `inclinacionMinima` | 25, 2 | Una opción no encaja si tira al menos 2 en contra de un eje que el personaje tiene a 25 o más |
+| `durante` | `clase.asistida`, `club.sesion_tarde`, `club.impuntual`, `club.prueba_empieza` | Señales que pasan dentro de una actividad: el suceso que sale con una es «durante» (0 minutos, sin aplazar) salvo que diga `durante: false` |
 | `pnj.clases` | `['lesion']` | Clases de suceso (`clase:`) que viven también los PNJ |
 | `pnj.diarioDeCercanos` | `false` | Si lo que le pasa a alguien cercano sale en el diario |
 | `caracterPorDecision` | 1 | Puntos de eje por punto de inclinación de la opción elegida |
@@ -215,5 +255,5 @@ escenarios: [{
 | Que una tirada sea más fácil o difícil según la relación con alguien o un hecho de un módulo | `ajustes` de la tirada (`AjusteDeTirada`, `dificultadDeTirada`); ejemplo: `modules/futbol/src/eventos/primer_entrenamiento.ts`. Se aplica igual a la tirada del personaje, a la de un PNJ y a la probabilidad que enseña el modo «números» |
 | Una tirada en un suceso sin opciones (el jugador ya eligió en otro sitio, como en la ficha de una persona) | El efecto `{ tirada, exito: [efectos], fallo: [efectos] }` (mismas `ajustes` que la tirada de una opción; los textos del resultado, con `diario` en cada rama). Ejemplos: los sucesos del kit de deporte `<deporte>.pedir_puesto` (`packages/kit-deporte/src/puestos.ts`) |
 | Un suceso que construye el kit de deporte para todo deporte con puestos | `sucesoDePruebaDeAcceso(cfg, textos)` y `sucesoDePedirPuesto(cfg, textos)`: las reglas (huecos, tirada) son comunes y los textos los pone el paquete del deporte. Disparan con las señales compartidas `club.prueba_empieza` y `club.pide_puesto`, y llevan al entrenador en `participants: [{ npcId }]` (papel `{ deLaSeñal: 'participants' }`). **La prueba de acceso** (señal `club.prueba_empieza`: `huecos`, `nHuecos`, `nGrupos`, `necesita`) tiene tres variantes: más de 2 grupos de puestos con hueco → «nos faltan jugadores en varios puestos»; 1 o 2 → «lo que más necesito son {señal.necesita}» (los grupos con más jugadores que faltan, `necesidadesDelEquipo`); sin huecos → solo se presenta. En las dos primeras se elige entre **todos** los puestos: uno con hueco (lo dijera o no) te prueba ahí; si no, «no es ninguno de los que te he dicho» (o «de X no me hace falta nadie») y te prueba donde decida él |
-| Un hecho nuevo de un módulo | Ese módulo publica el servicio `hechos.<id>` (`HechosService`). Hoy: `estudios.consejo_deportivo`; `futbol.puesto`, `futbol.mejor_puesto`, `futbol.mejor_puesto_id`, `futbol.juega_donde_mas_vale`, `futbol.ventaja_del_mejor_puesto`, `futbol.calendario` (un fragmento de frase del entrenador sobre cuándo empieza la liga o cómo va) |
+| Un hecho nuevo de un módulo | Ese módulo publica el servicio `hechos.<id>` (`HechosService`). Hoy: `estudios.consejo_deportivo`, `estudios.consejo_porque` (el porqué del consejo en cualidades); `futbol.puesto`, `futbol.mejor_puesto`, `futbol.mejor_puesto_id`, `futbol.juega_donde_mas_vale`, `futbol.ventaja_del_mejor_puesto`, `futbol.calendario` (un fragmento de frase del entrenador sobre cuándo empieza la liga o cómo va) |
 | Un efecto nuevo | `Efecto` (`tipos.ts`), su validación (`catalogo.ts`) y `aplicar` (`modules/sucesos/src/index.ts`); si cambia algo de otro módulo, con una señal compartida que recoja su dueño |

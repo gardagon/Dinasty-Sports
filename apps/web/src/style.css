@@ -195,6 +195,8 @@ h3:first-child { margin-top: 0; }
 .gain { color: var(--gain); font-weight: 600; }
 .loss { color: var(--loss); font-weight: 600; }
 .note { color: var(--ink-soft); font-size: 13px; }
+.mi-equipo .dorsal { display: inline-block; min-width: 1.6em; text-align: right; }
+.mi-equipo .frente-a-ti { display: block; font-weight: 400; font-size: 12px; color: var(--ink-soft); }
 
 /* ---------- Personaje ---------- */
 .stat { display: grid; grid-template-columns: minmax(7.5em, 10.5em) 1fr 2.5em; gap: 10px; align-items: center; font-size: 14px; padding: 3px 0; }
@@ -363,7 +365,8 @@ ul.cronica li { padding: 0.15rem 0.4rem; }
 ul.cronica li.tramo { margin-top: 0.5rem; font-weight: 600; opacity: 0.8; }
 ul.cronica li.mia { background: rgba(255, 200, 60, 0.18); border-left: 3px solid #e0a800; }
 
-/* Retrato y evolución de una persona (el dibujo lo da @ds/retrato; aquí solo el marco). */
+/* Retrato y evolución de una persona (el dibujo lo da @ds/retrato; aquí solo el marco). Los colores del dibujo son los suyos en los dos temas: nada de opacidad ni filtros heredados, y que el navegador no los reajuste. */
+.retrato-caja svg, .retrato-boton svg, .evolucion svg, .comparar svg { opacity: 1; filter: none; mix-blend-mode: normal; forced-color-adjust: none; color-scheme: light; }
 .retrato-caja { margin: 6px 0 12px; }
 .retrato-boton { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink-soft); font-size: 12px; cursor: pointer; }
 .retrato-boton svg { display: block; width: 132px; height: auto; background: var(--lane-soft); border-radius: 4px; }

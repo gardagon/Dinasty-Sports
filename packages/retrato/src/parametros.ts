@@ -120,7 +120,10 @@ export function parametrosDe(c: CuerpoDePersona, edad: number, o: Opciones = {})
   const peloNatural = mix(natural, COLOR_DE_CANA, canas * 0.92);
   const elegido = estiloDePersona(c.semilla, sexo, a);
   // Con un look pedido (el personaje, cuando tenga peluquería) se lleva ese mientras la calvicie lo admita; sin él, el de la persona, que al quedarse calva puede afeitarse la cabeza o raparse al cero.
-  const estilo = o.look?.peinado ? peinadoPosible(o.look.peinado, calvicie) : peinadoConCalvicie(c.semilla, sexo, elegido.peinado, calvicie);
+  const sinNada = (id: string) => peinado(id).largo < 0.4;
+  // Un niño no va con la cabeza afeitada ni rapada al cero (se vería calvo): hasta la pubertad lleva «rapado» en su lugar; después vuelve a su estilo.
+  const deNino = (id: string) => (edadFisica < EDAD_DEL_VELLO && sinNada(id) ? 'rapado' : id);
+  const estilo = o.look?.peinado ? peinadoPosible(o.look.peinado, calvicie) : deNino(peinadoConCalvicie(c.semilla, sexo, elegido.peinado, calvicie));
   const fresco = (id: string) => peinado(id).largo;
   const largo = o.look?.largoDelPelo ?? fresco(estilo);
   // Tinte: el pelo se ve del color teñido salvo la raíz que ha crecido desde entonces (si ya ha crecido todo el largo, no queda tinte).

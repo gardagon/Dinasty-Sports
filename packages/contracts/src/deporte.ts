@@ -50,6 +50,40 @@ export interface TemporadaPasada {
   mejorMarca: string;
 }
 
+/** Las habilidades de un deporte agrupadas para enseñarlas (portería, físico, mental, técnico): el grupo es un dato del deporte, la interfaz solo pone el título. */
+export interface GrupoDeHabilidades {
+  titulo: string;
+  habilidades: StatId[];
+}
+
+/**
+ * Un compañero de «Mi equipo», tal como lo ve el personaje: quien no conoce sale sin nombre y con la descripción de su aspecto (la misma que en Gente);
+ * el puesto solo se sabe si le ha visto jugar (entrenando o en un partido con él).
+ */
+export interface CompaneroDeEquipo {
+  id: string;
+  /** Su nombre, solo si el personaje ya lo conoce. */
+  nombre?: string;
+  /** Su aspecto («un niño alto, de pelo corto…»): sale siempre, y es lo único que se sabe de quien no se conoce. */
+  aspecto: string;
+  /** Su puesto, solo si le has visto jugar. */
+  puesto?: string;
+  /** El número de su camiseta (se ve siempre: va en la espalda). */
+  dorsal?: number;
+  /** Cómo te ves frente a él (lo mismo que dice su ficha), solo si le has visto jugar y el deporte lo ha desbloqueado. */
+  comparacion?: 'mejor' | 'peor' | 'parecido';
+  /** Es el propio personaje. */
+  yo?: boolean;
+}
+
+/** La subpestaña «Mi equipo» de un deporte de equipo con puestos: en qué equipo estás y quiénes son tus compañeros. */
+export interface MiEquipoView {
+  /** «Equipo C · Colegio San Mateo». */
+  titulo: string;
+  texto?: string;
+  companeros: CompaneroDeEquipo[];
+}
+
 export interface DeporteView {
   id: string;
   nombre: string;
@@ -60,6 +94,10 @@ export interface DeporteView {
   resumen: DatoDeResumen[];
   /** Stats propias del deporte que se enseñan con su barra. Las genéricas (velocidad, resistencia...) se ven en la pestaña del personaje. */
   habilidades: StatId[];
+  /** Las mismas habilidades por grupos, con un título cada uno, en el orden en que se enseñan. Sin él, se enseñan seguidas. */
+  gruposDeHabilidades?: GrupoDeHabilidades[];
+  /** Deportes de equipo: la subpestaña «Mi equipo». Sin ella, la pestaña no tiene subpestañas. */
+  miEquipo?: MiEquipoView;
   temporada: {
     etiqueta: string;
     /** En qué tramo de la temporada está el deporte y cuándo empieza el siguiente (`situacionDeTemporada`): «Pretemporada. La liga empieza el sábado 13 de octubre.» */

@@ -19,6 +19,7 @@
     "sim": "tsx sim/src/cli.ts",
     "sim:rapida": "tsx sim/src/cli.ts --dias 84 --semillas 2",
     "huella": "tsx tools/huella.ts",
+    "compat": "tsx tools/compat-guardado.ts",
     "demografia": "tsx tools/demografia-origenes.ts",
     "nombres-nacionales": "tsx tools/nombres-nacionales.ts",
     "rendimiento": "tsx tools/rendimiento.ts",
@@ -31,6 +32,7 @@
     "calendario": "tsx tools/calendario.ts",
     "dia-de-partido": "tsx tools/dia-de-partido.ts",
     "benjamin": "tsx tools/benjamin.ts",
+    "puestos": "tsx tools/puestos.ts",
     "rotacion": "tsx tools/rotacion.ts",
     "puestos-del-once": "tsx tools/puestos-del-once.ts",
     "listas": "tsx tools/listas-de-acciones.ts",
@@ -44,6 +46,8 @@
     "clave-deportes": "tsx tools/clave-deportes.ts",
     "publicar-deportes": "tsx tools/publicar-deportes.ts",
     "probar-web": "tsx tools/probar-web.ts",
+    "rendimiento:web": "tsx tools/rendimiento-web.ts",
+    "presupuesto": "tsx tools/presupuesto.ts",
     "sim:futbol": "tsx sim/src/futbol.ts",
     "sim:cuerpo": "tsx tools/cuerpo.ts",
     "retratos:muestras": "tsx tools/retratos/muestras.ts",
@@ -54,7 +58,9 @@
     "eventos:validar": "tsx tools/eventos.ts validar",
     "eventos:probar": "tsx tools/eventos.ts probar",
     "eventos:mapa": "tsx tools/eventos.ts mapa",
-    "eventos:indice": "tsx tools/eventos.ts indice"
+    "eventos:indice": "tsx tools/eventos.ts indice",
+    "entrenamientos:tabla": "tsx tools/entrenamientos-futbol.ts",
+    "sim:futbol-habilidades": "tsx sim/src/futbol-por-habilidad.ts"
   },
   "engines": {
     "node": ">=20"

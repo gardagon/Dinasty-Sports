@@ -25,6 +25,11 @@ import {
   type NpcView,
   type PresenciaService,
   type ReadContext,
+  type Obligacion,
+  minutosParaLlegar,
+  fraseDeEntrenamiento,
+  fraseDeLectura,
+  type LecturaDePuesto,
   type StatId,
   TOLERANCIA_DE_SESION,
   type ClubImpuntualData,
@@ -32,7 +37,7 @@ import {
   type SucesosService,
 } from '@ds/contracts';
 import { idDeConocimiento } from './habilidades';
-import type { ConfigDeporte, Entreno, EstadoBaseDeDeporte, HabilidadDeConsejo } from './tipos';
+import type { ConfigDeporte, Entreno, EntrenoRecomendable, EstadoBaseDeDeporte, HabilidadDeConsejo } from './tipos';
 
 /** Semanas que hay que esperar para repetir la prueba de acceso de un club. */
 export const SEMANAS_ENTRE_PRUEBAS = 8;
@@ -114,7 +119,14 @@ const soloSiNoCompiteEnOtro = (deporte: string, acciones: readonly ActionDef[]):
  */
 export const entrenosAgrupados = (cfg: ConfigDeporte, acciones: readonly ActionDef[]): ActionDef[] =>
   acciones.map((a) =>
-    cfg.entrenosLibres.includes(a.id) ? { ...a, desplegable: { id: `${cfg.id}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}' } } : a,
+    cfg.entrenosLibres.includes(a.id)
+      ? {
+          ...a,
+          cortable: true,
+          // La opción y su apartado («Portería», «Físico»…) los pone cada acción; el resto es común.
+          desplegable: { id: `${cfg.id}.entrenar`, nombre: 'Entrenar…', etiqueta: 'Entrenamiento', boton: 'Entrenar: {opcion}', ...(a.desplegable?.opcion ? { opcion: a.desplegable.opcion } : {}), ...(a.desplegable?.grupoDeOpcion ? { grupoDeOpcion: a.desplegable.grupoDeOpcion } : {}) },
+        }
+      : a,
   );
 
 /**
@@ -123,6 +135,7 @@ export const entrenosAgrupados = (cfg: ConfigDeporte, acciones: readonly ActionD
  */
 export function motivoSinPlaza(ctx: ReadContext, cfg: ConfigDeporte, club: string): string | undefined {
   const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx), cfg.puestos?.(ctx));
+  if (plaza?.estado === 'completo' && plaza.sinCupo) return 'En el equipo de tu categoría no queda sitio para un jugador de tu puesto, ni siquiera con una plaza de más: prueba en otro club o espera al siguiente plazo de fichajes';
   return plaza?.estado === 'completo'
     ? `El equipo de tu categoría está completo y todos juegan mejor que tú (el peor, ${plaza.peor?.nombre}, tiene nivel ${Math.round(plaza.peor?.nivel ?? 0)} y tú ${Math.round(cfg.rendimiento(ctx))}): sigue entrenando por tu cuenta y vuelve a intentarlo`
     : undefined;
@@ -347,6 +360,23 @@ export function dejarClub(cfg: ConfigDeporte): ActionDef {
   };
 }
 
+/**
+ * La sesión del club como obligación (`GameModule.obligaciones`): hasta que empieza, las acciones cortables (entrenar por libre, charlar, estudiar...) no la pisan; se resta lo que cuesta llegar a la sede.
+ * Solo cuenta si hoy hay sesión, aún no ha empezado, no se ha entrenado ya con el club y no se está de baja.
+ */
+export const obligacionDeSesionDeClub =
+  (cfg: ConfigDeporte) =>
+  (ctx: ReadContext): Obligacion[] => {
+    const club = clubDelJugador(ctx, cfg.id);
+    const t = ctx.time;
+    if (!club || !club.sesiones.weekdays.includes(t.weekday) || estado(ctx).ultimaSesionClub === t.day || ctx.stat(GEN.baja) > 0) return [];
+    const desde = club.sesiones.desde * 60;
+    if (t.minuteOfDay >= desde) return [];
+    const viaje = minutosParaLlegar(ctx, club.sede);
+    const hh = `${club.sesiones.desde}:00`;
+    return [{ hasta: t.minute - t.minuteOfDay + desde - viaje, texto: viaje ? `para llegar al entrenamiento de las ${hh}` : `entrenas con el club a las ${hh}` }];
+  };
+
 /** Incorporarse tarde a la sesión del club: solo se entrena la parte de sesión que queda. */
 export function modificadorDeLlegadaTarde(cfg: ConfigDeporte): ModifierDef {
   return {
@@ -385,8 +415,9 @@ export function entrenadorDelJugador(ctx: ReadContext, deporte: string): NpcView
  * Pedir consejo a tu entrenador (`<deporte>.pedir_consejo`): una vez al día y cuando está en su sede, libre (antes o después
  * de la sesión). Sube el conocimiento y un poco una habilidad, cada día otra (por turnos).
  */
-export function pedirConsejo(cfg: ConfigDeporte, habilidades: readonly HabilidadDeConsejo[]): ActionDef {
+export function pedirConsejo(cfg: ConfigDeporte, habilidadesDe: readonly HabilidadDeConsejo[] | ((ctx: ReadContext) => readonly HabilidadDeConsejo[])): ActionDef {
   const { id: deporte, nombre } = cfg;
+  const habilidadesDeHoy = (ctx: ReadContext) => (typeof habilidadesDe === 'function' ? habilidadesDe(ctx) : habilidadesDe);
   return {
     id: `${deporte}.pedir_consejo`,
     name: 'Pedir consejo a tu entrenador',
@@ -410,13 +441,99 @@ export function pedirConsejo(cfg: ConfigDeporte, habilidades: readonly Habilidad
       { stat: GEN.atencion, amount: 0.15 },
     ],
     run: (ctx) => {
-      // Además, un poco de una habilidad del deporte (cada día, otra).
+      const entrenador = entrenadorDelJugador(ctx, deporte);
+      ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimoConsejo: ctx.time.day }));
+      // Con puestos y con textos del deporte: el entrenador mira lo que más frena a tu puesto y te recomienda un entrenamiento por su nombre; la habilidad que sube es la que más te frena.
+      const recomendacion = recomendarEntrenamiento(ctx, cfg);
+      if (recomendacion) {
+        if (recomendacion.stat) ctx.train(recomendacion.stat, HABILIDAD_POR_CONSEJO * ctx.efficiency);
+        ctx.log(`${entrenador ? entrenador.nombreCorto : 'Tu entrenador'} te dice: «${recomendacion.frase}»`, 'info');
+        return;
+      }
+      // Sin eso, un poco de una habilidad del deporte (cada día, otra; la lista puede ser distinta según el puesto).
+      const habilidades = habilidadesDeHoy(ctx);
       const habilidad = habilidades[ctx.time.day % habilidades.length];
       ctx.train(habilidad.stat, HABILIDAD_POR_CONSEJO * ctx.efficiency);
-      ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimoConsejo: ctx.time.day }));
-      const entrenador = entrenadorDelJugador(ctx, deporte);
       ctx.log(`${entrenador ? entrenador.nombreCorto : 'Tu entrenador'} te da un consejo para mejorar tu ${habilidad.nombre}.`, 'info');
     },
+  };
+}
+
+/** El puesto del personaje (el que juega o, sin equipo, aquel en que más vale), o `undefined` si el deporte no tiene puestos. */
+function puestoDelPersonaje(ctx: ReadContext, cfg: ConfigDeporte): string | undefined {
+  const juega = estado(ctx).puesto;
+  if (juega) return juega;
+  const valores = Object.entries(cfg.puestos?.(ctx) ?? {}).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+  return valores[0]?.[0];
+}
+
+/**
+ * Cuánto sube un entrenamiento lo que frena al puesto: suma de lo que entrena en cada stat que frena, con más peso a la que más frena (la primera de la lista). Es la regla con la que el entrenador
+ * elige: se lee de los datos del entrenamiento (`Entreno`), así que sirve igual con los de hoy que con los que lleguen.
+ */
+export function utilidadDeUnEntreno(e: EntrenoRecomendable, frenan: readonly string[]): number {
+  return frenan.reduce((t, stat, i) => t + (e.entrena.find((x) => x.stat === stat)?.amount ?? 0) / (i + 1), 0);
+}
+
+/** El entrenamiento del catálogo que más sube lo que frena (`frenan`, de más a menos); en un empate, el de id menor. `undefined` si ninguno sube nada de eso. */
+export function elegirEntrenamiento(catalogo: readonly EntrenoRecomendable[], frenan: readonly string[]): EntrenoRecomendable | undefined {
+  return [...catalogo]
+    .map((e) => ({ e, u: utilidadDeUnEntreno(e, frenan) }))
+    .filter((x) => x.u > 0)
+    .sort((a, b) => b.u - a.u || (a.e.id < b.e.id ? -1 : 1))[0]?.e;
+}
+
+/**
+ * La recomendación del entrenador: de lo que más frena al puesto del personaje (`NpcDirectory.lecturaDePuesto`, comparado con los de su edad), el entrenamiento del catálogo del deporte que más lo sube, **por su
+ * nombre** y con las palabras del deporte (`PistasDePuestos`). Si nada le frena, le dice que vaya bien. `undefined` si el deporte no da pistas o no tiene puestos (el consejo de siempre).
+ */
+export function recomendarEntrenamiento(ctx: ReadContext, cfg: ConfigDeporte): { frase: string; stat?: StatId } | undefined {
+  const puesto = puestoDelPersonaje(ctx, cfg);
+  const lectura = puesto ? ctx.service<NpcDirectory>(SERVICES.npcs)?.lecturaDePuesto?.(cfg.id, puesto) : undefined;
+  const catalogo = cfg.catalogoDeEntrenos?.(ctx);
+  if (!lectura?.pistas || !catalogo) return undefined;
+  const entrenador = entrenadorDelJugador(ctx, cfg.id);
+  const quien = entrenador ? { nombre: entrenador.nombreCorto, gender: entrenador.gender } : undefined;
+  const entreno = elegirEntrenamiento(catalogo, lectura.frenan);
+  if (!entreno) return { frase: fraseDeEntrenamiento(lectura.pistas, lectura.familia.nombre, lectura.falta, undefined, quien) };
+  const stat = lectura.frenan.find((s) => entreno.entrena.some((x) => x.stat === s));
+  return { frase: fraseDeEntrenamiento(lectura.pistas, lectura.familia.nombre, lectura.falta, entreno.nombre, quien, entreno.soloClub), ...(stat ? { stat } : {}) };
+}
+
+/**
+ * «Preguntar por un puesto» a tu entrenador (`<deporte>.preguntar_puesto.<familia>`, decisión del usuario, 21/11/2026): eliges un puesto sin lado en un desplegable y te dice qué tienes y qué te falta para
+ * él, en palabras, comparándote con los de tu edad y contigo mismo. Una vez al día y cuando está en su sede. Solo los deportes con puestos y textos (`PistasDePuestos`) lo ofrecen.
+ */
+export function preguntarPorUnPuesto(cfg: ConfigDeporte): (ctx: ReadContext) => ActionDef[] {
+  return (ctx) => {
+    const familias = ctx.service<NpcDirectory>(SERVICES.npcs)?.familiasDePuestos?.().find((d) => d.deporte === cfg.id)?.familias ?? [];
+    return familias.map((f): ActionDef => ({
+      id: `${cfg.id}.preguntar_puesto.${f.id}`,
+      name: `Preguntarle a tu entrenador por el puesto de ${f.nombre.toLowerCase()}`,
+      description: 'Le preguntas qué te falta para ese puesto. Te lo explica con palabras, comparándote con los de tu edad. Una vez al día y cuando está contigo (antes o después de la sesión).',
+      tags: [TAGS.social, cfg.id],
+      group: `Entrenar ${cfg.nombre}`,
+      duration: 15,
+      lugar: (c) => sedeDelClub(c, cfg),
+      desplegable: { id: `${cfg.id}.preguntar_puesto`, nombre: 'Preguntar por un puesto…', etiqueta: 'Puesto', opcion: f.nombre, boton: 'Preguntarle por: {opcion}' },
+      available: (c) => {
+        if ((estado(c).ultimaPreguntaDePuesto ?? -1) === c.time.day) return 'Ya le has preguntado por un puesto hoy';
+        if (!clubDelJugador(c, cfg.id)) return 'Necesitas un entrenador: apúntate a un club';
+        const entrenador = entrenadorDelJugador(c, cfg.id);
+        if (!entrenador) return 'Todavía no conoces a tu entrenador';
+        const presencia = c.service<PresenciaService>(SERVICES.presencia);
+        if (presencia && presencia.donde(entrenador.id) !== sedeDelClub(c, cfg)[0]) return `${entrenador.nombreCorto} ahora no está disponible: búscalo antes o después de la sesión`;
+        return true;
+      },
+      delta: { [GEN.energia]: -1 },
+      run: (c) => {
+        c.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, ultimaPreguntaDePuesto: c.time.day }));
+        const entrenador = entrenadorDelJugador(c, cfg.id);
+        const lectura: LecturaDePuesto | undefined = c.service<NpcDirectory>(SERVICES.npcs)?.lecturaDePuesto?.(cfg.id, f.id);
+        const frase = lectura ? fraseDeLectura(lectura, entrenador ? { nombre: entrenador.nombreCorto, gender: entrenador.gender } : undefined) : undefined;
+        c.log(frase ? `${entrenador ? entrenador.nombreCorto : 'Tu entrenador'} te contesta: «${frase}»` : `${entrenador ? entrenador.nombreCorto : 'Tu entrenador'} se encoge de hombros: «De ese puesto todavía no sé qué decirte».`, 'info');
+      },
+    }));
   };
 }
 

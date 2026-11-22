@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ID_PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA, registrarPais, SERVICES, SHARED_EVENTS, type CompetitionResultData, type GameModule, type NpcDirectory, type RelationsService } from '@ds/contracts';
+import { APORTES, defineModule, idDeProponerPlan, ID_PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA, registrarPais, SERVICES, SHARED_EVENTS, type CompetitionResultData, type GameModule, type NpcDirectory, type RelationsService } from '@ds/contracts';
 import { Game, advanceTo } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
 import { npcs, type NpcsState } from '@ds/mod-npcs';
@@ -383,5 +383,46 @@ describe('competicion.resultado', () => {
     const ganas = afinidadConElRival(conResultado(base));
     const pierdes = afinidadConElRival(conResultado({ ...base, mark: 2, participants: [{ name: 'Tú', mark: 2, isPlayer: true }, { npcId: RIVAL, name: 'Rival', mark: 4 }] }));
     expect(ganas).toBeGreaterThan(pierdes);
+  });
+});
+
+describe('quedadas que ofrece un deporte', () => {
+  /** Un «deporte» de prueba que solo aporta una quedada: relaciones no sabe de ningún deporte, la lee de los aportes. */
+  const deportePrueba = defineModule({
+    id: 'deporteprueba',
+    name: 'Deporte de prueba',
+    dependsOn: ['gen'],
+    initState: () => ({}),
+    aportes: {
+      [APORTES.quedadaDeDeporte]: [
+        { id: 'prueba_juego', deporte: 'prueba', titulo: 'Jugar a la pelota: partidillo', nombre: 'jugar a la pelota', duracion: 120, lugares: { parque: 'en el parque' }, entrena: [{ stat: 'gen.coordinacion', amount: 1 }], delta: { 'gen.energia': -10 }, descripcion: 'Un partidillo.', tags: ['prueba', 'fisico', 'social'] },
+      ],
+    },
+  });
+  const conDeporte = () => {
+    const g = Game.create([personaje, npcs, atletismo, relaciones, deportePrueba as unknown as GameModule], { seed: 9 });
+    const s = g.moduleState<NpcsState>('npcs') as NpcsState;
+    s.npcs = s.npcs.map((n) => (n.known === false && !n.id.startsWith('rival_') ? { ...n, known: true } : n));
+    return g;
+  };
+
+  it('sale en el formulario de «Proponer quedar para…» como una actividad más, con sus sitios y su duración', () => {
+    const g = conDeporte();
+    advanceTo(g, 'gen.descansar', 5, 11);
+    const f = rel(g).formularioDePlan('companero_social');
+    expect(f.actividades.map((a) => a.id)).toEqual(['estudiar', 'pasar_rato', 'prueba_juego']);
+    const juego = f.actividades[2];
+    expect(juego).toMatchObject({ nombre: 'Jugar a la pelota: partidillo', duracion: 120 });
+    expect(juego.lugares.map((l) => l.id)).toEqual(['parque']);
+    expect(g.preview(idDeProponerPlan('companero_social', 'prueba_juego', 'parque', 'manana', 17 * 60))).toBeDefined();
+    // La acción del plan acordado existe, y sin haber quedado dice que primero hay que quedar.
+    expect(g.preview('relaciones.prueba_juego.companero_social')!.reason).toMatch(/Primero hay que quedar/);
+  });
+
+  it('sin ningún deporte que las ofrezca, solo están estudiar y pasar el rato', () => {
+    const g = nueva();
+    advanceTo(g, 'gen.descansar', 5, 11);
+    expect(rel(g).formularioDePlan('companero_social').actividades.map((a) => a.id)).toEqual(['estudiar', 'pasar_rato']);
+    expect(g.preview(idDeProponerPlan('companero_social', 'prueba_juego', 'parque', 'manana', 17 * 60))).toBeUndefined();
   });
 });

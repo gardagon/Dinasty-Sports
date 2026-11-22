@@ -19,6 +19,16 @@ export interface CategoriaDef {
    */
   rotacionEn?: readonly TipoDeClub[];
   /**
+   * En qué tipos de club, en esta categoría, **un jugador de primer año no desplaza a uno de segundo que ya tenía plaza en el club** (decisión del usuario, 22/11/2026: benjamín y alevín): al repartir en equipos, los de segundo año
+   * van primero al A y los de primer año solo suben a él si queda sitio libre. Sin él, sube el que más vale (con el listón de primer año). Vale igual para el personaje y los PNJ.
+   */
+  primerAnioNoDesplazaEn?: readonly TipoDeClub[];
+  /**
+   * Los días del curso (el 0 es el primer día de clase) en que se **apuntan** los niños a sus equipos de esta categoría (decisión del usuario, 21/11/2026: no hay niños en los equipos el primer día de clase; se apuntan desde el segundo,
+   * repartidos en estos días, antes de los entrenamientos): `[desde, hasta]`, ambos incluidos; cada niño tiene su día (un sorteo estable suyo). Hasta ese día no aparece en la plantilla. Sin él, ya está apuntado desde el primer día.
+   */
+  apuntarseEnLosDias?: readonly [number, number];
+  /**
    * Probabilidad base (0 a 1) de que un niño con club en su colegio vaya a probar a un club de fuera en lugar de quedarse en el de su colegio (decisión del usuario, 17/11/2026: cuanto más mayor, más prueba fuera).
    * Sube con la ambición y baja con los amigos (`PESOS_DE_PROBAR_FUERA`; el nivel no pesa). Sin él, `PROBAR_FUERA_POR_DEFECTO`.
    */

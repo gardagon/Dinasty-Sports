@@ -114,8 +114,8 @@ export interface OpcionDef extends RamaDef {
   oculta?: boolean;
   /** Hacia qué ejes de carácter tira esta opción: mueve los del personaje al elegirla, y es con lo que deciden un PNJ o un bot. */
   caracter?: Readonly<Record<string, number>>;
-  /** Minutos de juego que gasta elegirla (por defecto, 1). */
-  minutos?: number;
+  /** Minutos de juego que gasta elegirla (por defecto, 1). Con `{ deLaSeñal: 'minutos' }`, los que traiga ese dato de la señal que disparó el suceso (un viaje cuya duración depende de dónde estés). */
+  minutos?: number | { deLaSeñal: string };
   /** Pista a mano de lo que puede pasar (si falta, se compone sola con los efectos). */
   pista?: string;
   tirada?: TiradaDef;
@@ -218,8 +218,25 @@ export interface SucesoDef extends DecisionDef {
   variantes?: readonly VarianteDef[];
   /** Lo que deja un suceso sin opciones (o antes de elegir). */
   efectos?: readonly Efecto[];
-  /** `ahora`: sale en una ventana tras la acción. `pendiente`: va a la lista, con su plazo. */
-  urgencia?: 'ahora' | 'pendiente';
+  /**
+   * Cuánto espera lo que se pregunta:
+   * - `ahora` (por defecto): se responde en el momento, porque pasa en presencia de alguien o dentro de lo que haces. Sale en una ventana que no se puede
+   *   cerrar sin responder ni dejar para luego; si pasas a otra cosa sin responder, se aplica la opción por defecto.
+   * - `aplazable`: sale en una ventana, pero puede esperar (un aviso del club, algo que decidir en casa): se puede dejar para luego y queda en la lista hasta que venza su plazo.
+   * - `pendiente`: va directo a la lista, con su plazo.
+   */
+  urgencia?: 'ahora' | 'aplazable' | 'pendiente';
+  /**
+   * Pasa dentro de una actividad (una clase, un entrenamiento): se responde sin salir de ella, así que sus opciones no gastan minutos propios (`minutos` no se
+   * escribe) y es siempre `urgencia: 'ahora'`. Por defecto lo es el que se dispara con una señal de `ConfigDeSucesos.durante`; con `durante: false` se
+   * dice que, aunque salga con esa señal, es otra cosa (quedarse a hablar después, ir a algún sitio) y gasta los minutos de sus opciones.
+   */
+  durante?: boolean;
+  /**
+   * Es un aviso del mundo, no un suceso del ritmo del juego (p. ej. «todos se van, ¿les acompañas?»): no cuenta en las medidas de cuántos eventos salen por semana
+   * (`npm run sim:eventos`, el chequeo de ritmo de la simulación). Como sale con una señal, tampoco gasta cupo.
+   */
+  fueraDelRitmo?: boolean;
   plazo?: PlazoDef;
   /** Un suceso sin opciones puede salir como ventana o como una línea del resultado y del diario. */
   presentacion?: 'ventana' | 'linea';
@@ -350,6 +367,11 @@ export interface ConfigDeSucesos {
   };
   /** Puntos que se mueve un eje de carácter por cada punto de inclinación de la opción elegida. */
   caracterPorDecision: number;
+  /**
+   * Señales que pasan DENTRO de una actividad (entrar en clase, llegar tarde al entrenamiento, la prueba de acceso): el suceso que sale con una de ellas
+   * es `durante` salvo que diga lo contrario (`SucesoDef.durante`). Lo que pasa durante algo no gasta minutos propios y se responde en el momento.
+   */
+  durante: readonly string[];
 }
 
 export const CONFIG_DE_SUCESOS: ConfigDeSucesos = {
@@ -357,7 +379,16 @@ export const CONFIG_DE_SUCESOS: ConfigDeSucesos = {
   presentacion: { consecuencias: 'pistas', fueraDeCaracter: 'normales', ejeMarcado: 25, inclinacionMinima: 2 },
   pnj: { clases: ['lesion'], diarioDeCercanos: false },
   caracterPorDecision: 1,
+  durante: ['clase.asistida', 'club.sesion_tarde', 'club.impuntual', 'club.prueba_empieza'],
 };
+
+/** ¿Pasa dentro de una actividad? (`SucesoDef.durante`, o por defecto, por la señal que lo dispara: `ConfigDeSucesos.durante`.) */
+export const sucesoEsDurante = (s: Pick<SucesoDef, 'durante' | 'disparo'>, señales: readonly string[] = CONFIG_DE_SUCESOS.durante): boolean =>
+  s.durante ?? ('al' in s.disparo && señales.includes(s.disparo.al));
+
+/** ¿Se puede dejar para luego? Solo lo que no pasa en el momento: `aplazable` o `pendiente`, y nunca lo que pasa durante una actividad. */
+export const sucesoEsAplazable = (s: Pick<SucesoDef, 'durante' | 'disparo' | 'urgencia'>, señales?: readonly string[]): boolean =>
+  (s.urgencia === 'aplazable' || s.urgencia === 'pendiente') && !sucesoEsDurante(s, señales);
 
 type Parcial<T> = { [K in keyof T]?: T[K] extends readonly unknown[] ? T[K] : T[K] extends object ? Parcial<T[K]> : T[K] };
 export type CambiosDeConfigDeSucesos = Parcial<ConfigDeSucesos>;

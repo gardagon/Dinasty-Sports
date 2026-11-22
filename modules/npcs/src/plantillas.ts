@@ -2,7 +2,7 @@
  * Las plantillas: quién juega en cada equipo, el reclutamiento y los equipos A a D.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { asistenciaConFaltas, relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, type PrevisionDelClubView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
+import { asistenciaConFaltas, relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, type PrevisionDelClubView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, asignarDorsales, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
 import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
@@ -379,7 +379,7 @@ export function equiposDelClub(lista: ReadonlyMap<string, Npc>, pob: PoblacionGu
   const fijos = !recalcular && !extra.length && miembros.some((x) => !!x.n.letra?.[pob.deporte]);
   const equipos: EquiposDelClub = fijos
     ? { A: [], B: [], C: [], D: [], sobran: miembros.filter((x) => !x.n.letra?.[pob.deporte]).map((x) => x.n.id), ...Object.fromEntries(LETRAS.map((l) => [l, miembros.filter((x) => x.n.letra?.[pob.deporte] === l).map((x) => x.n.id)])) }
-    : repartirEnEquipos(todos, pob.puestos!, k, maximoPorEquipo(e, categoria.id), true, pob.puestos!.equipos?.listonDePrimerAno ?? 0, e.plantillaPorCategoria!.min);
+    : repartirEnEquipos(todos, pob.puestos!, k, maximoPorEquipo(e, categoria.id), true, pob.puestos!.equipos?.listonDePrimerAno ?? 0, e.plantillaPorCategoria!.min, !!pob.categorias?.find((c) => c.id === categoria.id)?.primerAnioNoDesplazaEn?.includes(e.colegio !== undefined ? 'colegio' : 'club'));
   const titulares = pob.puestos!.equipos?.titulares ?? {};
   const suplentes = LETRAS.flatMap((l) => suplentesDe(todos.filter((m) => equipos[l].includes(m.id)), pob.puestos!, titulares));
   return { equipos, suplentes, miembros };
@@ -402,6 +402,36 @@ export function fijarEquipos(m: MercadoDeFichajes, pob: PoblacionGuardada): void
         const nueva = letra ? { ...resto, [pob.deporte]: letra } : resto;
         m.lista.set(n.id, { ...n, letra: Object.keys(nueva).length ? nueva : undefined });
       }
+    }
+  }
+  repartirDorsales(m, pob);
+}
+
+/**
+ * **Reparte los dorsales** de todos los equipos del deporte (tras fijar los equipos): quien ya lleva uno en el mismo club lo conserva (aunque cambie de letra o de categoría) y a quien no lleva se le asigna.
+ * Solo se guarda lo que cambia (un número por jugador).
+ */
+export function repartirDorsales(m: MercadoDeFichajes, pob: PoblacionGuardada): void {
+  const regla = pob.puestos?.dorsales;
+  if (!regla) return;
+  // Un solo recorrido, sin valorar a nadie: el equipo es club, categoría (por la edad de juego) y letra.
+  const categorias = new Map(pob.equipos.filter((e) => e.plantillaPorCategoria).map((e) => [e.club, categoriasDelEquipo(pob, e)]));
+  const equipos = new Map<string, Npc[]>();
+  for (const n of m.lista.values()) {
+    const letra = n.letra?.[pob.deporte];
+    if (n.deporte !== pob.deporte || !n.equipo || !letra || !n.puesto?.[pob.deporte] || n.id.startsWith('personaje@')) continue;
+    const edad = edadDeJuego(n, m.dia);
+    const cat = categorias.get(n.equipo)?.find((c) => edad !== undefined && c.edades.includes(edad));
+    if (!cat) continue;
+    const clave = `${n.equipo}|${cat.id}|${letra}`;
+    (equipos.get(clave) ?? equipos.set(clave, []).get(clave)!).push(n);
+  }
+  for (const [clave, miembros] of equipos) {
+    const reparto = asignarDorsales(miembros.map((n) => ({ id: n.id, puesto: n.puesto![pob.deporte], dorsal: n.dorsal?.[pob.deporte] })), regla, `${pob.deporte}|${clave}`);
+    for (const n of miembros) {
+      const d = reparto.get(n.id);
+      if (d === undefined || n.dorsal?.[pob.deporte] === d) continue;
+      m.lista.set(n.id, { ...n, dorsal: { ...n.dorsal, [pob.deporte]: d } });
     }
   }
 }
@@ -435,11 +465,13 @@ export function sinDeporte(n: Npc, pob: PoblacionGuardada, dejado: boolean): Npc
   const temporadas = n.temporadas ? Object.fromEntries(Object.entries(n.temporadas).filter(([k]) => k !== pob.deporte)) : undefined;
   const letra = n.letra ? Object.fromEntries(Object.entries(n.letra).filter(([k]) => k !== pob.deporte)) : undefined;
   const adelanto = n.adelanto ? Object.fromEntries(Object.entries(n.adelanto).filter(([k]) => k !== pob.deporte)) : undefined;
+  const dorsal = n.dorsal ? Object.fromEntries(Object.entries(n.dorsal).filter(([k]) => k !== pob.deporte)) : undefined;
   // Lo que valía jugando ya no vale: si vuelve a jugar, se calcula de nuevo (y la semana lo guarda).
   const vp = n.vp ? Object.fromEntries(Object.entries(n.vp).filter(([k]) => k !== pob.deporte)) : undefined;
   return {
     ...n,
     puesto,
+    dorsal: dorsal && Object.keys(dorsal).length ? dorsal : undefined,
     letra: letra && Object.keys(letra).length ? (letra as Record<string, 'A' | 'B' | 'C' | 'D'>) : undefined,
     temporadas: temporadas && Object.keys(temporadas).length ? temporadas : undefined,
     adelanto: adelanto && Object.keys(adelanto).length ? (adelanto as Record<string, 1>) : undefined,
@@ -602,11 +634,61 @@ export function rotaElEquipo(pobs: readonly PoblacionGuardada[], deporte: string
   return !!cat?.rotacionEn && !!equipo && cat.rotacionEn.includes(equipo.colegio !== undefined ? 'colegio' : 'club');
 }
 
+/** ¿Ya está apuntado a su equipo el día `dia`? (`Npc.apuntado`; sin día o sin fecha de apuntarse, sí). */
+const ya = (n: Npc, dia: number | undefined): boolean => dia === undefined || n.apuntado === undefined || n.apuntado <= dia;
+
+/**
+ * Cada niño con equipo se apunta a él un día de los primeros del curso (`CategoriaDef.apuntarseEnLosDias`, empezando el curso el día `inicioCurso`): un sorteo estable suyo en esa horquilla. El reparto de los equipos (el «draft») está hecho ya;
+ * lo que cambia es cuándo aparece cada niño en la plantilla y en los equipos que se enseñan. Los de una categoría sin `apuntarseEnLosDias` ya están apuntados.
+ */
+export function conApuntados(npcs: Npc[], pobs: readonly PoblacionGuardada[], inicioCurso: number, semilla: number): Npc[] {
+  const porDeporte = new Map(pobs.map((p) => [p.deporte, p]));
+  return npcs.map((n) => {
+    const pob = n.deporte && n.equipo ? porDeporte.get(n.deporte) : undefined;
+    if (!pob) return n;
+    const edad = edadDeJuego(n, inicioCurso);
+    const horquilla = edad === undefined ? undefined : categoriaDe(pob, edad)?.apuntarseEnLosDias;
+    if (!horquilla) return n.apuntado === undefined ? n : { ...n, apuntado: undefined };
+    const [desde, hasta] = horquilla;
+    return { ...n, apuntado: inicioCurso + desde + Math.floor(rngEstable('apuntarse', semilla, n.id, inicioCurso).next() * (hasta - desde + 1)) };
+  });
+}
+
 /**
  * Los jugadores de un equipo (club, categoría y letra A a D) para jugar un partido: su puesto, lo que valen en cada uno, su estado de hoy y su lector (`NpcDirectory.plantillaDelEquipo`). Son los mismos datos para todos:
  * el personaje y los PNJ salen de las mismas reglas.
  */
-export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, categoria: string, letra: string, inicioCurso: number, semana = 0): JugadorDeEquipoView[] {
+/**
+ * Dónde está cada cosa de una lista de personas (los entrenadores de cada club y los jugadores de cada equipo), para no recorrer a las 6.000 personas cada vez que un partido pide una plantilla o un entrenador.
+ * Se guarda por lista: las personas cambian de equipo, de letra o de puesto creando objetos nuevos (y una lista nueva), nunca en el sitio.
+ */
+interface IndiceDeLista {
+  porId: Map<string, Npc>;
+  /** Los entrenadores de cada club y deporte (`deporte|club`), en el orden de la lista. */
+  entrenadoresDeClub: Map<string, Npc[]>;
+  /** Los jugadores de cada equipo (`deporte|club|letra`), en el orden de la lista. */
+  equipos: Map<string, Npc[]>;
+}
+const INDICES_DE_LISTA = new WeakMap<readonly Npc[], IndiceDeLista>();
+function indiceDe(npcs: readonly Npc[]): IndiceDeLista {
+  let ind = INDICES_DE_LISTA.get(npcs);
+  if (ind) return ind;
+  ind = { porId: new Map(), entrenadoresDeClub: new Map(), equipos: new Map() };
+  const add = (m: Map<string, Npc[]>, k: string, n: Npc): void => {
+    const l = m.get(k);
+    if (!l) m.set(k, [n]);
+    else if (l[l.length - 1] !== n) l.push(n);
+  };
+  for (const n of npcs) {
+    if (!ind.porId.has(n.id)) ind.porId.set(n.id, n);
+    if (n.role === 'entrenador' && n.deporte && n.club !== undefined && n.tipos) for (const t of n.tipos) if (t.tipo === 'entrenador' && t.club !== undefined) add(ind.entrenadoresDeClub, `${n.deporte}|${t.club}`, n);
+    if (n.deporte && n.equipo && n.letra) for (const [d, letra] of Object.entries(n.letra)) if (d === n.deporte) add(ind.equipos, `${d}|${n.equipo}|${letra}`, n);
+  }
+  INDICES_DE_LISTA.set(npcs, ind);
+  return ind;
+}
+
+export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, club: string, categoria: string, letra: string, inicioCurso: number, semana = 0, dia?: number): JugadorDeEquipoView[] {
   const pob = pobs.find((p) => p.deporte === deporte);
   const cat = pob?.categorias?.find((c) => c.id === categoria);
   if (!pob || !cat) return [];
@@ -617,8 +699,8 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
   // Categorías cuyos jugadores llegan nuevos al club (benjamín): la asistencia y la relación con el entrenador cuentan desde el primer entrenamiento de la temporada (la primera semana del curso).
   const desde = cat.nuevosEnElClub ? Math.floor(inicioCurso / 7) : undefined;
   const relacion = (n: Npc): number | undefined => (desde !== undefined && semana < desde ? undefined : relacionConElEntrenador(entrenador ? n.afin?.[entrenador.id] : undefined));
-  return npcs
-    .filter((n) => n.deporte === deporte && n.equipo === club && n.letra?.[deporte] === letra && (edadDeJuego(n, inicioCurso) ?? -1) >= cat.edadMin && (edadDeJuego(n, inicioCurso) ?? -1) <= cat.edadMax && !!n.puesto?.[deporte])
+  const miembros = (indiceDe(npcs).equipos.get(`${deporte}|${club}|${letra}`) ?? [])
+    .filter((n) => n.deporte === deporte && n.equipo === club && n.letra?.[deporte] === letra && ya(n, dia) && (edadDeJuego(n, inicioCurso) ?? -1) >= cat.edadMin && (edadDeJuego(n, inicioCurso) ?? -1) <= cat.edadMax && !!n.puesto?.[deporte])
     .flatMap((n) => {
       const lector = lectorDeUnNpc(n, pob, inicioCurso);
       if (!lector) return [];
@@ -642,6 +724,12 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
       }];
     })
     .sort((a, b) => (a.id < b.id ? -1 : 1));
+  // Los dorsales (el equipo es club, categoría y letra: los que están en esta plantilla): los guardados se conservan y a quien aún no lleva (llegó después de repartirlos) se le asigna con el mismo reparto, sin guardarlo.
+  const regla = pob.puestos?.dorsales;
+  if (!regla) return miembros;
+  const porId = indiceDe(npcs).porId;
+  const dorsales = asignarDorsales(miembros.map((j) => ({ id: j.id, puesto: j.puesto, dorsal: porId.get(j.id)?.dorsal?.[deporte] })), regla, `${deporte}|${club}|${cat.id}|${letra}`);
+  return miembros.map((j) => ({ ...j, dorsal: dorsales.get(j.id) }));
 }
 
 
@@ -664,8 +752,9 @@ export function asistenciaDeLasDosUltimasSemanas(n: Parameters<typeof huecosQueH
  */
 export function entrenadorDelEquipo(npcs: readonly Npc[], pob: PoblacionGuardada, club: string, cat: CategoriaDef, letra: string): Npc | undefined {
   const numero = ['A', 'B', 'C', 'D'].indexOf(letra) + 1;
-  const propio = numero >= 2 ? npcs.find((n) => n.id === idDeEntrenadorDeEquipo(club, cat.id, numero)) : undefined;
-  const delClub = npcs.filter((n) => n.role === 'entrenador' && n.deporte === pob.deporte && n.club !== undefined && n.tipos?.some((t) => t.tipo === 'entrenador' && t.club === club));
+  const ind = indiceDe(npcs);
+  const propio = numero >= 2 ? ind.porId.get(idDeEntrenadorDeEquipo(club, cat.id, numero)) : undefined;
+  const delClub = ind.entrenadoresDeClub.get(`${pob.deporte}|${club}`) ?? [];
   const cubre = delClub.find((n) => n.edades && n.edades[0] <= cat.edadMin && n.edades[1] >= cat.edadMax) ?? delClub.find((n) => n.edades && n.edades[0] <= cat.edadMax && n.edades[1] >= cat.edadMin) ?? delClub[0];
   return propio ?? cubre;
 }
@@ -678,14 +767,14 @@ function disciplinaDelEntrenadorDe(npcs: readonly Npc[], pob: PoblacionGuardada,
 
 
 /** Los equipos que hay en una categoría de un deporte (club y letra, con al menos el mínimo de jugadores) con lo que vale cada uno (`NpcDirectory.equiposDeLaCategoria`). */
-export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, categoria: string, inicioCurso: number): EquipoDelMundoView[] {
+export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, categoria: string, inicioCurso: number, dia?: number, personaje?: { club: string; letra: string }): EquipoDelMundoView[] {
   const pob = pobs.find((p) => p.deporte === deporte);
   const cat = pob?.categorias?.find((c) => c.id === categoria);
   if (!pob || !cat) return [];
   const porEquipo = new Map<string, Npc[]>();
   for (const n of npcs) {
     const letra = n.letra?.[deporte];
-    if (n.deporte !== deporte || !n.equipo || !letra) continue;
+    if (n.deporte !== deporte || !n.equipo || !letra || !ya(n, dia)) continue;
     const edad = edadDeJuego(n, inicioCurso) ?? -1;
     if (edad < cat.edadMin || edad > cat.edadMax) continue;
     const clave = `${n.equipo}|${letra}`;
@@ -695,9 +784,11 @@ export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly Pobla
   for (const [id, miembros] of porEquipo) {
     const [club, letra] = id.split('|');
     const e = pob.equipos.find((x) => x.club === club);
-    if (miembros.length < (e?.plantillaPorCategoria?.min ?? 14)) continue;
+    // El personaje es un jugador más de su equipo: cuenta para el mínimo (si no, un equipo de 13 niños con él no jugaría la liga).
+    const conEl = miembros.length + (personaje && personaje.club === club && personaje.letra === letra ? 1 : 0);
+    if (conEl < (e?.plantillaPorCategoria?.min ?? 14)) continue;
     const valores = miembros.map((n) => n.vp?.[deporte]?.puestos?.[n.puesto?.[deporte] ?? ''] ?? n.vp?.[deporte]?.valor ?? n.levels[deporte] ?? 0).sort((a, b) => b - a).slice(0, 11);
-    res.push({ id, club, letra, nombre: `${pob.nombresDeClub[club] ?? club} ${letra}`, fuerza: valores.reduce((t, v) => t + v, 0) / valores.length, jugadores: miembros.length, campoPropio: !!e && !e.colegio && (e.tamano ?? (e.calidad >= 3 ? 'grande' : e.calidad === 2 ? 'mediano' : 'pequeno')) !== 'pequeno' });
+    res.push({ id, club, letra, nombre: `${pob.nombresDeClub[club] ?? club} ${letra}`, fuerza: valores.reduce((t, v) => t + v, 0) / valores.length, jugadores: conEl, campoPropio: !!e && !e.colegio && (e.tamano ?? (e.calidad >= 3 ? 'grande' : e.calidad === 2 ? 'mediano' : 'pequeno')) !== 'pequeno' });
   }
   return res.sort((a, b) => (a.id < b.id ? -1 : 1));
 }
@@ -749,4 +840,29 @@ export function previsionDelClubDe(npcs: readonly Npc[], pobs: readonly Poblacio
   const llegan = miembros.filter((n) => categoriaDeEdad(edadDe(n)) !== siguienteDef.id && categoriaDeEdad(edadDe(n) + 1) === siguienteDef.id).length;
   const quedan = 1 + miembros.filter((n) => categoriaDeEdad(edadDe(n) + 1) === siguienteDef.id).length;
   return { categoria: { id: actual.id, nombre: actual.nombre }, siguiente: { id: siguienteDef.id, nombre: siguienteDef.nombre }, hayEquipo, ahora: deSuCategoria.length + 1, minimo: e.plantillaPorCategoria!.min, equipos: Math.max(1, e.equiposPorCategoria?.[siguienteDef.id] ?? 1), suben, siguen, llegan, quedan };
+}
+
+/**
+ * Migración suave de las poblaciones guardadas (`NpcsState.poblaciones`): cada una lleva una copia de lo que pidió su deporte, y la de una partida guardada por una versión anterior no tiene lo que se añadió después
+ * (`puestos.familias`, `puestos.pistas`, `puestos.dorsales`, `CategoriaDef.apuntarseEnLosDias`). Se rellena **solo lo que falta**, con lo que pide ahora el deporte (`frescas`); lo guardado no se toca. Devuelve la misma lista si
+ * no hay nada que completar. Un deporte que ya no está cargado se queda como estaba.
+ */
+export function completarPoblaciones(guardadas: PoblacionGuardada[], frescas: readonly PoblacionGuardada[]): PoblacionGuardada[] {
+  let cambio = false;
+  const resultado = guardadas.map((pob) => {
+    const nueva = frescas.find((f) => f.deporte === pob.deporte);
+    if (!nueva) return pob;
+    let p = pob;
+    if (p.puestos && nueva.puestos) {
+      const falta = (['familias', 'pistas', 'dorsales'] as const).filter((k) => p.puestos![k] === undefined && nueva.puestos![k] !== undefined);
+      if (falta.length) p = { ...p, puestos: { ...p.puestos, ...Object.fromEntries(falta.map((k) => [k, nueva.puestos![k]])) } };
+    }
+    if (p.categorias && nueva.categorias) {
+      const sinHorquilla = p.categorias.some((c) => c.apuntarseEnLosDias === undefined && nueva.categorias!.find((x) => x.id === c.id)?.apuntarseEnLosDias !== undefined);
+      if (sinHorquilla) p = { ...p, categorias: p.categorias.map((c) => (c.apuntarseEnLosDias === undefined ? { ...c, ...(nueva.categorias!.find((x) => x.id === c.id)?.apuntarseEnLosDias ? { apuntarseEnLosDias: nueva.categorias!.find((x) => x.id === c.id)!.apuntarseEnLosDias } : {}) } : c)) };
+    }
+    if (p !== pob) cambio = true;
+    return p;
+  });
+  return cambio ? resultado : guardadas;
 }

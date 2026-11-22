@@ -186,6 +186,17 @@ export const SALIDA_DEL_COLEGIO = {
  * (sorteo estable por persona y día: unos días van y otros no). Solo los vecinos de `edadMinima` años o más: 25 de momento, **pendiente de revisar** (a veces pueden ser algo más jóvenes, y se quiere mezclar padres y abuelos).
  */
 export const RECOGIDA_DE_NINOS = { proporcion: 0.15, llegada: 15, paso: 5, edadMinima: 25, diasDeClase: 0.8 };
+/**
+ * Moverse con el grupo (21/11, cifras provisionales). Al acabar una acción, si el personaje sigue donde estaba y la mayoría de la gente libre que había con él (los que
+ * se podía hablar) se ha ido, a la vez, al mismo sitio (o fuera del mapa), `npcs` avisa con `GRUPO_SE_VA` y un suceso pregunta si les acompaña.
+ * - `minimo`: personas que tienen que irse juntas (por debajo, es gente que se va, no un grupo).
+ * - `proporcion`: parte de la gente que tenía cerca (la que se ve, `aforoCercano`) que tiene que ir al mismo sitio: la mayoría. Los que salen del mapa cuentan como gente que se queda
+ *   o se va aparte: no se les puede seguir.
+ * - `muestra`: cuántas personas se nombran en la señal.
+ * - `mirarMinutos`: hasta cuántos minutos por delante se mira si se va el grupo para cortar una acción antes de que se vaya (`GameModule.obligaciones`).
+ * - `despedidaHasta`: «Me voy» solo si la acción dura hasta tantos minutos: en una acción larga (descansar, estudiar) no estás pendiente de quien se va, y llenaría el registro.
+ */
+export const MOVERSE_CON_EL_GRUPO = { minimo: 3, proporcion: 0.5, muestra: 3, despedidaHasta: 30, mirarMinutos: 120 };
 /** Lo que se dice de quien está en el aula durante una clase: está, pero no se le puede hablar. */
 const EN_CLASE_ATENDIENDO = 'atendiendo en clase';
 /** Las clases una a una. */

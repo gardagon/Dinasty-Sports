@@ -100,7 +100,7 @@ describe('el partido del personaje en la liga', () => {
     expect(pts).toEqual([...pts].sort((a, b) => b - a));
     const plantilla = v.secciones!.find((x) => x.titulo.startsWith('Plantilla'))!.tabla!;
     expect(plantilla.rows.length).toBeGreaterThanOrEqual(14);
-    expect(plantilla.rows[plantilla.highlight!][0]).toBe('Tú');
+    expect(plantilla.rows[plantilla.highlight!][0]).toMatch(/^(\d+ · )?Tú$/);
     // Las estadísticas de los jugadores son de verdad: los minutos de los que jugaron suman.
     expect(plantilla.rows.reduce((t, r) => t + Number(r[4]), 0)).toBeGreaterThan(0);
     const mia = v.secciones!.find((x) => x.titulo === 'Tu temporada')!;

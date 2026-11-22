@@ -12,9 +12,10 @@ import cuerpo_altura from './cuerpo/altura';
 import estudios_educacion_fisica from './estudios/educacion_fisica';
 import estudios_llegar_tarde from './estudios/llegar_tarde';
 import familia_faltas from './familia/faltas';
+import grupo_se_van from './grupo/se_van';
 import perks_pulmones from './perks/pulmones';
 import perks_revelaciones from './perks/revelaciones';
 import relaciones_cumple from './relaciones/cumple';
 import salud_lesion from './salud/lesion';
 
-export const CATALOGO: readonly AporteDeSucesos[] = [barrio_detalles, camino_detalles, casa_detalles, colegio_aula, colegio_mas_aula, colegio_mas_patio, colegio_patio, contadores, cuerpo_altura, estudios_educacion_fisica, estudios_llegar_tarde, familia_faltas, perks_pulmones, perks_revelaciones, relaciones_cumple, salud_lesion].flat();
+export const CATALOGO: readonly AporteDeSucesos[] = [barrio_detalles, camino_detalles, casa_detalles, colegio_aula, colegio_mas_aula, colegio_mas_patio, colegio_patio, contadores, cuerpo_altura, estudios_educacion_fisica, estudios_llegar_tarde, familia_faltas, grupo_se_van, perks_pulmones, perks_revelaciones, relaciones_cumple, salud_lesion].flat();

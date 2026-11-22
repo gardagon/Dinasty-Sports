@@ -57,6 +57,20 @@ const vale = (dias: TramoDeApertura['dias'], t: TimeView): boolean =>
 export const abiertoEn = (lugar: Pick<LugarDef, 'horario'>, t: TimeView): boolean =>
   !lugar.horario || lugar.horario.tramos.some((x) => vale(x.dias, t) && t.minuteOfDay >= x.desde && t.minuteOfDay < x.hasta);
 
+/**
+ * «Al patio», «a la biblioteca», «a tu aula»: cómo se dice ir a un lugar a partir de su nombre (el primer sustantivo: femenino si acaba en -a, -ión, -dad, -tad o es una calle).
+ * Es una regla de la lengua, no una lista de lugares: vale para los sitios que pongan los deportes.
+ */
+export function haciaLugar(nombre: string): string {
+  const n = nombre.trim().toLowerCase();
+  if (/^(tu|su|mi)\s/.test(n)) return `a ${n}`;
+  const primera = n.split(/\s+/)[0];
+  return /(a|ión|dad|tad)$/.test(primera) || primera === 'calle' ? `a la ${n}` : `al ${n}`;
+}
+
+/** «Del patio», «de la biblioteca», «de tu aula» (la misma regla que `haciaLugar`). */
+export const deLugar = (nombre: string): string => haciaLugar(nombre).replace(/^a la /, 'de la ').replace(/^al /, 'del ').replace(/^a /, 'de ');
+
 /** Minutos que cuesta pasar de un lugar a una zona suya (o de una zona a su lugar). */
 export const MINUTOS_ENTRE_ZONAS = 2;
 
@@ -349,6 +363,24 @@ function cierraAlLlegar(ctx: ReadContext, svc: LugaresService, lugar: LugarDef):
   // Si ya estás dentro del lugar no se pasa por su entrada: cuenta la hora de llegada a la zona.
   const dentro = !!padre && (actual.id === padre.id || actual.dentroDe === padre.id);
   return padre && !abiertoEn(padre, dentro ? en(lugar) : en(padre)) ? padre : undefined;
+}
+
+/**
+ * Minutos que cuesta llegar desde donde se está hasta un sitio (0 si ya se está allí o si no hay servicio de lugares o camino). Lo usan los módulos que declaran
+ * obligaciones (`GameModule.obligaciones`) para restar el viaje al momento hasta el que se puede dedicar el tiempo a otra cosa.
+ */
+export function minutosParaLlegar(ctx: ReadContext, lugar: LugarId): number {
+  const svc = ctx.service<LugaresService>('lugares');
+  if (!svc || svc.actual().id === lugar) return 0;
+  // Por el camino que se recorre de verdad (parada a parada: de casa al aula se pasa por las calles y la entrada del colegio): la suma de los tramos, no el tiempo directo entre los dos sitios.
+  const mapa = svc.mapa();
+  let previo = svc.actual().id;
+  let minutos = 0;
+  for (const parada of rutaA(mapa, previo, lugar)) {
+    minutos += tiempoEntre(mapa, previo, parada) ?? 0;
+    previo = parada;
+  }
+  return minutos;
 }
 
 /** Principio del motivo que devuelve `enLugar` cuando el personaje no está donde hace falta (los bots y la interfaz lo reconocen). */

@@ -43,12 +43,16 @@ export function agruparEnDesplegables(lista: readonly ActionOption[], todas: rea
 }
 
 /** El botón del desplegable y, abierto, su formulario. `boton` dibuja el botón que lanza una acción (nombre, duración y motivo). */
-export function viewDesplegable(k: string, opciones: readonly ActionOption[], esc: (s: string) => string, boton: (o: ActionOption, texto: string) => string, duracion: (minutos: number) => string): string {
+export function viewDesplegable(k: string, opciones: readonly ActionOption[], esc: (s: string) => string, boton: (o: ActionOption, texto: string) => string, duracion: (minutos: number, o: ActionOption) => string): string {
   const d = opciones[0].desplegable!;
   const abierto = abiertos.has(k);
   const elegida = opciones.find((o) => o.id === elegidas.get(k)) ?? opciones.find((o) => o.available) ?? opciones[0];
   const etiquetaDe = (o: ActionOption): string => o.desplegable?.opcion ?? o.name;
-  const select = opciones.map((o) => `<option value="${esc(o.id)}"${o.id === elegida.id ? ' selected' : ''}>${esc(`${etiquetaDe(o)} · ${duracion(o.duration)}${o.available ? '' : ' (no disponible)'}`)}</option>`).join('');
+  const opcion = (o: ActionOption) => `<option value="${esc(o.id)}"${o.id === elegida.id ? ' selected' : ''}>${esc(`${etiquetaDe(o)} · ${duracion(o.duration, o)}${o.available ? '' : ' (no disponible)'}`)}</option>`;
+  // Las opciones con apartado (`grupoDeOpcion`: «Portería», «Físico»…) van juntas bajo su título, en el orden en que aparece cada apartado.
+  const apartados = new Map<string, ActionOption[]>();
+  for (const o of opciones) apartados.set(o.desplegable?.grupoDeOpcion ?? '', [...(apartados.get(o.desplegable?.grupoDeOpcion ?? '') ?? []), o]);
+  const select = [...apartados].map(([titulo, os]) => (titulo ? `<optgroup label="${esc(titulo)}">${os.map(opcion).join('')}</optgroup>` : os.map(opcion).join(''))).join('');
   return `<button class="action" data-desplegable="${esc(k)}"><span class="action-name">${esc(d.nombre)}</span><span class="action-time">${abierto ? '▲' : '▼'}</span></button>
     ${abierto ? `<div class="formulario-plan">
       <label class="campo-plan"><span>${esc(d.etiqueta)}</span><select data-desplegable-campo="${esc(k)}">${select}</select></label>

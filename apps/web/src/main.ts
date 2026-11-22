@@ -55,7 +55,7 @@ import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, textoDeNiveles, viewPanelGente } from './gente';
 import { agruparEnDesplegables, cambioEnDesplegable, clicEnDesplegable, viewDesplegable } from './desplegables';
 import { reclamarPestana } from './pestana';
-import { MODOS_DE_CONSECUENCIAS, MODOS_FUERA_DE_CARACTER, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
+import { MODOS_DE_CONSECUENCIAS, MODOS_DEL_GRUPO, MODOS_FUERA_DE_CARACTER, SUCESO_DEL_GRUPO, respuestaAlGrupo, type CuandoSeVaElGrupo, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
 import {
   FRECUENCIAS,
@@ -70,13 +70,16 @@ import {
   leerRecuperacion,
   pedirAlmacenamientoPersistente,
   serializarPartida,
+  serializarPartidaPorTrozos,
   textoDeRecomendacion,
+  textoDePeso,
   tocaGuardar,
   type AgendaItem,
   type Almacen,
   type FrecuenciaDeGuardado,
   type Recuperacion,
 } from './almacen';
+import { alCambiarElEstado, terminarSerializacionEnCurso } from './serializar';
 
 /**
  * Interfaz web mínima. Solo habla con el motor (@ds/game / @ds/core): no conoce
@@ -155,7 +158,20 @@ let frecuencia: FrecuenciaDeGuardado = leerFrecuencia();
 /** Día del juego del último guardado, lo que tardó (ms) y si hay una copia de recuperación escrita. */
 let ultimoGuardado: { dia: number; minuto: number } | undefined;
 let msDeGuardado: number | undefined;
+/** Lo que pesa la partida guardada (bytes) y lo más que se bloqueó la página de una vez al guardarla. */
+let pesoGuardado: number | undefined;
+let bloqueoDeGuardado: number | undefined;
 let recuperacionEscrita = false;
+
+/** Hace una acción de la partida. Es la única puerta por la que la página cambia el estado: antes descarta (o acaba) el guardado si estaba a medias (`serializar.ts`). */
+function realizar(g: Game, id: string): ActionResult {
+  alCambiarElEstado();
+  const r = g.perform(id);
+  // Cuando se va el grupo con el que estás y has elegido «ir siempre con ellos», vas sin preguntar (gastando los minutos del camino).
+  const ir = r.ok ? respuestaAlGrupo(presentacion, pendientesDe(g))?.accion : undefined;
+  if (ir) g.perform(ir);
+  return r;
+}
 
 /** Se llama tras cada cambio. Guarda según la frecuencia elegida; `forzar` guarda ya sea cual sea (partida nueva, importada, «Guardar partida»). */
 function save(forzar = false): void {
@@ -186,15 +202,31 @@ async function escribirPartida(): Promise<void> {
     while (hayCambios && game) {
       hayCambios = false;
       sinGuardar = false;
-      const t0 = performance.now();
-      const marca = { dia: game.time.day, minuto: game.time.minute };
+      const juego = game;
+      const marca = { dia: juego.time.day, minuto: juego.time.minute };
       try {
-        await a.guardar(serializarPartida(game, agenda.slice(-60)));
+        // Por trozos y con pausas: la página no se congela (`serializar.ts`). Si el jugador hace algo mientras, `realizar` descarta el texto a medias antes de cambiar nada.
+        const partida = await serializarPartidaPorTrozos(juego, agenda.slice(-60));
+        if (partida === null) {
+          // El jugador hizo algo a mitad: se descartó el texto a medias (el clic no espera) y se repite cuando la pantalla se quede quieta.
+          sinGuardar = true;
+          hayCambios = true;
+          guardadoPendiente ??= setTimeout(() => void guardarYa(), 500);
+          break;
+        }
+        // Si mientras tanto se cargó, creó o borró otra partida, este texto ya no es de la que está en pantalla: no se escribe (la nueva se guarda sola).
+        if (game !== juego) {
+          hayCambios = game !== null;
+          continue;
+        }
+        await a.guardar(partida);
+        msDeGuardado = partida.msDeTrabajo;
+        bloqueoDeGuardado = partida.msMaximoSeguido;
+        pesoGuardado = partida.bytes;
       } catch (e) {
         sinGuardar = true;
         throw e;
       }
-      msDeGuardado = performance.now() - t0;
       ultimoGuardado = marca;
       errorDeGuardado = null;
     }
@@ -227,6 +259,8 @@ function alOcultar(): void {
   if (!sinGuardar || !game || !almacen || !esPrincipal) return;
   if (frecuencia === 'accion') {
     void guardarYa();
+    // Al cerrar la pestaña no hay tiempo para pausas: se acaba el texto ya, para que la escritura salga antes de que la página desaparezca.
+    terminarSerializacionEnCurso();
     return;
   }
   recuperacionEscrita = true;
@@ -382,6 +416,8 @@ const fmtDur = (m: number) => {
   const r = m % 60;
   return h ? (r ? `${h} h ${r} min` : `${h} h`) : `${r} min`;
 };
+/** La duración de una acción; si pisaba una obligación y se ha cortado, con el motivo: «2 min (entras a clase a las 9:00)». */
+const duracionDe = (minutos: number, o?: { corte?: { texto: string } }): string => `${fmtDur(minutos)}${o?.corte ? ` (${o.corte.texto})` : ''}`;
 const statName = (id: string) => game?.registry.stats.get(id)?.def.name ?? id;
 const pct = (v: number) => `${Math.round(v * 100)} %`;
 
@@ -486,6 +522,7 @@ function viewPresentacion(): string {
     `<select id="${id}">${modos.map((m) => `<option value="${m.id}"${m.id === actual ? ' selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select>`;
   return `<p><label>Consecuencias antes de elegir ${lista('pres-consecuencias', MODOS_DE_CONSECUENCIAS, presentacion.consecuencias)}</label></p>
     <p><label>Opciones que no van con tu carácter ${lista('pres-fuera-de-caracter', MODOS_FUERA_DE_CARACTER, presentacion.fueraDeCaracter)}</label></p>
+    <p><label>Cuando se va el grupo con el que estás ${lista('pres-grupo', MODOS_DEL_GRUPO, presentacion.cuandoSeVaElGrupo)}</label></p>
     <p><label><input type="checkbox" id="pres-aviso"${presentacion.avisoFueraDeCaracter ? ' checked' : ''}${presentacion.fueraDeCaracter === 'normales' ? '' : ' disabled'}> Avisar «no va contigo» en las opciones normales</label></p>`;
 }
 
@@ -536,7 +573,7 @@ const botonesDeSuceso = (p: SucesoPendiente): string =>
     )
     .join('');
 
-/** La ventana de un suceso que pide una decisión ahora: quién participa, lo que pasa y las opciones. Se puede dejar para luego: nunca bloquea. */
+/** La ventana de un suceso que pide una decisión ahora: quién participa, lo que pasa y las opciones. Solo lo que puede esperar (`aplazable`) se puede dejar para luego; lo que pasa en el momento se responde. */
 function viewSuceso(g: Game): string {
   // Primero lo que acaba de pasar sin que haya nada que decidir (una revelación, una noticia): se lee y se cierra.
   const aviso = g.service<SucesosService>(SERVICES.sucesos)?.avisos().find((a) => !avisosVistos.has(a.id));
@@ -549,7 +586,9 @@ function viewSuceso(g: Game): string {
       <p class="botones"><button class="primary" data-act="aviso-visto" data-suceso="${aviso.id}">Seguir</button></p>
     </div></div>`;
   }
-  const p = pendientesDe(g).find((x) => x.urgencia === 'ahora' && !sucesosAplazados.has(x.id));
+  // El aviso de que se va el grupo no se enseña si la preferencia es ir siempre o quedarme (ver `respuestaAlGrupo`).
+  const sinPreguntar = respuestaAlGrupo(presentacion, pendientesDe(g))?.ocultar;
+  const p = pendientesDe(g).find((x) => x.urgencia !== 'pendiente' && !sucesosAplazados.has(x.id) && !(sinPreguntar && x.suceso === SUCESO_DEL_GRUPO));
   if (!p) return '';
   const personas = [...new Set(Object.values(p.reparto))].map((id) => viewRetrato(g, id)).join('');
   return `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="suceso-titulo"><div class="ventana suceso">
@@ -557,7 +596,7 @@ function viewSuceso(g: Game): string {
     ${personas ? `<div class="suceso-personas">${personas}</div>` : ''}
     <p>${esc(p.texto)}</p>
     <div class="suceso-opciones">${botonesDeSuceso(p)}</div>
-    <p class="note">${p.deporte ? 'Evento deportivo · ' : ''}Si no decides, ${esc(plazoDe(g, p))}. <button data-act="suceso-luego" data-suceso="${p.id}">Decidir luego</button></p>
+    <p class="note">${p.deporte ? 'Evento deportivo · ' : ''}${p.aplazable ? `Si no decides, ${esc(plazoDe(g, p))}. <button data-act="suceso-luego" data-suceso="${p.id}">Decidir luego</button>` : 'Hay que responder ahora: si pasas a otra cosa, se queda como si no hubieras dicho nada.'}</p>
   </div></div>`;
 }
 
@@ -638,7 +677,7 @@ function viewVentana(g: Game | null): string {
     <p class="note" id="ultimo-guardado">${ultimoGuardado ? `Último guardado: ${esc(fechaDeJuego(ultimoGuardado.dia))}, ${hhmm(ultimoGuardado.minuto % MINUTES_PER_DAY)}.` : 'Aún no se ha guardado en esta sesión.'}${sinGuardar ? ' Hay cambios sin guardar.' : ''}</p>
     <p><label>Guardado automático <select id="frecuencia">${opciones}</select></label></p>
     ${viewPresentacion()}
-    ${msDeGuardado === undefined ? '<p class="note">Cuando se haya guardado una vez, aquí verás cuánto tarda y qué frecuencia te recomendamos.</p>' : `<p class="note">${esc(textoDeRecomendacion(msDeGuardado))}</p>`}
+    ${msDeGuardado === undefined ? '<p class="note">Cuando se haya guardado una vez, aquí verás cuánto cuesta y qué frecuencia te recomendamos.</p>' : `<p class="note" id="peso-guardado">${esc(textoDeRecomendacion(msDeGuardado))} ${esc(textoDePeso(pesoGuardado, bloqueoDeGuardado))}</p>`}
     <p class="botones"><button data-act="exportar" title="Descargar una copia de seguridad (JSON)">Exportar</button><button data-act="importar" title="Cargar una copia de seguridad">Importar</button><button data-act="importar-pais">Importar un país</button></p>
     ${viewDeportesDeLaPartida(g)}
     ${viewInstaladorDeDeportes()}
@@ -741,7 +780,7 @@ function actionButton(o: ActionOption, nombre: string = o.name): string {
   }
   return `<button class="action" data-do="${esc(o.id)}" ${o.available ? '' : 'disabled'}>
     <span class="action-name">${esc(nombre)}</span>
-    <span class="action-time">${fmtDur(o.duration)}</span>
+    <span class="action-time">${esc(duracionDe(o.duration, o))}</span>
     ${why.length ? `<span class="action-why">${why.join(' · ')}</span>` : ''}
   </button>`;
 }
@@ -825,7 +864,7 @@ function viewActions(g: Game): string {
   }
   const hidden = opts.filter((o) => !o.available).length;
   const html = [...groups]
-    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${agruparEnDesplegables(list, opts).map((e) => ('opcion' in e ? actionButton(e.opcion) : viewDesplegable(e.clave, e.opciones, esc, actionButton, fmtDur))).join('')}</div>`)
+    .map(([group, list]) => `<h3>${esc(group)}</h3><div class="actions">${agruparEnDesplegables(list, opts).map((e) => ('opcion' in e ? actionButton(e.opcion) : viewDesplegable(e.clave, e.opciones, esc, actionButton, duracionDe))).join('')}</div>`)
     .join('');
   return `<section class="sheet">
     ${html || '<p class="note">Ahora mismo no puedes hacer nada. Pasa el rato para que avance el tiempo.</p>'}
@@ -1151,6 +1190,13 @@ app.addEventListener('change', (e) => {
     cambiarPresentacion(el.id === 'pres-consecuencias' ? { consecuencias: el.value as Presentacion['consecuencias'] } : { fueraDeCaracter: el.value as Presentacion['fueraDeCaracter'] });
     return;
   }
+  if (el instanceof HTMLSelectElement && el.id === 'pres-grupo') {
+    // Solo cambia cómo se responde en la web: no hace falta rehacer la partida.
+    presentacion = { ...presentacion, cuandoSeVaElGrupo: el.value as CuandoSeVaElGrupo };
+    escribirPresentacion(presentacion);
+    render();
+    return;
+  }
   if (el instanceof HTMLInputElement && el.id === 'pres-aviso') {
     // Solo cambia cómo se enseña: no hace falta rehacer la partida.
     presentacion = { ...presentacion, avisoFueraDeCaracter: el.checked };
@@ -1180,7 +1226,7 @@ function cambiarPresentacion(cambio: Partial<Presentacion>): void {
 }
 
 app.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-desplegable],[data-tab],[data-act],[data-gente],[data-deporte],[data-retrato]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-desplegable],[data-tab],[data-act],[data-gente],[data-deporte],[data-subdeporte],[data-retrato]');
   if (el?.dataset.act === 'importar') {
     importarPartida();
     return;
@@ -1196,7 +1242,7 @@ app.addEventListener('click', (e) => {
     if (clicEnDesplegable(el)) render();
     return;
   }
-  if (el.dataset.deporte) {
+  if (el.dataset.deporte || el.dataset.subdeporte) {
     if (clicEnDeporte(el)) render();
     return;
   }
@@ -1236,8 +1282,8 @@ app.addEventListener('click', (e) => {
   if (id) {
     const opt = game.preview(id);
     const start = game.time.minute;
-    const result = game.perform(id);
-    if (result.ok && opt) agenda.push({ start, duration: result.duration, name: opt.name, rest: opt.tags.includes('descanso') });
+    const result = realizar(game, id);
+    if (result.ok && opt && result.duration > 0) agenda.push({ start, duration: result.duration, name: opt.name, rest: opt.tags.includes('descanso') });
     lastResult = { name: opt?.name ?? id, result, fresh: true };
     save();
     render();
@@ -1533,6 +1579,13 @@ function asaDeDepuracion(): void {
       return creando;
     },
     render,
+    /** Guarda ahora, de verdad (por trozos, con las pausas, hasta IndexedDB), y devuelve lo que costó. */
+    guardarAhora: async () => {
+      sinGuardar = true;
+      hayCambios = true;
+      await guardarYa();
+      return { msDeTrabajo: msDeGuardado, bloqueo: bloqueoDeGuardado, peso: pesoGuardado, error: errorDeGuardado };
+    },
     deportesInstalados: () => estadoDeDeportes.instalados.map((d) => d.manifiesto.id),
     /** La semilla de la partida que se va a crear (para que la prueba sea siempre la misma). */
     fijarSemilla: (semilla: number) => {
@@ -1540,15 +1593,15 @@ function asaDeDepuracion(): void {
     },
     /** Espera (de 5 en 5 minutos) hasta un minuto absoluto de la partida. */
     hastaElMinuto: (minuto: number) => {
-      while (game && game.time.minute < minuto) if (!game.perform('gen.descansar').ok && !game.perform('gen.esperar').ok) break;
+      while (game && game.time.minute < minuto) if (!realizar(game, 'gen.descansar').ok && !realizar(game, 'gen.esperar').ok) break;
     },
     /** Hace una acción yendo antes al sitio donde se hace (por el camino que permite el mapa). */
     hacer: (id: string) => {
       if (!game) return { ok: false, reason: 'No hay partida' };
       const o = game.preview(id);
       const lugares = game.service<LugaresService>(SERVICES.lugares);
-      if (o && lugares && faltaViajar(o)) for (const parada of rutaA(lugares.mapa(), lugares.actual().id, o.lugar![0])) game.perform(`lugares.ir_${parada}`);
-      const r = game.perform(id);
+      if (o && lugares && faltaViajar(o)) for (const parada of rutaA(lugares.mapa(), lugares.actual().id, o.lugar![0])) realizar(game, `lugares.ir_${parada}`);
+      const r = realizar(game, id);
       return { ok: r.ok, reason: r.reason };
     },
     /** Espera y viaja de modo que se llegue a un sitio en un minuto absoluto (o en cuanto se pueda, si ya es tarde). */
@@ -1562,10 +1615,10 @@ function asaDeDepuracion(): void {
         viaje += tiempoEntre(mapa, previo, parada) ?? 0;
         previo = parada;
       }
-      while (game.time.minute + viaje < minuto && game.perform('gen.esperar').ok) {
+      while (game.time.minute + viaje < minuto && realizar(game, 'gen.esperar').ok) {
         /* esperar */
       }
-      for (const parada of rutaA(mapa, lugares.actual().id, lugar)) game.perform(`lugares.ir_${parada}`);
+      for (const parada of rutaA(mapa, lugares.actual().id, lugar)) realizar(game, `lugares.ir_${parada}`);
     },
   };
 }

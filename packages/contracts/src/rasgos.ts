@@ -168,7 +168,7 @@ export interface Apariencia {
  * Los rasgos de la cara que se heredan, cada uno un número de 0 a 1 (no catálogos de formas: no dependen del estilo de dibujo): forma y tamaño de los ojos, forma y tamaño de la nariz,
  * grosor y anchura de la boca, grosor y forma de las cejas, tamaño y «despegadas» de las orejas, mentón y pómulos. Cifras y herencia en `docs/ANEXO_CUERPO.md`.
  */
-export const RASGOS_DE_ROSTRO = ['ojosForma', 'ojosTamano', 'narizForma', 'narizTamano', 'bocaGrosor', 'bocaAnchura', 'cejasGrosor', 'cejasForma', 'orejasTamano', 'orejasDespegadas', 'menton', 'pomulos'] as const;
+export const RASGOS_DE_ROSTRO = ['ojosForma', 'ojosTamano', 'narizForma', 'narizTamano', 'bocaGrosor', 'bocaAnchura', 'cejasGrosor', 'cejasForma', 'orejasTamano', 'orejasDespegadas', 'menton', 'pomulos', 'parpado'] as const;
 export type RasgoDeRostro = (typeof RASGOS_DE_ROSTRO)[number];
 /** Un rasgo: [expresado, latente], de 0 a 1 cada uno. */
 export type ParDeRasgo = readonly [number, number];
@@ -180,7 +180,7 @@ const NIVELES_DE_ROSTRO = 63;
 const ALFABETO_DE_ROSTRO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 const nivelDe = (v: number) => clamp(Math.round(v * NIVELES_DE_ROSTRO), 0, NIVELES_DE_ROSTRO);
 
-/** Guarda un rostro en un texto de 24 caracteres (expresado y latente de cada rasgo, en el orden de `RASGOS_DE_ROSTRO`). */
+/** Guarda un rostro en un texto de 26 caracteres (expresado y latente de cada rasgo, en el orden de `RASGOS_DE_ROSTRO`). */
 export function empaquetarRostro(r: Rostro): string {
   return RASGOS_DE_ROSTRO.map((k) => ALFABETO_DE_ROSTRO[nivelDe(r[k][0])] + ALFABETO_DE_ROSTRO[nivelDe(r[k][1])]).join('');
 }
@@ -190,7 +190,9 @@ export const ROSTRO_MEDIO: string = empaquetarRostro(Object.fromEntries(RASGOS_D
 
 /** Los pares [expresado, latente] de cada rasgo de la cara. */
 export function rostroDe(a: Pick<Apariencia, 'rostro'>): Rostro {
-  const texto = a.rostro && a.rostro.length === 2 * RASGOS_DE_ROSTRO.length ? a.rostro : ROSTRO_MEDIO;
+  // Las partidas anteriores al pliegue del párpado guardan 24 caracteres (12 rasgos): el rasgo nuevo, al final, se lee como «medio».
+  const bruto = a.rostro && a.rostro.length === 2 * RASGOS_DE_ROSTRO.length - 2 ? a.rostro + ROSTRO_MEDIO.slice(-2) : a.rostro;
+  const texto = bruto && bruto.length === 2 * RASGOS_DE_ROSTRO.length ? bruto : ROSTRO_MEDIO;
   const valor = (c: string) => ALFABETO_DE_ROSTRO.indexOf(c) / NIVELES_DE_ROSTRO;
   return Object.fromEntries(RASGOS_DE_ROSTRO.map((k, i) => [k, [valor(texto[2 * i]), valor(texto[2 * i + 1])] as const])) as unknown as Rostro;
 }
@@ -201,10 +203,30 @@ export function rostroExpresado(a: Pick<Apariencia, 'rostro'>): RostroExpresado 
   return Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, r[k][0]])) as unknown as RostroExpresado;
 }
 
-/** Rostro de un adulto del mundo (primera generación): los dos valores de cada rasgo al azar, uniformes, sin tendencias por origen. */
-export function rostroAlAzar(rng: Rng): string {
-  const par = () => [rng.int(0, NIVELES_DE_ROSTRO) / NIVELES_DE_ROSTRO, rng.int(0, NIVELES_DE_ROSTRO) / NIVELES_DE_ROSTRO] as const;
-  return empaquetarRostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, par()])) as unknown as Rostro);
+/**
+ * Cuánto se desvía de la media (0,5) cada rasgo en el conjunto de la gente, antes de las tendencias de cada origen: todos a 0,5 salvo el pliegue del párpado, que en la mayoría
+ * de la gente se ve (0,62). Cifras en `docs/ANEXO_CUERPO.md` §7.
+ */
+export const MEDIA_DE_ROSTRO: Readonly<Record<RasgoDeRostro, number>> = {
+  ojosForma: 0.5, ojosTamano: 0.5, narizForma: 0.5, narizTamano: 0.5, bocaGrosor: 0.5, bocaAnchura: 0.5, cejasGrosor: 0.5, cejasForma: 0.5, orejasTamano: 0.5, orejasDespegadas: 0.5, menton: 0.5, pomulos: 0.5, parpado: 0.62,
+};
+
+/** Un valor de 0 a 1 con la media dada que sigue repartido por todo el rango (sin pegarse a los extremos): `u^e` con `e = 1/media − 1` (media 0,5 → uniforme). */
+const conMedia = (u: number, media: number): number => u ** (1 / clamp(media, 0.08, 0.92) - 1);
+
+/**
+ * Rostro de un adulto del mundo (primera generación): los dos valores de cada rasgo al azar, repartidos por todo el rango y con la media desplazada por las tendencias de su origen
+ * (`OrigenDef.rostro`, suaves: la gente de un origen se parece más a su media, pero cualquier cara cabe en cualquiera). Con dos orígenes, cada uno de los dos valores sale de uno de ellos
+ * (como un alelo de cada lado). Sin origen, sin tendencias.
+ */
+export function rostroAlAzar(rng: Rng, o?: OrigenFamiliar): string {
+  const sesgo = (k: RasgoDeRostro): number => {
+    if (!o || o.length === 0) return 0;
+    const de = o.length === 1 ? o[0] : o[ponderado(o.map((x) => x.peso), rng)];
+    return origen(de.id)?.rostro?.[k] ?? 0;
+  };
+  const valor = (k: RasgoDeRostro) => conMedia(rng.int(0, NIVELES_DE_ROSTRO) / NIVELES_DE_ROSTRO, MEDIA_DE_ROSTRO[k] + sesgo(k));
+  return empaquetarRostro(Object.fromEntries(RASGOS_DE_ROSTRO.map((k) => [k, [valor(k), valor(k)] as const])) as unknown as Rostro);
 }
 
 /**
@@ -266,19 +288,21 @@ export interface OrigenDef {
   /** Tendencias del origen que se suman a la media al azar: años de canas y densidad de barba (ausente = 0). */
   canas?: number;
   barba?: number;
+  /** Tendencias del origen en los rasgos de la cara: cuánto se desplaza la media de cada rasgo (de 0,5, o de 0,62 en el pliegue; ausente = 0). Suaves: de −0,3 a 0,3. */
+  rostro?: Partial<Readonly<Record<RasgoDeRostro, number>>>;
 }
 
 /** Orígenes familiares como dato (otro país tendría otra tabla). Las distribuciones son aproximadas y solo sesgan a la generación 0. */
 export const ORIGENES: OrigenDef[] = [
   { id: 'espana_norte', reserva: 'espana', nombre: 'España (norte)', frecuencia: 0.162, peloColor: [0.12, 0.3, 0.3, 0.14, 0.08, 0.06], peloTipo: [0.4, 0.4, 0.17, 0.03], ojos: [0.15, 0.3, 0.22, 0.13, 0.05, 0.15], piel: [0.08, 0.5, 0.32, 0.1, 0, 0] },
   { id: 'espana_centro', reserva: 'espana', nombre: 'España (centro)', frecuencia: 0.324, peloColor: [0.28, 0.4, 0.22, 0.07, 0.02, 0.01], peloTipo: [0.38, 0.4, 0.19, 0.03], ojos: [0.3, 0.35, 0.2, 0.08, 0.03, 0.04], piel: [0.04, 0.35, 0.4, 0.18, 0.03, 0] },
-  { id: 'espana_sur', reserva: 'espana', nombre: 'España (sur)', frecuencia: 0.324, peloColor: [0.4, 0.38, 0.15, 0.05, 0.01, 0.01], peloTipo: [0.3, 0.42, 0.24, 0.04], ojos: [0.4, 0.35, 0.15, 0.05, 0.02, 0.03], piel: [0.02, 0.2, 0.38, 0.28, 0.12, 0], barba: 0.1 },
-  { id: 'latinoamerica', reserva: 'latinoamerica', nombre: 'Latinoamérica', frecuencia: 0.06, peloColor: [0.45, 0.35, 0.12, 0.05, 0.02, 0.01], peloTipo: [0.35, 0.35, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.04, 0.02, 0.02], piel: [0.02, 0.12, 0.3, 0.28, 0.24, 0.04] },
-  { id: 'magreb', reserva: 'magreb', nombre: 'Magreb', frecuencia: 0.04, peloColor: [0.5, 0.35, 0.1, 0.03, 0.01, 0.01], peloTipo: [0.3, 0.4, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.05, 0.02, 0.01], piel: [0.01, 0.1, 0.3, 0.32, 0.22, 0.05], barba: 0.1 },
-  { id: 'africa_subsahariana', reserva: 'africa_subsahariana', nombre: 'África subsahariana', frecuencia: 0.017, peloColor: [0.9, 0.09, 0.01, 0, 0, 0], peloTipo: [0.02, 0.08, 0.3, 0.6], ojos: [0.85, 0.13, 0.02, 0, 0, 0], piel: [0, 0, 0.02, 0.06, 0.32, 0.6], canas: 3 },
-  { id: 'europa_este', reserva: 'europa_este', nombre: 'Europa del este', frecuencia: 0.035, peloColor: [0.15, 0.3, 0.3, 0.15, 0.08, 0.02], peloTipo: [0.45, 0.38, 0.15, 0.02], ojos: [0.1, 0.25, 0.22, 0.12, 0.1, 0.21], piel: [0.1, 0.5, 0.32, 0.08, 0, 0] },
-  { id: 'europa_norte', reserva: 'europa_norte', nombre: 'Europa del norte', frecuencia: 0.02, peloColor: [0.05, 0.18, 0.3, 0.22, 0.22, 0.03], peloTipo: [0.5, 0.35, 0.13, 0.02], ojos: [0.04, 0.12, 0.15, 0.12, 0.12, 0.45], piel: [0.15, 0.6, 0.22, 0.03, 0, 0], canas: -2 },
-  { id: 'asia_oriental', reserva: 'asia_oriental', nombre: 'Asia oriental', frecuencia: 0.018, peloColor: [0.85, 0.12, 0.03, 0, 0, 0], peloTipo: [0.75, 0.2, 0.04, 0.01], ojos: [0.8, 0.18, 0.02, 0, 0, 0], piel: [0.05, 0.3, 0.4, 0.2, 0.05, 0], canas: 4, barba: -0.3 },
+  { id: 'espana_sur', reserva: 'espana', nombre: 'España (sur)', frecuencia: 0.324, peloColor: [0.4, 0.38, 0.15, 0.05, 0.01, 0.01], peloTipo: [0.3, 0.42, 0.24, 0.04], ojos: [0.4, 0.35, 0.15, 0.05, 0.02, 0.03], piel: [0.02, 0.2, 0.38, 0.28, 0.12, 0], barba: 0.1, rostro: { cejasGrosor: 0.03 } },
+  { id: 'latinoamerica', reserva: 'latinoamerica', nombre: 'Latinoamérica', frecuencia: 0.06, peloColor: [0.45, 0.35, 0.12, 0.05, 0.02, 0.01], peloTipo: [0.35, 0.35, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.04, 0.02, 0.02], piel: [0.02, 0.12, 0.3, 0.28, 0.24, 0.04], rostro: { pomulos: 0.04, narizForma: 0.03, ojosForma: -0.03, parpado: -0.04 } },
+  { id: 'magreb', reserva: 'magreb', nombre: 'Magreb', frecuencia: 0.04, peloColor: [0.5, 0.35, 0.1, 0.03, 0.01, 0.01], peloTipo: [0.3, 0.4, 0.24, 0.06], ojos: [0.5, 0.3, 0.12, 0.05, 0.02, 0.01], piel: [0.01, 0.1, 0.3, 0.32, 0.22, 0.05], barba: 0.1, rostro: { narizTamano: 0.08, narizForma: -0.03, cejasGrosor: 0.1, ojosTamano: 0.04, bocaGrosor: 0.02 } },
+  { id: 'africa_subsahariana', reserva: 'africa_subsahariana', nombre: 'África subsahariana', frecuencia: 0.017, peloColor: [0.9, 0.09, 0.01, 0, 0, 0], peloTipo: [0.02, 0.08, 0.3, 0.6], ojos: [0.85, 0.13, 0.02, 0, 0, 0], piel: [0, 0, 0.02, 0.06, 0.32, 0.6], canas: 3, rostro: { narizForma: 0.16, narizTamano: 0.06, bocaGrosor: 0.18, bocaAnchura: 0.06, ojosTamano: 0.05, pomulos: 0.04 } },
+  { id: 'europa_este', reserva: 'europa_este', nombre: 'Europa del este', frecuencia: 0.035, peloColor: [0.15, 0.3, 0.3, 0.15, 0.08, 0.02], peloTipo: [0.45, 0.38, 0.15, 0.02], ojos: [0.1, 0.25, 0.22, 0.12, 0.1, 0.21], piel: [0.1, 0.5, 0.32, 0.08, 0, 0], rostro: { pomulos: 0.04, narizForma: -0.03 } },
+  { id: 'europa_norte', reserva: 'europa_norte', nombre: 'Europa del norte', frecuencia: 0.02, peloColor: [0.05, 0.18, 0.3, 0.22, 0.22, 0.03], peloTipo: [0.5, 0.35, 0.13, 0.02], ojos: [0.04, 0.12, 0.15, 0.12, 0.12, 0.45], piel: [0.15, 0.6, 0.22, 0.03, 0, 0], canas: -2, rostro: { narizForma: -0.1, narizTamano: 0.03, bocaGrosor: -0.1, ojosTamano: -0.03, cejasGrosor: -0.06, menton: 0.08 } },
+  { id: 'asia_oriental', reserva: 'asia_oriental', nombre: 'Asia oriental', frecuencia: 0.018, peloColor: [0.85, 0.12, 0.03, 0, 0, 0], peloTipo: [0.75, 0.2, 0.04, 0.01], ojos: [0.8, 0.18, 0.02, 0, 0, 0], piel: [0.05, 0.3, 0.4, 0.2, 0.05, 0], canas: 4, barba: -0.3, rostro: { ojosForma: -0.16, ojosTamano: -0.06, narizTamano: -0.06, narizForma: 0.12, pomulos: 0.2, cejasForma: -0.18, cejasGrosor: -0.03, menton: -0.05, bocaAnchura: -0.03, parpado: -0.34 } },
 ];
 
 export const origen = (id: string): OrigenDef | undefined => ORIGENES.find((o) => o.id === id);
@@ -403,7 +427,7 @@ export function envejecimientoHeredado(padre: Pick<Apariencia, 'envejecimiento'>
 
 /** Apariencia de un adulto según su origen y su sexo, con las tendencias (todo del mismo generador). */
 export function aparienciaAlAzar(rng: Rng, o: OrigenFamiliar, sexo: 'f' | 'm' = 'm'): Apariencia {
-  return { ...aparienciaBaseAlAzar(rng, o), ...tendenciasAlAzar(rng, o, sexo), rostro: rostroAlAzar(rng), envejecimiento: envejecimientoAlAzar(rng) };
+  return { ...aparienciaBaseAlAzar(rng, o), ...tendenciasAlAzar(rng, o, sexo), rostro: rostroAlAzar(rng, o), envejecimiento: envejecimientoAlAzar(rng) };
 }
 
 /**
@@ -542,7 +566,7 @@ export function rasgosAlAzar(rng: Rng, opciones: { sesgoCaracter?: Readonly<Reco
   const intereses = interesesAlAzar(rng, opciones.interesesPreferidos);
   const gustos = gustosAlAzar(rng, { ...base, ...SIN_TENDENCIAS });
   const sexo = opciones.sexo ?? 'm';
-  return { origen: o, apariencia: { ...base, ...tendenciasAlAzar(generadorDeTendencias(sexo, caracter, intereses, gustos), o, sexo), rostro: rostroAlAzar(generadorDeRostro(sexo, caracter, intereses, gustos)), envejecimiento: envejecimientoAlAzar(generadorDeEnvejecimiento(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
+  return { origen: o, apariencia: { ...base, ...tendenciasAlAzar(generadorDeTendencias(sexo, caracter, intereses, gustos), o, sexo), rostro: rostroAlAzar(generadorDeRostro(sexo, caracter, intereses, gustos), o), envejecimiento: envejecimientoAlAzar(generadorDeEnvejecimiento(sexo, caracter, intereses, gustos)) }, caracter, intereses, gustos };
 }
 
 /** Rasgos del personaje: heredados de sus padres (la opción de elegirlos a mano llegará con la creación de personaje). */

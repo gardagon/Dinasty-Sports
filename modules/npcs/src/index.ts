@@ -1,10 +1,11 @@
-import { APORTES, CORE_EVENTS, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, diaConFecha, semanasDeTemporada, type Entrenamiento, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar, MOVERSE_CON_EL_GRUPO, aforoCercano, deLugar, haciaLugar, type ActionDoneData, type GrupoSeVaData, type LugaresService } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
+import { grupoQueSeVa, seVanSolos } from './grupo';
 import { type HabilidadesDe } from './rutina';
 import { conCuerpo, geneticaDelCuerpo, semanaDelCuerpo, type SemanaEscolar } from './cuerpo';
-import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, semanaQueAcaba, type Rendimientos } from './semana';
+import { SEMANAS_DE_LOS_LEJANOS, conMasConocimiento, historiaDeportiva, huecosDelBloque, listaDeSesion, semanaDeNino, semanaQueAcaba, sesionesQueHace, type Resultado, type Rendimientos } from './semana';
 
 /**
  * MÓDULO NPCs (id `npcs`).
@@ -16,16 +17,19 @@ import { conMasConocimiento, historiaDeportiva, listaDeSesion, semanaDeNino, sem
  * - Publican el servicio `npcs` para que otros módulos los consulten.
  */
 
-import { añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
+import { conUnaPlazaDeMas, añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
 import { colocarDesplazados } from './fichajes';
-import { entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
-import { categoriaDe, consejoDeUnProfesor, huecosPorGrupoEnElEquipo, plazaEnElEquipo, piernaDe, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
+import { conApuntados, entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, completarPoblaciones, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { consejoDeUnProfesor, familiasDePuestosDeLosDeportes, lecturaDeUnPuesto } from './consejo';
+import { categoriaDe, huecosPorGrupoEnElEquipo, plazaEnElEquipo, piernaDe, puestosDelPersonaje, valoracionDe, valoresGuardados } from './plaza';
 import { entrenadoresDeEquiposExtra, entrenadoresDeUnDeporte } from './draft';
 export * from './plaza';
+export * from './consejo';
 export * from './plantillas';
 export * from './fichajes';
 export * from './draft';
 
+const hhmmDe = (m: number): string => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
 const mediaDe = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
 export interface Npc {
   id: string;
@@ -46,6 +50,8 @@ export interface Npc {
   colegio?: string;
   /** Equipo o club de su deporte en el que juega (id del club) y deportes que ha dejado (para que no lo vuelvan a reclutar). */
   equipo?: string;
+  /** El día (de la partida) en que se apunta a su equipo este curso: hasta entonces no aparece en la plantilla ni cuenta para formar el equipo que se enseña (`conApuntados`). Ausente: ya está apuntado. */
+  apuntado?: number;
   dejado?: string[];
   /** Deportes de los que lo han echado del equipo (por entrar el personaje en su plaza): no se le vuelve a reclutar hasta el curso siguiente. */
   apartado?: string[];
@@ -78,6 +84,8 @@ export interface Npc {
   exp?: Record<string, Record<string, number>>;
   /** El equipo (A, B, C o D) de su club y su categoría **durante toda la temporada**, por deporte: se fija en verano (`fijarEquipos`) y no cambia en el curso (decisión del usuario, 08/11/2026). */
   letra?: Record<string, 'A' | 'B' | 'C' | 'D'>;
+  /** El número de su camiseta en el equipo de cada deporte (`asignarDorsales`): se asigna al entrar en el equipo y se conserva mientras siga en el club (cambie de letra o de categoría). Se pierde al dejar el deporte. */
+  dorsal?: Record<string, number>;
   /** Los deportes en que juega **un año por encima de su edad** (el que sería titular en la categoría de arriba asciende: `completarUnaCategoria`). Un 1 por deporte. */
   adelanto?: Record<string, 1>;
   /**
@@ -708,7 +716,7 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
     if (!pob || !n.genetica || n.nacimiento === undefined || n.hab?.[pob.deporte]) return n;
     // Al crear la partida es lo que más tarda: se avisa de cuánto se lleva (cada 150 personas).
     if (i % 150 === 0) avisarDelProgreso(`Dándole a cada uno su historia deportiva… (${i.toLocaleString('es-ES')} de ${total.toLocaleString('es-ES')})`, 0.37 + 0.6 * (i / total));
-    const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco]));
+    const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco], n.puesto?.[pob.deporte]));
     return { ...n, cap: h.cap, pico: h.pico, capUlt: h.capUlt, hab: { ...n.hab, [pob.deporte]: h.hab }, levels: { ...n.levels, [pob.deporte]: h.nivel }, vp: { ...n.vp, [pob.deporte]: valoresGuardados(n, pob, h.nivel, h.puestos) } };
   });
 }
@@ -718,7 +726,7 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
  * capacidades y habilidades, y su rendimiento (`levels`) calculado con ellas. `fin` es el día en que acaba la semana. Los de un equipo con ejercicios elegidos por el
  * entrenador hacen todos los mismos, según lo que le falta al equipo.
  */
-export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number, sesionesPorId?: Map<string, number>, lesionados?: LesionDePersonaData[]): void {
+export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, fin: number, inicioCurso: number, sesionesPorId?: Map<string, number>, lesionados?: LesionDePersonaData[], bloques?: BloquesDeLaSemana): void {
   for (const pob of pobs) {
     const r = pob.rutina;
     const f = rend.get(pob.deporte);
@@ -726,20 +734,47 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
     const jugadores = npcs.filter((n) => n.hab?.[pob.deporte] && n.genetica && n.nacimiento !== undefined && n.cap && n.pico);
     // Lo que le falta a cada equipo (club y categoría): la media de sus jugadores en cada habilidad. Los ejercicios de la sesión son los mismos para todos.
     const medias = r.ejercicios ? mediasDeLosEquipos(jugadores, pob, inicioCurso) : new Map<string, Record<string, number>>();
+    // La sesión de cada equipo es la misma para todos sus jugadores (misma semilla, misma media): se elige una vez por equipo, semana y número de sesión.
+    const sesionesDeEquipo = new Map<string, readonly Entrenamiento[]>();
+    const fasesDeEquipo = new Map<string, number>();
+    const semanaAbs = semanaQueAcaba(fin);
     for (const n of jugadores) {
       const clave = claveDeEquipoCategoria(pob, n, inicioCurso);
       const media = clave ? medias.get(clave) : undefined;
       const estado = n.estado ?? ESTADO_INICIAL;
-      const res = semanaDeNino(n as never, pob.deporte, r, f, fin, (semana, hueco, lector) =>
-        listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), clave ? semillaDeSesionDeEquipo(pob.deporte, clave.split('|')[0], clave.split('|')[1], semana, hueco) : [pob.deporte, n.id, semana, hueco]),
-        { baja: !!estado.baja, eficiencia: eficienciaDeEstado(estado) },
-      );
+      // Quién se calcula esta semana: los que están cerca del personaje (su club) cada semana; el resto, en bloques de `SEMANAS_DE_LOS_LEJANOS` semanas, con las fórmulas cerradas de la historia, cada
+      // equipo en su semana (para que los de un mismo equipo se muevan juntos). Las sesiones y el estado (cansancio, lesiones) sí pasan cada semana para todos.
+      let semanas = 1;
+      if (bloques && !(n.equipo !== undefined && bloques.clubesActivos.has(n.equipo))) {
+        const faseClave = clave ?? n.id;
+        let fase = fasesDeEquipo.get(faseClave);
+        if (fase === undefined) fasesDeEquipo.set(faseClave, (fase = rngEstable('fase-del-bloque', faseClave).int(0, SEMANAS_DE_LOS_LEJANOS - 1)));
+        semanas = (bloques.semanaDelCurso + fase) % SEMANAS_DE_LOS_LEJANOS === SEMANAS_DE_LOS_LEJANOS - 1 ? Math.min(SEMANAS_DE_LOS_LEJANOS, bloques.semanaDelCurso + 1) : 0;
+      }
+      // Quien acaba de cambiar de club (sin lo que vale guardado) se calcula esta semana, para que su valor sea el de verdad y no el provisional del fichaje.
+      if (semanas === 0 && !n.vp?.[pob.deporte]) semanas = 1;
+      const baja = !!estado.baja;
+      const hechas = n.deporte === pob.deporte && n.equipo !== undefined && !baja ? sesionesQueHace(n as never, pob.deporte, r, semanaAbs) : 0;
+      let res: Resultado | undefined;
+      if (semanas > 0) {
+        const lista = (semana: number, hueco: number, lector: LectorDePersona): readonly Entrenamiento[] => {
+          const puesto = n.puesto?.[pob.deporte];
+          if (!clave) return listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), [pob.deporte, n.id, semana, hueco], puesto);
+          const k = `${clave}|${semana}|${hueco}|${puesto ?? ''}`;
+          let l = sesionesDeEquipo.get(k);
+          if (!l) {
+            const [club, categoria] = clave.split('|');
+            sesionesDeEquipo.set(k, (l = listaDeSesion(r, (stat) => media?.[stat] ?? lector.stat(stat), semillaDeSesionDeEquipo(pob.deporte, club, categoria, semana, hueco), puesto)));
+          }
+          return l;
+        };
+        res = semanaDeNino(n as never, pob.deporte, r, f, fin, lista, { baja, eficiencia: eficienciaDeEstado(estado) }, semanas === 1 ? undefined : huecosDelBloque(n as never, pob.deporte, r, fin, semanas, estado.baja ?? 0));
+      }
       // Su estado pasa la semana: las sesiones lo cansan, descansa, se anima o se desanima y puede lesionarse (sus azares son solo suyos).
-      const semanaAbs = semanaQueAcaba(fin);
       const semilla = n.genetica!.semilla ?? 0;
       const resil = (n.cap![CAPACIDADES_GENETICAS.indexOf('gen.resiliencia')] ?? 50) / 100;
       n.estado = pasoDeSemanaDelEstado(estado, {
-        sesiones: res.sesiones,
+        sesiones: hechas,
         azarDeLesion: rngEstable('lesion', semilla, n.id, semanaAbs).next(),
         azarDeGravedad: rngEstable('gravedad', semilla, n.id, semanaAbs).next(),
         animo: resil,
@@ -748,7 +783,8 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
       // Una lesión nueva de esta semana se apunta para avisar de ella (`persona.lesion`).
       if (lesionados && n.estado.baja && !estado.baja) lesionados.push({ npcId: n.id, semanas: n.estado.baja, deporte: pob.deporte });
       // Las sesiones que ha hecho son los minutos de su cuerpo esta semana (si juega a más de un deporte con rutina, se suman).
-      if (sesionesPorId && res.sesiones > 0) sesionesPorId.set(n.id, (sesionesPorId.get(n.id) ?? 0) + res.sesiones);
+      if (sesionesPorId && hechas > 0) sesionesPorId.set(n.id, (sesionesPorId.get(n.id) ?? 0) + hechas);
+      if (!res) continue;
       n.cap!.splice(0, n.cap!.length, ...res.cap);
       n.pico!.splice(0, n.pico!.length, ...res.pico);
       n.capUlt = res.capUlt;
@@ -757,6 +793,12 @@ export function semanaDeportiva(npcs: readonly Npc[], pobs: readonly PoblacionGu
       n.vp = { ...n.vp, [pob.deporte]: valoresGuardados(n, pob, res.nivel, res.puestos) };
     }
   }
+}
+
+/** Qué niños se calculan cada semana y cuáles en bloques (ver `semanaDeportiva`): los de estos clubes (el del personaje) cada semana, y `semanaDelCurso` es la semana del curso que acaba. */
+export interface BloquesDeLaSemana {
+  clubesActivos: ReadonlySet<string>;
+  semanaDelCurso: number;
 }
 
 /** Qué fracción de las semanas del curso tienen clase en el país (de 0 a 1). */
@@ -839,7 +881,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   draftDeEquipos(mercado, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
   avisarDelProgreso('Dándole a cada uno su historia deportiva…', 0.37);
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
-  const resultado = { npcs: conCuerpo(conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), 0, ctx.seed, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, 0)), pobs: [...mercado.pobs] };
+  const resultado = { npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), 0, ctx.seed, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, 0)), mercado.pobs, 0, ctx.seed), pobs: [...mercado.pobs] };
   avisarDelProgreso('Dejando listo el mundo…', 0.98);
   return resultado;
 }
@@ -1176,48 +1218,112 @@ interface EnLugar {
   azar?: number;
 }
 
+/** A quién se ve primero en un lugar: a quien conoces, después el nivel, lo que es y, por último, un orden estable al azar (`azar`, ya calculado). */
+const compararCercania = (a: EnLugar, b: EnLugar): number =>
+  Number(b.n.known !== false) - Number(a.n.known !== false) || b.nivel - a.nivel || (RELEVANCIA[b.tipo] ?? 0) - (RELEVANCIA[a.tipo] ?? 0) || a.azar! - b.azar!;
+
 /** Número de índices de presencia construidos: `PresenciaService.version`. */
 let versionDeIndices = 0;
 
 /**
- * Quién está en cada lugar entre dos cambios de tramo: se calcula una vez para toda la población y se reutiliza mientras no
- * cambie el intervalo ni la lista de personas. Cada lugar guarda sus personas ya ordenadas (a quien conoces primero, después el nivel, lo
- * que son y, por último, un orden estable al azar).
+ * Qué sitios pueden pisar alguna vez las personas de una agenda (los destinos de todos sus tramos): quien nunca va a un lugar no hace falta mirarlo para saber quién hay allí.
+ * Se recuerda por agenda (las personas con los mismos tipos comparten el mismo objeto).
  */
-const INDICES = new WeakMap<Npc[], { clave: string; version: number; lugares: Map<string, EnLugar[]>; ocupados: Map<string, { n: Npc; motivo: string }[]>; ordenados: Set<string> }>();
+const SITIOS_DE_AGENDA = new WeakMap<readonly TramoDeAgenda[], string[]>();
+function sitiosDeAgenda(a: readonly TramoDeAgenda[]): string[] {
+  let r = SITIOS_DE_AGENDA.get(a);
+  if (!r) {
+    const set = new Set<string>();
+    for (const x of a) for (const [sitio] of x.destinos) if (sitio !== null) set.add(sitio);
+    SITIOS_DE_AGENDA.set(a, (r = [...set]));
+  }
+  return r;
+}
 
-function indiceDePresencia(lista: Npc[], clave: string, ubicar: (n: Npc) => { sitio: string | null; nivel: number; tipo: string; atendiendo?: { sitio: string; motivo: string } }, dia: number) {
+/** Las personas que pueden estar en cada lugar (en el orden de la lista) según sus agendas de ese día: se monta una vez por lista de personas, día y calendario de partidos. */
+const CANDIDATOS = new WeakMap<Npc[], { clave: string; porLugar: Map<string, Npc[]> }>();
+
+function candidatosEn(ahora: Pick<ReturnType<typeof agendasDePresencia>, 'lista' | 'agendaDe' | 'partidos'>, dia: number): (lugar: string) => readonly Npc[] {
+  const clave = `${dia}:${ahora.partidos?.version ?? ''}`;
+  let c = CANDIDATOS.get(ahora.lista);
+  if (c?.clave !== clave) {
+    const porLugar = new Map<string, Npc[]>();
+    for (const n of ahora.lista) {
+      for (const sitio of sitiosDeAgenda(ahora.agendaDe(n))) {
+        const l = porLugar.get(sitio);
+        if (l) l.push(n);
+        else porLugar.set(sitio, [n]);
+      }
+    }
+    CANDIDATOS.set(ahora.lista, (c = { clave, porLugar }));
+  }
+  const { porLugar } = c;
+  return (lugar) => porLugar.get(lugar) ?? [];
+}
+
+type UbicarPersona = (n: Npc) => { sitio: string | null; nivel: number; tipo: string; atendiendo?: { sitio: string; motivo: string } };
+
+/**
+ * Quién está en cada lugar entre dos cambios de tramo: se calcula al pedirlo, lugar a lugar y solo entre las personas que pueden estar allí (`candidatos`), y se reutiliza mientras no
+ * cambie el intervalo ni la lista de personas. Cada lugar guarda sus personas ya ordenadas (a quien conoces primero, después el nivel, lo que son y, por último, un orden estable al azar).
+ */
+const INDICES = new WeakMap<
+  Npc[],
+  {
+    clave: string;
+    version: number;
+    ubicar: UbicarPersona;
+    dia: number;
+    candidatos: (lugar: string) => readonly Npc[];
+    lugares: Map<string, EnLugar[]>;
+    ocupados: Map<string, { n: Npc; motivo: string }[]>;
+    calculados: Set<string>;
+    ordenados: Set<string>;
+  }
+>();
+type IndiceGuardado = NonNullable<ReturnType<typeof INDICES.get>>;
+
+/** Quién hay en un lugar (calculado la primera vez que se pide) y quién se ve en él ocupado. */
+function calcularLugar(idx: IndiceGuardado, lugar: string): void {
+  if (idx.calculados.has(lugar)) return;
+  idx.calculados.add(lugar);
+  const aqui: EnLugar[] = [];
+  const ocupados: { n: Npc; motivo: string }[] = [];
+  for (const n of idx.candidatos(lugar)) {
+    const u = idx.ubicar(n);
+    // Ocupado pero a la vista (en clase, durmiendo): no está «aquí» para hablar, pero se ve en el sitio con su estado.
+    if (u.atendiendo?.sitio === lugar) ocupados.push({ n, motivo: u.atendiendo.motivo });
+    if (u.sitio === lugar) aqui.push({ n, nivel: u.nivel, tipo: u.tipo });
+  }
+  idx.lugares.set(lugar, aqui);
+  idx.ocupados.set(lugar, ocupados);
+}
+
+/** Las personas de un lugar de un índice, ordenadas por cercanía (se ordenan la primera vez). */
+function enDelIndice(idx: IndiceGuardado, lugar: string): EnLugar[] {
+  calcularLugar(idx, lugar);
+  const l = idx.lugares.get(lugar)!;
+  if (!idx.ordenados.has(lugar)) {
+    idx.ordenados.add(lugar);
+    for (const e of l) e.azar = azarDe(e.n.id, idx.dia, 'orden');
+    l.sort(compararCercania);
+  }
+  return l;
+}
+
+function indiceDePresencia(lista: Npc[], clave: string, ubicar: UbicarPersona, dia: number, candidatos: (lugar: string) => readonly Npc[]) {
   let idx = INDICES.get(lista);
   if (!idx || idx.clave !== clave) {
-    const lugares = new Map<string, EnLugar[]>();
-    const ocupados = new Map<string, { n: Npc; motivo: string }[]>();
-    for (const n of lista) {
-      const u = ubicar(n);
-      // Ocupado pero a la vista (en clase, durmiendo): no está «aquí» para hablar, pero se ve en el sitio con su estado.
-      if (u.atendiendo) ocupados.set(u.atendiendo.sitio, [...(ocupados.get(u.atendiendo.sitio) ?? []), { n, motivo: u.atendiendo.motivo }]);
-      if (u.sitio === null) continue;
-      let l = lugares.get(u.sitio);
-      if (!l) lugares.set(u.sitio, (l = []));
-      l.push({ n, nivel: u.nivel, tipo: u.tipo });
-    }
-    INDICES.set(lista, (idx = { clave, version: ++versionDeIndices, lugares, ocupados, ordenados: new Set() }));
+    INDICES.set(lista, (idx = { clave, version: ++versionDeIndices, ubicar, dia, candidatos, lugares: new Map(), ocupados: new Map(), calculados: new Set(), ordenados: new Set() }));
   }
   const actual = idx;
   return {
     version: actual.version,
-    ocupadosEn: (lugar: string): { n: Npc; motivo: string }[] => actual.ocupados.get(lugar) ?? [],
-    en(lugar: string): EnLugar[] {
-      const l = actual.lugares.get(lugar) ?? [];
-      if (!actual.ordenados.has(lugar)) {
-        actual.ordenados.add(lugar);
-        for (const e of l) e.azar = azarDe(e.n.id, dia, 'orden');
-        l.sort(
-          (a, b) =>
-            Number(b.n.known !== false) - Number(a.n.known !== false) || b.nivel - a.nivel || (RELEVANCIA[b.tipo] ?? 0) - (RELEVANCIA[a.tipo] ?? 0) || a.azar! - b.azar!,
-        );
-      }
-      return l;
+    ocupadosEn: (lugar: string): { n: Npc; motivo: string }[] => {
+      calcularLugar(actual, lugar);
+      return actual.ocupados.get(lugar)!;
     },
+    en: (lugar: string): EnLugar[] => enDelIndice(actual, lugar),
   };
 }
 
@@ -1227,6 +1333,73 @@ function entrenadorDeUnJugador(lista: readonly Npc[], pob: PoblacionGuardada, j:
   const cat = j.equipo ? categoriaDe(pob, edadDeJuego(j, inicioCurso) ?? 0) : undefined;
   const letra = j.letra?.[pob.deporte];
   return cat && j.equipo && letra ? entrenadorDelEquipo(lista, pob, j.equipo, cat, letra) : undefined;
+}
+
+/**
+ * Las agendas de la gente en un momento: quién sigue qué horario (con los clubes y los partidos de esa semana) y en qué intervalo entre cambios de tramo estamos.
+ * Lo usan el servicio de presencia (ahora) y `moverse con el grupo` (también para mirar cómo estaba todo al empezar una acción).
+ */
+const AGENDAS_DE_PRESENCIA = new WeakMap<Npc[], Map<number, ReturnType<typeof construirAgendasDePresencia>>>();
+
+function agendasDePresencia(ctx: ReadContext, t: ReadContext['time']) {
+  const lista = ctx.state<NpcsState>().npcs;
+  // Se pide en cada acción (para ver si se va el grupo) y varias veces por minuto: se recuerda por lista de personas y minuto, como el servicio de presencia (que ya lo hace por minuto).
+  let porMinuto = AGENDAS_DE_PRESENCIA.get(lista);
+  if (!porMinuto) AGENDAS_DE_PRESENCIA.set(lista, (porMinuto = new Map()));
+  const hecho = porMinuto.get(t.minute);
+  if (hecho) return hecho;
+  if (porMinuto.size >= 12) porMinuto.clear();
+  const r = construirAgendasDePresencia(ctx, t, lista);
+  porMinuto.set(t.minute, r);
+  return r;
+}
+
+function construirAgendasDePresencia(ctx: ReadContext, t: ReadContext['time'], lista: Npc[]) {
+  const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
+  // Cada persona sigue la jornada y los clubes de su deporte (el primero de la partida si no dice cuál); si el deporte ya no está cargado, no hay nada que seguir.
+  const cargados = fichasDeDeporte(ctx).map((f) => f.id);
+  const datosDe = (deporte: string | undefined) => {
+    const id = deporte ?? cargados[0];
+    return id !== undefined && cargados.includes(id) ? { id, datos: datosDeDeporte(ctx, id) } : undefined;
+  };
+  const datos: DatosDeAgenda = {
+    sesionDeClub: (club, deporte) => {
+      const d = datosDe(deporte);
+      return sesionDelEquipoDeOtroColegio(clubes, ctx.state<NpcsState>().poblaciones, d?.id, club) ?? sesionDeClub(clubes, d?.id, d?.datos.sedes.fuera ?? null, club);
+    },
+    jornada: (deporte) => datosDe(deporte)?.datos.competiciones.jornada,
+  };
+  const inicioCurso = (t.week - t.schoolWeek) * 7;
+  // El día de partido (`MOTOR_PARTIDOS.md` §15): los convocados de los equipos que juegan esta semana, y sus entrenadores, están en el campo desde su convocatoria, en el vestuario a su hora y vuelven a él al acabar.
+  const partidos = ctx.service<PartidosService>(SERVICES.partidos);
+  const agendaDe = (n: Npc): TramoDeAgenda[] => agendaConPartido(n, agendaDePersona(n, datos, t.day), partidos, datosDe(n.deporte)?.datos.categorias ?? []);
+  /**
+   * Dónde está cada persona entre dos cambios de tramo de cualquier agenda: mientras no cambie ninguno, la presencia no cambia
+   * (nadie aparece ni desaparece), así que se calcula una vez por intervalo (unas 10 veces al día) y no cada pocos minutos.
+   */
+  const intervalo = limitesDeTramos(lista, agendaDe, partidos?.version).filter((m) => m <= t.minuteOfDay).length;
+  return { agendaDe, inicioCurso, partidos, intervalo, lista };
+}
+
+/**
+ * ¿Se va el grupo? Con los que tienes cerca (`cercanos`, en el orden en que se ven) y las agendas de un momento (`ahora`, `t`): `grupoQueSeVa` solo dentro del mismo lugar (el colegio y sus zonas,
+ * el estadio, un club...: el sitio raíz del que cuelga cada uno). Lo usan el aviso al acabar la acción y la obligación que corta las acciones antes de que se vaya.
+ */
+function elGrupoSeVa(lugares: LugaresService, cercanos: readonly Npc[], aqui: string, ahora: ReturnType<typeof agendasDePresencia>, t: ReadContext['time']) {
+  const despues = (n: Npc) => ubicacionEn(ahora.agendaDe(n), t, n.id);
+  const raiz = (id: string): string => {
+    let l = lugares.lugar(id);
+    for (let i = 0; l?.dentroDe && i < 4; i++) l = lugares.lugar(l.dentroDe);
+    return l?.id ?? id;
+  };
+  return { despues, g: grupoQueSeVa(cercanos, aqui, despues, (sitio) => raiz(sitio) === raiz(aqui)) };
+}
+
+/** Cómo se dice a dónde va el grupo (a la entrada del lugar si estás en una zona suya y van a él). */
+function haciaTextoDe(lugares: LugaresService, aqui: string, hacia: string): string | undefined {
+  const destino = lugares.lugar(hacia);
+  if (!destino) return undefined;
+  return lugares.lugar(aqui)?.dentroDe === hacia ? `a la entrada ${deLugar(destino.name)}` : haciaLugar(destino.name);
 }
 
 export const npcs = defineModule<NpcsState>({
@@ -1241,6 +1414,9 @@ export const npcs = defineModule<NpcsState>({
     const { npcs, pobs } = conPais(ctx.pais, () => generarTodos(ctx, poblaciones));
     return { npcs, poblaciones: pobs, semilla: ctx.seed };
   },
+
+  // Una partida de una versión anterior no guarda lo que pidieron después los deportes (dorsales, familias de puestos, pistas, días de apuntarse): se completa al cargar (sin tocar lo guardado).
+  alCargar: (estado, ctx) => (estado.poblaciones ? { ...estado, poblaciones: completarPoblaciones(estado.poblaciones, poblacionesDe(ctx, estado.semilla ?? ctx.seed)) } : estado),
 
   // Ponerle (o quitarle) un apodo a alguien que conoces: el texto va en el id de la acción (`idDePonerApodo`).
   resolverAccion: (ctx, id) => {
@@ -1265,7 +1441,80 @@ export const npcs = defineModule<NpcsState>({
     };
   },
 
+  // Que el grupo se vaya cuenta como una obligación: las acciones cortables (charlar, esperar...) no pasan del momento en que se van los que tienes cerca, así que se hace solo ese rato de la
+  // acción y luego sale el aviso «Todos se van…» (`GRUPO_SE_VA`). Se mira con los mismos cercanos que el aviso, en los próximos cambios de tramo.
+  obligaciones: (ctx) => {
+    const lugares = ctx.service<LugaresService>(SERVICES.lugares);
+    const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
+    if (!lugares || !presencia) return [];
+    const t = ctx.time;
+    const aqui = lugares.actual().id;
+    const ahora = agendasDePresencia(ctx, t);
+    const lista = ahora.lista;
+    const cercanos = presencia.en(aqui, aforoCercano(aqui, `${t.day}:${ahora.intervalo}`)).map((v) => personaPorId(lista, v.id)).filter((n): n is Npc => !!n);
+    if (cercanos.length < MOVERSE_CON_EL_GRUPO.minimo) return [];
+    const inicioDelDia = t.minute - t.minuteOfDay;
+    const proximos = limitesDeTramos(lista, ahora.agendaDe, ahora.partidos?.version).filter((m) => m > t.minuteOfDay && m <= t.minuteOfDay + MOVERSE_CON_EL_GRUPO.mirarMinutos);
+    for (const m of proximos) {
+      const tB = ctx.timeAt(inicioDelDia + m);
+      const { g } = elGrupoSeVa(lugares, cercanos, aqui, agendasDePresencia(ctx, tB), tB);
+      const hacia = g && haciaTextoDe(lugares, aqui, g.hacia);
+      if (hacia) return [{ hasta: inicioDelDia + m, texto: `se va el grupo ${hacia} a las ${hhmmDe(m)}` }];
+    }
+    return [];
+  },
+
   on: {
+    // Moverse con el grupo: si en esta acción la mayoría de la gente que tenías cerca se ha ido a un mismo sitio y tú sigues donde estabas, se avisa (`grupo.ts`).
+    [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
+      const d = ev.data as ActionDoneData;
+      // Ir a otro sitio, decidir un suceso (su tiempo ya es el del viaje) y lo que no gasta tiempo no se miran: no hay «sigues donde estabas».
+      if (d.duration < 1 || d.tags.includes('desplazamiento') || d.tags.includes('decision')) return;
+      const lugares = ctx.service<LugaresService>(SERVICES.lugares);
+      if (!lugares) return;
+      const t1 = ctx.time;
+      const t0 = ctx.timeAt(t1.minute - d.duration);
+      if (t0.day !== t1.day) return;
+      const antes = agendasDePresencia(ctx, t0);
+      const ahora = agendasDePresencia(ctx, t1);
+      // La presencia solo cambia al cambiar de intervalo entre dos cambios de tramo: si no ha cambiado, nadie se ha ido.
+      if (antes.intervalo === ahora.intervalo) return;
+      const aqui = lugares.actual().id;
+      // Quién había contigo al empezar: si el índice de presencia que hay guardado es el de ese momento (casi siempre: nadie ha pedido aún la presencia del nuevo intervalo), se usa tal cual; si no, se calcula.
+      const claveAntes = `${t0.day}:${antes.intervalo}:${antes.partidos?.version ?? ''}`;
+      const guardado = INDICES.get(antes.lista);
+      let alEmpezar: EnLugar[];
+      if (guardado?.clave === claveAntes) alEmpezar = enDelIndice(guardado, aqui);
+      else {
+        alEmpezar = [];
+        for (const n of candidatosEn(antes, t0.day)(aqui)) {
+          const u = ubicacionEn(antes.agendaDe(n), t0, n.id);
+          if (u.sitio === aqui) alEmpezar.push({ n, nivel: u.nivel, tipo: u.tipo, azar: azarDe(n.id, t0.day, 'orden') });
+        }
+      }
+      if (!alEmpezar.length) return;
+      // El mismo orden en que se ve la gente (los que conoces primero): se ordena una vez por lugar (`azar` ya puesto si el índice la ordenó).
+      for (const e of alEmpezar) e.azar ??= azarDe(e.n.id, t0.day, 'orden');
+      alEmpezar = [...alEmpezar].sort(compararCercania);
+      const cercanos = alEmpezar.slice(0, aforoCercano(aqui, `${t0.day}:${antes.intervalo}`)).map((e) => e.n);
+      const { despues, g } = elGrupoSeVa(lugares, cercanos, aqui, ahora, t1);
+      const destino = g && lugares.lugar(g.hacia);
+      const minutos = g && lugares.minutosA(g.hacia);
+      if (g && destino && minutos !== undefined) {
+        const haciaTexto = haciaTextoDe(lugares, aqui, g.hacia)!;
+        const conocidos = new Set(cercanos.filter((n) => n.known !== false).map((n) => n.id));
+        ctx.emit<GrupoSeVaData>({
+          type: SHARED_EVENTS.GRUPO_SE_VA,
+          data: { desde: aqui, hacia: g.hacia, haciaTexto, minutos, cuantos: g.cuantos, total: g.total, muestra: g.muestra.filter((id) => conocidos.has(id)).map((npcId) => ({ npcId })) },
+        });
+      }
+      // «Me voy»: lo que dice alguien que conoces y tienes al lado cuando se va solo (una línea discreta en lo que pasa; no pregunta nada ni va al diario).
+      for (const { persona, hacia } of d.duration <= MOVERSE_CON_EL_GRUPO.despedidaHasta ? seVanSolos(cercanos, aqui, despues, g?.hacia) : []) {
+        const sitio = hacia && lugares.lugar(hacia);
+        ctx.log(`${persona.apodo ?? persona.nombrePila ?? persona.name.split(' ')[0]}: «Me voy${sitio ? ` ${haciaLugar(sitio.name)}` : ''}.»`, 'info');
+      }
+    },
+
     [CORE_EVENTS.DAY_END]: (ctx, ev) => {
       const { day } = ev.data as { day: number };
       ctx.updateState<NpcsState>((s) => ({
@@ -1318,7 +1567,13 @@ export const npcs = defineModule<NpcsState>({
         const npcs = conCuerpo(conCapacidades(conHabilidades(s.npcs, pobs, rend, week * 7), week * 7), week * 7, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, (ctx.time.week - ctx.time.schoolWeek) * 7));
         avanzarCapacidadesEnSitio(npcs, (week + 1) * 7);
         const sesiones = new Map<string, number>();
-        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7, sesiones, lesionados);
+        // Cerca del personaje: su club y el equipo de su colegio (sus compañeros), aunque no esté apuntado.
+        const clubesActivos = new Set<string>(['colegio']);
+        for (const pob of pobs) {
+          const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(pob.deporte);
+          if (club) clubesActivos.add(club.id);
+        }
+        semanaDeportiva(npcs, pobs, rend, (week + 1) * 7, (ctx.time.week - ctx.time.schoolWeek) * 7, sesiones, lesionados, { clubesActivos, semanaDelCurso: ctx.timeAt(week * 7 * MINUTES_PER_DAY).schoolWeek });
         // El cuerpo de todos pasa la semana con los hábitos de cada uno (los que juegan, con sus sesiones).
         semanaDelCuerpo(npcs, (week + 1) * 7, sesiones, s.semilla ?? 0, escolarDeLaSemana(ctx, week));
         return { ...s, npcs };
@@ -1337,10 +1592,13 @@ export const npcs = defineModule<NpcsState>({
       const reservas = new Map<string, number>();
       const personaje: JugadorEnClub[] = [];
       const rend = rendimientosDe(ctx);
+      const finDeCategorias: string[] = [];
       const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
       for (const pob of pobs) {
         const club = clubes?.membership(pob.deporte);
         const cat = club && pob.equipos.some((e) => e.club === club.id && e.plantillaPorCategoria) ? categoriaDe(pob, edadProxima) : undefined;
+        // Si a su edad el deporte ya no tiene categoría (acaba la última), no se queda en el club sin equipo y sin aviso: se le avisa (`fin_de_categorias`) y sale del club.
+        if (club && !cat && pob.categorias?.length && pob.equipos.some((e) => e.club === club.id && e.plantillaPorCategoria)) finDeCategorias.push(pob.deporte);
         if (!club || !cat) continue;
         reservas.set(claveDeEquipo(club.id, cat.id), 1);
         const f = rend.get(pob.deporte);
@@ -1352,15 +1610,30 @@ export const npcs = defineModule<NpcsState>({
       ctx.updateState<NpcsState>((s) => {
         const npcs = conPais(ctx.pais, () => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day));
         const pobsNuevas = resultado.pobs ?? pobs;
-        return { ...s, poblaciones: pobsNuevas, npcs: conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
+        return { ...s, poblaciones: pobsNuevas, npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), pobsNuevas, proximo.day, s.semilla ?? 0), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
       });
       // El entrenador le propone al personaje otro puesto si en el suyo sobran y en otro faltan (decide él: `club.cambio_de_puesto`).
       for (const p of resultado.propuestas) if (!resultado.sinPlaza.includes(p.deporte)) ctx.emit<PuestoPropuestoData>({ type: SHARED_EVENTS.PROPUESTA_DE_PUESTO, data: { sport: p.deporte, puesto: p.puesto } });
       // Con una plaza de más sigue en el equipo, y el entrenador le avisa de que contará menos con él (suceso `<deporte>.plaza_extra`).
       for (const deporte of resultado.plazaExtra) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_EXTRA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
       // Si su equipo no sigue (su club no reúne el mínimo de niños o no tiene equipos en su categoría), tiene que buscarse equipo (suceso `<deporte>.equipo_sin_ninos`; sale del club como cualquier niño).
+      for (const deporte of finDeCategorias) ctx.emit<EquipoSinNinosData>({ type: SHARED_EVENTS.EQUIPO_SIN_NINOS, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id, motivo: 'fin_de_categorias' } });
       for (const f of resultado.sinNinos) ctx.emit<EquipoSinNinosData>({ type: SHARED_EVENTS.EQUIPO_SIN_NINOS, data: { sport: f.deporte, clubId: clubes!.membership(f.deporte)!.id, motivo: f.motivo, ...(f.jugadores !== undefined ? { jugadores: f.jugadores } : {}), ...(f.minimo !== undefined ? { minimo: f.minimo } : {}) } });
-      for (const deporte of resultado.sinPlaza) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
+      // Sin plaza (otro que vale más se la ha quitado y no cabe ni con una plaza de más): sale del club y el suceso `<deporte>.plaza_perdida` se lo cuenta su entrenador, con hasta cuándo siguen abiertas las pruebas.
+      for (const deporte of resultado.sinPlaza) {
+        const clubId = clubes!.membership(deporte)!.id;
+        const suyos = ctx.state<NpcsState>().npcs.filter((n) => n.role === 'entrenador' && n.deporte === deporte && n.club === clubId);
+        const edadAntes = (personaje.find((j) => j.deporte === deporte)?.edad ?? 0) - 1;
+        const entrenador = suyos.find((n) => n.edades && edadAntes >= n.edades[0] && edadAntes <= n.edades[1]) ?? suyos[0];
+        const temporada = datosDeDeporte(ctx, deporte).temporada;
+        const cierre = (proximo.week - proximo.schoolWeek + semanasDeTemporada(ctx.pais.calendario, temporada).primeraCompeticion) * 7 - 1;
+        // Los clubes de fuera con equipo en su categoría a los que puede pedir una prueba, en una frase.
+        const pobDeporte = pobs.find((p) => p.deporte === deporte);
+        const categoria = personaje.find((j) => j.deporte === deporte)?.categoria;
+        const nombres = (pobDeporte?.equipos ?? []).filter((e) => e.colegio === undefined && e.club !== clubId && e.plantillaPorCategoria && categoriasDelEquipo(pobDeporte!, e).some((c) => c.id === categoria)).map((e) => e.nombre ?? e.club);
+        const clubesDePrueba = nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0] ?? 'otros clubes de la ciudad';
+        ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId, ...(entrenador ? { participants: [{ npcId: entrenador.id }] } : {}), plazoHasta: diaConFecha(cierre), clubes: clubesDePrueba } });
+      }
     },
 
     // El personaje acepta el cambio de puesto que le propuso su entrenador: el equipo cuenta con él en el nuevo.
@@ -1402,6 +1675,15 @@ export const npcs = defineModule<NpcsState>({
         const rendDelClub = rendimientosDe(ctx);
         const pob = pobs.find((p) => p.deporte === sport);
         const plaza = plazaEnElEquipo(ctx.state<NpcsState>().npcs, pobs, sport, clubId, edad, nivel, inicioCurso, pob ? (valoresDePrueba ?? puestosDelPersonaje(ctx, rendDelClub, pob)) : undefined, rendDelClub, undefined, valoresDePrueba && puesto ? { puesto, yaPasada: true } : undefined);
+        // Con hueco en el club pero no en su equipo por el cupo de su puesto, el equipo abre plazas de más (1–2) para que quepa.
+        if (plaza.estado === 'libre' && plaza.plazasDeMas) {
+          ctx.updateState<NpcsState>((st) => {
+            let nuevas: readonly PoblacionGuardada[] = st.poblaciones ?? pobs;
+            const cat = pob ? categoriaDe(pob, edad) : undefined;
+            for (let i = 0; i < plaza.plazasDeMas! && cat; i++) nuevas = conUnaPlazaDeMas(nuevas, { deporte: sport, club: clubId, categoria: cat.id }) ?? nuevas;
+            return { ...st, poblaciones: [...nuevas] };
+          });
+        }
         if (plaza.estado === 'por_merito' && plaza.peor && pob) {
           const cat = categoriaDe(pob, edad);
           const reservas = new Map<string, number>(cat ? [[claveDeEquipo(clubId, cat.id), 1]] : []);
@@ -1541,9 +1823,12 @@ export const npcs = defineModule<NpcsState>({
 
     [SHARED_EVENTS.COMPETITION_RESULT]: (ctx, ev) => {
       const r = ev.data as CompetitionResultData;
+      // Jugar un partido contra alguien (decidido el 22/11/2026) **no** es conocerlo: del rival se ve su aspecto y su dorsal (el deporte los apunta), y el nombre se sabe como el de cualquiera (presentarse, hablar…).
+      // En una carrera individual, en cambio, quien corre a tu lado sí se da a conocer.
+      if (r.equipo) return;
       ctx.updateState<NpcsState>((s) => ({
         ...s,
-        // Competir contra alguien (sea de otro colegio, un compañero o un hermano) es conocerlo.
+        // Competir contra alguien en una prueba (sea de otro colegio, un compañero o un hermano) es conocerlo.
         npcs: s.npcs.map((n) => (n.known === false && r.participants.some((x) => x.npcId === n.id) ? { ...n, known: true } : n)),
       }));
     },
@@ -1565,30 +1850,8 @@ export const npcs = defineModule<NpcsState>({
       // Se pide muchas veces seguidas (en cada acción de relación): dentro del mismo minuto es el mismo servicio.
       const hecho = SERVICIOS_DE_PRESENCIA.get(lista);
       if (hecho?.minuto === t.minute) return hecho.servicio;
-      const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
-      // Cada persona sigue la jornada y los clubes de su deporte (el primero de la partida si no dice cuál); si el deporte ya no está cargado, no hay nada que seguir.
-      const cargados = fichasDeDeporte(ctx).map((f) => f.id);
-      const datosDe = (deporte: string | undefined) => {
-        const id = deporte ?? cargados[0];
-        return id !== undefined && cargados.includes(id) ? { id, datos: datosDeDeporte(ctx, id) } : undefined;
-      };
-      const datos: DatosDeAgenda = {
-        sesionDeClub: (club, deporte) => {
-          const d = datosDe(deporte);
-          return sesionDelEquipoDeOtroColegio(clubes, ctx.state<NpcsState>().poblaciones, d?.id, club) ?? sesionDeClub(clubes, d?.id, d?.datos.sedes.fuera ?? null, club);
-        },
-        jornada: (deporte) => datosDe(deporte)?.datos.competiciones.jornada,
-      };
-      const inicioCurso = (t.week - t.schoolWeek) * 7;
-      // El día de partido (`MOTOR_PARTIDOS.md` §15): los convocados de los equipos que juegan esta semana, y sus entrenadores, están en el campo desde su convocatoria, en el vestuario a su hora y vuelven a él al acabar.
-      const partidos = ctx.service<PartidosService>(SERVICES.partidos);
-      const agendaDe = (n: Npc): TramoDeAgenda[] => agendaConPartido(n, agendaDePersona(n, datos, t.day), partidos, datosDe(n.deporte)?.datos.categorias ?? []);
-      /**
-       * Dónde está cada persona entre dos cambios de tramo de cualquier agenda: mientras no cambie ninguno, la presencia no cambia
-       * (nadie aparece ni desaparece), así que se calcula una vez por intervalo (unas 10 veces al día) y no cada pocos minutos.
-       */
-      const intervalo = limitesDeTramos(lista, agendaDe, partidos?.version).filter((m) => m <= t.minuteOfDay).length;
-      const indice = indiceDePresencia(lista, `${t.day}:${intervalo}:${partidos?.version ?? ''}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day);
+      const { agendaDe, inicioCurso, partidos, intervalo } = agendasDePresencia(ctx, t);
+      const indice = indiceDePresencia(lista, `${t.day}:${intervalo}:${partidos?.version ?? ''}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day, candidatosEn({ lista, agendaDe, partidos }, t.day));
       const servicio: PresenciaService = {
         version: indice.version,
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso, t.day)),
@@ -1609,6 +1872,18 @@ export const npcs = defineModule<NpcsState>({
       const lista = ctx.state<NpcsState>().npcs;
       // Edad de temporada: la de cada rival el primer día del curso, que es la que decide su categoría.
       const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
+      const suEquipo = (deporte: string): { club: string; categoria: string; letra: string } | undefined => {
+          const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
+          const pob = poblacionesGuardadas(ctx).find((p) => p.deporte === deporte);
+          const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
+          const cat = pob ? categoriaDe(pob, edad) : undefined;
+          const rend = rendimientosDe(ctx);
+          const puesto = ctx.state<NpcsState>().puestoDelPersonaje?.[deporte];
+          const valores = pob ? puestosDelPersonaje(ctx, rend, pob) : undefined;
+          if (!club || !pob || !cat || !puesto || !valores) return undefined;
+          const letra = equipoDelPersonajeEn(lista, poblacionesGuardadas(ctx), deporte, club.id, cat.id, { id: idDelPersonaje(deporte), puesto, valor: valores[puesto] }, edad, inicioCurso, valoracionDe(rend));
+          return letra ? { club: club.id, categoria: cat.id, letra } : undefined;
+      };
       return {
         list: (f) => {
           // Las consultas se repiten en cada acción: se resuelven una vez por lista de personas, curso y filtro.
@@ -1639,20 +1914,9 @@ export const npcs = defineModule<NpcsState>({
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
         rotaElEquipo: (deporte, club, categoria) => rotaElEquipo(poblacionesGuardadas(ctx), deporte, club, categoria),
-        equiposDeLaCategoria: (deporte, categoria) => equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso),
-        plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day)),
-        equipoDelPersonaje: (deporte) => {
-          const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
-          const pob = poblacionesGuardadas(ctx).find((p) => p.deporte === deporte);
-          const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
-          const cat = pob ? categoriaDe(pob, edad) : undefined;
-          const rend = rendimientosDe(ctx);
-          const puesto = ctx.state<NpcsState>().puestoDelPersonaje?.[deporte];
-          const valores = pob ? puestosDelPersonaje(ctx, rend, pob) : undefined;
-          if (!club || !pob || !cat || !puesto || !valores) return undefined;
-          const letra = equipoDelPersonajeEn(lista, poblacionesGuardadas(ctx), deporte, club.id, cat.id, { id: idDelPersonaje(deporte), puesto, valor: valores[puesto] }, edad, inicioCurso, valoracionDe(rend));
-          return letra ? { club: club.id, categoria: cat.id, letra } : undefined;
-        },
+        equiposDeLaCategoria: (deporte, categoria) => { const yo = suEquipo(deporte); return equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day, yo && yo.categoria === categoria ? { club: yo.club, letra: yo.letra } : undefined); },
+        plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day), ctx.time.day),
+        equipoDelPersonaje: suEquipo,
         previsionDelClub: (deporte) => {
           const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
           return club ? previsionDelClubDe(lista, poblacionesGuardadas(ctx), deporte, club.id, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, inicioCurso) : undefined;
@@ -1661,6 +1925,8 @@ export const npcs = defineModule<NpcsState>({
         nivelesDelEquipo: (deporte, club, categoria) => nivelesDelEquipoDe(lista, poblacionesGuardadas(ctx), deporte, club, categoria, ctx.time.week, inicioCurso),
         plaza: (deporte, club, nivel, puestos, prueba) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso, puestos, rendimientosDe(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', prueba),
         consejoDeportivo: () => consejoDeUnProfesor(ctx, lista, poblacionesGuardadas(ctx), rendimientosDe(ctx), inicioCurso),
+        familiasDePuestos: () => familiasDePuestosDeLosDeportes(poblacionesGuardadas(ctx)),
+        lecturaDePuesto: (deporte, familia) => lecturaDeUnPuesto(ctx, lista, poblacionesGuardadas(ctx), rendimientosDe(ctx), inicioCurso, deporte, familia),
       };
     },
   },

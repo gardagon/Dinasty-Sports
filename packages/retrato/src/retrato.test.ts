@@ -15,6 +15,19 @@ const persona = (sexo: 'f' | 'm', a: Partial<Apariencia> = {}, c: Partial<Cuerpo
 });
 const EDADES = Array.from({ length: 93 }, (_, i) => i + 3);
 
+describe('retrato: el pliegue del párpado', () => {
+  it('cambia de forma continua con el rasgo: cada paso da un dibujo distinto y ninguna medida de la cara salta', () => {
+    for (const s of ['f', 'm'] as const) for (const e of [4, 10, 30, 70]) {
+      const pasos = Array.from({ length: 21 }, (_, i) => retratoSvg(persona(s, { rostro: rostro({ parpado: i / 20 }) }), e));
+      expect(new Set(pasos).size).toBe(21);
+      pasos.forEach((svg) => expect(svg).not.toMatch(/NaN|undefined|Infinity/));
+    }
+    const eh = (v: number) => medidasDeCara(parametrosDe(persona('f', { rostro: rostro({ parpado: v }) }), 30)).eh;
+    for (let i = 0; i < 20; i++) expect(Math.abs(eh((i + 1) / 20) - eh(i / 20))).toBeLessThan(0.01);
+    expect(eh(0)).toBeLessThan(eh(1));
+  });
+});
+
 describe('retrato: el dibujo es determinista y no se rompe', () => {
   it('la misma persona a la misma edad da el mismo SVG', () => {
     for (const s of ['f', 'm'] as const) for (const e of [3, 8, 15, 30, 70, 95]) expect(retratoSvg(persona(s), e)).toBe(retratoSvg(persona(s), e));
@@ -241,5 +254,27 @@ describe('look: el estilo elegido de cada persona (contracts)', () => {
     for (const p of PEINADOS) { expect(peinadoPosible(p.id, 0)).toBe(p.id); expect(PEINADOS.find((x) => x.id === peinadoPosible(p.id, 1))!.calvicieMaxima).toBe(1); }
     expect(peinadoPosible('flequillo', 1)).toBe('rapado');
     expect(peinadoPosible('afeitada', 1)).toBe('afeitada');
+  });
+});
+
+describe('retrato: no depende del tema ni hereda nada', () => {
+  it('la raíz del SVG no lleva opacidad, filtro ni estilo, y los colores del dibujo son fijos (nada de variables ni currentColor)', () => {
+    for (const s of ['f', 'm'] as const) for (const e of [8, 30, 70]) {
+      const svg = retratoSvg(persona(s), e) + evolucionDe(persona(s), e) + figuraDe(persona(s), e, e);
+      for (const raiz of svg.match(/<svg[^>]*>/g) ?? []) expect(raiz).not.toMatch(/opacity|filter|style|mix-blend/);
+      expect(retratoSvg(persona(s), e)).not.toMatch(/var\(--|currentColor|<filter|<style/);
+    }
+  });
+});
+
+describe('retrato: los niños no salen calvos', () => {
+  it('hasta la pubertad, ningún niño ni niña va afeitado ni rapado al cero; de mayores vuelve su estilo', () => {
+    let mayoresAlCero = 0;
+    for (let semilla = 1; semilla <= 1500; semilla++) for (const s of ['f', 'm'] as const) {
+      const c = persona(s, { calvicie: 0 }, { semilla });
+      for (const e of [3, 8, 12]) expect(parametrosDe(c, e).peinado.largo).toBeGreaterThanOrEqual(0.5);
+      if (parametrosDe(c, 30).peinado.largo < 0.4) mayoresAlCero++;
+    }
+    expect(mayoresAlCero).toBeGreaterThan(0);
   });
 });

@@ -20,7 +20,7 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 
 ## 2. Estado (17/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido, subido y la suite entera en verde (1.079 tests). **No está unida a la rama principal**: hacerlo es decisión del usuario.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127; 1.187 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
@@ -33,14 +33,18 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, con todo lo de abajo unido
 
 Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
 
-1. **Unir a la principal: aprobado por el usuario el 21/11** («para testear como jugador y después ver rendimientos, y trabajar en paralelo»). Pull request https://github.com/gardagon/Dinasty-Sports/pull/127, que se une cuando la integración continua dé verde. Después, la revisión de rendimiento (§4).
+1. ~~**Unir a la principal**~~ **Unida el 21/11** (gardagon/Dinasty-Sports#127, integración continua en verde): publicada en GitHub Pages. La rama de trabajo sigue siendo `claude/youthful-clarke-vs0kye`, al día con `main`.
 2. ~~**Reparto de equipos 2, lo que queda**~~ Respondido el 21/11 (DECISIONES, «Rotación en el fútbol de colegio…») y encargado a `claude/rotacion-y-puestos`.
+2. ~~**Rendimiento con la ciudad grande y el fútbol**~~ Respondido el 21/11 (DECISIONES, «Rendimiento: guardar sin congelar…») y encargado a `claude/guardar-sin-congelar` y `claude/futbol-mas-barato`.
+3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
+5. **Balance de los entrenamientos nuevos** (`docs/relevo/entrenamientos.md`): para que el club rinda más que entrenar por libre (como dice su descripción), una sesión del club sube ~13 puntos de habilidad en vez de ~6. Por curso, el jugador sube igual que antes en lo que pesa en su puesto (antes ~43 puntos eran portería que subía un jugador de campo). Los PNJ salen un 3–5 % más altos por edad (los frena el tope por edad). Opciones: aceptarlo; bajar solo la escala del club (entonces el club ya no supera al libre); o subir el libre a la par y bajar los dos. **Recomendación:** aceptarlo y vigilar los niveles por edad, porque el progreso por curso del jugador no cambia.
+6. **Llevar a la versión publicada** lo unido desde el 21/11 (#127): guardado sin congelar, fútbol más barato y equipos que se forman desde el día 1–6, sucesos en clase, deberes y acciones cortas, moverse con el grupo, caras según el origen, «Mi equipo», dorsales, puestos y pistas, entrenamientos y el coste por acción. Aprobado el 22/11. Partidas guardadas: confirmado que cargan. Balance: aceptado. Falta el arreglo de la plaza al cambiar de año (`claude/plaza-al-cambiar-de-anio`); con él, abrir el pull request.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| — | — | Ninguna |
+| `session_01M4vXXMp7cyuMpYVVwYDEFo` | `claude/pnj-entrenan-y-abandono` | Análisis con propuesta (desactivada): PNJ que entrenan por su cuenta o quedan a jugar; abandono de los mejores |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
@@ -48,7 +52,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
-0 ter. **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
+0 ter. **Hecha el 21/11** (`docs/relevo/revision-rendimiento.md`; decisiones en §3). **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
 
 
 
@@ -86,3 +90,20 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXNt52eARrGJ6e6Uscp` | Sonnet | Reparto de equipos: colegios, probar fuera por edad y plazas de más (17–20/11, esta sesión de arquitectura) |
 | `session_01M4vXXPf2zMF2zD3iHE79x3` | Sonnet | Reparto de equipos 2 (20/11, esta sesión de arquitectura) |
 | `session_01M4vXXS22qpRwXGa4JE7VBv` | Sonnet | Rotación, «El curso que viene» y puestos (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXRfGRcayUhG8WXyDCj` | Sonnet | Revisión de rendimiento (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXNStiDzD4AGKEshkud` | Sonnet | Guardar sin congelar y vigilar el peso (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXMHztRUvbt7XbZW3ft` | Sonnet | Puestos, entrenamientos y pistas: análisis (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXMaAyvvsxH4QeZu3rA` | Sonnet | Sucesos en clase sin tiempo ni «mañana» (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXPDhEajtkKpPVfbKQS` | Sonnet | Hacer deberes y acciones que pisan otra (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXPBodQ2WC6McapR2v8` | Sonnet | Caras según el origen y ojo con pliegue (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXPQUdYEGsR1Fs7XmG5` | Sonnet | Fútbol más barato y equipos que se forman al empezar el curso (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXPpi9riogRRYhFwJud` | Sonnet | Mi equipo y habilidades agrupadas (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXR9ZzuDodhbLuCsMSu` | Sonnet | Moverse con el grupo (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXNVXxbCc2nznHngV8k` | Sonnet | Puestos y pistas (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXPwp3Qjr84KzsiTdwA` | Sonnet | Dorsales, crónica y columnas de Mi equipo (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXPDBij8YJjM9AZGWFY` | Sonnet | Catálogo de entrenamientos y campamentos (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXQFX9Ng9KHWSoLso2U` | Sonnet | Coste por acción (21–22/11, esta sesión de arquitectura) |
+| `session_01M4vXXPS1A9ScC8LHqc2qXa` | Sonnet | Análisis de profesionales a los 18 (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXP9yVZBSgVR7Bp2jZa` | Sonnet | Compatibilidad con main, crónica sin nombres e investigación del personaje sin equipo (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXMq6uyW8dV12rHW48q` | Sonnet | Plaza al cambiar de año (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXMSfXmoS68SCSee9NG` | Sonnet | Retrato en el móvil y niños calvos (22/11, esta sesión de arquitectura) |

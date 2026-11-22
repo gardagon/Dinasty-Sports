@@ -733,7 +733,8 @@ describe('integración de módulos', () => {
       for (const p of v.temporada.pruebas) {
         expect(p.tabla?.rows.length).toBeGreaterThanOrEqual(5);
         expect(p.tabla!.rows[p.tabla!.highlight!][1]).toBe('Tú');
-        if (!/semifinal/.test(p.titulo)) expect(p.tabla!.rows[p.posicion - 1][1]).toBe('Tú'); // en la semifinal la tabla junta las dos series por tiempos
+        // Con la misma marca que otro corredor la tabla lo pone delante (el desempate), pero la posición cuenta solo a los más rápidos: se acepta su fila o una con su misma marca.
+        if (!/semifinal/.test(p.titulo)) expect([p.tabla!.rows[p.posicion - 1][1], p.tabla!.rows[p.posicion - 1][3]]).toEqual(expect.arrayContaining([p.tabla!.rows[p.tabla!.highlight!][3]])); // en la semifinal la tabla junta las dos series por tiempos
       }
       expect(v.temporada.pruebas.some((p) => /semifinal/.test(p.titulo))).toBe(true);
       // Una clasificación por puntos y otra de mejores marcas, con el personaje (en su sitio real) y como mucho 11 filas.
@@ -1265,10 +1266,15 @@ describe('horarios de los lugares en las acciones', () => {
     const primero = () => (g.preview('atletismo.series')!.lugar ?? [])[0];
     const hasta = (minuto: number) => advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= minuto, 400);
     expect(g.service<LugaresService>(SERVICES.lugares)!.actual().id).toBe('parque');
-    // El colegio abre a las 10:00. Justo cuando se llegaría a su entrada un minuto antes, aunque a la pista (2 minutos más allá) se llegaría ya abierto.
+    // El colegio abre a las 10:00. Mientras se llegaría a su entrada antes de que abra, la acción va a otro sitio; en cuanto se llegaría ya abierto, vuelve a ser la pista (a ella se llega 2 minutos más tarde).
+    // (Se espera de 5 en 5 minutos desde donde haya dejado el reloj: ya no cae exacto, porque las esperas se cortan al llegar una clase, y se mira el primer paso en que cambia.)
     const alColegio = g.service<LugaresService>(SERVICES.lugares)!.minutosA('colegio')!;
-    hasta(10 * 60 - alColegio - 1);
-    expect(primero()).not.toBe('pista_colegio');
+    expect(g.time.minuteOfDay + alColegio).toBeLessThan(10 * 60);
+    while (primero() !== 'pista_colegio') {
+      expect(g.time.minuteOfDay + alColegio).toBeLessThan(10 * 60);
+      expect(g.perform('gen.esperar').ok).toBe(true);
+    }
+    expect(g.time.minuteOfDay + alColegio).toBeGreaterThanOrEqual(10 * 60);
     hasta(10 * 60 + 30);
     expect(primero()).toBe('pista_colegio');
     // La academia no se puede hacer antes de que abra el colegio, y el motivo es el horario, no el lugar.

@@ -2,7 +2,7 @@ import { CORE_EVENTS, SHARED_EVENTS } from '../events';
 import { PERKS } from '../perks';
 import { EJES } from '../rasgos';
 import { analizarTexto } from './texto';
-import { HECHOS_COMUNES, type AporteDeSucesos, type Condicion, type CategoriaDeCupo, type ContadorDef, type OrigenDeSuceso, type Efecto, type HiloDef, type OpcionDef, type PapelDef, type RamaDef, type SucesoDef } from './tipos';
+import { HECHOS_COMUNES, type AporteDeSucesos, type Condicion, type CategoriaDeCupo, type ContadorDef, type OrigenDeSuceso, type Efecto, type HiloDef, type OpcionDef, type PapelDef, type RamaDef, type SucesoDef, sucesoEsDurante } from './tipos';
 
 /** Un suceso listo para usar: con el reparto y los módulos de su hilo ya sumados. */
 export interface SucesoCompilado {
@@ -258,7 +258,11 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
           if (!a.si?.length) err(`la opción «${o.id}»: un ajuste de la tirada necesita al menos una condición en «si»`);
         }
         if (o.tirada && entorno && !entorno.stats.has(o.tirada.con)) err(`la opción «${o.id}» tira con «${o.tirada.con}», que no existe`);
-        if (o.minutos !== undefined && !(o.minutos >= 1)) err(`la opción «${o.id}»: los minutos deben ser 1 o más`);
+        if (typeof o.minutos === 'object') {
+          if (!o.minutos.deLaSeñal) err(`la opción «${o.id}»: «minutos» con «deLaSeñal» necesita el nombre del dato`);
+          else if (!('al' in s.disparo)) err(`la opción «${o.id}»: «minutos: { deLaSeñal }» solo vale en un suceso que sale con una señal`);
+        } else if (o.minutos !== undefined && !(o.minutos >= 1)) err(`la opción «${o.id}»: los minutos deben ser 1 o más`);
+        if (o.minutos !== undefined && sucesoEsDurante(s)) err(`la opción «${o.id}» gasta minutos, pero el suceso pasa durante una actividad (no gasta tiempo propio): quita «minutos» o, si es algo aparte, pon «durante: false»`);
         for (const eje of Object.keys(o.caracter ?? {})) if (!EJE_IDS.has(eje)) err(`la opción «${o.id}» tira hacia «${eje}», que no es un eje de carácter`);
       }
       if (d.opciones?.length && !s.plazo) err('tiene opciones pero no tiene plazo (con la opción por defecto)');
@@ -267,6 +271,12 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
       if (!todasLasOpciones.has(s.plazo.porDefecto)) err(`la opción por defecto del plazo, «${s.plazo.porDefecto}», no existe`);
       for (const d of [s, ...(s.variantes ?? [])]) if (d.opciones?.length && !d.opciones.some((o) => o.id === s.plazo!.porDefecto)) err(`la opción por defecto «${s.plazo.porDefecto}» no está entre las opciones de ${d === s ? 'el suceso' : `la variante «${(d as { id: string }).id}»`}`);
       if (s.plazo.dias === undefined && s.plazo.hasta === undefined) err('el plazo necesita «dias» o «hasta»');
+    }
+    // Lo que pasa en el momento no se puede dejar para luego.
+    if (s.urgencia && s.urgencia !== 'ahora') {
+      if (sucesoEsDurante(s)) err('pasa durante una actividad: su urgencia es «ahora» (no se puede dejar para luego)');
+      for (const [n, p] of Object.entries(s.reparto ?? {})) if (p.presente) err(`el papel «${n}» está presente, así que se responde en el momento: su urgencia es «ahora»`);
+      if (s.cuando?.some((c) => 'presente' in c)) err('pasa en presencia de alguien («presente»), así que se responde en el momento: su urgencia es «ahora»');
     }
     if (s.siSePierde && !todasLasOpciones.has(s.siSePierde)) err(`«siSePierde» nombra la opción «${s.siSePierde}», que no existe`);
 

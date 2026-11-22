@@ -65,13 +65,28 @@ Valores numéricos de la generación (no de la edad). El dibujo decidirá con el
 
 ## 7. Rasgos de la cara heredables (`Apariencia.rostro`)
 
-Para que los hijos se parezcan a sus padres (y a veces a un abuelo), la cara se hereda además de la forma, los colores y los distintivos. Son **12 rasgos, cada uno un número de 0 a 1** (no catálogos de formas: no dependen del estilo de dibujo): `ojosForma`, `ojosTamano`, `narizForma`, `narizTamano`, `bocaGrosor`, `bocaAnchura`, `cejasGrosor`, `cejasForma`, `orejasTamano`, `orejasDespegadas`, `menton`, `pomulos` (`RASGOS_DE_ROSTRO`).
+Para que los hijos se parezcan a sus padres (y a veces a un abuelo), la cara se hereda además de la forma, los colores y los distintivos. El origen inclina la media de cada rasgo (decidido el 21/11). Son **13 rasgos, cada uno un número de 0 a 1** (no catálogos de formas: no dependen del estilo de dibujo): `ojosForma` (0 rasgados y estrechos, 1 redondos y abiertos), `ojosTamano`, `narizForma` (0 fina, 1 ancha), `narizTamano`, `bocaGrosor`, `bocaAnchura`, `cejasGrosor`, `cejasForma` (0 rectas, 1 arqueadas), `orejasTamano`, `orejasDespegadas`, `menton`, `pomulos` y **`parpado`** (el pliegue del párpado: 0 sin pliegue visible, con epicanto; 1 pliegue marcado), en `RASGOS_DE_ROSTRO`. `parpado` va el último: las partidas anteriores (24 caracteres) se leen con él a 0,5 sin subir `SAVE_VERSION`.
 
 - **Herencia como los perks**: cada rasgo es un par `[expresado, latente]`. El hijo recibe **uno de los dos valores de cada padre** (al azar) y **uno de los dos que recibe se expresa** (al azar, 50 %). Así saca cada rasgo de uno de sus padres, y 1 de cada 4 veces lo que un padre llevaba latente: el rasgo de un abuelo (`rostroHeredado`).
-- **Adultos del mundo** (primera generación): los dos valores de cada rasgo al azar, uniformes en 0–1, **sin tendencias por origen** (`rostroAlAzar`). Hermanos, hijos y el personaje: la herencia anterior desde sus padres.
+- **Adultos del mundo** (primera generación, `rostroAlAzar(rng, origen)`): los dos valores de cada rasgo al azar con la **media desplazada por las tendencias de su origen**; hermanos, hijos y el personaje: la herencia anterior desde sus padres, así que las mezclas salen solas (sin mutación).
+  - **Cómo se sortea**: cada valor es `u^e` con `u` uniforme en 0–1 y `e = 1/media − 1`; la media es `0,5 + tendencia del origen` (la base del pliegue es 0,62, porque la mayoría de la gente lo tiene visible). Sin tendencia (media 0,5) sigue siendo uniforme; con tendencia, toda la gama sigue saliendo (la gente de cada origen se parece más a su media, pero cualquier cara cabe en cualquiera). Con dos orígenes, cada uno de los dos valores (alelos) sale de uno de ellos, ponderado.
+  - **Tendencias** (`OrigenDef.rostro`, desplazamiento de la media; ausente = 0; ajustables, suaves una a una, pero visibles en conjunto: la cara de una persona de Asia oriental «media» se distingue de la de una «media» de España a tamaño de retrato, y una mezcla queda a medio camino):
+
+| Origen | Tendencias |
+|---|---|
+| Asia oriental | `parpado` −0,34 (media 0,28: la mayoría sin pliegue visible, una parte con él), `ojosForma` −0,16, `ojosTamano` −0,06, `narizTamano` −0,06, `narizForma` +0,12 (puente más bajo y aletas más anchas), `pomulos` +0,20 (cara y pómulos más anchos), `cejasForma` −0,18 (más rectas), `cejasGrosor` −0,03, `menton` −0,05, `bocaAnchura` −0,03 |
+| África subsahariana | `narizForma` +0,16, `bocaGrosor` +0,18, `narizTamano` +0,06, `bocaAnchura` +0,06, `ojosTamano` +0,05, `pomulos` +0,04 |
+| Europa del norte | `narizForma` −0,10, `bocaGrosor` −0,10, `cejasGrosor` −0,06, `menton` +0,08, `narizTamano` +0,03, `ojosTamano` −0,03 |
+| Magreb | `cejasGrosor` +0,10, `narizTamano` +0,08, `narizForma` −0,03, `ojosTamano` +0,04, `bocaGrosor` +0,02 |
+| Latinoamérica | `pomulos` +0,04, `narizForma` +0,03, `ojosForma` −0,03, `parpado` −0,04 |
+| Europa del este | `pomulos` +0,04, `narizForma` −0,03 |
+| España (sur) | `cejasGrosor` +0,03 |
+| España (norte y centro) | ninguna |
+
+  - **Generador propio, sin mover el mundo**: el rostro sale del generador estable de cada persona (`generadorDeRostro`), no del de la partida; añadir el rasgo y las tendencias solo cambia el texto del rostro de las personas (`npm run huella -- 60`: los bots salen idénticos; con el rostro quitado del estado de `npcs`, el mundo con fútbol de las semillas 31 y 32 también; `npm run sim:cuerpo -- 2 31,32` igual).
 - **Lo que lee el dibujo**: `rostroExpresado(apariencia)` da el valor expresado de cada rasgo; `rostroDe(apariencia)` da los pares completos. `CuerpoDePersona.apariencia` ya lo lleva.
-- **Cómo se guarda**: un texto de 24 caracteres (`Apariencia.rostro`: dos por rasgo, expresado y latente, con 64 niveles cada uno: pasos de 1/63), para que el estado no crezca más de un 2 % (en datos sueltos serían 24 números por persona). `empaquetarRostro` y `rostroDe` convierten. Las partidas sin ese dato (anteriores) se leen como todo a 0,5.
-- **Sin mover el mundo de cada semilla**: los sortea un generador estable propio de cada persona (sembrado con su carácter, sus intereses y sus gustos, como las canas, la calvicie y la barba), no el de la partida: los nombres, los equipos y todo lo que se sortea después no cambia.
+- **Cómo se guarda**: un texto de 26 caracteres (`Apariencia.rostro`: dos por rasgo, expresado y latente, con 64 niveles cada uno: pasos de 1/63), para que el estado no crezca más de un 2 % (en datos sueltos serían 26 números por persona). `empaquetarRostro` y `rostroDe` convierten. Las partidas sin ese dato (anteriores) se leen como todo a 0,5.
+- **Sin mover el mundo de cada semilla** (de antes): los sortea un generador estable propio de cada persona (sembrado con su carácter, sus intereses y sus gustos, como las canas, la calvicie y la barba), no el de la partida: los nombres, los equipos y todo lo que se sortea después no cambia.
 - **Sin mutación**: los valores de los hijos son siempre alguno de los de sus padres; la variedad de la población viene toda de la primera generación.
 
 ## 8. Servicio de lectura

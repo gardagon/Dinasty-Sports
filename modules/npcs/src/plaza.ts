@@ -2,7 +2,7 @@
  * La regla de plaza y los valores por puesto.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { type LectorDePersona, categoriaDeEdad, type CategoriaDef, type PlazaEnEquipo, SERVICES, rngEstable, CAPACIDADES_GENETICAS, cuposPorGrupo, PROPORCION_DE_ZURDOS, type PruebaEnClub, type ConsejoDeDeporte, conLaPierna, type Pierna, type NpcDirectory, type IdentityService, aptitudDe, type ReadContext, type HuecoDeGrupo } from '@ds/contracts';
+import { type LectorDePersona, categoriaDeEdad, type CategoriaDef, type PlazaEnEquipo, SERVICES, rngEstable, CAPACIDADES_GENETICAS, cuposPorGrupo, PROPORCION_DE_ZURDOS, type PruebaEnClub, conLaPierna, type Pierna, type NpcDirectory, type IdentityService, aptitudDe, type ReadContext, type HuecoDeGrupo } from '@ds/contracts';
 import { potencialEn } from './deportistas';
 import { valoresIniciales } from './capacidades';
 import { habilidadesIniciales, lectorDe, prepararTrabajo } from './rutina';
@@ -20,8 +20,8 @@ import { NUNCA, type Rendimientos } from './semana';
  */
 
 import { Npc, PoblacionGuardada, edadDeJuego, edadNpc, npcs } from './index';
-import { DIAGNOSTICO } from './draft';
-import { MercadoDeFichajes, capacidadDe } from './plantillas';
+import { DIAGNOSTICO, PLAZAS_DE_MAS, conUnaPlazaDeMas } from './draft';
+import { MercadoDeFichajes, capacidadDe, equipoDelPersonajeEn, idDelPersonaje } from './plantillas';
 
 /** La categoría del deporte a una edad de competición, o `undefined` si el deporte no guardó sus categorías. */
 export const categoriaDe = (pob: PoblacionGuardada, edad: number): CategoriaDef | undefined => (pob.categorias?.length ? categoriaDeEdad(pob.categorias, edad) : undefined);
@@ -50,7 +50,25 @@ export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGu
     // Una prueba de acceso (a cualquier club menos el del colegio): lo que vale la prueba es lo que cuenta; con hueco en su puesto se enfrenta al suplente que mejor lo cubriría (`rivalConHueco`).
     const condiciones: CondicionesDePrueba | undefined = prueba && equipo.colegio === undefined ? { ...(prueba.yaPasada ? { yaPasada: true } : {}), ...(prueba.puesto && puestos[prueba.puesto] !== undefined ? { puesto: prueba.puesto } : {}) } : undefined;
     const oferta = ofertaAlCandidato(delEquipo, max, pob, puestos, favorito, val, dia, pierna, condiciones);
-    if (oferta) return { estado: oferta.estado, ...(oferta.peor ? { peor: { id: oferta.peor.id, nombre: oferta.peor.nombre, nivel: oferta.peor.valor } } : {}), puesto: oferta.puesto };
+    if (oferta) {
+      const base: PlazaEnEquipo = { estado: oferta.estado, ...(oferta.peor ? { peor: { id: oferta.peor.id, nombre: oferta.peor.nombre, nivel: oferta.peor.valor } } : {}), puesto: oferta.puesto };
+      // Con hueco en el club hay que comprobar que **cabe en un equipo** por el cupo de su puesto (los de primer año o segundo año se reparten por separado): si no, se le abren plazas de más (1–2, como a cualquiera) y, si ni así, no entra.
+      if (oferta.estado !== 'libre' || !oferta.puesto || puestos[oferta.puesto] === undefined) return base;
+      const miembro = { id: idDelPersonaje(deporte), puesto: oferta.puesto, valor: puestos[oferta.puesto] };
+      // Si por su año no cabe en su puesto (el equipo del año, no el club entero, es el que tiene el cupo), el club le ofrece otro puesto en que sí quepa, de los que mejor se le dan, antes de abrir una plaza de más.
+      if (!equipoDelPersonajeEn(npcs, pobs, deporte, club, cat.id, miembro, edad, dia, val)) {
+        const otro = Object.entries(puestos).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).find(([id, valor]) => id !== oferta.puesto && equipoDelPersonajeEn(npcs, pobs, deporte, club, cat.id, { ...miembro, puesto: id, valor }, edad, dia, val));
+        if (otro) return { ...base, puesto: otro[0] };
+      }
+      let cuando: readonly PoblacionGuardada[] = pobs;
+      for (let abiertas = 0; abiertas <= PLAZAS_DE_MAS; abiertas++) {
+        if (equipoDelPersonajeEn(npcs, cuando, deporte, club, cat.id, miembro, edad, dia, val)) return abiertas ? { ...base, plazasDeMas: abiertas } : base;
+        const mas = conUnaPlazaDeMas(cuando, { deporte, club, categoria: cat.id });
+        if (!mas) break;
+        cuando = mas;
+      }
+      return { estado: 'completo', sinCupo: true, puesto: oferta.puesto };
+    }
     // Completo en todos los puestos: se dice quién es el peor del grupo de su mejor puesto.
     const grupo = pob.puestos.reparto.find((g) => g.puestos.includes(favorito));
     const delGrupo = delEquipo.filter((j) => grupo?.puestos.includes(puestoDeJugador(j, pob, val, dia) ?? ''));
@@ -84,34 +102,6 @@ export function huecosPorGrupoEnElEquipo(npcs: readonly Npc[], pobs: readonly Po
   });
 }
 
-/**
- * Lo que ve un profesor de Educación Física en el personaje (`NpcDirectory.consejoDeportivo`): los deportes en que rinde al menos como los niños de su edad que ya juegan (o en los que aún
- * no juega nadie) y, en los que tienen puestos, **tres puestos** en los que más vale **según lo que percibe**, no según los números: se desvía hasta ±2 puntos (azar estable de ese día).
- */
-export function consejoDeUnProfesor(ctx: ReadContext, lista: readonly Npc[], pobs: readonly PoblacionGuardada[], rend: Rendimientos, dia: number): ConsejoDeDeporte[] {
-  const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
-  const zurdo = !!ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded;
-  const consejos: ConsejoDeDeporte[] = [];
-  for (const pob of pobs) {
-    const f = rend.get(pob.deporte);
-    if (!f) continue;
-    const suyos = lista.filter((n) => n.deporte === pob.deporte && edadNpc(n, dia) === edad).map((n) => n.levels[pob.deporte] ?? 0).sort((a, b) => a - b);
-    const mediana = suyos.length ? suyos[Math.floor((suyos.length - 1) / 2)] : 0;
-    if (f(ctx) < 0.9 * mediana) continue;
-    const crudos = f.puestos?.(ctx);
-    const puestos = crudos && pob.puestos
-      ? Object.entries(conLaPierna(crudos, zurdo ? 'izquierda' : 'derecha', ventajaDelLado(pob)))
-          .map(([id, v]) => ({ id, percibido: v + 2 * (2 * rngEstable('consejo', ctx.time.day, pob.deporte, id).next() - 1) }))
-          .sort((a, b) => b.percibido - a.percibido || (a.id < b.id ? -1 : 1))
-          .slice(0, 3)
-          .map((p) => ({ id: p.id, nombre: pob.puestos!.puestos.find((q) => q.id === p.id)?.nombre ?? p.id }))
-      : [];
-    consejos.push({ deporte: pob.deporte, nombre: pob.nombre, puestos });
-  }
-  return consejos;
-}
-
-
 /** Un jugador de un equipo, con lo que vale de verdad (su rendimiento en el deporte). */
 export interface JugadorDeEquipo {
   id: string;
@@ -141,6 +131,13 @@ export interface Valoracion {
   valores: Map<string, number>;
   /** Lo que vale cada niño en cada puesto del deporte (si lo tiene), por niño y deporte. */
   puestos: Map<string, Record<string, number>>;
+  /**
+   * La preferencia de puesto de cada niño (`preferenciaDe`) en este reclutamiento, por niño (el objeto: al cambiar algo suyo se crea otro) y por deporte y día. El «draft» la pregunta varias veces por niño y
+   * es lo que más cuesta de crear la partida con la ciudad grande.
+   */
+  preferencias?: Map<Npc, Map<string, Preferencia>>;
+  /** Lo mismo que `valores` y `puestos`, por deporte y por el objeto del niño (más rápido de leer: sin construir claves de texto). Lo llena `valorRealDe`. */
+  rapido?: Map<string, WeakMap<Npc, { valor: number; puestos?: Record<string, number> }>>;
 }
 
 export const valoracionDe = (rend: Rendimientos = new Map()): Valoracion => ({ rend, valores: new Map(), puestos: new Map() });
@@ -159,6 +156,22 @@ export function valoresGuardados(n: Npc, pob: PoblacionGuardada, valor: number, 
  * deporte (los deportes de prueba) o sin capacidades, `undefined`: entonces se usa su potencial.
  */
 export function valorRealDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): number | undefined {
+  return entradaDeValor(n, pob, v, dia)?.valor;
+}
+
+function entradaDeValor(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): { valor: number; puestos?: Record<string, number> } | undefined {
+  const rapido = (v.rapido ??= new Map());
+  let porNpc = rapido.get(pob.deporte);
+  if (!porNpc) rapido.set(pob.deporte, (porNpc = new WeakMap()));
+  let e = porNpc.get(n);
+  if (e) return e;
+  const valor = calcularValor(n, pob, v, dia);
+  if (valor === undefined) return undefined;
+  porNpc.set(n, (e = { valor, puestos: v.puestos.get(`${n.id}|${pob.deporte}`) }));
+  return e;
+}
+
+function calcularValor(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): number | undefined {
   const f = v.rend.get(pob.deporte);
   if (!f) return undefined;
   const clave = `${n.id}|${pob.deporte}`;
@@ -196,8 +209,8 @@ export function lectorDeUnNpc(n: Npc, pob: PoblacionGuardada, dia: number): Lect
 
 /** Lo que vale un niño en cada puesto del deporte (`undefined` si el deporte no tiene puestos o no se puede calcular). */
 export function valoresPorPuestoDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): Record<string, number> | undefined {
-  if (!pob.puestos || valorRealDe(n, pob, v, dia) === undefined) return undefined;
-  return v.puestos.get(`${n.id}|${pob.deporte}`);
+  if (!pob.puestos) return undefined;
+  return entradaDeValor(n, pob, v, dia)?.puestos;
 }
 
 
@@ -238,6 +251,16 @@ const temporadaDelPaso = (u: number, p: number): number => Math.ceil(Math.log(1 
 export function preferenciaDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): Preferencia {
   const f = pob.puestos?.favoritos;
   if (!f) return {};
+  const memo = (v.preferencias ??= new Map());
+  let porDeporte = memo.get(n);
+  if (!porDeporte) memo.set(n, (porDeporte = new Map()));
+  const clave = `${pob.deporte}|${dia}`;
+  let p = porDeporte.get(clave);
+  if (!p) porDeporte.set(clave, (p = calcularPreferencia(n, pob, v, dia, f)));
+  return p;
+}
+
+function calcularPreferencia(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number, f: NonNullable<NonNullable<PoblacionGuardada['puestos']>['favoritos']>): Preferencia {
   const valores = valoresPorPuestoDe(n, pob, v, dia);
   if (!valores) return {};
   const semilla = n.genetica?.semilla ?? 0;

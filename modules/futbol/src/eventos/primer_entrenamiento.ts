@@ -16,6 +16,8 @@ export default suceso({
   cuando: [{ señal: 'actionId', es: 'futbol.club_sesion' }, { hecho: 'futbol.puesto' }],
   repite: 'nunca',
   reparto: { entrenador: { rol: 'entrenador', delDeportePrincipal: true } },
+  // Pasa dentro del entrenamiento (la señal es la de cualquier acción): sin minutos propios y sin aplazar.
+  durante: true,
   urgencia: 'ahora',
   plazo: { dias: 1, porDefecto: 'aceptar' },
   variantes: [
@@ -29,7 +31,6 @@ export default suceso({
           id: 'preguntar',
           texto: 'Preguntar qué tienes que mejorar para ser titular',
           caracter: { ambicion: 2 },
-          minutos: 5,
           efectos: [{ relacion: 'entrenador', afinidad: 3, confianza: 1 }, { entrena: 'futbol.conocimiento', cantidad: 1 }, { estado: 'gen.motivacion', mas: 2 }],
           resultado: '{entrenador.Nombre} sonríe. «Eso me gusta. Ven a todos los entrenamientos y luego hablamos de lo demás».',
         },
@@ -46,7 +47,6 @@ export default suceso({
           id: 'pedir_cambio',
           texto: 'Pedirle jugar de {hecho.futbol.mejor_puesto}',
           caracter: { ambicion: 2, disciplina: -1 },
-          minutos: 5,
           // Dificultad de partida 55, PROVISIONAL (tabla en docs/relevo/futbol-pedir-puesto.md). Escalones acumulados que suman:
           // la relación con el entrenador (mejor, más fácil) y cuánto más vale en el puesto que pide que en el que tiene (`ventaja_del_mejor_puesto`, en puntos de valor; negativo = vale menos).
           tirada: {
@@ -64,7 +64,6 @@ export default suceso({
           id: 'preguntar',
           texto: 'Preguntar qué tienes que mejorar para jugar donde quieres',
           caracter: { ambicion: 1, prudencia: 1 },
-          minutos: 5,
           efectos: [{ relacion: 'entrenador', afinidad: 2, confianza: 1 }, { entrena: 'futbol.conocimiento', cantidad: 1 }, { marca: 'futbol_quiere_cambiar_de_puesto', dura: { dias: 120 } }],
           resultado: '{entrenador.Nombre} te explica qué mira en ese puesto. «Enséñamelo en los entrenamientos y lo hablamos».',
         },

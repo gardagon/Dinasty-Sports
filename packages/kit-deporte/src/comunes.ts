@@ -39,13 +39,22 @@ const caminoDeVerano = (ctx: ReadContext) => ctx.service<StudiesService>(SERVICE
 const nombreConMayuscula = (cfg: ConfigDeporte): string => cfg.nombre.charAt(0).toUpperCase() + cfg.nombre.slice(1);
 
 /** Campamento del deporte en verano (`<deporte>.campamento`), para quien saca buenas notas: una jornada completa con entrenadores. */
-export function campamento(cfg: ConfigDeporte, def: { tags: string[]; delta: Record<StatId, number>; train: Entreno }): ActionDef {
+export function campamento(
+  cfg: ConfigDeporte,
+  def: {
+    tags: string[];
+    delta: Record<StatId, number>;
+    train: Entreno;
+    /** Para un deporte con varios campamentos (jugadores y porteros): lo que va detrás de `campamento` en el id (`futbol.campamento_porteros`), cómo se llama («Campamento de porteros de fútbol»), cómo sale en la lista («Fútbol: porteros») y qué cuenta la descripción. */
+    variante?: { sufijo: string; nombre: string; opcion: string; descripcion?: string };
+  },
+): ActionDef {
   return {
-    id: `${cfg.id}.campamento`,
-    name: `Campamento de ${cfg.nombre}`,
-    // Con dos deportes, un solo «Campamento…» (con uno solo, un botón normal).
-    desplegable: { id: 'verano.campamento', nombre: 'Campamento…', etiqueta: 'Deporte', boton: '{nombre}', opcion: nombreConMayuscula(cfg) },
-    description: 'Con buenas notas, tus padres te dejan ir a un campamento del deporte que practicas: una jornada completa de entrenamiento con entrenadores. Mejoras más que de ninguna otra forma.',
+    id: def.variante ? `${cfg.id}.campamento_${def.variante.sufijo}` : `${cfg.id}.campamento`,
+    name: def.variante?.nombre ?? `Campamento de ${cfg.nombre}`,
+    // Con dos deportes (o dos campamentos), un solo «Campamento…» (con uno solo, un botón normal).
+    desplegable: { id: 'verano.campamento', nombre: 'Campamento…', etiqueta: 'Deporte', boton: '{nombre}', opcion: def.variante?.opcion ?? nombreConMayuscula(cfg) },
+    description: def.variante?.descripcion ?? 'Con buenas notas, tus padres te dejan ir a un campamento del deporte que practicas: una jornada completa de entrenamiento con entrenadores. Mejoras más que de ninguna otra forma.',
     tags: def.tags,
     group: 'Verano',
     duration: 300,
@@ -175,15 +184,7 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
         for (let w = 0; w < semanas; w++) for (const e of cfg.juegoInformal) ctx.train(e.stat, e.amount);
       }
     },
-    // Un niño del mundo con mejor nivel ha ocupado su plaza: sale del club (lo hace el módulo de clubes) y se le explica qué ha pasado y qué puede hacer.
-    [SHARED_EVENTS.PLAZA_PERDIDA]: (ctx, ev) => {
-      const d = ev.data as PlazaPerdidaData;
-      if (d.sport !== cfg.id) return;
-      ctx.log(
-        `Un jugador que vale más ha ocupado tu plaza en el equipo de ${cfg.nombre} y sales del club. Puedes probar en otro club, en otro deporte o esperar al siguiente plazo de fichajes.`,
-        'aviso',
-      );
-    },
+    // (La salida del club por perder la plaza la cuenta el suceso `<deporte>.plaza_perdida`, no una línea del diario: `sucesoDePlazaPerdida`.)
     // Al empezar el curso, el entrenador le propone al personaje jugar en otro puesto (sobran en el suyo y faltan en otro): decide él con las acciones de aceptarlo o dejarlo.
     [SHARED_EVENTS.PROPUESTA_DE_PUESTO]: (ctx, ev) => {
       const d = ev.data as PuestoPropuestoData;

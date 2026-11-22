@@ -9,6 +9,8 @@ import {
   timeView,
   type ActionContext,
   type ActionDef,
+  type CorteDeAccion,
+  type Obligacion,
   type ActionDoneData,
   type AppliedModifier,
   type GameEvent,
@@ -75,6 +77,8 @@ export interface ActionOption {
   lugar?: readonly string[];
   /** Si la acción se dibuja agrupada con otras en un botón con desplegable (ver `ActionDef.desplegable`). */
   desplegable?: DesplegableDeAcciones;
+  /** Si pisaba una obligación y se ha cortado: cuánto durará de lo que duraría, qué parte del efecto vale y el texto para el jugador («entras a clase a las 9:00»). */
+  corte?: CorteDeAccion;
 }
 
 export interface ActionResult {
@@ -336,6 +340,7 @@ export class Game {
     };
     for (const m of registry.modules) {
       if (m.initState && !(m.id in state.modules)) state.modules[m.id] = m.initState(ictx);
+      else if (m.alCargar && m.id in state.modules) state.modules[m.id] = m.alCargar(state.modules[m.id], ictx);
     }
     // Si algún módulo ha subido o bajado topes (perks), lo que se deriva de ellos se recalcula (con tope máximo 100).
     if (bonos) Game.recalcularDerivados(registry, state, 100);
@@ -461,6 +466,14 @@ export class Game {
   }
 
   /**
+   * El estado vivo, **solo para leer** (no es una copia): lo usa la interfaz para convertirlo a texto por trozos sin congelar la página (guardar).
+   * Quien lo lea a ratos tiene que acabar antes de que la partida cambie (hacer una acción); si no, verá un estado a medias.
+   */
+  get estadoParaGuardar(): Readonly<GameState> {
+    return this.s;
+  }
+
+  /**
    * El estado en texto JSON, con los campos extra que se le pidan al lado (`{ ...extras, state }`). Es la forma barata de guardar: convertir a
    * texto cuesta una quinta parte que copiar el objeto, y el texto ya es una copia (no cambia aunque la partida siga).
    */
@@ -495,6 +508,8 @@ export class Game {
 
     const before = { ...this.s.stats };
     this.pendingLog = [];
+    // Cuenta ya antes de empezar: todo lo que salga de esta acción (su `run`, las señales, el paso de los días) es de la acción número `actionCount`.
+    this.s.actionCount++;
 
     // 1. Coste / cambios directos
     for (const [stat, d] of Object.entries(option.delta)) this.rawAdd(stat, d);
@@ -503,7 +518,6 @@ export class Game {
     const ctx = this.actionCtx(action.module, option.efficiency);
     for (const t of action.def.train ?? []) ctx.train(t.stat, t.amount);
     action.def.run?.(ctx);
-    this.s.actionCount++;
 
     // 3. Tiempo y eventos
     this.advance(option.duration);
@@ -565,6 +579,24 @@ export class Game {
     return undefined;
   }
 
+  /** Lo último que se calculó de la próxima obligación y con qué se calculó (minuto, acciones hechas y estado de cada módulo): vale mientras nada de eso cambie (los bots previsualizan muchas acciones seguidas). */
+  private obligacionCalculada?: { minuto: number; acciones: number; estados: readonly unknown[]; valor: Obligacion | undefined };
+
+  /** La próxima obligación que empieza después de ahora (la de `hasta` más cercano), si algún módulo declara alguna. */
+  private proximaObligacion(): Obligacion | undefined {
+    if (!this.registry.obligaciones.length) return undefined;
+    const estados = Object.values(this.s.modules);
+    const c = this.obligacionCalculada;
+    if (c && c.minuto === this.s.minute && c.acciones === this.s.actionCount && c.estados.length === estados.length && c.estados.every((e, i) => e === estados[i])) return c.valor;
+    const ahora = this.s.minute;
+    let mejor: Obligacion | undefined;
+    for (const o of this.registry.obligaciones) {
+      for (const x of o.fn(this.readCtx(o.module))) if (x.hasta > ahora && (!mejor || x.hasta < mejor.hasta)) mejor = x;
+    }
+    this.obligacionCalculada = { minuto: ahora, acciones: this.s.actionCount, estados, valor: mejor };
+    return mejor;
+  }
+
   private evaluate(action: CompiledAction): ActionOption {
     const { def, module, view } = action;
     const ctx = this.readCtx(module);
@@ -598,13 +630,26 @@ export class Game {
     }
 
     const base = typeof def.duration === 'function' ? def.duration(ctx) : def.duration;
-    const duration = Math.max(1, Math.round(base * durationMult));
+    // Una acción dura 1 minuto como mínimo, salvo la que declara 0: pasa dentro de otra cosa (responder a un suceso en clase) y no gasta tiempo.
+    const entera = base <= 0 ? 0 : Math.max(1, Math.round(base * durationMult));
+    let duration = entera;
+    // Una acción que pisa una obligación consume solo los minutos que faltan, con el efecto en proporción (lo que sube y lo que gasta).
+    let corte: CorteDeAccion | undefined;
+    if (def.cortable && entera > 1) {
+      const o = this.proximaObligacion();
+      const faltan = o ? o.hasta - this.s.minute : 0;
+      if (o && faltan >= 1 && faltan < entera) {
+        duration = faltan;
+        corte = { deMinutos: entera, minutos: faltan, parte: faltan / entera, texto: o.texto };
+        efficiency *= corte.parte;
+      }
+    }
 
     const delta: Record<StatId, number> = {};
     for (const [stat, d] of Object.entries(def.delta ?? {})) {
       const info = this.registry.stats.get(stat)!;
       const isCost = d < 0 && info.def.resource === true;
-      const scaled = isCost ? d * costMult : d;
+      const scaled = (isCost ? d * costMult : d) * (corte?.parte ?? 1);
       delta[stat] = scaled;
       if (!reason && isCost && this.s.stats[stat] + scaled < info.min - EPS) {
         reason = `Te falta ${info.def.name.toLowerCase()}`;
@@ -627,6 +672,7 @@ export class Game {
       train: def.train ?? [],
       lugar: typeof def.lugar === 'function' ? def.lugar(ctx) : def.lugar,
       desplegable: def.desplegable,
+      ...(corte ? { corte } : {}),
     };
   }
 
@@ -775,6 +821,9 @@ export class Game {
         // Las condiciones consultan la hora muchas veces por decisión: la vista se calcula una vez por minuto de juego.
         if (vista.minute !== s.minute) vista = timeView(s.minute, calendario());
         return vista;
+      },
+      get actionCount() {
+        return s.actionCount;
       },
       get pais() {
         return paisPorId(s.pais);

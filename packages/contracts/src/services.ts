@@ -1,10 +1,11 @@
 import type { DatoPersonal } from './personas';
 import type { LugarId } from './lugares';
 import type { Practica } from './herencia';
-import type { PerfilDelPersonaje, RasgosDe } from './rasgos';
+import { descripcionDeDesconocido, nombreSegunEdad, type PerfilDelPersonaje, type RasgosDe } from './rasgos';
 import type { EstadoDeJugador } from './estado-de-jugador';
 import type { EstadisticasDeTemporada } from './estadisticas';
 import type { LectorDePersona } from './lector';
+import type { PistasDePuestos } from './deporte-datos';
 /**
  * Servicios: la forma de que un módulo CONSULTE a otro sin importarlo.
  * El contrato (interfaz + clave) vive aquí; la implementación, en el módulo que lo publica.
@@ -101,6 +102,10 @@ export interface PlazaEnEquipo {
   peor?: { id: string; nombre: string; nivel: number };
   /** En los deportes con puestos, el puesto que el club ofrece al candidato: aquel en que entraría (con hueco en él o valiendo más que el peor de ese puesto). */
   puesto?: string;
+  /** `completo` sin que nadie sea peor que él: hay hueco en el club, pero **no cabe en ningún equipo por el cupo de su puesto**, ni con las plazas de más que se pueden abrir. */
+  sinCupo?: boolean;
+  /** Con `libre`: cuántas plazas de más hay que abrirle al equipo (1–2) para que quepa en él al entrar. */
+  plazasDeMas?: number;
 }
 
 /** Una prueba de acceso a un club (`plaza` con `prueba`): `nivel` y `puestos` son lo que valió la prueba y `puesto`, donde pide jugar (la plaza se mide en ese puesto; sin él, en el que más vale). */
@@ -125,7 +130,27 @@ export interface HuecoDeGrupo {
 export interface ConsejoDeDeporte {
   deporte: string;
   nombre: string;
+  /** Los puestos **sin lado** (`FamiliaDePuestos`): «lateral», no «lateral izquierdo» y «lateral derecho». `id` es el de la familia. */
   puestos: { id: string; nombre: string }[];
+  /** El porqué, en cualidades ya escritas (`CualidadDePuesto.tiene`): lo que más te sube en esos puestos frente a los niños de tu edad. Vacío si no destacas en nada concreto. Sin cifras. */
+  tiene?: string[];
+  /** Los textos del deporte (`PuestosDeDeporte.pistas`) para componer el porqué. */
+  pistas?: PistasDePuestos;
+}
+
+/** Cómo va el personaje para un puesto (sin lado): lo que te dice el profesor o el entrenador si le preguntas por él (`NpcDirectory.lecturaDePuesto`). Sin cifras. */
+export interface LecturaDePuesto {
+  deporte: string;
+  familia: { id: string; nombre: string };
+  /** `ya`: vales ya para ese puesto; `cerca`; `lejos`; `sinDatos`: nadie de tu edad con quien compararte. */
+  nivel: 'ya' | 'cerca' | 'lejos' | 'sinDatos';
+  /** Lo que ya tienes para él (cualidades escritas, de la que más suma a la que menos). */
+  tiene: string[];
+  /** Lo que te falta para él (cualidades escritas, lo que más te frena primero). */
+  falta: string[];
+  /** Las stats que más te frenan (ids, las que más pesan en el puesto y más lejos están de los de tu edad): con ellas el entrenador elige entrenamientos. */
+  frenan: string[];
+  pistas?: PistasDePuestos;
 }
 
 export interface NpcDirectory {
@@ -147,6 +172,10 @@ export interface NpcDirectory {
    * `VISION.md`, principio 7). Vacío si no ve nada claro.
    */
   consejoDeportivo?(): ConsejoDeDeporte[];
+  /** Los puestos sin lado de cada deporte con puestos (para elegir por cuál preguntar). */
+  familiasDePuestos?(): { deporte: string; nombre: string; familias: { id: string; nombre: string }[] }[];
+  /** Cómo va el personaje para un puesto sin lado de un deporte (`familia` es el id de la familia o el de un puesto, que se lleva a su familia) (`LecturaDePuesto`), comparado con los de su edad y consigo mismo. `undefined` si el deporte no tiene puestos o no se puede medir. */
+  lecturaDePuesto?(deporte: string, familia: string): LecturaDePuesto | undefined;
   /**
    * Lo que vale el equipo de un club en una categoría en cada habilidad del deporte (la media de sus jugadores, con valores reales): con ello el entrenador elige los ejercicios
    * de la sesión, **los mismos para todos los que entrenan juntos**, personaje incluido. `undefined` si el deporte no tiene jugadores con habilidades en ese equipo.
@@ -234,6 +263,8 @@ export interface JugadorDeEquipoView {
   /** Lo disciplinado que es su entrenador (de 0 a 1): con uno disciplinado, faltar cuesta más el puesto. */
   disciplinaDelEntrenador: number;
   lector: LectorDePersona;
+  /** El número de su camiseta en su equipo (`asignarDorsales`); sin él, el deporte no tiene dorsales. */
+  dorsal?: number;
   /** Lo disciplinado que es, de 0 a 1 (cuánto llega a tiempo a las convocatorias). */
   disciplina?: number;
   /** Su relación con el entrenador, de 0 a 100 (50: neutra): baja si llega tarde a las convocatorias; solo la tiene guardada quien ha llegado tarde alguna vez. */
@@ -396,6 +427,11 @@ export interface ClubDirectory {
   list(sport: string): ClubView[];
   /** Club al que pertenece el personaje en ese deporte, si pertenece a alguno. */
   membership(sport: string): ClubView | undefined;
+}
+
+/** Cómo se describe a una persona por su aspecto, sin su nombre («un niño alto, de pelo corto…»): lo que se ve de quien aún no se conoce. */
+export function aspectoDe(n: Pick<NpcView, 'age' | 'role' | 'tags' | 'rasgos' | 'gender'>): string {
+  return n.rasgos ? descripcionDeDesconocido(n.rasgos.apariencia, n.gender, edadAparente(n)) : nombreSegunEdad(n.gender, edadAparente(n));
 }
 
 /**

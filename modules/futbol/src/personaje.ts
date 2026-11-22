@@ -40,19 +40,59 @@ export interface LineaDeCronica {
 export interface OpcionesDeCronica {
   /** Los nombres de los dos equipos ([local, visitante]). */
   equipos: [string, string];
-  /** El nombre de cada jugador por id. */
+  /** El nombre de cada jugador **que el personaje conoce**, por id: de quien no está aquí se dice su dorsal («el 7 del Rayo», «vuestro 4»). */
   nombres: Readonly<Record<string, string>>;
+  /** El dorsal de cada jugador, por id. Quien no tiene nombre ni dorsal sale como «un jugador». */
+  dorsales?: Readonly<Record<string, number>>;
+  /** Cómo es cada jugador que no se conoce por su nombre (su aspecto): la primera vez que sale en la crónica se dice junto a su dorsal («el 7 del Rayo (un niño de pelo…)»). */
+  descripciones?: Readonly<Record<string, string>>;
+  /** El género de cada jugador (para la concordancia: «la 7 del Rayo», «vuestra 4»); sin él, masculino. */
+  generos?: Readonly<Record<string, 'f' | 'm'>>;
+  /** El lado del personaje (0 local, 1 visitante): los de su lado son «vuestro N» y los del otro, «el N del <equipo>». Sin él, todos «el N del <equipo>». */
+  lado?: 0 | 1;
+}
+
+const FEMENINOS = new Set(['escuela', 'academia', 'agrupación', 'asociación', 'unión', 'peña', 'sociedad', 'institución', 'fundación', 'ciudad']);
+/** «del Rayo», «de la Escuela», «de La Salle»: la preposición con el artículo del nombre del equipo. */
+const delEquipo = (equipo: string): string => {
+  const primera = equipo.split(' ')[0].toLowerCase();
+  return /^(el|la|los|las)$/.test(primera) ? `de ${equipo}` : FEMENINOS.has(primera) ? `de la ${equipo}` : `del ${equipo}`;
+};
+
+/** Cómo se nombra a un jugador que no se conoce: por el número de su camiseta, con concordancia («el 7 del Rayo», «la 7 del Rayo»; los tuyos, «vuestro 4», «vuestra 4»). */
+export function jugadorPorSuDorsal(dorsal: number, equipo: string, propio: boolean, genero: 'f' | 'm' = 'm'): string {
+  return propio ? `${genero === 'f' ? 'vuestra' : 'vuestro'} ${dorsal}` : `${genero === 'f' ? 'la' : 'el'} ${dorsal} ${delEquipo(equipo)}`;
 }
 
 const MINUTOS = PARAMETROS_DE_PARTIDO.minutosPorTramo;
+
+/** El equipo sin su letra («Rayo B» → «Rayo»): «el 7 del Rayo» suena mejor que «el 7 del Rayo B». */
+const equipoSinLetra = (nombre: string): string => nombre.replace(/ [A-D]$/, '');
 
 /**
  * **La crónica del partido entero, tramo a tramo** (decisión del usuario, 10/11): goles, ocasiones, balón parado y cambios de los dos equipos. Lo que hace el personaje (sus jugadas, sus goles y asistencias, sus paradas, los goles
  * que encaja si es el portero y cuándo entra o sale) sale destacado para encontrarlo de un vistazo.
  */
 export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): LineaDeCronica[] {
-  const nom = (id: string | undefined): string => (id === YO ? 'tú' : id ? o.nombres[id] ?? 'un jugador' : 'un jugador');
-  const nomIni = (id: string): string => (id === YO ? 'Tú' : o.nombres[id] ?? 'Un jugador');
+  const lado = new Map<string, 0 | 1>(r.alineaciones.flatMap((ids, i) => ids.map((id) => [id, i as 0 | 1] as const)));
+  const descritos = new Set<string>();
+  const nom = (id: string | undefined): string => {
+    if (id === YO) return 'tú';
+    if (!id) return 'un jugador';
+    if (o.nombres[id]) return o.nombres[id];
+    const d = o.dorsales?.[id];
+    const l = lado.get(id);
+    if (d === undefined || l === undefined) return 'un jugador';
+    const dicho = jugadorPorSuDorsal(d, equipoSinLetra(o.equipos[l]), o.lado === l, o.generos?.[id]);
+    // La primera vez que sale, además de su número se dice cómo es (así se le reconoce); después, solo el número.
+    const como = o.descripciones?.[id];
+    if (!como || descritos.has(id)) return dicho;
+    descritos.add(id);
+    return `${dicho} (${como.charAt(0).toLowerCase()}${como.slice(1)})`;
+  };
+  const nomIni = (id: string): string => (id === YO ? 'Tú' : nom(id).replace(/^./, (c) => c.toUpperCase()));
+  /** Quien se conoce, con su equipo entre paréntesis; quien se nombra por su dorsal ya lo lleva dicho («el 7 del Rayo», «vuestro 4»). */
+  const conEquipo = (id: string, equipo: string): string => (o.nombres[id] ? `${nomIni(id)} (${equipo})` : nomIni(id));
   const linea = (m: MomentoDeCronica): LineaDeCronica => {
     const equipo = o.equipos[m.equipo];
     const rival = o.equipos[1 - m.equipo];
@@ -67,8 +107,8 @@ export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): 
       }
       case 'ocasion':
         if (m.jugador === YO) return { destacada: true, texto: `Tiras a puerta y ${nom(m.portero)} te la para.` };
-        if (m.portero === YO) return { destacada: true, texto: `${nomIni(m.jugador)} (${equipo}) dispara y lo paras tú.` };
-        return { texto: `${nomIni(m.jugador)} (${equipo}) dispara y ${nom(m.portero)} se lo para.` };
+        if (m.portero === YO) return { destacada: true, texto: `${conEquipo(m.jugador, equipo)} dispara y lo paras tú.` };
+        return { texto: `${conEquipo(m.jugador, equipo)} dispara y ${nom(m.portero)} se lo para.` };
       case 'balon_parado':
         if (m.jugador === YO) return { destacada: true, texto: `Lanzas a balón parado y ${nom(m.portero)} lo despeja.` };
         if (m.portero === YO) return { destacada: true, texto: `${nomIni(m.jugador)} lanza a balón parado para ${equipo} y lo despejas tú.` };

@@ -24,8 +24,14 @@ import {
   type ActionContext,
   type ActionDef,
   type DayEventData,
+  type LugaresService,
+  minutosParaLlegar,
+  type Obligacion,
   type IdentityService,
   type NpcDirectory,
+  type NpcView,
+  fraseDeLectura,
+  fraseDelPorque,
   type PresenciaService,
   type ExamInfo,
   type NivelDeAsignatura,
@@ -91,6 +97,8 @@ export interface EstudiosState {
   ultimaTutoria?: Record<string, number>;
   /** Último día que preguntó a su profesor de Educación Física qué deporte y puesto le irían bien (uno al día). */
   ultimoConsejoDeDeporte?: number;
+  /** Último día que le preguntó al profesor de Educación Física por un puesto (una vez al día). */
+  ultimaPreguntaDePuesto?: number;
   /** Clases a las que ha ido hoy (0 = primera hora): faltar a una no tiene castigo, solo no sube lo que tocaba, pero se cuenta. */
   asistencia: { day: number; clases: number[] };
 }
@@ -273,6 +281,7 @@ const estudiar = (a: Asignatura): ActionDef => ({
   group: 'Estudiar',
   desplegable: { id: 'estudios.estudiar', nombre: 'Estudiar…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: a.name },
   duration: 90,
+  cortable: true,
   available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
   delta: { [GEN.energia]: -10, [GEN.estres]: 6 },
   train: [
@@ -283,6 +292,43 @@ const estudiar = (a: Asignatura): ActionDef => ({
   run: (ctx) => ctx.train(statId(a.key), RENDIMIENTO_ESTUDIO * factorDeAptitud(ctx, a.key)),
 });
 
+/**
+ * «Hacer deberes…» (30 minutos): todavía no hay deberes que entregar, pero el rato sube la asignatura elegida como estudiar en proporción a su
+ * duración (30 de los 90 minutos de «Estudiar»), por `EFICIENCIA_DE_DEBERES`: estudiar en ratos cortos rinde algo menos que una sesión larga (cuesta
+ * ponerse y centrarse), así que 3 ratos de deberes dan el 90 % de una sesión de estudio. Es el dato para equilibrarlo.
+ */
+export const MINUTOS_DE_DEBERES = 30;
+export const EFICIENCIA_DE_DEBERES = 0.9;
+const PARTE_DE_DEBERES = (MINUTOS_DE_DEBERES / 90) * EFICIENCIA_DE_DEBERES;
+/**
+ * Dónde se hacen: en casa y en la biblioteca, como estudiar, y además en el colegio (fuera de clase, con el horario que tenga), en el parque y en el campo (el estadio y los campos de fútbol),
+ * que es donde se espera al entrenamiento sin irse a casa y volver. El primero es el destino por defecto.
+ */
+const SITIOS_DE_DEBERES = ['casa', 'biblioteca', 'colegio', 'parque', 'estadio', 'campo_colegio', 'campo_municipal'] as const;
+/** Solo los sitios que existen en la ciudad de la partida (los campos de fútbol salen con el fútbol). */
+export const LUGARES_DE_DEBERES = (ctx: ReadContext): readonly string[] => {
+  const lugares = ctx.service<LugaresService>(SERVICES.lugares);
+  return lugares ? SITIOS_DE_DEBERES.filter((id) => lugares.lugar(id)) : SITIOS_DE_DEBERES;
+};
+
+const deberes = (a: Asignatura): ActionDef => ({
+  id: `estudios.deberes_${a.key}`,
+  name: `Hacer deberes de ${a.name.toLowerCase()}`,
+  description: 'Media hora de deberes: aún no hay deberes que entregar, pero el rato cuenta como estudio de la asignatura (algo menos que en una sesión larga). Vale para esperar al entrenamiento.',
+  tags: [TAGS.estudio, TAGS.mental],
+  group: 'Estudiar',
+  desplegable: { id: 'estudios.deberes', nombre: 'Hacer deberes…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: a.name },
+  duration: MINUTOS_DE_DEBERES,
+  cortable: true,
+  available: (ctx) => (seCursa(ctx, a.key) ? tiempoDeEstudio(ctx) : 'No cursas esta asignatura este curso'),
+  delta: { [GEN.energia]: -10 * PARTE_DE_DEBERES, [GEN.estres]: 6 * PARTE_DE_DEBERES },
+  train: [
+    { stat: GEN.inteligencia, amount: 0.4 * PARTE_DE_DEBERES },
+    { stat: GEN.concentracion, amount: 0.4 * PARTE_DE_DEBERES },
+    ...(a.entrena ? [{ ...a.entrena, amount: a.entrena.amount * PARTE_DE_DEBERES }] : []),
+  ],
+  run: (ctx) => ctx.train(statId(a.key), RENDIMIENTO_ESTUDIO * PARTE_DE_DEBERES * factorDeAptitud(ctx, a.key)),
+});
 
 /** Una tutoría (30 minutos) rinde la mitad de lo que rinde una sesión de estudio de hora y media. */
 const RENDIMIENTO_TUTORIA = RENDIMIENTO_ESTUDIO * 0.5;
@@ -353,9 +399,55 @@ const consejoDeEducacionFisica: ActionDef = {
       ctx.log(`${quien} te mira un momento: «Todavía no te veo claro en ningún deporte; sigue moviéndote y pregúntame más adelante».`, 'info');
       return;
     }
-    ctx.log(`${quien} te dice: «${frase}». Al hacer una prueba puedes pedir el puesto que quieras.`, 'info');
+    const porque = elPorqueDelConsejo(ctx, profe);
+    ctx.log(`${quien} te dice: «${frase}.${porque ? ` ${porque}` : ''}». Al hacer una prueba puedes pedir el puesto que quieras.`, 'info');
   },
 };
+
+/** Los deportes con puestos y sus puestos sin lado (para el desplegable de «Preguntar por un puesto»). */
+const familiasPreguntables = (ctx: ReadContext) => ctx.service<NpcDirectory>(SERVICES.npcs)?.familiasDePuestos?.() ?? [];
+
+/**
+ * «Preguntar por un puesto» al profesor de Educación Física (decisión del usuario, 21/11/2026): en la sala de profesores, eliges un puesto sin lado de un deporte y te dice, en palabras y sin cifras,
+ * qué tienes y qué te falta para él, comparado con los niños de tu edad y contigo mismo (`NpcDirectory.lecturaDePuesto`, textos del deporte). Una vez al día.
+ */
+function preguntasPorPuestos(ctx: ReadContext): ActionDef[] {
+  if (!seCursa(ctx, 'educacion_fisica')) return [];
+  return familiasPreguntables(ctx).flatMap((d) =>
+    d.familias.map((f): ActionDef => ({
+      id: `estudios.preguntar_puesto.${d.deporte}.${f.id}`,
+      name: `Preguntar a tu profesor de Educación Física por el puesto de ${f.nombre.toLowerCase()} en ${d.nombre}`,
+      description: 'Le preguntas en la sala de profesores qué te falta para ese puesto. Te lo explica con palabras, comparándote con los de tu edad. Una vez al día.',
+      tags: [TAGS.social],
+      group: 'Estudiar',
+      duration: 15,
+      lugar: [SALA_DE_PROFESORES],
+      desplegable: { id: 'estudios.preguntar_puesto', nombre: 'Preguntar por un puesto…', etiqueta: 'Puesto', opcion: `${f.nombre} (${d.nombre})`, boton: 'Preguntar por: {opcion}' },
+      available: (c) => {
+        if ((c.state<EstudiosState>().ultimaPreguntaDePuesto ?? -1) === c.time.day) return 'Ya le has preguntado por un puesto hoy';
+        if (!profesoresDe(c, 'educacion_fisica').length) return 'Todavía no conoces a tu profesor de Educación Física: ve a su clase';
+        return profesorEnLaSala(c, 'educacion_fisica') ? true : 'Ahora no hay ningún profesor de Educación Física en la sala de profesores';
+      },
+      delta: { [GEN.energia]: -1 },
+      run: (c) => {
+        c.updateState<EstudiosState>((st) => ({ ...st, ultimaPreguntaDePuesto: c.time.day }));
+        const profe = profesorEnLaSala(c, 'educacion_fisica');
+        const quien = profe ? profe.nombreCorto : 'Tu profesor de Educación Física';
+        const lectura = c.service<NpcDirectory>(SERVICES.npcs)?.lecturaDePuesto?.(d.deporte, f.id);
+        const frase = lectura ? fraseDeLectura(lectura, profe ? { nombre: profe.nombreCorto, gender: profe.gender } : undefined) : undefined;
+        c.log(frase ? `${quien} te contesta: «${frase}»` : `${quien} se encoge de hombros: «De ese puesto todavía no sé qué decirte».`, 'info');
+      },
+    })),
+  );
+}
+
+/** El porqué del consejo en una frase («Me fijo en esto: eres de los más rápidos de tu edad y arrancas muy bien»), o `undefined` si el deporte no da pistas con palabras. */
+function elPorqueDelConsejo(ctx: ReadContext, profe?: NpcView): string | undefined {
+  const quien = profe ? { nombre: profe.nombreCorto, gender: profe.gender } : undefined;
+  const consejos = ctx.service<NpcDirectory>(SERVICES.npcs)?.consejoDeportivo?.() ?? [];
+  const frases = consejos.filter((c) => c.puestos.length).map((c) => fraseDelPorque(c, quien)).filter((x): x is string => !!x);
+  return frases.length ? frases.join(' ') : undefined;
+}
 
 /**
  * Lo que el profesor de Educación Física ve en el personaje, en una frase («en fútbol te veo bien de lateral o extremo; te veo bien en atletismo»), o
@@ -665,7 +757,20 @@ export const estudios = defineModule<EstudiosState>({
     asistencia: { day: -1, clases: [] },
   }),
 
-  dynamicActions: (ctx) => clasesDeHoyAcciones(ctx),
+  dynamicActions: (ctx) => [...clasesDeHoyAcciones(ctx), ...preguntasPorPuestos(ctx)],
+
+  // La próxima clase del día a la que aún no se ha ido (las acciones cortables no la pisan: hay que salir con tiempo para llegar al aula).
+  obligaciones: (ctx) => {
+    const t = ctx.time;
+    if (!t.isSchoolDay) return [];
+    const hoy = asignaturasDeHoy(ctx.pais.cursos, t.schoolYear, ctx.state<EstudiosState>().modalidad, t.weekday);
+    const idas = clasesDeHoy(ctx);
+    const h = hoy.findIndex((_, i) => !idas.includes(i) && t.minuteOfDay < JORNADA.clases[i][0]);
+    if (h < 0) return [];
+    const inicio = t.minute - t.minuteOfDay + JORNADA.clases[h][0];
+    const viaje = minutosParaLlegar(ctx, 'aula');
+    return [{ hasta: inicio - viaje, texto: viaje ? `para llegar a clase a las ${hora(JORNADA.clases[h][0])}` : `entras a clase a las ${hora(JORNADA.clases[h][0])}` }] satisfies Obligacion[];
+  },
 
   modifiers: [
     {
@@ -691,6 +796,7 @@ export const estudios = defineModule<EstudiosState>({
   actions: ligarALugares([
     // Las asignaturas de capacidades (Educación física, Artística, Música) no se estudian ni tienen tutoría: se mejoran entrenando las capacidades.
     ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(estudiar),
+    ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(deberes),
     ...ASIGNATURAS.filter((a) => !a.porCapacidades).map(tutoria),
     consejoDeEducacionFisica,
     {
@@ -700,6 +806,7 @@ export const estudios = defineModule<EstudiosState>({
       group: 'Estudiar',
       desplegable: { id: 'estudios.estudiar', nombre: 'Estudiar…', etiqueta: 'Asignatura', boton: '{nombre}', opcion: 'Repaso general (todas las del curso)' },
       duration: 120,
+      cortable: true,
       available: tiempoDeEstudio,
       delta: { [GEN.energia]: -14, [GEN.estres]: 8 },
       train: [{ stat: GEN.determinacion, amount: 0.3 }],
@@ -748,6 +855,7 @@ export const estudios = defineModule<EstudiosState>({
     'estudios.repaso': ['casa', 'biblioteca'],
     'estudios.academia': ['colegio'],
     ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.estudiar_${a.key}`, ['casa', 'biblioteca']])),
+    ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.deberes_${a.key}`, LUGARES_DE_DEBERES])),
     // La tutoría se pide en la sala de profesores.
     ...Object.fromEntries(ASIGNATURAS.filter((a) => !a.porCapacidades).map((a) => [`estudios.tutoria_${a.key}`, [SALA_DE_PROFESORES]])),
     'estudios.consejo_educacion_fisica': [SALA_DE_PROFESORES],
@@ -829,7 +937,7 @@ export const estudios = defineModule<EstudiosState>({
 
   services: {
     // Hechos para los sucesos: lo que el profesor de Educación Física le diría hoy al personaje.
-    [servicioDeHechos('estudios')]: (ctx): HechosService => ({ valor: (nombre) => (nombre === 'consejo_deportivo' ? fraseDelConsejoDeportivo(ctx) : undefined) }),
+    [servicioDeHechos('estudios')]: (ctx): HechosService => ({ valor: (nombre) => (nombre === 'consejo_deportivo' ? fraseDelConsejoDeportivo(ctx) : nombre === 'consejo_porque' ? (elPorqueDelConsejo(ctx, profesoresDe(ctx, 'educacion_fisica')[0]) ?? 'Cómo te mueves, qué se te da mejor: eso no lo tiene todo el mundo.') : undefined) }),
     // Los minutos de Educación física los calcula contracts (`minutosDeEducacionFisica`): una sola fuente para el servicio y para el cuerpo de los PNJ.
     [SERVICES.educacionFisica]: (ctx): EducacionFisicaService => ({ minutosPorSemana: (curso) => minutosDeEducacionFisica(ctx.pais, curso) }),
     [SERVICES.estudios]: (ctx): StudiesService => {
