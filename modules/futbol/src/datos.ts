@@ -13,8 +13,8 @@ import { GEN, type AporteDeLugares, type CategoriaDef, type ClubDeDeporte, type 
 const APUNTARSE: readonly [number, number] = [1, 6];
 export const CATEGORIAS_ESPANA: readonly CategoriaDef[] = [
   { id: 'prebenjamin', nombre: 'Prebenjamín', edadMin: 0, edadMax: 7, apuntarseEnLosDias: APUNTARSE },
-  { id: 'benjamin', nombre: 'Benjamín', edadMin: 8, edadMax: 9, nuevosEnElClub: true, rotacionEn: ['colegio'], probarFuera: 0.15, apuntarseEnLosDias: APUNTARSE },
-  { id: 'alevin', nombre: 'Alevín', edadMin: 10, edadMax: 11, rotacionEn: ['colegio'], probarFuera: 0.25, apuntarseEnLosDias: APUNTARSE },
+  { id: 'benjamin', nombre: 'Benjamín', edadMin: 8, edadMax: 9, nuevosEnElClub: true, rotacionEn: ['colegio'], primerAnioNoDesplazaEn: ['colegio', 'club'], probarFuera: 0.15, apuntarseEnLosDias: APUNTARSE },
+  { id: 'alevin', nombre: 'Alevín', edadMin: 10, edadMax: 11, rotacionEn: ['colegio'], primerAnioNoDesplazaEn: ['colegio', 'club'], probarFuera: 0.25, apuntarseEnLosDias: APUNTARSE },
   { id: 'infantil', nombre: 'Infantil', edadMin: 12, edadMax: 13, probarFuera: 0.35, apuntarseEnLosDias: APUNTARSE },
   { id: 'cadete', nombre: 'Cadete', edadMin: 14, edadMax: 15, probarFuera: 0.45, apuntarseEnLosDias: APUNTARSE },
   { id: 'juvenil', nombre: 'Juvenil', edadMin: 16, edadMax: 18, probarFuera: 0.55, apuntarseEnLosDias: APUNTARSE },

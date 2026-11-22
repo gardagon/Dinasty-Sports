@@ -184,15 +184,7 @@ export function manejadoresDeDeporte(cfg: ConfigDeporte): Record<string, EventHa
         for (let w = 0; w < semanas; w++) for (const e of cfg.juegoInformal) ctx.train(e.stat, e.amount);
       }
     },
-    // Un niño del mundo con mejor nivel ha ocupado su plaza: sale del club (lo hace el módulo de clubes) y se le explica qué ha pasado y qué puede hacer.
-    [SHARED_EVENTS.PLAZA_PERDIDA]: (ctx, ev) => {
-      const d = ev.data as PlazaPerdidaData;
-      if (d.sport !== cfg.id) return;
-      ctx.log(
-        `Un jugador que vale más ha ocupado tu plaza en el equipo de ${cfg.nombre} y sales del club. Puedes probar en otro club, en otro deporte o esperar al siguiente plazo de fichajes.`,
-        'aviso',
-      );
-    },
+    // (La salida del club por perder la plaza la cuenta el suceso `<deporte>.plaza_perdida`, no una línea del diario: `sucesoDePlazaPerdida`.)
     // Al empezar el curso, el entrenador le propone al personaje jugar en otro puesto (sobran en el suyo y faltan en otro): decide él con las acciones de aceptarlo o dejarlo.
     [SHARED_EVENTS.PROPUESTA_DE_PUESTO]: (ctx, ev) => {
       const d = ev.data as PuestoPropuestoData;
