@@ -50,6 +50,8 @@ export interface EntrenoRecomendable {
   id: string;
   nombre: string;
   entrena: Entreno;
+  /** Solo se hace en la sesión del club (hace falta compañía): el entrenador lo recomienda como cosa de la sesión, no «por tu cuenta». */
+  soloClub?: boolean;
 }
 
 /** Una habilidad que sube un poco con un consejo del entrenador y cómo se nombra en el texto («tu técnica»). */

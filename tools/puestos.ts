@@ -10,6 +10,7 @@
  *
  * Añade `--zurdo` para contar la pierna izquierda y `--hab futbol.reflejos=30,gen.coordinacion=70` para cambiar valores a mano.
  */
+import { ENTRENAMIENTOS_DE_FUTBOL } from '../modules/futbol/src/entrenamientos';
 import { PAIS_CIUDAD_GRANDE, registrarPais } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
@@ -99,14 +100,14 @@ if (modo === 'tabla') {
   console.log(`Semilla ${seed}\n`);
   if (!consejo) console.log('El profesor no ve nada claro en fútbol.');
   else console.log(`Profesor: «en ${consejo.nombre} te veo bien de ${consejo.puestos.map((p) => p.nombre.toLowerCase()).join(', ')}. ${fraseDelPorque(consejo) ?? ''}»\n`);
-  const catalogo = futbol.actions!.filter((a) => a.id.match(/^futbol\.(balon|tiro|fisico|porteria)$/)).map((a) => ({ id: a.id, nombre: String(a.name), entrena: a.train! }));
+  const catalogo = futbol.actions!.filter((a) => a.train && a.id.startsWith('futbol.entrena_')).map((a) => ({ id: a.id, nombre: String(a.name), entrena: a.train!, soloClub: !ENTRENAMIENTOS_DE_FUTBOL.find((e) => `futbol.entrena_${e.id}` === a.id)?.quien.includes('solo') }));
   const pedidas = resto.slice(1);
   for (const f of familiasDePuestos(PUESTOS_DE_FUTBOL).filter((x) => !pedidas.length || pedidas.includes(x.id))) {
     const l = dir.lecturaDePuesto?.('futbol', f.id);
     if (!l) continue;
     const e = elegirEntrenamiento(catalogo, l.frenan);
     console.log(`Preguntar por ${f.nombre.toLowerCase()} [${l.nivel}]: «${fraseDeLectura(l) ?? '—'}»`);
-    console.log(`  El entrenador: «${fraseDeEntrenamiento(l.pistas!, f.nombre, l.falta, e?.nombre)}»\n`);
+    console.log(`  El entrenador: «${fraseDeEntrenamiento(l.pistas!, f.nombre, l.falta, e?.nombre, undefined, e?.soloClub)}»\n`);
   }
 } else if (modo === 'ruido') {
   // Con qué frecuencia sale cada puesto entre los tres que nombra el profesor (valor + azar de ±2, como `consejoDeUnProfesor`), para ver cuánto es perfil y cuánto es azar.

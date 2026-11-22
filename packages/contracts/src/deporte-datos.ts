@@ -303,7 +303,7 @@ export interface PistasDePuestos {
   /** «Preguntar por un puesto»: según lo cerca que estás. `ya`: ya vales para él; `cerca`; `lejos`; `sinDatos`: sin nadie con quien compararte. */
   lectura: { ya: string; cerca: string; lejos: string; sinDatos: string };
   /** El entrenador recomienda un entrenamiento por su nombre (`{señal.entreno}`) según lo que frena tu puesto (`{señal.falta}`); `yaEntrenas` si nada te frena. */
-  entrenamiento: { recomienda: string; /** Algo te frena pero ningún entrenamiento lo sube. */ sinEntreno: string; yaEntrenas: string };
+  entrenamiento: { recomienda: string; /** Si el entrenamiento solo se hace en la sesión del club (hace falta compañía): «Pídele a tu entrenador…». Sin él, se usa `recomienda`. */ recomiendaEnElClub?: string; /** Algo te frena pero ningún entrenamiento lo sube. */ sinEntreno: string; yaEntrenas: string };
 }
 
 /** Los puestos de un deporte y cómo se reparte una plantilla entre ellos. */

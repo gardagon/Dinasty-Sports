@@ -63,6 +63,7 @@ export const PISTAS_DE_PUESTOS_DE_FUTBOL: PistasDePuestos = {
   },
   entrenamiento: {
     recomienda: 'Para {señal.puesto}, lo que más te frena: {señal.falta}. Esta semana, «{señal.entreno}» por tu cuenta.',
+    recomiendaEnElClub: 'Para {señal.puesto}, lo que más te frena: {señal.falta}. Pídele a tu entrenador «{señal.entreno}» en la sesión del club.',
     sinEntreno: 'Para {señal.puesto}, lo que más te frena: {señal.falta}. Eso se gana jugando partidos y con paciencia.',
     yaEntrenas: 'Vas bien: sigue con lo del club y, si puedes, un rato por tu cuenta de lo que más te guste.',
   },

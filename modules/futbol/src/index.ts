@@ -207,8 +207,8 @@ const CONFIG: ConfigDeporte = {
   puestos: (ctx) => conLaPierna(rendimientoPorPuestos(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', PUESTOS_DE_FUTBOL.pierna?.ventajaDelLado ?? 0.25),
   puestosDelDeporte: PUESTOS_DE_FUTBOL.puestos.map((p) => ({ id: p.id, nombre: p.nombre })),
   entrenosLibres: ENTRENOS_LIBRES,
-  // Los entrenamientos que recomienda el entrenador se leen de las acciones de entrenar por libre (`futbol.actions`): lo que sube cada una es lo que cuenta, no un desplegable fijo. Solo los que se pueden hacer por tu cuenta (los de compañía son de la sesión del club).
-  catalogoDeEntrenos: (ctx) => (futbol.actions ?? []).filter((a) => ENTRENOS_LIBRES.includes(a.id) && a.train && ENTRENAMIENTOS_DE_FUTBOL.some((e) => idDeEntreno(e) === a.id && e.quien.includes('solo'))).map((a) => ({ id: a.id, nombre: typeof a.name === 'string' ? a.name : a.name(ctx), entrena: a.train! })),
+  // Los entrenamientos que recomienda el entrenador se leen de las acciones de entrenar por libre (`futbol.actions`): lo que sube cada una es lo que cuenta, no un desplegable fijo. Los 22: los de compañía se recomiendan como cosa de la sesión del club (`soloClub`).
+  catalogoDeEntrenos: (ctx) => (futbol.actions ?? []).filter((a) => ENTRENOS_LIBRES.includes(a.id) && a.train).map((a) => ({ id: a.id, nombre: typeof a.name === 'string' ? a.name : a.name(ctx), entrena: a.train!, soloClub: !ENTRENAMIENTOS_DE_FUTBOL.find((e) => idDeEntreno(e) === a.id)?.quien.includes('solo') })),
   juegoInformal: JUEGO_INFORMAL,
 };
 

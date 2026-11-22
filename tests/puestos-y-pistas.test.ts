@@ -188,6 +188,10 @@ describe('los textos: plantillas del deporte con el género de quien habla', () 
   it('el entrenador recomienda por nombre, o dice que vas bien, o que nada lo sube', () => {
     expect(fraseDeEntrenamiento(pistas, 'Portero', ['ser rápido'], 'Entrenar de portero')).toBe('«Entrenar de portero» para ser rápido');
     expect(fraseDeEntrenamiento(pistas, 'Portero', [], undefined)).toBe('vas bien');
+    // Un entrenamiento que solo se hace en el club se recomienda como cosa de la sesión (si el deporte trae esa frase).
+    const conClub = { ...pistas, entrenamiento: { ...pistas.entrenamiento, recomiendaEnElClub: 'club: «{señal.entreno}»' } };
+    expect(fraseDeEntrenamiento(conClub, 'Portero', ['x'], 'Centros', undefined, true)).toBe('club: «Centros»');
+    expect(fraseDeEntrenamiento(conClub, 'Portero', ['x'], 'Centros')).not.toMatch(/^club/);
     expect(fraseDeEntrenamiento(pistas, 'Portero', ['x'], undefined)).toBe('sin entreno x');
   });
 });
