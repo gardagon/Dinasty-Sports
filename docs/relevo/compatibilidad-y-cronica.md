@@ -33,4 +33,8 @@ Decisión del usuario (vía la arquitectura): **de todos los del partido se ve s
 
 ## 3. Comprobaciones
 
-(Pendiente al subir esto: resultado de `npm test` y `npm run probar-web`; `typecheck` verde, `benjamin -- 31,33` idéntico y `huella -- 60` idéntica a la rama de partida.)
+- `npm run typecheck`: sin errores.
+- `npm test`: 119 archivos, 1.322 tests en verde (578 s).
+- `npm run benjamin -- 31,33`: idéntico al de la rama de partida.
+- `npm run probar-web`: «Todo el camino funciona en el navegador» (sin errores en la consola).
+- `npm run huella -- 60`: idéntica a la de la rama de partida (5d00e17): ni los bots ni los mundos de fútbol cambian (el cambio de \`known\` solo afecta a partidos del personaje y \`alCargar\` no actúa al crear la partida).
