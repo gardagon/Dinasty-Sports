@@ -17,7 +17,7 @@ import { SEMANAS_DE_LOS_LEJANOS, conMasConocimiento, historiaDeportiva, huecosDe
  * - Publican el servicio `npcs` para que otros módulos los consulten.
  */
 
-import { añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
+import { conUnaPlazaDeMas, añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
 import { colocarDesplazados } from './fichajes';
 import { conApuntados, entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, completarPoblaciones, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { consejoDeUnProfesor, familiasDePuestosDeLosDeportes, lecturaDeUnPuesto } from './consejo';
@@ -1592,10 +1592,13 @@ export const npcs = defineModule<NpcsState>({
       const reservas = new Map<string, number>();
       const personaje: JugadorEnClub[] = [];
       const rend = rendimientosDe(ctx);
+      const finDeCategorias: string[] = [];
       const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
       for (const pob of pobs) {
         const club = clubes?.membership(pob.deporte);
         const cat = club && pob.equipos.some((e) => e.club === club.id && e.plantillaPorCategoria) ? categoriaDe(pob, edadProxima) : undefined;
+        // Si a su edad el deporte ya no tiene categoría (acaba la última), no se queda en el club sin equipo y sin aviso: se le avisa (`fin_de_categorias`) y sale del club.
+        if (club && !cat && pob.categorias?.length && pob.equipos.some((e) => e.club === club.id && e.plantillaPorCategoria)) finDeCategorias.push(pob.deporte);
         if (!club || !cat) continue;
         reservas.set(claveDeEquipo(club.id, cat.id), 1);
         const f = rend.get(pob.deporte);
@@ -1614,6 +1617,7 @@ export const npcs = defineModule<NpcsState>({
       // Con una plaza de más sigue en el equipo, y el entrenador le avisa de que contará menos con él (suceso `<deporte>.plaza_extra`).
       for (const deporte of resultado.plazaExtra) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_EXTRA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
       // Si su equipo no sigue (su club no reúne el mínimo de niños o no tiene equipos en su categoría), tiene que buscarse equipo (suceso `<deporte>.equipo_sin_ninos`; sale del club como cualquier niño).
+      for (const deporte of finDeCategorias) ctx.emit<EquipoSinNinosData>({ type: SHARED_EVENTS.EQUIPO_SIN_NINOS, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id, motivo: 'fin_de_categorias' } });
       for (const f of resultado.sinNinos) ctx.emit<EquipoSinNinosData>({ type: SHARED_EVENTS.EQUIPO_SIN_NINOS, data: { sport: f.deporte, clubId: clubes!.membership(f.deporte)!.id, motivo: f.motivo, ...(f.jugadores !== undefined ? { jugadores: f.jugadores } : {}), ...(f.minimo !== undefined ? { minimo: f.minimo } : {}) } });
       // Sin plaza (otro que vale más se la ha quitado y no cabe ni con una plaza de más): sale del club y el suceso `<deporte>.plaza_perdida` se lo cuenta su entrenador, con hasta cuándo siguen abiertas las pruebas.
       for (const deporte of resultado.sinPlaza) {
@@ -1623,7 +1627,12 @@ export const npcs = defineModule<NpcsState>({
         const entrenador = suyos.find((n) => n.edades && edadAntes >= n.edades[0] && edadAntes <= n.edades[1]) ?? suyos[0];
         const temporada = datosDeDeporte(ctx, deporte).temporada;
         const cierre = (proximo.week - proximo.schoolWeek + semanasDeTemporada(ctx.pais.calendario, temporada).primeraCompeticion) * 7 - 1;
-        ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId, ...(entrenador ? { participants: [{ npcId: entrenador.id }] } : {}), plazoHasta: diaConFecha(cierre) } });
+        // Los clubes de fuera con equipo en su categoría a los que puede pedir una prueba, en una frase.
+        const pobDeporte = pobs.find((p) => p.deporte === deporte);
+        const categoria = personaje.find((j) => j.deporte === deporte)?.categoria;
+        const nombres = (pobDeporte?.equipos ?? []).filter((e) => e.colegio === undefined && e.club !== clubId && e.plantillaPorCategoria && categoriasDelEquipo(pobDeporte!, e).some((c) => c.id === categoria)).map((e) => e.nombre ?? e.club);
+        const clubesDePrueba = nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0] ?? 'otros clubes de la ciudad';
+        ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId, ...(entrenador ? { participants: [{ npcId: entrenador.id }] } : {}), plazoHasta: diaConFecha(cierre), clubes: clubesDePrueba } });
       }
     },
 
@@ -1666,6 +1675,15 @@ export const npcs = defineModule<NpcsState>({
         const rendDelClub = rendimientosDe(ctx);
         const pob = pobs.find((p) => p.deporte === sport);
         const plaza = plazaEnElEquipo(ctx.state<NpcsState>().npcs, pobs, sport, clubId, edad, nivel, inicioCurso, pob ? (valoresDePrueba ?? puestosDelPersonaje(ctx, rendDelClub, pob)) : undefined, rendDelClub, undefined, valoresDePrueba && puesto ? { puesto, yaPasada: true } : undefined);
+        // Con hueco en el club pero no en su equipo por el cupo de su puesto, el equipo abre plazas de más (1–2) para que quepa.
+        if (plaza.estado === 'libre' && plaza.plazasDeMas) {
+          ctx.updateState<NpcsState>((st) => {
+            let nuevas: readonly PoblacionGuardada[] = st.poblaciones ?? pobs;
+            const cat = pob ? categoriaDe(pob, edad) : undefined;
+            for (let i = 0; i < plaza.plazasDeMas! && cat; i++) nuevas = conUnaPlazaDeMas(nuevas, { deporte: sport, club: clubId, categoria: cat.id }) ?? nuevas;
+            return { ...st, poblaciones: [...nuevas] };
+          });
+        }
         if (plaza.estado === 'por_merito' && plaza.peor && pob) {
           const cat = categoriaDe(pob, edad);
           const reservas = new Map<string, number>(cat ? [[claveDeEquipo(clubId, cat.id), 1]] : []);

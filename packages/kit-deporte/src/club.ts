@@ -135,6 +135,7 @@ export const entrenosAgrupados = (cfg: ConfigDeporte, acciones: readonly ActionD
  */
 export function motivoSinPlaza(ctx: ReadContext, cfg: ConfigDeporte, club: string): string | undefined {
   const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx), cfg.puestos?.(ctx));
+  if (plaza?.estado === 'completo' && plaza.sinCupo) return 'En el equipo de tu categoría no queda sitio para un jugador de tu puesto, ni siquiera con una plaza de más: prueba en otro club o espera al siguiente plazo de fichajes';
   return plaza?.estado === 'completo'
     ? `El equipo de tu categoría está completo y todos juegan mejor que tú (el peor, ${plaza.peor?.nombre}, tiene nivel ${Math.round(plaza.peor?.nivel ?? 0)} y tú ${Math.round(cfg.rendimiento(ctx))}): sigue entrenando por tu cuenta y vuelve a intentarlo`
     : undefined;

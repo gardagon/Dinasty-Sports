@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SERVICES, SHARED_EVENTS, defineModule, type ClubDirectory, type SucesosService } from '@ds/contracts';
+import { SERVICES, SHARED_EVENTS, defineModule, type ClubDirectory, type NpcDirectory, type SucesosService } from '@ds/contracts';
+import { idDeElegir } from '@ds/mod-sucesos';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { PUESTOS_DE_FUTBOL, futbol } from '@ds/mod-futbol';
@@ -89,5 +90,53 @@ describe('la salida del personaje por perder la plaza', () => {
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     advanceToWeek(g, 'gen.descansar', 52 + 2, 2, 15);
     expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol'), 'sigue en el club del colegio').toBeDefined();
+  });
+
+  it('«buscar otro club» dice qué clubes hacen pruebas y hasta cuándo, y deja a mano «Pedir hacer una prueba…»', () => {
+    const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, avisa({ sport: 'futbol', clubId: 'colegio', participants: [{ npcId: 'entrenador' }], plazoHasta: 'el lunes 14 de septiembre', clubes: 'Real Ciudad C. F. y Unión Deportiva del Barrio' })]);
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
+    expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+    expect(g.perform('avisa.perdida').ok).toBe(true);
+    const p = g.service<SucesosService>(SERVICES.sucesos)!.pendientes().find((x) => x.suceso === 'futbol.plaza_perdida')!;
+    expect(g.perform(idDeElegir(p.id, 'buscar_club')).ok).toBe(true);
+    const texto = g.log.map((l) => l.text).join('\n');
+    expect(texto).toMatch(/Hacen pruebas Real Ciudad C\. F\. y Unión Deportiva del Barrio, hasta el lunes 14 de septiembre/);
+    expect(texto).toMatch(/Pedir hacer una prueba/);
+    // La acción está en su lista (en el desplegable «Prueba de acceso…»), no solo en el texto.
+    expect(g.preview('futbol.pedir_prueba.club_grande')).toBeDefined();
+  });
+});
+
+describe('el personaje que se apunta tiene equipo, y el que acaba la última categoría recibe aviso', () => {
+  it('semilla 33 de la ciudad grande: o se puede apuntar y acaba en un equipo, o la acción dice por qué no', async () => {
+    const { PAIS_CIUDAD_GRANDE, registrarPais } = await import('@ds/contracts');
+    registrarPais(PAIS_CIUDAD_GRANDE);
+    const g = nuevaPartida({ seed: 33, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    advanceToWeek(g, 'gen.descansar', 0, 2, 9);
+    const vista = g.preview('futbol.apuntarse_colegio')!;
+    if (vista.available) {
+      expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+      expect(g.service<NpcDirectory>(SERVICES.npcs)!.equipoDelPersonaje?.('futbol'), 'si entra en el club, tiene equipo').toBeDefined();
+    } else {
+      expect(vista.reason ?? '').toMatch(/no queda sitio|completo/);
+      expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeUndefined();
+    }
+  });
+
+  it('al acabar el fútbol base (sin categoría a su edad) le llega el suceso «se acaba el fútbol base» y sale del club', () => {
+    const avisa = defineModule<Record<string, never>>({
+      id: 'avisa',
+      name: 'Aviso',
+      dependsOn: ['gen'],
+      initState: () => ({}),
+      actions: [{ id: 'avisa.fin', name: 'Fin del fútbol base', tags: [], duration: 1, run: (ctx) => ctx.emit({ type: SHARED_EVENTS.EQUIPO_SIN_NINOS, data: { sport: 'futbol', clubId: 'colegio', motivo: 'fin_de_categorias' } }) }],
+    });
+    const g = nuevaPartida({ seed: 31, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol, avisa]);
+    advanceToWeek(g, 'gen.descansar', 1, 2, 15);
+    expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
+    expect(g.perform('avisa.fin').ok).toBe(true);
+    expect(g.service<ClubDirectory>(SERVICES.clubes)!.membership('futbol')).toBeUndefined();
+    const p = g.service<SucesosService>(SERVICES.sucesos)!.pendientes().find((x) => x.suceso === 'futbol.equipo_sin_ninos');
+    expect(p!.texto).toMatch(/se acaba el fútbol base en tu club/);
   });
 });

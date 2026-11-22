@@ -198,10 +198,12 @@ export interface PlazaPerdidaData {
   /** Con `PLAZA_PERDIDA`: el entrenador de su equipo (`[{ npcId }]`; al llegar la señal el personaje ya no es de ese club, así que el suceso lo toma de aquí) y el último día en que sigue abierto el plazo de fichajes («el lunes 14 de septiembre»). */
   participants?: { npcId: string }[];
   plazoHasta?: string;
+  /** Los clubes de fuera que tienen equipo en su categoría y a los que puede pedir una prueba, en una frase («Real Ciudad C. F., Unión Deportiva del Barrio y Escuela de Fútbol Los Pinos»). */
+  clubes?: string;
 }
 
-/** Por qué el equipo del personaje no sigue (`EQUIPO_SIN_NINOS`): `pocos` (el club no reúne el mínimo de niños en su categoría: el equipo se cierra) o `sin_categoria` (el club no tiene equipos en la categoría a la que sube). */
-export type MotivoDeEquipoSinNinos = 'pocos' | 'sin_categoria';
+/** Por qué el equipo del personaje no sigue (`EQUIPO_SIN_NINOS`): `pocos` (el club no reúne el mínimo de niños en su categoría: el equipo se cierra) o `sin_categoria` (el club no tiene equipos en la categoría a la que sube) o `fin_de_categorias` (a su edad el deporte ya no tiene categoría: se acaba el deporte base). */
+export type MotivoDeEquipoSinNinos = 'pocos' | 'sin_categoria' | 'fin_de_categorias';
 
 export interface EquipoSinNinosData {
   sport: string;

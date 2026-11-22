@@ -297,7 +297,7 @@ export interface TextosDePlazaPerdida {
 
 /**
  * El suceso de la salida del club (`<deporte>.plaza_perdida`, decisión del usuario, 22/11/2026): al empezar el curso otro jugador que vale más le ocupa la plaza al personaje y ni con una plaza de más cabe, así que **sale del club**
- * (lo hace el módulo de clubes con `club.plaza_perdida`). Su entrenador se lo dice y le da opciones: buscar otro club (con hasta cuándo siguen abiertas las pruebas, `{señal.plazoHasta}`), entrenar por su cuenta o preguntar qué mejorar.
+ * (lo hace el módulo de clubes con `club.plaza_perdida`). Su entrenador se lo dice y le da opciones: buscar otro club (con qué clubes hacen pruebas, `{señal.clubes}`, y hasta cuándo siguen abiertas, `{señal.plazoHasta}`, y la acción «Pedir hacer una prueba…» a mano en el desplegable «Prueba de acceso…»), entrenar por su cuenta o preguntar qué mejorar.
  * Antes era una línea del diario. El entrenador y la fecha vienen en la señal (al llegar ya no es de ese club). Dispara con `club.plaza_perdida`.
  */
 export function sucesoDePlazaPerdida(cfg: ConfigDeporte, t: TextosDePlazaPerdida): AporteDeSucesos {
@@ -306,7 +306,7 @@ export function sucesoDePlazaPerdida(cfg: ConfigDeporte, t: TextosDePlazaPerdida
     titulo: t.titulo,
     deporte: cfg.id,
     disparo: { al: SHARED_EVENTS.PLAZA_PERDIDA },
-    ejemploDeSeñal: { sport: cfg.id, clubId: 'club', participants: [{ npcId: 'entrenador' }], plazoHasta: 'el lunes 14 de septiembre' },
+    ejemploDeSeñal: { sport: cfg.id, clubId: 'club', participants: [{ npcId: 'entrenador' }], plazoHasta: 'el lunes 14 de septiembre', clubes: 'Real Ciudad C. F. y Unión Deportiva del Barrio' },
     cuando: [{ señal: 'sport', es: cfg.id }],
     repite: 'siempre',
     reparto: { entrenador: { rol: 'entrenador', deLaSeñal: 'participants', conocido: false } },
@@ -333,6 +333,8 @@ export interface TextosDeEquipoSinNinos {
   pocos: string;
   /** El club no tiene equipos en la categoría a la que sube. */
   sinCategoria: string;
+  /** A su edad el deporte ya no tiene categoría: se acaba el deporte base en el club. */
+  finDeCategorias: string;
   opcionBuscar: string;
   resultadoBuscar: string;
   opcionEsperar: string;
@@ -358,6 +360,7 @@ export function sucesoDeEquipoSinNinos(cfg: ConfigDeporte, t: TextosDeEquipoSinN
     plazo: { dias: 3, porDefecto: 'esperar' },
     texto: t.pocos,
     variantes: [
+      { id: 'fin_de_categorias', si: [{ señal: 'motivo', es: 'fin_de_categorias' }], texto: t.finDeCategorias },
       { id: 'sin_categoria', si: [{ señal: 'motivo', es: 'sin_categoria' }], texto: t.sinCategoria },
       { id: 'pocos', si: [], texto: t.pocos },
     ],

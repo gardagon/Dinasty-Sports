@@ -45,6 +45,8 @@ export const TEXTOS_DE_EQUIPO_SIN_NINOS: TextosDeEquipoSinNinos = {
     'Antes de empezar el curso te llega la noticia: con los que han subido de categoría y los que se han ido a probar a otros clubes, en tu categoría solo quedan {señal.jugadores} niños contándote a ti, y para formar un equipo hacen falta {señal.minimo}. Este año no habrá equipo. Si quieres seguir jugando, tendrás que buscarte uno, como todos los demás.',
   sinCategoria:
     'Antes de empezar el curso te llega la noticia: tu club no tiene equipo en la categoría a la que subes este año. Si quieres seguir jugando, tendrás que buscarte uno, como todos los demás.',
+  finDeCategorias:
+    'Antes de empezar el curso te llega la noticia: se acaba el fútbol base en tu club. Con tu edad ya no hay categoría en la que puedas jugar aquí, así que este año no hay equipo para ti. Si quieres seguir jugando, tendrás que buscarte uno por tu cuenta, como todos los demás.',
   opcionBuscar: 'Moverte ya para buscar otro equipo',
   resultadoBuscar: 'No te lo piensas mucho: pides pruebas en otros clubes mientras el plazo está abierto.',
   opcionEsperar: 'Esperar a ver qué pasa',
@@ -56,7 +58,7 @@ export const TEXTOS_DE_PLAZA_PERDIDA: TextosDePlazaPerdida = {
   texto:
     'Antes de empezar el curso, {entrenador.nombre} te para al salir del campo. «Tengo que decirte algo que no me gusta. Han llegado jugadores que valen más que tú en tu puesto y el equipo no da para más: este año no hay sitio para ti». Se pasa la mano por la nuca. «Estás fuera de la plantilla. Las pruebas de otros clubes siguen abiertas hasta {señal.plazoHasta}. Si te mueves ahora, aún estás a tiempo. O, si prefieres, sigue entrenando por tu cuenta y vuelve a intentarlo en el siguiente plazo».',
   opcionBuscar: 'Buscar otro club mientras las pruebas siguen abiertas',
-  resultadoBuscar: '«Eso es. Llama a los clubes esta misma semana». {entrenador.Nombre} te da la mano. «Y si te falta algo, ya sabes dónde estoy».',
+  resultadoBuscar: '«Eso es. Hacen pruebas {señal.clubes}, hasta {señal.plazoHasta}. Pasa por los trámites del club que quieras y pide hacer una prueba: la tienes en «Prueba de acceso…», «Pedir hacer una prueba…», y allí te dicen cuándo entrenan». {entrenador.Nombre} te da la mano. «Y si te falta algo, ya sabes dónde estoy».',
   opcionPorMiCuenta: 'Quedarte entrenando por tu cuenta y volver a intentarlo el año que viene',
   resultadoPorMiCuenta: '{entrenador.Nombre} asiente despacio. «Es un camino más largo, pero también vale. Trabaja duro y verás cómo cambian las cosas».',
   opcionMejorar: 'Preguntarle qué tienes que mejorar para volver',
