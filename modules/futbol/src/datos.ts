@@ -51,23 +51,32 @@ const CLUBES_ESPANA: readonly ClubDeDeporte[] = [
 const CATEGORIAS_DE_LOS_CLUBES = ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
 
 /**
- * **Propuesta, desactivada:** que una parte de los PNJ entrene por su cuenta y quede a jugar con las mismas listas que el personaje (`docs/relevo/pnj-entrenan-y-abandono.md`). Para activarla, se añade a la rutina de
- * `POBLACION_ESPANA` (`porLibre: PNJ_POR_LIBRE`); sin ella los PNJ solo entrenan con su club y la huella de los bots no cambia.
+ * Que una parte de los PNJ entrene por su cuenta y quede a jugar con las mismas listas que el personaje (`docs/relevo/pnj-entrenan-y-abandono.md` §3; activada el 22/11 con la intensidad «fuerte», **cifras provisionales**
+ * para hacer pruebas, `docs/relevo/pnj-entrenan-2.md`): hasta 4 sesiones a la semana fuera del club; la probabilidad de cada una es la base (0,20) más lo que pesa el interés (0,12), la ambición (0,20), el sacrificio
+ * (0,08) y la disciplina (0,05) y un azar de cada curso (0,20), por un factor por edad que baja con los estudios (15: 0,9 · 16: 0,75 · 17: 0,6 · 18: 0,7). Un niño medio hace así 2,8 sesiones a la semana (1,7 del club) y los más aficionados, 4–5.
  */
 export const PNJ_POR_LIBRE: PorLibreDeDeporte = {
   entrenamientos: ENTRENAMIENTOS_DE_FUTBOL.filter((e) => e.quien.includes('solo')).map((e) => ({ id: e.id, entrena: entrenaPorLibre(e), ...(e.soloPuesto ? { soloPuesto: e.soloPuesto } : {}), ...(e.noPara ? { noPara: e.noPara } : {}) })),
   quedadas: QUEDADAS_DE_FUTBOL.map((q) => ({ id: q.id, entrena: q.entrena })),
   eficiencia: 0.85,
-  maximoPorSemana: 3,
-  propension: { base: 0.2, interes: 0.1, ambicion: 0.1, sacrificio: 0.05, disciplina: 0.03, dispersion: 0.1 },
+  maximoPorSemana: 4,
+  propension: { base: 0.2, interes: 0.12, ambicion: 0.2, sacrificio: 0.08, disciplina: 0.05, dispersion: 0.2 },
   factorPorEdad: { 15: 0.9, 16: 0.75, 17: 0.6, 18: 0.7 },
 };
 
 /**
- * **Propuesta, desactivada:** que los mejores de su edad abandonen menos, pero no cero (`docs/relevo/pnj-entrenan-y-abandono.md` §2). Se mezcla con `abandono` de `POBLACION_ESPANA` (`pesos.nivel`: lo bueno que es frente a los de
- * su edad; `suelo`: la probabilidad mínima de dejarlo cada verano). Sin ella, el abandono no mira el nivel.
+ * Jugar engancha (22/11): cada sesión de la semana (del club o por su cuenta) cuenta como 1,5 horas jugando y sube el interés por el fútbol con la regla del personaje (`SUBIDA_DE_INTERES_POR_HORA`: 0,6 puntos por hora sobre
+ * 100, con rendimientos decrecientes), multiplicada por 0,08 (**provisional**: a 1 sería igual que el personaje, que juega hasta 13 sesiones a la semana y llega a «le gusta mucho» en pocas semanas; con 0,08, un niño que
+ * entrena con el club y algo por su cuenta pasa de 1,5 a 3 en unos 2 años y uno que solo va al club, en 3 o 4).
  */
-export const ABANDONO_PROPUESTO = { pesos: { nivel: 0.6 }, suelo: 0.04 } as const;
+export const INTERES_AL_JUGAR = { horasPorSesion: 1.5, escala: 0.08 } as const;
+
+/**
+ * Cuánto pesan el nivel y el interés en el abandono (22/11; `docs/relevo/pnj-entrenan-2.md`, **cifras provisionales**): los mejores de su edad lo dejan menos (peso 0,6 del nivel frente a los de su edad: el mejor baja la
+ * probabilidad un 60 % y el peor la sube otro tanto) y nunca por debajo del 4 % cada verano («no todos los mejores triunfan, por mentalidad o por temas personales»); y el interés pesa más (de 0,4 a 0,6: a quien le
+ * gusta mucho el fútbol lo deja un 60 % menos que a la media, y a quien casi no le interesa, un 60 % más).
+ */
+export const ABANDONO_PROPUESTO = { pesos: { nivel: 0.6, interes: 0.6 }, suelo: 0.04 } as const;
 
 const POBLACION_ESPANA: PoblacionDeDeporte = {
   // Los 16 puestos y el reparto de una plantilla de 18 por puestos (adelanto de la F3): los clubes reparten la plantilla y deciden las plazas por puesto.
@@ -81,6 +90,8 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
     siempre: SIEMPRE,
     ejerciciosPorSesion: 2,
     informal: JUEGO_INFORMAL,
+    porLibre: PNJ_POR_LIBRE,
+    interesAlJugar: INTERES_AL_JUGAR,
     // Cuántas sesiones por semana entrena cada club (sus días de entrenamiento): el del colegio, 2; los de la zona, más cuanto más grandes (el grande entrena cuatro días).
     sesionesPorSemana: Object.fromEntries(CLUBES_ESPANA.map((c) => [c.id, c.sesiones.weekdays.length])),
     sesionesPorDefecto: 2,
@@ -96,8 +107,9 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
     // El abandono por edad (decisión del 07/11; a calibrar con `npm run equipos`): a los 13 o menos, lo de siempre (10 % por verano); desde cadete sube deprisa. Pesan el interés, la ambición, los minutos, los estudios (4.º de la ESO y bachillerato) y los padres.
     abandono: {
       baseDeLaEdad: { 8: 0.1, 13: 0.1, 14: 0.12, 15: 0.18, 16: 0.24, 17: 0.3, 18: 0.36 },
-      pesos: { interes: 0.4, ambicion: 0.25, minutos: 0.3, estudios: 0.3, padres: 0.15 },
+      pesos: { interes: ABANDONO_PROPUESTO.pesos.interes, ambicion: 0.25, minutos: 0.3, estudios: 0.3, padres: 0.15, nivel: ABANDONO_PROPUESTO.pesos.nivel },
       estudiosPorEdad: { 15: 0.6, 16: 0.8, 17: 1, 18: 0.8 },
+      suelo: ABANDONO_PROPUESTO.suelo,
     },
   },
   // Los equipos de la zona (`CIUDAD_Y_LIGAS.md` §3): el del colegio es un club pequeño más y escoge a sus alumnos; los de fuera, por su atractivo. Cada club tiene en cada categoría (de benjamín a juvenil) hasta cuatro

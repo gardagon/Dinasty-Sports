@@ -468,6 +468,11 @@ export interface RutinaDeDeporte {
    * algunas sesiones fuera del club con las mismas listas que el personaje, y cuentan como sesiones para su cansancio y sus lesiones. **Sin este dato, los PNJ solo entrenan con su club** (lo de siempre).
    */
   porLibre?: PorLibreDeDeporte;
+  /**
+   * Que jugar suba el interés por el deporte de los PNJ, con la misma regla que el del personaje (`SUBIDA_DE_INTERES_POR_HORA`, con rendimientos decrecientes): cada sesión de la semana (del club o por su cuenta) son
+   * `horasPorSesion` horas, y lo que sube se multiplica por `escala` (a 1 sería igual que el personaje; el PNJ no vive solo para el deporte). Sin este dato, el interés de los PNJ no cambia.
+   */
+  interesAlJugar?: { horasPorSesion: number; escala: number };
 }
 
 /** Las reglas con que un PNJ entrena fuera del club o queda a jugar (`RutinaDeDeporte.porLibre`). */
