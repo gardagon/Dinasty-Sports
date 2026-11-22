@@ -93,6 +93,7 @@ import {
   sucesoDePedirPuesto,
   sucesoDePlazaExtra,
   sucesoDeEquipoSinNinos,
+  sucesoDePlazaPerdida,
   sucesoDePruebaDeAcceso,
 } from '@ds/kit-deporte';
 import { EJERCICIOS_DE_FUTBOL, JUEGO_INFORMAL, SIEMPRE, sesgoDelEntrenador } from './ejercicios';
@@ -103,9 +104,9 @@ import { CONOCIMIENTO, DEPORTE, GRUPOS_DE_HABILIDADES, HABILIDADES_DE_FUTBOL, ST
 import { juicioDe, recordarRivales, recordarSoloLosUltimos, textoDelJuicio, verDeNuevo, type Impresion, type RivalVisto } from './mi-equipo';
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { EVENTOS_DE_FUTBOL } from './eventos';
-import { TEXTOS_DE_EQUIPO_SIN_NINOS, TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
+import { TEXTOS_DE_PLAZA_PERDIDA, TEXTOS_DE_EQUIPO_SIN_NINOS, TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
 import { dorsalDeCampo, dorsalDePortero } from '@ds/contracts';
-import { APORTE_DE_SUCESOS, servicioDeHechos, type HechosService } from '@ds/contracts';
+import { APORTE_DE_SUCESOS, fraseDelPuestoInicial, servicioDeHechos, type HechosService } from '@ds/contracts';
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 import { convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, paraConvocarElEquipo, posicionEquivalente, type Convocatoria } from './convocatoria';
@@ -1505,7 +1506,7 @@ export const futbol = defineModule<FutbolState>({
   name: 'Fútbol',
   description: 'Fútbol 11. Entrena con el equipo del colegio y por tu cuenta.',
   dependsOn: ['gen'],
-  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTES.quedadaDeDeporte]: QUEDADAS_DE_FUTBOL, [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO), sucesoDePlazaExtra(CONFIG, TEXTOS_DE_PLAZA_EXTRA), sucesoDeEquipoSinNinos(CONFIG, TEXTOS_DE_EQUIPO_SIN_NINOS)] },
+  aportes: { [APORTES.fichaDeDeporte]: [FICHA_FUTBOL], [APORTES.datosDeDeporte]: [DATOS_FUTBOL], [APORTES.lugaresDeDeporte]: [LUGARES_FUTBOL], [APORTES.rendimientoDeDeporte]: [{ id: DEPORTE, rendimiento, puestos: rendimientoPorPuestos }], [APORTES.quedadaDeDeporte]: QUEDADAS_DE_FUTBOL, [APORTE_DE_SUCESOS]: [...EVENTOS_DE_FUTBOL, sucesoDePruebaDeAcceso(CONFIG, TEXTOS_DE_PRUEBA_DE_ACCESO), sucesoDePedirPuesto(CONFIG, TEXTOS_DE_PEDIR_PUESTO), sucesoDePlazaExtra(CONFIG, TEXTOS_DE_PLAZA_EXTRA), sucesoDeEquipoSinNinos(CONFIG, TEXTOS_DE_EQUIPO_SIN_NINOS), sucesoDePlazaPerdida(CONFIG, TEXTOS_DE_PLAZA_PERDIDA)] },
   stats: [...STATS_DE_FUTBOL],
 
   initState: () => ({ sesionesHoy: { day: -1, n: 0 }, ultimaTele: -1 }),
@@ -1529,6 +1530,9 @@ export const futbol = defineModule<FutbolState>({
             return mejor;
           case 'juega_donde_mas_vale':
             return mejor === puesto;
+          case 'frase_del_puesto':
+            // Lo que dice el entrenador en el primer entrenamiento (puesto sin lado, el otro en que encaja y lo que pidió en la prueba): los textos son datos del deporte (`pistas.primerEntrenamiento`).
+            return fraseDelPuestoInicial(PUESTOS_DE_FUTBOL, puesto, valores, ctx.state<FutbolState>().puestoPedido);
           case 'ventaja_del_mejor_puesto':
             return Math.round(((valores[mejor] ?? 0) - (valores[puesto] ?? 0)) * 10) / 10;
         }

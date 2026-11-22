@@ -1,7 +1,7 @@
 import { INTERFAZ_DE_DEPORTES, type GameModule } from '@ds/contracts';
 import { ANFITRION_DE_DEPORTES } from '@ds/game';
 import { CLAVE_PUBLICA } from './clave';
-import { Instalador, almacenEnMemoria, fuenteWeb, type AlmacenDePaquetes, type DeporteInstalado, type EntradaDeCatalogo } from '@ds/paquetes';
+import { Instalador, almacenEnMemoria, esActualizacion, fuenteWeb, type AlmacenDePaquetes, type DeporteInstalado, type EntradaDeCatalogo } from '@ds/paquetes';
 
 /**
  * Los deportes que se instalan en este dispositivo (fase 6 del plan de deportes modulares). Los paquetes se guardan en IndexedDB para jugar sin conexión;
@@ -116,4 +116,21 @@ export async function instalarDeporte(origen: EntradaDeCatalogo | string): Promi
 export async function desinstalarDeporte(id: string): Promise<void> {
   await instalador.desinstalar(id);
   estadoDeDeportes.instalados = await instalador.instalados();
+}
+
+/** ¿Es esta entrada del catálogo una versión nueva de algo ya instalado? (más nueva, o la misma versión con el código cambiado). */
+export const esActualizacionDeInstalado = (c: EntradaDeCatalogo): boolean => estadoDeDeportes.instalados.some((d) => d.manifiesto.id === c.id && esActualizacion(d.manifiesto, c));
+
+/** Los deportes instalados que tienen código nuevo publicado en la web del juego (sin instalar nada). Lanza si no hay conexión. */
+export async function deportesConActualizacion(): Promise<EntradaDeCatalogo[]> {
+  return instalador.actualizacionesDe(fuenteDelJuego());
+}
+
+/** Baja e instala la versión nueva de cada deporte instalado que la tenga. Devuelve los nombres de los actualizados. */
+export async function actualizarDeportesInstalados(): Promise<string[]> {
+  const nuevos = await deportesConActualizacion();
+  const hechos: string[] = [];
+  for (const e of nuevos) hechos.push((await instalador.instalarDe(fuenteDelJuego(), e)).nombre);
+  estadoDeDeportes.instalados = await instalador.instalados();
+  return hechos;
 }

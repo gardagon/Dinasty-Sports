@@ -96,14 +96,14 @@ describe('los primeros eventos, en una partida de verdad', () => {
   });
 
   it('si el entrenador concede el cambio de puesto, el fútbol y el equipo lo apuntan (la misma señal de siempre)', () => {
-    const s = new Banco().sesion({ hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } });
+    const s = new Banco().sesion({ hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.frase_del_puesto': 'De inicio vas a jugar de lateral.', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } });
     expect(s.forzar('futbol.primer_entrenamiento')).toBe(true);
     expect(s.pendiente('futbol.primer_entrenamiento')!.opciones.find((o) => o.id === 'pedir_cambio')!.texto).toBe('Pedirle jugar de extremo derecho');
     s.elegir('futbol.primer_entrenamiento', 'pedir_cambio', 'exito');
     expect(s.game.moduleState<FutbolState>('futbol').puesto).toBe('RW');
     expect(s.game.moduleState<{ puestoDelPersonaje?: Record<string, string> }>('npcs').puestoDelPersonaje?.futbol).toBe('RW');
 
-    const no = new Banco().sesion({ hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } });
+    const no = new Banco().sesion({ hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.frase_del_puesto': 'De inicio vas a jugar de lateral.', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } });
     no.forzar('futbol.primer_entrenamiento');
     no.elegir('futbol.primer_entrenamiento', 'pedir_cambio', 'fallo');
     expect(no.game.moduleState<FutbolState>('futbol').puesto).toBeUndefined();
@@ -156,6 +156,6 @@ describe('qué sucesos pasan durante una actividad y cuáles se pueden aplazar (
   });
 
   it('solo se pueden aplazar los avisos que de verdad pueden esperar (hoy, los del club al cambiar de temporada y la fiesta de un cumpleaños)', () => {
-    expect(defs.filter((d) => sucesoEsAplazable(d, CONFIG_DE_SUCESOS.durante)).map((d) => d.id).sort()).toEqual(['eventos.relaciones.cumple.fiesta', 'futbol.equipo_sin_ninos', 'futbol.plaza_extra']);
+    expect(defs.filter((d) => sucesoEsAplazable(d, CONFIG_DE_SUCESOS.durante)).map((d) => d.id).sort()).toEqual(['eventos.relaciones.cumple.fiesta', 'futbol.equipo_sin_ninos', 'futbol.plaza_extra', 'futbol.plaza_perdida']);
   });
 });

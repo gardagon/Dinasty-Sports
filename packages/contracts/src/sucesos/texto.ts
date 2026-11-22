@@ -83,7 +83,9 @@ export function componerTexto(plantilla: string, datos: DatosDeTexto): string {
     if (l.tipo === 'hecho') {
       const v = datos.hecho?.(l.nombre);
       if (v === undefined) throw new Error(`Texto de suceso: no se sabe el hecho {${dentro}}`);
-      return String(v);
+      // Un hecho que es un texto de los datos del deporte puede llevar su propio género (`{yo:o|a}`): se concuerda aquí.
+      const t = String(v);
+      return t.includes('{') ? componerTexto(t, { ...datos, hecho: undefined }) : t;
     }
     if (l.tipo === 'dato') {
       const v = (l.de === 'señal' ? datos.señal : datos.recuerdo)?.[l.clave];

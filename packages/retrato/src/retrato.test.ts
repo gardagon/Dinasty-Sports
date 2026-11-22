@@ -256,3 +256,25 @@ describe('look: el estilo elegido de cada persona (contracts)', () => {
     expect(peinadoPosible('afeitada', 1)).toBe('afeitada');
   });
 });
+
+describe('retrato: no depende del tema ni hereda nada', () => {
+  it('la raíz del SVG no lleva opacidad, filtro ni estilo, y los colores del dibujo son fijos (nada de variables ni currentColor)', () => {
+    for (const s of ['f', 'm'] as const) for (const e of [8, 30, 70]) {
+      const svg = retratoSvg(persona(s), e) + evolucionDe(persona(s), e) + figuraDe(persona(s), e, e);
+      for (const raiz of svg.match(/<svg[^>]*>/g) ?? []) expect(raiz).not.toMatch(/opacity|filter|style|mix-blend/);
+      expect(retratoSvg(persona(s), e)).not.toMatch(/var\(--|currentColor|<filter|<style/);
+    }
+  });
+});
+
+describe('retrato: los niños no salen calvos', () => {
+  it('hasta la pubertad, ningún niño ni niña va afeitado ni rapado al cero; de mayores vuelve su estilo', () => {
+    let mayoresAlCero = 0;
+    for (let semilla = 1; semilla <= 1500; semilla++) for (const s of ['f', 'm'] as const) {
+      const c = persona(s, { calvicie: 0 }, { semilla });
+      for (const e of [3, 8, 12]) expect(parametrosDe(c, e).peinado.largo).toBeGreaterThanOrEqual(0.5);
+      if (parametrosDe(c, 30).peinado.largo < 0.4) mayoresAlCero++;
+    }
+    expect(mayoresAlCero).toBeGreaterThan(0);
+  });
+});

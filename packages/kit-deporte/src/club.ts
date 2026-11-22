@@ -135,6 +135,7 @@ export const entrenosAgrupados = (cfg: ConfigDeporte, acciones: readonly ActionD
  */
 export function motivoSinPlaza(ctx: ReadContext, cfg: ConfigDeporte, club: string): string | undefined {
   const plaza = ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, club, cfg.rendimiento(ctx), cfg.puestos?.(ctx));
+  if (plaza?.estado === 'completo' && plaza.sinCupo) return 'En el equipo de tu categoría no queda sitio para un jugador de tu puesto, ni siquiera con una plaza de más: prueba en otro club o espera al siguiente plazo de fichajes';
   return plaza?.estado === 'completo'
     ? `El equipo de tu categoría está completo y todos juegan mejor que tú (el peor, ${plaza.peor?.nombre}, tiene nivel ${Math.round(plaza.peor?.nivel ?? 0)} y tú ${Math.round(cfg.rendimiento(ctx))}): sigue entrenando por tu cuenta y vuelve a intentarlo`
     : undefined;
@@ -148,7 +149,11 @@ export function unirseA(ctx: ActionContext, cfg: ConfigDeporte, clubId: string, 
   const nivel = cfg.rendimiento(ctx);
   // Tras una prueba de acceso entra en el puesto de la prueba, con lo que valió; sin ella (el club del colegio), en el que le ofrece la regla de plaza.
   const puesto = tras?.puesto ?? ctx.service<NpcDirectory>(SERVICES.npcs)?.plaza?.(cfg.id, clubId, nivel, cfg.puestos?.(ctx))?.puesto;
-  ctx.updateState<EstadoBaseDeDeporte>((s) => ({ ...s, puesto }));
+  // Sin prueba (el club del colegio) no hay puesto pedido: se olvida el de una prueba anterior.
+  ctx.updateState<EstadoBaseDeDeporte>((s) => {
+    const { puestoPedido: _p, ...resto } = s;
+    return { ...resto, ...(tras && s.puestoPedido ? { puestoPedido: s.puestoPedido } : {}), puesto };
+  });
   ctx.emit<ClubJoinData>({ type: SHARED_EVENTS.CLUB_JOIN, data: { sport: cfg.id, clubId, nivel, ...(puesto ? { puesto } : {}), ...(tras ? { valores: tras.valores } : {}) } });
 }
 
@@ -591,7 +596,8 @@ function pruebaPorPuestos(ctx: ActionContext, cfg: ConfigDeporte, c: ClubView): 
   ctx.updateState<EstadoBaseDeDeporte>((s) => {
     const { pruebaEnCurso: _en, pruebaPedida: pedidas, ...resto } = s;
     const { [c.id]: _pedida, ...restoPedidas } = pedidas ?? {};
-    return { ...resto, pruebas: { ...(s.pruebas ?? {}), [c.id]: ctx.time.week }, ...(Object.keys(restoPedidas).length ? { pruebaPedida: restoPedidas } : {}) };
+    const { puestoPedido: _viejo, ...sinPedido } = resto;
+    return { ...sinPedido, ...(pedido ? { puestoPedido: pedido } : {}), pruebas: { ...(s.pruebas ?? {}), [c.id]: ctx.time.week }, ...(Object.keys(restoPedidas).length ? { pruebaPedida: restoPedidas } : {}) };
   });
   if (!plaza || !entra(plaza) || !plaza.puesto) {
     const motivo = plaza?.estado === 'no_llega' ? 'no llegas a lo que pide el club en ese puesto' : 'el equipo de tu categoría está completo en ese puesto y juegan mejor que tú';

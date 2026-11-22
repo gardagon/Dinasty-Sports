@@ -15,12 +15,13 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 - **Sesiones paradas por el límite de uso:** cuando una sesión se para por el límite de 5 horas, no se reanuda sola (solo si el ordenador del usuario está encendido). Revisar con `list_sessions` (`children`) las que salen `failed` y reactivarlas con `send_message` cuando pase el límite.
 - **Sesiones en paralelo** solo si tocan archivos distintos. Para no chocar en la documentación, cada una escribe sus notas en `docs/relevo/<rama>.md` y la arquitectura las junta en `DECISIONES.md` y en los planes al unir.
 - **Modelos.** Sonnet 5.5 para el desarrollo normal; Fable 5.2 solo para lo de más calado (diseño de sistemas, motor fino, calidad visual), en sesiones nuevas con notas de relevo. **Fable dejó de estar incluido en el plan del usuario el 16/11**: ahora requiere créditos de uso, así que no lanzarlo sin preguntar.
+- **Tras unir a `main`, comprobar que se ha publicado:** el flujo «Publicar web (GitHub Pages)» puede fallar por un error de GitHub (el 22/11 falló dos veces al desplegar: `deploy-pages` no encontraba el artefacto subido en el mismo trabajo; se relanzó, y desde #130 el flujo va en dos trabajos, construir y publicar, como la plantilla oficial; publicó bien a la primera). Si falla por un error de GitHub, relanzarlo una vez; si no, buscar la causa.
 - **Al unir ramas:** comprobar tipos (`npm run typecheck`, tras `npm install` si hay paquetes nuevos) y tests; si una rama arrastra un archivo grande en su historia, unirla como un solo commit (`git merge --squash`).
 - **Imágenes para el usuario:** se le envían con `SendUserFile`. Para revisar capturas grandes, recortarlas antes de mirarlas.
 
 ## 2. Estado (17/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127; 1.187 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127) y el 22/11 (#128, #129 y #130; 1.348 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
@@ -38,18 +39,21 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 2. ~~**Rendimiento con la ciudad grande y el fútbol**~~ Respondido el 21/11 (DECISIONES, «Rendimiento: guardar sin congelar…») y encargado a `claude/guardar-sin-congelar` y `claude/futbol-mas-barato`.
 3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
 5. **Balance de los entrenamientos nuevos** (`docs/relevo/entrenamientos.md`): para que el club rinda más que entrenar por libre (como dice su descripción), una sesión del club sube ~13 puntos de habilidad en vez de ~6. Por curso, el jugador sube igual que antes en lo que pesa en su puesto (antes ~43 puntos eran portería que subía un jugador de campo). Los PNJ salen un 3–5 % más altos por edad (los frena el tope por edad). Opciones: aceptarlo; bajar solo la escala del club (entonces el club ya no supera al libre); o subir el libre a la par y bajar los dos. **Recomendación:** aceptarlo y vigilar los niveles por edad, porque el progreso por curso del jugador no cambia.
-6. **Llevar a la versión publicada** lo unido desde el 21/11 (#127): guardado sin congelar, fútbol más barato y equipos que se forman desde el día 1–6, sucesos en clase, deberes y acciones cortas, moverse con el grupo, caras según el origen, «Mi equipo», dorsales, puestos y pistas, entrenamientos y el coste por acción. Aprobado el 22/11, tras confirmar las partidas guardadas, cerrar el balance de entrenamientos y los arreglos que pida.
+1. ~~**Publicar el versionado**~~ Unido el 22/11 (gardagon/Dinasty-Sports#129).
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXMp7cyuMpYVVwYDEFo` | `claude/pnj-entrenan-y-abandono` | Análisis con propuesta (desactivada): PNJ que entrenan por su cuenta o quedan a jugar; abandono de los mejores |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
 
 
 ## 4. Pendiente (por orden de prioridad propuesto)
+
+00. **Relevo a una sesión nueva de arquitectura (pedido por el usuario el 22/11):** el contexto de esta conversación es ya muy largo. Cuando terminen las sesiones en curso, se unan, se publique lo jugable (con su visto bueno) y no quede nada abierto, dejar estas notas completas y al día, como hizo la arquitectura anterior: el estado (§2), cómo se trabaja (§1), las preguntas pendientes (§3), las sesiones en curso (§3 bis), lo que queda (§4) y las sesiones usadas (§5). Así la sesión nueva empieza sin carencias.
 
 0 ter. **Hecha el 21/11** (`docs/relevo/revision-rendimiento.md`; decisiones en §3). **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
 
@@ -104,3 +108,8 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXQFX9Ng9KHWSoLso2U` | Sonnet | Coste por acción (21–22/11, esta sesión de arquitectura) |
 | `session_01M4vXXPS1A9ScC8LHqc2qXa` | Sonnet | Análisis de profesionales a los 18 (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXP9yVZBSgVR7Bp2jZa` | Sonnet | Compatibilidad con main, crónica sin nombres e investigación del personaje sin equipo (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXMq6uyW8dV12rHW48q` | Sonnet | Plaza al cambiar de año (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXMSfXmoS68SCSee9NG` | Sonnet | Retrato en el móvil y niños calvos (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXNju9hqBxXzwJNvdJu` | Sonnet | Versión visible y actualización de la app (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXMPTosoA18y2ft67tu` | Sonnet | Retrato en Samsung Internet: investigación y página de prueba (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXPnzU1Gedkvetov9Rr` | Sonnet | Primer entrenamiento: «vas a jugar de…» (22/11, esta sesión de arquitectura) |

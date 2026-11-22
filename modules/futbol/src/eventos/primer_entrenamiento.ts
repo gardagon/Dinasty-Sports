@@ -2,7 +2,7 @@ import { suceso } from '@ds/contracts';
 import { ajustesDePedirPuesto } from '@ds/kit-deporte';
 
 /**
- * El primer entrenamiento con el equipo: el entrenador le dice dónde le va a poner de inicio. El puesto ya lo tiene (el que pidió o le dieron al
+ * El primer entrenamiento con el equipo: el entrenador le dice dónde le va a poner de inicio, sin lado («de interior»), el otro puesto en que también encaja («a lo mejor más adelante te pongo de…») y, si es otro que el que pidió en la prueba de acceso, se lo recuerda: la frase es `hecho futbol.frase_del_puesto` y sus textos son datos del deporte (`pistas-de-puestos.ts`). El puesto ya lo tiene (el que pidió o le dieron al
  * entrar: `FutbolState.puesto`) y lo que vale en cada uno lo calcula el fútbol (`hechos.futbol`); aquí se cuenta y se puede pedir otro. El entrenador
  * decide: pedir no garantiza conseguirlo. Si lo concede, el cambio es el mismo de siempre (señal `club.cambio_de_puesto`). Cifras de partida, por calibrar. La dificultad de pedir el cambio depende de la relación con el entrenador y de lo que vale en el puesto que pide (ajustes de la tirada).
  */
@@ -12,8 +12,8 @@ export default suceso({
   deporte: 'futbol',
   disparo: { al: 'accion.realizada' },
   ejemploDeSeñal: { actionId: 'futbol.club_sesion', module: 'futbol', tags: ['futbol', 'club'], duration: 90, efficiency: 1 },
-  ejemploDeHechos: { 'futbol.puesto': 'lateral derecho', 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW', 'futbol.juega_donde_mas_vale': false, 'futbol.ventaja_del_mejor_puesto': 6, 'futbol.calendario': 'la liga empieza el sábado 13 de octubre; el calendario de partidos se publica ese día, cuando empiece' },
-  cuando: [{ señal: 'actionId', es: 'futbol.club_sesion' }, { hecho: 'futbol.puesto' }],
+  ejemploDeHechos: { 'futbol.puesto': 'lateral derecho', 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW', 'futbol.juega_donde_mas_vale': false, 'futbol.ventaja_del_mejor_puesto': 6, 'futbol.frase_del_puesto': 'De inicio vas a jugar de lateral, pero a lo mejor más adelante te pongo de extremo.', 'futbol.calendario': 'la liga empieza el sábado 13 de octubre; el calendario de partidos se publica ese día, cuando empiece' },
+  cuando: [{ señal: 'actionId', es: 'futbol.club_sesion' }, { hecho: 'futbol.puesto' }, { hecho: 'futbol.frase_del_puesto' }],
   repite: 'nunca',
   reparto: { entrenador: { rol: 'entrenador', delDeportePrincipal: true } },
   // Pasa dentro del entrenamiento (la señal es la de cualquier acción): sin minutos propios y sin aplazar.
@@ -24,7 +24,7 @@ export default suceso({
     {
       id: 'donde_mas_vale',
       si: [{ hecho: 'futbol.juega_donde_mas_vale', es: true }],
-      texto: 'Al acabar, {entrenador.nombre} te llama aparte. «Te he estado mirando. De inicio vas a jugar de {hecho.futbol.puesto}: es donde mejor te veo. Una cosa más: {hecho.futbol.calendario}».',
+      texto: 'Al acabar, {entrenador.nombre} te llama aparte. «Te he estado mirando. {hecho.futbol.frase_del_puesto} Es donde mejor te veo. Una cosa más: {hecho.futbol.calendario}».',
       opciones: [
         { id: 'aceptar', texto: 'Decir que ahí estarás a gusto', caracter: { disciplina: 1 }, efectos: [{ relacion: 'entrenador', afinidad: 2 }, { estado: 'gen.motivacion', mas: 3 }], resultado: '«Pues a trabajar».' },
         {
@@ -40,7 +40,7 @@ export default suceso({
       id: 'en_otro_sitio',
       si: [],
       texto:
-        'Al acabar, {entrenador.nombre} te llama aparte. «De inicio vas a jugar de {hecho.futbol.puesto}. Ya sé que a lo mejor te ves más de {hecho.futbol.mejor_puesto}, pero ahora mismo te necesito ahí. Una cosa más: {hecho.futbol.calendario}».',
+        'Al acabar, {entrenador.nombre} te llama aparte. «{hecho.futbol.frase_del_puesto} Ya sé que a lo mejor te ves en otro sitio, pero ahora mismo te necesito ahí. Una cosa más: {hecho.futbol.calendario}».',
       opciones: [
         { id: 'aceptar', texto: 'Aceptarlo: donde haga falta', caracter: { disciplina: 2 }, efectos: [{ relacion: 'entrenador', afinidad: 3 }], resultado: '«Así me gusta. Ya habrá tiempo de moverte».' },
         {
@@ -71,10 +71,10 @@ export default suceso({
     },
   ],
   pruebas: [
-    { nombre: 'Si ya juega donde más vale, el entrenador se lo dice y no hay nada que pedir', dado: { hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.juega_donde_mas_vale': true } }, espero: { opcionDisponible: 'preguntar' } },
+    { nombre: 'Si ya juega donde más vale, el entrenador se lo dice y no hay nada que pedir', dado: { hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.frase_del_puesto': 'De inicio vas a jugar de lateral.', 'futbol.juega_donde_mas_vale': true } }, espero: { opcionDisponible: 'preguntar' } },
     {
       nombre: 'Pedir el cambio y que lo conceda',
-      dado: { hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } },
+      dado: { hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.frase_del_puesto': 'Me dijiste portero en la prueba, y se te veía convencid{yo:o|a}. De inicio vas a jugar de lateral, pero a lo mejor más adelante te pongo de extremo.', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } },
       elige: 'pedir_cambio',
       tirada: 'exito',
       espero: { sale: true },

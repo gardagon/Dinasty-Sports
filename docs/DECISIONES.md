@@ -5,6 +5,24 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — El entrenador dice el puesto en el primer entrenamiento
+
+En el primer entrenamiento con el equipo, el entrenador dice en un suceso «Vas a jugar de [puesto]» y, si el jugador encaja en otro, «pero a lo mejor más adelante te pongo de [puesto]». Así no hace falta ir a la página del equipo para saberlo. **Hecho el 22/11** (`docs/relevo/primer-entrenamiento-puesto.md`): «De inicio vas a jugar de interior», con «…, pero a lo mejor más adelante te pongo de lateral» si otra familia está a menos de 4 puntos (`MARGEN_DE_OTRO_PUESTO`, provisional) y «Me dijiste portero en la prueba…» si pidió otro. El kit guarda el puesto pedido en la prueba (`puestoPedido`). Se conservan pedir otro puesto, preguntar y aceptar.
+
+## 22/11/2026 — Versión visible y actualización de la app
+
+- **En Opciones se ve qué versión del juego se usa** (commit y fecha de compilación), y en pequeño en la pantalla de inicio. Para saber si un fallo es de la versión.
+- La app avisa cuando hay una versión nueva publicada y se actualiza sin perder la partida.
+- **Hecho el 22/11** (`docs/relevo/version-visible.md`): commit, fecha, rama y pull request en Opciones y en el menú (`define` de Vite y `version.json`); aviso «Hay una versión nueva — Actualizar» al abrir, cada 30 minutos y al volver a la pestaña; botón «Buscar actualización». **Causa de que el usuario no viera lo nuevo del fútbol:** el fútbol es un paquete instalado en IndexedDB que solo se ofrecía actualizar si cambiaba su número de versión, y llevaba mucho tiempo en 0.2.0. Ahora el catálogo lleva la huella del código y se detecta el código nuevo. El service worker (v2) va a la red primero para todo lo que no es `assets/` y sin la caché HTTP de Pages. Herramienta `npm run probar-actualizacion`.
+- **Retrato en Samsung Internet con modo oscuro:** su modo oscuro oscurece también los dibujos y las imágenes, y según Samsung la web no puede evitarlo (solo con la opción «Adaptive Force Dark» de `internet://flags`). Página de prueba `?prueba-retrato` con 10 formas de pintar el retrato, para que el usuario diga cuáles se libran (`docs/relevo/retrato-samsung.md`). El usuario probó «Adaptive Force Dark» y sigue mal; juega con Chrome. Se publica el versionado (y la página de prueba) para tener la versión a la vista.
+
+## 22/11/2026 — Retrato en el móvil y niños calvos
+
+Detalle: `docs/relevo/retrato-movil.md`.
+- **Retrato desvaído en Samsung Internet** (en la web y en la app instalada; en Chrome del mismo móvil se ve bien): causa probable, el modo oscuro forzado del navegador, porque la página no declaraba su esquema de color. Se añade `<meta name="color-scheme" content="light dark">`, y los SVG del retrato fijan `color-scheme`, `forced-color-adjust`, `opacity` y `filter`. No se puede emular aquí: queda que el usuario lo confirme en su móvil.
+- **Niños calvos:** «Cabeza afeitada» y «Rapado al cero» se sorteaban para toda la vida, también para los niños. Ahora, antes de la pubertad, llevan «rapado».
+- **La app instalada no mezcla versiones:** red primero al navegar y archivos con hash; se actualiza en la siguiente apertura con conexión.
+
 ## 22/11/2026 — Profesionales, balance de entrenamientos, abandono, entrenamiento de los PNJ y el personaje sin plaza
 
 - **Listón de «profesional»:** nivel ≥ 45 a los 17–18 años; «élite juvenil», ≥ 40 (`docs/relevo/analisis-profesionales.md`). Se recalculará al pasar a la siguiente fase de la vida, si hace falta.
@@ -12,10 +30,11 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - **Abandono de los mejores:** revisarlo con calma. No todos los mejores triunfan, por mentalidad o por temas personales.
 - **Entrenamiento de los PNJ:** revisar por qué entrenan tan por debajo del personaje. Habrá quien dedique mucho tiempo fuera a jugar al fútbol y mejore.
 - **El personaje que perdería su plaza al cambiar de año:** en benjamín y alevín, los de primer año no desplazan a uno de segundo que ya tenía plaza en el club (solo suben al A si hay sitio), para todos. Desde infantil sí se puede salir, y entonces la salida es un suceso con opciones, no una línea del diario.
+- **Hecho el 22/11** (`docs/relevo/plaza-al-cambiar-de-anio.md`): `CategoriaDef.primerAnioNoDesplazaEn` (benjamín y alevín); suceso `futbol.plaza_perdida` (buscar otro club, con los clubes que hacen pruebas y la fecha; entrenar por su cuenta, por defecto; preguntar qué mejorar). Se arreglan dos fallos: al apuntarse, el personaje debe caber en un equipo por el cupo de su puesto (otro puesto, plazas de más o la acción no disponible con el motivo), y al acabar las categorías del club le llega «se acaba el fútbol base en tu club…» y sale. Y un tercero: el personaje no contaba para el mínimo de 14 de la liga, así que un equipo de 13 más él no jugaba; ahora cuenta, como ya hacía `equipoSinNinos`.
 
 ## 22/11/2026 — Antes de publicar: partidas guardadas y crónica
 
-- **Llevar a la versión publicada lo unido desde el 21/11:** aprobado, después de confirmar si hace falta partida nueva, cerrar el balance de los entrenamientos y los arreglos que pida el usuario.
+- **Llevar a la versión publicada lo unido desde el 21/11:** aprobado, después de confirmar si hace falta partida nueva, cerrar el balance de los entrenamientos y los arreglos que pida el usuario. **Unido el 22/11** (gardagon/Dinasty-Sports#128, integración continua en verde); las partidas guardadas siguen abriendo.
 - **En los partidos, de todos se ve su descripción y su dorsal, de tu equipo y del rival.** Jugar contra alguien no te da su nombre (hoy los rivales pasan a «conocidos» al competir): el nombre se sabe como en el resto del juego.
 - **Hecho el 22/11** (`docs/relevo/compatibilidad-y-cronica.md`):
   - Las partidas de `main` (v21) cargan sin subir la versión. Gancho nuevo `GameModule.alCargar` (contracts y core), que `npcs` usa para completar las poblaciones guardadas (dorsales, familias de puestos y pistas). Test con partidas de `main`.

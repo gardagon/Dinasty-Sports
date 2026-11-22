@@ -47,6 +47,8 @@ export interface EntradaDeCatalogo {
   bytes: number;
   /** Dónde está el paquete (relativo a la fuente). */
   ruta: string;
+  /** Huella (SHA-256) del código del deporte: cambia con cada cambio del código aunque la versión no se toque. Los catálogos antiguos no la traen. */
+  huella?: string;
 }
 
 /** Un fallo de instalación o de carga, con el motivo en español para enseñárselo al jugador. */

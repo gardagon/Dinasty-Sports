@@ -1,4 +1,4 @@
-import { APORTES, CORE_EVENTS, type Entrenamiento, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar, MOVERSE_CON_EL_GRUPO, aforoCercano, deLugar, haciaLugar, type ActionDoneData, type GrupoSeVaData, type LugaresService } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, diaConFecha, semanasDeTemporada, type Entrenamiento, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar, MOVERSE_CON_EL_GRUPO, aforoCercano, deLugar, haciaLugar, type ActionDoneData, type GrupoSeVaData, type LugaresService } from '@ds/contracts';
 import { aficionadoPorLosPadres, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
@@ -17,7 +17,7 @@ import { HUECO_LIBRE, SEMANAS_DE_LOS_LEJANOS, conMasConocimiento, historiaDeport
  * - Publican el servicio `npcs` para que otros módulos los consulten.
  */
 
-import { añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
+import { conUnaPlazaDeMas, añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
 import { colocarDesplazados } from './fichajes';
 import { conApuntados, entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, completarPoblaciones, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { consejoDeUnProfesor, familiasDePuestosDeLosDeportes, lecturaDeUnPuesto } from './consejo';
@@ -1593,10 +1593,13 @@ export const npcs = defineModule<NpcsState>({
       const reservas = new Map<string, number>();
       const personaje: JugadorEnClub[] = [];
       const rend = rendimientosDe(ctx);
+      const finDeCategorias: string[] = [];
       const clubes = ctx.service<ClubDirectory>(SERVICES.clubes);
       for (const pob of pobs) {
         const club = clubes?.membership(pob.deporte);
         const cat = club && pob.equipos.some((e) => e.club === club.id && e.plantillaPorCategoria) ? categoriaDe(pob, edadProxima) : undefined;
+        // Si a su edad el deporte ya no tiene categoría (acaba la última), no se queda en el club sin equipo y sin aviso: se le avisa (`fin_de_categorias`) y sale del club.
+        if (club && !cat && pob.categorias?.length && pob.equipos.some((e) => e.club === club.id && e.plantillaPorCategoria)) finDeCategorias.push(pob.deporte);
         if (!club || !cat) continue;
         reservas.set(claveDeEquipo(club.id, cat.id), 1);
         const f = rend.get(pob.deporte);
@@ -1615,8 +1618,23 @@ export const npcs = defineModule<NpcsState>({
       // Con una plaza de más sigue en el equipo, y el entrenador le avisa de que contará menos con él (suceso `<deporte>.plaza_extra`).
       for (const deporte of resultado.plazaExtra) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_EXTRA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
       // Si su equipo no sigue (su club no reúne el mínimo de niños o no tiene equipos en su categoría), tiene que buscarse equipo (suceso `<deporte>.equipo_sin_ninos`; sale del club como cualquier niño).
+      for (const deporte of finDeCategorias) ctx.emit<EquipoSinNinosData>({ type: SHARED_EVENTS.EQUIPO_SIN_NINOS, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id, motivo: 'fin_de_categorias' } });
       for (const f of resultado.sinNinos) ctx.emit<EquipoSinNinosData>({ type: SHARED_EVENTS.EQUIPO_SIN_NINOS, data: { sport: f.deporte, clubId: clubes!.membership(f.deporte)!.id, motivo: f.motivo, ...(f.jugadores !== undefined ? { jugadores: f.jugadores } : {}), ...(f.minimo !== undefined ? { minimo: f.minimo } : {}) } });
-      for (const deporte of resultado.sinPlaza) ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId: clubes!.membership(deporte)!.id } });
+      // Sin plaza (otro que vale más se la ha quitado y no cabe ni con una plaza de más): sale del club y el suceso `<deporte>.plaza_perdida` se lo cuenta su entrenador, con hasta cuándo siguen abiertas las pruebas.
+      for (const deporte of resultado.sinPlaza) {
+        const clubId = clubes!.membership(deporte)!.id;
+        const suyos = ctx.state<NpcsState>().npcs.filter((n) => n.role === 'entrenador' && n.deporte === deporte && n.club === clubId);
+        const edadAntes = (personaje.find((j) => j.deporte === deporte)?.edad ?? 0) - 1;
+        const entrenador = suyos.find((n) => n.edades && edadAntes >= n.edades[0] && edadAntes <= n.edades[1]) ?? suyos[0];
+        const temporada = datosDeDeporte(ctx, deporte).temporada;
+        const cierre = (proximo.week - proximo.schoolWeek + semanasDeTemporada(ctx.pais.calendario, temporada).primeraCompeticion) * 7 - 1;
+        // Los clubes de fuera con equipo en su categoría a los que puede pedir una prueba, en una frase.
+        const pobDeporte = pobs.find((p) => p.deporte === deporte);
+        const categoria = personaje.find((j) => j.deporte === deporte)?.categoria;
+        const nombres = (pobDeporte?.equipos ?? []).filter((e) => e.colegio === undefined && e.club !== clubId && e.plantillaPorCategoria && categoriasDelEquipo(pobDeporte!, e).some((c) => c.id === categoria)).map((e) => e.nombre ?? e.club);
+        const clubesDePrueba = nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0] ?? 'otros clubes de la ciudad';
+        ctx.emit<PlazaPerdidaData>({ type: SHARED_EVENTS.PLAZA_PERDIDA, data: { sport: deporte, clubId, ...(entrenador ? { participants: [{ npcId: entrenador.id }] } : {}), plazoHasta: diaConFecha(cierre), clubes: clubesDePrueba } });
+      }
     },
 
     // El personaje acepta el cambio de puesto que le propuso su entrenador: el equipo cuenta con él en el nuevo.
@@ -1658,6 +1676,15 @@ export const npcs = defineModule<NpcsState>({
         const rendDelClub = rendimientosDe(ctx);
         const pob = pobs.find((p) => p.deporte === sport);
         const plaza = plazaEnElEquipo(ctx.state<NpcsState>().npcs, pobs, sport, clubId, edad, nivel, inicioCurso, pob ? (valoresDePrueba ?? puestosDelPersonaje(ctx, rendDelClub, pob)) : undefined, rendDelClub, undefined, valoresDePrueba && puesto ? { puesto, yaPasada: true } : undefined);
+        // Con hueco en el club pero no en su equipo por el cupo de su puesto, el equipo abre plazas de más (1–2) para que quepa.
+        if (plaza.estado === 'libre' && plaza.plazasDeMas) {
+          ctx.updateState<NpcsState>((st) => {
+            let nuevas: readonly PoblacionGuardada[] = st.poblaciones ?? pobs;
+            const cat = pob ? categoriaDe(pob, edad) : undefined;
+            for (let i = 0; i < plaza.plazasDeMas! && cat; i++) nuevas = conUnaPlazaDeMas(nuevas, { deporte: sport, club: clubId, categoria: cat.id }) ?? nuevas;
+            return { ...st, poblaciones: [...nuevas] };
+          });
+        }
         if (plaza.estado === 'por_merito' && plaza.peor && pob) {
           const cat = categoriaDe(pob, edad);
           const reservas = new Map<string, number>(cat ? [[claveDeEquipo(clubId, cat.id), 1]] : []);
@@ -1846,6 +1873,18 @@ export const npcs = defineModule<NpcsState>({
       const lista = ctx.state<NpcsState>().npcs;
       // Edad de temporada: la de cada rival el primer día del curso, que es la que decide su categoría.
       const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
+      const suEquipo = (deporte: string): { club: string; categoria: string; letra: string } | undefined => {
+          const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
+          const pob = poblacionesGuardadas(ctx).find((p) => p.deporte === deporte);
+          const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
+          const cat = pob ? categoriaDe(pob, edad) : undefined;
+          const rend = rendimientosDe(ctx);
+          const puesto = ctx.state<NpcsState>().puestoDelPersonaje?.[deporte];
+          const valores = pob ? puestosDelPersonaje(ctx, rend, pob) : undefined;
+          if (!club || !pob || !cat || !puesto || !valores) return undefined;
+          const letra = equipoDelPersonajeEn(lista, poblacionesGuardadas(ctx), deporte, club.id, cat.id, { id: idDelPersonaje(deporte), puesto, valor: valores[puesto] }, edad, inicioCurso, valoracionDe(rend));
+          return letra ? { club: club.id, categoria: cat.id, letra } : undefined;
+      };
       return {
         list: (f) => {
           // Las consultas se repiten en cada acción: se resuelven una vez por lista de personas, curso y filtro.
@@ -1876,20 +1915,9 @@ export const npcs = defineModule<NpcsState>({
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
         rotaElEquipo: (deporte, club, categoria) => rotaElEquipo(poblacionesGuardadas(ctx), deporte, club, categoria),
-        equiposDeLaCategoria: (deporte, categoria) => equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day),
+        equiposDeLaCategoria: (deporte, categoria) => { const yo = suEquipo(deporte); return equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day, yo && yo.categoria === categoria ? { club: yo.club, letra: yo.letra } : undefined); },
         plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day), ctx.time.day),
-        equipoDelPersonaje: (deporte) => {
-          const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
-          const pob = poblacionesGuardadas(ctx).find((p) => p.deporte === deporte);
-          const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
-          const cat = pob ? categoriaDe(pob, edad) : undefined;
-          const rend = rendimientosDe(ctx);
-          const puesto = ctx.state<NpcsState>().puestoDelPersonaje?.[deporte];
-          const valores = pob ? puestosDelPersonaje(ctx, rend, pob) : undefined;
-          if (!club || !pob || !cat || !puesto || !valores) return undefined;
-          const letra = equipoDelPersonajeEn(lista, poblacionesGuardadas(ctx), deporte, club.id, cat.id, { id: idDelPersonaje(deporte), puesto, valor: valores[puesto] }, edad, inicioCurso, valoracionDe(rend));
-          return letra ? { club: club.id, categoria: cat.id, letra } : undefined;
-        },
+        equipoDelPersonaje: suEquipo,
         previsionDelClub: (deporte) => {
           const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
           return club ? previsionDelClubDe(lista, poblacionesGuardadas(ctx), deporte, club.id, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, inicioCurso) : undefined;

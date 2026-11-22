@@ -87,6 +87,8 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
 | `{señal.faltas}`, `{recuerdo.x}`, `{pais}` | Datos de la señal, de la memoria del hilo y el país |
 | `{hecho.futbol.puesto}`, `{hecho.edad}` | Un hecho con nombre, tal como está ahora (si es de un módulo, con `requiere` y un `ejemploDeHechos` para poder probarlo) |
 
+Un hecho que es un texto de los datos del deporte (p. ej. `futbol.frase_del_puesto`, de `pistas.primerEntrenamiento`) puede llevar `{yo:o|a}`: se concuerda al componer.
+
 `variantes: [{ id, si: [...], texto?, opciones?, efectos? }]`: gana la primera cuyas condiciones se cumplen (`si: []` siempre); lo que no redefine lo hereda del suceso. **Con `variantes`, el texto base no es un respaldo**: si ninguna cumple sus condiciones, el suceso no sale; la última suele ser `si: []` (ejemplo: `futbol.equipo_sin_ninos`, con `sin_categoria` y, por defecto, `pocos`).
 
 ### Opciones

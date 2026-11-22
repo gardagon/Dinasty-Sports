@@ -20,8 +20,8 @@ import { NUNCA, type Rendimientos } from './semana';
  */
 
 import { Npc, PoblacionGuardada, edadDeJuego, edadNpc, npcs } from './index';
-import { DIAGNOSTICO } from './draft';
-import { MercadoDeFichajes, capacidadDe } from './plantillas';
+import { DIAGNOSTICO, PLAZAS_DE_MAS, conUnaPlazaDeMas } from './draft';
+import { MercadoDeFichajes, capacidadDe, equipoDelPersonajeEn, idDelPersonaje } from './plantillas';
 
 /** La categoría del deporte a una edad de competición, o `undefined` si el deporte no guardó sus categorías. */
 export const categoriaDe = (pob: PoblacionGuardada, edad: number): CategoriaDef | undefined => (pob.categorias?.length ? categoriaDeEdad(pob.categorias, edad) : undefined);
@@ -50,7 +50,25 @@ export function plazaEnElEquipo(npcs: readonly Npc[], pobs: readonly PoblacionGu
     // Una prueba de acceso (a cualquier club menos el del colegio): lo que vale la prueba es lo que cuenta; con hueco en su puesto se enfrenta al suplente que mejor lo cubriría (`rivalConHueco`).
     const condiciones: CondicionesDePrueba | undefined = prueba && equipo.colegio === undefined ? { ...(prueba.yaPasada ? { yaPasada: true } : {}), ...(prueba.puesto && puestos[prueba.puesto] !== undefined ? { puesto: prueba.puesto } : {}) } : undefined;
     const oferta = ofertaAlCandidato(delEquipo, max, pob, puestos, favorito, val, dia, pierna, condiciones);
-    if (oferta) return { estado: oferta.estado, ...(oferta.peor ? { peor: { id: oferta.peor.id, nombre: oferta.peor.nombre, nivel: oferta.peor.valor } } : {}), puesto: oferta.puesto };
+    if (oferta) {
+      const base: PlazaEnEquipo = { estado: oferta.estado, ...(oferta.peor ? { peor: { id: oferta.peor.id, nombre: oferta.peor.nombre, nivel: oferta.peor.valor } } : {}), puesto: oferta.puesto };
+      // Con hueco en el club hay que comprobar que **cabe en un equipo** por el cupo de su puesto (los de primer año o segundo año se reparten por separado): si no, se le abren plazas de más (1–2, como a cualquiera) y, si ni así, no entra.
+      if (oferta.estado !== 'libre' || !oferta.puesto || puestos[oferta.puesto] === undefined) return base;
+      const miembro = { id: idDelPersonaje(deporte), puesto: oferta.puesto, valor: puestos[oferta.puesto] };
+      // Si por su año no cabe en su puesto (el equipo del año, no el club entero, es el que tiene el cupo), el club le ofrece otro puesto en que sí quepa, de los que mejor se le dan, antes de abrir una plaza de más.
+      if (!equipoDelPersonajeEn(npcs, pobs, deporte, club, cat.id, miembro, edad, dia, val)) {
+        const otro = Object.entries(puestos).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).find(([id, valor]) => id !== oferta.puesto && equipoDelPersonajeEn(npcs, pobs, deporte, club, cat.id, { ...miembro, puesto: id, valor }, edad, dia, val));
+        if (otro) return { ...base, puesto: otro[0] };
+      }
+      let cuando: readonly PoblacionGuardada[] = pobs;
+      for (let abiertas = 0; abiertas <= PLAZAS_DE_MAS; abiertas++) {
+        if (equipoDelPersonajeEn(npcs, cuando, deporte, club, cat.id, miembro, edad, dia, val)) return abiertas ? { ...base, plazasDeMas: abiertas } : base;
+        const mas = conUnaPlazaDeMas(cuando, { deporte, club, categoria: cat.id });
+        if (!mas) break;
+        cuando = mas;
+      }
+      return { estado: 'completo', sinCupo: true, puesto: oferta.puesto };
+    }
     // Completo en todos los puestos: se dice quién es el peor del grupo de su mejor puesto.
     const grupo = pob.puestos.reparto.find((g) => g.puestos.includes(favorito));
     const delGrupo = delEquipo.filter((j) => grupo?.puestos.includes(puestoDeJugador(j, pob, val, dia) ?? ''));

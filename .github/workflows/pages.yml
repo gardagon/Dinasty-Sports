@@ -17,11 +17,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  publicar:
+  # Dos trabajos, como en la plantilla oficial de GitHub: `deploy-pages` busca el artefacto por la API, y si se sube en el mismo
+  # trabajo a veces aún no aparece («No artifacts named "github-pages" were found»; falló así dos veces el 22/11).
+  construir:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -38,5 +37,13 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: apps/web/dist
+
+  publicar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - id: deploy
         uses: actions/deploy-pages@v5

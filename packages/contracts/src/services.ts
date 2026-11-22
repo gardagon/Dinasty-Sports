@@ -102,6 +102,10 @@ export interface PlazaEnEquipo {
   peor?: { id: string; nombre: string; nivel: number };
   /** En los deportes con puestos, el puesto que el club ofrece al candidato: aquel en que entraría (con hueco en él o valiendo más que el peor de ese puesto). */
   puesto?: string;
+  /** `completo` sin que nadie sea peor que él: hay hueco en el club, pero **no cabe en ningún equipo por el cupo de su puesto**, ni con las plazas de más que se pueden abrir. */
+  sinCupo?: boolean;
+  /** Con `libre`: cuántas plazas de más hay que abrirle al equipo (1–2) para que quepa en él al entrar. */
+  plazasDeMas?: number;
 }
 
 /** Una prueba de acceso a un club (`plaza` con `prueba`): `nivel` y `puestos` son lo que valió la prueba y `puesto`, donde pide jugar (la plaza se mide en ese puesto; sin él, en el que más vale). */

@@ -303,6 +303,11 @@ export interface PistasDePuestos {
   /** «Preguntar por un puesto»: según lo cerca que estás. `ya`: ya vales para él; `cerca`; `lejos`; `sinDatos`: sin nadie con quien compararte. */
   lectura: { ya: string; cerca: string; lejos: string; sinDatos: string };
   /** El entrenador recomienda un entrenamiento por su nombre (`{señal.entreno}`) según lo que frena tu puesto (`{señal.falta}`); `yaEntrenas` si nada te frena. */
+  /**
+   * El primer entrenamiento con el equipo (`fraseDelPuestoInicial`): el entrenador dice el puesto que te da, sin lado. `{señal.puesto}`, `{señal.pedido}` (el que pediste en la prueba, si es otro) y `{señal.otro}`
+   * (el segundo puesto, ya escrito con `otro`). Pueden llevar `{yo:o|a}`: se concuerda al componer el suceso.
+   */
+  primerEntrenamiento?: { vas: string; /** Si el puesto que te da no es el que pediste en la prueba de acceso. */ pedido: string; /** Va donde `{señal.otro}`; sin segundo puesto no se pone nada. */ otro: string };
   entrenamiento: { recomienda: string; /** Si el entrenamiento solo se hace en la sesión del club (hace falta compañía): «Pídele a tu entrenador…». Sin él, se usa `recomienda`. */ recomiendaEnElClub?: string; /** Algo te frena pero ningún entrenamiento lo sube. */ sinEntreno: string; yaEntrenas: string };
 }
 

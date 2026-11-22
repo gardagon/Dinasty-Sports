@@ -91,6 +91,8 @@ export interface EstadoBaseDeDeporte {
   pruebaPedida?: Record<string, number>;
   /** La prueba de acceso en marcha: el club y el puesto en que le prueban (el que eligió entre los huecos; sin él, el que decida el entrenador). */
   pruebaEnCurso?: { club: string; puesto?: string };
+  /** El puesto que pidió en la prueba de acceso (para que el entrenador lo recuerde en el primer entrenamiento). Se borra al entrar en un club sin prueba. */
+  puestoPedido?: string;
   /** Último día que le pidió a su entrenador jugar en otro puesto (`pedirPuesto`). */
   ultimaPeticionDePuesto?: number;
   /** El puesto que su entrenador le propone al empezar el curso (sobran en el suyo y faltan en otro): decide él (`aceptar_cambio_de_puesto`). */

@@ -61,6 +61,11 @@ export const PISTAS_DE_PUESTOS_DE_FUTBOL: PistasDePuestos = {
     lejos: 'Para jugar de {señal.puesto}: {señal.falta}. Eso se trabaja con paciencia, no en un mes. Si quieres, empezamos por ahí.',
     sinDatos: 'De {señal.puesto} aún no sé qué decirte: juega unos partidos y lo hablamos.',
   },
+  primerEntrenamiento: {
+    vas: 'De inicio vas a jugar de {señal.puesto}{señal.otro}.',
+    pedido: 'Me dijiste {señal.pedido} en la prueba, y se te veía convencid{yo:o|a}. De inicio vas a jugar de {señal.puesto}{señal.otro}.',
+    otro: ', pero a lo mejor más adelante te pongo de {señal.otro}',
+  },
   entrenamiento: {
     recomienda: 'Para {señal.puesto}, lo que más te frena: {señal.falta}. Esta semana, «{señal.entreno}» por tu cuenta.',
     recomiendaEnElClub: 'Para {señal.puesto}, lo que más te frena: {señal.falta}. Pídele a tu entrenador «{señal.entreno}» en la sesión del club.',
