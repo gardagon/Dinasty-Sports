@@ -22,7 +22,7 @@ import { losQueSeQuedan } from './probar-fuera';
 import { EquipoGuardado, Npc, PoblacionGuardada, delColegio, edadDeJuego, edadNpc, hermanos, npcs, nuevoEntrenador, registroDe, entrenadoresDeClubes } from './index';
 import { colocarDesplazados, fichajesDeVerano, intentarEntrar } from './fichajes';
 import { dejaElDeporte } from './abandono';
-import { acomodarSobrantes, cubrirGruposVacios, equipoDelPersonajeEn, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
+import { colegioDeNino, acomodarSobrantes, cubrirGruposVacios, equipoDelPersonajeEn, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { Valoracion, leGustaElGrupo, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
 
 /** ¿Forma sus equipos el «draft»? Los deportes con equipos por categoría y puestos (el fútbol); el atletismo y los de prueba, no. */
@@ -671,6 +671,9 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
         ? dejaElDeporte(pob.reclutamiento.abandono, { edad, rasgos: n.rasgos, titular: titulares.get(pob.deporte)?.has(n.id), padres: gen.padres, ...(pares ? { nivel: pares(n) } : {}) }, pob.deporte, gen.semilla ?? 0, n.id, curso)
         : edad <= edadMaxBaja && rng.chance(probabilidadBaja));
       if (retirado || baja) return [sinDeporte(n, pob, baja)];
+      // Quien acaba el colegio ya no puede seguir en el equipo del colegio (los de 18 y 19 años siguen en el mundo, sin colegio): queda libre para que lo fiche un club.
+      const suEquipo = n.equipo !== undefined ? pob.equipos.find((e) => e.club === n.equipo) : undefined;
+      if (suEquipo?.colegio !== undefined && colegioDeNino(n) !== suEquipo.colegio) return [sinDeporte(n, pob, false)];
       // Una temporada más en su equipo: con ellas (y lo que vale en su puesto) se va formando su puesto favorito (`preferenciaDe`).
       const inicio = pob.puestos?.favoritos?.formacion.edadDeInicio ?? 8;
       return [{ ...n, temporadas: { ...n.temporadas, [pob.deporte]: (n.temporadas?.[pob.deporte] ?? Math.max(0, edad - inicio)) + temporadaJugada(n, pob, curso - 1) } }];

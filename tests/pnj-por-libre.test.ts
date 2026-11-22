@@ -1,25 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { DATOS_FUTBOL, ABANDONO_PROPUESTO, PNJ_POR_LIBRE } from '@ds/mod-futbol';
+import { DATOS_FUTBOL, ABANDONO_PROPUESTO, INTERES_AL_JUGAR, PNJ_POR_LIBRE } from '@ds/mod-futbol';
+import { conInteresTrasJugar, interesPor } from '../modules/npcs/src/deportistas';
 import { probabilidadDeAbandonar, motivosDeAbandono, type DatosDelDeportista } from '../modules/npcs/src/abandono';
 import { HUECO_LIBRE, huecosPorLibre, listaPorLibre, sesionesQueHace } from '../modules/npcs/src/semana';
 
 /**
- * Las dos propuestas de `docs/relevo/pnj-entrenan-y-abandono.md`, que están **desactivadas** (el juego no las usa): que una parte de los PNJ entrene por su cuenta y quede a jugar, y que los mejores de su edad abandonen
- * menos (pero no cero). Aquí se comprueba que, sin el dato, no cambian nada, y que con él hacen lo que dicen.
+ * Las propuestas de `docs/relevo/pnj-entrenan-y-abandono.md`, **activadas el 22/11** (`docs/relevo/pnj-entrenan-2.md`): que una parte de los PNJ entrene por su cuenta y quede a jugar, que los mejores de su edad (y los que más
+ * interés tienen) abandonen menos, pero no cero, y que jugar suba el interés. Aquí se comprueba que el juego las trae, que sin el dato no cambian nada y que con él hacen lo que dicen.
  */
 const POB = DATOS_FUTBOL.paises.espana.poblacion;
-const R = POB.rutina!;
+const R0 = POB.rutina!;
+/** La rutina sin el dato (como antes de activarlo). */
+const R = { ...R0, porLibre: undefined, interesAlJugar: undefined };
 const RL = { ...R, porLibre: PNJ_POR_LIBRE };
 const genetica = { semilla: 7 } as never;
 const rasgos = (interes: number, ambicion: number) => ({ caracter: { ambicion, sacrificio: ambicion }, intereses: { futbol: interes } });
 const nino = (id: string, interes: number, ambicion: number) => ({ id, genetica, nacimiento: -365 * 12, rasgos: rasgos(interes, ambicion), equipo: 'club_grande', deporte: 'futbol' as const, ritmo: { futbol: 1 } });
 const semanas = Array.from({ length: 120 }, (_, i) => 700 + i);
 
-describe('PNJ que entrenan por su cuenta (desactivado)', () => {
+describe('PNJ que entrenan por su cuenta', () => {
+  it('el fútbol lo trae activado (intensidad «fuerte») y con el interés que sube al jugar', () => {
+    expect(R0.porLibre).toBe(PNJ_POR_LIBRE);
+    expect(PNJ_POR_LIBRE.maximoPorSemana).toBe(4);
+    expect(R0.interesAlJugar).toBe(INTERES_AL_JUGAR);
+    expect(POB.reclutamiento.abandono!.pesos.nivel).toBe(ABANDONO_PROPUESTO.pesos.nivel);
+    expect(POB.reclutamiento.abandono!.suelo).toBe(ABANDONO_PROPUESTO.suelo);
+  });
   it('sin el dato no hay sesiones por su cuenta ni cambia lo que hacía el PNJ', () => {
     const n = nino('a', 3, 50);
-    expect(R.porLibre).toBeUndefined();
-    expect(semanas.every((w) => huecosPorLibre(n as never, 'futbol', R, w).length === 0)).toBe(true);
+        expect(semanas.every((w) => huecosPorLibre(n as never, 'futbol', R, w).length === 0)).toBe(true);
     expect(semanas.map((w) => sesionesQueHace(n as never, 'futbol', R, w))).toEqual(semanas.map((w) => sesionesQueHace(n as never, 'futbol', { ...R }, w)));
   });
   it('con el dato, el interesado y ambicioso hace más que el desganado, nunca más del máximo y siempre igual', () => {
@@ -44,8 +53,10 @@ describe('PNJ que entrenan por su cuenta (desactivado)', () => {
   });
 });
 
-describe('los mejores de su edad abandonan menos, pero no cero (desactivado)', () => {
-  const D = POB.reclutamiento.abandono!;
+describe('los mejores de su edad abandonan menos, pero no cero', () => {
+  const D0 = POB.reclutamiento.abandono!;
+  /** El abandono sin el nivel ni el suelo (como antes de activarlo). */
+  const D = { ...D0, suelo: undefined, pesos: { ...D0.pesos, nivel: undefined } };
   const DP = { ...D, ...ABANDONO_PROPUESTO, pesos: { ...D.pesos, ...ABANDONO_PROPUESTO.pesos } };
   const p = (nivel: number | undefined, edad = 16) => probabilidadDeAbandonar(DP, { edad, rasgos: rasgos(2, 0) as never, titular: true, padres: { padre: 'aficionado', madre: 'aficionado' }, nivel }, 'futbol');
   it('sin el dato, el nivel no cuenta', () => {
@@ -59,5 +70,32 @@ describe('los mejores de su edad abandonan menos, pero no cero (desactivado)', (
     for (const edad of [14, 15, 16, 17, 18]) expect(p(3, edad)).toBeGreaterThanOrEqual(ABANDONO_PROPUESTO.suelo);
     expect(p(3)).toBeGreaterThan(0);
     expect(p(undefined)).toBe(probabilidadDeAbandonar({ ...DP, pesos: { ...DP.pesos, nivel: 0 } }, { edad: 16, rasgos: rasgos(2, 0) as never, titular: true, padres: { padre: 'aficionado', madre: 'aficionado' } }, 'futbol'));
+  });
+});
+
+describe('quien más interés tiene lo deja menos, y jugar sube el interés', () => {
+  const D = POB.reclutamiento.abandono!;
+  const p = (interes: number, edad = 16) => probabilidadDeAbandonar(D, { edad, rasgos: rasgos(interes, 0) as never, titular: true, padres: { padre: 'aficionado', madre: 'aficionado' } }, 'futbol');
+  it('cuanto más interés por el fútbol, menos probabilidad de dejarlo', () => {
+    expect(p(3)).toBeLessThan(p(2));
+    expect(p(2)).toBeLessThan(p(1));
+    expect(p(1)).toBeLessThan(p(0));
+  });
+  it('sin el dato, jugar no cambia el interés; con él sube, con rendimientos decrecientes y sin pasar de 3', () => {
+    const r = { intereses: { futbol: 1.5 }, caracter: {} };
+    expect(interesPor(r as never, 'futbol')).toBe(1.5);
+    const una = conInteresTrasJugar(r, 'futbol', 2, INTERES_AL_JUGAR);
+    expect(una.intereses.futbol).toBeGreaterThan(1.5);
+    expect(conInteresTrasJugar(r, 'futbol', 0, INTERES_AL_JUGAR)).toBe(r);
+    let x = r;
+    const pasos: number[] = [];
+    for (let s = 0; s < 400; s++) { const y = conInteresTrasJugar(x, 'futbol', 3, INTERES_AL_JUGAR); pasos.push(y.intereses.futbol - x.intereses.futbol); x = y; }
+    expect(x.intereses.futbol).toBeLessThanOrEqual(3);
+    expect(x.intereses.futbol).toBeGreaterThan(2.9);
+    expect(pasos[0]).toBeGreaterThan(pasos[100]);
+    // quien más juega sube más
+    expect(conInteresTrasJugar(r, 'futbol', 4, INTERES_AL_JUGAR).intereses.futbol).toBeGreaterThan(conInteresTrasJugar(r, 'futbol', 1, INTERES_AL_JUGAR).intereses.futbol);
+    // si el interés le viene del deporte en general, el del fútbol parte de ese
+    expect((conInteresTrasJugar({ intereses: { deporte: 2 } as Record<string, number> }, 'futbol', 1, INTERES_AL_JUGAR) as any).intereses.futbol).toBeGreaterThan(2);
   });
 });
