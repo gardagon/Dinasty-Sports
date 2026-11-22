@@ -271,6 +271,12 @@ Ideas del usuario para tenerlas en cuenta; todavía no se han encargado. Las dos
 - Un club solo saca equipo en una categoría si llega al mínimo de la plantilla. Si no llega, ese curso no lo tiene y sus jugadores buscan otro club con la regla de plaza. Los primeros en quedarse sin equipo son los clubes pequeños.
 - Con la ciudad grande, los «unos 30 equipos por categoría» de §2 serían menos en cadete y juvenil. Las probabilidades se calibran midiendo cuántos equipos quedan por categoría.
 
+**Hecho el 22/11 (`docs/relevo/pnj-entrenan-2.md`):**
+- **Abandono con nivel e interés.** Además de lo de arriba, pesa **lo bueno que es cada uno frente a los de su edad** (peso 0,6: los mejores lo dejan menos) con un suelo del 4 % (nunca cero), y el **interés por el deporte** pesa más (0,6 en vez de 0,4). El interés de un PNJ **sube al jugar** con la regla del personaje (`SUBIDA_DE_INTERES_POR_HORA`, a escala 0,08 y 1,5 horas por sesión, del club o por su cuenta; `interesAlJugar` en la rutina del deporte): quien más juega, más «agarrado». Cifras provisionales, como datos del deporte (`modules/futbol/src/datos.ts`: `ABANDONO_PROPUESTO`, `INTERES_AL_JUGAR`). Medidas en el relevo.
+- **Los PNJ entrenan por su cuenta y quedan a jugar** (`porLibre`, intensidad «fuerte»).
+- **Los compañeros de clase siguen en el mundo hasta los 20**, como los de otros colegios: a los 18 pasan a ser jóvenes del barrio (`vecino`, sin colegio, etiqueta `excompanero`, con su id, su relación, su club y su historial) y a los 20 salen del barrio. Antes se borraban a los 18, sin archivo. Quien jugaba en el equipo del colegio queda libre ese verano y los clubes pueden ficharlo. Si ya eras su amigo, sigues teniendo todo el catálogo de la amistad con él (`relaciones`), y su oficio sale como el de cualquier vecino de 18 años o más. **Sigue pendiente el archivo** (punto 2): nadie se archiva todavía, los que salen del barrio a los 20 se borran como los de otros colegios.
+- **Fichar ya no deja valores provisionales:** al empezar el curso, quien cambia de club lleva calculado lo que vale de verdad (`valorRealAlFichar`), no el del potencial a su edad (hasta 13 puntos de más hasta la pasada semanal).
+
 **2. Qué pasa con cada PNJ al salir del colegio (18 años)** o, si ya había salido, al dejar el deporte. Se decide en ese momento y no antes, para que un niño que dejó el deporte a los 15 todavía pueda servir para una profesión a los 18.
 
 | Situación | Qué pasa |

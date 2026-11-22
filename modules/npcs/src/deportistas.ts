@@ -1,6 +1,7 @@
 import {
   CAPACIDADES_GENETICAS,
   GRUPO_DE_CAPACIDAD,
+  SUBIDA_DE_INTERES_POR_HORA,
   calidadDePadreDelMundo,
   azarDe,
   efectosDe,
@@ -160,6 +161,18 @@ export function aficionadoPorLosPadres(rasgos: RasgosDe, padres: Genetica['padre
 
 /** Cuánto le interesa un deporte (0 a 3): el interés por ese deporte o por el deporte en general, el mayor. */
 export const interesPor = (rasgos: RasgosDe | undefined, deporte: string): number => (rasgos ? Math.max(rasgos.intereses[deporte] ?? 0, rasgos.intereses.deporte ?? 0) : 0);
+
+/**
+ * Lo que sube el interés (0 a 3) por un deporte de un PNJ que ha jugado `sesiones` esta semana: la regla del personaje (`SUBIDA_DE_INTERES_POR_HORA` sobre su escala de 0 a 100, donde un interés de nivel `n` vale
+ * 20 + 8·n, con rendimientos decrecientes) a `horasPorSesion` horas cada una y por `escala` (`RutinaDeDeporte.interesAlJugar`). Devuelve los rasgos con el interés nuevo (los mismos si no cambia nada).
+ */
+export function conInteresTrasJugar<T extends { intereses: Record<string, number> }>(rasgos: T, deporte: string, sesiones: number, cfg: { horasPorSesion: number; escala: number }): T {
+  const actual = Math.max(rasgos.intereses[deporte] ?? 0, rasgos.intereses.deporte ?? 0);
+  if (sesiones <= 0 || actual >= 3) return rasgos;
+  const v = 20 + 8 * actual;
+  const nuevo = Math.min(3, (v + sesiones * cfg.horasPorSesion * SUBIDA_DE_INTERES_POR_HORA * (1 - v / 100) * cfg.escala - 20) / 8);
+  return { ...rasgos, intereses: { ...rasgos.intereses, [deporte]: Math.round(nuevo * 1000) / 1000 } };
+}
 
 /**
  * Cuántas plazas tiene un equipo en cada edad: su plantilla repartida entre sus edades lo más igual posible (los que sobran, en edades que salen de un

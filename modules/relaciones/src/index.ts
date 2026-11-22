@@ -900,8 +900,8 @@ const preguntasPendientes = (n: NpcView): DatoPersonal[] => {
 /** Con quién se acuerdan planes: compañeros, amigos y hermanos (no los padres). Las propuestas solo se ofrecen a quien tienes delante. */
 const aceptaPlanes = (n: NpcView, amigoDeNino = false) => n.role === 'companero' || n.role === 'amigo' || amigoDeNino || (n.tags.includes('hermano') && (n.age ?? 8) >= 6);
 
-/** Un niño del barrio (vecino menor de 18) con quien el vínculo ya es de amistad (afinidad ≥ 40, confianza ≥ 30 y trato reciente: lo mismo que cuando un compañero pasa a ser amigo): tiene todo el catálogo de la amistad. */
-const esAmigoDeNino = (s: RelacionesState, n: NpcView): boolean => n.role === 'vecino' && n.age !== undefined && n.age < EDAD_ADULTA && NIVEL_ESTADO[s.vinculos[n.id]?.estado ?? 'conocido'] >= NIVEL_ESTADO.amigo;
+/** Un niño del barrio (vecino menor de 18, o un antiguo compañero de colegio que sigue en el barrio hasta los 20) con quien el vínculo ya es de amistad (afinidad ≥ 40, confianza ≥ 30 y trato reciente: lo mismo que cuando un compañero pasa a ser amigo): tiene todo el catálogo de la amistad. */
+const esAmigoDeNino = (s: RelacionesState, n: NpcView): boolean => n.role === 'vecino' && n.age !== undefined && (n.age < EDAD_ADULTA || n.tags.includes('excompanero')) && NIVEL_ESTADO[s.vinculos[n.id]?.estado ?? 'conocido'] >= NIVEL_ESTADO.amigo;
 
 /** Desde esta edad una persona ya no es «un niño» para charlar con un vecino sin más trato. */
 const EDAD_ADULTA = 18;
