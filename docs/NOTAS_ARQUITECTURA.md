@@ -2,7 +2,7 @@
 
 Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo lee lo primero** y lo mantiene al día: cuando una pregunta se responde, se quita de aquí y se apunta como decisión en `docs/DECISIONES.md` (y en el plan o anexo que corresponda); cuando algo pendiente se hace, se quita o se marca.
 
-Última actualización: 22/11/2026, al pasar la coordinación a una sesión nueva de arquitectura (la anterior, del 17 al 22/11, tenía ya un contexto demasiado largo).
+Última actualización: 22/11/2026 (noche), sesión de arquitectura `session_01M4vXXRpLP6RxV6c6wYEDQ8`, que tomó el relevo de la del 17–22/11.
 
 ---
 
@@ -44,14 +44,17 @@ Ninguna abierta a 22/11. Lo que queda por decidir está en §4 como propuesta.
 
 ## 3 bis. Sesiones en curso
 
-Ninguna.
+| Sesión | Rama | Para qué | Estado |
+|---|---|---|---|
+| `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medir sin cambiar el juego: sucesos de los PNJ con la ciudad grande, crear y jugar en un móvil emulado (también el trabajador), desglose de jornada de liga, reparto e historia; propuestas para abaratar | Lanzada el 22/11 |
+| `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Fase 1: diagnóstico de la repetición, criterios de calidad y ~30 candidatos de colegio, amigos y casa. Para y espera la aprobación del usuario antes de escribirlos | Lanzada el 22/11 |
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
 1. **Probar como jugador lo publicado el 22/11** y corregir los matices que vaya encontrando el usuario (es lo que está haciendo ahora).
-2. **Más contenido de sucesos**, por lotes y áreas, con la herramienta y el estilo del lote 1 (`docs/relevo/sucesos-contenido-1.md`). Los bots no pasan por la calle del colegio antes de las 8:10 ni están en casa de noche: esos sucesos se prueban con `pruebas`.
+2. **Sucesos: prioridad alta** («es lo que hará que los días no se repitan; hay que mimarlos», usuario, 22/11). Lote 2 de colegio, amigos y casa en marcha (§3 bis): primero la propuesta con criterios de calidad, que aprueba el usuario, y después se escriben. Los bots no pasan por la calle del colegio antes de las 8:10 ni están en casa de noche: esos sucesos se prueban con `pruebas`.
 3. **Calibrar con el usuario** las cifras provisionales: sucesos (probabilidades, castigos, umbral de «no va con su carácter»), dificultad de pedir puesto, `MARGEN_DE_OTRO_PUESTO` (4), pesos de ir a probar fuera, `EFICIENCIA_DE_DEBERES` (0,9), recogida en el colegio (80 %, edad mínima 25: mezclar padres y abuelos), balance de entrenamientos (`ESCALA_DE_ENTRENAMIENTO` = 1) y listón de profesional (40; élite 35), que se revisa en la fase 2.
-4. **Rendimiento:** abaratar la jornada de liga (~75 partidos por semana) y el reparto de equipos; estado más pequeño (genética y rasgos son el 56 % de los 16 MB de la ciudad grande); `listActions` del fútbol solo cuando hace falta. Propuestas en `docs/relevo/revision-rendimiento.md` §6. Antes de activar más clases de sucesos para los PNJ, medirlas con la ciudad grande.
+4. **Rendimiento:** medición en marcha (§3 bis). Después, abaratar la jornada de liga (~75 partidos por semana) y el reparto de equipos; estado más pequeño (genética y rasgos son el 56 % de los 16 MB de la ciudad grande); `listActions` del fútbol solo cuando hace falta. Propuestas en `docs/relevo/revision-rendimiento.md` §6. Antes de activar más clases de sucesos para los PNJ, medirlas con la ciudad grande.
 5. **Visualizador, etapa 2c** (Sonnet, `docs/ANEXO_RETRATOS.md`): más peinados, barbas y ropa; la raíz del tinte con raya o flequillo y el tupé. La cuadrícula pesa ~9 MB: regenerar solo lo que cambie.
 6. **Planificar la peluquería** (`docs/PLAN_PELUQUERIA.md`).
 7. **Ideas del usuario apuntadas, para más adelante:**
@@ -62,8 +65,9 @@ Ninguna.
    - página del entrenador más detallada (labor de entrenador);
    - plantillas equilibradas por lado (pierna buena).
 8. **Huecos conocidos del mundo:** no hay archivo de los PNJ que dejan el mundo; el interés no baja con el tiempo; los PNJ no van a campamentos; faltan las licencias reales de la RFEF para contrastar el abandono; los ojeadores (el nivel servirá para que vean a los buenos).
-9. **Candidatos de más calado** (para decidir con el usuario): fase 2 (vida adulta y profesional), visualizador de los partidos, ciclo de generaciones (la dinastía), salud y lesiones (E12).
-10. **Ideas en `docs/DECISIONES.md` («Pendiente e ideas»):** comida y cuerpo, acciones dinámicas del motor, minutos de fuerza por deporte, personaje chica.
+9. **A medio plazo, planificar (decidido el 22/11):** **partidos de fútbol más reales** (ampliar los cálculos más allá de los tramos, que de momento valen; base `docs/MOTOR_PARTIDOS.md`) y **lesiones** (E12; el motor de partidos ya prevé preguntar por una lesión en cualquier acción, `MOTOR_PARTIDOS.md` §0.7 y §9). Propuesta: un análisis de cada uno (qué hay, qué falta y fases), con su plan, para que lo apruebe el usuario.
+10. **Candidatos de más calado** (para decidir con el usuario): fase 2 (vida adulta y profesional), visualizador de los partidos, ciclo de generaciones (la dinastía).
+11. **Ideas en `docs/DECISIONES.md` («Pendiente e ideas»):** comida y cuerpo, acciones dinámicas del motor, minutos de fuerza por deporte, personaje chica.
 
 ## 5. Sesiones usadas (se pueden archivar)
 

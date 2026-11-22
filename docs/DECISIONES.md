@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — Sucesos: prioridad alta; lote 2 de colegio, amigos y casa. Medir el rendimiento. Partidos y lesiones a medio plazo
+
+Decidido por el usuario al empezar la nueva sesión de arquitectura:
+
+- **Los sucesos son lo que evita que los días se vuelvan repetitivos: hay que mimarlos mucho.** Pasan a ser prioridad alta. Cuentan la variedad, que tengan continuidad, que dejen memoria y que traigan consecuencias, no solo la cantidad.
+- **Lote 2 de sucesos: colegio, amigos y casa.** De casa hay poco (4 detalles del lote 1). Se hace en dos pasos: primero una propuesta con la lista y los criterios de calidad, que aprueba el usuario, y después se escriben.
+- **Medir el rendimiento sin cambiar el juego:** los sucesos de los PNJ con la ciudad grande y crear la partida en un móvil (`docs/relevo/revision-rendimiento.md` §6, puntos 6 y 8). Con esas medidas, propuestas para abaratar la jornada de liga y el reparto de equipos, que decide el usuario.
+- **A medio plazo, planificar:** (1) **partidos de fútbol más cercanos a un partido real**, ampliando los cálculos más allá de los tramos actuales (que de momento valen; base: `docs/MOTOR_PARTIDOS.md`); (2) **lesiones** (E12, salud). El motor de partidos ya dejó preparado cómo preguntar por una lesión en cualquier acción (`MOTOR_PARTIDOS.md` §0.7 y §9).
+
 ## 22/11/2026 — PNJ que entrenan por su cuenta, abandono por nivel e interés, y compañeros hasta los 20
 
 Informe: `docs/relevo/pnj-entrenan-y-abandono.md`.
