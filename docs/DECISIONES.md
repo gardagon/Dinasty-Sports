@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — PNJ que entrenan por su cuenta, abandono por nivel e interés, y compañeros hasta los 20
+
+Informe: `docs/relevo/pnj-entrenan-y-abandono.md`.
+- **PNJ que entrenan por su cuenta o quedan a jugar:** se activa la intensidad «fuerte», de momento, para hacer pruebas.
+- **Abandono:** pesa el nivel (los mejores lo dejan menos, sin llegar a cero) y también el interés por ese deporte. Se mira si a los PNJ les sube el interés al jugar; si no, que suba, para «agarrar» más a los que más juegan.
+- **Listón de profesional:** se espera a ver cómo queda con los entrenamientos y estos cambios (bien medido, sin el valor provisional de los fichajes).
+- **Los compañeros de clase** siguen en el mundo hasta los 20 años, como los de otros colegios (antes desaparecían a los 18).
+
 ## 22/11/2026 — El entrenador dice el puesto en el primer entrenamiento
 
 En el primer entrenamiento con el equipo, el entrenador dice en un suceso «Vas a jugar de [puesto]» y, si el jugador encaja en otro, «pero a lo mejor más adelante te pongo de [puesto]». Así no hace falta ir a la página del equipo para saberlo. **Hecho el 22/11** (`docs/relevo/primer-entrenamiento-puesto.md`): «De inicio vas a jugar de interior», con «…, pero a lo mejor más adelante te pongo de lateral» si otra familia está a menos de 4 puntos (`MARGEN_DE_OTRO_PUESTO`, provisional) y «Me dijiste portero en la prueba…» si pidió otro. El kit guarda el puesto pedido en la prueba (`puestoPedido`). Se conservan pedir otro puesto, preguntar y aceptar.
