@@ -54,6 +54,8 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
+00. **Relevo a una sesión nueva de arquitectura (pedido por el usuario el 22/11):** el contexto de esta conversación es ya muy largo. Cuando terminen las sesiones en curso, se unan, se publique lo jugable (con su visto bueno) y no quede nada abierto, dejar estas notas completas y al día, como hizo la arquitectura anterior: el estado (§2), cómo se trabaja (§1), las preguntas pendientes (§3), las sesiones en curso (§3 bis), lo que queda (§4) y las sesiones usadas (§5). Así la sesión nueva empieza sin carencias.
+
 0 ter. **Hecha el 21/11** (`docs/relevo/revision-rendimiento.md`; decisiones en §3). **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
 
 
