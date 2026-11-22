@@ -65,4 +65,9 @@ Se descartaron las otras sospechas:
 
 ## 6. Comprobaciones
 
-Ver el final de esta sección (se rellena con el resultado de la última pasada).
+Con `claude/youthful-clarke-vs0kye` ya unida (dorsales y entrenamientos):
+
+- `npm run typecheck`: sin errores.
+- `npm run huella -- 60`: las 16 líneas **idénticas** a las de la rama base (comparadas en la misma máquina, antes y después).
+- `npm test`: 117 archivos, **1.306 tests en verde** (363 s, sin otra carga). El test de los hermanos (avanzar 3 cursos) cuesta ~3–4 s en vez de ~19 s; el límite de 30 s no se ha tocado, ni el de ningún otro test.
+- `npm run benjamin -- 31,33` y `npm run probar-web` («todo el camino funciona en el navegador», sin errores en la consola): bien.
