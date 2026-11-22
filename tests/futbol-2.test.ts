@@ -72,7 +72,7 @@ describe('prueba de acceso: lo que más necesita el entrenador', () => {
 });
 
 describe('pedir puesto en el primer entrenamiento cuenta para las 4 semanas de la ficha', () => {
-  const hechos = { 'futbol.puesto': 'lateral derecho', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' };
+  const hechos = { 'futbol.puesto': 'lateral derecho', 'futbol.frase_del_puesto': 'De inicio vas a jugar de lateral.', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' };
   for (const tirada of ['exito', 'fallo'] as const) {
     it(`al pedirlo (y ${tirada === 'exito' ? 'conseguirlo' : 'no conseguirlo'}) se apunta el día de la última petición`, () => {
       const s = new Banco().sesion({ hechos });
