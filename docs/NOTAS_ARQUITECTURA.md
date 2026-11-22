@@ -40,12 +40,16 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
 5. **Balance de los entrenamientos nuevos** (`docs/relevo/entrenamientos.md`): para que el club rinda más que entrenar por libre (como dice su descripción), una sesión del club sube ~13 puntos de habilidad en vez de ~6. Por curso, el jugador sube igual que antes en lo que pesa en su puesto (antes ~43 puntos eran portería que subía un jugador de campo). Los PNJ salen un 3–5 % más altos por edad (los frena el tope por edad). Opciones: aceptarlo; bajar solo la escala del club (entonces el club ya no supera al libre); o subir el libre a la par y bajar los dos. **Recomendación:** aceptarlo y vigilar los niveles por edad, porque el progreso por curso del jugador no cambia.
 1. ~~**Publicar el versionado**~~ Unido el 22/11 (gardagon/Dinasty-Sports#129).
+2. **PNJ que entrenan y abandono** (`docs/relevo/pnj-entrenan-y-abandono.md`; propuestas desactivadas por defecto):
+   - a) **Las cifras de profesionales estaban infladas:** se medían el primer día de curso, con el valor provisional del fichaje. Bien medido, a los 17–18 el mejor PNJ de cada curso está en ~38 y nadie llega a 40 ni a 45. ¿El listón de profesional (45, élite 40) baja a ~38 y ~35, o se mueve otra palanca (tope por edad)? **Posible fallo:** ver si «Mi equipo» enseña ese valor provisional la primera semana.
+   - b) **PNJ por libre** (`PNJ_POR_LIBRE`): «libre», «fuerte» o «intensa». Con «fuerte», el nivel medio a los 18 pasa de 24,3 a 26,9 y salen ~1 de élite (≥ 40) por curso; coste de la semana +30 % (~0,1 s con liga). **Recomendación:** «fuerte».
+   - c) **Abandono por nivel** (`ABANDONO_PROPUESTO`): los mejores (10 %) lo dejan la mitad (de 15 % a 7 % al año); los de abajo, algo más; a los 18 quedan un 8 % menos de jugadores. El abandono total de los 14 a los 18 (69 %) parece alto. **Recomendación:** activarlo y medir los equipos de cadete y juvenil.
+   - d) **Los compañeros de clase desaparecen a los 18** sin archivo (los de otros colegios siguen hasta los 20). **Recomendación:** igualarlos (mismas reglas).
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXMp7cyuMpYVVwYDEFo` | `claude/pnj-entrenan-y-abandono` | Análisis con propuesta (desactivada): PNJ que entrenan por su cuenta o quedan a jugar; abandono de los mejores |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
@@ -113,3 +117,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXNju9hqBxXzwJNvdJu` | Sonnet | Versión visible y actualización de la app (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXMPTosoA18y2ft67tu` | Sonnet | Retrato en Samsung Internet: investigación y página de prueba (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXPnzU1Gedkvetov9Rr` | Sonnet | Primer entrenamiento: «vas a jugar de…» (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXMp7cyuMpYVVwYDEFo` | Sonnet | PNJ que entrenan por su cuenta y abandono: análisis (22/11, esta sesión de arquitectura) |
