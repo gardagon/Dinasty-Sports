@@ -58,6 +58,7 @@ import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, textoDeNiveles, viewPanelGente } from './gente';
 import { agruparEnDesplegables, cambioEnDesplegable, clicEnDesplegable, viewDesplegable } from './desplegables';
 import { reclamarPestana } from './pestana';
+import { cambioEnDiseno, clicEnEscritorio, usaEscritorio, viewEscritorio, viewOpcionesDeDiseno, vigilarAncho } from './escritorio';
 import { MODOS_DE_CONSECUENCIAS, MODOS_DEL_GRUPO, MODOS_FUERA_DE_CARACTER, SUCESO_DEL_GRUPO, respuestaAlGrupo, type CuandoSeVaElGrupo, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
 import {
@@ -527,7 +528,8 @@ function viewPresentacion(): string {
   return `<p><label>Consecuencias antes de elegir ${lista('pres-consecuencias', MODOS_DE_CONSECUENCIAS, presentacion.consecuencias)}</label></p>
     <p><label>Opciones que no van con tu carácter ${lista('pres-fuera-de-caracter', MODOS_FUERA_DE_CARACTER, presentacion.fueraDeCaracter)}</label></p>
     <p><label>Cuando se va el grupo con el que estás ${lista('pres-grupo', MODOS_DEL_GRUPO, presentacion.cuandoSeVaElGrupo)}</label></p>
-    <p><label><input type="checkbox" id="pres-aviso"${presentacion.avisoFueraDeCaracter ? ' checked' : ''}${presentacion.fueraDeCaracter === 'normales' ? '' : ' disabled'}> Avisar «no va contigo» en las opciones normales</label></p>`;
+    <p><label><input type="checkbox" id="pres-aviso"${presentacion.avisoFueraDeCaracter ? ' checked' : ''}${presentacion.fueraDeCaracter === 'normales' ? '' : ' disabled'}> Avisar «no va contigo» en las opciones normales</label></p>
+    ${viewOpcionesDeDiseno()}`;
 }
 
 function viewOpciones(): string {
@@ -1122,6 +1124,11 @@ function viewGame(g: Game): string {
     ['relaciones', 'Relaciones'],
     ['diario', 'Diario'],
   ];
+  // Diseño de escritorio (prototipos, solo si se elige en Opciones): las mismas piezas, colocadas para pantallas anchas.
+  if (usaEscritorio()) {
+    const vistas = { dia: viewDay, lugar: viewLugar, resultado: viewResult, pendientes: viewPendientes, acciones: viewActions, viaje: viewViaje, planes: viewPlanes, identidad: viewIdentity, personaje: viewCharacter, estudios: viewEstudios, deporte: viewDeporte, gente: viewPanelGente, relaciones: viewPeople, recuerdos: viewRecuerdos, diario: viewLog, pruebas: viewEventosDePrueba };
+    return viewEscritorio(g, { tab, tabs, vistas });
+  }
   let main = '';
   let side = '';
   if (tab === 'hacer') {
@@ -1158,6 +1165,7 @@ function marcarDesbordePestañas(): void {
 }
 document.addEventListener('scroll', (e) => { if ((e.target as HTMLElement).classList?.contains('tabs')) marcarDesbordePestañas(); }, true);
 window.addEventListener('resize', marcarDesbordePestañas);
+vigilarAncho(() => render());
 
 function render(): void {
   // Al redibujar se conserva el desplazamiento de las pestañas y se asegura que la elegida se vea.
@@ -1228,6 +1236,10 @@ app.addEventListener('change', (e) => {
     render();
     return;
   }
+  if (cambioEnDiseno(el)) {
+    render();
+    return;
+  }
   if (el instanceof HTMLSelectElement && game && cambioEnGente(el)) render();
 });
 
@@ -1250,7 +1262,7 @@ function cambiarPresentacion(cambio: Partial<Presentacion>): void {
 }
 
 app.addEventListener('click', (e) => {
-  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-desplegable],[data-tab],[data-act],[data-gente],[data-deporte],[data-subdeporte],[data-retrato]');
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-tabscroll],[data-do],[data-desplegable],[data-tab],[data-esc-tab],[data-act],[data-gente],[data-deporte],[data-subdeporte],[data-retrato]');
   if (el?.dataset.act === 'importar') {
     importarPartida();
     return;
@@ -1276,6 +1288,10 @@ app.addEventListener('click', (e) => {
   }
   if (el.dataset.retrato) {
     if (clicEnRetrato(el)) render();
+    return;
+  }
+  if (el.dataset.escTab) {
+    if (clicEnEscritorio(el)) render();
     return;
   }
   if (el.dataset.tab) {
