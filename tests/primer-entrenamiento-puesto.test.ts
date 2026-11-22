@@ -36,12 +36,12 @@ describe('el entrenador dice el puesto en el primer entrenamiento (frase del dep
   it('si el puesto que le da es de otra familia que el que pidió en la prueba, lo dice con naturalidad (concuerda con el género)', () => {
     const v = valores({ LCR: 60, RCR: 60 });
     const t = fraseDelPuestoInicial(PUESTOS_DE_FUTBOL, 'LCR', v, 'GK')!;
-    expect(t).toMatch(/^Me dijiste portero en la prueba, .*pero de inicio vas a jugar de interior\.$/);
+    expect(t).toMatch(/^Me dijiste portero en la prueba, y se te veía convencid\{yo:o\|a\}\. De inicio vas a jugar de interior\.$/);
     expect(concordar(t, 'm')).toContain('convencido');
     expect(concordar(t, 'f')).toContain('convencida');
     expect(concordar(t, 'f')).not.toMatch(/[{}]/);
     // Con segundo puesto a la vez.
-    expect(fraseDelPuestoInicial(PUESTOS_DE_FUTBOL, 'LCR', valores({ LCR: 60, RCR: 60, LB: 59, RB: 59 }), 'GK')).toMatch(/de inicio vas a jugar de interior, pero a lo mejor más adelante te pongo de lateral\.$/);
+    expect(fraseDelPuestoInicial(PUESTOS_DE_FUTBOL, 'LCR', valores({ LCR: 60, RCR: 60, LB: 59, RB: 59 }), 'GK')).toMatch(/\. De inicio vas a jugar de interior, pero a lo mejor más adelante te pongo de lateral\.$/);
   });
 
   it('si pidió el mismo puesto (aunque sea el otro lado), no lo recuerda', () => {
@@ -59,7 +59,7 @@ describe('el suceso del primer entrenamiento con la frase del puesto', () => {
   const hechos = (frase: string): Record<string, string | boolean> => ({ 'futbol.puesto': 'interior izquierdo', 'futbol.frase_del_puesto': frase, 'futbol.juega_donde_mas_vale': true, 'futbol.mejor_puesto': 'interior izquierdo', 'futbol.mejor_puesto_id': 'LCR', 'futbol.calendario': 'la liga empieza pronto' });
 
   it('el texto del suceso lleva la frase (con segundo puesto y con puesto pedido), sin llaves, y conserva la opción de pedir otro puesto', () => {
-    const frase = 'Me dijiste portero en la prueba, y se te veía convencida, pero de inicio vas a jugar de interior, pero a lo mejor más adelante te pongo de lateral.';
+    const frase = 'Me dijiste portero en la prueba, y se te veía convencida. De inicio vas a jugar de interior, pero a lo mejor más adelante te pongo de lateral.';
     const s = new Banco().sesion({ hechos: { ...hechos(frase), 'futbol.juega_donde_mas_vale': false } });
     expect(s.forzar('futbol.primer_entrenamiento')).toBe(true);
     const p = s.pendiente('futbol.primer_entrenamiento')!;
@@ -76,10 +76,10 @@ describe('el suceso del primer entrenamiento con la frase del puesto', () => {
   });
 
   it('el género del personaje se concuerda también dentro de la frase del deporte', () => {
-    const frase = 'Me dijiste portero, y se te veía convencid{yo:o|a}, pero de inicio vas a jugar de interior.';
+    const frase = 'Me dijiste portero, y se te veía convencid{yo:o|a}. De inicio vas a jugar de interior.';
     const s = new Banco().sesion({ hechos: hechos(frase) });
     expect(s.forzar('futbol.primer_entrenamiento')).toBe(true);
-    expect(s.pendiente('futbol.primer_entrenamiento')!.texto).toMatch(/convencid[oa],/);
+    expect(s.pendiente('futbol.primer_entrenamiento')!.texto).toMatch(/convencid[oa]\./);
     expect(s.pendiente('futbol.primer_entrenamiento')!.texto).not.toMatch(/[{}]/);
   });
 

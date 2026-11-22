@@ -115,10 +115,10 @@ describe('con el juego entero: la prueba del personaje, su puesto y el consejo d
     expect(hacer(g, 'futbol.prueba.club_mediano').ok).toBe(true);
     // Sin decidir lo del entrenador no se puede entrenar a prueba (o no había nada que decidir).
     const pendiente = g.service<SucesosService>('sucesos')!.pendientes().find((p) => p.suceso === 'futbol.prueba_de_acceso');
-    const estado = () => g.moduleState<{ puesto?: string; pruebaEnCurso?: { club: string; puesto?: string }; pruebas?: Record<string, number> }>('futbol');
+    const estado = () => g.moduleState<{ puesto?: string; pruebaEnCurso?: { club: string; puesto?: string }; puestoPedido?: string; pruebas?: Record<string, number> }>('futbol');
+    const hueco = pendiente?.opciones.find((o) => o.elegible && o.id.startsWith('en_'));
     if (pendiente) {
       expect(g.preview('futbol.prueba_entrenar.club_mediano')!.reason).toMatch(/decide dónde/);
-      const hueco = pendiente.opciones.find((o) => o.elegible && o.id.startsWith('en_'));
       // Solo se ofrecen los huecos del equipo (más «donde él vea»).
       expect(pendiente.opciones.filter((o) => o.id !== 'que_decida').length).toBeGreaterThanOrEqual(2);
       expect(g.perform((hueco ?? pendiente.opciones.find((o) => o.id === 'que_decida')!).accion).ok).toBe(true);
@@ -127,6 +127,8 @@ describe('con el juego entero: la prueba del personaje, su puesto y el consejo d
     expect(hacer(g, 'futbol.prueba_entrenar.club_mediano').ok).toBe(true);
     expect(estado().pruebas?.club_mediano).toBeDefined();
     expect(estado().pruebaEnCurso).toBeUndefined();
+    // Lo que pidió en la prueba se queda apuntado: el entrenador lo recuerda en el primer entrenamiento («Me dijiste portero…»).
+    expect(estado().puestoPedido).toBe(hueco ? hueco.id.slice(3).toUpperCase() : undefined);
     const miembro = g.service<{ membership(d: string): { id: string } | undefined }>('clubes')!.membership('futbol');
     // Entra (y entonces tiene puesto, el elegido o el que le propone el entrenador) o no entra y no tiene puesto.
     if (miembro) expect(estado().puesto).toBeDefined();

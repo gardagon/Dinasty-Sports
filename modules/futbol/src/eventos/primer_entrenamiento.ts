@@ -40,7 +40,7 @@ export default suceso({
       id: 'en_otro_sitio',
       si: [],
       texto:
-        'Al acabar, {entrenador.nombre} te llama aparte. «{hecho.futbol.frase_del_puesto} Ya sé que a lo mejor te ves más de {hecho.futbol.mejor_puesto}, pero ahora mismo te necesito ahí. Una cosa más: {hecho.futbol.calendario}».',
+        'Al acabar, {entrenador.nombre} te llama aparte. «{hecho.futbol.frase_del_puesto} Ya sé que a lo mejor te ves en otro sitio, pero ahora mismo te necesito ahí. Una cosa más: {hecho.futbol.calendario}».',
       opciones: [
         { id: 'aceptar', texto: 'Aceptarlo: donde haga falta', caracter: { disciplina: 2 }, efectos: [{ relacion: 'entrenador', afinidad: 3 }], resultado: '«Así me gusta. Ya habrá tiempo de moverte».' },
         {
@@ -71,10 +71,10 @@ export default suceso({
     },
   ],
   pruebas: [
-    { nombre: 'Si ya juega donde más vale, el entrenador se lo dice y no hay nada que pedir', dado: { hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.juega_donde_mas_vale': true } }, espero: { opcionDisponible: 'preguntar' } },
+    { nombre: 'Si ya juega donde más vale, el entrenador se lo dice y no hay nada que pedir', dado: { hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.frase_del_puesto': 'De inicio vas a jugar de lateral.', 'futbol.juega_donde_mas_vale': true } }, espero: { opcionDisponible: 'preguntar' } },
     {
       nombre: 'Pedir el cambio y que lo conceda',
-      dado: { hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } },
+      dado: { hechos: { 'futbol.puesto': 'lateral derecho', 'futbol.frase_del_puesto': 'Me dijiste portero en la prueba, y se te veía convencid{yo:o|a}. De inicio vas a jugar de lateral, pero a lo mejor más adelante te pongo de extremo.', 'futbol.juega_donde_mas_vale': false, 'futbol.mejor_puesto': 'extremo derecho', 'futbol.mejor_puesto_id': 'RW' } },
       elige: 'pedir_cambio',
       tirada: 'exito',
       espero: { sale: true },

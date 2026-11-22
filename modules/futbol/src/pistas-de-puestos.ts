@@ -63,7 +63,7 @@ export const PISTAS_DE_PUESTOS_DE_FUTBOL: PistasDePuestos = {
   },
   primerEntrenamiento: {
     vas: 'De inicio vas a jugar de {señal.puesto}{señal.otro}.',
-    pedido: 'Me dijiste {señal.pedido} en la prueba, y se te veía convencid{yo:o|a}, pero de inicio vas a jugar de {señal.puesto}{señal.otro}.',
+    pedido: 'Me dijiste {señal.pedido} en la prueba, y se te veía convencid{yo:o|a}. De inicio vas a jugar de {señal.puesto}{señal.otro}.',
     otro: ', pero a lo mejor más adelante te pongo de {señal.otro}',
   },
   entrenamiento: {
