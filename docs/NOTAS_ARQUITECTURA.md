@@ -38,12 +38,13 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 2. ~~**Rendimiento con la ciudad grande y el fútbol**~~ Respondido el 21/11 (DECISIONES, «Rendimiento: guardar sin congelar…») y encargado a `claude/guardar-sin-congelar` y `claude/futbol-mas-barato`.
 3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
 5. **Balance de los entrenamientos nuevos** (`docs/relevo/entrenamientos.md`): para que el club rinda más que entrenar por libre (como dice su descripción), una sesión del club sube ~13 puntos de habilidad en vez de ~6. Por curso, el jugador sube igual que antes en lo que pesa en su puesto (antes ~43 puntos eran portería que subía un jugador de campo). Los PNJ salen un 3–5 % más altos por edad (los frena el tope por edad). Opciones: aceptarlo; bajar solo la escala del club (entonces el club ya no supera al libre); o subir el libre a la par y bajar los dos. **Recomendación:** aceptarlo y vigilar los niveles por edad, porque el progreso por curso del jugador no cambia.
+6. **Llevar a la versión publicada** lo unido desde el 21/11 (#127): guardado sin congelar, fútbol más barato y equipos que se forman desde el día 1–6, sucesos en clase, deberes y acciones cortas, moverse con el grupo, caras según el origen, «Mi equipo», dorsales, puestos y pistas, entrenamientos y el coste por acción. Pendiente de que el usuario lo apruebe.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Encargo |
 |---|---|---|
-| `session_01M4vXXQFX9Ng9KHWSoLso2U` | `claude/coste-por-accion` | El coste por acción ha subido (un test de npcs supera su límite de 30 s): medir por commits, encontrar y arreglar sin cambiar el juego ni subir límites |
+| — | — | Ninguna |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
 
@@ -101,3 +102,4 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXNVXxbCc2nznHngV8k` | Sonnet | Puestos y pistas (21/11, esta sesión de arquitectura) |
 | `session_01M4vXXPwp3Qjr84KzsiTdwA` | Sonnet | Dorsales, crónica y columnas de Mi equipo (21/11, esta sesión de arquitectura) |
 | `session_01M4vXXPDBij8YJjM9AZGWFY` | Sonnet | Catálogo de entrenamientos y campamentos (21/11, esta sesión de arquitectura) |
+| `session_01M4vXXQFX9Ng9KHWSoLso2U` | Sonnet | Coste por acción (21–22/11, esta sesión de arquitectura) |
