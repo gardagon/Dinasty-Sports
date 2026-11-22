@@ -5,6 +5,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — Mejorar el diseño de la web para PC
+
+El usuario pide mejorar el diseño en el ordenador: se aprovecha muy poco la pantalla. Ahora la página tiene un ancho máximo de 1080 px, pestañas que enseñan una sola cosa cada vez y dos columnas solo en «Qué hacer». En el móvil se queda como está. Con tantos datos, ver varias cosas a la vez ayudaría a jugar y haría el juego más atractivo. **Condición: sin deshacer código.** Cada pestaña ya se dibuja con funciones independientes (`viewLugar`, `viewActions`, `viewDeporte`, `viewPeople`, `viewLog`…), así que la vista de escritorio sería otra forma de colocar esas mismas piezas, más CSS para pantallas anchas. Se decide primero con un análisis y prototipos con capturas, que aprueba el usuario (propuesta en `docs/NOTAS_ARQUITECTURA.md` §4).
+
 ## 22/11/2026 — Sucesos: prioridad alta; lote 2 de colegio, amigos y casa. Medir el rendimiento. Partidos y lesiones a medio plazo
 
 Decidido por el usuario al empezar la nueva sesión de arquitectura:
