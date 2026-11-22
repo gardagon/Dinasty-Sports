@@ -131,7 +131,7 @@ export function viewDeporte(g: Game): string {
 export function pestanaDeDeporte(g: Game): { etiqueta: string; inactivo?: string } | null {
   const todos = deportesDe(g);
   if (!todos.length) return null;
-  return todos.some((d) => !d.inactivo) ? { etiqueta: 'Deporte' } : { etiqueta: 'Deporte', inactivo: todos[0].inactivo };
+  return todos.some((d) => !d.inactivo) ? { etiqueta: 'Deporte' } : { etiqueta: 'Deporte', inactivo: [...new Set(todos.map((d) => d.inactivo))].join(' · ') };
 }
 
 export function clicEnDeporte(el: HTMLElement): boolean {
