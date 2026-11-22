@@ -1872,6 +1872,18 @@ export const npcs = defineModule<NpcsState>({
       const lista = ctx.state<NpcsState>().npcs;
       // Edad de temporada: la de cada rival el primer día del curso, que es la que decide su categoría.
       const inicioCurso = (ctx.time.week - ctx.time.schoolWeek) * 7;
+      const suEquipo = (deporte: string): { club: string; categoria: string; letra: string } | undefined => {
+          const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
+          const pob = poblacionesGuardadas(ctx).find((p) => p.deporte === deporte);
+          const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
+          const cat = pob ? categoriaDe(pob, edad) : undefined;
+          const rend = rendimientosDe(ctx);
+          const puesto = ctx.state<NpcsState>().puestoDelPersonaje?.[deporte];
+          const valores = pob ? puestosDelPersonaje(ctx, rend, pob) : undefined;
+          if (!club || !pob || !cat || !puesto || !valores) return undefined;
+          const letra = equipoDelPersonajeEn(lista, poblacionesGuardadas(ctx), deporte, club.id, cat.id, { id: idDelPersonaje(deporte), puesto, valor: valores[puesto] }, edad, inicioCurso, valoracionDe(rend));
+          return letra ? { club: club.id, categoria: cat.id, letra } : undefined;
+      };
       return {
         list: (f) => {
           // Las consultas se repiten en cada acción: se resuelven una vez por lista de personas, curso y filtro.
@@ -1902,20 +1914,9 @@ export const npcs = defineModule<NpcsState>({
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
         rotaElEquipo: (deporte, club, categoria) => rotaElEquipo(poblacionesGuardadas(ctx), deporte, club, categoria),
-        equiposDeLaCategoria: (deporte, categoria) => equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day),
+        equiposDeLaCategoria: (deporte, categoria) => { const yo = suEquipo(deporte); return equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day, yo && yo.categoria === categoria ? { club: yo.club, letra: yo.letra } : undefined); },
         plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day), ctx.time.day),
-        equipoDelPersonaje: (deporte) => {
-          const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
-          const pob = poblacionesGuardadas(ctx).find((p) => p.deporte === deporte);
-          const edad = ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8;
-          const cat = pob ? categoriaDe(pob, edad) : undefined;
-          const rend = rendimientosDe(ctx);
-          const puesto = ctx.state<NpcsState>().puestoDelPersonaje?.[deporte];
-          const valores = pob ? puestosDelPersonaje(ctx, rend, pob) : undefined;
-          if (!club || !pob || !cat || !puesto || !valores) return undefined;
-          const letra = equipoDelPersonajeEn(lista, poblacionesGuardadas(ctx), deporte, club.id, cat.id, { id: idDelPersonaje(deporte), puesto, valor: valores[puesto] }, edad, inicioCurso, valoracionDe(rend));
-          return letra ? { club: club.id, categoria: cat.id, letra } : undefined;
-        },
+        equipoDelPersonaje: suEquipo,
         previsionDelClub: (deporte) => {
           const club = ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(deporte);
           return club ? previsionDelClubDe(lista, poblacionesGuardadas(ctx), deporte, club.id, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, inicioCurso) : undefined;

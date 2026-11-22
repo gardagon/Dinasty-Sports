@@ -767,7 +767,7 @@ function disciplinaDelEntrenadorDe(npcs: readonly Npc[], pob: PoblacionGuardada,
 
 
 /** Los equipos que hay en una categoría de un deporte (club y letra, con al menos el mínimo de jugadores) con lo que vale cada uno (`NpcDirectory.equiposDeLaCategoria`). */
-export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, categoria: string, inicioCurso: number, dia?: number): EquipoDelMundoView[] {
+export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, categoria: string, inicioCurso: number, dia?: number, personaje?: { club: string; letra: string }): EquipoDelMundoView[] {
   const pob = pobs.find((p) => p.deporte === deporte);
   const cat = pob?.categorias?.find((c) => c.id === categoria);
   if (!pob || !cat) return [];
@@ -784,9 +784,11 @@ export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly Pobla
   for (const [id, miembros] of porEquipo) {
     const [club, letra] = id.split('|');
     const e = pob.equipos.find((x) => x.club === club);
-    if (miembros.length < (e?.plantillaPorCategoria?.min ?? 14)) continue;
+    // El personaje es un jugador más de su equipo: cuenta para el mínimo (si no, un equipo de 13 niños con él no jugaría la liga).
+    const conEl = miembros.length + (personaje && personaje.club === club && personaje.letra === letra ? 1 : 0);
+    if (conEl < (e?.plantillaPorCategoria?.min ?? 14)) continue;
     const valores = miembros.map((n) => n.vp?.[deporte]?.puestos?.[n.puesto?.[deporte] ?? ''] ?? n.vp?.[deporte]?.valor ?? n.levels[deporte] ?? 0).sort((a, b) => b - a).slice(0, 11);
-    res.push({ id, club, letra, nombre: `${pob.nombresDeClub[club] ?? club} ${letra}`, fuerza: valores.reduce((t, v) => t + v, 0) / valores.length, jugadores: miembros.length, campoPropio: !!e && !e.colegio && (e.tamano ?? (e.calidad >= 3 ? 'grande' : e.calidad === 2 ? 'mediano' : 'pequeno')) !== 'pequeno' });
+    res.push({ id, club, letra, nombre: `${pob.nombresDeClub[club] ?? club} ${letra}`, fuerza: valores.reduce((t, v) => t + v, 0) / valores.length, jugadores: conEl, campoPropio: !!e && !e.colegio && (e.tamano ?? (e.calidad >= 3 ? 'grande' : e.calidad === 2 ? 'mediano' : 'pequeno')) !== 'pequeno' });
   }
   return res.sort((a, b) => (a.id < b.id ? -1 : 1));
 }
