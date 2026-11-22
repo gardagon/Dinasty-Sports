@@ -53,6 +53,11 @@ export function manifiestoDe(paquete: PaqueteDeDeporte): Manifiesto {
   }
 }
 
+/** La huella del código de un deporte (la del archivo de código del manifiesto): distingue dos paquetes con la misma versión pero distinto contenido. */
+export function huellaDelCodigo(m: Manifiesto): string | undefined {
+  return m.archivos.find((a) => a.ruta === m.codigo)?.sha256;
+}
+
 export interface OpcionesDeVerificacion {
   /** Clave pública (SPKI en base64) con la que se firman los deportes oficiales. */
   clavePublica: string | null | undefined;

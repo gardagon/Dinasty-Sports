@@ -1,6 +1,6 @@
 import type { GameModule } from '@ds/contracts';
 import { cargarModulo, type Anfitrion } from './cargador';
-import { leerPaquete, manifiestoDe, verificarPaquete, type OpcionesDeVerificacion } from './paquete';
+import { huellaDelCodigo, leerPaquete, manifiestoDe, verificarPaquete, type OpcionesDeVerificacion } from './paquete';
 import { ErrorDePaquete, type EntradaDeCatalogo, type Manifiesto } from './tipos';
 import type { FuenteDeInstalacion } from './fuentes';
 
@@ -40,6 +40,17 @@ export function compararVersiones(a: string, b: string): number {
 }
 
 /**
+ * ¿Es la entrada del catálogo una actualización de lo instalado? Sí si su versión es más nueva, o si es la misma pero el código es otro (un deporte que cambió
+ * sin subir de versión: sin esto el jugador se quedaría con el viejo para siempre). Un catálogo sin huella solo compara versiones.
+ */
+export function esActualizacion(instalado: Manifiesto, entrada: EntradaDeCatalogo): boolean {
+  const c = compararVersiones(entrada.version, instalado.version);
+  if (c !== 0) return c > 0;
+  const mia = huellaDelCodigo(instalado);
+  return !!entrada.huella && !!mia && entrada.huella !== mia;
+}
+
+/**
  * Instala, quita y carga los deportes de un dispositivo. Al instalar comprueba firma, compatibilidad y huellas y guarda el paquete (así se juega sin
  * conexión); al cargar vuelve a comprobarlo y ejecuta su código con las piezas comunes del juego (`anfitrion`).
  */
@@ -65,6 +76,12 @@ export class Instalador {
   /** Instala una entrada del catálogo de una fuente. */
   async instalarDe(fuente: FuenteDeInstalacion, entrada: EntradaDeCatalogo): Promise<Manifiesto> {
     return this.instalar(await fuente.paquete(entrada));
+  }
+
+  /** Las entradas del catálogo de la fuente que actualizan algo ya instalado (no instala nada). */
+  async actualizacionesDe(fuente: FuenteDeInstalacion): Promise<EntradaDeCatalogo[]> {
+    const instalados = await this.instalados();
+    return (await fuente.catalogo()).filter((e) => instalados.some((d) => d.manifiesto.id === e.id && esActualizacion(d.manifiesto, e)));
   }
 
   async desinstalar(id: string): Promise<void> {

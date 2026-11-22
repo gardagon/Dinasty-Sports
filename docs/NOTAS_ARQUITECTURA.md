@@ -15,12 +15,13 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 - **Sesiones paradas por el límite de uso:** cuando una sesión se para por el límite de 5 horas, no se reanuda sola (solo si el ordenador del usuario está encendido). Revisar con `list_sessions` (`children`) las que salen `failed` y reactivarlas con `send_message` cuando pase el límite.
 - **Sesiones en paralelo** solo si tocan archivos distintos. Para no chocar en la documentación, cada una escribe sus notas en `docs/relevo/<rama>.md` y la arquitectura las junta en `DECISIONES.md` y en los planes al unir.
 - **Modelos.** Sonnet 5.5 para el desarrollo normal; Fable 5.2 solo para lo de más calado (diseño de sistemas, motor fino, calidad visual), en sesiones nuevas con notas de relevo. **Fable dejó de estar incluido en el plan del usuario el 16/11**: ahora requiere créditos de uso, así que no lanzarlo sin preguntar.
+- **Tras unir a `main`, comprobar que se ha publicado:** el flujo «Publicar web (GitHub Pages)» puede fallar por un error de GitHub (el 22/11 falló al desplegar y hubo que relanzarlo). Si falla por un error de GitHub, relanzarlo una vez; si no, buscar la causa.
 - **Al unir ramas:** comprobar tipos (`npm run typecheck`, tras `npm install` si hay paquetes nuevos) y tests; si una rama arrastra un archivo grande en su historia, unirla como un solo commit (`git merge --squash`).
 - **Imágenes para el usuario:** se le envían con `SendUserFile`. Para revisar capturas grandes, recortarlas antes de mirarlas.
 
 ## 2. Estado (17/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127; 1.187 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127) y el 22/11 (#128; 1.335 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
@@ -38,7 +39,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 2. ~~**Rendimiento con la ciudad grande y el fútbol**~~ Respondido el 21/11 (DECISIONES, «Rendimiento: guardar sin congelar…») y encargado a `claude/guardar-sin-congelar` y `claude/futbol-mas-barato`.
 3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
 5. **Balance de los entrenamientos nuevos** (`docs/relevo/entrenamientos.md`): para que el club rinda más que entrenar por libre (como dice su descripción), una sesión del club sube ~13 puntos de habilidad en vez de ~6. Por curso, el jugador sube igual que antes en lo que pesa en su puesto (antes ~43 puntos eran portería que subía un jugador de campo). Los PNJ salen un 3–5 % más altos por edad (los frena el tope por edad). Opciones: aceptarlo; bajar solo la escala del club (entonces el club ya no supera al libre); o subir el libre a la par y bajar los dos. **Recomendación:** aceptarlo y vigilar los niveles por edad, porque el progreso por curso del jugador no cambia.
-6. **Llevar a la versión publicada** lo unido desde el 21/11 (#127): guardado sin congelar, fútbol más barato y equipos que se forman desde el día 1–6, sucesos en clase, deberes y acciones cortas, moverse con el grupo, caras según el origen, «Mi equipo», dorsales, puestos y pistas, entrenamientos y el coste por acción. Aprobado el 22/11. Partidas guardadas: confirmado que cargan. Balance: aceptado. Falta el arreglo de la plaza al cambiar de año (`claude/plaza-al-cambiar-de-anio`); con él, abrir el pull request.
+1. **Publicar el versionado y la página de prueba del retrato** (`?prueba-retrato`): aprobado el 22/11. Tras publicar: Opciones → Deportes → «Buscar deportes» → «Actualizar» el Fútbol, y que diga qué variantes del retrato se ven bien en Samsung con modo oscuro.
 
 ## 3 bis. Sesiones en curso
 
@@ -107,3 +108,5 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXP9yVZBSgVR7Bp2jZa` | Sonnet | Compatibilidad con main, crónica sin nombres e investigación del personaje sin equipo (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXMq6uyW8dV12rHW48q` | Sonnet | Plaza al cambiar de año (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXMSfXmoS68SCSee9NG` | Sonnet | Retrato en el móvil y niños calvos (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXNju9hqBxXzwJNvdJu` | Sonnet | Versión visible y actualización de la app (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXMPTosoA18y2ft67tu` | Sonnet | Retrato en Samsung Internet: investigación y página de prueba (22/11, esta sesión de arquitectura) |

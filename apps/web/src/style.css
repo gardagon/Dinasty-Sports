@@ -390,3 +390,8 @@ ul.cronica li.mia { background: rgba(255, 200, 60, 0.18); border-left: 3px solid
 .suceso-opciones { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 .suceso-opciones .action { width: 100%; text-align: left; }
 .pendientes .pendiente + .pendiente { border-top: 1px solid var(--rule); margin-top: 8px; padding-top: 8px; }
+
+/* Versión visible y aviso de actualización */
+.version-pie { margin: 16px 0 0; text-align: center; font-size: 11px; color: var(--ink-soft); opacity: 0.8; }
+.aviso-actualizacion { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; gap: 12px; align-items: center; justify-content: center; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--paper); font-size: 14px; }
+.aviso-actualizacion button { font: inherit; font-weight: 600; padding: 6px 14px; border-radius: 8px; border: 0; cursor: pointer; }

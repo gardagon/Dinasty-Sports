@@ -5,7 +5,7 @@ import * as kit from '@ds/kit-deporte';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, catalogoDeDeportes, nuevaPartida } from '@ds/game';
 import {
-  ErrorDePaquete, Instalador, almacenEnMemoria, crearPaquete, firmar, fuenteWeb, generarClaves, leerPaquete, manifiestoDe, verificarPaquete,
+  ErrorDePaquete, Instalador, almacenEnMemoria, crearPaquete, esActualizacion, firmar, fuenteWeb, generarClaves, leerPaquete, manifiestoDe, verificarPaquete,
   type EntradaDeCatalogo, type PaqueteDeDeporte,
 } from '@ds/paquetes';
 import { empaquetarDeporte, entradaDeCatalogo } from '../tools/empaquetar';
@@ -163,4 +163,31 @@ describe('el deporte instalado funciona en el juego', () => {
     advanceToWeek(g, 'gen.descansar', 4, 1, 10);
     expect(g.moduleState<{ npcs: { deporte?: string }[] }>('npcs').npcs.filter((n) => n.deporte === 'atletismo').length).toBeGreaterThan(50);
   }, 60000);
+});
+
+describe('actualizar un deporte que cambió sin subir de versión', () => {
+  const hecho = (codigo: string, version = '1.0.0') => crearPaquete({ id: 'x', nombre: 'X', version, interfaz: INTERFAZ_DE_DEPORTES, paises: ['espana'], archivos: { 'codigo.js': codigo }, codigo: 'codigo.js' }, claves.privada);
+
+  it('el catálogo lleva la huella del código y distingue misma versión con código distinto', async () => {
+    const viejo = await hecho('return 1;');
+    const nuevo = await hecho('return 2;');
+    const entradaNueva = entradaDeCatalogo(nuevo, 'x/1.0.0/paquete.json');
+    expect(entradaNueva.huella).toMatch(/^[0-9a-f]{64}$/);
+    expect(esActualizacion(manifiestoDe(viejo), entradaNueva)).toBe(true);
+    expect(esActualizacion(manifiestoDe(nuevo), entradaNueva)).toBe(false); // lo mismo: nada que actualizar
+    expect(esActualizacion(manifiestoDe(viejo), { ...entradaNueva, huella: undefined })).toBe(false); // catálogo antiguo sin huella: solo versiones
+    expect(esActualizacion(manifiestoDe(viejo), { ...entradaNueva, version: '1.1.0' })).toBe(true);
+    expect(esActualizacion(manifiestoDe(nuevo), { ...entradaNueva, version: '0.9.0' })).toBe(false);
+  });
+
+  it('actualizacionesDe lista lo instalado que tiene código nuevo en la fuente, y reinstalar lo deja al día', async () => {
+    const inst = instalador();
+    await inst.instalar(JSON.stringify(await hecho('return 1;')));
+    const nuevo = await hecho('return 2;');
+    const entrada = entradaDeCatalogo(nuevo, 'x/1.0.0/paquete.json');
+    const fuente = { nombre: 'prueba', catalogo: async () => [entrada, { ...entrada, id: 'y' }], paquete: async () => JSON.stringify(nuevo) };
+    expect((await inst.actualizacionesDe(fuente)).map((e) => e.id)).toEqual(['x']); // «y» no está instalado
+    await inst.instalarDe(fuente, entrada);
+    expect(await inst.actualizacionesDe(fuente)).toEqual([]);
+  });
 });
