@@ -114,7 +114,8 @@ for (const seed of semillas) {
   };
   foto(0);
   for (let k = 1; k <= anios; k++) {
-    advanceToWeek(g, 'gen.descansar', 52 * k, 2, 15);
+    // Una semana después del cambio de curso: el primer día los que cambian de club llevan el nivel provisional del fichaje (hasta 53 frente a 40) y la pasada semanal aún no lo ha calculado.
+    advanceToWeek(g, 'gen.descansar', 52 * k + 1, 2, 15);
     foto(k);
     console.log(`semilla ${seed}: año ${k} (${((performance.now() - t0) / 1000).toFixed(0)} s)`);
   }
