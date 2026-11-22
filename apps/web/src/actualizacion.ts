@@ -141,7 +141,7 @@ async function limpiarCopias(): Promise<void> {
 }
 
 export const dependenciasReales = (deportesNuevos: () => Promise<string[]>): Dependencias => ({
-  base: typeof document === 'undefined' ? './' : document.baseURI,
+  base: typeof document === 'undefined' ? './' : new URL('./', document.baseURI).href,
   local: versionActual(),
   publicada: (b) => versionPublicada(b),
   deportesNuevos,
