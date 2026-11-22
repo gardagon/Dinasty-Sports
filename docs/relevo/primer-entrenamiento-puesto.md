@@ -36,4 +36,4 @@ En `futbol.primer_entrenamiento` (el suceso que ya existía, con sus opciones y 
 
 ## Comprobaciones
 
-Ver el final del archivo (se rellena al acabar).
+`npm run typecheck`, `npm run eventos:validar` (63 sucesos, todo en orden), `npm run eventos:probar -- futbol.primer_entrenamiento`, `npm run benjamin -- 31,33` y `npm run probar-web` (sin errores de consola): bien. `npm test` (en segundo plano, sin tocar archivos mientras corría): 125 archivos, 1358 tests, todos pasan.
