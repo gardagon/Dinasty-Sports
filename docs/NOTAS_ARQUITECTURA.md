@@ -44,6 +44,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXPS1A9ScC8LHqc2qXa` | `claude/analisis-profesionales` | Análisis: cuántos niños de un curso llegarían a profesionales a los 18 y cuántos tocan sus topes, frente a datos reales; con los entrenamientos nuevos y los de antes |
 | `session_01M4vXXP9yVZBSgVR7Bp2jZa` | `claude/compatibilidad-y-cronica` | ¿Cargan las partidas de la versión publicada (v21)? Probar y migrar suave si hace falta; en los partidos, descripción y dorsal de todos y no el nombre |
 
 **Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
