@@ -5,6 +5,11 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — Versión visible y actualización de la app
+
+- **En Opciones se ve qué versión del juego se usa** (commit y fecha de compilación), y en pequeño en la pantalla de inicio. Para saber si un fallo es de la versión.
+- La app avisa cuando hay una versión nueva publicada y se actualiza sin perder la partida.
+
 ## 22/11/2026 — Retrato en el móvil y niños calvos
 
 Detalle: `docs/relevo/retrato-movil.md`.

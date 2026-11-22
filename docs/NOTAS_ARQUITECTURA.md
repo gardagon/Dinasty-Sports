@@ -44,6 +44,7 @@ Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en
 
 | Sesión | Rama | Encargo |
 |---|---|---|
+| `session_01M4vXXNju9hqBxXzwJNvdJu` | `claude/version-visible` | Versión visible en Opciones (commit y fecha) y aviso de versión nueva con «Actualizar»; por qué el PC del usuario no ve lo publicado el 22/11 |
 | `session_01M4vXXMPTosoA18y2ft67tu` | `claude/retrato-samsung` | El retrato sigue desvaído en Samsung Internet con su modo oscuro (bien en Samsung claro y en Chrome): investigar, página de prueba con variantes (SVG, img, canvas, PNG) y arreglo si es claro |
 | `session_01M4vXXMp7cyuMpYVVwYDEFo` | `claude/pnj-entrenan-y-abandono` | Análisis con propuesta (desactivada): PNJ que entrenan por su cuenta o quedan a jugar; abandono de los mejores |
 
