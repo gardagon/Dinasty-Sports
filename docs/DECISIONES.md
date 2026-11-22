@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 22/11/2026 — Dormir con desplegable y revisar la falta de sueño
+
+Lo pide el usuario: que «Dormir» no sea un solo botón, sino un desplegable con estas opciones:
+- dormir hasta la hora de levantarse (las 7);
+- recuperar el sueño si se ha trasnochado, despertando a la hora que permita recuperarse;
+- dormir las horas que tocan sin penalización.
+
+Así se amplía lo que se puede hacer de noche, también para los sucesos nocturnos. Hay que revisar los malus por dormir poco: ahora solo existe «menos de 7 h: −2 de motivación» y no hay memoria de las noches anteriores. Primero un análisis con propuesta (`docs/relevo/dormir.md`): opciones, deuda de sueño, horas por edad, malus y la misma regla para los PNJ.
+
 ## 22/11/2026 — Sucesos, lote 2: decisiones sobre la propuesta (`docs/relevo/sucesos-lote-2.md`)
 
 Respuestas del usuario a las dudas de la propuesta:
@@ -19,7 +28,7 @@ Respuestas del usuario a las dudas de la propuesta:
    - un bot que madruga y trasnocha;
    - la marca de contenido duro (punto 4).
 3. **Lote 3, pendiente:** la mudanza de un amigo (E6, que un PNJ salga del mundo), tu cumpleaños con fiesta y un amigo que viene a casa (E7, amigos en tu casa; E3, «quedar con X»).
-4. **Contenido duro, con una marca y una opción.** Los sucesos «duros» llevan una marca: la bronca entre los padres, un apodo feo (que recibes o que pones), las peleas. Si en Opciones no se aceptan, no salen. Así se pueden escribir con más profundidad. Las historias tienen caminos que dependen de lo que elija el jugador. Pendiente de decidir: el valor por defecto y si la opción es una sola o va por categorías.
+4. **Contenido duro, con una marca y una opción.** Los sucesos «duros» llevan una marca: la bronca entre los padres, un apodo feo (que recibes o que pones), las peleas. Si en Opciones no se aceptan, no salen. Así se pueden escribir con más profundidad. Las historias tienen caminos que dependen de lo que elija el jugador. **Desactivado por defecto**, porque no sabemos si quien juega es menor. Se ofrece activarlo con un mensaje al crear la partida y en Opciones. **Va por categorías** (familia, burlas, peleas…) con un interruptor general; más adelante se verá si se unifican.
 5. **Dinero entre niños (préstamo, paga con tareas):** sí. `gen.dinero` existe y lo usan algunos sucesos, pero no hay ingresos ni cosas que comprar. **Deuda técnica: la economía del personaje** (paga, ingresos, gastos, qué comprar).
 6. **Profesores:** «el profesor de Lengua o de Matemáticas», sin tutor fijo.
 7. **Pelea entre dos amigos:** se aproxima con dos amigos tuyos y no cambia la relación entre ellos. **Pendiente: relaciones entre PNJ**, para que se puedan volver enemigos entre ellos (con el personaje ya existe el estado «enemigo», afinidad ≤ −45).

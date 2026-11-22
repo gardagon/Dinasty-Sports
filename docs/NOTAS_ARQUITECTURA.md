@@ -40,7 +40,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Contenido duro** (DECISIONES 22/11, punto 4): ¿activado o desactivado por defecto? ¿Un solo interruptor o por categorías (familia, burlas, peleas)? Recomendación: activado, por categorías y con un interruptor general. Cuando responda, decírselo a la sesión `session_01M4vXXMop1ruurfnrJWEBCG` (en la sesión ya está activado, provisional).
+Ninguna abierta (el contenido duro se decidió el 22/11: desactivado por defecto y por categorías; ya se le dijo a la sesión de motor).
 
 ## 3 bis. Sesiones en curso
 
@@ -49,6 +49,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 | `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medir sin cambiar el juego: sucesos de los PNJ con la ciudad grande, crear y jugar en un móvil emulado (también el trabajador), desglose de jornada de liga, reparto e historia; propuestas para abaratar | Lanzada el 22/11 |
 | `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Fase 1 hecha y unida (`docs/relevo/sucesos-lote-2.md`); el usuario la aprobó (DECISIONES 22/11). **Espera**: cuando se una la sesión de motor, reactivarla para escribir el contenido en el orden decidido | En espera |
 | `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor para el lote 2: variantes al azar, señales de exámenes y boletín, cumpleaños propio, rotación por familia, medida por franja/lugar/persona, bot madrugador, marca de contenido duro | Lanzada el 22/11 |
+| `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Análisis con propuesta: desplegable de «Dormir» (hasta la hora de levantarse, recuperar, horas que tocan), deuda de sueño, malus y PNJ. Para y espera al usuario | Lanzada el 22/11 |
 | `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Análisis con propuesta: quién hay por la calle a cada hora, quién debería haber y su coste. Para y espera al usuario | Lanzada el 22/11 |
 | `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño para PC: diagnóstico con capturas y 2–3 prototipos detrás de la opción «Diseño» (por defecto, como ahora), en archivos nuevos (`escritorio.ts`/`.css`) para no chocar con los arreglos. Para y espera que el usuario elija | Lanzada el 22/11 |
 
