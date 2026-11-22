@@ -2,72 +2,72 @@
 
 Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo lee lo primero** y lo mantiene al día: cuando una pregunta se responde, se quita de aquí y se apunta como decisión en `docs/DECISIONES.md` (y en el plan o anexo que corresponda); cuando algo pendiente se hace, se quita o se marca.
 
-Última actualización: 17/11/2026, tras las respuestas del usuario a las preguntas 1–4 y lanzar tres sesiones de Sonnet.
+Última actualización: 22/11/2026, al pasar la coordinación a una sesión nueva de arquitectura (la anterior, del 17 al 22/11, tenía ya un contexto demasiado largo).
 
 ---
 
 ## 1. Cómo se trabaja (decidido con el usuario)
 
-- **Reparto.** La sesión de arquitectura (Opus) diseña, escribe los encargos, lanza las sesiones de desarrollo (`create_session`), revisa su trabajo (código, tests, capturas) y une sus ramas. Las sesiones de desarrollo trabajan cada una en su rama, sin pull request, y avisan con `send_message` al terminar.
-- **Ninguna decisión de diseño sin autorización del usuario**, salvo arreglar un error que obligue a deshacer trabajo (y se le cuenta). La arquitectura propone con su recomendación; el usuario decide.
-- **Las dudas** de quien desarrolla van a «Preguntas abiertas» del plan correspondiente (o a sus notas de relevo); la arquitectura se las lleva al usuario.
-- **Sesiones cortas y enfocadas**, una por bloque de trabajo que comparta código, con un encargo cerrado y notas de relevo. Una sesión muy larga se encarece en cada paso: Fable gastó un bloque entero de 5 horas solo en recargar unos 700.000 tokens de contexto.
-- **Sesiones paradas por el límite de uso:** cuando una sesión se para por el límite de 5 horas, no se reanuda sola (solo si el ordenador del usuario está encendido). Revisar con `list_sessions` (`children`) las que salen `failed` y reactivarlas con `send_message` cuando pase el límite.
-- **Sesiones en paralelo** solo si tocan archivos distintos. Para no chocar en la documentación, cada una escribe sus notas en `docs/relevo/<rama>.md` y la arquitectura las junta en `DECISIONES.md` y en los planes al unir.
-- **Modelos.** Sonnet 5.5 para el desarrollo normal; Fable 5.2 solo para lo de más calado (diseño de sistemas, motor fino, calidad visual), en sesiones nuevas con notas de relevo. **Fable dejó de estar incluido en el plan del usuario el 16/11**: ahora requiere créditos de uso, así que no lanzarlo sin preguntar.
-- **Tras unir a `main`, comprobar que se ha publicado:** el flujo «Publicar web (GitHub Pages)» puede fallar por un error de GitHub (el 22/11 falló dos veces al desplegar: `deploy-pages` no encontraba el artefacto subido en el mismo trabajo; se relanzó, y en la rama de trabajo el flujo ya va en dos trabajos, construir y publicar, como la plantilla oficial; entra en `main` con el próximo pull request). Si falla por un error de GitHub, relanzarlo una vez; si no, buscar la causa.
-- **Al unir ramas:** comprobar tipos (`npm run typecheck`, tras `npm install` si hay paquetes nuevos) y tests; si una rama arrastra un archivo grande en su historia, unirla como un solo commit (`git merge --squash`).
-- **Imágenes para el usuario:** se le envían con `SendUserFile`. Para revisar capturas grandes, recortarlas antes de mirarlas.
+- **Reparto.** La sesión de arquitectura (Opus) diseña, escribe los encargos, lanza las sesiones de desarrollo (`create_session`, modelo Sonnet), revisa su trabajo (código, tests, capturas) y une sus ramas. Cada sesión de desarrollo trabaja en su rama (`claude/<tema>`), sale de la rama de trabajo, no abre pull request y avisa con `send_message` al terminar.
+- **Ninguna decisión de diseño sin autorización del usuario**, salvo arreglar un error (y se le cuenta). La arquitectura propone con su recomendación; el usuario decide. Las sesiones de desarrollo tampoco deciden: apuntan las dudas en su relevo o preguntan con `send_message`, y la arquitectura se las lleva al usuario.
+- **Encargos:** cerrados y autosuficientes (qué leer, qué hacer, qué no tocar, qué comprobar antes de avisar: `typecheck`, `npm test` en segundo plano, `eventos:validar`, `benjamin -- 31,33`, `probar-web` y, si toca el mundo, `huella -- 60`). Para lo que es medir o comparar, **análisis con propuesta**, sin cambiar el juego (o con los cambios desactivados detrás de un dato) hasta que el usuario decida.
+- **Notas de relevo:** cada sesión escribe las suyas en `docs/relevo/<rama>.md`; la arquitectura junta lo decidido en `DECISIONES.md` y en los anexos al unir.
+- **Sesiones cortas y enfocadas**, una por bloque que comparta código. **En paralelo solo si tocan archivos distintos;** si dos van a tocar lo mismo (por ejemplo el kit de deporte o la pestaña del deporte), la segunda espera a que se una la primera.
+- **Límite de uso:** las sesiones se paran a menudo por el límite de 5 horas (o el semanal) y **no se reanudan solas**. Revisar con `list_sessions` (`children: true`) las que salen `failed`, mirar `status_detail` (dice cuándo se reinicia) y reactivarlas con `send_message` cuando pase. Pedirles siempre que hagan **commit y push a menudo**, para no perder trabajo.
+- **Modelos.** Sonnet 5.5 para todo el desarrollo. **Fable 5.2 requiere créditos desde el 16/11: no lanzarlo sin preguntar.**
+- **Al unir ramas** a la rama de trabajo: `npm run typecheck` (tras `npm install` si hay paquetes nuevos) y `npm test` en segundo plano (tarda ~15 min; no lanzar otra suite a la vez, ni unir otra rama mientras corre); resolver conflictos conservando lo de las dos ramas (suelen ser listas de `import`). **No subir el límite de tiempo de ningún test** para que pase: si un test va justo de tiempo, es que algo se ha encarecido (así se encontró el coste de «moverse con el grupo»).
+- **Publicar (unir a `main`): cada vez con el visto bueno del usuario.** Pull request desde la rama de trabajo a `main` (sin plantilla), suscribirse a su actividad, unirlo cuando la integración continua («Tipos, tests y simulación de balance», ~15 min) dé verde, y **comprobar después que el flujo «Publicar web (GitHub Pages)» termina bien** (desde #130 va en dos trabajos, construir y publicar; antes fallaba a veces). Tras publicar, el usuario ve la versión en Opciones → «Versión».
+- **Partidas guardadas:** la versión de guardado sigue en 21. Las de `main` cargan y lo que falta se rellena al abrir (`GameModule.alCargar`); lo vigila `tests/partidas-de-main.test.ts`. Si un cambio exige subir la versión, decírselo al usuario antes de publicar (tendría que empezar partida nueva).
+- **El paquete del fútbol** se instala aparte en el navegador; desde #129 el catálogo lleva la huella del código y el juego ofrece actualizarlo cuando cambia (Opciones → Deportes → «Buscar deportes» → «Actualizar»).
+- **Imágenes para el usuario:** con `SendUserFile`. Para revisar capturas grandes, recortarlas antes de mirarlas. El dibujo se revisa a tamaño real, no solo en el zoom.
+- **El usuario** juega en Chrome (PC y Android). En Samsung Internet con modo oscuro el retrato sale desvaído y no hay arreglo desde la web (su modo oscuro forzado lo altera todo).
 
-## 2. Estado (17/11/2026)
+## 2. Estado (22/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` el 21/11 (#127) y el 22/11 (#128 y #129; 1.348 tests en verde). Lo nuevo se trabaja aquí y se une a `main` con pull request cuando el usuario lo apruebe.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada en GitHub Pages con #127 (21/11), #128, #129, #130 y #131 (22/11). Lo nuevo se trabaja en ella y se publica con pull request cuando el usuario lo aprueba. Suite: 126 archivos y 1.367 tests en verde.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
-| **Cuerpo y apariencia para todos** (fase 1 del visualizador): altura, peso, músculo y grasa con la edad, el sexo y la genética (metabolismo, musculatura) para el personaje y todos los PNJ; hábitos (recreo, Educación física, juego libre, sesiones de club, adultos); historial anual; canas, calvicie, barba, envejecimiento de la piel y 12 rasgos de la cara heredables | ✅ | `docs/PLAN_CUERPO_Y_APARIENCIA.md`, `docs/ANEXO_CUERPO.md`, `packages/contracts/src/cuerpo.ts` |
-| **Visualizador de personas** (fase 2, Fable): estilo «tinta», retrato, figura entera a escala, evolución, comparar con el personaje, cuna para menores de 3, catálogos de peinados y vello facial (premium, calvos que se afeitan), largo del pelo y la barba, tinte con raíces | ✅ base · etapa 2c pendiente | `docs/PLAN_VISUALIZADOR.md`, `docs/ANEXO_RETRATOS.md`, `packages/retrato`, `packages/contracts/src/retrato.ts` |
-| **Eventos y decisiones (E18, «sucesos»)**: formato como datos, director, eventos base en `modules/eventos` y deportivos en cada deporte, hilos, herramienta (`eventos:nuevo`, `validar`, `probar`, `mapa`), interfaz, presentación desde Opciones, PNJ solo con lesiones, 57 sucesos de prueba, ~0,009 ms por acción | ✅ motor · contenido y calibración pendientes | `docs/PLAN_EVENTOS.md` (§7 ter: lo que queda), `docs/ANEXO_EVENTOS.md` |
+| **Cuerpo y apariencia** para todos (altura, peso, músculo y grasa, hábitos, canas, calvicie, barba, 13 rasgos de la cara heredables con tendencias por origen) | ✅ | `docs/ANEXO_CUERPO.md`, `packages/contracts/src/cuerpo.ts` |
+| **Visualizador de personas** (estilo «tinta», retrato, figura, evolución, catálogos, ojo con pliegue del párpado; niños sin peinados de adulto) | ✅ base · etapa 2c pendiente | `docs/ANEXO_RETRATOS.md`, `packages/retrato` |
+| **Sucesos** (motor, 63 sucesos, presentación desde Opciones, «durante una actividad» sin minutos, urgencia `ahora`/`aplazable`/`pendiente`, moverse con el grupo y «Me voy») | ✅ motor · contenido y calibración pendientes | `docs/ANEXO_EVENTOS.md`, `docs/PLAN_EVENTOS.md` |
+| **Fútbol:** prueba de acceso como suceso, reparto de equipos (4 clubes de colegio, probar fuera según edad y ambición, plazas de más, rotación en benjamín y alevín de colegio, primeros años que no desplazan en benjamín y alevín, salida del club como suceso), equipos que se forman los días 1–6, «Mi equipo» (dorsales, compañeros sin nombre, comparación, puesto al verle jugar), puestos sin lado («Interior», «Medio de banda»), pistas y «Preguntar por un puesto», 22 entrenamientos y campamentos separados, quedar a jugar, calendario de la liga, el entrenador dice el puesto en el primer entrenamiento, crónica con dorsales | ✅ | `docs/ANEXO_DEPORTE.md`, `docs/CIUDAD_Y_LIGAS.md`, `docs/ANEXO_PUESTOS.md` |
+| **PNJ:** horarios (colegio, recogida, salida enlazada con la tarde), charlar con vecinos y rivales, amistad con los niños del barrio, PNJ que entrenan por su cuenta («fuerte»), abandono por nivel e interés, compañeros hasta los 20, demografía y nombres por ciudad | ✅ | `docs/ANEXO_HORARIOS_PNJ.md`, `docs/ANEXO_RELACIONES.md`, `docs/ANEXO_NOMBRES.md` |
+| **Vida:** «Hacer deberes», acciones que pisan una obligación (se cortan), listas en desplegables, fichas de quien no está sin acciones | ✅ | DECISIONES 21/11 |
+| **Rendimiento:** guardar a trozos, fútbol más barato (crear ~10 s, semana 0,1–0,36 s en la ciudad grande), índice de presencia por lugar, `npm run presupuesto` y aviso del peso | ✅ · pendiente abaratar la jornada de liga y el reparto | `docs/relevo/revision-rendimiento.md`, `docs/relevo/coste-por-accion.md` |
+| **Versión visible y actualización** de la app | ✅ | `docs/relevo/version-visible.md` |
 | **Peluquería y barbería** | Decidido, sin planificar | `docs/PLAN_PELUQUERIA.md` |
 
 ## 3. Preguntas para el usuario (pendientes)
 
-Cuando el usuario responda, quitar la pregunta de aquí, apuntar la decisión en `docs/DECISIONES.md` y encargar lo que toque.
-
-1. ~~**Unir a la principal**~~ **Unida el 21/11** (gardagon/Dinasty-Sports#127, integración continua en verde): publicada en GitHub Pages. La rama de trabajo sigue siendo `claude/youthful-clarke-vs0kye`, al día con `main`.
-2. ~~**Reparto de equipos 2, lo que queda**~~ Respondido el 21/11 (DECISIONES, «Rotación en el fútbol de colegio…») y encargado a `claude/rotacion-y-puestos`.
-2. ~~**Rendimiento con la ciudad grande y el fútbol**~~ Respondido el 21/11 (DECISIONES, «Rendimiento: guardar sin congelar…») y encargado a `claude/guardar-sin-congelar` y `claude/futbol-mas-barato`.
-3. ~~**Tu equipo, para el niño**~~ Decidido el 21/11 (DECISIONES, «“Mi equipo” para el niño»). **Encargo listo para cuando se una `claude/futbol-mas-barato`** (las dos tocan la plantilla y la pestaña del deporte): subpestaña «Mi equipo», compañeros sin nombre si no los conoces, comparación y puesto que se desbloquean al entrenar y jugar con ellos, y habilidades agrupadas.
-5. **Balance de los entrenamientos nuevos** (`docs/relevo/entrenamientos.md`): para que el club rinda más que entrenar por libre (como dice su descripción), una sesión del club sube ~13 puntos de habilidad en vez de ~6. Por curso, el jugador sube igual que antes en lo que pesa en su puesto (antes ~43 puntos eran portería que subía un jugador de campo). Los PNJ salen un 3–5 % más altos por edad (los frena el tope por edad). Opciones: aceptarlo; bajar solo la escala del club (entonces el club ya no supera al libre); o subir el libre a la par y bajar los dos. **Recomendación:** aceptarlo y vigilar los niveles por edad, porque el progreso por curso del jugador no cambia.
-1. ~~**Publicar el versionado**~~ Unido el 22/11 (gardagon/Dinasty-Sports#129).
+Ninguna abierta a 22/11. Lo que queda por decidir está en §4 como propuesta.
 
 ## 3 bis. Sesiones en curso
 
-| Sesión | Rama | Encargo |
-|---|---|---|
-| `session_01M4vXXMp7cyuMpYVVwYDEFo` | `claude/pnj-entrenan-y-abandono` | Análisis con propuesta (desactivada): PNJ que entrenan por su cuenta o quedan a jugar; abandono de los mejores |
-
-**Unidas el 17/11:** `claude/sucesos-presentacion-2` (nombres del juego y aviso «no va contigo»; sus dudas, en §3.3) `claude/futbol-pedir-puesto` (prueba de acceso como evento y «Pedir jugar…» en la ficha del entrenador; sus dudas, en §3.1) y `claude/pnj-fallos-1` (dos deportes, nombres de los niveles, charlar con los niños del barrio y salida del colegio). Las dudas de las tres, respondidas el 17/11 (DECISIONES) y encargadas a `claude/pnj-2` y `claude/futbol-2`.
-
-
+Ninguna.
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
-0 ter. **Hecha el 21/11** (`docs/relevo/revision-rendimiento.md`; decisiones en §3). **Revisión de rendimiento (pedida por el usuario el 17/11; se están metiendo muchas cosas nuevas sin medirlas como se debería).** Cuando estén unidas las sesiones en curso: `npm run rendimiento -- 60`, `npm run eventos:rendimiento`, crear, guardar y cargar una partida, y el peso del estado; comparar con las cifras de referencia de DECISIONES (~1,0 ms por acción el 28/10; 1,97 ms ahora en la simulación) y con la versión publicada (`main`). Buscar qué ha crecido y por qué; estabilizar el chequeo de Rendimiento de `npm run sim` (hoy da ⚠️ o ✅ según la carga de la máquina, con una calibración que varía entre 8,7 y 11,7 ms), y proponer un presupuesto por acción y por día que se vigile en cada unión. Medir también en el navegador (Chromium) y en un perfil de móvil.
-
-
-
-1. ~~**Comprobación final de los eventos**~~ **Hecha el 17/11** (también los fallos de `benjamin` y `probar-web`). (`docs/PLAN_EVENTOS.md` §7 ter, punto 4): `npm run sim` completa antes y después (explicar cualquier chequeo que cambie) y añadir los eventos a `npm run probar-web`. Sesión corta de Sonnet.
-2. **Más contenido de sucesos**, por lotes y áreas, con la herramienta y el estilo del lote 1 (`docs/relevo/sucesos-contenido-1.md`). Ojo: los bots no pasan por la calle del colegio antes de las 8:10 ni están en casa de noche, así que esos sucesos no salen en la simulación (se cubren con `pruebas`).
-3. **Calibrar las cifras de los sucesos** con el usuario (probabilidades, castigos, umbral de «no va con su carácter»).
-4. **Visualizador, etapa 2c (Sonnet)**, siguiendo `docs/ANEXO_RETRATOS.md`: más peinados, barbas y ropa; mejorar la raíz del tinte en los peinados con raya o flequillo (se ve como un destello «estrellado») y el tupé (se parece al corto). Ojo con el tamaño: la cuadrícula de referencia (`docs/retratos/*.png`) son ~9 MB y cada vez que se regenera y se sube crece el repositorio.
-5. **Planificar la peluquería** (`docs/PLAN_PELUQUERIA.md`): ritmos de crecimiento, precios, horario y calle; el catálogo de estilos ya está en `packages/contracts/src/retrato.ts`.
-6. **Candidatos de más calado** (para decidir con el usuario): un **visualizador de los partidos de fútbol** (podría reutilizar el dibujo de las personas), el **ciclo de generaciones** (hijos del personaje: la dinastía) y **salud y lesiones** (E12).
-7. **Ideas apuntadas en `docs/DECISIONES.md` («Pendiente e ideas»):** comida y cuerpo (lo que se come entra en las reglas del cuerpo como entrada propia), acciones dinámicas del motor (aplazado), sucesos para más clases de PNJ (cuestan +10–12 ms por semana: solo con decisión del usuario), minutos de fuerza por deporte, personaje chica.
+1. **Probar como jugador lo publicado el 22/11** y corregir los matices que vaya encontrando el usuario (es lo que está haciendo ahora).
+2. **Más contenido de sucesos**, por lotes y áreas, con la herramienta y el estilo del lote 1 (`docs/relevo/sucesos-contenido-1.md`). Los bots no pasan por la calle del colegio antes de las 8:10 ni están en casa de noche: esos sucesos se prueban con `pruebas`.
+3. **Calibrar con el usuario** las cifras provisionales: sucesos (probabilidades, castigos, umbral de «no va con su carácter»), dificultad de pedir puesto, `MARGEN_DE_OTRO_PUESTO` (4), pesos de ir a probar fuera, `EFICIENCIA_DE_DEBERES` (0,9), recogida en el colegio (80 %, edad mínima 25: mezclar padres y abuelos), balance de entrenamientos (`ESCALA_DE_ENTRENAMIENTO` = 1) y listón de profesional (40; élite 35), que se revisa en la fase 2.
+4. **Rendimiento:** abaratar la jornada de liga (~75 partidos por semana) y el reparto de equipos; estado más pequeño (genética y rasgos son el 56 % de los 16 MB de la ciudad grande); `listActions` del fútbol solo cuando hace falta. Propuestas en `docs/relevo/revision-rendimiento.md` §6. Antes de activar más clases de sucesos para los PNJ, medirlas con la ciudad grande.
+5. **Visualizador, etapa 2c** (Sonnet, `docs/ANEXO_RETRATOS.md`): más peinados, barbas y ropa; la raíz del tinte con raya o flequillo y el tupé. La cuadrícula pesa ~9 MB: regenerar solo lo que cambie.
+6. **Planificar la peluquería** (`docs/PLAN_PELUQUERIA.md`).
+7. **Ideas del usuario apuntadas, para más adelante:**
+   - misión «convencer a niños de jugar en el equipo» cuando falten (DECISIONES 20/11) y «convencer a un amigo» como alternativa puntual;
+   - especializaciones (roles), como el portero líbero, después de probar lo de ahora;
+   - deberes que se mandan y se entregan en la siguiente clase, con sucesos;
+   - un padre que se va con su hijo, cuando haya familias de PNJ;
+   - página del entrenador más detallada (labor de entrenador);
+   - plantillas equilibradas por lado (pierna buena).
+8. **Huecos conocidos del mundo:** no hay archivo de los PNJ que dejan el mundo; el interés no baja con el tiempo; los PNJ no van a campamentos; faltan las licencias reales de la RFEF para contrastar el abandono; los ojeadores (el nivel servirá para que vean a los buenos).
+9. **Candidatos de más calado** (para decidir con el usuario): fase 2 (vida adulta y profesional), visualizador de los partidos, ciclo de generaciones (la dinastía), salud y lesiones (E12).
+10. **Ideas en `docs/DECISIONES.md` («Pendiente e ideas»):** comida y cuerpo, acciones dinámicas del motor, minutos de fuerza por deporte, personaje chica.
 
 ## 5. Sesiones usadas (se pueden archivar)
 
-Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está unido a la rama de trabajo.
+Todas terminadas y con su trabajo unido a la rama de trabajo (y a `main`). Las marcadas «esta sesión de arquitectura» son de la arquitectura del 17–22/11; las demás, de la anterior. Cada una dejó sus notas en `docs/relevo/<rama>.md`.
 
 | Sesión | Modelo | Para qué |
 |---|---|---|
@@ -110,3 +110,6 @@ Todas creadas desde la sesión de arquitectura anterior; su trabajo ya está uni
 | `session_01M4vXXMSfXmoS68SCSee9NG` | Sonnet | Retrato en el móvil y niños calvos (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXNju9hqBxXzwJNvdJu` | Sonnet | Versión visible y actualización de la app (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXMPTosoA18y2ft67tu` | Sonnet | Retrato en Samsung Internet: investigación y página de prueba (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXPnzU1Gedkvetov9Rr` | Sonnet | Primer entrenamiento: «vas a jugar de…» (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXMp7cyuMpYVVwYDEFo` | Sonnet | PNJ que entrenan por su cuenta y abandono: análisis (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXR2Hh7LzUU4PJqCjP4` | Sonnet | PNJ por su cuenta, abandono por nivel e interés, compañeros hasta los 20 (22/11, esta sesión de arquitectura) |

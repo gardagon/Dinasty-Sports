@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
+import { DATOS_FUTBOL, futbol, rendimiento as rendimientoDeFutbol, rendimientoPorPuestos } from '@ds/mod-futbol';
 import {
   MAX_EQUIPOS_POR_CATEGORIA,
   capacidadConPlazasDeMas,
@@ -30,7 +30,16 @@ const REND = new Map([['futbol', rendimientoDeFutbol]]);
 const rngNulo = { next: () => 0.5, int: () => 0, range: () => 0, chance: () => false, pick: <T,>(x: readonly T[]) => x[0], normal: () => 0 };
 let g: ReturnType<typeof nuevaPartida>;
 beforeAll(() => {
-  g = nuevaPartida({ seed: 31, pais: ID_TRES_CLUBES, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  // Estos tests miran el reparto del «draft» con un azar nulo en una ciudad de tres clubes, y son sensibles al detalle de los valores de partida (con el entrenar por su cuenta de los PNJ, el club pequeño se quedaba sin
+  // benjamín en este caso a medida): se crea el mundo sin él, como estaba cuando se escribieron. El mundo real se mide con `npm run equipos`.
+  const rutina = DATOS_FUTBOL.paises.espana.poblacion.rutina as { porLibre?: unknown };
+  const porLibre = rutina.porLibre;
+  rutina.porLibre = undefined;
+  try {
+    g = nuevaPartida({ seed: 31, pais: ID_TRES_CLUBES, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  } finally {
+    rutina.porLibre = porLibre;
+  }
 });
 const estado = () => g.moduleState<NpcsState>('npcs') as NpcsState;
 const pobDeFutbol = (): PoblacionGuardada => estado().poblaciones!.find((p) => p.deporte === 'futbol')!;

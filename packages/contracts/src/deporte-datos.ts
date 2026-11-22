@@ -303,6 +303,11 @@ export interface PistasDePuestos {
   /** «Preguntar por un puesto»: según lo cerca que estás. `ya`: ya vales para él; `cerca`; `lejos`; `sinDatos`: sin nadie con quien compararte. */
   lectura: { ya: string; cerca: string; lejos: string; sinDatos: string };
   /** El entrenador recomienda un entrenamiento por su nombre (`{señal.entreno}`) según lo que frena tu puesto (`{señal.falta}`); `yaEntrenas` si nada te frena. */
+  /**
+   * El primer entrenamiento con el equipo (`fraseDelPuestoInicial`): el entrenador dice el puesto que te da, sin lado. `{señal.puesto}`, `{señal.pedido}` (el que pediste en la prueba, si es otro) y `{señal.otro}`
+   * (el segundo puesto, ya escrito con `otro`). Pueden llevar `{yo:o|a}`: se concuerda al componer el suceso.
+   */
+  primerEntrenamiento?: { vas: string; /** Si el puesto que te da no es el que pediste en la prueba de acceso. */ pedido: string; /** Va donde `{señal.otro}`; sin segundo puesto no se pone nada. */ otro: string };
   entrenamiento: { recomienda: string; /** Si el entrenamiento solo se hace en la sesión del club (hace falta compañía): «Pídele a tu entrenador…». Sin él, se usa `recomienda`. */ recomiendaEnElClub?: string; /** Algo te frena pero ningún entrenamiento lo sube. */ sinEntreno: string; yaEntrenas: string };
 }
 
@@ -458,6 +463,32 @@ export interface RutinaDeDeporte {
   /** Sesiones de club por semana: las de cada club y, para los que no están en la lista, las de por defecto. */
   sesionesPorSemana: Readonly<Record<string, number>>;
   sesionesPorDefecto: number;
+  /**
+   * Entrenar por su cuenta y quedar a jugar (propuesta de `docs/relevo/pnj-entrenan-y-abandono.md`): si el deporte lo trae, una parte de los PNJ, según su interés, su carácter y su edad, hace cada semana
+   * algunas sesiones fuera del club con las mismas listas que el personaje, y cuentan como sesiones para su cansancio y sus lesiones. **Sin este dato, los PNJ solo entrenan con su club** (lo de siempre).
+   */
+  porLibre?: PorLibreDeDeporte;
+  /**
+   * Que jugar suba el interés por el deporte de los PNJ, con la misma regla que el del personaje (`SUBIDA_DE_INTERES_POR_HORA`, con rendimientos decrecientes): cada sesión de la semana (del club o por su cuenta) son
+   * `horasPorSesion` horas, y lo que sube se multiplica por `escala` (a 1 sería igual que el personaje; el PNJ no vive solo para el deporte). Sin este dato, el interés de los PNJ no cambia.
+   */
+  interesAlJugar?: { horasPorSesion: number; escala: number };
+}
+
+/** Las reglas con que un PNJ entrena fuera del club o queda a jugar (`RutinaDeDeporte.porLibre`). */
+export interface PorLibreDeDeporte {
+  /** Los entrenamientos que se hacen solo (los del personaje): lo que suben (a la escala del juego) y, si es de un puesto (portería), cuál. */
+  entrenamientos: readonly { id: string; entrena: readonly Entrenamiento[]; soloPuesto?: string; noPara?: string }[];
+  /** Las formas de quedar a jugar con amigos (las quedadas del personaje): lo que suben. */
+  quedadas: readonly { id: string; entrena: readonly Entrenamiento[] }[];
+  /** Cuánto rinde entrenar solo frente al club (×0,85 en el personaje). */
+  eficiencia: number;
+  /** Como mucho, tantas sesiones fuera del club por semana (con las del club, nunca pasa de 2 en un día). */
+  maximoPorSemana: number;
+  /** La propensión a hacerlo (0 a 1: la probabilidad de cada uno de los `maximoPorSemana` huecos de la semana): `base` más el peso de su interés, su ambición, su sacrificio y su disciplina (de −1 a 1 cada uno), más un azar estable suyo cada curso de desviación `dispersion`. */
+  propension: { base: number; interes: number; ambicion: number; sacrificio: number; disciplina: number; dispersion: number };
+  /** Lo que se reduce por edad (estudios, otras cosas): factor por edad (1 si no está). */
+  factorPorEdad?: Readonly<Record<number, number>>;
 }
 
 export interface PoblacionDeDeporte {
@@ -488,7 +519,9 @@ export interface PoblacionDeDeporte {
       /** Probabilidad base de dejarlo cada verano a cada edad; para las edades que no están se usa la de la mayor edad menor que ellas (la primera, para las menores). */
       baseDeLaEdad: Readonly<Record<number, number>>;
       /** Cuánto cambia la base cada motivo, de 0 a 1 (con peso 0,5, el motivo más fuerte la sube o la baja un 50 %). */
-      pesos: { interes: number; ambicion: number; minutos: number; estudios: number; padres: number };
+      pesos: { interes: number; ambicion: number; minutos: number; estudios: number; padres: number; /** Propuesta (`docs/relevo/pnj-entrenan-y-abandono.md`): cuánto pesa lo bueno que es frente a los de su edad (sin él, el nivel no cuenta). */ nivel?: number };
+      /** Propuesta: la probabilidad mínima de dejarlo cada verano aunque todo le anime a seguir («no todos los mejores triunfan, por mentalidad o por temas personales»). Sin él, puede llegar a 0. */
+      suelo?: number;
       /** La presión de los estudios a cada edad, de 0 a 1 (4.º de la ESO y bachillerato, las más altas); lo que no está, 0. */
       estudiosPorEdad: Readonly<Record<number, number>>;
     };

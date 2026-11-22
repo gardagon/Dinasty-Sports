@@ -155,7 +155,16 @@ describe('los ejercicios son los mismos para todo el equipo', { timeout: 90000 }
   const equipo = (g: ReturnType<typeof nueva>) => g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.hab?.futbol && edadNpc(n, 0)! <= 9);
 
   it('en una semana, las habilidades que suben los jugadores de un equipo son las de los mismos ejercicios (no las de ejercicios distintos para cada uno)', () => {
-    const g = nueva(SEMILLA_CON_EQUIPO_DE_COLEGIO, true);
+    // Sin el entrenar por su cuenta de los PNJ (que son ejercicios de cada uno, no del equipo): aquí se mira lo que hace el equipo con su entrenador.
+    const rutina = DATOS_FUTBOL.paises.espana.poblacion.rutina as { porLibre?: unknown };
+    const porLibre = rutina.porLibre;
+    rutina.porLibre = undefined;
+    let g: ReturnType<typeof nueva>;
+    try {
+      g = nueva(SEMILLA_CON_EQUIPO_DE_COLEGIO, true);
+    } finally {
+      rutina.porLibre = porLibre;
+    }
     advanceToWeek(g, 'gen.descansar', 2, 0, 8);
     const antes = new Map(equipo(g).map((n) => [n.id, [...n.hab!.futbol.v]]));
     advanceToWeek(g, 'gen.descansar', 3, 0, 8);

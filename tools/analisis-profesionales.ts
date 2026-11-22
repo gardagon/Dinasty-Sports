@@ -10,11 +10,14 @@ import { writeFileSync } from 'node:fs';
 import { CAPACIDADES_GENETICAS, PAIS_CIUDAD_GRANDE, registrarPais } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
+import { aplicarPropuestas } from './propuestas-pnj';
 import { futbol } from '@ds/mod-futbol';
 import { fijosDeNino, topeEfectivo } from '../modules/npcs/src/rutina';
 import { interesPor } from '../modules/npcs/src/deportistas';
+import { probabilidadDeAbandonar, motivosDeAbandono } from '../modules/npcs/src/abandono';
 
 registrarPais(PAIS_CIUDAD_GRANDE);
+aplicarPropuestas();
 const salida = process.argv[2] ?? 'analisis-profesionales.json';
 const semillas = (process.argv[3] ?? '31,32,33').split(',').map(Number);
 const anios = Number(process.argv[4] ?? 10);
@@ -25,6 +28,12 @@ interface Fila {
   club?: string; tamano?: string; colegio?: boolean; letra?: string;
   valor?: number; capF?: number[]; habF?: number[]; capPob?: number[];
   min: number; pj: number; ti: number;
+  /** Cómo está sin jugar: lo dejó (`dejado`), lo apartaron del reparto (`apartado`) o no hay equipo; y su papel en el mundo (los compañeros del personaje salen a los 18). */
+  dejado?: boolean; apartado?: boolean; rol?: string;
+  /** Probabilidad de dejar el fútbol ese verano (la del juego, con los datos de ese año) y sus motivos (fuerza de cada uno). */
+  pAb?: number; mot?: Record<string, number>;
+  /** Su interés por el fútbol ese año (0 a 3; sube al jugar). */
+  interes?: number;
 }
 interface Nino { id: string; potencial?: number; topeCap: number; topeFis: number; interes: number; club0?: string; tamano0?: string; colegio0?: boolean; letra0?: string; filas: Fila[] }
 
@@ -43,6 +52,13 @@ for (const seed of semillas) {
   const tamanoDe = (club?: string) => pob.equipos.find((e: any) => e.club === club);
   const foto = (k: number) => {
     const st = g.moduleState('npcs') as any;
+    // Los titulares como en `titularesDelCurso` (los 11 que más valen de cada equipo y letra).
+    const titulares = new Set<string>();
+    {
+      const eq = new Map<string, any[]>();
+      for (const n of st.npcs) if (n.deporte === 'futbol' && n.equipo && n.letra?.futbol && n.genetica) (eq.get(`${n.equipo}|${n.letra.futbol}|${edadDe(n, g.time.day)}`) ?? eq.set(`${n.equipo}|${n.letra.futbol}|${edadDe(n, g.time.day)}`, []).get(`${n.equipo}|${n.letra.futbol}|${edadDe(n, g.time.day)}`)!).push(n);
+      for (const m of eq.values()) for (const n of m.sort((a: any, b: any) => (b.vp?.futbol?.valor ?? b.levels.futbol ?? 0) - (a.vp?.futbol?.valor ?? a.levels.futbol ?? 0)).slice(0, 11)) titulares.add(n.id);
+    }
     const dia = g.time.day;
     const clave = String(k);
     ref[clave] = {};
@@ -65,7 +81,7 @@ for (const seed of semillas) {
         ni = { id: n.id, potencial: n.potential?.futbol, topeCap: r3(caps.reduce((a, b) => a + b, 0) / caps.length), topeFis: r3(fis.reduce((a: number, b: number) => a + b, 0) / fis.length), interes: interesPor(n.rasgos, 'futbol'), filas: [] };
         ninos.set(n.id, ni);
       }
-      const f: Fila = { id: n.id, k, edad: edadDe(n, dia), juega, min: 0, pj: 0, ti: 0 };
+      const f: Fila = { interes: r3(interesPor(n.rasgos, 'futbol')), id: n.id, k, edad: edadDe(n, dia), juega, min: 0, pj: 0, ti: 0, dejado: !!n.dejado?.includes('futbol'), apartado: !!n.apartado?.includes('futbol'), rol: n.role };
       const hist = (n.estHist?.futbol ?? []) as number[][];
       const e = n.est?.futbol;
       f.pj = hist.reduce((t, h) => t + h[1], 0) + (e?.pj ?? 0);
@@ -74,6 +90,11 @@ for (const seed of semillas) {
       if (juega) {
         f.club = n.equipo; f.tamano = club?.tamano; f.colegio = club?.colegio !== undefined; f.letra = n.letra?.futbol;
         f.valor = r3(n.vp?.futbol?.valor ?? n.levels.futbol);
+        if (pob.reclutamiento.abandono) {
+          const d = { edad: edadDe(n, dia) + 1, rasgos: n.rasgos, titular: titulares.has(n.id), padres: n.genetica.padres };
+          f.pAb = r3(probabilidadDeAbandonar(pob.reclutamiento.abandono, d, 'futbol'));
+          f.mot = Object.fromEntries(motivosDeAbandono(pob.reclutamiento.abandono, d, 'futbol').map((m) => [m.id, r3(m.fuerza)]));
+        }
         f.capF = CAPACIDADES_GENETICAS.map((c, i) => r3(n.cap[i] / topeEfectivo(n.genetica, c)));
         f.capPob = pob.capacidades.map((c: string) => r3(n.cap[CAPACIDADES_GENETICAS.indexOf(c)] / topeEfectivo(n.genetica, c)));
         const fijos = fijosDeNino(n.id, n.genetica, 'futbol', pob.rutina);
@@ -85,7 +106,9 @@ for (const seed of semillas) {
   };
   foto(0);
   for (let k = 1; k <= anios; k++) {
-    advanceToWeek(g, 'gen.descansar', 52 * k, 2, 15);
+    // Una semana después del cambio de curso. (Hasta el 22/11 el primer día de curso los que cambiaban de club llevaban el valor provisional del fichaje, hasta 13 puntos de más; ya se calcula al fichar, pero medir
+    // siempre fuera de ese día es la regla de estas herramientas.)
+    advanceToWeek(g, 'gen.descansar', 52 * k + 1, 2, 15);
     foto(k);
     console.log(`semilla ${seed}: año ${k} (${((performance.now() - t0) / 1000).toFixed(0)} s)`);
   }

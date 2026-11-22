@@ -1,5 +1,5 @@
 import type { LecturaDePuesto, ConsejoDeDeporte, Gender } from './services';
-import { listaConY, type PistasDePuestos } from './deporte-datos';
+import { familiaDePuesto, listaConY, valoresPorFamilia, type FamiliaDePuestos, type PistasDePuestos, type PuestosDeDeporte } from './deporte-datos';
 import { componerTexto } from './sucesos/texto';
 
 /**
@@ -49,4 +49,36 @@ export function fraseDeLectura(l: LecturaDePuesto, quien?: QuienHabla): string |
 export function fraseDeEntrenamiento(p: PistasDePuestos, puesto: string, falta: readonly string[], entreno: string | undefined, quien?: QuienHabla, soloEnElClub = false): string {
   const plantilla = !falta.length ? p.entrenamiento.yaEntrenas : entreno ? (soloEnElClub && p.entrenamiento.recomiendaEnElClub ? p.entrenamiento.recomiendaEnElClub : p.entrenamiento.recomienda) : p.entrenamiento.sinEntreno;
   return componer(plantilla, quien, { puesto: puesto.toLowerCase(), falta: listaConY(falta), entreno: entreno ?? '' });
+}
+
+/** Cuántos puntos de valor por debajo de su puesto puede estar otra familia para que el entrenador diga «a lo mejor más adelante te pongo de…» (provisional). */
+export const MARGEN_DE_OTRO_PUESTO = 4;
+
+/** La otra familia de puestos en que también encaja (la que más vale, sin ser la suya, a no más de `MARGEN_DE_OTRO_PUESTO` puntos de la suya), o `undefined`. Como el consejo, habla de familias (sin lado). */
+export function otraFamiliaDeEncaje(p: PuestosDeDeporte, puesto: string, valores: Readonly<Record<string, number>>): FamiliaDePuestos | undefined {
+  const mia = familiaDePuesto(p, puesto);
+  if (!mia) return undefined;
+  const porFamilia = valoresPorFamilia(p, valores);
+  const miValor = porFamilia[mia.id];
+  if (miValor === undefined) return undefined;
+  const mejor = Object.entries(porFamilia)
+    .filter(([id, v]) => id !== mia.id && v >= miValor - MARGEN_DE_OTRO_PUESTO)
+    .sort((a, b) => b[1] - a[1])[0];
+  return mejor ? familiaDePuesto(p, mejor[0]) ?? p.familias?.find((f) => f.id === mejor[0]) : undefined;
+}
+
+/**
+ * Lo que dice el entrenador en el primer entrenamiento: «De inicio vas a jugar de interior, pero a lo mejor más adelante te pongo de lateral.» Si el puesto pedido en la prueba es de otra familia, lo
+ * cuenta («Me dijiste portero…»). Sin lado. `undefined` si el deporte no tiene el texto o no conoce el puesto. Deja `{yo:o|a}` sin componer: lo concuerda el suceso.
+ */
+export function fraseDelPuestoInicial(p: PuestosDeDeporte, puesto: string, valores: Readonly<Record<string, number>>, pedido?: string): string | undefined {
+  const t = p.pistas?.primerEntrenamiento;
+  const mia = familiaDePuesto(p, puesto);
+  if (!t || !mia) return undefined;
+  const poner = (plantilla: string, de: Record<string, string>): string => plantilla.replace(/\{señal\.(\w+)\}/g, (_t, k: string) => de[k] ?? '');
+  const otra = otraFamiliaDeEncaje(p, puesto, valores);
+  const pedida = pedido ? familiaDePuesto(p, pedido) : undefined;
+  const otro = otra ? poner(t.otro, { otro: otra.nombre.toLowerCase() }) : '';
+  const distinta = pedida && pedida.id !== mia.id;
+  return poner(distinta ? t.pedido : t.vas, { puesto: mia.nombre.toLowerCase(), pedido: pedida?.nombre.toLowerCase() ?? '', otro });
 }

@@ -5,7 +5,7 @@ import { personaje } from '@ds/mod-personaje';
 import { familia } from '@ds/mod-familia';
 import { lugares } from '@ds/mod-lugares';
 import { atletismo } from '@ds/mod-atletismo';
-import { desarrolloRival, npcs, type Npc, type NpcsState } from './index';
+import { delColegio, desarrolloRival, npcs, type Npc, type NpcsState } from './index';
 
 /** Avanza hasta una hora y minuto concretos (de 5 en 5 minutos). */
 function irA(g: Game, weekday: number, hora: number, minuto = 0): void {
@@ -379,7 +379,10 @@ describe('módulo NPCs', () => {
       // Los niños nuevos del colegio también tienen su genética y ninguno juega todavía a nada por ser de la clase.
       expect(despues.filter((n) => n.role === 'companero' && n.id.startsWith('alumno_') && !n.genetica)).toHaveLength(0);
       // La población del colegio no crece ni se vacía (los deportistas de otros colegios se renuevan aparte).
-      expect(Math.abs(despues.length - antes)).toBeLessThan(40);
+      // (los compañeros que acaban el colegio siguen en el barrio hasta los 20: los de 18 y 19 años de más son el 2.º curso de jóvenes de la ciudad, sin colegio.)
+      expect(Math.abs(despues.length - antes)).toBeLessThan(80);
+      expect(despues.filter((n) => n.tags.includes('excompanero') && n.role === 'vecino' && n.colegio === 'ninguno' && !delColegio(n)).length).toBeGreaterThan(0);
+      expect(despues.filter((n) => n.tags.includes('excompanero')).every((n) => (n.nacimiento !== undefined ? (g.time.day - n.nacimiento) / 365 : 18) < 20)).toBe(true);
     });
   });
 });

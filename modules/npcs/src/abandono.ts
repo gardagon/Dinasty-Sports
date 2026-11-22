@@ -16,11 +16,13 @@ export interface DatosDelDeportista {
   titular?: boolean;
   /** Lo que practican sus padres. */
   padres?: { padre: Practica; madre: Practica };
+  /** Lo bueno que es frente a los de su edad que juegan (puntuación típica: 0 = como la media, 2 = de los mejores). `undefined`: no se sabe, no cuenta. */
+  nivel?: number;
 }
 
 /** Un motivo para dejarlo (peso > 0) o para seguir (peso < 0), con el texto que ve el jugador. */
 export interface MotivoDeAbandono {
-  id: 'interes' | 'ambicion' | 'minutos' | 'estudios' | 'padres';
+  id: 'interes' | 'ambicion' | 'minutos' | 'estudios' | 'padres' | 'nivel';
   /** De −1 (el motivo más fuerte para seguir) a 1 (para dejarlo). */
   fuerza: number;
   texto: string;
@@ -48,6 +50,8 @@ export function motivosDeAbandono(d: DatosDeAbandono, p: DatosDelDeportista, dep
     ...(p.titular === undefined ? [] : [{ id: 'minutos' as const, fuerza: p.titular ? -1 : 1, texto: p.titular ? 'Juega de titular.' : 'Juega pocos minutos.' }]),
     { id: 'estudios', fuerza: limitar(presion * (0.3 + 0.7 * interesEstudio), 0, 1), texto: presion >= 0.6 ? 'Los estudios le exigen mucho este curso.' : 'Los estudios no le quitan tiempo.' },
     { id: 'padres', fuerza: limitar(1 - 2 * padres, -1, 1), texto: padres >= 0.5 ? 'Sus padres hacen deporte y le animan.' : 'En su casa no hay costumbre de hacer deporte.' },
+    // Propuesta: lo bueno que es frente a los de su edad (los mejores siguen; los que van muy por detrás, lo dejan antes).
+    ...(p.nivel === undefined || !d.pesos.nivel ? [] : [{ id: 'nivel' as const, fuerza: limitar(-p.nivel / 2, -1, 1), texto: p.nivel >= 1 ? 'Es de los mejores de su edad.' : p.nivel <= -1 ? 'Va por detrás de los de su edad.' : 'Está al nivel de los de su edad.' }]),
   ];
   return motivos;
 }
@@ -55,8 +59,8 @@ export function motivosDeAbandono(d: DatosDeAbandono, p: DatosDelDeportista, dep
 /** La probabilidad de que un deportista deje el deporte este verano: la base de su edad, subida o bajada por cada motivo según su peso (de 0 a 0,9). */
 export function probabilidadDeAbandonar(d: DatosDeAbandono, p: DatosDelDeportista, deporte: string): number {
   const base = baseDelAbandono(d, p.edad);
-  const factor = 1 + motivosDeAbandono(d, p, deporte).reduce((t, m) => t + d.pesos[m.id] * m.fuerza, 0);
-  return limitar(base * Math.max(0, factor), 0, 0.9);
+  const factor = 1 + motivosDeAbandono(d, p, deporte).reduce((t, m) => t + (d.pesos[m.id] ?? 0) * m.fuerza, 0);
+  return limitar(base * Math.max(0, factor), d.suelo ?? 0, 0.9);
 }
 
 /** ¿Lo deja este verano? Un sorteo estable suyo (no cambia si se pregunta dos veces el mismo verano). */
