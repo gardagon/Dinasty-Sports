@@ -1796,9 +1796,12 @@ export const npcs = defineModule<NpcsState>({
 
     [SHARED_EVENTS.COMPETITION_RESULT]: (ctx, ev) => {
       const r = ev.data as CompetitionResultData;
+      // Jugar un partido contra alguien (decidido el 22/11/2026) **no** es conocerlo: del rival se ve su aspecto y su dorsal (el deporte los apunta), y el nombre se sabe como el de cualquiera (presentarse, hablar…).
+      // En una carrera individual, en cambio, quien corre a tu lado sí se da a conocer.
+      if (r.equipo) return;
       ctx.updateState<NpcsState>((s) => ({
         ...s,
-        // Competir contra alguien (sea de otro colegio, un compañero o un hermano) es conocerlo.
+        // Competir contra alguien en una prueba (sea de otro colegio, un compañero o un hermano) es conocerlo.
         npcs: s.npcs.map((n) => (n.known === false && r.participants.some((x) => x.npcId === n.id) ? { ...n, known: true } : n)),
       }));
     },

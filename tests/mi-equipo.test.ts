@@ -92,14 +92,17 @@ describe('Mi equipo', () => {
     const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
     const m = vista().miEquipo!;
     const plantilla = vista().secciones!.find((x) => x.titulo.startsWith('Plantilla'))!.tabla!;
-    const otras = plantilla.rows.filter((r) => r[0] !== 'Tú');
+    // El dorsal va delante de la persona («7 · …»): lo que importa es quién es.
+    const quien = (r: string[]): string => r[0].replace(/^\d+ · /, '');
+    expect(plantilla.rows.every((r) => /^\d+ · /.test(r[0]))).toBe(true);
+    const otras = plantilla.rows.filter((r) => quien(r) !== 'Tú');
     const vistos = m.companeros.filter((c) => !c.yo && c.puesto).length;
     expect(otras.filter((r) => r[1] !== '—')).toHaveLength(vistos);
     // Todo lo que se llama por su nombre en la tabla es alguien que se conoce.
     const nombres = new Set(m.companeros.filter((c) => c.nombre).map((c) => c.nombre));
     for (const r of otras) {
-      const esNombre = [...Object.keys(estado().companeros ?? {})].some((id) => dir.get(id)?.name === r[0]);
-      if (esNombre) expect(nombres.has(r[0])).toBe(true);
+      const esNombre = [...Object.keys(estado().companeros ?? {})].some((id) => dir.get(id)?.name === quien(r));
+      if (esNombre) expect(nombres.has(quien(r))).toBe(true);
     }
   });
 

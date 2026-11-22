@@ -17,6 +17,8 @@ export const PARAMETROS_DE_PERCEPCION = {
   veces: 8,
   /** Cuántos compañeros se recuerdan como máximo (se olvidan los vistos hace más). */
   guardados: 60,
+  /** Cuántos rivales con quienes se ha jugado se recuerdan como máximo (se olvidan los de hace más). */
+  rivalesGuardados: 120,
 } as const;
 
 /** Lo que recuerda de alguien: [puesto en que lo vio, diferencia estimada (tú − él, redondeada), veces que lo ha visto, semana absoluta de la última]. */
@@ -55,4 +57,18 @@ export function recordarSoloLosUltimos(m: Record<string, Impresion>): Record<str
   if (ids.length <= PARAMETROS_DE_PERCEPCION.guardados) return m;
   const quedan = ids.sort((a, b) => m[b][3] - m[a][3]).slice(0, PARAMETROS_DE_PERCEPCION.guardados);
   return Object.fromEntries(quedan.map((id) => [id, m[id]]));
+}
+
+/**
+ * Lo que recuerda de un rival al que ha visto jugar (decisión del usuario, 22/11/2026: jugar contra alguien no da su nombre; da su aspecto y su dorsal): [equipo con el que jugaba, dorsal que llevaba, semana absoluta del último partido].
+ * Su aspecto no se guarda: es el de siempre (`aspectoDe`). Sirve para reconocerle si luego te lo cruzas («Jugaste contra él: llevaba el 7 del Rayo»).
+ */
+export type RivalVisto = [equipo: string, dorsal: number, semana: number];
+
+/** Anota a los rivales de un partido (el último partido pisa lo anterior) y se olvida de los de hace más tiempo cuando hay demasiados. */
+export function recordarRivales(previos: Record<string, RivalVisto> | undefined, nuevos: Readonly<Record<string, RivalVisto>>): Record<string, RivalVisto> {
+  const todos = { ...previos, ...nuevos };
+  const ids = Object.keys(todos);
+  if (ids.length <= PARAMETROS_DE_PERCEPCION.rivalesGuardados) return todos;
+  return Object.fromEntries(ids.sort((a, b) => todos[b][2] - todos[a][2]).slice(0, PARAMETROS_DE_PERCEPCION.rivalesGuardados).map((id) => [id, todos[id]]));
 }

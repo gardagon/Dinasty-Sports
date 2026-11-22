@@ -100,7 +100,7 @@ import { ENTRENAMIENTOS_DE_FUTBOL, GRUPOS_DE_ENTRENAMIENTO, PUESTO_DE_PORTERO, a
 import { QUEDADAS_DE_FUTBOL } from './quedadas';
 import { DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 import { CONOCIMIENTO, DEPORTE, GRUPOS_DE_HABILIDADES, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
-import { juicioDe, recordarSoloLosUltimos, textoDelJuicio, verDeNuevo, type Impresion } from './mi-equipo';
+import { juicioDe, recordarRivales, recordarSoloLosUltimos, textoDelJuicio, verDeNuevo, type Impresion, type RivalVisto } from './mi-equipo';
 import { PUESTOS_DE_FUTBOL } from './puestos';
 import { EVENTOS_DE_FUTBOL } from './eventos';
 import { TEXTOS_DE_EQUIPO_SIN_NINOS, TEXTOS_DE_PEDIR_PUESTO, TEXTOS_DE_PLAZA_EXTRA, TEXTOS_DE_PRUEBA_DE_ACCESO } from './eventos/textos_de_puesto';
@@ -109,13 +109,13 @@ import { APORTE_DE_SUCESOS, servicioDeHechos, type HechosService } from '@ds/con
 import { cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision, type JugarPartido, type LigaDelMundo } from './liga';
 import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 import { convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, paraConvocarElEquipo, posicionEquivalente, type Convocatoria } from './convocatoria';
-import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, nombreDeIntensidad, proximoPartido, situacionEnLaLiga, textoDeResultados, ultimosResultados, type LineaDeCronica } from './personaje';
+import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, jugadorPorSuDorsal, nombreDeIntensidad, proximoPartido, situacionEnLaLiga, textoDeResultados, ultimosResultados, type LineaDeCronica } from './personaje';
 import { PARAMETROS_DE_PARTIDO, jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
 
 export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL } from './datos';
 export { CONOCIMIENTO, GRUPOS_DE_HABILIDADES, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
-export { PARAMETROS_DE_PERCEPCION, juicioDe, recordarSoloLosUltimos, ruidoDeLaVista, textoDelJuicio, verDeNuevo } from './mi-equipo';
-export type { Impresion, Juicio } from './mi-equipo';
+export { PARAMETROS_DE_PERCEPCION, juicioDe, recordarRivales, recordarSoloLosUltimos, ruidoDeLaVista, textoDelJuicio, verDeNuevo } from './mi-equipo';
+export type { Impresion, Juicio, RivalVisto } from './mi-equipo';
 export { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 export { PUESTOS_DE_FUTBOL } from './puestos';
 export { tandaDePenaltis, PARAMETROS_DE_PENALTIS, jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
@@ -148,6 +148,8 @@ export type FutbolState = EstadoBaseDeDeporte & {
   dorsal?: [string, number];
   /** Lo que ha visto de cada compañero (entrenando o jugando con él): puesto, si cree que es mejor o peor que él, veces y semana (`mi-equipo.ts`). */
   companeros?: Record<string, Impresion>;
+  /** Los rivales con quienes ha jugado (el equipo y el dorsal con que los vio): de ellos sabe cómo son y qué número llevaban, no su nombre (`mi-equipo.ts`). */
+  rivales?: Record<string, RivalVisto>;
   /** Las sesiones del club que ha hecho cada semana (las últimas): su asistencia pesa en la convocatoria como la de cualquiera. */
   sesiones?: Record<string, number>;
   /** Sus últimos partidos (sin la crónica) y el último entero, con la crónica. */
@@ -629,7 +631,7 @@ function seccionesDeLaTemporada(ctx: ReadContext, previa: Previa, liga: LigaDelM
       rows: plantilla.map((j) => {
         const e = de(j);
         // Lo que ve un niño: el nombre solo de quien conoce (de los demás, su aspecto) y el puesto solo de quien ha visto jugar.
-        return [j.id === YO ? 'Tú' : nombreParaElPersonaje(dir, j.id, j.nombre), j.id === YO || s0.companeros?.[j.id] ? nombreDePuesto(j.id === YO ? j.puesto : s0.companeros![j.id][0]) : '—', ...[e?.pj ?? 0, e?.ti ?? 0, e?.min ?? 0, e?.g ?? 0, e?.a ?? 0].map(String), e?.pj ? decimal(notaMedia(e)) : '—'];
+        return [`${j.dorsal !== undefined ? `${j.dorsal} · ` : ''}${j.id === YO ? 'Tú' : nombreParaElPersonaje(dir, j.id, j.nombre)}`, j.id === YO || s0.companeros?.[j.id] ? nombreDePuesto(j.id === YO ? j.puesto : s0.companeros![j.id][0]) : '—', ...[e?.pj ?? 0, e?.ti ?? 0, e?.min ?? 0, e?.g ?? 0, e?.a ?? 0].map(String), e?.pj ? decimal(notaMedia(e)) : '—'];
       }),
       highlight: plantilla.findIndex((j) => j.id === YO),
       align: ['left', 'left', 'right', 'right', 'right', 'right', 'right', 'right'],
@@ -905,9 +907,15 @@ function miEquipoDeFutbol(ctx: ReadContext): MiEquipoView | undefined {
 /** Lo que cree el personaje de sí mismo frente a un compañero al que ha visto jugar (para la ficha de Gente). */
 const comparacionDeFutbol = (ctx: ReadContext): ComparacionService => ({
   sobre: (npcId) => {
-    const visto = ctx.state<FutbolState>().companeros?.[npcId];
+    const s = ctx.state<FutbolState>();
     const n = ctx.service<NpcDirectory>(SERVICES.npcs)?.get(npcId);
-    return visto && n ? { titulo: 'Comparado contigo', texto: textoDelJuicio(juicioDe(visto), n.gender) } : undefined;
+    if (!n) return undefined;
+    const visto = s.companeros?.[npcId];
+    const rival = s.rivales?.[npcId];
+    // De un rival con quien ha jugado sabe qué número llevaba y de qué equipo era, aunque no sepa su nombre.
+    const contra = rival ? `Jugaste contra ${n.gender === 'f' ? 'ella' : 'él'}: ${jugadorPorSuDorsal(rival[1], rival[0].replace(/ [A-D]$/, ''), false, n.gender)}.` : undefined;
+    if (!visto && !contra) return undefined;
+    return { titulo: visto ? 'Comparado contigo' : 'Del fútbol', texto: [contra, visto ? textoDelJuicio(juicioDe(visto), n.gender) : undefined].filter(Boolean).join(' ') };
   },
 });
 
@@ -974,7 +982,7 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
   const motivo = p.ausente ? 'No te presentas al partido: tu equipo juega sin ti' : papel === 'titular' || papel === 'suplente' ? 'Te quedas en el banquillo todo el partido' : MOTIVO_DE_NO_JUGAR[papel];
   const cronica: LineaDeCronica[] = [
     ...(juega ? [{ destacada: true, texto: yo.titular ? `Eres titular de ${nombreDePuesto(yo.puesto).toLowerCase()}.` : 'Empiezas en el banquillo.' }] : [{ texto: `${motivo}: sigues el partido desde fuera.` }]),
-    ...cronicaDelPartido(r, { equipos, nombres: nombresQueConoce(ctx, r, p.nombres), dorsales: p.dorsales ?? {}, generos: generosDe(ctx, r), lado }),
+    ...cronicaDelPartido(r, { equipos, nombres: nombresQueConoce(ctx, r, p.nombres), dorsales: p.dorsales ?? {}, descripciones: descripcionesDe(ctx, r, p.nombres), generos: generosDe(ctx, r), lado }),
   ];
   const resumen: ResumenDePartido = {
     curso: p.curso, semana: p.semana, categoria: previa.equipo.categoria, texto: p.texto, equipos, goles: r.goles, lado, resultado, juega,
@@ -1001,6 +1009,11 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
   if (juega || banquillo) {
     const mio = previa.plantilla.find((j) => j.id === YO)?.valor;
     if (mio !== undefined) verACompaneros(ctx, r.alineaciones[lado].filter((id) => id !== YO && (r.jugadores[id]?.minutos ?? 0) > 0).map((id) => ({ id, puesto: r.jugadores[id].puesto, valor: previa.plantilla.find((j) => j.id === id)?.valor ?? 0 })), mio);
+  }
+  // Y ve a los rivales que salieron al campo (también si sigue el partido desde fuera, sin jugar; no si no se presentó): sabe cómo son y qué dorsal llevaban (no su nombre: jugar contra alguien no es conocerlo), para reconocerlos si luego se los cruza.
+  if (!p.ausente) {
+    const vistos = Object.fromEntries(r.alineaciones[1 - lado].filter((id) => (r.jugadores[id]?.minutos ?? 0) > 0 && p.dorsales?.[id] !== undefined).map((id) => [id, [equipos[1 - lado], p.dorsales![id], p.semana] as RivalVisto]));
+    if (Object.keys(vistos).length) ctx.updateState<FutbolState>((s) => ({ ...s, rivales: recordarRivales(s.rivales, vistos) }));
   }
   if (banquillo) ctx.addStat(GEN.motivacion, Math.round(MORAL_DEL_BANQUILLO * (0.5 + ambicion)));
   ctx.updateState<FutbolState>((s) => ({
@@ -1080,6 +1093,13 @@ function nombresQueConoce(ctx: ReadContext, r: ResultadoDePartido, nombres: Read
   const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
   const ids = [...r.alineaciones[0], ...r.alineaciones[1]].filter((id) => id !== YO);
   return Object.fromEntries(ids.filter((id) => nombres[id] && dir?.get(id)?.known !== false).map((id) => [id, nombres[id]]));
+}
+
+/** Cómo es cada jugador del partido que el personaje no conoce por su nombre (su aspecto, el de Gente): la crónica lo dice la primera vez que lo nombra, junto a su dorsal. */
+function descripcionesDe(ctx: ReadContext, r: ResultadoDePartido, nombres: Readonly<Record<string, string>>): Record<string, string> {
+  const dir = ctx.service<NpcDirectory>(SERVICES.npcs);
+  const ids = [...r.alineaciones[0], ...r.alineaciones[1]].filter((id) => id !== YO);
+  return Object.fromEntries(ids.flatMap((id) => { const n = dir?.get(id); return n && (n.known === false || !nombres[id]) ? [[id, aspectoDe(n)] as const] : []; }));
 }
 
 /** El género de cada jugador de un partido (para la concordancia de la crónica). */
