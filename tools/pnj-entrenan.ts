@@ -10,15 +10,21 @@ import { writeFileSync } from 'node:fs';
 import { CAPACIDADES_GENETICAS, NIVEL_TIPICO_DE_REFERENCIA, PAIS_CIUDAD_GRANDE, TAGS, nivelTipicoPorEdad, registrarPais, type LectorDePersona } from '@ds/contracts';
 import { advanceToWeek, seededRng } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol, rendimiento } from '@ds/mod-futbol';
+import { DATOS_FUTBOL, PNJ_POR_LIBRE, futbol, rendimiento } from '@ds/mod-futbol';
 import { fijosDeNino } from '../modules/npcs/src/rutina';
 import { sesionesQueHace, semanaQueAcaba } from '../modules/npcs/src/semana';
 import { PERFECTO } from '../sim/src/vida';
-import { deportistaDe } from '../sim/src/bots';
+import { deportistaDe, entrenoDeporte } from '../sim/src/bots';
 import { decidirSucesos } from '../sim/src/runner';
 import { hacer, opcionesDelBot } from '../sim/src/pasos';
 
 registrarPais(PAIS_CIUDAD_GRANDE);
+// PNJ_LIBRE=1 activa la propuesta de que los PNJ entrenen por su cuenta; PNJ_LIBRE='{"propension":{...}}' cambia sus cifras (solo para medir: sin ella el juego va como siempre).
+if (process.env.PNJ_LIBRE) {
+  const extra = process.env.PNJ_LIBRE.startsWith('{') ? JSON.parse(process.env.PNJ_LIBRE) : {};
+  const l = { ...PNJ_POR_LIBRE, ...extra, propension: { ...PNJ_POR_LIBRE.propension, ...(extra.propension ?? {}) } };
+  (DATOS_FUTBOL as any).paises.espana.poblacion.rutina.porLibre = l;
+}
 const [modo, salida] = [process.argv[2], process.argv[3]];
 const r3 = (x: number) => Math.round(x * 1000) / 1000;
 const suma = (a: number[]) => a.reduce((x, y) => x + y, 0);
@@ -58,7 +64,10 @@ if (modo === 'pnj') {
   writeFileSync(salida, JSON.stringify(filas));
   console.log(`${filas.length} jugadores, ${semanas} semanas`);
 } else if (modo === 'personaje') {
+  // `razonable`: el club y, por su cuenta, como mucho `cuota` sesiones a la semana (por defecto 2); `futbol`: el deportista de los bots (hasta 2 sesiones al día todos los días); `perfecto`: el bot que lo entrena todo.
+  const cuota = Number(process.argv[7] ?? 2);
   const bot = process.argv[4] === 'perfecto' ? PERFECTO : deportistaDe('futbol');
+  const propias = { semana: -1, n: 0 };
   const seed = Number(process.argv[5] ?? 31);
   const anios = Number(process.argv[6] ?? 10);
   const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['futbol'] }, [...MODULOS, futbol]);
@@ -85,7 +94,14 @@ if (modo === 'pnj') {
     if (decidirSucesos(g, seed)) continue;
     const opts = opcionesDelBot(g);
     if (!opts.length) break;
-    const eleccion = bot.choose(g, opts, rng, mem);
+    let ofrecidas = opts;
+    if (process.argv[4] === 'razonable') {
+      if (propias.semana !== g.time.week) Object.assign(propias, { semana: g.time.week, n: 0 });
+      if (propias.n >= cuota) ofrecidas = Object.assign(opts.filter((o) => !(entrenoDeporte(o) && !o.tags.includes('club'))), { relaciones: opts.relaciones });
+    }
+    const eleccion = bot.choose(g, ofrecidas, rng, mem);
+    const elegida = opts.find((x) => x.id === eleccion);
+    if (process.argv[4] === 'razonable' && elegida && entrenoDeporte(elegida) && !elegida.tags.includes('club')) propias.n++;
     const paso = hacer(g, opts, eleccion);
     if (paso.traslado) continue;
     if (paso.result.ok) {

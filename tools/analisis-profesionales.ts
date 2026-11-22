@@ -10,11 +10,17 @@ import { writeFileSync } from 'node:fs';
 import { CAPACIDADES_GENETICAS, PAIS_CIUDAD_GRANDE, registrarPais } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol } from '@ds/mod-futbol';
+import { DATOS_FUTBOL, PNJ_POR_LIBRE, futbol } from '@ds/mod-futbol';
 import { fijosDeNino, topeEfectivo } from '../modules/npcs/src/rutina';
 import { interesPor } from '../modules/npcs/src/deportistas';
 
 registrarPais(PAIS_CIUDAD_GRANDE);
+// PNJ_LIBRE=1 activa la propuesta de que los PNJ entrenen por su cuenta; PNJ_LIBRE='{"propension":{...}}' cambia sus cifras (solo para medir: sin ella el juego va como siempre).
+if (process.env.PNJ_LIBRE) {
+  const extra = process.env.PNJ_LIBRE.startsWith('{') ? JSON.parse(process.env.PNJ_LIBRE) : {};
+  const l = { ...PNJ_POR_LIBRE, ...extra, propension: { ...PNJ_POR_LIBRE.propension, ...(extra.propension ?? {}) } };
+  (DATOS_FUTBOL as any).paises.espana.poblacion.rutina.porLibre = l;
+}
 const salida = process.argv[2] ?? 'analisis-profesionales.json';
 const semillas = (process.argv[3] ?? '31,32,33').split(',').map(Number);
 const anios = Number(process.argv[4] ?? 10);

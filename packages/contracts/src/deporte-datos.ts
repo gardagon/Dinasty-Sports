@@ -458,6 +458,27 @@ export interface RutinaDeDeporte {
   /** Sesiones de club por semana: las de cada club y, para los que no están en la lista, las de por defecto. */
   sesionesPorSemana: Readonly<Record<string, number>>;
   sesionesPorDefecto: number;
+  /**
+   * Entrenar por su cuenta y quedar a jugar (propuesta de `docs/relevo/pnj-entrenan-y-abandono.md`): si el deporte lo trae, una parte de los PNJ, según su interés, su carácter y su edad, hace cada semana
+   * algunas sesiones fuera del club con las mismas listas que el personaje, y cuentan como sesiones para su cansancio y sus lesiones. **Sin este dato, los PNJ solo entrenan con su club** (lo de siempre).
+   */
+  porLibre?: PorLibreDeDeporte;
+}
+
+/** Las reglas con que un PNJ entrena fuera del club o queda a jugar (`RutinaDeDeporte.porLibre`). */
+export interface PorLibreDeDeporte {
+  /** Los entrenamientos que se hacen solo (los del personaje): lo que suben (a la escala del juego) y, si es de un puesto (portería), cuál. */
+  entrenamientos: readonly { id: string; entrena: readonly Entrenamiento[]; soloPuesto?: string; noPara?: string }[];
+  /** Las formas de quedar a jugar con amigos (las quedadas del personaje): lo que suben. */
+  quedadas: readonly { id: string; entrena: readonly Entrenamiento[] }[];
+  /** Cuánto rinde entrenar solo frente al club (×0,85 en el personaje). */
+  eficiencia: number;
+  /** Como mucho, tantas sesiones fuera del club por semana (con las del club, nunca pasa de 2 en un día). */
+  maximoPorSemana: number;
+  /** La propensión a hacerlo (0 a 1: la probabilidad de cada uno de los `maximoPorSemana` huecos de la semana): `base` más el peso de su interés, su ambición, su sacrificio y su disciplina (de −1 a 1 cada uno), más un azar estable suyo cada curso de desviación `dispersion`. */
+  propension: { base: number; interes: number; ambicion: number; sacrificio: number; disciplina: number; dispersion: number };
+  /** Lo que se reduce por edad (estudios, otras cosas): factor por edad (1 si no está). */
+  factorPorEdad?: Readonly<Record<number, number>>;
 }
 
 export interface PoblacionDeDeporte {
