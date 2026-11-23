@@ -477,3 +477,71 @@ Conclusión: **crear no es el problema de H1** (los 6.800 adultos cuestan 0,3 s 
 6. **Los entrantes de cada curso: «familia nueva que se muda» hasta H2.** *Recomiendo que sí.*
 
 **Estas seis no cambian el diseño ni el coste:** se pueden decidir mientras se implementa. Ninguna bloquea el Paso 2 salvo la 1 y la 2, que cambian qué se genera y qué se borra.
+
+---
+
+# H1 implementado (23/11/2026): qué hay y qué se ha medido
+
+Todo detrás de `CiudadDef.hogares` (**desactivado por defecto**: `npm run huella -- 60` sale idéntica a la de la rama base antes de tocar nada). Para probarlo hay dos países registrables: `PAIS_CIUDAD_GRANDE_CON_HOGARES` y `PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES`, y las herramientas de medida aceptan `DS_HOGARES=1` (`rendimiento`, `rendimiento-semana`, `benjamin`, `distribuciones-futbol`, `analisis-profesionales`, `pnj-entrenan` y `sim`; esta última con la ciudad de siempre). **La decisión de activarlo por defecto es del usuario** cuando vea estas cifras.
+
+## Qué hay
+
+| Pieza | Dónde |
+|---|---|
+| Dato `hogares` de la ciudad y países para probar | `packages/contracts/src/ciudad.ts`, `paises/index.ts` |
+| Generación hacia delante (A1): familias, pareja, hijos con `rasgosHeredadosNpc`, `geneticaDeHijo`, `identidadDeHijo`; hermanos pequeños como personas | `modules/npcs/src/hogares.ts` (nuevo), `deportistas.ts` (`herenciaDeProgenitor`, `geneticaDeHijo`) |
+| Los hijos ocupan los huecos de siempre (ids `clase_N`, `curso_N`, `alumno_N`, `nino_N`, rol y agenda) y los dos compañeros del reparto inicial tienen familia (carácter empujado hacia su sesgo) | `index.ts` (`poblarElColegio`, `ninosDeOtrosColegios`, `companeroConFamilia`) |
+| Campos de `Npc`: `hogar`, `padres`, `herencia` (topes, perks, calidad y práctica del progenitor, ~250 B); tabla `NpcsState.hogares` (tipo, calle, portal, **el progenitor que falta y el motivo**: separado, fallecido o desconocido, con su nombre) | `index.ts`, `hogares.ts` |
+| `vive` por hogar (12 % de los hogares en las calles del mapa, el resto en otro barrio) y recoge **el progenitor** de un hijo menor de 10 en el colegio (con 10 y 11 años, cada vez menos; en un hogar de dos adultos recoge uno) | `ajustarVecinos` |
+| Curso nuevo con familias: entran primero los hermanos pequeños que cumplen 8 (al colegio de su hermano si hay hueco) y el resto, familias que se mudan; las familias sin hijos en el mundo se borran (o se archivan si el personaje conoce a alguien) | `renovarConFamilias` |
+| Servicio `NpcDirectory.familiaDe(id)`: progenitores, hijos, hermanos, el progenitor que falta, calle y portal | `contracts/services.ts` |
+| Test (10 casos) | `tests/hogares.test.ts` |
+
+**Lo que no está (a propósito o pendiente):** el niño no se va **con** su progenitor (ambos llegan a la entrada del colegio por su propio azar, como hoy); no hay un papel de reparto de sucesos por parentesco («el padre de tu compañero»); la ficha y las relaciones aún no enseñan el vínculo (hay el servicio); los adultos de los hogares tienen la agenda de un vecino adulto (no su trabajo: abajo se mide lo que cuesta); los 20 niños de los 80 vecinos siguen sin familia.
+
+## Lo medido (ciudad grande con fútbol, semilla 31, escritorio, una máquina de 4 CPU: los tiempos tienen ±20 % de ruido)
+
+**Tamaño y peso** (`npm run rendimiento -- 30 --ciudad --pasadas 1`, sin y con `DS_HOGARES=1`):
+
+| | Sin hogares | Con hogares |
+|---|---:|---:|
+| Personas | 6.118 | **13.787** (6.915 adultos, 6.649 hijos de 8 a 19 y 750 pequeños, y los de siempre) |
+| Estado guardado | 16.233 KB | **27.154 KB** (+67 %): `rasgos` 3.955 → 8.782 KB, `herencia` 1.174 KB, `tipos` +433 KB |
+| Crear | 8,9–9,2 s | 9,5–10,6 s (**+0,3 a +1,7 s**; más de lo previsto por el prototipo porque las personas llevan `ajustarVecinos`, cuerpo y capacidades) |
+| Guardar (copiar / a texto) · cargar | 257 / 119 ms · 183 ms | 429 / 244 ms · 224 ms |
+| Lista de todas las personas | 31 ms | 58–68 ms |
+| Bot equilibrado, 30 días: ms por acción · por día | 4,31 · 167 | **5,97 · 231** (**+39 %**) |
+| Pasada semanal de los PNJ (6 cruces) | 143 / 98 / 163 / 217 / 307 / 347 ms | 196 / 137 / 135 / 219 / 330 / 397 ms (≈ +10 %: los 750 hermanos pequeños llevan capacidades) |
+| Cruce de día (mediana) · `listActions` | 9,2 ms · 14,2 ms | **22,4 ms · 28,0 ms** (≈ ×2: **lineal en las personas**, no más) |
+
+**Qué parte del +39 % por acción es la agenda:** con los adultos **sin agenda** (experimento, no queda en el código) la acción cuesta 5,23 ms (4,31 sin hogares, 5,97 con la agenda de un vecino): de los +1,66 ms, **0,74 ms son la presencia** (adultos que van al parque, al super…) y **0,92 ms son solo tener 7.700 personas más** (listas, índices, cambios de día). Lo primero se arregla dándoles su trabajo (de 9:00 a 17:00 «fuera»: menos gente en el mapa y menos que recalcular); lo segundo es el coste lineal de la población.
+
+**En un móvil ×4** (factor ×4,3 de `medir-rendimiento-2.md`, **estimado**): crear ~33 s → **~38–42 s**; la acción (mediana de 47 ms) → **~65 ms**; el cruce de semana (0,81 s) → **~0,9 s**; guardar «de verdad» (por trozos) sigue parando la página ~40 ms; el estado de 27 MB sigue en lo razonable.
+
+**De dónde salen los que entran cada curso** (`npx tsx tools/hogares-curso.ts grande 5`, 5 cursos seguidos):
+
+| Curso | Entran | De hermanos pequeños de familias que ya existían | De familias que se mudan | Familias borradas |
+|---|---:|---:|---:|---:|
+| 1 | 500 | **224 (45 %)** | 276 | 387 |
+| 2 | 500 | 209 (42 %) | 291 | 392 |
+| 3 | 500 | 213 (43 %) | 287 | 435 |
+| 4 | 500 | 211 (42 %) | 289 | 492 |
+| 5 | 500 | 198 (40 %) | 302 | 488 |
+
+Los hermanos pequeños alimentan **de verdad** la entrada: **~42 %** de cada curso (los de 750 que había al crear, más los que traen las familias que llegan). Las poblaciones quedan estables: 13.787 → 14.163 personas tras 5 cursos (+0,2 MB de estado por curso: las familias que se mudan traen sus propios pequeños). Sube un poco porque el 8 % de los hijos de una familia que llega con un hermano mayor de 8 no cabe (la edad ya está completa). Si se quiere más del 42 %, se sube la probabilidad de hermano pequeño (`FAMILIAS.siguiente`).
+
+**`sim` (365 días × 5 semillas, ciudad de siempre):** los 15 chequeos dan lo mismo (todos ✅ salvo **Rendimiento ⚠️ en las dos**: 1,34 → 1,76 ms por acción y 16,3 → 22,2 s por año simulado); los valores finales por estrategia casi no se mueven (±0,5 puntos).
+
+**`benjamin -- 31,33` (y 32, 34, 35):** con hogares el primer partido de benjamín es **siempre la semana 4** (igual que sin ellos), las plantillas del personaje salen de 9 a 17 jugadores (sin hogares: 11 a 17) y la regla de «todos nuevos en el club» sigue igual. En las semillas 32 (sin hogares) y 33 (con hogares) el personaje cae en un equipo que no juega (0 convocatorias): pasa en ambos mundos.
+
+**Distribuciones del fútbol** (`distribuciones-futbol`, semillas 31 y 32, sin y con hogares, al crear y tras 1 y 2 cursos): el **nivel medio por edad baja 0,1–0,5 puntos (un 1–3 %)**, algo más en los equipos C (−0,6 a −0,8) y los que juegan suben un **4 %** (2.784 → 2.898 al crear). Es un efecto real de la herencia: `rasgosHeredadosNpc` pasa cada interés de los padres con un 60 % (de dos padres salen ~3,6 intereses frente a ~3 sorteados), así que **a más niños les interesa algún deporte y entran más en los clubes** (equipos C más grandes, con más niños flojos). Es consecuencia de «la misma regla que el personaje» y se puede compensar (por ejemplo, bajando la probabilidad de heredar un interés), pero no se ha tocado.
+
+**Profesionales a los 18 y abandono:** se lanzó `analisis-profesionales` (semilla 31, 10 años) con y sin hogares; el resultado está al final de este apartado si llegó a terminar (ver «Pendiente de medir»).
+
+## Pendiente de medir y de decidir
+
+- **Profesionales a los 18 y abandono por edad:** ver más abajo si `analisis-profesionales` terminó; el abandono (`pnj-entrenan`) no se ha comparado.
+- **Dar su trabajo a los progenitores** (9:00–17:00 «fuera» entre semana, salvo los de oficio en un lugar): recorta 0,74 ms por acción (la mitad del sobrecoste) y es lo que pide `ANEXO_HORARIOS_PNJ.md` para los padres. Cambia agendas (anexo y `agendas.ts`).
+- **El vínculo en la ficha y en los sucesos** (papel de reparto por parentesco) y que el niño se vaya **con** su progenitor.
+- **El interés heredado** (+4 % de niños en los clubes): decidir si se corrige.
+- **Los 20 niños de los 80 vecinos** y los 60 vecinos adultos: sin familia en H1; entran con H3.
