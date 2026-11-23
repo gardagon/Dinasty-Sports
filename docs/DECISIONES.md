@@ -5,6 +5,14 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/11/2026 — Hogares H1: decisiones del addendum (`docs/relevo/hogares.md`, A8)
+
+1. **Los hermanos menores de 8 años se generan ya en H1.**
+2. **Una familia cuyos hijos han salido del mundo:** se borra si el personaje no conoce a nadie de ella; si conoce a alguien, se archiva. Más adelante se estudiará borrar más.
+3. **Monoparentales:** el otro progenitor no es persona en H1, pero aporta a la herencia. **Puede haber fallecido** (no solo estar separado): el motivo se guarda en el hogar.
+4. **Los niños que entran cada curso:** mientras no haya nacimientos (H2), llegan con una familia que se muda al barrio. Aun así, buena parte deben salir de las familias que ya existen (los hermanos pequeños).
+5. Los compañeros del reparto inicial también tienen familia (su carácter se empuja hacia su sesgo después de heredar). La práctica deportiva de cada progenitor se guarda en el adulto.
+
 ## 23/11/2026 — Hogares: familias hacia delante (padres primero); sueño atrasado a −2,5
 
 Respuestas del usuario a `docs/relevo/hogares.md` §8.3:
