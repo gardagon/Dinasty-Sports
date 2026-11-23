@@ -1,5 +1,7 @@
 # Diseño de la web para PC: diagnóstico y tres prototipos
 
+> **Actualización 23/11/2026: el usuario eligió el prototipo A y ya está aplicado** (§9 más abajo, capturas en `docs/relevo/diseno-escritorio/aplicado/`). Lo que sigue (§1–§8) es el informe de las pruebas, con las capturas de los tres prototipos.
+
 Sesión de desarrollo `claude/diseno-escritorio` (sale de `claude/youthful-clarke-vs0kye`), 22/11/2026. Encargo: la entrada «Mejorar el diseño de la web para PC» de `docs/DECISIONES.md` y `docs/NOTAS_ARQUITECTURA.md` §4. **No se ha aplicado nada**: los prototipos van detrás de una opción en Opciones, que por defecto deja la web como estaba. El usuario elige uno y después se aplica.
 
 Las capturas están en `docs/relevo/diseno-escritorio/` (PNG recortados, 2,8 MB en total). Se hicieron con `deviceScaleFactor: 2` y se redujeron a 1920 px de ancho para el informe. Las originales (3840×2160) se regeneran con la herramienta nueva (ver §6).
@@ -115,3 +117,47 @@ DS_TRABAJO=/tmp/ds-escritorio npx tsx tools/capturar-escritorio.ts capturar <car
 4. ¿Lo que se enseña siempre a la izquierda es lo correcto? (retrato, edad, altura, peso, pendientes, planes y deporte). ¿Falta algo (dinero, equipo, próxima cita) o sobra algo?
 5. El diario reciente a la derecha enseña los avisos tal cual (hoy «Agotamiento: tu salud se resiente» sale 3 veces al día): ¿filtrar lo repetido? (es de contenido, no de diseño).
 6. Los cifras de «solo pruebas» (afinidad, genética, etc.): en la presentación a otras personas ¿se ocultan ya (`MOSTRAR_*`) o se dejan?
+
+## 9. Diseño A aplicado (23/11/2026)
+
+Encargo de la arquitectura tras elegir el usuario el A (`docs/DECISIONES.md`, 23/11). Rama `claude/diseno-escritorio`, unida antes a `claude/youthful-clarke-vs0kye`.
+
+### Qué cambia
+
+1. **Por defecto «Automático»**: tres columnas desde 1280 px de ancho; por debajo, exactamente la disposición de siempre. **A 390 px las capturas con «Automático» y con «Móvil» son idénticas byte a byte** (Qué hacer, Personaje, Deporte, Gente y Estudios).
+2. **Opciones: «Diseño: automático / escritorio / móvil»** (el selector de prototipo ya no sale). B y C siguen en `escritorio.ts` detrás de `OFRECER_PROTOTIPOS = false` (el Panel de C podría ser más adelante la pestaña de inicio de A).
+3. **Dinero en la columna izquierda**, como pieza propia (`PIEZAS_IZQUIERDA`: personaje, dinero, pendientes, planes, deporte). **Añadir comida, inventario, etc. es una línea** (una función `(g, vistas) => html` en esa lista); la barra del día ya no enseña el dinero en escritorio.
+4. **La posición de cada zona se conserva al redibujar.** Hallazgo: con las zonas que se desplazan por su cuenta, cada acción (que redibuja todo) las devolvía arriba del todo. `main.ts` guarda y restaura el `scrollTop` de cada zona (`guardarScroll`/`restaurarScroll`, con una clave por zona y pestaña: una pestaña distinta empieza arriba).
+5. **Pulido a pantalla ancha:**
+   - ficha de personas: el retrato a la izquierda y el resto a la derecha (con la evolución abierta, a todo el ancho): `auto-1920-claro-ficha.png`;
+   - Estudios: asignaturas y horario de clases lado a lado (con un *container query*: solo si el centro mide 1000 px o más): `auto-1920-oscuro-estudios.png`;
+   - Relaciones, Personaje, Deporte («Mi equipo» en dos columnas) y Diario, como en el prototipo;
+   - Opciones: la ventana de la partida y la pantalla del menú en dos columnas (`auto-1920-claro-opciones-*.png`); sucesos de 860 px;
+   - ventanas bajas (menos de 760 px de alto) y zoom del 125–150 %: la barra del día se compacta (`auto-1536x864`, `auto-1280x720` y `auto-1280x620`).
+6. **Diario de la derecha: solo las últimas 30 entradas** (`ENTRADAS_DEL_DIARIO_RECIENTE`; `viewLog(g, max?)`) y `content-visibility: auto`; la pestaña Diario sigue enseñando todo.
+7. **Teclado y foco:** en el HTML va primero el centro y luego las columnas (en pantalla se colocan con `grid-template-areas`), así que con Tab se pasa por Opciones, Menú, las pestañas y el contenido de la pestaña antes que por las columnas (medido: `opciones → menú → pestañas (7) → zona del centro → sus botones`). Las zonas con scroll son enfocables (`tabindex="0"`, `role="region"` y nombre) y se recorren con las flechas.
+8. **«Pasando la semana…» (M1)**: si una acción cruza de semana, se pinta antes el aviso (reutiliza la ventana «Un momento…»), un `requestAnimationFrame` y después se calcula; un segundo clic mientras tanto no hace nada. No toca el motor.
+9. **Textos de la creación**: «unos 40 s» pasa a «hasta un minuto» (la lista de países, el aviso de «Nueva partida» y la pantalla «Creando el mundo…»). Las herramientas que escogen el país por su nombre (`probar-web`, `capturar-*`) se actualizaron.
+
+### Qué se tocó de `main.ts` (para unir con la otra sesión que toca Opciones y Nueva partida)
+
+Importación de `escritorio`; una línea en `viewPresentacion()` (`${viewOpcionesDeDiseno()}`, **no** toca los selectores de contenido); `viewLog(g, max?)`; el bloque de `viewGame` que llama a `viewEscritorio`; `guardarScroll`/`restaurarScroll` en `render()`; dos manejadores (`change` del selector, `click` de la segunda pestaña, que ya no se usa en A) y el bloque del clic en una acción (M1); `vigilarAncho(render)`; y los dos textos «un minuto». Nada reformateado.
+
+### Verificación
+
+- `npm run typecheck`: sin errores.
+- `npm test`: 127 archivos, 1376 tests, todos en verde (597 s).
+- Test nuevo `apps/web/src/escritorio.test.ts` (9 tests): el diseño por defecto y los anchos; las opciones; que B y C no se ofrecen; cada pieza se dibuja una sola vez (el resultado de lo último se «gasta» al dibujarlo); el orden del foco y las zonas enfocables; la columna izquierda (incluido el dinero) y la posición del scroll.
+- `npm run probar-web` (móvil, 480 px) y **`npm run probar-web:escritorio`** (nuevo: 1440×900): los dos recorren el camino entero sin errores de consola. Ambos comprueban también la disposición que toca (tres columnas / de siempre) y que al cruzar de semana aparece «Pasando la semana…» antes de calcular y se quita al acabar (se acerca la partida al final de la semana y se pulsa una acción que la cruza).
+- **`npm run huella -- 60`:** **idéntica** a la de antes de tocar nada (las mismas líneas y los mismos hashes; los cambios son solo de la web).
+- **Coste de redibujar** (`tools/capturar-escritorio.ts --medir`: media de 20 `render()` con la partida de las capturas): **A, 22–30 ms** por redibujo a 1366 y 1920 (con el diario de 30 entradas, el retrato y el resumen del deporte) frente a **16 ms** con la disposición de siempre. `npm run rendimiento:web` (nuevo `--ancho`; ciudad de prueba, 40 acciones, escritorio): a **1100 px** (disposición de siempre) **mediana 23,1 ms, p90 25,5 ms, máx 27,9 ms**; a **1440 px** (tres columnas) **mediana 23,4 ms, p90 38,8 ms, máx 40,2 ms**. Cruzar de día: 21 ms → 23 ms; de semana, total con repintado 15–40 ms → 22–37 ms. Es decir, la mediana no cambia y el peor caso sube unos 12 ms, muy por debajo de lo que se nota.
+
+### Lo que queda y lo que no he hecho
+
+- **El Menú (la pantalla de inicio y «Nueva partida») sigue a 460 px de ancho**, centrado: solo se ensanchó Opciones. Hacer lo mismo con «Nueva partida» toca la pantalla que lleva la otra sesión (`claude/sucesos-motor-2`); mejor después de unir.
+- **El foco se pierde al redibujar** (como en todo el juego: cada acción repinta con `innerHTML`). Con el teclado, tras pulsar una acción hay que volver a tabular. No lo he cambiado: es de la web entera, no del diseño (se arreglaría recordando el `data-do` enfocado).
+- «Qué hacer» deja bastante blanco debajo cuando hay pocas acciones; es lo que hay que mostrar, pero la columna del centro podría llevar algo más (la ficha del lugar con un mapa, por ejemplo).
+- La casilla «Avisar “no va contigo”» sale centrada en la pantalla de Opciones (viene de `.start input { width: 100% }`, que ya estaba): no la he tocado.
+- **Un fallo de contenido que se vio en las capturas:** el nombre del país «España · ciudad grande (se tarda hasta un minuto en crear)» se cuela en el texto de la federación («Real Federación Española de Fútbol (con los datos de España: España · ciudad grande (se tarda… en crear) aún no tiene los suyos)»). Ya pasaba con «unos 40 s»; la advertencia no debería formar parte del nombre del país. Es de `PAIS_CIUDAD_GRANDE`/`paises-propios.ts`, no del diseño.
+- No se ha probado en un navegador de teléfono real ni en una pantalla táctil grande (tableta horizontal ≥ 1280 px entra en «Automático»).
+
