@@ -41,8 +41,8 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Publicar** lo que hay en la rama de trabajo (diseño A, motor de sucesos, lote 2, arreglos): pedido el visto bueno el 23/11, sin respuesta todavía.
-- **Rendimiento M2**: espera los tiempos del móvil del usuario.
+- **Publicación en curso:** pull request #132 (visto bueno del usuario el 23/11). Al unirlo, comprobar Pages.
+- **Rendimiento M2**: el usuario creó una partida en el móvil en ~4 s (antes 7–8 s), «solo con fútbol»: confirmar si fue con la ciudad grande. Si lo fue, M2 no corre prisa. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
 
