@@ -53,7 +53,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 | `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Fase 2 (23/11): escribir el lote en 4 tandas con el motor nuevo, `familia` en patio y aula, lo duro marcado; sin sucesos de calle hasta que el usuario decida | Reactivada el 23/11 |
 | `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor del lote 2 y contenido duro (desactivado por defecto) | ✅ Unida el 23/11 |
 | `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Análisis (`docs/relevo/dormir.md`) | ✅ Unido. Espera decisiones del usuario (8 dudas, fases F1–F4) |
-| `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error: estado compartido entre partidas en un proceso (la huella de `vago` 2 cambia según el orden de los bots). Investigar, arreglar sin cambiar partidas jugadas solas y test | Lanzada el 23/11 |
+| `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error arreglado: el azar del aforo sale de `día:intervalo` (`PresenciaService.aforo`), no de un contador del proceso; guardar y cargar da lo mismo | ✅ Unida el 23/11 (cambian 7 líneas de la huella, aceptado como arreglo) |
 | `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Análisis (`docs/relevo/gente-por-la-calle.md`) | ✅ Unido. Espera decisiones del usuario (fases F1–F4, cuántos vecinos…) |
 | `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño A aplicado (por defecto desde 1280 px), dinero en la columna, aviso «Pasando la semana…» | ✅ Unida el 23/11 |
 
