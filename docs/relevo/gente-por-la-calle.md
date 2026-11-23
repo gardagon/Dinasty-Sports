@@ -15,6 +15,67 @@ Se añadieron cuatro herramientas de medida en `tools/` (no tocan el juego):
 
 ---
 
+## 0. Implementación de F1 y F2 (23/11/2026)
+
+Encargo de la arquitectura tras las decisiones del usuario (`DECISIONES.md`, 23/11, «Gente por la calle»): **F1 y F2 juntas**, sin subir `CiudadDef.vecinos` (F3 serán los hogares, de otra sesión) y sin bebés ni mascotas todavía. Rama `claude/gente-por-la-calle` (unida con `origin/claude/youthful-clarke-vs0kye`). Las reglas, en `ANEXO_HORARIOS_PNJ.md` («Gente por la calle»).
+
+### Qué hay
+
+| Qué | Dónde |
+|---|---|
+| Ventanas de calle de 6:30 a 23:59 (pasos de 15 minutos con `p` por paso), marcas `vive`, `perro`, `jubilado`, `adulto`, `pequeno`, `trabaja`+`turno`; tipos nuevos `portero`, `conserje`, `repartidor`; oficio en su lugar; menores de 12 sin ir solos | `packages/contracts/src/agendas.ts` (`VENTANAS_DE_CALLE`, `vecinoEnLaCalle`, `trabajoEnUnLugar`, `TURNOS_DE_TRABAJO`) |
+| Marcas por hash estable (sin gastar azar de la partida), etiquetas `perro` y `jubilado` y descripción («…siempre pasea a su perro», «…jubilada») | `ajustarVecinos` (`modules/npcs/src/index.ts`; al crear la partida y cada curso, como `recoge`) |
+| Portero, conserje y 3 repartidores (desconocidos, con oficio y lugar de trabajo; azar propio `rngEstable`, no cambia lo que se genera después) | `puestosDeLaCalle` (`modules/npcs`) |
+| 4 sucesos nuevos (`buenos_dias`, `banco_al_sol`, `el_portero`, `repartidor_se_equivoca`) y `perro_suelto` reescrito (con su dueño), con 3 versiones de cada texto de entrada y 2 o más de cada resultado | `modules/eventos/src/barrio/calle.ts` |
+| Pruebas | `packages/contracts/src/agendas.test.ts` (10 nuevas), `tests/gente-por-la-calle.test.ts` (5), `tests/horarios-de-agendas.test.ts` (todos los tipos nuevos: nadie en un sitio cerrado) |
+
+**Cada suceso de calle lleva dos variantes por papel opcional:** `nuevo` (desconocido: se presenta en el suceso) y `viejo` (ya lo conoces). Nadie empieza conocido.
+
+### Dónde me he apartado de la propuesta (y por qué)
+
+- **Pasos de 15 minutos, no de 10** (en la cuadrícula de cuartos de hora): menos cambios de presencia. Las `p` se escriben por cada 10 minutos y se escalan al paso. Los paseos del perro empiezan a las 6:30 (7:45 la mañana) y siguen de noche hasta las 23:30; vuelta a casa y paseo de noche hasta las 23:59.
+- **Marca `adulto`:** la primera versión daba la ventana «de paso» a todos los `vecino` sin colegio, y como hay ~700 jóvenes de 18–19 años en la ciudad grande, a las 7:30 había 47 personas en la calle del colegio y casi ningún vecino. Ahora solo la llevan los `vecino_N` de 18 años o más. **Los jóvenes de 18–19 años siguen sin pisar la calle** (su agenda no cambia).
+- **Quien trabaja en un lugar tiene nivel de pertenencia (3):** así sale antes que los clientes en «gente cerca» (en el supermercado se ven 3–4 trabajadores de las 38 personas que se ven, y en el restaurante 8 de 36; antes, 0–2).
+- **El conserje sigue en la puerta del colegio en clase y en el recreo** (es lo realista y da pie a «llegar tarde»). Tres tests que miraban «la entrada se vacía» lo excluyen (`conserje_1`).
+- **Niños pequeños que viven en una calle:** solo un 0,6 % en cada una (unos 12 por calle en la ciudad grande, 2 en la actual); el resto de los menores de 12 conserva su agenda sin supermercado ni restaurante.
+- **`perro` admite una mascota:** `perro: true | string` (el texto sería la referencia a la mascota cuando existan con los hogares). Hoy es la marca en el dueño más la etiqueta `perro`.
+- **Partidas anteriores:** las marcas se calculan al empezar el siguiente curso (`ajustarVecinos`); el portero, el conserje y los repartidores solo existen en partidas nuevas. Los sucesos que los piden no salen si no hay nadie (papeles opcionales).
+
+### Medido, antes y después
+
+Todos los «antes» con el commit original (una copia de trabajo limpia), los «después» con el final; mismas semillas.
+
+| Prueba | Antes | Después |
+|---|---|---|
+| `npm run typecheck` | ✅ | ✅ |
+| `npm test` | ✅ | ✅ 131 archivos, 1.412 tests (los 4 que fallaban tras la primera versión se arreglaron: tres miraban una entrada vacía y uno contaba cambios de presencia) |
+| `npm run eventos:validar` / `eventos:mapa` | ✅ | ✅ (116 sucesos, 4.906 caminos; `docs/eventos/MAPA.md` regenerado) |
+| `npm run benjamin -- 31,33` | — | **idéntico** |
+| `npm run probar-web` | — | ✅ el camino entero en Chromium |
+| `npm run sim:rapida` | ✅ (rendimiento 1,32–1,67 ms por acción según la pasada, límite 1,49–1,67) | ✅ en la última (1,55 ms, límite 1,57); en otras pasadas ⚠️ de rendimiento por poco (1,51–1,75). El ⚠️ «el esfuerzo hace progresar» (atletismo +4,6) **ya estaba antes** |
+| `npm run sim:eventos -- 180 2` | media 5,0 por semana (equilibrado 6,1) | media 5,9 (equilibrado 6,9): **+0,9 por semana por bot** |
+| `npm run huella -- 60` | referencia | **cambia** (ver abajo) |
+
+**Ritmo por franja (sim:eventos, todos los bots):** antes de clase (7:00–8:10) **0,6 → 1,0** por semana; recreo, clases y mediodía igual (±0,1); **tarde (17:00–20:00) 0,4 → 0,4** (el equilibrado, 0,6 → 0,5); noche 0,4 → 0,4. Es decir: **el ritmo no sube por la tarde, sube por la mañana**: los bots ven los sucesos de calle sobre todo al salir de casa. Veces al año por bot (media): `buenos_dias` 19,6, `el_portero` 15,6, `banco_al_sol` 7,4, `repartidor_se_equivoca` 4,1, `perro_suelto` 3,2 → 7,4 (en total ~+50 al año, ~+1 por semana). Por lugar: `calle_casa` 0,5 por semana; `parque` y `avenida_parque`, casi nada (los bots van allí fuera de las horas de paseo). Si se quiere más vida por la tarde, hay que subir los `prob` de los sucesos de 17:00–20:00 (`el_portero`, `repartidor_se_equivoca`), no las agendas.
+
+**Gente por calle y hora (`tools/gente-por-la-calle.ts`, ciudad grande; la actual, muy parecida):** antes, **0 personas en las 4 calles a cualquier hora**. Ahora (día de clase): 6:30 → 7 · 7:00 → 7 · 7:30 → 7 (casa 2, colegio 3, avenida 5, ya con el portero y los repartidores) · 8:30 → 1 · 10:00 → 4 · 17:00 → 9 · 18:00 → 7 · 19:00 → 10 (con la gente que vuelve) · 20:00 → 5 · 21:00 → 2 · 22:00 → 3. Sábado 10:00 → 9 (avenida 6); verano 10:00 → 13 (avenida 9). Los vecinos adultos en el mapa: 6–11 antes de las 9:00 (antes, 0), 11–15 de 21:00 a 23:59 (antes, 0). Con 63 adultos no se pasa de 13 a la vez, como estimé en §2.2 para la opción A.
+
+**Los que se ven:** en el supermercado, de las 38 que se ven, 3–4 adultos (antes 0–2); en el restaurante a las 20:00, 8 de 36 (antes 0); en el parque, de 35–41, 0–1 (sigue lleno de niños, rivales y jóvenes).
+
+**Rendimiento, ciudad grande** (`npm run rendimiento -- 30 --ciudad --pasadas 1` y perfil de CPU; **el equipo cambia de ritmo de una hora a otra ±30 %: solo valen las medidas A/B seguidas**): 6.113 → 6.118 personas; **estado 16.210 → 16.233 KB (+23 KB, +0,14 %: 5 personas y las marcas)**; crear, guardar, cargar y listas sin cambio apreciable; pasada semanal de los PNJ igual (100–400 ms según la hora); presencia, primera consulta tras cambio de tramo: igual (3 ms). **Tiempo por acción del bot** (A/B seguidas): 3,54–3,96 → 4,11–4,65 ms (**+15 % aprox.**, ~+0,6 ms). El perfil de CPU de 30 días de bot da +3,3 % en total (+0,48 s, de ellos la presencia ~+0,15 s: `construirAgendasDePresencia` +50 ms, `calcularLugar` +60 ms) y la mayor parte del resto es lo de los sucesos (`presente` pide toda la presencia del lugar, con su vista de cada persona: 1.300 en el parque). Pasar de pasos de 10 a 15 minutos no cambió la medida: el coste no está en el número de cambios de tramo. **Posible mejora, no hecha por no tocar la presencia:** que `presente` mire el índice sin crear la vista de cada persona.
+
+**Huella (`npm run huella -- 60`):** cambia en los 16 bots y semillas, como se esperaba. Motivos: (1) la población crece en 5 personas (portero, conserje, 3 repartidores) y sus nombres entran en el registro (`futbol` cambia incluso al crear la partida: `5a5f4a3a870a → c76abfe26cb7`); (2) el estado de los vecinos lleva las marcas, las etiquetas y las descripciones nuevas; (3) los bots se cruzan con gente en la calle y con 5 sucesos nuevos, y cada decisión es una acción más (acciones de 60 días: equilibrado 2.302 → 2.317, madrugador 2.425 → 2.462, vago 1.469 → 1.520, aleatorio 2.801 → 3.162 con la semilla 2). **Nueva referencia** en `huella-despues`: ver el commit. Lo que **no** cambia: `benjamin`, y los bots cuya partida no pisa las calles de los vecinos mantienen sus acciones casi iguales (empollón 1.836 → 1.836).
+
+### Qué queda (para F3 y después)
+
+- **Hogares (F3, otra sesión):** `vive` es hoy por persona; con los hogares debería ser por hogar (todos los de la casa en la misma calle, y el portal). Los padres que recogen siguen sin vínculo con un hijo concreto.
+- **Mascotas y bebés:** sin hacer. `perro` ya admite una referencia (`perro: 'id'`); el dueño pasaría a ser quien tenga la mascota.
+- **Jóvenes de 18–19 años:** son la mayoría de lo que hay en el mapa de 9:00 a 14:00 y no pisan la calle. Si se quiere que lo hagan, es una decisión del usuario (tienen las mismas reglas que los adultos).
+- **Los comercios de calle** (quiosco, panadería, frutería), la señal `calle.cruce` y la salida del club por la calle del estadio: sin tocar (F4).
+- **Calibrar** los `prob` de los sucesos con más partidas; la tarde no sube (arriba).
+
+---
+
 ## 1. Diagnóstico medido
 
 ### 1.1 Lo primero: nadie pisa nunca una calle
