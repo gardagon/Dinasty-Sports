@@ -50,7 +50,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 | Sesión | Rama | Para qué | Estado |
 |---|---|---|---|
 | `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medidas (`docs/relevo/medir-rendimiento-2.md`) | ✅ Terminada y unida (solo `tools/` y `docs/`). Propuestas M1, M2 y C1 pendientes del usuario |
-| `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Fase 2 unida el 23/11 (49 sucesos; 112 en total; ritmo 4,2/semana frente a 6 de objetivo). Ahora: pasada de continuidad en todos los hilos (p. ej. `padres_discuten` agradece «por preguntar» sin haber preguntado) | En corrección |
+| `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Lote 2 escrito, corregido y unido el 23/11 (112 sucesos; ritmo 4,2/semana frente a 6: faltan tardes 14–20 h). Arreglos del director: `aguanta` con `cada` y nadie hace dos papeles en un suceso | ✅ Unida |
 | `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor del lote 2 y contenido duro (desactivado por defecto) | ✅ Unida el 23/11 |
 | `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Análisis (`docs/relevo/dormir.md`) | ✅ Unido. Espera decisiones del usuario (8 dudas, fases F1–F4) |
 | `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error arreglado: el azar del aforo sale de `día:intervalo` (`PresenciaService.aforo`), no de un contador del proceso; guardar y cargar da lo mismo | ✅ Unida el 23/11 (cambian 7 líneas de la huella, aceptado como arreglo) |
