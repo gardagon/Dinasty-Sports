@@ -247,6 +247,15 @@ try {
             await pagina.evaluate(() => (window as any).__ds.render());
             if (salio && (await pagina.locator('.ventana.suceso').count())) await foto('suceso');
           }
+          if (quiere('opciones')) {
+            // La ventana de Opciones de la partida y, después, la pantalla de Opciones del menú.
+            await pagina.click('[data-act="opciones"]');
+            await foto('opciones-ventana');
+            await pagina.click('[data-act="cerrar-opciones"]');
+            await pagina.click('[data-act="menu"]');
+            await pagina.click('[data-act="ir-opciones"]');
+            await foto('opciones-pantalla', true);
+          }
           if (errores.length) console.log(`  ⚠ errores en ${diseno}-${ancho}-${tema}: ${errores.slice(0, 2).join(' | ')}`);
           console.log(`  hecho: ${diseno} ${ancho} ${tema}`);
           await contexto.close();
