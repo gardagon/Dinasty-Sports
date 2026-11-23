@@ -311,6 +311,8 @@ export interface HechosDePrueba {
   presente?: readonly string[];
   periodo?: PeriodoDelCurso;
   hora?: number;
+  /** Día de la semana (0 = lunes), para probar sucesos de fin de semana sin esperar a que llegue. */
+  diaDeLaSemana?: number;
   perks?: Readonly<Record<string, 'latente' | 'revelado'>>;
   caracter?: Readonly<Record<string, number>>;
   relacion?: Readonly<Record<string, { afinidad?: number; confianza?: number; estado?: EstadoVinculo }>>;

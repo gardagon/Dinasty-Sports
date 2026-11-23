@@ -300,3 +300,34 @@ Formato: **hilo — título.** Instancias · Quién · Pasos (disparo, espera, o
 - `npm run eventos:validar`: ✅ sin cambios (63 sucesos, 462 caminos, los mismos 6 avisos de marcas sin lector de antes).
 - `git status`: solo cambia este archivo. El script temporal de medida (`tools/_medir_tmp.ts`) se ha borrado; si se quiere conservar, es la base de E8 (medida por franja, lugar, día y persona).
 - Las cifras de §4 son **estimaciones de diseño**, no medidas: hasta que haya contenido escrito no hay otra cosa que medir.
+
+---
+
+# Fase 2: escribir los sucesos (23/11/2026)
+
+El usuario aprobó la propuesta (`docs/DECISIONES.md`, 22/11, «Sucesos, lote 2: decisiones sobre la propuesta»). Se unió el motor (`sucesos-motor-2`) a esta rama. Se escribe por tandas, con un commit por tanda, `eventos:validar`, `eventos:mapa` y `sim:eventos -- 180 2` en cada una. Este apartado se va completando.
+
+## Tanda 1 y 2 (casa, fin de semana, parque y cuatro hilos)
+
+| Archivo | Sucesos |
+|---|---|
+| `casa/dia_a_dia.ts` | `desayuno` (3 textos + variante «cansado»), `deberes_con_padre` (variantes por promesa rota, nota flor/alta), `hermano_no_duerme` (3 textos), `tele_con_el_hermano` |
+| `casa/fin_de_semana.ts` | `tarea_del_hogar` (3 textos), `cena_de_domingo` (**lee** `lesionado_hace_poco`, `lo_pillaron_mintiendo_en_casa`, `rompio_una_promesa_en_casa`, `mintio_a_sus_padres`, `levanto_la_nota` y la nota media; 3 textos por defecto), `verano_aburrido` |
+| `amigos/parque.ts` | `parque_partido` (fin de semana, con un amigo de estado `amigo`/`mejor_amigo`; versión para ≤ 10 años) |
+| `colegio/companero_nuevo.ts` | hilo de 3 pasos: llegada → primera semana (3 versiones según lo que hiciste) → un mes después (amigos / conocidos / otros) |
+| `colegio/tutor_se_preocupa.ts` | hilo de 3 pasos con el profesor de Lengua o de Matemáticas: la llamada → el plan (modificador de estudio) → el seguimiento (la nota sube o no, `sobreRecuerdo`) |
+| `amigos/secreto.ts` | hilo de 4 pasos por amigo: la confesión → te preguntan → se entera (se supo / se sospechó / se guardó) → rota la confianza (arreglable) |
+| `amigos/prestado.ts` | hilo de 3 pasos por amigo: petición (5 €, 2 €, no) → devolución (según cuánto os queréis: seguro, al azar o se le olvida) → reclamar |
+| `casa/detalles.ts` (editado) | `familia: 'cena'` en `ayudar_con_la_cena` y `cena_favorita` (la cena de domingo también) para la rotación |
+
+**Cambios fuera del contenido (pequeños; revisar):**
+
+1. **Arreglo en el director** (`modules/sucesos/src/index.ts`, `espontaneos`): **`aguanta` no funcionaba con `cada: 'dia'`/`'semana'`.** El suceso se tiraba solo a medianoche (`dia.inicio`), y si sus condiciones de hora o lugar no se cumplían en ese momento se perdía; `aguanta` solo se miraba en los sucesos por señal. Por eso `casa.noche_sin_sueno` salía **0 veces** en `sim:eventos` aunque el bot estuviera despierto a las 22:00. Ahora, si a un `cada` le toca pero no es el momento y tiene `aguanta`, queda esperando como un programado (se mira tras cada acción). Es lo que decía `ANEXO_EVENTOS.md`. Efecto visible: `noche_sin_sueno` pasa de 0 a ~7 por año. Tests de `modules/sucesos`: ✅.
+2. **`dado.diaDeLaSemana`** (0 = lunes) para las `pruebas` y `escenarios` (`HechosDePrueba`, `tools/eventos/banco.ts`): sin él no se pueden probar los sucesos de fin de semana.
+3. En los escenarios con días de espera hay que **separar el paso de los días del del sitio** (`{ pasan: { dias: 9 }, dado: { lugar: 'casa' } }` y luego `{ pasan: { dias: 0 }, dado: { lugar: 'patio' } }`): si no, el suceso programado sale solo durante los días que pasan y vence con su opción por defecto.
+
+**Hallazgos para la arquitectura:**
+
+- **El personaje empieza con 0 € y no tiene ingresos** (`gen.dinero` inicial 0). `eventos.amigos.prestado` pide ≥ 2 € y casi nunca saldrá hasta que exista la economía del personaje (la deuda técnica ya anotada); lo mismo pasará con `ahorrar_para_algo` (tanda 4). Están escritos y probados con `escenarios`.
+- Los bots actúan en bloques largos (leer ≈ 45 min): las ventanas de hora de los `cada` deben ser **anchas** (≥ 1,5 h) para medirse; en el juego, con pasos de 5 minutos, no importa.
+- `tools/eventos` y la prueba del banco no pueden lanzar señales que no sean compartidas (`lugares.llegada` no vale): se fuerza el suceso con `sale`.

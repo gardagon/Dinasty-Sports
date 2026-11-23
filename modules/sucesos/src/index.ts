@@ -1028,6 +1028,11 @@ function espontaneos(ctx: ActionContext, i: Indice, lista: readonly SucesoCompil
     if (intentar(ctx, i, x)) {
       s.cupo.hoy[categoria] = (s.cupo.hoy[categoria] ?? 0) + 1;
       s.cupo.estaSemana[categoria] = (s.cupo.estaSemana[categoria] ?? 0) + 1;
+    } else if (x.def.aguanta && !s.programados.some((p) => p.suceso === x.def.id)) {
+      // Le ha tocado pero no es el momento (la hora, el sitio): espera como un programado más, que se vuelve a mirar tras cada acción (`aguanta`).
+      // Sin esto, un `cada` con condiciones de hora o lugar solo se miraba a medianoche y casi nunca salía.
+      s.programados.push({ dia: hoy, hasta: hoy + x.def.aguanta.dias, suceso: x.def.id });
+      s.programados.sort((p, q) => p.dia - q.dia);
     }
   }
 }
