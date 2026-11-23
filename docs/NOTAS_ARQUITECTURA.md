@@ -43,22 +43,12 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Hogares H1, activarlo** (cifras de `docs/relevo/hogares.md`, «H1 implementado»):
-  - con hogares, 13.787 personas (antes 6.118); estado 27,2 MB (antes 16,2); crear +0,3 a +1,7 s; +39 % por acción (5,97 ms frente a 4,31 en el bot de la ciudad grande); cruce de día 22 ms (antes 9);
-  - el 40–45 % de los que entran cada curso vienen de hermanos pequeños;
-  - `benjamin` igual; el nivel medio por edad baja 0,1–0,5 y juegan un 4 % más (interés heredado).
-
-  Tres dudas, con la recomendación de la sesión:
-  1. aceptar el +4 % de interés heredado;
-  2. **dar trabajo a los progenitores** (9–17 «fuera» entre semana): recorta la mitad del sobrecoste por acción y lo pide el anexo de horarios;
-  3. dejar `FAMILIAS.siguiente` como está.
-
-  Pendiente de presentárselas al usuario.
+- **Hogares H1, activarlo:** el usuario decide cuando estén las cifras nuevas (con trabajo de los progenitores y contraste de hermanos mayores con el INE). Las 3 dudas anteriores, respondidas (DECISIONES 23/11).
 - **Rendimiento M2:** el usuario creó una partida en el móvil en ~4 s («solo con fútbol»). Confirmar si fue con la ciudad grande. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
 
-Ninguna trabajando. Pueden reactivarse con contexto:
+`session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`) **trabajando** (23/11 noche): trabajo de los progenitores, contraste de los hermanos mayores con el INE y nuevas medidas con y sin hogares. Las demás pueden reactivarse con contexto:
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): seguir con H1 (trabajo de los progenitores, papel de reparto por parentesco, ficha con el vínculo, niños de los vecinos sin familia, abandono por edad) y con H2;
 - `session_01M4vXXQAF9nMwtH72JNPMoS` (`claude/sucesos-lote-2`): más sucesos;
 - `session_01M4vXXPqtbBbKjYfQzgtQgH` (calle);

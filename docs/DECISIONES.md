@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/11/2026 — Hogares H1: interés heredado, trabajo de los progenitores, hermanos mayores
+
+1. **Interés heredado:** se acepta de momento que haya un 4 % más de niños en los clubes porque heredan el interés de los padres (la misma regla que el personaje).
+2. **Los progenitores trabajan**, de 9:00 a 17:00 «fuera» entre semana, con su oficio. Quien recoge a su hijo sale antes. Recorta el coste por acción y lo pide el anexo de horarios.
+3. **Niños de 8 años que entran con hermanos mayores en el mundo** (hoy un 40–45 %): se contrasta con la vida real (orden de nacimiento, INE) antes de ajustar `FAMILIAS.siguiente`.
+4. **Activar los hogares:** después de hacer lo del trabajo y volver a medir.
+
 ## 23/11/2026 — Hogares H1: decisiones del addendum (`docs/relevo/hogares.md`, A8)
 
 1. **Los hermanos menores de 8 años se generan ya en H1.**
