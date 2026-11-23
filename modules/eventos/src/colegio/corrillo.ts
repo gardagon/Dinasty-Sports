@@ -4,7 +4,7 @@ import { suceso } from '@ds/contracts';
  * Lote 2, tanda 3: el patio y la salida del colegio (detalles ligeros, `menor`). `rumor` se cuenta en el recreo, con una persona que cuenta y otra de quien se habla (las dos con relación contigo);
  * `salida_con_hermano` ocurre a la salida (14:00–14:30), cuando tu hermano en edad escolar te espera. Familia de rotación `patio` (el rumor). Cifras de partida, por calibrar.
  */
-const AL_PATIO = { al: 'lugares.llegada', prob: 0.05 } as const;
+const AL_PATIO = { al: 'lugares.llegada', prob: 0.07 } as const;
 const EN_EL_RECREO = [{ señal: 'hasta', es: 'patio' }, { hora: { desde: 10 * 60 + 30, hasta: 11 * 60 + 15 } }] as const;
 
 export default [
@@ -17,7 +17,7 @@ export default [
     disparo: AL_PATIO,
     ejemploDeSeñal: { desde: 'aula', hasta: 'patio', minutos: 2 },
     cuando: EN_EL_RECREO,
-    repite: { espera: { dias: 60 } },
+    repite: { espera: { dias: 35 } },
     reparto: { cuenta: { rol: 'companero', conocido: true, presente: true }, rumor_de: { relacion: { afinidad: { min: 15 } }, presente: true } },
     textos: [
       '{cuenta.Nombre} baja la voz en el corrillo. «¿Os habéis enterado de lo de {rumor_de.nombre}? Dicen que ayer en la clase de Plástica se echó a llorar sin motivo».',
@@ -58,10 +58,10 @@ export default [
     titulo: 'Te espera en la puerta',
     categoria: 'menor',
     requiere: ['lugares', 'relaciones'],
-    disparo: { al: 'lugares.llegada', prob: 0.1 },
+    disparo: { al: 'lugares.llegada', prob: 0.18 },
     ejemploDeSeñal: { desde: 'aula', hasta: 'colegio', minutos: 1 },
     cuando: [{ señal: 'hasta', es: 'colegio' }, { periodo: 'clase' }, { diaDeLaSemana: [0, 1, 2, 3, 4] }, { hora: { desde: 14 * 60, hasta: 14 * 60 + 30 } }],
-    repite: { espera: { dias: 25 } },
+    repite: { espera: { dias: 14 } },
     reparto: { hermano: { tipo: 'hermano', presente: true, edad: { min: 3, max: 17 } } },
     textos: [
       'Entre el barullo de la salida, {hermano.nombre} te agarra de la mochila. «¡Te estaba esperando! ¿Vamos juntos?»',

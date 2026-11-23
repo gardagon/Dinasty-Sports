@@ -15,10 +15,10 @@ export default [
     categoria: 'menor',
     familia: 'camino',
     requiere: ['lugares', 'relaciones'],
-    disparo: { al: 'lugares.llegada', prob: 0.12 },
+    disparo: { al: 'lugares.llegada', prob: 0.25 },
     ejemploDeSeñal: { desde: 'calle_colegio', hasta: 'colegio', minutos: 1 },
     cuando: [{ señal: 'hasta', es: 'colegio' }, { periodo: 'clase' }, { diaDeLaSemana: [0, 1, 2, 3, 4] }, { hora: { desde: 7 * 60 + 30, hasta: 7 * 60 + 50 } }],
-    repite: { espera: { dias: 14 } },
+    repite: { espera: { dias: 10 } },
     reparto: { quien: { conocido: true, presente: true, edad: { max: 18 } } },
     variantes: [
       {
@@ -53,10 +53,10 @@ export default [
     categoria: 'menor',
     familia: 'aula',
     requiere: ['estudios', 'relaciones'],
-    disparo: { al: 'lugares.llegada', prob: 0.12 },
+    disparo: { al: 'lugares.llegada', prob: 0.2 },
     ejemploDeSeñal: { desde: 'colegio', hasta: 'aula', minutos: 1 },
     cuando: [{ señal: 'hasta', es: 'aula' }, { periodo: 'clase' }, { diaDeLaSemana: [0, 1, 2, 3, 4] }, { hora: { desde: 7 * 60 + 50, hasta: 8 * 60 + 5 } }],
-    repite: { espera: { dias: 20 } },
+    repite: { espera: { dias: 14 } },
     reparto: { quien: { rol: 'companero', conocido: true, presente: true } },
     variantes: [
       {

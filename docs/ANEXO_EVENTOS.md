@@ -284,7 +284,7 @@ escenarios: [{
 }]
 ```
 
-`dado` admite `stats`, `hechos`, `lugar`, `presente` (papeles; sin decirlo, están todos), `periodo`, `hora`, `perks`, `caracter`, `relacion`, `marcas`, `contadores` y `sinPapel`. `espero` admite `sale`, `marca`, `sinMarca`, `programado`, `hiloCerrado`, `opcionDisponible` y `opcionNoDisponible`. Un paso `sale` hace salir el suceso si no ha salido ya solo (sus condiciones cuentan).
+`dado` admite `stats`, `hechos`, `lugar`, `presente` (papeles; sin decirlo, están todos), `periodo`, `hora`, `diaDeLaSemana` (0 = lunes: para probar lo del fin de semana), `perks`, `caracter`, `relacion`, `marcas`, `contadores` y `sinPapel`. `espero` admite `sale`, `marca`, `sinMarca`, `programado`, `hiloCerrado`, `opcionDisponible` y `opcionNoDisponible`. Un paso `sale` hace salir el suceso si no ha salido ya solo (sus condiciones cuentan).
 
 **A mano**: `npm run eventos:probar -- <hilo o suceso> [--elige opción,opción] [--masculino]` recorre todos los caminos y enseña los textos tal como los vería el jugador, las marcas que quedan y si el hilo se cierra. Se salta las condiciones y los días de espera: enseña todo lo que puede pasar, no cuándo. En una partida, la acción `sucesos.forzar.<id>` hace salir un suceso (la usará la interfaz de pruebas).
 

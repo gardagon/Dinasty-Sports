@@ -4,7 +4,7 @@ import { suceso } from '@ds/contracts';
  * Detalles del aula: cosas pequeñas que pasan en una clase y hacen distinto un día de otro. Son `menor` (su cupo es aparte) y espontáneos: al entrar
  * en clase, a veces. Sirven de muestra del estilo: una situación concreta, dos o tres salidas razonables y consecuencias pequeñas. Cifras de partida.
  */
-const EN_CLASE = { al: 'clase.asistida', prob: 0.06 } as const;
+const EN_CLASE = { al: 'clase.asistida', prob: 0.08 } as const;
 const EJEMPLO = { asignatura: 'estudios.lengua', tarde: 0 };
 const PROFESOR = { profesor: { asignaturaDeLaSeñal: 'asignatura' } } as const;
 const COMPAÑERO = { quien: { rol: 'companero', conocido: true } } as const;
@@ -18,7 +18,7 @@ export default [
     requiere: ['estudios'],
     disparo: EN_CLASE,
     ejemploDeSeñal: EJEMPLO,
-    repite: { espera: { dias: 20 } },
+    repite: { espera: { dias: 14 } },
     reparto: PROFESOR,
     texto: '{profesor.Nombre} recorre la clase con la mirada y se para en ti. «A ver, tú. ¿Cómo seguiría esto?»',
     urgencia: 'ahora',
@@ -44,7 +44,7 @@ export default [
     requiere: ['estudios', 'relaciones'],
     disparo: EN_CLASE,
     ejemploDeSeñal: EJEMPLO,
-    repite: { espera: { dias: 20 } },
+    repite: { espera: { dias: 14 } },
     reparto: COMPAÑERO,
     texto: 'En mitad del ejercicio, {quien.nombre} se inclina hacia tu mesa. «Oye, ¿tú has entendido esto? Explícamelo, porfa».',
     urgencia: 'ahora',
@@ -63,7 +63,7 @@ export default [
     requiere: ['estudios', 'relaciones'],
     disparo: EN_CLASE,
     ejemploDeSeñal: EJEMPLO,
-    repite: { espera: { dias: 30 } },
+    repite: { espera: { dias: 20 } },
     reparto: COMPAÑERO,
     texto: 'Te llega un papel doblado desde la mesa de {quien.nombre}. Por fuera pone «pásalo». El profesor está de espaldas.',
     urgencia: 'ahora',

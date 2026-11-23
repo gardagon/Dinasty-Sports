@@ -2,7 +2,7 @@ import { hilo } from '@ds/contracts';
 
 /**
  * Los exámenes (lote 2, tanda 4). Tres pasos con las señales nuevas de `estudios`: la víspera (`estudios.examen_aviso`), el día en que lo haces (`estudios.examen_hecho`: la nota decide qué versión) y,
- * una semana después, cómo se comentan las notas en el patio. Un hilo por profesor (`una_por_reparto`). Repasar de verdad sigue siendo cosa de las acciones de estudiar: aquí se decide con qué ánimo
+ * una semana después, cómo se comentan las notas en el patio. Un hilo por semana de exámenes (`instancias: 'una'` y espera de 5 días: sin eso salía un hilo por cada examen, hasta 61 al año). Repasar de verdad sigue siendo cosa de las acciones de estudiar: aquí se decide con qué ánimo
  * se afronta (y un modificador de estudio de un día si te pones a repasar). La nota que se comenta es la de las marcas que deja el segundo paso. Cifras de partida, por calibrar.
  */
 const EJEMPLO_AVISO = { asignatura: 'estudios.matematicas', nombre: 'Matemáticas', tipo: 'parcial1', curso: 0, trimestre: 1, totalMañana: 1 };
@@ -13,7 +13,7 @@ export default hilo({
   id: 'eventos.colegio.examen',
   nombre: 'Un examen',
   requiere: ['estudios', 'relaciones'],
-  instancias: 'una_por_reparto',
+  instancias: 'una',
   reparto: { profesor: { asignaturaDeLaSeñal: 'asignatura' }, quien: { rol: 'companero', conocido: true } },
   sucesos: [
     {
@@ -23,6 +23,7 @@ export default hilo({
       ejemploDeSeñal: EJEMPLO_AVISO,
       cuando: EN_CASA_POR_LA_TARDE,
       aguanta: { dias: 1 },
+      repite: { espera: { dias: 5 } },
       textos: [
         '«Mañana, el examen de {señal.nombre}», recordó {profesor.nombre} al salir. En la mochila, el libro sigue cerrado y la tarde se va acortando.',
         'En la puerta de la nevera hay una nota con letra tuya: «Mañana, {señal.nombre}». Llevas toda la tarde sin mirarla de frente.',
@@ -61,6 +62,7 @@ export default hilo({
       disparo: { al: 'estudios.examen_hecho' },
       ejemploDeSeñal: EJEMPLO_HECHO,
       aguanta: { dias: 1 },
+      repite: { espera: { dias: 5 } },
       variantes: [
         {
           id: 'no_presentado',

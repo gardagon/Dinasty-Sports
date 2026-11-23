@@ -4,7 +4,7 @@ import { suceso } from '@ds/contracts';
  * Lote 2, tanda 3: detalles con amigos (`menor`). Cada uno usa un papel que depende del estado del vínculo: `amigo` (estado `amigo` o `mejor_amigo`) o alguien a quien conoces a medias. `regalo_inesperado` lee
  * la marca `perdono_una_deuda` del hilo del préstamo. Familia de rotación `patio`. Cifras de partida, por calibrar.
  */
-const AL_PATIO = { al: 'lugares.llegada', prob: 0.05 } as const;
+const AL_PATIO = { al: 'lugares.llegada', prob: 0.07 } as const;
 const EJEMPLO = { desde: 'aula', hasta: 'patio', minutos: 2 };
 const EN_EL_RECREO = [{ señal: 'hasta', es: 'patio' }, { hora: { desde: 10 * 60 + 30, hasta: 11 * 60 + 15 } }] as const;
 const AMIGO = { amigo: { relacion: { estado: ['amigo', 'mejor_amigo'] }, presente: true } } as const;
@@ -16,10 +16,10 @@ export default [
     categoria: 'menor',
     familia: 'patio',
     requiere: ['lugares', 'relaciones'],
-    disparo: { al: 'lugares.llegada', prob: 0.04 },
+    disparo: { al: 'lugares.llegada', prob: 0.06 },
     ejemploDeSeñal: EJEMPLO,
     cuando: [{ señal: 'hasta', es: 'patio' }, { relacion: 'amigo', afinidad: { min: 45 } }],
-    repite: { espera: { dias: 45 } },
+    repite: { espera: { dias: 30 } },
     reparto: AMIGO,
     variantes: [
       {
@@ -58,7 +58,7 @@ export default [
     disparo: AL_PATIO,
     ejemploDeSeñal: EJEMPLO,
     cuando: EN_EL_RECREO,
-    repite: { espera: { dias: 45 } },
+    repite: { espera: { dias: 30 } },
     reparto: { retador: { rol: 'companero', conocido: true, presente: true } },
     textos: [
       '{retador.Nombre} señala la valla del fondo. «Te echo una carrera hasta ahí. El que pierda se lleva la mochila del otro hasta la clase».',
@@ -95,10 +95,10 @@ export default [
     categoria: 'menor',
     familia: 'patio',
     requiere: ['lugares', 'relaciones'],
-    disparo: { al: 'lugares.llegada', prob: 0.04 },
+    disparo: { al: 'lugares.llegada', prob: 0.06 },
     ejemploDeSeñal: EJEMPLO,
     cuando: [{ señal: 'hasta', es: 'patio' }, { hora: { desde: 10 * 60 + 30, hasta: 11 * 60 + 15 } }],
-    repite: { espera: { dias: 40 } },
+    repite: { espera: { dias: 30 } },
     reparto: { ...AMIGO, nuevo: { rol: 'companero', conocido: false, presente: true } },
     textos: [
       '{amigo.Nombre} tira de ti hacia un corrillo. «Mira, este es {nuevo.nombre}, el de otra clase. Ya te hablé de {nuevo:él|ella}».',
