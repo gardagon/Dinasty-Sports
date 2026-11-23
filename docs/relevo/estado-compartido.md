@@ -31,3 +31,6 @@ Es un arreglo: cambian las partidas que usan el aforo. Cada bot da ahora **lo mi
 Sin cambios respecto a la primera pasada: empollon 2 (1830 a008e3c0e063), atleta 1 y 2, sobreentrena 1 y 2, vago 1 y 2 (vago 2 = 1463 296d922625c9), abandono 1 y 2 y los dos de fútbol. `aleatorio` vuelve a sus valores originales (3069 y 3035): no lo he investigado más (el bot elige al azar entre las acciones y es sensible a la lista de cercanos); no es un fallo, solo se anota.
 
 ## Comprobaciones
+- `npm run typecheck`: ✅
+- `npm test`: ✅ 129 archivos, 1388 tests, 400 s.
+- `npm run probar-web`: ✅ (todo el camino en Chromium, sin errores en la consola).
