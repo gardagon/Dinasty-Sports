@@ -687,11 +687,11 @@ export function ajustarVecinos(npcs: Npc[], semilla: number, dia: number): Npc[]
     const turno: TipoAsignado['turno'] = lugar ? (azarDe('turno', semilla, n.id) < 0.5 ? 'manana' : 'tarde') : undefined;
     const descripcion = adulto ? descripcionDeVecino(n.gender, perro, jubilado) : n.description;
     const etiquetas = [...n.tags.filter((e) => !(ETIQUETAS_DE_CALLE as readonly string[]).includes(e)), ...(perro ? ['perro'] : []), ...(jubilado ? ['jubilado'] : [])];
-    const igual = !!t.escolar === escolar && !!t.recoge === recoge && !!t.pequeno === pequeno && t.vive === vive && !!t.perro === perro && !!t.jubilado === jubilado && t.trabaja === lugar && t.turno === turno
+    const igual = !!t.escolar === escolar && !!t.recoge === recoge && !!t.pequeno === pequeno && !!t.adulto === adulto && t.vive === vive && !!t.perro === perro && !!t.jubilado === jubilado && t.trabaja === lugar && t.turno === turno
       && n.description === descripcion && n.tags.length === etiquetas.length && n.tags.every((e, k) => e === etiquetas[k]);
     if (igual) continue;
-    const { escolar: _e, recoge: _r, pequeno: _q, vive: _v, perro: _o, jubilado: _j, trabaja: _w, turno: _t, ...resto } = t;
-    const marcas = { ...(escolar ? { escolar: true } : {}), ...(recoge ? { recoge: true } : {}), ...(pequeno ? { pequeno: true } : {}), ...(vive ? { vive } : {}), ...(perro ? { perro: true } : {}), ...(jubilado ? { jubilado: true } : {}), ...(lugar ? { trabaja: lugar, turno } : {}) };
+    const { escolar: _e, recoge: _r, pequeno: _q, adulto: _a, vive: _v, perro: _o, jubilado: _j, trabaja: _w, turno: _t, ...resto } = t;
+    const marcas = { ...(escolar ? { escolar: true } : {}), ...(recoge ? { recoge: true } : {}), ...(pequeno ? { pequeno: true } : {}), ...(adulto ? { adulto: true } : {}), ...(vive ? { vive } : {}), ...(perro ? { perro: true } : {}), ...(jubilado ? { jubilado: true } : {}), ...(lugar ? { trabaja: lugar, turno } : {}) };
     nuevos.set(n.id, { ...n, ...(adulto ? { description: descripcion } : {}), tags: etiquetas, tipos: n.tipos!.map((x, j) => (j === i ? { ...resto, ...marcas } : x)) });
   }
   return nuevos.size ? npcs.map((n) => nuevos.get(n.id) ?? n) : npcs;

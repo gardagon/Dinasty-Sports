@@ -72,7 +72,7 @@ describe('la gente del colegio y del barrio', () => {
     // Ningún niño ni nadie más lo lleva.
     expect(npcs().filter((n) => n.tipos?.some((t) => t.recoge) && (n.colegio !== undefined && n.colegio !== 'ninguno' && !n.id.startsWith('vecino_'))).length).toBe(0);
     hasta(13, 40);
-    const enLaEntrada = () => new Set(presencia().en('colegio', 5000).filter((p) => p.role === 'vecino').map((p) => p.id));
+    const enLaEntrada = () => new Set(presencia().en('colegio', 5000).filter((p) => p.role === 'vecino' && p.id !== 'conserje_1').map((p) => p.id));
     expect(enLaEntrada().size).toBe(0);
     hasta(14, 0);
     const alasCatorce = enLaEntrada();

@@ -35,6 +35,7 @@ describe('la gente de las calles', () => {
     expect(lista.length).toBeGreaterThan(40);
     const marca = (n: Npc) => n.tipos!.find((t) => t.tipo === 'vecino')!;
     for (const calle of ['calle_casa', 'calle_colegio', 'avenida_parque']) expect(lista.some((n) => marca(n).vive === calle), calle).toBe(true);
+    expect(lista.every((n) => marca(n).adulto)).toBe(true);
     expect(lista.some((n) => !marca(n).vive)).toBe(true);
     const conPerro = lista.filter((n) => marca(n).perro);
     expect(conPerro.length / lista.length).toBeGreaterThan(0.03);

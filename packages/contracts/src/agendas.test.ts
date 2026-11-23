@@ -274,7 +274,7 @@ describe('agendas de las personas', () => {
     const cualquiera = (tipos: TipoAsignado[], dia: number, hora: number, min: number, personas = 400) => Array.from({ length: personas }, (_, i) => u(tipos, dia, hora, min, `p${i}`).sitio);
 
     it('un vecino que vive en la calle de tu casa sale y vuelve por ella (de 6:30 a 23:59) y no está en ella de madrugada', () => {
-      const vecino: TipoAsignado[] = [{ tipo: 'vecino', vive: 'calle_casa' }];
+      const vecino: TipoAsignado[] = [{ tipo: 'vecino', adulto: true, vive: 'calle_casa' }];
       expect(cuantos(vecino, 0, 7, 30, 'calle_casa')).toBeGreaterThan(20); // salir a trabajar (p 0,12)
       expect(cuantos(vecino, 0, 7, 30, 'calle_casa')).toBeLessThan(90);
       expect(cuantos(vecino, 0, 18, 30, 'calle_casa')).toBeGreaterThan(5); // volver
@@ -288,8 +288,9 @@ describe('agendas de las personas', () => {
       expect(cuantos(vecino, 0, 7, 30, 'avenida_estadio')).toBe(0);
     });
 
-    it('a quien no vive en ninguna calle solo se le ve de paso por la del colegio o por la avenida, y poco', () => {
-      const vecino: TipoAsignado[] = [{ tipo: 'vecino' }];
+    it('a quien no vive en ninguna calle solo se le ve de paso por la del colegio o por la avenida, y poco; los jóvenes (sin la marca de adulto) no pisan la calle', () => {
+      expect(cuantos([{ tipo: 'vecino' }], 0, 7, 30, 'calle_colegio', 1000) + cuantos([{ tipo: 'vecino' }], 5, 11, 0, 'avenida_parque', 1000) + cuantos([{ tipo: 'vecino' }], 0, 22, 0, 'calle_casa', 1000)).toBe(0);
+      const vecino: TipoAsignado[] = [{ tipo: 'vecino', adulto: true }];
       expect(cuantos(vecino, 0, 7, 30, 'calle_casa', 1000)).toBe(0);
       const deCamino = cuantos(vecino, 0, 7, 30, 'calle_colegio', 1000);
       expect(deCamino).toBeGreaterThan(10);

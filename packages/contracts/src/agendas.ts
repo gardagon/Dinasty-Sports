@@ -74,6 +74,8 @@ export interface TipoAsignado {
    * (de las 15:00 a que cierra; la cena en el restaurante).
    */
   turno?: 'manana' | 'tarde';
+  /** `vecino` adulto de la zona (los `vecino_N` de 18 años o más): además de lo suyo, pasa algo por la calle del colegio y por la avenida (`VENTANAS_DE_CALLE.depaso`). Los jóvenes de 18–19 años no la llevan. */
+  adulto?: boolean;
   /** `vecino` adulto: en qué calle vive (una de `CALLES_CON_VECINOS`). Pasa por ella al salir y volver a casa y a dar una vuelta (`VENTANAS_DE_CALLE`). */
   vive?: string;
   /**
@@ -284,13 +286,14 @@ export const CALLES_CON_VECINOS = ['calle_casa', 'calle_colegio', 'avenida_parqu
 /** Menores de esta edad no van solos al supermercado ni al restaurante (23/11, decidido con el usuario). */
 export const EDAD_PARA_IR_SOLO = 12;
 /**
- * Gente por la calle (23/11, cifras provisionales; `docs/relevo/gente-por-la-calle.md`). La calle tiene gente de `desde` a `hasta` (de 6:30 a 23:59). Las visitas a la calle son **pasos de `paso` minutos** y en cada uno la persona
- * está en la calle con la probabilidad `p` (azar independiente por paso, estable por persona y día): en promedio pasa `pasos × p` pasos. Sale de las marcas del tipo `vecino` (`vive`, `perro`, `jubilado`).
+ * Gente por la calle (23/11, cifras provisionales; `docs/relevo/gente-por-la-calle.md`). La calle tiene gente de `desde` a `hasta` (de 6:30 a 23:59). Las visitas a la calle son **pasos de `paso` minutos** (15, todos en la misma
+ * cuadrícula de cuartos de hora: cada cambio de tramo obliga a recalcular la presencia de todos, y con pasos de 10 minutos el coste por acción subía un 10–16 %) y en cada uno la persona está en la calle con la probabilidad `p`
+ * (azar independiente por paso, estable por persona y día): en promedio pasa `pasos × p` pasos. **Las `p` de la tabla son por cada 10 minutos** (se escalan a `paso`). Sale de las marcas del tipo `vecino` (`vive`, `perro`, `jubilado`).
  */
 export const VENTANAS_DE_CALLE = {
   desde: h(6, 30),
   hasta: h(24),
-  paso: 10,
+  paso: 15,
   /** Salir de casa, volver y dar una vuelta (los que viven en esa calle). `p` por paso de 10 minutos. */
   residente: [
     { dias: 'lectivo', desde: h(6, 30), hasta: h(8, 30), p: 0.12 },
@@ -302,7 +305,7 @@ export const VENTANAS_DE_CALLE = {
   ],
   /** Pasear al perro: por su calle, la avenida o el parque. */
   perro: [
-    { dias: 'lectivo', desde: h(6, 30), hasta: h(7, 40), p: 0.25 },
+    { dias: 'lectivo', desde: h(6, 30), hasta: h(7, 45), p: 0.25 },
     { dias: 'lectivo', desde: h(19, 30), hasta: h(23, 30), p: 0.14 },
     { dias: 'libre', desde: h(8), hasta: h(12), p: 0.12 },
     { dias: 'libre', desde: h(19), hasta: h(23, 30), p: 0.11 },
@@ -319,7 +322,7 @@ export const VENTANAS_DE_CALLE = {
   ],
   /** Los demás adultos pasan algo por la calle del colegio (al ir y venir) y por la avenida los días libres. */
   depaso: [
-    { dias: 'lectivo', desde: h(7, 10), hasta: h(8, 10), p: 0.04, sitio: 'calle_colegio' },
+    { dias: 'lectivo', desde: h(7, 15), hasta: h(8, 15), p: 0.04, sitio: 'calle_colegio' },
     { dias: 'lectivo', desde: h(14), hasta: h(15), p: 0.04, sitio: 'calle_colegio' },
     { dias: 'libre', desde: h(10), hasta: h(14), p: 0.025, sitio: 'avenida_parque' },
   ],
@@ -333,10 +336,11 @@ export const VENTANAS_DE_CALLE = {
 
 type VentanaDeCalle = { dias: DiasDeTramo; desde: number; hasta: number; p: number };
 
-/** Pasos de `VENTANAS_DE_CALLE.paso` minutos de `v.desde` a `v.hasta`, cada uno con probabilidad `v.p` de que la persona esté en uno de `sitios`. */
+/** Pasos de `VENTANAS_DE_CALLE.paso` minutos de `v.desde` a `v.hasta`, cada uno con la probabilidad `v.p` (por 10 minutos, escalada al paso) de que la persona esté en uno de `sitios`. */
 function pasosDeCalle(v: VentanaDeCalle, sitios: Destinos, nivel: number): TramoDeAgenda[] {
   const { paso } = VENTANAS_DE_CALLE;
-  return Array.from({ length: Math.round((v.hasta - v.desde) / paso) }, (_, k) => tramo('vecino', nivel, v.dias, v.desde + k * paso, v.desde + (k + 1) * paso, sitios, v.p));
+  const p = Math.min(1, (v.p * paso) / 10);
+  return Array.from({ length: Math.round((v.hasta - v.desde) / paso) }, (_, k) => tramo('vecino', nivel, v.dias, v.desde + k * paso, v.desde + (k + 1) * paso, sitios, p));
 }
 
 /** Las visitas de un vecino a la calle según sus marcas. Va antes que el colegio de fuera y la recogida: las clases y esperar a un hijo mandan sobre pasear. */
@@ -344,7 +348,7 @@ function vecinoEnLaCalle(nivel: number, t: TipoAsignado): TramoDeAgenda[] {
   const calle = t.vive;
   const propia: Destinos = calle ? [[calle, 1]] : [];
   const tramos: TramoDeAgenda[] = [];
-  const adulto = !t.escolar && !t.pequeno;
+  const adulto = !t.escolar && !t.pequeno && !!(t.adulto || t.vive || t.perro || t.jubilado);
   if (t.pequeno) {
     // Los niños pequeños: solo juegan fuera los que viven en una calle (y en el parque).
     if (calle) for (const v of VENTANAS_DE_CALLE.ninos) tramos.push(...pasosDeCalle(v, [[calle, 1], ['parque', 1]], nivel));
@@ -356,7 +360,7 @@ function vecinoEnLaCalle(nivel: number, t: TipoAsignado): TramoDeAgenda[] {
     if (calle) for (const v of VENTANAS_DE_CALLE.paseoDeJubilado) tramos.push(...pasosDeCalle(v, propia, nivel));
   } else {
     if (calle) for (const v of VENTANAS_DE_CALLE.residente) tramos.push(...pasosDeCalle(v, propia, nivel));
-    for (const v of VENTANAS_DE_CALLE.depaso) tramos.push(...pasosDeCalle(v, [[v.sitio, 1]], nivel));
+    if (t.adulto) for (const v of VENTANAS_DE_CALLE.depaso) tramos.push(...pasosDeCalle(v, [[v.sitio, 1]], nivel));
   }
   if (t.perro) for (const v of VENTANAS_DE_CALLE.perro) tramos.push(...pasosDeCalle(v, [...propia, ['avenida_parque', 1], ['parque', 1]], nivel));
   return tramos;
