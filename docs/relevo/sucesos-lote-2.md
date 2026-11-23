@@ -300,3 +300,93 @@ Formato: **hilo — título.** Instancias · Quién · Pasos (disparo, espera, o
 - `npm run eventos:validar`: ✅ sin cambios (63 sucesos, 462 caminos, los mismos 6 avisos de marcas sin lector de antes).
 - `git status`: solo cambia este archivo. El script temporal de medida (`tools/_medir_tmp.ts`) se ha borrado; si se quiere conservar, es la base de E8 (medida por franja, lugar, día y persona).
 - Las cifras de §4 son **estimaciones de diseño**, no medidas: hasta que haya contenido escrito no hay otra cosa que medir.
+
+---
+
+# Fase 2: escribir los sucesos (23/11/2026)
+
+El usuario aprobó la propuesta (`docs/DECISIONES.md`, 22/11, «Sucesos, lote 2: decisiones sobre la propuesta»; comprobado en la rama de trabajo antes de empezar). Se unió el motor (`sucesos-motor-2`) a esta rama. Se escribió por tandas, con un commit por tanda, `eventos:validar`, `eventos:mapa` y `sim:eventos -- 180 2` en cada una. **Resumen: 49 sucesos nuevos (18 detalles ligeros y 10 hilos con 31 pasos); el catálogo pasa de 63 a 112. Ritmo con los bots: de 2,6 a 4,2 por semana (el objetivo es 6, no se llega); los demás chequeos del ritmo objetivo de «fuera del aula y del patio» y «en casa o en fin de semana» pasan a ✅.** Detalle y qué falta abajo.
+
+## Tandas 1 y 2 (casa, fin de semana, parque y cuatro hilos)
+
+| Archivo | Sucesos |
+|---|---|
+| `casa/dia_a_dia.ts` | `desayuno` (3 textos + variante «cansado»), `deberes_con_padre` (variantes por promesa rota, nota baja o alta), `hermano_no_duerme` (3 textos), `tele_con_el_hermano` |
+| `casa/fin_de_semana.ts` | `tarea_del_hogar` (3 textos), `cena_de_domingo` (**lee** `lesionado_hace_poco`, `lo_pillaron_mintiendo_en_casa`, `rompio_una_promesa_en_casa`, `mintio_a_sus_padres`, `levanto_la_nota` y la nota media; 3 textos por defecto), `verano_aburrido` |
+| `amigos/parque.ts` | `parque_partido` (fin de semana, con un amigo de estado `amigo`/`mejor_amigo`; versión para ≤ 10 años) |
+| `colegio/companero_nuevo.ts` | hilo de 3 pasos: llegada → primera semana (3 versiones según lo que hiciste) → un mes después (amigos / conocidos / otros) |
+| `colegio/tutor_se_preocupa.ts` | hilo de 3 pasos con el profesor de Lengua o de Matemáticas: la llamada → el plan (modificador de estudio) → el seguimiento (la nota sube o no, `sobreRecuerdo`) |
+| `amigos/secreto.ts` | hilo de 4 pasos por amigo: la confesión → te preguntan → se entera (se supo / se sospechó / se guardó) → rota la confianza (arreglable) |
+| `amigos/prestado.ts` | hilo de 3 pasos por amigo: petición (5 €, 2 €, no) → devolución (según cuánto os queréis: seguro, al azar o se le olvida) → reclamar |
+| `casa/detalles.ts` (editado) | `familia: 'cena'` en `ayudar_con_la_cena` y `cena_favorita` (la cena de domingo también) para la rotación |
+
+**Cambios fuera del contenido (pequeños; revisar):**
+
+1. **Arreglo en el director** (`modules/sucesos/src/index.ts`, `espontaneos`): **`aguanta` no funcionaba con `cada: 'dia'`/`'semana'`.** El suceso se tiraba solo a medianoche (`dia.inicio`), y si sus condiciones de hora o lugar no se cumplían en ese momento se perdía; `aguanta` solo se miraba en los sucesos por señal. Por eso `casa.noche_sin_sueno` salía **0 veces** en `sim:eventos` aunque el bot estuviera despierto a las 22:00. Ahora, si a un `cada` le toca pero no es el momento y tiene `aguanta`, queda esperando como un programado (se mira tras cada acción). Es lo que decía `ANEXO_EVENTOS.md`. Efecto visible: `noche_sin_sueno` pasa de 0 a ~7 por año. Tests de `modules/sucesos`: ✅.
+2. **`dado.diaDeLaSemana`** (0 = lunes) para las `pruebas` y `escenarios` (`HechosDePrueba`, `tools/eventos/banco.ts`): sin él no se pueden probar los sucesos de fin de semana.
+3. En los escenarios con días de espera hay que **separar el paso de los días del del sitio** (`{ pasan: { dias: 9 }, dado: { lugar: 'casa' } }` y luego `{ pasan: { dias: 0 }, dado: { lugar: 'patio' } }`): si no, el suceso programado sale solo durante los días que pasan y vence con su opción por defecto.
+
+**Hallazgos para la arquitectura:**
+
+- **El personaje empieza con 0 € y no tiene ingresos** (`gen.dinero` inicial 0). `eventos.amigos.prestado` pide ≥ 2 € y casi nunca saldrá hasta que exista la economía del personaje (la deuda técnica ya anotada); lo mismo pasará con `ahorrar_para_algo` (tanda 4). Están escritos y probados con `escenarios`.
+- Los bots actúan en bloques largos (leer ≈ 45 min): las ventanas de hora de los `cada` deben ser **anchas** (≥ 1,5 h) para medirse; en el juego, con pasos de 5 minutos, no importa.
+- `tools/eventos` y la prueba del banco no pueden lanzar señales que no sean compartidas (`lugares.llegada` no vale): se fuerza el suceso con `sale`.
+
+## Tandas 3 y 4 (colegio, amigos y los seis hilos que faltaban)
+
+| Archivo | Sucesos |
+|---|---|
+| `colegio/entrada_y_clase.ts` | `en_la_puerta` (entrada del colegio, 7:30–7:50), `copiar_deberes` y `cambio_de_sitios` (al entrar en el aula antes de la primera clase; el segundo deja la marca `vecino_de_mesa` que lee el primero), `capitan_de_equipo` (Educación física; tres versiones según velocidad y coordinación: te eligen de los primeros, a mitad o de los últimos, cada una con sus opciones) |
+| `colegio/corrillo.ts` | `rumor` (dos personas: quien cuenta y de quien se habla), `salida_con_hermano` (14:00–14:30, hermano en edad escolar) |
+| `amigos/detalles.ts` | `regalo_inesperado` (lee `perdono_una_deuda` del préstamo), `apuesta_en_el_patio`, `un_amigo_de_un_amigo` (presenta a alguien que no conocías), `amigo_que_se_enfria` (amigo con afinidad 20–35) |
+| `colegio/examen.ts` | hilo de 3 pasos con las **señales de examen**: la víspera (modificador de estudio de un día si repasas) → la nota (versiones: no presentado, bien tras repasar, mal sin repasar, bien, regular, mal) → las notas comentadas en el patio. **Uno por semana de exámenes** (`instancias: 'una'` y espera de 5 días: la primera versión salía un hilo por examen, 61 al año) |
+| `casa/boletin.ts` | hilo de 3 pasos con `estudios.boletin`: el sobre en el colegio → en casa (según nota, promesa rota, mentira) → consecuencia semanas después (premio, plan de estudio o nada) |
+| `colegio/apodo.ts` | hilo de 3 pasos. **Duro `burlas`:** variante «mote feo» (solo si quien lo pone tiene afinidad ≤ 10 contigo) y opción «devolvérselo con un mote feo de verdad». Sin lo duro: el mote suave, entero |
+| `amigos/pelea.ts` | hilo de 3 pasos con dos amigos. **Duro `peleas`:** variante «a empujones» y opción «meterte en medio y separarlos». Sin lo duro: discusión y paces; contigo la afinidad cambia, entre ellos no |
+| `casa/padres_discuten.ts` | hilo de 3 pasos, solo si el apoyo familiar es ≥ 50. **Duro `familia`:** variante «bronca» (solo si hay una mentira descubierta o la nota media es < 5) y opción «salir y pedirles que paren». Sin lo duro: la tensión sorda; siempre se arregla |
+| `casa/ahorrar.ts` | hilo de 3 pasos (20 € y 10 €; ver «el personaje empieza con 0 €» arriba). El dinero llega por el trato de tareas de este mismo hilo |
+
+**Rotación (`familia`)**: `patio` (los 7 detalles del patio ya existentes y los nuevos que van al patio), `aula` (7 existentes y `copiar_deberes`, `capitan_de_equipo`, `cambio_de_sitios`), `camino` (los 2 del camino y `en_la_puerta`), `cena` (3), `parque` (los 3 del barrio y `parque_partido`).
+
+**Contenido duro**: tres categorías usadas (`burlas`, `peleas`, `familia`), cada una en una variante y una opción; **ningún hilo se queda sin camino** sin lo duro (`eventos:validar` recorre 748 caminos más con todo lo duro apagado, y no avisa de nada). Las opciones por defecto del plazo no son duras.
+
+## Medidas
+
+**`npm run eventos:validar`**: ✅ (112 sucesos, 4.834 caminos, 748 más sin lo duro; 2 avisos de familias de un solo suceso o marcas de fútbol anteriores: `perdono_una_deuda` ya lo lee `regalo_inesperado`). **`npm run typecheck`**: ✅. **`npm test`** (dos veces, antes y después de ajustar cifras): ✅ 128 archivos, 1.384 tests, ~10 min. **`npm run eventos:mapa`**: hecho (13 hilos, 112 sucesos).
+
+**`npm run sim:eventos -- 180 2`** (8 bots × 2 semillas), objetivo frente a medido:
+
+| Cifra | Objetivo | Antes del lote (motor 2) | Ahora (todos los bots) | `madrugador` |
+|---|---|---:|---:|---:|
+| Eventos por semana (media) | 6 (entre 4 y 9) | 2,6 | **4,2** ⚠️ | 5,0 |
+| % de semanas con menos de 4 | — | 74 % | 44 % | 32 % |
+| % de semanas con más de 9 | 0 | 0,8 % | 2,5 % ⚠️ | 4 % |
+| % de días de clase sin ningún evento | ≤ 35 % | 60,6 % | **46,4 %** ⚠️ | 37,9 % |
+| Fuera del aula y del patio, por semana | ≥ 1 | 0,5 | **1,8** ✅ | 2,2 |
+| En casa o en fin de semana, por semana | ≥ 1 | 0,3 | **1,4** ✅ | 1,5 |
+| % de semanas sin ningún evento que se decide | 0 | 19 % | 6,5 % ⚠️ | 4 % |
+
+Por franja (todos): antes de clase 0,1 → 0,6; recreo 0,8 → 1,1; mediodía 0,0 → 0,2; tarde 0,3 → 0,4; **noche 0,0 → 0,4**. El fin de semana pasa de 0,1 a 0,5. Eventos distintos por partida: 29 → 61.
+
+**`npm run sim:rapida`, antes y después** (`fcfd1f5` frente a esta rama): **ningún chequeo cambia de ✅/⚠️** (el de «El esfuerzo hace progresar» sigue ⚠️ como antes, atletismo +4,6). «Ritmo de los eventos» pasa de 3,0 a 5,2 por semana (✅, máx. 10; 29 → 61 distintos). El rendimiento por acción sube de 1,27 a 1,50 ms (límite 2,2 ms: más sucesos que mirar, y la medida baila un 20 %). Los demás valores, iguales dentro del ruido (p. ej., empollón 81,0 → 81,1).
+
+## Lo que queda por debajo del objetivo (y qué se podría hacer)
+
+1. **Ritmo 4,2 con los bots frente a 6.** Se ha llegado a donde llegan los bots sin pasarse de los cupos ni de las ~10 veces al año de cada suceso: el techo de cada detalle lo ponen la probabilidad y la espera (3–10 al año). Palancas, de más a menos barata: subir `prob` en los de aula y patio (hoy 0,04–0,08); acortar más las esperas de los del lote 1 (algunos aún de 45–90 días); más detalles de **mediodía (14:00–17:00)** y **tarde (17:00–20:00)**, que siguen en 0,2–0,4 por semana; y que el bot `vago` (que no sale de casa) tenga algo que le pase en casa entre semana. Un jugador real hace más cosas que un bot (parque, amigos, fines de semana), así que cabe esperar algo más que lo medido: no he podido comprobarlo.
+2. **46 % de días de clase sin evento (objetivo ≤ 35 %).** Pesa el `vago` (58 %) y el `aleatorio` (50 %); los bots que van al colegio y al patio, 38–47 %.
+3. **Sucesos que los bots no miden**: `parque_partido`, `amigo_que_se_enfria`, `verano_aburrido` (el sim de 180 días no llega al verano) y `en_la_puerta` (el `madrugador` espera en la calle hasta las 7:49 y entra cuando la entrada se vacía). Están probados con `pruebas` y `escenarios`. El préstamo y el ahorro casi no salen porque el personaje no tiene dinero.
+4. **No hay suceso de «fuera de casa en fin de semana» más allá del parque**, ni de vecinos en la calle (pendiente de decisión del usuario, no se han escrito).
+
+## Hallazgos para la arquitectura
+
+1. **`aguanta` con `cada` no funcionaba** (corregido; ver arriba). Conviene que quien revise el director mire ese cambio (`modules/sucesos/src/index.ts`, `espontaneos`): los sucesos `cada` que esperan a que llegue su hora ahora salen sin gastar cupo (como los programados).
+2. **`clase.asistida` llega con la hora de después de la clase** (el director procesa el evento tras avanzar el tiempo): un suceso de «antes de que llegue el profesor» no puede colgar de esa señal. Los míos del principio de clase cuelgan de `lugares.llegada` a `aula`. Los que ya existían hablan de lo que pasó en la clase, y encajan.
+3. **El personaje empieza con 0 € y no tiene ingresos.** El hilo del préstamo y el del ahorro están escritos, pero casi no salen. La economía del personaje (paga, tareas, qué comprar) sería lo siguiente para que valgan.
+4. **No hay forma de forzar una variante con `peso` en un escenario**: el hilo se cuenta en el banco con las condiciones; por eso las variantes aleatorias de `devolucion` (préstamo) se decidieron por afinidad (cuanto más cerca, más fiable) y la de «mote feo» por la afinidad de quien lo pone: es más lógico y se puede probar. `peso` solo queda en el reparto de textos.
+5. **El banco de pruebas no lanza señales no compartidas** (`lugares.llegada`): se fuerza el suceso con `sale`. En los escenarios con días de espera hay que separar el paso de los días del paso del sitio (ver arriba).
+6. **Estado compartido entre partidas en un mismo proceso** (hallazgo de la sesión del motor): no lo he tocado.
+7. Mapa de marcas (`MAPA.md`): quedan sin lector solo `le_recomendaron_un_deporte` y `futbol_quiere_cambiar_de_puesto` (de antes); `lesionado_hace_poco`, `mintio_a_sus_padres`, `lo_pillaron_mintiendo_en_casa` y `rompio_una_promesa_en_casa` ya los leen `cena_de_domingo` y `deberes_con_padre`.
+
+## Fuera del lote (lote 3), como se decidió
+
+`mudanza` (E6), `tu_cumple` (E4 + E7) y `visita_en_casa` (E3 + E7). El hecho `es_tu_cumple`/`cumple_en_dias` del motor sigue sin usarse.

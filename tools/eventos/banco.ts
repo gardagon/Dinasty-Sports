@@ -99,6 +99,7 @@ function moduloDePrueba(mando: Mando, genero: 'f' | 'm', duro?: ConfigDeContenid
             ...(d.lugar ? { lugar: () => d.lugar } : {}),
             ...(d.periodo ? { periodo: () => d.periodo } : {}),
             ...(d.hora !== undefined ? { minutoDelDia: () => d.hora! } : {}),
+            ...(d.diaDeLaSemana !== undefined ? { diaDeLaSemana: () => d.diaDeLaSemana! } : {}),
             // Sin decir quién está, están todos los del reparto.
             presente: (id: string) => (d.presente ? d.presente.some((p) => personaDePrueba(p) === id) : papelDe(id) !== undefined),
             relacion: (id: string) => {
