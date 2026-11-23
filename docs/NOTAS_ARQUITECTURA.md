@@ -54,7 +54,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 | `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | F1–F3 hechas y unidas el 23/11 (desplegable, deuda por edad con malus solo en la energía máxima al despertar, sensaciones, `dormirse_en_clase`, PNJ). Arreglado: el agotamiento de fin de día ve la energía de antes de dormir | ✅ Unida. Pendiente: hermanos <8 duermen 21:30–7:00 (`agendas.ts`, después de la calle); calibrar −4 de energía/h de deuda (¿−2,5?) |
 | `session_01M4vXXQ6DoRWA2UGVauypzR` | `claude/hogares` | Análisis (`docs/relevo/hogares.md`) | ✅ Unido. Espera decisiones del usuario |
 | `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error arreglado: el azar del aforo sale de `día:intervalo` (`PresenciaService.aforo`), no de un contador del proceso; guardar y cargar da lo mismo | ✅ Unida el 23/11 (cambian 7 líneas de la huella, aceptado como arreglo) |
-| `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | F1+F2 unidas el 23/11 (calles con 5–13 personas en hora punta, oficios en su lugar, portero, conserje, 3 repartidores, 5 sucesos de calle; ritmo 5,9/semana). Ahora: bajar el ms por acción (1,84 frente al límite de 1,73) sin cambiar la huella | En marcha |
+| `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | F1+F2 y abaratar el reparto de papeles (1,84 → ~1,4 ms por acción, huella idéntica), unidas el 23/11 | ✅ Unida |
 | `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño A aplicado (por defecto desde 1280 px), dinero en la columna, aviso «Pasando la semana…» | ✅ Unida el 23/11 |
 
 ## 4. Pendiente (por orden de prioridad propuesto)
