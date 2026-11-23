@@ -77,7 +77,7 @@ try {
     await pagina.click('[data-act="ir-menu"]');
     await pagina.click('[data-act="ir-nueva"]');
     await pagina.waitForSelector('[data-deporte-incluido="futbol"]');
-    await pagina.selectOption('#pais', { label: 'España · ciudad grande (se tarda unos 40 s en crear)' });
+    await pagina.selectOption('#pais', { label: 'España · ciudad grande (se tarda hasta un minuto en crear)' });
     await pagina.evaluate((s: number) => (window as any).__ds.fijarSemilla(s), semilla);
     await pagina.click('[data-act="empezar"]');
     await pagina.waitForFunction(() => !!(window as any).__ds.game, undefined, { timeout: 600000 });
@@ -157,17 +157,19 @@ try {
     const salida = resolve(args[0] ?? join(trabajo, 'capturas'));
     mkdirSync(salida, { recursive: true });
     const disenos = opcion('disenos', 'movil').split(',');
-    const anchos = opcion('anchos', '1366,1920').split(',').map(Number);
+    // Los tamaños: «1366» (el alto sale del ancho) o «1280x620».
+    const tamanos = opcion('anchos', '1366,1920').split(',').map((t) => (t.includes('x') ? t.split('x').map(Number) : [Number(t)]));
+    const medir = args.includes('--medir');
     const temas = opcion('temas', 'claro,oscuro').split(',');
     const solo = opcion('solo', '').split(',').filter(Boolean);
     const quiere = (x: string): boolean => !solo.length || solo.includes(x);
     for (const diseno of disenos) {
       for (const tema of temas) {
-        for (const ancho of anchos) {
-          const alto = ancho >= 1900 ? 1080 : ancho >= 1300 ? 768 : 844;
+        for (const [ancho, altoPedido] of tamanos) {
+          const alto = altoPedido ?? (ancho >= 1900 ? 1080 : ancho >= 1300 ? 768 : 844);
           const contexto = await navegador.newContext({ viewport: { width: ancho, height: alto }, deviceScaleFactor: ancho < 600 ? 3 : 2, colorScheme: tema === 'oscuro' ? 'dark' : 'light' });
           const pagina = await contexto.newPage();
-          await pagina.addInitScript(`window.__name = (f) => f; try { localStorage.setItem('ds.diseno', ${JSON.stringify(diseno === 'movil' ? 'movil' : 'escritorio')}); localStorage.setItem('ds.prototipo', ${JSON.stringify(diseno === 'movil' ? 'a' : diseno)}); } catch (e) {}`);
+          await pagina.addInitScript(`window.__name = (f) => f; try { localStorage.setItem('ds.diseno', ${JSON.stringify(diseno === 'movil' ? 'movil' : diseno === 'escritorio' ? 'escritorio' : 'automatico')}); localStorage.setItem('ds.prototipo', ${JSON.stringify(['b', 'c'].includes(diseno) ? diseno : 'a')}); } catch (e) {}`);
           pagina.on('dialog', (d: any) => void d.accept());
           const errores: string[] = [];
           pagina.on('pageerror', (e: any) => errores.push(e.message));
@@ -184,7 +186,7 @@ try {
           await selector.setFiles(estado);
           await pagina.waitForFunction(() => !!(window as any).__ds.game);
           await cerrarSucesos(pagina);
-          const nombre = (x: string): string => `${diseno}-${ancho}-${tema === 'oscuro' ? 'oscuro' : 'claro'}-${x}.png`;
+          const nombre = (x: string): string => `${diseno}-${altoPedido ? `${ancho}x${altoPedido}` : ancho}-${tema === 'oscuro' ? 'oscuro' : 'claro'}-${x}.png`;
           const foto = async (x: string, completa = false): Promise<void> => {
             await pagina.waitForTimeout(250);
             await pagina.screenshot({ path: join(salida, nombre(x)), fullPage: completa });
@@ -196,6 +198,26 @@ try {
             await pagina.waitForTimeout(150);
             return true;
           };
+          if (medir) {
+            // Lo que cuesta redibujar la página (A con el diario de 30 entradas): media de 20 redibujos, con el tamaño del diario de la partida.
+            const r = await pagina.evaluate(() => {
+              const ds = (window as any).__ds;
+              const t0 = performance.now();
+              for (let i = 0; i < 20; i++) ds.render();
+              return { ms: (performance.now() - t0) / 20, diario: ds.game.log.length };
+            });
+            console.log(`  render ${diseno} ${ancho}: ${r.ms.toFixed(1)} ms (diario de ${r.diario} entradas)`);
+          }
+          if (args.includes('--foco')) {
+            // El orden del foco con el teclado: qué se enfoca con cada Tab desde el principio de la página.
+            await pagina.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+            const orden: string[] = [];
+            for (let i = 0; i < 14; i++) {
+              await pagina.keyboard.press('Tab');
+              orden.push(await pagina.evaluate(() => { const e = document.activeElement as HTMLElement; return `${e.tagName.toLowerCase()}${e.dataset.escScroll ? `[zona ${e.dataset.escScroll}]` : e.dataset.tab ? `[pestaña ${e.dataset.tab}]` : e.dataset.act ? `[${e.dataset.act}]` : ''}`; }));
+            }
+            console.log(`  foco: ${orden.join(' → ')}`);
+          }
           for (const id of ['hacer', 'personaje', 'estudios', 'deporte', 'gente', 'relaciones', 'diario']) {
             if (!quiere(id) || !(await pestana(id))) continue;
             await foto(id, ancho < 600 || diseno === 'movil');
@@ -224,6 +246,15 @@ try {
             });
             await pagina.evaluate(() => (window as any).__ds.render());
             if (salio && (await pagina.locator('.ventana.suceso').count())) await foto('suceso');
+          }
+          if (quiere('opciones')) {
+            // La ventana de Opciones de la partida y, después, la pantalla de Opciones del menú.
+            await pagina.click('[data-act="opciones"]');
+            await foto('opciones-ventana');
+            await pagina.click('[data-act="cerrar-opciones"]');
+            await pagina.click('[data-act="menu"]');
+            await pagina.click('[data-act="ir-opciones"]');
+            await foto('opciones-pantalla', true);
           }
           if (errores.length) console.log(`  ⚠ errores en ${diseno}-${ancho}-${tema}: ${errores.slice(0, 2).join(' | ')}`);
           console.log(`  hecho: ${diseno} ${ancho} ${tema}`);

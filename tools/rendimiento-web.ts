@@ -2,12 +2,13 @@
  * Lo que tarda el juego **en un navegador de verdad** (Chromium con Playwright), en escritorio y en un móvil emulado (perfil de teléfono y CPU ×4 más lenta): crear la partida con la ciudad grande y el fútbol («creando el mundo»),
  * abrirla de nuevo (recargar la página con la partida guardada), cada acción tal como la hace el jugador (clic en el botón: lo que tarda la página en responder y volver a pintar) y guardar (copiar a texto + escribir en IndexedDB).
  *
- *   npm run rendimiento:web -- [--perfil escritorio|movil4|movil6|escritorio-pagina|todos] [--ciudad grande|prueba|ambas] [--pasadas 1] [--acciones 60] [--semilla 35] [--json]
+ *   npm run rendimiento:web -- [--perfil escritorio|movil4|movil6|escritorio-pagina|todos] [--ciudad grande|prueba|ambas] [--pasadas 1] [--acciones 60] [--semilla 35] [--ancho 1100] [--json]
  *
  * - Perfiles: `escritorio` (1100×900, sin límite), `movil4` y `movil6` (Pixel 5 y CPU ×4 o ×6 más lenta; `movil` = `movil4`, `ambos` = escritorio y móvil ×4), `escritorio-pagina` (sin límite pero creando la partida en la página, como en los móviles).
  *   **El límite de CPU de Chromium (`Emulation.setCPUThrottlingRate`) no se puede poner a un trabajador** («solo para páginas»): en los perfiles de móvil se quita `Worker` de la página para que cree la partida ella misma (el camino que la web ya tiene
  *   sin trabajadores), en su hilo, que sí está limitado. La cifra de crear es entonces el trabajo de crear a ×4/×6 **sin** el texto de ida y vuelta del trabajador (guardar a texto en él y abrirlo en la página: ver «abrir») y con la página quieta mientras dura.
  * - Ciudades: `grande` (España · ciudad grande con el fútbol instalado, ~6.100 personas) y `prueba` (España de siempre, ~1.400 personas, solo atletismo: lo que se juega por defecto).
+ * - `--ancho N`: el ancho de la ventana de escritorio (por defecto 1100, que usa la disposición de siempre; con 1280 o más, «Automático» usa el diseño de escritorio de tres columnas: comparar las dos medidas).
  * - `--pasadas N`: repite todo en N contextos nuevos y da la mediana y el rango.
  * - Cruzar de día y de semana: se avanza «descansar» de 5 en 5 minutos hasta justo antes del cambio y se cronometra el paso que lo cruza: motor (`perform`) y total (motor + repintar + dos `requestAnimationFrame`).
  *   Se cruzan 8 días seguidos y 6 semanas seguidas; la jornada de liga (~75 partidos del mundo) se juega al cerrar cada semana de clase desde que acaba la pretemporada.
@@ -64,7 +65,7 @@ try {
     const grande = ciudadId === 'grande';
     const etq = `${ciudadId}/${perfil}#${numPasada + 1}`;
     const movil = perfil.startsWith('movil');
-    const contexto = await navegador.newContext(movil ? { ...pw.devices['Pixel 5'] } : { viewport: { width: 1100, height: 900 } });
+    const contexto = await navegador.newContext(movil ? { ...pw.devices['Pixel 5'] } : { viewport: { width: Number(valor('--ancho', '1100')), height: 900 } });
     const pagina = await contexto.newPage();
     const cdp = await contexto.newCDPSession(pagina);
     if (cfg.rate > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: cfg.rate });
