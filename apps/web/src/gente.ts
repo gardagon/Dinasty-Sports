@@ -1,5 +1,4 @@
 import {
-  aforoCercano,
   idDePonerApodo,
   LONGITUD_MAXIMA_DE_APODO,
   PREFIJO_DE_COMPARACION,
@@ -138,7 +137,7 @@ export function aTuLado(g: Game, n: NpcView): boolean {
   const lugar = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
   const presencia = g.service<PresenciaService>(SERVICES.presencia);
   if (!lugar || !presencia) return true;
-  return presencia.en(lugar, aforoCercano(lugar, presencia.version)).some((x) => x.id === n.id) || presencia.ocupadosEn(lugar).some((o) => o.persona.id === n.id);
+  return presencia.en(lugar, presencia.aforo(lugar)).some((x) => x.id === n.id) || presencia.ocupadosEn(lugar).some((o) => o.persona.id === n.id);
 }
 
 export function genteAqui(g: Game): number {
@@ -159,7 +158,7 @@ function personasSinOrdenar(g: Game, f: Filtro): NpcView[] {
     const lugar = g.service<LugaresService>(SERVICES.lugares)?.actual().id;
     const presencia = g.service<PresenciaService>(SERVICES.presencia);
     // Quien está pero ocupado (atendiendo en clase, durmiendo) también se ve, con su estado: no desaparece.
-    return lugar && presencia ? [...presencia.en(lugar, aforoCercano(lugar, presencia.version)), ...presencia.ocupadosEn(lugar).map((o) => o.persona)] : [];
+    return lugar && presencia ? [...presencia.en(lugar, presencia.aforo(lugar)), ...presencia.ocupadosEn(lugar).map((o) => o.persona)] : [];
   }
   // Fuera de «Aquí» solo se guardan las personas que ya conoces: a quien no conoces solo lo ves cuando lo tienes cerca.
   const conocidas = { known: true };

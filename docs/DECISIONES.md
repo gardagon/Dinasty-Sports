@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/11/2026 — Una partida no depende de las anteriores del mismo proceso
+
+- **Fallo:** `relaciones` y la web sacaban el aforo (cuánta gente ves cerca, `aforoCercano`) con `presencia.version` como azar, un contador de índices de presencia construidos que era del proceso (`versionDeIndices` en `modules/npcs`). La segunda partida de un proceso seguía contando donde acabó la primera: `vago` con la semilla 2 daba otra partida tras `madrugador`, tras `equilibrado` o tras otra `vago` 2. Y guardar y cargar reiniciaba el contador, así que daba otro aforo que seguir sin cargar. En `npcs` el aforo ya usaba el día y el intervalo (`${t.day}:${intervalo}`): era una incoherencia entre los dos módulos.
+- **Arreglo:** el azar del aforo es siempre el mundo y la hora (día e intervalo de presencia). `PresenciaService.aforo(lugar)` lo calcula y lo usan `relaciones`, la web, los tests y las herramientas. `PresenciaService.version` sigue existiendo solo como clave de caché (distinta en cada índice construido, de cualquier partida; no se reinicia, no se guarda y no entra en ningún sorteo). Por eso ya no hace falta reiniciarla al crear ni al cargar (quitado de `initState` y `alCargar`), y el límite de las partidas intercaladas desaparece.
+- **Test:** `tests/estado-compartido.test.ts` (otra partida antes, orden, repetir, y guardar y cargar a mitad con JSON).
+- **Huella:** esto es un arreglo del juego, no una reorganización: cambian las partidas que usan ese aforo (7 de los 16 bots y semillas; ver `docs/relevo/estado-compartido.md`). Cada bot da ahora lo mismo jugado solo que dentro de `huella`.
+
 ## 23/11/2026 — Diseño de escritorio A y aviso al pasar de semana
 
 Respuestas del usuario a `docs/relevo/diseno-escritorio.md` y `docs/relevo/medir-rendimiento-2.md`:
