@@ -35,4 +35,5 @@ Sin cambios: equilibrado 1, atleta, sobreentrena, vago 1, abandono y los dos de 
 
 ## Comprobaciones
 - `npm run typecheck`: ✅
-- `npm test` y `npm run probar-web`: ver el final de este documento (pendientes al hacer el primer commit).
+- `npm test`: ✅ 129 archivos, 1386 tests, 433 s.
+- `npm run probar-web`: ✅ (todo el camino en Chromium, sin errores en la consola).
