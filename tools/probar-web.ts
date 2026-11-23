@@ -260,16 +260,16 @@ try {
     const ds = (window as unknown as { __ds: Record<string, any> }).__ds;
     const g = ds.game;
     const fin = (g.time.week + 1) * 10080;
-    ds.hastaElMinuto(fin - 12);
+    ds.hastaElMinuto(fin - 5);
     ds.render();
     const w = window as unknown as { __visto: boolean };
     w.__visto = false;
     new MutationObserver(() => {
       if (document.body.innerText.includes('Pasando la semana')) w.__visto = true;
     }).observe(document.body, { childList: true, subtree: true });
-    // Una acción que dure más de lo que queda de semana.
+    // Una acción que dure lo que queda de semana o más.
     const ids = [...document.querySelectorAll<HTMLElement>('.action[data-do]:not([disabled])')].map((b) => b.dataset.do!);
-    const id = ids.find((x) => (g.preview(x)?.duration ?? 0) > fin - g.time.minute);
+    const id = ids.find((x) => (g.preview(x)?.duration ?? 0) >= fin - g.time.minute);
     return { id, semana: g.time.week };
   });
   for (let i = 0; i < 10 && (await pagina.locator('.ventana.suceso').count()) > 0; i++) {

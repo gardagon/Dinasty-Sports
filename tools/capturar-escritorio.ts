@@ -208,6 +208,16 @@ try {
             });
             console.log(`  render ${diseno} ${ancho}: ${r.ms.toFixed(1)} ms (diario de ${r.diario} entradas)`);
           }
+          if (args.includes('--foco')) {
+            // El orden del foco con el teclado: qué se enfoca con cada Tab desde el principio de la página.
+            await pagina.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+            const orden: string[] = [];
+            for (let i = 0; i < 14; i++) {
+              await pagina.keyboard.press('Tab');
+              orden.push(await pagina.evaluate(() => { const e = document.activeElement as HTMLElement; return `${e.tagName.toLowerCase()}${e.dataset.escScroll ? `[zona ${e.dataset.escScroll}]` : e.dataset.tab ? `[pestaña ${e.dataset.tab}]` : e.dataset.act ? `[${e.dataset.act}]` : ''}`; }));
+            }
+            console.log(`  foco: ${orden.join(' → ')}`);
+          }
           for (const id of ['hacer', 'personaje', 'estudios', 'deporte', 'gente', 'relaciones', 'diario']) {
             if (!quiere(id) || !(await pestana(id))) continue;
             await foto(id, ancho < 600 || diseno === 'movil');
