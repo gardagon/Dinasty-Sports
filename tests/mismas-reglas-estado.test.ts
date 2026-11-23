@@ -245,7 +245,7 @@ describe('los sorteos del personaje usan la semilla de la partida', () => {
 
 describe('el sueño: las mismas reglas para el personaje y los PNJ', () => {
   it('una semana de un PNJ es lo mismo que siete noches del personaje', () => {
-    for (const [deuda, necesidad, lab, libres] of [[0, 9.5, 8.5, 10.5], [3, 9, 7, 11], [6, 7, 6, 9], [9, 7.5, 5, 6]] as const) {
+    for (const [deuda, necesidad, lab, libres] of [[0, 9.5, 8.5, 10.5], [3, 9, 7, 11], [6, 7, 6, 9], [9, 7.5, 5, 6]] as number[][]) {
       let d = deuda;
       for (let n = 0; n < 7; n++) d = pasoDeSuenoDeLaNoche(d, necesidad, n < 5 ? lab : libres);
       expect(pasoDeSuenoDeLaSemana(deuda, necesidad, lab, libres)).toBeCloseTo(d, 10);
