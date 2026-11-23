@@ -3,26 +3,35 @@
  *
  *   npm run eventos:rendimiento               (500 sucesos generados; 8 semanas por medida)
  *   npm run eventos:rendimiento -- 1000 12    (sucesos del catálogo grande y semanas)
+ *   npm run eventos:rendimiento -- 500 4 --ciudad [--solo-pnj] [--pasadas 3]   (añade la ciudad grande con fútbol, ~6.100 personas; `--solo-pnj` salta la parte 1)
  *
  * 1. Catálogo grande: arranque (compilar e indexar), coste añadido por acción y por día de juego, frente a la partida sin esos sucesos.
  * 2. PNJ: una semana de juego con las clases de los PNJ desactivadas, solo con `lesion` (lo decidido) y con todas las clases, con la
  *    ciudad pequeña y con la ciudad de prueba con fútbol (más gente). Cada medida se repite y se queda con la mejor (menos ruido).
  * Los objetivos están en docs/PLAN_EVENTOS.md §5.1.
  */
-import { APORTE_DE_CONFIG_DE_SUCESOS, APORTE_DE_SUCESOS, PAIS_CIUDAD_DE_PRUEBA, SERVICES, contador, defineModule, registrarPais, suceso, type AporteDeSucesos, type GameModule, type NpcDirectory, type SucesosService } from '@ds/contracts';
+import { APORTE_DE_CONFIG_DE_SUCESOS, APORTE_DE_SUCESOS, PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_GRANDE, SERVICES, contador, defineModule, registrarPais, suceso, type AporteDeSucesos, type GameModule, type NpcDirectory, type SucesosService } from '@ds/contracts';
 import { type Game, type GameState } from '@ds/core';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
 import type { SucesosState } from '@ds/mod-sucesos';
 
-const N = Number(process.argv[2] ?? 500);
-const SEMANAS = Number(process.argv[3] ?? 8);
+const ARGS = process.argv.slice(2);
+const POSICIONALES = ARGS.filter((a, i) => !a.startsWith('--') && !(i > 0 && ARGS[i - 1] === '--pasadas'));
+const N = Number(POSICIONALES[0] ?? 500);
+const SEMANAS = Number(POSICIONALES[1] ?? 8);
+const CIUDAD = ARGS.includes('--ciudad');
+const SOLO_PNJ = ARGS.includes('--solo-pnj');
+/** Con `--pasadas N`: cuántas veces se repite cada medida de los PNJ (la mediana y el rango salen de ahí; por defecto 6 en la ciudad pequeña y 3 en la grande). */
+const PASADAS = ARGS.includes('--pasadas') ? Number(ARGS[ARGS.indexOf('--pasadas') + 1]) : undefined;
 const ms = (f: () => void): number => {
   const t = performance.now();
   f();
   return performance.now() - t;
 };
 const mejorDe = (veces: number, f: () => number): number => Math.min(...Array.from({ length: veces }, f));
+const mediana = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+const rango = (xs: number[], d = 1): string => `${mediana(xs).toFixed(d)} (${Math.min(...xs).toFixed(d)}–${Math.max(...xs).toFixed(d)})`;
 
 /** Un catálogo generado de `n` sucesos del personaje, con la mezcla de disparos y condiciones de un catálogo de verdad. La mayoría no sale casi nunca (como debe ser). */
 function catalogoGrande(n: number): AporteDeSucesos[] {
@@ -72,8 +81,9 @@ const avanzar = (g: Game, dias: number): void => {
 };
 
 // ------------------------------------------------------------------ 1. Catálogo grande
-console.log(`\n1. Catálogo grande: ${N} sucesos generados (además de los del juego)\n`);
 const base = nuevaPartida({ seed: 11 }).serialize();
+if (!SOLO_PNJ) {
+console.log(`\n1. Catálogo grande: ${N} sucesos generados (además de los del juego)\n`);
 const grande = catalogoGrande(N);
 const partida = (extra: GameModule[]): Game => cargarPartida(structuredClone(base), [...MODULOS, ...extra]);
 const pendientes = (g: Game) => g.service<SucesosService>(SERVICES.sucesos)!.pendientes().length;
@@ -112,13 +122,19 @@ console.log(`  Por acción, sin cambio de día            ${accionSin.toFixed(3)
 console.log(`  Por día de juego (24 acciones + pasada)  ${diaSin.toFixed(2)} → ${diaCon.toFixed(2)} ms     añade ${(diaCon - diaSin).toFixed(2)} ms   objetivo de la pasada diaria < 1 ms`);
 console.log(`  En 28 días han salido ${salidos} sucesos; la memoria del director pesa ${(estadoCon / 1024).toFixed(1)} KB`);
 
+}
+
 // ------------------------------------------------------------------ 2. Sucesos de los PNJ
-console.log(`\n2. Sucesos de los PNJ: coste de una semana de juego (${SEMANAS} semanas por medida)\n`);
+console.log(`\n2. Sucesos de los PNJ: coste del cierre de semana y del cambio de día (${SEMANAS} semanas por pasada; mediana y rango entre pasadas)\n`);
 registrarPais(PAIS_CIUDAD_DE_PRUEBA);
-const ciudades: { nombre: string; estado: GameState; modulos: GameModule[] }[] = [
-  { nombre: 'Ciudad del juego (atletismo)', estado: base, modulos: [...MODULOS] },
-  { nombre: 'Ciudad de prueba con fútbol', estado: nuevaPartida({ seed: 31, pais: PAIS_CIUDAD_DE_PRUEBA.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]).serialize(), modulos: [...MODULOS, futbol] },
+const ciudades: { nombre: string; estado: () => GameState; modulos: GameModule[]; pasadas: number }[] = [
+  { nombre: 'Ciudad del juego (atletismo)', estado: () => base, modulos: [...MODULOS], pasadas: PASADAS ?? 6 },
+  { nombre: 'Ciudad de prueba con fútbol', estado: () => nuevaPartida({ seed: 31, pais: PAIS_CIUDAD_DE_PRUEBA.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]).serialize(), modulos: [...MODULOS, futbol], pasadas: PASADAS ?? 6 },
 ];
+if (CIUDAD) {
+  registrarPais(PAIS_CIUDAD_GRANDE);
+  ciudades.push({ nombre: 'Ciudad grande con fútbol', estado: () => nuevaPartida({ seed: 31, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]).serialize(), modulos: [...MODULOS, futbol], pasadas: PASADAS ?? 3 });
+}
 const configuraciones: { nombre: string; aportes: AporteDeSucesos[]; clases: string[] }[] = [
   { nombre: 'Todo desactivado', aportes: [], clases: [] },
   { nombre: 'Solo lesiones (lo decidido)', aportes: [], clases: ['lesion'] },
@@ -127,35 +143,47 @@ const configuraciones: { nombre: string; aportes: AporteDeSucesos[]; clases: str
 ];
 for (const c of ciudades) {
   let personas = 0;
-  let referencia = 0;
+  const estado = c.estado();
   console.log(`  ${c.nombre}`);
+  let refSemana = 0;
+  let refDia = 0;
   // La primera pasada calienta el motor (sin ella, la primera medida sale más lenta que las demás).
   for (const cfg of [configuraciones[3], ...configuraciones]) {
+    const calentando = !refSemana && cfg === configuraciones[3];
+    const semanas: number[] = [];
+    const dias: number[] = [];
     let marcas = 0;
-    const calentando = !referencia && cfg === configuraciones[3];
-    const t = mejorDe(calentando ? 1 : 6, () => {
-      const g = cargarPartida(structuredClone(c.estado), [...c.modulos, medida(cfg.aportes, cfg.clases)]);
+    for (let pasada = 0; pasada < (calentando ? 1 : c.pasadas); pasada++) {
+      const g = cargarPartida(structuredClone(estado), [...c.modulos, medida(cfg.aportes, cfg.clases)]);
       personas = g.service<NpcDirectory>(SERVICES.npcs)!.list().length;
-      // Solo se cronometra la acción que cierra cada semana (la rutina semanal del mundo y, con ella, la pasada de los PNJ): el resto de la semana no cambia.
-      let total = 0;
+      // Se cronometran las acciones que cruzan de día (la pasada diaria) y la que cierra cada semana (la rutina semanal del mundo y, con ella, la pasada de los PNJ). El resto de la semana no cambia.
+      const sSemana: number[] = [];
+      const sDia: number[] = [];
       for (let w = 0; w < SEMANAS; w++) {
         const semana = g.time.week;
         for (;;) {
+          const dia0 = g.time.day;
           const cruza = g.time.weekday === 6 && g.time.minuteOfDay + 60 >= 1440;
           const t0 = performance.now();
           if (!g.perform('gen.descansar').ok) g.perform('gen.esperar');
+          const dt = performance.now() - t0;
           if (cruza || g.time.week !== semana) {
-            total += performance.now() - t0;
+            sSemana.push(dt);
             break;
           }
+          if (g.time.day !== dia0) sDia.push(dt);
         }
       }
       marcas = Object.keys(g.moduleState<SucesosState>('sucesos').marcas).filter((m) => m.includes('@')).length;
-      return total / SEMANAS;
-    });
+      semanas.push(mediana(sSemana));
+      dias.push(mediana(sDia));
+    }
     if (calentando) continue;
-    if (!referencia) referencia = t;
-    console.log(`    ${cfg.nombre.padEnd(40)} ${t.toFixed(1).padStart(7)} ms el cierre de semana   ${t === referencia ? '' : `(${t - referencia >= 0 ? '+' : ''}${(t - referencia).toFixed(1)} ms, ${(((t - referencia) / referencia) * 100).toFixed(1)} %)`}   ${marcas} marcas de personas`);
+    const ms = mediana(semanas);
+    const md = mediana(dias);
+    if (!refSemana) { refSemana = ms; refDia = md; }
+    const dif = (x: number, r: number): string => (x === r ? '' : `(${x - r >= 0 ? '+' : ''}${(x - r).toFixed(1)} ms, ${(((x - r) / r) * 100).toFixed(1)} %)`);
+    console.log(`    ${cfg.nombre.padEnd(40)} semana ${rango(semanas).padStart(20)} ms ${dif(ms, refSemana).padEnd(24)} día ${rango(dias, 2).padStart(18)} ms ${dif(md, refDia).padEnd(22)} ${marcas} marcas`);
   }
   console.log(`    ${personas} personas en el mundo\n`);
 }

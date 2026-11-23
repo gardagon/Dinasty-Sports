@@ -1,0 +1,25 @@
+
+2. Sucesos de los PNJ: coste del cierre de semana y del cambio de día (4 semanas por pasada; mediana y rango entre pasadas)
+
+  Ciudad del juego (atletismo)
+    Todo desactivado                         semana        8.3 (6.9–9.2) ms                          día   0.50 (0.39–0.63) ms                        0 marcas
+    Solo lesiones (lo decidido)              semana        7.9 (7.4–8.4) ms (-0.4 ms, -5.3 %)        día   0.52 (0.47–0.55) ms (+0.0 ms, 3.8 %)       3 marcas
+    Todas las clases: 20 sucesos de vida     semana     13.4 (11.8–17.4) ms (+5.1 ms, 60.9 %)        día   0.50 (0.48–0.76) ms (+0.0 ms, 0.1 %)       83 marcas
+    Todas las clases: 100 sucesos de vida    semana     17.1 (16.4–23.1) ms (+8.8 ms, 106.0 %)       día   0.56 (0.50–0.78) ms (+0.1 ms, 10.1 %)      402 marcas
+    1420 personas en el mundo
+
+  Ciudad de prueba con fútbol
+    Todo desactivado                         semana        3.3 (2.8–3.8) ms                          día   0.34 (0.24–0.36) ms                        0 marcas
+    Solo lesiones (lo decidido)              semana        3.0 (2.4–5.3) ms (-0.3 ms, -7.7 %)        día   0.27 (0.25–0.52) ms (-0.1 ms, -19.7 %)     4 marcas
+    Todas las clases: 20 sucesos de vida     semana        5.5 (4.9–6.1) ms (+2.3 ms, 69.0 %)        día   0.40 (0.37–0.44) ms (+0.1 ms, 18.5 %)      70 marcas
+    Todas las clases: 100 sucesos de vida    semana        8.3 (6.4–9.8) ms (+5.0 ms, 153.6 %)       día   0.38 (0.29–0.41) ms (+0.0 ms, 13.2 %)      329 marcas
+    307 personas en el mundo
+
+  Ciudad grande con fútbol
+    Todo desactivado                         semana  117.6 (117.0–135.7) ms                          día   1.56 (1.52–1.74) ms                        0 marcas
+    Solo lesiones (lo decidido)              semana  133.1 (131.1–153.4) ms (+15.5 ms, 13.2 %)       día   1.87 (1.86–1.97) ms (+0.3 ms, 19.9 %)      88 marcas
+    Todas las clases: 20 sucesos de vida     semana  166.4 (159.7–167.8) ms (+48.8 ms, 41.5 %)       día   1.92 (1.90–1.92) ms (+0.4 ms, 22.7 %)      168 marcas
+    Todas las clases: 100 sucesos de vida    semana  157.7 (153.8–180.0) ms (+40.1 ms, 34.1 %)       día   1.77 (1.70–1.93) ms (+0.2 ms, 13.1 %)      488 marcas
+    6113 personas en el mundo
+
+done

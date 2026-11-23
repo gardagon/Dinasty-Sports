@@ -2,7 +2,7 @@
 
 Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo lee lo primero** y lo mantiene al día: cuando una pregunta se responde, se quita de aquí y se apunta como decisión en `docs/DECISIONES.md` (y en el plan o anexo que corresponda); cuando algo pendiente se hace, se quita o se marca.
 
-Última actualización: 22/11/2026, al pasar la coordinación a una sesión nueva de arquitectura (la anterior, del 17 al 22/11, tenía ya un contexto demasiado largo).
+Última actualización: 22/11/2026 (noche), sesión de arquitectura `session_01M4vXXRpLP6RxV6c6wYEDQ8`, que tomó el relevo de la del 17–22/11.
 
 ---
 
@@ -13,6 +13,7 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 - **Encargos:** cerrados y autosuficientes (qué leer, qué hacer, qué no tocar, qué comprobar antes de avisar: `typecheck`, `npm test` en segundo plano, `eventos:validar`, `benjamin -- 31,33`, `probar-web` y, si toca el mundo, `huella -- 60`). Para lo que es medir o comparar, **análisis con propuesta**, sin cambiar el juego (o con los cambios desactivados detrás de un dato) hasta que el usuario decida.
 - **Notas de relevo:** cada sesión escribe las suyas en `docs/relevo/<rama>.md`; la arquitectura junta lo decidido en `DECISIONES.md` y en los anexos al unir.
 - **Sesiones cortas y enfocadas**, una por bloque que comparta código. **En paralelo solo si tocan archivos distintos;** si dos van a tocar lo mismo (por ejemplo el kit de deporte o la pestaña del deporte), la segunda espera a que se una la primera.
+- **Al reactivar** una sesión parada, recordarle en el mensaje las decisiones que se le mandaron justo antes de pararse (puede que no las leyera).
 - **Límite de uso:** las sesiones se paran a menudo por el límite de 5 horas (o el semanal) y **no se reanudan solas**. Revisar con `list_sessions` (`children: true`) las que salen `failed`, mirar `status_detail` (dice cuándo se reinicia) y reactivarlas con `send_message` cuando pase. Pedirles siempre que hagan **commit y push a menudo**, para no perder trabajo.
 - **Modelos.** Sonnet 5.5 para todo el desarrollo. **Fable 5.2 requiere créditos desde el 16/11: no lanzarlo sin preguntar.**
 - **Al unir ramas** a la rama de trabajo: `npm run typecheck` (tras `npm install` si hay paquetes nuevos) y `npm test` en segundo plano (tarda ~15 min; no lanzar otra suite a la vez, ni unir otra rama mientras corre); resolver conflictos conservando lo de las dos ramas (suelen ser listas de `import`). **No subir el límite de tiempo de ningún test** para que pase: si un test va justo de tiempo, es que algo se ha encarecido (así se encontró el coste de «moverse con el grupo»).
@@ -40,18 +41,32 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 
 ## 3. Preguntas para el usuario (pendientes)
 
-Ninguna abierta a 22/11. Lo que queda por decidir está en §4 como propuesta.
+- **Publicación en curso:** pull request #132 (visto bueno del usuario el 23/11). Al unirlo, comprobar Pages.
+- **Rendimiento M2**: el usuario creó una partida en el móvil en ~4 s (antes 7–8 s), «solo con fútbol»: confirmar si fue con la ciudad grande. Si lo fue, M2 no corre prisa. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
 
-Ninguna.
+| Sesión | Rama | Para qué | Estado |
+|---|---|---|---|
+| `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medidas (`docs/relevo/medir-rendimiento-2.md`) | ✅ Terminada y unida (solo `tools/` y `docs/`). Propuestas M1, M2 y C1 pendientes del usuario |
+| `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Lote 2 escrito, corregido y unido el 23/11 (112 sucesos; ritmo 4,2/semana frente a 6: faltan tardes 14–20 h). Arreglos del director: `aguanta` con `cada` y nadie hace dos papeles en un suceso | ✅ Unida |
+| `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor del lote 2 y contenido duro (desactivado por defecto) | ✅ Unida el 23/11 |
+| `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Aplicar F1 (desplegable, no despierta para clase), F2 (deuda por edad; de momento solo malus en la recuperación de energía; sensaciones y suceso de dormirse en clase) y F3 (PNJ) | Reactivada el 23/11 |
+| `session_01M4vXXQ6DoRWA2UGVauypzR` | `claude/hogares` | Análisis: hogares (padres de los niños, adultos sin hijos, bebés y pequeños como personas, nacimientos, mascotas preparadas) y tabla de escalado de rendimiento ×1–×10 | Lanzada el 23/11 |
+| `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error arreglado: el azar del aforo sale de `día:intervalo` (`PresenciaService.aforo`), no de un contador del proceso; guardar y cargar da lo mismo | ✅ Unida el 23/11 (cambian 7 líneas de la huella, aceptado como arreglo) |
+| `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Aplicar F1+F2 (calles 6:30–23:59, oficios en su lugar, <12 no van solos, portero, conserje, repartidores) y 4–5 sucesos de calle | Reactivada el 23/11 |
+| `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño A aplicado (por defecto desde 1280 px), dinero en la columna, aviso «Pasando la semana…» | ✅ Unida el 23/11 |
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
-1. **Probar como jugador lo publicado el 22/11** y corregir los matices que vaya encontrando el usuario (es lo que está haciendo ahora).
-2. **Más contenido de sucesos**, por lotes y áreas, con la herramienta y el estilo del lote 1 (`docs/relevo/sucesos-contenido-1.md`). Los bots no pasan por la calle del colegio antes de las 8:10 ni están en casa de noche: esos sucesos se prueban con `pruebas`.
+1. **Probar como jugador lo publicado el 22/11** y corregir los matices que vaya encontrando el usuario (es lo que está haciendo ahora). Arreglos pequeños apuntados para la próxima tanda:
+   - con la ciudad grande, la ficha del deporte dice «Federación: … (con los datos de España: España · ciudad grande (se tarda hasta un minuto en crear) aún no tiene los suyos)». El aviso de «datos de respaldo» no debería salir para la ciudad grande, que es España, y el nombre del país no debería llevar el paréntesis del tiempo (`apps/web/src/paises-propios.ts`, `modules/futbol/src/index.ts:937`, `modules/atletismo/src/index.ts:660`);
+   - «Nueva partida» y el menú siguen a 460 px en PC.
+2. **Sucesos: prioridad alta** («es lo que hará que los días no se repitan; hay que mimarlos», usuario, 22/11). Lote 2 de colegio, amigos y casa en marcha (§3 bis): primero la propuesta con criterios de calidad, que aprueba el usuario, y después se escriben. Los bots no pasan por la calle del colegio antes de las 8:10 ni están en casa de noche: esos sucesos se prueban con `pruebas`.
+2 ter. **Rendimiento, M2** (historia deportiva repartida entre hilos de trabajo, huella idéntica, −30 % al crear): explicada al usuario el 23/11; espera sus tiempos en el móvil (Android, ciudad grande: crear y pasar de semana).
+2 bis. **Diseño de la web para PC** (usuario, 22/11; DECISIONES 22/11): aprovechar la pantalla ancha sin deshacer código, recolocando las funciones `view*` que ya existen en una vista de escritorio (≥ 1280 px) con CSS propio; el móvil, igual. Análisis y prototipos en marcha (§3 bis); el usuario lo quiere también para presentar el juego. Al aprobarlo, la aplicación se une cuando estén unidos los arreglos de la interfaz.
 3. **Calibrar con el usuario** las cifras provisionales: sucesos (probabilidades, castigos, umbral de «no va con su carácter»), dificultad de pedir puesto, `MARGEN_DE_OTRO_PUESTO` (4), pesos de ir a probar fuera, `EFICIENCIA_DE_DEBERES` (0,9), recogida en el colegio (80 %, edad mínima 25: mezclar padres y abuelos), balance de entrenamientos (`ESCALA_DE_ENTRENAMIENTO` = 1) y listón de profesional (40; élite 35), que se revisa en la fase 2.
-4. **Rendimiento:** abaratar la jornada de liga (~75 partidos por semana) y el reparto de equipos; estado más pequeño (genética y rasgos son el 56 % de los 16 MB de la ciudad grande); `listActions` del fútbol solo cuando hace falta. Propuestas en `docs/relevo/revision-rendimiento.md` §6. Antes de activar más clases de sucesos para los PNJ, medirlas con la ciudad grande.
+4. **Rendimiento:** medición en marcha (§3 bis). Después, abaratar la jornada de liga (~75 partidos por semana) y el reparto de equipos; estado más pequeño (genética y rasgos son el 56 % de los 16 MB de la ciudad grande); `listActions` del fútbol solo cuando hace falta. Propuestas en `docs/relevo/revision-rendimiento.md` §6. Antes de activar más clases de sucesos para los PNJ, medirlas con la ciudad grande.
 5. **Visualizador, etapa 2c** (Sonnet, `docs/ANEXO_RETRATOS.md`): más peinados, barbas y ropa; la raíz del tinte con raya o flequillo y el tupé. La cuadrícula pesa ~9 MB: regenerar solo lo que cambie.
 6. **Planificar la peluquería** (`docs/PLAN_PELUQUERIA.md`).
 7. **Ideas del usuario apuntadas, para más adelante:**
@@ -61,9 +76,11 @@ Ninguna.
    - un padre que se va con su hijo, cuando haya familias de PNJ;
    - página del entrenador más detallada (labor de entrenador);
    - plantillas equilibradas por lado (pierna buena).
+7 bis. **Pendientes del 22/11:** lote 3 de sucesos (la mudanza de un amigo, tu cumpleaños con fiesta, un amigo en casa: E3, E6 y E7 de `docs/relevo/sucesos-lote-2.md`); **economía del personaje** (paga, ingresos, gastos y cosas que comprar; `gen.dinero` existe sin ingresos); **relaciones entre PNJ** (que dos amigos acaben de enemigos entre ellos).
 8. **Huecos conocidos del mundo:** no hay archivo de los PNJ que dejan el mundo; el interés no baja con el tiempo; los PNJ no van a campamentos; faltan las licencias reales de la RFEF para contrastar el abandono; los ojeadores (el nivel servirá para que vean a los buenos).
-9. **Candidatos de más calado** (para decidir con el usuario): fase 2 (vida adulta y profesional), visualizador de los partidos, ciclo de generaciones (la dinastía), salud y lesiones (E12).
-10. **Ideas en `docs/DECISIONES.md` («Pendiente e ideas»):** comida y cuerpo, acciones dinámicas del motor, minutos de fuerza por deporte, personaje chica.
+9. **A medio plazo, planificar (decidido el 22/11):** **partidos de fútbol más reales** (ampliar los cálculos más allá de los tramos, que de momento valen; base `docs/MOTOR_PARTIDOS.md`) y **lesiones** (E12; el motor de partidos ya prevé preguntar por una lesión en cualquier acción, `MOTOR_PARTIDOS.md` §0.7 y §9). Propuesta: un análisis de cada uno (qué hay, qué falta y fases), con su plan, para que lo apruebe el usuario.
+10. **Candidatos de más calado** (para decidir con el usuario): fase 2 (vida adulta y profesional), visualizador de los partidos, ciclo de generaciones (la dinastía).
+11. **Ideas en `docs/DECISIONES.md` («Pendiente e ideas»):** comida y cuerpo, acciones dinámicas del motor, minutos de fuerza por deporte, personaje chica.
 
 ## 5. Sesiones usadas (se pueden archivar)
 

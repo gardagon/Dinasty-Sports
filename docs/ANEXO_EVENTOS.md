@@ -41,7 +41,7 @@ No se toca nada más: ni el motor, ni el director, ni otro módulo. Un archivo e
 - `cuando: [...]`: el momento adecuado; todas las condiciones deben cumplirse.
 - `aguanta: { dias }`: si salta y no es el momento, cuántos días espera (se vuelve a mirar tras cada acción). Después se pierde; con `siSePierde: '<opción>'` se aplica esa opción.
 - `repite`: `'nunca'`, `'una_vez_por_curso'`, `'siempre'` o `{ espera: { dias }, porReparto? }`. Por defecto, un suceso suelto espera un día y los de un hilo no tienen espera.
-- `categoria: 'menor'`: un detalle ligero. `peso`: frente a otros que compiten por el cupo.
+- `categoria: 'menor'`: un detalle ligero. `peso`: frente a otros que compiten por el cupo. `familia`: rotación (ver más abajo). `duro`: contenido duro (ver más abajo).
 
 ### Condiciones
 
@@ -50,7 +50,7 @@ Cada una mira un hecho. Los nombres de persona son **papeles** del reparto.
 | Condición | Ejemplo |
 |---|---|
 | Stat | `{ stat: 'gen.salud', max: 15 }` |
-| Hecho con nombre | `{ hecho: 'edad', min: 10, max: 16 }`. Comunes: `edad`, `altura_cm`, `altura_para_su_edad` (cm sobre lo típico), `nota_media`, `faltas`, `faltas_del_trimestre`, `trimestre`, `curso`, `dia`. De un módulo: `'<módulo>.<nombre>'` (servicio `hechos.<módulo>`, con `requiere`). También vale el id de una stat |
+| Hecho con nombre | `{ hecho: 'edad', min: 10, max: 16 }`. Comunes: `edad`, `altura_cm`, `altura_para_su_edad` (cm sobre lo típico), `nota_media`, `faltas`, `faltas_del_trimestre`, `trimestre`, `curso`, `dia`, `cumple_en_dias` (días que faltan para el cumpleaños del personaje; 0 = hoy: `{ hecho: 'cumple_en_dias', es: 3 }`) y `es_tu_cumple` (`{ hecho: 'es_tu_cumple', es: true }`). De un módulo: `'<módulo>.<nombre>'` (servicio `hechos.<módulo>`, con `requiere`). También vale el id de una stat |
 | Cambio desde un recuerdo | `{ hecho: 'faltas', max: 1, sobreRecuerdo: 'faltas_al_hablar' }` (como mucho una más que entonces) |
 | Calendario | `{ periodo: 'verano' }`, `{ diaDeLaSemana: [5, 6] }` (0 = lunes), `{ hora: { desde: 17 * 60, hasta: 20 * 60 } }` |
 | Sitio y compañía | `{ lugar: 'casa' }`, `{ presente: 'tutor' }`, `{ papel: 'entrenador' }` (hay alguien en ese papel) |
@@ -89,7 +89,38 @@ Si un papel no opcional se queda sin nadie, el suceso no sale. En un hilo, el re
 
 Un hecho que es un texto de los datos del deporte (p. ej. `futbol.frase_del_puesto`, de `pistas.primerEntrenamiento`) puede llevar `{yo:o|a}`: se concuerda al componer.
 
-`variantes: [{ id, si: [...], texto?, opciones?, efectos? }]`: gana la primera cuyas condiciones se cumplen (`si: []` siempre); lo que no redefine lo hereda del suceso. **Con `variantes`, el texto base no es un respaldo**: si ninguna cumple sus condiciones, el suceso no sale; la última suele ser `si: []` (ejemplo: `futbol.equipo_sin_ninos`, con `sin_categoria` y, por defecto, `pocos`).
+`variantes: [{ id, si: [...], peso?, duro?, texto?, textos?, opciones?, efectos? }]`: gana la primera cuyas condiciones se cumplen (`si: []` siempre; con `peso`, ver «Variedad»); lo que no redefine lo hereda del suceso. **Con `variantes`, el texto base no es un respaldo**: si ninguna cumple sus condiciones, el suceso no sale; la última suele ser `si: []` (ejemplo: `futbol.equipo_sin_ninos`, con `sin_categoria` y, por defecto, `pocos`).
+
+### Variedad: textos y resultados al azar, variantes con peso (lote 2)
+
+Para que un suceso frecuente no se lea igual cada vez (todo suceso que pueda salir más de ~6 veces por año debería tener al menos 3 versiones):
+
+```ts
+textos: ['{amigo.Nombre} se sienta al sol.', '{amigo.Nombre} te guarda sitio.', '{amigo.Nombre} ya está en el banco.'],   // en lugar de `texto`
+opciones: [{ id: 'a', texto: 'Callar', resultados: ['No dices nada.', 'Te encoges de hombros.'] }],               // en lugar de `resultado` (también en `exito` y `fallo`)
+variantes: [
+  { id: 'sol',    si: [{ periodo: 'clase' }], peso: 2, textos: ['…', '…'] },
+  { id: 'sombra', si: [],                     peso: 1, texto: '…' },
+],
+```
+
+- **`textos`** (suceso o variante) y **`resultados`** (opción, o su `exito`/`fallo`): sale uno al azar. Se escribe `texto` o `textos`, `resultado` o `resultados`, nunca los dos. El de entrada se queda fijo mientras se decide (se guarda en el pendiente).
+- **Variantes con `peso`**: «gana la primera que se cumple» sigue valiendo. Pero si la primera que se cumple lleva `peso`, se sortea entre **todas** las que se cumplen y llevan `peso` (más peso, más probable). Una variante sin `peso` que se cumpla antes gana siempre; así lo escrito hasta ahora no cambia.
+- **El azar es del suceso**: `rngEstable(semilla, suceso, día)` (el resultado, con la opción). **Nunca** el generador de la partida: añadir `textos` a un suceso no cambia nada más. Dos veces el mismo día sale lo mismo.
+- **Validación**: cada texto y cada resultado de las listas se comprueba (llaves, papeles, género). `npm run eventos:validar` y `eventos:probar` recorren cada variante y cada versión (cada texto de entrada y cada resultado sale al menos una vez en cada camino; el hilo sigue solo con la primera versión, para no multiplicar), con las personas en femenino y en masculino. Los caminos se etiquetan `[versión 2/3]`.
+
+### Familias de rotación (lote 2)
+
+`familia: 'patio'` en varios sucesos: **no se repite uno hasta que han salido los demás**, como una baraja. Mientras dura la ronda, un suceso que ya ha salido tiene `ConfigDeSucesos.rotacion.factorTrasSalir` (0,2) de su probabilidad y va **detrás** de los que aún no han salido al repartirse el cupo (también entre los que salen con `al` + `prob`). Cuando han salido todos (o pasan `rotacion.maxDias`, 120: los que no pueden salir no bloquean la baraja) empieza otra ronda, en la que el último que salió sigue contando como salido. El estado (`rotacion`: por familia, los salidos y el día de inicio) es JSON del director; las partidas guardadas antes se rellenan al cargar. Sin `familia`, nada cambia. La validación avisa de una familia con un solo suceso o sin probabilidad.
+
+### Contenido duro (lote 2)
+
+`duro: ['familia' | 'burlas' | 'peleas']` en un **suceso**, una **variante** o una **opción** (`CategoriaDura`, `contracts/src/sucesos/duro.ts`). Es una preferencia de **presentación del jugador** (Opciones, junto a la presentación de los sucesos, y un mensaje en la pantalla de crear partida), por categorías y con un interruptor general. **Desactivado por defecto** (`CONTENIDO_DURO_POR_DEFECTO`: una constante; las categorías, `CATEGORIAS_DURAS`). Con él desactivado (o la categoría apagada) el director no elige el suceso, ni la variante, ni ofrece la opción. Con varias categorías en un mismo elemento hacen falta todas.
+
+- **Los PNJ no se ven afectados**: lo duro solo se quita cuando lo vive el personaje; un suceso `para: 'cualquiera'` que le pasa a un PNJ sale igual (la opción es de lo que se le presenta al jugador).
+- **Reglas de escritura**: la opción por defecto del `plazo` no puede ser dura (error); una variante que se quedaría sin opciones se quita; un suceso al que no le quede ninguna variante u opción no sale.
+- **Validación**: con todo lo duro desactivado y con cada categoría apagada por separado, **ningún hilo se queda sin camino** (error si no queda ningún suceso por el que empezar; aviso si un suceso solo se alcanzaba por lo duro). `npm run eventos:validar` recorre además otra vez los caminos que quedan sin lo duro; `eventos:probar -- <hilo> --sin-duro` los enseña.
+- La preferencia llega al motor como un aporte `sucesos.config` (`presentacion.duro`) desde `apps/web/src/presentacion.ts`; no se guarda en la partida: una partida cargada usa lo que tenga el navegador (por defecto, desactivado).
 
 ### Opciones
 
@@ -136,6 +167,16 @@ Dos reglas del formato, para no tener que acordarse suceso a suceso:
 - La validación impide `aplazable`/`pendiente` en lo que es `durante`, en un reparto con `presente: true` o con una condición `presente` en `cuando`: eso se responde ahora.
 - La interfaz (`SucesoPendiente.aplazable`) solo ofrece «Decidir luego» si es aplazable; si no, dice que hay que responder.
 - Qué cambió suceso a suceso, y con qué cifras: `docs/relevo/sucesos-en-clase.md`.
+
+### Señales de `estudios` (lote 2)
+
+Tres señales compartidas (`SHARED_EVENTS`, tipos en `contracts/src/events.ts`) que emite `estudios` y que cualquier suceso puede usar con `disparo: { al: '…' }` y `{señal.x}` (con `ejemploDeSeñal`):
+
+| Señal | Cuándo | Datos |
+|---|---|---|
+| `estudios.examen_aviso` | Por la mañana **del día antes** de cada examen (el domingo, si es de lunes). Una señal por examen de mañana | `asignatura` (id de la stat), `nombre`, `tipo` (`parcial1`, `parcial2`, `global`), `curso`, `trimestre`, `totalMañana` |
+| `estudios.examen_hecho` | Al acabar el día del examen, por cada asignatura | `asignatura`, `nombre`, `tipo`, `nota` (0 a 10; 0 si no se presentó), `presentado`, `curso`, `trimestre` |
+| `estudios.boletin` | Al salir las notas de la evaluación (viernes de la semana del global) | `curso`, `trimestre`, `media`, `aprobado` |
 
 ### Moverse con el grupo
 
@@ -243,7 +284,7 @@ escenarios: [{
 }]
 ```
 
-`dado` admite `stats`, `hechos`, `lugar`, `presente` (papeles; sin decirlo, están todos), `periodo`, `hora`, `perks`, `caracter`, `relacion`, `marcas`, `contadores` y `sinPapel`. `espero` admite `sale`, `marca`, `sinMarca`, `programado`, `hiloCerrado`, `opcionDisponible` y `opcionNoDisponible`. Un paso `sale` hace salir el suceso si no ha salido ya solo (sus condiciones cuentan).
+`dado` admite `stats`, `hechos`, `lugar`, `presente` (papeles; sin decirlo, están todos), `periodo`, `hora`, `diaDeLaSemana` (0 = lunes: para probar lo del fin de semana), `perks`, `caracter`, `relacion`, `marcas`, `contadores` y `sinPapel`. `espero` admite `sale`, `marca`, `sinMarca`, `programado`, `hiloCerrado`, `opcionDisponible` y `opcionNoDisponible`. Un paso `sale` hace salir el suceso si no ha salido ya solo (sus condiciones cuentan).
 
 **A mano**: `npm run eventos:probar -- <hilo o suceso> [--elige opción,opción] [--masculino]` recorre todos los caminos y enseña los textos tal como los vería el jugador, las marcas que quedan y si el hilo se cierra. Se salta las condiciones y los días de espera: enseña todo lo que puede pasar, no cuándo. En una partida, la acción `sucesos.forzar.<id>` hace salir un suceso (la usará la interfaz de pruebas).
 

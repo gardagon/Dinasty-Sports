@@ -1,0 +1,201 @@
+import { hilo } from '@ds/contracts';
+
+/**
+ * Un secreto (lote 2, tanda 2). Un amigo te cuenta algo suyo y te hace prometer que no lo dirás. Días después alguien te pregunta; lo que respondas decide si el secreto se guarda o se
+ * sabe, y si se sabe, tu amigo se entera. Un hilo por amigo. Los caminos dependen de lo que elijas y ninguno es duro: el peor final se puede arreglar (cuarto paso). Cifras de partida.
+ */
+const CERCA = [{ alguna: [{ lugar: 'patio' }, { lugar: 'colegio' }] }] as const;
+
+export default hilo({
+  id: 'eventos.amigos.secreto',
+  nombre: 'Un secreto',
+  requiere: ['relaciones'],
+  instancias: 'una_por_reparto',
+  reparto: { amigo: { relacion: { afinidad: { min: 40 } }, presente: true }, curioso: { rol: 'companero', conocido: true } },
+  sucesos: [
+    {
+      id: 'eventos.amigos.secreto.confesion',
+      titulo: 'Me tienes que prometer una cosa',
+      disparo: { al: 'lugares.llegada', prob: 0.03 },
+      ejemploDeSeñal: { desde: 'aula', hasta: 'patio', minutos: 2 },
+      cuando: [{ señal: 'hasta', es: 'patio' }, { hora: { desde: 10 * 60 + 30, hasta: 11 * 60 + 15 } }],
+      repite: { espera: { dias: 120 }, porReparto: true },
+      textos: [
+        '{amigo.Nombre} tira de ti hasta la esquina del patio y baja la voz. «¿Me prometes que no se lo dices a nadie? A nadie, ¿eh?»',
+        '{amigo.Nombre} te coge del brazo y te aparta del grupo. «Necesito contarte una cosa. Pero tienes que prometerme que será entre tú y yo».',
+      ],
+      urgencia: 'ahora',
+      plazo: { dias: 1, porDefecto: 'quitar_importancia' },
+      opciones: [
+        {
+          id: 'prometer',
+          texto: 'Prometérselo',
+          caracter: { honestidad: 2, sociabilidad: 1 },
+          minutos: 5,
+          efectos: [{ relacion: 'amigo', confianza: 3 }, { programa: 'eventos.amigos.secreto.te_preguntan', en: { dias: [3, 7] } }],
+          resultado: '{amigo.Nombre} respira hondo y te lo cuenta en tres frases. Se le ve más ligero. «Gracias. Sabía que podía contar contigo».',
+        },
+        {
+          id: 'sin_prometer',
+          texto: 'Decirle que no puedes prometer nada hasta saber qué es',
+          caracter: { prudencia: 1, honestidad: 1 },
+          minutos: 5,
+          efectos: [{ relacion: 'amigo', confianza: -1 }, { fin: true }],
+          resultado: '«Entonces mejor no te lo cuento». Se queda un momento callad{amigo:o|a}. Algo en la mirada de {amigo.nombre} se ha enfriado un poco.',
+        },
+        {
+          id: 'quitar_importancia',
+          texto: 'Quitarle importancia: «seguro que no es para tanto»',
+          caracter: { optimismo: 1 },
+          minutos: 5,
+          efectos: [{ relacion: 'amigo', afinidad: 1 }, { programa: 'eventos.amigos.secreto.te_preguntan', en: { dias: [3, 7] } }],
+          resultado: '«Pues sí que lo es». Pero te lo cuenta igual, y le sale entre risa y nervios.',
+        },
+      ],
+    },
+    {
+      id: 'eventos.amigos.secreto.te_preguntan',
+      titulo: '«Tú sabes algo»',
+      disparo: { programado: true },
+      cuando: [...CERCA, { presente: 'curioso' }],
+      aguanta: { dias: 6 },
+      textos: [
+        '{curioso.Nombre} te corta el paso al salir de clase. «Oye, ¿tú sabes qué le pasa a {amigo.nombre}? Está muy raro estos días. Y tú siempre lo sabes todo».',
+        '{curioso.Nombre} se coloca a tu lado en la fila. «Dicen que {amigo.nombre} anda con un lío. Tú eres {amigo:su amigo|su amiga}, seguro que lo sabes».',
+      ],
+      urgencia: 'ahora',
+      plazo: { dias: 1, porDefecto: 'callar' },
+      opciones: [
+        {
+          id: 'callar',
+          texto: 'Decir que no sabes nada y cambiar de tema',
+          caracter: { prudencia: 1, honestidad: -1 },
+          tirada: { con: 'gen.carisma', dificultad: 45 },
+          exito: { efectos: [{ relacion: 'amigo', confianza: 2 }, { programa: 'eventos.amigos.secreto.se_entera', en: { dias: [7, 14] } }], resultado: '{curioso.Nombre} se encoge de hombros y lo deja estar. No insiste.' },
+          fallo: { efectos: [{ marca: 'se_sospecha', de: 'amigo', dura: { dias: 30 } }, { programa: 'eventos.amigos.secreto.se_entera', en: { dias: [7, 14] } }], resultado: '«Qué raro. Algo sabes». {curioso.Nombre} se queda mirándote con una media sonrisa que no augura nada bueno.' },
+        },
+        {
+          id: 'contarlo',
+          texto: 'Contárselo: tampoco parece tan grave',
+          caracter: { honestidad: -2, sociabilidad: 1 },
+          efectos: [{ marca: 'conto_el_secreto', de: 'amigo', dura: { dias: 90 } }, { relacion: 'curioso', afinidad: 1 }, { programa: 'eventos.amigos.secreto.se_entera', en: { dias: [7, 14] } }],
+          resultado: '«¿En serio? ¡Qué fuerte!». Ya está dicho. Te das cuenta en cuanto {curioso.nombre} se aleja con la noticia.',
+        },
+        {
+          id: 'despistar',
+          texto: 'Inventarte otra cosa para que no siga preguntando',
+          caracter: { honestidad: -2, ambicion: 1 },
+          tirada: { con: 'gen.picardia', dificultad: 50 },
+          exito: { efectos: [{ entrena: 'gen.picardia', cantidad: 0.5 }, { programa: 'eventos.amigos.secreto.se_entera', en: { dias: [7, 14] } }], resultado: 'Te lo inventas sobre la marcha y suena tan creíble que {curioso.nombre} se va satisfech{curioso:o|a}.' },
+          fallo: { efectos: [{ marca: 'se_sospecha', de: 'amigo', dura: { dias: 30 } }, { programa: 'eventos.amigos.secreto.se_entera', en: { dias: [7, 14] } }], resultado: 'Se te enreda la historia a mitad. {curioso.Nombre} alza una ceja. «Ya. Claro».' },
+        },
+      ],
+    },
+    {
+      id: 'eventos.amigos.secreto.se_entera',
+      titulo: 'Lo que se supo y lo que no',
+      disparo: { programado: true },
+      cuando: [{ periodo: 'clase' }, ...CERCA, { presente: 'amigo' }],
+      aguanta: { dias: 7 },
+      variantes: [
+        {
+          id: 'se_supo',
+          si: [{ marca: 'conto_el_secreto', de: 'amigo' }],
+          texto: '{amigo.Nombre} se planta delante de ti con los ojos brillantes. «Me he enterado de que todo el mundo lo sabe. Y solo se lo había contado a una persona».',
+          efectos: [{ relacion: 'amigo', afinidad: -8, confianza: -10 }, { programa: 'eventos.amigos.secreto.rota_la_confianza', en: { dias: [3, 5] } }],
+        },
+        {
+          id: 'se_sospecho',
+          si: [{ marca: 'se_sospecha', de: 'amigo' }],
+          texto: '{amigo.Nombre} te mira un buen rato antes de hablar. «No sé si lo has dicho, y prefiero no saberlo. Pero me ha dolido pensarlo».',
+          efectos: [{ relacion: 'amigo', confianza: -3 }, { fin: true }],
+        },
+        {
+          id: 'se_guardo',
+          si: [],
+          texto: '{amigo.Nombre} te busca a la salida. «Quería darte las gracias. De verdad. Eres la única persona a la que se lo habría contado».',
+          efectos: [{ relacion: 'amigo', afinidad: 4, confianza: 4 }, { marca: 'guardo_el_secreto', de: 'amigo', dura: { dias: 180 } }, { fin: true }],
+        },
+      ],
+    },
+    {
+      id: 'eventos.amigos.secreto.rota_la_confianza',
+      titulo: 'Lo que rompiste',
+      disparo: { programado: true },
+      cuando: [{ periodo: 'clase' }, ...CERCA, { presente: 'amigo' }],
+      aguanta: { dias: 7 },
+      texto: '{amigo.Nombre} lleva días sin hablarte. Hoy, al verte cruzar el patio, aparta la mirada. Sabes que puedes hacer algo, o dejarlo así.',
+      urgencia: 'ahora',
+      plazo: { dias: 1, porDefecto: 'dejarlo' },
+      opciones: [
+        {
+          id: 'disculparte',
+          texto: 'Ir a pedirle perdón de verdad',
+          caracter: { honestidad: 2, sociabilidad: 1 },
+          minutos: 10,
+          tirada: { con: 'gen.empatia', dificultad: 50 },
+          exito: { efectos: [{ relacion: 'amigo', afinidad: 4, confianza: 3 }, { entrena: 'gen.empatia', cantidad: 0.5 }, { fin: true }], resultado: 'No dices nada que no sientas. «Vale», responde por fin {amigo.nombre}, «pero no vuelvas a hacerlo». No es una vuelta a la normalidad, pero se parece.' },
+          fallo: { efectos: [{ relacion: 'amigo', afinidad: -2 }, { fin: true }], resultado: '«Ya lo sé que lo sientes. No es lo mismo». {amigo.Nombre} se aleja sin decir más. Quizá con el tiempo.' },
+        },
+        {
+          id: 'accidente',
+          texto: 'Decir que fue un malentendido, sin querer',
+          caracter: { honestidad: -1 },
+          minutos: 5,
+          tirada: { con: 'gen.picardia', dificultad: 55 },
+          exito: { efectos: [{ relacion: 'amigo', afinidad: 2 }, { fin: true }], resultado: '«Puede ser». No se lo cree del todo, pero decide creerte.' },
+          fallo: { efectos: [{ relacion: 'amigo', afinidad: -3, confianza: -2 }, { fin: true }], resultado: '«No me tomes el pelo». Es peor que no haber dicho nada.' },
+        },
+        { id: 'dejarlo', texto: 'Dejar que pase el tiempo', caracter: { sociabilidad: -1 }, efectos: [{ fin: true }], resultado: 'Dejas que el silencio haga su trabajo, que es lento y no siempre bueno.' },
+      ],
+    },
+  ],
+  escenarios: [
+    {
+      nombre: 'Prometes, callas y el amigo te da las gracias',
+      dado: { lugar: 'patio', hora: 10 * 60 + 45 },
+      pasos: [
+        { sale: 'eventos.amigos.secreto.confesion', elige: 'prometer' },
+        { pasan: { dias: 8 }, dado: { lugar: 'casa' } },
+        { pasan: { dias: 0 }, dado: { lugar: 'patio' } },
+        { sale: 'eventos.amigos.secreto.te_preguntan', elige: 'callar', tirada: 'exito' },
+        { pasan: { dias: 15 }, dado: { lugar: 'casa' } },
+        { pasan: { dias: 0 }, dado: { lugar: 'patio', periodo: 'clase' } },
+        { sale: 'eventos.amigos.secreto.se_entera', variante: 'se_guardo' },
+        { espero: { hiloCerrado: true, marca: 'guardo_el_secreto' } },
+      ],
+    },
+    {
+      nombre: 'Se lo cuentas a otro, se sabe y pides perdón',
+      dado: { lugar: 'patio', hora: 10 * 60 + 45 },
+      pasos: [
+        { sale: 'eventos.amigos.secreto.confesion', elige: 'prometer' },
+        { pasan: { dias: 8 }, dado: { lugar: 'casa' } },
+        { pasan: { dias: 0 }, dado: { lugar: 'patio' } },
+        { sale: 'eventos.amigos.secreto.te_preguntan', elige: 'contarlo' },
+        { pasan: { dias: 15 }, dado: { lugar: 'casa' } },
+        { pasan: { dias: 0 }, dado: { lugar: 'patio', periodo: 'clase' } },
+        { sale: 'eventos.amigos.secreto.se_entera', variante: 'se_supo' },
+        { espero: { programado: 'eventos.amigos.secreto.rota_la_confianza' } },
+        { pasan: { dias: 6 }, dado: { lugar: 'casa' } },
+        { pasan: { dias: 0 }, dado: { lugar: 'patio', periodo: 'clase' } },
+        { sale: 'eventos.amigos.secreto.rota_la_confianza', elige: 'disculparte', tirada: 'exito' },
+        { espero: { hiloCerrado: true } },
+      ],
+    },
+    {
+      nombre: 'Despistas mal y el amigo lo sospecha, sin que se rompa nada',
+      dado: { lugar: 'patio', hora: 10 * 60 + 45 },
+      pasos: [
+        { sale: 'eventos.amigos.secreto.confesion', elige: 'quitar_importancia' },
+        { pasan: { dias: 8 }, dado: { lugar: 'casa' } },
+        { pasan: { dias: 0 }, dado: { lugar: 'patio' } },
+        { sale: 'eventos.amigos.secreto.te_preguntan', elige: 'despistar', tirada: 'fallo' },
+        { pasan: { dias: 15 }, dado: { lugar: 'casa' } },
+        { pasan: { dias: 0 }, dado: { lugar: 'patio', periodo: 'clase' } },
+        { sale: 'eventos.amigos.secreto.se_entera', variante: 'se_sospecho' },
+        { espero: { hiloCerrado: true } },
+      ],
+    },
+  ],
+});

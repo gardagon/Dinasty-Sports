@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PERKS } from '@ds/contracts';
+import { PERKS, SIN_CONTENIDO_DURO } from '@ds/contracts';
 import { Banco, correrTodo, recorrer } from '../tools/eventos/banco';
 import { indiceAlDia } from '../tools/eventos/indice';
 
@@ -40,6 +40,14 @@ describe('catálogo de eventos', () => {
     }
     expect(rotos).toEqual([]);
     expect(caminos).toBeGreaterThan(raices.length);
+  });
+
+  it('con el contenido duro desactivado, lo que queda también se recorre entero (y ningún hilo se queda sin camino)', () => {
+    const sinDuro = new Banco(undefined, { duro: SIN_CONTENIDO_DURO });
+    const raices = [...banco.catalogo.hilos.keys(), ...[...banco.catalogo.sucesos.values()].filter((x) => !x.hilo).map((x) => x.def.id)].filter((r) => JSON.stringify(banco.catalogo.hilos.get(r) ?? banco.catalogo.sucesos.get(r)?.def).includes('"duro"'));
+    const rotos: string[] = [];
+    for (const raiz of raices) for (const genero of ['f', 'm'] as const) rotos.push(...recorrer(sinDuro, raiz, genero).errores);
+    expect(rotos).toEqual([]);
   });
 
   it('cada perk latente tiene su revelación', () => {

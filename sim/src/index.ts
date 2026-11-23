@@ -4,6 +4,7 @@ import { BOTS, type Bot } from './bots';
 import { areasFor, runBot, type Area, type RunResult } from './runner';
 
 export { BOTS, type Bot } from './bots';
+export type { Ocurrencia, Ritmo, RunResult } from './runner';
 export { runBot, areasFor } from './runner';
 export { summarize, runChecks, globalScore, frecuenciaDeSucesos, chequeoDeSucesos } from './analysis';
 export { decidirSucesos } from './runner';

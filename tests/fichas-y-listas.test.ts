@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SERVICES, aforoCercano, diaConFecha, type LugaresService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
+import { SERVICES, diaConFecha, type LugaresService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { clicEnGente, reiniciarGente, viewPanelGente } from '../apps/web/src/gente';
@@ -21,7 +21,7 @@ describe('la ficha de alguien que no está a tu lado', () => {
     const lugar = g.service<LugaresService>(SERVICES.lugares)!.actual().id;
     const presencia = g.service<PresenciaService>(SERVICES.presencia)!;
     const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
-    const cerca = new Set([...presencia.en(lugar, aforoCercano(lugar, presencia.version)), ...presencia.ocupadosEn(lugar).map((o) => o.persona)].map((n) => n.id));
+    const cerca = new Set([...presencia.en(lugar, presencia.aforo(lugar)), ...presencia.ocupadosEn(lugar).map((o) => o.persona)].map((n) => n.id));
     const todas = dir.list({});
     const lejana = todas.find((n) => !cerca.has(n.id) && n.role === 'companero')!;
     const cercana = todas.find((n) => cerca.has(n.id) && n.role !== 'familia' && !presencia.ocupadosEn(lugar).some((o) => o.persona.id === n.id));
@@ -50,7 +50,7 @@ describe('la ficha de alguien que no está a tu lado', () => {
     advanceToWeek(g, 'gen.descansar', 1, 1, 10);
     const lugar = g.service<LugaresService>(SERVICES.lugares)!.actual().id;
     const presencia = g.service<PresenciaService>(SERVICES.presencia)!;
-    const cerca = new Set(presencia.en(lugar, aforoCercano(lugar, presencia.version)).map((n) => n.id));
+    const cerca = new Set(presencia.en(lugar, presencia.aforo(lugar)).map((n) => n.id));
     const lejana = g.service<NpcDirectory>(SERVICES.npcs)!.list({}).find((n) => !cerca.has(n.id) && n.known === false)!;
     const html = abrir(g, lejana.id);
     expect(html).toContain('Todavía no sabes cómo se llama');

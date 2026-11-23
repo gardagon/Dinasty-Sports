@@ -5,17 +5,21 @@
  *
  * Sirve para calibrar probabilidades y cupos: un evento que no sale nunca en ninguna partida o que sale demasiado se ve aquí.
  * Los bots deciden cada evento como alguien con el carácter de su personaje.
+ * Después de la tabla por evento, saca el reparto por franja horaria, lugar, día de la semana y persona, y las cifras del ritmo objetivo (`tools/eventos/reparto.ts`).
  */
 import { Banco } from './eventos/banco';
 import { BOTS, frecuenciaDeSucesos, runBot } from '../sim/src/index';
+import { medir, tablas } from './eventos/reparto';
 
 const dias = Number(process.argv[2] ?? 180);
 const semillas = Number(process.argv[3] ?? 2);
 const banco = new Banco();
 const porBot = new Map<string, ReturnType<typeof frecuenciaDeSucesos>>();
 const todos: { days: number; sucesos: Record<string, number> }[] = [];
+const medidas = [];
 for (const bot of BOTS) {
-  const rs = Array.from({ length: semillas }, (_, s) => runBot(bot, (s + 1) * 1000 + 17, dias));
+  const rs = Array.from({ length: semillas }, (_, s) => runBot(bot, (s + 1) * 1000 + 17, dias, {}, { medirRitmo: true }));
+  medidas.push(medir(bot.id, rs));
   porBot.set(bot.id, frecuenciaDeSucesos(rs));
   todos.push(...rs);
   console.log(`  ${bot.id}: ${porBot.get(bot.id)!.porSemana.toFixed(1)} eventos por semana`);
@@ -28,3 +32,8 @@ for (const id of [...banco.catalogo.sucesos.keys()].sort()) {
 }
 const nunca = [...banco.catalogo.sucesos.keys()].filter((id) => !total.porAño[id]);
 console.log(`\n${total.porSemana.toFixed(1)} eventos por semana de media. ${nunca.length} de ${banco.catalogo.sucesos.size} no han salido en ninguna partida${nunca.length ? ' (los de perks solo salen a quien tiene ese perk; los programados, si se llega a ellos)' : ''}.`);
+
+
+// Cuándo, dónde y con quién salen (del medidor del simulador) y las cifras del ritmo objetivo.
+console.log(`\n## Reparto de los eventos (media de ${semillas} semillas × ${dias} días)\n`);
+console.log(tablas(medidas));

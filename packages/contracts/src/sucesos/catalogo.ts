@@ -2,6 +2,7 @@ import { CORE_EVENTS, SHARED_EVENTS } from '../events';
 import { PERKS } from '../perks';
 import { EJES } from '../rasgos';
 import { analizarTexto } from './texto';
+import { CATEGORIAS_DURAS, SIN_CONTENIDO_DURO, sinContenidoDuro, type ConfigDeContenidoDuro } from './duro';
 import { HECHOS_COMUNES, type AporteDeSucesos, type Condicion, type CategoriaDeCupo, type ContadorDef, type OrigenDeSuceso, type Efecto, type HiloDef, type OpcionDef, type PapelDef, type RamaDef, type SucesoDef, sucesoEsDurante } from './tipos';
 
 /** Un suceso listo para usar: con el reparto y los módulos de su hilo ya sumados. */
@@ -107,6 +108,7 @@ export function* textosDeSuceso(s: SucesoDef): Generator<{ donde: string; texto:
     const en = variante ? `variante «${variante}»` : 'suceso';
     if (d.titulo) yield { donde: `${en}, título`, texto: d.titulo, variante };
     if (d.texto) yield { donde: `${en}, texto`, texto: d.texto, variante };
+    for (const [n, t] of (d.textos ?? []).entries()) yield { donde: `${en}, texto ${n + 1} de ${d.textos!.length}`, texto: t, variante };
     if (d === s && s.textoDeCercano) yield { donde: 'suceso, texto para los cercanos', texto: s.textoDeCercano, variante };
     for (const e of efectosEn(d.efectos)) {
       if ('diario' in e) yield { donde: `${en}, diario`, texto: e.diario, variante };
@@ -118,6 +120,7 @@ export function* textosDeSuceso(s: SucesoDef): Generator<{ donde: string; texto:
       if (o.pista) yield { donde: `${en}, opción «${o.id}», pista`, texto: o.pista, variante };
       for (const r of ramasDe(o)) {
         if (r.resultado) yield { donde: `${en}, opción «${o.id}», resultado`, texto: r.resultado, variante };
+        for (const [n, t] of (r.resultados ?? []).entries()) yield { donde: `${en}, opción «${o.id}», resultado ${n + 1} de ${r.resultados!.length}`, texto: t, variante };
         for (const e of efectosEn(r.efectos)) {
           if ('diario' in e) yield { donde: `${en}, opción «${o.id}», diario`, texto: e.diario, variante };
           if ('restriccion' in e) yield { donde: `${en}, opción «${o.id}», restricción`, texto: e.restriccion.motivo, variante };
@@ -223,7 +226,26 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
 
     // Forma
     if (!s.titulo) err('falta el título');
-    if (!s.texto && !s.variantes?.length) err('no tiene texto ni variantes');
+    if (!s.texto && !s.textos?.length && !s.variantes?.length) err('no tiene texto ni variantes');
+    // Textos al azar (`textos`) y resultados al azar (`resultados`): no se mezclan con el único y cada uno cuenta.
+    const listaDeTextos = (d: { texto?: string; textos?: readonly string[] }, donde: string, que = 'texto') => {
+      if (d.textos === undefined) return;
+      if (d.texto !== undefined) err(`${donde}: escribe «${que}» o «${que}s», no los dos`);
+      if (!d.textos.length || d.textos.some((t) => !t)) err(`${donde}: «${que}s» no puede estar vacío ni tener textos vacíos`);
+      else if (d.textos.length < 2) avisos.push(`Suceso «${s.id}»: ${donde}: «${que}s» con un solo texto (para qué una lista)`);
+      else if (new Set(d.textos).size < d.textos.length) avisos.push(`Suceso «${s.id}»: ${donde}: hay textos repetidos en «${que}s»`);
+    };
+    listaDeTextos(s, 'el suceso');
+    for (const v of s.variantes ?? []) listaDeTextos(v, `la variante «${v.id}»`);
+    if (s.familia !== undefined) {
+      if (!NOMBRE.test(s.familia)) err(`«familia» «${s.familia}» no vale como nombre (minúsculas, números y _)`);
+      if (!(('cada' in s.disparo) || ('al' in s.disparo && s.disparo.prob !== undefined))) avisos.push(`Suceso «${s.id}»: lleva «familia» pero su disparo no tiene probabilidad, así que la rotación no lo afecta`);
+    }
+    const duras = new Set<string>(CATEGORIAS_DURAS.map((c) => c.id));
+    const comprobarDuro = (d: { duro?: readonly string[] }, donde: string) => {
+      for (const k of d.duro ?? []) if (!duras.has(k)) err(`${donde}: «duro» nombra «${k}», que no es una categoría (${[...duras].join(', ')})`);
+    };
+    comprobarDuro(s, 'el suceso');
     if (('cada' in s.disparo || ('al' in s.disparo && s.disparo.prob !== undefined)) && !(s.disparo.prob! > 0 && s.disparo.prob! <= 1)) err('la probabilidad debe estar entre 0 (sin incluir) y 1');
     if ('programado' in s.disparo && !programados.has(s.id)) err('es «programado» pero ningún suceso lo programa');
     if ('al' in s.disparo && entorno && !SEÑALES_COMPARTIDAS.has(s.disparo.al) && !SEÑALES_DEL_MOTOR.has(s.disparo.al) && !entorno.modulos.has(s.disparo.al.split('.')[0]))
@@ -236,7 +258,9 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
     for (const v of s.variantes ?? []) {
       if (varianteIds.has(v.id)) err(`variante «${v.id}» repetida`);
       varianteIds.add(v.id);
-      if (!v.texto && !s.texto) err(`la variante «${v.id}» no tiene texto y el suceso tampoco`);
+      if (!v.texto && !v.textos?.length && !s.texto && !s.textos?.length) err(`la variante «${v.id}» no tiene texto y el suceso tampoco`);
+      if (v.peso !== undefined && !(v.peso > 0)) err(`la variante «${v.id}»: el peso debe ser mayor que 0`);
+      comprobarDuro(v, `la variante «${v.id}»`);
     }
 
     // Opciones (las del suceso y las de cada variante)
@@ -248,6 +272,8 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
         if (!NOMBRE.test(o.id)) err(`opción «${o.id}»: id no válido`);
         if (ids.has(o.id)) err(`opción «${o.id}» repetida`);
         ids.add(o.id);
+        comprobarDuro(o, `la opción «${o.id}»`);
+        for (const [rama, r] of [['', o], ['(éxito) ', o.exito], ['(fallo) ', o.fallo]] as const) if (r) listaDeTextos({ texto: r.resultado, textos: r.resultados }, `la opción «${o.id}» ${rama}`.trim(), 'resultado');
         if (!o.texto) err(`la opción «${o.id}» no tiene texto`);
         else if (o.texto.length > LARGO_MAXIMO_DE_OPCION) avisos.push(`Suceso «${s.id}»: el texto de la opción «${o.id}» es largo para un botón (${o.texto.length} letras)`);
         if (o.tirada && (!o.exito || !o.fallo)) err(`la opción «${o.id}» tiene tirada: necesita «exito» y «fallo»`);
@@ -278,6 +304,8 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
       for (const [n, p] of Object.entries(s.reparto ?? {})) if (p.presente) err(`el papel «${n}» está presente, así que se responde en el momento: su urgencia es «ahora»`);
       if (s.cuando?.some((c) => 'presente' in c)) err('pasa en presencia de alguien («presente»), así que se responde en el momento: su urgencia es «ahora»');
     }
+    // La opción por defecto no puede ser dura: si el jugador no admite lo duro, el plazo vencería sin salida.
+    if (s.plazo) for (const d of [s, ...(s.variantes ?? [])]) for (const o of d.opciones ?? []) if (o.id === s.plazo.porDefecto && o.duro?.length) err(`la opción por defecto «${o.id}» es dura: con lo duro desactivado no habría opción por defecto`);
     if (s.siSePierde && !todasLasOpciones.has(s.siSePierde)) err(`«siSePierde» nombra la opción «${s.siSePierde}», que no existe`);
 
     // Condiciones
@@ -375,6 +403,38 @@ export function validarCatalogo(porModulo: readonly { modulo: string; aportes: r
           else if (reparto[l.quien]?.opcional && !seguros.has(l.quien)) err(`${donde}: usa el papel opcional «${l.quien}» sin una condición que asegure que hay alguien ({ papel: '${l.quien}' })`);
         }
       }
+    }
+  }
+
+  // Familias de rotación con un solo suceso: no rotan con nadie.
+  const porFamilia = new Map<string, string[]>();
+  for (const { def } of cat.sucesos.values()) if (def.familia) porFamilia.set(def.familia, [...(porFamilia.get(def.familia) ?? []), def.id]);
+  for (const [f, ids] of porFamilia) if (ids.length < 2) avisos.push(`La familia «${f}» solo tiene un suceso («${ids[0]}»): no rota con nadie`);
+
+  // Contenido duro: al quitarlo, ningún hilo se queda sin camino (con todo apagado y con cada categoría apagada por separado).
+  const preferencias: { nombre: string; c: ConfigDeContenidoDuro }[] = [
+    { nombre: 'todo lo duro desactivado', c: SIN_CONTENIDO_DURO },
+    ...CATEGORIAS_DURAS.map((k) => ({ nombre: `«${k.id}» desactivado`, c: { activado: true, categorias: { familia: true, burlas: true, peleas: true, [k.id]: false } } as ConfigDeContenidoDuro })),
+  ];
+  for (const h of cat.hilos.values()) {
+    if (!h.sucesos.some((s) => s.duro?.length || s.variantes?.some((v) => v.duro?.length) || s.opciones?.some((o) => o.duro?.length) || s.variantes?.some((v) => v.opciones?.some((o) => o.duro?.length)))) continue;
+    for (const { nombre, c } of preferencias) {
+      const vista = new Map(h.sucesos.map((s) => [s.id, sinContenidoDuro(s, c)] as const));
+      const alcanzables = new Set<string>();
+      const pendientes = h.sucesos.filter((s) => !('programado' in s.disparo) && vista.get(s.id)).map((s) => s.id);
+      if (!pendientes.length) {
+        // Si es que el hilo es entero duro, simplemente no existe con esa preferencia: no es un fallo.
+        if (h.sucesos.some((s) => !('programado' in s.disparo) && !s.duro?.length)) errores.push(`Hilo «${h.id}»: con ${nombre} se queda sin ningún suceso por el que empezar`);
+        continue;
+      }
+      while (pendientes.length) {
+        const id = pendientes.pop()!;
+        if (alcanzables.has(id)) continue;
+        alcanzables.add(id);
+        const v = vista.get(id);
+        if (v) for (const e of efectosDeSuceso(v)) if ('programa' in e && vista.get(e.programa)) pendientes.push(e.programa);
+      }
+      for (const s of h.sucesos) if (vista.get(s.id) && !alcanzables.has(s.id) && 'programado' in s.disparo) avisos.push(`Hilo «${h.id}»: con ${nombre}, «${s.id}» ya no se alcanza (solo lo programaba algo duro)`);
     }
   }
 

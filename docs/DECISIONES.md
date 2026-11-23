@@ -5,6 +5,96 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/11/2026 — Gente por la calle y hogares; dormir
+
+Respuestas del usuario a `docs/relevo/gente-por-la-calle.md` §5.3 y a `docs/relevo/dormir.md` §6.
+
+### Gente por la calle
+1. **F1 y F2 juntas:**
+   - F1: calles con los vecinos que ya hay;
+   - F2: portero, conserje, repartidores y quien trabaja en un lugar está allí en su horario.
+
+   **Después, F3. En vez de «+150 vecinos sueltos», se empieza ya con los hogares:** padres y madres de los niños del mundo, y adultos sin hijos.
+2. **Más gente, aunque exija más al rendimiento.** En el futuro habrá ligas de todo el mundo y muchísimas categorías, es decir, miles de jugadores, entrenadores y familias. Conviene empezar ya a meter padres y ver cómo respira el rendimiento.
+3. **Nadie empieza conocido** salvo la familia. A los vecinos y al portero se les conoce en sucesos.
+4. **Bebés y mascotas:** un bebé que es solo texto no se sostiene, porque no se explica que un vecino con bebé deje de aparecer o que salga siempre. Los niños pequeños y los bebés de los hogares se estudian como personas dentro del diseño de los hogares. **Mascotas: no se cierra la puerta.** Se deja preparado en el diseño de los hogares (dueño, especie, nombre, edad), aunque todavía no se implementen.
+5. **Los menores de 12 años no van solos** al supermercado ni al restaurante.
+6. **Quien tiene un oficio en un lugar** (dependiente, camarero, monitor) está allí en su horario.
+7. **Horario de la calle: de 6:30 a 23:59.**
+8. **Vínculo padre–hijo:** entra con los hogares (F3), no se deja para después. Además, se pueden añadir unos pocos adultos sin hijos (menos de 150).
+
+### Dormir
+1. **F1 ya, y F2 y F3 seguidas.** Matiz: **dormir no te despierta para ir a clase.** Cumple las horas elegidas, no mira las obligaciones. Más adelante podrá haber un despertador.
+2. **Necesidad de sueño por edad** (unas 9,5 h a los 8 años, bajando hasta 7 h desde los 22). Si queda menos tarde libre, es lo que hay. Dormir menos tiene consecuencias.
+3. **El desplegable tiene las mismas opciones todos los días,** también en fin de semana y vacaciones, y el jugador decide cuánto dormir. Sin hora especial de fin de semana. Se podrán añadir opciones más adelante.
+4. **Dormir puede hacerte faltar o llegar tarde a clase** si no calculas bien. Si vas muy cansado, te puedes dormir en clase (un suceso).
+5. **Cuánto castiga:** se prepara y se documenta junto con la salud y las lesiones (E12), para ajustarlo entonces. De momento, el sueño atrasado solo da un malus en la recuperación de energía de cada día.
+6. **No se enseñan números del sueño:** se pasa directamente a sucesos y sensaciones («arrastras sueño»), para no tener que rehacerlo después.
+7. **La siesta recupera algo de sueño atrasado:** como mucho 0,5 h al día.
+8. **El horario para acostarse (21:00–6:00) no cambia.**
+
+## 23/11/2026 — Una partida no depende de las anteriores del mismo proceso
+
+- **Fallo:** `relaciones` y la web sacaban el aforo (cuánta gente ves cerca, `aforoCercano`) con `presencia.version` como azar, un contador de índices de presencia construidos que era del proceso (`versionDeIndices` en `modules/npcs`). La segunda partida de un proceso seguía contando donde acabó la primera: `vago` con la semilla 2 daba otra partida tras `madrugador`, tras `equilibrado` o tras otra `vago` 2. Y guardar y cargar reiniciaba el contador, así que daba otro aforo que seguir sin cargar. En `npcs` el aforo ya usaba el día y el intervalo (`${t.day}:${intervalo}`): era una incoherencia entre los dos módulos.
+- **Arreglo:** el azar del aforo es siempre el mundo y la hora (día e intervalo de presencia). `PresenciaService.aforo(lugar)` lo calcula y lo usan `relaciones`, la web, los tests y las herramientas. `PresenciaService.version` sigue existiendo solo como clave de caché (distinta en cada índice construido, de cualquier partida; no se reinicia, no se guarda y no entra en ningún sorteo). Por eso ya no hace falta reiniciarla al crear ni al cargar (quitado de `initState` y `alCargar`), y el límite de las partidas intercaladas desaparece.
+- **Test:** `tests/estado-compartido.test.ts` (otra partida antes, orden, repetir, y guardar y cargar a mitad con JSON).
+- **Huella:** esto es un arreglo del juego, no una reorganización: cambian las partidas que usan ese aforo (7 de los 16 bots y semillas; ver `docs/relevo/estado-compartido.md`). Cada bot da ahora lo mismo jugado solo que dentro de `huella`.
+
+## 23/11/2026 — Diseño de escritorio A y aviso al pasar de semana
+
+Respuestas del usuario a `docs/relevo/diseno-escritorio.md` y `docs/relevo/medir-rendimiento-2.md`:
+
+- **Diseño de escritorio: el prototipo A (tres columnas).** Arriba, siempre visibles, la hora, la barra del día y el estado. A la izquierda, el personaje, lo pendiente, los planes y el resumen del deporte. En el centro, la pestaña. A la derecha, el diario. Más adelante se podrá retocar. **Por defecto en pantallas de 1280 px o más**; por debajo, como ahora.
+- **En la columna izquierda se añade el dinero.** Más adelante, cuando existan, irán la comida, el inventario y otras cosas, poco a poco.
+- **No se filtran los avisos repetidos del diario ni se ocultan las cifras de prueba**, de momento.
+- **Aviso «Pasando la semana…»** antes del cálculo del cruce de semana, y el texto de la creación cambia de «unos 40 s» a «hasta un minuto» (M1).
+- **Repartir la historia deportiva entre hilos de trabajo (M2):** el usuario pidió que se le explicara. Pendiente de decidir; se espera a sus tiempos en el móvil.
+- **Bloques lejanos de 26 semanas (C1): no**, de momento.
+
+## 22/11/2026 — Dormir con desplegable y revisar la falta de sueño
+
+Lo pide el usuario: que «Dormir» no sea un solo botón, sino un desplegable con estas opciones:
+- dormir hasta la hora de levantarse (las 7);
+- recuperar el sueño si se ha trasnochado, despertando a la hora que permita recuperarse;
+- dormir las horas que tocan sin penalización.
+
+Así se amplía lo que se puede hacer de noche, también para los sucesos nocturnos. Hay que revisar los malus por dormir poco: ahora solo existe «menos de 7 h: −2 de motivación» y no hay memoria de las noches anteriores. Primero un análisis con propuesta (`docs/relevo/dormir.md`): opciones, deuda de sueño, horas por edad, malus y la misma regla para los PNJ.
+
+## 22/11/2026 — Sucesos, lote 2: decisiones sobre la propuesta (`docs/relevo/sucesos-lote-2.md`)
+
+Respuestas del usuario a las dudas de la propuesta:
+
+1. **Ritmo objetivo:** unos 6 sucesos por semana de media (entre 4 y 9), la mitad en una línea; como mucho un tercio (≤ 35 %) de los días de clase sin ninguno.
+2. **Primero una sesión de motor y después el contenido.** La sesión incluye:
+   - variantes y textos al azar (E1);
+   - señales de exámenes y boletín de `estudios` (E2);
+   - saber cuándo es el cumpleaños propio (E4);
+   - rotación por familia de sucesos, «como una baraja» (E5);
+   - medir por franja, lugar, día y persona (E8);
+   - un bot que madruga y trasnocha;
+   - la marca de contenido duro (punto 4).
+3. **Lote 3, pendiente:** la mudanza de un amigo (E6, que un PNJ salga del mundo), tu cumpleaños con fiesta y un amigo que viene a casa (E7, amigos en tu casa; E3, «quedar con X»).
+4. **Contenido duro, con una marca y una opción.** Los sucesos «duros» llevan una marca: la bronca entre los padres, un apodo feo (que recibes o que pones), las peleas. Si en Opciones no se aceptan, no salen. Así se pueden escribir con más profundidad. Las historias tienen caminos que dependen de lo que elija el jugador. **Desactivado por defecto**, porque no sabemos si quien juega es menor. Se ofrece activarlo con un mensaje al crear la partida y en Opciones. **Va por categorías** (familia, burlas, peleas…) con un interruptor general; más adelante se verá si se unifican.
+5. **Dinero entre niños (préstamo, paga con tareas):** sí. `gen.dinero` existe y lo usan algunos sucesos, pero no hay ingresos ni cosas que comprar. **Deuda técnica: la economía del personaje** (paga, ingresos, gastos, qué comprar).
+6. **Profesores:** «el profesor de Lengua o de Matemáticas», sin tutor fijo.
+7. **Pelea entre dos amigos:** se aproxima con dos amigos tuyos y no cambia la relación entre ellos. **Pendiente: relaciones entre PNJ**, para que se puedan volver enemigos entre ellos (con el personaje ya existe el estado «enemigo», afinidad ≤ −45).
+8. **Orden de escritura:** el motor; casa y fin de semana; los hilos del compañero nuevo, el tutor, el secreto y el préstamo; los detalles de colegio y amigos; y por último el examen, el boletín, el apodo, la pelea, los padres y el ahorro.
+
+Además: **gente por la calle.** Hay que poner vecinos y gente parecida en las calles, el parque y la avenida, para poder sembrar sucesos allí. En el lote 1 se vio que los vecinos adultos no están en la calle cuando llega el personaje. Primero un análisis con propuesta.
+
+## 22/11/2026 — Mejorar el diseño de la web para PC
+
+El usuario pide mejorar el diseño en el ordenador: se aprovecha muy poco la pantalla. Ahora la página tiene un ancho máximo de 1080 px, pestañas que enseñan una sola cosa cada vez y dos columnas solo en «Qué hacer». En el móvil se queda como está. Con tantos datos, ver varias cosas a la vez ayudaría a jugar y haría el juego más atractivo. **Condición: sin deshacer código.** Cada pestaña ya se dibuja con funciones independientes (`viewLugar`, `viewActions`, `viewDeporte`, `viewPeople`, `viewLog`…), así que la vista de escritorio sería otra forma de colocar esas mismas piezas, más CSS para pantallas anchas. Se decide primero con un análisis y prototipos con capturas, que aprueba el usuario (propuesta en `docs/NOTAS_ARQUITECTURA.md` §4).
+
+## 22/11/2026 — Sucesos: prioridad alta; lote 2 de colegio, amigos y casa. Medir el rendimiento. Partidos y lesiones a medio plazo
+
+Decidido por el usuario al empezar la nueva sesión de arquitectura:
+
+- **Los sucesos son lo que evita que los días se vuelvan repetitivos: hay que mimarlos mucho.** Pasan a ser prioridad alta. Cuentan la variedad, que tengan continuidad, que dejen memoria y que traigan consecuencias, no solo la cantidad.
+- **Lote 2 de sucesos: colegio, amigos y casa.** De casa hay poco (4 detalles del lote 1). Se hace en dos pasos: primero una propuesta con la lista y los criterios de calidad, que aprueba el usuario, y después se escriben.
+- **Medir el rendimiento sin cambiar el juego:** los sucesos de los PNJ con la ciudad grande y crear la partida en un móvil (`docs/relevo/revision-rendimiento.md` §6, puntos 6 y 8). Con esas medidas, propuestas para abaratar la jornada de liga y el reparto de equipos, que decide el usuario.
+- **A medio plazo, planificar:** (1) **partidos de fútbol más cercanos a un partido real**, ampliando los cálculos más allá de los tramos actuales (que de momento valen; base: `docs/MOTOR_PARTIDOS.md`); (2) **lesiones** (E12, salud). El motor de partidos ya dejó preparado cómo preguntar por una lesión en cualquier acción (`MOTOR_PARTIDOS.md` §0.7 y §9).
+
 ## 22/11/2026 — PNJ que entrenan por su cuenta, abandono por nivel e interés, y compañeros hasta los 20
 
 Informe: `docs/relevo/pnj-entrenan-y-abandono.md`.

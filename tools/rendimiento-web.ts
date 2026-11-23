@@ -2,7 +2,16 @@
  * Lo que tarda el juego **en un navegador de verdad** (Chromium con Playwright), en escritorio y en un móvil emulado (perfil de teléfono y CPU ×4 más lenta): crear la partida con la ciudad grande y el fútbol («creando el mundo»),
  * abrirla de nuevo (recargar la página con la partida guardada), cada acción tal como la hace el jugador (clic en el botón: lo que tarda la página en responder y volver a pintar) y guardar (copiar a texto + escribir en IndexedDB).
  *
- *   npm run rendimiento:web -- [--perfil escritorio|movil|ambos] [--acciones 60] [--semilla 35] [--json]
+ *   npm run rendimiento:web -- [--perfil escritorio|movil4|movil6|escritorio-pagina|todos] [--ciudad grande|prueba|ambas] [--pasadas 1] [--acciones 60] [--semilla 35] [--ancho 1100] [--json]
+ *
+ * - Perfiles: `escritorio` (1100×900, sin límite), `movil4` y `movil6` (Pixel 5 y CPU ×4 o ×6 más lenta; `movil` = `movil4`, `ambos` = escritorio y móvil ×4), `escritorio-pagina` (sin límite pero creando la partida en la página, como en los móviles).
+ *   **El límite de CPU de Chromium (`Emulation.setCPUThrottlingRate`) no se puede poner a un trabajador** («solo para páginas»): en los perfiles de móvil se quita `Worker` de la página para que cree la partida ella misma (el camino que la web ya tiene
+ *   sin trabajadores), en su hilo, que sí está limitado. La cifra de crear es entonces el trabajo de crear a ×4/×6 **sin** el texto de ida y vuelta del trabajador (guardar a texto en él y abrirlo en la página: ver «abrir») y con la página quieta mientras dura.
+ * - Ciudades: `grande` (España · ciudad grande con el fútbol instalado, ~6.100 personas) y `prueba` (España de siempre, ~1.400 personas, solo atletismo: lo que se juega por defecto).
+ * - `--ancho N`: el ancho de la ventana de escritorio (por defecto 1100, que usa la disposición de siempre; con 1280 o más, «Automático» usa el diseño de escritorio de tres columnas: comparar las dos medidas).
+ * - `--pasadas N`: repite todo en N contextos nuevos y da la mediana y el rango.
+ * - Cruzar de día y de semana: se avanza «descansar» de 5 en 5 minutos hasta justo antes del cambio y se cronometra el paso que lo cruza: motor (`perform`) y total (motor + repintar + dos `requestAnimationFrame`).
+ *   Se cruzan 8 días seguidos y 6 semanas seguidas; la jornada de liga (~75 partidos del mundo) se juega al cerrar cada semana de clase desde que acaba la pretemporada.
  *
  * Construye la web con una clave de firma de usar y tirar y publica los deportes con ella (como `probar-web`). Tarda varios minutos (crear con la ciudad grande son ~10 s en escritorio y varias veces más en el móvil emulado).
  * Un solo hilo: no lo ejecutes a la vez que otra medición.
@@ -20,7 +29,11 @@ import { publicarDeportes } from './publicar';
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const valor = (n: string, def: string): string => (args.includes(n) ? args[args.indexOf(n) + 1] : def);
-const perfiles = valor('--perfil', 'ambos') === 'ambos' ? ['escritorio', 'movil'] : [valor('--perfil', 'escritorio')];
+const PERFILES: Record<string, { rate: number; trabajador: boolean }> = { escritorio: { rate: 1, trabajador: true }, 'escritorio-pagina': { rate: 1, trabajador: false }, movil4: { rate: 4, trabajador: false }, movil6: { rate: 6, trabajador: false } };
+const pedido = valor('--perfil', 'ambos');
+const perfiles = pedido === 'ambos' ? ['escritorio', 'movil4'] : pedido === 'todos' ? ['escritorio', 'movil4', 'movil6'] : [pedido === 'movil' ? 'movil4' : pedido];
+const ciudadesPedidas = valor('--ciudad', 'grande') === 'ambas' ? ['grande', 'prueba'] : [valor('--ciudad', 'grande')];
+const pasadas = Number(valor('--pasadas', '1'));
 const nAcciones = Number(valor('--acciones', '60'));
 const semilla = Number(valor('--semilla', '35'));
 const pw = createRequire(import.meta.url)('playwright') as { chromium: { launch(): Promise<any> }; devices: Record<string, Record<string, unknown>> };
@@ -46,13 +59,19 @@ const salida: Record<string, Record<string, number>> = {};
 
 const navegador = await pw.chromium.launch();
 try {
-  for (const perfil of perfiles) {
-    const movil = perfil === 'movil';
-    const contexto = await navegador.newContext(movil ? { ...pw.devices['Pixel 5'] } : { viewport: { width: 1100, height: 900 } });
+  for (let numPasada = 0; numPasada < pasadas; numPasada++) for (const ciudadId of ciudadesPedidas) for (const perfil of perfiles) {
+    const cfg = PERFILES[perfil];
+    if (!cfg) throw new Error(`Perfil desconocido: ${perfil}`);
+    const grande = ciudadId === 'grande';
+    const etq = `${ciudadId}/${perfil}#${numPasada + 1}`;
+    const movil = perfil.startsWith('movil');
+    const contexto = await navegador.newContext(movil ? { ...pw.devices['Pixel 5'] } : { viewport: { width: Number(valor('--ancho', '1100')), height: 900 } });
     const pagina = await contexto.newPage();
     const cdp = await contexto.newCDPSession(pagina);
-    if (movil) await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    if (cfg.rate > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: cfg.rate });
     await pagina.addInitScript('window.__name = (f) => f;');
+    // Sin trabajador la página crea la partida ella misma, en su hilo (el único que se puede limitar): ver la cabecera.
+    if (!cfg.trabajador) await pagina.addInitScript('delete window.Worker;');
     pagina.on('dialog', (d: { accept(): Promise<void> }) => void d.accept());
     const ds = <T>(fn: string): Promise<T> => pagina.evaluate(`(${fn})(window.__ds)`) as Promise<T>;
     const t0 = Date.now();
@@ -60,22 +79,26 @@ try {
     await pagina.waitForFunction(() => '__ds' in window);
     const arranque = Date.now() - t0;
 
-    // Instalar el fútbol y crear la partida con la ciudad grande.
-    await pagina.click('[data-act="ir-opciones"]');
-    await pagina.waitForSelector('[data-act="instalar-deporte"]', { timeout: 60000 });
-    await pagina.locator('p.botones', { hasText: 'Fútbol' }).locator('[data-act="instalar-deporte"]').click();
-    await pagina.waitForFunction(() => (window as any).__ds.deportesInstalados().includes('futbol'), undefined, { timeout: 120000 });
-    await pagina.click('[data-act="ir-menu"]');
+    // Con la ciudad grande: instalar el fútbol y crear la partida con ella; con la de prueba, la partida por defecto (España, atletismo).
+    if (grande) {
+      await pagina.click('[data-act="ir-opciones"]');
+      await pagina.waitForSelector('[data-act="instalar-deporte"]', { timeout: 60000 });
+      await pagina.locator('p.botones', { hasText: 'Fútbol' }).locator('[data-act="instalar-deporte"]').click();
+      await pagina.waitForFunction(() => (window as any).__ds.deportesInstalados().includes('futbol'), undefined, { timeout: 120000 });
+      await pagina.click('[data-act="ir-menu"]');
+    }
     await pagina.click('[data-act="ir-nueva"]');
-    await pagina.waitForSelector('[data-deporte-incluido="futbol"]');
-    const etiqueta = await pagina.evaluate(() => [...document.querySelectorAll('#pais option')].map((o) => o.textContent ?? '').find((t) => /ciudad grande/.test(t)));
-    await pagina.selectOption('#pais', { label: etiqueta });
+    if (grande) {
+      await pagina.waitForSelector('[data-deporte-incluido="futbol"]');
+      const etiqueta = await pagina.evaluate(() => [...document.querySelectorAll('#pais option')].map((o) => o.textContent ?? '').find((t) => /ciudad grande/.test(t)));
+      await pagina.selectOption('#pais', { label: etiqueta });
+    }
     await pagina.evaluate((s: number) => (window as any).__ds.fijarSemilla(s), semilla);
     const c0 = Date.now();
     await pagina.click('[data-act="empezar"]');
-    await pagina.waitForFunction(() => !!(window as any).__ds.game, undefined, { timeout: 1800000, polling: 200 });
+    await pagina.waitForFunction(() => !!(window as any).__ds.game, undefined, { timeout: 3600000, polling: 200 });
     const crear = (Date.now() - c0) / 1000;
-    console.log(`[${perfil}] arrancar la página ${arranque} ms · crear la partida (ciudad grande + fútbol): ${f(crear)} s`);
+    console.log(`[${etq}] arrancar la página ${arranque} ms · crear la partida (${grande ? 'ciudad grande + fútbol' : 'ciudad de prueba'}${cfg.trabajador ? ', en un trabajador' : ', en la página'}): ${f(crear)} s`);
 
     // Jugar: cada acción, tal como la hace el jugador (clic en el botón y esperar a que la página vuelva a pintar).
     let x = 12345;
@@ -104,6 +127,49 @@ try {
       msAcciones.push(ms);
     }
     const dia = await ds<number>('(d) => d.game.time.day');
+
+    // Cruzar de día y de semana: se avanza hasta justo antes y se cronometra el paso que cruza (motor y total con el repintado).
+    const pasarHasta = async (minuto: number): Promise<void> => {
+      for (let intentos = 0; intentos < 40; intentos++) {
+        await pagina.evaluate((m: number) => (window as any).__ds.hastaElMinuto(m), minuto);
+        if ((await pagina.evaluate(() => (window as any).__ds.game.time.minute as number)) >= minuto) return;
+        // Una ventana de suceso detiene el tiempo: se elige la primera opción y se sigue.
+        if (await pagina.locator('.ventana.suceso').count()) {
+          const b = pagina.locator('.ventana.suceso .suceso-opciones button:not([disabled])');
+          if (await b.count()) await b.first().click();
+          else await pagina.click('.ventana.suceso [data-act="aviso-visto"]');
+        } else await pagina.evaluate(() => (window as any).__ds.render());
+      }
+      throw new Error('No se pudo avanzar el tiempo');
+    };
+    const cruce = (): Promise<{ motor: number; total: number }> =>
+      pagina.evaluate(async () => {
+        const d = (window as any).__ds;
+        const t = performance.now();
+        if (!d.game.perform('gen.descansar').ok) d.game.perform('gen.esperar');
+        const motor = performance.now() - t;
+        d.render();
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        return { motor, total: performance.now() - t };
+      });
+    const MIN_DIA = 1440;
+    const cruzaDia: { motor: number; total: number }[] = [];
+    for (let k = 0; k < 8; k++) {
+      const hoy = await ds<number>('(d) => d.game.time.day');
+      await pasarHasta((hoy + 1) * MIN_DIA - 5);
+      // Si el paso de antes ya cruzó (acabó justo en el límite), se salta ese día.
+      if ((await ds<number>('(d) => d.game.time.day')) !== hoy) continue;
+      cruzaDia.push(await cruce());
+    }
+    const cruzaSemana: { motor: number; total: number }[] = [];
+    for (let k = 0; k < 6; k++) {
+      const sem = await ds<number>('(d) => d.game.time.week');
+      await pasarHasta((sem + 1) * 7 * MIN_DIA - 5);
+      if ((await ds<number>('(d) => d.game.time.week')) !== sem) continue;
+      cruzaSemana.push(await cruce());
+    }
+    console.log(`[${etq}] cruzar de día (${cruzaDia.length}): motor mediana ${f(mediana(cruzaDia.map((x) => x.motor)))} ms · total (con repintado) mediana ${f(mediana(cruzaDia.map((x) => x.total)))} ms · máx ${f(Math.max(...cruzaDia.map((x) => x.total)))} ms`);
+    console.log(`[${etq}] cruzar de semana (${cruzaSemana.length}): motor ${cruzaSemana.map((x) => f(x.motor, 0)).join(' / ')} ms · total ${cruzaSemana.map((x) => f(x.total, 0)).join(' / ')} ms`);
 
     // Guardar: copiar a texto + escribir en IndexedDB (lo mismo que hace `serializarPartida` + `almacen.guardar`).
     const guardados: { texto: number; idb: number; kb: number }[] = [];
@@ -174,18 +240,20 @@ try {
     const abrir = Date.now() - r0;
     const abierta = await pagina.evaluate(() => !!(window as any).__ds?.game);
 
-    salida[perfil] = {
-      arranqueMs: arranque, crearS: crear, accionMedianaMs: mediana(msAcciones), accionP90Ms: p90(msAcciones), accionMaxMs: Math.max(...msAcciones), acciones: msAcciones.length, sucesos, dia,
+    salida[`${ciudadId}|${perfil}|${numPasada + 1}`] = {
+      arranqueMs: arranque, crearS: crear,
+      diaMotorMs: mediana(cruzaDia.map((x) => x.motor)), diaTotalMs: mediana(cruzaDia.map((x) => x.total)), diaMaxMs: Math.max(...cruzaDia.map((x) => x.total)),
+      semanaMotorMedianaMs: mediana(cruzaSemana.map((x) => x.motor)), semanaTotalMedianaMs: mediana(cruzaSemana.map((x) => x.total)), semanaTotalMaxMs: Math.max(...cruzaSemana.map((x) => x.total)), semanaTotales: cruzaSemana.map((x) => x.total) as unknown as number, accionMedianaMs: mediana(msAcciones), accionP90Ms: p90(msAcciones), accionMaxMs: Math.max(...msAcciones), acciones: msAcciones.length, sucesos, dia,
       guardarDeGolpeTotalMs: deGolpe.total, guardarDeGolpeLargaMs: largaDeGolpe, guardarPutSincMs: deGolpe.putSincMs,
       guardarTrozosTotalMs: mediana(porTrozos.map((g) => g.total)), guardarTrozosLargaMs: Math.max(...porTrozos.map((g) => g.largaMax)), guardarTrozosTrabajoMs: mediana(porTrozos.map((g) => g.trabajo)),
       clicDuranteGuardadoMedianaMs: clicsDuranteGuardado.length ? mediana(clicsDuranteGuardado) : -1, clicDuranteGuardadoMaxMs: clicsDuranteGuardado.length ? Math.max(...clicsDuranteGuardado) : -1,
       guardarTextoMs: mediana(guardados.map((g) => g.texto)), guardarIdbMs: mediana(guardados.map((g) => g.idb)), estadoKB: guardados[0].kb, abrirMs: abierta ? abrir : -1,
     };
-    console.log(`[${perfil}] ${msAcciones.length} acciones (día ${dia}, ${sucesos} sucesos): mediana ${f(mediana(msAcciones))} ms · p90 ${f(p90(msAcciones))} ms · máx ${f(Math.max(...msAcciones))} ms`);
-    console.log(`[${perfil}] guardar: a texto ${f(salida[perfil].guardarTextoMs)} ms + IndexedDB ${f(salida[perfil].guardarIdbMs)} ms (${f(guardados[0].kb, 0)} KB) · abrir de nuevo: ${abierta ? `${abrir} ms` : 'no se abrió'}`);
-    console.log(`[${perfil}] guardar DE GOLPE (antes): ${f(deGolpe.total)} ms en total, la página se detiene como máximo ${f(largaDeGolpe)} ms (de ellos, el put de IndexedDB bloquea ${f(deGolpe.putSincMs)} ms)`);
-    console.log(`[${perfil}] guardar POR TROZOS (ahora): ${f(salida[perfil].guardarTrozosTotalMs)} ms en total (${f(salida[perfil].guardarTrozosTrabajoMs)} ms de trabajo, trozo más largo ${f(Math.max(...porTrozos.map((g) => g.bloqueo)))} ms), la página se detiene como máximo ${f(salida[perfil].guardarTrozosLargaMs)} ms`);
-    console.log(`[${perfil}] clic durante el guardado (${clicsDuranteGuardado.length}): mediana ${f(salida[perfil].clicDuranteGuardadoMedianaMs)} ms · máx ${f(salida[perfil].clicDuranteGuardadoMaxMs)} ms`);
+    console.log(`[${etq}] ${msAcciones.length} acciones (día ${dia}, ${sucesos} sucesos): mediana ${f(mediana(msAcciones))} ms · p90 ${f(p90(msAcciones))} ms · máx ${f(Math.max(...msAcciones))} ms`);
+    console.log(`[${etq}] guardar: a texto ${f(salida[`${ciudadId}|${perfil}|${numPasada + 1}`].guardarTextoMs)} ms + IndexedDB ${f(salida[`${ciudadId}|${perfil}|${numPasada + 1}`].guardarIdbMs)} ms (${f(guardados[0].kb, 0)} KB) · abrir de nuevo: ${abierta ? `${abrir} ms` : 'no se abrió'}`);
+    console.log(`[${etq}] guardar DE GOLPE (antes): ${f(deGolpe.total)} ms en total, la página se detiene como máximo ${f(largaDeGolpe)} ms (de ellos, el put de IndexedDB bloquea ${f(deGolpe.putSincMs)} ms)`);
+    console.log(`[${etq}] guardar POR TROZOS (ahora): ${f(salida[`${ciudadId}|${perfil}|${numPasada + 1}`].guardarTrozosTotalMs)} ms en total (${f(salida[`${ciudadId}|${perfil}|${numPasada + 1}`].guardarTrozosTrabajoMs)} ms de trabajo, trozo más largo ${f(Math.max(...porTrozos.map((g) => g.bloqueo)))} ms), la página se detiene como máximo ${f(salida[`${ciudadId}|${perfil}|${numPasada + 1}`].guardarTrozosLargaMs)} ms`);
+    console.log(`[${etq}] clic durante el guardado (${clicsDuranteGuardado.length}): mediana ${f(salida[`${ciudadId}|${perfil}|${numPasada + 1}`].clicDuranteGuardadoMedianaMs)} ms · máx ${f(salida[`${ciudadId}|${perfil}|${numPasada + 1}`].clicDuranteGuardadoMaxMs)} ms`);
     await contexto.close();
   }
   if (args.includes('--json')) console.log('JSON ' + JSON.stringify(salida));

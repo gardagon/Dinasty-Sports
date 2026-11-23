@@ -13,6 +13,7 @@ import {
   componerTexto,
   configDeSucesos,
   cumplenTodas,
+  duroSinFiltro,
   defineModule,
   evaluarOpcion,
   fechaDelDia,
@@ -34,7 +35,13 @@ import {
   type CambiosDeConfigDeSucesos,
   type CatalogoDeSucesos,
   type CategoriaDeCupo,
+  type ConfigDeContenidoDuro,
+  sinContenidoDuro,
+  type SucesoDef,
+  type VarianteDef,
   type ClubDirectory,
+  type CuerpoService,
+  ID_DEL_PERSONAJE,
   type Condicion,
   type ConfigDeSucesos,
   type ContadorDef,
@@ -118,6 +125,14 @@ interface Pendiente {
   /** En qué acción de la partida se abrió (`actionCount`): lo que no se puede aplazar se pierde con la siguiente acción que no sea decidir. */
   desde?: number;
   señal?: Record<string, unknown>;
+  /** Cuál de sus `textos` salió al azar al abrirse (se queda fijo mientras se decide). */
+  texto?: number;
+}
+
+/** Una ronda de rotación de una familia de sucesos (`SucesoDef.familia`): cuáles han salido ya en esta vuelta de la baraja y desde qué día. */
+interface Ronda {
+  salidos: string[];
+  desde: number;
 }
 
 interface Temporal {
@@ -145,6 +160,8 @@ export interface SucesosState {
   ultimaVez: Record<string, number>;
   /** Umbrales que ahora mismo se cumplen (para dispararse solo al pasar de falso a verdadero). */
   umbrales: Record<string, true>;
+  /** Rotación por familia (`SucesoDef.familia`): la ronda en curso de cada una. Las partidas guardadas antes no lo tienen: se rellena al cargar. */
+  rotacion: Record<string, Ronda>;
   /** Sucesos espontáneos que han salido hoy y esta semana, por categoría. */
   cupo: { dia: number; semana: number; hoy: Record<string, number>; estaSemana: Record<string, number> };
   /** `[día, suceso, opción (−1 si no tenía), ...personas]`, con los ids de suceso (`id` o `id~variante`) y de opción (`id#opción`) como posición en `indice`. */
@@ -166,6 +183,7 @@ const estadoInicial = (semilla: number, nombre: string): SucesosState => ({
   temporales: [],
   ultimaVez: {},
   umbrales: {},
+  rotacion: {},
   cupo: { dia: -1, semana: -1, hoy: {}, estaSemana: {} },
   avisos: [],
   historia: [],
@@ -185,6 +203,12 @@ interface Indice {
   contadoresPorSeñal: Map<string, ContadorDef[]>;
   contadoresDeAccion: ContadorDef[];
   config: ConfigDeSucesos;
+  /** Preferencia del jugador sobre el contenido duro si filtra algo (si deja pasar todo, `undefined` y no hay nada que hacer). */
+  duro?: ConfigDeContenidoDuro;
+  /** Cada suceso tal como queda sin lo duro que el jugador no admite (`undefined`: no puede salir). Solo si `duro` filtra algo. */
+  vista: Map<string, SucesoDef | undefined>;
+  /** Los sucesos de cada familia de rotación. */
+  familias: Map<string, string[]>;
   /** `cuando` de cada suceso con las condiciones baratas delante. */
   cuando: Map<string, Condicion[]>;
   /** De `cuando`, solo las que se miran sin crear nada (marcas del personaje, contadores y datos de la señal): si una falla, el suceso no sale y no hace falta preparar su contexto. */
@@ -203,8 +227,11 @@ function indiceDe(ctx: ReadContext): Indice {
   let i = indices.get(clave);
   if (i) return i;
   const cat = compilarCatalogo(aportes, (m) => ctx.hasModule(m));
-  i = { cat, porSeñal: new Map(), cadaDia: [], cadaSemana: [], umbrales: [], contadoresPorSeñal: new Map(), contadoresDeAccion: [], config: configDeSucesos(ctx.aportes<CambiosDeConfigDeSucesos>(APORTE_DE_CONFIG_DE_SUCESOS)), cuando: new Map(), ligeras: new Map() };
+  i = { cat, porSeñal: new Map(), cadaDia: [], cadaSemana: [], umbrales: [], contadoresPorSeñal: new Map(), contadoresDeAccion: [], config: configDeSucesos(ctx.aportes<CambiosDeConfigDeSucesos>(APORTE_DE_CONFIG_DE_SUCESOS)), cuando: new Map(), ligeras: new Map(), vista: new Map(), familias: new Map() };
+  if (!duroSinFiltro(i.config.presentacion.duro)) i.duro = i.config.presentacion.duro;
   for (const s of cat.sucesos.values()) {
+    if (i.duro) i.vista.set(s.def.id, sinContenidoDuro(s.def, i.duro));
+    if (s.def.familia) i.familias.set(s.def.familia, [...(i.familias.get(s.def.familia) ?? []), s.def.id]);
     const d = s.def.disparo;
     if ('al' in d) {
       const grupo = i.porSeñal.get(d.al) ?? { siempre: [] as SucesoCompilado[], campos: new Map<string, Map<string | number | boolean, SucesoCompilado[]>>() };
@@ -261,6 +288,14 @@ function hechoComun(ctx: ReadContext, nombre: string): number | string | boolean
       return ctx.time.schoolYear;
     case 'dia':
       return ctx.time.day;
+    case 'cumple_en_dias':
+    case 'es_tu_cumple': {
+      // El cumpleaños del propio personaje (su día de nacimiento sale del servicio del cuerpo).
+      const nacimiento = ctx.service<CuerpoService>(SERVICES.cuerpoPersonaje)?.de(ID_DEL_PERSONAJE)?.nacimiento;
+      if (nacimiento === undefined) return undefined;
+      const faltan = diasHastaElCumple(nacimiento, ctx.time.day);
+      return nombre === 'es_tu_cumple' ? faltan === 0 : faltan;
+    }
   }
   const punto = nombre.indexOf('.');
   if (punto < 0) return undefined;
@@ -385,7 +420,7 @@ function diasHastaElCumple(nacimiento: number, hoy: number): number {
 }
 
 /** A quién le toca un papel, o `undefined` si a nadie. El azar es estable: mismo suceso, mismo día, misma persona. */
-function repartir(ctx: ReadContext, s: SucesosState, suceso: string, papel: string, def: PapelDef, señal?: Record<string, unknown>): string | undefined {
+function repartir(ctx: ReadContext, s: SucesosState, suceso: string, papel: string, def: PapelDef, señal?: Record<string, unknown>, excluir: readonly string[] = []): string | undefined {
   const forzado = prueba(ctx)?.papel?.(papel);
   if (forzado !== undefined) return forzado ?? undefined;
   const npcs = ctx.service<NpcDirectory>(SERVICES.npcs);
@@ -415,6 +450,8 @@ function repartir(ctx: ReadContext, s: SucesosState, suceso: string, papel: stri
     }
     return !def.presente || h.presente(n.id);
   });
+  // Nadie hace dos papeles en el mismo suceso (dos amigos que se pelean no pueden ser la misma persona, ni el profesor y el compañero nuevo).
+  if (excluir.length) candidatos = candidatos.filter((n) => !excluir.includes(n.id));
   if (!candidatos.length) return undefined;
   if (def.prefiere) {
     const valor = (n: NpcView): number => (def.prefiere === 'mas_afinidad' ? (h.relacion(n.id)?.afinidad ?? 0) : def.prefiere === 'mas_apoyo' ? (h.familia(n.id)?.apoyo ?? 0) : (h.familia(n.id)?.expectativas ?? 0));
@@ -542,15 +579,80 @@ function aplicar(ctx: ActionContext, x: Situacion, efectos: readonly Efecto[] | 
   }
 }
 
+// ------------------------------------------------------------------ rotación por familia
+
+/**
+ * Apunta que un suceso de una familia ha salido: es una baraja. Mientras la ronda dura, los que ya han salido tienen menos probabilidad
+ * (`ConfigDeSucesos.rotacion.factorTrasSalir`). Cuando han salido todos (o pasan `maxDias`) empieza otra ronda, en la que el último que salió
+ * sigue contando como salido para no repetirse justo después.
+ */
+function anotarEnLaBaraja(s: SucesosState, i: Indice, def: SucesoDef, hoy: number): void {
+  const familia = def.familia!;
+  s.rotacion ??= {};
+  let ronda = s.rotacion[familia];
+  if (!ronda || hoy - ronda.desde >= i.config.rotacion.maxDias) ronda = s.rotacion[familia] = { salidos: [], desde: hoy };
+  if (!ronda.salidos.includes(def.id)) ronda.salidos.push(def.id);
+  if ((i.familias.get(familia) ?? [def.id]).every((id) => ronda.salidos.includes(id))) s.rotacion[familia] = { salidos: [def.id], desde: hoy };
+}
+
+/** Por cuánto se multiplica la probabilidad de un suceso por su familia: 1 salvo que ya haya salido en la ronda en curso (y entonces va también detrás de los que aún no han salido). */
+function factorDeRotacion(s: SucesosState, i: Indice, x: SucesoCompilado, hoy: number): number {
+  const familia = x.def.familia;
+  const ronda = familia ? s.rotacion?.[familia] : undefined;
+  return ronda && hoy - ronda.desde < i.config.rotacion.maxDias && ronda.salidos.includes(x.def.id) ? i.config.rotacion.factorTrasSalir : 1;
+}
+
 // ------------------------------------------------------------------ disparar un suceso
 
-/** La decisión que toca: el suceso con lo que redefina la primera variante que se cumple. */
-function decisionDe(def: SucesoCompilado['def'], c: ContextoDeCondicion, forzada?: string): { d: DecisionDef & { efectos?: readonly Efecto[] }; variante?: string } | undefined {
-  if (!def.variantes?.length) return { d: def };
-  const v = def.variantes.find((x) => (forzada ? x.id === forzada : cumplenTodas(x.si, c)));
-  if (!v) return undefined;
-  return { d: { titulo: v.titulo ?? def.titulo, texto: v.texto ?? def.texto, opciones: v.opciones ?? def.opciones, efectos: [...(def.efectos ?? []), ...(v.efectos ?? [])] }, variante: v.id };
+/** El suceso (o la variante, si redefine el texto) del que sale el texto de entrada: el de la variante si lo redefine, y si no el del suceso. */
+const origenDelTexto = (def: SucesoDef, v?: VarianteDef): DecisionDef => (v && (v.texto !== undefined || v.textos !== undefined) ? v : def);
+
+/** La decisión con sus textos ya elegidos: el suceso con lo que redefina la variante, y el texto `t` de su lista de `textos` si la tiene. */
+function armarDecision(def: SucesoDef, v: VarianteDef | undefined, t: number | undefined): DecisionDef & { efectos?: readonly Efecto[] } {
+  const o = origenDelTexto(def, v);
+  const texto = o.textos?.length ? o.textos[Math.min(t ?? 0, o.textos.length - 1)] : o.texto;
+  return { titulo: v?.titulo ?? def.titulo, texto, opciones: v?.opciones ?? def.opciones, efectos: v ? [...(def.efectos ?? []), ...(v.efectos ?? [])] : def.efectos };
 }
+
+/**
+ * La variante que toca: la primera cuyas condiciones se cumplen, salvo que lleve `peso`: entonces se sortea entre todas las que se cumplen y llevan
+ * `peso`, con el azar propio del suceso (semilla, suceso y día), nunca el generador de la partida.
+ */
+function elegirVariante(ctx: ReadContext, s: SucesosState, def: SucesoDef, c: ContextoDeCondicion, forzada?: string): VarianteDef | undefined {
+  const vs = def.variantes!;
+  if (forzada) return vs.find((x) => x.id === forzada);
+  const primera = vs.find((x) => cumplenTodas(x.si, c));
+  if (!primera || primera.peso === undefined) return primera;
+  const candidatas = vs.filter((x) => x.peso !== undefined && cumplenTodas(x.si, c));
+  if (candidatas.length < 2) return primera;
+  const total = candidatas.reduce((a, x) => a + x.peso!, 0);
+  let r = rngEstable(s.semilla, 'variante', def.id, deDia(ctx)).next() * total;
+  for (const x of candidatas) if ((r -= x.peso!) < 0) return x;
+  return candidatas[candidatas.length - 1];
+}
+
+/** Cuál de los `textos` sale (o `undefined` si el texto es uno solo): al azar propio del suceso y el día, o el que fuerce una prueba. */
+function sortearTexto(ctx: ReadContext, s: SucesosState, def: SucesoDef, v?: VarianteDef): number | undefined {
+  const lista = origenDelTexto(def, v).textos;
+  if (!lista?.length) return undefined;
+  const forzado = prueba(ctx)?.texto?.(def.id);
+  return forzado !== undefined ? forzado % lista.length : rngEstable(s.semilla, 'texto', def.id, deDia(ctx)).int(0, lista.length - 1);
+}
+
+/** La decisión que toca: el suceso con lo que redefina la variante que sale, con su texto de entrada. */
+function decisionDe(ctx: ReadContext, s: SucesosState, def: SucesoDef, c: ContextoDeCondicion, forzada?: string): { d: DecisionDef & { efectos?: readonly Efecto[] }; variante?: string; texto?: number } | undefined {
+  if (!def.variantes?.length) {
+    const texto = sortearTexto(ctx, s, def);
+    return { d: texto === undefined ? def : armarDecision(def, undefined, texto), ...(texto === undefined ? {} : { texto }) };
+  }
+  const v = elegirVariante(ctx, s, def, c, forzada);
+  if (!v) return undefined;
+  const texto = sortearTexto(ctx, s, def, v);
+  return { d: armarDecision(def, v, texto), variante: v.id, ...(texto === undefined ? {} : { texto }) };
+}
+
+/** El suceso tal como lo ve el jugador: sin lo duro que no admite (`undefined` si así no puede salir). Los PNJ no pasan por aquí. */
+const vistaDe = (i: Indice, def: SucesoDef): SucesoDef | undefined => (i.duro ? i.vista.get(def.id) : def);
 
 const claveDeReparto = (r: Record<string, string>): string => Object.keys(r).sort().map((k) => `${k}=${r[k]}`).join(',');
 
@@ -579,6 +681,9 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
   // Quién lo vive: el personaje o un PNJ (el de su hilo abierto o el que diga quien lo dispara).
   const sujeto = hilo?.sujeto ?? origen.sujeto;
   if (sujeto && !activoParaPnj(i, x)) return false;
+  // El contenido duro que el jugador no admite no sale (solo es de presentación al jugador: a los PNJ no les afecta).
+  const vista = sujeto ? def : vistaDe(i, def);
+  if (!vista) return false;
 
   // Lo más barato primero: si ya salió hace poco y no tiene papeles que repartir, no hay nada más que mirar.
   if (!origen.forzado && !x.tienePapeles && !puedeRepetir(ctx, s, x, hilo?.reparto ?? {})) return false;
@@ -586,7 +691,7 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
   const reparto: Record<string, string> = { ...(hilo?.reparto ?? {}), ...(sujeto ? { sujeto } : {}) };
   for (const [papel, p] of Object.entries(x.reparto)) {
     if (reparto[papel]) continue;
-    const quien = repartir(ctx, s, def.id, papel, p, origen.señal);
+    const quien = repartir(ctx, s, def.id, papel, p, origen.señal, Object.values(reparto));
     if (quien) reparto[papel] = quien;
     else if (!p.opcional) return false;
   }
@@ -599,7 +704,7 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
   if (!todoVale && !puedeRepetir(ctx, s, x, reparto)) return false;
   const c = contextoDe(ctx, s, reparto, hilo, origen.señal, sujeto);
   if (!todoVale && !cumplenTodas(i.cuando.get(def.id), c)) return false;
-  const dec = decisionDe(def, c, todoVale ? prueba(ctx)?.variante?.(def.id) : undefined);
+  const dec = decisionDe(ctx, s, vista, c, todoVale ? prueba(ctx)?.variante?.(def.id) : undefined);
   if (!dec) return false;
 
   const hoy = deDia(ctx);
@@ -608,6 +713,7 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
     s.hilos.push(hilo);
   }
   s.ultimaVez[def.id] = hoy;
+  if (def.familia) anotarEnLaBaraja(s, i, def, hoy);
   if (typeof def.repite === 'object' && def.repite.porReparto) s.ultimaVez[`${def.id}@${claveDeReparto(reparto)}`] = hoy;
   const sit: Situacion = { s, i, suceso: x, reparto, hilo, señal: origen.señal, sujeto };
   if (sujeto) {
@@ -647,7 +753,7 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
   aplicar(ctx, sit, dec.d.efectos);
   const plazo = def.plazo!;
   const vence = plazo.hasta ? hoy * MINUTES_PER_DAY + plazo.hasta.hora : ctx.time.minute + (plazo.dias ?? 1) * MINUTES_PER_DAY;
-  s.pendientes.push({ id: s.siguiente++, suceso: def.id, ...(dec.variante ? { variante: dec.variante } : {}), ...(hilo ? { hilo: hilo.id } : {}), reparto, vence, desde: ctx.actionCount, ...(origen.señal ? { señal: origen.señal } : {}) });
+  s.pendientes.push({ id: s.siguiente++, suceso: def.id, ...(dec.variante ? { variante: dec.variante } : {}), ...(dec.texto === undefined ? {} : { texto: dec.texto }), ...(hilo ? { hilo: hilo.id } : {}), reparto, vence, desde: ctx.actionCount, ...(origen.señal ? { señal: origen.señal } : {}) });
   ctx.log(`${componerTexto(dec.d.titulo ?? def.titulo, datos)}: tienes algo que decidir.`, 'aviso');
   return true;
 }
@@ -666,8 +772,10 @@ function resolver(ctx: ReadContext, i: Indice, id: number): PendienteResuelto | 
   const p = s.pendientes.find((q) => q.id === id);
   const x = p && i.cat.sucesos.get(p.suceso);
   if (!p || !x) return undefined;
-  const v = x.def.variantes?.find((y) => y.id === p.variante);
-  return { p, x, d: v ? { titulo: v.titulo ?? x.def.titulo, texto: v.texto ?? x.def.texto, opciones: v.opciones ?? x.def.opciones } : x.def, hilo: s.hilos.find((h) => h.id === p.hilo) };
+  // Sin lo duro que el jugador no admite (si cambia la preferencia con algo pendiente, la opción quitada ya no se ofrece).
+  const def = vistaDe(i, x.def) ?? x.def;
+  const v = def.variantes?.find((y) => y.id === p.variante) ?? x.def.variantes?.find((y) => y.id === p.variante);
+  return { p, x, d: v || p.texto !== undefined ? armarDecision(def, v, p.texto) : def, hilo: s.hilos.find((h) => h.id === p.hilo) };
 }
 
 /** Lo que cuesta de un recurso (dinero, energía) elegir una opción: si no alcanza, no se puede. */
@@ -698,6 +806,12 @@ function tirarCon(ctx: ActionContext, s: SucesosState, suceso: string, clave: st
   return exito;
 }
 
+/** Cuál de los `resultados` de una opción sale: al azar propio del suceso, la opción y el día (o el que fuerce una prueba). */
+function sortearResultado(ctx: ReadContext, s: SucesosState, suceso: string, opcion: string, n: number): number {
+  const forzado = prueba(ctx)?.resultado?.(suceso, opcion);
+  return forzado !== undefined ? forzado % n : rngEstable(s.semilla, 'resultado', suceso, opcion, deDia(ctx)).int(0, n - 1);
+}
+
 function elegir(ctx: ActionContext, i: Indice, r: PendienteResuelto, o: OpcionDef): void {
   const s = mut(ctx);
   s.pendientes = s.pendientes.filter((q) => q.id !== r.p.id);
@@ -713,7 +827,8 @@ function elegir(ctx: ActionContext, i: Indice, r: PendienteResuelto, o: OpcionDe
   }
   const datos = datosDeTexto(ctx, s, r.p.reparto, r.hilo, r.p.señal);
   const titulo = componerTexto(r.d.titulo ?? r.x.def.titulo, datos);
-  ctx.log(rama.resultado ? `${titulo}. ${componerTexto(rama.resultado, datos)}` : `${titulo}: ${componerTexto(o.texto, datos)}.`, 'info');
+  const resultado = rama.resultados?.length ? rama.resultados[sortearResultado(ctx, s, r.x.def.id, o.id, rama.resultados.length)] : rama.resultado;
+  ctx.log(resultado ? `${titulo}. ${componerTexto(resultado, datos)}` : `${titulo}: ${componerTexto(o.texto, datos)}.`, 'info');
   apuntar(s, deDia(ctx), r.x.def.id, o.id, r.p.reparto, r.p.variante);
   cerrarSiAcabo(s, r.p.hilo);
 }
@@ -904,16 +1019,22 @@ function espontaneos(ctx: ActionContext, i: Indice, lista: readonly SucesoCompil
   const hoy = deDia(ctx);
   const salen = lista.filter((x) => {
     const azar = prueba(ctx)?.azar?.(x.def.id) ?? rngEstable(s.semilla, 'suceso', x.def.id, cada, hoy).next();
-    return azar < (x.def.disparo as { prob: number }).prob;
+    return azar < (x.def.disparo as { prob: number }).prob * factorDeRotacion(s, i, x, hoy);
   });
-  // El orden entre los que salen también es estable: más peso, antes.
-  const orden = salen.map((x) => ({ x, r: rngEstable(s.semilla, 'orden', x.def.id, hoy).next() ** (1 / (x.def.peso ?? 1)) })).sort((a, b) => b.r - a.r);
+  // El orden entre los que salen también es estable: más peso, antes (y menos si su familia ya ha dado ese suceso en esta ronda).
+  // Los de una familia que ya han salido en esta ronda van detrás de los que aún no (si el cupo se agota antes, no salen).
+  const orden = salen.map((x) => ({ x, ya: factorDeRotacion(s, i, x, hoy) !== 1, r: rngEstable(s.semilla, 'orden', x.def.id, hoy).next() ** (1 / (x.def.peso ?? 1)) })).sort((a, b) => Number(a.ya) - Number(b.ya) || b.r - a.r);
   for (const { x } of orden) {
     const categoria = x.cupo;
     if (!hayCupo(ctx, s, i, categoria)) continue;
     if (intentar(ctx, i, x)) {
       s.cupo.hoy[categoria] = (s.cupo.hoy[categoria] ?? 0) + 1;
       s.cupo.estaSemana[categoria] = (s.cupo.estaSemana[categoria] ?? 0) + 1;
+    } else if (x.def.aguanta && !s.programados.some((p) => p.suceso === x.def.id)) {
+      // Le ha tocado pero no es el momento (la hora, el sitio): espera como un programado más, que se vuelve a mirar tras cada acción (`aguanta`).
+      // Sin esto, un `cada` con condiciones de hora o lugar solo se miraba a medianoche y casi nunca salía.
+      s.programados.push({ dia: hoy, hasta: hoy + x.def.aguanta.dias, suceso: x.def.id });
+      s.programados.sort((p, q) => p.dia - q.dia);
     }
   }
 }
@@ -1011,6 +1132,12 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
         if (lista) candidatos = candidatos === grupo.siempre ? [...candidatos, ...lista] : (candidatos as SucesoCompilado[]).concat(lista);
       }
     }
+    // Los de una familia de rotación compiten por el cupo en un orden sorteado (con su peso y lo que ya han salido), no en el del catálogo.
+    if (candidatos.some((x) => x.def.familia)) {
+      const clave = (x: SucesoCompilado): number => rngEstable(s.semilla, 'orden', x.def.id, ctx.time.minute).next() ** (1 / (x.def.peso ?? 1));
+      const ya = (x: SucesoCompilado): number => Number(factorDeRotacion(s, i, x, hoy) !== 1);
+      candidatos = [...candidatos.filter((x) => !x.def.familia), ...candidatos.filter((x) => x.def.familia).sort((a, b) => ya(a) - ya(b) || clave(b) - clave(a))];
+    }
     // Un contexto mínimo, el mismo para todos los candidatos: solo sirve para las condiciones ligeras (no lee hechos ni reparto).
     let ligero: ContextoDeCondicion | undefined;
     const noPasa = (x: SucesoCompilado): boolean => {
@@ -1032,7 +1159,7 @@ function alEvento(ctx: ActionContext, ev: GameEvent): void {
         if (noSale) continue;
         // Espontáneo ligado a un momento (entrar en clase, llegar al patio): sale algunas veces y gasta el cupo de su categoría.
         const azar = prueba(ctx)?.azar?.(x.def.id) ?? rngEstable(s.semilla, 'suceso', x.def.id, 'al', ctx.time.minute).next();
-        if (azar >= prob || !hayCupo(ctx, s, i, x.cupo)) continue;
+        if (azar >= prob * factorDeRotacion(s, i, x, hoy) || !hayCupo(ctx, s, i, x.cupo)) continue;
         if (intentar(ctx, i, x, { señal })) {
           s.cupo.hoy[x.cupo] = (s.cupo.hoy[x.cupo] ?? 0) + 1;
           s.cupo.estaSemana[x.cupo] = (s.cupo.estaSemana[x.cupo] ?? 0) + 1;
@@ -1090,6 +1217,8 @@ export const sucesos = defineModule<SucesosState>({
   name: 'Sucesos',
   description: 'El director de los sucesos y las decisiones. No trae contenido: lo aportan los módulos como datos.',
   initState: (ctx) => estadoInicial(ctx.seed, ctx.playerName),
+  // Las partidas guardadas antes de la rotación por familia no tienen `rotacion`.
+  alCargar: (estado) => (estado.rotacion ? estado : { ...estado, rotacion: {} }),
   on: { [CUALQUIER_EVENTO]: alEvento },
   resolverAccion: accionDeElegir,
   modifiers: [

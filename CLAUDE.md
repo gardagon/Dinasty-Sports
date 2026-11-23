@@ -11,6 +11,7 @@ El dibujo de las personas (paquete `@ds/retrato`: estilo, capas, catálogos de p
 La pestaña del deporte y las reglas de las clasificaciones (puntos por puesto, qué se guarda) están en `docs/ANEXO_DEPORTE.md`, que también tiene el catálogo de los 22 entrenamientos del fútbol, las quedadas para jugar y los campamentos (`modules/futbol/src/entrenamientos.ts`: una constante, `ESCALA_DE_ENTRENAMIENTO`, lo calibra).
 El mundo del fútbol base (ciudad grande, colegios, clubes, filiales, divisiones, liga y copa) está en `docs/CIUDAD_Y_LIGAS.md`.
 Los eventos y decisiones (en el código, «sucesos»: el formato, el director `modules/sucesos`, los eventos base de `modules/eventos` por áreas y los de cada deporte en su paquete, cupos y presentación editables, y cómo se prueba) están en `docs/ANEXO_EVENTOS.md` (plan y decisiones: `docs/PLAN_EVENTOS.md`): un evento nuevo es un archivo de datos, sin tocar el motor ni otros módulos; si cambias el formato o una cifra, actualiza el anexo, y tras añadir o cambiar eventos pasa `npm run eventos:validar` y `npm run eventos:mapa`.
+La web a pantalla ancha (diseño de escritorio A, tres columnas, desde 1280 px en «Automático») está en `apps/web/src/escritorio.ts` y `escritorio.css`: **coloca las mismas funciones `view*` de `main.ts`**, así que una pestaña nueva o una pieza nueva sale sola en los dos diseños; para añadir algo a la columna izquierda (comida, inventario…) se añade una pieza a `PIEZAS_IZQUIERDA`. Cómo se decidió, las capturas y lo pendiente: `docs/relevo/diseno-escritorio.md`. Si cambias el HTML de una pieza, mira que `escritorio.css` (los selectores `.esc-*-pag`) siga bien.
 Cuando tomes una decisión de diseño o de balance, añade una entrada en `docs/DECISIONES.md`.
 
 ## Reglas que no se rompen
@@ -44,6 +45,8 @@ npm run rendimiento -- 60  # dónde se va el tiempo: crear, guardar, cargar, ms 
 npm run clave-deportes   # genera el par de claves con que se firman los deportes (la privada, a un secreto DS_CLAVE_PRIVADA de GitHub)
 npm run publicar-deportes -- <carpeta>  # empaqueta y firma TODOS los deportes (también los que no van dentro del juego, como el fútbol: `"dsDeporte": true` en su package.json) en <carpeta>/deportes (necesita DS_CLAVE_PRIVADA)
 npm run probar-web       # el camino entero en un Chromium de verdad: instalar el fútbol, crear una partida («creando el mundo») y jugar un día de partido (~2 min)
+npm run probar-web:escritorio  # el mismo camino con una ventana de ordenador (1440×900): el diseño de escritorio y el aviso «Pasando la semana…»
+npx tsx tools/capturar-escritorio.ts preparar|capturar  # capturas de la web a 1366/1920/390 px, en claro y oscuro (docs/relevo/diseno-escritorio.md §6)
 npm run sim:cuerpo -- 2 31,32  # el cuerpo de la población: proporción por complexión y grupo de edad frente a los objetivos del plan del cuerpo
 npm run sim:futbol -- 365 3  # cuánto se aprende en un curso con el club: deportista de fútbol frente al de atletismo (mismo plan)
 npm run sim:futbol-habilidades -- 365 3  # cuánto sube cada habilidad del fútbol en un curso con el bot de campo (para calibrar el catálogo de entrenamientos)

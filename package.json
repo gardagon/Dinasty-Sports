@@ -46,6 +46,7 @@
     "clave-deportes": "tsx tools/clave-deportes.ts",
     "publicar-deportes": "tsx tools/publicar-deportes.ts",
     "probar-web": "tsx tools/probar-web.ts",
+    "probar-web:escritorio": "tsx tools/probar-web.ts /tmp/ds-probar-web-escritorio 35 escritorio",
     "probar-actualizacion": "tsx tools/probar-actualizacion.ts",
     "rendimiento:web": "tsx tools/rendimiento-web.ts",
     "presupuesto": "tsx tools/presupuesto.ts",

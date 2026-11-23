@@ -1250,7 +1250,7 @@ interface EnLugar {
 const compararCercania = (a: EnLugar, b: EnLugar): number =>
   Number(b.n.known !== false) - Number(a.n.known !== false) || b.nivel - a.nivel || (RELEVANCIA[b.tipo] ?? 0) - (RELEVANCIA[a.tipo] ?? 0) || a.azar! - b.azar!;
 
-/** Número de índices de presencia construidos: `PresenciaService.version`. */
+/** Número de índices de presencia construidos en el proceso: `PresenciaService.version`. Solo es clave de caché (no entra en ningún sorteo), así que no se reinicia. */
 let versionDeIndices = 0;
 
 /**
@@ -1882,6 +1882,7 @@ export const npcs = defineModule<NpcsState>({
       const indice = indiceDePresencia(lista, `${t.day}:${intervalo}:${partidos?.version ?? ''}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day, candidatosEn({ lista, agendaDe, partidos }, t.day));
       const servicio: PresenciaService = {
         version: indice.version,
+        aforo: (lugar) => aforoCercano(lugar, `${t.day}:${intervalo}`),
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso, t.day)),
         ocupadosEn: (lugar) => indice.ocupadosEn(lugar).map((e) => ({ persona: vista(e.n, inicioCurso, t.day), motivo: e.motivo })),
         donde: (id) => {

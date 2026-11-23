@@ -17,6 +17,8 @@ import { publicarDeportes } from './publicar';
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const capturas = resolve(process.argv[2] ?? join(tmpdir(), 'ds-probar-web'));
 const semilla = Number(process.argv[3] ?? 35);
+// `npm run probar-web:escritorio`: el mismo camino con una ventana de ordenador (1440×900), donde el diseño «Automático» usa las tres columnas.
+const escritorio = process.argv[4] === 'escritorio';
 mkdirSync(capturas, { recursive: true });
 // Playwright no es una dependencia del repositorio (el entorno de pruebas lo trae instalado): se carga sin tipos.
 const { chromium } = createRequire(import.meta.url)('playwright') as { chromium: { launch(): Promise<any> } };
@@ -51,7 +53,7 @@ const puerto = (servidor.address() as { port: number }).port;
 
 const navegador = await chromium.launch();
 try {
-  const pagina = await (await navegador.newContext({ viewport: { width: 480, height: 900 } })).newPage();
+  const pagina = await (await navegador.newContext({ viewport: escritorio ? { width: 1440, height: 900 } : { width: 480, height: 900 } })).newPage();
   const errores: string[] = [];
   // tsx (esbuild) envuelve las funciones con nombre en `__name`: las que se mandan a la página lo necesitan allí.
   await pagina.addInitScript('window.__name = (f) => f;');
@@ -91,7 +93,7 @@ try {
   comprobar(casillas.length === 2, `en nueva partida hay dos deportes (${casillas.map((c) => c.texto.split('·')[0].trim()).join(' y ')})`);
   comprobar(casillas.every((c) => c.casillaAlaIzquierda && c.ancho < 40), 'cada casilla sale a la izquierda de su nombre, sin ocupar todo el ancho');
   comprobar(casillas.every((c) => c.marcada), 'el fútbol recién instalado sale marcado como el atletismo');
-  await pagina.selectOption('#pais', { label: 'España · ciudad grande (se tarda unos 40 s en crear)' });
+  await pagina.selectOption('#pais', { label: 'España · ciudad grande (se tarda hasta un minuto en crear)' });
   await pagina.evaluate((s: number) => (window as unknown as { __ds: { fijarSemilla(n: number): void } }).__ds.fijarSemilla(s), semilla);
   await pagina.screenshot({ path: join(capturas, '3-nueva-partida.png') });
 
@@ -120,6 +122,7 @@ try {
     throw new Error(`La partida no se abrió tras crearla. ${errores.join(' | ')}`);
   });
   await pagina.screenshot({ path: join(capturas, '5-partida-creada.png') });
+  comprobar((await pagina.locator('main.app.esc').count()) === (escritorio ? 1 : 0), escritorio ? 'con 1440 px y «Automático» se usa el diseño de escritorio (tres columnas)' : 'con 480 px se usa la disposición de siempre (sin el diseño de escritorio)');
   comprobar(await pagina.evaluate(() => (window as unknown as { __ds: { game: { registry: { moduleIds: Set<string> } } } }).__ds.game.registry.moduleIds.has('futbol')), 'la partida lleva el fútbol (cargado del paquete instalado)');
 
   // 6. La prueba de acceso a un club: pedirla y unirse al entrenamiento hace salir el suceso del entrenador (ventana de la web). Se elige una opción con un clic, se comprueba que se resuelve y que el Diario lo cuenta.
@@ -251,6 +254,35 @@ try {
   comprobar(!titulos.some((x) => x.startsWith('El curso que viene')), 'con la liga en marcha la pestaña no enseña «El curso que viene»');
   comprobar((await pagina.locator('ul.cronica li.mia').count()) >= 0 && (await pagina.locator('ul.cronica li').count()) > 6, 'la crónica del partido se ve, con lo del personaje resaltado');
   await pagina.screenshot({ path: join(capturas, '6-pestana-del-deporte.png'), fullPage: true });
+  // 9. Pasar de semana: antes de calcularlo la página pinta «Pasando la semana…» (y lo quita al acabar).
+  await pagina.click('[data-tab="hacer"]');
+  const semana = await pagina.evaluate(() => {
+    const ds = (window as unknown as { __ds: Record<string, any> }).__ds;
+    const g = ds.game;
+    const fin = (g.time.week + 1) * 10080;
+    ds.hastaElMinuto(fin - 5);
+    ds.render();
+    const w = window as unknown as { __visto: boolean };
+    w.__visto = false;
+    new MutationObserver(() => {
+      if (document.body.innerText.includes('Pasando la semana')) w.__visto = true;
+    }).observe(document.body, { childList: true, subtree: true });
+    // Una acción que dure lo que queda de semana o más.
+    const ids = [...document.querySelectorAll<HTMLElement>('.action[data-do]:not([disabled])')].map((b) => b.dataset.do!);
+    const id = ids.find((x) => (g.preview(x)?.duration ?? 0) >= fin - g.time.minute);
+    return { id, semana: g.time.week };
+  });
+  for (let i = 0; i < 10 && (await pagina.locator('.ventana.suceso').count()) > 0; i++) {
+    const opcion = pagina.locator('.ventana.suceso .suceso-opciones button:not([disabled])').first();
+    if (await opcion.count()) await opcion.click();
+    else await pagina.click('.ventana.suceso [data-act="aviso-visto"]');
+    await pagina.waitForTimeout(300);
+  }
+  comprobar(!!semana.id, 'hay una acción que cruza de semana');
+  await pagina.click(`[data-do="${semana.id}"]`);
+  await pagina.waitForFunction((s: number) => (window as unknown as { __ds: { game: { time: { week: number } } } }).__ds.game.time.week > s, semana.semana, { timeout: 30000 });
+  await pagina.waitForFunction(() => !document.body.innerText.includes('Pasando la semana'), undefined, { timeout: 10000 });
+  comprobar(await pagina.evaluate(() => (window as unknown as { __visto: boolean }).__visto), 'al cruzar de semana la página pinta «Pasando la semana…» antes de calcular, y lo quita al acabar');
   comprobar(errores.length === 0, `sin errores en la consola${errores.length ? `: ${errores.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`\nTodo el camino funciona en el navegador. Capturas en ${capturas}`);
 } finally {
