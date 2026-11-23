@@ -55,11 +55,13 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 | `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Análisis (`docs/relevo/dormir.md`) | ✅ Unido. Espera decisiones del usuario (8 dudas, fases F1–F4) |
 | `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error: estado compartido entre partidas en un proceso (la huella de `vago` 2 cambia según el orden de los bots). Investigar, arreglar sin cambiar partidas jugadas solas y test | Lanzada el 23/11 |
 | `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Análisis (`docs/relevo/gente-por-la-calle.md`) | ✅ Unido. Espera decisiones del usuario (fases F1–F4, cuántos vecinos…) |
-| `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Fase 2 (23/11): aplicar A (por defecto desde 1280 px), dinero en la columna izquierda, pulir pestañas, diario recortado, y el aviso «Pasando la semana…» (M1) | Reactivada el 23/11 |
+| `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño A aplicado (por defecto desde 1280 px), dinero en la columna, aviso «Pasando la semana…» | ✅ Unida el 23/11 |
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
-1. **Probar como jugador lo publicado el 22/11** y corregir los matices que vaya encontrando el usuario (es lo que está haciendo ahora).
+1. **Probar como jugador lo publicado el 22/11** y corregir los matices que vaya encontrando el usuario (es lo que está haciendo ahora). Arreglos pequeños apuntados para la próxima tanda:
+   - con la ciudad grande, la ficha del deporte dice «Federación: … (con los datos de España: España · ciudad grande (se tarda hasta un minuto en crear) aún no tiene los suyos)». El aviso de «datos de respaldo» no debería salir para la ciudad grande, que es España, y el nombre del país no debería llevar el paréntesis del tiempo (`apps/web/src/paises-propios.ts`, `modules/futbol/src/index.ts:937`, `modules/atletismo/src/index.ts:660`);
+   - «Nueva partida» y el menú siguen a 460 px en PC.
 2. **Sucesos: prioridad alta** («es lo que hará que los días no se repitan; hay que mimarlos», usuario, 22/11). Lote 2 de colegio, amigos y casa en marcha (§3 bis): primero la propuesta con criterios de calidad, que aprueba el usuario, y después se escriben. Los bots no pasan por la calle del colegio antes de las 8:10 ni están en casa de noche: esos sucesos se prueban con `pruebas`.
 2 ter. **Rendimiento, M2** (historia deportiva repartida entre hilos de trabajo, huella idéntica, −30 % al crear): explicada al usuario el 23/11; espera sus tiempos en el móvil (Android, ciudad grande: crear y pasar de semana).
 2 bis. **Diseño de la web para PC** (usuario, 22/11; DECISIONES 22/11): aprovechar la pantalla ancha sin deshacer código, recolocando las funciones `view*` que ya existen en una vista de escritorio (≥ 1280 px) con CSS propio; el móvil, igual. Análisis y prototipos en marcha (§3 bis); el usuario lo quiere también para presentar el juego. Al aprobarlo, la aplicación se une cuando estén unidos los arreglos de la interfaz.
