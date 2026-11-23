@@ -1,4 +1,4 @@
-import { APORTE_DE_SUCESOS, SERVICES, elegirPorCaracter, rngEstable, type AporteDeSucesos, type GameModule, type NpcDirectory, type OpcionDef, type ProfileService, type StatDef, type StudiesService, type SucesoDef, type SucesosService } from '@ds/contracts';
+import { APORTE_DE_SUCESOS, SERVICES, type LugaresService, elegirPorCaracter, rngEstable, type AporteDeSucesos, type GameModule, type NpcDirectory, type OpcionDef, type ProfileService, type StatDef, type StudiesService, type SucesoDef, type SucesosService } from '@ds/contracts';
 import { checkInvariants, seededRng, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 import type { Bot, BotMemory } from './bots';
@@ -21,6 +21,28 @@ export interface Snapshot {
   stats: Record<string, number>;
 }
 
+/** Un evento que ha salido, con cuándo, dónde y con quién (solo si se pide medir el ritmo: `runBot(..., { medirRitmo: true })`). */
+export interface Ocurrencia {
+  suceso: string;
+  /** Día de la partida, minuto del día y día de la semana (0 = lunes) en que le salió al personaje. */
+  dia: number;
+  minuto: number;
+  diaDeLaSemana: number;
+  /** ¿Día de clase? */
+  lectivo: boolean;
+  lugar: string;
+  /** ¿Es un evento en el que hay que decidir (con opciones)? */
+  decision: boolean;
+  /** Tipo de cada persona que participa (su papel en el mundo: `progenitor`, `profesor`, `companero`…). */
+  personas: { id: string; tipo: string }[];
+}
+
+/** Lo que hace falta para medir el ritmo de los eventos: cada ocurrencia y qué días fueron de clase. */
+export interface Ritmo {
+  ocurrencias: Ocurrencia[];
+  diasLectivos: number[];
+}
+
 export interface RunResult {
   bot: string;
   seed: number;
@@ -35,6 +57,55 @@ export interface RunResult {
   minutesByTag: Record<string, number>;
   /** Cuántas veces ha salido cada suceso (evento) en la partida. */
   sucesos: Record<string, number>;
+  /** Cuándo, dónde y con quién ha salido cada evento (solo con `medirRitmo`; sin pedirlo no existe y la huella de la partida no cambia). */
+  ritmo?: Ritmo;
+}
+
+/**
+ * Apunta los eventos que van saliendo: cada evento con decisión se apunta al aparecer (antes de que el bot decida, cuando el reloj aún marca
+ * la hora en que le salió) y cada evento sin decisión, al verlo en lo vivido. Solo lee servicios: no toca la partida ni su azar.
+ */
+class Medidor {
+  readonly ocurrencias: Ocurrencia[] = [];
+  /** Los días de clase que ha vivido (se apunta cada vez que se mira). */
+  readonly lectivos = new Set<number>();
+  private vistos = new Set<number>();
+  private recuerdos = 0;
+  private fuera: Set<string>;
+  constructor(private game: Game) {
+    this.fuera = new Set([...sucesosDeLaPartida(game)].filter((d) => d.fueraDelRitmo).map((d) => d.id));
+  }
+  private apuntar(suceso: string, personas: readonly string[], decision: boolean): void {
+    if (this.fuera.has(suceso)) return;
+    const g = this.game;
+    const npcs = g.service<NpcDirectory>(SERVICES.npcs);
+    const t = g.time;
+    this.ocurrencias.push({
+      suceso,
+      dia: t.day,
+      minuto: t.minuteOfDay,
+      diaDeLaSemana: t.weekday,
+      lectivo: t.isSchoolDay,
+      lugar: g.service<LugaresService>(SERVICES.lugares)?.actual().id ?? '?',
+      decision,
+      personas: personas.map((id) => ({ id, tipo: npcs?.get(id)?.role ?? 'persona' })),
+    });
+  }
+  /** Se llama antes de que decida el bot (los pendientes acaban de salir) y después de cada acción (lo que ha salido sin decisión). */
+  mirar(): void {
+    if (this.game.time.isSchoolDay) this.lectivos.add(this.game.time.day);
+    const svc = this.game.service<SucesosService>(SERVICES.sucesos);
+    if (!svc) return;
+    for (const p of svc.pendientes()) {
+      if (this.vistos.has(p.id)) continue;
+      this.vistos.add(p.id);
+      this.apuntar(p.suceso, Object.values(p.reparto), true);
+    }
+    const todos = svc.recuerdos();
+    // Los que tenían decisión ya se apuntaron al aparecer; aquí solo lo que salió sin ella.
+    for (const r of todos.slice(this.recuerdos)) if (r.opcion === undefined) this.apuntar(r.suceso, r.personas, false);
+    this.recuerdos = todos.length;
+  }
 }
 
 /** Áreas automáticas: una por módulo con habilidades + grupos de genéricas + cada stat de estado. */
@@ -131,7 +202,7 @@ function cuentaDeSucesos(game: Game): Record<string, number> {
   return out;
 }
 
-export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}): RunResult {
+export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}, opciones: { medirRitmo?: boolean } = {}): RunResult {
   const game = nuevaPartida({ seed, playerName: bot.name, ...(juego.deportes ? { deportes: juego.deportes } : {}), ...(juego.pais ? { pais: juego.pais } : {}) }, juego.modulos);
   const rng = seededRng(seed * 31 + 7);
   const areas = areasFor(game);
@@ -140,6 +211,7 @@ export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}):
   const snapshots: Snapshot[] = [snapshot(game, areas)];
   const minutesByTag: Record<string, number> = {};
   let week = game.time.week;
+  const medidor = opciones.medirRitmo ? new Medidor(game) : undefined;
 
   const t0 = performance.now();
   while (game.time.day < days) {
@@ -148,6 +220,7 @@ export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}):
       mem.hoy = {};
     }
     // Si hay algo que decidir, el bot decide antes de seguir, como lo haría alguien con el carácter de su personaje.
+    medidor?.mirar();
     if (decidirSucesos(game, seed)) continue;
     const opts = opcionesDelBot(game, bot.todasLasAcciones);
     if (!opts.length) {
@@ -164,6 +237,7 @@ export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}):
       if (problems.length > 20) break;
       continue;
     }
+    medidor?.mirar();
     mem.total[choice] = (mem.total[choice] ?? 0) + 1;
     // Un bot puede elegir ir a un sitio (`lugares.ir_*`, que no se les ofrece): no tiene etiquetas.
     const opt = opts.find((o) => o.id === choice);
@@ -193,5 +267,6 @@ export function runBot(bot: Bot, seed: number, days: number, juego: Juego = {}):
     extras: extras(game),
     sucesos: cuentaDeSucesos(game),
     minutesByTag,
+    ...(medidor ? { ritmo: { ocurrencias: medidor.ocurrencias, diasLectivos: [...medidor.lectivos].filter((d) => d < days).sort((a, b) => a - b) } } : {}),
   };
 }

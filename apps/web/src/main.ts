@@ -43,7 +43,7 @@ import {
   type SucesoPendiente,
   type SucesosService,
 } from '@ds/contracts';
-import type { GameModule } from '@ds/contracts';
+import { CATEGORIAS_DURAS, type GameModule } from '@ds/contracts';
 import type { ActionOption, ActionResult, Game, GameState } from '@ds/core';
 import { MODULOS, añadirDeporteALaPartida, cargarPartida, catalogoDeDeportes, deportesDeLaPartida, deportesQueFaltan, motivoParaNoQuitar, nuevaPartida, quitarDeporteDeLaPartida } from '@ds/game';
 import { actualizarDeportesInstalados, cargarInstalados, consultarCatalogo, desinstalarDeporte, deportesConActualizacion, esActualizacionDeInstalado, estadoDeDeportes, instalarDeporte, textosInstalados } from './deportes-instalados';
@@ -59,7 +59,7 @@ import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGen
 import { agruparEnDesplegables, cambioEnDesplegable, clicEnDesplegable, viewDesplegable } from './desplegables';
 import { reclamarPestana } from './pestana';
 import { cambioEnDiseno, clicEnEscritorio, usaEscritorio, viewEscritorio, viewOpcionesDeDiseno, vigilarAncho } from './escritorio';
-import { MODOS_DE_CONSECUENCIAS, MODOS_DEL_GRUPO, MODOS_FUERA_DE_CARACTER, SUCESO_DEL_GRUPO, respuestaAlGrupo, type CuandoSeVaElGrupo, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
+import { cambiarDuro, mismoDuro, MODOS_DE_CONSECUENCIAS, MODOS_DEL_GRUPO, MODOS_FUERA_DE_CARACTER, SUCESO_DEL_GRUPO, respuestaAlGrupo, type CuandoSeVaElGrupo, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
 import {
   FRECUENCIAS,
@@ -490,6 +490,8 @@ function viewNueva(): string {
       ${apellido('madre', 'primer apellido de tu madre', id.delMadre)}
     </div>`
     }
+    <label>Contenido duro</label>
+    ${viewContenidoDuro(false)}
     <p class="te-llamaras">Te llamarás <b>${esc(id.completo)}</b></p>
     <button type="button" class="menu-boton" data-act="sortear">Volver a sortear nombre y apellidos</button>
     <button type="button" class="primary" data-act="empezar">Empezar el curso</button>
@@ -529,7 +531,16 @@ function viewPresentacion(): string {
     <p><label>Opciones que no van con tu carácter ${lista('pres-fuera-de-caracter', MODOS_FUERA_DE_CARACTER, presentacion.fueraDeCaracter)}</label></p>
     <p><label>Cuando se va el grupo con el que estás ${lista('pres-grupo', MODOS_DEL_GRUPO, presentacion.cuandoSeVaElGrupo)}</label></p>
     <p><label><input type="checkbox" id="pres-aviso"${presentacion.avisoFueraDeCaracter ? ' checked' : ''}${presentacion.fueraDeCaracter === 'normales' ? '' : ' disabled'}> Avisar «no va contigo» en las opciones normales</label></p>
+    ${viewContenidoDuro(true)}
     ${viewOpcionesDeDiseno()}`;
+}
+
+/** Contenido duro (familia, burlas, peleas): el interruptor general y, en Opciones, cada categoría. Desactivado por defecto. */
+function viewContenidoDuro(conCategorias: boolean): string {
+  const d = presentacion.duro;
+  return `<p><label><input type="checkbox" id="pres-duro"${d.activado ? ' checked' : ''}> Contenido duro en los eventos</label></p>
+    ${conCategorias ? `<div class="opciones">${CATEGORIAS_DURAS.map((c) => `<label class="casilla"><input type="checkbox" id="pres-duro-${c.id}"${d.categorias[c.id] ? ' checked' : ''}${d.activado ? '' : ' disabled'}> ${esc(c.nombre)}<small> · ${esc(c.descripcion)}</small></label>`).join('')}</div>` : ''}
+    <p class="note">Algunos eventos tratan temas duros (problemas en la familia, burlas y acoso, peleas). Están desactivados; si los activas, puedes elegir cuáles en Opciones.</p>`;
 }
 
 function viewOpciones(): string {
@@ -1222,6 +1233,10 @@ app.addEventListener('change', (e) => {
     cambiarPresentacion(el.id === 'pres-consecuencias' ? { consecuencias: el.value as Presentacion['consecuencias'] } : { fueraDeCaracter: el.value as Presentacion['fueraDeCaracter'] });
     return;
   }
+  if (el instanceof HTMLInputElement && el.id.startsWith('pres-duro')) {
+    cambiarPresentacion({ duro: cambiarDuro(presentacion.duro, el.id, el.checked) });
+    return;
+  }
   if (el instanceof HTMLSelectElement && el.id === 'pres-grupo') {
     // Solo cambia cómo se responde en la web: no hace falta rehacer la partida.
     presentacion = { ...presentacion, cuandoSeVaElGrupo: el.value as CuandoSeVaElGrupo };
@@ -1246,7 +1261,7 @@ app.addEventListener('change', (e) => {
 /** Cambia cómo se presentan los sucesos: se recuerda en el navegador y se rehace la partida en marcha con la nueva configuración (el estado no cambia). */
 function cambiarPresentacion(cambio: Partial<Presentacion>): void {
   const nueva = { ...presentacion, ...cambio };
-  if (nueva.consecuencias === presentacion.consecuencias && nueva.fueraDeCaracter === presentacion.fueraDeCaracter) return;
+  if (nueva.consecuencias === presentacion.consecuencias && nueva.fueraDeCaracter === presentacion.fueraDeCaracter && mismoDuro(nueva.duro, presentacion.duro)) return;
   presentacion = nueva;
   escribirPresentacion(presentacion);
   const propio = moduloDePresentacion(presentacion);

@@ -1,10 +1,10 @@
-import { APORTE_DE_CONFIG_DE_SUCESOS, defineModule, type CambiosDeConfigDeSucesos, type ConfigDeSucesos, type GameModule } from '@ds/contracts';
+import { APORTE_DE_CONFIG_DE_SUCESOS, CATEGORIAS_DURAS, CONTENIDO_DURO_POR_DEFECTO, defineModule, type CambiosDeConfigDeSucesos, type CategoriaDura, type ConfigDeContenidoDuro, type ConfigDeSucesos, type GameModule } from '@ds/contracts';
 
 /**
  * Cómo se presentan los sucesos, elegido por la persona en «Opciones». Es una preferencia del navegador (como la frecuencia de guardado),
  * no de la partida: se guarda fuera de ella y llega al motor como un aporte `sucesos.config`, sin estado propio.
  */
-export type Presentacion = Pick<ConfigDeSucesos['presentacion'], 'consecuencias' | 'fueraDeCaracter'>;
+export type Presentacion = Pick<ConfigDeSucesos['presentacion'], 'consecuencias' | 'fueraDeCaracter'> & { duro?: ConfigDeContenidoDuro };
 
 export const PRESENTACION_POR_DEFECTO: Presentacion = { consecuencias: 'pistas', fueraDeCaracter: 'normales' };
 
@@ -13,6 +13,8 @@ export const PRESENTACION_POR_DEFECTO: Presentacion = { consecuencias: 'pistas',
  * `avisoFueraDeCaracter`: en modo «normales», una opción que no va con el carácter lleva una nota «no va contigo». Activado por defecto.
  */
 export interface Preferencias extends Presentacion {
+  /** Contenido duro (familia, burlas, peleas): interruptor general y categorías. Desactivado por defecto (`CONTENIDO_DURO_POR_DEFECTO`). Llega al motor con el resto de la presentación. */
+  duro: ConfigDeContenidoDuro;
   avisoFueraDeCaracter: boolean;
   /** Qué hacer cuando se va el grupo con el que estás (el suceso `eventos.grupo.se_van`): preguntar, ir siempre con ellos o quedarme. Solo de la interfaz: el motor sigue ofreciendo las dos opciones. */
   cuandoSeVaElGrupo: CuandoSeVaElGrupo;
@@ -20,7 +22,22 @@ export interface Preferencias extends Presentacion {
 
 export type CuandoSeVaElGrupo = 'preguntar' | 'ir' | 'quedarme';
 
-export const PREFERENCIAS_POR_DEFECTO: Preferencias = { ...PRESENTACION_POR_DEFECTO, avisoFueraDeCaracter: true, cuandoSeVaElGrupo: 'preguntar' };
+export const PREFERENCIAS_POR_DEFECTO: Preferencias = { ...PRESENTACION_POR_DEFECTO, duro: CONTENIDO_DURO_POR_DEFECTO, avisoFueraDeCaracter: true, cuandoSeVaElGrupo: 'preguntar' };
+
+/** El contenido duro tal como lo deja una casilla de Opciones o de la pantalla de crear partida: `pres-duro` es el interruptor general y `pres-duro-<categoría>`, cada categoría. */
+export function cambiarDuro(actual: ConfigDeContenidoDuro, casilla: string, marcada: boolean): ConfigDeContenidoDuro {
+  if (casilla === 'pres-duro') return { ...actual, activado: marcada };
+  const categoria = CATEGORIAS_DURAS.find((c) => `pres-duro-${c.id}` === casilla)?.id;
+  return categoria ? { ...actual, categorias: { ...actual.categorias, [categoria]: marcada } } : actual;
+}
+
+export const mismoDuro = (a: ConfigDeContenidoDuro | undefined, b: ConfigDeContenidoDuro | undefined): boolean => JSON.stringify(a ?? CONTENIDO_DURO_POR_DEFECTO) === JSON.stringify(b ?? CONTENIDO_DURO_POR_DEFECTO);
+
+const duroLeido = (x: unknown): ConfigDeContenidoDuro => {
+  const d = x as Partial<ConfigDeContenidoDuro> | undefined;
+  const categorias = Object.fromEntries(CATEGORIAS_DURAS.map((c) => [c.id, typeof d?.categorias?.[c.id] === 'boolean' ? d.categorias[c.id] : CONTENIDO_DURO_POR_DEFECTO.categorias[c.id]])) as Record<CategoriaDura, boolean>;
+  return { activado: typeof d?.activado === 'boolean' ? d.activado : CONTENIDO_DURO_POR_DEFECTO.activado, categorias };
+};
 
 export const MODOS_DEL_GRUPO: readonly { id: CuandoSeVaElGrupo; nombre: string }[] = [
   { id: 'preguntar', nombre: 'Preguntarme' },
@@ -71,6 +88,7 @@ export function leerPresentacion(almacenLocal: Pick<Storage, 'getItem'> | undefi
     return {
       consecuencias: es(MODOS_DE_CONSECUENCIAS, x?.consecuencias) ? x.consecuencias : PRESENTACION_POR_DEFECTO.consecuencias,
       fueraDeCaracter: es(MODOS_FUERA_DE_CARACTER, x?.fueraDeCaracter) ? x.fueraDeCaracter : PRESENTACION_POR_DEFECTO.fueraDeCaracter,
+      duro: duroLeido(x?.duro),
       avisoFueraDeCaracter: typeof x?.avisoFueraDeCaracter === 'boolean' ? x.avisoFueraDeCaracter : PREFERENCIAS_POR_DEFECTO.avisoFueraDeCaracter,
       cuandoSeVaElGrupo: es(MODOS_DEL_GRUPO, x?.cuandoSeVaElGrupo) ? x.cuandoSeVaElGrupo : PREFERENCIAS_POR_DEFECTO.cuandoSeVaElGrupo,
     };
@@ -98,7 +116,7 @@ function guardadoLocal(): Storage | undefined {
 /** El módulo que lleva la elección al motor: solo un aporte, sin estado. Los valores por defecto no aportan nada. */
 export function moduloDePresentacion(p: Presentacion): GameModule<Record<string, never>> {
   const cambios: CambiosDeConfigDeSucesos[] =
-    p.consecuencias === PRESENTACION_POR_DEFECTO.consecuencias && p.fueraDeCaracter === PRESENTACION_POR_DEFECTO.fueraDeCaracter ? [] : [{ presentacion: { consecuencias: p.consecuencias, fueraDeCaracter: p.fueraDeCaracter } }];
+    p.consecuencias === PRESENTACION_POR_DEFECTO.consecuencias && p.fueraDeCaracter === PRESENTACION_POR_DEFECTO.fueraDeCaracter && mismoDuro(p.duro, undefined) ? [] : [{ presentacion: { consecuencias: p.consecuencias, fueraDeCaracter: p.fueraDeCaracter, ...(p.duro ? { duro: p.duro } : {}) } }];
   return defineModule<Record<string, never>>({
     id: 'presentacion',
     name: 'Presentación (preferencias de la web)',

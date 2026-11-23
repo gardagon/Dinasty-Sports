@@ -5,12 +5,13 @@
  *   npm run eventos:validar                                          lo comprueba todo: forma, referencias, textos, memoria, escenarios y todos los caminos
  *   npm run eventos:probar -- eventos.familia.faltas                 enseña un hilo (o un suceso) por todos sus caminos, con sus textos
  *   npm run eventos:probar -- eventos.familia.faltas --elige prometer,…   solo los caminos que pasan por esas opciones
+ *   npm run eventos:probar -- <hilo o suceso> --sin-duro             lo que queda con el contenido duro desactivado
  *   npm run eventos:mapa                                             escribe docs/eventos/MAPA.md: hilos, sucesos, quién programa a quién y las marcas
  *   npm run eventos:indice                                           rehace modules/eventos/src/catalogo.ts
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { condicionesDeSuceso, efectosDeSuceso } from '@ds/contracts';
+import { SIN_CONTENIDO_DURO, condicionesDeSuceso, efectosDeSuceso } from '@ds/contracts';
 import { Banco, correrTodo, recorrer } from './eventos/banco';
 import { RAIZ_DE_EVENTOS, escribirIndice, indiceAlDia } from './eventos/indice';
 
@@ -81,11 +82,21 @@ function validar(): number {
   const caminos: string[] = [];
   let n = 0;
   const raices = [...banco.catalogo.hilos.keys(), ...[...banco.catalogo.sucesos.values()].filter((x) => !x.hilo).map((x) => x.def.id)];
+  // Con el contenido duro desactivado se recorre otra vez lo que quedaría (solo lo que lleva marcas de «duro»).
+  const sinDuro = new Banco(undefined, { duro: SIN_CONTENIDO_DURO });
+  const llevaDuro = (raiz: string): boolean => JSON.stringify(banco.catalogo.hilos.get(raiz) ?? banco.catalogo.sucesos.get(raiz)?.def).includes('"duro"');
+  let nSinDuro = 0;
   for (const raiz of raices) {
     for (const genero of ['f', 'm'] as const) {
+      const en = genero === 'f' ? 'femenino' : 'masculino';
       const r = recorrer(banco, raiz, genero);
       n += r.caminos.length;
-      caminos.push(...r.errores.map((e) => `${e} (personas en ${genero === 'f' ? 'femenino' : 'masculino'})`));
+      caminos.push(...r.errores.map((e) => `${e} (personas en ${en})`));
+      if (llevaDuro(raiz)) {
+        const q = recorrer(sinDuro, raiz, genero);
+        nSinDuro += q.caminos.length;
+        caminos.push(...q.errores.map((e) => `${e} (personas en ${en}, sin contenido duro)`));
+      }
     }
   }
   const fallidas = pruebas.filter((p) => p.problemas.length);
@@ -94,7 +105,7 @@ function validar(): number {
   for (const p of fallidas) console.log(`  FALLA  ${p.de} · «${p.nombre}»\n         ${p.problemas.join('\n         ')}`);
   for (const c of caminos) console.log(`  ROTO   ${c}`);
   const base = [...banco.catalogo.sucesos.values()].filter((x) => x.origen === 'base').length;
-  console.log(`\n${banco.catalogo.sucesos.size} sucesos (${base} base, ${banco.catalogo.sucesos.size - base} deportivos) en ${banco.catalogo.hilos.size} hilos y ${banco.catalogo.sucesos.size - [...banco.catalogo.hilos.values()].reduce((a, h) => a + h.sucesos.length, 0)} sueltos · ${pruebas.length} pruebas y escenarios · ${n} caminos recorridos (cada opción, en masculino y en femenino)`);
+  console.log(`\n${banco.catalogo.sucesos.size} sucesos (${base} base, ${banco.catalogo.sucesos.size - base} deportivos) en ${banco.catalogo.hilos.size} hilos y ${banco.catalogo.sucesos.size - [...banco.catalogo.hilos.values()].reduce((a, h) => a + h.sucesos.length, 0)} sueltos · ${pruebas.length} pruebas y escenarios · ${n} caminos recorridos (cada variante, cada versión de los textos y de los resultados, cada opción, en masculino y en femenino)${nSinDuro ? ` y ${nSinDuro} más con el contenido duro desactivado` : ''}`);
   const mal = errores.length + fallidas.length + caminos.length;
   console.log(mal ? `❌ ${mal} problemas` : `✅ Todo en orden${avisos.length ? ` (${avisos.length} avisos)` : ''}`);
   return mal ? 1 : 0;
@@ -104,11 +115,12 @@ function probar(): number {
   const raiz = args[0];
   const banco = new Banco();
   if (!raiz || (!banco.catalogo.hilos.has(raiz) && !banco.catalogo.sucesos.has(raiz))) {
-    console.error(`Uso: npm run eventos:probar -- <hilo o suceso> [--elige opción,opción] [--masculino]\n\nHilos:\n  ${[...banco.catalogo.hilos.keys()].join('\n  ')}\nSueltos:\n  ${[...banco.catalogo.sucesos.values()].filter((x) => !x.hilo).map((x) => x.def.id).join('\n  ')}`);
+    console.error(`Uso: npm run eventos:probar -- <hilo o suceso> [--elige opción,opción] [--masculino] [--sin-duro]\n\nHilos:\n  ${[...banco.catalogo.hilos.keys()].join('\n  ')}\nSueltos:\n  ${[...banco.catalogo.sucesos.values()].filter((x) => !x.hilo).map((x) => x.def.id).join('\n  ')}`);
     return 1;
   }
   const elige = args.includes('--elige') ? args[args.indexOf('--elige') + 1].split(',') : [];
-  const r = recorrer(banco, raiz, args.includes('--masculino') ? 'm' : 'f');
+  // Con --sin-duro se ve lo que quedaría con el contenido duro desactivado.
+  const r = recorrer(args.includes('--sin-duro') ? new Banco(undefined, { duro: SIN_CONTENIDO_DURO }) : banco, raiz, args.includes('--masculino') ? 'm' : 'f');
   const caminos = r.caminos.filter((c) => elige.every((o) => c.pasos.some((p) => p.includes(`→ ${o}`))));
   caminos.forEach((c, n) => {
     console.log(`\n━━ Camino ${n + 1} de ${caminos.length} ━━ ${c.pasos.join('  ⇒  ')}`);
@@ -116,7 +128,7 @@ function probar(): number {
     console.log(`   · Marcas que quedan: ${c.marcas.join(', ') || 'ninguna'}   · ${c.hiloCerrado ? 'Hilo cerrado' : 'El hilo sigue abierto'}`);
   });
   for (const e of r.errores) console.log(`\n  ROTO  ${e}`);
-  console.log(`\n${caminos.length} caminos${r.errores.length ? `, ${r.errores.length} rotos` : ''}. Las condiciones y los días de espera se saltan: aquí se ve todo lo que puede pasar, no cuándo.`);
+  console.log(`\n${caminos.length} caminos${r.errores.length ? `, ${r.errores.length} rotos` : ''}. Las condiciones y los días de espera se saltan: aquí se ve todo lo que puede pasar (cada variante y cada versión de los textos y los resultados), no cuándo.`);
   return r.errores.length ? 1 : 0;
 }
 

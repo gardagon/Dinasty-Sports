@@ -49,6 +49,12 @@ export const SHARED_EVENTS = {
   CLASS_ATTENDED: 'clase.asistida',
   /** data: FaltasExcesivasData — el personaje ha llegado al número de faltas de clase del trimestre que avisa a los padres (el evento de los padres está pendiente). */
   FALTAS_EXCESIVAS: 'clase.faltas_excesivas',
+  /** data: ExamenAvisoData — mañana (el día antes) hay un examen de esa asignatura. Una señal por examen de mañana; la emite `estudios`. */
+  EXAMEN_AVISO: 'estudios.examen_aviso',
+  /** data: ExamenHechoData — se ha hecho (o se ha faltado a) un examen: asignatura y nota. Una señal por examen; la emite `estudios`. */
+  EXAMEN_HECHO: 'estudios.examen_hecho',
+  /** data: BoletinData — han salido las notas de la evaluación del trimestre, con la nota media. La emite `estudios`. */
+  BOLETIN: 'estudios.boletin',
   /** data: DatoPersonalData — el personaje le ha preguntado a alguien su edad, su colegio, su clase, su profesión, su trabajo o sus gustos y ya lo sabe. */
   DATO_PERSONAL: 'persona.dato',
   /** data: PresentacionData — el personaje pregunta el nombre a alguien y se presentan: pasa de desconocido a conocido. */
@@ -273,6 +279,39 @@ export interface FaltasExcesivasData {
   /** Curso del juego (0 = el primero) y trimestre (1 a 3) al que se refieren. */
   curso: number;
   trimestre: number;
+}
+
+/** Tipo de examen: los dos parciales del trimestre y el global de la evaluación. */
+export type TipoDeExamenData = 'parcial1' | 'parcial2' | 'global';
+
+export interface ExamenAvisoData {
+  /** Id de la stat de la asignatura (`estudios.matematicas`) y su nombre. */
+  asignatura: string;
+  nombre: string;
+  tipo: TipoDeExamenData;
+  curso: number;
+  trimestre: number;
+  /** Cuántos exámenes hay mañana en total (esta señal sale una vez por examen). */
+  totalMañana: number;
+}
+
+export interface ExamenHechoData {
+  asignatura: string;
+  nombre: string;
+  tipo: TipoDeExamenData;
+  /** De 0 a 10. Con `presentado: false` (faltó a clase ese día) es 0. */
+  nota: number;
+  presentado: boolean;
+  curso: number;
+  trimestre: number;
+}
+
+export interface BoletinData {
+  curso: number;
+  trimestre: number;
+  /** Nota media de la evaluación (de 0 a 10). */
+  media: number;
+  aprobado: boolean;
 }
 
 export interface ClassAttendedData {

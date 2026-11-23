@@ -430,6 +430,55 @@ describe('módulo estudios', () => {
       expect(s.notas.matematicas[0]).toBeLessThan(s.notas.educacion_fisica[0]);
     });
 
+    /** Un módulo de pruebas que recoge las tres señales compartidas de los exámenes. */
+    const oyenteDeExamenes = defineModule<{ avisos: any[]; hechos: any[]; boletines: any[] }>({
+      id: 'oyente_examenes',
+      name: 'Oyente de exámenes',
+      description: 'Solo para los tests: recoge las señales de los exámenes y el boletín.',
+      initState: () => ({ avisos: [], hechos: [], boletines: [] }),
+      on: {
+        [SHARED_EVENTS.EXAMEN_AVISO]: (ctx, ev) => ctx.updateState((s: any) => ({ ...s, avisos: [...s.avisos, { ...(ev.data as object), dia: ctx.time.day }] })),
+        [SHARED_EVENTS.EXAMEN_HECHO]: (ctx, ev) => ctx.updateState((s: any) => ({ ...s, hechos: [...s.hechos, { ...(ev.data as object), dia: ctx.time.day }] })),
+        [SHARED_EVENTS.BOLETIN]: (ctx, ev) => ctx.updateState((s: any) => ({ ...s, boletines: [...s.boletines, ev.data] })),
+      },
+    });
+
+    it('emite el aviso el día antes de cada examen, el examen hecho con su nota y el boletín con la media; faltar da un 0 sin presentarse', () => {
+      const base = enExamenes(13); // desde el lunes anterior: así se ve también el aviso del domingo
+      const g = Game.load([personaje, estudios, pausas, oyenteDeExamenes], base.serialize());
+      for (let d = 0; d < 5; d++) {
+        advanceToWeek(g, 'gen.descansar', 14, d, 8);
+        if (d !== 3) irAClases(g); // el jueves falta
+      }
+      advanceToWeek(g, 'gen.descansar', 14, 5, 10);
+      const o = g.moduleState<{ avisos: any[]; hechos: any[]; boletines: any[] }>('oyente_examenes');
+      const lunes = 14 * 7;
+      // Un aviso y un examen hecho por asignatura (todas las del curso 0 tienen global esa semana).
+      expect(o.avisos.map((a) => a.asignatura).sort()).toEqual(claves(0).map((k) => `estudios.${k}`).sort());
+      expect(o.hechos.map((a) => a.asignatura).sort()).toEqual(claves(0).map((k) => `estudios.${k}`).sort());
+      for (const k of claves(0)) {
+        const dia = lunes + diaDeExamen(0, 1, k, 'global', diasDe(k));
+        const aviso = o.avisos.find((a) => a.asignatura === `estudios.${k}`);
+        const hecho = o.hechos.find((a) => a.asignatura === `estudios.${k}`);
+        expect(aviso.tipo).toBe('global');
+        expect(aviso.dia).toBe(dia - 1); // el día antes (el domingo, para un examen del lunes)
+        expect(aviso.totalMañana).toBeGreaterThanOrEqual(1);
+        expect(hecho.nota).toBe(g.moduleState<EstudiosState>('estudios').notas[k][0] === 0 ? 0 : hecho.nota);
+        expect(hecho.presentado).toBe(diaDeExamen(0, 1, k, 'global', diasDe(k)) !== 3);
+        if (!hecho.presentado) expect(hecho.nota).toBe(0);
+      }
+      expect(o.boletines).toHaveLength(1);
+      expect(o.boletines[0]).toMatchObject({ curso: 0, trimestre: 1 });
+      expect(o.boletines[0].media).toBeCloseTo(g.moduleState<EstudiosState>('estudios').boletines![0].media, 1);
+      expect(o.boletines[0].aprobado).toBe(o.boletines[0].media >= 5);
+    });
+
+    it('no avisa ni emite nada fuera de las semanas de examen', () => {
+      const g = Game.load([personaje, estudios, pausas, oyenteDeExamenes], nueva().serialize());
+      advanceToWeek(g, 'gen.descansar', 3, 0, 9);
+      expect(g.moduleState<{ avisos: any[] }>('oyente_examenes').avisos).toEqual([]);
+    });
+
     it('varios exámenes pueden caer el mismo día', () => {
       const dias = claves(0).map((k) => diaDeExamen(0, 1, k, 'global', diasDe(k)));
       expect(new Set(dias).size).toBeLessThan(dias.length);

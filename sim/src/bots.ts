@@ -223,6 +223,49 @@ export const BOTS: Bot[] = [
     },
   },
   {
+    id: 'madrugador',
+    name: 'Madruga y trasnocha',
+    description: 'Como el Equilibrado, pero sale de casa antes de las 7:30 (pasa por la calle del colegio antes de las 8:10 y espera allí a que abran) y de noche está en casa, despierto, hasta las 23:00. Sirve para medir los eventos de antes de clase y de la noche.',
+    choose(game, opts, _rng, mem) {
+      const t = game.time;
+      const lugares = game.service<LugaresService>(SERVICES.lugares);
+      const ir = (destino: string): string | undefined => {
+        const ruta = lugares ? rutaA(lugares.mapa(), lugares.actual().id, destino) : [];
+        return ruta.length ? `lugares.ir_${ruta[0]}` : undefined;
+      };
+      const noche = t.hour >= 23 || t.hour < 6;
+      // De tarde y de noche, en casa: vuelve del colegio, del parque o de donde esté (y allí hace lo de casa: leer, descansar, estudiar, ver la tele).
+      if (!noche && t.hour >= 19 && lugares && lugares.actual().id !== 'casa') return ir('casa') ?? descansarOEsperar(opts);
+      // Los días de clase se levanta temprano y sale de casa antes de las 7:30: pasa por la calle del colegio mucho antes de que abran.
+      const dondeEsta = lugares?.actual().id ?? '';
+      if (t.isSchoolDay && t.minuteOfDay >= 6 * 60 + 30 && t.minuteOfDay < 7 * 60 + 30 && ['casa', 'calle_casa', 'avenida_parque'].includes(dondeEsta)) {
+        const paso = ir('calle_colegio');
+        if (paso) return paso;
+      }
+      return (
+        basicas(game, opts, { horaDormir: 23, clase: true, competir: true, energiaMin: 15, recreo: 0.8 }, mem) ??
+        // Esperar en la calle hasta que sea hora de entrar: el resto del tiempo antes de clase es de ir despacio.
+        (t.isSchoolDay && t.minuteOfDay < 7 * 60 + 40 && lugares?.actual().id === 'calle_colegio' && opts.some(id('gen.esperar')) ? 'gen.esperar' : undefined) ??
+        seguirPlan(opts, mem, [
+          ['unirse', 1, apuntarseAlClub],
+          ['subir', 1, subirDeCategoria],
+          ['volver', 1, (o) => volverACategoria(o) && flojoEnLaSuperior(game)],
+          ['campamento', 1, campamento],
+          ['club', 1, sesionDeClub],
+          ['deporte', 1, entrenoDeporte],
+          ['estudio', 1, estudio],
+          ['conocer', 1, conocer],
+          ['relacion', 1, relacion],
+          ['tele', 1, id('atletismo.ver_tele')],
+          ['amigos', 1, conAmigos],
+          ['ocio', 1, (o) => game.stat(GEN.estres) > 35 && tag(TAGS.ocio)(o)],
+          ['gym', 1, id('gen.gimnasio')],
+        ]) ??
+        descansarOEsperar(opts)
+      );
+    },
+  },
+  {
     id: 'empollon',
     name: 'Empollón',
     description: 'Todo para los estudios. No hace deporte.',

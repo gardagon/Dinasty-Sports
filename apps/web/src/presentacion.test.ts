@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SERVICES, type SucesosService } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { respuestaAlGrupo, PRESENTACION_POR_DEFECTO, PREFERENCIAS_POR_DEFECTO, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion } from './presentacion';
+import { cambiarDuro, respuestaAlGrupo, PRESENTACION_POR_DEFECTO, PREFERENCIAS_POR_DEFECTO, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion } from './presentacion';
 
 const memoria = () => {
   const mem = new Map<string, string>();
@@ -12,14 +12,15 @@ describe('presentación de los sucesos (Opciones)', () => {
   it('por defecto no cambia nada y lo guardado se lee de vuelta', () => {
     const { local } = memoria();
     expect(leerPresentacion(local)).toEqual(PREFERENCIAS_POR_DEFECTO);
-    escribirPresentacion({ consecuencias: 'numeros', fueraDeCaracter: 'sombreadas', avisoFueraDeCaracter: false, cuandoSeVaElGrupo: 'ir' }, local);
-    expect(leerPresentacion(local)).toEqual({ consecuencias: 'numeros', fueraDeCaracter: 'sombreadas', avisoFueraDeCaracter: false, cuandoSeVaElGrupo: 'ir' });
+    const duro = { activado: true, categorias: { familia: true, burlas: false, peleas: true } };
+    escribirPresentacion({ consecuencias: 'numeros', fueraDeCaracter: 'sombreadas', duro, avisoFueraDeCaracter: false, cuandoSeVaElGrupo: 'ir' }, local);
+    expect(leerPresentacion(local)).toEqual({ consecuencias: 'numeros', fueraDeCaracter: 'sombreadas', duro, avisoFueraDeCaracter: false, cuandoSeVaElGrupo: 'ir' });
   });
 
   it('un valor roto o un almacenamiento bloqueado vuelven al de partida', () => {
     const { mem, local } = memoria();
     mem.set('dinasty-sports.presentacion', '{"consecuencias":"todo","fueraDeCaracter":"ocultas"}');
-    expect(leerPresentacion(local)).toEqual({ consecuencias: 'pistas', fueraDeCaracter: 'ocultas', avisoFueraDeCaracter: true, cuandoSeVaElGrupo: 'preguntar' });
+    expect(leerPresentacion(local)).toEqual({ ...PREFERENCIAS_POR_DEFECTO, fueraDeCaracter: 'ocultas' });
     mem.set('dinasty-sports.presentacion', 'no es json');
     expect(leerPresentacion(local)).toEqual(PREFERENCIAS_POR_DEFECTO);
     const roto = { getItem: () => { throw new Error('bloqueado'); }, setItem: () => { throw new Error('bloqueado'); } };
@@ -34,6 +35,19 @@ describe('presentación de los sucesos (Opciones)', () => {
     const otra = nuevaPartida({ seed: 7, playerName: 'Alex' }, [...MODULOS, moduloDePresentacion(p)]);
     expect(otra.service<SucesosService>(SERVICES.sucesos)!.config().presentacion).toMatchObject(p);
     expect(otra.serialize().modules).toEqual(base.serialize().modules);
+  });
+
+  it('el contenido duro está desactivado por defecto, se guarda por categorías y llega al motor; una partida guardada carga con el valor por defecto', () => {
+    expect(PREFERENCIAS_POR_DEFECTO.duro.activado).toBe(false);
+    expect(cambiarDuro(PREFERENCIAS_POR_DEFECTO.duro, 'pres-duro', true).activado).toBe(true);
+    expect(cambiarDuro(PREFERENCIAS_POR_DEFECTO.duro, 'pres-duro-burlas', false).categorias).toEqual({ familia: true, burlas: false, peleas: true });
+    const activado = { activado: true, categorias: { familia: true, burlas: false, peleas: true } };
+    const g = nuevaPartida({ seed: 7, playerName: 'Alex' }, [...MODULOS, moduloDePresentacion({ ...PRESENTACION_POR_DEFECTO, duro: activado })]);
+    expect(g.service<SucesosService>(SERVICES.sucesos)!.config().presentacion.duro).toEqual(activado);
+    // Sin la preferencia, el motor usa el valor por defecto (desactivado) y el estado guardado es el mismo.
+    const sin = nuevaPartida({ seed: 7, playerName: 'Alex' }, [...MODULOS, moduloDePresentacion(PRESENTACION_POR_DEFECTO)]);
+    expect(sin.service<SucesosService>(SERVICES.sucesos)!.config().presentacion.duro.activado).toBe(false);
+    expect(g.serialize().modules).toEqual(sin.serialize().modules);
   });
 
   it('el aviso «no va contigo»: activado por defecto, solo en modo normales y solo si choca con algo', () => {
