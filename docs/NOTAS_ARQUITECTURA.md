@@ -41,7 +41,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Publicar** dormir, gente por la calle y −2,5 de sueño: pendiente de pedir el visto bueno cuando terminen las pruebas.
+- **Publicación en curso:** #133 (dormir, gente por la calle), con el visto bueno del usuario del 23/11. Al unirlo, comprobar Pages.
 - **Rendimiento M2**: el usuario creó una partida en el móvil en ~4 s (antes 7–8 s), «solo con fútbol»: confirmar si fue con la ciudad grande. Si lo fue, M2 no corre prisa. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
@@ -52,7 +52,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 | `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Lote 2 escrito, corregido y unido el 23/11 (112 sucesos; ritmo 4,2/semana frente a 6: faltan tardes 14–20 h). Arreglos del director: `aguanta` con `cada` y nadie hace dos papeles en un suceso | ✅ Unida |
 | `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor del lote 2 y contenido duro (desactivado por defecto) | ✅ Unida el 23/11 |
 | `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | F1–F3 hechas y unidas el 23/11 (desplegable, deuda por edad con malus solo en la energía máxima al despertar, sensaciones, `dormirse_en_clase`, PNJ). Arreglado: el agotamiento de fin de día ve la energía de antes de dormir | ✅ Unida. Pendiente: hermanos <8 duermen 21:30–7:00 (`agendas.ts`, después de la calle); calibrar −4 de energía/h de deuda (¿−2,5?) |
-| `session_01M4vXXQ6DoRWA2UGVauypzR` | `claude/hogares` | H1 con familias hacia delante: 1) addendum (algoritmo para llenar colegios, herencia con las reglas del personaje, partidas guardadas, coste medido) → la arquitectura revisa; 2) implementar detrás del dato `HOGARES` desactivado y medir | Reactivada el 23/11 |
+| `session_01M4vXXQ6DoRWA2UGVauypzR` | `claude/hogares` | H1 (paso 2) detrás del dato desactivado, con las decisiones del A8 (DECISIONES 23/11); medir cifras para que el usuario decida activarlo | En marcha |
 | `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error arreglado: el azar del aforo sale de `día:intervalo` (`PresenciaService.aforo`), no de un contador del proceso; guardar y cargar da lo mismo | ✅ Unida el 23/11 (cambian 7 líneas de la huella, aceptado como arreglo) |
 | `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | F1+F2 y abaratar el reparto de papeles (1,84 → ~1,4 ms por acción, huella idéntica), unidas el 23/11 | ✅ Unida |
 | `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño A aplicado (por defecto desde 1280 px), dinero en la columna, aviso «Pasando la semana…» | ✅ Unida el 23/11 |
