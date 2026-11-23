@@ -52,7 +52,28 @@ Rama `claude/dormir`. **Este documento tiene dos partes:** la primera es **lo he
 
 ### H.6 Balance (`npm run sim`, 365 días × 5 semillas)
 
-__BALANCE__
+Antes (rama unida, sin cambios de sueño) frente a después de F2 (con los bots arreglados) y de F3 (idéntico a F2: los bots no ven a los PNJ):
+
+| Chequeo | Antes | Después |
+|---|---|---|
+| Invariantes y bloqueos | ✅ | ✅ |
+| El esfuerzo hace progresar | ✅ atletismo +9,7; nota +5,2 sobre el vago | ✅ +9,7; +5,3 |
+| Especialista deportivo / en estudios | ✅ 19,4 vs 19,1; 81,9 vs 77,5 | ✅ 19,4 vs 19,1; 82,0 vs 77,2 |
+| Esforzarse rinde más que no hacer nada | ✅ 30,2 vs 20,7 | ✅ 30,1 vs 20,6 |
+| Sobreentrenar no compensa | ✅ −6 %, salud final 2 | ✅ −8 %, salud final 0 |
+| Las estrategias razonables mantienen la salud | ✅ | ✅ (con el madrugador arreglado; ver abajo) |
+| Las carreras son una competición real | ⚠️ (2 % de victorias, 7 % de podios del equilibrado) | ✅ (hoy, equilibrado 4 % de podios): se movió por el azar, no por el sueño |
+| Rendimiento | ✅ 1,66 ms/acción (límite 1,74) | ⚠️ 1,82–1,91 ms (límite 1,70–1,78): las dos mediciones corrieron con otras simulaciones a la vez, así que la máquina estaba cargada; el coste nuevo (una acción más en la lista, un manejador más) es pequeño. **Conviene repetirla con la máquina libre** |
+| El resto | ✅ | ✅ |
+
+`sim:notas`: «Todo dentro de los objetivos» antes y después (el banco duerme a las 21:00, 10 h). `sim:vida` no se ha comparado.
+
+**Qué cambia en la tabla final (media de las semillas):**
+- Salud final: equilibrado 100 → 85, atleta, empollón y abandono 100 → 93; sobreentrena 2 → 0; vago sigue en 100; aleatorio 2 → 1. **Es el arreglo del fallo de `ACTION_DONE`**: quien se acuesta con menos de 15 de energía sufre agotamiento. No es el malus del sueño (los bots que cuidan el sueño casi no tienen deuda).
+- Madrugador: con el diseño anterior del bot, 100 → 0 de salud. Era el bot (se acostaba con `energiaMin` 15 y a las 23:00, con una necesidad de 9,5 h); ahora 74 de salud y las mismas notas que el equilibrado.
+- Estudios y atletismo, sin diferencias de peso (empollón +0,1; atleta −0,1 a −0,3; equilibrado −0,3). Los bots que se acuestan según la edad a los 8 años lo hacen sobre las 21:15, y **no se nota en la tabla**: a esa hora ya habían acabado casi todo lo útil.
+- Huella: F1 solo cambia `aleatorio`; F2 cambia todos los bots (a propósito); F3 solo cambia los mundos con fútbol (los PNJ llevan deuda), no los bots.
+- Pendiente de decidir: con la pendiente actual (−4 de energía máxima por hora de deuda efectiva), 1,5 h de falta cada noche llevan la deuda al tope en una semana y media y la energía máxima a 68. Probé −2,5 y no cambia la salud final del madrugador (la causa era el agotamiento por acostarse exhausto), así que **la pendiente se puede suavizar sin efecto en la tabla**; se deja en 4 hasta calibrar con E12.
 
 ---
 
