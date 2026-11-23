@@ -528,7 +528,7 @@ Todo detrás de `CiudadDef.hogares` (**desactivado por defecto**: `npm run huell
 | 4 | 500 | 211 (42 %) | 289 | 492 |
 | 5 | 500 | 198 (40 %) | 302 | 488 |
 
-Los hermanos pequeños alimentan **de verdad** la entrada: **~42 %** de cada curso (los de 750 que había al crear, más los que traen las familias que llegan). Las poblaciones quedan estables: 13.787 → 14.163 personas tras 5 cursos (+0,2 MB de estado por curso: las familias que se mudan traen sus propios pequeños). Sube un poco porque el 8 % de los hijos de una familia que llega con un hermano mayor de 8 no cabe (la edad ya está completa). Si se quiere más del 42 %, se sube la probabilidad de hermano pequeño (`FAMILIAS.siguiente`).
+Los hermanos pequeños alimentan **de verdad** la entrada: **~42 %** de cada curso (los de 750 que había al crear, más los que traen las familias que llegan). Las poblaciones quedan estables: 13.787 → 14.163 personas tras 5 cursos (+0,2 MB de estado por curso: las familias que se mudan traen sus propios pequeños). Sube un poco porque las familias que llegan traen sus pequeños (que no cuentan para ninguna demanda hasta cumplir 8) y se borran algo menos que entran. Si se quiere más del 42 %, se sube la probabilidad de hermano pequeño (`FAMILIAS.siguiente`).
 
 **`sim` (365 días × 5 semillas, ciudad de siempre):** los 15 chequeos dan lo mismo (todos ✅ salvo **Rendimiento ⚠️ en las dos**: 1,34 → 1,76 ms por acción y 16,3 → 22,2 s por año simulado); los valores finales por estrategia casi no se mueven (±0,5 puntos).
 
@@ -536,11 +536,21 @@ Los hermanos pequeños alimentan **de verdad** la entrada: **~42 %** de cada cur
 
 **Distribuciones del fútbol** (`distribuciones-futbol`, semillas 31 y 32, sin y con hogares, al crear y tras 1 y 2 cursos): el **nivel medio por edad baja 0,1–0,5 puntos (un 1–3 %)**, algo más en los equipos C (−0,6 a −0,8) y los que juegan suben un **4 %** (2.784 → 2.898 al crear). Es un efecto real de la herencia: `rasgosHeredadosNpc` pasa cada interés de los padres con un 60 % (de dos padres salen ~3,6 intereses frente a ~3 sorteados), así que **a más niños les interesa algún deporte y entran más en los clubes** (equipos C más grandes, con más niños flojos). Es consecuencia de «la misma regla que el personaje» y se puede compensar (por ejemplo, bajando la probabilidad de heredar un interés), pero no se ha tocado.
 
-**Profesionales a los 18 y abandono:** se lanzó `analisis-profesionales` (semilla 31, 10 años) con y sin hogares; el resultado está al final de este apartado si llegó a terminar (ver «Pendiente de medir»).
+**Profesionales a los 18 y abandono** (`analisis-profesionales`, **una sola semilla (31)**, cohorte de 8 años al crear, 10 años; con una semilla es orientativo):
+
+| | Sin hogares | Con hogares |
+|---|---:|---:|
+| Cohorte · juegan al fútbol al crear | 492 · 262 | 497 · 281 |
+| Nivel medio a los 18 (p90 · máximo) | 27,1 (34,5 · 41,5) | 27,6 (36,2 · 42,5) |
+| Juegan a los 18 · % de los interesados | 85 · 31,7 % | **78 · 27,4 %** |
+| Por encima del umbral de «profesional» (36) a los 18 | 6 | **9** |
+| De los 10 mejores a los 14 años, siguen a los 18 | 10 | 8 |
+
+El nivel por edad es el mismo (la fracción del tope que alcanzan, igual); con hogares **juegan algo más al principio y abandonan algo más** (menos a los 18: 78 frente a 85, un 27 % de los interesados frente a un 32 %) y salen **algo más de profesionales** (9 frente a 6). Con una semilla no se puede separar del ruido; **el abandono por edad (`pnj-entrenan`) no se ha comparado.**
 
 ## Pendiente de medir y de decidir
 
-- **Profesionales a los 18 y abandono por edad:** ver más abajo si `analisis-profesionales` terminó; el abandono (`pnj-entrenan`) no se ha comparado.
+- **Profesionales a los 18 y abandono por edad con más semillas** (31, 32, 33): hecho solo con una; el abandono (`pnj-entrenan`) no se ha comparado.
 - **Dar su trabajo a los progenitores** (9:00–17:00 «fuera» entre semana, salvo los de oficio en un lugar): recorta 0,74 ms por acción (la mitad del sobrecoste) y es lo que pide `ANEXO_HORARIOS_PNJ.md` para los padres. Cambia agendas (anexo y `agendas.ts`).
 - **El vínculo en la ficha y en los sucesos** (papel de reparto por parentesco) y que el niño se vaya **con** su progenitor.
 - **El interés heredado** (+4 % de niños en los clubes): decidir si se corrige.
