@@ -1,12 +1,62 @@
-# Dormir: el desplegable y la falta de sueño (análisis con propuesta)
+# Dormir: el desplegable y la falta de sueño
 
-Rama `claude/dormir` (sale de `claude/youthful-clarke-vs0kye`). **Solo análisis: el juego no cambia** (`npm run huella -- 60` idéntica, `npm run typecheck` limpio). No se ha tocado `docs/DECISIONES.md`.
+Rama `claude/dormir`. **Este documento tiene dos partes:** la primera es **lo hecho el 23/11** (fases F1, F2 y F3, tras las decisiones del usuario en `docs/DECISIONES.md`, entrada «Gente por la calle y hogares; dormir»); la segunda es el **análisis original** (22/11), que se conserva como contexto. **Donde el análisis y lo hecho se contradicen, manda lo hecho** (§H.1).
 
-Petición del usuario (22/11): que «Dormir» no sea un único botón, sino un desplegable con (a) dormir hasta la hora de levantarse, (b) recuperar horas de sueño si se trasnocha y (c) dormir las horas que tocan sin penalización; y revisar lo que se usa para los malus por no dormir.
+## H. Lo hecho (23/11)
 
-**Todas las cifras de §3 en adelante son provisionales** (se marcan con «prov.») y se calibran con `npm run sim`, `sim:notas` y `sim:vida`.
+### H.1 Lo que cambia respecto a la propuesta original
+
+| Propuesta del análisis | Decidido y hecho |
+|---|---|
+| Las obligaciones de noche devuelven la de mañana y las opciones se cortan | **No.** Dormir no mira las obligaciones: cada opción cumple sus horas y quien duerme de más llega tarde o falta a clase. Más adelante habrá despertador. No se ha tocado `GameModule.obligaciones` |
+| Hora de levantarse de fin de semana (8:30) | **No.** Las mismas opciones todos los días; el jugador decide cuánto duerme |
+| Malus en estudio, deporte, estrés, motivación, salud y lesión | **Solo uno activo:** la energía máxima al despertar. Los demás están **preparados y documentados** para E12 (más abajo y en `docs/BACKLOG_STATS.md`, fila E12.3) |
+| Siesta que abona hasta 1 h al día | **Hasta 0,5 h al día** |
+| Números del sueño en la lista | **Ninguno:** la lista dice a qué hora te levantas; el diario habla con sensaciones |
+
+### H.2 F1: el desplegable «Dormir…» (`modules/personaje/src/index.ts`, `packages/contracts/src/sueno.ts`)
+
+- Cada opción es una acción con su id, en el desplegable `gen.dormir` («Dormir…», «Hasta cuándo»); disponibles de 21:00 a 5:59, en casa, como antes:
+  - `gen.dormir` — «Hasta las 7:00» (la de siempre; **mismo id y mismo efecto**);
+  - `gen.dormir_lo_que_toca` — lo que necesita alguien de su edad (`necesidadDeSueno`), redondeado al cuarto de hora;
+  - `gen.dormir_descansado` — «Hasta estar descansado»: lo que toca más la deuda recuperable (hasta 2 h). No sale si no se arrastra sueño («Ya has descansado lo que te toca»);
+  - `gen.dormir_4h` … `gen.dormir_11h` — «N horas».
+- El nombre dice a qué hora te levantas («Dormir 8 horas (te levantas a las 6:00)»).
+- **Necesidad por edad** (`necesidadDeSueno`, interpolación lineal): 8 años 9,5 h; 12 años 9; 15 años 9; 18 años 8; 22 a 64 años 7; 75 años 7,5. Fuentes (de memoria, por comprobar): AASM (Paruthi et al. 2016), NSF (Hirshkowitz et al. 2015), AASM+SRS adultos (Watson et al. 2015).
+- Huella tras F1: solo cambia `aleatorio` (elige entre las acciones y hay nuevas); el resto, idéntica.
+
+### H.3 F2: la deuda de sueño
+
+- **`gen.sueno`**: stat oculta, horas de sueño atrasado (0–10), inicial 0 (`packages/contracts/src/sueno.ts`).
+- **Cada noche** (`pasoDeSuenoDeLaNoche`): `deuda' = clamp(deuda + necesidad − dormidas)`; si sobra, solo se recuperan 2 h por noche como mucho. Sin olvido.
+- **Malus activo (el único):** `topeDeEnergiaAlDespertar = 100 − 4 × deudaEfectiva`, con `deudaEfectiva = min(8, max(0, deuda − 1))`: la primera hora no se nota. La energía no baja por dormir: `max(energía, min(tope, energía + 12,5 × horas))`.
+- **Siesta:** recupera como mucho 0,5 h de deuda al día (`IdentidadState.siesta`).
+- **Semana sana** (constitución +1): la condición de «≥ 50 h de descanso» se sustituye por «deuda ≤ 1 h» (con 7 h por noche eran 49 h).
+- **Sensaciones, sin números:** al despertar, «Has dormido poco.» (menos de 7 h, con el −2 de motivación de siempre), «Arrastras sueño: no has dormido lo que tu cuerpo necesita.» (deuda ≥ 2) y «Te sientes descansado: has recuperado el sueño atrasado.».
+- **Sucesos** (`modules/eventos`): `cabeceo_en_clase` sale también con deuda ≥ 3 (`alguna: [energía ≤ 50, deuda ≥ 3]`); **nuevo `dormirse_en_clase`** (energía ≤ 20 o deuda ≥ 6; tres salidas: decir la verdad, excusa, hacer como si nada); `noche_sin_sueno` suma deuda (`leer` +0,5 h, `dar_vueltas` +1 h).
+- **El fallo del motor, arreglado.** Antes, dormir sumaba la energía en `run`, **antes** de que el reloj cruzase la medianoche, así que el agotamiento del fin de día y el `WEEK_END` veían la energía de después de dormir. Ahora el efecto de dormir va en `ACTION_DONE` (que el motor encola después de los eventos de cambio de día): ven la energía con que te acostaste. Consecuencia (medida): quien se acuesta con menos de 15 de energía sufre «Agotamiento» (−3 de salud) cada noche, y la forma y el riesgo de lesión semanales ya ven el cansancio de verdad. **Los bots «sanos» pierden algo de salud final (de 100 a 85–93)**; ver H.6.
+- **Preparados y sin activar** (E12, en `sueno.ts` y en `docs/BACKLOG_STATS.md`): `factorPorSueno(deuda, a)` (concentración y estudio `a = 0,02`; deporte `0,015`) y `fatigaPorSueno(deuda) = 4 × deuda` (riesgo de lesión), más las cifras de estrés, motivación y salud de §3.3. Nadie los llama todavía.
+- **Bots** (`sim/src/bots.ts`): equilibrado, empollón, atleta, abandono y `sim:vida` se acuestan según la edad (`horaDormir: 'edad'`: `7:00 + 24 − necesidad − 0,25 h`) y, si arrastran sueño y mañana no hay clase, usan «Hasta estar descansado». **Madrugador** sigue acostándose a las 23:00 a propósito, ahora descansa los días libres (`recupera`) y se cuida como el equilibrado (`energiaMin` 25, antes 15); con 15 se acostaba exhausto y el agotamiento le dejaba la salud a 0. Sobreentrena y vago no cambian (duermen poco a propósito).
+
+### H.4 F3: los PNJ
+
+- **Misma regla:** `EstadoDeJugador.deuda?` (opcional; ausente = 0). `pasoDeSemanaDelEstado` recibe `sueno` (`suenoHabitual`): aplica **siete noches seguidas** con las funciones del personaje (`pasoDeSuenoDeLaSemana`: cinco de clase y dos libres) y la condición que se recupera no pasa del `topeDeEnergiaAlDespertar` de esa deuda. Sin `sueno`, el paso es idéntico al de antes.
+- **Hábito** (`suenoHabitual(edad, disciplina, azar)`, derivado, no se guarda): lo que se queda corto cada noche de clase = hasta los 11 años 0; de 12 a 17, +0,1 por año; adultos +0,3; más `0,6 × (0,5 − determinación)` y un azar estable de ±0,4. Los fines de semana duerme más según lo que falta (hasta +2 h).
+- **En `modules/npcs`:** solo una línea en el paso semanal (`sueno: suenoHabitual(...)`) y el import. **No se ha tocado `agendas.ts`.**
+- **Medido** (semilla 31): tras 52 semanas, 17 de 109 jugadores con deuda (media 0,7 h; 12 con más de 5 h: adolescentes de poca determinación). Test de equivalencia: `tests/mismas-reglas-estado.test.ts` («el sueño: las mismas reglas…»).
+- **Pendiente (queda fuera para no pisar la sesión de la gente por la calle):** pasar el `duerme` de los hermanos de menos de 8 años de 23:00–7:00 a 21:30–7:00 en `agendas.ts` (hoy 8 h para una necesidad de unas 10).
+
+### H.5 Cómo se prueba
+
+`tests/mismas-reglas-estado.test.ts` (sueño), `modules/personaje/src/index.test.ts` («el desplegable «Dormir…»» y «el sueño atrasado»), `packages/contracts/src/sueno.test.ts`; `npm run eventos:validar` y `npm run eventos:mapa` (el nuevo suceso está en `docs/eventos/MAPA.md`).
+
+### H.6 Balance (`npm run sim`, 365 días × 5 semillas)
+
+__BALANCE__
 
 ---
+
+# Análisis original (22/11)
 
 ## 0. Resumen en diez líneas
 
