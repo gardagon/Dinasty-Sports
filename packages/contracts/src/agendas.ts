@@ -42,7 +42,7 @@ export const NIVEL_AGENDA = {
   evento: 4,
 } as const;
 
-export type TipoDeAgenda = 'alumno' | 'profesor' | 'entrenador' | 'club' | 'rival' | 'amigo' | 'vecino' | 'hermano' | 'progenitor' | 'bibliotecario';
+export type TipoDeAgenda = 'alumno' | 'profesor' | 'entrenador' | 'club' | 'rival' | 'amigo' | 'vecino' | 'hermano' | 'progenitor' | 'bibliotecario' | 'portero' | 'conserje' | 'repartidor';
 
 /** Un tipo asignado a una persona. */
 export interface TipoAsignado {
@@ -69,8 +69,24 @@ export interface TipoAsignado {
    * ese deporte y compite en su jornada.
    */
   deporte?: boolean | string;
-  /** `bibliotecario`: el turno de mañana (hasta las 14:30, y los sábados) o el de tarde (desde las 14:30). */
+  /**
+   * `bibliotecario`: el turno de mañana (hasta las 14:30, y los sábados) o el de tarde (desde las 14:30). `vecino` con `trabaja`: el turno de mañana (de que abre el sitio a las 15:00; la comida en el restaurante) o el de tarde
+   * (de las 15:00 a que cierra; la cena en el restaurante).
+   */
   turno?: 'manana' | 'tarde';
+  /** `vecino` adulto: en qué calle vive (una de `CALLES_CON_VECINOS`). Pasa por ella al salir y volver a casa y a dar una vuelta (`VENTANAS_DE_CALLE`). */
+  vive?: string;
+  /**
+   * `vecino` adulto: pasea a su perro (por la mañana temprano y por la noche, y más rato los fines de semana). De momento es una marca en el dueño; cuando existan las mascotas como tales (con los hogares), `perro` pasará a ser
+   * la referencia a la mascota (un `string` con su id) sin cambiar lo demás, por eso admite las dos formas.
+   */
+  perro?: boolean | string;
+  /** `vecino` adulto de `EDAD_DE_JUBILACION` años o más: un rato en un banco de la avenida o del parque por la mañana y por la tarde. */
+  jubilado?: boolean;
+  /** `alumno` o `vecino` menor de 12 años: no va solo al supermercado ni al restaurante (`EDAD_PARA_IR_SOLO`). */
+  pequeno?: boolean;
+  /** `vecino` adulto cuyo oficio es de un lugar (dependiente, camarero, cocinero, monitor): está allí en su horario (con su `turno`), a la vista. */
+  trabaja?: 'supermercado' | 'restaurante' | 'gimnasio';
 }
 
 /** A qué días se aplica un tramo. `lectivo` y `libre` dependen del calendario (colegio abierto o no). */
@@ -263,14 +279,128 @@ const VISITAS_DE_VECINOS: readonly { sitio: string; peso: number; dias: readonly
   { sitio: 'biblioteca', peso: 8, dias: [5], desde: h(10), hasta: h(14) },
 ];
 
+/** Las calles donde puede vivir un vecino (el `vive` de su tipo). La cuarta, la avenida del estadio, no tiene vecinos: solo se pasa por ella. */
+export const CALLES_CON_VECINOS = ['calle_casa', 'calle_colegio', 'avenida_parque'] as const;
+/** Menores de esta edad no van solos al supermercado ni al restaurante (23/11, decidido con el usuario). */
+export const EDAD_PARA_IR_SOLO = 12;
+/**
+ * Gente por la calle (23/11, cifras provisionales; `docs/relevo/gente-por-la-calle.md`). La calle tiene gente de `desde` a `hasta` (de 6:30 a 23:59). Las visitas a la calle son **pasos de `paso` minutos** y en cada uno la persona
+ * está en la calle con la probabilidad `p` (azar independiente por paso, estable por persona y día): en promedio pasa `pasos × p` pasos. Sale de las marcas del tipo `vecino` (`vive`, `perro`, `jubilado`).
+ */
+export const VENTANAS_DE_CALLE = {
+  desde: h(6, 30),
+  hasta: h(24),
+  paso: 10,
+  /** Salir de casa, volver y dar una vuelta (los que viven en esa calle). `p` por paso de 10 minutos. */
+  residente: [
+    { dias: 'lectivo', desde: h(6, 30), hasta: h(8, 30), p: 0.12 },
+    { dias: 'lectivo', desde: h(17, 30), hasta: h(21), p: 0.06 },
+    { dias: 'lectivo', desde: h(21), hasta: h(24), p: 0.03 },
+    { dias: 'libre', desde: h(10), hasta: h(13), p: 0.07 },
+    { dias: 'libre', desde: h(18), hasta: h(21), p: 0.05 },
+    { dias: 'libre', desde: h(21), hasta: h(24), p: 0.03 },
+  ],
+  /** Pasear al perro: por su calle, la avenida o el parque. */
+  perro: [
+    { dias: 'lectivo', desde: h(6, 30), hasta: h(7, 40), p: 0.25 },
+    { dias: 'lectivo', desde: h(19, 30), hasta: h(23, 30), p: 0.14 },
+    { dias: 'libre', desde: h(8), hasta: h(12), p: 0.12 },
+    { dias: 'libre', desde: h(19), hasta: h(23, 30), p: 0.11 },
+  ],
+  /** Un banco de la avenida o del parque. */
+  banco: [
+    { dias: 'todos', desde: h(10), hasta: h(13), p: 0.3 },
+    { dias: 'todos', desde: h(17), hasta: h(19, 30), p: 0.3 },
+  ],
+  /** Un jubilado que vive en la calle, además, da un paseo corto por ella. */
+  paseoDeJubilado: [
+    { dias: 'todos', desde: h(9), hasta: h(11), p: 0.1 },
+    { dias: 'todos', desde: h(16), hasta: h(18), p: 0.1 },
+  ],
+  /** Los demás adultos pasan algo por la calle del colegio (al ir y venir) y por la avenida los días libres. */
+  depaso: [
+    { dias: 'lectivo', desde: h(7, 10), hasta: h(8, 10), p: 0.04, sitio: 'calle_colegio' },
+    { dias: 'lectivo', desde: h(14), hasta: h(15), p: 0.04, sitio: 'calle_colegio' },
+    { dias: 'libre', desde: h(10), hasta: h(14), p: 0.025, sitio: 'avenida_parque' },
+  ],
+  /** Los niños pequeños que viven en esa calle juegan en ella o en el parque. */
+  ninos: [
+    { dias: 'lectivo', desde: h(16, 30), hasta: h(19, 30), p: 0.25 },
+    { dias: 'libre', desde: h(11), hasta: h(13), p: 0.25 },
+    { dias: 'libre', desde: h(17), hasta: h(20), p: 0.25 },
+  ],
+} as const;
+
+type VentanaDeCalle = { dias: DiasDeTramo; desde: number; hasta: number; p: number };
+
+/** Pasos de `VENTANAS_DE_CALLE.paso` minutos de `v.desde` a `v.hasta`, cada uno con probabilidad `v.p` de que la persona esté en uno de `sitios`. */
+function pasosDeCalle(v: VentanaDeCalle, sitios: Destinos, nivel: number): TramoDeAgenda[] {
+  const { paso } = VENTANAS_DE_CALLE;
+  return Array.from({ length: Math.round((v.hasta - v.desde) / paso) }, (_, k) => tramo('vecino', nivel, v.dias, v.desde + k * paso, v.desde + (k + 1) * paso, sitios, v.p));
+}
+
+/** Las visitas de un vecino a la calle según sus marcas. Va antes que el colegio de fuera y la recogida: las clases y esperar a un hijo mandan sobre pasear. */
+function vecinoEnLaCalle(nivel: number, t: TipoAsignado): TramoDeAgenda[] {
+  const calle = t.vive;
+  const propia: Destinos = calle ? [[calle, 1]] : [];
+  const tramos: TramoDeAgenda[] = [];
+  const adulto = !t.escolar && !t.pequeno;
+  if (t.pequeno) {
+    // Los niños pequeños: solo juegan fuera los que viven en una calle (y en el parque).
+    if (calle) for (const v of VENTANAS_DE_CALLE.ninos) tramos.push(...pasosDeCalle(v, [[calle, 1], ['parque', 1]], nivel));
+    return tramos;
+  }
+  if (!adulto) return tramos;
+  if (t.jubilado) {
+    for (const v of VENTANAS_DE_CALLE.banco) tramos.push(...pasosDeCalle(v, [['avenida_parque', 1], ['parque', 1]], nivel));
+    if (calle) for (const v of VENTANAS_DE_CALLE.paseoDeJubilado) tramos.push(...pasosDeCalle(v, propia, nivel));
+  } else {
+    if (calle) for (const v of VENTANAS_DE_CALLE.residente) tramos.push(...pasosDeCalle(v, propia, nivel));
+    for (const v of VENTANAS_DE_CALLE.depaso) tramos.push(...pasosDeCalle(v, [[v.sitio, 1]], nivel));
+  }
+  if (t.perro) for (const v of VENTANAS_DE_CALLE.perro) tramos.push(...pasosDeCalle(v, [...propia, ['avenida_parque', 1], ['parque', 1]], nivel));
+  return tramos;
+}
+
+/** Quien trabaja en un lugar (dependiente, camarero, cocinero, monitor) está allí en su horario: dos turnos que parten el horario del sitio (`lugares.ts`) y, algún día, libra (`delDia`). */
+const TURNOS_DE_TRABAJO: Readonly<Record<NonNullable<TipoAsignado['trabaja']>, readonly { turno: 'manana' | 'tarde'; dias: DiasDeTramo; desde: number; hasta: number }[]>> = {
+  // Abre de lunes a sábado de 9:00 a 21:00 y el domingo de 10:00 a 15:00 (solo el turno de mañana trabaja el domingo).
+  supermercado: [
+    { turno: 'manana', dias: [0, 1, 2, 3, 4, 5], desde: h(9), hasta: h(15) },
+    { turno: 'manana', dias: [6], desde: h(10), hasta: h(15) },
+    { turno: 'tarde', dias: [0, 1, 2, 3, 4, 5], desde: h(15), hasta: h(21) },
+  ],
+  // Comida de 13:00 a 16:00 y cena de 20:00 a 23:00.
+  restaurante: [
+    { turno: 'manana', dias: 'todos', desde: h(13), hasta: h(16) },
+    { turno: 'tarde', dias: 'todos', desde: h(20), hasta: h(23) },
+  ],
+  // Abre todos los días de 8:00 a 22:00.
+  gimnasio: [
+    { turno: 'manana', dias: 'todos', desde: h(8), hasta: h(15) },
+    { turno: 'tarde', dias: 'todos', desde: h(15), hasta: h(22) },
+  ],
+};
+/** Los días que trabaja quien trabaja en un lugar (el resto libra, por persona y día). */
+export const DIAS_DE_TRABAJO = 0.85;
+
+/** El oficio manda más que ser vecino (nivel de pertenencia): así quien trabaja en el lugar se ve antes que los clientes en «gente cerca». */
+function trabajoEnUnLugar(t: TipoAsignado): TramoDeAgenda[] {
+  if (!t.trabaja) return [];
+  const delDia = { clave: 'trabaja|dia', probabilidad: DIAS_DE_TRABAJO };
+  return TURNOS_DE_TRABAJO[t.trabaja].filter((x) => x.turno === (t.turno ?? 'manana')).map((x) => tramo('vecino', NIVEL_AGENDA.pertenencia, x.dias, x.desde, x.hasta, [[t.trabaja!, 1]], undefined, undefined, undefined, undefined, delDia));
+}
+
 /**
  * Lo que hace un vecino entre las 9:00 y las 21:00: se queda fuera (50) o va al parque, al supermercado, al restaurante o a la biblioteca solo
- * cuando están abiertos. Los tramos se parten donde empieza o acaba una visita (distintos de lunes a viernes, sábado y domingo).
+ * cuando están abiertos (los menores de `EDAD_PARA_IR_SOLO` años, ni al supermercado ni al restaurante). Los tramos se parten donde empieza o acaba una visita (distintos de lunes a viernes, sábado y domingo).
+ * Además, de 6:30 a 23:59, pasa por la calle según sus marcas (`vecinoEnLaCalle`) y, si trabaja en un lugar, está allí en su horario.
  */
-function vecino(nivel: number, escolar = false, recoge = false): TramoDeAgenda[] {
+function vecino(nivel: number, t: TipoAsignado): TramoDeAgenda[] {
+  const { escolar = false, recoge = false, pequeno = false } = t;
   const grupos: readonly (readonly Weekday[])[] = [[0, 1, 2, 3, 4], [5], [6]];
   const delBarrio = grupos.flatMap((dias) => {
-    const visitas = VISITAS_DE_VECINOS.filter((v) => v.dias.includes(dias[0]));
+    const visitas = VISITAS_DE_VECINOS.filter((v) => v.dias.includes(dias[0]) && !(pequeno && SOLO_PARA_MAYORES.includes(v.sitio)));
     const cortes = [...new Set([h(9), h(21), ...visitas.flatMap((v) => [v.desde, v.hasta])])].sort((a, b) => a - b);
     return cortes.slice(0, -1).map((desde, i): TramoDeAgenda => {
       const hasta = cortes[i + 1];
@@ -278,10 +408,13 @@ function vecino(nivel: number, escolar = false, recoge = false): TramoDeAgenda[]
       return tramo('vecino', nivel, dias, desde, hasta, [[FUERA, 50], ...abiertas.map((v): [string, number] => [v.sitio, v.peso])]);
     });
   });
-  // Los niños que van a un colegio de fuera: en clase (fuera del mapa) de 7:30 a la salida, que acaba a las 14:30. Va después de lo del barrio: a igualdad de nivel gana el último.
+  // Los niños que van a un colegio de fuera: en clase (fuera del mapa) de 7:30 a la salida, que acaba a las 14:30. Va después de lo del barrio y de la calle: a igualdad de nivel gana el último.
   const colegioDeFuera = escolar ? [tramo('vecino', nivel, 'lectivo', PRIMERA_CLASE - LLEGADA_AL_COLEGIO, FIN_DE_CLASES + SALIDA_DEL_COLEGIO.minutos, [[FUERA, 1]])] : [];
-  return [...delBarrio, ...colegioDeFuera, ...(recoge ? recogerANinos(nivel) : [])];
+  return [...delBarrio, ...vecinoEnLaCalle(nivel, t), ...colegioDeFuera, ...(recoge ? recogerANinos(nivel) : []), ...trabajoEnUnLugar(t)];
 }
+
+/** Los sitios a los que un niño pequeño no va solo. */
+const SOLO_PARA_MAYORES: readonly string[] = ['supermercado', 'restaurante'];
 
 /**
  * Un padre o una madre que recoge a su hijo: llega a la entrada del colegio entre las 13:45 y las 14:00 (cada uno a su hora, fija ese día) y se va entre las 14:05 y las 14:30. Como la salida de los alumnos,
@@ -311,16 +444,18 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
   switch (t.tipo) {
     case 'alumno': {
       const n = nivel(NIVEL_AGENDA.rol);
+      // Los menores de `EDAD_PARA_IR_SOLO` años no van solos al supermercado ni al restaurante.
+      const solo = (d: Destinos): Destinos => (t.pequeno ? d.filter(([sitio]) => sitio === null || !SOLO_PARA_MAYORES.includes(sitio)) : d);
       return [
         // Llega media hora antes de las clases (7:30) y se va a las dos; en clase no se le puede hablar, solo al llegar y en el recreo.
         ...colegio('alumno', n, t.tuClase),
-        tramo('alumno', n, 'lectivo', h(15), h(19), [[FUERA, 55], ['parque', 22], ['supermercado', 8], ['gimnasio', 5], ['biblioteca', 10]]),
-        tramo('alumno', n, 'libre', h(10), h(14), [[FUERA, 45], ['parque', 37], ['supermercado', 10], ['biblioteca', 8]]),
+        tramo('alumno', n, 'lectivo', h(15), h(19), solo([[FUERA, 55], ['parque', 22], ['supermercado', 8], ['gimnasio', 5], ['biblioteca', 10]])),
+        tramo('alumno', n, 'libre', h(10), h(14), solo([[FUERA, 45], ['parque', 37], ['supermercado', 10], ['biblioteca', 8]])),
         // La biblioteca cierra los domingos: a igualdad de nivel gana el último tramo, así que este manda sobre el anterior ese día.
-        tramo('alumno', n, [6], h(10), h(14), [[FUERA, 50], ['parque', 40], ['supermercado', 10]]),
+        tramo('alumno', n, [6], h(10), h(14), solo([[FUERA, 50], ['parque', 40], ['supermercado', 10]])),
         // El supermercado cierra los domingos a las 15:00: por la tarde de los días libres ya no se va (ver `HORARIO_DEL_SUPERMERCADO`).
         tramo('alumno', n, 'libre', h(15), h(20), [[FUERA, 55], ['parque', 40], ['gimnasio', 5]]),
-        tramo('alumno', n, SABADO, h(20), h(22, 30), [[FUERA, 80], ['restaurante', 20]]),
+        tramo('alumno', n, SABADO, h(20), h(22, 30), solo([[FUERA, 80], ['restaurante', 20]])),
       ];
     }
     case 'profesor':
@@ -369,7 +504,35 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
         tramo('progenitor', nivel(NIVEL_AGENDA.rol), 'libre', h(9), h(24), [['casa', 85], [FUERA, 15]]),
       ];
     case 'vecino':
-      return vecino(nivel(NIVEL_AGENDA.rol), t.escolar, t.recoge);
+      return vecino(nivel(NIVEL_AGENDA.rol), t);
+    case 'portero': {
+      // El portero de tu portal: en la calle de tu casa de lunes a sábado por la mañana y por la tarde, y el domingo por la mañana. Libra algún día.
+      const n = nivel(NIVEL_AGENDA.pertenencia);
+      const delDia = { clave: 'portero|dia', probabilidad: DIAS_DE_TRABAJO };
+      return [
+        tramo('portero', n, [0, 1, 2, 3, 4, 5], h(7), h(14), [['calle_casa', 1]], undefined, undefined, undefined, undefined, delDia),
+        tramo('portero', n, [0, 1, 2, 3, 4, 5], h(16), h(20), [['calle_casa', 1]], undefined, undefined, undefined, undefined, delDia),
+        tramo('portero', n, [6], h(9), h(13), [['calle_casa', 1]], undefined, undefined, undefined, undefined, delDia),
+      ];
+    }
+    case 'conserje': {
+      // El conserje del colegio: en la entrada mientras está abierto (los días de clase de 7:00 a 19:00 y, en vacaciones, en el horario de la academia y del club).
+      const n = nivel(NIVEL_AGENDA.pertenencia);
+      return [
+        tramo('conserje', n, 'lectivo', h(7), h(19), [['colegio', 1]]),
+        tramo('conserje', n, [0, 1, 2, 3, 4], h(10), h(13), [['colegio', 1]]),
+        tramo('conserje', n, [0, 2], h(14, 30), h(17, 30), [['colegio', 1]]),
+      ];
+    }
+    case 'repartidor': {
+      // Los repartos: paradas cortas en la calle de tu casa y en la del colegio por la mañana y por la tarde, de lunes a sábado.
+      const n = nivel(NIVEL_AGENDA.pertenencia);
+      const reparto: readonly Weekday[] = [0, 1, 2, 3, 4, 5];
+      return [
+        ...pasosDeCalle({ dias: reparto, desde: h(10), hasta: h(13), p: 0.12 }, [['calle_casa', 1], ['calle_colegio', 1]], n),
+        ...pasosDeCalle({ dias: reparto, desde: h(17), hasta: h(20), p: 0.12 }, [['calle_casa', 1], ['calle_colegio', 1]], n),
+      ].map((x) => ({ ...x, tipo: 'repartidor' as const }));
+    }
     case 'bibliotecario': {
       // Turno de mañana: de lunes a viernes hasta las 14:30 y los sábados; turno de tarde: de lunes a viernes de 14:30 a 20:00.
       const n = nivel(NIVEL_AGENDA.rol);

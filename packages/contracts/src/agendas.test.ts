@@ -267,4 +267,122 @@ describe('agendas de las personas', () => {
       for (const p of personas.slice(0, 50)) expect(u(5, 14, 0, p)).not.toBe('colegio');
     });
   });
+
+  describe('gente por la calle (23/11)', () => {
+    const u = (tipos: TipoAsignado[], dia: number, hora: number, min = 0, quien = 'x') => ubicacionEn(construirAgenda(tipos, datos), en(dia, hora, min), quien);
+    const cuantos = (tipos: TipoAsignado[], dia: number, hora: number, min: number, sitio: string, personas = 400) => Array.from({ length: personas }, (_, i) => u(tipos, dia, hora, min, `p${i}`).sitio).filter((x) => x === sitio).length;
+    const cualquiera = (tipos: TipoAsignado[], dia: number, hora: number, min: number, personas = 400) => Array.from({ length: personas }, (_, i) => u(tipos, dia, hora, min, `p${i}`).sitio);
+
+    it('un vecino que vive en la calle de tu casa sale y vuelve por ella (de 6:30 a 23:59) y no está en ella de madrugada', () => {
+      const vecino: TipoAsignado[] = [{ tipo: 'vecino', vive: 'calle_casa' }];
+      expect(cuantos(vecino, 0, 7, 30, 'calle_casa')).toBeGreaterThan(20); // salir a trabajar (p 0,12)
+      expect(cuantos(vecino, 0, 7, 30, 'calle_casa')).toBeLessThan(90);
+      expect(cuantos(vecino, 0, 18, 30, 'calle_casa')).toBeGreaterThan(5); // volver
+      expect(cuantos(vecino, 0, 22, 0, 'calle_casa')).toBeGreaterThan(0); // paseo de noche
+      expect(cuantos(vecino, 0, 23, 50, 'calle_casa', 3000)).toBeGreaterThan(0); // hasta las 23:59
+      for (const [hora, min] of [[0, 0], [3, 0], [6, 0], [6, 29]] as const) expect(cuantos(vecino, 0, hora, min, 'calle_casa')).toBe(0);
+      // Los fines de semana, a media mañana.
+      expect(cuantos(vecino, 5, 11, 0, 'calle_casa')).toBeGreaterThan(5);
+      // Solo pisa su calle (y las de paso del resto de los adultos).
+      expect(cuantos(vecino, 0, 7, 30, 'calle_casa') + cuantos(vecino, 0, 7, 30, 'calle_colegio')).toBeGreaterThan(0);
+      expect(cuantos(vecino, 0, 7, 30, 'avenida_estadio')).toBe(0);
+    });
+
+    it('a quien no vive en ninguna calle solo se le ve de paso por la del colegio o por la avenida, y poco', () => {
+      const vecino: TipoAsignado[] = [{ tipo: 'vecino' }];
+      expect(cuantos(vecino, 0, 7, 30, 'calle_casa', 1000)).toBe(0);
+      const deCamino = cuantos(vecino, 0, 7, 30, 'calle_colegio', 1000);
+      expect(deCamino).toBeGreaterThan(10);
+      expect(deCamino).toBeLessThan(90);
+    });
+
+    it('quien pasea al perro sale desde las 6:30 y por la noche, y los fines de semana más rato', () => {
+      const dueno: TipoAsignado[] = [{ tipo: 'vecino', vive: 'calle_casa', perro: true }];
+      const sitios = (dia: number, hora: number, min: number) => cualquiera(dueno, dia, hora, min).filter((x) => x === 'calle_casa' || x === 'avenida_parque' || x === 'parque');
+      expect(sitios(0, 6, 40).length).toBeGreaterThan(80);
+      expect(cualquiera(dueno, 0, 6, 20).filter((x) => x === 'avenida_parque').length).toBe(0);
+      expect(sitios(0, 22, 0).length).toBeGreaterThan(30);
+      // Sin perro, de noche, solo los que salen a dar una vuelta por su calle.
+      expect(cuantos([{ tipo: 'vecino', vive: 'calle_casa' }], 0, 22, 0, 'avenida_parque')).toBe(0);
+      expect(sitios(5, 10, 0).length).toBeGreaterThan(30);
+    });
+
+    it('la marca del perro admite la referencia a una mascota (un texto) y se comporta igual', () => {
+      const a: TipoAsignado[] = [{ tipo: 'vecino', vive: 'calle_casa', perro: true }];
+      const b: TipoAsignado[] = [{ tipo: 'vecino', vive: 'calle_casa', perro: 'mascota_1' }];
+      for (let i = 0; i < 100; i++) expect(u(b, 0, 7, 0, `p${i}`).sitio).toBe(u(a, 0, 7, 0, `p${i}`).sitio);
+    });
+
+    it('los jubilados se sientan en un banco de la avenida o del parque por la mañana y por la tarde', () => {
+      const jubilado: TipoAsignado[] = [{ tipo: 'vecino', jubilado: true }];
+      const enBanco = (hora: number, min: number) => cualquiera(jubilado, 0, hora, min).filter((x) => x === 'avenida_parque' || x === 'parque').length;
+      expect(enBanco(11, 0)).toBeGreaterThan(100); // los de la avenida, y los que van al parque como cualquier vecino
+      expect(cuantos(jubilado, 0, 11, 0, 'avenida_parque')).toBeGreaterThan(40);
+      expect(cuantos(jubilado, 0, 18, 0, 'avenida_parque')).toBeGreaterThan(40);
+      expect(cuantos(jubilado, 0, 23, 0, 'avenida_parque')).toBe(0);
+      // No hacen lo de salir a trabajar.
+      expect(cuantos([{ tipo: 'vecino', jubilado: true, vive: 'calle_casa' }], 0, 7, 30, 'calle_casa')).toBe(0);
+    });
+
+    it('los menores de 12 años no van solos al supermercado ni al restaurante (ni de vecino ni de alumno)', () => {
+      const pequenos: TipoAsignado[][] = [[{ tipo: 'vecino', pequeno: true }], [{ tipo: 'vecino', escolar: true, pequeno: true }], [{ tipo: 'alumno', pequeno: true }], [{ tipo: 'alumno', tuClase: true, pequeno: true }]];
+      for (const t of pequenos) {
+        for (let dia = 0; dia < 14; dia++) {
+          for (let m = 0; m < 1440; m += 30) for (let p = 0; p < 40; p++) expect(['supermercado', 'restaurante'], `${t[0].tipo} día ${dia} ${m}`).not.toContain(u(t, dia, 0, m, `p${p}`).sitio);
+        }
+      }
+      // Los mayores sí van (y a los demás sitios, los pequeños también).
+      expect(cuantos([{ tipo: 'vecino' }], 0, 15, 30, 'supermercado')).toBeGreaterThan(50);
+      expect(cuantos([{ tipo: 'alumno' }], 0, 16, 0, 'supermercado')).toBeGreaterThan(10);
+      expect(cuantos([{ tipo: 'alumno', pequeno: true }], 0, 16, 0, 'parque')).toBeGreaterThan(85);
+      expect(cuantos([{ tipo: 'vecino', pequeno: true }], 5, 11, 0, 'parque')).toBeGreaterThan(100);
+    });
+
+    it('un niño pequeño que vive en una calle juega en ella por la tarde y los fines de semana, y en clase no sale', () => {
+      const nino: TipoAsignado[] = [{ tipo: 'vecino', escolar: true, pequeno: true, vive: 'calle_casa' }];
+      expect(cuantos(nino, 0, 17, 30, 'calle_casa')).toBeGreaterThan(30);
+      expect(cuantos(nino, 5, 11, 30, 'calle_casa')).toBeGreaterThan(30);
+      for (const [hora, min] of [[8, 0], [10, 0], [14, 20]] as const) expect(cuantos(nino, 0, hora, min, 'calle_casa')).toBe(0);
+      expect(cuantos(nino, 0, 22, 0, 'calle_casa')).toBe(0);
+    });
+
+    it('quien trabaja en un lugar está allí en su turno, a la vista, casi todos los días y siempre dentro del horario del sitio', () => {
+      const dependiente: TipoAsignado[] = [{ tipo: 'vecino', trabaja: 'supermercado', turno: 'manana' }];
+      const dias = [0, 1, 2, 3, 4, 5];
+      let van = 0;
+      for (const d of dias) for (let p = 0; p < 200; p++) if (u(dependiente, d, 10, 0, `p${p}`).sitio === 'supermercado') van++;
+      expect(van / (dias.length * 200)).toBeGreaterThan(0.8);
+      expect(van / (dias.length * 200)).toBeLessThan(0.9);
+      expect(u([{ tipo: 'vecino', trabaja: 'supermercado', turno: 'manana' }], 0, 10, 0, 'p1').nivel).toBe(NIVEL_AGENDA.pertenencia);
+      // El de la tarde no está por la mañana (salvo como cliente); el domingo solo trabaja el de la mañana.
+      expect(cuantos([{ tipo: 'vecino', trabaja: 'supermercado', turno: 'tarde' }], 6, 12, 0, 'supermercado')).toBeLessThan(200); // solo de cliente
+      expect(cuantos([{ tipo: 'vecino', trabaja: 'supermercado', turno: 'manana' }], 6, 12, 0, 'supermercado')).toBeGreaterThan(300);
+      // El restaurante: comida y cena; el gimnasio: todo el día en dos turnos.
+      expect(cuantos([{ tipo: 'vecino', trabaja: 'restaurante', turno: 'manana' }], 0, 14, 0, 'restaurante')).toBeGreaterThan(300);
+      expect(cuantos([{ tipo: 'vecino', trabaja: 'restaurante', turno: 'tarde' }], 0, 21, 0, 'restaurante')).toBeGreaterThan(300);
+      expect(cuantos([{ tipo: 'vecino', trabaja: 'gimnasio', turno: 'tarde' }], 0, 21, 30, 'gimnasio')).toBeGreaterThan(300);
+      // Se le puede hablar: no está ocupado.
+      expect(u(dependiente, 0, 10, 0, 'p3').ocupado).toBeUndefined();
+    });
+
+    it('el portero está en la calle de tu casa casi todo el día (no de noche), el conserje en la entrada del colegio mientras está abierto', () => {
+      const portero: TipoAsignado[] = [{ tipo: 'portero' }];
+      expect(cuantos(portero, 0, 9, 0, 'calle_casa')).toBeGreaterThan(300);
+      expect(cuantos(portero, 0, 18, 0, 'calle_casa')).toBeGreaterThan(300);
+      expect(cuantos(portero, 0, 15, 0, 'calle_casa')).toBe(0);
+      expect(cuantos(portero, 0, 23, 0, 'calle_casa')).toBe(0);
+      expect(cuantos(portero, 6, 10, 0, 'calle_casa')).toBeGreaterThan(300);
+      const conserje: TipoAsignado[] = [{ tipo: 'conserje' }];
+      expect(cuantos(conserje, 0, 8, 30, 'colegio')).toBe(400);
+      expect(cuantos(conserje, 0, 19, 0, 'colegio')).toBe(0);
+      expect(cuantos(conserje, 5, 12, 0, 'colegio')).toBe(0); // sábado: cerrado
+    });
+
+    it('los repartidores hacen paradas cortas en la calle de tu casa y en la del colegio de lunes a sábado', () => {
+      const repartidor: TipoAsignado[] = [{ tipo: 'repartidor' }];
+      expect(cuantos(repartidor, 0, 11, 0, 'calle_casa') + cuantos(repartidor, 0, 11, 0, 'calle_colegio')).toBeGreaterThan(30);
+      expect(cuantos(repartidor, 0, 18, 0, 'calle_casa')).toBeGreaterThan(5);
+      expect(cuantos(repartidor, 0, 14, 0, 'calle_casa') + cuantos(repartidor, 6, 11, 0, 'calle_casa')).toBe(0);
+    });
+  });
 });

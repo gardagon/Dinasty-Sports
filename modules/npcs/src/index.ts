@@ -1,4 +1,4 @@
-import { APORTES, CORE_EVENTS, diaConFecha, semanasDeTemporada, type Entrenamiento, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar, MOVERSE_CON_EL_GRUPO, aforoCercano, deLugar, haciaLugar, type ActionDoneData, type GrupoSeVaData, type LugaresService } from '@ds/contracts';
+import { APORTES, CORE_EVENTS, diaConFecha, semanasDeTemporada, type Entrenamiento, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar, MOVERSE_CON_EL_GRUPO, aforoCercano, deLugar, haciaLugar, type ActionDoneData, type GrupoSeVaData, type LugaresService, CALLES_CON_VECINOS, EDAD_DE_JUBILACION, EDAD_PARA_IR_SOLO } from '@ds/contracts';
 import { aficionadoPorLosPadres, conInteresTrasJugar, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
@@ -641,23 +641,60 @@ const poblacionesDe = (ctx: Pick<ReadContext, 'aportes' | 'pais'>, semilla: numb
 
 /**
  * Los tipos de agenda de los vecinos que dependen de la edad y de la semilla, al crear la partida y cada curso (y así también en las partidas anteriores): los niños que van a un colegio de fuera llevan `escolar` (su
- * horario escolar, fuera del mapa; lo pierden al acabar el colegio) y una parte de los vecinos adultos (de `RECOGIDA_DE_NINOS.edadMinima` años o más, `RECOGIDA_DE_NINOS.proporcion`, sorteada por su id y la semilla, sin gastar números del azar de la partida) `recoge`.
+ * horario escolar, fuera del mapa; lo pierden al acabar el colegio), una parte de los vecinos adultos (de `RECOGIDA_DE_NINOS.edadMinima` años o más, `RECOGIDA_DE_NINOS.proporcion`, sorteada por su id y la semilla, sin gastar números del azar de la partida) `recoge`,
+ * y los menores de `EDAD_PARA_IR_SOLO` años (vecinos y alumnos) `pequeno` (no van solos al supermercado ni al restaurante).
+ * Gente por la calle (23/11, `docs/relevo/gente-por-la-calle.md`): los vecinos adultos (`vecino_N`) llevan además, con el mismo sorteo estable, `vive` (en qué calle), `perro`, `jubilado` y, si su oficio es de un lugar, `trabaja` con su `turno`;
+ * `perro` y `jubilado` se espejan en las etiquetas y en la descripción (se ve a simple vista). Unos pocos niños pequeños también viven en una calle y juegan en ella.
  * Devuelve la misma lista si no cambia nada (cambiarla invalida las cachés de presencia).
  */
+const OFICIO_EN_LUGAR: Readonly<Record<string, NonNullable<TipoAsignado['trabaja']>>> = { 'Supermercado': 'supermercado', 'Restaurante': 'restaurante', 'Gimnasio municipal': 'gimnasio' };
+const ETIQUETAS_DE_CALLE = ['perro', 'jubilado'] as const;
+
+/** Cómo se ve a un vecino adulto a simple vista: el barrio, que está jubilado y que pasea al perro. */
+function descripcionDeVecino(g: Gender, perro: boolean, jubilado: boolean): string {
+  const f = g === 'f';
+  const base = jubilado ? (f ? 'Vecina jubilada del barrio' : 'Vecino jubilado del barrio') : f ? 'Vecina del barrio' : 'Vecino del barrio';
+  return perro ? `${base}; siempre pasea a su perro.` : `${base}.`;
+}
+
 export function ajustarVecinos(npcs: Npc[], semilla: number, dia: number): Npc[] {
-  const nuevos = new Map<string, TipoAsignado[]>();
+  const nuevos = new Map<string, Npc>();
   for (const n of npcs) {
-    const i = n.tipos?.findIndex((t) => t.tipo === 'vecino') ?? -1;
-    if (i < 0 || n.role !== 'vecino' || n.nacimiento === undefined) continue;
+    if (n.nacimiento === undefined) continue;
+    const alumno = n.role === 'companero' ? n.tipos?.findIndex((t) => t.tipo === 'alumno') ?? -1 : -1;
+    const i = n.role === 'vecino' ? n.tipos?.findIndex((t) => t.tipo === 'vecino') ?? -1 : alumno;
+    if (i < 0) continue;
     const t = n.tipos![i];
     const edad = edadNpc(n, dia) ?? 0;
+    const pequeno = edad < EDAD_PARA_IR_SOLO;
+    if (alumno >= 0) {
+      if (!!t.pequeno === pequeno) continue;
+      const { pequeno: _p, ...resto } = t;
+      nuevos.set(n.id, { ...n, tipos: n.tipos!.map((x, j) => (j === i ? { ...resto, ...(pequeno ? { pequeno: true } : {}) } : x)) });
+      continue;
+    }
     const escolar = !!n.colegio && n.colegio !== 'ninguno' && edad < EDAD_FIN_COLEGIO;
-    const recoge = /^vecino_\d+$/.test(n.id) && edad >= RECOGIDA_DE_NINOS.edadMinima && azarDe('recoge', semilla, n.id) < RECOGIDA_DE_NINOS.proporcion;
-    if (!!t.escolar === escolar && !!t.recoge === recoge) continue;
-    const { escolar: _e, recoge: _r, ...resto } = t;
-    nuevos.set(n.id, n.tipos!.map((x, j) => (j === i ? { ...resto, ...(escolar ? { escolar: true } : {}), ...(recoge ? { recoge: true } : {}) } : x)));
+    const delBarrio = /^vecino_\d+$/.test(n.id);
+    const adulto = delBarrio && edad >= EDAD_FIN_COLEGIO;
+    const recoge = delBarrio && edad >= RECOGIDA_DE_NINOS.edadMinima && azarDe('recoge', semilla, n.id) < RECOGIDA_DE_NINOS.proporcion;
+    // En qué calle vive: un 20 % de los adultos en la de tu casa, un 15 % en la del colegio y un 15 % en la avenida; de los niños pequeños, unos pocos en cada una.
+    const v = azarDe('vive', semilla, n.id);
+    const vn = azarDe('vive_nino', semilla, n.id);
+    const vive = adulto ? (v < 0.2 ? CALLES_CON_VECINOS[0] : v < 0.35 ? CALLES_CON_VECINOS[1] : v < 0.5 ? CALLES_CON_VECINOS[2] : undefined) : pequeno && vn < 0.018 ? CALLES_CON_VECINOS[Math.floor(vn / 0.006)] : undefined;
+    const perro = adulto && azarDe('perro', semilla, n.id) < 0.15;
+    const jubilado = adulto && edad >= EDAD_DE_JUBILACION;
+    const lugar = adulto && !jubilado ? OFICIO_EN_LUGAR[oficioDeVecino(n.id, n.gender, edad).trabajo ?? ''] : undefined;
+    const turno: TipoAsignado['turno'] = lugar ? (azarDe('turno', semilla, n.id) < 0.5 ? 'manana' : 'tarde') : undefined;
+    const descripcion = adulto ? descripcionDeVecino(n.gender, perro, jubilado) : n.description;
+    const etiquetas = [...n.tags.filter((e) => !(ETIQUETAS_DE_CALLE as readonly string[]).includes(e)), ...(perro ? ['perro'] : []), ...(jubilado ? ['jubilado'] : [])];
+    const igual = !!t.escolar === escolar && !!t.recoge === recoge && !!t.pequeno === pequeno && t.vive === vive && !!t.perro === perro && !!t.jubilado === jubilado && t.trabaja === lugar && t.turno === turno
+      && n.description === descripcion && n.tags.length === etiquetas.length && n.tags.every((e, k) => e === etiquetas[k]);
+    if (igual) continue;
+    const { escolar: _e, recoge: _r, pequeno: _q, vive: _v, perro: _o, jubilado: _j, trabaja: _w, turno: _t, ...resto } = t;
+    const marcas = { ...(escolar ? { escolar: true } : {}), ...(recoge ? { recoge: true } : {}), ...(pequeno ? { pequeno: true } : {}), ...(vive ? { vive } : {}), ...(perro ? { perro: true } : {}), ...(jubilado ? { jubilado: true } : {}), ...(lugar ? { trabaja: lugar, turno } : {}) };
+    nuevos.set(n.id, { ...n, ...(adulto ? { description: descripcion } : {}), tags: etiquetas, tipos: n.tipos!.map((x, j) => (j === i ? { ...resto, ...marcas } : x)) });
   }
-  return nuevos.size ? npcs.map((n) => (nuevos.has(n.id) ? { ...n, tipos: nuevos.get(n.id) } : n)) : npcs;
+  return nuevos.size ? npcs.map((n) => nuevos.get(n.id) ?? n) : npcs;
 }
 
 /** Marca a los niños con la semilla de la partida: sus sorteos estables (talento, aptitud, valor inicial, asistencia...) salen de su id y de ella, para que el mismo `nino_5` no sea igual en todas las partidas. */
@@ -895,7 +932,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   const base = generarReparto(ctx, pobs[0]);
   const usados = registroDe(base);
   const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
-  const sin = ajustarVecinos(conSemilla([...base, ...colegio, ...bibliotecarios(ctx.rng, usados)], ctx.seed), ctx.seed, 0);
+  const sin = ajustarVecinos(conSemilla([...base, ...colegio, ...bibliotecarios(ctx.rng, usados), ...puestosDeLaCalle(ctx.seed, usados)], ctx.seed), ctx.seed, 0);
   avisarDelProgreso('Contratando a los entrenadores de cada club…', 0.03);
   const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng), ...entrenadoresDeEquiposExtra(lista, pob, ctx.rng)], sin);
   // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
@@ -919,6 +956,21 @@ function bibliotecarios(rng: Rng, usados: RegistroDeNombres): Npc[] {
   return (['manana', 'tarde'] as const).map((turno, i) =>
     persona(rng, `bibliotecario_${i + 1}`, 'vecino', rng.int(30, 60), 0, usados, [{ tipo: 'bibliotecario', turno }], (g) => `${g === 'f' ? 'Bibliotecaria' : 'Bibliotecario'} de la biblioteca municipal (turno de ${turno === 'manana' ? 'mañana' : 'tarde'}).`, ['bibliotecario']),
   );
+}
+
+/**
+ * Las caras fijas de la calle (23/11): el portero de tu portal, el conserje del colegio y unos repartidores. Son personas como las demás (nombre, rasgos, cuerpo; desconocidas hasta que se habla con ellas) y salen de su
+ * propio azar (`rngEstable`), no del de la partida: así no cambia lo que se genera después. Llevan una etiqueta (`portero`, `conserje`, `repartidor`) que piden los sucesos.
+ */
+export const REPARTIDORES = 3;
+function puestosDeLaCalle(semilla: number, usados: RegistroDeNombres): Npc[] {
+  const rng = rngEstable('puestos-de-la-calle', semilla, 'gente');
+  const o = (g: Gender, f: string, m: string) => (g === 'f' ? f : m);
+  return [
+    persona(rng, 'portero_1', 'vecino', rng.int(45, 64), 0, usados, [{ tipo: 'portero' }], (g) => o(g, 'Portera de tu portal.', 'Portero de tu portal.'), ['portero']),
+    persona(rng, 'conserje_1', 'vecino', rng.int(40, 64), 0, usados, [{ tipo: 'conserje' }], (g) => o(g, 'Conserje del colegio.', 'Conserje del colegio.'), ['conserje']),
+    ...Array.from({ length: REPARTIDORES }, (_, i) => persona(rng, `repartidor_${i + 1}`, 'vecino', rng.int(22, 55), 0, usados, [{ tipo: 'repartidor' }], (g) => o(g, 'Repartidora.', 'Repartidor.'), ['repartidor'])),
+  ];
 }
 
 /**
@@ -986,6 +1038,9 @@ function ocupacionDe(n: Npc, edad: number | undefined): { profesion?: string; ba
   }
   if (n.role === 'entrenador') return { profesion: `${f ? 'Entrenadora' : 'Entrenador'} ${n.dedicacion ?? 'de atletismo'}`, basica: f ? 'Entrenadora' : 'Entrenador', trabajo: n.trabajo ?? NOMBRES_DE_CLUB[n.club ?? 'colegio'] };
   if (n.tags.includes('bibliotecario')) return { profesion: f ? 'Bibliotecaria' : 'Bibliotecario', basica: f ? 'Bibliotecaria' : 'Bibliotecario', trabajo: 'Biblioteca municipal' };
+  if (n.tags.includes('portero')) return { profesion: f ? 'Portera' : 'Portero', basica: f ? 'Portera' : 'Portero', trabajo: 'Tu portal' };
+  if (n.tags.includes('conserje')) return { profesion: 'Conserje', basica: 'Conserje', trabajo: COLEGIO_DEL_PERSONAJE };
+  if (n.tags.includes('repartidor')) return { profesion: f ? 'Repartidora' : 'Repartidor', basica: f ? 'Repartidora' : 'Repartidor', trabajo: 'Empresa de reparto' };
   if (n.role === 'vecino' && edad !== undefined && edad >= 18) return oficioDeVecino(n.id, n.gender, edad);
   if (n.oficio !== undefined && n.tags.includes('progenitor')) {
     const o = oficioDeProgenitor(n.oficio, n.gender);
@@ -1021,7 +1076,7 @@ function sabePorDefecto(n: Npc): DatoPersonal[] {
   // Tus padres: sabes cuántos años tienen y a qué se dedican y dónde trabajan.
   if (n.role === 'familia') return n.tags.includes('progenitor') ? ['edad', 'colegio', 'clase', 'profesion', 'trabajo'] : ['edad', 'colegio', 'clase'];
   // El profesorado y los entrenadores: se sabe dónde trabajan (no su asignatura o su deporte).
-  if (n.role === 'profesor' || n.role === 'entrenador' || n.tags.includes('bibliotecario')) return ['trabajo'];
+  if (n.role === 'profesor' || n.role === 'entrenador' || n.tags.some((e) => ['bibliotecario', 'portero', 'conserje', 'repartidor'].includes(e))) return ['trabajo'];
   const base: DatoPersonal[] = delColegio(n) ? ['colegio'] : [];
   return n.tipos?.some((t) => t.tuClase) ? [...base, 'clase'] : base;
 }
