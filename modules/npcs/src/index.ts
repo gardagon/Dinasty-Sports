@@ -1973,7 +1973,7 @@ export const npcs = defineModule<NpcsState>({
       return {
         list: (f) => {
           // Las consultas se repiten en cada acción: se resuelven una vez por lista de personas, curso y filtro.
-          const clave = `${inicioCurso}|${f?.role ?? ''}|${f?.tag ?? ''}|${f?.minAge ?? ''}|${f?.maxAge ?? ''}|${f?.known ?? ''}`;
+          const clave = `${inicioCurso}|${f?.role ?? ''}|${f?.tag ?? ''}|${f?.minAge ?? ''}|${f?.maxAge ?? ''}|${f?.known ?? ''}|${f?.tagORole ?? ''}`;
           let porFiltro = CONSULTAS.get(lista);
           if (!porFiltro) CONSULTAS.set(lista, (porFiltro = new Map()));
           let vistas = porFiltro.get(clave);
@@ -1983,6 +1983,7 @@ export const npcs = defineModule<NpcsState>({
                 if (f?.role && n.role !== f.role) return false;
                 if (f?.known !== undefined && (n.known !== false) !== f.known) return false;
                 if (f?.tag && !n.tags.includes(f.tag)) return false;
+                if (f?.tagORole && !n.tags.includes(f.tagORole) && n.role !== f.tagORole) return false;
                 if (f?.minAge !== undefined || f?.maxAge !== undefined) {
                   const edad = edadNpc(n, inicioCurso);
                   if (edad === undefined || edad < (f.minAge ?? 0) || edad > (f.maxAge ?? 200)) return false;

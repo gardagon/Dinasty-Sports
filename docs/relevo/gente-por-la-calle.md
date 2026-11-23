@@ -89,6 +89,33 @@ futbol       32 74ffda179741 4ab344928612
 
  Lo que **no** cambia: `benjamin`, y los bots cuya partida no pisa las calles de los vecinos mantienen sus acciones casi iguales (empollón 1.836 → 1.836).
 
+### Rendimiento por acción: arreglo (23/11, tras unir `claude/dormir`)
+
+La arquitectura midió `sim:rapida` con ⚠️ en Rendimiento (1,84 ms por acción, límite 1,73) con la máquina libre. Encargo: volver por debajo del límite **sin cambiar ningún resultado** y sin subir el umbral.
+
+**Qué pasaba** (perfil de CPU de `sim:rapida`, `node --import tsx --cpu-prof`): **`repartir` (el reparto de papeles de los sucesos) era el 25 % del tiempo** (22 s de 90). Tres causas, dos de ellas de los sucesos de calle:
+1. `presente` pedía `presencia.en(lugar)` **por cada candidato**, y `en` crea la vista de todos los que hay en el lugar (1.300 en el parque de la ciudad grande).
+2. Los papeles con `conocido: false` recorrían la lista **de toda la población** (6.000 vistas, con una copia) en cada reparto, para quedarse luego con los pocos que llevan una etiqueta (`perro`, `jubilado`, `portero`, `repartidor`).
+3. Cada candidato pedía otra vez el servicio de relaciones (`h.relacion`) y el de presencia.
+
+**Qué se ha cambiado** (mismos resultados: misma lista de candidatos, mismo orden, mismo azar):
+- `presente` mira `presencia.donde(persona)` (la agenda de esa persona) en vez de `en(sitio)`: `en` son quienes `donde` dice que están allí (hay un test que lo comprueba para 6 lugares durante 40 intervalos y el de «presencia reutilizada» de `npcs`).
+- El directorio de personas admite `tagORole` en `list` (etiqueta o rol, justo lo que pide `tipo` en un papel): el reparto deja el filtro por etiqueta o rol, y por conocida o no, a la consulta del directorio, que ya la recuerda, y abajo vuelve a comprobarlo todo.
+- Dentro de un reparto no cambia nada de la partida, así que el servicio de relaciones, el de lugares y el de presencia se piden **una vez por papel**, no por candidato (si una prueba pone sus propios hechos, se usan esos).
+
+**Medida** (`npm run sim:rapida`, tres pasadas seguidas en la misma máquina; el límite se calcula con la calibración de cada pasada y baila entre 1,41 y 1,60):
+
+| | Pasada 1 | Pasada 2 | Pasada 3 |
+|---|---|---|---|
+| Antes (con `claude/dormir` unido) | 1,63 ms (límite 1,49) ⚠️ | 1,62 (1,49) ⚠️ | 1,64 (1,60) ⚠️ |
+| Solo `presente` con `donde` | 1,60 (1,55) ⚠️ | 1,63 (1,57) ⚠️ | 1,45 (1,48) ✅ |
+| + filtro `tagORole` | 1,42 (1,41) ⚠️ | 1,38 (1,40) ✅ | 1,39 (1,54) ✅ |
+| **+ servicios una vez por reparto (final)** | **1,41 (1,49) ✅** | **1,31 (1,50) ✅** | **1,41 (1,46) ✅** |
+
+En el perfil de CPU: `runBot` baja de 89,3 s a 73,6 s (**−18 %**) y `repartir` de 22,4 s (25 %) a 8,3 s (10 %). Lo que queda de `repartir` es de sucesos de antes (`amigo_que_se_enfria` pide la relación de todos los conocidos, 7.300 veces en 84 días y 8 bots). El resto del tiempo (`listActions`, 53 %) es la lista de acciones del bot, que no cambia con esto.
+
+**Comprobaciones:** `typecheck` ✅; `npm run huella -- 60` **idéntica** a la de antes de empezar (la de la rama de trabajo con `dormir` y `gente por la calle`); `npm test` y `sim:rapida` sin ⚠️ de Rendimiento (ver el mensaje). **Si hace falta más margen:** que `ctx.service(...)` no rehaga el objeto del servicio de personas en cada llamada (4,5 s en el perfil), pero guardarlo por contexto es arriesgado (las previsiones usan otro `timeAt`), así que no se ha tocado.
+
 ### Qué queda (para F3 y después)
 
 - **Hogares (F3, otra sesión):** `vive` es hoy por persona; con los hogares debería ser por hogar (todos los de la casa en la misma calle, y el portal). Los padres que recogen siguen sin vínculo con un hijo concreto.

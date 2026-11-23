@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { EDAD_DE_JUBILACION, EDAD_PARA_IR_SOLO, SERVICES, oficioDeVecino, type PresenciaService } from '@ds/contracts';
+import { EDAD_DE_JUBILACION, EDAD_PARA_IR_SOLO, SERVICES, oficioDeVecino, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { advanceTo, type Game } from '@ds/core';
 import { nuevaPartida } from '@ds/game';
 import { ajustarVecinos, edadNpc, type Npc, type NpcsState } from '@ds/mod-npcs';
@@ -74,6 +74,26 @@ describe('la gente de las calles', () => {
     const otra = nuevaPartida({ seed: 31 });
     const a = (otra.moduleState('npcs') as NpcsState).npcs.map((n) => JSON.stringify(n.tipos));
     expect(a).toEqual(lista.map((n) => JSON.stringify(n.tipos)));
+  });
+
+  it('el directorio filtra por etiqueta o rol (lo que pide un papel de un suceso) igual que el filtro de siempre, en el mismo orden', () => {
+    const dir = g.service<NpcDirectory>(SERVICES.npcs)!;
+    const todos = dir.list();
+    for (const tipo of ['perro', 'jubilado', 'portero', 'repartidor', 'progenitor', 'vecino', 'profesor']) {
+      expect(dir.list({ tagORole: tipo }).map((n) => n.id), tipo).toEqual(todos.filter((n) => n.tags.includes(tipo) || n.role === tipo).map((n) => n.id));
+    }
+    expect(dir.list({ tagORole: 'vecino', role: 'vecino', known: false }).map((n) => n.id)).toEqual(todos.filter((n) => n.role === 'vecino' && n.known === false).map((n) => n.id));
+  });
+
+  it('`donde` y `en` dicen lo mismo de quién está en un lugar (los sucesos miran `donde` por cada candidato)', () => {
+    advanceTo(g, 'gen.descansar', 2, 8);
+    for (let i = 0; i < 40; i++) {
+      for (const lugar of ['calle_casa', 'calle_colegio', 'avenida_parque', 'parque', 'supermercado', 'colegio']) {
+        const aqui = new Set(presencia().en(lugar, 5000).map((p) => p.id));
+        for (const n of npcs()) expect(presencia().donde(n.id) === lugar, `${n.id} en ${lugar}`).toBe(aqui.has(n.id));
+      }
+      g.perform('gen.esperar');
+    }
   });
 
   it('un día de clase, por la mañana, hay gente en la calle de tu casa y el portero está allí; nadie pisa una calle de madrugada', () => {
