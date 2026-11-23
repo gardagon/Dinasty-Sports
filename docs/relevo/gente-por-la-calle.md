@@ -64,7 +64,30 @@ Todos los «antes» con el commit original (una copia de trabajo limpia), los «
 
 **Rendimiento, ciudad grande** (`npm run rendimiento -- 30 --ciudad --pasadas 1` y perfil de CPU; **el equipo cambia de ritmo de una hora a otra ±30 %: solo valen las medidas A/B seguidas**): 6.113 → 6.118 personas; **estado 16.210 → 16.233 KB (+23 KB, +0,14 %: 5 personas y las marcas)**; crear, guardar, cargar y listas sin cambio apreciable; pasada semanal de los PNJ igual (100–400 ms según la hora); presencia, primera consulta tras cambio de tramo: igual (3 ms). **Tiempo por acción del bot** (A/B seguidas): 3,54–3,96 → 4,11–4,65 ms (**+15 % aprox.**, ~+0,6 ms). El perfil de CPU de 30 días de bot da +3,3 % en total (+0,48 s, de ellos la presencia ~+0,15 s: `construirAgendasDePresencia` +50 ms, `calcularLugar` +60 ms) y la mayor parte del resto es lo de los sucesos (`presente` pide toda la presencia del lugar, con su vista de cada persona: 1.300 en el parque). Pasar de pasos de 10 a 15 minutos no cambió la medida: el coste no está en el número de cambios de tramo. **Posible mejora, no hecha por no tocar la presencia:** que `presente` mire el índice sin crear la vista de cada persona.
 
-**Huella (`npm run huella -- 60`):** cambia en los 16 bots y semillas, como se esperaba. Motivos: (1) la población crece en 5 personas (portero, conserje, 3 repartidores) y sus nombres entran en el registro (`futbol` cambia incluso al crear la partida: `5a5f4a3a870a → c76abfe26cb7`); (2) el estado de los vecinos lleva las marcas, las etiquetas y las descripciones nuevas; (3) los bots se cruzan con gente en la calle y con 5 sucesos nuevos, y cada decisión es una acción más (acciones de 60 días: equilibrado 2.302 → 2.317, madrugador 2.425 → 2.462, vago 1.469 → 1.520, aleatorio 2.801 → 3.162 con la semilla 2). **Nueva referencia** en `huella-despues`: ver el commit. Lo que **no** cambia: `benjamin`, y los bots cuya partida no pisa las calles de los vecinos mantienen sus acciones casi iguales (empollón 1.836 → 1.836).
+**Huella (`npm run huella -- 60`):** cambia en los 16 bots y semillas, como se esperaba. Motivos: (1) la población crece en 5 personas (portero, conserje, 3 repartidores) y sus nombres entran en el registro (`futbol` cambia incluso al crear la partida: `5a5f4a3a870a → c76abfe26cb7`); (2) el estado de los vecinos lleva las marcas, las etiquetas y las descripciones nuevas; (3) los bots se cruzan con gente en la calle y con 5 sucesos nuevos, y cada decisión es una acción más (acciones de 60 días: equilibrado 2.302 → 2.317, madrugador 2.425 → 2.462, vago 1.469 → 1.520, aleatorio 2.801 → 3.162 con la semilla 2). **Nueva referencia (`npm run huella -- 60`, commit final):**
+
+```
+equilibrado  1 2317 408a5b98451c
+equilibrado  2 2350 fb3f88601cfe
+madrugador   1 2400 1df990c2a103
+madrugador   2 2462 f821af3c6ccb
+empollon     1 1793 3ac155baa19f
+empollon     2 1836 6a8ecc490fee
+atleta       1 2275 4f55082c6c02
+atleta       2 2301 2dae037782c9
+sobreentrena 1 2676 4a2307a0cbdf
+sobreentrena 2 2666 af61617b99bc
+vago         1 1520 931e46d4690d
+vago         2 1520 130d61d96ff8
+abandono     1 2248 0154784f3de8
+abandono     2 2280 943748d79487
+aleatorio    1 2996 fbcb0a243f64
+aleatorio    2 3162 6e291bcfc8c2
+futbol       31 c76abfe26cb7 c713dc0d7302
+futbol       32 74ffda179741 4ab344928612
+```
+
+ Lo que **no** cambia: `benjamin`, y los bots cuya partida no pisa las calles de los vecinos mantienen sus acciones casi iguales (empollón 1.836 → 1.836).
 
 ### Qué queda (para F3 y después)
 
