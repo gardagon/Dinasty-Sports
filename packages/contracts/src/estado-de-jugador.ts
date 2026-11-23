@@ -1,4 +1,5 @@
 import { clamp } from './util-numerica';
+import { pasoDeSuenoDeLaSemana, topeDeEnergiaAlDespertar } from './sueno';
 
 /**
  * EL ESTADO DE UN JUGADOR (plan `docs/MISMAS_REGLAS.md`, P2a-2): lo que importa para jugar además de lo que sabe hacer. El personaje lo vive día a día con sus
@@ -41,6 +42,8 @@ export interface EstadoDeJugador {
   salud: number;
   /** Semanas de baja que le quedan por una lesión (ausente = sano). */
   baja?: number;
+  /** Horas de sueño atrasado (`sueno.ts`, la misma deuda del personaje); ausente = ninguna. Hoy solo limita cuánto se recupera la condición física. */
+  deuda?: number;
 }
 
 /** Valores de partida de un jugador sano y descansado. */
@@ -126,6 +129,8 @@ export interface EntradaDeSemana {
   azarDeGravedad: number;
   animo: number;
   constitucion: number;
+  /** Cómo duerme esa semana (`suenoHabitual`): si falta, no cuenta el sueño (como antes). */
+  sueno?: { necesidad: number; laborables: number; libres: number };
 }
 
 /**
@@ -134,7 +139,9 @@ export interface EntradaDeSemana {
  */
 export function pasoDeSemanaDelEstado(e: EstadoDeJugador, i: EntradaDeSemana): EstadoDeJugador {
   const fatiga = fatigaDeLaSemana(e.fisica, i.sesiones);
-  const fisica = clamp(100 - fatiga * (1 - RECUPERACION_SEMANAL), 0, 100);
+  // El sueño atrasado pasa igual que en el personaje (siete noches) y limita lo que se recupera, como limita su energía al despertar.
+  const deuda = i.sueno ? pasoDeSuenoDeLaSemana(e.deuda ?? 0, i.sueno.necesidad, i.sueno.laborables, i.sueno.libres) : (e.deuda ?? 0);
+  const fisica = clamp(100 - fatiga * (1 - RECUPERACION_SEMANAL), 0, topeDeEnergiaAlDespertar(deuda));
   const baseDeLaMoral = 45 + 30 * clamp(i.animo, 0, 1);
   const moral = clamp(e.moral + (baseDeLaMoral - e.moral) * RECUPERACION_DE_LA_MORAL, 0, 100);
   const forma = formaTrasLaSemana(e.forma, eficienciaDeEstado({ ...e, fisica, moral }));
@@ -145,7 +152,7 @@ export function pasoDeSemanaDelEstado(e: EstadoDeJugador, i: EntradaDeSemana): E
     baja = g.baja;
     salud = g.salud;
   }
-  return { fisica, moral, forma, salud, ...(baja ? { baja } : {}) };
+  return { fisica, moral, forma, salud, ...(baja ? { baja } : {}), ...(deuda > 0.05 ? { deuda: Math.round(deuda * 10) / 10 } : {}) };
 }
 
 /**

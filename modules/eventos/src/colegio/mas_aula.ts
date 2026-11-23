@@ -17,7 +17,8 @@ export default [
     requiere: ['estudios'],
     disparo: EN_CLASE,
     ejemploDeSeñal: EJEMPLO,
-    cuando: [{ stat: 'gen.energia', max: 50 }],
+    // Por poca energía o por sueño atrasado (el sueño de varias noches pesa aunque hoy la energía no esté tan baja).
+    cuando: [{ alguna: [{ stat: 'gen.energia', max: 50 }, { stat: 'gen.sueno', min: 3 }] }],
     repite: { espera: { dias: 12 } },
     reparto: PROFESOR,
     texto: 'La voz de {profesor.nombre} se vuelve un zumbido. La cabeza te pesa y los párpados, más. Un cabeceo más y te quedas dormid{yo:o|a} sobre la mesa.',
@@ -38,6 +39,50 @@ export default [
     pruebas: [
       { nombre: 'Con la energía alta no sale', dado: { stats: { 'gen.energia': 90 } }, señal: EJEMPLO, espero: { sale: false } },
       { nombre: 'Agotado: sale', dado: { stats: { 'gen.energia': 20 } }, señal: EJEMPLO, espero: { opcionDisponible: 'agua' } },
+      { nombre: 'Con mucho sueño atrasado sale aunque la energía esté alta', dado: { stats: { 'gen.energia': 90, 'gen.sueno': 4 } }, señal: EJEMPLO, espero: { opcionDisponible: 'agua' } },
+    ],
+  }),
+  suceso({
+    id: 'eventos.colegio.dormirse_en_clase',
+    titulo: 'Te quedas dormid{yo:o|a} en clase',
+    categoria: 'menor',
+    requiere: ['estudios'],
+    disparo: { al: 'clase.asistida', prob: 0.06 },
+    ejemploDeSeñal: EJEMPLO,
+    // Muy cansado de hoy, o con muchas noches de sueño atrasado: la cabeza cae y ya no se levanta.
+    cuando: [{ alguna: [{ stat: 'gen.energia', max: 20 }, { stat: 'gen.sueno', min: 6 }] }],
+    repite: { espera: { dias: 20 } },
+    reparto: PROFESOR,
+    texto: 'No sabes en qué momento ha pasado. Un golpe seco de la regla de {profesor.nombre} en la mesa y levantas la cabeza: toda la clase te mira y tienes la mejilla marcada por el cuaderno.',
+    urgencia: 'ahora',
+    plazo: { dias: 1, porDefecto: 'nada' },
+    opciones: [
+      {
+        id: 'verdad',
+        texto: 'Decirle la verdad: llevas días durmiendo poco',
+        caracter: { honestidad: 1 },
+        efectos: [{ relacion: 'profesor', afinidad: 1 }, { estado: 'gen.estres', mas: 1 }],
+        resultado: '{profesor.Nombre} te mira un momento. «Pues esta noche, a la cama temprano. Con esto no se juega.» No te riñe.',
+      },
+      {
+        id: 'excusa',
+        texto: 'Decir que te duele la cabeza',
+        caracter: { honestidad: -1 },
+        tirada: { con: 'gen.picardia', dificultad: 40 },
+        exito: { efectos: [{ estado: 'gen.estres', mas: -1 }], resultado: 'Pone cara de no creerte del todo, pero te deja beber agua y seguir.' },
+        fallo: { efectos: [{ relacion: 'profesor', afinidad: -2 }, { estado: 'gen.estres', mas: 3 }], resultado: '«Sí, la cabeza. Sobre la mesa.» Se oyen risitas y {profesor.nombre} lo apunta en su libreta.' },
+      },
+      {
+        id: 'nada',
+        texto: 'Incorporarte y hacer como si nada',
+        caracter: { disciplina: 1 },
+        efectos: [{ estado: 'gen.estres', mas: 2 }, { relacion: 'profesor', afinidad: -1 }],
+        resultado: 'Te sientas recto y miras la pizarra con mucha atención. Dura tres minutos.',
+      },
+    ],
+    pruebas: [
+      { nombre: 'Con la energía alta y sin sueño atrasado no sale', dado: { stats: { 'gen.energia': 90, 'gen.sueno': 0 } }, señal: EJEMPLO, espero: { sale: false } },
+      { nombre: 'Con mucho sueño atrasado sale', dado: { stats: { 'gen.energia': 90, 'gen.sueno': 7 } }, señal: EJEMPLO, espero: { opcionDisponible: 'verdad' } },
     ],
   }),
   suceso({

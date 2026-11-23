@@ -54,6 +54,8 @@ export interface IdentidadState {
   hc?: number[];
   /** Hábitos acumulados en la semana en curso. */
   semana: HabitosSemana;
+  /** Cuánto sueño atrasado ha recuperado hoy con siestas (día de la partida y horas): el tope es de media hora al día. Ausente = ninguna. */
+  siesta?: { dia: number; pagado: number };
   /** Perks: los activos (como mucho 3, los que afectan) y el pool que pasa a los hijos. */
   perks: PerksDe;
   /** Perks latentes que el personaje ya ha descubierto (señal `perk.revelado`). Su efecto no depende de esto: cuenta desde que nació. */

@@ -5,6 +5,7 @@ import amigos_parque from './amigos/parque';
 import amigos_pelea from './amigos/pelea';
 import amigos_prestado from './amigos/prestado';
 import amigos_secreto from './amigos/secreto';
+import barrio_calle from './barrio/calle';
 import barrio_detalles from './barrio/detalles';
 import camino_detalles from './camino/detalles';
 import casa_ahorrar from './casa/ahorrar';
@@ -34,4 +35,4 @@ import perks_revelaciones from './perks/revelaciones';
 import relaciones_cumple from './relaciones/cumple';
 import salud_lesion from './salud/lesion';
 
-export const CATALOGO: readonly AporteDeSucesos[] = [amigos_detalles, amigos_parque, amigos_pelea, amigos_prestado, amigos_secreto, barrio_detalles, camino_detalles, casa_ahorrar, casa_boletin, casa_detalles, casa_dia_a_dia, casa_fin_de_semana, casa_padres_discuten, colegio_apodo, colegio_aula, colegio_companero_nuevo, colegio_corrillo, colegio_entrada_y_clase, colegio_examen, colegio_mas_aula, colegio_mas_patio, colegio_patio, colegio_tutor_se_preocupa, contadores, cuerpo_altura, estudios_educacion_fisica, estudios_llegar_tarde, familia_faltas, grupo_se_van, perks_pulmones, perks_revelaciones, relaciones_cumple, salud_lesion].flat();
+export const CATALOGO: readonly AporteDeSucesos[] = [amigos_detalles, amigos_parque, amigos_pelea, amigos_prestado, amigos_secreto, barrio_calle, barrio_detalles, camino_detalles, casa_ahorrar, casa_boletin, casa_detalles, casa_dia_a_dia, casa_fin_de_semana, casa_padres_discuten, colegio_apodo, colegio_aula, colegio_companero_nuevo, colegio_corrillo, colegio_entrada_y_clase, colegio_examen, colegio_mas_aula, colegio_mas_patio, colegio_patio, colegio_tutor_se_preocupa, contadores, cuerpo_altura, estudios_educacion_fisica, estudios_llegar_tarde, familia_faltas, grupo_se_van, perks_pulmones, perks_revelaciones, relaciones_cumple, salud_lesion].flat();

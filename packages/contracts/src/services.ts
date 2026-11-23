@@ -154,8 +154,8 @@ export interface LecturaDePuesto {
 }
 
 export interface NpcDirectory {
-  /** `known`: solo las que el personaje conoce (true) o solo las que no (false). */
-  list(filter?: { role?: NpcRole; tag?: string; minAge?: number; maxAge?: number; known?: boolean }): NpcView[];
+  /** `known`: solo las que el personaje conoce (true) o solo las que no (false). `tagORole`: las que llevan esa etiqueta o tienen ese rol (lo que pide un papel de un suceso con `tipo`). */
+  list(filter?: { role?: NpcRole; tag?: string; tagORole?: string; minAge?: number; maxAge?: number; known?: boolean }): NpcView[];
   get(id: string): NpcView | undefined;
   /**
    * ¿Entra el personaje, con este nivel en el deporte, en el equipo de su categoría de un club? Solo los deportes con equipos por categoría tienen tope

@@ -59,6 +59,7 @@ import {
   type LectorDeHechos,
   type LugaresService,
   type NpcDirectory,
+  type NpcRole,
   type NpcView,
   type OpcionDef,
   type TiradaDef,
@@ -324,8 +325,9 @@ function nuevoLector(ctx: ReadContext): LectorDeHechos {
     lugar: () => o(p.lugar?.(), () => ctx.service<LugaresService>(SERVICES.lugares)?.actual().id as string),
     presente: (persona) => {
       if (p.presente) return p.presente(persona);
+      // `donde` mira la agenda de esa persona; `en(sitio)` crearía la vista de todos los que hay en el lugar (1.300 en el parque de la ciudad grande) por cada candidato. Es lo mismo: `en` son quienes `donde` dice que están allí.
       const sitio = ctx.service<LugaresService>(SERVICES.lugares)?.actual().id;
-      return !!sitio && !!ctx.service<PresenciaService>(SERVICES.presencia)?.en(sitio).some((n) => n.id === persona);
+      return !!sitio && ctx.service<PresenciaService>(SERVICES.presencia)?.donde(persona) === sitio;
     },
     relacion: (persona) => o(p.relacion?.(persona), () => ctx.service<RelationsService>(SERVICES.relaciones)?.get(persona)),
     familia: (persona) =>
@@ -426,12 +428,21 @@ function repartir(ctx: ReadContext, s: SucesosState, suceso: string, papel: stri
   const npcs = ctx.service<NpcDirectory>(SERVICES.npcs);
   if (!npcs) return undefined;
   const h = lectorDe(ctx);
+  // Mientras se reparte un papel no cambia nada de la partida: los servicios que se piden por cada candidato (relación, dónde está) se piden una sola vez. Si una prueba pone sus propios hechos, se usan esos.
+  const delLector = prueba(ctx)?.hechos;
+  const servicioDeRelaciones = delLector?.relacion ? undefined : ctx.service<RelationsService>(SERVICES.relaciones);
+  const relacionDe = (id: string) => (delLector?.relacion ? h.relacion(id) : servicioDeRelaciones?.get(id));
+  const sitioDeAhora = def.presente && !delLector?.presente ? ctx.service<LugaresService>(SERVICES.lugares)?.actual().id : undefined;
+  const servicioDePresencia = def.presente && !delLector?.presente ? ctx.service<PresenciaService>(SERVICES.presencia) : undefined;
+  const estaAqui = (id: string) => (delLector?.presente ? h.presente(id) : !!sitioDeAhora && servicioDePresencia?.donde(id) === sitioDeAhora);
   let candidatos: NpcView[];
   if (def.deLaSeñal) {
     const lista = (señal?.[def.deLaSeñal] ?? []) as Record<string, unknown>[];
     candidatos = lista.filter((x) => typeof x.npcId === 'string' && Object.entries(def.donde ?? {}).every(([k, v]) => x[k] === v)).map((x) => npcs.get(x.npcId as string)).filter((n): n is NpcView => !!n);
   } else {
-    candidatos = npcs.list(def.conocido === false ? undefined : { known: true });
+    // Lo que no depende de la persona (conocida o no, su etiqueta o rol, su rol) lo resuelve la consulta del directorio, que la recuerda: así no se recorre toda la población (6.000 en la ciudad grande) en cada reparto. Abajo se vuelve a comprobar.
+    const filtro = { ...(def.conocido === false ? {} : { known: true }), ...(def.tipo ? { tagORole: def.tipo } : {}), ...(def.rol ? { role: def.rol as NpcRole } : {}) };
+    candidatos = npcs.list(Object.keys(filtro).length ? filtro : undefined);
   }
   const principal = def.delDeportePrincipal ? ctx.aportes<{ id: string }>('deportes.ficha').map((f) => ctx.service<ClubDirectory>(SERVICES.clubes)?.membership(f.id)?.id).filter(Boolean) : undefined;
   const hoy = deDia(ctx);
@@ -444,17 +455,17 @@ function repartir(ctx: ReadContext, s: SucesosState, suceso: string, papel: stri
     if (def.asignaturaDeLaSeñal && !n.asignaturas?.includes(String(señal?.[def.asignaturaDeLaSeñal]))) return false;
     if (def.cumpleEn && !(n.nacimiento !== undefined && diasHastaElCumple(n.nacimiento, hoy) === def.cumpleEn.dias)) return false;
     if (def.relacion) {
-      const r = h.relacion(n.id);
+      const r = relacionDe(n.id);
       if (!r || !enRango(r.afinidad, def.relacion.afinidad) || !enRango(r.confianza, def.relacion.confianza)) return false;
       if (def.relacion.estado && !(Array.isArray(def.relacion.estado) ? def.relacion.estado : [def.relacion.estado]).includes(r.estado)) return false;
     }
-    return !def.presente || h.presente(n.id);
+    return !def.presente || estaAqui(n.id);
   });
   // Nadie hace dos papeles en el mismo suceso (dos amigos que se pelean no pueden ser la misma persona, ni el profesor y el compañero nuevo).
   if (excluir.length) candidatos = candidatos.filter((n) => !excluir.includes(n.id));
   if (!candidatos.length) return undefined;
   if (def.prefiere) {
-    const valor = (n: NpcView): number => (def.prefiere === 'mas_afinidad' ? (h.relacion(n.id)?.afinidad ?? 0) : def.prefiere === 'mas_apoyo' ? (h.familia(n.id)?.apoyo ?? 0) : (h.familia(n.id)?.expectativas ?? 0));
+    const valor = (n: NpcView): number => (def.prefiere === 'mas_afinidad' ? (relacionDe(n.id)?.afinidad ?? 0) : def.prefiere === 'mas_apoyo' ? (h.familia(n.id)?.apoyo ?? 0) : (h.familia(n.id)?.expectativas ?? 0));
     return candidatos.reduce((a, b) => (valor(b) > valor(a) ? b : a)).id;
   }
   return rngEstable(s.semilla, 'reparto', suceso, papel, hoy).pick(candidatos).id;

@@ -166,7 +166,7 @@ describe('módulo NPCs', () => {
     it('en clase están ocupados (no se les puede hablar); en el recreo, el tutor y los compañeros están en el patio, y no los rivales de otros clubes', () => {
       const g = nueva();
       advanceTo(g, 'gen.descansar', 0, 10); // lunes, 10:00: en clase
-      expect(nombres(g, 'colegio')).toEqual([]);
+      expect(nombres(g, 'colegio').filter((id) => id !== 'conserje_1')).toEqual([]); // el conserje sigue en la puerta
       advanceTo(g, 'gen.descansar', 0, 11); // el recreo es de 10:40 a 11:20 (en el patio hasta las 11:10)
       const aqui = nombres(g, 'patio');
       // El profesorado está en la sala de profesores (menos un par que salen al patio); para hablar con ellos hay que ir allí.
@@ -244,8 +244,8 @@ describe('módulo NPCs', () => {
         anterior = foto;
         g.perform('gen.esperar');
       }
-      // Cambia solo cuando cambia algún tramo: unas pocas veces al día, no cada pocos minutos.
-      expect(cambios).toBeLessThan(60);
+      // Cambia solo cuando cambia algún tramo: unas decenas de veces al día (las visitas a la calle son pasos de 15 minutos, 23/11), no cada pocos minutos.
+      expect(cambios).toBeLessThan(150);
     });
 
     it('la presencia no cambia dentro de un mismo tramo horario', () => {

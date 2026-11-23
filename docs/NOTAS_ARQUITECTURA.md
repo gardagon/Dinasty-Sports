@@ -25,7 +25,7 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 
 ## 2. Estado (22/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada en GitHub Pages con #127 (21/11), #128, #129, #130 y #131 (22/11). Lo nuevo se trabaja en ella y se publica con pull request cuando el usuario lo aprueba. Suite: 126 archivos y 1.367 tests en verde.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada en GitHub Pages con #127 (21/11), #128–#131 (22/11) y #132 (23/11: diseño de escritorio A, motor de sucesos, lote 2, arreglos). Lo nuevo se trabaja en ella y se publica con pull request cuando el usuario lo aprueba. Suite: 126 archivos y 1.367 tests en verde.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
@@ -41,7 +41,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Publicación en curso:** pull request #132 (visto bueno del usuario el 23/11). Al unirlo, comprobar Pages.
+- **Publicación en curso:** #133 (dormir, gente por la calle), con el visto bueno del usuario del 23/11. Al unirlo, comprobar Pages.
 - **Rendimiento M2**: el usuario creó una partida en el móvil en ~4 s (antes 7–8 s), «solo con fútbol»: confirmar si fue con la ciudad grande. Si lo fue, M2 no corre prisa. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
@@ -51,10 +51,10 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 | `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medidas (`docs/relevo/medir-rendimiento-2.md`) | ✅ Terminada y unida (solo `tools/` y `docs/`). Propuestas M1, M2 y C1 pendientes del usuario |
 | `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Lote 2 escrito, corregido y unido el 23/11 (112 sucesos; ritmo 4,2/semana frente a 6: faltan tardes 14–20 h). Arreglos del director: `aguanta` con `cada` y nadie hace dos papeles en un suceso | ✅ Unida |
 | `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor del lote 2 y contenido duro (desactivado por defecto) | ✅ Unida el 23/11 |
-| `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Aplicar F1 (desplegable, no despierta para clase), F2 (deuda por edad; de momento solo malus en la recuperación de energía; sensaciones y suceso de dormirse en clase) y F3 (PNJ) | Reactivada el 23/11 |
-| `session_01M4vXXQ6DoRWA2UGVauypzR` | `claude/hogares` | Análisis: hogares (padres de los niños, adultos sin hijos, bebés y pequeños como personas, nacimientos, mascotas preparadas) y tabla de escalado de rendimiento ×1–×10 | Lanzada el 23/11 |
+| `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | F1–F3 hechas y unidas el 23/11 (desplegable, deuda por edad con malus solo en la energía máxima al despertar, sensaciones, `dormirse_en_clase`, PNJ). Arreglado: el agotamiento de fin de día ve la energía de antes de dormir | ✅ Unida. Pendiente: hermanos <8 duermen 21:30–7:00 (`agendas.ts`, después de la calle); calibrar −4 de energía/h de deuda (¿−2,5?) |
+| `session_01M4vXXQ6DoRWA2UGVauypzR` | `claude/hogares` | H1 (paso 2) detrás del dato desactivado, con las decisiones del A8 (DECISIONES 23/11); medir cifras para que el usuario decida activarlo | En marcha |
 | `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error arreglado: el azar del aforo sale de `día:intervalo` (`PresenciaService.aforo`), no de un contador del proceso; guardar y cargar da lo mismo | ✅ Unida el 23/11 (cambian 7 líneas de la huella, aceptado como arreglo) |
-| `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Aplicar F1+F2 (calles 6:30–23:59, oficios en su lugar, <12 no van solos, portero, conserje, repartidores) y 4–5 sucesos de calle | Reactivada el 23/11 |
+| `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | F1+F2 y abaratar el reparto de papeles (1,84 → ~1,4 ms por acción, huella idéntica), unidas el 23/11 | ✅ Unida |
 | `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño A aplicado (por defecto desde 1280 px), dinero en la columna, aviso «Pasando la semana…» | ✅ Unida el 23/11 |
 
 ## 4. Pendiente (por orden de prioridad propuesto)

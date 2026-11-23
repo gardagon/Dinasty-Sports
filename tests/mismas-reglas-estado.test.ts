@@ -10,6 +10,7 @@ import {
   valoracionDelPuesto,
   type EstadoDeJugador,
 } from '@ds/contracts';
+import { pasoDeSuenoDeLaNoche, pasoDeSuenoDeLaSemana, suenoHabitual, topeDeEnergiaAlDespertar } from '@ds/contracts';
 import { GEN, factorPorForma, formaTrasLaSemana, formaTrasUnaCompeticion, gravedadDeLesion, riesgoDeLesion, fatigaDeLaSemana } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
@@ -239,5 +240,49 @@ describe('los sorteos del personaje usan la semilla de la partida', () => {
     const b = nuevaPartida({ seed: 32 }).moduleState<{ semilla?: number }>('gen');
     expect(a.semilla).toBe(31);
     expect(b.semilla).toBe(32);
+  });
+});
+
+describe('el sueño: las mismas reglas para el personaje y los PNJ', () => {
+  it('una semana de un PNJ es lo mismo que siete noches del personaje', () => {
+    for (const [deuda, necesidad, lab, libres] of [[0, 9.5, 8.5, 10.5], [3, 9, 7, 11], [6, 7, 6, 9], [9, 7.5, 5, 6]] as number[][]) {
+      let d = deuda;
+      for (let n = 0; n < 7; n++) d = pasoDeSuenoDeLaNoche(d, necesidad, n < 5 ? lab : libres);
+      expect(pasoDeSuenoDeLaSemana(deuda, necesidad, lab, libres)).toBeCloseTo(d, 10);
+    }
+  });
+
+  it('la deuda limita lo que se recupera la condición física, como la energía del personaje, y sin sueño el paso no cambia', () => {
+    const sin = pasoDeSemanaDelEstado(SANO({ fisica: 40 }), SEMANA);
+    expect(pasoDeSemanaDelEstado(SANO({ fisica: 40, deuda: 0 }), SEMANA)).toEqual(sin);
+    const duerme = { necesidad: 9.5, laborables: 6, libres: 7 };
+    let e = SANO({ fisica: 40 });
+    for (let i = 0; i < 4; i++) e = pasoDeSemanaDelEstado(e, { ...SEMANA, sueno: duerme });
+    expect(e.deuda).toBeGreaterThan(5);
+    expect(e.fisica).toBeLessThanOrEqual(topeDeEnergiaAlDespertar(e.deuda!) + 1e-9);
+    expect(e.fisica).toBeLessThan(sin.fisica + 60);
+  });
+
+  it('su hábito de sueño sale de la edad, la disciplina y un azar, y casi nadie acaba con mucha deuda', () => {
+    expect(suenoHabitual(9, 0.5, 0.5).laborables).toBeCloseTo(suenoHabitual(9, 0.5, 0.5).necesidad, 5);
+    expect(suenoHabitual(16, 0.1, 0.9).laborables).toBeLessThan(suenoHabitual(16, 0.9, 0.1).laborables);
+    let muchos = 0;
+    for (let k = 0; k < 400; k++) {
+      const h = suenoHabitual(8 + (k % 10), ((k * 37) % 100) / 100, ((k * 53) % 100) / 100);
+      let d = 0;
+      for (let semana = 0; semana < 52; semana++) d = pasoDeSuenoDeLaSemana(d, h.necesidad, h.laborables, h.libres);
+      if (d > 5) muchos++;
+    }
+    expect(muchos).toBeLessThan(400 * 0.1);
+  });
+
+  it('en la partida los jugadores llevan su deuda: pocos con mucha y todos dentro del rango', () => {
+    const g = nuevaPartida({ seed: 31 });
+    advanceToWeek(g, 'gen.descansar', 30, 1, 8);
+    const { npcs } = g.moduleState<NpcsState>('npcs') as NpcsState;
+    const jugadores = npcs.filter((x) => x.estado);
+    expect(jugadores.length).toBeGreaterThan(80);
+    expect(jugadores.every((x) => (x.estado!.deuda ?? 0) >= 0 && (x.estado!.deuda ?? 0) <= 10)).toBe(true);
+    expect(jugadores.filter((x) => (x.estado!.deuda ?? 0) > 5).length).toBeLessThan(jugadores.length * 0.2);
   });
 });
