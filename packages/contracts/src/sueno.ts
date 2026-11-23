@@ -66,3 +66,26 @@ export const topeDeEnergiaAlDespertar = (deuda: number): number => 100 - 4 * deu
  */
 export const factorPorSueno = (deuda: number, a = 0.02): number => 1 - a * deudaEfectiva(deuda);
 export const fatigaPorSueno = (deuda: number): number => 4 * deuda;
+
+// ---------------------------------------------------------------------------------------------------- los PNJ (fase 3): el mismo sueño, una vez por semana
+
+/**
+ * Cómo duerme un PNJ de forma habitual (se deriva, no se guarda): `deficit` = lo que se queda corto cada noche de clase respecto a lo que necesita (negativo: duerme de más).
+ * Parte de la edad (hasta los 11 años los padres lo cuidan; los adolescentes se acuestan tarde), la disciplina (`disciplina01`, de 0 a 1) y un azar estable (`azar01`, de 0 a 1).
+ * Los fines de semana duerme más, tanto como compense lo que falta entre semana (con tope). Cifras provisionales.
+ */
+export function suenoHabitual(edad: number, disciplina01: number, azar01: number): { necesidad: number; laborables: number; libres: number } {
+  const necesidad = necesidadDeSueno(edad);
+  const deEdad = edad < 12 ? 0 : edad < 18 ? 0.1 * (edad - 11) : 0.3;
+  const deficit = Math.max(-0.5, deEdad + 0.6 * (0.5 - disciplina01) + 0.8 * (azar01 - 0.5));
+  const laborables = Math.max(4, necesidad - deficit);
+  const libres = Math.min(necesidad + TOPE_DE_RECUPERACION_POR_NOCHE, necesidad + 0.5 + 2 * Math.max(0, deficit));
+  return { necesidad, laborables, libres };
+}
+
+/** La deuda tras una semana de siete noches: cinco de clase y dos libres (las mismas reglas de la noche del personaje, aplicadas en orden). */
+export function pasoDeSuenoDeLaSemana(deuda: number, necesidad: number, laborables: number, libres: number): number {
+  let d = deuda;
+  for (let n = 0; n < 7; n++) d = pasoDeSuenoDeLaNoche(d, necesidad, n < 5 ? laborables : libres);
+  return d;
+}
