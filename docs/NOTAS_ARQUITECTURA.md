@@ -25,7 +25,7 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 
 ## 2. Estado (22/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada en GitHub Pages con #127 (21/11), #128–#131 (22/11) y #132 (23/11: diseño de escritorio A, motor de sucesos, lote 2, arreglos). Lo nuevo se trabaja en ella y se publica con pull request cuando el usuario lo aprueba. Suite: 126 archivos y 1.367 tests en verde.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada en GitHub Pages con #127 (21/11), #128–#131 (22/11) #132 (23/11: diseño de escritorio A, motor de sucesos, lote 2, arreglos) y #133 (23/11: dormir, gente por la calle). Lo nuevo se trabaja en ella y se publica con pull request cuando el usuario lo aprueba. Suite: 126 archivos y 1.367 tests en verde.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
@@ -41,7 +41,6 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Publicación en curso:** #133 (dormir, gente por la calle), con el visto bueno del usuario del 23/11. Al unirlo, comprobar Pages.
 - **Rendimiento M2**: el usuario creó una partida en el móvil en ~4 s (antes 7–8 s), «solo con fútbol»: confirmar si fue con la ciudad grande. Si lo fue, M2 no corre prisa. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
