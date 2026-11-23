@@ -7,8 +7,11 @@
 import { ID_PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES, ID_PAIS_CIUDAD_GRANDE_CON_HOGARES, PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES, PAIS_CIUDAD_GRANDE_CON_HOGARES, registrarPais } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
-import { edadNpc, esProgenitorDeHogar, type NpcsState } from '@ds/mod-npcs';
+import { FAMILIAS, edadNpc, esProgenitorDeHogar, type NpcsState } from '@ds/mod-npcs';
 
+// `--siguiente a,b,c,d` cambia en esta ejecución la probabilidad de hermano pequeño (`FAMILIAS.siguiente`) para probar ajustes sin tocar el juego.
+const iS = process.argv.indexOf('--siguiente');
+if (iS >= 0) (FAMILIAS.siguiente as unknown as number[]).splice(0, 4, ...process.argv[iS + 1].split(',').map(Number));
 const cual = process.argv[2] ?? 'prueba';
 const cursos = Number(process.argv[3] ?? 4);
 const pais = cual === 'grande' ? PAIS_CIUDAD_GRANDE_CON_HOGARES : PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES;
