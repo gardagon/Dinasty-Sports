@@ -115,7 +115,7 @@ _Eventos totales de todos los bots: 1059 en 411.4 semanas de juego._
 
 - `npm run typecheck`: ✅. `npm run eventos:validar`: ✅ (63 sucesos, 462 caminos, los mismos 6 avisos de marcas). `npm run eventos:mapa`: ✅ (sin cambios). `npm run probar-web`: ✅ (todo el camino en Chromium). `npm run huella -- 60`: ver arriba.
 - Tests nuevos: `modules/estudios` (señales de exámenes y boletín), `modules/sucesos/src/motor2.test.ts` (textos, variantes con peso, resultados forzados, duro por suceso/variante/opción/categoría, cumpleaños, rotación y `alCargar`), `tests/eventos-versiones.test.ts` (la herramienta enseña cada versión y lo que queda sin duro), `apps/web/src/presentacion.test.ts` (duro por defecto, guardado y llegada al motor).
-- `npm test` completo: ver la última línea de este documento.
+- `npm test` completo: ✅ 128 archivos, 1384 tests, 453 s.
 
 ## Pendiente / dudas (nada decidido por mí)
 
