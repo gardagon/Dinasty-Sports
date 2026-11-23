@@ -182,6 +182,7 @@ flowchart LR
 | `eventos.colegio.capitan_de_equipo` | Hacen los equipos | al: `clase.asistida` | menor |
 | `eventos.colegio.cambio_de_sitios` | Nuevos sitios | al: `lugares.llegada` | menor |
 | `eventos.colegio.cabeceo_en_clase` | Los ojos se te cierran | al: `clase.asistida` | menor |
+| `eventos.colegio.dormirse_en_clase` | Te quedas dormid{yo:o/a} en clase | al: `clase.asistida` | menor |
 | `eventos.colegio.profesor_se_equivoca` | El profesor se equivoca | al: `clase.asistida` | menor |
 | `eventos.colegio.trabajo_en_grupo` | Un trabajo en grupo | al: `clase.asistida` | menor |
 | `eventos.colegio.cambio_de_cromos` | Cambio de cromos | al: `lugares.llegada` | menor |

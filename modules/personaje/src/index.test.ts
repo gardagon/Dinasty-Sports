@@ -96,7 +96,9 @@ describe('módulo personaje (gen)', () => {
       const guardado = g.serialize();
       delete (guardado.modules as Record<string, unknown>).gen;
       const g2 = Game.load([personaje], guardado);
-      expect(vista(g2).age).toBe(8);
+      // Recibe una identidad nueva (7 u 8 años: el día de nacimiento sale de un sorteo que cambia al añadir stats al juego).
+      expect(vista(g2).age).toBeGreaterThanOrEqual(7);
+      expect(vista(g2).age).toBeLessThanOrEqual(8);
     });
   });
 
@@ -263,6 +265,95 @@ describe('módulo personaje (gen)', () => {
       b.perform('gen.dormir_8h');
       expect(a.time.minute).toBe(b.time.minute);
       expect(a.stat(GEN.energia)).toBe(b.stat(GEN.energia));
+    });
+  });
+
+  describe('el sueño atrasado (gen.sueno)', () => {
+    const hasta = (g: Game, hora: number, minuto = 0) => {
+      let n = 0;
+      while ((g.time.minuteOfDay !== hora * 60 + minuto) && n++ < 2000) g.perform('gen.esperar');
+    };
+    const nueva = () => {
+      const g = Game.create([personaje], { seed: 1 });
+      hasta(g, 21);
+      return g;
+    };
+
+    it('dormir lo que toca no deja deuda; dormir menos la va acumulando noche a noche', () => {
+      const g = nueva();
+      g.perform('gen.dormir_lo_que_toca');
+      expect(g.stat(GEN.sueno)).toBeLessThan(0.3);
+      for (let noche = 1; noche <= 3; noche++) {
+        const antes = g.stat(GEN.sueno);
+        hasta(g, 21);
+        g.perform('gen.dormir_8h');
+        expect(g.stat(GEN.sueno)).toBeGreaterThan(antes + 1);
+      }
+    });
+
+    it('la deuda tiene tope y dormir de más recupera como mucho dos horas por noche', () => {
+      const g = nueva();
+      for (let n = 0; n < 6; n++) {
+        hasta(g, 21);
+        g.perform('gen.dormir_4h');
+      }
+      expect(g.stat(GEN.sueno)).toBe(10);
+      hasta(g, 21);
+      g.perform('gen.dormir_11h');
+      // A los 8 años se necesitan unas 9 h y media: dormir 11 h abona 1,5 h (el tope de dos horas por noche se prueba en `sueno.test.ts`).
+      expect(g.stat(GEN.sueno)).toBeGreaterThan(8.3);
+      expect(g.stat(GEN.sueno)).toBeLessThan(8.7);
+    });
+
+    it('«Hasta estar descansado» solo está si arrastras sueño y dura lo que toca más lo recuperable', () => {
+      const g = nueva();
+      expect(g.preview('gen.dormir_descansado')!.available).toBe(false);
+      g.perform('gen.dormir_4h');
+      hasta(g, 21);
+      const lo = g.preview('gen.dormir_lo_que_toca')!.duration;
+      const d = g.preview('gen.dormir_descansado')!;
+      expect(d.available).toBe(true);
+      expect(d.duration).toBe(lo + 120);
+    });
+
+    it('con sueño atrasado la energía no llega a 100 al despertar y se avisa sin números', () => {
+      const g = nueva();
+      for (let n = 0; n < 3; n++) {
+        hasta(g, 21);
+        g.perform('gen.dormir_5h');
+      }
+      hasta(g, 21);
+      const r = g.perform('gen.dormir_lo_que_toca');
+      expect(g.stat(GEN.energia)).toBeLessThan(100);
+      const textos = r.log.map((l) => l.text).join(' ');
+      expect(textos).toContain('Arrastras sueño');
+      expect(textos).not.toMatch(/\d+(,\d+)? h\b/);
+    });
+
+    it('la siesta recupera como mucho media hora de deuda al día', () => {
+      const g = Game.create([personaje], { seed: 1 });
+      for (let n = 0; n < 3; n++) {
+        hasta(g, 21);
+        g.perform('gen.dormir_4h');
+      }
+      advanceUntil(g, 'gen.esperar', (t) => t.hour === 14);
+      const antes = g.stat(GEN.sueno);
+      g.perform('gen.descansar');
+      expect(antes - g.stat(GEN.sueno)).toBeCloseTo(0.5, 5);
+      g.perform('gen.descansar');
+      expect(antes - g.stat(GEN.sueno)).toBeCloseTo(0.5, 5);
+    });
+
+    it('el agotamiento de fin de día ve la energía con que te acostaste, no la de después de dormir', () => {
+      const g = Game.create([personaje], { seed: 1 });
+      hasta(g, 15);
+      for (let i = 0; i < 4; i++) g.perform('gen.gimnasio');
+      expect(g.stat(GEN.energia)).toBeLessThan(15);
+      hasta(g, 23);
+      const salud = g.stat(GEN.salud);
+      g.perform('gen.dormir');
+      expect(g.stat(GEN.energia)).toBeGreaterThan(80);
+      expect(g.stat(GEN.salud)).toBeLessThan(salud);
     });
   });
 });

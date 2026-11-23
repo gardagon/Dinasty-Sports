@@ -22,7 +22,7 @@ export const PERFECTO: Bot = {
   description: 'Entrena todo lo que puede (deporte, estudios, gimnasio, lectura, relaciones) cuidando el sueño y el estrés.',
   choose(game, opts, _rng, mem) {
     return (
-      basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: game.stat(GEN.salud) < 60 ? 70 : 40, recreo: 0.8 }, mem) ??
+      basicas(game, opts, { horaDormir: 'edad', clase: true, competir: true, energiaMin: game.stat(GEN.salud) < 60 ? 70 : 40, recreo: 0.8 }, mem) ??
       seguirPlan(opts, mem, [
         ['unirse', 1, apuntarseAlClub],
         ['subir', 1, subirDeCategoria],

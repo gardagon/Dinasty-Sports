@@ -76,9 +76,9 @@ export default [
     urgencia: 'ahora',
     plazo: { hasta: { hora: 24 * 60 - 1 }, porDefecto: 'dar_vueltas' },
     opciones: [
-      { id: 'leer', texto: 'Encender la luz y leer un rato', caracter: { disciplina: -1 }, minutos: 20, efectos: [{ estado: 'gen.estres', mas: -2 }, { estado: 'gen.energia', mas: -2 }], resultado: 'A la tercera página, los ojos empiezan a cerrarse. Apagas con el libro en la mano.' },
+      { id: 'leer', texto: 'Encender la luz y leer un rato', caracter: { disciplina: -1 }, minutos: 20, efectos: [{ estado: 'gen.estres', mas: -2 }, { estado: 'gen.energia', mas: -2 }, { estado: 'gen.sueno', mas: 0.5 }], resultado: 'A la tercera página, los ojos empiezan a cerrarse. Apagas con el libro en la mano.' },
       { id: 'agua', texto: 'Levantarte a por un vaso de agua', caracter: { prudencia: 1 }, minutos: 5, efectos: [{ estado: 'gen.estres', mas: -1 }], resultado: 'La casa a oscuras te tranquiliza. Vuelves a la cama y te duermes enseguida.' },
-      { id: 'dar_vueltas', texto: 'Seguir dando vueltas hasta que llegue', caracter: { disciplina: 1 }, efectos: [{ estado: 'gen.energia', mas: -3 }, { estado: 'gen.estres', mas: 1 }], resultado: 'Cuando por fin te duermes ya es tarde. Mañana lo pagarás.' },
+      { id: 'dar_vueltas', texto: 'Seguir dando vueltas hasta que llegue', caracter: { disciplina: 1 }, efectos: [{ estado: 'gen.energia', mas: -3 }, { estado: 'gen.estres', mas: 1 }, { estado: 'gen.sueno', mas: 1 }], resultado: 'Cuando por fin te duermes ya es tarde. Mañana lo pagarás.' },
     ],
     pruebas: [{ nombre: 'En la cama, de noche, se puede levantar a por agua', dado: { lugar: 'casa', hora: 23 * 60, periodo: 'clase' }, espero: { opcionDisponible: 'agua' } }],
   }),

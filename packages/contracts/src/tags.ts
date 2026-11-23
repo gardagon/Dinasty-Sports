@@ -60,6 +60,8 @@ export const GEN = {
   vigorMental: 'gen.vigor_mental',
   vigorSocial: 'gen.vigor_social',
   energia: 'gen.energia',
+  /** Deuda de sueño en horas (0..10, oculta): lo que falta dormir de noches anteriores (`sueno.ts`). Solo se enseña con sensaciones y sucesos. */
+  sueno: 'gen.sueno',
   dinero: 'gen.dinero',
   salud: 'gen.salud',
   estres: 'gen.estres',

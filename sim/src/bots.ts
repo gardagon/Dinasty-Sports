@@ -1,4 +1,4 @@
-import { GEN, JORNADA_ESCOLAR, SERVICES, TAGS, azarDe, rutaA, tiempoEntre, MINUTOS_ANTES_DE_CLASE, type LugaresService, type Rng } from '@ds/contracts';
+import { GEN, HORA_DE_LEVANTARSE, JORNADA_ESCOLAR, SERVICES, TAGS, azarDe, necesidadDeSueno, rutaA, tiempoEntre, timeView, MINUTOS_ANTES_DE_CLASE, type IdentityService, type LugaresService, type Rng } from '@ds/contracts';
 import type { ActionOption, Game } from '@ds/core';
 import type { OpcionesDelBot } from './pasos';
 
@@ -80,6 +80,12 @@ export const relacion = (o: ActionOption) => o.id.startsWith('relaciones.') && !
 /** Preguntar el nombre a las cuatro personas del reparto (tutor, entrenador y dos compañeros), que al empezar son desconocidas: las demás, ni se evalúan. */
 export const conocer = (o: ActionOption) => /^relaciones\.presentarse\.(entrenador|tutor|companero_estudio|companero_social)$/.test(o.id);
 
+/** Los bots que cuidan el sueño se acuestan a la hora que toca a su edad (`horaDormir: 'edad'`): duermen lo que necesitan hasta las 7:00, con un cuarto de hora de margen. */
+export function horaDeAcostarse(game: Game): number {
+  const edad = game.service<IdentityService>(SERVICES.identidad)?.view().age ?? 8;
+  return (HORA_DE_LEVANTARSE + 24 - necesidadDeSueno(edad) - 0.25) % 24;
+}
+
 /** Reglas de supervivencia comunes: dormir de noche, ir a clase, competir, no reventar. */
 /** Cuántos ratos de 5 minutos juega en el recreo el que juega ese día (media hora, como un niño). */
 const RATOS_DE_RECREO = 6;
@@ -91,13 +97,18 @@ const RATOS_DE_RECREO = 6;
 export function basicas(
   game: Game,
   opts: OpcionesDelBot,
-  cfg: { horaDormir: number; clase: boolean; competir: boolean; energiaMin: number; recreo?: number },
+  cfg: { horaDormir: number | 'edad'; clase: boolean; competir: boolean; energiaMin: number; recreo?: number },
   mem?: BotMemory,
 ): string | undefined {
   const h = game.time.hour;
   const has = (x: string) => opts.some((o) => o.id === x);
-  const noche = h >= cfg.horaDormir || h < 6;
-  if (noche && has('gen.dormir')) return 'gen.dormir';
+  const horaDormir = cfg.horaDormir === 'edad' ? horaDeAcostarse(game) : cfg.horaDormir;
+  const noche = game.time.minuteOfDay / 60 >= horaDormir || h < 6;
+  if (noche && has('gen.dormir')) {
+    // Si arrastra sueño y mañana no hay clase, duerme hasta estar descansado.
+    const despiertaEn = timeView(game.time.minute + (h < 6 ? 0 : 1440));
+    return cfg.horaDormir === 'edad' && !despiertaEn.isSchoolDay && has('gen.dormir_descansado') ? 'gen.dormir_descansado' : 'gen.dormir';
+  }
   const aClase = opts.find(clase);
   if (cfg.clase && aClase) return aClase.id;
   // La academia de verano es obligatoria para quien suspende: los que van a clase también van a ella.
@@ -177,7 +188,7 @@ export function deportistaDe(deporte: string): Bot {
     description: `Como el Atleta, pero en ${deporte}.`,
     choose(game, opts, _rng, mem) {
       return (
-        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
+        basicas(game, opts, { horaDormir: 'edad', clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, d('apuntarse_colegio')],
           ['campamento', 1, campamentoDelDeporte],
@@ -202,7 +213,7 @@ export const BOTS: Bot[] = [
     description: 'Va a clase, entrena 1-2 sesiones, estudia y cuida relaciones y descanso.',
     choose(game, opts, _rng, mem) {
       return (
-        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
+        basicas(game, opts, { horaDormir: 'edad', clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
           ['subir', 1, subirDeCategoria],
@@ -271,7 +282,7 @@ export const BOTS: Bot[] = [
     description: 'Todo para los estudios. No hace deporte.',
     choose(game, opts, _rng, mem) {
       return (
-        basicas(game, opts, { horaDormir: 23, clase: true, competir: false, energiaMin: 25, recreo: 0.5 }, mem) ??
+        basicas(game, opts, { horaDormir: 'edad', clase: true, competir: false, energiaMin: 25, recreo: 0.5 }, mem) ??
         seguirPlan(opts, mem, [
           // Hasta el más empollón necesita desconectar cuando el estrés aprieta.
           ['ocio', 3, (o) => game.stat(GEN.estres) > 35 && tag(TAGS.ocio)(o)],
@@ -288,7 +299,7 @@ export const BOTS: Bot[] = [
     description: 'Va a clase pero vive para el deporte: entrena con cabeza (sin sobrecarga).',
     choose(game, opts, _rng, mem) {
       return (
-        basicas(game, opts, { horaDormir: 22, clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
+        basicas(game, opts, { horaDormir: 'edad', clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
         seguirPlan(opts, mem, [
           ['unirse', 1, apuntarseAlClub],
           ['subir', 1, subirDeCategoria],

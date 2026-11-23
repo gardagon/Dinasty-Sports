@@ -33,6 +33,13 @@ import {
   minutesUntilHour,
   HORA_DE_LEVANTARSE,
   necesidadDeSueno,
+  pasoDeSuenoDeLaNoche,
+  topeDeEnergiaAlDespertar,
+  DEUDA_DE_SUENO_MAX,
+  DEUDA_QUE_SE_NOTA,
+  TOPE_DE_RECUPERACION_POR_NOCHE,
+  TOPE_DE_SIESTA_AL_DIA,
+  MARGEN_DE_DEUDA,
   type ReadContext,
   type ActionContext,
   type ActionDef,
@@ -120,6 +127,14 @@ const OPCIONES_DE_SUENO: readonly OpcionDeSueno[] = [
     nombre: (ctx, m) => `Dormir lo que toca (te levantas a las ${levantaA(ctx, m)})`,
     descripcion: 'Duerme lo que necesita alguien de tu edad.',
   },
+  {
+    id: 'gen.dormir_descansado',
+    opcion: 'Hasta estar descansado',
+    // Lo que toca más el sueño atrasado que se puede recuperar en una noche (con tope), redondeado al cuarto de hora de arriba.
+    duracion: (ctx) => Math.ceil((necesidadDe(ctx) + Math.min(ctx.stat(GEN.sueno), TOPE_DE_RECUPERACION_POR_NOCHE)) * 4) * 15,
+    nombre: (ctx, m) => `Dormir hasta estar descansado (te levantas a las ${levantaA(ctx, m)})`,
+    descripcion: 'Duerme lo que toca y, además, parte del sueño que arrastras de otras noches (como mucho dos horas más cada noche).',
+  },
   ...HORAS_A_ELEGIR.map(
     (n): OpcionDeSueno => ({
       id: `gen.dormir_${n}h`,
@@ -134,14 +149,39 @@ const OPCIONES_DE_SUENO: readonly OpcionDeSueno[] = [
 /** Se puede dormir de 21:00 a 6:00 (el horario para acostarse no cambia). */
 const puedeDormir = (ctx: ReadContext): true | string => (inHours(ctx.time, 21, 6) ? true : 'Solo de 21:00 a 6:00');
 
-/** Lo que cambia al dormir `horas`: energía y estrés, y el aviso de dormir poco. */
-function efectoDeDormir(ctx: ActionContext, horas: number): void {
-  ctx.addStat(GEN.energia, Math.min(100, horas * 12.5));
+const ID_DE_DORMIR: ReadonlySet<string> = new Set(OPCIONES_DE_SUENO.map((o) => o.id));
+
+/**
+ * Lo que cambia al despertar tras dormir `horas`. Va en `ACTION_DONE`, es decir, DESPUÉS de que el reloj haya cruzado la medianoche (si la cruza): el agotamiento del
+ * fin de día y el de la semana ven la energía con que se acostó, no la de después de dormir (hasta el 23/11 la acción lo sumaba antes de pasar el tiempo).
+ * Sin números del sueño: solo sensaciones en el diario.
+ */
+function alDespertar(ctx: ActionContext, horas: number): void {
+  const necesidad = necesidadDeSueno(edadDecimal(ctx.state<IdentidadState>(), ctx.time.day));
+  const antes = ctx.stat(GEN.sueno);
+  const despues = pasoDeSuenoDeLaNoche(antes, necesidad, horas);
+  ctx.addStat(GEN.sueno, despues - antes);
+  // La deuda baja lo que se llena la energía: se llena a 12,5 por hora, pero con sueño atrasado no se llega a 100.
+  const e = ctx.stat(GEN.energia);
+  ctx.addStat(GEN.energia, Math.max(0, Math.min(topeDeEnergiaAlDespertar(despues), e + horas * 12.5) - e));
   ctx.addStat(GEN.estres, -horas * 0.8);
   if (horas < 7) {
     ctx.addStat(GEN.motivacion, -2);
-    ctx.log(`Solo has dormido ${horas.toFixed(1)} h.`, 'aviso');
+    ctx.log('Has dormido poco.', 'aviso');
   }
+  if (despues >= DEUDA_QUE_SE_NOTA) ctx.log('Arrastras sueño: no has dormido lo que tu cuerpo necesita.', 'aviso');
+  else if (antes >= DEUDA_QUE_SE_NOTA) ctx.log('Te sientes descansado: has recuperado el sueño atrasado.', 'info');
+}
+
+/** Una siesta recupera algo del sueño atrasado (como mucho `TOPE_DE_SIESTA_AL_DIA` al día; una hora entera da el tope). */
+function alAcabarLaSiesta(ctx: ActionContext, minutos: number): void {
+  const dia = ctx.time.day;
+  const hoy = ctx.state<IdentidadState>().siesta;
+  const yaPagado = hoy?.dia === dia ? hoy.pagado : 0;
+  const pago = Math.max(0, Math.min(ctx.stat(GEN.sueno), TOPE_DE_SIESTA_AL_DIA - yaPagado, (TOPE_DE_SIESTA_AL_DIA * minutos) / 60));
+  if (pago <= 0) return;
+  ctx.addStat(GEN.sueno, -pago);
+  ctx.updateState<IdentidadState>((i) => ({ ...i, siesta: { dia, pagado: yaPagado + pago } }));
 }
 
 const accionesDeDormir = (): ActionDef[] =>
@@ -153,8 +193,7 @@ const accionesDeDormir = (): ActionDef[] =>
     group: 'Descanso',
     desplegable: { id: 'gen.dormir', nombre: 'Dormir…', etiqueta: 'Hasta cuándo', boton: '{nombre}', opcion: o.opcion },
     duration: (ctx: ReadContext) => o.duracion(ctx),
-    available: puedeDormir,
-    run: (ctx: ActionContext) => efectoDeDormir(ctx, o.duracion(ctx) / 60),
+    available: (ctx: ReadContext) => (o.id === 'gen.dormir_descansado' && ctx.stat(GEN.sueno) < MARGEN_DE_DEUDA / 4 ? 'Ya has descansado lo que te toca' : puedeDormir(ctx)),
   }));
 
 export const personaje = defineModule<IdentidadState>({
@@ -209,6 +248,7 @@ export const personaje = defineModule<IdentidadState>({
     // La forma y las lesiones siguen las mismas reglas que las de cualquier jugador (`estado-de-jugador.ts`).
     { id: GEN.forma, name: 'Forma', group: 'Estado', category: 'estado', initial: 60 },
     { id: GEN.baja, name: 'Baja por lesión (semanas)', group: 'Estado', category: 'estado', initial: 0, min: 0, max: 12 },
+    { id: GEN.sueno, name: 'Sueño atrasado (horas)', group: 'Estado', category: 'estado', initial: 0, min: 0, max: DEUDA_DE_SUENO_MAX, hidden: true },
   ],
 
   actions: ligarALugares([
@@ -411,6 +451,8 @@ export const personaje = defineModule<IdentidadState>({
     },
     [CORE_EVENTS.ACTION_DONE]: (ctx, ev) => {
       const d = ev.data as ActionDoneData;
+      if (ID_DE_DORMIR.has(d.actionId)) alDespertar(ctx, d.duration / 60);
+      else if (d.actionId === 'gen.descansar') alAcabarLaSiesta(ctx, d.duration);
       // Lo que hace con su tiempo alimenta sus intereses (con rendimientos decrecientes hacia 100).
       const alimentados = interesesDe(d.tags);
       if (alimentados.length) {
@@ -473,7 +515,7 @@ export const personaje = defineModule<IdentidadState>({
           ctx.log(`Te has lesionado: ${g.baja} ${g.baja === 1 ? 'semana' : 'semanas'} de baja (sin entrenar con el club ni competir).`, 'aviso');
         }
       }
-      const sana = antes.semana.activo >= 120 && antes.semana.descanso >= 50 * 60 && ctx.stat(GEN.estres) < 60;
+      const sana = antes.semana.activo >= 120 && ctx.stat(GEN.sueno) <= MARGEN_DE_DEUDA && ctx.stat(GEN.estres) < 60;
       const despues = actualizarCuerpo(antes, ctx.time.day);
       ctx.setState<IdentidadState>(despues);
       // La constitución se forja con hábitos sostenidos, no entrenándola directamente.
