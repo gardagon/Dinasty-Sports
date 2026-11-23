@@ -3,7 +3,7 @@
  * (disponibles y no), cuáles son y cuáles ya van en un desplegable (`ActionDef.desplegable`). Sirve para decidir qué listas largas de acciones parecidas conviene agrupar.
  * `npm run listas` (o `npx tsx tools/listas-de-acciones.ts`). Tarda unos segundos (crea una partida con atletismo y fútbol).
  */
-import { SERVICES, aforoCercano, type LugaresService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
+import { SERVICES, type LugaresService, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { advanceToWeek, type ActionOption, type Game } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
@@ -44,7 +44,7 @@ while (g.time.minuteOfDay < 7 * 60 + 40) g.perform('gen.esperar'); // los compa�
 // Una persona conocida a tu lado en el colegio: lo que se puede hacer con ella en su ficha.
 const lugar = aqui();
 const presencia = g.service<PresenciaService>(SERVICES.presencia)!;
-const vecina = presencia.en(lugar, aforoCercano(lugar, presencia.version)).find((n) => n.role === 'companero');
+const vecina = presencia.en(lugar, presencia.aforo(lugar)).find((n) => n.role === 'companero');
 if (vecina) {
   conocer(g, vecina.id);
   const todas = g.listActions({ omitir: (d) => !(d.id.startsWith('relaciones.') && d.id.endsWith(`.${vecina.id}`)) }).filter((o) => o.id.startsWith('relaciones.') && o.id.endsWith(`.${vecina.id}`));

@@ -492,14 +492,15 @@ export function ubicacionEn(agenda: readonly TramoDeAgenda[], t: TimeView, perso
 export interface PresenciaService {
   /**
    * Cambia cuando cambia quién hay dónde (un cambio de tramo, de día o de personas) y no antes: sirve para recordar lo que se calcula
-   * a partir de la presencia sin recalcularlo en cada acción.
+   * a partir de la presencia sin recalcularlo en cada acción. Es un contador del proceso (distinto en cada índice construido, de cualquier partida):
+   * sirve de clave de caché, no de azar ni de dato de la partida (no se guarda ni se repite al cargar).
    */
   readonly version: number;
   /**
-   * Distinto en cada índice de presencia construido en el proceso, de cualquier partida (`version` empieza de nuevo en cada partida y se repite entre partidas):
-   * es la clave para recordar algo calculado con la presencia sin mezclar partidas. No entra en ningún sorteo.
+   * Cuánta gente tienes cerca en un lugar ahora (`aforoCercano`): su azar es el día y el intervalo de presencia, es decir, solo el mundo y la hora, nunca el orden
+   * en que se pidió ni lo que se jugó antes. Pásalo a `en(lugar, max)` para ver a los que tienes cerca.
    */
-  readonly indice: number;
+  aforo(lugar: string): number;
   /**
    * Personas que hay ahora en un lugar. Primero las de mayor nivel (profesores, el club, los amigos) y después las demás en
    * un orden que no cambia mientras dure el tramo; como mucho `max` (por defecto, todas).

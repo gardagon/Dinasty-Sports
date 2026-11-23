@@ -45,7 +45,6 @@ import {
   abiertoEn,
   ubicacionEn,
   azarDe,
-  aforoCercano,
   descripcionDeDesconocido,
   edadAparente,
   nombreSegunEdad,
@@ -971,9 +970,9 @@ function cercanosConClave(ctx: ReadContext): Cercanos | undefined {
   const presencia = ctx.service<PresenciaService>(SERVICES.presencia);
   if (!lugar || !presencia) return undefined;
   // La presencia solo cambia con su versión (un cambio de tramo, de día o de personas): no hace falta recalcularla en cada acción.
-  const clave = `${presencia.indice}|${lugar}`;
+  const clave = `${presencia.version}|${lugar}`;
   if (ULTIMOS_CERCANOS?.clave === clave) return ULTIMOS_CERCANOS;
-  const lista = presencia.en(lugar, aforoCercano(lugar, presencia.version));
+  const lista = presencia.en(lugar, presencia.aforo(lugar));
   return (ULTIMOS_CERCANOS = { clave, lista, ids: new Set(lista.map((n) => n.id)), ocupados: new Map(presencia.ocupadosEn(lugar).map((o) => [o.persona.id, o.motivo])) });
 }
 
