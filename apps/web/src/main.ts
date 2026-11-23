@@ -58,7 +58,7 @@ import { clicEnRetrato, entradaEnRetrato, viewRetrato } from './retrato';
 import { cambioEnGente, clicEnGente, genteAqui, ordenarPorRelacion, reiniciarGente, textoDeNiveles, viewPanelGente } from './gente';
 import { agruparEnDesplegables, cambioEnDesplegable, clicEnDesplegable, viewDesplegable } from './desplegables';
 import { reclamarPestana } from './pestana';
-import { cambioEnDiseno, clicEnEscritorio, usaEscritorio, viewEscritorio, viewOpcionesDeDiseno, vigilarAncho } from './escritorio';
+import { cambioEnDiseno, clicEnEscritorio, guardarScroll, restaurarScroll, usaEscritorio, viewEscritorio, viewOpcionesDeDiseno, vigilarAncho } from './escritorio';
 import { MODOS_DE_CONSECUENCIAS, MODOS_DEL_GRUPO, MODOS_FUERA_DE_CARACTER, SUCESO_DEL_GRUPO, respuestaAlGrupo, type CuandoSeVaElGrupo, avisoDeCaracter, escribirPresentacion, leerPresentacion, moduloDePresentacion, type Preferencias, type Presentacion } from './presentacion';
 import { cargarPaquetesGuardados, idsImportados, importarPaquete, paisesElegibles, textosDePaises } from './paquetes';
 import {
@@ -469,7 +469,7 @@ function viewNueva(): string {
     <h1>Nueva partida</h1>
     <label for="pais">País</label>
     <select id="pais">${paisesElegibles().map((p) => `<option value="${esc(p.id)}"${p.id === nueva.pais ? ' selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
-    ${nueva.pais === ID_DE_LA_CIUDAD_GRANDE ? '<p class="note">La ciudad grande: unas 6.000 personas, 9 clubes de la zona y unos 156 equipos de fútbol repartidos en divisiones. Crear la partida tarda unos 40 segundos.</p>' : ''}
+    ${nueva.pais === ID_DE_LA_CIUDAD_GRANDE ? '<p class="note">La ciudad grande: unas 6.000 personas, 9 clubes de la zona y unos 156 equipos de fútbol repartidos en divisiones. Crear la partida tarda hasta un minuto (menos en un ordenador).</p>' : ''}
     <label for="sexo">Sexo</label>
     <select id="sexo" disabled><option>Masculino</option></select>
     <p class="note">De momento solo hay personaje masculino. La gente (nombres, orígenes y aspecto) es del país que elijas; el calendario, el currículo, las categorías y los horarios de otros países son, por ahora, copia de los de España. Puedes importar más países desde Opciones.</p>
@@ -676,7 +676,7 @@ function viewVentana(g: Game | null): string {
       <p class="creando-texto">${esc(creando.texto)}</p>
       <div class="barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${por}"><div class="barra-relleno" style="width:${por}%"></div></div>
       <p class="note creando-porcentaje">${por} %</p>
-      <p class="note">Se están creando las personas, los clubes y su historia: con la ciudad grande tarda unos 40 segundos. No cierres la pestaña.</p>
+      <p class="note">Se están creando las personas, los clubes y su historia: con la ciudad grande tarda hasta un minuto. No cierres la pestaña.</p>
       <p class="botones"><button data-act="cancelar-creacion">Cancelar</button></p>
     </div></div>`;
   }
@@ -1100,9 +1100,10 @@ function viewPeople(g: Game): string {
   return `<section class="sheet"><h2>Relaciones</h2>${items}</section>`;
 }
 
-function viewLog(g: Game): string {
+function viewLog(g: Game, max?: number): string {
   const items = [...g.log]
     .reverse()
+    .slice(0, max)
     .map((l) => {
       const t = timeView(l.minute, g.pais.calendario);
       return `<li><time>${DIAS[t.weekday].slice(0, 3)} ${hhmm(t.minuteOfDay)}</time><span class="${l.kind ?? ''}">${esc(l.text)}</span>${l.table ? `<div class="log-table">${viewTable({ ...l.table }).replace(' open>', '>')}</div>` : ''}</li>`;
@@ -1126,7 +1127,7 @@ function viewGame(g: Game): string {
   ];
   // Diseño de escritorio (prototipos, solo si se elige en Opciones): las mismas piezas, colocadas para pantallas anchas.
   if (usaEscritorio()) {
-    const vistas = { dia: viewDay, lugar: viewLugar, resultado: viewResult, pendientes: viewPendientes, acciones: viewActions, viaje: viewViaje, planes: viewPlanes, identidad: viewIdentity, personaje: viewCharacter, estudios: viewEstudios, deporte: viewDeporte, gente: viewPanelGente, relaciones: viewPeople, recuerdos: viewRecuerdos, diario: viewLog, pruebas: viewEventosDePrueba };
+    const vistas = { dia: viewDay, lugar: viewLugar, resultado: viewResult, pendientes: viewPendientes, acciones: viewActions, viaje: viewViaje, planes: viewPlanes, identidad: viewIdentity, personaje: viewCharacter, estudios: viewEstudios, deporte: viewDeporte, gente: viewPanelGente, relaciones: viewPeople, recuerdos: viewRecuerdos, diario: viewLog, diarioReciente: viewLog, pruebas: viewEventosDePrueba };
     return viewEscritorio(g, { tab, tabs, vistas });
   }
   let main = '';
@@ -1170,7 +1171,9 @@ vigilarAncho(() => render());
 function render(): void {
   // Al redibujar se conserva el desplazamiento de las pestañas y se asegura que la elegida se vea.
   const antes = app.querySelector<HTMLElement>('.tabs')?.scrollLeft ?? 0;
+  const scroll = guardarScroll(app);
   app.innerHTML = (game && !enMenu ? viewGame(game) : viewInicio()) + viewVentana(game) + viewAvisoDeActualizacion();
+  restaurarScroll(app, scroll);
   const nav = app.querySelector<HTMLElement>('.tabs');
   if (nav) {
     nav.scrollLeft = antes;
@@ -1320,13 +1323,24 @@ app.addEventListener('click', (e) => {
   }
   const id = el.dataset.do;
   if (id) {
-    const opt = game.preview(id);
-    const start = game.time.minute;
-    const result = realizar(game, id);
-    if (result.ok && opt && result.duration > 0) agenda.push({ start, duration: result.duration, name: opt.name, rest: opt.tags.includes('descanso') });
-    lastResult = { name: opt?.name ?? id, result, fresh: true };
-    save();
-    render();
+    if (preparando) return; // ya se está pasando la semana: un segundo clic no hace nada
+    const hacer = (): void => {
+      if (!game) return;
+      const opt = game.preview(id);
+      const start = game.time.minute;
+      const result = realizar(game, id);
+      if (result.ok && opt && result.duration > 0) agenda.push({ start, duration: result.duration, name: opt.name, rest: opt.tags.includes('descanso') });
+      lastResult = { name: opt?.name ?? id, result, fresh: true };
+      save();
+      render();
+    };
+    // Si la acción cruza de semana, el cálculo (la liga, los PNJ…) deja la página quieta hasta ~1 s en un móvil lento: se pinta antes un aviso, y solo después se calcula.
+    const duracion = game.preview(id)?.duration ?? 0;
+    if (duracion > 0 && Math.floor((game.time.minute + duracion) / (7 * MINUTES_PER_DAY)) > game.time.week) {
+      preparando = 'Pasando la semana…';
+      render();
+      requestAnimationFrame(() => setTimeout(() => { preparando = null; hacer(); }, 0));
+    } else hacer();
   }
 });
 

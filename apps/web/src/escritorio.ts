@@ -1,27 +1,29 @@
 import './escritorio.css';
-import { ID_DEL_PERSONAJE, SERVICES, deportePrincipal, type ClubDirectory, type DeporteView, type IdentityService, type LogTable } from '@ds/contracts';
+import { GEN, ID_DEL_PERSONAJE, SERVICES, deportePrincipal, type ClubDirectory, type DeporteView, type IdentityService, type LogTable } from '@ds/contracts';
 import type { Game } from '@ds/core';
 import { deportesDe } from './deporte';
 import { viewRetrato } from './retrato';
 
 /**
- * Composición para pantallas anchas (PROTOTIPOS, detrás de una opción en Opciones). No dibuja nada nuevo de la partida: coloca de otra forma las
- * mismas funciones `view*` de `main.ts` (que le llegan en `Vistas`) y añade dos resúmenes pequeños (el personaje y el deporte) hechos solo con datos
- * que ya publican los módulos. El móvil y el diseño actual no pasan por aquí: `usaEscritorio()` es `false` mientras la opción esté en «Móvil».
+ * Composición para pantallas anchas (DISEÑO DE ESCRITORIO A, decidido el 23/11: `docs/DECISIONES.md`). No dibuja nada nuevo de la partida: coloca de otra
+ * forma las mismas funciones `view*` de `main.ts` (que le llegan en `Vistas`) y añade dos resúmenes pequeños (el personaje y el deporte) hechos solo con
+ * datos que ya publican los módulos. Por defecto («Automático») se usa desde 1280 px de ancho; por debajo, o con «Móvil», no pasa por aquí.
  *
- * Tres prototipos (se elige en Opciones):
- *  - **A · Tres columnas**: barra del día arriba; personaje, pendientes y planes a la izquierda; la pestaña elegida en el centro; diario y deporte a la derecha.
- *  - **B · Dos pestañas a la vez**: la barra del día arriba y dos paneles, cada uno con su pestaña, uno al lado del otro.
- *  - **C · Panel**: «Qué hacer» pasa a ser un tablero con todo a la vista (acciones, viajes, deporte, gente, planes y diario); las demás pestañas, a pantalla ancha.
+ *  - **A · Tres columnas** (el diseño): barra del día arriba, siempre visible; a la izquierda una columna de piezas (personaje, dinero, pendientes, planes,
+ *    deporte: `PIEZAS_IZQUIERDA`, se añade una pieza —comida, inventario…— con una línea); la pestaña elegida en el centro; el diario reciente a la derecha.
+ *  - B (dos pestañas a la vez) y C (un panel con todo a la vista) se probaron como prototipos y **ya no se ofrecen en Opciones**: su código sigue aquí detrás de
+ *    `OFRECER_PROTOTIPOS`, por si se retoman (C podría ser la pestaña de inicio de A).
  */
 
 export type Diseno = 'automatico' | 'escritorio' | 'movil';
 export type Prototipo = 'a' | 'b' | 'c';
 export const DISENOS: readonly { id: Diseno; nombre: string }[] = [
-  { id: 'movil', nombre: 'Móvil (como ahora)' },
   { id: 'automatico', nombre: 'Automático (escritorio desde 1280 px)' },
   { id: 'escritorio', nombre: 'Escritorio (siempre, si cabe)' },
+  { id: 'movil', nombre: 'Móvil (la disposición de siempre)' },
 ];
+/** Si Opciones ofrece, además del diseño A, los prototipos B y C (apagado: solo A). */
+export const OFRECER_PROTOTIPOS = false;
 export const PROTOTIPOS: readonly { id: Prototipo; nombre: string }[] = [
   { id: 'a', nombre: 'A · Tres columnas' },
   { id: 'b', nombre: 'B · Dos pestañas a la vez' },
@@ -49,25 +51,38 @@ function escribir(clave: string, valor: string): void {
   }
 }
 
-let diseno: Diseno = (DISENOS.find((d) => d.id === leer(CLAVE_DISENO))?.id ?? 'movil') as Diseno;
-let prototipo: Prototipo = (PROTOTIPOS.find((p) => p.id === leer(CLAVE_PROTOTIPO))?.id ?? 'a') as Prototipo;
+let diseno: Diseno = (DISENOS.find((d) => d.id === leer(CLAVE_DISENO))?.id ?? 'automatico') as Diseno;
+/** Sin `OFRECER_PROTOTIPOS` siempre es el A (lo que se hubiera guardado de las pruebas no cuenta). */
+let prototipo: Prototipo = OFRECER_PROTOTIPOS ? ((PROTOTIPOS.find((p) => p.id === leer(CLAVE_PROTOTIPO))?.id ?? 'a') as Prototipo) : 'a';
 
 export const disenoActual = (): Diseno => diseno;
 export const prototipoActual = (): Prototipo => prototipo;
 
 /** ¿Se usa ahora la composición de escritorio? Con «Móvil» nunca; con «Automático» desde 1280 px; con «Escritorio» desde 1000 px. */
 export function usaEscritorio(): boolean {
-  if (diseno === 'movil' || typeof window === 'undefined') return false;
-  return window.innerWidth >= (diseno === 'automatico' ? ANCHO_AUTOMATICO : ANCHO_MINIMO);
+  return disenoParaAncho(diseno, typeof window === 'undefined' ? 0 : window.innerWidth);
+}
+
+/** Qué diseño toca con un ancho: «Móvil» nunca escritorio; «Automático» desde 1280 px; «Escritorio» desde 1000 px. */
+export function disenoParaAncho(d: Diseno, ancho: number): boolean {
+  if (d === 'movil') return false;
+  return ancho >= (d === 'automatico' ? ANCHO_AUTOMATICO : ANCHO_MINIMO);
+}
+
+/** El atributo `data-esc` de la página dice si se usa el escritorio (para el CSS de las pantallas de fuera de la partida: menú y opciones). */
+export function marcarEscritorio(): void {
+  if (typeof document !== 'undefined') document.documentElement.toggleAttribute('data-esc', usaEscritorio());
 }
 
 /** Avisa cuando la ventana cruza el ancho en que cambia el diseño (para volver a dibujar). */
 export function vigilarAncho(redibujar: () => void): void {
   let antes = usaEscritorio();
+  marcarEscritorio();
   window.addEventListener('resize', () => {
     const ahora = usaEscritorio();
     if (ahora !== antes) {
       antes = ahora;
+      marcarEscritorio();
       redibujar();
     }
   });
@@ -79,24 +94,33 @@ export function viewOpcionesDeDiseno(): string {
     `<select id="${id}">${xs.map((x) => `<option value="${x.id}"${x.id === actual ? ' selected' : ''}>${x.nombre}</option>`).join('')}</select>`;
   return `<h3>Diseño</h3>
     <p><label>Diseño ${lista('diseno-modo', DISENOS, diseno)}</label></p>
-    <p><label>Prototipo de escritorio ${lista('diseno-prototipo', PROTOTIPOS, prototipo)}</label></p>
-    <p class="note">Solo para pantallas anchas. «Móvil» deja la web como estaba.</p>`;
+    ${OFRECER_PROTOTIPOS ? `<p><label>Prototipo de escritorio ${lista('diseno-prototipo', PROTOTIPOS, prototipo)}</label></p>` : ''}
+    <p class="note">En «Automático», desde 1280 px de ancho se usa la disposición de escritorio (tres columnas); por debajo, la de siempre.</p>`;
 }
 
 /** Atiende los cambios de esos selectores. `true` si hay que volver a dibujar. */
 export function cambioEnDiseno(el: HTMLElement): boolean {
   if (!(el instanceof HTMLSelectElement)) return false;
-  if (el.id === 'diseno-modo' && DISENOS.some((d) => d.id === el.value)) {
-    diseno = el.value as Diseno;
-    escribir(CLAVE_DISENO, diseno);
-    return true;
-  }
-  if (el.id === 'diseno-prototipo' && PROTOTIPOS.some((p) => p.id === el.value)) {
-    prototipo = el.value as Prototipo;
-    escribir(CLAVE_PROTOTIPO, prototipo);
-    return true;
-  }
+  if (el.id === 'diseno-modo') return elegirDiseno(el.value);
+  if (el.id === 'diseno-prototipo') return elegirPrototipo(el.value);
   return false;
+}
+
+/** Cambia el diseño (y lo recuerda en el navegador). `false` si el valor no es de los que hay. */
+export function elegirDiseno(valor: string): boolean {
+  if (!DISENOS.some((d) => d.id === valor)) return false;
+  diseno = valor as Diseno;
+  escribir(CLAVE_DISENO, diseno);
+  marcarEscritorio();
+  return true;
+}
+
+/** Cambia el prototipo; solo si se ofrecen (`OFRECER_PROTOTIPOS`). */
+export function elegirPrototipo(valor: string): boolean {
+  if (!OFRECER_PROTOTIPOS || !PROTOTIPOS.some((p) => p.id === valor)) return false;
+  prototipo = valor as Prototipo;
+  escribir(CLAVE_PROTOTIPO, prototipo);
+  return true;
 }
 
 // ------------------------------------------------------------------ composición
@@ -119,6 +143,8 @@ export interface Vistas {
   relaciones: Vista;
   recuerdos: Vista;
   diario: Vista;
+  /** El diario con solo las últimas `max` entradas (el de la columna derecha: dibujar todo el diario en cada redibujo costaría). */
+  diarioReciente: (g: Game, max: number) => string;
   pruebas: Vista;
 }
 export type Pestana = 'hacer' | 'personaje' | 'estudios' | 'deporte' | 'gente' | 'relaciones' | 'diario';
@@ -137,7 +163,7 @@ function contenido(g: Game, id: string, c: ContextoDeEscritorio): string {
     case 'personaje':
       return `<div class="esc-personaje-pag">${v.identidad(g)}${v.personaje(g)}</div>`;
     case 'estudios':
-      return v.estudios(g);
+      return `<div class="esc-estudios-pag">${v.estudios(g)}</div>`;
     case 'deporte':
       return `<div class="esc-deporte-pag">${v.deporte(g)}</div>`;
     case 'gente':
@@ -202,8 +228,39 @@ function resumenDelPersonaje(g: Game): string {
   </section>`;
 }
 
+const euros = (g: Game): string => `${g.stat(GEN.dinero).toLocaleString('es-ES', { maximumFractionDigits: 2 })} €`;
+
+/** El dinero: una pieza pequeña de la columna izquierda (la barra del día ya no lo enseña en escritorio). */
+function piezaDinero(g: Game): string {
+  return `<section class="sheet esc-dinero" aria-label="Dinero"><h3>Dinero</h3><p class="esc-cifra">${euros(g)}</p></section>`;
+}
+
+type Pieza = (g: Game, v: Vistas) => string;
+/** Las piezas de la columna izquierda, de arriba abajo. **Para añadir algo (comida, inventario…) se añade una pieza aquí**: el resto no cambia. */
+export const PIEZAS_IZQUIERDA: readonly Pieza[] = [(g) => resumenDelPersonaje(g), (g) => piezaDinero(g), (g, v) => v.pendientes(g), (g, v) => v.planes(g), (g) => resumenDeDeporte(g)];
+
+/** Una zona que se desplaza: se puede recorrer con el teclado (`tabindex`), tiene nombre para los lectores de pantalla y una clave con la que `main` conserva su posición al redibujar. */
+const zona = (clave: string, clase: string, etiqueta: string): string => `class="esc-scroll ${clase}" data-esc-scroll="${esc(clave)}" tabindex="0" role="region" aria-label="${esc(etiqueta)}"`;
+
+/** Antes de redibujar: cuánto se había desplazado cada zona (para que al pulsar una acción no salte arriba). */
+export function guardarScroll(raiz: ParentNode): Record<string, number> {
+  const r: Record<string, number> = {};
+  raiz.querySelectorAll<HTMLElement>('[data-esc-scroll]').forEach((z) => {
+    r[z.dataset.escScroll!] = z.scrollTop;
+  });
+  return r;
+}
+
+/** Después de redibujar: cada zona recupera su posición (una pestaña distinta tiene otra clave, así que empieza arriba). */
+export function restaurarScroll(raiz: ParentNode, r: Record<string, number>): void {
+  raiz.querySelectorAll<HTMLElement>('[data-esc-scroll]').forEach((z) => {
+    const y = r[z.dataset.escScroll!];
+    if (y) z.scrollTop = y;
+  });
+}
+
 function barraDePestanas(c: ContextoDeEscritorio, activa: string, atributo: 'data-tab' | 'data-esc-tab', excluir?: string): string {
-  return `<div class="tabs-wrap"><nav class="tabs" role="tablist">${c.tabs
+  return `<div class="tabs-wrap"><nav class="tabs" role="tablist" aria-label="Pestañas">${c.tabs
     .filter(([id]) => id !== excluir)
     .map(([id, etiqueta, inactivo]) => `<button class="tab" role="tab" aria-selected="${activa === id}" ${atributo}="${id}"${inactivo ? ` disabled title="${esc(inactivo)}"` : ''}>${etiqueta}</button>`)
     .join('')}</nav></div>`;
@@ -216,7 +273,7 @@ function panel(g: Game, v: Vistas): string {
     <div class="esc-tarjeta">${v.viaje(g)}${v.planes(g)}</div>
     <div class="esc-tarjeta">${resumenDelPersonaje(g)}${resumenDeDeporte(g)}</div>
     <div class="esc-tarjeta esc-t-gente">${v.gente(g)}</div>
-    <div class="esc-tarjeta esc-t-diario">${v.diario(g)}</div>
+    <div class="esc-tarjeta esc-t-diario">${v.diarioReciente(g, ENTRADAS_DEL_DIARIO_RECIENTE)}</div>
   </div>`;
 }
 
@@ -234,24 +291,27 @@ export function viewEscritorio(g: Game, c: ContextoDeEscritorio): string {
     return `<main class="app esc esc-b">${barra}
       ${ultimo || v.pendientes(g) ? `<div class="esc-tira">${ultimo}${v.pendientes(g)}</div>` : ''}
       <div class="esc-cuerpo">
-        <section class="esc-panel-b">${barraDePestanas(c, c.tab, 'data-tab', segunda)}<div class="esc-scroll">${contenido(g, c.tab, c)}</div></section>
-        <section class="esc-panel-b">${barraDePestanas(c, segunda, 'data-esc-tab', c.tab)}<div class="esc-scroll">${contenido(g, segunda, c)}</div></section>
+        <section class="esc-panel-b">${barraDePestanas(c, c.tab, 'data-tab', segunda)}<div ${zona(`b1-${c.tab}`, '', 'Primer panel')}>${contenido(g, c.tab, c)}</div></section>
+        <section class="esc-panel-b">${barraDePestanas(c, segunda, 'data-esc-tab', c.tab)}<div ${zona(`b2-${segunda}`, '', 'Segundo panel')}>${contenido(g, segunda, c)}</div></section>
       </div></main>`;
   }
   if (prototipo === 'c') {
     return `<main class="app esc esc-c">${barra}
       ${barraDePestanas({ ...c, tabs: c.tabs.map(([id, e, i]) => (id === 'hacer' ? [id, 'Panel', i] : [id, e, i])) as ContextoDeEscritorio['tabs'] }, c.tab, 'data-tab')}
-      ${c.tab === 'hacer' ? `${ultimo ? `<div class="esc-tira">${ultimo}</div>` : ''}<div class="esc-cuerpo esc-sin-scroll">${contenido(g, 'hacer', c)}</div>` : `${ultimo ? `<div class="esc-tira">${ultimo}</div>` : ''}<div class="esc-cuerpo esc-scroll">${contenido(g, c.tab, c)}</div>`}
+      ${c.tab === 'hacer' ? `${ultimo ? `<div class="esc-tira">${ultimo}</div>` : ''}<div class="esc-cuerpo esc-sin-scroll">${contenido(g, 'hacer', c)}</div>` : `${ultimo ? `<div class="esc-tira">${ultimo}</div>` : ''}<div ${zona(`c-${c.tab}`, 'esc-cuerpo', 'Contenido de la pestaña')}>${contenido(g, c.tab, c)}</div>`}
     </main>`;
   }
-  // A
+  // A. En el HTML primero va el centro y después las columnas (así el foco del teclado empieza por lo que se está haciendo); en pantalla, con `grid-template-areas`, van izquierda, centro y derecha.
   return `<main class="app esc esc-a">${barra}
     <div class="esc-cuerpo">
-      <aside class="esc-izq esc-scroll">${resumenDelPersonaje(g)}${v.pendientes(g)}${v.planes(g)}${resumenDeDeporte(g)}</aside>
-      <div class="esc-centro">${barraDePestanas(c, c.tab, 'data-tab')}<div class="esc-scroll">${ultimo}${contenido(g, c.tab, c)}</div></div>
-      <aside class="esc-der esc-scroll"><div class="esc-diario-reciente">${v.diario(g)}</div></aside>
+      <div class="esc-centro">${barraDePestanas(c, c.tab, 'data-tab')}<div ${zona(`centro-${c.tab}`, '', 'Contenido de la pestaña')}>${ultimo}${contenido(g, c.tab, c)}</div></div>
+      <aside ${zona('izq', 'esc-izq', 'Tú y lo que tienes')}>${PIEZAS_IZQUIERDA.map((p) => p(g, v)).join('')}</aside>
+      <aside ${zona('der', 'esc-der', 'Diario reciente')}><div class="esc-diario-reciente">${v.diarioReciente(g, ENTRADAS_DEL_DIARIO_RECIENTE)}<p class="note">Lo anterior, en la pestaña Diario.</p></div></aside>
     </div></main>`;
 }
+
+/** Cuántas entradas del diario se dibujan en la columna derecha. */
+export const ENTRADAS_DEL_DIARIO_RECIENTE = 30;
 
 /** Clics propios de la composición (la pestaña del segundo panel). `true` si hay que volver a dibujar. */
 export function clicEnEscritorio(el: HTMLElement): boolean {

@@ -31,6 +31,11 @@
 
 /* ---------- A · Tres columnas ---------- */
 .esc-a .esc-cuerpo { grid-template-columns: clamp(250px, 19vw, 330px) minmax(0, 1fr) clamp(290px, 23vw, 400px); }
+/* En el HTML va primero el centro (el foco del teclado empieza por ahí); en pantalla, izquierda, centro y derecha. */
+.esc-a .esc-cuerpo { grid-template-areas: 'izq centro der'; }
+.esc-a .esc-izq { grid-area: izq; }
+.esc-a .esc-centro { grid-area: centro; container-type: inline-size; }
+.esc-a .esc-der { grid-area: der; }
 .esc-a .esc-izq, .esc-a .esc-der { padding-right: 4px; }
 .esc-centro { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .esc-centro > .esc-scroll { flex: 1; padding-right: 4px; }
@@ -121,7 +126,56 @@ body:has(.esc) .ventana.suceso .suceso-opciones { display: grid; grid-template-c
 body:has(.esc) .ventana.suceso .suceso-personas .retrato-caja svg, body:has(.esc) .ventana.suceso .suceso-personas svg { width: 150px; height: auto; }
 body:has(.esc) .esc .ficha-gente { }
 
-@media (max-width: 1100px) { .esc-a .esc-cuerpo { grid-template-columns: 240px minmax(0, 1fr); } .esc-a .esc-der { display: none; } }
+@media (max-width: 1100px) { .esc-a .esc-cuerpo { grid-template-columns: 240px minmax(0, 1fr); grid-template-areas: 'izq centro'; } .esc-a .esc-der { display: none; } }
 
 /* Los datos largos de la ficha del deporte (federación, partidos) en letra menor */
 .esc .deporte .identity dd { font-size: 17px; line-height: 1.2; }
+
+/* ---------- Diseño A aplicado ---------- */
+/* El dinero va en la columna izquierda: la barra del día ya no lo enseña. */
+.esc .money { display: none; }
+.esc-dinero h3 { margin: 0 0 2px; }
+.esc-cifra { margin: 0; font-family: var(--display); font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+/* El diario de la derecha: solo se pinta lo que se ve. */
+.esc-diario-reciente .log li { content-visibility: auto; contain-intrinsic-size: auto 44px; }
+.esc-scroll:focus-visible { outline-offset: -3px; }
+
+/* Ventanas bajas (portátiles pequeños, zoom del 125–150 %): la barra del día se compacta. */
+@media (max-height: 760px) {
+  .app.esc { padding-top: 6px; padding-bottom: 8px; gap: 8px; }
+  .esc-barra { padding: 4px 14px 2px; }
+  .esc .clock { font-size: 38px; }
+  .esc .clock small { font-size: 13px; }
+  .esc .clock small br { display: none; }
+  .esc .lane { height: 22px; }
+  .esc .meters { gap: 0 20px; }
+  .esc .tabs-wrap { margin-bottom: 6px; }
+  .esc .tab { font-size: 17px; padding-top: 3px; }
+}
+@media (max-height: 600px) { .esc .lane-hours { display: none; } .esc .who strong { font-size: 17px; } }
+
+/* La ficha de una persona: el retrato a la izquierda y lo demás a la derecha. */
+.esc .ficha-gente { display: grid; grid-template-columns: minmax(200px, 300px) minmax(0, 1fr); column-gap: 28px; align-items: start; }
+.esc .ficha-gente > * { grid-column: 2; }
+.esc .ficha-gente > button[data-gente='volver'], .esc .ficha-gente > h2, .esc .ficha-gente > nav { grid-column: 1 / -1; justify-self: start; }
+.esc .ficha-gente > h2, .esc .ficha-gente > nav { justify-self: stretch; }
+.esc .ficha-gente > .retrato-caja { grid-column: 1; grid-row: 4 / span 60; margin-top: 0; }
+.esc .ficha-gente > .retrato-caja:has(.evolucion) { grid-column: 1 / -1; grid-row: auto; }
+.esc .ficha-gente:has(.evolucion) > * { grid-column: 1 / -1; }
+.esc .ficha-gente .retrato-boton svg { width: 220px; }
+.esc .ficha-gente .identity { grid-template-columns: repeat(auto-fit, minmax(10em, 1fr)); }
+
+/* Estudios: asignaturas y horario una al lado de la otra, si el centro es ancho. */
+@container (min-width: 1000px) {
+  .esc-estudios-pag { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+  .esc-estudios-pag > :first-child, .esc-estudios-pag > :nth-child(n+4) { grid-column: 1 / -1; }
+  .esc-estudios-pag > .sheet { margin: 0; }
+}
+
+/* Opciones (la ventana de la partida y la pantalla del menú): en dos columnas si hay sitio. */
+body:has(.esc) .velo:not(.creando) .ventana:has(#frecuencia) { max-width: 900px; column-count: 2; column-gap: 36px; }
+body:has(.esc) .ventana:has(#frecuencia) > h2 { column-span: all; }
+body:has(.esc) .ventana:has(#frecuencia) > p, body:has(.esc) .ventana:has(#frecuencia) > h3 { break-inside: avoid; }
+html[data-esc] .start:has(#version-texto) { max-width: 980px; margin-top: 6vh; column-count: 2; column-gap: 48px; }
+html[data-esc] .start:has(#version-texto) > h1, html[data-esc] .start:has(#version-texto) > p:first-of-type { column-span: all; }
+html[data-esc] .start:has(#version-texto) .menu, html[data-esc] .start:has(#version-texto) > p, html[data-esc] .start:has(#version-texto) > h3 { break-inside: avoid; }
