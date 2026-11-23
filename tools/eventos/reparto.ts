@@ -164,7 +164,7 @@ export function tablas(porBot: readonly Medida[]): string {
     ['   de ellos, en fin de semana', '—', (m) => m.ritmo.enFinDeSemanaPorSemana, '', () => true],
     ['% de semanas sin ningún evento que se decide', '0', (m) => m.ritmo.semanasSinDecision, ' %', (n) => n === 0],
   ];
-  const ritmo = `### Ritmo objetivo\n\n| Cifra | Objetivo | ${cols.map((c) => c.bot).join(' | ')} | |\n|---|---|${cols.map(() => '---:').join('|')}|---|\n${filas.map(([nombre, objetivo, f, u, ok]) => `| ${nombre} | ${objetivo} | ${cols.map((c) => `${f1(f(c))}${u}`).join(' | ')} | ${marca(ok(f(todos)))} |`).join('\n')}\n\n_La última columna es el veredicto sobre la media de todos los bots._\n`;
+  const ritmo = `### Ritmo objetivo\n\n| Cifra | Objetivo | ${cols.map((c) => c.bot).join(' | ')} | |\n|---|---|${cols.map(() => '---:').join('|')}|---|\n${filas.map(([nombre, objetivo, f, u, ok]) => `| ${nombre} | ${objetivo} | ${cols.map((c) => `${f1(f(c))}${u}`).join(' | ')} | ${objetivo === '—' ? '' : marca(ok(f(todos)))} |`).join('\n')}\n\n_La última columna es el veredicto sobre la media de todos los bots._\n`;
   const personas = `\nPersonas distintas con las que le pasa algo en la partida (media por bot): ${cols.map((c) => `${c.bot} ${f1(c.personasDistintas)}`).join(' · ')}.\n`;
   return [
     ritmo,
