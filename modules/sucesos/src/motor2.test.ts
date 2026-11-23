@@ -124,8 +124,11 @@ describe('contenido duro', () => {
     return { s: salidos(g), opciones: svc(g).pendientes().find((p) => p.suceso === 't.opciones')?.opciones.map((o) => o.id) ?? [] };
   };
 
-  it('por defecto (activado) sale todo', () => {
-    const { s, opciones } = ver([]);
+  it('por defecto el contenido duro está desactivado; con todo activado sale todo', () => {
+    const defecto = ver([]);
+    expect(defecto.s).not.toContain('t.mote');
+    expect(defecto.opciones).toEqual(['calla']);
+    const { s, opciones } = ver([{ presentacion: { duro: { activado: true } } }]);
     expect(s).toContain('t.mote');
     expect(s).toContain('t.mixto~dura');
     expect(opciones).toEqual(['calla', 'pega', 'se_rie']);
@@ -141,7 +144,7 @@ describe('contenido duro', () => {
   });
 
   it('por categorías: apagar «burlas» quita lo de burlas (también lo que mezcla categorías) y deja lo demás', () => {
-    const { s, opciones } = ver([{ presentacion: { duro: { categorias: { burlas: false } } } }]);
+    const { s, opciones } = ver([{ presentacion: { duro: { activado: true, categorias: { burlas: false } } } }]);
     expect(s).not.toContain('t.mote');
     expect(s).toContain('t.mixto~dura');
     expect(opciones).toEqual(['calla', 'pega']);

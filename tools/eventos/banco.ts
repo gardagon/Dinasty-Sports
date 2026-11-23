@@ -7,6 +7,7 @@ import {
   APORTE_DE_CONFIG_DE_SUCESOS,
   APORTE_DE_SUCESOS,
   duroSinFiltro,
+  TODO_EL_CONTENIDO_DURO,
   sinContenidoDuro,
   type ConfigDeContenidoDuro,
   PAIS_CIUDAD_DE_PRUEBA,
@@ -126,7 +127,7 @@ export class Banco {
   private base?: GameState;
 
   /** Por defecto, el juego con todos sus deportes (también los que se instalan aparte, como el fútbol), en la ciudad de prueba (pequeña y rápida de crear). */
-  constructor(modulos: readonly GameModule<any>[] = [...MODULOS, futbol], readonly opciones: { duro?: ConfigDeContenidoDuro } = {}) {
+  constructor(modulos: readonly GameModule<any>[] = [...MODULOS, futbol], readonly opciones: { duro?: ConfigDeContenidoDuro } = { duro: TODO_EL_CONTENIDO_DURO }) {
     this.modulos = modulos;
     this.catalogo = compilarCatalogo(aportesPorModulo(modulos).flatMap((x) => x.aportes), (id) => modulos.some((m) => m.id === id));
   }

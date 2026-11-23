@@ -21,10 +21,11 @@ export interface ConfigDeContenidoDuro {
 }
 
 /**
- * Valor de partida del contenido duro. **PROVISIONAL**: activado y por categorías; la arquitectura confirma con el usuario si por defecto
- * va activado y si hacen falta las categorías. Para cambiarlo basta tocar esta constante (la web la usa como valor por defecto de la opción).
+ * Valor de partida del contenido duro: **desactivado** (decisión del usuario: no se sabe si quien juega es menor de edad), con tres categorías y un
+ * interruptor general (más adelante pueden unificarse). Para cambiarlo basta tocar esta constante: la usan el director y la web (pantalla de crear
+ * partida y Opciones). Las partidas guardadas, que no guardan esta preferencia, cargan con este valor.
  */
-export const CONTENIDO_DURO_POR_DEFECTO: ConfigDeContenidoDuro = { activado: true, categorias: { familia: true, burlas: true, peleas: true } };
+export const CONTENIDO_DURO_POR_DEFECTO: ConfigDeContenidoDuro = { activado: false, categorias: { familia: true, burlas: true, peleas: true } };
 
 /** ¿Algo marcado con estas categorías se puede enseñar con esta preferencia? Sin marca, siempre. Con varias, hacen falta todas. */
 export const duroPermitido = (duro: readonly CategoriaDura[] | undefined, c: ConfigDeContenidoDuro): boolean => !duro?.length || (c.activado && duro.every((k) => c.categorias[k] !== false));
@@ -55,3 +56,6 @@ export function sinContenidoDuro<T extends SucesoDef>(def: T, c: ConfigDeConteni
   }
   return propias === def.opciones && variantes === def.variantes ? def : { ...def, opciones: propias, variantes };
 }
+
+/** Todo lo duro permitido (para probar el contenido duro entero: las herramientas y los tests recorren con esto lo que el jugador vería con todo activado). */
+export const TODO_EL_CONTENIDO_DURO: ConfigDeContenidoDuro = { activado: true, categorias: { familia: true, burlas: true, peleas: true } };
