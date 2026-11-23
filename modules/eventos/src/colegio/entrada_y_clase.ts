@@ -25,7 +25,7 @@ export default [
         id: 'amigo',
         si: AMIGO_O_CONOCIDO,
         textos: [
-          '{quien.Nombre} te espera junto a la verja, con la mochila a medio cerrar. «Hoy hay examen sorpresa, me lo han dicho. Es mentira, pero me ha dado un vuelco el estómago. ¿Te lo crees?»',
+          '{quien.Nombre} te espera junto a la verja, con la mochila a medio cerrar. «Menos mal que has llegado. Tenía que contarte lo de ayer y no podía esperar a clase».',
           'Desde lejos ves a {quien.nombre} agitando el brazo. «¡Eh! ¡Corre, que te he guardado un sitio en la cola de la fuente!»',
         ],
       },

@@ -40,7 +40,7 @@ export default hilo({
           texto: 'Decirle que no puedes prometer nada hasta saber qué es',
           caracter: { prudencia: 1, honestidad: 1 },
           minutos: 5,
-          efectos: [{ relacion: 'amigo', confianza: -1 }, { programa: 'eventos.amigos.secreto.te_preguntan', en: { dias: [3, 7] } }],
+          efectos: [{ relacion: 'amigo', confianza: -1 }, { fin: true }],
           resultado: '«Entonces mejor no te lo cuento». Se queda un momento callad{amigo:o|a}. Algo en la mirada de {amigo.nombre} se ha enfriado un poco.',
         },
         {
@@ -60,7 +60,7 @@ export default hilo({
       cuando: [...CERCA, { presente: 'curioso' }],
       aguanta: { dias: 6 },
       textos: [
-        '{curioso.Nombre} te corta el paso en el pasillo. «Oye, ¿tú sabes qué le pasa a {amigo.nombre}? Está muy raro estos días. Y tú siempre lo sabes todo».',
+        '{curioso.Nombre} te corta el paso al salir de clase. «Oye, ¿tú sabes qué le pasa a {amigo.nombre}? Está muy raro estos días. Y tú siempre lo sabes todo».',
         '{curioso.Nombre} se coloca a tu lado en la fila. «Dicen que {amigo.nombre} anda con un lío. Tú eres {amigo:su amigo|su amiga}, seguro que lo sabes».',
       ],
       urgencia: 'ahora',

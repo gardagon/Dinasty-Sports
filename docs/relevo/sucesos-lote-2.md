@@ -390,3 +390,39 @@ Por franja (todos): antes de clase 0,1 → 0,6; recreo 0,8 → 1,1; mediodía 0,
 ## Fuera del lote (lote 3), como se decidió
 
 `mudanza` (E6), `tu_cumple` (E4 + E7) y `visita_en_casa` (E3 + E7). El hecho `es_tu_cumple`/`cumple_en_dias` del motor sigue sin usarse.
+
+## Pasada de corrección de continuidad (23/11/2026)
+
+A petición de la arquitectura, tras leer los caminos con `eventos:probar` (y `--sin-duro`). **Nota sobre la herramienta:** `eventos:probar` recorre el producto de todas las variantes y opciones, sin mirar condiciones ni marcas, así que algunos caminos que enseña (p. ej. `se_calma[hablaron]` tras elegir «normal») **no pueden darse en el juego**: `hablaron` solo sale si la marca `pregunto_a_sus_padres` está puesta, y solo se pone si preguntar salió bien. Aun así se corrigió lo que sí podía chocar.
+
+**Corregido**
+
+| Hilo | Problema | Arreglo |
+|---|---|---|
+| `padres_discuten` | La marca `hablo_con_su_tutor` parecía del tutor del colegio | Renombrada `pregunto_a_sus_padres` |
+| `padres_discuten` | «Anoche te oí en la cocina» cuando solo te asomaste o saliste a por agua | «Anoche te vi despiert{yo:o\|a}» (vale para los tres caminos que ponen `se_acerco_a_sus_padres`) |
+| `padres_discuten` | «No pasa nada» y «gracias por preguntar» se repetían en tres pasos seguidos | Cada frase aparece una vez |
+| `secreto` | Si decías «no puedo prometer nada», tu amigo no te contaba nada y aun así te preguntaban «¿tú sabes algo?» | Ese camino cierra el hilo |
+| `secreto` | «Te corta el paso en el pasillo» (no hay pasillo en los sitios donde sale) | «Al salir de clase» |
+| `apodo` | Si cortabas el mote en seco, el paso siguiente decía que «otros han empezado a usarlo» | Cortarlo con éxito cierra el hilo |
+| `pelea` | Los textos de la discusión decían «entra en tu aula» y «en el pasillo» pero sale en el patio | Textos en el patio |
+| `prestado` | Al discutir y reclamar delante de todos, tu amigo decía «ahí tienes tu dinero» pero no lo recibías | Recibes el dinero (con el coste de afinidad) |
+| `ahorrar` | El segundo texto hablaba de «botas o una pelota» y los pasos siguientes de «las zapatillas» | Mismo objeto en todos |
+| `ahorrar` | La opción «tú ahorras y {tutor} pone la otra mitad» nunca cumplía lo que prometía | Marca `trato_a_mitades` y opción «comprarlas con tus 10 € y lo que pone tu madre/padre» en la compra |
+| `examen` | «Decir que has sacado mucho más de lo que sacaste» aunque hubieras sacado buena nota | «Exagerar un poco tu nota» |
+| `tutor_se_preocupa` | Si la nota bajaba, el seguimiento decía «no ha cambiado mucho» | Variante `peor` (usa `sobreRecuerdo`) |
+| `tarea_del_hogar` | Un resultado hablaba de «la casa huele a limpio» aunque la tarea fuera la compra o el balcón | «Todo está en su sitio» |
+| `en_la_puerta` | Texto con «examen sorpresa… es mentira» (confuso) | Otro más simple |
+
+Revisados sin cambios: `companero_nuevo`, `boletin` y los demás detalles sueltos (lectura rápida con el mismo criterio: lo dado por hecho, lugares y momentos, nombre de las marcas y textos seguidos que se parezcan).
+
+**No hecho:** el aviso de validación «una variante final lee una marca que en algún camino no se pone»: no es barato, porque `eventos:probar` y el validador no distinguen caminos posibles de imposibles; haría falta que la herramienta propague las marcas por camino y respete las condiciones (hoy no lo hace).
+
+**Comprobaciones:** `typecheck` ✅, `eventos:validar` ✅ (112 sucesos, 4.738 caminos y 718 sin lo duro), `eventos:mapa` ✅.
+
+## Los caminos que mejor quedan (para enseñárselos al usuario)
+
+1. **`eventos.amigos.secreto`**, prometer → te preguntan → lo cuentas → se sabe → pedir perdón con éxito (`--elige prometer`): un hilo con cuatro pasos en días distintos donde lo que decides en el segundo (callar, contar, despistar) cambia lo que pasa en el tercero y si hay cuarto.
+2. **`eventos.casa.cena_de_domingo`** con `lesionado_hace_poco` (`eventos:probar -- eventos.casa.cena_de_domingo`): una marca que dejó otro suceso semanas antes cambia lo que te preguntan en casa; es la prueba de que la memoria vuelve.
+3. **`eventos.colegio.companero_nuevo`**, ofrecerte → sentaros → amigos: el mismo día, una semana y un mes después; si no te ofreces, cambia la primera semana (te ve solo) y el final.
+4. **`eventos.casa.padres_discuten`** con `--sin-duro` (tensión sorda) frente a la versión con «familia» (bronca): mismo hilo, dos tonos, y en los dos se arregla; la opción de preguntar a la mañana siguiente cambia la cena de una semana después.

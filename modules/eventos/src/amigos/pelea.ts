@@ -33,8 +33,8 @@ export default hilo({
           id: 'discusion',
           si: [],
           textos: [
-            '{a.Nombre} entra en tu aula con los puños cerrados, aunque solo de rabia. «No quiero ni oír hablar de {b.nombre}. ¿Tú de qué lado estás?»',
-            '{b.Nombre} te para en el pasillo con cara de funeral. «Me he peleado con {a.nombre}. Bueno, nos hemos peleado los dos. Y quiero que sepas lo que ha pasado».',
+            '{a.Nombre} te corta el paso en el patio, con los puños cerrados, aunque solo de rabia. «No quiero ni oír hablar de {b.nombre}. ¿Tú de qué lado estás?»',
+            '{b.Nombre} se te acerca en el recreo con cara de funeral. «Me he peleado con {a.nombre}. Bueno, nos hemos peleado los dos. Y quiero que sepas lo que ha pasado».',
           ],
         },
       ],

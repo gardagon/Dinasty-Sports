@@ -32,7 +32,7 @@ export default [
         caracter: { disciplina: 1, sacrificio: 1 },
         minutos: 40,
         efectos: [{ relacion: 'tutor', afinidad: 2 }, { familia: 'tutor', expectativas: 1 }, { estado: 'gen.estres', mas: 1 }],
-        resultados: ['Cuando acabas, la casa huele a limpio y {tutor.nombre} te mira con orgullo. «Pues sí que podías».', '{tutor.Nombre} comprueba el resultado, asiente y te pone una mano en el hombro. No dice nada más, y no hace falta.'],
+        resultados: ['Cuando acabas, todo está en su sitio y {tutor.nombre} te mira con orgullo. «Pues sí que podías».', '{tutor.Nombre} comprueba el resultado, asiente y te pone una mano en el hombro. No dice nada más, y no hace falta.'],
       },
       {
         id: 'rapido',

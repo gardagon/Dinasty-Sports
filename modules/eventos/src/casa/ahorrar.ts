@@ -20,13 +20,13 @@ export default hilo({
       repite: { espera: { dias: 120 } },
       textos: [
         'Llevas toda la semana mirando unas zapatillas en el escaparate de la avenida. Hoy, en la cocina, te animas: «{tutor.Nombre}… ¿podemos hablar de una cosa?»',
-        'Hay algo que quieres de verdad: unas botas, una pelota buena, no sabes bien. Cuestan veinte euros, que es un mundo. «{tutor.Nombre}…», empiezas.',
+        'Hay algo que quieres de verdad: esas zapatillas del escaparate de la avenida. Cuestan veinte euros, que es un mundo. «{tutor.Nombre}…», empiezas.',
       ],
       urgencia: 'ahora',
       plazo: { dias: 1, porDefecto: 'olvidarlo' },
       opciones: [
         { id: 'pedir', texto: 'Pedírselo directamente', caracter: { ambicion: 1, sociabilidad: 1 }, minutos: 10, tirada: { con: 'gen.comunicacion', dificultad: 45 }, exito: { efectos: [{ relacion: 'tutor', afinidad: 1 }, { estado: 'gen.dinero', mas: 10 }, { programa: 'eventos.casa.ahorrar.la_paga', en: { dias: [7, 7] } }], resultado: '«Te doy la mitad ahora, y la otra mitad te la ganas», dice, ablandándose. Te guardas el billete como si fuera de cristal.' }, fallo: { efectos: [{ programa: 'eventos.casa.ahorrar.la_paga', en: { dias: [7, 7] } }], resultado: '«Ya veremos», dice, que es una forma suave de decir «no». Pero no cierra la puerta del todo.' } },
-        { id: 'ahorrar', texto: 'Proponerle un trato: tú ahorras y {tutor:él|ella} pone la otra mitad', caracter: { disciplina: 1, ambicion: 1 }, minutos: 10, efectos: [{ relacion: 'tutor', afinidad: 2, confianza: 1 }, { familia: 'tutor', expectativas: 1 }, { programa: 'eventos.casa.ahorrar.la_paga', en: { dias: [7, 7] } }], resultado: '«Eso me gusta más que pedir sin más», dice con una sonrisa. «Hablamos el sábado que viene de cómo lo hacemos».' },
+        { id: 'ahorrar', texto: 'Proponerle un trato: tú ahorras y {tutor:él|ella} pone la otra mitad', caracter: { disciplina: 1, ambicion: 1 }, minutos: 10, efectos: [{ relacion: 'tutor', afinidad: 2, confianza: 1 }, { familia: 'tutor', expectativas: 1 }, { marca: 'trato_a_mitades', dura: { dias: 90 } }, { programa: 'eventos.casa.ahorrar.la_paga', en: { dias: [7, 7] } }], resultado: '«Eso me gusta más que pedir sin más», dice con una sonrisa. «Hablamos el sábado que viene de cómo lo hacemos».' },
         { id: 'olvidarlo', texto: 'Olvidarlo: tampoco lo necesitas tanto', caracter: { prudencia: 1, ambicion: -1 }, efectos: [{ fin: true }], resultado: '«Nada, nada. Era una tontería». Y vuelves a tu cuarto con las manos vacías y la cabeza ocupada.' },
       ],
     },
@@ -56,6 +56,7 @@ export default hilo({
       plazo: { dias: 2, porDefecto: 'esperar' },
       opciones: [
         { id: 'comprar', texto: 'Comprarlas con lo que has juntado (20 €)', caracter: { ambicion: 1, disciplina: 1 }, minutos: 30, requiere: [{ stat: 'gen.dinero', min: 20 }], efectos: [{ estado: 'gen.dinero', mas: -20 }, { estado: 'gen.motivacion', mas: 6 }, { relacion: 'tutor', afinidad: 1 }, { fin: true }], resultado: 'Las estrenas en la tienda misma, y caminas por la avenida con la sensación de que son tuyas de verdad, porque te las has ganado.' },
+        { id: 'mitad', texto: 'Comprarlas con tus 10 € y lo que pone {tutor:él|ella} (el trato)', caracter: { ambicion: 1, sociabilidad: 1 }, minutos: 30, requiere: [{ marca: 'trato_a_mitades' }, { stat: 'gen.dinero', min: 10 }], efectos: [{ estado: 'gen.dinero', mas: -10 }, { estado: 'gen.motivacion', mas: 6 }, { relacion: 'tutor', afinidad: 3 }, { fin: true }], resultado: '{tutor.Nombre} pone la otra mitad en el mostrador sin decir nada y te guiña un ojo. Las estrenas ahí mismo.' },
         { id: 'esperar', texto: 'Esperar un poco más: aún no llegas', caracter: { prudencia: 1 }, efectos: [{ fin: true }], resultado: 'Todavía te falta. Pero no pasa nada: ya sabes lo que cuesta, y eso también se aprende.' },
         { id: 'otra_cosa', texto: 'Gastarlo en otra cosa que te apetece más', caracter: { prudencia: -1, ambicion: -1 }, requiere: [{ stat: 'gen.dinero', min: 3 }], efectos: [{ estado: 'gen.dinero', mas: -3 }, { estado: 'gen.estres', mas: -2 }, { relacion: 'tutor', afinidad: -1 }, { fin: true }], resultado: 'Te compras algo pequeño, y lo disfrutas. Pero cuando pasas por el escaparate, las zapatillas siguen ahí, mirándote.' },
       ],

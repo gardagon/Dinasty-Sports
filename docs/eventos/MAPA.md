@@ -31,7 +31,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   eventos_amigos_secreto_confesion["confesion<br/><small>al: lugares.llegada</small>"]
-  eventos_amigos_secreto_confesion -->|"prometer, sin_prometer, quitar_importancia"| eventos_amigos_secreto_te_preguntan
+  eventos_amigos_secreto_confesion -->|"prometer, quitar_importancia"| eventos_amigos_secreto_te_preguntan
   eventos_amigos_secreto_te_preguntan["te_preguntan<br/><small>programado</small>"]
   eventos_amigos_secreto_te_preguntan -->|"callar ✔, callar ✘, contarlo, despistar ✔, despistar ✘"| eventos_amigos_secreto_se_entera
   eventos_amigos_secreto_se_entera["se_entera<br/><small>programado</small>"]
@@ -77,7 +77,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   eventos_colegio_apodo_nace["nace<br/><small>al: lugares.llegada</small>"]
-  eventos_colegio_apodo_nace -->|"reirte, cortar ✔, cortar ✘, responder ✔, responder ✘, devolver_feo"| eventos_colegio_apodo_se_extiende
+  eventos_colegio_apodo_nace -->|"reirte, cortar ✘, responder ✔, responder ✘, devolver_feo"| eventos_colegio_apodo_se_extiende
   eventos_colegio_apodo_se_extiende["se_extiende<br/><small>programado</small>"]
   eventos_colegio_apodo_se_extiende -->|"unirte, pedir ✔, pedir ✘, seguir"| eventos_colegio_apodo_fin
   eventos_colegio_apodo_fin["fin<br/><small>programado</small>"]
@@ -240,7 +240,6 @@ flowchart LR
 | `conto_el_secreto` | `eventos.amigos.secreto.te_preguntan` | `eventos.amigos.secreto.se_entera` |
 | `futbol_quiere_cambiar_de_puesto` | `futbol.primer_entrenamiento` | — (todavía nadie) |
 | `guardo_el_secreto` | `eventos.amigos.secreto.se_entera` | `eventos.amigos.prestado.peticion` |
-| `hablo_con_su_tutor` | `eventos.casa.padres_discuten.a_la_manana` | `eventos.casa.padres_discuten.se_calma` |
 | `hizo_de_mediador` | `eventos.amigos.pelea.en_medio` | `eventos.amigos.pelea.se_alejan` |
 | `ignoro_a_nuevo` | `eventos.colegio.companero_nuevo.llegada` | `eventos.colegio.companero_nuevo.primera_semana` |
 | `junto_a_los_dos` | `eventos.amigos.pelea.se_alejan` | `eventos.amigos.pelea.paces` |
@@ -254,6 +253,7 @@ flowchart LR
 | `no_estudio_para_el_examen` | `eventos.colegio.examen.aviso` | `eventos.colegio.examen.hecho` |
 | `perdono_una_deuda` | `eventos.amigos.prestado.reclamar` | `eventos.amigos.regalo_inesperado` |
 | `planton` | `eventos.relaciones.cumple.fiesta` | `eventos.relaciones.cumple.invitacion` |
+| `pregunto_a_sus_padres` | `eventos.casa.padres_discuten.a_la_manana` | `eventos.casa.padres_discuten.se_calma` |
 | `presto_poco` | `eventos.amigos.prestado.peticion` | `eventos.amigos.prestado.devolucion`, `eventos.amigos.prestado.reclamar` |
 | `prometio_no_faltar` | `eventos.familia.faltas.charla` | `eventos.familia.faltas.revision` |
 | `repaso_a_fondo` | `eventos.colegio.examen.aviso` | `eventos.colegio.examen.hecho` |
@@ -262,4 +262,5 @@ flowchart LR
 | `se_sospecha` | `eventos.amigos.secreto.te_preguntan` | `eventos.amigos.secreto.se_entera` |
 | `sento_a_nuevo` | `eventos.colegio.companero_nuevo.llegada` | `eventos.colegio.companero_nuevo.primera_semana` |
 | `tomo_partido` | `eventos.amigos.pelea.en_medio` | `eventos.amigos.pelea.se_alejan`, `eventos.amigos.pelea.paces` |
+| `trato_a_mitades` | `eventos.casa.ahorrar.deseo` | `eventos.casa.ahorrar.la_compra` |
 | `vecino_de_mesa` | `eventos.colegio.cambio_de_sitios` | `eventos.colegio.copiar_deberes` |

@@ -53,7 +53,7 @@ export default hilo({
       cuando: [{ periodo: 'clase' }, { diaDeLaSemana: [0, 1, 2, 3, 4] }, { lugar: 'casa' }, { presente: 'tutor' }, { hora: { desde: 6 * 60 + 30, hasta: 7 * 60 + 45 } }],
       aguanta: { dias: 2 },
       variantes: [
-        { id: 'te_vio', si: [{ marca: 'se_acerco_a_sus_padres' }], texto: '{tutor.Nombre} te sirve la leche con una sonrisa cansada. «Anoche te oí en la cocina, ¿verdad? Siento que hayas tenido que oírnos. No pasa nada, de verdad».' },
+        { id: 'te_vio', si: [{ marca: 'se_acerco_a_sus_padres' }], texto: '{tutor.Nombre} te sirve la leche con una sonrisa cansada. «Anoche te vi despiert{yo:o|a}, ¿verdad? Siento que hayas tenido que oírnos».' },
         {
           id: 'silencio',
           si: [],
@@ -66,7 +66,7 @@ export default hilo({
       urgencia: 'ahora',
       plazo: { dias: 1, porDefecto: 'normal' },
       opciones: [
-        { id: 'preguntar', texto: 'Preguntarle si está bien', caracter: { honestidad: 1, sociabilidad: 1 }, minutos: 5, tirada: { con: 'gen.comunicacion', dificultad: 45 }, exito: { efectos: [{ relacion: 'tutor', afinidad: 2, confianza: 3 }, { marca: 'hablo_con_su_tutor', dura: { dias: 30 } }, { programa: 'eventos.casa.padres_discuten.se_calma', en: { dias: [7, 14] } }], resultado: '«Estoy bien, de verdad. Los mayores a veces discutimos, y no por eso dejamos de querernos. Gracias por preguntar».' }, fallo: { efectos: [{ programa: 'eventos.casa.padres_discuten.se_calma', en: { dias: [7, 14] } }], resultado: '«Cosas de mayores», dice sin mirarte. No ha servido, pero ha sido un intento.' } },
+        { id: 'preguntar', texto: 'Preguntarle si está bien', caracter: { honestidad: 1, sociabilidad: 1 }, minutos: 5, tirada: { con: 'gen.comunicacion', dificultad: 45 }, exito: { efectos: [{ relacion: 'tutor', afinidad: 2, confianza: 3 }, { marca: 'pregunto_a_sus_padres', dura: { dias: 30 } }, { programa: 'eventos.casa.padres_discuten.se_calma', en: { dias: [7, 14] } }], resultado: '«Estoy bien, de verdad. Los mayores a veces discutimos, y no por eso dejamos de querernos».' }, fallo: { efectos: [{ programa: 'eventos.casa.padres_discuten.se_calma', en: { dias: [7, 14] } }], resultado: '«Cosas de mayores», dice sin mirarte. No ha servido, pero ha sido un intento.' } },
         { id: 'normal', texto: 'Hacer como si nada y desayunar', caracter: { prudencia: 1 }, efectos: [{ programa: 'eventos.casa.padres_discuten.se_calma', en: { dias: [7, 14] } }], resultado: 'Desayunas despacio, sin preguntar. A veces el silencio también es una forma de acompañar.' },
         { id: 'gracioso', texto: 'Contar algo gracioso del colegio para romper el hielo', caracter: { optimismo: 2, sociabilidad: 1 }, tirada: { con: 'gen.carisma', dificultad: 45 }, exito: { efectos: [{ relacion: 'tutor', afinidad: 2 }, { estado: 'gen.estres', mas: -1 }, { programa: 'eventos.casa.padres_discuten.se_calma', en: { dias: [7, 14] } }], resultado: 'Se ríe por primera vez en toda la mañana, aunque sea por compromiso. La cocina parece más grande, más luminosa.' }, fallo: { efectos: [{ programa: 'eventos.casa.padres_discuten.se_calma', en: { dias: [7, 14] } }], resultado: 'Lo cuentas, y suena un poco forzado. {tutor.Nombre} sonríe de lado, agradecid{tutor:o|a} por el intento.' } },
       ],
@@ -78,7 +78,7 @@ export default hilo({
       cuando: [{ lugar: 'casa' }, { presente: 'tutor' }, { hora: { desde: 19 * 60, hasta: 22 * 60 } }],
       aguanta: { dias: 6 },
       variantes: [
-        { id: 'hablaron', si: [{ marca: 'hablo_con_su_tutor' }], texto: 'En la cena se vuelve a reír. Al recoger los platos, {tutor.nombre} te pasa una mano por el pelo. «Lo del otro día… gracias por preguntar. Ya está todo arreglado».', efectos: [{ familia: 'tutor', apoyo: 3 }, { relacion: 'tutor', afinidad: 2, confianza: 2 }, { fin: true }] },
+        { id: 'hablaron', si: [{ marca: 'pregunto_a_sus_padres' }], texto: 'En la cena se vuelve a reír. Al recoger los platos, {tutor.nombre} te pasa una mano por el pelo. «Lo del otro día… gracias por preguntar. Ya está todo arreglado».', efectos: [{ familia: 'tutor', apoyo: 3 }, { relacion: 'tutor', afinidad: 2, confianza: 2 }, { fin: true }] },
         { id: 'se_arreglo', si: [], texto: 'En la cena todo está como siempre: voces normales, bromas viejas y el mismo sitio en la mesa. Lo del otro día parece de otra casa.', efectos: [{ familia: 'tutor', apoyo: 1 }, { fin: true }] },
       ],
     },
@@ -92,7 +92,7 @@ export default hilo({
         { pasan: { dias: 1 }, dado: { lugar: 'colegio' } },
         { pasan: { dias: 0 }, dado: { lugar: 'casa', hora: 7 * 60, diaDeLaSemana: 3 } },
         { sale: 'eventos.casa.padres_discuten.a_la_manana', elige: 'preguntar', tirada: 'exito' },
-        { espero: { marca: 'hablo_con_su_tutor' } },
+        { espero: { marca: 'pregunto_a_sus_padres' } },
         { pasan: { dias: 15 }, dado: { lugar: 'colegio' } },
         { pasan: { dias: 0 }, dado: { lugar: 'casa', hora: 20 * 60 } },
         { sale: 'eventos.casa.padres_discuten.se_calma', variante: 'hablaron' },

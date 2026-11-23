@@ -117,7 +117,7 @@ export default hilo({
       plazo: { dias: 1, porDefecto: 'contar' },
       opciones: [
         { id: 'contar', texto: 'Contárselo tal cual', caracter: { honestidad: 1 }, minutos: 5, efectos: [{ relacion: 'quien', afinidad: 1.5, confianza: 1 }, { fin: true }], resultado: 'Lo cuentas sin adornos. «Pues es lo que hay», dice {quien.nombre}, y es un alivio que lo diga así.' },
-        { id: 'presumir', texto: 'Decir que has sacado mucho más de lo que sacaste', caracter: { honestidad: -1, ambicion: 1 }, tirada: { con: 'gen.picardia', dificultad: 45 }, exito: { efectos: [{ entrena: 'gen.picardia', cantidad: 0.3 }, { fin: true }], resultado: '«¡Qué crack!». Cuela, esta vez.' }, fallo: { efectos: [{ relacion: 'quien', afinidad: -2 }, { fin: true }], resultado: 'Alguien cerca lo oye y se ríe. «Ya, ya… ¿y yo soy la reina de Saba?». Mala idea.' } },
+        { id: 'presumir', texto: 'Exagerar un poco tu nota', caracter: { honestidad: -1, ambicion: 1 }, tirada: { con: 'gen.picardia', dificultad: 45 }, exito: { efectos: [{ entrena: 'gen.picardia', cantidad: 0.3 }, { fin: true }], resultado: '«¡Qué crack!». Cuela, esta vez.' }, fallo: { efectos: [{ relacion: 'quien', afinidad: -2 }, { fin: true }], resultado: 'Alguien cerca lo oye y se ríe. «Ya, ya… ¿y yo soy la reina de Saba?». Mala idea.' } },
         { id: 'cambiar', texto: 'Cambiar de tema', caracter: { prudencia: 1 }, efectos: [{ fin: true }], resultado: 'Hablas de otra cosa y {quien.nombre} te sigue sin preguntar más.' },
       ],
     },

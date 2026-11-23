@@ -108,6 +108,12 @@ export default hilo({
           efectos: [{ relacion: 'profesor', afinidad: 3 }, { estado: 'gen.motivacion', mas: 4 }, { marca: 'levanto_la_nota', dura: { dias: 120 } }, { fin: true }],
         },
         {
+          id: 'peor',
+          si: [{ hecho: 'nota_media', max: -0.5, sobreRecuerdo: 'nota_al_hablar' }],
+          texto: '{profesor.Nombre} deja tu control sobre la mesa y tarda en hablar. «Ha bajado un poco, y no te lo digo para agobiarte. Si quieres que volvamos a lo del repaso, mi oferta sigue en pie».',
+          efectos: [{ relacion: 'profesor', confianza: 1 }, { estado: 'gen.estres', mas: 2 }, { fin: true }],
+        },
+        {
           id: 'igual',
           si: [],
           texto: '{profesor.Nombre} deja tu control sobre la mesa. «No ha cambiado mucho, y no pasa nada: esto va despacio. Pero no lo dejes».',
