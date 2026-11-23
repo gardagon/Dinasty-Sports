@@ -5,6 +5,23 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/11/2026 — Hogares: familias hacia delante (padres primero); sueño atrasado a −2,5
+
+Respuestas del usuario a `docs/relevo/hogares.md` §8.3:
+
+1. **Cómo se crean las familias:** el usuario prefiere **generar hacia delante**. Primero las familias (adultos en pareja), con hijos hasta cubrir los niños que necesitan los colegios. Después, los adultos en pareja sin hijos y los que viven solos. Es más real: los hermanos salen solos, y la cara, la genética y las habilidades heredadas pasan de padres a hijos con la misma regla que el personaje. Pesa más al crear, pero si hiciera falta se puede hacer por tandas. Se descarta derivar los padres de los hijos (C), salvo que haya razones de peso. Ver la propuesta de la arquitectura en las notas.
+2. **Población:** se empieza por H-mínimo (~14.550) y se mide en el móvil antes de ir a H-completo.
+3. **Hermanos:** con la generación hacia delante son hermanos de verdad, y no solo comparten el apellido: también la cara, la genética y los perks heredados.
+4. **Progenitores y bebés:** se guardan con datos completos, como cualquier persona. Si pesa, se compacta después.
+5. **Hogares en el mapa:** un 10–15 % en las calles del mapa; el resto, en otro barrio.
+6. **Quién recoge:** un progenitor recoge a los menores de 10 años el 80 % de los días; hasta los 12, cada vez menos. Los abuelos se verán más adelante.
+7. **Nacimientos:** sí, desde H2, con la pasada anual (y el archivo de quien deja el mundo).
+8. **Mascotas:** viven en el hogar y no son personas. Se dejan preparadas.
+9. **Los jóvenes de 18–19 años:** siguen en casa. Más adelante se valorará si trabajan, se independizan o salen del mundo.
+10. **No hace falta contrastar las cifras del INE** para esto.
+
+**Sueño:** la energía máxima al despertar baja **2,5 puntos** (antes 4) por cada hora de sueño atrasado efectiva (`ENERGIA_POR_HORA_DE_DEUDA`, `packages/contracts/src/sueno.ts`). Es provisional hasta E12.
+
 ## 23/11/2026 — Gente por la calle y hogares; dormir
 
 Respuestas del usuario a `docs/relevo/gente-por-la-calle.md` §5.3 y a `docs/relevo/dormir.md` §6.

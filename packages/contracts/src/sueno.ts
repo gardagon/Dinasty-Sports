@@ -56,8 +56,11 @@ export function pasoDeSuenoDeLaNoche(deuda: number, necesidad: number, dormidas:
 /** La deuda que cuenta para los efectos (hasta 8 h: más no empeora). */
 export const deudaEfectiva = (deuda: number): number => Math.min(8, Math.max(0, deuda - MARGEN_DE_DEUDA));
 
-/** Lo máximo que se llena la energía al despertar con esa deuda: 100 sin deuda y hasta −32 con mucha. Es el único malus activo del sueño atrasado. */
-export const topeDeEnergiaAlDespertar = (deuda: number): number => 100 - 4 * deudaEfectiva(deuda);
+/** Puntos de energía máxima que se pierden por cada hora de deuda efectiva (decidido con el usuario el 23/11: 2,5, provisional hasta la salud y lesiones, E12). */
+export const ENERGIA_POR_HORA_DE_DEUDA = 2.5;
+
+/** Lo máximo que se llena la energía al despertar con esa deuda: 100 sin deuda y hasta −20 con mucha. Es el único malus activo del sueño atrasado. */
+export const topeDeEnergiaAlDespertar = (deuda: number): number => 100 - ENERGIA_POR_HORA_DE_DEUDA * deudaEfectiva(deuda);
 
 /**
  * PREPARADO PARA LA SALUD Y LAS LESIONES (E12), SIN ACTIVAR (decidido el 23/11; cifras de `docs/relevo/dormir.md` §3.3, provisionales). Nadie lo llama todavía:

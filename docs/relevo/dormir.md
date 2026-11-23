@@ -73,7 +73,7 @@ Antes (rama unida, sin cambios de sueño) frente a después de F2 (con los bots 
 - Madrugador: con el diseño anterior del bot, 100 → 0 de salud. Era el bot (se acostaba con `energiaMin` 15 y a las 23:00, con una necesidad de 9,5 h); ahora 74 de salud y las mismas notas que el equilibrado.
 - Estudios y atletismo, sin diferencias de peso (empollón +0,1; atleta −0,1 a −0,3; equilibrado −0,3). Los bots que se acuestan según la edad a los 8 años lo hacen sobre las 21:15, y **no se nota en la tabla**: a esa hora ya habían acabado casi todo lo útil.
 - Huella: F1 solo cambia `aleatorio`; F2 cambia todos los bots (a propósito); F3 solo cambia los mundos con fútbol (los PNJ llevan deuda), no los bots.
-- Pendiente de decidir: con la pendiente actual (−4 de energía máxima por hora de deuda efectiva), 1,5 h de falta cada noche llevan la deuda al tope en una semana y media y la energía máxima a 68. Probé −2,5 y no cambia la salud final del madrugador (la causa era el agotamiento por acostarse exhausto), así que **la pendiente se puede suavizar sin efecto en la tabla**; se deja en 4 hasta calibrar con E12.
+- Pendiente de decidir: con la pendiente actual (−4 de energía máxima por hora de deuda efectiva), 1,5 h de falta cada noche llevan la deuda al tope en una semana y media y la energía máxima a 68. Probé −2,5 y no cambia la salud final del madrugador (la causa era el agotamiento por acostarse exhausto), así que **la pendiente se puede suavizar sin efecto en la tabla**; se deja en 4 hasta calibrar con E12. **Decidido con el usuario el 23/11: 2,5** (`ENERGIA_POR_HORA_DE_DEUDA`).
 
 ---
 

@@ -29,7 +29,7 @@ describe('la deuda de sueño', () => {
   it('la primera hora no se nota y la energía máxima baja con la deuda efectiva', () => {
     expect(deudaEfectiva(1)).toBe(0);
     expect(topeDeEnergiaAlDespertar(0.8)).toBe(100);
-    expect(topeDeEnergiaAlDespertar(5)).toBe(84);
-    expect(topeDeEnergiaAlDespertar(10)).toBe(100 - 4 * 8);
+    expect(topeDeEnergiaAlDespertar(5)).toBe(90);
+    expect(topeDeEnergiaAlDespertar(10)).toBe(100 - 2.5 * 8);
   });
 });
