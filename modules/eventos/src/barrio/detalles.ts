@@ -4,35 +4,8 @@ import { suceso } from '@ds/contracts';
  * Detalles del barrio: lo que pasa por la calle y el parque. Son `menor` y espontáneos (al llegar a un sitio, a veces). Cifras de partida, por calibrar.
  */
 const EJEMPLO = { desde: 'calle_casa', hasta: 'avenida_parque', minutos: 3 };
-const EN_EL_PARQUE = [{ alguna: [{ señal: 'hasta', es: 'parque' }, { señal: 'hasta', es: 'avenida_parque' }] }] as const;
 
 export default [
-  suceso({
-    id: 'eventos.barrio.perro_suelto',
-    titulo: 'Un perro suelto',
-    categoria: 'menor',
-    familia: 'parque',
-    requiere: ['lugares'],
-    disparo: { al: 'lugares.llegada', prob: 0.02 },
-    ejemploDeSeñal: EJEMPLO,
-    cuando: EN_EL_PARQUE,
-    repite: { espera: { dias: 60 } },
-    texto: 'Un perro sin correa viene directo hacia ti con la lengua fuera. A lo lejos, alguien grita su nombre. No sabes si quiere jugar o algo peor.',
-    urgencia: 'ahora',
-    plazo: { dias: 1, porDefecto: 'quieto' },
-    opciones: [
-      { id: 'quieto', texto: 'Quedarte quiet{yo:o|a} y no mirarlo', caracter: { prudencia: 1 }, efectos: [{ estado: 'gen.estres', mas: 1 }], resultado: 'Te huele los zapatos, se aburre y se va. El corazón te va a mil.' },
-      {
-        id: 'acariciar',
-        texto: 'Agacharte y dejar que se acerque',
-        caracter: { optimismo: 1, prudencia: -1 },
-        tirada: { con: 'gen.empatia', dificultad: 40 },
-        exito: { efectos: [{ estado: 'gen.estres', mas: -3 }, { estado: 'gen.motivacion', mas: 2 }], resultado: 'Te lame la mano y mueve el rabo como loco. Su dueño llega pidiendo perdón; tú ya estás sonriendo.' },
-        fallo: { efectos: [{ estado: 'gen.estres', mas: 3 }], resultado: 'Se te echa encima con las patas y te deja la camiseta perdida de barro. Te asustas más que otra cosa.' },
-      },
-      { id: 'correr', texto: 'Echar a correr', caracter: { prudencia: 1 }, minutos: 3, efectos: [{ estado: 'gen.energia', mas: -2 }, { estado: 'gen.estres', mas: 2 }, { entrena: 'gen.velocidad', cantidad: 0.2 }], resultado: 'Corres hasta la esquina. El perro te sigue un rato, jugando, y pierde el interés.' },
-    ],
-  }),
   suceso({
     id: 'eventos.barrio.musico_en_la_avenida',
     titulo: 'Música en la avenida',
