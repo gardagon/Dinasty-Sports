@@ -6,6 +6,8 @@ Estado: **horarios cerrados y población aprobada** (27/10/2026). La población 
 
 **Lo que pone el deporte (fase 3 del plan de deportes, 30/10/2026):** las sesiones y las sedes de los clubes y la jornada de competición (los sábados de 9 a 13 en el estadio, en el atletismo) ya no están escritas en `agendas.ts`: salen de los datos del deporte para el país de la partida (`DatosDeDeportePais.clubes` y `competiciones.jornada`, ver `modules/atletismo/src/datos.ts`) y las agendas las reciben en `DatosDeAgenda`. Las tablas de abajo describen los datos de España del atletismo.
 
+**23/11/2026 (sesión `gente-por-la-calle`, F1 y F2):** las calles tienen gente (de 6:30 a 23:59): los vecinos adultos viven en una calle, pasean al perro, los jubilados se sientan en un banco, quien tiene un oficio en un lugar está allí en su horario, los menores de 12 años no van solos al supermercado ni al restaurante y hay un portero, un conserje y tres repartidores. Ver «Gente por la calle» en el vecino y `docs/relevo/gente-por-la-calle.md`.
+
 **17/11/2026 (sesión `pnj-2`):** los niños de otros colegios y del barrio tienen horario escolar propio (fuera del mapa), quien tiene una actividad poco después de las clases no desaparece entre una cosa y otra y una parte de los vecinos adultos recoge a un hijo a la salida. Ver la tabla del alumno, la del vecino y las secciones «Niño de otro colegio», «Entre las clases y la actividad» y «Padres que recogen».
 
 **Habilidades reales de los que juegan (P2a-1, 02/11/2026):** los niños que juegan a un deporte con rutina (hoy atletismo y fútbol) llevan las mismas habilidades y conocimiento que el personaje y cada semana entrenan con la rutina de su club (sesiones por semana de cada club en `DatosDeDeporte`, `poblacion.rutina`), según su constancia; su nivel (`levels`) es el rendimiento calculado con ellas. Ver `DECISIONES.md`.
@@ -18,7 +20,7 @@ Estado: **horarios cerrados y población aprobada** (27/10/2026). La población 
 
 ## 1. Cómo funciona
 
-- Cada persona guarda una lista de **tipos** (`alumno`, `profesor`, `entrenador`, `club`, `rival`, `amigo`, `vecino`, `bibliotecario`). Un tipo aporta **tramos** de la semana: de tal hora a tal hora, en tal lugar.
+- Cada persona guarda una lista de **tipos** (`alumno`, `profesor`, `entrenador`, `club`, `rival`, `amigo`, `vecino`, `bibliotecario`, `portero`, `conserje`, `repartidor`). Un tipo aporta **tramos** de la semana: de tal hora a tal hora, en tal lugar.
 - Dos tramos pueden coincidir. **Manda el de mayor nivel** (el tipo dominante):
 
 | Nivel | Qué es | Ejemplos |
@@ -135,6 +137,29 @@ Entre las 9:00 y las 21:00 se queda fuera (50 %) o va al parque (30 %), al super
 
 Se evita partir en horas redondas donde no hace falta (p. ej. a las 16:00) para que la presencia no cambie sin motivo dentro de una tarde (hay un test).
 
+#### Gente por la calle (`vecino` con `vive`, `perro`, `jubilado`, `pequeno`, `trabaja`; portero, conserje y repartidores; 23/11, cifras provisionales)
+
+Hasta ahora nadie pisaba nunca una calle (los destinos de todos los tramos eran lugares). Ahora, **de 6:30 a 23:59** (`VENTANAS_DE_CALLE`, `agendas.ts`), las calles tienen gente. Las visitas son **pasos de 15 minutos** (todos en la cuadrícula de cuartos de hora, para que los cambios de tramo coincidan) con una probabilidad `p` por paso (azar independiente, estable por persona y día, como la salida del colegio; las `p` de las tablas son por cada 10 minutos y se escalan al paso): en promedio cada persona pasa `pasos × p` pasos por la calle, a horas distintas. Van **antes** del colegio de fuera y de la recogida (clases y esperar a un hijo mandan sobre pasear) y no cambian la presencia dentro de un tramo. Las marcas las pone `ajustarVecinos` al crear la partida y cada curso (como `recoge`; `azarDe(marca, semilla, id)`, sin gastar azar de la partida), solo a los `vecino_N` de 18 años o más, salvo `pequeno` (todos los menores de 12) y `adulto` (los que de verdad son vecinos adultos):
+
+| Marca | A quién | Qué hace |
+|---|---|---|
+| `vive` | 20 % en `calle_casa`, 15 % en `calle_colegio`, 15 % en `avenida_parque`, 50 % en ninguna. De los menores de 12 años, un 0,6 % en cada una | **Residente adulto (no jubilado):** lun–vie 6:30–8:30 (`p` 0,12), 17:30–21:00 (0,06) y 21:00–23:59 (0,03); días libres 10:00–13:00 (0,07), 18:00–21:00 (0,05) y 21:00–23:59 (0,03), en su calle. **Niño pequeño:** lun–vie 16:30–19:30 y días libres 11:00–13:00 y 17:00–20:00 (0,25), en su calle o en el parque |
+| `adulto` | Los `vecino_N` de 18 años o más (no los jóvenes de 18–19 años sin colegio, que no pisan la calle) | De paso (los no jubilados): lun–vie 7:10–8:10 y 14:00–15:00 en `calle_colegio` (0,04); días libres 10:00–14:00 en `avenida_parque` (0,025) |
+| `perro` | 15 % de los adultos | Lun–vie 6:30–7:40 (0,25) y 19:30–23:30 (0,14); días libres 8:00–12:00 (0,12) y 19:00–23:30 (0,11), en su calle (si vive en una), `avenida_parque` o `parque`. Se espeja en la etiqueta `perro` y en la descripción («…siempre pasea a su perro»). **De momento es una marca en el dueño**: admite `perro: 'id'` (una mascota) para cuando existan con los hogares, sin cambiar el comportamiento |
+| `jubilado` | `vecino_N` de `EDAD_DE_JUBILACION` (67) años o más | Un banco de `avenida_parque` o `parque`: 10:00–13:00 y 17:00–19:30 (0,3); si además vive en una calle, un paseo corto por ella 9:00–11:00 y 16:00–18:00 (0,1). No salen a trabajar. Etiqueta `jubilado` y descripción «…jubilada» |
+| `pequeno` | Menores de `EDAD_PARA_IR_SOLO` (12) años, vecinos y alumnos | **No van solos al supermercado ni al restaurante** (se quitan de sus destinos; el resto del reparto no cambia) |
+| `trabaja` + `turno` | Los `vecino_N` cuyo oficio es de un lugar (`oficioDeVecino`: dependiente → `supermercado`, camarero y cocinero → `restaurante`, monitor → `gimnasio`), turno de mañana o de tarde al 50 % | **Está en el lugar en su turno, a la vista y se le puede hablar**, el 85 % de los días (`DIAS_DE_TRABAJO`, `delDia`). Supermercado: lun–sáb 9:00–15:00 y 15:00–21:00, domingo 10:00–15:00 (solo el de mañana). Restaurante: comida 13:00–16:00 y cena 20:00–23:00. Gimnasio: 8:00–15:00 y 15:00–22:00. Con nivel de pertenencia (3): sale antes que los clientes en «gente cerca» |
+
+**Caras fijas** (personas del juego, `role: vecino`, desconocidas hasta que se habla con ellas; se generan con su propio azar —`rngEstable`—, no el de la partida, para no cambiar lo que sale después). Todas con nivel 3:
+
+| Quién | Cuántos | Dónde y cuándo |
+|---|---|---|
+| **Portero** (`portero_1`, etiqueta `portero`, «Portero de tu portal») | 1 | `calle_casa`: lun–sáb 7:00–14:00 y 16:00–20:00, domingo 9:00–13:00; libra el 15 % de los días |
+| **Conserje** (`conserje_1`, `conserje`) | 1 | `colegio` (la entrada) mientras el colegio está abierto: días de clase 7:00–19:00 y, en vacaciones, lun–vie 10:00–13:00 y lun y miércoles 14:30–17:30. **Sigue en la puerta en clase y en el recreo** (los tests de «la entrada se vacía» lo excluyen) |
+| **Repartidores** (`repartidor_1..3`, `repartidor`) | 3 | `calle_casa` o `calle_colegio`, lun–sáb 10:00–13:00 y 17:00–20:00, paradas de pasos de 15 minutos (0,12 por 10 minutos) |
+
+En la ficha, el portero, el conserje y los repartidores tienen oficio y lugar de trabajo («Portero» en «Tu portal», «Conserje» en el colegio, «Repartidor» en «Empresa de reparto»); del portero y del conserje se sabe dónde trabajan sin preguntar. Nadie de esta lista empieza conocido: se les conoce en los sucesos de calle (`modules/eventos/src/barrio/calle.ts`: «Buenos días», «Un perro suelto» con su dueño, «Un banco al sol», «El portero», «Un reparto»). El test `tests/horarios-de-agendas.test.ts` incluye todos los tipos nuevos: nadie está en un sitio cerrado (los turnos de trabajo caben dentro del horario del lugar). **Presencia:** hay unos 20–50 cambios de tramo más al día (pasos de 15 minutos de 6:30 a 23:59); el test de presencia reutilizada admite hasta 150 cambios en dos días. Medido (A/B, ciudad grande, bot de 30 días): ≈ +3 % de CPU en el perfil, de lo que la presencia es una parte pequeña (+0,15 s).
+
 #### Niño de otro colegio (`vecino` con `escolar`, 17/11)
 
 Los niños de otros colegios (`nino_*`) y los del barrio (`vecino_N`) menores de 18 que van a un colegio de fuera llevan la marca `escolar` en su tipo `vecino` (la pone `ajustarVecinos`, de `modules/npcs`, al crear la partida y cada curso; la pierden al cumplir 18 o cuando su colegio pasa a `ninguno`). Los días lectivos, **de 7:30 a 14:30 están en su colegio, que no está en el mapa** (fuera, igual que sus clases y su salida de las 14:00 a las 14:30: la hora a la que acaba el colegio del personaje). El resto del día (tarde, fines de semana, vacaciones) siguen la agenda de un vecino de arriba. Antes tenían la de un vecino adulto a todas horas: un día de clase a las 11:00 podían estar en el parque.
@@ -203,6 +228,8 @@ Los convocados se calculan con la misma regla que el personaje (`convocarYAlinea
 | Avenida del Parque | parque 1, gimnasio 5 |
 | Avenida del Estadio | estadio 3 |
 
+**Desde el 23/11 las calles tienen gente** (de 6:30 a 23:59, ver «Gente por la calle» en el vecino): antes los tramos solo llevaban a lugares y nadie pisaba nunca una calle. `avenida_estadio` sigue sin vecinos.
+
 Entre calles: casa–colegio 8, casa–parque 4, colegio–parque 6, colegio–estadio 6, parque–estadio 6 minutos. El tiempo entre dos sitios cualesquiera es el camino más corto (por ejemplo, casa → colegio: 1 + 8 + 1 = 10).
 
 Las zonas del colegio salen en este orden en «Viajar»: **aula, patio, sala de profesores, administración y pista de atletismo**.
@@ -244,7 +271,7 @@ Decididos con el usuario (28/10): además del aula, la administración y las sal
 
 ## 4. Población de PNJs (aprobada y generada)
 
-Son **391 personas persistentes** (más 2 bibliotecarios generados al final) (el plan hablaba de ~410; ver «Total real» más abajo), todas con descripción física desde el principio y desconocidas hasta que se habla con ellas (salvo la familia y quien el juego presente al empezar). Como en el juego de referencia, la pantalla enseña como mucho 40 a la vez.
+Son **391 personas persistentes** (más 2 bibliotecarios y, desde el 23/11, 5 caras fijas de la calle, generados al final) (el plan hablaba de ~410; ver «Total real» más abajo), todas con descripción física desde el principio y desconocidas hasta que se habla con ellas (salvo la familia y quien el juego presente al empezar). Como en el juego de referencia, la pantalla enseña como mucho 40 a la vez.
 
 | Grupo | Cuántos | Detalle |
 |---|---|---|
@@ -257,6 +284,7 @@ Son **391 personas persistentes** (más 2 bibliotecarios generados al final) (el
 | **Rivales** | 96 (8 por edad, de 8 a 19) | Se reparten en **12 clubes y colegios de fuera**: los dos del catálogo del personaje (Club Atletismo Ciudad y Club de Alto Rendimiento) y diez con nombres provisionales (`colegio1`…`colegio4`, `club1`…`club6`), unos 8 por club. Sedes en el estadio. Los que son de otro colegio no están en el nuestro. |
 | **Vecinos** | ~80 | De todas las edades. Parque, supermercado, restaurante, gimnasio y biblioteca. |
 | **Bibliotecarios** | 2 | Turno de mañana y turno de tarde en la biblioteca. |
+| **Caras fijas de la calle** | 5 | El portero de tu portal, el conserje del colegio y 3 repartidores (23/11; ver «Gente por la calle»). |
 | **Familia** | 2 padres + 0 a 3 hermanos | Son personas con las que te relacionas: los padres en casa (ver «Padre y madre») y los hermanos en casa, en el colegio y en su deporte (ver «Hermano»). |
 | **Total real generado** | **403 + 2 padres + 5 entrenadores de clubes + 2 bibliotecarios + los hermanos** | 4 del reparto inicial (desconocidos al empezar, como el resto), 22 compañeros más de tu clase, 25 de la otra clase, 153 de otros cursos (17 por cada edad de 9 a 17), 11 profesores más, 108 rivales y 80 vecinos |
 

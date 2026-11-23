@@ -38,6 +38,22 @@ describe('las agendas respetan los horarios', () => {
     [{ tipo: 'hermano', escolar: true }, { tipo: 'club', club: 'colegio' }],
     [{ tipo: 'bibliotecario', turno: 'manana' }],
     [{ tipo: 'bibliotecario', turno: 'tarde' }],
+    // Gente por la calle (23/11): las calles no tienen horario, pero quien trabaja en un lugar solo está allí mientras abre.
+    [{ tipo: 'vecino', adulto: true, vive: 'calle_casa', perro: true }],
+    [{ tipo: 'vecino', adulto: true, vive: 'calle_colegio' }],
+    [{ tipo: 'vecino', adulto: true }],
+    [{ tipo: 'vecino', jubilado: true, vive: 'avenida_parque', perro: true }],
+    [{ tipo: 'vecino', escolar: true, pequeno: true, vive: 'calle_casa' }],
+    [{ tipo: 'alumno', pequeno: true }],
+    [{ tipo: 'vecino', trabaja: 'supermercado', turno: 'manana' }],
+    [{ tipo: 'vecino', trabaja: 'supermercado', turno: 'tarde' }],
+    [{ tipo: 'vecino', trabaja: 'restaurante', turno: 'manana' }],
+    [{ tipo: 'vecino', trabaja: 'restaurante', turno: 'tarde' }],
+    [{ tipo: 'vecino', trabaja: 'gimnasio', turno: 'manana' }],
+    [{ tipo: 'vecino', trabaja: 'gimnasio', turno: 'tarde' }],
+    [{ tipo: 'portero' }],
+    [{ tipo: 'conserje' }],
+    [{ tipo: 'repartidor' }],
   ];
 
   it('nadie está en un sitio (ni en una zona de un sitio) mientras está cerrado', () => {

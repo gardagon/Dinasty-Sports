@@ -1543,7 +1543,7 @@ describe('el aula, las calles y los viajes', () => {
     expect(g.preview('lugares.ir_aula')!.available).toBe(false);
     expect(g.preview('lugares.ir_aula')!.reason).toMatch(/cerrado|cerrará|estará cerrado/);
     advanceUntil(g, 'gen.esperar', (t) => t.minuteOfDay >= 7 * 60 + 50);
-    expect(aqui(g, 'colegio')).toEqual([]); // se han ido a sus clases
+    expect(aqui(g, 'colegio').filter((id) => id !== 'conserje_1')).toEqual([]); // se han ido a sus clases (el conserje sigue en la puerta)
     expect(aqui(g, 'aula')).toContain('companero_social');
     expect(g.preview('lugares.ir_aula')!.available).toBe(true);
     viajarA(g, 'aula');
