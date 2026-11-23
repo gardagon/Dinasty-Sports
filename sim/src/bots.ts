@@ -97,7 +97,7 @@ const RATOS_DE_RECREO = 6;
 export function basicas(
   game: Game,
   opts: OpcionesDelBot,
-  cfg: { horaDormir: number | 'edad'; clase: boolean; competir: boolean; energiaMin: number; recreo?: number },
+  cfg: { horaDormir: number | 'edad'; recupera?: boolean; clase: boolean; competir: boolean; energiaMin: number; recreo?: number },
   mem?: BotMemory,
 ): string | undefined {
   const h = game.time.hour;
@@ -107,7 +107,7 @@ export function basicas(
   if (noche && has('gen.dormir')) {
     // Si arrastra sueño y mañana no hay clase, duerme hasta estar descansado.
     const despiertaEn = timeView(game.time.minute + (h < 6 ? 0 : 1440));
-    return cfg.horaDormir === 'edad' && !despiertaEn.isSchoolDay && has('gen.dormir_descansado') ? 'gen.dormir_descansado' : 'gen.dormir';
+    return (cfg.horaDormir === 'edad' || cfg.recupera) && !despiertaEn.isSchoolDay && has('gen.dormir_descansado') ? 'gen.dormir_descansado' : 'gen.dormir';
   }
   const aClase = opts.find(clase);
   if (cfg.clase && aClase) return aClase.id;
@@ -254,7 +254,7 @@ export const BOTS: Bot[] = [
         if (paso) return paso;
       }
       return (
-        basicas(game, opts, { horaDormir: 23, clase: true, competir: true, energiaMin: 15, recreo: 0.8 }, mem) ??
+        basicas(game, opts, { horaDormir: 23, recupera: true, clase: true, competir: true, energiaMin: 25, recreo: 0.8 }, mem) ??
         // Esperar en la calle hasta que sea hora de entrar: el resto del tiempo antes de clase es de ir despacio.
         (t.isSchoolDay && t.minuteOfDay < 7 * 60 + 40 && lugares?.actual().id === 'calle_colegio' && opts.some(id('gen.esperar')) ? 'gen.esperar' : undefined) ??
         seguirPlan(opts, mem, [
