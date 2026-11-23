@@ -17,7 +17,7 @@ const MODS = [...MODULOS, futbol];
 const t0 = performance.now();
 const g = nuevaPartida({ seed: 31, pais: cual === 'grande' ? ID_PAIS_CIUDAD_GRANDE_CON_HOGARES : ID_PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES, deportes: ['atletismo', 'futbol'] }, MODS);
 console.log(`Crear: ${((performance.now() - t0) / 1000).toFixed(1)} s`);
-const estado = () => g.serialize().modules.npcs as NpcsState;
+const estado = () => g.moduleState<NpcsState>('npcs');
 const resumen = (etiqueta: string) => {
   const s = estado();
   const dia = g.time.day;
