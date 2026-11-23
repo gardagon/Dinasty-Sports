@@ -7,7 +7,7 @@
  *       Un bot lleva al personaje: cada año, sus habilidades (puntos y fracción del tope), su nivel (`rendimiento` del fútbol) y las horas semanales por tipo de actividad.
  */
 import { writeFileSync } from 'node:fs';
-import { CAPACIDADES_GENETICAS, NIVEL_TIPICO_DE_REFERENCIA, PAIS_CIUDAD_GRANDE, TAGS, nivelTipicoPorEdad, registrarPais, type LectorDePersona } from '@ds/contracts';
+import { CAPACIDADES_GENETICAS, NIVEL_TIPICO_DE_REFERENCIA, PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_CON_HOGARES, TAGS, nivelTipicoPorEdad, registrarPais, type LectorDePersona } from '@ds/contracts';
 import { advanceToWeek, seededRng } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { aplicarPropuestas } from './propuestas-pnj';
@@ -19,7 +19,9 @@ import { deportistaDe, entrenoDeporte } from '../sim/src/bots';
 import { decidirSucesos } from '../sim/src/runner';
 import { hacer, opcionesDelBot } from '../sim/src/pasos';
 
-registrarPais(PAIS_CIUDAD_GRANDE);
+/** La ciudad grande; con `DS_HOGARES=1`, con los hogares activados (`docs/relevo/hogares.md`). */
+const PAIS = process.env.DS_HOGARES ? PAIS_CIUDAD_GRANDE_CON_HOGARES : PAIS_CIUDAD_GRANDE;
+registrarPais(PAIS);
 aplicarPropuestas();
 const [modo, salida] = [process.argv[2], process.argv[3]];
 const r3 = (x: number) => Math.round(x * 1000) / 1000;
@@ -28,7 +30,7 @@ const suma = (a: number[]) => a.reduce((x, y) => x + y, 0);
 if (modo === 'pnj') {
   const seed = Number(process.argv[4] ?? 31);
   const semanas = Number(process.argv[5] ?? 52);
-  const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['futbol'] }, [...MODULOS, futbol]);
+  const g = nuevaPartida({ seed, pais: PAIS.id, deportes: ['futbol'] }, [...MODULOS, futbol]);
   const st0 = g.moduleState('npcs') as any;
   const pob = st0.poblaciones.find((p: any) => p.deporte === 'futbol');
   const dia0 = g.time.day;
@@ -66,7 +68,7 @@ if (modo === 'pnj') {
   const propias = { semana: -1, n: 0 };
   const seed = Number(process.argv[5] ?? 31);
   const anios = Number(process.argv[6] ?? 10);
-  const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['futbol'] }, [...MODULOS, futbol]);
+  const g = nuevaPartida({ seed, pais: PAIS.id, deportes: ['futbol'] }, [...MODULOS, futbol]);
   const rng = seededRng(seed * 31 + 7);
   const mem = { day: -1, hoy: {} as Record<string, number>, total: {} as Record<string, number> };
   const habs = Object.keys(g.registry.statList.reduce((o: any, s: any) => ((s.def.id.startsWith('futbol.') && s.def.id !== 'futbol.conocimiento' && g.hiddenPotential(s.def.id) !== undefined) ? { ...o, [s.def.id]: 1 } : o), {}));

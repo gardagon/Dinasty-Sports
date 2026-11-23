@@ -1,3 +1,4 @@
+import { CIUDAD_ACTUAL, PAIS_ESPANA, conCiudad, registrarPais } from '@ds/contracts';
 import { nuevaPartida } from '@ds/game';
 import { calibrar, chequeoDeSucesos, mediana, runChecks, summarize, type BotSummary, type Check } from './analysis';
 import { BOTS, type Bot } from './bots';
@@ -24,6 +25,14 @@ export interface SimulationOutput {
   areas: Area[];
 }
 
+/** Con `DS_HOGARES=1`, la simulación usa la ciudad de siempre con los hogares activados (`docs/relevo/hogares.md`): las mismas estrategias y semillas, para comparar. */
+const PAIS_CON_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_ACTUAL, hogares: true }, '_actual_hogares');
+const juegoDeLaSimulacion = (): { pais?: string } => {
+  if (!process.env.DS_HOGARES) return {};
+  registrarPais(PAIS_CON_HOGARES);
+  return { pais: PAIS_CON_HOGARES.id };
+};
+
 /** Ejecuta todas las estrategias × semillas y analiza el resultado. */
 export function simulate(opts: SimulationOptions): SimulationOutput {
   const bots: Bot[] = opts.bots?.length ? BOTS.filter((b) => opts.bots!.includes(b.id)) : BOTS;
@@ -34,7 +43,7 @@ export function simulate(opts: SimulationOptions): SimulationOutput {
   const results: RunResult[] = [];
   for (const bot of bots) {
     for (let s = 1; s <= opts.seeds; s++) {
-      const r = runBot(bot, s * 1000 + 17, opts.days);
+      const r = runBot(bot, s * 1000 + 17, opts.days, juegoDeLaSimulacion());
       results.push(r);
       if (results.length === mitad) calibraciones.push(calibrar());
       opts.onProgress?.(`${bot.name.padEnd(20)} semilla ${s}: ${r.actions} acciones en ${r.ms.toFixed(0)} ms${r.problems.length ? ` · ${r.problems.length} problemas` : ''}`);
