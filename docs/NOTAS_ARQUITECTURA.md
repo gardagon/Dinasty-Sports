@@ -25,7 +25,7 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 
 ## 2. Estado (22/11/2026)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada en GitHub Pages con #127 (21/11), #128, #129, #130 y #131 (22/11). Lo nuevo se trabaja en ella y se publica con pull request cuando el usuario lo aprueba. Suite: 126 archivos y 1.367 tests en verde.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada en GitHub Pages con #127 (21/11), #128–#131 (22/11) y #132 (23/11: diseño de escritorio A, motor de sucesos, lote 2, arreglos). Lo nuevo se trabaja en ella y se publica con pull request cuando el usuario lo aprueba. Suite: 126 archivos y 1.367 tests en verde.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
@@ -41,7 +41,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Publicación en curso:** pull request #132 (visto bueno del usuario el 23/11). Al unirlo, comprobar Pages.
+- **Hogares** (`docs/relevo/hogares.md` §8.3): 10 dudas presentadas el 23/11. Recomendación: padres derivados de los hijos (C), H-mínimo (~14.550) y medir en el móvil, renombrar al menor en el 25–30 % de las familias, datos completos, 10–15 % de hogares en el mapa, recoge un progenitor (<10 años, 80 %), nacimientos desde H2, mascotas en el hogar, 18–19 en casa hasta los 20, contrastar el INE. H1 después de la gente por la calle (mismos archivos).
 - **Rendimiento M2**: el usuario creó una partida en el móvil en ~4 s (antes 7–8 s), «solo con fútbol»: confirmar si fue con la ciudad grande. Si lo fue, M2 no corre prisa. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
@@ -52,7 +52,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 | `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Lote 2 escrito, corregido y unido el 23/11 (112 sucesos; ritmo 4,2/semana frente a 6: faltan tardes 14–20 h). Arreglos del director: `aguanta` con `cada` y nadie hace dos papeles en un suceso | ✅ Unida |
 | `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor del lote 2 y contenido duro (desactivado por defecto) | ✅ Unida el 23/11 |
 | `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Aplicar F1 (desplegable, no despierta para clase), F2 (deuda por edad; de momento solo malus en la recuperación de energía; sensaciones y suceso de dormirse en clase) y F3 (PNJ) | Reactivada el 23/11 |
-| `session_01M4vXXQ6DoRWA2UGVauypzR` | `claude/hogares` | Análisis: hogares (padres de los niños, adultos sin hijos, bebés y pequeños como personas, nacimientos, mascotas preparadas) y tabla de escalado de rendimiento ×1–×10 | Lanzada el 23/11 |
+| `session_01M4vXXQ6DoRWA2UGVauypzR` | `claude/hogares` | Análisis (`docs/relevo/hogares.md`) | ✅ Unido. Espera decisiones del usuario |
 | `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error arreglado: el azar del aforo sale de `día:intervalo` (`PresenciaService.aforo`), no de un contador del proceso; guardar y cargar da lo mismo | ✅ Unida el 23/11 (cambian 7 líneas de la huella, aceptado como arreglo) |
 | `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Aplicar F1+F2 (calles 6:30–23:59, oficios en su lugar, <12 no van solos, portero, conserje, repartidores) y 4–5 sucesos de calle | Reactivada el 23/11 |
 | `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño A aplicado (por defecto desde 1280 px), dinero en la columna, aviso «Pasando la semana…» | ✅ Unida el 23/11 |
