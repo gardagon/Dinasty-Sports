@@ -1,0 +1,19 @@
+== pasada 1
+crear: 8767 ms
+6 semanas con «descansar» (5 min): 1019 pasos normales, mediana 0.073 ms, total 576 ms
+  cruces de día: 36, mediana 2.09 ms, total 164 ms
+  cruces de semana: 6, 127 / 90 / 197 / 211 / 291 / 294 ms (pasada semanal de los PNJ)
+listActions() (todas las acciones, tras avanzar): mediana 16.9 ms (mín 15.0, máx 36.1)
+== pasada 2
+crear: 8867 ms
+6 semanas con «descansar» (5 min): 1019 pasos normales, mediana 0.083 ms, total 613 ms
+  cruces de día: 36, mediana 1.99 ms, total 168 ms
+  cruces de semana: 6, 137 / 104 / 122 / 208 / 280 / 302 ms (pasada semanal de los PNJ)
+listActions() (todas las acciones, tras avanzar): mediana 18.1 ms (mín 15.0, máx 34.1)
+== pasada 3
+crear: 8502 ms
+6 semanas con «descansar» (5 min): 1019 pasos normales, mediana 0.079 ms, total 604 ms
+  cruces de día: 36, mediana 2.14 ms, total 171 ms
+  cruces de semana: 6, 131 / 92 / 114 / 202 / 368 / 278 ms (pasada semanal de los PNJ)
+listActions() (todas las acciones, tras avanzar): mediana 17.4 ms (mín 15.4, máx 33.6)
+done

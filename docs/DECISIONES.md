@@ -5,6 +5,48 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/11/2026 — Diseño de escritorio A y aviso al pasar de semana
+
+Respuestas del usuario a `docs/relevo/diseno-escritorio.md` y `docs/relevo/medir-rendimiento-2.md`:
+
+- **Diseño de escritorio: el prototipo A (tres columnas).** Arriba, siempre visibles, la hora, la barra del día y el estado. A la izquierda, el personaje, lo pendiente, los planes y el resumen del deporte. En el centro, la pestaña. A la derecha, el diario. Más adelante se podrá retocar. **Por defecto en pantallas de 1280 px o más**; por debajo, como ahora.
+- **En la columna izquierda se añade el dinero.** Más adelante, cuando existan, irán la comida, el inventario y otras cosas, poco a poco.
+- **No se filtran los avisos repetidos del diario ni se ocultan las cifras de prueba**, de momento.
+- **Aviso «Pasando la semana…»** antes del cálculo del cruce de semana, y el texto de la creación cambia de «unos 40 s» a «hasta un minuto» (M1).
+- **Repartir la historia deportiva entre hilos de trabajo (M2):** el usuario pidió que se le explicara. Pendiente de decidir; se espera a sus tiempos en el móvil.
+- **Bloques lejanos de 26 semanas (C1): no**, de momento.
+
+## 22/11/2026 — Dormir con desplegable y revisar la falta de sueño
+
+Lo pide el usuario: que «Dormir» no sea un solo botón, sino un desplegable con estas opciones:
+- dormir hasta la hora de levantarse (las 7);
+- recuperar el sueño si se ha trasnochado, despertando a la hora que permita recuperarse;
+- dormir las horas que tocan sin penalización.
+
+Así se amplía lo que se puede hacer de noche, también para los sucesos nocturnos. Hay que revisar los malus por dormir poco: ahora solo existe «menos de 7 h: −2 de motivación» y no hay memoria de las noches anteriores. Primero un análisis con propuesta (`docs/relevo/dormir.md`): opciones, deuda de sueño, horas por edad, malus y la misma regla para los PNJ.
+
+## 22/11/2026 — Sucesos, lote 2: decisiones sobre la propuesta (`docs/relevo/sucesos-lote-2.md`)
+
+Respuestas del usuario a las dudas de la propuesta:
+
+1. **Ritmo objetivo:** unos 6 sucesos por semana de media (entre 4 y 9), la mitad en una línea; como mucho un tercio (≤ 35 %) de los días de clase sin ninguno.
+2. **Primero una sesión de motor y después el contenido.** La sesión incluye:
+   - variantes y textos al azar (E1);
+   - señales de exámenes y boletín de `estudios` (E2);
+   - saber cuándo es el cumpleaños propio (E4);
+   - rotación por familia de sucesos, «como una baraja» (E5);
+   - medir por franja, lugar, día y persona (E8);
+   - un bot que madruga y trasnocha;
+   - la marca de contenido duro (punto 4).
+3. **Lote 3, pendiente:** la mudanza de un amigo (E6, que un PNJ salga del mundo), tu cumpleaños con fiesta y un amigo que viene a casa (E7, amigos en tu casa; E3, «quedar con X»).
+4. **Contenido duro, con una marca y una opción.** Los sucesos «duros» llevan una marca: la bronca entre los padres, un apodo feo (que recibes o que pones), las peleas. Si en Opciones no se aceptan, no salen. Así se pueden escribir con más profundidad. Las historias tienen caminos que dependen de lo que elija el jugador. **Desactivado por defecto**, porque no sabemos si quien juega es menor. Se ofrece activarlo con un mensaje al crear la partida y en Opciones. **Va por categorías** (familia, burlas, peleas…) con un interruptor general; más adelante se verá si se unifican.
+5. **Dinero entre niños (préstamo, paga con tareas):** sí. `gen.dinero` existe y lo usan algunos sucesos, pero no hay ingresos ni cosas que comprar. **Deuda técnica: la economía del personaje** (paga, ingresos, gastos, qué comprar).
+6. **Profesores:** «el profesor de Lengua o de Matemáticas», sin tutor fijo.
+7. **Pelea entre dos amigos:** se aproxima con dos amigos tuyos y no cambia la relación entre ellos. **Pendiente: relaciones entre PNJ**, para que se puedan volver enemigos entre ellos (con el personaje ya existe el estado «enemigo», afinidad ≤ −45).
+8. **Orden de escritura:** el motor; casa y fin de semana; los hilos del compañero nuevo, el tutor, el secreto y el préstamo; los detalles de colegio y amigos; y por último el examen, el boletín, el apodo, la pelea, los padres y el ahorro.
+
+Además: **gente por la calle.** Hay que poner vecinos y gente parecida en las calles, el parque y la avenida, para poder sembrar sucesos allí. En el lote 1 se vio que los vecinos adultos no están en la calle cuando llega el personaje. Primero un análisis con propuesta.
+
 ## 22/11/2026 — Mejorar el diseño de la web para PC
 
 El usuario pide mejorar el diseño en el ordenador: se aprovecha muy poco la pantalla. Ahora la página tiene un ancho máximo de 1080 px, pestañas que enseñan una sola cosa cada vez y dos columnas solo en «Qué hacer». En el móvil se queda como está. Con tantos datos, ver varias cosas a la vez ayudaría a jugar y haría el juego más atractivo. **Condición: sin deshacer código.** Cada pestaña ya se dibuja con funciones independientes (`viewLugar`, `viewActions`, `viewDeporte`, `viewPeople`, `viewLog`…), así que la vista de escritorio sería otra forma de colocar esas mismas piezas, más CSS para pantallas anchas. Se decide primero con un análisis y prototipos con capturas, que aprueba el usuario (propuesta en `docs/NOTAS_ARQUITECTURA.md` §4).

@@ -40,15 +40,18 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 
 ## 3. Preguntas para el usuario (pendientes)
 
-Ninguna abierta a 22/11. Lo que queda por decidir está en §4 como propuesta.
+Ninguna abierta (el contenido duro se decidió el 22/11: desactivado por defecto y por categorías; ya se le dijo a la sesión de motor).
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Para qué | Estado |
 |---|---|---|---|
-| `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medir sin cambiar el juego: sucesos de los PNJ con la ciudad grande, crear y jugar en un móvil emulado (también el trabajador), desglose de jornada de liga, reparto e historia; propuestas para abaratar | Lanzada el 22/11 |
-| `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Fase 1: diagnóstico de la repetición, criterios de calidad y ~30 candidatos de colegio, amigos y casa. Para y espera la aprobación del usuario antes de escribirlos | Lanzada el 22/11 |
-| `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño para PC: diagnóstico con capturas y 2–3 prototipos detrás de la opción «Diseño» (por defecto, como ahora), en archivos nuevos (`escritorio.ts`/`.css`) para no chocar con los arreglos. Para y espera que el usuario elija | Lanzada el 22/11 |
+| `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medidas (`docs/relevo/medir-rendimiento-2.md`) | ✅ Terminada y unida (solo `tools/` y `docs/`). Propuestas M1, M2 y C1 pendientes del usuario |
+| `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Fase 1 hecha y unida (`docs/relevo/sucesos-lote-2.md`); el usuario la aprobó (DECISIONES 22/11). **Espera**: cuando se una la sesión de motor, reactivarla para escribir el contenido en el orden decidido | En espera |
+| `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor para el lote 2: variantes al azar, señales de exámenes y boletín, cumpleaños propio, rotación por familia, medida por franja/lugar/persona, bot madrugador, marca de contenido duro | Lanzada el 22/11 |
+| `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Análisis con propuesta: desplegable de «Dormir» (hasta la hora de levantarse, recuperar, horas que tocan), deuda de sueño, malus y PNJ. Para y espera al usuario | Lanzada el 22/11 |
+| `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Análisis con propuesta: quién hay por la calle a cada hora, quién debería haber y su coste. Para y espera al usuario | Lanzada el 22/11 |
+| `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Prototipos A, B y C (`docs/relevo/diseno-escritorio.md`) | ✅ Unida detrás de la opción «Diseño» (por defecto, como antes). Espera a que el usuario elija para aplicarlo |
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
@@ -66,6 +69,7 @@ Ninguna abierta a 22/11. Lo que queda por decidir está en §4 como propuesta.
    - un padre que se va con su hijo, cuando haya familias de PNJ;
    - página del entrenador más detallada (labor de entrenador);
    - plantillas equilibradas por lado (pierna buena).
+7 bis. **Pendientes del 22/11:** lote 3 de sucesos (la mudanza de un amigo, tu cumpleaños con fiesta, un amigo en casa: E3, E6 y E7 de `docs/relevo/sucesos-lote-2.md`); **economía del personaje** (paga, ingresos, gastos y cosas que comprar; `gen.dinero` existe sin ingresos); **relaciones entre PNJ** (que dos amigos acaben de enemigos entre ellos).
 8. **Huecos conocidos del mundo:** no hay archivo de los PNJ que dejan el mundo; el interés no baja con el tiempo; los PNJ no van a campamentos; faltan las licencias reales de la RFEF para contrastar el abandono; los ojeadores (el nivel servirá para que vean a los buenos).
 9. **A medio plazo, planificar (decidido el 22/11):** **partidos de fútbol más reales** (ampliar los cálculos más allá de los tramos, que de momento valen; base `docs/MOTOR_PARTIDOS.md`) y **lesiones** (E12; el motor de partidos ya prevé preguntar por una lesión en cualquier acción, `MOTOR_PARTIDOS.md` §0.7 y §9). Propuesta: un análisis de cada uno (qué hay, qué falta y fases), con su plan, para que lo apruebe el usuario.
 10. **Candidatos de más calado** (para decidir con el usuario): fase 2 (vida adulta y profesional), visualizador de los partidos, ciclo de generaciones (la dinastía).

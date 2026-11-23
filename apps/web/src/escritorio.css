@@ -1,0 +1,127 @@
+/*
+ * Composición de escritorio (prototipos A, B y C; ver escritorio.ts). Todo cuelga de `.esc` (la página) o de `body:has(.esc)` (las ventanas, que se
+ * dibujan fuera de la página): sin ellas no cambia nada del diseño de siempre. Usa los mismos colores, tipografías y papel cuadriculado de style.css.
+ */
+
+/* La página ocupa la ventana entera y no se desplaza: cada zona se desplaza por su cuenta. */
+.app.esc { max-width: none; height: 100vh; padding: 10px 18px 12px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.esc > * { min-width: 0; }
+.esc-scroll { overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+.esc-cuerpo { flex: 1; min-height: 0; display: grid; gap: 14px; }
+.esc .sheet { margin-bottom: 10px; }
+.esc .sheet:last-child { margin-bottom: 0; }
+
+/* ---------- La barra del día, siempre arriba: reloj | calle de la pista | estado | opciones ---------- */
+.esc-barra { flex: none; background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); padding: 8px 16px 6px; }
+.esc .day { padding: 0; display: grid; grid-template-columns: auto minmax(220px, 1fr) minmax(280px, 34%) auto; grid-template-areas: 'reloj calle estado quien' 'reloj horas estado quien' 'dinero aviso aviso aviso'; column-gap: 24px; align-items: center; }
+.esc .day-top { display: contents; }
+.esc .clock { grid-area: reloj; font-size: 50px; white-space: nowrap; }
+.esc .clock small { font-size: 15px; line-height: 1.25; white-space: normal; max-width: 21em; }
+.esc .who { grid-area: quien; align-self: start; }
+.esc .who strong { font-size: 20px; }
+.esc .lane { grid-area: calle; margin: 0; height: 30px; align-self: end; }
+.esc .lane-hours { grid-area: horas; }
+.esc .meters { grid-area: estado; margin: 0; grid-template-columns: repeat(2, 1fr); gap: 4px 20px; }
+.esc .money { grid-area: dinero; margin: 2px 0 0; white-space: nowrap; }
+.esc #aviso-guardado { grid-area: aviso; margin: 2px 0 0; }
+
+/* Las pestañas dentro de la zona (sin la flecha de desplazamiento: aquí caben) */
+.esc .tabs-wrap { margin: 0 0 10px; flex: none; }
+.esc .tabs { flex-wrap: wrap; overflow: visible; }
+
+/* ---------- A · Tres columnas ---------- */
+.esc-a .esc-cuerpo { grid-template-columns: clamp(250px, 19vw, 330px) minmax(0, 1fr) clamp(290px, 23vw, 400px); }
+.esc-a .esc-izq, .esc-a .esc-der { padding-right: 4px; }
+.esc-centro { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.esc-centro > .esc-scroll { flex: 1; padding-right: 4px; }
+.esc-yo-cuerpo { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.esc-yo .retrato-caja { margin: 0; }
+.esc-yo .identity { flex: 1; min-width: 6em; grid-template-columns: repeat(auto-fit, minmax(5.2em, 1fr)); }
+.esc-yo .identity dd { font-size: 19px; }
+.esc-deporte-resumen h3 small { font-size: 13px; color: var(--ink-soft); font-weight: 400; }
+.esc-deporte-resumen .identity { margin-bottom: 4px; }
+.esc-deporte-resumen .identity dd { font-size: 19px; }
+.esc-deporte-resumen h4 { margin: 10px 0 2px; font-size: 14px; color: var(--ink-soft); }
+.esc-deporte-resumen .table table { font-size: 13px; }
+.esc-diario-reciente .sheet { padding: 10px 12px; }
+.esc-diario-reciente h2 { font-size: 18px; }
+.esc-diario-reciente .log li { grid-template-columns: 5em 1fr; font-size: 13px; }
+
+/* ---------- B · Dos pestañas a la vez ---------- */
+.esc-b .esc-cuerpo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.esc-panel-b { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.esc-panel-b > .esc-scroll { flex: 1; padding-right: 4px; }
+.esc-tira { flex: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 10px; max-height: 24vh; overflow-y: auto; }
+.esc-tira .sheet { margin: 0; }
+
+/* ---------- C · Panel ---------- */
+.esc-c .tabs-wrap { margin-bottom: 0; }
+.esc-sin-scroll { overflow: hidden; }
+.esc-panel { height: 100%; display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.25fr) minmax(0, 1fr); }
+.esc-tarjeta { min-height: 0; min-width: 0; overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }
+.esc-t-acciones { grid-row: 1 / 3; }
+.esc-t-gente { grid-column: 2; grid-row: 2; }
+.esc-t-diario { grid-column: 3; grid-row: 2; }
+@media (min-width: 1700px) {
+  .esc-panel { grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(0, 1fr)); }
+  .esc-t-acciones { grid-row: 1 / 3; }
+  .esc-tarjeta:nth-child(3) { grid-column: 3; grid-row: 1 / 3; }
+  .esc-t-gente { grid-column: 2; grid-row: 2; }
+  .esc-t-diario { grid-column: 4; grid-row: 1 / 3; }
+}
+.esc-t-gente .gente-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+/* ---------- Pestañas a pantalla ancha ---------- */
+.esc-dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.esc-dos > * { min-width: 0; }
+/* «Qué hacer»: las acciones en columnas */
+.esc .actions { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.esc-c .actions, .esc-b .actions, .esc-a .esc-der .actions { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.esc-panel .esc-t-acciones .actions, .esc-panel .esc-tarjeta .actions { grid-template-columns: 1fr; }
+@media (min-width: 1700px) { .esc-panel .esc-t-acciones .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Personaje: la identidad y las características una al lado de la otra; las barras en dos columnas */
+.esc-personaje-pag { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr); gap: 14px; align-items: start; }
+.esc-personaje-pag > .sheet:nth-of-type(n+3) { grid-column: 1 / -1; }
+.esc-b .esc-personaje-pag { grid-template-columns: 1fr; }
+.esc-personaje-pag .sheet:nth-child(2) { column-count: 2; column-gap: 28px; }
+.esc-b .esc-personaje-pag .sheet:nth-child(2) { column-count: 1; }
+.esc-personaje-pag .sheet:nth-child(2) > h2, .esc-personaje-pag .sheet:nth-child(2) > p.note { column-span: all; }
+.esc-personaje-pag .sheet:nth-child(2) h3 { break-after: avoid; }
+.esc-personaje-pag .sheet:nth-child(2) .stat { break-inside: avoid; }
+/* Deporte: habilidades y temporada una al lado de la otra; la plantilla y las tablas enteras, en columnas */
+.esc-deporte-pag { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.esc-deporte-pag > nav { grid-column: 1 / -1; }
+.esc-deporte-pag > .mi-equipo { grid-column: 1 / -1; }
+.esc-b .esc-deporte-pag { grid-template-columns: 1fr; }
+.esc-deporte-pag .mi-equipo .table table { display: block; }
+.esc-deporte-pag .mi-equipo .table tbody { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+.esc-deporte-pag .mi-equipo .table thead { display: none; }
+.esc-deporte-pag .mi-equipo .table tr { display: grid; grid-template-columns: 1fr auto; border-top: 1px solid var(--rule); }
+.esc-deporte-pag .mi-equipo .table td { border-top: 0; }
+.esc-b .esc-deporte-pag .mi-equipo .table tbody { grid-template-columns: 1fr; }
+/* Relaciones: las fichas en columnas */
+.esc-relaciones-pag > .sheet { column-count: 2; column-gap: 28px; }
+.esc-relaciones-pag > .sheet > h2 { column-span: all; }
+.esc-relaciones-pag .npc { break-inside: avoid; }
+.esc-b .esc-relaciones-pag > .sheet { column-count: 1; }
+/* Gente: más tarjetas por fila; la ficha, con el retrato al lado */
+.esc .gente-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+/* Diario: recuerdos y diario lado a lado */
+.esc-diario-pag { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.esc-b .esc-diario-pag { grid-template-columns: 1fr; }
+.esc-diario-pag .sheet { margin: 0; }
+.esc-diario-pag > :nth-child(n+3) { grid-column: 1 / -1; }
+
+/* ---------- Ventanas de sucesos, opciones y fichas, más grandes ---------- */
+body:has(.esc) .velo { padding: 32px; }
+body:has(.esc) .ventana { max-width: 600px; }
+body:has(.esc) .ventana.suceso { max-width: 860px; padding: 22px 28px; font-size: 17px; }
+body:has(.esc) .ventana.suceso h2 { font-size: 30px; }
+body:has(.esc) .ventana.suceso .suceso-opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; }
+body:has(.esc) .ventana.suceso .suceso-personas .retrato-caja svg, body:has(.esc) .ventana.suceso .suceso-personas svg { width: 150px; height: auto; }
+body:has(.esc) .esc .ficha-gente { }
+
+@media (max-width: 1100px) { .esc-a .esc-cuerpo { grid-template-columns: 240px minmax(0, 1fr); } .esc-a .esc-der { display: none; } }
+
+/* Los datos largos de la ficha del deporte (federación, partidos) en letra menor */
+.esc .deporte .identity dd { font-size: 17px; line-height: 1.2; }
