@@ -5,6 +5,34 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/11/2026 — Gente por la calle y hogares; dormir
+
+Respuestas del usuario a `docs/relevo/gente-por-la-calle.md` §5.3 y a `docs/relevo/dormir.md` §6.
+
+### Gente por la calle
+1. **F1 y F2 juntas:**
+   - F1: calles con los vecinos que ya hay;
+   - F2: portero, conserje, repartidores y quien trabaja en un lugar está allí en su horario.
+
+   **Después, F3. En vez de «+150 vecinos sueltos», se empieza ya con los hogares:** padres y madres de los niños del mundo, y adultos sin hijos.
+2. **Más gente, aunque exija más al rendimiento.** En el futuro habrá ligas de todo el mundo y muchísimas categorías, es decir, miles de jugadores, entrenadores y familias. Conviene empezar ya a meter padres y ver cómo respira el rendimiento.
+3. **Nadie empieza conocido** salvo la familia. A los vecinos y al portero se les conoce en sucesos.
+4. **Bebés y mascotas:** un bebé que es solo texto no se sostiene, porque no se explica que un vecino con bebé deje de aparecer o que salga siempre. Los niños pequeños y los bebés de los hogares se estudian como personas dentro del diseño de los hogares. **Mascotas: no se cierra la puerta.** Se deja preparado en el diseño de los hogares (dueño, especie, nombre, edad), aunque todavía no se implementen.
+5. **Los menores de 12 años no van solos** al supermercado ni al restaurante.
+6. **Quien tiene un oficio en un lugar** (dependiente, camarero, monitor) está allí en su horario.
+7. **Horario de la calle: de 6:30 a 23:59.**
+8. **Vínculo padre–hijo:** entra con los hogares (F3), no se deja para después. Además, se pueden añadir unos pocos adultos sin hijos (menos de 150).
+
+### Dormir
+1. **F1 ya, y F2 y F3 seguidas.** Matiz: **dormir no te despierta para ir a clase.** Cumple las horas elegidas, no mira las obligaciones. Más adelante podrá haber un despertador.
+2. **Necesidad de sueño por edad** (unas 9,5 h a los 8 años, bajando hasta 7 h desde los 22). Si queda menos tarde libre, es lo que hay. Dormir menos tiene consecuencias.
+3. **El desplegable tiene las mismas opciones todos los días,** también en fin de semana y vacaciones, y el jugador decide cuánto dormir. Sin hora especial de fin de semana. Se podrán añadir opciones más adelante.
+4. **Dormir puede hacerte faltar o llegar tarde a clase** si no calculas bien. Si vas muy cansado, te puedes dormir en clase (un suceso).
+5. **Cuánto castiga:** se prepara y se documenta junto con la salud y las lesiones (E12), para ajustarlo entonces. De momento, el sueño atrasado solo da un malus en la recuperación de energía de cada día.
+6. **No se enseñan números del sueño:** se pasa directamente a sucesos y sensaciones («arrastras sueño»), para no tener que rehacerlo después.
+7. **La siesta recupera algo de sueño atrasado:** como mucho 0,5 h al día.
+8. **El horario para acostarse (21:00–6:00) no cambia.**
+
 ## 23/11/2026 — Una partida no depende de las anteriores del mismo proceso
 
 - **Fallo:** `relaciones` y la web sacaban el aforo (cuánta gente ves cerca, `aforoCercano`) con `presencia.version` como azar, un contador de índices de presencia construidos que era del proceso (`versionDeIndices` en `modules/npcs`). La segunda partida de un proceso seguía contando donde acabó la primera: `vago` con la semilla 2 daba otra partida tras `madrugador`, tras `equilibrado` o tras otra `vago` 2. Y guardar y cargar reiniciaba el contador, así que daba otro aforo que seguir sin cargar. En `npcs` el aforo ya usaba el día y el intervalo (`${t.day}:${intervalo}`): era una incoherencia entre los dos módulos.
