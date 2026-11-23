@@ -100,6 +100,22 @@ describe('hogares', () => {
     }
   });
 
+  it('recoge a los hijos un progenitor de verdad (de un hijo menor de 12 en el colegio) y vive en la calle de su hogar', () => {
+    const recogen = s.npcs.filter((n) => esProgenitorDeHogar(n) && n.tipos?.some((t) => t.recoge));
+    expect(recogen.length).toBeGreaterThan(10);
+    for (const p of recogen) {
+      const suyos = s.npcs.filter((n) => n.hogar === p.hogar && !esProgenitorDeHogar(n) && n.colegio !== 'ninguno' && (n.role === 'companero' || !!n.colegio));
+      expect(suyos.length, p.id).toBeGreaterThan(0);
+      expect(Math.min(...suyos.map(edad)), p.id).toBeLessThan(12);
+      // En un hogar de dos adultos recoge solo uno.
+      expect(s.npcs.filter((n) => n.hogar === p.hogar && esProgenitorDeHogar(n) && n.tipos?.some((t) => t.recoge))).toHaveLength(1);
+    }
+    for (const n of s.npcs.filter((x) => esProgenitorDeHogar(x))) expect(n.tipos?.[0].vive).toBe(s.hogares![n.hogar!].calle);
+    const enElMapa = Object.values(s.hogares!).filter((h) => h.calle).length / Object.keys(s.hogares!).length;
+    expect(enElMapa).toBeGreaterThan(0.03);
+    expect(enElMapa).toBeLessThan(0.3);
+  });
+
   it('guardar y cargar conserva los hogares, y un curso entero renueva la gente sin dejar hijos sin progenitor', () => {
     const copia = cargarPartida(structuredClone(g.serialize()), MODULOS);
     expect(estado(copia).hogares).toEqual(s.hogares);
