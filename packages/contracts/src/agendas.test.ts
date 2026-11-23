@@ -212,6 +212,29 @@ describe('agendas de las personas', () => {
     });
   });
 
+  describe('trabajo de los progenitores de un hogar (23/11)', () => {
+    const sitio = (t: TipoAsignado[], dia: number, hora: number, min: number, quien: string) => ubicacionEn(construirAgenda(t, datos), en(dia, hora, min), quien).sitio;
+    const personas = Array.from({ length: 200 }, (_, i) => `p${i}`);
+
+    it('de lunes a viernes de 9:00 a 17:00 está fuera del mapa; el resto del día, como un vecino', () => {
+      const t: TipoAsignado[] = [{ tipo: 'vecino', adulto: true, laboral: true }];
+      for (const p of personas) for (const dia of [0, 2, 4]) for (const [hora, min] of [[9, 0], [11, 30], [15, 0], [16, 55]]) expect(sitio(t, dia, hora, min, p), `${p} día ${dia} ${hora}:${min}`).toBeNull();
+      // El sábado es de un vecino cualquiera: alguno pisa el parque a media mañana.
+      expect(personas.some((p) => sitio(t, 5, 11, 0, p) !== null)).toBe(true);
+    });
+
+    it('quien recoge sale antes: trabaja hasta las 13:30, está en el colegio a las 14:00 (si va ese día) y no vuelve a trabajar esa tarde', () => {
+      const t: TipoAsignado[] = [{ tipo: 'vecino', adulto: true, laboral: true, recoge: true }];
+      for (const p of personas) expect(sitio(t, 1, 12, 0, p), p).toBeNull();
+      expect(personas.some((p) => sitio(t, 1, 14, 0, p) === 'colegio')).toBe(true);
+    });
+
+    it('quien trabaja en un lugar está en él en su horario, no fuera', () => {
+      const t: TipoAsignado[] = [{ tipo: 'vecino', adulto: true, laboral: true, trabaja: 'supermercado', turno: 'manana' }];
+      expect(personas.some((p) => sitio(t, 1, 11, 0, p) === 'supermercado')).toBe(true);
+    });
+  });
+
   describe('padres que recogen a su hijo (17/11)', () => {
     const padre: TipoAsignado[] = [{ tipo: 'vecino', recoge: true }];
     const u = (dia: number, hora: number, min: number, quien: string) => ubicacionEn(construirAgenda(padre, datos), en(dia, hora, min), quien).sitio;

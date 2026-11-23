@@ -174,6 +174,18 @@ Quien va al colegio del personaje (alumno o hermano en edad escolar) y tiene un 
 
 Un **15 %** de los vecinos adultos (`RECOGIDA_DE_NINOS.proporcion`; ids `vecino_N` de **25 años o más** (`edadMinima`), sorteados por su id y la semilla con `azarDe`, sin gastar números del azar de la partida) llevan la marca `recoge`. **Van el 80 % de los días de clase** (`diasDeClase`; sorteo estable por persona y día, con el campo de tramo `delDia`: ese día están o no están, sin gastar el azar de la partida; los otros días hacen lo de un vecino). Los días que van, **llegan a la entrada del colegio (`colegio`) entre las 13:45 y las 14:00** (en pasos de 5 minutos: a las 13:45 está un tercio, a las 13:50 dos tercios y a las 13:55 todos) y **se van entre las 14:05 y las 14:30** (en pasos de 5: a las 14:05 sigue el 83 %, a las 14:10 el 67 %… a las 14:25 el 17 %; a las 14:30 no queda nadie). Quien ha llegado se queda hasta su hora y quien se va no vuelve (el mismo mecanismo `grupoDeAzar` que la salida de los alumnos). Antes y después hacen lo de un vecino. **Pendiente de revisar (decisión del usuario, 17/11): la edad mínima.** Los 25 años son provisionales: a veces pueden ser algo más jóvenes, y se quiere mezclar padres y abuelos (hoy todos son «vecino adulto» sin distinguir). **Todavía no hay una relación entre un padre y un hijo concreto** (los únicos padres son los del personaje): no se van «con su hijo»; queda pendiente hasta que exista esa relación.
 
+#### Progenitores de un hogar (`vecino` con `laboral`, 23/11, solo con `CiudadDef.hogares`)
+
+Con los hogares (`docs/relevo/hogares.md`), los adultos de cada familia (`Npc.hogar`, etiqueta `adulto_de_hogar`) son vecinos adultos con marcas propias que pone `ajustarVecinos`:
+
+| Marca | Cuándo | Qué hace |
+|---|---|---|
+| `vive` | Siempre que el hogar esté en una calle del mapa (el 12 %; el resto vive en otro barrio) | La calle de su hogar (la de las ventanas de calle de `vecino`) |
+| `recoge` | Su hogar tiene un hijo en el colegio de **menos de 10 años** (siempre), de 10 (50 %) o de 11 (25 %); en un hogar de dos adultos, **solo uno** (el sorteo es del hogar y la semilla) | Lo de «Padres que recogen» de arriba (el 80 % de los días de clase). Ya no es un sorteo suelto del 15 %: es el progenitor del niño |
+| `laboral` | Progenitor menor de `EDAD_DE_JUBILACION` | **De lunes a viernes de 9:00 a 17:00 está «fuera»** (`TRABAJO_DE_PROGENITORES`, `agendas.ts`); **quien recoge sale antes: de 9:00 a 13:30** y esos días está en la entrada del colegio de 13:45 a 14:30. El trabajo va después de lo del barrio y la calle (manda sobre pasear) y antes de recoger (esperar al hijo manda sobre trabajar). Quien además tiene un oficio de un lugar (`trabaja`: dependiente, camarero, cocinero, monitor) está **en ese lugar** en su horario (manda sobre trabajar fuera) |
+
+El resto del día (de 6:30 a 9:00, de 17:00 a 23:59 y los fines de semana) hacen lo de un vecino adulto. **Pendiente:** el hijo no se va con su progenitor (ambos salen del colegio por su propio azar); los 80 vecinos de siempre no tienen la marca `laboral`.
+
 ### Bibliotecario (`bibliotecario`), nivel 2
 
 Dos personas (`bibliotecario_1` y `bibliotecario_2`, `role: vecino`, etiqueta `bibliotecario`): «Bibliotecario/a» en «Biblioteca municipal» (se sabe dónde trabajan; no hace falta preguntar). Turno de **mañana** (`turno: 'manana'`): lunes a viernes 9:00–14:30 y sábados 10:00–14:00; turno de **tarde**: lunes a viernes 14:30–20:00. Trabajan también en vacaciones y festivos. Se generan al final de la población para no cambiar el azar de lo demás.

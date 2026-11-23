@@ -779,15 +779,16 @@ export function ajustarVecinos(npcs: Npc[], semilla: number, dia: number): Npc[]
     const vive = deHogar ? t.vive : adulto ? (v < 0.2 ? CALLES_CON_VECINOS[0] : v < 0.35 ? CALLES_CON_VECINOS[1] : v < 0.5 ? CALLES_CON_VECINOS[2] : undefined) : pequeno && vn < 0.018 ? CALLES_CON_VECINOS[Math.floor(vn / 0.006)] : undefined;
     const perro = adulto && azarDe('perro', semilla, n.id) < 0.15;
     const jubilado = adulto && edad >= EDAD_DE_JUBILACION;
+    const laboral = deHogar && adulto && !jubilado;
     const lugar = adulto && !jubilado ? OFICIO_EN_LUGAR[oficioDeVecino(n.id, n.gender, edad).trabajo ?? ''] : undefined;
     const turno: TipoAsignado['turno'] = lugar ? (azarDe('turno', semilla, n.id) < 0.5 ? 'manana' : 'tarde') : undefined;
     const descripcion = adulto ? descripcionDeVecino(n.gender, perro, jubilado) : n.description;
     const etiquetas = [...n.tags.filter((e) => !(ETIQUETAS_DE_CALLE as readonly string[]).includes(e)), ...(perro ? ['perro'] : []), ...(jubilado ? ['jubilado'] : [])];
-    const igual = !!t.escolar === escolar && !!t.recoge === recoge && !!t.pequeno === pequeno && !!t.adulto === adulto && t.vive === vive && !!t.perro === perro && !!t.jubilado === jubilado && t.trabaja === lugar && t.turno === turno
+    const igual = !!t.escolar === escolar && !!t.recoge === recoge && !!t.pequeno === pequeno && !!t.adulto === adulto && t.vive === vive && !!t.perro === perro && !!t.jubilado === jubilado && !!t.laboral === laboral && t.trabaja === lugar && t.turno === turno
       && n.description === descripcion && n.tags.length === etiquetas.length && n.tags.every((e, k) => e === etiquetas[k]);
     if (igual) continue;
-    const { escolar: _e, recoge: _r, pequeno: _q, adulto: _a, vive: _v, perro: _o, jubilado: _j, trabaja: _w, turno: _t, ...resto } = t;
-    const marcas = { ...(escolar ? { escolar: true } : {}), ...(recoge ? { recoge: true } : {}), ...(pequeno ? { pequeno: true } : {}), ...(adulto ? { adulto: true } : {}), ...(vive ? { vive } : {}), ...(perro ? { perro: true } : {}), ...(jubilado ? { jubilado: true } : {}), ...(lugar ? { trabaja: lugar, turno } : {}) };
+    const { escolar: _e, recoge: _r, pequeno: _q, adulto: _a, vive: _v, perro: _o, jubilado: _j, laboral: _l, trabaja: _w, turno: _t, ...resto } = t;
+    const marcas = { ...(escolar ? { escolar: true } : {}), ...(recoge ? { recoge: true } : {}), ...(pequeno ? { pequeno: true } : {}), ...(adulto ? { adulto: true } : {}), ...(vive ? { vive } : {}), ...(perro ? { perro: true } : {}), ...(jubilado ? { jubilado: true } : {}), ...(laboral ? { laboral: true } : {}), ...(lugar ? { trabaja: lugar, turno } : {}) };
     nuevos.set(n.id, { ...n, ...(adulto ? { description: descripcion } : {}), tags: etiquetas, tipos: n.tipos!.map((x, j) => (j === i ? { ...resto, ...marcas } : x)) });
   }
   return nuevos.size ? npcs.map((n) => nuevos.get(n.id) ?? n) : npcs;

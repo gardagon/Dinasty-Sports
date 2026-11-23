@@ -87,6 +87,11 @@ export interface TipoAsignado {
   jubilado?: boolean;
   /** `alumno` o `vecino` menor de 12 años: no va solo al supermercado ni al restaurante (`EDAD_PARA_IR_SOLO`). */
   pequeno?: boolean;
+  /**
+   * `vecino` adulto, progenitor de un hogar (`CiudadDef.hogares`) menor de `EDAD_DE_JUBILACION`: trabaja fuera del mapa de lunes a viernes de 9:00 a 17:00 (`TRABAJO_DE_PROGENITORES`); quien además recoge (`recoge`) sale antes
+   * (trabaja de 9:00 a 13:30 y recoge a su hijo). Quien tiene un oficio de un lugar (`trabaja`) está en él en su horario, no «fuera».
+   */
+  laboral?: boolean;
   /** `vecino` adulto cuyo oficio es de un lugar (dependiente, camarero, cocinero, monitor): está allí en su horario (con su `turno`), a la vista. */
   trabaja?: 'supermercado' | 'restaurante' | 'gimnasio';
 }
@@ -414,7 +419,17 @@ function vecino(nivel: number, t: TipoAsignado): TramoDeAgenda[] {
   });
   // Los niños que van a un colegio de fuera: en clase (fuera del mapa) de 7:30 a la salida, que acaba a las 14:30. Va después de lo del barrio y de la calle: a igualdad de nivel gana el último.
   const colegioDeFuera = escolar ? [tramo('vecino', nivel, 'lectivo', PRIMERA_CLASE - LLEGADA_AL_COLEGIO, FIN_DE_CLASES + SALIDA_DEL_COLEGIO.minutos, [[FUERA, 1]])] : [];
-  return [...delBarrio, ...vecinoEnLaCalle(nivel, t), ...colegioDeFuera, ...(recoge ? recogerANinos(nivel) : []), ...trabajoEnUnLugar(t)];
+  return [...delBarrio, ...vecinoEnLaCalle(nivel, t), ...colegioDeFuera, ...(t.laboral ? trabajoDeProgenitor(nivel, recoge) : []), ...(recoge ? recogerANinos(nivel) : []), ...trabajoEnUnLugar(t)];
+}
+
+/**
+ * El trabajo de los progenitores de un hogar (`TipoAsignado.laboral`, 23/11): «fuera» de lunes a viernes de `desde` a `hasta`; quien recoge a un hijo sale antes (`hastaSiRecoge`: 13:30, antes de llegar al colegio).
+ * Es un tramo del mismo nivel que ser vecino que va después de lo del barrio y de la calle (el trabajo manda sobre pasear) y antes de recoger (esperar al hijo manda sobre trabajar) y de `trabajoEnUnLugar`.
+ */
+export const TRABAJO_DE_PROGENITORES = { dias: [0, 1, 2, 3, 4] as readonly Weekday[], desde: h(9), hasta: h(17), hastaSiRecoge: h(13, 30) };
+function trabajoDeProgenitor(nivel: number, recoge: boolean): TramoDeAgenda[] {
+  const { dias, desde, hasta, hastaSiRecoge } = TRABAJO_DE_PROGENITORES;
+  return [tramo('vecino', nivel, dias, desde, recoge ? hastaSiRecoge : hasta, [[FUERA, 1]])];
 }
 
 /** Los sitios a los que un niño pequeño no va solo. */
