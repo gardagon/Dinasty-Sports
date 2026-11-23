@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/11/2026 — Diseño de escritorio A y aviso al pasar de semana
+
+Respuestas del usuario a `docs/relevo/diseno-escritorio.md` y `docs/relevo/medir-rendimiento-2.md`:
+
+- **Diseño de escritorio: el prototipo A (tres columnas).** Arriba, siempre visibles, la hora, la barra del día y el estado. A la izquierda, el personaje, lo pendiente, los planes y el resumen del deporte. En el centro, la pestaña. A la derecha, el diario. Más adelante se podrá retocar. **Por defecto en pantallas de 1280 px o más**; por debajo, como ahora.
+- **En la columna izquierda se añade el dinero.** Más adelante, cuando existan, irán la comida, el inventario y otras cosas, poco a poco.
+- **No se filtran los avisos repetidos del diario ni se ocultan las cifras de prueba**, de momento.
+- **Aviso «Pasando la semana…»** antes del cálculo del cruce de semana, y el texto de la creación cambia de «unos 40 s» a «hasta un minuto» (M1).
+- **Repartir la historia deportiva entre hilos de trabajo (M2):** el usuario pidió que se le explicara. Pendiente de decidir; se espera a sus tiempos en el móvil.
+- **Bloques lejanos de 26 semanas (C1): no**, de momento.
+
 ## 22/11/2026 — Dormir con desplegable y revisar la falta de sueño
 
 Lo pide el usuario: que «Dormir» no sea un solo botón, sino un desplegable con estas opciones:
