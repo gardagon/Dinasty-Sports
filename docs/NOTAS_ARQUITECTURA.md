@@ -2,7 +2,7 @@
 
 Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo lee lo primero** y lo mantiene al día: cuando una pregunta se responde, se quita de aquí y se apunta como decisión en `docs/DECISIONES.md` (y en el plan o anexo que corresponda); cuando algo pendiente se hace, se quita o se marca.
 
-Última actualización: 22/11/2026 (noche), sesión de arquitectura `session_01M4vXXRpLP6RxV6c6wYEDQ8`, que tomó el relevo de la del 17–22/11.
+Última actualización: 23/11/2026 (noche), sesión de arquitectura `session_01M4vXXRpLP6RxV6c6wYEDQ8` (22–23/11), que tomó el relevo de la del 17–22/11. **Relevo completo**: se puede seguir en una conversación nueva leyendo este archivo.
 
 ---
 
@@ -23,63 +23,92 @@ Para quien coordine el proyecto (persona o IA). **La sesión de arquitectura lo 
 - **Imágenes para el usuario:** con `SendUserFile`. Para revisar capturas grandes, recortarlas antes de mirarlas. El dibujo se revisa a tamaño real, no solo en el zoom.
 - **El usuario** juega en Chrome (PC y Android). En Samsung Internet con modo oscuro el retrato sale desvaído y no hay arreglo desde la web (su modo oscuro forzado lo altera todo).
 
-## 2. Estado (22/11/2026)
+## 2. Estado (23/11/2026, noche)
 
-Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada en GitHub Pages con #127 (21/11), #128–#131 (22/11) #132 (23/11: diseño de escritorio A, motor de sucesos, lote 2, arreglos) y #133 (23/11: dormir, gente por la calle). Lo nuevo se trabaja en ella y se publica con pull request cuando el usuario lo aprueba. Suite: 126 archivos y 1.367 tests en verde.
+Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages con #127 (21/11), #128–#131 (22/11), **#132** (23/11: diseño de escritorio A, motor de sucesos, lote 2, arreglos) y **#133** (23/11: dormir, gente por la calle). Después de #133 se ha unido **hogares H1 detrás de `CiudadDef.hogares` desactivado**; no está publicado. Suite: unos 133 archivos y 1.442 tests.
 
 | Bloque | Estado | Dónde |
 |---|---|---|
-| **Cuerpo y apariencia** para todos (altura, peso, músculo y grasa, hábitos, canas, calvicie, barba, 13 rasgos de la cara heredables con tendencias por origen) | ✅ | `docs/ANEXO_CUERPO.md`, `packages/contracts/src/cuerpo.ts` |
-| **Visualizador de personas** (estilo «tinta», retrato, figura, evolución, catálogos, ojo con pliegue del párpado; niños sin peinados de adulto) | ✅ base · etapa 2c pendiente | `docs/ANEXO_RETRATOS.md`, `packages/retrato` |
-| **Sucesos** (motor, 63 sucesos, presentación desde Opciones, «durante una actividad» sin minutos, urgencia `ahora`/`aplazable`/`pendiente`, moverse con el grupo y «Me voy») | ✅ motor · contenido y calibración pendientes | `docs/ANEXO_EVENTOS.md`, `docs/PLAN_EVENTOS.md` |
-| **Fútbol:** prueba de acceso como suceso, reparto de equipos (4 clubes de colegio, probar fuera según edad y ambición, plazas de más, rotación en benjamín y alevín de colegio, primeros años que no desplazan en benjamín y alevín, salida del club como suceso), equipos que se forman los días 1–6, «Mi equipo» (dorsales, compañeros sin nombre, comparación, puesto al verle jugar), puestos sin lado («Interior», «Medio de banda»), pistas y «Preguntar por un puesto», 22 entrenamientos y campamentos separados, quedar a jugar, calendario de la liga, el entrenador dice el puesto en el primer entrenamiento, crónica con dorsales | ✅ | `docs/ANEXO_DEPORTE.md`, `docs/CIUDAD_Y_LIGAS.md`, `docs/ANEXO_PUESTOS.md` |
-| **PNJ:** horarios (colegio, recogida, salida enlazada con la tarde), charlar con vecinos y rivales, amistad con los niños del barrio, PNJ que entrenan por su cuenta («fuerte»), abandono por nivel e interés, compañeros hasta los 20, demografía y nombres por ciudad | ✅ | `docs/ANEXO_HORARIOS_PNJ.md`, `docs/ANEXO_RELACIONES.md`, `docs/ANEXO_NOMBRES.md` |
-| **Vida:** «Hacer deberes», acciones que pisan una obligación (se cortan), listas en desplegables, fichas de quien no está sin acciones | ✅ | DECISIONES 21/11 |
-| **Rendimiento:** guardar a trozos, fútbol más barato (crear ~10 s, semana 0,1–0,36 s en la ciudad grande), índice de presencia por lugar, `npm run presupuesto` y aviso del peso | ✅ · pendiente abaratar la jornada de liga y el reparto | `docs/relevo/revision-rendimiento.md`, `docs/relevo/coste-por-accion.md` |
-| **Versión visible y actualización** de la app | ✅ | `docs/relevo/version-visible.md` |
-| **Peluquería y barbería** | Decidido, sin planificar | `docs/PLAN_PELUQUERIA.md` |
+| **Cuerpo y apariencia** para todos | ✅ | `docs/ANEXO_CUERPO.md` |
+| **Visualizador de personas** | ✅ base · etapa 2c pendiente | `docs/ANEXO_RETRATOS.md` |
+| **Sucesos:** motor con variantes y textos al azar, rotación por familia, señales de examen y boletín, cumpleaños propio, contenido duro por categorías (desactivado por defecto), `sim:eventos` por franja, lugar y persona, bot `madrugador`. **117 sucesos** (lote 2 de casa, colegio y amigos, con 10 hilos; 5 de calle). Ritmo ~5,9 por semana frente al objetivo de 6, con las tardes (14–20 h) todavía flojas | ✅ | `docs/ANEXO_EVENTOS.md`, `docs/relevo/sucesos-lote-2.md`, `docs/relevo/sucesos-motor-2.md` |
+| **Fútbol** (reparto, Mi equipo, puestos, entrenamientos, liga…) | ✅ | `docs/ANEXO_DEPORTE.md`, `docs/CIUDAD_Y_LIGAS.md` |
+| **PNJ:** horarios, charlar, amistad, entrenan por su cuenta, abandono. **Calles con gente** de 6:30 a 23:59 (marcas `vive`/`perro`/`jubilado`; oficios en su lugar; los menores de 12 no van solos; portero, conserje y repartidores) | ✅ | `docs/ANEXO_HORARIOS_PNJ.md`, `docs/relevo/gente-por-la-calle.md` |
+| **Hogares H1** (familias hacia delante: padres primero, hijos que heredan con las reglas del personaje, hermanos pequeños, monoparentales con motivo, recogida por el progenitor, familias que se mudan cada curso) | ✅ detrás de `CiudadDef.hogares` **desactivado**; activarlo lo decide el usuario | `docs/relevo/hogares.md` («H1 implementado») |
+| **Dormir:** desplegable (hasta las 7:00, lo que toca, hasta descansado, N horas), deuda por edad (−2,5 de energía máxima por hora), sensaciones, `dormirse_en_clase`, PNJ con la misma regla | ✅ | `docs/relevo/dormir.md`, `packages/contracts/src/sueno.ts`, `docs/BACKLOG_STATS.md` E12.3 |
+| **Web de escritorio A** (tres columnas desde 1280 px), aviso «Pasando la semana…» | ✅ | `apps/web/src/escritorio.ts`, `docs/relevo/diseno-escritorio.md` |
+| **Rendimiento:** ciudad grande en escritorio: crear 7,7 s, semana 0,19–0,30 s, ~1,3–1,4 ms por acción en `sim:rapida`. El usuario creó una partida en el móvil en ~4 s | ✅ · M2 sin decidir | `docs/relevo/medir-rendimiento-2.md` |
+| **Determinismo:** una partida no depende de las anteriores; guardar y cargar da lo mismo (aforo por `día:intervalo`) | ✅ | `docs/relevo/estado-compartido.md` |
+| **Peluquería** | Decidido, sin planificar | `docs/PLAN_PELUQUERIA.md` |
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Rendimiento M2**: el usuario creó una partida en el móvil en ~4 s (antes 7–8 s), «solo con fútbol»: confirmar si fue con la ciudad grande. Si lo fue, M2 no corre prisa. Falta medir el cruce de semana en el móvil.
+- **Hogares H1, activarlo** (cifras de `docs/relevo/hogares.md`, «H1 implementado»):
+  - con hogares, 13.787 personas (antes 6.118); estado 27,2 MB (antes 16,2); crear +0,3 a +1,7 s; +39 % por acción (5,97 ms frente a 4,31 en el bot de la ciudad grande); cruce de día 22 ms (antes 9);
+  - el 40–45 % de los que entran cada curso vienen de hermanos pequeños;
+  - `benjamin` igual; el nivel medio por edad baja 0,1–0,5 y juegan un 4 % más (interés heredado).
+
+  Tres dudas, con la recomendación de la sesión:
+  1. aceptar el +4 % de interés heredado;
+  2. **dar trabajo a los progenitores** (9–17 «fuera» entre semana): recorta la mitad del sobrecoste por acción y lo pide el anexo de horarios;
+  3. dejar `FAMILIAS.siguiente` como está.
+
+  Pendiente de presentárselas al usuario.
+- **Rendimiento M2:** el usuario creó una partida en el móvil en ~4 s («solo con fútbol»). Confirmar si fue con la ciudad grande. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
 
-| Sesión | Rama | Para qué | Estado |
-|---|---|---|---|
-| `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medidas (`docs/relevo/medir-rendimiento-2.md`) | ✅ Terminada y unida (solo `tools/` y `docs/`). Propuestas M1, M2 y C1 pendientes del usuario |
-| `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Lote 2 escrito, corregido y unido el 23/11 (112 sucesos; ritmo 4,2/semana frente a 6: faltan tardes 14–20 h). Arreglos del director: `aguanta` con `cada` y nadie hace dos papeles en un suceso | ✅ Unida |
-| `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor del lote 2 y contenido duro (desactivado por defecto) | ✅ Unida el 23/11 |
-| `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | F1–F3 hechas y unidas el 23/11 (desplegable, deuda por edad con malus solo en la energía máxima al despertar, sensaciones, `dormirse_en_clase`, PNJ). Arreglado: el agotamiento de fin de día ve la energía de antes de dormir | ✅ Unida. Pendiente: hermanos <8 duermen 21:30–7:00 (`agendas.ts`, después de la calle); calibrar −4 de energía/h de deuda (¿−2,5?) |
-| `session_01M4vXXQ6DoRWA2UGVauypzR` | `claude/hogares` | H1 (paso 2) detrás del dato desactivado, con las decisiones del A8 (DECISIONES 23/11); medir cifras para que el usuario decida activarlo | En marcha |
-| `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error arreglado: el azar del aforo sale de `día:intervalo` (`PresenciaService.aforo`), no de un contador del proceso; guardar y cargar da lo mismo | ✅ Unida el 23/11 (cambian 7 líneas de la huella, aceptado como arreglo) |
-| `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | F1+F2 y abaratar el reparto de papeles (1,84 → ~1,4 ms por acción, huella idéntica), unidas el 23/11 | ✅ Unida |
-| `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Diseño A aplicado (por defecto desde 1280 px), dinero en la columna, aviso «Pasando la semana…» | ✅ Unida el 23/11 |
+Ninguna trabajando. Pueden reactivarse con contexto:
+- `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): seguir con H1 (trabajo de los progenitores, papel de reparto por parentesco, ficha con el vínculo, niños de los vecinos sin familia, abandono por edad) y con H2;
+- `session_01M4vXXQAF9nMwtH72JNPMoS` (`claude/sucesos-lote-2`): más sucesos;
+- `session_01M4vXXPqtbBbKjYfQzgtQgH` (calle);
+- `session_01M4vXXNhTp4behXGJK95oAE` (dormir);
+- `session_01M4vXXNJgqnXmd48HC8S6Eb` (escritorio).
 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
-1. **Probar como jugador lo publicado el 22/11** y corregir los matices que vaya encontrando el usuario (es lo que está haciendo ahora). Arreglos pequeños apuntados para la próxima tanda:
-   - con la ciudad grande, la ficha del deporte dice «Federación: … (con los datos de España: España · ciudad grande (se tarda hasta un minuto en crear) aún no tiene los suyos)». El aviso de «datos de respaldo» no debería salir para la ciudad grande, que es España, y el nombre del país no debería llevar el paréntesis del tiempo (`apps/web/src/paises-propios.ts`, `modules/futbol/src/index.ts:937`, `modules/atletismo/src/index.ts:660`);
-   - «Nueva partida» y el menú siguen a 460 px en PC.
-2. **Sucesos: prioridad alta** («es lo que hará que los días no se repitan; hay que mimarlos», usuario, 22/11). Lote 2 de colegio, amigos y casa en marcha (§3 bis): primero la propuesta con criterios de calidad, que aprueba el usuario, y después se escriben. Los bots no pasan por la calle del colegio antes de las 8:10 ni están en casa de noche: esos sucesos se prueban con `pruebas`.
-2 ter. **Rendimiento, M2** (historia deportiva repartida entre hilos de trabajo, huella idéntica, −30 % al crear): explicada al usuario el 23/11; espera sus tiempos en el móvil (Android, ciudad grande: crear y pasar de semana).
-2 bis. **Diseño de la web para PC** (usuario, 22/11; DECISIONES 22/11): aprovechar la pantalla ancha sin deshacer código, recolocando las funciones `view*` que ya existen en una vista de escritorio (≥ 1280 px) con CSS propio; el móvil, igual. Análisis y prototipos en marcha (§3 bis); el usuario lo quiere también para presentar el juego. Al aprobarlo, la aplicación se une cuando estén unidos los arreglos de la interfaz.
-3. **Calibrar con el usuario** las cifras provisionales: sucesos (probabilidades, castigos, umbral de «no va con su carácter»), dificultad de pedir puesto, `MARGEN_DE_OTRO_PUESTO` (4), pesos de ir a probar fuera, `EFICIENCIA_DE_DEBERES` (0,9), recogida en el colegio (80 %, edad mínima 25: mezclar padres y abuelos), balance de entrenamientos (`ESCALA_DE_ENTRENAMIENTO` = 1) y listón de profesional (40; élite 35), que se revisa en la fase 2.
-4. **Rendimiento:** medición en marcha (§3 bis). Después, abaratar la jornada de liga (~75 partidos por semana) y el reparto de equipos; estado más pequeño (genética y rasgos son el 56 % de los 16 MB de la ciudad grande); `listActions` del fútbol solo cuando hace falta. Propuestas en `docs/relevo/revision-rendimiento.md` §6. Antes de activar más clases de sucesos para los PNJ, medirlas con la ciudad grande.
-5. **Visualizador, etapa 2c** (Sonnet, `docs/ANEXO_RETRATOS.md`): más peinados, barbas y ropa; la raíz del tinte con raya o flequillo y el tupé. La cuadrícula pesa ~9 MB: regenerar solo lo que cambie.
-6. **Planificar la peluquería** (`docs/PLAN_PELUQUERIA.md`).
-7. **Ideas del usuario apuntadas, para más adelante:**
-   - misión «convencer a niños de jugar en el equipo» cuando falten (DECISIONES 20/11) y «convencer a un amigo» como alternativa puntual;
-   - especializaciones (roles), como el portero líbero, después de probar lo de ahora;
-   - deberes que se mandan y se entregan en la siguiente clase, con sucesos;
-   - un padre que se va con su hijo, cuando haya familias de PNJ;
-   - página del entrenador más detallada (labor de entrenador);
-   - plantillas equilibradas por lado (pierna buena).
-7 bis. **Pendientes del 22/11:** lote 3 de sucesos (la mudanza de un amigo, tu cumpleaños con fiesta, un amigo en casa: E3, E6 y E7 de `docs/relevo/sucesos-lote-2.md`); **economía del personaje** (paga, ingresos, gastos y cosas que comprar; `gen.dinero` existe sin ingresos); **relaciones entre PNJ** (que dos amigos acaben de enemigos entre ellos).
-8. **Huecos conocidos del mundo:** no hay archivo de los PNJ que dejan el mundo; el interés no baja con el tiempo; los PNJ no van a campamentos; faltan las licencias reales de la RFEF para contrastar el abandono; los ojeadores (el nivel servirá para que vean a los buenos).
-9. **A medio plazo, planificar (decidido el 22/11):** **partidos de fútbol más reales** (ampliar los cálculos más allá de los tramos, que de momento valen; base `docs/MOTOR_PARTIDOS.md`) y **lesiones** (E12; el motor de partidos ya prevé preguntar por una lesión en cualquier acción, `MOTOR_PARTIDOS.md` §0.7 y §9). Propuesta: un análisis de cada uno (qué hay, qué falta y fases), con su plan, para que lo apruebe el usuario.
-10. **Candidatos de más calado** (para decidir con el usuario): fase 2 (vida adulta y profesional), visualizador de los partidos, ciclo de generaciones (la dinastía).
-11. **Ideas en `docs/DECISIONES.md` («Pendiente e ideas»):** comida y cuerpo, acciones dinámicas del motor, minutos de fuerza por deporte, personaje chica.
+1. **Lo que encuentre el usuario al jugar** (publicado el 23/11). Arreglos pequeños apuntados:
+   - con la ciudad grande, la ficha del deporte dice «Federación: … (con los datos de España: España · ciudad grande (se tarda hasta un minuto en crear) aún no tiene los suyos)». No debería salir el aviso de respaldo, ni el paréntesis en el nombre (`apps/web/src/paises-propios.ts`, `modules/futbol/src/index.ts:937`, `modules/atletismo/src/index.ts:660`);
+   - «Nueva partida» y el menú siguen a 460 px en PC;
+   - los hermanos menores de 8 duermen 23:00–7:00: pasarlos a 21:30–7:00 (`agendas.ts`).
+2. **Hogares:** decidir la activación (§3). Después:
+   - H1 completo: el niño se va con su progenitor, el papel «el padre de tu compañero», la ficha con el vínculo, familia para los niños de los vecinos;
+   - H2: niños de 0 a 7 y nacimientos (medir crear en el móvil antes);
+   - H3: adultos sin hijos y calles;
+   - H4: mascotas;
+   - H5: ciclo de generaciones.
+3. **Sucesos (prioridad alta, «mimarlos»):**
+   - más sucesos de tarde (14–20 h) para llegar a 6 por semana; con los hogares, sucesos de familias;
+   - lote 3: mudanza de un amigo, tu cumpleaños con fiesta, amigo en casa (E3, E6, E7 de `docs/relevo/sucesos-lote-2.md`).
+4. **Planificar a medio plazo (decidido el 22/11):** **partidos de fútbol más reales** (`docs/MOTOR_PARTIDOS.md`) y **lesiones y salud** (E12; el sueño ya dejó preparados sus efectos en `sueno.ts` y en `BACKLOG_STATS.md` E12.3). Análisis de cada uno, con su plan.
+5. **Rendimiento:** M2 (historia deportiva en hilos, huella idéntica, −30 % al crear) si el móvil lo pide. Con miles de personas más (hogares, ligas del mundo), revisar la tabla de escalado de `docs/relevo/hogares.md` §6.
+6. **Deuda técnica:**
+   - **economía del personaje** (paga, ingresos, gastos, qué comprar: el préstamo y el ahorro casi no salen sin ella; luego comida e inventario en la columna izquierda);
+   - **relaciones entre PNJ** (que dos amigos acaben de enemigos);
+   - despertador.
+7. **Calibrar con el usuario** las cifras provisionales:
+   - sucesos;
+   - pedir puesto, `MARGEN_DE_OTRO_PUESTO` (4), probar fuera;
+   - `EFICIENCIA_DE_DEBERES` (0,9);
+   - recogida;
+   - `ESCALA_DE_ENTRENAMIENTO`;
+   - listón de profesional;
+   - el sueño, con E12.
+8. **Visualizador, etapa 2c**, y **planificar la peluquería**.
+9. **Ideas para más adelante:**
+   - convencer a niños de jugar en el equipo;
+   - especializaciones (portero líbero);
+   - deberes que se mandan y se entregan;
+   - página del entrenador;
+   - plantillas equilibradas por lado;
+   - abuelos en los hogares;
+   - qué hacen los de 18–19 (trabajo, piso o salir del mundo).
+10. **Huecos del mundo:**
+    - el interés no baja con el tiempo;
+    - los PNJ no van a campamentos;
+    - faltan las licencias de la RFEF;
+    - ojeadores.
+11. **De más calado:** fase 2 (vida adulta), visualizador de partidos, dinastía. **Ideas en `docs/DECISIONES.md`:** comida, acciones dinámicas, minutos de fuerza, personaje chica.
 
 ## 5. Sesiones usadas (se pueden archivar)
 
@@ -129,3 +158,11 @@ Todas terminadas y con su trabajo unido a la rama de trabajo (y a `main`). Las m
 | `session_01M4vXXPnzU1Gedkvetov9Rr` | Sonnet | Primer entrenamiento: «vas a jugar de…» (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXMp7cyuMpYVVwYDEFo` | Sonnet | PNJ que entrenan por su cuenta y abandono: análisis (22/11, esta sesión de arquitectura) |
 | `session_01M4vXXR2Hh7LzUU4PJqCjP4` | Sonnet | PNJ por su cuenta, abandono por nivel e interés, compañeros hasta los 20 (22/11, esta sesión de arquitectura) |
+| `session_01M4vXXNzsoqtFvnvBsCgua3` | Sonnet | Medir rendimiento 2 (22/11, arquitectura del 22–23/11) |
+| `session_01M4vXXNJgqnXmd48HC8S6Eb` | Sonnet | Diseño de escritorio: prototipos y A aplicado (22–23/11) |
+| `session_01M4vXXQAF9nMwtH72JNPMoS` | Sonnet | Sucesos lote 2: propuesta, escritura y corrección (22–23/11) |
+| `session_01M4vXXMop1ruurfnrJWEBCG` | Sonnet | Motor de sucesos para el lote 2 y contenido duro (22–23/11) |
+| `session_01M4vXXPqtbBbKjYfQzgtQgH` | Sonnet | Gente por la calle: análisis, F1+F2 y reparto más barato (22–23/11) |
+| `session_01M4vXXNhTp4behXGJK95oAE` | Sonnet | Dormir: análisis y F1–F3 (22–23/11) |
+| `session_01M4vXXRa4eRsqGgw7PKJ3S7` | Sonnet | Estado compartido entre partidas (23/11) |
+| `session_01M4vXXQ6DoRWA2UGVauypzR` | Sonnet | Hogares: análisis, addendum y H1 detrás de un dato (23/11) |
