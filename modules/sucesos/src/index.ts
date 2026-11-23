@@ -420,7 +420,7 @@ function diasHastaElCumple(nacimiento: number, hoy: number): number {
 }
 
 /** A quién le toca un papel, o `undefined` si a nadie. El azar es estable: mismo suceso, mismo día, misma persona. */
-function repartir(ctx: ReadContext, s: SucesosState, suceso: string, papel: string, def: PapelDef, señal?: Record<string, unknown>): string | undefined {
+function repartir(ctx: ReadContext, s: SucesosState, suceso: string, papel: string, def: PapelDef, señal?: Record<string, unknown>, excluir: readonly string[] = []): string | undefined {
   const forzado = prueba(ctx)?.papel?.(papel);
   if (forzado !== undefined) return forzado ?? undefined;
   const npcs = ctx.service<NpcDirectory>(SERVICES.npcs);
@@ -450,6 +450,8 @@ function repartir(ctx: ReadContext, s: SucesosState, suceso: string, papel: stri
     }
     return !def.presente || h.presente(n.id);
   });
+  // Nadie hace dos papeles en el mismo suceso (dos amigos que se pelean no pueden ser la misma persona, ni el profesor y el compañero nuevo).
+  if (excluir.length) candidatos = candidatos.filter((n) => !excluir.includes(n.id));
   if (!candidatos.length) return undefined;
   if (def.prefiere) {
     const valor = (n: NpcView): number => (def.prefiere === 'mas_afinidad' ? (h.relacion(n.id)?.afinidad ?? 0) : def.prefiere === 'mas_apoyo' ? (h.familia(n.id)?.apoyo ?? 0) : (h.familia(n.id)?.expectativas ?? 0));
@@ -689,7 +691,7 @@ function intentar(ctx: ActionContext, i: Indice, x: SucesoCompilado, origen: { h
   const reparto: Record<string, string> = { ...(hilo?.reparto ?? {}), ...(sujeto ? { sujeto } : {}) };
   for (const [papel, p] of Object.entries(x.reparto)) {
     if (reparto[papel]) continue;
-    const quien = repartir(ctx, s, def.id, papel, p, origen.señal);
+    const quien = repartir(ctx, s, def.id, papel, p, origen.señal, Object.values(reparto));
     if (quien) reparto[papel] = quien;
     else if (!p.opcional) return false;
   }

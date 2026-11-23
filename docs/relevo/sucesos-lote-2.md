@@ -426,3 +426,8 @@ Revisados sin cambios: `companero_nuevo`, `boletin` y los demás detalles suelto
 2. **`eventos.casa.cena_de_domingo`** con `lesionado_hace_poco` (`eventos:probar -- eventos.casa.cena_de_domingo`): una marca que dejó otro suceso semanas antes cambia lo que te preguntan en casa; es la prueba de que la memoria vuelve.
 3. **`eventos.colegio.companero_nuevo`**, ofrecerte → sentaros → amigos: el mismo día, una semana y un mes después; si no te ofreces, cambia la primera semana (te ve solo) y el final.
 4. **`eventos.casa.padres_discuten`** con `--sin-duro` (tensión sorda) frente a la versión con «familia» (bronca): mismo hilo, dos tonos, y en los dos se arregla; la opción de preguntar a la mañana siguiente cambia la cena de una semana después.
+
+## Dos detalles de `companero_nuevo` (23/11/2026)
+
+1. **Título con género:** el formato sí concuerda los títulos (`{nuevo:Un compañero nuevo|Una compañera nueva}`); aplicado. El resto de títulos del lote son neutros o no nombran a nadie (revisado).
+2. **Nombres repetidos en `eventos:probar`:** la herramienta pone un mismo nombre de prueba a todos los papeles de un género (solo es de la herramienta). **Pero al mirar el director resultó que en el juego tampoco se impedía que dos papeles recayeran en la misma persona** (`repartir` no excluía a quien ya tenía otro papel; con filtros iguales, como `a` y `b` de `pelea`, podía coincidir). Corregido en `modules/sucesos/src/index.ts`: `repartir` recibe a quienes ya tienen papel y los descarta. Tests de `modules/sucesos` y `tests/eventos` ✅.

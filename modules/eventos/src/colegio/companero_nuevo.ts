@@ -13,7 +13,7 @@ export default hilo({
   sucesos: [
     {
       id: 'eventos.colegio.companero_nuevo.llegada',
-      titulo: 'Un compañero nuevo',
+      titulo: '{nuevo:Un compañero nuevo|Una compañera nueva}',
       disparo: { al: 'clase.asistida', prob: 0.03 },
       ejemploDeSeñal: { asignatura: 'estudios.lengua', tarde: 0 },
       cuando: [{ hecho: 'trimestre', max: 1 }, { periodo: 'clase' }],
