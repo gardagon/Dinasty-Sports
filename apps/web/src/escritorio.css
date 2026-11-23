@@ -146,7 +146,6 @@ body:has(.esc) .esc .ficha-gente { }
   .esc-barra { padding: 4px 14px 2px; }
   .esc .clock { font-size: 38px; }
   .esc .clock small { font-size: 13px; }
-  .esc .clock small br { display: none; }
   .esc .lane { height: 22px; }
   .esc .meters { gap: 0 20px; }
   .esc .tabs-wrap { margin-bottom: 6px; }

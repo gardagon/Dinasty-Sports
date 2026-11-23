@@ -157,17 +157,19 @@ try {
     const salida = resolve(args[0] ?? join(trabajo, 'capturas'));
     mkdirSync(salida, { recursive: true });
     const disenos = opcion('disenos', 'movil').split(',');
-    const anchos = opcion('anchos', '1366,1920').split(',').map(Number);
+    // Los tamaños: «1366» (el alto sale del ancho) o «1280x620».
+    const tamanos = opcion('anchos', '1366,1920').split(',').map((t) => (t.includes('x') ? t.split('x').map(Number) : [Number(t)]));
+    const medir = args.includes('--medir');
     const temas = opcion('temas', 'claro,oscuro').split(',');
     const solo = opcion('solo', '').split(',').filter(Boolean);
     const quiere = (x: string): boolean => !solo.length || solo.includes(x);
     for (const diseno of disenos) {
       for (const tema of temas) {
-        for (const ancho of anchos) {
-          const alto = ancho >= 1900 ? 1080 : ancho >= 1300 ? 768 : 844;
+        for (const [ancho, altoPedido] of tamanos) {
+          const alto = altoPedido ?? (ancho >= 1900 ? 1080 : ancho >= 1300 ? 768 : 844);
           const contexto = await navegador.newContext({ viewport: { width: ancho, height: alto }, deviceScaleFactor: ancho < 600 ? 3 : 2, colorScheme: tema === 'oscuro' ? 'dark' : 'light' });
           const pagina = await contexto.newPage();
-          await pagina.addInitScript(`window.__name = (f) => f; try { localStorage.setItem('ds.diseno', ${JSON.stringify(diseno === 'movil' ? 'movil' : 'escritorio')}); localStorage.setItem('ds.prototipo', ${JSON.stringify(diseno === 'movil' ? 'a' : diseno)}); } catch (e) {}`);
+          await pagina.addInitScript(`window.__name = (f) => f; try { localStorage.setItem('ds.diseno', ${JSON.stringify(diseno === 'movil' ? 'movil' : diseno === 'escritorio' ? 'escritorio' : 'automatico')}); localStorage.setItem('ds.prototipo', ${JSON.stringify(['b', 'c'].includes(diseno) ? diseno : 'a')}); } catch (e) {}`);
           pagina.on('dialog', (d: any) => void d.accept());
           const errores: string[] = [];
           pagina.on('pageerror', (e: any) => errores.push(e.message));
@@ -184,7 +186,7 @@ try {
           await selector.setFiles(estado);
           await pagina.waitForFunction(() => !!(window as any).__ds.game);
           await cerrarSucesos(pagina);
-          const nombre = (x: string): string => `${diseno}-${ancho}-${tema === 'oscuro' ? 'oscuro' : 'claro'}-${x}.png`;
+          const nombre = (x: string): string => `${diseno}-${altoPedido ? `${ancho}x${altoPedido}` : ancho}-${tema === 'oscuro' ? 'oscuro' : 'claro'}-${x}.png`;
           const foto = async (x: string, completa = false): Promise<void> => {
             await pagina.waitForTimeout(250);
             await pagina.screenshot({ path: join(salida, nombre(x)), fullPage: completa });
@@ -196,6 +198,16 @@ try {
             await pagina.waitForTimeout(150);
             return true;
           };
+          if (medir) {
+            // Lo que cuesta redibujar la página (A con el diario de 30 entradas): media de 20 redibujos, con el tamaño del diario de la partida.
+            const r = await pagina.evaluate(() => {
+              const ds = (window as any).__ds;
+              const t0 = performance.now();
+              for (let i = 0; i < 20; i++) ds.render();
+              return { ms: (performance.now() - t0) / 20, diario: ds.game.log.length };
+            });
+            console.log(`  render ${diseno} ${ancho}: ${r.ms.toFixed(1)} ms (diario de ${r.diario} entradas)`);
+          }
           for (const id of ['hacer', 'personaje', 'estudios', 'deporte', 'gente', 'relaciones', 'diario']) {
             if (!quiere(id) || !(await pestana(id))) continue;
             await foto(id, ancho < 600 || diseno === 'movil');
