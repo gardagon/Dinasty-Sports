@@ -1,5 +1,7 @@
 import { APORTES, CORE_EVENTS, suenoHabitual, diaConFecha, semanasDeTemporada, type Entrenamiento, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar, MOVERSE_CON_EL_GRUPO, aforoCercano, deLugar, haciaLugar, type ActionDoneData, type GrupoSeVaData, type LugaresService, CALLES_CON_VECINOS, EDAD_DE_JUBILACION, EDAD_PARA_IR_SOLO } from '@ds/contracts';
-import { aficionadoPorLosPadres, conInteresTrasJugar, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica } from './deportistas';
+import { EJE_MIN, EJE_MAX } from '@ds/contracts';
+import { FAMILIAS, ReservaDeHijos, esProgenitorDeHogar, familiaDePersona, generarFamilias, limpiarFamilias, miembrosDeHogares, recogeAUnHijo, type HogarGuardado } from './hogares';
+import { aficionadoPorLosPadres, conInteresTrasJugar, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica, type Herencia } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { grupoQueSeVa, seVanSolos } from './grupo';
@@ -120,6 +122,10 @@ export interface Npc {
   musculatura?: number;
   /** Perks (rasgos genéticos especiales) de rivales y hermanos: se les asignan al crearlos; no se enseñan (revelarlos es cosa de los eventos o de un personaje muy perspicaz). */
   perks?: PerksDe;
+  /** Hogares (`CiudadDef.hogares`): el hogar en que vive (id en `NpcsState.hogares`), los ids de sus progenitores en casa (los hijos) y lo que hereda de ellos y guarda para sus hijos (los progenitores). */
+  hogar?: string;
+  padres?: string[];
+  herencia?: Herencia;
   /** Padres: índice de su profesión (`OFICIOS_DE_PADRES`), según la semilla de la partida. */
   oficio?: number;
   /** Lo que el personaje ha averiguado preguntando (se suma a lo que sabe por defecto). */
@@ -243,6 +249,10 @@ export interface NpcsState {
   dejanSinClub?: Record<number, number>;
   /** El puesto en que juega el personaje en el equipo de su club, por deporte (el que le ofreció el club al entrar): cuenta como un jugador más del equipo en los fichajes de verano. */
   puestoDelPersonaje?: Record<string, string>;
+  /** Hogares (solo en las partidas con `CiudadDef.hogares`): dónde vive cada uno y quién falta de los dos progenitores. Ausente = sin hogares. */
+  hogares?: Record<string, HogarGuardado>;
+  /** Hogares: de dónde salieron los que entraron al colegio cada curso (de los hermanos pequeños de las familias o de familias que se mudaron) y cuántas familias se archivaron o borraron. */
+  familiasPorCurso?: Record<number, { hermanos: number; mudanzas: number; archivadas: number; borradas: number }>;
 }
 
 /**
@@ -378,9 +388,23 @@ export function persona(rng: Rng, id: string, role: NpcRole, edad: number, dia: 
   };
 }
 
-function poblarElColegio(rng: Rng, usados: RegistroDeNombres, existentes: number): Npc[] {
+/** Un hijo de una familia (hogares) que ocupa un hueco de alumno del colegio del personaje: toma su id, su rol y su agenda y conserva todo lo demás. */
+function comoAlumno(hijo: Npc, id: string, tipos: TipoAsignado[], desc: (g: Gender) => string): Npc {
+  const { colegio: _c, ...resto } = hijo;
+  return { ...resto, id, role: 'companero', tipos, description: desc(hijo.gender) };
+}
+/** Un hijo de una familia que ocupa un hueco de niño de otro colegio (o, con colegio `ninguno`, de joven sin colegio). */
+function comoDeOtroColegio(hijo: Npc, id: string, colegio: string): Npc {
+  return { ...hijo, id, colegio, tipos: [{ tipo: 'vecino', ...(colegio === 'ninguno' ? {} : { escolar: true }) }], description: descripcionDeOtroColegio(hijo.gender) };
+}
+
+function poblarElColegio(rng: Rng, usados: RegistroDeNombres, existentes: number, reserva?: ReservaDeHijos): Npc[] {
   const o = (g: Gender, f: string, m: string) => (g === 'f' ? f : m);
-  const alumno = (id: string, edad: number, desc: (g: Gender) => string, tuClase = false): Npc => persona(rng, id, 'companero', edad, 0, usados, [{ tipo: 'alumno', ...(tuClase ? { tuClase: true } : {}) }], desc, [], true);
+  const alumno = (id: string, edad: number, desc: (g: Gender) => string, tuClase = false): Npc => {
+    const hijo = reserva?.take('propio', edad);
+    if (hijo) return comoAlumno(hijo, id, [{ tipo: 'alumno', ...(tuClase ? { tuClase: true } : {}) }], desc);
+    return persona(rng, id, 'companero', edad, 0, usados, [{ tipo: 'alumno', ...(tuClase ? { tuClase: true } : {}) }], desc, [], true);
+  };
   const tuClase = Array.from({ length: companerosDeClase() - existentes }, (_, i) => alumno(`clase_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Compañera de tu clase.', 'Compañero de tu clase.'), true));
   // Las demás clases de tu curso (con una sola clase por curso no hay otra).
   const otraClase = Array.from({ length: (ciudad().aulasPorCurso - 1) * ciudad().alumnosPorAula }, (_, i) => alumno(`curso_${i + 1}`, EDAD_ALUMNO_MIN, (g) => o(g, 'Alumna de la otra clase de tu curso.', 'Alumno de la otra clase de tu curso.')));
@@ -400,16 +424,21 @@ function poblarElColegio(rng: Rng, usados: RegistroDeNombres, existentes: number
     const vecino = persona(rng, id, 'vecino', edad, 0, usados, [{ tipo: 'vecino', ...(nino ? { escolar: true } : {}) }], (g) => o(g, 'Vecina del barrio.', 'Vecino del barrio.'), [], nino);
     return nino ? { ...vecino, colegio: colegioDeFuera(id, ciudad().colegiosDeFuera) } : vecino;
   });
-  return [...tuClase, ...otraClase, ...otrosCursos, ...profesores, ...vecinos, ...ninosDeOtrosColegios(rng, usados, 0, 1)];
+  return [...tuClase, ...otraClase, ...otrosCursos, ...profesores, ...vecinos, ...ninosDeOtrosColegios(rng, usados, 0, 1, false, reserva)];
 }
 
 /**
  * Los niños de otros colegios, a todos: personas del barrio con su genética (`nino_N`), jueguen o no a algún deporte. Al crear la partida, de 8 años a los
  * que ya terminaron el colegio (18 y 19 años, sin colegio); cada curso, solo los que entran con 8 años. `desde` es el número del primero.
  */
-function ninosDeOtrosColegios(rng: Rng, usados: RegistroDeNombres, dia: number, desde: number, soloEntrantes = false): Npc[] {
+function ninosDeOtrosColegios(rng: Rng, usados: RegistroDeNombres, dia: number, desde: number, soloEntrantes = false, reserva?: ReservaDeHijos): Npc[] {
   const lista: Npc[] = [];
   const nino = (colegio: string, edad: number): void => {
+    const hijo = reserva?.take(colegio, edad);
+    if (hijo) {
+      lista.push(comoDeOtroColegio(hijo, `nino_${desde + lista.length}`, colegio));
+      return;
+    }
     lista.push({ ...persona(rng, `nino_${desde + lista.length}`, 'vecino', edad, dia, usados, [{ tipo: 'vecino', ...(colegio === 'ninguno' ? {} : { escolar: true }) }], descripcionDeOtroColegio, [], true), colegio });
   };
   for (const colegio of idsDeColegiosDeFuera(ciudad())) {
@@ -441,6 +470,69 @@ function renovarAlumnos(npcs: Npc[], dia: number, rng: Rng): Npc[] {
   const desde = npcs.reduce((m, n) => Math.max(m, Number(/^nino_(\d+)$/.exec(n.id)?.[1] ?? 0)), 0) + 1;
   const quedan = npcs.filter((n) => !seVa(n)).map((n) => (acaba(n) ? aGraduado(n) : esDeFuera(n) && n.colegio !== 'ninguno' && (edadNpc(n, dia) ?? 0) >= EDAD_FIN_COLEGIO ? { ...n, colegio: 'ninguno' } : n));
   return [...quedan, ...nuevos, ...ninosDeOtrosColegios(rng, usados, dia, desde, true)];
+}
+
+/**
+ * Nuevo curso con hogares (`CiudadDef.hogares`): lo mismo que `renovarAlumnos` (los que acaban el colegio pasan a jóvenes, los de 20 salen del barrio, cada colegio recibe a sus nuevos alumnos de 8 años),
+ * pero **los que entran salen de las familias**: primero los hermanos pequeños de las familias que ya hay (los que cumplen 8: van al colegio de su hermano si hay hueco) y, para los huecos que quedan, familias
+ * que se mudan al barrio (sus hijos pequeños alimentan los cursos siguientes). Las familias a las que ya no les queda ningún hijo en el mundo se archivan (si el personaje conoce a alguien) o se borran.
+ */
+export function renovarConFamilias(npcs: Npc[], dia: number, rng: Rng, hogares: Record<string, HogarGuardado>, seed: number): { npcs: Npc[]; hogares: Record<string, HogarGuardado>; hermanos: number; mudanzas: number; archivadas: number; borradas: number } {
+  const usados = registroDe(npcs);
+  const esDeFuera = (n: Npc) => /^nino_\d+$/.test(n.id) || (n.role === 'vecino' && !!n.hogar && !!n.genetica && !esProgenitorDeHogar(n));
+  const acaba = (n: Npc) => n.role === 'companero' && n.nacimiento !== undefined && (edadNpc(n, dia) ?? 0) >= EDAD_FIN_COLEGIO;
+  const seVa = (n: Npc) => (esDeFuera(n) || n.tags.includes(ETIQUETA_EXCOMPANERO)) && (edadNpc(n, dia) ?? 0) >= EDAD_FIN_JOVENES;
+  // Cuántos entran en cada colegio: tantos como acaban en el del personaje y los de cada curso en los de fuera.
+  const necesidad = new Map<string, number>([['propio', npcs.filter(acaba).length], ...idsDeColegiosDeFuera(ciudad()).map((c): [string, number] => [c, ciudad().alumnosPorCursoDeCadaColegio])]);
+  const miembros = miembrosDeHogares(npcs);
+  const colegioDeHermanos = (n: Npc): string | undefined => {
+    const h = (miembros.get(n.hogar ?? '') ?? []).find((x) => x.id !== n.id && !esProgenitorDeHogar(x) && x.colegio !== 'ninguno' && (x.role === 'companero' || !!x.colegio));
+    return h ? (h.role === 'companero' ? 'propio' : h.colegio) : undefined;
+  };
+  const elegir = (preferido?: string): string => {
+    if (preferido && (necesidad.get(preferido) ?? 0) > 0 && rng.chance(FAMILIAS.mismoColegio)) return preferido;
+    const opciones = [...necesidad].filter(([, v]) => v > 0);
+    if (!opciones.length) return preferido ?? 'propio';
+    let u = rng.next() * opciones.reduce((a, [, v]) => a + v, 0);
+    for (const [c, v] of opciones) { if (u < v) return c; u -= v; }
+    return opciones[0][0];
+  };
+  const quedan = npcs.filter((n) => !seVa(n)).map((n) => (acaba(n) ? aGraduado(n) : esDeFuera(n) && n.colegio !== 'ninguno' && !!n.colegio && (edadNpc(n, dia) ?? 0) >= EDAD_FIN_COLEGIO ? { ...n, colegio: 'ninguno' } : n));
+  // 1. Los hermanos pequeños que cumplen 8 años entran en un colegio.
+  let numero = npcs.reduce((m, n) => Math.max(m, Number(/^alumno_(\d+)$/.exec(n.id)?.[1] ?? 0)), 0) + 1;
+  let desde = npcs.reduce((m, n) => Math.max(m, Number(/^nino_(\d+)$/.exec(n.id)?.[1] ?? 0)), 0) + 1;
+  const entran = new Map<string, Npc>();
+  let hermanos = 0;
+  for (const n of quedan) {
+    if (!n.hogar || esProgenitorDeHogar(n) || n.colegio || n.role !== 'vecino' || n.nacimiento === undefined || (edadNpc(n, dia) ?? 0) < EDAD_ALUMNO_MIN) continue;
+    const colegio = elegir(colegioDeHermanos(n));
+    necesidad.set(colegio, (necesidad.get(colegio) ?? 0) - 1);
+    hermanos++;
+    entran.set(n.id, colegio === 'propio'
+      ? { ...n, role: 'companero', tipos: [{ tipo: 'alumno' }], description: n.gender === 'f' ? 'Alumna del colegio.' : 'Alumno del colegio.' }
+      : { ...n, colegio, tipos: [{ tipo: 'vecino', escolar: true }], description: descripcionDeOtroColegio(n.gender) });
+  }
+  // 2. Los huecos que quedan los llenan familias que se mudan al barrio (con sus hermanos pequeños, que entrarán en los cursos siguientes).
+  const demanda = new Map([...necesidad].filter(([, v]) => v > 0).map(([c, v]): [string, number] => [`${c}|${EDAD_ALUMNO_MIN}`, v]));
+  const hogarMax = Object.keys(hogares).reduce((m, k) => Math.max(m, Number(/^h(\d+)$/.exec(k)?.[1] ?? 0)), 0);
+  const pequeMax = npcs.reduce((m, n) => Math.max(m, Number(/^peque_(\d+)$/.exec(n.id)?.[1] ?? 0)), 0);
+  const nuevas = demanda.size ? generarFamilias({ rng, seed, pais: PAIS_GENERANDO, usados, demanda, dia, desde: hogarMax + 1, desdePeques: pequeMax + 1, pequenos: true }) : undefined;
+  const reserva = nuevas ? new ReservaDeHijos(nuevas.ninos) : undefined;
+  const mudanza: Npc[] = [];
+  if (reserva) {
+    for (const [colegio, cuantos] of necesidad) {
+      for (let i = 0; i < Math.max(0, cuantos); i++) {
+        const h = reserva.take(colegio, EDAD_ALUMNO_MIN);
+        if (!h) continue;
+        mudanza.push(colegio === 'propio' ? comoAlumno(h, `alumno_${numero++}`, [{ tipo: 'alumno' }], (g) => (g === 'f' ? 'Alumna del colegio.' : 'Alumno del colegio.')) : comoDeOtroColegio(h, `nino_${desde++}`, colegio));
+      }
+    }
+  }
+  const conEntradas = quedan.map((n) => entran.get(n.id) ?? n);
+  const todos = [...conEntradas, ...mudanza, ...(nuevas ? [...nuevas.adultos, ...nuevas.pequenos] : [])];
+  const tabla = { ...hogares, ...(nuevas?.hogares ?? {}) };
+  const limpio = limpiarFamilias(todos, tabla);
+  return { npcs: limpio.npcs, hogares: limpio.hogares, hermanos, mudanzas: mudanza.length, archivadas: limpio.archivados, borradas: limpio.borrados };
 }
 
 /** Etiqueta de quien fue compañero de colegio del personaje y ya lo ha terminado (sigue en el barrio hasta los 20; `renovarAlumnos`). Las relaciones lo tratan como a un amigo si ya lo era. */
@@ -674,13 +766,17 @@ export function ajustarVecinos(npcs: Npc[], semilla: number, dia: number): Npc[]
       continue;
     }
     const escolar = !!n.colegio && n.colegio !== 'ninguno' && edad < EDAD_FIN_COLEGIO;
-    const delBarrio = /^vecino_\d+$/.test(n.id);
+    // Los progenitores de un hogar (hogares) son vecinos adultos con una agenda propia: recogen a su hijo (no un sorteo suelto) y viven en la calle de su hogar.
+    const deHogar = esProgenitorDeHogar(n);
+    const delBarrio = /^vecino_\d+$/.test(n.id) || deHogar;
     const adulto = delBarrio && edad >= EDAD_FIN_COLEGIO;
-    const recoge = delBarrio && edad >= RECOGIDA_DE_NINOS.edadMinima && azarDe('recoge', semilla, n.id) < RECOGIDA_DE_NINOS.proporcion;
+    const recoge = deHogar
+      ? recogeAUnHijo(n, miembrosDeHogares(npcs).get(n.hogar!) ?? [], (x) => edadNpc(x, dia) ?? 0, (marca, id) => azarDe(marca, semilla, id))
+      : delBarrio && edad >= RECOGIDA_DE_NINOS.edadMinima && azarDe('recoge', semilla, n.id) < RECOGIDA_DE_NINOS.proporcion;
     // En qué calle vive: un 20 % de los adultos en la de tu casa, un 15 % en la del colegio y un 15 % en la avenida; de los niños pequeños, unos pocos en cada una.
     const v = azarDe('vive', semilla, n.id);
     const vn = azarDe('vive_nino', semilla, n.id);
-    const vive = adulto ? (v < 0.2 ? CALLES_CON_VECINOS[0] : v < 0.35 ? CALLES_CON_VECINOS[1] : v < 0.5 ? CALLES_CON_VECINOS[2] : undefined) : pequeno && vn < 0.018 ? CALLES_CON_VECINOS[Math.floor(vn / 0.006)] : undefined;
+    const vive = deHogar ? t.vive : adulto ? (v < 0.2 ? CALLES_CON_VECINOS[0] : v < 0.35 ? CALLES_CON_VECINOS[1] : v < 0.5 ? CALLES_CON_VECINOS[2] : undefined) : pequeno && vn < 0.018 ? CALLES_CON_VECINOS[Math.floor(vn / 0.006)] : undefined;
     const perro = adulto && azarDe('perro', semilla, n.id) < 0.15;
     const jubilado = adulto && edad >= EDAD_DE_JUBILACION;
     const lugar = adulto && !jubilado ? OFICIO_EN_LUGAR[oficioDeVecino(n.id, n.gender, edad).trabajo ?? ''] : undefined;
@@ -929,12 +1025,43 @@ export function nivelesDelEquipoDe(npcs: readonly Npc[], pobs: readonly Poblacio
 // ---------------------------------------------------------------------------------------------------- plaza del personaje en un equipo
 
 /** El reparto base, la población del colegio y del barrio, los entrenadores y, al final, los niños que reclutan los deportes. */
-function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { npcs: Npc[]; pobs: PoblacionGuardada[] } {
+/** Lo que piden los colegios de la ciudad de niños de cada edad (`colegio|edad`): el del personaje, los de fuera y los jóvenes de 18 y 19 años sin colegio. Es lo que cubren las familias (hogares). */
+function demandaDeHijos(): Map<string, number> {
+  const c = ciudad();
+  const m = new Map<string, number>();
+  for (let e = EDAD_ALUMNO_MIN; e < EDAD_FIN_COLEGIO; e++) {
+    m.set(`propio|${e}`, e === EDAD_ALUMNO_MIN ? alumnosPorCurso() - 1 : alumnosPorCurso());
+    for (const col of idsDeColegiosDeFuera(c)) m.set(`${col}|${e}`, c.alumnosPorCursoDeCadaColegio);
+  }
+  for (let e = EDAD_FIN_COLEGIO; e < EDAD_FIN_JOVENES; e++) m.set(`ninguno|${e}`, jovenesPorEdad());
+  return m;
+}
+
+/** Los dos compañeros del reparto inicial con familia: el hijo de una familia ocupa su sitio (id, descripción y agenda) y su carácter se empuja hacia el sesgo que tenían. */
+const SESGO_DE_COMPANEROS: Readonly<Record<string, { sesgo: Record<string, number>; intereses: string[] }>> = {
+  companero_estudio: { sesgo: { disciplina: 15, sociabilidad: -5 }, intereses: ['estudio', 'tecnologia'] },
+  companero_social: { sesgo: { sociabilidad: 20, optimismo: 8 }, intereses: ['videojuegos', 'cine', 'musica'] },
+};
+function companeroConFamilia(viejo: Npc, hijo: Npc): Npc {
+  const { sesgo, intereses } = SESGO_DE_COMPANEROS[viejo.id];
+  const rasgos = hijo.rasgos!;
+  const caracter = Object.fromEntries(Object.entries(rasgos.caracter).map(([e, v]) => [e, Math.round(clamp(v + (sesgo[e] ?? 0), EJE_MIN, EJE_MAX))]));
+  const falta = intereses.find((i) => !(i in rasgos.intereses));
+  const interesesNuevos = falta && Object.keys(rasgos.intereses).length < 4 ? { ...rasgos.intereses, [falta]: 2 } : rasgos.intereses;
+  const { colegio: _c, ...resto } = hijo;
+  return { ...resto, id: viejo.id, role: viejo.role, tags: viejo.tags, tipos: viejo.tipos, description: viejo.description, known: viejo.known, rasgos: { ...rasgos, caracter, intereses: interesesNuevos } };
+}
+
+function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { npcs: Npc[]; pobs: PoblacionGuardada[]; hogares?: Record<string, HogarGuardado> } {
   avisarDelProgreso('Dando vida a las personas: familias, colegios y vecinos…', 0.01);
-  const base = generarReparto(ctx, pobs[0]);
+  let base = generarReparto(ctx, pobs[0]);
   const usados = registroDe(base);
-  const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length);
-  const sin = ajustarVecinos(conSemilla([...base, ...colegio, ...bibliotecarios(ctx.rng, usados), ...puestosDeLaCalle(ctx.seed, usados)], ctx.seed), ctx.seed, 0);
+  // Con hogares, primero las familias: los niños salen de ellas (hermanos con la misma cara, genética y apellidos) y los adultos y los hermanos pequeños se añaden al mundo.
+  const familias = ciudad().hogares ? generarFamilias({ rng: ctx.rng, seed: ctx.seed, pais: PAIS_GENERANDO, usados, demanda: demandaDeHijos(), dia: 0, desde: 1, desdePeques: 1, pequenos: true }) : undefined;
+  const reserva = familias ? new ReservaDeHijos(familias.ninos) : undefined;
+  if (reserva) base = base.map((n) => (n.id in SESGO_DE_COMPANEROS ? (() => { const h = reserva.take('propio', EDAD_ALUMNO_MIN); return h ? companeroConFamilia(n, h) : n; })() : n));
+  const colegio = poblarElColegio(ctx.rng, usados, base.filter((n) => n.role === 'companero').length, reserva);
+  const sin = ajustarVecinos(conSemilla([...base, ...colegio, ...(familias ? [...familias.adultos, ...familias.pequenos] : []), ...bibliotecarios(ctx.rng, usados), ...puestosDeLaCalle(ctx.seed, usados)], ctx.seed), ctx.seed, 0);
   avisarDelProgreso('Contratando a los entrenadores de cada club…', 0.03);
   const conEntrenadores = pobs.reduce((lista, pob) => [...lista, ...entrenadoresDeUnDeporte(lista, pob, ctx.rng), ...entrenadoresDeEquiposExtra(lista, pob, ctx.rng)], sin);
   // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
@@ -948,7 +1075,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   draftDeEquipos(mercado, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
   avisarDelProgreso('Dándole a cada uno su historia deportiva…', 0.37);
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
-  const resultado = { npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), 0, ctx.seed, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, 0)), mercado.pobs, 0, ctx.seed), pobs: [...mercado.pobs] };
+  const resultado = { npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), 0, ctx.seed, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, 0)), mercado.pobs, 0, ctx.seed), pobs: [...mercado.pobs], ...(familias ? { hogares: familias.hogares } : {}) };
   avisarDelProgreso('Dejando listo el mundo…', 0.98);
   return resultado;
 }
@@ -1496,8 +1623,8 @@ export const npcs = defineModule<NpcsState>({
   initState: (ctx) => {
     // Cada deporte de la partida pide su gente (y se guarda lo que pidió, para que siga viviendo sin su módulo).
     const poblaciones = poblacionesDe(ctx, ctx.seed);
-    const { npcs, pobs } = conPais(ctx.pais, () => generarTodos(ctx, poblaciones));
-    return { npcs, poblaciones: pobs, semilla: ctx.seed };
+    const { npcs, pobs, hogares } = conPais(ctx.pais, () => generarTodos(ctx, poblaciones));
+    return { npcs, poblaciones: pobs, semilla: ctx.seed, ...(hogares ? { hogares } : {}) };
   },
 
   // Una partida de una versión anterior no guarda lo que pidieron después los deportes (dorsales, familias de puestos, pistas, días de apuntarse): se completa al cargar (sin tocar lo guardado).
@@ -1693,9 +1820,10 @@ export const npcs = defineModule<NpcsState>({
       }
       const resultado = { sinPlaza: [] as string[], plazaExtra: [] as string[], sinNinos: [] as { deporte: string; motivo: MotivoDeEquipoSinNinos; jugadores?: number; minimo?: number }[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined, propuestas: [] as { deporte: string; puesto: string }[] };
       ctx.updateState<NpcsState>((s) => {
-        const npcs = conPais(ctx.pais, () => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day));
+        const familias = s.hogares ? conPais(ctx.pais, () => renovarConFamilias(s.npcs, proximo.day, ctx.rng, s.hogares!, s.semilla ?? 0)) : undefined;
+        const npcs = conPais(ctx.pais, () => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(familias?.npcs ?? renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day));
         const pobsNuevas = resultado.pobs ?? pobs;
-        return { ...s, poblaciones: pobsNuevas, npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), pobsNuevas, proximo.day, s.semilla ?? 0), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub } };
+        return { ...s, poblaciones: pobsNuevas, npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), pobsNuevas, proximo.day, s.semilla ?? 0), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub }, ...(familias ? { hogares: familias.hogares, familiasPorCurso: { ...s.familiasPorCurso, [proximo.schoolYear]: { hermanos: familias.hermanos, mudanzas: familias.mudanzas, archivadas: familias.archivadas, borradas: familias.borradas } } } : {}) };
       });
       // El entrenador le propone al personaje otro puesto si en el suyo sobran y en otro faltan (decide él: `club.cambio_de_puesto`).
       for (const p of resultado.propuestas) if (!resultado.sinPlaza.includes(p.deporte)) ctx.emit<PuestoPropuestoData>({ type: SHARED_EVENTS.PROPUESTA_DE_PUESTO, data: { sport: p.deporte, puesto: p.puesto } });
@@ -2013,6 +2141,7 @@ export const npcs = defineModule<NpcsState>({
         plaza: (deporte, club, nivel, puestos, prueba) => plazaEnElEquipo(lista, poblacionesGuardadas(ctx), deporte, club, ctx.service<IdentityService>(SERVICES.identidad)?.view().seasonAge ?? 8, nivel, inicioCurso, puestos, rendimientosDe(ctx), ctx.service<IdentityService>(SERVICES.identidad)?.view().leftHanded ? 'izquierda' : 'derecha', prueba),
         consejoDeportivo: () => consejoDeUnProfesor(ctx, lista, poblacionesGuardadas(ctx), rendimientosDe(ctx), inicioCurso),
         familiasDePuestos: () => familiasDePuestosDeLosDeportes(poblacionesGuardadas(ctx)),
+        familiaDe: (id) => familiaDePersona(lista, ctx.state<NpcsState>().hogares, id),
         lecturaDePuesto: (deporte, familia) => lecturaDeUnPuesto(ctx, lista, poblacionesGuardadas(ctx), rendimientosDe(ctx), inicioCurso, deporte, familia),
       };
     },
@@ -2020,3 +2149,4 @@ export const npcs = defineModule<NpcsState>({
 });
 
 export default npcs;
+export { esProgenitorDeHogar, generarFamilias, FAMILIAS, type HogarGuardado } from './hogares';
