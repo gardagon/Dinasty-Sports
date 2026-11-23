@@ -41,17 +41,20 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**, unida a `main` y publicada
 
 ## 3. Preguntas para el usuario (pendientes)
 
-Ninguna abierta (el contenido duro se decidió el 22/11: desactivado por defecto y por categorías; ya se le dijo a la sesión de motor).
+- **Gente por la calle** (`docs/relevo/gente-por-la-calle.md` §5.3): fases, cuántos vecinos, perros y bebés como texto, niños pequeños solos en el súper, oficios en su lugar, horario de la calle. Recomendación: F1+F2, luego F3 con +150; las demás, como recomienda el documento.
+- **Dormir** (`docs/relevo/dormir.md` §6): fases y 7 dudas. Recomendación: F1 ya, F2+F3 seguidas; necesidad por edad; 8:30 los días libres; no faltar a clase durmiendo; castigo suave; siesta hasta 0,5 h de deuda al día; ventana sin cambios.
+- **Rendimiento M2**: espera los tiempos del móvil del usuario.
 
 ## 3 bis. Sesiones en curso
 
 | Sesión | Rama | Para qué | Estado |
 |---|---|---|---|
 | `session_01M4vXXNzsoqtFvnvBsCgua3` | `claude/medir-rendimiento-2` | Medidas (`docs/relevo/medir-rendimiento-2.md`) | ✅ Terminada y unida (solo `tools/` y `docs/`). Propuestas M1, M2 y C1 pendientes del usuario |
-| `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Fase 1 hecha y unida (`docs/relevo/sucesos-lote-2.md`); el usuario la aprobó (DECISIONES 22/11). **Espera**: cuando se una la sesión de motor, reactivarla para escribir el contenido en el orden decidido | En espera |
-| `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor para el lote 2: variantes al azar, señales de exámenes y boletín, cumpleaños propio, rotación por familia, medida por franja/lugar/persona, bot madrugador, marca de contenido duro | Lanzada el 22/11 |
-| `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Análisis con propuesta: desplegable de «Dormir» (hasta la hora de levantarse, recuperar, horas que tocan), deuda de sueño, malus y PNJ. Para y espera al usuario | Lanzada el 22/11; parada por el límite y reactivada el 23/11 |
-| `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Análisis con propuesta: quién hay por la calle a cada hora, quién debería haber y su coste. Para y espera al usuario | Lanzada el 22/11 |
+| `session_01M4vXXQAF9nMwtH72JNPMoS` | `claude/sucesos-lote-2` | Fase 2 (23/11): escribir el lote en 4 tandas con el motor nuevo, `familia` en patio y aula, lo duro marcado; sin sucesos de calle hasta que el usuario decida | Reactivada el 23/11 |
+| `session_01M4vXXMop1ruurfnrJWEBCG` | `claude/sucesos-motor-2` | Motor del lote 2 y contenido duro (desactivado por defecto) | ✅ Unida el 23/11 |
+| `session_01M4vXXNhTp4behXGJK95oAE` | `claude/dormir` | Análisis (`docs/relevo/dormir.md`) | ✅ Unido. Espera decisiones del usuario (8 dudas, fases F1–F4) |
+| `session_01M4vXXRa4eRsqGgw7PKJ3S7` | `claude/estado-compartido` | Error: estado compartido entre partidas en un proceso (la huella de `vago` 2 cambia según el orden de los bots). Investigar, arreglar sin cambiar partidas jugadas solas y test | Lanzada el 23/11 |
+| `session_01M4vXXPqtbBbKjYfQzgtQgH` | `claude/gente-por-la-calle` | Análisis (`docs/relevo/gente-por-la-calle.md`) | ✅ Unido. Espera decisiones del usuario (fases F1–F4, cuántos vecinos…) |
 | `session_01M4vXXNJgqnXmd48HC8S6Eb` | `claude/diseno-escritorio` | Fase 2 (23/11): aplicar A (por defecto desde 1280 px), dinero en la columna izquierda, pulir pestañas, diario recortado, y el aviso «Pasando la semana…» (M1) | Reactivada el 23/11 |
 
 ## 4. Pendiente (por orden de prioridad propuesto)
