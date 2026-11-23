@@ -85,6 +85,10 @@ flowchart LR
 
 | Suceso | Título | Disparo | Categoría |
 |---|---|---|---|
+| `eventos.amigos.regalo_inesperado` | Esto es para ti | al: `lugares.llegada` | menor |
+| `eventos.amigos.apuesta_en_el_patio` | Te reto | al: `lugares.llegada` | menor |
+| `eventos.amigos.un_amigo_de_un_amigo` | Te presento a… | al: `lugares.llegada` | menor |
+| `eventos.amigos.amigo_que_se_enfria` | Hace días que no hablas | cada semana, 25 % | menor |
 | `eventos.amigos.parque_partido` | Falta uno | al: `lugares.llegada` | menor |
 | `eventos.barrio.perro_suelto` | Un perro suelto | al: `lugares.llegada` | menor |
 | `eventos.barrio.musico_en_la_avenida` | Música en la avenida | al: `lugares.llegada` | menor |
@@ -106,6 +110,12 @@ flowchart LR
 | `eventos.colegio.companero_pide_ayuda` | Te piden ayuda | al: `clase.asistida` | menor |
 | `eventos.colegio.nota_por_la_clase` | Una nota que pasa de mesa en mesa | al: `clase.asistida` | menor |
 | `eventos.colegio.dia_de_lluvia` | Llueve a mares | al: `clase.asistida` | menor |
+| `eventos.colegio.rumor` | Dicen que… | al: `lugares.llegada` | menor |
+| `eventos.colegio.salida_con_hermano` | Te espera en la puerta | al: `lugares.llegada` | menor |
+| `eventos.colegio.en_la_puerta` | Ya están en la entrada | al: `lugares.llegada` | menor |
+| `eventos.colegio.copiar_deberes` | ¿Me dejas los deberes? | al: `lugares.llegada` | menor |
+| `eventos.colegio.capitan_de_equipo` | Hacen los equipos | al: `clase.asistida` | menor |
+| `eventos.colegio.cambio_de_sitios` | Nuevos sitios | al: `lugares.llegada` | menor |
 | `eventos.colegio.cabeceo_en_clase` | Los ojos se te cierran | al: `clase.asistida` | menor |
 | `eventos.colegio.profesor_se_equivoca` | El profesor se equivoca | al: `clase.asistida` | menor |
 | `eventos.colegio.trabajo_en_grupo` | Un trabajo en grupo | al: `clase.asistida` | menor |
@@ -170,10 +180,11 @@ flowchart LR
 | `lleva_regalo` | `eventos.relaciones.cumple.invitacion` | `eventos.relaciones.cumple.fiesta` |
 | `lo_pillaron_mintiendo_en_casa` | `eventos.familia.faltas.charla`, `eventos.familia.faltas.descubierto` | `eventos.casa.cena_de_domingo` |
 | `mintio_a_sus_padres` | `eventos.casa.deberes_con_padre`, `eventos.familia.faltas.charla` | `eventos.casa.cena_de_domingo` |
-| `perdono_una_deuda` | `eventos.amigos.prestado.reclamar` | — (todavía nadie) |
+| `perdono_una_deuda` | `eventos.amigos.prestado.reclamar` | `eventos.amigos.regalo_inesperado` |
 | `planton` | `eventos.relaciones.cumple.fiesta` | `eventos.relaciones.cumple.invitacion` |
 | `presto_poco` | `eventos.amigos.prestado.peticion` | `eventos.amigos.prestado.devolucion`, `eventos.amigos.prestado.reclamar` |
 | `prometio_no_faltar` | `eventos.familia.faltas.charla` | `eventos.familia.faltas.revision` |
 | `rompio_una_promesa_en_casa` | `eventos.familia.faltas.revision` | `eventos.casa.deberes_con_padre`, `eventos.casa.cena_de_domingo` |
 | `se_sospecha` | `eventos.amigos.secreto.te_preguntan` | `eventos.amigos.secreto.se_entera` |
 | `sento_a_nuevo` | `eventos.colegio.companero_nuevo.llegada` | `eventos.colegio.companero_nuevo.primera_semana` |
+| `vecino_de_mesa` | `eventos.colegio.cambio_de_sitios` | `eventos.colegio.copiar_deberes` |

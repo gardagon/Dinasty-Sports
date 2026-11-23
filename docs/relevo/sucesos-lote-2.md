@@ -311,7 +311,7 @@ El usuario aprobó la propuesta (`docs/DECISIONES.md`, 22/11, «Sucesos, lote 2:
 
 | Archivo | Sucesos |
 |---|---|
-| `casa/dia_a_dia.ts` | `desayuno` (3 textos + variante «cansado»), `deberes_con_padre` (variantes por promesa rota, nota flor/alta), `hermano_no_duerme` (3 textos), `tele_con_el_hermano` |
+| `casa/dia_a_dia.ts` | `desayuno` (3 textos + variante «cansado»), `deberes_con_padre` (variantes por promesa rota, nota baja o alta), `hermano_no_duerme` (3 textos), `tele_con_el_hermano` |
 | `casa/fin_de_semana.ts` | `tarea_del_hogar` (3 textos), `cena_de_domingo` (**lee** `lesionado_hace_poco`, `lo_pillaron_mintiendo_en_casa`, `rompio_una_promesa_en_casa`, `mintio_a_sus_padres`, `levanto_la_nota` y la nota media; 3 textos por defecto), `verano_aburrido` |
 | `amigos/parque.ts` | `parque_partido` (fin de semana, con un amigo de estado `amigo`/`mejor_amigo`; versión para ≤ 10 años) |
 | `colegio/companero_nuevo.ts` | hilo de 3 pasos: llegada → primera semana (3 versiones según lo que hiciste) → un mes después (amigos / conocidos / otros) |
