@@ -119,6 +119,6 @@ _Eventos totales de todos los bots: 1059 en 411.4 semanas de juego._
 
 ## Pendiente / dudas (nada decidido por mí)
 
-1. Estado compartido entre partidas en un mismo proceso (arriba): conviene encontrarlo (afecta a `huella` y quizá a la reproducibilidad).
+1. ~~Estado compartido entre partidas en un mismo proceso~~ **Resuelto** en `docs/relevo/estado-compartido.md`.
 2. `sim`/`sim:rapida` ahora incluyen al bot `madrugador` (8 bots): las tablas y los chequeos de `npm run sim` lo cuentan como uno más; no he cambiado umbrales. Si se prefiere que la comparación de siempre use los 7, se puede marcar el bot como aparte.
 3. Los chequeos de ritmo objetivo (media 6, ≤ 35 % de días sin evento…) se muestran en `sim:eventos`, pero **no** se han añadido a `sim/src/analysis.ts` (saldrían ⚠️ hasta que haya contenido).

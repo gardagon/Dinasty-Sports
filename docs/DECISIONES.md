@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 23/11/2026 — Una partida no depende de las anteriores del mismo proceso
+
+- **Fallo:** el contador de índices de presencia de `modules/npcs` (`versionDeIndices`) era del proceso y daba el azar del aforo (`aforoCercano(lugar, presencia.version)`): cuántas personas ves cerca. La segunda partida de un proceso empezaba con el contador donde lo dejó la primera, así que `vago` con la semilla 2 daba otra partida si antes se había jugado `madrugador`, `equilibrado` o incluso `vago` 2 misma. En la web, crear o cargar una partida sin recargar daba otro aforo que con la misma semilla.
+- **Arreglo:** cada partida empieza el contador en 0, **al crearla (`initState`) y al cargarla (`alCargar`)**; una partida jugada sola (proceso nuevo) da exactamente lo de siempre. Para que la caché de «los cercanos» de `relaciones` no mezcle partidas (ahora la versión se repite entre partidas) hay un contador aparte, `PresenciaService.indice`, que no se reinicia y no entra en ningún sorteo.
+- **Límite conocido:** el contador sigue siendo del proceso, no de cada objeto de partida: si dos partidas se jugaran **intercaladas** (una acción de una y una de la otra) seguirían influyéndose. Hoy no ocurre (la web tiene una partida y los bots juegan de una en una). Arreglarlo del todo pide un identificador de partida estable en el motor (el estado de los módulos se sustituye en cada acción, así que no vale como clave): decisión de diseño, no tomada.
+- **Test:** `tests/estado-compartido.test.ts`. **Huella:** los bots jugados solos no cambian; en `npm run huella -- 60` cambian las líneas de los bots que antes salían contaminadas por el orden (ahora valen lo que jugados solos).
+
 ## 23/11/2026 — Diseño de escritorio A y aviso al pasar de semana
 
 Respuestas del usuario a `docs/relevo/diseno-escritorio.md` y `docs/relevo/medir-rendimiento-2.md`:

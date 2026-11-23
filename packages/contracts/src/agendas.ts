@@ -496,6 +496,11 @@ export interface PresenciaService {
    */
   readonly version: number;
   /**
+   * Distinto en cada índice de presencia construido en el proceso, de cualquier partida (`version` empieza de nuevo en cada partida y se repite entre partidas):
+   * es la clave para recordar algo calculado con la presencia sin mezclar partidas. No entra en ningún sorteo.
+   */
+  readonly indice: number;
+  /**
    * Personas que hay ahora en un lugar. Primero las de mayor nivel (profesores, el club, los amigos) y después las demás en
    * un orden que no cambia mientras dure el tramo; como mucho `max` (por defecto, todas).
    */

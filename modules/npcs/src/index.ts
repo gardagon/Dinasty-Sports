@@ -1250,8 +1250,13 @@ interface EnLugar {
 const compararCercania = (a: EnLugar, b: EnLugar): number =>
   Number(b.n.known !== false) - Number(a.n.known !== false) || b.nivel - a.nivel || (RELEVANCIA[b.tipo] ?? 0) - (RELEVANCIA[a.tipo] ?? 0) || a.azar! - b.azar!;
 
-/** Número de índices de presencia construidos: `PresenciaService.version`. */
+/**
+ * Número de índices de presencia construidos en la partida en curso: `PresenciaService.version`. Da el azar del aforo, así que cada partida lo empieza de cero
+ * (al crearla y al cargarla): con un contador que siguiera de una partida a otra, el mundo de una dependería de las que se jugaron antes en el proceso.
+ */
 let versionDeIndices = 0;
+/** Índices construidos en el proceso, sin reiniciar nunca: `PresenciaService.indice`, para no confundir lo recordado de una partida con lo de otra. */
+let indicesDelProceso = 0;
 
 /**
  * Qué sitios pueden pisar alguna vez las personas de una agenda (los destinos de todos sus tramos): quien nunca va a un lugar no hace falta mirarlo para saber quién hay allí.
@@ -1300,6 +1305,7 @@ const INDICES = new WeakMap<
   {
     clave: string;
     version: number;
+    indice: number;
     ubicar: UbicarPersona;
     dia: number;
     candidatos: (lugar: string) => readonly Npc[];
@@ -1342,11 +1348,12 @@ function enDelIndice(idx: IndiceGuardado, lugar: string): EnLugar[] {
 function indiceDePresencia(lista: Npc[], clave: string, ubicar: UbicarPersona, dia: number, candidatos: (lugar: string) => readonly Npc[]) {
   let idx = INDICES.get(lista);
   if (!idx || idx.clave !== clave) {
-    INDICES.set(lista, (idx = { clave, version: ++versionDeIndices, ubicar, dia, candidatos, lugares: new Map(), ocupados: new Map(), calculados: new Set(), ordenados: new Set() }));
+    INDICES.set(lista, (idx = { clave, version: ++versionDeIndices, indice: ++indicesDelProceso, ubicar, dia, candidatos, lugares: new Map(), ocupados: new Map(), calculados: new Set(), ordenados: new Set() }));
   }
   const actual = idx;
   return {
     version: actual.version,
+    indice: actual.indice,
     ocupadosEn: (lugar: string): { n: Npc; motivo: string }[] => {
       calcularLugar(actual, lugar);
       return actual.ocupados.get(lugar)!;
@@ -1438,13 +1445,14 @@ export const npcs = defineModule<NpcsState>({
 
   initState: (ctx) => {
     // Cada deporte de la partida pide su gente (y se guarda lo que pidió, para que siga viviendo sin su módulo).
+    versionDeIndices = 0;
     const poblaciones = poblacionesDe(ctx, ctx.seed);
     const { npcs, pobs } = conPais(ctx.pais, () => generarTodos(ctx, poblaciones));
     return { npcs, poblaciones: pobs, semilla: ctx.seed };
   },
 
   // Una partida de una versión anterior no guarda lo que pidieron después los deportes (dorsales, familias de puestos, pistas, días de apuntarse): se completa al cargar (sin tocar lo guardado).
-  alCargar: (estado, ctx) => (estado.poblaciones ? { ...estado, poblaciones: completarPoblaciones(estado.poblaciones, poblacionesDe(ctx, estado.semilla ?? ctx.seed)) } : estado),
+  alCargar: (estado, ctx) => (versionDeIndices = 0, estado.poblaciones ? { ...estado, poblaciones: completarPoblaciones(estado.poblaciones, poblacionesDe(ctx, estado.semilla ?? ctx.seed)) } : estado),
 
   // Ponerle (o quitarle) un apodo a alguien que conoces: el texto va en el id de la acción (`idDePonerApodo`).
   resolverAccion: (ctx, id) => {
@@ -1882,6 +1890,7 @@ export const npcs = defineModule<NpcsState>({
       const indice = indiceDePresencia(lista, `${t.day}:${intervalo}:${partidos?.version ?? ''}`, (n) => ubicacionEn(agendaDe(n), t, n.id), t.day, candidatosEn({ lista, agendaDe, partidos }, t.day));
       const servicio: PresenciaService = {
         version: indice.version,
+        indice: indice.indice,
         en: (lugar, max = Infinity) => indice.en(lugar).slice(0, max).map((e) => vista(e.n, inicioCurso, t.day)),
         ocupadosEn: (lugar) => indice.ocupadosEn(lugar).map((e) => ({ persona: vista(e.n, inicioCurso, t.day), motivo: e.motivo })),
         donde: (id) => {
