@@ -31,6 +31,11 @@ import {
   ligarALugares,
   isSchoolHours,
   minutesUntilHour,
+  HORA_DE_LEVANTARSE,
+  necesidadDeSueno,
+  type ReadContext,
+  type ActionContext,
+  type ActionDef,
   type ActionDoneData,
   type CambioDeCaracterData,
   type PerkReveladoData,
@@ -75,7 +80,82 @@ export type { IdentidadState } from './identidad';
 // Las 18 capacidades las define `statDeCapacidad` (contracts): son las mismas reglas para el personaje y para cualquier niño.
 const generica = statDeCapacidad;
 
-const WAKE_HOUR = 7;
+const WAKE_HOUR = HORA_DE_LEVANTARSE;
+
+// ---------------------------------------------------------------------------------------------------- dormir (desplegable «Dormir…»)
+
+/** Las mismas opciones todos los días (sin hora especial de fin de semana): dormir no mira las obligaciones, quien duerme de más llega tarde. */
+const HORAS_A_ELEGIR = [4, 5, 6, 7, 8, 9, 10, 11] as const;
+
+const horaEnTexto = (minutoDelDia: number): string => {
+  const m = ((minutoDelDia % 1440) + 1440) % 1440;
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+};
+
+const necesidadDe = (ctx: ReadContext): number => necesidadDeSueno(edadDecimal(ctx.state<IdentidadState>(), ctx.time.day));
+
+interface OpcionDeSueno {
+  id: string;
+  opcion: string;
+  /** Minutos que se duerme. */
+  duracion: (ctx: ReadContext) => number;
+  nombre: (ctx: ReadContext, minutos: number) => string;
+  descripcion: string;
+}
+
+const levantaA = (ctx: ReadContext, minutos: number): string => horaEnTexto(ctx.time.minuteOfDay + minutos);
+
+const OPCIONES_DE_SUENO: readonly OpcionDeSueno[] = [
+  {
+    id: 'gen.dormir',
+    opcion: `Hasta las ${WAKE_HOUR}:00`,
+    duracion: (ctx) => minutesUntilHour(ctx.time.minute, WAKE_HOUR),
+    nombre: () => `Dormir hasta las ${WAKE_HOUR}:00`,
+    descripcion: `Duerme hasta las ${WAKE_HOUR}:00, la hora de levantarse un día de clase. Cuantas más horas, más energía recuperas.`,
+  },
+  {
+    id: 'gen.dormir_lo_que_toca',
+    opcion: 'Lo que toca',
+    duracion: (ctx) => Math.round(necesidadDe(ctx) * 4) * 15,
+    nombre: (ctx, m) => `Dormir lo que toca (te levantas a las ${levantaA(ctx, m)})`,
+    descripcion: 'Duerme lo que necesita alguien de tu edad.',
+  },
+  ...HORAS_A_ELEGIR.map(
+    (n): OpcionDeSueno => ({
+      id: `gen.dormir_${n}h`,
+      opcion: `${n} horas`,
+      duracion: () => n * 60,
+      nombre: (ctx, m) => `Dormir ${n} horas (te levantas a las ${levantaA(ctx, m)})`,
+      descripcion: `Duerme exactamente ${n} horas, sin mirar la hora ni lo que tengas después: si te pasas, llegas tarde.`,
+    }),
+  ),
+];
+
+/** Se puede dormir de 21:00 a 6:00 (el horario para acostarse no cambia). */
+const puedeDormir = (ctx: ReadContext): true | string => (inHours(ctx.time, 21, 6) ? true : 'Solo de 21:00 a 6:00');
+
+/** Lo que cambia al dormir `horas`: energía y estrés, y el aviso de dormir poco. */
+function efectoDeDormir(ctx: ActionContext, horas: number): void {
+  ctx.addStat(GEN.energia, Math.min(100, horas * 12.5));
+  ctx.addStat(GEN.estres, -horas * 0.8);
+  if (horas < 7) {
+    ctx.addStat(GEN.motivacion, -2);
+    ctx.log(`Solo has dormido ${horas.toFixed(1)} h.`, 'aviso');
+  }
+}
+
+const accionesDeDormir = (): ActionDef[] =>
+  OPCIONES_DE_SUENO.map((o) => ({
+    id: o.id,
+    name: (ctx: ReadContext) => o.nombre(ctx, o.duracion(ctx)),
+    description: o.descripcion,
+    tags: [TAGS.descanso],
+    group: 'Descanso',
+    desplegable: { id: 'gen.dormir', nombre: 'Dormir…', etiqueta: 'Hasta cuándo', boton: '{nombre}', opcion: o.opcion },
+    duration: (ctx: ReadContext) => o.duracion(ctx),
+    available: puedeDormir,
+    run: (ctx: ActionContext) => efectoDeDormir(ctx, o.duracion(ctx) / 60),
+  }));
 
 export const personaje = defineModule<IdentidadState>({
   id: 'gen',
@@ -132,24 +212,7 @@ export const personaje = defineModule<IdentidadState>({
   ],
 
   actions: ligarALugares([
-    {
-      id: 'gen.dormir',
-      name: 'Dormir',
-      description: `Duerme hasta las ${WAKE_HOUR}:00. Cuantas más horas, más energía recuperas.`,
-      tags: [TAGS.descanso],
-      group: 'Descanso',
-      duration: (ctx) => minutesUntilHour(ctx.time.minute, WAKE_HOUR),
-      available: (ctx) => (inHours(ctx.time, 21, 6) ? true : 'Solo de 21:00 a 6:00'),
-      run: (ctx) => {
-        const hours = minutesUntilHour(ctx.time.minute, WAKE_HOUR) / 60;
-        ctx.addStat(GEN.energia, Math.min(100, hours * 12.5));
-        ctx.addStat(GEN.estres, -hours * 0.8);
-        if (hours < 7) {
-          ctx.addStat(GEN.motivacion, -2);
-          ctx.log(`Solo has dormido ${hours.toFixed(1)} h.`, 'aviso');
-        }
-      },
-    },
+    ...accionesDeDormir(),
     {
       id: 'gen.descansar',
       name: 'Echarse una siesta',
@@ -237,7 +300,7 @@ export const personaje = defineModule<IdentidadState>({
     },
   ], {
     // La siesta (`gen.descansar`) es solo en casa; para esperar en cualquier parte está «Pasar el rato».
-    'gen.dormir': ['casa'],
+    ...Object.fromEntries(OPCIONES_DE_SUENO.map((o) => [o.id, ['casa']])),
     'gen.descansar': ['casa'],
     'gen.gimnasio': ['gimnasio'],
     'gen.leer': ['casa', 'parque'],

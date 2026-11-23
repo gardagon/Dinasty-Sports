@@ -212,4 +212,57 @@ describe('módulo personaje (gen)', () => {
       expect(JSON.stringify({ ...perfilDe(g), intereses: 0 })).toBe(antes);
     });
   });
+
+  describe('el desplegable «Dormir…»', () => {
+    const opcionesDeDormir = (g: Game) => g.listActions().filter((o) => o.id.startsWith('gen.dormir'));
+
+    it('hay las mismas opciones todos los días, también en fin de semana', () => {
+      const g = Game.create([personaje], { seed: 1 });
+      advanceUntil(g, 'gen.descansar', (t) => t.hour === 22);
+      const entreSemana = opcionesDeDormir(g).map((o) => o.id);
+      expect(entreSemana).toEqual(expect.arrayContaining(['gen.dormir', 'gen.dormir_lo_que_toca', 'gen.dormir_4h', 'gen.dormir_11h']));
+      for (let i = 0; i < 5 * 24 * 12 && !g.time.isWeekend; i++) g.perform('gen.esperar');
+      advanceUntil(g, 'gen.descansar', (t) => t.isWeekend && t.hour === 22);
+      expect(g.time.isWeekend).toBe(true);
+      expect(opcionesDeDormir(g).map((o) => o.id)).toEqual(entreSemana);
+    });
+
+    it('cada opción cumple sus horas y no mira las obligaciones', () => {
+      const g = Game.create([personaje], { seed: 1 });
+      advanceUntil(g, 'gen.descansar', (t) => t.hour === 22);
+      expect(g.preview('gen.dormir')!.duration).toBe(9 * 60);
+      expect(g.preview('gen.dormir_6h')!.duration).toBe(6 * 60);
+      expect(g.preview('gen.dormir_11h')!.duration).toBe(11 * 60);
+      // A los 8 años, lo que toca son unas 9 h y media (la edad exacta cambia el cuarto de hora).
+      const toca = g.preview('gen.dormir_lo_que_toca')!.duration;
+      expect(toca).toBeGreaterThanOrEqual(9 * 60);
+      expect(toca).toBeLessThanOrEqual(9.75 * 60);
+      const antes = g.time.minute;
+      g.perform('gen.dormir_11h');
+      expect(g.time.minute - antes).toBe(11 * 60);
+    });
+
+    it('el nombre dice a qué hora te levantas y de día no se puede', () => {
+      const g = Game.create([personaje], { seed: 1 });
+      advanceUntil(g, 'gen.descansar', (t) => t.hour === 22);
+      expect(g.preview('gen.dormir_8h')!.name).toBe('Dormir 8 horas (te levantas a las 6:00)');
+      advanceUntil(g, 'gen.descansar', (t) => t.hour === 15);
+      for (const o of opcionesDeDormir(g)) expect(o.available).toBe(false);
+    });
+
+    it('dormir 8 horas recupera la misma energía que hasta las 7:00 desde las 23:00', () => {
+      const a = Game.create([personaje], { seed: 3 });
+      const b = Game.create([personaje], { seed: 3 });
+      for (const g of [a, b]) {
+        for (let i = 0; i < 3; i++) g.perform('gen.gimnasio');
+        advanceUntil(g, 'gen.descansar', (t) => t.hour === 22);
+        while (g.time.minuteOfDay < 23 * 60) g.perform('gen.esperar');
+        expect(g.time.minuteOfDay).toBe(23 * 60);
+      }
+      a.perform('gen.dormir');
+      b.perform('gen.dormir_8h');
+      expect(a.time.minute).toBe(b.time.minute);
+      expect(a.stat(GEN.energia)).toBe(b.stat(GEN.energia));
+    });
+  });
 });

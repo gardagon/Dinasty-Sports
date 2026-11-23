@@ -40,3 +40,4 @@ export * from './personas';
 export * from './cuerpo';
 export * from './retrato';
 export * from './sucesos';
+export * from './sueno';
