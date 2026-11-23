@@ -37,6 +37,13 @@ export const ID_PAIS_CIUDAD_GRANDE = PAIS_CIUDAD_GRANDE.id;
 export const PAIS_CIUDAD_DE_PRUEBA = conCiudadDePrueba(PAIS_ESPANA);
 export const ID_PAIS_CIUDAD_DE_PRUEBA = PAIS_CIUDAD_DE_PRUEBA.id;
 
+/** La ciudad grande y la de prueba con los **hogares** activados (`CiudadDef.hogares`), para medir y probar (la partida normal los trae desactivados). */
+export const SUFIJO_CON_HOGARES = '_hogares';
+export const PAIS_CIUDAD_GRANDE_CON_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_GRANDE, hogares: true }, SUFIJO_CIUDAD_GRANDE + SUFIJO_CON_HOGARES);
+export const ID_PAIS_CIUDAD_GRANDE_CON_HOGARES = PAIS_CIUDAD_GRANDE_CON_HOGARES.id;
+export const PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_DE_PRUEBA, hogares: true }, SUFIJO_CIUDAD_DE_PRUEBA + SUFIJO_CON_HOGARES);
+export const ID_PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES = PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES.id;
+
 /** Los países disponibles (el de España siempre; los demás, los de los paquetes registrados). */
 const PAISES: Record<string, PaisDef> = { espana: PAIS_ESPANA };
 

@@ -377,3 +377,181 @@ En orden de rentabilidad (todo respetando `VISION.md`: calcular por bloques no e
 - `npm run huella -- 60`: **idéntica** a la de antes de empezar (ver el commit).
 - Medidas: `npx tsx tools/hogares-modelo.ts grande` (semilla 31); `npx tsx tools/hogares-coste.ts` y `… 6113 19941 --sin-agenda`. Máquina de 4 CPU con otros procesos: los tiempos tienen ruido; el estado y los recuentos son exactos.
 - **Lo que no se midió:** crear con hogares reales (solo `persona()` suelto: 43 µs por persona), la inversión de la cara con los alelos (se diseña sobre lo que dice `ANEXO_CUERPO` §7 y `rostroHeredado`, **sin ejecutarla**), la genética de los bebés (~350 B, estimado), nada en Chromium (el móvil ×4 es el factor ×4,3 de `medir-rendimiento-2.md`) y las cifras del INE con ⚠️.
+
+---
+
+# Addendum (23/11/2026): H1 con las familias hacia delante
+
+Decisión del usuario (`DECISIONES.md`, «Hogares: familias hacia delante»): **la opción A**. Se generan primero las familias (adultos en pareja, con hijos hasta cubrir los niños que necesitan los colegios y los clubes) y después, más adelante, parejas sin hijos y adultos que viven solos. Se descarta derivar los padres de los hijos (C de §2.2). Este addendum dice cómo se hace, con un **prototipo medido** (`tools/hogares-prototipo.ts`, fuera del juego). Lo de arriba que choca con esto (§2.3 «Cómo se invierte cada cosa», §2.4, la recomendación C de §8.2) **queda sustituido** por lo de aquí.
+
+## A1. El algoritmo que llena los colegios y los clubes con hijos de familias
+
+**La demanda no cambia: es la que hoy cubren `poblarElColegio` y `ninosDeOtrosColegios`** (ciudad grande: 5.899 niños de 8 a 19 años, 500 por edad de 8 a 17 y 450 a los 18 y 19, en 10 colegios: el propio y 9 de fuera, con los de 18–19 sin colegio). El reparto de equipos, las plazas y las categorías no se enteran: ven los mismos niños por edad y colegio.
+
+1. **Demanda `R[colegio, edad]`** (50 por colegio y edad de 8 a 17; 450 por edad a los 18 y 19; 24 en tu clase de 8 años, ver A5).
+2. **De la edad mayor a la menor** (19 → 8): mientras quede demanda a esa edad, se crea **una familia cuyo hijo mayor dentro del mundo tiene esa edad**.
+3. **La pareja:** sus orígenes salen de `origenesDePareja` (`parejas` de la ciudad: 13 % dos de fuera, 12 % mixta, 75 % locales; la misma regla de hoy, `ANEXO_NOMBRES` §7); cada uno, con `rasgosAlAzar({ origen, sexo })`, nombre de adulto (`identidadAlAzar`), **calidad** (`calidadDePadreDelMundo`), **perfil de capacidades** (`perfilDePadre`: los topes) y **perks** (`perksDePadre`). La edad de la madre al nacer el mayor, 31 ± 4,5 (19–42); la del padre, +2,5 ± 3. El 20 % son monoparentales (el 80 % con la madre): el otro progenitor **se sortea igual** (sus topes, perks y práctica los hereda el niño) pero **no es una persona del mundo** (vive fuera: se le dará hogar en H3 si hace falta).
+4. **Los hijos:** tras el mayor, cada uno tiene un hermano más pequeño con probabilidad 0,55 / 0,30 / 0,20 / 0,15 (1.º, 2.º, 3.º, 4.º), separado por 1–6 años (22/30/22/14/8/4 %) y un 4 % de mellizos. Un hijo cuya edad ya está completa se queda fuera del mundo (no cabe); **los de menos de 8 años se cuentan como pendientes** (A6). Cada hijo **hereda con las funciones del personaje**: `rasgosHeredadosNpc` (origen, forma, color, canas, calvicie, barba, envejecimiento, **cara** por alelos, carácter, intereses), `geneticaDeHermano`-con-padres-de-familia (topes de uno de los dos ±20 %, perks, desfase), `identidadDeHijo` (el primer apellido del padre y el primero de la madre, con las reglas de homónimos), y la estatura y el cuerpo como los hermanos del personaje (`0,45 × (padre + madre) + 0,6 × z propio`).
+5. **Colegio:** cada hijo va al colegio de su hermano si queda hueco a su edad (75 %); si no, a uno con demanda restante, ponderado por lo que queda. Así hay hermanos en el mismo colegio y también en otros.
+6. **Un test** comprueba que la demanda queda cubierta **exacta** por colegio y edad.
+
+**Prototipo medido** (`npx tsx tools/hogares-prototipo.ts grande 31`):
+
+| | |
+|---|---|
+| Demanda y cubierta | 5.899 niños, 10 colegios: **cubierta exacta** por colegio y edad (499–500 por edad de 8 a 17; 450 a 18 y 19) |
+| Familias | **3.781**: 5.899 hijos y **6.806 adultos residentes** (756 monoparentales); 1 hijo en el mundo: 2.090 familias, 2: 1.315, 3: 327, 4: 47, 5: 2 (media **1,56**; **1.691 familias con hermanos**) |
+| Hermanos | Los hermanos comparten apellidos (los dos primeros) salvo la **forma femenina de los apellidos eslavos** (21 familias: «Dąbrowska/Dąbrowski», es la regla de `ANEXO_NOMBRES` §3, no un fallo); el 76 % de las familias con hermanos tiene a todos en el mismo colegio (1.285 de 1.691) |
+| Cara | **76.687 de 76.687** rasgos de la cara de los hijos (13 por hijo) **son un valor de su padre o de su madre** (la herencia mendeliana de `ANEXO_CUERPO` §7: ya era exacta, ahora además lo es entre hermanos) |
+| Origen | 25,3 % de los hijos con algún origen de fuera (hoy 25 %, `ANEXO_NOMBRES` §7): la demografía se conserva |
+| Hijos menores de 8 años que salen como hermanos | **712** |
+
+**Lo que cambia respecto a hoy, bien dicho:** cada niño ya no es un sorteo suelto sino hijo de unos padres sorteados; en conjunto **la distribución de capacidades, orígenes y apellidos es la misma** (los padres se sortean con las mismas funciones y reparto), pero **los hermanos están correlacionados** entre sí, que es lo que se quiere.
+
+## A2. Cómo heredan los hijos (las mismas funciones que el personaje)
+
+| Cosa | Función | Notas |
+|---|---|---|
+| Rasgos, cara, carácter, intereses | `rasgosHeredadosNpc(rasgosPadre, rasgosMadre, rng, sexo)` | Los hermanos del personaje ya la usan |
+| Apellidos y nombre | `identidadDeHijo(rng, género, padre, madre, origen, { edad, pais })` | 1.º del padre + 1.º de la madre; homónimos con `nombrePermitido` |
+| Origen | `origenHeredado(padre, madre)` (dentro de `rasgosHeredadosNpc`) | |
+| Topes, perks, desfase | `geneticaDeHermano`, con una variante: **la práctica deportiva de cada progenitor se sortea una vez (`practicaSegunTope`) y se guarda en el padre**, no por hijo (hoy `geneticaDeHermano` la saca del id del hijo: dos hermanos «verían» padres que practicaron cosas distintas) | Hace falta `calidad` y `practica` por progenitor |
+| Interés por el deporte de los padres | `aficionadoPorLosPadres(rasgos, genetica.padres, rng)` (igual que hoy) | |
+| Cuerpo | `estatura`, `metabolismo`, `musculatura` del hijo `0,45 × (p + m) + 0,6 × z propio`; los de los padres, de `estaturaZ(id)`… | |
+| **Qué guarda el progenitor para heredar** | `herencia: { t: topes en el orden de CAPACIDADES_GENETICAS, p: perks, c: calidad, u: práctica }` (~250 B) | Sirve para los hijos de hoy y los nacimientos de H2 sin rehacer nada |
+
+**Nada de esto cambia las capacidades reales de los adultos:** siguen sin tenerlas (hasta las profesiones), y el progenitor solo **guarda** sus topes para que los hereden.
+
+## A3. Cómo encaja con la historia deportiva y el reparto de equipos
+
+- **No cambia nada aguas abajo:** `conCapacidades`, `reclutarEnTodos`, el *draft*, `conHabilidades` y la historia (4 s + 2,6 s de crear) trabajan sobre los mismos 5.899 niños, con las mismas edades y colegios, y con `genetica.padres`, `ventaja` y `topes` en el mismo formato. Las **plazas** y las categorías son por edad: igual.
+- **Lo que sí cambia (y es la ley):** la huella (otra partida distinta), y que **hermanos** con aptitudes parecidas pueden acabar en equipos de cualquier club (cada uno decide por su interés y su ambición, no por la familia). `sim`, `benjamin -- 31,33` y las distribuciones del fútbol se miden con el dato activo frente a lo de ahora (Paso 2).
+- **Los adultos no entran en ninguna plantilla ni en ningún equipo**.
+
+## A4. Qué pasa con las partidas guardadas
+
+- **Sin hogares y sin migrar.** El dato va en la ciudad (`CiudadDef.hogares?: boolean`, ausente = desactivado; una partida guarda el id de su país y, con él, su ciudad): una partida de antes sigue con sus 6.113 personas **tal cual** y carga igual. `hogar`, `padres` y `herencia` son **campos opcionales** de `Npc` que las partidas de antes no tienen.
+- **Con el dato desactivado, la huella es idéntica** (el camino viejo no se toca: la rama nueva solo existe con el dato activado). Lo comprueba `npm run huella -- 60`.
+- Las **partidas nuevas** con el dato activado traen familias; no hay forma de «activarlo a mitad de partida» (no se pretende).
+- Un test: una partida **sin** hogares, guardada antes de este cambio, carga y avanza un curso.
+
+## A5. Los casos especiales de hoy
+
+| Caso | Qué pasa con el dato activado |
+|---|---|
+| **El reparto inicial** (`tutor`, `companero_estudio`, `companero_social`, el entrenador) | Los dos compañeros (niños de 8 años de tu clase con sesgos de carácter a mano) **también tienen padres** (los vecinos más probables de «el padre de tu compañero»): se generan con su familia y **se les empuja el carácter** hacia su sesgo después de heredar. El tutor y el entrenador son adultos sin familia en H1 |
+| **Tu clase y las clases del colegio** | Los huecos (`clase_N`, `curso_N`, `alumno_N`, `nino_N`) siguen siendo los mismos ids y roles; el hijo de una familia **ocupa** el hueco que le toca |
+| **Los 80 vecinos** (60 adultos y 20 niños de 5 a 17) | Los niños de 8 a 17 pasan a ser hijos de familias y cuentan para la demanda (su hueco ya existe); los **60 adultos se quedan** como adultos sin hijos hasta H3 |
+| **Tus hermanos y tus padres** | Sin cambios (su generación ya es hacia delante, con los padres de la semilla) |
+| **Los jóvenes de 18–19 años** | Siguen en casa (decisión 9): son hijos de su familia |
+
+## A6. Los nuevos cada curso, los que salen y los hermanos pequeños (decisiones nuevas, ver A8)
+
+- **Los menores de 8 años que salen como hermanos (712 con estos parámetros):** si se generan **ya** como personas, son los que **entran al colegio** los 7 cursos siguientes (unos 100 por curso), así los de 8 años que entran no «aparecen de la nada». Pesan ~1,2 KB cada uno (0,85 MB). *Recomiendo generarlos ya en H1* (cuesta 0,1 s y evita la incoherencia de «tu compañero de 9 años no tiene hermanos pequeños»); los **nacimientos** (decisión 7) llegan en H2.
+- **Los que entran con 8 años cada curso (~500):** primero salen de esos hermanos pequeños (~100); el resto **llegan con su familia nueva** (una familia se «muda al barrio»; sus hermanos mayores, si los hay, no entran: la familia se genera con el hijo mayor del mundo a los 8 años y los demás menores como pendientes). Es la regla de hoy (entran 500 niños) con familia. En H2, con nacimientos, esto se sustituye por los nacidos.
+- **Quien sale:** los jóvenes de 20 años dejan el barrio (como hoy). **Una familia sin ningún hijo en el mundo se archiva con quien la conoce o se borra** (VISION 4, principio de «quien sale del mundo que se juega»): si el personaje conoce a alguno de sus miembros se conserva, archivada (con su historial); si nadie la conoce, se borra. Sin esto la población crecería unos 690 adultos por curso (500 niños nuevos → unas 380 familias nuevas × 1,8 adultos); con esto queda estable. Una pasada por curso, junto a `renovarAlumnos`.
+
+## A7. Coste medido con el prototipo
+
+`npx tsx tools/hogares-prototipo.ts grande 31` (4 CPU con otros procesos; ±20 % de ruido):
+
+| Medida | Resultado |
+|---|---|
+| **Generar las familias** (3.781 familias: 6.806 adultos y 5.899 hijos) | **0,82 s** (65 µs por persona; 220 µs por familia) |
+| Referencia de hoy: crear los mismos 5.899 niños con `persona()` | 0,54 s |
+| **Lo que añade a crear**, escritorio | **≈ +0,3 s** (de ~8 s: un 4 %); en un móvil ×4 (factor ×4,3 de `medir-rendimiento-2.md`), **≈ +1,2 s** (de ~33 s). El resto de crear (historia deportiva y *draft*, el 85 %) **no cambia** porque los niños son los mismos 5.899 |
+| Peso de un **hijo** (sin capacidades; con el `hogar`, `padres`, estatura…) | **1.939 B** (con las capacidades llegará a ~2,9 KB como hoy) |
+| Peso de un **adulto con su herencia** (rasgos 650 B + `herencia` ~250 B) | **1.013 B** |
+| **Peso añadido** (6.806 adultos) | **≈ 6,7 MB** (16,2 → ~23 MB, +41 %); + 0,85 MB si se generan los 712 hermanos pequeños |
+| Pasada semanal, acción, presencia | Como en §6.2 (**los adultos no cuestan por semana**; la presencia sube solo si tienen agenda en el mapa) |
+
+Conclusión: **crear no es el problema de H1** (los 6.800 adultos cuestan 0,3 s de más). El coste de H1 es el **peso del guardado** (+7 MB). El tiempo sube de verdad con H2 (los bebés con su historia) y con las ligas de todo el mundo (§6.5).
+
+## A8. Decisiones abiertas para el usuario (cada una con mi recomendación)
+
+1. **Hermanos menores de 8 años: ¿se generan ya en H1 (≈ 712) o esperan a H2?** *Recomiendo ya:* cuestan 0,85 MB y 0,1 s, y de ellos salen ~100 de los 500 niños que entran cada curso; sin ellos, todos los que entran «se mudan».
+2. **Una familia sin hijos en el mundo: ¿se borra (si nadie la conoce) o se archiva siempre?** *Recomiendo borrar si nadie la conoce y archivar si el personaje conoce a alguien* (VISION 4). Hace falta antes de H2, si no la población crece.
+3. **Familias monoparentales: ¿el otro progenitor es una persona?** *Recomiendo que no en H1* (hereda de él pero no está en el mundo); en H3 se le puede dar un hogar propio (adulto que vive solo).
+4. **Los dos compañeros del reparto inicial** (estudioso y sociable, con sesgos hechos a mano): ¿familia generada hacia delante y se les empuja el carácter hacia el sesgo? *Recomiendo que sí* (así tienen padres como los demás).
+5. **¿La práctica deportiva de cada progenitor se guarda en el adulto (`herencia.u`)?** Es un cambio de `geneticaDeHermano` (hoy la saca por hijo). *Recomiendo que sí:* si no, dos hermanos tienen padres con deportes distintos.
+6. **Los entrantes de cada curso: «familia nueva que se muda» hasta H2.** *Recomiendo que sí.*
+
+**Estas seis no cambian el diseño ni el coste:** se pueden decidir mientras se implementa. Ninguna bloquea el Paso 2 salvo la 1 y la 2, que cambian qué se genera y qué se borra.
+
+---
+
+# H1 implementado (23/11/2026): qué hay y qué se ha medido
+
+Todo detrás de `CiudadDef.hogares` (**desactivado por defecto**: `npm run huella -- 60` sale idéntica a la de la rama base antes de tocar nada). Para probarlo hay dos países registrables: `PAIS_CIUDAD_GRANDE_CON_HOGARES` y `PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES`, y las herramientas de medida aceptan `DS_HOGARES=1` (`rendimiento`, `rendimiento-semana`, `benjamin`, `distribuciones-futbol`, `analisis-profesionales`, `pnj-entrenan` y `sim`; esta última con la ciudad de siempre). **La decisión de activarlo por defecto es del usuario** cuando vea estas cifras.
+
+## Qué hay
+
+| Pieza | Dónde |
+|---|---|
+| Dato `hogares` de la ciudad y países para probar | `packages/contracts/src/ciudad.ts`, `paises/index.ts` |
+| Generación hacia delante (A1): familias, pareja, hijos con `rasgosHeredadosNpc`, `geneticaDeHijo`, `identidadDeHijo`; hermanos pequeños como personas | `modules/npcs/src/hogares.ts` (nuevo), `deportistas.ts` (`herenciaDeProgenitor`, `geneticaDeHijo`) |
+| Los hijos ocupan los huecos de siempre (ids `clase_N`, `curso_N`, `alumno_N`, `nino_N`, rol y agenda) y los dos compañeros del reparto inicial tienen familia (carácter empujado hacia su sesgo) | `index.ts` (`poblarElColegio`, `ninosDeOtrosColegios`, `companeroConFamilia`) |
+| Campos de `Npc`: `hogar`, `padres`, `herencia` (topes, perks, calidad y práctica del progenitor, ~250 B); tabla `NpcsState.hogares` (tipo, calle, portal, **el progenitor que falta y el motivo**: separado, fallecido o desconocido, con su nombre) | `index.ts`, `hogares.ts` |
+| `vive` por hogar (12 % de los hogares en las calles del mapa, el resto en otro barrio) y recoge **el progenitor** de un hijo menor de 10 en el colegio (con 10 y 11 años, cada vez menos; en un hogar de dos adultos recoge uno) | `ajustarVecinos` |
+| Curso nuevo con familias: entran primero los hermanos pequeños que cumplen 8 (al colegio de su hermano si hay hueco) y el resto, familias que se mudan; las familias sin hijos en el mundo se borran (o se archivan si el personaje conoce a alguien) | `renovarConFamilias` |
+| Servicio `NpcDirectory.familiaDe(id)`: progenitores, hijos, hermanos, el progenitor que falta, calle y portal | `contracts/services.ts` |
+| Test (10 casos) | `tests/hogares.test.ts` |
+
+**Lo que no está (a propósito o pendiente):** el niño no se va **con** su progenitor (ambos llegan a la entrada del colegio por su propio azar, como hoy); no hay un papel de reparto de sucesos por parentesco («el padre de tu compañero»); la ficha y las relaciones aún no enseñan el vínculo (hay el servicio); los adultos de los hogares tienen la agenda de un vecino adulto (no su trabajo: abajo se mide lo que cuesta); los 20 niños de los 80 vecinos siguen sin familia.
+
+## Lo medido (ciudad grande con fútbol, semilla 31, escritorio, una máquina de 4 CPU: los tiempos tienen ±20 % de ruido)
+
+**Tamaño y peso** (`npm run rendimiento -- 30 --ciudad --pasadas 1`, sin y con `DS_HOGARES=1`):
+
+| | Sin hogares | Con hogares |
+|---|---:|---:|
+| Personas | 6.118 | **13.787** (6.915 adultos, 6.649 hijos de 8 a 19 y 750 pequeños, y los de siempre) |
+| Estado guardado | 16.233 KB | **27.154 KB** (+67 %): `rasgos` 3.955 → 8.782 KB, `herencia` 1.174 KB, `tipos` +433 KB |
+| Crear | 8,9–9,2 s | 9,5–10,6 s (**+0,3 a +1,7 s**; más de lo previsto por el prototipo porque las personas llevan `ajustarVecinos`, cuerpo y capacidades) |
+| Guardar (copiar / a texto) · cargar | 257 / 119 ms · 183 ms | 429 / 244 ms · 224 ms |
+| Lista de todas las personas | 31 ms | 58–68 ms |
+| Bot equilibrado, 30 días: ms por acción · por día | 4,31 · 167 | **5,97 · 231** (**+39 %**) |
+| Pasada semanal de los PNJ (6 cruces) | 143 / 98 / 163 / 217 / 307 / 347 ms | 196 / 137 / 135 / 219 / 330 / 397 ms (≈ +10 %: los 750 hermanos pequeños llevan capacidades) |
+| Cruce de día (mediana) · `listActions` | 9,2 ms · 14,2 ms | **22,4 ms · 28,0 ms** (≈ ×2: **lineal en las personas**, no más) |
+
+**Qué parte del +39 % por acción es la agenda:** con los adultos **sin agenda** (experimento, no queda en el código) la acción cuesta 5,23 ms (4,31 sin hogares, 5,97 con la agenda de un vecino): de los +1,66 ms, **0,74 ms son la presencia** (adultos que van al parque, al super…) y **0,92 ms son solo tener 7.700 personas más** (listas, índices, cambios de día). Lo primero se arregla dándoles su trabajo (de 9:00 a 17:00 «fuera»: menos gente en el mapa y menos que recalcular); lo segundo es el coste lineal de la población.
+
+**En un móvil ×4** (factor ×4,3 de `medir-rendimiento-2.md`, **estimado**): crear ~33 s → **~38–42 s**; la acción (mediana de 47 ms) → **~65 ms**; el cruce de semana (0,81 s) → **~0,9 s**; guardar «de verdad» (por trozos) sigue parando la página ~40 ms; el estado de 27 MB sigue en lo razonable.
+
+**De dónde salen los que entran cada curso** (`npx tsx tools/hogares-curso.ts grande 5`, 5 cursos seguidos):
+
+| Curso | Entran | De hermanos pequeños de familias que ya existían | De familias que se mudan | Familias borradas |
+|---|---:|---:|---:|---:|
+| 1 | 500 | **224 (45 %)** | 276 | 387 |
+| 2 | 500 | 209 (42 %) | 291 | 392 |
+| 3 | 500 | 213 (43 %) | 287 | 435 |
+| 4 | 500 | 211 (42 %) | 289 | 492 |
+| 5 | 500 | 198 (40 %) | 302 | 488 |
+
+Los hermanos pequeños alimentan **de verdad** la entrada: **~42 %** de cada curso (los de 750 que había al crear, más los que traen las familias que llegan). Las poblaciones quedan estables: 13.787 → 14.163 personas tras 5 cursos (+0,2 MB de estado por curso: las familias que se mudan traen sus propios pequeños). Sube un poco porque las familias que llegan traen sus pequeños (que no cuentan para ninguna demanda hasta cumplir 8) y se borran algo menos que entran. Si se quiere más del 42 %, se sube la probabilidad de hermano pequeño (`FAMILIAS.siguiente`).
+
+**`sim` (365 días × 5 semillas, ciudad de siempre):** los 15 chequeos dan lo mismo (todos ✅ salvo **Rendimiento ⚠️ en las dos**: 1,34 → 1,76 ms por acción y 16,3 → 22,2 s por año simulado); los valores finales por estrategia casi no se mueven (±0,5 puntos).
+
+**`benjamin -- 31,33` (y 32, 34, 35):** con hogares el primer partido de benjamín es **siempre la semana 4** (igual que sin ellos), las plantillas del personaje salen de 9 a 17 jugadores (sin hogares: 11 a 17) y la regla de «todos nuevos en el club» sigue igual. En las semillas 32 (sin hogares) y 33 (con hogares) el personaje cae en un equipo que no juega (0 convocatorias): pasa en ambos mundos.
+
+**Distribuciones del fútbol** (`distribuciones-futbol`, semillas 31 y 32, sin y con hogares, al crear y tras 1 y 2 cursos): el **nivel medio por edad baja 0,1–0,5 puntos (un 1–3 %)**, algo más en los equipos C (−0,6 a −0,8) y los que juegan suben un **4 %** (2.784 → 2.898 al crear). Es un efecto real de la herencia: `rasgosHeredadosNpc` pasa cada interés de los padres con un 60 % (de dos padres salen ~3,6 intereses frente a ~3 sorteados), así que **a más niños les interesa algún deporte y entran más en los clubes** (equipos C más grandes, con más niños flojos). Es consecuencia de «la misma regla que el personaje» y se puede compensar (por ejemplo, bajando la probabilidad de heredar un interés), pero no se ha tocado.
+
+**Profesionales a los 18 y abandono** (`analisis-profesionales`, **una sola semilla (31)**, cohorte de 8 años al crear, 10 años; con una semilla es orientativo):
+
+| | Sin hogares | Con hogares |
+|---|---:|---:|
+| Cohorte · juegan al fútbol al crear | 492 · 262 | 497 · 281 |
+| Nivel medio a los 18 (p90 · máximo) | 27,1 (34,5 · 41,5) | 27,6 (36,2 · 42,5) |
+| Juegan a los 18 · % de los interesados | 85 · 31,7 % | **78 · 27,4 %** |
+| Por encima del umbral de «profesional» (36) a los 18 | 6 | **9** |
+| De los 10 mejores a los 14 años, siguen a los 18 | 10 | 8 |
+
+El nivel por edad es el mismo (la fracción del tope que alcanzan, igual); con hogares **juegan algo más al principio y abandonan algo más** (menos a los 18: 78 frente a 85, un 27 % de los interesados frente a un 32 %) y salen **algo más de profesionales** (9 frente a 6). Con una semilla no se puede separar del ruido; **el abandono por edad (`pnj-entrenan`) no se ha comparado.**
+
+## Pendiente de medir y de decidir
+
+- **Profesionales a los 18 y abandono por edad con más semillas** (31, 32, 33): hecho solo con una; el abandono (`pnj-entrenan`) no se ha comparado.
+- **Dar su trabajo a los progenitores** (9:00–17:00 «fuera» entre semana, salvo los de oficio en un lugar): recorta 0,74 ms por acción (la mitad del sobrecoste) y es lo que pide `ANEXO_HORARIOS_PNJ.md` para los padres. Cambia agendas (anexo y `agendas.ts`).
+- **El vínculo en la ficha y en los sucesos** (papel de reparto por parentesco) y que el niño se vaya **con** su progenitor.
+- **El interés heredado** (+4 % de niños en los clubes): decidir si se corrige.
+- **Los 20 niños de los 80 vecinos** y los 60 vecinos adultos: sin familia en H1; entran con H3.

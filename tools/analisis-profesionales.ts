@@ -7,7 +7,7 @@
  *   npx tsx tools/analisis-profesionales.ts <salida.json> [semillas=31,32,33] [años=10]
  */
 import { writeFileSync } from 'node:fs';
-import { CAPACIDADES_GENETICAS, PAIS_CIUDAD_GRANDE, registrarPais } from '@ds/contracts';
+import { CAPACIDADES_GENETICAS, PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_CON_HOGARES, registrarPais } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { aplicarPropuestas } from './propuestas-pnj';
@@ -16,7 +16,9 @@ import { fijosDeNino, topeEfectivo } from '../modules/npcs/src/rutina';
 import { interesPor } from '../modules/npcs/src/deportistas';
 import { probabilidadDeAbandonar, motivosDeAbandono } from '../modules/npcs/src/abandono';
 
-registrarPais(PAIS_CIUDAD_GRANDE);
+/** La ciudad grande; con `DS_HOGARES=1`, con los hogares activados (`docs/relevo/hogares.md`). */
+const PAIS = process.env.DS_HOGARES ? PAIS_CIUDAD_GRANDE_CON_HOGARES : PAIS_CIUDAD_GRANDE;
+registrarPais(PAIS);
 aplicarPropuestas();
 const salida = process.argv[2] ?? 'analisis-profesionales.json';
 const semillas = (process.argv[3] ?? '31,32,33').split(',').map(Number);
@@ -40,7 +42,7 @@ interface Nino { id: string; potencial?: number; topeCap: number; topeFis: numbe
 const resultado: Record<string, { ninos: Nino[]; ref: Record<string, Record<string, number[]>>; todos: Record<string, number[]> }> = {};
 for (const seed of semillas) {
   const t0 = performance.now();
-  const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  const g = nuevaPartida({ seed, pais: PAIS.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   const st0 = g.moduleState('npcs') as any;
   const pob = st0.poblaciones.find((p: any) => p.deporte === 'futbol');
   const dia0 = g.time.day;

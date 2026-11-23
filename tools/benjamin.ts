@@ -2,17 +2,19 @@
  * La regla de benjamín (los niños llegan nuevos al club: asistencia y relación empiezan en el primer entrenamiento de la temporada) con la ciudad grande: cuántas semanas hay entre el primer entrenamiento
  * y el primer partido de benjamín, y cómo queda la primera convocatoria (quién sale, y si el personaje que va a los entrenamientos entra en igualdad). `npm run benjamin -- [semillas]`.
  */
-import { PAIS_CIUDAD_GRANDE, SERVICES, claveDeDeporte, registrarPais, type ClubDirectory, type DeporteService, type NpcDirectory, type PartidosService } from '@ds/contracts';
+import { PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_CON_HOGARES, SERVICES, claveDeDeporte, registrarPais, type ClubDirectory, type DeporteService, type NpcDirectory, type PartidosService } from '@ds/contracts';
 import { advanceToWeek, advanceUntil } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol, paraConvocar, convocarYAlinear, proximoPartido, type FutbolState } from '@ds/mod-futbol';
 import { hacer, llegarA, posible } from '../tests/ayudas';
 
-registrarPais(PAIS_CIUDAD_GRANDE);
+/** La ciudad grande; con `DS_HOGARES=1`, con los hogares activados (`docs/relevo/hogares.md`). */
+const PAIS = process.env.DS_HOGARES ? PAIS_CIUDAD_GRANDE_CON_HOGARES : PAIS_CIUDAD_GRANDE;
+registrarPais(PAIS);
 const semillas = (process.argv[2] ?? '31,32,33').split(',').map(Number);
 const f = (x: number, d = 2): string => x.toFixed(d);
 for (const seed of semillas) {
-  const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  const g = nuevaPartida({ seed, pais: PAIS.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   advanceToWeek(g, 'gen.descansar', 0, 2, 9);
   const apuntado = posible(g, 'futbol.apuntarse_colegio');
   const motivoSinPlaza = apuntado ? undefined : g.preview('futbol.apuntarse_colegio')?.reason;
@@ -57,7 +59,7 @@ for (const seed of semillas) {
 // juega de titular y de suplente y cuántos minutos suma. Es una partida nueva por semilla (no toca la de arriba).
 console.log('\nLa liga entera yendo a todos los entrenamientos y partidos:');
 for (const seed of semillas) {
-  const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+  const g = nuevaPartida({ seed, pais: PAIS.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   advanceToWeek(g, 'gen.descansar', 0, 2, 9);
   if (!posible(g, 'futbol.apuntarse_colegio')) { console.log(`Semilla ${seed}: el personaje no tiene plaza (${g.preview('futbol.apuntarse_colegio')?.reason})`); continue; }
   hacer(g, 'futbol.apuntarse_colegio');

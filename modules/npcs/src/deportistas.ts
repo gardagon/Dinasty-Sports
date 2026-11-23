@@ -184,3 +184,37 @@ export function plazasPorEdad(club: string, plantilla: number, edades: readonly 
   const conExtra = new Set([...edades].sort((a, b) => azarDe('plaza', club, a) - azarDe('plaza', club, b)).slice(0, resto));
   return new Map(edades.map((e) => [e, base + (conExtra.has(e) ? 1 : 0)]));
 }
+
+// ---------------------------------------------------------------------------------------------------- hogares: los progenitores de una familia
+
+/**
+ * Lo que un progenitor del mundo guarda para que lo hereden sus hijos (hogares): sus 18 topes (en el orden de `CAPACIDADES_GENETICAS`, redondeados), sus perks, su calidad y lo que practicó de deporte.
+ * Se sortea una vez por progenitor, así dos hermanos tienen unos padres que practicaron lo mismo (`geneticaDeHermano` lo saca del id de cada hijo).
+ */
+export interface Herencia {
+  t: number[];
+  p: PerksDe;
+  c: number;
+  u: Practica;
+}
+
+/** Un progenitor nuevo: calidad de nivel fácil, normal o difícil, perfil de capacidades, perks y lo que practicó (según sus capacidades físicas). */
+export function herenciaDeProgenitor(rng: Rng): Herencia {
+  const c = calidadDePadreDelMundo(rng);
+  const perfil = perfilDePadre(CAPACIDADES_GENETICAS, rng, c, GRUPO_DE_CAPACIDAD);
+  const topes = perfil.topes;
+  return { t: CAPACIDADES_GENETICAS.map((id) => Math.round((topes[id] ?? 62) * 10) / 10), p: perksDePadre(rng), c, u: practicaSegunTope(fisicaDe(topes), rng) };
+}
+
+const topesDe = (h: Herencia): Record<string, number> => Object.fromEntries(CAPACIDADES_GENETICAS.map((id, i) => [id, h.t[i]]));
+
+/**
+ * La genética de un hijo de una familia: igual que la de un niño del mundo (`geneticaDeNino`: cada capacidad de uno de sus padres ±20 %) pero con los padres de verdad, los mismos de sus hermanos:
+ * sus perks los heredan los dos, y lo que practicaron y su calidad son los de ellos. Sin `semilla` (la pone `conSemilla`, como a los demás).
+ */
+export function geneticaDeHijo(rng: Rng, padre: Herencia, madre: Herencia, rngPerks: Rng): Genetica {
+  const padres = { padre: topesDe(padre), madre: topesDe(madre) };
+  const reparto = repartirHerencia(CAPACIDADES_GENETICAS, rng);
+  const topes = Object.fromEntries(CAPACIDADES_GENETICAS.map((c) => [c, heredarTope(padres[reparto[c]][c] ?? 62, rng)]));
+  return { topes, perks: heredarPerks(padre.p, madre.p, rngPerks), desfase: clamp(rng.normal() * 0.9, -1.6, 1.6), ventaja: ventajaDeCrianza(padre.u, madre.u), padres: { padre: padre.u, madre: madre.u }, calidad: { padre: padre.c, madre: madre.c } };
+}

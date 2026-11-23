@@ -153,7 +153,22 @@ export interface LecturaDePuesto {
   pistas?: PistasDePuestos;
 }
 
+/** Quién vive con quién (hogares): los progenitores, los hijos y los hermanos de una persona, y el motivo de que falte uno de los dos progenitores. Solo con la ciudad con `hogares`. */
+export interface FamiliaView {
+  hogar: string;
+  progenitores: readonly string[];
+  hijos: readonly string[];
+  hermanos: readonly string[];
+  /** El progenitor que no vive en el hogar (familias monoparentales): quién era y por qué no está. */
+  ausente?: { lado: 'padre' | 'madre'; motivo: 'separado' | 'fallecido' | 'desconocido'; nombre?: string };
+  /** La calle del mapa en que vive el hogar (el resto, en otro barrio) y su portal. */
+  calle?: string;
+  portal?: number;
+}
+
 export interface NpcDirectory {
+  /** La familia de una persona del mundo con hogares (progenitores, hijos, hermanos, el progenitor que falta), por sus ids; `undefined` si no tiene hogar. */
+  familiaDe?(id: string): FamiliaView | undefined;
   /** `known`: solo las que el personaje conoce (true) o solo las que no (false). `tagORole`: las que llevan esa etiqueta o tienen ese rol (lo que pide un papel de un suceso con `tipo`). */
   list(filter?: { role?: NpcRole; tag?: string; tagORole?: string; minAge?: number; maxAge?: number; known?: boolean }): NpcView[];
   get(id: string): NpcView | undefined;

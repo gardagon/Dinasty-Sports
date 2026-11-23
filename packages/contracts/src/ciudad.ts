@@ -26,6 +26,11 @@ export interface CiudadDef {
   parejas?: ParejasDef;
   /** Probabilidad de que un nacido aquí (menos de 25 años) de padres de fuera lleve un nombre de pila del país (0 a 1); sustituye a la del país (`nombreLocalDelLugar`). */
   nombreLocalDeLosNacidosAqui?: number;
+  /**
+   * **Hogares** (`docs/relevo/hogares.md`): con él activado, los niños del mundo salen de familias (pareja con rasgos, capacidades y perks propios; hijos con la herencia del personaje) y los padres,
+   * los hermanos y los hermanos pequeños son personas con su hogar (`Npc.hogar`, `Npc.padres`). Sin él (por defecto) el mundo se genera como siempre: una partida de antes no cambia.
+   */
+  hogares?: boolean;
 }
 
 /** La demografía que manda en un lugar: la de su ciudad, si la trae, y si no la del país. */
