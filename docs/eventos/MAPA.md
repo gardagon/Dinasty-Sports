@@ -4,6 +4,17 @@ Generado con `npm run eventos:mapa`. Cada hilo, con sus sucesos (las flechas son
 
 ## Eventos base
 
+### Dos amigos se pelean (`eventos.amigos.pelea`)
+
+```mermaid
+flowchart LR
+  eventos_amigos_pelea_en_medio["en_medio<br/><small>al: lugares.llegada</small>"]
+  eventos_amigos_pelea_en_medio -->|"con_a, con_b, mediar ✔, mediar ✘, separar ✔, separar ✘, alejarte"| eventos_amigos_pelea_se_alejan
+  eventos_amigos_pelea_se_alejan["se_alejan<br/><small>programado</small>"]
+  eventos_amigos_pelea_se_alejan -->|"juntos ✔, juntos ✘, separado, dejarlo"| eventos_amigos_pelea_paces
+  eventos_amigos_pelea_paces["paces<br/><small>programado</small>"]
+```
+
 ### Un préstamo entre amigos (`eventos.amigos.prestado`)
 
 ```mermaid
@@ -28,6 +39,50 @@ flowchart LR
   eventos_amigos_secreto_rota_la_confianza["rota_la_confianza<br/><small>programado</small>"]
 ```
 
+### Lo que quieres de verdad (`eventos.casa.ahorrar`)
+
+```mermaid
+flowchart LR
+  eventos_casa_ahorrar_deseo["deseo<br/><small>cada semana, 12 %</small>"]
+  eventos_casa_ahorrar_deseo -->|"pedir ✔, pedir ✘, ahorrar"| eventos_casa_ahorrar_la_paga
+  eventos_casa_ahorrar_la_paga["la_paga<br/><small>programado</small>"]
+  eventos_casa_ahorrar_la_paga -->|"si, mas ✔, mas ✘"| eventos_casa_ahorrar_la_compra
+  eventos_casa_ahorrar_la_compra["la_compra<br/><small>programado</small>"]
+```
+
+### Las notas de la evaluación (`eventos.casa.boletin`)
+
+```mermaid
+flowchart LR
+  eventos_casa_boletin_se_entregan["se_entregan<br/><small>al: estudios.boletin</small>"]
+  eventos_casa_boletin_se_entregan -->|"mirar, guardar, enseñar"| eventos_casa_boletin_en_casa
+  eventos_casa_boletin_en_casa["en_casa<br/><small>programado</small>"]
+  eventos_casa_boletin_en_casa -->|"enseñar, esconder ✔, esconder ✘, perdon"| eventos_casa_boletin_consecuencia
+  eventos_casa_boletin_consecuencia["consecuencia<br/><small>programado</small>"]
+```
+
+### Se oyen voces (`eventos.casa.padres_discuten`)
+
+```mermaid
+flowchart LR
+  eventos_casa_padres_discuten_voces["voces<br/><small>cada dia, 2 %</small>"]
+  eventos_casa_padres_discuten_voces -->|"asomarte ✔, asomarte ✘, almohada, agua, parar ✔, parar ✘"| eventos_casa_padres_discuten_a_la_manana
+  eventos_casa_padres_discuten_a_la_manana["a_la_manana<br/><small>programado</small>"]
+  eventos_casa_padres_discuten_a_la_manana -->|"preguntar ✔, preguntar ✘, normal, gracioso ✔, gracioso ✘"| eventos_casa_padres_discuten_se_calma
+  eventos_casa_padres_discuten_se_calma["se_calma<br/><small>programado</small>"]
+```
+
+### Un mote (`eventos.colegio.apodo`)
+
+```mermaid
+flowchart LR
+  eventos_colegio_apodo_nace["nace<br/><small>al: lugares.llegada</small>"]
+  eventos_colegio_apodo_nace -->|"reirte, cortar ✔, cortar ✘, responder ✔, responder ✘, devolver_feo"| eventos_colegio_apodo_se_extiende
+  eventos_colegio_apodo_se_extiende["se_extiende<br/><small>programado</small>"]
+  eventos_colegio_apodo_se_extiende -->|"unirte, pedir ✔, pedir ✘, seguir"| eventos_colegio_apodo_fin
+  eventos_colegio_apodo_fin["fin<br/><small>programado</small>"]
+```
+
 ### Un compañero nuevo (`eventos.colegio.companero_nuevo`)
 
 ```mermaid
@@ -37,6 +92,16 @@ flowchart LR
   eventos_colegio_companero_nuevo_primera_semana["primera_semana<br/><small>programado</small>"]
   eventos_colegio_companero_nuevo_primera_semana -->|"sentaros, presentarle ✔, presentarle ✘, seguir"| eventos_colegio_companero_nuevo_un_mes_despues
   eventos_colegio_companero_nuevo_un_mes_despues["un_mes_despues<br/><small>programado</small>"]
+```
+
+### Un examen (`eventos.colegio.examen`)
+
+```mermaid
+flowchart LR
+  eventos_colegio_examen_aviso["aviso<br/><small>al: estudios.examen_aviso</small>"]
+  eventos_colegio_examen_hecho["hecho<br/><small>al: estudios.examen_hecho</small>"]
+  eventos_colegio_examen_hecho -->|"no_presentado, bien_tras_repasar, mal_sin_repasar, bien, regular, mal"| eventos_colegio_examen_comentan
+  eventos_colegio_examen_comentan["comentan<br/><small>programado</small>"]
 ```
 
 ### El profesor se preocupa (`eventos.colegio.tutor_se_preocupa`)
@@ -170,21 +235,31 @@ flowchart LR
 
 | Marca | La pone | La lee |
 |---|---|---|
+| `acepto_el_mote` | `eventos.colegio.apodo.nace` | `eventos.colegio.apodo.se_extiende`, `eventos.colegio.apodo.fin` |
+| `bien_en_examen` | `eventos.colegio.examen.hecho` | `eventos.colegio.examen.comentan` |
 | `conto_el_secreto` | `eventos.amigos.secreto.te_preguntan` | `eventos.amigos.secreto.se_entera` |
 | `futbol_quiere_cambiar_de_puesto` | `futbol.primer_entrenamiento` | — (todavía nadie) |
 | `guardo_el_secreto` | `eventos.amigos.secreto.se_entera` | `eventos.amigos.prestado.peticion` |
+| `hablo_con_su_tutor` | `eventos.casa.padres_discuten.a_la_manana` | `eventos.casa.padres_discuten.se_calma` |
+| `hizo_de_mediador` | `eventos.amigos.pelea.en_medio` | `eventos.amigos.pelea.se_alejan` |
 | `ignoro_a_nuevo` | `eventos.colegio.companero_nuevo.llegada` | `eventos.colegio.companero_nuevo.primera_semana` |
+| `junto_a_los_dos` | `eventos.amigos.pelea.se_alejan` | `eventos.amigos.pelea.paces` |
 | `le_recomendaron_un_deporte` | `eventos.estudios.primer_dia_de_educacion_fisica` | — (todavía nadie) |
 | `lesionado_hace_poco` | `eventos.salud.lesion` | `eventos.casa.cena_de_domingo` |
 | `levanto_la_nota` | `eventos.colegio.tutor_se_preocupa.seguimiento` | `eventos.casa.cena_de_domingo` |
 | `lleva_regalo` | `eventos.relaciones.cumple.invitacion` | `eventos.relaciones.cumple.fiesta` |
-| `lo_pillaron_mintiendo_en_casa` | `eventos.familia.faltas.charla`, `eventos.familia.faltas.descubierto` | `eventos.casa.cena_de_domingo` |
+| `lo_pillaron_mintiendo_en_casa` | `eventos.casa.boletin.en_casa`, `eventos.familia.faltas.charla`, `eventos.familia.faltas.descubierto` | `eventos.casa.cena_de_domingo`, `eventos.casa.padres_discuten.voces` |
+| `mal_en_examen` | `eventos.colegio.examen.hecho` | `eventos.colegio.examen.comentan` |
 | `mintio_a_sus_padres` | `eventos.casa.deberes_con_padre`, `eventos.familia.faltas.charla` | `eventos.casa.cena_de_domingo` |
+| `no_estudio_para_el_examen` | `eventos.colegio.examen.aviso` | `eventos.colegio.examen.hecho` |
 | `perdono_una_deuda` | `eventos.amigos.prestado.reclamar` | `eventos.amigos.regalo_inesperado` |
 | `planton` | `eventos.relaciones.cumple.fiesta` | `eventos.relaciones.cumple.invitacion` |
 | `presto_poco` | `eventos.amigos.prestado.peticion` | `eventos.amigos.prestado.devolucion`, `eventos.amigos.prestado.reclamar` |
 | `prometio_no_faltar` | `eventos.familia.faltas.charla` | `eventos.familia.faltas.revision` |
-| `rompio_una_promesa_en_casa` | `eventos.familia.faltas.revision` | `eventos.casa.deberes_con_padre`, `eventos.casa.cena_de_domingo` |
+| `repaso_a_fondo` | `eventos.colegio.examen.aviso` | `eventos.colegio.examen.hecho` |
+| `rompio_una_promesa_en_casa` | `eventos.familia.faltas.revision` | `eventos.casa.boletin.en_casa`, `eventos.casa.deberes_con_padre`, `eventos.casa.cena_de_domingo` |
+| `se_acerco_a_sus_padres` | `eventos.casa.padres_discuten.voces` | `eventos.casa.padres_discuten.a_la_manana` |
 | `se_sospecha` | `eventos.amigos.secreto.te_preguntan` | `eventos.amigos.secreto.se_entera` |
 | `sento_a_nuevo` | `eventos.colegio.companero_nuevo.llegada` | `eventos.colegio.companero_nuevo.primera_semana` |
+| `tomo_partido` | `eventos.amigos.pelea.en_medio` | `eventos.amigos.pelea.se_alejan`, `eventos.amigos.pelea.paces` |
 | `vecino_de_mesa` | `eventos.colegio.cambio_de_sitios` | `eventos.colegio.copiar_deberes` |
