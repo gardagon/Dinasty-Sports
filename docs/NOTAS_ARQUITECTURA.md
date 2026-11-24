@@ -43,7 +43,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Hogares H1, activarlo:** el usuario decide cuando estén las cifras nuevas (con trabajo de los progenitores y contraste de hermanos mayores con el INE). Las 3 dudas anteriores, respondidas (DECISIONES 23/11).
+- **Hogares H1, activarlo:** ronda 3 unida (trabajo de los progenitores; no abarata, da realismo). Pendiente del usuario: `FAMILIAS.siguiente` `[0,70; 0,40; 0,30; 0,20]` (51 % de niños de 8 con hermano mayor, cifra real ~49–51 % estimada con Eustat). Antes de activar: la sesión aísla el +60 % de profesionales a los 18 con hogares (¿herencia de intereses por el máximo de los padres?).
 - **Rendimiento M2:** el usuario creó una partida en el móvil en ~4 s («solo con fútbol»). Confirmar si fue con la ciudad grande. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
