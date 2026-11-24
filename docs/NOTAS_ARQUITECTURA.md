@@ -43,6 +43,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3. Preguntas para el usuario (pendientes)
 
+- **Fallo: el personaje puede caer en un equipo por debajo del mínimo de 14** (p. ej. un C con 9) y no juega nunca. Pasa también sin hogares (ciudad actual, semillas 3 y 6; grande con hogares, 33 y 35; `benjamin -- 31,33` da 0 convocatorias en la 33). `probar-web` pasó a la semilla 31 para no tropezar con él. Opciones de la sesión de hogares: no dejar apuntarse a un equipo que no llegue y decir por qué; ponerlo en un equipo con plazas de más; o abrir el C con menos de 14 en la liga. Pendiente de presentar.
 - **Partidos, duda 3** (qué es «cercano» para los niveles): explicada el 24/11, falta la respuesta. No bloquea P0.
 - **Hogares:** aprobados el 24/11 la activación por defecto y `FAMILIAS.siguiente` (DECISIONES 24/11). La sesión de hogares los aplica; después, pull request para publicar (visto bueno ya dado) y pedir al usuario que mida en el móvil: crear y pasar de semana.
 - **Rendimiento M2:** el usuario creó una partida en el móvil en ~4 s («solo con fútbol»). Confirmar si fue con la ciudad grande. Falta medir el cruce de semana en el móvil.
@@ -50,7 +51,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 ## 3 bis. Sesiones en curso
 
 **Trabajando (24/11):**
-- `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): activar los hogares por defecto, `FAMILIAS.siguiente`, menores de 8 duermen 21:30–7:00. Después: H1 completo y lote 3 de sucesos (orden de DECISIONES 24/11);
+- `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): ronda 5 unida (hogares activados por defecto en las 3 ciudades; grande 12.833 personas, 26,3 MB, semana 2,06 s). Ahora: abaratar sin cambiar la huella (`sim:rapida` en ⚠️, 1,71 frente a 1,31 ms). **No publicar hasta que vuelva a ✅.** Después: H1 completo y lote 3 de sucesos;
 
 - `session_01M4vXXPCypWSK5cyLfmT3Dg` (`claude/salud-lesiones`): F1, cifras puras sin activar (días, resistencia por perks, secuelas, fisio en clubes grandes, sexo);
 - `session_01M4vXXMZ1nQqUWicwqoGZB8` (`claude/partidos-reales`): P0 (banco, flujos de azar, caché de fuerza, registro de sucesos) con huella idéntica;
