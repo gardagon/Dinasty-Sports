@@ -315,6 +315,8 @@ export interface MercadoDeFichajes {
   reservas: ReadonlyMap<string, number>;
   /** Las propuestas de puesto que el entrenador le hace al personaje al recolocar (decide él). */
   propuestas?: { deporte: string; puesto: string }[];
+  /** Para contarlo (`npm run reparto:paso`): lo que pasa con un club y categoría al acomodar a los que no caben en ningún equipo. No cambia nada del juego. */
+  alAcomodar?: (d: { categoria: string; club: string; equiposAntes: number; equiposDespues: number; noCabian: number; dejanElClub: number; quedan: number; minimoParaLosEquipos: number; definitivo: boolean }) => void;
 }
 
 
@@ -592,7 +594,8 @@ export function acomodarSobrantes(m: MercadoDeFichajes, pob: PoblacionGuardada, 
         if (!cambio) break;
       }
       // Los que siguen sin caber en ningún equipo dejan el club.
-      for (const id of equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true).equipos.sobran) {
+      const noCabian = equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true).equipos.sobran;
+      for (const id of noCabian) {
         const n = m.lista.get(id);
         if (!n || id.startsWith('personaje@')) continue;
         const libre = sinDeporte(n, pob, false);
@@ -602,6 +605,7 @@ export function acomodarSobrantes(m: MercadoDeFichajes, pob: PoblacionGuardada, 
       // Con menos jugadores, el club puede quedarse con equipos de menos del mínimo: se cierran los que no llegan (y, si ni uno llega, el club no tiene equipo en la categoría y sus jugadores buscan otro).
       const quedan = equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true).miembros;
       const minimo = e.plantillaPorCategoria!.min;
+      if (m.alAcomodar && (noCabian.length || quedan.length < minimo * k)) m.alAcomodar({ categoria: c.id, club: e.club, equiposAntes: k, equiposDespues: quedan.length < minimo * k ? Math.max(0, Math.floor(quedan.length / minimo)) : k, noCabian: noCabian.length, dejanElClub: noCabian.length, quedan: quedan.length, minimoParaLosEquipos: minimo * k, definitivo });
       if (quedan.length < minimo * k) {
         const montables = Math.floor(quedan.length / minimo);
         e.equiposPorCategoria = { ...e.equiposPorCategoria, [c.id]: Math.max(1, montables) };

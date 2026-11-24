@@ -35,6 +35,7 @@
     "dia-de-partido": "tsx tools/dia-de-partido.ts",
     "benjamin": "tsx tools/benjamin.ts",
     "equipos-minimo": "tsx tools/equipos-minimo.ts",
+    "reparto:paso": "tsx tools/reparto-paso-a-paso.ts",
     "puestos": "tsx tools/puestos.ts",
     "rotacion": "tsx tools/rotacion.ts",
     "puestos-del-once": "tsx tools/puestos-del-once.ts",
