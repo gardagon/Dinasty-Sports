@@ -48,6 +48,8 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3 bis. Sesiones en curso
 
+**Uso (24/11, noche):** por petición del usuario, solo se reactiva la sesión de equipos (juvenil paso a paso). Las demás (hogares: abaratar; salud F2; partidos P1) **esperan, paradas por el límite**, hasta que el usuario diga reactivarlas: así no se gasta el uso tan rápido.
+
 **Trabajando (24/11):**
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): ronda 5 unida (hogares activados por defecto en las 3 ciudades; grande 12.833 personas, 26,3 MB, semana 2,06 s). Ahora: abaratar sin cambiar la huella (`sim:rapida` en ⚠️, 1,71 frente a 1,31 ms). **No publicar hasta que vuelva a ✅.** Después: H1 completo y lote 3 de sucesos;
 
