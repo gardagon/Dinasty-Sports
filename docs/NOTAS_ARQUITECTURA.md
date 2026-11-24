@@ -43,7 +43,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Salud y lesiones** (`docs/relevo/salud-lesiones.md` §9, 9 dudas) y **partidos más reales** (`docs/relevo/partidos-reales.md` §6.4, 8 dudas): presentadas el 24/11 con recomendación. Orden propuesto: salud F1 + partidos P0 en paralelo; después P1 + salud F2–F4.
+- **Partidos, duda 3** (qué es «cercano» para los niveles): explicada el 24/11, falta la respuesta. No bloquea P0.
 - **Hogares:** aprobados el 24/11 la activación por defecto y `FAMILIAS.siguiente` (DECISIONES 24/11). La sesión de hogares los aplica; después, pull request para publicar (visto bueno ya dado) y pedir al usuario que mida en el móvil: crear y pasar de semana.
 - **Rendimiento M2:** el usuario creó una partida en el móvil en ~4 s («solo con fútbol»). Confirmar si fue con la ciudad grande. Falta medir el cruce de semana en el móvil.
 
@@ -51,6 +51,10 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 **Trabajando (24/11):**
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): activar los hogares por defecto, `FAMILIAS.siguiente`, menores de 8 duermen 21:30–7:00. Después: H1 completo y lote 3 de sucesos (orden de DECISIONES 24/11);
+
+- `session_01M4vXXPCypWSK5cyLfmT3Dg` (`claude/salud-lesiones`): F1, cifras puras sin activar (días, resistencia por perks, secuelas, fisio en clubes grandes, sexo);
+- `session_01M4vXXMZ1nQqUWicwqoGZB8` (`claude/partidos-reales`): P0 (banco, flujos de azar, caché de fuerza, registro de sucesos) con huella idéntica;
+- `session_01M4vXXRCvQw4UAtyYsQwrVw` (`claude/personaje-chica`): análisis del personaje chica.
 
 Pueden reactivarse con contexto:
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): seguir con H1 (trabajo de los progenitores, papel de reparto por parentesco, ficha con el vínculo, niños de los vecinos sin familia, abandono por edad) y con H2;
