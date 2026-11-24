@@ -35,6 +35,7 @@ Decidido con el usuario en una simulación paso a paso (semilla 33 y después 10
   - **Los que quedan fuera se aceptan:** sobre todo de 3.er año, un tapón de tres años. Bajará con el abandono real y con la salida al fútbol de mayores.
 - **Resultado con 10 semillas** (31–40, ciudad grande con hogares): de benjamín a cadete, **0 equipos por debajo de 14** (1 caso en alevín con la semilla 40) y **nadie fuera**. Juvenil, 0 por debajo de 14 y 91 fuera de media (unos 105 sin jugar con el reparto de ahora). El personaje en un equipo que no juega: de 3 de 10 semillas a 0.
 - **Al implementarlo,** `fijarEquipos` tiene que conservar las letras del reparto, porque hoy junta C y D por el total del club.
+- **Pendiente: la división por sexos.** El reparto se ha medido con equipos mixtos (hoy ~50 % de chicas en todas las edades), pero desde infantil los equipos van separados por sexo y las chicas son ~10 % (DECISIONES 24/11, personaje chica). La forma de calcular será la misma, pero hay que repetirla con chicos y chicas por separado desde infantil. Primero se cierra cómo funciona un verano y después se revisa esto.
 - **No habrá ciudad pequeña en el futuro:** el juego no tiene sentido sin gente suficiente. El reparto nuevo se diseña para la ciudad grande.
 
 ## 24/11/2026 — Personaje chica; equipos por debajo del mínimo, paso a paso
