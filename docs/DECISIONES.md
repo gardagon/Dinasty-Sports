@@ -5,6 +5,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/11/2026 — Qué se desarrolla después de los hogares
+
+Orden aprobado por el usuario:
+1. **H1 completo:** el niño se va con su progenitor, el vínculo en la ficha y papeles de reparto por parentesco. Después, **el lote 3 de sucesos**: familias, tardes de 14 a 20 h, la mudanza de un amigo, tu cumpleaños con fiesta y un amigo en casa.
+2. **En paralelo, análisis con plan** de **lesiones y salud** (E12) y de **partidos de fútbol más reales**.
+3. **Economía del personaje:** paga, ingresos, gastos y qué comprar.
+4. **Arreglos pequeños**, en cualquier momento.
+5. **Rendimiento a gran escala**, según lo que mida el usuario en el móvil con los hogares.
+
 ## 24/11/2026 — Hogares activados por defecto; más hermanos
 
 - **Hogares activados por defecto en las partidas nuevas** (`CiudadDef.hogares`). Las guardadas siguen sin hogares y sin migrar. Medido con la ciudad grande:

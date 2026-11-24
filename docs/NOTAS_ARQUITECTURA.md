@@ -48,7 +48,13 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3 bis. Sesiones en curso
 
-`session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`) **trabajando** (23/11 noche): trabajo de los progenitores, contraste de los hermanos mayores con el INE y nuevas medidas con y sin hogares. Las demás pueden reactivarse con contexto:
+**Trabajando (24/11):**
+- `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): activar los hogares por defecto, `FAMILIAS.siguiente`, menores de 8 duermen 21:30–7:00. Después: H1 completo y lote 3 de sucesos (orden de DECISIONES 24/11);
+- `session_01M4vXXPCypWSK5cyLfmT3Dg` (`claude/salud-lesiones`): análisis y plan de E12;
+- `session_01M4vXXMZ1nQqUWicwqoGZB8` (`claude/partidos-reales`): análisis y plan de partidos más reales;
+- `session_01M4vXXQBZmSPzgVbbqmWEop` (`claude/arreglos-24-11`): texto de la federación con la ciudad grande y «Nueva partida» a pantalla ancha.
+
+Pueden reactivarse con contexto:
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): seguir con H1 (trabajo de los progenitores, papel de reparto por parentesco, ficha con el vínculo, niños de los vecinos sin familia, abandono por edad) y con H2;
 - `session_01M4vXXQAF9nMwtH72JNPMoS` (`claude/sucesos-lote-2`): más sucesos;
 - `session_01M4vXXPqtbBbKjYfQzgtQgH` (calle);
