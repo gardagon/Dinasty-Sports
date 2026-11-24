@@ -226,3 +226,16 @@ Benjamín: los 13 clubes llegan a 14 + 14. Juvenil: 11 de 13 llegan; el colegio 
 | Equipos por debajo de 14 | 0 | 0 | 4 | 2 |
 | Niños asignados | 468 | 466 | 478 | 488 |
 | Bolsa: 1.er año · resto | 73 · 58 | 65 · 37 | 1 · 69 | 10 · 83 |
+
+## Variante paso4 (semilla 33): completar el B con niños de 2.º año (solo infantil y cadete)
+
+`npm run reparto:paso -- 33 grande benjamin --variante paso4` (hasta 20) o `--variante paso4-14` (hasta 14). Sobre paso2-3: el B que no llega a 14 con niños de 1.er año se completa con niños de 2.º año de la bolsa; primero los colegios con sus alumnos y después el resto en el orden de siempre; el B pasa a ser mixto (por nivel). Un B que ya llega a 14 no se toca. Salidas: `reparto-paso-a-paso/variante-paso4-hasta-20-33.md` y `…-hasta-14-33.md`.
+
+| | Infantil hasta 20 | Infantil hasta 14 | Cadete hasta 20 | Cadete hasta 14 |
+|---|---:|---:|---:|---:|
+| B que se completan | 3 | 3 | 2 | 2 |
+| Entran de 2.º año | 17 | 5 | 4 | 3 |
+| Equipos · por debajo de 14 | 26 · 1 | 26 · 1 | 26 · 0 | 26 · 0 |
+| Niños por equipo (mín · máx · media) | 13 · 20 · 19,0 | 13 · 20 · 18,6 | 14 · 21 · 18,9 | 14 · 21 · 18,9 |
+| Niños asignados | 495 | 483 | 492 | 491 |
+| Bolsa: 1.er año · resto | 7 · 52 | 2 · 64 | 10 · 80 | 10 · 81 |

@@ -313,6 +313,31 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       tr('paso 3', e.club, { a: t.A.size, b: t.B.size, cogidosA, cogidosB, veA: van.filter((a) => !primeroAnio(a.npc)).length, veB: van.filter((a) => primeroAnio(a.npc)).length });
     }
     tr('fin del paso 3', undefined, { quedan: [...quedan] });
+    if (v23.completarBMixto && v23.subirTitulares[catId]) {
+      const tope = v23.completarBMixto;
+      for (const e of [...delColegio, ...fuera].filter((x) => equipos.get(x.club)!.B.size < 14)) {
+        const t = equipos.get(e.club)!;
+        const antes = t.B.size;
+        const toda = visiblePara(e, bolsa());
+        const elegibles = toda.filter((a) => (e.colegio === undefined || a.colegio === e.colegio) && !primeroAnio(a.npc));
+        const need = Math.max(0, tope - t.B.size);
+        const porcentaje = e.colegio === undefined ? atractivoDe(e) : null;
+        let van = elegibles;
+        if (porcentaje !== null) {
+          const pesa = (a: Aspirante): number => { const ambicion = ((a.npc.rasgos?.caracter.ambicion ?? 0) + 50) / 100; return o.conAmbicion ? 0.5 + a.interes * 0.5 + ambicion * (e.calidad - 1) : 1; };
+          const clave = (a: Aspirante): number => Math.pow(rngEstable('probar', a.npc.genetica?.semilla ?? 0, a.npc.id, e.club, catId, m.dia).next() || 1e-9, 1 / pesa(a));
+          const quieren = Math.min(elegibles.length, Math.round(porcentaje * toda.length));
+          van = [...elegibles].sort((x, y) => clave(y) - clave(x) || (x.npc.id < y.npc.id ? -1 : 1)).slice(0, Math.max(quieren, need));
+        }
+        let entran = 0;
+        for (const a of van.sort((x, y) => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1)).slice(0, need)) {
+          const n = m.lista.get(a.npc.id);
+          if (n && n.deporte === undefined && intentarEntrar(m, n, e, pob, { sinPrueba: !o.conPrueba }).entra) { t.B.add(a.npc.id); entran++; }
+        }
+        tr('paso 4', e.club, { antes, entran, a: t.A.size, b: t.B.size, ve: elegibles.length });
+      }
+      tr('fin del paso 4', undefined, { quedan: [...quedan], mixtos: [...equipos].filter(([, t]) => [...t.B].some((id) => { const n = m.lista.get(id); return n && !primeroAnio(n); })).map(([club]) => club) });
+    }
     return;
   }
   // 2. Segunda ronda: C y D. Los equipos que salen con la bolsa (a un mínimo por equipo) se sortean entre clubes y colegios (como mucho dos más cada uno).
@@ -396,7 +421,7 @@ export const DIAGNOSTICO: {
   /** Solo para medir (`npm run reparto:paso -- … --variante paso1-14x2`), apagado por defecto: en la primera ronda cada club recoge `porAnio` niños de primer año y `porAnio` de los demás años (no mira la edad solo si no hay bastantes: aquí no se completa con el otro año). */
   variantePrimeraRonda?: { porAnio: number };
   /** Solo para medir (`--variante paso2-3`, con la anterior), apagado por defecto: tras la primera ronda, 2) en las categorías con `subirTitulares` los de primer año que serían titulares en el A suben a él (`titulares` es la alineación del juego, que pone la herramienta) y 3) cada equipo (el A con los demás años, el B con los de primer año) se completa desde la bolsa hasta `maxPorEquipo`. Se detiene ahí. */
-  variantePaso23?: { maxPorEquipo: Record<string, number>; subirTitulares: Record<string, boolean>; titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
+  variantePaso23?: { maxPorEquipo: Record<string, number>; subirTitulares: Record<string, boolean>; /** Paso 4 (solo donde `subirTitulares`): el B que no llega a 14 se completa con niños de 2.º año de la bolsa hasta este número (primero los colegios con sus alumnos); pasa a ser mixto. */ completarBMixto?: number; titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
   traza?: (d: EventoDeTraza) => void;
   /** Lo que pasa con un club y categoría al acomodar a los que no caben en ningún equipo (`acomodarSobrantes`). */
   alAcomodar?: NonNullable<MercadoDeFichajes['alAcomodar']>;

@@ -23,9 +23,9 @@ const categoria = args[2] ?? 'benjamin';
 const soloClub = args[3];
 const PAIS = ciudad === 'actual' ? PAIS_ESPANA : ciudad === 'prueba' ? PAIS_CIUDAD_DE_PRUEBA : flag('sin-hogares') ? PAIS_CIUDAD_GRANDE_SIN_HOGARES : PAIS_CIUDAD_GRANDE;
 registrarPais(PAIS);
-if (variante === 'paso1-14x2' || variante === 'paso2-3') DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
-if (variante === 'paso2-3') DIAGNOSTICO.variantePaso23 = { maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares: (js) => convocarYAlinear(js as never).titulares.map((x) => x.id) };
-else if (variante && variante !== 'paso1-14x2') throw new Error(`Variante desconocida: ${variante} (paso1-14x2, paso2-3)`);
+if (variante === 'paso1-14x2' || variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14') DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
+if (variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14') DIAGNOSTICO.variantePaso23 = { ...(variante === 'paso4' ? { completarBMixto: 20 } : variante === 'paso4-14' ? { completarBMixto: 14 } : {}), maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares: (js) => convocarYAlinear(js as never).titulares.map((x) => x.id) };
+else if (variante && variante !== 'paso1-14x2') throw new Error(`Variante desconocida: ${variante} (paso1-14x2, paso2-3, paso4, paso4-14)`);
 class Parar extends Error {}
 
 const out: string[] = [];
@@ -62,6 +62,39 @@ const tablaDeFoto = (fotos: readonly FotoDeClub[], antes?: readonly FotoDeClub[]
   tabla(['Club', 'Equipos', 'Niños', '…de 1.er año', '…de 2.º', 'Caben (máx × equipos)', 'Faltan para 14 × equipos (la cuenta del club)', 'Sobran del máximo'], filas);
 };
 
+if (variante === 'paso4' || variante === 'paso4-14') {
+  type Ev4 = { fase: string; categoria: string; club?: string; datos: Record<string, unknown>; bolsa?: ReturnType<EventoDeTraza['bolsa']> };
+  const evs: Ev4[] = [];
+  DIAGNOSTICO.traza = (e) => {
+    if (['paso 3', 'paso 4', 'fin del paso 4'].includes(e.fase)) evs.push({ fase: e.fase, categoria: e.categoria, ...(e.club ? { club: e.club } : {}), datos: e.datos, ...(e.fase === 'fin del paso 4' ? { bolsa: e.bolsa() } : {}) });
+    if (e.fase === 'fin del paso 4' && e.categoria === 'cadete') throw new Parar();
+  };
+  try { nuevaPartida({ seed: semilla, pais: PAIS.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]); } catch (err) { if (!(err instanceof Parar)) throw err; }
+  const tope = variante === 'paso4' ? 20 : 14;
+  say(`# Variante ${variante} · semilla ${semilla} · ${PAIS.id}`);
+  say();
+  say(`Sobre paso2-3 (infantil y cadete): el B que no llega a 14 con niños de 1.er año se completa con niños de 2.º año de la bolsa **hasta ${tope}**; primero los colegios con sus alumnos y después el resto de clubes en el orden de siempre (atractivo, los que prefieren su colegio no los ven los clubes de fuera, sin prueba). Ese B pasa a ser mixto (por nivel). Un B que ya llega a 14 no se toca.`);
+  say();
+  for (const cat of ['infantil', 'cadete']) {
+    say(`## ${cat}`);
+    say();
+    const p3 = evs.filter((x) => x.fase === 'paso 3' && x.categoria === cat);
+    const p4 = new Map(evs.filter((x) => x.fase === 'paso 4' && x.categoria === cat).map((x) => [x.club!, x]));
+    const fin = evs.find((x) => x.fase === 'fin del paso 4' && x.categoria === cat)!;
+    tabla(['Club', 'B antes', 'Entran de 2.º año', 'B después', 'A', 'B mixto'], p3.filter((x) => p4.has(x.club!)).map((x) => { const q = p4.get(x.club!)!; return [x.club!, Number(q.datos.antes), Number(q.datos.entran), Number(q.datos.b), Number(q.datos.a), Number(q.datos.entran) > 0 ? 'sí' : 'no']; }));
+    const final = p3.map((x) => { const q = p4.get(x.club!); return { a: Number((q ?? x).datos.a), b: Number((q ?? x).datos.b) }; });
+    const tam = final.flatMap((x) => [x.a, x.b]).filter((n) => n > 0);
+    tabla(['Resumen tras el paso 4', ''], [['B completados (con alguno de 2.º año)', [...p4.values()].filter((q) => Number(q.datos.entran) > 0).length], ['Entran de 2.º año en total', [...p4.values()].reduce((t, q) => t + Number(q.datos.entran), 0)], ['Equipos', tam.length], ['Niños por equipo: mínimo · máximo · media', `${Math.min(...tam)} · ${Math.max(...tam)} · ${(tam.reduce((a, b) => a + b, 0) / tam.length).toFixed(1)}`], ['Equipos por debajo de 14', tam.filter((n) => n < 14).length], ['Niños asignados', tam.reduce((a, b) => a + b, 0)], ['B mixtos', (fin.datos.mixtos as string[]).length]]);
+    const quedan = new Set(fin.datos.quedan as string[]);
+    const min1 = Math.min(...fin.bolsa!.map((a) => a.edad));
+    const gr = (primero: boolean): NonNullable<typeof fin.bolsa> => fin.bolsa!.filter((a) => (a.edad === min1) === primero);
+    const colegios = [...new Set(fin.bolsa!.map((a) => a.colegio))].sort();
+    tabla(['Bolsa tras el paso 4', 'Quedan', 'Se quedan en su colegio', 'Quieren probar fuera', ...colegios.map((c) => `…de ${c}`)], ([['1.er año', true], ['Resto de años', false]] as [string, boolean][]).map(([n, pr]) => { const xs = gr(pr); return [n, xs.length, xs.filter((a) => quedan.has(a.id)).length, xs.filter((a) => !quedan.has(a.id)).length, ...colegios.map((c) => xs.filter((a) => a.colegio === c).length)]; }));
+  }
+  DIAGNOSTICO.traza = undefined; DIAGNOSTICO.variantePrimeraRonda = undefined; DIAGNOSTICO.variantePaso23 = undefined;
+  console.log(out.join('\n'));
+  process.exit(0);
+}
 if (variante === 'paso2-3') {
   type Ev = { fase: string; categoria: string; club?: string; datos: Record<string, unknown>; bolsa?: ReturnType<EventoDeTraza['bolsa']> };
   const evs: Ev[] = [];
