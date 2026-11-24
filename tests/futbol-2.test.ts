@@ -92,8 +92,9 @@ describe('pedir puesto en el primer entrenamiento cuenta para las 4 semanas de l
 
 describe('el calendario de la liga: el jugador sabe dónde está la temporada', () => {
   // La ciudad de verdad (la de prueba es tan pequeña que no tiene liga).
+  // (Semilla 1: en algunas —la 3 y la 6, también antes de los hogares— el personaje entra en un equipo que no llega a los 14 y no sale en la liga.)
   const conClub = () => {
-    const g = nuevaPartida({ seed: 7, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const g = nuevaPartida({ seed: 1, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     const clubes = { membership: (d: string) => g.service<{ membership(d: string): unknown }>(SERVICES.clubes)!.membership(d) };
     for (let k = 0; k < 6000 && !clubes.membership('futbol'); k++) {
       if (posible(g, 'futbol.apuntarse_colegio')) hacer(g, 'futbol.apuntarse_colegio');

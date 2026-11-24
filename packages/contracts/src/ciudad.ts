@@ -27,8 +27,8 @@ export interface CiudadDef {
   /** Probabilidad de que un nacido aquí (menos de 25 años) de padres de fuera lleve un nombre de pila del país (0 a 1); sustituye a la del país (`nombreLocalDelLugar`). */
   nombreLocalDeLosNacidosAqui?: number;
   /**
-   * **Hogares** (`docs/relevo/hogares.md`): con él activado, los niños del mundo salen de familias (pareja con rasgos, capacidades y perks propios; hijos con la herencia del personaje) y los padres,
-   * los hermanos y los hermanos pequeños son personas con su hogar (`Npc.hogar`, `Npc.padres`). Sin él (por defecto) el mundo se genera como siempre: una partida de antes no cambia.
+   * **Hogares** (`docs/relevo/hogares.md`): con él (**activado en las tres ciudades desde el 24/11/2026**), los niños del mundo salen de familias (pareja con rasgos, capacidades y perks propios; hijos con la herencia del personaje) y los padres,
+   * los hermanos y los hermanos pequeños son personas con su hogar (`Npc.hogar`, `Npc.padres`). Sin él (o en una partida guardada antes, que no lleva `NpcsState.hogares`) el mundo se genera y se renueva como siempre: no se migra nada.
    */
   hogares?: boolean;
 }
@@ -54,13 +54,13 @@ export const colegiosConClubDe = (c: CiudadDef): number => Math.min(c.colegiosDe
 export const clubesDeLaZona = (c: CiudadDef): number => Math.max(1, Math.round(personasDeLaCiudad(c) / (c.personasPorClub ?? PERSONAS_POR_CLUB)));
 
 /** La ciudad de ahora: 4 colegios de fuera, 2 clases de 25 por curso en el del personaje, 17 alumnos por curso en cada colegio de fuera y 80 vecinos (unas 1.100 personas). */
-export const CIUDAD_ACTUAL: CiudadDef = { colegiosDeFuera: 4, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 17, vecinos: 80 };
+export const CIUDAD_ACTUAL: CiudadDef = { colegiosDeFuera: 4, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 17, vecinos: 80, hogares: true };
 
 /**
  * Una ciudad pequeña para los tests que crean muchas partidas: dos colegios de fuera, una sola clase de 12 por curso y 6 alumnos por curso en cada colegio de fuera (unas
  * 220 personas en vez de 1.100). Hace los mismos papeles que la de verdad, solo con menos gente.
  */
-export const CIUDAD_DE_PRUEBA: CiudadDef = { colegiosDeFuera: 2, aulasPorCurso: 1, alumnosPorAula: 12, alumnosPorCursoDeCadaColegio: 6, vecinos: 12 };
+export const CIUDAD_DE_PRUEBA: CiudadDef = { colegiosDeFuera: 2, aulasPorCurso: 1, alumnosPorAula: 12, alumnosPorCursoDeCadaColegio: 6, vecinos: 12, hogares: true };
 
 /**
  * La **ciudad grande del diseño** (`CIUDAD_Y_LIGAS.md` §2): el colegio del personaje, igual (2 clases de 25 por curso), y **9 colegios de fuera de 2 clases de 25 por curso** (50 alumnos por curso cada
@@ -68,7 +68,7 @@ export const CIUDAD_DE_PRUEBA: CiudadDef = { colegiosDeFuera: 2, aulasPorCurso: 
  * salen en proporción (uno cada `PERSONAS_POR_CLUB` personas) y 3 de los colegios de fuera tienen club (4 con el del personaje: decisión del usuario, 17/11/2026).
  */
 export const CIUDAD_GRANDE: CiudadDef = {
-  colegiosDeFuera: 9, colegiosConClub: 3, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10,
+  colegiosDeFuera: 9, colegiosConClub: 3, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10, hogares: true,
   // Demografía de una ciudad como Madrid: ~19 % de origen extranjero, repartido por continente como la Comunidad de Madrid (más de la mitad, de América: nombres y apellidos hispanos) (`docs/relevo/nombres-nacionales.md` §2),
   // y las parejas por tipo (`ANEXO_NOMBRES.md` §7). Los nacidos aquí de padres de fuera llevan nombre de pila español el 20 % de las veces.
   demografia: { espana_norte: 0.162, espana_centro: 0.324, espana_sur: 0.324, latinoamerica: 0.099, magreb: 0.012, africa_subsahariana: 0.006, europa_este: 0.03, europa_norte: 0.024, asia_oriental: 0.019 },

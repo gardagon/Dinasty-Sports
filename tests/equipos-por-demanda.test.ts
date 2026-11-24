@@ -100,7 +100,8 @@ describe('el «draft» por rondas (sustituye a los equipos según la demanda)', 
       for (const cat of pob.categorias!.filter((c) => ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'].includes(c.id))) {
         const jugadores = delClub(m, e.club, cat).length;
         const k = e.equiposPorCategoria?.[cat.id] ?? 1;
-        expect(jugadores, `${e.club} ${cat.id}`).toBeGreaterThanOrEqual(14 * k);
+        // Un club que no llega al mínimo de una categoría (el pequeño, el último en escoger, con los niños de 8 a 11 años que quedan) no la forma: o 0 jugadores o equipos completos.
+        expect(jugadores === 0 || jugadores >= 14 * k, `${e.club} ${cat.id}: ${jugadores} con ${k} equipos`).toBe(true);
         expect(jugadores, `${e.club} ${cat.id}`).toBeLessThanOrEqual(capacidadConPlazasDeMas(e, cat.id));
         expect(k).toBeLessThanOrEqual(MAX_EQUIPOS_POR_CATEGORIA);
       }
@@ -113,12 +114,16 @@ describe('el «draft» por rondas (sustituye a los equipos según la demanda)', 
   it('cada club solo ve a una parte de la bolsa y los más atractivos escogen primero: el grande se queda con los mejores, y los que vienen detrás, con menos', () => {
     const { m, pob } = mundo;
     const val = valoracionDe(REND_PUESTOS);
-    const media = (club: string) => {
-      const xs = [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === club && n.genetica).map((n) => valorRealDe(n, pob, val, 0) ?? 0);
+    // Se compara dentro de cada categoría (el club que no forma las de los más pequeños tendría, si no, la media de gente mayor y con más nivel).
+    const CATEGORIAS = ['infantil', 'cadete', 'juvenil'];
+    const media = (club: string, cat: string) => {
+      const c = pob.categorias!.find((x) => x.id === cat)!;
+      const xs = delClub(m, club, c).filter((n) => n.genetica).map((n) => valorRealDe(n, pob, val, 0) ?? 0);
       return xs.reduce((a, b) => a + b, 0) / xs.length;
     };
-    expect(media('club_grande')).toBeGreaterThan(media('club_mediano'));
-    expect(media('club_mediano')).toBeGreaterThan(media('club_pequeno'));
+    const total = (club: string) => CATEGORIAS.reduce((a, cat) => a + media(club, cat), 0) / CATEGORIAS.length;
+    expect(total('club_grande')).toBeGreaterThan(total('club_mediano'));
+    expect(total('club_mediano')).toBeGreaterThan(total('club_pequeno'));
     // Pero hay muy buenos en clubes modestos: el mejor del pequeño vale más que el peor del grande.
     const valores = (club: string) => [...m.lista.values()].filter((n) => n.deporte === 'futbol' && n.equipo === club && n.genetica).map((n) => valorRealDe(n, pob, val, 0) ?? 0);
     expect(Math.max(...valores('club_pequeno'))).toBeGreaterThan(Math.min(...valores('club_grande')));

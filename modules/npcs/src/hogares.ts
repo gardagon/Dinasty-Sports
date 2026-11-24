@@ -22,8 +22,8 @@ export interface HogarGuardado {
 
 /** Cifras de las familias (provisionales, calibradas con `tools/hogares-prototipo.ts`). */
 export const FAMILIAS = {
-  /** Probabilidad de tener un hermano más pequeño después del 1.º, 2.º, 3.º y 4.º hijo. */
-  siguiente: [0.55, 0.3, 0.2, 0.15],
+  /** Probabilidad de tener un hermano más pequeño después del 1.º, 2.º, 3.º y 4.º hijo (24/11: `[0,70; 0,40; 0,30; 0,20]`, que da un 51 % de niños de 8 años con un hermano mayor en el mundo, frente al ~49–51 % estimado en la vida real; antes `[0,55; 0,30; 0,20; 0,15]`: 42 %). */
+  siguiente: [0.7, 0.4, 0.3, 0.2],
   /** Años de diferencia con el hijo siguiente (peso). */
   separacion: [[1, 0.22], [2, 0.3], [3, 0.22], [4, 0.14], [5, 0.08], [6, 0.04]] as readonly (readonly [number, number])[],
   mellizos: 0.04,

@@ -14,7 +14,7 @@ const gente = (g: ReturnType<typeof nuevaPartida>): Npc[] => (g.moduleState<Npcs
 describe('la ciudad como datos', () => {
   it('España trae la ciudad de ahora: 4 colegios de fuera, 2 clases de 25 por curso, 17 alumnos por curso en cada colegio de fuera y 80 vecinos', () => {
     expect(PAIS_ESPANA.ciudad).toBeUndefined(); // sin ciudad propia usa la de ahora
-    expect(CIUDAD_ACTUAL).toEqual({ colegiosDeFuera: 4, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 17, vecinos: 80 });
+    expect(CIUDAD_ACTUAL).toEqual({ colegiosDeFuera: 4, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 17, vecinos: 80, hogares: true });
     expect(idsDeColegiosDeFuera(CIUDAD_ACTUAL)).toEqual(['colegio1', 'colegio2', 'colegio3', 'colegio4']);
     const g = nuevaPartida({ seed: 31 });
     const npcs = gente(g);

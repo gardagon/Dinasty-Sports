@@ -2,7 +2,7 @@
  * Desglose del coste de jugar con la ciudad grande: cuánto cuesta crear, cuánto la pasada semanal de los PNJ (la que hace el motor al cruzar de semana), el paso de un día normal, y listar las acciones (lo que pide la
  * pantalla tras cada acción). `npx tsx tools/rendimiento-semana.ts [--ciudad]`; con `node --import tsx --cpu-prof` se ve el perfil por función de cada parte (usa `--solo crear|semanas|dias|listar`).
  */
-import { PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_CON_HOGARES, registrarPais } from '@ds/contracts';
+import { PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_SIN_HOGARES, registrarPais } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
 import { aplicarPropuestas } from './propuestas-pnj';
@@ -13,8 +13,8 @@ const ciudad = args.includes('--ciudad');
 const conFutbol = !args.includes('--sin-futbol');
 const solo = args.includes('--solo') ? args[args.indexOf('--solo') + 1] : undefined;
 const t = <T>(f: () => T): [T, number] => { const t0 = performance.now(); const r = f(); return [r, performance.now() - t0]; };
-/** La ciudad grande; con `DS_HOGARES=1`, con los hogares activados (`docs/relevo/hogares.md`). */
-const PAIS = process.env.DS_HOGARES ? PAIS_CIUDAD_GRANDE_CON_HOGARES : PAIS_CIUDAD_GRANDE;
+/** La ciudad grande; con `DS_SIN_HOGARES=1`, sin hogares (el mundo de antes del 24/11: `docs/relevo/hogares.md`). */
+const PAIS = process.env.DS_SIN_HOGARES ? PAIS_CIUDAD_GRANDE_SIN_HOGARES : PAIS_CIUDAD_GRANDE;
 if (ciudad) registrarPais(PAIS);
 aplicarPropuestas();
 const [g, crear] = t(() => nuevaPartida({ seed: 31, ...(ciudad ? { pais: PAIS.id, deportes: conFutbol ? ['atletismo', 'futbol'] : ['atletismo'] } : {}) }, ciudad && conFutbol ? [...MODULOS, futbol] : MODULOS));

@@ -541,7 +541,7 @@ function disputar(ctx: ActionContext, tipo: TipoCarrera): void {
       `${p.mark.toFixed(2)} s`,
       i === 0 ? '—' : `+${(p.mark - ganador).toFixed(2)}`,
     ]),
-    highlight: position - 1,
+    highlight: Math.max(0, r.todos.findIndex((c) => c.isPlayer)), // el índice de la fila, no el puesto: con marcas empatadas el puesto se repite
     align: (variasSeries ? ['left', 'left', 'left', 'right', 'right', 'right'] : ['left', 'left', 'left', 'right', 'right']) as ('left' | 'right')[],
   };
   const dif = position === 1 ? '' : `, a ${(miMarca - ganador).toFixed(2)} s del 1º`;
