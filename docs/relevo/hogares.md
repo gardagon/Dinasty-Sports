@@ -551,7 +551,78 @@ El nivel por edad es el mismo (la fracción del tope que alcanzan, igual); con h
 ## Pendiente de medir y de decidir
 
 - **Profesionales a los 18 y abandono por edad con más semillas** (31, 32, 33): hecho solo con una; el abandono (`pnj-entrenan`) no se ha comparado.
-- **Dar su trabajo a los progenitores** (9:00–17:00 «fuera» entre semana, salvo los de oficio en un lugar): recorta 0,74 ms por acción (la mitad del sobrecoste) y es lo que pide `ANEXO_HORARIOS_PNJ.md` para los padres. Cambia agendas (anexo y `agendas.ts`).
+- ~~Dar su trabajo a los progenitores~~: hecho en la ronda 3 (abajo). **Corrección:** aquí se dijo que recortaría la mitad del sobrecoste por acción; medido después, **no recorta nada apreciable** (ver abajo).
 - **El vínculo en la ficha y en los sucesos** (papel de reparto por parentesco) y que el niño se vaya **con** su progenitor.
 - **El interés heredado** (+4 % de niños en los clubes): decidir si se corrige.
 - **Los 20 niños de los 80 vecinos** y los 60 vecinos adultos: sin familia en H1; entran con H3.
+
+
+---
+
+# Ronda 3 (24/11/2026): trabajo de los progenitores, hermanos pequeños contrastados con la vida real y medidas de nuevo
+
+## Trabajo de los progenitores (hecho, aprobado por el usuario)
+
+Marca nueva `TipoAsignado.laboral` (`agendas.ts`, `TRABAJO_DE_PROGENITORES`), que pone `ajustarVecinos` a los progenitores de un hogar menores de 67 años: **de lunes a viernes de 9:00 a 17:00 «fuera»**; **quien recoge sale antes (trabaja de 9:00 a 13:30)** y esos días está en el colegio de 13:45 a 14:30; quien tiene **un oficio de un lugar** (dependiente, camarero, cocinero, monitor) está en él en su horario. Documentado en `ANEXO_HORARIOS_PNJ.md` («Progenitores de un hogar») y con tests en `agendas.test.ts` (3 casos). Con el dato desactivado no cambia nada (huella idéntica).
+
+**Medido, y corrige lo dicho antes:** con la ciudad grande, 30 días del bot equilibrado, cuatro pasadas en la misma máquina: **sin hogares 2,79 ms por acción; con hogares y `laboral` 4,83 y 4,23; con hogares y sin `laboral` 4,15 y 4,42.** La diferencia está dentro del ruido: el bot actúa casi siempre fuera de las horas de trabajo (clase por la mañana, tardes y fines de semana), y a esas horas los progenitores están igual. El experimento anterior (los adultos **sin ninguna agenda**, 5,23 frente a 5,97) mezclaba quitarles también las ventanas de calle, el parque y el super de todo el día. **El trabajo da realismo, no rendimiento.** El sobrecoste por acción viene de **cuánta gente hay** (listas, índices, cambios de día) y de las ventanas de calle de fuera del horario laboral.
+
+## Hermanos pequeños frente a la vida real (duda 3)
+
+**Lo que pidió el usuario:** de los niños de 8 años que entran cada curso, qué parte **tiene un hermano mayor que sigue en el mundo** (de 9 a 19 años), comparada con la vida real.
+
+- **Vida real (estimación, con una limitación):** no he podido leer las tablas del INE de nacimientos por orden: `www.ine.es` no resuelve desde esta sesión y las búsquedas no devolvieron el desglose nacional. **La única cifra con fuente que he encontrado es la de Eustat** (Euskadi, 2018, trimestral): primeros hijos ≈ 51 %, segundos ≈ 37 %, de tercero en adelante ≈ 12 % ([Eustat, nacimientos III/2018](https://es.eustat.eus/elementos/not0016220_c.pdf)). Con eso, **de un 48 % a un 52 % de los nacidos son de orden 2 o más**, y casi todos tienen a su hermano mayor a 2–4 años, es decir, dentro de los 19 años del mundo. **Estimación: ≈ 49–51 % de los niños de 8 años tienen un hermano mayor en el mundo.** (Para fijarlo en un anexo habría que leer la tabla nacional del INE: orden del nacimiento, 2018.)
+- **Nuestro modelo** (`npx tsx tools/hogares-orden.ts 20`, 20 semillas, ciudad grande): con `FAMILIAS.siguiente = [0,55; 0,30; 0,20; 0,15]` (el actual) **42,1 %** al crear la partida y **40–45 %** en los cursos siguientes (`hogares-curso`): unos 7 puntos por debajo.
+
+| `siguiente` (1.º, 2.º, 3.º, 4.º) | Niños de 8 años con hermano mayor, al crear | Hijos de 8 a 19 años por familia | Menores de 8 por cada 100 de 8 a 19 |
+|---|---:|---:|---:|
+| `0,55 / 0,30 / 0,20 / 0,15` (actual) | 42,1 % | 1,56 | 12,2 |
+| `0,60 / 0,35 / 0,25 / 0,20` | 47,4 % | 1,64 | 13,8 |
+| `0,65 / 0,40 / 0,30 / 0,20` | 50,3 % | 1,73 | 15,2 |
+| **`0,70 / 0,40 / 0,30 / 0,20`** | **51,4 %** | 1,79 | 16,0 |
+| `0,75 / 0,45 / 0,30 / 0,20` | 54,0 % | 1,88 | 17,3 |
+
+**Propuesta (no aplicada): `[0,70; 0,40; 0,30; 0,20]`.** En 3 cursos seguidos (`hogares-curso grande 3 --siguiente 0.7,0.4,0.3,0.2`) los entrantes que vienen de hermanos pequeños son 233, 255 y 261 de 500 (**47 %, 51 % y 52 %**; con el valor actual, 45 %, 42 % y 43 %). Como alternativa más suave, `[0,65; 0,40; 0,30; 0,20]` (50,3 % al crear y 45–48 % en los cursos). Efecto secundario: más hermanos pequeños (16 por cada 100) y menos progenitores (unos 5.830 en vez de 6.900) con la ciudad grande: el estado queda algo menor (≈ 25,7 MB frente a 26,5–27,3 MB).
+
+## Medidas de nuevo, con hogares y con el trabajo de los progenitores (frente a sin hogares)
+
+Todas con `DS_HOGARES=1` frente a lo de ahora, misma semilla y misma rama base. Los tiempos son de una máquina de 4 CPU (±20 %); esta vez estaba más tranquila que en la ronda anterior, por eso las cifras absolutas son menores y el cociente mayor.
+
+**`rendimiento` (ciudad grande con fútbol, 30 días, escritorio):**
+
+| | Sin hogares | Con hogares |
+|---|---:|---:|
+| Personas · estado | 6.118 · 16.233 KB | **13.787 · 27.256 KB** (+68 %) |
+| Crear | 7,8 s (7,9 s en `rendimiento-semana`) | **8,6 s** (8,6 s): +0,7 s |
+| Guardar: copiar / a texto · cargar | 187 / 116 ms · 177 ms | 395 / 276 ms · 158 ms |
+| Lista de todas las personas | 26,5 ms | 58,6 ms |
+| Bot, ms por acción · por día · por semana | 2,65 · 102 · 716 | **4,16 · 161 · 1.124** |
+| Cruce de día (mediana, 36 cruces) | 8,3 ms | 12,9 ms |
+| Pasada semanal (6 cruces, ms) | 125 / 105 / 107 / 174 / 294 / 301 | 134 / 100 / 110 / 179 / 308 / 412 |
+| `listActions` (mediana) | 14,1 ms | 30,3 ms |
+
+(En la ronda anterior, con otra carga de la máquina: acción 4,31 → 5,97 ms, +39 %. Hoy 2,65 → 4,16, +57 %. **El sobrecoste absoluto es el mismo (+1,5 ms): lo que cambia es la base.**) En un móvil ×4 (factor ×4,3, estimado): crear ~34 → ~37 s, acción ~+6,5 ms, cruce de semana de 0,81 s a ~0,9 s.
+
+**`sim` (365 días × 5 semillas, ciudad de siempre):** los 15 chequeos son los mismos (todos ✅ salvo **Rendimiento ⚠️ en las dos**, que ya lo estaba); valores finales por estrategia iguales salvo ±0,5 puntos. El tiempo por acción sale de 1,34 a 2,12 ms, pero la calibración de la máquina en esa pasada fue otra (6,6 ms frente a 5,8): el tiempo no es comparable con tanta carga; el de `rendimiento` de arriba sí.
+
+**`benjamin -- 31,33`:** igual que antes: **el primer partido de benjamín es la semana 4 con y sin hogares**; plantilla del personaje 14 y 9 con hogares (17 y 13 sin ellos en la ronda anterior: la partida es otra); en la semilla 33 con hogares el personaje no tiene convocatorias (pasa también sin hogares en la 32).
+
+**Distribuciones del fútbol** (semillas 31 y 32, al crear y tras 1 y 2 cursos): como en la ronda anterior (el trabajo de los progenitores no cambia lo que se genera): **nivel medio por edad −0,1 a −0,5 puntos** (equipos C −0,6 a −0,8) y **+4 % de niños en equipos**.
+
+**Profesionales a los 18 y abandono por edad, 3 semillas (31, 32, 33; cohorte de 8 años, 10 años):**
+
+| | Sin hogares | Con hogares |
+|---|---:|---:|
+| Cohorte · juegan al crear (media por semilla) | 499 · 267 | 489 · 264 |
+| Nivel medio a los 18 · p90 · máximo | 27,1 · 34,8 · 41,5 | **28,0 · 36,7 · 43,4** |
+| Por encima del umbral «profesional» (36), por semilla | 6, 5, 7 (media 6) | **9, 10, 10 (media 9,7)** |
+| % de los interesados que siguen jugando a los 9 · 13 · 16 · 17 · 18 años | 89,1 · 64,3 · 42,0 · 36,4 · **30,3** | 88,2 · 64,6 · 41,2 · 33,9 · **27,8** |
+| Juegan a los 18 (media por semilla) | 82 | 75 |
+
+**Lo nuevo frente a lo dicho antes (con una semilla: 9 frente a 6): con tres semillas se confirma y es robusto: con hogares salen un 60 % más de profesionales a los 18** (9,7 frente a 6 por semilla; ninguna de las 3 semillas con hogares baja de 9, ninguna de las 3 sin ellos pasa de 7). Los mejores son mejores (máximo 43,4 frente a 41,5; p90 36,7 frente a 34,8) y **abandonan algo más** (−2,5 puntos de retención a los 18). La hipótesis más probable es la herencia de intereses (la misma que subía un 4 % los niños en los clubes): `rasgosHeredadosNpc` da a cada interés la intensidad **máxima de los dos padres** (menos 1 el 30 % de las veces), así que la intensidad media de un hijo es mayor que la de un niño sorteado suelto, y la intensidad decide cuánto juega y cuánto aguanta. **No se ha comprobado aislando el factor.** El usuario aceptó el +4 % «de momento»; **este efecto sobre los profesionales es mayor y conviene que lo vea antes de activar el dato por defecto.**
+
+## Pendiente de decidir (nuevo)
+
+1. **`FAMILIAS.siguiente`:** aplicar `[0,70; 0,40; 0,30; 0,20]` (51 % de niños de 8 años con hermano mayor, frente a ≈ 49–51 % estimado en la vida real) o dejar `[0,55; …]` (42 %). *Recomiendo aplicarlo.*
+2. **El efecto de los intereses heredados en los profesionales** (+60 %): aislarlo (probar una versión de `rasgosHeredadosNpc` sin tomar el máximo de los padres) y decidir si se compensa. *Recomiendo medir el aislamiento antes de activar el dato por defecto.*
+3. **Leer la tabla del INE** de orden del nacimiento (`www.ine.es` no está permitido en la red de esta sesión) antes de dejar la cifra en un anexo.
