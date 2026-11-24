@@ -16,7 +16,8 @@ import { publicarDeportes } from './publicar';
 
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const capturas = resolve(process.argv[2] ?? join(tmpdir(), 'ds-probar-web'));
-const semilla = Number(process.argv[3] ?? 35);
+// Semilla 31: con los hogares la 35 deja al personaje en un tercer equipo de 9 niños, que no llega a los 14 de la liga y no juega (ver docs/relevo/hogares.md, ronda 5).
+const semilla = Number(process.argv[3] ?? 31);
 // `npm run probar-web:escritorio`: el mismo camino con una ventana de ordenador (1440×900), donde el diseño «Automático» usa las tres columnas.
 const escritorio = process.argv[4] === 'escritorio';
 mkdirSync(capturas, { recursive: true });

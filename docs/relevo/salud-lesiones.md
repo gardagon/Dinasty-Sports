@@ -4,6 +4,31 @@ Análisis de la sesión `claude/salud-lesiones` (24/11/2026), por encargo de la 
 
 Fuentes del repositorio leídas: `VISION.md`, `BACKLOG_STATS.md` (E12), `DECISIONES.md` (salud, lesión, baja, sueño, fatiga), `MOTOR_PARTIDOS.md`, `ANEXO_CUERPO.md`, `MISMAS_REGLAS.md`, `relevo/dormir.md`, `relevo/medir-rendimiento-2.md` y el código de `estado-de-jugador.ts`, `sueno.ts`, `modules/eventos/src/salud/`, `modules/personaje`, `modules/npcs`, el kit de deporte y el fútbol.
 
+## H. Hecho en la F1 (24/11): las cifras y reglas puras, sin activar
+
+Encargo de la arquitectura tras las decisiones del usuario (`DECISIONES.md`, 24/11, «Salud y lesiones (E12) y partidos más reales»). **Nada llama todavía a lo nuevo**: `npm run huella -- 60` sale idéntica.
+
+- **`packages/contracts/src/salud.ts`** (nuevo, exportado desde `contracts`) y **`salud.test.ts`** (28 tests): tasas por actividad y edad, reparto por tipo, factores de la persona, exposición del momento, sorteo de tipo, zona y días, baja en días y semanas derivadas, fases, recaída, secuelas, atención del club y migración de la baja.
+- **La firma acordada para el motor de partidos** (`partidos-reales.md` §4.3, el perfil de riesgo por jugador y partido). **Sigue siendo una función pura, no un servicio** (§5.1): el motor llama una vez por jugador y partido y después multiplica por lo del momento.
+  ```ts
+  perfilDeRiesgo(persona: PersonaDeRiesgo, actividad: 'partido' | 'sesion' | 'otra'): PerfilDeRiesgo   // lesiones por hora de cada tipo
+  riesgoPorExposicion(perfil, { horas, contacto?, intensidad?, cansancio? }): { p, porTipo }          // p = probabilidad en esa exposición
+  sortearLesion(riesgo, azarTipo, azarGravedad, persona, atencion?): Lesion                          // { t, z, d, n }
+  ```
+  El **azar es de quien pregunta** (`rngEstable('partido-lesiones', semilla, partido, jugador)`, flujo separado del resto, `partidos-reales.md` §4.5). `contacto` va de 0 a 1 (0,5 es lo normal de un partido; mueve golpes, esguinces, fracturas y conmociones) y `cansancio` del partido de 0 a 100 (mueve músculo, ligamento y sobrecarga). Con la pregunta por minuto o por contacto, el motor pasa `horas` pequeñas (1/60) y el `contacto` de esa jugada; el nivel grueso pasa 1,25 h de una vez.
+- **Baja en días:** `Lesion = { t, z, d, n }` (tipo, zona, días que quedan, días al empezar). `semanasDeBaja(d)` da las semanas (hacia arriba) para quien las lee hoy (convocatoria, kit, fútbol y atletismo). **Migración preparada, sin conectar:** `migrarBaja(semanas)` da una lesión `'antigua'` de `7 × semanas` días; se llama desde el `alCargar` de `npcs` y del personaje **en la F3**, con la subida de `SAVE_VERSION` (conectarla antes cambiaría el estado guardado y la huella).
+- **Resistencia a lesiones (decisión 2):** `resistenciaALesiones(constitución, perks)` = `1,4 − 0,8·c/100` (de ×1,4 a ×0,6) por el perk: **Endeble ×1,25 y Constitución de toro ×0,8** sobre el riesgo. Como los dos ya mueven el tope de constitución ±8, el efecto total con constitución 50 es ~×1,33 y ~×0,75. **Recuperación rápida ×0,8 y lenta ×1,25 sobre la duración** (juntas se anulan). Los perks se pasan por su id (`PERKS_DE_SALUD`).
+- **Secuelas (decisión 3):** `probabilidadDeSecuela(días)` es 0 hasta 28 días y después `0,08 + 0,0015·(días − 28)` hasta un 50 % (un cruzado de 270 días, ~44 %; 60 días, ~13 %). `secuelaDeLesion(lesión, azarSecuela, azarPerk)`: si sale, −1 (29–59 días), −2 (60–119) o −3 (120 o más) de constitución y, con el 40 %, un perk latente por zona (`rodilla_delicada`, `tobillo_fragil`, `espalda_delicada`; **se crean en `perks.ts` en F7**). Se activa en F7.
+- **Fisio solo en los grandes (decisión 4):** `ATENCION_POR_TAMANO` (`TamanoDeClub`): `fisioIncluido` solo en `grande`; la prevención del club baja el riesgo (×0,8 grande, ×0,9 mediano, ×1 pequeño; provisional). `COSTE_DE_ATENCION`: 60 minutos en el médico y el fisio de fuera (dinero `undefined` hasta la economía, E16). El fisio acorta ×0,8 las bajas de 8 días o más; forzar la vuelta, ×0,75 y recaída ×3.
+- **Sexo (decisión 9):** `factorPorSexo`: ligamento y sobrecarga ×2 en las chicas desde el pico de crecimiento (a 12 años de edad con la `madurez`; chicos, 14). **El ciclo no se modela:** `PersonaDeRiesgo.ciclo` y `factorPorCiclo` (×1) son el hueco para la sesión que analizará el personaje chica.
+- **Cifras revisadas respecto a §2** (para que cuadren con los objetivos, medido con `salud.test.ts`):
+  - duración por tipo: más peso de las bajas cortas (tabla de §2.3 actualizada); **gravedad resultante 52 % de hasta 7 días, 33 % de 8–28 y 14 % de más de 28**;
+  - reparto por tipo con partido y entrenamiento a partes iguales: golpe 21, esguince 20, muscular 25,5, sobrecarga 15,6, fractura 3, conmoción 3, ligamento 1 y otras 11 (cada uno a menos de 3 puntos del plan);
+  - **lesiones al año de un jugador de club:** 0,34 a los 9 años (2 sesiones), 0,75 a los 14 y 0,84 a los 17 (3 sesiones): dentro del ±40 % de 0,3 / 0,6 / 0,8; la de 13–15 sale algo alta;
+  - sueño: con 6 h de deuda el riesgo es ×1,58 (objetivo ×1,5 a ×1,8) y la constitución de 20 a 80 da ×1,63 (objetivo ×1,5 a ×2);
+  - fases: aguda el primer 40 % de la baja y rehabilitación el 60 % restante (en §2.4 decía 45 %).
+- **Lo que no hay aún:** `npm run sim:salud` (la herramienta de calibración), el estado guardado (`EstadoDeJugador.lesion`), el paso semanal y los sucesos. Eso es F3.
+
 ## 0. Resumen
 
 1. **Hoy la salud es un modelo de una sola pieza**: una probabilidad semanal de lesión que sube con la fatiga y baja con la constitución, una gravedad uniforme de 1 a 6 semanas, y una salud que solo resta rendimiento. No hay tipos, ni recuperación por fases, ni recaídas, ni enfermedades, ni exposición real (un partido no pesa más que un entrenamiento), ni edad. Los perks de recuperación **no hacen nada** (la etiqueta `recuperacion` no la usa ninguna acción).
@@ -134,15 +159,15 @@ Gravedad por días de baja, con las categorías del consenso de fútbol (Fuller 
 | Tipo | Cuota | Duración (días) | Cuándo | Recaída (8 semanas) | Sucesos y texto |
 |---|---|---|---|---|---|
 | **Golpe / contusión** | 22 % | 1–7 (el 80 %, ≤ 3) | Contacto: partido, patio | 2 % | «Un golpe en la espinilla», «un balonazo» |
-| **Esguince** (tobillo, rodilla) | 20 % | grado I 4–14; II 14–42; III 42–120. Reparto 65/28/7 | Giro, caída, contacto | 8 % | «Se te dobla el tobillo» |
-| **Distensión o rotura muscular** (isquios, cuádriceps, aductores) | 25 % | grado I 7–14; II 21–42; III 60+ | Sin contacto: sprint, fatiga. Sube con la edad | **12 %** | «Un pinchazo en el muslo» |
-| **Sobrecarga / tendinopatía / apofisitis** (Osgood, Sever) | 15 % | 14–56, con aviso previo | Carga acumulada; ligada al crecimiento | 15 % | «Te duele la rodilla al bajar escaleras» |
+| **Esguince** (tobillo, rodilla) | 20 % | leve 2–7 (40 %); I 8–21 (38 %); II 22–56 (16 %); III 57–120 (6 %) | Giro, caída, contacto | 8 % | «Se te dobla el tobillo» |
+| **Distensión o rotura muscular** (isquios, cuádriceps, aductores) | 25 % | leve 3–7 (35 %); I 8–14 (37 %); II 15–35 (22 %); III 36–80 (6 %) | Sin contacto: sprint, fatiga. Sube con la edad | **12 %** | «Un pinchazo en el muslo» |
+| **Sobrecarga / tendinopatía / apofisitis** (Osgood, Sever) | 15 % | 3–14 (55 %), 15–35 (35 %), 36–56 (10 %), con aviso previo | Carga acumulada; ligada al crecimiento | 15 % | «Te duele la rodilla al bajar escaleras» |
 | **Fractura** | 3 % | 28–84 | Contacto fuerte, caída | 1 % | «Una caída mala» |
 | **Conmoción** | 3 % | 7–28 con protocolo de vuelta | Choque de cabeza | 3 % | «Un choque de cabezas» |
 | **Ligamento cruzado u otra rotura grave** | 1 % | 180–270 | Giro sin contacto | 5 % | «Se te va la rodilla» |
 | **Otras** (heridas, cortes, torceduras leves) | 11 % | 1–3 | cualquiera | 1 % | detalles ligeros |
 
-Reparto de gravedad que sale: **~60 % de menos de una semana** (leve y mínima), **~28 % moderada** y **~12 % grave**, que es lo que dan las series de fútbol base. Duración del tipo: tirada en su rango con el azar `gravedad` de la persona, y luego `× constitución` (de ×1,15 con 0 a ×0,85 con 100), `× perk de recuperación`, `× médico o fisio` (§2.4) y `× salud` (con salud < 60 dura más).
+Reparto de gravedad que sale (medido en la F1): **52 % de hasta una semana**, **33 % moderada** y **14 % grave**, que es el orden de magnitud de las series de fútbol base (no contrastado con una fuente única). Duración del tipo: tirada en su rango con el azar `gravedad` de la persona, y luego `× constitución` (de ×1,15 con 0 a ×0,85 con 100), `× perk de recuperación`, `× médico o fisio` (§2.4) y `× salud` (con salud < 60 dura más).
 
 **Sobrecarga y molestia: dos pasos.** La sobrecarga no es un golpe: llega avisada. La carga acumulada de la semana por encima de un umbral personal (constitución, edad, crecimiento) produce primero una **molestia** (marca oculta, sin baja, que aparece como sensación y suceso) y, si se sigue cargando, la lesión. Sustituye a las «molestias musculares» del kit (`comunes.ts:226`) y al daño de salud por la tercera sesión: la tercera sesión del día sube el riesgo de sobrecarga en vez de quitar salud directamente.
 
@@ -153,7 +178,7 @@ Una lesión tiene **días de baja** y **tres fases**:
 | Fase | Duración | Qué se puede hacer | Qué pasa |
 |---|---|---|---|
 | **Aguda** | los primeros ~40 % de la baja | Nada físico. Se puede estudiar, ir a clase, ver partidos (E12.4), hablar | La forma baja −2 por semana y las capacidades físicas decaen como sin práctica (el motor ya tiene la caída) |
-| **Rehabilitación** | el ~45 % siguiente | Entrenar **sin contacto** (rendimiento ×0,6 y no suma sesión de club), fisio. No se juega | La salud sube; si se hace fisio, la baja se acorta (×0,8) |
+| **Rehabilitación** | el 60 % restante | Entrenar **sin contacto** (rendimiento ×0,6 y no suma sesión de club), fisio. No se juega | La salud sube; si se hace fisio, la baja se acorta (×0,8) |
 | **Vuelta** | 2–6 semanas tras el alta, según tipo | Todo, con **riesgo de recaída** | `riesgo ×2` decayendo linealmente a ×1 (primeras 2 semanas), forma baja, y al jugar la primera vez baja la nota esperada |
 
 **Recaída:** hazard semanal tras el alta = `recaída(tipo)/semanas de vuelta`, decayendo; con «forzar la vuelta» ×3 y la duración cae un 25 % (hoy «una semana menos»). Una recaída es una lesión nueva del mismo tipo y zona, con la duración del tipo +30 %.
@@ -256,7 +281,7 @@ Como `sim:cuerpo` y `sim:eventos`: jugadores de cada edad, deporte y constituci�
 |---|---|
 | Lesiones con baja por jugador de club y año | 0,3 (8–10), 0,6 (13–15), 0,8 (16–19) ± 40 % |
 | Tasa por 1.000 h | partido 14 ± 40 %, entrenamiento 2,8 ± 40 % |
-| Reparto de gravedad | leve+mínima 55–65 %, moderada 25–30 %, grave 8–15 % |
+| Reparto de gravedad | hasta 7 días 50–65 %, moderada (8–28) 25–38 %, grave (más de 28) 8–15 % |
 | Semanas de baja de un jugador de club | 4–8 % |
 | Reparto por tipo | cada tipo dentro de ±5 puntos de §2.3 |
 | Recaídas | 8–15 % de las lesiones musculares en 8 semanas |

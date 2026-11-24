@@ -696,3 +696,75 @@ Comparación de los niños de 8 a 19 años (ciudad grande, 3 semillas): los niñ
 ## Lo que queda detrás de datos o herramientas (sin cambiar lo que hay)
 
 `VARIANTES` (en `modules/npcs/src/hogares.ts`; **por defecto, lo de siempre**) con `intereses` (máximo/media/uno/ninguno), `genetica` (hijo/nino), `cuerpo` (heredado/hash), `caracter` (heredado/azar), `hijos` (familia/suelto/ignorar), `mundo` (completo/sin-pequenos/solo-ninos) y `renovar` (familias/viejo); y `FAMILIAS.mismoColegio`. Se ponen desde las herramientas con `DS_HOGARES_INTERESES`, `DS_HOGARES_GENETICA`, `DS_HOGARES_CUERPO`, `DS_HOGARES_CARACTER`, `DS_HOGARES_HIJOS`, `DS_HOGARES_MUNDO`, `DS_HOGARES_RENOVAR` y `DS_HOGARES_MISMO_COLEGIO` (`tools/analisis-profesionales.ts`). `tools/hogares-intereses.ts` compara intereses, genética y perks de los niños.
+
+## Ronda 5 (24/11/2026): hogares activados por defecto
+
+**Qué se ha hecho** (decisiones aprobadas por el usuario el 24/11; no están en `DECISIONES.md`, las apunta la sesión de arquitectura):
+
+1. `FAMILIAS.siguiente` = `[0,70; 0,40; 0,30; 0,20]` (antes `[0,55; 0,30; 0,20; 0,10]`).
+2. `CiudadDef.hogares: true` en **las tres ciudades** (`CIUDAD_ACTUAL`, `CIUDAD_DE_PRUEBA`, `CIUDAD_GRANDE`). Motivo: las tres usan la misma generación y los tests de ciudad pequeña son los que primero avisan de un fallo; dejar la de prueba sin hogares habría escondido justo lo que se quería vigilar. Con el dato a `false` la ciudad es la de antes (los tests de «sin hogares» usan `PAIS_CIUDAD_*_SIN_HOGARES`, ids terminados en `_sinh`).
+3. **Partidas guardadas:** una partida sin `NpcsState.hogares` sigue como estaba: no se migra, no se generan familias al cambiar de curso y no se les aplican las marcas `vive`/`recoge`/`laboral`. Lo prueban `tests/hogares.test.ts` («una partida anterior, sin hogares, carga y pasa un curso como antes») y `tests/partidas-de-main.test.ts` (9/9 con las partidas de `tests/partidas-guardadas/`).
+4. Aparte, a petición de la sesión de arquitectura: los hermanos menores de 8 años (`hermano` con `duerme`) duermen de **21:30 a 7:00** (antes 23:00; `agendas.ts`, `ANEXO_HORARIOS_PNJ.md`). Los hermanos pequeños de un hogar (`peque_N`, `vecino` con `pequeno`) no tienen horario de dormir propio: de noche no salen en ningún sitio del mapa.
+
+**Personas (semilla 31, fútbol y atletismo):** ciudad de ahora 1.451 → 3.038 (`rendimiento` sin `--ciudad`: 3.013 con atletismo solo); ciudad de prueba 312 → 652 (163 hogares, 284 adultos, 56 hermanos pequeños); ciudad grande 6.118 → **12.833** (3.260 hogares, 5.828 adultos, 881 hermanos pequeños). Efecto de subir `siguiente`: más hermanos pequeños y más familias con 2 o 3 hijos en el mundo; la demanda de los colegios no cambia.
+
+**Tests actualizados** (el comando completo: 133 archivos, 1.445 tests, 717 s; **ningún límite de tiempo tocado**, ningún test fue justo de tiempo):
+
+| Test | Por qué fallaba | Qué se hizo |
+|---|---|---|
+| `ciudad.test.ts` | `CIUDAD_ACTUAL` ya lleva `hogares: true` | se añade al `toEqual` |
+| `pnj-2.test.ts` (2) | Hay menos niños con rol `vecino` y escolares (parte pasa a `rival`, 277 frente a 314) y los progenitores de un hogar también recogen | umbral 300 → 250; «solo recogen» mira a todos los que tienen `recoge` |
+| `creacion-con-progreso.test.ts` | El aviso «historia deportiva… (n de N)» salía solo si el índice de la persona era múltiplo de 150 **y** le tocaba calcular: con 650 personas puede no tocarle a nadie | cambio en `conHabilidades`: se cuenta por personas a las que se calcula la historia (una de cada 150, la primera incluida). No cambia el juego |
+| `integracion.test.ts` («clasificación muestra el club…») | **Fallo real, ya existente**: la tabla resalta `position - 1`, pero con dos marcas iguales el puesto se repite y el resaltado caía en el corredor de al lado | `highlight` por el índice de la fila (`atletismo/src/index.ts`) |
+| `futbol.test.ts` (13) | El ayudante `nueva()` buscaba un futbolista de ≤ 9 años y en la ciudad de prueba con semilla 31 no hay (los futbolistas salen en lotes de edades); además el test de los ejercicios del equipo depende del puesto y del carácter del entrenador | el ayudante coge al más joven; semilla del equipo del colegio 35 → 36 |
+| `equipos-por-demanda.test.ts` (2), `futbol-plantillas.test.ts` | El club pequeño, el último en escoger, se queda sin benjamín ni alevín (la bolsa de 8 a 11 años se la reparten colegios, grande y mediano: antes le tocaban justo 14); la media de nivel por club mezclaba edades | se acepta «0 jugadores o equipos completos» (como ya hacía `futbol-plantillas`) y la comparación grande > mediano > pequeño se hace dentro de cada categoría |
+| `fichajes.test.ts` | El desplazado necesita un club con un solo equipo de infantil y hueco | el test fija 18 en el grande y 16 en el mediano (14–17 de capacidad), sea cual sea el mundo |
+| `futbol-2.test.ts` | Con la semilla 7 el personaje entra en un equipo que no llega a 14 y no sale en la liga | semilla 1 (ver «Observación» abajo) |
+| `plaza-al-cambiar-de-anio.test.ts` | El escenario «un B con 13 niños del mundo más él» ya no se da con la semilla 33 | semilla 47 (hay 31 niños del mundo: A 18 + B 13) |
+| `modules/npcs/src/index.test.ts` (2) | Con los progenitores por turnos hay gente que cambia de tramo a las 15:30; y los niños que entran a los 8 años salen de las familias y no se llaman `alumno_N`; la población varía hasta un 3 % al renovar el curso | se excluyen `hNNN_padre/madre` de «misma presencia en el tramo»; se cuentan los compañeros con tipo `alumno`; el margen de población pasa de 80 a un 5,5 % |
+| `agendas.test.ts` | Horario de dormir de los pequeños | 21:30 |
+| `probar-web` (`tools/probar-web.ts`, `package.json`) | Con la semilla 35 el personaje queda en un equipo de 9 niños sin liga | semilla por defecto 31 (en `probar-web:escritorio` también) |
+
+**Observación (no es de los hogares, pero ahora se ve más): el personaje puede entrar en un equipo que no llega a 14 y no jugar nunca.** Pasa con la ciudad de ahora (semillas 3 y 6, **también sin hogares**; con hogares también la 7), y con la grande con hogares (semillas 33 y 35; sin hogares, no). El club deja apuntarse, el personaje queda en un tercer equipo (C) con 9 niños del mundo, ese equipo no entra en la liga y `npm run benjamin -- 31,33` da «0 semanas convocado, 0 partidos» en la semilla 33. Ocurre cuando los 35 niños de benjamín del colegio llenan A y B y él sobra. Opciones (si se quiere cambiar): no dejar apuntarse a un equipo que no llega al mínimo (decir por qué); ponerlo en un equipo con «plazas de más»; o abrir el equipo C con menos de 14 en la liga. No lo he tocado.
+
+**Huella nueva** (`npm run huella -- 60`, con hogares por defecto; ésta es la referencia desde el 24/11; ya incluye los 21:30 de los pequeños, que no cambian las partidas de los bots):
+
+```
+equilibrado  1 2254 e71bd67ecc6a
+equilibrado  2 2330 700a0442ac15
+madrugador   1 2387 4b47c28f6610
+madrugador   2 2444 deee33abf36a
+empollon     1 1701 310c49f3bea0
+empollon     2 1778 ab80f530759d
+atleta       1 2214 1b2116c0fa51
+atleta       2 2263 2faece31bb98
+sobreentrena 1 2726 ec1f63d0cb6a
+sobreentrena 2 2762 110d21e2ab5e
+vago         1 1523 8c6bd6dafdf6
+vago         2 1516 b173942d52be
+abandono     1 2183 913db81258b2
+abandono     2 2238 1814cce834af
+aleatorio    1 1912 8b2f09fe30b4
+aleatorio    2 2081 e8bca0b138dd
+futbol       31 68a5bb79132e 7b9152a7ee30
+futbol       32 d82c5d4d0b31 d922f96a7249
+```
+
+La huella cambia respecto a la de antes (mundo distinto: más gente y otras caras, nombres y azar). Con `DS_SIN_HOGARES=1` en las herramientas de medida (o los países `_sinh`) se reproduce el mundo de antes.
+
+**Coste** (`npm run rendimiento -- 60 --ciudad --pasadas 2`, ciudad grande con fútbol; sin hogares → con hogares):
+
+| | Sin hogares | Con hogares |
+|---|---:|---:|
+| Personas | 6.118 | 12.833 |
+| Crear la partida | 10,6 s | 12,1 s |
+| Estado | 16,2 MB | **26,3 MB** (rasgos 8,2 MB, genética 5,8 MB, herencia 1,0 MB, tipos 0,8 MB, padres ~0,1 MB) |
+| Guardar (copiar / a texto) | 291 / 188 ms | 527 / 318 ms |
+| Cargar | 102 ms | 252 ms |
+| Lista de todos | 38,9 ms | 58,5 ms |
+| Acción (bot equilibrado, 60 días) | 4,9 ms | **7,5 ms** |
+| Semana (media) | 1.337 ms | 2.057 ms |
+
+Ciudad de ahora (`sim:rapida`): 1,46 ms por acción sin hogares y **1,71 ms con ellos** (el chequeo de rendimiento pasa de ✅ a ⚠️ por el límite calibrado de 1,31 ms de esta máquina: 0,22 × 6,0 ms; 0,285× de la calibración frente a 0,221× antes). El chequeo «El esfuerzo hace progresar» (⚠️, atletismo +4,6 frente a >7) sale igual **sin** hogares: no es de esta ronda.
+
+**Comprobaciones antes del aviso:** `npm run typecheck` ✅; `npm test` ✅ (133 archivos, 1.445 tests); `npm run eventos:validar` ✅ (2 avisos de siempre); `npm run sim:rapida` (ver arriba); `npm run benjamin -- 31,33` (la 31 bien, la 33: ver «Observación»); `npm run probar-web` ✅ y `npm run probar-web:escritorio` ✅ con la semilla 31.

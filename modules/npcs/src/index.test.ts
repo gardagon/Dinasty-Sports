@@ -253,7 +253,9 @@ describe('módulo NPCs', () => {
       advanceTo(g, 'gen.descansar', 1, 15);
       const a = nombres(g, 'parque');
       g.perform('gen.descansar'); // 16:00, misma tarde libre
-      expect(nombres(g, 'parque')).toEqual(a);
+      // Los progenitores de un hogar que trabajan por turnos (acaba a las 15:30) cambian de tramo por su cuenta: se mira al resto.
+      const sinTurnos = (ids: string[]) => ids.filter((id) => !/^h\d+_(padre|madre)$/.test(id));
+      expect(sinTurnos(nombres(g, 'parque'))).toEqual(sinTurnos(a));
     });
   });
 
@@ -375,12 +377,13 @@ describe('módulo NPCs', () => {
       const despues = lista(g);
       const colegio = g.moduleState<NpcsState>('npcs').poblaciones![0].equipos.find((e) => e.club === 'colegio')!;
       expect(despues.filter((n) => n.tags.includes('equipo')).length).toBe(colegio.objetivo);
-      expect(despues.filter((n) => n.role === 'companero' && n.id.startsWith('alumno_')).length).toBeGreaterThanOrEqual(450);
+      // (los niños que entran a los 8 años salen de las familias y no se llaman `alumno_`: se cuentan todos los compañeros que son alumnos)
+      expect(despues.filter((n) => n.role === 'companero' && n.tipos?.some((t) => t.tipo === 'alumno')).length).toBeGreaterThanOrEqual(450);
       // Los niños nuevos del colegio también tienen su genética y ninguno juega todavía a nada por ser de la clase.
       expect(despues.filter((n) => n.role === 'companero' && n.id.startsWith('alumno_') && !n.genetica)).toHaveLength(0);
       // La población del colegio no crece ni se vacía (los deportistas de otros colegios se renuevan aparte).
       // (los compañeros que acaban el colegio siguen en el barrio hasta los 20: los de 18 y 19 años de más son el 2.º curso de jóvenes de la ciudad, sin colegio.)
-      expect(Math.abs(despues.length - antes)).toBeLessThan(80);
+      expect(Math.abs(despues.length - antes)).toBeLessThan(antes * 0.055); // (≈ el 5,5 %: con las familias entran y salen también progenitores y hermanos pequeños)
       expect(despues.filter((n) => n.tags.includes('excompanero') && n.role === 'vecino' && n.colegio === 'ninguno' && !delColegio(n)).length).toBeGreaterThan(0);
       expect(despues.filter((n) => n.tags.includes('excompanero')).every((n) => (n.nacimiento !== undefined ? (g.time.day - n.nacimiento) / 365 : 18) < 20)).toBe(true);
     });

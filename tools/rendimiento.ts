@@ -8,7 +8,7 @@
  * - `--json`: una línea final con todas las cifras (para compararlas entre commits).
  * Con `node --cpu-prof` se ve el perfil por función.
  */
-import { PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_CON_HOGARES, SERVICES, registrarPais, type NpcDirectory, type PresenciaService } from '@ds/contracts';
+import { PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_SIN_HOGARES, SERVICES, registrarPais, type NpcDirectory, type PresenciaService } from '@ds/contracts';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
 import { BOTS, runBot } from '../sim/src/index';
@@ -30,8 +30,8 @@ const mediana = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.flo
 const ms = (xs: number[], d = 1): string => (xs.length === 1 ? `${xs[0].toFixed(d)} ms` : `${mediana(xs).toFixed(d)} ms (${Math.min(...xs).toFixed(d)}–${Math.max(...xs).toFixed(d)})`);
 const kb = (x: number) => `${(x / 1024).toFixed(0)} KB`;
 
-/** La ciudad grande; con `DS_HOGARES=1`, con los hogares activados (`docs/relevo/hogares.md`). */
-const PAIS = process.env.DS_HOGARES ? PAIS_CIUDAD_GRANDE_CON_HOGARES : PAIS_CIUDAD_GRANDE;
+/** La ciudad grande; con `DS_SIN_HOGARES=1`, sin hogares (el mundo de antes del 24/11: `docs/relevo/hogares.md`). */
+const PAIS = process.env.DS_SIN_HOGARES ? PAIS_CIUDAD_GRANDE_SIN_HOGARES : PAIS_CIUDAD_GRANDE;
 if (ciudad) registrarPais(PAIS);
 const juego = ciudad ? { modulos: [...MODULOS, futbol], deportes: ['atletismo', 'futbol'], pais: PAIS.id } : {};
 const crear = (seed: number) => nuevaPartida({ seed, ...(ciudad ? { pais: PAIS.id, deportes: ['atletismo', 'futbol'] } : {}) }, ciudad ? [...MODULOS, futbol] : MODULOS);

@@ -24,7 +24,7 @@ describe('la gente del colegio y del barrio', () => {
   it('los niños de otros colegios y del barrio están en su colegio (fuera del mapa) en horas de clase: nadie en el parque a las 11:00', () => {
     hasta(11);
     const ninos = npcs().filter((n) => n.role === 'vecino' && n.tipos?.some((t) => t.tipo === 'vecino' && t.escolar));
-    expect(ninos.length).toBeGreaterThan(300);
+    expect(ninos.length).toBeGreaterThan(250); // con los hogares, parte de los niños de los clubes son «rival» y no cuentan aquí
     expect(ninos.some((n) => n.id.startsWith('nino_'))).toBe(true);
     expect(ninos.some((n) => n.id.startsWith('vecino_'))).toBe(true);
     for (const n of ninos) expect(presencia().donde(n.id), `${n.id} a las 11:00`).toBeNull();
@@ -78,8 +78,9 @@ describe('la gente del colegio y del barrio', () => {
     const alasCatorce = enLaEntrada();
     // Van el 80 % de los días: hoy, la mayoría de ellos (y todos los que han ido siguen en la entrada a las 14:00).
     expect(quienes.filter((n) => alasCatorce.has(n.id)).length / quienes.length).toBeGreaterThan(0.45);
-    // Solo los que recogen: ningún otro vecino va a la entrada del colegio a esa hora.
-    expect([...alasCatorce].filter((id) => !quienes.some((n) => n.id === id))).toEqual([]);
+    // Solo los que recogen (los vecinos de siempre y los progenitores de un hogar con un hijo pequeño): ningún otro vecino va a la entrada del colegio a esa hora.
+    const recogen = new Set(npcs().filter((n) => n.tipos?.some((t) => t.recoge)).map((n) => n.id));
+    expect([...alasCatorce].filter((id) => !recogen.has(id))).toEqual([]);
     hasta(14, 31);
     expect(enLaEntrada().size).toBe(0);
   });

@@ -139,8 +139,14 @@ describe('quien se queda sin equipo busca club con la misma regla', () => {
   it('el desplazado encuentra otro club de su deporte: la cadena acaba en el club con hueco y nadie se queda sin equipo', () => {
     // El club grande tiene 17 plazas en infantil: al irse el desplazado queda completo y no puede volver a entrar (otro que vale más ocupó su sitio).
     const fut0 = pobDe('futbol');
-    const fut: PoblacionGuardada = { ...fut0, equipos: fut0.equipos.map((e) => (e.club === 'club_grande' ? { ...e, equiposPorCategoria: undefined, plantillaPorCategoria: { min: 14, max: 17 } } : e)) };
+    // Los dos clubes con un solo equipo de infantil (de 14 a 17), sea cual sea el mundo que salga de crear la partida: el grande, completo al irse el desplazado; el mediano, con hueco al irse uno.
+    const fut: PoblacionGuardada = { ...fut0, equipos: fut0.equipos.map((e) => (e.club === 'club_grande' || e.club === 'club_mediano' ? { ...e, equiposPorCategoria: undefined, plantillaPorCategoria: { min: 14, max: 17 } } : e)) };
     const m = mercadoDe(estado(base).npcs, [fut]);
+    const val0 = valoracionDe(REND);
+    for (const [club, quedan] of [['club_grande', 18], ['club_mediano', 16]] as const) {
+      const ordenados = [...jugadoresDe(m, 'futbol', club, infantil)].sort((a, b) => valorRealDe(b, fut, val0, 0)! - valorRealDe(a, fut, val0, 0)!);
+      for (const sobra of ordenados.slice(quedan)) m.lista.set(sobra.id, sinDeporte(sobra, fut, false));
+    }
     // Se hace un hueco en el club mediano de infantil (sale uno) y se desplaza al peor del club grande.
     const delMediano = jugadoresDe(m, 'futbol', 'club_mediano', infantil);
     const val = valoracionDe(REND);

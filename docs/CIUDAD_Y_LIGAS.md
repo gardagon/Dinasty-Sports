@@ -23,7 +23,17 @@ Dentro de la zona no se recorta nada: todos los equipos entrenan, todas las liga
 | Otros colegios | 4, con 17 por curso | **9, con 2 clases de 25 por curso** (de 1 a 2 clases, como uno de verdad) |
 | Niños por año de nacimiento (8–17) | ~118 | **~500** |
 | Jóvenes de 18 y 19 (ya sin colegio) | Pocos | En proporción (~250 por edad) |
-| Personas en total | ~1.100 (unas 1.400 con familias y entrenadores) | **~6.000** |
+| Personas en total | ~1.100 (unas 1.400 con familias y entrenadores; ~3.000 con hogares) | **~6.000** (~12.800 con hogares) |
+
+**Con hogares (activados el 24/11/2026 en las tres ciudades: `CiudadDef.hogares`, `docs/relevo/hogares.md`).** Los niños de 8 a 19 años que piden los colegios ya no salen sueltos: se generan **familias hacia delante** (de los mayores a los pequeños, hasta cubrir lo que pide cada colegio y edad) y cada niño sale de ellas, con sus progenitores (una persona más por progenitor, con su casa y su trabajo) y sus hermanos (menores de 8: personas aparte, sin colegio hasta cumplir 8). La demanda por colegio y edad es **exactamente la misma** que antes; lo que crece es la gente que los rodea. Personas con la semilla 31 (fútbol y atletismo):
+
+| | Sin hogares (antes) | Con hogares |
+|---|---|---|
+| Ciudad de ahora | 1.451 | ~3.040 |
+| Ciudad de prueba | 312 | ~650 |
+| Ciudad grande | 6.118 | ~12.800 (3.260 hogares, 5.828 adultos, 881 hermanos pequeños) |
+
+Con el dato desactivado (`hogares: false`, o una partida guardada antes del 24/11, que no lleva hogares y no se migra) el mundo es el de antes. Para comparar, cada ciudad tiene su variante `PAIS_CIUDAD_*_SIN_HOGARES` y las herramientas de medida aceptan `DS_SIN_HOGARES=1`.
 
 El número de colegios y el de clases por curso son **datos de la ciudad**, no números fijos en el código: así un país o una ciudad distinta trae los suyos (`PAQUETES_DE_PAIS.md`).
 
