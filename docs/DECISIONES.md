@@ -23,7 +23,10 @@ Decidido con el usuario en una simulación paso a paso (semilla 33 y después 10
   7. **Equilibrar letras, al final** (todas menos juvenil):
      - con A, B, C y D, se juntan A con C y B con D y se reparten de la mejor forma. Si alguien subió del B al A y aparece uno mejor, vuelve a bajar;
      - con A, B y C, un A con los mejores de 2.º y los titulares de 1.º, un B solo de 1.º y un C mixto con lo que sobre;
-     - con A y B, o solo A, sin cambios.
+     - con A y B, o solo A, sin cambios;
+     - si al subir a los titulares de 1.º el B se queda con menos de 14, el más flojo de esos titulares se queda en el B (aprobado);
+     - ningún equipo pasa de 22: si un C sale con más, primero se llena el A y el B hasta 22 y, si aun así sobran, los peores por puesto se expulsan y buscan otro equipo.
+  8. **Nunca un B sin A:** si un club no puede montar su A, se junta todo en un único A mixto. Si ni así llega a 14, el equipo desaparece y los niños buscan otro equipo. El curso siguiente puede volver a montarse con alumnos que vuelvan.
 - **Juvenil:**
   - **Reparto inicial por año, sin límites:** con 3 equipos, A = 3.º, B = 2.º y C = 1.º; con 2, A = 3.º y 2.º, B = 1.º; con 1, mixto.
   - **Subidas de abajo arriba** por titularidad (del C al B y del B al A), sin dejar ningún equipo por debajo de 14. Por encima de 22 se descartan los peores por puesto.
