@@ -5,6 +5,35 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/11/2026 — Reparto de equipos nuevo (paso a paso con el usuario) y ciudad pequeña
+
+Decidido con el usuario en una simulación paso a paso (semilla 33 y después 10 semillas). Las reglas completas estarán en `docs/relevo/reparto-nuevo-reglas.md`.
+
+- **Benjamín a cadete:**
+  1. Cada club recoge **14 de 2.º año (A) y 14 de 1.º (B)**. Coger sin mirar la edad, solo si no hay niños suficientes.
+  2. **Solo en infantil y cadete,** los de 1.º que serían titulares en el A suben al A. Benjamín y alevín respetan la edad.
+  3. Se completan los equipos desde la bolsa: hasta 18 en benjamín y alevín, hasta 20 en infantil y cadete.
+  4. **Solo en infantil y cadete,** un B que no llega a 14 con niños de 1.º se completa con niños de 2.º, **empezando por los colegios**. Ese B es mixto y por nivel. Los B que ya llegan no se tocan.
+  5. Si un equipo sigue por debajo de 14, se juntan los niños del club en esa categoría y se dividen en dos equipos por nivel. Si aun así no llegan, el B desaparece y sus niños vuelven a la bolsa.
+  6. Con lo que queda en la bolsa:
+     - **los colegios**, con sus alumnos que quieren seguir allí, forman un C de 2.º y un D de 1.º (14 a 22 cada uno) si les llega, o un C mixto (14 a 22). Si no llegan, esos niños pasan a los clubes de fuera;
+     - después, **sorteo entre los clubes externos** de los equipos que salgan: un club que recibe un C de 2.º tiene también un D de 1.º, y todo lo demás son C mixtos.
+
+     Los que aún sobran van a un B mixto o a un A (hasta 22).
+  7. **Equilibrar letras, al final** (todas menos juvenil):
+     - con A, B, C y D, se juntan A con C y B con D y se reparten de la mejor forma. Si alguien subió del B al A y aparece uno mejor, vuelve a bajar;
+     - con A, B y C, un A con los mejores de 2.º y los titulares de 1.º, un B solo de 1.º y un C mixto con lo que sobre;
+     - con A y B, o solo A, sin cambios.
+- **Juvenil:**
+  - **Reparto inicial por año, sin límites:** con 3 equipos, A = 3.º, B = 2.º y C = 1.º; con 2, A = 3.º y 2.º, B = 1.º; con 1, mixto.
+  - **Subidas de abajo arriba** por titularidad (del C al B y del B al A), sin dejar ningún equipo por debajo de 14. Por encima de 22 se descartan los peores por puesto.
+  - **Los descartados buscan equipo en otros clubes, hasta 3 rondas, con cascada:** el de 1.º desplazado baja al B; el de 1.º del B en ese puesto baja al C; si no lo hay, sale libre el reserva de 2.º.
+  - Un colegio con equipo juvenil es raro en la realidad.
+  - **Los que quedan fuera se aceptan:** sobre todo de 3.er año, un tapón de tres años. Bajará con el abandono real y con la salida al fútbol de mayores.
+- **Resultado con 10 semillas** (31–40, ciudad grande con hogares): de benjamín a cadete, **0 equipos por debajo de 14** (1 caso en alevín con la semilla 40) y **nadie fuera**. Juvenil, 0 por debajo de 14 y 91 fuera de media (unos 105 sin jugar con el reparto de ahora). El personaje en un equipo que no juega: de 3 de 10 semillas a 0.
+- **Al implementarlo,** `fijarEquipos` tiene que conservar las letras del reparto, porque hoy junta C y D por el total del club.
+- **No habrá ciudad pequeña en el futuro:** el juego no tiene sentido sin gente suficiente. El reparto nuevo se diseña para la ciudad grande.
+
 ## 24/11/2026 — Personaje chica; equipos por debajo del mínimo, paso a paso
 
 ### Personaje chica (`docs/relevo/personaje-chica.md`)
