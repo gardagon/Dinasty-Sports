@@ -1315,7 +1315,11 @@ const POR_ID = new WeakMap<Npc[], Map<string, Npc>>();
 /** Una persona por su id sin recorrer la lista (se pregunta por muchas en cada acción). */
 function personaPorId(lista: Npc[], id: string): Npc | undefined {
   let porId = POR_ID.get(lista);
-  if (!porId) POR_ID.set(lista, (porId = new Map(lista.map((x) => [x.id, x]))));
+  if (!porId) {
+    porId = new Map<string, Npc>();
+    for (const x of lista) porId.set(x.id, x);
+    POR_ID.set(lista, porId);
+  }
   return porId.get(id);
 }
 
@@ -1401,26 +1405,51 @@ function agendaConPartido(n: Npc, base: TramoDeAgenda[], partidos: PartidosServi
 /** Minutos del día en que algún tramo de alguna agenda empieza o acaba (en orden). Cambia solo cuando cambia la lista de personas. */
 const LIMITES = new WeakMap<Npc[], { version: string; limites: number[] }>();
 
+/** Las personas que cambiaron entre dos listas con las mismas personas en el mismo orden (con tope: si cambian muchas, no compensa mirar una a una). `undefined` si no son la misma gente. */
+function cambiosEntre(antes: readonly Npc[], ahora: readonly Npc[]): [Npc, Npc][] | undefined {
+  if (antes.length !== ahora.length) return undefined;
+  const cambios: [Npc, Npc][] = [];
+  for (let i = 0; i < ahora.length; i++) {
+    const a = antes[i];
+    const b = ahora[i];
+    if (a === b) continue;
+    if (a.id !== b.id || cambios.length >= 64) return undefined;
+    cambios.push([a, b]);
+  }
+  return cambios;
+}
+
+/** La última lista para la que se calcularon los límites: la siguiente casi siempre es la misma gente con alguna persona cambiada (su estado, lo que sabe...), con las mismas agendas. */
+let ULTIMOS_LIMITES: { lista: Npc[]; version: string; limites: number[] } | undefined;
+
 function limitesDeTramos(lista: Npc[], agendaDe: (n: Npc) => TramoDeAgenda[], version = ''): number[] {
   let l = LIMITES.get(lista)?.limites;
   if (LIMITES.get(lista)?.version !== version) l = undefined;
   if (!l) {
-    const set = new Set<number>();
-    const vistas = new Set<TramoDeAgenda[]>();
-    for (const n of lista) {
-      const a = agendaDe(n);
-      if (vistas.has(a)) continue;
-      vistas.add(a);
-      for (const x of a) {
-        set.add(x.desde);
-        set.add(x.hasta);
-        for (const [a, b] of x.ocupado ?? []) {
-          set.add(a);
-          set.add(b);
+    // Los límites son la unión de los de las agendas que hay: si quienes cambian siguen con la misma agenda (el mismo objeto), son los de antes.
+    const previo = ULTIMOS_LIMITES;
+    const cambios = previo && previo.version === version ? cambiosEntre(previo.lista, lista) : undefined;
+    if (previo && cambios && cambios.every(([a, b]) => agendaDe(a) === agendaDe(b))) l = previo.limites;
+    else {
+      const set = new Set<number>();
+      const vistas = new Set<TramoDeAgenda[]>();
+      for (const n of lista) {
+        const a = agendaDe(n);
+        if (vistas.has(a)) continue;
+        vistas.add(a);
+        for (const x of a) {
+          set.add(x.desde);
+          set.add(x.hasta);
+          for (const [a, b] of x.ocupado ?? []) {
+            set.add(a);
+            set.add(b);
+          }
         }
       }
+      l = [...set].sort((a, b) => a - b);
     }
-    LIMITES.set(lista, { version, limites: (l = [...set].sort((a, b) => a - b)) });
+    LIMITES.set(lista, { version, limites: l });
+    ULTIMOS_LIMITES = { lista, version, limites: l };
   }
   return l;
 }
@@ -1458,19 +1487,47 @@ function sitiosDeAgenda(a: readonly TramoDeAgenda[]): string[] {
 /** Las personas que pueden estar en cada lugar (en el orden de la lista) según sus agendas de ese día: se monta una vez por lista de personas, día y calendario de partidos. */
 const CANDIDATOS = new WeakMap<Npc[], { clave: string; porLugar: Map<string, Npc[]> }>();
 
+/** Los últimos candidatos montados: la lista siguiente casi siempre es la misma gente con alguna persona cambiada, y se parte de ellos (sin recorrer a todos otra vez). */
+let ULTIMOS_CANDIDATOS: { lista: Npc[]; clave: string; porLugar: Map<string, Npc[]> } | undefined;
+
 function candidatosEn(ahora: Pick<ReturnType<typeof agendasDePresencia>, 'lista' | 'agendaDe' | 'partidos'>, dia: number): (lugar: string) => readonly Npc[] {
   const clave = `${dia}:${ahora.partidos?.version ?? ''}`;
   let c = CANDIDATOS.get(ahora.lista);
   if (c?.clave !== clave) {
-    const porLugar = new Map<string, Npc[]>();
-    for (const n of ahora.lista) {
-      for (const sitio of sitiosDeAgenda(ahora.agendaDe(n))) {
-        const l = porLugar.get(sitio);
-        if (l) l.push(n);
-        else porLugar.set(sitio, [n]);
+    let porLugar: Map<string, Npc[]> | undefined;
+    const previo = ULTIMOS_CANDIDATOS;
+    const cambios = previo && previo.clave === clave ? cambiosEntre(previo.lista, ahora.lista) : undefined;
+    // Quien cambia y conserva su agenda (los mismos sitios) ocupa el mismo puesto de la misma lista de cada lugar: se cambia la persona y se deja lo demás (copiando solo las listas que toca).
+    if (previo && cambios && cambios.every(([a, b]) => sitiosDeAgenda(ahora.agendaDe(a)) === sitiosDeAgenda(ahora.agendaDe(b)))) {
+      porLugar = new Map(previo.porLugar);
+      const copiadas = new Set<string>();
+      for (const [a, b] of cambios) {
+        for (const sitio of sitiosDeAgenda(ahora.agendaDe(b))) {
+          let l = porLugar.get(sitio)!;
+          if (!copiadas.has(sitio)) {
+            l = l.slice();
+            porLugar.set(sitio, l);
+            copiadas.add(sitio);
+          }
+          const k = l.indexOf(a);
+          if (k < 0) { porLugar = undefined; break; }
+          l[k] = b;
+        }
+        if (!porLugar) break;
+      }
+    }
+    if (!porLugar) {
+      porLugar = new Map<string, Npc[]>();
+      for (const n of ahora.lista) {
+        for (const sitio of sitiosDeAgenda(ahora.agendaDe(n))) {
+          const l = porLugar.get(sitio);
+          if (l) l.push(n);
+          else porLugar.set(sitio, [n]);
+        }
       }
     }
     CANDIDATOS.set(ahora.lista, (c = { clave, porLugar }));
+    ULTIMOS_CANDIDATOS = { lista: ahora.lista, clave, porLugar };
   }
   const { porLugar } = c;
   return (lugar) => porLugar.get(lugar) ?? [];
