@@ -25,6 +25,8 @@ if (process.env.DS_HOGARES_INTERESES) VARIANTES.intereses = process.env.DS_HOGAR
 if (process.env.DS_HOGARES_CUERPO) VARIANTES.cuerpo = process.env.DS_HOGARES_CUERPO as typeof VARIANTES.cuerpo;
 if (process.env.DS_HOGARES_CARACTER) VARIANTES.caracter = process.env.DS_HOGARES_CARACTER as typeof VARIANTES.caracter;
 if (process.env.DS_HOGARES_HIJOS) VARIANTES.hijos = process.env.DS_HOGARES_HIJOS as typeof VARIANTES.hijos;
+if (process.env.DS_HOGARES_MUNDO) VARIANTES.mundo = process.env.DS_HOGARES_MUNDO as typeof VARIANTES.mundo;
+if (process.env.DS_HOGARES_RENOVAR) VARIANTES.renovar = process.env.DS_HOGARES_RENOVAR as typeof VARIANTES.renovar;
 if (process.env.DS_HOGARES_GENETICA) VARIANTES.genetica = process.env.DS_HOGARES_GENETICA as typeof VARIANTES.genetica;
 aplicarPropuestas();
 const salida = process.argv[2] ?? 'analisis-profesionales.json';

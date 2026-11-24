@@ -50,10 +50,12 @@ export const FAMILIAS = {
  * son lo que hace el juego; las demás se usan solo en las herramientas.
  * - `intereses`: `maximo` (el de `rasgosHeredadosNpc`: cada interés de los padres pasa con un 60 % con la intensidad más alta de los dos), `media` (la media de los dos, redondeada), `uno` (la de un padre al azar) o
  *   `ninguno` (intereses sorteados sueltos, como los niños de siempre).
- * - `cuerpo`: `heredado` (estatura y cuerpo como los hermanos del personaje) o `hash` (como los niños de siempre: de su id). `caracter`: `heredado` o `azar` (sorteado suelto). `hijos`: `familia` o `suelto` (el niño se sortea como siempre, sin heredar nada: solo conserva el hogar y los padres).
+ * - `cuerpo`: `heredado` (estatura y cuerpo como los hermanos del personaje) o `hash` (como los niños de siempre: de su id). `caracter`: `heredado` o `azar` (sorteado suelto). `hijos`: `familia` `suelto` (el niño se sortea como siempre, sin heredar nada: solo conserva el hogar y los padres) o `ignorar` (se generan las familias pero los colegios se llenan con niños de siempre: solo para ver si basta con consumir el azar).
+ * - `mundo`: `completo` (adultos y hermanos pequeños en la partida), `sin-pequenos` (sin los hermanos de menos de 8 años) o `solo-ninos` (ni adultos ni pequeños: solo los hijos que cubren los colegios).
+ * - `renovar`: `familias` (los que entran cada curso salen de familias) o `viejo` (como siempre: niños nuevos sueltos).
  * - `genetica`: `hijo` (de los padres de la familia, la misma para los hermanos) o `nino` (como los niños de siempre: unos padres sorteados y descartados por cada hijo).
  */
-export const VARIANTES: { intereses: 'maximo' | 'media' | 'uno' | 'ninguno'; genetica: 'hijo' | 'nino'; cuerpo: 'heredado' | 'hash'; caracter: 'heredado' | 'azar'; hijos: 'familia' | 'suelto' } = { intereses: 'maximo', genetica: 'hijo', cuerpo: 'heredado', caracter: 'heredado', hijos: 'familia' };
+export const VARIANTES: { intereses: 'maximo' | 'media' | 'uno' | 'ninguno'; genetica: 'hijo' | 'nino'; cuerpo: 'heredado' | 'hash'; caracter: 'heredado' | 'azar'; hijos: 'familia' | 'suelto' | 'ignorar'; mundo: 'completo' | 'sin-pequenos' | 'solo-ninos'; renovar: 'familias' | 'viejo' } = { intereses: 'maximo', genetica: 'hijo', cuerpo: 'heredado', caracter: 'heredado', hijos: 'familia', mundo: 'completo', renovar: 'familias' };
 
 function interesesDeVariante(padre: Readonly<Record<string, number>>, madre: Readonly<Record<string, number>>, rng: Rng): Record<string, number> {
   if (VARIANTES.intereses === 'ninguno') return interesesAlAzar(rng);
