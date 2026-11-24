@@ -1219,13 +1219,12 @@ function alturaHoy(n: Npc, hoy: number): number | undefined {
 }
 
 /** La vista de cada persona se recuerda mientras no cambie la persona ni el día: se pide muchas veces (listas, presencia, acciones). */
-const VISTAS = new WeakMap<Npc, { clave: string; vista: NpcView }>();
+const VISTAS = new WeakMap<Npc, { day: number; hoy: number; vista: NpcView }>();
 const vista = (n: Npc, day: number, hoy: number = day): NpcView => {
-  const clave = `${day}|${hoy}`;
   const guardada = VISTAS.get(n);
-  if (guardada?.clave === clave) return guardada.vista;
+  if (guardada !== undefined && guardada.day === day && guardada.hoy === hoy) return guardada.vista;
   const v = construirVista(n, day, hoy);
-  VISTAS.set(n, { clave, vista: v });
+  VISTAS.set(n, { day, hoy, vista: v });
   return v;
 };
 
@@ -1240,7 +1239,8 @@ const descripcionDe = (n: Npc): string | undefined =>
 
 const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
   const age = edadNpc(n, day);
-  const sabe = [...new Set([...sabePorDefecto(n), ...(n.aprendido ?? [])])];
+  const porDefecto = sabePorDefecto(n);
+  const sabe = n.aprendido?.length ? [...new Set([...porDefecto, ...n.aprendido])] : porDefecto;
   return {
     id: n.id,
     name: n.name,
@@ -1328,8 +1328,9 @@ const AGENDAS_COMPARTIDAS = new Map<string, TramoDeAgenda[]>();
 
 function agendaDePersona(n: Npc, datos: DatosDeAgenda, dia: number): TramoDeAgenda[] {
   const tipos = n.tipos ?? SIN_TIPOS;
-  if (tipos.some((x) => x.hasta !== undefined)) return construirAgenda(tipos, datos, dia);
   let a = AGENDAS.get(tipos);
+  if (a) return a; // (solo se guardan las agendas sin `hasta`: las demás se construyen cada vez)
+  if (tipos.some((x) => x.hasta !== undefined)) return construirAgenda(tipos, datos, dia);
   if (!a) {
     // La agenda también depende de lo que da el deporte del país (la jornada de competición y las sesiones y sedes de los clubes): entra en la clave.
     const clave = JSON.stringify([tipos, tipos.map((x) => [typeof x.deporte === 'string' ? x.deporte : undefined, datos.jornada(typeof x.deporte === 'string' ? x.deporte : undefined), x.club ? datos.sesionDeClub(x.club, typeof x.deporte === 'string' ? x.deporte : undefined) : null])]);
@@ -1377,7 +1378,7 @@ function entrenadorDeEquipo(n: Npc, club: string, categoria: CategoriaDef | unde
   return numero ? 'ABCD'[Number(numero) - 1] === letra && n.id.includes(`_${categoria.id}_`) : letra === 'A';
 }
 
-function agendaConPartido(n: Npc, base: TramoDeAgenda[], partidos: PartidosService | undefined, categorias: readonly CategoriaDef[]): TramoDeAgenda[] {
+function agendaConPartido(n: Npc, base: TramoDeAgenda[], partidos: PartidosService | undefined, categoriasDe: () => readonly CategoriaDef[]): TramoDeAgenda[] {
   if (!partidos) return base;
   let p = n.role === 'entrenador' ? undefined : partidos.deJugador(n.id);
   if (!p && n.role === 'entrenador') {
@@ -1385,7 +1386,7 @@ function agendaConPartido(n: Npc, base: TramoDeAgenda[], partidos: PartidosServi
       for (const clave of [e.local, e.visitante]) {
         const [club, letra] = clave.split('|');
         // El entrenador de cada equipo de este partido (cada uno lleva su equipo).
-        if (entrenadorDeEquipo(n, club, categorias.find((c) => c.id === e.categoria), letra)) p = partidos.deEquipo(club, e.categoria, letra);
+        if (entrenadorDeEquipo(n, club, categoriasDe().find((c) => c.id === e.categoria), letra)) p = partidos.deEquipo(club, e.categoria, letra);
       }
     }
   }
@@ -1586,7 +1587,7 @@ function construirAgendasDePresencia(ctx: ReadContext, t: ReadContext['time'], l
   const inicioCurso = (t.week - t.schoolWeek) * 7;
   // El día de partido (`MOTOR_PARTIDOS.md` §15): los convocados de los equipos que juegan esta semana, y sus entrenadores, están en el campo desde su convocatoria, en el vestuario a su hora y vuelven a él al acabar.
   const partidos = ctx.service<PartidosService>(SERVICES.partidos);
-  const agendaDe = (n: Npc): TramoDeAgenda[] => agendaConPartido(n, agendaDePersona(n, datos, t.day), partidos, datosDe(n.deporte)?.datos.categorias ?? []);
+  const agendaDe = (n: Npc): TramoDeAgenda[] => agendaConPartido(n, agendaDePersona(n, datos, t.day), partidos, () => datosDe(n.deporte)?.datos.categorias ?? []);
   /**
    * Dónde está cada persona entre dos cambios de tramo de cualquier agenda: mientras no cambie ninguno, la presencia no cambia
    * (nadie aparece ni desaparece), así que se calcula una vez por intervalo (unas 10 veces al día) y no cada pocos minutos.
