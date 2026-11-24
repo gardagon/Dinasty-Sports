@@ -856,14 +856,15 @@ export function conHabilidades(npcs: Npc[], pobs: readonly PoblacionGuardada[], 
   const porDeporte = new Map(pobs.filter((p) => p.rutina && rend.has(p.deporte)).map((p) => [p.deporte, p]));
   if (!npcs.some((n) => n.deporte && porDeporte.has(n.deporte) && n.genetica && n.nacimiento !== undefined && (!n.hab?.[n.deporte] || !n.vp?.[n.deporte]))) return npcs;
   const total = npcs.length;
+  let hechos = 0;
   return npcs.map((n, i) => {
     const pob = n.deporte ? porDeporte.get(n.deporte) : undefined;
     if (!pob || !n.genetica || n.nacimiento === undefined) return n;
     // Quien ya tiene habilidades pero acaba de cambiar de club (`sinDeporte` borra lo que valía y `reclutarA` le pone el valor provisional del potencial a su edad): se le calcula ya lo que vale de verdad,
     // para que durante la primera semana del curso nadie lo vea con un valor de más (hasta ~13 puntos).
     if (n.hab?.[pob.deporte]) return valorRealAlFichar(n, pob, rend, dia);
-    // Al crear la partida es lo que más tarda: se avisa de cuánto se lleva (cada 150 personas).
-    if (i % 150 === 0) avisarDelProgreso(`Dándole a cada uno su historia deportiva… (${i.toLocaleString('es-ES')} de ${total.toLocaleString('es-ES')})`, 0.37 + 0.6 * (i / total));
+    // Al crear la partida es lo que más tarda: se avisa de cuánto se lleva (cada 150 personas a las que se les calcula, la primera incluida).
+    if (hechos++ % 150 === 0) avisarDelProgreso(`Dándole a cada uno su historia deportiva… (${i.toLocaleString('es-ES')} de ${total.toLocaleString('es-ES')})`, 0.37 + 0.6 * (i / total));
     const h = historiaDeportiva(n as never, pob.deporte, pob.rutina!, rend.get(pob.deporte)!, dia, (semana, hueco, lector) => (hueco >= HUECO_LIBRE ? listaPorLibre(n as never, pob.deporte, pob.rutina!, (stat) => lector.stat(stat), semana, hueco, n.puesto?.[pob.deporte]) : listaDeSesion(pob.rutina!, (stat) => lector.stat(stat), [pob.deporte, n.equipo ?? n.id, 'sin-categoria', semana, hueco], n.puesto?.[pob.deporte])));
     return { ...n, cap: h.cap, pico: h.pico, capUlt: h.capUlt, hab: { ...n.hab, [pob.deporte]: h.hab }, levels: { ...n.levels, [pob.deporte]: h.nivel }, vp: { ...n.vp, [pob.deporte]: valoresGuardados(n, pob, h.nivel, h.puestos) } };
   });

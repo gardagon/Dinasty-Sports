@@ -29,7 +29,7 @@ const nueva = (seed = 31, ciudadGrande = false) => {
   const g = nuevaPartida({ seed, ...(ciudadGrande ? {} : CIUDAD), deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   const s = g.moduleState<NpcsState>('npcs') as { npcs: Npc[]; poblaciones?: PoblacionGuardada[] };
   const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
-  const uno = s.npcs.find((n) => n.deporte === 'futbol' && n.genetica && edadNpc(n, 0)! <= 9)!;
+  const uno = s.npcs.filter((n) => n.deporte === 'futbol' && n.genetica).sort((a, b) => edadNpc(a, 0)! - edadNpc(b, 0)!)[0]!;
   s.npcs = s.npcs.map((n) => (n.id === uno.id ? sinDeporte(n, pob, false) : n));
   return g;
 };
@@ -149,7 +149,7 @@ describe('fútbol empaquetado', () => {
 
 // Necesitan un equipo de verdad (los niños de 8 y 9 años del colegio): la ciudad grande, con plazo propio para todo el bloque.
 // El equipo del colegio va el último del «draft» y se queda con los alumnos que sobran (a veces, uno o dos): estos tests miran lo que entrena un equipo y necesitan una partida en que tenga al menos cuatro.
-const SEMILLA_CON_EQUIPO_DE_COLEGIO = 35;
+const SEMILLA_CON_EQUIPO_DE_COLEGIO = 36;
 
 describe('los ejercicios son los mismos para todo el equipo', { timeout: 90000 }, () => {
   const equipo = (g: ReturnType<typeof nueva>) => g.moduleState<NpcsState>('npcs').npcs.filter((n) => n.deporte === 'futbol' && n.equipo === 'colegio' && n.hab?.futbol && edadNpc(n, 0)! <= 9);

@@ -137,10 +137,10 @@ describe('el personaje que se apunta tiene equipo, y el que acaba la última cat
     expect(p!.texto).toMatch(/se acaba el fútbol base en tu club/);
   });
 
-  it('el personaje cuenta para el mínimo de su equipo: un B con 13 niños del mundo más él existe en la liga y juega (semilla 33)', async () => {
+  it('el personaje cuenta para el mínimo de su equipo: un B con 13 niños del mundo más él existe en la liga y juega (semilla 47: con los hogares, el mundo de la 33 ya no deja a 13 en el B)', async () => {
     const { PAIS_CIUDAD_GRANDE, registrarPais } = await import('@ds/contracts');
     registrarPais(PAIS_CIUDAD_GRANDE);
-    const g = nuevaPartida({ seed: 33, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
+    const g = nuevaPartida({ seed: 47, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
     advanceToWeek(g, 'gen.descansar', 0, 2, 9);
     expect(hacer(g, 'futbol.apuntarse_colegio').ok).toBe(true);
     advanceToWeek(g, 'gen.descansar', 6, 0, 9);
