@@ -5,6 +5,29 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/11/2026 — Personaje chica; equipos por debajo del mínimo, paso a paso
+
+### Personaje chica (`docs/relevo/personaje-chica.md`)
+1. **Fútbol mixto en las categorías bajas y ligas femeninas propias desde infantil.** Hay que confirmar si alevín sigue siendo mixto en la federación.
+2. **Hay menos chicas que chicos jugando al fútbol** (cada vez más, pero menos). El porcentaje es un dato del país y hay que buscarlo; el usuario no sabe cuál poner. Ahora sale ~50 % en todos los equipos y hay que corregirlo.
+3. **Si no hay equipo femenino,** una chica puede jugar en uno de chicos hasta alevín; después, solo si no lo hay. Se calcula por si hubiera que federar antes los equipos.
+4. **El estirón llega antes en las chicas.**
+5. **Menstruación:** de momento solo el campo; se diseña con salud.
+6. **Atletismo por sexo:** sí, en una fase aparte.
+7. **El sexo del personaje solo se elige al crear la partida,** de momento.
+
+### Equipos por debajo del mínimo (`docs/relevo/equipos-minimo.md`)
+El usuario no se cree que no haya un término medio, ni que una opción deje 155 niños libres. Piensa que la estructura del reparto no está bien planteada.
+1. **No se mueven niños de cualquier año del A o el B al C:** no es realista.
+2. **Si se quedan fuera, se quedan fuera,** pero hay que entender por qué la estructura hace que pase.
+3. **Si un club no llega,** se calcula y se hacen las convocatorias: es cuestión de hacer números.
+4. **Partidas guardadas:** la regla nueva se aplica desde el verano siguiente.
+
+Antes de decidir el arreglo, **una simulación paso a paso con una semilla**, para revisarla con el usuario y decidir en caliente: rondas, números, cuántos hay y cuántos faltan (`docs/relevo/reparto-paso-a-paso.md`).
+
+### Partidos
+Guardar la plantilla convocada por equipo y semana: se espera a ver cuánto cuesta el motor nuevo.
+
 ## 24/11/2026 — Partidos, P0: bases sin cambiar resultados; P1 en marcha
 
 - **P0:** registro de sucesos con minutos (la crónica es una vista derivada), flujos de azar por subsistema (el del resultado es el de siempre), caché exacta de los valores por jugador (`LectorDePersona.inmutable`) y banco de realismo (`npm run partidos:banco`), con la referencia del motor anterior. Huella idéntica (`docs/relevo/partidos-p0.md`). **La referencia del banco depende de la población del mundo:** tras los hogares se regeneró (benjamín 4,18 goles por partido frente a 4,57). Cualquier cambio del mundo que mueva la población obliga a regenerarla (`--guardar-referencia`), y no por eso es un cambio del motor.
