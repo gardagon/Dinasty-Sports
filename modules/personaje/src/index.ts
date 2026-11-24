@@ -526,7 +526,7 @@ export const personaje = defineModule<IdentidadState>({
         if (baja <= 1) ctx.log('Ya estás recuperado de la lesión.', 'info');
       } else {
         const fatiga = fatigaDeLaSemana(ctx.stat(GEN.energia), antes.semana.cargas ?? 0);
-        if (rngEstable('lesion', antes.semilla ?? 0, 'personaje', week).next() < riesgoDeLesion(fatiga, ctx.stat(GEN.constitucion))) {
+        if (rngEstable('lesion', antes.semilla ?? 0, 'personaje', week).next() < riesgoDeLesion(fatiga, ctx.stat(GEN.constitucion), ctx.stat(GEN.sueno))) {
           const g = gravedadDeLesion(rngEstable('gravedad', antes.semilla ?? 0, 'personaje', week).next());
           ctx.addStat(GEN.baja, g.baja);
           ctx.addStat(GEN.salud, Math.min(0, g.salud - ctx.stat(GEN.salud)));
