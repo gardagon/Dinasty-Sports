@@ -9,7 +9,7 @@ Solo medida (24/11/2026), sin cambiar el juego. `npx tsx tools/verano-volumen.ts
 ## Lo principal (5 semillas)
 
 - **Abandonan** (de los que jugaban): benjamín 9 %, alevín 10 %, infantil 10 %, cadete 18 %, **juvenil 30 %** (de 29 % en 1.º a 36–38 % en 2.º y 3.º).
-- **Buscan cambiar de club:** 19–23 % por categoría (unos 110–130 niños por categoría), y **casi todos lo consiguen** (98 %). Cambian de club de verdad unos 80–107 por categoría.
+- **Buscan cambiar de club:** 19–23 % por categoría (unos 110–130 niños por categoría), y **casi todos lo consiguen** (97–100 % en benjamín a cadete; 88 % en juvenil). Cambian de club de verdad unos 80–107 por categoría.
 - **Llegan:** a benjamín 1.er año entran de media **130 niños de 8 años** (de 501 de 8 años que hay: juegan ~267) y **137 niños de familias que se mudan** (id nuevo, todos de 8 años en benjamín: los hogares los traen ya con edad); los **«niños nuevos» (existían, no jugaban, empiezan a jugar con otra edad) casi no existen hoy: 0–3 por categoría y verano**. Los otros que vuelven son los apartados del año anterior (juvenil 26 de media, la segunda oportunidad de los que se quedaron sin equipo).
 - **Balance neto del verano** (tras todo el verano frente al final del curso): benjamín −7 %, alevín −8 %, infantil −12 %, cadete −12 %, juvenil −15 %: cada categoría pierde más (abandonos) de lo que gana (entradas), salvo benjamín, que recibe a los de 8 años.
 - **Antes de rehacer los equipos** (los que siguen y suben de año, sin llegadas): benjamín 248 (solo 2.º año), alevín 504, infantil 484, cadete 480, juvenil 516 (de 688).
