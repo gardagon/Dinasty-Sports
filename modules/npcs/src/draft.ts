@@ -276,6 +276,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
   if (v23 && DIAGNOSTICO.variantePrimeraRonda && v23.maxPorEquipo[catId] !== undefined) {
     const cap = v23.maxPorEquipo[catId];
     const orden = [...fuera, ...delColegio];
+    const plantillasOriginales = new Map(clubes.map((e) => [e, e.plantillaPorCategoria] as const));
     for (const e of clubes) { e.plantillaPorCategoria = { ...e.plantillaPorCategoria!, max: cap }; ponerK(e, 2); }
     type Sets = { A: Set<string>; B: Set<string>; C?: Set<string>; D?: Set<string> };
     const equipos = new Map<string, Sets>(orden.map((e) => { const ms = miembros(e); return [e.club, { A: new Set(ms.filter((n) => !primeroAnio(n)).map((n) => n.id)), B: new Set(ms.filter(primeroAnio).map((n) => n.id)) }] as [string, Sets]; }));
@@ -425,8 +426,102 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           tr('paso 6b resto', x.e.club, { letra: x.letra, antes, despues: x.ids.size });
         }
         tr('fin del paso 6', undefined, { quedan: [...quedan], equipos: orden.map((e) => { const t = equipos.get(e.club)!; return { club: e.club, colegio: e.colegio !== undefined, A: t.A.size, B: t.B.size, C: t.C?.size ?? 0, D: t.D?.size ?? 0, cPrimeros: t.C ? [...t.C].filter((id) => primeroAnio(m.lista.get(id)!)).length : 0 }; }) });
+        if (v23.paso7) {
+          for (const e of clubes) e.plantillaPorCategoria = { ...e.plantillaPorCategoria!, max: 22 };
+          const lugares = [...delColegio, ...fuera];
+          const esMixto = (t: Sets): boolean => [...t.B].some((id) => { const n = m.lista.get(id); return !!n && !primeroAnio(n); });
+          const probar = (a: Aspirante, relajado: boolean): string | undefined => {
+            const n = m.lista.get(a.npc.id);
+            if (!n || n.deporte !== undefined) return undefined;
+            for (const letra of ['B', 'A'] as const) {
+              for (const e of lugares) {
+                if (e.colegio !== undefined && e.colegio !== a.colegio) continue;
+                const t = equipos.get(e.club)!;
+                if (t[letra]!.size === 0 || t[letra]!.size >= 22 || (letra === 'B' && !esMixto(t))) continue;
+                if (intentarEntrar(m, n, e, pob, { sinPrueba: !o.conPrueba, soloHueco: true, ...(relajado ? { relajado: true } : {}) }).entra) { t[letra]!.add(a.npc.id); return `${e.club} ${letra}${letra === 'B' ? ' (mixto)' : ''}${relajado ? ' (sin mirar el cupo del puesto)' : ''}`; }
+              }
+            }
+            return undefined;
+          };
+          for (const a of [...bolsa()].sort((x, y) => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1))) {
+            const destino = probar(a, false) ?? probar(a, true);
+            tr('paso 7', undefined, { id: a.npc.id, colegio: a.colegio, primero: primeroAnio(a.npc), destino: destino ?? 'fuera' });
+          }
+          tr('fin del paso 7', undefined, { quedan: [...quedan], equipos: orden.map((e) => { const t = equipos.get(e.club)!; return { club: e.club, A: t.A.size, B: t.B.size, C: t.C?.size ?? 0, D: t.D?.size ?? 0 }; }) });
+        }
       }
     }
+    // Benjamín y alevín tras el paso 3: C y D de colegio y sorteo entre externos.
+    if (v23.bolsaBA && !v23.subirTitulares[catId]) {
+      for (const e of clubes) e.plantillaPorCategoria = { ...e.plantillaPorCategoria!, max: 22 };
+      const porValor = (x: Aspirante, y: Aspirante): number => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1);
+      const meter = (e: EquipoGuardado, lista: readonly Aspirante[], hasta: number, ids: Set<string>, minimo: number): void => {
+        for (const a of lista) { if (ids.size >= hasta) break; const n = m.lista.get(a.npc.id); if (n && n.deporte === undefined && intentarEntrar(m, n, e, pob, { sinPrueba: !o.conPrueba, soloHueco: true }).entra) ids.add(a.npc.id); }
+        if (ids.size < minimo) for (const a of lista) { if (ids.size >= minimo) break; const n = m.lista.get(a.npc.id); if (n && n.deporte === undefined && intentarEntrar(m, n, e, pob, { sinPrueba: !o.conPrueba, soloHueco: true, relajado: true }).entra) ids.add(a.npc.id); }
+      };
+      const deshacer = (e: EquipoGuardado, ids: Set<string>[], k: number): void => { for (const x of ids) liberar([...x]); ponerK(e, k); };
+      for (const e of delColegio) {
+        const t = equipos.get(e.club)!;
+        const cand = bolsa().filter((a) => a.colegio === e.colegio && quedan.has(a.npc.id));
+        const y2 = cand.filter((a) => !primeroAnio(a.npc)).sort(porValor), y1 = cand.filter((a) => primeroAnio(a.npc)).sort(porValor);
+        let formado = 'ninguno';
+        if (y2.length >= 14 && y1.length >= 14) {
+          ponerK(e, 4);
+          const c = new Set<string>(), d = new Set<string>();
+          meter(e, y2, cap, c, 14); meter(e, y1, cap, d, 14);
+          if (c.size >= 14 && d.size >= 14) { t.C = c; t.D = d; formado = 'C de 2.º año + D de 1.º'; } else deshacer(e, [c, d], 2);
+        }
+        if (formado === 'ninguno' && cand.length >= 14) {
+          ponerK(e, 3);
+          const c = new Set<string>();
+          meter(e, [...cand].sort(porValor), 22, c, 14);
+          if (c.size >= 14) { t.C = c; formado = 'C mixto'; } else deshacer(e, [c], 2);
+        }
+        tr('colegio BA', e.club, { candidatos: cand.length, y2: y2.length, y1: y1.length, formado, c: t.C?.size ?? 0, cPrimeros: t.C ? [...t.C].filter((id) => primeroAnio(m.lista.get(id)!)).length : 0, d: t.D?.size ?? 0 });
+      }
+      protegerAlColegio = false;
+      const baraja = [...fuera].sort((a, b) => rngEstable('sorteo', catId, a.club, m.dia).next() - rngEstable('sorteo', catId, b.club, m.dia).next());
+      const ahora = bolsa();
+      const r2 = ahora.filter((a) => !primeroAnio(a.npc)).length, p2 = ahora.filter((a) => primeroAnio(a.npc)).length;
+      const pares = Math.min(Math.floor(r2 / 14), Math.floor(p2 / 14));
+      const mixtos = Math.floor((r2 + p2 - 28 * pares) / 14);
+      tr('externos BA', undefined, { r2, p2, e2: Math.floor(r2 / 14), e1: Math.floor(p2 / 14), pares, mixtos, clubes: baraja.length });
+      const muestra = (e: EquipoGuardado, necesita: number): Aspirante[] => {
+        const toda = bolsa();
+        const pesa = (a: Aspirante): number => { const ambicion = ((a.npc.rasgos?.caracter.ambicion ?? 0) + 50) / 100; return o.conAmbicion ? 0.5 + a.interes * 0.5 + ambicion * (e.calidad - 1) : 1; };
+        const clave = (a: Aspirante): number => Math.pow(rngEstable('probar', a.npc.genetica?.semilla ?? 0, a.npc.id, e.club, catId, m.dia).next() || 1e-9, 1 / pesa(a));
+        const quieren = Math.min(toda.length, Math.round(atractivoDe(e) * toda.length));
+        return [...toda].sort((x, y) => clave(y) - clave(x) || (x.npc.id < y.npc.id ? -1 : 1)).slice(0, Math.max(quieren, necesita));
+      };
+      const nuevos: { e: EquipoGuardado; tipo: 'par' | 'mixto'; c: Set<string>; d: Set<string> }[] = [];
+      let i = 0;
+      for (let n = 0; n < pares && i < baraja.length; n++, i++) {
+        const e = baraja[i], t = equipos.get(e.club)!;
+        ponerK(e, 4);
+        const van = muestra(e, 28);
+        const c = new Set<string>(), d = new Set<string>();
+        meter(e, [...van.filter((a) => !primeroAnio(a.npc)), ...bolsa().filter((a) => !primeroAnio(a.npc) && !van.some((v) => v.npc.id === a.npc.id))].sort(porValor).filter((a, j, xs) => xs.findIndex((z) => z.npc.id === a.npc.id) === j), 14, c, 14);
+        meter(e, [...van.filter((a) => primeroAnio(a.npc)), ...bolsa().filter((a) => primeroAnio(a.npc) && !van.some((v) => v.npc.id === a.npc.id))].sort(porValor).filter((a, j, xs) => xs.findIndex((z) => z.npc.id === a.npc.id) === j), 14, d, 14);
+        if (c.size >= 14 && d.size >= 14) { t.C = c; t.D = d; nuevos.push({ e, tipo: 'par', c, d }); tr('par BA', e.club, { c: c.size, d: d.size }); } else deshacer(e, [c, d], 2);
+      }
+      for (let n = 0; n < mixtos && i < baraja.length; n++, i++) {
+        const e = baraja[i], t = equipos.get(e.club)!;
+        ponerK(e, 3);
+        const c = new Set<string>();
+        meter(e, muestra(e, 14).sort(porValor), 14, c, 14);
+        if (c.size >= 14) { t.C = c; nuevos.push({ e, tipo: 'mixto', c, d: new Set() }); tr('mixto BA', e.club, { c: c.size }); } else deshacer(e, [c], 2);
+      }
+      for (const x of nuevos) {
+        if (x.tipo === 'par') {
+          meter(x.e, bolsa().filter((a) => !primeroAnio(a.npc)).sort(porValor), cap, x.c, 14);
+          meter(x.e, bolsa().filter((a) => primeroAnio(a.npc)).sort(porValor), cap, x.d, 14);
+        } else meter(x.e, bolsa().sort(porValor), 22, x.c, 14);
+        tr('resto BA', x.e.club, { tipo: x.tipo, c: x.c.size, cPrimeros: [...x.c].filter((id) => primeroAnio(m.lista.get(id)!)).length, d: x.d.size });
+      }
+      tr('fin BA', undefined, { quedan: [...quedan], equipos: orden.map((e) => { const t = equipos.get(e.club)!; return { club: e.club, A: t.A.size, B: t.B.size, C: t.C?.size ?? 0, D: t.D?.size ?? 0 }; }) });
+    }
+    // Los clubes son los mismos objetos en todas las categorías: se devuelve su plantilla como estaba.
+    for (const [e, pl] of plantillasOriginales) e.plantillaPorCategoria = pl;
     return;
   }
   // 2. Segunda ronda: C y D. Los equipos que salen con la bolsa (a un mínimo por equipo) se sortean entre clubes y colegios (como mucho dos más cada uno).
@@ -510,7 +605,7 @@ export const DIAGNOSTICO: {
   /** Solo para medir (`npm run reparto:paso -- … --variante paso1-14x2`), apagado por defecto: en la primera ronda cada club recoge `porAnio` niños de primer año y `porAnio` de los demás años (no mira la edad solo si no hay bastantes: aquí no se completa con el otro año). */
   variantePrimeraRonda?: { porAnio: number };
   /** Solo para medir (`--variante paso2-3`, con la anterior), apagado por defecto: tras la primera ronda, 2) en las categorías con `subirTitulares` los de primer año que serían titulares en el A suben a él (`titulares` es la alineación del juego, que pone la herramienta) y 3) cada equipo (el A con los demás años, el B con los de primer año) se completa desde la bolsa hasta `maxPorEquipo`. Se detiene ahí. */
-  variantePaso23?: { maxPorEquipo: Record<string, number>; subirTitulares: Record<string, boolean>; /** Paso 4 (solo donde `subirTitulares`): el B que no llega a 14 se completa con niños de 2.º año de la bolsa hasta este número (primero los colegios con sus alumnos); pasa a ser mixto. */ completarBMixto?: number; /** Pasos 5 y 6 (tras el 4): reagrupar los equipos que siguen bajo 14, C mixto de colegio y sorteo entre clubes externos de lo que queda. */ reagrupar?: boolean; titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
+  variantePaso23?: { maxPorEquipo: Record<string, number>; subirTitulares: Record<string, boolean>; /** Paso 4 (solo donde `subirTitulares`): el B que no llega a 14 se completa con niños de 2.º año de la bolsa hasta este número (primero los colegios con sus alumnos); pasa a ser mixto. */ completarBMixto?: number; /** Pasos 5 y 6 (tras el 4): reagrupar los equipos que siguen bajo 14, C mixto de colegio y sorteo entre clubes externos de lo que queda. */ reagrupar?: boolean; /** Paso 7 (infantil y cadete, tras el 6): los que quedan fuera van a un B mixto de un club al que puedan ir y, si no caben, a un A; máximo 22. */ paso7?: boolean; /** Benjamín y alevín tras el paso 3: C y D de colegio con los que quieren seguir y sorteo entre externos (pares C de 2.º año + D de 1.º, y C mixtos hasta 22). */ bolsaBA?: boolean; titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
   traza?: (d: EventoDeTraza) => void;
   /** Lo que pasa con un club y categoría al acomodar a los que no caben en ningún equipo (`acomodarSobrantes`). */
   alAcomodar?: NonNullable<MercadoDeFichajes['alAcomodar']>;

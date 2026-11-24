@@ -61,10 +61,10 @@ Sobre paso4 (B mixto hasta 20): **paso 5**, el club con un equipo que sigue bajo
 
 | Club externo | Equipo | Bolsa que ve | Primeros 14 | Con el resto de la bolsa |
 |---|---|---|---|---|
-| club_grande | C | 60 | 14 | 18 |
-| club_pequeno3 | C | 46 | 14 | 14 |
-| club_mediano3 | C | 32 | 14 | 14 |
-| club_pequeno5 | C | 18 | 14 | 14 |
+| club_grande | C | 63 | 14 | 20 |
+| club_pequeno3 | C | 49 | 14 | 15 |
+| club_mediano3 | C | 35 | 14 | 14 |
+| club_pequeno5 | C | 21 | 14 | 14 |
 
 | Resumen final |  |
 |---|---|

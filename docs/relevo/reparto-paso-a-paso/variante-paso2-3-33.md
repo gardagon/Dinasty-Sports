@@ -124,49 +124,49 @@ Total que suben: **58** de 182; clubes con el B por debajo de 14: **13** de 13.
 
 | Club | Suben | A | B | ¿B por debajo de 14? |
 |---|---|---|---|---|
-| club_grande | 4 | 18 | 10 | **sí** |
-| club_mediano | 5 | 19 | 9 | **sí** |
-| club_mediano2 | 6 | 20 | 8 | **sí** |
-| club_mediano3 | 7 | 21 | 7 | **sí** |
+| club_grande | 3 | 17 | 11 | **sí** |
+| club_mediano | 4 | 18 | 10 | **sí** |
+| club_mediano2 | 5 | 19 | 9 | **sí** |
+| club_mediano3 | 6 | 20 | 8 | **sí** |
 | club_pequeno | 6 | 20 | 8 | **sí** |
 | club_pequeno2 | 7 | 21 | 7 | **sí** |
 | club_pequeno3 | 7 | 21 | 7 | **sí** |
 | club_pequeno4 | 3 | 17 | 11 | **sí** |
 | club_pequeno5 | 4 | 18 | 10 | **sí** |
-| colegio | 6 | 14 | 6 | **sí** |
+| colegio | 6 | 13 | 5 | **sí** |
 | colegio1 | 4 | 18 | 10 | **sí** |
-| colegio2 | 3 | 17 | 11 | **sí** |
+| colegio2 | 4 | 18 | 10 | **sí** |
 | colegio3 | 4 | 18 | 10 | **sí** |
 
-Total que suben: **66** de 182; clubes con el B por debajo de 14: **13** de 13.
+Total que suben: **63** de 182; clubes con el B por debajo de 14: **13** de 13.
 
 ### Paso 3: completar desde la bolsa
 
 | Club | A | B | Cogidos para A | Cogidos para B | Veía (resto · 1.º) |
 |---|---|---|---|---|---|
-| club_grande | 20 | 20 | 2 | 10 | 40 · 53 |
-| club_mediano | 20 | 19 | 1 | 10 | 31 · 41 |
-| club_mediano2 | 20 | 19 | 0 | 11 | 33 · 33 |
-| club_mediano3 | 21 | 19 | 0 | 12 | 33 · 28 |
+| club_grande | 20 | 19 | 3 | 8 | 41 · 53 |
+| club_mediano | 20 | 20 | 2 | 10 | 31 · 42 |
+| club_mediano2 | 20 | 19 | 1 | 10 | 33 · 34 |
+| club_mediano3 | 20 | 20 | 0 | 12 | 32 · 29 |
 | club_pequeno | 20 | 20 | 0 | 12 | 27 · 17 |
 | club_pequeno2 | 21 | 16 | 0 | 9 | 30 · 9 |
-| club_pequeno3 | 21 | 13 | 0 | 6 | 29 · 6 |
+| club_pequeno3 | 21 | 14 | 0 | 7 | 29 · 7 |
 | club_pequeno4 | 20 | 15 | 3 | 4 | 29 · 4 |
-| club_pequeno5 | 20 | 14 | 2 | 4 | 26 · 4 |
-| colegio | 17 | 13 | 3 | 7 | 3 · 7 |
+| club_pequeno5 | 20 | 15 | 2 | 5 | 25 · 5 |
+| colegio | 17 | 13 | 4 | 8 | 4 · 8 |
 | colegio1 | 20 | 15 | 2 | 5 | 5 · 5 |
-| colegio2 | 20 | 13 | 3 | 2 | 9 · 2 |
-| colegio3 | 20 | 12 | 2 | 2 | 5 · 2 |
+| colegio2 | 20 | 12 | 2 | 2 | 9 · 2 |
+| colegio3 | 20 | 13 | 2 | 3 | 5 · 3 |
 
 | Resumen |  |
 |---|---|
 | Equipos | 26 |
-| Niños por equipo: mínimo · máximo · media | 12 · 21 · 18.0 |
-| Equipos por debajo de 14 | 4 |
-| Niños asignados | 468 |
+| Niños por equipo: mínimo · máximo · media | 12 · 21 · 18.1 |
+| Equipos por debajo de 14 | 3 |
+| Niños asignados | 470 |
 
 | Bolsa tras el paso 3 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio1 | …de colegio2 | …de colegio3 | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1.er año | 2 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 |
-| Resto de años | 73 | 7 | 66 | 3 | 6 | 3 | 7 | 10 | 13 | 10 | 15 | 6 |
+| Resto de años | 71 | 8 | 63 | 3 | 7 | 3 | 6 | 10 | 13 | 10 | 14 | 5 |
 

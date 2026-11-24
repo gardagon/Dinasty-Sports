@@ -23,9 +23,9 @@ const categoria = args[2] ?? 'benjamin';
 const soloClub = args[3];
 const PAIS = ciudad === 'actual' ? PAIS_ESPANA : ciudad === 'prueba' ? PAIS_CIUDAD_DE_PRUEBA : flag('sin-hogares') ? PAIS_CIUDAD_GRANDE_SIN_HOGARES : PAIS_CIUDAD_GRANDE;
 registrarPais(PAIS);
-if (variante === 'paso1-14x2' || variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14' || variante === 'paso5-6') DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
-if (variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14' || variante === 'paso5-6') DIAGNOSTICO.variantePaso23 = { ...(variante === 'paso5-6' ? { completarBMixto: 20, reagrupar: true } : variante === 'paso4' ? { completarBMixto: 20 } : variante === 'paso4-14' ? { completarBMixto: 14 } : {}), maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares: (js) => convocarYAlinear(js as never).titulares.map((x) => x.id) };
-else if (variante && variante !== 'paso1-14x2') throw new Error(`Variante desconocida: ${variante} (paso1-14x2, paso2-3, paso4, paso4-14, paso5-6)`);
+if (variante === 'paso1-14x2' || variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14' || variante === 'paso5-6' || variante === 'paso7') DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
+if (variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14' || variante === 'paso5-6' || variante === 'paso7') DIAGNOSTICO.variantePaso23 = { ...(variante === 'paso7' ? { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true } : variante === 'paso5-6' ? { completarBMixto: 20, reagrupar: true } : variante === 'paso4' ? { completarBMixto: 20 } : variante === 'paso4-14' ? { completarBMixto: 14 } : {}), maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares: (js) => convocarYAlinear(js as never).titulares.map((x) => x.id) };
+else if (variante && variante !== 'paso1-14x2') throw new Error(`Variante desconocida: ${variante} (paso1-14x2, paso2-3, paso4, paso4-14, paso5-6, paso7)`);
 class Parar extends Error {}
 
 const out: string[] = [];
@@ -62,6 +62,59 @@ const tablaDeFoto = (fotos: readonly FotoDeClub[], antes?: readonly FotoDeClub[]
   tabla(['Club', 'Equipos', 'Niños', '…de 1.er año', '…de 2.º', 'Caben (máx × equipos)', 'Faltan para 14 × equipos (la cuenta del club)', 'Sobran del máximo'], filas);
 };
 
+if (variante === 'paso7') {
+  type Ev7 = { fase: string; categoria: string; club?: string; datos: Record<string, unknown>; bolsa?: ReturnType<EventoDeTraza['bolsa']> };
+  const evs: Ev7[] = [];
+  const fases = ['paso 7', 'fin del paso 7', 'colegio BA', 'externos BA', 'par BA', 'mixto BA', 'resto BA', 'fin BA'];
+  DIAGNOSTICO.traza = (e) => {
+    if (fases.includes(e.fase)) evs.push({ fase: e.fase, categoria: e.categoria, ...(e.club ? { club: e.club } : {}), datos: e.datos, ...(e.fase === 'fin BA' || e.fase === 'fin del paso 7' ? { bolsa: e.bolsa() } : {}) });
+    if (e.fase === 'fin del paso 7' && e.categoria === 'cadete') throw new Parar();
+  };
+  try { nuevaPartida({ seed: semilla, pais: PAIS.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]); } catch (err) { if (!(err instanceof Parar)) throw err; }
+  say(`# Variante paso7 · semilla ${semilla} · ${PAIS.id}`);
+  say();
+  say('**Infantil y cadete** (sobre paso5-6): los que quedan fuera van a un B mixto de un club al que puedan ir (los colegios, solo sus alumnos; primero los colegios) y, si no caben, a un A; máximo 22. **Benjamín y alevín** (sobre paso2-3): 6a, los colegios forman con sus alumnos de la bolsa que quieren seguir un C de 2.º año y un D de 1.º (14 o más cada uno, hasta 18), o un C mixto (14 a 22); 6b, los externos: pares C de 2.º año + D de 1.º año (tantos como permitan los de cada año) y, con lo que queda, C mixtos (hasta 22), sorteados entre los clubes externos con el sorteo de siempre.');
+  say();
+  const resumen = (cat: string, eq: { club: string; A: number; B: number; C: number; D: number }[], fin: Ev7): void => {
+    const tam: Record<string, number[]> = { A: [], B: [], C: [], D: [] };
+    for (const q of eq) for (const l of ['A', 'B', 'C', 'D'] as const) if (q[l] > 0) tam[l].push(q[l]);
+    const todos = Object.values(tam).flat();
+    tabla(['Resumen final', ''], [['Equipos en total', todos.length], ['…por letra (A · B · C · D)', Object.values(tam).map((x) => x.length).join(' · ')], ['Niños por equipo: mínimo · máximo · media', `${Math.min(...todos)} · ${Math.max(...todos)} · ${(todos.reduce((a, b) => a + b, 0) / todos.length).toFixed(1)}`], ['Equipos por debajo de 14', todos.filter((n) => n < 14).length], ['Niños asignados', todos.reduce((a, b) => a + b, 0)], ['Niños que se quedan fuera', fin.bolsa!.length]]);
+    const quedan = new Set(fin.datos.quedan as string[]);
+    const min1 = ({ benjamin: 8, alevin: 10, infantil: 12, cadete: 14 } as Record<string, number>)[cat];
+    const colegios = [...new Set(fin.bolsa!.map((a) => a.colegio))].sort();
+    tabla(['Los que se quedan fuera', 'Niños', 'Querían su colegio', 'Querían probar fuera', ...colegios.map((c) => `…de ${c}`)], ([['1.er año', true], ['Resto de años', false]] as [string, boolean][]).map(([n, pr]) => { const xs = fin.bolsa!.filter((a) => (a.edad === min1) === pr); return [n, xs.length, xs.filter((a) => quedan.has(a.id)).length, xs.filter((a) => !quedan.has(a.id)).length, ...colegios.map((c) => xs.filter((a) => a.colegio === c).length)]; }));
+  };
+  for (const cat of ['benjamin', 'alevin']) {
+    say(`## ${cat}`);
+    say();
+    say('### Colegios (6a)');
+    say();
+    tabla(['Colegio', 'Quieren seguir (de la bolsa)', 'de 2.º año', 'de 1.er año', 'Qué se forma', 'C', 'de ellos 1.er año', 'D', 'Pasan a los externos'], evs.filter((x) => x.fase === 'colegio BA' && x.categoria === cat).map((x) => [x.club!, Number(x.datos.candidatos), Number(x.datos.y2), Number(x.datos.y1), String(x.datos.formado), Number(x.datos.c) || '—', Number(x.datos.cPrimeros), Number(x.datos.d) || '—', Number(x.datos.candidatos) - Number(x.datos.c) - Number(x.datos.d)]));
+    const ex = evs.find((x) => x.fase === 'externos BA' && x.categoria === cat)!;
+    say('### Externos (6b)');
+    say();
+    tabla(['Con los que faltan', ''], [['Niños de 2.º año · de 1.er año', `${ex.datos.r2} · ${ex.datos.p2}`], ['Equipos de 2.º año posibles (de 14) · de 1.er año', `${ex.datos.e2} · ${ex.datos.e1}`], ['Pares C (2.º año) + D (1.º año)', Number(ex.datos.pares)], ['C mixtos con el resto', Number(ex.datos.mixtos)]]);
+    const resto = new Map(evs.filter((x) => x.fase === 'resto BA' && x.categoria === cat).map((x) => [x.club!, x]));
+    const sorteo = evs.filter((x) => (x.fase === 'par BA' || x.fase === 'mixto BA') && x.categoria === cat);
+    tabla(['Club externo (orden del sorteo)', 'Recibe', 'C', 'de ellos 1.er año', 'D'], sorteo.map((x) => { const r = resto.get(x.club!)!; return [x.club!, x.fase === 'par BA' ? 'C de 2.º año + D de 1.º' : 'C mixto', Number(r.datos.c), Number(r.datos.cPrimeros), Number(r.datos.d) || '—']; }));
+    const fin = evs.find((x) => x.fase === 'fin BA' && x.categoria === cat)!;
+    resumen(cat, fin.datos.equipos as never, fin);
+  }
+  for (const cat of ['infantil', 'cadete']) {
+    say(`## ${cat}`);
+    say();
+    const p7 = evs.filter((x) => x.fase === 'paso 7' && x.categoria === cat);
+    say('### Paso 7: los que quedaban fuera');
+    say();
+    if (p7.length) tabla(['Niño', 'Colegio', 'Año', 'A dónde va'], p7.map((x, i) => [`#${i + 1}`, String(x.datos.colegio), x.datos.primero ? '1.er año' : '2.º año', String(x.datos.destino)])); else say('No quedaba nadie fuera.\n');
+    const fin = evs.find((x) => x.fase === 'fin del paso 7' && x.categoria === cat)!;
+    resumen(cat, fin.datos.equipos as never, fin);
+  }
+  DIAGNOSTICO.traza = undefined; DIAGNOSTICO.variantePrimeraRonda = undefined; DIAGNOSTICO.variantePaso23 = undefined;
+  console.log(out.join('\n'));
+  process.exit(0);
+}
 if (variante === 'paso5-6') {
   type Ev6 = { fase: string; categoria: string; club?: string; datos: Record<string, unknown>; bolsa?: ReturnType<EventoDeTraza['bolsa']> };
   const evs: Ev6[] = [];
