@@ -35,6 +35,7 @@ Cuando se estudie la realidad de cada país, solo hay que **cambiar los datos de
 - **Desde la interfaz:** Opciones → «Importar un paquete de país (.json)». Se **valida** (`validarPais`: los errores salen en español, todos a la vez), se registra y se **guarda en el navegador** (localStorage): al arrancar se vuelven a registrar, así que aparece en «Nueva partida» y sus partidas se pueden abrir. Una partida de un país que no está cargado **no se abre** (se avisa de qué falta; no se borra).
 - **Desde código:** `importarPais(texto)` / `registrarPais(objeto)` (en `contracts`).
 - **Crear uno:** parte de `copiaDeEspana('mi_pais', 'Mi país', { ...lo que cambie })` y exporta el objeto a JSON (`JSON.stringify`). Las asignaturas de los cursos son claves del catálogo del módulo de estudios (`lengua`, `matematicas`, `educacion_fisica`…).
+- **Variantes de un país** (el mismo país con otra ciudad: `conCiudad`, `conCiudadDePrueba`): llevan `PaisDef.base` (el id del país del que salen). Los datos por país de cada deporte se buscan primero por `id` y después por `base`, así que la ciudad grande usa los datos de España **sin** el aviso de «datos de respaldo». Ese aviso es solo para los países sin datos propios ni base. El nombre del país no lleva avisos (el del tiempo de creación va en la pantalla de «Nueva partida»).
 
 ## 4. Qué se valida
 

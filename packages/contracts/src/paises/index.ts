@@ -22,12 +22,12 @@ export const SUFIJO_CIUDAD_DE_PRUEBA = '_ciudad_de_prueba';
 export function conCiudad(pais: PaisDef, ciudad: CiudadDef, sufijo: string): PaisDef {
   const id = `${pais.id}${sufijo}`;
   const copia = structuredClone(pais) as PaisDef;
-  return { ...copia, id, calendario: { ...copia.calendario, id }, ciudad };
+  return { ...copia, id, base: pais.base ?? pais.id, calendario: { ...copia.calendario, id }, ciudad };
 }
 export function conCiudadDePrueba(pais: PaisDef): PaisDef {
   const id = `${pais.id}${SUFIJO_CIUDAD_DE_PRUEBA}`;
   const copia = structuredClone(pais) as PaisDef;
-  return { ...copia, id, calendario: { ...copia.calendario, id }, ciudad: CIUDAD_DE_PRUEBA };
+  return { ...copia, id, base: pais.base ?? pais.id, calendario: { ...copia.calendario, id }, ciudad: CIUDAD_DE_PRUEBA };
 }
 /** España con la **ciudad grande del diseño** (`CIUDAD_GRANDE`), lista para registrar: es con la que se mide si el fútbol puede entrar en el juego. */
 export const SUFIJO_CIUDAD_GRANDE = '_ciudad_grande';
@@ -64,6 +64,7 @@ export function validarPais(x: unknown): string[] {
   if (!esObjeto(x)) return ['El paquete de país no es un objeto'];
   if (typeof x.id !== 'string' || !/^[a-z][a-z0-9_]{1,30}$/.test(x.id)) p.push('«id» tiene que ser un texto corto en minúsculas (letras, cifras y guion bajo)');
   if (typeof x.nombre !== 'string' || !x.nombre.trim()) p.push('Falta el «nombre» del país');
+  if (x.base !== undefined && (typeof x.base !== 'string' || !x.base.trim())) p.push('«base» tiene que ser el id del país del que sale esta variante');
   // Ciudad (opcional)
   if (x.ciudad !== undefined) {
     const c = x.ciudad;
