@@ -28,6 +28,7 @@
     "equipos": "tsx tools/equipos.ts",
     "colegios": "tsx tools/colegios.ts",
     "sim:partidos": "tsx tools/partidos.ts",
+    "partidos:prototipo": "tsx tools/partidos-reales-prototipo.ts",
     "liga": "tsx tools/liga.ts",
     "calendario": "tsx tools/calendario.ts",
     "dia-de-partido": "tsx tools/dia-de-partido.ts",
