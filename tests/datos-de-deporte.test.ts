@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { APORTES, CALENDARIO_ESPANA, SERVICES, claveDeDeporte, copiaDeEspana, registrarPais, validarDatosDeDeporte, type ClubDirectory, type DatosDeDeporte, type DeporteService, type FichaDeDeporte, type LugaresService, type PresenciaService } from '@ds/contracts';
+import { APORTES, CALENDARIO_ESPANA, PAIS_CIUDAD_DE_PRUEBA, SERVICES, claveDeDeporte, copiaDeEspana, registrarPais, validarDatosDeDeporte, type ClubDirectory, type DatosDeDeporte, type DeporteService, type FichaDeDeporte, type LugaresService, type PresenciaService } from '@ds/contracts';
 import { MODULOS, catalogoDeDeportes, nuevaPartida } from '@ds/game';
 import { atletismo } from '@ds/mod-atletismo';
 
@@ -88,6 +88,13 @@ describe('los datos del deporte son por país', () => {
     const g = nuevaPartida({ seed: 31, pais: 'curso_corto' });
     expect(g.preview('atletismo.semifinal')!.description).toMatch(/sábado de las semanas 14, 28 y 34 del curso\)/);
     expect(g.preview('atletismo.final')!.description).toMatch(/sábado de las semanas 15, 29 y 35 del curso\)/);
+  });
+
+  it('una variante de España (otra ciudad) usa los datos de España sin avisar de que son de respaldo', () => {
+    expect(PAIS_CIUDAD_DE_PRUEBA.base).toBe('espana');
+    registrarPais(PAIS_CIUDAD_DE_PRUEBA);
+    const g = nuevaPartida({ seed: 31, pais: PAIS_CIUDAD_DE_PRUEBA.id });
+    expect(federacion(g)).toBe('Real Federación Española de Atletismo');
   });
 });
 

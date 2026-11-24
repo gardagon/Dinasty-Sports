@@ -178,3 +178,11 @@ body:has(.esc) .ventana:has(#frecuencia) > p, body:has(.esc) .ventana:has(#frecu
 html[data-esc] .start:has(#version-texto) { max-width: 980px; margin-top: 6vh; column-count: 2; column-gap: 48px; }
 html[data-esc] .start:has(#version-texto) > h1, html[data-esc] .start:has(#version-texto) > p:first-of-type { column-span: all; }
 html[data-esc] .start:has(#version-texto) .menu, html[data-esc] .start:has(#version-texto) > p, html[data-esc] .start:has(#version-texto) > h3 { break-inside: avoid; }
+
+/* «Nueva partida» y el menú de inicio a pantalla ancha: la pantalla de crear partida en dos columnas (la partida a un lado, el personaje al otro) y el menú con los botones en rejilla. En el móvil no cambia nada. */
+html[data-esc] .start.nueva-ancha { max-width: 1040px; margin-top: 6vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 56px; align-items: start; }
+html[data-esc] .start.nueva-ancha > h1 { grid-column: 1 / -1; }
+html[data-esc] .start.nueva-ancha .nueva-col:last-child { position: sticky; top: 24px; }
+html[data-esc] .start:has(.menu > [data-act="ir-nueva"]) { max-width: 760px; }
+html[data-esc] .start:has(.menu > [data-act="ir-nueva"]) .menu { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html[data-esc] .start:has(.menu > [data-act="ir-nueva"]) .menu .primary { grid-column: 1 / -1; }

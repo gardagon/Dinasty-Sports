@@ -465,9 +465,7 @@ function viewNueva(): string {
   const id = identidadDeJugador(nueva.seed, nueva.principal, paisPorId(nueva.pais));
   const apellido = (quien: ApellidoPrincipal, texto: string, nombre: string) =>
     `<button type="button" class="opcion" data-act="principal" data-quien="${quien}" aria-pressed="${nueva.principal === quien}"><b>${esc(nombre)}</b><small>${texto}</small></button>`;
-  return `<main class="app"><section class="start">
-    <h1>Nueva partida</h1>
-    <label for="pais">País</label>
+  const mundo = `<label for="pais">País</label>
     <select id="pais">${paisesElegibles().map((p) => `<option value="${esc(p.id)}"${p.id === nueva.pais ? ' selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>
     ${nueva.pais === ID_DE_LA_CIUDAD_GRANDE ? '<p class="note">La ciudad grande: unas 6.000 personas, 9 clubes de la zona y unos 156 equipos de fútbol repartidos en divisiones. Crear la partida tarda hasta un minuto (menos en un ordenador).</p>' : ''}
     <label for="sexo">Sexo</label>
@@ -478,8 +476,8 @@ function viewNueva(): string {
       const marcado = nueva.deportes.includes(d.id);
       return `<label class="casilla"><input type="checkbox" data-deporte-incluido="${esc(d.id)}"${marcado ? ' checked' : ''}${marcado && nueva.deportes.length === 1 ? ' disabled' : ''}> ${esc(d.nombre)}<small> · ${esc(d.disciplina)}</small></label>`;
     }).join('')}</div>
-    <p class="note">Son los deportes que existen en tu partida; no empiezas practicando ninguno. Podrás hacer cualquiera, y tu deporte principal será el del club al que te apuntes. Siempre hace falta al menos uno.</p>
-    <label>Nombre</label>
+    <p class="note">Son los deportes que existen en tu partida; no empiezas practicando ninguno. Podrás hacer cualquiera, y tu deporte principal será el del club al que te apuntes. Siempre hace falta al menos uno.</p>`;
+  const persona = `<label>Nombre</label>
     <p class="nombre-sorteado">${esc(id.nombre)}</p>
     ${
       paisPorId(nueva.pais).apellidosDeLosNacidosAqui === 1
@@ -489,14 +487,22 @@ function viewNueva(): string {
       ${apellido('padre', 'primer apellido de tu padre', id.delPadre)}
       ${apellido('madre', 'primer apellido de tu madre', id.delMadre)}
     </div>`
-    }
-    <label>Contenido duro</label>
-    ${viewContenidoDuro(false)}
-    <p class="te-llamaras">Te llamarás <b>${esc(id.completo)}</b></p>
+    }`;
+  const duro = `<label>Contenido duro</label>
+    ${viewContenidoDuro(false)}`;
+  const final = `<p class="te-llamaras">Te llamarás <b>${esc(id.completo)}</b></p>
     <button type="button" class="menu-boton" data-act="sortear">Volver a sortear nombre y apellidos</button>
     <button type="button" class="primary" data-act="empezar">Empezar el curso</button>
     <p class="note"><button type="button" data-act="ir-menu">‹ Volver al menú</button></p>
-    ${game ? '<p class="note loss">Ya tienes una partida guardada: al empezar una nueva se perderá.</p>' : ''}
+    ${game ? '<p class="note loss">Ya tienes una partida guardada: al empezar una nueva se perderá.</p>' : ''}`;
+  // A pantalla ancha, en dos columnas: la partida (país, deportes, contenido duro) a un lado y el personaje (nombre, apellido y empezar) al otro.
+  if (usaEscritorio()) return `<main class="app"><section class="start nueva-ancha"><h1>Nueva partida</h1><div class="nueva-col">${mundo}${duro}</div><div class="nueva-col">${persona}${final}</div></section></main>`;
+  return `<main class="app"><section class="start">
+    <h1>Nueva partida</h1>
+    ${mundo}
+    ${persona}
+    ${duro}
+    ${final}
   </section></main>`;
 }
 

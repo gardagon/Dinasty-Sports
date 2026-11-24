@@ -94,7 +94,7 @@ try {
   comprobar(casillas.length === 2, `en nueva partida hay dos deportes (${casillas.map((c) => c.texto.split('·')[0].trim()).join(' y ')})`);
   comprobar(casillas.every((c) => c.casillaAlaIzquierda && c.ancho < 40), 'cada casilla sale a la izquierda de su nombre, sin ocupar todo el ancho');
   comprobar(casillas.every((c) => c.marcada), 'el fútbol recién instalado sale marcado como el atletismo');
-  await pagina.selectOption('#pais', { label: 'España · ciudad grande (se tarda hasta un minuto en crear)' });
+  await pagina.selectOption('#pais', { label: 'España · ciudad grande' });
   await pagina.evaluate((s: number) => (window as unknown as { __ds: { fijarSemilla(n: number): void } }).__ds.fijarSemilla(s), semilla);
   await pagina.screenshot({ path: join(capturas, '3-nueva-partida.png') });
 

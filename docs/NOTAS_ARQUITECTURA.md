@@ -43,12 +43,16 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3. Preguntas para el usuario (pendientes)
 
+- **Salud y lesiones** (`docs/relevo/salud-lesiones.md` §9, 9 dudas) y **partidos más reales** (`docs/relevo/partidos-reales.md` §6.4, 8 dudas): presentadas el 24/11 con recomendación. Orden propuesto: salud F1 + partidos P0 en paralelo; después P1 + salud F2–F4.
 - **Hogares:** aprobados el 24/11 la activación por defecto y `FAMILIAS.siguiente` (DECISIONES 24/11). La sesión de hogares los aplica; después, pull request para publicar (visto bueno ya dado) y pedir al usuario que mida en el móvil: crear y pasar de semana.
 - **Rendimiento M2:** el usuario creó una partida en el móvil en ~4 s («solo con fútbol»). Confirmar si fue con la ciudad grande. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
 
-`session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`) **trabajando** (23/11 noche): trabajo de los progenitores, contraste de los hermanos mayores con el INE y nuevas medidas con y sin hogares. Las demás pueden reactivarse con contexto:
+**Trabajando (24/11):**
+- `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): activar los hogares por defecto, `FAMILIAS.siguiente`, menores de 8 duermen 21:30–7:00. Después: H1 completo y lote 3 de sucesos (orden de DECISIONES 24/11);
+
+Pueden reactivarse con contexto:
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): seguir con H1 (trabajo de los progenitores, papel de reparto por parentesco, ficha con el vínculo, niños de los vecinos sin familia, abandono por edad) y con H2;
 - `session_01M4vXXQAF9nMwtH72JNPMoS` (`claude/sucesos-lote-2`): más sucesos;
 - `session_01M4vXXPqtbBbKjYfQzgtQgH` (calle);
@@ -58,8 +62,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 ## 4. Pendiente (por orden de prioridad propuesto)
 
 1. **Lo que encuentre el usuario al jugar** (publicado el 23/11). Arreglos pequeños apuntados:
-   - con la ciudad grande, la ficha del deporte dice «Federación: … (con los datos de España: España · ciudad grande (se tarda hasta un minuto en crear) aún no tiene los suyos)». No debería salir el aviso de respaldo, ni el paréntesis en el nombre (`apps/web/src/paises-propios.ts`, `modules/futbol/src/index.ts:937`, `modules/atletismo/src/index.ts:660`);
-   - «Nueva partida» y el menú siguen a 460 px en PC;
+   - ✅ 24/11: el texto de la federación con la ciudad grande y «Nueva partida» y el menú en PC (`docs/relevo/arreglos-24-11.md`);
    - los hermanos menores de 8 duermen 23:00–7:00: pasarlos a 21:30–7:00 (`agendas.ts`).
 2. **Hogares:** decidir la activación (§3). Después:
    - H1 completo: el niño se va con su progenitor, el papel «el padre de tu compañero», la ficha con el vínculo, familia para los niños de los vecinos;

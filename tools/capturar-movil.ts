@@ -53,7 +53,7 @@ try {
   await pagina.click('[data-act="ir-menu"]');
   await pagina.click('[data-act="ir-nueva"]');
   await pagina.waitForSelector('[data-deporte-incluido="futbol"]');
-  await pagina.selectOption('#pais', { label: 'España · ciudad grande (se tarda hasta un minuto en crear)' });
+  await pagina.selectOption('#pais', { label: 'España · ciudad grande' });
   await pagina.evaluate((s: number) => (window as any).__ds.fijarSemilla(s), semilla);
   await pagina.click('[data-act="empezar"]');
   await pagina.waitForFunction(() => !!(window as any).__ds.game, undefined, { timeout: 300000 });

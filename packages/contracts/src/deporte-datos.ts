@@ -608,7 +608,7 @@ export const fichasDeDeporte = (ctx: Pick<ReadContext, 'aportes'>): readonly Fic
 export function datosDeDeporte(ctx: Pick<ReadContext, 'aportes' | 'pais'>, deporte: string): DatosDeDeportePais & { deRespaldo: boolean } {
   const d = ctx.aportes<DatosDeDeporte>(APORTES.datosDeDeporte).find((x) => x.id === deporte);
   if (!d) throw new Error(`El deporte «${deporte}» no ha aportado sus datos (aporte «${APORTES.datosDeDeporte}»)`);
-  const propios = d.paises[ctx.pais.id];
+  const propios = d.paises[ctx.pais.id] ?? (ctx.pais.base ? d.paises[ctx.pais.base] : undefined);
   const base = propios ?? d.paises.espana;
   // Los clubes de la zona, en proporción a la población de la ciudad (con memoria: se pide en cada consulta).
   const ciudad = ctx.pais.ciudad ?? CIUDAD_ACTUAL;
