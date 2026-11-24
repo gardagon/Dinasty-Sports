@@ -55,17 +55,33 @@ El club con un equipo (A o B) aún por debajo de 14 junta a todos sus niños de 
 - 6b. Con los demás se cuentan los equipos posibles: `pares = min(⌊r2/14⌋, ⌊p2/14⌋)` (C de 2.º + D de 1.º) y `mixtos = ⌊(r2 + p2 − 28·pares)/14⌋` C mixtos (r2 = niños de 2.º año, p2 = de 1.º). Se reparten entre los externos con el sorteo de siempre; el resto de la bolsa entra hasta 22.
 - Un equipo de un solo año lleva de 14 a 22, igual que los mixtos (precisión del usuario).
 
-## Paso 8. Equilibrar letras (todas las categorías **salvo juvenil**)
+## Paso 8. Último paso: normalizar y equilibrar letras (todas las categorías **salvo juvenil**)
 
-Se aplica **al final**, porque el reparto ha sido «a boleo» y un C puede ser mejor que un A. Bandera de medida: `variantePaso23.equilibrar`. Por club:
+Se aplica **al final**, porque el reparto ha sido «a boleo» y un C puede ser mejor que un A. Bandera de medida: `variantePaso23.equilibrar`. Tres partes, en este orden.
+
+### 8a. Nunca un B sin A (regla general; el usuario, 24/11)
+
+Si un club no puede montar su **A** (el A tiene menos de 14), se juntan **A y B en un único A mixto**:
+- si son 14–22, ese es el A del club;
+- si pasan de 22, **salen los peores por puesto** (como en el recorte de juvenil: el peor del grupo de puestos que más se pasa de su cupo de 22) y buscan sitio (8c);
+- si **no llegan a 14, ese equipo desaparece** y todos sus niños pasan a la bolsa y buscan sitio (8c).
+Los equipos C y D del club se corren de letra (C pasa a B, D a C…): nunca hay una letra sin la anterior. **Nota para los veranos:** el curso siguiente ese club podría volver a montar su equipo con alumnos del colegio que decidan volver, si los hay (por decidir con los veranos). En juvenil la regla ya la cumple J1 (3 equipos, 2, uno mixto o ninguno): comprobado, 0 de 260 clubes con B o C sin A.
+
+### 8b. Equilibrar letras
 
 | Letras del club | Qué se hace |
 |---|---|
 | **A, B, C y D** | **A con C** y **B con D** se juntan y se reparten: al A (y al B) los mejores, primero los titulares de la alineación del juego y luego por valor respetando cupos de puesto; el tamaño de A y de B se mantiene. Si un **«subido» del B al A** ya no entra entre los mejores del A, **vuelve a bajar al B** (compite en el B∪D; el B crece en tantos como bajen, hasta 22; el C encoge). |
-| **A, B y C** | Se juntan todos y se monta: **A** = los mejores de 2.º año + los titulares de 1.er año (con el tamaño que tenía); **B** = solo de 1.er año (con el tamaño que tenía); **C** = mixto con lo que sobre. Si con los titulares de 1.º arriba al B no le quedan 14 de 1.er año, el más flojo de esos titulares **se queda en el B** y el A coge al siguiente de 2.º año (repetir hasta 14). |
+| **A, B y C** | Se juntan todos y se monta: **A** = los mejores de 2.º año + los titulares de 1.er año (con el tamaño que tenía); **B** = solo de 1.er año (con el tamaño que tenía); **C** = mixto con lo que sobre. Si con los titulares de 1.º arriba al B no le quedan 14 de 1.er año, el más flojo de esos titulares **se queda en el B** y el A coge al siguiente de 2.º año (repetir hasta 14; regla añadida por Claude y aprobada por el usuario). |
 | A y B, o solo A | Sin cambios. |
 
-Mínimo 14, máximo 22: si algún equipo del club saldría fuera de ese rango, **el club se queda como estaba** (y se anota: 2 casos en 20 semillas, ver `reparto-nuevo-equilibrar.md`).
+**Un equipo nunca pasa de 22** (decisión del usuario). Si al equilibrar el C (o el D) sale con más de 22: **primero se llenan el A y el B hasta 22** con los mejores que les valgan (al B, en el caso A, B y C, solo de 1.er año; en A, B, C y D el D llena el B); si aun así sobran, **los que sobran se expulsan, los peores por puesto, y buscan sitio** (8c). No se deja el club sin equilibrar. (Un C así solo ocurre cuando el A y el B no pueden absorber: por ejemplo, un B de solo 1.er año ya completo. Si queda hueco en A o B, ahí van primero.)
+
+El paso mantiene el tamaño de A y de B, salvo el relleno hasta 22 anterior. Si tras todo esto algún equipo del club siguiera fuera de 14–22 (no ha pasado en 20 semillas), el club se queda como estaba y se anota.
+
+### 8c. Los expulsados y los de equipos desaparecidos buscan sitio
+
+Como los descartes de juvenil: por valor (los mejores primero), cada niño busca un equipo de **otro club** (los colegios, solo sus alumnos), de 14 a 21 niños (cabe uno más hasta 22), en este orden de letras: B (si es mixto o el niño es de 1.er año), A, C, D; con `intentarEntrar` solo por hueco y sin prueba, y una segunda pasada sin mirar el cupo del puesto. El que no encuentra sitio queda en la bolsa, fuera ese curso.
 
 ## Paso 9. Juvenil (`variantJuvenil`, cascada del usuario) — sin equilibrar
 

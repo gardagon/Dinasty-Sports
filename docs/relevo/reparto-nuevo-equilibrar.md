@@ -26,7 +26,7 @@ Reparto actual, 41–50 (para comparar): <14 = 3,0 · 3,1 · 1,8 · 1,1 · 6,4 (
 
 ## 2. Qué cambia el paso de equilibrar
 
-Jugadores que cambian de letra (por semilla, media y rango): 
+Jugadores que cambian de letra (por semilla, media y rango; antes de las reglas del §4):
 
 | Cat | 31–40 | 41–50 |
 |---|---|---|
@@ -56,10 +56,34 @@ Con el reparto nuevo ya hay pocos casos de C mejor que A (paso 2 sube a los titu
 
 Equipo por debajo de 14: reparto actual **6 de 20** (semillas 33, 35, 39, 43, 45, 47: plantillas de 7 a 13). Reparto nuevo (con o sin equilibrar): **0 de 20**, porque no hay ningún equipo de benjamín por debajo de 14 en las 20 semillas.
 
-## 4. Lo raro
+## 4. Reglas nuevas del usuario (24/11): máximo 22 y nunca un B sin A
 
-- **Revertidos por rango (2 de ~270 clubes-categoría):** en cadete, `club_pequeno3` (semillas 35 y 36), regla A, B y C: al juntar todos, el B solo de 1.er año se queda en 14–15 y el C mixto saldría con 24–26 (más de 22) → el club se queda como estaba. Antes de añadir la regla «el más flojo de los titulares de 1.º se queda en el B» eran 14 reversiones en las 20 semillas (12 en infantil, con B de 11 o 13 niños de 1.er año, que ahora se resuelven).
-- **Alevín, semilla 40: un equipo de 9** (`colegio2`, A de 9): el colegio tiene muy pocos alumnos de 2.º año interesados y el colegio solo puede coger a los suyos; no lo arregla ningún paso. Es el único equipo por debajo de 14 de las 20 semillas.
-- **Máximo 22 solo se alcanza en el paso 7** (infantil y cadete) y en benjamín y alevín (C y D); los A y B salen con 18–20.
-- Juvenil: sin equipos <14, pero quedan fuera de media ~13 de 1.º, ~11 de 2.º y ~66 de 3.º.
-- `fijarEquipos` sigue deshaciendo las letras en la partida real (ver `reparto-nuevo-reglas.md`, «Lo que hay que cambiar»): las cifras salen de los equipos que deja cada paso.
+Aplicadas y medidas otra vez con las 20 semillas (31–50). Casos que se dan:
+
+| Caso | Dónde | Qué pasa | Resultado |
+|---|---|---|---|
+| C de 24–26 (cadete, `club_pequeno3`, semilla 35) | A 21, B 14, C 26 | el A y el B tenían hueco: se llenan hasta 22 (A) y el B (solo 1.er año) no puede; sobran 3 | 3 expulsados (los peores por puesto), **3 encuentran sitio**, 0 sin sitio |
+| C de 24 (cadete, `club_pequeno3`, semilla 36) | A 20, B 15, C 24 | A y B absorben el exceso | 0 expulsados |
+| Alevín, semilla 40, `colegio2`: A de 9 y B de 18 | no puede montar A | se juntan A+B en un único A mixto de 27; 22 se quedan | 5 expulsados (los peores por puesto), **5 encuentran sitio**, 0 sin sitio; el club pasa de A+B a un solo equipo |
+| Equipos que desaparecen (A+B < 14) | — | **ninguno** en las 20 semillas | 0 niños de equipos desaparecidos |
+| Equipos sin equilibrar por rango | — | **ninguno** | 0 revertidos |
+
+Total: 8 niños expulsados en las 20 semillas, **8 encuentran sitio y 0 se quedan fuera**.
+
+Resumen por categoría con las reglas nuevas (media y rango):
+
+| Cat | Equipos 31–40 (A·B·C·D) | Equipos 41–50 | <14 | Fuera 1.º/2.º/3.º |
+|---|---|---|---|---|
+| benjamín | 31,4 (13·13·3,7·1,7) | 31,7 (13·13·4,4·1,3) | 0 | 0 |
+| alevín | 31,2 (13·12,9·3,5·1,8) | 31,7 (13·13·3,8·1,9) | 0 | 0 |
+| infantil | 29,6 (13·13·3,6·0) | 29,5 (13·13·3,5·0) | 0 | 0 |
+| cadete | 29,3 (13·13·3,3·0) | 28,7 (13·13·2,7·0) | 0 | 0 |
+| juvenil | 30,6 (12,8·9,1·8,7·0) | 30,8 (13·9,2·8,6·0) | 0 | 13·12·67 (media de las 20) |
+
+Niños por equipo, mínimo: 14 en las 20 semillas (31–40: 14,1 · 14,3 · 14,2 · 14,1; 41–50: 14,1 · 14 · 14,1 · 14,1); máximo 22 (media 19,6–21,1 según categoría). Antes de estas reglas había un equipo de 9 (alevín, semilla 40) y dos clubes cadete sin equilibrar: ya no.
+
+## 5. Lo raro
+
+- `fijarEquipos` sigue deshaciendo C y D en la partida real (ver `reparto-nuevo-reglas.md`, «Lo que hay que cambiar»): las cifras salen de los equipos que deja cada paso.
+- Juvenil: sin equipos <14 y sin B o C sin A, pero quedan fuera de media ~13 de 1.º, ~12 de 2.º y ~67 de 3.º.
+- Pendiente para los veranos: el curso siguiente el equipo unido de un colegio (como `colegio2` alevín) podría volver a partirse si hay alumnos que decidan volver.

@@ -446,8 +446,39 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         for (const id of orde(pool.filter((x) => !out.includes(x)))) if (out.length < n) mete(id);
         return out;
       };
-      let cambian = 0, bajan = 0, revertidos = 0, fueraDeRango = 0;
+      let cambian = 0, bajan = 0, revertidos = 0;
+      const casos = { sinA: 0, sinAUnidos: 0, sinAExceso: 0, desaparecen: 0, cDesbordan: 0, expulsadosC: 0, desaparecidos: 0, colocados: 0, sinSitio: 0 };
       const mejores = { antesCA: 0, antesDB: 0, despuesCA: 0, despuesDB: 0, antesCAonce: 0, antesDBonce: 0, despuesCAonce: 0, despuesDBonce: 0, clubesConC: 0, clubesConD: 0 };
+      const unoPrimero = (id: string): boolean => { const n = m.lista.get(id); return !!n && primeroAnio(n); };
+      /** Los peores del grupo de puestos que más se pasa de su cupo salen hasta quedar en 22. */
+      const recortar = (ids: string[]): { quedan: string[]; salen: string[] } => {
+        const quedan = [...ids], salen: string[] = [];
+        const cupos = cuposPorGrupo(pob.puestos!, 22);
+        while (quedan.length > 22) {
+          const porGrupo = new Map<string, string[]>();
+          for (const id of quedan) (porGrupo.get(grupoId(id)) ?? porGrupo.set(grupoId(id), []).get(grupoId(id))!).push(id);
+          const [, grupo] = [...porGrupo].sort((a, b) => (b[1].length - (cupos[b[0]] ?? 0)) - (a[1].length - (cupos[a[0]] ?? 0)))[0];
+          const peor = orde(grupo)[grupo.length - 1];
+          quedan.splice(quedan.indexOf(peor), 1); salen.push(peor);
+        }
+        return { quedan, salen };
+      };
+      const pendientes: { id: string; club: string; motivo: 'expulsado' | 'desaparecido' }[] = [];
+      const sacar = (ids: string[], club: string, motivo: 'expulsado' | 'desaparecido'): void => { liberar(ids); for (const id of ids) pendientes.push({ id, club, motivo }); };
+      // 8a. Nunca un B sin A: si un club no puede montar su A (de 14), se juntan A y B en un único A mixto; si no llega a 14, ese equipo desaparece; por encima de 22 salen los peores.
+      for (const e of orden) {
+        const t = equipos.get(e.club)!;
+        if (t.A.size >= 14 || t.A.size + t.B.size + (t.C?.size ?? 0) === 0) continue;
+        casos.sinA++;
+        let union = [...t.A, ...t.B];
+        const resto: Set<string>[] = [t.C, t.D].filter((x): x is Set<string> => !!x && x.size > 0);
+        if (union.length < 14) { casos.desaparecen++; sacar(union, e.club, 'desaparecido'); casos.desaparecidos += union.length; union = []; }
+        else { casos.sinAUnidos++; if (union.length > 22) { const r = recortar(union); casos.sinAExceso++; casos.expulsadosC += r.salen.length; sacar(r.salen, e.club, 'expulsado'); union = r.quedan; } }
+        const lista = [...(union.length ? [new Set(union)] : []), ...resto];
+        equipos.set(e.club, { A: lista[0] ?? new Set(), B: lista[1] ?? new Set(), ...(lista[2] ? { C: lista[2] } : {}), ...(lista[3] ? { D: lista[3] } : {}) });
+        tr('equilibrio sin A', e.club, { unidos: union.length, quedan: lista.map((x) => x.size) });
+      }
+      // 8b. Equilibrar A con C y B con D (o A, B y C).
       for (const e of orden) {
         const t = equipos.get(e.club)!;
         if (!t.C || t.C.size === 0) continue;
@@ -470,9 +501,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         } else {
           tipo = 'ABC';
           const todos = [...t.A, ...t.B, ...t.C];
-          const unoPrimero = (id: string): boolean => { const n = m.lista.get(id); return !!n && primeroAnio(n); };
-          const xi = xiDe(todos);
-          const s1xi = new Set(todos.filter((id) => unoPrimero(id) && xi.has(id)));
+          const s1xi = new Set(todos.filter((id) => unoPrimero(id) && xiDe(todos).has(id)));
           let poolB: string[] = [];
           // Si con los titulares de 1.º arriba al B no le quedan 14 de primer año, el más flojo de esos titulares se queda en el B (y el A coge al siguiente de 2.º año).
           for (;;) {
@@ -485,8 +514,25 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           B2 = elegir(poolB, Math.min(t.B.size, poolB.length));
           C2 = todos.filter((id) => !A2.includes(id) && !B2.includes(id));
         }
+        // Un equipo nunca pasa de 22: si el C (o el D) sale con más, primero se llenan el A y el B hasta 22 con los mejores que les valgan (al B, solo de 1.er año en A, B y C) y los que aún sobran salen.
+        let salen: string[] = [];
+        let desborda = false;
+        if (C2.length > 22) {
+          desborda = true;
+          for (const id of orde(C2)) { if (A2.length >= 22) break; A2.push(id); C2 = C2.filter((x) => x !== id); }
+          if (tipo === 'ABC') for (const id of orde(C2.filter(unoPrimero))) { if (B2.length >= 22) break; B2.push(id); C2 = C2.filter((x) => x !== id); }
+          if (C2.length > 22) { const r = recortar(C2); C2 = r.quedan; salen = salen.concat(r.salen); }
+        }
+        if (D2.length > 22) {
+          desborda = true;
+          for (const id of orde(D2)) { if (B2.length >= 22) break; B2.push(id); D2 = D2.filter((x) => x !== id); }
+          if (D2.length > 22) { const r = recortar(D2); D2 = r.quedan; salen = salen.concat(r.salen); }
+        }
         const rango = [A2, B2, C2, ...(D2.length ? [D2] : [])].every((x) => x.length >= 14 && x.length <= 22);
         if (!rango) { revertidos++; tr('equilibrio', e.club, { tipo, revertido: true, tamanos: [A2.length, B2.length, C2.length, D2.length] }); continue; }
+        if (desborda) casos.cDesbordan++;
+        casos.expulsadosC += salen.length;
+        if (salen.length) sacar(salen, e.club, 'expulsado');
         const nuevo: Sets = { A: new Set(A2), B: new Set(B2), C: new Set(C2), ...(D2.length ? { D: new Set(D2) } : {}) };
         const despues = { A: nivel(nuevo.A), B: nivel(nuevo.B), C: nivel(nuevo.C!), D: nuevo.D ? nivel(nuevo.D) : undefined };
         let ca = 0;
@@ -501,8 +547,30 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         equipos.set(e.club, nuevo);
         tr('equilibrio', e.club, { tipo, cambian: ca, bajan: nBajan, antes, despues });
       }
-      void fueraDeRango;
-      tr('fin equilibrio', undefined, { cambian, bajan, revertidos, ...mejores, equipos: orden.map((e) => { const t = equipos.get(e.club)!; return { club: e.club, A: t.A.size, B: t.B.size, C: t.C?.size ?? 0, D: t.D?.size ?? 0 }; }) });
+      // 8c. Los que han salido (expulsados o de equipos desaparecidos) buscan sitio en otro club (colegios, solo sus alumnos), por valor: B si es mixto o son de 1.er año, A, C, D; hasta 22.
+      const lugares = [...delColegio, ...fuera];
+      for (const p of pendientes.sort((a, b) => valorId(b.id) - valorId(a.id) || (a.id < b.id ? -1 : 1))) {
+        const n = m.lista.get(p.id);
+        let sitio: string | undefined;
+        if (n && n.deporte === undefined) {
+          for (const relajado of [false, true]) {
+            for (const letra of ['B', 'A', 'C', 'D'] as const) {
+              for (const e of lugares) {
+                if (sitio || e.club === p.club) continue;
+                const t = equipos.get(e.club)!;
+                const set = t[letra];
+                if (!set || set.size < 14 || set.size >= 22) continue;
+                if ((letra === 'B' || letra === 'C' || letra === 'D') && !primeroAnio(n) && ![...set].some((id) => !unoPrimero(id))) continue;
+                if (intentarEntrar(m, n, e, pob, { sinPrueba: !o.conPrueba, soloHueco: true, ...(relajado ? { relajado: true } : {}) }).entra) { set.add(p.id); sitio = `${e.club} ${letra}`; }
+              }
+            }
+            if (sitio) break;
+          }
+        }
+        if (sitio) casos.colocados++; else casos.sinSitio++;
+        tr('equilibrio sale', p.club, { id: p.id, motivo: p.motivo, destino: sitio ?? 'fuera' });
+      }
+      tr('fin equilibrio', undefined, { cambian, bajan, revertidos, ...casos, ...mejores, equipos: orden.map((e) => { const t = equipos.get(e.club)!; return { club: e.club, A: t.A.size, B: t.B.size, C: t.C?.size ?? 0, D: t.D?.size ?? 0 }; }) });
     };
     if (v23.subirTitulares[catId]) {
       for (const e of orden) {
