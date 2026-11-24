@@ -168,11 +168,12 @@ function alDespertar(ctx: ActionContext, horas: number): void {
   // La deuda baja lo que se llena la energía: se llena a 12,5 por hora, pero con sueño atrasado no se llega a 100.
   const e = ctx.stat(GEN.energia);
   ctx.addStat(GEN.energia, Math.max(0, Math.min(topeDeEnergiaAlDespertar(despues), e + horas * 12.5) - e));
-  ctx.addStat(GEN.estres, -horas * 0.8);
-  if (horas < 7) {
-    ctx.addStat(GEN.motivacion, -2);
-    ctx.log('Has dormido poco.', 'aviso');
-  }
+  // Con sueño atrasado la noche alivia menos el estrés (`×(1 − d/10)`, d = deuda efectiva) — E12, F2.
+  ctx.addStat(GEN.estres, -horas * 0.8 * (1 - deudaEfectiva(despues) / 10));
+  // La motivación baja 0,7 por cada hora que falta de lo que se necesita esa noche (hasta −4); antes era un −2 plano con menos de 7 h — E12, F2.
+  const falta = Math.max(0, necesidad - horas);
+  if (falta > 0) ctx.addStat(GEN.motivacion, -Math.min(4, 0.7 * falta));
+  if (horas < 7 || falta >= 1) ctx.log('Has dormido poco.', 'aviso');
   if (despues >= DEUDA_QUE_SE_NOTA) ctx.log('Arrastras sueño: no has dormido lo que tu cuerpo necesita.', 'aviso');
   else if (antes >= DEUDA_QUE_SE_NOTA) ctx.log('Te sientes descansado: has recuperado el sueño atrasado.', 'info');
 }
@@ -576,9 +577,11 @@ export const personaje = defineModule<IdentidadState>({
         ctx.log('El estrés te está pasando factura.', 'aviso');
       }
       // La motivación tiende a su punto de equilibrio y el estrés baja solo un poco.
+      // Con sueño atrasado (d = deuda efectiva) el punto de equilibrio de la motivación baja 1 por hora y el día cierra con +0,3 de estrés por hora — E12, F2.
+      const d = deudaEfectiva(ctx.stat(GEN.sueno));
       const m = ctx.stat(GEN.motivacion);
-      ctx.addStat(GEN.motivacion, (55 - m) * 0.05);
-      ctx.addStat(GEN.estres, -1);
+      ctx.addStat(GEN.motivacion, (55 - d - m) * 0.05);
+      ctx.addStat(GEN.estres, -1 + 0.3 * d);
     },
   },
 
