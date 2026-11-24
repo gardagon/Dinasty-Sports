@@ -3,7 +3,7 @@
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
 import { rngEstable, ESTADO_INICIAL, eficienciaDeEstado, type Practica, type RasgosDe, cuposPorGrupo, grupoDePuesto, valorDeLaPrueba, NIVEL_PRACTICA, aptitudDe, parecidoDePuestos } from '@ds/contracts';
-import { interesDe, interesPor, potencialEn } from './deportistas';
+import { SESGO_DE_SEXO, interesDe, interesPor, potencialEn } from './deportistas';
 import { puestoDondeMasVale, type CondicionesDePrueba } from './puestos';
 
 /**
@@ -46,6 +46,7 @@ export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, 
   if (!n.genetica || n.nacimiento === undefined) return { entra: false };
   const edad = edadNpc(n, m.dia);
   if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
+  if (e.colegio !== undefined && SESGO_DE_SEXO.sinColegios && SESGO_DE_SEXO.desdeEdad !== undefined && edad >= SESGO_DE_SEXO.desdeEdad && SESGO_DE_SEXO.deportes?.includes(pob.deporte)) return { entra: false };
   const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas, plazasDeMas);
   if (!plantel) return { entra: false };
   const potencial = potencialEn(n.id, n.genetica, pob);

@@ -23,6 +23,7 @@ const argSolo = process.argv.find((x) => x.startsWith('--solo='))?.slice(7) as '
 if (argChicas || argSolo) SESGO_DE_SEXO.deportes = ['futbol'];
 if (argChicas) SESGO_DE_SEXO.chicas = Number(argChicas.split('=')[1] ?? 0.111);
 if (argSolo) { SESGO_DE_SEXO.solo = argSolo; SESGO_DE_SEXO.desdeEdad = 12; }
+if (process.argv.includes('--sin-colegios')) { SESGO_DE_SEXO.sinColegios = true; SESGO_DE_SEXO.desdeEdad = 12; }
 const EQUILIBRAR = process.argv.includes('--equilibrar');
 const NUEVO = process.argv.includes('--nuevo') || EQUILIBRAR;
 if (NUEVO) {

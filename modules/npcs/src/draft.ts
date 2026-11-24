@@ -3,7 +3,7 @@
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
 import { avisarDelProgreso, type CategoriaDef, rngEstable, cuposPorGrupo, grupoDePuesto, ATRACTIVO_DE_TAMANO, type Rng, aptitudDe, type MotivoDeEquipoSinNinos } from '@ds/contracts';
-import { interesDe, interesPor } from './deportistas';
+import { SESGO_DE_SEXO, interesDe, interesPor } from './deportistas';
 import { type MiembroDeClub } from './equipos';
 import { puestoDondeMasVale } from './puestos';
 import { type Rendimientos } from './semana';
@@ -161,7 +161,8 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
   };
   // **Los que se quedan en el club de su colegio** (decisión del usuario, 17/11/2026): de los alumnos de un colegio con club solo va a probar a los clubes de fuera un porcentaje según la edad; los demás
   // no los ven los clubes de fuera hasta que el colegio ha escogido (después, los que sobran del colegio ya son descartes como los demás). Los que prueban y no entran siguen en la bolsa de su colegio.
-  const quedan = losQueSeQuedan(bolsa(), new Set(clubes.flatMap((e) => (e.colegio === undefined ? [] : [e.colegio]))), cat, m.dia);
+  const sinColegios = !!SESGO_DE_SEXO.sinColegios && SESGO_DE_SEXO.desdeEdad !== undefined && cat.edadMin >= SESGO_DE_SEXO.desdeEdad;
+  const quedan = losQueSeQuedan(bolsa(), new Set(sinColegios ? [] : clubes.flatMap((e) => (e.colegio === undefined ? [] : [e.colegio]))), cat, m.dia);
   let protegerAlColegio = true;
   const visiblePara = (e: EquipoGuardado, xs: Aspirante[]): Aspirante[] => (e.colegio === undefined && protegerAlColegio ? xs.filter((a) => !quedan.has(a.npc.id)) : xs);
   // Para contarlo (`DIAGNOSTICO.traza`): no cambia nada.

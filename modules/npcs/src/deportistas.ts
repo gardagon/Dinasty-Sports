@@ -166,7 +166,7 @@ export const interesPor = (rasgos: RasgosDe | undefined, deporte: string): numbe
  * Solo para medir (apagado por defecto: la huella no cambia). `chicas`: fracción de las chicas que conservan su interés por un deporte (sesgo por sexo: con ~50 % de chicas, 0,111 deja ~10 % de chicas entre los
  * que quieren jugar); `desdeEdad` y `solo`: desde esa edad de juego solo se ven los de ese sexo (para repartir chicos y chicas por separado en dos mundos de la misma semilla).
  */
-export const SESGO_DE_SEXO: { chicas?: number; desdeEdad?: number; solo?: 'm' | 'f'; deportes?: string[] } = {};
+export const SESGO_DE_SEXO: { chicas?: number; desdeEdad?: number; solo?: 'm' | 'f'; deportes?: string[]; /** Desde `desdeEdad` los colegios no tienen equipo (el femenino solo en clubes externos). */ sinColegios?: boolean } = {};
 
 /** `interesPor` de una persona con el sesgo por sexo de medida (si está apagado, es el de siempre). */
 export const interesDe = (n: { id: string; gender?: string; rasgos?: RasgosDe; nacimiento?: number }, deporte: string, edad?: number): number => {

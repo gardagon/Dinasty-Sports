@@ -61,3 +61,18 @@ Lectura: con las chicas por categoría, solo 1 club de 13 tiene equipo femenino 
 - Cadete sale con 12 % de chicas (fluctuación del hash de interés con pocas chicas: 35–44).
 - Juvenil chicas: 41 y 0 equipos; con el método de juvenil (J1) no se puede formar ninguno con 13 clubes.
 - Benjamín 53: un club pequeño sin ningún equipo (A=B=0) y B de 1 niño antes de la extensión.
+
+
+## 6. Regla base del usuario: equipos femeninos solo en clubes externos (semillas 51–60)
+
+`--solo=f --sin-colegios`: desde infantil los colegios no tienen equipo y sus alumnas van a los 9 clubes externos con el sorteo de siempre. Resultado (media y rango):
+
+| Cat | Chicas | Equipos femeninos (A·B) | Clubes con equipo (de 9 externos) | Niñas/equipo mín–máx | <14 | Sin equipo | Semillas con ≥2 · ≥4 equipos |
+|---|---|---|---|---|---|---|---|
+| infantil | 35 (24–45) | 1,9 (1–3) (1,1 · 0,8) | 1,1 (1–2) | 16,4–19,2 | 0 | 2 (0–5) | 8 · 0 |
+| cadete | 40 (35–44) | 2,0 (2–2) (1,1 · 0,9) | 1,1 (1–2) | 16,4–21,0 | 0 | 2 (0–4) | 10 · 0 |
+| juvenil | 41 (36–46) | 0 | 0 | — | — | 41 (todas) | 0 · 0 |
+
+(Con los colegios como antes: 1,3 · 1,7 · 0 equipos y 8 · 6 · 41 sin equipo.) Quitar los colegios ayuda: **infantil sube de 1,3 a 1,9 equipos y cadete de 1,7 a 2,0**, y las chicas sin equipo bajan de 8 y 6 a 2 y 2; juvenil sigue sin ninguno. Dos equipos por categoría no forman liga (en el resto del juego una división tiene 10–12): **no hay liga femenina con las categorías por separado.**
+
+**¿Hace falta juntar categorías?** Sí, si se quiere una liga de 4 o más equipos. Opciones (sin aplicar; mismas cotas de 14 por equipo): alevín+infantil 66 chicas → 4,2 equipos; infantil+cadete 74 → 4,7; cadete+juvenil 80 → 5,1; un solo femenino de 12 a 18 115 → 7,7 (7–8). Con 7–8 equipos sí es una liga pequeña (7 equipos = 12 jornadas a doble vuelta); con 4–5 apenas (6–10 jornadas). A cambio hay 3–4 años de diferencia entre jugadoras (12 a 18).
