@@ -5,6 +5,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/11/2026 — Variantes de país con `base`; «Nueva partida» y menú a pantalla ancha
+
+- **`PaisDef.base`:** una variante de un país (ciudad grande, ciudad de prueba) usa los datos del deporte de su país base y ya no sale «(con los datos de España: … aún no tiene los suyos)». `datosDeDeporte` busca por `id` y luego por `base` (cambia en un solo sitio, así que fútbol y atletismo lo heredan). Alternativa descartada: copiar los datos de España bajo cada id de variante.
+- El nombre «España · ciudad grande» ya no lleva el tiempo de creación; el aviso queda en «Nueva partida».
+- **Escritorio (≥ 1280 px en «Automático»):** «Nueva partida» en dos columnas (la partida —país, sexo, deportes, contenido duro— a la izquierda; nombre, apellido y «Empezar» a la derecha, fija al desplazar) y el menú a 760 px con los botones en rejilla. En móvil el HTML y el CSS son los de siempre. Relevo: `docs/relevo/arreglos-24-11.md`.
+
 ## 24/11/2026 — Hogares activados por defecto; más hermanos
 
 - **Hogares activados por defecto en las partidas nuevas** (`CiudadDef.hogares`). Las guardadas siguen sin hogares y sin migrar. Medido con la ciudad grande:
