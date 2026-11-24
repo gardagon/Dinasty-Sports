@@ -13,7 +13,9 @@ import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
 import { DIAGNOSTICO, atractivoDe, edadDeJuego, edadNpc, type EventoDeTraza, type FotoDeClub, type NpcsState } from '@ds/mod-npcs';
 
-const args = process.argv.slice(2).filter((x) => !x.startsWith('--'));
+const iv = process.argv.indexOf('--variante');
+const variante = iv >= 0 ? process.argv[iv + 1] : undefined;
+const args = process.argv.slice(2).filter((x, i, xs) => !x.startsWith('--') && xs[i - 1] !== '--variante');
 const flag = (n: string): boolean => process.argv.includes(`--${n}`);
 const semilla = Number(args[0] ?? 33);
 const ciudad = args[1] ?? 'grande';
@@ -21,6 +23,9 @@ const categoria = args[2] ?? 'benjamin';
 const soloClub = args[3];
 const PAIS = ciudad === 'actual' ? PAIS_ESPANA : ciudad === 'prueba' ? PAIS_CIUDAD_DE_PRUEBA : flag('sin-hogares') ? PAIS_CIUDAD_GRANDE_SIN_HOGARES : PAIS_CIUDAD_GRANDE;
 registrarPais(PAIS);
+if (variante === 'paso1-14x2') DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
+else if (variante) throw new Error(`Variante desconocida: ${variante} (paso1-14x2)`);
+class Parar extends Error {}
 
 const out: string[] = [];
 const say = (t = ''): number => out.push(t);
@@ -37,7 +42,8 @@ const guardados: { momento: 'crear' | 'verano'; e: EventoDeTraza; fotos?: FotoDe
 DIAGNOSTICO.traza = (e) => {
   if (e.categoria !== categoria) return;
   // Se calcula ya (las fotos son del momento): el estado cambia después.
-  guardados.push({ momento, e, fotos: e.foto(), bolsa: e.fase === 'inicio' ? e.bolsa() : undefined });
+  guardados.push({ momento, e, fotos: e.foto(), bolsa: e.fase === 'inicio' || (variante && e.fase === 'fin de la primera ronda') ? e.bolsa() : undefined });
+  if (variante && e.fase === 'fin de la primera ronda') throw new Parar();
 };
 DIAGNOSTICO.alAcomodar = (d) => {
   if (d.categoria === categoria) guardados.push({ momento, e: { categoria, fase: 'acomodo', datos: {}, foto: () => [], bolsa: () => [] }, acomodo: d });
@@ -54,6 +60,31 @@ const tablaDeFoto = (fotos: readonly FotoDeClub[], antes?: readonly FotoDeClub[]
   });
   tabla(['Club', 'Equipos', 'Niños', '…de 1.er año', '…de 2.º', 'Caben (máx × equipos)', 'Faltan para 14 × equipos (la cuenta del club)', 'Sobran del máximo'], filas);
 };
+
+if (variante) {
+  const base = { seed: semilla, pais: PAIS.id, deportes: ['atletismo', 'futbol'] };
+  try { nuevaPartida(base, [...MODULOS, futbol]); } catch (err) { if (!(err instanceof Parar)) throw err; }
+  const fin = guardados.find((x) => x.e.fase === 'fin de la primera ronda');
+  const ini = guardados.find((x) => x.e.fase === 'inicio');
+  if (!fin?.fotos || !fin.bolsa || !ini?.bolsa) throw new Error('No se llegó al final de la primera ronda');
+  const quedan = new Set(fin.e.datos.quedan as string[]);
+  say(`# Variante ${variante} · ${categoria} · semilla ${semilla} · ${PAIS.id}`);
+  say();
+  say('Primera ronda con 14 de 1.er año y 14 del resto de años por club (el resto igual: mismo orden de clubes, atractivo, colegios solo con sus alumnos). Sin completar con el otro año.');
+  say();
+  const filas = fin.fotos.map((f) => { const r = f.total - f.primeros; const eq = (f.primeros >= 14 ? 1 : 0) + (r >= 14 ? 1 : 0); return { f, r, eq }; });
+  tabla(['Club', '1.er año', 'Faltan', 'Resto de años', 'Faltan', 'Equipos (uno por año con 14 o más)'], filas.map(({ f, r, eq }) => [nombreDeClub(f), f.primeros, Math.max(0, 14 - f.primeros), r, Math.max(0, 14 - r), eq]));
+  tabla(['Totales', ''], [['Equipos formados', filas.reduce((t, x) => t + x.eq, 0)], ['Niños asignados', filas.reduce((t, x) => t + x.f.total, 0)], ['…en equipos de 14 o más', filas.reduce((t, x) => t + (x.f.primeros >= 14 ? x.f.primeros : 0) + (x.r >= 14 ? x.r : 0), 0)], ['Niños asignados que no llegan a 14 de su año', filas.reduce((t, x) => t + (x.f.primeros < 14 ? x.f.primeros : 0) + (x.r < 14 ? x.r : 0), 0)], ['Niños en la bolsa al empezar', ini.bolsa.length], ['Niños en la bolsa tras la primera ronda', fin.bolsa.length]]);
+  const grupos = (b: typeof fin.bolsa, primero: boolean): typeof fin.bolsa => b.filter((a) => (a.edad === Math.min(...edadesDe())) === primero);
+  function edadesDe(): number[] { const c = ini!.bolsa!.map((a) => a.edad); return [Math.min(...c), Math.max(...c)]; }
+  const cols = [...new Set(fin.bolsa.map((a) => a.colegio))].sort();
+  say('## Los que quedan en la bolsa');
+  say();
+  tabla(['Año', 'Quedan', ...cols.map((c) => `…de ${c}`), 'Se quedan en su colegio', 'Quieren probar fuera (o no tienen colegio con club)'], ([['1.er año', true], ['Resto de años', false]] as [string, boolean][]).map(([nombre, p]) => { const xs = grupos(fin.bolsa!, p); return [nombre, xs.length, ...cols.map((c) => xs.filter((a) => a.colegio === c).length), xs.filter((a) => quedan.has(a.id)).length, xs.filter((a) => !quedan.has(a.id)).length]; }));
+  DIAGNOSTICO.traza = undefined; DIAGNOSTICO.variantePrimeraRonda = undefined;
+  console.log(out.join('\n'));
+  process.exit(0);
+}
 
 const g = nuevaPartida({ seed: semilla, pais: PAIS.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
 const estado = (): NpcsState => g.moduleState<NpcsState>('npcs') as NpcsState;

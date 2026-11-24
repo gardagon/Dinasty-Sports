@@ -197,3 +197,18 @@ El hueco de la estructura es el paso 2: el juego **decide el número de equipos 
 6. **Juvenil** (P6). Equipos reservados por año con 4 máximo no encajan con tres años de edad y 18 sin colegio; ¿por nivel? ¿hasta 5 equipos?
 
 No se ha implementado nada de esto: las cifras de «Otras reglas» son solo cuentas sobre los niños de cada club, no una prueba del juego (el efecto en los fichajes, los ascensos y la liga solo se sabría al aplicar la regla).
+
+## Variante paso1-14x2 (semilla 33): la primera ronda con 14 de cada año
+
+`npm run reparto:paso -- 33 grande benjamin --variante paso1-14x2` (y `juvenil`): cada club recoge 14 de 1.er año y 14 del resto de años, sin completar con el otro año; el resto igual (orden, atractivo, colegios con sus alumnos). Se para tras la primera ronda. Es una bandera de medida (`DIAGNOSTICO.variantePrimeraRonda`, apagada por defecto: la huella no cambia). Salidas completas en `reparto-paso-a-paso/variante-paso1-14x2-*.md`.
+
+| | Benjamín | Juvenil |
+|---|---:|---:|
+| Equipos formados (uno por año con 14 o más) | 26 | 22 |
+| Niños asignados | 364 | 344 (36 en equipos de menos de 14 de su año) |
+| Bolsa antes · después | 554 · 190 | 784 · 440 |
+| Quedan de 1.er año · del resto | 98 · 92 | 101 · 339 |
+| …se quedan en su colegio | 35 · 40 | 16 · 19 |
+| …quieren probar fuera | 63 · 52 | 85 · 320 (170 sin colegio) |
+
+Benjamín: los 13 clubes llegan a 14 + 14. Juvenil: 11 de 13 llegan; el colegio del personaje (6 + 12) y colegio2 (5 + 13) se quedan sin equipo por año, porque los clubes de fuera van primero y se llevan a sus alumnos.

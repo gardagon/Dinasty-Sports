@@ -198,6 +198,11 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         if (faltan > 0 && kDe(e) >= 2) van = [...van, ...resto.filter((a) => primeroAnio(a.npc) === primero).sort((x, y) => clave(y) - clave(x)).slice(0, faltan)];
       }
     }
+    if (DIAGNOSTICO.variantePrimeraRonda && etapa.startsWith('1.')) {
+      const n = DIAGNOSTICO.variantePrimeraRonda.porAnio;
+      const orden = (xs: Aspirante[]): Aspirante[] => [...xs].sort((x, y) => y.valor - x.valor || (x.npc.id < y.npc.id ? -1 : 1));
+      van = [...orden(van.filter((a) => primeroAnio(a.npc))).slice(0, n), ...orden(van.filter((a) => !primeroAnio(a.npc))).slice(0, n)];
+    }
     tr('ronda', e.club, { etapa, kAntes, objetivo: k, porcentaje, enBolsa: toda.length, elegibles: elegibles.length, van: van.length, vanPrimeros: van.filter((a) => primeroAnio(a.npc)).length });
     // El club monta sus equipos de uno en uno (así cada plantilla respeta su reparto por puestos): en cada paso escoge a los mejores por puesto (primero los grupos más escasos, con quien mejor juega en
     // ellos y prefiere ese puesto; después el resto por mérito). Cada equipo necesita sus 14 (con 14 basta, aunque no lleguen a 18, también el del colegio): si un paso no los reúne, se deshace.
@@ -265,7 +270,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
   etapa = '1. primera ronda (A y B)';
   for (const e of fuera) ronda(e, 2, atractivoDe(e));
   for (const e of delColegio) ronda(e, 2, null);
-  tr('fin de la primera ronda', undefined);
+  tr('fin de la primera ronda', undefined, { quedan: [...quedan] });
   // 2. Segunda ronda: C y D. Los equipos que salen con la bolsa (a un mínimo por equipo) se sortean entre clubes y colegios (como mucho dos más cada uno).
   const minimo = Math.min(...clubes.map(minimoDe));
   let equiposQueSalen = Math.min(Math.floor(bolsa().length / minimo), clubes.length * 2);
@@ -344,6 +349,8 @@ export interface EventoDeTraza {
   bolsa: () => { id: string; edad: number; colegio: string; interes: number; valor: number }[];
 }
 export const DIAGNOSTICO: {
+  /** Solo para medir (`npm run reparto:paso -- … --variante paso1-14x2`), apagado por defecto: en la primera ronda cada club recoge `porAnio` niños de primer año y `porAnio` de los demás años (no mira la edad solo si no hay bastantes: aquí no se completa con el otro año). */
+  variantePrimeraRonda?: { porAnio: number };
   traza?: (d: EventoDeTraza) => void;
   /** Lo que pasa con un club y categoría al acomodar a los que no caben en ningún equipo (`acomodarSobrantes`). */
   alAcomodar?: NonNullable<MercadoDeFichajes['alAcomodar']>;
