@@ -276,3 +276,19 @@ Benjamín: los 13 clubes llegan a 14 + 14. Juvenil: 11 de 13 llegan; el colegio 
 | Por debajo de 14 · asignados · fuera | 0 · 554 · 0 | 0 · 522 · 0 |
 
 Precisión del usuario (24/11): en benjamín y alevín los equipos de un solo año (C de 2.º y D de 1.º, en colegios y en externos) llevan de 14 a 22, no hasta 18, igual que los C mixtos. Aplicado en `paso7`: el resultado con la semilla 33 no cambia (ningún equipo llega a 18 porque la bolsa se agota antes).
+
+## Variante juvenil (J1–J3, semilla 33)
+
+`npm run reparto:paso -- 33 grande juvenil --variante juvenil`. Salida: `variante-juvenil-33.md`. Bandera de medida `DIAGNOSTICO.variantJuvenil`, apagada por defecto.
+
+**J1.** Cada niño de la bolsa va a un club en un solo reparto (el secuencial de siempre haría que el primer club cogiera el 60 % de todos sin máximo): su colegio, si tiene club y quiere seguir en él; si no, un club externo sorteado con peso su atractivo. Sin máximo, prueba ni cupos de puesto. Club con 14+ de cada año: 3 equipos (A = 3.º, B = 2.º, C = 1.º); con 14+ de 3.º y 2.º juntos y 14+ de 1.º: 2 (A = 3.º y 2.º, B = 1.º); si no, uno mixto con 14+; si no, sin equipo. **J2.** De abajo arriba con la alineación del juego: C→B y B→A los que serían titulares, sin bajar de 14 al de abajo (los mejores primero); por encima de 22, se descarta a los peores del grupo de puestos que más se pasa de su cupo. **J3.** Los descartados buscan equipo en otros clubes (colegios, solo sus alumnos), al equipo de su año; si está lleno, si ganan el puesto al peor de su puesto, que baja en cascada al equipo de abajo o sale libre; 3 rondas.
+
+| | Resultado |
+|---|---|
+| J1: clubes con 3 equipos · 1 equipo · ninguno | 9 (todos los externos) · 3 (colegios) · 1 (colegio2, no llega a 14) |
+| J2: suben C→B · B→A · descartados | 45 · 57 · 143 (más 13 de colegio2) |
+| J3 ronda 1 · 2 · 3: buscan / encuentran / cascadas / salen libres | 156 / 73 / 73 / 32 · 115 / 22 / 17 / 15 · 108 / 14 / 12 / 12 |
+| Equipos (A · B · C) | 30 (12 · 9 · 9) |
+| Niños por equipo (mín · máx · media) | 18 · 22 · 21,7 |
+| Por debajo de 14 · asignados | 0 · 652 |
+| Abandonan o se quedan fuera (3.º · 2.º · 1.º) | 106 (72 · 23 · 11) |

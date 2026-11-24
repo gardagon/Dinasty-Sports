@@ -2,7 +2,7 @@
  * El «draft» de los equipos, completar o cerrar equipos y el cambio de curso de los deportistas.
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
-import { avisarDelProgreso, type CategoriaDef, rngEstable, cuposPorGrupo, ATRACTIVO_DE_TAMANO, type Rng, aptitudDe, type MotivoDeEquipoSinNinos } from '@ds/contracts';
+import { avisarDelProgreso, type CategoriaDef, rngEstable, cuposPorGrupo, grupoDePuesto, ATRACTIVO_DE_TAMANO, type Rng, aptitudDe, type MotivoDeEquipoSinNinos } from '@ds/contracts';
 import { interesPor } from './deportistas';
 import { type MiembroDeClub } from './equipos';
 import { puestoDondeMasVale } from './puestos';
@@ -266,6 +266,129 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
   };
   const fuera = clubes.filter((e) => e.colegio === undefined).sort((a, b) => atractivoDe(b) - atractivoDe(a) || b.calidad - a.calidad || (a.club < b.club ? -1 : 1));
   const delColegio = clubes.filter((e) => e.colegio !== undefined).sort((a, b) => (a.club < b.club ? -1 : 1));
+  // Variante de medida (apagada por defecto): juvenil por año, subidas por nivel y búsqueda de equipo.
+  if (DIAGNOSTICO.variantJuvenil && catId === 'juvenil') {
+    const vj = DIAGNOSTICO.variantJuvenil;
+    const TOPE = 22;
+    for (const e of clubes) { e.plantillaPorCategoria = { ...e.plantillaPorCategoria!, max: 999 }; ponerK(e, 4); }
+    const anioDe = (n: Npc): number => (edadDeJuego(n, m.dia) ?? cat.edadMin) - cat.edadMin + 1;
+    const lugares = [...delColegio, ...fuera];
+    // J1: un solo reparto. Cada niño de la bolsa va a un club: si su colegio tiene club y quiere seguir en él, a ese; si no, a un club externo sorteado con peso su atractivo.
+    const pesoTotal = fuera.reduce((t, e) => t + atractivoDe(e), 0);
+    const destinoDe = new Map<string, Aspirante[]>(clubes.map((e) => [e.club, []]));
+    for (const a of bolsa()) {
+      const suyo = delColegio.find((c) => c.colegio === a.colegio);
+      let destino: EquipoGuardado | undefined = suyo && quedan.has(a.npc.id) ? suyo : undefined;
+      if (!destino) {
+        let r = rngEstable('reparto-j1', a.npc.genetica?.semilla ?? 0, a.npc.id, catId, m.dia).next() * pesoTotal;
+        for (const e of fuera) { r -= atractivoDe(e); if (r <= 0) { destino = e; break; } }
+        destino ??= fuera[fuera.length - 1];
+      }
+      destinoDe.get(destino.club)!.push(a);
+    }
+    type Eq = { A: Set<string>; B?: Set<string>; C?: Set<string> };
+    const equipos = new Map<string, Eq>();
+    const sinEquipo: Aspirante[] = [];
+    for (const e of lugares) {
+      const lista = destinoDe.get(e.club)!;
+      const dentro: Npc[] = [];
+      for (const a of lista) {
+        const n = m.lista.get(a.npc.id);
+        if (n && n.deporte === undefined && intentarEntrar(m, n, e, pob, { sinPrueba: !o.conPrueba, soloHueco: true, relajado: true }).entra) dentro.push(m.lista.get(a.npc.id)!);
+      }
+      const y = (k: number): Npc[] => dentro.filter((n) => anioDe(n) === k);
+      const n1 = y(1).length, n2 = y(2).length, n3 = y(3).length;
+      let eq: Eq | undefined;
+      if (n3 >= 14 && n2 >= 14 && n1 >= 14) eq = { A: new Set(y(3).map((n) => n.id)), B: new Set(y(2).map((n) => n.id)), C: new Set(y(1).map((n) => n.id)) };
+      else if (n3 + n2 >= 14 && n1 >= 14) eq = { A: new Set([...y(3), ...y(2)].map((n) => n.id)), B: new Set(y(1).map((n) => n.id)) };
+      else if (dentro.length >= 14) eq = { A: new Set(dentro.map((n) => n.id)) };
+      tr('J1', e.club, { vienen: lista.length, entran: dentro.length, n1, n2, n3, equipos: eq ? (eq.C ? 3 : eq.B ? 2 : 1) : 0, A: eq?.A.size ?? 0, B: eq?.B?.size ?? 0, C: eq?.C?.size ?? 0 });
+      if (eq) equipos.set(e.club, eq); else { liberar(dentro.map((n) => n.id)); for (const a of lista) if (dentro.some((n) => n.id === a.npc.id)) sinEquipo.push(a); }
+    }
+    const cupos = cuposPorGrupo(pob.puestos!, TOPE);
+    const vistaDe = (id: string): { puesto: string; valores: Record<string, number>; valor: number } | undefined => { const n = m.lista.get(id); if (!n) return undefined; const puesto = puestoDeJugador(n, pob, m.val, m.dia); const valores = valoresPorPuestoDe(n, pob, m.val, m.dia); return puesto && valores ? { puesto, valores, valor: valorEnSuPuesto(n, pob, m.val, m.dia, puesto) } : undefined; };
+    const valorId = (id: string): number => vistaDe(id)?.valor ?? 0;
+    const grupoId = (id: string): string => { const v = vistaDe(id); return (v && grupoDePuesto(pob.puestos!, v.puesto)) || '?'; };
+    const titularesDe = (ids: string[]): Set<string> => new Set(vj.titulares(ids.flatMap((id) => { const v = vistaDe(id); return v ? [{ id, puesto: v.puesto, valores: v.valores, valor: v.valor, estado: { baja: false } as never }] : []; })));
+    const descartados: { id: string; club: string; de: string }[] = [];
+    /** Sube del equipo de abajo al de arriba a los que serían titulares en él (los mejores primero) sin dejar al de abajo por debajo de 14. */
+    const subir = (abajo: Set<string>, arriba: Set<string>): number => {
+      const xi = titularesDe([...abajo, ...arriba]);
+      let sube = 0;
+      for (const id of [...abajo].filter((x) => xi.has(x)).sort((x, y) => valorId(y) - valorId(x) || (x < y ? -1 : 1))) { if (abajo.size - 1 < 14) break; abajo.delete(id); arriba.add(id); sube++; }
+      return sube;
+    };
+    /** Por encima de 22 se descartan los peores del grupo de puestos que más se pasa de su cupo. */
+    const recortar = (set: Set<string>, club: string, letra: string): number => {
+      let quitados = 0;
+      while (set.size > TOPE) {
+        const porGrupo = new Map<string, string[]>();
+        for (const id of set) (porGrupo.get(grupoId(id)) ?? porGrupo.set(grupoId(id), []).get(grupoId(id))!).push(id);
+        const [, ids] = [...porGrupo].sort((a, b) => (b[1].length - (cupos[b[0]] ?? 0)) - (a[1].length - (cupos[a[0]] ?? 0)))[0];
+        const peor = [...ids].sort((x, y) => valorId(x) - valorId(y) || (x < y ? -1 : 1))[0];
+        set.delete(peor); descartados.push({ id: peor, club, de: letra }); quitados++;
+      }
+      return quitados;
+    };
+    for (const e of lugares) {
+      const eq = equipos.get(e.club);
+      if (!eq) continue;
+      const antes = { A: eq.A.size, B: eq.B?.size ?? 0, C: eq.C?.size ?? 0 };
+      let cb = 0, ba = 0, dC = 0, dB = 0, dA = 0;
+      if (eq.C && eq.B) { cb = subir(eq.C, eq.B); dC = recortar(eq.C, e.club, 'C'); }
+      if (eq.B) { ba = subir(eq.B, eq.A); dB = recortar(eq.B, e.club, 'B'); }
+      dA = recortar(eq.A, e.club, 'A');
+      tr('J2', e.club, { antes, cb, ba, dC, dB, dA, despues: { A: eq.A.size, B: eq.B?.size ?? 0, C: eq.C?.size ?? 0 } });
+    }
+    for (const d of descartados) liberar([d.id]);
+    // J3: los descartados (y los clubes sin equipo) buscan equipo en otros clubes, hasta 3 rondas, con cascada cuando el que llega gana el puesto.
+    let pendientes: { id: string; club: string }[] = [...descartados.map((d) => ({ id: d.id, club: d.club })), ...sinEquipo.map((a) => ({ id: a.npc.id, club: '' }))];
+    const letrasDe = (eq: Eq): ('A' | 'B' | 'C')[] => (eq.C ? ['A', 'B', 'C'] : eq.B ? ['A', 'B'] : ['A']);
+    const equipoParaAnio = (eq: Eq, anio: number): 'A' | 'B' | 'C' => (eq.C ? (anio === 3 ? 'A' : anio === 2 ? 'B' : 'C') : eq.B ? (anio === 1 ? 'B' : 'A') : 'A');
+    let abandonan = 0;
+    for (let ronda3 = 1; ronda3 <= 3; ronda3++) {
+      let colocados = 0, cascadas = 0;
+      const salenLibres: { id: string; club: string }[] = [];
+      const sinSitio: { id: string; club: string }[] = [];
+      /** Mete a `id` en el equipo `letra` del club; si está lleno y gana el puesto, desplaza al peor de su puesto, que baja al equipo de abajo (y así en cascada) o sale libre. */
+      const colocar = (e: EquipoGuardado, letra: 'A' | 'B' | 'C', id: string): boolean => {
+        const eq = equipos.get(e.club)!;
+        const set = eq[letra]!;
+        if (set.size < TOPE) { set.add(id); return true; }
+        const g = grupoId(id);
+        const rivales = [...set].filter((x) => grupoId(x) === g).sort((x, y) => valorId(x) - valorId(y) || (x < y ? -1 : 1));
+        const peor = rivales[0];
+        if (!peor || valorId(id) <= valorId(peor)) return false;
+        set.delete(peor); set.add(id); cascadas++;
+        const letras = letrasDe(eq);
+        const siguiente = letras[letras.indexOf(letra) + 1];
+        if (!siguiente || !colocar(e, siguiente, peor)) { salenLibres.push({ id: peor, club: e.club }); liberar([peor]); }
+        return true;
+      };
+      for (const p of [...pendientes].sort((x, y) => valorId(y.id) - valorId(x.id) || (x.id < y.id ? -1 : 1))) {
+        const n = m.lista.get(p.id);
+        if (!n || n.deporte !== undefined) continue;
+        const a = bolsa().find((z) => z.npc.id === p.id);
+        let ok = false;
+        for (const e of lugares) {
+          if (e.club === p.club || (e.colegio !== undefined && (!a || a.colegio !== e.colegio))) continue;
+          const eq = equipos.get(e.club);
+          if (!eq) continue;
+          if (!intentarEntrar(m, n, e, pob, { sinPrueba: !o.conPrueba, soloHueco: true, relajado: true }).entra) continue;
+          const letra = equipoParaAnio(eq, anioDe(m.lista.get(p.id)!));
+          if (colocar(e, letra, p.id)) { ok = true; colocados++; break; }
+          liberar([p.id]);
+        }
+        if (!ok) sinSitio.push(p);
+      }
+      pendientes = [...sinSitio, ...salenLibres];
+      tr('J3', undefined, { ronda: ronda3, intentan: colocados + sinSitio.length, colocados, cascadas, salenLibres: salenLibres.length, sinSitio: sinSitio.length });
+    }
+    abandonan = pendientes.length;
+    for (const p of pendientes) liberar([p.id]);
+    tr('fin J3', undefined, { abandonan, abandonanPorAnio: [1, 2, 3].map((k) => pendientes.filter((p) => { const n = m.lista.get(p.id); return n ? anioDe(n) === k : false; }).length), equipos: lugares.map((e) => { const q = equipos.get(e.club); return { club: e.club, A: q?.A.size ?? 0, B: q?.B?.size ?? 0, C: q?.C?.size ?? 0 }; }) });
+    return;
+  }
   // 1. Primera ronda: A y B.
   etapa = '1. primera ronda (A y B)';
   for (const e of fuera) ronda(e, 2, atractivoDe(e));
@@ -604,6 +727,8 @@ export interface EventoDeTraza {
 export const DIAGNOSTICO: {
   /** Solo para medir (`npm run reparto:paso -- … --variante paso1-14x2`), apagado por defecto: en la primera ronda cada club recoge `porAnio` niños de primer año y `porAnio` de los demás años (no mira la edad solo si no hay bastantes: aquí no se completa con el otro año). */
   variantePrimeraRonda?: { porAnio: number };
+  /** Solo para medir (`--variante juvenil`), apagado por defecto: juvenil (3 años) por año y sin límites (J1), subidas por nivel de abajo arriba con máximo 22 (J2) y descartados que buscan equipo en otros clubes en hasta 3 rondas (J3). `titulares` es la alineación del juego (la pone la herramienta). */
+  variantJuvenil?: { titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
   /** Solo para medir (`--variante paso2-3`, con la anterior), apagado por defecto: tras la primera ronda, 2) en las categorías con `subirTitulares` los de primer año que serían titulares en el A suben a él (`titulares` es la alineación del juego, que pone la herramienta) y 3) cada equipo (el A con los demás años, el B con los de primer año) se completa desde la bolsa hasta `maxPorEquipo`. Se detiene ahí. */
   variantePaso23?: { maxPorEquipo: Record<string, number>; subirTitulares: Record<string, boolean>; /** Paso 4 (solo donde `subirTitulares`): el B que no llega a 14 se completa con niños de 2.º año de la bolsa hasta este número (primero los colegios con sus alumnos); pasa a ser mixto. */ completarBMixto?: number; /** Pasos 5 y 6 (tras el 4): reagrupar los equipos que siguen bajo 14, C mixto de colegio y sorteo entre clubes externos de lo que queda. */ reagrupar?: boolean; /** Paso 7 (infantil y cadete, tras el 6): los que quedan fuera van a un B mixto de un club al que puedan ir y, si no caben, a un A; máximo 22. */ paso7?: boolean; /** Benjamín y alevín tras el paso 3: C y D de colegio con los que quieren seguir y sorteo entre externos (pares C de 2.º año + D de 1.º, y C mixtos hasta 22). */ bolsaBA?: boolean; titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
   traza?: (d: EventoDeTraza) => void;

@@ -25,7 +25,7 @@ const PAIS = ciudad === 'actual' ? PAIS_ESPANA : ciudad === 'prueba' ? PAIS_CIUD
 registrarPais(PAIS);
 if (variante === 'paso1-14x2' || variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14' || variante === 'paso5-6' || variante === 'paso7') DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
 if (variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14' || variante === 'paso5-6' || variante === 'paso7') DIAGNOSTICO.variantePaso23 = { ...(variante === 'paso7' ? { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true } : variante === 'paso5-6' ? { completarBMixto: 20, reagrupar: true } : variante === 'paso4' ? { completarBMixto: 20 } : variante === 'paso4-14' ? { completarBMixto: 14 } : {}), maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares: (js) => convocarYAlinear(js as never).titulares.map((x) => x.id) };
-else if (variante && variante !== 'paso1-14x2') throw new Error(`Variante desconocida: ${variante} (paso1-14x2, paso2-3, paso4, paso4-14, paso5-6, paso7)`);
+else if (variante && variante !== 'paso1-14x2' && variante !== 'juvenil') throw new Error(`Variante desconocida: ${variante} (paso1-14x2, paso2-3, paso4, paso4-14, paso5-6, paso7, juvenil)`);
 class Parar extends Error {}
 
 const out: string[] = [];
@@ -62,6 +62,46 @@ const tablaDeFoto = (fotos: readonly FotoDeClub[], antes?: readonly FotoDeClub[]
   tabla(['Club', 'Equipos', 'Niños', '…de 1.er año', '…de 2.º', 'Caben (máx × equipos)', 'Faltan para 14 × equipos (la cuenta del club)', 'Sobran del máximo'], filas);
 };
 
+if (variante === 'juvenil') {
+  const evs: { fase: string; club?: string; datos: Record<string, unknown>; bolsa?: ReturnType<EventoDeTraza['bolsa']> }[] = [];
+  DIAGNOSTICO.variantJuvenil = { titulares: (js) => convocarYAlinear(js as never).titulares.map((x) => x.id) };
+  DIAGNOSTICO.traza = (e) => {
+    if (e.categoria !== 'juvenil') return;
+    if (['J1', 'J2', 'J3', 'fin J3'].includes(e.fase)) evs.push({ fase: e.fase, ...(e.club ? { club: e.club } : {}), datos: e.datos, ...(e.fase === 'fin J3' ? { bolsa: e.bolsa() } : {}) });
+    if (e.fase === 'fin J3') throw new Parar();
+  };
+  try { nuevaPartida({ seed: semilla, pais: PAIS.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]); } catch (err) { if (!(err instanceof Parar)) throw err; }
+  say(`# Variante juvenil (J1–J3) · semilla ${semilla} · ${PAIS.id}`);
+  say();
+  say('**J1.** Cada niño de la bolsa va a un club en un solo reparto (el secuencial de siempre, con un club cogiendo el 60 % de todos antes que el siguiente, no vale sin máximo): si su colegio tiene club y quiere seguir en él, a ese; si no, a un club externo sorteado con peso su atractivo. Sin máximo ni prueba ni cupos de puesto. Cada club con 14 de cada año hace 3 equipos (A = 3.º, B = 2.º, C = 1.º); si no, con 14+ de 3.º y 2.º juntos y 14+ de 1.º, 2 (A = 3.º y 2.º, B = 1.º); si no, uno mixto si llega a 14; si no, sus niños quedan sin equipo. **J2.** De abajo arriba, con la alineación del juego: los del C que serían titulares en el B suben sin dejar al C por debajo de 14 (los mejores primero); el C pasado de 22 descarta a los peores del grupo de puestos que más se pasa de su cupo; lo mismo B→A y A. **J3.** Los descartados buscan equipo en otros clubes (colegios, solo sus alumnos): al equipo de su año si hay hueco (<22) o, si está lleno, si ganan el puesto al peor de su puesto, que baja al equipo de abajo (en cascada) o sale libre; hasta 3 rondas; al final, los que no encuentran, abandonan.');
+  say();
+  say('## J1');
+  say();
+  const j1 = evs.filter((x) => x.fase === 'J1');
+  tabla(['Club', 'Le tocan', '3.º', '2.º', '1.º', 'Equipos', 'A', 'B', 'C'], j1.map((x) => [x.club!, Number(x.datos.vienen), Number(x.datos.n3), Number(x.datos.n2), Number(x.datos.n1), Number(x.datos.equipos) || 'ninguno', Number(x.datos.A), Number(x.datos.B) || '—', Number(x.datos.C) || '—']));
+  say('## J2');
+  say();
+  const j2 = evs.filter((x) => x.fase === 'J2');
+  const d = (x: Record<string, unknown>, k: string): Record<string, number> => x[k] as Record<string, number>;
+  tabla(['Club', 'Antes (A · B · C)', 'Suben C→B', 'Suben B→A', 'Descartes (C · B · A)', 'Después (A · B · C)'], j2.map((x) => [x.club!, `${d(x.datos, 'antes').A} · ${d(x.datos, 'antes').B} · ${d(x.datos, 'antes').C}`, Number(x.datos.cb), Number(x.datos.ba), `${x.datos.dC} · ${x.datos.dB} · ${x.datos.dA}`, `${d(x.datos, 'despues').A} · ${d(x.datos, 'despues').B} · ${d(x.datos, 'despues').C}`]));
+  say(`Total: suben C→B **${j2.reduce((t, x) => t + Number(x.datos.cb), 0)}**, B→A **${j2.reduce((t, x) => t + Number(x.datos.ba), 0)}**; descartados **${j2.reduce((t, x) => t + Number(x.datos.dC) + Number(x.datos.dB) + Number(x.datos.dA), 0)}** (más ${j1.reduce((t, x) => t + (Number(x.datos.equipos) ? 0 : Number(x.datos.entran)), 0)} de clubes que no llegaron a 14).`);
+  say();
+  say('## J3');
+  say();
+  tabla(['Ronda', 'Buscan equipo', 'Lo encuentran', 'Cascadas', 'Salen libres por la cascada', 'Siguen sin sitio'], evs.filter((x) => x.fase === 'J3').map((x) => [Number(x.datos.ronda), Number(x.datos.intentan), Number(x.datos.colocados), Number(x.datos.cascadas), Number(x.datos.salenLibres), Number(x.datos.sinSitio)]));
+  const fin = evs.find((x) => x.fase === 'fin J3')!;
+  const eq = fin.datos.equipos as { club: string; A: number; B: number; C: number }[];
+  const tam: Record<string, number[]> = { A: [], B: [], C: [] };
+  for (const q of eq) for (const l of ['A', 'B', 'C'] as const) if (q[l] > 0) tam[l].push(q[l]);
+  const todos = Object.values(tam).flat();
+  say('## Resumen final');
+  say();
+  tabla(['', ''], [['Equipos (A · B · C)', `${todos.length} (${Object.values(tam).map((x) => x.length).join(' · ')})`], ['Niños por equipo: mínimo · máximo · media', `${Math.min(...todos)} · ${Math.max(...todos)} · ${(todos.reduce((a, b) => a + b, 0) / todos.length).toFixed(1)}`], ['Equipos por debajo de 14', todos.filter((n) => n < 14).length], ['Niños asignados', todos.reduce((a, b) => a + b, 0)], ['Abandonan o se quedan fuera (3.º · 2.º · 1.º año)', `${fin.datos.abandonan} (${(fin.datos.abandonanPorAnio as number[]).slice().reverse().join(' · ')})`]]);
+  tabla(['Equipos por club', 'Clubes'], [[1, j1.filter((x) => Number(x.datos.equipos) === 1).length], [2, j1.filter((x) => Number(x.datos.equipos) === 2).length], [3, j1.filter((x) => Number(x.datos.equipos) === 3).length], ['ninguno', j1.filter((x) => !Number(x.datos.equipos)).length]]);
+  DIAGNOSTICO.traza = undefined; DIAGNOSTICO.variantJuvenil = undefined;
+  console.log(out.join('\n'));
+  process.exit(0);
+}
 if (variante === 'paso7') {
   type Ev7 = { fase: string; categoria: string; club?: string; datos: Record<string, unknown>; bolsa?: ReturnType<EventoDeTraza['bolsa']> };
   const evs: Ev7[] = [];
