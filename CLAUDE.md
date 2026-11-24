@@ -53,6 +53,7 @@ npm run sim:futbol -- 365 3  # cuánto se aprende en un curso con el club: depor
 npm run sim:futbol-habilidades -- 365 3  # cuánto sube cada habilidad del fútbol en un curso con el bot de campo (para calibrar el catálogo de entrenamientos)
 npm run entrenamientos:tabla  # la tabla de los 22 entrenamientos del fútbol con las cifras finales (docs/ANEXO_DEPORTE.md)
 npm run benjamin -- 31,33  # la regla de benjamín (todos nuevos en el club) con la ciudad grande: semanas hasta el primer partido y primera convocatoria
+npm run equipos-minimo -- grande con 1-10  # cuántos equipos de fútbol quedan por debajo del mínimo de la liga (14) tras el reparto, por categoría y semilla (docs/relevo/equipos-minimo.md; `actual|grande`, `con|sin` hogares)
 npm run retratos:cuadricula  # la cuadrícula de capturas del dibujo de las personas (docs/retratos): catálogos, rasgos, familia, peinados, barbas y extremos, en claro y oscuro
 npm run retratos:muestras    # las muestras de las cuatro variantes de estilo que vio el usuario (provisional)
 npm run eventos:nuevo -- eventos.<área>.<nombre> "Título"  # crea un evento base con la plantilla comentada y lo apunta en el índice
