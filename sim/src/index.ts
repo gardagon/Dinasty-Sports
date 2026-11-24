@@ -25,10 +25,10 @@ export interface SimulationOutput {
   areas: Area[];
 }
 
-/** Con `DS_HOGARES=1`, la simulación usa la ciudad de siempre con los hogares activados (`docs/relevo/hogares.md`): las mismas estrategias y semillas, para comparar. */
-const PAIS_CON_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_ACTUAL, hogares: true }, '_actual_hogares');
+/** Con `DS_SIN_HOGARES=1`, la simulación usa la ciudad de siempre sin hogares (el mundo de antes del 24/11, `docs/relevo/hogares.md`): las mismas estrategias y semillas, para comparar. */
+const PAIS_CON_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_ACTUAL, hogares: false }, '_actual_sinh');
 const juegoDeLaSimulacion = (): { pais?: string } => {
-  if (!process.env.DS_HOGARES) return {};
+  if (!process.env.DS_SIN_HOGARES) return {};
   registrarPais(PAIS_CON_HOGARES);
   return { pais: PAIS_CON_HOGARES.id };
 };

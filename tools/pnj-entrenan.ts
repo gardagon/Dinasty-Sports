@@ -7,7 +7,7 @@
  *       Un bot lleva al personaje: cada año, sus habilidades (puntos y fracción del tope), su nivel (`rendimiento` del fútbol) y las horas semanales por tipo de actividad.
  */
 import { writeFileSync } from 'node:fs';
-import { CAPACIDADES_GENETICAS, NIVEL_TIPICO_DE_REFERENCIA, PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_CON_HOGARES, TAGS, nivelTipicoPorEdad, registrarPais, type LectorDePersona } from '@ds/contracts';
+import { CAPACIDADES_GENETICAS, NIVEL_TIPICO_DE_REFERENCIA, PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_SIN_HOGARES, TAGS, nivelTipicoPorEdad, registrarPais, type LectorDePersona } from '@ds/contracts';
 import { advanceToWeek, seededRng } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { aplicarPropuestas } from './propuestas-pnj';
@@ -19,8 +19,8 @@ import { deportistaDe, entrenoDeporte } from '../sim/src/bots';
 import { decidirSucesos } from '../sim/src/runner';
 import { hacer, opcionesDelBot } from '../sim/src/pasos';
 
-/** La ciudad grande; con `DS_HOGARES=1`, con los hogares activados (`docs/relevo/hogares.md`). */
-const PAIS = process.env.DS_HOGARES ? PAIS_CIUDAD_GRANDE_CON_HOGARES : PAIS_CIUDAD_GRANDE;
+/** La ciudad grande; con `DS_SIN_HOGARES=1`, sin hogares (el mundo de antes del 24/11: `docs/relevo/hogares.md`). */
+const PAIS = process.env.DS_SIN_HOGARES ? PAIS_CIUDAD_GRANDE_SIN_HOGARES : PAIS_CIUDAD_GRANDE;
 registrarPais(PAIS);
 aplicarPropuestas();
 const [modo, salida] = [process.argv[2], process.argv[3]];

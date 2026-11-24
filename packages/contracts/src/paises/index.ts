@@ -1,5 +1,5 @@
 import { CALENDARIOS } from '../calendar';
-import { CIUDAD_DE_PRUEBA, CIUDAD_GRANDE, type CiudadDef } from '../ciudad';
+import { CIUDAD_ACTUAL, CIUDAD_DE_PRUEBA, CIUDAD_GRANDE, type CiudadDef } from '../ciudad';
 import { registrarReserva } from '../culturas';
 import { OJOS, PELO_COLOR, PELO_TIPO, PIEL, origen, registrarOrigen } from '../rasgos';
 import { PAIS_ARGENTINA } from './argentina';
@@ -37,12 +37,17 @@ export const ID_PAIS_CIUDAD_GRANDE = PAIS_CIUDAD_GRANDE.id;
 export const PAIS_CIUDAD_DE_PRUEBA = conCiudadDePrueba(PAIS_ESPANA);
 export const ID_PAIS_CIUDAD_DE_PRUEBA = PAIS_CIUDAD_DE_PRUEBA.id;
 
-/** La ciudad grande y la de prueba con los **hogares** activados (`CiudadDef.hogares`), para medir y probar (la partida normal los trae desactivados). */
+/** Las ciudades con los **hogares** (`CiudadDef.hogares`): desde el 24/11 es lo normal; estos países existen para nombrarlo y los `_SIN_HOGARES`, para comparar con el mundo de antes (las herramientas con `DS_SIN_HOGARES=1`). */
 export const SUFIJO_CON_HOGARES = '_hogares';
 export const PAIS_CIUDAD_GRANDE_CON_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_GRANDE, hogares: true }, SUFIJO_CIUDAD_GRANDE + SUFIJO_CON_HOGARES);
 export const ID_PAIS_CIUDAD_GRANDE_CON_HOGARES = PAIS_CIUDAD_GRANDE_CON_HOGARES.id;
 export const PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_DE_PRUEBA, hogares: true }, SUFIJO_CIUDAD_DE_PRUEBA + SUFIJO_CON_HOGARES);
 export const ID_PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES = PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES.id;
+/** Las mismas ciudades sin hogares (el mundo de antes del 24/11), para comparar. */
+export const SUFIJO_SIN_HOGARES = '_sinh';
+export const PAIS_CIUDAD_GRANDE_SIN_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_GRANDE, hogares: false }, SUFIJO_CIUDAD_GRANDE + SUFIJO_SIN_HOGARES);
+export const PAIS_CIUDAD_DE_PRUEBA_SIN_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_DE_PRUEBA, hogares: false }, SUFIJO_CIUDAD_DE_PRUEBA + SUFIJO_SIN_HOGARES);
+export const PAIS_CIUDAD_ACTUAL_SIN_HOGARES = conCiudad(PAIS_ESPANA, { ...CIUDAD_ACTUAL, hogares: false }, '_ciudad_actual' + SUFIJO_SIN_HOGARES);
 
 /** Los países disponibles (el de España siempre; los demás, los de los paquetes registrados). */
 const PAISES: Record<string, PaisDef> = { espana: PAIS_ESPANA };

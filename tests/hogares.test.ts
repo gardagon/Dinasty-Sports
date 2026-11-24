@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  CIUDAD_DE_PRUEBA, ID_PAIS_CIUDAD_DE_PRUEBA, ID_PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES, PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES, RASGOS_DE_ROSTRO, SERVICES, idsDeColegiosDeFuera, registrarPais, rostroDe,
+  CIUDAD_ACTUAL, CIUDAD_DE_PRUEBA, CIUDAD_GRANDE, PAIS_CIUDAD_DE_PRUEBA, PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES, PAIS_CIUDAD_DE_PRUEBA_SIN_HOGARES, RASGOS_DE_ROSTRO, SERVICES, idsDeColegiosDeFuera, registrarPais, rostroDe,
   type NpcDirectory,
 } from '@ds/contracts';
 import { MODULOS, cargarPartida, nuevaPartida } from '@ds/game';
@@ -11,6 +11,9 @@ import { edadNpc, esProgenitorDeHogar, type Npc, type NpcsState } from '@ds/mod-
 
 registrarPais(PAIS_CIUDAD_DE_PRUEBA);
 registrarPais(PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES);
+registrarPais(PAIS_CIUDAD_DE_PRUEBA_SIN_HOGARES);
+const ID_PAIS_CIUDAD_DE_PRUEBA = PAIS_CIUDAD_DE_PRUEBA_SIN_HOGARES.id;
+const ID_PAIS_CIUDAD_DE_PRUEBA_CON_HOGARES = PAIS_CIUDAD_DE_PRUEBA.id;
 
 const crear = (pais: string, seed = 5) => nuevaPartida({ seed, pais, deportes: ['atletismo'] });
 /** Avanza hasta que se renueva el curso (entran niños nuevos) o pasa un año y medio. */
@@ -27,11 +30,12 @@ describe('hogares', () => {
   const hijos = s.npcs.filter((n) => n.hogar && !esProgenitorDeHogar(n));
   const edad = (n: Npc) => edadNpc(n, 0) ?? 0;
 
-  it('con el dato desactivado no hay hogares y la ciudad es la de siempre', () => {
+  it('las tres ciudades traen los hogares activados; con el dato desactivado no hay hogares y la ciudad es la de antes', () => {
     const sin = estado(crear(ID_PAIS_CIUDAD_DE_PRUEBA));
     expect(sin.hogares).toBeUndefined();
     expect(sin.npcs.some((n) => n.hogar || n.padres || n.herencia)).toBe(false);
-    expect(CIUDAD_DE_PRUEBA.hogares).toBeUndefined();
+    expect([CIUDAD_ACTUAL.hogares, CIUDAD_DE_PRUEBA.hogares, CIUDAD_GRANDE.hogares]).toEqual([true, true, true]);
+    expect(PAIS_CIUDAD_DE_PRUEBA.ciudad!.hogares).toBe(true);
   });
 
   it('los niños que piden los colegios salen de familias: la demanda queda cubierta por edad', () => {

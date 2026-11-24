@@ -4,7 +4,7 @@
  * y `npx tsx tools/distribuciones-futbol.ts --comparar antes.json despues.json`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_CON_HOGARES, registrarPais } from '@ds/contracts';
+import { PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_SIN_HOGARES, registrarPais } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
@@ -61,8 +61,8 @@ if (process.argv[2] === '--comparar') {
 
 const salida = process.argv[2] ?? 'distribuciones.json';
 const semillas = (process.argv[3] ?? '31,32,33').split(',').map(Number);
-/** La ciudad grande; con `DS_HOGARES=1`, con los hogares activados (`docs/relevo/hogares.md`). */
-const PAIS = process.env.DS_HOGARES ? PAIS_CIUDAD_GRANDE_CON_HOGARES : PAIS_CIUDAD_GRANDE;
+/** La ciudad grande; con `DS_SIN_HOGARES=1`, sin hogares (el mundo de antes del 24/11: `docs/relevo/hogares.md`). */
+const PAIS = process.env.DS_SIN_HOGARES ? PAIS_CIUDAD_GRANDE_SIN_HOGARES : PAIS_CIUDAD_GRANDE;
 registrarPais(PAIS);
 const todo: Record<string, Record<string, Foto>> = {};
 for (const seed of semillas) {
