@@ -62,7 +62,7 @@ export interface TipoAsignado {
   escolar?: boolean;
   /** `vecino` adulto: recoge a un hijo a la salida del colegio los días lectivos (`RECOGIDA_DE_NINOS`): espera en la entrada del colegio (llega entre las 13:45 y las 14:00 y se va entre las 14:05 y las 14:30). Todavía no hay una relación con un hijo concreto: no se va con él. */
   recoge?: boolean;
-  /** `hermano`: es pequeño (menos de 8 años) y duerme de 23:00 a 7:00 (se le ve en casa, pero no se le puede hablar). */
+  /** `hermano`: es pequeño (menos de 8 años) y duerme de 21:30 a 7:00 (se le ve en casa, pero no se le puede hablar). */
   duerme?: boolean;
   /**
    * El deporte al que se refiere (`rival`, `entrenador`, `club`): su id. Sin él, el primero de la partida. En `hermano` basta `true`: practica
@@ -510,8 +510,8 @@ export function tramosDe(t: TipoAsignado, datos: DatosDeAgenda): TramoDeAgenda[]
       return [
         // Vive en casa: está allí salvo en el colegio (si tiene edad) y en su deporte, que mandan sobre la casa.
         tramo('hermano', nivel(NIVEL_AGENDA.base + 0.5), 'todos', 0, 1440, [['casa', 1]]),
-        // Los menores de 8 años duermen de 23:00 a 7:00: siguen en casa, pero no se puede hablar con ellos.
-        ...(!t.duerme ? [] : [tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', 0, h(7), [['casa', 1]], undefined, [[0, h(7)]], 'durmiendo'), tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', h(23), h(24), [['casa', 1]], undefined, [[h(23), h(24)]], 'durmiendo')]),
+        // Los menores de 8 años duermen de 21:30 a 7:00 (necesitan más horas de sueño, `sueno.ts`): siguen en casa, pero no se puede hablar con ellos.
+        ...(!t.duerme ? [] : [tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', 0, h(7), [['casa', 1]], undefined, [[0, h(7)]], 'durmiendo'), tramo('hermano', nivel(NIVEL_AGENDA.base + 0.75), 'todos', h(21, 30), h(24), [['casa', 1]], undefined, [[h(21, 30), h(24)]], 'durmiendo')]),
         ...(t.escolar ? colegio('hermano', NIVEL_AGENDA.rol) : []),
         ...(t.deporte ? carreras('hermano', NIVEL_AGENDA.pertenencia, datos, deporte, ASISTENCIA_RIVAL.carreras) : []),
       ];
