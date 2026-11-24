@@ -37,6 +37,10 @@ import {
   topeDeEnergiaAlDespertar,
   DEUDA_DE_SUENO_MAX,
   DEUDA_QUE_SE_NOTA,
+  SUENO_EN_EL_DEPORTE,
+  SUENO_EN_EL_ESTUDIO,
+  deudaEfectiva,
+  factorPorSueno,
   TOPE_DE_RECUPERACION_POR_NOCHE,
   TOPE_DE_SIESTA_AL_DIA,
   MARGEN_DE_DEUDA,
@@ -375,6 +379,19 @@ export const personaje = defineModule<IdentidadState>({
       },
     },
     {
+      // El sueño atrasado resta concentración y estudio (×(1 − 0,02·d)) y rendimiento deportivo (×(1 − 0,015·d)): E12, F2. Los partidos y las carreras de PNJ lo llevan en `eficienciaDeEstado`.
+      id: 'gen.sueno',
+      tags: ['*'],
+      apply: (ctx, action) => {
+        const d = ctx.stat(GEN.sueno);
+        if (deudaEfectiva(d) <= 0) return null;
+        const mental = action.tags.includes(TAGS.estudio) || action.tags.includes(TAGS.mental);
+        const deporte = action.tags.includes(TAGS.entrenamiento) || action.tags.includes(TAGS.competicion) || action.tags.includes(TAGS.fisico);
+        const a = mental ? SUENO_EN_EL_ESTUDIO : deporte ? SUENO_EN_EL_DEPORTE : 0;
+        return a > 0 ? { efficiency: factorPorSueno(d, a), reason: 'Sueño atrasado' } : null;
+      },
+    },
+    {
       id: 'gen.motivacion',
       tags: [TAGS.entrenamiento, TAGS.estudio],
       apply: (ctx) => {
@@ -500,7 +517,7 @@ export const personaje = defineModule<IdentidadState>({
       // Su forma y sus lesiones: las mismas reglas que las de los demás jugadores (la condición es su energía; la carga, sus sesiones y competiciones).
       const week = (ev.data as { week: number }).week;
       const forma = ctx.stat(GEN.forma);
-      const eficiencia = eficienciaDeEstado({ fisica: ctx.stat(GEN.energia), moral: ctx.stat(GEN.motivacion), forma, salud: ctx.stat(GEN.salud) });
+      const eficiencia = eficienciaDeEstado({ fisica: ctx.stat(GEN.energia), moral: ctx.stat(GEN.motivacion), forma, salud: ctx.stat(GEN.salud), deuda: ctx.stat(GEN.sueno) });
       ctx.addStat(GEN.forma, formaTrasLaSemana(forma, eficiencia) - forma);
       const baja = ctx.stat(GEN.baja);
       if (baja > 0) {

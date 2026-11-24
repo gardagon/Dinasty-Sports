@@ -1,5 +1,5 @@
 import { clamp } from './util-numerica';
-import { pasoDeSuenoDeLaSemana, topeDeEnergiaAlDespertar } from './sueno';
+import { SUENO_EN_EL_DEPORTE, factorPorSueno, pasoDeSuenoDeLaSemana, topeDeEnergiaAlDespertar } from './sueno';
 
 /**
  * EL ESTADO DE UN JUGADOR (plan `docs/MISMAS_REGLAS.md`, P2a-2): lo que importa para jugar además de lo que sabe hacer. El personaje lo vive día a día con sus
@@ -42,7 +42,7 @@ export interface EstadoDeJugador {
   salud: number;
   /** Semanas de baja que le quedan por una lesión (ausente = sano). */
   baja?: number;
-  /** Horas de sueño atrasado (`sueno.ts`, la misma deuda del personaje); ausente = ninguna. Hoy solo limita cuánto se recupera la condición física. */
+  /** Horas de sueño atrasado (`sueno.ts`, la misma deuda del personaje); ausente = ninguna. Limita cuánto se recupera la condición física y baja el rendimiento (`factorPorSueno`). */
   deuda?: number;
 }
 
@@ -70,7 +70,7 @@ export const PROBABILIDAD_DE_LESION = 0.004;
  * personaje: así la usa el motor (en la marca del día, `factorPorForma`), y el entrenamiento solo mira lo que el personaje ya tiene en sus modificadores.
  */
 export function eficienciaDeEstado(e: EstadoDeJugador, entrenando = true): number {
-  const f = factorPorCansancio(e.fisica) * factorPorSalud(e.salud);
+  const f = factorPorCansancio(e.fisica) * factorPorSalud(e.salud) * factorPorSueno(e.deuda ?? 0, SUENO_EN_EL_DEPORTE);
   return entrenando ? f * factorPorMotivacion(e.moral / 100) : f * factorPorForma(e.forma);
 }
 
