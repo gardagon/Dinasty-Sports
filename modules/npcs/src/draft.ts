@@ -903,6 +903,8 @@ export const DIAGNOSTICO: {
   /** Solo para medir (`--variante paso2-3`, con la anterior), apagado por defecto: tras la primera ronda, 2) en las categorías con `subirTitulares` los de primer año que serían titulares en el A suben a él (`titulares` es la alineación del juego, que pone la herramienta) y 3) cada equipo (el A con los demás años, el B con los de primer año) se completa desde la bolsa hasta `maxPorEquipo`. Se detiene ahí. */
   variantePaso23?: { maxPorEquipo: Record<string, number>; subirTitulares: Record<string, boolean>; /** Paso 4 (solo donde `subirTitulares`): el B que no llega a 14 se completa con niños de 2.º año de la bolsa hasta este número (primero los colegios con sus alumnos); pasa a ser mixto. */ completarBMixto?: number; /** Pasos 5 y 6 (tras el 4): reagrupar los equipos que siguen bajo 14, C mixto de colegio y sorteo entre clubes externos de lo que queda. */ reagrupar?: boolean; /** Paso 7 (infantil y cadete, tras el 6): los que quedan fuera van a un B mixto de un club al que puedan ir y, si no caben, a un A; máximo 22. */ paso7?: boolean; /** Benjamín y alevín tras el paso 3: C y D de colegio con los que quieren seguir y sorteo entre externos (pares C de 2.º año + D de 1.º, y C mixtos hasta 22). */ bolsaBA?: boolean; /** Último paso (medida; salvo juvenil): equilibrar las letras de cada club con A y C o con A, B y C. */ equilibrar?: boolean; titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
   traza?: (d: EventoDeTraza) => void;
+  /** Solo para medir (`tools/verano-volumen.ts`): la lista de personas en cada paso del verano (`inicio`, `tras abandono`, `tras fichajes`, `tras reclutar`, `fin`). No cambia nada. */
+  alVerano?: (fase: string, lista: readonly Npc[], dia: number) => void;
   /** Lo que pasa con un club y categoría al acomodar a los que no caben en ningún equipo (`acomodarSobrantes`). */
   alAcomodar?: NonNullable<MercadoDeFichajes['alAcomodar']>;
   alCerrar?: (d: { club: string; categoria: string; jugadores: number; equipos: number; montables: number }) => void;
@@ -1282,6 +1284,7 @@ export function apartarODejar(m: MercadoDeFichajes, segunda: ReadonlySet<string>
 export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada[], dia: number, rng: Rng, reservas: ReadonlyMap<string, number> = new Map(), rend: Rendimientos = new Map(), semilla = 0, curso = 0, personaje: JugadorEnClub[] = [], resultado: { sinPlaza: string[]; plazaExtra?: string[]; sinNinos?: { deporte: string; motivo: MotivoDeEquipoSinNinos; jugadores?: number; minimo?: number }[]; dejanSinClub?: number; pobs?: PoblacionGuardada[]; propuestas?: { deporte: string; puesto: string }[] } = { sinPlaza: [] }): Npc[] {
   // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
   // Los apartados del plazo anterior vuelven a la bolsa (su segunda oportunidad): si tampoco ahora los quiere ningún club, lo dejan para siempre.
+  DIAGNOSTICO.alVerano?.('inicio', npcs, dia);
   const segunda = new Set(npcs.filter((n) => n.apartado?.length).map((n) => n.id));
   let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
   const titulares = new Map<string, Set<string>>();
@@ -1310,12 +1313,14 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
       return [{ ...n, temporadas: { ...n.temporadas, [pob.deporte]: (n.temporadas?.[pob.deporte] ?? Math.max(0, edad - inicio)) + temporadaJugada(n, pob, curso - 1) } }];
     });
   }
+  DIAGNOSTICO.alVerano?.('tras abandono', lista, dia);
   // Los fichajes de verano, dentro del plazo (el nuevo curso empieza antes de la primera competición): los clubes grandes miran a los mejores de los pequeños y los desplazados buscan
   // club. El personaje cuenta como un jugador más de su equipo, con lo que vale: si otro que vale más le ocupa el sitio, **sale del club como cualquier niño** (se le avisa con
   // `club.plaza_perdida` y decide él qué hace; lo único distinto es que a él nunca se le retira del deporte para siempre).
   const mercado: MercadoDeFichajes = { lista: new ListaDeTrabajo(lista.map((n) => [n.id, n])), pobs, dia, val: valoracionDe(rend), reservas: new Map() };
   for (const j of personaje) mercado.lista.set(idDelPersonaje(j.deporte), jugadorComoNpc(j, dia));
   fichajesDeVerano(mercado, semilla, curso);
+  DIAGNOSTICO.alVerano?.('tras fichajes', [...mercado.lista.values()], dia);
   resultado.propuestas = mercado.propuestas ?? [];
   const reservasQueQuedan = new Map(reservas);
   for (const j of personaje) {
@@ -1337,6 +1342,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // Los equipos se rellenan con los interesados y, después, la regla de los equipos según la demanda: cierran los que no llegan al mínimo y abren los que hacen falta para que los
   // interesados que se quedan sin equipo (tantos como el mínimo de una plantilla) lo tengan.
   const llenos = reclutarEnTodos([...mercado.lista.values()], mercado.pobs, dia, reservasQueQuedan, rend);
+  DIAGNOSTICO.alVerano?.('tras reclutar', llenos, dia);
   const final: MercadoDeFichajes = { lista: new ListaDeTrabajo(llenos.map((n) => [n.id, n])), pobs: mercado.pobs, dia, val: valoracionDe(rend), reservas: reservasQueQuedan };
   // No hay «draft» los años siguientes: cada uno sigue en su club; la bolsa (los que empiezan y los que se quedaron sin equipo) completa los equipos con su prueba, los que se quedan con menos de 14 se
   // completan o se cierran, y quien no consigue equipo en dos plazos seguidos lo deja para siempre.
@@ -1364,6 +1370,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   }
   resultado.dejanSinClub = apartarODejar(final, segunda);
   resultado.pobs = [...final.pobs];
+  DIAGNOSTICO.alVerano?.('fin', [...final.lista.values()], dia);
   return [...final.lista.values()];
 }
 
