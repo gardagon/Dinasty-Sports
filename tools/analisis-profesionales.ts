@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs';
 import { CAPACIDADES_GENETICAS, PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_CON_HOGARES, registrarPais } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { VARIANTES } from '@ds/mod-npcs';
+import { FAMILIAS, VARIANTES } from '@ds/mod-npcs';
 import { aplicarPropuestas } from './propuestas-pnj';
 import { futbol } from '@ds/mod-futbol';
 import { fijosDeNino, topeEfectivo } from '../modules/npcs/src/rutina';
@@ -27,6 +27,7 @@ if (process.env.DS_HOGARES_CARACTER) VARIANTES.caracter = process.env.DS_HOGARES
 if (process.env.DS_HOGARES_HIJOS) VARIANTES.hijos = process.env.DS_HOGARES_HIJOS as typeof VARIANTES.hijos;
 if (process.env.DS_HOGARES_MUNDO) VARIANTES.mundo = process.env.DS_HOGARES_MUNDO as typeof VARIANTES.mundo;
 if (process.env.DS_HOGARES_RENOVAR) VARIANTES.renovar = process.env.DS_HOGARES_RENOVAR as typeof VARIANTES.renovar;
+if (process.env.DS_HOGARES_MISMO_COLEGIO) (FAMILIAS as { mismoColegio: number }).mismoColegio = Number(process.env.DS_HOGARES_MISMO_COLEGIO);
 if (process.env.DS_HOGARES_GENETICA) VARIANTES.genetica = process.env.DS_HOGARES_GENETICA as typeof VARIANTES.genetica;
 aplicarPropuestas();
 const salida = process.argv[2] ?? 'analisis-profesionales.json';
