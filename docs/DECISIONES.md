@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/11/2026 — Hogares activados por defecto; más hermanos
+
+- **Hogares activados por defecto en las partidas nuevas** (`CiudadDef.hogares`). Las guardadas siguen sin hogares y sin migrar. Medido con la ciudad grande:
+  - personas: 6.118 → 13.787;
+  - guardado: 16,2 → 27,3 MB;
+  - crear: +0,8 s en escritorio;
+  - cada acción: +1,5 ms.
+
+  El balance no cambia, salvo un +5 % de niños en los clubes por los intereses heredados (aceptado). El +60 % de profesionales que se vio con 3 semillas era ruido: con 10 semillas por versión no hay diferencia (`docs/relevo/hogares.md`, ronda 4). **Los profesionales a los 18 se miden siempre con 10 semillas o más.**
+- **`FAMILIAS.siguiente` = `[0,70; 0,40; 0,30; 0,20]`:** un 51 % de los niños de 8 años tienen un hermano mayor en el mundo (antes 42 %). En la vida real se estima un 49–51 %, a partir de la cifra de Eustat de 2018 (51 % de primeros hijos). Hay menos progenitores en total.
+
 ## 23/11/2026 — Hogares H1: interés heredado, trabajo de los progenitores, hermanos mayores
 
 1. **Interés heredado:** se acepta de momento que haya un 4 % más de niños en los clubes porque heredan el interés de los padres (la misma regla que el personaje).

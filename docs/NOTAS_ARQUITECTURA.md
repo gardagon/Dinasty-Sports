@@ -43,7 +43,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Hogares H1, activarlo:** rondas 3 y 4 unidas. El +60 % de profesionales era ruido (con 15 semillas no hay diferencia: 8,9 frente a 8,8; nota: medir profesionales siempre con ≥10 semillas). Solo queda +5 % de niños en clubes (aceptado). Pendiente del usuario: `FAMILIAS.siguiente` `[0,70; 0,40; 0,30; 0,20]` y activar `CiudadDef.hogares` por defecto (y publicar).
+- **Hogares:** aprobados el 24/11 la activación por defecto y `FAMILIAS.siguiente` (DECISIONES 24/11). La sesión de hogares los aplica; después, pull request para publicar (visto bueno ya dado) y pedir al usuario que mida en el móvil: crear y pasar de semana.
 - **Rendimiento M2:** el usuario creó una partida en el móvil en ~4 s («solo con fútbol»). Confirmar si fue con la ciudad grande. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
