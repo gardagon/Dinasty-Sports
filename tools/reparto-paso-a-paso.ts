@@ -25,7 +25,7 @@ const PAIS = ciudad === 'actual' ? PAIS_ESPANA : ciudad === 'prueba' ? PAIS_CIUD
 registrarPais(PAIS);
 if (variante === 'paso1-14x2' || variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14' || variante === 'paso5-6' || variante === 'paso7') DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
 if (variante === 'paso2-3' || variante === 'paso4' || variante === 'paso4-14' || variante === 'paso5-6' || variante === 'paso7') DIAGNOSTICO.variantePaso23 = { ...(variante === 'paso7' ? { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true } : variante === 'paso5-6' ? { completarBMixto: 20, reagrupar: true } : variante === 'paso4' ? { completarBMixto: 20 } : variante === 'paso4-14' ? { completarBMixto: 14 } : {}), maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares: (js) => convocarYAlinear(js as never).titulares.map((x) => x.id) };
-else if (variante && variante !== 'paso1-14x2' && variante !== 'juvenil') throw new Error(`Variante desconocida: ${variante} (paso1-14x2, paso2-3, paso4, paso4-14, paso5-6, paso7, juvenil)`);
+else if (variante && variante !== 'paso1-14x2' && variante !== 'juvenil' && variante !== 'juvenil-cascada') throw new Error(`Variante desconocida: ${variante} (paso1-14x2, paso2-3, paso4, paso4-14, paso5-6, paso7, juvenil)`);
 class Parar extends Error {}
 
 const out: string[] = [];
@@ -62,9 +62,9 @@ const tablaDeFoto = (fotos: readonly FotoDeClub[], antes?: readonly FotoDeClub[]
   tabla(['Club', 'Equipos', 'Niños', '…de 1.er año', '…de 2.º', 'Caben (máx × equipos)', 'Faltan para 14 × equipos (la cuenta del club)', 'Sobran del máximo'], filas);
 };
 
-if (variante === 'juvenil') {
+if (variante === 'juvenil' || variante === 'juvenil-cascada') {
   const evs: { fase: string; club?: string; datos: Record<string, unknown>; bolsa?: ReturnType<EventoDeTraza['bolsa']> }[] = [];
-  DIAGNOSTICO.variantJuvenil = { titulares: (js) => convocarYAlinear(js as never).titulares.map((x) => x.id) };
+  DIAGNOSTICO.variantJuvenil = { cascada: variante === 'juvenil-cascada' ? 'usuario' : 'simple', titulares: (js) => convocarYAlinear(js as never).titulares.map((x) => x.id) };
   DIAGNOSTICO.traza = (e) => {
     if (e.categoria !== 'juvenil') return;
     if (['J1', 'J2', 'J3', 'fin J3'].includes(e.fase)) evs.push({ fase: e.fase, ...(e.club ? { club: e.club } : {}), datos: e.datos, ...(e.fase === 'fin J3' ? { bolsa: e.bolsa() } : {}) });

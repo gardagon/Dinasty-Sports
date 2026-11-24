@@ -351,6 +351,24 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       const salenLibres: { id: string; club: string }[] = [];
       const sinSitio: { id: string; club: string }[] = [];
       /** Mete a `id` en el equipo `letra` del club; si está lleno y gana el puesto, desplaza al peor de su puesto, que baja al equipo de abajo (y así en cascada) o sale libre. */
+      const anioId = (id: string): number => { const n = m.lista.get(id); return n ? anioDe(n) : 0; };
+      const libre = (id: string, club: string): void => { salenLibres.push({ id, club }); liberar([id]); };
+      /** El desplazado de un equipo baja al de abajo (regla del usuario): con hueco, entra; si no, desplaza allí a alguien de su puesto de su año o más joven (el más joven, el más flojo), que sigue bajando; si no lo hay, sale libre el reserva de ese puesto. */
+      const bajar = (e: EquipoGuardado, letra: 'A' | 'B' | 'C', w: string): void => {
+        const eq = equipos.get(e.club)!;
+        const letras = letrasDe(eq);
+        const sig = letras[letras.indexOf(letra) + 1];
+        if (!sig) { libre(w, e.club); return; }
+        const set = eq[sig]!;
+        if (set.size < TOPE) { set.add(w); return; }
+        const g = grupoId(w), yw = anioId(w);
+        const delPuesto = [...set].filter((x) => grupoId(x) === g);
+        const jovenes = delPuesto.filter((x) => anioId(x) <= yw).sort((x, y) => anioId(x) - anioId(y) || valorId(x) - valorId(y) || (x < y ? -1 : 1));
+        const victima = jovenes[0] ?? [...(delPuesto.length ? delPuesto : [...set])].sort((x, y) => valorId(x) - valorId(y) || (x < y ? -1 : 1))[0];
+        set.delete(victima); set.add(w); cascadas++;
+        if (jovenes.length) bajar(e, sig, victima); else libre(victima, e.club);
+      };
+      /** Mete a `id` en el equipo `letra` del club; si está lleno y gana el puesto, desplaza al peor de su puesto, que baja (según la regla) o sale libre. */
       const colocar = (e: EquipoGuardado, letra: 'A' | 'B' | 'C', id: string): boolean => {
         const eq = equipos.get(e.club)!;
         const set = eq[letra]!;
@@ -360,9 +378,10 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         const peor = rivales[0];
         if (!peor || valorId(id) <= valorId(peor)) return false;
         set.delete(peor); set.add(id); cascadas++;
+        if (vj.cascada === 'usuario') { bajar(e, letra, peor); return true; }
         const letras = letrasDe(eq);
         const siguiente = letras[letras.indexOf(letra) + 1];
-        if (!siguiente || !colocar(e, siguiente, peor)) { salenLibres.push({ id: peor, club: e.club }); liberar([peor]); }
+        if (!siguiente || !colocar(e, siguiente, peor)) libre(peor, e.club);
         return true;
       };
       for (const p of [...pendientes].sort((x, y) => valorId(y.id) - valorId(x.id) || (x.id < y.id ? -1 : 1))) {
@@ -728,7 +747,7 @@ export const DIAGNOSTICO: {
   /** Solo para medir (`npm run reparto:paso -- … --variante paso1-14x2`), apagado por defecto: en la primera ronda cada club recoge `porAnio` niños de primer año y `porAnio` de los demás años (no mira la edad solo si no hay bastantes: aquí no se completa con el otro año). */
   variantePrimeraRonda?: { porAnio: number };
   /** Solo para medir (`--variante juvenil`), apagado por defecto: juvenil (3 años) por año y sin límites (J1), subidas por nivel de abajo arriba con máximo 22 (J2) y descartados que buscan equipo en otros clubes en hasta 3 rondas (J3). `titulares` es la alineación del juego (la pone la herramienta). */
-  variantJuvenil?: { titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
+  variantJuvenil?: { /** `usuario`: el desplazado baja al equipo de abajo y allí desplaza a alguien más joven (o del mismo año) de su puesto, que sigue bajando; si no lo hay, sale libre el reserva de ese puesto. Por defecto, el peor del puesto. */ cascada?: 'simple' | 'usuario'; titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
   /** Solo para medir (`--variante paso2-3`, con la anterior), apagado por defecto: tras la primera ronda, 2) en las categorías con `subirTitulares` los de primer año que serían titulares en el A suben a él (`titulares` es la alineación del juego, que pone la herramienta) y 3) cada equipo (el A con los demás años, el B con los de primer año) se completa desde la bolsa hasta `maxPorEquipo`. Se detiene ahí. */
   variantePaso23?: { maxPorEquipo: Record<string, number>; subirTitulares: Record<string, boolean>; /** Paso 4 (solo donde `subirTitulares`): el B que no llega a 14 se completa con niños de 2.º año de la bolsa hasta este número (primero los colegios con sus alumnos); pasa a ser mixto. */ completarBMixto?: number; /** Pasos 5 y 6 (tras el 4): reagrupar los equipos que siguen bajo 14, C mixto de colegio y sorteo entre clubes externos de lo que queda. */ reagrupar?: boolean; /** Paso 7 (infantil y cadete, tras el 6): los que quedan fuera van a un B mixto de un club al que puedan ir y, si no caben, a un A; máximo 22. */ paso7?: boolean; /** Benjamín y alevín tras el paso 3: C y D de colegio con los que quieren seguir y sorteo entre externos (pares C de 2.º año + D de 1.º, y C mixtos hasta 22). */ bolsaBA?: boolean; titulares: (jugadores: { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never }[]) => string[] };
   traza?: (d: EventoDeTraza) => void;

@@ -292,3 +292,17 @@ Precisión del usuario (24/11): en benjamín y alevín los equipos de un solo a�
 | Niños por equipo (mín · máx · media) | 18 · 22 · 21,7 |
 | Por debajo de 14 · asignados | 0 · 652 |
 | Abandonan o se quedan fuera (3.º · 2.º · 1.º) | 106 (72 · 23 · 11) |
+
+### Juvenil con la cascada del usuario (`--variante juvenil-cascada`)
+
+Misma J1 y J2. En J3, si el que llega gana el puesto al peor de su puesto, ese desplazado **baja al equipo de abajo**: con hueco entra; si no, allí **desplaza a alguien de su puesto de su año o más joven** (el más joven, y entre ellos el más flojo), que sigue bajando; si no lo hay, **sale libre el reserva** (el más flojo) de ese puesto. En el último equipo, el desplazado sale libre; en clubes de 2 equipos o de uno mixto, igual con los equipos que haya. Salida: `variante-juvenil-cascada-33.md`.
+
+| | Cascada simple (antes) | Cascada del usuario |
+|---|---|---|
+| J3 ronda 1: buscan / encuentran / cascadas / libres | 156 / 73 / 73 / 32 | 156 / 74 / 84 / 33 |
+| Ronda 2 | 115 / 22 / 17 / 15 | 115 / 27 / 22 / 20 |
+| Ronda 3 | 108 / 14 / 12 / 12 | 108 / 19 / 16 / 15 |
+| Equipos (A · B · C) | 30 (12 · 9 · 9) | 30 (12 · 9 · 9) |
+| Niños por equipo (mín · máx · media) | 18 · 22 · 21,7 | 19 · 22 · 21,8 |
+| Por debajo de 14 · asignados | 0 · 652 | 0 · 654 |
+| Abandonan o fuera (3.º · 2.º · 1.º) | 106 (72 · 23 · 11) | 104 (71 · 20 · 13) |
