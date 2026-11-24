@@ -5,6 +5,17 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/11/2026 — Niveles de los partidos; equipos por debajo del mínimo
+
+**Niveles de detalle de los partidos** (complementa la entrada de «partidos más reales»):
+- **Nivel 1, detallado:** los partidos del personaje y los que ve como espectador.
+- **Nivel 2, medio:** los de su zona, las ligas de su ciudad.
+- **Nivel 3, grueso:** el resto del mundo.
+- **El registro del nivel 1 se conserva dos temporadas** (la pasada y la actual). Los de antes se reducen a los datos del nivel 2.
+- **Para un ojeador futuro:** para tener más datos de un partido de nivel 3, tendrá que ir a verlo en persona (ese partido se simula en nivel 1) o estudiarlo a partir de una grabación. No hace falta guardar más de cada partido por si acaso.
+
+**Equipos por debajo del mínimo de 14** (el personaje puede caer en un C de 9 y no jugar nunca): hay que analizar por qué se forma. Las salidas posibles son dos: que las rondas de movimiento lo completen, o que el equipo se deshaga y deje libres a los niños. No tiene sentido que el A y el B se queden con 18 y dejen morir el C. Último recurso, según la categoría: subir el máximo hacia 22 (con convocatorias), evitándolo en las categorías bajas. Primero, diagnóstico con propuesta (`docs/relevo/equipos-minimo.md`).
+
 ## 24/11/2026 — Salud y lesiones (E12) y partidos más reales: decisiones
 
 Respuestas del usuario a `docs/relevo/salud-lesiones.md` §9 y `docs/relevo/partidos-reales.md` §6.4.
