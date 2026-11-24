@@ -1219,12 +1219,23 @@ function alturaHoy(n: Npc, hoy: number): number | undefined {
 }
 
 /** La vista de cada persona se recuerda mientras no cambie la persona ni el día: se pide muchas veces (listas, presencia, acciones). */
-const VISTAS = new WeakMap<Npc, { day: number; hoy: number; vista: NpcView }>();
+const VISTAS = new WeakMap<Npc, { day: number; hoy: number; age: number | undefined; exacta: number | undefined; altura: number | undefined; eficiencia: number | undefined; baja: boolean; vista: NpcView }>();
 const vista = (n: Npc, day: number, hoy: number = day): NpcView => {
   const guardada = VISTAS.get(n);
   if (guardada !== undefined && guardada.day === day && guardada.hoy === hoy) return guardada.vista;
+  // La vista es función de la persona y de lo que depende del día (edad, edad exacta y altura) y del estado (que algunos módulos cambian en el sitio): si un día nuevo no cambia nada de eso (casi siempre, en los adultos), es la misma vista.
+  const age = edadNpc(n, day);
+  const exacta = n.nacimiento === undefined ? undefined : edadCumplida(n.nacimiento, hoy);
+  const altura = alturaHoy(n, hoy);
+  const eficiencia = n.estado ? eficienciaDeEstado(n.estado, false) : undefined;
+  const baja = !!n.estado?.baja;
+  if (guardada !== undefined && guardada.age === age && guardada.exacta === exacta && guardada.altura === altura && guardada.eficiencia === eficiencia && guardada.baja === baja) {
+    guardada.day = day;
+    guardada.hoy = hoy;
+    return guardada.vista;
+  }
   const v = construirVista(n, day, hoy);
-  VISTAS.set(n, { day, hoy, vista: v });
+  VISTAS.set(n, { day, hoy, age, exacta, altura, eficiencia, baja, vista: v });
   return v;
 };
 
