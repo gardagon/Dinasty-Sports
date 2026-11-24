@@ -20,10 +20,10 @@ Nada del motor cambia de comportamiento: el estado del día (`rinde`) se multipl
 | | Resultado |
 |---|---|
 | `npm run typecheck` | sin errores |
-| `npm test` | ver §5 |
+| `npm test` | 134 ficheros, **1.455 tests, todos pasan** (710 s) |
 | `npm run huella -- 60` | **idéntica** (las 22 líneas, antes y después) |
-| `npm run benjamin -- 31,33` | **idéntica** (misma salida que la base, salvo nada) |
-| `npm run probar-web` | ver §5 |
+| `npm run benjamin -- 31,33` | **idéntica** (`diff` vacío con la salida del código anterior) |
+| `npm run probar-web` | pasa entero («Todo el camino funciona en el navegador», sin errores en la consola) |
 | Hash de 60 partidos, motor anterior frente a nuevo | `0ecd749069f0b4a2fab272c8866b1c262cecb53e` en los dos (goles, tramos, tiros, jugadores, alineaciones, jugadas y crónica); fijado en `registro.test.ts` |
 | Banco de realismo, referencia del motor anterior frente a motor nuevo (ciudad de prueba, 300 partidos por categoría) | **70 cifras comparadas, 70 exactamente iguales, 0 fuera de tolerancia** |
 
@@ -74,7 +74,7 @@ Coste del motor por partido, en el banco (equipos repetidos 300 veces, así que 
 
 ## 5. Resultados de la batería final
 
-(Se rellena al acabar `npm test` y `probar-web`; ver abajo.)
+`npm run typecheck` (código 0), `npm test` (1.455 de 1.455), `npm run huella -- 60` (22 líneas idénticas a las del código anterior), `npm run benjamin -- 31,33` (idéntico) y `npm run probar-web` (código 0). Las salidas se compararon con `diff` contra una copia del código de partida (`git worktree`) ejecutada en las mismas condiciones.
 
 ## 6. Lo que queda para P1 y quién lo necesita
 
