@@ -14,6 +14,12 @@ import type { CursoDef } from './curriculo';
 export interface PaisDef {
   id: string;
   nombre: string;
+  /**
+   * Si el país es una **variante** de otro (el mismo país con otra ciudad: `conCiudad`), el id del país del que sale. Los datos que se resuelven por país
+   * (los de cada deporte) se buscan primero por `id` y después por `base`, así que una variante usa los datos de su país sin que salga el aviso de
+   * «datos de respaldo». Sin él, el país es él mismo.
+   */
+  base?: string;
 
   // ---- escuela y deporte
   /** Calendario escolar (semanas del curso, vacaciones, evaluaciones). */
