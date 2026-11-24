@@ -3,7 +3,7 @@
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
 import { avisarDelProgreso, type CategoriaDef, rngEstable, cuposPorGrupo, grupoDePuesto, ATRACTIVO_DE_TAMANO, type Rng, aptitudDe, type MotivoDeEquipoSinNinos } from '@ds/contracts';
-import { interesPor } from './deportistas';
+import { interesDe, interesPor } from './deportistas';
 import { type MiembroDeClub } from './equipos';
 import { puestoDondeMasVale } from './puestos';
 import { type Rendimientos } from './semana';
@@ -468,10 +468,21 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       // 8a. Nunca un B sin A: si un club no puede montar su A (de 14), se juntan A y B en un único A mixto; si no llega a 14, ese equipo desaparece; por encima de 22 salen los peores.
       for (const e of orden) {
         const t = equipos.get(e.club)!;
-        if (t.A.size >= 14 || t.A.size + t.B.size + (t.C?.size ?? 0) === 0) continue;
+        // Un B, C o D que no llega a 14 (con el A completo) tampoco existe: desaparece y sus niños buscan sitio.
+        if (t.A.size >= 14) {
+          const quedan: Set<string>[] = [t.A];
+          for (const x of [t.B, t.C, t.D]) {
+            if (!x || x.size === 0) continue;
+            if (x.size >= 14) { quedan.push(x); continue; }
+            casos.desaparecen++; casos.desaparecidos += x.size; sacar([...x], e.club, 'desaparecido');
+          }
+          if (quedan.length < [t.B, t.C, t.D].filter((x) => x && x.size > 0).length + 1) equipos.set(e.club, { A: quedan[0], B: quedan[1] ?? new Set(), ...(quedan[2] ? { C: quedan[2] } : {}), ...(quedan[3] ? { D: quedan[3] } : {}) });
+          continue;
+        }
+        if (t.A.size + t.B.size + (t.C?.size ?? 0) === 0) continue;
         casos.sinA++;
         let union = [...t.A, ...t.B];
-        const resto: Set<string>[] = [t.C, t.D].filter((x): x is Set<string> => !!x && x.size > 0);
+        const resto: Set<string>[] = [t.C, t.D].filter((x): x is Set<string> => !!x && x.size > 0).filter((x) => { if (x.size >= 14) return true; casos.desaparecen++; casos.desaparecidos += x.size; sacar([...x], e.club, 'desaparecido'); return false; });
         if (union.length < 14) { casos.desaparecen++; sacar(union, e.club, 'desaparecido'); casos.desaparecidos += union.length; union = []; }
         else { casos.sinAUnidos++; if (union.length > 22) { const r = recortar(union); casos.sinAExceso++; casos.expulsadosC += r.salen.length; sacar(r.salen, e.club, 'expulsado'); union = r.quedan; } }
         const lista = [...(union.length ? [new Set(union)] : []), ...resto];
@@ -1264,7 +1275,7 @@ export function apartarODejar(m: MercadoDeFichajes, segunda: ReadonlySet<string>
     if (!conDraft(pob, m.val)) continue;
     const edadesDeLasCategorias = new Set((pob.categorias ?? []).flatMap((c) => Array.from({ length: c.edadMax - c.edadMin + 1 }, (_, i) => c.edadMin + i)));
     for (const [id, n] of m.lista) {
-      if (!n.genetica || n.deporte !== undefined || n.dejado?.includes(pob.deporte) || n.apartado?.includes(pob.deporte) || interesPor(n.rasgos, pob.deporte) <= 0) continue;
+      if (!n.genetica || n.deporte !== undefined || n.dejado?.includes(pob.deporte) || n.apartado?.includes(pob.deporte) || interesDe(n, pob.deporte, edadNpc(n, m.dia)) <= 0) continue;
       if (!edadesDeLasCategorias.has(edadNpc(n, m.dia) ?? -1) || !pob.equipos.some((e) => e.plantillaPorCategoria && edadesDe(pob, e).includes(edadNpc(n, m.dia) ?? -1))) continue;
       if (segunda.has(id)) {
         m.lista.set(id, { ...n, dejado: [...new Set([...(n.dejado ?? []), pob.deporte])] });
