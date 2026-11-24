@@ -17,25 +17,28 @@ import { hacer, posible } from '../tests/ayudas';
 const [ciudad = 'grande', hogares = 'con', lista = '31,32,33'] = process.argv.slice(2).filter((x) => !x.startsWith('--'));
 const TRAZA = process.argv.includes('--traza');
 // `--nuevo`: el reparto nuevo entero (medida, apagado por defecto): benjamín/alevín paso 2-3 + 7, infantil/cadete paso 2-3 + 4 (B mixto hasta 20) + 5-6 + 7, juvenil en cascada.
-const NUEVO = process.argv.includes('--nuevo');
+const EQUILIBRAR = process.argv.includes('--equilibrar');
+const NUEVO = process.argv.includes('--nuevo') || EQUILIBRAR;
 if (NUEVO) {
   const titulares = (js: unknown): string[] => convocarYAlinear(js as never).titulares.map((x) => x.id);
   DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
-  DIAGNOSTICO.variantePaso23 = { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true, maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares } as never;
+  DIAGNOSTICO.variantePaso23 = { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true, ...(EQUILIBRAR ? { equilibrar: true } : {}), maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares } as never;
   DIAGNOSTICO.variantJuvenil = { cascada: 'usuario', titulares } as never;
 }
 // Los equipos que deja cada variante (la traza de su último paso): `fijarEquipos` reparte después las letras por el total del club, así que con `--nuevo` se leen de aquí.
+let seed_ = 0;
 const DEBUG = process.argv.includes('--clubes');
 const FUERA_J: Record<string, number[]> = {};
 const FINALES: Record<string, { A: number; B: number; C: number; D: number }[]> = {};
-if (NUEVO) DIAGNOSTICO.traza = (e) => { if (DEBUG && (e.fase === 'fin del paso 7' || e.fase === 'fin BA' || e.fase === 'fin J3')) console.log(`#CLUBES ${e.categoria} ${e.fase} ${JSON.stringify(e.datos.equipos)}`); if (e.fase === 'fin J3') FUERA_J[e.categoria] = e.datos.abandonanPorAnio as number[]; if (e.fase === 'fin del paso 7' || e.fase === 'fin BA' || e.fase === 'fin J3') FINALES[e.categoria] = (e.datos.equipos as { A: number; B: number; C?: number; D?: number }[]).map((q) => ({ A: q.A, B: q.B, C: q.C ?? 0, D: q.D ?? 0 })); };
+if (NUEVO) DIAGNOSTICO.traza = (e) => { if (DEBUG && (e.fase === 'fin del paso 7' || e.fase === 'fin BA' || e.fase === 'fin J3')) console.log(`#CLUBES ${e.categoria} ${e.fase} ${JSON.stringify(e.datos.equipos)}`); if (DEBUG && e.fase === 'equilibrio' && e.datos.revertido) console.log(`#REVERT ${seed_} ${e.categoria} ${e.club} ${e.datos.tipo} ${JSON.stringify(e.datos.tamanos)}`); if (e.fase === 'fin J3') FUERA_J[e.categoria] = e.datos.abandonanPorAnio as number[]; if (e.fase === 'fin equilibrio') console.log(`#EQ ${seed_} ${e.categoria} cambian=${e.datos.cambian} bajan=${e.datos.bajan} revertidos=${e.datos.revertidos} clubesConC=${e.datos.clubesConC} clubesConD=${e.datos.clubesConD} CA=${e.datos.antesCA}>${e.datos.despuesCA} DB=${e.datos.antesDB}>${e.datos.despuesDB} CAonce=${e.datos.antesCAonce}>${e.datos.despuesCAonce} DBonce=${e.datos.antesDBonce}>${e.datos.despuesDBonce}`); if (e.fase === 'fin del paso 7' || e.fase === 'fin BA' || e.fase === 'fin equilibrio' || e.fase === 'fin J3') FINALES[e.categoria] = (e.datos.equipos as { A: number; B: number; C?: number; D?: number }[]).map((q) => ({ A: q.A, B: q.B, C: q.C ?? 0, D: q.D ?? 0 })); };
 const PAIS = ciudad === 'grande' ? (hogares === 'sin' ? PAIS_CIUDAD_GRANDE_SIN_HOGARES : PAIS_CIUDAD_GRANDE) : hogares === 'sin' ? PAIS_CIUDAD_ACTUAL_SIN_HOGARES : PAIS_ESPANA;
 registrarPais(PAIS);
 const semillas = lista.includes('-') ? Array.from({ length: Number(lista.split('-')[1]) - Number(lista.split('-')[0]) + 1 }, (_, i) => Number(lista.split('-')[0]) + i) : lista.split(',').map(Number);
 const CATEGORIAS = ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
-const etiqueta = `${ciudad}-${hogares}${NUEVO ? '-nuevo' : ''}`;
+const etiqueta = `${ciudad}-${hogares}${EQUILIBRAR ? '-equilibrado' : NUEVO ? '-nuevo' : ''}`;
 
 for (const seed of semillas) {
+  seed_ = seed;
   const g = nuevaPartida({ seed, pais: PAIS.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   const medir = (momento: string, dia: number | undefined): void => {
     const s = g.moduleState<NpcsState>('npcs') as NpcsState;
