@@ -5,6 +5,31 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 24/11/2026 — Salud y lesiones (E12) y partidos más reales: decisiones
+
+Respuestas del usuario a `docs/relevo/salud-lesiones.md` §9 y `docs/relevo/partidos-reales.md` §6.4.
+
+### Salud y lesiones
+1. **La baja pasa a contarse en días.** Las semanas se derivan de los días, y las partidas guardadas se migran.
+2. **Riesgo realista y sin trato especial para el personaje:** unas 0,3 lesiones al año a los 8–10, 0,6 a los 13–15 y 0,8 a los 16–19, que se revisan después de jugarlas. **Se analiza una «resistencia a lesiones»**: por ejemplo, el perk Endeble facilita las lesiones y Constitución de toro las dificulta, además de la constitución.
+3. **Secuelas pequeñas, solo en las lesiones graves, y no siempre** (por probabilidad): algo menos de constitución, o un perk latente tipo «rodilla delicada».
+4. **Médico y fisio cuestan tiempo, y dinero cuando haya economía.** El fisio solo está incluido en los clubes grandes; en el resto se va a una clínica privada.
+5. **Enfermedades:** completas para los jugadores y derivadas, sin estado, para el resto de la población.
+6. **El resfriado** baja algo el rendimiento y contagia. **La gripe** deja 3–5 días en casa, con la falta justificada.
+7. **Lesión en el partido:** sales automáticamente. Decidir seguir jugando vendrá con las decisiones dentro del partido.
+8. **En pantalla, sensaciones sin números.** El diagnóstico lo da el médico.
+9. **Se distingue por sexo:** más lesión de ligamento cruzado y más sobrecarga en las chicas tras el estirón. **También se distinguirá la menstruación.** Con esto, **se puede añadir el sexo del personaje como elección** («personaje chica», idea pendiente): primero un análisis.
+
+### Partidos
+1. **Primero B (posesiones y xG) para todos los partidos;** después C (jugadas por zonas) y D (posiciones) como nivel detallado.
+2. **Tres niveles de detalle,** con un test de distribución obligatorio en `npm test`.
+3. Qué partidos son «cercanos»: pendiente de explicárselo al usuario.
+4. **Lesiones en el partido** según los contactos y la carga por minuto en los niveles 1 y 2 (un perfil de riesgo por jugador y partido); en el nivel 3, la suma.
+5. **Calibración:** la que se hizo en su día parecía correcta; se mantiene como referencia, sin objetivos nuevos por categoría.
+6. **El motor nuevo puede cambiar los resultados futuros.** No hace falta código de respaldo para las crónicas antiguas: el usuario aún no ha visto partidos así.
+7. **El motor se diseña para poder verse en directo** (una máquina de estados que se pueda pausar y reanudar). Se empieza mostrando el resultado y la crónica.
+8. **Qué se guarda:** el registro entero de los partidos del personaje; de los demás, el resultado y las estadísticas por jugador. Más adelante puede hacer falta guardar más estadísticas del resto de jugadores.
+
 ## 24/11/2026 — Qué se desarrolla después de los hogares
 
 Orden aprobado por el usuario:
