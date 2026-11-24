@@ -43,7 +43,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Hogares H1, activarlo:** ronda 3 unida (trabajo de los progenitores; no abarata, da realismo). Pendiente del usuario: `FAMILIAS.siguiente` `[0,70; 0,40; 0,30; 0,20]` (51 % de niños de 8 con hermano mayor, cifra real ~49–51 % estimada con Eustat). Antes de activar: la sesión aísla el +60 % de profesionales a los 18 con hogares (¿herencia de intereses por el máximo de los padres?).
+- **Hogares H1, activarlo:** rondas 3 y 4 unidas. El +60 % de profesionales era ruido (con 15 semillas no hay diferencia: 8,9 frente a 8,8; nota: medir profesionales siempre con ≥10 semillas). Solo queda +5 % de niños en clubes (aceptado). Pendiente del usuario: `FAMILIAS.siguiente` `[0,70; 0,40; 0,30; 0,20]` y activar `CiudadDef.hogares` por defecto (y publicar).
 - **Rendimiento M2:** el usuario creó una partida en el móvil en ~4 s («solo con fútbol»). Confirmar si fue con la ciudad grande. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
