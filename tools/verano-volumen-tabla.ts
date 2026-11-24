@@ -62,5 +62,17 @@ for (const modo of ['una', 'media'] as const) {
     const h = ds.map((d) => porCat(d, c, 'habia')), sr = ds.map((d) => porCat(d, c, 'empieza_sin_rehacer')), fi = ds.map((d) => porCat(d, c, 'empieza_final'));
     return [c, fmt(h), fmt(sr), fmt(fi), `${m(fi) - m(h) >= 0 ? '+' : ''}${(m(fi) - m(h)).toFixed(0)} (${pct(m(fi) - m(h), m(h))})`];
   }));
+  if (modo === 'media') {
+    say('### Por sexo, desde infantil (solo como dato: hoy ~50 % de chicas)');
+    say();
+    const porSexo = (d: (typeof datos)[number], cat: string, sx: string, campo: string): number => CLAVES.filter((k) => k.startsWith(cat)).reduce((t, k) => t + (d.filas[`${k}@${sx}`]?.[campo] ?? 0), 0);
+    const mm = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
+    tabla(['', 'Sexo', 'Jugaban', 'Abandonan', '%', 'Buscan cambiar', '%', 'Entran', 'Tras todo el verano', 'Balance'], ['infantil', 'cadete', 'juvenil'].flatMap((c) => ['f', 'm'].map((sx) => {
+      const h = ds.map((d) => porSexo(d, c, sx, 'habia')), ab = ds.map((d) => porSexo(d, c, sx, 'abandona')), bu = ds.map((d) => porSexo(d, c, sx, 'busca'));
+      const en = ds.map((d) => ['entra_8_anos', 'entra_mudanza', 'entra_no_jugaba', 'entra_apartado_vuelve'].reduce((t, k) => t + porSexo(d, c, sx, k), 0));
+      const fi = ds.map((d) => porSexo(d, c, sx, 'empieza_final'));
+      return [c, sx === 'f' ? 'chicas' : 'chicos', fmt(h), fmt(ab), pct(mm(ab), mm(h)), fmt(bu), pct(mm(bu), mm(h)), fmt(en), fmt(fi), `${mm(fi) - mm(h) >= 0 ? '+' : ''}${(mm(fi) - mm(h)).toFixed(0)} (${pct(mm(fi) - mm(h), mm(h))})`];
+    })));
+  }
 }
 console.log(salida.join('\n'));

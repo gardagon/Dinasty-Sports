@@ -39,7 +39,14 @@ const apartadosAntes = new Set(s0.npcs.filter((n) => n.apartado?.includes('futbo
 type Fila = Record<string, number>;
 const filas = new Map<string, Fila>();
 const fila = (k: string): Fila => filas.get(k) ?? filas.set(k, {}).get(k)!;
-const suma = (k: string, campo: string, v = 1): void => { const f = fila(k); f[campo] = (f[campo] ?? 0) + v; };
+let sx: string | undefined;
+const CAT_SEXO = ['infantil', 'cadete', 'juvenil'];
+const suma = (k: string, campo: string, v = 1): void => {
+  const f = fila(k); f[campo] = (f[campo] ?? 0) + v;
+  // Desde infantil los equipos van separados por sexo: las mismas cifras por separado (solo como dato).
+  if (sx && CAT_SEXO.includes(k.split('|')[0])) { const g2 = fila(`${k}@${sx}`); g2[campo] = (g2[campo] ?? 0) + v; }
+};
+const generoDe = new Map(s0.npcs.map((n) => [n.id, n.gender] as const));
 
 // Los avisos del verano: quién va a probar a otro club y a quién le quitan la plaza.
 const probar = new Map<string, { sentido: string; entra: boolean }>();
@@ -59,6 +66,7 @@ const edadMax = pob0.reclutamiento.edades.max;
 // 1–4 y 6: los que había.
 for (const [id, a] of antes) {
   const k = a.clave;
+  sx = generoDe.get(id);
   suma(k, 'habia');
   const t = tras.get(id), f = fin.get(id);
   if (!inicio.has(id)) { suma(k, 'desaparece'); continue; }
@@ -95,6 +103,7 @@ for (const [id, a] of antes) {
 // 5: quién entra (no jugaban y juegan al final).
 for (const [id, f] of fin) {
   if (!esJugador(f) || antes.has(id)) continue;
+  sx = f.gender;
   const k = clave(catDe(edadNueva(f)));
   if (!existian.has(id)) suma(k, 'entra_mudanza');
   else if (edadNueva(f) === 8) suma(k, 'entra_8_anos');
@@ -102,8 +111,9 @@ for (const [id, f] of fin) {
   else suma(k, 'entra_no_jugaba');
 }
 // 7: antes de rehacer los equipos (tras abandono y edad) y al final, por categoría y año nuevos.
-for (const [, n] of tras) if (esJugador(n)) suma(clave(catDe(edadNueva(n))), 'empieza_sin_rehacer');
-for (const [, n] of fin) if (esJugador(n)) suma(clave(catDe(edadNueva(n))), 'empieza_final');
+for (const [, n] of tras) if (esJugador(n)) { sx = n.gender; suma(clave(catDe(edadNueva(n))), 'empieza_sin_rehacer'); }
+for (const [, n] of fin) if (esJugador(n)) { sx = n.gender; suma(clave(catDe(edadNueva(n))), 'empieza_final'); }
+sx = undefined;
 // Los que llegan con 8 años a benjamín: cuántos de 8 años hay en total y cuántos de ellos están interesados.
 const ocho = [...fin.values()].filter((n) => n.genetica && edadNueva(n) === 8 && !n.id.startsWith('personaje@'));
 const extra = { de8: ocho.length, de8Juegan: ocho.filter(esJugador).length, mudadosSinJugar: [...fin.values()].filter((n) => !existian.has(n.id) && n.genetica).length };

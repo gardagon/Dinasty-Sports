@@ -207,3 +207,17 @@ Por categoría:
 - En juvenil, 3.º año (18 años): ~185 terminan, ~126 siguen jugando fuera de las categorías base (sin categoría; categoría `senior` del deporte) y ~59 abandonan.
 - Los de 17 años (2.º año de juvenil) acaban el colegio al cumplir 18: ~48 quedan libres de su club de colegio y buscan otro (son los «Fin del colegio» de la tabla de motivos).
 - Ciudad de ahora (semilla 3): `npx tsx tools/verano-volumen.ts 3 actual` (no es la ciudad de referencia; no se recoge aquí).
+
+## Por sexo, desde infantil (dato; aviso del usuario: allí los equipos irán separados por sexo)
+
+|  | Sexo | Jugaban | Abandonan | % | Buscan cambiar | % | Entran | Tras todo el verano | Balance |
+|---|---|---|---|---|---|---|---|---|---|
+| infantil | chicas | 276 (264–288) | 27 (24–31) | 10 % | 69 (60–76) | 25 % | 1 (0–2) | 242 (232–248) | -34 (-12 %) |
+| infantil | chicos | 273 (254–294) | 28 (17–35) | 10 % | 60 (51–72) | 22 % | 1 (0–2) | 244 (209–270) | -30 (-11 %) |
+| cadete | chicas | 264 (238–296) | 50 (40–65) | 19 % | 57 (44–66) | 22 % | 0 (0–1) | 236 (211–253) | -29 (-11 %) |
+| cadete | chicos | 277 (259–297) | 49 (43–54) | 18 % | 52 (41–59) | 19 % | 1 (0–1) | 242 (226–263) | -35 (-13 %) |
+| juvenil | chicas | 348 (321–370) | 108 (83–127) | 31 % | 68 (58–77) | 19 % | 13 (4–20) | 292 (280–310) | -56 (-16 %) |
+| juvenil | chicos | 340 (310–367) | 101 (89–107) | 30 % | 61 (51–68) | 18 % | 14 (10–21) | 295 (273–308) | -45 (-13 %) |
+
+
+Hoy el mundo tiene ~50 % de chicas y la realidad es ~10 %: el reparto y los veranos habrá que repetirlos por sexo. Con las reglas de hoy, chicas y chicos abandonan, cambian y entran casi igual (diferencias de 1–3 puntos, dentro del rango entre semillas).
