@@ -9,30 +9,30 @@ Paso 1: 14 de 1.er año y 14 del resto por club. Paso 2 (solo infantil y cadete)
 | Club | A | B | Cogidos para A | Cogidos para B | Veía (resto · 1.º) |
 |---|---|---|---|---|---|
 | club_grande | 18 | 18 | 4 | 4 | 33 · 36 |
-| club_mediano | 18 | 18 | 4 | 4 | 24 · 31 |
-| club_mediano2 | 18 | 18 | 4 | 4 | 25 · 27 |
-| club_mediano3 | 18 | 18 | 4 | 4 | 23 · 27 |
-| club_pequeno | 18 | 18 | 4 | 4 | 15 · 24 |
-| club_pequeno2 | 18 | 18 | 4 | 4 | 12 · 26 |
-| club_pequeno3 | 18 | 18 | 4 | 4 | 17 · 19 |
-| club_pequeno4 | 18 | 18 | 4 | 4 | 13 · 21 |
-| club_pequeno5 | 18 | 18 | 4 | 4 | 16 · 16 |
-| colegio | 18 | 18 | 4 | 4 | 8 · 10 |
-| colegio1 | 18 | 18 | 4 | 4 | 17 · 11 |
-| colegio2 | 18 | 18 | 4 | 4 | 11 · 9 |
-| colegio3 | 18 | 18 | 4 | 4 | 8 · 9 |
+| club_mediano | 18 | 18 | 4 | 4 | 24 · 30 |
+| club_mediano2 | 18 | 18 | 4 | 4 | 24 · 26 |
+| club_mediano3 | 17 | 18 | 3 | 4 | 20 · 26 |
+| club_pequeno | 18 | 18 | 4 | 4 | 13 · 21 |
+| club_pequeno2 | 18 | 18 | 4 | 4 | 9 · 21 |
+| club_pequeno3 | 18 | 18 | 4 | 4 | 12 · 15 |
+| club_pequeno4 | 18 | 18 | 4 | 4 | 9 · 15 |
+| club_pequeno5 | 18 | 18 | 4 | 4 | 10 · 11 |
+| colegio | 18 | 18 | 4 | 4 | 7 · 10 |
+| colegio1 | 18 | 18 | 4 | 4 | 16 · 11 |
+| colegio2 | 18 | 18 | 4 | 4 | 11 · 8 |
+| colegio3 | 18 | 17 | 4 | 3 | 7 · 8 |
 
 | Resumen |  |
 |---|---|
 | Equipos | 26 |
-| Niños por equipo: mínimo · máximo · media | 18 · 18 · 18.0 |
+| Niños por equipo: mínimo · máximo · media | 17 · 18 · 17.9 |
 | Equipos por debajo de 14 | 0 |
-| Niños asignados | 468 |
+| Niños asignados | 466 |
 
 | Bolsa tras el paso 3 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio1 | …de colegio2 | …de colegio3 | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 | …de propio |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1.er año | 73 | 29 | 44 | 10 | 8 | 7 | 10 | 4 | 11 | 4 | 6 | 7 | 6 |
-| Resto de años | 58 | 28 | 30 | 13 | 7 | 6 | 8 | 2 | 4 | 5 | 3 | 5 | 5 |
+| 1.er año | 47 | 21 | 26 | 7 | 4 | 5 | 4 | 4 | 7 | 0 | 4 | 6 | 6 |
+| Resto de años | 41 | 24 | 17 | 12 | 7 | 3 | 5 | 0 | 3 | 3 | 1 | 4 | 3 |
 
 ## alevin
 
@@ -41,30 +41,30 @@ Paso 1: 14 de 1.er año y 14 del resto por club. Paso 2 (solo infantil y cadete)
 | Club | A | B | Cogidos para A | Cogidos para B | Veía (resto · 1.º) |
 |---|---|---|---|---|---|
 | club_grande | 18 | 18 | 4 | 4 | 27 · 41 |
-| club_mediano | 18 | 18 | 4 | 4 | 21 · 35 |
-| club_mediano2 | 18 | 18 | 4 | 4 | 21 · 31 |
-| club_mediano3 | 18 | 18 | 4 | 4 | 18 · 32 |
-| club_pequeno | 18 | 18 | 4 | 4 | 11 · 27 |
-| club_pequeno2 | 18 | 18 | 4 | 4 | 13 · 23 |
-| club_pequeno3 | 18 | 18 | 4 | 4 | 13 · 21 |
-| club_pequeno4 | 18 | 18 | 4 | 4 | 11 · 23 |
-| club_pequeno5 | 18 | 18 | 4 | 4 | 9 · 22 |
+| club_mediano | 18 | 18 | 4 | 4 | 19 · 34 |
+| club_mediano2 | 18 | 18 | 4 | 4 | 19 · 30 |
+| club_mediano3 | 18 | 18 | 4 | 4 | 14 · 31 |
+| club_pequeno | 18 | 18 | 4 | 4 | 9 · 24 |
+| club_pequeno2 | 18 | 18 | 4 | 4 | 11 · 19 |
+| club_pequeno3 | 18 | 16 | 4 | 2 | 8 · 18 |
+| club_pequeno4 | 18 | 18 | 4 | 4 | 8 · 16 |
+| club_pequeno5 | 18 | 17 | 4 | 3 | 5 · 16 |
 | colegio | 18 | 18 | 4 | 4 | 6 · 8 |
-| colegio1 | 18 | 18 | 4 | 4 | 4 · 10 |
-| colegio2 | 18 | 18 | 4 | 4 | 10 · 9 |
+| colegio1 | 18 | 18 | 4 | 4 | 4 · 9 |
+| colegio2 | 17 | 18 | 3 | 4 | 8 · 7 |
 | colegio3 | 16 | 18 | 2 | 4 | 2 · 10 |
 
 | Resumen |  |
 |---|---|
 | Equipos | 26 |
-| Niños por equipo: mínimo · máximo · media | 16 · 18 · 17.9 |
+| Niños por equipo: mínimo · máximo · media | 16 · 18 · 17.8 |
 | Equipos por debajo de 14 | 0 |
-| Niños asignados | 466 |
+| Niños asignados | 462 |
 
 | Bolsa tras el paso 3 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio1 | …de colegio2 | …de colegio3 | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 | …de propio |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1.er año | 65 | 21 | 44 | 8 | 8 | 7 | 11 | 7 | 6 | 1 | 6 | 7 | 4 |
-| Resto de años | 37 | 11 | 26 | 2 | 8 | 1 | 4 | 3 | 5 | 1 | 5 | 2 | 6 |
+| 1.er año | 47 | 14 | 33 | 5 | 3 | 6 | 7 | 5 | 4 | 1 | 5 | 7 | 4 |
+| Resto de años | 13 | 4 | 9 | 0 | 5 | 0 | 0 | 0 | 2 | 0 | 3 | 1 | 2 |
 
 ## infantil
 
@@ -92,16 +92,16 @@ Total que suben: **58** de 182; clubes con el B por debajo de 14: **13** de 13.
 
 | Club | A | B | Cogidos para A | Cogidos para B | Veía (resto · 1.º) |
 |---|---|---|---|---|---|
-| club_grande | 20 | 20 | 1 | 11 | 42 · 37 |
-| club_mediano | 20 | 20 | 1 | 11 | 32 · 29 |
-| club_mediano2 | 20 | 20 | 2 | 10 | 33 · 23 |
-| club_mediano3 | 20 | 20 | 1 | 11 | 33 · 19 |
-| club_pequeno | 20 | 20 | 1 | 11 | 24 · 14 |
-| club_pequeno2 | 20 | 20 | 3 | 9 | 23 · 11 |
-| club_pequeno3 | 20 | 15 | 1 | 6 | 25 · 6 |
-| club_pequeno4 | 20 | 19 | 2 | 9 | 19 · 9 |
-| club_pequeno5 | 20 | 14 | 1 | 5 | 20 · 5 |
-| colegio | 20 | 12 | 2 | 2 | 4 · 2 |
+| club_grande | 20 | 19 | 1 | 10 | 42 · 37 |
+| club_mediano | 20 | 20 | 1 | 11 | 32 · 28 |
+| club_mediano2 | 20 | 20 | 2 | 10 | 32 · 22 |
+| club_mediano3 | 20 | 20 | 1 | 11 | 30 · 18 |
+| club_pequeno | 20 | 19 | 1 | 10 | 22 · 12 |
+| club_pequeno2 | 20 | 18 | 3 | 7 | 22 · 7 |
+| club_pequeno3 | 20 | 12 | 1 | 3 | 22 · 3 |
+| club_pequeno4 | 20 | 17 | 2 | 7 | 17 · 7 |
+| club_pequeno5 | 20 | 10 | 1 | 1 | 19 · 1 |
+| colegio | 20 | 12 | 2 | 2 | 3 · 2 |
 | colegio1 | 20 | 12 | 1 | 3 | 9 · 3 |
 | colegio2 | 20 | 13 | 3 | 2 | 3 · 2 |
 | colegio3 | 20 | 13 | 1 | 4 | 8 · 4 |
@@ -109,14 +109,14 @@ Total que suben: **58** de 182; clubes con el B por debajo de 14: **13** de 13.
 | Resumen |  |
 |---|---|
 | Equipos | 26 |
-| Niños por equipo: mínimo · máximo · media | 12 · 20 · 18.4 |
-| Equipos por debajo de 14 | 4 |
-| Niños asignados | 478 |
+| Niños por equipo: mínimo · máximo · media | 10 · 20 · 17.9 |
+| Equipos por debajo de 14 | 6 |
+| Niños asignados | 465 |
 
 | Bolsa tras el paso 3 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio1 | …de colegio3 | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 | …de propio |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1.er año | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
-| Resto de años | 69 | 14 | 55 | 9 | 8 | 6 | 7 | 11 | 5 | 12 | 9 | 2 |
+| 1.er año | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Resto de años | 58 | 11 | 47 | 8 | 7 | 5 | 6 | 9 | 4 | 10 | 8 | 1 |
 
 ## cadete
 
@@ -145,28 +145,28 @@ Total que suben: **66** de 182; clubes con el B por debajo de 14: **13** de 13.
 | Club | A | B | Cogidos para A | Cogidos para B | Veía (resto · 1.º) |
 |---|---|---|---|---|---|
 | club_grande | 20 | 20 | 2 | 10 | 40 · 53 |
-| club_mediano | 20 | 20 | 1 | 11 | 30 · 43 |
-| club_mediano2 | 20 | 20 | 0 | 12 | 34 · 35 |
-| club_mediano3 | 21 | 20 | 0 | 13 | 34 · 31 |
-| club_pequeno | 20 | 20 | 0 | 12 | 29 · 19 |
-| club_pequeno2 | 21 | 20 | 0 | 13 | 33 · 13 |
-| club_pequeno3 | 21 | 18 | 0 | 11 | 32 · 11 |
-| club_pequeno4 | 20 | 17 | 3 | 6 | 34 · 6 |
-| club_pequeno5 | 20 | 17 | 2 | 7 | 29 · 7 |
+| club_mediano | 20 | 19 | 1 | 10 | 31 · 41 |
+| club_mediano2 | 20 | 19 | 0 | 11 | 33 · 33 |
+| club_mediano3 | 21 | 19 | 0 | 12 | 33 · 28 |
+| club_pequeno | 20 | 20 | 0 | 12 | 27 · 17 |
+| club_pequeno2 | 21 | 16 | 0 | 9 | 30 · 9 |
+| club_pequeno3 | 21 | 13 | 0 | 6 | 29 · 6 |
+| club_pequeno4 | 20 | 15 | 3 | 4 | 29 · 4 |
+| club_pequeno5 | 20 | 14 | 2 | 4 | 26 · 4 |
 | colegio | 17 | 13 | 3 | 7 | 3 · 7 |
 | colegio1 | 20 | 15 | 2 | 5 | 5 · 5 |
-| colegio2 | 20 | 16 | 3 | 5 | 9 · 5 |
+| colegio2 | 20 | 13 | 3 | 2 | 9 · 2 |
 | colegio3 | 20 | 12 | 2 | 2 | 5 · 2 |
 
 | Resumen |  |
 |---|---|
 | Equipos | 26 |
-| Niños por equipo: mínimo · máximo · media | 12 · 21 · 18.8 |
-| Equipos por debajo de 14 | 2 |
-| Niños asignados | 488 |
+| Niños por equipo: mínimo · máximo · media | 12 · 21 · 18.0 |
+| Equipos por debajo de 14 | 4 |
+| Niños asignados | 468 |
 
-| Bolsa tras el paso 3 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio1 | …de colegio2 | …de colegio3 | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 | …de propio |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1.er año | 10 | 2 | 8 | 1 | 0 | 1 | 3 | 0 | 2 | 0 | 1 | 1 | 1 |
-| Resto de años | 83 | 10 | 73 | 4 | 7 | 3 | 8 | 10 | 15 | 11 | 16 | 8 | 1 |
+| Bolsa tras el paso 3 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio1 | …de colegio2 | …de colegio3 | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1.er año | 2 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 |
+| Resto de años | 73 | 7 | 66 | 3 | 6 | 3 | 7 | 10 | 13 | 10 | 15 | 6 |
 

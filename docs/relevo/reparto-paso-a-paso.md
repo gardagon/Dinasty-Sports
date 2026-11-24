@@ -215,27 +215,44 @@ Benjamín: los 13 clubes llegan a 14 + 14. Juvenil: 11 de 13 llegan; el colegio 
 
 ## Variante paso2-3 (semilla 33): subir titulares y completar desde la bolsa
 
-`npm run reparto:paso -- 33 grande benjamin --variante paso2-3` (la categoría da igual: sale de benjamín a cadete; juvenil queda fuera). Sobre el paso 1 (14 + 14): **paso 2**, solo infantil y cadete: de los 28 de cada club se calcula la alineación del juego (`convocarYAlinear`) y los de 1.er año que salen titulares suben al A; **paso 3**: cada equipo (A con el resto de años, B con 1.er año) se completa desde la bolsa hasta 18 (benjamín y alevín) o 20 (infantil y cadete), con el mismo orden, atractivo y colegios, sin prueba. Salida completa: `reparto-paso-a-paso/variante-paso2-3-33.md`. Bandera de medida `DIAGNOSTICO.variantePaso23`, apagada por defecto.
+`npm run reparto:paso -- 33 grande benjamin --variante paso2-3` (sale de benjamín a cadete; juvenil queda fuera). Sobre el paso 1 (14 + 14): **paso 2**, solo infantil y cadete: de los 28 de cada club se calcula la alineación del juego (`convocarYAlinear`) y los de 1.er año que salen titulares suben al A; **paso 3**: cada equipo (A con el resto de años, B con 1.er año) se completa desde la bolsa hasta 18 (benjamín y alevín) o 20 (infantil y cadete), con el mismo orden, atractivo y colegios, sin prueba. Los niños entran «solo por hueco» y respetando los cupos por puesto (nadie desplaza a nadie). Salida completa: `reparto-paso-a-paso/variante-paso2-3-33.md`. Bandera de medida `DIAGNOSTICO.variantePaso23`, apagada por defecto.
+
+> **Corrección (24/11):** una primera versión de esta variante dejaba que un niño nuevo desplazara a otro del equipo (regla de plaza por mérito) y contaba a los desplazados como si siguieran en él; las plantillas salían 2–6 niños más llenas de lo real y la bolsa, más grande. Las cifras de abajo son las corregidas.
 
 | | Benjamín | Alevín | Infantil | Cadete |
 |---|---:|---:|---:|---:|
 | Paso 2: suben al A (de 182) | — | — | 58 | 66 |
 | Paso 2: clubes con el B por debajo de 14 | — | — | 13 de 13 | 13 de 13 |
 | Paso 3: equipos | 26 | 26 | 26 | 26 |
-| Niños por equipo (mín · máx · media) | 18 · 18 · 18,0 | 16 · 18 · 17,9 | 12 · 20 · 18,4 | 12 · 21 · 18,8 |
-| Equipos por debajo de 14 | 0 | 0 | 4 | 2 |
-| Niños asignados | 468 | 466 | 478 | 488 |
-| Bolsa: 1.er año · resto | 73 · 58 | 65 · 37 | 1 · 69 | 10 · 83 |
+| Niños por equipo (mín · máx · media) | 17 · 18 · 17,9 | 16 · 18 · 17,8 | 10 · 20 · 17,9 | 12 · 21 · 18,0 |
+| Equipos por debajo de 14 | 0 | 0 | 6 | 4 |
+| Niños asignados | 466 | 462 | 465 | 468 |
+| Bolsa: 1.er año · resto | 47 · 41 | 47 · 13 | 0 · 58 | 2 · 73 |
 
 ## Variante paso4 (semilla 33): completar el B con niños de 2.º año (solo infantil y cadete)
 
-`npm run reparto:paso -- 33 grande benjamin --variante paso4` (hasta 20) o `--variante paso4-14` (hasta 14). Sobre paso2-3: el B que no llega a 14 con niños de 1.er año se completa con niños de 2.º año de la bolsa; primero los colegios con sus alumnos y después el resto en el orden de siempre; el B pasa a ser mixto (por nivel). Un B que ya llega a 14 no se toca. Salidas: `reparto-paso-a-paso/variante-paso4-hasta-20-33.md` y `…-hasta-14-33.md`.
+`--variante paso4` (hasta 20) o `--variante paso4-14` (hasta 14). Sobre paso2-3: el B que no llega a 14 con niños de 1.er año se completa con niños de 2.º año de la bolsa (primero los colegios con sus alumnos, después el resto en el orden de siempre); el B pasa a ser mixto. Si con el cupo por puesto no llega a 14, entran sin mirar el cupo hasta 14. Salidas: `variante-paso4-hasta-20-33.md` y `…-hasta-14-33.md`.
 
 | | Infantil hasta 20 | Infantil hasta 14 | Cadete hasta 20 | Cadete hasta 14 |
 |---|---:|---:|---:|---:|
-| B que se completan | 3 | 3 | 2 | 2 |
-| Entran de 2.º año | 17 | 5 | 4 | 3 |
-| Equipos · por debajo de 14 | 26 · 1 | 26 · 1 | 26 · 0 | 26 · 0 |
-| Niños por equipo (mín · máx · media) | 13 · 20 · 19,0 | 13 · 20 · 18,6 | 14 · 21 · 18,9 | 14 · 21 · 18,9 |
-| Niños asignados | 495 | 483 | 492 | 491 |
-| Bolsa: 1.er año · resto | 7 · 52 | 2 · 64 | 10 · 80 | 10 · 81 |
+| B que se completan | 5 | 5 | 3 | 3 |
+| Entran de 2.º año | 34 | 10 | 15 | 4 |
+| Niños por equipo (mín · máx · media) | 13 · 20 · 19,2 | 13 · 20 · 18,3 | 13 · 21 · 18,6 | 13 · 21 · 18,2 |
+| Equipos por debajo de 14 | 2 | 2 | 1 | 1 |
+| Niños asignados | 499 | 475 | 483 | 472 |
+| Bolsa: 1.er año · resto | 0 · 24 | 0 · 48 | 2 · 58 | 2 · 69 |
+
+## Variante paso5-6 (semilla 33): reagrupar y sortear la bolsa (infantil y cadete, B mixto hasta 20)
+
+`--variante paso5-6`. **Paso 5:** el club con un equipo que sigue bajo 14 junta a todos sus niños de la categoría y los divide en dos equipos por nivel (el A, los mejores); si no llegan los dos a 14, el B desaparece y sus niños vuelven a la bolsa. **Paso 6a:** cada colegio forma un C mixto (14 a 20) con sus alumnos de la bolsa que quieren seguir en su colegio. **Paso 6b:** lo que queda se sortea entre los clubes externos (el mismo sorteo de siempre, por club y categoría; los que querían su colegio y no han formado C ya los pueden ver los de fuera): cada uno monta un equipo nuevo (C y luego D) de 14 mientras queden 14 en la bolsa, y el resto de la bolsa entra en esos equipos hasta 20. Salida: `variante-paso5-6-33.md`.
+
+| | Infantil | Cadete |
+|---|---:|---:|
+| Paso 5: clubes que se reagrupan | colegio y colegio2 (A 20 + B 13 → 17 + 16) | colegio (A 17 + B 13 → 15 + 15) |
+| Paso 6a: colegios que forman C | ninguno (0 alumnos que quieran seguir) | ninguno (1 en colegio1) |
+| Paso 6b: equipos nuevos | 1 (club_mediano, C: 14 + 6 = 20) | 4 (club_grande C 18; club_pequeno3, club_mediano3 y club_pequeno5, C de 14) |
+| Equipos (A · B · C · D) | 27 (13 · 13 · 1 · 0) | 30 (13 · 13 · 4 · 0) |
+| Niños por equipo (mín · máx · media) | 16 · 20 · 19,2 | 14 · 21 · 18,1 |
+| Equipos por debajo de 14 | 0 | 0 |
+| Niños asignados | 519 | 543 |
+| Se quedan fuera | 4 (de 2.º año, de colegios sin club; querían probar fuera) | 0 |

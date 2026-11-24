@@ -6,45 +6,49 @@ Sobre paso2-3 (infantil y cadete): el B que no llega a 14 con niños de 1.er añ
 
 | Club | B antes | Entran de 2.º año | B después | A | B mixto |
 |---|---|---|---|---|---|
-| colegio | 12 | 2 | 14 | 20 | sí |
+| club_pequeno3 | 12 | 8 | 20 | 20 | sí |
+| club_pequeno5 | 10 | 10 | 20 | 20 | sí |
+| colegio | 12 | 1 | 13 | 20 | sí |
 | colegio1 | 12 | 8 | 20 | 20 | sí |
 | colegio2 | 13 | 0 | 13 | 20 | no |
 | colegio3 | 13 | 7 | 20 | 20 | sí |
 
 | Resumen tras el paso 4 |  |
 |---|---|
-| B completados (con alguno de 2.º año) | 3 |
-| Entran de 2.º año en total | 17 |
+| B completados (con alguno de 2.º año) | 5 |
+| Entran de 2.º año en total | 34 |
 | Equipos | 26 |
-| Niños por equipo: mínimo · máximo · media | 13 · 20 · 19.0 |
-| Equipos por debajo de 14 | 1 |
-| Niños asignados | 495 |
-| B mixtos | 3 |
+| Niños por equipo: mínimo · máximo · media | 13 · 20 · 19.2 |
+| Equipos por debajo de 14 | 2 |
+| Niños asignados | 499 |
+| B mixtos | 5 |
 
-| Bolsa tras el paso 4 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio1 | …de colegio3 | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1.er año | 7 | 5 | 2 | 3 | 3 | 1 | 0 | 0 | 0 | 0 | 0 |
-| Resto de años | 52 | 1 | 51 | 1 | 1 | 6 | 7 | 11 | 5 | 12 | 9 |
+| Bolsa tras el paso 4 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 |
+|---|---|---|---|---|---|---|---|---|---|
+| 1.er año | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Resto de años | 24 | 0 | 24 | 4 | 3 | 4 | 2 | 6 | 5 |
 
 ## cadete
 
 | Club | B antes | Entran de 2.º año | B después | A | B mixto |
 |---|---|---|---|---|---|
-| colegio | 13 | 1 | 14 | 17 | sí |
+| club_pequeno3 | 13 | 6 | 19 | 21 | sí |
+| colegio | 13 | 0 | 13 | 17 | no |
+| colegio2 | 13 | 6 | 19 | 20 | sí |
 | colegio3 | 12 | 3 | 15 | 20 | sí |
 
 | Resumen tras el paso 4 |  |
 |---|---|
-| B completados (con alguno de 2.º año) | 2 |
-| Entran de 2.º año en total | 4 |
+| B completados (con alguno de 2.º año) | 3 |
+| Entran de 2.º año en total | 15 |
 | Equipos | 26 |
-| Niños por equipo: mínimo · máximo · media | 14 · 21 · 18.9 |
-| Equipos por debajo de 14 | 0 |
-| Niños asignados | 492 |
-| B mixtos | 2 |
+| Niños por equipo: mínimo · máximo · media | 13 · 21 · 18.6 |
+| Equipos por debajo de 14 | 1 |
+| Niños asignados | 483 |
+| B mixtos | 3 |
 
-| Bolsa tras el paso 4 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio1 | …de colegio2 | …de colegio3 | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 | …de propio |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1.er año | 10 | 2 | 8 | 1 | 0 | 1 | 3 | 0 | 2 | 0 | 1 | 1 | 1 |
-| Resto de años | 80 | 8 | 72 | 4 | 7 | 1 | 8 | 10 | 15 | 11 | 16 | 8 | 0 |
+| Bolsa tras el paso 4 | Quedan | Se quedan en su colegio | Quieren probar fuera | …de colegio1 | …de colegio4 | …de colegio5 | …de colegio6 | …de colegio7 | …de colegio8 | …de colegio9 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1.er año | 2 | 0 | 2 | 0 | 0 | 0 | 1 | 0 | 1 | 0 |
+| Resto de años | 58 | 1 | 57 | 3 | 6 | 9 | 13 | 9 | 12 | 6 |
 
