@@ -10,6 +10,7 @@ import { writeFileSync } from 'node:fs';
 import { CAPACIDADES_GENETICAS, PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_CON_HOGARES, registrarPais } from '@ds/contracts';
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
+import { VARIANTES } from '@ds/mod-npcs';
 import { aplicarPropuestas } from './propuestas-pnj';
 import { futbol } from '@ds/mod-futbol';
 import { fijosDeNino, topeEfectivo } from '../modules/npcs/src/rutina';
@@ -19,6 +20,12 @@ import { probabilidadDeAbandonar, motivosDeAbandono } from '../modules/npcs/src/
 /** La ciudad grande; con `DS_HOGARES=1`, con los hogares activados (`docs/relevo/hogares.md`). */
 const PAIS = process.env.DS_HOGARES ? PAIS_CIUDAD_GRANDE_CON_HOGARES : PAIS_CIUDAD_GRANDE;
 registrarPais(PAIS);
+// Variantes de la herencia de los hijos (solo con hogares), para aislar qué causa lo que se ve: `DS_HOGARES_INTERESES=maximo|media|uno|ninguno`, `DS_HOGARES_GENETICA=hijo|nino`.
+if (process.env.DS_HOGARES_INTERESES) VARIANTES.intereses = process.env.DS_HOGARES_INTERESES as typeof VARIANTES.intereses;
+if (process.env.DS_HOGARES_CUERPO) VARIANTES.cuerpo = process.env.DS_HOGARES_CUERPO as typeof VARIANTES.cuerpo;
+if (process.env.DS_HOGARES_CARACTER) VARIANTES.caracter = process.env.DS_HOGARES_CARACTER as typeof VARIANTES.caracter;
+if (process.env.DS_HOGARES_HIJOS) VARIANTES.hijos = process.env.DS_HOGARES_HIJOS as typeof VARIANTES.hijos;
+if (process.env.DS_HOGARES_GENETICA) VARIANTES.genetica = process.env.DS_HOGARES_GENETICA as typeof VARIANTES.genetica;
 aplicarPropuestas();
 const salida = process.argv[2] ?? 'analisis-profesionales.json';
 const semillas = (process.argv[3] ?? '31,32,33').split(',').map(Number);

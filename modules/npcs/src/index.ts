@@ -2150,4 +2150,4 @@ export const npcs = defineModule<NpcsState>({
 });
 
 export default npcs;
-export { esProgenitorDeHogar, generarFamilias, FAMILIAS, type HogarGuardado } from './hogares';
+export { esProgenitorDeHogar, generarFamilias, FAMILIAS, VARIANTES, type HogarGuardado } from './hogares';

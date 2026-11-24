@@ -1,8 +1,8 @@
 import {
   CALLES_CON_VECINOS, anioNatural, apodoAlAzar, demografiaDelLugar, estaturaZ, identidadAlAzar, identidadDeHijo, metabolismoZ, musculaturaZ, nombreCompleto, nombrePermitido, origenesDePareja, parejasDelLugar,
-  primerDiaDelAnio, rasgosAlAzar, rasgosHeredadosNpc, registrarNombre, rngEstable, type FamiliaView, type Gender, type OrigenFamiliar, type PaisDef, type RasgosDe, type RegistroDeNombres, type Rng,
+  INTERESES, interesesAlAzar, primerDiaDelAnio, rasgosAlAzar, rasgosHeredadosNpc, registrarNombre, rngEstable, type FamiliaView, type Gender, type OrigenFamiliar, type PaisDef, type RasgosDe, type RegistroDeNombres, type Rng,
 } from '@ds/contracts';
-import { aficionadoPorLosPadres, geneticaDeHijo, herenciaDeProgenitor, type Herencia } from './deportistas';
+import { aficionadoPorLosPadres, geneticaDeHijo, geneticaDeNino, herenciaDeProgenitor, type Herencia } from './deportistas';
 import type { Npc } from './index';
 
 /**
@@ -44,6 +44,29 @@ export const FAMILIAS = {
   recogeSiempreHasta: 10,
   recogeHasta: [[10, 0.5], [11, 0.25]] as readonly (readonly [number, number])[],
 } as const;
+
+/**
+ * Variantes para **medir** (`tools/analisis-profesionales.ts` con `DS_HOGARES_INTERESES` / `DS_HOGARES_GENETICA`; `docs/relevo/hogares.md`, ronda 4): cómo heredan los hijos los intereses de sus padres y de dónde sale su genética. Los valores por defecto
+ * son lo que hace el juego; las demás se usan solo en las herramientas.
+ * - `intereses`: `maximo` (el de `rasgosHeredadosNpc`: cada interés de los padres pasa con un 60 % con la intensidad más alta de los dos), `media` (la media de los dos, redondeada), `uno` (la de un padre al azar) o
+ *   `ninguno` (intereses sorteados sueltos, como los niños de siempre).
+ * - `cuerpo`: `heredado` (estatura y cuerpo como los hermanos del personaje) o `hash` (como los niños de siempre: de su id). `caracter`: `heredado` o `azar` (sorteado suelto). `hijos`: `familia` o `suelto` (el niño se sortea como siempre, sin heredar nada: solo conserva el hogar y los padres).
+ * - `genetica`: `hijo` (de los padres de la familia, la misma para los hermanos) o `nino` (como los niños de siempre: unos padres sorteados y descartados por cada hijo).
+ */
+export const VARIANTES: { intereses: 'maximo' | 'media' | 'uno' | 'ninguno'; genetica: 'hijo' | 'nino'; cuerpo: 'heredado' | 'hash'; caracter: 'heredado' | 'azar'; hijos: 'familia' | 'suelto' } = { intereses: 'maximo', genetica: 'hijo', cuerpo: 'heredado', caracter: 'heredado', hijos: 'familia' };
+
+function interesesDeVariante(padre: Readonly<Record<string, number>>, madre: Readonly<Record<string, number>>, rng: Rng): Record<string, number> {
+  if (VARIANTES.intereses === 'ninguno') return interesesAlAzar(rng);
+  const r: Record<string, number> = {};
+  for (const id of new Set([...Object.keys(padre), ...Object.keys(madre)])) {
+    if (!rng.chance(0.6)) continue;
+    const p = padre[id] ?? 0, m = madre[id] ?? 0;
+    const valor = VARIANTES.intereses === 'media' ? Math.round((p + m) / 2) : (rng.chance(0.5) ? p : m) || Math.max(p, m);
+    r[id] = Math.min(3, Math.max(1, valor - (rng.chance(0.3) ? 1 : 0)));
+  }
+  while (Object.keys(r).length < 2) r[rng.pick(INTERESES).id] ??= rng.int(1, 3);
+  return r;
+}
 
 export const ETIQUETA_DE_PROGENITOR_DE_HOGAR = 'adulto_de_hogar';
 export const EDAD_ALUMNO_MIN_DE_FAMILIAS = 8;
@@ -174,17 +197,21 @@ export function generarFamilias(d: DatosDeFamilias): FamiliasNuevas {
         } else if (!d.pequenos) continue;
         const id = pequeno ? `peque_${resultado.siguientePeque++}` : `${hogarId}_hijo${++k}`;
         const gender: Gender = rng.chance(0.5) ? 'f' : 'm';
-        const base = rasgosHeredadosNpc(padre.rasgos, madre.rasgos, rng, gender);
+        const suelto = VARIANTES.hijos === 'suelto';
+        const heredado = suelto ? rasgosAlAzar(rng, { sexo: gender, demografia, ...(parejas ? { hijoDePareja: { parejas, locales: pais.origenesLocales } } : {}) }) : rasgosHeredadosNpc(padre.rasgos, madre.rasgos, rng, gender);
+        const fresco = !suelto && VARIANTES.caracter === 'azar' ? rasgosAlAzar(rng, { sexo: gender, demografia }).caracter : undefined;
+        const base0 = fresco ? { ...heredado, caracter: fresco } : heredado;
+        const base = suelto || VARIANTES.intereses === 'maximo' ? base0 : { ...base0, intereses: interesesDeVariante(padre.rasgos.intereses, madre.rasgos.intereses, rng) };
         const nacimiento = nacimientoDe(edad);
         const { identidad, completo } = nombreUnico(gender, edad, nacimiento, () => identidadDeHijo(rng, gender, padre.identidad, madre.identidad, base.origen, { edad, pais }));
-        const genetica = geneticaDeHijo(rng, padre.herencia, madre.herencia, rngEstable('perks', d.seed, id));
+        const genetica = !suelto && VARIANTES.genetica === 'hijo' ? geneticaDeHijo(rng, padre.herencia, madre.herencia, rngEstable('perks', d.seed, id)) : geneticaDeNino(rng, id);
         const rasgos = aficionadoPorLosPadres(base, genetica.padres, rng);
         const apodo = apodoAlAzar(completo, identidad.pila);
         // La estatura y el cuerpo se heredan como los de los hermanos del personaje: la media de los padres, algo atenuada, más una variación propia.
         const zp = (f: (id: string) => number): number => 0.45 * (f(padre.id) + f(madre.id)) + 0.6 * f(id);
         const hijo: Npc = {
           id, name: completo, nombrePila: identidad.pila, ...(apodo ? { apodo } : {}), role: 'vecino', gender, tags: [], levels: {}, potential: {}, rasgos, nacimiento, known: false,
-          tipos: [{ tipo: 'vecino', ...(pequeno ? { pequeno: true } : {}) }], genetica, perks: genetica.perks, desfase: genetica.desfase, estatura: zp(estaturaZ), metabolismo: zp(metabolismoZ), musculatura: zp(musculaturaZ),
+          tipos: [{ tipo: 'vecino', ...(pequeno ? { pequeno: true } : {}) }], genetica, perks: genetica.perks, desfase: genetica.desfase, ...(suelto || VARIANTES.cuerpo === 'hash' ? {} : { estatura: zp(estaturaZ), metabolismo: zp(metabolismoZ), musculatura: zp(musculaturaZ) }),
           hogar: hogarId, padres: idsDePadres, description: DESCRIPCION_PEQUENO(gender), ...(colegio ? { colegio } : {}),
         };
         if (pequeno) resultado.pequenos.push(hijo);
