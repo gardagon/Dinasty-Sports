@@ -468,7 +468,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         if (y2.length >= 14 && y1.length >= 14) {
           ponerK(e, 4);
           const c = new Set<string>(), d = new Set<string>();
-          meter(e, y2, cap, c, 14); meter(e, y1, cap, d, 14);
+          meter(e, y2, 22, c, 14); meter(e, y1, 22, d, 14);
           if (c.size >= 14 && d.size >= 14) { t.C = c; t.D = d; formado = 'C de 2.º año + D de 1.º'; } else deshacer(e, [c, d], 2);
         }
         if (formado === 'ninguno' && cand.length >= 14) {
@@ -513,8 +513,8 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       }
       for (const x of nuevos) {
         if (x.tipo === 'par') {
-          meter(x.e, bolsa().filter((a) => !primeroAnio(a.npc)).sort(porValor), cap, x.c, 14);
-          meter(x.e, bolsa().filter((a) => primeroAnio(a.npc)).sort(porValor), cap, x.d, 14);
+          meter(x.e, bolsa().filter((a) => !primeroAnio(a.npc)).sort(porValor), 22, x.c, 14);
+          meter(x.e, bolsa().filter((a) => primeroAnio(a.npc)).sort(porValor), 22, x.d, 14);
         } else meter(x.e, bolsa().sort(porValor), 22, x.c, 14);
         tr('resto BA', x.e.club, { tipo: x.tipo, c: x.c.size, cPrimeros: [...x.c].filter((id) => primeroAnio(m.lista.get(id)!)).length, d: x.d.size });
       }

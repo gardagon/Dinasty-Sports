@@ -274,3 +274,5 @@ Benjamín: los 13 clubes llegan a 14 + 14. Juvenil: 11 de 13 llegan; el colegio 
 | Equipos (A · B · C · D) | 32 (13 · 13 · 4 · 2) | 30 (13 · 13 · 4 · 0) |
 | Niños por equipo (mín · máx · media) | 14 · 18 · 17,3 | 14 · 18 · 17,4 |
 | Por debajo de 14 · asignados · fuera | 0 · 554 · 0 | 0 · 522 · 0 |
+
+Precisión del usuario (24/11): en benjamín y alevín los equipos de un solo año (C de 2.º y D de 1.º, en colegios y en externos) llevan de 14 a 22, no hasta 18, igual que los C mixtos. Aplicado en `paso7`: el resultado con la semilla 33 no cambia (ningún equipo llega a 18 porque la bolsa se agota antes).
