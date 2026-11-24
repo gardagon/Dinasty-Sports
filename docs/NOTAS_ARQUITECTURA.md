@@ -52,9 +52,9 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): ronda 5 unida (hogares activados por defecto en las 3 ciudades; grande 12.833 personas, 26,3 MB, semana 2,06 s). Ahora: abaratar sin cambiar la huella (`sim:rapida` en ⚠️, 1,71 frente a 1,31 ms). **No publicar hasta que vuelva a ✅.** Después: H1 completo y lote 3 de sucesos;
 
 - `session_01M4vXXPCypWSK5cyLfmT3Dg` (`claude/salud-lesiones`): F1 unida (`contracts/salud.ts`, funciones puras). Ahora F2: activar los efectos del sueño, calibrados con `sim`. F3 (bajas en días) sube `SAVE_VERSION`: **avisar al usuario antes de publicarlo**;
-- `session_01M4vXXMZ1nQqUWicwqoGZB8` (`claude/partidos-reales`): P0 (banco, flujos de azar, caché de fuerza, registro de sucesos) con huella idéntica;
+- `session_01M4vXXMZ1nQqUWicwqoGZB8` (`claude/partidos-reales`): P0 unido (huella idéntica). Ahora P1, el motor B (corrige quién marca y la primera parte; lesiones detrás de un dato desactivado). Pendiente del usuario: guardar la plantilla convocada por equipo y semana;
 - personaje chica: análisis unido (`docs/relevo/personaje-chica.md`). **Hallazgo:** todos los equipos son mixtos y ~50 % chicas en todas las edades. 7 dudas presentadas al usuario el 24/11;
-- `session_01M4vXXPbdr69GjFRa9FScBd` (`claude/equipos-minimo`): diagnóstico del equipo por debajo del mínimo (DECISIONES 24/11). Para tras el paso 1; aplicar después de que se unan los hogares abaratados y P0.
+- `session_01M4vXXPbdr69GjFRa9FScBd` (`claude/equipos-minimo`): diagnóstico unido (`docs/relevo/equipos-minimo.md`: mal reparto, no faltan niños). 4 dudas presentadas al usuario; aplicar la opción 3 (+2 como red de seguridad) cuando decida y estén unidos los hogares abaratados.
 
 Pueden reactivarse con contexto:
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): seguir con H1 (trabajo de los progenitores, papel de reparto por parentesco, ficha con el vínculo, niños de los vecinos sin familia, abandono por edad) y con H2;
