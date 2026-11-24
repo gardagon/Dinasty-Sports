@@ -119,7 +119,7 @@ export { PARAMETROS_DE_PERCEPCION, juicioDe, recordarRivales, recordarSoloLosUlt
 export type { Impresion, Juicio, RivalVisto } from './mi-equipo';
 export { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 export { PUESTOS_DE_FUTBOL } from './puestos';
-export { tandaDePenaltis, PARAMETROS_DE_PENALTIS, jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
+export { DIAGNOSTICO_DE_CACHE, tandaDePenaltis, PARAMETROS_DE_PENALTIS, jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
 export { PARAMETROS_DE_CONVOCATORIA, convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, paraConvocar, paraConvocarElEquipo, factorDeRotacion, jugadoresDelPartido, posicionEquivalente, prioridadDelEntrenador } from './convocatoria';
 export type { Convocatoria, JugadorParaConvocar } from './convocatoria';
 export { archivarTemporada, cerrarTemporada, categoriaAcabada, jugarSabadoDeUnaCategoria, nuevaLiga, partidosDeLaSemana, tablasDeLaDivision } from './liga';

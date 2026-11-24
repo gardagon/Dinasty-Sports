@@ -49,6 +49,8 @@ npm run probar-web       # el camino entero en un Chromium de verdad: instalar e
 npm run probar-web:escritorio  # el mismo camino con una ventana de ordenador (1440×900): el diseño de escritorio y el aviso «Pasando la semana…»
 npx tsx tools/capturar-escritorio.ts preparar|capturar  # capturas de la web a 1366/1920/390 px, en claro y oscuro (docs/relevo/diseno-escritorio.md §6)
 npm run sim:cuerpo -- 2 31,32  # el cuerpo de la población: proporción por complexión y grupo de edad frente a los objetivos del plan del cuerpo
+npm run partidos:banco -- 300   # banco de realismo de los partidos: goles, tiros, goles por línea, posesión… por categoría, frente a la referencia del motor anterior (`docs/relevo/partidos-p0.md`); `--guardar-referencia` solo si el cambio de motor es a propósito
+npm run partidos:prototipo -- 200  # los cuatro motores de prueba (más tramos, posesiones y xG, zonas, espacial): coste y estadísticas (`docs/relevo/partidos-reales.md`)
 npm run sim:futbol -- 365 3  # cuánto se aprende en un curso con el club: deportista de fútbol frente al de atletismo (mismo plan)
 npm run sim:futbol-habilidades -- 365 3  # cuánto sube cada habilidad del fútbol en un curso con el bot de campo (para calibrar el catálogo de entrenamientos)
 npm run entrenamientos:tabla  # la tabla de los 22 entrenamientos del fútbol con las cifras finales (docs/ANEXO_DEPORTE.md)
