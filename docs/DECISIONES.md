@@ -43,7 +43,7 @@ Decidido con el usuario en una simulación paso a paso (semilla 33 y después 10
 ### Personaje chica (`docs/relevo/personaje-chica.md`)
 1. **Fútbol mixto en las categorías bajas y ligas femeninas propias desde infantil.** Hay que confirmar si alevín sigue siendo mixto en la federación.
 2. **Hay menos chicas que chicos jugando al fútbol** (cada vez más, pero menos). El porcentaje es un dato del país y hay que buscarlo; el usuario no sabe cuál poner. Ahora sale ~50 % en todos los equipos y hay que corregirlo.
-3. **Si no hay equipo femenino,** una chica puede jugar en uno de chicos hasta alevín; después, solo si no lo hay. Se calcula por si hubiera que federar antes los equipos.
+3. **Si no hay equipo femenino,** una chica puede jugar en uno de chicos hasta alevín; después, solo si no lo hay. Se calcula por si hubiera que federar antes los equipos. **Los equipos femeninos los tienen los clubes externos, no los colegios** (24/11): así hay más chicas por club y una liga femenina pequeña.
 4. **El estirón llega antes en las chicas.**
 5. **Menstruación:** de momento solo el campo; se diseña con salud.
 6. **Atletismo por sexo:** sí, en una fase aparte.
