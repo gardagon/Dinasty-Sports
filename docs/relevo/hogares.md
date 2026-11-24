@@ -626,3 +626,73 @@ Todas con `DS_HOGARES=1` frente a lo de ahora, misma semilla y misma rama base. 
 1. **`FAMILIAS.siguiente`:** aplicar `[0,70; 0,40; 0,30; 0,20]` (51 % de niños de 8 años con hermano mayor, frente a ≈ 49–51 % estimado en la vida real) o dejar `[0,55; …]` (42 %). *Recomiendo aplicarlo.*
 2. **El efecto de los intereses heredados en los profesionales** (+60 %): aislarlo (probar una versión de `rasgosHeredadosNpc` sin tomar el máximo de los padres) y decidir si se compensa. *Recomiendo medir el aislamiento antes de activar el dato por defecto.*
 3. **Leer la tabla del INE** de orden del nacimiento (`www.ine.es` no está permitido en la red de esta sesión) antes de dejar la cifra en un anexo.
+
+---
+
+# Ronda 4 (24/11/2026): ¿qué causa el +60 % de profesionales a los 18? Nada: era ruido de las semillas 31 a 35
+
+**Respuesta corta:** con **15 semillas** (las 5 de antes y 10 nuevas) **no hay diferencia real**. El +60 % salió de comparar semillas 31–35 con hogares (9–15 profesionales por semilla) contra esas mismas semillas sin hogares (5–7), que resultaron ser una racha baja del mundo de siempre. Con las semillas 36 a 45, **sin hogares da 8,9 profesionales por semilla y con hogares 8,8**. Lo que no cambió el juego, y lo que sí cambia (algo menor), abajo.
+
+## Las semillas 36 a 45 (10 semillas por versión, cohorte de 8 años, 10 años, umbral de profesional 36 en las dos)
+
+| | Sin hogares | Con hogares |
+|---|---:|---:|
+| Profesionales a los 18, por semilla (36 a 45) | 10, 7, 9, 11, 10, 10, 9, 12, 8, 3 | 5, 12, 7, 5, 11, 11, 11, 10, 6, 10 |
+| **Media por semilla (36 a 45)** | **8,9** | **8,8** |
+| Nivel medio · p90 · máximo a los 18 | 27,9 · 36,6 · 44,5 | 27,9 · 36,3 · 45,1 |
+| Juegan al crear · a los 18 (por semilla) | 266 · 75 | **281 · 79** |
+| Retención a los 18 de los interesados | 27,9 % | 27,6 % |
+
+Con las 15 semillas juntas (31 a 45): sin hogares **8,0** y con hogares **9,4** profesionales por semilla (+17 %, con una desviación de unos 2,7 por semilla: **dentro del ruido**). **El número de profesionales a los 18 es muy ruidoso** (de 3 a 15 en la misma versión): con 3 semillas no se puede decidir nada, y menos con 3 que además son de racha baja.
+
+## Qué se probó para aislar la causa (3 semillas, 31 a 33; profesionales por semilla, a los 18)
+
+Todas con hogares y el umbral común de 36. La referencia sin hogares con esas semillas: 6, 5, 7 (6,0); con hogares tal como están: 9, 10, 10 (9,7).
+
+| Variante (herramienta `analisis-profesionales`, con `DS_HOGARES_*`) | Profesionales | Nivel medio · máximo | Retención a los 18 |
+|---|---|---|---|
+| Intereses heredados: **máximo** de los dos padres (actual) | 9, 10, 10 | 28,0 · 43,4 | 27,8 % |
+| Intereses: **media** de los dos | 4, 6, 11 | 28,6 · 45,4 | 23,8 % |
+| Intereses: los de **un padre al azar** | 9, 8, 13 | 27,8 · 42,8 | 27,4 % |
+| **Sin heredar intereses** (sorteados sueltos) | 13, 8, 11 | 27,9 · 45,3 | 27,3 % |
+| Genética de «niño de siempre» (unos padres sorteados por hijo) | 7, 9, 7 | 27,4 · 46,0 | 26,7 % |
+| Cuerpo (estatura, músculo) como los niños de siempre | 9, 10, 10 | 28,0 · 43,4 | 27,8 % |
+| Carácter sorteado suelto | 11, 11, 12 | 27,7 · 44,7 | 30,4 % |
+| Hijos sorteados **sueltos** (como siempre; solo conservan hogar y padres) | 10, 10, 12 | 28,1 · 41,7 | 28,3 % |
+| Sin los hermanos menores de 8 años | 9, 10, 9 | 27,9 · 42,8 | 27,0 % |
+| **Ni adultos ni hermanos pequeños** (solo los hijos de los colegios) | 6, 10, 10 | 28,2 · 43,6 | 26,0 % |
+| Curso nuevo «a la vieja» (niños nuevos sueltos) | 5, 10, 12 | 27,8 · 43,6 | 27,8 % |
+| Hijos de siempre + curso a la vieja (las familias existen sin usarse) | 8, 8, 8 | 28,1 · 44,9 | 27,1 % |
+| Hijos de siempre + curso nuevo con familias (familias generadas y sin usar) | 7, 7, 6 | 28,2 · 46,7 | 26,6 % |
+| Hermanos en colegios al azar (sin el 75 % de mismo colegio) | 3, 11, 3 | 27,8 · 44,1 | 29,6 % |
+| Íd., con hijos sueltos | 12, 9, 7 | 27,7 · 47,0 | 29,3 % |
+
+**Lectura:** ninguna variante lleva a un valor estable: varían de 3 a 13 *dentro de una misma versión* (la última fila de «mismo colegio» da 3, 11, 3 con la misma configuración que la de 9, 10, 10 cambiando solo un número). Ningún factor aislado explica nada y, con las 10 semillas nuevas, no hay nada que explicar.
+
+## Lo que sí es distinto al crear (medido: `tools/hogares-intereses.ts`)
+
+Comparación de los niños de 8 a 19 años (ciudad grande, 3 semillas): los niños de siempre frente a los hijos de familias, con las variantes.
+
+| | Intereses por niño | Intensidad media | Con interés en fútbol o deporte | Con intensidad 3 | Tope medio (sd) | Perks activos por niño | Desfase |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Niños de siempre | 3,14 | 2,03 | 54,7 % | 23,2 % | 62,3 (3,4) | 0,83 | 0,01 |
+| Hijos, intereses **máximo** (actual) | 3,40 | 1,88 | **56,8 %** | 19,4 % | 62,3 (3,4) | 0,80 | 0,01 |
+| Hijos, intereses media | 3,38 | 1,40 | 56,4 % | 8,1 % | 62,2 (3,4) | 0,81 | −0,01 |
+| Hijos, intereses de uno | 3,38 | 1,83 | 56,5 % | 18,2 % | 62,2 (3,4) | 0,82 | −0,01 |
+| Hijos, sin heredar intereses | 3,14 | 2,02 | 54,9 % | 22,0 % | 62,2 (3,4) | 0,81 | 0,00 |
+
+- **La genética es la misma** (tope medio y dispersión, ventaja de crianza 0,979, perks y desfase iguales): la herencia de `geneticaDeHijo` no mueve nada frente a la de siempre.
+- **Mi hipótesis de la ronda 3 era falsa:** heredar el máximo de los dos padres **no** sube la intensidad (1,88 frente a 2,03: baja, porque cada interés pasa solo el 60 % de las veces y el 30 % pierde un punto). Lo que sube es **cuántos niños tienen algún interés por el fútbol o el deporte: 56,8 % frente a 54,7 % (+2 puntos, +4 %)**, porque el hijo hereda la unión de los intereses de los dos padres (3,4 intereses frente a 3,1). Es el único efecto medible, y es el +4 % de niños en los clubes que el usuario ya aceptó (266 → 281 jugadores al crear con 10 semillas, +5,6 %).
+- Aun así **no se ve en los profesionales ni en la retención** (con 10 semillas: 8,9 frente a 8,8 y 27,9 % frente a 27,6 %).
+
+## Qué hacer (cada opción con sus cifras)
+
+1. **No hacer nada y aceptar** (recomendado): no hay efecto en profesionales (8,9 frente a 8,8 con 10 semillas; +17 % con 15, dentro del ruido), ni en retención, ni en nivel medio (27,9 frente a 27,9). El único efecto real, **+5 % de niños en los clubes por la herencia de intereses**, ya estaba aceptado. Coste: ninguno.
+2. **Compensar el +4–5 % de niños en los clubes** (si el usuario no lo quiere): heredar solo la **intersección** o un 45 % de los intereses de los padres en lugar del 60 %, o la variante «de uno»; en las pruebas con 3 semillas, «sin heredar intereses» deja a los niños con interés en 54,9 % (el de siempre) y los jugadores al crear en 273 (frente a 266 de siempre y 281 con el actual). Cambia una cifra de `rasgosHeredadosNpc` (afecta también a los hermanos del personaje) o una variante en `hogares.ts`: **no recomendado ahora**.
+3. **Medir con más semillas antes de nada más**: la medida de profesionales necesita **10 o más semillas por versión (~35 min con 4 procesos en paralelo)**; con 3 el resultado cambia de signo. Si el usuario quiere volver a mirar profesionales con otros cambios, esa es la cifra mínima.
+
+**Corrección a lo dicho en la ronda 3:** el «+60 % de profesionales» y la hipótesis de los intereses de máximo **no se sostienen**. Las ideas que da `docs/relevo/analisis-profesionales.md` sobre el umbral de profesional siguen igual.
+
+## Lo que queda detrás de datos o herramientas (sin cambiar lo que hay)
+
+`VARIANTES` (en `modules/npcs/src/hogares.ts`; **por defecto, lo de siempre**) con `intereses` (máximo/media/uno/ninguno), `genetica` (hijo/nino), `cuerpo` (heredado/hash), `caracter` (heredado/azar), `hijos` (familia/suelto/ignorar), `mundo` (completo/sin-pequenos/solo-ninos) y `renovar` (familias/viejo); y `FAMILIAS.mismoColegio`. Se ponen desde las herramientas con `DS_HOGARES_INTERESES`, `DS_HOGARES_GENETICA`, `DS_HOGARES_CUERPO`, `DS_HOGARES_CARACTER`, `DS_HOGARES_HIJOS`, `DS_HOGARES_MUNDO`, `DS_HOGARES_RENOVAR` y `DS_HOGARES_MISMO_COLEGIO` (`tools/analisis-profesionales.ts`). `tools/hogares-intereses.ts` compara intereses, genética y perks de los niños.
