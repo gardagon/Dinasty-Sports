@@ -58,8 +58,8 @@ Equipo por debajo de 14: reparto actual **6 de 20** (semillas 33, 35, 39, 43, 45
 
 ## 4. Lo raro
 
-- **Revertidos por rango (2 de ~270 clubes-categoría):** en cadete, `club_pequeno3` (semillas 35 y 36), regla A, B y C: al juntar todos, el B solo de 1.er año se queda en 14–15 y el C mixto saldría con 24–26 (más de 22) → el club se queda como estaba. Antes de añadir la regla «el más flojo de los titulares de 1.º se queda en el B» eran 8 reversiones (en infantil, con B de 11 o 13 niños de 1.er año, que ahora se resuelven).
-- **Alevín, semilla 40: un equipo de 9** (`colegio2`, A de 9): el colegio tiene muy pocos alumnos de 2.º año interesados y el colegio solo puede coger a los suyos; no lo arregla ningún paso. Es el único equipo por debajo de 14 de las 20 semillas (en cuatro categorías de equilibrar).
+- **Revertidos por rango (2 de ~270 clubes-categoría):** en cadete, `club_pequeno3` (semillas 35 y 36), regla A, B y C: al juntar todos, el B solo de 1.er año se queda en 14–15 y el C mixto saldría con 24–26 (más de 22) → el club se queda como estaba. Antes de añadir la regla «el más flojo de los titulares de 1.º se queda en el B» eran 14 reversiones en las 20 semillas (12 en infantil, con B de 11 o 13 niños de 1.er año, que ahora se resuelven).
+- **Alevín, semilla 40: un equipo de 9** (`colegio2`, A de 9): el colegio tiene muy pocos alumnos de 2.º año interesados y el colegio solo puede coger a los suyos; no lo arregla ningún paso. Es el único equipo por debajo de 14 de las 20 semillas.
 - **Máximo 22 solo se alcanza en el paso 7** (infantil y cadete) y en benjamín y alevín (C y D); los A y B salen con 18–20.
 - Juvenil: sin equipos <14, pero quedan fuera de media ~13 de 1.º, ~11 de 2.º y ~66 de 3.º.
 - `fijarEquipos` sigue deshaciendo las letras en la partida real (ver `reparto-nuevo-reglas.md`, «Lo que hay que cambiar»): las cifras salen de los equipos que deja cada paso.
