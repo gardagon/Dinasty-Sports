@@ -212,3 +212,17 @@ No se ha implementado nada de esto: las cifras de «Otras reglas» son solo cuen
 | …quieren probar fuera | 63 · 52 | 85 · 320 (170 sin colegio) |
 
 Benjamín: los 13 clubes llegan a 14 + 14. Juvenil: 11 de 13 llegan; el colegio del personaje (6 + 12) y colegio2 (5 + 13) se quedan sin equipo por año, porque los clubes de fuera van primero y se llevan a sus alumnos.
+
+## Variante paso2-3 (semilla 33): subir titulares y completar desde la bolsa
+
+`npm run reparto:paso -- 33 grande benjamin --variante paso2-3` (la categoría da igual: sale de benjamín a cadete; juvenil queda fuera). Sobre el paso 1 (14 + 14): **paso 2**, solo infantil y cadete: de los 28 de cada club se calcula la alineación del juego (`convocarYAlinear`) y los de 1.er año que salen titulares suben al A; **paso 3**: cada equipo (A con el resto de años, B con 1.er año) se completa desde la bolsa hasta 18 (benjamín y alevín) o 20 (infantil y cadete), con el mismo orden, atractivo y colegios, sin prueba. Salida completa: `reparto-paso-a-paso/variante-paso2-3-33.md`. Bandera de medida `DIAGNOSTICO.variantePaso23`, apagada por defecto.
+
+| | Benjamín | Alevín | Infantil | Cadete |
+|---|---:|---:|---:|---:|
+| Paso 2: suben al A (de 182) | — | — | 58 | 66 |
+| Paso 2: clubes con el B por debajo de 14 | — | — | 13 de 13 | 13 de 13 |
+| Paso 3: equipos | 26 | 26 | 26 | 26 |
+| Niños por equipo (mín · máx · media) | 18 · 18 · 18,0 | 16 · 18 · 17,9 | 12 · 20 · 18,4 | 12 · 21 · 18,8 |
+| Equipos por debajo de 14 | 0 | 0 | 4 | 2 |
+| Niños asignados | 468 | 466 | 478 | 488 |
+| Bolsa: 1.er año · resto | 73 · 58 | 65 · 37 | 1 · 69 | 10 · 83 |
