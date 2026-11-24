@@ -41,3 +41,4 @@ export * from './cuerpo';
 export * from './retrato';
 export * from './sucesos';
 export * from './sueno';
+export * from './salud';
