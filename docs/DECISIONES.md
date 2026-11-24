@@ -7,7 +7,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ## 24/11/2026 — Partidos, P0: bases sin cambiar resultados; P1 en marcha
 
-- **P0:** registro de sucesos con minutos (la crónica es una vista derivada), flujos de azar por subsistema (el del resultado es el de siempre), caché exacta de los valores por jugador (`LectorDePersona.inmutable`) y banco de realismo (`npm run partidos:banco`), con la referencia del motor anterior. Huella idéntica (`docs/relevo/partidos-p0.md`).
+- **P0:** registro de sucesos con minutos (la crónica es una vista derivada), flujos de azar por subsistema (el del resultado es el de siempre), caché exacta de los valores por jugador (`LectorDePersona.inmutable`) y banco de realismo (`npm run partidos:banco`), con la referencia del motor anterior. Huella idéntica (`docs/relevo/partidos-p0.md`). **La referencia del banco depende de la población del mundo:** tras los hogares se regeneró (benjamín 4,18 goles por partido frente a 4,57). Cualquier cambio del mundo que mueva la población obliga a regenerarla (`--guardar-referencia`), y no por eso es un cambio del motor.
 - La caché no acelera la jornada de forma medible: el coste del sábado está en las plantillas y la convocatoria. Guardar la plantilla ya convocada por equipo y semana cambiaría dónde se guarda el estado: pendiente del usuario.
 - **Hallazgo del banco:** los defensas marcan el 31–39 % de los goles y los delanteros el 16–21 % (en la realidad, ≈ 10–12 % y ≈ 50 %), y el 49–54 % de los goles caen en la primera parte (en la realidad, ≈ 44 %). Se corrige en P1.
 - **P1 (motor B para todos, con niveles 1 y 2 y el 3 preparado; lesiones enganchadas detrás de un dato desactivado):** en marcha, con el plan aprobado el 24/11.
