@@ -33,6 +33,7 @@
     "calendario": "tsx tools/calendario.ts",
     "dia-de-partido": "tsx tools/dia-de-partido.ts",
     "benjamin": "tsx tools/benjamin.ts",
+    "equipos-minimo": "tsx tools/equipos-minimo.ts",
     "puestos": "tsx tools/puestos.ts",
     "rotacion": "tsx tools/rotacion.ts",
     "puestos-del-once": "tsx tools/puestos-del-once.ts",
