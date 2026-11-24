@@ -570,22 +570,24 @@ function motorD(a: Eq, b: Eq, rng: Rng, dt: number): Salida {
   return s;
 }
 
-// ------------------------------------------------------------------------------------------------------------- A: el motor de hoy, con tramos más finos
+// ------------------------------------------------------------------------------------------------------------- el motor del juego (B, P1)
 
-function motorA(local: EquipoDePartido, visitante: EquipoDePartido, cat: string, id: string, tramos: number): Salida {
-  const P = PARAMETROS_DE_PARTIDO;
-  const base = { tramos: P.tramos, minutosPorTramo: P.minutosPorTramo, ataquesPorTramo: P.ataquesPorTramo, balonParadoPorTramo: P.balonParadoPorTramo, cansancioPorTramo: P.cansancioPorTramo };
-  const k = tramos / 6;
-  Object.assign(P, { tramos, minutosPorTramo: 90 / tramos, ataquesPorTramo: Math.round(6 / k), balonParadoPorTramo: 1.2 / k, cansancioPorTramo: 7.5 / k });
-  const corte = (m: number): number => Math.round((m / 15) * k);
-  const r = jugarPartido(local, visitante, { id, semilla: 31, categoria: cat, cambios: { maximo: 5, despuesDeTramos: [corte(15), corte(45), corte(60)] } });
-  Object.assign(P, base);
+/** El motor real (`jugarPartido`), que desde P1 es el de posesiones y ocasiones: su resultado, en la misma forma que el de los prototipos. */
+function motorDelJuego(local: EquipoDePartido, visitante: EquipoDePartido, cat: string, id: string): Salida {
+  const r = jugarPartido(local, visitante, { id, semilla: 31, categoria: cat, cambios: { maximo: 5, despuesDeTramos: [1, 3, 4] } });
   const s = vacia();
   s.goles = r.goles;
   s.tiros = r.tiros;
+  s.alPuerta = r.alPuerta;
+  s.xg = r.xg;
+  s.faltas = r.faltas;
+  s.amarillas = r.amarillas;
+  s.rojas = r.rojas;
+  s.corners = r.corners;
+  s.pases = r.pases;
   s.posesion = media(r.porTramo.map((x) => x.posesion[0]));
-  s.eventos = r.cronica.length;
-  s.registro = r.cronica;
+  s.eventos = r.registro.length;
+  s.registro = r.registro;
   return s;
 }
 
@@ -624,10 +626,8 @@ function paresDeLaCiudad(n: number): Par[] {
 
 type Motor = { nombre: string; correr: (p: Par, eqA: Eq, eqB: Eq, i: number) => Salida };
 const MOTORES: Motor[] = [
-  { nombre: 'Hoy (6 tramos de 15 min)', correr: (p, _a, _b, i) => motorA(p.a, p.b, p.cat, `h${i}`, 6) },
-  { nombre: 'A1 · 18 tramos de 5 min', correr: (p, _a, _b, i) => motorA(p.a, p.b, p.cat, `a${i}`, 18) },
-  { nombre: 'A2 · 30 tramos de 3 min', correr: (p, _a, _b, i) => motorA(p.a, p.b, p.cat, `a${i}`, 30) },
-  { nombre: 'B · posesiones y xG', correr: (_p, a, b, i) => motorB(a, b, rngEstable('partido', 31, `b${i}`)) },
+  { nombre: 'Motor del juego (B, P1)', correr: (p, _a, _b, i) => motorDelJuego(p.a, p.b, p.cat, `h${i}`) },
+  { nombre: 'B · prototipo de P0', correr: (_p, a, b, i) => motorB(a, b, rngEstable('partido', 31, `b${i}`)) },
   { nombre: 'C · jugadas por zonas', correr: (_p, a, b, i) => motorC(a, b, rngEstable('partido', 31, `c${i}`)) },
   { nombre: 'D · espacial (paso de 1 s)', correr: (_p, a, b, i) => motorD(a, b, rngEstable('partido', 31, `d${i}`), 1) },
   { nombre: 'D · espacial (paso de 0,5 s)', correr: (_p, a, b, i) => motorD(a, b, rngEstable('partido', 31, `d${i}`), 0.5) },
@@ -651,7 +651,7 @@ for (const m of MOTORES) {
   let ms = 0;
   for (let i = 0; i < N; i++) {
     // Los jugadores se vuelven a preparar en cada partido (cansancio y estadísticas empiezan en 0): se descuenta ese coste de los que lo necesitan.
-    const [a, b] = m.nombre.startsWith('Hoy') || m.nombre.startsWith('A') ? [undefined, undefined] : [prepararEq(pares[i].a, POTENCIADOR_POR_CATEGORIA[pares[i].cat] ?? 1), prepararEq(pares[i].b, POTENCIADOR_POR_CATEGORIA[pares[i].cat] ?? 1)];
+    const [a, b] = m.nombre.startsWith('Motor del juego') ? [undefined, undefined] : [prepararEq(pares[i].a, POTENCIADOR_POR_CATEGORIA[pares[i].cat] ?? 1), prepararEq(pares[i].b, POTENCIADOR_POR_CATEGORIA[pares[i].cat] ?? 1)];
     const t0 = performance.now();
     const s = m.correr(pares[i], a as Eq, b as Eq, i);
     ms += performance.now() - t0;
@@ -672,7 +672,7 @@ const sint = (id: string, valor: number): EquipoDePartido => ({ id, nombre: id, 
 console.log('\nA más diferencia de nivel entre equipos (el de casa vale ×r; infantil, nivel 25): % de victorias del mejor / empates / goles por partido / diferencia media de goles. 600 partidos por casilla.\n');
 console.log('| Motor | r = 1 | r = 1,1 | r = 1,25 | r = 1,5 |');
 console.log('|---|---|---|---|---|');
-const M2 = MOTORES.filter((m) => ['Hoy', 'B', 'C'].some((p) => m.nombre.startsWith(p)));
+const M2 = MOTORES.filter((m) => ['Motor del juego', 'B', 'C'].some((p) => m.nombre.startsWith(p)));
 for (const m of M2) {
   const celdas: string[] = [];
   for (const r of [1, 1.1, 1.25, 1.5]) {
@@ -700,7 +700,7 @@ for (const m of M2) {
   const detallado = (r: number, n: number, ini: number): [number, number][] => {
     const a = sint('a', 25 * r), b = sint('b', 25);
     const p: Par = { a, b, cat: 'infantil' };
-    return Array.from({ length: n }, (_, i) => MOTORES[3].correr(p, prepararEq(a, 1.6), prepararEq(b, 1.6), ini + i).goles);
+    return Array.from({ length: n }, (_, i) => MOTORES[1].correr(p, prepararEq(a, 1.6), prepararEq(b, 1.6), ini + i).goles);
   };
   const ajuste = RS.map((r) => detallado(r, 1500, 100000));
   const medias = ajuste.map((x) => [media(x.map((g) => g[0])), media(x.map((g) => g[1]))]);

@@ -6,21 +6,25 @@
  *
  * `npm run partidos:banco -- [partidos por categoría = 300] [prueba|grande] [--guardar-referencia] [--estricto]`
  *   --guardar-referencia  escribe las cifras de ahora como referencia (solo cuando el cambio de motor es a propósito y está decidido);
- *   --estricto            sale con error si alguna cifra se sale de su tolerancia (para `npm run check` o un CI).
+ *   --estricto            sale con error si alguna cifra se sale de su tolerancia (para `npm run check` o un CI);
+ *   --parametros='{...}'  cambia números de `PARAMETROS_DE_PARTIDO` solo en esta pasada (para calibrar).
  * Las cifras que el motor de hoy no tiene (faltas, tarjetas, córners, pases) salen como «—» y las rellenan los motores nuevos.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_DE_PRUEBA, registrarPais, rngEstable } from '@ds/contracts';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { PUESTOS_DE_FUTBOL, convocarYAlinear, equipoDePartido, futbol, jugarPartido, type EquipoDePartido, type ResultadoDePartido } from '@ds/mod-futbol';
+import { PARAMETROS_DE_PARTIDO, PUESTOS_DE_FUTBOL, convocarYAlinear, equipoDePartido, futbol, jugarPartido, type EquipoDePartido, type ResultadoDePartido } from '@ds/mod-futbol';
 import { plantillaDeUnEquipo, type NpcsState } from '@ds/mod-npcs';
 
 const args = process.argv.slice(2);
-const banderas = new Set(args.filter((a) => a.startsWith('--')));
+const banderas = new Set(args.filter((a) => a.startsWith('--') && !a.startsWith('--parametros=')));
 const posicionales = args.filter((a) => !a.startsWith('--'));
 const PARTIDOS = Number(posicionales[0] ?? 300);
 const GRANDE = (posicionales[1] ?? 'prueba') === 'grande';
 const CIUDAD = GRANDE ? 'grande' : 'prueba';
+/** `--parametros='{"avanceBase":0.4}'`: cambia números de `PARAMETROS_DE_PARTIDO` solo para esta pasada (calibrar sin tocar el código). */
+const parametros = args.find((a) => a.startsWith('--parametros='));
+if (parametros) Object.assign(PARAMETROS_DE_PARTIDO, JSON.parse(parametros.slice('--parametros='.length)));
 const REFERENCIA = new URL('../docs/relevo/partidos-banco-referencia.json', import.meta.url);
 registrarPais(GRANDE ? PAIS_CIUDAD_GRANDE : PAIS_CIUDAD_DE_PRUEBA);
 const f = (x: number, d = 2): string => x.toFixed(d);
@@ -41,19 +45,51 @@ const CIFRAS: { id: string; nombre: string; tolerancia: number; decimales: numbe
   { id: 'empate', nombre: 'Empate (%)', tolerancia: 4, decimales: 1, real: '24–27' },
   { id: 'posesion', nombre: 'Posesión del local (%)', tolerancia: 2, decimales: 1 },
   { id: 'posesionSd', nombre: 'Desviación de la posesión (puntos)', tolerancia: 2, decimales: 1 },
-  { id: 'golesDelantero', nombre: 'Goles de los delanteros (% de los de campo)', tolerancia: 4, decimales: 1, real: '≈ 50' },
-  { id: 'golesMedio', nombre: 'Goles de los de medio (%)', tolerancia: 4, decimales: 1, real: '≈ 35–40' },
+  { id: 'golesDelantero', nombre: 'Goles de delanteros y extremos (% de los de campo)', tolerancia: 4, decimales: 1, real: '≈ 50' },
+  { id: 'golesMedio', nombre: 'Goles de los centrocampistas (%)', tolerancia: 4, decimales: 1, real: '≈ 35–40' },
   { id: 'golesDefensa', nombre: 'Goles de los defensas (%)', tolerancia: 3, decimales: 1, real: '≈ 10–12' },
   { id: 'nota', nombre: 'Nota media de los titulares de campo (≥ 60 min)', tolerancia: 0.1, decimales: 2, real: '6' },
   { id: 'suplentes', nombre: 'Suplentes que juegan (%)', tolerancia: 4, decimales: 1 },
   { id: 'golesPrimera', nombre: 'Goles en la primera parte (% del total)', tolerancia: 3, decimales: 1, real: '≈ 44' },
+  // Lo que el motor de posesiones y ocasiones (P1) añade: el motor anterior no lo tenía y salen sin comparar con la referencia.
+  { id: 'alPuerta', nombre: 'Tiros a puerta (los dos equipos)', tolerancia: 2, decimales: 1, real: '8–9' },
+  { id: 'xgPorTiro', nombre: 'xG por tiro', tolerancia: 0.02, decimales: 3, real: '0,10–0,11' },
+  { id: 'conversion', nombre: 'Tiros que acaban en gol (%)', tolerancia: 2, decimales: 1, real: '10–11' },
+  { id: 'corners', nombre: 'Córners (los dos equipos)', tolerancia: 2, decimales: 1, real: '≈ 10' },
+  { id: 'faltas', nombre: 'Faltas (los dos equipos)', tolerancia: 3, decimales: 1, real: '22–26' },
+  { id: 'amarillas', nombre: 'Amarillas por partido', tolerancia: 0.6, decimales: 2, real: '3,5–4,5' },
+  { id: 'rojas', nombre: 'Rojas por partido', tolerancia: 0.1, decimales: 2, real: '≈ 0,1' },
+  { id: 'penaltis', nombre: 'Penaltis por partido (tiros de penalti)', tolerancia: 0.1, decimales: 2, real: '≈ 0,3' },
+  { id: 'pases', nombre: 'Pases (los dos equipos)', tolerancia: 100, decimales: 0, real: '800–900' },
+  { id: 'precisionDePase', nombre: 'Pases completados (%)', tolerancia: 3, decimales: 1, real: '80–85' },
 ];
 type Cifras = Record<string, number>;
 /** El registro del partido (si el motor aún no lo tiene, la crónica, para poder medir también el motor anterior). */
+/** Las cifras que solo tiene el motor de posesiones y ocasiones (si el resultado no las trae, no salen). */
+function nuevas(rs: ResultadoDePartido[]): Cifras {
+  const x = rs as Partial<ResultadoDePartido>[];
+  if (!x.length || x[0].alPuerta === undefined) return {};
+  const par = (g: (r: Partial<ResultadoDePartido>) => [number, number] | undefined): number => media(x.map((r) => (g(r) ? g(r)![0] + g(r)![1] : 0)));
+  const tiros = par((r) => r.tiros);
+  const goles = par((r) => r.goles);
+  const pases = par((r) => r.pases);
+  return {
+    alPuerta: par((r) => r.alPuerta),
+    xgPorTiro: par((r) => r.xg) / Math.max(1, tiros),
+    conversion: (100 * goles) / Math.max(1, tiros),
+    corners: par((r) => r.corners),
+    faltas: par((r) => r.faltas),
+    amarillas: par((r) => r.amarillas),
+    rojas: par((r) => r.rojas),
+    penaltis: media(x.map((r) => (r.registro ?? []).filter((s) => (s.tipo === 'penalti') || (s.tipo === 'gol' && s.penalti)).length)),
+    pases,
+    precisionDePase: (100 * par((r) => r.pasesOk)) / Math.max(1, pases),
+  };
+}
 const registroDe = (r: ResultadoDePartido): unknown[] => (r as { registro?: unknown[] }).registro ?? r.cronica;
 const linea = (puesto: string): 'GK' | 'DEF' | 'MID' | 'ATT' => {
   const g = PUESTOS_DE_FUTBOL.reparto.find((x) => x.puestos.includes(puesto))?.grupo;
-  return g === 'portero' ? 'GK' : g === 'central' || g === 'lateral' ? 'DEF' : g === 'delantero' ? 'ATT' : 'MID';
+  return g === 'portero' ? 'GK' : g === 'central' || g === 'lateral' ? 'DEF' : g === 'delantero' || g === 'banda' ? 'ATT' : 'MID';
 };
 
 // ------------------------------------------------------------------------------------------------------------- los equipos reales de la zona
@@ -128,6 +164,7 @@ for (const cat of CATEGORIAS) {
     nota: media(notas),
     suplentes: (100 * suplentesQueJuegan) / Math.max(1, suplentes),
     golesPrimera: (100 * primera) / Math.max(1, total.reduce((a, b) => a + b, 0)),
+    ...nuevas(rs.map(({ r }) => r)),
   };
   extras[cat] = { ms: ms / PARTIDOS, sucesos: media(rs.map(({ r }) => registroDe(r).length)), kb: media(rs.map(({ r }) => JSON.stringify(registroDe(r)).length)) / 1024, partidos: PARTIDOS, equipos: equipos.length };
 }
@@ -161,8 +198,6 @@ for (const c of CIFRAS) {
   });
   console.log(`| ${c.nombre} | ${celdas.join(' | ')} | ${c.real ?? ''} |`);
 }
-const SIN_MOTOR = ['Faltas por partido', 'Amarillas por partido', 'Rojas por partido', 'Córners por partido', 'Tiros a puerta', 'xG por tiro', 'Pases y precisión de pase'];
-console.log(`| ${SIN_MOTOR.join(' · ')} | ${CATEGORIAS.map(() => '—').join(' | ')} | el motor de hoy no los tiene (P1) |`);
 console.log('\nCoste y tamaño (no se comparan: dependen de la máquina):\n');
 console.log(`| Categoría | Equipos | ms por partido (solo el motor) | Sucesos en el registro | KB del registro (JSON) |\n|---|---|---|---|---|`);
 for (const cat of CATEGORIAS) if (extras[cat]) console.log(`| ${cat} | ${extras[cat].equipos} | ${f(extras[cat].ms, 3)} | ${f(extras[cat].sucesos, 1)} | ${f(extras[cat].kb, 1)} |`);

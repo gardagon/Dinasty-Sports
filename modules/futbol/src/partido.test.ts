@@ -135,7 +135,9 @@ describe('el motor de partido', () => {
       expect(goles('b_')).toBe(x.goles[1]);
       expect(x.jugadas).toHaveLength(x.goles[0] + x.goles[1]);
       for (const [id, s] of Object.entries(x.jugadores)) {
-        if (s.titular) expect(s.minutos, id).toBe(90);
+        // Sin cambios, los titulares juegan los 90 minutos salvo el expulsado, que juega hasta que lo echan.
+        const expulsion = x.registro.find((e) => e.tipo === 'roja' && e.jugador === id);
+        if (s.titular) expect(s.minutos, id).toBe(expulsion ? expulsion.minuto : 90);
         else expect(s.minutos, id).toBe(0);
         if (s.minutos > 0) {
           expect(s.nota).toBeGreaterThanOrEqual(1);
@@ -150,7 +152,9 @@ describe('el motor de partido', () => {
     let suplentesQueJuegan = 0;
     for (const x of r) {
       const minutos = Object.entries(x.jugadores).filter(([id]) => id.startsWith('a_')).reduce((t, [, s]) => t + s.minutos, 0);
-      expect(minutos).toBe(11 * 90);
+      // Los minutos que pierde un equipo son los de sus expulsados (con diez, no entra nadie).
+      const perdidos = x.registro.filter((e) => e.tipo === 'roja' && e.jugador.startsWith('a_')).reduce((t, e) => t + (90 - e.minuto), 0);
+      expect(minutos + perdidos).toBe(11 * 90);
       suplentesQueJuegan += Object.entries(x.jugadores).filter(([id, s]) => id.startsWith('a_') && !s.titular && s.minutos > 0).length;
       // Nadie pasa de 5 cambios.
       expect(Object.entries(x.jugadores).filter(([id, s]) => id.startsWith('a_') && !s.titular && s.minutos > 0).length).toBeLessThanOrEqual(5);

@@ -20,6 +20,11 @@ export type SubsistemaDeAzar = 'resultado' | 'minutos' | 'tarjetas' | 'lesiones'
 export interface FlujosDeAzar {
   /** El generador de un subsistema (se crea al pedirlo la primera vez; pedir uno no gasta ni cambia los demás). */
   de(subsistema: SubsistemaDeAzar): Rng;
+  /**
+   * El generador de un subsistema **en un minuto del partido**: sale solo de las partes (subsistema, semilla, partido y minuto), sin estado que guardar. Es lo que hace reanudable el motor: un partido parado en
+   * el minuto 40 y seguido después juega los mismos minutos que uno jugado de un tirón.
+   */
+  deMinuto(subsistema: SubsistemaDeAzar, minuto: number): Rng;
   /** El del resultado: el de siempre. */
   readonly resultado: Rng;
 }
@@ -31,6 +36,7 @@ export function flujosDelPartido(semilla: number, id: string): FlujosDeAzar {
   return {
     resultado,
     de: (s) => (s === 'resultado' ? resultado : (otros.get(s) ?? (otros.set(s, rngEstable('partido', s, semilla, id)), otros.get(s)!))),
+    deMinuto: (s, minuto) => rngEstable('partido', s, semilla, id, minuto),
   };
 }
 
@@ -42,21 +48,35 @@ export const azarDeLesionEnPartido = (semilla: number, partido: string, jugador:
 
 // ---------------------------------------------------------------------------------------------------- el registro de sucesos
 
-/** Un momento del partido para la crónica y las estadísticas (sin minuto): goles, ocasiones, balón parado y cambios. Es lo que cuenta la crónica de hoy. */
+/**
+ * Los tipos de suceso del registro. Los cuatro primeros son los de siempre (la crónica de la F2): `gol`, `ocasion` (el tiro a puerta que para el portero), `balon_parado` (un lanzamiento de falta o córner, con su
+ * remate) y `cambio`. El motor de posesiones y ocasiones (P1) añade el resto. En todos, `equipo` es el equipo **de quien hace** el suceso (el que marca, el que tira, el que comete la falta, el que sale lesionado).
+ */
+export type TipoDeSuceso = 'gol' | 'ocasion' | 'balon_parado' | 'cambio' | 'tiro_fuera' | 'tiro_bloqueado' | 'falta' | 'amarilla' | 'roja' | 'corner' | 'penalti' | 'lesion';
+
+/** Un momento del partido para la crónica y las estadísticas (sin minuto). */
 export interface MomentoDeCronica {
   /** 0 a 5. */
   tramo: number;
-  tipo: 'gol' | 'ocasion' | 'balon_parado' | 'cambio';
-  /** 0 (local) o 1 (visitante): el equipo al que le pasa. */
+  tipo: TipoDeSuceso;
+  /** 0 (local) o 1 (visitante): el equipo de quien lo hace. */
   equipo: 0 | 1;
-  /** Quien tira o marca (en un cambio, quien entra). */
+  /** Quien tira o marca (en un cambio, quien entra; en una falta o tarjeta, el infractor; en una lesión, el lesionado). */
   jugador: string;
-  /** El que da el pase del gol (o, en un cambio, quien sale). */
+  /** El que da el pase del gol (en un cambio, quien sale; en una falta, el que la recibe; en un lanzamiento de balón parado, el lanzador). */
   otro?: string;
   /** El portero que para (en un gol o una ocasión, el que defiende). */
   portero?: string;
-  /** En un lanzamiento de balón parado, si fue gol. */
+  /** En un lanzamiento de balón parado o un penalti, si fue gol. */
   gol?: boolean;
+  /** Un gol de penalti. */
+  penalti?: boolean;
+  /** La calidad de la ocasión (probabilidad de gol del tiro, de 0 a 1), en los tiros. */
+  xg?: number;
+  /** Segunda amarilla (una `roja` que viene de dos amarillas) o roja directa (`false`). */
+  dobleAmarilla?: boolean;
+  /** En una lesión: tipo, zona del cuerpo y días de baja (`salud.ts`). */
+  lesion?: { t: string; z: string; d: number };
 }
 
 /**
@@ -86,8 +106,14 @@ export function conMinutos(momentos: readonly MomentoDeCronica[], rng: Rng, minu
   return momentos.map((m, i) => ({ ...m, minuto: m.tipo === 'cambio' ? m.tramo * minutosPorTramo : minuto.get(i)! }));
 }
 
-/** La crónica como vista del registro: lo mismo de siempre, sin el minuto. Solo los tipos que la crónica conoce. */
+/** Los tipos de suceso que cuenta la crónica (los demás —faltas sin tarjeta, tiros fuera lejanos, córners— están en el registro para las estadísticas, pero no salen en el relato). */
+const SALEN_EN_LA_CRONICA: ReadonlySet<string> = new Set(['gol', 'ocasion', 'balon_parado', 'cambio', 'amarilla', 'roja', 'penalti', 'lesion']);
+/** Un tiro fuera o bloqueado sale en el relato solo si fue una ocasión clara (probabilidad de gol de al menos esto). */
+export const XG_DE_OCASION_CLARA = 0.15;
+
+/** La crónica como vista del registro: lo que cuenta el relato, sin el minuto. */
 export function vistaDeCronica(registro: readonly SucesoDePartido[]): MomentoDeCronica[] {
-  const CONOCIDOS: ReadonlySet<string> = new Set(['gol', 'ocasion', 'balon_parado', 'cambio']);
-  return registro.filter((s) => CONOCIDOS.has(s.tipo)).map(({ minuto: _minuto, ...momento }) => momento);
+  return registro
+    .filter((s) => SALEN_EN_LA_CRONICA.has(s.tipo) || ((s.tipo === 'tiro_fuera' || s.tipo === 'tiro_bloqueado') && (s.xg ?? 0) >= XG_DE_OCASION_CLARA))
+    .map(({ minuto: _minuto, ...momento }) => momento);
 }
