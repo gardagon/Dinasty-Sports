@@ -5,6 +5,28 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 25/11/2026 — El verano: método del usuario (a medir)
+
+**El método del reparto de inicio es para crear la partida.** El verano tiene uno propio, que debería facilitar mucho mantener los equipos. Diseño del usuario (se mide como variante en `docs/relevo/veranos-metodo.md`):
+
+1. **Al llegar el verano, por categoría:**
+   - los que abandonan van a una **lista de abandonos** (el último recurso para completar equipos de colegio);
+   - los que **buscan oportunidades fuera** van a una **reserva** (no pierden su sitio del todo);
+   - en los colegios, los de más riesgo, se juntan todos los niños que se quedan.
+2. **Clubes externos, de más a menos reconocimiento:**
+   - el club se reorganiza (A = 2.º año + titulares de 1.º, B = 1.º, C mixto si puede);
+   - sus jugadores que quieren cambiar prueban en los dos clubes siguientes y, si no son titulares, vuelven;
+   - los de otros equipos que buscan cambiar, y los del mercado, prueban aquí. Según su ambición aceptan ser reservas o no. Si entran, desplazan a otro: el de 1.º desplazado en el A baja al B, y el B desplaza a otro;
+   - se cierra el club y se pasa al siguiente, y los que no consiguieron sitio vuelven a su hueco.
+3. **Al terminar:**
+   - los de colegio que no encajaron fuera vuelven a su colegio, que completa con la lista de abandonos si no llega a 14;
+   - si ni así llega, el equipo se deshace y sus niños buscan equipo en los clubes de media tabla para abajo, donde puede salir un C o un D.
+4. **Reorganización final** de cada club: A el más fuerte; B los mejores de 1.º; C mixto con los descartes.
+
+**Objetivo:** que los clubes fuertes tengan A y B fuertes y de distinto año, y que los colegios vayan perdiendo equipos a favor de los clubes de fuera.
+
+**Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
+
 ## 25/11/2026 — Chicas en el fútbol: proporción real, categorías y simulación sin resultados
 
 Respuestas del usuario a `docs/relevo/reparto-nuevo-sexos.md`:
