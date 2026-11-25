@@ -11,14 +11,14 @@ Respuestas del usuario a `docs/relevo/reparto-nuevo-sexos.md`:
 
 1. **Se acepta que el fútbol de la ciudad quede más o menos a la mitad** al poner a las chicas en ~10 % (licencias RFEF 2024/25): unos 315 jugadores por categoría en vez de ~560, y 13–19 equipos de chicos por categoría. Es más realista. Para tener más niños se ampliarán las líneas de los colegios o se crearán más colegios.
 2. **Equipos femeninos:**
-   - **las categorías son las mismas que las de los chicos.** La única diferencia es que las niñas juegan antes federadas;
+   - **las categorías son las mismas que las de los chicos.** Las niñas compiten federadas en categoría femenina **desde infantil**; benjamín y alevín son mixtos (aclarado el 25/11);
    - los tienen los clubes externos;
    - **hará falta crear equipos de fuera de la ciudad** para que tengan liga. Eso puede esperar.
 3. **Mientras tanto:**
    - **se desactiva elegir chica como personaje;**
    - las PNJ de los equipos femeninos **simulan que juegan partidos contra equipos, sin resultados ni clasificación**, para que tengan su evolución (experiencia, nivel, abandono).
 
-**El método de reparto nuevo funciona con los chicos** (semillas 51–60): 0 equipos por debajo de 14, con un añadido: un B, C o D que no llega a 14 con el A completo desaparece y sus niños buscan sitio. Siguiente paso: los veranos, con esta población.
+**El método de reparto nuevo funciona con los chicos** (semillas 51–60): 0 equipos por debajo de 14, con un añadido: un B, C o D que no llega a 14 con el A completo desaparece y sus niños buscan sitio. Siguiente paso: los veranos, con esta población. En los veranos los equipos ya existen y no se montan desde cero, así que es difícil que un C sea mejor que su A. Aun así, hay que analizar las subidas y bajadas de jugadores y cómo queda todo.
 
 ## 24/11/2026 — Reparto de equipos nuevo (paso a paso con el usuario) y ciudad pequeña
 
