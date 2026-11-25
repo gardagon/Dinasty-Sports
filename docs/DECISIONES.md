@@ -45,6 +45,8 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 **v5** (equipos de 18 en benjamín): benjamín estable en 3 veranos (unos 300 jugadores, 15,7 equipos, 0–3 fuera), 0 equipos por debajo de 14 y 0–5 fuera por categoría. **Juvenil:** es el mayor filtro mientras no haya equipos profesionales; se acepta que desaparezcan muchos equipos. **Los que se quedan sin equipo y les gusta el fútbol prueban en varios equipos** (más pruebas cuanto más interés): a falta de fichajes, es lo que más se parece a que un equipo se refuerce y no se pierdan buenos jugadores. **Confirmado por el usuario:** la última pasada sin mirar el cupo del puesto, con una última oportunidad para los desplazados, en todas las categorías; y la regla de 18 también en alevín.
 
+**Juvenil en verano (primera medida):** no se pierden buenos jugadores (~4 % de los que quedan fuera), pero quedan fuera muchos y juvenil cae a 175 jugadores en 3 veranos, porque los de nivel bajo gastan sus pruebas en los clubes de arriba. **Decidido:** cada juvenil sin equipo prueba primero en clubes de su nivel; la escala de pruebas sube un punto (interés 3 → 6, 2 → 4, 1 → 3); y se añade la cascada del usuario dentro del club.
+
 **Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
 
 **Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
