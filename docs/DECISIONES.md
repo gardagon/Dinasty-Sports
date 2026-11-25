@@ -32,6 +32,8 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 4. Un niño desplazado tiene **2 pruebas** para encontrar equipo; así se fomentan algo más los cambios.
 5. Un niño sin ambición, aunque sea bueno, no busca fuera del colegio salvo que se quede sin equipo.
 
+**Segunda medida (v2):** nadie queda fuera por no caber; alevín e infantil pierden los mismos jugadores que hoy (−8 %) y no queda ningún equipo por debajo de 14. El usuario aprueba que **cada club pueda abrir hasta dos equipos más** durante el verano, para los benjamines nuevos. También aprueba que **los colegios pierdan equipos poco a poco**: con el tiempo, los clubes pequeños montan el juvenil con los que salen de los colegios.
+
 **Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
 
 **Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
