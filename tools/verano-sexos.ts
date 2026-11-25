@@ -26,6 +26,11 @@ SESGO_DE_SEXO.solo = mundo === 'f' ? 'f' : 'm';
 SESGO_DE_SEXO.desdeEdad = 12;
 if (mundo === 'f') SESGO_DE_SEXO.sinColegios = true;
 
+/** Los equipos que deja cada paso final del reparto (la traza), antes de que el resto de la creación mueva a nadie. */
+const tamanosDe = (eqs: { A: number; B: number; C?: number; D?: number }[]): number[] => eqs.flatMap((q) => [q.A, q.B, q.C ?? 0, q.D ?? 0].filter((x) => x > 0));
+const trazaCrea: Record<string, number[]> = {};
+const trazaVera: Record<string, number[]> = {};
+DIAGNOSTICO.traza = (e) => { if (e.fase === 'fin equilibrio' || e.fase === 'fin J3') trazaCrea[e.categoria] = tamanosDe(e.datos.equipos as never); };
 const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
 advanceToWeek(g, 'gen.descansar', 0, 2, 9);
 advanceToWeek(g, 'gen.descansar', 48, 2, 15);
@@ -90,6 +95,7 @@ DIAGNOSTICO.alProbar = (d) => { if (antes.has(d.id)) probar.set(d.id, { sentido:
 DIAGNOSTICO.alDesplazar = (d) => { if (antes.has(d.id)) desplazados.set(d.id, d.motivo); };
 DIAGNOSTICO.alCerrar = (d) => { cierres[d.categoria] = (cierres[d.categoria] ?? 0) + Math.max(1, d.equipos - d.montables); };
 DIAGNOSTICO.traza = (e) => {
+  if (e.fase === 'fin equilibrio') trazaVera[e.categoria] = tamanosDe(e.datos.equipos as never);
   if (e.fase === 'fin equilibrio') eq[e.categoria] = Object.fromEntries(Object.entries(e.datos).filter(([, v]) => typeof v === 'number')) as Record<string, number>;
 };
 const listas: Record<string, Map<string, Npc>> = {};
@@ -179,4 +185,4 @@ for (const k of new Set([...antesN.keys(), ...despuesN.keys()])) {
   if (d < a) r.cierran += a - d; else if (d > a) r.abren += d - a;
 }
 void kAntes;
-console.log(`#W ${JSON.stringify({ seed, mundo, verano, filas: Object.fromEntries(filas), antes: resumen(equiposAntes), despues: resumen(equiposDespues), nivelAntes: nivelEquipos(equiposAntes, porId0), nivelDespues: nivelEquipos(equiposDespues, porId1), cambiosEq, cierres, eq })}`);
+console.log(`#W ${JSON.stringify({ seed, mundo, verano, filas: Object.fromEntries(filas), antes: resumen(equiposAntes), despues: resumen(equiposDespues), nivelAntes: nivelEquipos(equiposAntes, porId0), nivelDespues: nivelEquipos(equiposDespues, porId1), cambiosEq, cierres, eq, trazaCrea, trazaVera })}`);
