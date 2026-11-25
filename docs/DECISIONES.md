@@ -25,6 +25,15 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 **Objetivo:** que los clubes fuertes tengan A y B fuertes y de distinto año, y que los colegios vayan perdiendo equipos a favor de los clubes de fuera.
 
+**Primera medida (semillas 51–60) y decisiones del usuario:**
+1. Al reorganizar, quien no cabe en un equipo de 14 a 22 **busca otro equipo**: no abandona.
+2. Sin tope por año en el barrido. Al reorganizar, el A son los de 2.º más los titulares de 1.º, el B los mejores de 1.º restantes y el C mixto. Un club con muchos de 1.º solo hace que los equipos de abajo tengan un A potente y un B más flojo y mixto.
+3. Los benjamines nuevos (los de 8 años y las mudanzas) buscan equipo, y se les abre si hace falta.
+4. Un niño desplazado tiene **2 pruebas** para encontrar equipo; así se fomentan algo más los cambios.
+5. Un niño sin ambición, aunque sea bueno, no busca fuera del colegio salvo que se quede sin equipo.
+
+**Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
+
 **Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
 
 ## 25/11/2026 — Chicas en el fútbol: proporción real, categorías y simulación sin resultados
