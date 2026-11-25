@@ -618,8 +618,8 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       // v4: los equipos se mantienen. `kPrev` = los que el club tenía en la categoría; en el barrido se llenan primero esos (hasta 22) y solo si hace falta (quedan niños sin equipo) se abre uno más (`extra`), hasta 4 (en benjamín, 2 en los clubes grandes).
       const kPrev = (e: EquipoGuardado): number => DIAGNOSTICO.equiposPrevios?.get(`${e.club}|${catId}`) ?? 0;
       const kTope = (e: EquipoGuardado): number => (catId === 'benjamin' && (e.tamano ?? (e.calidad >= 3 ? 'grande' : '')) === 'grande' ? 2 : 4);
-      // Juvenil: los que se quedan sin equipo prueban en varios según cuánto les gusta el fútbol (interés 3: hasta 5 pruebas; 2: 3; 1: 2).
-      const maxDe = (n: Npc | undefined): number | undefined => { if (catId !== 'juvenil' || !n || DIAGNOSTICO.juvenilAntiguo) return undefined; const i = Math.round(interesDe(n, pob.deporte, edadDe(n))); return i >= 3 ? 5 : i === 2 ? 3 : 2; };
+      // Juvenil: los que se quedan sin equipo prueban en varios según cuánto les gusta el fútbol (interés 3: hasta 6 pruebas; 2: 4; 1: 3), primero en clubes de su nivel.
+      const maxDe = (n: Npc | undefined): number | undefined => { if (catId !== 'juvenil' || !n || DIAGNOSTICO.juvenilAntiguo) return undefined; const i = Math.round(interesDe(n, pob.deporte, edadDe(n))); return i >= 3 ? 6 : i === 2 ? 4 : 3; };
       const nuevoCand = (n: Npc | undefined, id: string, desplazado: boolean): Cand => ({ id, sentido: 'mercado', intentos: 0, ...(desplazado ? { desplazado: true } : {}), ...(maxDe(n) !== undefined ? { max: maxDe(n) } : {}) });
       // v5: en benjamín (y, como dato aparte, en alevín) los equipos intentan formarse de 18: se llenan los que hay hasta 18; con lo que sobra se forman equipos nuevos de 14 a 18 (los clubes con menos equipos primero); solo los que aun así se quedan sin equipo entran hasta 22.
       const v5 = catId === 'benjamin' || catId === 'alevin';
@@ -662,7 +662,9 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       for (const a of bolsa()) if (!quedan.has(a.npc.id) && !candidatos.has(a.npc.id)) candidatos.set(a.npc.id, nuevoCand(a.npc, a.npc.id, false));
       // 2. Los clubes externos, de más a menos atractivo: primero con los equipos que ya hay y, si quedan niños del mercado sin sitio, abriendo equipos.
       const mercadoPendiente = (): number => [...candidatos.values()].filter((c) => c.sentido === 'mercado' && c.intentos < (c.max ?? (c.desplazado ? 2 : 999))).length;
-      const fases: { max: number; extra: number; nuevos?: boolean }[] = v5 ? [{ max: 18, extra: 0 }, { max: 18, extra: 1, nuevos: true }, { max: 18, extra: 2, nuevos: true }, { max: 22, extra: 0 }] : [{ max: TOPE, extra: 0 }, { max: TOPE, extra: 1 }, { max: TOPE, extra: 2 }];
+      const fases: { max: number; extra: number; nuevos?: boolean; nivel?: boolean }[] = catId === 'juvenil' ? [{ max: TOPE, extra: 0, nivel: true }, { max: TOPE, extra: 0 }, { max: TOPE, extra: 1 }, { max: TOPE, extra: 2 }] : v5 ? [{ max: 18, extra: 0 }, { max: 18, extra: 1, nuevos: true }, { max: 18, extra: 2, nuevos: true }, { max: 22, extra: 0 }] : [{ max: TOPE, extra: 0 }, { max: TOPE, extra: 1 }, { max: TOPE, extra: 2 }];
+      // El «club de su nivel» de un juvenil: aquel donde sería titular de verdad, es decir, donde vale más que el titular más flojo de su once (el 11.º mejor del club en la categoría).
+      const umbralDe = (e: EquipoGuardado): number => { const v = presentes(e).map(nivelDe).sort((a, b) => b - a); return v.length ? v[Math.min(10, v.length - 1)] : -Infinity; };
       for (const fase of fases) {
         if (fase.extra > 0 && (!mercadoPendiente() || (fase.nuevos && mercadoPendiente() < 14))) continue;
         for (const e of clubes) e.plantillaPorCategoria = { ...e.plantillaPorCategoria!, max: fase.max };
@@ -676,7 +678,9 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
           if (k <= 1) delete e.equiposPorCategoria[catId];
           const antes = presentes(e).length;
+          const umbral = fase.nivel ? umbralDe(e) : -Infinity;
           const cola = [...candidatos.values()].filter((c) => {
+            if (fase.nivel && !(c.sentido === 'mercado' && c.max !== undefined && nivelDe(m.lista.get(c.id) ?? ({} as Npc)) >= umbral)) return false;
             if (c.sentido === 'mercado') return c.intentos < (c.max ?? (c.desplazado ? 2 : 999)) || (v5 && fase.max === 22 && c.max === undefined);
             if (fase.extra > 0 || (v5 && fase.max === 22)) return false;
             if (c.sentido === 'sube') return !!c.origen && e.calidad > c.origen.calidad && c.intentos < 3;
@@ -761,8 +765,21 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
             const xi = xiDeJ([...equiposJ[i], ...equiposJ[i - 1]]);
             for (const x of porNivel(equiposJ[i].filter((y) => xi.has(y.id)))) { if (equiposJ[i].length - 1 < 14) break; equiposJ[i] = equiposJ[i].filter((y) => y.id !== x.id); equiposJ[i - 1] = [...equiposJ[i - 1], x]; }
           }
+          // La cascada del usuario: lo que pasa de 22 en un equipo baja al de abajo (el de 1.er año del A baja al B, el del B baja al C; el más joven y, entre ellos, el más flojo); en el último equipo sale el reserva. Hasta 3 rondas.
+          const sobranJ: Npc[] = [];
+          if (!DIAGNOSTICO.juvenilAntiguo) {
+            for (let ronda = 0; ronda < 3; ronda++) {
+              for (let i = 0; i < equiposJ.length; i++) {
+                while (equiposJ[i].length > TOPE) {
+                  const candidatoABajar = [...equiposJ[i]].sort((a, b) => anio(a) - anio(b) || nivelDe(a) - nivelDe(b) || (a.id < b.id ? -1 : 1))[0]; // el de 1.er año más flojo
+                  equiposJ[i] = equiposJ[i].filter((y) => y.id !== candidatoABajar.id);
+                  if (i + 1 < equiposJ.length) equiposJ[i + 1] = [...equiposJ[i + 1], candidatoABajar]; else sobranJ.push(candidatoABajar);
+                }
+              }
+            }
+          }
           const out = equiposJ.map((eq) => porNivel(eq).slice(0, TOPE));
-          const sobranJ = equiposJ.flatMap((eq) => porNivel(eq).slice(TOPE));
+          sobranJ.push(...equiposJ.flatMap((eq) => porNivel(eq).slice(TOPE)));
           return { sets: { A: new Set((out[0] ?? []).map((x) => x.id)), B: new Set((out[1] ?? []).map((x) => x.id)), ...(out[2] ? { C: new Set(out[2].map((x) => x.id)) } : {}) }, sobran: sobranJ };
         }
         // v4: el club conserva los equipos que tenía (`kPrev`) y reparte a sus jugadores dentro de ellos, sin decidir de nuevo cuántos son: A = los de 2.º año más los mejores de 1.º hasta 22 sin dejar a los
