@@ -513,3 +513,51 @@ Equipos por tipo de club (al empezar → 1 → 2 → 3):
 Equipos de colegio (benjamín a juvenil): 13,2 → 11,8 → 10,0 → 9,6.
 
 **Lectura.** Benjamín es estable (304 → 302 jugadores; 15,6 equipos en los tres veranos; 0–3 fuera de 1.º; niños por equipo 18,5–19,8 de media y 14–22). **Los clubes pequeños mantienen equipos en benjamín** (pequeño 5,8 → 3,0 equipos entre los 5 clubes: de 2 a 4 por semilla en el verano 3, es decir, 3 de 5 clubes de media). No sale ningún equipo por debajo de 14 en ningún verano. Los jugadores totales caen un −18 % en los tres veranos (v4: −24 %). Los equipos de colegio siguen bajando poco a poco (13,2 → 9,6); en alevín, infantil y cadete los pequeños pierden equipos (alevín 6,2 → 2,4).
+
+## B9) Confirmaciones del usuario (25/11/2026)
+
+1. **La última pasada sin mirar el cupo del puesto** (para el que no cabe) y la **última oportunidad de los desplazados que gastaron sus dos pruebas**, en todas las categorías: queda por defecto en el verano del usuario.
+2. **La regla de 18 también en alevín** (equipos de 18; 22 solo si sobran y se quedarían sin equipo; equipos nuevos de 14 a 18 donde se pueda): queda por defecto en benjamín y alevín (`DIAGNOSTICO.v5Alevin` ya no se usa). Todas las cifras de más abajo la llevan.
+
+## B10) Juvenil (semillas 51–60)
+
+Juvenil con el método del verano (equipos que se mantienen, solo se elimina el que no llega a 14, barrido de arriba abajo) y con sus letras: **A = 3.º año, B = 2.º, C = 1.º** (tres equipos con 14 o más de cada año; dos —A de 3.º y 2.º, B de 1.º— con 14 de 3.º y 2.º juntos y 14 de 1.º; si no, uno mixto), mínimo 14 y máximo 22, con **las subidas por titularidad de abajo arriba** (los que serían titulares en el de arriba suben sin dejar al de abajo por debajo de 14) y los que pasan de 22 salen. **No he replicado la cascada de `juvenil-cascada` dentro del club** (el desplazado que baja al equipo de abajo y desplaza a otro de su puesto): los que sobran de un equipo buscan sitio como cualquier niño sin equipo, en otros clubes.
+
+**Los juveniles sin equipo** (los que se quedan fuera, los desplazados y los de equipos eliminados) **prueban en varios equipos según cuánto les gusta el fútbol.** Escala que he usado: interés 3 → hasta **5 pruebas**; interés 2 → 3; interés 1 → 2. Entran si son titulares o su ambición les deja ser reservas (la regla de plaza de hoy). Los de 18 que acaban el colegio siguen como hoy.
+
+### Comparación: hoy / v5 sin tocar juvenil / juvenil nuevo (chicos, media de 10 semillas)
+
+| | hoy | v5 con el juvenil de antes | juvenil nuevo |
+|---|---|---|---|
+| Equipos antes → tras | 13,9 → 14,6 | 13,9 → 15,3 | 13,9 → **12,9** |
+| Se eliminan · se crean | 1,6 · 2,3 | 1,8 · 3,2 | 3,0 · 2,0 |
+| <14 tras | 0,4 | 0 | 0 |
+| Fuera 1.º · 2.º · 3.º | 8 · 23 · 25 | 4 · 16 · 23 | 14 · 43 · 45 |
+| Jugadores tras (balance) | 268 (−9 %) | 298 (+2 %) | **240 (−19 %)** |
+| Niños por equipo (mín · máx) | 14 · 20 | 14 · 22 | 14 · 22 |
+| Equipos por tipo: colegio · pequeño · mediano · grande | 0,8 · 6,2 · 5,3 · 2,3 | 2,2 · 5,2 · 5,5 · 2,4 | 2,2 · 4,3 · 4,5 · 1,9 |
+| Suben · bajan de letra | 36 · 26 | 44 · 26 | 44 · 14 |
+| **Buenos fuera** (sobre la mediana de su año; 1.º · 2.º · 3.º) | 0 · 0 · 0 | 0,2 · 0,4 · 0,3 | 0,5 · 1,9 · 1,9 |
+
+**Pruebas** (juvenil nuevo, por semilla): **508 pruebas** en total, **138 niños encuentran equipo** (el 27 % de las pruebas) y **51 de ellos lo hacen después de fallar al menos una vez**.
+
+**Chicas** (hoy / v5 de antes / nuevo): equipos tras 2,1 / 1,9 / 1,8; fuera 1.º · 2.º · 3.º 0 · 2 · 2 / 1 · 3 · 3 / 2 · 5 · 6; jugadoras tras 41 / 37 / 32; buenas fuera 0 / 0,1 / 0,8.
+
+**Lectura.** El juvenil nuevo **deja fuera a más gente que el de antes** (fuera 14 · 43 · 45 frente a 4 · 16 · 23; balance −19 % frente a +2 %): **la escala de pruebas limita**. Con el juvenil de antes, los del mercado probaban sin límite y casi todos acababan en algún equipo; con 2–5 pruebas, los de interés bajo (2 pruebas) y los que no llegan a titulares en los clubes de arriba se quedan sin equipo antes de llegar a los medianos y pequeños, que están al final del barrido. **Los que se quedan fuera no son buenos**: solo 0,5 · 1,9 · 1,9 por semilla están por encima de la mediana de su año (el 4 % de los fuera), así que no se pierden buenos jugadores: se pierde gente de nivel bajo. Si el usuario quiere que nadie con ganas se quede fuera, la escala se puede subir (por ejemplo 4–8–10 pruebas) o quitar.
+
+## B11) Tres veranos seguidos con todo junto (semillas 51–55)
+
+Verano del usuario v5 (benjamín y alevín de 18, última pasada sin cupo) y el juvenil nuevo. Media de 5 semillas; al empezar → verano 1 → 2 → 3 (entre paréntesis, la v5 con el juvenil de antes).
+
+| | Equipos | Jugadores | Fuera 1.º / 2.º en cada verano |
+|---|---|---|---|
+| benjamín | 18,6 → 15,6 → 15,6 → 16,4 | 304 → 290 → 294 → 306 | 1/0 · 2/0 · 3/0 |
+| alevín | 17,8 → 15,2 → 14,0 → 13,4 (14,8 → 13,4 → 12,8) | 295 → 275 → 258 → 251 (273 → 253 → 248) | 0/0 · 0/1 · 0/1 |
+| infantil | 16,6 → 14,0 → 12,6 → 11,4 | 272 → 259 → 229 → 211 | 0/1 · 4/0 · 1/2 |
+| cadete | 16,8 → 12,6 → 12,0 → 12,2 | 279 → 241 → 223 → 215 | 1/0 · 1/1 · 1/1 |
+| juvenil | 14,4 → 13,0 → 10,2 → 8,8 (14,6 → 12,6 → 11,6) | 313 → 241 → 196 → 175 (286 → 251 → 227) | 13/36/45 · 18/17/9 · 19/11/8 |
+| **Total** | **84,2 → 70,4 → 64,4 → 62,2** (71,6 → 66,2 → 63,2) | **1464 → 1307 → 1201 → 1158** (1349 → 1252 → 1198) | |
+
+Equipos por tipo de club (al empezar → 1 → 2 → 3): benjamín colegio 4,8 → 3,6 → 3,6 → 4,2, **pequeño 5,8 → 4,0 → 3,4 → 3,4**, mediano 6,0 → 6,0 → 6,6 → 6,8, grande 2,0 en todos; alevín colegio 3,6 → 3,6 → 3,4 → 2,6, pequeño 6,2 → 4,2 → 3,2 → 2,8, mediano 6,0 → 5,2 → 4,8 → 4,8, grande 2,0 → 2,2 → 2,6 → 3,2; infantil colegio 1,6 → 2,2 → 2,0 → 1,6, pequeño 6,0 → 3,4 → 3,0 → 2,4, mediano 7,0 → 6,2 → 5,4 → 5,0, grande 2,0 → 2,4; cadete colegio 1,8 → 0,6 → 0,6 → 1,4, pequeño 6,2 → 3,8 → 3,4 → 3,2, mediano 6,0 → 5,2 → 5,0 → 4,6, grande 2,8 → 3,0; juvenil colegio 1,4 → 1,8 → 1,0 → 0,6, pequeño 5,8 → 4,8 → 3,4 → 3,0, mediano 4,6 → 4,2 → 3,6 → 3,4, grande 2,6 → 2,2 → 2,2 → 1,8. Equipos de colegio (benjamín a juvenil): 13,2 → 11,8 → 10,6 → 10,4.
+
+**Por debajo de 14: 0 en los tres veranos y las cinco semillas.** Los clubes pequeños mantienen equipos en benjamín (de 2 a 4 por semilla en el verano 3). **Juvenil cae con el nuevo** (313 → 175 jugadores y 14,4 → 8,8 equipos, frente a 227 y 11,6 con el de antes) por el límite de pruebas.

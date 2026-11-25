@@ -618,13 +618,16 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       // v4: los equipos se mantienen. `kPrev` = los que el club tenía en la categoría; en el barrido se llenan primero esos (hasta 22) y solo si hace falta (quedan niños sin equipo) se abre uno más (`extra`), hasta 4 (en benjamín, 2 en los clubes grandes).
       const kPrev = (e: EquipoGuardado): number => DIAGNOSTICO.equiposPrevios?.get(`${e.club}|${catId}`) ?? 0;
       const kTope = (e: EquipoGuardado): number => (catId === 'benjamin' && (e.tamano ?? (e.calidad >= 3 ? 'grande' : '')) === 'grande' ? 2 : 4);
+      // Juvenil: los que se quedan sin equipo prueban en varios según cuánto les gusta el fútbol (interés 3: hasta 5 pruebas; 2: 3; 1: 2).
+      const maxDe = (n: Npc | undefined): number | undefined => { if (catId !== 'juvenil' || !n || DIAGNOSTICO.juvenilAntiguo) return undefined; const i = Math.round(interesDe(n, pob.deporte, edadDe(n))); return i >= 3 ? 5 : i === 2 ? 3 : 2; };
+      const nuevoCand = (n: Npc | undefined, id: string, desplazado: boolean): Cand => ({ id, sentido: 'mercado', intentos: 0, ...(desplazado ? { desplazado: true } : {}), ...(maxDe(n) !== undefined ? { max: maxDe(n) } : {}) });
       // v5: en benjamín (y, como dato aparte, en alevín) los equipos intentan formarse de 18: se llenan los que hay hasta 18; con lo que sobra se forman equipos nuevos de 14 a 18 (los clubes con menos equipos primero); solo los que aun así se quedan sin equipo entran hasta 22.
-      const v5 = catId === 'benjamin' || (catId === 'alevin' && !!DIAGNOSTICO.v5Alevin);
+      const v5 = catId === 'benjamin' || catId === 'alevin';
       const creados = new Map<string, number>();
       const kCap = (e: EquipoGuardado, extra: number): number => (kPrev(e) + extra <= 0 ? 0 : Math.min(kTope(e), Math.max(kPrev(e), extra > 0 ? kPrev(e) + extra : 0, 1)));
-      const st = { abandonos: 0, buscan: 0, buscanSube: 0, buscanBaja: 0, consiguen: 0, vuelven: 0, recuperadosDeLaLista: 0, clubesSinEquipo: 0, equiposDeColegioDeshechos: 0, deColegioAMediaTabla: 0, desplazados: 0, mercadoColocados: 0, mercadoSinSitio: 0, colegiosAntes: 0, colegiosDespues: 0, sobranEnSuClub: 0, sobranEnOtroClub: 0, sobranSinSitio: 0, vueltasDeAcople: 0, equiposNuevosDeMercado: 0, mueve: {} as Record<string, number> };
+      const st = { abandonos: 0, buscan: 0, buscanSube: 0, buscanBaja: 0, consiguen: 0, vuelven: 0, recuperadosDeLaLista: 0, clubesSinEquipo: 0, equiposDeColegioDeshechos: 0, deColegioAMediaTabla: 0, desplazados: 0, mercadoColocados: 0, mercadoSinSitio: 0, colegiosAntes: 0, colegiosDespues: 0, sobranEnSuClub: 0, sobranEnOtroClub: 0, sobranSinSitio: 0, vueltasDeAcople: 0, equiposNuevosDeMercado: 0, pruebasJuvenil: 0, encuentranJuvenil: 0, encuentranTrasFallar: 0, mueve: {} as Record<string, number> };
       const mueve = (de: string, a: string): void => { const k = `${de}>${a}`; st.mueve[k] = (st.mueve[k] ?? 0) + 1; };
-      type Cand = { id: string; sentido: 'mercado' | 'sube' | 'baja'; origen?: EquipoGuardado; viejo?: Npc; intentos: number; ronda2?: boolean; desplazado?: boolean };
+      type Cand = { id: string; sentido: 'mercado' | 'sube' | 'baja'; origen?: EquipoGuardado; viejo?: Npc; intentos: number; ronda2?: boolean; desplazado?: boolean; max?: number };
       const candidatos = new Map<string, Cand>();
       const presentes = (e: EquipoGuardado): Npc[] => miembros(e).filter((n) => !n.id.startsWith('personaje@'));
       const nivelDe = (n: Npc): number => valorEn(n, pob, m);
@@ -656,9 +659,9 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         }
       }
       // El mercado: los que quieren jugar y no tienen equipo (sin los que se quedan en su colegio, que solo ven los colegios).
-      for (const a of bolsa()) if (!quedan.has(a.npc.id) && !candidatos.has(a.npc.id)) candidatos.set(a.npc.id, { id: a.npc.id, sentido: 'mercado', intentos: 0 });
+      for (const a of bolsa()) if (!quedan.has(a.npc.id) && !candidatos.has(a.npc.id)) candidatos.set(a.npc.id, nuevoCand(a.npc, a.npc.id, false));
       // 2. Los clubes externos, de más a menos atractivo: primero con los equipos que ya hay y, si quedan niños del mercado sin sitio, abriendo equipos.
-      const mercadoPendiente = (): number => [...candidatos.values()].filter((c) => c.sentido === 'mercado' && (!c.desplazado || c.intentos < 2)).length;
+      const mercadoPendiente = (): number => [...candidatos.values()].filter((c) => c.sentido === 'mercado' && c.intentos < (c.max ?? (c.desplazado ? 2 : 999))).length;
       const fases: { max: number; extra: number; nuevos?: boolean }[] = v5 ? [{ max: 18, extra: 0 }, { max: 18, extra: 1, nuevos: true }, { max: 18, extra: 2, nuevos: true }, { max: 22, extra: 0 }] : [{ max: TOPE, extra: 0 }, { max: TOPE, extra: 1 }, { max: TOPE, extra: 2 }];
       for (const fase of fases) {
         if (fase.extra > 0 && (!mercadoPendiente() || (fase.nuevos && mercadoPendiente() < 14))) continue;
@@ -674,7 +677,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           if (k <= 1) delete e.equiposPorCategoria[catId];
           const antes = presentes(e).length;
           const cola = [...candidatos.values()].filter((c) => {
-            if (c.sentido === 'mercado') return !c.desplazado || c.intentos < 2 || (v5 && fase.max === 22);
+            if (c.sentido === 'mercado') return c.intentos < (c.max ?? (c.desplazado ? 2 : 999)) || (v5 && fase.max === 22 && c.max === undefined);
             if (fase.extra > 0 || (v5 && fase.max === 22)) return false;
             if (c.sentido === 'sube') return !!c.origen && e.calidad > c.origen.calidad && c.intentos < 3;
             return !!c.origen && e.calidad < c.origen.calidad && c.intentos < 2 && indice > externos.indexOf(c.origen);
@@ -684,10 +687,12 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
             let res = intentarEntrar(m, n, e, pob, {});
             // En la última pasada, quien aún no cabe lo intenta sin mirar el cupo de su puesto (como en el reparto de inicio), para que nadie se quede sin equipo por eso.
             if (!res.entra && c.sentido === 'mercado' && (v5 ? fase.max === 22 : fase.extra === 2)) res = intentarEntrar(m, n, e, pob, { relajado: true, soloHueco: true });
+            if (c.max !== undefined) st.pruebasJuvenil++;
             if (!res.entra) { c.intentos++; continue; }
+            if (c.max !== undefined) { st.encuentranJuvenil++; if (c.intentos > 0) st.encuentranTrasFallar++; }
             candidatos.delete(c.id);
             if (c.sentido === 'mercado') st.mercadoColocados++; else { st.consiguen++; mueve(tipoDe(c.origen!), tipoDe(e)); }
-            if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, { id: res.desplazado.id, sentido: 'mercado', intentos: 0, desplazado: true }); }
+            if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, nuevoCand(res.desplazado, res.desplazado.id, true)); }
           }
           if (fase.nuevos && presentes(e).length - antes >= 14) { creados.set(e.club, (creados.get(e.club) ?? 0) + 1); st.equiposNuevosDeMercado = (st.equiposNuevosDeMercado ?? 0) + 1; }
         }
@@ -750,8 +755,14 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           const anio = (x: Npc): number => (edadDe(x) - cat.edadMin) + 1;
           const y3 = porNivel(ms.filter((x) => anio(x) >= 3)), y2 = porNivel(ms.filter((x) => anio(x) === 2)), y1 = porNivel(ms.filter((x) => anio(x) <= 1));
           const equiposJ: Npc[][] = y3.length >= 14 && y2.length >= 14 && y1.length >= 14 ? [y3, y2, y1] : y3.length + y2.length >= 14 && y1.length >= 14 ? [porNivel([...y3, ...y2]), y1] : [porNivel(ms)];
-          const out = equiposJ.map((eq) => eq.slice(0, TOPE));
-          const sobranJ = equiposJ.flatMap((eq) => eq.slice(TOPE));
+          // Las subidas por titularidad, de abajo arriba (los que serían titulares en el equipo de arriba suben, sin dejar al de abajo por debajo de 14), y por encima de 22 sobran los peores.
+          const xiDeJ = (xs: Npc[]): Set<string> => new Set(v23.titulares(xs.flatMap((n) => { const puesto = puestoDeJugador(n, pob, m.val, m.dia); const valores = valoresPorPuestoDe(n, pob, m.val, m.dia); return puesto && valores ? [{ id: n.id, puesto, valores, valor: valorEnSuPuesto(n, pob, m.val, m.dia, puesto), estado: { baja: false } as never }] : []; })));
+          for (let i = equiposJ.length - 1; i >= 1 && !DIAGNOSTICO.juvenilAntiguo; i--) {
+            const xi = xiDeJ([...equiposJ[i], ...equiposJ[i - 1]]);
+            for (const x of porNivel(equiposJ[i].filter((y) => xi.has(y.id)))) { if (equiposJ[i].length - 1 < 14) break; equiposJ[i] = equiposJ[i].filter((y) => y.id !== x.id); equiposJ[i - 1] = [...equiposJ[i - 1], x]; }
+          }
+          const out = equiposJ.map((eq) => porNivel(eq).slice(0, TOPE));
+          const sobranJ = equiposJ.flatMap((eq) => porNivel(eq).slice(TOPE));
           return { sets: { A: new Set((out[0] ?? []).map((x) => x.id)), B: new Set((out[1] ?? []).map((x) => x.id)), ...(out[2] ? { C: new Set(out[2].map((x) => x.id)) } : {}) }, sobran: sobranJ };
         }
         // v4: el club conserva los equipos que tenía (`kPrev`) y reparte a sus jugadores dentro de ellos, sin decidir de nuevo cuántos son: A = los de 2.º año más los mejores de 1.º hasta 22 sin dejar a los
@@ -795,7 +806,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         if (!pendientesDeAcople.length) break;
         // Si no, a buscar en otros clubes con el barrido de siempre (de más a menos atractivo; dos pruebas por niño).
         const antesDeLiberar = new Map(pendientesDeAcople.map((n) => [n.id, n.equipo]));
-        for (const n of pendientesDeAcople) { liberar([n.id]); DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: antesDeLiberar.get(n.id) ?? '', motivo: 'sobra' }); candidatos.set(n.id, { id: n.id, sentido: 'mercado', intentos: 0, desplazado: true }); }
+        for (const n of pendientesDeAcople) { liberar([n.id]); DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: antesDeLiberar.get(n.id) ?? '', motivo: 'sobra' }); candidatos.set(n.id, nuevoCand(n, n.id, true)); }
         let colocados = 0;
         for (const extra of [0, 1, 2]) {
           for (const e of externos) {
@@ -803,16 +814,18 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
             if (k < 1) continue;
             e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
             const ultima = extra === 2;
-            const cola = pendientesDeAcople.map((n) => ({ n: m.lista.get(n.id), id: n.id })).filter((x) => !!x.n && x.n.deporte === undefined && candidatos.has(x.id) && (ultima || (candidatos.get(x.id)?.intentos ?? 9) < 2));
+            const cola = pendientesDeAcople.map((n) => ({ n: m.lista.get(n.id), id: n.id })).filter((x) => !!x.n && x.n.deporte === undefined && candidatos.has(x.id) && ((ultima && candidatos.get(x.id)?.max === undefined) || (candidatos.get(x.id)?.intentos ?? 999) < (candidatos.get(x.id)?.max ?? 2)));
             for (const { n, id } of cola) {
               if (!n) continue;
               const c = candidatos.get(id);
               if (!c) continue;
               let res = intentarEntrar(m, n, e, pob, {});
               if (!res.entra && ultima) res = intentarEntrar(m, n, e, pob, { relajado: true, soloHueco: true });
+              if (c.max !== undefined) st.pruebasJuvenil++;
               if (!res.entra) { c.intentos++; continue; }
+              if (c.max !== undefined) { st.encuentranJuvenil++; if (c.intentos > 0) st.encuentranTrasFallar++; }
               candidatos.delete(id); colocados++; st.sobranEnOtroClub++;
-              if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, { id: res.desplazado.id, sentido: 'mercado', intentos: 0, desplazado: true }); pendientesDeAcople.push(res.desplazado); }
+              if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, nuevoCand(res.desplazado, res.desplazado.id, true)); pendientesDeAcople.push(res.desplazado); }
             }
           }
           if (![...pendientesDeAcople].some((n) => candidatos.has(n.id))) break;
@@ -1177,8 +1190,10 @@ export const DIAGNOSTICO: {
   veranoNuevo?: boolean;
   /** Solo para medir: el verano del usuario (lista de abandonos, reserva de los que buscan fuera y clubes externos de más a menos atractivo; `docs/relevo/veranos-metodo.md`). */
   veranoUsuario?: boolean;
-  /** Medida: la regla de benjamín de la v5 (equipos de 18; equipos nuevos de 14 a 18; solo después, hasta 22) también en alevín. */
+  /** (Sin uso: la regla de la v5 —equipos de 18; equipos nuevos de 14 a 18; solo después, hasta 22— vale por defecto en benjamín y en alevín.) */
   v5Alevin?: boolean;
+  /** Medida: juvenil como antes de la última versión (sin pruebas según el interés ni subidas por titularidad), para comparar. */
+  juvenilAntiguo?: boolean;
   /** Los que abandonan este verano (los llena `renovarDeportistas` con `veranoUsuario`). */
   abandonosDelVerano?: Set<string>;
   /** Los equipos (letras distintas) de cada club y categoría del curso que acaba (`club|categoría`), para que el verano del usuario los mantenga. */

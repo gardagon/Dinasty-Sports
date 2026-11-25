@@ -96,6 +96,7 @@ MEDIDA.respetarReparto = verano !== 'hoy';
 DIAGNOSTICO.veranoNuevo = verano === 'nuevo';
 DIAGNOSTICO.veranoUsuario = verano.startsWith('usuario');
 DIAGNOSTICO.v5Alevin = verano === 'usuario-alevin';
+DIAGNOSTICO.juvenilAntiguo = verano === 'usuario-ja';
 if (verano.startsWith('usuario')) (DIAGNOSTICO.variantePaso23 as { maxPorEquipo: Record<string, number> }).maxPorEquipo.juvenil = 22;
 DIAGNOSTICO.alProbar = (d) => { if (antes.has(d.id)) probar.set(d.id, { sentido: d.sentido, entra: d.entra }); };
 DIAGNOSTICO.alDesplazar = (d) => { if (antes.has(d.id)) desplazados.set(d.id, d.motivo); };
@@ -169,6 +170,27 @@ for (const [, n] of fin) {
 for (const [, n] of fin) if (esJugador(n)) { const c = catDe(edadNueva(n)); if (c && relevante(c.id)) { suma(clave(c), 'empieza_final'); suma(`${clave(c)}#${['infantil', 'cadete', 'juvenil'].includes(c.id) ? sexoDe(n) : 'mixto'}`, 'empieza_final'); } }
 for (const [, n] of tras) if (esJugador(n)) { const c = catDe(edadNueva(n)); if (c && relevante(c.id)) suma(clave(c), 'empieza_sin_rehacer'); }
 
+// Juvenil: de los que se quedan sin equipo, cuántos son buenos (por encima de la mediana de nivel de su año entre todos los juveniles que quieren jugar).
+const juvenilBuenos: Record<string, { fuera: number; buenos: number; todos: number }> = {};
+{
+  const porAnio = new Map<number, { valor: number; fuera: boolean }[]>();
+  for (const [, n] of fin) {
+    if (!n.genetica || n.id.startsWith('personaje@')) continue;
+    const edad = edadNueva(n);
+    const cat = catDe(edad);
+    if (!cat || cat.id !== 'juvenil') continue;
+    if (!relevante('juvenil')) continue;
+    if (mundo === 'm' ? n.gender === 'f' : n.gender !== 'f') continue;
+    const juega = esJugador(n);
+    if (!juega && (n.deporte !== undefined || n.dejado?.includes('futbol') || interesDe(n, 'futbol', edad) <= 0)) continue;
+    (porAnio.get(cat.anio) ?? porAnio.set(cat.anio, []).get(cat.anio)!).push({ valor: valorDe(n), fuera: !juega });
+  }
+  for (const [a, xs] of porAnio) {
+    const ord = xs.map((x) => x.valor).sort((x, y) => x - y);
+    const mediana = ord[Math.floor(ord.length / 2)] ?? 0;
+    juvenilBuenos[a] = { fuera: xs.filter((x) => x.fuera).length, buenos: xs.filter((x) => x.fuera && x.valor > mediana).length, todos: xs.length };
+  }
+}
 // Los equipos antes y después.
 const porId1 = new Map(s1.npcs.map((n) => [n.id, n]));
 const equiposDespues = equiposDe2(s1.npcs, diaNuevo);
@@ -217,4 +239,4 @@ for (const [id, a] of antes) {
   const t = `${n0.letra.futbol}>${n1.letra.futbol}`;
   (letras[k] ??= {})[t] = (letras[k][t] ?? 0) + 1;
 }
-console.log(`#W ${JSON.stringify({ seed, mundo, verano, filas: Object.fromEntries(filas), antes: resumen(equiposAntes), despues: resumen(equiposDespues), nivelAntes: nivelEquipos(equiposAntes, porId0), nivelDespues: nivelEquipos(equiposDespues, porId1), cambiosEq, cierres, eq, trazaCrea, trazaVera, letras, mercado, usuario, tiposAntes: tiposDe(equiposAntes), tiposDespues: tiposDe(equiposDespues) })}`);
+console.log(`#W ${JSON.stringify({ seed, mundo, verano, filas: Object.fromEntries(filas), antes: resumen(equiposAntes), despues: resumen(equiposDespues), nivelAntes: nivelEquipos(equiposAntes, porId0), nivelDespues: nivelEquipos(equiposDespues, porId1), cambiosEq, cierres, eq, trazaCrea, trazaVera, letras, mercado, usuario, juvenilBuenos, tiposAntes: tiposDe(equiposAntes), tiposDespues: tiposDe(equiposDespues) })}`);
