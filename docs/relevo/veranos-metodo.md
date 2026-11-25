@@ -408,3 +408,60 @@ Por tipo de club (equipos totales de benjamín a juvenil; al empezar → 1 → 2
 2. **El total de equipos y de jugadores baja cada verano:** equipos 84 → 68 → 59 → 56 (−34 %); jugadores 1464 → 1330 → 1180 → 1130 (−23 %). En parte es el efecto de partir de un mundo recién creado (cada categoría pierde 9–31 % por abandono y solo entra gente en benjamín: cadete 279 → 192, juvenil 313 → 218); ese descenso se frenaría cuando cada edad llegara a su régimen estable (hacia el 5.º o 6.º verano), pero el de **benjamín es estable** (304 → 290: entran los de 8 años) y el de alevín cae (295 → 237), lo que indica que un año de benjamín no repone al siguiente.
 3. **Los clubes pequeños desaparecen:** en benjamín, de 5,8 equipos a 0 en dos veranos; en alevín, a 1,0 en tres. Lo que ganan los clubes grandes (hasta 3–4 equipos cada uno en cada categoría) es el efecto del barrido de arriba abajo: los de 8 años y los que prueban llegan antes a los clubes más atractivos, que abren hasta dos equipos más.
 4. **Niños fuera:** 9–18 por categoría y verano, de 1.er año sobre todo; en el verano 3 aparecen en infantil 7 de 1.º y 7 de 2.º y en cadete 14 y 6.
+
+## B5) Cuarta versión: los equipos se mantienen de verdad (25/11/2026)
+
+Decisiones del usuario sobre la v3, aplicadas como variante (mismos comandos):
+
+1. **Los equipos se mantienen.** Al final del verano no se vuelve a decidir cuántos equipos tiene cada club: cada uno conserva **los que tenía en cada categoría** (`DIAGNOSTICO.equiposPrevios`). La reorganización por letras reparte a los jugadores **dentro de esos equipos**: con T jugadores y k equipos, hay `min(k, ⌊T/14⌋)` equipos viables; el A se lleva a los de 2.º año y a los mejores de 1.º hasta 22 sin dejar a los siguientes por debajo de 14; el B, los mejores de 1.º que quedan; C y D mixtos. **Se elimina un equipo solo si, después del barrido, de los colegios y de la lista de abandonos, no llega a 14**; **se crea uno solo si sobran 14 o más** que no caben en los que hay (hasta 4 por club).
+2. **Benjamines nuevos** (los de 8 años y las mudanzas): **van primero a los equipos ya creados (hasta 22)**. Solo si, tras eso, quedan sin equipo, se abre un equipo más en cada club (hasta dos pasadas), hasta 4 por club y categoría, y **en benjamín los clubes grandes no pasan de 2 equipos**. Explicación de lo que he hecho con el «hasta dos más por club» de la v3: queda como último recurso, pasada a pasada, solo si hay niños sin equipo; los benjamines que no caben en dos pasadas quedan sin equipo ese verano. El mismo orden (primero los equipos que hay, después abrir) vale para los que no caben al reorganizar.
+3. **La caída de jugadores en las categorías altas se acepta** como efecto de empezar con un mundo recién creado.
+
+### Comparación hoy / v3 / v4 (semillas 51–60, media)
+
+| | Equipos antes → tras: hoy / v3 / v4 | <14 tras | Se eliminan | Se crean | Fuera 1.º | Fuera 2.º (juvenil 3.º) | Balance de jugadores | Cambian de club |
+|---|---|---|---|---|---|---|---|---|
+| benjamín | 18,8 → 15,0 / 13,7 / 14,0 | 0 / 0 / 0 | 4,4 / 8,6 / **4,9** | 0,6 / 3,5 / **0,1** | 7 / 19 / 15 | 0 / 0 / 2 | −8 / −10 / −9 % | 80 / 85 / 54 |
+| alevín | 18,2 → 15,6 / 14,2 / 14,5 | 0,5 / 0 / 0 | 2,9 / 5,3 / 3,9 | 0,3 / 1,3 / 0,2 | 2 / 3 / 9 | 0 / 0 / 3 | −9 / −7 / −10 % | 90 / 54 / 52 |
+| infantil chicos | 17,0 → 14,9 / 12,4 / 13,7 | 0,8 / 0 / 0 | 3,3 / 5,6 / 3,8 | 1,2 / 1,0 / 0,5 | 2 / 7 / 9 | 2 / 3 / 1 | −9 / −9 / −10 % | 77 / 54 / 49 |
+| cadete chicos | 17,3 → 13,6 / 12,7 / 13,2 | 0,4 / 0 / 0 | 4,5 / 5,0 / 4,3 | 0,8 / 0,4 / 0,2 | 4 / 4 / 8 | 1 / 1 / 2 | −16 / −14 / −16 % | 84 / 49 / 56 |
+| juvenil chicos | 13,9 → 14,6 / 14,6 / 14,7 | 0,4 / 0 / 0 | 1,6 / 4,1 / 1,9 | 2,3 / 4,8 / 2,7 | 8 / 6 / 8 | 23 (25) / 27 (29) / 27 (31) | −9 / −5 / −7 % | 50 / 46 / 42 |
+| infantil chicas | 1,9 → 1,5 / 1,5 / 1,7 | 0 / 0 / 0 | 0,4 / 0,4 / 0,2 | — | 4 / 2 / 1 | 0 / 0 / 0 | −28 / −16 / −13 % | 1 / 0 / 1 |
+| cadete chicas | 2,0 → 1,5 / 1,6 / 1,7 | 0,1 / 0 / 0 | 0,5 / 0,5 / 0,3 | — | 2 / 2 / 0 | 0 / 0 / 0 | −33 / −25 / −21 % | 0 / 0 / 0 |
+| juvenil chicas | 0 → 2,1 / 2,0 / 1,8 | 0 / 0 / 0 | 0 / 0 / 0 | — | 0 / 0 / 2 | 2 (2) / 4 (4) / 5 (6) | — | 0 / 0 / 0 |
+
+**Total de equipos** (chicos, benjamín a juvenil): 85,2 al empezar → **73,7 (hoy), 67,6 (v3), 70,1 (v4)**. Con v4 los equipos que se eliminan vuelven al nivel de hoy (4–5 en benjamín, 4 en infantil y cadete, 2 en juvenil) y los que se crean casi desaparecen (0,1–0,5 salvo juvenil).
+
+Equipos de colegio, antes → tras (v3 / v4): benjamín 4,9 → 4,2 / 3,9; alevín 3,9 → 3,8 / 3,6; infantil 2,1 → 2,1 / 2,1; cadete 2,3 → 1,4 / 1,4; juvenil 1,0 → 2,2 / 2,2.
+
+Direcciones de los cambios de club (chicos, por semilla; v3 / v4): colegio → pequeño 40 / 40; colegio → mediano 1 / 2; colegio → grande 4 / 2; pequeño → mediano 12 / 24; pequeño → grande 27 / 13; mediano → grande 44 / 28; mediano → pequeño 13 / 13; grande → mediano 9 / 9. Con el límite de 2 equipos del grande en benjamín, los niños se reparten más entre los medianos.
+
+Pasos (chicos, benjamín a cadete, por semilla; v3 / v4): buscan 129 / 129; lo consiguen 110 / 91; vuelven 19 / 38; recuperados de la lista de abandonos 17 / 17 (de 104); desplazados 72 / 119; mercado colocado 116 / 169; mercado sin sitio 15 / 47; sobran al reorganizar y encuentran otro club 209 / 80; sin sitio 21 / 0.
+
+**Lectura.** Mantener los equipos de verdad hace lo que quería el usuario: los equipos que se eliminan vuelven al nivel de hoy (en lugar de 7–9 en benjamín) y casi no se crea ninguno. A cambio, **quedan fuera más niños de 1.er año que con la v3** (benjamín 15, alevín 9, infantil 9, cadete 8: la v3 abría equipos y los colocaba): son los que no caben en los equipos que ya existen cuando los clubes no pueden abrir uno más (grandes en benjamín, o menos de 14 sobrantes).
+
+## B6) Tres veranos seguidos con la v4 (semillas 51–55, chicos y benjamín y alevín mixtos)
+
+Media de 5 semillas; al empezar → verano 1 → 2 → 3 (entre paréntesis, v3).
+
+| | Equipos | Jugadores | Fuera 1.º / 2.º tras el verano 1 · 2 · 3 | <14 |
+|---|---|---|---|---|
+| benjamín | 18,6 → 14,0 → 13,4 → 13,6 (v3: 14,4 → 13,8 → 14,2) | 304 → 277 → 270 → 278 (282 → 285 → 290) | 13/2 · 23/0 · 20/0 | 0 |
+| alevín | 17,8 → 14,8 → 13,4 → 12,2 (14,0 → 11,6 → 11,8) | 295 → 270 → 247 → 230 (272 → 230 → 237) | 5/2 · 5/6 · 13/3 | 0 |
+| infantil | 16,6 → 13,8 → 12,4 → 11,0 (12,6 → 11,6 → 9,4) | 272 → 250 → 221 → 198 (253 → 226 → 193) | 9/1 · 9/3 · 8/4 | 0 |
+| cadete | 16,8 → 12,4 → 12,2 → 11,8 (12,2 → 10,6 → 9,6) | 279 → 228 → 221 → 211 (236 → 211 → 192) | 11/3 · 3/1 · 7/2 | 0 |
+| juvenil | 14,4 → 14,0 → 12,4 → 9,8 (14,8 → 11,4 → 10,8) | 313 → 266 → 236 → 191 (284 → 232 → 218) | 10/25/33 · 10/7/7 · 19/12/12 | 0 |
+| **Total** | **84,2 → 69,0 → 63,8 → 58,4** (68,0 → 59,0 → 55,8) | **1464 → 1290 → 1193 → 1108** (1326 → 1183 → 1130) | | |
+
+Equipos por tipo de club (al empezar → 1 → 2 → 3; v4):
+- benjamín: colegio 4,8 → 3,6 → 3,4 → 3,8; **pequeño 5,8 → 2,4 → 2,0 → 2,0**; mediano 6,0 → 6,0 → 6,0 → 6,0; grande 2,0 → 2,0 → 2,0 → 1,8;
+- alevín: colegio 3,6 → 3,6 → 3,4 → 3,2; pequeño 6,2 → 4,0 → 2,8 → 1,8; mediano 6,0 → 5,2 → 5,2 → 5,2; grande 2,0 → 2,0 → 2,0 → 2,0;
+- infantil: colegio 1,6 → 2,2 → 1,8 → 1,6; pequeño 6,0 → 3,4 → 3,2 → 2,4; mediano 7,0 → 6,2 → 5,4 → 5,0; grande 2,0 → 2,0 → 2,0 → 2,0;
+- cadete: colegio 1,8 → 0,6 → 1,0 → 1,4; pequeño 6,2 → 3,8 → 3,4 → 2,8; mediano 6,0 → 5,2 → 5,0 → 4,8; grande 2,8 → 2,8 → 2,8 → 2,8;
+- juvenil: colegio 1,4 → 1,8 → 1,0 → 0,6; pequeño 5,8 → 5,2 → 4,6 → 3,6; mediano 4,6 → 4,8 → 4,6 → 3,8; grande 2,6 → 2,2 → 2,2 → 1,8.
+Equipos de colegio (total benjamín a juvenil): 13,2 → 11,8 → 10,6 → 10,6.
+
+**¿Mantienen los clubes pequeños al menos un equipo?** **Sí en parte.** Con v4, en benjamín los 5 clubes pequeños tienen **2 equipos entre todos** (v3: 0 al tercer verano): entre 1 y 3 por semilla (semillas 51–55 en el verano 3: 2, 2, 1, 3, 2), es decir, **de media menos de la mitad de ellos tiene uno**. En alevín, infantil, cadete y juvenil los pequeños bajan poco a poco (alevín 6,2 → 1,8; infantil 6,0 → 2,4; cadete 6,2 → 2,8; juvenil 5,8 → 3,6) pero no desaparecen. Los medianos (3 clubes) mantienen casi todos sus equipos (benjamín 6,0). Los grandes quedan en 2 en benjamín (el tope), 2 en alevín e infantil, 2,8 en cadete.
+**¿Siguen saliendo 0 por debajo de 14?** Sí: 0 en los tres veranos y en las cinco semillas.
+**Niños fuera:** más que con v3 en benjamín (13/2 → 23/0 → 20/0) y en alevín del tercer verano (13/3) y juvenil (19/12/12 en el verano 3); infantil y cadete, 3–11 de 1.º por verano.
+**Estabilidad:** equipos 84 → 58 (−31 %), jugadores 1464 → 1108 (−24 %), igual que con v3 (−34 %, −23 %): sigue siendo el rodaje de un mundo recién creado (abandono en las categorías altas; solo entra gente en benjamín); las categorías de abajo (benjamín 304 → 278) se mantienen.
