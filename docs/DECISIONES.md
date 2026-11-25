@@ -36,6 +36,11 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 **Los equipos se mantienen de un curso al siguiente** (usuario, 25/11): no se deshacen ni se vuelven a crear en el verano. Cada club conserva sus equipos y sus letras. Las plantillas se ajustan con los que salen y los que entran, y solo al final se elimina el equipo que no llega a 14 o se crea uno si sobran 14 o más.
 
+**Tras la v3 (3 veranos: 0 equipos por debajo de 14, pero los clubes pequeños se quedaban sin equipos de benjamín):**
+1. Los equipos se mantienen de verdad: al final del verano no se vuelve a decidir cuántos tiene cada club. Solo se elimina el que no llega a 14 después de todo, y solo se crea uno si de verdad hace falta.
+2. Los benjamines nuevos van primero a los equipos ya creados. **En benjamín, los clubes grandes tienen como mucho 2 equipos** (uno de 2.º y otro de 1.º), para que los niños se repartan más.
+3. Se acepta que caigan los jugadores en las categorías altas: es el efecto de empezar con un mundo recién creado (más abandono que entradas, salvo en benjamín).
+
 **Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
 
 **Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
