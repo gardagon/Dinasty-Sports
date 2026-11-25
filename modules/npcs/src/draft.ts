@@ -776,8 +776,9 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           const cola = pendientesDeAcople.map((n) => ({ n: m.lista.get(n.id), id: n.id })).filter((x) => !!x.n && x.n.deporte === undefined && (candidatos.get(x.id)?.intentos ?? 9) < 2);
           for (const { n, id } of cola) {
             if (!n) continue;
+            const c = candidatos.get(id);
+            if (!c) continue;
             const res = intentarEntrar(m, n, e, pob, {});
-            const c = candidatos.get(id)!;
             if (!res.entra) { c.intentos++; continue; }
             candidatos.delete(id); colocados++; st.sobranEnOtroClub++;
             if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, { id: res.desplazado.id, sentido: 'mercado', intentos: 0, desplazado: true }); pendientesDeAcople.push(res.desplazado); }
