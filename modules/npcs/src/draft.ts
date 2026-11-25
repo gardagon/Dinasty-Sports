@@ -622,7 +622,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       const maxDe = (n: Npc | undefined): number | undefined => { if (catId !== 'juvenil' || !n || DIAGNOSTICO.juvenilAntiguo) return undefined; const i = Math.round(interesDe(n, pob.deporte, edadDe(n))); return i >= 3 ? 5 : i === 2 ? 3 : 2; };
       const nuevoCand = (n: Npc | undefined, id: string, desplazado: boolean): Cand => ({ id, sentido: 'mercado', intentos: 0, ...(desplazado ? { desplazado: true } : {}), ...(maxDe(n) !== undefined ? { max: maxDe(n) } : {}) });
       // v5: en benjamín (y, como dato aparte, en alevín) los equipos intentan formarse de 18: se llenan los que hay hasta 18; con lo que sobra se forman equipos nuevos de 14 a 18 (los clubes con menos equipos primero); solo los que aun así se quedan sin equipo entran hasta 22.
-      const v5 = catId === 'benjamin' || (catId === 'alevin' && !!DIAGNOSTICO.v5Alevin);
+      const v5 = catId === 'benjamin' || catId === 'alevin';
       const creados = new Map<string, number>();
       const kCap = (e: EquipoGuardado, extra: number): number => (kPrev(e) + extra <= 0 ? 0 : Math.min(kTope(e), Math.max(kPrev(e), extra > 0 ? kPrev(e) + extra : 0, 1)));
       const st = { abandonos: 0, buscan: 0, buscanSube: 0, buscanBaja: 0, consiguen: 0, vuelven: 0, recuperadosDeLaLista: 0, clubesSinEquipo: 0, equiposDeColegioDeshechos: 0, deColegioAMediaTabla: 0, desplazados: 0, mercadoColocados: 0, mercadoSinSitio: 0, colegiosAntes: 0, colegiosDespues: 0, sobranEnSuClub: 0, sobranEnOtroClub: 0, sobranSinSitio: 0, vueltasDeAcople: 0, equiposNuevosDeMercado: 0, pruebasJuvenil: 0, encuentranJuvenil: 0, encuentranTrasFallar: 0, mueve: {} as Record<string, number> };
@@ -1190,7 +1190,7 @@ export const DIAGNOSTICO: {
   veranoNuevo?: boolean;
   /** Solo para medir: el verano del usuario (lista de abandonos, reserva de los que buscan fuera y clubes externos de más a menos atractivo; `docs/relevo/veranos-metodo.md`). */
   veranoUsuario?: boolean;
-  /** Medida: la regla de benjamín de la v5 (equipos de 18; equipos nuevos de 14 a 18; solo después, hasta 22) también en alevín. */
+  /** (Sin uso: la regla de la v5 —equipos de 18; equipos nuevos de 14 a 18; solo después, hasta 22— vale por defecto en benjamín y en alevín.) */
   v5Alevin?: boolean;
   /** Medida: juvenil como antes de la última versión (sin pruebas según el interés ni subidas por titularidad), para comparar. */
   juvenilAntiguo?: boolean;
