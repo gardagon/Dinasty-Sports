@@ -658,7 +658,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           st.clubesSinEquipo++;
           for (const n of presentes(e)) { liberar([n.id]); candidatos.set(n.id, { id: n.id, sentido: 'mercado', intentos: 0 }); DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: e.club, motivo: 'cierre' }); }
         }
-        const k = Math.min(4, Math.floor(presentes(e).length / 14) + 1);
+        const k = Math.min(4, Math.floor(presentes(e).length / 14) + 2);
         e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
         if (k <= 1) delete e.equiposPorCategoria[catId];
         const cola = [...candidatos.values()].filter((c) => {
@@ -771,7 +771,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         for (const n of pendientesDeAcople) { liberar([n.id]); DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: antesDeLiberar.get(n.id) ?? '', motivo: 'sobra' }); candidatos.set(n.id, { id: n.id, sentido: 'mercado', intentos: 0, desplazado: true }); }
         let colocados = 0;
         for (const e of externos) {
-          const k = Math.min(4, Math.floor(presentes(e).length / 14) + 1);
+          const k = Math.min(4, Math.floor(presentes(e).length / 14) + 2);
           e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
           const cola = pendientesDeAcople.map((n) => ({ n: m.lista.get(n.id), id: n.id })).filter((x) => !!x.n && x.n.deporte === undefined && (candidatos.get(x.id)?.intentos ?? 9) < 2);
           for (const { n, id } of cola) {
