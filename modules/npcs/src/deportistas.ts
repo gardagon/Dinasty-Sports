@@ -163,6 +163,21 @@ export function aficionadoPorLosPadres(rasgos: RasgosDe, padres: Genetica['padre
 export const interesPor = (rasgos: RasgosDe | undefined, deporte: string): number => (rasgos ? Math.max(rasgos.intereses[deporte] ?? 0, rasgos.intereses.deporte ?? 0) : 0);
 
 /**
+ * Solo para medir (apagado por defecto: la huella no cambia). `chicas`: fracción de las chicas que conservan su interés por un deporte (sesgo por sexo: con ~50 % de chicas, 0,111 deja ~10 % de chicas entre los
+ * que quieren jugar); `desdeEdad` y `solo`: desde esa edad de juego solo se ven los de ese sexo (para repartir chicos y chicas por separado en dos mundos de la misma semilla).
+ */
+export const SESGO_DE_SEXO: { chicas?: number; desdeEdad?: number; solo?: 'm' | 'f'; deportes?: string[]; /** Desde `desdeEdad` los colegios no tienen equipo (el femenino solo en clubes externos). */ sinColegios?: boolean } = {};
+
+/** `interesPor` de una persona con el sesgo por sexo de medida (si está apagado, es el de siempre). */
+export const interesDe = (n: { id: string; gender?: string; rasgos?: RasgosDe; nacimiento?: number }, deporte: string, edad?: number): number => {
+  const base = interesPor(n.rasgos, deporte);
+  if (base <= 0 || !SESGO_DE_SEXO.deportes?.includes(deporte)) return base;
+  if (n.gender === 'f' && SESGO_DE_SEXO.chicas !== undefined && rngEstable('sesgo-sexo', n.id, deporte).next() >= SESGO_DE_SEXO.chicas) return 0;
+  if (SESGO_DE_SEXO.solo && SESGO_DE_SEXO.desdeEdad !== undefined && edad !== undefined && edad >= SESGO_DE_SEXO.desdeEdad && n.gender !== SESGO_DE_SEXO.solo) return 0;
+  return base;
+};
+
+/**
  * Lo que sube el interés (0 a 3) por un deporte de un PNJ que ha jugado `sesiones` esta semana: la regla del personaje (`SUBIDA_DE_INTERES_POR_HORA` sobre su escala de 0 a 100, donde un interés de nivel `n` vale
  * 20 + 8·n, con rendimientos decrecientes) a `horasPorSesion` horas cada una y por `escala` (`RutinaDeDeporte.interesAlJugar`). Devuelve los rasgos con el interés nuevo (los mismos si no cambia nada).
  */

@@ -3,7 +3,7 @@
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
 import { asistenciaConFaltas, relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, type PrevisionDelClubView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, asignarDorsales, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
-import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
+import { interesDe, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
 import { type Rendimientos } from './semana';
@@ -92,7 +92,7 @@ export function aspirantesDeEdad(npcs: readonly Npc[], pob: PoblacionGuardada, e
   for (const n of npcs) {
     if (!n.genetica || n.deporte !== undefined || n.dejado?.includes(pob.deporte) || n.apartado?.includes(pob.deporte) || edadNpc(n, dia) !== edad) continue;
     const potencial = potencialEn(n.id, n.genetica, pob);
-    lista.push({ npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor: valorRealDe(n, pob, val, dia) ?? potencial });
+    lista.push({ npc: n, colegio: colegioDeNino(n), interes: interesDe(n, pob.deporte, edad), potencial, valor: valorRealDe(n, pob, val, dia) ?? potencial });
   }
   return lista;
 }

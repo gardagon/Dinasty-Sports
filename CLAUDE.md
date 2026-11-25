@@ -55,7 +55,7 @@ npm run sim:futbol -- 365 3  # cuánto se aprende en un curso con el club: depor
 npm run sim:futbol-habilidades -- 365 3  # cuánto sube cada habilidad del fútbol en un curso con el bot de campo (para calibrar el catálogo de entrenamientos)
 npm run entrenamientos:tabla  # la tabla de los 22 entrenamientos del fútbol con las cifras finales (docs/ANEXO_DEPORTE.md)
 npm run benjamin -- 31,33  # la regla de benjamín (todos nuevos en el club) con la ciudad grande: semanas hasta el primer partido y primera convocatoria
-npm run equipos-minimo -- grande con 1-10  # cuántos equipos de fútbol quedan por debajo del mínimo de la liga (14) tras el reparto, por categoría y semilla (docs/relevo/equipos-minimo.md; `actual|grande`, `con|sin` hogares)
+npm run equipos-minimo -- grande con 1-10  # (con `--nuevo|--equilibrar` el reparto nuevo entero; con `--chicas=0.11 --solo=m|f` chicos y chicas por separado desde infantil, `docs/relevo/reparto-nuevo-sexos.md`) cuántos equipos de fútbol quedan por debajo del mínimo de la liga (14) tras el reparto, por categoría y semilla (docs/relevo/equipos-minimo.md; `actual|grande`, `con|sin` hogares)
 npm run reparto:paso -- 33 grande benjamin  # el reparto de una categoría paso a paso y en texto (clubes, rondas, por qué cada club tiene N equipos, quién queda fuera, el verano siguiente; docs/relevo/reparto-paso-a-paso.md)
 npm run retratos:cuadricula  # la cuadrícula de capturas del dibujo de las personas (docs/retratos): catálogos, rasgos, familia, peinados, barbas y extremos, en claro y oscuro
 npm run retratos:muestras    # las muestras de las cuatro variantes de estilo que vio el usuario (provisional)

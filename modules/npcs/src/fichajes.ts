@@ -3,7 +3,7 @@
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
 import { rngEstable, ESTADO_INICIAL, eficienciaDeEstado, type Practica, type RasgosDe, cuposPorGrupo, grupoDePuesto, valorDeLaPrueba, NIVEL_PRACTICA, aptitudDe, parecidoDePuestos } from '@ds/contracts';
-import { interesPor, potencialEn } from './deportistas';
+import { SESGO_DE_SEXO, interesDe, interesPor, potencialEn } from './deportistas';
 import { puestoDondeMasVale, type CondicionesDePrueba } from './puestos';
 
 /**
@@ -46,10 +46,11 @@ export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, 
   if (!n.genetica || n.nacimiento === undefined) return { entra: false };
   const edad = edadNpc(n, m.dia);
   if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
+  if (e.colegio !== undefined && SESGO_DE_SEXO.sinColegios && SESGO_DE_SEXO.desdeEdad !== undefined && edad >= SESGO_DE_SEXO.desdeEdad && SESGO_DE_SEXO.deportes?.includes(pob.deporte)) return { entra: false };
   const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas, plazasDeMas);
   if (!plantel) return { entra: false };
   const potencial = potencialEn(n.id, n.genetica, pob);
-  const aspirante = { npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor: valorEn(n, pob, m) };
+  const aspirante = { npc: n, colegio: colegioDeNino(n), interes: interesDe(n, pob.deporte, edad), potencial, valor: valorEn(n, pob, m) };
   // Con puestos: el club le ofrece el puesto en que entraría (con hueco en él o valiendo más que el peor de ese puesto) y el niño lo acepta o no según su carácter.
   const valores = valoresPorPuestoDe(n, pob, m.val, m.dia);
   if (pob.puestos && valores) {
@@ -128,7 +129,7 @@ export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly {
       m.lista.set(id, apartadoPorBusquedas(n, origen));
       continue;
     }
-    const deportes = [origen, ...m.pobs.filter((p) => p.deporte !== origen && interesPor(n!.rasgos, p.deporte) > 0).sort((a, b) => interesPor(n!.rasgos, b.deporte) - interesPor(n!.rasgos, a.deporte)).map((p) => p.deporte)];
+    const deportes = [origen, ...m.pobs.filter((p) => p.deporte !== origen && interesDe(n!, p.deporte, edadNpc(n!, m.dia)) > 0).sort((a, b) => interesDe(n!, b.deporte, edadNpc(n!, m.dia)) - interesDe(n!, a.deporte, edadNpc(n!, m.dia))).map((p) => p.deporte)];
     const intentados: string[] = [];
     let colocado = false;
     for (const deporte of deportes) {

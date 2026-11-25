@@ -67,6 +67,8 @@ Si un club no puede montar su **A** (el A tiene menos de 14), se juntan **A y B 
 - si **no llegan a 14, ese equipo desaparece** y todos sus niños pasan a la bolsa y buscan sitio (8c).
 Los equipos C y D del club se corren de letra (C pasa a B, D a C…): nunca hay una letra sin la anterior. **Nota para los veranos:** el curso siguiente ese club podría volver a montar su equipo con alumnos del colegio que decidan volver, si los hay (por decidir con los veranos). En juvenil la regla ya la cumple J1 (3 equipos, 2, uno mixto o ninguno): comprobado, 0 de 260 clubes con B o C sin A.
 
+**Extensión (24/11, medida con chicos y chicas por separado):** un **B, C o D que no llega a 14 con el A completo tampoco existe**: desaparece y sus niños buscan sitio (8c), igual que el A+B de menos de 14. Con la población completa no ocurría (0 casos en 40 semillas); con la mitad de niños (sin las ~45 % de chicas de más) aparece en benjamín y alevín (un B de 1, de 7…).
+
 ### 8b. Equilibrar letras
 
 | Letras del club | Qué se hace |
@@ -97,3 +99,13 @@ Como los descartes de juvenil: por valor (los mejores primero), cada niño busca
 4. La liga ya descarta los equipos de menos de 14 (`equiposDeUnaCategoria`); `plazaEnElEquipo` no mira el tamaño del equipo: con este reparto no hace falta, pero conviene comprobarlo con la plaza del personaje.
 5. Un máximo de 22 por equipo (hoy 18 + hasta 2 «plazas de más»): hay que decidir cómo convive con `PLAZAS_DE_MAS`.
 6. Ciudad pequeña / de prueba: **no se adapta** (decisión del usuario).
+
+
+## Sexos (24/11/2026, medida; **sin aplicar**: el usuario decide)
+
+Orden aprobado: **primero las chicas, después el reparto de ambos sexos y luego los veranos.** Todo como bandera de medida (apagada: la huella no cambia). Resultados con 10 semillas (51–60): `reparto-nuevo-sexos.md`.
+
+1. **Población real de chicas (~10 %).** Dato: licencias RFEF 2024/25, 10,1 % de las licencias de fútbol son de mujeres. Cómo se mide: un **sesgo del interés por el fútbol según el sexo** (`SESGO_DE_SEXO.chicas`, `modules/npcs/src/deportistas.ts`; `interesDe`): solo el 11 % de las chicas conserva su interés por el fútbol (con ~50 % de chicas en el mundo, `0,11/(0,11+1)` deja el 10 % entre los que quieren jugar). Resultado: 9,1–12,0 % de chicas según la categoría (media de 10 semillas: 9,8 · 10,0 · 10,9 · 12,0 · 9,1 de benjamín a juvenil). Para dejarlo como dato del país: un campo por país y deporte (por ejemplo `PaisDef.deportes.futbol.chicas = 0,10`) del que sale esa fracción. **Con los chicos igual, el total de los que quieren jugar cae de ~560 a ~315 por categoría** (el 45 % de la población de jugadores eran chicas): cada categoría queda en ~290 chicos y ~30–40 chicas.
+2. **Benjamín y alevín mixtos; desde infantil separados.** Desde infantil (12 años, la edad mínima de infantil) el reparto se hace **por separado**: los chicos con el reparto de arriba y las chicas con el mismo método, cada uno con su propio equipo por club. Cómo se mide: dos mundos de la misma semilla, uno con solo los chicos de infantil, cadete y juvenil (`--solo=m`) y otro con solo las chicas (`--solo=f`), con todos los clubes disponibles para cada sexo (el equipo femenino de un club es independiente del masculino).
+2b. **Regla base (el usuario, 24/11): desde infantil los equipos femeninos solo existen en los clubes externos, no en los colegios.** Más chicas por club y se puede formar una liga femenina pequeña. Las alumnas de un colegio que quieran jugar van a un club externo (con el atractivo y el sorteo de siempre; el colegio no las «retiene»: no hay `quedan` desde infantil en el mundo femenino). Medida: `--sin-colegios` (`SESGO_DE_SEXO.sinColegios`).
+3. **Chica sin equipo femenino:** hasta alevín juega con chicos (mixto). Desde infantil, solo si no hay equipo femenino a su alcance (decisión 3 del usuario): se mide con los huecos de los equipos de chicos (22 menos su tamaño) frente a las chicas sin equipo, sin aplicarlo.
