@@ -314,3 +314,40 @@ Lo que sale mal, y por qué (no es un fallo del diseño del usuario sino de cóm
 4. **Los equipos de colegio no bajan casi** (benjamín 4,9 → 4,1; alevín 3,9 → 3,8; infantil 2,1 → 2,1; cadete 2,3 → 1,4): pierden niños hacia los clubes de fuera (50 por semilla de colegio a pequeño), pero el que más equipos deshace son los clubes pequeños y medianos (benjamín pequeño 5,9 → 4,9, mediano 6,0 → 2,8). Con la regla de la lista de abandonos solo se recuperan 0, 2, 6 y 8 niños (de 14, 28, 26 y 36 abandonos).
 5. **Chicas:** infantil 0,8 equipos y 14 jugadoras, cadete 1,0 y 21: casi todas están en 1 equipo; con la reserva, buscan 10 de 33 y ninguna lo consigue (no hay club mejor con equipo femenino). Quedan 12 de 1.er año sin equipo en infantil (hoy 4).
 6. **Juvenil:** con sus letras sale con 12,8 equipos (hoy 14,6) y 46 de 2.º año y 49 de 3.º fuera (hoy 23 y 25): los equipos por año de juvenil necesitan 14 de un año por club y el barrido no los concentra.
+
+## B2) El verano del usuario, segunda versión (25/11/2026)
+
+Decisiones del usuario sobre los cinco puntos de la primera medida, aplicadas como variante (`DIAGNOSTICO.veranoUsuario`, mismos comandos):
+
+1. **Nadie se queda fuera por no caber al reorganizar:** quien no cabe en un equipo de 14 a 22 busca otro equipo, en su club si hay sitio en otra letra y, si no, en otros clubes con el barrido de siempre (tres vueltas como máximo; dos pruebas por niño).
+2. **Los equipos se montan así** (la reorganización final de cada club): el A son los de 2.º año **más los mejores de 1.º hasta 22**, sin dejar al B por debajo de 14; el B, los mejores de 1.º que quedan; el C (y el D) mixtos con lo que pasa de 22. Con 30 de 1.º y 10 de 2.º: A = 10 + 12 = 22 y B = 18. No hay tope por año en el barrido. (El fallo de la primera versión: el A solo llevaba a los 11 titulares de 1.º, así que el B se pasaba de 22 y lo que sobraba no llegaba a 14 para un C.)
+3. **Los benjamines nuevos** (los de 8 años y las mudanzas) entran a buscar equipo y cada club puede abrir **un equipo más** que los que tiene (`min(4, ⌊n/14⌋ + 1)`) mientras dura el barrido.
+4. **Dos pruebas por niño desplazado** (antes, sin límite).
+5. **Colegios:** quien no tiene ambición no busca fuera del colegio aunque sea bueno (salvo que se quede sin equipo); los demás siguen la probabilidad de hoy.
+
+### Comparación: hoy / primera versión (v1) / segunda (v2) — media de 10 semillas
+
+| | Equipos tras | <14 tras | Se deshacen | Fuera 1.º | Fuera 2.º (3.º en juvenil: 25 / 49 / 33) | Balance de jugadores | Cambian de club | Suben / bajan letra |
+|---|---|---|---|---|---|---|---|---|
+| benjamín | 15,0 / 12,8 / 13,5 | 0 / 0 / 0 | 4,4 / 8,0 / 7,0 | 7 / 49 / **36** | 0 / 6 / 1 | −8 / −22 / **−16** % | 80 / 54 / 56 | 80 / 85 / 82 · 0 / 0 / 0 |
+| alevín | 15,6 / 12,9 / 14,5 | 0,5 / 0 / 0 | 2,9 / 5,8 / 4,9 | 2 / 20 / **5** | 0 / 8 / 0 | −9 / −16 / **−8** % | 90 / 63 / 57 | 65 / 68 / 78 · 38 / 19 / 38 |
+| infantil chicos | 14,9 / 11,8 / 12,7 | 0,8 / 0 / 0 | 3,3 / 6,0 / 5,4 | 2 / 20 / **6** | 2 / 7 / 2 | −9 / −16 / **−8** % | 77 / 61 / 50 | 50 / 53 / 66 · 46 / 24 / 36 |
+| cadete chicos | 13,6 / 11,3 / 12,5 | 0,4 / 0 / 0 | 4,5 / 6,4 / 5,0 | 4 / 24 / **10** | 1 / 6 / 2 | −16 / −23 / **−16** % | 84 / 60 / 48 | 58 / 60 / 70 · 35 / 21 / 29 |
+| juvenil chicos | 14,6 / 12,8 / 13,9 | 0,4 / 0 / 0 | 1,6 / 3,4 / 4,0 | 8 / 12 / 10 | 23 / 46 / 31 | −9 / −21 / **−10** % | 50 / 39 / 44 | 36 / 42 / 39 · 26 / 17 / 32 |
+| infantil chicas | 1,5 / 0,8 / 1,0 | 0 / 0 / 0 | 0,4 / 1,1 / 0,9 | 4 / 12 / 7 | 0 / 3 / 2 | −28 / −59 / −44 % | 1 / 0 / 1 | 9 / 8 / 9 · 1 / 0 / 0 |
+| cadete chicas | 1,5 / 1,0 / 1,5 | 0,1 / 0 / 0 | 0,5 / 1,0 / 0,5 | 2 / 8 / 2 | 0 / 1 / 0 | −33 / −43 / −26 % | 0 / 1 / 1 | 9 / 10 / 10 · 6 / 0 / 5 |
+| juvenil chicas | 2,1 / 1,7 / 2,0 | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 6 / 6 | 2 / 5 / 2 | — | 0 / 0 / 0 | 5 / 4 / 0 · 0 / 0 / 9 |
+
+Pasos del verano (chicos, suma de benjamín a cadete por semilla; v1 / v2): buscan fuera 132 / 129; lo consiguen 82 / 100; **vuelven 50 / 29**; recuperados de la lista de abandonos 17 / 17 (de 104 abandonos); equipos de colegio que se deshacen 4 / 4; de colegio a clubes de media tabla 40 / 40; desplazados en el barrido 260 / **61**; mercado colocado 408 / 221; mercado sin sitio 43 / 42; **los que sobran al reorganizar y encuentran otro club (v2): 119; sin sitio: 17**; en su club en otra letra: 0.
+
+Dirección de los cambios de club (chicos, por semilla; v1 / v2): colegio → pequeño 40 / 40, colegio → mediano 3 / 2, colegio → grande 2 / 2, pequeño → mediano 19 / 22, pequeño → grande 12 / 18, mediano → grande 26 / 34, mediano → pequeño 12 / 13, grande → mediano 9 / 9.
+
+Equipos de colegio, antes → tras (v1 / v2): benjamín 4,9 → 4,1 / 4,2; alevín 3,9 → 3,8 / 3,8; infantil 2,1 → 2,1 / 2,1; cadete 2,3 → 1,4 / 1,4; juvenil 1,0 → 2,2 / 2,2.
+
+### Lectura de la segunda versión
+
+- **Mejora mucho:** nadie queda fuera por no caber (los que sobran, 17 por semilla, son los que no encuentran sitio en dos pruebas); los jugadores caen lo mismo que hoy en alevín e infantil (−8 %), −16 % en cadete y benjamín; los desplazados bajan de 260 a 61.
+- **Sigue peor que hoy en benjamín** (36 niños de 1.er año fuera): son los del mercado (8 años y mudanzas), 42 por semilla sin sitio. Los clubes abren un equipo más (`k + 1`) pero los equipos de partida ya son 14–22 y el mercado, con unos 100 niños más, no cabe: hoy los clubes admiten 2 plazas de más y la bolsa abre equipos (C, D) en el club que toca sin límite. Si se quiere, que cada club pueda abrir hasta dos equipos más durante el barrido.
+- **Los colegios casi no pierden equipos** (benjamín −0,7, cadete −0,9) y en juvenil ganan (1,0 → 2,2): el diseño mueve a los niños hacia arriba en la tabla, pero los equipos de colegio se mantienen porque sus alumnos sin ambición no se van. Los clubes que pierden equipos son los pequeños y medianos.
+- **Chicas:** casi igual que antes (infantil 1,0 equipos, cadete 1,5; juvenil 2,0): el tope es el número de chicas, no el método. En juvenil chicas aparecen 9 bajadas de letra (el equipo B de chicas aparece y se reparte con el A).
+- **Juvenil chicos** (aparte): 13,9 equipos y 31 de 2.º y 33 de 3.º fuera (hoy 23 y 25; v1 46 y 49): sigue por encima de hoy porque un equipo por año necesita 14 de cada año en el club.
