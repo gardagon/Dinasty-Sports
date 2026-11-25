@@ -3,7 +3,7 @@
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
 import { avisarDelProgreso, type CategoriaDef, rngEstable, cuposPorGrupo, grupoDePuesto, ATRACTIVO_DE_TAMANO, type Rng, aptitudDe, type MotivoDeEquipoSinNinos } from '@ds/contracts';
-import { LETRAS_FIJADAS, SESGO_DE_SEXO, interesDe, interesPor } from './deportistas';
+import { LETRAS_FIJADAS, MEDIDA, REPARTO_DE_INICIO, SESGO_DE_SEXO, interesDe, interesPor } from './deportistas';
 import { type MiembroDeClub } from './equipos';
 import { puestoDondeMasVale } from './puestos';
 import { type Rendimientos } from './semana';
@@ -93,7 +93,7 @@ export function draftDeEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba: b
 export function sinSobrantes(m: MercadoDeFichajes): void {
   if (DIAGNOSTICO.alAcomodar) m.alAcomodar = DIAGNOSTICO.alAcomodar;
   trazaPorCategorias(m, 'antes de acomodar a los que no caben en ningún equipo (sinSobrantes)');
-  for (let ronda = 0; ronda < 3; ronda++) {
+  for (let ronda = 0; ronda < (MEDIDA.respetarReparto ? 0 : 3); ronda++) {
     const fuera = m.pobs.flatMap((pob) => acomodarSobrantes(m, pob, ronda === 2));
     if (fuera.length) colocarDesplazados(m, fuera);
     for (const pob of m.pobs) {
@@ -409,7 +409,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
     for (const p of pendientes) liberar([p.id]);
     tr('fin J3', undefined, { abandonan, abandonanPorAnio: [1, 2, 3].map((k) => pendientes.filter((p) => { const n = m.lista.get(p.id); return n ? anioDe(n) === k : false; }).length), equipos: lugares.map((e) => { const q = equipos.get(e.club); return { club: e.club, A: q?.A.size ?? 0, B: q?.B?.size ?? 0, C: q?.C?.size ?? 0 }; }) });
     // Los equipos de juvenil quedan como los dejó el reparto y los clubes, con su plantilla de siempre (solo medida).
-    for (const e of lugares) { const q = equipos.get(e.club); const ls = q ? ([['A', q.A], ['B', q.B], ['C', q.C]] as const).filter(([, x]) => x && x.size > 0) : []; for (const [l, x] of ls) for (const id of x!) LETRAS_FIJADAS.set(id, l); ponerK(e, Math.max(1, ls.length)); }
+    for (const e of lugares) { const q = equipos.get(e.club); const ls = q ? ([['A', q.A], ['B', q.B], ['C', q.C]] as const).filter(([, x]) => x && x.size > 0) : []; for (const [l, x] of ls) for (const id of x!) { LETRAS_FIJADAS.set(id, l); REPARTO_DE_INICIO.set(id, `${e.club}|${l}`); } ponerK(e, Math.max(1, ls.length)); }
     for (const [e, pl] of plantillasJ) e.plantillaPorCategoria = pl;
     return;
   }
@@ -604,7 +604,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       }
       tr('fin equilibrio', undefined, { cambian, bajan, revertidos, ...casos, ...mejores, equipos: orden.map((e) => { const t = equipos.get(e.club)!; return { club: e.club, A: t.A.size, B: t.B.size, C: t.C?.size ?? 0, D: t.D?.size ?? 0 }; }) });
       // Los equipos y sus letras se guardan (solo en la medida): `fijarEquipos` los respeta.
-      for (const e of orden) { const t = equipos.get(e.club)!; const ls = (['A', 'B', 'C', 'D'] as const).filter((l) => t[l] && t[l]!.size > 0); for (const l of ls) for (const id of t[l]!) LETRAS_FIJADAS.set(id, l); ponerK(e, Math.max(1, ls.length)); }
+      for (const e of orden) { const t = equipos.get(e.club)!; const ls = (['A', 'B', 'C', 'D'] as const).filter((l) => t[l] && t[l]!.size > 0); for (const l of ls) for (const id of t[l]!) { LETRAS_FIJADAS.set(id, l); REPARTO_DE_INICIO.set(id, `${e.club}|${l}`); } ponerK(e, Math.max(1, ls.length)); }
     };
     if (v23.subirTitulares[catId]) {
       for (const e of orden) {
@@ -1238,6 +1238,7 @@ export function ajustarPlazasDeMas(m: MercadoDeFichajes, pob: PoblacionGuardada)
  */
 export function plazasDeMas(m: MercadoDeFichajes): number {
   let entran = 0;
+  if (MEDIDA.respetarReparto) return 0;
   for (const pob of m.pobs) {
     if (!conDraft(pob, m.val)) continue;
     const sinApartar = (n: Npc): Npc => (n.apartado?.includes(pob.deporte) ? { ...n, apartado: n.apartado.filter((d) => d !== pob.deporte) } : n);

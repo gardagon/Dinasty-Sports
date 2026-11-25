@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 type Fila = Record<string, number>;
 type Resumen = Record<string, { equipos: number; bajo: number; porLetra: Record<string, number>; min: number; max: number; jugadores: number }>;
-type Dato = { seed: number; mundo: string; verano: string; filas: Record<string, Fila>; antes: Resumen; despues: Resumen; nivelAntes: Record<string, Record<string, number>>; nivelDespues: Record<string, Record<string, number>>; cambiosEq: Record<string, { cierran: number; abren: number }>; cierres: Record<string, number>; eq: Record<string, Record<string, number>>; trazaCrea: Record<string, number[]>; trazaVera: Record<string, number[]>; letras: Record<string, Record<string, number>> };
+type Dato = { seed: number; mundo: string; verano: string; filas: Record<string, Fila>; antes: Resumen; despues: Resumen; nivelAntes: Record<string, Record<string, number>>; nivelDespues: Record<string, Record<string, number>>; cambiosEq: Record<string, { cierran: number; abren: number }>; cierres: Record<string, number>; eq: Record<string, Record<string, number>>; trazaCrea: Record<string, number[]>; trazaVera: Record<string, number[]>; letras: Record<string, Record<string, number>>; mercado?: Record<string, Record<string, { equipos: number; tam: number; tamSinAband: number; tamSinTodos: number; bajoAband: number; bajoTodos: number; bajo0: number }>> };
 const [carpeta, desde, hasta] = process.argv.slice(2);
 const semillas = Array.from({ length: Number(hasta) - Number(desde) + 1 }, (_, i) => Number(desde) + i);
 const cargar = (mundo: string, verano: string): Dato[] => semillas.flatMap((s) => { try { return readFileSync(`${carpeta}/w_${mundo}_${verano}_${s}.txt`, 'utf8').split('\n').filter((l) => l.startsWith('#W ')).map((l) => JSON.parse(l.slice(3)) as Dato); } catch { return []; } });
@@ -46,6 +46,22 @@ for (const verano of ['hoy', 'nuevo']) {
       const n = (xs: number[][]): number[] => xs.map((x) => x.length), b = (xs: number[][]): number[] => xs.map((x) => x.filter((y) => y < 14).length);
       return [g.nombre, `${fmt(n(c))} → ${fmt(n(v))}`, `${fmt(b(c))} → ${fmt(b(v))}`, `${fmt(c.map((x) => (x.length ? Math.min(...x) : 0)), 0)}–${fmt(c.map((x) => (x.length ? Math.max(...x) : 0)), 0)} → ${fmt(v.map((x) => (x.length ? Math.min(...x) : 0)), 0)}–${fmt(v.map((x) => (x.length ? Math.max(...x) : 0)), 0)}`];
     }));
+  }
+  if (verano === 'hoy' && datos.m[0]?.mercado) {
+    say('### El mercado al llegar el verano: quién sale y cómo queda cada equipo sin ellos (por tipo de club)');
+    say();
+    const filas: (string | number)[][] = [];
+    for (const g of GRUPOS) {
+      const ds = datos[g.mundo as 'm' | 'f'];
+      const sx = g.sx;
+      for (const tipo of ['colegio', 'pequeno', 'mediano', 'grande']) {
+        const v = (c: 'equipos' | 'tam' | 'tamSinAband' | 'tamSinTodos' | 'bajoAband' | 'bajoTodos' | 'bajo0'): number[] => ds.map((d) => d.mercado?.[`${g.cat}#${sx}`]?.[tipo]?.[c] ?? 0);
+        const n = media(v('equipos'));
+        if (!n) continue;
+        filas.push([g.nombre, tipo, fmt(v('equipos')), (media(v('tam')) / n).toFixed(1), (media(v('tamSinAband')) / n).toFixed(1), (media(v('tamSinTodos')) / n).toFixed(1), `${fmt(v('bajo0'))} · ${fmt(v('bajoAband'))} · ${fmt(v('bajoTodos'))}`]);
+      }
+    }
+    tabla(['', 'Club', 'Equipos', 'Tamaño medio al acabar el curso', 'sin los que abandonan', 'sin los que abandonan ni buscan fuera', 'Por debajo de 14: antes · sin abandonos · sin abandonos ni buscadores'], filas);
   }
   say('### Subidas y bajadas de letra (los que siguen en el mismo club; de la letra del curso que acaba a la del que empieza)');
   say();
