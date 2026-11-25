@@ -95,6 +95,7 @@ LETRAS_FIJADAS.clear();
 MEDIDA.respetarReparto = verano !== 'hoy';
 DIAGNOSTICO.veranoNuevo = verano === 'nuevo';
 DIAGNOSTICO.veranoUsuario = verano === 'usuario';
+if (verano === 'usuario') (DIAGNOSTICO.variantePaso23 as { maxPorEquipo: Record<string, number> }).maxPorEquipo.juvenil = 22;
 DIAGNOSTICO.alProbar = (d) => { if (antes.has(d.id)) probar.set(d.id, { sentido: d.sentido, entra: d.entra }); };
 DIAGNOSTICO.alDesplazar = (d) => { if (antes.has(d.id)) desplazados.set(d.id, d.motivo); };
 DIAGNOSTICO.alCerrar = (d) => { cierres[d.categoria] = (cierres[d.categoria] ?? 0) + Math.max(1, d.equipos - d.montables); };

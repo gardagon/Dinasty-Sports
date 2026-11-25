@@ -268,7 +268,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
   const fuera = clubes.filter((e) => e.colegio === undefined).sort((a, b) => atractivoDe(b) - atractivoDe(a) || b.calidad - a.calidad || (a.club < b.club ? -1 : 1));
   const delColegio = clubes.filter((e) => e.colegio !== undefined).sort((a, b) => (a.club < b.club ? -1 : 1));
   // Variante de medida (apagada por defecto): juvenil por año, subidas por nivel y búsqueda de equipo.
-  if (DIAGNOSTICO.variantJuvenil && catId === 'juvenil') {
+  if (DIAGNOSTICO.variantJuvenil && catId === 'juvenil' && !verano) {
     const vj = DIAGNOSTICO.variantJuvenil;
     const TOPE = 22;
     const plantillasJ = new Map(clubes.map((e) => [e, e.plantillaPorCategoria] as const));
@@ -724,6 +724,21 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         const ms = presentes(e);
         const T = ms.length;
         const vacio: Sets = { A: new Set(), B: new Set() };
+        if (catId === 'juvenil') {
+          // Juvenil, con sus letras (A = 3.º, B = 2.º, C = 1.º): 3 equipos con 14 o más de cada año; 2 (A de 3.º y 2.º, B de 1.º) con 14 de 3.º y 2.º juntos y 14 de 1.º; si no, uno mixto con 14 o más; si no, ninguno. Hasta 22.
+          const anio = (x: Npc): number => (edadDe(x) - cat.edadMin) + 1;
+          const porNivelJ = (xs: Npc[]): Npc[] => [...xs].sort((a, b) => nivelDe(b) - nivelDe(a) || (a.id < b.id ? -1 : 1));
+          const y3 = porNivelJ(ms.filter((x) => anio(x) >= 3)), y2 = porNivelJ(ms.filter((x) => anio(x) === 2)), y1 = porNivelJ(ms.filter((x) => anio(x) <= 1));
+          let equiposJ: Npc[][];
+          if (T < 14) equiposJ = [];
+          else if (y3.length >= 14 && y2.length >= 14 && y1.length >= 14) equiposJ = [y3, y2, y1];
+          else if (y3.length + y2.length >= 14 && y1.length >= 14) equiposJ = [porNivelJ([...y3, ...y2]), y1];
+          else equiposJ = [porNivelJ(ms)];
+          const out: Npc[][] = [];
+          for (const eq of equiposJ) { out.push(eq.slice(0, TOPE)); for (const x of eq.slice(TOPE)) { liberar([x.id]); DIAGNOSTICO.alDesplazar?.({ id: x.id, desde: e.club, motivo: 'sobra' }); } }
+          if (!equiposJ.length) for (const x of ms) { liberar([x.id]); DIAGNOSTICO.alDesplazar?.({ id: x.id, desde: e.club, motivo: 'sobra' }); }
+          return { A: new Set((out[0] ?? []).map((x) => x.id)), B: new Set((out[1] ?? []).map((x) => x.id)), ...(out[2] ? { C: new Set(out[2].map((x) => x.id)) } : {}) };
+        }
         if (T < 14) { for (const x of ms) { liberar([x.id]); DIAGNOSTICO.alDesplazar?.({ id: x.id, desde: e.club, motivo: 'sobra' }); } return vacio; }
         const pool = ms.flatMap((n) => { const puesto = puestoDeJugador(n, pob, m.val, m.dia); const valores = valoresPorPuestoDe(n, pob, m.val, m.dia); return puesto && valores ? [{ id: n.id, puesto, valores, valor: valorEnSuPuesto(n, pob, m.val, m.dia, puesto), estado: { baja: false } as never }] : []; });
         const xi = new Set(v23.titulares(pool));
@@ -746,7 +761,10 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       st.colegiosAntes = Math.max(st.colegiosAntes, 0);
       for (const c of candidatos.values()) if (c.sentido === 'mercado' && m.lista.get(c.id)?.deporte === undefined) st.mercadoSinSitio++;
       tr('verano usuario', undefined, { ...st, mueve: undefined, ...Object.fromEntries(Object.entries(st.mueve).map(([k, v]) => [`mueve_${k}`, v])) });
-      equilibrar();
+      if (catId === 'juvenil') {
+        for (const e of orden) { const t = equipos.get(e.club)!; const ls = (['A', 'B', 'C'] as const).filter((l) => t[l] && t[l]!.size > 0); for (const l of ls) for (const id of t[l]!) { LETRAS_FIJADAS.set(id, l); REPARTO_DE_INICIO.set(id, `${e.club}|${l}`); } ponerK(e, Math.max(1, ls.length)); }
+        tr('fin equilibrio', undefined, { equipos: orden.map((e) => { const t = equipos.get(e.club)!; return { club: e.club, A: t.A.size, B: t.B.size, C: t.C?.size ?? 0, D: 0 }; }) });
+      } else equilibrar();
       for (const [e, pl] of plantillasOriginales) e.plantillaPorCategoria = pl;
       return;
     }

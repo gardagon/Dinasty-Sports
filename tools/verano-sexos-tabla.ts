@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 type Fila = Record<string, number>;
 type Resumen = Record<string, { equipos: number; bajo: number; porLetra: Record<string, number>; min: number; max: number; jugadores: number }>;
-type Dato = { seed: number; mundo: string; verano: string; filas: Record<string, Fila>; antes: Resumen; despues: Resumen; nivelAntes: Record<string, Record<string, number>>; nivelDespues: Record<string, Record<string, number>>; cambiosEq: Record<string, { cierran: number; abren: number }>; cierres: Record<string, number>; eq: Record<string, Record<string, number>>; trazaCrea: Record<string, number[]>; trazaVera: Record<string, number[]>; letras: Record<string, Record<string, number>>; mercado?: Record<string, Record<string, { equipos: number; tam: number; tamSinAband: number; tamSinTodos: number; bajoAband: number; bajoTodos: number; bajo0: number }>> };
+type Dato = { seed: number; mundo: string; verano: string; filas: Record<string, Fila>; antes: Resumen; despues: Resumen; nivelAntes: Record<string, Record<string, number>>; nivelDespues: Record<string, Record<string, number>>; cambiosEq: Record<string, { cierran: number; abren: number }>; cierres: Record<string, number>; eq: Record<string, Record<string, number>>; trazaCrea: Record<string, number[]>; trazaVera: Record<string, number[]>; letras: Record<string, Record<string, number>>; usuario?: Record<string, Record<string, number>>; tiposAntes?: Record<string, Record<string, number>>; tiposDespues?: Record<string, Record<string, number>>; mercado?: Record<string, Record<string, { equipos: number; tam: number; tamSinAband: number; tamSinTodos: number; bajoAband: number; bajoTodos: number; bajo0: number }>> };
 const [carpeta, desde, hasta] = process.argv.slice(2);
 const semillas = Array.from({ length: Number(hasta) - Number(desde) + 1 }, (_, i) => Number(desde) + i);
 const cargar = (mundo: string, verano: string): Dato[] => semillas.flatMap((s) => { try { return readFileSync(`${carpeta}/w_${mundo}_${verano}_${s}.txt`, 'utf8').split('\n').filter((l) => l.startsWith('#W ')).map((l) => JSON.parse(l.slice(3)) as Dato); } catch { return []; } });
@@ -24,7 +24,7 @@ const tabla = (cab: string[], filas: (string | number)[][]): void => { say(`| ${
 const suma = (d: Dato, cat: string, sx: string, campo: string): number => [1, 2, 3].reduce((t, a) => t + (d.filas[`${cat}|${a}#${sx}`]?.[campo] ?? 0), 0);
 const pct = (a: number, b: number): string => (b ? `${((100 * a) / b).toFixed(0)} %` : '—');
 
-for (const verano of ['hoy', 'nuevo']) {
+for (const verano of (process.argv[5] ?? 'hoy,nuevo').split(',')) {
   say(`## Verano con ${verano === 'hoy' ? 'las reglas de hoy' : 'el método nuevo'} (semillas ${desde}–${hasta})`);
   say();
   const datos = { m: cargar('m', verano), f: cargar('f', verano) };
@@ -62,6 +62,26 @@ for (const verano of ['hoy', 'nuevo']) {
       }
     }
     tabla(['', 'Club', 'Equipos', 'Tamaño medio al acabar el curso', 'sin los que abandonan', 'sin los que abandonan ni buscan fuera', 'Por debajo de 14: antes · sin abandonos · sin abandonos ni buscadores'], filas);
+  }
+  if (verano === 'usuario') {
+    say('### El verano del usuario: pasos (por categoría y mundo; media y rango de las semillas)');
+    say();
+    const cats = ['benjamin', 'alevin', 'infantil', 'cadete'];
+    const campos: [string, string][] = [['abandonos', 'Lista de abandonos'], ['buscan', 'Buscan fuera (reserva)'], ['consiguen', 'Lo consiguen'], ['vuelven', 'Vuelven a su sitio'], ['recuperadosDeLaLista', 'Recuperados de la lista de abandonos'], ['clubesSinEquipo', 'Clubes externos sin equipo (<14)'], ['equiposDeColegioDeshechos', 'Equipos de colegio que se deshacen'], ['deColegioAMediaTabla', 'De colegio a clubes de media tabla'], ['desplazados', 'Desplazados en la ronda'], ['mercadoColocados', 'Mercado colocado'], ['mercadoSinSitio', 'Mercado sin sitio']];
+    for (const mundo of ['m', 'f']) {
+      const ds = datos[mundo as 'm' | 'f'];
+      tabla([mundo === 'm' ? 'Chicos (benjamín y alevín mixtos)' : 'Chicas (infantil y cadete)', ...campos.map(([, n]) => n)], cats.filter((c) => mundo === 'm' || ['infantil', 'cadete'].includes(c)).map((c) => [c, ...campos.map(([k]) => fmt(ds.map((d) => d.usuario?.[c]?.[k] ?? 0), 0))]));
+    }
+    say('Cambios de club por dirección (media de las semillas, suma de benjamín a cadete):');
+    say();
+    const dirs = new Map<string, number[]>();
+    for (const mundo of ['m', 'f']) for (const d of datos[mundo as 'm' | 'f']) { const tot: Record<string, number> = {}; for (const cat of Object.values(d.usuario ?? {})) for (const [k, v] of Object.entries(cat)) if (k.startsWith('mueve_')) tot[k.slice(6)] = (tot[k.slice(6)] ?? 0) + v; for (const [k, v] of Object.entries(tot)) { const a = dirs.get(`${mundo}:${k}`) ?? []; a.push(v); dirs.set(`${mundo}:${k}`, a); } }
+    const nS = (mundo: string): number => datos[mundo as 'm' | 'f'].length || 1;
+    tabla(['Mundo', 'Dirección', 'Niños por semilla'], [...dirs].sort().map(([k, v]) => { const [mundo, dir] = k.split(':'); return [mundo === 'm' ? 'chicos' : 'chicas', dir.replace('>', ' → '), (v.reduce((a, b) => a + b, 0) / nS(mundo)).toFixed(1)]; }));
+    say('Equipos por tipo de club (media por semilla; antes → tras el verano):');
+    say();
+    const tipos = ['colegio', 'pequeno', 'mediano', 'grande'];
+    tabla(['', ...tipos], GRUPOS.filter((g) => g.mundo === 'm' && ['benjamin', 'alevin', 'infantil', 'cadete'].includes(g.cat)).map((g) => [g.nombre, ...tipos.map((t) => `${fmt(datos.m.map((d) => d.tiposAntes?.[g.cat]?.[t] ?? 0))} → ${fmt(datos.m.map((d) => d.tiposDespues?.[g.cat]?.[t] ?? 0))}`)]));
   }
   say('### Subidas y bajadas de letra (los que siguen en el mismo club; de la letra del curso que acaba a la del que empieza)');
   say();
