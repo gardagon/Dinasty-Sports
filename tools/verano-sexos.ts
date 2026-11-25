@@ -9,10 +9,11 @@ import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
 import { convocarYAlinear } from '@ds/mod-futbol';
-import { DIAGNOSTICO, LETRAS_FIJADAS, SESGO_DE_SEXO, edadDeJuego, interesDe, type NpcsState } from '@ds/mod-npcs';
+import { DIAGNOSTICO, LETRAS_FIJADAS, MEDIDA, SESGO_DE_SEXO, edadDeJuego, interesDe, type NpcsState } from '@ds/mod-npcs';
 import type { Npc } from '@ds/mod-npcs';
 
-const [semillaTxt = '51', mundo = 'm', verano = 'hoy'] = process.argv.slice(2);
+const [semillaTxt = '51', mundo = 'm', verano = 'hoy', respetar = 'no'] = process.argv.slice(2);
+MEDIDA.respetarReparto = respetar === 'si';
 const seed = Number(semillaTxt);
 registrarPais(PAIS_CIUDAD_GRANDE);
 const titulares = (js: unknown): string[] => convocarYAlinear(js as never).titulares.map((x) => x.id);
@@ -30,6 +31,7 @@ if (mundo === 'f') SESGO_DE_SEXO.sinColegios = true;
 const tamanosDe = (eqs: { A: number; B: number; C?: number; D?: number }[]): number[] => eqs.flatMap((q) => [q.A, q.B, q.C ?? 0, q.D ?? 0].filter((x) => x > 0));
 const trazaCrea: Record<string, number[]> = {};
 const trazaVera: Record<string, number[]> = {};
+const usuario: Record<string, Record<string, number>> = {};
 DIAGNOSTICO.traza = (e) => { if (e.fase === 'fin equilibrio' || e.fase === 'fin J3') trazaCrea[e.categoria] = tamanosDe(e.datos.equipos as never); };
 const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
 advanceToWeek(g, 'gen.descansar', 0, 2, 9);
@@ -90,11 +92,15 @@ const desplazados = new Map<string, string>();
 const cierres: Record<string, number> = {};
 const eq: Record<string, Record<string, number>> = {};
 LETRAS_FIJADAS.clear();
+MEDIDA.respetarReparto = verano !== 'hoy';
 DIAGNOSTICO.veranoNuevo = verano === 'nuevo';
+DIAGNOSTICO.veranoUsuario = verano === 'usuario';
+if (verano === 'usuario') (DIAGNOSTICO.variantePaso23 as { maxPorEquipo: Record<string, number> }).maxPorEquipo.juvenil = 22;
 DIAGNOSTICO.alProbar = (d) => { if (antes.has(d.id)) probar.set(d.id, { sentido: d.sentido, entra: d.entra }); };
 DIAGNOSTICO.alDesplazar = (d) => { if (antes.has(d.id)) desplazados.set(d.id, d.motivo); };
 DIAGNOSTICO.alCerrar = (d) => { cierres[d.categoria] = (cierres[d.categoria] ?? 0) + Math.max(1, d.equipos - d.montables); };
 DIAGNOSTICO.traza = (e) => {
+  if (e.fase === 'verano usuario') usuario[e.categoria] = Object.fromEntries(Object.entries(e.datos).filter(([, v]) => typeof v === 'number')) as Record<string, number>;
   if (e.fase === 'fin equilibrio') trazaVera[e.categoria] = tamanosDe(e.datos.equipos as never);
   if (e.fase === 'fin equilibrio') eq[e.categoria] = Object.fromEntries(Object.entries(e.datos).filter(([, v]) => typeof v === 'number')) as Record<string, number>;
 };
@@ -185,6 +191,19 @@ for (const k of new Set([...antesN.keys(), ...despuesN.keys()])) {
   if (d < a) r.cierran += a - d; else if (d > a) r.abren += d - a;
 }
 void kAntes;
+const tiposDe = (equipos: Equipo[]): Record<string, Record<string, number>> => { const out: Record<string, Record<string, number>> = {}; for (const e of equipos) { const t = e.club.startsWith('colegio') ? 'colegio' : e.club.startsWith('club_pequeno') ? 'pequeno' : e.club.startsWith('club_mediano') ? 'mediano' : 'grande'; const sx = ['infantil', 'cadete', 'juvenil'].includes(e.cat) ? 'x' : 'mixto'; void sx; (out[e.cat] ??= {})[t] = (out[e.cat][t] ?? 0) + 1; } return out; };
+// El mercado: quién sale (abandona o busca otras oportunidades) y cómo queda cada equipo sin ellos, por tipo de club.
+const tipoDe = (club: string): string => (club.startsWith('colegio') ? 'colegio' : club.startsWith('club_pequeno') ? 'pequeno' : club.startsWith('club_mediano') ? 'mediano' : 'grande');
+const mercado: Record<string, Record<string, { equipos: number; tam: number; tamSinAband: number; tamSinTodos: number; bajoAband: number; bajoTodos: number; bajo0: number }>> = {};
+for (const e of equiposAntes) {
+  const sx = ['infantil', 'cadete', 'juvenil'].includes(e.cat) ? (porId0.get(e.ids[0]) ? sexoDe(porId0.get(e.ids[0])!) : 'm') : 'mixto';
+  const aband = e.ids.filter((id) => tras.get(id)?.dejado?.includes('futbol') && tras.get(id)?.deporte === undefined).length;
+  const busca = e.ids.filter((id) => probar.has(id) && !(tras.get(id)?.dejado?.includes('futbol'))).length;
+  const k = `${e.cat}#${sx}`;
+  const t = ((mercado[k] ??= {})[tipoDe(e.club)] ??= { equipos: 0, tam: 0, tamSinAband: 0, tamSinTodos: 0, bajoAband: 0, bajoTodos: 0, bajo0: 0 });
+  t.equipos++; t.tam += e.ids.length; t.tamSinAband += e.ids.length - aband; t.tamSinTodos += e.ids.length - aband - busca;
+  if (e.ids.length < 14) t.bajo0++; if (e.ids.length - aband < 14) t.bajoAband++; if (e.ids.length - aband - busca < 14) t.bajoTodos++;
+}
 // Subidas y bajadas entre letras (los que siguen en el mismo club): letra de antes > letra de después, por categoría nueva y sexo.
 const letras: Record<string, Record<string, number>> = {};
 for (const [id, a] of antes) {
@@ -197,4 +216,4 @@ for (const [id, a] of antes) {
   const t = `${n0.letra.futbol}>${n1.letra.futbol}`;
   (letras[k] ??= {})[t] = (letras[k][t] ?? 0) + 1;
 }
-console.log(`#W ${JSON.stringify({ seed, mundo, verano, filas: Object.fromEntries(filas), antes: resumen(equiposAntes), despues: resumen(equiposDespues), nivelAntes: nivelEquipos(equiposAntes, porId0), nivelDespues: nivelEquipos(equiposDespues, porId1), cambiosEq, cierres, eq, trazaCrea, trazaVera, letras })}`);
+console.log(`#W ${JSON.stringify({ seed, mundo, verano, filas: Object.fromEntries(filas), antes: resumen(equiposAntes), despues: resumen(equiposDespues), nivelAntes: nivelEquipos(equiposAntes, porId0), nivelDespues: nivelEquipos(equiposDespues, porId1), cambiosEq, cierres, eq, trazaCrea, trazaVera, letras, mercado, usuario, tiposAntes: tiposDe(equiposAntes), tiposDespues: tiposDe(equiposDespues) })}`);

@@ -30,7 +30,7 @@ export * from './consejo';
 export * from './plantillas';
 export * from './fichajes';
 export * from './draft';
-export { LETRAS_FIJADAS, SESGO_DE_SEXO, interesDe } from './deportistas';
+export { LETRAS_FIJADAS, MEDIDA, REPARTO_DE_INICIO, SESGO_DE_SEXO, interesDe } from './deportistas';
 
 const hhmmDe = (m: number): string => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
 const mediaDe = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;

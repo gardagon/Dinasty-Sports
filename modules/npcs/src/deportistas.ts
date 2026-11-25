@@ -171,6 +171,10 @@ export const SESGO_DE_SEXO: { chicas?: number; desdeEdad?: number; solo?: 'm' | 
 /** Solo para medir: las letras (A a D) que ha decidido el reparto nuevo (id → letra); `fijarEquipos` las respeta en vez de recalcularlas por el total del club. Vacío = como siempre. */
 export const LETRAS_FIJADAS = new Map<string, string>();
 
+/** Solo para medir: el club y la letra (`club|letra`) con que el reparto nuevo dejó a cada niño, para ver qué mueve después el resto de la creación; y `respetarReparto`: la creación no recoloca a nadie tras el reparto (`sinSobrantes` solo fija letras y `plazasDeMas` no actúa). */
+export const REPARTO_DE_INICIO = new Map<string, string>();
+export const MEDIDA: { respetarReparto: boolean } = { respetarReparto: false };
+
 /** `interesPor` de una persona con el sesgo por sexo de medida (si está apagado, es el de siempre). */
 export const interesDe = (n: { id: string; gender?: string; rasgos?: RasgosDe; nacimiento?: number }, deporte: string, edad?: number): number => {
   const base = interesPor(n.rasgos, deporte);
