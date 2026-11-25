@@ -3,7 +3,7 @@
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
 import { asistenciaConFaltas, relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, type PrevisionDelClubView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, asignarDorsales, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
-import { interesDe, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
+import { LETRAS_FIJADAS, interesDe, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
 import { type Rendimientos } from './semana';
@@ -398,7 +398,7 @@ export function fijarEquipos(m: MercadoDeFichajes, pob: PoblacionGuardada): void
       const { equipos, miembros } = equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true);
       for (const { n } of miembros) {
         if (n.id.startsWith('personaje@')) continue;
-        const letra = LETRAS.find((l) => equipos[l].includes(n.id));
+        const letra = (LETRAS_FIJADAS.get(n.id) as (typeof LETRAS)[number] | undefined) ?? LETRAS.find((l) => equipos[l].includes(n.id));
         if (n.letra?.[pob.deporte] === letra) continue;
         const resto = Object.fromEntries(Object.entries(n.letra ?? {}).filter(([d]) => d !== pob.deporte));
         const nueva = letra ? { ...resto, [pob.deporte]: letra } : resto;

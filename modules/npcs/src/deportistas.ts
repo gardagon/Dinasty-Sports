@@ -168,6 +168,9 @@ export const interesPor = (rasgos: RasgosDe | undefined, deporte: string): numbe
  */
 export const SESGO_DE_SEXO: { chicas?: number; desdeEdad?: number; solo?: 'm' | 'f'; deportes?: string[]; /** Desde `desdeEdad` los colegios no tienen equipo (el femenino solo en clubes externos). */ sinColegios?: boolean } = {};
 
+/** Solo para medir: las letras (A a D) que ha decidido el reparto nuevo (id → letra); `fijarEquipos` las respeta en vez de recalcularlas por el total del club. Vacío = como siempre. */
+export const LETRAS_FIJADAS = new Map<string, string>();
+
 /** `interesPor` de una persona con el sesgo por sexo de medida (si está apagado, es el de siempre). */
 export const interesDe = (n: { id: string; gender?: string; rasgos?: RasgosDe; nacimiento?: number }, deporte: string, edad?: number): number => {
   const base = interesPor(n.rasgos, deporte);
