@@ -41,6 +41,8 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 2. Los benjamines nuevos van primero a los equipos ya creados. **En benjamín, los clubes grandes tienen como mucho 2 equipos** (uno de 2.º y otro de 1.º), para que los niños se repartan más.
 3. Se acepta que caigan los jugadores en las categorías altas: es el efecto de empezar con un mundo recién creado (más abandono que entradas, salvo en benjamín).
 
+**Tras la v4** (los equipos se mantienen de verdad; casi no se eliminan ni se crean; 0 por debajo de 14; pero en benjamín quedan fuera 13–23 nuevos y los clubes pequeños se quedan con pocos equipos): **los equipos de benjamín se forman de 18**. Solo se va a 22 si sobran niños y, si no, se quedarían sin equipo. Antes se forman equipos nuevos de 14 a 18 donde se pueda. Así hay más equipos y no debería quedar ningún benjamín fuera.
+
 **Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
 
 **Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
