@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 type Fila = Record<string, number>;
 type Resumen = Record<string, { equipos: number; bajo: number; porLetra: Record<string, number>; min: number; max: number; jugadores: number }>;
-type Dato = { seed: number; mundo: string; verano: string; filas: Record<string, Fila>; antes: Resumen; despues: Resumen; nivelAntes: Record<string, Record<string, number>>; nivelDespues: Record<string, Record<string, number>>; cambiosEq: Record<string, { cierran: number; abren: number }>; cierres: Record<string, number>; eq: Record<string, Record<string, number>>; trazaCrea: Record<string, number[]>; trazaVera: Record<string, number[]> };
+type Dato = { seed: number; mundo: string; verano: string; filas: Record<string, Fila>; antes: Resumen; despues: Resumen; nivelAntes: Record<string, Record<string, number>>; nivelDespues: Record<string, Record<string, number>>; cambiosEq: Record<string, { cierran: number; abren: number }>; cierres: Record<string, number>; eq: Record<string, Record<string, number>>; trazaCrea: Record<string, number[]>; trazaVera: Record<string, number[]>; letras: Record<string, Record<string, number>> };
 const [carpeta, desde, hasta] = process.argv.slice(2);
 const semillas = Array.from({ length: Number(hasta) - Number(desde) + 1 }, (_, i) => Number(desde) + i);
 const cargar = (mundo: string, verano: string): Dato[] => semillas.flatMap((s) => { try { return readFileSync(`${carpeta}/w_${mundo}_${verano}_${s}.txt`, 'utf8').split('\n').filter((l) => l.startsWith('#W ')).map((l) => JSON.parse(l.slice(3)) as Dato); } catch { return []; } });
@@ -30,12 +30,12 @@ for (const verano of ['hoy', 'nuevo']) {
   const datos = { m: cargar('m', verano), f: cargar('f', verano) };
   say('### Equipos: antes → tras el verano');
   say();
-  tabla(['', 'Equipos antes → tras', 'Por debajo de 14 antes → tras', 'Se deshacen (por club)', 'Se abren', 'Niños por equipo tras (mín–máx)', 'Clubes con un C mejor que su A · un D mejor que su B (tras; de los que tienen C o D)'], GRUPOS.map((g) => {
+  tabla(['', 'Equipos antes → tras', 'Por debajo de 14 antes → tras', 'Se deshacen (por club)', 'Se abren', 'Niños por equipo tras (mín–máx)', 'Clubes con un C mejor que su A (de los que tienen C), antes → tras · D mejor que B'], GRUPOS.map((g) => {
     const ds = datos[g.mundo as 'm' | 'f'];
     const a = ds.map((d) => d.antes[g.cat]?.equipos ?? 0), b = ds.map((d) => d.despues[g.cat]?.equipos ?? 0);
     const ba = ds.map((d) => d.antes[g.cat]?.bajo ?? 0), bb = ds.map((d) => d.despues[g.cat]?.bajo ?? 0);
     const mn = ds.map((d) => d.despues[g.cat]?.min ?? 0).filter((x) => x < 999), mx = ds.map((d) => d.despues[g.cat]?.max ?? 0);
-    return [g.nombre, `${fmt(a)} → ${fmt(b)}`, `${fmt(ba)} → ${fmt(bb)}`, fmt(ds.map((d) => d.cambiosEq[g.cat]?.cierran ?? 0)), fmt(ds.map((d) => d.cambiosEq[g.cat]?.abren ?? 0)), `${fmt(mn, 0)} – ${fmt(mx, 0)}`, `${fmt(ds.map((d) => d.nivelDespues[g.cat]?.cMejorA ?? 0))} de ${fmt(ds.map((d) => d.nivelDespues[g.cat]?.clubesConC ?? 0))} · ${fmt(ds.map((d) => d.nivelDespues[g.cat]?.dMejorB ?? 0))} de ${fmt(ds.map((d) => d.nivelDespues[g.cat]?.clubesConD ?? 0))}`];
+    return [g.nombre, `${fmt(a)} → ${fmt(b)}`, `${fmt(ba)} → ${fmt(bb)}`, fmt(ds.map((d) => d.cambiosEq[g.cat]?.cierran ?? 0)), fmt(ds.map((d) => d.cambiosEq[g.cat]?.abren ?? 0)), `${fmt(mn, 0)} – ${fmt(mx, 0)}`, `${fmt(ds.map((d) => d.nivelAntes[g.cat]?.cMejorA ?? 0))} → ${fmt(ds.map((d) => d.nivelDespues[g.cat]?.cMejorA ?? 0))} de ${fmt(ds.map((d) => d.nivelAntes[g.cat]?.clubesConC ?? 0))} → ${fmt(ds.map((d) => d.nivelDespues[g.cat]?.clubesConC ?? 0))} · D/B: ${fmt(ds.map((d) => d.nivelAntes[g.cat]?.dMejorB ?? 0))} → ${fmt(ds.map((d) => d.nivelDespues[g.cat]?.dMejorB ?? 0))} de ${fmt(ds.map((d) => d.nivelAntes[g.cat]?.clubesConD ?? 0))} → ${fmt(ds.map((d) => d.nivelDespues[g.cat]?.clubesConD ?? 0))}`];
   }));
   if (verano === 'nuevo') {
     say('### Equipos según el reparto (la traza de cada paso final, antes de que el resto de la creación mueva a nadie): al empezar → tras el verano');
@@ -47,6 +47,13 @@ for (const verano of ['hoy', 'nuevo']) {
       return [g.nombre, `${fmt(n(c))} → ${fmt(n(v))}`, `${fmt(b(c))} → ${fmt(b(v))}`, `${fmt(c.map((x) => (x.length ? Math.min(...x) : 0)), 0)}–${fmt(c.map((x) => (x.length ? Math.max(...x) : 0)), 0)} → ${fmt(v.map((x) => (x.length ? Math.min(...x) : 0)), 0)}–${fmt(v.map((x) => (x.length ? Math.max(...x) : 0)), 0)}`];
     }));
   }
+  say('### Subidas y bajadas de letra (los que siguen en el mismo club; de la letra del curso que acaba a la del que empieza)');
+  say();
+  tabla(['', 'Siguen en su club', 'Misma letra', 'Suben de letra (C→B, B→A…)', 'Bajan de letra (A→B, B→C…)', 'Suben dos o más', 'Bajan dos o más'], GRUPOS.map((g) => {
+    const ds = datos[g.mundo as 'm' | 'f'];
+    const cuenta = (d: Dato, f: (a: number, b: number) => boolean): number => Object.entries(d.letras?.[`${g.cat}#${g.sx}`] ?? {}).reduce((t, [k, n]) => { const [x, y] = k.split('>'); return f(x.charCodeAt(0), y.charCodeAt(0)) ? t + n : t; }, 0);
+    return [g.nombre, fmt(ds.map((d) => cuenta(d, () => true)), 0), fmt(ds.map((d) => cuenta(d, (a, b) => a === b)), 0), fmt(ds.map((d) => cuenta(d, (a, b) => b < a)), 0), fmt(ds.map((d) => cuenta(d, (a, b) => b > a)), 0), fmt(ds.map((d) => cuenta(d, (a, b) => a - b >= 2)), 0), fmt(ds.map((d) => cuenta(d, (a, b) => b - a >= 2)), 0)];
+  }));
   say('### Niños que quedan fuera tras el verano, por año (querían jugar y no tienen equipo) y por qué se quedan fuera los que jugaban');
   say();
   tabla(['', '1.er año', '2.º año', '3.er año', 'Jugaban y quedan fuera: pierden la plaza por mérito', 'cierra su equipo', 'sobran al recolocar', 'fin de colegio', 'sin hueco', 'dejan tras dos plazos'], GRUPOS.map((g) => {

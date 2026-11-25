@@ -185,4 +185,16 @@ for (const k of new Set([...antesN.keys(), ...despuesN.keys()])) {
   if (d < a) r.cierran += a - d; else if (d > a) r.abren += d - a;
 }
 void kAntes;
-console.log(`#W ${JSON.stringify({ seed, mundo, verano, filas: Object.fromEntries(filas), antes: resumen(equiposAntes), despues: resumen(equiposDespues), nivelAntes: nivelEquipos(equiposAntes, porId0), nivelDespues: nivelEquipos(equiposDespues, porId1), cambiosEq, cierres, eq, trazaCrea, trazaVera })}`);
+// Subidas y bajadas entre letras (los que siguen en el mismo club): letra de antes > letra de después, por categoría nueva y sexo.
+const letras: Record<string, Record<string, number>> = {};
+for (const [id, a] of antes) {
+  const n1 = porId1.get(id), n0 = porId0.get(id);
+  if (!n0 || !n1 || !esJugador(n1) || n1.equipo !== a.club || !n0.letra?.futbol || !n1.letra?.futbol) continue;
+  const c = catDe(edadDeJuego(n1, diaNuevo) ?? -1);
+  if (!c || !relevante(c.id)) continue;
+  const sx = ['infantil', 'cadete', 'juvenil'].includes(c.id) ? sexoDe(n1) : 'mixto';
+  const k = `${c.id}#${sx}`;
+  const t = `${n0.letra.futbol}>${n1.letra.futbol}`;
+  (letras[k] ??= {})[t] = (letras[k][t] ?? 0) + 1;
+}
+console.log(`#W ${JSON.stringify({ seed, mundo, verano, filas: Object.fromEntries(filas), antes: resumen(equiposAntes), despues: resumen(equiposDespues), nivelAntes: nivelEquipos(equiposAntes, porId0), nivelDespues: nivelEquipos(equiposDespues, porId1), cambiosEq, cierres, eq, trazaCrea, trazaVera, letras })}`);
