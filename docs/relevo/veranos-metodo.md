@@ -561,3 +561,42 @@ Verano del usuario v5 (benjamín y alevín de 18, última pasada sin cupo) y el 
 Equipos por tipo de club (al empezar → 1 → 2 → 3): benjamín colegio 4,8 → 3,6 → 3,6 → 4,2, **pequeño 5,8 → 4,0 → 3,4 → 3,4**, mediano 6,0 → 6,0 → 6,6 → 6,8, grande 2,0 en todos; alevín colegio 3,6 → 3,6 → 3,4 → 2,6, pequeño 6,2 → 4,2 → 3,2 → 2,8, mediano 6,0 → 5,2 → 4,8 → 4,8, grande 2,0 → 2,2 → 2,6 → 3,2; infantil colegio 1,6 → 2,2 → 2,0 → 1,6, pequeño 6,0 → 3,4 → 3,0 → 2,4, mediano 7,0 → 6,2 → 5,4 → 5,0, grande 2,0 → 2,4; cadete colegio 1,8 → 0,6 → 0,6 → 1,4, pequeño 6,2 → 3,8 → 3,4 → 3,2, mediano 6,0 → 5,2 → 5,0 → 4,6, grande 2,8 → 3,0; juvenil colegio 1,4 → 1,8 → 1,0 → 0,6, pequeño 5,8 → 4,8 → 3,4 → 3,0, mediano 4,6 → 4,2 → 3,6 → 3,4, grande 2,6 → 2,2 → 2,2 → 1,8. Equipos de colegio (benjamín a juvenil): 13,2 → 11,8 → 10,6 → 10,4.
 
 **Por debajo de 14: 0 en los tres veranos y las cinco semillas.** Los clubes pequeños mantienen equipos en benjamín (de 2 a 4 por semilla en el verano 3). **Juvenil cae con el nuevo** (313 → 175 jugadores y 14,4 → 8,8 equipos, frente a 227 y 11,6 con el de antes) por el límite de pruebas.
+
+## B12) Juvenil v2: pruebas por nivel, escala 6/4/3 y cascada en el club (semillas 51–60)
+
+Aplicadas las tres recomendaciones aprobadas (`veranoUsuario`, `modules/npcs/src/draft.ts`, solo medida; el juego no cambia: `typecheck` y `huella -- 60` idénticos).
+
+- **Primero en clubes de su nivel.** El juvenil sin equipo prueba en una primera fase solo en los clubes donde sería titular. **Estimación:** nivel del club = valor del 11.º mejor jugador de su plantilla juvenil (el titular más flojo de su once); el niño es «de su nivel» si vale al menos eso. Después sigue el barrido de siempre (por atractivo) con las pruebas que le queden.
+- **Escala:** interés 3 → 6 pruebas, 2 → 4, 1 → 3.
+- **Cascada dentro del club:** si un equipo pasa de 22, baja al de abajo su jugador de 1.er año más flojo (A→B→C); en el último equipo sale ese jugador. Hasta 3 rondas. Es una aproximación a la regla del usuario: no mira el puesto del jugador al bajarlo.
+
+### Juvenil chicos, media de 10 semillas (hoy / juvenil antiguo con v5 / v1 nuevo / **v2**)
+
+| | hoy | antiguo | v1 | **v2** |
+|---|---|---|---|---|
+| equipos tras el verano | 14,6 | 15,3 | 12,9 | **13,5** |
+| se eliminan / se crean | 1,6 / 2,3 | 1,8 / 3,2 | 3,0 / 2,0 | **2,5 / 2,1** |
+| menos de 14 | 0,4 | 0 | 0 | **0** |
+| fuera 1.º / 2.º / 3.er año | 8 / 23 / 25 | 4 / 16 / 23 | 14 / 43 / 45 | **12 / 36 / 38** |
+| jugadores tras | 268 | 298 | 240 | **256** |
+| balance | −9 % | +2 % | −19 % | **−14 %** |
+| buenos fuera (sobre la mediana de su año) 1.º / 2.º / 3.º | 0 / 0 / 0 | 0,2 / 0,4 / 0,3 | 0,5 / 1,9 / 1,9 | **0,9 / 0,0 / 0,1** |
+| pruebas / encuentran equipo / tras fallar | | | 508 / 138 / 51 | **589 / 150 / 56** |
+| equipos colegio / pequeño / mediano / grande | 0,8 / 6,2 / 5,3 / 2,3 | 2,2 / 5,2 / 5,5 / 2,4 | 2,2 / 4,3 / 4,5 / 1,9 | **2,2 / 4,4 / 4,8 / 2,1** |
+
+Chicas (juvenil): 1,9 equipos, 33 jugadoras, fuera 2 / 4 / 5 por año, buenas fuera 0,8 (v1: 1,8 equipos, 32, 0,8).
+
+**Lectura:** v2 mejora a v1 en todo (+16 jugadores, +0,6 equipos, 36 menos fuera, casi ningún jugador bueno fuera, 20 % más de pruebas y de colocados), pero **sigue por debajo del juvenil antiguo** en cuántos quedan fuera (86 frente a 43) y en balance (−14 % frente a +2 %). Con 6/4/3 pruebas muchos juveniles gastan las pruebas en clubes llenos. Con el resto de categorías con v5, benjamín–cadete: 71,1 equipos (hoy 73,7).
+
+## B13) Tres veranos seguidos con todo junto y juvenil v2 (semillas 51–55)
+
+| | inicio | verano 1 | verano 2 | verano 3 |
+|---|---|---|---|---|
+| equipos (benjamín a juvenil) | 84,2 | 71,2 | 66,4 | **64,6** |
+| jugadores | 1464 | 1322 | 1237 | **1202** |
+| menos de 14 | 0 | 0 | 0 | **0** |
+| juvenil: equipos / jugadores | 14,4 / 313 | 13,8 / 257 | 12,0 / 231 | **11,4 / 219** |
+| juvenil fuera sin equipo | 85 | 78 | 19 | **16** |
+
+Con v1 el juvenil caía a 8,8 equipos y 175 jugadores en el verano 3; con v2 queda en 11,4 y 219 (el de «hoy» tenía 11,6 y 227). El total baja a 64,6 equipos (v1: 62,2). Nunca hay equipos por debajo de 14.
+
