@@ -20,7 +20,7 @@ import { losQueSeQuedan } from './probar-fuera';
  */
 
 import { EquipoGuardado, Npc, PoblacionGuardada, delColegio, edadDeJuego, edadNpc, hermanos, npcs, nuevoEntrenador, registroDe, entrenadoresDeClubes } from './index';
-import { colocarDesplazados, fichajesDeVerano, intentarEntrar } from './fichajes';
+import { PRUEBAN_FUERA, colocarDesplazados, fichajesDeVerano, intentarEntrar, probabilidadDeFichar } from './fichajes';
 import { dejaElDeporte } from './abandono';
 import { colegioDeNino, acomodarSobrantes, cubrirGruposVacios, equipoDelPersonajeEn, fijarEquipos, Aspirante, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, aspirantesDeEdad, capacidadDe, categoriasDelEquipo, claveDeEquipo, edadesDe, equiposDelClub, idDelPersonaje, jugadorComoNpc, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { Valoracion, leGustaElGrupo, puestoDeJugador, valorEn, valorEnSuPuesto, valoracionDe, valoresPorPuestoDe } from './plaza';
@@ -140,7 +140,7 @@ export function entrenadoresDeLosEquipos(m: MercadoDeFichajes, pob: PoblacionGua
 }
 
 
-export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: CategoriaDef, catId: string, rng: Rng, o: { conPrueba: boolean; conAmbicion: boolean }, verano = false): void {
+export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: CategoriaDef, catId: string, rng: Rng, o: { conPrueba: boolean; conAmbicion: boolean }, verano: boolean | 'usuario' = false): void {
   const clubes = pob.equipos.filter((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((c) => c.id === catId));
   if (!clubes.length) return;
   const edades = Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i);
@@ -430,6 +430,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
     type Sets = { A: Set<string>; B: Set<string>; C?: Set<string>; D?: Set<string> };
     const equipos = new Map<string, Sets>(orden.map((e) => {
       const ms = miembros(e);
+      if (verano === 'usuario') return [e.club, { A: new Set<string>(), B: new Set<string>() }] as [string, Sets];
       if (!verano) return [e.club, { A: new Set(ms.filter((n) => !primeroAnio(n)).map((n) => n.id)), B: new Set(ms.filter(primeroAnio).map((n) => n.id)) }] as [string, Sets];
       // Verano: los que ya están en el club (ya con su año nuevo) se reparten por año: con 28 o más se parten en dos equipos por nivel (A y C los de 2.º año; B y D los de 1.º), con 14 a 22 es uno y lo que pasa de 22 vuelve a la bolsa.
       const nivelDe = (n: Npc): number => valorEn(n, pob, m);
@@ -606,6 +607,149 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       // Los equipos y sus letras se guardan (solo en la medida): `fijarEquipos` los respeta.
       for (const e of orden) { const t = equipos.get(e.club)!; const ls = (['A', 'B', 'C', 'D'] as const).filter((l) => t[l] && t[l]!.size > 0); for (const l of ls) for (const id of t[l]!) { LETRAS_FIJADAS.set(id, l); REPARTO_DE_INICIO.set(id, `${e.club}|${l}`); } ponerK(e, Math.max(1, ls.length)); }
     };
+    if (verano === 'usuario') {
+      // El verano del usuario (solo medida): abandonos a una lista, los que buscan fuera a una reserva, los clubes externos de más a menos atractivo reorganizan y reciben a los que buscan y al mercado; luego los
+      // colegios (con la lista de abandonos) y, al final, cada club se reorganiza como siempre (A fuerte, B de 1.º, C mixto; 14 a 22).
+      const TOPE = 22;
+      const edadDe = (n: Npc): number => edadDeJuego(n, m.dia) ?? -1;
+      const tipoDe = (e: EquipoGuardado): string => (e.colegio !== undefined ? 'colegio' : (e.tamano ?? (e.calidad >= 3 ? 'grande' : e.calidad === 2 ? 'mediano' : 'pequeno')));
+      for (const e of clubes) e.plantillaPorCategoria = { ...e.plantillaPorCategoria!, max: TOPE };
+      const externos = [...fuera];
+      const st = { abandonos: 0, buscan: 0, buscanSube: 0, buscanBaja: 0, consiguen: 0, vuelven: 0, recuperadosDeLaLista: 0, clubesSinEquipo: 0, equiposDeColegioDeshechos: 0, deColegioAMediaTabla: 0, desplazados: 0, mercadoColocados: 0, mercadoSinSitio: 0, colegiosAntes: 0, colegiosDespues: 0, mueve: {} as Record<string, number> };
+      const mueve = (de: string, a: string): void => { const k = `${de}>${a}`; st.mueve[k] = (st.mueve[k] ?? 0) + 1; };
+      type Cand = { id: string; sentido: 'mercado' | 'sube' | 'baja'; origen?: EquipoGuardado; viejo?: Npc; intentos: number; ronda2?: boolean };
+      const candidatos = new Map<string, Cand>();
+      const presentes = (e: EquipoGuardado): Npc[] => miembros(e).filter((n) => !n.id.startsWith('personaje@'));
+      const nivelDe = (n: Npc): number => valorEn(n, pob, m);
+      for (const e of clubes) if (e.colegio !== undefined && presentes(e).length >= 14) st.colegiosAntes += Math.floor(presentes(e).length / 14);
+      st.colegiosAntes = Math.max(st.colegiosAntes, 0);
+      // 0. La lista de abandonos de la categoría (último recurso de los colegios).
+      const lista = [...(DIAGNOSTICO.abandonosDelVerano ?? [])].map((id) => m.lista.get(id)).filter((n): n is Npc => !!n && n.deporte === undefined && !!n.genetica && edades.includes(edadDe(n)));
+      st.abandonos = lista.length;
+      // 1. Quién busca otras oportunidades (las mismas reglas de hoy: ambición, lo bien que juega, los padres; un suplente de un grande puede bajar a uno menor) y se va a la reserva: no pierde su sitio.
+      for (const e of [...externos, ...delColegio]) {
+        const ms = presentes(e).sort((a, b) => nivelDe(a) - nivelDe(b) || (a.id < b.id ? -1 : 1));
+        if (ms.length < 14) continue;
+        const xi = e.colegio === undefined ? new Set(v23.titulares(ms.flatMap((n) => { const puesto = puestoDeJugador(n, pob, m.val, m.dia); const valores = valoresPorPuestoDe(n, pob, m.val, m.dia); return puesto && valores ? [{ id: n.id, puesto, valores, valor: valorEnSuPuesto(n, pob, m.val, m.dia, puesto), estado: { baja: false } as never }] : []; }))) : new Set<string>();
+        const tasa = e.colegio !== undefined ? PRUEBAN_FUERA.colegio : PRUEBAN_FUERA.club;
+        for (const [i, n] of ms.entries()) {
+          const percentil = ms.length > 1 ? i / (ms.length - 1) : 0.5;
+          const gana = probabilidadDeFichar(n.rasgos, n.genetica?.padres) / 0.35;
+          const ambicion = ((n.rasgos?.caracter.ambicion ?? 0) + 50) / 100;
+          const alumnoDe = (x: EquipoGuardado): boolean => x.colegio === undefined || colegioDeNino(n) === x.colegio;
+          const mejores = pob.equipos.filter((x) => x.plantillaPorCategoria && x.colegio === undefined && x.calidad > e.calidad && alumnoDe(x));
+          let sentido: 'sube' | 'baja' | undefined;
+          if (mejores.length && rngEstable('ficha-usuario', n.genetica?.semilla ?? 0, n.id, e.club, m.dia).chance(Math.min(0.6, tasa * gana * (0.5 + percentil)))) sentido = 'sube';
+          else if (e.colegio === undefined && !xi.has(n.id) && xi.size > 0 && rngEstable('ficha-baja-usuario', n.genetica?.semilla ?? 0, n.id, e.club, m.dia).chance(0.03 + 0.12 * ambicion)) sentido = 'baja';
+          if (!sentido) continue;
+          candidatos.set(n.id, { id: n.id, sentido, origen: e, viejo: n, intentos: 0 });
+          liberar([n.id]);
+          st.buscan++; if (sentido === 'sube') st.buscanSube++; else st.buscanBaja++;
+        }
+      }
+      // El mercado: los que quieren jugar y no tienen equipo (sin los que se quedan en su colegio, que solo ven los colegios).
+      for (const a of bolsa()) if (!quedan.has(a.npc.id) && !candidatos.has(a.npc.id)) candidatos.set(a.npc.id, { id: a.npc.id, sentido: 'mercado', intentos: 0 });
+      // 2. Los clubes externos, de más a menos atractivo.
+      for (const [indice, e] of externos.entries()) {
+        const n0 = presentes(e).length;
+        if (n0 > 0 && n0 < 14) {
+          // Con muy pocos niños no hay equipo: sus niños buscan equipo.
+          st.clubesSinEquipo++;
+          for (const n of presentes(e)) { liberar([n.id]); candidatos.set(n.id, { id: n.id, sentido: 'mercado', intentos: 0 }); DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: e.club, motivo: 'cierre' }); }
+        }
+        const k = Math.max(1, Math.floor(presentes(e).length / 14));
+        e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
+        if (k <= 1) delete e.equiposPorCategoria[catId];
+        const cola = [...candidatos.values()].filter((c) => {
+          if (c.sentido === 'mercado') return true;
+          if (c.sentido === 'sube') return !!c.origen && e.calidad > c.origen.calidad && c.intentos < 3;
+          return !!c.origen && e.calidad < c.origen.calidad && c.intentos < 2 && indice > externos.indexOf(c.origen);
+        }).map((c) => ({ c, n: m.lista.get(c.id) })).filter((x): x is { c: Cand; n: Npc } => !!x.n && x.n.deporte === undefined).sort((a, b) => nivelDe(b.n) - nivelDe(a.n) || (a.c.id < b.c.id ? -1 : 1));
+        for (const { c, n } of cola) {
+          if (!candidatos.has(c.id)) continue;
+          const res = intentarEntrar(m, n, e, pob, {});
+          if (!res.entra) { c.intentos++; continue; }
+          candidatos.delete(c.id);
+          if (c.sentido === 'mercado') st.mercadoColocados++; else { st.consiguen++; mueve(tipoDe(c.origen!), tipoDe(e)); }
+          if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, { id: res.desplazado.id, sentido: 'mercado', intentos: 0 }); }
+        }
+      }
+      // 3. Los que buscaban y no encajaron vuelven a su sitio.
+      for (const c of [...candidatos.values()].filter((x) => x.sentido !== 'mercado')) { m.lista.set(c.id, c.viejo!); candidatos.delete(c.id); st.vuelven++; }
+      // Los colegios: sus alumnos del mercado entran en su colegio; con menos de 14 en un equipo, tiran de la lista de abandonos; si ni así, el equipo se deshace y sus niños buscan en los clubes de media tabla para abajo.
+      const mediaTabla = externos.slice(Math.max(0, Math.ceil(externos.length / 2) - 1));
+      const sinEquipo: Cand[] = [];
+      for (const e of delColegio) {
+        for (const a of bolsa().filter((x) => x.colegio === e.colegio && quedan.has(x.npc.id))) {
+          const n = m.lista.get(a.npc.id);
+          if (n && n.deporte === undefined) { e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: 4 }; if (intentarEntrar(m, n, e, pob, { sinPrueba: true, soloHueco: true, relajado: true }).entra) candidatos.delete(a.npc.id); }
+        }
+        let n = presentes(e).length;
+        if (n > 0 && n < 14) {
+          for (const x of lista.filter((y) => colegioDeNino(y) === e.colegio).sort((a, b) => nivelDe(b) - nivelDe(a))) {
+            if (n >= 14) break;
+            const nuevo: Npc = { ...x, dejado: (x.dejado ?? []).filter((d) => d !== pob.deporte) };
+            m.lista.set(x.id, nuevo);
+            if (intentarEntrar(m, nuevo, e, pob, { sinPrueba: true, soloHueco: true, relajado: true }).entra) { n++; st.recuperadosDeLaLista++; } else m.lista.set(x.id, x);
+          }
+        }
+        n = presentes(e).length;
+        if (n > 0 && n < 14) {
+          st.equiposDeColegioDeshechos++;
+          for (const x of presentes(e)) { liberar([x.id]); sinEquipo.push({ id: x.id, sentido: 'mercado', intentos: 0, ronda2: true }); DIAGNOSTICO.alDesplazar?.({ id: x.id, desde: e.club, motivo: 'cierre' }); }
+        }
+        const kk = Math.max(1, Math.floor(presentes(e).length / 14));
+        e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: kk };
+        if (kk <= 1) delete e.equiposPorCategoria[catId];
+      }
+      // La ronda de los que se quedaron sin equipo de colegio: de la media tabla para abajo (puede provocar desplazados y que se monte un C o un D).
+      let pendientes = sinEquipo;
+      for (let vuelta = 0; vuelta < 2 && pendientes.length; vuelta++) {
+        const siguientes: Cand[] = [];
+        for (const c of pendientes) {
+          const n = m.lista.get(c.id);
+          if (!n || n.deporte !== undefined) continue;
+          let dentro = false;
+          for (const e of mediaTabla) {
+            e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: 4 };
+            const res = intentarEntrar(m, n, e, pob, {});
+            if (res.entra) { dentro = true; st.deColegioAMediaTabla++; mueve('colegio', tipoDe(e)); if (res.desplazado) siguientes.push({ id: res.desplazado.id, sentido: 'mercado', intentos: 0 }); break; }
+          }
+          void dentro;
+        }
+        pendientes = siguientes;
+      }
+      // 4. Al final, cada club se reorganiza como siempre.
+      const reorganizar = (e: EquipoGuardado): Sets => {
+        const ms = presentes(e);
+        const T = ms.length;
+        const vacio: Sets = { A: new Set(), B: new Set() };
+        if (T < 14) { for (const x of ms) { liberar([x.id]); DIAGNOSTICO.alDesplazar?.({ id: x.id, desde: e.club, motivo: 'sobra' }); } return vacio; }
+        const pool = ms.flatMap((n) => { const puesto = puestoDeJugador(n, pob, m.val, m.dia); const valores = valoresPorPuestoDe(n, pob, m.val, m.dia); return puesto && valores ? [{ id: n.id, puesto, valores, valor: valorEnSuPuesto(n, pob, m.val, m.dia, puesto), estado: { baja: false } as never }] : []; });
+        const xi = new Set(v23.titulares(pool));
+        const porNivel = (xs: Npc[]): Npc[] => [...xs].sort((a, b) => nivelDe(b) - nivelDe(a) || (a.id < b.id ? -1 : 1));
+        let A0 = porNivel(ms.filter((x) => !primeroAnio(x) || xi.has(x.id)));
+        let B0 = porNivel(ms.filter((x) => primeroAnio(x) && !xi.has(x.id)));
+        while (A0.length < 14 && B0.length) A0.push(B0.shift()!);
+        if (B0.length && B0.length < 14) { while (A0.length < TOPE && B0.length) A0.push(B0.shift()!); }
+        const sobran: Npc[] = [];
+        if (A0.length > TOPE) { sobran.push(...A0.slice(TOPE)); A0 = A0.slice(0, TOPE); }
+        if (B0.length > TOPE) { sobran.push(...B0.slice(TOPE)); B0 = B0.slice(0, TOPE); }
+        const sobrantes = porNivel([...sobran, ...(B0.length && B0.length < 14 ? B0.splice(0) : [])]);
+        const C0 = sobrantes.length >= 14 ? sobrantes.slice(0, TOPE) : [];
+        const D0 = sobrantes.length - C0.length >= 14 ? sobrantes.slice(TOPE, 2 * TOPE) : [];
+        for (const x of sobrantes.filter((y) => !C0.includes(y) && !D0.includes(y))) { liberar([x.id]); DIAGNOSTICO.alDesplazar?.({ id: x.id, desde: e.club, motivo: 'sobra' }); }
+        return { A: new Set(A0.map((x) => x.id)), B: new Set(B0.map((x) => x.id)), ...(C0.length ? { C: new Set(C0.map((x) => x.id)) } : {}), ...(D0.length ? { D: new Set(D0.map((x) => x.id)) } : {}) };
+      };
+      for (const e of orden) equipos.set(e.club, reorganizar(e));
+      for (const e of delColegio) { const t = equipos.get(e.club); st.colegiosDespues += t ? [t.A, t.B, t.C, t.D].filter((x) => x && x.size >= 14).length : 0; }
+      st.colegiosAntes = Math.max(st.colegiosAntes, 0);
+      for (const c of candidatos.values()) if (c.sentido === 'mercado' && m.lista.get(c.id)?.deporte === undefined) st.mercadoSinSitio++;
+      tr('verano usuario', undefined, { ...st, mueve: undefined, ...Object.fromEntries(Object.entries(st.mueve).map(([k, v]) => [`mueve_${k}`, v])) });
+      equilibrar();
+      for (const [e, pl] of plantillasOriginales) e.plantillaPorCategoria = pl;
+      return;
+    }
     if (v23.subirTitulares[catId]) {
       for (const e of orden) {
         const t = equipos.get(e.club)!;
@@ -941,6 +1085,10 @@ export const DIAGNOSTICO: {
   alVerano?: (fase: string, lista: readonly Npc[], dia: number) => void;
   /** Solo para medir: el verano usa el método nuevo (los mismos pasos del reparto de inicio, con los equipos que ya existen) en vez de `completarUnaCategoria`, salvo juvenil. */
   veranoNuevo?: boolean;
+  /** Solo para medir: el verano del usuario (lista de abandonos, reserva de los que buscan fuera y clubes externos de más a menos atractivo; `docs/relevo/veranos-metodo.md`). */
+  veranoUsuario?: boolean;
+  /** Los que abandonan este verano (los llena `renovarDeportistas` con `veranoUsuario`). */
+  abandonosDelVerano?: Set<string>;
   /** Lo que pasa con un club y categoría al acomodar a los que no caben en ningún equipo (`acomodarSobrantes`). */
   alAcomodar?: NonNullable<MercadoDeFichajes['alAcomodar']>;
   alCerrar?: (d: { club: string; categoria: string; jugadores: number; equipos: number; montables: number }) => void;
@@ -977,7 +1125,7 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
     for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
     // De la categoría mayor a la menor: así, para salvar un equipo, el club puede subir de la categoría de abajo a quien sería titular arriba (que a su vez se completa después).
     for (const [catId, cat] of [...categorias].sort((a, b) => b[1].edadMin - a[1].edadMin)) {
-      if (DIAGNOSTICO.veranoNuevo && DIAGNOSTICO.variantePaso23?.maxPorEquipo[catId] !== undefined) { draftDeUnaCategoria(m, pob, cat, catId, rng, { conPrueba: o.conPrueba, conAmbicion: true }, true); cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i)); continue; }
+      if ((DIAGNOSTICO.veranoNuevo || DIAGNOSTICO.veranoUsuario) && DIAGNOSTICO.variantePaso23?.maxPorEquipo[catId] !== undefined) { draftDeUnaCategoria(m, pob, cat, catId, rng, { conPrueba: o.conPrueba, conAmbicion: true }, DIAGNOSTICO.veranoUsuario ? 'usuario' : true); cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i)); continue; }
       cerrados.push(...completarUnaCategoria(m, pob, cat, catId, o));
       cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i));
     }
@@ -1323,6 +1471,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // Los que echaron del equipo para hacer sitio al personaje vuelven a poder ser reclutados: ya es otro curso.
   // Los apartados del plazo anterior vuelven a la bolsa (su segunda oportunidad): si tampoco ahora los quiere ningún club, lo dejan para siempre.
   DIAGNOSTICO.alVerano?.('inicio', npcs, dia);
+  if (DIAGNOSTICO.veranoUsuario) DIAGNOSTICO.abandonosDelVerano = new Set();
   const segunda = new Set(npcs.filter((n) => n.apartado?.length).map((n) => n.id));
   let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
   const titulares = new Map<string, Set<string>>();
@@ -1342,6 +1491,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
       const baja = !retirado && (pob.reclutamiento.abandono
         ? dejaElDeporte(pob.reclutamiento.abandono, { edad, rasgos: n.rasgos, titular: titulares.get(pob.deporte)?.has(n.id), padres: gen.padres, ...(pares ? { nivel: pares(n) } : {}) }, pob.deporte, gen.semilla ?? 0, n.id, curso)
         : edad <= edadMaxBaja && rng.chance(probabilidadBaja));
+      if (baja && DIAGNOSTICO.veranoUsuario) (DIAGNOSTICO.abandonosDelVerano ??= new Set()).add(n.id);
       if (retirado || baja) return [sinDeporte(n, pob, baja)];
       // Quien acaba el colegio ya no puede seguir en el equipo del colegio (los de 18 y 19 años siguen en el mundo, sin colegio): queda libre para que lo fiche un club.
       const suEquipo = n.equipo !== undefined ? pob.equipos.find((e) => e.club === n.equipo) : undefined;
@@ -1362,7 +1512,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // `club.plaza_perdida` y decide él qué hace; lo único distinto es que a él nunca se le retira del deporte para siempre).
   const mercado: MercadoDeFichajes = { lista: new ListaDeTrabajo(lista.map((n) => [n.id, n])), pobs, dia, val: valoracionDe(rend), reservas: new Map() };
   for (const j of personaje) mercado.lista.set(idDelPersonaje(j.deporte), jugadorComoNpc(j, dia));
-  fichajesDeVerano(mercado, semilla, curso);
+  if (!DIAGNOSTICO.veranoUsuario) fichajesDeVerano(mercado, semilla, curso);
   DIAGNOSTICO.alVerano?.('tras fichajes', [...mercado.lista.values()], dia);
   resultado.propuestas = mercado.propuestas ?? [];
   const reservasQueQuedan = new Map(reservas);
@@ -1384,7 +1534,7 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   }
   // Los equipos se rellenan con los interesados y, después, la regla de los equipos según la demanda: cierran los que no llegan al mínimo y abren los que hacen falta para que los
   // interesados que se quedan sin equipo (tantos como el mínimo de una plantilla) lo tengan.
-  const llenos = DIAGNOSTICO.veranoNuevo ? [...mercado.lista.values()] : reclutarEnTodos([...mercado.lista.values()], mercado.pobs, dia, reservasQueQuedan, rend);
+  const llenos = DIAGNOSTICO.veranoNuevo || DIAGNOSTICO.veranoUsuario ? [...mercado.lista.values()] : reclutarEnTodos([...mercado.lista.values()], mercado.pobs, dia, reservasQueQuedan, rend);
   DIAGNOSTICO.alVerano?.('tras reclutar', llenos, dia);
   const final: MercadoDeFichajes = { lista: new ListaDeTrabajo(llenos.map((n) => [n.id, n])), pobs: mercado.pobs, dia, val: valoracionDe(rend), reservas: reservasQueQuedan };
   // No hay «draft» los años siguientes: cada uno sigue en su club; la bolsa (los que empiezan y los que se quedaron sin equipo) completa los equipos con su prueba, los que se quedan con menos de 14 se
