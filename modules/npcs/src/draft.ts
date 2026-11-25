@@ -652,13 +652,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       for (const a of bolsa()) if (!quedan.has(a.npc.id) && !candidatos.has(a.npc.id)) candidatos.set(a.npc.id, { id: a.npc.id, sentido: 'mercado', intentos: 0 });
       // 2. Los clubes externos, de más a menos atractivo.
       for (const [indice, e] of externos.entries()) {
-        const n0 = presentes(e).length;
-        if (n0 > 0 && n0 < 14) {
-          // Con muy pocos niños no hay equipo: sus niños buscan equipo.
-          st.clubesSinEquipo++;
-          for (const n of presentes(e)) { liberar([n.id]); candidatos.set(n.id, { id: n.id, sentido: 'mercado', intentos: 0 }); DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: e.club, motivo: 'cierre' }); }
-        }
-        const k = Math.min(4, Math.floor(presentes(e).length / 14) + 1);
+        const k = Math.min(4, (DIAGNOSTICO.equiposPrevios?.get(`${e.club}|${catId}`) ?? 0) + 2);
         e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
         if (k <= 1) delete e.equiposPorCategoria[catId];
         const cola = [...candidatos.values()].filter((c) => {
@@ -771,7 +765,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         for (const n of pendientesDeAcople) { liberar([n.id]); DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: antesDeLiberar.get(n.id) ?? '', motivo: 'sobra' }); candidatos.set(n.id, { id: n.id, sentido: 'mercado', intentos: 0, desplazado: true }); }
         let colocados = 0;
         for (const e of externos) {
-          const k = Math.min(4, Math.floor(presentes(e).length / 14) + 1);
+          const k = Math.min(4, (DIAGNOSTICO.equiposPrevios?.get(`${e.club}|${catId}`) ?? 0) + 2);
           e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
           const cola = pendientesDeAcople.map((n) => ({ n: m.lista.get(n.id), id: n.id })).filter((x) => !!x.n && x.n.deporte === undefined && (candidatos.get(x.id)?.intentos ?? 9) < 2);
           for (const { n, id } of cola) {
@@ -1146,6 +1140,8 @@ export const DIAGNOSTICO: {
   veranoUsuario?: boolean;
   /** Los que abandonan este verano (los llena `renovarDeportistas` con `veranoUsuario`). */
   abandonosDelVerano?: Set<string>;
+  /** Los equipos (letras distintas) de cada club y categoría del curso que acaba (`club|categoría`), para que el verano del usuario los mantenga. */
+  equiposPrevios?: Map<string, number>;
   /** Lo que pasa con un club y categoría al acomodar a los que no caben en ningún equipo (`acomodarSobrantes`). */
   alAcomodar?: NonNullable<MercadoDeFichajes['alAcomodar']>;
   alCerrar?: (d: { club: string; categoria: string; jugadores: number; equipos: number; montables: number }) => void;
@@ -1529,6 +1525,22 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
   // Los apartados del plazo anterior vuelven a la bolsa (su segunda oportunidad): si tampoco ahora los quiere ningún club, lo dejan para siempre.
   DIAGNOSTICO.alVerano?.('inicio', npcs, dia);
   if (DIAGNOSTICO.veranoUsuario) DIAGNOSTICO.abandonosDelVerano = new Set();
+  if (DIAGNOSTICO.veranoUsuario) {
+    const prev = new Map<string, number>();
+    for (const pob of pobs) {
+      const letras = new Map<string, Set<string>>();
+      for (const n of npcs) {
+        if (n.deporte !== pob.deporte || !n.equipo || !n.letra?.[pob.deporte]) continue;
+        const edadPrev = (edadDeJuego(n, dia) ?? 0) - 1;
+        const c = (pob.categorias ?? []).find((x) => edadPrev >= x.edadMin && edadPrev <= x.edadMax);
+        if (!c) continue;
+        const k = `${n.equipo}|${c.id}`;
+        (letras.get(k) ?? letras.set(k, new Set()).get(k)!).add(n.letra[pob.deporte]!);
+      }
+      for (const [k, v] of letras) prev.set(k, v.size);
+    }
+    DIAGNOSTICO.equiposPrevios = prev;
+  }
   const segunda = new Set(npcs.filter((n) => n.apartado?.length).map((n) => n.id));
   let lista = npcs.map((n) => (n.apartado ? { ...n, apartado: undefined } : n));
   const titulares = new Map<string, Set<string>>();
