@@ -615,6 +615,10 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       const tipoDe = (e: EquipoGuardado): string => (e.colegio !== undefined ? 'colegio' : (e.tamano ?? (e.calidad >= 3 ? 'grande' : e.calidad === 2 ? 'mediano' : 'pequeno')));
       for (const e of clubes) e.plantillaPorCategoria = { ...e.plantillaPorCategoria!, max: TOPE };
       const externos = [...fuera];
+      // v4: los equipos se mantienen. `kPrev` = los que el club tenía en la categoría; en el barrido se llenan primero esos (hasta 22) y solo si hace falta (quedan niños sin equipo) se abre uno más (`extra`), hasta 4 (en benjamín, 2 en los clubes grandes).
+      const kPrev = (e: EquipoGuardado): number => DIAGNOSTICO.equiposPrevios?.get(`${e.club}|${catId}`) ?? 0;
+      const kTope = (e: EquipoGuardado): number => (catId === 'benjamin' && (e.tamano ?? (e.calidad >= 3 ? 'grande' : '')) === 'grande' ? 2 : 4);
+      const kCap = (e: EquipoGuardado, extra: number): number => (kPrev(e) + extra <= 0 ? 0 : Math.min(kTope(e), Math.max(kPrev(e), extra > 0 ? kPrev(e) + extra : 0, 1)));
       const st = { abandonos: 0, buscan: 0, buscanSube: 0, buscanBaja: 0, consiguen: 0, vuelven: 0, recuperadosDeLaLista: 0, clubesSinEquipo: 0, equiposDeColegioDeshechos: 0, deColegioAMediaTabla: 0, desplazados: 0, mercadoColocados: 0, mercadoSinSitio: 0, colegiosAntes: 0, colegiosDespues: 0, sobranEnSuClub: 0, sobranEnOtroClub: 0, sobranSinSitio: 0, vueltasDeAcople: 0, mueve: {} as Record<string, number> };
       const mueve = (de: string, a: string): void => { const k = `${de}>${a}`; st.mueve[k] = (st.mueve[k] ?? 0) + 1; };
       type Cand = { id: string; sentido: 'mercado' | 'sube' | 'baja'; origen?: EquipoGuardado; viejo?: Npc; intentos: number; ronda2?: boolean; desplazado?: boolean };
@@ -650,23 +654,28 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       }
       // El mercado: los que quieren jugar y no tienen equipo (sin los que se quedan en su colegio, que solo ven los colegios).
       for (const a of bolsa()) if (!quedan.has(a.npc.id) && !candidatos.has(a.npc.id)) candidatos.set(a.npc.id, { id: a.npc.id, sentido: 'mercado', intentos: 0 });
-      // 2. Los clubes externos, de más a menos atractivo.
-      for (const [indice, e] of externos.entries()) {
-        const k = Math.min(4, (DIAGNOSTICO.equiposPrevios?.get(`${e.club}|${catId}`) ?? 0) + 2);
-        e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
-        if (k <= 1) delete e.equiposPorCategoria[catId];
-        const cola = [...candidatos.values()].filter((c) => {
-          if (c.sentido === 'mercado') return !c.desplazado || c.intentos < 2;
-          if (c.sentido === 'sube') return !!c.origen && e.calidad > c.origen.calidad && c.intentos < 3;
-          return !!c.origen && e.calidad < c.origen.calidad && c.intentos < 2 && indice > externos.indexOf(c.origen);
-        }).map((c) => ({ c, n: m.lista.get(c.id) })).filter((x): x is { c: Cand; n: Npc } => !!x.n && x.n.deporte === undefined).sort((a, b) => nivelDe(b.n) - nivelDe(a.n) || (a.c.id < b.c.id ? -1 : 1));
-        for (const { c, n } of cola) {
-          if (!candidatos.has(c.id)) continue;
-          const res = intentarEntrar(m, n, e, pob, {});
-          if (!res.entra) { c.intentos++; continue; }
-          candidatos.delete(c.id);
-          if (c.sentido === 'mercado') st.mercadoColocados++; else { st.consiguen++; mueve(tipoDe(c.origen!), tipoDe(e)); }
-          if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, { id: res.desplazado.id, sentido: 'mercado', intentos: 0, desplazado: true }); }
+      // 2. Los clubes externos, de más a menos atractivo: primero con los equipos que ya hay y, si quedan niños del mercado sin sitio, abriendo un equipo más (y otro) donde haga falta.
+      for (const extra of [0, 1, 2]) {
+        if (extra > 0 && ![...candidatos.values()].some((c) => c.sentido === 'mercado' && (!c.desplazado || c.intentos < 2))) break;
+        for (const [indice, e] of externos.entries()) {
+          const k = kCap(e, extra);
+          if (k < 1) continue;
+          e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
+          if (k <= 1) delete e.equiposPorCategoria[catId];
+          const cola = [...candidatos.values()].filter((c) => {
+            if (c.sentido === 'mercado') return !c.desplazado || c.intentos < 2;
+            if (extra > 0) return false;
+            if (c.sentido === 'sube') return !!c.origen && e.calidad > c.origen.calidad && c.intentos < 3;
+            return !!c.origen && e.calidad < c.origen.calidad && c.intentos < 2 && indice > externos.indexOf(c.origen);
+          }).map((c) => ({ c, n: m.lista.get(c.id) })).filter((x): x is { c: Cand; n: Npc } => !!x.n && x.n.deporte === undefined).sort((a, b) => nivelDe(b.n) - nivelDe(a.n) || (a.c.id < b.c.id ? -1 : 1));
+          for (const { c, n } of cola) {
+            if (!candidatos.has(c.id)) continue;
+            const res = intentarEntrar(m, n, e, pob, {});
+            if (!res.entra) { c.intentos++; continue; }
+            candidatos.delete(c.id);
+            if (c.sentido === 'mercado') st.mercadoColocados++; else { st.consiguen++; mueve(tipoDe(c.origen!), tipoDe(e)); }
+            if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, { id: res.desplazado.id, sentido: 'mercado', intentos: 0, desplazado: true }); }
+          }
         }
       }
       // 3. Los que buscaban y no encajaron vuelven a su sitio.
@@ -730,22 +739,28 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           const sobranJ = equiposJ.flatMap((eq) => eq.slice(TOPE));
           return { sets: { A: new Set((out[0] ?? []).map((x) => x.id)), B: new Set((out[1] ?? []).map((x) => x.id)), ...(out[2] ? { C: new Set(out[2].map((x) => x.id)) } : {}) }, sobran: sobranJ };
         }
-        // A = los de 2.º año más los mejores de 1.º hasta 22 (sin dejar al B por debajo de 14); B = los mejores de 1.º que quedan; lo que pasa de 22 en uno forma un C mixto (y un D); lo que no cabe, busca equipo.
+        // v4: el club conserva los equipos que tenía (`kPrev`) y reparte a sus jugadores dentro de ellos, sin decidir de nuevo cuántos son: A = los de 2.º año más los mejores de 1.º hasta 22 sin dejar a los
+        // siguientes por debajo de 14; B = los mejores de 1.º que quedan; C y D mixtos. Un equipo que no llega a 14 ni así desaparece; los que no caben en los equipos que hay (más de 22 por equipo) forman uno nuevo si son 14 o más.
         const dos = porNivel(ms.filter((x) => !primeroAnio(x))), uno = porNivel(ms.filter(primeroAnio));
-        let A0: Npc[] = [], B0: Npc[] = [], resto: Npc[] = [];
-        if (dos.length >= TOPE) { A0 = dos.slice(0, TOPE); const poolB = porNivel([...dos.slice(TOPE), ...uno]); B0 = poolB.slice(0, TOPE); resto = poolB.slice(TOPE); }
-        else {
-          A0 = [...dos];
-          const primeros = [...uno];
-          while (A0.length < TOPE && primeros.length > 14) A0.push(primeros.shift()!);
-          while (A0.length < 14 && primeros.length) A0.push(primeros.shift()!);
-          if (primeros.length < 14) { while (A0.length < TOPE && primeros.length) A0.push(primeros.shift()!); resto = primeros; }
-          else { B0 = primeros.slice(0, TOPE); resto = primeros.slice(TOPE); }
+        const slots = Math.max(kPrev(e), 1);
+        const viables = Math.max(1, Math.min(slots, Math.floor(T / 14)));
+        const equiposN: Npc[][] = [];
+        let pendiente = [...dos, ...uno];
+        for (let i = 0; i < viables && pendiente.length; i++) {
+          const tam = Math.min(TOPE, i === viables - 1 ? pendiente.length : pendiente.length - 14 * (viables - 1 - i));
+          const eq = pendiente.slice(0, Math.max(tam, 0));
+          equiposN.push(eq);
+          const dentro = new Set(eq.map((x) => x.id));
+          // Para los siguientes, primero los de 1.º que quedan (por nivel) y luego los de 2.º que sobren.
+          const resto = pendiente.filter((x) => !dentro.has(x.id));
+          pendiente = [...porNivel(resto.filter(primeroAnio)), ...porNivel(resto.filter((x) => !primeroAnio(x)))];
         }
-        const sob = porNivel(resto);
-        const C0 = sob.length >= 14 ? sob.slice(0, TOPE) : [];
-        const D0 = sob.length - C0.length >= 14 ? sob.slice(TOPE, 2 * TOPE) : [];
-        return { sets: { A: new Set(A0.map((x) => x.id)), B: new Set(B0.map((x) => x.id)), ...(C0.length ? { C: new Set(C0.map((x) => x.id)) } : {}), ...(D0.length ? { D: new Set(D0.map((x) => x.id)) } : {}) }, sobran: sob.filter((x) => !C0.includes(x) && !D0.includes(x)) };
+        // Lo que no cabe: un equipo nuevo si hay 14 o más (hasta 4 por club); si no, a buscar.
+        const sobran: Npc[] = [];
+        while (pendiente.length >= 14 && equiposN.length < kTope(e)) { const eq = pendiente.slice(0, TOPE); equiposN.push(eq); pendiente = pendiente.slice(TOPE); }
+        sobran.push(...pendiente);
+        const sets: Sets = { A: new Set((equiposN[0] ?? []).map((x) => x.id)), B: new Set((equiposN[1] ?? []).map((x) => x.id)), ...(equiposN[2] ? { C: new Set(equiposN[2].map((x) => x.id)) } : {}), ...(equiposN[3] ? { D: new Set(equiposN[3].map((x) => x.id)) } : {}) };
+        return { sets, sobran };
       };
       for (let vuelta = 0; vuelta < 3; vuelta++) {
         const sobran: { n: Npc; e: EquipoGuardado }[] = [];
@@ -764,19 +779,23 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         const antesDeLiberar = new Map(pendientesDeAcople.map((n) => [n.id, n.equipo]));
         for (const n of pendientesDeAcople) { liberar([n.id]); DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: antesDeLiberar.get(n.id) ?? '', motivo: 'sobra' }); candidatos.set(n.id, { id: n.id, sentido: 'mercado', intentos: 0, desplazado: true }); }
         let colocados = 0;
-        for (const e of externos) {
-          const k = Math.min(4, (DIAGNOSTICO.equiposPrevios?.get(`${e.club}|${catId}`) ?? 0) + 2);
-          e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
-          const cola = pendientesDeAcople.map((n) => ({ n: m.lista.get(n.id), id: n.id })).filter((x) => !!x.n && x.n.deporte === undefined && (candidatos.get(x.id)?.intentos ?? 9) < 2);
-          for (const { n, id } of cola) {
-            if (!n) continue;
-            const c = candidatos.get(id);
-            if (!c) continue;
-            const res = intentarEntrar(m, n, e, pob, {});
-            if (!res.entra) { c.intentos++; continue; }
-            candidatos.delete(id); colocados++; st.sobranEnOtroClub++;
-            if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, { id: res.desplazado.id, sentido: 'mercado', intentos: 0, desplazado: true }); pendientesDeAcople.push(res.desplazado); }
+        for (const extra of [0, 1, 2]) {
+          for (const e of externos) {
+            const k = kCap(e, extra);
+            if (k < 1) continue;
+            e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
+            const cola = pendientesDeAcople.map((n) => ({ n: m.lista.get(n.id), id: n.id })).filter((x) => !!x.n && x.n.deporte === undefined && (candidatos.get(x.id)?.intentos ?? 9) < 2);
+            for (const { n, id } of cola) {
+              if (!n) continue;
+              const c = candidatos.get(id);
+              if (!c) continue;
+              const res = intentarEntrar(m, n, e, pob, {});
+              if (!res.entra) { c.intentos++; continue; }
+              candidatos.delete(id); colocados++; st.sobranEnOtroClub++;
+              if (res.desplazado) { st.desplazados++; candidatos.set(res.desplazado.id, { id: res.desplazado.id, sentido: 'mercado', intentos: 0, desplazado: true }); pendientesDeAcople.push(res.desplazado); }
+            }
           }
+          if (![...pendientesDeAcople].some((n) => candidatos.has(n.id))) break;
         }
         if (!colocados) break;
       }
