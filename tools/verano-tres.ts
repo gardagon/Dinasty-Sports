@@ -1,6 +1,6 @@
 /**
  * Tres veranos seguidos con el verano del usuario (`docs/relevo/veranos-metodo.md`): ¿es estable la base? Solo mide: no cambia el juego.
- * `npx tsx tools/verano-tres.ts <semilla> [m|f]`: el reparto nuevo de inicio (chicos, benjamín y alevín mixtos) y tres veranos seguidos con `DIAGNOSTICO.veranoUsuario`;
+ * `npx tsx tools/verano-tres.ts <semilla> [m|f] [veranos]`: el reparto nuevo de inicio (chicos, benjamín y alevín mixtos) y tres veranos seguidos con `DIAGNOSTICO.veranoUsuario`;
  * tras cada uno cuenta los equipos por categoría y tipo de club, los de menos de 14, los niños que quieren jugar y no tienen equipo y los equipos de colegio. Salida: `#T {json}`.
  */
 import { PAIS_CIUDAD_GRANDE, registrarPais } from '@ds/contracts';
@@ -10,7 +10,8 @@ import { convocarYAlinear, futbol } from '@ds/mod-futbol';
 import { DIAGNOSTICO, LETRAS_FIJADAS, MEDIDA, SESGO_DE_SEXO, edadDeJuego, interesDe, type NpcsState } from '@ds/mod-npcs';
 import type { Npc } from '@ds/mod-npcs';
 
-const [semillaTxt = '51', mundo = 'm'] = process.argv.slice(2);
+const [semillaTxt = '51', mundo = 'm', veranosTxt = '3'] = process.argv.slice(2);
+const VERANOS = Number(veranosTxt);
 const seed = Number(semillaTxt);
 registrarPais(PAIS_CIUDAD_GRANDE);
 const titulares = (js: unknown): string[] => convocarYAlinear(js as never).titulares.map((x) => x.id);
@@ -70,10 +71,14 @@ const juvPorClub = (): Record<string, number> => {
 const fotos: { momento: string; foto: Foto; juvClub: Record<string, number> }[] = [{ momento: 'inicio', foto: foto((g.time.week - g.time.schoolWeek) * 7), juvClub: juvPorClub() }];
 DIAGNOSTICO.veranoUsuario = true;
 (DIAGNOSTICO.variantePaso23 as { maxPorEquipo: Record<string, number> }).maxPorEquipo.juvenil = 22;
-for (let v = 1; v <= 3; v++) {
+const usuario: { verano: number; juvenil: Record<string, number> }[] = [];
+let veranoActual = 0;
+DIAGNOSTICO.traza = (e) => { if (e.fase === 'verano usuario' && e.categoria === 'juvenil') usuario.push({ verano: veranoActual, juvenil: Object.fromEntries(Object.entries(e.datos).filter(([, v]) => typeof v === 'number')) as Record<string, number> }); };
+for (let v = 1; v <= VERANOS; v++) {
+  veranoActual = v;
   LETRAS_FIJADAS.clear();
   advanceToWeek(g, 'gen.descansar', 48 + 52 * (v - 1) + 6, 2, 15);
   fotos.push({ momento: `verano ${v}`, foto: foto((g.time.week - g.time.schoolWeek) * 7), juvClub: juvPorClub() });
   advanceToWeek(g, 'gen.descansar', 48 + 52 * v, 2, 15);
 }
-console.log(`#T ${JSON.stringify({ seed, mundo, fotos })}`);
+console.log(`#T ${JSON.stringify({ seed, mundo, fotos, usuario })}`);

@@ -697,3 +697,43 @@ Equipos de juvenil por mundo, antes → después: verano 1: 14→15 15→13 13�
 
 **Mejora mucho, pero no llega al 99 %.** En 331 clubes-verano el número de equipos de juvenil cambia en 56 (17 %): se mantiene el **83 %** (con v3, el 70 %). Ya no sobran juveniles (de 96 sin equipo a 7), se eliminan 0,3 equipos por verano en el barrido y el primer verano incluso crea equipos. **Pero el total de juveniles baja verano a verano (303 → 263 → 234)** y, con el mínimo de 14, el club pierde un equipo cuando su plantilla ya no da para 14 por equipo. La causa no es el reparto sino la población: abandonan ~90 al año y se retiran los de 3.º, y entran menos de los que se van (solo los cadetes que quieren seguir). Con equipos que se mantienen pero sin más gente, el ajuste sale en los clubes pequeños y, a la larga, en los A de menos jugadores. Palancas posibles (sin aplicar): (a) que el C pueda bajar de 14 un año (un equipo 'de 12 a 13') si el club lo tenía, (b) más inflow (reclutar en el mercado a quien no jugaba, como en benjamín), (c) menos abandonos en juvenil.
 
+## B16) Juvenil v5 y ocho veranos seguidos (semillas 51–60, chicos)
+
+Matices del usuario (`modules/npcs/src/draft.ts`, solo `veranoUsuario`; `typecheck` y `huella -- 60` idénticos; v4 en el commit `6477b8f`):
+
+1. **Se recupera a quien abandona si deja a su equipo sin los 14.** Si el club (externo) tiene menos de `14 × equipos que tenía` jugadores de juvenil, quienes iban a abandonar *de ese club* no abandonan: se quedan, los mejores primero, hasta cubrir lo que falta. Si la reorganización expulsa a uno de ellos, no abandona: va al club que lo necesita (el que tiene menos de 14 por equipo), por cercanía de nivel.
+2. **Si desaparece un B, el C pasa a ser el B** (los equipos se reparten siempre por orden: A, B, C; si un club solo da para dos, el segundo es el de los de 1.er año). **Al año siguiente, si se puede, se vuelve a crear:** cada club recuerda el máximo de equipos de juvenil que ha tenido (`techoJ`) y vuelve a montarlo en cuanto la plantilla da para 14 por equipo; los de 1.er año (los cadetes que suben) alimentan el último.
+
+### Juvenil por verano (media de 10 semillas; el verano 0 es el inicio)
+
+| verano | equipos | A / B / C | jugadores | sin equipo | abandonos | recuperados | expulsados a otro club | equipos eliminados | C→B | B recreados |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 13,9 | 10,0 / 3,0 / 0,9 | 301 | 96 | | | | | | |
+| 1 | 14,8 | 11,2 / 2,7 / 0,9 | 303 | 48 | 96,3 | 9,4 | 0,2 | 0,3 | 0 | 1,6 |
+| 2 | 13,6 | 10,2 / 2,6 / 0,8 | 276 | 8 | 90,8 | 13,4 | 0,3 | 0,2 | 0,1 | 0 |
+| 3 | 12,4 | 9,1 / 2,5 / 0,8 | 248 | 8 | 73,1 | 12,9 | 1,2 | 0,1 | 0 | 0,1 |
+| 4 | 11,8 | 8,5 / 2,5 / 0,8 | 234 | 6 | 67,9 | 14,9 | 1,2 | 0 | 0 | 0 |
+| 5 | 11,6 | 8,4 / 2,4 / 0,8 | 226 | 4 | 60,0 | 14,0 | 0,9 | 0,1 | 0 | 0,2 |
+| 6 | 11,1 | 7,9 / 2,4 / 0,8 | 216 | 3 | 56,1 | 16,6 | 1,5 | 0,1 | 0 | 0,1 |
+| 7 | 10,3 | 7,2 / 2,4 / 0,7 | 203 | 4 | 50,2 | 15,5 | 1,4 | 0,1 | 0,1 | 0,1 |
+| 8 | 9,7 | 6,9 / 2,2 / 0,6 | 188 | 2 | 45,4 | 11,5 | 0,8 | 0,3 | 0,1 | 0 |
+
+### Estabilidad del número de equipos de juvenil (% de clubes que cambian en cada verano)
+
+v1: 23/116 (20 %) · v2: 12/112 (11 %) · v3: 14/103 (14 %) · v4: 6/91 (7 %) · v5: 6/87 (7 %) · v6: 7/84 (8 %) · v7: 10/80 (12 %) · v8: 6/72 (8 %). Mundos (de 10) en que cambia el total: 8, 7, 8, 4, 4, 5, 6, 5.
+**Total: 84 de 745 clubes-verano cambian (11,3 %); de los veranos 4 a 8, 35 de 414 (8,5 %): ~91 % estables, no el 99 %.** Frente a v4 (83 %) mejora, y los equipos eliminados son rarísimos (0,1–0,3 por verano). Lo que queda no es eliminar equipos de entrada sino **perder jugadores**: los A bajan (11,2 → 6,9) porque los que quedan son menos.
+
+### Las demás categorías en los mismos veranos (equipos y, entre paréntesis, jugadores)
+
+| | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|---|
+| benjamín | 18,8 (307) | 15,6 (293) | 16,1 (297) | 16,1 (303) | 16,0 (297) | 15,7 (298) | 15,7 (296) | 15,9 (298) | 15,2 (289) |
+| alevín | 18,2 (301) | 15,4 (281) | 14,3 (262) | 13,8 (252) | 14,0 (255) | 14,3 (258) | 13,8 (251) | 13,7 (252) | 13,8 (254) |
+| infantil | 17,0 (277) | 14,0 (260) | 12,8 (232) | 11,8 (219) | 10,8 (209) | 10,2 (199) | 10,1 (200) | 10,2 (200) | 10,1 (200) |
+| cadete | 17,3 (279) | 13,3 (244) | 12,2 (230) | 11,9 (215) | 10,3 (197) | 9,4 (185) | 9,0 (175) | 8,6 (167) | 8,4 (167) |
+| **total** | 85,2 (1466) | 73,1 (1381) | 69,0 (1297) | 66,0 (1237) | 62,9 (1191) | 61,2 (1166) | 59,7 (1138) | 58,7 (1120) | 57,2 (1098) |
+
+Menos de 14: 0 en todos los veranos. Sin equipo (todas las categorías): 97, 53, 18, 15, 14, 16, 12, 13, 10.
+
+**¿Se estabiliza?** Cada categoría se estabiliza **más tarde que la anterior**, como una cascada: benjamín desde el verano 1 (~296 jugadores, 15–16 equipos), alevín desde el 3 (~254, 14), infantil desde el 6 (~200, 10), cadete aún baja en el 8 (167, 8,4; parece llegar a ~160 hacia el 9–10), **juvenil sigue bajando en el 8 (188 jugadores, 9,7 equipos)**: ni el número de juveniles ni de equipos se recupera aún; cada categoría de arriba hereda el descenso de la de abajo y le cuesta unos tres veranos más. Estimación: el juvenil se estabilizaría cerca de los 150 jugadores y 7–8 equipos hacia el verano 11–12; el mundo entero, en unos 57–54 equipos (frente a 85 al empezar), porque el reparto inicial tenía equipos de 18 y los veranos los dejan en los jugadores que de verdad quieren jugar. Palancas si se quiere más (sin aplicar): más entrada en cada categoría (reclutar a quien no jugaba, como en benjamín), menos abandonos, o dejar que un equipo baje de 14 un año.
+
