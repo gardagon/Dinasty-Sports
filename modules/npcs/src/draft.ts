@@ -625,9 +625,9 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       const v5 = catId === 'benjamin' || catId === 'alevin';
       const creados = new Map<string, number>();
       const kCap = (e: EquipoGuardado, extra: number): number => (kPrev(e) + extra <= 0 ? 0 : Math.min(kTope(e), Math.max(kPrev(e), extra > 0 ? kPrev(e) + extra : 0, 1)));
-      const st = { abandonos: 0, buscan: 0, buscanSube: 0, buscanBaja: 0, consiguen: 0, vuelven: 0, recuperadosDeLaLista: 0, clubesSinEquipo: 0, equiposDeColegioDeshechos: 0, deColegioAMediaTabla: 0, desplazados: 0, mercadoColocados: 0, mercadoSinSitio: 0, colegiosAntes: 0, colegiosDespues: 0, sobranEnSuClub: 0, sobranEnOtroClub: 0, sobranSinSitio: 0, vueltasDeAcople: 0, equiposNuevosDeMercado: 0, pruebasJuvenil: 0, encuentranJuvenil: 0, encuentranTrasFallar: 0, mueve: {} as Record<string, number> };
+      const st = { elimJEquipos: 0, elimJJugadores: 0, elimJFalta1: 0, elimJFalta2: 0, elimJFalta3: 0, elimJFalta4a6: 0, elimJFalta7mas: 0, plazasLibres: 0, plazasLibresConFuera: 0, equiposConPlazaConFuera: 0, fueraJuvenil: 0, abandonos: 0, buscan: 0, buscanSube: 0, buscanBaja: 0, consiguen: 0, vuelven: 0, recuperadosDeLaLista: 0, clubesSinEquipo: 0, equiposDeColegioDeshechos: 0, deColegioAMediaTabla: 0, desplazados: 0, mercadoColocados: 0, mercadoSinSitio: 0, colegiosAntes: 0, colegiosDespues: 0, sobranEnSuClub: 0, sobranEnOtroClub: 0, sobranSinSitio: 0, vueltasDeAcople: 0, equiposNuevosDeMercado: 0, pruebasJuvenil: 0, encuentranJuvenil: 0, encuentranTrasFallar: 0, mueve: {} as Record<string, number> };
       const mueve = (de: string, a: string): void => { const k = `${de}>${a}`; st.mueve[k] = (st.mueve[k] ?? 0) + 1; };
-      type Cand = { id: string; sentido: 'mercado' | 'sube' | 'baja'; origen?: EquipoGuardado; viejo?: Npc; intentos: number; ronda2?: boolean; desplazado?: boolean; max?: number };
+      type Cand = { id: string; sentido: 'mercado' | 'sube' | 'baja'; origen?: EquipoGuardado; viejo?: Npc; intentos: number; ronda2?: boolean; desplazado?: boolean; max?: number; orden?: string[] };
       const candidatos = new Map<string, Cand>();
       const presentes = (e: EquipoGuardado): Npc[] => miembros(e).filter((n) => !n.id.startsWith('personaje@'));
       const nivelDe = (n: Npc): number => valorEn(n, pob, m);
@@ -662,9 +662,11 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       for (const a of bolsa()) if (!quedan.has(a.npc.id) && !candidatos.has(a.npc.id)) candidatos.set(a.npc.id, nuevoCand(a.npc, a.npc.id, false));
       // 2. Los clubes externos, de más a menos atractivo: primero con los equipos que ya hay y, si quedan niños del mercado sin sitio, abriendo equipos.
       const mercadoPendiente = (): number => [...candidatos.values()].filter((c) => c.sentido === 'mercado' && c.intentos < (c.max ?? (c.desplazado ? 2 : 999))).length;
-      const fases: { max: number; extra: number; nuevos?: boolean; nivel?: boolean }[] = catId === 'juvenil' ? [{ max: TOPE, extra: 0, nivel: true }, { max: TOPE, extra: 0 }, { max: TOPE, extra: 1 }, { max: TOPE, extra: 2 }] : v5 ? [{ max: 18, extra: 0 }, { max: 18, extra: 1, nuevos: true }, { max: 18, extra: 2, nuevos: true }, { max: 22, extra: 0 }] : [{ max: TOPE, extra: 0 }, { max: TOPE, extra: 1 }, { max: TOPE, extra: 2 }];
-      // El «club de su nivel» de un juvenil: aquel donde sería titular de verdad, es decir, donde vale más que el titular más flojo de su once (el 11.º mejor del club en la categoría).
-      const umbralDe = (e: EquipoGuardado): number => { const v = presentes(e).map(nivelDe).sort((a, b) => b - a); return v.length ? v[Math.min(10, v.length - 1)] : -Infinity; };
+      const fases: { max: number; extra: number; nuevos?: boolean; nivel?: boolean }[] = catId === 'juvenil' ? [...Array(6).fill({ max: TOPE, extra: 0 }), ...Array(6).fill({ max: TOPE, extra: 1 }), ...Array(6).fill({ max: TOPE, extra: 2 })] as { max: number; extra: number }[] : v5 ? [{ max: 18, extra: 0 }, { max: 18, extra: 1, nuevos: true }, { max: 18, extra: 2, nuevos: true }, { max: 22, extra: 0 }] : [{ max: TOPE, extra: 0 }, { max: TOPE, extra: 1 }, { max: TOPE, extra: 2 }];
+      // El nivel de un club juvenil: la media de sus 11 mejores jugadores (su once) al empezar el barrido. Cada juvenil sin equipo prueba primero en el club cuyo nivel se parece más al suyo, luego en el siguiente más cercano, y así hasta agotar sus pruebas.
+      const nivelClub = new Map<string, number>();
+      if (catId === 'juvenil') { const todos = externos.map((e) => presentes(e).map(nivelDe).sort((a, b) => b - a).slice(0, 11)); const media = (xs: number[]): number => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN); const global = media(todos.flat()); externos.forEach((e, i) => nivelClub.set(e.club, Number.isNaN(media(todos[i])) ? global : media(todos[i]))); }
+      const ordenDe = (c: Cand, n: Npc): string[] => (c.orden ??= [...externos].sort((a, b) => Math.abs((nivelClub.get(a.club) ?? 0) - nivelDe(n)) - Math.abs((nivelClub.get(b.club) ?? 0) - nivelDe(n)) || externos.indexOf(a) - externos.indexOf(b)).map((x) => x.club));
       for (const fase of fases) {
         if (fase.extra > 0 && (!mercadoPendiente() || (fase.nuevos && mercadoPendiente() < 14))) continue;
         for (const e of clubes) e.plantillaPorCategoria = { ...e.plantillaPorCategoria!, max: fase.max };
@@ -678,9 +680,8 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           e.equiposPorCategoria = { ...e.equiposPorCategoria, [catId]: k };
           if (k <= 1) delete e.equiposPorCategoria[catId];
           const antes = presentes(e).length;
-          const umbral = fase.nivel ? umbralDe(e) : -Infinity;
           const cola = [...candidatos.values()].filter((c) => {
-            if (fase.nivel && !(c.sentido === 'mercado' && c.max !== undefined && nivelDe(m.lista.get(c.id) ?? ({} as Npc)) >= umbral)) return false;
+            if (c.max !== undefined && c.sentido === 'mercado') { const nj = m.lista.get(c.id); if (!nj || ordenDe(c, nj)[c.intentos] !== e.club) return false; }
             if (c.sentido === 'mercado') return c.intentos < (c.max ?? (c.desplazado ? 2 : 999)) || (v5 && fase.max === 22 && c.max === undefined);
             if (fase.extra > 0 || (v5 && fase.max === 22)) return false;
             if (c.sentido === 'sube') return !!c.origen && e.calidad > c.origen.calidad && c.intentos < 3;
@@ -749,6 +750,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       }
       // 4. Al final, cada club se reorganiza como siempre.
       // 4. Al final, cada club se reorganiza como siempre; quien no cabe en un equipo de 14 a 22 busca otro (en su club si hay sitio en otra letra; si no, en otros clubes, con el barrido de siempre).
+      let registrandoFinal = false;
       const reorganizar = (e: EquipoGuardado): { sets: Sets; sobran: Npc[] } => {
         const ms = presentes(e);
         const T = ms.length;
@@ -765,17 +767,36 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
             const xi = xiDeJ([...equiposJ[i], ...equiposJ[i - 1]]);
             for (const x of porNivel(equiposJ[i].filter((y) => xi.has(y.id)))) { if (equiposJ[i].length - 1 < 14) break; equiposJ[i] = equiposJ[i].filter((y) => y.id !== x.id); equiposJ[i - 1] = [...equiposJ[i - 1], x]; }
           }
-          // La cascada del usuario: lo que pasa de 22 en un equipo baja al de abajo (el de 1.er año del A baja al B, el del B baja al C; el más joven y, entre ellos, el más flojo); en el último equipo sale el reserva. Hasta 3 rondas.
+          // La cascada del usuario, mirando el puesto: si un equipo pasa de 22, en el grupo de puestos más pasado de su cupo, el de 1.er año (el más joven, el más flojo) baja al equipo de abajo (el del A al B, el del B al C);
+          // si no hay ninguno de 1.er año en ese grupo, sale el reserva de 2.º (el más flojo del grupo). En el último equipo sale el más flojo del grupo. Hasta 3 rondas.
           const sobranJ: Npc[] = [];
+          const grupoJ = (x: Npc): string => { const pu = puestoDeJugador(x, pob, m.val, m.dia); return (pu && grupoDePuesto(pob.puestos!, pu)) || '?'; };
           if (!DIAGNOSTICO.juvenilAntiguo) {
+            const cupos = cuposPorGrupo(pob.puestos!, TOPE);
             for (let ronda = 0; ronda < 3; ronda++) {
               for (let i = 0; i < equiposJ.length; i++) {
                 while (equiposJ[i].length > TOPE) {
-                  const candidatoABajar = [...equiposJ[i]].sort((a, b) => anio(a) - anio(b) || nivelDe(a) - nivelDe(b) || (a.id < b.id ? -1 : 1))[0]; // el de 1.er año más flojo
-                  equiposJ[i] = equiposJ[i].filter((y) => y.id !== candidatoABajar.id);
-                  if (i + 1 < equiposJ.length) equiposJ[i + 1] = [...equiposJ[i + 1], candidatoABajar]; else sobranJ.push(candidatoABajar);
+                  const cuenta = new Map<string, number>();
+                  for (const x of equiposJ[i]) cuenta.set(grupoJ(x), (cuenta.get(grupoJ(x)) ?? 0) + 1);
+                  const g = [...cuenta.entries()].sort((a, b) => b[1] - (cupos[b[0]] ?? 0) - (a[1] - (cupos[a[0]] ?? 0)) || (a[0] < b[0] ? -1 : 1))[0][0];
+                  const delG = equiposJ[i].filter((x) => grupoJ(x) === g).sort((a, b) => anio(a) - anio(b) || nivelDe(a) - nivelDe(b) || (a.id < b.id ? -1 : 1));
+                  const ultimo = i + 1 >= equiposJ.length;
+                  const primeros = delG.filter((x) => anio(x) <= 1);
+                  const elegido = ultimo ? delG.sort((a, b) => nivelDe(a) - nivelDe(b) || (a.id < b.id ? -1 : 1))[0] : primeros[0] ?? delG.filter((x) => anio(x) >= 2).sort((a, b) => nivelDe(a) - nivelDe(b) || (a.id < b.id ? -1 : 1))[0] ?? delG[0];
+                  equiposJ[i] = equiposJ[i].filter((y) => y.id !== elegido.id);
+                  if (!ultimo && primeros.length && anio(elegido) <= 1) equiposJ[i + 1] = [...equiposJ[i + 1], elegido]; else sobranJ.push(elegido);
                 }
               }
+            }
+          }
+          // Medida (solo en la última pasada): los equipos que se pierden respecto a los que el club tenía y cuántos jugadores les faltaban para el equipo que no sale.
+          if (registrandoFinal) {
+            const antes = kPrev(e), ahora = equiposJ.length;
+            if (ahora < antes) {
+              const f3 = y3.length, f2 = y2.length, f1 = y1.length;
+              const falta = ahora === 0 ? Math.max(0, 14 - T) : ahora === 1 ? Math.max(0, 14 - f1) + Math.max(0, 14 - (f3 + f2)) : Math.max(0, 14 - f3) + Math.max(0, 14 - f2) + Math.max(0, 14 - f1);
+              st.elimJEquipos += antes - ahora; st.elimJJugadores += T;
+              if (falta <= 0) st.elimJFalta1 += 0; else if (falta === 1) st.elimJFalta1++; else if (falta === 2) st.elimJFalta2++; else if (falta === 3) st.elimJFalta3++; else if (falta <= 6) st.elimJFalta4a6++; else st.elimJFalta7mas++;
             }
           }
           const out = equiposJ.map((eq) => porNivel(eq).slice(0, TOPE));
@@ -850,6 +871,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
         if (!colocados) break;
       }
       // Última pasada: con lo que han dejado los barridos, cada club monta sus equipos; quien aún no cabe en ninguno queda sin equipo.
+      registrandoFinal = true;
       for (const e of orden) {
         const r = reorganizar(e);
         equipos.set(e.club, r.sets);
@@ -858,6 +880,12 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
           const letras = (['A', 'B', 'C', 'D'] as const).filter((l) => t[l] && t[l]!.size > 0 && t[l]!.size < TOPE && (l !== 'B' || primeroAnio(n)));
           if (letras.length) { t[letras[0]]!.add(n.id); st.sobranEnSuClub++; } else { liberar([n.id]); st.sobranSinSitio++; DIAGNOSTICO.alDesplazar?.({ id: n.id, desde: e.club, motivo: 'sobra' }); }
         }
+      }
+      registrandoFinal = false;
+      if (catId === 'juvenil') {
+        const fuera = [...candidatos.values()].filter((c) => c.sentido === 'mercado' && m.lista.get(c.id)?.deporte === undefined).length;
+        st.fueraJuvenil = fuera;
+        for (const e of orden) { const t = equipos.get(e.club); if (!t) continue; for (const q of [t.A, t.B, t.C, t.D]) if (q && q.size >= 14) { st.plazasLibres += TOPE - q.size; if (fuera > 0 && q.size < TOPE) { st.plazasLibresConFuera += TOPE - q.size; st.equiposConPlazaConFuera++; } } }
       }
       for (const e of delColegio) { const t = equipos.get(e.club); st.colegiosDespues += t ? [t.A, t.B, t.C, t.D].filter((x) => x && x.size >= 14).length : 0; }
       st.colegiosAntes = Math.max(st.colegiosAntes, 0);

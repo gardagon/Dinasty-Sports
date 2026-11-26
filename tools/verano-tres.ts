@@ -52,13 +52,26 @@ const foto = (dia: number): Foto => {
   }
   return out;
 };
-const fotos: { momento: string; foto: Foto }[] = [{ momento: 'inicio', foto: foto((g.time.week - g.time.schoolWeek) * 7) }];
+/** Los equipos de juvenil de cada club en este momento (para ver en qué veranos y clubes cambia su número). */
+const juvPorClub = (): Record<string, number> => {
+  const s = g.moduleState<NpcsState>('npcs') as NpcsState;
+  const letras = new Map<string, Set<string>>();
+  const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
+  const cj = pob.categorias!.find((x) => x.id === 'juvenil')!;
+  const dia = (g.time.week - g.time.schoolWeek) * 7;
+  for (const n of s.npcs as Npc[]) {
+    const ed = edadDeJuego(n, dia) ?? -1;
+    if (n.deporte === 'futbol' && n.equipo && n.letra?.futbol && n.genetica && ed >= cj.edadMin && ed <= cj.edadMax) { if (!letras.has(n.equipo)) letras.set(n.equipo, new Set()); letras.get(n.equipo)!.add(n.letra.futbol); }
+  }
+  return Object.fromEntries([...letras].map(([c, l]) => [c, l.size]));
+};
+const fotos: { momento: string; foto: Foto; juvClub: Record<string, number> }[] = [{ momento: 'inicio', foto: foto((g.time.week - g.time.schoolWeek) * 7), juvClub: juvPorClub() }];
 DIAGNOSTICO.veranoUsuario = true;
 (DIAGNOSTICO.variantePaso23 as { maxPorEquipo: Record<string, number> }).maxPorEquipo.juvenil = 22;
 for (let v = 1; v <= 3; v++) {
   LETRAS_FIJADAS.clear();
   advanceToWeek(g, 'gen.descansar', 48 + 52 * (v - 1) + 6, 2, 15);
-  fotos.push({ momento: `verano ${v}`, foto: foto((g.time.week - g.time.schoolWeek) * 7) });
+  fotos.push({ momento: `verano ${v}`, foto: foto((g.time.week - g.time.schoolWeek) * 7), juvClub: juvPorClub() });
   advanceToWeek(g, 'gen.descansar', 48 + 52 * v, 2, 15);
 }
 console.log(`#T ${JSON.stringify({ seed, mundo, fotos })}`);
