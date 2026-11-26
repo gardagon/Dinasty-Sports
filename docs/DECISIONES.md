@@ -52,6 +52,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 - La cascada dentro del club mira el puesto.
 - **Objetivo del usuario:** que muchos dejen juvenil es normal, pero como hay menos equipos que en cadete, **el número de equipos de juvenil debería mantenerse igual el 99 % de las veces, año tras año.** Equipos eliminados y juveniles fuera tienen la misma causa (los que no llegan a los clubes de su nivel), y se medirán las plazas libres y los equipos eliminados a los que les faltaban pocos.
 
+**Juvenil v3:** los equipos de juvenil solo se mantienen el 70 % de las veces. Quedan unos 71 juveniles fuera con 46 plazas libres, y los equipos eliminados estaban lejos de 14. **Rediseño del usuario (v4):**
+1. Los cadetes suben al juvenil de su club, salvo los que buscan fuera.
+2. Ningún club elimina equipos de juvenil de entrada.
+3. Los C se alimentan de los cadetes que suben, y su número debería mantenerse cada verano.
+4. El A y el B, con los de 2.º y 3.º y los mejores cadetes que suben. Si un C fuera a desaparecer, los peores de los que subirían se quedan en el C.
+5. Los que se quedan sin equipo vuelven a su club si hay hueco; los demás buscan en las plazas libres de cualquier equipo.
+
 **Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
 
 **Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
