@@ -646,3 +646,54 @@ Equipos de juvenil por mundo, antes → después: verano 1: 14→13, 15→14, 13
 
 **No se cumple.** En 322 clubes-verano el número de equipos de juvenil cambia en 97 (30 %); se mantiene el **70 %**, no el 99 %. Además baja de forma sostenida (13,9 → 11,0): cada verano salen los de 3.er año y abandonan unos 90, y entran menos de los que se van (los cadetes de 2.º año suben, pero hay pocos que quieran seguir y, con equipos de mínimo 14, el club pierde un equipo en cuanto su plantilla baja de 14 por año). Dónde se podría actuar (sin hacerlo aún, cambiaría reglas): (a) que un club conserve su equipo con menos de 14 si el año anterior lo tenía, (b) que el reclutamiento de cadete a juvenil sea prioritario para los clubes que bajarían de equipos, (c) que el club recupere jugadores de su lista de abandonos antes de cerrar el equipo (como ya hacen los colegios).
 
+## B15) Juvenil v4: los equipos se mantienen (semillas 51–60)
+
+El juvenil rediseñado por el usuario (`modules/npcs/src/draft.ts`, solo `veranoUsuario`; `typecheck` y `huella -- 60` idénticos). v3 queda en el commit `ea993d5`.
+
+1. **Los cadetes que pasan a juvenil suben al juvenil de su club** (ya eran miembros del club; solo se van los que buscan fuera, con la probabilidad de hoy).
+2. **Ningún club elimina equipos de entrada:** se conserva el número de equipos que tenía (`kPrev`); solo pierde uno si ni así reúne 14 por equipo (`min(kPrev, ⌊jugadores/14⌋)`).
+3. **El último equipo (C) se alimenta de los cadetes que suben** (1.er año). **El A y el B**, de los de 2.º y 3.º que siguen (el A, los de más edad) más, por titularidad y de abajo arriba, los mejores de los que suben. **Si un equipo no llega a 14**, el de abajo le deja a sus mejores (suben) y, si no puede, el de arriba le deja a sus peores (bajan): en el C se quedan los peores de los que subirían hasta 14.
+4. Pruebas por cercanía de nivel (6/4/3) y cascada por puesto (v3).
+5. **Los que se quedan sin equipo tras todas las rondas:** vuelven a su club si hay hueco; los demás buscan en las plazas libres que queden en cualquier equipo (por cercanía de nivel; sin límite de pruebas ni cupo de puesto, como la última pasada de las demás categorías). Para que cupieran, en juvenil un equipo sobrante puede entrar en cualquier letra (antes la B era solo de 1.er año).
+6. **Al final**, un equipo que ni así llega a 14 se elimina.
+
+### Juvenil chicos, media de 10 semillas (hoy / v3 / **v4**)
+
+| | hoy | v3 | **v4** |
+|---|---|---|---|
+| equipos tras el verano | 14,6 | 13,9 | **14,8** |
+| equipos A / B / C (antes: 10,0 / 3,0 / 0,9) | 9,8 / 3,5 / 1,2 | 10,9 / 2,0 / 1,0 | **11,2 / 2,8 / 0,8** |
+| se eliminan / se crean | 1,6 / 2,3 | 2,1 / 2,1 | **0,7 / 1,6** |
+| menos de 14 | 0,4 | 0 | **0** |
+| fuera 1.º / 2.º / 3.er año | 8 / 23 / 25 | 9 / 37 / 36 | **0 / 19 / 19** |
+| jugadores tras | 268 | 260 | **303** |
+| balance | −9 % | −13 % | **+2 %** |
+| buenos fuera | 0 | 3,6 | **0** |
+| pruebas / colocados en el barrido | | 666 / 203 | **548 / 148** |
+| plazas libres al final (con juveniles fuera) | | 46 | **22,6 (11,2)** |
+| vuelven a su club | | | **2,3** |
+| entran por las plazas libres | | | **31,1** |
+| equipos eliminados: equipos / jugadores | | 1,4 / 36,6 | **0,3 / 8,6** (faltaban 1: 0,1; 4–6: 0,2; 7 o más: 0) |
+| equipos colegio / pequeño / mediano / grande | 0,8 / 6,2 / 5,3 / 2,3 | 2,2 / 5,1 / 4,6 / 2,0 | **2,2 / 5,5 / 5,0 / 2,1** |
+
+Chicas: 2,0 equipos, 37 jugadoras, fuera 1,3 / 2,8 / 3 por año (no cambian).
+
+Quedan fuera 34 juveniles por mundo en el momento de contar (parte de ellos, expulsados por la reorganización final tras el paso de las plazas libres: 3,3 por mundo).
+
+### Tres veranos seguidos (semillas 51–60, chicos; antes v3: 13,9 → 13,9 → 12,0 → 11,0)
+
+| | inicio | verano 1 | verano 2 | verano 3 |
+|---|---|---|---|---|
+| equipos de juvenil | 13,9 | **14,8** | **13,2** | **11,9** |
+| A / B / C | 10,0 / 3,0 / 0,9 | 11,2 / 2,8 / 0,8 | 10,1 / 2,4 / 0,7 | 8,8 / 2,4 / 0,7 |
+| jugadores juveniles | 301 | 303 | 263 | 234 |
+| sin equipo (quieren jugar) | 96 | 39 | 7 | 7 |
+| total de equipos (benjamín a juvenil) | 85,2 | 73,0 | 68,7 | 65,3 |
+| menos de 14 | 0 | 0 | 0 | 0 |
+| clubes que cambian su nº de equipos de juvenil | | 23 de 116 (20 %) | 16 de 112 (14 %) | 17 de 103 (17 %) |
+| mundos (de 10) en que cambia el total | | 8 | 9 | 6 |
+
+Equipos de juvenil por mundo, antes → después: verano 1: 14→15 15→13 13→13 17→17 13→15 9→11 13→16 14→15 13→14 18→19; verano 2: 15→14 13→11 13→12 17→15 15→12 11→10 16→16 15→14 14→13 19→15; verano 3: 14→13 11→11 12→11 15→12 12→12 10→10 16→13 14→14 13→11 15→12.
+
+**Mejora mucho, pero no llega al 99 %.** En 331 clubes-verano el número de equipos de juvenil cambia en 56 (17 %): se mantiene el **83 %** (con v3, el 70 %). Ya no sobran juveniles (de 96 sin equipo a 7), se eliminan 0,3 equipos por verano en el barrido y el primer verano incluso crea equipos. **Pero el total de juveniles baja verano a verano (303 → 263 → 234)** y, con el mínimo de 14, el club pierde un equipo cuando su plantilla ya no da para 14 por equipo. La causa no es el reparto sino la población: abandonan ~90 al año y se retiran los de 3.º, y entran menos de los que se van (solo los cadetes que quieren seguir). Con equipos que se mantienen pero sin más gente, el ajuste sale en los clubes pequeños y, a la larga, en los A de menos jugadores. Palancas posibles (sin aplicar): (a) que el C pueda bajar de 14 un año (un equipo 'de 12 a 13') si el club lo tenía, (b) más inflow (reclutar en el mercado a quien no jugaba, como en benjamín), (c) menos abandonos en juvenil.
+
