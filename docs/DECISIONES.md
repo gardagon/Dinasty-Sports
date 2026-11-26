@@ -65,6 +65,8 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 Se mide con muchos veranos para ver si el número de juveniles se recupera o se estabiliza.
 
+**Juvenil v5 (8 veranos):** el 91 % de los clubes mantienen sus equipos de juvenil; casi no se eliminan equipos; 0 por debajo de 14. Pero el número de jugadores baja en cascada en todas las categorías, porque **la partida se crea con más jugadores de los que el mundo mantiene** (85 equipos al empezar, unos 55 en equilibrio). **Decidido: la partida empieza ya en equilibrio** (al crear se simula el abandono de los años anteriores). Se mide antes de implementarlo.
+
 **Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
 
 **Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
