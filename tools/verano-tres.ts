@@ -63,7 +63,9 @@ const juvPorClub = (): Record<string, number> => {
     const ed = edadDeJuego(n, dia) ?? -1;
     if (n.deporte === 'futbol' && n.equipo && n.letra?.futbol && n.genetica && ed >= cj.edadMin && ed <= cj.edadMax) { if (!letras.has(n.equipo)) letras.set(n.equipo, new Set()); letras.get(n.equipo)!.add(n.letra.futbol); }
   }
-  return Object.fromEntries([...letras].map(([c, l]) => [c, l.size]));
+  const porLetra: Record<string, number> = {};
+  for (const l of letras.values()) for (const x of l) porLetra[x] = (porLetra[x] ?? 0) + 1;
+  return { ...Object.fromEntries([...letras].map(([c, l]) => [c, l.size])), '#letras': porLetra as never } as never;
 };
 const fotos: { momento: string; foto: Foto; juvClub: Record<string, number> }[] = [{ momento: 'inicio', foto: foto((g.time.week - g.time.schoolWeek) * 7), juvClub: juvPorClub() }];
 DIAGNOSTICO.veranoUsuario = true;
