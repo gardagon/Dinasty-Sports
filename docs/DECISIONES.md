@@ -47,6 +47,11 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 **Juvenil en verano (primera medida):** no se pierden buenos jugadores (~4 % de los que quedan fuera), pero quedan fuera muchos y juvenil cae a 175 jugadores en 3 veranos, porque los de nivel bajo gastan sus pruebas en los clubes de arriba. **Decidido:** cada juvenil sin equipo prueba primero en clubes de su nivel; la escala de pruebas sube un punto (interés 3 → 6, 2 → 4, 1 → 3); y se añade la cascada del usuario dentro del club.
 
+**Juvenil v2 → v3:**
+- «El club de su nivel» es el club cuyo nivel se parece más al del jugador: un juvenil flojo empieza por los clubes flojos.
+- La cascada dentro del club mira el puesto.
+- **Objetivo del usuario:** que muchos dejen juvenil es normal, pero como hay menos equipos que en cadete, **el número de equipos de juvenil debería mantenerse igual el 99 % de las veces, año tras año.** Equipos eliminados y juveniles fuera tienen la misma causa (los que no llegan a los clubes de su nivel), y se medirán las plazas libres y los equipos eliminados a los que les faltaban pocos.
+
 **Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
 
 **Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
