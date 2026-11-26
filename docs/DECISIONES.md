@@ -59,6 +59,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 4. El A y el B, con los de 2.º y 3.º y los mejores cadetes que suben. Si un C fuera a desaparecer, los peores de los que subirían se quedan en el C.
 5. Los que se quedan sin equipo vuelven a su club si hay hueco; los demás buscan en las plazas libres de cualquier equipo.
 
+**Juvenil v4:** estable en el 83 % de los clubes y veranos, 0 cadetes fuera, ningún buen jugador perdido. Lo que queda se debe a que el número de juveniles baja (abandono y salida de los de 3.º). **Matices del usuario (v5):**
+- un jugador que iba a abandonar **no abandona si su equipo fuera a desaparecer**: se queda, y si lo expulsan, va al club que lo necesite;
+- si desaparece un B, el C pasa a ser el B, y al año siguiente se vuelve a crear el B si se puede, con los de 1.º en el C.
+
+Se mide con muchos veranos para ver si el número de juveniles se recupera o se estabiliza.
+
 **Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
 
 **Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
