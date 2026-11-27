@@ -405,6 +405,24 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       pendientes = [...sinSitio, ...salenLibres];
       tr('J3', undefined, { ronda: ronda3, intentan: colocados + sinSitio.length, colocados, cascadas, salenLibres: salenLibres.length, sinSitio: sinSitio.length });
     }
+    // J4 (solo con la partida en equilibrio): con cohortes más pequeñas muchos clubes no reúnen 14 en el primer reparto y los que quedan fuera no tienen donde ir; los clubes sin equipo, de más a menos atractivo, forman uno con los que sobran (14 a 22).
+    if (DIAGNOSTICO.equilibrioInicial) {
+      let resto = pendientes.filter((p) => { const n = m.lista.get(p.id); return !!n && n.deporte === undefined; });
+      for (const e of lugares) {
+        if (resto.length < 14) break;
+        if (equipos.has(e.club)) continue;
+        const alumno = (id: string): boolean => e.colegio === undefined || bolsa().find((z) => z.npc.id === id)?.colegio === e.colegio;
+        const dentro: string[] = [];
+        for (const p of [...resto].sort((x, y) => valorId(y.id) - valorId(x.id) || (x.id < y.id ? -1 : 1))) {
+          if (dentro.length >= TOPE) break;
+          const n = m.lista.get(p.id);
+          if (!n || n.deporte !== undefined || !alumno(p.id)) continue;
+          if (intentarEntrar(m, n, e, pob, { sinPrueba: !o.conPrueba, soloHueco: true, relajado: true }).entra) dentro.push(p.id);
+        }
+        if (dentro.length >= 14) { equipos.set(e.club, { A: new Set(dentro) }); resto = resto.filter((p) => !dentro.includes(p.id)); tr('J4', e.club, { entran: dentro.length }); } else liberar(dentro);
+      }
+      pendientes = resto;
+    }
     abandonan = pendientes.length;
     for (const p of pendientes) liberar([p.id]);
     tr('fin J3', undefined, { abandonan, abandonanPorAnio: [1, 2, 3].map((k) => pendientes.filter((p) => { const n = m.lista.get(p.id); return n ? anioDe(n) === k : false; }).length), equipos: lugares.map((e) => { const q = equipos.get(e.club); return { club: e.club, A: q?.A.size ?? 0, B: q?.B?.size ?? 0, C: q?.C?.size ?? 0 }; }) });
@@ -1312,6 +1330,8 @@ export const DIAGNOSTICO: {
   v5Alevin?: boolean;
   /** Medida: juvenil como antes de la última versión (sin pruebas según el interés ni subidas por titularidad), para comparar. */
   juvenilAntiguo?: boolean;
+  /** Medida: al crear el mundo, quien habría abandonado en los veranos anteriores (con las reglas de abandono de hoy) ya lo ha dejado: cada categoría empieza con los jugadores que tendrá en equilibrio (`abandonoPrevio`). */
+  equilibrioInicial?: boolean;
   /** Los que abandonan este verano (los llena `renovarDeportistas` con `veranoUsuario`). */
   abandonosDelVerano?: Set<string>;
   /** El club de cada uno de los que abandonan (solo medida: el verano del usuario puede recuperar al que deja un equipo sin los 14). */
@@ -1853,6 +1873,40 @@ export function añadirDeporte(npcs: Npc[], pob: PoblacionGuardada, dia: number,
 
 
 /** Los entrenadores de un deporte: el del colegio (el primer deporte ya trae el suyo) y los de los clubes de fuera. */
+/**
+ * La partida en equilibrio (medida; `DIAGNOSTICO.equilibrioInicial`): cada niño con interés por el deporte ha pasado ya por los veranos de su edad (de la edad mínima +1 hasta la de hoy) con las mismas reglas de
+ * abandono que `renovarDeportistas` (`dejaElDeporte`, mismo sorteo estable suyo con un curso anterior al 0); quien lo habría dejado lo lleva anotado (`dejado`) y no se le recluta. Como al crear no hay equipos, la titularidad y
+ * lo bueno que es frente a los de su edad se estiman con su talento (media de sus topes, frente a los de su edad con interés): los mejores de cada edad, un 65 % (11 de 17, lo típico de un equipo), cuentan como titulares.
+ */
+export function abandonoPrevio(lista: Npc[], pobs: readonly PoblacionGuardada[], dia: number): Npc[] {
+  let out = lista;
+  for (const pob of pobs) {
+    const ab = pob.reclutamiento.abandono;
+    if (!ab) continue;
+    const { edades } = pob.reclutamiento;
+    const interesados = out.filter((n) => n.genetica && n.deporte === undefined && !n.dejado?.includes(pob.deporte) && (() => { const e = edadNpc(n, dia) ?? -1; return e >= edades.min && e <= edades.max && interesDe(n, pob.deporte, e) > 0; })());
+    const talento = (n: Npc): number => { const t = Object.values(n.genetica!.topes); return t.length ? t.reduce((a, b) => a + b, 0) / t.length : 0; };
+    const porEdad = new Map<number, Npc[]>();
+    for (const n of interesados) { const e = edadNpc(n, dia) ?? 0; (porEdad.get(e) ?? porEdad.set(e, []).get(e)!).push(n); }
+    const z = new Map<string, number>();
+    for (const xs of porEdad.values()) {
+      const m = xs.reduce((t, n) => t + talento(n), 0) / xs.length;
+      const sd = Math.max(1e-6, Math.sqrt(xs.reduce((t, n) => t + (talento(n) - m) ** 2, 0) / xs.length));
+      for (const n of xs) z.set(n.id, (talento(n) - m) / sd);
+    }
+    const dejan = new Set<string>();
+    for (const n of interesados) {
+      const hoy = edadNpc(n, dia) ?? 0;
+      for (let a = edades.min + 1; a <= hoy; a++) {
+        const zn = z.get(n.id) ?? 0;
+        if (dejaElDeporte(ab, { edad: a, rasgos: n.rasgos, titular: zn > -0.385, padres: n.genetica!.padres, ...(ab.pesos.nivel ? { nivel: zn } : {}) }, pob.deporte, n.genetica!.semilla ?? 0, n.id, a - hoy - 1)) { dejan.add(n.id); break; }
+      }
+    }
+    out = out.map((n) => (dejan.has(n.id) ? { ...n, dejado: [...(n.dejado ?? []), pob.deporte] } : n));
+  }
+  return out;
+}
+
 export function entrenadoresDeUnDeporte(npcs: readonly Npc[], pob: PoblacionGuardada, rng: Rng): Npc[] {
   const usados = registroDe(npcs);
   return [...(pob.primero ? [] : [nuevoEntrenador(rng, pob, usados, { id: `entrenador_${pob.deporte}`, club: 'colegio', edades: [0, 99], edad: [28, 55], descripcion: pob.entrenadores.descripcionDelColegio })]), ...entrenadoresDeClubes(rng, pob, usados)];

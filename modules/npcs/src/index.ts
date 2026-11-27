@@ -19,7 +19,7 @@ import { HUECO_LIBRE, SEMANAS_DE_LOS_LEJANOS, conMasConocimiento, historiaDeport
  * - Publican el servicio `npcs` para que otros módulos los consulten.
  */
 
-import { conUnaPlazaDeMas, añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
+import { conUnaPlazaDeMas, añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas, DIAGNOSTICO, abandonoPrevio } from './draft';
 import { colocarDesplazados } from './fichajes';
 import { conApuntados, entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, completarPoblaciones, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { consejoDeUnProfesor, familiasDePuestosDeLosDeportes, lecturaDeUnPuesto } from './consejo';
@@ -1070,7 +1070,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
   const rend = rendimientosDe(ctx);
   avisarDelProgreso('Midiendo lo que vale cada niño y reclutando a los equipos…', 0.04);
-  const equipos = reclutarEnTodos(conCapacidades(conEntrenadores, 0), pobs, 0, new Map(), rend);
+  const equipos = reclutarEnTodos(conCapacidades(DIAGNOSTICO.equilibrioInicial ? abandonoPrevio(conEntrenadores, pobs, 0) : conEntrenadores, 0), pobs, 0, new Map(), rend);
   // La partida empieza dentro del plazo de fichajes: aquí también se aplica la regla de los equipos según la demanda (los interesados que se quedan sin equipo abren otros).
   const mercado: MercadoDeFichajes = { lista: new ListaDeTrabajo(equipos.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(rend), reservas: new Map() };
   // Los equipos de los clubes salen del «draft» por rondas (sin el personaje: no entra en los porcentajes).
