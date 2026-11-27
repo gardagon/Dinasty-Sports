@@ -82,6 +82,8 @@ Cada club tiene un **tamaño**, que es un dato y decide cuántos equipos saca po
 
 Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F2). Va antes de la P2c.
 
+> **27/11/2026 — El reparto nuevo (ciudad grande, partidas nuevas).** Con `CiudadDef.repartoNuevo`, al crear la partida el reparto de los equipos usa las reglas nuevas (primera ronda de 14 por año, subidas por titularidad, B mixto, C y D, equilibrar, tope de 22, nunca un B sin A; juvenil por año con su cascada y J4) y nada lo deshace después; y cada categoría empieza ya en su equilibrio (los niños llevan el abandono de los veranos anteriores). Explicado y medido en `docs/relevo/reparto-nuevo-implementado.md` y `docs/relevo/reparto-nuevo-reglas.md`. Lo de abajo describe el reparto de siempre, que siguen usando la ciudad de ahora, la de prueba y los veranos (por ahora).
+
 **Hasta cuatro equipos por club y categoría.** Cuántos tiene cada club sale del «draft» (abajo).
 
 **Todos los clubes reparten por año** (decisión del usuario, 05/11; antes solo los grandes):

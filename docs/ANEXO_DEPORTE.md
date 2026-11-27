@@ -161,6 +161,8 @@ Las partidas de `main` (`SAVE_VERSION` 21) cargan con las nuevas funciones **sin
 
 ### Los niños se apuntan a su equipo en los primeros días del curso (decidido el 21/11/2026; `docs/relevo/futbol-mas-barato.md`)
 
+**Los equipos al crear la partida con la ciudad grande** (`CiudadDef.repartoNuevo`, 27/11/2026) salen del reparto nuevo (`docs/relevo/reparto-nuevo-implementado.md`): sin equipos por debajo de 14, con letras guardadas que el personaje y la búsqueda de club respetan (el personaje entra en el equipo de su club que más se parece a su año y tiene plaza). El resto de lo de aquí es igual.
+
 El primer día de clase ya no hay niños en los equipos: **cada niño con equipo se apunta un día de los primeros del curso** (`CategoriaDef.apuntarseEnLosDias`, dato de cada categoría; fútbol: `[1, 6]`, del segundo al séptimo día, antes de acabar la primera semana; cifra provisional). El reparto de los equipos (el «draft») se calcula como siempre, al crear la partida y cada verano; lo que cambia es **cuándo aparece cada niño**: un sorteo estable suyo (`Npc.apuntado`, `conApuntados`). Hasta su día no sale en la plantilla del equipo (`plantillaDelEquipo`) ni cuenta para los equipos que se enseñan (`equiposDeLaCategoria`: un equipo que aún no llega a su mínimo de apuntados no se enseña). No cambia la regla de plaza, la pretemporada, la convocatoria del primer partido (cuatro semanas después), `benjamín` ni las pruebas de acceso del personaje.
 
 ### El equipo el curso que viene y el equipo que no sigue (decidido el 20/11/2026; `docs/relevo/reparto-equipos-2.md`)

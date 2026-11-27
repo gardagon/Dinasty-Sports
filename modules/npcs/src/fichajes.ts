@@ -40,6 +40,24 @@ export interface OpcionesDeEntrada {
   plazasDeMas?: boolean;
 }
 
+/**
+ * En una partida con el reparto nuevo (`PoblacionGuardada.repartoNuevo`), quien entra en un equipo mientras ya hay letras (la búsqueda de club de un desplazado) entra con la del equipo que deja libre quien ocupa su sitio o,
+ * si es un hueco, con la del equipo del club y categoría donde más se parece su año a los de dentro (y, si empatan, el que menos tiene), que no pase de 22. Así los equipos del reparto no se deshacen ni nadie queda sin letra
+ * hasta el verano. Sin él, o mientras se crea la partida (aún no hay letras), no cambia nada.
+ */
+export function conLetraDelQueLlega(nuevo: Npc, pob: PoblacionGuardada, jugadores: readonly Npc[], desplazado: Npc | undefined, edad: number, dia: number): Npc {
+  if (!pob.repartoNuevo) return nuevo;
+  const letraDe = (x: Npc): string | undefined => x.letra?.[pob.deporte];
+  let letra = desplazado ? letraDe(desplazado) : undefined;
+  if (!letra) {
+    const equipos = new Map<string, Npc[]>();
+    for (const j of jugadores) { const l = letraDe(j); if (l && j.id !== nuevo.id) (equipos.get(l) ?? equipos.set(l, []).get(l)!).push(j); }
+    const candidatos = [...equipos].filter(([, xs]) => xs.length < 22).map(([l, xs]) => ({ l, n: xs.length, parecido: xs.filter((x) => edadNpc(x, dia) === edad).length / xs.length }));
+    candidatos.sort((a, b) => b.parecido - a.parecido || a.n - b.n || (a.l < b.l ? -1 : 1));
+    letra = candidatos[0]?.l;
+  }
+  return letra ? { ...nuevo, letra: { ...(nuevo.letra ?? {}), [pob.deporte]: letra as 'A' | 'B' | 'C' | 'D' } } : nuevo;
+}
 
 export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: PoblacionGuardada, o: OpcionesDeEntrada = {}): Entrada {
   const { sinPrueba = false, puestoForzado, soloHueco = false, relajado = false, equipoNuevo = false, ultimaOpcion = false, plazasDeMas = false } = o;
@@ -67,14 +85,14 @@ export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, 
     if (!oferta) return { entra: false };
     const desplazado = oferta.peor ? m.lista.get(oferta.peor.id) : undefined;
     if (desplazado) DIAGNOSTICO.alDesplazar?.({ id: desplazado.id, desde: e.club, motivo: 'merito' });
-    m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto));
+    m.lista.set(n.id, conLetraDelQueLlega(reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto), pob, plantel.jugadores, desplazado, edad, m.dia));
     if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
     return { entra: true, desplazado };
   }
   const plaza = reglaDePlaza(plantel.jugadores.map((j) => ({ id: j.id, nombre: j.name, valor: valorEn(j, pob, m) })), plantel.max, aspirante.valor);
   if (plaza.estado === 'completo') return { entra: false };
   const desplazado = plaza.estado === 'por_merito' ? m.lista.get(plaza.peor!.id) : undefined;
-  m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia));
+  m.lista.set(n.id, conLetraDelQueLlega(reclutarA(aspirante, e, pob, edad, m.dia), pob, plantel.jugadores, desplazado, edad, m.dia));
   if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
   return { entra: true, desplazado };
 }
