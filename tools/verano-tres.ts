@@ -12,7 +12,8 @@ import type { Npc } from '@ds/mod-npcs';
 
 const [semillaTxt = '51', mundo = 'm', veranosTxt = '3', equilibrioTxt = 'no'] = process.argv.slice(2);
 /** `real`: el juego tal cual (sin ninguna variante de medida): lo que hacen la creación y los veranos de la ciudad grande. */
-const REAL = equilibrioTxt === 'real';
+const REAL = equilibrioTxt === 'real' || equilibrioTxt === 'sin';
+if (equilibrioTxt === 'sin') DIAGNOSTICO.sinRepartoNuevo = true; // el juego de antes del reparto nuevo, para comparar
 const VERANOS = Number(veranosTxt);
 const seed = Number(semillaTxt);
 registrarPais(PAIS_CIUDAD_GRANDE);
@@ -80,14 +81,17 @@ if (!REAL) {
 }
 const usuario: { verano: number; juvenil: Record<string, number> }[] = [];
 let veranoActual = 0;
+const tiempos: number[] = [];
 const fasesVistas: Record<string, number> = {};
 DIAGNOSTICO.traza = (e) => { fasesVistas[e.fase] = (fasesVistas[e.fase] ?? 0) + 1; if (e.fase === 'verano usuario' && e.categoria === 'juvenil') usuario.push({ verano: veranoActual, juvenil: Object.fromEntries(Object.entries(e.datos).filter(([, v]) => typeof v === 'number')) as Record<string, number> }); };
 for (let v = 1; v <= VERANOS; v++) {
   veranoActual = v;
   LETRAS_FIJADAS.clear();
+  const t0 = performance.now();
   advanceToWeek(g, 'gen.descansar', 48 + 52 * (v - 1) + 6, 2, 15);
+  tiempos.push(Math.round(performance.now() - t0));
   fotos.push({ momento: `verano ${v}`, foto: foto((g.time.week - g.time.schoolWeek) * 7), juvClub: juvPorClub() });
   advanceToWeek(g, 'gen.descansar', 48 + 52 * v, 2, 15);
 }
 if (process.env.DS_FASES) console.log('#FASES', JSON.stringify(fasesVistas));
-console.log(`#T ${JSON.stringify({ seed, mundo, fotos, usuario })}`);
+console.log(`#T ${JSON.stringify({ seed, mundo, fotos, usuario, tiempos })}`);
