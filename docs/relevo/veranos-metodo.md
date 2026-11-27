@@ -737,3 +737,32 @@ Menos de 14: 0 en todos los veranos. Sin equipo (todas las categorías): 97, 53,
 
 **¿Se estabiliza?** Cada categoría se estabiliza **más tarde que la anterior**, como una cascada: benjamín desde el verano 1 (~296 jugadores, 15–16 equipos), alevín desde el 3 (~254, 14), infantil desde el 6 (~200, 10), cadete aún baja en el 8 (167, 8,4; parece llegar a ~160 hacia el 9–10), **juvenil sigue bajando en el 8 (188 jugadores, 9,7 equipos)**: ni el número de juveniles ni de equipos se recupera aún; cada categoría de arriba hereda el descenso de la de abajo y le cuesta unos tres veranos más. Estimación: el juvenil se estabilizaría cerca de los 150 jugadores y 7–8 equipos hacia el verano 11–12; el mundo entero, en unos 57–54 equipos (frente a 85 al empezar), porque el reparto inicial tenía equipos de 18 y los veranos los dejan en los jugadores que de verdad quieren jugar. Palancas si se quiere más (sin aplicar): más entrada en cada categoría (reclutar a quien no jugaba, como en benjamín), menos abandonos, o dejar que un equipo baje de 14 un año.
 
+## B17) La partida empieza en equilibrio (semillas 51–60, chicos, 8 veranos)
+
+Medida, sin cambiar el juego (`DIAGNOSTICO.equilibrioInicial`, apagado por defecto; `typecheck` y `huella -- 60` idénticos; commits `d58e49d` y `d09d6da`). `tools/verano-tres.ts <semilla> m 8 eq`.
+
+**Cómo está hecho.** Al crear el mundo, antes de reclutar (`generarTodos`, `abandonoPrevio` en `draft.ts`), cada niño con interés por el fútbol y edad de categoría (8 a 18) pasa por los veranos de su edad (de 9 años hasta la de hoy) con **la misma función de abandono del juego** (`dejaElDeporte`, mismas bases por edad y mismos motivos: interés, ambición, estudios, padres, minutos y nivel) y su sorteo estable de siempre con un curso anterior al 0. Quien lo habría dejado queda anotado (`dejado`) y no se recluta; en el juego real eso es exactamente lo que le pasa a quien abandona. Como al crear no hay equipos, la titularidad y lo bueno que es frente a los de su edad se **estiman con su talento** (media de sus topes frente a los de su edad con interés; el 65 % mejor cuenta como titular, 11 de 17). Es un cálculo directo, no una simulación año a año: da lo mismo en distribución porque aplica a cada niño el mismo sorteo que le tocaría verano tras verano; la única aproximación es la titularidad/nivel de los años pasados (se toma el talento de hoy). No incluye la recuperación del juvenil (el abandono evitado cuando el equipo se quedaría sin 14), que necesita clubes.
+**J4:** con cohortes más pequeñas, muchos clubes no reúnen 14 juveniles en el primer reparto y los que sobran no tenían adónde ir; los clubes sin equipo, de más a menos atractivo, forman uno con los que sobran (14 a 22). Sin J4 el juvenil empezaba con 86 jugadores en 3,9 equipos (y 60 sin equipo); con J4, 136 en 6,3 (y 10 sin equipo).
+
+### Por categoría y verano: equipos (jugadores). Verano 0 = al crear
+
+| | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|---|
+| benjamín | 18,1 (293) | 15,5 (293) | 15,8 (295) | 16,0 (297) | 15,4 (293) | 15,8 (302) | 16,4 (303) | 15,7 (296) | 15,2 (288) |
+| alevín | 14,6 (240) | 13,4 (245) | 13,7 (250) | 13,6 (250) | 13,8 (253) | 13,7 (251) | 13,8 (248) | 13,9 (255) | 13,8 (256) |
+| infantil | 10,3 (187) | 10,0 (189) | 9,9 (186) | 10,1 (193) | 10,3 (198) | 10,7 (202) | 10,6 (199) | 10,3 (198) | 9,9 (197) |
+| cadete | 8,6 (154) | 8,2 (149) | 7,9 (154) | 8,1 (158) | 8,2 (160) | 8,3 (162) | 8,6 (170) | 8,5 (168) | 8,4 (168) |
+| juvenil | 6,3 (136) | 6,6 (143) | 6,7 (141) | 6,7 (138) | 6,8 (146) | 6,9 (150) | 7,2 (156) | 7,5 (161) | 7,6 (163) |
+| **total** | 57,9 (1010) | 53,7 (1019) | 54,0 (1026) | 54,5 (1036) | 54,5 (1049) | 55,4 (1068) | 56,6 (1076) | 55,9 (1078) | 54,9 (1072) |
+
+Las categorías **arrancan en su equilibrio y no caen** (antes, el total bajaba de 85 a 57 equipos y de 1466 a 1098 jugadores): benjamín ~293 (objetivo 290–300), alevín 240–256 (~250), infantil 186–202 (~200), cadete 149–170 (~160), juvenil 136–163 (~150). **Menos de 14: 0 en todos los veranos**; sin equipo (todas las categorías): 10, 13, 11, 12, 14, 12, 10, 13, 14 (los que quieren jugar y no tienen sitio; antes 97 al empezar). Los equipos de benjamín pasan de 18,1 (al crear) a 15,5 en el verano 1: el reparto inicial los hace de 14 a 18 y el primer verano los deja en el equilibrio (benjamín y alevín de 18).
+
+### Estabilidad del juvenil (% de clubes que cambian su número de equipos de juvenil)
+
+v1: 3/66 (5 %) · v2: 1/67 (1 %) · v3: 0/67 (0 %) · v4: 5/70 (7 %) · v5: 1/69 (1 %) · v6: 3/72 (4 %) · v7: 3/75 (4 %) · v8: 3/77 (4 %). Mundos (de 10) en que cambia el total: 3, 1, 0, 5, 1, 3, 3, 3. Equipos eliminados por verano: 0. Expulsados que van a otro club: 1 a 3 por verano; abandonos recuperados: 7 a 10 de ~40 abandonos.
+**Total: 19 de 563 clubes-verano cambian (3,4 %): ~97 % estables** (con v5 sin equilibrio, ~91 %; con v4, 83 %). No llega al 99 % pedido, pero casi todos los cambios son de ±1 equipo en un club y el total de juvenil solo sube despacio (6,3 → 7,6 equipos; 136 → 163 jugadores) porque los A de los clubes vuelven a abrir el equipo que el primer reparto no había formado.
+
+### Coste de crear (ciudad grande, tiempo de `nuevaPartida`, medido tres semillas dos veces)
+
+Sin equilibrio: 9,6 · 9,5 · 8,2 · 8,5 · 9,0 · 9,6 s (media 9,1 s). Con equilibrio: 7,5 · 7,0 · 8,7 · 8,5 · 8,4 · 8,3 s (media 8,1 s). **No cuesta más: sale ~1 s más rápido** (hay unos 270 jugadores menos que colocar en los equipos y `abandonoPrevio` son ~10 000 sorteos). El peso del estado también baja (menos jugadores en equipos).
+
