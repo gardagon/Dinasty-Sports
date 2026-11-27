@@ -808,6 +808,14 @@ export function equipoDelPersonajeEn(npcs: readonly Npc[], pobs: readonly Poblac
   const cat = pob && e ? categoriasDelEquipo(pob, e).find((c) => c.id === categoria) : undefined;
   if (!pob || !e || !cat || !pob.puestos) return undefined;
   const anio: 1 | 2 = edad === Math.min(...cat.edades) ? 1 : 2;
+  // Con el reparto nuevo (`PoblacionGuardada.repartoNuevo`) los equipos son los que tienen sus letras guardadas: el personaje entra en el que más se parece a su año (y, si empatan, en el que menos tiene) con plaza libre, sin volver a repartir el club.
+  if (pob.repartoNuevo) {
+    const delClub = npcs.filter((n) => n.deporte === deporte && n.equipo === club && n.id !== miembro.id && n.letra?.[deporte] && cat.edades.includes(edadDeJuego(n, dia) ?? -1));
+    const tope = Math.max(maximoPorEquipo(e, cat.id), 22);
+    const candidatos = LETRAS.map((l) => { const xs = delClub.filter((n) => n.letra?.[deporte] === l); return { l, n: xs.length, parecido: xs.length ? xs.filter((n) => (edadDeJuego(n, dia) === Math.min(...cat.edades)) === (anio === 1)).length / xs.length : -1 }; }).filter((c) => c.n > 0 && c.n < tope);
+    candidatos.sort((a, b) => b.parecido - a.parecido || a.n - b.n || (a.l < b.l ? -1 : 1));
+    return candidatos[0]?.l;
+  }
   const { equipos } = equiposDelClub(new Map(npcs.map((n) => [n.id, n])), pob, e, cat, dia, val, [{ ...miembro, anio }], true);
   return LETRAS.find((l) => equipos[l].includes(miembro.id));
 }
