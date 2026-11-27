@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 27/11/2026 — El reparto nuevo y la partida en equilibrio, en el juego (parte 1)
+
+- **Dato de la ciudad, no una bandera de medida:** `CiudadDef.repartoNuevo` (solo `CIUDAD_GRANDE`). La ciudad de ahora y la de prueba se quedan con el reparto de siempre (el usuario dijo que no habrá ciudad pequeña en el futuro; quedan para los tests y las comparaciones) y las partidas guardadas no se migran (`PoblacionGuardada.repartoNuevo` marca las nuevas).
+- **Lo que era medida pasa a ser lo normal al crear:** reparto nuevo de inicio (pasos 1–8, J1–J3 y J4), nada lo deshace (`respetarReparto`) y la partida en equilibrio (`abandonoPrevio`). Cada categoría empieza en su equilibrio (benjamín ~290, alevín ~245, infantil ~190, cadete ~155, juvenil ~140 chicos; con las chicas dentro, el doble) y no cae.
+- **Decisión de implementación:** la alineación de los titulares la calcula el módulo (`titularesDelPool`), no se inyecta desde fuera. Quien ocupa un sitio mientras el curso corre hereda la letra del que lo deja (o la del equipo del club que más se le parece) y el personaje entra en el equipo guardado, nunca en un reparto nuevo con las reglas viejas.
+- Resultado y comprobaciones: `docs/relevo/reparto-nuevo-implementado.md`. Los veranos (parte 2) y los sexos (parte 3) siguen detrás.
+
 ## 25/11/2026 — El verano: método del usuario (a medir)
 
 **El método del reparto de inicio es para crear la partida.** El verano tiene uno propio, que debería facilitar mucho mantener los equipos. Diseño del usuario (se mide como variante en `docs/relevo/veranos-metodo.md`):
