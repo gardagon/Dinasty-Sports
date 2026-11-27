@@ -1,7 +1,7 @@
 import { APORTES, CORE_EVENTS, suenoHabitual, diaConFecha, semanasDeTemporada, type Entrenamiento, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar, MOVERSE_CON_EL_GRUPO, aforoCercano, deLugar, haciaLugar, type ActionDoneData, type GrupoSeVaData, type LugaresService, CALLES_CON_VECINOS, EDAD_DE_JUBILACION, EDAD_PARA_IR_SOLO } from '@ds/contracts';
 import { EJE_MIN, EJE_MAX } from '@ds/contracts';
 import { FAMILIAS, VARIANTES, ReservaDeHijos, esProgenitorDeHogar, familiaDePersona, generarFamilias, limpiarFamilias, miembrosDeHogares, recogeAUnHijo, type HogarGuardado } from './hogares';
-import { aficionadoPorLosPadres, conInteresTrasJugar, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica, type Herencia } from './deportistas';
+import { LETRAS_FIJADAS, MEDIDA, REPARTO_DE_INICIO, aficionadoPorLosPadres, conInteresTrasJugar, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica, type Herencia } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { grupoQueSeVa, seVanSolos } from './grupo';
@@ -1055,6 +1055,29 @@ function companeroConFamilia(viejo: Npc, hijo: Npc): Npc {
   return { ...resto, id: viejo.id, role: viejo.role, tags: viejo.tags, tipos: viejo.tipos, description: viejo.description, known: viejo.known, rasgos: { ...rasgos, caracter, intereses: interesesNuevos } };
 }
 
+/**
+ * El reparto nuevo de inicio (`CiudadDef.repartoNuevo`, `docs/relevo/reparto-nuevo-reglas.md`): mientras se crea la partida, el «draft» usa las reglas nuevas (primera ronda de 14 por año, subidas por titularidad, B mixto, C y D de colegio,
+ * equilibrar con tope de 22 y nunca un B sin A; juvenil por año con su cascada y J4), nada de lo que viene después rehace los equipos (`MEDIDA.respetarReparto`) y los niños llegan ya con el abandono de los veranos anteriores
+ * (`equilibrioInicial`). Se activa solo al crear (los veranos siguen con sus reglas) y solo si la ciudad lo trae; si una herramienta de medida ya ha puesto sus propias variantes, se respetan (`DIAGNOSTICO.sinRepartoNuevo` lo apaga).
+ * Aquí no hay nada que dependa del sexo: chicos y chicas se reparten juntos como hasta ahora (el 10 % de chicas y los equipos femeninos son otra parte: `SESGO_DE_SEXO`, que sigue siendo solo medida).
+ */
+function conRepartoNuevo<T>(crear: () => T): T {
+  if (!ciudad().repartoNuevo || DIAGNOSTICO.sinRepartoNuevo || DIAGNOSTICO.variantePaso23) return crear();
+  const antes = { primera: DIAGNOSTICO.variantePrimeraRonda, paso23: DIAGNOSTICO.variantePaso23, juvenil: DIAGNOSTICO.variantJuvenil, equilibrio: DIAGNOSTICO.equilibrioInicial, respetar: MEDIDA.respetarReparto };
+  DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
+  DIAGNOSTICO.variantePaso23 = { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true, equilibrar: true, maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true } };
+  DIAGNOSTICO.variantJuvenil = { cascada: 'usuario' };
+  DIAGNOSTICO.equilibrioInicial = true;
+  MEDIDA.respetarReparto = true;
+  LETRAS_FIJADAS.clear(); REPARTO_DE_INICIO.clear();
+  try {
+    return crear();
+  } finally {
+    DIAGNOSTICO.variantePrimeraRonda = antes.primera; DIAGNOSTICO.variantePaso23 = antes.paso23; DIAGNOSTICO.variantJuvenil = antes.juvenil; DIAGNOSTICO.equilibrioInicial = antes.equilibrio; MEDIDA.respetarReparto = antes.respetar;
+    LETRAS_FIJADAS.clear(); REPARTO_DE_INICIO.clear();
+  }
+}
+
 function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { npcs: Npc[]; pobs: PoblacionGuardada[]; hogares?: Record<string, HogarGuardado> } {
   avisarDelProgreso('Dando vida a las personas: familias, colegios y vecinos…', 0.01);
   let base = generarReparto(ctx, pobs[0]);
@@ -1070,12 +1093,15 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
   const rend = rendimientosDe(ctx);
   avisarDelProgreso('Midiendo lo que vale cada niño y reclutando a los equipos…', 0.04);
-  const equipos = reclutarEnTodos(conCapacidades(DIAGNOSTICO.equilibrioInicial ? abandonoPrevio(conEntrenadores, pobs, 0) : conEntrenadores, 0), pobs, 0, new Map(), rend);
-  // La partida empieza dentro del plazo de fichajes: aquí también se aplica la regla de los equipos según la demanda (los interesados que se quedan sin equipo abren otros).
-  const mercado: MercadoDeFichajes = { lista: new ListaDeTrabajo(equipos.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(rend), reservas: new Map() };
-  // Los equipos de los clubes salen del «draft» por rondas (sin el personaje: no entra en los porcentajes).
-  avisarDelProgreso('Repartiendo a los jugadores entre los clubes y sus equipos…', 0.05);
-  draftDeEquipos(mercado, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
+  const mercado = conRepartoNuevo(() => {
+    const equipos = reclutarEnTodos(conCapacidades(DIAGNOSTICO.equilibrioInicial ? abandonoPrevio(conEntrenadores, pobs, 0) : conEntrenadores, 0), pobs, 0, new Map(), rend);
+    // La partida empieza dentro del plazo de fichajes: aquí también se aplica la regla de los equipos según la demanda (los interesados que se quedan sin equipo abren otros).
+    const m: MercadoDeFichajes = { lista: new ListaDeTrabajo(equipos.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(rend), reservas: new Map() };
+    // Los equipos de los clubes salen del «draft» por rondas (sin el personaje: no entra en los porcentajes).
+    avisarDelProgreso('Repartiendo a los jugadores entre los clubes y sus equipos…', 0.05);
+    draftDeEquipos(m, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
+    return m;
+  });
   avisarDelProgreso('Dándole a cada uno su historia deportiva…', 0.37);
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
   const resultado = { npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), 0, ctx.seed, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, 0)), mercado.pobs, 0, ctx.seed), pobs: [...mercado.pobs], ...(familias ? { hogares: familias.hogares } : {}) };
