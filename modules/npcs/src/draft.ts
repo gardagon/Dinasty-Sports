@@ -405,6 +405,24 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       pendientes = [...sinSitio, ...salenLibres];
       tr('J3', undefined, { ronda: ronda3, intentan: colocados + sinSitio.length, colocados, cascadas, salenLibres: salenLibres.length, sinSitio: sinSitio.length });
     }
+    // J4 (solo con la partida en equilibrio): con cohortes más pequeñas muchos clubes no reúnen 14 en el primer reparto y los que quedan fuera no tienen donde ir; los clubes sin equipo, de más a menos atractivo, forman uno con los que sobran (14 a 22).
+    if (DIAGNOSTICO.equilibrioInicial) {
+      let resto = pendientes.filter((p) => { const n = m.lista.get(p.id); return !!n && n.deporte === undefined; });
+      for (const e of lugares) {
+        if (resto.length < 14) break;
+        if (equipos.has(e.club)) continue;
+        const alumno = (id: string): boolean => e.colegio === undefined || bolsa().find((z) => z.npc.id === id)?.colegio === e.colegio;
+        const dentro: string[] = [];
+        for (const p of [...resto].sort((x, y) => valorId(y.id) - valorId(x.id) || (x.id < y.id ? -1 : 1))) {
+          if (dentro.length >= TOPE) break;
+          const n = m.lista.get(p.id);
+          if (!n || n.deporte !== undefined || !alumno(p.id)) continue;
+          if (intentarEntrar(m, n, e, pob, { sinPrueba: !o.conPrueba, soloHueco: true, relajado: true }).entra) dentro.push(p.id);
+        }
+        if (dentro.length >= 14) { equipos.set(e.club, { A: new Set(dentro) }); resto = resto.filter((p) => !dentro.includes(p.id)); tr('J4', e.club, { entran: dentro.length }); } else liberar(dentro);
+      }
+      pendientes = resto;
+    }
     abandonan = pendientes.length;
     for (const p of pendientes) liberar([p.id]);
     tr('fin J3', undefined, { abandonan, abandonanPorAnio: [1, 2, 3].map((k) => pendientes.filter((p) => { const n = m.lista.get(p.id); return n ? anioDe(n) === k : false; }).length), equipos: lugares.map((e) => { const q = equipos.get(e.club); return { club: e.club, A: q?.A.size ?? 0, B: q?.B?.size ?? 0, C: q?.C?.size ?? 0 }; }) });
