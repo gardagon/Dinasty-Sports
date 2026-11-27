@@ -1,6 +1,6 @@
 /**
  * Tres veranos seguidos con el verano del usuario (`docs/relevo/veranos-metodo.md`): ¿es estable la base? Solo mide: no cambia el juego.
- * `npx tsx tools/verano-tres.ts <semilla> [m|f] [veranos]`: el reparto nuevo de inicio (chicos, benjamín y alevín mixtos) y tres veranos seguidos con `DIAGNOSTICO.veranoUsuario`;
+ * `npx tsx tools/verano-tres.ts <semilla> [m|f] [veranos] [eq]` (con `eq`, la partida empieza en equilibrio: `DIAGNOSTICO.equilibrioInicial`): el reparto nuevo de inicio (chicos, benjamín y alevín mixtos) y tres veranos seguidos con `DIAGNOSTICO.veranoUsuario`;
  * tras cada uno cuenta los equipos por categoría y tipo de club, los de menos de 14, los niños que quieren jugar y no tienen equipo y los equipos de colegio. Salida: `#T {json}`.
  */
 import { PAIS_CIUDAD_GRANDE, registrarPais } from '@ds/contracts';
@@ -10,7 +10,7 @@ import { convocarYAlinear, futbol } from '@ds/mod-futbol';
 import { DIAGNOSTICO, LETRAS_FIJADAS, MEDIDA, SESGO_DE_SEXO, edadDeJuego, interesDe, type NpcsState } from '@ds/mod-npcs';
 import type { Npc } from '@ds/mod-npcs';
 
-const [semillaTxt = '51', mundo = 'm', veranosTxt = '3'] = process.argv.slice(2);
+const [semillaTxt = '51', mundo = 'm', veranosTxt = '3', equilibrioTxt = 'no'] = process.argv.slice(2);
 const VERANOS = Number(veranosTxt);
 const seed = Number(semillaTxt);
 registrarPais(PAIS_CIUDAD_GRANDE);
@@ -24,6 +24,7 @@ SESGO_DE_SEXO.solo = mundo === 'f' ? 'f' : 'm';
 SESGO_DE_SEXO.desdeEdad = 12;
 if (mundo === 'f') SESGO_DE_SEXO.sinColegios = true;
 MEDIDA.respetarReparto = true;
+DIAGNOSTICO.equilibrioInicial = equilibrioTxt === 'eq';
 
 const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
 advanceToWeek(g, 'gen.descansar', 0, 2, 9);
