@@ -174,6 +174,11 @@ export interface PoblacionGuardada extends Omit<PoblacionDeDeporte, 'equipos'> {
   categorias?: CategoriaDef[];
   /** Cómo se llaman sus clubes (id → nombre del sitio donde trabajan), para decir dónde trabajan los entrenadores. */
   nombresDeClub: Record<string, string>;
+  /**
+   * La partida se creó con el reparto nuevo de inicio (`CiudadDef.repartoNuevo`): los equipos tienen las letras que decidió el reparto y quien llega a un equipo (el que ocupa el sitio de otro, o un hueco) entra con una letra de su club y
+   * categoría, para que ninguna búsqueda de club los deshaga ni deje a nadie sin letra. Ausente en las demás partidas (también en las guardadas antes): se comportan como siempre.
+   */
+  repartoNuevo?: boolean;
 }
 
 /** Lo que hizo un jugador en una temporada (curso) en una categoría y con un club: una entrada por temporada para su historial de siempre (lo que pedirá un ojeador o un mánager). */
@@ -1061,8 +1066,9 @@ function companeroConFamilia(viejo: Npc, hijo: Npc): Npc {
  * (`equilibrioInicial`). Se activa solo al crear (los veranos siguen con sus reglas) y solo si la ciudad lo trae; si una herramienta de medida ya ha puesto sus propias variantes, se respetan (`DIAGNOSTICO.sinRepartoNuevo` lo apaga).
  * Aquí no hay nada que dependa del sexo: chicos y chicas se reparten juntos como hasta ahora (el 10 % de chicas y los equipos femeninos son otra parte: `SESGO_DE_SEXO`, que sigue siendo solo medida).
  */
+const repartoNuevoActivo = (): boolean => !!ciudad().repartoNuevo && !DIAGNOSTICO.sinRepartoNuevo && !DIAGNOSTICO.variantePaso23;
 function conRepartoNuevo<T>(crear: () => T): T {
-  if (!ciudad().repartoNuevo || DIAGNOSTICO.sinRepartoNuevo || DIAGNOSTICO.variantePaso23) return crear();
+  if (!repartoNuevoActivo()) return crear();
   const antes = { primera: DIAGNOSTICO.variantePrimeraRonda, paso23: DIAGNOSTICO.variantePaso23, juvenil: DIAGNOSTICO.variantJuvenil, equilibrio: DIAGNOSTICO.equilibrioInicial, respetar: MEDIDA.respetarReparto };
   DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
   DIAGNOSTICO.variantePaso23 = { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true, equilibrar: true, maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true } };
@@ -1093,6 +1099,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
   const rend = rendimientosDe(ctx);
   avisarDelProgreso('Midiendo lo que vale cada niño y reclutando a los equipos…', 0.04);
+  const conReparto = repartoNuevoActivo();
   const mercado = conRepartoNuevo(() => {
     const equipos = reclutarEnTodos(conCapacidades(DIAGNOSTICO.equilibrioInicial ? abandonoPrevio(conEntrenadores, pobs, 0) : conEntrenadores, 0), pobs, 0, new Map(), rend);
     // La partida empieza dentro del plazo de fichajes: aquí también se aplica la regla de los equipos según la demanda (los interesados que se quedan sin equipo abren otros).
@@ -1100,6 +1107,7 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
     // Los equipos de los clubes salen del «draft» por rondas (sin el personaje: no entra en los porcentajes).
     avisarDelProgreso('Repartiendo a los jugadores entre los clubes y sus equipos…', 0.05);
     draftDeEquipos(m, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
+    if (conReparto) m.pobs = m.pobs.map((p) => ({ ...p, repartoNuevo: true }));
     return m;
   });
   avisarDelProgreso('Dándole a cada uno su historia deportiva…', 0.37);
