@@ -7,7 +7,7 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ## 28/11/2026 — Plaza del personaje: equipos de 18 también al crear
 
-Con el mundo a la mitad (10 % de chicas), los equipos de inicio salían de hasta 22, y el personaje se quedaba sin plaza en el equipo de su colegio en 5 de 20 semillas. **Decidido (usuario):** en el reparto de inicio, benjamín y alevín forman equipos de 18, como en el verano; solo se llega a 22 si sobran niños. **No se reserva plaza al personaje** (`docs/VISION.md`: sin plazas reservadas ni trato especial). `probar-web` deja de depender de la suerte de la semilla.
+Con el mundo a la mitad (10 % de chicas), los equipos de inicio salían de hasta 22, y el personaje se quedaba sin plaza en el equipo de su colegio en 5 de 20 semillas. **Decidido (usuario):** en el reparto de inicio, benjamín y alevín forman equipos de 18, como en el verano; solo se llega a 22 si sobran niños. **No se reserva plaza al personaje** (`docs/VISION.md`: sin plazas reservadas ni trato especial). `probar-web` deja de depender de la suerte de la semilla. Aun así, sin plaza en 5 de 20 semillas, porque los equipos del colegio salían con 18 justos. **Aclaración del usuario:** los colegios cogen a todos sus alumnos que quieren jugar, hasta 22, y así el personaje entra (en el B o en el equipo de su año) con la misma regla que cualquier alumno. Se revisa también si los números de alumnos con interés por colegio cuadran (dos clases por curso).
 
 ## 28/11/2026 — Chicos y chicas, en el juego (parte 3)
 
