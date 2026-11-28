@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { rngEstable, type LectorDePersona } from '@ds/contracts';
 import { DIAGNOSTICO_DE_CACHE, jugarPartido, type EquipoDePartido, type JugadorDePartido } from './partido';
-import { azarDeLesionEnPartido, conMinutos, flujosDelPartido, vistaDeCronica } from './registro';
+import { azarDeLesionEnPartido, comprimirRegistro, conMinutos, conservarRegistros, descomprimirRegistro, flujosDelPartido, vistaDeCronica, type RegistroCompacto } from './registro';
 
 /** Un lector de prueba: lo que vale cada habilidad depende del nombre de la stat, así que cada jugador es distinto de los demás. */
 const lector = (valor: number, inmutable = false): LectorDePersona => ({ stat: (id) => (id.startsWith('gen.') ? valor : valor + ((id.length * 7) % 13)), norm: (id) => (id === 'gen.resistencia' ? 0.4 : 0.5), ...(inmutable ? { inmutable: true as const } : {}) });
@@ -123,5 +123,29 @@ describe('la caché de lo que vale cada jugador', () => {
     const normal = jugarPartido(a, b, o);
     const cansados = jugarPartido({ ...a, jugadores: a.jugadores.map((j) => ({ ...j, rinde: 0.5 })) }, b, o);
     expect(cansados.porTramo).not.toEqual(normal.porTramo);
+  });
+});
+
+describe('el registro de nivel 1, compacto y con caducidad de dos temporadas', () => {
+  it('guardar y recuperar un registro lo deja igual, con muchos menos bytes que el JSON entero', () => {
+    for (let i = 0; i < 20; i++) {
+      const r = jugarPartido(equipo('a', 30), equipo('b', 32), { id: `c${i}`, semilla: 2, categoria: 'cadete', cambios: CAMBIOS });
+      const c = comprimirRegistro(r.registro, { id: `1|3|a|b|${i}`, curso: 1, semana: 3, equipos: ['a|A', 'b|A'], goles: r.goles });
+      expect(descomprimirRegistro(JSON.parse(JSON.stringify(c)))).toEqual(r.registro.map((s) => ({ ...s, ...(s.xg !== undefined ? { xg: Math.round(s.xg * 1000) / 1000 } : {}) })));
+      expect(JSON.stringify(c).length).toBeLessThan(JSON.stringify(r.registro).length * 0.5);
+    }
+  });
+
+  it('una lesión conserva su tipo, su zona y sus días', () => {
+    const registro = [{ minuto: 61, tramo: 4, tipo: 'lesion' as const, equipo: 1 as const, jugador: 'x', lesion: { t: 'esguince', z: 'tobillo', d: 14 } }];
+    const c = comprimirRegistro(registro, { id: 'l', curso: 1, semana: 1, equipos: ['a', 'b'], goles: [0, 0] });
+    expect(descomprimirRegistro(c)).toEqual(registro);
+  });
+
+  it('se conservan el curso actual y el anterior; los de antes caducan', () => {
+    const reg = (curso: number): RegistroCompacto => ({ id: `r${curso}`, curso, semana: 1, equipos: ['a', 'b'], goles: [0, 0], jugadores: [], ev: [] });
+    expect(conservarRegistros([reg(1), reg(2), reg(3), reg(4)], 4).map((x) => x.curso)).toEqual([3, 4]);
+    expect(conservarRegistros([reg(4)], 4)).toHaveLength(1);
+    expect(conservarRegistros(undefined, 4)).toEqual([]);
   });
 });

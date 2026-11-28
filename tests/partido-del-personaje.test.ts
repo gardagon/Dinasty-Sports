@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { PAIS_CIUDAD_DE_PRUEBA, SERVICES, claveDeDeporte, registrarPais, type ClubDirectory, type DeporteService, type LugaresService, type NpcDirectory, type RelationsService } from '@ds/contracts';
 import { advanceToWeek, advanceUntil } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
-import { futbol, proximoPartido, type FutbolState } from '@ds/mod-futbol';
+import { descomprimirRegistro, futbol, proximoPartido, type FutbolState } from '@ds/mod-futbol';
 import { conFutbolFuerte, hacer, llegarA, posible } from './ayudas';
 
 vi.setConfig({ testTimeout: 480000, hookTimeout: 480000 });
@@ -67,7 +67,19 @@ describe('el partido del personaje en la liga', () => {
     const u = s.ultimoPartido!;
     expect(u.cronica.some((l) => l.titulo)).toBe(true);
     expect(u.cronica.filter((l) => l.titulo && l.texto.startsWith('Minutos'))).toHaveLength(6);
-    expect(u.cronica.at(-1)!.texto).toMatch(/^Final: /);
+    // Tras el «Final» vienen los números del partido (y, si juega, los suyos).
+    const final = u.cronica.findIndex((l) => l.titulo && /^Final: /.test(l.texto));
+    expect(final).toBeGreaterThan(0);
+    expect(u.cronica[final + 1].texto).toMatch(/^Tiros \d+–\d+ \(a puerta/);
+    if (u.juega) expect(u.cronica.at(-1)!.texto).toMatch(/^Tus números: \d+ pases/);
+    // Su registro (nivel 1) se guarda, compacto, y de él salen los goles del marcador; solo se conservan dos temporadas.
+    expect(s.registros!.length).toBeGreaterThanOrEqual(3);
+    const ultimoRegistro = s.registros!.at(-1)!;
+    expect(ultimoRegistro.goles).toEqual(u.goles);
+    const sucesos = descomprimirRegistro(ultimoRegistro);
+    expect(sucesos.length).toBeGreaterThan(20);
+    expect(sucesos.filter((x) => x.tipo === 'gol')).toHaveLength(u.goles[0] + u.goles[1]);
+    expect(Math.min(...s.registros!.map((x) => x.curso))).toBeGreaterThanOrEqual(ultimoRegistro.curso - 1);
     for (const p of s.partidos!) {
       expect(p.goles).toHaveLength(2);
       if (p.juega) {

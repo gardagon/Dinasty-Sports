@@ -117,3 +117,66 @@ export const sucesosDeCronica = (registro: readonly SucesoDePartido[]): SucesoDe
 
 /** La crónica como vista del registro: lo que cuenta el relato, sin el minuto. */
 export const vistaDeCronica = (registro: readonly SucesoDePartido[]): MomentoDeCronica[] => sucesosDeCronica(registro).map(({ minuto: _minuto, ...momento }) => momento);
+
+// ---------------------------------------------------------------------------------------------------- el registro del nivel 1, compacto, para guardarlo
+
+/**
+ * **El registro de un partido de nivel 1, en pocos bytes** (decisión del 24/11: el de los partidos del personaje y los que ve se conserva **dos temporadas**, la pasada y la actual; los de antes se reducen a los datos del
+ * nivel 2: el resultado y las estadísticas de cada jugador, que ya se guardan aparte). Cada suceso es una fila de números con índices en `jugadores` (no se repiten los ids) y, solo si hace falta, un texto.
+ * Fila: `[minuto, tipo, equipo, jugador, otro, portero, xg × 1000, banderas]` (`-1` = nadie) y, en una lesión, `'tipo|zona|días'`. Banderas: 1 gol de balón parado, 2 penalti, 4 doble amarilla, 8 lanzamiento sin gol.
+ */
+export interface RegistroCompacto {
+  /** El partido (el mismo texto que el `id` del motor), su curso y su semana. */
+  id: string;
+  curso: number;
+  semana: number;
+  /** Local y visitante (ids de equipo) y el marcador. */
+  equipos: [string, string];
+  goles: [number, number];
+  /** Los ids que aparecen en las filas, sin repetir. */
+  jugadores: string[];
+  ev: (number | string)[][];
+}
+
+const TIPOS_EN_ORDEN: readonly TipoDeSuceso[] = ['gol', 'ocasion', 'balon_parado', 'cambio', 'tiro_fuera', 'tiro_bloqueado', 'falta', 'amarilla', 'roja', 'corner', 'penalti', 'lesion'];
+
+export function comprimirRegistro(registro: readonly SucesoDePartido[], o: { id: string; curso: number; semana: number; equipos: [string, string]; goles: [number, number] }): RegistroCompacto {
+  const jugadores: string[] = [];
+  const indice = new Map<string, number>();
+  const de = (id: string | undefined): number => {
+    if (id === undefined) return -1;
+    let i = indice.get(id);
+    if (i === undefined) {
+      i = jugadores.length;
+      indice.set(id, i);
+      jugadores.push(id);
+    }
+    return i;
+  };
+  const ev = registro.map((s) => {
+    const fila: (number | string)[] = [s.minuto, TIPOS_EN_ORDEN.indexOf(s.tipo), s.equipo, de(s.jugador), de(s.otro), de(s.portero), Math.round((s.xg ?? 0) * 1000), (s.gol ? 1 : 0) | (s.penalti ? 2 : 0) | (s.dobleAmarilla ? 4 : 0) | (s.gol === false ? 8 : 0)];
+    if (s.lesion) fila.push(`${s.lesion.t}|${s.lesion.z}|${s.lesion.d}`);
+    return fila;
+  });
+  return { id: o.id, curso: o.curso, semana: o.semana, equipos: o.equipos, goles: o.goles, jugadores, ev };
+}
+
+export function descomprimirRegistro(c: RegistroCompacto): SucesoDePartido[] {
+  const id = (i: number | string): string | undefined => (typeof i === 'number' && i >= 0 ? c.jugadores[i] : undefined);
+  return c.ev.map((f) => {
+    const [minuto, tipo, equipo, j, o, p, xg, banderas] = f as number[];
+    const lesion = typeof f[8] === 'string' ? (f[8] as string).split('|') : undefined;
+    return {
+      minuto, tramo: Math.floor(minuto / 15), tipo: TIPOS_EN_ORDEN[tipo], equipo: equipo as 0 | 1, jugador: id(j)!,
+      ...(id(o) !== undefined ? { otro: id(o) } : {}), ...(id(p) !== undefined ? { portero: id(p) } : {}), ...(xg > 0 ? { xg: xg / 1000 } : {}),
+      ...(banderas & 1 ? { gol: true } : banderas & 8 ? { gol: false } : {}), ...(banderas & 2 ? { penalti: true } : {}), ...(banderas & 4 ? { dobleAmarilla: true } : {}),
+      ...(lesion ? { lesion: { t: lesion[0], z: lesion[1], d: Number(lesion[2]) } } : {}),
+    };
+  });
+}
+
+/**
+ * Los registros que se conservan (`registros` del estado del fútbol): los del curso actual y los del anterior. Los de antes caducan: se reducen a los datos del nivel 2 (el resultado y las estadísticas de cada jugador,
+ * que se guardan en otro sitio y no caducan). Se llama al guardar uno nuevo y al empezar el curso.
+ */
+export const conservarRegistros = (registros: readonly RegistroCompacto[] | undefined, cursoActual: number): RegistroCompacto[] => (registros ?? []).filter((r) => r.curso >= cursoActual - 1);

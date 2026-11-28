@@ -113,6 +113,7 @@ import { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElC
 import { convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, jugadoresDelPartido, paraConvocar, paraConvocarElEquipo, posicionEquivalente, type Convocatoria } from './convocatoria';
 import { INTENSIDADES, PARAMETROS_DEL_PERSONAJE, YO, cronicaDelPartido, jugadorPorSuDorsal, nombreDeIntensidad, proximoPartido, situacionEnLaLiga, textoDeResultados, ultimosResultados, type LineaDeCronica } from './personaje';
 import { PARAMETROS_DE_PARTIDO, jugarPartido, tandaDePenaltis, type Intensidad, type ResultadoDePartido } from './partido';
+import { comprimirRegistro, conservarRegistros, type RegistroCompacto } from './registro';
 
 export { CATEGORIAS_ESPANA, DATOS_FUTBOL, FICHA_FUTBOL, LUGARES_FUTBOL, PNJ_POR_LIBRE, ABANDONO_PROPUESTO, INTERES_AL_JUGAR } from './datos';
 export { CONOCIMIENTO, GRUPOS_DE_HABILIDADES, HABILIDADES_DE_FUTBOL, STATS_DE_FUTBOL } from './habilidades';
@@ -120,6 +121,10 @@ export { PARAMETROS_DE_PERCEPCION, juicioDe, recordarRivales, recordarSoloLosUlt
 export type { Impresion, Juicio, RivalVisto } from './mi-equipo';
 export { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 export { PUESTOS_DE_FUTBOL } from './puestos';
+export { avanzarPartido, crearPartido, resultadoDelPartido } from './partido';
+export type { EstadoDePartido, EstadoDeJugadorEnPartido, LesionDelPartido, RiesgoDeLesionDelPartido } from './partido';
+export { azarDeLesionEnPartido, comprimirRegistro, conservarRegistros, descomprimirRegistro, flujosDelPartido, sucesosDeCronica, vistaDeCronica } from './registro';
+export type { MomentoDeCronica, RegistroCompacto, SucesoDePartido, TipoDeSuceso } from './registro';
 export { DIAGNOSTICO_DE_CACHE, tandaDePenaltis, PARAMETROS_DE_PENALTIS, jugarPartido, valorEnPartido, rendimientoPorCansancio, cansancioDelTramo, PARAMETROS_DE_PARTIDO, POTENCIADOR_POR_CATEGORIA, PARTICIPACION_DEL_PUESTO, HABILIDADES_DE_LA_ZONA } from './partido';
 export { PARAMETROS_DE_CONVOCATORIA, convocarYAlinear, convocarYAlinearConAusencias, equipoDePartido, estadoDelPersonaje, paraConvocar, paraConvocarElEquipo, factorDeRotacion, jugadoresDelPartido, posicionEquivalente, prioridadDelEntrenador } from './convocatoria';
 export type { Convocatoria, JugadorParaConvocar } from './convocatoria';
@@ -142,6 +147,11 @@ export type FutbolState = EstadoBaseDeDeporte & {
   liga?: LigaDelMundo;
   /** El curso de la última liga cuyo calendario se avisó al personaje (una línea en el diario al publicarse). */
   calendarioAvisado?: number;
+  /**
+   * **Los registros de sus partidos de nivel 1** (el motor de posesiones y ocasiones los guarda sucesos a suceso, en forma compacta: `registro.ts`), de **dos temporadas**: la actual y la pasada (decisión del 24/11/2026). Al guardar uno nuevo y
+   * al empezar el curso, los más antiguos caducan (`conservarRegistros`): quedan el resumen de cada partido (`partidos`) y las estadísticas de cada jugador, que no caducan. Las partidas guardadas antes lo rellenan vacío al cargar.
+   */
+  registros?: RegistroCompacto[];
   /** Los partidos de sanción que le quedan al personaje (una roja, o cada cinco amarillas de la temporada): no lo convocan, y cada partido de su equipo cumple uno (`sancionTrasElPartido`). */
   sancion?: number;
   /** La intensidad con que el personaje sale a jugar (se queda elegida de un partido al siguiente; por defecto, normal). */
@@ -1032,6 +1042,8 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
   ctx.updateState<FutbolState>((s) => ({
     ...s,
     partidos: [...(s.partidos ?? []), resumen].slice(-PARAMETROS_DEL_PERSONAJE.partidosGuardados),
+    // El registro de este partido (nivel 1), compacto, con caducidad de dos temporadas.
+    registros: conservarRegistros([...(s.registros ?? []), comprimirRegistro(r.registro, { id: `${p.curso}|${p.semana}|${p.local}|${p.visitante}`, curso: p.curso, semana: p.semana, equipos: [p.local, p.visitante], goles: r.goles })], p.curso),
     ultimoPartido: { ...resumen, cronica },
     ...(p.ausente ? { faltas: { ...Object.fromEntries(Object.entries(s.faltas ?? {}).filter(([k]) => Number(k) >= p.semana - 2)), [p.semana]: 1 } } : {}),
   }));
