@@ -10,7 +10,7 @@ import {
   valoracionDelPuesto,
   type EstadoDeJugador,
 } from '@ds/contracts';
-import { pasoDeSuenoDeLaNoche, pasoDeSuenoDeLaSemana, suenoHabitual, topeDeEnergiaAlDespertar } from '@ds/contracts';
+import { SUENO_EN_EL_DEPORTE, deudaEfectiva, factorPorSueno, pasoDeSuenoDeLaNoche, pasoDeSuenoDeLaSemana, suenoHabitual, topeDeEnergiaAlDespertar } from '@ds/contracts';
 import { GEN, factorPorForma, formaTrasLaSemana, formaTrasUnaCompeticion, gravedadDeLesion, riesgoDeLesion, fatigaDeLaSemana } from '@ds/contracts';
 import { Game, advanceToWeek } from '@ds/core';
 import { personaje } from '@ds/mod-personaje';
@@ -261,6 +261,25 @@ describe('el sueño: las mismas reglas para el personaje y los PNJ', () => {
     expect(e.deuda).toBeGreaterThan(5);
     expect(e.fisica).toBeLessThanOrEqual(topeDeEnergiaAlDespertar(e.deuda!) + 1e-9);
     expect(e.fisica).toBeLessThan(sin.fisica + 60);
+  });
+
+  it('F2: la deuda baja el rendimiento y sube el riesgo de lesión con la misma regla del personaje (`factorPorSueno`, `riesgoDeLesion`)', () => {
+    const descansado = eficienciaDeEstado(SANO({}));
+    const atrasado = eficienciaDeEstado(SANO({ deuda: 6 }));
+    expect(atrasado).toBeCloseTo(descansado * factorPorSueno(6, SUENO_EN_EL_DEPORTE), 10);
+    expect(atrasado).toBeCloseTo(descansado * (1 - 0.015 * deudaEfectiva(6)), 10);
+    // En competición también (la forma no se toca).
+    expect(eficienciaDeEstado(SANO({ deuda: 6 }), false)).toBeLessThan(eficienciaDeEstado(SANO({}), false));
+    // El riesgo semanal sube con la deuda, de forma monótona, y con 6 h de deuda es entre ×1,4 y ×1,9.
+    let previo = 0;
+    for (let d = 0; d <= 10; d++) {
+      const r = riesgoDeLesion(48, 50, d);
+      expect(r).toBeGreaterThanOrEqual(previo);
+      previo = r;
+    }
+    expect(riesgoDeLesion(48, 50, 6) / riesgoDeLesion(48, 50)).toBeGreaterThan(1.4);
+    expect(riesgoDeLesion(48, 50, 6) / riesgoDeLesion(48, 50)).toBeLessThan(1.9);
+    expect(riesgoDeLesion(48, 50, 0)).toBe(riesgoDeLesion(48, 50));
   });
 
   it('su hábito de sueño sale de la edad, la disciplina y un azar, y casi nadie acaba con mucha deuda', () => {
