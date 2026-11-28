@@ -10,18 +10,42 @@ import { PAIS_CIUDAD_ACTUAL_SIN_HOGARES, PAIS_CIUDAD_GRANDE, PAIS_CIUDAD_GRANDE_
 import { advanceToWeek } from '@ds/core';
 import { MODULOS, nuevaPartida } from '@ds/game';
 import { futbol } from '@ds/mod-futbol';
-import { edadDeJuego, type NpcsState } from '@ds/mod-npcs';
+import { DIAGNOSTICO, SESGO_DE_SEXO, interesDe, edadDeJuego, type NpcsState } from '@ds/mod-npcs';
+import { convocarYAlinear } from '@ds/mod-futbol';
 import { hacer, posible } from '../tests/ayudas';
 
 const [ciudad = 'grande', hogares = 'con', lista = '31,32,33'] = process.argv.slice(2).filter((x) => !x.startsWith('--'));
 const TRAZA = process.argv.includes('--traza');
+// `--nuevo`: el reparto nuevo entero (medida, apagado por defecto): benjamín/alevín paso 2-3 + 7, infantil/cadete paso 2-3 + 4 (B mixto hasta 20) + 5-6 + 7, juvenil en cascada.
+// Sexos (medida; `docs/relevo/reparto-nuevo-reglas.md`): `--chicas=0.111` deja ~10 % de chicas entre los que quieren jugar; `--solo=m|f` reparte desde infantil (12) solo a chicos o solo a chicas (dos mundos de la misma semilla).
+const argChicas = process.argv.find((x) => x.startsWith('--chicas'));
+const argSolo = process.argv.find((x) => x.startsWith('--solo='))?.slice(7) as 'm' | 'f' | undefined;
+if (argChicas || argSolo) SESGO_DE_SEXO.deportes = ['futbol'];
+if (argChicas) SESGO_DE_SEXO.chicas = Number(argChicas.split('=')[1] ?? 0.111);
+if (argSolo) { SESGO_DE_SEXO.solo = argSolo; SESGO_DE_SEXO.desdeEdad = 12; }
+if (process.argv.includes('--sin-colegios')) { SESGO_DE_SEXO.sinColegios = true; SESGO_DE_SEXO.desdeEdad = 12; }
+const EQUILIBRAR = process.argv.includes('--equilibrar');
+const NUEVO = process.argv.includes('--nuevo') || EQUILIBRAR;
+if (NUEVO) {
+  const titulares = (js: unknown): string[] => convocarYAlinear(js as never).titulares.map((x) => x.id);
+  DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
+  DIAGNOSTICO.variantePaso23 = { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true, ...(EQUILIBRAR ? { equilibrar: true } : {}), maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares } as never;
+  DIAGNOSTICO.variantJuvenil = { cascada: 'usuario', titulares } as never;
+}
+// Los equipos que deja cada variante (la traza de su último paso): `fijarEquipos` reparte después las letras por el total del club, así que con `--nuevo` se leen de aquí.
+let seed_ = 0;
+const DEBUG = process.argv.includes('--clubes');
+const FUERA_J: Record<string, number[]> = {};
+const FINALES: Record<string, { A: number; B: number; C: number; D: number }[]> = {};
+if (NUEVO) DIAGNOSTICO.traza = (e) => { if (DEBUG && (e.fase === 'fin del paso 7' || e.fase === 'fin BA' || e.fase === 'fin equilibrio' || e.fase === 'fin J3')) console.log(`#CLUBES ${e.categoria} ${e.fase} ${JSON.stringify(e.datos.equipos)}`); if (DEBUG && e.fase === 'equilibrio' && e.datos.revertido) console.log(`#REVERT ${seed_} ${e.categoria} ${e.club} ${e.datos.tipo} ${JSON.stringify(e.datos.tamanos)}`); if (e.fase === 'fin J3') FUERA_J[e.categoria] = e.datos.abandonanPorAnio as number[]; if (e.fase === 'fin equilibrio') console.log(`#EQ ${seed_} ${e.categoria} cambian=${e.datos.cambian} bajan=${e.datos.bajan} revertidos=${e.datos.revertidos} sinA=${e.datos.sinA} sinAUnidos=${e.datos.sinAUnidos} sinAExceso=${e.datos.sinAExceso} desaparecen=${e.datos.desaparecen} cDesbordan=${e.datos.cDesbordan} expulsados=${e.datos.expulsadosC} desaparecidos=${e.datos.desaparecidos} colocados=${e.datos.colocados} sinSitio=${e.datos.sinSitio} clubesConC=${e.datos.clubesConC} clubesConD=${e.datos.clubesConD} CA=${e.datos.antesCA}>${e.datos.despuesCA} DB=${e.datos.antesDB}>${e.datos.despuesDB} CAonce=${e.datos.antesCAonce}>${e.datos.despuesCAonce} DBonce=${e.datos.antesDBonce}>${e.datos.despuesDBonce}`); if (e.fase === 'fin del paso 7' || e.fase === 'fin BA' || e.fase === 'fin equilibrio' || e.fase === 'fin J3') FINALES[e.categoria] = (e.datos.equipos as { A: number; B: number; C?: number; D?: number }[]).map((q) => ({ A: q.A, B: q.B, C: q.C ?? 0, D: q.D ?? 0 })); };
 const PAIS = ciudad === 'grande' ? (hogares === 'sin' ? PAIS_CIUDAD_GRANDE_SIN_HOGARES : PAIS_CIUDAD_GRANDE) : hogares === 'sin' ? PAIS_CIUDAD_ACTUAL_SIN_HOGARES : PAIS_ESPANA;
 registrarPais(PAIS);
 const semillas = lista.includes('-') ? Array.from({ length: Number(lista.split('-')[1]) - Number(lista.split('-')[0]) + 1 }, (_, i) => Number(lista.split('-')[0]) + i) : lista.split(',').map(Number);
 const CATEGORIAS = ['benjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
-const etiqueta = `${ciudad}-${hogares}`;
+const etiqueta = `${ciudad}-${hogares}${EQUILIBRAR ? '-equilibrado' : NUEVO ? '-nuevo' : ''}${argSolo ? `-solo${argSolo}` : ''}`;
 
 for (const seed of semillas) {
+  seed_ = seed;
   const g = nuevaPartida({ seed, pais: PAIS.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
   const medir = (momento: string, dia: number | undefined): void => {
     const s = g.moduleState<NpcsState>('npcs') as NpcsState;
@@ -86,8 +110,39 @@ for (const seed of semillas) {
     if (momento === 'empezar') {
       for (const cat of CATEGORIAS) {
         const c = pob.categorias!.find((x) => x.id === cat)!;
-        sim[cat].bolsa = s.npcs.filter((x) => x.genetica && x.deporte === undefined && !x.dejado?.includes('futbol') && (x.rasgos?.intereses.futbol ?? 0) > 0 && (edadDeJuego(x, 0) ?? -1) >= c.edadMin && (edadDeJuego(x, 0) ?? -1) <= c.edadMax).length;
+        sim[cat].bolsa = s.npcs.filter((x) => x.genetica && x.deporte === undefined && !x.dejado?.includes('futbol') && interesDe(x, 'futbol', edadDeJuego(x, 0)) > 0 && (edadDeJuego(x, 0) ?? -1) >= c.edadMin && (edadDeJuego(x, 0) ?? -1) <= c.edadMax).length;
         console.log(`#SIM ${etiqueta} ${seed} ${cat} ${Object.entries(sim[cat]).map(([k, v]) => `${k}=${Math.round(v * 100) / 100}`).join(' ')}`);
+      }
+    }
+    if (momento === 'empezar') {
+      for (const cat of CATEGORIAS) {
+        const c = pob.categorias!.find((x) => x.id === cat)!;
+        const q = { m: 0, f: 0 };
+        for (const n of s.npcs) { const ed = edadDeJuego(n, 0) ?? -1; if (n.genetica && ed >= c.edadMin && ed <= c.edadMax && interesDe(n, 'futbol', ed) > 0) q[n.gender === 'f' ? 'f' : 'm']++; }
+        const est = { juegan: 0, apartados: 0, dejaron: 0, libres: 0 };
+        for (const n of s.npcs) { const ed = edadDeJuego(n, 0) ?? -1; if (n.genetica && ed >= c.edadMin && ed <= c.edadMax && interesDe(n, 'futbol', ed) > 0) { if (n.deporte === 'futbol') est.juegan++; else if (n.apartado?.includes('futbol')) est.apartados++; else if (n.dejado?.includes('futbol')) est.dejaron++; else est.libres++; } }
+        console.log(`#QUIEREN ${etiqueta} ${seed} ${cat} chicos=${q.m} chicas=${q.f} juegan=${est.juegan} apartados=${est.apartados} dejaron=${est.dejaron} libres=${est.libres}`);
+      }
+      for (const cat of CATEGORIAS) {
+        const c = pob.categorias!.find((x) => x.id === cat)!;
+        const equipos = new Map<string, number>();
+        for (const n of jugadores) { const ed = edadDeJuego(n, 0) ?? -1; if (n.equipo && n.letra?.futbol && ed >= c.edadMin && ed <= c.edadMax) { const k = `${n.equipo}|${n.letra.futbol}`; equipos.set(k, (equipos.get(k) ?? 0) + 1); } }
+        const porLetra: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
+        for (const k of equipos.keys()) porLetra[k.split('|')[1]] = (porLetra[k.split('|')[1]] ?? 0) + 1;
+        let tams = [...equipos.values()];
+        if (NUEVO && FINALES[cat]) {
+          for (const l of ['A', 'B', 'C', 'D'] as const) porLetra[l] = FINALES[cat].filter((q) => q[l] > 0).length;
+          tams = FINALES[cat].flatMap((q) => [q.A, q.B, q.C, q.D].filter((x) => x > 0));
+        }
+        const fuera: number[] = [0, 0, 0];
+        let sinLetra = 0;
+        for (const n of s.npcs) {
+          const ed = edadDeJuego(n, 0) ?? -1;
+          if (!n.genetica || ed < c.edadMin || ed > c.edadMax) continue;
+          if (n.deporte === 'futbol' && n.equipo && !n.letra?.futbol) sinLetra++;
+          if (n.deporte === undefined && !n.dejado?.includes('futbol') && interesDe(n, 'futbol', ed) > 0) fuera[Math.min(2, ed - c.edadMin)]++;
+        }
+        console.log(`#CAT ${etiqueta} ${seed} ${cat} A=${porLetra.A} B=${porLetra.B} C=${porLetra.C} D=${porLetra.D} min=${tams.length ? Math.min(...tams) : 0} max=${tams.length ? Math.max(...tams) : 0} bajo=${tams.filter((x) => x < 14).length} jugadores=${tams.reduce((a, b) => a + b, 0)} sinLetra=${sinLetra} fuera=${(NUEVO && FUERA_J[cat] ? FUERA_J[cat] : fuera).join('/')}`);
       }
     }
     for (const cat of CATEGORIAS) { const r = porCat[cat]; console.log(`#RESUMEN ${etiqueta} ${seed} ${momento} ${cat} equipos=${r.equipos} bajo=${r.bajo} jugadoresEnBajo=${r.jugBajo} sinLetra=${r.sinLetra} jugadores=${r.jug}`); }

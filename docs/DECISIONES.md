@@ -5,6 +5,172 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/11/2026 — Plaza del personaje: equipos de 18 también al crear
+
+Con el mundo a la mitad (10 % de chicas), los equipos de inicio salían de hasta 22, y el personaje se quedaba sin plaza en el equipo de su colegio en 5 de 20 semillas. **Decidido (usuario):** en el reparto de inicio, benjamín y alevín forman equipos de 18, como en el verano; solo se llega a 22 si sobran niños. **No se reserva plaza al personaje** (`docs/VISION.md`: sin plazas reservadas ni trato especial). `probar-web` deja de depender de la suerte de la semilla. Aun así, sin plaza en 5 de 20 semillas, porque los equipos del colegio salían con 18 justos. **Aclaración del usuario:** los colegios cogen a todos sus alumnos que quieren jugar, hasta 22, y así el personaje entra (en el B o en el equipo de su año) con la misma regla que cualquier alumno. Se revisa también si los números de alumnos con interés por colegio cuadran (dos clases por curso).
+
+## 28/11/2026 — Chicos y chicas, en el juego (parte 3)
+
+- **Chicas ~10 % y equipos separados desde infantil, en la ciudad grande y solo en las partidas nuevas** (`reclutamiento.sexos` del fútbol + `CiudadDef.repartoNuevo`); las guardadas siguen mixtas como siempre (aplicarlo después no tiene forma limpia). Benjamín y alevín, mixtos; los femeninos, solo en clubes externos (`<club>_f`), con el mismo método de reparto y de verano (dos pasadas por categoría: chicos en los clubes de chicos y chicas en los femeninos).
+- **Las jugadoras simulan que juegan** un partido a la semana, sin resultados ni clasificación (contra otro equipo femenino de su categoría o el de chicos más parecido); la liga femenina queda para más adelante. **Elegir chica como personaje: sigue desactivado.**
+- Medido (8 veranos, 10 semillas): 0 equipos por debajo de 14, categorías en su equilibrio y la ciudad a la mitad (lo aceptado); crear 15,0 → 6,5 s. La huella del fútbol cambia solo por el dato guardado (referencia nueva en `docs/relevo/chicos-y-chicas-implementado.md`).
+- **Abierto:** con la mitad de niños, el personaje no tiene plaza en el equipo de su colegio en 5 de cada 20 partidas (antes, 0) y `probar-web` falla por eso: reservarle una plaza o dejarlo, y adaptar la prueba. Datos en el relevo.
+
+## 28/11/2026 — El verano nuevo, en el juego (parte 2)
+
+- **El verano del usuario (`veranos-metodo.md`, v5 + juvenil v5) es el verano de la ciudad grande** (`CiudadDef.repartoNuevo`), también en las partidas guardadas antes (desde su siguiente verano, con las letras que ya tienen; el primero deja 0 equipos por debajo de 14). La ciudad de ahora y la de prueba siguen con el verano de siempre.
+- Los equipos se mantienen; benjamín y alevín de 18; juvenil por cercanía de nivel, cascada por puesto, plazas libres, abandonos que se quedan, el C pasa a B y el B se recrea (`techoDeEquipos`, guardado en cada club). Categorías estables en 8 veranos (menos de 14: 0; sin equipo ~2 %); el juvenil cambia su número de equipos en el 6,7 % de los clubes y veranos (93 % estables; el 99 % no se alcanza: el juvenil crece despacio).
+- El verano nuevo cuesta menos (3,5–4,3 s frente a 6–7 s). Medido y explicado en `docs/relevo/verano-nuevo-implementado.md` (con el test de eventos, que va justo de tiempo ya antes).
+
+## 27/11/2026 — El reparto nuevo y la partida en equilibrio, en el juego (parte 1)
+
+- **Dato de la ciudad, no una bandera de medida:** `CiudadDef.repartoNuevo` (solo `CIUDAD_GRANDE`). La ciudad de ahora y la de prueba se quedan con el reparto de siempre (el usuario dijo que no habrá ciudad pequeña en el futuro; quedan para los tests y las comparaciones) y las partidas guardadas no se migran (`PoblacionGuardada.repartoNuevo` marca las nuevas).
+- **Lo que era medida pasa a ser lo normal al crear:** reparto nuevo de inicio (pasos 1–8, J1–J3 y J4), nada lo deshace (`respetarReparto`) y la partida en equilibrio (`abandonoPrevio`). Cada categoría empieza en su equilibrio (benjamín ~290, alevín ~245, infantil ~190, cadete ~155, juvenil ~140 chicos; con las chicas dentro, el doble) y no cae.
+- **Decisión de implementación:** la alineación de los titulares la calcula el módulo (`titularesDelPool`), no se inyecta desde fuera. Quien ocupa un sitio mientras el curso corre hereda la letra del que lo deja (o la del equipo del club que más se le parece) y el personaje entra en el equipo guardado, nunca en un reparto nuevo con las reglas viejas.
+- Resultado y comprobaciones: `docs/relevo/reparto-nuevo-implementado.md`. Los veranos (parte 2) y los sexos (parte 3) siguen detrás.
+
+## 25/11/2026 — El verano: método del usuario (a medir)
+
+**El método del reparto de inicio es para crear la partida.** El verano tiene uno propio, que debería facilitar mucho mantener los equipos. Diseño del usuario (se mide como variante en `docs/relevo/veranos-metodo.md`):
+
+1. **Al llegar el verano, por categoría:**
+   - los que abandonan van a una **lista de abandonos** (el último recurso para completar equipos de colegio);
+   - los que **buscan oportunidades fuera** van a una **reserva** (no pierden su sitio del todo);
+   - en los colegios, los de más riesgo, se juntan todos los niños que se quedan.
+2. **Clubes externos, de más a menos reconocimiento:**
+   - el club se reorganiza (A = 2.º año + titulares de 1.º, B = 1.º, C mixto si puede);
+   - sus jugadores que quieren cambiar prueban en los dos clubes siguientes y, si no son titulares, vuelven;
+   - los de otros equipos que buscan cambiar, y los del mercado, prueban aquí. Según su ambición aceptan ser reservas o no. Si entran, desplazan a otro: el de 1.º desplazado en el A baja al B, y el B desplaza a otro;
+   - se cierra el club y se pasa al siguiente, y los que no consiguieron sitio vuelven a su hueco.
+3. **Al terminar:**
+   - los de colegio que no encajaron fuera vuelven a su colegio, que completa con la lista de abandonos si no llega a 14;
+   - si ni así llega, el equipo se deshace y sus niños buscan equipo en los clubes de media tabla para abajo, donde puede salir un C o un D.
+4. **Reorganización final** de cada club: A el más fuerte; B los mejores de 1.º; C mixto con los descartes.
+
+**Objetivo:** que los clubes fuertes tengan A y B fuertes y de distinto año, y que los colegios vayan perdiendo equipos a favor de los clubes de fuera.
+
+**Primera medida (semillas 51–60) y decisiones del usuario:**
+1. Al reorganizar, quien no cabe en un equipo de 14 a 22 **busca otro equipo**: no abandona.
+2. Sin tope por año en el barrido. Al reorganizar, el A son los de 2.º más los titulares de 1.º, el B los mejores de 1.º restantes y el C mixto. Un club con muchos de 1.º solo hace que los equipos de abajo tengan un A potente y un B más flojo y mixto.
+3. Los benjamines nuevos (los de 8 años y las mudanzas) buscan equipo, y se les abre si hace falta.
+4. Un niño desplazado tiene **2 pruebas** para encontrar equipo; así se fomentan algo más los cambios.
+5. Un niño sin ambición, aunque sea bueno, no busca fuera del colegio salvo que se quede sin equipo.
+
+**Segunda medida (v2):** nadie queda fuera por no caber; alevín e infantil pierden los mismos jugadores que hoy (−8 %) y no queda ningún equipo por debajo de 14. El usuario aprueba que **cada club pueda abrir hasta dos equipos más** durante el verano, para los benjamines nuevos. También aprueba que **los colegios pierdan equipos poco a poco**: con el tiempo, los clubes pequeños montan el juvenil con los que salen de los colegios.
+
+**Los equipos se mantienen de un curso al siguiente** (usuario, 25/11): no se deshacen ni se vuelven a crear en el verano. Cada club conserva sus equipos y sus letras. Las plantillas se ajustan con los que salen y los que entran, y solo al final se elimina el equipo que no llega a 14 o se crea uno si sobran 14 o más.
+
+**Tras la v3 (3 veranos: 0 equipos por debajo de 14, pero los clubes pequeños se quedaban sin equipos de benjamín):**
+1. Los equipos se mantienen de verdad: al final del verano no se vuelve a decidir cuántos tiene cada club. Solo se elimina el que no llega a 14 después de todo, y solo se crea uno si de verdad hace falta.
+2. Los benjamines nuevos van primero a los equipos ya creados. **En benjamín, los clubes grandes tienen como mucho 2 equipos** (uno de 2.º y otro de 1.º), para que los niños se repartan más.
+3. Se acepta que caigan los jugadores en las categorías altas: es el efecto de empezar con un mundo recién creado (más abandono que entradas, salvo en benjamín).
+
+**Tras la v4** (los equipos se mantienen de verdad; casi no se eliminan ni se crean; 0 por debajo de 14; pero en benjamín quedan fuera 13–23 nuevos y los clubes pequeños se quedan con pocos equipos): **los equipos de benjamín se forman de 18**. Solo se va a 22 si sobran niños y, si no, se quedarían sin equipo. Antes se forman equipos nuevos de 14 a 18 donde se pueda. Así hay más equipos y no debería quedar ningún benjamín fuera.
+
+**v5** (equipos de 18 en benjamín): benjamín estable en 3 veranos (unos 300 jugadores, 15,7 equipos, 0–3 fuera), 0 equipos por debajo de 14 y 0–5 fuera por categoría. **Juvenil:** es el mayor filtro mientras no haya equipos profesionales; se acepta que desaparezcan muchos equipos. **Los que se quedan sin equipo y les gusta el fútbol prueban en varios equipos** (más pruebas cuanto más interés): a falta de fichajes, es lo que más se parece a que un equipo se refuerce y no se pierdan buenos jugadores. **Confirmado por el usuario:** la última pasada sin mirar el cupo del puesto, con una última oportunidad para los desplazados, en todas las categorías; y la regla de 18 también en alevín.
+
+**Juvenil en verano (primera medida):** no se pierden buenos jugadores (~4 % de los que quedan fuera), pero quedan fuera muchos y juvenil cae a 175 jugadores en 3 veranos, porque los de nivel bajo gastan sus pruebas en los clubes de arriba. **Decidido:** cada juvenil sin equipo prueba primero en clubes de su nivel; la escala de pruebas sube un punto (interés 3 → 6, 2 → 4, 1 → 3); y se añade la cascada del usuario dentro del club.
+
+**Juvenil v2 → v3:**
+- «El club de su nivel» es el club cuyo nivel se parece más al del jugador: un juvenil flojo empieza por los clubes flojos.
+- La cascada dentro del club mira el puesto.
+- **Objetivo del usuario:** que muchos dejen juvenil es normal, pero como hay menos equipos que en cadete, **el número de equipos de juvenil debería mantenerse igual el 99 % de las veces, año tras año.** Equipos eliminados y juveniles fuera tienen la misma causa (los que no llegan a los clubes de su nivel), y se medirán las plazas libres y los equipos eliminados a los que les faltaban pocos.
+
+**Juvenil v3:** los equipos de juvenil solo se mantienen el 70 % de las veces. Quedan unos 71 juveniles fuera con 46 plazas libres, y los equipos eliminados estaban lejos de 14. **Rediseño del usuario (v4):**
+1. Los cadetes suben al juvenil de su club, salvo los que buscan fuera.
+2. Ningún club elimina equipos de juvenil de entrada.
+3. Los C se alimentan de los cadetes que suben, y su número debería mantenerse cada verano.
+4. El A y el B, con los de 2.º y 3.º y los mejores cadetes que suben. Si un C fuera a desaparecer, los peores de los que subirían se quedan en el C.
+5. Los que se quedan sin equipo vuelven a su club si hay hueco; los demás buscan en las plazas libres de cualquier equipo.
+
+**Juvenil v4:** estable en el 83 % de los clubes y veranos, 0 cadetes fuera, ningún buen jugador perdido. Lo que queda se debe a que el número de juveniles baja (abandono y salida de los de 3.º). **Matices del usuario (v5):**
+- un jugador que iba a abandonar **no abandona si su equipo fuera a desaparecer**: se queda, y si lo expulsan, va al club que lo necesite;
+- si desaparece un B, el C pasa a ser el B, y al año siguiente se vuelve a crear el B si se puede, con los de 1.º en el C.
+
+Se mide con muchos veranos para ver si el número de juveniles se recupera o se estabiliza.
+
+**Juvenil v5 (8 veranos):** el 91 % de los clubes mantienen sus equipos de juvenil; casi no se eliminan equipos; 0 por debajo de 14. Pero el número de jugadores baja en cascada en todas las categorías, porque **la partida se crea con más jugadores de los que el mundo mantiene** (85 equipos al empezar, unos 55 en equilibrio). **Decidido: la partida empieza ya en equilibrio** (al crear se simula el abandono de los años anteriores). Se mide antes de implementarlo.
+
+**Partida en equilibrio (medida):** las categorías arrancan en su equilibrio (benjamín ~293, alevín ~245, infantil ~190, cadete ~155, juvenil ~140) y no caen en 8 veranos. 55 equipos estables, 0 por debajo de 14, el 97 % de los clubes de juvenil estables, y crear tarda algo menos (8,1 s frente a 9,1). **Implementación aprobada por partes:**
+1. Que nada deshaga el reparto, el reparto nuevo de inicio y la partida en equilibrio (**en marcha**).
+2. El verano nuevo.
+3. Chicos y chicas (10 %, femenino desde infantil, simulación sin resultados, elegir chica desactivado).
+
+**Causa de los equipos por debajo de 14** (explicada): `sinSobrantes` vuelve a calcular los equipos con las reglas viejas y suelta niños. Durante el curso no hay más movimientos.
+
+**Antes:** explicar por qué `cubrirGruposVacios`, `sinSobrantes` y `plazasDeMas` deshacen el reparto y por qué a mitad de curso hay tantos equipos por debajo de 14. El problema 2 (equipos que se deshacen en verano) parece la misma causa. Lo de las chicas en 1–2 equipos no es un problema para el usuario.
+
+## 25/11/2026 — Chicas en el fútbol: proporción real, categorías y simulación sin resultados
+
+Respuestas del usuario a `docs/relevo/reparto-nuevo-sexos.md`:
+
+1. **Se acepta que el fútbol de la ciudad quede más o menos a la mitad** al poner a las chicas en ~10 % (licencias RFEF 2024/25): unos 315 jugadores por categoría en vez de ~560, y 13–19 equipos de chicos por categoría. Es más realista. Para tener más niños se ampliarán las líneas de los colegios o se crearán más colegios.
+2. **Equipos femeninos:**
+   - **las categorías son las mismas que las de los chicos.** Las niñas compiten federadas en categoría femenina **desde infantil**; benjamín y alevín son mixtos (aclarado el 25/11);
+   - los tienen los clubes externos;
+   - **hará falta crear equipos de fuera de la ciudad** para que tengan liga. Eso puede esperar.
+3. **Mientras tanto:**
+   - **se desactiva elegir chica como personaje;**
+   - las PNJ de los equipos femeninos **simulan que juegan partidos contra equipos, sin resultados ni clasificación**, para que tengan su evolución (experiencia, nivel, abandono).
+
+**El método de reparto nuevo funciona con los chicos** (semillas 51–60): 0 equipos por debajo de 14, con un añadido: un B, C o D que no llega a 14 con el A completo desaparece y sus niños buscan sitio. Siguiente paso: los veranos, con esta población. En los veranos los equipos ya existen y no se montan desde cero, así que es difícil que un C sea mejor que su A. Aun así, hay que analizar las subidas y bajadas de jugadores y cómo queda todo.
+
+## 24/11/2026 — Reparto de equipos nuevo (paso a paso con el usuario) y ciudad pequeña
+
+Decidido con el usuario en una simulación paso a paso (semilla 33 y después 10 semillas). Las reglas completas estarán en `docs/relevo/reparto-nuevo-reglas.md`.
+
+- **Benjamín a cadete:**
+  1. Cada club recoge **14 de 2.º año (A) y 14 de 1.º (B)**. Coger sin mirar la edad, solo si no hay niños suficientes.
+  2. **Solo en infantil y cadete,** los de 1.º que serían titulares en el A suben al A. Benjamín y alevín respetan la edad.
+  3. Se completan los equipos desde la bolsa: hasta 18 en benjamín y alevín, hasta 20 en infantil y cadete.
+  4. **Solo en infantil y cadete,** un B que no llega a 14 con niños de 1.º se completa con niños de 2.º, **empezando por los colegios**. Ese B es mixto y por nivel. Los B que ya llegan no se tocan.
+  5. Si un equipo sigue por debajo de 14, se juntan los niños del club en esa categoría y se dividen en dos equipos por nivel. Si aun así no llegan, el B desaparece y sus niños vuelven a la bolsa.
+  6. Con lo que queda en la bolsa:
+     - **los colegios**, con sus alumnos que quieren seguir allí, forman un C de 2.º y un D de 1.º (14 a 22 cada uno) si les llega, o un C mixto (14 a 22). Si no llegan, esos niños pasan a los clubes de fuera;
+     - después, **sorteo entre los clubes externos** de los equipos que salgan: un club que recibe un C de 2.º tiene también un D de 1.º, y todo lo demás son C mixtos.
+
+     Los que aún sobran van a un B mixto o a un A (hasta 22).
+  7. **Equilibrar letras, al final** (todas menos juvenil):
+     - con A, B, C y D, se juntan A con C y B con D y se reparten de la mejor forma. Si alguien subió del B al A y aparece uno mejor, vuelve a bajar;
+     - con A, B y C, un A con los mejores de 2.º y los titulares de 1.º, un B solo de 1.º y un C mixto con lo que sobre;
+     - con A y B, o solo A, sin cambios;
+     - si al subir a los titulares de 1.º el B se queda con menos de 14, el más flojo de esos titulares se queda en el B (aprobado);
+     - ningún equipo pasa de 22: si un C sale con más, primero se llena el A y el B hasta 22 y, si aun así sobran, los peores por puesto se expulsan y buscan otro equipo.
+  8. **Nunca un B sin A:** si un club no puede montar su A, se junta todo en un único A mixto. Si ni así llega a 14, el equipo desaparece y los niños buscan otro equipo. El curso siguiente puede volver a montarse con alumnos que vuelvan.
+- **Juvenil:**
+  - **Reparto inicial por año, sin límites:** con 3 equipos, A = 3.º, B = 2.º y C = 1.º; con 2, A = 3.º y 2.º, B = 1.º; con 1, mixto.
+  - **Subidas de abajo arriba** por titularidad (del C al B y del B al A), sin dejar ningún equipo por debajo de 14. Por encima de 22 se descartan los peores por puesto.
+  - **Los descartados buscan equipo en otros clubes, hasta 3 rondas, con cascada:** el de 1.º desplazado baja al B; el de 1.º del B en ese puesto baja al C; si no lo hay, sale libre el reserva de 2.º.
+  - Un colegio con equipo juvenil es raro en la realidad.
+  - **Los que quedan fuera se aceptan:** sobre todo de 3.er año, un tapón de tres años. Bajará con el abandono real y con la salida al fútbol de mayores.
+- **Resultado con 10 semillas** (31–40, ciudad grande con hogares): de benjamín a cadete, **0 equipos por debajo de 14** (1 caso en alevín con la semilla 40) y **nadie fuera**. Juvenil, 0 por debajo de 14 y 91 fuera de media (unos 105 sin jugar con el reparto de ahora). El personaje en un equipo que no juega: de 3 de 10 semillas a 0.
+- **Al implementarlo,** `fijarEquipos` tiene que conservar las letras del reparto, porque hoy junta C y D por el total del club.
+- **Pendiente: la división por sexos.** El reparto se ha medido con equipos mixtos (hoy ~50 % de chicas en todas las edades), pero desde infantil los equipos van separados por sexo y las chicas son ~10 % (DECISIONES 24/11, personaje chica). La forma de calcular será la misma, pero hay que repetirla con chicos y chicas por separado desde infantil. Primero se cierra cómo funciona un verano y después se revisa esto.
+- **No habrá ciudad pequeña en el futuro:** el juego no tiene sentido sin gente suficiente. El reparto nuevo se diseña para la ciudad grande.
+
+## 24/11/2026 — Personaje chica; equipos por debajo del mínimo, paso a paso
+
+### Personaje chica (`docs/relevo/personaje-chica.md`)
+1. **Fútbol mixto en las categorías bajas y ligas femeninas propias desde infantil.** Hay que confirmar si alevín sigue siendo mixto en la federación.
+2. **Hay menos chicas que chicos jugando al fútbol** (cada vez más, pero menos). El porcentaje es un dato del país y hay que buscarlo; el usuario no sabe cuál poner. Ahora sale ~50 % en todos los equipos y hay que corregirlo.
+3. **Si no hay equipo femenino,** una chica puede jugar en uno de chicos hasta alevín; después, solo si no lo hay. Se calcula por si hubiera que federar antes los equipos. **Los equipos femeninos los tienen los clubes externos, no los colegios** (24/11): así hay más chicas por club y una liga femenina pequeña.
+4. **El estirón llega antes en las chicas.**
+5. **Menstruación:** de momento solo el campo; se diseña con salud.
+6. **Atletismo por sexo:** sí, en una fase aparte.
+7. **El sexo del personaje solo se elige al crear la partida,** de momento.
+
+### Equipos por debajo del mínimo (`docs/relevo/equipos-minimo.md`)
+El usuario no se cree que no haya un término medio, ni que una opción deje 155 niños libres. Piensa que la estructura del reparto no está bien planteada.
+1. **No se mueven niños de cualquier año del A o el B al C:** no es realista.
+2. **Si se quedan fuera, se quedan fuera,** pero hay que entender por qué la estructura hace que pase.
+3. **Si un club no llega,** se calcula y se hacen las convocatorias: es cuestión de hacer números.
+4. **Partidas guardadas:** la regla nueva se aplica desde el verano siguiente.
+
+Antes de decidir el arreglo, **una simulación paso a paso con una semilla**, para revisarla con el usuario y decidir en caliente: rondas, números, cuántos hay y cuántos faltan (`docs/relevo/reparto-paso-a-paso.md`).
+
+### Partidos
+Guardar la plantilla convocada por equipo y semana: se espera a ver cuánto cuesta el motor nuevo.
+
 ## 24/11/2026 — Partidos, P0: bases sin cambiar resultados; P1 en marcha
 
 - **P0:** registro de sucesos con minutos (la crónica es una vista derivada), flujos de azar por subsistema (el del resultado es el de siempre), caché exacta de los valores por jugador (`LectorDePersona.inmutable`) y banco de realismo (`npm run partidos:banco`), con la referencia del motor anterior. Huella idéntica (`docs/relevo/partidos-p0.md`). **La referencia del banco depende de la población del mundo:** tras los hogares se regeneró (benjamín 4,18 goles por partido frente a 4,57). Cualquier cambio del mundo que mueva la población obliga a regenerarla (`--guardar-referencia`), y no por eso es un cambio del motor.
@@ -2622,3 +2788,12 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Azar de los rivales:** hecho (progreso y marcas con generador propio). La elección de carrera se sustituyó (28/10) por la asistencia según nivel y último puesto. Queda la tabla de roles por ejes de carácter (ver «Siguientes pasos»).
 - ~~Test de la sala de profesores~~ **Hecho** (28/10): ahora busca un recreo en que el tutor esté en la sala y otro en que esté en el patio, así que sus comprobaciones corren siempre.
 - **Acciones de GitHub:** al día desde el 28/10 (ver la entrada de ese día). Revisar de vez en cuando las versiones (`ci.yml` y `pages.yml`).
+
+### 28/11/2026 — Benjamín y alevín: equipos de 18 también al crear (aplicado) y plaza del personaje
+
+- **Hecho:** el reparto de inicio de benjamín y alevín forma equipos de 18; solo se llega a 22 con quien si no se quedaría sin equipo, y antes se forman equipos nuevos de 14 a 18 (`reparto-nuevo-reglas.md`). 0 equipos por debajo de 14 (semillas 51–60), `npm test` ✅, huella sin cambio.
+- **Resultado sobre la plaza:** sigue en 15 de 20 semillas (`benjamin -- 1..20`): un equipo de colegio de 18 está completo y el personaje solo entra por mérito. **Pendiente de decisión del usuario:** equipos de colegio con tope menor (16–17) o aceptar la plaza por mérito. `probar-web` usa la semilla fija 31 (con plaza).
+
+### 28/11/2026 — Colegios: hasta 22 por equipo (aplicado; sustituye a «plaza pendiente»)
+
+- El usuario aclara: los colegios cogen a todos sus alumnos que quieren jugar, hasta 22. `plantillaPorCategoria.max = 22` en los equipos de colegio de las partidas nuevas de la ciudad grande; el personaje y los PNJ alumnos, la misma regla. Resultado: el personaje tiene plaza en 20 de 20 semillas (`benjamin -- 1..20`). Cifras de los colegios (~30 % de los alumnos quieren jugar; ~19 juegan en el colegio y ~10 en clubes de fuera) en `docs/relevo/reparto-nuevo-implementado.md`. Sin cambio en `huella` ni en partidas guardadas.

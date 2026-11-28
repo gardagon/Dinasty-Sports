@@ -1,5 +1,6 @@
 import { clamp } from './util-numerica';
-import { pasoDeSuenoDeLaSemana, topeDeEnergiaAlDespertar } from './sueno';
+import { SUENO_EN_EL_DEPORTE, factorPorSueno, fatigaPorSueno, pasoDeSuenoDeLaSemana, topeDeEnergiaAlDespertar } from './sueno';
+import { factorPorSuenoEnLesion } from './salud';
 
 /**
  * EL ESTADO DE UN JUGADOR (plan `docs/MISMAS_REGLAS.md`, P2a-2): lo que importa para jugar además de lo que sabe hacer. El personaje lo vive día a día con sus
@@ -42,7 +43,7 @@ export interface EstadoDeJugador {
   salud: number;
   /** Semanas de baja que le quedan por una lesión (ausente = sano). */
   baja?: number;
-  /** Horas de sueño atrasado (`sueno.ts`, la misma deuda del personaje); ausente = ninguna. Hoy solo limita cuánto se recupera la condición física. */
+  /** Horas de sueño atrasado (`sueno.ts`, la misma deuda del personaje); ausente = ninguna. Limita cuánto se recupera la condición física y baja el rendimiento (`factorPorSueno`). */
   deuda?: number;
 }
 
@@ -70,7 +71,7 @@ export const PROBABILIDAD_DE_LESION = 0.004;
  * personaje: así la usa el motor (en la marca del día, `factorPorForma`), y el entrenamiento solo mira lo que el personaje ya tiene en sus modificadores.
  */
 export function eficienciaDeEstado(e: EstadoDeJugador, entrenando = true): number {
-  const f = factorPorCansancio(e.fisica) * factorPorSalud(e.salud);
+  const f = factorPorCansancio(e.fisica) * factorPorSalud(e.salud) * factorPorSueno(e.deuda ?? 0, SUENO_EN_EL_DEPORTE);
   return entrenando ? f * factorPorMotivacion(e.moral / 100) : f * factorPorForma(e.forma);
 }
 
@@ -92,8 +93,12 @@ export function formaTrasLaSemana(forma: number, eficiencia: number): number {
 /** La fatiga de una semana: lo que falta para 100 de condición y lo que añaden las sesiones y las competiciones de la semana. */
 export const fatigaDeLaSemana = (fisica: number, sesiones: number): number => 100 - fisica + CARGA.sesion * sesiones;
 
-/** La probabilidad de lesionarse en una semana: crece con la fatiga y baja con la constitución (0 a 100). La misma para el personaje y los PNJ. */
-export const riesgoDeLesion = (fatiga: number, constitucion: number): number => PROBABILIDAD_DE_LESION * (1 + fatiga / 40) * (1.4 - (0.8 * clamp(constitucion, 0, 100)) / 100);
+/**
+ * La probabilidad de lesionarse en una semana: crece con la fatiga y baja con la constitución (0 a 100); el sueño atrasado (`deuda`, en horas) suma fatiga (`fatigaPorSueno`) y multiplica un poco más
+ * (`factorPorSuenoEnLesion`): con 6 h de deuda, ~×1,6 (E12, F2). La misma para el personaje y los PNJ.
+ */
+export const riesgoDeLesion = (fatiga: number, constitucion: number, deuda = 0): number =>
+  PROBABILIDAD_DE_LESION * (1 + (fatiga + fatigaPorSueno(deuda)) / 40) * (1.4 - (0.8 * clamp(constitucion, 0, 100)) / 100) * factorPorSuenoEnLesion(deuda);
 
 /** Cuánto pesa una lesión (`azar` de 0 a 1): semanas de baja (1 a 6) y la salud que queda. La misma para el personaje y los PNJ. */
 export function gravedadDeLesion(azar: number): { baja: number; salud: number } {
@@ -147,7 +152,7 @@ export function pasoDeSemanaDelEstado(e: EstadoDeJugador, i: EntradaDeSemana): E
   const forma = formaTrasLaSemana(e.forma, eficienciaDeEstado({ ...e, fisica, moral }));
   let salud = clamp(e.salud + RECUPERACION_DE_LA_SALUD, 0, 100);
   let baja = e.baja && e.baja > 1 ? e.baja - 1 : undefined;
-  if (!baja && i.azarDeLesion < riesgoDeLesion(fatiga, i.constitucion)) {
+  if (!baja && i.azarDeLesion < riesgoDeLesion(fatiga, i.constitucion, deuda)) {
     const g = gravedadDeLesion(i.azarDeGravedad);
     baja = g.baja;
     salud = g.salud;

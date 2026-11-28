@@ -37,6 +37,10 @@ import {
   topeDeEnergiaAlDespertar,
   DEUDA_DE_SUENO_MAX,
   DEUDA_QUE_SE_NOTA,
+  SUENO_EN_EL_DEPORTE,
+  SUENO_EN_EL_ESTUDIO,
+  deudaEfectiva,
+  factorPorSueno,
   TOPE_DE_RECUPERACION_POR_NOCHE,
   TOPE_DE_SIESTA_AL_DIA,
   MARGEN_DE_DEUDA,
@@ -164,11 +168,12 @@ function alDespertar(ctx: ActionContext, horas: number): void {
   // La deuda baja lo que se llena la energía: se llena a 12,5 por hora, pero con sueño atrasado no se llega a 100.
   const e = ctx.stat(GEN.energia);
   ctx.addStat(GEN.energia, Math.max(0, Math.min(topeDeEnergiaAlDespertar(despues), e + horas * 12.5) - e));
-  ctx.addStat(GEN.estres, -horas * 0.8);
-  if (horas < 7) {
-    ctx.addStat(GEN.motivacion, -2);
-    ctx.log('Has dormido poco.', 'aviso');
-  }
+  // Con sueño atrasado la noche alivia menos el estrés (`×(1 − d/10)`, d = deuda efectiva) — E12, F2.
+  ctx.addStat(GEN.estres, -horas * 0.8 * (1 - deudaEfectiva(despues) / 10));
+  // La motivación baja 0,7 por cada hora que falta de lo que se necesita esa noche (hasta −4); antes era un −2 plano con menos de 7 h — E12, F2.
+  const falta = Math.max(0, necesidad - horas);
+  if (falta > 0) ctx.addStat(GEN.motivacion, -Math.min(4, 0.7 * falta));
+  if (horas < 7 || falta >= 1) ctx.log('Has dormido poco.', 'aviso');
   if (despues >= DEUDA_QUE_SE_NOTA) ctx.log('Arrastras sueño: no has dormido lo que tu cuerpo necesita.', 'aviso');
   else if (antes >= DEUDA_QUE_SE_NOTA) ctx.log('Te sientes descansado: has recuperado el sueño atrasado.', 'info');
 }
@@ -375,6 +380,19 @@ export const personaje = defineModule<IdentidadState>({
       },
     },
     {
+      // El sueño atrasado resta concentración y estudio (×(1 − 0,02·d)) y rendimiento deportivo (×(1 − 0,015·d)): E12, F2. Los partidos y las carreras de PNJ lo llevan en `eficienciaDeEstado`.
+      id: 'gen.sueno',
+      tags: ['*'],
+      apply: (ctx, action) => {
+        const d = ctx.stat(GEN.sueno);
+        if (deudaEfectiva(d) <= 0) return null;
+        const mental = action.tags.includes(TAGS.estudio) || action.tags.includes(TAGS.mental);
+        const deporte = action.tags.includes(TAGS.entrenamiento) || action.tags.includes(TAGS.competicion) || action.tags.includes(TAGS.fisico);
+        const a = mental ? SUENO_EN_EL_ESTUDIO : deporte ? SUENO_EN_EL_DEPORTE : 0;
+        return a > 0 ? { efficiency: factorPorSueno(d, a), reason: 'Sueño atrasado' } : null;
+      },
+    },
+    {
       id: 'gen.motivacion',
       tags: [TAGS.entrenamiento, TAGS.estudio],
       apply: (ctx) => {
@@ -500,7 +518,7 @@ export const personaje = defineModule<IdentidadState>({
       // Su forma y sus lesiones: las mismas reglas que las de los demás jugadores (la condición es su energía; la carga, sus sesiones y competiciones).
       const week = (ev.data as { week: number }).week;
       const forma = ctx.stat(GEN.forma);
-      const eficiencia = eficienciaDeEstado({ fisica: ctx.stat(GEN.energia), moral: ctx.stat(GEN.motivacion), forma, salud: ctx.stat(GEN.salud) });
+      const eficiencia = eficienciaDeEstado({ fisica: ctx.stat(GEN.energia), moral: ctx.stat(GEN.motivacion), forma, salud: ctx.stat(GEN.salud), deuda: ctx.stat(GEN.sueno) });
       ctx.addStat(GEN.forma, formaTrasLaSemana(forma, eficiencia) - forma);
       const baja = ctx.stat(GEN.baja);
       if (baja > 0) {
@@ -508,7 +526,7 @@ export const personaje = defineModule<IdentidadState>({
         if (baja <= 1) ctx.log('Ya estás recuperado de la lesión.', 'info');
       } else {
         const fatiga = fatigaDeLaSemana(ctx.stat(GEN.energia), antes.semana.cargas ?? 0);
-        if (rngEstable('lesion', antes.semilla ?? 0, 'personaje', week).next() < riesgoDeLesion(fatiga, ctx.stat(GEN.constitucion))) {
+        if (rngEstable('lesion', antes.semilla ?? 0, 'personaje', week).next() < riesgoDeLesion(fatiga, ctx.stat(GEN.constitucion), ctx.stat(GEN.sueno))) {
           const g = gravedadDeLesion(rngEstable('gravedad', antes.semilla ?? 0, 'personaje', week).next());
           ctx.addStat(GEN.baja, g.baja);
           ctx.addStat(GEN.salud, Math.min(0, g.salud - ctx.stat(GEN.salud)));
@@ -559,9 +577,11 @@ export const personaje = defineModule<IdentidadState>({
         ctx.log('El estrés te está pasando factura.', 'aviso');
       }
       // La motivación tiende a su punto de equilibrio y el estrés baja solo un poco.
+      // Con sueño atrasado (d = deuda efectiva) el punto de equilibrio de la motivación baja 1 por hora y el día cierra con +0,3 de estrés por hora — E12, F2.
+      const d = deudaEfectiva(ctx.stat(GEN.sueno));
       const m = ctx.stat(GEN.motivacion);
-      ctx.addStat(GEN.motivacion, (55 - m) * 0.05);
-      ctx.addStat(GEN.estres, -1);
+      ctx.addStat(GEN.motivacion, (55 - d - m) * 0.05);
+      ctx.addStat(GEN.estres, -1 + 0.3 * d);
     },
   },
 

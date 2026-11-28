@@ -82,6 +82,8 @@ Cada club tiene un **tamaño**, que es un dato y decide cuántos equipos saca po
 
 Sustituye a los filiales de antes (que eran solo A y B en los grandes, para la F2). Va antes de la P2c.
 
+> **27/11/2026 — El reparto nuevo (ciudad grande, partidas nuevas).** Con `CiudadDef.repartoNuevo`, al crear la partida el reparto de los equipos usa las reglas nuevas (primera ronda de 14 por año, subidas por titularidad, B mixto, C y D, equilibrar, tope de 22, nunca un B sin A; juvenil por año con su cascada y J4) y nada lo deshace después; y cada categoría empieza ya en su equilibrio (los niños llevan el abandono de los veranos anteriores). Explicado y medido en `docs/relevo/reparto-nuevo-implementado.md` y `docs/relevo/reparto-nuevo-reglas.md`. Lo de abajo describe el reparto de siempre, que siguen usando la ciudad de ahora, la de prueba y los veranos (por ahora).
+
 **Hasta cuatro equipos por club y categoría.** Cuántos tiene cada club sale del «draft» (abajo).
 
 **Todos los clubes reparten por año** (decisión del usuario, 05/11; antes solo los grandes):
@@ -193,6 +195,10 @@ En juvenil, que tiene tres años, «segundo año» es segundo y tercero.
 Sobran semanas: 18 jornadas más 5 rondas de copa son 23 sábados de los ~30 que tiene un curso.
 
 ## 7. El verano: plazo de fichajes y plantillas nuevas
+
+> **28/11/2026 — Chicos y chicas (ciudad grande, partidas nuevas).** ~10 % de chicas en el fútbol, benjamín y alevín mixtos y, desde infantil, equipos separados por sexo; los femeninos solo en los clubes externos (`<club>_f`), con el mismo método de reparto y de verano; sus jugadoras simulan partidos sin resultados ni clasificación. Explicado y medido en `docs/relevo/chicos-y-chicas-implementado.md`. Elegir chica como personaje sigue desactivado.
+
+> **28/11/2026 — El verano nuevo (ciudad grande).** Con `CiudadDef.repartoNuevo`, cada verano los clubes mantienen los equipos que tenían (solo se cierra el que no llega a 14 después de todo), los que abandonan y dejarían a su equipo sin 14 se quedan, el barrido recorre los clubes de arriba abajo, benjamín y alevín van en equipos de 18 y el juvenil se reparte por cercanía de nivel con cascada por puesto y plazas libres al final. Explicado y medido en `docs/relevo/verano-nuevo-implementado.md` (método: `docs/relevo/veranos-metodo.md`). Lo de abajo describe el verano de siempre, que siguen usando la ciudad de ahora y la de prueba.
 
 **Decidido por el usuario el 03/11/2026, igual para el personaje y los PNJ y para todos los deportes** (la regla está en el kit del deporte; las fechas, en los datos del deporte por país).
 

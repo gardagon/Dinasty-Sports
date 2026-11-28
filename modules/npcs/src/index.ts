@@ -1,7 +1,7 @@
 import { APORTES, CORE_EVENTS, suenoHabitual, diaConFecha, semanasDeTemporada, type Entrenamiento, type EstadoDePersonaData, type LesionDePersonaData, tramoDeSemana, minutosDeEducacionFisica, alturaAdulta, metabolismoZ, musculaturaZ, semillaDeDibujo, type CuerpoDePersona, type CuerpoService, NIVEL_AGENDA, avisarDelProgreso, anotarFalta, faltasVigentes, llegarTarde, type PartidoDeJugador, type PartidosService, cerrarTemporadaDeJugador, sancionTrasElPartido, experienciaTrasElPartido, factorDeExperienciaDelPuesto, sumarPartido, trasElBanquillo, type EstadisticasDeTemporada, type TemporadaCerrada, type RendimientoDeDeporte, type LectorDePersona, type CategoriaDef, MINUTES_PER_DAY, SERVICES, anioNatural, edadDeCompeticion, primerDiaDelAnio, COLEGIO_DEL_PERSONAJE, EDAD_DE_COLEGIO, colegioDeFuera, alturaDe, estaturaZ, edadCumplida, LETRA_DE_TU_CLASE, letraDeClaseDe, nombreDeClase, cumpleaños, nacimientoDeProgenitor, nacimientoParaEdad, edadAdultaDe, oficioDeVecino, oficioDeProgenitor, oficioDeProgenitorAlAzar, type DatoPersonal, type DatoPersonalData, nombreCompletoDeProgenitor, nombreDeProgenitor, padresDeSemilla, identidadAlAzar, identidadDeHijo, apodoAlAzar, apodoDeId, nombreCompleto, nombreCortoDe, nombrePermitido, registrarNombre, type Identidad, type OrigenFamiliar, paisPorId, type PaisDef, type RegistroDeNombres, diferenciasDeEdad, relacionDeHermano, numeroDeHermanos, rasgosHeredadosNpc, rngEstable, ESTADO_INICIAL, CAPACIDADES_GENETICAS, eficienciaDeEstado, pasoDeSemanaDelEstado, trasUnaCompeticion, valoracionDelPuesto, type EstadoDeJugador, type CompeticionDelMundoData, type PartidoDelMundoData, type PerksDe, type RasgosDe, rasgosAlAzar, gustosDe, SHARED_EVENTS, type DeporteAnadidoData, type PlazaPerdidaData, type EquipoSinNinosData, type MotivoDeEquipoSinNinos, type PuestoPropuestoData, type Pierna, defineModule, type CompetitionResultData, type PresentacionData, type Rng, type Gender, type InitContext, type NpcDirectory, type NpcRole, type NpcView, type ClubDirectory, type ClassAttendedData, type ClubJoinData, type IdentityService, type DatosDeAgenda, CALIDAD_DE_TAMANO, CIUDAD_ACTUAL, idsDeColegiosDeFuera, type CiudadDef, aptitudDe, datosDeDeporte, fichasDeDeporte, type EquipoDeDeporte, type FichaDeDeporte, type PoblacionDeDeporte, type ReadContext, type PresenciaService, type SesionDeClub, type TipoAsignado, azarDe, construirAgenda, ubicacionEn, type TramoDeAgenda, RECOGIDA_DE_NINOS, demografiaDelLugar, parejasDelLugar, MOVERSE_CON_EL_GRUPO, aforoCercano, deLugar, haciaLugar, type ActionDoneData, type GrupoSeVaData, type LugaresService, CALLES_CON_VECINOS, EDAD_DE_JUBILACION, EDAD_PARA_IR_SOLO } from '@ds/contracts';
 import { EJE_MIN, EJE_MAX } from '@ds/contracts';
 import { FAMILIAS, VARIANTES, ReservaDeHijos, esProgenitorDeHogar, familiaDePersona, generarFamilias, limpiarFamilias, miembrosDeHogares, recogeAUnHijo, type HogarGuardado } from './hogares';
-import { aficionadoPorLosPadres, conInteresTrasJugar, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica, type Herencia } from './deportistas';
+import { LETRAS_FIJADAS, MEDIDA, REPARTO_DE_INICIO, aficionadoPorLosPadres, conInteresTrasJugar, desarrolloRival, geneticaDeHermano, geneticaDeNino, formaEn, type Genetica, type Herencia } from './deportistas';
 import { aGuardar, avanzarSemana, historiaDe, valoresIniciales } from './capacidades';
 import { semillaDeSesionDeEquipo } from '@ds/kit-deporte';
 import { grupoQueSeVa, seVanSolos } from './grupo';
@@ -19,7 +19,7 @@ import { HUECO_LIBRE, SEMANAS_DE_LOS_LEJANOS, conMasConocimiento, historiaDeport
  * - Publican el servicio `npcs` para que otros módulos los consulten.
  */
 
-import { conUnaPlazaDeMas, añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas } from './draft';
+import { conUnaPlazaDeMas, añadirDeporte, completarUnaCategoria, conInteresDeChicas, draftDeEquipos, renovarDeportistas, DIAGNOSTICO, abandonoPrevio } from './draft';
 import { colocarDesplazados } from './fichajes';
 import { conApuntados, entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, completarPoblaciones, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { consejoDeUnProfesor, familiasDePuestosDeLosDeportes, lecturaDeUnPuesto } from './consejo';
@@ -30,6 +30,7 @@ export * from './consejo';
 export * from './plantillas';
 export * from './fichajes';
 export * from './draft';
+export { LETRAS_FIJADAS, MEDIDA, REPARTO_DE_INICIO, SESGO_DE_SEXO, interesDe } from './deportistas';
 
 const hhmmDe = (m: number): string => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
 const mediaDe = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
@@ -153,6 +154,8 @@ export interface EquipoGuardado extends EquipoDeDeporte {
    * (el «draft», `draftDeEquipos`) y los cierra si no llega al mínimo de jugadores. La plantilla del club en esa categoría es el máximo de un equipo por el número de equipos.
    */
   equiposPorCategoria?: Record<string, number>;
+  /** El máximo de equipos que ha tenido el club en cada categoría (id → número): si un verano desaparece uno, el verano nuevo (`CiudadDef.repartoNuevo`) lo vuelve a montar en cuanto la plantilla da para 14 por equipo. Ausente = el que tiene. */
+  techoDeEquipos?: Record<string, number>;
   /**
    * Plazas de más por equipo en cada categoría (1 o 2; ausente = 0): lo último del reparto deja pasar del máximo a un equipo solo para no dejar a un niño con interés sin equipo (decisión del usuario, 17/11/2026).
    * Suben el máximo de cada equipo del club en esa categoría (`maximoPorEquipo`); el reparto de cada curso lo recalcula con lo que haga falta.
@@ -175,6 +178,13 @@ export interface PoblacionGuardada extends Omit<PoblacionDeDeporte, 'equipos'> {
   categorias?: CategoriaDef[];
   /** Cómo se llaman sus clubes (id → nombre del sitio donde trabajan), para decir dónde trabajan los entrenadores. */
   nombresDeClub: Record<string, string>;
+  /**
+   * La partida se creó con el reparto nuevo de inicio (`CiudadDef.repartoNuevo`): los equipos tienen las letras que decidió el reparto y quien llega a un equipo (el que ocupa el sitio de otro, o un hueco) entra con una letra de su club y
+   * categoría, para que ninguna búsqueda de club los deshaga ni deje a nadie sin letra. Ausente en las demás partidas (también en las guardadas antes): se comportan como siempre.
+   */
+  repartoNuevo?: boolean;
+  /** Solo las partidas creadas con chicos y chicas (`reclutamiento.sexos` y `CiudadDef.repartoNuevo`): los equipos van separados por sexo desde `desdeEdad` y las chicas con interés son ~10 %. Ausente en las demás: todo mixto como siempre. */
+  sexos?: { desdeEdad: number };
 }
 
 /** Lo que hizo un jugador en una temporada (curso) en una categoría y con un club: una entrada por temporada para su historial de siempre (lo que pedirá un ojeador o un mánager). */
@@ -727,6 +737,21 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
   for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria && x.calidad >= 3 && pob.puestos)) {
     e.equiposPorCategoria = Object.fromEntries(categoriasDelEquipo(pob, e).map((c) => [c.id, 2]));
   }
+  // Colegios (solo con el reparto nuevo, partidas nuevas; decisión del usuario, 28/11/2026): el colegio coge a todos sus alumnos que quieren jugar hasta 22 por equipo, el personaje incluido (la regla de plaza mide con este máximo). El 18 es el objetivo de los clubes, no el tope del colegio.
+  if (ctx.pais.ciudad?.repartoNuevo) for (const e of pob.equipos) if (e.colegio !== undefined && e.plantillaPorCategoria) e.plantillaPorCategoria = { ...e.plantillaPorCategoria, max: 22 };
+  // Chicos y chicas (solo con el reparto nuevo, partidas nuevas): desde `desdeEdad` los equipos van separados por sexo. Cada club externo tiene su equipo femenino (`<club>_f`, solo en las categorías desde esa edad); los colegios, no.
+  const sexos = ctx.pais.ciudad?.repartoNuevo ? datos.poblacion.reclutamiento.sexos : undefined;
+  if (sexos && pob.puestos) {
+    pob.sexos = { desdeEdad: sexos.desdeEdad };
+    const desde = (pob.categorias ?? []).filter((c) => c.edadMin >= sexos.desdeEdad).map((c) => c.id);
+    for (const e of [...pob.equipos].filter((x) => x.plantillaPorCategoria && x.colegio === undefined)) {
+      const categorias = categoriasDelEquipo(pob, e).map((c) => c.id).filter((id) => desde.includes(id));
+      if (!categorias.length) continue;
+      const femenino: EquipoGuardado = { ...JSON.parse(JSON.stringify(e)), club: `${e.club}_f`, nombre: `${e.nombre} (femenino)`, femenino: true, categorias, equiposPorCategoria: undefined };
+      pob.equipos.push(femenino);
+      pob.nombresDeClub[femenino.club] = `${pob.nombresDeClub[e.club] ?? e.nombre} (femenino)`;
+    }
+  }
   return pob;
 }
 
@@ -1056,6 +1081,54 @@ function companeroConFamilia(viejo: Npc, hijo: Npc): Npc {
   return { ...resto, id: viejo.id, role: viejo.role, tags: viejo.tags, tipos: viejo.tipos, description: viejo.description, known: viejo.known, rasgos: { ...rasgos, caracter, intereses: interesesNuevos } };
 }
 
+/**
+ * El reparto nuevo de inicio (`CiudadDef.repartoNuevo`, `docs/relevo/reparto-nuevo-reglas.md`): mientras se crea la partida, el «draft» usa las reglas nuevas (primera ronda de 14 por año, subidas por titularidad, B mixto, C y D de colegio,
+ * equilibrar con tope de 22 y nunca un B sin A; juvenil por año con su cascada y J4), nada de lo que viene después rehace los equipos (`MEDIDA.respetarReparto`) y los niños llegan ya con el abandono de los veranos anteriores
+ * (`equilibrioInicial`). Se activa solo al crear (los veranos siguen con sus reglas) y solo si la ciudad lo trae; si una herramienta de medida ya ha puesto sus propias variantes, se respetan (`DIAGNOSTICO.sinRepartoNuevo` lo apaga).
+ * Aquí no hay nada que dependa del sexo: chicos y chicas se reparten juntos como hasta ahora (el 10 % de chicas y los equipos femeninos son otra parte: `SESGO_DE_SEXO`, que sigue siendo solo medida).
+ */
+const repartoNuevoActivo = (): boolean => !!ciudad().repartoNuevo && !DIAGNOSTICO.sinRepartoNuevo && !DIAGNOSTICO.variantePaso23;
+function conRepartoNuevo<T>(crear: () => T): T {
+  if (!repartoNuevoActivo()) return crear();
+  const antes = { primera: DIAGNOSTICO.variantePrimeraRonda, paso23: DIAGNOSTICO.variantePaso23, juvenil: DIAGNOSTICO.variantJuvenil, equilibrio: DIAGNOSTICO.equilibrioInicial, respetar: MEDIDA.respetarReparto };
+  DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
+  DIAGNOSTICO.variantePaso23 = { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true, equilibrar: true, maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true } };
+  DIAGNOSTICO.variantJuvenil = { cascada: 'usuario' };
+  DIAGNOSTICO.equilibrioInicial = true;
+  MEDIDA.respetarReparto = true;
+  LETRAS_FIJADAS.clear(); REPARTO_DE_INICIO.clear();
+  try {
+    return crear();
+  } finally {
+    DIAGNOSTICO.variantePrimeraRonda = antes.primera; DIAGNOSTICO.variantePaso23 = antes.paso23; DIAGNOSTICO.variantJuvenil = antes.juvenil; DIAGNOSTICO.equilibrioInicial = antes.equilibrio; MEDIDA.respetarReparto = antes.respetar;
+    LETRAS_FIJADAS.clear(); REPARTO_DE_INICIO.clear();
+  }
+}
+
+/**
+ * El verano nuevo (`CiudadDef.repartoNuevo`, `docs/relevo/veranos-metodo.md`): en vez de rehacer los equipos con las reglas de siempre, los clubes **mantienen los que tenían** (solo se cierra el que no llega a 14 después de todo y solo se abre uno si
+ * hace falta); los que abandonan y dejarían a su equipo sin los 14 se quedan; los que buscan fuera van a la reserva y el barrido recorre los clubes de arriba abajo (con dos pruebas por desplazado y una última pasada sin cupo de puesto); los
+ * colegios, al final, con su lista de abandonos; benjamín y alevín en equipos de 18 (22 solo si sobran; como mucho 2 los grandes en benjamín); y el juvenil por cercanía de nivel, con la cascada por puesto, plazas libres al final y el C que pasa a B
+ * si desaparece un B. Se aplica a las partidas con ciudad grande, también a las guardadas antes (desde su siguiente verano, con las letras que ya tienen). Como en la creación, si una herramienta de medida ya ha puesto sus variantes, se respetan.
+ */
+function conVeranoNuevo<T>(renovar: () => T): { r: T; nuevo: boolean } {
+
+  if (!repartoNuevoActivo() || DIAGNOSTICO.veranoUsuario || DIAGNOSTICO.veranoNuevo) return { r: renovar(), nuevo: false };
+  const antes = { primera: DIAGNOSTICO.variantePrimeraRonda, paso23: DIAGNOSTICO.variantePaso23, juvenil: DIAGNOSTICO.variantJuvenil, usuario: DIAGNOSTICO.veranoUsuario, respetar: MEDIDA.respetarReparto };
+  DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
+  DIAGNOSTICO.variantJuvenil = { cascada: 'usuario' };
+  DIAGNOSTICO.variantePaso23 = { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true, equilibrar: true, maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20, juvenil: 22 }, subirTitulares: { infantil: true, cadete: true } };
+  DIAGNOSTICO.veranoUsuario = true;
+  MEDIDA.respetarReparto = true;
+  LETRAS_FIJADAS.clear(); REPARTO_DE_INICIO.clear();
+  try {
+    return { r: renovar(), nuevo: true };
+  } finally {
+    DIAGNOSTICO.variantePrimeraRonda = antes.primera; DIAGNOSTICO.variantePaso23 = antes.paso23; DIAGNOSTICO.variantJuvenil = antes.juvenil; DIAGNOSTICO.veranoUsuario = antes.usuario; MEDIDA.respetarReparto = antes.respetar;
+    LETRAS_FIJADAS.clear(); REPARTO_DE_INICIO.clear();
+  }
+}
+
 function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { npcs: Npc[]; pobs: PoblacionGuardada[]; hogares?: Record<string, HogarGuardado> } {
   avisarDelProgreso('Dando vida a las personas: familias, colegios y vecinos…', 0.01);
   let base = generarReparto(ctx, pobs[0]);
@@ -1071,12 +1144,18 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   // Todos los niños tienen ya sus capacidades reales: los clubes escogen por lo que vale cada uno de verdad.
   const rend = rendimientosDe(ctx);
   avisarDelProgreso('Midiendo lo que vale cada niño y reclutando a los equipos…', 0.04);
-  const equipos = reclutarEnTodos(conCapacidades(conEntrenadores, 0), pobs, 0, new Map(), rend);
-  // La partida empieza dentro del plazo de fichajes: aquí también se aplica la regla de los equipos según la demanda (los interesados que se quedan sin equipo abren otros).
-  const mercado: MercadoDeFichajes = { lista: new ListaDeTrabajo(equipos.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(rend), reservas: new Map() };
-  // Los equipos de los clubes salen del «draft» por rondas (sin el personaje: no entra en los porcentajes).
-  avisarDelProgreso('Repartiendo a los jugadores entre los clubes y sus equipos…', 0.05);
-  draftDeEquipos(mercado, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
+  const conReparto = repartoNuevoActivo();
+  const mercado = conRepartoNuevo(() => {
+    const conChicas = conInteresDeChicas(conEntrenadores, pobs);
+    const equipos = reclutarEnTodos(conCapacidades(DIAGNOSTICO.equilibrioInicial ? abandonoPrevio(conChicas, pobs, 0) : conChicas, 0), pobs, 0, new Map(), rend);
+    // La partida empieza dentro del plazo de fichajes: aquí también se aplica la regla de los equipos según la demanda (los interesados que se quedan sin equipo abren otros).
+    const m: MercadoDeFichajes = { lista: new ListaDeTrabajo(equipos.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(rend), reservas: new Map() };
+    // Los equipos de los clubes salen del «draft» por rondas (sin el personaje: no entra en los porcentajes).
+    avisarDelProgreso('Repartiendo a los jugadores entre los clubes y sus equipos…', 0.05);
+    draftDeEquipos(m, ctx.rng, { conPrueba: false, conAmbicion: false, reiniciar: true });
+    if (conReparto) m.pobs = m.pobs.map((p) => ({ ...p, repartoNuevo: true }));
+    return m;
+  });
   avisarDelProgreso('Dándole a cada uno su historia deportiva…', 0.37);
   // Los que juegan llevan su historia deportiva (que incluye la de sus capacidades); al resto se les da la de siempre.
   const resultado = { npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades([...mercado.lista.values()], mercado.pobs, rend, 0), 0), 0, ctx.seed, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, 0)), mercado.pobs, 0, ctx.seed), pobs: [...mercado.pobs], ...(familias ? { hogares: familias.hogares } : {}) };
@@ -1221,13 +1300,23 @@ function alturaHoy(n: Npc, hoy: number): number | undefined {
 }
 
 /** La vista de cada persona se recuerda mientras no cambie la persona ni el día: se pide muchas veces (listas, presencia, acciones). */
-const VISTAS = new WeakMap<Npc, { clave: string; vista: NpcView }>();
+const VISTAS = new WeakMap<Npc, { day: number; hoy: number; age: number | undefined; exacta: number | undefined; altura: number | undefined; eficiencia: number | undefined; baja: boolean; vista: NpcView }>();
 const vista = (n: Npc, day: number, hoy: number = day): NpcView => {
-  const clave = `${day}|${hoy}`;
   const guardada = VISTAS.get(n);
-  if (guardada?.clave === clave) return guardada.vista;
+  if (guardada !== undefined && guardada.day === day && guardada.hoy === hoy) return guardada.vista;
+  // La vista es función de la persona y de lo que depende del día (edad, edad exacta y altura) y del estado (que algunos módulos cambian en el sitio): si un día nuevo no cambia nada de eso (casi siempre, en los adultos), es la misma vista.
+  const age = edadNpc(n, day);
+  const exacta = n.nacimiento === undefined ? undefined : edadCumplida(n.nacimiento, hoy);
+  const altura = alturaHoy(n, hoy);
+  const eficiencia = n.estado ? eficienciaDeEstado(n.estado, false) : undefined;
+  const baja = !!n.estado?.baja;
+  if (guardada !== undefined && guardada.age === age && guardada.exacta === exacta && guardada.altura === altura && guardada.eficiencia === eficiencia && guardada.baja === baja) {
+    guardada.day = day;
+    guardada.hoy = hoy;
+    return guardada.vista;
+  }
   const v = construirVista(n, day, hoy);
-  VISTAS.set(n, { clave, vista: v });
+  VISTAS.set(n, { day, hoy, age, exacta, altura, eficiencia, baja, vista: v });
   return v;
 };
 
@@ -1242,7 +1331,8 @@ const descripcionDe = (n: Npc): string | undefined =>
 
 const construirVista = (n: Npc, day: number, hoy: number): NpcView => {
   const age = edadNpc(n, day);
-  const sabe = [...new Set([...sabePorDefecto(n), ...(n.aprendido ?? [])])];
+  const porDefecto = sabePorDefecto(n);
+  const sabe = n.aprendido?.length ? [...new Set([...porDefecto, ...n.aprendido])] : porDefecto;
   return {
     id: n.id,
     name: n.name,
@@ -1317,7 +1407,11 @@ const POR_ID = new WeakMap<Npc[], Map<string, Npc>>();
 /** Una persona por su id sin recorrer la lista (se pregunta por muchas en cada acción). */
 function personaPorId(lista: Npc[], id: string): Npc | undefined {
   let porId = POR_ID.get(lista);
-  if (!porId) POR_ID.set(lista, (porId = new Map(lista.map((x) => [x.id, x]))));
+  if (!porId) {
+    porId = new Map<string, Npc>();
+    for (const x of lista) porId.set(x.id, x);
+    POR_ID.set(lista, porId);
+  }
   return porId.get(id);
 }
 
@@ -1330,8 +1424,9 @@ const AGENDAS_COMPARTIDAS = new Map<string, TramoDeAgenda[]>();
 
 function agendaDePersona(n: Npc, datos: DatosDeAgenda, dia: number): TramoDeAgenda[] {
   const tipos = n.tipos ?? SIN_TIPOS;
-  if (tipos.some((x) => x.hasta !== undefined)) return construirAgenda(tipos, datos, dia);
   let a = AGENDAS.get(tipos);
+  if (a) return a; // (solo se guardan las agendas sin `hasta`: las demás se construyen cada vez)
+  if (tipos.some((x) => x.hasta !== undefined)) return construirAgenda(tipos, datos, dia);
   if (!a) {
     // La agenda también depende de lo que da el deporte del país (la jornada de competición y las sesiones y sedes de los clubes): entra en la clave.
     const clave = JSON.stringify([tipos, tipos.map((x) => [typeof x.deporte === 'string' ? x.deporte : undefined, datos.jornada(typeof x.deporte === 'string' ? x.deporte : undefined), x.club ? datos.sesionDeClub(x.club, typeof x.deporte === 'string' ? x.deporte : undefined) : null])]);
@@ -1379,7 +1474,7 @@ function entrenadorDeEquipo(n: Npc, club: string, categoria: CategoriaDef | unde
   return numero ? 'ABCD'[Number(numero) - 1] === letra && n.id.includes(`_${categoria.id}_`) : letra === 'A';
 }
 
-function agendaConPartido(n: Npc, base: TramoDeAgenda[], partidos: PartidosService | undefined, categorias: readonly CategoriaDef[]): TramoDeAgenda[] {
+function agendaConPartido(n: Npc, base: TramoDeAgenda[], partidos: PartidosService | undefined, categoriasDe: () => readonly CategoriaDef[]): TramoDeAgenda[] {
   if (!partidos) return base;
   let p = n.role === 'entrenador' ? undefined : partidos.deJugador(n.id);
   if (!p && n.role === 'entrenador') {
@@ -1387,7 +1482,7 @@ function agendaConPartido(n: Npc, base: TramoDeAgenda[], partidos: PartidosServi
       for (const clave of [e.local, e.visitante]) {
         const [club, letra] = clave.split('|');
         // El entrenador de cada equipo de este partido (cada uno lleva su equipo).
-        if (entrenadorDeEquipo(n, club, categorias.find((c) => c.id === e.categoria), letra)) p = partidos.deEquipo(club, e.categoria, letra);
+        if (entrenadorDeEquipo(n, club, categoriasDe().find((c) => c.id === e.categoria), letra)) p = partidos.deEquipo(club, e.categoria, letra);
       }
     }
   }
@@ -1402,26 +1497,51 @@ function agendaConPartido(n: Npc, base: TramoDeAgenda[], partidos: PartidosServi
 /** Minutos del día en que algún tramo de alguna agenda empieza o acaba (en orden). Cambia solo cuando cambia la lista de personas. */
 const LIMITES = new WeakMap<Npc[], { version: string; limites: number[] }>();
 
+/** Las personas que cambiaron entre dos listas con las mismas personas en el mismo orden (con tope: si cambian muchas, no compensa mirar una a una). `undefined` si no son la misma gente. */
+function cambiosEntre(antes: readonly Npc[], ahora: readonly Npc[]): [Npc, Npc][] | undefined {
+  if (antes.length !== ahora.length) return undefined;
+  const cambios: [Npc, Npc][] = [];
+  for (let i = 0; i < ahora.length; i++) {
+    const a = antes[i];
+    const b = ahora[i];
+    if (a === b) continue;
+    if (a.id !== b.id || cambios.length >= 64) return undefined;
+    cambios.push([a, b]);
+  }
+  return cambios;
+}
+
+/** La última lista para la que se calcularon los límites: la siguiente casi siempre es la misma gente con alguna persona cambiada (su estado, lo que sabe...), con las mismas agendas. */
+let ULTIMOS_LIMITES: { lista: Npc[]; version: string; limites: number[] } | undefined;
+
 function limitesDeTramos(lista: Npc[], agendaDe: (n: Npc) => TramoDeAgenda[], version = ''): number[] {
   let l = LIMITES.get(lista)?.limites;
   if (LIMITES.get(lista)?.version !== version) l = undefined;
   if (!l) {
-    const set = new Set<number>();
-    const vistas = new Set<TramoDeAgenda[]>();
-    for (const n of lista) {
-      const a = agendaDe(n);
-      if (vistas.has(a)) continue;
-      vistas.add(a);
-      for (const x of a) {
-        set.add(x.desde);
-        set.add(x.hasta);
-        for (const [a, b] of x.ocupado ?? []) {
-          set.add(a);
-          set.add(b);
+    // Los límites son la unión de los de las agendas que hay: si quienes cambian siguen con la misma agenda (el mismo objeto), son los de antes.
+    const previo = ULTIMOS_LIMITES;
+    const cambios = previo && previo.version === version ? cambiosEntre(previo.lista, lista) : undefined;
+    if (previo && cambios && cambios.every(([a, b]) => agendaDe(a) === agendaDe(b))) l = previo.limites;
+    else {
+      const set = new Set<number>();
+      const vistas = new Set<TramoDeAgenda[]>();
+      for (const n of lista) {
+        const a = agendaDe(n);
+        if (vistas.has(a)) continue;
+        vistas.add(a);
+        for (const x of a) {
+          set.add(x.desde);
+          set.add(x.hasta);
+          for (const [a, b] of x.ocupado ?? []) {
+            set.add(a);
+            set.add(b);
+          }
         }
       }
+      l = [...set].sort((a, b) => a - b);
     }
-    LIMITES.set(lista, { version, limites: (l = [...set].sort((a, b) => a - b)) });
+    LIMITES.set(lista, { version, limites: l });
+    ULTIMOS_LIMITES = { lista, version, limites: l };
   }
   return l;
 }
@@ -1459,19 +1579,47 @@ function sitiosDeAgenda(a: readonly TramoDeAgenda[]): string[] {
 /** Las personas que pueden estar en cada lugar (en el orden de la lista) según sus agendas de ese día: se monta una vez por lista de personas, día y calendario de partidos. */
 const CANDIDATOS = new WeakMap<Npc[], { clave: string; porLugar: Map<string, Npc[]> }>();
 
+/** Los últimos candidatos montados: la lista siguiente casi siempre es la misma gente con alguna persona cambiada, y se parte de ellos (sin recorrer a todos otra vez). */
+let ULTIMOS_CANDIDATOS: { lista: Npc[]; clave: string; porLugar: Map<string, Npc[]> } | undefined;
+
 function candidatosEn(ahora: Pick<ReturnType<typeof agendasDePresencia>, 'lista' | 'agendaDe' | 'partidos'>, dia: number): (lugar: string) => readonly Npc[] {
   const clave = `${dia}:${ahora.partidos?.version ?? ''}`;
   let c = CANDIDATOS.get(ahora.lista);
   if (c?.clave !== clave) {
-    const porLugar = new Map<string, Npc[]>();
-    for (const n of ahora.lista) {
-      for (const sitio of sitiosDeAgenda(ahora.agendaDe(n))) {
-        const l = porLugar.get(sitio);
-        if (l) l.push(n);
-        else porLugar.set(sitio, [n]);
+    let porLugar: Map<string, Npc[]> | undefined;
+    const previo = ULTIMOS_CANDIDATOS;
+    const cambios = previo && previo.clave === clave ? cambiosEntre(previo.lista, ahora.lista) : undefined;
+    // Quien cambia y conserva su agenda (los mismos sitios) ocupa el mismo puesto de la misma lista de cada lugar: se cambia la persona y se deja lo demás (copiando solo las listas que toca).
+    if (previo && cambios && cambios.every(([a, b]) => sitiosDeAgenda(ahora.agendaDe(a)) === sitiosDeAgenda(ahora.agendaDe(b)))) {
+      porLugar = new Map(previo.porLugar);
+      const copiadas = new Set<string>();
+      for (const [a, b] of cambios) {
+        for (const sitio of sitiosDeAgenda(ahora.agendaDe(b))) {
+          let l = porLugar.get(sitio)!;
+          if (!copiadas.has(sitio)) {
+            l = l.slice();
+            porLugar.set(sitio, l);
+            copiadas.add(sitio);
+          }
+          const k = l.indexOf(a);
+          if (k < 0) { porLugar = undefined; break; }
+          l[k] = b;
+        }
+        if (!porLugar) break;
+      }
+    }
+    if (!porLugar) {
+      porLugar = new Map<string, Npc[]>();
+      for (const n of ahora.lista) {
+        for (const sitio of sitiosDeAgenda(ahora.agendaDe(n))) {
+          const l = porLugar.get(sitio);
+          if (l) l.push(n);
+          else porLugar.set(sitio, [n]);
+        }
       }
     }
     CANDIDATOS.set(ahora.lista, (c = { clave, porLugar }));
+    ULTIMOS_CANDIDATOS = { lista: ahora.lista, clave, porLugar };
   }
   const { porLugar } = c;
   return (lugar) => porLugar.get(lugar) ?? [];
@@ -1588,7 +1736,7 @@ function construirAgendasDePresencia(ctx: ReadContext, t: ReadContext['time'], l
   const inicioCurso = (t.week - t.schoolWeek) * 7;
   // El día de partido (`MOTOR_PARTIDOS.md` §15): los convocados de los equipos que juegan esta semana, y sus entrenadores, están en el campo desde su convocatoria, en el vestuario a su hora y vuelven a él al acabar.
   const partidos = ctx.service<PartidosService>(SERVICES.partidos);
-  const agendaDe = (n: Npc): TramoDeAgenda[] => agendaConPartido(n, agendaDePersona(n, datos, t.day), partidos, datosDe(n.deporte)?.datos.categorias ?? []);
+  const agendaDe = (n: Npc): TramoDeAgenda[] => agendaConPartido(n, agendaDePersona(n, datos, t.day), partidos, () => datosDe(n.deporte)?.datos.categorias ?? []);
   /**
    * Dónde está cada persona entre dos cambios de tramo de cualquier agenda: mientras no cambie ninguno, la presencia no cambia
    * (nadie aparece ni desaparece), así que se calcula una vez por intervalo (unas 10 veces al día) y no cada pocos minutos.
@@ -1825,8 +1973,8 @@ export const npcs = defineModule<NpcsState>({
       const resultado = { sinPlaza: [] as string[], plazaExtra: [] as string[], sinNinos: [] as { deporte: string; motivo: MotivoDeEquipoSinNinos; jugadores?: number; minimo?: number }[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined, propuestas: [] as { deporte: string; puesto: string }[] };
       ctx.updateState<NpcsState>((s) => {
         const familias = s.hogares && VARIANTES.renovar === 'familias' ? conPais(ctx.pais, () => renovarConFamilias(s.npcs, proximo.day, ctx.rng, s.hogares!, s.semilla ?? 0)) : undefined;
-        const npcs = conPais(ctx.pais, () => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(familias?.npcs ?? renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day));
-        const pobsNuevas = resultado.pobs ?? pobs;
+        const { r: npcs, nuevo: veranoNuevo } = conPais(ctx.pais, () => conVeranoNuevo(() => actualizarHermanos(ajustarVecinos(renovarDeportistas(conInteresDeChicas(conCapacidades(conSemilla(familias?.npcs ?? renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day)));
+        const pobsNuevas = veranoNuevo ? (resultado.pobs ?? pobs).map((p) => ({ ...p, repartoNuevo: true })) : resultado.pobs ?? pobs;
         return { ...s, poblaciones: pobsNuevas, npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), pobsNuevas, proximo.day, s.semilla ?? 0), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub }, ...(familias ? { hogares: familias.hogares, familiasPorCurso: { ...s.familiasPorCurso, [proximo.schoolYear]: { hermanos: familias.hermanos, mudanzas: familias.mudanzas, archivadas: familias.archivadas, borradas: familias.borradas } } } : {}) };
       });
       // El entrenador le propone al personaje otro puesto si en el suyo sobran y en otro faltan (decide él: `club.cambio_de_puesto`).
@@ -2145,6 +2293,7 @@ export const npcs = defineModule<NpcsState>({
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
         rotaElEquipo: (deporte, club, categoria) => rotaElEquipo(poblacionesGuardadas(ctx), deporte, club, categoria),
+        equiposFemeninosDeLaCategoria: (deporte, categoria) => equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day, undefined, true),
         equiposDeLaCategoria: (deporte, categoria) => { const yo = suEquipo(deporte); return equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day, yo && yo.categoria === categoria ? { club: yo.club, letra: yo.letra } : undefined); },
         plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day), ctx.time.day),
         equipoDelPersonaje: suEquipo,

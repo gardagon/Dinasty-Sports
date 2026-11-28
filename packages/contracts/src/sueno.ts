@@ -63,10 +63,13 @@ export const ENERGIA_POR_HORA_DE_DEUDA = 2.5;
 export const topeDeEnergiaAlDespertar = (deuda: number): number => 100 - ENERGIA_POR_HORA_DE_DEUDA * deudaEfectiva(deuda);
 
 /**
- * PREPARADO PARA LA SALUD Y LAS LESIONES (E12), SIN ACTIVAR (decidido el 23/11; cifras de `docs/relevo/dormir.md` §3.3, provisionales). Nadie lo llama todavía:
- * - `factorPorSueno`: lo que rinde con esa deuda; `a` = 0,02 para concentración y estudio y 0,015 para el deporte. Cabe en `eficienciaDeEstado` (personaje y PNJ).
+ * LOS EFECTOS DEL SUEÑO ATRASADO EN EL RENDIMIENTO (E12, F2, activos desde el 24/11; cifras de `docs/relevo/dormir.md` §3.3, provisionales):
+ * - `factorPorSueno`: lo que rinde con esa deuda; `a` = `SUENO_EN_EL_ESTUDIO` (0,02) para concentración y estudio y `SUENO_EN_EL_DEPORTE` (0,015) para el deporte. Lo aplica el modificador `gen.sueno` del
+ *   personaje a sus acciones y `eficienciaDeEstado` a los partidos y las carreras de cualquier jugador (personaje y PNJ).
  * - `fatigaPorSueno`: lo que suma a `fatigaDeLaSemana` (y por tanto al riesgo de lesión).
  */
+export const SUENO_EN_EL_ESTUDIO = 0.02;
+export const SUENO_EN_EL_DEPORTE = 0.015;
 export const factorPorSueno = (deuda: number, a = 0.02): number => 1 - a * deudaEfectiva(deuda);
 export const fatigaPorSueno = (deuda: number): number => 4 * deuda;
 

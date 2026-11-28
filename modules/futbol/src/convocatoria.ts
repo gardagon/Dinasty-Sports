@@ -176,7 +176,7 @@ export function jugadoresDelPartido(r: ResultadoDePartido, lado: 0 | 1, aprendiz
  */
 export function estadoDelPersonaje(lector: LectorDePersona): EstadoDeJugador {
   const baja = lector.stat(GEN.baja);
-  return { fisica: lector.stat(GEN.energia), moral: lector.stat(GEN.motivacion), forma: lector.stat(GEN.forma), salud: lector.stat(GEN.salud), ...(baja > 0 ? { baja } : {}) };
+  return { fisica: lector.stat(GEN.energia), moral: lector.stat(GEN.motivacion), forma: lector.stat(GEN.forma), salud: lector.stat(GEN.salud), ...(lector.stat(GEN.sueno) > 0 ? { deuda: lector.stat(GEN.sueno) } : {}), ...(baja > 0 ? { baja } : {}) };
 }
 
 /**

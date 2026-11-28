@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GEN, SERVICES, perk, type IdentityService, type PerksService, type ProfileService } from '@ds/contracts';
+import { GEN, SERVICES, deudaEfectiva, perk, type IdentityService, type PerksService, type ProfileService } from '@ds/contracts';
 import { Game, advanceTo, advanceUntil } from '@ds/core';
 import { personaje } from './index';
 import type { IdentidadState } from './identidad';
@@ -328,6 +328,52 @@ describe('módulo personaje (gen)', () => {
       const textos = r.log.map((l) => l.text).join(' ');
       expect(textos).toContain('Arrastras sueño');
       expect(textos).not.toMatch(/\d+(,\d+)? h\b/);
+    });
+
+    it('con sueño atrasado se rinde menos en el deporte y en lo mental, y sin él no hay modificador (F2)', () => {
+      const g = nueva();
+      const sin = g.preview('gen.gimnasio')!;
+      expect(sin.modifiers.map((m) => m.id)).not.toContain('gen.sueno');
+      for (let n = 0; n < 4; n++) {
+        hasta(g, 21);
+        g.perform('gen.dormir_4h');
+      }
+      expect(g.stat(GEN.sueno)).toBeGreaterThan(5);
+      advanceUntil(g, 'gen.esperar', (t) => t.hour === 16);
+      const gim = g.preview('gen.gimnasio')!;
+      const leer = g.preview('gen.leer')!;
+      const d = deudaEfectiva(g.stat(GEN.sueno));
+      expect(gim.modifiers.map((m) => m.id)).toContain('gen.sueno');
+      expect(leer.modifiers.map((m) => m.id)).toContain('gen.sueno');
+      // El de lo mental (×(1 − 0,02·d)) pesa más que el del deporte (×(1 − 0,015·d)).
+      const f = (p: typeof gim) => p.modifiers.find((m) => m.id === 'gen.sueno')!.result.efficiency!;
+      expect(f(gim)).toBeCloseTo(1 - 0.015 * d, 6);
+      expect(f(leer)).toBeCloseTo(1 - 0.02 * d, 6);
+    });
+
+    it('la noche alivia menos el estrés y la motivación baja 0,7 por hora que falta (F2)', () => {
+      const dormir = (id: string, deudaPrevia: number) => {
+        const g = nueva();
+        for (let n = 0; n < deudaPrevia; n++) {
+          hasta(g, 21);
+          g.perform('gen.dormir_4h');
+        }
+        hasta(g, 21);
+        const e0 = g.stat(GEN.estres);
+        const m0 = g.stat(GEN.motivacion);
+        g.perform(id);
+        return { estres: g.stat(GEN.estres) - e0, motivacion: g.stat(GEN.motivacion) - m0 };
+      };
+      const descansado = dormir('gen.dormir_lo_que_toca', 0);
+      const atrasado = dormir('gen.dormir_lo_que_toca', 4);
+      // Con deuda, el mismo sueño baja menos el estrés (el cierre del día también suma estrés).
+      expect(atrasado.estres).toBeGreaterThan(descansado.estres);
+      // Dormir 5 h con una necesidad de ~9,5 h (4,5 h de falta): −0,7 × 4,5 = −3,15; el tope es −4 y el antiguo era −2 plano.
+      const poco = dormir('gen.dormir_5h', 0);
+      expect(poco.motivacion).toBeLessThan(-2.5);
+      expect(poco.motivacion).toBeGreaterThan(-4.6);
+      // Lo que toca no resta motivación por la noche.
+      expect(descansado.motivacion).toBeGreaterThan(-0.5);
     });
 
     it('la siesta recupera como mucho media hora de deuda al día', () => {

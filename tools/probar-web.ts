@@ -17,6 +17,7 @@ import { publicarDeportes } from './publicar';
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const capturas = resolve(process.argv[2] ?? join(tmpdir(), 'ds-probar-web'));
 // Semilla 31: con los hogares la 35 deja al personaje en un tercer equipo de 9 niños, que no llega a los 14 de la liga y no juega (ver docs/relevo/hogares.md, ronda 5).
+// Semilla fija (31): con ella el personaje tiene plaza en el equipo de su colegio y lo convocan (`npm run benjamin -- 31`); con otras (6, 8, 10, 11, 16…) el equipo del colegio puede estar completo y no hay plaza, y eso es el juego, no un fallo.
 const semilla = Number(process.argv[3] ?? 31);
 // `npm run probar-web:escritorio`: el mismo camino con una ventana de ordenador (1440×900), donde el diseño «Automático» usa las tres columnas.
 const escritorio = process.argv[4] === 'escritorio';

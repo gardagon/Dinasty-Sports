@@ -3,7 +3,7 @@
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
 import { asistenciaConFaltas, relacionConElEntrenador, type EquipoDelMundoView, type CategoriaDef, type RutinaDeDeporte, ESTADO_INICIAL, CAPACIDADES_GENETICAS, type JugadorDeEquipoView, type PrevisionDelClubView, parecidoDePuestos, grupoDePuesto, anioNatural, primerDiaDelAnio, rngEstable, cuposPorGrupo, asignarDorsales, type Pierna, type NpcRole, aptitudDe, type TipoAsignado } from '@ds/contracts';
-import { interesPor, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
+import { LETRAS_FIJADAS, interesDe, nivelEn, plazasPorEdad, potencialEn, ritmoEn } from './deportistas';
 import { LETRAS, repartirEnEquipos, suplentesDe, type EquiposDelClub, type MiembroDeClub } from './equipos';
 import { ofertaDePuesto, puestoDondeMasVale } from './puestos';
 import { type Rendimientos } from './semana';
@@ -92,7 +92,7 @@ export function aspirantesDeEdad(npcs: readonly Npc[], pob: PoblacionGuardada, e
   for (const n of npcs) {
     if (!n.genetica || n.deporte !== undefined || n.dejado?.includes(pob.deporte) || n.apartado?.includes(pob.deporte) || edadNpc(n, dia) !== edad) continue;
     const potencial = potencialEn(n.id, n.genetica, pob);
-    lista.push({ npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor: valorRealDe(n, pob, val, dia) ?? potencial });
+    lista.push({ npc: n, colegio: colegioDeNino(n), interes: interesDe(n, pob.deporte, edad), potencial, valor: valorRealDe(n, pob, val, dia) ?? potencial });
   }
   return lista;
 }
@@ -315,6 +315,8 @@ export interface MercadoDeFichajes {
   reservas: ReadonlyMap<string, number>;
   /** Las propuestas de puesto que el entrenador le hace al personaje al recolocar (decide él). */
   propuestas?: { deporte: string; puesto: string }[];
+  /** Para contarlo (`npm run reparto:paso`): lo que pasa con un club y categoría al acomodar a los que no caben en ningún equipo. No cambia nada del juego. */
+  alAcomodar?: (d: { categoria: string; club: string; equiposAntes: number; equiposDespues: number; noCabian: number; dejanElClub: number; quedan: number; minimoParaLosEquipos: number; definitivo: boolean }) => void;
 }
 
 
@@ -396,7 +398,7 @@ export function fijarEquipos(m: MercadoDeFichajes, pob: PoblacionGuardada): void
       const { equipos, miembros } = equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true);
       for (const { n } of miembros) {
         if (n.id.startsWith('personaje@')) continue;
-        const letra = LETRAS.find((l) => equipos[l].includes(n.id));
+        const letra = (LETRAS_FIJADAS.get(n.id) as (typeof LETRAS)[number] | undefined) ?? LETRAS.find((l) => equipos[l].includes(n.id));
         if (n.letra?.[pob.deporte] === letra) continue;
         const resto = Object.fromEntries(Object.entries(n.letra ?? {}).filter(([d]) => d !== pob.deporte));
         const nueva = letra ? { ...resto, [pob.deporte]: letra } : resto;
@@ -592,7 +594,8 @@ export function acomodarSobrantes(m: MercadoDeFichajes, pob: PoblacionGuardada, 
         if (!cambio) break;
       }
       // Los que siguen sin caber en ningún equipo dejan el club.
-      for (const id of equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true).equipos.sobran) {
+      const noCabian = equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true).equipos.sobran;
+      for (const id of noCabian) {
         const n = m.lista.get(id);
         if (!n || id.startsWith('personaje@')) continue;
         const libre = sinDeporte(n, pob, false);
@@ -602,6 +605,7 @@ export function acomodarSobrantes(m: MercadoDeFichajes, pob: PoblacionGuardada, 
       // Con menos jugadores, el club puede quedarse con equipos de menos del mínimo: se cierran los que no llegan (y, si ni uno llega, el club no tiene equipo en la categoría y sus jugadores buscan otro).
       const quedan = equiposDelClub(m.lista, pob, e, c, m.dia, m.val, [], true).miembros;
       const minimo = e.plantillaPorCategoria!.min;
+      if (m.alAcomodar && (noCabian.length || quedan.length < minimo * k)) m.alAcomodar({ categoria: c.id, club: e.club, equiposAntes: k, equiposDespues: quedan.length < minimo * k ? Math.max(0, Math.floor(quedan.length / minimo)) : k, noCabian: noCabian.length, dejanElClub: noCabian.length, quedan: quedan.length, minimoParaLosEquipos: minimo * k, definitivo });
       if (quedan.length < minimo * k) {
         const montables = Math.floor(quedan.length / minimo);
         e.equiposPorCategoria = { ...e.equiposPorCategoria, [c.id]: Math.max(1, montables) };
@@ -768,7 +772,7 @@ function disciplinaDelEntrenadorDe(npcs: readonly Npc[], pob: PoblacionGuardada,
 
 
 /** Los equipos que hay en una categoría de un deporte (club y letra, con al menos el mínimo de jugadores) con lo que vale cada uno (`NpcDirectory.equiposDeLaCategoria`). */
-export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, categoria: string, inicioCurso: number, dia?: number, personaje?: { club: string; letra: string }): EquipoDelMundoView[] {
+export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly PoblacionGuardada[], deporte: string, categoria: string, inicioCurso: number, dia?: number, personaje?: { club: string; letra: string }, femeninos = false): EquipoDelMundoView[] {
   const pob = pobs.find((p) => p.deporte === deporte);
   const cat = pob?.categorias?.find((c) => c.id === categoria);
   if (!pob || !cat) return [];
@@ -785,6 +789,8 @@ export function equiposDeUnaCategoria(npcs: readonly Npc[], pobs: readonly Pobla
   for (const [id, miembros] of porEquipo) {
     const [club, letra] = id.split('|');
     const e = pob.equipos.find((x) => x.club === club);
+    // Los equipos femeninos no juegan la liga (por ahora: sus jugadoras simulan que juegan, sin resultados ni clasificación).
+    if (!!e?.femenino !== femeninos) continue;
     // El personaje es un jugador más de su equipo: cuenta para el mínimo (si no, un equipo de 13 niños con él no jugaría la liga).
     const conEl = miembros.length + (personaje && personaje.club === club && personaje.letra === letra ? 1 : 0);
     if (conEl < (e?.plantillaPorCategoria?.min ?? 14)) continue;
@@ -805,6 +811,14 @@ export function equipoDelPersonajeEn(npcs: readonly Npc[], pobs: readonly Poblac
   const cat = pob && e ? categoriasDelEquipo(pob, e).find((c) => c.id === categoria) : undefined;
   if (!pob || !e || !cat || !pob.puestos) return undefined;
   const anio: 1 | 2 = edad === Math.min(...cat.edades) ? 1 : 2;
+  // Con el reparto nuevo (`PoblacionGuardada.repartoNuevo`) los equipos son los que tienen sus letras guardadas: el personaje entra en el que más se parece a su año (y, si empatan, en el que menos tiene) con plaza libre, sin volver a repartir el club.
+  if (pob.repartoNuevo) {
+    const delClub = npcs.filter((n) => n.deporte === deporte && n.equipo === club && n.id !== miembro.id && n.letra?.[deporte] && cat.edades.includes(edadDeJuego(n, dia) ?? -1));
+    const tope = Math.max(maximoPorEquipo(e, cat.id), 22);
+    const candidatos = LETRAS.map((l) => { const xs = delClub.filter((n) => n.letra?.[deporte] === l); return { l, n: xs.length, parecido: xs.length ? xs.filter((n) => (edadDeJuego(n, dia) === Math.min(...cat.edades)) === (anio === 1)).length / xs.length : -1 }; }).filter((c) => c.n > 0 && c.n < tope);
+    candidatos.sort((a, b) => b.parecido - a.parecido || a.n - b.n || (a.l < b.l ? -1 : 1));
+    return candidatos[0]?.l;
+  }
   const { equipos } = equiposDelClub(new Map(npcs.map((n) => [n.id, n])), pob, e, cat, dia, val, [{ ...miembro, anio }], true);
   return LETRAS.find((l) => equipos[l].includes(miembro.id));
 }

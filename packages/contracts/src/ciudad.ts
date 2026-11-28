@@ -31,6 +31,12 @@ export interface CiudadDef {
    * los hermanos y los hermanos pequeños son personas con su hogar (`Npc.hogar`, `Npc.padres`). Sin él (o en una partida guardada antes, que no lleva `NpcsState.hogares`) el mundo se genera y se renueva como siempre: no se migra nada.
    */
   hogares?: boolean;
+  /**
+   * **Reparto nuevo de inicio** (`docs/relevo/reparto-nuevo-reglas.md`): con él (solo la ciudad grande, desde el 27/11/2026), al crear la partida los niños del fútbol se reparten en los clubes con las reglas nuevas (primera ronda de 14 por
+   * año, subidas por titularidad, C y D de colegio, B mixto, equilibrar, tope de 22, nunca un B sin A; juvenil por año con su cascada) y **nada lo deshace después**; y la partida empieza en equilibrio (cada niño ha pasado ya por los veranos
+   * de su edad con las reglas de abandono). Sin él (la ciudad de ahora, la de prueba, o una partida guardada antes) la creación es la de siempre: no se migra nada. Los veranos siguen con sus reglas (el verano nuevo es otra parte).
+   */
+  repartoNuevo?: boolean;
 }
 
 /** La demografía que manda en un lugar: la de su ciudad, si la trae, y si no la del país. */
@@ -68,7 +74,7 @@ export const CIUDAD_DE_PRUEBA: CiudadDef = { colegiosDeFuera: 2, aulasPorCurso: 
  * salen en proporción (uno cada `PERSONAS_POR_CLUB` personas) y 3 de los colegios de fuera tienen club (4 con el del personaje: decisión del usuario, 17/11/2026).
  */
 export const CIUDAD_GRANDE: CiudadDef = {
-  colegiosDeFuera: 9, colegiosConClub: 3, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10, hogares: true,
+  colegiosDeFuera: 9, colegiosConClub: 3, aulasPorCurso: 2, alumnosPorAula: 25, alumnosPorCursoDeCadaColegio: 50, vecinos: 80, camposDelComplejo: 10, hogares: true, repartoNuevo: true,
   // Demografía de una ciudad como Madrid: ~19 % de origen extranjero, repartido por continente como la Comunidad de Madrid (más de la mitad, de América: nombres y apellidos hispanos) (`docs/relevo/nombres-nacionales.md` §2),
   // y las parejas por tipo (`ANEXO_NOMBRES.md` §7). Los nacidos aquí de padres de fuera llevan nombre de pila español el 20 % de las veces.
   demografia: { espana_norte: 0.162, espana_centro: 0.324, espana_sur: 0.324, latinoamerica: 0.099, magreb: 0.012, africa_subsahariana: 0.006, europa_este: 0.03, europa_norte: 0.024, asia_oriental: 0.019 },

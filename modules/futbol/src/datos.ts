@@ -105,6 +105,8 @@ const POBLACION_ESPANA: PoblacionDeDeporte = {
     edades: { min: 8, max: 19 },
     edadMaxBaja: 13,
     probabilidadBaja: 0.1,
+    // Chicas en el fútbol (decisión del 25/11): ~10 % de chicas entre los que juegan (licencias RFEF 2024/25: 10,1 %) y equipos separados por sexo desde infantil (12 años); benjamín y alevín, mixtos.
+    sexos: { chicas: 0.11, desdeEdad: 12 },
     // El abandono por edad (decisión del 07/11; a calibrar con `npm run equipos`): a los 13 o menos, lo de siempre (10 % por verano); desde cadete sube deprisa. Pesan el interés, la ambición, los minutos, los estudios (4.º de la ESO y bachillerato) y los padres.
     abandono: {
       baseDeLaEdad: { 8: 0.1, 13: 0.1, 14: 0.12, 15: 0.18, 16: 0.24, 17: 0.3, 18: 0.36 },

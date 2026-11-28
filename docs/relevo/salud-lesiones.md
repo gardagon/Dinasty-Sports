@@ -29,6 +29,49 @@ Encargo de la arquitectura tras las decisiones del usuario (`DECISIONES.md`, 24/
   - fases: aguda el primer 40 % de la baja y rehabilitación el 60 % restante (en §2.4 decía 45 %).
 - **Lo que no hay aún:** `npm run sim:salud` (la herramienta de calibración), el estado guardado (`EstadoDeJugador.lesion`), el paso semanal y los sucesos. Eso es F3.
 
+## H bis. Hecho en la F2 (24/11): los efectos del sueño, activos
+
+Encargo de la arquitectura: activar en pasos y calibrar con `npm run sim` (365 días × 5 semillas). **Las cifras son las de `sueno.ts` y `BACKLOG_STATS.md` E12.3, sin moverlas: `sim` no pidió cambiar ninguna.** Cuatro commits, uno por paso, y una simulación completa de cada estado (A, A+B+C y final). Lo del agotamiento crónico y las enfermedades espera a F5/F6, y las bajas en días y `SAVE_VERSION` a F3 (no se ha tocado).
+
+| Paso | Qué | Dónde | Cifra |
+|---|---|---|---|
+| **A** | Concentración, estudio y deporte | Modificador `gen.sueno` del personaje (`modules/personaje`, etiquetas `estudio`/`mental` y `entrenamiento`/`competicion`/`fisico`) y `eficienciaDeEstado` para partidos y carreras de cualquier jugador (`estado-de-jugador.ts`; el personaje la lleva en `estadoDelPersonaje` y en su forma semanal) | ×(1 − 0,02·d) en estudio y ×(1 − 0,015·d) en deporte, con `d` = deuda efectiva (`SUENO_EN_EL_ESTUDIO`, `SUENO_EN_EL_DEPORTE`) |
+| **B** | Estrés | `alDespertar` y `DAY_END` | El alivio nocturno `−0,8·h` se multiplica por `(1 − d/10)`; cada fin de día suma `+0,3·d` |
+| **C** | Motivación | `alDespertar` y `DAY_END` | `−0,7` por cada hora que falta de la necesidad esa noche (máx. −4), en lugar del −2 plano con menos de 7 h; el punto de equilibrio baja `1·d`. El aviso «Has dormido poco» sale con menos de 7 h o 1 h o más de falta |
+| **D** | Riesgo de lesión | `riesgoDeLesion(fatiga, constitución, deuda)`: personaje (`WEEK_END`) y PNJ (`pasoDeSemanaDelEstado`) | `fatiga += 4·deuda` (`fatigaPorSueno`) y, además, `×(1 + 0,05·d)` (`factorPorSuenoEnLesion`): con 6 h de deuda, ×1,5 a ×1,9 sobre el riesgo semanal (test) |
+
+**Los PNJ** llevan A y D por `eficienciaDeEstado` y `riesgoDeLesion` (la misma función que el personaje; un test de equivalencia lo ata en `tests/mismas-reglas-estado.test.ts`). **B y C no existen en los PNJ**: tienen moral y no estrés, y su moral vuelve a su nivel cada semana; si se quiere que el sueño la baje, es una decisión para F3 (no la tomo aquí).
+
+### Repetido tras unir la rama de trabajo (28/11)
+
+Tras unir `origin/claude/youthful-clarke-vs0kye` (reparto nuevo de equipos, verano nuevo, chicos y chicas, partida en equilibrio, hogares más baratos y dormir F3; unión sin conflictos) **se repitió todo sobre la base nueva**: línea base en la punta de `origin` (sin F2) y F2 sobre la unión, en paralelo. **Salió igual que lo de abajo**: los mismos 13 ✅ y el ⚠️ de «Rendimiento», las mismas cifras en las dos filas que cambian de chequeo y la misma tabla; `sim:notas` «Todo dentro de los objetivos»; la huella cambia en los mismos bots (el recuento de acciones solo en empollón 1 y aleatorio 1 y 2). Los bots no ven lo que cambió en la base (equipos, verano, hogares). **Coste por acción** (`npm run rendimiento -- 60`, máquina libre, dos mediciones por árbol): 1,31 y 1,40 ms antes frente a 1,34 y 1,31 después: sin diferencia medible. (Con las dos simulaciones completas a la vez salió 1,75 frente a 1,85 ms, ruido de carga.) `npm test` (135 archivos, 1486 tests) y `probar-web` en verde.
+
+### Medido (`npm run sim`, 365 días × 5 semillas, antes frente a final)
+
+Los 14 chequeos **igual que antes**: 13 ✅ y el ⚠️ de «Rendimiento» (la velocidad de la máquina, que ya estaba en ⚠️ antes: 2,19 ms por acción con la máquina libre y 2,31 con otras dos simulaciones a la vez; **hay que repetirlo con la máquina libre**, ver más abajo). Cambian solo las cifras de dos:
+
+| Chequeo | Antes | Final | Por qué |
+|---|---|---|---|
+| Esforzarse rinde más que no hacer nada | equilibrado 30,1 frente a vago 20,6 | 30,1 frente a 20,4 | el vago duerme poco a propósito y ahora paga la deuda |
+| Sobreentrenar no compensa | −7 % de atletismo, salud final 0 | −9 %, salud final 0 | idem (más holgado, como se esperaba) |
+
+**Tabla final** (media de las 5 semillas). **No cambian** (a una décima): Equilibrado, Empollón, Atleta y Abandona el deporte, porque se acuestan según su edad y casi no tienen deuda. **Cambian** los que duermen poco a propósito (y el aleatorio):
+
+| Estrategia | Global | Estudios | Atletismo | Salud | Nota media |
+|---|---|---|---|---|---|
+| Madruga y trasnocha | 30,0 → 29,8 | 77,2 → 76,6 | 19,1 → 19,0 | 81 → 84 | 7,8 → 7,6 |
+| Sobreentrena | 23,4 → 23,1 | 52,0 → 51,1 | 18,0 → 17,7 | 0 → 0 | 5,9 → 5,9 |
+| Vago | 20,6 → 20,4 | 45,8 → 45,3 | 9,4 → 9,4 | 100 → 93 | 2,6 → 2,6 |
+| Aleatorio | 28,1 → 27,0 | 75,4 → 71,5 | 13,5 → 12,8 | 1 → 0 | 2,1 → 2,3 |
+
+Paso a paso: el A explica casi todo (madrugador −0,4 de estudios, sobreentrena −0,9, vago −0,4, aleatorio −2,3); B y C añaden poco (el estrés del vago pasa de 0 a 1; el del aleatorio oscila con el azar: 12 antes, 8, 14 y 12 al final); D mueve la salud final del vago (100 → 93) y las lesiones de los bots que duermen poco. El madrugador gana 3 puntos de salud final, dentro del ruido de semilla.
+
+**`npm run sim:notas`:** «Todo dentro de los objetivos», con las mismas notas antes y después (el banco duerme 10 h).
+
+**`npm run huella -- 60` cambia, a propósito:** los ocho bots (y, en la partida de fútbol, el estado del personaje; el primer resumen del mundo no cambia) salen con huella distinta porque todos tocan el estrés o la motivación (el cierre de día suma estrés por deuda y el equilibrio de la motivación baja con ella; también cuando la deuda es de 1–2 h) y porque algunos se lesionan en otra semana. Las acciones de cada bot salen casi iguales (el recuento solo cambia en 3 de 16: empollón 1, aleatorio 1 y 2).
+
+**Qué no se movió:** ningún umbral. No hace falta cambiar «Las estrategias razonables mantienen la salud» (sigue ✅: salud final de equilibrado 84, atleta y empollón 93, madrugador 84).
+
 ## 0. Resumen
 
 1. **Hoy la salud es un modelo de una sola pieza**: una probabilidad semanal de lesión que sube con la fatiga y baja con la constitución, una gravedad uniforme de 1 a 6 semanas, y una salud que solo resta rendimiento. No hay tipos, ni recuperación por fases, ni recaídas, ni enfermedades, ni exposición real (un partido no pesa más que un entrenamiento), ni edad. Los perks de recuperación **no hacen nada** (la etiqueta `recuperacion` no la usa ninguna acción).
