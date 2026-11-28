@@ -2793,3 +2793,7 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 
 - **Hecho:** el reparto de inicio de benjamín y alevín forma equipos de 18; solo se llega a 22 con quien si no se quedaría sin equipo, y antes se forman equipos nuevos de 14 a 18 (`reparto-nuevo-reglas.md`). 0 equipos por debajo de 14 (semillas 51–60), `npm test` ✅, huella sin cambio.
 - **Resultado sobre la plaza:** sigue en 15 de 20 semillas (`benjamin -- 1..20`): un equipo de colegio de 18 está completo y el personaje solo entra por mérito. **Pendiente de decisión del usuario:** equipos de colegio con tope menor (16–17) o aceptar la plaza por mérito. `probar-web` usa la semilla fija 31 (con plaza).
+
+### 28/11/2026 — Colegios: hasta 22 por equipo (aplicado; sustituye a «plaza pendiente»)
+
+- El usuario aclara: los colegios cogen a todos sus alumnos que quieren jugar, hasta 22. `plantillaPorCategoria.max = 22` en los equipos de colegio de las partidas nuevas de la ciudad grande; el personaje y los PNJ alumnos, la misma regla. Resultado: el personaje tiene plaza en 20 de 20 semillas (`benjamin -- 1..20`). Cifras de los colegios (~30 % de los alumnos quieren jugar; ~19 juegan en el colegio y ~10 en clubes de fuera) en `docs/relevo/reparto-nuevo-implementado.md`. Sin cambio en `huella` ni en partidas guardadas.

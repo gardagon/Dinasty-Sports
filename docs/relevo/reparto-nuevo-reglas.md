@@ -121,3 +121,7 @@ El verano **no se vuelve a montar desde cero**: cada club conserva los equipos q
 ## Benjamín y alevín: equipos de 18 también al crear (28/11/2026, decisión del usuario)
 
 En benjamín y alevín el reparto de inicio forma **equipos de 18** y solo se llega a **22** con los niños que, si no, se quedarían sin equipo; antes se forman **equipos nuevos de 14 a 18** donde se pueda. Vale para todas las letras (A, B, C y D) y todos los clubes, colegios incluidos; es la misma regla que en el verano. En el código (`draft.ts`): los C/D de colegio y de los clubes externos del paso BA se llenan hasta 18; un paso «hasta 22 BA» mete en cualquier equipo del club (B y D, solo de 1.er año; colegios, solo sus alumnos) a los que quedan en la bolsa; y en el equilibrio (`equilibrar`, `TOP = 18`) la unión A+B sin A, los desbordes de C/D y los expulsados se recortan a 18, los expulsados se colocan primero en equipos con menos de 18, luego forman equipos nuevos de 14 a 18 en un club externo con letra libre y solo al final entran hasta 22 (también en su propio club). Infantil, cadete y juvenil no cambian (20/20/22).
+
+## Colegios hasta 22 (28/11/2026, decisión del usuario)
+
+El colegio coge a todos sus alumnos que quieren jugar hasta 22 por equipo (también el personaje); el 18 es el objetivo de los clubes. Máximo de los equipos de colegio = 22 en las partidas nuevas de la ciudad grande. Cifras y medidas en `docs/relevo/reparto-nuevo-implementado.md`.

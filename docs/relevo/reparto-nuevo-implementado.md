@@ -40,3 +40,23 @@ Reglas en `reparto-nuevo-reglas.md` (sección «Benjamín y alevín: equipos de 
 ### La plaza del personaje NO vuelve a 20/20
 
 `benjamin -- 1..20`: **15 de 20 con plaza** (sin plaza: 6, 8, 10, 11 y 16), igual que antes del cambio. Los equipos de 22 desaparecen, pero un equipo de colegio de exactamente 18 está **completo** (la regla de plaza mide por grupos de puestos: sin hueco, el personaje solo entra si vale más que el peor de su puesto; p. ej. semilla 16: nivel 9 frente a 13). Con la mitad de niños que antes el colegio apenas pasa de 18, y con el mundo anterior (el doble de niños) los equipos del colegio quedaban por debajo del máximo. Sin plaza reservada, la única forma de acercarse a 20/20 es que los equipos de colegio salgan con algún hueco (p. ej. tope de 16–17 en el colegio), que es una decisión de diseño del usuario.
+
+## Colegios: hasta 22, y las cifras de los colegios (28/11/2026)
+
+**Regla** (decisión del usuario): el colegio coge a **todos sus alumnos que quieren jugar, hasta 22 por equipo**; el 18 es el objetivo de los clubes, no el tope del colegio. Se aplica en partidas nuevas de la ciudad grande (`CiudadDef.repartoNuevo`): `poblacionDe` pone `plantillaPorCategoria.max = 22` a los equipos de colegio. Es el mismo dato para el personaje y para los PNJ alumnos (la regla de plaza, `plazaEnElEquipo`, mide con él: con 18 jugadores y máximo 22 hay hueco en cada grupo de puestos, y el personaje entra sin tratos especiales; si el equipo ya tiene 22 entra por mérito, como cualquiera). El reparto de inicio sigue formando equipos de 18 y solo la bolsa que sobra (alumnos del propio colegio) llega a 22. Las partidas guardadas no cambian (su máximo está guardado en su población).
+
+**Cifras** (`npx tsx tools/colegios-cifras.ts 1-20`, creación, media de 20 semillas; cada categoría son 2 cursos de 50 alumnos = 100):
+
+| | alumnos | quieren jugar (chicos / chicas) | juegan en el colegio | juegan en clubes de fuera |
+|---|---|---|---|---|
+| Colegio del personaje, benjamín | 99 | 29,9 (27,2 / 2,7) | 18,9 | 10,9 |
+| Colegio del personaje, alevín | 100 | 26,1 (23,9 / 2,3) | 17,3 | 8,8 |
+| Otros colegios con club (3), benjamín | 100 | 29–30 | 18–19 | 10–12 |
+| Otros colegios con club (3), alevín | 100 | 26–27 | 17–18 | 9–10 |
+| Colegios sin club (6) | 100 | 20–33 | 0 | todos |
+
+Cada colegio con club saca **un equipo (14–18, casi siempre 18) por categoría**. Interés por el fútbol: ~26–30 de cada 100 alumnos de la categoría (≈30 %; chicas ~2,5, porque al crear solo ~11 % de las interesadas lo son).
+
+**Por qué el equipo sale lleno a 18 con ~30 interesados:** 1) ~10 de los ~30 juegan en clubes de fuera: los clubes externos reclutan **antes** que los colegios (primera ronda por atractivo; el 15 % de los alumnos prueba fuera) y lo hacen entre los alumnos de todos los colegios (también de los 6 sin club, que mandan fuera a todos sus interesados); 2) los ~19 que quedan son un equipo de 18 más 1–4 en la bolsa, que entran hasta 22; 3) con ~19 de dos cursos no se puede formar un segundo equipo (14 mínimo). No entra nadie «de fuera» en el equipo del colegio: solo sus alumnos. Esto es lo que ha dado el reparto; si el usuario quiere que los alumnos con interés prefieran su colegio, es un cambio del reparto de inicio (decisión pendiente, no aplicada).
+
+**Medido:** `benjamin -- 1..20`: el personaje tiene plaza en **20 de 20** (media 14,9 semanas convocado; antes del cambio 15 de 20). `equipos-minimo -- grande con 51-60`: 0 por debajo de 14. `typecheck` ✅; `npm test` 135 archivos, 1.483 tests ✅ (673 s); veranos 1 y 2 de la semilla 51 en el juego real: 0 por debajo de 14; `probar-web` y `probar-web:escritorio` ✅.
