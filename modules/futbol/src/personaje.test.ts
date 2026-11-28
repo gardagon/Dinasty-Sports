@@ -156,3 +156,46 @@ describe('la crónica con la descripción de cada jugador que no conoces (decisi
   });
 });
 
+
+describe('la crónica de los sucesos del motor de posesiones y ocasiones', () => {
+  const stats = { minutos: 90, goles: 0, asistencias: 0, tiros: 3, alPuerta: 1, xg: 0.3, paradas: 0, golesEncajados: 1, faltas: 2, faltasRecibidas: 1, amarillas: 1, roja: false, pases: 40, pasesOk: 34, nota: 6, puesto: 'CM', titular: true };
+  const r = {
+    goles: [1, 0],
+    porTramo: [{ goles: [1, 0], posesion: [0.55, 0.45] }, { goles: [0, 0], posesion: [0.5, 0.5] }],
+    tiros: [8, 6], alPuerta: [3, 2], xg: [1.2, 0.8], faltas: [9, 11], amarillas: [1, 1], rojas: [0, 1], corners: [4, 3], pases: [300, 280], pasesOk: [250, 220],
+    jugadores: { [YO]: stats },
+    alineaciones: [['a', YO], ['c', 'd']],
+    jugadas: [],
+    registro: [
+      { minuto: 3, tramo: 0, tipo: 'amarilla', equipo: 1, jugador: 'c', otro: YO },
+      { minuto: 9, tramo: 0, tipo: 'gol', equipo: 0, jugador: 'a', gol: true, penalti: true, portero: 'd' },
+      { minuto: 12, tramo: 0, tipo: 'tiro_fuera', equipo: 0, jugador: YO, xg: 0.3 },
+      { minuto: 13, tramo: 0, tipo: 'tiro_fuera', equipo: 0, jugador: 'a', xg: 0.05 },
+      { minuto: 14, tramo: 0, tipo: 'falta', equipo: 1, jugador: 'c', otro: 'a' },
+      { minuto: 20, tramo: 1, tipo: 'roja', equipo: 1, jugador: 'c', dobleAmarilla: true },
+      { minuto: 22, tramo: 1, tipo: 'penalti', equipo: 1, jugador: 'd', gol: false, portero: YO },
+      { minuto: 27, tramo: 1, tipo: 'lesion', equipo: 0, jugador: 'a', lesion: { t: 'esguince', z: 'tobillo', d: 14 } },
+    ],
+  } as unknown as ResultadoDePartido;
+  const lineas = cronicaDelPartido(r, { equipos: ['Local', 'Visitante'], nombres: { a: 'Ada', c: 'Cris', d: 'Dani' }, generos: { c: 'f' } });
+  const texto = lineas.map((l) => l.texto).join('\n');
+
+  it('cuenta tarjetas, penaltis, lesiones y ocasiones claras, cada una con su minuto, y deja fuera lo que no es relato (faltas sueltas, tiros fuera sin peligro)', () => {
+    expect(texto).toContain("4' Cris ve la amarilla por una falta sobre ti.");
+    expect(texto).toContain("10' ¡Gol de Local de penalti!");
+    expect(texto).toContain("13' Tienes una ocasión clara y tiras fuera.");
+    expect(texto).toContain("21' Cris (Visitante) es expulsada por doble amarilla: Visitante se queda con diez.");
+    expect(texto).toContain("23' Dani lanza un penalti para Visitante y lo paras tú.");
+    expect(texto).toContain("28' Ada (Local) se lesiona y tiene que dejar el campo.");
+    expect(texto).not.toMatch(/falta sobre Ada/);
+    expect(cronicaDelPartido({ ...r, registro: [{ minuto: 20, tramo: 1, tipo: 'amarilla', equipo: 1, jugador: 'c', otro: 'a' }] } as unknown as ResultadoDePartido, { equipos: ['Local', 'Visitante'], nombres: { a: 'Ada', c: 'Cris' } }).map((l) => l.texto).join('\n')).toContain("21' Cris (Visitante) ve la tarjeta amarilla por una falta sobre Ada.");
+    expect(lineas.filter((l) => l.texto.includes('ocasión clara'))).toHaveLength(1);
+  });
+
+  it('lo que le pasa al personaje sale destacado y al final salen los números del partido y los suyos', () => {
+    expect(lineas.find((l) => l.texto.includes('Tienes una ocasión clara'))!.destacada).toBe(true);
+    expect(lineas.find((l) => l.texto.includes('lo paras tú'))!.destacada).toBe(true);
+    expect(texto).toContain('Tiros 8–6 (a puerta 3–2) · córners 4–3 · faltas 9–11 · amarillas 1–1 · rojas 0–1');
+    expect(texto).toContain('Tus números: 40 pases (85 % bien) · 3 tiros (1 a puerta) · 2 faltas cometidas · 1 recibida.');
+  });
+});

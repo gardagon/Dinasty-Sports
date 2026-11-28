@@ -720,6 +720,7 @@ export function plantillaDeUnEquipo(npcs: readonly Npc[], pobs: readonly Poblaci
         disciplina: ((n.rasgos?.caracter.disciplina ?? 0) + 50) / 100,
         ...(relacion(n) !== undefined ? { relacionConElEntrenador: relacion(n) } : {}),
         ...(n.est?.[deporte] ? { estadisticas: n.est[deporte] } : {}),
+        ...(n.sancion?.[deporte] ? { sancion: n.sancion[deporte] } : {}),
         ...(n.exp?.[deporte] ? { experiencia: n.exp[deporte] } : {}),
       }];
     })

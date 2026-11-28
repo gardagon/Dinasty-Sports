@@ -32,6 +32,7 @@ import {
   experienciaTrasElPartido,
   factorDeExperienciaDelPuesto,
   notaMedia,
+  sancionTrasElPartido,
   sumarPartido,
   type ActionDoneData,
   type ClubImpuntualData,
@@ -141,6 +142,8 @@ export type FutbolState = EstadoBaseDeDeporte & {
   liga?: LigaDelMundo;
   /** El curso de la última liga cuyo calendario se avisó al personaje (una línea en el diario al publicarse). */
   calendarioAvisado?: number;
+  /** Los partidos de sanción que le quedan al personaje (una roja, o cada cinco amarillas de la temporada): no lo convocan, y cada partido de su equipo cumple uno (`sancionTrasElPartido`). */
+  sancion?: number;
   /** La intensidad con que el personaje sale a jugar (se queda elegida de un partido al siguiente; por defecto, normal). */
   intensidad?: Intensidad;
   /** El equipo del personaje esta temporada (club, categoría y letra A a D): se fija al empezar la liga, como el de todos. */
@@ -165,7 +168,7 @@ export type FutbolState = EstadoBaseDeDeporte & {
   historial?: TemporadaCerrada[];
   experiencia?: Record<string, number>;
   /** El día de partido del personaje esta semana: si se ha unido a los compañeros (con cuántos minutos de retraso sobre la hora de la convocatoria), si ha pasado al vestuario y si lo convoca el entrenador, tal como estaba por la mañana del día del partido (`papel`: al cerrar la semana el resto del mundo ya ha cambiado —recuperaciones de lesiones— y la convocatoria podría salir distinta). */
-  diaDePartido?: { semana: number; unido: boolean; tarde: number; vestuario?: boolean; papel?: 'titular' | 'suplente' | 'no_convocado' | 'lesionado' | 'sin_puesto' };
+  diaDePartido?: { semana: number; unido: boolean; tarde: number; vestuario?: boolean; papel?: 'titular' | 'suplente' | 'no_convocado' | 'lesionado' | 'sancionado' | 'sin_puesto' };
   /** Cuándo y dónde se juega cada partido de esta semana (id → [día de la semana, hora, campo]): se reparte el lunes con los partidos de la jornada (`repartirLosPartidos`). */
   calendario?: { curso: number; semana: number; partidos: Record<string, [number, number, string]>; sinSitio: number };
 };
@@ -430,12 +433,13 @@ function yoComoJugador(ctx: ReadContext, plantilla: readonly JugadorDeEquipoView
     lector: ctx,
     ...(dorsalDelPersonaje(ctx, plantilla, puesto) ? { dorsal: dorsalDelPersonaje(ctx, plantilla, puesto)![1] } : {}),
     ...(ctx.state<FutbolState>().estadisticas ? { estadisticas: ctx.state<FutbolState>().estadisticas } : {}),
+    ...(ctx.state<FutbolState>().sancion ? { sancion: ctx.state<FutbolState>().sancion } : {}),
     ...(ctx.state<FutbolState>().experiencia ? { experiencia: ctx.state<FutbolState>().experiencia } : {}),
   };
 }
 
 /** Cómo está el personaje de cara al partido: si el entrenador lo convoca (titular o suplente), si no, o si está lesionado. */
-type Papel = 'titular' | 'suplente' | 'no_convocado' | 'lesionado' | 'sin_puesto';
+type Papel = 'titular' | 'suplente' | 'no_convocado' | 'lesionado' | 'sancionado' | 'sin_puesto';
 
 interface Previa {
   equipo: EquipoDelPersonaje;
@@ -467,7 +471,7 @@ function previaDelPartido(ctx: ReadContext, curso: number, semana: number, hasta
   const porId = new Map(plantilla.map((j) => [j.id, j]));
   // El entrenador convoca; de los convocados, algunos PNJ no se presentan (como el personaje, que decide él) y se alinea a los que quedan.
   const { c, ausentes } = convocarYAlinearConAusencias(paraConvocarElEquipo(plantilla, { ...(dir.rotaElEquipo?.(DEPORTE, equipo.club, equipo.categoria) ? { rotar: { curso } } : {}), relacion: (j) => (j.id === YO ? relacion : undefined) }), (id) => seAusenta(porId.get(id)!, dia));
-  const vivo: Papel = !yo ? 'sin_puesto' : (yo.estado.baja ?? 0) > 0 ? 'lesionado' : c.titulares.some((x) => x.id === YO) ? 'titular' : c.suplentes.some((x) => x.id === YO) ? 'suplente' : 'no_convocado';
+  const vivo: Papel = !yo ? 'sin_puesto' : (yo.estado.baja ?? 0) > 0 ? 'lesionado' : (yo.sancion ?? 0) > 0 ? 'sancionado' : c.titulares.some((x) => x.id === YO) ? 'titular' : c.suplentes.some((x) => x.id === YO) ? 'suplente' : 'no_convocado';
   // El día de su partido, por la mañana, se anota si lo convoca el entrenador (`fotoDelDiaDePartido`): todo el día (y el cierre de la semana) cuenta con esa convocatoria, no con la de cada momento.
   const foto = ctx.state<FutbolState>().diaDePartido;
   const papel: Papel = !vivoSiempre && foto?.semana === semana && foto.papel ? foto.papel : vivo;
@@ -479,6 +483,7 @@ const MOTIVO_DE_NO_JUGAR: Record<Papel, string> = {
   suplente: '',
   no_convocado: 'Tu entrenador no te convoca esta semana',
   lesionado: 'Estás lesionado y no puedes jugar',
+  sancionado: 'Estás sancionado y no puedes jugar',
   sin_puesto: 'Todavía no tienes puesto en el equipo',
 };
 
@@ -1000,7 +1005,12 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
       const cerrada = anterior && anterior.curso !== p.curso ? cerrarTemporadaDeJugador(anterior) : undefined;
       return {
         ...s,
-        estadisticas: sumarPartido(anterior, p.curso, juega ? { minutos: yo.minutos, titular: yo.titular, goles: yo.goles, asistencias: yo.asistencias, nota: yo.nota } : { minutos: 0 }),
+        estadisticas: sumarPartido(anterior, p.curso, juega ? { minutos: yo.minutos, titular: yo.titular, goles: yo.goles, asistencias: yo.asistencias, nota: yo.nota, tiros: yo.tiros, alPuerta: yo.alPuerta, faltas: yo.faltas, amarillas: yo.amarillas, roja: yo.roja, pases: yo.pases, pasesOk: yo.pasesOk } : { minutos: 0 }),
+        // Las sanciones: una roja o la tanda de cinco amarillas de la temporada suman partidos de sanción (el que está sancionado y no juega cumple uno: más abajo).
+        ...(juega ? (() => {
+          const nueva = sancionTrasElPartido(anterior && anterior.curso === p.curso ? anterior.am ?? 0 : 0, { amarillas: yo.amarillas, roja: yo.roja });
+          return nueva > 0 ? { sancion: (s.sancion ?? 0) + nueva } : {};
+        })() : {}),
         ...(cerrada ? { historial: [...(s.historial ?? []), cerrada] } : {}),
         ...(juega ? { experiencia: { ...s.experiencia, [yo.puesto]: experienciaTrasElPartido(s.experiencia?.[yo.puesto] ?? 0, { minutos: yo.minutos, aprendizaje, factorDelLado: factorDeExperienciaDelPuesto(PUESTOS_DE_FUTBOL, yo.puesto, pierna), ritmo: PUESTOS_DE_FUTBOL.experiencia?.ritmo }) } } : {}),
       };
@@ -1017,6 +1027,8 @@ function registrarPartidoDelPersonaje(ctx: ActionContext, p: { r: ResultadoDePar
     if (Object.keys(vistos).length) ctx.updateState<FutbolState>((s) => ({ ...s, rivales: recordarRivales(s.rivales, vistos) }));
   }
   if (banquillo) ctx.addStat(GEN.motivacion, Math.round(MORAL_DEL_BANQUILLO * (0.5 + ambicion)));
+  // Sancionado: su equipo ha jugado sin él y cumple uno de los partidos de su sanción.
+  if (papel === 'sancionado' && !p.ausente) ctx.updateState<FutbolState>((s) => ({ ...s, sancion: (s.sancion ?? 0) > 1 ? (s.sancion ?? 0) - 1 : undefined }));
   ctx.updateState<FutbolState>((s) => ({
     ...s,
     partidos: [...(s.partidos ?? []), resumen].slice(-PARAMETROS_DEL_PERSONAJE.partidosGuardados),
@@ -1133,7 +1145,9 @@ function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: n
   const b = ladoDelPartido(dir, previa, o.visitante, o.categoria, o.intensidad, o.curso, o.sinMi, o.dia);
   // Quienes estaban convocados y no se presentaron: una falta (como para el personaje), sin jugar ni quedarse en el banquillo.
   const faltas: JugadorDelPartido[] = [...a.ausentes, ...b.ausentes].map((npcId) => ({ npcId, minutos: 0, valoracion: 0, falta: true }));
-  if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: (a.c.titulares.length < 11 ? [0, 3] : [3, 0]) as [number, number], jugadores: faltas, mio: a.mio || b.mio };
+  // Los sancionados de los dos equipos (no se convocan) cumplen uno de sus partidos de sanción: su equipo juega este partido sin ellos.
+  const sancionados: JugadorDelPartido[] = [...a.plantilla, ...b.plantilla].filter((j) => j.id !== YO && (j.sancion ?? 0) > 0).map((j) => ({ npcId: j.id, minutos: 0, valoracion: 0, cumpleSancion: true }));
+  if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: (a.c.titulares.length < 11 ? [0, 3] : [3, 0]) as [number, number], jugadores: [...faltas, ...sancionados], mio: a.mio || b.mio };
   const r = jugarPartido(a.equipo, b.equipo, { id: o.id, semilla, categoria: o.categoria, cambios: CAMBIOS_DE_LIGA });
   // Cuánto aprende jugando cada uno (inteligencia, atención y conocimiento del fútbol, frente a lo típico de su edad).
   const jugadoresPorId = new Map([...a.plantilla, ...b.plantilla].map((j) => [j.id, j]));
@@ -1153,7 +1167,7 @@ function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: n
         const d = p && o.dia ? elDiaDeUnJugador(p, o.dia) : undefined;
         return d ? { ...j, ...(d.tarde > DIA_DE_PARTIDO.tolerancia ? { tarde: d.tarde } : {}), ...(d.conocimiento > 0 ? { conocimiento: d.conocimiento } : {}) } : j;
       })
-      .concat(faltas),
+      .concat(faltas, sancionados),
     mio: a.mio || b.mio,
     lado: (a.mio ? 0 : 1) as 0 | 1,
     nombres: Object.fromEntries([...a.plantilla, ...b.plantilla].map((j) => [j.id, j.nombre])),

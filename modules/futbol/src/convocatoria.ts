@@ -31,14 +31,14 @@ const FORMACION = PUESTOS_DE_FUTBOL.equipos!.formacion!;
 const grupoDe = (puesto: string): string => GRUPOS.find((g) => g.puestos.includes(puesto))?.grupo ?? puesto;
 
 /** Un jugador al que el entrenador puede convocar: lo que vale en cada puesto y su estado. `prioridad` (por defecto 1) es lo que pesa la preferencia del entrenador por él (la asistencia y la relación, en el personaje). */
-export type JugadorParaConvocar = Pick<JugadorDeEquipoView, 'id' | 'puesto' | 'valores' | 'valor' | 'estado'> & { prioridad?: number };
+export type JugadorParaConvocar = Pick<JugadorDeEquipoView, 'id' | 'puesto' | 'valores' | 'valor' | 'estado' | 'sancion'> & { prioridad?: number };
 
 export interface Convocatoria {
   /** Los titulares, con el puesto en que juegan. */
   titulares: { id: string; puesto: string }[];
   /** Los suplentes convocados (en su puesto habitual). */
   suplentes: { id: string; puesto: string }[];
-  /** Los que no entran en la convocatoria (incluidos los lesionados). */
+  /** Los que no entran en la convocatoria (incluidos los lesionados y los sancionados). */
   noConvocados: string[];
 }
 
@@ -68,10 +68,10 @@ function repartirEnPuestos(jugadores: readonly JugadorParaConvocar[], slots: rea
 
 /**
  * Convoca y alinea: los titulares son, para cada puesto de la formación, los que más valen en él (el reparto de los 11 por grupos se hace por orden de lo que valen en el grupo, sin repetir a nadie), y los suplentes, los
- * mejores de los que quedan (siempre un portero de reserva si lo hay). Con 16 o menos disponibles, se convoca a todos. Los que están de baja no se convocan.
+ * mejores de los que quedan (siempre un portero de reserva si lo hay). Con 16 o menos disponibles, se convoca a todos. Los que están de baja o sancionados no se convocan.
  */
 export function convocarYAlinear(jugadores: readonly JugadorParaConvocar[], convocados: number = PARAMETROS_DE_CONVOCATORIA.convocados): Convocatoria {
-  const disponibles = jugadores.filter((j) => !j.estado.baja);
+  const disponibles = jugadores.filter((j) => !j.estado.baja && !((j.sancion ?? 0) > 0));
   const libres = new Set(disponibles.map((j) => j.id));
   const cupos: Record<string, number> = Object.fromEntries(Object.entries(FORMACION).map(([g, p]) => [g, p.length]));
   const porGrupo: Record<string, JugadorParaConvocar[]> = Object.fromEntries(Object.keys(cupos).map((g) => [g, []]));
@@ -141,7 +141,7 @@ export function paraConvocarElEquipo(plantilla: readonly JugadorDeEquipoView[], 
 }
 
 /** El jugador de una plantilla (`plantillaDelEquipo`) como lo mira el entrenador: con su preferencia por la asistencia de las dos últimas semanas y su relación con el entrenador (0 a 100: la del personaje, o la de un PNJ que ha llegado tarde a una convocatoria; sin ella, neutra). */
-export const paraConvocar = (j: JugadorDeEquipoView, relacion: number | undefined = j.relacionConElEntrenador): JugadorParaConvocar => ({ id: j.id, puesto: j.puesto, valores: j.valores, valor: j.valor, estado: j.estado, prioridad: prioridadDelEntrenador({ asistencia: j.asistencia, relacion, disciplinaDelEntrenador: j.disciplinaDelEntrenador }) });
+export const paraConvocar = (j: JugadorDeEquipoView, relacion: number | undefined = j.relacionConElEntrenador): JugadorParaConvocar => ({ id: j.id, puesto: j.puesto, valores: j.valores, valor: j.valor, estado: j.estado, ...(j.sancion ? { sancion: j.sancion } : {}), prioridad: prioridadDelEntrenador({ asistencia: j.asistencia, relacion, disciplinaDelEntrenador: j.disciplinaDelEntrenador }) });
 
 /** El equipo listo para el motor: cada convocado con el puesto de su alineación, su condición física como energía al empezar y su forma y salud en su rendimiento (`factorDeCompeticion(eficienciaDeEstado(estado, false))`, como en el atletismo). */
 export function equipoDePartido(id: string, nombre: string, plantilla: readonly JugadorDeEquipoView[], c: Convocatoria, intensidad: Intensidad = 'normal'): EquipoDePartido {
@@ -166,7 +166,7 @@ export function jugadoresDelPartido(r: ResultadoDePartido, lado: 0 | 1, aprendiz
     if (!s) return [];
     if (s.minutos <= 0) return [{ npcId, minutos: 0, valoracion: 0, titular: false, puesto: s.puesto }];
     const a = aprendizaje?.(npcId);
-    return [{ npcId, minutos: s.minutos, valoracion: Math.max(-1, Math.min(1, 0.5 * resultado + 0.5 * ((s.nota - 6) / 2))), titular: s.titular, puesto: s.puesto, goles: s.goles, asistencias: s.asistencias, nota: s.nota, ...(a !== undefined ? { aprendizaje: a } : {}) }];
+    return [{ npcId, minutos: s.minutos, valoracion: Math.max(-1, Math.min(1, 0.5 * resultado + 0.5 * ((s.nota - 6) / 2))), titular: s.titular, puesto: s.puesto, goles: s.goles, asistencias: s.asistencias, nota: s.nota, tiros: s.tiros, alPuerta: s.alPuerta, faltas: s.faltas, amarillas: s.amarillas, roja: s.roja, pases: s.pases, pasesOk: s.pasesOk, ...(a !== undefined ? { aprendizaje: a } : {}) }];
   });
 }
 

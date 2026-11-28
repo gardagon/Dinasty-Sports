@@ -288,6 +288,8 @@ export interface JugadorDeEquipoView {
   estadisticas?: EstadisticasDeTemporada;
   /** Su experiencia en cada puesto en que ha jugado (de 0 a 100). */
   experiencia?: Readonly<Record<string, number>>;
+  /** Partidos de sanción que le quedan (una roja o la acumulación de amarillas): con ellos, el entrenador no lo convoca. */
+  sancion?: number;
 }
 
 // ---------- Estudios ----------

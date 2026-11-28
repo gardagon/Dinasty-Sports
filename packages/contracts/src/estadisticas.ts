@@ -17,22 +17,50 @@ export interface EstadisticasDeTemporada {
   g: number;
   a: number;
   nota: number;
+  /** Lo que añade el motor de posesiones y ocasiones (solo se guarda si no es 0): tiros, tiros a puerta, faltas cometidas, amarillas, rojas, pases y pases completados. */
+  t?: number;
+  ap?: number;
+  f?: number;
+  am?: number;
+  ro?: number;
+  pa?: number;
+  pk?: number;
 }
 
-/** Una temporada ya cerrada en el historial, compacta: [curso, partidos, titularidades, minutos, goles, asistencias, nota media × 10]. */
-export type TemporadaCerrada = [number, number, number, number, number, number, number];
+/** Una temporada ya cerrada en el historial, compacta: [curso, partidos, titularidades, minutos, goles, asistencias, nota media × 10] y, si las tuvo, [tiros, a puerta, faltas, amarillas, rojas, pases, pases completados]. */
+export type TemporadaCerrada = [number, number, number, number, number, number, number, number?, number?, number?, number?, number?, number?, number?];
+
+/**
+ * Las sanciones (decisión 6 de `MOTOR_PARTIDOS.md`, dato del deporte): la roja suspende el partido siguiente; la acumulación de amarillas, uno cada 5 de la temporada. Las mismas reglas para el personaje y los PNJ.
+ * Quien cumple (su equipo juega sin él) resta uno.
+ */
+export const SANCIONES = { partidosPorRoja: 1, amarillasPorPartido: 5 } as const;
+
+/** Los partidos de sanción que deja un partido: la roja y las amarillas que completan otra tanda de cinco en la temporada (`amarillasAntes`: las que llevaba antes de este partido). */
+export function sancionTrasElPartido(amarillasAntes: number, p: { amarillas?: number; roja?: boolean }): number {
+  const ahora = amarillasAntes + (p.amarillas ?? 0);
+  return (p.roja ? SANCIONES.partidosPorRoja : 0) + Math.floor(ahora / SANCIONES.amarillasPorPartido) - Math.floor(amarillasAntes / SANCIONES.amarillasPorPartido);
+}
 
 export const estadisticasVacias = (curso: number): EstadisticasDeTemporada => ({ curso, pj: 0, ti: 0, min: 0, g: 0, a: 0, nota: 0 });
 
 /** Un partido de un jugador sumado a las estadísticas de su temporada (las de otra temporada empiezan de nuevo). */
-export function sumarPartido(e: EstadisticasDeTemporada | undefined, curso: number, p: { minutos: number; titular?: boolean; goles?: number; asistencias?: number; nota?: number }): EstadisticasDeTemporada {
+export function sumarPartido(e: EstadisticasDeTemporada | undefined, curso: number, p: { minutos: number; titular?: boolean; goles?: number; asistencias?: number; nota?: number; tiros?: number; alPuerta?: number; faltas?: number; amarillas?: number; roja?: boolean; pases?: number; pasesOk?: number }): EstadisticasDeTemporada {
   const base = e && e.curso === curso ? e : estadisticasVacias(curso);
   if (p.minutos <= 0) return base;
-  return { curso, pj: base.pj + 1, ti: base.ti + (p.titular ? 1 : 0), min: base.min + p.minutos, g: base.g + (p.goles ?? 0), a: base.a + (p.asistencias ?? 0), nota: Math.round((base.nota + (p.nota ?? 0)) * 10) / 10 };
+  const suma = (antes: number | undefined, mas: number | undefined): number | undefined => ((antes ?? 0) + (mas ?? 0) > 0 ? (antes ?? 0) + (mas ?? 0) : undefined);
+  const nuevas = { t: suma(base.t, p.tiros), ap: suma(base.ap, p.alPuerta), f: suma(base.f, p.faltas), am: suma(base.am, p.amarillas), ro: suma(base.ro, p.roja ? 1 : 0), pa: suma(base.pa, p.pases), pk: suma(base.pk, p.pasesOk) };
+  return {
+    curso, pj: base.pj + 1, ti: base.ti + (p.titular ? 1 : 0), min: base.min + p.minutos, g: base.g + (p.goles ?? 0), a: base.a + (p.asistencias ?? 0), nota: Math.round((base.nota + (p.nota ?? 0)) * 10) / 10,
+    ...Object.fromEntries(Object.entries(nuevas).filter(([, v]) => v !== undefined)),
+  };
 }
 
 /** La temporada en su forma compacta para el historial. */
-export const cerrarTemporadaDeJugador = (e: EstadisticasDeTemporada): TemporadaCerrada => [e.curso, e.pj, e.ti, e.min, e.g, e.a, e.pj ? Math.round((e.nota / e.pj) * 10) : 0];
+export const cerrarTemporadaDeJugador = (e: EstadisticasDeTemporada): TemporadaCerrada => {
+  const nota = e.pj ? Math.round((e.nota / e.pj) * 10) : 0;
+  return e.t || e.ap || e.f || e.am || e.ro || e.pa || e.pk ? [e.curso, e.pj, e.ti, e.min, e.g, e.a, nota, e.t ?? 0, e.ap ?? 0, e.f ?? 0, e.am ?? 0, e.ro ?? 0, e.pa ?? 0, e.pk ?? 0] : [e.curso, e.pj, e.ti, e.min, e.g, e.a, nota];
+};
 
 /** La nota media de una temporada (0 si no ha jugado). */
 export const notaMedia = (e: Pick<EstadisticasDeTemporada, 'pj' | 'nota'>): number => (e.pj ? e.nota / e.pj : 0);

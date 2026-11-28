@@ -111,9 +111,9 @@ const SALEN_EN_LA_CRONICA: ReadonlySet<string> = new Set(['gol', 'ocasion', 'bal
 /** Un tiro fuera o bloqueado sale en el relato solo si fue una ocasión clara (probabilidad de gol de al menos esto). */
 export const XG_DE_OCASION_CLARA = 0.15;
 
+/** Los sucesos que cuenta el relato, con su minuto (la crónica los escribe en orden). */
+export const sucesosDeCronica = (registro: readonly SucesoDePartido[]): SucesoDePartido[] =>
+  registro.filter((s) => SALEN_EN_LA_CRONICA.has(s.tipo) || ((s.tipo === 'tiro_fuera' || s.tipo === 'tiro_bloqueado') && (s.xg ?? 0) >= XG_DE_OCASION_CLARA));
+
 /** La crónica como vista del registro: lo que cuenta el relato, sin el minuto. */
-export function vistaDeCronica(registro: readonly SucesoDePartido[]): MomentoDeCronica[] {
-  return registro
-    .filter((s) => SALEN_EN_LA_CRONICA.has(s.tipo) || ((s.tipo === 'tiro_fuera' || s.tipo === 'tiro_bloqueado') && (s.xg ?? 0) >= XG_DE_OCASION_CLARA))
-    .map(({ minuto: _minuto, ...momento }) => momento);
-}
+export const vistaDeCronica = (registro: readonly SucesoDePartido[]): MomentoDeCronica[] => sucesosDeCronica(registro).map(({ minuto: _minuto, ...momento }) => momento);

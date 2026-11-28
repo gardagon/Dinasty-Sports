@@ -5,7 +5,7 @@
 import { calendarioDobleVuelta } from '@ds/kit-deporte';
 import { tablasDeLaDivision, type LigaDeCategoria } from './liga';
 import { PARAMETROS_DE_PARTIDO, type Intensidad, type MomentoDeCronica, type ResultadoDePartido } from './partido';
-import { vistaDeCronica } from './registro';
+import { sucesosDeCronica } from './registro';
 
 /** El id del personaje dentro de un partido. */
 export const YO = 'personaje';
@@ -94,13 +94,15 @@ export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): 
   const nomIni = (id: string): string => (id === YO ? 'Tú' : nom(id).replace(/^./, (c) => c.toUpperCase()));
   /** Quien se conoce, con su equipo entre paréntesis; quien se nombra por su dorsal ya lo lleva dicho («el 7 del Rayo», «vuestro 4»). */
   const conEquipo = (id: string, equipo: string): string => (o.nombres[id] ? `${nomIni(id)} (${equipo})` : nomIni(id));
+  /** Concordancia con el género de quien se nombra (por defecto, masculino). */
+  const gen = (id: string): string => (o.generos?.[id] === 'f' ? 'a' : 'o');
   const linea = (m: MomentoDeCronica): LineaDeCronica => {
     const equipo = o.equipos[m.equipo];
     const rival = o.equipos[1 - m.equipo];
     const mio = m.jugador === YO || m.otro === YO || m.portero === YO;
     switch (m.tipo) {
       case 'gol': {
-        const abre = m.gol ? `¡Gol de ${equipo} de balón parado!` : `¡Gol de ${equipo}!`;
+        const abre = m.penalti ? `¡Gol de ${equipo} de penalti!` : m.gol ? `¡Gol de ${equipo} de balón parado!` : `¡Gol de ${equipo}!`;
         if (m.jugador === YO) return { destacada: true, texto: `${abre} Marcas tú${m.otro ? `, con pase de ${nom(m.otro)}` : ''}. ¡Es tuyo!` };
         if (m.otro === YO) return { destacada: true, texto: `${abre} ${nomIni(m.jugador)} marca con un pase tuyo: asistencia.` };
         if (m.portero === YO) return { destacada: true, texto: `${abre} ${nomIni(m.jugador)} marca y no puedes evitarlo.` };
@@ -114,6 +116,26 @@ export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): 
         if (m.jugador === YO) return { destacada: true, texto: `Lanzas a balón parado y ${nom(m.portero)} lo despeja.` };
         if (m.portero === YO) return { destacada: true, texto: `${nomIni(m.jugador)} lanza a balón parado para ${equipo} y lo despejas tú.` };
         return { texto: `${nomIni(m.jugador)} lanza a balón parado para ${equipo} y ${nom(m.portero)} lo despeja.` };
+      case 'tiro_fuera':
+      case 'tiro_bloqueado': {
+        const fuera = m.tipo === 'tiro_fuera';
+        if (m.jugador === YO) return { destacada: true, texto: fuera ? 'Tienes una ocasión clara y tiras fuera.' : 'Tienes una ocasión clara, pero la defensa te bloquea el tiro.' };
+        return { texto: fuera ? `${conEquipo(m.jugador, equipo)} tiene una ocasión clara y tira fuera.` : `${conEquipo(m.jugador, equipo)} tiene una ocasión clara, pero la defensa le bloquea el tiro.` };
+      }
+      case 'penalti':
+        if (m.jugador === YO) return { destacada: true, texto: `Lanzas el penalti y ${nom(m.portero)} te lo para.` };
+        if (m.portero === YO) return { destacada: true, texto: `${nomIni(m.jugador)} lanza un penalti para ${equipo} y lo paras tú.` };
+        return { texto: `${nomIni(m.jugador)} lanza un penalti para ${equipo} y ${nom(m.portero)} lo para.` };
+      case 'amarilla':
+        if (m.jugador === YO) return { destacada: true, texto: `Te enseñan la tarjeta amarilla${m.otro ? ` por una falta sobre ${nom(m.otro)}` : ''}.` };
+        if (m.otro === YO) return { destacada: true, texto: `${nomIni(m.jugador)} ve la amarilla por una falta sobre ti.` };
+        return { texto: `${conEquipo(m.jugador, equipo)} ve la tarjeta amarilla${m.otro ? ` por una falta sobre ${nom(m.otro)}` : ''}.` };
+      case 'roja':
+        if (m.jugador === YO) return { destacada: true, texto: m.dobleAmarilla ? 'Te expulsan por doble amarilla: te quedas sin jugar el resto del partido y el siguiente.' : 'Te enseñan la roja directa: te expulsan y te pierdes el siguiente partido.' };
+        return { destacada: m.otro === YO, texto: m.dobleAmarilla ? `${conEquipo(m.jugador, equipo)} es expulsad${gen(m.jugador)} por doble amarilla: ${equipo} se queda con diez.` : `${conEquipo(m.jugador, equipo)} ve la roja directa y es expulsad${gen(m.jugador)}: ${equipo} se queda con diez.` };
+      case 'lesion':
+        if (m.jugador === YO) return { destacada: true, texto: 'Notas un pinchazo, te lesionas y tienes que dejar el campo.' };
+        return { texto: `${conEquipo(m.jugador, equipo)} se lesiona y tiene que dejar el campo.` };
       case 'cambio':
         if (m.jugador === YO) return { destacada: true, texto: `Entras al campo por ${nom(m.otro)}.` };
         if (m.otro === YO) return { destacada: true, texto: `Sales del campo: entra ${nom(m.jugador)}.` };
@@ -125,14 +147,17 @@ export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): 
     }
   };
   // La crónica es una vista del registro del partido (`registro.ts`).
-  const momentosDelPartido = vistaDeCronica(r.registro);
+  const momentosDelPartido = sucesosDeCronica(r.registro);
   const lineas: LineaDeCronica[] = [];
   let a = 0;
   let b = 0;
   for (let t = 0; t < r.porTramo.length; t++) {
     lineas.push({ titulo: true, texto: `Minutos ${t * MINUTOS}–${(t + 1) * MINUTOS}` });
     const momentos = momentosDelPartido.filter((m) => m.tramo === t);
-    for (const m of momentos) lineas.push(linea(m));
+    for (const m of momentos) {
+      const l = linea(m);
+      lineas.push({ ...l, texto: `${m.minuto + 1}' ${l.texto}` });
+    }
     if (!momentos.some((m) => m.tipo !== 'cambio')) lineas.push({ texto: 'Tramo sin ocasiones claras.' });
     a += r.porTramo[t].goles[0];
     b += r.porTramo[t].goles[1];
@@ -140,6 +165,16 @@ export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): 
     lineas.push({ texto: `${o.equipos[0]} ${a}–${b} ${o.equipos[1]} · posesión ${p} %–${100 - p} %` });
   }
   lineas.push({ titulo: true, texto: `Final: ${o.equipos[0]} ${r.goles[0]}–${r.goles[1]} ${o.equipos[1]}` });
+  // Los números del partido (el motor de posesiones y ocasiones los tiene; un resultado sin ellos, no los cuenta).
+  if (r.tiros && r.alPuerta && r.faltas && r.corners && r.amarillas) {
+    const par = (x: readonly number[]): string => `${x[0]}–${x[1]}`;
+    lineas.push({ texto: `Tiros ${par(r.tiros)} (a puerta ${par(r.alPuerta)}) · córners ${par(r.corners)} · faltas ${par(r.faltas)} · amarillas ${par(r.amarillas)}${r.rojas && r.rojas[0] + r.rojas[1] ? ` · rojas ${par(r.rojas)}` : ''}` });
+  }
+  const yo = r.jugadores[YO];
+  if (yo && yo.minutos > 0 && yo.pases !== undefined) {
+    const partes = [`${yo.pases} pases${yo.pases ? ` (${Math.round((100 * yo.pasesOk) / yo.pases)} % bien)` : ''}`, ...(yo.tiros ? [`${yo.tiros} tiro${yo.tiros === 1 ? '' : 's'} (${yo.alPuerta} a puerta)`] : []), ...(yo.paradas ? [`${yo.paradas} parada${yo.paradas === 1 ? '' : 's'}`] : []), ...(yo.faltas ? [`${yo.faltas} falta${yo.faltas === 1 ? '' : 's'} cometida${yo.faltas === 1 ? '' : 's'}`] : []), ...(yo.faltasRecibidas ? [`${yo.faltasRecibidas} recibida${yo.faltasRecibidas === 1 ? '' : 's'}`] : [])];
+    lineas.push({ destacada: true, texto: `Tus números: ${partes.join(' · ')}.` });
+  }
   return lineas;
 }
 

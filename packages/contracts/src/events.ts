@@ -155,6 +155,16 @@ export interface JugadorDelPartido {
   asistencias?: number;
   nota?: number;
   aprendizaje?: number;
+  /** Lo que añade el motor de posesiones y ocasiones: tiros, tiros a puerta, faltas cometidas, amarillas, si lo expulsaron y pases (intentados y completados). */
+  tiros?: number;
+  alPuerta?: number;
+  faltas?: number;
+  amarillas?: number;
+  roja?: boolean;
+  pases?: number;
+  pasesOk?: number;
+  /** Estaba sancionado (no se convoca) y su equipo jugó este partido: cumple uno de los partidos de su sanción (0 minutos, sin moral ni forma). */
+  cumpleSancion?: boolean;
   /** El día de partido (`MOTOR_PARTIDOS.md` §15): cuánto conocimiento del deporte ganó viendo el partido anterior de su campo mientras esperaba, y, solo si fue impuntual (más de 10 minutos tarde), cuántos llegó tarde a la convocatoria: su entrenador pierde relación con él. Las mismas reglas que el personaje. */
   conocimiento?: number;
   tarde?: number;
