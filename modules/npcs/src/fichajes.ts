@@ -64,6 +64,8 @@ export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, 
   if (!n.genetica || n.nacimiento === undefined) return { entra: false };
   const edad = edadNpc(n, m.dia);
   if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
+  // Chicos y chicas (`PoblacionGuardada.sexos`): desde la edad en que los equipos se separan, los chicos solo van a los clubes de chicos (también a los de un colegio) y las chicas, a los equipos femeninos (solo de clubes externos).
+  if (pob.sexos && edad >= pob.sexos.desdeEdad && ((e.femenino === true) !== (n.gender === 'f') || (e.colegio !== undefined && n.gender === 'f'))) return { entra: false };
   if (e.colegio !== undefined && SESGO_DE_SEXO.sinColegios && SESGO_DE_SEXO.desdeEdad !== undefined && edad >= SESGO_DE_SEXO.desdeEdad && SESGO_DE_SEXO.deportes?.includes(pob.deporte)) return { entra: false };
   const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas, plazasDeMas);
   if (!plantel) return { entra: false };

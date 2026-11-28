@@ -35,7 +35,7 @@ const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletism
 advanceToWeek(g, 'gen.descansar', 0, 2, 9);
 advanceToWeek(g, 'gen.descansar', 48, 2, 15);
 
-type Foto = Record<string, { equipos: number; bajo: number; jugadores: number; fuera: number[]; porTipo: Record<string, number>; min: number; max: number }>;
+type Foto = Record<string, { equipos: number; bajo: number; jugadores: number; fuera: number[]; porTipo: Record<string, number>; min: number; max: number; chicas: number; femEquipos: number; femJugadoras: number }>;
 const foto = (dia: number): Foto => {
   const s = g.moduleState<NpcsState>('npcs') as NpcsState;
   const pob = s.poblaciones!.find((p) => p.deporte === 'futbol')!;
@@ -47,14 +47,14 @@ const foto = (dia: number): Foto => {
   for (const n of s.npcs as Npc[]) {
     const c = catDe(edadDeJuego(n, dia) ?? -1);
     if (!c || !n.genetica) continue;
-    const o = (out[c.id] ??= { equipos: 0, bajo: 0, jugadores: 0, fuera: [0, 0, 0], porTipo: {}, min: 999, max: 0 });
-    if (n.deporte === 'futbol' && n.equipo && n.letra?.futbol) { o.jugadores++; equipos.set(`${c.id}|${n.equipo}|${n.letra.futbol}`, (equipos.get(`${c.id}|${n.equipo}|${n.letra.futbol}`) ?? 0) + 1); }
+    const o = (out[c.id] ??= { equipos: 0, bajo: 0, jugadores: 0, fuera: [0, 0, 0], porTipo: {}, min: 999, max: 0, chicas: 0, femEquipos: 0, femJugadoras: 0 });
+    if (n.deporte === 'futbol' && n.equipo && n.letra?.futbol) { o.jugadores++; if (n.gender === 'f') o.chicas++; if (n.equipo.endsWith('_f')) o.femJugadoras++; equipos.set(`${c.id}|${n.equipo}|${n.letra.futbol}`, (equipos.get(`${c.id}|${n.equipo}|${n.letra.futbol}`) ?? 0) + 1); }
     else if (n.deporte === undefined && !n.dejado?.includes('futbol') && interesDe(n, 'futbol', edadDeJuego(n, dia)) > 0) o.fuera[Math.min(2, c.anio - 1)]++;
   }
   for (const [k, v] of equipos) {
     const [cat, club] = k.split('|');
     const o = out[cat];
-    o.equipos++; if (v < 14) o.bajo++; o.min = Math.min(o.min, v); o.max = Math.max(o.max, v);
+    o.equipos++; if (club.endsWith('_f')) o.femEquipos++; if (v < 14) o.bajo++; o.min = Math.min(o.min, v); o.max = Math.max(o.max, v);
     o.porTipo[tipoDe(club)] = (o.porTipo[tipoDe(club)] ?? 0) + 1;
   }
   return out;

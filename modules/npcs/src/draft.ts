@@ -72,7 +72,7 @@ export function draftDeEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba: b
     const ordenadas = [...categorias].sort((a, b) => a[1].edadMin - b[1].edadMin);
     for (const [indice, [catId, cat]] of ordenadas.entries()) {
       avisarDelProgreso(`Repartiendo a los jugadores entre los clubes y sus equipos (${cat.nombre.toLowerCase()})…`, 0.05 + 0.32 * (indice / ordenadas.length));
-      draftDeUnaCategoria(m, pob, cat, catId, rng, o);
+      for (const sexo of sexosDeLaCategoria(pob, cat)) draftDeUnaCategoria(m, pob, cat, catId, rng, o, false, sexo);
       cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i));
     }
     pobsNuevas.push(pob);
@@ -117,6 +117,23 @@ function trazaPorCategorias(m: MercadoDeFichajes, fase: string): void {
   }
 }
 
+
+/** Cómo se reparte una categoría: con chicos y chicas (`PoblacionGuardada.sexos`), desde la edad en que los equipos se separan, dos veces (los chicos en los clubes de chicos y las chicas en los equipos femeninos); antes, mixta (una sola vez). */
+export const sexosDeLaCategoria = (pob: PoblacionGuardada, cat: { edadMin: number }): ('m' | 'f' | undefined)[] => (pob.sexos && cat.edadMin >= pob.sexos.desdeEdad ? ['m', 'f'] : [undefined]);
+
+/**
+ * Chicos y chicas, el interés (`reclutamiento.sexos.chicas`): solo una parte de las chicas conserva su interés por el deporte (un sorteo estable suyo, el mismo siempre); las demás quedan anotadas como «sin interés» (`dejado`) y no se reclutan.
+ * Se aplica a todas las chicas sin deporte de las partidas con `sexos`, al crear y cada verano (las que llegan después también); en las demás no hace nada.
+ */
+export function conInteresDeChicas(npcs: Npc[], pobs: readonly PoblacionGuardada[]): Npc[] {
+  let out = npcs;
+  for (const pob of pobs) {
+    const chicas = pob.reclutamiento.sexos?.chicas;
+    if (!pob.sexos || chicas === undefined) continue;
+    out = out.map((n) => (n.gender === 'f' && n.genetica && n.deporte === undefined && !n.dejado?.includes(pob.deporte) && rngEstable('sesgo-sexo', n.id, pob.deporte).next() >= chicas ? { ...n, dejado: [...(n.dejado ?? []), pob.deporte] } : n));
+  }
+  return out;
+}
 
 /** Los jugadores de un grupo de titulares como los mira el reparto: su id, su puesto habitual, lo que valen en cada puesto y lo que valen en el suyo. */
 export type JugadorParaTitulares = { id: string; puesto: string; valores: Record<string, number>; valor: number; estado: never };
@@ -167,10 +184,12 @@ export function entrenadoresDeLosEquipos(m: MercadoDeFichajes, pob: PoblacionGua
 }
 
 
-export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: CategoriaDef, catId: string, rng: Rng, o: { conPrueba: boolean; conAmbicion: boolean }, verano: boolean | 'usuario' = false): void {
+export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada, cat: CategoriaDef, catId: string, rng: Rng, o: { conPrueba: boolean; conAmbicion: boolean }, verano: boolean | 'usuario' = false, sexo?: 'm' | 'f'): void {
   const titularesPool = (pool: JugadorParaTitulares[]): string[] => (DIAGNOSTICO.variantePaso23?.titulares ?? DIAGNOSTICO.variantJuvenil?.titulares ?? ((q: JugadorParaTitulares[]) => titularesDelPool(q, pob)))(pool);
-  const clubes = pob.equipos.filter((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((c) => c.id === catId));
+  // Con chicos y chicas (`PoblacionGuardada.sexos`), desde la edad en que los equipos se separan se hace el reparto dos veces, una con los clubes de chicos y los chicos y otra con los equipos femeninos y las chicas (`sexo`).
+  const clubes = pob.equipos.filter((e) => e.plantillaPorCategoria && categoriasDelEquipo(pob, e).some((c) => c.id === catId) && (sexo === undefined || (e.femenino === true) === (sexo === 'f')));
   if (!clubes.length) return;
+  const delSexo = (n: Npc): boolean => sexo === undefined || (n.gender === 'f') === (sexo === 'f');
   const edades = Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i);
   const primeroAnio = (n: Npc): boolean => (edadDeJuego(n, m.dia) ?? -1) === cat.edadMin;
   const kDe = (e: EquipoGuardado): number => e.equiposPorCategoria?.[catId] ?? 1;
@@ -180,7 +199,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
   };
   const miembros = (e: EquipoGuardado): Npc[] => (m.lista instanceof ListaDeTrabajo ? m.lista.deEquipo(pob.deporte, e.club) : [...m.lista.values()].filter((n) => n.deporte === pob.deporte && n.equipo === e.club)).filter((n) => edades.includes(edadDeJuego(n, m.dia) ?? -1));
   /** La bolsa: los interesados sin equipo de la categoría (con el conocimiento de que ya probaron y se quedaron apartados no se les excluye aquí: los plazos los gestionan). */
-  const bolsa = (): Aspirante[] => edades.flatMap((edad) => aspirantesDeEdad([...m.lista.values()], pob, edad, m.dia, m.val)).filter((a) => a.interes > 0);
+  const bolsa = (): Aspirante[] => edades.flatMap((edad) => aspirantesDeEdad([...m.lista.values()], pob, edad, m.dia, m.val)).filter((a) => a.interes > 0 && delSexo(a.npc));
   const liberar = (ids: readonly string[]): void => {
     for (const id of ids) {
       const n = m.lista.get(id);
@@ -682,7 +701,7 @@ export function draftDeUnaCategoria(m: MercadoDeFichajes, pob: PoblacionGuardada
       const club0 = new Map<string, string>();
       for (const e of clubes) for (const n of presentes(e)) club0.set(n.id, e.club);
       // 0. La lista de abandonos de la categoría (último recurso de los colegios).
-      const lista = [...(DIAGNOSTICO.abandonosDelVerano ?? [])].map((id) => m.lista.get(id)).filter((n): n is Npc => !!n && n.deporte === undefined && !!n.genetica && edades.includes(edadDe(n)));
+      const lista = [...(DIAGNOSTICO.abandonosDelVerano ?? [])].map((id) => m.lista.get(id)).filter((n): n is Npc => !!n && n.deporte === undefined && !!n.genetica && edades.includes(edadDe(n)) && delSexo(n));
       st.abandonos = lista.length;
       // Juvenil (v5): quien iba a abandonar pero deja a su equipo sin los 14 no abandona: se queda (los mejores primero).
       const recup = new Set<string>();
@@ -1404,7 +1423,7 @@ export function completarEquipos(m: MercadoDeFichajes, rng: Rng, o: { conPrueba:
     for (const e of pob.equipos) for (const c of e.plantillaPorCategoria ? categoriasDelEquipo(pob, e) : []) categorias.set(c.id, (pob.categorias ?? []).find((x) => x.id === c.id)!);
     // De la categoría mayor a la menor: así, para salvar un equipo, el club puede subir de la categoría de abajo a quien sería titular arriba (que a su vez se completa después).
     for (const [catId, cat] of [...categorias].sort((a, b) => b[1].edadMin - a[1].edadMin)) {
-      if ((DIAGNOSTICO.veranoNuevo || DIAGNOSTICO.veranoUsuario) && DIAGNOSTICO.variantePaso23?.maxPorEquipo[catId] !== undefined) { draftDeUnaCategoria(m, pob, cat, catId, rng, { conPrueba: o.conPrueba, conAmbicion: true }, DIAGNOSTICO.veranoUsuario ? 'usuario' : true); cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i)); continue; }
+      if ((DIAGNOSTICO.veranoNuevo || DIAGNOSTICO.veranoUsuario) && DIAGNOSTICO.variantePaso23?.maxPorEquipo[catId] !== undefined) { for (const sexo of sexosDeLaCategoria(pob, cat)) draftDeUnaCategoria(m, pob, cat, catId, rng, { conPrueba: o.conPrueba, conAmbicion: true }, DIAGNOSTICO.veranoUsuario ? 'usuario' : true, sexo); cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i)); continue; }
       cerrados.push(...completarUnaCategoria(m, pob, cat, catId, o));
       cubrirGruposVacios(m, pob, catId, Array.from({ length: cat.edadMax - cat.edadMin + 1 }, (_, i) => cat.edadMin + i));
     }
@@ -1791,6 +1810,8 @@ export function renovarDeportistas(npcs: Npc[], pobs: readonly PoblacionGuardada
       // Quien acaba el colegio ya no puede seguir en el equipo del colegio (los de 18 y 19 años siguen en el mundo, sin colegio): queda libre para que lo fiche un club.
       const suEquipo = n.equipo !== undefined ? pob.equipos.find((e) => e.club === n.equipo) : undefined;
       if (suEquipo?.colegio !== undefined && colegioDeNino(n) !== suEquipo.colegio) return [sinDeporte(n, pob, false)];
+      // Chicos y chicas (`PoblacionGuardada.sexos`): al cumplir la edad en que los equipos se separan, quien está en un club del otro sexo (o la chica en un colegio) queda libre y lo recoge el reparto de su sexo.
+      if (pob.sexos && edad >= pob.sexos.desdeEdad && suEquipo && ((suEquipo.femenino === true) !== (n.gender === 'f') || (suEquipo.colegio !== undefined && n.gender === 'f'))) return [sinDeporte(n, pob, false)];
       // Solo medida (chicos y chicas por separado desde `desdeEdad`): quien cambia de sexo-sistema sale de este mundo, y las chicas de un colegio no siguen en él (el equipo femenino es de clubes externos).
       if (SESGO_DE_SEXO.deportes?.includes(pob.deporte) && SESGO_DE_SEXO.desdeEdad !== undefined && edad >= SESGO_DE_SEXO.desdeEdad) {
         if (SESGO_DE_SEXO.solo && n.gender !== SESGO_DE_SEXO.solo) return [sinDeporte(n, pob, false)];
