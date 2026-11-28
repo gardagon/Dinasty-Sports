@@ -122,6 +122,7 @@ export type { Impresion, Juicio, RivalVisto } from './mi-equipo';
 export { DIA_DE_PARTIDO, conocimientoPorVer, llegadaDelPNJ, partidoAnteriorEnElCampo } from './dia-de-partido';
 export { PUESTOS_DE_FUTBOL } from './puestos';
 export { avanzarPartido, crearPartido, resultadoDelPartido } from './partido';
+export { PARAMETROS_DEL_NIVEL_GRUESO, caracteristicas, esperadosDelNivelGrueso, fuerzasAlEmpezar, jugarPartidoGrueso } from './partido-grueso';
 export type { EstadoDePartido, EstadoDeJugadorEnPartido, LesionDelPartido, RiesgoDeLesionDelPartido } from './partido';
 export { azarDeLesionEnPartido, comprimirRegistro, conservarRegistros, descomprimirRegistro, flujosDelPartido, sucesosDeCronica, vistaDeCronica } from './registro';
 export type { MomentoDeCronica, RegistroCompacto, SucesoDePartido, TipoDeSuceso } from './registro';
@@ -1160,7 +1161,8 @@ function partidoDeLiga(dir: NpcDirectory, previa: Previa | undefined, semilla: n
   // Los sancionados de los dos equipos (no se convocan) cumplen uno de sus partidos de sanción: su equipo juega este partido sin ellos.
   const sancionados: JugadorDelPartido[] = [...a.plantilla, ...b.plantilla].filter((j) => j.id !== YO && (j.sancion ?? 0) > 0).map((j) => ({ npcId: j.id, minutos: 0, valoracion: 0, cumpleSancion: true }));
   if (a.c.titulares.length < 11 || b.c.titulares.length < 11) return { goles: (a.c.titulares.length < 11 ? [0, 3] : [3, 0]) as [number, number], jugadores: [...faltas, ...sancionados], mio: a.mio || b.mio };
-  const r = jugarPartido(a.equipo, b.equipo, { id: o.id, semilla, categoria: o.categoria, cambios: CAMBIOS_DE_LIGA });
+  // Nivel de detalle (`DECISIONES.md`, 24/11): el partido del personaje es de nivel 1 (su registro se guarda dos temporadas); los de su zona, de nivel 2. El nivel 3 (`jugarPartidoGrueso`) queda para las ligas lejanas, cuando las haya.
+  const r = jugarPartido(a.equipo, b.equipo, { id: o.id, semilla, categoria: o.categoria, cambios: CAMBIOS_DE_LIGA, nivel: a.mio || b.mio ? 1 : 2 });
   // Cuánto aprende jugando cada uno (inteligencia, atención y conocimiento del fútbol, frente a lo típico de su edad).
   const jugadoresPorId = new Map([...a.plantilla, ...b.plantilla].map((j) => [j.id, j]));
   const lectores = new Map([...a.plantilla, ...b.plantilla].map((j) => [j.id, j.lector]));

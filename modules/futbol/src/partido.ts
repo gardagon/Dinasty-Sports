@@ -325,7 +325,8 @@ function valoresBase(lector: LectorDePersona, potenciador: number): ValoresBase 
   return base;
 }
 
-const mejorQue = (a: number, b: number, potencia: number): number => {
+/** @internal */
+export const mejorQue = (a: number, b: number, potencia: number): number => {
   if (potencia === 1) {
     const u = Math.max(a, 1e-6);
     return u / (u + Math.max(b, 1e-6));
@@ -347,7 +348,8 @@ function sortear<T>(rng: Rng, xs: readonly T[], peso: (x: T) => number): T | und
 }
 
 const GRUPOS_POR_PUESTO = new Map<string, string>(PUESTOS_DE_FUTBOL.reparto.flatMap((g) => g.puestos.map((p) => [p, g.grupo] as const)));
-const GRUPO_DE_PUESTO = (puesto: string): string => GRUPOS_POR_PUESTO.get(puesto) ?? puesto;
+/** @internal */
+export const GRUPO_DE_PUESTO = (puesto: string): string => GRUPOS_POR_PUESTO.get(puesto) ?? puesto;
 
 // ---------------------------------------------------------------------------------------------------- el partido
 
@@ -422,21 +424,27 @@ export const crearPartido = (local: EquipoDePartido, visitante: EquipoDePartido,
 
 // ---------------------------------------------------------------------------------------------------- el partido en marcha
 
-type Linea = 'GK' | 'DEF' | 'MID' | 'ATT';
+/** @internal */
+export type Linea = 'GK' | 'DEF' | 'MID' | 'ATT';
 const LINEA = (puesto: string): Linea => {
   const g = GRUPO_DE_PUESTO(puesto);
   return g === 'portero' ? 'GK' : g === 'central' || g === 'lateral' ? 'DEF' : g === 'delantero' || g === 'banda' ? 'ATT' : 'MID';
 };
 
 /** Quién tira, por puesto (el delantero centro más que el central): lo que pesa en el sorteo del tirador, de cabeza y en un córner. */
-const PESO_DE_TIRADOR: Readonly<Record<string, number>> = { ST: 3, LST: 2.6, RST: 2.6, LW: 2, RW: 2, CAM: 2.2, LM: 1.7, RM: 1.7, CM: 1.8, LCR: 1.8, RCR: 1.8, CDM: 0.9, LB: 0.18, RB: 0.18, CB: 0.08, GK: 0 };
-const PESO_DE_REMATADOR_EN_CORNER: Readonly<Record<string, number>> = { ST: 2.4, LST: 2.2, RST: 2.2, LW: 1.2, RW: 1.2, CAM: 1.2, LM: 0.9, RM: 0.9, CM: 1.3, LCR: 1.3, RCR: 1.3, CDM: 1, LB: 0.25, RB: 0.25, CB: 0.6, GK: 0 };
+/** @internal Para el nivel grueso (`partido-grueso.ts`). */
+export const PESO_DE_TIRADOR: Readonly<Record<string, number>> = { ST: 3, LST: 2.6, RST: 2.6, LW: 2, RW: 2, CAM: 2.2, LM: 1.7, RM: 1.7, CM: 1.8, LCR: 1.8, RCR: 1.8, CDM: 0.9, LB: 0.18, RB: 0.18, CB: 0.08, GK: 0 };
+/** @internal */
+export const PESO_DE_REMATADOR_EN_CORNER: Readonly<Record<string, number>> = { ST: 2.4, LST: 2.2, RST: 2.2, LW: 1.2, RW: 1.2, CAM: 1.2, LM: 0.9, RM: 0.9, CM: 1.3, LCR: 1.3, RCR: 1.3, CDM: 1, LB: 0.25, RB: 0.25, CB: 0.6, GK: 0 };
 /** Quién crea (da el pase del gol y los pases en general) y quién comete faltas, por línea. */
-const PESO_DE_PASE: Readonly<Record<Linea, number>> = { GK: 0.4, DEF: 1, MID: 1.7, ATT: 0.9 };
-const PESO_DE_FALTA: Readonly<Record<Linea, number>> = { GK: 0.03, DEF: 1, MID: 1.1, ATT: 0.55 };
+/** @internal */
+export const PESO_DE_PASE: Readonly<Record<Linea, number>> = { GK: 0.4, DEF: 1, MID: 1.7, ATT: 0.9 };
+/** @internal */
+export const PESO_DE_FALTA: Readonly<Record<Linea, number>> = { GK: 0.03, DEF: 1, MID: 1.1, ATT: 0.55 };
 const PESO_DE_VICTIMA: Readonly<Record<Linea, number>> = { GK: 0, DEF: 0.5, MID: 1, ATT: 1.5 };
 
-interface Jug {
+/** @internal */
+export interface Jug {
   e: EstadoDeJugadorEnPartido;
   j: JugadorDePartido;
   /** El estado del día (forma y salud). */
@@ -453,7 +461,8 @@ interface Jug {
   /** Cuánto se cansa por minuto (su resistencia, la energía con que llegó y su intensidad no cambian durante el partido). */
   cpm: number;
 }
-interface Lado {
+/** @internal */
+export interface Lado {
   equipo: EquipoDePartido;
   intensidad: Intensidad;
   todos: Jug[];
@@ -464,7 +473,8 @@ interface Lado {
 
 const rindeAhora = (e: EstadoDeJugadorEnPartido, intensidad: Intensidad): number => rendimientoPorCansancio(e.cans, intensidad);
 
-function armar(estado: EstadoDePartido, equipos: readonly [EquipoDePartido, EquipoDePartido]): [Lado, Lado] {
+/** @internal Los dos lados de un partido listos para jugar (con lo que vale cada jugador). */
+export function armar(estado: EstadoDePartido, equipos: readonly [EquipoDePartido, EquipoDePartido]): [Lado, Lado] {
   const potenciador = POTENCIADOR_POR_CATEGORIA[estado.categoria] ?? 1;
   const lado = (i: 0 | 1): Lado => {
     const eq = equipos[i];
@@ -489,7 +499,7 @@ function faltasDelEquipo(l: Lado): number {
 }
 
 /** Lo que vale el equipo en cada zona este minuto: la media de lo que valen los que están en el campo en esa zona, ponderada por lo que su puesto aporta a ella y por lo cansados que están; con diez, ×10/11. Una sola pasada. */
-function fuerzasDe(lado: Lado, casa: number): Fuerzas {
+export function fuerzasDe(lado: Lado, casa: number): Fuerzas {
   let sp = 0, sd = 0, sc = 0, sa = 0, wp = 0, wd = 0, wc = 0, wa = 0;
   for (const x of lado.campo) {
     const p = PARTICIPACION_DEL_PUESTO[x.e.puesto];
@@ -504,7 +514,8 @@ function fuerzasDe(lado: Lado, casa: number): Fuerzas {
   return { porteria: wp > 0 ? (sp / wp) * k : 0, defensa: wd > 0 ? (sd / wd) * k : 0, creacion: wc > 0 ? (sc / wc) * k : 0, ataque: wa > 0 ? (sa / wa) * k : 0 };
 }
 
-interface Fuerzas {
+/** @internal */
+export interface Fuerzas {
   porteria: number;
   defensa: number;
   creacion: number;
