@@ -42,6 +42,10 @@ Encargo de la arquitectura: activar en pasos y calibrar con `npm run sim` (365 d
 
 **Los PNJ** llevan A y D por `eficienciaDeEstado` y `riesgoDeLesion` (la misma función que el personaje; un test de equivalencia lo ata en `tests/mismas-reglas-estado.test.ts`). **B y C no existen en los PNJ**: tienen moral y no estrés, y su moral vuelve a su nivel cada semana; si se quiere que el sueño la baje, es una decisión para F3 (no la tomo aquí).
 
+### Repetido tras unir la rama de trabajo (28/11)
+
+Tras unir `origin/claude/youthful-clarke-vs0kye` (reparto nuevo de equipos, verano nuevo, chicos y chicas, partida en equilibrio, hogares más baratos y dormir F3; unión sin conflictos) **se repitió todo sobre la base nueva**: línea base en la punta de `origin` (sin F2) y F2 sobre la unión, en paralelo. **Salió igual que lo de abajo**: los mismos 13 ✅ y el ⚠️ de «Rendimiento», las mismas cifras en las dos filas que cambian de chequeo y la misma tabla; `sim:notas` «Todo dentro de los objetivos»; la huella cambia en los mismos bots (el recuento de acciones solo en empollón 1 y aleatorio 1 y 2). Los bots no ven lo que cambió en la base (equipos, verano, hogares). **Coste por acción** (`npm run rendimiento -- 60`, máquina libre, dos mediciones por árbol): 1,31 y 1,40 ms antes frente a 1,34 y 1,31 después: sin diferencia medible. (Con las dos simulaciones completas a la vez salió 1,75 frente a 1,85 ms, ruido de carga.) `npm test` (135 archivos, 1486 tests) y `probar-web` en verde.
+
 ### Medido (`npm run sim`, 365 días × 5 semillas, antes frente a final)
 
 Los 14 chequeos **igual que antes**: 13 ✅ y el ⚠️ de «Rendimiento» (la velocidad de la máquina, que ya estaba en ⚠️ antes: 2,19 ms por acción con la máquina libre y 2,31 con otras dos simulaciones a la vez; **hay que repetirlo con la máquina libre**, ver más abajo). Cambian solo las cifras de dos:
