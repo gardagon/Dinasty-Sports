@@ -735,6 +735,8 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
   for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria && x.calidad >= 3 && pob.puestos)) {
     e.equiposPorCategoria = Object.fromEntries(categoriasDelEquipo(pob, e).map((c) => [c.id, 2]));
   }
+  // Colegios (solo con el reparto nuevo, partidas nuevas; decisión del usuario, 28/11/2026): el colegio coge a todos sus alumnos que quieren jugar hasta 22 por equipo, el personaje incluido (la regla de plaza mide con este máximo). El 18 es el objetivo de los clubes, no el tope del colegio.
+  if (ctx.pais.ciudad?.repartoNuevo) for (const e of pob.equipos) if (e.colegio !== undefined && e.plantillaPorCategoria) e.plantillaPorCategoria = { ...e.plantillaPorCategoria, max: 22 };
   // Chicos y chicas (solo con el reparto nuevo, partidas nuevas): desde `desdeEdad` los equipos van separados por sexo. Cada club externo tiene su equipo femenino (`<club>_f`, solo en las categorías desde esa edad); los colegios, no.
   const sexos = ctx.pais.ciudad?.repartoNuevo ? datos.poblacion.reclutamiento.sexos : undefined;
   if (sexos && pob.puestos) {
