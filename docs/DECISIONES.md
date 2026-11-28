@@ -5,6 +5,13 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/11/2026 — Chicos y chicas, en el juego (parte 3)
+
+- **Chicas ~10 % y equipos separados desde infantil, en la ciudad grande y solo en las partidas nuevas** (`reclutamiento.sexos` del fútbol + `CiudadDef.repartoNuevo`); las guardadas siguen mixtas como siempre (aplicarlo después no tiene forma limpia). Benjamín y alevín, mixtos; los femeninos, solo en clubes externos (`<club>_f`), con el mismo método de reparto y de verano (dos pasadas por categoría: chicos en los clubes de chicos y chicas en los femeninos).
+- **Las jugadoras simulan que juegan** un partido a la semana, sin resultados ni clasificación (contra otro equipo femenino de su categoría o el de chicos más parecido); la liga femenina queda para más adelante. **Elegir chica como personaje: sigue desactivado.**
+- Medido (8 veranos, 10 semillas): 0 equipos por debajo de 14, categorías en su equilibrio y la ciudad a la mitad (lo aceptado); crear 15,0 → 6,5 s. La huella del fútbol cambia solo por el dato guardado (referencia nueva en `docs/relevo/chicos-y-chicas-implementado.md`).
+- **Abierto:** con la mitad de niños, el personaje no tiene plaza en el equipo de su colegio en 5 de cada 20 partidas (antes, 0) y `probar-web` falla por eso: reservarle una plaza o dejarlo, y adaptar la prueba. Datos en el relevo.
+
 ## 28/11/2026 — El verano nuevo, en el juego (parte 2)
 
 - **El verano del usuario (`veranos-metodo.md`, v5 + juvenil v5) es el verano de la ciudad grande** (`CiudadDef.repartoNuevo`), también en las partidas guardadas antes (desde su siguiente verano, con las letras que ya tienen; el primero deja 0 equipos por debajo de 14). La ciudad de ahora y la de prueba siguen con el verano de siempre.
