@@ -5,6 +5,10 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/11/2026 — Plaza del personaje: equipos de 18 también al crear
+
+Con el mundo a la mitad (10 % de chicas), los equipos de inicio salían de hasta 22, y el personaje se quedaba sin plaza en el equipo de su colegio en 5 de 20 semillas. **Decidido (usuario):** en el reparto de inicio, benjamín y alevín forman equipos de 18, como en el verano; solo se llega a 22 si sobran niños. **No se reserva plaza al personaje** (`docs/VISION.md`: sin plazas reservadas ni trato especial). `probar-web` deja de depender de la suerte de la semilla.
+
 ## 28/11/2026 — Chicos y chicas, en el juego (parte 3)
 
 - **Chicas ~10 % y equipos separados desde infantil, en la ciudad grande y solo en las partidas nuevas** (`reclutamiento.sexos` del fútbol + `CiudadDef.repartoNuevo`); las guardadas siguen mixtas como siempre (aplicarlo después no tiene forma limpia). Benjamín y alevín, mixtos; los femeninos, solo en clubes externos (`<club>_f`), con el mismo método de reparto y de verano (dos pasadas por categoría: chicos en los clubes de chicos y chicas en los femeninos).
