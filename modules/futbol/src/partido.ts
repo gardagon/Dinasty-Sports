@@ -59,7 +59,7 @@ export const PARAMETROS_DE_PARTIDO = {
   /** Faltas por minuto (las dos), probabilidad de amarilla por falta, de roja directa, de penalti y de tiro libre peligroso. */
   faltasPorMinuto: 0.26,
   amarilla: 0.17,
-  rojaDirecta: 0.0025,
+  rojaDirecta: 0.0015,
   penaltiPorFalta: 0.012,
   tiroLibrePorFalta: 0.15,
   xgDeTiroLibre: 0.06,
@@ -669,7 +669,7 @@ export function avanzarPartido(estado: EstadoDePartido, local: EquipoDePartido, 
     const A = lados[i];
     const D = lados[1 - i];
     // Quien ya tiene una amarilla se cuida (comete menos faltas): así las dobles amarillas son raras, como en un partido de verdad.
-    const infractor = elegir(rng, D.campo, (x) => PESO_DE_FALTA[x.linea] * (x.e.amarillas > 0 ? 0.25 : 1) * (1.5 - (x.h.entrada * x.r) / (x.h.entrada * x.r + 40)));
+    const infractor = elegir(rng, D.campo, (x) => PESO_DE_FALTA[x.linea] * (x.e.amarillas > 0 ? 0.2 : 1) * (1.5 - (x.h.entrada * x.r) / (x.h.entrada * x.r + 40)));
     const victima = elegir(rng, A.campo, (x) => PESO_DE_VICTIMA[x.linea] * (x.h.regate * x.r + 10));
     if (!infractor || !victima) return;
     infractor.e.faltas++;

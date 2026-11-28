@@ -27,7 +27,7 @@ describe('el registro, los flujos de azar y la caché del motor', () => {
       return h.digest('hex');
     };
     expect(huella()).toBe(huella());
-    expect(huella()).toBe('PENDIENTE');
+    expect(huella()).toBe('08d07923508f54b7b05ce725a41d9952f05295b6');
   });
 
   it('la crónica es la vista del registro, y el registro tiene minutos creíbles y en orden', () => {

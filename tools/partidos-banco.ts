@@ -5,7 +5,8 @@
  *   2. que un motor nuevo (P1 en adelante) enseñe **qué cambia** y cuánto, por categoría, frente a lo anterior y frente a lo que se sabe de un partido real.
  *
  * `npm run partidos:banco -- [partidos por categoría = 300] [prueba|grande] [--guardar-referencia] [--estricto]`
- *   --guardar-referencia  escribe las cifras de ahora como referencia (solo cuando el cambio de motor es a propósito y está decidido);
+ *   --guardar-referencia  escribe las cifras de ahora como referencia del motor de posesiones y ocasiones (clave `…-b`; solo cuando el cambio de motor es a propósito y está decidido);
+ *   --contra-anterior     compara con la referencia del motor anterior (la «calibración de siempre»: `docs/relevo/partidos-banco-referencia.json`, clave sin sufijo) en vez de con la del motor actual;
  *   --estricto            sale con error si alguna cifra se sale de su tolerancia (para `npm run check` o un CI);
  *   --parametros='{...}'  cambia números de `PARAMETROS_DE_PARTIDO` solo en esta pasada (para calibrar).
  * Las cifras que el motor de hoy no tiene (faltas, tarjetas, córners, pases) salen como «—» y las rellenan los motores nuevos.
@@ -172,14 +173,17 @@ for (const cat of CATEGORIAS) {
 // ------------------------------------------------------------------------------------------------------------- referencia, comparación e informe
 
 const guardada: Record<string, Record<string, Cifras>> = existsSync(REFERENCIA) ? JSON.parse(readFileSync(REFERENCIA, 'utf8')) : {};
+const CLAVE_ANTERIOR = `${CIUDAD}-${PARTIDOS}`;
+const CLAVE_ACTUAL = `${CIUDAD}-${PARTIDOS}-b`;
+const CLAVE = banderas.has('--contra-anterior') || !guardada[CLAVE_ACTUAL] ? CLAVE_ANTERIOR : CLAVE_ACTUAL;
 if (banderas.has('--guardar-referencia')) {
   const redondeadas = Object.fromEntries(Object.entries(medidas).map(([c, m]) => [c, Object.fromEntries(Object.entries(m).map(([k, v]) => [k, Math.round(v * 10000) / 10000]))]));
-  writeFileSync(REFERENCIA, JSON.stringify({ ...guardada, [`${CIUDAD}-${PARTIDOS}`]: redondeadas }, null, 2) + '\n');
-  console.log(`Referencia guardada: ${CIUDAD}-${PARTIDOS} en ${REFERENCIA.pathname}`);
+  writeFileSync(REFERENCIA, JSON.stringify({ ...guardada, [CLAVE_ACTUAL]: redondeadas }, null, 2) + '\n');
+  console.log(`Referencia guardada: ${CLAVE_ACTUAL} en ${REFERENCIA.pathname}`);
 }
-const ref = (guardada[`${CIUDAD}-${PARTIDOS}`] ?? undefined) as Record<string, Cifras> | undefined;
+const ref = (banderas.has('--guardar-referencia') ? { ...guardada, [CLAVE_ACTUAL]: medidas } : guardada)[CLAVE] as Record<string, Cifras> | undefined;
 console.log(`Banco de realismo de los partidos (${GRANDE ? 'ciudad grande' : 'ciudad de prueba'}; ${PARTIDOS} partidos por categoría entre equipos reales de la zona, parejas al azar con semilla fija)\n`);
-console.log(ref ? `Se compara con la referencia guardada (\`${CIUDAD}-${PARTIDOS}\`): ✅ dentro de la tolerancia, ⚠️ fuera de ella; «igual» si coincide al céntimo.\n` : `No hay referencia guardada para \`${CIUDAD}-${PARTIDOS}\`: usa --guardar-referencia para crearla.\n`);
+console.log(ref ? `Se compara con la referencia guardada (\`${CLAVE}\`): ✅ dentro de la tolerancia, ⚠️ fuera de ella; «igual» si coincide al céntimo.\n` : `No hay referencia guardada para \`${CLAVE}\`: usa --guardar-referencia para crearla.\n`);
 let avisos = 0, iguales = 0, comparadas = 0;
 console.log(`| Cifra | ${CATEGORIAS.join(' | ')} | Fútbol profesional adulto (a contrastar) |`);
 console.log(`|---|${CATEGORIAS.map(() => '---').join('|')}|---|`);
