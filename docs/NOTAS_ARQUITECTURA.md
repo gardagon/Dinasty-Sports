@@ -48,7 +48,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3 bis. Sesiones en curso
 
-**Uso (24/11, noche):** por petición del usuario, solo se reactiva la sesión de equipos (juvenil paso a paso). Las demás (hogares: abaratar; salud F2; partidos P1) **esperan, paradas por el límite**, hasta que el usuario diga reactivarlas: así no se gasta el uso tan rápido.
+**Uso (28/11):** el usuario pide reactivar las 3 sesiones paradas **una a una**. Orden: 1) hogares, abaratar (reactivada el 28/11; hace falta para publicar); 2) salud F2; 3) partidos P1. Cuando termine una, se reactiva la siguiente. Aparte, pendiente para publicar: abaratar o partir el test de los caminos de los sucesos (235 de 240 s).
 
 **Trabajando (24/11):**
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): ronda 5 unida (hogares activados por defecto en las 3 ciudades; grande 12.833 personas, 26,3 MB, semana 2,06 s). Ahora: abaratar sin cambiar la huella (`sim:rapida` en ⚠️, 1,71 frente a 1,31 ms). **No publicar hasta que vuelva a ✅.** Después: H1 completo y lote 3 de sucesos;
