@@ -5,6 +5,7 @@
 import { calendarioDobleVuelta } from '@ds/kit-deporte';
 import { tablasDeLaDivision, type LigaDeCategoria } from './liga';
 import { PARAMETROS_DE_PARTIDO, type Intensidad, type MomentoDeCronica, type ResultadoDePartido } from './partido';
+import { vistaDeCronica } from './registro';
 
 /** El id del personaje dentro de un partido. */
 export const YO = 'personaje';
@@ -123,12 +124,14 @@ export function cronicaDelPartido(r: ResultadoDePartido, o: OpcionesDeCronica): 
         return { texto: '' };
     }
   };
+  // La crónica es una vista del registro del partido (`registro.ts`).
+  const momentosDelPartido = vistaDeCronica(r.registro);
   const lineas: LineaDeCronica[] = [];
   let a = 0;
   let b = 0;
   for (let t = 0; t < r.porTramo.length; t++) {
     lineas.push({ titulo: true, texto: `Minutos ${t * MINUTOS}–${(t + 1) * MINUTOS}` });
-    const momentos = r.cronica.filter((m) => m.tramo === t);
+    const momentos = momentosDelPartido.filter((m) => m.tramo === t);
     for (const m of momentos) lineas.push(linea(m));
     if (!momentos.some((m) => m.tipo !== 'cambio')) lineas.push({ texto: 'Tramo sin ocasiones claras.' });
     a += r.porTramo[t].goles[0];

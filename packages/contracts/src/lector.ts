@@ -8,6 +8,11 @@ export interface LectorDePersona {
   stat(id: string): number;
   /** El valor normalizado (0 a 1) de una stat: las capacidades, frente a lo típico de su edad. */
   norm(id: string): number;
+  /**
+   * `true` si este lector es una **foto**: sus `stat` y `norm` no cambian mientras exista el objeto. Quien lo sabe (el lector de un niño de `npcs`, que se calcula sobre copias) lo dice, y así un cálculo caro sobre él
+   * (el valor de un jugador en el partido) se puede guardar sin riesgo. El contexto del motor, que lee el estado vivo del personaje, **no** lo es.
+   */
+  readonly inmutable?: true;
 }
 
 /** Un deporte que sabe valer a una persona: el rendimiento (0 a 100) de quien se le pase. Lo aporta cada módulo de deporte (`APORTES.rendimiento`). */

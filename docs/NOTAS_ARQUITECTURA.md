@@ -43,18 +43,20 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3. Preguntas para el usuario (pendientes)
 
-- **Partidos, duda 3** (qué es «cercano» para los niveles): explicada el 24/11, falta la respuesta. No bloquea P0.
 - **Hogares:** aprobados el 24/11 la activación por defecto y `FAMILIAS.siguiente` (DECISIONES 24/11). La sesión de hogares los aplica; después, pull request para publicar (visto bueno ya dado) y pedir al usuario que mida en el móvil: crear y pasar de semana.
 - **Rendimiento M2:** el usuario creó una partida en el móvil en ~4 s («solo con fútbol»). Confirmar si fue con la ciudad grande. Falta medir el cruce de semana en el móvil.
 
 ## 3 bis. Sesiones en curso
 
-**Trabajando (24/11):**
-- `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): activar los hogares por defecto, `FAMILIAS.siguiente`, menores de 8 duermen 21:30–7:00. Después: H1 completo y lote 3 de sucesos (orden de DECISIONES 24/11);
+**Uso (28/11):** el usuario pide reactivar las 3 sesiones paradas **una a una**. Orden: 1) hogares, abaratar (reactivada el 28/11; hace falta para publicar); 2) salud F2; 3) partidos P1. Cuando termine una, se reactiva la siguiente. Aparte, pendiente para publicar: abaratar o partir el test de los caminos de los sucesos (235 de 240 s).
 
-- `session_01M4vXXPCypWSK5cyLfmT3Dg` (`claude/salud-lesiones`): F1, cifras puras sin activar (días, resistencia por perks, secuelas, fisio en clubes grandes, sexo);
-- `session_01M4vXXMZ1nQqUWicwqoGZB8` (`claude/partidos-reales`): P0 (banco, flujos de azar, caché de fuerza, registro de sucesos) con huella idéntica;
-- `session_01M4vXXRCvQw4UAtyYsQwrVw` (`claude/personaje-chica`): análisis del personaje chica.
+**Trabajando (24/11):**
+- `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): ronda 5 unida (hogares activados por defecto en las 3 ciudades; grande 12.833 personas, 26,3 MB, semana 2,06 s). Ahora: abaratar sin cambiar la huella (`sim:rapida` en ⚠️, 1,71 frente a 1,31 ms). **No publicar hasta que vuelva a ✅.** Después: H1 completo y lote 3 de sucesos;
+
+- `session_01M4vXXPCypWSK5cyLfmT3Dg` (`claude/salud-lesiones`): F1 unida (`contracts/salud.ts`, funciones puras). Ahora F2: activar los efectos del sueño, calibrados con `sim`. F3 (bajas en días) sube `SAVE_VERSION`: **avisar al usuario antes de publicarlo**;
+- `session_01M4vXXMZ1nQqUWicwqoGZB8` (`claude/partidos-reales`): P0 unido (huella idéntica). Ahora P1, el motor B (corrige quién marca y la primera parte; lesiones detrás de un dato desactivado). Pendiente del usuario: guardar la plantilla convocada por equipo y semana;
+- personaje chica: análisis unido (`docs/relevo/personaje-chica.md`). **Hallazgo:** todos los equipos son mixtos y ~50 % chicas en todas las edades. 7 dudas presentadas al usuario el 24/11;
+- `session_01M4vXXPbdr69GjFRa9FScBd` (`claude/equipos-minimo`): **reparto nuevo decidido paso a paso con el usuario** (DECISIONES 24/11; especificación en `docs/relevo/reparto-nuevo-reglas.md`; 20 semillas sin equipos por debajo de 14). Volumen de un verano medido (`docs/relevo/veranos-volumen.md`). **Hecho (25–26/11, solo medida):** chicas al ~10 %; femenino desde infantil en los clubes externos; reparto por sexos; **el verano del usuario** v1→v5 (`docs/relevo/veranos-metodo.md`): equipos que se mantienen, benjamín y alevín de 18, juvenil con pruebas por nivel, cascada y abandonos que se quedan. Partida en equilibrio medida (§B17). **Ahora: implementar las partes 1, 2 y 3 seguidas** (el usuario lo pidió el 27/11 antes de pasar a otras cosas): 1) que nada deshaga el reparto, el reparto nuevo y el equilibrio inicial; 2) el verano nuevo; 3) chicos y chicas. Cada parte se avisa al terminar y se une después de revisarla. Partes 1, 2 y 3 unidas (27–28/11). **No publicar todavía:** con el mundo a la mitad, el personaje se queda sin plaza en el equipo de su colegio en 5 de 20 semillas y `probar-web` falla. Decisión pendiente del usuario (presentada el 28/11). **Pendiente detectado:** `tests/eventos.test.ts` («todos los caminos…», límite 240 s) va justo (~235 s) con o sin el reparto: hay que abaratar o partir el recorrido de los caminos (no subir el límite); encargarlo a una sesión de sucesos. Antes de publicar: reactivar abaratar los hogares. Implementar en el juego cuando el usuario cierre el método (ojo: `fijarEquipos` tiene que respetar las letras).
 
 Pueden reactivarse con contexto:
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): seguir con H1 (trabajo de los progenitores, papel de reparto por parentesco, ficha con el vínculo, niños de los vecinos sin familia, abandono por edad) y con H2;
