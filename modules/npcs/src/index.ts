@@ -19,7 +19,7 @@ import { HUECO_LIBRE, SEMANAS_DE_LOS_LEJANOS, conMasConocimiento, historiaDeport
  * - Publican el servicio `npcs` para que otros módulos los consulten.
  */
 
-import { conUnaPlazaDeMas, añadirDeporte, completarUnaCategoria, draftDeEquipos, renovarDeportistas, DIAGNOSTICO, abandonoPrevio } from './draft';
+import { conUnaPlazaDeMas, añadirDeporte, completarUnaCategoria, conInteresDeChicas, draftDeEquipos, renovarDeportistas, DIAGNOSTICO, abandonoPrevio } from './draft';
 import { colocarDesplazados } from './fichajes';
 import { conApuntados, entrenadorDelEquipo, rotaElEquipo, equipoDelPersonajeEn, previsionDelClubDe, equiposDeUnaCategoria, idDelPersonaje, plantillaDeUnEquipo, completarPoblaciones, JugadorEnClub, ListaDeTrabajo, MercadoDeFichajes, categoriasDelEquipo, claveDeEquipo, reclutarDeportistas, reclutarEnTodos, sinDeporte } from './plantillas';
 import { consejoDeUnProfesor, familiasDePuestosDeLosDeportes, lecturaDeUnPuesto } from './consejo';
@@ -181,6 +181,8 @@ export interface PoblacionGuardada extends Omit<PoblacionDeDeporte, 'equipos'> {
    * categoría, para que ninguna búsqueda de club los deshaga ni deje a nadie sin letra. Ausente en las demás partidas (también en las guardadas antes): se comportan como siempre.
    */
   repartoNuevo?: boolean;
+  /** Solo las partidas creadas con chicos y chicas (`reclutamiento.sexos` y `CiudadDef.repartoNuevo`): los equipos van separados por sexo desde `desdeEdad` y las chicas con interés son ~10 %. Ausente en las demás: todo mixto como siempre. */
+  sexos?: { desdeEdad: number };
 }
 
 /** Lo que hizo un jugador en una temporada (curso) en una categoría y con un club: una entrada por temporada para su historial de siempre (lo que pedirá un ojeador o un mánager). */
@@ -733,6 +735,19 @@ function poblacionDe(ctx: Pick<ReadContext, 'aportes' | 'pais'>, ficha: FichaDeD
   for (const e of pob.equipos.filter((x) => x.plantillaPorCategoria && x.calidad >= 3 && pob.puestos)) {
     e.equiposPorCategoria = Object.fromEntries(categoriasDelEquipo(pob, e).map((c) => [c.id, 2]));
   }
+  // Chicos y chicas (solo con el reparto nuevo, partidas nuevas): desde `desdeEdad` los equipos van separados por sexo. Cada club externo tiene su equipo femenino (`<club>_f`, solo en las categorías desde esa edad); los colegios, no.
+  const sexos = ctx.pais.ciudad?.repartoNuevo ? datos.poblacion.reclutamiento.sexos : undefined;
+  if (sexos && pob.puestos) {
+    pob.sexos = { desdeEdad: sexos.desdeEdad };
+    const desde = (pob.categorias ?? []).filter((c) => c.edadMin >= sexos.desdeEdad).map((c) => c.id);
+    for (const e of [...pob.equipos].filter((x) => x.plantillaPorCategoria && x.colegio === undefined)) {
+      const categorias = categoriasDelEquipo(pob, e).map((c) => c.id).filter((id) => desde.includes(id));
+      if (!categorias.length) continue;
+      const femenino: EquipoGuardado = { ...JSON.parse(JSON.stringify(e)), club: `${e.club}_f`, nombre: `${e.nombre} (femenino)`, femenino: true, categorias, equiposPorCategoria: undefined };
+      pob.equipos.push(femenino);
+      pob.nombresDeClub[femenino.club] = `${pob.nombresDeClub[e.club] ?? e.nombre} (femenino)`;
+    }
+  }
   return pob;
 }
 
@@ -1127,7 +1142,8 @@ function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { n
   avisarDelProgreso('Midiendo lo que vale cada niño y reclutando a los equipos…', 0.04);
   const conReparto = repartoNuevoActivo();
   const mercado = conRepartoNuevo(() => {
-    const equipos = reclutarEnTodos(conCapacidades(DIAGNOSTICO.equilibrioInicial ? abandonoPrevio(conEntrenadores, pobs, 0) : conEntrenadores, 0), pobs, 0, new Map(), rend);
+    const conChicas = conInteresDeChicas(conEntrenadores, pobs);
+    const equipos = reclutarEnTodos(conCapacidades(DIAGNOSTICO.equilibrioInicial ? abandonoPrevio(conChicas, pobs, 0) : conChicas, 0), pobs, 0, new Map(), rend);
     // La partida empieza dentro del plazo de fichajes: aquí también se aplica la regla de los equipos según la demanda (los interesados que se quedan sin equipo abren otros).
     const m: MercadoDeFichajes = { lista: new ListaDeTrabajo(equipos.map((n) => [n.id, n])), pobs, dia: 0, val: valoracionDe(rend), reservas: new Map() };
     // Los equipos de los clubes salen del «draft» por rondas (sin el personaje: no entra en los porcentajes).
@@ -1884,7 +1900,7 @@ export const npcs = defineModule<NpcsState>({
       const resultado = { sinPlaza: [] as string[], plazaExtra: [] as string[], sinNinos: [] as { deporte: string; motivo: MotivoDeEquipoSinNinos; jugadores?: number; minimo?: number }[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined, propuestas: [] as { deporte: string; puesto: string }[] };
       ctx.updateState<NpcsState>((s) => {
         const familias = s.hogares && VARIANTES.renovar === 'familias' ? conPais(ctx.pais, () => renovarConFamilias(s.npcs, proximo.day, ctx.rng, s.hogares!, s.semilla ?? 0)) : undefined;
-        const { r: npcs, nuevo: veranoNuevo } = conPais(ctx.pais, () => conVeranoNuevo(() => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(familias?.npcs ?? renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day)));
+        const { r: npcs, nuevo: veranoNuevo } = conPais(ctx.pais, () => conVeranoNuevo(() => actualizarHermanos(ajustarVecinos(renovarDeportistas(conInteresDeChicas(conCapacidades(conSemilla(familias?.npcs ?? renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day)));
         const pobsNuevas = veranoNuevo ? (resultado.pobs ?? pobs).map((p) => ({ ...p, repartoNuevo: true })) : resultado.pobs ?? pobs;
         return { ...s, poblaciones: pobsNuevas, npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), pobsNuevas, proximo.day, s.semilla ?? 0), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub }, ...(familias ? { hogares: familias.hogares, familiasPorCurso: { ...s.familiasPorCurso, [proximo.schoolYear]: { hermanos: familias.hermanos, mudanzas: familias.mudanzas, archivadas: familias.archivadas, borradas: familias.borradas } } } : {}) };
       });
@@ -2192,6 +2208,7 @@ export const npcs = defineModule<NpcsState>({
           return n ? vista(n, inicioCurso, ctx.time.day) : undefined;
         },
         rotaElEquipo: (deporte, club, categoria) => rotaElEquipo(poblacionesGuardadas(ctx), deporte, club, categoria),
+        equiposFemeninosDeLaCategoria: (deporte, categoria) => equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day, undefined, true),
         equiposDeLaCategoria: (deporte, categoria) => { const yo = suEquipo(deporte); return equiposDeUnaCategoria(lista, poblacionesGuardadas(ctx), deporte, categoria, inicioCurso, ctx.time.day, yo && yo.categoria === categoria ? { club: yo.club, letra: yo.letra } : undefined); },
         plantillaDelEquipo: (deporte, club, categoria, letra) => plantillaDeUnEquipo(lista, poblacionesGuardadas(ctx), deporte, club, categoria, letra, inicioCurso, semanaQueAcaba(ctx.time.day), ctx.time.day),
         equipoDelPersonaje: suEquipo,

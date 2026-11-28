@@ -208,6 +208,8 @@ export interface NpcDirectory {
    * tiene equipos por categoría.
    */
   equiposDeLaCategoria?(deporte: string, categoria: string): EquipoDelMundoView[];
+  /** Los equipos femeninos de una categoría (los de las partidas con chicos y chicas, desde la edad en que se separan por sexo): no juegan la liga ni salen en `equiposDeLaCategoria`; sus jugadoras simulan que juegan partidos, sin resultados ni clasificación. */
+  equiposFemeninosDeLaCategoria?(deporte: string, categoria: string): EquipoDelMundoView[];
   /**
    * El equipo (letra A a D) en el que juega el personaje en su club y categoría: el que le toca por lo que vale en su puesto, con las mismas reglas que a cualquier jugador (reparte a todos los miembros, él incluido). `undefined` si
    * no es de un club con equipos por categoría o su club no tiene equipos en esa categoría. Quien llama lo guarda al empezar la temporada: los equipos no cambian durante el curso.

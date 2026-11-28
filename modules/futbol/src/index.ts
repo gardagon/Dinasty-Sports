@@ -1489,6 +1489,24 @@ function ligaDelMundo(ctx: ActionContext, semana: number): void {
     partidos += r.jugadores.length / 22;
     if (r.jugadores.length) ctx.emit<PartidoDelMundoData>({ type: SHARED_EVENTS.PARTIDO_MUNDO, data: { deporte: DEPORTE, semana, curso: t.schoolYear, categoria: cat, jugadores: r.jugadores } });
   }
+  // **Los equipos femeninos no juegan la liga** (decisión del usuario, 25/11/2026: la liga femenina, con equipos de fuera de la ciudad, queda para más adelante): mientras tanto, sus jugadoras simulan que juegan un partido las semanas de liga, contra otro equipo
+  // femenino de su categoría o, si no hay otro, contra el equipo de chicos que más se le parece, sin resultado ni clasificación; a ellas les cambia el estado, ganan minutos, experiencia y conocimiento como a cualquiera (el partido no cuenta para nadie más).
+  for (const cat of Object.keys(categorias)) {
+    if (categoriaAcabada(categorias[cat])) continue;
+    const fem = dir.equiposFemeninosDeLaCategoria?.(DEPORTE, cat) ?? [];
+    if (!fem.length) continue;
+    const masc = dir.equiposDeLaCategoria!(DEPORTE, cat);
+    for (let i = 0; i < fem.length; i += 2) {
+      const a = fem[i];
+      const b = fem[i + 1] ?? [...masc].sort((x, y) => Math.abs(x.fuerza - a.fuerza) - Math.abs(y.fuerza - a.fuerza) || (x.id < y.id ? -1 : 1))[0];
+      if (!b) continue;
+      const id = `femenino|${liga.curso}|${semana}|${cat}|${a.id}`;
+      const o = partidoDeLiga(dir, undefined, liga.semilla, { categoria: cat, local: a.id, visitante: b.id, id, intensidad, curso: liga.curso, dia: contextoDelDia(ctx, semana, id) });
+      const ellas = new Set([a, ...(fem[i + 1] ? [b] : [])].flatMap((x) => dir.plantillaDelEquipo!(DEPORTE, x.club, cat, x.letra).map((j) => j.id)));
+      const jugadores = o.jugadores.filter((j) => ellas.has(j.npcId));
+      if (jugadores.length) ctx.emit<PartidoDelMundoData>({ type: SHARED_EVENTS.PARTIDO_MUNDO, data: { deporte: DEPORTE, semana, curso: t.schoolYear, categoria: cat, jugadores } });
+    }
+  }
   // Su partido de esta semana, si no lo ha jugado él (no convocado, lesionado o ausente): se cuenta con el resultado y la crónica, y la falta si la hay.
   if (delPersonaje && delPersonaje.r && delPersonaje.lado !== undefined && previa) {
     registrarPartidoDelPersonaje(ctx, { r: delPersonaje.r, lado: delPersonaje.lado, nombres: delPersonaje.nombres, dorsales: delPersonaje.dorsales, local: delPersonaje.local, visitante: delPersonaje.visitante, previa, curso: t.schoolYear, semana, texto: sigDeMiEquipo?.texto ?? 'Liga', nombreDeEquipo: nombresDeEquipos(dir, previa.equipo.categoria), ausente, ...(papel ? { papel } : {}) });
