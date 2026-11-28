@@ -230,3 +230,14 @@ Sustituye a la franja abierta de «Jugar el partido» (sábados de 9 a 13, #116)
 - **Ver partidos de otros:** cualquier sábado, en cualquier campo, puede **ver un partido** como espectador, lo que le da conocimiento del deporte (y, más adelante, información de los jugadores). Con el motor de eventos (E18) llegarán cosas como quedarse con un compañero después del partido para ver otro.
 
 **Hecho el 11/11 (1.ª parte):** el calendario con franjas, campos y días por categoría y la medida de los campos del complejo (ver `DECISIONES.md`, 11/11). Queda la convocatoria, el vestuario, las agendas y el espectador.
+
+## 16. Hacia un partido más real: las bases (P0, 24/11/2026)
+
+El análisis y el plan por fases están en [`relevo/partidos-reales.md`](relevo/partidos-reales.md) y lo hecho en [`relevo/partidos-p0.md`](relevo/partidos-p0.md). Lo que ya existe, **sin haber cambiado ningún resultado**:
+
+- **El registro del partido** (`registro.ts`): `ResultadoDePartido.registro` lista lo que pasó, en orden y con su minuto; `cronica` es una vista derivada de él. Un motor nuevo añade tipos de suceso (falta, tarjeta, córner, lesión…) sin romper la crónica.
+- **Flujos de azar por subsistema** (`flujosDelPartido`): `resultado` es el de siempre (§1: «con la misma semilla, el mismo resultado»); `minutos`, `tarjetas`, `lesiones` y `cambios` tienen el suyo. Añadir uno no cambia los marcadores. Las lesiones (§9) usan además un azar **por jugador y momento** (`azarDeLesionEnPartido`).
+- **Caché de lo que vale cada jugador** (`valoresBase`): solo con lectores `inmutable` (una foto), y exacta.
+- **Banco de realismo** (`npm run partidos:banco`): las cifras de un partido por categoría frente a la referencia guardada del motor anterior.
+
+Decisiones del usuario del 24/11 (en `DECISIONES.md`): primero **B (posesiones y xG) para todos**, después C (jugadas por zonas) y D (posiciones) como nivel detallado; **tres niveles** con un test de distribución obligatorio en `npm test`; lesiones por contactos y carga por minuto en los niveles 1 y 2 (un perfil de riesgo por jugador y partido) y la suma en el 3; la calibración de goles y tiros de hoy se mantiene como referencia; el motor se diseña **para verse en directo** (máquina de estados que se pueda pausar y reanudar); se guarda el registro entero de los partidos del personaje y, de los demás, el resultado y las estadísticas por jugador.

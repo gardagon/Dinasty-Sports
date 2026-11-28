@@ -3,7 +3,7 @@
  * Lógica de los deportes de equipo del juego base (`PLAN_DEPORTES_MODULARES.md` §7 bis): no sabe de ningún deporte concreto; cada deporte da sus datos.
  */
 import { rngEstable, ESTADO_INICIAL, eficienciaDeEstado, type Practica, type RasgosDe, cuposPorGrupo, grupoDePuesto, valorDeLaPrueba, NIVEL_PRACTICA, aptitudDe, parecidoDePuestos } from '@ds/contracts';
-import { interesPor, potencialEn } from './deportistas';
+import { SESGO_DE_SEXO, interesDe, interesPor, potencialEn } from './deportistas';
 import { puestoDondeMasVale, type CondicionesDePrueba } from './puestos';
 
 /**
@@ -40,16 +40,37 @@ export interface OpcionesDeEntrada {
   plazasDeMas?: boolean;
 }
 
+/**
+ * En una partida con el reparto nuevo (`PoblacionGuardada.repartoNuevo`), quien entra en un equipo mientras ya hay letras (la búsqueda de club de un desplazado) entra con la del equipo que deja libre quien ocupa su sitio o,
+ * si es un hueco, con la del equipo del club y categoría donde más se parece su año a los de dentro (y, si empatan, el que menos tiene), que no pase de 22. Así los equipos del reparto no se deshacen ni nadie queda sin letra
+ * hasta el verano. Sin él, o mientras se crea la partida (aún no hay letras), no cambia nada.
+ */
+export function conLetraDelQueLlega(nuevo: Npc, pob: PoblacionGuardada, jugadores: readonly Npc[], desplazado: Npc | undefined, edad: number, dia: number): Npc {
+  if (!pob.repartoNuevo) return nuevo;
+  const letraDe = (x: Npc): string | undefined => x.letra?.[pob.deporte];
+  let letra = desplazado ? letraDe(desplazado) : undefined;
+  if (!letra) {
+    const equipos = new Map<string, Npc[]>();
+    for (const j of jugadores) { const l = letraDe(j); if (l && j.id !== nuevo.id) (equipos.get(l) ?? equipos.set(l, []).get(l)!).push(j); }
+    const candidatos = [...equipos].filter(([, xs]) => xs.length < 22).map(([l, xs]) => ({ l, n: xs.length, parecido: xs.filter((x) => edadNpc(x, dia) === edad).length / xs.length }));
+    candidatos.sort((a, b) => b.parecido - a.parecido || a.n - b.n || (a.l < b.l ? -1 : 1));
+    letra = candidatos[0]?.l;
+  }
+  return letra ? { ...nuevo, letra: { ...(nuevo.letra ?? {}), [pob.deporte]: letra as 'A' | 'B' | 'C' | 'D' } } : nuevo;
+}
 
 export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, pob: PoblacionGuardada, o: OpcionesDeEntrada = {}): Entrada {
   const { sinPrueba = false, puestoForzado, soloHueco = false, relajado = false, equipoNuevo = false, ultimaOpcion = false, plazasDeMas = false } = o;
   if (!n.genetica || n.nacimiento === undefined) return { entra: false };
   const edad = edadNpc(n, m.dia);
   if (edad === undefined || (e.colegio !== undefined && colegioDeNino(n) !== e.colegio)) return { entra: false };
+  // Chicos y chicas (`PoblacionGuardada.sexos`): desde la edad en que los equipos se separan, los chicos solo van a los clubes de chicos (también a los de un colegio) y las chicas, a los equipos femeninos (solo de clubes externos).
+  if (pob.sexos && edad >= pob.sexos.desdeEdad && ((e.femenino === true) !== (n.gender === 'f') || (e.colegio !== undefined && n.gender === 'f'))) return { entra: false };
+  if (e.colegio !== undefined && SESGO_DE_SEXO.sinColegios && SESGO_DE_SEXO.desdeEdad !== undefined && edad >= SESGO_DE_SEXO.desdeEdad && SESGO_DE_SEXO.deportes?.includes(pob.deporte)) return { entra: false };
   const plantel = plantelDe(m.lista, pob, e, edad, m.dia, m.reservas, plazasDeMas);
   if (!plantel) return { entra: false };
   const potencial = potencialEn(n.id, n.genetica, pob);
-  const aspirante = { npc: n, colegio: colegioDeNino(n), interes: interesPor(n.rasgos, pob.deporte), potencial, valor: valorEn(n, pob, m) };
+  const aspirante = { npc: n, colegio: colegioDeNino(n), interes: interesDe(n, pob.deporte, edad), potencial, valor: valorEn(n, pob, m) };
   // Con puestos: el club le ofrece el puesto en que entraría (con hueco en él o valiendo más que el peor de ese puesto) y el niño lo acepta o no según su carácter.
   const valores = valoresPorPuestoDe(n, pob, m.val, m.dia);
   if (pob.puestos && valores) {
@@ -66,14 +87,14 @@ export function intentarEntrar(m: MercadoDeFichajes, n: Npc, e: EquipoGuardado, 
     if (!oferta) return { entra: false };
     const desplazado = oferta.peor ? m.lista.get(oferta.peor.id) : undefined;
     if (desplazado) DIAGNOSTICO.alDesplazar?.({ id: desplazado.id, desde: e.club, motivo: 'merito' });
-    m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto));
+    m.lista.set(n.id, conLetraDelQueLlega(reclutarA(aspirante, e, pob, edad, m.dia, oferta.puesto), pob, plantel.jugadores, desplazado, edad, m.dia));
     if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
     return { entra: true, desplazado };
   }
   const plaza = reglaDePlaza(plantel.jugadores.map((j) => ({ id: j.id, nombre: j.name, valor: valorEn(j, pob, m) })), plantel.max, aspirante.valor);
   if (plaza.estado === 'completo') return { entra: false };
   const desplazado = plaza.estado === 'por_merito' ? m.lista.get(plaza.peor!.id) : undefined;
-  m.lista.set(n.id, reclutarA(aspirante, e, pob, edad, m.dia));
+  m.lista.set(n.id, conLetraDelQueLlega(reclutarA(aspirante, e, pob, edad, m.dia), pob, plantel.jugadores, desplazado, edad, m.dia));
   if (desplazado) m.lista.set(desplazado.id, sinDeporte(desplazado, pob, false));
   return { entra: true, desplazado };
 }
@@ -128,7 +149,7 @@ export function colocarDesplazados(m: MercadoDeFichajes, desplazados: readonly {
       m.lista.set(id, apartadoPorBusquedas(n, origen));
       continue;
     }
-    const deportes = [origen, ...m.pobs.filter((p) => p.deporte !== origen && interesPor(n!.rasgos, p.deporte) > 0).sort((a, b) => interesPor(n!.rasgos, b.deporte) - interesPor(n!.rasgos, a.deporte)).map((p) => p.deporte)];
+    const deportes = [origen, ...m.pobs.filter((p) => p.deporte !== origen && interesDe(n!, p.deporte, edadNpc(n!, m.dia)) > 0).sort((a, b) => interesDe(n!, b.deporte, edadNpc(n!, m.dia)) - interesDe(n!, a.deporte, edadNpc(n!, m.dia))).map((p) => p.deporte)];
     const intentados: string[] = [];
     let colocado = false;
     for (const deporte of deportes) {

@@ -202,10 +202,38 @@ function calcularValor(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: numbe
  */
 export function lectorDeUnNpc(n: Npc, pob: PoblacionGuardada, dia: number): LectorDePersona | undefined {
   if (!pob.rutina || !n.genetica || !n.cap || !n.pico || n.nacimiento === undefined) return undefined;
-  const hab = n.hab?.[pob.deporte] ?? habilidadesIniciales(n.id, n.genetica, pob.deporte, pob.rutina, dia);
+  const dado = n.hab?.[pob.deporte];
+  // El mismo lector mientras no cambie nada de lo que lo forma (caché exacta, comparando valores): el que juega cada semana cambia sus habilidades, pero los de los equipos lejanos se calculan en bloques de semanas y no.
+  let delMundo = LECTORES.get(pob.rutina);
+  if (!delMundo) LECTORES.set(pob.rutina, (delMundo = new Map()));
+  const guardado = delMundo.get(n.id);
+  if (guardado && guardado.rutina === pob.rutina && guardado.deporte === pob.deporte && guardado.dia === dia && guardado.genetica === n.genetica && guardado.nacimiento === n.nacimiento && iguales(guardado.cap, n.cap) && (dado ? !!guardado.v && iguales(guardado.v, dado.v) : guardado.v === undefined)) return guardado.lector;
+  const hab = dado ?? habilidadesIniciales(n.id, n.genetica, pob.deporte, pob.rutina, dia);
   const t = prepararTrabajo({ id: n.id, genetica: n.genetica, nacimiento: n.nacimiento, cap: n.cap, pico: n.pico }, valoresIniciales(n.id, n.genetica), pob.deporte, pob.rutina, hab, n.capUlt ?? CAPACIDADES_GENETICAS.map(() => NUNCA), dia);
-  return lectorDe(t);
+  // El lector se calcula sobre copias (`prepararTrabajo`) y nadie las toca después: es una foto, y así lo dice (`inmutable`) para que otros guarden lo que calculan con él.
+  const lector: LectorDePersona = { ...lectorDe(t), inmutable: true };
+  delMundo.set(n.id, { rutina: pob.rutina, deporte: pob.deporte, dia, genetica: n.genetica, nacimiento: n.nacimiento, cap: n.cap.slice(), v: dado ? dado.v.slice() : undefined, lector });
+  return lector;
 }
+
+interface LectorGuardado {
+  rutina: object;
+  deporte: string;
+  dia: number;
+  genetica: object;
+  nacimiento: number;
+  /** Lo que lo forma y puede cambiar sin que cambie el objeto del niño (se compara con el valor de entonces): sus capacidades y, si las tiene, las habilidades del deporte. */
+  cap: number[];
+  v: number[] | undefined;
+  lector: LectorDePersona;
+}
+/** Por rutina del deporte (que es de la partida: se libera con ella) y por id del niño: sus objetos se rehacen cada semana aunque no cambie nada, así que la clave es la persona y lo que vale lo comprueba `lectorDeUnNpc`. */
+const LECTORES = new WeakMap<object, Map<string, LectorGuardado>>();
+const iguales = (a: readonly number[], b: readonly number[]): boolean => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+};
 
 /** Lo que vale un niño en cada puesto del deporte (`undefined` si el deporte no tiene puestos o no se puede calcular). */
 export function valoresPorPuestoDe(n: Npc, pob: PoblacionGuardada, v: Valoracion, dia: number): Record<string, number> | undefined {

@@ -11,6 +11,9 @@ import { rngEstable, GEN, type LectorDePersona, type Rng } from '@ds/contracts';
 import { valorEfectivo } from '@ds/kit-deporte';
 import { DEFINICIONES_DEL_ADDON, STATS_DE_FUTBOL, apoyosDe } from './habilidades';
 import { PUESTOS_DE_FUTBOL } from './puestos';
+import { conMinutos, flujosDelPartido, vistaDeCronica, type MomentoDeCronica, type SucesoDePartido } from './registro';
+
+export type { MomentoDeCronica, SucesoDePartido };
 
 export type Intensidad = 'relajado' | 'normal' | 'a_tope';
 export type Zona = 'porteria' | 'defensa' | 'creacion' | 'ataque';
@@ -124,26 +127,6 @@ export interface EstadisticasDeJugador {
   cansancio?: number;
 }
 
-/**
- * Un momento del partido para la crónica (tramo a tramo): `gol`, `ocasion` (el tiro que paró el portero), `balon_parado` (falta o córner con gol o con parada), `cambio` y `tramo` (el resumen de cada tramo, al final de él).
- * Solo cuentan lo que pasó: no cambian el azar del partido.
- */
-export interface MomentoDeCronica {
-  /** 0 a 5. */
-  tramo: number;
-  tipo: 'gol' | 'ocasion' | 'balon_parado' | 'cambio';
-  /** 0 (local) o 1 (visitante): el equipo al que le pasa. */
-  equipo: 0 | 1;
-  /** Quien tira o marca (en un cambio, quien entra). */
-  jugador: string;
-  /** El que da el pase del gol (o, en un cambio, quien sale). */
-  otro?: string;
-  /** El portero que para (en un gol o una ocasión, el que defiende). */
-  portero?: string;
-  /** En un lanzamiento de balón parado, si fue gol. */
-  gol?: boolean;
-}
-
 export interface ResultadoDePartido {
   /** [local, visitante]. */
   goles: [number, number];
@@ -155,7 +138,9 @@ export interface ResultadoDePartido {
   alineaciones: [string[], string[]];
   /** Los goles, en orden: tramo, equipo (0 local, 1 visitante), goleador y asistente. */
   jugadas: { tramo: number; equipo: 0 | 1; goleador: string; asistente?: string; tipo: 'juego' | 'balon_parado' }[];
-  /** Lo que pasó, en orden: goles, ocasiones, balón parado y cambios (la crónica del partido). */
+  /** **El registro del partido**: lo que pasó, en orden y con su minuto (goles, ocasiones, balón parado y cambios; los motores nuevos añaden más tipos). De él salen la crónica y las estadísticas. */
+  registro: SucesoDePartido[];
+  /** La crónica del partido: una **vista derivada del registro** (`vistaDeCronica`), sin minutos y solo con los tipos que cuenta hoy. */
   cronica: MomentoDeCronica[];
 }
 
@@ -232,12 +217,47 @@ interface Lado {
   stats: Map<string, EstadisticasDeJugador>;
 }
 
-function prepararJugador(j: JugadorDePartido, potenciador: number): EnCampo {
+/** Lo que vale un jugador en el partido antes de su estado del día (`rinde`): las cuatro zonas y lo que se sortea. Solo depende de su lector y del potenciador. */
+interface ValoresBase {
+  zona: Record<Zona, number>;
+  tiro: number;
+  cabeza: number;
+  lanzamiento: number;
+  pase: number;
+}
+
+/**
+ * **Caché de la fuerza por jugador** (P0): los valores base se guardan por lector y potenciador cuando el lector es `inmutable` (una foto: sus stats no cambian mientras exista el objeto; `lectorDeUnNpc` lo marca
+ * y a su vez devuelve el mismo objeto mientras no cambie nada de lo que lo forma). El resultado es **exactamente** el mismo que recalculándolo; el estado del día (`rinde`) se multiplica después, fuera de la caché.
+ */
+const CACHE_DE_VALORES = new WeakMap<LectorDePersona, Map<number, ValoresBase>>();
+export const DIAGNOSTICO_DE_CACHE = { activa: true, aciertos: 0, fallos: 0 };
+
+function valoresBase(lector: LectorDePersona, potenciador: number): ValoresBase {
+  const guardable = DIAGNOSTICO_DE_CACHE.activa && lector.inmutable === true;
+  if (guardable) {
+    const guardado = CACHE_DE_VALORES.get(lector)?.get(potenciador);
+    if (guardado) {
+      DIAGNOSTICO_DE_CACHE.aciertos++;
+      return guardado;
+    }
+  }
+  DIAGNOSTICO_DE_CACHE.fallos++;
   const v = new Map<string, number>();
-  const val = (stat: string): number => v.get(stat) ?? (v.set(stat, valorEnPartido(j.lector, stat, potenciador)), v.get(stat)!);
+  const val = (stat: string): number => v.get(stat) ?? (v.set(stat, valorEnPartido(lector, stat, potenciador)), v.get(stat)!);
   const zona = Object.fromEntries(ZONAS.map((z) => [z, media(HABILIDADES_DE_LA_ZONA[z].map(val))])) as Record<Zona, number>;
+  const base: ValoresBase = { zona, tiro: 0.6 * val('futbol.definicion') + 0.25 * val('futbol.disparo_lejano') + 0.15 * val('futbol.cabeza'), cabeza: val('futbol.cabeza'), lanzamiento: 0.6 * val('futbol.faltas') + 0.4 * val('futbol.corners'), pase: val('futbol.pase') };
+  if (guardable) {
+    const porPotenciador = CACHE_DE_VALORES.get(lector) ?? CACHE_DE_VALORES.set(lector, new Map()).get(lector)!;
+    porPotenciador.set(potenciador, base);
+  }
+  return base;
+}
+
+function prepararJugador(j: JugadorDePartido, potenciador: number): EnCampo {
+  const b = valoresBase(j.lector, potenciador);
   const r = j.rinde ?? 1;
-  return { j, cansancio: 0, minutos: 0, zona: Object.fromEntries(ZONAS.map((z) => [z, zona[z] * r])) as Record<Zona, number>, tiro: r * (0.6 * val('futbol.definicion') + 0.25 * val('futbol.disparo_lejano') + 0.15 * val('futbol.cabeza')), cabeza: r * val('futbol.cabeza'), lanzamiento: r * (0.6 * val('futbol.faltas') + 0.4 * val('futbol.corners')), pase: r * val('futbol.pase') };
+  return { j, cansancio: 0, minutos: 0, zona: Object.fromEntries(ZONAS.map((z) => [z, b.zona[z] * r])) as Record<Zona, number>, tiro: r * b.tiro, cabeza: r * b.cabeza, lanzamiento: r * b.lanzamiento, pase: r * b.pase };
 }
 
 /** El valor de una zona del equipo en un tramo: la media de lo que valen los que están en el campo en esa zona, ponderada por lo que su puesto aporta a ella y por lo cansados que están. */
@@ -275,7 +295,9 @@ const GRUPO_DE_PUESTO = (puesto: string): string => PUESTOS_DE_FUTBOL.reparto.fi
 export function jugarPartido(local: EquipoDePartido, visitante: EquipoDePartido, o: OpcionesDePartido): ResultadoDePartido {
   const P = PARAMETROS_DE_PARTIDO;
   const potenciador = POTENCIADOR_POR_CATEGORIA[o.categoria] ?? 1;
-  const rng = rngEstable('partido', o.semilla, o.id);
+  // El azar del resultado es el de siempre; cada subsistema nuevo (minutos, tarjetas, lesiones…) tiene el suyo y no cambia el resultado (`registro.ts`).
+  const azar = flujosDelPartido(o.semilla, o.id);
+  const rng = azar.resultado;
   const lado = (e: EquipoDePartido): Lado => {
     const todos = e.jugadores.map((j) => prepararJugador(j, potenciador));
     const stats = new Map(e.jugadores.map((j) => [j.id, { minutos: 0, goles: 0, asistencias: 0, tiros: 0, paradas: 0, golesEncajados: 0, nota: 6, puesto: j.puesto, titular: j.titular }]));
@@ -366,6 +388,7 @@ export function jugarPartido(local: EquipoDePartido, visitante: EquipoDePartido,
   }
 
   for (const l of lados) for (const e of l.todos) if (e.minutos > 0) l.stats.get(e.j.id)!.cansancio = Math.round(e.cansancio);
+  const registro = conMinutos(cronica, azar.de('minutos'), P.minutosPorTramo);
 
   // Notas (de 1 a 10): parten de 6 y suben o bajan con lo que hace, el resultado y, en defensa y portería, los goles encajados y las paradas.
   for (const [i, l] of lados.entries()) {
@@ -390,7 +413,7 @@ export function jugarPartido(local: EquipoDePartido, visitante: EquipoDePartido,
       void id;
     }
   }
-  return { goles, porTramo, tiros, jugadores: Object.fromEntries(lados.flatMap((l) => [...l.stats])), alineaciones: [local.jugadores.map((j) => j.id), visitante.jugadores.map((j) => j.id)], jugadas, cronica };
+  return { goles, porTramo, tiros, jugadores: Object.fromEntries(lados.flatMap((l) => [...l.stats])), alineaciones: [local.jugadores.map((j) => j.id), visitante.jugadores.map((j) => j.id)], jugadas, registro, cronica: vistaDeCronica(registro) };
 }
 
 /** Los cambios de una interrupción: los más cansados salen por un suplente del mismo grupo de puestos, hasta el máximo de la categoría (con cambios volantes, los que salieron pueden volver). */

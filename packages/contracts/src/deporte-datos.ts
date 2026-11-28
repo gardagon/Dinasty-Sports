@@ -210,6 +210,8 @@ export interface EquipoDeDeporte {
   tamano?: TamanoDeClub;
   /** Qué parte de la bolsa va a probar con el club en la primera ronda del «draft» (0 a 1); sin él, la de su tamaño (`ATRACTIVO_DE_TAMANO`). Marca también el orden: los más atractivos escogen primero. */
   atractivo?: number;
+  /** Equipo femenino de un club externo (`<club>_f`): solo juega desde la edad en que los equipos se separan por sexo y solo recluta chicas; no entra en la liga ni en la lista de clubes del personaje. */
+  femenino?: boolean;
   /** 1 colegio, 2 club de la ciudad, 3 alto rendimiento. Es lo mismo que el tamaño (pequeño, mediano, grande): con `tamano`, sale de él. Sin ninguno: la del club en el catálogo del personaje, o 1 si es de un colegio y 2 si no. */
   calidad?: 1 | 2 | 3;
   /** Edades de competición que recluta (por defecto, las del deporte; los equipos de un colegio solo llegan a la edad en que acaba el colegio). */
@@ -510,6 +512,12 @@ export interface PoblacionDeDeporte {
     /** Hasta esta edad algún niño puede dejar el deporte cada curso (con esta probabilidad) y otro ocupa su plaza. */
     edadMaxBaja: number;
     probabilidadBaja: number;
+    /**
+     * **Chicos y chicas** (decisión del usuario, 25/11/2026; `docs/relevo/reparto-nuevo-sexos.md`). Solo lo usan las partidas con el reparto nuevo (`CiudadDef.repartoNuevo`): `chicas` es la parte de las chicas que conserva su interés por este deporte
+     * (un sorteo estable suyo; con ~50 % de chicas en el mundo, 0,11 deja ~10 % de chicas entre los que juegan: licencias RFEF 2024/25, 10,1 %); desde `desdeEdad` los equipos van **separados por sexo** (los femeninos, solo en los clubes externos);
+     * antes son mixtos. Sin él, el deporte no distingue sexos.
+     */
+    sexos?: { chicas: number; desdeEdad: number };
     /**
      * **El abandono por edad** (decisión del usuario, 07/11/2026; `CIUDAD_Y_LIGAS.md` §11): cada verano cada deportista decide si sigue. La probabilidad de dejarlo sube con la edad (sobre todo desde cadete) y
      * pesan su interés por el deporte, su ambición, los minutos que tuvo (si fue titular), sus estudios (más en 4.º de la ESO y en bachillerato) y lo que hacen sus padres. Con él, sustituye a

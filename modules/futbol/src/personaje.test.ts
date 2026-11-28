@@ -44,11 +44,11 @@ describe('la crónica', () => {
     jugadores: {},
     alineaciones: [[], []],
     jugadas: [],
-    cronica: [
-      { tramo: 0, tipo: 'gol', equipo: 0, jugador: YO, otro: 'x', portero: 'p2' },
-      { tramo: 0, tipo: 'ocasion', equipo: 1, jugador: 'y', portero: YO },
-      { tramo: 1, tipo: 'cambio', equipo: 0, jugador: 'z', otro: YO },
-      { tramo: 1, tipo: 'gol', equipo: 1, jugador: 'y', portero: 'p1' },
+    registro: [
+      { minuto: 0, tramo: 0, tipo: 'gol', equipo: 0, jugador: YO, otro: 'x', portero: 'p2' },
+      { minuto: 0, tramo: 0, tipo: 'ocasion', equipo: 1, jugador: 'y', portero: YO },
+      { minuto: 15, tramo: 1, tipo: 'cambio', equipo: 0, jugador: 'z', otro: YO },
+      { minuto: 15, tramo: 1, tipo: 'gol', equipo: 1, jugador: 'y', portero: 'p1' },
     ],
   } as unknown as ResultadoDePartido;
   const lineas = cronicaDelPartido(r, { equipos: ['Local', 'Visitante'], nombres: { x: 'Xavi', y: 'Yeray', z: 'Zaid', p1: 'Pau', p2: 'Pol' } });
@@ -79,11 +79,11 @@ describe('la crónica sin nombres de desconocidos (dorsales)', () => {
     jugadores: {},
     alineaciones: [['a', 'b', YO], ['c', 'd']],
     jugadas: [],
-    cronica: [
-      { tramo: 0, tipo: 'gol', equipo: 0, jugador: 'a', otro: 'b', portero: 'd' },
-      { tramo: 0, tipo: 'ocasion', equipo: 1, jugador: 'c', portero: YO },
-      { tramo: 0, tipo: 'gol', equipo: 1, jugador: 'd', otro: 'c', portero: YO },
-      { tramo: 0, tipo: 'cambio', equipo: 0, jugador: 'b', otro: 'a' },
+    registro: [
+      { minuto: 0, tramo: 0, tipo: 'gol', equipo: 0, jugador: 'a', otro: 'b', portero: 'd' },
+      { minuto: 0, tramo: 0, tipo: 'ocasion', equipo: 1, jugador: 'c', portero: YO },
+      { minuto: 0, tramo: 0, tipo: 'gol', equipo: 1, jugador: 'd', otro: 'c', portero: YO },
+      { minuto: 0, tramo: 0, tipo: 'cambio', equipo: 0, jugador: 'b', otro: 'a' },
     ],
   } as unknown as ResultadoDePartido;
   const base = { equipos: ['Colegio B', 'Rayo A'] as [string, string], dorsales: { a: 7, b: 4, c: 9, d: 1 }, generos: { a: 'm', b: 'f', c: 'f', d: 'm' } as const, lado: 0 as const };
@@ -120,11 +120,11 @@ describe('la crónica con la descripción de cada jugador que no conoces (decisi
     jugadores: {},
     alineaciones: [['a', 'b', YO], ['c', 'd']],
     jugadas: [],
-    cronica: [
-      { tramo: 0, tipo: 'ocasion', equipo: 1, jugador: 'c', portero: YO },
-      { tramo: 0, tipo: 'gol', equipo: 0, jugador: 'a', otro: 'b', portero: 'd' },
-      { tramo: 0, tipo: 'ocasion', equipo: 1, jugador: 'c', portero: YO },
-      { tramo: 0, tipo: 'ocasion', equipo: 0, jugador: 'b', portero: 'd' },
+    registro: [
+      { minuto: 0, tramo: 0, tipo: 'ocasion', equipo: 1, jugador: 'c', portero: YO },
+      { minuto: 0, tramo: 0, tipo: 'gol', equipo: 0, jugador: 'a', otro: 'b', portero: 'd' },
+      { minuto: 0, tramo: 0, tipo: 'ocasion', equipo: 1, jugador: 'c', portero: YO },
+      { minuto: 0, tramo: 0, tipo: 'ocasion', equipo: 0, jugador: 'b', portero: 'd' },
     ],
   } as unknown as ResultadoDePartido;
   const base = {

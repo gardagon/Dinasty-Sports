@@ -768,3 +768,14 @@ La huella cambia respecto a la de antes (mundo distinto: más gente y otras cara
 Ciudad de ahora (`sim:rapida`): 1,46 ms por acción sin hogares y **1,71 ms con ellos** (el chequeo de rendimiento pasa de ✅ a ⚠️ por el límite calibrado de 1,31 ms de esta máquina: 0,22 × 6,0 ms; 0,285× de la calibración frente a 0,221× antes). El chequeo «El esfuerzo hace progresar» (⚠️, atletismo +4,6 frente a >7) sale igual **sin** hogares: no es de esta ronda.
 
 **Comprobaciones antes del aviso:** `npm run typecheck` ✅; `npm test` ✅ (133 archivos, 1.445 tests); `npm run eventos:validar` ✅ (2 avisos de siempre); `npm run sim:rapida` (ver arriba); `npm run benjamin -- 31,33` (la 31 bien, la 33: ver «Observación»); `npm run probar-web` ✅ y `npm run probar-web:escritorio` ✅ con la semilla 31.
+
+## Ronda 6 (28/11/2026): abaratar los hogares sin cambiar ningún resultado
+
+Perfil (`--cpu-prof` de `sim:rapida` y de la partida de un bot) sobre la base con el reparto nuevo. Lo que más pesaba con hogares era recorrer a todos (unos 6.700 adultos más) cada vez que cambia la lista de personas (≈150 veces por partida de 84 días). Cambios, todos en `modules/npcs/src/index.ts`, **sin cambiar ningún resultado** (huella idéntica con y sin ellos sobre la base nueva, y cada caché nueva comparada con la reconstrucción completa durante más de 680.000 reutilizaciones en 5 bots y en la ciudad grande con fútbol, sin una diferencia):
+
+- La categoría para la agenda del entrenador se pide solo cuando hace falta (antes se calculaba para cada persona).
+- `agendaDePersona` devuelve la agenda cacheada antes de mirar los tipos.
+- Los límites de tramos y los candidatos por lugar se parten de los de la lista anterior cuando solo cambian algunas personas sin cambiar de agenda (`cambiosEntre`); el mapa por id se monta sin tuplas.
+- La vista de una persona se reutiliza de un día a otro si no cambian su edad, su edad exacta, su altura ni su estado (un primer intento sin mirar el estado cambiaba la huella: `estado` se cambia en el sitio; la comprobación lo vio).
+
+Medida: `sim:rapida` pasa de ⚠️ a ✅ en Rendimiento (1,50–1,57 ms por acción con límite 1,62–1,64, tres pasadas); ciudad grande con fútbol (`rendimiento -- 60 --ciudad`): acción 7,5 → 4,4 ms y semana 2.057 → 1.213 ms (la base también cambió entre medidas: el reparto nuevo). `typecheck`, `huella -- 60` (idéntica), `npm test` (135 archivos, 1.483 tests) y `probar-web` ✅.
