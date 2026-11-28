@@ -1,6 +1,6 @@
 /**
  * Tres veranos seguidos con el verano del usuario (`docs/relevo/veranos-metodo.md`): ¿es estable la base? Solo mide: no cambia el juego.
- * `npx tsx tools/verano-tres.ts <semilla> [m|f] [veranos] [eq]` (con `eq`, la partida empieza en equilibrio: `DIAGNOSTICO.equilibrioInicial`): el reparto nuevo de inicio (chicos, benjamín y alevín mixtos) y tres veranos seguidos con `DIAGNOSTICO.veranoUsuario`;
+ * `npx tsx tools/verano-tres.ts <semilla> [m|f] [veranos] [eq|real]` (con `eq`, la partida empieza en equilibrio: `DIAGNOSTICO.equilibrioInicial`; con `real`, el juego tal cual, sin variantes de medida): el reparto nuevo de inicio (chicos, benjamín y alevín mixtos) y tres veranos seguidos con `DIAGNOSTICO.veranoUsuario`;
  * tras cada uno cuenta los equipos por categoría y tipo de club, los de menos de 14, los niños que quieren jugar y no tienen equipo y los equipos de colegio. Salida: `#T {json}`.
  */
 import { PAIS_CIUDAD_GRANDE, registrarPais } from '@ds/contracts';
@@ -11,10 +11,14 @@ import { DIAGNOSTICO, LETRAS_FIJADAS, MEDIDA, SESGO_DE_SEXO, edadDeJuego, intere
 import type { Npc } from '@ds/mod-npcs';
 
 const [semillaTxt = '51', mundo = 'm', veranosTxt = '3', equilibrioTxt = 'no'] = process.argv.slice(2);
+/** `real`: el juego tal cual (sin ninguna variante de medida): lo que hacen la creación y los veranos de la ciudad grande. */
+const REAL = equilibrioTxt === 'real' || equilibrioTxt === 'sin';
+if (equilibrioTxt === 'sin') DIAGNOSTICO.sinRepartoNuevo = true; // el juego de antes del reparto nuevo, para comparar
 const VERANOS = Number(veranosTxt);
 const seed = Number(semillaTxt);
 registrarPais(PAIS_CIUDAD_GRANDE);
 const titulares = (js: unknown): string[] => convocarYAlinear(js as never).titulares.map((x) => x.id);
+if (!REAL) {
 DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
 DIAGNOSTICO.variantePaso23 = { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true, equilibrar: true, maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20 }, subirTitulares: { infantil: true, cadete: true }, titulares } as never;
 DIAGNOSTICO.variantJuvenil = { cascada: 'usuario', titulares } as never;
@@ -25,6 +29,7 @@ SESGO_DE_SEXO.desdeEdad = 12;
 if (mundo === 'f') SESGO_DE_SEXO.sinColegios = true;
 MEDIDA.respetarReparto = true;
 DIAGNOSTICO.equilibrioInicial = equilibrioTxt === 'eq';
+}
 
 const g = nuevaPartida({ seed, pais: PAIS_CIUDAD_GRANDE.id, deportes: ['atletismo', 'futbol'] }, [...MODULOS, futbol]);
 advanceToWeek(g, 'gen.descansar', 0, 2, 9);
@@ -70,16 +75,23 @@ const juvPorClub = (): Record<string, number> => {
   return { ...Object.fromEntries([...letras].map(([c, l]) => [c, l.size])), '#letras': porLetra as never } as never;
 };
 const fotos: { momento: string; foto: Foto; juvClub: Record<string, number> }[] = [{ momento: 'inicio', foto: foto((g.time.week - g.time.schoolWeek) * 7), juvClub: juvPorClub() }];
-DIAGNOSTICO.veranoUsuario = true;
-(DIAGNOSTICO.variantePaso23 as { maxPorEquipo: Record<string, number> }).maxPorEquipo.juvenil = 22;
+if (!REAL) {
+  DIAGNOSTICO.veranoUsuario = true;
+  (DIAGNOSTICO.variantePaso23 as { maxPorEquipo: Record<string, number> }).maxPorEquipo.juvenil = 22;
+}
 const usuario: { verano: number; juvenil: Record<string, number> }[] = [];
 let veranoActual = 0;
-DIAGNOSTICO.traza = (e) => { if (e.fase === 'verano usuario' && e.categoria === 'juvenil') usuario.push({ verano: veranoActual, juvenil: Object.fromEntries(Object.entries(e.datos).filter(([, v]) => typeof v === 'number')) as Record<string, number> }); };
+const tiempos: number[] = [];
+const fasesVistas: Record<string, number> = {};
+DIAGNOSTICO.traza = (e) => { fasesVistas[e.fase] = (fasesVistas[e.fase] ?? 0) + 1; if (e.fase === 'verano usuario' && e.categoria === 'juvenil') usuario.push({ verano: veranoActual, juvenil: Object.fromEntries(Object.entries(e.datos).filter(([, v]) => typeof v === 'number')) as Record<string, number> }); };
 for (let v = 1; v <= VERANOS; v++) {
   veranoActual = v;
   LETRAS_FIJADAS.clear();
+  const t0 = performance.now();
   advanceToWeek(g, 'gen.descansar', 48 + 52 * (v - 1) + 6, 2, 15);
+  tiempos.push(Math.round(performance.now() - t0));
   fotos.push({ momento: `verano ${v}`, foto: foto((g.time.week - g.time.schoolWeek) * 7), juvClub: juvPorClub() });
   advanceToWeek(g, 'gen.descansar', 48 + 52 * v, 2, 15);
 }
-console.log(`#T ${JSON.stringify({ seed, mundo, fotos, usuario })}`);
+if (process.env.DS_FASES) console.log('#FASES', JSON.stringify(fasesVistas));
+console.log(`#T ${JSON.stringify({ seed, mundo, fotos, usuario, tiempos })}`);

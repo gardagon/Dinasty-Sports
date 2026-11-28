@@ -196,6 +196,8 @@ Sobran semanas: 18 jornadas más 5 rondas de copa son 23 sábados de los ~30 que
 
 ## 7. El verano: plazo de fichajes y plantillas nuevas
 
+> **28/11/2026 — El verano nuevo (ciudad grande).** Con `CiudadDef.repartoNuevo`, cada verano los clubes mantienen los equipos que tenían (solo se cierra el que no llega a 14 después de todo), los que abandonan y dejarían a su equipo sin 14 se quedan, el barrido recorre los clubes de arriba abajo, benjamín y alevín van en equipos de 18 y el juvenil se reparte por cercanía de nivel con cascada por puesto y plazas libres al final. Explicado y medido en `docs/relevo/verano-nuevo-implementado.md` (método: `docs/relevo/veranos-metodo.md`). Lo de abajo describe el verano de siempre, que siguen usando la ciudad de ahora y la de prueba.
+
 **Decidido por el usuario el 03/11/2026, igual para el personaje y los PNJ y para todos los deportes** (la regla está en el kit del deporte; las fechas, en los datos del deporte por país).
 
 **El plazo de fichajes va del verano a la primera competición del curso** (en el fútbol, la primera jornada de liga; en el atletismo, la primera carrera). Sale de la temporada de cada deporte en cada país (`semanasDePretemporada`) y del calendario del país (`plazoDeFichajesAbierto` en `contracts`). En España, de la semana 42 del curso (el verano) a la 4 del curso siguiente.

@@ -152,6 +152,8 @@ export interface EquipoGuardado extends EquipoDeDeporte {
    * (el «draft», `draftDeEquipos`) y los cierra si no llega al mínimo de jugadores. La plantilla del club en esa categoría es el máximo de un equipo por el número de equipos.
    */
   equiposPorCategoria?: Record<string, number>;
+  /** El máximo de equipos que ha tenido el club en cada categoría (id → número): si un verano desaparece uno, el verano nuevo (`CiudadDef.repartoNuevo`) lo vuelve a montar en cuanto la plantilla da para 14 por equipo. Ausente = el que tiene. */
+  techoDeEquipos?: Record<string, number>;
   /**
    * Plazas de más por equipo en cada categoría (1 o 2; ausente = 0): lo último del reparto deja pasar del máximo a un equipo solo para no dejar a un niño con interés sin equipo (decisión del usuario, 17/11/2026).
    * Suben el máximo de cada equipo del club en esa categoría (`maximoPorEquipo`); el reparto de cada curso lo recalcula con lo que haga falta.
@@ -1084,6 +1086,30 @@ function conRepartoNuevo<T>(crear: () => T): T {
   }
 }
 
+/**
+ * El verano nuevo (`CiudadDef.repartoNuevo`, `docs/relevo/veranos-metodo.md`): en vez de rehacer los equipos con las reglas de siempre, los clubes **mantienen los que tenían** (solo se cierra el que no llega a 14 después de todo y solo se abre uno si
+ * hace falta); los que abandonan y dejarían a su equipo sin los 14 se quedan; los que buscan fuera van a la reserva y el barrido recorre los clubes de arriba abajo (con dos pruebas por desplazado y una última pasada sin cupo de puesto); los
+ * colegios, al final, con su lista de abandonos; benjamín y alevín en equipos de 18 (22 solo si sobran; como mucho 2 los grandes en benjamín); y el juvenil por cercanía de nivel, con la cascada por puesto, plazas libres al final y el C que pasa a B
+ * si desaparece un B. Se aplica a las partidas con ciudad grande, también a las guardadas antes (desde su siguiente verano, con las letras que ya tienen). Como en la creación, si una herramienta de medida ya ha puesto sus variantes, se respetan.
+ */
+function conVeranoNuevo<T>(renovar: () => T): { r: T; nuevo: boolean } {
+
+  if (!repartoNuevoActivo() || DIAGNOSTICO.veranoUsuario || DIAGNOSTICO.veranoNuevo) return { r: renovar(), nuevo: false };
+  const antes = { primera: DIAGNOSTICO.variantePrimeraRonda, paso23: DIAGNOSTICO.variantePaso23, juvenil: DIAGNOSTICO.variantJuvenil, usuario: DIAGNOSTICO.veranoUsuario, respetar: MEDIDA.respetarReparto };
+  DIAGNOSTICO.variantePrimeraRonda = { porAnio: 14 };
+  DIAGNOSTICO.variantJuvenil = { cascada: 'usuario' };
+  DIAGNOSTICO.variantePaso23 = { completarBMixto: 20, reagrupar: true, paso7: true, bolsaBA: true, equilibrar: true, maxPorEquipo: { benjamin: 18, alevin: 18, infantil: 20, cadete: 20, juvenil: 22 }, subirTitulares: { infantil: true, cadete: true } };
+  DIAGNOSTICO.veranoUsuario = true;
+  MEDIDA.respetarReparto = true;
+  LETRAS_FIJADAS.clear(); REPARTO_DE_INICIO.clear();
+  try {
+    return { r: renovar(), nuevo: true };
+  } finally {
+    DIAGNOSTICO.variantePrimeraRonda = antes.primera; DIAGNOSTICO.variantePaso23 = antes.paso23; DIAGNOSTICO.variantJuvenil = antes.juvenil; DIAGNOSTICO.veranoUsuario = antes.usuario; MEDIDA.respetarReparto = antes.respetar;
+    LETRAS_FIJADAS.clear(); REPARTO_DE_INICIO.clear();
+  }
+}
+
 function generarTodos(ctx: InitContext, pobs: readonly PoblacionGuardada[]): { npcs: Npc[]; pobs: PoblacionGuardada[]; hogares?: Record<string, HogarGuardado> } {
   avisarDelProgreso('Dando vida a las personas: familias, colegios y vecinos…', 0.01);
   let base = generarReparto(ctx, pobs[0]);
@@ -1858,8 +1884,8 @@ export const npcs = defineModule<NpcsState>({
       const resultado = { sinPlaza: [] as string[], plazaExtra: [] as string[], sinNinos: [] as { deporte: string; motivo: MotivoDeEquipoSinNinos; jugadores?: number; minimo?: number }[], dejanSinClub: 0, pobs: undefined as PoblacionGuardada[] | undefined, propuestas: [] as { deporte: string; puesto: string }[] };
       ctx.updateState<NpcsState>((s) => {
         const familias = s.hogares && VARIANTES.renovar === 'familias' ? conPais(ctx.pais, () => renovarConFamilias(s.npcs, proximo.day, ctx.rng, s.hogares!, s.semilla ?? 0)) : undefined;
-        const npcs = conPais(ctx.pais, () => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(familias?.npcs ?? renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day));
-        const pobsNuevas = resultado.pobs ?? pobs;
+        const { r: npcs, nuevo: veranoNuevo } = conPais(ctx.pais, () => conVeranoNuevo(() => actualizarHermanos(ajustarVecinos(renovarDeportistas(conCapacidades(conSemilla(familias?.npcs ?? renovarAlumnos(s.npcs, proximo.day, ctx.rng), s.semilla ?? 0), proximo.day), pobs, proximo.day, ctx.rng, reservas, rend, s.semilla ?? 0, proximo.schoolYear, personaje, resultado), s.semilla ?? 0, proximo.day), proximo.day)));
+        const pobsNuevas = veranoNuevo ? (resultado.pobs ?? pobs).map((p) => ({ ...p, repartoNuevo: true })) : resultado.pobs ?? pobs;
         return { ...s, poblaciones: pobsNuevas, npcs: conApuntados(conCuerpo(conCapacidades(conHabilidades(npcs, pobsNuevas, rend, proximo.day), proximo.day), proximo.day, s.semilla ?? 0, fraccionLectiva(ctx.pais), escolarDelPais(ctx.pais, proximo.day)), pobsNuevas, proximo.day, s.semilla ?? 0), dejanSinClub: { ...s.dejanSinClub, [proximo.schoolYear]: resultado.dejanSinClub }, ...(familias ? { hogares: familias.hogares, familiasPorCurso: { ...s.familiasPorCurso, [proximo.schoolYear]: { hermanos: familias.hermanos, mudanzas: familias.mudanzas, archivadas: familias.archivadas, borradas: familias.borradas } } } : {}) };
       });
       // El entrenador le propone al personaje otro puesto si en el suyo sobran y en otro faltan (decide él: `club.cambio_de_puesto`).

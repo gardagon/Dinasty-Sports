@@ -5,6 +5,12 @@ Añade una entrada nueva al principio cuando tomes una decisión de diseño o de
 
 ---
 
+## 28/11/2026 — El verano nuevo, en el juego (parte 2)
+
+- **El verano del usuario (`veranos-metodo.md`, v5 + juvenil v5) es el verano de la ciudad grande** (`CiudadDef.repartoNuevo`), también en las partidas guardadas antes (desde su siguiente verano, con las letras que ya tienen; el primero deja 0 equipos por debajo de 14). La ciudad de ahora y la de prueba siguen con el verano de siempre.
+- Los equipos se mantienen; benjamín y alevín de 18; juvenil por cercanía de nivel, cascada por puesto, plazas libres, abandonos que se quedan, el C pasa a B y el B se recrea (`techoDeEquipos`, guardado en cada club). Categorías estables en 8 veranos (menos de 14: 0; sin equipo ~2 %); el juvenil cambia su número de equipos en el 6,7 % de los clubes y veranos (93 % estables; el 99 % no se alcanza: el juvenil crece despacio).
+- El verano nuevo cuesta menos (3,5–4,3 s frente a 6–7 s). Medido y explicado en `docs/relevo/verano-nuevo-implementado.md` (con el test de eventos, que va justo de tiempo ya antes).
+
 ## 27/11/2026 — El reparto nuevo y la partida en equilibrio, en el juego (parte 1)
 
 - **Dato de la ciudad, no una bandera de medida:** `CiudadDef.repartoNuevo` (solo `CIUDAD_GRANDE`). La ciudad de ahora y la de prueba se quedan con el reparto de siempre (el usuario dijo que no habrá ciudad pequeña en el futuro; quedan para los tests y las comparaciones) y las partidas guardadas no se migran (`PoblacionGuardada.repartoNuevo` marca las nuevas).
