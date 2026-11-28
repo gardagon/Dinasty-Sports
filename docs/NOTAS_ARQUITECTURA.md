@@ -48,7 +48,7 @@ Rama de trabajo: **`claude/youthful-clarke-vs0kye`**. Publicada en GitHub Pages 
 
 ## 3 bis. Sesiones en curso
 
-**Uso (28/11):** el usuario pide reactivar las 3 sesiones paradas **una a una**. Orden: 1) hogares, abaratar (✅ unida el 28/11: `sim:rapida` en verde, acción 4,4 ms y semana 1,2 s en la ciudad grande); 2) salud F2 (reactivada el 28/11); 3) partidos P1. Cuando termine una, se reactiva la siguiente. Aparte, pendiente para publicar: abaratar o partir el test de los caminos de los sucesos (235 de 240 s).
+**Uso (28/11):** el usuario pide reactivar las 3 sesiones paradas **una a una**. Orden: 1) hogares, abaratar (✅ unida el 28/11: `sim:rapida` en verde, acción 4,4 ms y semana 1,2 s en la ciudad grande); 2) salud F2 (✅ unida el 28/11: efectos del sueño activos, chequeos en verde); 3) partidos P1 (reactivada el 28/11). Pendiente de decidir: F3 de salud (bajas en días y `SAVE_VERSION`; si el sueño baja la moral de los PNJ). Cuando termine una, se reactiva la siguiente. Aparte, pendiente para publicar: abaratar o partir el test de los caminos de los sucesos (235 de 240 s).
 
 **Trabajando (24/11):**
 - `session_01M4vXXQ6DoRWA2UGVauypzR` (`claude/hogares`): ronda 5 unida (hogares activados por defecto en las 3 ciudades; grande 12.833 personas, 26,3 MB, semana 2,06 s). Ahora: abaratar sin cambiar la huella (`sim:rapida` en ⚠️, 1,71 frente a 1,31 ms). **No publicar hasta que vuelva a ✅.** Después: H1 completo y lote 3 de sucesos;
