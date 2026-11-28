@@ -26,3 +26,17 @@ Lo que antes era medida (`docs/relevo/reparto-nuevo-reglas.md`, `veranos-metodo.
 
 - Los veranos de una partida creada con el reparto nuevo siguen con las reglas de siempre (rehacen los equipos); la parte 2 aplica el verano nuevo (`veranos-metodo.md` v5 + juvenil v5) con `PoblacionGuardada.repartoNuevo` como dato.
 - Parte 3: chicas ~10 %, equipos separados desde infantil y femenino solo en clubes externos.
+
+## Equipos de 18 en benjamín y alevín al crear (28/11/2026)
+
+Reglas en `reparto-nuevo-reglas.md` (sección «Benjamín y alevín: equipos de 18»). Medido en el juego real (ciudad grande, con hogares):
+
+- Tamaños al crear (semillas 31 y 32): antes había equipos de 22 (los de colegio y alguno externo) junto a otros de 14; ahora el máximo es 18 (14–18), sin ningún 22.
+- `equipos-minimo -- grande con 51-60`: **0 equipos por debajo de 14** al empezar y en el día 6, sin jugadores sin letra.
+- Veranos 51 y 52 en el juego real (`verano-tres.ts <semilla> m 8 real`): 0 equipos por debajo de 14 en benjamín a juvenil (las filas «senior» de la herramienta no son equipos de liga).
+- `typecheck` ✅; `npm test` 135 archivos, 1.483 tests ✅ (648 s); `sim:rapida` con los mismos ⚠️ de antes («Rendimiento», «El esfuerzo hace progresar»); `huella -- 60` igual que tras la parte 3 (futbol 31 `178e480f9c57 217c677a28d2`, 32 `19438bfe0d50 ce8b54299650`); `rendimiento --ciudad`: crear 5,8–7,0 s, estado 24,0 MB, 242 ms por día simulado.
+- `probar-web` y `probar-web:escritorio` ✅: no dependen de la suerte; usan la semilla fija 31 (por defecto), con la que el personaje tiene plaza en el colegio y lo convocan.
+
+### La plaza del personaje NO vuelve a 20/20
+
+`benjamin -- 1..20`: **15 de 20 con plaza** (sin plaza: 6, 8, 10, 11 y 16), igual que antes del cambio. Los equipos de 22 desaparecen, pero un equipo de colegio de exactamente 18 está **completo** (la regla de plaza mide por grupos de puestos: sin hueco, el personaje solo entra si vale más que el peor de su puesto; p. ej. semilla 16: nivel 9 frente a 13). Con la mitad de niños que antes el colegio apenas pasa de 18, y con el mundo anterior (el doble de niños) los equipos del colegio quedaban por debajo del máximo. Sin plaza reservada, la única forma de acercarse a 20/20 es que los equipos de colegio salgan con algún hueco (p. ej. tope de 16–17 en el colegio), que es una decisión de diseño del usuario.

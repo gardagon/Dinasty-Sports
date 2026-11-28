@@ -2788,3 +2788,8 @@ Resultado: los 11 chequeos de sentido del juego en verde. Resumen del año simul
 - **Azar de los rivales:** hecho (progreso y marcas con generador propio). La elección de carrera se sustituyó (28/10) por la asistencia según nivel y último puesto. Queda la tabla de roles por ejes de carácter (ver «Siguientes pasos»).
 - ~~Test de la sala de profesores~~ **Hecho** (28/10): ahora busca un recreo en que el tutor esté en la sala y otro en que esté en el patio, así que sus comprobaciones corren siempre.
 - **Acciones de GitHub:** al día desde el 28/10 (ver la entrada de ese día). Revisar de vez en cuando las versiones (`ci.yml` y `pages.yml`).
+
+### 28/11/2026 — Benjamín y alevín: equipos de 18 también al crear (aplicado) y plaza del personaje
+
+- **Hecho:** el reparto de inicio de benjamín y alevín forma equipos de 18; solo se llega a 22 con quien si no se quedaría sin equipo, y antes se forman equipos nuevos de 14 a 18 (`reparto-nuevo-reglas.md`). 0 equipos por debajo de 14 (semillas 51–60), `npm test` ✅, huella sin cambio.
+- **Resultado sobre la plaza:** sigue en 15 de 20 semillas (`benjamin -- 1..20`): un equipo de colegio de 18 está completo y el personaje solo entra por mérito. **Pendiente de decisión del usuario:** equipos de colegio con tope menor (16–17) o aceptar la plaza por mérito. `probar-web` usa la semilla fija 31 (con plaza).
